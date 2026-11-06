@@ -50,6 +50,7 @@ struct FunctionDefinitionWriter: ASTVisitor, ~Copyable {
     var currentFunction: FunctionID?
     var continuing: Continuing?
     var visitedFunctions = IDSet<FunctionID>()
+    var forcedInliningCallees = IDSet<FunctionID>()
     var packedStructures = SideTable<StructureID, StructureID>()
     var usedPackHelpers = IDSet<StructureID>()
     var usedUnpackHelpers = IDSet<StructureID>()
@@ -129,6 +130,8 @@ extension FunctionDefinitionWriter {
 
         helperGenerator.output.append(contentsOf: body)
         body.clear()
+
+        selectForcedInliningCallees()
 
         var entryPointIndex = 0
         while entryPointIndex < shaderModule.callGraph.entrypoints.count {

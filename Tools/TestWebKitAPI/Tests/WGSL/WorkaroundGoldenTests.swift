@@ -154,7 +154,7 @@ struct WGSLWorkaroundGoldenTests {
     }
 }
 
-// BEGIN the C++ goldens: the helper bodies of MetalFunctionWriter.cpp:122-290 (captured text sha1 528c31dd2546db280acc3295669c52c4a3f698ec) and emitNecessaryHelpers (MetalFunctionWriter.cpp sha1 97a3cae56e63013bf79425aefd55d34729ad9267, lines 492-1025); do not edit.
+// BEGIN the C++ goldens: the helper bodies of MetalFunctionWriter.cpp:124-292 (captured text sha1 0e218b64991331ec896dea025e0178087805ee3b) and emitNecessaryHelpers (MetalFunctionWriter.cpp sha1 b9fa8d28244d5c905c5ab72cab58af51dc53f17a, lines 507-1040); do not edit.
 enum CxxWorkaroundGolden {
     /// The helper bodies, in C++ order.
     static let helpers: [(name: String, text: String)] = [

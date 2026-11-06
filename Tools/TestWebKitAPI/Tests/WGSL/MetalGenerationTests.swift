@@ -30,7 +30,7 @@ private struct TranslationError: Error {
     let errors: [CompilationMessage]
 }
 
-private func translate(_ wgsl: String, _ entryPointName: String) -> Result<String, TranslationError> {
+private func translate(_ wgsl: String, _ entryPointName: String, appleGPUFamily: UInt32 = 4) -> Result<String, TranslationError> {
     onCompileThread { compileThread in
         switch compileThread.staticCheck(wtfSource(wgsl), configuration: noFeaturesConfiguration) {
         case .failure(let maybeError):
@@ -40,7 +40,10 @@ private func translate(_ wgsl: String, _ entryPointName: String) -> Result<Strin
             case .failed(let maybeError, _):
                 return .failure(TranslationError(errors: [maybeError]))
             case .prepared(let prepareResult):
-                switch prepareResult.generate(overrides: [], deviceState: DeviceState(appleGPUFamily: 4, shaderValidationEnabled: false)) {
+                switch prepareResult.generate(
+                    overrides: [],
+                    deviceState: DeviceState(appleGPUFamily: appleGPUFamily, shaderValidationEnabled: false)
+                ) {
                 case .failed(let maybeError, _):
                     return .failure(TranslationError(errors: [maybeError]))
                 case .generated(let generationResult, _):
@@ -207,6 +210,53 @@ struct WGSLMetalGenerationTests {
 
             """
         )
+    }
+
+    private static let mixedArgumentShader = """
+
+        fn mixed(x : f32, y : f32) -> f32 { return sin(x) * y; }
+        fn unrelated(x : f32) -> f32 { return x + 1.0; }
+
+        @group(0) @binding(0) var<storage, read_write> out : array<f32>;
+        @group(0) @binding(1) var<uniform> inp : vec4f;
+
+        @compute @workgroup_size(1)
+        fn main() {
+            out[0] = mixed(2.0, inp.x) + mixed(inp.y, inp.x) + unrelated(inp.z) + unrelated(inp.w);
+        }
+        """
+
+    @Test
+    func ForcesInliningWhenParameterMixesConstantAndRuntimeArguments() throws {
+        let family9 = try translate(Self.mixedArgumentShader, "main", appleGPUFamily: 9).get()
+        #expect(family9.contains("__attribute__((always_inline)) float function0("))
+        #expect(!family9.contains("__attribute__((always_inline)) float function1("))
+
+        let family8 = try translate(Self.mixedArgumentShader, "main", appleGPUFamily: 8).get()
+        #expect(!family8.contains("__attribute__((always_inline)) float function"))
+    }
+
+    @Test
+    func DoesNotForceInliningWhenArgumentsAreAllConstantOrAllRuntime() throws {
+        let mslSource = try translate(
+            """
+
+            fn allConstant(x : f32) -> f32 { return x + 1.0; }
+            fn allRuntime(x : f32) -> f32 { return x + 2.0; }
+
+            @group(0) @binding(0) var<storage, read_write> out : array<f32>;
+            @group(0) @binding(1) var<uniform> inp : vec4f;
+
+            @compute @workgroup_size(1)
+            fn main() {
+                out[0] = allConstant(1.0) + allConstant(2.0) + allRuntime(inp.x) + allRuntime(inp.y);
+            }
+            """,
+            "main",
+            appleGPUFamily: 9
+        )
+        .get()
+        #expect(!mslSource.contains("__attribute__((always_inline)) float function"))
     }
 
     @Test

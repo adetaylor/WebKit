@@ -107,6 +107,11 @@ public enum MTLWorkaround {
     @_spi(Testing)
     public static let forceInlineAttribute: MSLText = "__attribute__((always_inline)) "
 
+    /// C++ `maximumInliningGrowthFactor`: the source length the functions a mixed constant and runtime argument forces inline
+    /// may add, as a multiple of the reached functions' own.
+    @_spi(Testing)
+    public static let maximumInliningGrowthFactor: UInt64 = 4
+
     /// On `__workgroup_uniform_load` when shader validation is enabled.
     @_spi(Testing)
     public static let optnoneAttribute = MSLHelperText("[[clang::optnone]] ")

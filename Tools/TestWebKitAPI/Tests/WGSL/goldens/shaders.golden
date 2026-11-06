@@ -10967,7 +10967,7 @@ unit
 =copy this 20 2
 end
 
-expect 3894
+expect 3991
 WGSLDUMP 1
 input id="shadowing.wgsl" bytes=2609 units=2609 is8bit=1
 =copy prev 2 2
@@ -11133,7 +11133,10 @@ int function16()
 =copy prev 56 3
 =copy this 191 5
 =copy prev 59 2
-=copy this 198 169
+    msl utf8 2610
+=copy this 199 30
+__attribute__((always_inline)) int function0(int parameter0)
+=copy this 230 137
 =copy prev 81 3
 =copy this 370 5
 =copy prev 84 2
@@ -11141,7 +11144,7 @@ int function16()
 unit 4
   req "main" layout=auto
 =copy this 369 8
-    msl-hash sha256=57f52a6727e8a14ae490b3b3e3034f18cb59e5479e4e497308e71de12ace1ef8 bytes=2579
+    msl-hash sha256=a5eb8e2bf3d21cd694ca44c69f7b70fd5bcaf88297c17fbc82cf1dfdfdc73390 bytes=2610
   end-prepare
   evaluate "main" x=i64:1 y=- z=- int=1,1,1
 unit 5

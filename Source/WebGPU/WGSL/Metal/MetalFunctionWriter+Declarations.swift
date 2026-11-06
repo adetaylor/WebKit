@@ -21,15 +21,25 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+/// C++ `ArgumentKind`: whether the calls of a function pass a constant, a runtime value, or both in an argument position.
+struct ArgumentKinds: OptionSet {
+    let rawValue: UInt8
+
+    static let constant = ArgumentKinds(rawValue: 1 << 0)
+    static let runtime = ArgumentKinds(rawValue: 1 << 1)
+}
+
+/// C++ `CallSiteInfo`: the argument kinds of every call of a function, by position.
+struct CallSiteInfo {
+    var argumentKinds: [ArgumentKinds] = []
+    var hasMixedArgument = false
+}
+
 extension FunctionDefinitionWriter {
-    mutating func shouldForceInlining(_ functionDefinition: FunctionID) -> Bool {
-        switch gpuClass {
-        case .belowApple9:
-            return false
-        case .apple9OrLater:
-            break
-        }
-        if entryPointStage != nil {
+    /// C++ `returnsLargeAggregate`: a function that is not an entry point and returns a struct or an array of at least
+    /// `minimumInlinedReturnSize`.
+    mutating func returnsLargeAggregate(_ functionDefinition: FunctionID) -> Bool {
+        if shaderModule[functionDefinition].stage != nil {
             return false
         }
 
@@ -49,6 +59,109 @@ extension FunctionDefinitionWriter {
             return false
         }
         return size >= MTLWorkaround.minimumInlinedReturnSize
+    }
+
+    /// C++ `collectCallSiteInfo` and `selectForcedInliningCallees`. From Apple9 on, the functions the prepared entry points
+    /// reach are forced inline when they return a large aggregate, or when their calls pass a constant and a runtime value in
+    /// the same argument position and the extra bodies fit in the growth budget, callers first.
+    mutating func selectForcedInliningCallees() {
+        switch gpuClass {
+        case .belowApple9:
+            return
+        case .apple9OrLater:
+            break
+        }
+
+        // DEV-03: the callees-first order comes from CallGraph's iterative walk, where the C++ recurses.
+        var collectedFunctions = IDSet<FunctionID>()
+        var functionsCalleesFirst: [FunctionID] = []
+        var entryPointIndex = 0
+        while entryPointIndex < shaderModule.callGraph.entrypoints.count {
+            let entryPoint = shaderModule.callGraph.entrypoints[entryPointIndex]
+            entryPointIndex &+= 1
+            if prepareResult.find(entryPoint.apiName) != nil {
+                functionsCalleesFirst.append(
+                    contentsOf: shaderModule.callGraph.calleesFirstOrder(from: entryPoint.function, visited: &collectedFunctions)
+                )
+            }
+        }
+
+        var callSiteInfo = SideTable<FunctionID, CallSiteInfo>()
+        var functionIndex = 0
+        while functionIndex < functionsCalleesFirst.count {
+            let callees = shaderModule.callGraph.callees(functionsCalleesFirst[functionIndex])
+            functionIndex &+= 1
+            var calleeIndex = 0
+            while calleeIndex < callees.count {
+                let callee = callees[calleeIndex]
+                calleeIndex &+= 1
+                var info = callSiteInfo.get(callee.target) ?? CallSiteInfo()
+                var callSiteIndex = 0
+                while callSiteIndex < callee.callSites.count {
+                    let arguments = shaderModule.downcast(CallExpression.self, callee.callSites[callSiteIndex].call).arguments
+                    callSiteIndex &+= 1
+                    let argumentCount = shaderModule.count(arguments)
+                    while info.argumentKinds.count < argumentCount {
+                        info.argumentKinds.append(ArgumentKinds())
+                    }
+                    var i = 0
+                    while i < argumentCount {
+                        let isConstant = shaderModule.constantValueForWriter(shaderModule[arguments, i]) != nil
+                        info.argumentKinds[i].insert(isConstant ? .constant : .runtime)
+                        if info.argumentKinds[i].isSuperset(of: [.constant, .runtime]) {
+                            info.hasMixedArgument = true
+                        }
+                        i &+= 1
+                    }
+                }
+                _ = callSiteInfo.set(callee.target, info)
+            }
+        }
+
+        let maximumBodyCount = UInt64(UInt32.max)
+
+        var remainingGrowth: UInt64 = 0
+        functionIndex = 0
+        while functionIndex < functionsCalleesFirst.count {
+            remainingGrowth &+= UInt64(shaderModule[functionsCalleesFirst[functionIndex]].span.length)
+            functionIndex &+= 1
+        }
+        remainingGrowth &*= MTLWorkaround.maximumInliningGrowthFactor
+
+        var bodyCounts = SideTable<FunctionID, UInt64>()
+        var index = functionsCalleesFirst.count
+        while index > 0 {
+            index &-= 1
+            let function = functionsCalleesFirst[index]
+            let bodies = max(bodyCounts.get(function) ?? 0, 1)
+            var forced = returnsLargeAggregate(function)
+            if !forced, let info = callSiteInfo.get(function), info.hasMixedArgument {
+                let growth = (bodies &- 1) &* UInt64(shaderModule[function].span.length)
+                if growth <= remainingGrowth {
+                    remainingGrowth &-= growth
+                    forced = true
+                }
+            }
+            if forced {
+                _ = forcedInliningCallees.add(function)
+            }
+            let inlinedBodies = forced ? bodies : 1
+            let callees = shaderModule.callGraph.callees(function)
+            var calleeIndex = 0
+            while calleeIndex < callees.count {
+                let callee = callees[calleeIndex]
+                calleeIndex &+= 1
+                let calleeBodies = bodyCounts.get(callee.target) ?? 0
+                _ = bodyCounts.set(
+                    callee.target,
+                    min(calleeBodies &+ UInt64(callee.callSites.count) &* inlinedBodies, maximumBodyCount)
+                )
+            }
+        }
+    }
+
+    mutating func shouldForceInlining(_ functionDefinition: FunctionID) -> Bool {
+        entryPointStage == nil && forcedInliningCallees.contains(functionDefinition)
     }
 
     /// C++ `visit(AST::Function&)` of an entry point, which writes its callees first.
