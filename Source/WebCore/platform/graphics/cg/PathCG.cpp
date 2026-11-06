@@ -859,4 +859,15 @@ CGMutablePathRef CGRendererCreatePath(CGRendererPathSegment segment)
     return path.leakRef();
 }
 
+CGPathRef CGRendererCopyPlatformPath(const WebCore::PathImpl& impl)
+{
+    if (auto* stream = dynamicDowncast<WebCore::PathStream>(impl)) {
+        RetainPtr path = adoptCF(CGPathCreateMutable());
+        for (auto& segment : *stream->segmentsIfExists())
+            WebCore::addToCGPath(path.get(), segment);
+        return path.leakRef();
+    }
+    return RetainPtr<CGPathRef> { downcast<WebCore::PathCG>(impl).platformPath() }.leakRef();
+}
+
 #endif // USE(CG)

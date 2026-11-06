@@ -390,12 +390,13 @@ void GraphicsContextCG::addSwiftRendererLender()
     ++m_swiftRendererLenders;
 }
 
-bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message)
+bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path)
 {
+    RetainPtr<CGPathRef> platformPath = path ? path->platformPath() : nullptr;
     bool handled;
     {
         auto lend = lendSwiftRenderer(*this);
-        handled = lend.state().applyReceiverMessageForTesting(message);
+        handled = lend.state().applyReceiverMessageForTesting(message, platformPath.get());
     }
     if (handled)
         return true;
@@ -793,6 +794,28 @@ CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, C
 CGColorRef CGRendererCopyCachedColor(uint32_t packedColor)
 {
     return WebCore::cachedCGColor(WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }) }).leakRef();
+}
+
+void CGRendererClipToPath(CGContextRef context, const WebCore::Path& path, WebCore::WindRule clipRule)
+{
+    if (path.isEmpty())
+        CGContextClipToRect(context, CGRectZero);
+    else {
+        WebCore::setCGContextPath(context, path);
+        if (clipRule == WebCore::WindRule::EvenOdd)
+            CGContextEOClip(context);
+        else
+            CGContextClip(context);
+    }
+}
+
+void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
+{
+    CGContextBeginPath(context);
+    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+    if (!path.isEmpty())
+        WebCore::addToCGContextPath(context, path);
+    CGContextEOClip(context);
 }
 
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
@@ -1209,27 +1232,13 @@ void GraphicsContextCG::clipOut(const FloatRect& rect)
 void GraphicsContextCG::clipOut(const Path& path)
 {
     CAPTURE(clipOut(path));
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextBeginPath(context);
-    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
-    if (!path.isEmpty())
-        addToCGContextPath(context, path);
-    CGContextEOClip(context);
+    CGRendererClipOutToPath(contextForDraw().get(), path);
 }
 
 void GraphicsContextCG::clipPath(const Path& path, WindRule clipRule)
 {
     CAPTURE(clipPath(path, clipRule));
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    if (path.isEmpty())
-        CGContextClipToRect(context, CGRectZero);
-    else {
-        setCGContextPath(context, path);
-        if (clipRule == WindRule::EvenOdd)
-            CGContextEOClip(context);
-        else
-            CGContextClip(context);
-    }
+    CGRendererClipToPath(contextForDraw().get(), path, clipRule);
 }
 
 void GraphicsContextCG::clipTransformedPath(const AffineTransform& pathTransform, const Path& path, WindRule clipRule)

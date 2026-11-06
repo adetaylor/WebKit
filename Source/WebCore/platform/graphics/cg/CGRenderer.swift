@@ -2908,6 +2908,48 @@ extension CGRendererCore {
         drawRect(rect, borderThickness, !fillAndStrokeColorsAreEqual())
     }
 
+    // A path's fill, stroke and draw, as GraphicsContextCG's: a gradient declines, for the context to paint it, before the
+    // receiver makes the path's CGPath.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveFillsWithoutGradient() -> Bool {
+        fillsWithoutGradient()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveStrokesWithoutGradient() -> Bool {
+        strokesWithoutGradient()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillPath(_ path: CGPath) {
+        fillPath(path)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokePath(_ path: CGPath) {
+        strokePath(path)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawPath(_ path: () -> CGPath) -> Bool {
+        guard fillsWithoutGradient() && strokesWithoutGradient() else {
+            return false
+        }
+        hasDrawn = true
+        if drawsPath() {
+            drawPath(path())
+        }
+        return true
+    }
+
+    // A clip to a path, or out of it, which the receiver's C++ applies to the context as GraphicsContextCG's clipPath() and
+    // clipOut(const Path&) do.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClip(_ clip: (CGContext) -> Void) {
+        hasDrawn = true
+        clip(context)
+    }
+
     // RemoteGraphicsContext::strokeLinesWithColorAndThickness(): each line in its stroke color and thickness, which are set
     // only where they differ from the line before's.
     @_expose(!Cxx)
@@ -2947,7 +2989,7 @@ extension CGRendererCore {
     // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting());
     // false where it declines it.
     @_expose(Cxx)
-    mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage) -> Bool {
+    mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage, _ path: CGPath?) -> Bool {
         let v = message.values
         let i = message.integers
         let rect = CGRect(x: CGFloat(v.0), y: CGFloat(v.1), width: CGFloat(v.2), height: CGFloat(v.3))
@@ -3000,6 +3042,21 @@ extension CGRendererCore {
             if message.segment.flag {
                 strokeLine(s.5, s.6, s.7, s.8, i.1, s.9, &previous)
             }
+        case 38, 39:
+            // A path of several segments' fill or stroke, whose CGPath the caller made.
+            guard let path, message.message == 38 ? receiveFillsWithoutGradient() : receiveStrokesWithoutGradient() else {
+                return false
+            }
+            if message.message == 38 {
+                receiveFillPath(path)
+            } else {
+                receiveStrokePath(path)
+            }
+        case 40:
+            guard let path else {
+                return false
+            }
+            return receiveDrawPath { path }
         default: break
         }
         return true

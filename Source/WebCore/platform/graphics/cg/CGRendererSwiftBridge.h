@@ -30,6 +30,7 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <WebCore/PathSegment.h>
 #include <WebCore/PlatformExportMacros.h>
+#include <WebCore/WindRule.h>
 #include <span>
 #include <stdint.h>
 #include <wtf/RefCounted.h>
@@ -129,6 +130,8 @@ class CGRendererCore;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
+class Path;
+class PathImpl;
 class Pattern;
 class SourceBrush;
 }
@@ -237,9 +240,16 @@ struct CGRendererPathSegment {
 WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
 WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment) __attribute__((availability(swift, unavailable)));
 
+// GraphicsContextCG's clipPath() and clipOut(const Path&), for the C++ of a Swift receiver's path clips too.
+WEBCORE_EXPORT void CGRendererClipToPath(CGContextRef _Nonnull, const WebCore::Path&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
+WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore::Path&) __attribute__((availability(swift, unavailable)));
+
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
-CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
+// The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it
+// would make first.
+WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {
