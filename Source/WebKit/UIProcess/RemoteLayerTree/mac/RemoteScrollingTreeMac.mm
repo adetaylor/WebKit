@@ -49,6 +49,7 @@
 #import <wtf/SetForScope.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/text/TextStream.h>
+#import <wtf/Scope.h>
 
 namespace WebKit {
 
@@ -386,6 +387,8 @@ WheelEventHandlingResult RemoteScrollingTreeMac::handleWheelEventAfterDefaultHan
     if (!targetNodeID && (wasHandled || !defaultHandlingFrameID))
         return WheelEventHandlingResult::unhandled();
 
+    // handleWheelEventWithNode() hands Swift a ScrollingTreeLockedAccess.
+    Ref protectedThis { *this };
     Locker locker { m_treeLock };
 
     RefPtr hostedRootNode { defaultHandlingFrameID ? hostedRootNodeForFrame(*defaultHandlingFrameID) : nullptr };
@@ -402,7 +405,10 @@ WheelEventHandlingResult RemoteScrollingTreeMac::handleWheelEventAfterDefaultHan
         processingSteps = { WheelEventProcessingSteps::AsyncScrolling, WheelEventProcessingSteps::NonBlockingDOMEventDispatch };
     }
 
-    SetForScope disallowLatchingScope(m_allowLatching, allowLatching);
+    bool previousAllowLatching = m_allowLatching.exchange(allowLatching);
+    auto restoreAllowLatching = makeScopeExit([&] {
+        m_allowLatching = previousAllowLatching;
+    });
     if (!targetNodeID) {
         LOG_WITH_STREAM(Scrolling, stream << "RemoteScrollingTreeMac::handleWheelEventAfterDefaultHandling - the process of hosted root node " << hostedRootNode->scrollingNodeID() << " did not handle the event, propagating it to the parent frame");
         return handleWheelEventWithNode(wheelEvent, processingSteps, hostedRootNode->parent().get(), EventTargeting::Propagate);

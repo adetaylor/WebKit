@@ -3452,6 +3452,8 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBCORE_DIR}/platform/network/ParsedContentRange.swift
         ${WEBCORE_DIR}/platform/network/ParsedContentType.swift
         ${WEBCORE_DIR}/platform/network/RFC8941.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
