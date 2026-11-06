@@ -106,6 +106,18 @@ extension FunctionDefinitionWriter {
     }
 
     mutating func visit(_ unary: UnaryExpression, _ id: ExpressionID) {
+        // `-x` on a signed integer must wrap rather than be assumed not to overflow.
+        if unary.operation == .negate && isSignedIntegerArithmeticType(shaderModule.inferredType(of: id)) {
+            if !helperGenerator.didEmitNegateInt {
+                helperGenerator.didEmitNegateInt = true
+                helperGenerator.emitNegateInt()
+            }
+            body.append("__wgslNegateInt(")
+            visit(unary.expression)
+            body.append(")")
+            return
+        }
+
         body.append("(")
         switch unary.operation {
         case .complement:
@@ -126,7 +138,16 @@ extension FunctionDefinitionWriter {
     /// The spelling comes from `emission(for:rhs:helpers:)`.
     mutating func serializeBinaryExpression(_ lhs: ExpressionID, _ operation: BinaryOperation, _ rhs: ExpressionID) {
         let rightClass = ScalarClass(rightOperandType: shaderModule.inferredType(of: rhs), in: shaderModule.types)
-        switch emission(for: operation, rhs: rightClass, helpers: shaderModule.uses) {
+        var binaryEmission = emission(for: operation, rhs: rightClass, helpers: shaderModule.uses)
+        // `+`, `-` and `*` on signed integers must wrap rather than be assumed not to overflow. Both operands are checked
+        // because WGSL only declares these operators over matching element types, so a matrix operand (whose element type
+        // is always floating point) never reaches the helpers.
+        if case .infix = binaryEmission, isSignedIntegerArithmeticType(shaderModule.inferredType(of: lhs)),
+            isSignedIntegerArithmeticType(shaderModule.inferredType(of: rhs)), let helper = signedIntegerHelper(operation)
+        {
+            binaryEmission = .call(helper)
+        }
+        switch binaryEmission {
         case .call(let helperFunction):
             body.append(helperFunction)
             body.append("(")
@@ -141,6 +162,45 @@ extension FunctionDefinitionWriter {
             visit(rhs)
             body.append(")")
         }
+    }
+
+    /// The wrapping helper of a signed integer `+`, `-` or `*`, emitted on its first use; nil for the other operations.
+    private mutating func signedIntegerHelper(_ operation: BinaryOperation) -> MSLText? {
+        switch operation {
+        case .add:
+            if !helperGenerator.didEmitAddInt {
+                helperGenerator.didEmitAddInt = true
+                helperGenerator.emitAddInt()
+            }
+            return "__wgslAddInt"
+        case .subtract:
+            if !helperGenerator.didEmitSubInt {
+                helperGenerator.didEmitSubInt = true
+                helperGenerator.emitSubInt()
+            }
+            return "__wgslSubInt"
+        case .multiply:
+            if !helperGenerator.didEmitMulInt {
+                helperGenerator.didEmitMulInt = true
+                helperGenerator.emitMulInt()
+            }
+            return "__wgslMulInt"
+        case .divide, .modulo, .and, .or, .xor, .leftShift, .rightShift, .equal, .notEqual, .greaterThan, .greaterEqual,
+            .lessThan, .lessEqual, .shortCircuitAnd, .shortCircuitOr:
+            return nil
+        }
+    }
+
+    /// C++ `isSignedIntegerArithmeticType`: `i32`, or a reference to or vector of it.
+    mutating func isSignedIntegerArithmeticType(_ type: TypeID?) -> Bool {
+        var type = type
+        if let reference = shaderModule.types.getIf(Types.Reference.self, type) {
+            type = reference.element
+        }
+        if let vector = shaderModule.types.getIf(Types.Vector.self, type) {
+            type = vector.element
+        }
+        return shaderModule.types.getIf(Types.Primitive.self, type)?.kind == .i32
     }
 
     mutating func visit(_ binary: BinaryExpression, _ id: ExpressionID) {

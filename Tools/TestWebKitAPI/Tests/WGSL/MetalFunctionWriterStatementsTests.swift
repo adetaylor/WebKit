@@ -250,9 +250,9 @@ struct WGSLMetalFunctionWriterStatementsTests {
             [
                 "{\n",
                 "    (*parameter0) = 1;\n",
-                "    (*parameter0) = ((*parameter0) + 2);\n",
-                "    (*parameter0)++;\n",
-                "    (*parameter0)--;\n",
+                "    (*parameter0) = __wgslAddInt((*parameter0), 2);\n",
+                "    (*parameter0) += 1u;\n",
+                "    (*parameter0) -= 1u;\n",
                 "    (*parameter0) = ((*parameter0) << 3u);\n",
                 "    (void)(4);\n",
                 "}",

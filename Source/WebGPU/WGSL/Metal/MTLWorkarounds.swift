@@ -169,6 +169,10 @@ public enum MSLHelper: CaseIterable, Sendable {
     case textureSampleBiasWithOffset2d
     case textureSampleBiasWithOffset2dArray
     case textureSampleBiasWithOffset3d
+    case negateInt
+    case addInt
+    case subInt
+    case mulInt
 
     /// The C++ `emit<Name>`/`didEmit<Name>` suffix.
     @_spi(Testing)
@@ -208,6 +212,14 @@ public enum MSLHelper: CaseIterable, Sendable {
             "TextureSampleBiasWithOffset2dArray"
         case .textureSampleBiasWithOffset3d:
             "TextureSampleBiasWithOffset3d"
+        case .negateInt:
+            "NegateInt"
+        case .addInt:
+            "AddInt"
+        case .subInt:
+            "SubInt"
+        case .mulInt:
+            "MulInt"
         }
     }
 
@@ -406,6 +418,22 @@ public enum MSLHelper: CaseIterable, Sendable {
 
                 """
             )
+        case .negateInt:
+            MSLHelperText(
+                "template<typename T>\n [[clang::always_inline]] static T __wgslNegateInt(T value)\n {\n return as_type<T>(make_unsigned_t<T>(0) - make_unsigned_t<T>(value)); }\n"
+            )
+        case .addInt:
+            MSLHelperText(
+                "template<typename T, typename U>\n [[clang::always_inline]] static auto __wgslAddInt(T lhs, U rhs)\n {\n using V = decltype(lhs + rhs); return as_type<V>(make_unsigned_t<V>(lhs) + make_unsigned_t<V>(rhs)); }\n"
+            )
+        case .subInt:
+            MSLHelperText(
+                "template<typename T, typename U>\n [[clang::always_inline]] static auto __wgslSubInt(T lhs, U rhs)\n {\n using V = decltype(lhs - rhs); return as_type<V>(make_unsigned_t<V>(lhs) - make_unsigned_t<V>(rhs)); }\n"
+            )
+        case .mulInt:
+            MSLHelperText(
+                "template<typename T, typename U>\n [[clang::always_inline]] static auto __wgslMulInt(T lhs, U rhs)\n {\n using V = decltype(lhs * rhs); return as_type<V>(make_unsigned_t<V>(lhs) * make_unsigned_t<V>(rhs)); }\n"
+            )
         }
     }
 }
@@ -520,6 +548,30 @@ struct HelperGenerator: ~Copyable {
     }
 
     var didEmitTextureSampleBiasWithOffset3d = false
+
+    mutating func emitNegateInt() {
+        output.append(MSLHelper.negateInt.text)
+    }
+
+    var didEmitNegateInt = false
+
+    mutating func emitAddInt() {
+        output.append(MSLHelper.addInt.text)
+    }
+
+    var didEmitAddInt = false
+
+    mutating func emitSubInt() {
+        output.append(MSLHelper.subInt.text)
+    }
+
+    var didEmitSubInt = false
+
+    mutating func emitMulInt() {
+        output.append(MSLHelper.mulInt.text)
+    }
+
+    var didEmitMulInt = false
 }
 
 // The bodies of emitNecessaryHelpers' helpers whose lines hold subscripts or attributes.
@@ -595,6 +647,14 @@ public func emitHelperForTesting(_ helper: MSLHelper) -> ContiguousArray<UInt8> 
         helperGenerator.emitTextureSampleBiasWithOffset2dArray()
     case .textureSampleBiasWithOffset3d:
         helperGenerator.emitTextureSampleBiasWithOffset3d()
+    case .negateInt:
+        helperGenerator.emitNegateInt()
+    case .addInt:
+        helperGenerator.emitAddInt()
+    case .subInt:
+        helperGenerator.emitSubInt()
+    case .mulInt:
+        helperGenerator.emitMulInt()
     }
     return helperGenerator.output.finish()
 }

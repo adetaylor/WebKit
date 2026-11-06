@@ -1048,6 +1048,10 @@ public enum ReservedName: Hashable, Sendable {
         case wgslFtoi
         case wgslDiv
         case wgslMod
+        case wgslNegateInt
+        case wgslAddInt
+        case wgslSubInt
+        case wgslMulInt
         case asm
         case wgslFragmentReturnResult
         case continuing
@@ -1136,6 +1140,10 @@ public enum ReservedName: Hashable, Sendable {
             case .wgslFtoi: "__wgslFtoi"
             case .wgslDiv: "__wgslDiv"
             case .wgslMod: "__wgslMod"
+            case .wgslNegateInt: "__wgslNegateInt"
+            case .wgslAddInt: "__wgslAddInt"
+            case .wgslSubInt: "__wgslSubInt"
+            case .wgslMulInt: "__wgslMulInt"
             case .asm: "__asm"
             case .wgslFragmentReturnResult: "__wgslFragmentReturnResult"
             case .continuing: "__continuing"

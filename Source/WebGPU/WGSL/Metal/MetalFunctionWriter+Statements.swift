@@ -113,12 +113,17 @@ extension FunctionDefinitionWriter {
     }
 
     mutating func visit(_ statement: DecrementIncrementStatement, _ id: StatementID) {
+        // `x++` / `x--` on a signed integer must wrap, for the same reason `x + 1` and `x - 1` must. Performing the
+        // arithmetic in the unsigned domain carries no overflow assumption, and the compound assignment form keeps the
+        // reference evaluated exactly once, as WGSL requires.
+        let wraps = isSignedIntegerArithmeticType(shaderModule.inferredType(of: statement.expression))
+
         visit(statement.expression)
         switch statement.operation {
         case .increment:
-            body.append("++")
+            body.append(wraps ? " += 1u" : "++")
         case .decrement:
-            body.append("--")
+            body.append(wraps ? " -= 1u" : "--")
         }
     }
 

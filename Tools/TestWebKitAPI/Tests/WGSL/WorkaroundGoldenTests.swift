@@ -154,7 +154,7 @@ struct WGSLWorkaroundGoldenTests {
     }
 }
 
-// BEGIN the C++ goldens: the helper bodies of MetalFunctionWriter.cpp:49-257 (captured text sha1 e6c33c5830f497eba1bf6268f9ace110cfcf6867) and emitNecessaryHelpers (MetalFunctionWriter.cpp sha1 194a6bcb07f11da379d1903733522e11512cac88, lines 449-969); do not edit.
+// BEGIN the C++ goldens: the helper bodies of MetalFunctionWriter.cpp:122-290 (captured text sha1 528c31dd2546db280acc3295669c52c4a3f698ec) and emitNecessaryHelpers (MetalFunctionWriter.cpp sha1 97a3cae56e63013bf79425aefd55d34729ad9267, lines 492-1025); do not edit.
 enum CxxWorkaroundGolden {
     /// The helper bodies, in C++ order.
     static let helpers: [(name: String, text: String)] = [
@@ -396,6 +396,46 @@ enum CxxWorkaroundGolden {
                 "    }\n",
                 "    return __texture.sample(__sampler, __coords, bias(__bias), int3(__x, __y, __z));\n",
                 "}\n",
+            ]
+            .joined()
+        ),
+        (
+            "NegateInt",
+            [
+                "template<typename T>\n",
+                " [[clang::always_inline]] static T __wgslNegateInt(T value)\n",
+                " {\n",
+                " return as_type<T>(make_unsigned_t<T>(0) - make_unsigned_t<T>(value)); }\n",
+            ]
+            .joined()
+        ),
+        (
+            "AddInt",
+            [
+                "template<typename T, typename U>\n",
+                " [[clang::always_inline]] static auto __wgslAddInt(T lhs, U rhs)\n",
+                " {\n",
+                " using V = decltype(lhs + rhs); return as_type<V>(make_unsigned_t<V>(lhs) + make_unsigned_t<V>(rhs)); }\n",
+            ]
+            .joined()
+        ),
+        (
+            "SubInt",
+            [
+                "template<typename T, typename U>\n",
+                " [[clang::always_inline]] static auto __wgslSubInt(T lhs, U rhs)\n",
+                " {\n",
+                " using V = decltype(lhs - rhs); return as_type<V>(make_unsigned_t<V>(lhs) - make_unsigned_t<V>(rhs)); }\n",
+            ]
+            .joined()
+        ),
+        (
+            "MulInt",
+            [
+                "template<typename T, typename U>\n",
+                " [[clang::always_inline]] static auto __wgslMulInt(T lhs, U rhs)\n",
+                " {\n",
+                " using V = decltype(lhs * rhs); return as_type<V>(make_unsigned_t<V>(lhs) * make_unsigned_t<V>(rhs)); }\n",
             ]
             .joined()
         ),

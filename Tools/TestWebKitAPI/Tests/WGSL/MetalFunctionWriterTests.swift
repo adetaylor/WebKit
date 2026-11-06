@@ -272,23 +272,23 @@ struct WGSLMetalFunctionWriterTests {
             msl,
             [
                 ("AssignmentStatement", "    local0 = local1;\n"),
-                ("CompoundAssignmentStatement", "    local0 = (local0 + local1);\n"),
-                ("DecrementIncrementStatement", "    local0++;\n    local1--;\n"),
+                ("CompoundAssignmentStatement", "    local0 = __wgslAddInt(local0, local1);\n"),
+                ("DecrementIncrementStatement", "    local0 += 1u;\n    local1 -= 1u;\n"),
                 ("CompoundStatement, PhonyAssignmentStatement", "    {\n        (void)(local0);\n    }\n"),
                 ("IfStatement", "    if ((local0 > 3)) {\n        local1 = 4;\n    } else {\n        local1 = 5;\n    }\n"),
-                ("ForStatement", "for (int local2 = 0; (local2 < local0); local2++) {"),
+                ("ForStatement", "for (int local2 = 0; (local2 < local0); local2 += 1u) {"),
                 ("ContinueStatement", "        if ((local2 == 2)) {\n            continue;\n        }\n"),
                 ("BreakStatement", "        if ((local2 == 3)) {\n            break;\n        }\n"),
                 ("LoopStatement", "while (true) {"),
                 (
                     "Continuing",
-                    "        {\n            local0 = (local0 + 9);\n            if ((local0 > 50))\n                break;\n        }\n"
+                    "        {\n            local0 = __wgslAddInt(local0, 9);\n            if ((local0 > 50))\n                break;\n        }\n"
                 ),
                 ("WhileStatement", "while ((local1 < 10)) {"),
                 ("SwitchStatement", "    switch (local1) {\n    case 1: {\n        local0 = 6;\n    }\n        break;\n    default: {\n"),
                 ("ConstAssertID (prints nothing)", "    (void)(function0((&local0), float(local1)));\n    \n    function1((&local0));\n"),
                 ("CallStatement", "    function1((&local0));\n"),
-                ("ReturnStatement", "    return ((*parameter0) + __wgslFtoi<int>(parameter1));\n"),
+                ("ReturnStatement", "    return __wgslAddInt((*parameter0), __wgslFtoi<int>(parameter1));\n"),
                 ("DiscardStatement", "    if ((parameter4.x > 1.)) {\n"),
             ]
         )
@@ -341,8 +341,8 @@ struct WGSLMetalFunctionWriterTests {
             [
                 ("ParameterID", "int function0(thread int* parameter0, float parameter1)\n"),
                 ("PointerDereferenceExpression", "    (*parameter2) = 8;\n"),
-                ("UnaryExpression", "    int local3 = (-local0);\n    bool local4 = (!(local0 > local1));\n"),
-                ("BinaryExpression, IdentifierExpression", "(local0 + local1)"),
+                ("UnaryExpression", "    int local3 = __wgslNegateInt(local0);\n    bool local4 = (!(local0 > local1));\n"),
+                ("BinaryExpression, IdentifierExpression", "__wgslAddInt(local0, local1)"),
                 (
                     "WorkgroupSizeAttribute (prints nothing)",
                     "[[kernel]]  void function2(unsigned parameter3 [[thread_index_in_threadgroup]])\n"

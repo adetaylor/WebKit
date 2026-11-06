@@ -210,6 +210,11 @@ private let cxxFixedSpellings: [(String, String)] = [
     ("__wgslFtoi", "MetalFunctionWriter.cpp:2951"),
     ("__wgslDiv", "MetalFunctionWriter.cpp:3017"),
     ("__wgslMod", "MetalFunctionWriter.cpp:3019"),
+    // In main 59ebcddfb4a6 (acc7b46c8629).
+    ("__wgslNegateInt", "MetalFunctionWriter.cpp:3192"),
+    ("__wgslAddInt", "MetalFunctionWriter.cpp:3259"),
+    ("__wgslSubInt", "MetalFunctionWriter.cpp:3264"),
+    ("__wgslMulInt", "MetalFunctionWriter.cpp:3269"),
     ("__asm", "MetalFunctionWriter.cpp:3314"),
     ("__wgslFragmentReturnResult", "MetalFunctionWriter.cpp:3371"),
     ("__continuing", "MetalFunctionWriter.cpp:3530"),
