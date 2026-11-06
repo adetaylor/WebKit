@@ -156,6 +156,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftTypes_SendCxxDecodedReply,
     TestWithStreamSwiftTypes_SendCxxString,
     TestWithStreamSwiftTypes_SendEmptyAsyncReply,
+    TestWithStreamSwiftTypes_SendLentBytes,
     TestWithStreamSwiftTypes_SendString,
     TestWithStreamSwiftTypes_SendStringAsyncReply,
     TestWithStreamSwiftTypes_SendValues,
@@ -330,6 +331,7 @@ enum class MessageName : uint16_t {
     TestWithLegacyReceiver_GetPluginProcessConnection,
     TestWithLegacyReceiver_TestMultipleAttributes,
     TestWithStreamSwiftTypes_SendEmptySync,
+    TestWithStreamSwiftTypes_SendLentBytesSync,
     TestWithStreamSwiftTypes_SendStringSync,
     TestWithStreamSwift_SendStringSync,
 #if PLATFORM(COCOA)
