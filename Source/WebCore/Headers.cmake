@@ -1681,6 +1681,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLEntityTable.h
     html/parser/HTMLFastPathParserTypes.h
     html/parser/HTMLInputStream.h
+    html/parser/HTMLMetaCharsetParser.h
     html/parser/HTMLMicrosyntaxesSwiftTypes.h
     html/parser/HTMLNameCache.h
     html/parser/HTMLParserIdioms.h
@@ -1690,6 +1691,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/parser/HTMLPreloadScanner.h
     html/parser/HTMLResourcePreloader.h
     html/parser/HTMLScriptRunnerHost.h
+    html/parser/HTMLSrcsetParser.h
     html/parser/HTMLToken.h
     html/parser/HTMLTokenizer.h
     html/parser/HTMLTreeBuilderSwiftSupport.h

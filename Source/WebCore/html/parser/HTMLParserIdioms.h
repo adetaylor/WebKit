@@ -50,16 +50,16 @@ bool isHTMLSpaceButNotLineBreak(char16_t);
 static const unsigned maxHTMLNonNegativeInteger = 2147483647;
 
 // An implementation of the HTML specification's algorithm to convert a number to a string for number and range types.
-String serializeForNumberType(const Decimal&);
-String serializeForNumberType(double);
+WEBCORE_EXPORT String serializeForNumberType(const Decimal&);
+WEBCORE_EXPORT String serializeForNumberType(double);
 
 // Convert the specified string to a decimal/double. If the conversion fails, the return value is fallback value or NaN if not specified.
 // Leading or trailing illegal characters cause failure, as does passing an empty string.
 // The double* parameter may be 0 to check if the string can be parsed without getting the result.
-Decimal parseToDecimalForNumberType(StringView);
-Decimal parseToDecimalForNumberType(StringView, const Decimal& fallbackValue);
-double parseToDoubleForNumberType(StringView);
-double parseToDoubleForNumberType(StringView, double fallbackValue);
+WEBCORE_EXPORT Decimal parseToDecimalForNumberType(StringView);
+WEBCORE_EXPORT Decimal parseToDecimalForNumberType(StringView, const Decimal& fallbackValue);
+WEBCORE_EXPORT double parseToDoubleForNumberType(StringView);
+WEBCORE_EXPORT double parseToDoubleForNumberType(StringView, double fallbackValue);
 
 // http://www.whatwg.org/specs/web-apps/current-work/#rules-for-parsing-integers
 enum class HTMLIntegerParsingError { NegativeOverflow, PositiveOverflow, Other };
@@ -78,22 +78,22 @@ std::optional<double> parseValidHTMLFloatingPointNumber(StringView);
 #endif
 
 // https://html.spec.whatwg.org/#rules-for-parsing-floating-point-number-values
-double parseHTMLFloatingPointNumberValue(StringView, double fallbackValue = std::numeric_limits<double>::quiet_NaN());
+WEBCORE_EXPORT double parseHTMLFloatingPointNumberValue(StringView, double fallbackValue = std::numeric_limits<double>::quiet_NaN());
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-floating-point-number-values
-Vector<double> parseHTMLListOfOfFloatingPointNumberValues(StringView);
+WEBCORE_EXPORT Vector<double> parseHTMLListOfOfFloatingPointNumberValues(StringView);
 
 // https://html.spec.whatwg.org/multipage/semantics.html#attr-meta-http-equiv-refresh
-bool parseMetaHTTPEquivRefresh(StringView, double& delay, String& url);
+WEBCORE_EXPORT bool parseMetaHTTPEquivRefresh(StringView, double& delay, String& url);
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#cors-settings-attribute
-String parseCORSSettingsAttribute(const AtomString&);
+WEBCORE_EXPORT String parseCORSSettingsAttribute(const AtomString&);
 
 #if !USE_SWIFT_HTML_MICROSYNTAXES
 bool threadSafeMatch(const QualifiedName&, const QualifiedName&);
 #endif
 
-AtomString parseHTMLHashNameReference(StringView);
+WEBCORE_EXPORT AtomString parseHTMLHashNameReference(StringView);
 
 // https://html.spec.whatwg.org/#rules-for-parsing-dimension-values
 struct HTMLDimension {
@@ -101,8 +101,8 @@ struct HTMLDimension {
     double number;
     Type type;
 };
-std::optional<HTMLDimension> parseHTMLDimension(StringView);
-std::optional<HTMLDimension> parseHTMLMultiLength(StringView);
+WEBCORE_EXPORT std::optional<HTMLDimension> parseHTMLDimension(StringView);
+WEBCORE_EXPORT std::optional<HTMLDimension> parseHTMLMultiLength(StringView);
 
 // https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#lists-of-dimensions
 struct HTMLDimensionsListValue {

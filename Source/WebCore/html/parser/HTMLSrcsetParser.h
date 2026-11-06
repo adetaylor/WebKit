@@ -115,9 +115,9 @@ struct ImageCandidate {
     OriginAttribute originAttribute;
 };
 
-ImageCandidate bestFitSourceForImageAttributes(float deviceScaleFactor, const String& srcAttribute, StringView srcsetAttribute, std::optional<float> sourceSize, NOESCAPE const Function<bool(const ImageCandidate&)>& shouldIgnoreCandidateCallback = { });
+WEBCORE_EXPORT ImageCandidate bestFitSourceForImageAttributes(float deviceScaleFactor, const String& srcAttribute, StringView srcsetAttribute, std::optional<float> sourceSize, NOESCAPE const Function<bool(const ImageCandidate&)>& shouldIgnoreCandidateCallback = { });
 
-Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(StringView attribute);
+WEBCORE_EXPORT Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(StringView attribute);
 void getURLsFromSrcsetAttribute(const Element&, StringView attribute, OrderedHashSet<URL>&);
 String replaceURLsInSrcsetAttribute(const Element&, StringView attribute, const CSS::SerializationContext&);
 

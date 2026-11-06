@@ -36,7 +36,7 @@ class TextCodec;
 
 namespace WebCore {
 
-class HTMLMetaCharsetParser {
+class WEBCORE_EXPORT HTMLMetaCharsetParser {
     WTF_MAKE_TZONE_ALLOCATED(HTMLMetaCharsetParser);
     WTF_MAKE_NONCOPYABLE(HTMLMetaCharsetParser);
 public:
