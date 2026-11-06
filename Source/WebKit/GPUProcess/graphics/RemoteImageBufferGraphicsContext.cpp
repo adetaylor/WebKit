@@ -78,7 +78,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             cgContext().addSwiftRendererLender();
             m_isSwiftRendererLender = true;
         }
-        Ref resources = RemoteCGRendererResources::create(m_renderingBackend);
+        Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_imageBuffer);
         m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init(resources.ptr()));
         Ref forwarder = m_cgRenderer->getMessageReceiver();
         forwarder->setStateLender(*this);
@@ -171,6 +171,10 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(ClipOutToPath, &RemoteImageBufferGraphicsContext::clipOutToPath)
     HANDLE_CG_RENDERER_MESSAGE(FillCachedPath, &RemoteGraphicsContext::fillCachedPath)
     HANDLE_CG_RENDERER_MESSAGE(ClipCachedPath, &RemoteGraphicsContext::clipCachedPath)
+    HANDLE_CG_RENDERER_MESSAGE(DrawNativeImage, &RemoteGraphicsContext::drawNativeImage)
+    HANDLE_CG_RENDERER_MESSAGE(DrawImageBuffer, &RemoteImageBufferGraphicsContext::drawImageBuffer)
+    HANDLE_CG_RENDERER_MESSAGE(DrawPatternNativeImage, &RemoteGraphicsContext::drawPatternNativeImage)
+    HANDLE_CG_RENDERER_MESSAGE(DrawPatternImageBuffer, &RemoteGraphicsContext::drawPatternImageBuffer)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();

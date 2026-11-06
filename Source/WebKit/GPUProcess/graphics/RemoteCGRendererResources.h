@@ -29,23 +29,34 @@
 
 #include "RemoteCGRendererPath.h"
 #include "RemotePathImplIdentifier.h"
+#include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
+
+namespace WebCore {
+class ImageBuffer;
+class NativeImage;
+}
 
 namespace WebKit {
 
 class RemoteRenderingBackend;
 
-// What an image buffer's RemoteCGRenderer looks up by identifier, in its rendering backend's resource cache, as
-// RemoteGraphicsContext's handlers do.
+// What an image buffer's RemoteCGRenderer looks up by identifier, in its rendering backend's resource cache and image buffers,
+// as RemoteGraphicsContext's handlers do.
 class RemoteCGRendererResources final : public RefCounted<RemoteCGRendererResources> {
 public:
-    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend) { return adoptRef(*new RemoteCGRendererResources(backend)); }
+    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend, WebCore::ImageBuffer& target) { return adoptRef(*new RemoteCGRendererResources(backend, target)); }
     ~RemoteCGRendererResources();
 
     // The cached path, or one that isn't valid.
     RemoteCGRendererPath cachedPath(RemotePathImplIdentifier) const;
+
+    // The cached native image's image, which is null for an image this process can't read.
+    RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
+    WebCore::ImageBuffer& target() const { return m_target; }
+    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -54,10 +65,17 @@ public:
 #endif
 
 private:
-    explicit RemoteCGRendererResources(RemoteRenderingBackend&);
+    RemoteCGRendererResources(RemoteRenderingBackend&, WebCore::ImageBuffer& target);
 
     const Ref<RemoteRenderingBackend> m_backend;
+    const Ref<WebCore::ImageBuffer> m_target;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The image of a cached native image, which is null for an image this process can't read, and of an image buffer other than
+// the target, as GraphicsContext draws one (nativeImageForDrawing()): the receiver declines the target's own. Functions, since
+// Swift takes what a C++ method returns as unretained whatever its annotation.
+CGImageRef _Nullable copyNativeImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, CGRendererImageFacts&) CF_RETURNS_RETAINED;
 
 } // namespace WebKit
 

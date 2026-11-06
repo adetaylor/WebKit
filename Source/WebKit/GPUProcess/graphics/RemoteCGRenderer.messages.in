@@ -93,6 +93,10 @@ messages -> RemoteCGRenderer Stream {
     ClipOutToPath(WebKit::RemoteCGRendererPath path) StreamBatched
     FillCachedPath SwiftMayDecline
     ClipCachedPath
+    DrawNativeImage SwiftMayDecline
+    DrawImageBuffer SwiftMayDecline
+    DrawPatternNativeImage
+    DrawPatternImageBuffer SwiftMayDecline
 }
 
 #endif

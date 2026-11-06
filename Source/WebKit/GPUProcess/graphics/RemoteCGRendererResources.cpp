@@ -31,12 +31,16 @@
 
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
+#include <WebCore/GraphicsContextCG.h>
+#include <WebCore/ImageBuffer.h>
+#include <WebCore/NativeImage.h>
 
 namespace WebKit {
 using namespace WebCore;
 
-RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend& backend)
+RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend& backend, ImageBuffer& target)
     : m_backend(backend)
+    , m_target(target)
 {
 }
 
@@ -48,6 +52,54 @@ RemoteCGRendererPath RemoteCGRendererResources::cachedPath(RemotePathImplIdentif
     if (!pathImpl)
         return { };
     return RemoteCGRendererPath { pathImpl.releaseNonNull() };
+}
+
+static CGImageRef copyImage(const NativeImage& image, CGRendererImageFacts& facts)
+{
+    auto size = image.size();
+    facts.width = size.width();
+    facts.height = size.height();
+    facts.headroom = image.headroom();
+    return image.platformImage().leakRef();
+}
+
+RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResourceIdentifier identifier) const
+{
+    return m_backend->remoteResourceCache().cachedNativeImage(identifier);
+}
+
+RefPtr<ImageBuffer> RemoteCGRendererResources::imageBuffer(RenderingResourceIdentifier identifier) const
+{
+    return m_backend->imageBuffer(identifier);
+}
+
+CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, CGRendererImageFacts& facts)
+{
+    facts = { 0, 0, 1, 1, false, false };
+    RefPtr image = resources.cachedNativeImage(identifier);
+    if (!image)
+        return nullptr;
+    facts.found = true;
+    return copyImage(*image, facts);
+}
+
+CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, CGRendererImageFacts& facts)
+{
+    facts = { 0, 0, 1, 1, false, false };
+    RefPtr imageBuffer = resources.imageBuffer(identifier);
+    if (!imageBuffer)
+        return nullptr;
+    facts.found = true;
+    Ref target = resources.target();
+    if (imageBuffer == target.ptr()) {
+        facts.declines = true;
+        return nullptr;
+    }
+    facts.resolutionScale = imageBuffer->resolutionScale();
+    RefPtr image = static_cast<GraphicsContextCG&>(target->context()).nativeImageForSwiftReceiver(*imageBuffer);
+    if (!image)
+        return nullptr;
+    return copyImage(*image, facts);
 }
 
 } // namespace WebKit

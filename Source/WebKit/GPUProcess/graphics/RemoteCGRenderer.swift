@@ -342,6 +342,110 @@ final class RemoteCGRenderer {
         state.receiveClip { context in path.clip(context, windRule) }
     }
 
+    // RemoteGraphicsContext's image handlers. A missing image is an invalid message, and an image this process can't read draws
+    // nothing.
+
+    func drawNativeImage(
+        state: inout CGRendererCore,
+        imageIdentifier: WebCore.RenderingResourceIdentifier,
+        destRect: WebCore.FloatRect,
+        srcRect: WebCore.FloatRect,
+        options: WebCore.RasterDrawingOptions
+    ) throws(InvalidMessage) -> Bool {
+        var facts = CGRendererImageFacts()
+        let image = WebKit.copyNativeImage(resources, imageIdentifier, &facts)
+        try messageCheck { facts.found }
+        guard let image else {
+            return true
+        }
+        return state.receiveDrawNativeImage(image, facts, cgRect(destRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+    }
+
+    // RemoteImageBufferGraphicsContext::drawImageBuffer(), which draws an image buffer into itself.
+    func drawImageBuffer(
+        state: inout CGRendererCore,
+        imageBufferIdentifier: WebCore.RenderingResourceIdentifier,
+        destinationRect: WebCore.FloatRect,
+        srcRect: WebCore.FloatRect,
+        options: WebCore.RasterDrawingOptions
+    ) throws(InvalidMessage) -> Bool {
+        var facts = CGRendererImageFacts()
+        let image = WebKit.copyImageBufferImage(resources, imageBufferIdentifier, &facts)
+        try messageCheck { facts.found }
+        if facts.declines {
+            return false
+        }
+        guard let image else {
+            return true
+        }
+        return state.receiveDrawNativeImage(image, facts, cgRect(destinationRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+    }
+
+    func drawPatternNativeImage(
+        state: inout CGRendererCore,
+        imageIdentifier: WebCore.RenderingResourceIdentifier,
+        destRect: WebCore.FloatRect,
+        tileRect: WebCore.FloatRect,
+        transform: WebCore.AffineTransform,
+        phase: WebCore.FloatPoint,
+        spacing: WebCore.FloatSize,
+        options: WebCore.RasterDrawingOptions
+    ) throws(InvalidMessage) {
+        var facts = CGRendererImageFacts()
+        let image = WebKit.copyNativeImage(resources, imageIdentifier, &facts)
+        try messageCheck { facts.found }
+        drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
+    }
+
+    // RemoteGraphicsContext's handler, which draws an image buffer's pattern into the buffer itself.
+    func drawPatternImageBuffer(
+        state: inout CGRendererCore,
+        imageIdentifier: WebCore.RenderingResourceIdentifier,
+        destRect: WebCore.FloatRect,
+        tileRect: WebCore.FloatRect,
+        transform: WebCore.AffineTransform,
+        phase: WebCore.FloatPoint,
+        spacing: WebCore.FloatSize,
+        options: WebCore.RasterDrawingOptions
+    ) throws(InvalidMessage) -> Bool {
+        var facts = CGRendererImageFacts()
+        let image = WebKit.copyImageBufferImage(resources, imageIdentifier, &facts)
+        try messageCheck { facts.found }
+        if facts.declines {
+            return false
+        }
+        drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
+        return true
+    }
+
+    // GraphicsContextCG::drawPattern(), which draws nothing for a transform that isn't invertible.
+    private func drawPattern(
+        _ state: inout CGRendererCore,
+        _ image: CGImage?,
+        _ facts: CGRendererImageFacts,
+        _ destination: WebCore.FloatRect,
+        _ tile: WebCore.FloatRect,
+        _ transform: WebCore.AffineTransform,
+        _ phase: WebCore.FloatPoint,
+        _ spacing: WebCore.FloatSize,
+        _ options: WebCore.RasterDrawingOptions
+    ) {
+        guard transform.isInvertible(), let image else {
+            return
+        }
+        state.receiveDrawPattern(
+            image,
+            facts,
+            cgRect(destination),
+            cgRect(tile),
+            transform.a(),
+            transform.d(),
+            CGPoint(x: CGFloat(phase.x()), y: CGFloat(phase.y())),
+            CGSize(width: CGFloat(spacing.width()), height: CGFloat(spacing.height())),
+            CGRendererImageOptionsFor(options)
+        )
+    }
+
     private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true
