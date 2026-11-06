@@ -35,7 +35,7 @@ class CSSNumericArray;
 class CSSMathMax final : public CSSMathValue {
     WTF_MAKE_TZONE_ALLOCATED(CSSMathMax);
 public:
-    static ExceptionOr<Ref<CSSMathMax>> create(FixedVector<CSSNumberish>&&);
+    WEBCORE_EXPORT static ExceptionOr<Ref<CSSMathMax>> create(FixedVector<CSSNumberish>&&);
     static ExceptionOr<Ref<CSSMathMax>> create(Vector<Ref<CSSNumericValue>>&&);
     NODELETE const CSSNumericArray& values() const;
 
