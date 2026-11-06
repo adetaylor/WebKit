@@ -54,8 +54,8 @@ void writeExternalTextureConstants(id<MTLArgumentEncoder> argumentEncoder, NSUIn
         *cscMatrixAddress = simd::float4x3(simd::make_float3(csc[0], csc[1], csc[2]), simd::make_float3(csc[3], csc[4], csc[5]), simd::make_float3(csc[6], csc[7], csc[8]), simd::make_float3(csc[9], csc[10], csc[11]));
 
     auto& primaries = constants.primariesConversion;
-    if (auto* primariesMatrixAddress = static_cast<simd::float3x3*>([argumentEncoder constantDataAtIndex:index++]))
-        *primariesMatrixAddress = simd::float3x3(simd::make_float3(primaries[0], primaries[1], primaries[2]), simd::make_float3(primaries[3], primaries[4], primaries[5]), simd::make_float3(primaries[6], primaries[7], primaries[8]));
+    if (auto* primariesMatrixAddress = static_cast<simd::float3x4*>([argumentEncoder constantDataAtIndex:index++]))
+        *primariesMatrixAddress = simd::float3x4(simd::make_float4(primaries[0], primaries[1], primaries[2], primaries[3]), simd::make_float4(primaries[4], primaries[5], primaries[6], primaries[7]), simd::make_float4(primaries[8], primaries[9], primaries[10], primaries[11]));
 
     if (auto* visibleSizeAddress = static_cast<simd::uint2*>([argumentEncoder constantDataAtIndex:index++]))
         *visibleSizeAddress = simd::uint2 { constants.visibleWidth, constants.visibleHeight };

@@ -47,6 +47,11 @@ func wgslVertexBufferIndexForBindGroup(_ groupIndex: UInt32, _ maxIndex: UInt32)
     vertexBufferIndexForBindGroup(groupIndex, maxIndex: maxIndex)
 }
 
+// For Queue.swift, which does not import WGSL: the HDR to SDR mapping that external textures sample through.
+func wgslHDRToSDRMetalSource() -> String {
+    hdrToSDRMetalSource()
+}
+
 // MARK: - Identifier classification
 
 // The running OS's ICU XID tables, so that identifiers lex as ICU's u_stringHasBinaryProperty classifies them.

@@ -51,7 +51,9 @@ struct ExternalTextureIndices {
 struct ExternalTextureConstants {
     float uvRemapping[6] { };
     float colorSpaceConversion[12] { };
-    float primariesConversion[9] { };
+    // Three columns of four: the xyz of each convert the frame's primaries, all zero to keep them, and the first column's
+    // w is its HDRTransferFunction.
+    float primariesConversion[12] { };
     uint32_t visibleWidth { 0 };
     uint32_t visibleHeight { 0 };
 };

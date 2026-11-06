@@ -119,7 +119,7 @@ private func wgslBufferType(_ type: LayoutBufferType) -> BufferBindingType {
         return .storage
     case .readOnlyStorage:
         return .readOnlyStorage
-    case .float3x2, .float4x3, .float3x3, .uint2, .arrayLength:
+    case .float3x2, .float4x3, .float3x4, .uint2, .arrayLength:
         assertionFailure("Unexpected buffer bindingType")
         return .uniform
     }

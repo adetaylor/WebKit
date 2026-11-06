@@ -326,7 +326,7 @@ extension FunctionDefinitionWriter {
         appendExternalTexturePlane("texture2d<float> __", name, "_SecondPlane ", bindingIndex &+ 1)
         appendExternalTexturePlane("float3x2 __", name, "_UVRemapMatrix ", bindingIndex &+ 2)
         appendExternalTexturePlane("float4x3 __", name, "_ColorSpaceConversionMatrix ", bindingIndex &+ 3)
-        appendExternalTexturePlane("float3x3 __", name, "_PrimariesConversionMatrix ", bindingIndex &+ 4)
+        appendExternalTexturePlane("float3x4 __", name, "_PrimariesConversionMatrix ", bindingIndex &+ 4)
         appendExternalTexturePlane("uint2 __", name, "_VisibleSize ", bindingIndex &+ 5)
     }
 

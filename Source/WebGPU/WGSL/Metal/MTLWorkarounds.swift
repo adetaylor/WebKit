@@ -597,7 +597,54 @@ extension MSLHelperText {
         "threadgroup T& operator[](int i) threadgroup { return i ? i == 2 ? z : y : x; }\n"
     )
     static let packedMatrixColumns = MSLHelperText("PackedVec3<T> columns[C];\n")
-    static let textureExternalPrimariesConversionCheck = MSLHelperText("    if (PrimariesConversionMatrix[0][0] == 0.0f)\n")
+    static let textureExternalTransfer = MSLHelperText("    float const transfer = PrimariesConversionMatrix[0][3];\n")
+    static let textureExternalKeepsPrimaries = MSLHelperText("    bool const keepsPrimaries = PrimariesConversionMatrix[0][0] == 0.0f;\n")
+    static let textureExternalPrimaries = MSLHelperText(
+        "    float3x3 const primaries = keepsPrimaries ? float3x3(1.0f) : float3x3(PrimariesConversionMatrix[0].xyz, PrimariesConversionMatrix[1].xyz, PrimariesConversionMatrix[2].xyz);\n"
+    )
+    /// C++ `hdrToSDRMetalSource()` (MetalFunctionWriter.h): the HDR to SDR mapping of an external texture's
+    /// to_destination_color_space(), which WebGPU's copyExternalImageToTexture() shader shares.
+    static let hdrToSDR = MSLHelperText(
+        """
+        // Decodes PQ (SMPTE ST 2084) or HLG (ITU-R BT.2100) rgb to linear light in the frame's own primaries,
+        // scaled so that 1.0 is SDR white. An SDR canvas has no room above that, so __wgslToneMapHDR() then
+        // fits what is brighter into it.
+        static float3 __wgslDecodeHDR(float3 encoded, bool isHLG)
+        {
+            constexpr float referenceWhiteNits = 440.0f;
+            if (!isHLG) {
+                constexpr float m1 = 0.1593017578125f, m2 = 78.84375f, c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+                float3 const p = pow(encoded, 1.0f / m2);
+                return pow(max(p - c1, 0.0f) / (c2 - c3 * p), 1.0f / m1) * (10000.0f / referenceWhiteNits);
+            }
+            constexpr float a = 0.17883277f, b = 0.28466892f, c = 0.55991073f;
+            float3 const scene = select((exp((encoded - c) / a) + b) / 12.0f, encoded * encoded / 3.0f, encoded <= 0.5f);
+            // The HLG OOTF for a 1000 nit display: a gamma of 1.2 applied through the luminance.
+            float const sceneLuminance = dot(scene, float3(0.2627f, 0.6780f, 0.0593f));
+            return scene * pow(max(sceneLuminance, 1e-6f), 0.2f) * (1000.0f / referenceWhiteNits);
+        }
+
+        // Leaves everything up to half of SDR white alone, and rolls what is above it off towards 1.0 with a
+        // slope that starts out matching, so SDR-range content is not dimmed. It scales the color by its
+        // luminance, to keep the hue of what it compresses.
+        static float3 __wgslToneMapHDR(float3 linearLight)
+        {
+            constexpr float knee = 0.5f;
+            float const luminance = dot(linearLight, float3(0.2627f, 0.6780f, 0.0593f));
+            if (luminance <= knee)
+                return linearLight;
+            float const excess = luminance - knee;
+            float const mapped = knee + (1.0f - knee) * excess / (excess + (1.0f - knee));
+            return linearLight * (mapped / luminance);
+        }
+
+        static float3 __wgslLinearToBT1886(float3 linearLight)
+        {
+            return sign(linearLight) * pow(abs(linearLight), 1.0f / 2.4f);
+        }
+
+        """
+    )
     static let packMatrixColumn = MSLHelperText("packed.columns[i] = PackedVec3<T>(packed_vec<T, 3>(unpacked[i]));\n")
     static let unpackMatrixColumn = MSLHelperText("unpacked[i] = vec<T, 3>(packed.columns[i]);\n")
     static let packVec3ArrayElement = MSLHelperText("packed[i] = PackedVec3<T>(unpacked[i]);\n")
@@ -611,6 +658,16 @@ extension MSLHelperText {
     static let dotThirdComponent = MSLHelperText("if constexpr (N > 2) result += lhs[2] * rhs[2];\n")
     static let dotFourthComponent = MSLHelperText("if constexpr (N > 3) result += lhs[3] * rhs[3];\n")
     static let dot4x8PackedSum = MSLHelperText("return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2] + vec1[3] * vec2[3];")
+}
+
+/// The HDR to SDR mapping which importExternalTexture() applies to a PQ or HLG frame in the shader it is sampled by, and
+/// which copyExternalImageToTexture() applies in the shader it copies with, so that a frame copied out of a video matches
+/// the same frame sampled through an external texture (C++ `WGSL::Metal::hdrToSDRMetalSource()`). Self-contained, needing
+/// only `<metal_stdlib>` with `using namespace metal`.
+public func hdrToSDRMetalSource() -> String {
+    var writer = MSLWriter()
+    writer.append(MSLHelperText.hdrToSDR)
+    return String(decoding: writer.bytes, as: UTF8.self)
 }
 
 /// Emits `helper` through its `HelperGenerator` function into an empty writer (WorkaroundGoldenTests).

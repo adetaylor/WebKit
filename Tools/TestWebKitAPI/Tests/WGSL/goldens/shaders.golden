@@ -4293,7 +4293,7 @@ layout g1_e92
   ep "testWorkgroupUniformLoad" layout=auto
 =copy prev 24 3
 
-expect 210817
+expect 213259
 WGSLDUMP 1
 input id="overload.wgsl" bytes=141859 units=141859 is8bit=1
 =copy prev 2 2
@@ -4910,7 +4910,7 @@ io "testWorkgroupUniformLoad" stage=compute
   epi "testWorkgroupUniformLoad" mangled="function105" stage=compute invariantPresent=0 usesInvariant=0 wgvarsize=16 bindingcount=0
 =copy this 637 1
 =copy prev 17 2
-    msl utf8 197933
+    msl utf8 200371
 #include <metal_stdlib>
 #include <metal_types>
 
@@ -4925,25 +4925,73 @@ using __UnpackedType = typename __UnpackedTypeImpl<T>::Type;
 =copy this 653 2
 using __PackedType = typename __PackedTypeImpl<T>::Type;
 
+// Decodes PQ (SMPTE ST 2084) or HLG (ITU-R BT.2100) rgb to linear light in the frame's own primaries,
+// scaled so that 1.0 is SDR white. An SDR canvas has no room above that, so __wgslToneMapHDR() then
+// fits what is brighter into it.
+static float3 __wgslDecodeHDR(float3 encoded, bool isHLG)
+{
+    constexpr float referenceWhiteNits = 440.0f;
+    if (!isHLG) {
+        constexpr float m1 = 0.1593017578125f, m2 = 78.84375f, c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+        float3 const p = pow(encoded, 1.0f / m2);
+        return pow(max(p - c1, 0.0f) / (c2 - c3 * p), 1.0f / m1) * (10000.0f / referenceWhiteNits);
+    }
+    constexpr float a = 0.17883277f, b = 0.28466892f, c = 0.55991073f;
+    float3 const scene = select((exp((encoded - c) / a) + b) / 12.0f, encoded * encoded / 3.0f, encoded <= 0.5f);
+    // The HLG OOTF for a 1000 nit display: a gamma of 1.2 applied through the luminance.
+    float const sceneLuminance = dot(scene, float3(0.2627f, 0.6780f, 0.0593f));
+    return scene * pow(max(sceneLuminance, 1e-6f), 0.2f) * (1000.0f / referenceWhiteNits);
+}
+
+// Leaves everything up to half of SDR white alone, and rolls what is above it off towards 1.0 with a
+// slope that starts out matching, so SDR-range content is not dimmed. It scales the color by its
+// luminance, to keep the hue of what it compresses.
+static float3 __wgslToneMapHDR(float3 linearLight)
+{
+    constexpr float knee = 0.5f;
+    float const luminance = dot(linearLight, float3(0.2627f, 0.6780f, 0.0593f));
+    if (luminance <= knee)
+        return linearLight;
+    float const excess = luminance - knee;
+    float const mapped = knee + (1.0f - knee) * excess / (excess + (1.0f - knee));
+    return linearLight * (mapped / luminance);
+}
+
+static float3 __wgslLinearToBT1886(float3 linearLight)
+{
+    return sign(linearLight) * pow(abs(linearLight), 1.0f / 2.4f);
+}
+
 struct texture_external {
     texture2d<float> FirstPlane;
     texture2d<float> SecondPlane;
     float3x2 UVRemapMatrix;
     float4x3 ColorSpaceConversionMatrix;
-    float3x3 PrimariesConversionMatrix;
+    float3x4 PrimariesConversionMatrix;
     uint2 VisibleSize;
     uint get_width(uint lod = 0) const { return VisibleSize.x ? VisibleSize.x : FirstPlane.get_width(lod); }
     uint get_height(uint lod = 0) const { return VisibleSize.y ? VisibleSize.y : FirstPlane.get_height(lod); }
     float4 to_destination_color_space(float3 rgb, float alpha, float premultiplied) const
     {
-        if (PrimariesConversionMatrix[0][0] == 0.0f)
+        float const transfer = PrimariesConversionMatrix[0][3];
+        bool const isHDR = transfer != 0.0f;
+        bool const keepsPrimaries = PrimariesConversionMatrix[0][0] == 0.0f;
+        if (keepsPrimaries && !isHDR)
             return float4(rgb * mix(alpha, 1.0f, premultiplied), alpha);
         float3 const straight = (premultiplied != 0.0f && alpha > 0.0f) ? rgb / alpha : rgb;
-        float3 const magnitude = abs(straight);
-        float3 const linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
-        float3 const converted = PrimariesConversionMatrix * linearLight;
+        float3 linearLight;
+        if (isHDR)
+            linearLight = __wgslToneMapHDR(__wgslDecodeHDR(clamp(straight, 0.0f, 1.0f), transfer == 2.0f));
+        else {
+            float3 const magnitude = abs(straight);
+            linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
+        }
+        float3x3 const primaries = keepsPrimaries ? float3x3(1.0f) : float3x3(PrimariesConversionMatrix[0].xyz, PrimariesConversionMatrix[1].xyz, PrimariesConversionMatrix[2].xyz);
+        float3 const converted = primaries * linearLight;
         float3 const convertedMagnitude = abs(converted);
-        float3 const encoded = sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
+        float3 const encoded = isHDR
+            ? __wgslLinearToBT1886(converted)
+            : sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
         return float4(encoded * alpha, alpha);
     }
 };
@@ -4952,7 +5000,7 @@ static T __workgroup_uniform_load(threadgroup T* const ptr)
 {
     threadgroup_barrier(mem_flags::mem_threadgroup);
     auto result = *ptr;
-=copy this 686 1
+=copy this 734 1
     return result;
 }
 
@@ -4963,9 +5011,9 @@ static V __wgslDiv(T lhs, U rhs)
     if constexpr (is_signed_v<U>)
         predicate = predicate || (V(lhs) == V(numeric_limits<T>::lowest()) && V(rhs) == V(-1));
     return lhs / select(V(rhs), V(1), predicate);
-=copy this 690 3
+=copy this 738 3
 static V __wgslMod(T lhs, U rhs)
-=copy this 694 4
+=copy this 742 4
     return select(lhs % V(rhs), V(0), predicate);
 }
 
@@ -4980,17 +5028,17 @@ static __frexp_result<T, U> __wgslFrexp(T value)
 {
     __frexp_result<T, U> result;
     result.fract = frexp(value, result.exp);
-=copy this 689 3
-=copy this 710 1
+=copy this 737 3
+=copy this 758 1
 struct __modf_result {
     T fract;
     U whole;
-=copy this 681 3
+=copy this 729 3
 static __modf_result<T, T> __wgslModf(T value)
 {
     __modf_result<T, T> result;
     result.fract = modf(value, result.whole);
-=copy this 721 3
+=copy this 769 3
 template<typename T, typename U = bool>
 struct __atomic_compare_exchange_result {
     T old_value;
@@ -5019,14 +5067,14 @@ static T __wgslDot(vec<T, N> lhs, vec<T, N> rhs)
     auto result = lhs[0] * rhs[0] + lhs[1] * rhs[1];
     if constexpr (N > 2) result += lhs[2] * rhs[2];
     if constexpr (N > 3) result += lhs[3] * rhs[3];
-=copy this 735 2
+=copy this 783 2
 static int __wgslDot4I8Packed(uint lhs, uint rhs)
 {
     auto vec1 = as_type<packed_char4>(lhs);    auto vec2 = as_type<packed_char4>(rhs);    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2] + vec1[3] * vec2[3];}
 static uint __wgslDot4U8Packed(uint lhs, uint rhs)
 {
     auto vec1 = as_type<packed_uchar4>(lhs);    auto vec2 = as_type<packed_uchar4>(rhs);    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2] + vec1[3] * vec2[3];}
-=copy this 730 1
+=copy this 778 1
 static T __wgslFirstLeadingBit(T e)
 {
     if constexpr (is_signed_v<T>)
@@ -5034,15 +5082,15 @@ static T __wgslFirstLeadingBit(T e)
     else
         return select(T(31 - clz(e)), T(-1), e == T(0));
 }
-=copy this 774 1
+=copy this 822 1
 static T __wgslFirstTrailingBit(T e)
 {
     return select(ctz(e), T(-1), e == T(0));
-=copy this 781 2
+=copy this 829 2
 static T __wgslSign(T e)
 {
     return select(select(T(-1), T(1), e > 0), T(0), e == 0);
-=copy this 786 2
+=copy this 834 2
 static T __wgslExtractBits(T e, uint offset, uint count)
 {
     auto o = min(offset, 32u);
@@ -5066,7 +5114,7 @@ static T __wgslInsertBits(T e, T newBits, unsigned offset, unsigned count)
     const unsigned c = min(count, w - o);
     return insert_bits(e, newBits, min(o, w - 1), c);
 }
-=copy this 729 2
+=copy this 777 2
 static void __wgslZeroWorkgroupVar(threadgroup T& v)
 {
     threadgroup char* p = (threadgroup char*)(&v);
@@ -5109,7 +5157,7 @@ struct __ArgumentBufferT_77_0 {
     texture2d<float> __global25_SecondPlane [[id(12)]];
     float3x2 __global25_UVRemapMatrix [[id(13)]];
     float4x3 __global25_ColorSpaceConversionMatrix [[id(14)]];
-    float3x3 __global25_PrimariesConversionMatrix [[id(15)]];
+    float3x4 __global25_PrimariesConversionMatrix [[id(15)]];
     uint2 __global25_VisibleSize [[id(16)]];
     depth2d<float> global26 [[id(17)]];
     depth2d_array<float> global27 [[id(18)]];
@@ -5120,7 +5168,7 @@ struct __ArgumentBufferT_77_0 {
 
 struct __ArgumentBufferT_78_0 {
     sampler global2 [[id(0)]];
-=copy this 846 2
+=copy this 894 2
     texturecube<float, access::sample> global19 [[id(3)]];
     texturecube_array<float, access::sample> global20 [[id(4)]];
     depth2d<float> global26 [[id(5)]];
@@ -5138,7 +5186,7 @@ struct __ArgumentBufferT_79_0 {
 };
 
 struct __ArgumentBufferT_80_0 {
-=copy this 845 1
+=copy this 893 1
     texture1d<int, access::sample> global5 [[id(1)]];
     texture1d<unsigned, access::sample> global6 [[id(2)]];
     texture2d<float, access::sample> global7 [[id(3)]];
@@ -5157,7 +5205,7 @@ struct __ArgumentBufferT_80_0 {
     texture2d<float> __global25_SecondPlane [[id(16)]];
     float3x2 __global25_UVRemapMatrix [[id(17)]];
     float4x3 __global25_ColorSpaceConversionMatrix [[id(18)]];
-    float3x3 __global25_PrimariesConversionMatrix [[id(19)]];
+    float3x4 __global25_PrimariesConversionMatrix [[id(19)]];
     uint2 __global25_VisibleSize [[id(20)]];
     depth2d<float> global26 [[id(21)]];
     depth2d_array<float> global27 [[id(22)]];
@@ -5173,7 +5221,7 @@ struct __ArgumentBufferT_81_0 {
 };
 
 struct __ArgumentBufferT_82_0 {
-=copy this 845 4
+=copy this 893 4
     texturecube<float, access::sample> global19 [[id(4)]];
     texturecube_array<float, access::sample> global20 [[id(5)]];
     depth2d<float> global26 [[id(6)]];
@@ -5188,12 +5236,12 @@ struct __ArgumentBufferT_83_0 {
 };
 
 struct __ArgumentBufferT_84_0 {
-=copy this 870 1
+=copy this 918 1
     texture1d<float, access::sample> global4 [[id(1)]];
     texture2d<float, access::sample> global7 [[id(2)]];
     texture2d_array<float, access::sample> global10 [[id(3)]];
     texture3d<float, access::sample> global13 [[id(4)]];
-=copy this 850 2
+=copy this 898 2
     depth2d<float> global26 [[id(7)]];
     depth2d_array<float> global27 [[id(8)]];
     depthcube<float> global28 [[id(9)]];
@@ -5201,32 +5249,32 @@ struct __ArgumentBufferT_84_0 {
 };
 
 struct __ArgumentBufferT_85_0 {
-=copy this 870 3
-=copy this 928 3
+=copy this 918 3
+=copy this 976 3
 };
 
 struct __ArgumentBufferT_86_0 {
-=copy this 882 7
+=copy this 930 7
 struct __ArgumentBufferT_87_0 {
-=copy this 966 7
+=copy this 1014 7
 struct __ArgumentBufferT_88_0 {
-=copy this 957 8
+=copy this 1005 8
 struct __ArgumentBufferT_89_0 {
-=copy this 943 13
+=copy this 991 13
 struct __ArgumentBufferT_90_0 {
-=copy this 982 2
+=copy this 1030 2
     texture2d<float> __global25_FirstPlane [[id(2)]];
     texture2d<float> __global25_SecondPlane [[id(3)]];
     float3x2 __global25_UVRemapMatrix [[id(4)]];
     float4x3 __global25_ColorSpaceConversionMatrix [[id(5)]];
-    float3x3 __global25_PrimariesConversionMatrix [[id(6)]];
+    float3x4 __global25_PrimariesConversionMatrix [[id(6)]];
     uint2 __global25_VisibleSize [[id(7)]];
 };
 
 struct __ArgumentBufferT_91_0 {
     texture1d<float, access::write> global21 [[id(0)]];
     texture2d<unsigned, access::write> global22 [[id(1)]];
-=copy this 919 1
+=copy this 967 1
     texture3d<float, access::write> global24 [[id(3)]];
 };
 
@@ -5238,19 +5286,19 @@ struct __ArgumentBufferT_92_7 {
 static_assert(sizeof(__ArgumentBufferT_92_7::global32) == 4);
 
 static_assert(sizeof(__ArgumentBufferT_92_7::__global32_ArrayLength) == 4);
-=copy this 816 2
+=copy this 864 2
  [[clang::always_inline]] static T __wgslNegateInt(T value)
  {
  return as_type<T>(make_unsigned_t<T>(0) - make_unsigned_t<T>(value)); }
-=copy this 724 1
+=copy this 772 1
  [[clang::always_inline]] static auto __wgslSubInt(T lhs, U rhs)
  {
  using V = decltype(lhs - rhs); return as_type<V>(make_unsigned_t<V>(lhs) - make_unsigned_t<V>(rhs)); }
-=copy this 1035 1
+=copy this 1083 1
  [[clang::always_inline]] static auto __wgslAddInt(T lhs, U rhs)
  {
  using V = decltype(lhs + rhs); return as_type<V>(make_unsigned_t<V>(lhs) + make_unsigned_t<V>(rhs)); }
-=copy this 1039 1
+=copy this 1087 1
  [[clang::always_inline]] static auto __wgslMulInt(T lhs, U rhs)
  {
  using V = decltype(lhs * rhs); return as_type<V>(make_unsigned_t<V>(lhs) * make_unsigned_t<V>(rhs)); }
@@ -5280,24 +5328,24 @@ float4 __wgslTextureSampleBiasWithOffset(const constant texture2d<float>& __text
 }
 template<int __x, int __y>
 float4 __wgslTextureSampleBiasWithOffset(const constant texture2d_array<float>& __texture, sampler __sampler, float2 __coords, uint __arrayIndex, float __bias)
-=copy this 1052 12
+=copy this 1100 12
                 return mix(__texture.sample(__sampler, __coords + __offset / float2(__lowSize), __arrayIndex, level(float(__low))),
                     __texture.sample(__sampler, __coords + __offset / float2(__highSize), __arrayIndex, level(float(__high))), __lod - float(__low));
-=copy this 1066 3
+=copy this 1114 3
     return __texture.sample(__sampler, __coords, __arrayIndex, bias(__bias), int2(__x, __y));
 }
 template<int __x, int __y, int __z>
 float4 __wgslTextureSampleBiasWithOffset(const constant texture3d<float>& __texture, sampler __sampler, float3 __coords, float __bias)
-=copy this 1073 2
+=copy this 1121 2
         uint3 const __size = uint3(__texture.get_width(), __texture.get_height(), __texture.get_depth());
-=copy this 1076 5
+=copy this 1124 5
             uint3 const __lowSize = uint3(__texture.get_width(__low), __texture.get_height(__low), __texture.get_depth(__low));
             uint3 const __highSize = uint3(__texture.get_width(__high), __texture.get_height(__high), __texture.get_depth(__high));
-=copy this 1083 1
+=copy this 1131 1
                 float3 const __offset = float3(__x, __y, __z);
                 return mix(__texture.sample(__sampler, __coords + __offset / float3(__lowSize), level(float(__low))),
                     __texture.sample(__sampler, __coords + __offset / float3(__highSize), level(float(__high))), __lod - float(__low));
-=copy this 1087 3
+=copy this 1135 3
     return __texture.sample(__sampler, __coords, bias(__bias), int3(__x, __y, __z));
 }
 float4 __wgslTextureSampleBaseClampToEdge(texture_external __texture, sampler __sampler, float2 __inputCoords)
@@ -5321,7 +5369,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     float2 const __bounds = (float2(0.5f) / float2(uint2(__texture.get_width(), __texture.get_height())));
     return __texture.sample(__sampler, clamp(__coords, __bounds, float2(1.0f) - __bounds));
 }
-=copy this 808 1
+=copy this 856 1
  auto __wgslPackFloatToSnorm4x8(T value)
  {
  if constexpr(__wgslMetalAppleGPUFamily < 9) { 
@@ -5332,37 +5380,37 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
  return result;
  }
  }
-=copy this 1134 1
+=copy this 1182 1
  auto __wgslPackFloatToUnorm4x8(T value)
-=copy this 1136 2
+=copy this 1184 2
  volatile auto result = pack_float_to_unorm4x8(value);
-=copy this 1139 2
+=copy this 1187 2
  auto result = pack_float_to_unorm4x8(value);
-=copy this 1142 4
+=copy this 1190 4
  auto __wgslPackFloatToSnorm2x16(T value)
-=copy this 1147 2
+=copy this 1195 2
  volatile auto result = pack_float_to_snorm2x16(value);
-=copy this 1150 2
+=copy this 1198 2
  auto result = pack_float_to_snorm2x16(value);
-=copy this 1153 4
+=copy this 1201 4
  auto __wgslPackFloatToUnorm2x16(T value)
-=copy this 1158 2
+=copy this 1206 2
  volatile auto result = pack_float_to_unorm2x16(value);
-=copy this 1161 2
+=copy this 1209 2
  auto result = pack_float_to_unorm2x16(value);
-=copy this 1164 3
+=copy this 1212 3
 [[kernel]]  void function0()
 {
     bool local0 = true;
     {
         ;
     }
-=copy this 1181 3
+=copy this 1229 3
     {
         bool local3 = (!local0);
-=copy this 1183 5
-=copy this 1182 6
-=copy this 1191 9
+=copy this 1231 5
+=copy this 1230 6
+=copy this 1239 9
         vec<bool, 2> local10 = (!vec<bool, 2>(local0));
     }
     {
@@ -5376,7 +5424,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
 [[kernel]]  void function1()
 {
     bool local13 = true;
-=copy this 1196 13
+=copy this 1244 13
         bool local18 = (local13 || local13);
     }
 }
@@ -5384,7 +5432,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
 [[kernel]]  void function2()
 {
     bool local19 = true;
-=copy this 1222 13
+=copy this 1270 13
         bool local24 = (local19 && local19);
     }
 }
@@ -5392,10 +5440,10 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
 [[kernel]]  void function3()
 {
     bool local25 = true;
-=copy this 1242 13
+=copy this 1290 13
         bool local30 = (local25 | local25);
-=copy this 1189 20
-=copy this 1278 18
+=copy this 1237 20
+=copy this 1326 18
         vec<bool, 2> local43 = (vec<bool, 2>(local25) | vec<bool, 2>(local25));
     }
     {
@@ -5409,9 +5457,9 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
 [[kernel]]  void function4()
 {
     bool local46 = true;
-=copy this 1301 13
+=copy this 1349 13
         bool local51 = (local46 & local46);
-=copy this 1276 38
+=copy this 1324 38
         vec<bool, 2> local64 = (vec<bool, 2>(local46) & vec<bool, 2>(local46));
     }
     {
@@ -6215,116 +6263,116 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     {
         (void)(false);
         (void)((local358 == true));
-=copy this 2180 1
-=copy this 2182 1
+=copy this 2228 1
+=copy this 2230 1
         (void)((local359 == 1));
-=copy this 2183 1
+=copy this 2231 1
         (void)((local360 == 1u));
-=copy this 2182 2
+=copy this 2230 2
         (void)((local361 == 1.));
-=copy this 2188 1
+=copy this 2236 1
         (void)((local362 == 1.h));
         (void)(vec<bool, 2>(false, false));
         (void)((local367 == vec<bool, 2>(true, true)));
-=copy this 2192 1
-=copy this 2194 1
+=copy this 2240 1
+=copy this 2242 1
         (void)((local363 == vec<int, 2>(1, 1)));
-=copy this 2195 1
+=copy this 2243 1
         (void)((local364 == vec<unsigned, 2>(1u, 1u)));
-=copy this 2194 2
+=copy this 2242 2
         (void)((local365 == vec<float, 2>(1., 1.)));
-=copy this 2200 1
+=copy this 2248 1
         (void)((local366 == vec<half, 2>(1.h, 1.h)));
     }
     {
         (void)(true);
         (void)((local358 != true));
-=copy this 2206 1
-=copy this 2208 1
+=copy this 2254 1
+=copy this 2256 1
         (void)((local359 != 1));
-=copy this 2209 1
+=copy this 2257 1
         (void)((local360 != 1u));
-=copy this 2208 2
+=copy this 2256 2
         (void)((local361 != 1.));
-=copy this 2214 1
+=copy this 2262 1
         (void)((local362 != 1.h));
         (void)(vec<bool, 2>(true, true));
         (void)((local367 != vec<bool, 2>(true, true)));
-=copy this 2218 1
-=copy this 2220 1
+=copy this 2266 1
+=copy this 2268 1
         (void)((local363 != vec<int, 2>(1, 1)));
-=copy this 2221 1
+=copy this 2269 1
         (void)((local364 != vec<unsigned, 2>(1u, 1u)));
-=copy this 2220 2
+=copy this 2268 2
         (void)((local365 != vec<float, 2>(1., 1.)));
-=copy this 2226 1
+=copy this 2274 1
         (void)((local366 != vec<half, 2>(1.h, 1.h)));
     }
-=copy this 2179 2
-=copy this 2232 1
+=copy this 2227 2
+=copy this 2280 1
         (void)((local359 > 1));
-=copy this 2233 1
+=copy this 2281 1
         (void)((local360 > 1u));
-=copy this 2232 2
+=copy this 2280 2
         (void)((local361 > 1.));
-=copy this 2238 1
+=copy this 2286 1
         (void)((local362 > 1.h));
-=copy this 2199 2
-        (void)((local363 > vec<int, 2>(1, 1)));
-=copy this 2243 1
-        (void)((local364 > vec<unsigned, 2>(1u, 1u)));
-=copy this 2242 2
-        (void)((local365 > vec<float, 2>(1., 1.)));
-=copy this 2248 1
-        (void)((local366 > vec<half, 2>(1.h, 1.h)));
-=copy this 2230 4
-        (void)((local359 >= 1));
-=copy this 2255 1
-        (void)((local360 >= 1u));
-=copy this 2254 2
-        (void)((local361 >= 1.));
-=copy this 2260 1
-        (void)((local362 >= 1.h));
 =copy this 2247 2
+        (void)((local363 > vec<int, 2>(1, 1)));
+=copy this 2291 1
+        (void)((local364 > vec<unsigned, 2>(1u, 1u)));
+=copy this 2290 2
+        (void)((local365 > vec<float, 2>(1., 1.)));
+=copy this 2296 1
+        (void)((local366 > vec<half, 2>(1.h, 1.h)));
+=copy this 2278 4
+        (void)((local359 >= 1));
+=copy this 2303 1
+        (void)((local360 >= 1u));
+=copy this 2302 2
+        (void)((local361 >= 1.));
+=copy this 2308 1
+        (void)((local362 >= 1.h));
+=copy this 2295 2
         (void)((local363 >= vec<int, 2>(1, 1)));
-=copy this 2265 1
+=copy this 2313 1
         (void)((local364 >= vec<unsigned, 2>(1u, 1u)));
-=copy this 2264 2
+=copy this 2312 2
         (void)((local365 >= vec<float, 2>(1., 1.)));
-=copy this 2270 1
+=copy this 2318 1
         (void)((local366 >= vec<half, 2>(1.h, 1.h)));
-=copy this 2204 3
-=copy this 2276 1
+=copy this 2252 3
+=copy this 2324 1
         (void)((local359 < 1));
-=copy this 2277 1
+=copy this 2325 1
         (void)((local360 < 1u));
-=copy this 2276 2
+=copy this 2324 2
         (void)((local361 < 1.));
-=copy this 2282 1
+=copy this 2330 1
         (void)((local362 < 1.h));
-=copy this 2225 2
+=copy this 2273 2
         (void)((local363 < vec<int, 2>(1, 1)));
-=copy this 2287 1
+=copy this 2335 1
         (void)((local364 < vec<unsigned, 2>(1u, 1u)));
-=copy this 2286 2
+=copy this 2334 2
         (void)((local365 < vec<float, 2>(1., 1.)));
-=copy this 2292 1
+=copy this 2340 1
         (void)((local366 < vec<half, 2>(1.h, 1.h)));
-=copy this 2274 4
+=copy this 2322 4
         (void)((local359 <= 1));
-=copy this 2299 1
+=copy this 2347 1
         (void)((local360 <= 1u));
-=copy this 2298 2
+=copy this 2346 2
         (void)((local361 <= 1.));
-=copy this 2304 1
+=copy this 2352 1
         (void)((local362 <= 1.h));
-=copy this 2291 2
+=copy this 2339 2
         (void)((local363 <= vec<int, 2>(1, 1)));
-=copy this 2309 1
+=copy this 2357 1
         (void)((local364 <= vec<unsigned, 2>(1u, 1u)));
-=copy this 2308 2
+=copy this 2356 2
         (void)((local365 <= vec<float, 2>(1., 1.)));
-=copy this 2314 1
+=copy this 2362 1
         (void)((local366 <= vec<half, 2>(1.h, 1.h)));
     }
 }
@@ -6336,15 +6384,15 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
         unsigned local369 = 0u;
         ;
         ;
-=copy this 2326 2
-=copy this 2328 2
+=copy this 2374 2
+=copy this 2376 2
         int local376 = (~local368);
         unsigned local377 = (~local369);
     }
     {
         int local378 = 0;
         unsigned local379 = 0u;
-=copy this 2326 6
+=copy this 2374 6
         int local386 = (local378 & 1);
         unsigned local387 = (local379 & 1u);
         local378 = (local378 & 1);
@@ -6353,7 +6401,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     {
         int local388 = 0;
         unsigned local389 = 0u;
-=copy this 2338 6
+=copy this 2386 6
         int local396 = (local388 | 1);
         unsigned local397 = (local389 | 1u);
         local388 = (local388 | 1);
@@ -6362,7 +6410,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     {
         int local398 = 0;
         unsigned local399 = 0u;
-=copy this 2352 6
+=copy this 2400 6
         int local406 = (local398 ^ 1);
         unsigned local407 = (local399 ^ 1u);
         local398 = (local398 ^ 1);
@@ -6371,7 +6419,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     {
         int local408 = 0;
         unsigned local409 = 0u;
-=copy this 2366 6
+=copy this 2414 6
         int local416 = (local408 << 1u);
         unsigned local417 = (local409 << 1u);
         local408 = (local408 << 1u);
@@ -6380,7 +6428,7 @@ float4 __wgslTextureSampleBaseClampToEdge(const constant texture2d<float>& __tex
     {
         int local418 = 0;
         unsigned local419 = 0u;
-=copy this 2380 6
+=copy this 2428 6
         int local426 = (local418 >> 1u);
         unsigned local427 = (local419 >> 1u);
         local418 = (local418 >> 1u);
@@ -6397,8 +6445,8 @@ int function14(thread int* parameter0)
 {
     int local428 = 1;
     function14((&local428));
-=copy this 2415 1
-=copy this 2416 1
+=copy this 2463 1
+=copy this 2464 1
 }
 
 [[kernel]]  void function17()
@@ -6409,7 +6457,7 @@ int function14(thread int* parameter0)
     float local434 = 0.;
     half local435 = 0.h;
     {
-=copy this 1361 18
+=copy this 1409 18
         array<bool, 1> local442 = array<bool, 1>({
             local431,
         });
@@ -6417,24 +6465,24 @@ int function14(thread int* parameter0)
     {
         array<float, 1> local443 = array<float, 1>({
             local434,
-=copy this 2448 3
+=copy this 2496 3
         array<half, 1> local444 = array<half, 1>({
             local435,
-=copy this 2453 3
+=copy this 2501 3
         array<int, 1> local445 = array<int, 1>({
             local432,
-=copy this 2458 3
+=copy this 2506 3
         array<unsigned, 1> local446 = array<unsigned, 1>({
             local433,
-=copy this 2463 3
+=copy this 2511 3
         array<type0, 2> local447 = array<type0, 2>({
             type0({
                 local432,
             }),
-=copy this 2472 3
-=copy this 2468 3
+=copy this 2520 3
+=copy this 2516 3
         (void)(array<type0, 2>({
-=copy this 2472 6
+=copy this 2520 6
         }));
     }
     int local448 = 0;
@@ -6455,9 +6503,9 @@ int function14(thread int* parameter0)
     half local454 = 0.h;
     (void)(true);
     (void)(false);
-=copy this 2507 1
-=copy this 2507 2
-=copy this 2509 2
+=copy this 2555 1
+=copy this 2555 2
+=copy this 2557 2
     (void)(bool(local450));
     (void)(bool(local451));
     (void)(bool(local452));
@@ -6475,8 +6523,8 @@ int function14(thread int* parameter0)
     (void)(1.h);
     (void)(0.h);
     (void)(0.h);
-=copy this 2528 2
-=copy this 2530 2
+=copy this 2576 2
+=copy this 2578 2
     (void)(half(local455));
     (void)(half(local456));
     (void)(half(local457));
@@ -6494,8 +6542,8 @@ int function14(thread int* parameter0)
     (void)(1.);
     (void)(0.);
     (void)(0.);
-=copy this 2549 2
-=copy this 2551 2
+=copy this 2597 2
+=copy this 2599 2
     (void)(float(local460));
     (void)(float(local461));
     (void)(float(local462));
@@ -6513,8 +6561,8 @@ int function14(thread int* parameter0)
     (void)(1);
     (void)(0);
     (void)(0);
-=copy this 2570 2
-=copy this 2572 2
+=copy this 2618 2
+=copy this 2620 2
     (void)(-1);
     (void)(int(local465));
     (void)(int(local466));
@@ -6529,190 +6577,190 @@ int function14(thread int* parameter0)
     half local471 = 0.h;
     {
         (void)(matrix<float, 2, 2>(0., 0., 0., 0.));
-=copy this 2589 1
+=copy this 2637 1
         (void)(matrix<half, 2, 2>(0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 2, 2>(local470, 0., 0., 0.));
         (void)(matrix<half, 2, 2>(local471, 0.h, 0.h, 0.h));
-=copy this 2589 2
-=copy this 2595 1
+=copy this 2637 2
+=copy this 2643 1
         (void)(matrix<float, 2, 2>(matrix<float, 2, 2>(local470, 0., 0., 0.)));
         (void)(matrix<float, 2, 2>(matrix<half, 2, 2>(local471, 0.h, 0.h, 0.h)));
-=copy this 2591 1
-=copy this 2599 1
-=copy this 2600 1
+=copy this 2639 1
+=copy this 2647 1
+=copy this 2648 1
         (void)(matrix<half, 2, 2>(matrix<float, 2, 2>(local470, 0., 0., 0.)));
         (void)(matrix<half, 2, 2>(matrix<half, 2, 2>(local471, 0.h, 0.h, 0.h)));
-=copy this 2589 3
-=copy this 2597 1
-=copy this 2603 4
+=copy this 2637 3
+=copy this 2645 1
+=copy this 2651 4
         (void)(matrix<float, 2, 2>(vec<float, 2>(local470, 0.), vec<float, 2>(0., 0.)));
         (void)(matrix<half, 2, 2>(vec<half, 2>(local471, 0.h), vec<half, 2>(0.h, 0.h)));
     }
     {
         (void)(matrix<float, 2, 3>(0., 0., 0., 0., 0., 0.));
-=copy this 2616 1
+=copy this 2664 1
         (void)(matrix<half, 2, 3>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 2, 3>(local470, 0., 0., 0., 0., 0.));
         (void)(matrix<half, 2, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2616 2
-=copy this 2622 1
+=copy this 2664 2
+=copy this 2670 1
         (void)(matrix<float, 2, 3>(matrix<float, 2, 3>(local470, 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 2, 3>(matrix<half, 2, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2618 1
-=copy this 2626 1
-=copy this 2627 1
+=copy this 2666 1
+=copy this 2674 1
+=copy this 2675 1
         (void)(matrix<half, 2, 3>(matrix<float, 2, 3>(local470, 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 2, 3>(matrix<half, 2, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2616 3
-=copy this 2624 1
-=copy this 2630 4
+=copy this 2664 3
+=copy this 2672 1
+=copy this 2678 4
         (void)(matrix<float, 2, 3>(vec<float, 3>(local470), vec<float, 3>(0., 0., 0.)));
         (void)(matrix<half, 2, 3>(vec<half, 3>(local471), vec<half, 3>(0.h, 0.h, 0.h)));
     }
     {
         (void)(matrix<float, 2, 4>(0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2643 1
+=copy this 2691 1
         (void)(matrix<half, 2, 4>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 2, 4>(local470, 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 2, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2643 2
-=copy this 2649 1
+=copy this 2691 2
+=copy this 2697 1
         (void)(matrix<float, 2, 4>(matrix<float, 2, 4>(local470, 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 2, 4>(matrix<half, 2, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2645 1
-=copy this 2653 1
-=copy this 2654 1
+=copy this 2693 1
+=copy this 2701 1
+=copy this 2702 1
         (void)(matrix<half, 2, 4>(matrix<float, 2, 4>(local470, 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 2, 4>(matrix<half, 2, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2643 3
-=copy this 2651 1
-=copy this 2657 4
+=copy this 2691 3
+=copy this 2699 1
+=copy this 2705 4
         (void)(matrix<float, 2, 4>(vec<float, 4>(local470), vec<float, 4>(0., 0., 0., 0.)));
         (void)(matrix<half, 2, 4>(vec<half, 4>(local471), vec<half, 4>(0.h, 0.h, 0.h, 0.h)));
     }
     {
         (void)(matrix<float, 3, 2>(0., 0., 0., 0., 0., 0.));
-=copy this 2670 1
+=copy this 2718 1
         (void)(matrix<half, 3, 2>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 3, 2>(local470, 0., 0., 0., 0., 0.));
         (void)(matrix<half, 3, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2670 2
-=copy this 2676 1
+=copy this 2718 2
+=copy this 2724 1
         (void)(matrix<float, 3, 2>(matrix<float, 3, 2>(local470, 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 3, 2>(matrix<half, 3, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2672 1
-=copy this 2680 1
-=copy this 2681 1
+=copy this 2720 1
+=copy this 2728 1
+=copy this 2729 1
         (void)(matrix<half, 3, 2>(matrix<float, 3, 2>(local470, 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 3, 2>(matrix<half, 3, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2670 3
-=copy this 2678 1
-=copy this 2684 4
+=copy this 2718 3
+=copy this 2726 1
+=copy this 2732 4
         (void)(matrix<float, 3, 2>(vec<float, 2>(local470, 0.), vec<float, 2>(0., 0.), vec<float, 2>(0., 0.)));
         (void)(matrix<half, 3, 2>(vec<half, 2>(local471, 0.h), vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h)));
     }
     {
         (void)(matrix<float, 3, 3>(0., 0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2697 1
+=copy this 2745 1
         (void)(matrix<half, 3, 3>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 3, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 3, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2697 2
-=copy this 2703 1
+=copy this 2745 2
+=copy this 2751 1
         (void)(matrix<float, 3, 3>(matrix<float, 3, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 3, 3>(matrix<half, 3, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2699 1
-=copy this 2707 1
-=copy this 2708 1
+=copy this 2747 1
+=copy this 2755 1
+=copy this 2756 1
         (void)(matrix<half, 3, 3>(matrix<float, 3, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 3, 3>(matrix<half, 3, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2697 3
-=copy this 2705 1
-=copy this 2711 4
+=copy this 2745 3
+=copy this 2753 1
+=copy this 2759 4
         (void)(matrix<float, 3, 3>(vec<float, 3>(local470), vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.)));
         (void)(matrix<half, 3, 3>(vec<half, 3>(local471), vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h)));
     }
     {
         (void)(matrix<float, 3, 4>(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2724 1
+=copy this 2772 1
         (void)(matrix<half, 3, 4>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 3, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 3, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2724 2
-=copy this 2730 1
+=copy this 2772 2
+=copy this 2778 1
         (void)(matrix<float, 3, 4>(matrix<float, 3, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 3, 4>(matrix<half, 3, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2726 1
-=copy this 2734 1
-=copy this 2735 1
+=copy this 2774 1
+=copy this 2782 1
+=copy this 2783 1
         (void)(matrix<half, 3, 4>(matrix<float, 3, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 3, 4>(matrix<half, 3, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2724 3
-=copy this 2732 1
-=copy this 2738 4
+=copy this 2772 3
+=copy this 2780 1
+=copy this 2786 4
         (void)(matrix<float, 3, 4>(vec<float, 4>(local470), vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.)));
         (void)(matrix<half, 3, 4>(vec<half, 4>(local471), vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h)));
     }
     {
         (void)(matrix<float, 4, 2>(0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2751 1
+=copy this 2799 1
         (void)(matrix<half, 4, 2>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 4, 2>(local470, 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 4, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2751 2
-=copy this 2757 1
+=copy this 2799 2
+=copy this 2805 1
         (void)(matrix<float, 4, 2>(matrix<float, 4, 2>(local470, 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 4, 2>(matrix<half, 4, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2753 1
-=copy this 2761 1
-=copy this 2762 1
+=copy this 2801 1
+=copy this 2809 1
+=copy this 2810 1
         (void)(matrix<half, 4, 2>(matrix<float, 4, 2>(local470, 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 4, 2>(matrix<half, 4, 2>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2751 3
-=copy this 2759 1
-=copy this 2765 4
+=copy this 2799 3
+=copy this 2807 1
+=copy this 2813 4
         (void)(matrix<float, 4, 2>(vec<float, 2>(local470, 0.), vec<float, 2>(0., 0.), vec<float, 2>(0., 0.), vec<float, 2>(0., 0.)));
         (void)(matrix<half, 4, 2>(vec<half, 2>(local471, 0.h), vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h)));
     }
     {
         (void)(matrix<float, 4, 3>(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2778 1
+=copy this 2826 1
         (void)(matrix<half, 4, 3>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 4, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 4, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2778 2
-=copy this 2784 1
+=copy this 2826 2
+=copy this 2832 1
         (void)(matrix<float, 4, 3>(matrix<float, 4, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 4, 3>(matrix<half, 4, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2780 1
-=copy this 2788 1
-=copy this 2789 1
+=copy this 2828 1
+=copy this 2836 1
+=copy this 2837 1
         (void)(matrix<half, 4, 3>(matrix<float, 4, 3>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 4, 3>(matrix<half, 4, 3>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2778 3
-=copy this 2786 1
-=copy this 2792 4
+=copy this 2826 3
+=copy this 2834 1
+=copy this 2840 4
         (void)(matrix<float, 4, 3>(vec<float, 3>(local470), vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.)));
         (void)(matrix<half, 4, 3>(vec<half, 3>(local471), vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h)));
     }
     {
         (void)(matrix<float, 4, 4>(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
-=copy this 2805 1
+=copy this 2853 1
         (void)(matrix<half, 4, 4>(0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
         (void)(matrix<float, 4, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.));
         (void)(matrix<half, 4, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h));
-=copy this 2805 2
-=copy this 2811 1
+=copy this 2853 2
+=copy this 2859 1
         (void)(matrix<float, 4, 4>(matrix<float, 4, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<float, 4, 4>(matrix<half, 4, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2807 1
-=copy this 2815 1
-=copy this 2816 1
+=copy this 2855 1
+=copy this 2863 1
+=copy this 2864 1
         (void)(matrix<half, 4, 4>(matrix<float, 4, 4>(local470, 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.)));
         (void)(matrix<half, 4, 4>(matrix<half, 4, 4>(local471, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h, 0.h)));
-=copy this 2805 3
-=copy this 2813 1
-=copy this 2819 4
+=copy this 2853 3
+=copy this 2861 1
+=copy this 2867 4
         (void)(matrix<float, 4, 4>(vec<float, 4>(local470), vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.)));
         (void)(matrix<half, 4, 4>(vec<half, 4>(local471), vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h)));
     }
@@ -6722,7 +6770,7 @@ int function14(thread int* parameter0)
 {
     int local472 = 42;
     (void)(type0 { .field0 = 42,  });
-=copy this 2836 1
+=copy this 2884 1
     (void)(type0({
         local472,
     }));
@@ -6738,8 +6786,8 @@ int function14(thread int* parameter0)
     (void)(1u);
     (void)(0u);
     (void)(0u);
-=copy this 2851 2
-=copy this 2853 2
+=copy this 2899 2
+=copy this 2901 2
     (void)(4294967295u);
     (void)(unsigned(local473));
     (void)(unsigned(local474));
@@ -6754,7 +6802,7 @@ int function14(thread int* parameter0)
     int local479 = 0;
     float local480 = 0.;
     half local481 = 0.h;
-=copy this 2430 16
+=copy this 2478 16
         unsigned local487 = as_type<unsigned>(local478);
     }
     {
@@ -6765,22 +6813,22 @@ int function14(thread int* parameter0)
     }
     {
         half local490 = as_type<half>(local481);
-=copy this 2879 8
+=copy this 2927 8
         unsigned local493 = as_type<unsigned>(local479);
     }
     {
         unsigned local494 = as_type<unsigned>(local480);
-=copy this 2897 8
+=copy this 2945 8
         int local497 = as_type<int>(local478);
     }
     {
         int local498 = as_type<int>(local480);
-=copy this 2909 8
+=copy this 2957 8
         float local501 = as_type<float>(local478);
     }
     {
         float local502 = as_type<float>(local479);
-=copy this 2876 11
+=copy this 2924 11
         vec<unsigned, 2> local506 = as_type<vec<unsigned, 2>>(vec<unsigned, 2>(local478));
     }
     {
@@ -6788,7 +6836,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<unsigned, 2> local508 = as_type<vec<unsigned, 2>>(vec<float, 2>(local480));
-=copy this 2933 11
+=copy this 2981 11
         vec<int, 2> local512 = as_type<vec<int, 2>>(vec<unsigned, 2>(local478));
     }
     {
@@ -6796,7 +6844,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<int, 2> local514 = as_type<vec<int, 2>>(vec<float, 2>(local480));
-=copy this 2951 11
+=copy this 2999 11
         vec<float, 2> local518 = as_type<vec<float, 2>>(vec<unsigned, 2>(local478));
     }
     {
@@ -6804,7 +6852,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<float, 2> local520 = as_type<vec<float, 2>>(vec<float, 2>(local480));
-=copy this 2969 11
+=copy this 3017 11
         vec<unsigned, 3> local524 = as_type<vec<unsigned, 3>>(vec<unsigned, 3>(local478));
     }
     {
@@ -6812,7 +6860,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<unsigned, 3> local526 = as_type<vec<unsigned, 3>>(vec<float, 3>(local480));
-=copy this 2987 11
+=copy this 3035 11
         vec<int, 3> local530 = as_type<vec<int, 3>>(vec<unsigned, 3>(local478));
     }
     {
@@ -6820,7 +6868,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<int, 3> local532 = as_type<vec<int, 3>>(vec<float, 3>(local480));
-=copy this 3005 11
+=copy this 3053 11
         vec<float, 3> local536 = as_type<vec<float, 3>>(vec<unsigned, 3>(local478));
     }
     {
@@ -6828,7 +6876,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<float, 3> local538 = as_type<vec<float, 3>>(vec<float, 3>(local480));
-=copy this 3023 11
+=copy this 3071 11
         vec<unsigned, 4> local542 = as_type<vec<unsigned, 4>>(vec<unsigned, 4>(local478));
     }
     {
@@ -6836,7 +6884,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<unsigned, 4> local544 = as_type<vec<unsigned, 4>>(vec<float, 4>(local480));
-=copy this 3041 11
+=copy this 3089 11
         vec<int, 4> local548 = as_type<vec<int, 4>>(vec<unsigned, 4>(local478));
     }
     {
@@ -6844,7 +6892,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<int, 4> local550 = as_type<vec<int, 4>>(vec<float, 4>(local480));
-=copy this 3059 11
+=copy this 3107 11
         vec<float, 4> local554 = as_type<vec<float, 4>>(vec<unsigned, 4>(local478));
     }
     {
@@ -6852,20 +6900,20 @@ int function14(thread int* parameter0)
     }
     {
         vec<float, 4> local556 = as_type<vec<float, 4>>(vec<float, 4>(local480));
-=copy this 3077 11
-=copy this 3100 6
+=copy this 3125 11
+=copy this 3148 6
         unsigned local562 = as_type<unsigned>(vec<half, 2>(local481));
-=copy this 3107 5
+=copy this 3155 5
         int local564 = as_type<int>(vec<half, 2>(local481));
-=copy this 3113 5
+=copy this 3161 5
         float local566 = as_type<float>(vec<half, 2>(local481));
-=copy this 3119 5
+=copy this 3167 5
         vec<unsigned, 2> local568 = as_type<vec<unsigned, 2>>(vec<half, 4>(local481));
-=copy this 3125 5
+=copy this 3173 5
         vec<int, 2> local570 = as_type<vec<int, 2>>(vec<half, 4>(local481));
-=copy this 3131 5
+=copy this 3179 5
         vec<float, 2> local572 = as_type<vec<float, 2>>(vec<half, 4>(local481));
-=copy this 3101 11
+=copy this 3149 11
         vec<half, 2> local576 = as_type<vec<half, 2>>(local478);
     }
     {
@@ -6873,7 +6921,7 @@ int function14(thread int* parameter0)
     }
     {
         vec<half, 2> local578 = as_type<vec<half, 2>>(local480);
-=copy this 3143 11
+=copy this 3191 11
         vec<half, 4> local582 = as_type<vec<half, 4>>(vec<unsigned, 2>(local478));
     }
     {
@@ -6887,12 +6935,12 @@ int function14(thread int* parameter0)
 [[kernel]]  void function29()
 {
     bool local585 = false;
-=copy this 2512 1
-=copy this 2506 2
+=copy this 2560 1
+=copy this 2554 2
     (void)(all(vec<bool, 2>(local585)));
     (void)(all(vec<bool, 3>(local585)));
     (void)(all(vec<bool, 4>(local585)));
-=copy this 3186 2
+=copy this 3234 2
     (void)(all(local585));
 }
 
@@ -6900,11 +6948,11 @@ int function14(thread int* parameter0)
 {
     bool local586 = false;
     (void)(true);
-=copy this 3191 2
+=copy this 3239 2
     (void)(any(vec<bool, 2>(local586)));
     (void)(any(vec<bool, 3>(local586)));
     (void)(any(vec<bool, 4>(local586)));
-=copy this 3200 2
+=copy this 3248 2
     (void)(any(local586));
 }
 
@@ -6913,80 +6961,80 @@ int function14(thread int* parameter0)
     bool local587 = false;
     {
         (void)(13);
-=copy this 3214 1
+=copy this 3262 1
         (void)(42u);
         (void)(42.);
         (void)(42.h);
-=copy this 3217 1
+=copy this 3265 1
         (void)(select(13, 42, local587));
-=copy this 3220 1
+=copy this 3268 1
         (void)(select(13u, 42u, local587));
         (void)(select(13., 42., local587));
         (void)(select(13.h, 42.h, local587));
-=copy this 3223 1
+=copy this 3271 1
     }
     {
         (void)(vec<int, 2>(13, 13));
-=copy this 3228 1
+=copy this 3276 1
         (void)(vec<unsigned, 2>(42u, 42u));
         (void)(vec<float, 2>(42., 42.));
         (void)(vec<half, 2>(42.h, 42.h));
-=copy this 3231 1
+=copy this 3279 1
         (void)(select(vec<int, 2>(13, 13), vec<int, 2>(42, 42), local587));
-=copy this 3234 1
+=copy this 3282 1
         (void)(select(vec<unsigned, 2>(13u, 13u), vec<unsigned, 2>(42u, 42u), local587));
         (void)(select(vec<float, 2>(13., 13.), vec<float, 2>(42., 42.), local587));
         (void)(select(vec<half, 2>(13.h, 13.h), vec<half, 2>(42.h, 42.h), local587));
-=copy this 3237 1
+=copy this 3285 1
     }
     {
         (void)(vec<int, 3>(13, 13, 13));
-=copy this 3242 1
+=copy this 3290 1
         (void)(vec<unsigned, 3>(42u, 42u, 42u));
         (void)(vec<float, 3>(42., 42., 42.));
         (void)(vec<half, 3>(42.h, 42.h, 42.h));
-=copy this 3245 1
+=copy this 3293 1
         (void)(select(vec<int, 3>(13, 13, 13), vec<int, 3>(42, 42, 42), local587));
-=copy this 3248 1
+=copy this 3296 1
         (void)(select(vec<unsigned, 3>(13u, 13u, 13u), vec<unsigned, 3>(42u, 42u, 42u), local587));
         (void)(select(vec<float, 3>(13., 13., 13.), vec<float, 3>(42., 42., 42.), local587));
         (void)(select(vec<half, 3>(13.h, 13.h, 13.h), vec<half, 3>(42.h, 42.h, 42.h), local587));
-=copy this 3251 1
+=copy this 3299 1
     }
     {
         (void)(vec<int, 4>(13, 13, 13, 13));
-=copy this 3256 1
+=copy this 3304 1
         (void)(vec<unsigned, 4>(42u, 42u, 42u, 42u));
         (void)(vec<float, 4>(42., 42., 42., 42.));
         (void)(vec<half, 4>(42.h, 42.h, 42.h, 42.h));
-=copy this 3259 1
+=copy this 3307 1
         (void)(select(vec<int, 4>(13, 13, 13, 13), vec<int, 4>(42, 42, 42, 42), local587));
-=copy this 3262 1
+=copy this 3310 1
         (void)(select(vec<unsigned, 4>(13u, 13u, 13u, 13u), vec<unsigned, 4>(42u, 42u, 42u, 42u), local587));
         (void)(select(vec<float, 4>(13., 13., 13., 13.), vec<float, 4>(42., 42., 42., 42.), local587));
         (void)(select(vec<half, 4>(13.h, 13.h, 13.h, 13.h), vec<half, 4>(42.h, 42.h, 42.h, 42.h), local587));
-=copy this 3265 1
-=copy this 3226 8
+=copy this 3313 1
+=copy this 3274 8
         (void)(select(vec<int, 2>(13, 13), vec<int, 2>(42, 42), vec<bool, 2>(local587)));
-=copy this 3276 1
+=copy this 3324 1
         (void)(select(vec<unsigned, 2>(13u, 13u), vec<unsigned, 2>(42u, 42u), vec<bool, 2>(local587)));
         (void)(select(vec<float, 2>(13., 13.), vec<float, 2>(42., 42.), vec<bool, 2>(local587)));
         (void)(select(vec<half, 2>(13.h, 13.h), vec<half, 2>(42.h, 42.h), vec<bool, 2>(local587)));
-=copy this 3279 1
-=copy this 3240 8
+=copy this 3327 1
+=copy this 3288 8
         (void)(select(vec<int, 3>(13, 13, 13), vec<int, 3>(42, 42, 42), vec<bool, 3>(local587)));
-=copy this 3290 1
+=copy this 3338 1
         (void)(select(vec<unsigned, 3>(13u, 13u, 13u), vec<unsigned, 3>(42u, 42u, 42u), vec<bool, 3>(local587)));
         (void)(select(vec<float, 3>(13., 13., 13.), vec<float, 3>(42., 42., 42.), vec<bool, 3>(local587)));
         (void)(select(vec<half, 3>(13.h, 13.h, 13.h), vec<half, 3>(42.h, 42.h, 42.h), vec<bool, 3>(local587)));
-=copy this 3293 1
-=copy this 3254 8
+=copy this 3341 1
+=copy this 3302 8
         (void)(select(vec<int, 4>(13, 13, 13, 13), vec<int, 4>(42, 42, 42, 42), vec<bool, 4>(local587)));
-=copy this 3304 1
+=copy this 3352 1
         (void)(select(vec<unsigned, 4>(13u, 13u, 13u, 13u), vec<unsigned, 4>(42u, 42u, 42u, 42u), vec<bool, 4>(local587)));
         (void)(select(vec<float, 4>(13., 13., 13., 13.), vec<float, 4>(42., 42., 42., 42.), vec<bool, 4>(local587)));
         (void)(select(vec<half, 4>(13.h, 13.h, 13.h, 13.h), vec<half, 4>(42.h, 42.h, 42.h, 42.h), vec<bool, 4>(local587)));
-=copy this 3307 1
+=copy this 3355 1
     }
 }
 
@@ -7025,7 +7073,7 @@ int function14(thread int* parameter0)
         (void)(__wgslAsin(local589));
         (void)(__wgslAsin(local590));
         (void)(__wgslAsin(local591));
-=copy this 3338 6
+=copy this 3386 6
         (void)(atan(local588));
         (void)(atan(local589));
         (void)(atan(local590));
@@ -7040,12 +7088,12 @@ int function14(thread int* parameter0)
         (void)(cos(local589));
         (void)(cos(local590));
         (void)(cos(local591));
-=copy this 3348 6
+=copy this 3396 6
         (void)(sin(local588));
         (void)(sin(local589));
         (void)(sin(local590));
         (void)(sin(local591));
-=copy this 3368 6
+=copy this 3416 6
         (void)(tan(local588));
         (void)(tan(local589));
         (void)(tan(local590));
@@ -7059,32 +7107,32 @@ int function14(thread int* parameter0)
     vec<float, 2> local593 = vec<float, 2>(0., 0.);
     vec<float, 3> local594 = vec<float, 3>(0., 0., 0.);
     vec<float, 4> local595 = vec<float, 4>(0., 0., 0., 0.);
-=copy this 3379 5
+=copy this 3427 5
         (void)(__wgslAcosh(local592));
         (void)(__wgslAcosh(local593));
         (void)(__wgslAcosh(local594));
         (void)(__wgslAcosh(local595));
-=copy this 3378 6
+=copy this 3426 6
         (void)(asinh(local592));
         (void)(asinh(local593));
         (void)(asinh(local594));
         (void)(asinh(local595));
-=copy this 3406 6
+=copy this 3454 6
         (void)(__wgslAtanh(local592));
         (void)(__wgslAtanh(local593));
         (void)(__wgslAtanh(local594));
         (void)(__wgslAtanh(local595));
-=copy this 3358 6
+=copy this 3406 6
         (void)(cosh(local592));
         (void)(cosh(local593));
         (void)(cosh(local594));
         (void)(cosh(local595));
-=copy this 3416 6
+=copy this 3464 6
         (void)(sinh(local592));
         (void)(sinh(local593));
         (void)(sinh(local594));
         (void)(sinh(local595));
-=copy this 3436 6
+=copy this 3484 6
         (void)(tanh(local592));
         (void)(tanh(local593));
         (void)(tanh(local594));
@@ -7102,9 +7150,9 @@ int function14(thread int* parameter0)
         (void)(0);
         (void)(1);
         (void)(1u);
-=copy this 3448 1
+=copy this 3496 1
         (void)(1.h);
-=copy this 3428 1
+=copy this 3476 1
         (void)(abs(local596));
         (void)(abs(local597));
         (void)(abs(local599));
@@ -7149,33 +7197,33 @@ int function14(thread int* parameter0)
 {
     float local600 = 0.;
     half local601 = 0.h;
-=copy this 3447 2
-=copy this 3517 1
+=copy this 3495 2
+=copy this 3565 1
         (void)(0.46364760398864746);
         (void)(0.463623046875h);
         (void)(atan2(local600, local600));
         (void)(atan2(local601, local601));
     }
     {
-=copy this 3449 1
-=copy this 3525 1
-=copy this 3526 1
+=copy this 3497 1
+=copy this 3573 1
+=copy this 3574 1
         (void)(vec<half, 2>(0.h, 0.h));
         (void)(atan2(vec<float, 2>(local600), vec<float, 2>(local600)));
         (void)(atan2(vec<half, 2>(local601), vec<half, 2>(local601)));
     }
     {
-=copy this 3450 1
-=copy this 3533 1
-=copy this 3534 1
+=copy this 3498 1
+=copy this 3581 1
+=copy this 3582 1
         (void)(vec<half, 3>(0.h, 0.h, 0.h));
         (void)(atan2(vec<float, 3>(local600), vec<float, 3>(local600)));
         (void)(atan2(vec<half, 3>(local601), vec<half, 3>(local601)));
     }
     {
-=copy this 3451 1
-=copy this 3541 1
-=copy this 3542 1
+=copy this 3499 1
+=copy this 3589 1
+=copy this 3590 1
         (void)(vec<half, 4>(0.h, 0.h, 0.h, 0.h));
         (void)(atan2(vec<float, 4>(local600), vec<float, 4>(local600)));
         (void)(atan2(vec<half, 4>(local601), vec<half, 4>(local601)));
@@ -7186,22 +7234,22 @@ int function14(thread int* parameter0)
 {
     float local602 = 0.;
     half local603 = 0.h;
-=copy this 3516 3
-=copy this 3471 1
-=copy this 3470 1
+=copy this 3564 3
+=copy this 3519 1
+=copy this 3518 1
         (void)(ceil(local602));
         (void)(ceil(local603));
     }
     {
-=copy this 3481 1
-=copy this 3481 2
+=copy this 3529 1
+=copy this 3529 2
         (void)(vec<half, 2>(1.h, 2.h));
         (void)(ceil(vec<float, 2>(local602)));
         (void)(ceil(vec<half, 2>(local603)));
     }
     {
         (void)(vec<float, 3>(-1., 0., 1.));
-=copy this 3571 1
+=copy this 3619 1
         (void)(vec<float, 3>(-1., 1., 2.));
         (void)(vec<half, 3>(1.h, 2.h, 3.h));
         (void)(ceil(vec<float, 3>(local602)));
@@ -7209,7 +7257,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(-1., 0., 1., 2.));
-=copy this 3579 1
+=copy this 3627 1
         (void)(vec<float, 4>(-1., 1., 2., 3.));
         (void)(vec<half, 4>(1.h, 2.h, 3.h, 4.h));
         (void)(ceil(vec<float, 4>(local602)));
@@ -7223,8 +7271,8 @@ int function14(thread int* parameter0)
     unsigned local605 = 1u;
     float local606 = 1.;
     half local607 = 1.h;
-=copy this 3465 5
-=copy this 3557 2
+=copy this 3513 5
+=copy this 3605 2
         (void)(clamp(local604, local604, local604));
         (void)(clamp(local605, local605, local605));
         (void)(clamp(local606, local606, local606));
@@ -7232,9 +7280,9 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<int, 2>(0, 0));
-=copy this 3607 1
+=copy this 3655 1
         (void)(vec<unsigned, 2>(0u, 0u));
-=copy this 3526 2
+=copy this 3574 2
         (void)(vec<half, 2>(1.h, 1.h));
         (void)(clamp(vec<int, 2>(local604), vec<int, 2>(local604), vec<int, 2>(local604)));
         (void)(clamp(vec<unsigned, 2>(local605), vec<unsigned, 2>(local605), vec<unsigned, 2>(local605)));
@@ -7243,9 +7291,9 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<int, 3>(0, 0, 0));
-=copy this 3619 1
+=copy this 3667 1
         (void)(vec<unsigned, 3>(0u, 0u, 0u));
-=copy this 3534 2
+=copy this 3582 2
         (void)(vec<half, 3>(1.h, 1.h, 1.h));
         (void)(clamp(vec<int, 3>(local604), vec<int, 3>(local604), vec<int, 3>(local604)));
         (void)(clamp(vec<unsigned, 3>(local605), vec<unsigned, 3>(local605), vec<unsigned, 3>(local605)));
@@ -7254,9 +7302,9 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<int, 4>(0, 0, 0, 0));
-=copy this 3631 1
+=copy this 3679 1
         (void)(vec<unsigned, 4>(0u, 0u, 0u, 0u));
-=copy this 3542 2
+=copy this 3590 2
         (void)(vec<half, 4>(1.h, 1.h, 1.h, 1.h));
         (void)(clamp(vec<int, 4>(local604), vec<int, 4>(local604), vec<int, 4>(local604)));
         (void)(clamp(vec<unsigned, 4>(local605), vec<unsigned, 4>(local605), vec<unsigned, 4>(local605)));
@@ -7271,7 +7319,7 @@ int function14(thread int* parameter0)
         int local608 = 1;
         unsigned local609 = 1u;
         (void)(31);
-=copy this 3649 1
+=copy this 3697 1
         (void)(31u);
         int local610 = clz(local608);
         unsigned local611 = clz(local609);
@@ -7279,16 +7327,16 @@ int function14(thread int* parameter0)
     {
         int local612 = 1;
         unsigned local613 = 1u;
-=copy this 3596 1
-=copy this 3596 2
+=copy this 3644 1
+=copy this 3644 2
         int local614 = popcount(local612);
         unsigned local615 = popcount(local613);
     }
     {
         int local616 = 1;
         unsigned local617 = 1u;
-=copy this 3595 1
-=copy this 3667 1
+=copy this 3643 1
+=copy this 3715 1
         (void)(0u);
         int local618 = ctz(local616);
         unsigned local619 = ctz(local617);
@@ -7297,7 +7345,7 @@ int function14(thread int* parameter0)
         vec<int, 2> local620 = vec<int, 2>(1, 1);
         vec<unsigned, 2> local621 = vec<unsigned, 2>(1u, 1u);
         (void)(vec<int, 2>(31, 31));
-=copy this 3676 1
+=copy this 3724 1
         (void)(vec<unsigned, 2>(31u, 31u));
         vec<int, 2> local622 = clz(local620);
         vec<unsigned, 2> local623 = clz(local621);
@@ -7306,7 +7354,7 @@ int function14(thread int* parameter0)
         vec<int, 3> local624 = vec<int, 3>(1, 1, 1);
         vec<unsigned, 3> local625 = vec<unsigned, 3>(1u, 1u, 1u);
         (void)(vec<int, 3>(1, 1, 1));
-=copy this 3685 1
+=copy this 3733 1
         (void)(vec<unsigned, 3>(1u, 1u, 1u));
         vec<int, 3> local626 = popcount(local624);
         vec<unsigned, 3> local627 = popcount(local625);
@@ -7314,7 +7362,7 @@ int function14(thread int* parameter0)
     {
         vec<int, 4> local628 = vec<int, 4>(1, 1, 1, 1);
         vec<unsigned, 4> local629 = vec<unsigned, 4>(1u, 1u, 1u, 1u);
-=copy this 3631 3
+=copy this 3679 3
         vec<int, 4> local630 = ctz(local628);
         vec<unsigned, 4> local631 = ctz(local629);
     }
@@ -7325,12 +7373,12 @@ int function14(thread int* parameter0)
     float local632 = 0.;
     half local633 = 0.h;
     (void)(vec<float, 3>(1., -2., 1.));
-=copy this 3706 1
-=copy this 3707 1
+=copy this 3754 1
+=copy this 3755 1
     (void)(cross(vec<float, 3>(local632), vec<float, 3>(local632)));
     (void)(vec<half, 3>(1.h, -2.h, 1.h));
-=copy this 3710 1
-=copy this 3711 1
+=copy this 3758 1
+=copy this 3759 1
     (void)(cross(vec<half, 3>(local633), vec<half, 3>(local633)));
 }
 
@@ -7338,7 +7386,7 @@ int function14(thread int* parameter0)
 {
     float local634 = 0.;
     half local635 = 0.h;
-=copy this 3554 3
+=copy this 3602 3
         (void)(57.295780181884766);
         (void)(57.28125h);
         (void)(static_cast<float>(local634 * 57.29577951308232));
@@ -7346,7 +7394,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 2>(0., 57.29577951308232));
-=copy this 3729 1
+=copy this 3777 1
         (void)(vec<float, 2>(57.295780181884766, 114.59156036376953));
         (void)(vec<half, 2>(57.28125h, 57.28125h));
         (void)(static_cast<vec<float, 2>>(vec<float, 2>(local634) * 57.29577951308232));
@@ -7354,7 +7402,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 3>(-57.29577951308232, 0., 57.29577951308232));
-=copy this 3737 1
+=copy this 3785 1
         (void)(vec<float, 3>(-57.295780181884766, 57.295780181884766, 114.59156036376953));
         (void)(vec<half, 3>(57.28125h, 57.28125h, 57.28125h));
         (void)(static_cast<vec<float, 3>>(vec<float, 3>(local634) * 57.29577951308232));
@@ -7362,7 +7410,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(-57.29577951308232, 0., 57.29577951308232, 114.59155902616465));
-=copy this 3745 1
+=copy this 3793 1
         (void)(vec<float, 4>(-57.295780181884766, 57.295780181884766, 114.59156036376953, 171.88734436035156));
         (void)(vec<half, 4>(57.28125h, 57.28125h, 57.28125h, 57.28125h));
         (void)(static_cast<vec<float, 4>>(vec<float, 4>(local634) * 57.29577951308232));
@@ -7374,8 +7422,8 @@ int function14(thread int* parameter0)
 {
     float local636 = 1.;
     half local637 = 1.h;
-=copy this 2549 6
-=copy this 2531 3
+=copy this 2597 6
+=copy this 2579 3
     (void)(determinant(matrix<float, 2, 2>(local636, local636, local636, local636)));
     (void)(determinant(matrix<float, 3, 3>(local636, local636, local636, local636, local636, local636, local636, local636, local636)));
     (void)(determinant(matrix<float, 4, 4>(local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636, local636)));
@@ -7388,32 +7436,32 @@ int function14(thread int* parameter0)
 {
     float local638 = 1.;
     float local639 = 2.;
-=copy this 3427 2
-=copy this 3780 1
-=copy this 3780 2
-=copy this 3782 2
+=copy this 3475 2
+=copy this 3828 1
+=copy this 3828 2
+=copy this 3830 2
         (void)(abs(local638 - local639));
     }
     {
         (void)(1.4142135623730951);
-=copy this 3722 1
+=copy this 3770 1
         (void)(1.4142135381698608);
-=copy this 3721 2
-=copy this 3793 1
+=copy this 3769 2
+=copy this 3841 1
         (void)(distance(vec<float, 2>(local638), vec<float, 2>(local639)));
     }
     {
         (void)(1.7320508075688772);
-=copy this 3794 1
+=copy this 3842 1
         (void)(1.7320507764816284);
-=copy this 3792 3
+=copy this 3840 3
         (void)(distance(vec<float, 3>(local638), vec<float, 3>(local639)));
     }
     {
         (void)(2.);
-=copy this 3803 1
-=copy this 3807 2
-=copy this 3802 2
+=copy this 3851 1
+=copy this 3855 2
+=copy this 3850 2
         (void)(distance(vec<float, 4>(local638), vec<float, 4>(local639)));
     }
 }
@@ -7424,31 +7472,31 @@ int function14(thread int* parameter0)
     unsigned local641 = 1u;
     float local642 = 1.;
     half local643 = 1.h;
-=copy this 3594 2
-=copy this 3812 1
-=copy this 3668 2
+=copy this 3642 2
+=copy this 3860 1
+=copy this 3716 2
         (void)(2);
         (void)(2u);
-=copy this 3810 3
-=copy this 3809 1
+=copy this 3858 3
+=copy this 3857 1
         (void)(__wgslDot(vec<int, 2>(local640), vec<int, 2>(local640)));
         (void)(__wgslDot(vec<unsigned, 2>(local641), vec<unsigned, 2>(local641)));
         (void)(__wgslDot(vec<float, 2>(local642), vec<float, 2>(local642)));
         (void)(__wgslDot(vec<half, 2>(local643), vec<half, 2>(local643)));
     }
-=copy this 3823 5
+=copy this 3871 5
         (void)(3);
         (void)(3u);
-=copy this 3830 3
+=copy this 3878 3
         (void)(3.);
         (void)(__wgslDot(vec<int, 3>(local640), vec<int, 3>(local640)));
         (void)(__wgslDot(vec<unsigned, 3>(local641), vec<unsigned, 3>(local641)));
         (void)(__wgslDot(vec<float, 3>(local642), vec<float, 3>(local642)));
         (void)(__wgslDot(vec<half, 3>(local643), vec<half, 3>(local643)));
-=copy this 3838 6
+=copy this 3886 6
         (void)(4);
         (void)(4u);
-=copy this 3846 3
+=copy this 3894 3
         (void)(4.);
         (void)(__wgslDot(vec<int, 4>(local640), vec<int, 4>(local640)));
         (void)(__wgslDot(vec<unsigned, 4>(local641), vec<unsigned, 4>(local641)));
@@ -7461,7 +7509,7 @@ int function14(thread int* parameter0)
 {
     unsigned local644 = 0u;
     {
-=copy this 3169 3
+=copy this 3217 3
         unsigned local646 = __wgslDot4U8Packed(local644, local644);
     }
 }
@@ -7469,7 +7517,7 @@ int function14(thread int* parameter0)
 [[kernel]]  void function46()
 {
     unsigned local647 = 0u;
-=copy this 3876 4
+=copy this 3924 4
         int local649 = __wgslDot4I8Packed(local647, local647);
     }
 }
@@ -7478,21 +7526,21 @@ int function14(thread int* parameter0)
 {
     float local650 = 0.;
     half local651 = 0.h;
-=copy this 3779 3
+=copy this 3827 3
         (void)(2.7182817459106445);
         (void)(2.71875h);
         (void)(exp(local650));
         (void)(exp(local651));
-=copy this 3426 3
-=copy this 3908 1
-=copy this 3833 1
+=copy this 3474 3
+=copy this 3956 1
+=copy this 3881 1
         (void)(2.h);
         (void)(exp2(local650));
         (void)(exp2(local651));
     }
     {
         (void)(vec<float, 2>(1., 2.718281828459045));
-=copy this 3916 1
+=copy this 3964 1
         (void)(vec<float, 2>(2.7182817459106445, 7.389056205749512));
         (void)(vec<half, 2>(2.71875h, 2.71875h));
         (void)(exp(vec<float, 2>(local650)));
@@ -7500,7 +7548,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 3>(0.36787944117144233, 1., 2.718281828459045));
-=copy this 3924 1
+=copy this 3972 1
         (void)(vec<float, 3>(0.3678794503211975, 2.7182817459106445, 7.389056205749512));
         (void)(vec<half, 3>(2.71875h, 2.71875h, 2.71875h));
         (void)(exp(vec<float, 3>(local650)));
@@ -7508,15 +7556,15 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(0.36787944117144233, 1., 2.718281828459045, 7.38905609893065));
-=copy this 3932 1
+=copy this 3980 1
         (void)(vec<float, 4>(0.3678794503211975, 2.7182817459106445, 7.389056205749512, 20.08553695678711));
         (void)(vec<half, 4>(2.71875h, 2.71875h, 2.71875h, 2.71875h));
         (void)(exp(vec<float, 4>(local650)));
         (void)(exp(vec<half, 4>(local651)));
     }
     {
-=copy this 3565 1
-=copy this 3940 1
+=copy this 3613 1
+=copy this 3988 1
         (void)(vec<float, 2>(2., 4.));
         (void)(vec<half, 2>(2.h, 2.h));
         (void)(exp2(vec<float, 2>(local650)));
@@ -7524,7 +7572,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 3>(0.5, 1., 2.));
-=copy this 3948 1
+=copy this 3996 1
         (void)(vec<float, 3>(0.5, 2., 4.));
         (void)(vec<half, 3>(2.h, 2.h, 2.h));
         (void)(exp2(vec<float, 3>(local650)));
@@ -7532,7 +7580,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(0.5, 1., 2., 4.));
-=copy this 3956 1
+=copy this 4004 1
         (void)(vec<float, 4>(0.5, 2., 4., 8.));
         (void)(vec<half, 4>(2.h, 2.h, 2.h, 2.h));
         (void)(exp2(vec<float, 4>(local650)));
@@ -7544,50 +7592,50 @@ int function14(thread int* parameter0)
 {
     {
         int local652 = 0;
-=copy this 3667 2
-=copy this 3970 1
+=copy this 3715 2
+=copy this 4018 1
         int local653 = __wgslExtractBits(local652, 1u, 1u);
     }
     {
         vec<int, 2> local654 = vec<int, 2>(0, 0);
-=copy this 3607 2
-=copy this 3977 1
+=copy this 3655 2
+=copy this 4025 1
         vec<int, 2> local655 = __wgslExtractBits(local654, 1u, 1u);
     }
     {
         vec<int, 3> local656 = vec<int, 3>(0, 0, 0);
-=copy this 3619 2
-=copy this 3984 1
+=copy this 3667 2
+=copy this 4032 1
         vec<int, 3> local657 = __wgslExtractBits(local656, 1u, 1u);
     }
     {
         vec<int, 4> local658 = vec<int, 4>(0, 0, 0, 0);
-=copy this 3694 2
-=copy this 3991 1
+=copy this 3742 2
+=copy this 4039 1
         vec<int, 4> local659 = __wgslExtractBits(local658, 1u, 1u);
     }
     {
         unsigned local660 = 0u;
-=copy this 3858 2
-=copy this 3998 1
+=copy this 3906 2
+=copy this 4046 1
         unsigned local661 = __wgslExtractBits(local660, 1u, 1u);
     }
     {
         vec<unsigned, 2> local662 = vec<unsigned, 2>(0u, 0u);
-=copy this 3608 2
-=copy this 4005 1
+=copy this 3656 2
+=copy this 4053 1
         vec<unsigned, 2> local663 = __wgslExtractBits(local662, 1u, 1u);
     }
     {
         vec<unsigned, 3> local664 = vec<unsigned, 3>(0u, 0u, 0u);
-=copy this 3620 2
-=copy this 4012 1
+=copy this 3668 2
+=copy this 4060 1
         vec<unsigned, 3> local665 = __wgslExtractBits(local664, 1u, 1u);
     }
     {
         vec<unsigned, 4> local666 = vec<unsigned, 4>(0u, 0u, 0u, 0u);
-=copy this 3695 2
-=copy this 4019 1
+=copy this 3743 2
+=copy this 4067 1
         vec<unsigned, 4> local667 = __wgslExtractBits(local666, 1u, 1u);
     }
 }
@@ -7596,17 +7644,17 @@ int function14(thread int* parameter0)
 {
     {
         vec<float, 2> local668 = vec<float, 2>(2., 2.);
-=copy this 3525 3
+=copy this 3573 3
         vec<float, 2> local669 = faceforward(local668, local668, local668);
     }
     {
         vec<float, 3> local670 = vec<float, 3>(2., 2., 2.);
-=copy this 3533 3
+=copy this 3581 3
         vec<float, 3> local671 = faceforward(local670, local670, local670);
     }
     {
         vec<float, 4> local672 = vec<float, 4>(2., 2., 2., 2.);
-=copy this 3541 3
+=copy this 3589 3
         vec<float, 4> local673 = faceforward(local672, local672, local672);
     }
 }
@@ -7617,34 +7665,34 @@ int function14(thread int* parameter0)
     unsigned local675 = 0u;
     {
         (void)(-1);
-=copy this 4055 1
+=copy this 4103 1
         (void)(__wgslFirstLeadingBit(local674));
     }
     {
         (void)(vec<int, 2>(-1, -1));
-=copy this 4060 1
+=copy this 4108 1
         (void)(__wgslFirstLeadingBit(vec<int, 2>(local674)));
     }
     {
         (void)(vec<int, 3>(-1, -1, -1));
-=copy this 4065 1
+=copy this 4113 1
         (void)(__wgslFirstLeadingBit(vec<int, 3>(local674)));
     }
     {
         (void)(vec<int, 4>(-1, -1, -1, -1));
-=copy this 4070 1
+=copy this 4118 1
         (void)(__wgslFirstLeadingBit(vec<int, 4>(local674)));
     }
-=copy this 4054 2
+=copy this 4102 2
         (void)(4294967295u);
         (void)(__wgslFirstLeadingBit(local675));
-=copy this 4058 3
+=copy this 4106 3
         (void)(vec<unsigned, 2>(4294967295u, 4294967295u));
         (void)(__wgslFirstLeadingBit(vec<unsigned, 2>(local675)));
-=copy this 4063 3
+=copy this 4111 3
         (void)(vec<unsigned, 3>(4294967295u, 4294967295u, 4294967295u));
         (void)(__wgslFirstLeadingBit(vec<unsigned, 3>(local675)));
-=copy this 4068 3
+=copy this 4116 3
         (void)(vec<unsigned, 4>(4294967295u, 4294967295u, 4294967295u, 4294967295u));
         (void)(__wgslFirstLeadingBit(vec<unsigned, 4>(local675)));
     }
@@ -7654,20 +7702,20 @@ int function14(thread int* parameter0)
 {
     int local676 = 0;
     unsigned local677 = 0u;
-=copy this 4054 3
-=copy this 4076 1
+=copy this 4102 3
+=copy this 4124 1
         (void)(__wgslFirstTrailingBit(local676));
         (void)(__wgslFirstTrailingBit(local677));
-=copy this 4058 4
-=copy this 4081 1
+=copy this 4106 4
+=copy this 4129 1
         (void)(__wgslFirstTrailingBit(vec<int, 2>(local676)));
         (void)(__wgslFirstTrailingBit(vec<unsigned, 2>(local677)));
-=copy this 4063 4
-=copy this 4086 1
+=copy this 4111 4
+=copy this 4134 1
         (void)(__wgslFirstTrailingBit(vec<int, 3>(local676)));
         (void)(__wgslFirstTrailingBit(vec<unsigned, 3>(local677)));
-=copy this 4068 4
-=copy this 4091 1
+=copy this 4116 4
+=copy this 4139 1
         (void)(__wgslFirstTrailingBit(vec<int, 4>(local676)));
         (void)(__wgslFirstTrailingBit(vec<unsigned, 4>(local677)));
     }
@@ -7677,26 +7725,26 @@ int function14(thread int* parameter0)
 {
     float local678 = 0.;
     half local679 = 0.h;
-=copy this 3720 3
-=copy this 3599 2
+=copy this 3768 3
+=copy this 3647 2
         (void)(floor(local678));
         (void)(floor(local679));
     }
     {
-=copy this 3563 3
-=copy this 3612 1
+=copy this 3611 3
+=copy this 3660 1
         (void)(floor(vec<float, 2>(local678)));
         (void)(floor(vec<half, 2>(local679)));
     }
     {
-=copy this 3571 3
-=copy this 3624 1
+=copy this 3619 3
+=copy this 3672 1
         (void)(floor(vec<float, 3>(local678)));
         (void)(floor(vec<half, 3>(local679)));
     }
     {
-=copy this 3579 3
-=copy this 3636 1
+=copy this 3627 3
+=copy this 3684 1
         (void)(floor(vec<float, 4>(local678)));
         (void)(floor(vec<half, 4>(local679)));
     }
@@ -7706,23 +7754,23 @@ int function14(thread int* parameter0)
 {
     float local680 = 0.;
     float local681 = 0.;
-=copy this 3779 4
-=copy this 4138 1
+=copy this 3827 4
+=copy this 4186 1
         (void)(fma(local680, local680, local680));
         (void)(fma(local681, local681, local681));
     }
     {
-=copy this 3525 4
+=copy this 3573 4
         (void)(fma(vec<float, 2>(local680), vec<float, 2>(local680), vec<float, 2>(local680)));
         (void)(fma(vec<float, 2>(local681), vec<float, 2>(local681), vec<float, 2>(local681)));
     }
     {
-=copy this 3533 4
+=copy this 3581 4
         (void)(fma(vec<float, 3>(local680), vec<float, 3>(local680), vec<float, 3>(local680)));
         (void)(fma(vec<float, 3>(local681), vec<float, 3>(local681), vec<float, 3>(local681)));
     }
     {
-=copy this 3541 4
+=copy this 3589 4
         (void)(fma(vec<float, 4>(local680), vec<float, 4>(local680), vec<float, 4>(local680)));
         (void)(fma(vec<float, 4>(local681), vec<float, 4>(local681), vec<float, 4>(local681)));
     }
@@ -7732,18 +7780,18 @@ int function14(thread int* parameter0)
 {
     float local682 = 0.;
     half local683 = 0.h;
-=copy this 4134 3
-=copy this 4212 1
+=copy this 4182 3
+=copy this 4260 1
         (void)(0.h);
         (void)(fract(local682));
         (void)(fract(local683));
-=copy this 4179 6
+=copy this 4227 6
         (void)(fract(vec<float, 2>(local682)));
         (void)(fract(vec<half, 2>(local683)));
-=copy this 4187 6
+=copy this 4235 6
         (void)(fract(vec<float, 3>(local682)));
         (void)(fract(vec<half, 3>(local683)));
-=copy this 4195 6
+=copy this 4243 6
         (void)(fract(vec<float, 4>(local682)));
         (void)(fract(vec<half, 4>(local683)));
     }
@@ -7795,26 +7843,26 @@ int function14(thread int* parameter0)
         unsigned local712 = 0u;
         int local713 = __wgslInsertBits(local711, local711, 0u, 0u);
         unsigned local714 = __wgslInsertBits(local712, local712, 0u, 0u);
-=copy this 3667 3
+=copy this 3715 3
     }
     {
         vec<int, 2> local715 = vec<int, 2>(0, 0);
         vec<unsigned, 2> local716 = vec<unsigned, 2>(0u, 0u);
-=copy this 3607 3
+=copy this 3655 3
         vec<int, 2> local717 = __wgslInsertBits(local715, local715, 0u, 0u);
         vec<unsigned, 2> local718 = __wgslInsertBits(local716, local716, 0u, 0u);
     }
     {
         vec<int, 3> local719 = vec<int, 3>(0, 0, 0);
         vec<unsigned, 3> local720 = vec<unsigned, 3>(0u, 0u, 0u);
-=copy this 3619 3
+=copy this 3667 3
         vec<int, 3> local721 = __wgslInsertBits(local719, local719, 0u, 0u);
         vec<unsigned, 3> local722 = __wgslInsertBits(local720, local720, 0u, 0u);
     }
     {
         vec<int, 4> local723 = vec<int, 4>(0, 0, 0, 0);
         vec<unsigned, 4> local724 = vec<unsigned, 4>(0u, 0u, 0u, 0u);
-=copy this 3694 3
+=copy this 3742 3
         vec<int, 4> local725 = __wgslInsertBits(local723, local723, 0u, 0u);
         vec<unsigned, 4> local726 = __wgslInsertBits(local724, local724, 0u, 0u);
     }
@@ -7825,25 +7873,25 @@ int function14(thread int* parameter0)
     float local727 = 2.;
     {
         (void)(0.7071067811865475);
-=copy this 4327 1
+=copy this 4375 1
         (void)(0.7071067690849304);
         (void)(__wgslInverseSqrt(local727));
     }
     {
         (void)(vec<float, 2>(0.7071067811865475, 0.7071067811865475));
-=copy this 4333 1
+=copy this 4381 1
         (void)(vec<float, 2>(0.7071067690849304, 0.7071067690849304));
         (void)(__wgslInverseSqrt(vec<float, 2>(local727)));
     }
     {
         (void)(vec<float, 3>(0.7071067811865475, 0.7071067811865475, 0.7071067811865475));
-=copy this 4339 1
+=copy this 4387 1
         (void)(vec<float, 3>(0.7071067690849304, 0.7071067690849304, 0.7071067690849304));
         (void)(__wgslInverseSqrt(vec<float, 3>(local727)));
     }
     {
         (void)(vec<float, 4>(0.7071067811865475, 0.7071067811865475, 0.7071067811865475, 0.7071067811865475));
-=copy this 4345 1
+=copy this 4393 1
         (void)(vec<float, 4>(0.7071067690849304, 0.7071067690849304, 0.7071067690849304, 0.7071067690849304));
         (void)(__wgslInverseSqrt(vec<float, 4>(local727)));
     }
@@ -7853,25 +7901,25 @@ int function14(thread int* parameter0)
 {
     float local728 = 0.;
     half local729 = 0.h;
-=copy this 4210 2
-=copy this 4214 1
+=copy this 4258 2
+=copy this 4262 1
         (void)(ldexp(local728, 1));
         (void)(ldexp(local729, 1));
     }
-=copy this 4210 3
-=copy this 4217 3
-=copy this 3450 2
-=copy this 4222 1
-=copy this 4230 1
-=copy this 4238 1
+=copy this 4258 3
+=copy this 4265 3
+=copy this 3498 2
+=copy this 4270 1
+=copy this 4278 1
+=copy this 4286 1
         (void)(ldexp(vec<float, 2>(local728), vec<int, 2>(1, 1)));
         (void)(ldexp(vec<float, 3>(local728), vec<int, 3>(1, 1, 1)));
         (void)(ldexp(vec<float, 4>(local728), vec<int, 4>(1, 1, 1, 1)));
         (void)(ldexp(vec<half, 2>(local729), vec<int, 2>(1, 1)));
         (void)(ldexp(vec<half, 3>(local729), vec<int, 3>(1, 1, 1)));
         (void)(ldexp(vec<half, 4>(local729), vec<int, 4>(1, 1, 1, 1)));
-=copy this 4365 5
-=copy this 4381 3
+=copy this 4413 5
+=copy this 4429 3
     }
 }
 
@@ -7879,27 +7927,27 @@ int function14(thread int* parameter0)
 {
     float local730 = 0.;
     half local731 = 0.h;
-=copy this 4134 5
+=copy this 4182 5
         (void)(abs(local730));
         (void)(abs(local731));
-=copy this 4361 4
-=copy this 3791 1
+=copy this 4409 4
+=copy this 3839 1
         (void)(1.4140625h);
         (void)(length(vec<float, 2>(local730)));
         (void)(length(vec<half, 2>(local731)));
     }
     {
-=copy this 3798 1
-=copy this 4411 1
-=copy this 3800 1
+=copy this 3846 1
+=copy this 4459 1
+=copy this 3848 1
         (void)(1.732421875h);
         (void)(length(vec<float, 3>(local730)));
         (void)(length(vec<half, 3>(local731)));
     }
     {
-=copy this 3910 1
-=copy this 4419 1
-=copy this 3910 2
+=copy this 3958 1
+=copy this 4467 1
+=copy this 3958 2
         (void)(length(vec<float, 4>(local730)));
         (void)(length(vec<half, 4>(local731)));
     }
@@ -7911,13 +7959,13 @@ int function14(thread int* parameter0)
     half local733 = 0.h;
     {
         (void)(0.6931471805599453);
-=copy this 4212 3
+=copy this 4260 3
         (void)(__wgslLog(local732));
         (void)(__wgslLog(local733));
     }
     {
         (void)(vec<float, 2>(0.6931471805599453, 0.6931471805599453));
-=copy this 4441 1
+=copy this 4489 1
         (void)(vec<float, 2>(0.6931471824645996, 0.6931471824645996));
         (void)(vec<half, 2>(0.693359375h, 0.693359375h));
         (void)(__wgslLog(vec<float, 2>(local732)));
@@ -7925,7 +7973,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 3>(0.6931471805599453, 0.6931471805599453, 0.6931471805599453));
-=copy this 4449 1
+=copy this 4497 1
         (void)(vec<float, 3>(0.6931471824645996, 0.6931471824645996, 0.6931471824645996));
         (void)(vec<half, 3>(0.693359375h, 0.693359375h, 0.693359375h));
         (void)(__wgslLog(vec<float, 3>(local732)));
@@ -7933,7 +7981,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(0.6931471805599453, 0.6931471805599453, 0.6931471805599453, 0.6931471805599453));
-=copy this 4457 1
+=copy this 4505 1
         (void)(vec<float, 4>(0.6931471824645996, 0.6931471824645996, 0.6931471824645996, 0.6931471824645996));
         (void)(vec<half, 4>(0.693359375h, 0.693359375h, 0.693359375h, 0.693359375h));
         (void)(__wgslLog(vec<float, 4>(local732)));
@@ -7945,31 +7993,31 @@ int function14(thread int* parameter0)
 {
     float local734 = 0.;
     half local735 = 0.h;
-=copy this 4172 5
+=copy this 4220 5
         (void)(__wgslLog2(local734));
         (void)(__wgslLog2(local735));
     }
     {
-=copy this 3429 1
-=copy this 4479 1
-=copy this 4480 1
-=copy this 4146 1
+=copy this 3477 1
+=copy this 4527 1
+=copy this 4528 1
+=copy this 4194 1
         (void)(__wgslLog2(vec<float, 2>(local734)));
         (void)(__wgslLog2(vec<half, 2>(local735)));
     }
     {
-=copy this 3430 1
-=copy this 4487 1
-=copy this 4488 1
-=copy this 4154 1
+=copy this 3478 1
+=copy this 4535 1
+=copy this 4536 1
+=copy this 4202 1
         (void)(__wgslLog2(vec<float, 3>(local734)));
         (void)(__wgslLog2(vec<half, 3>(local735)));
     }
     {
-=copy this 3431 1
-=copy this 4495 1
-=copy this 4496 1
-=copy this 4162 1
+=copy this 3479 1
+=copy this 4543 1
+=copy this 4544 1
+=copy this 4210 1
         (void)(__wgslLog2(vec<float, 4>(local734)));
         (void)(__wgslLog2(vec<half, 4>(local735)));
     }
@@ -7982,31 +8030,31 @@ int function14(thread int* parameter0)
     float local738 = 1.;
     half local739 = 1.h;
     {
-=copy this 3595 6
+=copy this 3643 6
         (void)(max(-1, local736));
         (void)(max(0u, local737));
         (void)(max(-1., local738));
         (void)(max(-1.h, local739));
     }
     {
-=copy this 3607 5
-=copy this 4370 1
+=copy this 3655 5
+=copy this 4418 1
         (void)(max(vec<int, 2>(0, 0), vec<int, 2>(local736)));
         (void)(max(vec<unsigned, 2>(0u, 0u), vec<unsigned, 2>(local737)));
         (void)(max(vec<float, 2>(0., 0.), vec<float, 2>(local738)));
         (void)(max(vec<half, 2>(0.h, 0.h), vec<half, 2>(local739)));
     }
     {
-=copy this 3619 5
-=copy this 4371 1
+=copy this 3667 5
+=copy this 4419 1
         (void)(max(vec<int, 3>(0, 0, 0), vec<int, 3>(local736)));
         (void)(max(vec<unsigned, 3>(0u, 0u, 0u), vec<unsigned, 3>(local737)));
         (void)(max(vec<float, 3>(0., 0., 0.), vec<float, 3>(local738)));
         (void)(max(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local739)));
     }
     {
-=copy this 3631 5
-=copy this 4372 1
+=copy this 3679 5
+=copy this 4420 1
         (void)(max(vec<int, 4>(0, 0, 0, 0), vec<int, 4>(local736)));
         (void)(max(vec<unsigned, 4>(0u, 0u, 0u, 0u), vec<unsigned, 4>(local737)));
         (void)(max(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local738)));
@@ -8020,22 +8068,22 @@ int function14(thread int* parameter0)
     unsigned local741 = 1u;
     float local742 = 1.;
     half local743 = 1.h;
-=copy this 4100 3
-=copy this 4292 1
+=copy this 4148 3
+=copy this 4340 1
         (void)(-1.);
-=copy this 4570 1
+=copy this 4618 1
         (void)(-1.h);
-=copy this 4521 8
+=copy this 4569 8
         (void)(min(vec<int, 2>(0, 0), vec<int, 2>(local740)));
         (void)(min(vec<unsigned, 2>(0u, 0u), vec<unsigned, 2>(local741)));
         (void)(min(vec<float, 2>(0., 0.), vec<float, 2>(local742)));
         (void)(min(vec<half, 2>(0.h, 0.h), vec<half, 2>(local743)));
-=copy this 4533 8
+=copy this 4581 8
         (void)(min(vec<int, 3>(0, 0, 0), vec<int, 3>(local740)));
         (void)(min(vec<unsigned, 3>(0u, 0u, 0u), vec<unsigned, 3>(local741)));
         (void)(min(vec<float, 3>(0., 0., 0.), vec<float, 3>(local742)));
         (void)(min(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local743)));
-=copy this 4545 8
+=copy this 4593 8
         (void)(min(vec<int, 4>(0, 0, 0, 0), vec<int, 4>(local740)));
         (void)(min(vec<unsigned, 4>(0u, 0u, 0u, 0u), vec<unsigned, 4>(local741)));
         (void)(min(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local742)));
@@ -8047,27 +8095,27 @@ int function14(thread int* parameter0)
 {
     float local744 = 0.;
     half local745 = 0.h;
-=copy this 4402 3
-=copy this 3849 1
+=copy this 4450 3
+=copy this 3897 1
         (void)(3.h);
         (void)(mix(-1., 1., local744));
         (void)(mix(-1.h, 1.h, local745));
-=copy this 4217 6
+=copy this 4265 6
         (void)(mix(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.), vec<float, 2>(local744)));
         (void)(mix(vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h), vec<half, 2>(local745)));
-=copy this 4225 6
+=copy this 4273 6
         (void)(mix(vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.), vec<float, 3>(local744)));
         (void)(mix(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local745)));
-=copy this 4233 6
+=copy this 4281 6
         (void)(mix(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local744)));
         (void)(mix(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(local745)));
-=copy this 4623 6
+=copy this 4671 6
         (void)(mix(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.), local744));
         (void)(mix(vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h), local745));
-=copy this 4631 6
+=copy this 4679 6
         (void)(mix(vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.), local744));
         (void)(mix(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h), local745));
-=copy this 4639 6
+=copy this 4687 6
         (void)(mix(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.), local744));
         (void)(mix(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h), local745));
     }
@@ -8085,46 +8133,46 @@ int function14(thread int* parameter0)
         ;
         float local753 = __wgslModf(local746).fract;
         half local754 = __wgslModf(local747).whole;
-=copy this 4681 3
-=copy this 3888 3
+=copy this 4729 3
+=copy this 3936 3
         vec<float, 2> local759 = vec<float, 2>(1.5, 1.5);
         vec<half, 2> local760 = vec<half, 2>(1.5h, 1.5h);
         __modf_result<vec<float, 2>, vec<float, 2>> local761 = __wgslModf(local759);
         __modf_result<vec<half, 2>, vec<half, 2>> local762 = __wgslModf(local760);
-=copy this 4687 3
+=copy this 4735 3
         vec<float, 2> local766 = __wgslModf(local759).fract;
         vec<half, 2> local767 = __wgslModf(local760).whole;
-=copy this 4686 6
+=copy this 4734 6
         vec<float, 3> local772 = vec<float, 3>(1.5, 1.5, 1.5);
         vec<half, 3> local773 = vec<half, 3>(1.5h, 1.5h, 1.5h);
         __modf_result<vec<float, 3>, vec<float, 3>> local774 = __wgslModf(local772);
         __modf_result<vec<half, 3>, vec<half, 3>> local775 = __wgslModf(local773);
-=copy this 4702 3
+=copy this 4750 3
         vec<float, 3> local779 = __wgslModf(local772).fract;
         vec<half, 3> local780 = __wgslModf(local773).whole;
-=copy this 4701 6
+=copy this 4749 6
         vec<float, 4> local785 = vec<float, 4>(1.5, 1.5, 1.5, 1.5);
         vec<half, 4> local786 = vec<half, 4>(1.5h, 1.5h, 1.5h, 1.5h);
         __modf_result<vec<float, 4>, vec<float, 4>> local787 = __wgslModf(local785);
         __modf_result<vec<half, 4>, vec<half, 4>> local788 = __wgslModf(local786);
-=copy this 4717 3
+=copy this 4765 3
         vec<float, 4> local792 = __wgslModf(local785).fract;
         vec<half, 4> local793 = __wgslModf(local786).whole;
-=copy this 4716 5
+=copy this 4764 5
 }
 
 [[kernel]]  void function66()
 {
     float local798 = 0.;
     half local799 = 0.h;
-=copy this 4332 4
+=copy this 4380 4
         (void)(vec<half, 2>(0.70703125h, 0.70703125h));
         (void)(normalize(vec<float, 2>(local798)));
         (void)(normalize(vec<half, 2>(local799)));
     }
     {
         (void)(vec<float, 3>(-0.5773502691896258, -0.5773502691896258, -0.5773502691896258));
-=copy this 4751 1
+=copy this 4799 1
         (void)(vec<float, 3>(-0.5773502588272095, -0.5773502588272095, -0.5773502588272095));
         (void)(vec<half, 3>(-0.5771484375h, -0.5771484375h, -0.5771484375h));
         (void)(normalize(vec<float, 3>(local798)));
@@ -8132,8 +8180,8 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(-0.5, -0.5, -0.5, -0.5));
-=copy this 4759 1
-=copy this 4760 1
+=copy this 4807 1
+=copy this 4808 1
         (void)(vec<half, 4>(-0.5h, -0.5h, -0.5h, -0.5h));
         (void)(normalize(vec<float, 4>(local798)));
         (void)(normalize(vec<half, 4>(local799)));
@@ -8144,33 +8192,33 @@ int function14(thread int* parameter0)
 {
     float local800 = 0.;
     half local801 = 0.h;
-=copy this 4616 3
-=copy this 4435 2
+=copy this 4664 3
+=copy this 4483 2
         (void)(pow(0., local800));
         (void)(pow(0.h, local801));
-=copy this 4514 3
+=copy this 4562 3
         (void)(pow(1., local800));
         (void)(pow(1.h, local801));
-=copy this 4780 4
-=copy this 4647 6
+=copy this 4828 4
+=copy this 4695 6
         (void)(pow(vec<float, 2>(0., 0.), vec<float, 2>(local800)));
         (void)(pow(vec<half, 2>(0.h, 0.h), vec<half, 2>(local801)));
-=copy this 4791 5
-=copy this 4481 2
+=copy this 4839 5
+=copy this 4529 2
         (void)(pow(vec<float, 2>(1., 1.), vec<float, 2>(local800)));
         (void)(pow(vec<half, 2>(1.h, 1.h), vec<half, 2>(local801)));
-=copy this 4655 6
+=copy this 4703 6
         (void)(pow(vec<float, 3>(0., 0., 0.), vec<float, 3>(local800)));
         (void)(pow(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local801)));
-=copy this 4808 5
-=copy this 4489 2
+=copy this 4856 5
+=copy this 4537 2
         (void)(pow(vec<float, 3>(1., 1., 1.), vec<float, 3>(local800)));
         (void)(pow(vec<half, 3>(1.h, 1.h, 1.h), vec<half, 3>(local801)));
-=copy this 4663 6
+=copy this 4711 6
         (void)(pow(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local800)));
         (void)(pow(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(local801)));
-=copy this 4825 5
-=copy this 4497 2
+=copy this 4873 5
+=copy this 4545 2
         (void)(pow(vec<float, 4>(1., 1., 1., 1.), vec<float, 4>(local800)));
         (void)(pow(vec<half, 4>(1.h, 1.h, 1.h, 1.h), vec<half, 4>(local801)));
     }
@@ -8181,22 +8229,22 @@ int function14(thread int* parameter0)
     {
         float local802 = 0.;
         (void)(float(half(local802)));
-=copy this 4773 3
+=copy this 4821 3
     }
     {
         vec<float, 2> local803 = vec<float, 2>(0., 0.);
         (void)(float2(half2(local803)));
-=copy this 4790 3
+=copy this 4838 3
     }
     {
         vec<float, 3> local804 = vec<float, 3>(0., 0., 0.);
         (void)(float3(half3(local804)));
-=copy this 4807 3
+=copy this 4855 3
     }
     {
         vec<float, 4> local805 = vec<float, 4>(0., 0., 0., 0.);
         (void)(float4(half4(local805)));
-=copy this 4824 3
+=copy this 4872 3
     }
 }
 
@@ -8204,12 +8252,12 @@ int function14(thread int* parameter0)
 {
     float local806 = 0.;
     half local807 = 0.h;
-=copy this 4772 3
+=copy this 4820 3
         (void)(0.01745329238474369);
         (void)(0.0174560546875h);
         (void)(static_cast<float>(local806 * 0.017453292519943295));
         (void)(static_cast<half>(local807 * 0.017453292519943295));
-=copy this 4788 4
+=copy this 4836 4
         (void)(vec<float, 2>(0.01745329238474369, 0.01745329238474369));
         (void)(vec<half, 2>(0.0174560546875h, 0.0174560546875h));
         (void)(static_cast<vec<float, 2>>(vec<float, 2>(local806) * 0.017453292519943295));
@@ -8217,7 +8265,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 3>(-0.017453292519943295, -0.017453292519943295, -0.017453292519943295));
-=copy this 4895 1
+=copy this 4943 1
         (void)(vec<float, 3>(-0.01745329238474369, -0.01745329238474369, -0.01745329238474369));
         (void)(vec<half, 3>(-0.0174560546875h, -0.0174560546875h, -0.0174560546875h));
         (void)(static_cast<vec<float, 3>>(vec<float, 3>(local806) * 0.017453292519943295));
@@ -8225,7 +8273,7 @@ int function14(thread int* parameter0)
     }
     {
         (void)(vec<float, 4>(-0.017453292519943295, -0.017453292519943295, -0.017453292519943295, -0.017453292519943295));
-=copy this 4903 1
+=copy this 4951 1
         (void)(vec<float, 4>(-0.01745329238474369, -0.01745329238474369, -0.01745329238474369, -0.01745329238474369));
         (void)(vec<half, 4>(-0.0174560546875h, -0.0174560546875h, -0.0174560546875h, -0.0174560546875h));
         (void)(static_cast<vec<float, 4>>(vec<float, 4>(local806) * 0.017453292519943295));
@@ -8237,26 +8285,26 @@ int function14(thread int* parameter0)
 {
     float local808 = 0.;
     half local809 = 0.h;
-=copy this 4789 5
+=copy this 4837 5
         (void)(reflect(vec<float, 2>(0., 0.), vec<float, 2>(local808)));
         (void)(reflect(vec<half, 2>(0.h, 0.h), vec<half, 2>(local809)));
-=copy this 4918 5
+=copy this 4966 5
         (void)(vec<float, 2>(-3., -3.));
         (void)(vec<half, 2>(-3.h, -3.h));
         (void)(reflect(vec<float, 2>(1., 1.), vec<float, 2>(local808)));
         (void)(reflect(vec<half, 2>(1.h, 1.h), vec<half, 2>(local809)));
-=copy this 4805 6
+=copy this 4853 6
         (void)(reflect(vec<float, 3>(0., 0., 0.), vec<float, 3>(local808)));
         (void)(reflect(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local809)));
-=copy this 4935 5
+=copy this 4983 5
         (void)(vec<float, 3>(-5., -5., -5.));
         (void)(vec<half, 3>(-5.h, -5.h, -5.h));
         (void)(reflect(vec<float, 3>(1., 1., 1.), vec<float, 3>(local808)));
         (void)(reflect(vec<half, 3>(1.h, 1.h, 1.h), vec<half, 3>(local809)));
-=copy this 4822 6
+=copy this 4870 6
         (void)(reflect(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local808)));
         (void)(reflect(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(local809)));
-=copy this 4952 5
+=copy this 5000 5
         (void)(vec<float, 4>(-7., -7., -7., -7.));
         (void)(vec<half, 4>(-7.h, -7.h, -7.h, -7.h));
         (void)(reflect(vec<float, 4>(1., 1., 1., 1.), vec<float, 4>(local808)));
@@ -8268,13 +8316,13 @@ int function14(thread int* parameter0)
 {
     float local810 = 0.;
     half local811 = 0.h;
-=copy this 4916 5
+=copy this 4964 5
         (void)(refract(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.), local810));
         (void)(refract(vec<half, 2>(0.h, 0.h), vec<half, 2>(0.h, 0.h), local811));
-=copy this 4932 6
+=copy this 4980 6
         (void)(refract(vec<float, 3>(0., 0., 0.), vec<float, 3>(0., 0., 0.), local810));
         (void)(refract(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(0.h, 0.h, 0.h), local811));
-=copy this 4949 6
+=copy this 4997 6
         (void)(refract(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(0., 0., 0., 0.), local810));
         (void)(refract(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(0.h, 0.h, 0.h, 0.h), local811));
     }
@@ -8285,28 +8333,28 @@ int function14(thread int* parameter0)
     {
         int local812 = 0;
         unsigned local813 = 0u;
-=copy this 4290 3
+=copy this 4338 3
         int local814 = reverse_bits(local812);
         unsigned local815 = reverse_bits(local813);
     }
     {
         vec<int, 2> local816 = vec<int, 2>(0, 0);
         vec<unsigned, 2> local817 = vec<unsigned, 2>(0u, 0u);
-=copy this 4575 3
+=copy this 4623 3
         vec<int, 2> local818 = reverse_bits(local816);
         vec<unsigned, 2> local819 = reverse_bits(local817);
     }
     {
         vec<int, 3> local820 = vec<int, 3>(0, 0, 0);
         vec<unsigned, 3> local821 = vec<unsigned, 3>(0u, 0u, 0u);
-=copy this 4587 3
+=copy this 4635 3
         vec<int, 3> local822 = reverse_bits(local820);
         vec<unsigned, 3> local823 = reverse_bits(local821);
     }
     {
         vec<int, 4> local824 = vec<int, 4>(0, 0, 0, 0);
         vec<unsigned, 4> local825 = vec<unsigned, 4>(0u, 0u, 0u, 0u);
-=copy this 4599 3
+=copy this 4647 3
         vec<int, 4> local826 = reverse_bits(local824);
         vec<unsigned, 4> local827 = reverse_bits(local825);
     }
@@ -8316,27 +8364,27 @@ int function14(thread int* parameter0)
 {
     float local828 = 0.;
     half local829 = 0.h;
-=copy this 4878 3
-=copy this 4784 2
+=copy this 4926 3
+=copy this 4832 2
         (void)(rint(local828));
         (void)(rint(local829));
-=copy this 4885 4
-=copy this 4801 2
+=copy this 4933 4
+=copy this 4849 2
         (void)(rint(vec<float, 2>(local828)));
         (void)(rint(vec<half, 2>(local829)));
     }
     {
         (void)(vec<float, 3>(-1., -1., -1.));
-=copy this 5060 1
-=copy this 5061 1
+=copy this 5108 1
+=copy this 5109 1
         (void)(vec<half, 3>(-1.h, -1.h, -1.h));
         (void)(rint(vec<float, 3>(local828)));
         (void)(rint(vec<half, 3>(local829)));
     }
     {
         (void)(vec<float, 4>(-1., -1., -1., -1.));
-=copy this 5068 1
-=copy this 5069 1
+=copy this 5116 1
+=copy this 5117 1
         (void)(vec<half, 4>(-1.h, -1.h, -1.h, -1.h));
         (void)(rint(vec<float, 4>(local828)));
         (void)(rint(vec<half, 4>(local829)));
@@ -8347,16 +8395,16 @@ int function14(thread int* parameter0)
 {
     float local830 = 0.;
     half local831 = 0.h;
-=copy this 5043 5
+=copy this 5091 5
         (void)(saturate(local830));
         (void)(saturate(local831));
-=copy this 5050 6
+=copy this 5098 6
         (void)(saturate(vec<float, 2>(local830)));
         (void)(saturate(vec<half, 2>(local831)));
-=copy this 4980 6
+=copy this 5028 6
         (void)(saturate(vec<float, 3>(local830)));
         (void)(saturate(vec<half, 3>(local831)));
-=copy this 4988 6
+=copy this 5036 6
         (void)(saturate(vec<float, 4>(local830)));
         (void)(saturate(vec<half, 4>(local831)));
     }
@@ -8368,27 +8416,27 @@ int function14(thread int* parameter0)
     float local833 = 0.;
     half local834 = 0.h;
     {
-=copy this 5004 2
-=copy this 5083 3
+=copy this 5052 2
+=copy this 5131 3
         (void)(__wgslSign(local832));
         (void)(__wgslSign(local833));
         (void)(__wgslSign(local834));
-=copy this 4573 4
-=copy this 5091 3
+=copy this 4621 4
+=copy this 5139 3
         (void)(__wgslSign(vec<int, 2>(local832)));
         (void)(__wgslSign(vec<float, 2>(local833)));
         (void)(__wgslSign(vec<half, 2>(local834)));
     }
     {
-=copy this 4115 2
-=copy this 5061 3
+=copy this 4163 2
+=copy this 5109 3
         (void)(__wgslSign(vec<int, 3>(local832)));
         (void)(__wgslSign(vec<float, 3>(local833)));
         (void)(__wgslSign(vec<half, 3>(local834)));
     }
     {
-=copy this 4122 2
-=copy this 5069 3
+=copy this 4170 2
+=copy this 5117 3
         (void)(__wgslSign(vec<int, 4>(local832)));
         (void)(__wgslSign(vec<float, 4>(local833)));
         (void)(__wgslSign(vec<half, 4>(local834)));
@@ -8400,22 +8448,22 @@ int function14(thread int* parameter0)
     float local835 = 0.;
     half local836 = 0.h;
     {
-=copy this 4471 4
+=copy this 4519 4
         (void)(smoothstep(-1., 1., local835));
         (void)(smoothstep(-1.h, 1.h, local836));
     }
     {
-=copy this 4479 4
+=copy this 4527 4
         (void)(smoothstep(vec<float, 2>(2., 2.), vec<float, 2>(1., 1.), vec<float, 2>(local835)));
         (void)(smoothstep(vec<half, 2>(2.h, 2.h), vec<half, 2>(1.h, 1.h), vec<half, 2>(local836)));
     }
     {
-=copy this 4487 4
+=copy this 4535 4
         (void)(smoothstep(vec<float, 3>(2., 2., 2.), vec<float, 3>(1., 1., 1.), vec<float, 3>(local835)));
         (void)(smoothstep(vec<half, 3>(2.h, 2.h, 2.h), vec<half, 3>(1.h, 1.h, 1.h), vec<half, 3>(local836)));
     }
     {
-=copy this 4495 4
+=copy this 4543 4
         (void)(smoothstep(vec<float, 4>(2., 2., 2., 2.), vec<float, 4>(1., 1., 1., 1.), vec<float, 4>(local835)));
         (void)(smoothstep(vec<half, 4>(2.h, 2.h, 2.h, 2.h), vec<half, 4>(1.h, 1.h, 1.h, 1.h), vec<half, 4>(local836)));
     }
@@ -8425,16 +8473,16 @@ int function14(thread int* parameter0)
 {
     float local837 = 0.;
     half local838 = 0.h;
-=copy this 5081 5
+=copy this 5129 5
         (void)(__wgslSqrt(local837));
         (void)(__wgslSqrt(local838));
-=copy this 5088 6
+=copy this 5136 6
         (void)(__wgslSqrt(vec<float, 2>(local837)));
         (void)(__wgslSqrt(vec<half, 2>(local838)));
-=copy this 5181 6
+=copy this 5229 6
         (void)(__wgslSqrt(vec<float, 3>(local837)));
         (void)(__wgslSqrt(vec<half, 3>(local838)));
-=copy this 5189 6
+=copy this 5237 6
         (void)(__wgslSqrt(vec<float, 4>(local837)));
         (void)(__wgslSqrt(vec<half, 4>(local838)));
     }
@@ -8444,16 +8492,16 @@ int function14(thread int* parameter0)
 {
     float local839 = 0.;
     half local840 = 0.h;
-=copy this 5166 5
+=copy this 5214 5
         (void)(step(1., local839));
         (void)(step(1.h, local840));
-=copy this 5173 6
+=copy this 5221 6
         (void)(step(vec<float, 2>(0., 0.), vec<float, 2>(local839)));
         (void)(step(vec<half, 2>(0.h, 0.h), vec<half, 2>(local840)));
-=copy this 5219 6
+=copy this 5267 6
         (void)(step(vec<float, 3>(0., 0., 0.), vec<float, 3>(local839)));
         (void)(step(vec<half, 3>(0.h, 0.h, 0.h), vec<half, 3>(local840)));
-=copy this 5227 6
+=copy this 5275 6
         (void)(step(vec<float, 4>(0., 0., 0., 0.), vec<float, 4>(local839)));
         (void)(step(vec<half, 4>(0.h, 0.h, 0.h, 0.h), vec<half, 4>(local840)));
     }
@@ -8475,8 +8523,8 @@ int function14(thread int* parameter0)
         (void)(matrix<float, 3, 4>(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.));
         (void)(matrix<float, 4, 4>(0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.));
     }
-=copy this 5280 12
-=copy this 5280 13
+=copy this 5328 12
+=copy this 5328 13
         (void)(transpose(matrix<float, 2, 2>(0., 0., 0., local841)));
         (void)(transpose(matrix<float, 2, 3>(0., 0., 0., 0., 0., local841)));
         (void)(transpose(matrix<float, 2, 4>(0., 0., 0., 0., 0., 0., 0., local841)));
@@ -8504,16 +8552,16 @@ int function14(thread int* parameter0)
 {
     float local846 = 0.;
     half local847 = 0.h;
-=copy this 5204 5
+=copy this 5252 5
         (void)(trunc(local846));
         (void)(trunc(local847));
-=copy this 5211 6
+=copy this 5259 6
         (void)(trunc(vec<float, 2>(local846)));
         (void)(trunc(vec<half, 2>(local847)));
-=copy this 5058 6
+=copy this 5106 6
         (void)(trunc(vec<float, 3>(local846)));
         (void)(trunc(vec<half, 3>(local847)));
-=copy this 5066 6
+=copy this 5114 6
         (void)(trunc(vec<float, 4>(local846)));
         (void)(trunc(vec<half, 4>(local847)));
     }
@@ -8525,20 +8573,20 @@ int function14(thread int* parameter0)
     (void)(dfdx(vec<float, 2>(2., 2.)));
     (void)(dfdx(vec<float, 3>(2., 2., 2.)));
     (void)(dfdx(vec<float, 4>(2., 2., 2., 2.)));
-=copy this 5380 4
-=copy this 5384 4
+=copy this 5428 4
+=copy this 5432 4
     (void)(dfdy(2.));
     (void)(dfdy(vec<float, 2>(2., 2.)));
     (void)(dfdy(vec<float, 3>(2., 2., 2.)));
     (void)(dfdy(vec<float, 4>(2., 2., 2., 2.)));
-=copy this 5392 4
-=copy this 5396 4
+=copy this 5440 4
+=copy this 5444 4
     (void)(fwidth(2.));
     (void)(fwidth(vec<float, 2>(2., 2.)));
     (void)(fwidth(vec<float, 3>(2., 2., 2.)));
     (void)(fwidth(vec<float, 4>(2., 2., 2., 2.)));
-=copy this 5404 4
-=copy this 5408 4
+=copy this 5452 4
+=copy this 5456 4
 }
 
 [[kernel]]  void function82(constant __ArgumentBufferT_77_0& __ArgumentBuffer_0 [[buffer(0)]])
@@ -8562,7 +8610,7 @@ int function14(thread int* parameter0)
     const constant texture2d_array<int, access::write>& global23 = __ArgumentBuffer_0.global23;
     (void)(global4.get_width());
     (void)(global21.get_width());
-=copy this 5437 1
+=copy this 5485 1
     (void)(uint2(global7.get_width(), global7.get_height()));
     (void)(uint2(global10.get_width(), global10.get_height()));
     (void)(uint2(global19.get_width(), global19.get_height()));
@@ -8591,12 +8639,12 @@ int function14(thread int* parameter0)
 
 [[kernel]]  void function83(constant __ArgumentBufferT_78_0& __ArgumentBuffer_0 [[buffer(0)]])
 {
-=copy this 5430 1
-=copy this 5420 2
-=copy this 5424 1
+=copy this 5478 1
+=copy this 5468 2
+=copy this 5472 1
     sampler global2 = __ArgumentBuffer_0.global2;
-=copy this 5425 3
-=copy this 5429 1
+=copy this 5473 3
+=copy this 5477 1
     (void)(global7.gather(global2, vec<float, 2>(0., 0.), int2(0), component::x));
     (void)(global7.gather(global2, vec<float, 2>(0., 0.), vec<int, 2>(0, 0), component::x));
     (void)(global10.gather(global2, vec<float, 2>(0., 0.), max(0, 0), int2(0), component::x));
@@ -8612,10 +8660,10 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function84(constant __ArgumentBufferT_79_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5419 2
+=copy this 5467 2
     sampler global3 = __ArgumentBuffer_0.global3;
-=copy this 5471 1
-=copy this 5474 2
+=copy this 5519 1
+=copy this 5522 2
     (void)(global26.gather_compare(global3, vec<float, 2>(0., 0.), 0.));
     (void)(global26.gather_compare(global3, vec<float, 2>(0., 0.), 0., vec<int, 2>(0, 0)));
     (void)(global27.gather_compare(global3, vec<float, 2>(0., 0.), max(0, 0), 0.));
@@ -8625,43 +8673,43 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function85(constant __ArgumentBufferT_80_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5492 2
-=copy this 5422 1
+=copy this 5540 2
+=copy this 5470 1
     const constant texture2d_ms<unsigned, access::read>& global18 = __ArgumentBuffer_0.global18;
     const constant texture1d<unsigned, access::sample>& global6 = __ArgumentBuffer_0.global6;
-=copy this 5473 1
+=copy this 5521 1
     const constant texture3d<int, access::sample>& global14 = __ArgumentBuffer_0.global14;
-=copy this 5496 1
-=copy this 5468 1
+=copy this 5544 1
+=copy this 5516 1
     const constant texture2d_ms<int, access::read>& global17 = __ArgumentBuffer_0.global17;
     const constant texture3d<unsigned, access::sample>& global15 = __ArgumentBuffer_0.global15;
     const constant texture1d<int, access::sample>& global5 = __ArgumentBuffer_0.global5;
     const constant texture2d_array<int, access::sample>& global11 = __ArgumentBuffer_0.global11;
     const constant texture2d<unsigned, access::sample>& global9 = __ArgumentBuffer_0.global9;
-=copy this 5432 1
+=copy this 5480 1
     const constant texture2d_array<unsigned, access::sample>& global12 = __ArgumentBuffer_0.global12;
-=copy this 5434 1
-=copy this 5433 1
-=copy this 5435 1
+=copy this 5482 1
+=copy this 5481 1
+=copy this 5483 1
     const constant texture2d<int, access::sample>& global8 = __ArgumentBuffer_0.global8;
     int local848 = 0;
     {
         {
             (void)(global4.read(uint(0)));
-=copy this 5530 1
+=copy this 5578 1
             (void)(global4.read(uint(0u)));
-=copy this 5532 1
+=copy this 5580 1
         }
         {
             (void)(global5.read(uint(0)));
-=copy this 5536 1
+=copy this 5584 1
             (void)(global5.read(uint(0u)));
-=copy this 5538 1
-=copy this 5534 2
+=copy this 5586 1
+=copy this 5582 2
             (void)(global6.read(uint(0)));
-=copy this 5542 1
+=copy this 5590 1
             (void)(global6.read(uint(0u)));
-=copy this 5544 1
+=copy this 5592 1
         }
     }
     {
@@ -8670,59 +8718,59 @@ int function14(thread int* parameter0)
             (void)(global7.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global7.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global7.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5540 2
+=copy this 5588 2
             (void)(global8.read(uint2(vec<int, 2>(0, 0)), 0));
             (void)(global8.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global8.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global8.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5554 2
+=copy this 5602 2
             (void)(global9.read(uint2(vec<int, 2>(0, 0)), 0));
             (void)(global9.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global9.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global9.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5546 4
+=copy this 5594 4
             (void)(global10.read(uint2(vec<int, 2>(0, 0)), 0, 0));
             (void)(global10.read(uint2(vec<int, 2>(0, 0)), 0u, 0));
             (void)(global10.read(uint2(vec<unsigned, 2>(0u, 0u)), 0, 0u));
             (void)(global10.read(uint2(vec<unsigned, 2>(0u, 0u)), local848, local848));
-=copy this 5560 2
+=copy this 5608 2
             (void)(global11.read(uint2(vec<int, 2>(0, 0)), 0, 0));
             (void)(global11.read(uint2(vec<int, 2>(0, 0)), 0u, 0));
             (void)(global11.read(uint2(vec<unsigned, 2>(0u, 0u)), 0, 0u));
             (void)(global12.read(uint2(vec<unsigned, 2>(0u, 0u)), local848, local848));
-=copy this 5574 2
+=copy this 5622 2
             (void)(global12.read(uint2(vec<int, 2>(0, 0)), 0, 0));
             (void)(global12.read(uint2(vec<int, 2>(0, 0)), 0u, 0));
             (void)(global12.read(uint2(vec<unsigned, 2>(0u, 0u)), 0, 0u));
-=copy this 5579 2
-=copy this 5567 3
+=copy this 5627 2
+=copy this 5615 3
             (void)(global13.read(uint3(vec<int, 3>(0, 0, 0)), 0));
             (void)(global13.read(uint3(vec<int, 3>(0, 0, 0)), 0u));
             (void)(global13.read(uint3(vec<unsigned, 3>(0u, 0u, 0u)), 0));
-=copy this 5580 2
+=copy this 5628 2
             (void)(global14.read(uint3(vec<int, 3>(0, 0, 0)), 0));
             (void)(global14.read(uint3(vec<int, 3>(0, 0, 0)), 0u));
             (void)(global14.read(uint3(vec<unsigned, 3>(0u, 0u, 0u)), 0));
-=copy this 5593 2
+=copy this 5641 2
             (void)(global15.read(uint3(vec<int, 3>(0, 0, 0)), 0));
             (void)(global15.read(uint3(vec<int, 3>(0, 0, 0)), 0u));
             (void)(global15.read(uint3(vec<unsigned, 3>(0u, 0u, 0u)), 0));
-=copy this 5586 4
+=copy this 5634 4
             (void)(global16.read(uint2(vec<int, 2>(0, 0)), 0));
             (void)(global16.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global16.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global16.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5598 2
+=copy this 5646 2
             (void)(global17.read(uint2(vec<int, 2>(0, 0)), 0));
             (void)(global17.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global17.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global17.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5611 2
+=copy this 5659 2
             (void)(global18.read(uint2(vec<int, 2>(0, 0)), 0));
             (void)(global18.read(uint2(vec<int, 2>(0, 0)), 0u));
             (void)(global18.read(uint2(vec<unsigned, 2>(0u, 0u)), 0));
             (void)(global18.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
-=copy this 5603 3
+=copy this 5651 3
         (void)(({
             auto __coords = uint2((global25.UVRemapMatrix * float3(float2(vec<int, 2>(0, 0)), 1)).xy);
             auto __y = float(global25.FirstPlane.read(__coords).r);
@@ -8731,26 +8779,26 @@ int function14(thread int* parameter0)
             float3 const __rgb = global25.ColorSpaceConversionMatrix * float4(__ycbcr, 1);
             global25.to_destination_color_space(__rgb, __second.a, __second.b);
         }));
-=copy this 5626 8
+=copy this 5674 8
         (void)(({
             auto __coords = uint2((global25.UVRemapMatrix * float3(float2(vec<unsigned, 2>(0u, 0u)), 1)).xy);
-=copy this 5636 6
+=copy this 5684 6
     }
     {
         (void)(global26.read(uint2(vec<int, 2>(0, 0)), 0));
-=copy this 5652 1
+=copy this 5700 1
         (void)(global26.read(uint2(vec<unsigned, 2>(0u, 0u)), 0u));
         (void)(global26.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
     }
     {
         (void)(global27.read(uint2(vec<int, 2>(0, 0)), 0, 0));
-=copy this 5658 1
+=copy this 5706 1
         (void)(global27.read(uint2(vec<unsigned, 2>(0u, 0u)), 0u, 0u));
         (void)(global27.read(uint2(vec<unsigned, 2>(0u, 0u)), local848, local848));
     }
     {
         (void)(global30.read(uint2(vec<int, 2>(0, 0)), 0));
-=copy this 5664 1
+=copy this 5712 1
         (void)(global30.read(uint2(vec<unsigned, 2>(0u, 0u)), 0u));
         (void)(global30.read(uint2(vec<unsigned, 2>(0u, 0u)), local848));
     }
@@ -8758,10 +8806,10 @@ int function14(thread int* parameter0)
 
 [[kernel]]  void function86(constant __ArgumentBufferT_81_0& __ArgumentBuffer_0 [[buffer(0)]])
 {
-=copy this 5476 1
-=copy this 5508 1
-=copy this 5424 2
-=copy this 5436 1
+=copy this 5524 1
+=copy this 5556 1
+=copy this 5472 2
+=copy this 5484 1
     (void)(global10.get_array_size());
     (void)(global20.get_array_size());
     (void)(global27.get_array_size());
@@ -8770,10 +8818,10 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function87(constant __ArgumentBufferT_82_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5419 3
-=copy this 5424 4
-=copy this 5429 2
-=copy this 5524 2
+=copy this 5467 3
+=copy this 5472 4
+=copy this 5477 2
+=copy this 5572 2
     (void)(global4.get_num_mip_levels());
     (void)(global7.get_num_mip_levels());
     (void)(global10.get_num_mip_levels());
@@ -8788,16 +8836,16 @@ int function14(thread int* parameter0)
 
 [[kernel]]  void function88(constant __ArgumentBufferT_83_0& __ArgumentBuffer_0 [[buffer(0)]])
 {
-=copy this 5523 1
-=copy this 5521 1
+=copy this 5571 1
+=copy this 5569 1
     (void)(global16.get_num_samples());
     (void)(global30.get_num_samples());
 }
 
 [[fragment]] void function89(constant __ArgumentBufferT_84_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5686 9
-=copy this 5472 1
-=copy this 5695 2
+=copy this 5734 9
+=copy this 5520 1
+=copy this 5743 2
     (void)(global4.sample(global2, 1.));
     (void)(global7.sample(global2, vec<float, 2>(0., 0.)));
     (void)(global7.sample(global2, vec<float, 2>(0., 0.), vec<int, 2>(1, 1)));
@@ -8816,11 +8864,11 @@ int function14(thread int* parameter0)
 }
 
 [[fragment]] void function90(constant __ArgumentBufferT_85_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5672 2
-=copy this 5726 1
-=copy this 5720 1
-=copy this 5472 2
-=copy this 5728 1
+=copy this 5720 2
+=copy this 5774 1
+=copy this 5768 1
+=copy this 5520 2
+=copy this 5776 1
     (void)(global7.sample(global2, vec<float, 2>(0., 0.), bias(clamp(0., -16.0f, 15.99f))));
     (void)(__wgslTextureSampleBiasWithOffset<0, 0>(global7, global2, vec<float, 2>(0., 0.), clamp(0., -16.0f, 15.99f)));
     (void)(global10.sample(global2, vec<float, 2>(0., 0.), max(0, 0), bias(clamp(0., -16.0f, 15.99f))));
@@ -8832,7 +8880,7 @@ int function14(thread int* parameter0)
 }
 
 [[fragment]] void function91(constant __ArgumentBufferT_86_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5492 6
+=copy this 5540 6
     (void)(global26.sample_compare(global3, vec<float, 2>(0., 0.), 0.));
     (void)(global26.sample_compare(global3, vec<float, 2>(0., 0.), 0., vec<int, 2>(0, 0)));
     (void)(global27.sample_compare(global3, vec<float, 2>(0., 0.), max(0, 0), 0.));
@@ -8842,7 +8890,7 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function92(constant __ArgumentBufferT_87_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5766 6
+=copy this 5814 6
     (void)(global26.sample_compare(global3, vec<float, 2>(0., 0.), 0., level(0)));
     (void)(global26.sample_compare(global3, vec<float, 2>(0., 0.), 0., level(0), vec<int, 2>(0, 0)));
     (void)(global27.sample_compare(global3, vec<float, 2>(0., 0.), max(0, 0), 0., level(0)));
@@ -8852,7 +8900,7 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function93(constant __ArgumentBufferT_88_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5748 7
+=copy this 5796 7
     (void)(global7.sample(global2, vec<float, 2>(0., 0.), gradient2d(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.))));
     (void)(global7.sample(global2, vec<float, 2>(0., 0.), gradient2d(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.)), vec<int, 2>(0, 0)));
     (void)(global10.sample(global2, vec<float, 2>(0., 0.), max(0, 0), gradient2d(vec<float, 2>(0., 0.), vec<float, 2>(0., 0.))));
@@ -8864,7 +8912,7 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function94(constant __ArgumentBufferT_89_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5718 12
+=copy this 5766 12
     (void)(global4.sample(global2,0.));
     (void)(global7.sample(global2,vec<float, 2>(0., 0.), level(0.)));
     (void)(global7.sample(global2,vec<float, 2>(0., 0.), level(0.),vec<int, 2>(0, 0)));
@@ -8883,19 +8931,19 @@ int function14(thread int* parameter0)
 }
 
 [[kernel]]  void function95(constant __ArgumentBufferT_90_0& __ArgumentBuffer_0 [[buffer(0)]])
-=copy this 5467 2
-=copy this 5509 1
-=copy this 5823 1
+=copy this 5515 2
+=copy this 5557 1
+=copy this 5871 1
     (void)(__wgslTextureSampleBaseClampToEdge(global25, global2, vec<float, 2>(0., 0.)));
     (void)(__wgslTextureSampleBaseClampToEdge(global7, global2, vec<float, 2>(0., 0.)));
 }
 
 [[kernel]]  void function96(constant __ArgumentBufferT_91_0& __ArgumentBuffer_0 [[buffer(0)]])
 {
-=copy this 5428 1
-=copy this 5431 1
-=copy this 5423 1
-=copy this 5677 1
+=copy this 5476 1
+=copy this 5479 1
+=copy this 5471 1
+=copy this 5725 1
     global21.write(vec<float, 4>(0., 0., 0., 0.), uint(0));
     global22.write(vec<unsigned, 4>(0u, 0u, 0u, 0u), uint2(vec<int, 2>(0, 0)));
     global23.write(vec<int, 4>(0, 0, 0, 0), uint2(vec<int, 2>(0, 0)), 0);
@@ -8942,7 +8990,7 @@ void function99(threadgroup atomic_int& global31, device atomic_int& global32)
     if ((__localInvocationIndex == 0u)) {
         atomic_store_explicit((&global31), 0, memory_order_relaxed);
     }
-=copy this 688 1
+=copy this 736 1
     device atomic_int& global32 = __ArgumentBuffer_7.global32;
     function97(global31, global32);
     function98(global31, global32);
@@ -9065,15 +9113,15 @@ void function99(threadgroup atomic_int& global31, device atomic_int& global32)
 
 [[kernel]]  void function104()
 {
-=copy this 5904 1
+=copy this 5952 1
 }
 
 [[kernel]]  void function105(unsigned __localInvocationIndex [[thread_index_in_threadgroup]])
 {
     threadgroup int global33 { };
-=copy this 5901 1
+=copy this 5949 1
         __wgslZeroWorkgroupVar(global33);
-=copy this 5903 2
+=copy this 5951 2
     (void)(__workgroup_uniform_load((&global33)));
 }
 
@@ -9081,821 +9129,821 @@ void function99(threadgroup atomic_int& global31, device atomic_int& global32)
 =copy prev 71 4
 =copy this 303 337
 =copy prev 80 2
-    msl utf8 197952
-=copy this 643 41
+    msl utf8 200390
+=copy this 643 89
 [[clang::optnone]] static T __workgroup_uniform_load(threadgroup T* const ptr)
-=copy this 6026 2
-=copy this 687 5355
+=copy this 6074 2
+=copy this 735 5355
 =copy prev 135 3
-=copy this 6045 337
+=copy this 6093 337
 =copy prev 281 2
-    msl utf8 198073
-=copy this 643 5223
+    msl utf8 200511
+=copy this 643 5271
     (void)(({ volatile auto __wgslAtomicLoadResult = atomic_load_explicit((&global31), memory_order_relaxed); __wgslAtomicLoadResult; }));
     (void)(({ volatile auto __wgslAtomicLoadResult = atomic_load_explicit((&global32), memory_order_relaxed); __wgslAtomicLoadResult; }));
 }
 
-=copy this 11612 172
+=copy this 11708 172
 =copy prev 198 3
-=copy this 11787 337
+=copy this 11883 337
 =copy prev 206 2
-    msl utf8 198092
-=copy this 6385 5223
-=copy this 17350 176
+    msl utf8 200530
+=copy this 6433 5271
+=copy this 17494 176
 unit 4
   req "testLogicalNegation" layout=auto
-=copy this 17528 3
-=copy this 12124 2
+=copy this 17672 3
+=copy this 12220 2
     msl-hash sha256=6744bf1b3a6bf55dcfd9f1f89310cdb457a7bb1e23dd1ea7fa9342892adee24d bytes=5626
   end-prepare
   evaluate "testLogicalNegation" x=i64:1 y=- z=- int=1,1,1
 unit 5
   req "testShortCircuitingOr" layout=auto
   prepare ok
-=copy this 17531 2
-=copy this 23273 2
+=copy this 17675 2
+=copy this 23465 2
     msl-hash sha256=fd1649fec6ccaf1fab563ece0b777c255983a25879669cc912bfaccc3d206fb4 bytes=5347
   end-prepare
   evaluate "testShortCircuitingOr" x=i64:1 y=- z=- int=1,1,1
 unit 6
   req "testShortCircuitingAnd" layout=auto
   prepare ok
-=copy this 17533 2
-=copy this 23283 2
+=copy this 17677 2
+=copy this 23475 2
     msl-hash sha256=efdb49272ec9919ad7093a4e0325a7edfc69b0089ee4adaa4ed6f44b933766c0 bytes=5347
   end-prepare
   evaluate "testShortCircuitingAnd" x=i64:1 y=- z=- int=1,1,1
 unit 7
   req "testLogicalOr" layout=auto
   prepare ok
-=copy this 17535 2
-=copy this 23293 2
+=copy this 17679 2
+=copy this 23485 2
     msl-hash sha256=d0d91666a26890cf7692ebf4b07a136b1fb32b3d45619f9aaae1abf008ac046a bytes=5886
   end-prepare
   evaluate "testLogicalOr" x=i64:1 y=- z=- int=1,1,1
 unit 8
   req "testLogicalAnd" layout=auto
   prepare ok
-=copy this 17537 2
-=copy this 23303 2
+=copy this 17681 2
+=copy this 23495 2
     msl-hash sha256=311bdf23ae3a87661b7e17f5555970e9a4acd3c833a1a14662c4eceea1467319 bytes=5886
   end-prepare
   evaluate "testLogicalAnd" x=i64:1 y=- z=- int=1,1,1
 unit 9
   req "testUnaryMinus" layout=auto
   prepare ok
-=copy this 17539 2
-=copy this 23313 2
+=copy this 17683 2
+=copy this 23505 2
     msl-hash sha256=f94963ec08acd45d4b4be8fdc1a7d81b1e2bc336d01315188fdf49d2faca0666 bytes=5976
   end-prepare
   evaluate "testUnaryMinus" x=i64:1 y=- z=- int=1,1,1
 unit 10
   req "testBinaryMinus" layout=auto
   prepare ok
-=copy this 17541 2
-=copy this 23323 2
+=copy this 17685 2
+=copy this 23515 2
     msl-hash sha256=541f423903d4f919d7463c057f16d7596a353b5abba657faaba8ef0071bdfe89 bytes=8374
   end-prepare
   evaluate "testBinaryMinus" x=i64:1 y=- z=- int=1,1,1
 unit 11
   req "testAdd" layout=auto
   prepare ok
-=copy this 17543 2
-=copy this 23333 2
+=copy this 17687 2
+=copy this 23525 2
     msl-hash sha256=76b1e55e2391f378b9a234dbd5a37f191174685aabed46c1259a9d9c611e6967 bytes=8415
   end-prepare
   evaluate "testAdd" x=i64:1 y=- z=- int=1,1,1
 unit 12
   req "testAddEq" layout=auto
   prepare ok
-=copy this 17545 2
-=copy this 23343 2
+=copy this 17689 2
+=copy this 23535 2
     msl-hash sha256=337614fc55fca7f2132840d3edae81840b34772d644207e5d38237b206b372fe bytes=5466
   end-prepare
   evaluate "testAddEq" x=i64:1 y=- z=- int=1,1,1
 unit 13
   req "testMultiply" layout=auto
   prepare ok
-=copy this 17547 2
-=copy this 23353 2
+=copy this 17691 2
+=copy this 23545 2
     msl-hash sha256=1caca769855c5eb37b723f3f3d2f085d37e6f73e5289ea810186a4702625b2a4 bytes=10622
   end-prepare
   evaluate "testMultiply" x=i64:1 y=- z=- int=1,1,1
 unit 14
   req "testDivision" layout=auto
   prepare ok
-=copy this 17549 2
-=copy this 23363 2
+=copy this 17693 2
+=copy this 23555 2
     msl-hash sha256=8fdc91b0279e05945392a9c3d1620178a5a5183d27916ea1722c072b7711e09e bytes=7884
   end-prepare
   evaluate "testDivision" x=i64:1 y=- z=- int=1,1,1
 unit 15
   req "testModulo" layout=auto
   prepare ok
-=copy this 17551 2
-=copy this 23373 2
+=copy this 17695 2
+=copy this 23565 2
     msl-hash sha256=c104fb9d9e1d84aaa3187ed01a1b062bb3a7ad3aa2ee6aa80af3ef65dd517cd9 bytes=7906
   end-prepare
   evaluate "testModulo" x=i64:1 y=- z=- int=1,1,1
 unit 16
   req "testComparison" layout=auto
   prepare ok
-=copy this 17553 2
-=copy this 23383 2
+=copy this 17697 2
+=copy this 23575 2
     msl-hash sha256=e2980e6d29fdba1f35995c8f09b964cd33eee0e6ae5056224f1ea07579518834 bytes=10384
   end-prepare
   evaluate "testComparison" x=i64:1 y=- z=- int=1,1,1
 unit 17
   req "testBitwise" layout=auto
   prepare ok
-=copy this 17555 2
-=copy this 23393 2
+=copy this 17699 2
+=copy this 23585 2
     msl-hash sha256=d5ad5ddbe0df167c23bdae504529f4ed65c7290ff4eac381d1f68ebb2b9561ac bytes=6822
   end-prepare
   evaluate "testBitwise" x=i64:1 y=- z=- int=1,1,1
 unit 18
   req "testAddressOf" layout=auto
   prepare ok
-=copy this 17557 2
-=copy this 23403 2
+=copy this 17701 2
+=copy this 23595 2
     msl-hash sha256=cb5210357552004e17f1b9ddc88cbdd8f6d38618e3e4d3db216c44801d867e69 bytes=5357
   end-prepare
   evaluate "testAddressOf" x=i64:1 y=- z=- int=1,1,1
 unit 19
   req "testArray" layout=auto
   prepare ok
-=copy this 17559 2
-=copy this 23413 2
+=copy this 17703 2
+=copy this 23605 2
     msl-hash sha256=4aa4d8bb6da01a1ff2674f26752a870e63b8bb82efdefdbc1b88190818bf8676 bytes=6446
   end-prepare
   evaluate "testArray" x=i64:1 y=- z=- int=1,1,1
 unit 20
   req "testBool" layout=auto
   prepare ok
-=copy this 17561 2
-=copy this 23423 2
+=copy this 17705 2
+=copy this 23615 2
     msl-hash sha256=fed339900c32179485e8db09e4da5bba445615f64e72606ed92900712cde1ec8 bytes=5577
   end-prepare
   evaluate "testBool" x=i64:1 y=- z=- int=1,1,1
 unit 21
   req "testF16" layout=auto
   prepare ok
-=copy this 17563 2
-=copy this 23433 2
+=copy this 17707 2
+=copy this 23625 2
     msl-hash sha256=e96ad50e56ebdc31a7909d7cefc49f75cde246a314dfda6e6421d526cecbddaa bytes=5564
   end-prepare
   evaluate "testF16" x=i64:1 y=- z=- int=1,1,1
 unit 22
   req "testF32" layout=auto
   prepare ok
-=copy this 17565 2
-=copy this 23443 2
+=copy this 17709 2
+=copy this 23635 2
     msl-hash sha256=fe562a65ebd6e5694235be594acf708a842d8f192c32c5812cd728765ce25eda bytes=5562
   end-prepare
   evaluate "testF32" x=i64:1 y=- z=- int=1,1,1
 unit 23
   req "testI32" layout=auto
   prepare ok
-=copy this 17567 2
-=copy this 23453 2
+=copy this 17711 2
+=copy this 23645 2
     msl-hash sha256=428a84630a015f958b12b4a98fa6b2120b2040cb125861e4334560eaf4a84712 bytes=5585
   end-prepare
   evaluate "testI32" x=i64:1 y=- z=- int=1,1,1
 unit 24
   req "testMatrix" layout=auto
   prepare ok
-=copy this 17569 2
-=copy this 23463 2
+=copy this 17713 2
+=copy this 23655 2
     msl-hash sha256=a20a95706ce49d53a4a3170bee347b06ce255637ab89d03935910e2b9e46018f bytes=24803
   end-prepare
   evaluate "testMatrix" x=i64:1 y=- z=- int=1,1,1
 unit 25
   req "testStructures" layout=auto
   prepare ok
-=copy this 17571 2
-=copy this 23473 2
+=copy this 17715 2
+=copy this 23665 2
     msl-hash sha256=b5d3a5a78a759ea2a998349768d9f54f1ff7d0bb12b781ac975560a4a26bfdcc bytes=5323
   end-prepare
   evaluate "testStructures" x=i64:1 y=- z=- int=1,1,1
 unit 26
   req "testU32" layout=auto
   prepare ok
-=copy this 17573 2
-=copy this 23483 2
+=copy this 17717 2
+=copy this 23675 2
     msl-hash sha256=ba28796e5513c3bf85ba26fafac9e526383fb44b12c3523b8a872de8ea21bf6b bytes=5626
   end-prepare
   evaluate "testU32" x=i64:1 y=- z=- int=1,1,1
 unit 27
   req "testBitcast" layout=auto
   prepare ok
-=copy this 17575 2
-=copy this 23493 2
+=copy this 17719 2
+=copy this 23685 2
     msl-hash sha256=f5e23747edfc98ab0e2f607f025a3c532b0533a497f5340b7dca266a0d22d34f bytes=10687
   end-prepare
   evaluate "testBitcast" x=i64:1 y=- z=- int=1,1,1
 unit 28
   req "testAll" layout=auto
   prepare ok
-=copy this 17577 2
-=copy this 23503 2
+=copy this 17721 2
+=copy this 23695 2
     msl-hash sha256=efe99df819c35a6ffb0a99e35909145391035db39fc99d61cdcff82064510ea1 bytes=5448
   end-prepare
   evaluate "testAll" x=i64:1 y=- z=- int=1,1,1
 unit 29
   req "testAny" layout=auto
   prepare ok
-=copy this 17579 2
-=copy this 23513 2
+=copy this 17723 2
+=copy this 23705 2
     msl-hash sha256=64524e1225c60c3bc9d89e0615baaa9c43dae4529a2d34a2c42c5ba5edcbcbcf bytes=5447
   end-prepare
   evaluate "testAny" x=i64:1 y=- z=- int=1,1,1
 unit 30
   req "testSelect" layout=auto
   prepare ok
-=copy this 17581 2
-=copy this 23523 2
+=copy this 17725 2
+=copy this 23715 2
     msl-hash sha256=82abb9c2c906a7967f597776c8369b0278e2ef3d7abe4f125b03c779706c8351 bytes=10878
   end-prepare
   evaluate "testSelect" x=i64:1 y=- z=- int=1,1,1
 unit 31
   req "testArrayLength" layout=auto
   prepare ok
-=copy this 17583 7
-=copy this 23533 2
+=copy this 17727 7
+=copy this 23725 2
     msl-hash sha256=57f5f9bd4d325181f098741bdc96397a84d4fbd3c3b87ff8c7c8c8c0c5e9fcb5 bytes=6135
   end-prepare
   evaluate "testArrayLength" x=i64:1 y=- z=- int=1,1,1
 unit 32
   req "testArrayLength" layout=g1_e27
-=copy this 23540 2
+=copy this 23732 2
 =copy prev 278 1
   writeback layout=g1_e27
     wb bgl=4 ent=0 binding=0 min=4
     wb bgl=4 ent=1 binding=1 min=4
-=copy this 23548 5
+=copy this 23740 5
 unit 33
   req "testTrigonometric" layout=auto
   prepare ok
-=copy this 17590 2
-=copy this 23561 2
+=copy this 17734 2
+=copy this 23753 2
     msl-hash sha256=c83cb0e5f6fd3647f7405a895b7db92666bcc0df7d343b3e5338fa66349a5c93 bytes=7525
   end-prepare
   evaluate "testTrigonometric" x=i64:1 y=- z=- int=1,1,1
 unit 34
   req "testTrigonometricHyperbolic" layout=auto
   prepare ok
-=copy this 17592 2
-=copy this 23571 2
+=copy this 17736 2
+=copy this 23763 2
     msl-hash sha256=de96d45629da7f2a72b872410aa654b7c9c92dd160925126a1fcc41e55414b7e bytes=7415
   end-prepare
   evaluate "testTrigonometricHyperbolic" x=i64:1 y=- z=- int=1,1,1
 unit 35
   req "testAbs" layout=auto
   prepare ok
-=copy this 17594 2
-=copy this 23581 2
+=copy this 17738 2
+=copy this 23773 2
     msl-hash sha256=7b58835ce536a2131790e6dff73cc3e7b8c419f3f5df189d9139773f0b819165 bytes=6745
   end-prepare
   evaluate "testAbs" x=i64:1 y=- z=- int=1,1,1
 unit 36
   req "testAtan2" layout=auto
   prepare ok
-=copy this 17596 2
-=copy this 23591 2
+=copy this 17740 2
+=copy this 23783 2
     msl-hash sha256=158753dec88220252401d6abccfbf2a3311b017cbc5152427542ec74bc8c7d65 bytes=6426
   end-prepare
   evaluate "testAtan2" x=i64:1 y=- z=- int=1,1,1
 unit 37
   req "testCeil" layout=auto
   prepare ok
-=copy this 17598 2
-=copy this 23601 2
+=copy this 17742 2
+=copy this 23793 2
     msl-hash sha256=da0b54fd189b47177d1ca14f8ce4a37cd991bc1bef5dd4f1983885c4b8994e6b bytes=6228
   end-prepare
   evaluate "testCeil" x=i64:1 y=- z=- int=1,1,1
 unit 38
   req "testClamp" layout=auto
   prepare ok
-=copy this 17600 2
-=copy this 23611 2
+=copy this 17744 2
+=copy this 23803 2
     msl-hash sha256=518ec51095ff330c48f8c4627dec5af70a4af61985f33ec8ef13c8e9bc53da5e bytes=7592
   end-prepare
   evaluate "testClamp" x=i64:1 y=- z=- int=1,1,1
 unit 39
   req "testBitCounting" layout=auto
   prepare ok
-=copy this 17602 2
-=copy this 23621 2
+=copy this 17746 2
+=copy this 23813 2
     msl-hash sha256=3f742e159af35547eda55baa59823bb667025c7ad2e8129ad4ff9b59365cf48e bytes=6884
   end-prepare
   evaluate "testBitCounting" x=i64:1 y=- z=- int=1,1,1
 unit 40
   req "testCross" layout=auto
   prepare ok
-=copy this 17604 2
-=copy this 23631 2
+=copy this 17748 2
+=copy this 23823 2
     msl-hash sha256=825f6f5937188df2949b27004160a79729e07c7968fd1aef8b726e6147af501a bytes=5610
   end-prepare
   evaluate "testCross" x=i64:1 y=- z=- int=1,1,1
 unit 41
   req "testDegress" layout=auto
   prepare ok
-=copy this 17606 2
-=copy this 23641 2
+=copy this 17750 2
+=copy this 23833 2
     msl-hash sha256=c9be22a4fb7ba6de64cc79e14d170026fc5fd9770ed7f8547a985cee72b03e22 bytes=6946
   end-prepare
   evaluate "testDegress" x=i64:1 y=- z=- int=1,1,1
 unit 42
   req "testDeterminant" layout=auto
   prepare ok
-=copy this 17608 2
-=copy this 23651 2
+=copy this 17752 2
+=copy this 23843 2
     msl-hash sha256=5a43b96d8de062c243eebe1073fd8a25dcba5983c5b848e544edab93728b4681 bytes=6228
   end-prepare
   evaluate "testDeterminant" x=i64:1 y=- z=- int=1,1,1
 unit 43
   req "testDistance" layout=auto
   prepare ok
-=copy this 17610 2
-=copy this 23661 2
+=copy this 17754 2
+=copy this 23853 2
     msl-hash sha256=b21496f3692d703f7d685397d06b8188da401da63e6df55315bc3c733a583891 bytes=6090
   end-prepare
   evaluate "testDistance" x=i64:1 y=- z=- int=1,1,1
 unit 44
   req "testDot" layout=auto
   prepare ok
-=copy this 17612 2
-=copy this 23671 2
+=copy this 17756 2
+=copy this 23863 2
     msl-hash sha256=9ee37e2a88df2f8f3bfd3a265adc1c0692bd11b35b8dbff6c048e5d0874fe3c5 bytes=6829
   end-prepare
   evaluate "testDot" x=i64:1 y=- z=- int=1,1,1
 unit 45
   req "testDot4U8Packed" layout=auto
   prepare ok
-=copy this 17614 2
-=copy this 23681 2
+=copy this 17758 2
+=copy this 23873 2
     msl-hash sha256=8176e20e4d86c922bdf716e2838a76d12cecc10a121d820a4ebdd2b47b32df81 bytes=5308
   end-prepare
   evaluate "testDot4U8Packed" x=i64:1 y=- z=- int=1,1,1
 unit 46
   req "testDot4I8Packed" layout=auto
   prepare ok
-=copy this 17616 2
-=copy this 23691 2
+=copy this 17760 2
+=copy this 23883 2
     msl-hash sha256=724e5615bfe416f9e86fea86493b5594ec083001f3e18f5661b0452c99b08c8f bytes=5303
   end-prepare
   evaluate "testDot4I8Packed" x=i64:1 y=- z=- int=1,1,1
 unit 47
   req "testExpAndExp2" layout=auto
   prepare ok
-=copy this 17618 2
-=copy this 23701 2
+=copy this 17762 2
+=copy this 23893 2
     msl-hash sha256=fe63b2be4567a626ca3686996230544f7ce9b70ea6bd54bb703bbedc142f4bb8 bytes=7606
   end-prepare
   evaluate "testExpAndExp2" x=i64:1 y=- z=- int=1,1,1
 unit 48
   req "testExtractBits" layout=auto
   prepare ok
-=copy this 17620 2
-=copy this 23711 2
+=copy this 17764 2
+=copy this 23903 2
     msl-hash sha256=97cc3758e6960932df215b46fbe38b74bd7b3c0b8dddf7898bac30ed0b64d587 bytes=7085
   end-prepare
   evaluate "testExtractBits" x=i64:1 y=- z=- int=1,1,1
 unit 49
   req "testFaceForward" layout=auto
   prepare ok
-=copy this 17622 2
-=copy this 23721 2
+=copy this 17766 2
+=copy this 23913 2
     msl-hash sha256=8e679e25b740b6f11c70310c931e5de41bc9c918c5bb756d8ec261e240d92fe7 bytes=6009
   end-prepare
   evaluate "testFaceForward" x=i64:1 y=- z=- int=1,1,1
 unit 50
   req "testFirstLeadingBit" layout=auto
   prepare ok
-=copy this 17624 2
-=copy this 23731 2
+=copy this 17768 2
+=copy this 23923 2
     msl-hash sha256=28e172923cb7adcae335da83a3b240d20e2cfffaeaaa85c3df370dba64881f9f bytes=6486
   end-prepare
   evaluate "testFirstLeadingBit" x=i64:1 y=- z=- int=1,1,1
 unit 51
   req "testFirstTrailingBit" layout=auto
   prepare ok
-=copy this 17626 2
-=copy this 23741 2
+=copy this 17770 2
+=copy this 23933 2
     msl-hash sha256=a4fdbd03552dfcf87a118a0554ba840da09a5363dd84cfab2d96e6b50476d8cc bytes=6303
   end-prepare
   evaluate "testFirstTrailingBit" x=i64:1 y=- z=- int=1,1,1
 unit 52
   req "testFloor" layout=auto
   prepare ok
-=copy this 17628 2
-=copy this 23751 2
+=copy this 17772 2
+=copy this 23943 2
     msl-hash sha256=92c6a7fa046eeeca4cd997a78308a77211aac96c065f15fbb659ce38f85ca781 bytes=6236
   end-prepare
   evaluate "testFloor" x=i64:1 y=- z=- int=1,1,1
 unit 53
   req "testFma" layout=auto
   prepare ok
-=copy this 17630 2
-=copy this 23761 2
+=copy this 17774 2
+=copy this 23953 2
     msl-hash sha256=36b9416f865c9b417319c5a00da895f5eb9ccb8d170146c937e7026dfe005b76 bytes=6557
   end-prepare
   evaluate "testFma" x=i64:1 y=- z=- int=1,1,1
 unit 54
   req "testFract" layout=auto
   prepare ok
-=copy this 17632 2
-=copy this 23771 2
+=copy this 17776 2
+=copy this 23963 2
     msl-hash sha256=6943f087f19cd4432c5790111f0d033c4f32e3c0fdfae2f07b572158d4df4621 bytes=6230
   end-prepare
   evaluate "testFract" x=i64:1 y=- z=- int=1,1,1
 unit 55
   req "testFrexp" layout=auto
   prepare ok
-=copy this 17634 2
-=copy this 23781 2
+=copy this 17778 2
+=copy this 23973 2
     msl-hash sha256=997071e99bb355f8306803eb1aa03662bf68c2535799a6bb1c571ad13cd0a907 bytes=8024
   end-prepare
   evaluate "testFrexp" x=i64:1 y=- z=- int=1,1,1
 unit 56
   req "testInsertBits" layout=auto
   prepare ok
-=copy this 17636 2
-=copy this 23791 2
+=copy this 17780 2
+=copy this 23983 2
     msl-hash sha256=f7030b8410c3aa7c8da5a8f2dcc1b11b38baf8bc7c2958756e88054d713ebe2f bytes=6685
   end-prepare
   evaluate "testInsertBits" x=i64:1 y=- z=- int=1,1,1
 unit 57
   req "testInverseSqrt" layout=auto
   prepare ok
-=copy this 17638 2
-=copy this 23801 2
+=copy this 17782 2
+=copy this 23993 2
     msl-hash sha256=b58b894b7641d466febeeea301316a74f087db0ad9c664ad5e96dff85d896446 bytes=6550
   end-prepare
   evaluate "testInverseSqrt" x=i64:1 y=- z=- int=1,1,1
 unit 58
   req "testLdexp" layout=auto
   prepare ok
-=copy this 17640 2
-=copy this 23811 2
+=copy this 17784 2
+=copy this 24003 2
     msl-hash sha256=0e6cd00f545958e098c6944e021ac6a4fa3f61d38eb24a200ddd0b45444eef99 bytes=6368
   end-prepare
   evaluate "testLdexp" x=i64:1 y=- z=- int=1,1,1
 unit 59
   req "testLength" layout=auto
   prepare ok
-=copy this 17642 2
-=copy this 23821 2
+=copy this 17786 2
+=copy this 24013 2
     msl-hash sha256=c140bc76c96a1e7038067fb9a6f4c72cbcedd87ad3bcc5647024da2862599eb8 bytes=6033
   end-prepare
   evaluate "testLength" x=i64:1 y=- z=- int=1,1,1
 unit 60
   req "testLog" layout=auto
   prepare ok
-=copy this 17644 2
-=copy this 23831 2
+=copy this 17788 2
+=copy this 24023 2
     msl-hash sha256=1288605d94aff0a0a5fbd78f89cc5817c63197434656dd19e9c3eef587462cfc bytes=7112
   end-prepare
   evaluate "testLog" x=i64:1 y=- z=- int=1,1,1
 unit 61
   req "testLog2" layout=auto
   prepare ok
-=copy this 17646 2
-=copy this 23841 2
+=copy this 17790 2
+=copy this 24033 2
     msl-hash sha256=7414df203df8362eb4d3d40da49b9cc2e16753110dc80477ec6a72cd069aafdb bytes=6409
   end-prepare
   evaluate "testLog2" x=i64:1 y=- z=- int=1,1,1
 unit 62
   req "testMax" layout=auto
   prepare ok
-=copy this 17648 2
-=copy this 23851 2
+=copy this 17792 2
+=copy this 24043 2
     msl-hash sha256=7e746b93eb1e2eb9936f76655eb3843efab5ccb959d3d40196f47c8bc49fd0ac bytes=7223
   end-prepare
   evaluate "testMax" x=i64:1 y=- z=- int=1,1,1
 unit 63
   req "testMin" layout=auto
   prepare ok
-=copy this 17650 2
-=copy this 23861 2
+=copy this 17794 2
+=copy this 24053 2
     msl-hash sha256=f7d778dc337f7c2c4743f470eb186a5384b7bd7a34864ee2d42187952a02e9a2 bytes=7085
   end-prepare
   evaluate "testMin" x=i64:1 y=- z=- int=1,1,1
 unit 64
   req "testMix" layout=auto
   prepare ok
-=copy this 17652 2
-=copy this 23871 2
+=copy this 17796 2
+=copy this 24063 2
     msl-hash sha256=f1318e4f1a779787ad116276c93e7d4a08ca497008dd221302a1f612ba76b4d2 bytes=7650
   end-prepare
   evaluate "testMix" x=i64:1 y=- z=- int=1,1,1
 unit 65
   req "testModf" layout=auto
   prepare ok
-=copy this 17654 2
-=copy this 23881 2
+=copy this 17798 2
+=copy this 24073 2
     msl-hash sha256=a7de4f32a3e30c0f1d55f3358beb537d4b331f7e27a250834c785cf0c4d7ea59 bytes=7055
   end-prepare
   evaluate "testModf" x=i64:1 y=- z=- int=1,1,1
 unit 66
   req "testNormalize" layout=auto
   prepare ok
-=copy this 17656 2
-=copy this 23891 2
+=copy this 17800 2
+=copy this 24083 2
     msl-hash sha256=e065f4a9cf19689a26bbbecd4f098c6140a519263a824ff62eb74ee052ceade4 bytes=6425
   end-prepare
   evaluate "testNormalize" x=i64:1 y=- z=- int=1,1,1
 unit 67
   req "testPow" layout=auto
   prepare ok
-=copy this 17658 2
-=copy this 23901 2
+=copy this 17802 2
+=copy this 24093 2
     msl-hash sha256=67c853fbe0ea34c136a75260789ba8776095cbafb01f684e485d9b8b99ef80ae bytes=8174
   end-prepare
   evaluate "testPow" x=i64:1 y=- z=- int=1,1,1
 unit 68
   req "testQuantizeToF16" layout=auto
   prepare ok
-=copy this 17660 2
-=copy this 23911 2
+=copy this 17804 2
+=copy this 24103 2
     msl-hash sha256=3ddcb4677a00560c7574e836ee14320af31cf2a4696f4b23d73b80aa53b69760 bytes=6044
   end-prepare
   evaluate "testQuantizeToF16" x=i64:1 y=- z=- int=1,1,1
 unit 69
   req "testRadians" layout=auto
   prepare ok
-=copy this 17662 2
-=copy this 23921 2
+=copy this 17806 2
+=copy this 24113 2
     msl-hash sha256=1faeb26fc079280966c135bcca3a5b1a68b5fbec1dee377b7ef11f4f5c972681 bytes=7142
   end-prepare
   evaluate "testRadians" x=i64:1 y=- z=- int=1,1,1
 unit 70
   req "testReflect" layout=auto
   prepare ok
-=copy this 17664 2
-=copy this 23931 2
+=copy this 17808 2
+=copy this 24123 2
     msl-hash sha256=4a581d35ad159e8c93f411d898f92571eecaad606f86a5c6cbbd559c34f71f3f bytes=7856
   end-prepare
   evaluate "testReflect" x=i64:1 y=- z=- int=1,1,1
 unit 71
   req "testRefract" layout=auto
   prepare ok
-=copy this 17666 2
-=copy this 23941 2
+=copy this 17810 2
+=copy this 24133 2
     msl-hash sha256=2db72612d0d136ee994fd2b755015f5ec19414c8fb040093dcd54c5616701390 bytes=6332
   end-prepare
   evaluate "testRefract" x=i64:1 y=- z=- int=1,1,1
 unit 72
   req "testReverseBits" layout=auto
   prepare ok
-=copy this 17668 2
-=copy this 23951 2
+=copy this 17812 2
+=copy this 24143 2
     msl-hash sha256=fe1db3b937fc456ac7200b879e45e7a4fe5c4f22ee12f090d91660308a1be494 bytes=6509
   end-prepare
   evaluate "testReverseBits" x=i64:1 y=- z=- int=1,1,1
 unit 73
   req "testRound" layout=auto
   prepare ok
-=copy this 17670 2
-=copy this 23961 2
+=copy this 17814 2
+=copy this 24153 2
     msl-hash sha256=6cf156beb37ab531e32d8efabb3c10d934df12828242689ac708aadf482c801f bytes=6250
   end-prepare
   evaluate "testRound" x=i64:1 y=- z=- int=1,1,1
 unit 74
   req "testSaturate" layout=auto
   prepare ok
-=copy this 17672 2
-=copy this 23971 2
+=copy this 17816 2
+=copy this 24163 2
     msl-hash sha256=0f3bbc84fa8a2d487ff75d6e6a3f61fa6f66875edb4a5645e100a11bd0d8f2b5 bytes=6254
   end-prepare
   evaluate "testSaturate" x=i64:1 y=- z=- int=1,1,1
 unit 75
   req "testSign" layout=auto
   prepare ok
-=copy this 17674 2
-=copy this 23981 2
+=copy this 17818 2
+=copy this 24173 2
     msl-hash sha256=a8060165ba0855049564c31c9057c61ef9eef2d726ea9e0cbb92c33420f2db4a bytes=6635
   end-prepare
   evaluate "testSign" x=i64:1 y=- z=- int=1,1,1
 unit 76
   req "testSmoothstep" layout=auto
   prepare ok
-=copy this 17676 2
-=copy this 23991 2
+=copy this 17820 2
+=copy this 24183 2
     msl-hash sha256=c97bc8a79a68631eb8fac5e317d4295b0d0263639f94809d1906aaf948686ff2 bytes=6626
   end-prepare
   evaluate "testSmoothstep" x=i64:1 y=- z=- int=1,1,1
 unit 77
   req "testSqrt" layout=auto
   prepare ok
-=copy this 17678 2
-=copy this 24001 2
+=copy this 17822 2
+=copy this 24193 2
     msl-hash sha256=e1acb28563d49f06ac177d04e9877c690cea21987d66164b13ff841827a91d0d bytes=6409
   end-prepare
   evaluate "testSqrt" x=i64:1 y=- z=- int=1,1,1
 unit 78
   req "testStep" layout=auto
   prepare ok
-=copy this 17680 2
-=copy this 24011 2
+=copy this 17824 2
+=copy this 24203 2
     msl-hash sha256=6991e9510c63c933152e218b209664064676bbe1b8ca444a52f7e1800979c0c3 bytes=6399
   end-prepare
   evaluate "testStep" x=i64:1 y=- z=- int=1,1,1
 unit 79
   req "testTranspose" layout=auto
   prepare ok
-=copy this 17682 2
-=copy this 24021 2
+=copy this 17826 2
+=copy this 24213 2
     msl-hash sha256=1b6ba494c54480ea16b9231c8582ac438e8616d2b90263dfc0f7b4bdbbc66f12 bytes=8972
   end-prepare
   evaluate "testTranspose" x=i64:1 y=- z=- int=1,1,1
 unit 80
   req "testTrunc" layout=auto
   prepare ok
-=copy this 17684 2
-=copy this 24031 2
+=copy this 17828 2
+=copy this 24223 2
     msl-hash sha256=f7ed745bbeadd3a77b08fe7b2771e56aacf12544bc9c4562448c2eb29f89d8b3 bytes=6258
   end-prepare
   evaluate "testTrunc" x=i64:1 y=- z=- int=1,1,1
 unit 81
   req "testDerivativeFunctions" layout=auto
   prepare ok
-=copy this 17686 2
-=copy this 24041 2
+=copy this 17830 2
+=copy this 24233 2
     msl-hash sha256=be70eba81ca93d4fd9c6d8afaa0a9468ef6864650e8e7e66b8848bfd2bdb9352 bytes=6616
   end-prepare
   evaluate "testDerivativeFunctions" skipped=not-compute
 unit 82
   req "testTextureDimensions" layout=auto
   prepare ok
-=copy this 17688 20
-=copy this 24051 2
-    msl-hash sha256=a733888fdaf2e14be2afcdb82f99124ef0f01743f3acb8c7d7d1cef01069b2d7 bytes=12137
+=copy this 17832 20
+=copy this 24243 2
+    msl-hash sha256=ef158a6c74ca75783b892d999e8980fa6fc5c65b6312fe709f29cf1380915f87 bytes=14575
   end-prepare
   evaluate "testTextureDimensions" x=i64:1 y=- z=- int=1,1,1
 unit 83
   req "testTextureGather" layout=auto
   prepare ok
-=copy this 17708 12
-=copy this 24079 2
+=copy this 17852 12
+=copy this 24271 2
     msl-hash sha256=2a42889f1f20309b46601aaef6e76d21a4f06c53d2877a6958a09ba62aa8fa9d bytes=7467
   end-prepare
   evaluate "testTextureGather" x=i64:1 y=- z=- int=1,1,1
 unit 84
   req "testTextureGatherCompare" layout=auto
   prepare ok
-=copy this 17720 8
-=copy this 24099 2
+=copy this 17864 8
+=copy this 24291 2
     msl-hash sha256=a602ef253f65c9f782f73c5257445c78472b642590872bf35889edbb7985899d bytes=6365
   end-prepare
   evaluate "testTextureGatherCompare" x=i64:1 y=- z=- int=1,1,1
 unit 85
   req "testTextureLoad" layout=auto
   prepare ok
-=copy this 17728 22
-=copy this 24115 2
-    msl-hash sha256=2a38af4b6b3255f54740f6fdd82da84ef54993a3ceeca069a056586604b7c0cb bytes=17421
+=copy this 17872 22
+=copy this 24307 2
+    msl-hash sha256=d3d11eae0cf30b93174b472a50b36c52093b5948e12ffaee5d2d7d2bea61f891 bytes=19859
   end-prepare
   evaluate "testTextureLoad" x=i64:1 y=- z=- int=1,1,1
 unit 86
   req "testTextureNumLayers" layout=auto
   prepare ok
-=copy this 17750 8
-=copy this 24145 2
+=copy this 17894 8
+=copy this 24337 2
     msl-hash sha256=1aecdb1b8aa2fcef77efc3890b2e1ee78b8a7f819322472f21f91e354a6ae113 bytes=6214
   end-prepare
   evaluate "testTextureNumLayers" x=i64:1 y=- z=- int=1,1,1
 unit 87
   req "testTextureNumLevels" layout=auto
   prepare ok
-=copy this 17758 13
-=copy this 24161 2
+=copy this 17902 13
+=copy this 24353 2
     msl-hash sha256=99612edd3332870e279577feb0050dc973369ca9f679874f3f24354b3da82619 bytes=7121
   end-prepare
   evaluate "testTextureNumLevels" x=i64:1 y=- z=- int=1,1,1
 unit 88
   req "testTextureNumSamples" layout=auto
   prepare ok
-=copy this 17771 5
-=copy this 24182 2
+=copy this 17915 5
+=copy this 24374 2
     msl-hash sha256=0c9f858e853e77be2d6e8df0f9a14aaedbe533622123007fa80593adb0c94c76 bytes=5631
   end-prepare
   evaluate "testTextureNumSamples" x=i64:1 y=- z=- int=1,1,1
 unit 89
   req "testTextureSample" layout=auto
   prepare ok
-=copy this 17776 14
-=copy this 24195 2
+=copy this 17920 14
+=copy this 24387 2
     msl-hash sha256=c3fa6fee150121ec439d2e2bfc07b843ff5a47d839177eeeba13fdfb50cd5b75 bytes=7857
   end-prepare
   evaluate "testTextureSample" skipped=not-compute
 unit 90
   req "testTextureSampleBias" layout=auto
   prepare ok
-=copy this 17790 9
-=copy this 24217 2
+=copy this 17934 9
+=copy this 24409 2
     msl-hash sha256=b7beb650148d136c86b57e52cbbf8758b8c92900dab3fffabbbe2f8e05ed6058 bytes=11224
   end-prepare
   evaluate "testTextureSampleBias" skipped=not-compute
 unit 91
   req "testTextureSampleCompare" layout=auto
   prepare ok
-=copy this 17799 8
-=copy this 24234 2
+=copy this 17943 8
+=copy this 24426 2
     msl-hash sha256=3f792e7d5177c84c270078d783aaad236517a9bb621b2bce93e3ab8cf69c2578 bytes=6366
   end-prepare
   evaluate "testTextureSampleCompare" skipped=not-compute
 unit 92
   req "testTextureSampleCompareLevel" layout=auto
   prepare ok
-=copy this 17807 8
-=copy this 24250 2
+=copy this 17951 8
+=copy this 24442 2
     msl-hash sha256=4f63dec7e4aede824250ae3ccd09bfaae106a9739892ad7c2b757c4367f442de bytes=6425
   end-prepare
   evaluate "testTextureSampleCompareLevel" x=i64:1 y=- z=- int=1,1,1
 unit 93
   req "testTextureSampleGrad" layout=auto
   prepare ok
-=copy this 17815 9
-=copy this 24266 2
+=copy this 17959 9
+=copy this 24458 2
     msl-hash sha256=a8e53d6977042ae07425b66c1518b94925dbaa9670e407771ca9bcce456203c5 bytes=7234
   end-prepare
   evaluate "testTextureSampleGrad" x=i64:1 y=- z=- int=1,1,1
 unit 94
   req "testTextureSampleLevel" layout=auto
   prepare ok
-=copy this 17824 14
-=copy this 24283 2
+=copy this 17968 14
+=copy this 24475 2
     msl-hash sha256=305608fb3e25c0453cb8273efbb3d838641d60491ca03d525a89350fdf3d582a bytes=7982
   end-prepare
   evaluate "testTextureSampleLevel" x=i64:1 y=- z=- int=1,1,1
 unit 95
   req "testTextureSampleBaseClampToEdge" layout=auto
   prepare ok
-=copy this 17838 6
-=copy this 24305 2
-    msl-hash sha256=66a152b092fd0ff71e56ac7cb6e019c8e21c0922ddaa9db1bf9c9ba5e5e96313 bytes=9281
+=copy this 17982 6
+=copy this 24497 2
+    msl-hash sha256=6973b970df01b67c321c08f953b82aa8160b631bbd96c0c63ebca816372fc69e bytes=11719
   end-prepare
   evaluate "testTextureSampleBaseClampToEdge" x=i64:1 y=- z=- int=1,1,1
 unit 96
   req "testTextureStore" layout=auto
   prepare ok
-=copy this 17844 7
-=copy this 24319 2
+=copy this 17988 7
+=copy this 24511 2
     msl-hash sha256=3bd1248b85217e2148d37f3480c6d2eae156fd5f043c7afa13d1d2bcadd9f5f2 bytes=6179
   end-prepare
   evaluate "testTextureStore" x=i64:1 y=- z=- int=1,1,1
 unit 97
   req "testAtomicFunctions" layout=auto
   prepare ok
-=copy this 17851 5
-=copy this 24334 2
+=copy this 17995 5
+=copy this 24526 2
     msl-hash sha256=6040f763a0d0969ea278219226e2356efc877c490c2692d821808e6fb8ad23a9 bytes=7995
   end-prepare
   evaluate "testAtomicFunctions" x=i64:1 y=- z=- int=1,1,1
 unit 98
   req "testAtomicFunctions" layout=g1_e92
-=copy this 24341 2
-=copy this 23557 1
+=copy this 24533 2
+=copy this 23749 1
   writeback layout=g1_e92
     wb bgl=7 ent=0 binding=10 min=4
-=copy this 24347 5
+=copy this 24539 5
 unit 99
   req "testDataPackingFunctions" layout=auto
   prepare ok
-=copy this 17856 2
-=copy this 24359 2
+=copy this 18000 2
+=copy this 24551 2
     msl-hash sha256=a45dd372bbb415f882919dd2b85dfe64da1272aa607a21a5253d8a2c6ce3a783 bytes=7567
   end-prepare
   evaluate "testDataPackingFunctions" x=i64:1 y=- z=- int=1,1,1
 unit 100
   req "testDataUnpackingFunction" layout=auto
   prepare ok
-=copy this 17858 2
-=copy this 24369 2
+=copy this 18002 2
+=copy this 24561 2
     msl-hash sha256=2808bec775c51fac59b0db2d9c174051be68d0aca164d27df61e4d6af777a8ae bytes=6275
   end-prepare
   evaluate "testDataUnpackingFunction" x=i64:1 y=- z=- int=1,1,1
 unit 101
   req "testStorageBarrier" layout=auto
   prepare ok
-=copy this 17860 2
-=copy this 24379 2
+=copy this 18004 2
+=copy this 24571 2
     msl-hash sha256=aa57f41dac25a2ade04ecb128c017f192c69ce7c29f181a79be74b91408f6b62 bytes=5227
   end-prepare
   evaluate "testStorageBarrier" x=i64:1 y=- z=- int=1,1,1
 unit 102
   req "testWorkgroupBarrier" layout=auto
   prepare ok
-=copy this 17862 2
-=copy this 24389 2
+=copy this 18006 2
+=copy this 24581 2
     msl-hash sha256=f0b3a683daf7ea92a78bc38c6a3c281baf083ce62c67a8d28acc21915c408bd9 bytes=5232
   end-prepare
   evaluate "testWorkgroupBarrier" x=i64:1 y=- z=- int=1,1,1
 unit 103
   req "testWorkgroupUniformLoad" layout=auto
   prepare ok
-=copy this 12122 4
+=copy this 12218 4
     msl-hash sha256=cadc737089ba917761173d502fa82872279c7c9dac7295b0fee7ca4e67d64009 bytes=5470
   end-prepare
   evaluate "testWorkgroupUniformLoad" x=i64:1 y=- z=- int=1,1,1
@@ -9940,7 +9988,7 @@ io "main" stage=compute
     spec "bad_size" mangled="global2" type=Int
     spec "good_size" mangled="global3" type=Int
     spec "v" mangled="global4" type=Float
-=copy prev 24408 1
+=copy prev 24600 1
 =copy prev 640 2
     const.out "global0" i32:1
     const.out "global1" i32:1
@@ -10001,18 +10049,18 @@ struct type0 {
 
 
   end-prepare
-=copy prev 6042 3
+=copy prev 6090 3
   epi "main" mangled="function0" stage=compute invariantPresent=0 usesInvariant=0 wgvarsize=48 bindingcount=0
 =copy this 13 6
-=copy prev 6382 2
+=copy prev 6430 2
 =copy this 21 64
-=copy prev 11784 3
+=copy prev 11880 3
 =copy this 88 7
-=copy prev 24409 2
+=copy prev 24601 2
 =copy this 97 64
-=copy prev 17526 3
+=copy prev 17670 3
 =copy this 164 7
-=copy prev 17866 2
+=copy prev 18010 2
 =copy this 173 64
 unit 4
   req "main" layout=auto
@@ -11484,7 +11532,7 @@ unit
 =copy this 22 2
 end
 
-expect 5528
+expect 7969
 WGSLDUMP 1
 input id="texture-external.wgsl" bytes=261 units=261 is8bit=1
 =copy prev 2 2
@@ -11503,7 +11551,7 @@ io "main" stage=compute
       ent binding=8 web=3 vis=4 name="__global0_ArrayLength" buffer type=Uniform dyn=0 min=4 vab=- vabs=- vdo=- fab=- fabs=- fdo=- cab=- cabs=- cdo=-
       ent binding=9 web=5 vis=4 name="__global2_ArrayLength" buffer type=Uniform dyn=0 min=4 vab=- vabs=- vdo=- fab=- fabs=- fdo=- cab=- cabs=- cdo=-
 =copy prev 9 2
-    msl utf8 3682
+    msl utf8 6120
 #include <metal_stdlib>
 #include <metal_types>
 
@@ -11518,25 +11566,73 @@ using __UnpackedType = typename __UnpackedTypeImpl<T>::Type;
 =copy this 33 2
 using __PackedType = typename __PackedTypeImpl<T>::Type;
 
+// Decodes PQ (SMPTE ST 2084) or HLG (ITU-R BT.2100) rgb to linear light in the frame's own primaries,
+// scaled so that 1.0 is SDR white. An SDR canvas has no room above that, so __wgslToneMapHDR() then
+// fits what is brighter into it.
+static float3 __wgslDecodeHDR(float3 encoded, bool isHLG)
+{
+    constexpr float referenceWhiteNits = 440.0f;
+    if (!isHLG) {
+        constexpr float m1 = 0.1593017578125f, m2 = 78.84375f, c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+        float3 const p = pow(encoded, 1.0f / m2);
+        return pow(max(p - c1, 0.0f) / (c2 - c3 * p), 1.0f / m1) * (10000.0f / referenceWhiteNits);
+    }
+    constexpr float a = 0.17883277f, b = 0.28466892f, c = 0.55991073f;
+    float3 const scene = select((exp((encoded - c) / a) + b) / 12.0f, encoded * encoded / 3.0f, encoded <= 0.5f);
+    // The HLG OOTF for a 1000 nit display: a gamma of 1.2 applied through the luminance.
+    float const sceneLuminance = dot(scene, float3(0.2627f, 0.6780f, 0.0593f));
+    return scene * pow(max(sceneLuminance, 1e-6f), 0.2f) * (1000.0f / referenceWhiteNits);
+}
+
+// Leaves everything up to half of SDR white alone, and rolls what is above it off towards 1.0 with a
+// slope that starts out matching, so SDR-range content is not dimmed. It scales the color by its
+// luminance, to keep the hue of what it compresses.
+static float3 __wgslToneMapHDR(float3 linearLight)
+{
+    constexpr float knee = 0.5f;
+    float const luminance = dot(linearLight, float3(0.2627f, 0.6780f, 0.0593f));
+    if (luminance <= knee)
+        return linearLight;
+    float const excess = luminance - knee;
+    float const mapped = knee + (1.0f - knee) * excess / (excess + (1.0f - knee));
+    return linearLight * (mapped / luminance);
+}
+
+static float3 __wgslLinearToBT1886(float3 linearLight)
+{
+    return sign(linearLight) * pow(abs(linearLight), 1.0f / 2.4f);
+}
+
 struct texture_external {
     texture2d<float> FirstPlane;
     texture2d<float> SecondPlane;
     float3x2 UVRemapMatrix;
     float4x3 ColorSpaceConversionMatrix;
-    float3x3 PrimariesConversionMatrix;
+    float3x4 PrimariesConversionMatrix;
     uint2 VisibleSize;
     uint get_width(uint lod = 0) const { return VisibleSize.x ? VisibleSize.x : FirstPlane.get_width(lod); }
     uint get_height(uint lod = 0) const { return VisibleSize.y ? VisibleSize.y : FirstPlane.get_height(lod); }
     float4 to_destination_color_space(float3 rgb, float alpha, float premultiplied) const
     {
-        if (PrimariesConversionMatrix[0][0] == 0.0f)
+        float const transfer = PrimariesConversionMatrix[0][3];
+        bool const isHDR = transfer != 0.0f;
+        bool const keepsPrimaries = PrimariesConversionMatrix[0][0] == 0.0f;
+        if (keepsPrimaries && !isHDR)
             return float4(rgb * mix(alpha, 1.0f, premultiplied), alpha);
         float3 const straight = (premultiplied != 0.0f && alpha > 0.0f) ? rgb / alpha : rgb;
-        float3 const magnitude = abs(straight);
-        float3 const linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
-        float3 const converted = PrimariesConversionMatrix * linearLight;
+        float3 linearLight;
+        if (isHDR)
+            linearLight = __wgslToneMapHDR(__wgslDecodeHDR(clamp(straight, 0.0f, 1.0f), transfer == 2.0f));
+        else {
+            float3 const magnitude = abs(straight);
+            linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
+        }
+        float3x3 const primaries = keepsPrimaries ? float3x3(1.0f) : float3x3(PrimariesConversionMatrix[0].xyz, PrimariesConversionMatrix[1].xyz, PrimariesConversionMatrix[2].xyz);
+        float3 const converted = primaries * linearLight;
         float3 const convertedMagnitude = abs(converted);
-        float3 const encoded = sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
+        float3 const encoded = isHDR
+            ? __wgslLinearToBT1886(converted)
+            : sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
         return float4(encoded * alpha, alpha);
     }
 };
@@ -11556,7 +11652,7 @@ struct __ArgumentBufferT_0_0 {
     texture2d<float> __global1_SecondPlane [[id(2)]];
     float3x2 __global1_UVRemapMatrix [[id(3)]];
     float4x3 __global1_ColorSpaceConversionMatrix [[id(4)]];
-    float3x3 __global1_PrimariesConversionMatrix [[id(5)]];
+    float3x4 __global1_PrimariesConversionMatrix [[id(5)]];
     uint2 __global1_VisibleSize [[id(6)]];
     const device array<vec<float, 4>, 1>& global2 [[id(7)]];
     unsigned __global0_ArrayLength [[id(8)]];
@@ -11587,29 +11683,29 @@ static_assert(sizeof(__ArgumentBufferT_0_0::__global2_ArrayLength) == 4);
 =copy prev 30 4
 =copy this 12 8
 =copy prev 34 2
-=copy this 22 85
+=copy this 22 133
 =copy prev 56 3
-=copy this 110 8
+=copy this 158 8
 =copy prev 59 2
-=copy this 120 85
+=copy this 168 133
 =copy prev 81 3
-=copy this 208 8
+=copy this 304 8
 =copy prev 84 2
-=copy this 218 85
+=copy this 314 133
 unit 4
   req "main" layout=auto
-=copy this 207 11
-    msl-hash sha256=09794b9f4aa759998811d9a9af54127b95e4ca9eafed74301e7fd6ff1eca12f2 bytes=3682
+=copy this 303 11
+    msl-hash sha256=76cf92ab395d1b69b95de5ab91e195a53d6b0a0d20204132f26a5bda375d8fd6 bytes=6120
   end-prepare
   evaluate "main" x=i64:1 y=- z=- int=1,1,1
 unit 5
   req "main" layout=g1_e0
-=copy this 403 2
+=copy this 595 2
     layout.default none
   writeback layout=g1_e0
     wb bgl=0 ent=0 binding=0 min=16
     wb bgl=0 ent=2 binding=2 min=16
-=copy this 412 5
+=copy this 604 5
 end
 
 endcase
@@ -11716,22 +11812,22 @@ int function4()
 }
 
 
-=copy prev 106 4
+=copy prev 154 4
 =copy this 12 2
-=copy prev 118 2
+=copy prev 166 2
 =copy this 16 93
-=copy prev 205 3
+=copy prev 301 3
 =copy this 112 2
-=copy prev 425 2
+=copy prev 617 2
 =copy this 116 93
-=copy prev 303 3
+=copy prev 447 3
 =copy this 212 2
-=copy prev 314 2
+=copy prev 458 2
 =copy this 216 93
-=copy prev 401 3
+=copy prev 593 3
 =copy this 212 4
     msl-hash sha256=eb8056931c0c2eead39bf437fed55cec6a55aa7b8117fe5986435dd1eda24759 bytes=2942
-=copy prev 428 3
+=copy prev 620 3
 
 endcase
 case "while.wgsl"

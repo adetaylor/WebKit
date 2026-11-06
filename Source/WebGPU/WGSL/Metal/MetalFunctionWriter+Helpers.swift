@@ -80,6 +80,8 @@ extension FunctionDefinitionWriter {
 
         if shaderModule.uses.contains(.externalTextures) {
             shaderModule.uses.remove(.externalTextures)
+            helperGenerator.output.append(.hdrToSDR)
+            helperGenerator.output.append("\n")
             helperGenerator.output.append("struct texture_external {\n")
             do {
                 indent.increment()
@@ -88,7 +90,7 @@ extension FunctionDefinitionWriter {
                 helperGenerator.output.append(indent, "texture2d<float> SecondPlane;\n")
                 helperGenerator.output.append(indent, "float3x2 UVRemapMatrix;\n")
                 helperGenerator.output.append(indent, "float4x3 ColorSpaceConversionMatrix;\n")
-                helperGenerator.output.append(indent, "float3x3 PrimariesConversionMatrix;\n")
+                helperGenerator.output.append(indent, "float3x4 PrimariesConversionMatrix;\n")
                 helperGenerator.output.append(indent, "uint2 VisibleSize;\n")
                 // The size the source presents the frame at, which is what textureDimensions() is owed and
                 // is not the size of the plane the frame was decoded into: a VideoFrame carries a display
@@ -114,22 +116,40 @@ extension FunctionDefinitionWriter {
                     "float4 to_destination_color_space(float3 rgb, float alpha, float premultiplied) const\n"
                 )
                 helperGenerator.output.append(indent, "{\n")
-                helperGenerator.output.append(indent, .textureExternalPrimariesConversionCheck)
+                // The w of the matrix's first column says how the frame's rgb is encoded: 0 is SDR, which
+                // is taken to be sRGB-encoded, 1 is PQ and 2 is HLG.
+                helperGenerator.output.append(indent, .textureExternalTransfer)
+                helperGenerator.output.append(indent, "    bool const isHDR = transfer != 0.0f;\n")
+                helperGenerator.output.append(indent, .textureExternalKeepsPrimaries)
+                helperGenerator.output.append(indent, "    if (keepsPrimaries && !isHDR)\n")
                 helperGenerator.output.append(indent, "        return float4(rgb * mix(alpha, 1.0f, premultiplied), alpha);\n")
                 helperGenerator.output.append(
                     indent,
                     "    float3 const straight = (premultiplied != 0.0f && alpha > 0.0f) ? rgb / alpha : rgb;\n"
                 )
-                helperGenerator.output.append(indent, "    float3 const magnitude = abs(straight);\n")
+                helperGenerator.output.append(indent, "    float3 linearLight;\n")
+                helperGenerator.output.append(indent, "    if (isHDR)\n")
                 helperGenerator.output.append(
                     indent,
-                    "    float3 const linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);\n"
+                    "        linearLight = __wgslToneMapHDR(__wgslDecodeHDR(clamp(straight, 0.0f, 1.0f), transfer == 2.0f));\n"
                 )
-                helperGenerator.output.append(indent, "    float3 const converted = PrimariesConversionMatrix * linearLight;\n")
-                helperGenerator.output.append(indent, "    float3 const convertedMagnitude = abs(converted);\n")
+                helperGenerator.output.append(indent, "    else {\n")
+                helperGenerator.output.append(indent, "        float3 const magnitude = abs(straight);\n")
                 helperGenerator.output.append(
                     indent,
-                    "    float3 const encoded = sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);\n"
+                    "        linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);\n"
+                )
+                helperGenerator.output.append(indent, "    }\n")
+                helperGenerator.output.append(indent, .textureExternalPrimaries)
+                helperGenerator.output.append(indent, "    float3 const converted = primaries * linearLight;\n")
+                helperGenerator.output.append(indent, "    float3 const convertedMagnitude = abs(converted);\n")
+                // HDR is encoded the way a video signal is, with the pure 2.4 gamma of ITU-R BT.1886, rather
+                // than with the sRGB curve, as CoreGraphics does when it brings HDR video down to SDR.
+                helperGenerator.output.append(indent, "    float3 const encoded = isHDR\n")
+                helperGenerator.output.append(indent, "        ? __wgslLinearToBT1886(converted)\n")
+                helperGenerator.output.append(
+                    indent,
+                    "        : sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);\n"
                 )
                 helperGenerator.output.append(indent, "    return float4(encoded * alpha, alpha);\n")
                 helperGenerator.output.append(indent, "}\n")

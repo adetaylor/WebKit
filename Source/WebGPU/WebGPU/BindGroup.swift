@@ -1485,7 +1485,7 @@ private func entryUsage(_ type: LayoutBufferType) -> EntryUsage {
     case .uniform: .constant
     case .storage: .storage
     case .readOnlyStorage: .storageRead
-    case .float3x2, .float4x3, .float3x3, .uint2, .arrayLength: []
+    case .float3x2, .float4x3, .float3x4, .uint2, .arrayLength: []
     }
 }
 
@@ -1506,7 +1506,7 @@ private func hasProperUsageFlags(_ type: LayoutBufferType, _ usage: UInt16) -> B
     switch type {
     case .uniform: bufferUsageContains(usage, .Uniform)
     case .storage, .readOnlyStorage: bufferUsageContains(usage, .Storage)
-    case .float3x2, .float4x3, .float3x3, .uint2, .arrayLength: false
+    case .float3x2, .float4x3, .float3x4, .uint2, .arrayLength: false
     }
 }
 

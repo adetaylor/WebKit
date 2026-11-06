@@ -7634,7 +7634,7 @@ plan 64
 =copy prev 46 2
 end
 
-expect 4854
+expect 7295
 WGSLDUMP 1
 input id="layouttests-fast-webgpu/nocrash__fuzz-282086-L16.wgsl" bytes=258 units=258 is8bit=1
 =copy prev 2 2
@@ -7648,7 +7648,7 @@ io "compute4" stage=compute
       ent binding=0 web=1 vis=4 name="global0" external-texture vab=- vabs=- vdo=- fab=- fabs=- fdo=- cab=- cabs=- cdo=-
 =copy prev 38 1
     generate ok
-    msl utf8 3891
+    msl utf8 6329
 #include <metal_stdlib>
 #include <metal_types>
 
@@ -7663,25 +7663,73 @@ using __UnpackedType = typename __UnpackedTypeImpl<T>::Type;
 =copy this 29 2
 using __PackedType = typename __PackedTypeImpl<T>::Type;
 
+// Decodes PQ (SMPTE ST 2084) or HLG (ITU-R BT.2100) rgb to linear light in the frame's own primaries,
+// scaled so that 1.0 is SDR white. An SDR canvas has no room above that, so __wgslToneMapHDR() then
+// fits what is brighter into it.
+static float3 __wgslDecodeHDR(float3 encoded, bool isHLG)
+{
+    constexpr float referenceWhiteNits = 440.0f;
+    if (!isHLG) {
+        constexpr float m1 = 0.1593017578125f, m2 = 78.84375f, c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+        float3 const p = pow(encoded, 1.0f / m2);
+        return pow(max(p - c1, 0.0f) / (c2 - c3 * p), 1.0f / m1) * (10000.0f / referenceWhiteNits);
+    }
+    constexpr float a = 0.17883277f, b = 0.28466892f, c = 0.55991073f;
+    float3 const scene = select((exp((encoded - c) / a) + b) / 12.0f, encoded * encoded / 3.0f, encoded <= 0.5f);
+    // The HLG OOTF for a 1000 nit display: a gamma of 1.2 applied through the luminance.
+    float const sceneLuminance = dot(scene, float3(0.2627f, 0.6780f, 0.0593f));
+    return scene * pow(max(sceneLuminance, 1e-6f), 0.2f) * (1000.0f / referenceWhiteNits);
+}
+
+// Leaves everything up to half of SDR white alone, and rolls what is above it off towards 1.0 with a
+// slope that starts out matching, so SDR-range content is not dimmed. It scales the color by its
+// luminance, to keep the hue of what it compresses.
+static float3 __wgslToneMapHDR(float3 linearLight)
+{
+    constexpr float knee = 0.5f;
+    float const luminance = dot(linearLight, float3(0.2627f, 0.6780f, 0.0593f));
+    if (luminance <= knee)
+        return linearLight;
+    float const excess = luminance - knee;
+    float const mapped = knee + (1.0f - knee) * excess / (excess + (1.0f - knee));
+    return linearLight * (mapped / luminance);
+}
+
+static float3 __wgslLinearToBT1886(float3 linearLight)
+{
+    return sign(linearLight) * pow(abs(linearLight), 1.0f / 2.4f);
+}
+
 struct texture_external {
     texture2d<float> FirstPlane;
     texture2d<float> SecondPlane;
     float3x2 UVRemapMatrix;
     float4x3 ColorSpaceConversionMatrix;
-    float3x3 PrimariesConversionMatrix;
+    float3x4 PrimariesConversionMatrix;
     uint2 VisibleSize;
     uint get_width(uint lod = 0) const { return VisibleSize.x ? VisibleSize.x : FirstPlane.get_width(lod); }
     uint get_height(uint lod = 0) const { return VisibleSize.y ? VisibleSize.y : FirstPlane.get_height(lod); }
     float4 to_destination_color_space(float3 rgb, float alpha, float premultiplied) const
     {
-        if (PrimariesConversionMatrix[0][0] == 0.0f)
+        float const transfer = PrimariesConversionMatrix[0][3];
+        bool const isHDR = transfer != 0.0f;
+        bool const keepsPrimaries = PrimariesConversionMatrix[0][0] == 0.0f;
+        if (keepsPrimaries && !isHDR)
             return float4(rgb * mix(alpha, 1.0f, premultiplied), alpha);
         float3 const straight = (premultiplied != 0.0f && alpha > 0.0f) ? rgb / alpha : rgb;
-        float3 const magnitude = abs(straight);
-        float3 const linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
-        float3 const converted = PrimariesConversionMatrix * linearLight;
+        float3 linearLight;
+        if (isHDR)
+            linearLight = __wgslToneMapHDR(__wgslDecodeHDR(clamp(straight, 0.0f, 1.0f), transfer == 2.0f));
+        else {
+            float3 const magnitude = abs(straight);
+            linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
+        }
+        float3x3 const primaries = keepsPrimaries ? float3x3(1.0f) : float3x3(PrimariesConversionMatrix[0].xyz, PrimariesConversionMatrix[1].xyz, PrimariesConversionMatrix[2].xyz);
+        float3 const converted = primaries * linearLight;
         float3 const convertedMagnitude = abs(converted);
-        float3 const encoded = sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
+        float3 const encoded = isHDR
+            ? __wgslLinearToBT1886(converted)
+            : sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
         return float4(encoded * alpha, alpha);
     }
 };
@@ -7696,7 +7744,7 @@ struct __ArgumentBufferT_0_0 {
     texture2d<float> __global0_SecondPlane [[id(1)]];
     float3x2 __global0_UVRemapMatrix [[id(2)]];
     float4x3 __global0_ColorSpaceConversionMatrix [[id(3)]];
-    float3x3 __global0_PrimariesConversionMatrix [[id(4)]];
+    float3x4 __global0_PrimariesConversionMatrix [[id(4)]];
     uint2 __global0_VisibleSize [[id(5)]];
 };
 
@@ -7730,19 +7778,19 @@ template <typename T> T __wgslAtanh(T value) { return atanh(select(value, T(0), 
 =copy prev 40 4
 =copy this 12 4
 =copy prev 58 1
-=copy this 17 84
+=copy this 17 132
 =copy prev 61 3
-=copy this 104 4
+=copy this 152 4
 =copy prev 108 2
-=copy this 110 83
+=copy this 158 131
 =copy prev 81 3
-=copy this 196 4
+=copy this 292 4
 =copy prev 98 1
-=copy this 201 84
+=copy this 297 132
 unit 4
   req "compute4" layout=auto
-=copy this 195 7
-    msl-hash sha256=d9ef6743a557e5f11ada999e1a90ab0fd0ec409fed84ffb95e10c235c04cd193 bytes=3891
+=copy this 291 7
+    msl-hash sha256=39d2bec1161859fe6f4d381cbd519db1a908f078270bcd34c3379fc429f04986 bytes=6329
   end-prepare
   evaluate "compute4" x=i64:1 y=i64:1 z=i64:1 int=1,1,1
 end
@@ -7877,7 +7925,7 @@ io "fragment17" stage=fragment
 io "compute13" stage=compute
 =copy prev 8 4
   epi "fragment17" mangled="function5" stage=fragment invariantPresent=0 usesInvariant=0 wgvarsize=0 bindingcount=1
-=copy prev 381 2
+=copy prev 573 2
       ent binding=0 web=460 vis=2 name="global1" texture sample=UnfilterableFloat dim=TwoDimensionalArray ms=0 vab=- vabs=- vdo=- fab=- fabs=- fdo=- cab=- cabs=- cdo=-
   epi "compute13" mangled="function6" stage=compute invariantPresent=0 usesInvariant=0 wgvarsize=96 bindingcount=0
     layout.default groups=0
@@ -8065,17 +8113,17 @@ float function2(float parameter2)
 }
 
 
-=copy prev 100 4
+=copy prev 148 4
 =copy this 17 6
-=copy prev 108 2
+=copy prev 156 2
 =copy this 25 198
-=copy prev 193 3
+=copy prev 289 3
 =copy this 226 6
-=copy prev 384 2
+=copy prev 576 2
 =copy this 234 198
-=copy prev 285 3
+=copy prev 429 3
 =copy this 435 6
-=copy prev 292 2
+=copy prev 436 2
 =copy this 443 198
 unit 4
   req "fragment17" layout=auto
@@ -8187,7 +8235,7 @@ plan 148
   ep "compute1" layout=auto
 =copy prev 21 3
 
-expect 11610
+expect 14050
 WGSLDUMP 1
 input id="layouttests-fast-webgpu/nocrash__fuzz-283943-L6407.wgsl" bytes=3520 units=3520 is8bit=1
 =copy prev 2 2
@@ -8214,7 +8262,7 @@ io "compute1" stage=compute
       ent binding=6 web=460 vis=2 name="global1" texture sample=UnfilterableFloat dim=TwoDimensionalArray ms=0 vab=- vabs=- vdo=- fab=- fabs=- fdo=- cab=- cabs=- cdo=-
   epi "compute1" mangled="function7" stage=compute invariantPresent=0 usesInvariant=0 wgvarsize=0 bindingcount=0
 =copy prev 22 3
-    msl utf8 9784
+    msl utf8 12222
 #include <metal_stdlib>
 #include <metal_types>
 
@@ -8229,25 +8277,73 @@ using __UnpackedType = typename __UnpackedTypeImpl<T>::Type;
 =copy this 44 2
 using __PackedType = typename __PackedTypeImpl<T>::Type;
 
+// Decodes PQ (SMPTE ST 2084) or HLG (ITU-R BT.2100) rgb to linear light in the frame's own primaries,
+// scaled so that 1.0 is SDR white. An SDR canvas has no room above that, so __wgslToneMapHDR() then
+// fits what is brighter into it.
+static float3 __wgslDecodeHDR(float3 encoded, bool isHLG)
+{
+    constexpr float referenceWhiteNits = 440.0f;
+    if (!isHLG) {
+        constexpr float m1 = 0.1593017578125f, m2 = 78.84375f, c1 = 0.8359375f, c2 = 18.8515625f, c3 = 18.6875f;
+        float3 const p = pow(encoded, 1.0f / m2);
+        return pow(max(p - c1, 0.0f) / (c2 - c3 * p), 1.0f / m1) * (10000.0f / referenceWhiteNits);
+    }
+    constexpr float a = 0.17883277f, b = 0.28466892f, c = 0.55991073f;
+    float3 const scene = select((exp((encoded - c) / a) + b) / 12.0f, encoded * encoded / 3.0f, encoded <= 0.5f);
+    // The HLG OOTF for a 1000 nit display: a gamma of 1.2 applied through the luminance.
+    float const sceneLuminance = dot(scene, float3(0.2627f, 0.6780f, 0.0593f));
+    return scene * pow(max(sceneLuminance, 1e-6f), 0.2f) * (1000.0f / referenceWhiteNits);
+}
+
+// Leaves everything up to half of SDR white alone, and rolls what is above it off towards 1.0 with a
+// slope that starts out matching, so SDR-range content is not dimmed. It scales the color by its
+// luminance, to keep the hue of what it compresses.
+static float3 __wgslToneMapHDR(float3 linearLight)
+{
+    constexpr float knee = 0.5f;
+    float const luminance = dot(linearLight, float3(0.2627f, 0.6780f, 0.0593f));
+    if (luminance <= knee)
+        return linearLight;
+    float const excess = luminance - knee;
+    float const mapped = knee + (1.0f - knee) * excess / (excess + (1.0f - knee));
+    return linearLight * (mapped / luminance);
+}
+
+static float3 __wgslLinearToBT1886(float3 linearLight)
+{
+    return sign(linearLight) * pow(abs(linearLight), 1.0f / 2.4f);
+}
+
 struct texture_external {
     texture2d<float> FirstPlane;
     texture2d<float> SecondPlane;
     float3x2 UVRemapMatrix;
     float4x3 ColorSpaceConversionMatrix;
-    float3x3 PrimariesConversionMatrix;
+    float3x4 PrimariesConversionMatrix;
     uint2 VisibleSize;
     uint get_width(uint lod = 0) const { return VisibleSize.x ? VisibleSize.x : FirstPlane.get_width(lod); }
     uint get_height(uint lod = 0) const { return VisibleSize.y ? VisibleSize.y : FirstPlane.get_height(lod); }
     float4 to_destination_color_space(float3 rgb, float alpha, float premultiplied) const
     {
-        if (PrimariesConversionMatrix[0][0] == 0.0f)
+        float const transfer = PrimariesConversionMatrix[0][3];
+        bool const isHDR = transfer != 0.0f;
+        bool const keepsPrimaries = PrimariesConversionMatrix[0][0] == 0.0f;
+        if (keepsPrimaries && !isHDR)
             return float4(rgb * mix(alpha, 1.0f, premultiplied), alpha);
         float3 const straight = (premultiplied != 0.0f && alpha > 0.0f) ? rgb / alpha : rgb;
-        float3 const magnitude = abs(straight);
-        float3 const linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
-        float3 const converted = PrimariesConversionMatrix * linearLight;
+        float3 linearLight;
+        if (isHDR)
+            linearLight = __wgslToneMapHDR(__wgslDecodeHDR(clamp(straight, 0.0f, 1.0f), transfer == 2.0f));
+        else {
+            float3 const magnitude = abs(straight);
+            linearLight = sign(straight) * select(pow((magnitude + 0.055f) / 1.055f, 2.4f), magnitude / 12.92f, magnitude <= 0.04045f);
+        }
+        float3x3 const primaries = keepsPrimaries ? float3x3(1.0f) : float3x3(PrimariesConversionMatrix[0].xyz, PrimariesConversionMatrix[1].xyz, PrimariesConversionMatrix[2].xyz);
+        float3 const converted = primaries * linearLight;
         float3 const convertedMagnitude = abs(converted);
-        float3 const encoded = sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
+        float3 const encoded = isHDR
+            ? __wgslLinearToBT1886(converted)
+            : sign(converted) * select(1.055f * pow(convertedMagnitude, 1.0f / 2.4f) - 0.055f, convertedMagnitude * 12.92f, convertedMagnitude <= 0.0031308f);
         return float4(encoded * alpha, alpha);
     }
 };
@@ -8268,7 +8364,7 @@ static __modf_result<T, T> __wgslModf(T value)
 static uint __wgslDot4U8Packed(uint lhs, uint rhs)
 {
     auto vec1 = as_type<packed_uchar4>(lhs);    auto vec2 = as_type<packed_uchar4>(rhs);    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2] + vec1[3] * vec2[3];}
-=copy this 80 1
+=copy this 128 1
 static T __wgslSign(T e)
 {
     return select(select(T(-1), T(1), e > 0), T(0), e == 0);
@@ -8316,7 +8412,7 @@ struct __type2_VertexOutput {
 
 struct __function6_FragmentOutput {
     vec<unsigned, 4> __value [[color(200)]] [[center_no_perspective]];
-=copy this 128 2
+=copy this 176 2
     __function6_FragmentOutput(T value)
         : __value(value)
     { }
@@ -8331,11 +8427,11 @@ struct __ArgumentBufferT_1_0 {
     texture2d<float> __global0_SecondPlane [[id(1)]];
     float3x2 __global0_UVRemapMatrix [[id(2)]];
     float4x3 __global0_ColorSpaceConversionMatrix [[id(3)]];
-    float3x3 __global0_PrimariesConversionMatrix [[id(4)]];
+    float3x4 __global0_PrimariesConversionMatrix [[id(4)]];
     uint2 __global0_VisibleSize [[id(5)]];
     texture2d_array<float, access::sample> global1 [[id(6)]];
 };
-=copy this 100 2
+=copy this 148 2
  auto __wgslPackFloatToSnorm2x16(T value)
  {
  if constexpr(__wgslMetalAppleGPUFamily < 9) { 
@@ -8346,19 +8442,19 @@ struct __ArgumentBufferT_1_0 {
  return result;
  }
  }
-=copy this 160 1
+=copy this 208 1
  auto __wgslPackFloatToSnorm4x8(T value)
-=copy this 162 2
+=copy this 210 2
  volatile auto result = pack_float_to_snorm4x8(value);
-=copy this 165 2
+=copy this 213 2
  auto result = pack_float_to_snorm4x8(value);
-=copy this 168 4
+=copy this 216 4
  auto __wgslPackFloatToUnorm4x8(T value)
-=copy this 173 2
+=copy this 221 2
  volatile auto result = pack_float_to_unorm4x8(value);
-=copy this 176 2
+=copy this 224 2
  auto result = pack_float_to_unorm4x8(value);
-=copy this 179 3
+=copy this 227 3
 unsigned function4(unsigned parameter4)
 {
     return parameter4;
@@ -8399,7 +8495,7 @@ half function1(half parameter1)
 [[fragment]] __function6_FragmentOutput function6(constant __ArgumentBufferT_1_0& __ArgumentBuffer_0 [[buffer(0)]])
 {
     __modf_result<vec<half, 4>, vec<half, 4>> global3 = __modf_result<vec<half, 4>, vec<half, 4>> {.fract = vec<half, 4>(0.h, 0.h, 0.h, 0.h), .whole = vec<half, 4>(-5284.h, 1288.h, 1617.h, 862.h)};
-=copy this 215 1
+=copy this 263 1
     texture_external global0 { __ArgumentBuffer_0.__global0_FirstPlane, __ArgumentBuffer_0.__global0_SecondPlane, __ArgumentBuffer_0.__global0_UVRemapMatrix, __ArgumentBuffer_0.__global0_ColorSpaceConversionMatrix, __ArgumentBuffer_0.__global0_PrimariesConversionMatrix, __ArgumentBuffer_0.__global0_VisibleSize };
     vec<unsigned, 4> local8 { };
     vec<unsigned, 2> local9 = uint2(global0.get_width(), global0.get_height());
@@ -8414,7 +8510,7 @@ half function1(half parameter1)
 }
 
 [[kernel]]  void function7()
-=copy this 231 2
+=copy this 279 2
     vec<int, 3> local14 = __wgslInsertBits(vec<int, 3>(int(__wgslPackFloatToSnorm2x16(vec<float, 2>(function2(0.328000009059906), function2(0.003909999970346689))))), vec<int, 3>(int(__wgslPackFloatToUnorm4x8(vec<float, 4>(function2(0.07045000046491623), function2(-0.008419999852776527), function2(-0.056449998170137405), function2(0.11169999837875366))))), unsigned(function4(841u)), unsigned(function4(414u)));
     global3 = __wgslModf(vec<half, 4>(reverse_bits(vec<unsigned, 3>(function4(122u), function4(37u), function4(84u))).xzyz));
     global3 = __wgslModf(vec<half, 4>(smoothstep(half(function1(9840.h)), half(function1(1957.h)), max(half(function1(17840.h)), half(function1(43136.h))))));
@@ -8428,34 +8524,34 @@ half function1(half parameter1)
 =copy prev 222 4
 =copy this 20 11
 =copy prev 232 2
-=copy this 33 228
+=copy this 33 276
 =copy prev 432 3
-=copy this 264 11
+=copy this 312 11
 =copy prev 867 2
-=copy this 277 228
+=copy this 325 276
 =copy prev 641 3
-=copy this 508 11
+=copy this 604 11
 =copy prev 650 2
-=copy this 521 228
+=copy this 617 276
 unit 4
   req "vertex3" layout=auto
-=copy this 751 5
-=copy this 519 2
+=copy this 895 5
+=copy this 615 2
     msl-hash sha256=362436675d246ff556f7215034dd4bdb459b564f091261e46c61351627149c66 bytes=3728
   end-prepare
   evaluate "vertex3" skipped=not-compute
 unit 5
   req "fragment5" layout=auto
   prepare ok
-=copy this 756 5
-=copy this 1000 2
-    msl-hash sha256=b3c703ce39ddf5912668e5f5624905644f528030d80023c23c2de19f0651476c bytes=6051
+=copy this 900 5
+=copy this 1192 2
+    msl-hash sha256=326aebf7bc0eee0cf5cb6ac813b2a3a63578d78c11cc03d88a596f6f4e8e6327 bytes=8489
   end-prepare
   evaluate "fragment5" skipped=not-compute
 unit 6
   req "compute1" layout=auto
   prepare ok
-=copy this 517 4
+=copy this 613 4
     msl-hash sha256=c3e8c875d4ecceb980e25a1d2c20f869353b78bb8e7c9e231693f9d011859af2 bytes=3736
   end-prepare
   evaluate "compute1" x=i64:2 y=i64:1 z=i64:1 int=2,1,1
@@ -8498,17 +8594,17 @@ io "t" stage=vertex
     spec "l" mangled="global0" type=Float
 =copy prev 30 2
     generate fail 2:21:23:15 "override l is used in shader but not provided"
-=copy prev 260 4
+=copy prev 308 4
 =copy this 12 3
-=copy prev 275 1
+=copy prev 323 1
 =copy this 16 2
-=copy prev 505 3
+=copy prev 601 3
 =copy this 21 3
-=copy prev 1023 1
+=copy prev 1215 1
 =copy this 25 2
-=copy prev 749 3
+=copy prev 893 3
 =copy this 30 3
-=copy prev 763 1
+=copy prev 907 1
 =copy this 34 2
 unit 4
   req "t" layout=auto

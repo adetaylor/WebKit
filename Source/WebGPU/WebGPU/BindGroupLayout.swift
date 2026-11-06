@@ -366,7 +366,7 @@ private let externalTextureArguments = [
     sampledTextureArgument,
     ArgumentKind(dataType: .float3x2, access: .readOnly),
     ArgumentKind(dataType: .float4x3, access: .readOnly),
-    ArgumentKind(dataType: .float3x3, access: .readOnly),
+    ArgumentKind(dataType: .float3x4, access: .readOnly),
     ArgumentKind(dataType: .uint2, access: .readOnly),
 ]
 
@@ -385,8 +385,8 @@ private func bufferArgument(_ type: LayoutBufferType, visibility: StageMask) -> 
         return ArgumentKind(dataType: .float3x2, access: .readOnly)
     case .float4x3:
         return ArgumentKind(dataType: .float4x3, access: .readOnly)
-    case .float3x3:
-        return ArgumentKind(dataType: .float3x3, access: .readOnly)
+    case .float3x4:
+        return ArgumentKind(dataType: .float3x4, access: .readOnly)
     case .uint2:
         return ArgumentKind(dataType: .uint2, access: .readOnly)
     }

@@ -100,7 +100,7 @@ enum LayoutBufferType: UInt8 {
     case readOnlyStorage
     case float3x2
     case float4x3
-    case float3x3
+    case float3x4
     case uint2
     case arrayLength
 }

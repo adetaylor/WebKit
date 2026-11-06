@@ -93,13 +93,18 @@ final class ExternalTextureImporter {
         // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: Queue.mm checks that the two agree.
         #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
         var constants = WebGPU.Metal.ExternalTextureConstants()
-        // The conversion is row-major, and Metal indexes a float3x3 by column. All zero, which no real conversion can be,
-        // when the frame's primaries already are the destination's.
+        // The conversion is row-major, and Metal indexes a float3x4 by column. All zero, which no real conversion can be,
+        // when the frame's primaries already are the destination's. The first column's w is the frame's transfer function.
+        var primaries: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        )
         if let matrix = pixelBufferPrimariesConversionMatrix(pixelBuffer, colorSpace) {
-            constants.primariesConversion = (
-                matrix[0], matrix[3], matrix[6], matrix[1], matrix[4], matrix[7], matrix[2], matrix[5], matrix[8]
-            )
+            primaries = (matrix[0], matrix[3], matrix[6], 0, matrix[1], matrix[4], matrix[7], 0, matrix[2], matrix[5], matrix[8], 0)
         }
+        if let pixelBuffer {
+            primaries.3 = Float(hdrTransferFunction(pixelBuffer).rawValue)
+        }
+        constants.primariesConversion = primaries
 
         var premultiplyParameters = PremultiplyParameters()
         if premultiplyAlpha, let pixelBuffer {
@@ -485,6 +490,8 @@ private enum ExtendedPixelFormat: UInt {
     case ycbcr10Bit422TwoPlanePacked = 509
     case ycbcr10Bit444TwoPlanePacked = 510
     case ycbcr10Bit420TwoPlanePackedPQ = 567
+    case r10UnormPacked = 588
+    case rg10UnormPacked = 589
 
     var pixelFormat: MTLPixelFormat {
         MTLPixelFormat(rawValue: rawValue) ?? .invalid
@@ -502,6 +509,18 @@ private func externalTexturePlaneFormat(
     // An SPI YCbCr format for the first plane, on devices that support them.
     func firstPlaneFormat(_ format: ExtendedPixelFormat) -> MTLPixelFormat {
         plane == 0 && supportsExtendedFormats ? format.pixelFormat : biplanarFormat
+    }
+    // The non-packed 10-bit formats keep each sample in the 10 most significant bits of 16, so both planes are read as
+    // 16-bit; read as 8-bit pairs, the chroma plane's Cb and Cr would be scrambled.
+    let biplanar16BitFormat: MTLPixelFormat = plane != 0 ? .rg16Unorm : .r16Unorm
+    // The packed 10-bit formats keep three samples to 32 bits without padding, which only these SPI formats read. The
+    // YCbCr formats that describe both planes at once sample as RGB, converted with a matrix of Metal's choosing rather
+    // than the frame's own.
+    func packed10BitFormat() -> MTLPixelFormat {
+        guard supportsExtendedFormats else {
+            return biplanarFormat
+        }
+        return (plane != 0 ? ExtendedPixelFormat.rg10UnormPacked : .r10UnormPacked).pixelFormat
     }
 
     switch CVPixelBufferGetPixelFormatType(pixelBuffer) {
@@ -628,18 +647,13 @@ private func externalTexturePlaneFormat(
         return (.depth16Unorm, nil)
     case kCVPixelFormatType_DepthFloat32:
         return (.depth32Float, nil)
-    case kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit420TwoPlane), nil)
-    case kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlane), nil)
-    case kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit444TwoPlane), nil)
-    case kCVPixelFormatType_420YpCbCr10BiPlanarFullRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlane), nil)
-    case kCVPixelFormatType_422YpCbCr10BiPlanarFullRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlane), nil)
-    case kCVPixelFormatType_444YpCbCr10BiPlanarFullRange:
-        return (firstPlaneFormat(.ycbcr10Bit444TwoPlane), nil)
+    case kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
+        kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange,
+        kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange,
+        kCVPixelFormatType_420YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_422YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_444YpCbCr10BiPlanarFullRange:
+        return (biplanar16BitFormat, nil)
     case kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar:
         return (biplanarFormat, nil)
     case kCVPixelFormatType_16VersatileBayer:
@@ -660,25 +674,21 @@ private func externalTexturePlaneFormat(
     case kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarVideoRange,
         kCVPixelFormatType_Lossless_420YpCbCr8BiPlanarFullRange:
         return (biplanarFormat, nil)
-    case kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit420TwoPlanePacked), nil)
-    case kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlanePacked), nil)
+    case kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange,
+        kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange,
+        kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarFullRange:
+        return (packed10BitFormat(), nil)
     case kCVPixelFormatType_Lossy_32BGRA:
         return (.bgra8Unorm, nil)
     case kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarVideoRange,
         kCVPixelFormatType_Lossy_420YpCbCr8BiPlanarFullRange:
         return (biplanarFormat, nil)
-    case kCVPixelFormatType_Lossy_420YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit420TwoPlanePackedPQ), nil)
-    case kCVPixelFormatType_Lossy_422YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlanePacked), nil)
-    case pixelFormat420YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit420TwoPlanePacked), nil)
-    case pixelFormat422YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit422TwoPlanePacked), nil)
-    case pixelFormat444YpCbCr10PackedBiPlanarVideoRange:
-        return (firstPlaneFormat(.ycbcr10Bit444TwoPlanePacked), nil)
+    case kCVPixelFormatType_Lossy_420YpCbCr10PackedBiPlanarVideoRange,
+        kCVPixelFormatType_Lossy_422YpCbCr10PackedBiPlanarVideoRange,
+        pixelFormat420YpCbCr10PackedBiPlanarVideoRange,
+        pixelFormat422YpCbCr10PackedBiPlanarVideoRange,
+        pixelFormat444YpCbCr10PackedBiPlanarVideoRange:
+        return (packed10BitFormat(), nil)
     default:
         return (.invalid, nil)
     }
@@ -731,7 +741,8 @@ private func pixelRange(_ pixelFormat: OSType) -> PixelRange {
         kCVPixelFormatType_ARGB2101010LEPacked,
         kCVPixelFormatType_420YpCbCr10BiPlanarFullRange,
         kCVPixelFormatType_422YpCbCr10BiPlanarFullRange,
-        kCVPixelFormatType_444YpCbCr10BiPlanarFullRange:
+        kCVPixelFormatType_444YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarFullRange:
         return .full
     // kCVPixelFormatType_AGX_420YpCbCr8BiPlanarFullRange has the same code ('&8f0'), and is full range only where the
     // SDK has the compressed formats. Its video-range sibling ('&8v0') is video range either way, like the default.
@@ -772,11 +783,67 @@ private func yCbCrMatrix(_ pixelBuffer: CVPixelBuffer) -> YCbCrMatrix {
     return .itur709
 }
 
+// How a Metal texture normalizes the samples of the format it reads, which is what the YCbCr columns of the matrix below
+// are scaled by. The constants are derived for an 8-bit sample c normalized to c/255, so a 10-bit code c, which is c/4 as
+// 8 bits, needs the ratio of what its texture gives to that.
+private enum SampleNormalization {
+    // c/255.
+    case eightBit
+    // The non-packed 10-bit formats keep a code c in the top 10 bits of 16, which a 16-bit texture normalizes to 64c/65535.
+    case tenBitInSixteen
+    // The packed 10-bit formats are read through 10-bit textures, which normalize c to c/1023.
+    case tenBitPacked
+
+    init(_ pixelFormat: OSType) {
+        switch pixelFormat {
+        case kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange,
+            kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange,
+            kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange,
+            kCVPixelFormatType_420YpCbCr10BiPlanarFullRange,
+            kCVPixelFormatType_422YpCbCr10BiPlanarFullRange,
+            kCVPixelFormatType_444YpCbCr10BiPlanarFullRange:
+            self = .tenBitInSixteen
+        case kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarVideoRange,
+            kCVPixelFormatType_Lossless_422YpCbCr10PackedBiPlanarVideoRange,
+            kCVPixelFormatType_Lossless_420YpCbCr10PackedBiPlanarFullRange,
+            kCVPixelFormatType_Lossy_420YpCbCr10PackedBiPlanarVideoRange,
+            kCVPixelFormatType_Lossy_422YpCbCr10PackedBiPlanarVideoRange,
+            pixelFormat420YpCbCr10PackedBiPlanarVideoRange,
+            pixelFormat422YpCbCr10PackedBiPlanarVideoRange,
+            pixelFormat444YpCbCr10PackedBiPlanarVideoRange:
+            self = .tenBitPacked
+        default:
+            self = .eightBit
+        }
+    }
+
+    var yCbCrScale: Float {
+        switch self {
+        case .eightBit:
+            1
+        case .tenBitInSixteen:
+            Float(65535) / (Float(64) * Float(4) * Float(255))
+        case .tenBitPacked:
+            Float(1023) / (Float(4) * Float(255))
+        }
+    }
+}
+
 // Flattened column-major, as ExternalTextureConstants.colorSpaceConversion. Columns are the Y, Cb, Cr and constant
 // terms of the YCbCr-to-RGB conversion, over inputs normalized by 255 rather than 256, which is what sampling an 8-bit
 // Metal texture gives. Each is derived from the standard's luma coefficients: R = Y' + 2(1-Kr)Cr', B = Y' + 2(1-Kb)Cb',
-// and G from the remainder, where a video-range Y' is (255Y - 16)/219 and a video-range chroma is (255C - 128)/224.
+// and G from the remainder, where a video-range Y' is (255Y - 16)/219 and a video-range chroma is (255C - 128)/224. The Y,
+// Cb and Cr columns are scaled for the way the format's texture normalizes its samples; the constant column, which is
+// added to the result, is not.
 private func yCbCrToRGBMatrix(
+    _ pixelBuffer: CVPixelBuffer
+) -> (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) {
+    let m = unscaledYCbCrToRGBMatrix(pixelBuffer)
+    let s = SampleNormalization(CVPixelBufferGetPixelFormatType(pixelBuffer)).yCbCrScale
+    return (m.0 * s, m.1 * s, m.2 * s, m.3 * s, m.4 * s, m.5 * s, m.6 * s, m.7 * s, m.8 * s, m.9, m.10, m.11)
+}
+
+private func unscaledYCbCrToRGBMatrix(
     _ pixelBuffer: CVPixelBuffer
 ) -> (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) {
     let range = pixelRange(CVPixelBufferGetPixelFormatType(pixelBuffer))
