@@ -826,6 +826,7 @@
 		};
 		07C913DA2F820CCA003A09D8 /* Exceptions for "Tests" folder in "TestWebKitAPILibrary" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+				WebKit/ScrollingTreeDelegateBenchMomentum.cpp = "-I$(SRCROOT)/../../Source/WebKit/WebProcess/WebPage -I$(SRCROOT)/../../Source/WebKit/Shared";
 			membershipExceptions = (
 				JavaScriptCore/BigIntBench.cpp,
 				JavaScriptCore/DisallowVMEntry.cpp,
@@ -998,6 +999,7 @@
 				WebCore/ScrollViewBench.cpp,
 				WebCore/ScrollbarsControllerBench.mm,
 				WebCore/ScrollingTreeDelegateBench.cpp,
+				WebCore/ScrollingTreeDelegateBenchLayers.mm,
 				WebCore/SecurityOrigin.cpp,
 				WebCore/SerializedScriptValue.cpp,
 				WebCore/ServiceWorkerRoutines.cpp,
@@ -1032,6 +1034,7 @@
 				WebCore/XRCompositionLayer.cpp,
 				WebCore/YouTubePluginReplacement.cpp,
 				WebKit/DeviceIdHashSaltStorage.cpp,
+				WebKit/ScrollingTreeDelegateBenchMomentum.cpp,
 				WebKit/WKPage/AboutBlankLoad.cpp,
 				WebKit/WKPage/CanHandleRequest.cpp,
 				WebKit/WKPage/CloseFromWithinCreatePage.cpp,
@@ -1269,6 +1272,7 @@
 				WebKit/WKWebView/mac/RunningBoardManagement.mm,
 				WebKit/WKWebView/mac/ScrollbarTests.mm,
 				WebKit/WKWebView/mac/ScrollingCoordinatorTests.mm,
+				WebKit/WKWebView/mac/ScrollingTreeDelegateBenchUIProcess.mm,
 				WebKit/WKWebView/mac/SetAndUpdateCacheModel.mm,
 				WebKit/WKWebView/mac/SetDocumentURI.mm,
 				WebKit/WKWebView/mac/SimplifyMarkup.mm,
