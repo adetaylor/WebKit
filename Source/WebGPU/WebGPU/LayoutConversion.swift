@@ -241,12 +241,6 @@ func appendDefaultLayout(
         pipelineEntries.append([])
     }
 
-    // Wrapping the bump would let the array-length entry alias a user binding and defeat the bounds check.
-    func bumpForArrayLength(_ webBinding: UInt32) -> UInt32? {
-        let (bumped, overflow) = webBinding.addingReportingOverflow(limits.maxBindingsPerBindGroup)
-        return overflow ? nil : bumped
-    }
-
     for bindGroupLayout in defaultLayout.bindGroupLayouts {
         let group = Int(bindGroupLayout.group)
         // HashMap<String, uint64_t>, keyed by UTF-16 code units as WTF::String compares; lookups only.
@@ -256,43 +250,36 @@ func appendDefaultLayout(
             // The entries of a shader have the visibility of its stage.
             let stage = singleStage(visibility)
             // FIXME: https://bugs.webkit.org/show_bug.cgi?id=265204 - use a set instead
-            var isArrayLength = false
-            var webBinding = entry.webBinding
             let entryName = Array(entry.name.utf16)
-            if !entryName.isEmpty, hasArrayLengthSuffix(entryName) {
-                guard let bumped = bumpForArrayLength(webBinding) else {
+            let isArrayLength = !entryName.isEmpty && hasArrayLengthSuffix(entryName)
+            var webBinding = entry.webBinding
+            var bufferSizeForBinding: UInt64 = 0
+            var bufferTypeOverride: LayoutBufferType?
+
+            if isArrayLength {
+                let (bumped, overflow) = webBinding.addingReportingOverflow(limits.maxBindingsPerBindGroup)
+                if overflow {
                     return "Binding index overflow in auto-generated layouts"
                 }
                 webBinding = bumped
-                isArrayLength = true
-            }
-
-            if let existing = pipelineEntries[group].firstIndex(where: { $0.binding == webBinding }) {
-                pipelineEntries[group][existing].visibility.formUnion(visibility)
-                guard let stage else {
-                    preconditionFailure("a default layout entry is visible in no single stage")
+                bufferTypeOverride = .arrayLength
+                if let size = entryMap[arrayLengthShortName(entryName)] {
+                    bufferSizeForBinding = size
                 }
-                pipelineEntries[group][existing].metalBinding[stage] = entry.binding
-                if !pipelineEntries[group][existing].layout.layoutEquals(makeLayoutBinding(entry.bindingMember)) {
-                    return "Binding mismatch in auto-generated layouts"
+            } else {
+                if let existing = pipelineEntries[group].firstIndex(where: { $0.binding == webBinding && !$0.layout.isArrayLength }) {
+                    pipelineEntries[group][existing].visibility.formUnion(visibility)
+                    guard let stage else {
+                        preconditionFailure("a default layout entry is visible in no single stage")
+                    }
+                    pipelineEntries[group][existing].metalBinding[stage] = entry.binding
+                    if !pipelineEntries[group][existing].layout.layoutEquals(makeLayoutBinding(entry.bindingMember)) {
+                        return "Binding mismatch in auto-generated layouts"
+                    }
+                    entryMap[entryName] = UInt64(webBinding)
+                    continue
                 }
-                entryMap[entryName] = UInt64(webBinding)
-                continue
-            }
-
-            var bufferSizeForBinding: UInt64 = 0
-            var bufferTypeOverride: LayoutBufferType?
-            if !entryName.isEmpty {
-                if isArrayLength {
-                    guard let bumped = bumpForArrayLength(webBinding) else {
-                        return "Binding index overflow in auto-generated layouts"
-                    }
-                    webBinding = bumped
-                    bufferTypeOverride = .arrayLength
-                    if let size = entryMap[arrayLengthShortName(entryName)] {
-                        bufferSizeForBinding = size
-                    }
-                } else {
+                if !entryName.isEmpty {
                     entryMap[entryName] = UInt64(webBinding)
                 }
             }

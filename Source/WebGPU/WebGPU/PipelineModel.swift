@@ -152,13 +152,13 @@ enum LayoutBinding {
 
     /// Whether the two binding layouts match.
     ///
-    /// Deliberately not `==`: a buffer of an implementation-added type equals any buffer.
+    /// Deliberately not `==`: buffers of an implementation-added type compare only their types.
     func layoutEquals(_ other: LayoutBinding) -> Bool {
         switch (self, other) {
         case (.buffer(let a), .buffer(let b)):
             let lastAPIType = LayoutBufferType.readOnlyStorage.rawValue
             if a.type.rawValue > lastAPIType || b.type.rawValue > lastAPIType {
-                return true
+                return a.type == b.type
             }
             return a.type == b.type && a.hasDynamicOffset == b.hasDynamicOffset && a.minBindingSize == b.minBindingSize
                 && a.bufferSizeForBinding == b.bufferSizeForBinding
