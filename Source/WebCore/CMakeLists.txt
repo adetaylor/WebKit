@@ -3697,6 +3697,10 @@ if (APPLE)
     endif ()
     # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
     webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
+    # The internal SDK's TCC module warns that an attribute on libc++'s div() follows its definition.
+    if (USE_APPLE_INTERNAL_SDK)
+        webkit_target_add_swift_options(WebCore "-Xcc -Wno-ignored-attributes")
+    endif ()
 
     # C++ sources that include WebCoreSwift-Generated.h.
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports}
