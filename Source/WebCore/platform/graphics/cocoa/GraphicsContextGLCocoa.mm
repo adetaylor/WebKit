@@ -552,22 +552,20 @@ RefPtr<NativeImage> GraphicsContextGLCocoa::copyNativeImage(SurfaceBuffer buffer
 static_assert(std::to_underlying(GraphicsContextGLVideoUploadOutcome::Direct) == 0 && std::to_underlying(GraphicsContextGLVideoUploadOutcome::PbufferFailed) == 10, "GLVideoUploadOutcome");
 static_assert(std::to_underlying(ImageOrientation::Orientation::OriginTopRight) == 2 && std::to_underlying(ImageOrientation::Orientation::OriginLeftBottom) == 8, "GLVideoUpload orientations");
 
-bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, PlatformGLObject texture, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY)
+bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, PlatformGLObject texture, GCGLenum target, GCGLint level, GCGLenum internalFormat, GCGLenum type, bool unpackFlipY, bool unpackPremultiplyAlpha)
 {
-    UNUSED_VARIABLE(premultiplyAlpha);
-    auto& platform = m_cocoaPlatform->platform;
-    if (!platform.prepareVideoUpload()) {
-        ASSERT_NOT_REACHED();
-        recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
-        return false;
-    }
     RefPtr videoFrameCV = videoFrame.asVideoFrameCV();
     if (!videoFrameCV) {
         ASSERT_NOT_REACHED(); // Programming error.
         recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
         return false;
     }
-    auto outcome = static_cast<VideoUploadOutcome>(platform.copyVideoFrameToTexture(videoFrameCV->pixelBuffer(), std::to_underlying(videoFrameCV->orientation().orientation()), texture, level, internalFormat, format, type, flipY, videoUploadHardwareOnlyForTesting()));
+    auto* island = this->island();
+    if (!island) {
+        recordVideoUploadForTesting(VideoUploadOutcome::ContextLost, videoFrameCV->pixelFormat());
+        return false;
+    }
+    auto outcome = static_cast<VideoUploadOutcome>(island->context.copyVideoFrameToTexture(videoFrameCV->pixelBuffer(), std::to_underlying(videoFrameCV->orientation().orientation()), texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha));
     recordVideoUploadForTesting(outcome, videoFrameCV->pixelFormat());
     return isSuccessfulVideoUpload(outcome);
 }

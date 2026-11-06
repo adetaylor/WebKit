@@ -168,24 +168,4 @@ OSType ANGLECocoa::agx420YpCbCr8BiPlanarFullRange()
 }
 #endif
 
-ANGLEContext ANGLECocoa::createSharedContext(ANGLEDisplay display, ANGLEConfig config, ANGLEContext shareContext, bool isWebGL2)
-{
-    // Create compatible context that shares state with owner, but one that does not
-    // have robustness or WebGL compatibility. The reset notification strategy must match the owner's.
-    const EGLint attributes[] = {
-        EGL_CONTEXT_CLIENT_VERSION,
-        isWebGL2 ? 3 : 2,
-        EGL_CONTEXT_OPENGL_BACKWARDS_COMPATIBLE_ANGLE,
-        EGL_FALSE,
-        EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT,
-        EGL_LOSE_CONTEXT_ON_RESET_EXT,
-        EGL_CONTEXT_CLIENT_ARRAYS_ENABLED_ANGLE,
-        EGL_FALSE,
-        EGL_CONTEXT_BIND_GENERATES_RESOURCE_CHROMIUM,
-        EGL_FALSE,
-        EGL_NONE
-    };
-    return ANGLEContext { EGL_CreateContext(display.get(), config.get(), shareContext.get(), attributes) };
-}
-
 #endif

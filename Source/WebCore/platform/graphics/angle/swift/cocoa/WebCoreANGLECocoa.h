@@ -83,8 +83,6 @@ struct ANGLECocoa final {
     // buffer, resources cleared at creation, and context loss on GPU reset. ownershipIdentity is a task identity token,
     // or 0 for none.
     static ANGLEContext createWebGLContext(ANGLEDisplay display, ANGLEConfig config, bool isWebGL2, uint32_t ownershipIdentity);
-    // A context sharing the objects of shareContext, without WebGL compatibility or robustness, for blits.
-    static ANGLEContext createSharedContext(ANGLEDisplay display, ANGLEConfig config, ANGLEContext shareContext, bool isWebGL2);
     static bool destroyContext(ANGLEDisplay display, ANGLEContext context) { return EGL_DestroyContext(display.get(), context.get()); }
 
     // A pbuffer for an IOSurface plane, which ANGLE renders to and samples from. textureTarget is GL_TEXTURE_2D or
@@ -101,6 +99,34 @@ struct ANGLECocoa final {
             EGL_TEXTURE_TYPE_ANGLE, static_cast<EGLint>(type),
             // Only has an effect on the iOS Simulator.
             EGL_IOSURFACE_USAGE_HINT_ANGLE, usageHint,
+            EGL_NONE, EGL_NONE
+        };
+        return ANGLESurface { EGL_CreatePbufferFromClientBuffer(display.get(), EGL_IOSURFACE_ANGLE, surface, config.get(), attributes) };
+    }
+    // A pbuffer of an NV12 IOSurface, which glCopyTextureCHROMIUM converts to RGB when it is bound to a TEXTURE_2D
+    // texture. orientation holds EGL_IOSURFACE_ORIENTATION_*_ANGLE bits, which say how the surface maps to the texture
+    // image, which has the size of the oriented surface; colorSpaceHint and sampleRangeHint are values of
+    // EGL_YUV_COLOR_SPACE_HINT_EXT and EGL_SAMPLE_RANGE_HINT_EXT.
+    static ANGLESurface createYUVIOSurfacePbuffer(ANGLEDisplay display, ANGLEConfig config, IOSurfaceRef surface, EGLint orientation, EGLint colorSpaceHint, EGLint sampleRangeHint)
+    {
+        auto surfaceWidth = static_cast<EGLint>(IOSurfaceGetWidth(surface));
+        auto surfaceHeight = static_cast<EGLint>(IOSurfaceGetHeight(surface));
+        bool swapsXY = orientation & EGL_IOSURFACE_ORIENTATION_SWAP_XY_ANGLE;
+        auto width = swapsXY ? surfaceHeight : surfaceWidth;
+        auto height = swapsXY ? surfaceWidth : surfaceHeight;
+        const EGLint attributes[] = {
+            EGL_WIDTH, width,
+            EGL_HEIGHT, height,
+            EGL_IOSURFACE_PLANE_ANGLE, 0,
+            EGL_TEXTURE_TARGET, EGL_TEXTURE_2D,
+            EGL_TEXTURE_INTERNAL_FORMAT_ANGLE, GL_G8_B8R8_2PLANE_420_UNORM_ANGLE,
+            EGL_TEXTURE_FORMAT, EGL_TEXTURE_RGBA,
+            EGL_TEXTURE_TYPE_ANGLE, GL_UNSIGNED_BYTE,
+            EGL_YUV_COLOR_SPACE_HINT_EXT, colorSpaceHint,
+            EGL_SAMPLE_RANGE_HINT_EXT, sampleRangeHint,
+            EGL_IOSURFACE_ORIENTATION_ANGLE, orientation,
+            // Only has an effect on the iOS Simulator.
+            EGL_IOSURFACE_USAGE_HINT_ANGLE, EGL_IOSURFACE_READ_HINT_ANGLE,
             EGL_NONE, EGL_NONE
         };
         return ANGLESurface { EGL_CreatePbufferFromClientBuffer(display.get(), EGL_IOSURFACE_ANGLE, surface, config.get(), attributes) };

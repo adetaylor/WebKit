@@ -84,7 +84,7 @@ public:
     // GraphicsContextGLANGLE overrides.
     RefPtr<GraphicsLayerContentsDisplayDelegate> layerContentsDisplayDelegate() override;
 #if ENABLE(VIDEO)
-    bool copyTextureFromVideoFrame(VideoFrame&, PlatformGLObject texture, int32_t level, uint32_t internalFormat, uint32_t format, uint32_t type, bool premultiplyAlpha, bool flipY) final;
+    bool copyTextureFromVideoFrame(VideoFrame&, PlatformGLObject texture, GCGLenum target, GCGLint level, GCGLenum internalFormat, GCGLenum type, bool unpackFlipY, bool unpackPremultiplyAlpha) final;
 #endif
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
     RefPtr<VideoFrame> surfaceBufferToVideoFrame(SurfaceBuffer) final;

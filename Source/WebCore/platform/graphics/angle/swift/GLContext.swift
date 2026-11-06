@@ -25,6 +25,9 @@
 
 internal import WebCoreANGLE
 internal import Synchronization
+#if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+internal import CoreVideo
+#endif
 
 typealias GLContextCallbacks = WebCore.GLContextCallbacks
 
@@ -277,6 +280,18 @@ public final class GLContext {
         cocoaPlatform?.drawingBufferColorSpaceDidChange(self)
     }
 
+#if ENABLE_VIDEO
+    // Like glCopyTextureCHROMIUM with the frame, whose orientation is an ImageOrientation::Orientation, as the source
+    // texture. A failed copy leaves the texture unchanged. Returns the GraphicsContextGLVideoUploadOutcome.
+    @_expose(Cxx)
+    public func copyVideoFrameToTexture(_ frame: CVPixelBuffer, _ orientation: UInt8, _ texture: GLuint, _ target: GLenum, _ level: GLint, _ internalFormat: GLenum, _ type: GLenum, _ unpackFlipY: Bool, _ unpackPremultiplyAlpha: Bool) -> UInt8 {
+        guard let cocoaPlatform else {
+            return GLVideoUploadOutcome.unsupported.rawValue
+        }
+        return cocoaPlatform.copyVideoFrameToTexture(self, frame, orientation: orientation, texture: texture, target: target, level: level, internalFormat: internalFormat, type: type, unpackFlipY: unpackFlipY, unpackPremultiplyAlpha: unpackPremultiplyAlpha).rawValue
+    }
+#endif
+
 #if ENABLE_WEBXR
     @_expose(Cxx)
     public func enableRequiredWebXRExtensions() -> Bool {
@@ -345,6 +360,15 @@ public final class GLContext {
         }
 #endif
         platform.invalidateKnownTextureContent(texture)
+    }
+
+    // Invalidates the known content of the texture bound to the binding point of target in the active texture unit.
+    // With the context current. Only a Cocoa platform knows texture content.
+    @_expose(!Cxx)
+    func invalidateKnownTextureContent(forTarget target: GLenum) {
+#if WTF_PLATFORM_COCOA
+        cocoaPlatform?.invalidateKnownTextureContent(forTarget: target)
+#endif
     }
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
@@ -652,7 +676,7 @@ public final class GLContext {
             return
         }
         GL_TexStorage2D(target, levels, internalformat, width, height)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -662,7 +686,7 @@ public final class GLContext {
             return
         }
         GL_TexStorage3D(target, levels, internalformat, width, height, depth)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -673,7 +697,7 @@ public final class GLContext {
             return
         }
         ANGLE.texImage2D(target, level, GLint(bitPattern: internalformat), width, height, border, format, type, pixels)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -687,7 +711,7 @@ public final class GLContext {
             addError(.invalidOperation)
             return
         }
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -698,7 +722,7 @@ public final class GLContext {
         }
         // FIXME: we will need to deal with PixelStore params when dealing with image buffers that differ from the subimage size.
         ANGLE.texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
     }
 
     @_expose(Cxx)
@@ -711,7 +735,7 @@ public final class GLContext {
             addError(.invalidOperation)
             return
         }
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
     }
 
     @_expose(Cxx)
@@ -720,7 +744,7 @@ public final class GLContext {
             return
         }
         ANGLE.compressedTexImage2D(target, level, internalformat, width, height, border, data)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -733,7 +757,7 @@ public final class GLContext {
             addError(.invalidOperation)
             return
         }
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -743,7 +767,7 @@ public final class GLContext {
             return
         }
         ANGLE.compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, data)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
     }
 
     @_expose(Cxx)
@@ -755,7 +779,7 @@ public final class GLContext {
             addError(.invalidOperation)
             return
         }
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(forTarget: target)
     }
 
     @_expose(Cxx)
@@ -844,7 +868,7 @@ public final class GLContext {
             return
         }
         GL_FramebufferTexture2D(target, attachment, textarget, texture, level)
-        invalidateKnownTextureContent(state.currentBoundTexture)
+        invalidateKnownTextureContent(texture)
     }
 
     // Read pixels.
@@ -2362,6 +2386,7 @@ public final class GLContext {
             ANGLE.imageTargetRenderbufferStorage(GLenum(GL_RENDERBUFFER), eglImage)
         } else {
             ANGLE.imageTargetTexture2D(target, eglImage)
+            invalidateKnownTextureContent(forTarget: target)
         }
     }
 
@@ -2565,6 +2590,7 @@ public final class GLContext {
             return
         }
         GL_CopyTexImage2D(target, level, internalformat, x, y, width, height, border)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
@@ -2574,6 +2600,7 @@ public final class GLContext {
             return
         }
         GL_CopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height)
+        invalidateKnownTextureContent(forTarget: target)
     }
 
     @_expose(Cxx)
@@ -2671,6 +2698,7 @@ public final class GLContext {
             return
         }
         GL_GenerateMipmap(target)
+        invalidateKnownTextureContent(forTarget: target)
         didChangeMemoryCost()
     }
 
