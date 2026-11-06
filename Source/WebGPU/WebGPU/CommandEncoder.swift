@@ -2735,15 +2735,19 @@ enum EncoderState: UInt8 {
     case ended
 }
 
-/// The encoders that used a resource, each held weakly.
+/// The encoders that used a resource, each through its link.
 ///
 /// Usually 1-3 entries. Entries of encoders that died are pruned lazily.
 struct EncoderTracking {
     private struct Entry {
         /// The encoder's CommandEncoderImpl.serial: an entry with the serial of a live encoder is that encoder's, so
-        /// matching needs no weak load.
+        /// matching needs no load of the link.
         let serial: UInt64
-        weak var encoder: CommandEncoderImpl?
+        let link: ImplLink<CommandEncoderImpl>
+
+        var encoder: CommandEncoderImpl? {
+            link.impl
+        }
     }
 
     /// Dead entries are dropped when the array is full, before it grows.
@@ -2777,9 +2781,9 @@ struct EncoderTracking {
             }
         }
         if entries.count >= 8 && entries.count == entries.capacity {
-            entries.removeAll { $0.encoder == nil }
+            entries.removeAll { $0.link.isEnded }
         }
-        entries.append(Entry(serial: serial, encoder: encoder))
+        entries.append(Entry(serial: serial, link: encoder.link))
         return true
     }
 
@@ -2795,7 +2799,7 @@ struct EncoderTracking {
 
     /// Drops the encoders that died, then counts.
     mutating func liveCount() -> Int {
-        entries.removeAll { $0.encoder == nil }
+        entries.removeAll { $0.link.isEnded }
         return entries.count
     }
 
@@ -2830,21 +2834,39 @@ struct EncoderTracking {
     }
 }
 
-struct WeakBufferAndEncoder {
-    weak var buffer: BufferImpl?
-    weak var encoder: CommandEncoderImpl?
+/// A buffer, and the encoder that invalidated it if any, without keeping either alive.
+struct BufferAndEncoderLinks {
+    let bufferLink: ImplLink<BufferImpl>
+    let encoderLink: ImplLink<CommandEncoderImpl>?
+
+    init(buffer: BufferImpl, encoder: CommandEncoderImpl?) {
+        bufferLink = buffer.link
+        encoderLink = encoder?.link
+    }
+
+    var buffer: BufferImpl? {
+        bufferLink.impl
+    }
+
+    var encoder: CommandEncoderImpl? {
+        encoderLink?.impl
+    }
 }
 
 /// A commit action other than the constructor's, which runCommitActions runs first.
 enum CommitAction {
-    case indirectBufferInvalidated(WeakBufferAndEncoder)
+    case indirectBufferInvalidated(BufferAndEncoderLinks)
     case rebindBundleSamplers(RenderBundleImpl)
 }
 
 /// The skipped draw-indexed validations of one buffer.
 struct SkippedDrawIndexedValidation {
-    weak var buffer: BufferImpl?
+    let bufferLink: ImplLink<BufferImpl>
     var keys: [(key: DrawIndexKey, vertexCount: UInt32)]
+
+    var buffer: BufferImpl? {
+        bufferLink.impl
+    }
 }
 
 /// An indexed indirect draw whose baked ICB slot was reused rather than re-encoded, retained until commit so its index
@@ -2869,8 +2891,12 @@ struct ReusedIndirectIndexedDraw: Equatable {
 
 /// The reused indirect indexed draws of one index buffer.
 struct ReusedIndirectIndexedDraws {
-    weak var buffer: BufferImpl?
+    let bufferLink: ImplLink<BufferImpl>
     var draws: [ReusedIndirectIndexedDraw]
+
+    var buffer: BufferImpl? {
+        bufferLink.impl
+    }
 }
 
 // One per GPUCommandEncoder, held by its Swift callers and the passes and command buffer it makes. Runs every WebGPU
@@ -2879,7 +2905,8 @@ struct ReusedIndirectIndexedDraws {
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_spi(WebKitGPU)
-public final class CommandEncoderImpl: GPUObjectReference {
+public final class CommandEncoderImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<CommandEncoderImpl>()
     private var backingCommandBuffer: (any MTLCommandBuffer)?
     // Filled by rotateCommandBufferIfNeeded, in the order they have to be committed in.
     private var priorCommandBuffers: [any MTLCommandBuffer] = []
@@ -2915,8 +2942,8 @@ public final class CommandEncoderImpl: GPUObjectReference {
     private var trackedTextureViews: [TextureViewImpl] = []
     private var trackedQuerySets: [QuerySetImpl] = []
     // The external textures that recorded this encoder in pendingUsers, and the planes it used, until clearTracking().
-    // Weak, so that an external texture's Impl, which holds its Device, dies when its callers let go of it.
-    private var trackedExternalTextures = WeakImplList<ExternalTextureImpl>()
+    // Not held, so that an external texture's Impl, which holds its Device, dies when its callers let go of it.
+    private var trackedExternalTextures = ImplLinkList<ExternalTextureImpl>()
     private var retainedExternalTexturePlanes: [any MTLTexture] = []
     // One strong reference per distinct sampler, keyed by its Impl.
     private var retainedSamplers = WTFHashMap<UInt64, SamplerImpl>()
@@ -2930,9 +2957,16 @@ public final class CommandEncoderImpl: GPUObjectReference {
     private var constructorCommitActionPending: Bool
     // The other commit actions. After finish() they are the CommandBuffer's.
     private var commitActions: [CommitAction] = []
-    // Set by finish(). A ThreadSafeWeakPtr: the CommandBuffer can die on a Metal thread.
-    // Weak: the command buffer's last reference goes on the API thread.
-    private weak var cachedCommandBuffer: CommandBufferImpl?
+    // Set by finish(). Not held: the command buffer holds the encoder, and its last reference goes on the API thread.
+    private var cachedCommandBufferLink: ImplLink<CommandBufferImpl>?
+    private var cachedCommandBuffer: CommandBufferImpl? {
+        get {
+            cachedCommandBufferLink?.impl
+        }
+        set {
+            cachedCommandBufferLink = newValue?.link
+        }
+    }
     // What this encoder did to lazily initialized texture regions. Moved into the CommandBuffer finish() makes, and
     // dropped with the encoder's work when that is discarded or made invalid.
     private var initializationLedger: InitializationLedger? = InitializationLedger()
@@ -3527,7 +3561,12 @@ public final class CommandEncoderImpl: GPUObjectReference {
         backingCommandBuffer?.label = label as String
     }
 
+    var link: ImplLink<CommandEncoderImpl> {
+        linkSlot.link(for: self)
+    }
+
     deinit {
+        linkSlot.end()
         finalizeBlitCommandEncoder()
         releasePriorCommandBuffers()
         deviceImpl.defaultQueueImpl.removeMTLCommandBuffer(backingCommandBuffer)
@@ -3685,9 +3724,11 @@ public final class CommandEncoderImpl: GPUObjectReference {
     // `vertexCount` is the cached entry's.
     func recordSkippedDrawIndexedValidation(_ buffer: BufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         let identity = identityKey(ObjectIdentifier(buffer))
-        // Another BufferImpl at the address of one that died starts a new list.
-        if skippedDrawIndexedValidations.value(forKey: identity)?.buffer !== buffer {
-            skippedDrawIndexedValidations.set(identity, SkippedDrawIndexedValidation(buffer: buffer, keys: []))
+        let bufferLink = buffer.link
+        // The first skip starts the buffer's list. An entry's link keeps its buffer's address, so no other buffer has
+        // the same key while it exists.
+        if skippedDrawIndexedValidations.value(forKey: identity)?.bufferLink !== bufferLink {
+            skippedDrawIndexedValidations.set(identity, SkippedDrawIndexedValidation(bufferLink: bufferLink, keys: []))
         }
         skippedDrawIndexedValidations.modifyValue(forKey: identity) { skipped in
             skipped.keys.append((key: key, vertexCount: vertexCount))
@@ -3696,9 +3737,10 @@ public final class CommandEncoderImpl: GPUObjectReference {
 
     func recordReusedIndirectIndexedDraw(_ buffer: BufferImpl, _ draw: ReusedIndirectIndexedDraw) {
         let identity = identityKey(ObjectIdentifier(buffer))
-        // Another BufferImpl at the address of one that died starts a new list.
-        if reusedIndirectIndexedDraws.value(forKey: identity)?.buffer !== buffer {
-            reusedIndirectIndexedDraws.set(identity, ReusedIndirectIndexedDraws(buffer: buffer, draws: []))
+        let bufferLink = buffer.link
+        // As recordSkippedDrawIndexedValidation.
+        if reusedIndirectIndexedDraws.value(forKey: identity)?.bufferLink !== bufferLink {
+            reusedIndirectIndexedDraws.set(identity, ReusedIndirectIndexedDraws(bufferLink: bufferLink, draws: []))
         }
         reusedIndirectIndexedDraws.modifyValue(forKey: identity) { reused in
             if !reused.draws.contains(draw) {
@@ -3769,7 +3811,7 @@ public final class CommandEncoderImpl: GPUObjectReference {
             for (key, vertexCount) in skipped.keys {
                 buffer.takeSlowIndexValidationPath(commandBufferImpl, key, vertexCount: vertexCount)
                 commandBufferImpl.addPostCommitAction(
-                    .clearMustTakeSlowIndexValidationPath(commandBufferImpl.deviceImpl, WeakBufferAndEncoder(buffer: buffer, encoder: nil))
+                    .clearMustTakeSlowIndexValidationPath(commandBufferImpl.deviceImpl, BufferAndEncoderLinks(buffer: buffer, encoder: nil))
                 )
             }
         }

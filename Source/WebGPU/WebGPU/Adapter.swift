@@ -85,7 +85,10 @@ public final class AdapterImpl: GPUObjectReference {
     // Given to the device this adapter creates.
     private let baseCapabilities: GPUBaseCapabilities
     // The adapter's Instance, for the device this adapter creates and for its resources' attribution.
-    private(set) weak var instanceImpl: InstanceImpl?
+    private var instanceLink: ImplLink<InstanceImpl>?
+    var instanceImpl: InstanceImpl? {
+        instanceLink?.impl
+    }
 
     fileprivate init(
         metalDevice: (any MTLDevice)?,
@@ -102,7 +105,7 @@ public final class AdapterImpl: GPUObjectReference {
     }
 
     func setInstance(_ instanceImpl: InstanceImpl) {
-        self.instanceImpl = instanceImpl
+        instanceLink = instanceImpl.link
     }
 
     // The Instance's web process identity, or an empty right when the Instance has none or is gone.

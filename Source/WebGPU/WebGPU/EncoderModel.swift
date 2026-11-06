@@ -42,6 +42,7 @@
 // The encoder model shared by BindGroup, the resource classes, the three encoders and RenderBundle.
 
 import Metal
+import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.BindableResource
 @_implementationOnly import WebGPU_Internal.Buffer
@@ -1077,41 +1078,98 @@ struct ResourceSet {
     }
 }
 
-// MARK: Weak references
+// MARK: Links
 
-/// A weak set of Impls (pair invariant), for the API thread only.
-struct WeakImplList<T: AnyObject> {
-    private struct Entry {
-        weak var impl: T?
-        /// The identity of the Impl when it was added, compared first so that adding a different Impl loads no weak
-        /// reference; a match is confirmed by loading `impl`, so an address reused after it died is never taken for it.
-        let identity: ObjectIdentifier
+/// What refers to an Impl without keeping it alive, in place of a `weak` reference: a weak reference gives the Impl a
+/// side table for good, which puts every retain and release of it on the runtime's slow path.
+///
+/// The link holds its Impl `unowned`, which keeps the Impl's memory but not the Impl, so the Impl's address is not
+/// reused while the link lives. The Impl ends its link first thing in its deinit, and `impl` is nil from then on, as a
+/// weak reference would be. The unowned load is checked, so were an Impl to die with its link not ended (or on another
+/// thread while a holder reads), `impl` would trap rather than return it; `ended` is atomic for that case only.
+final class ImplLink<Impl: AnyObject> {
+    private unowned let target: Impl
+    private let identity: ObjectIdentifier
+    private let ended = Atomic<Bool>(false)
+
+    fileprivate init(_ target: Impl) {
+        self.target = target
+        identity = ObjectIdentifier(target)
     }
 
-    /// Dead entries are dropped when the array is full, before it grows.
-    private var entries: [Entry] = []
+    /// The Impl, until it dies.
+    var impl: Impl? {
+        ended.load(ordering: .relaxed) ? nil : target
+    }
+
+    var isEnded: Bool {
+        ended.load(ordering: .relaxed)
+    }
+
+    /// Whether `object` is the Impl, without loading it.
+    func refers(to object: Impl) -> Bool {
+        ObjectIdentifier(object) == identity
+    }
+
+    fileprivate func end() {
+        ended.store(true, ordering: .relaxed)
+    }
+}
+
+/// An Impl's one link, made when first asked for; one asked for once the Impl's deinit has begun is born ended.
+struct ImplLinkSlot<Impl: AnyObject> {
+    private var link: ImplLink<Impl>?
+    private var ended = false
+
+    mutating func link(for impl: Impl) -> ImplLink<Impl> {
+        if let link {
+            return link
+        }
+        let link = ImplLink(impl)
+        if ended {
+            link.end()
+        }
+        self.link = link
+        return link
+    }
+
+    /// The first thing the Impl's deinit does.
+    mutating func end() {
+        ended = true
+        link?.end()
+    }
+}
+
+/// An Impl that others refer to through its link.
+protocol LinkedImpl: AnyObject {
+    var link: ImplLink<Self> { get }
+}
+
+/// A set of Impls that doesn't keep them alive, for the API thread only.
+struct ImplLinkList<T: LinkedImpl> {
+    /// The links of Impls that died are dropped when the array is full, before it grows.
+    private var links: [ImplLink<T>] = []
 
     /// Adds `impl` unless it is the last entry: repeats come from one holder registering with one resource several
     /// times in a row (registerRenderBundleHolder walks all of a holder's records in one call).
     mutating func add(_ impl: T) {
-        let identity = ObjectIdentifier(impl)
-        let lastIndex = entries.count - 1
-        if lastIndex >= 0, entries[lastIndex].identity == identity, entries[lastIndex].impl === impl {
+        let link = impl.link
+        if links.last === link {
             return
         }
-        if entries.count >= 8 && entries.count == entries.capacity {
-            entries.removeAll { $0.impl == nil }
+        if links.count >= 8 && links.count == links.capacity {
+            links.removeAll { $0.isEnded }
         }
-        entries.append(Entry(impl: impl, identity: identity))
+        links.append(link)
     }
 
     /// The live ones, as strong references for the duration of the caller's walk.
     var values: [T] {
-        entries.compactMap(\.impl)
+        links.compactMap(\.impl)
     }
 
     mutating func removeAll() {
-        entries = []
+        links = []
     }
 }
 

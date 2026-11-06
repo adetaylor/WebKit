@@ -34,7 +34,8 @@ public typealias TextureViewReference = TextureViewImpl
 // reads the parent's state (destroyed, initialized, canvas backing, rate maps, descriptor) from the parent's
 // TextureImpl. Used only on its Instance's API thread.
 @_spi(WebKitGPU)
-public final class TextureViewImpl: GPUObjectReference {
+public final class TextureViewImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<TextureViewImpl>()
     // nil only for an invalid view. Replaced by the device placeholder when the parent is destroyed.
     private var backingTexture: (any MTLTexture)?
     // The swizzled view a shader reads; nil when the swizzle is the identity.
@@ -64,6 +65,14 @@ public final class TextureViewImpl: GPUObjectReference {
         self.parentImpl = parentImpl
         self.descriptor = descriptor
         deviceImpl = parentImpl.deviceImpl
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<TextureViewImpl> {
+        linkSlot.link(for: self)
     }
 
     var parentTextureImpl: TextureImpl {

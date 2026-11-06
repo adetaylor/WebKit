@@ -69,7 +69,7 @@ final class CommandBufferCompletion: Sendable {
 enum PostCommitAction {
     /// Waits for the command buffer, then writes back the index data the slow path cleared.
     case restoreIndexBufferContents(BufferImpl, NSMutableData)
-    case clearMustTakeSlowIndexValidationPath(DeviceImpl, WeakBufferAndEncoder)
+    case clearMustTakeSlowIndexValidationPath(DeviceImpl, BufferAndEncoderLinks)
 }
 
 // The CommandEncoder that finished into a command buffer, read for its state, which holds the pre-commit actions.
@@ -88,7 +88,8 @@ public typealias CommandBufferReference = CommandBufferImpl
 // `completion()`. The last reference goes on the API thread: the completion handler's hands its reference to the work
 // it schedules there.
 @_spi(WebKitGPU)
-public final class CommandBufferImpl: GPUObjectReference {
+public final class CommandBufferImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<CommandBufferImpl>()
     private var backingCommandBuffer: (any MTLCommandBuffer)?
     // The committed command buffer, until the completion handler's work item runs.
     private var cachedCommandBuffer: (any MTLCommandBuffer)?
@@ -207,7 +208,12 @@ public final class CommandBufferImpl: GPUObjectReference {
         withExtendedLifetime(actions) {}
     }
 
+    var link: ImplLink<CommandBufferImpl> {
+        linkSlot.link(for: self)
+    }
+
     deinit {
+        linkSlot.end()
         let queueImpl = deviceImpl.defaultQueueImpl
         retainTimestampsForOneUpdate()
         releasePriorCommandBuffers(queueImpl)

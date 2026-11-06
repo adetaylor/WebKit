@@ -672,8 +672,16 @@ private func isValidToUse(_ objectIsValid: Bool, _ objectDeviceImpl: DeviceImpl,
 @_spi(WebKitGPU)
 public final class QueueImpl: GPUObjectReference {
     private var backingCommandQueue: (any MTLCommandQueue)?
-    // Weak: the device holds the queue.
-    weak var deviceImpl: DeviceImpl?
+    // Not held: the device holds the queue.
+    private var deviceLink: ImplLink<DeviceImpl>?
+    var deviceImpl: DeviceImpl? {
+        get {
+            deviceLink?.impl
+        }
+        set {
+            deviceLink = newValue?.link
+        }
+    }
     // Where the Metal handlers and the deferred callbacks schedule their API-thread work.
     private var schedulerHandle: InstanceSchedulerHandle?
     private let backingCompletion = QueueCompletion()
@@ -2963,8 +2971,17 @@ extension QueueImpl {
         onSubmittedWorkDone(deviceIsUsable: deviceIsUsable, completion)
     }
 
+    // The queue's device, if it's alive. In a valid call, the device of the object the call names is the queue's, which
+    // needs no load of the link.
+    private func deviceImpl(sharedBy objectDeviceImpl: DeviceImpl) -> DeviceImpl? {
+        guard let deviceLink else {
+            return nil
+        }
+        return deviceLink.refers(to: objectDeviceImpl) ? objectDeviceImpl : deviceLink.impl
+    }
+
     public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: Span<UInt8>) {
-        guard let deviceImpl else {
+        guard let deviceImpl = deviceImpl(sharedBy: buffer.deviceImpl) else {
             return
         }
         writeBuffer(deviceImpl, buffer, bufferOffset, bytes: data, nil)
@@ -2977,7 +2994,7 @@ extension QueueImpl {
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {
-        guard let deviceImpl else {
+        guard let deviceImpl = deviceImpl(sharedBy: texture.deviceImpl) else {
             return
         }
         _ = writeTexture(deviceImpl, texture, destination, bytes: data, nil, dataLayout, size, false, .decide)
@@ -2985,7 +3002,7 @@ extension QueueImpl {
 
     // writeBuffer() of the bytes, which it may read after returning (see largeBufferSize), keeping them until it has.
     public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: WebGPU.OwnedBytes) {
-        guard let deviceImpl else {
+        guard let deviceImpl = deviceImpl(sharedBy: buffer.deviceImpl) else {
             return
         }
         let bytes: Span<UInt8> = data.span()
@@ -3000,7 +3017,7 @@ extension QueueImpl {
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {
-        guard let deviceImpl else {
+        guard let deviceImpl = deviceImpl(sharedBy: texture.deviceImpl) else {
             return
         }
         let bytes: Span<UInt8> = data.span()
@@ -3014,7 +3031,7 @@ extension QueueImpl {
         _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D
     ) {
-        guard let deviceImpl else {
+        guard let deviceImpl = deviceImpl(sharedBy: texture.deviceImpl) else {
             return
         }
         copyExternalImageToTexture(

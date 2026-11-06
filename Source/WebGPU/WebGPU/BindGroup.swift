@@ -52,7 +52,8 @@ struct SamplerBinding {
 // argument-buffer slots, the dynamic buffers and the per-pipeline validation cache, and runs every check the encoders
 // make on a group. Used only on its Instance's API thread, so not Sendable.
 @_spi(WebKitGPU)
-public final class BindGroupImpl: GPUObjectReference {
+public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<BindGroupImpl>()
     /// nil exactly when the group is invalid.
     let layoutImpl: BindGroupLayoutImpl?
     /// nil when the stage has no arguments, or when a resource bound in it was destroyed before creation.
@@ -101,7 +102,7 @@ public final class BindGroupImpl: GPUObjectReference {
         self.externalTextureIndices = externalTextureIndices
         self.uniqueId = uniqueId
         self.deviceImpl = deviceImpl
-        // Each resource keeps a weak reference to the group.
+        // Each resource keeps the group's link.
         self.resources.registerBindGroupHolder(self)
     }
 
@@ -120,6 +121,14 @@ public final class BindGroupImpl: GPUObjectReference {
 
     fileprivate static func invalid(_ deviceImpl: DeviceImpl) -> BindGroupImpl {
         BindGroupImpl(invalidFor: deviceImpl)
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<BindGroupImpl> {
+        linkSlot.link(for: self)
     }
 
     var hasSamplers: Bool {

@@ -207,7 +207,8 @@ private struct TextureInitState {
 // Also runs view creation and its validation. Used only on its
 // Instance's API thread.
 @_spi(WebKitGPU)
-public final class TextureImpl: GPUObjectReference {
+public final class TextureImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<TextureImpl>()
     // nil only for an invalid texture. destroy() swaps in the device placeholder unless canvas-backed.
     private var backingTexture: (any MTLTexture)?
     private var destroyed = false
@@ -236,9 +237,9 @@ public final class TextureImpl: GPUObjectReference {
     /// The encoders that used the texture.
     var tracking = EncoderTracking()
     // The views made with a descriptor, and the bind groups and render bundles that hold the texture.
-    private var views = WeakImplList<TextureViewImpl>()
-    private var bindGroupHolders = WeakImplList<BindGroupImpl>()
-    private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
+    private var views = ImplLinkList<TextureViewImpl>()
+    private var bindGroupHolders = ImplLinkList<BindGroupImpl>()
+    private var renderBundleHolders = ImplLinkList<RenderBundleImpl>()
     // Declared last, so that the device outlives the rest of the texture.
     let deviceImpl: DeviceImpl
 
@@ -262,6 +263,14 @@ public final class TextureImpl: GPUObjectReference {
         let layers = parameters?.dimension == ._2d ? Int(parameters?.depthOrArrayLayers ?? 0) : 1
         let regionCount = parameters.map { Int($0.mipLevelCount) * layers * Self.initAspectCount($0.format) } ?? 0
         self.initState = TextureInitState(regionCount: regionCount)
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<TextureImpl> {
+        linkSlot.link(for: self)
     }
 
     private static func initAspectCount(_ format: WebGPU.TextureFormat) -> Int {

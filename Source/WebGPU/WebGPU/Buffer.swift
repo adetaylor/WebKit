@@ -125,7 +125,8 @@ enum BufferMapState {
 // The state of a GPUBuffer, held by its Swift callers and the bind groups, bundles and encoders that use it. Used only on
 // the instance's API thread, so not Sendable.
 @_spi(WebKitGPU)
-public final class BufferImpl: GPUObjectReference {
+public final class BufferImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<BufferImpl>()
     private var backingBuffer: (any MTLBuffer)?
     private let initialByteSize: UInt64
     private let usageBits: UInt16
@@ -157,8 +158,8 @@ public final class BufferImpl: GPUObjectReference {
     private var hasSkippedValidationEncoders = false
     private var hasPendingIndexWriteEncoders = false
     // The bind groups and render bundles that hold the buffer.
-    private var bindGroupHolders = WeakImplList<BindGroupImpl>()
-    private var renderBundleHolders = WeakImplList<RenderBundleImpl>()
+    private var bindGroupHolders = ImplLinkList<BindGroupImpl>()
+    private var renderBundleHolders = ImplLinkList<RenderBundleImpl>()
     // The encoders that skipped validating a draw with this index buffer.
     private var skippedValidationEncoders = EncoderTracking()
     // The encoders that recorded a write to the buffer that their command buffers have not committed yet.
@@ -182,6 +183,14 @@ public final class BufferImpl: GPUObjectReference {
         self.mapState = mappedAtCreation ? .mappedAtCreation(0..<size) : .unmapped
         self.mappedAtCreation = mappedAtCreation
         self.deviceImpl = deviceImpl
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<BufferImpl> {
+        linkSlot.link(for: self)
     }
 
     func buffer() -> (any MTLBuffer)? {
@@ -543,7 +552,7 @@ public final class BufferImpl: GPUObjectReference {
         indirectBufferInvalidated(nil)
         _ = pendingIndexWriteEncoders.add(encoder)
         hasPendingIndexWriteEncoders = true
-        encoder.addCommitAction(.indirectBufferInvalidated(WeakBufferAndEncoder(buffer: self, encoder: encoder)))
+        encoder.addCommitAction(.indirectBufferInvalidated(BufferAndEncoderLinks(buffer: self, encoder: encoder)))
     }
 
     /// The commit action indirectBufferInvalidated(by:) queued.

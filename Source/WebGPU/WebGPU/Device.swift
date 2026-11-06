@@ -37,13 +37,14 @@ import WebGPU_Private.WebGPUCpp
 // handlers hop back through the Instance's scheduler, and hand their references to the device over to the work items,
 // so that the last of them is released on the API thread.
 @_spi(WebKitGPU)
-public final class DeviceImpl: GPUObjectReference {
+public final class DeviceImpl: GPUObjectReference, LinkedImpl {
     private struct ErrorScope {
         let filter: WebGPU.ErrorFilter
         // The first error the scope caught; later ones are dropped.
         var error: (type: WebGPU.ErrorType, message: WTF.String)?
     }
 
+    private var linkSlot = ImplLinkSlot<DeviceImpl>()
     // nil == invalid, lost or destroyed device.
     private var metalDevice: (any MTLDevice)?
     private var lost = false
@@ -88,10 +89,13 @@ public final class DeviceImpl: GPUObjectReference {
     // pipeline compiles hop back through it.
     private let instanceSchedulerHandle: InstanceSchedulerHandle?
     // The Instance of the device's adapter, if it had one when the device was made.
-    private(set) weak var instanceImpl: InstanceImpl?
+    private let instanceLink: ImplLink<InstanceImpl>?
+    var instanceImpl: InstanceImpl? {
+        instanceLink?.impl
+    }
     let externalTextureImporter: ExternalTextureImporter
     /// The valid textures createTexture made, which destroy() destroys.
-    var textures = WeakImplList<TextureImpl>()
+    var textures = ImplLinkList<TextureImpl>()
 
     let defaultQueueImpl: QueueImpl
     // The adapter also provides the Instance. A valid device has one XR sub-image. The device observer is the token of
@@ -115,8 +119,9 @@ public final class DeviceImpl: GPUObjectReference {
     ) {
         self.metalDevice = metalDevice
         self.adapterImpl = adapterImpl
-        instanceImpl = adapterImpl.instanceImpl
-        instanceSchedulerHandle = adapterImpl.instanceImpl?.schedulerHandle
+        let instanceImpl = adapterImpl.instanceImpl
+        instanceLink = instanceImpl?.link
+        instanceSchedulerHandle = instanceImpl?.schedulerHandle
         attributesResources = DeviceImpl.instanceHasWebProcess(adapterImpl)
         defaultQueueImpl = defaultQueue.map { makeQueueImpl($0) } ?? makeInvalidQueueImpl()
         externalTextureImporter = ExternalTextureImporter(metalDevice: metalDevice)
@@ -147,7 +152,12 @@ public final class DeviceImpl: GPUObjectReference {
         xrSubImageImpl = makeXRSubImageImpl()
     }
 
+    var link: ImplLink<DeviceImpl> {
+        linkSlot.link(for: self)
+    }
+
     deinit {
+        linkSlot.end()
         if let backingDeviceObserver {
             WebGPU.Metal.removeDeviceObserver(backingDeviceObserver)
         }
@@ -538,9 +548,9 @@ public final class DeviceImpl: GPUObjectReference {
                 resolvedBuffers = NSMutableArray(object: counterDataBuffer)
                 resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
             }
-            let forget = APIThreadWork<Void> { [weak self, weak commandBuffer] _ in
+            let forget = APIThreadWork<Void> { [link, weak commandBuffer] _ in
                 if let commandBuffer {
-                    self?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
+                    link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
                 }
             }
             let scheduler = instanceSchedulerHandle
@@ -671,8 +681,8 @@ public final class DeviceImpl: GPUObjectReference {
             return
         }
         let scheduler = instanceSchedulerHandle
-        let lose = APIThreadWork<Void> { [weak self] _ in
-            guard let self, self.metalDevice != nil else {
+        let lose = APIThreadWork<Void> { [link] _ in
+            guard let self = link.impl, self.metalDevice != nil else {
                 return
             }
             self.loseTheDevice(.Unknown)
@@ -697,15 +707,15 @@ public struct GPUError {
 // A device that isn't kept alive.
 @_spi(WebKitGPU)
 public final class DeviceWeakReference {
-    private weak var impl: DeviceImpl?
+    private let link: ImplLink<DeviceImpl>
 
     init(_ impl: DeviceImpl) {
-        self.impl = impl
+        link = impl.link
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-destroy, if the device is still alive.
     public func destroy() {
-        impl?.destroy()
+        link.impl?.destroy()
     }
 }
 

@@ -35,7 +35,8 @@ import WebGPU_Private.WebGPUCpp
 //
 // Used only on its Instance's API thread, so deliberately not Sendable.
 @_spi(WebKitGPU)
-public final class RenderBundleImpl: GPUObjectReference {
+public final class RenderBundleImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<RenderBundleImpl>()
     /// Paired with the mutable `mtlResources`.
     let resources: ResourceSet
     private(set) var mtlResources: ResourceLists
@@ -113,6 +114,14 @@ public final class RenderBundleImpl: GPUObjectReference {
         stencilReadOnly = false
         commandCount = 0
         submitInvalid = false
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<RenderBundleImpl> {
+        linkSlot.link(for: self)
     }
 
     public func isValid() -> Bool {

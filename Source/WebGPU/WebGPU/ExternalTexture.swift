@@ -60,7 +60,8 @@ extension DeviceReference {
 // The state of a GPUExternalTexture, held by its Swift callers.
 // Used only on its Instance's API thread, so not Sendable.
 @_spi(WebKitGPU)
-public final class ExternalTextureImpl: GPUObjectReference {
+public final class ExternalTextureImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<ExternalTextureImpl>()
     // nil: no frame.
     private var backingPixelBuffer: CVPixelBuffer?
     private var destroyed = false
@@ -92,6 +93,14 @@ public final class ExternalTextureImpl: GPUObjectReference {
         self.backingVisibleWidth = visibleWidth
         self.backingVisibleHeight = visibleHeight
         self.deviceImpl = deviceImpl
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<ExternalTextureImpl> {
+        linkSlot.link(for: self)
     }
 
     public func isValid() -> Bool {

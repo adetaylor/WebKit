@@ -204,7 +204,8 @@ public typealias InstanceReference = InstanceImpl
 // Metal or observer thread holds the Instance (they schedule work through InstanceSchedulerHandle), so deinit runs on
 // the thread that releases it.
 @_spi(WebKitGPU)
-public final class InstanceImpl {
+public final class InstanceImpl: LinkedImpl {
+    private var linkSlot = ImplLinkSlot<InstanceImpl>()
     // Declared in release order: the embedder's scheduleWork, then the web process ID, the CommandBuffers and the
     // Devices, and the work items still waiting for processEvents() last.
     private let scheduler: InstanceScheduler
@@ -228,6 +229,14 @@ public final class InstanceImpl {
         schedulerHandle = makeInstanceSchedulerHandle(scheduler)
         backingWebProcessID = WebGPU.Metal.takeWebProcessResourceOwner(&descriptor)
         self.events = events
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<InstanceImpl> {
+        linkSlot.link(for: self)
     }
 
     // The task that owns the resources the Instance allocates, copied out; an empty right without one.
