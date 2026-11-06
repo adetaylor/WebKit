@@ -52,18 +52,18 @@
 private import Cxx
 import CoreGraphics
 import CoreText
-import WebCore_Internal.AffineTransform
-import WebCore_Internal.CGRendererSPI
-import WebCore_Internal.CGRendererSwiftBridge
-import WebCore_Internal.Color
-import WebCore_Internal.FloatPoint
-import WebCore_Internal.FloatRect
-import WebCore_Internal.FloatSize
-import WebCore_Internal.GraphicsTypes
-import WebCore_Internal.ImageBuffer
-import WebCore_Internal.IntRect
-import WebCore_Internal.IntSize
-import WebCore_Internal.ShadowBlurSwiftBridge
+import WebCore_Private.Core.AffineTransform
+import WebCore_Private.Core.CGRendererSPI
+import WebCore_Private.Core.CGRendererSwiftBridge
+import WebCore_Private.Core.Color
+import WebCore_Private.Core.FloatPoint
+import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.GraphicsTypes
+import WebCore_Private.Core.ImageBuffer
+import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.IntSize
+import WebCore_Private.Core.ShadowBlurSwiftBridge
 
 // std::max's choice: the first argument unless it is less than the second, so -0 and NaN stay.
 private func cxxMax(_ a: Float, _ b: Float) -> Float {
