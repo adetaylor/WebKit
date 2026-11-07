@@ -715,3 +715,30 @@ extension PropertyParser {
         return isAutoFill
     }
 }
+
+extension PropertyParser {
+    // MARK: - For the grid shorthands (CSSPropertyParserShorthandsBackgroundGrid.swift)
+
+    /// A <grid-line>'s parts, as gridLineParts returns them.
+    typealias ShorthandGridLineParts = (kind: UInt8, integer: (number: Double, calc: UInt32), name: UInt32?)
+
+    mutating func gridLineNameForShorthand() -> UInt32? {
+        gridLineName()
+    }
+
+    mutating func gridLinePartsForShorthand(_ calc: PropertyCalc) -> ShorthandGridLineParts? {
+        gridLineParts(calc)
+    }
+
+    mutating func gridAreaRowForShorthand(_ parts: inout WebCore.CSSGridSwiftParts) -> Bool {
+        gridAreaRow(&parts)
+    }
+
+    mutating func gridLineNamesInListForShorthand(_ parts: inout WebCore.CSSGridSwiftParts) {
+        gridLineNamesInList(&parts)
+    }
+
+    mutating func gridTrackSizeForShorthand(_ parts: inout WebCore.CSSGridSwiftParts, _ calc: PropertyCalc) -> Bool? {
+        gridTrackSize(&parts, calc)
+    }
+}

@@ -64,11 +64,6 @@ RefPtr<CSSValue> consumeMaskBorderSlice(CSSParserTokenRange& range, CSS::Propert
     return consumePropertyWithSwift(range, state, CSSPropertyConsumerSwiftConsumer::MaskBorderSlice, overridesSlice == MaskBorderSliceOverride::AlwaysFill ? CSSPropertyConsumerSwiftBorderImageSliceAlwaysFill : 0);
 }
 
-std::optional<CSS::MaskBorder> consumeUnresolvedMaskBorder(CSSParserTokenRange& range, CSS::PropertyParserState& state, MaskBorderSliceOverride overridesSlice)
-{
-    return consumeUnresolvedWithSwift<CSS::MaskBorder>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedMaskBorder, overridesSlice == MaskBorderSliceOverride::AlwaysFill ? CSSPropertyConsumerSwiftBorderImageSliceAlwaysFill : 0);
-}
-
 } // namespace CSSPropertyParserHelpers
 
 // Swift's mask-border and clip consumers parse these primitives in these ranges.

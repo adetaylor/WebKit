@@ -3338,6 +3338,7 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSParserFastPaths\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSPropertyParserSwift\\.cpp( |$)")
 # The calc sources that call CSSCalcSwift.swift include WebCore-Swift.h, so they compile
 # in WebCore_SwiftInterop, after WebCore's Swift module.
 set(_webcore_css_calc_swift_interop_sources
@@ -3485,6 +3486,12 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftProperties.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftSmall.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftValues.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserDescriptors.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserRoot.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthands.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsBackgroundGrid.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsBox.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
         ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
         ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
         ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
@@ -3569,7 +3576,9 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
     list(APPEND _webcore_swift_core_submodules css/parser/CSSCustomPropertySyntax.h)
     # The position values and the CSS::Position they hold, which the consumers' Swift builds.
     list(APPEND _webcore_swift_core_submodules css/CSSPositionValue.h css/values/primitives/CSSPosition.h)
-    list(APPEND _webcore_swift_core_submodules css/typedom/CSSNumericValueSwiftTypes.h)
+    list(APPEND _webcore_swift_core_submodules css/typedom/CSSNumericValueSwiftTypes.h css/CSSProperty.h
+        css/CSSKeywordValueInlines.h)
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSPropertyParserSwift.cpp)
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     webkit_target_add_swift_options(WebCore
