@@ -27,7 +27,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // One per GPURenderBundle, built by RenderBundleEncoderImpl.finish(). Owns the ICBs (ICB mode), the encoder (replay
 // mode), the resources, the bind groups, the attachment formats and the per-bundle scalars. RenderPassEncoderImpl reads

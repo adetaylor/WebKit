@@ -25,7 +25,7 @@ import CoreVideo
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)
 public typealias ExternalTextureReference = ExternalTextureImpl

@@ -29,7 +29,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.ShaderModule
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpudevice
 //

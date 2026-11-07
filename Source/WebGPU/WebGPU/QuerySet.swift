@@ -25,7 +25,7 @@ import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpuqueryset, held by its Swift callers. API thread only. A timestamp query set owns a lease on a range of the
 // process-wide counter sample buffer pool below and returns it on destroy() or deinit.

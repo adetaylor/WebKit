@@ -58,7 +58,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ShaderModule
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.CxxBridgingPublic
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 struct DrawIndexValidationEntry {
     let vertexCount: UInt32

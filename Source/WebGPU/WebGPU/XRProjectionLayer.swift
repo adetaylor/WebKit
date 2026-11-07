@@ -24,7 +24,7 @@
 import Metal
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The descriptor values and per-frame state of an XRProjectionLayer: the compositor textures cached per reusable
 // texture index, the current color and depth textures, the completion event and the rasterization rate maps. Used only

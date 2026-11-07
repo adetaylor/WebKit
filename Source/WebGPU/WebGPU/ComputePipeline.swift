@@ -27,7 +27,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // One per GPUComputePipeline, held by its Swift callers and the passes that set it. The compute pass reads it
 // directly.

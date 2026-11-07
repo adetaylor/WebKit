@@ -26,7 +26,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Texture
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The color and depth textures of a device's XR sub-image, per reusable texture index, kept in step with the
 // projection layer. The Device owns the sub-image.

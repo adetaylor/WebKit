@@ -29,7 +29,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.ComputePassEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The render stages of a bind group's compute resources.
 private let computeRenderStage = MTLRenderStages(rawValue: 0)

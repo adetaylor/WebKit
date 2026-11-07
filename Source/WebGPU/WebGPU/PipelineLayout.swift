@@ -23,7 +23,7 @@
 
 import Foundation
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 /// The Impls of a pipeline layout's bind group layouts, in group order.
 ///

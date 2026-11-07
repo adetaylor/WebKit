@@ -26,7 +26,7 @@ import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // One per GPUBindGroupLayout, which Swift callers hold. Owns the
 // entries, the per-stage argument encoders and argument indices, the counts and the label, and creates layouts

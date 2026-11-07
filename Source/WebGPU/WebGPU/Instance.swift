@@ -26,7 +26,7 @@ import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // A work item waiting for processEvents(). Sendable because the item is moved into a Mutex of its own, which the
 // region checker accepts only for a value no other code can reach (`sending`). The draining thread runs it under that

@@ -25,7 +25,7 @@ import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 // Forces command replay, for debugging.
 private let alwaysUseICBReplay = false

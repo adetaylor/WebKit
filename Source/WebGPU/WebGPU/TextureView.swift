@@ -25,7 +25,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Texture
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)
 public typealias TextureViewReference = TextureViewImpl

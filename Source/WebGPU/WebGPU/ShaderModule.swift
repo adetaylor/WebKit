@@ -25,7 +25,7 @@ import Metal
 @_implementationOnly import WGSL
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.ShaderModule
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 private struct Message {
     let text: WTF.String

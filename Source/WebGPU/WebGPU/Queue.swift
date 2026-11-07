@@ -57,7 +57,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 import simd
 
 private let largeBufferSize = WebGPU.largeBufferSize

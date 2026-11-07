@@ -32,7 +32,7 @@ import Metal
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-import WebGPU_Private.WebGPUCpp
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 private let maxCommandCount: UInt64 = 0x4000
 private let defaultSampleMask = UInt32.max
