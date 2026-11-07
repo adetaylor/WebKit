@@ -524,6 +524,13 @@ PlatformXRCoordinator* PlatformXRSystem::xrCoordinator()
 {
     return nullptr;
 }
+
+#if ENABLE(WEBXR_LAYERS)
+void PlatformXRSystem::createCompositionLayer(IPC::Connection&, PlatformXR::CompositionLayerType, WebCore::IntSize, PlatformXR::LayerLayout, CompletionHandler<void(std::optional<PlatformXR::LayerInfo>)>&& reply)
+{
+    reply(std::nullopt);
+}
+#endif
 #endif // !USE(APPLE_INTERNAL_SDK) && !USE(OPENXR) && !PLATFORM(IOS) && !PLATFORM(VISION)
 
 /*
