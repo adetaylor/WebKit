@@ -106,7 +106,8 @@ gl_swift_template_messages = """    void EnsureExtensionEnabled(uint8_t glExtens
     void DrawBuffers(std::span<const uint32_t> bufs) StreamBatched
     void DrawBuffersEXT(std::span<const uint32_t> bufs) StreamBatched
     void InvalidateFramebuffer(uint32_t glTarget, std::span<const uint32_t> attachments)
-    void InvalidateSubFramebuffer(uint32_t glTarget, std::span<const uint32_t> attachments, int32_t x, int32_t y, int32_t width, int32_t height)"""
+    void InvalidateSubFramebuffer(uint32_t glTarget, std::span<const uint32_t> attachments, int32_t x, int32_t y, int32_t width, int32_t height)
+    void UniformMatrixOne(uint8_t columns, uint8_t rows, int32_t location, bool transpose, float m0, float m1, float m2, float m3, float m4, float m5, float m6, float m7, float m8, float m9, float m10, float m11, float m12, float m13, float m14, float m15) StreamBatched"""
 
 
 gl_messages_template = (
@@ -1031,6 +1032,34 @@ class webkit_ipc_cpp_proxy_impl(object):
         in_exprs = ", ".join([str(i) for i in self.in_exprs])
         out_exprs = ", ".join(str(o) for o in self.out_exprs)
         is_async = (self.return_type.is_void() or self.is_create) and len(out_exprs) == 0
+        matrix = re.match(r"uniformMatrix([2-4])(?:x([2-4]))?fv$", self.name)
+        if matrix:
+            # One matrix goes as its values, which decode into no array, padded to 16.
+            columns = int(matrix[1])
+            rows = int(matrix[2] or matrix[1])
+            location, transpose, values = (a.name for a in self.args.args)
+            elements = ", ".join(f"{values}[{i}]" if i < columns * rows else "0" for i in range(16))
+            self.call_stmts += [
+                f"if ({values}.size() == {columns * rows}) {{",
+                "    if (isContextLost())",
+                "        return;",
+                f"    auto sendResult = send(Messages::RemoteGraphicsContextGL::UniformMatrixOne({columns}, {rows}, {location}, {transpose}, {elements}));",
+                "    if (sendResult != IPC::Error::NoError)",
+                "        markContextLost();",
+                "    return;",
+                "}",
+            ]
+        m = re.match(r"uniform([1-4])(f|i|ui)v$", self.name)
+        if m:
+            # One value goes as the message of the call that takes it as scalars, whose arguments decode into no array.
+            count = int(m[1])
+            values = ", ".join(f"{self.args.args[1].name}[{i}]" for i in range(count))
+            self.call_stmts += [
+                f"if ({self.args.args[1].name}.size() == {count}) {{",
+                f"    uniform{m[1]}{m[2]}({self.args.args[0].name}, {values});",
+                "    return;",
+                "}",
+            ]
         self.call_stmts += ["if (isContextLost())"]
         if self.return_type.is_void():
             self.call_stmts += ["    return;"]

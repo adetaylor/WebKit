@@ -225,6 +225,15 @@ extension GLContext {
         }
     }
 
+    // One matrix of columns x rows, the first columns x rows of the values. false for another shape.
+    @_expose(!Cxx)
+    public func uniformMatrix(columns: GLint, rows: GLint, _ location: GLint, _ transpose: GLboolean, _ values: ANGLEFloat16) -> Bool {
+        guard makeContextCurrent() else {
+            return true
+        }
+        return ANGLE.uniformMatrix(columns, rows, location, transpose, values)
+    }
+
     @_expose(!Cxx)
     public func uniformMatrix4fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {

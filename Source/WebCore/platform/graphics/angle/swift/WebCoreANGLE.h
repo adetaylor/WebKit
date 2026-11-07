@@ -395,6 +395,22 @@ struct ANGLE final {
     static void uniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix3fv(location, count, transpose, elements(v, count, 9)); }
     static void uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix4fv(location, count, transpose, elements(v, count, 16)); }
     static void uniformMatrix4fv(GLint location, GLboolean transpose, ANGLEFloat16 matrix) { GL_UniformMatrix4fv(location, 1, transpose, matrix.values); }
+    // One matrix of columns x rows, the first columns x rows values. Returns false for another shape.
+    static bool uniformMatrix(GLint columns, GLint rows, GLint location, GLboolean transpose, const ANGLEFloat16& matrix)
+    {
+        switch (columns * 4 + rows) {
+        case 2 * 4 + 2: GL_UniformMatrix2fv(location, 1, transpose, matrix.values); return true;
+        case 3 * 4 + 3: GL_UniformMatrix3fv(location, 1, transpose, matrix.values); return true;
+        case 4 * 4 + 4: GL_UniformMatrix4fv(location, 1, transpose, matrix.values); return true;
+        case 2 * 4 + 3: GL_UniformMatrix2x3fv(location, 1, transpose, matrix.values); return true;
+        case 3 * 4 + 2: GL_UniformMatrix3x2fv(location, 1, transpose, matrix.values); return true;
+        case 2 * 4 + 4: GL_UniformMatrix2x4fv(location, 1, transpose, matrix.values); return true;
+        case 4 * 4 + 2: GL_UniformMatrix4x2fv(location, 1, transpose, matrix.values); return true;
+        case 3 * 4 + 4: GL_UniformMatrix3x4fv(location, 1, transpose, matrix.values); return true;
+        case 4 * 4 + 3: GL_UniformMatrix4x3fv(location, 1, transpose, matrix.values); return true;
+        default: return false;
+        }
+    }
     static void uniformMatrix2x3fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix2x3fv(location, count, transpose, elements(v, count, 6)); }
     static void uniformMatrix3x2fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix3x2fv(location, count, transpose, elements(v, count, 6)); }
     static void uniformMatrix2x4fv(GLint location, GLsizei count, GLboolean transpose, WebCore::GLLentFloats v) { GL_UniformMatrix2x4fv(location, count, transpose, elements(v, count, 8)); }
