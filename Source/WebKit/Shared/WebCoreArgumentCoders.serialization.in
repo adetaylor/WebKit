@@ -1670,7 +1670,7 @@ header: <WebCore/Page.h>
     int32_t indexInFrame;
 };
 
-enum class WebCore::AlphaPremultiplication : uint8_t {
+[Swift] enum class WebCore::AlphaPremultiplication : uint8_t {
     Premultiplied,
     Unpremultiplied
 };
