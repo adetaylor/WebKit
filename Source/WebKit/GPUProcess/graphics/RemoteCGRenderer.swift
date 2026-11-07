@@ -536,6 +536,29 @@ final class RemoteCGRenderer {
         state.receiveApplyDeviceScaleFactor(scaleFactor)
     }
 
+    // RemoteGraphicsContext's clip handlers. ClipToNativeImage of an image that isn't cached is declined, so that
+    // RemoteGraphicsContext rejects it.
+
+    func clipRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
+        state.receiveClip { context in CGRendererClipToRoundedRect(context, rect) }
+    }
+
+    func clipOutRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
+        guard rect.hasNonZeroRadii() else {
+            state.receiveClipOut(cgRect(WebKit.rectOfRoundedRect(rect)))
+            return
+        }
+        state.receiveClip { context in CGRendererClipOutToRoundedRect(context, rect) }
+    }
+
+    func clipToNativeImage(state: inout CGRendererCore, imageIdentifier: WebCore.RenderingResourceIdentifier, destinationRect: WebCore.FloatRect) -> Bool {
+        guard let image = WebKit.copyNativeImageForClip(resources, imageIdentifier) else {
+            return false
+        }
+        state.receiveClipToNativeImage(image, cgRect(destinationRect))
+        return true
+    }
+
     private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true

@@ -318,7 +318,7 @@ struct CGRendererReceiverTestMessage {
 CGColorRef _Nonnull CGRendererCopyCachedColor(uint32_t packedColor) CF_RETURNS_RETAINED;
 
 // The image of an ImageBuffer ShadowBlur drew a shadow into, as GraphicsContext::drawImageBuffer() and
-// GraphicsContextCG::clipToImageBuffer() take it, and the image's headroom.
+// ShadowBlur clips to it, and the image's headroom.
 CGImageRef _Nullable CGRendererCopyImageBufferImage(WebCore::ImageBuffer&, float& headroom) CF_RETURNS_RETAINED;
 
 // Rects lent to CGRenderer.swift for one call.

@@ -30,6 +30,7 @@
 #include "RemoteCGRendererPath.h"
 #include "RemotePathImplIdentifier.h"
 #include <WebCore/Color.h>
+#include <WebCore/FloatRoundedRect.h>
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/Ref.h>
@@ -86,6 +87,14 @@ inline CGColorRef _Nullable copyColor(const RemoteCGRendererResources& resources
         return nullptr;
     }
     return copyPlatformColor(resources, color, value);
+}
+
+// The image of a ClipToNativeImage.
+CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier) CF_RETURNS_RETAINED;
+
+inline WebCore::FloatRect rectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
+{
+    return rect.rect();
 }
 
 inline uint8_t textDrawingModeValue(WebCore::TextDrawingModeFlags mode)

@@ -441,7 +441,7 @@ extension CGRendererCore: ShadowDrawing {
         let bufferHeight = Float(bufferSize.height())
         let layerRect = CGRendererRect(x: layerOrigin.x(), y: layerOrigin.y(), width: layerSize.width(), height: layerSize.height())
         if bufferWidth != layerSize.width() || bufferHeight != layerSize.height() {
-            // The rect passed to clipToImageBuffer() has to be the size of the entire buffer, but we may not have cleared it
+            // The rect passed to clipToNativeImage() has to be the size of the entire buffer, but we may not have cleared it
             // all, so clip to the filled part first.
             clip(layerRect.cgRect)
         }
@@ -500,13 +500,19 @@ extension CGRendererCore: ShadowDrawing {
         context.setFillColor(platformColor(fill))
     }
 
-    // GraphicsContextCG::clipToImageBuffer(): false for a buffer without an image, which clips nothing.
+    // A clip to the image buffer's image: false for a buffer without an image, which clips nothing.
     @discardableResult
     fileprivate func clipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRendererRect) -> Bool {
         var headroom: Float = 1
         guard let image = CGRendererCopyImageBufferImage(imageBuffer, &headroom) else {
             return false
         }
+        clipToImage(image, rect)
+        return true
+    }
+
+    // GraphicsContextCG::clipToNativeImage().
+    fileprivate func clipToImage(_ image: CGImage, _ rect: CGRendererRect) {
         let size = CGRect(x: 0, y: 0, width: CGFloat(rect.width), height: CGFloat(rect.height))
         context.translateBy(x: CGFloat(rect.x), y: CGFloat(rect.maxY))
         context.scaleBy(x: 1, y: -1)
@@ -514,7 +520,6 @@ extension CGRendererCore: ShadowDrawing {
         context.clip(to: size, mask: image)
         context.scaleBy(x: 1, y: -1)
         context.translateBy(x: CGFloat(-rect.x), y: CGFloat(-rect.maxY))
-        return true
     }
 
     // GraphicsContext::drawImageBuffer() of a piece, with default options but the composite operator, in a save without a
@@ -2781,12 +2786,11 @@ extension CGRendererCore {
         }
     }
 
-    // GraphicsContextCG::clipToImageBuffer() of a buffer that the receiver found.
+    // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveClipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRect) {
-        if clipToImageBuffer(imageBuffer, CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))) {
-            hasDrawn = true
-        }
+    @_spi(WebKitGPU) public mutating func receiveClipToNativeImage(_ image: CGImage, _ rect: CGRect) {
+        clipToImage(image, CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height)))
+        hasDrawn = true
     }
 
     // GraphicsContextCG::fillRect(_:_:) of a color: false for a blurred shadow, which the context draws.

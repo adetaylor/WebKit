@@ -107,6 +107,9 @@ messages -> RemoteCGRenderer Stream {
     FillRectWithColor SwiftMayDecline
     FillCompositedRect SwiftMayDecline
     ApplyDeviceScaleFactor
+    ClipRoundedRect
+    ClipOutRoundedRect
+    ClipToNativeImage SwiftMayDecline
 }
 
 #endif

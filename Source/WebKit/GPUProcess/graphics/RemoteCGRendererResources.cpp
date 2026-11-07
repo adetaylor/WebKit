@@ -104,6 +104,15 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
     return copyImage(*image, facts);
 }
 
+CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
+{
+    RefPtr image = resources.cachedNativeImage(identifier);
+    if (!image)
+        return nullptr;
+    RetainPtr platformImage = image->platformImage();
+    return platformImage.leakRef();
+}
+
 static GraphicsContextCG& targetContext(const RemoteCGRendererResources& resources)
 {
     return static_cast<GraphicsContextCG&>(resources.target().context());
