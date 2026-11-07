@@ -58,33 +58,8 @@ namespace CSSPropertyParserHelpers {
 static_assert(CSS::Positive == CSS::Range { 1, CSS::Range::infinity });
 static_assert(decltype(CSS::GridLineSpan::index)::range == CSS::Positive && decltype(CSS::GridLineExplicit::index)::range == CSS::All);
 
-std::optional<CSS::GridNamedAreaMapRow> consumeUnresolvedGridTemplateAreasRow(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::GridNamedAreaMapRow>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedGridTemplateAreasRow);
-}
-
-std::optional<CSS::GridLine> consumeUnresolvedGridLine(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::GridLine>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedGridLine);
-}
-
-std::optional<CSS::GridLineNames> consumeUnresolvedGridLineNames(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::GridLineNames>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedGridLineNames);
-}
-
-std::optional<CSS::GridTrackList> consumeUnresolvedGridExplicitTrackList(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::GridTrackList>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedGridExplicitTrackList);
-}
-
 // The ranges of the breadths Swift consumes: a fit-content() length and a flex are non-negative.
 static_assert(std::same_as<decltype(CSS::GridFitContentFunctionParameters::value), CSS::LengthPercentage<CSS::Nonnegative>> && CSS::Flex<CSS::Nonnegative>::range == CSS::Nonnegative);
-
-std::optional<CSS::GridTrackSize> consumeUnresolvedGridTrackSize(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::GridTrackSize>(range, state, CSSPropertyConsumerSwiftConsumer::UnresolvedGridTrackSize);
-}
 
 // The range of the repeat() counts Swift consumes, at least 1.
 static_assert(CSS::Integer<CSS::Positive, unsigned>::range == CSS::Range { 1, CSS::Range::infinity });

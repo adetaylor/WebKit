@@ -90,11 +90,6 @@ std::optional<CSS::Position> consumePositionUnresolved(CSSParserTokenRange& rang
     return consumeUnresolvedWithSwift<CSS::Position>(range, state, CSSPropertyConsumerSwiftConsumer::Position);
 }
 
-std::optional<CSS::Position> consumeBackgroundPositionUnresolved(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::Position>(range, state, CSSPropertyConsumerSwiftConsumer::BackgroundPosition);
-}
-
 std::optional<CSS::PositionX> consumePositionXUnresolved(CSSParserTokenRange& range, CSS::PropertyParserState& state)
 {
     return consumeUnresolvedWithSwift<CSS::PositionX>(range, state, CSSPropertyConsumerSwiftConsumer::PositionX);
@@ -103,11 +98,6 @@ std::optional<CSS::PositionX> consumePositionXUnresolved(CSSParserTokenRange& ra
 std::optional<CSS::PositionY> consumePositionYUnresolved(CSSParserTokenRange& range, CSS::PropertyParserState& state)
 {
     return consumeUnresolvedWithSwift<CSS::PositionY>(range, state, CSSPropertyConsumerSwiftConsumer::PositionY);
-}
-
-std::optional<CSS::Position> consumeOneOrTwoComponentPositionUnresolved(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::Position>(range, state, CSSPropertyConsumerSwiftConsumer::OneOrTwoComponentPosition);
 }
 
 std::optional<CSS::TwoComponentPositionHorizontal> consumeTwoComponentPositionHorizontalUnresolved(CSSParserTokenRange& range, CSS::PropertyParserState& state)

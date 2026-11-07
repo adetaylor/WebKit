@@ -362,6 +362,7 @@ enum : uint32_t {
     CSSConsumerSwiftLegacyFontFaceAttributeMode = 1 << 5,
     CSSConsumerSwiftFontPaletteMixFunctionEnabled = 1 << 6,
     CSSConsumerSwiftMeshGradientsEnabled = 1 << 7,
+    CSSConsumerSwiftFreeformGradientsEnabled = 1 << 8,
 };
 uint32_t consumerContextForSwift(const CSSPropertyConsumerSwiftValue&);
 
@@ -488,7 +489,8 @@ enum : uint16_t {
 // `parts`, and each other color is a point's, whose component is its header (a symbol, CSSMeshGradientSwift bits); an
 // absolute location follows it as a position (its layout as a symbol, then its four components), a relative one as a
 // coordinate pair (two components), then its control points, each a position, or a coordinate pair and its anchor
-// (origin as a symbol, or absent), then one absent component.
+// (origin as a symbol, or absent), then one absent component. Each color of freeform-gradient() is a stop's, whose
+// component is its weight or absent, followed by its position (its layout as a symbol, then its four components).
 Ref<CSSValue> makeImageValue(const CSSPropertyConsumerSwiftValue&, uint16_t function, const CSSColorSwiftComponents& line, const CSSColorSwiftComponents& position, uint16_t positionLayout, CSSImageSwiftParts&&);
 // The image of the string or url() among the tokens [start, end), as consumeImage and consumeURLRaw make it.
 RefPtr<CSSValue> makeImageURLValue(const CSSPropertyConsumerSwiftValue&, uint32_t start, uint32_t end);
@@ -861,5 +863,14 @@ template<typename T> std::optional<T> consumeUnresolvedWithSwift(CSSParserTokenR
     consumePropertyWithSwift(range, state, consumer, options, &unresolvedResult);
     return result;
 }
+
+// Adds to `sink` the five longhands of the border-image in `parts`, with `options`, as setBorderResult reads them.
+void addBorderImageLonghandsForSwift(const CSSPropertyConsumerSwiftShorthandSink&, uint8_t options, CSSImageSwiftParts&&);
+
+// The <length-percentage> of a position's axis, which Swift cannot name as a template.
+using CSSPositionSwiftLengthPercentage = CSS::LengthPercentage<>;
+
+// Defined in CSSPropertyParserSwift.cpp, which calls the Swift; CSSPropertyParser.cpp calls it.
+std::pair<RefPtr<CSSValue>, CSSCustomPropertySyntax::Type> consumeCustomPropertyValueWithSyntax(CSSParserTokenRange&, CSS::PropertyParserState&, const CSSCustomPropertySyntax&);
 
 } // namespace WebCore
