@@ -191,9 +191,9 @@ public:
         RELEASE_ASSERT(!m_viewCount);
     }
 
+    // Not checked for the thread, which views are only made, copied and destroyed on.
     T& get() const
     {
-        RELEASE_ASSERT(Thread::currentSingleton().uid() == m_threadUID);
         RELEASE_ASSERT(m_object);
         return *m_object;
     }
