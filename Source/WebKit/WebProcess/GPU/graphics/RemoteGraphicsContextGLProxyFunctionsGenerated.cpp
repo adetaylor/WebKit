@@ -683,8 +683,11 @@ void RemoteGraphicsContextGLProxy::getIntegeri_v(GCGLenum pname, GCGLuint index,
         markContextLost();
         return;
     }
-    auto& [valueReply] = sendResult.reply();
-    memcpySpan(value, valueReply);
+    auto& [value0Reply, value1Reply, value2Reply, value3Reply] = sendResult.reply();
+    value[0] = value0Reply;
+    value[1] = value1Reply;
+    value[2] = value2Reply;
+    value[3] = value3Reply;
 }
 
 GCGLint64 RemoteGraphicsContextGLProxy::getInteger64(GCGLenum pname)
@@ -813,8 +816,9 @@ void RemoteGraphicsContextGLProxy::getShaderPrecisionFormat(GCGLenum shaderType,
         markContextLost();
         return;
     }
-    auto& [rangeReply, precisionReply] = sendResult.reply();
-    memcpySpan(range, rangeReply);
+    auto& [range0Reply, range1Reply, precisionReply] = sendResult.reply();
+    range[0] = range0Reply;
+    range[1] = range1Reply;
     if (precision)
         *precision = precisionReply;
 }
@@ -1421,7 +1425,7 @@ void RemoteGraphicsContextGLProxy::vertexAttrib1fv(GCGLuint index, std::span<con
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib1fv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib1fv(index, values[0]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1443,7 +1447,7 @@ void RemoteGraphicsContextGLProxy::vertexAttrib2fv(GCGLuint index, std::span<con
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib2fv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib2fv(index, values[0], values[1]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1465,7 +1469,7 @@ void RemoteGraphicsContextGLProxy::vertexAttrib3fv(GCGLuint index, std::span<con
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib3fv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib3fv(index, values[0], values[1], values[2]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1487,7 +1491,7 @@ void RemoteGraphicsContextGLProxy::vertexAttrib4fv(GCGLuint index, std::span<con
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib4fv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttrib4fv(index, values[0], values[1], values[2], values[3]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2087,7 +2091,7 @@ void RemoteGraphicsContextGLProxy::vertexAttribI4iv(GCGLuint index, std::span<co
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttribI4iv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttribI4iv(index, values[0], values[1], values[2], values[3]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2109,7 +2113,7 @@ void RemoteGraphicsContextGLProxy::vertexAttribI4uiv(GCGLuint index, std::span<c
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttribI4uiv(index, values));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::VertexAttribI4uiv(index, values[0], values[1], values[2], values[3]));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;

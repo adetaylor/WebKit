@@ -1,0 +1,86 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test the GPU process's Swift receiver of WebGL calls and its C++ receiver on the same stream.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="../resources/ipc.js"></script>
+<body>
+<script>
+const ARRAY_BUFFER = 0x8892;
+const STATIC_DRAW = 0x88E4;
+const VERSION = 0x1F02;
+const VERTEX_SHADER = 0x8B31;
+const HIGH_FLOAT = 0x8DF2;
+const UNIFORM_BUFFER_BINDING = 0x8A28;
+
+function bytesArgument(bytes)
+{
+    return { type: 'Vector', value: Array.from(bytes, value => [{ type: 'uint8_t', value }]) };
+}
+
+function replyBytes(argument)
+{
+    // The reply's buffer, from the element count on.
+    return Array.from(new Uint8Array(argument, 8));
+}
+
+promise_test(async () => {
+    if (!window.IPC)
+        return;
+    const { CoreIPC, StreamConnection } = await import('./coreipc.js');
+    const renderingBackendIdentifier = randomIPCID();
+    const backendConnection = CoreIPC.newStreamConnection();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier, connectionHandle: backendConnection });
+
+    const identifier = randomIPCID();
+    // The context is made on the GPU process's WebGL work queue before it takes messages, so the synchronous ones wait
+    // longer than CoreIPC's streams do.
+    const [glStream, glHandle] = IPC.createStreamClientConnection(14, 5);
+    glStream.open();
+    const glConnection = Object.assign(Object.create(StreamConnection.prototype), { connection: glStream, handle: glHandle });
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateGraphicsContextGL(0, {
+        identifier,
+        attributes: { alpha: true, premultipliedAlpha: true, powerPreference: 0, isWebGL2: true, supportWebGLDraftExtensions: false, windowGPUID: 0, failContextCreationForTesting: 0 },
+        renderingBackendIdentifier,
+        serverConnection: glConnection,
+    });
+    const stream = glConnection.connection;
+    // The test takes the messages that the GPU process sends back on the stream, as the IPC testing API requires.
+    assert_true(!!stream.waitForMessage(identifier, IPC.messages.RemoteGraphicsContextGLProxy_WasCreated.name, 5), 'WasCreated');
+    const send = (name, args) => stream.sendMessage(identifier, IPC.messages[name].name, args);
+    const sendSync = (name, args) => stream.sendSyncMessage(identifier, IPC.messages[name].name, args);
+
+    const buffer = 5;
+    send('RemoteGraphicsContextGL_CreateBuffer', [{ type: 'uint32_t', value: buffer }]);
+    send('RemoteGraphicsContextGL_BindBuffer', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint32_t', value: buffer }]);
+    assert_true(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: buffer }]).arguments[0].value, 'IsBuffer of a created buffer');
+
+    for (const size of [16, 100000]) {
+        const bytes = Array.from({ length: size }, (_, index) => (index * 13 + size) & 0xFF);
+        send('RemoteGraphicsContextGL_BufferData1', [{ type: 'uint32_t', value: ARRAY_BUFFER }, bytesArgument(bytes), { type: 'uint32_t', value: STATIC_DRAW }]);
+        assert_true(!!stream.waitForMessage(identifier, IPC.messages.RemoteGraphicsContextGLProxy_MemoryCostChanged.name, 5), `MemoryCostChanged after a ${size}-byte upload`);
+        const readSize = Math.min(size, 65536);
+        const reply = sendSync('RemoteGraphicsContextGLResources_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 0 }, { type: 'uint64_t', value: readSize }]);
+        assert_array_equals(replyBytes(reply.arguments[0]), bytes.slice(0, readSize), `the data of a ${size}-byte upload`);
+    }
+    const subBytes = [1, 2, 3, 4];
+    send('RemoteGraphicsContextGL_BufferSubData', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, bytesArgument(subBytes)]);
+    const subReply = sendSync('RemoteGraphicsContextGLResources_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, { type: 'uint64_t', value: 4 }]);
+    assert_array_equals(replyBytes(subReply.arguments[0]), subBytes, 'BufferSubData');
+
+    const version = replyBytes(sendSync('RemoteGraphicsContextGL_GetString', [{ type: 'uint32_t', value: VERSION }]).arguments[0]);
+    assert_true(String.fromCharCode(...version).startsWith('OpenGL ES 3'), 'GetString(VERSION)');
+
+    const precision = sendSync('RemoteGraphicsContextGL_GetShaderPrecisionFormat', [{ type: 'uint32_t', value: VERTEX_SHADER }, { type: 'uint32_t', value: HIGH_FLOAT }]).arguments.map(argument => argument.value);
+    assert_array_equals(precision, [127, 127, 23], 'GetShaderPrecisionFormat(VERTEX_SHADER, HIGH_FLOAT)');
+
+    const binding = sendSync('RemoteGraphicsContextGL_GetIntegeri_v', [{ type: 'uint32_t', value: UNIFORM_BUFFER_BINDING }, { type: 'uint32_t', value: 0 }]).arguments.map(argument => argument.value);
+    assert_array_equals(binding, [0, 0, 0, 0], 'GetIntegeri_v(UNIFORM_BUFFER_BINDING, 0)');
+
+    send('RemoteGraphicsContextGL_DeleteBuffer', [{ type: 'uint32_t', value: buffer }]);
+    assert_false(sendSync('RemoteGraphicsContextGL_IsBuffer', [{ type: 'uint32_t', value: buffer }]).arguments[0].value, 'IsBuffer of a deleted buffer');
+    assert_equals(sendSync('RemoteGraphicsContextGL_GetErrors', []).arguments[0].value, 0, 'GetErrors');
+
+    glConnection.connection.invalidate();
+    backendConnection.connection.invalidate();
+}, 'RemoteGraphicsContextGL and RemoteGraphicsContextGLResources take a context\'s messages in order');
+</script>

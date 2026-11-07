@@ -151,7 +151,7 @@ bool RemoteGraphicsContextGLProxy::enableExtension(GCGLExtension extension)
         return false;
     m_knownActiveExtensions.add(extension);
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::EnsureExtensionEnabled(extension));
+        auto sendResult = send(Messages::RemoteGraphicsContextGL::EnsureExtensionEnabled(std::to_underlying(extension)));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -330,8 +330,14 @@ GCGLErrorCodeSet RemoteGraphicsContextGLProxy::getErrors()
         auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::GetErrors());
         if (!sendResult.succeeded())
             markContextLost();
-        auto [returnValue] = sendResult.takeReplyOr(GCGLErrorCodeSet { });
-        return returnValue;
+        auto [returnValue] = sendResult.takeReplyOr(0);
+        // The reply is the error set's bits, which the IPC decoder used to check.
+        auto errors = GCGLErrorCodeSet::fromRaw(returnValue);
+        if (!isValidOptionSet(errors)) {
+            markContextLost();
+            return { };
+        }
+        return errors;
     }
     return { };
 }

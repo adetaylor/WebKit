@@ -1033,6 +1033,8 @@ if (APPLE)
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp
+        GPUProcess/graphics/RemoteGraphicsContextGLResources.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapterMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp
@@ -1725,10 +1727,14 @@ endif ()
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRenderer.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGL.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLFunctionsGenerated.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift
     )
 endif ()
 

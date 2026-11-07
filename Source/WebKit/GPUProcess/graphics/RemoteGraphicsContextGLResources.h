@@ -30,7 +30,6 @@
 #include "Connection.h"
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
-#include "RemoteGraphicsContextGL.h"
 #include "RemoteGraphicsContextGLIdentifier.h"
 #include "RemoteNativeImageIdentifier.h"
 #include "RemoteRenderingBackend.h"
@@ -80,6 +79,7 @@ namespace WebKit {
 #if ENABLE(VIDEO)
 class RemoteVideoFrameObjectHeapHandle;
 #endif
+class RemoteGraphicsContextGL;
 
 IPC::StreamConnectionWorkQueue& remoteGraphicsContextGLStreamWorkQueueSingleton();
 
@@ -167,10 +167,10 @@ protected:
 #include "RemoteGraphicsContextGLResourcesFunctionsGenerated.h" // NOLINT
 
     // The GL names of the web process's object names, which RemoteGraphicsContextGL keeps.
-    bool isValidObjectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue()) { return m_glReceiver->isValidObjectName(name); }
-    uint32_t objectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue()) { return m_glReceiver->objectName(name); }
-    uint32_t takeObjectName(uint32_t name) WTF_REQUIRES_CAPABILITY(workQueue()) { return m_glReceiver->takeObjectName(name); }
-    void addObjectName(uint32_t name, uint32_t object) WTF_REQUIRES_CAPABILITY(workQueue()) { m_glReceiver->addObjectName(name, object); }
+    bool isValidObjectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue());
+    uint32_t objectName(uint32_t name) const WTF_REQUIRES_CAPABILITY(workQueue());
+    uint32_t takeObjectName(uint32_t name) WTF_REQUIRES_CAPABILITY(workQueue());
+    void addObjectName(uint32_t name, uint32_t object) WTF_REQUIRES_CAPABILITY(workQueue());
 
 private:
     void updateMemoryCost();
@@ -193,7 +193,8 @@ protected:
 #endif
     ScopedWebGLRenderingResourcesRequest m_renderingResourcesRequest;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-    RefPtr<RemoteGraphicsContextGL> m_glReceiver WTF_GUARDED_BY_CAPABILITY(workQueue());
+    // Receives the GL calls. Its forwarder, which the stream connection holds while it receives them, keeps it alive too.
+    std::unique_ptr<RemoteGraphicsContextGL> m_glReceiver WTF_GUARDED_BY_CAPABILITY(workQueue());
     std::optional<uint64_t> m_estimatedMemoryCost WTF_GUARDED_BY_CAPABILITY(workQueue());
     bool m_memoryCostUpdateScheduled WTF_GUARDED_BY_CAPABILITY(workQueue()) { false };
 };

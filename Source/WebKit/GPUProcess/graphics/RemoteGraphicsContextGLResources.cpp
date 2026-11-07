@@ -32,10 +32,12 @@
 #include "Logging.h"
 #include "RemoteGraphicsContextGLInitializationState.h"
 #include "RemoteGraphicsContextGLMessages.h"
+#include "RemoteGraphicsContextGLUploads.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
 #include "RemoteGraphicsContextGLProxyMessages.h"
 #include "RemoteSharedResourceCache.h"
 #include "StreamConnectionWorkQueue.h"
+#include "WebKit-Swift.h"
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/NotImplemented.h>
@@ -165,12 +167,36 @@ void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsCont
             initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
         }
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }));
-        Ref glReceiver = RemoteGraphicsContextGL::create(m_connection, m_workQueue, *context, m_sharedPreferencesForWebProcess);
-        m_glReceiver = glReceiver.copyRef();
-        m_connection->startReceivingMessages(glReceiver, Messages::RemoteGraphicsContextGL::messageReceiverName(), m_identifier.toUInt64());
+        Ref uploads = RemoteGraphicsContextGLUploads::create(*context);
+        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandHandoff(), uploads.ptr()));
+        Ref glForwarder = m_glReceiver->getMessageReceiver();
+        glForwarder->setSharedPreferencesProvider([sharedPreferences = m_sharedPreferencesForWebProcess] {
+            return std::optional { sharedPreferences };
+        });
+        m_connection->startReceivingMessages(glForwarder, Messages::RemoteGraphicsContextGL::messageReceiverName(), m_identifier.toUInt64());
         m_connection->startReceivingMessages(*this, Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
     } else
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated(std::nullopt));
+}
+
+bool RemoteGraphicsContextGLResources::isValidObjectName(uint32_t name) const
+{
+    return m_glReceiver->isValidObjectName(name);
+}
+
+uint32_t RemoteGraphicsContextGLResources::objectName(uint32_t name) const
+{
+    return m_glReceiver->objectName(name);
+}
+
+uint32_t RemoteGraphicsContextGLResources::takeObjectName(uint32_t name)
+{
+    return m_glReceiver->takeObjectName(name);
+}
+
+void RemoteGraphicsContextGLResources::addObjectName(uint32_t name, uint32_t object)
+{
+    m_glReceiver->addObjectName(name, object);
 }
 
 void RemoteGraphicsContextGLResources::workQueueUninitialize()

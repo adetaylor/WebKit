@@ -197,7 +197,7 @@ namespace WebKit {{
 # need C++ objects, or their replies have no Swift form. With swift_gl_receiver, RemoteGraphicsContextGL is a Swift
 # receiver that calls the WebGL island.
 split_receivers = True
-swift_gl_receiver = False
+swift_gl_receiver = True
 
 # Generated functions whose messages go to RemoteGraphicsContextGLResources, besides the WebXR ones.
 resources_func_names = set(["activeAttribs", "activeUniforms", "getTransformFeedbackVarying", "readPixelsBufferObject"])
