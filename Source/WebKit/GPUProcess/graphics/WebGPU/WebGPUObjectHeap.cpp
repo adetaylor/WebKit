@@ -29,7 +29,6 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteGPU.h"
-#include "RemoteXRView.h"
 #include "WebKit-Swift.h"
 #include <wtf/TZoneMallocInlines.h>
 
@@ -64,12 +63,6 @@ WebGPUImplTable& ObjectHeap::swiftImplTable()
 {
     RELEASE_ASSERT(m_swiftImplTable);
     return *m_swiftImplTable;
-}
-
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRView& view)
-{
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteXRView> { protect(view) } });
-    ASSERT_UNUSED(result, result.isNewEntry);
 }
 
 std::optional<RemoteGPURequestAdapterResponse> ObjectHeap::requestAdapter(const ::WebGPU::RequestAdapterOptions& options, WebGPUIdentifier identifier)

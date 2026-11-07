@@ -394,6 +394,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRSubImageMessageReceiver.
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRSubImageMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRSubImageMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRViewMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRViewMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteXRViewMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/SampleBufferDisplayLayerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/SampleBufferDisplayLayerMessages.h

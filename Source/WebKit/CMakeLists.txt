@@ -1062,6 +1062,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRBindingMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImageMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRViewMessageReceiver.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
@@ -1767,6 +1768,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRBindingMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRProjectionLayerMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRSubImageMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRViewMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapter.swift
@@ -1795,6 +1797,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRBinding.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImage.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRView.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteAdapterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
@@ -1821,6 +1824,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRBindingMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRProjectionLayerMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRSubImageMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRViewMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.swift
     )
 endif ()

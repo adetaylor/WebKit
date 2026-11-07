@@ -49,7 +49,6 @@ namespace WebKit {
 class WebGPUImplTable;
 #endif
 class RemoteGPU;
-class RemoteXRView;
 }
 
 namespace WebKit::WebGPU {
@@ -65,7 +64,6 @@ public:
 
     ~ObjectHeap();
 
-    void addObject(WebGPUIdentifier, RemoteXRView&);
     // The Swift registry, which owns the objects of the other kinds, makes adapters and canvas contexts for RemoteGPU.
     std::optional<RemoteGPURequestAdapterResponse> requestAdapter(const ::WebGPU::RequestAdapterOptions&, WebGPUIdentifier);
     void addCompositorIntegration(WebGPUIdentifier);
@@ -124,8 +122,7 @@ private:
     ObjectHeap();
 
     using Object = Variant<
-        std::monostate,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteXRView>
+        std::monostate
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;

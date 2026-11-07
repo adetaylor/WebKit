@@ -2953,9 +2953,11 @@
 		50749696CA9B4EB5A41421E6 /* RemoteXRBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF84F849A4AE43E387DD4623 /* RemoteXRBinding.swift */; };
 		C7449424B87745819FFDF8F4 /* RemoteXRProjectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2AC636F24A4AD4B57FAB2C /* RemoteXRProjectionLayer.swift */; };
 		8ACAA5B13F8B4B1286A06B1C /* RemoteXRSubImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A3E733D1E646C4B179A67C /* RemoteXRSubImage.swift */; };
+		EB57C99445F845F5B0BE21C5 /* RemoteXRView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D08DC1CF64B4F91A711B60A /* RemoteXRView.swift */; };
 		6E172589DB59497E9E8A225B /* RemoteXRBindingMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4403DDC52FF46278F0CFA80 /* RemoteXRBindingMessageReceiver.swift */; };
 		B8D8E30207CE43A8B37A4F70 /* RemoteXRProjectionLayerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9B363648304F878E2D8D7B /* RemoteXRProjectionLayerMessageReceiver.swift */; };
 		1FF4AA60F957403FB37DD314 /* RemoteXRSubImageMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51456B1663D34E5D8BAC139F /* RemoteXRSubImageMessageReceiver.swift */; };
+		D0BCC1BF4CC341B99CD2C0EA /* RemoteXRViewMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E976BCF61CF3425C8FA25BEE /* RemoteXRViewMessageReceiver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -3838,8 +3840,6 @@
 		0D653B382F3453C40022454D /* ModelTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ModelTypes.h; sourceTree = "<group>"; };
 		0D653B392F3453C40022454D /* ModelUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelUtils.swift; sourceTree = "<group>"; };
 		0D653B3A2F3453C40022454D /* USDModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = USDModel.swift; sourceTree = "<group>"; };
-		0D6D0AA32C6AD99B0073F63D /* RemoteXRView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteXRView.h; sourceTree = "<group>"; };
-		0D6D0AA42C6AD99B0073F63D /* RemoteXRView.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteXRView.cpp; sourceTree = "<group>"; };
 		0D6D0AA52C6AD99B0073F63D /* RemoteXRView.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteXRView.messages.in; sourceTree = "<group>"; };
 		0D6D0AB02C6BA0B10073F63D /* RemoteXRViewProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteXRViewProxy.h; sourceTree = "<group>"; };
 		0D6D0AB12C6BA0B10073F63D /* RemoteXRViewProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteXRViewProxy.cpp; sourceTree = "<group>"; };
@@ -9612,9 +9612,11 @@
 		AF84F849A4AE43E387DD4623 /* RemoteXRBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRBinding.swift; sourceTree = "<group>"; };
 		2C2AC636F24A4AD4B57FAB2C /* RemoteXRProjectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRProjectionLayer.swift; sourceTree = "<group>"; };
 		66A3E733D1E646C4B179A67C /* RemoteXRSubImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRSubImage.swift; sourceTree = "<group>"; };
+		9D08DC1CF64B4F91A711B60A /* RemoteXRView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRView.swift; sourceTree = "<group>"; };
 		B4403DDC52FF46278F0CFA80 /* RemoteXRBindingMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRBindingMessageReceiver.swift; sourceTree = "<group>"; };
 		9D9B363648304F878E2D8D7B /* RemoteXRProjectionLayerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRProjectionLayerMessageReceiver.swift; sourceTree = "<group>"; };
 		51456B1663D34E5D8BAC139F /* RemoteXRSubImageMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRSubImageMessageReceiver.swift; sourceTree = "<group>"; };
+		E976BCF61CF3425C8FA25BEE /* RemoteXRViewMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRViewMessageReceiver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -11710,9 +11712,8 @@
 				2C2AC636F24A4AD4B57FAB2C /* RemoteXRProjectionLayer.swift */,
 				0D943C082C6555DB00D33BA5 /* RemoteXRSubImage.messages.in */,
 				66A3E733D1E646C4B179A67C /* RemoteXRSubImage.swift */,
-				0D6D0AA42C6AD99B0073F63D /* RemoteXRView.cpp */,
-				0D6D0AA32C6AD99B0073F63D /* RemoteXRView.h */,
 				0D6D0AA52C6AD99B0073F63D /* RemoteXRView.messages.in */,
+				9D08DC1CF64B4F91A711B60A /* RemoteXRView.swift */,
 				1CBD753C2747AA31004FA0FF /* WebGPUObjectHeap.cpp */,
 				1CBD753D2747AA31004FA0FF /* WebGPUObjectHeap.h */,
 				4619C7CCD9E98B118E40FEA7 /* WebGPUSwiftSupport.cpp */,
@@ -14150,6 +14151,7 @@
 				B4403DDC52FF46278F0CFA80 /* RemoteXRBindingMessageReceiver.swift */,
 				9D9B363648304F878E2D8D7B /* RemoteXRProjectionLayerMessageReceiver.swift */,
 				51456B1663D34E5D8BAC139F /* RemoteXRSubImageMessageReceiver.swift */,
+				E976BCF61CF3425C8FA25BEE /* RemoteXRViewMessageReceiver.swift */,
 				E18E6913169B667B009B6670 /* SecItemShimProxyMessageReceiver.cpp */,
 				E18E6914169B667B009B6670 /* SecItemShimProxyMessages.h */,
 				51AD56882B1ABFC1001A0ECB /* SerializedTypeInfo.mm */,
@@ -22766,6 +22768,8 @@
 				B8D8E30207CE43A8B37A4F70 /* RemoteXRProjectionLayerMessageReceiver.swift in Sources */,
 				8ACAA5B13F8B4B1286A06B1C /* RemoteXRSubImage.swift in Sources */,
 				1FF4AA60F957403FB37DD314 /* RemoteXRSubImageMessageReceiver.swift in Sources */,
+				EB57C99445F845F5B0BE21C5 /* RemoteXRView.swift in Sources */,
+				D0BCC1BF4CC341B99CD2C0EA /* RemoteXRViewMessageReceiver.swift in Sources */,
 				0738ABBD304BD9CA00987FFB /* RunJavaScriptParameters.swift in Sources */,
 				0782B70C304680930011880F /* RunJavaScriptResult.swift in Sources */,
 				7BCF70DE2615D06E00E4FB70 /* ScopedRenderingResourcesRequestCocoa.mm in Sources */,

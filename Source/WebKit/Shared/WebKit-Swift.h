@@ -127,6 +127,7 @@
 #include "RemoteXRBindingMessages.h"
 #include "RemoteXRProjectionLayerMessages.h"
 #include "RemoteXRSubImageMessages.h"
+#include "RemoteXRViewMessages.h"
 #include "WebGPUSwiftSupport.h"
 #endif
 

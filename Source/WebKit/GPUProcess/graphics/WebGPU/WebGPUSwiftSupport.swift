@@ -432,6 +432,12 @@ final class WebGPUImplTable {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
+    // A WebXR view has no object of its own, so its receiver is its entry's object too.
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, view receiver: AnyObject, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(receiver, receiver, registration, nil))
+    }
+
     // The object with that identifier, if there is one of that type.
     @_expose(!Cxx)
     func object(_ identifier: IPCTypes.WebGPUIdentifier, as: BindGroupReference.Type) -> BindGroupReference? {
