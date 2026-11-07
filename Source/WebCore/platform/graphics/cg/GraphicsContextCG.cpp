@@ -420,6 +420,11 @@ bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverT
     return true;
 }
 
+RefPtr<NativeImage> GraphicsContextCG::nativeImageForSwiftReceiver(ImageBuffer& imageBuffer)
+{
+    return nativeImageForDrawing(imageBuffer);
+}
+
 unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const
 {
     return SWIFT_RENDERER(savedLevelCount());

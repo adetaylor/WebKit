@@ -194,7 +194,7 @@ public:
     // The path is FillPath's, StrokePath's or DrawPath's; the image DrawNativeImage's or DrawPattern's.
     WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr, CGImageRef = nullptr) __attribute__((availability(swift, unavailable)));
     // The image of an image buffer that this draws (nativeImageForDrawing()), for a Swift receiver's draw of one.
-    RefPtr<NativeImage> nativeImageForSwiftReceiver(ImageBuffer& imageBuffer) __attribute__((availability(swift, unavailable))) { return nativeImageForDrawing(imageBuffer); }
+    WEBCORE_EXPORT RefPtr<NativeImage> nativeImageForSwiftReceiver(ImageBuffer&) __attribute__((availability(swift, unavailable)));
     // Testing only: the renderer's saved levels, which include those only a Swift receiver saved.
     WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));
