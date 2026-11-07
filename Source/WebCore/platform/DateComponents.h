@@ -35,6 +35,8 @@
 #include <unicode/utypes.h>
 #include <wtf/Forward.h>
 
+#include <wtf/SwiftBridging.h>
+
 namespace WebCore {
 
 enum class SecondFormat : uint8_t {
@@ -51,6 +53,8 @@ enum class DateComponentsType : uint8_t {
     Time,
     Week,
 };
+
+class SWIFT_PRIVATE_FILEID("WebCore/DateComponents.swift") DateComponents;
 
 // A DateComponents instance represents one of the following date and time combinations:
 // * Month type: year-month
@@ -147,51 +151,6 @@ public:
     static constexpr inline int maximumYear() { return 275760; }
 
 private:
-    template<typename CharacterType> NODELETE bool parseYear(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> bool parseTimeZone(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> NODELETE bool parseMonth(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> NODELETE bool parseDate(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> NODELETE bool parseWeek(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> NODELETE bool parseTime(StringParsingBuffer<CharacterType>&);
-    template<typename CharacterType> NODELETE bool parseDateTimeLocal(StringParsingBuffer<CharacterType>&);
-
-    // The following setMillisecondsSinceEpochFor*() functions take
-    // the number of milliseconds since 1970-01-01 00:00:00.000 UTC as
-    // the argument, and update all fields for the corresponding
-    // DateComponents type. The functions return true if it succeeds, and
-    // false if they fail.
-    bool setMillisecondsSinceEpochForDate(double);
-    bool setMillisecondsSinceEpochForDateTimeLocal(double);
-    bool setMillisecondsSinceEpochForMonth(double);
-    bool setMillisecondsSinceEpochForWeek(double);
-    bool setMillisecondsSinceMidnight(double);
-    bool setMonthsSinceEpoch(double);
-    bool setMillisecondsSinceEpochForDateInternal(double);
-    void setMillisecondsSinceMidnightInternal(double);
-
-    // Returns the maximum week number in this DateComponents's year.
-    // The result is either of 52 and 53.
-    NODELETE int maxWeekNumberInYear() const;
-
-    NODELETE bool addDay(int);
-    NODELETE bool addMinute(int);
-
-    // Helper for millisecondsSinceEpoch().
-    NODELETE double millisecondsSinceEpochForTime() const;
-
-    // Helper for toString().
-    String toStringForTime(SecondFormat) const;
-
-    // m_weekDay values
-    enum {
-        Sunday = 0,
-        Monday,
-        Tuesday,
-        Wednesday,
-        Thursday,
-        Friday,
-        Saturday,
-    };
 
     int m_millisecond; // 0 - 999
     int m_second;

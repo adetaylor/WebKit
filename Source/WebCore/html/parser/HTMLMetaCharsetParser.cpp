@@ -32,6 +32,9 @@
 #include <pal/text/TextEncodingRegistry.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(HTMLMetaCharsetParser);
@@ -41,52 +44,6 @@ using namespace HTMLNames;
 HTMLMetaCharsetParser::HTMLMetaCharsetParser()
     : m_codec(newTextCodec(PAL::Latin1Encoding()))
 {
-}
-
-static StringView extractCharset(StringView value)
-{
-    unsigned length = value.length();
-    for (size_t pos = 0; pos < length; ) {
-        pos = value.findIgnoringASCIICase("charset"_s, pos);
-        if (pos == notFound)
-            break;
-
-        static const size_t charsetLength = sizeof("charset") - 1;
-        pos += charsetLength;
-
-        // Skip whitespace.
-        while (pos < length && value[pos] <= ' ')
-            ++pos;
-
-        // Ensure we're in bounds before checking for '='.
-        if (pos >= length)
-            break;
-
-        if (value[pos] != '=')
-            continue;
-
-        ++pos;
-
-        while (pos < length && value[pos] <= ' ')
-            ++pos;
-
-        char16_t quoteMark = 0;
-        if (pos < length && (value[pos] == '"' || value[pos] == '\''))
-            quoteMark = value[pos++];
-
-        if (pos == length)
-            break;
-
-        unsigned end = pos;
-        while (end < length && ((quoteMark && value[end] != quoteMark) || (!quoteMark && value[end] > ' ' && value[end] != '"' && value[end] != '\'' && value[end] != ';')))
-            ++end;
-
-        if (quoteMark && (end == length))
-            break; // Close quote not found.
-
-        return value.substring(pos, end - pos);
-    }
-    return { };
 }
 
 bool HTMLMetaCharsetParser::processMeta(HTMLToken& token)
@@ -100,33 +57,19 @@ bool HTMLMetaCharsetParser::processMeta(HTMLToken& token)
 
 PAL::TextEncoding HTMLMetaCharsetParser::encodingFromMetaAttributes(std::span<const std::pair<StringView, StringView>> attributes)
 {
-    bool gotPragma = false;
-    enum { None, Charset, Pragma } mode = None;
-    StringView charset;
-
-    for (auto& attribute : attributes) {
-        auto& attributeName = attribute.first;
-        auto& attributeValue = attribute.second;
-
-        if (attributeName == "http-equiv"_s) {
-            if (equalLettersIgnoringASCIICase(attributeValue, "content-type"_s))
-                gotPragma = true;
-        } else if (attributeName == "charset"_s) {
-            charset = attributeValue;
-            mode = Charset;
-            // Charset attribute takes precedence
+    HTMLMicrosyntaxMetaCharsetScan scan { };
+    for (unsigned index = 0; index < attributes.size(); ++index) {
+        auto& [name, value] = attributes[index];
+        bool continues = name.is8Bit()
+            ? (value.is8Bit() ? htmlMicrosyntaxScanMetaCharsetAttributeName8Value8(scan, index, name.span8(), value.span8()) : htmlMicrosyntaxScanMetaCharsetAttributeName8Value16(scan, index, name.span8(), value.span16()))
+            : (value.is8Bit() ? htmlMicrosyntaxScanMetaCharsetAttributeName16Value8(scan, index, name.span16(), value.span8()) : htmlMicrosyntaxScanMetaCharsetAttributeName16Value16(scan, index, name.span16(), value.span16()));
+        if (!continues)
             break;
-        } else if (attributeName == "content"_s) {
-            charset = extractCharset(attributeValue);
-            if (charset.length())
-                mode = Pragma;
-        }
     }
-
-    if (mode == Charset || (mode == Pragma && gotPragma))
-        return charset.trim(isASCIIWhitespace<char16_t>);
-
-    return PAL::TextEncoding();
+    if (!scan.hasEncoding)
+        return PAL::TextEncoding();
+    RELEASE_ASSERT(scan.attribute < attributes.size());
+    return attributes[scan.attribute].second.substring(scan.start, scan.length);
 }
 
 bool HTMLMetaCharsetParser::checkForMetaCharset(std::span<const uint8_t> data)
