@@ -28,7 +28,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.ShaderModule
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 private let defaultRenderPipelineSampleMask = UInt32.max
 

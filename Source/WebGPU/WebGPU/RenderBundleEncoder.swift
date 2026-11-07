@@ -32,7 +32,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 private let maxCommandCount: UInt64 = 0x4000
 private let defaultSampleMask = UInt32.max

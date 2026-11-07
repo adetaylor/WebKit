@@ -25,7 +25,10 @@ import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 // Forces command replay, for debugging.
 private let alwaysUseICBReplay = false

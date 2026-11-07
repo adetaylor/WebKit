@@ -29,7 +29,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.Texture
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpucanvasconfiguration, with the canvas's size.
 @_spi(WebKitGPU)

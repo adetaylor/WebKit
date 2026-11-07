@@ -31,7 +31,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.RenderPassEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.Texture
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 // MARK: Indirect draws: the only arguments Metal's indirect draws take are clamped ones
 

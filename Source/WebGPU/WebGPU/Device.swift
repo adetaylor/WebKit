@@ -29,7 +29,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.ShaderModule
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpudevice
 //

@@ -57,7 +57,10 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 import simd
 
 private let largeBufferSize = WebGPU.largeBufferSize

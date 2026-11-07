@@ -25,7 +25,10 @@ private import CxxStdlib
 import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.Device
-@_spiOnly import WebGPU_Private.WebGPUCpp
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
 
 // https://gpuweb.github.io/gpuweb/#gpusampler, which Swift callers hold. API thread only; the process-wide
 // MTLSamplerState pool it leases from is the Mutex-protected `samplerStates` below.
