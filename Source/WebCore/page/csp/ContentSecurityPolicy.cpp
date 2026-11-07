@@ -106,6 +106,11 @@ ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ContentSecurity
     updateSourceSelf(SecurityOrigin::create(m_protectedURL).get());
 }
 
+std::unique_ptr<ContentSecurityPolicy> ContentSecurityPolicy::create(URL&& protectedURL, ContentSecurityPolicyClient* client, ReportingClient* reportingClient)
+{
+    return makeUnique<ContentSecurityPolicy>(WTF::move(protectedURL), client, reportingClient);
+}
+
 ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ScriptExecutionContext& scriptExecutionContext)
     : m_scriptExecutionContext(scriptExecutionContext)
     , m_reportingClient { scriptExecutionContext.reportingClient() }
@@ -1277,5 +1282,60 @@ const HashAlgorithmSetCollection& ContentSecurityPolicy::hashesToReport()
         m_hashesToReport = WTF::move(hashesToReport);
     }
     return m_hashesToReport;
+}
+
+const String& ContentSecurityPolicy::selfProtocolForTesting() const
+{
+    return selfProtocol();
+}
+
+bool ContentSecurityPolicy::upgradeInsecureRequestsForTesting() const
+{
+    return upgradeInsecureRequests();
+}
+
+const HashSet<SecurityOriginData>& ContentSecurityPolicy::insecureNavigationRequestsToUpgradeForTesting() const
+{
+    return insecureNavigationRequestsToUpgrade();
+}
+
+void ContentSecurityPolicy::setDocumentURLForTesting(URL& documentURL)
+{
+    setDocumentURL(documentURL);
+}
+
+SandboxFlags ContentSecurityPolicy::sandboxFlagsForTesting() const
+{
+    return sandboxFlags();
+}
+
+bool ContentSecurityPolicy::isHeaderDeliveredForTesting() const
+{
+    return isHeaderDelivered();
+}
+
+const String& ContentSecurityPolicy::evalErrorMessageForTesting() const
+{
+    return evalErrorMessage();
+}
+
+const String& ContentSecurityPolicy::webAssemblyErrorMessageForTesting() const
+{
+    return webAssemblyErrorMessage();
+}
+
+ContentSecurityPolicyModeForExtension ContentSecurityPolicy::contentSecurityPolicyModeForExtensionForTesting() const
+{
+    return contentSecurityPolicyModeForExtension();
+}
+
+void ContentSecurityPolicy::setIsReportingToConsoleEnabledForTesting(bool value)
+{
+    setIsReportingToConsoleEnabled(value);
+}
+
+void ContentSecurityPolicy::setIsReportingEnabledForTesting(bool value)
+{
+    setIsReportingEnabled(value);
 }
 }

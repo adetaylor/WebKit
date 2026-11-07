@@ -120,6 +120,7 @@ public:
     explicit ContentSecurityPolicy(URL&&, ScriptExecutionContext&);
     WEBCORE_EXPORT explicit ContentSecurityPolicy(URL&&, ContentSecurityPolicyClient*, ReportingClient*);
     WEBCORE_EXPORT ~ContentSecurityPolicy();
+    WEBCORE_EXPORT static std::unique_ptr<ContentSecurityPolicy> create(URL&&, ContentSecurityPolicyClient*, ReportingClient*);
 
     enum class ShouldMakeIsolatedCopy : bool { No, Yes };
     WEBCORE_EXPORT void copyStateFrom(const ContentSecurityPolicy*, ShouldMakeIsolatedCopy = ShouldMakeIsolatedCopy::No);
@@ -265,6 +266,18 @@ public:
     // Captures the current JavaScript source location from the call stack.
     // Used to preserve source location across async boundaries for CSP violation reporting.
     WEBCORE_EXPORT static std::optional<CodePosition> getCurrentCodePosition();
+
+    WEBCORE_EXPORT const String& selfProtocolForTesting() const LIFETIME_BOUND;
+    WEBCORE_EXPORT bool upgradeInsecureRequestsForTesting() const;
+    WEBCORE_EXPORT const HashSet<SecurityOriginData>& insecureNavigationRequestsToUpgradeForTesting() const;
+    WEBCORE_EXPORT void setDocumentURLForTesting(URL&);
+    WEBCORE_EXPORT SandboxFlags sandboxFlagsForTesting() const;
+    WEBCORE_EXPORT bool isHeaderDeliveredForTesting() const;
+    WEBCORE_EXPORT const String& evalErrorMessageForTesting() const LIFETIME_BOUND;
+    WEBCORE_EXPORT const String& webAssemblyErrorMessageForTesting() const LIFETIME_BOUND;
+    WEBCORE_EXPORT ContentSecurityPolicyModeForExtension contentSecurityPolicyModeForExtensionForTesting() const;
+    WEBCORE_EXPORT void setIsReportingToConsoleEnabledForTesting(bool);
+    WEBCORE_EXPORT void setIsReportingEnabledForTesting(bool);
 
 private:
     void logToConsole(const String& message, const String& contextURL = String(), const OrdinalNumber& contextLine = OrdinalNumber::beforeFirst(), const OrdinalNumber& contextColumn = OrdinalNumber::beforeFirst(), JSC::JSGlobalObject* = nullptr) const;
