@@ -289,9 +289,10 @@ OTHER_SWIFT_FLAGS = $(inherited) -Werror DeprecatedDeclaration -Xcc -std=c++2b -
 WK_WEBCOREEME_TBD_FLAGS_ENABLE_WEBCORE_SWIFT = -Xfrontend -embed-tbd-for-module -Xfrontend WebCoreEME WebCoreSwiftSupport;
 
 // The WebGL island (WebCoreWebGL.xcconfig): WebCore force-loads it, and its C++ includes the island's generated header
-// and the headers beside its module maps. Its API is WebCore's C++ only, so none of its symbols are exported.
+// and the headers beside its module maps. WebKit's Swift calls its Swift, so that is exported; GraphicsContextGLANGLE's
+// Island is WebCore's only.
 WK_WEBGL_ISLAND_LDFLAGS = -force_load $(BUILT_PRODUCTS_DIR)/libWebCoreWebGL.a $(WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS);
-WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS = -Wl,-unexported_symbol,_$s07WebCoreA2GL* -Wl,-unexported_symbol,__ZN7WebCore22GraphicsContextGLANGLE6Island*;
+WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS = -Wl,-unexported_symbol,__ZN7WebCore22GraphicsContextGLANGLE6Island*;
 WK_WEBGL_ISLAND_HEADER_SEARCH_PATHS = $(SRCROOT)/platform/graphics/angle/swift $(CONFIGURATION_TEMP_DIR)/WebCoreWebGL.build/DerivedSources;
 WK_WEBGL_ISLAND_SWIFT_FLAGS = ;
 // Swift that holds C++ state must not let it reach another thread. Several of the diagnostics that catch that
