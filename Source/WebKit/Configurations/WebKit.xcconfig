@@ -79,6 +79,8 @@ OUTPUT_CRYPTEX_SYMLINK_PATH_YES_YES = $(DSTROOT)$(CRYPTEX_SYMLINK_PATH)/$(FULL_P
 
 // This should match the rest of WebKit and use `-Onone`, but it negatively impacts build time.
 SWIFT_OPTIMIZATION_LEVEL[config=Debug] = -O;
+// Swift's `assert()` follows the optimization level, WTF's ASSERT the configuration: keep `assert()` on in Debug.
+WK_SWIFT_ASSERT_CONFIG_FLAGS[config=Debug] = -assert-config Debug;
 
 LIBRARY_SEARCH_PATHS = $(inherited) "$(WEBCORE_LIBRARY_DIR)";
 
