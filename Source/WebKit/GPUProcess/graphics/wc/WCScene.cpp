@@ -28,7 +28,7 @@
 
 #if USE(GRAPHICS_LAYER_WC)
 
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 #include "WCContentBuffer.h"
 #include "WCContentBufferManager.h"
 #include "WCRemoteFrameHostLayerManager.h"

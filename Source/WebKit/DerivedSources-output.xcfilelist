@@ -249,6 +249,8 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUProxyMessageReceiver.cp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLMessages.h
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLResourcesMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLResourcesMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextMessageReceiver.cpp

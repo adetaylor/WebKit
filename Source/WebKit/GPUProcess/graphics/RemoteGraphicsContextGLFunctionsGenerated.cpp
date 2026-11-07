@@ -417,28 +417,6 @@ void RemoteGraphicsContextGL::generateMipmap(uint32_t target)
     protect(m_context)->generateMipmap(target);
 }
 
-void RemoteGraphicsContextGL::activeAttribs(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLAttribActiveInfo>&&)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    Vector<WebCore::GCGLAttribActiveInfo> returnValue = { };
-    MESSAGE_CHECK(m_objectNames.isValidKey(program));
-    if (program)
-        program = m_objectNames.get(program);
-    returnValue = protect(m_context)->activeAttribs(program);
-    completionHandler(WTF::move(returnValue));
-}
-
-void RemoteGraphicsContextGL::activeUniforms(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLUniformActiveInfo>&&)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    Vector<WebCore::GCGLUniformActiveInfo> returnValue = { };
-    MESSAGE_CHECK(m_objectNames.isValidKey(program));
-    if (program)
-        program = m_objectNames.get(program);
-    returnValue = protect(m_context)->activeUniforms(program);
-    completionHandler(WTF::move(returnValue));
-}
-
 void RemoteGraphicsContextGL::getBufferParameteri(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
@@ -1037,12 +1015,6 @@ void RemoteGraphicsContextGL::bufferSubData(uint32_t target, uint64_t offset, st
 {
     assertIsCurrent(workQueue());
     protect(m_context)->bufferSubData(target, static_cast<GCGLintptr>(offset), data);
-}
-
-void RemoteGraphicsContextGL::readPixelsBufferObject(WebCore::IntRect&& arg0, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength)
-{
-    assertIsCurrent(workQueue());
-    protect(m_context)->readPixelsBufferObject(arg0, format, type, static_cast<GCGLintptr>(offset), alignment, rowLength);
 }
 
 void RemoteGraphicsContextGL::texImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
@@ -1651,17 +1623,6 @@ void RemoteGraphicsContextGL::transformFeedbackVaryings(uint32_t program, Vector
     protect(m_context)->transformFeedbackVaryings(program, varyings, bufferMode);
 }
 
-void RemoteGraphicsContextGL::getTransformFeedbackVarying(uint32_t program, uint32_t index, CompletionHandler<void(std::optional<WebCore::GCGLTransformFeedbackActiveInfo>&&)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    std::optional<WebCore::GCGLTransformFeedbackActiveInfo> returnValue = { };
-    MESSAGE_CHECK(m_objectNames.isValidKey(program));
-    if (program)
-        program = m_objectNames.get(program);
-    returnValue = protect(m_context)->getTransformFeedbackVarying(program, index);
-    completionHandler(WTF::move(returnValue));
-}
-
 void RemoteGraphicsContextGL::pauseTransformFeedback()
 {
     assertIsCurrent(workQueue());
@@ -1935,105 +1896,6 @@ void RemoteGraphicsContextGL::getInternalformativ(uint32_t target, uint32_t inte
     completionHandler(spanReinterpretCast<const int32_t>(borrowedParams->span()));
 }
 
-#if ENABLE(WEBXR)
-void RemoteGraphicsContextGL::createExternalImage(uint32_t name, WebCore::GraphicsContextGL::ExternalImageSource&& arg0, uint32_t internalFormat, int32_t layer)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(name));
-    auto result = protect(m_context)->createExternalImage(WTF::move(arg0), internalFormat, layer);
-    if (result)
-        m_objectNames.add(name, result);
-}
-
-void RemoteGraphicsContextGL::deleteExternalImage(uint32_t handle)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(handle));
-    if (!handle) [[unlikely]]
-        return;
-    handle = m_objectNames.take(handle);
-    protect(m_context)->deleteExternalImage(handle);
-}
-
-void RemoteGraphicsContextGL::bindExternalImage(uint32_t target, uint32_t arg1)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(arg1));
-    if (arg1)
-        arg1 = m_objectNames.get(arg1);
-    protect(m_context)->bindExternalImage(target, arg1);
-}
-
-void RemoteGraphicsContextGL::createExternalSync(uint32_t name, WebCore::GraphicsContextGL::ExternalSyncSource&& arg0)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(name));
-    auto result = protect(m_context)->createExternalSync(WTF::move(arg0));
-    if (result)
-        m_objectNames.add(name, result);
-}
-
-void RemoteGraphicsContextGL::deleteExternalSync(uint32_t arg0)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
-    if (!arg0) [[unlikely]]
-        return;
-    arg0 = m_objectNames.take(arg0);
-    protect(m_context)->deleteExternalSync(arg0);
-}
-
-void RemoteGraphicsContextGL::enableRequiredWebXRExtensions(CompletionHandler<void(bool)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXREnabled());
-    bool returnValue = { };
-    returnValue = protect(m_context)->enableRequiredWebXRExtensions();
-    completionHandler(returnValue);
-}
-
-void RemoteGraphicsContextGL::addFoveation(WebCore::IntSize&& physicalSizeLeft, WebCore::IntSize&& physicalSizeRight, WebCore::IntSize&& screenSize, std::span<const float>&& horizontalSamplesLeft, std::span<const float>&& verticalSamples, std::span<const float>&& horizontalSamplesRight, CompletionHandler<void(bool)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    bool returnValue = { };
-    returnValue = protect(m_context)->addFoveation(physicalSizeLeft, physicalSizeRight, screenSize, horizontalSamplesLeft, verticalSamples, horizontalSamplesRight);
-    completionHandler(returnValue);
-}
-
-void RemoteGraphicsContextGL::enableFoveation(uint32_t arg0)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(arg0));
-    if (arg0)
-        arg0 = m_objectNames.get(arg0);
-    protect(m_context)->enableFoveation(arg0);
-}
-
-void RemoteGraphicsContextGL::disableFoveation()
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    protect(m_context)->disableFoveation();
-}
-
-void RemoteGraphicsContextGL::framebufferResolveRenderbuffer(uint32_t target, uint32_t attachment, uint32_t renderbuffertarget, uint32_t arg3)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(webXRPromptAccepted());
-    MESSAGE_CHECK(m_objectNames.isValidKey(arg3));
-    if (arg3)
-        arg3 = m_objectNames.get(arg3);
-    protect(m_context)->framebufferResolveRenderbuffer(target, attachment, renderbuffertarget, arg3);
-}
-
-#endif
 
 }
 

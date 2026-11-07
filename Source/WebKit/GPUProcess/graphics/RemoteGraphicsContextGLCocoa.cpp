@@ -24,7 +24,7 @@
  */
 
 #include "config.h"
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && PLATFORM(COCOA)
 
@@ -48,7 +48,7 @@
 namespace WebKit {
 
 #if ENABLE(VIDEO)
-void RemoteGraphicsContextGL::copyTextureFromVideoFrame(WebKit::SharedVideoFrame&& frame, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t type, bool unpackFlipY, bool unpackPremultiplyAlpha, CompletionHandler<void(bool)>&& completionHandler)
+void RemoteGraphicsContextGLResources::copyTextureFromVideoFrame(WebKit::SharedVideoFrame&& frame, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t type, bool unpackFlipY, bool unpackPremultiplyAlpha, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     RefPtr videoFrame = m_sharedVideoFrameReader.read(WTF::move(frame));
@@ -58,28 +58,28 @@ void RemoteGraphicsContextGL::copyTextureFromVideoFrame(WebKit::SharedVideoFrame
         completionHandler(false);
         return;
     }
-    if (!m_objectNames.isValidKey(texture)) {
+    if (!isValidObjectName(texture)) {
         ASSERT_IS_TESTING_IPC();
         completionHandler(false);
         return;
     }
-    texture = m_objectNames.get(texture);
+    texture = objectName(texture);
     bool result = protect(m_context)->copyTextureFromVideoFrame(*videoFrame, texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha);
     completionHandler(result);
 }
 
-void RemoteGraphicsContextGL::getLastVideoUploadForTesting(CompletionHandler<void(WebCore::GraphicsContextGLVideoUploadRecord)>&& completionHandler)
+void RemoteGraphicsContextGLResources::getLastVideoUploadForTesting(CompletionHandler<void(WebCore::GraphicsContextGLVideoUploadRecord)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
     completionHandler(protect(m_context)->lastVideoUploadForTesting().value_or(WebCore::GraphicsContextGLVideoUploadRecord { }));
 }
 
-void RemoteGraphicsContextGL::setSharedVideoFrameSemaphore(IPC::Semaphore&& semaphore)
+void RemoteGraphicsContextGLResources::setSharedVideoFrameSemaphore(IPC::Semaphore&& semaphore)
 {
     m_sharedVideoFrameReader.setSemaphore(WTF::move(semaphore));
 }
 
-void RemoteGraphicsContextGL::setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&& handle)
+void RemoteGraphicsContextGLResources::setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&& handle)
 {
     m_sharedVideoFrameReader.setSharedMemory(WTF::move(handle));
 }
@@ -87,7 +87,7 @@ void RemoteGraphicsContextGL::setSharedVideoFrameMemory(WebCore::SharedMemory::H
 
 namespace {
 
-class RemoteGraphicsContextGLCocoa final : public RemoteGraphicsContextGL {
+class RemoteGraphicsContextGLCocoa final : public RemoteGraphicsContextGLResources {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGraphicsContextGLCocoa);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGraphicsContextGLCocoa);
 
@@ -95,7 +95,7 @@ public:
     RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
     ~RemoteGraphicsContextGLCocoa() final = default;
 
-    // RemoteGraphicsContextGL overrides.
+    // RemoteGraphicsContextGLResources overrides.
     void platformWorkQueueInitialize(WebCore::GraphicsContextGLAttributes&&) final;
     void prepareForDisplay(IPC::Semaphore&&, CompletionHandler<void(WTF::MachSendRight&&)>&&) final;
 private:
@@ -110,7 +110,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextGLCocoa);
 
 }
 
-Ref<RemoteGraphicsContextGL> RemoteGraphicsContextGL::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
 {
     auto instance = adoptRef(*new RemoteGraphicsContextGLCocoa(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection)));
     instance->initialize(WTF::move(attributes));
@@ -118,7 +118,7 @@ Ref<RemoteGraphicsContextGL> RemoteGraphicsContextGL::create(GPUConnectionToWebP
 }
 
 RemoteGraphicsContextGLCocoa::RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
-    : RemoteGraphicsContextGL(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection))
+    : RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection))
 {
 }
 

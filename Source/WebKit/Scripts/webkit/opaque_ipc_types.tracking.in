@@ -212,8 +212,8 @@
     [NotSentFromWebContent] MessageParamReply DownloadProxy.DecideDestinationWithSuggestedFilename activityAccessToken
     [NotSentFromWebContent] MessageParamReply DownloadProxy.DecideDestinationWithSuggestedFilename placeholderBookmarkData
     [NotSentFromWebContent] MessageParamReply NetworkProcess.CancelDownload resumeData
-    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGL.GetBufferSubDataInline data
-    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGL.ReadPixelsInline data
+    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGLResources.GetBufferSubDataInline data
+    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGLResources.ReadPixelsInline data
     [NotSentFromWebContent] MessageParam DownloadProxy.DidFail resumeData
     [NotSentFromWebContent] MessageParam DownloadProxy.DidReceiveFinalURL bookmarkData
     [NotSentFromWebContent] MessageParam DownloadProxy.DidReceivePlaceholderURL bookmarkData
@@ -343,7 +343,7 @@
     [Legacy] StructureParam WTF::MachSendRightAnnotated.sendRight
 
     [NotSentFromWebContent] MessageParam WebPage.SetObscuredContentInsetsFenced machSendRight
-    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGL.PrepareForDisplay displayBuffer
+    [NotSentFromWebContent] MessageParamReply RemoteGraphicsContextGLResources.PrepareForDisplay displayBuffer
     [NotSentFromWebContent] MessageParamReply RemoteImageBuffer.PrepareForDisplay displayBuffer
 
     [NeedsReview] MessageParam WebProcessProxy.SetTaskNamePort taskNamePort
@@ -475,9 +475,9 @@
     [Legacy] MessageParam WebPageProxy.SetPromisedDataForImage archiveHandle
     [Legacy] MessageParam LibWebRTCCodecsProxy.SetSharedVideoFrameMemory storageHandle
     [Legacy] MessageParam RemoteGraphicsContext.SetSharedVideoFrameMemory storageHandle
-    [Legacy] MessageParam RemoteGraphicsContextGL.SetSharedVideoFrameMemory storageHandle
-    [Legacy] MessageParam RemoteGraphicsContextGL.GetBufferSubDataSharedMemory handle
-    [Legacy] MessageParam RemoteGraphicsContextGL.ReadPixelsSharedMemory handle
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.SetSharedVideoFrameMemory storageHandle
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.GetBufferSubDataSharedMemory handle
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.ReadPixelsSharedMemory handle
     [Legacy] MessageParam RemoteImageBuffer.GetPixelBufferWithNewMemory handle
     [Legacy] MessageParam RemoteDevice.SetSharedVideoFrameMemory storageHandle
     [Legacy] MessageParam RemoteSampleBufferDisplayLayer.SetSharedVideoFrameMemory storageHandle
@@ -499,7 +499,7 @@
 [UnsafeWrapper] AliasParam IPC::TransferString::IPCData Variant<std::monostate, std::span<const uint8_t>, std::span<const char16_t>, IPC::TransferString::SharedSpan8, IPC::TransferString::SharedSpan16>
 
 [UnsafeWrapper] WebCore::GraphicsContextGL::ExternalSyncSource {
-    [Legacy] MessageParam RemoteGraphicsContextGL.CreateExternalSync arg0
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.CreateExternalSync arg0
 }
 
 [UnsafeWrapper] IPC::TransferString::IPCData {

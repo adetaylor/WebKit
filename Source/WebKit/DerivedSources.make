@@ -301,6 +301,7 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/graphics/RemoteCGRenderer \
 	GPUProcess/graphics/RemoteGraphicsContext \
 	GPUProcess/graphics/RemoteGraphicsContextGL \
+	GPUProcess/graphics/RemoteGraphicsContextGLResources \
 	GPUProcess/graphics/RemoteImageBuffer \
 	GPUProcess/graphics/RemoteImageBufferSet \
 	GPUProcess/graphics/RemoteRenderingBackend \

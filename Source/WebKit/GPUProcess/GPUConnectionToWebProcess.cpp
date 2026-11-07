@@ -82,8 +82,9 @@
 #endif
 
 #if ENABLE(WEBGL)
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 #include "RemoteGraphicsContextGLMessages.h"
+#include "RemoteGraphicsContextGLResourcesMessages.h"
 #endif
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
@@ -759,7 +760,7 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     MESSAGE_CHECK(streamConnection);
 
     auto addResult = m_remoteGraphicsContextGLMap.ensure(identifier, [&] {
-        return IPC::ScopedActiveMessageReceiveQueue { RemoteGraphicsContextGL::create(*this, WTF::move(attributes), identifier, *renderingBackend, streamConnection.releaseNonNull()) };
+        return IPC::ScopedActiveMessageReceiveQueue { RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), identifier, *renderingBackend, streamConnection.releaseNonNull()) };
     });
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
@@ -1165,7 +1166,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
     }
 #endif
 #if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName()) {
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName() || decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName()) {
         // Skip messages for already removed receivers.
         return true;
     }
@@ -1253,7 +1254,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
     }
 #endif
 #if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName())
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName() || decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
         // Skip messages for already removed receivers.
         return true;
 #endif

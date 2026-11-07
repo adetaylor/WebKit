@@ -188,7 +188,7 @@ void RemoteGraphicsContextGLProxy::reshape(int width, int height)
     m_hasPreparedForDisplay = false;
     m_currentWidth = width;
     m_currentHeight = height;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::Reshape(width, height));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::Reshape(width, height));
     if (sendResult != IPC::Error::NoError)
         markContextLost();
 }
@@ -213,7 +213,7 @@ RefPtr<NativeImage> RemoteGraphicsContextGLProxy::copyNativeImage(SurfaceBuffer 
     // into this backend's cache right away, so that drawing it needs no further set up.
     Ref nativeImage = RemoteNativeImageProxy::create(size, m_drawingBufferColorSpace.platformColorSpace(), attributes.alpha, sharedResourceCache.releaseNonNull());
     renderingBackend->cacheNativeImageFromSharedNativeImage(nativeImage);
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CopyNativeImage(buffer, nativeImage->reference()));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CopyNativeImage(buffer, nativeImage->reference()));
     if (sendResult != IPC::Error::NoError) [[unlikely]] {
         markContextLost();
         return nullptr;
@@ -228,7 +228,7 @@ RefPtr<WebCore::VideoFrame> RemoteGraphicsContextGLProxy::surfaceBufferToVideoFr
     if (isContextLost())
         return nullptr;
     auto reference = RemoteVideoFrameReference::generateForAdd();
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::SurfaceBufferToVideoFrame(buffer, reference));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::SurfaceBufferToVideoFrame(buffer, reference));
     if (!sendResult.succeeded()) {
         markContextLost();
         return nullptr;
@@ -252,11 +252,11 @@ bool RemoteGraphicsContextGLProxy::copyTextureFromVideoFrame(WebCore::VideoFrame
     }
 
     auto sharedVideoFrame = m_sharedVideoFrameWriter.write(videoFrame, *m_gpuProcessIPCConnection, [this, protectedThis = protect(*this)](auto& semaphore) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::SetSharedVideoFrameSemaphore { semaphore });
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::SetSharedVideoFrameSemaphore { semaphore });
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }, [this, protectedThis = protect(*this)](SharedMemory::Handle&& handle) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::SetSharedVideoFrameMemory { WTF::move(handle) });
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::SetSharedVideoFrameMemory { WTF::move(handle) });
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     });
@@ -268,7 +268,7 @@ bool RemoteGraphicsContextGLProxy::copyTextureFromVideoFrame(WebCore::VideoFrame
 
     m_lastVideoUploadWasSentForTesting = true;
     ++m_videoUploadsSentForTesting;
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::CopyTextureFromVideoFrame(WTF::move(*sharedVideoFrame), texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::CopyTextureFromVideoFrame(WTF::move(*sharedVideoFrame), texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha));
     if (!sendResult.succeeded()) {
         markContextLost();
         return false;
@@ -290,7 +290,7 @@ std::optional<GraphicsContextGL::VideoUploadRecord> RemoteGraphicsContextGLProxy
     // The GPU process rejects the test-only messages, and the sender with them, unless AllowTestOnlyIPC is set.
     if (isContextLost() || !WebProcess::singleton().sharedPreferencesForWebProcessValue().allowTestOnlyIPC)
         return std::nullopt;
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::GetLastVideoUploadForTesting());
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::GetLastVideoUploadForTesting());
     if (!sendResult.succeeded()) {
         markContextLost();
         return std::nullopt;
@@ -346,7 +346,7 @@ std::optional<size_t> RemoteGraphicsContextGLProxy::estimatedMemoryCost()
 void RemoteGraphicsContextGLProxy::simulateEventForTesting(SimulatedEventForTesting event)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::SimulateEventForTesting(event));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::SimulateEventForTesting(event));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -372,7 +372,7 @@ void RemoteGraphicsContextGLProxy::getBufferSubData(GCGLenum target, GCGLintptr 
             if (!handle)
                 goto inlineCase;
             auto transferSize = std::min(data.size(), getBufferSubDataSharedMemorySizeLimit);
-            auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::GetBufferSubDataSharedMemory(target, offset, transferSize, WTF::move(*handle)));
+            auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::GetBufferSubDataSharedMemory(target, offset, transferSize, WTF::move(*handle)));
             if (!sendResult.succeeded()) {
                 markContextLost();
                 return;
@@ -389,7 +389,7 @@ void RemoteGraphicsContextGLProxy::getBufferSubData(GCGLenum target, GCGLintptr 
 inlineCase:
     while (data.size()) {
         auto transferSize = std::min(data.size(), getBufferSubDataInlineSizeLimit);
-        auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::GetBufferSubDataInline(target, offset, transferSize));
+        auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::GetBufferSubDataInline(target, offset, transferSize));
         if (!sendResult.succeeded()) {
             markContextLost();
             return;
@@ -456,7 +456,7 @@ void RemoteGraphicsContextGLProxy::readPixels(IntRect rect, GCGLenum format, GCG
         auto handle = replyBuffer->createHandle(SharedMemory::Protection::ReadWrite);
         if (!handle)
             goto inlineCase;
-        auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::ReadPixelsSharedMemory(rect, format, type, packReverseRowOrder, WTF::move(*handle)));
+        auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::ReadPixelsSharedMemory(rect, format, type, packReverseRowOrder, WTF::move(*handle)));
         if (!sendResult.succeeded()) {
             markContextLost();
             return;
@@ -468,7 +468,7 @@ void RemoteGraphicsContextGLProxy::readPixels(IntRect rect, GCGLenum format, GCG
         return;
     }
 inlineCase:
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::ReadPixelsInline(rect, format, type, packReverseRowOrder));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::ReadPixelsInline(rect, format, type, packReverseRowOrder));
     if (!sendResult.succeeded()) {
         markContextLost();
         return;
@@ -482,7 +482,7 @@ inlineCase:
 void RemoteGraphicsContextGLProxy::multiDrawArraysANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLint, const GCGLsizei> firstsAndCounts)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawArraysANGLE(mode, toArrayReferenceTuple<int32_t, int32_t>(firstsAndCounts)));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawArraysANGLE(mode, toArrayReferenceTuple<int32_t, int32_t>(firstsAndCounts)));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -491,7 +491,7 @@ void RemoteGraphicsContextGLProxy::multiDrawArraysANGLE(GCGLenum mode, GCGLSpanT
 void RemoteGraphicsContextGLProxy::multiDrawArraysInstancedANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLint, const GCGLsizei, const GCGLsizei> firstsCountsAndInstanceCounts)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawArraysInstancedANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t>(firstsCountsAndInstanceCounts)));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawArraysInstancedANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t>(firstsCountsAndInstanceCounts)));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -500,7 +500,7 @@ void RemoteGraphicsContextGLProxy::multiDrawArraysInstancedANGLE(GCGLenum mode, 
 void RemoteGraphicsContextGLProxy::multiDrawElementsANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLsizei, const GCGLsizei> countsAndOffsets, GCGLenum type)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawElementsANGLE(mode, toArrayReferenceTuple<int32_t, int32_t>(countsAndOffsets), type));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawElementsANGLE(mode, toArrayReferenceTuple<int32_t, int32_t>(countsAndOffsets), type));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -509,7 +509,7 @@ void RemoteGraphicsContextGLProxy::multiDrawElementsANGLE(GCGLenum mode, GCGLSpa
 void RemoteGraphicsContextGLProxy::multiDrawElementsInstancedANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLsizei, const GCGLsizei, const GCGLsizei> countsOffsetsAndInstanceCounts, GCGLenum type)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawElementsInstancedANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t>(countsOffsetsAndInstanceCounts), type));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawElementsInstancedANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t>(countsOffsetsAndInstanceCounts), type));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -518,7 +518,7 @@ void RemoteGraphicsContextGLProxy::multiDrawElementsInstancedANGLE(GCGLenum mode
 void RemoteGraphicsContextGLProxy::multiDrawArraysInstancedBaseInstanceANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLint, const GCGLsizei, const GCGLsizei, const GCGLuint> firstsCountsInstanceCountsAndBaseInstances)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawArraysInstancedBaseInstanceANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>(firstsCountsInstanceCountsAndBaseInstances)));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawArraysInstancedBaseInstanceANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t, uint32_t>(firstsCountsInstanceCountsAndBaseInstances)));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -527,7 +527,7 @@ void RemoteGraphicsContextGLProxy::multiDrawArraysInstancedBaseInstanceANGLE(GCG
 void RemoteGraphicsContextGLProxy::multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(GCGLenum mode, GCGLSpanTuple<const GCGLsizei, const GCGLsizei, const GCGLsizei, const GCGLint, const GCGLuint> countsOffsetsInstanceCountsBaseVerticesAndBaseInstances, GCGLenum type)
 {
     if (!isContextLost()) {
-        auto sendResult = send(Messages::RemoteGraphicsContextGL::MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>(countsOffsetsInstanceCountsBaseVerticesAndBaseInstances), type));
+        auto sendResult = send(Messages::RemoteGraphicsContextGLResources::MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(mode, toArrayReferenceTuple<int32_t, int32_t, int32_t, int32_t, uint32_t>(countsOffsetsInstanceCountsBaseVerticesAndBaseInstances), type));
         if (sendResult != IPC::Error::NoError)
             markContextLost();
     }
@@ -582,7 +582,7 @@ void RemoteGraphicsContextGLProxy::framebufferDiscard(GCGLenum target, std::span
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::FramebufferDiscard(target, attachments));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::FramebufferDiscard(target, attachments));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -594,7 +594,7 @@ void RemoteGraphicsContextGLProxy::setDrawingBufferColorSpace(const WebCore::Col
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::SetDrawingBufferColorSpace(colorSpace));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::SetDrawingBufferColorSpace(colorSpace));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;

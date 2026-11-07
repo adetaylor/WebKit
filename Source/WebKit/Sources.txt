@@ -35,6 +35,8 @@ GPUProcess/graphics/RemoteDisplayListRecorder.cpp
 GPUProcess/graphics/RemoteGraphicsContext.cpp @cost:3
 GPUProcess/graphics/RemoteGraphicsContextGL.cpp @cost:3
 GPUProcess/graphics/RemoteGraphicsContextGLFunctionsGenerated.cpp @cost:3
+GPUProcess/graphics/RemoteGraphicsContextGLResources.cpp @cost:3
+GPUProcess/graphics/RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp
 GPUProcess/graphics/RemoteImageBuffer.cpp
 GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 GPUProcess/graphics/RemoteImageBufferSet.cpp
@@ -958,6 +960,7 @@ RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.cpp
 RemoteSnapshotRecorderMessageReceiver.cpp @cost:5
 RemoteGraphicsContextMessageReceiver.cpp @cost:9
 RemoteGraphicsContextGLMessageReceiver.cpp @cost:13
+RemoteGraphicsContextGLResourcesMessageReceiver.cpp @cost:3
 RemoteGraphicsContextGLProxyMessageReceiver.cpp
 PlatformXRSystemMessageReceiver.cpp
 PlatformXRSystemProxyMessageReceiver.cpp

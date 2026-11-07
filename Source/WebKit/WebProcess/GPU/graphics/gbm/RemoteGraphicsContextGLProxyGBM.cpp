@@ -67,7 +67,7 @@ void RemoteGraphicsContextGLProxyGBM::prepareForDisplay()
             inUseBuffers.append(buffer->id());
     }
 
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::PrepareForDisplay(WTF::move(inUseBuffers)));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::PrepareForDisplay(WTF::move(inUseBuffers)));
     if (!sendResult.succeeded()) {
         markContextLost();
         return;

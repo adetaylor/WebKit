@@ -25,7 +25,7 @@
  */
 
 #include "config.h"
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && USE(COORDINATED_GRAPHICS) && USE(GBM)
 
@@ -35,7 +35,7 @@
 
 namespace WebKit {
 
-class RemoteGraphicsContextGLGBM final : public RemoteGraphicsContextGL {
+class RemoteGraphicsContextGLGBM final : public RemoteGraphicsContextGLResources {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGraphicsContextGLGBM);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGraphicsContextGLGBM);
 
@@ -53,7 +53,7 @@ private:
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextGLGBM);
 
 RemoteGraphicsContextGLGBM::RemoteGraphicsContextGLGBM(GPUConnectionToWebProcess& connection, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
-    : RemoteGraphicsContextGL(connection, identifier, renderingBackend, WTF::move(streamConnection))
+    : RemoteGraphicsContextGLResources(connection, identifier, renderingBackend, WTF::move(streamConnection))
 { }
 
 void RemoteGraphicsContextGLGBM::didRunOutOfMessages()
@@ -96,7 +96,7 @@ void RemoteGraphicsContextGLGBM::prepareForDisplay(Vector<uint64_t>&& inUseBuffe
     completionHandler(dmabuf->id(), dmabuf->takeAttributes(), WTF::move(fenceFD), m_context->drawingBufferIDs());
 }
 
-Ref<RemoteGraphicsContextGL> RemoteGraphicsContextGL::create(GPUConnectionToWebProcess& connection, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& connection, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
 {
     auto instance = adoptRef(*new RemoteGraphicsContextGLGBM(connection, identifier, renderingBackend, WTF::move(streamConnection)));
     instance->initialize(WTF::move(attributes));

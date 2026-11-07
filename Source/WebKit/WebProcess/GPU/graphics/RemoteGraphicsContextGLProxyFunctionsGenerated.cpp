@@ -600,7 +600,7 @@ Vector<WebCore::GCGLAttribActiveInfo> RemoteGraphicsContextGLProxy::activeAttrib
 {
     if (isContextLost())
         return { };
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::ActiveAttribs(program));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::ActiveAttribs(program));
     if (!sendResult.succeeded()) {
         markContextLost();
         return { };
@@ -613,7 +613,7 @@ Vector<WebCore::GCGLUniformActiveInfo> RemoteGraphicsContextGLProxy::activeUnifo
 {
     if (isContextLost())
         return { };
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::ActiveUniforms(program));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::ActiveUniforms(program));
     if (!sendResult.succeeded()) {
         markContextLost();
         return { };
@@ -1553,7 +1553,7 @@ void RemoteGraphicsContextGLProxy::readPixelsBufferObject(WebCore::IntRect arg0,
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::ReadPixelsBufferObject(arg0, format, type, static_cast<uint64_t>(offset), alignment, rowLength));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::ReadPixelsBufferObject(arg0, format, type, static_cast<uint64_t>(offset), alignment, rowLength));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2522,7 +2522,7 @@ std::optional<WebCore::GCGLTransformFeedbackActiveInfo> RemoteGraphicsContextGLP
 {
     if (isContextLost())
         return { };
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::GetTransformFeedbackVarying(program, index));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::GetTransformFeedbackVarying(program, index));
     if (!sendResult.succeeded()) {
         markContextLost();
         return { };
@@ -2933,7 +2933,7 @@ GCGLExternalImage RemoteGraphicsContextGLProxy::createExternalImage(WebCore::Gra
     if (isContextLost())
         return { };
     auto name = createObjectName();
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CreateExternalImage(name, WTF::move(arg0), internalFormat, layer));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CreateExternalImage(name, WTF::move(arg0), internalFormat, layer));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return { };
@@ -2945,7 +2945,7 @@ void RemoteGraphicsContextGLProxy::deleteExternalImage(GCGLExternalImage handle)
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::DeleteExternalImage(handle));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::DeleteExternalImage(handle));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2956,7 +2956,7 @@ void RemoteGraphicsContextGLProxy::bindExternalImage(GCGLenum target, GCGLExtern
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::BindExternalImage(target, arg1));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::BindExternalImage(target, arg1));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2968,7 +2968,7 @@ GCGLExternalSync RemoteGraphicsContextGLProxy::createExternalSync(WebCore::Graph
     if (isContextLost())
         return { };
     auto name = createObjectName();
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CreateExternalSync(name, WTF::move(arg0)));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CreateExternalSync(name, WTF::move(arg0)));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return { };
@@ -2980,7 +2980,7 @@ void RemoteGraphicsContextGLProxy::deleteExternalSync(GCGLExternalSync arg0)
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::DeleteExternalSync(arg0));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::DeleteExternalSync(arg0));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -2991,7 +2991,7 @@ bool RemoteGraphicsContextGLProxy::enableRequiredWebXRExtensions()
 {
     if (isContextLost())
         return { };
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::EnableRequiredWebXRExtensions());
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::EnableRequiredWebXRExtensions());
     if (!sendResult.succeeded()) {
         markContextLost();
         return { };
@@ -3004,7 +3004,7 @@ bool RemoteGraphicsContextGLProxy::addFoveation(WebCore::IntSize physicalSizeLef
 {
     if (isContextLost())
         return { };
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::AddFoveation(physicalSizeLeft, physicalSizeRight, screenSize, horizontalSamplesLeft, verticalSamples, horizontalSamplesRight));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::AddFoveation(physicalSizeLeft, physicalSizeRight, screenSize, horizontalSamplesLeft, verticalSamples, horizontalSamplesRight));
     if (!sendResult.succeeded()) {
         markContextLost();
         return { };
@@ -3017,7 +3017,7 @@ void RemoteGraphicsContextGLProxy::enableFoveation(PlatformGLObject arg0)
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::EnableFoveation(arg0));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::EnableFoveation(arg0));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -3028,7 +3028,7 @@ void RemoteGraphicsContextGLProxy::disableFoveation()
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::DisableFoveation());
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::DisableFoveation());
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -3039,7 +3039,7 @@ void RemoteGraphicsContextGLProxy::framebufferResolveRenderbuffer(GCGLenum targe
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::FramebufferResolveRenderbuffer(target, attachment, renderbuffertarget, arg3));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::FramebufferResolveRenderbuffer(target, attachment, renderbuffertarget, arg3));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;

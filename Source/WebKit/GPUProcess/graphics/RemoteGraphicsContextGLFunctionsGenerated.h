@@ -75,8 +75,6 @@
     void framebufferTexture2D(uint32_t target, uint32_t attachment, uint32_t textarget, uint32_t arg3, int32_t level);
     void frontFace(uint32_t mode);
     void generateMipmap(uint32_t target);
-    void activeAttribs(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLAttribActiveInfo>&&)>&&);
-    void activeUniforms(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLUniformActiveInfo>&&)>&&);
     void getBufferParameteri(uint32_t target, uint32_t pname, CompletionHandler<void(int32_t)>&&);
     void getString(uint32_t name, CompletionHandler<void(UTF8CString&&)>&&);
     void getFloatv(uint32_t pname, uint64_t valueSize, CompletionHandler<void(std::span<const float>)>&&);
@@ -156,7 +154,6 @@
     void bufferData0(uint32_t target, uint64_t arg1, uint32_t usage);
     void bufferData1(uint32_t target, std::span<const uint8_t>&& data, uint32_t usage);
     void bufferSubData(uint32_t target, uint64_t offset, std::span<const uint8_t>&& data);
-    void readPixelsBufferObject(WebCore::IntRect&& arg0, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength);
     void texImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels);
     void texImage2D1(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, uint64_t offset);
     void texSubImage2D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels);
@@ -241,7 +238,6 @@
     void beginTransformFeedback(uint32_t primitiveMode);
     void endTransformFeedback();
     void transformFeedbackVaryings(uint32_t program, Vector<UTF8CString>&& varyings, uint32_t bufferMode);
-    void getTransformFeedbackVarying(uint32_t program, uint32_t index, CompletionHandler<void(std::optional<WebCore::GCGLTransformFeedbackActiveInfo>&&)>&&);
     void pauseTransformFeedback();
     void resumeTransformFeedback();
     void bindBufferBase(uint32_t target, uint32_t index, uint32_t buffer);
@@ -276,16 +272,4 @@
     void polygonOffsetClampEXT(float factor, float units, float clamp);
     void renderbufferStorageMultisampleANGLE(uint32_t target, int32_t samples, uint32_t internalformat, int32_t width, int32_t height);
     void getInternalformativ(uint32_t target, uint32_t internalformat, uint32_t pname, uint64_t paramsSize, CompletionHandler<void(std::span<const int32_t>)>&&);
-#if ENABLE(WEBXR)
-    void createExternalImage(uint32_t name, WebCore::GraphicsContextGL::ExternalImageSource&& arg0, uint32_t internalFormat, int32_t layer);
-    void deleteExternalImage(uint32_t handle);
-    void bindExternalImage(uint32_t target, uint32_t arg1);
-    void createExternalSync(uint32_t name, WebCore::GraphicsContextGL::ExternalSyncSource&& arg0);
-    void deleteExternalSync(uint32_t arg0);
-    void enableRequiredWebXRExtensions(CompletionHandler<void(bool)>&&);
-    void addFoveation(WebCore::IntSize&& physicalSizeLeft, WebCore::IntSize&& physicalSizeRight, WebCore::IntSize&& screenSize, std::span<const float>&& horizontalSamplesLeft, std::span<const float>&& verticalSamples, std::span<const float>&& horizontalSamplesRight, CompletionHandler<void(bool)>&&);
-    void enableFoveation(uint32_t arg0);
-    void disableFoveation();
-    void framebufferResolveRenderbuffer(uint32_t target, uint32_t attachment, uint32_t renderbuffertarget, uint32_t arg3);
-#endif
 

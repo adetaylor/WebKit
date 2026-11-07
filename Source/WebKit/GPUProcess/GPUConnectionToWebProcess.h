@@ -130,7 +130,7 @@ class RemoteVideoFrameObjectHeapHandle;
 #endif
 
 #if ENABLE(WEBGL)
-class RemoteGraphicsContextGL;
+class RemoteGraphicsContextGLResources;
 #endif
 
 class GPUConnectionToWebProcess
@@ -434,7 +434,7 @@ private:
 
     RemoteRenderingBackendMap m_remoteRenderingBackendMap;
 #if ENABLE(WEBGL)
-    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGL>>;
+    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGLResources>>;
     RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
 #endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

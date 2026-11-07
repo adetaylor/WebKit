@@ -32,6 +32,7 @@
 #include "MessageReceiver.h"
 #include "RemoteGraphicsContextGLIdentifier.h"
 #include "RemoteGraphicsContextGLMessages.h"
+#include "RemoteGraphicsContextGLResourcesMessages.h"
 #include "RemoteRenderingBackendIdentifier.h"
 #include "RemoteResourceCacheProxy.h"
 #include "SharedVideoFrame.h"
