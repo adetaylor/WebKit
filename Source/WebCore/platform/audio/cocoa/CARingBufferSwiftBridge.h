@@ -95,7 +95,7 @@ void mixFloatingPointSamples(std::span<uint8_t> destination NOESCAPE, size_t des
 // C++ makes the views below only off the main thread (rdar://191664699).
 ALWAYS_INLINE void assertMakingAudioViewOffMainThread()
 {
-    ASSERT(!isMainThread());
+    RELEASE_ASSERT(!isMainThread());
 }
 #endif
 
