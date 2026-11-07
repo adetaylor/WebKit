@@ -3418,6 +3418,16 @@ if (SWIFT_REQUIRED AND APPLE)
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
     )
+    # WebCore soft-links AVFoundation and CoreMedia, so its Swift doesn't autolink them or their overlays; it takes their
+    # classes and constants from PAL's getters (pal/cocoa/AVFoundationSoftLink.h), and a stray use of their symbols fails
+    # the link. As WebCore.xcconfig.
+    webkit_target_add_swift_options(WebCore
+        "-Xfrontend -disable-autolink-framework -Xfrontend AVFoundation"
+        "-Xfrontend -disable-autolink-framework -Xfrontend AVFAudio"
+        "-Xfrontend -disable-autolink-framework -Xfrontend CoreMedia"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia"
+    )
 
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
