@@ -2946,6 +2946,8 @@
 		BDF984687F78F9AEAFFC464E /* RemoteCDMBackends.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4250C49D586D2E9E4F44AC /* RemoteCDMBackends.swift */; };
 		D8D616A7F7F3455CA884F6FD /* RemoteCGRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */; };
 		55245171CEFE4BC6A61D9592 /* RemoteCGRendererMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F709CB0803B4FAABC70FEA3 /* RemoteCGRendererMessageReceiver.swift */; };
+		2E1C319591F54D82AEF6A776 /* WebCoreSwiftForWebKit.h in Headers */ = {isa = PBXBuildFile; fileRef = BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */; };
+		AD5631D79F9B4B98A5E72B8A /* WebCoreWebGLForWebKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 8452781AD6F8C6FFA26261B0 /* WebCoreWebGLForWebKit.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -18372,6 +18374,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2E1C319591F54D82AEF6A776 /* WebCoreSwiftForWebKit.h in Headers */,
+				AD5631D79F9B4B98A5E72B8A /* WebCoreWebGLForWebKit.h in Headers */,
 				1A6280C51919949F006AD9F9 /* WebKit.h in Headers */,
 				1A6280C71919950C006AD9F9 /* WebKitPrivate.h in Headers */,
 				37A5E01418BBF93F000A081E /* _WKActivatedElementInfo.h in Headers */,
