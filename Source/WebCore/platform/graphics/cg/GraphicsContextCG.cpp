@@ -973,6 +973,16 @@ void CGRendererClipToPath(CGContextRef context, const WebCore::Path& path, WebCo
     }
 }
 
+void CGRendererClipToPathImpl(CGContextRef context, const WebCore::PathImpl& impl, WebCore::WindRule clipRule)
+{
+    CGContextBeginPath(context);
+    WebCore::addToCGContextPath(context, impl);
+    if (clipRule == WebCore::WindRule::EvenOdd)
+        CGContextEOClip(context);
+    else
+        CGContextClip(context);
+}
+
 void CGRendererClipToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
 {
     WebCore::Path path;
@@ -1025,6 +1035,14 @@ void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
     CGContextAddRect(context, CGContextGetClipBoundingBox(context));
     if (!path.isEmpty())
         WebCore::addToCGContextPath(context, path);
+    CGContextEOClip(context);
+}
+
+void CGRendererClipOutToPathImpl(CGContextRef context, const WebCore::PathImpl& impl)
+{
+    CGContextBeginPath(context);
+    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+    WebCore::addToCGContextPath(context, impl);
     CGContextEOClip(context);
 }
 

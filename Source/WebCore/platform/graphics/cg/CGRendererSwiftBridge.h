@@ -327,6 +327,9 @@ WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPa
 // GraphicsContextCG's clipPath() and clipOut(const Path&), for the C++ of a Swift receiver's path clips too.
 WEBCORE_EXPORT void CGRendererClipToPath(CGContextRef _Nonnull, const WebCore::Path&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore::Path&) __attribute__((availability(swift, unavailable)));
+// The same for a Path of the PathImpl, without the Path, whose reference to it a decoded path would otherwise take.
+WEBCORE_EXPORT void CGRendererClipToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
+WEBCORE_EXPORT void CGRendererClipOutToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&) __attribute__((availability(swift, unavailable)));
 
 // GraphicsContext's clipRoundedRect() and clipOutRoundedRect() of a rounded rect with radii, which clip to and out of its
 // path as GraphicsContextCG's clipPath() and clipOut(const Path&) do.

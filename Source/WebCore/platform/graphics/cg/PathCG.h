@@ -94,6 +94,8 @@ private:
 };
 
 WEBCORE_EXPORT void addToCGContextPath(CGContextRef, const Path&);
+// The same for a Path of the PathImpl, without the Path.
+WEBCORE_EXPORT void addToCGContextPath(CGContextRef, const PathImpl&);
 
 } // namespace WebCore
 

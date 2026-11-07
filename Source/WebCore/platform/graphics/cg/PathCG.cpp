@@ -678,6 +678,16 @@ void addToCGContextPath(CGContextRef context, const Path& path)
     CGContextAddPath(context, protect(path.platformPath()));
 }
 
+void addToCGContextPath(CGContextRef context, const PathImpl& impl)
+{
+    if (auto* segments = impl.segmentsIfExists()) {
+        for (auto& segment : *segments)
+            addToCGContextPath(context, segment);
+        return;
+    }
+    CGContextAddPath(context, downcast<PathCG>(impl).platformPath());
+}
+
 } // namespace WebCore
 
 template<typename Segment> static constexpr bool isPathSegmentKind(CGRendererPathSegmentKind kind)

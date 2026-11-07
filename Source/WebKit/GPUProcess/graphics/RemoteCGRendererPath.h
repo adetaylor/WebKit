@@ -100,12 +100,24 @@ public:
         }
         return RetainPtr<CGPathRef> { WebCore::Path { }.platformPath() }.leakRef();
     }
-    void clip(CGContextRef context, WebCore::WindRule rule) const { CGRendererClipToPath(context, path(), rule); }
+    void clip(CGContextRef context, WebCore::WindRule rule) const
+    {
+        if (m_kind == Kind::Impl)
+            CGRendererClipToPathImpl(context, *m_impl, rule);
+        else
+            CGRendererClipToPath(context, path(), rule);
+    }
     // GraphicsContextCG's bounds and clip of the path filled or stroked with a gradient.
     WebCore::FloatRect fastBoundingRect() const { return path().fastBoundingRect(); }
     CGRect strokedBounds(CGContextRef context) const { return CGRendererStrokedPathBounds(context, path()); }
     void clipToStroke(CGContextRef context, float thickness) const { CGRendererClipToStrokedPath(context, path(), thickness); }
-    void clipOut(CGContextRef context) const { CGRendererClipOutToPath(context, path()); }
+    void clipOut(CGContextRef context) const
+    {
+        if (m_kind == Kind::Impl)
+            CGRendererClipOutToPathImpl(context, *m_impl);
+        else
+            CGRendererClipOutToPath(context, path());
+    }
 
     WebCore::Path path() const
     {
