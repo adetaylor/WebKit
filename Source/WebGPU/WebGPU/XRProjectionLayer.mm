@@ -32,6 +32,11 @@
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
 
+#if PLATFORM(MAC)
+#import <IOSurface/IOSurfaceRef.h>
+#import <wtf/RetainPtr.h>
+#endif
+
 #if ENABLE(WEBGPU_SWIFT)
 #import "CxxBridging.h"
 #import <WebGPU/CxxBridgingPublic.h>
@@ -128,10 +133,27 @@ NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice> 
 
 #else
 
+#if PLATFORM(MAC)
+
+// The Mac has no compositor. There a frame's buffer is an IOSurface, which only WebKit's simulated XR device sends.
+id<MTLTexture> makeXRSharedTexture(id<MTLDevice> device, mach_port_t machPort)
+{
+    RetainPtr surface = adoptCF(IOSurfaceLookupFromMachPort(machPort));
+    if (!surface)
+        return nil;
+    MTLTextureDescriptor *descriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm width:IOSurfaceGetWidth(surface.get()) height:IOSurfaceGetHeight(surface.get()) mipmapped:NO];
+    descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    return [device newTextureWithDescriptor:descriptor iosurface:surface.get() plane:0];
+}
+
+#else
+
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t)
 {
     return nil;
 }
+
+#endif
 
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t)
 {

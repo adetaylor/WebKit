@@ -49,7 +49,8 @@ struct XRProjectionLayerParameters {
 };
 
 // The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl::startFrame makes. They return nil
-// outside visionOS device builds with the internal SDK, where XRProjectionLayer::startFrame never reaches Swift.
+// outside visionOS device builds with the internal SDK, except that on the Mac, where only the simulated XR device of
+// an opt-in WebXR build starts frames, makeXRSharedTexture() makes a texture from the IOSurface that it sends.
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
 NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeft, const WebGPU::XRRasterizationSamples& horizontalSamplesRight, const WebGPU::XRRasterizationSamples& verticalSamples);
