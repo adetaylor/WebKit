@@ -30,7 +30,6 @@
 #include "CSSCalcSymbolTable.h"
 #include "CSSCalcTree+Copy.h"
 #include "CSSCalcTree+Evaluation.h"
-#include "CSSCalcTree+Traversal.h"
 #include "CSSCalcTree.h"
 #include "CSSNormalizedMixPercentages.h"
 #include "CSSPrimitiveNumericCategory.h"
