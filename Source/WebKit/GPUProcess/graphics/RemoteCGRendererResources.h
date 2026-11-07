@@ -29,6 +29,8 @@
 
 #include "RemoteCGRendererPath.h"
 #include "RemotePathImplIdentifier.h"
+#include <WebCore/Color.h>
+#include <WebCore/GraphicsTypes.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
@@ -70,6 +72,26 @@ private:
     const Ref<RemoteRenderingBackend> m_backend;
     const Ref<WebCore::ImageBuffer> m_target;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// What the renderer takes of a color, as GraphicsContextCG converts one for the receiver's context, with the CGColor, which
+// this returns, of a color that isn't sRGBA8. Inline for the sRGBA8 colors that most are.
+CGColorRef _Nullable copyPlatformColor(const RemoteCGRendererResources&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED;
+inline CGColorRef _Nullable copyColor(const RemoteCGRendererResources& resources, const WebCore::Color& color, CGRendererColorValue& value) CF_RETURNS_RETAINED
+{
+    if (auto packedColor = color.tryGetAsPackedInline()) {
+        value = { };
+        value.isPacked = true;
+        value.packedColor = packedColor->value;
+        value.isVisible = color.isVisible();
+        return nullptr;
+    }
+    return copyPlatformColor(resources, color, value);
+}
+
+inline uint8_t textDrawingModeValue(WebCore::TextDrawingModeFlags mode)
+{
+    return mode.toRaw();
+}
 
 // The image of a cached native image, which is null for an image this process can't read, and of an image buffer other than
 // the target, as GraphicsContext draws one (nativeImageForDrawing()): the receiver declines the target's own. Functions, since

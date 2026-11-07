@@ -33,11 +33,14 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
+#include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererResources.h"
+#include "RemoteCGRendererShadow.h"
+#include "RemoteCGRendererStyle.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -175,6 +178,16 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(DrawImageBuffer, &RemoteImageBufferGraphicsContext::drawImageBuffer)
     HANDLE_CG_RENDERER_MESSAGE(DrawPatternNativeImage, &RemoteGraphicsContext::drawPatternNativeImage)
     HANDLE_CG_RENDERER_MESSAGE(DrawPatternImageBuffer, &RemoteGraphicsContext::drawPatternImageBuffer)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillColor, &RemoteGraphicsContext::setFillColor)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeColor, &RemoteGraphicsContext::setStrokeColor)
+    HANDLE_CG_RENDERER_MESSAGE(SetDropShadow, &RemoteImageBufferGraphicsContext::setDropShadow)
+    HANDLE_CG_RENDERER_MESSAGE(SetStyle, &RemoteImageBufferGraphicsContext::setStyle)
+    HANDLE_CG_RENDERER_MESSAGE(SetTextDrawingMode, &RemoteGraphicsContext::setTextDrawingMode)
+    HANDLE_CG_RENDERER_MESSAGE(SetShadowsIgnoreTransforms, &RemoteGraphicsContext::setShadowsIgnoreTransforms)
+    HANDLE_CG_RENDERER_MESSAGE(SetLineDash, &RemoteImageBufferGraphicsContext::setLineDash)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithColor, &RemoteGraphicsContext::fillRectWithColor)
+    HANDLE_CG_RENDERER_MESSAGE(FillCompositedRect, &RemoteGraphicsContext::fillCompositedRect)
+    HANDLE_CG_RENDERER_MESSAGE(ApplyDeviceScaleFactor, &RemoteGraphicsContext::applyDeviceScaleFactor)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -233,6 +246,21 @@ void RemoteImageBufferGraphicsContext::clipPath(const RemoteCGRendererPath& path
 void RemoteImageBufferGraphicsContext::clipOutToPath(const RemoteCGRendererPath& path)
 {
     RemoteGraphicsContext::clipOutToPath(path.path());
+}
+
+void RemoteImageBufferGraphicsContext::setDropShadow(const RemoteCGRendererShadow& shadow)
+{
+    RemoteGraphicsContext::setDropShadow(shadow.shadow());
+}
+
+void RemoteImageBufferGraphicsContext::setStyle(const RemoteCGRendererStyle& style)
+{
+    RemoteGraphicsContext::setStyle(style.style());
+}
+
+void RemoteImageBufferGraphicsContext::setLineDash(const RemoteCGRendererLineDash& dashes, float dashOffset)
+{
+    context().setLineDash(DashArray(dashes.span()), dashOffset);
 }
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

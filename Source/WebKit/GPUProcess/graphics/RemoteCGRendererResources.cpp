@@ -29,6 +29,8 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
+#include "RemoteCGRendererShadow.h"
+#include "RemoteCGRendererStyle.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
 #include <WebCore/GraphicsContextCG.h>
@@ -100,6 +102,35 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
     if (!image)
         return nullptr;
     return copyImage(*image, facts);
+}
+
+static GraphicsContextCG& targetContext(const RemoteCGRendererResources& resources)
+{
+    return static_cast<GraphicsContextCG&>(resources.target().context());
+}
+
+CGColorRef copyPlatformColor(const RemoteCGRendererResources& resources, const Color& color, CGRendererColorValue& value)
+{
+    return CGRendererCopyColor(targetContext(resources), color, value);
+}
+
+CGColorRef copyShadow(const RemoteCGRendererResources& resources, const RemoteCGRendererShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    values = { };
+    color = { };
+    if (!shadow.shadow())
+        return nullptr;
+    return CGRendererCopyShadow(targetContext(resources), *shadow.shadow(), values, color);
+}
+
+CGColorRef copyStyleShadow(const RemoteCGRendererResources& resources, const RemoteCGRendererStyle& style, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    values = { };
+    color = { };
+    auto* shadow = style.dropShadow();
+    if (!shadow)
+        return nullptr;
+    return CGRendererCopyShadow(targetContext(resources), *shadow, values, color);
 }
 
 } // namespace WebKit

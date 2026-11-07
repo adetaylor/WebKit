@@ -27,8 +27,8 @@
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
 # They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the line
-# strokes, which the GPU process copies out of the message, and paths and their segments, which it decodes into plain values
-# or the PathImpl of a path of them.
+# strokes and line dashes, which the GPU process copies out of the message, paths and their segments, which it decodes into
+# plain values or the PathImpl of a path of them, and shadows and styles, which it keeps for Swift to ask of them.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
@@ -97,6 +97,16 @@ messages -> RemoteCGRenderer Stream {
     DrawImageBuffer SwiftMayDecline
     DrawPatternNativeImage
     DrawPatternImageBuffer SwiftMayDecline
+    SetFillColor
+    SetStrokeColor
+    SetDropShadow(WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
+    SetStyle(WebKit::RemoteCGRendererStyle style) StreamBatched SwiftMayDecline
+    SetTextDrawingMode
+    SetShadowsIgnoreTransforms
+    SetLineDash(WebKit::RemoteCGRendererLineDash dashArray, float dashOffset) StreamBatched
+    FillRectWithColor SwiftMayDecline
+    FillCompositedRect SwiftMayDecline
+    ApplyDeviceScaleFactor
 }
 
 #endif

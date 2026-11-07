@@ -81,10 +81,13 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererResources.h"
+#include "RemoteCGRendererShadow.h"
+#include "RemoteCGRendererStyle.h"
 #include "RemoteCGRendererMessages.h"
 #include <WebCore/CGRendererSwiftBridge.h>
 #endif

@@ -147,4 +147,19 @@ header: "RemoteCGRendererPath.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPath {
     Vector<WebCore::PathSegment> segments();
 };
+
+header: "RemoteCGRendererShadow.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererShadow {
+    std::optional<WebCore::GraphicsDropShadow> shadow();
+};
+
+header: "RemoteCGRendererStyle.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererStyle {
+    std::optional<WebCore::GraphicsStyle> style();
+};
+
+header: "RemoteCGRendererLineDash.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineDash {
+    std::span<const double> span();
+};
 #endif

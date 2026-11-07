@@ -40,6 +40,9 @@ class RemoteCGRenderer;
 class RemoteCGRendererLineStrokes;
 class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
+class RemoteCGRendererLineDash;
+class RemoteCGRendererShadow;
+class RemoteCGRendererStyle;
 #endif
 
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
@@ -63,6 +66,9 @@ public:
     void drawPath(const RemoteCGRendererPath&);
     void clipPath(const RemoteCGRendererPath&, WebCore::WindRule);
     void clipOutToPath(const RemoteCGRendererPath&);
+    void setDropShadow(const RemoteCGRendererShadow&);
+    void setStyle(const RemoteCGRendererStyle&);
+    void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

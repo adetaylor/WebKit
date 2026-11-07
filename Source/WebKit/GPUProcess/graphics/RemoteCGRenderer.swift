@@ -446,6 +446,96 @@ final class RemoteCGRenderer {
         )
     }
 
+    // RemoteGraphicsContext's color, shadow, style and state handlers, with the colors converted for the context as
+    // GraphicsContextCG converts its state's.
+
+    func setFillColor(state: inout CGRendererCore, color: WebCore.Color) {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        state.receiveSetFillColor(value, cgColor)
+    }
+
+    func setStrokeColor(state: inout CGRendererCore, color: WebCore.Color) {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        state.receiveSetStrokeColor(value, cgColor)
+    }
+
+    func setDropShadow(state: inout CGRendererCore, dropShadow: WebKit.RemoteCGRendererShadow) {
+        guard dropShadow.hasShadow() else {
+            state.receiveClearDropShadow()
+            return
+        }
+        var values = CGRendererShadowValues()
+        var color = CGRendererColorData()
+        let cgColor = WebKit.copyShadow(resources, dropShadow, &values, &color)
+        state.receiveSetDropShadow(values, cgColor, color)
+    }
+
+    // Without CGStyle's blur and color matrix, GraphicsContextCG leaves those styles to its C++ state alone.
+    func setStyle(state: inout CGRendererCore, style: WebKit.RemoteCGRendererStyle) -> Bool {
+        switch style.kind() {
+        case .None:
+            state.receiveSetNoStyle()
+        case .DropShadow:
+            var values = CGRendererShadowValues()
+            var color = CGRendererColorData()
+            let cgColor = WebKit.copyStyleShadow(resources, style, &values, &color)
+            state.receiveSetDropShadowStyle(values, cgColor, color)
+        case .GaussianBlur:
+            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+            let radius = style.gaussianBlurRadius()
+            state.receiveSetGaussianBlurStyle(radius.width(), radius.height())
+            #else
+            return false
+            #endif
+        case .ColorMatrix:
+            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+            state.receiveSetColorMatrixStyle(style.colorMatrix())
+            #else
+            return false
+            #endif
+        @unknown default:
+            return false
+        }
+        return true
+    }
+
+    func setTextDrawingMode(state: inout CGRendererCore, mode: WebCore.TextDrawingModeFlags) {
+        state.receiveSetTextDrawingMode(WebKit.textDrawingModeValue(mode))
+    }
+
+    func setShadowsIgnoreTransforms(state: inout CGRendererCore, shouldIgnore: Bool) {
+        state.receiveSetShadowsIgnoreTransforms(shouldIgnore)
+    }
+
+    func setLineDash(state: inout CGRendererCore, dashArray: WebKit.RemoteCGRendererLineDash, dashOffset: Float) {
+        let dashes: Span<Double> = dashArray.span()
+        state.receiveSetLineDash(dashes, dashOffset)
+    }
+
+    func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: WebCore.Color) -> Bool {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        return state.receiveFillRect(cgRect(rect), value, cgColor)
+    }
+
+    func fillCompositedRect(
+        state: inout CGRendererCore,
+        rect: WebCore.FloatRect,
+        color: WebCore.Color,
+        op: WebCore.CompositeOperator,
+        blendMode: WebCore.BlendMode
+    ) -> Bool {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        return state.receiveFillRect(cgRect(rect), value, cgColor, op, blendMode)
+    }
+
+    func applyDeviceScaleFactor(state: inout CGRendererCore, scaleFactor: Float) {
+        state.receiveApplyDeviceScaleFactor(scaleFactor)
+    }
+
     private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true
