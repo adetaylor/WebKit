@@ -91,8 +91,8 @@ public:
 
     bool is8Bit() const;
     std::span<const Latin1Character> span8() const LIFETIME_BOUND { return span<Latin1Character>(); }
-    std::span<const char16_t> span16() const LIFETIME_BOUND { return span<char16_t>(); }
-    template<typename CharacterType> std::span<const CharacterType> span() const LIFETIME_BOUND;
+    SWIFT_UNSAFE std::span<const char16_t> span16() const LIFETIME_BOUND { return span<char16_t>(); }
+    template<typename CharacterType> SWIFT_UNSAFE std::span<const CharacterType> span() const LIFETIME_BOUND;
     
     unsigned capacity() const;
     WTF_EXPORT_PRIVATE void reserveCapacity(unsigned newCapacity);

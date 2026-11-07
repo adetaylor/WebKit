@@ -65,7 +65,12 @@ public:
 
     bool is8Bit() const { return m_string.is8Bit(); }
     std::span<const Latin1Character> span8() const LIFETIME_BOUND { return m_string.span8(); }
-    std::span<const char16_t> span16() const LIFETIME_BOUND { return m_string.span16(); }
+    // Assumes a 16-bit string, which only a debug assertion checks, so Swift uses checkedSpan16() instead.
+    SWIFT_UNSAFE std::span<const char16_t> span16() const LIFETIME_BOUND { return m_string.span16(); }
+#if defined(__swift__)
+    // Crashes on a non-empty 8-bit string.
+    std::span<const char16_t> checkedSpan16() const LIFETIME_BOUND { return m_string.checkedSpan16(); }
+#endif
     unsigned length() const { return m_string.length(); }
 
     char16_t operator[](unsigned int i) const { return m_string[i]; }
