@@ -29,11 +29,10 @@
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 
 #import "DetectedTextInterface.h"
-#import "ImageBuffer.h"
 #import "NativeImage.h"
-#import "VisionUtilities.h"
+#import "ShapeDetectionVisionSupport.h"
+#import "WebCore-Swift.h"
 #import <wtf/TZoneMallocInlines.h>
-#import <pal/cocoa/VisionSoftLink.h>
 
 namespace WebCore::ShapeDetection {
 
@@ -51,30 +50,9 @@ void TextDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(V
         return;
     }
 
-    RetainPtr request = adoptNS([PAL::allocVNRecognizeTextRequestInstance() init]);
-    configureRequestToUseCPUOrGPU(request.get());
-
-    RetainPtr imageRequestHandler = adoptNS([PAL::allocVNImageRequestHandlerInstance() initWithCGImage:platformImage.get() options:@{ }]);
-
-    NSError *error = nil;
-    auto result = [imageRequestHandler performRequests:@[request.get()] error:&error];
-    if (!result || error) {
-        completionHandler({ });
-        return;
-    }
-
-    auto imageSize = image.size();
-    Vector<DetectedText> results(ReserveCapacityTag { }, request.get().results.count);
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL VNRecognizedTextObservation *observation in request.get().results) {
-        results.append({
-            convertRectFromVisionToWeb(imageSize, observation.boundingBox),
-            [observation topCandidates:1][0].string,
-            convertCornerPoints(imageSize, observation),
-        });
-    }
-
-    completionHandler(WTF::move(results));
+    Ref shapes = DetectedShapes::create();
+    WebCore::shapeDetectionDetectTexts(platformImage.get(), shapes.ptr());
+    completionHandler(shapes->takeTexts());
 }
 
 } // namespace WebCore::ShapeDetection

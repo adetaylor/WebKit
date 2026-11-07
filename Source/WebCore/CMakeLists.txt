@@ -3370,6 +3370,10 @@ if (APPLE)
     # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
     # out of the unified sources.
     set(WebCore_SWIFT_INTEROP_SOURCES
+        Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.mm
+        Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.mm
+        Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.mm
+
         platform/audio/cocoa/AudioSampleBufferList.cpp
         platform/audio/cocoa/CAAudioStreamDescription.cpp
         platform/audio/cocoa/CARingBuffer.cpp
@@ -3614,6 +3618,17 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/media-parsers/ByteCursor.swift
         ${WEBCORE_DIR}/platform/media-parsers/MutableSpanCopy.swift
         ${WEBCORE_DIR}/platform/media-parsers/WTFCompatParsing.swift
+
+        ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVision.swift
+    )
+
+    # ShapeDetectionVision.swift imports Vision, which WebCore soft-links: keep Vision, and the Swift overlays that only
+    # its import brings, out of WebCore's load commands, as WebCore.xcconfig does.
+    webkit_target_add_swift_options(WebCore
+        "-Xfrontend -disable-autolink-framework -Xfrontend Vision"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftCompression"
+        "-Xfrontend -disable-autolink-library -Xfrontend compression"
     )
 
     # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.

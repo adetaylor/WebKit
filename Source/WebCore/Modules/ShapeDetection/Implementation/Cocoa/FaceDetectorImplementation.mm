@@ -30,12 +30,10 @@
 
 #import "DetectedFaceInterface.h"
 #import "FaceDetectorOptionsInterface.h"
-#import "ImageBuffer.h"
-#import "LandmarkInterface.h"
 #import "NativeImage.h"
-#import "VisionUtilities.h"
+#import "ShapeDetectionVisionSupport.h"
+#import "WebCore-Swift.h"
 #import <wtf/TZoneMallocInlines.h>
-#import <pal/cocoa/VisionSoftLink.h>
 
 namespace WebCore::ShapeDetection {
 
@@ -48,34 +46,6 @@ FaceDetectorImpl::FaceDetectorImpl(const FaceDetectorOptions& faceDetectorOption
 
 FaceDetectorImpl::~FaceDetectorImpl() = default;
 
-static std::span<const CGPoint> pointsInImageOfSize(VNFaceLandmarkRegion2D *landmark, const FloatSize& imageSize)
-{
-    return unsafeMakeSpan([landmark pointsInImageOfSize:imageSize], landmark.pointCount);
-}
-
-static Vector<FloatPoint> convertLandmark(VNFaceLandmarkRegion2D *landmark, const FloatSize& imageSize)
-{
-    return WTF::map(pointsInImageOfSize(landmark, imageSize), [&imageSize](const CGPoint& point) {
-        return convertPointFromUnnormalizedVisionToWeb(imageSize, point);
-    });
-}
-
-static Vector<Landmark> convertLandmarks(VNFaceLandmarks2D *landmarks, const FloatSize& imageSize)
-{
-    return {
-        {
-            convertLandmark(retainPtr(landmarks.leftEye).get(), imageSize),
-            WebCore::ShapeDetection::LandmarkType::Eye,
-        }, {
-            convertLandmark(retainPtr(landmarks.rightEye).get(), imageSize),
-            WebCore::ShapeDetection::LandmarkType::Eye,
-        }, {
-            convertLandmark(retainPtr(landmarks.nose).get(), imageSize),
-            WebCore::ShapeDetection::LandmarkType::Nose,
-        },
-    };
-}
-
 void FaceDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(Vector<DetectedFace>&&)>&& completionHandler)
 {
     auto platformImage = image.platformImage();
@@ -84,31 +54,9 @@ void FaceDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(V
         return;
     }
 
-    RetainPtr request = adoptNS([PAL::allocVNDetectFaceLandmarksRequestInstance() init]);
-    configureRequestToUseCPUOrGPU(request.get());
-
-    RetainPtr imageRequestHandler = adoptNS([PAL::allocVNImageRequestHandlerInstance() initWithCGImage:platformImage.get() options:@{ }]);
-
-    NSError *error = nil;
-    auto result = [imageRequestHandler performRequests:@[request.get()] error:&error];
-    if (!result || error) {
-        completionHandler({ });
-        return;
-    }
-
-    auto imageSize = image.size();
-    Vector<DetectedFace> results(ReserveCapacityTag { }, std::min<size_t>(m_maxDetectedFaces, request.get().results.count));
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL VNFaceObservation *observation in request.get().results) {
-        results.append({
-            convertRectFromVisionToWeb(imageSize, observation.boundingBox),
-            { convertLandmarks(retainPtr(observation.landmarks).get(), imageSize) },
-        });
-        if (results.size() >= m_maxDetectedFaces)
-            break;
-    }
-
-    completionHandler(WTF::move(results));
+    Ref shapes = DetectedShapes::create();
+    WebCore::shapeDetectionDetectFaces(m_maxDetectedFaces, platformImage.get(), shapes.ptr());
+    completionHandler(shapes->takeFaces());
 }
 
 } // namespace WebCore::ShapeDetection

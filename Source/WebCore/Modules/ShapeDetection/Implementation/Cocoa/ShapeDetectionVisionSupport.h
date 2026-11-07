@@ -1,0 +1,141 @@
+/*
+ * Copyright (C) 2023 Apple Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#pragma once
+
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
+
+#include <CoreGraphics/CoreGraphics.h>
+#include <WebCore/BarcodeFormatInterface.h>
+#include <WebCore/DetectedBarcodeInterface.h>
+#include <WebCore/DetectedFaceInterface.h>
+#include <WebCore/DetectedTextInterface.h>
+#include <WebCore/LandmarkTypeInterface.h>
+#include <wtf/Ref.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
+#include <wtf/Vector.h>
+
+OBJC_CLASS NSString;
+OBJC_CLASS VNBarcodeObservation;
+OBJC_CLASS VNDetectBarcodesRequest;
+OBJC_CLASS VNDetectFaceLandmarksRequest;
+OBJC_CLASS VNFaceLandmarkRegion2D;
+OBJC_CLASS VNFaceObservation;
+OBJC_CLASS VNRecognizeTextRequest;
+OBJC_CLASS VNRecognizedTextObservation;
+OBJC_CLASS VNRequest;
+
+// What WebCore's Swift shape detection (ShapeDetectionVision.swift) asks of Vision that it can't do itself while WebCore
+// soft-links Vision: anything that names a Vision class or constant (creating requests, typed result arrays, constants).
+// Everything else, Swift does by calling Vision's objects directly.
+
+namespace WebCore::ShapeDetection {
+
+// The Vision barcode symbologies that shape detection maps to and from barcode formats.
+enum class VisionBarcodeSymbology : uint8_t {
+    Aztec,
+    Codabar,
+    Code39,
+    Code39Checksum,
+    Code39FullASCII,
+    Code39FullASCIIChecksum,
+    Code93,
+    Code93i,
+    Code128,
+    DataMatrix,
+    Ean8,
+    Ean13,
+    GS1DataBar,
+    GS1DataBarExpanded,
+    GS1DataBarLimited,
+    I2of5,
+    I2of5Checksum,
+    Itf14,
+    MicroPDF417,
+    MicroQR,
+    Pdf417,
+    Qr,
+    Upce,
+};
+
+CF_ASSUME_NONNULL_BEGIN
+
+NSString *visionBarcodeSymbologyName(VisionBarcodeSymbology);
+
+// New requests, configured to run on the GPU when Vision can.
+VNDetectBarcodesRequest *createVisionBarcodesRequest() NS_RETURNS_RETAINED;
+VNDetectFaceLandmarksRequest *createVisionFaceLandmarksRequest() NS_RETURNS_RETAINED;
+VNRecognizeTextRequest *createVisionTextRequest() NS_RETURNS_RETAINED;
+
+// Whether Vision performed the request on the image without an error.
+bool performVisionRequest(CGImageRef, VNRequest *);
+
+size_t visionResultCount(VNRequest *);
+VNBarcodeObservation *visionBarcodeObservation(VNDetectBarcodesRequest *, size_t index);
+VNFaceObservation *visionFaceObservation(VNDetectFaceLandmarksRequest *, size_t index);
+VNRecognizedTextObservation *visionTextObservation(VNRecognizeTextRequest *, size_t index);
+
+// The string of the observation's top candidate.
+NSString *visionTopCandidateString(VNRecognizedTextObservation *);
+
+// A point of the region in the coordinates of an image of that size, from -[VNFaceLandmarkRegion2D pointsInImageOfSize:].
+CGPoint visionLandmarkPointInImage(VNFaceLandmarkRegion2D *, CGSize imageSize, size_t index);
+
+CF_ASSUME_NONNULL_END
+
+// What the Swift detectors find, for the C++ detectors (BarcodeDetectorImpl and the others), which WebKitLegacy uses.
+class DetectedShapes final : public RefCounted<DetectedShapes> {
+public:
+    static Ref<DetectedShapes> create() { return adoptRef(*new DetectedShapes); }
+
+    void appendBarcode(CGRect boundingBox, NSString * WTF_NULLABLE rawValue, BarcodeFormat, CGPoint topLeft, CGPoint topRight, CGPoint bottomRight, CGPoint bottomLeft);
+    // A face, with its landmarks appended after it.
+    void appendFace(CGRect boundingBox);
+    void appendFaceLandmark(LandmarkType);
+    void appendFaceLandmarkLocation(CGPoint);
+    void appendText(CGRect boundingBox, NSString * WTF_NULLABLE rawValue, CGPoint topLeft, CGPoint topRight, CGPoint bottomRight, CGPoint bottomLeft);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { RefCounted<DetectedShapes>::ref(); }
+    void deref() const { RefCounted<DetectedShapes>::deref(); }
+#else
+    Vector<DetectedBarcode> takeBarcodes() { return std::exchange(m_barcodes, { }); }
+    Vector<DetectedFace> takeFaces() { return std::exchange(m_faces, { }); }
+    Vector<DetectedText> takeTexts() { return std::exchange(m_texts, { }); }
+#endif
+
+private:
+    DetectedShapes() = default;
+
+    Vector<DetectedBarcode> m_barcodes;
+    Vector<DetectedFace> m_faces;
+    Vector<DetectedText> m_texts;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+} // namespace WebCore::ShapeDetection
+
+#endif // HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)

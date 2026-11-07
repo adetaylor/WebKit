@@ -28,9 +28,6 @@
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 
 #include <WebCore/BarcodeDetectorInterface.h>
-#include <wtf/HashFunctions.h>
-#include <wtf/HashSet.h>
-#include <wtf/HashTraits.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore::ShapeDetection {
@@ -49,7 +46,9 @@ public:
 
     WEBCORE_EXPORT static void getSupportedFormats(CompletionHandler<void(Vector<BarcodeFormat>&&)>&&);
 
-    using BarcodeFormatSet = HashSet<BarcodeFormat, WTF::IntHash<BarcodeFormat>, WTF::StrongEnumHashTraits<BarcodeFormat>>;
+    // A set of formats as WebCore's Swift detector takes and gives them: bit n is the format whose value is n.
+    WEBCORE_EXPORT static uint16_t formatMask(const Vector<BarcodeFormat>&);
+    WEBCORE_EXPORT static Vector<BarcodeFormat> formats(uint16_t formatMask);
 
 private:
     WEBCORE_EXPORT BarcodeDetectorImpl(const BarcodeDetectorOptions&);
@@ -61,7 +60,8 @@ private:
 
     void detect(const NativeImage&, CompletionHandler<void(Vector<DetectedBarcode>&&)>&&) final;
 
-    std::optional<BarcodeFormatSet> m_requestedBarcodeFormatSet;
+    // FIXME: The formats are supposed to be optional.
+    const uint16_t m_requestedFormatMask;
 };
 
 } // namespace WebCore::ShapeDetection

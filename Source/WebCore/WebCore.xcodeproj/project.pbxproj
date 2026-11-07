@@ -7773,6 +7773,8 @@
 		0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1677C9FE1B48D7A1449F82 /* GLState.swift */; };
 		354C93A55960471382F69BAB /* CocoaGLPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B3F9C7A3A4206B1B5E880 /* CocoaGLPlatform.swift */; };
 		598B28086F55413F84394B7E /* GLVideoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */; };
+		89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */; };
+		D696FCA46C2D4F7EA0C6A4B2 /* ShapeDetectionVisionSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = 8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -10200,8 +10202,6 @@
 		1CEF45B527BB908200C3A6BC /* JSGPUShaderModuleCompilationHint.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSGPUShaderModuleCompilationHint.cpp; sourceTree = "<group>"; };
 		1CF0BFD42298706800ED2074 /* AutosizeStatus.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AutosizeStatus.cpp; sourceTree = "<group>"; };
 		1CF18F3C26BB5AF2004B1722 /* LogInitialization.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LogInitialization.cpp; sourceTree = "<group>"; };
-		1CFA5DB129F4D21E0044C847 /* VisionUtilities.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = VisionUtilities.mm; sourceTree = "<group>"; };
-		1CFA5DB229F4D21E0044C847 /* VisionUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VisionUtilities.h; sourceTree = "<group>"; };
 		1CFAE24B2A4D79A40004AE37 /* WebGPUDevice.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUDevice.h; sourceTree = "<group>"; };
 		1CFAE24C2A4D79A40004AE37 /* WebGPUSupportedFeatures.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUSupportedFeatures.h; sourceTree = "<group>"; };
 		1CFAE2512A4D79A60004AE37 /* WebGPUDeviceLostInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUDeviceLostInfo.h; sourceTree = "<group>"; };
@@ -24543,6 +24543,9 @@
 		C004536D0EFF4AE7A20533B4 /* WebCoreANGLECocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLECocoa.h; sourceTree = "<group>"; };
 		091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreWebGL.xcconfig; sourceTree = "<group>"; };
 		425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreWebGL.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeDetectionVision.swift; sourceTree = "<group>"; };
+		8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShapeDetectionVisionSupport.h; sourceTree = "<group>"; };
+		CB93BA49C26546E88CDB2257 /* ShapeDetectionVisionSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShapeDetectionVisionSupport.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -26780,10 +26783,11 @@
 				1C38F28C29E3B497008795CC /* BarcodeDetectorImplementation.mm */,
 				1C38F28F29E3B4D7008795CC /* FaceDetectorImplementation.h */,
 				1C38F28E29E3B4D7008795CC /* FaceDetectorImplementation.mm */,
+				624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */,
+				8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */,
+				CB93BA49C26546E88CDB2257 /* ShapeDetectionVisionSupport.mm */,
 				1C38F29129E3B4E1008795CC /* TextDetectorImplementation.h */,
 				1C38F29029E3B4E1008795CC /* TextDetectorImplementation.mm */,
-				1CFA5DB229F4D21E0044C847 /* VisionUtilities.h */,
-				1CFA5DB129F4D21E0044C847 /* VisionUtilities.mm */,
 			);
 			path = Cocoa;
 			sourceTree = "<group>";
@@ -49715,6 +49719,7 @@
 				A6D169641346B4C1000EB770 /* ShadowRoot.h in Headers */,
 				056A7AC8256C4F48002F9DDC /* ShadowRootInit.h in Headers */,
 				46DFF4981DC2603100B80B48 /* ShadowRootMode.h in Headers */,
+				D696FCA46C2D4F7EA0C6A4B2 /* ShapeDetectionVisionSupport.h in Headers */,
 				FD45A95B175D41EE00C21EC8 /* ShapeInterval.h in Headers */,
 				FD45A952175D3F3E00C21EC8 /* ShapeOutsideInfo.h in Headers */,
 				46C963C22B6C992A002F46D1 /* ShareableBitmap.h in Headers */,
@@ -52134,6 +52139,7 @@
 				33F386FDB57DCC37192407D5 /* ShadowBlurDrawing.swift in Sources */,
 				8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */,
 				8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */,
+				89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */,
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
 				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,

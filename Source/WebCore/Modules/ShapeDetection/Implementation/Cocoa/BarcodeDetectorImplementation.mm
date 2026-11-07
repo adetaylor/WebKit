@@ -31,147 +31,46 @@
 #import "BarcodeDetectorOptionsInterface.h"
 #import "BarcodeFormatInterface.h"
 #import "DetectedBarcodeInterface.h"
-#import "ImageBuffer.h"
 #import "NativeImage.h"
-#import "VisionUtilities.h"
-#import <optional>
-#import <wtf/RetainPtr.h>
+#import "ShapeDetectionVisionSupport.h"
+#import "WebCore-Swift.h"
 #import <wtf/TZoneMallocInlines.h>
-#import <pal/cocoa/VisionSoftLink.h>
 
 namespace WebCore::ShapeDetection {
 
-static BarcodeFormat convertSymbology(VNBarcodeSymbology symbology)
-{
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyAztecSingleton()])
-        return BarcodeFormat::Aztec;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCodabarSingleton()])
-        return BarcodeFormat::Codabar;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode39Singleton()])
-        return BarcodeFormat::Code_39;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode39ChecksumSingleton()])
-        return BarcodeFormat::Code_39;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode39FullASCIISingleton()])
-        return BarcodeFormat::Code_39;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode39FullASCIIChecksumSingleton()])
-        return BarcodeFormat::Code_39;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode93Singleton()])
-        return BarcodeFormat::Code_93;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode93iSingleton()])
-        return BarcodeFormat::Code_93;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyCode128Singleton()])
-        return BarcodeFormat::Code_128;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyDataMatrixSingleton()])
-        return BarcodeFormat::Data_matrix;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyEAN8Singleton()])
-        return BarcodeFormat::Ean_8;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyEAN13Singleton()])
-        return BarcodeFormat::Ean_13;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyGS1DataBarSingleton()])
-        return BarcodeFormat::Unknown;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyGS1DataBarExpandedSingleton()])
-        return BarcodeFormat::Unknown;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyGS1DataBarLimitedSingleton()])
-        return BarcodeFormat::Unknown;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyI2of5Singleton()])
-        return BarcodeFormat::Itf;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyI2of5ChecksumSingleton()])
-        return BarcodeFormat::Itf;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyITF14Singleton()])
-        return BarcodeFormat::Itf;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyMicroPDF417Singleton()])
-        return BarcodeFormat::Pdf417;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyMicroQRSingleton()])
-        return BarcodeFormat::Qr_code;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyPDF417Singleton()])
-        return BarcodeFormat::Pdf417;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyQRSingleton()])
-        return BarcodeFormat::Qr_code;
-    if ([symbology isEqual:PAL::get_Vision_VNBarcodeSymbologyUPCESingleton()])
-        return BarcodeFormat::Upc_e;
-    return BarcodeFormat::Unknown;
-}
+static constexpr auto lastBarcodeFormat = BarcodeFormat::Upc_e;
+static_assert(std::to_underlying(lastBarcodeFormat) < 16);
 
-static Vector<VNBarcodeSymbology> convertBarcodeFormat(BarcodeFormat barcodeFormat)
+uint16_t BarcodeDetectorImpl::formatMask(const Vector<BarcodeFormat>& formats)
 {
-    switch (barcodeFormat) {
-    case BarcodeFormat::Aztec:
-        return { PAL::get_Vision_VNBarcodeSymbologyAztecSingleton() };
-    case BarcodeFormat::Code_128:
-        return { PAL::get_Vision_VNBarcodeSymbologyCode128Singleton() };
-    case BarcodeFormat::Code_39:
-        return { PAL::get_Vision_VNBarcodeSymbologyCode39Singleton(), PAL::get_Vision_VNBarcodeSymbologyCode39ChecksumSingleton(), PAL::get_Vision_VNBarcodeSymbologyCode39FullASCIISingleton(), PAL::get_Vision_VNBarcodeSymbologyCode39FullASCIIChecksumSingleton() };
-    case BarcodeFormat::Code_93:
-        return { PAL::get_Vision_VNBarcodeSymbologyCode93Singleton(), PAL::get_Vision_VNBarcodeSymbologyCode93iSingleton() };
-    case BarcodeFormat::Codabar:
-        return { PAL::get_Vision_VNBarcodeSymbologyCodabarSingleton() };
-    case BarcodeFormat::Data_matrix:
-        return { PAL::get_Vision_VNBarcodeSymbologyDataMatrixSingleton() };
-    case BarcodeFormat::Ean_13:
-        return { PAL::get_Vision_VNBarcodeSymbologyEAN13Singleton() };
-    case BarcodeFormat::Ean_8:
-        return { PAL::get_Vision_VNBarcodeSymbologyEAN8Singleton() };
-    case BarcodeFormat::Itf:
-        return { PAL::get_Vision_VNBarcodeSymbologyI2of5Singleton(), PAL::get_Vision_VNBarcodeSymbologyI2of5ChecksumSingleton(), PAL::get_Vision_VNBarcodeSymbologyITF14Singleton() };
-    case BarcodeFormat::Pdf417:
-        return { PAL::get_Vision_VNBarcodeSymbologyMicroPDF417Singleton(), PAL::get_Vision_VNBarcodeSymbologyPDF417Singleton() };
-    case BarcodeFormat::Qr_code:
-        return { PAL::get_Vision_VNBarcodeSymbologyMicroQRSingleton(), PAL::get_Vision_VNBarcodeSymbologyQRSingleton() };
-    case BarcodeFormat::Unknown:
-        return { PAL::get_Vision_VNBarcodeSymbologyGS1DataBarSingleton(), PAL::get_Vision_VNBarcodeSymbologyGS1DataBarExpandedSingleton(), PAL::get_Vision_VNBarcodeSymbologyGS1DataBarLimitedSingleton() };
-    case BarcodeFormat::Upc_a:
-        return { };
-    case BarcodeFormat::Upc_e:
-        return { PAL::get_Vision_VNBarcodeSymbologyUPCESingleton() };
-    }
-}
-
-static std::optional<BarcodeDetectorImpl::BarcodeFormatSet> convertRequestedBarcodeFormatSet(const Vector<BarcodeFormat>& formats)
-{
-    // FIXME: "formats" is supposed to be optional
-
-    BarcodeDetectorImpl::BarcodeFormatSet result;
-    result.reserveInitialCapacity(formats.size());
+    uint16_t result = 0;
     for (auto format : formats)
-        result.add(format);
+        result |= 1 << std::to_underlying(format);
+    return result;
+}
+
+Vector<BarcodeFormat> BarcodeDetectorImpl::formats(uint16_t formatMask)
+{
+    Vector<BarcodeFormat> result;
+    for (uint8_t value = 0; value <= std::to_underlying(lastBarcodeFormat); ++value) {
+        if (formatMask & (1 << value))
+            result.append(static_cast<BarcodeFormat>(value));
+    }
     return result;
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(BarcodeDetectorImpl);
 
 BarcodeDetectorImpl::BarcodeDetectorImpl(const BarcodeDetectorOptions& barcodeDetectorOptions)
-    : m_requestedBarcodeFormatSet(convertRequestedBarcodeFormatSet(barcodeDetectorOptions.formats))
+    : m_requestedFormatMask(formatMask(barcodeDetectorOptions.formats))
 {
 }
 
 BarcodeDetectorImpl::~BarcodeDetectorImpl() = default;
 
-static RetainPtr<VNDetectBarcodesRequest> request()
-{
-    // It's important that both getSupportedFormats() and detect() use a VNDetectBarcodesRequest that is
-    // configured the same way. This function is intended to make sure both VNDetectBarcodesRequests are
-    // configured accordingly.
-
-    RetainPtr result = adoptNS([PAL::allocVNDetectBarcodesRequestInstance() init]);
-    configureRequestToUseCPUOrGPU(result.get());
-    return result;
-}
-
 void BarcodeDetectorImpl::getSupportedFormats(CompletionHandler<void(Vector<BarcodeFormat>&&)>&& completionHandler)
 {
-    NSError *error = nil;
-    RetainPtr<NSArray<VNBarcodeSymbology>> supportedSymbologies = [request() supportedSymbologiesAndReturnError:&error];
-
-    BarcodeFormatSet barcodeFormatsSet;
-    barcodeFormatsSet.reserveInitialCapacity([supportedSymbologies count]);
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL VNBarcodeSymbology symbology in supportedSymbologies.get())
-        barcodeFormatsSet.add(convertSymbology(symbology));
-
-    auto barcodeFormatsVector = copyToVector(barcodeFormatsSet);
-    std::ranges::sort(barcodeFormatsVector);
-
-    completionHandler(WTF::move(barcodeFormatsVector));
+    completionHandler(formats(WebCore::shapeDetectionSupportedBarcodeFormats()));
 }
 
 void BarcodeDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(Vector<DetectedBarcode>&&)>&& completionHandler)
@@ -182,39 +81,9 @@ void BarcodeDetectorImpl::detect(const NativeImage& image, CompletionHandler<voi
         return;
     }
 
-    auto request = ShapeDetection::request();
-
-    if (m_requestedBarcodeFormatSet) {
-        NSMutableSet<VNBarcodeSymbology> *requestedSymbologies = [NSMutableSet setWithCapacity:m_requestedBarcodeFormatSet->size()];
-        for (auto barcodeFormat : *m_requestedBarcodeFormatSet) {
-            for (RetainPtr symbology : convertBarcodeFormat(barcodeFormat))
-                [requestedSymbologies addObject:symbology.get()];
-        }
-        request.get().symbologies = requestedSymbologies.allObjects;
-    }
-
-    RetainPtr imageRequestHandler = adoptNS([PAL::allocVNImageRequestHandlerInstance() initWithCGImage:platformImage.get() options:@{ }]);
-
-    NSError *error = nil;
-    auto result = [imageRequestHandler performRequests:@[request.get()] error:&error];
-    if (!result || error) {
-        completionHandler({ });
-        return;
-    }
-
-    auto imageSize = image.size();
-    Vector<DetectedBarcode> results(ReserveCapacityTag { }, request.get().results.count);
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL VNBarcodeObservation *observation in request.get().results) {
-        results.append({
-            convertRectFromVisionToWeb(imageSize, observation.boundingBox),
-            observation.payloadStringValue,
-            convertSymbology(observation.symbology),
-            convertCornerPoints(imageSize, observation),
-        });
-    }
-
-    completionHandler(WTF::move(results));
+    Ref shapes = DetectedShapes::create();
+    WebCore::shapeDetectionDetectBarcodes(m_requestedFormatMask, platformImage.get(), shapes.ptr());
+    completionHandler(shapes->takeBarcodes());
 }
 
 } // namespace WebCore::ShapeDetection

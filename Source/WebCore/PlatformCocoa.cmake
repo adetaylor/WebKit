@@ -1090,6 +1090,7 @@ list(REMOVE_ITEM WebCore_PRIVATE_FRAMEWORK_HEADERS
 list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.h
     Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.h
+    Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVisionSupport.h
     Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.h
 
     Modules/airplay/WebMediaSessionManager.h
