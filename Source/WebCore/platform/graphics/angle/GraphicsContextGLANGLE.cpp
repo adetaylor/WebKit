@@ -115,6 +115,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLANGLE::Island);
 GraphicsContextGLANGLE::Island::Island(GraphicsContextGLANGLE& owner, WebCoreWebGL::GLContext&& context)
     : context(WTF::move(context))
     , contextID(owner.m_contextID)
+    , handoff(WebCoreWebGL::GLContextHandoff::init(this->context))
 {
     Locker locker { contextsLock };
     contexts().add(contextID, &owner);
@@ -125,6 +126,16 @@ GraphicsContextGLANGLE::Island::~Island()
     Locker locker { contextsLock };
     contexts().remove(contextID);
     contextsGeneration.fetch_add(1, std::memory_order_release);
+}
+
+WebCoreWebGL::GLContextHandoff& GraphicsContextGLANGLE::islandHandoff()
+{
+    RELEASE_ASSERT(m_island);
+    auto& handoff = m_island->handoff;
+    // WebKit's Swift takes the handoff by the address of its storage, which WebKit/Shared/WebCoreWebGLForWebKit.h takes to
+    // be the struct itself.
+    RELEASE_ASSERT(WebCoreWebGL::_impl::_impl_GLContextHandoff::getOpaquePointer(handoff) == reinterpret_cast<char*>(&handoff));
+    return handoff;
 }
 
 template<typename T>

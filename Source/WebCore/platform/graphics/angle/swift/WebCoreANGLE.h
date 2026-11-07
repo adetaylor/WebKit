@@ -269,6 +269,7 @@ struct ANGLE final {
     static void getFloatv(GLenum pname, WebCore::GLLentMutableFloats values) { auto span = values.span(); GL_GetFloatvRobustANGLE(pname, sizeFor(span), nullptr, span.data()); }
     static void getIntegerv(GLenum pname, WebCore::GLLentMutableInts values) { auto span = values.span(); GL_GetIntegervRobustANGLE(pname, sizeFor(span), nullptr, span.data()); }
     static void getIntegeri_v(GLenum pname, GLuint index, WebCore::GLLentMutableInts values) { auto span = values.span(); GL_GetIntegeri_vRobustANGLE(pname, index, sizeFor(span), nullptr, span.data()); }
+    static ANGLEInt4 getIntegeri_v(GLenum pname, GLuint index) { ANGLEInt4 result; GL_GetIntegeri_vRobustANGLE(pname, index, sizeof(result.values), nullptr, result.values); return result; }
     static void getInternalformativ(GLenum target, GLenum internalFormat, GLenum pname, WebCore::GLLentMutableInts values) { auto span = values.span(); GL_GetInternalformativRobustANGLE(target, internalFormat, pname, sizeFor(span), nullptr, span.data()); }
     static void getActiveUniformBlockiv(GLuint program, GLuint uniformBlockIndex, GLenum pname, WebCore::GLLentMutableInts values) { auto span = values.span(); GL_GetActiveUniformBlockivRobustANGLE(program, uniformBlockIndex, pname, sizeFor(span), nullptr, span.data()); }
     static void getUniformfv(GLuint program, GLint location, WebCore::GLLentMutableFloats values) { auto span = values.span(); GL_GetUniformfvRobustANGLE(program, location, bytesFor(span), nullptr, span.data()); }

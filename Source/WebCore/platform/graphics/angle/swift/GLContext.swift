@@ -3379,3 +3379,14 @@ enum GLContextSimulatedEvent {
     static let renderbufferAllocationFailure: UInt8 = 3
 }
 
+
+// A context for the GPU process's Swift receiver, which C++ hands it by the address of this struct's storage.
+@_expose(Cxx)
+public struct GLContextHandoff {
+    public let context: GLContext
+
+    @_expose(Cxx)
+    public init(context: GLContext) {
+        self.context = context
+    }
+}

@@ -506,6 +506,15 @@ extension GLContext {
         return values
     }
 
+    // Zero if the context can't be made current.
+    @_expose(!Cxx)
+    public func getIntegeri_v(_ pname: GLenum, _ index: GLuint) -> ANGLEInt4 {
+        guard makeContextCurrent() else {
+            return ANGLEInt4()
+        }
+        return ANGLE.getIntegeri_v(pname, index)
+    }
+
     // count values, zero if the context can't be made current.
     @_expose(!Cxx)
     public func getIntegerv(_ pname: GLenum, count: Int) -> [GLint] {

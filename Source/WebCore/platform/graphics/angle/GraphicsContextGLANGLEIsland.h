@@ -42,6 +42,7 @@ public:
 
     WebCoreWebGL::GLContext context;
     const uint64_t contextID;
+    WebCoreWebGL::GLContextHandoff handoff;
 };
 
 }

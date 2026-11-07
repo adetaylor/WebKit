@@ -35,6 +35,10 @@
 #include <wtf/Function.h>
 #include <wtf/TZoneMalloc.h>
 
+namespace WebCoreWebGL {
+class GLContextHandoff;
+}
+
 namespace WebCore {
 
 // Base class for GraphicsContextGL contexts that use ANGLE.
@@ -42,6 +46,10 @@ class WEBCORE_EXPORT GraphicsContextGLANGLE : public GraphicsContextGL {
     WTF_FORBID_HEAP_ALLOCATION_FOR_ABSTRACT_CLASS(GraphicsContextGLANGLE);
 public:
     ~GraphicsContextGLANGLE();
+
+    // The island's context, for the GPU process's Swift receiver, which takes it by the address of its storage. Only after
+    // initialize() made the island.
+    WebCoreWebGL::GLContextHandoff& islandHandoff();
 
     GCGLDisplay platformDisplay() const;
     GCGLConfig platformConfig() const;
