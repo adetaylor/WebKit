@@ -51,6 +51,12 @@ WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
 # On a message to a receiver whose state C++ lends: its Swift handler returns false to decline the message, which the
 # lender then handles in C++, once the state is no longer lent, with the same arguments.
 SWIFT_MAY_DECLINE_ATTRIBUTE = 'SwiftMayDecline'
+# On a Synchronous message to a stream receiver that takes Swift types, whose reply isn't stream-encodable: its Swift
+# handler is given the reply as a value, which it may send after it returns, as a C++ handler may call its completion
+# handler later, or drop to send the default reply.
+SWIFT_REPLY_VALUE_ATTRIBUTE = 'SwiftReplyValue'
+# The same, for a reply whose types have no Swift form: C++ encodes it, with the reply encoder the value gives it.
+CXX_ENCODED_REPLY_ATTRIBUTE = 'CxxEncodedReply'
 WANTS_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsDispatchMessage'
 WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 
@@ -134,6 +140,11 @@ class MessageReceiver(object):
 
     def _enforce_swift_types_constraints_for_message(self, message):
         description = '%s.%s' % (self.name, message.name)
+        for attribute in (SWIFT_REPLY_VALUE_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE):
+            if not message.has_attribute(attribute):
+                continue
+            if not (self.takes_swift_types(message) and self.has_attribute(STREAM_ATTRIBUTE) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and message.has_attribute('NotStreamEncodableReply')):
+                raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types" % (description, attribute))
         if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not self.is_swift_receiver():
             raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and message.has_attribute(CXX_TYPES_ATTRIBUTE):
@@ -167,7 +178,9 @@ class MessageReceiver(object):
         for parameter in message.parameters:
             if parameter.name in _SWIFT_TYPES_RESERVED_PARAMETER_NAMES:
                 raise Exception("ERROR: Message %s takes Swift types, so cannot have a parameter named '%s', which the generated Swift uses itself" % (description, parameter.name))
-        parameters = [('parameter', parameter) for parameter in message.parameters] + [('reply parameter', parameter) for parameter in message.reply_parameters or []]
+        # C++ encodes a CxxEncodedReply, so its types need no Swift form.
+        reply_parameters = [] if message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE) else message.reply_parameters or []
+        parameters = [('parameter', parameter) for parameter in message.parameters] + [('reply parameter', parameter) for parameter in reply_parameters]
         for kind, parameter in parameters:
             if kind == 'parameter' and parameter.attributes == {CXX_DECODED_ATTRIBUTE}:
                 continue

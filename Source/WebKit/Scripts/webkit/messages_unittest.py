@@ -64,6 +64,7 @@ _test_receiver_names = [
     'TestWithStreamSwift',
     'TestWithStreamSwiftEnabledBy',
     'TestWithStreamSwiftLentState',
+    'TestWithStreamSwiftReplyValues',
     'TestWithStreamSwiftTypes',
     'TestWithSuperclass',
     'TestWithSuperclassAndWantsAsyncDispatch',

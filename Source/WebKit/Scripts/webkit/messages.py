@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_DECODED_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -1312,9 +1312,16 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     return 'completionHandler.pointee(consuming: %s)' % reply_variable
 
 
+# Whether a Synchronous message's Swift handler is given its reply as a value rather than returning it.
+def gives_swift_reply_value(message):
+    return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) or message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
+
+
 # How the Invocation of a message that takes Swift types encodes the handler's return value: the value
 # itself for a single reply, or each element of the tuple returned for several.
 def swift_reply_encoding_statements(message, reply_variable, encoder):
+    if message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE):
+        return []
     reply_parameters = message.reply_parameters or []
     if len(reply_parameters) == 1:
         return ['%s.encode(%s, to: %s)' % (swift_types.swift_coder(reply_parameters[0].type), reply_variable, encoder)]
@@ -1327,6 +1334,8 @@ def generates_swift_trampoline(receiver, message):
 
 # The HandleMessage.h function that dispatches a message whose Swift receiver decodes the arguments.
 def swift_types_dispatch_function(message):
+    if gives_swift_reply_value(message):
+        return 'handleSwiftMessageSynchronousWithReplyValue'
     if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronous'
     if message.reply_parameters is not None:
@@ -2799,7 +2808,14 @@ def generate_swift_message_handler(receiver):
             encoding_statements = swift_reply_encoding_statements(message, 'reply', 'replyEncoder')
             reply_statements = encoding_statements + ['replyEncoder.send()']
             cancel_statements = ['replyEncoder.cancel()']
-            if is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+            if gives_swift_reply_value(message):
+                # The handler is given the reply as a value, which it may send after dispatch returns.
+                reply_value_type = '%s%sReply' % (receiver.name, message.name)
+                arguments.append('reply: %s(replyEncoder: replyEncoder)' % reply_value_type)
+                reply_statements = []
+                cancel_statements = []
+                stream_reply_values.append((message, reply_value_type, encoding_statements))
+            elif is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
                 # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
                 reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
             elif runs_on_work_queue and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
@@ -2905,8 +2921,11 @@ def generate_swift_message_handler(receiver):
     result.append('}\n')
 
     for message, reply_value_type, encoding_statements in stream_reply_values:
-        reply_types = [swift_types.swift_type_and_coder(parameter.type)[0] for parameter in message.reply_parameters]
-        if not reply_types:
+        cxx_encoded_reply = message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
+        reply_types = [] if cxx_encoded_reply else [swift_types.swift_type_and_coder(parameter.type)[0] for parameter in message.reply_parameters]
+        if cxx_encoded_reply:
+            send_parameter = 'encodedBy encode: (IPC.SwiftReplyEncoder) -> Void'
+        elif not reply_types:
             send_parameter = ''
         elif len(reply_types) == 1:
             send_parameter = '_ reply: %s' % reply_types[0]
@@ -2922,7 +2941,11 @@ def generate_swift_message_handler(receiver):
         result.append('        self.replyEncoder = replyEncoder\n')
         result.append('    }\n')
         result.append('\n')
+        if cxx_encoded_reply:
+            result.append('    // C++ encodes the reply, with the encoder it is given.\n')
         result.append('    consuming func send(%s) {\n' % send_parameter)
+        if cxx_encoded_reply:
+            result.append('        encode(replyEncoder)\n')
         for statement in encoding_statements:
             result.append('        %s\n' % statement)
         result.append('        replyEncoder.send()\n')

@@ -460,6 +460,14 @@ public:
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
 
+    // Encodes a value with its own ArgumentCoder, for a reply that C++ encodes (CxxEncodedReply), which isn't in the
+    // stream.
+    template<typename T> void encodeWithArgumentCoder(T&& value) __attribute__((availability(swift, unavailable)))
+    {
+        RELEASE_ASSERT(!m_inStream && m_encoder);
+        *m_encoder << std::forward<T>(value);
+    }
+
     // Returns false if the reply didn't fit in the stream buffer. It must then be encoded again, out of stream,
     // and sent again.
     bool send()

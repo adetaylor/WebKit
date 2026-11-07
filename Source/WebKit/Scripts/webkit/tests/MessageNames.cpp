@@ -271,6 +271,8 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithoutAttributes_RunJavaScriptAlert"_s, ReceiverName::TestWithoutAttributes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithLegacyReceiver_GetPluginProcessConnection"_s, ReceiverName::TestWithLegacyReceiver, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithLegacyReceiver_TestMultipleAttributes"_s, ReceiverName::TestWithLegacyReceiver, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftReplyValues_SendCxxEncodedSync"_s, ReceiverName::TestWithStreamSwiftReplyValues, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftReplyValues_SendLaterSync"_s, ReceiverName::TestWithStreamSwiftReplyValues, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendEmptySync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendLentBytesSync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendStringSync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
