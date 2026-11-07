@@ -77,6 +77,9 @@ if (WEBKIT_SDK_IS_XROS OR (WEBKIT_SDK_IS_MACOS AND NOT CMAKE_OSX_DEPLOYMENT_TARG
     WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBXR PRIVATE ON)
     WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBXR_LAYERS PRIVATE ON)
 else ()
+    # Off by default. -DENABLE_WEBXR=ON -DENABLE_WEBXR_LAYERS=ON, as the mac-dev-debug-webxr preset sets, builds WebXR
+    # on the Mac for the layout tests' simulated XR device; LayoutTests/platform/mac-webxr/TestExpectations says how to
+    # run them.
     WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEBXR PRIVATE OFF)
 endif ()
 WEBKIT_OPTION_DEFAULT_PORT_VALUE(ENABLE_WEB_API_STATISTICS PRIVATE ON)
