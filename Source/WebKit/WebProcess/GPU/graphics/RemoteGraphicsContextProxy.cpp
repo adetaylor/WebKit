@@ -31,10 +31,13 @@
 #include "Logging.h"
 #include "RemoteGraphicsContextMessages.h"
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
+#include "RemoteCGRendererShadow.h"
+#include "RemoteCGRendererStyle.h"
 #endif
 #include "RemoteImageBufferProxy.h"
 #include "RemoteRenderingBackendProxy.h"
@@ -225,7 +228,7 @@ void RemoteGraphicsContextProxy::setLineCap(LineCap lineCap)
 void RemoteGraphicsContextProxy::setLineDash(const DashArray& array, float dashOffset)
 {
     sendPendingDrawsIfNecessary();
-    send(Messages::RemoteGraphicsContext::SetLineDash(FixedVector<double>(array.span()), dashOffset));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetLineDash, (FixedVector<double>(array.span()), dashOffset), (RemoteCGRendererLineDash { array.span() }, dashOffset));
 }
 
 void RemoteGraphicsContextProxy::setLineJoin(LineJoin lineJoin)
@@ -592,7 +595,7 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& co
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillRectWithColor(rect, color));
+    SEND_RENDERER_MESSAGE(FillRectWithColor, rect, color);
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, Gradient& gradient)
@@ -613,7 +616,7 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& co
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillCompositedRect(rect, color, op, mode));
+    SEND_RENDERER_MESSAGE(FillCompositedRect, rect, color, op, mode);
 }
 
 void RemoteGraphicsContextProxy::fillRoundedRect(const FloatRoundedRect& roundedRect, const Color& color, BlendMode mode)
@@ -787,7 +790,7 @@ void RemoteGraphicsContextProxy::applyDeviceScaleFactor(float scaleFactor)
 {
     sendPendingDrawsIfNecessary();
     updateStateForApplyDeviceScaleFactor(scaleFactor);
-    send(Messages::RemoteGraphicsContext::ApplyDeviceScaleFactor(scaleFactor));
+    SEND_RENDERER_MESSAGE(ApplyDeviceScaleFactor, scaleFactor);
 }
 
 void RemoteGraphicsContextProxy::beginPage(const FloatRect& pageRect)
@@ -991,7 +994,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             else
                 send(Messages::RemoteGraphicsContext::SetFillGradient(*gradient, fillBrush.gradientSpaceTransform()));
         } else
-            send(Messages::RemoteGraphicsContext::SetFillColor(fillBrush.color()));
+            SEND_RENDERER_MESSAGE(SetFillColor, fillBrush.color());
     }
     if (changes.contains(GraphicsContextState::Change::StrokeBrush)) {
         const auto& strokeBrush = state.strokeBrush();
@@ -1015,7 +1018,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             else
                 send(Messages::RemoteGraphicsContext::SetStrokeGradient(*gradient, strokeBrush.gradientSpaceTransform()));
         } else
-            send(Messages::RemoteGraphicsContext::SetStrokeColor(strokeBrush.color()));
+            SEND_RENDERER_MESSAGE(SetStrokeColor, strokeBrush.color());
     }
     if (changes.contains(GraphicsContextState::Change::FillRule))
         SEND_RENDERER_MESSAGE(SetFillRule, state.fillRule());
@@ -1028,15 +1031,15 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
     // Note: due to bugs in GraphicsContext interface and GraphicsContextCG, we have to send ShadowsIgnoreTransforms
     // before the DropShadow and Style.
     if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
-        send(Messages::RemoteGraphicsContext::SetShadowsIgnoreTransforms(state.shadowsIgnoreTransforms()));
+        SEND_RENDERER_MESSAGE(SetShadowsIgnoreTransforms, state.shadowsIgnoreTransforms());
     if (changes.contains(GraphicsContextState::Change::DropShadow))
-        send(Messages::RemoteGraphicsContext::SetDropShadow(state.dropShadow()));
+        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetDropShadow, (state.dropShadow()), (RemoteCGRendererShadow { state.dropShadow() }));
     if (changes.contains(GraphicsContextState::Change::Style))
-        send(Messages::RemoteGraphicsContext::SetStyle(state.style()));
+        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStyle, (state.style()), (RemoteCGRendererStyle { state.style() }));
     if (changes.contains(GraphicsContextState::Change::Alpha))
         SEND_RENDERER_MESSAGE(SetAlpha, state.alpha());
     if (changes.contains(GraphicsContextState::Change::TextDrawingMode))
-        send(Messages::RemoteGraphicsContext::SetTextDrawingMode(state.textDrawingMode()));
+        SEND_RENDERER_MESSAGE(SetTextDrawingMode, state.textDrawingMode());
     if (changes.contains(GraphicsContextState::Change::ImageInterpolationQuality))
         SEND_RENDERER_MESSAGE(SetImageInterpolationQuality, state.imageInterpolationQuality());
     if (changes.contains(GraphicsContextState::Change::ShouldAntialias))
