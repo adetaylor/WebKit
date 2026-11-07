@@ -308,7 +308,7 @@ webkit_platform_headers: <WebCore/AffineTransform.h>
     WebCore::DoubleSize size()
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint {
     float x()
     float y()
 }
@@ -353,7 +353,7 @@ enum class WebCore::IndexedDB::RequestType : uint8_t {
     Other,
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRect {
     WebCore::FloatPoint location()
     WebCore::FloatSize size()
 }
@@ -576,7 +576,7 @@ webkit_platform_headers: <WebCore/IntRect.h>
     int height();
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatSize {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatSize {
     float width();
     float height();
 }
@@ -4952,7 +4952,7 @@ header: <WebCore/BarcodeDetectorOptionsInterface.h>
 };
 
 header: <WebCore/BarcodeFormatInterface.h>
-[AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::BarcodeFormat : uint8_t {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::BarcodeFormat : uint8_t {
     Aztec,
     Code_128,
     Code_39,
@@ -4970,7 +4970,7 @@ header: <WebCore/BarcodeFormatInterface.h>
 };
 
 header: <WebCore/DetectedBarcodeInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedBarcode {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedBarcode {
     WebCore::FloatRect boundingBox;
     String rawValue;
     WebCore::ShapeDetection::BarcodeFormat format;
@@ -4978,13 +4978,13 @@ header: <WebCore/DetectedBarcodeInterface.h>
 };
 
 header: <WebCore/DetectedFaceInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedFace {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedFace {
     WebCore::FloatRect boundingBox;
     std::optional<Vector<WebCore::ShapeDetection::Landmark>> landmarks;
 };
 
 header: <WebCore/DetectedTextInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedText {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedText {
     WebCore::FloatRect boundingBox;
     String rawValue;
     Vector<WebCore::FloatPoint> cornerPoints;
@@ -4997,13 +4997,13 @@ header: <WebCore/FaceDetectorOptionsInterface.h>
 };
 
 header: <WebCore/LandmarkInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::Landmark {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::Landmark {
     Vector<WebCore::FloatPoint> locations;
     WebCore::ShapeDetection::LandmarkType type;
 };
 
 header: <WebCore/LandmarkTypeInterface.h>
-[AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::LandmarkType : uint8_t {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::LandmarkType : uint8_t {
     Mouth,
     Eye,
     Nose,
