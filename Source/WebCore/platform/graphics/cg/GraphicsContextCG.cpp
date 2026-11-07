@@ -939,6 +939,78 @@ void CGRendererClipToStrokedPath(CGContextRef context, const WebCore::Path& path
     CGContextClip(context);
 }
 
+static WebCore::Path pathOfSegment(CGRendererPathSegment segment)
+{
+    return WebCore::Path { CGRendererPathSegmentFromValues(segment) };
+}
+
+CGRect CGRendererPathSegmentBounds(CGRendererPathSegment segment)
+{
+    return pathOfSegment(segment).fastBoundingRect();
+}
+
+void CGRendererClipToPathSegment(CGContextRef context, CGRendererPathSegment segment, WebCore::WindRule rule)
+{
+    CGRendererClipToPath(context, pathOfSegment(segment), rule);
+}
+
+CGRect CGRendererStrokedPathSegmentBounds(CGContextRef context, CGRendererPathSegment segment)
+{
+    return CGRendererStrokedPathBounds(context, pathOfSegment(segment));
+}
+
+void CGRendererClipToStrokedPathSegment(CGContextRef context, CGRendererPathSegment segment, float thickness)
+{
+    CGRendererClipToStrokedPath(context, pathOfSegment(segment), thickness);
+}
+
+CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    return path.fastBoundingRect();
+}
+
+void CGRendererClipToRoundedRectPath(CGContextRef context, const WebCore::FloatRoundedRect& rect, WebCore::WindRule rule)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipToPath(context, path, rule);
+}
+
+CGRect CGRendererStrokedRectBounds(CGContextRef context, CGRect rect, float lineWidth)
+{
+    return WebCore::strokedPathBoundingBox(context, [&] {
+        CGContextSetLineWidth(context, std::max(lineWidth, 0.f));
+        CGContextAddRect(context, rect);
+    });
+}
+
+CGRect CGRendererStrokedPlatformPathBounds(CGContextRef context, CGPathRef path)
+{
+    return WebCore::strokedPathBoundingBox(context, [&] {
+        CGContextBeginPath(context);
+        CGContextAddPath(context, path);
+    });
+}
+
+void CGRendererClipToStrokedPlatformPath(CGContextRef context, CGPathRef path, float thickness)
+{
+    CGContextSetLineWidth(context, thickness);
+    CGContextBeginPath(context);
+    CGContextAddPath(context, path);
+    CGContextReplacePathWithStrokedPath(context);
+    CGContextClip(context);
+}
+
+void CGRendererClipToStrokedRect(CGContextRef context, CGRect rect, float lineWidth)
+{
+    CGContextSetLineWidth(context, std::max(lineWidth, 0.f));
+    CGContextAddRect(context, rect);
+    CGContextReplacePathWithStrokedPath(context);
+    CGContextClip(context);
+}
+
 void CGRendererBrushSource::applyTo(WebCore::SourceBrush& brush) const
 {
     if (RefPtr gradient = m_gradient)
@@ -1858,15 +1930,9 @@ void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
     const RetainPtr<CGContextRef>& context = contextForDraw();
     RefPtr strokeGradient = this->strokeGradient();
     paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
-        return strokedPathBoundingBox(context.get(), [&] {
-            CGContextSetLineWidth(context.get(), std::max(lineWidth, 0.f));
-            CGContextAddRect(context.get(), rect);
-        });
+        return FloatRect { CGRendererStrokedRectBounds(context.get(), rect, lineWidth) };
     }, [&](CGContextRef clipContext) {
-        CGContextSetLineWidth(clipContext, std::max(lineWidth, 0.f));
-        CGContextAddRect(clipContext, rect);
-        CGContextReplacePathWithStrokedPath(clipContext);
-        CGContextClip(clipContext);
+        CGRendererClipToStrokedRect(clipContext, rect, lineWidth);
     });
 }
 

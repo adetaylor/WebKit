@@ -323,6 +323,19 @@ struct CGRendererPathSegment {
 // The plain values of a message's PathSegment, for a Swift receiver, and the PathSegment of them.
 WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
 WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment) __attribute__((availability(swift, unavailable)));
+// A Swift receiver's gradient fills and strokes of a path of one segment (GraphicsContextCG's fillPath() and strokePath() of a
+// Path of it), of a rounded rect's path, and of strokeRect()'s rect: the bounds of their content, and their clips.
+WEBCORE_EXPORT CGRect CGRendererPathSegmentBounds(CGRendererPathSegment);
+WEBCORE_EXPORT void CGRendererClipToPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, WebCore::WindRule);
+WEBCORE_EXPORT CGRect CGRendererStrokedPathSegmentBounds(CGContextRef _Nonnull, CGRendererPathSegment);
+WEBCORE_EXPORT void CGRendererClipToStrokedPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, float thickness);
+WEBCORE_EXPORT CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect&);
+WEBCORE_EXPORT void CGRendererClipToRoundedRectPath(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&, WebCore::WindRule);
+WEBCORE_EXPORT CGRect CGRendererStrokedRectBounds(CGContextRef _Nonnull, CGRect, float lineWidth);
+// The same for a path's CGPath, which GraphicsContextCG::drawPath() strokes after a fill without a gradient made it.
+WEBCORE_EXPORT CGRect CGRendererStrokedPlatformPathBounds(CGContextRef _Nonnull, CGPathRef _Nonnull);
+WEBCORE_EXPORT void CGRendererClipToStrokedPlatformPath(CGContextRef _Nonnull, CGPathRef _Nonnull, float thickness);
+WEBCORE_EXPORT void CGRendererClipToStrokedRect(CGContextRef _Nonnull, CGRect, float lineWidth);
 
 // GraphicsContextCG's clipPath() and clipOut(const Path&), for the C++ of a Swift receiver's path clips too.
 WEBCORE_EXPORT void CGRendererClipToPath(CGContextRef _Nonnull, const WebCore::Path&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));

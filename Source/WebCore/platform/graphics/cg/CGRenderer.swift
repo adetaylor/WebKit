@@ -3121,7 +3121,7 @@ extension CGRendererCore {
 
     // GraphicsContext::fillRoundedRect(): a rounded rect with radii as GraphicsContextCG::fillRoundedRectImpl() fills it, in
     // the composite operator with the blend mode, and one without as a rect. False where C++ draws it: a shadow ShadowBlur
-    // draws, or a gradient fill.
+    // draws, or a gradient C++ paints in a CGLayer.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRoundedRect(
         _ rect: borrowing WebCore.FloatRoundedRect,
@@ -3134,7 +3134,7 @@ extension CGRendererCore {
             return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
         }
         hasDrawn = true
-        if canUseShadowBlur || state.fill.hasGradient {
+        if canUseShadowBlur || (state.fill.hasGradient && !receivePaintsGradients()) {
             return false
         }
         let changesFillColor = !fillColorEquals(color)
@@ -3153,7 +3153,12 @@ extension CGRendererCore {
             context.setFillColor(fillColor)
         }
         let isEllipse = CGRendererRoundedRectIsEllipse(rect)
-        if !state.fill.hasPattern && isEllipse {
+        if state.fill.hasGradient {
+            // fillPath() of the rounded rect's path, in its clip.
+            let bounds = CGRendererRoundedRectBounds(rect)
+            let rounded = copy rect
+            _ = receiveFillWithGradient({ bounds }) { context, rule in CGRendererClipToRoundedRectPath(context, rounded, rule) }
+        } else if !state.fill.hasPattern && isEllipse {
             context.fillEllipse(in: bounds)
         } else {
             let path = CGRendererCopyRoundedRectPath(rect)
@@ -3425,7 +3430,17 @@ extension CGRendererCore {
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
-        strokeRect(rect, lineWidth)
+        if strokeRect(rect, lineWidth) {
+            return true
+        }
+        // GraphicsContextCG::strokeRect() of a gradient brush.
+        guard let source = brushSource(state.stroke) else {
+            return false
+        }
+        let context = context
+        return paintGradientInClip(source, { CGRendererStrokedRectBounds(context, rect, lineWidth) }) { clipContext in
+            CGRendererClipToStrokedRect(clipContext, rect, lineWidth)
+        }
     }
 
     @_expose(!Cxx)
@@ -3440,19 +3455,23 @@ extension CGRendererCore {
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) -> Bool {
-        fillEllipse(rect)
+        // GraphicsContext::fillEllipseAsPath() of a pattern or gradient brush.
+        fillEllipse(rect) || receiveFillPathSegment(ellipseSegment(rect))
     }
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) -> Bool {
-        strokeEllipse(rect)
+        // GraphicsContext::strokeEllipseAsPath() of a pattern or gradient brush.
+        strokeEllipse(rect) || receiveStrokePathSegment(ellipseSegment(rect))
     }
 
     // A path of one segment, which GraphicsContextCG::fillPath() fills through its CGPath.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) -> Bool {
         guard fillsWithoutGradient() else {
-            return false
+            return receiveFillWithGradient({ CGRendererPathSegmentBounds(segment) }) { context, rule in
+                CGRendererClipToPathSegment(context, segment, rule)
+            }
         }
         fillPath(CGRendererCreatePath(segment))
         return true
@@ -3462,7 +3481,9 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) -> Bool {
         guard strokesWithoutGradient() else {
-            return false
+            return receiveStrokeWithGradient({ context in CGRendererStrokedPathSegmentBounds(context, segment) }) { context, thickness in
+                CGRendererClipToStrokedPathSegment(context, segment, thickness)
+            }
         }
         if segment.kind == .DataLine {
             let v = segment.values
@@ -3477,7 +3498,24 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) -> Bool {
         guard fillsWithoutGradient() && strokesWithoutGradient() else {
-            return false
+            // With a gradient, the fill and the stroke one after the other, unless C++ paints the gradient.
+            guard receivePaintsGradients() else {
+                return false
+            }
+            hasDrawn = true
+            // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the
+            // stroke's clip then has the CGPath rather than the segment.
+            guard fillsWithoutGradient() else {
+                _ = receiveFillPathSegment(segment)
+                _ = receiveStrokePathSegment(segment)
+                return true
+            }
+            let path = CGRendererCreatePath(segment)
+            fillPath(path)
+            _ = receiveStrokeWithGradient({ context in CGRendererStrokedPlatformPathBounds(context, path) }) { context, thickness in
+                CGRendererClipToStrokedPlatformPath(context, path, thickness)
+            }
+            return true
         }
         hasDrawn = true
         if drawsPath() {
@@ -3489,8 +3527,13 @@ extension CGRendererCore {
     // GraphicsContextCG::drawEllipse(), which draws the path of the ellipse in the rect.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) -> Bool {
+        receiveDrawPathSegment(ellipseSegment(rect))
+    }
+
+    // The segment of the Path of an ellipse in the rect (Path::addEllipseInRect() of an empty Path).
+    private func ellipseSegment(_ rect: CGRect) -> CGRendererPathSegment {
         let values = (Float(rect.origin.x), Float(rect.origin.y), Float(rect.size.width), Float(rect.size.height), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0), Float(0))
-        return receiveDrawPathSegment(CGRendererPathSegment(values: values, kind: .EllipseInRect, flag: false))
+        return CGRendererPathSegment(values: values, kind: .EllipseInRect, flag: false)
     }
 
     // GraphicsContextCG::drawRect(), whose border takes the stroke color as the fill's unless the two are the same color.
