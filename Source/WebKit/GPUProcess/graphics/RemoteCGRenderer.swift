@@ -333,6 +333,16 @@ final class RemoteCGRenderer {
         guard state.receivePaintsGradients() else {
             return false
         }
+        // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the stroke's
+        // clip then has the CGPath rather than the segments.
+        if state.receiveFillsWithoutGradient() {
+            let platformPath = WebKit.copyPlatformPath(path)
+            state.receiveFillPath(platformPath)
+            _ = state.receiveStrokeWithGradient({ context in CGRendererStrokedPlatformPathBounds(context, platformPath) }) { context, thickness in
+                CGRendererClipToStrokedPlatformPath(context, platformPath, thickness)
+            }
+            return true
+        }
         _ = fill(&state, path)
         _ = stroke(&state, path)
         return true
