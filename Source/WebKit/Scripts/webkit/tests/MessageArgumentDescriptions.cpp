@@ -305,6 +305,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetValues>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftLentState_Draw:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Draw>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftReplyValues_SendLaterSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendString>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendValues:
@@ -588,6 +592,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
 #endif
     case MessageName::TestWithStreamSwift_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftReplyValues_SendLaterSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendEmptySync:
@@ -1333,6 +1341,14 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "rect"_s, "WebCore::FloatRect"_s },
             { "clip"_s, "bool"_s },
         };
+    case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
+        return Vector<ArgumentDescription> {
+            { "count"_s, "uint32_t"_s },
+        };
     case MessageName::TestWithStreamSwiftTypes_SendString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1853,6 +1869,15 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithStreamSwift_SendStringSync:
         return Vector<ArgumentDescription> {
             { "returnValue"_s, "int64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
+        return Vector<ArgumentDescription> {
+            { "first"_s, "Seconds"_s },
+            { "second"_s, "Seconds"_s },
+        };
+    case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
+        return Vector<ArgumentDescription> {
+            { "rights"_s, "Vector<MachSendRight>"_s },
         };
     case MessageName::TestWithStreamSwiftTypes_SendStringSync:
         return Vector<ArgumentDescription> {
