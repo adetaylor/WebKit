@@ -283,19 +283,8 @@ void GraphicsContextCG::paintGradientInClip(Gradient& gradient, const AffineTran
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
-    // The clip has to be applied inside the transparency layer, otherwise it would also clip away the shadow.
-    // Passing the content bounds to CGContextBeginTransparencyLayerWithRect() would lose the shadow of content
-    // outside the clip (rdar://190563103), so bound the layer with a clip covering the content and its shadow.
-    if (hasDropShadow) {
-        auto layerBounds = boundsIncludingDropShadow(computeContentBounds());
-        CGContextSaveGState(context.get());
-        CGContextClipToRect(context.get(), layerBounds);
-        CGContextBeginTransparencyLayer(context.get(), nullptr);
-#if !HAVE(FIX_FOR_RADAR_190563103)
-        // FIXME: Remove this workaround once the system framework rdar://190563103 is fixed.
-        CGContextClearRect(context.get(), layerBounds);
-#endif
-    }
+    if (hasDropShadow)
+        CGRendererBeginGradientShadowLayer(context.get(), boundsIncludingDropShadow(computeContentBounds()));
     {
         CGContextStateSaver stateSaver(context.get());
         clip(context.get());
@@ -303,10 +292,8 @@ void GraphicsContextCG::paintGradientInClip(Gradient& gradient, const AffineTran
         if (RetainPtr platformGradient = gradient.platformGradient(Gradient::paintColorSpace(*this)))
             CGRendererCore::paintGradient(context.get(), platformGradient.get(), gradientGeometry(gradient));
     }
-    if (hasDropShadow) {
-        CGContextEndTransparencyLayer(context.get());
-        CGContextRestoreGState(context.get());
-    }
+    if (hasDropShadow)
+        CGRendererEndGradientShadowLayer(context.get());
 }
 
 static void drawPathWithCGContext(CGContextRef context, CGPathDrawingMode drawingMode, const Path& path)
@@ -388,10 +375,13 @@ void GraphicsContextCG::addSwiftRendererLender()
     auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
     RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
     ++m_swiftRendererLenders;
+    SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
 }
 
 bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path, CGImageRef image)
 {
+    // What a lender's registration gives the renderer (addSwiftRendererLender()).
+    SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
     RetainPtr<CGPathRef> platformPath = path ? path->platformPath() : nullptr;
     bool handled;
     {
@@ -748,6 +738,8 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
 }
 
 static CGRendererColorData colorData(const Color&);
+static Color colorFromData(const CGRendererColorData&);
+static FloatRect boundsIncludingDropShadowOf(CGContextRef, const GraphicsDropShadow&, bool shadowsIgnoreTransforms, const FloatRect&);
 
 } // namespace WebCore
 
@@ -762,6 +754,46 @@ CGColorRef CGRendererCopyColor(const WebCore::GraphicsContextCG& context, const 
     }
     value.data = WebCore::colorData(color);
     return WebCore::cachedCGColorInDestinationStandardRange(color, context.colorSpace()).leakRef();
+}
+
+CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& font, std::span<const CGGlyph> glyphs, WebCore::FontSmoothingMode smoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace& colorSpace, bool isInTransparencyLayer)
+{
+    using namespace WebCore;
+    const auto& platformData = font.platformData();
+    if (!platformData.size())
+        return;
+    if (isInGPUProcess() && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+    if (!font.allowsAntialiasing())
+        smoothingMode = FontSmoothingMode::None;
+
+    float ascentDelta = 0;
+    m_font = platformData.ctFont();
+    if (platformData.orientation() == FontOrientation::Vertical && !glyphs.empty()) {
+        m_translations.resize(glyphs.size());
+        CTFontGetVerticalTranslationsForGlyphs(m_font.get(), glyphs.data(), m_translations.mutableSpan().data(), glyphs.size());
+        ascentDelta = font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent();
+    }
+
+    // The shadow's glyphs are in its color, whose alpha is multiplied by the fill color's.
+    if (simpleShadowColor)
+        m_shadowFillColor = cachedCGColorInDestinationStandardRange(simpleShadowColor->colorWithAlphaMultipliedBy(fillColor.alphaAsFloat()), colorSpace);
+
+    static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
+    m_facts = {
+        computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
+        static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer
+    };
+    m_draws = true;
+}
+
+WebCore::Color CGRendererColorFromValue(const CGRendererColorValue& value)
+{
+    if (value.isPacked)
+        return WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { value.packedColor }) };
+    return WebCore::colorFromData(value.data);
 }
 
 CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
@@ -816,6 +848,77 @@ CGRendererBrushSource::CGRendererBrushSource(const WebCore::SourceBrush& brush)
 CGRendererBrushSource::CGRendererBrushSource(const CGRendererBrushSource&) = default;
 CGRendererBrushSource& CGRendererBrushSource::operator=(const CGRendererBrushSource&) = default;
 CGRendererBrushSource::~CGRendererBrushSource() = default;
+
+CGRendererBrushSource::CGRendererBrushSource(Ref<WebCore::Gradient>&& gradient, const WebCore::AffineTransform& spaceTransform)
+    : m_gradient(WTF::move(gradient))
+    , m_gradientSpaceTransform(spaceTransform)
+{
+}
+
+CGRendererBrushSource::CGRendererBrushSource(Ref<WebCore::Pattern>&& pattern)
+    : m_gradientSpaceTransform(CGAffineTransformIdentity)
+    , m_pattern(WTF::move(pattern))
+{
+}
+
+CGGradientRef CGRendererCopyBrushGradient(const CGRendererBrushSource& source, const CGRendererGradientColorSpace& colorSpace, CGRendererGradientGeometry& geometry, CGAffineTransform& spaceTransform)
+{
+    RefPtr gradient = source.m_gradient;
+    if (!gradient)
+        return nullptr;
+    geometry = WebCore::gradientGeometry(*gradient);
+    spaceTransform = source.m_gradientSpaceTransform;
+    return RetainPtr { gradient->platformGradient(colorSpace.m_colorSpace) }.leakRef();
+}
+
+bool CGRendererPaintsGradientShadowsInLayer()
+{
+#if HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
+    return false;
+#else
+    return true;
+#endif
+}
+
+CGRect CGRendererBoundsIncludingDropShadow(CGContextRef context, float offsetWidth, float offsetHeight, float radius, bool shadowsIgnoreTransforms, CGRect bounds)
+{
+    return WebCore::boundsIncludingDropShadowOf(context, WebCore::GraphicsDropShadow { { offsetWidth, offsetHeight }, radius, { } }, shadowsIgnoreTransforms, bounds);
+}
+
+void CGRendererBeginGradientShadowLayer(CGContextRef context, CGRect layerBounds)
+{
+    // The clip has to be applied inside the transparency layer, otherwise it would also clip away the shadow.
+    // Passing the content bounds to CGContextBeginTransparencyLayerWithRect() would lose the shadow of content
+    // outside the clip (rdar://190563103), so bound the layer with a clip covering the content and its shadow.
+    CGContextSaveGState(context);
+    CGContextClipToRect(context, layerBounds);
+    CGContextBeginTransparencyLayer(context, nullptr);
+#if !HAVE(FIX_FOR_RADAR_190563103)
+    // FIXME: Remove this workaround once the system framework rdar://190563103 is fixed.
+    CGContextClearRect(context, layerBounds);
+#endif
+}
+
+void CGRendererEndGradientShadowLayer(CGContextRef context)
+{
+    CGContextEndTransparencyLayer(context);
+    CGContextRestoreGState(context);
+}
+
+CGRect CGRendererStrokedPathBounds(CGContextRef context, const WebCore::Path& path)
+{
+    return WebCore::strokedPathBoundingBox(context, [&] {
+        WebCore::setCGContextPath(context, path);
+    });
+}
+
+void CGRendererClipToStrokedPath(CGContextRef context, const WebCore::Path& path, float thickness)
+{
+    CGContextSetLineWidth(context, thickness);
+    WebCore::setCGContextPath(context, path);
+    CGContextReplacePathWithStrokedPath(context);
+    CGContextClip(context);
+}
 
 void CGRendererBrushSource::applyTo(WebCore::SourceBrush& brush) const
 {
@@ -960,40 +1063,15 @@ void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& poi
 void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
 {
     CAPTURE(drawGlyphs(font, glyphs, advances, point, smoothingMode));
-    {
-        // FontCascade::drawGlyphs(), with what the renderer can't know about the font worked out here.
-        const auto& platformData = font.platformData();
-        if (!platformData.size())
-            return;
-        if (isInGPUProcess() && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
-            ASSERT_NOT_REACHED();
-            return;
-        }
-        if (!font.allowsAntialiasing())
-            smoothingMode = FontSmoothingMode::None;
-
-        Vector<CGSize, 256> translations;
-        float ascentDelta = 0;
-        RetainPtr ctFont = platformData.ctFont();
-        if (platformData.orientation() == FontOrientation::Vertical && !glyphs.empty()) {
-            translations.resize(glyphs.size());
-            CTFontGetVerticalTranslationsForGlyphs(ctFont.get(), glyphs.data(), translations.mutableSpan().data(), glyphs.size());
-            ascentDelta = font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent();
-        }
-
-        // A shadow with no blur may be drawn as glyphs in its color, whose alpha is multiplied by the fill color's.
-        RetainPtr<CGColorRef> shadowFillColor;
-        if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
-            shadowFillColor = cachedCGColorInDestinationStandardRange(shadow->color.colorWithAlphaMultipliedBy(fillColor().alphaAsFloat()), colorSpace());
-
-        static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
-        CGRendererGlyphDrawFacts facts {
-            computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
-            static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer())
-        };
-        Vector<CGPoint, 256> positions(glyphs.size());
-        SWIFT_RENDERER(drawGlyphs(ctFont.get(), CGRendererGlyphRun { glyphs, advances, translations.span() }, CGRendererGlyphPositions { positions.mutableSpan() }, facts, shadowFillColor.get(), point.x(), point.y()));
-    }
+    // A shadow with no blur may be drawn as glyphs in its color.
+    std::optional<Color> simpleShadowColor;
+    if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
+        simpleShadowColor = shadow->color;
+    CGRendererGlyphPreparation preparation { font, glyphs, smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor(), colorSpace(), isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer()) };
+    if (!preparation.draws() || !preparation.font())
+        return;
+    Vector<CGPoint, 256> positions(glyphs.size());
+    SWIFT_RENDERER(drawGlyphs(CGRendererGlyphRun { preparation.font(), glyphs, advances, preparation.translations() }, CGRendererGlyphPositions { positions.mutableSpan() }, preparation.facts(), preparation.shadowFillColor(), point.x(), point.y()));
 }
 
 void GraphicsContextCG::drawEllipse(const FloatRect& rect)
@@ -1098,14 +1176,9 @@ void GraphicsContextCG::strokePath(const Path& path)
     const RetainPtr<CGContextRef>& context = contextForDraw();
     RefPtr strokeGradient = this->strokeGradient();
     paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
-        return strokedPathBoundingBox(context.get(), [&] {
-            setCGContextPath(context.get(), path);
-        });
+        return FloatRect { CGRendererStrokedPathBounds(context.get(), path) };
     }, [&](CGContextRef clipContext) {
-        CGContextSetLineWidth(clipContext, strokeThickness());
-        setCGContextPath(clipContext, path);
-        CGContextReplacePathWithStrokedPath(clipContext);
-        CGContextClip(clipContext);
+        CGRendererClipToStrokedPath(clipContext, path, strokeThickness());
     });
 }
 
@@ -1402,13 +1475,17 @@ FloatRect GraphicsContextCG::boundsIncludingDropShadow(const FloatRect& bounds)
 {
     auto shadow = dropShadow();
     ASSERT(shadow);
+    return boundsIncludingDropShadowOf(contextForDraw().get(), *shadow, shadowsIgnoreTransforms(), bounds);
+}
 
-    AffineTransform userToBaseCTM = getUserToBaseCTM(contextForDraw());
+static FloatRect boundsIncludingDropShadowOf(CGContextRef context, const GraphicsDropShadow& shadow, bool shadowsIgnoreTransforms, const FloatRect& bounds)
+{
+    AffineTransform userToBaseCTM = getUserToBaseCTM(context);
     auto baseToUserCTM = userToBaseCTM.inverse();
     if (!baseToUserCTM)
         return bounds;
 
-    auto [offset, blurRadius] = baseSpaceDropShadow(*shadow, userToBaseCTM, shadowsIgnoreTransforms());
+    auto [offset, blurRadius] = baseSpaceDropShadow(shadow, userToBaseCTM, shadowsIgnoreTransforms);
 
     // CG blurs shadows with a standard deviation of half the blur radius, and bounds the
     // result at 2.8 standard deviations plus a pixel.

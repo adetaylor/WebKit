@@ -45,6 +45,10 @@
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/TextStream.h>
 
+#if USE(CG)
+#include "CGRendererSwiftBridge.h"
+#endif
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContext);
@@ -620,14 +624,16 @@ FloatRect GraphicsContext::computeUnderlineBoundsForText(const FloatRect& rect, 
     return computeLineBoundsAndAntialiasingModeForText(rect, printing, dummyColor);
 }
 
-FloatRect GraphicsContext::computeLineBoundsAndAntialiasingModeForText(const FloatRect& rect, bool printing, Color& color)
+// computeLineBoundsAndAntialiasingModeForText() and computeRectsAndStrokeColorForLinesForText() of a context's CTM and
+// stroke color, which the CGRendererRectsForLinesForText() of a Swift receiver gives.
+static FloatRect lineBoundsAndAntialiasingModeForText(NOESCAPE const Invocable<AffineTransform()> auto& ctm, const FloatRect& rect, bool printing, Color& color)
 {
     FloatPoint origin = rect.location();
     float thickness = std::max(rect.height(), 0.5f);
     if (printing)
         return FloatRect(origin, FloatSize(rect.width(), thickness));
 
-    AffineTransform transform = getCTM(GraphicsContext::DefinitelyIncludeDeviceScale);
+    AffineTransform transform = ctm();
     // Just compute scale in x dimension, assuming x and y scales are equal.
     float scale = transform.b() ? std::hypot(transform.a(), transform.b()) : transform.a();
     if (scale < 1.0) {
@@ -700,7 +706,16 @@ Vector<FloatPoint> GraphicsContext::centerLineAndCutOffCorners(bool isVerticalLi
     return { point1, point2 };
 }
 
-auto GraphicsContext::computeRectsAndStrokeColorForLinesForText(const FloatPoint& point, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle) -> RectsAndStrokeColor
+struct LinesForText {
+#if USE(CG)
+    Vector<CGRect, 4> rects;
+#else
+    Vector<FloatRect, 4> rects;
+#endif
+    Color strokeColor;
+};
+
+static LinesForText rectsAndStrokeColorForLinesForText(NOESCAPE const Invocable<AffineTransform()> auto& ctm, NOESCAPE const Invocable<Color()> auto& contextStrokeColor, const FloatPoint& point, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
 #if USE(CG)
     auto makeRect = [](float x, float y, float width, float height) -> CGRect {
@@ -712,13 +727,13 @@ auto GraphicsContext::computeRectsAndStrokeColorForLinesForText(const FloatPoint
     };
 #endif
 
-    RectsAndStrokeColor result;
+    LinesForText result;
     auto& rects = result.rects;
     auto& strokeColor = result.strokeColor;
     if (lineSegments.empty())
         return result;
-    strokeColor = this->strokeColor();
-    FloatRect bounds = computeLineBoundsAndAntialiasingModeForText(FloatRect { point, FloatSize { lineSegments.back().end, thickness } }, isPrinting, strokeColor);
+    strokeColor = contextStrokeColor();
+    FloatRect bounds = lineBoundsAndAntialiasingModeForText(ctm, FloatRect { point, FloatSize { lineSegments.back().end, thickness } }, isPrinting, strokeColor);
     if (bounds.isEmpty())
         return result;
 
@@ -779,4 +794,34 @@ auto GraphicsContext::computeRectsAndStrokeColorForLinesForText(const FloatPoint
     return result;
 }
 
+FloatRect GraphicsContext::computeLineBoundsAndAntialiasingModeForText(const FloatRect& rect, bool printing, Color& color)
+{
+    return lineBoundsAndAntialiasingModeForText([&] {
+        return getCTM(GraphicsContext::DefinitelyIncludeDeviceScale);
+    }, rect, printing, color);
+}
+
+auto GraphicsContext::computeRectsAndStrokeColorForLinesForText(const FloatPoint& point, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle) -> RectsAndStrokeColor
+{
+    auto [rects, color] = rectsAndStrokeColorForLinesForText([&] {
+        return getCTM(GraphicsContext::DefinitelyIncludeDeviceScale);
+    }, [&] {
+        return strokeColor();
+    }, point, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
+    return { WTF::move(rects), WTF::move(color) };
+}
+
 } // namespace WebCore
+
+#if USE(CG)
+void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment> lineSegments, bool isPrinting, bool doubleLines, WebCore::StrokeStyle strokeStyle, Vector<CGRect, 4>& rects, WebCore::Color& color)
+{
+    auto result = WebCore::rectsAndStrokeColorForLinesForText([&] {
+        return ctm;
+    }, [&] {
+        return strokeColor;
+    }, origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
+    rects = WTF::move(result.rects);
+    color = WTF::move(result.strokeColor);
+}
+#endif

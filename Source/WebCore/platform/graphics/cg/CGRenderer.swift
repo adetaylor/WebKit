@@ -580,6 +580,9 @@ private struct CGRendererShadow {
 
     // FloatSize::isZero().
     var hasZeroOffset: Bool { abs(width) < Float.ulpOfOne && abs(height) < Float.ulpOfOne }
+
+    // GraphicsDropShadow::hasOutsets().
+    var hasOutsets: Bool { isBlurred || (isVisible && !hasZeroOffset) }
 }
 
 private enum CGRendererStyle {
@@ -775,6 +778,8 @@ private struct CGRendererColorCache {
     // Whether C++ has given the top level, which only a Swift receiver saved, a gradient or pattern brush: GraphicsContext's
     // state then holds it too, which the receiver's restore would leave there until C++ next reads the state.
     private var levelHasCxxBrushSource = false
+    // The color space the context paints gradients in, which GraphicsContextCG gives a renderer it lends.
+    private var gradientColorSpace = CGRendererGradientColorSpace()
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -1514,8 +1519,18 @@ private struct CGRendererColorCache {
         snapshotState(&snapshot)
         snapshot.staleProperties = cxxStaleProperties
         snapshot.pendingCxxRestores = pendingCxxRestores
+        // GraphicsContext's state now holds the level's gradient or pattern too, as if C++ had set it.
+        if (cxxStaleProperties & CxxStateChange.fillBrush != 0 && state.fill.hasPatternOrGradient)
+            || (cxxStaleProperties & CxxStateChange.strokeBrush != 0 && state.stroke.hasPatternOrGradient) {
+            noteCxxBrushSource()
+        }
         cxxStaleProperties = 0
         pendingCxxRestores = 0
+    }
+
+    @_expose(Cxx)
+    mutating func setGradientColorSpace(_ colorSpace: borrowing CGRendererGradientColorSpace) {
+        gradientColorSpace = copy colorSpace
     }
 
     @_expose(Cxx)
@@ -2115,7 +2130,6 @@ private struct CGRendererColorCache {
     // the glyphs goes back afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
     @_expose(Cxx)
     mutating func drawGlyphs(
-        _ font: borrowing CTFont,
         _ run: CGRendererGlyphRun,
         _ positions: CGRendererGlyphPositions,
         _ facts: CGRendererGlyphDrawFacts,
@@ -2124,7 +2138,6 @@ private struct CGRendererColorCache {
         _ y: Float
     ) {
         hasDrawn = true
-        let font = copy font
         var positions = positions
         let ctm = context.ctm
         var syntheticBoldOffset = facts.syntheticBoldOffset
@@ -2176,18 +2189,18 @@ private struct CGRendererColorCache {
             let originalFillColor = CGContextGetFillColorAsColor(context)
             CGContextSetStyle(context, nil)
             context.setFillColor(shadowFillColor)
-            showGlyphs(font, run, &positions, facts, shadowX, shadowY)
+            showGlyphs(run, &positions, facts, shadowX, shadowY)
             if syntheticBoldOffset != 0 {
-                showGlyphs(font, run, &positions, facts, shadowX + syntheticBoldOffset, shadowY)
+                showGlyphs(run, &positions, facts, shadowX + syntheticBoldOffset, shadowY)
             }
             if let originalFillColor {
                 context.setFillColor(originalFillColor)
             }
         }
 
-        showGlyphs(font, run, &positions, facts, x, y)
+        showGlyphs(run, &positions, facts, x, y)
         if syntheticBoldOffset != 0 {
-            showGlyphs(font, run, &positions, facts, x + syntheticBoldOffset, y)
+            showGlyphs(run, &positions, facts, x + syntheticBoldOffset, y)
         }
 
         // Platform drawing may assume an identity text matrix.
@@ -2208,7 +2221,6 @@ private struct CGRendererColorCache {
     // RepeatedDrawGlyphs::showGlyphsWithAdvances(): the glyphs' positions in text space, from the anchor and the advances
     // (and, for vertical text, each glyph's translation), then CTFontDrawGlyphs().
     private func showGlyphs(
-        _ font: CTFont,
         _ run: CGRendererGlyphRun,
         _ positions: inout CGRendererGlyphPositions,
         _ facts: CGRendererGlyphDrawFacts,
@@ -2248,7 +2260,7 @@ private struct CGRendererColorCache {
                 }
             }
         }
-        CGRendererDrawGlyphs(font, run, positions, context)
+        CGRendererDrawGlyphs(run, positions, context)
     }
 
     // MARK: Device scale, headroom and PDF
@@ -2833,6 +2845,188 @@ extension CGRendererCore {
         }
     }
 
+    // GraphicsContextState's setFillGradient(), setFillPattern() and their stroke counterparts, of a brush the receiver made:
+    // the brush keeps its color.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetFillSource(_ source: CGRendererBrushSource, _ brushKind: UInt8) {
+        cxxStaleProperties |= CxxStateChange.fillBrush
+        hasDrawn = true
+        state.fill.kind = brushKind
+        state.fill.sourceSlot = sourceSlot(.brush(source))
+        levelChanges |= CxxStateChange.fillBrush
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeSource(_ source: CGRendererBrushSource, _ brushKind: UInt8) {
+        cxxStaleProperties |= CxxStateChange.strokeBrush
+        hasDrawn = true
+        state.stroke.kind = brushKind
+        state.stroke.sourceSlot = sourceSlot(.brush(source))
+        levelChanges |= CxxStateChange.strokeBrush
+    }
+
+    // GraphicsContextCG::paintGradientInClip(): false where C++ paints the gradient, in a CGLayer for a drop shadow.
+    private mutating func paintGradientInClip(
+        _ source: CGRendererBrushSource,
+        _ contentBounds: () -> CGRect,
+        _ clip: (CGContext) -> Void
+    ) -> Bool {
+        let shadow = state.dropShadow.flatMap { $0.hasOutsets ? $0 : nil }
+        if shadow != nil && CGRendererPaintsGradientShadowsInLayer() {
+            return false
+        }
+        hasDrawn = true
+        if let shadow {
+            CGRendererBeginGradientShadowLayer(
+                context,
+                CGRendererBoundsIncludingDropShadow(context, shadow.width, shadow.height, shadow.radius, state.shadowsIgnoreTransforms, contentBounds())
+            )
+        }
+        context.saveGState()
+        clip(context)
+        var geometry = CGRendererGradientGeometry()
+        var spaceTransform = CGAffineTransform.identity
+        let gradient = CGRendererCopyBrushGradient(source, gradientColorSpace, &geometry, &spaceTransform)
+        context.concatenate(spaceTransform)
+        if let gradient {
+            Self.paintGradient(context, gradient, geometry)
+        }
+        context.restoreGState()
+        if shadow != nil {
+            CGRendererEndGradientShadowLayer(context)
+        }
+        return true
+    }
+
+    private func brushSource(_ brush: CGRendererBrush) -> CGRendererBrushSource? {
+        guard brush.sourceSlot != 0, case .brush(let source) = sources[Int(brush.sourceSlot) - 1] else {
+            return nil
+        }
+        return source
+    }
+
+    // GraphicsContextCG's fills and strokes with a gradient brush, in the clip of the content the receiver's C++ adds: false
+    // where C++ paints the gradient.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillWithGradient(_ contentBounds: () -> CGRect, _ clip: (CGContext, WebCore.WindRule) -> Void) -> Bool {
+        guard let source = brushSource(state.fill) else {
+            return false
+        }
+        let rule: WebCore.WindRule = state.fillRule == 1 ? .EvenOdd : .NonZero
+        return paintGradientInClip(source, contentBounds) { context in clip(context, rule) }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeWithGradient(_ contentBounds: (CGContext) -> CGRect, _ clip: (CGContext, Float) -> Void) -> Bool {
+        guard let source = brushSource(state.stroke) else {
+            return false
+        }
+        let thickness = state.strokeThickness
+        let context = context
+        return paintGradientInClip(source, { contentBounds(context) }) { clipContext in clip(clipContext, thickness) }
+    }
+
+    // Whether the renderer paints a receiver's gradients, which C++ paints in a CGLayer where there is a drop shadow and CGStyle
+    // lacks its fix for shadow blurs.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receivePaintsGradients() -> Bool {
+        !((state.dropShadow?.hasOutsets ?? false) && CGRendererPaintsGradientShadowsInLayer())
+    }
+
+    // GraphicsContextCG::fillRect() with a gradient: the fill brush's, or one of its own (FillRectWithGradientAndSpaceTransform),
+    // in the rect's clip where it requires it or there is a drop shadow.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRectWithGradient(_ rect: CGRect, _ source: CGRendererBrushSource?, _ requiresClipToRect: Bool) -> Bool {
+        guard let source = source ?? brushSource(state.fill) else {
+            return false
+        }
+        let clipsToRect = requiresClipToRect || (state.dropShadow?.hasOutsets ?? false)
+        return paintGradientInClip(source, { rect }) { context in
+            if clipsToRect {
+                context.clip(to: rect)
+            }
+        }
+    }
+
+    // Gradient::fill() (FillRectWithGradient): GraphicsContext's clip to the rect, then the gradient's paint.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipAndPaintGradient(_ rect: CGRect, _ source: CGRendererBrushSource) {
+        clip(rect)
+        hasDrawn = true
+        var geometry = CGRendererGradientGeometry()
+        var spaceTransform = CGAffineTransform.identity
+        if let gradient = CGRendererCopyBrushGradient(source, gradientColorSpace, &geometry, &spaceTransform) {
+            Self.paintGradient(context, gradient, geometry)
+        }
+    }
+
+    // GraphicsContextCG::getCTM() and the stroke color of the state, for the receiver's C++ that works out text lines, and the
+    // rects of the lines, filled in their color (GraphicsContextCG::drawLinesForText()).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveCTM(includingDeviceScale: Bool) -> CGAffineTransform {
+        hasDrawn = true
+        return ctm(includingDeviceScale)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveStrokeColor() -> CGRendererColorValue {
+        colorValue(state.stroke.packedColor, state.stroke.platformColorSlot, state.stroke.isColorVisible)
+    }
+
+    // The state a run of glyphs draws in, for the receiver's C++ that prepares it (GraphicsContextCG::drawGlyphsImmediate()).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveGlyphContext() -> CGRendererGlyphContext {
+        var context = CGRendererGlyphContext()
+        context.fillColor = colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible)
+        if let shadow = state.dropShadow {
+            context.shadowColor = colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible)
+            context.hasSimpleShadow = shadow.isValid && shadow.radius == 0
+        }
+        context.hasReceiverTransparencyLayer = hasReceiverTransparencyLayer()
+        return context
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawGlyphs(
+        _ run: CGRendererGlyphRun,
+        _ positions: CGRendererGlyphPositions,
+        _ facts: CGRendererGlyphDrawFacts,
+        _ shadowFillColor: CGColor?,
+        _ x: Float,
+        _ y: Float
+    ) {
+        drawGlyphs(run, positions, facts, shadowFillColor, x, y)
+    }
+
+    private func colorValue(_ packedColor: UInt32, _ platformColorSlot: UInt32, _ isVisible: Bool) -> CGRendererColorValue {
+        var value = CGRendererColorValue()
+        value.isVisible = isVisible
+        if platformColorSlot == 0 {
+            value.isPacked = true
+            value.packedColor = packedColor
+        } else {
+            value.data = platformColors[Int(platformColorSlot) - 1].data
+        }
+        return value
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRects(_ rects: CGRendererRects, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
+        let changesFillColor = !fillColorEquals(color)
+        if let cgColor {
+            fillRectsInPlatformColor(rects, cgColor, changesFillColor)
+        } else {
+            fillRectsInPackedColor(rects, color.packedColor, changesFillColor)
+        }
+    }
+
+    // A draw that the receiver's C++ makes into the context (GraphicsContextCG::drawDotsForDocumentMarker()).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDraw(_ draw: (CGContext) -> Void) {
+        hasDrawn = true
+        draw(context)
+    }
+
     // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveClipToNativeImage(_ image: CGImage, _ rect: CGRect) {
@@ -3362,7 +3556,12 @@ extension CGRendererCore {
         case 23: receiveClipOut(rect)
         case 24: receiveResetClip()
         case 25: receiveDrawLine(v.0, v.1, v.2, v.3)
-        case 26: return receiveFillRect(rect)
+        case 26:
+            // RemoteCGRenderer's FillRect, which paints a gradient brush itself.
+            if receiveFillRect(rect) {
+                return true
+            }
+            return !fillsWithoutGradient() && receiveFillRectWithGradient(rect, nil, i.0 != 0)
         case 27: return receiveFillEllipse(rect)
         case 28: return receiveStrokeRect(rect, v.4)
         case 29: return receiveStrokeEllipse(rect)

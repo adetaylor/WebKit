@@ -28,16 +28,24 @@
 // The values GraphicsContextCG passes to CGRenderer.swift.
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <CoreText/CoreText.h>
+#include <WebCore/ColorSpace.h>
+#include <WebCore/GraphicsTypes.h>
 #include <WebCore/PathSegment.h>
 #include <WebCore/PlatformExportMacros.h>
 #include <WebCore/RasterDrawingOptions.h>
+#include <WebCore/TextFlags.h>
 #include <WebCore/WindRule.h>
 #include <algorithm>
+#include <optional>
 #include <span>
 #include <stdint.h>
+#include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
+#include <wtf/RetainPtr.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/Vector.h>
 
 // A GraphicsDropShadow, with its color passed separately when it isn't sRGBA8.
 struct CGRendererShadowValues {
@@ -95,11 +103,13 @@ struct CGRendererGlyphDrawFacts {
     bool isInTransparencyLayer;
 };
 
-// A run of glyphs lent to CGRenderer.swift for one call: their advances, and for vertical text their translations.
+// A run of glyphs lent to CGRenderer.swift for one call: their font, which whoever lends the run keeps, their advances, and
+// for vertical text their translations.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphRun {
 public:
-    CGRendererGlyphRun(std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND, std::span<const CGSize> translations LIFETIME_BOUND)
-        : m_glyphs(glyphs)
+    CGRendererGlyphRun(CTFontRef _Nonnull font, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND, std::span<const CGSize> translations LIFETIME_BOUND) __attribute__((availability(swift, unavailable)))
+        : m_font(font)
+        , m_glyphs(glyphs)
         , m_advances(advances)
         , m_translations(translations)
     {
@@ -110,8 +120,10 @@ public:
     bool isVertical() const { return !m_translations.empty(); }
     CGSize translation(size_t index) const { return m_translations[index]; }
     std::span<const CGGlyph> glyphs() const LIFETIME_BOUND { return m_glyphs; }
+    CTFontRef _Nonnull font() const __attribute__((availability(swift, unavailable))) { return m_font; }
 
 private:
+    CTFontRef _Nonnull m_font;
     std::span<const CGGlyph> m_glyphs;
     std::span<const CGSize> m_advances;
     std::span<const CGSize> m_translations;
@@ -133,20 +145,27 @@ private:
 };
 
 namespace WebCore {
+class AffineTransform;
 class CGRendererCore;
 class Color;
+class FloatPoint;
+class FloatRect;
+class FontBase;
 class FloatRoundedRect;
+struct FloatSegment;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
 class Path;
 class PathImpl;
 class Pattern;
+struct PatternParameters;
 class SourceBrush;
 struct GraphicsDropShadow;
 }
 
 class CGRendererBrushSource;
+class CGRendererGradientColorSpace;
 
 // A pattern brush's CGPattern for one draw, as GraphicsContextCG::applyFillPattern() makes it: null when the pattern has no
 // image.
@@ -156,14 +175,18 @@ CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&
 // CGPattern.
 class SWIFT_ESCAPABLE CGRendererBrushSource {
 public:
-    CGRendererBrushSource();
+    WEBCORE_EXPORT CGRendererBrushSource();
     explicit CGRendererBrushSource(const WebCore::SourceBrush&);
-    CGRendererBrushSource(const CGRendererBrushSource&);
-    CGRendererBrushSource& operator=(const CGRendererBrushSource&);
-    ~CGRendererBrushSource();
+    // A gradient brush and a pattern brush, as GraphicsContextState::setFillGradient() and setFillPattern() set them.
+    WEBCORE_EXPORT CGRendererBrushSource(Ref<WebCore::Gradient>&&, const WebCore::AffineTransform& spaceTransform) __attribute__((availability(swift, unavailable)));
+    WEBCORE_EXPORT explicit CGRendererBrushSource(Ref<WebCore::Pattern>&&) __attribute__((availability(swift, unavailable)));
+    WEBCORE_EXPORT CGRendererBrushSource(const CGRendererBrushSource&);
+    WEBCORE_EXPORT CGRendererBrushSource& operator=(const CGRendererBrushSource&);
+    WEBCORE_EXPORT ~CGRendererBrushSource();
 
 private:
     friend CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&, CGContextRef _Nonnull);
+    friend CGGradientRef _Nullable CGRendererCopyBrushGradient(const CGRendererBrushSource&, const CGRendererGradientColorSpace&, CGRendererGradientGeometry&, CGAffineTransform&);
     friend class WebCore::GraphicsContextCG;
 
     void applyTo(WebCore::SourceBrush&) const;
@@ -172,6 +195,57 @@ private:
     CGAffineTransform m_gradientSpaceTransform;
     RefPtr<WebCore::Pattern> m_pattern;
 };
+
+// GraphicsContextCG::drawGlyphsImmediate()'s preparation of a run of glyphs for the renderer: FontCascade::drawGlyphs(), with
+// what the renderer can't know about the font worked out. A font of no size, or one with complex color glyphs in the GPU
+// process, draws nothing.
+class CGRendererGlyphPreparation {
+public:
+    WEBCORE_EXPORT CGRendererGlyphPreparation(const WebCore::FontBase&, std::span<const CGGlyph>, WebCore::FontSmoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace&, bool isInTransparencyLayer) __attribute__((availability(swift, unavailable)));
+
+    bool draws() const __attribute__((availability(swift, unavailable))) { return m_draws; }
+    std::span<const CGSize> translations() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_translations.span(); }
+    const CGRendererGlyphDrawFacts& facts() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_facts; }
+    CTFontRef _Nullable font() const __attribute__((availability(swift, unavailable))) { return m_font.get(); }
+    CGColorRef _Nullable shadowFillColor() const __attribute__((availability(swift, unavailable))) { return m_shadowFillColor.get(); }
+
+private:
+    bool m_draws { false };
+    Vector<CGSize, 256> m_translations;
+    CGRendererGlyphDrawFacts m_facts { };
+    RetainPtr<CTFontRef> m_font;
+    RetainPtr<CGColorRef> m_shadowFillColor;
+};
+
+// The color space a context paints gradients in (Gradient::paintColorSpace()), which GraphicsContextCG gives its renderer for
+// a Swift receiver's gradients.
+class SWIFT_ESCAPABLE CGRendererGradientColorSpace {
+public:
+    CGRendererGradientColorSpace() = default;
+    explicit CGRendererGradientColorSpace(std::optional<WebCore::ColorSpace> colorSpace) __attribute__((availability(swift, unavailable)))
+        : m_colorSpace(WTF::move(colorSpace))
+    {
+    }
+
+private:
+    friend CGGradientRef _Nullable CGRendererCopyBrushGradient(const CGRendererBrushSource&, const CGRendererGradientColorSpace&, CGRendererGradientGeometry&, CGAffineTransform&);
+    std::optional<WebCore::ColorSpace> m_colorSpace;
+};
+
+// A gradient brush's CGGradient in the color space, with its geometry and space transform; null for a brush without a gradient.
+WEBCORE_EXPORT CGGradientRef _Nullable CGRendererCopyBrushGradient(const CGRendererBrushSource&, const CGRendererGradientColorSpace&, CGRendererGradientGeometry&, CGAffineTransform& spaceTransform) CF_RETURNS_RETAINED;
+
+// GraphicsContextCG::paintGradientInClip()'s pieces, for a Swift receiver's gradients. Without CGStyle's fix for shadow blurs,
+// a gradient with a drop shadow paints in a CGLayer, which only C++ does (CGRendererPaintsGradientShadowsInLayer()).
+WEBCORE_EXPORT bool CGRendererPaintsGradientShadowsInLayer();
+// GraphicsContextCG::boundsIncludingDropShadow() of a drop shadow of the offset and radius.
+WEBCORE_EXPORT CGRect CGRendererBoundsIncludingDropShadow(CGContextRef _Nonnull, float offsetWidth, float offsetHeight, float radius, bool shadowsIgnoreTransforms, CGRect bounds);
+// The transparency layer that bounds a gradient's paint with a drop shadow, and its end.
+WEBCORE_EXPORT void CGRendererBeginGradientShadowLayer(CGContextRef _Nonnull, CGRect layerBounds);
+WEBCORE_EXPORT void CGRendererEndGradientShadowLayer(CGContextRef _Nonnull);
+// GraphicsContextCG::strokePath()'s bounds and clip of a path stroked with a gradient.
+WEBCORE_EXPORT CGRect CGRendererStrokedPathBounds(CGContextRef _Nonnull, const WebCore::Path&) __attribute__((availability(swift, unavailable)));
+WEBCORE_EXPORT void CGRendererClipToStrokedPath(CGContextRef _Nonnull, const WebCore::Path&, float thickness) __attribute__((availability(swift, unavailable)));
 
 // A Color as plain values: Color::data(), its IPC form.
 struct CGRendererColorData {
@@ -299,9 +373,25 @@ struct CGRendererColorValue {
     bool isPacked;
     bool isVisible;
 };
+// The renderer's state that a receiver's run of glyphs is prepared in (GraphicsContextCG::drawGlyphsImmediate()): the fill
+// color, the color of a drop shadow without blur, and whether a receiver's transparency layer is open.
+struct CGRendererGlyphContext {
+    CGRendererColorValue fillColor;
+    CGRendererColorValue shadowColor;
+    bool hasSimpleShadow;
+    bool hasReceiverTransparencyLayer;
+};
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyColor(const WebCore::GraphicsContextCG&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+
+// The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()).
+WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&) __attribute__((availability(swift, unavailable)));
+// GraphicsContext::computeRectsAndStrokeColorForLinesForText() for a context of the CTM and stroke color: the rects and the
+// color that GraphicsContextCG::drawLinesForText() fills.
+WEBCORE_EXPORT void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment>, bool isPrinting, bool doubleLines, WebCore::StrokeStyle, Vector<CGRect, 4>& rects, WebCore::Color&) __attribute__((availability(swift, unavailable)));
+// GraphicsContextCG::drawDotsForDocumentMarker()'s drawing.
+WEBCORE_EXPORT void CGRendererDrawDotsForDocumentMarker(CGContextRef _Nonnull, const WebCore::FloatRect&, const WebCore::DocumentMarkerLineStyle&);
 
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {

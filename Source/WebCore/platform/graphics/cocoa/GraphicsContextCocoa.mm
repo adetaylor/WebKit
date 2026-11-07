@@ -180,15 +180,20 @@ static inline void drawRoundedRectForDocumentMarker(CGContextRef context, const 
 void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
 {
     CAPTURE(drawDotsForDocumentMarker(rect, style));
-#if HAVE(AUTOCORRECTION_ENHANCEMENTS)
-    if (style.mode == DocumentMarkerLineStyleMode::AutocorrectionReplacement) {
-        drawRoundedRectForDocumentMarker(protect(this->platformContext()), rect, style);
-        return;
-    }
-#endif
-    WebCore::drawDotsForDocumentMarker(protect(this->platformContext()), rect, style);
+    CGRendererDrawDotsForDocumentMarker(protect(this->platformContext()).get(), rect, style);
 }
 
 #undef CAPTURE
 
 } // namespace WebCore
+
+void CGRendererDrawDotsForDocumentMarker(CGContextRef context, const WebCore::FloatRect& rect, const WebCore::DocumentMarkerLineStyle& style)
+{
+#if HAVE(AUTOCORRECTION_ENHANCEMENTS)
+    if (style.mode == WebCore::DocumentMarkerLineStyleMode::AutocorrectionReplacement) {
+        WebCore::drawRoundedRectForDocumentMarker(context, rect, style);
+        return;
+    }
+#endif
+    WebCore::drawDotsForDocumentMarker(context, rect, style);
+}

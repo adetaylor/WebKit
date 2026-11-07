@@ -84,12 +84,12 @@ inline void CGRendererSetStrokePattern(CGContextRef context, CGPatternRef patter
     CGContextSetStrokePattern(context, pattern, &alpha);
 }
 
-// CTFontDrawGlyphs() of a run's glyphs at the positions Swift computed, which reach C as pointers.
-inline void CGRendererDrawGlyphs(CTFontRef font, const CGRendererGlyphRun& run, const CGRendererGlyphPositions& positions, CGContextRef context)
+// CTFontDrawGlyphs() of a run's glyphs in its font at the positions Swift computed, which reach C as pointers.
+inline void CGRendererDrawGlyphs(const CGRendererGlyphRun& run, const CGRendererGlyphPositions& positions, CGContextRef context)
 {
     auto glyphs = run.glyphs();
     auto points = positions.span();
-    CTFontDrawGlyphs(font, glyphs.data(), points.data(), std::min(glyphs.size(), points.size()), context);
+    CTFontDrawGlyphs(run.font(), glyphs.data(), points.data(), std::min(glyphs.size(), points.size()), context);
 }
 
 // CGPDFContextBeginPage() with a media box, whose dictionary holds the rect's bytes.
