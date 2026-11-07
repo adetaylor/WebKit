@@ -43,6 +43,10 @@
 #include <WebCore/XRHitTestTrackableType.h>
 #endif
 
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+#include <wtf/MachSendRight.h>
+#endif
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SimulatedXRDevice);
@@ -120,8 +124,29 @@ WebCore::IntSize SimulatedXRDevice::recommendedResolution(PlatformXR::SessionMod
     return IntSize(32, 32);
 }
 
-void SimulatedXRDevice::initializeTrackingAndRendering(const WebCore::SecurityOriginData&, PlatformXR::SessionMode sessionMode, const PlatformXR::Device::FeatureList&, std::optional<WebCore::XRCanvasConfiguration>&&)
+void SimulatedXRDevice::initializeTrackingAndRendering(const WebCore::SecurityOriginData&, PlatformXR::SessionMode sessionMode, const PlatformXR::Device::FeatureList& features, std::optional<WebCore::XRCanvasConfiguration>&&)
 {
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+    if (features.contains(PlatformXR::SessionFeature::WebGPU) && !m_webGPUColorSurface) {
+        // The web process can't use WebCore::IOSurface (no accelerated buffers), so this makes a plain one.
+        auto size = recommendedResolution(sessionMode);
+        int width = size.width();
+        int height = size.height();
+        int bytesPerElement = 4;
+        uint32_t pixelFormat = 'BGRA';
+        auto properties = adoptCF(CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
+        auto setNumber = [&](CFStringRef key, CFNumberType type, const void* value) {
+            CFDictionarySetValue(properties.get(), key, adoptCF(CFNumberCreate(kCFAllocatorDefault, type, value)).get());
+        };
+        setNumber(kIOSurfaceWidth, kCFNumberIntType, &width);
+        setNumber(kIOSurfaceHeight, kCFNumberIntType, &height);
+        setNumber(kIOSurfaceBytesPerElement, kCFNumberIntType, &bytesPerElement);
+        setNumber(kIOSurfacePixelFormat, kCFNumberSInt32Type, &pixelFormat);
+        m_webGPUColorSurface = adoptCF(IOSurfaceCreate(properties.get()));
+    }
+#else
+    UNUSED_PARAM(features);
+#endif
     if (m_trackingAndRenderingClient) {
         // WebXR FakeDevice waits for simulateInputConnection calls to add input sources-
         // There is no way to know how many simulateInputConnection calls will the device receive,
@@ -144,6 +169,10 @@ void SimulatedXRDevice::shutDownTrackingAndRendering()
         simulateShutdownCompleted();
     stopTimer();
     m_layers.clear();
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+    m_webGPUColorSurface = nullptr;
+    m_webGPUFrameIndex = 0;
+#endif
 }
 
 void SimulatedXRDevice::stopTimer()
@@ -187,6 +216,28 @@ void SimulatedXRDevice::frameTimerFired()
         });
         data.layers.add(layer.key, WTF::move(layerData));
     }
+
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+    if (m_webGPUColorSurface) {
+        static constexpr PlatformXR::LayerHandle defaultLayerHandle = 1;
+        IntSize size { static_cast<int>(IOSurfaceGetWidth(m_webGPUColorSurface.get())), static_cast<int>(IOSurfaceGetHeight(m_webGPUColorSurface.get())) };
+        PlatformXR::FrameData::LayerSetupData layerSetupData { };
+        layerSetupData.physicalSize[0] = { static_cast<uint16_t>(size.width()), static_cast<uint16_t>(size.height()) };
+        layerSetupData.actualSize[0] = layerSetupData.physicalSize[0];
+        layerSetupData.viewports[0] = { 0, 0, size.width(), size.height() };
+        PlatformXR::FrameData::ExternalTextureData textureData;
+        // The first frame sends the buffer; later ones reuse it at the same index, as a compositor does.
+        if (!m_webGPUFrameIndex)
+            textureData.colorTexture.handle = MachSendRight::adopt(IOSurfaceCreateMachPort(m_webGPUColorSurface.get()));
+        data.layers.set(defaultLayerHandle, makeUniqueRef<PlatformXR::FrameData::LayerData>(PlatformXR::FrameData::LayerData {
+            .layerSetup = WTF::move(layerSetupData),
+            .renderingFrameIndex = m_webGPUFrameIndex++,
+            .textureData = WTF::move(textureData),
+            .requestDepth = false,
+            .isForTesting = true
+        }));
+    }
+#endif
 
     for (auto& input : m_inputConnections) {
         if (input->isConnected())
