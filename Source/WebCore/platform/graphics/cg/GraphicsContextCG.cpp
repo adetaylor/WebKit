@@ -846,6 +846,20 @@ void CGRendererClipToPath(CGContextRef context, const WebCore::Path& path, WebCo
     }
 }
 
+void CGRendererClipToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipToPath(context, path, WebCore::WindRule::NonZero);
+}
+
+void CGRendererClipOutToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipOutToPath(context, path);
+}
+
 void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
 {
     CGContextBeginPath(context);

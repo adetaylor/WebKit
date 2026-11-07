@@ -135,6 +135,7 @@ private:
 namespace WebCore {
 class CGRendererCore;
 class Color;
+class FloatRoundedRect;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
@@ -252,6 +253,11 @@ WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPa
 // GraphicsContextCG's clipPath() and clipOut(const Path&), for the C++ of a Swift receiver's path clips too.
 WEBCORE_EXPORT void CGRendererClipToPath(CGContextRef _Nonnull, const WebCore::Path&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore::Path&) __attribute__((availability(swift, unavailable)));
+
+// GraphicsContext's clipRoundedRect() and clipOutRoundedRect() of a rounded rect with radii, which clip to and out of its
+// path as GraphicsContextCG's clipPath() and clipOut(const Path&) do.
+WEBCORE_EXPORT void CGRendererClipToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
+WEBCORE_EXPORT void CGRendererClipOutToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
 
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.

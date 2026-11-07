@@ -500,11 +500,12 @@ extension CGRendererCore: ShadowDrawing {
         context.setFillColor(platformColor(fill))
     }
 
-    // GraphicsContextCG::clipToImageBuffer().
-    private func clipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRendererRect) {
+    // GraphicsContextCG::clipToImageBuffer(): false for a buffer without an image, which clips nothing.
+    @discardableResult
+    fileprivate func clipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRendererRect) -> Bool {
         var headroom: Float = 1
         guard let image = CGRendererCopyImageBufferImage(imageBuffer, &headroom) else {
-            return
+            return false
         }
         let size = CGRect(x: 0, y: 0, width: CGFloat(rect.width), height: CGFloat(rect.height))
         context.translateBy(x: CGFloat(rect.x), y: CGFloat(rect.maxY))
@@ -513,6 +514,7 @@ extension CGRendererCore: ShadowDrawing {
         context.clip(to: size, mask: image)
         context.scaleBy(x: 1, y: -1)
         context.translateBy(x: CGFloat(-rect.x), y: CGFloat(-rect.maxY))
+        return true
     }
 
     // GraphicsContext::drawImageBuffer() of a piece, with default options but the composite operator, in a save without a
@@ -2776,6 +2778,14 @@ extension CGRendererCore {
             setStrokePlatformColor(cgColor, color.data, 0, color.isVisible)
         } else {
             setStrokePackedColor(color.packedColor, 0)
+        }
+    }
+
+    // GraphicsContextCG::clipToImageBuffer() of a buffer that the receiver found.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipToImageBuffer(_ imageBuffer: WebCore.ImageBuffer, _ rect: CGRect) {
+        if clipToImageBuffer(imageBuffer, CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))) {
+            hasDrawn = true
         }
     }
 
