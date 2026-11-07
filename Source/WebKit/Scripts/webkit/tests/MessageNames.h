@@ -62,24 +62,25 @@ enum class ReceiverName : uint8_t {
     , TestWithStreamSwift = 18
     , TestWithStreamSwiftEnabledBy = 19
     , TestWithStreamSwiftLentState = 20
-    , TestWithStreamSwiftTypes = 21
-    , TestWithSuperclass = 22
-    , TestWithSuperclassAndWantsAsyncDispatch = 23
-    , TestWithSuperclassAndWantsDispatch = 24
-    , TestWithSwift = 25
-    , TestWithSwiftConditionally = 26
-    , TestWithSwiftConditionallyAndEnabledBy = 27
-    , TestWithSwiftTypes = 28
-    , TestWithSwiftTypesOptIn = 29
-    , TestWithSwiftWorkQueue = 30
-    , TestWithValidator = 31
-    , TestWithWantsAsyncDispatch = 32
-    , TestWithWantsDispatch = 33
-    , TestWithWantsDispatchNoSyncMessages = 34
-    , TestWithoutAttributes = 35
-    , TestWithoutUsingIPCConnection = 36
-    , IPC = 37
-    , Invalid = 38
+    , TestWithStreamSwiftReplyValues = 21
+    , TestWithStreamSwiftTypes = 22
+    , TestWithSuperclass = 23
+    , TestWithSuperclassAndWantsAsyncDispatch = 24
+    , TestWithSuperclassAndWantsDispatch = 25
+    , TestWithSwift = 26
+    , TestWithSwiftConditionally = 27
+    , TestWithSwiftConditionallyAndEnabledBy = 28
+    , TestWithSwiftTypes = 29
+    , TestWithSwiftTypesOptIn = 30
+    , TestWithSwiftWorkQueue = 31
+    , TestWithValidator = 32
+    , TestWithWantsAsyncDispatch = 33
+    , TestWithWantsDispatch = 34
+    , TestWithWantsDispatchNoSyncMessages = 35
+    , TestWithoutAttributes = 36
+    , TestWithoutUsingIPCConnection = 37
+    , IPC = 38
+    , Invalid = 39
 };
 
 enum class MessageName : uint16_t {
@@ -330,6 +331,8 @@ enum class MessageName : uint16_t {
     LastAsynchronous = FirstSynchronous - 1,
     TestWithLegacyReceiver_GetPluginProcessConnection,
     TestWithLegacyReceiver_TestMultipleAttributes,
+    TestWithStreamSwiftReplyValues_SendCxxEncodedSync,
+    TestWithStreamSwiftReplyValues_SendLaterSync,
     TestWithStreamSwiftTypes_SendEmptySync,
     TestWithStreamSwiftTypes_SendLentBytesSync,
     TestWithStreamSwiftTypes_SendStringSync,
