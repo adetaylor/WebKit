@@ -87,7 +87,7 @@ SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_LIBRARY_LEVEL = api;
 
 // Use handwritten SPI modules on public SDKs.
-SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(WK_WEBGPU_SWIFT_MODULE_DIR) $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
+SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(WK_WEBGPU_SWIFT_MODULE_DIR) $(SRCROOT)/../WebGPU/WebGPU/SwiftUnderlyingModule $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
 SWIFT_INCLUDE_PATHS_ = $(SRCROOT)/Platform/spi/visionos $(SRCROOT)/Platform/spi/ios $(SRCROOT)/Platform/spi/Cocoa $(SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
 
 // WebGPU.framework's Swift module, WebGPUSwift, which the Swift WebGPU receivers call, where WebGPU's build writes it
