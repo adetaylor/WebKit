@@ -632,14 +632,14 @@ void RemoteGraphicsContextProxy::fillRoundedRect(const FloatRoundedRect& rounded
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillRoundedRect(roundedRect, color, mode));
+    SEND_RENDERER_MESSAGE(FillRoundedRect, roundedRect, color, mode);
 }
 
 void RemoteGraphicsContextProxy::fillRectWithRoundedHole(const FloatRect& rect, const FloatRoundedRect& roundedRect, const Color& color)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::FillRectWithRoundedHole(rect, roundedRect, color));
+    SEND_RENDERER_MESSAGE(FillRectWithRoundedHole, rect, roundedRect, color);
 }
 
 void RemoteGraphicsContextProxy::fillEllipse(const FloatRect& rect)
