@@ -189,7 +189,8 @@ public:
         SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
         SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
         ClearRect, ApplyStrokePattern, ApplyFillPattern, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect,
-        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath, DrawNativeImage, DrawPattern
+        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath, DrawNativeImage, DrawPattern, FillRoundedRect,
+        FillRectWithRoundedHole
     };
     // The path is FillPath's, StrokePath's or DrawPath's; the image DrawNativeImage's or DrawPattern's.
     WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr, CGImageRef = nullptr) __attribute__((availability(swift, unavailable)));

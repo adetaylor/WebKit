@@ -968,6 +968,38 @@ void CGRendererClipOutToRoundedRect(CGContextRef context, const WebCore::FloatRo
     CGRendererClipOutToPath(context, path);
 }
 
+static WebCore::Path rectWithRoundedHolePath(const WebCore::FloatRect& rect, const WebCore::FloatRoundedRect& roundedHoleRect)
+{
+    WebCore::Path path;
+    path.addRect(rect);
+    if (!roundedHoleRect.radii().isZero())
+        path.addRoundedRect(roundedHoleRect);
+    else
+        path.addRect(roundedHoleRect.rect());
+    return path;
+}
+
+CGPathRef CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    return RetainPtr { path.platformPath() }.leakRef();
+}
+
+CGPathRef CGRendererCopyRectWithRoundedHolePath(CGRect rect, const WebCore::FloatRoundedRect& hole)
+{
+    return RetainPtr { rectWithRoundedHolePath(WebCore::FloatRect { rect }, hole).platformPath() }.leakRef();
+}
+
+bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect& rect)
+{
+    const auto& r = rect.rect();
+    const auto& radii = rect.radii();
+    bool equalWidths = (radii.topLeft().width() == radii.topRight().width() && radii.topRight().width() == radii.bottomLeft().width() && radii.bottomLeft().width() == radii.bottomRight().width());
+    bool equalHeights = (radii.topLeft().height() == radii.bottomLeft().height() && radii.bottomLeft().height() == radii.topRight().height() && radii.topRight().height() == radii.bottomRight().height());
+    return equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height();
+}
+
 void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
 {
     CGContextBeginPath(context);
@@ -1280,13 +1312,9 @@ void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const 
         contextShadow.drawRectShadow(*this, rect);
     }
 
-    const FloatRect& r = rect.rect();
-    const CornerRadii& radii = rect.radii();
-    bool equalWidths = (radii.topLeft().width() == radii.topRight().width() && radii.topRight().width() == radii.bottomLeft().width() && radii.bottomLeft().width() == radii.bottomRight().width());
-    bool equalHeights = (radii.topLeft().height() == radii.bottomLeft().height() && radii.bottomLeft().height() == radii.topRight().height() && radii.topRight().height() == radii.bottomRight().height());
     bool hasCustomFill = fillGradient() || fillPattern();
-    if (!hasCustomFill && equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height())
-        CGContextFillEllipseInRect(context, r);
+    if (!hasCustomFill && CGRendererRoundedRectIsEllipse(rect))
+        CGContextFillEllipseInRect(context, rect.rect());
     else {
         Path path;
         path.addRoundedRect(rect);
@@ -1305,13 +1333,7 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
     CAPTURE(fillRectWithRoundedHole(rect, roundedHoleRect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
-    Path path;
-    path.addRect(rect);
-
-    if (!roundedHoleRect.radii().isZero())
-        path.addRoundedRect(roundedHoleRect);
-    else
-        path.addRect(roundedHoleRect.rect());
+    auto path = rectWithRoundedHolePath(rect, roundedHoleRect);
 
     Color oldFillColor = fillColor();
 

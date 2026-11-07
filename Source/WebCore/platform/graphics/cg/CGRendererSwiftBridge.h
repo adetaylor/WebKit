@@ -332,6 +332,12 @@ WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore
 // path as GraphicsContextCG's clipPath() and clipOut(const Path&) do.
 WEBCORE_EXPORT void CGRendererClipToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
 WEBCORE_EXPORT void CGRendererClipOutToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
+// GraphicsContextCG's rounded rect fills: the path of a rounded rect with radii (Path::addRoundedRect()), of a rect with a
+// rounded hole, which fillRectWithRoundedHole() fills even-odd, and whether fillRoundedRectImpl() fills a rounded rect as
+// the ellipse its radii make.
+WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect&) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRectWithRoundedHolePath(CGRect, const WebCore::FloatRoundedRect& hole) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect&);
 
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.

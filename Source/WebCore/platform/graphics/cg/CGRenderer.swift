@@ -3068,6 +3068,79 @@ extension CGRendererCore {
         return drawn
     }
 
+    // GraphicsContext::fillRoundedRect(): a rounded rect with radii as GraphicsContextCG::fillRoundedRectImpl() fills it, in
+    // the composite operator with the blend mode, and one without as a rect. False where C++ draws it: a shadow ShadowBlur
+    // draws, or a gradient fill.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRoundedRect(
+        _ rect: borrowing WebCore.FloatRoundedRect,
+        _ bounds: CGRect,
+        _ color: CGRendererColorValue,
+        _ cgColor: CGColor?,
+        _ blendMode: WebCore.BlendMode
+    ) -> Bool {
+        guard rect.hasNonZeroRadii() else {
+            return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
+        }
+        hasDrawn = true
+        if canUseShadowBlur || state.fill.hasGradient {
+            return false
+        }
+        let previousBlendMode = state.blendMode
+        let changesCompositeMode = previousBlendMode != blendMode
+        // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
+        let cxxCompositeModeIsStale = cxxStaleProperties & CxxStateChange.compositeMode
+        if changesCompositeMode {
+            setCompositeMode(state.compositeOperator, blendMode)
+        }
+        let changesFillColor = !fillColorEquals(color)
+        if changesFillColor {
+            context.setFillColor(cgColor ?? colorCache.color(color.packedColor))
+        }
+        let isEllipse = CGRendererRoundedRectIsEllipse(rect)
+        if !state.fill.hasPattern && isEllipse {
+            context.fillEllipse(in: bounds)
+        } else {
+            let path = CGRendererCopyRoundedRectPath(rect)
+            if !path.isEmpty {
+                fillPath(path)
+            }
+        }
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+        if changesCompositeMode {
+            setCompositeMode(state.compositeOperator, previousBlendMode)
+            cxxStaleProperties |= cxxCompositeModeIsStale
+        }
+        return true
+    }
+
+    // GraphicsContextCG::fillRectWithRoundedHole(): the even-odd fill of a rect and a rounded hole in it, in the color. False
+    // where C++ draws it: ShadowBlur draws the shadow inside the hole.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRectWithRoundedHole(
+        _ rect: CGRect,
+        _ hole: borrowing WebCore.FloatRoundedRect,
+        _ color: CGRendererColorValue,
+        _ cgColor: CGColor?
+    ) -> Bool {
+        hasDrawn = true
+        if canUseShadowBlur {
+            return false
+        }
+        let path = CGRendererCopyRectWithRoundedHolePath(rect, hole)
+        let changesFillColor = !fillColorEquals(color)
+        if changesFillColor {
+            context.setFillColor(cgColor ?? colorCache.color(color.packedColor))
+        }
+        CGRendererDrawPath(context, .eoFill, path)
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+        return true
+    }
+
     // A shadow that the receiver's C++ converted, with the CGColor of a valid color that isn't packed.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetDropShadow(_ values: CGRendererShadowValues, _ cgColor: CGColor?, _ color: CGRendererColorData) {
@@ -3617,6 +3690,24 @@ extension CGRendererCore {
                 CGSize(width: CGFloat(v.2), height: CGFloat(v.3)),
                 message.imageOptions
             )
+        case 43, 44:
+            // A packed color's rounded rect fill in the blend mode, the radii in the segment's values; for a rect with a
+            // rounded hole, the hole's rect, then its radii.
+            let s = message.segment.values
+            var color = CGRendererColorValue()
+            color.isPacked = true
+            color.packedColor = i.0
+            color.isVisible = i.0 & 0xFF != 0
+            if message.message == 43 {
+                let radii = WebCore.CornerRadii(
+                    WebCore.FloatSize(s.0, s.1), WebCore.FloatSize(s.2, s.3), WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7))
+                let rounded = WebCore.FloatRoundedRect(WebCore.FloatRect(v.0, v.1, v.2, v.3), radii)
+                return receiveFillRoundedRect(rounded, rect, color, nil, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+            }
+            let radii = WebCore.CornerRadii(
+                WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7), WebCore.FloatSize(s.8, s.9), WebCore.FloatSize(s.10, s.11))
+            let hole = WebCore.FloatRoundedRect(WebCore.FloatRect(s.0, s.1, s.2, s.3), radii)
+            return receiveFillRectWithRoundedHole(rect, hole, color, nil)
         default: break
         }
         return true
