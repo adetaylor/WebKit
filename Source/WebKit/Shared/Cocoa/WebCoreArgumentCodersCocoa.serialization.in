@@ -473,6 +473,12 @@ using CGFloat = double
 using CGFloat = float
 #endif
 
+header: <CoreGraphics/CoreGraphics.h>
+[CustomHeader] struct CGSize {
+    CGFloat width;
+    CGFloat height;
+};
+
 #if ENABLE(WRITING_TOOLS)
 using WebCore::WritingTools::TextSuggestion::ID = WTF::UUID
 using WebCore::WritingTools::Session::ID = WTF::UUID
