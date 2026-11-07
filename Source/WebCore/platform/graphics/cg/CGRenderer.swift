@@ -2807,8 +2807,11 @@ extension CGRendererCore {
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveConcatCTM(_ transform: CGAffineTransform) {
-        concatCTM(transform)
+    @_spi(WebKitGPU) public mutating func receiveConcatCTM(_ transform: borrowing WebCore.AffineTransform) {
+        // The message's transform, read in place: concatCTM() takes a copy, which LLVM merges with setCTM()'s.
+        hasDrawn = true
+        context.concatenate(CGAffineTransform(a: transform.a(), b: transform.b(), c: transform.c(), d: transform.d(), tx: transform.e(), ty: transform.f()))
+        userToDeviceTransformKnownToBeIdentity = false
     }
 
     // A color brush replaces a gradient or a pattern.
@@ -3607,7 +3610,7 @@ extension CGRendererCore {
         case 3: receiveRotate(v.0)
         case 4: receiveScale(v.0, v.1)
         case 5: receiveSetCTM(transform)
-        case 6: receiveConcatCTM(transform)
+        case 6: receiveConcatCTM(WebCore.AffineTransform(Double(v.0), Double(v.1), Double(v.2), Double(v.3), Double(v.4), Double(v.5)))
         case 7: receiveSetFillPackedColor(i.0)
         case 8: receiveSetStrokePackedColor(i.0)
         case 9:

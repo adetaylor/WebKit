@@ -127,7 +127,7 @@ final class RemoteCGRenderer {
     }
 
     func concatCTM(state: inout CGRendererCore, ctm: WebCore.AffineTransform) {
-        state.receiveConcatCTM(cgAffineTransform(ctm))
+        state.receiveConcatCTM(ctm)
     }
 
     func setFillPackedColor(state: inout CGRendererCore, color: UInt32) {
