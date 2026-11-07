@@ -28,6 +28,7 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
+#include "GPUConnectionToWebProcess.h"
 #include "GeneratedSerializers.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
@@ -38,6 +39,33 @@
 namespace WebKit {
 
 using namespace WebCore;
+
+Ref<RemoteCDMReceiverRegistration> RemoteCDMReceiverRegistration::create(GPUConnectionToWebProcess& connection, IPC::MessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+{
+    return adoptRef(*new RemoteCDMReceiverRegistration(connection, receiver, receiverName, identifier));
+}
+
+RemoteCDMReceiverRegistration::RemoteCDMReceiverRegistration(GPUConnectionToWebProcess& connection, IPC::MessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+    : m_connection(connection)
+    , m_receiverName(receiverName)
+    , m_identifier(identifier)
+{
+    connection.messageReceiverMap().addMessageReceiver(receiverName, identifier, receiver);
+}
+
+RemoteCDMReceiverRegistration::~RemoteCDMReceiverRegistration()
+{
+    if (RefPtr connection = m_connection.get())
+        connection->messageReceiverMap().removeMessageReceiver(m_receiverName, m_identifier);
+}
+
+RemoteCDMReceiverRegistration* makeRemoteCDMReceiverRegistration(const RemoteCDMRegistry& registry, IPC::MessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+{
+    RefPtr connection = registry.gpuConnectionToWebProcess();
+    if (!connection)
+        return nullptr;
+    return &RemoteCDMReceiverRegistration::create(*connection, receiver, receiverName, identifier).leakRef();
+}
 
 SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
 {

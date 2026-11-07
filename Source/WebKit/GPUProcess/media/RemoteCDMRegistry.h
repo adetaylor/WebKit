@@ -61,14 +61,12 @@ class GPUConnectionToWebProcess;
 class RemoteCDMInstanceClient;
 class RemoteCDMInstanceSessionClient;
 class RemoteCDMPrivateHandle;
-class RemoteCDMInstanceProxyMessageForwarder;
-class RemoteCDMInstanceSessionProxyMessageForwarder;
-class RemoteCDMProxyMessageForwarder;
 struct RemoteCDMConfiguration;
 struct SharedPreferencesForWebProcess;
 
-// Routes the EME messages of one web process's connection to the GPU process to their Swift receivers, which the
-// Swift RemoteCDMFactoryProxy owns, and gives the media players the C++ CDM instances among them.
+// Routes the EME factory messages of one web process's connection to the GPU process to the Swift
+// RemoteCDMFactoryProxy, which owns the other receivers (each registers its own messages with the connection), and gives
+// the media players the C++ CDM instances among them.
 class RemoteCDMRegistry final : public RefCounted<RemoteCDMRegistry>, public CanMakeWeakPtr<RemoteCDMRegistry>, private WebCore::CDMPrivateClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCDMRegistry);
 public:
@@ -79,12 +77,6 @@ public:
 
     void didReceiveFactoryMessage(IPC::Connection&, IPC::Decoder&);
     void didReceiveSyncFactoryMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-    void didReceiveCDMMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncCDMMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-    void didReceiveCDMInstanceMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncCDMInstanceMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-    void didReceiveCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncCDMInstanceSessionMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
     // The C++ CDM instance of an identifier, and whether the identifier is an instance's at all: the Swift ClearKey
     // instances have no C++ instance.
@@ -92,13 +84,10 @@ public:
     bool hasInstance(const RemoteCDMInstanceIdentifier&) const;
     bool allowsExitUnderMemoryPressure() const;
 
-    // For the Swift receivers. Identifiers are 0 when the registry is gone.
+    // For the Swift receivers.
     uint64_t generateCDMIdentifier();
     uint64_t generateInstanceIdentifier();
     uint64_t generateSessionIdentifier();
-    void addCDMRoute(uint64_t identifier, RemoteCDMProxyMessageForwarder&);
-    void addInstanceRoute(uint64_t identifier, RemoteCDMInstanceProxyMessageForwarder&);
-    void addSessionRoute(uint64_t identifier, RemoteCDMInstanceSessionProxyMessageForwarder&);
     void removeInstance(uint64_t identifier);
     void removeSession(uint64_t identifier);
 
@@ -128,11 +117,8 @@ private:
     struct SwiftFactory;
     std::unique_ptr<SwiftFactory> m_swiftFactory;
     RefPtr<IPC::MessageReceiver> m_factory;
-    HashMap<RemoteCDMIdentifier, Ref<IPC::MessageReceiver>> m_cdms;
-    HashMap<RemoteCDMInstanceIdentifier, Ref<IPC::MessageReceiver>> m_instances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> m_instanceClients;
-    HashMap<RemoteCDMInstanceSessionIdentifier, Ref<IPC::MessageReceiver>> m_sessions;
     HashMap<RemoteCDMInstanceSessionIdentifier, Ref<RemoteCDMInstanceSessionClient>> m_sessionClients;
 
 #if !RELEASE_LOG_DISABLED

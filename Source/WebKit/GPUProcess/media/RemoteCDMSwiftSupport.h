@@ -28,6 +28,7 @@
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "Decoder.h"
+#include "MessageReceiver.h"
 #include "RemoteCDMConfiguration.h"
 #include "RemoteCDMRegistry.h"
 #include "SwiftCoding.h"
@@ -61,6 +62,43 @@ public:
 private:
     WeakPtr<RemoteCDMRegistry> m_registry;
 } SWIFT_SELF_CONTAINED;
+
+// Routes the web process's messages for a Swift receiver (its receiver name and identifier) to the receiver's message
+// forwarder in the connection's MessageReceiverMap, as long as it lives.
+class RemoteCDMReceiverRegistration final : public RefCounted<RemoteCDMReceiverRegistration> {
+public:
+    static Ref<RemoteCDMReceiverRegistration> create(GPUConnectionToWebProcess&, IPC::MessageReceiver&, IPC::ReceiverName, uint64_t identifier);
+    ~RemoteCDMReceiverRegistration();
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<RemoteCDMReceiverRegistration>::ref(); }
+    void deref() const { RefCounted<RemoteCDMReceiverRegistration>::deref(); }
+#endif
+
+private:
+    RemoteCDMReceiverRegistration(GPUConnectionToWebProcess&, IPC::MessageReceiver&, IPC::ReceiverName, uint64_t identifier);
+
+    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
+    const IPC::ReceiverName m_receiverName;
+    const uint64_t m_identifier;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+RemoteCDMReceiverRegistration* WTF_NULLABLE makeRemoteCDMReceiverRegistration(const RemoteCDMRegistry&, IPC::MessageReceiver&, IPC::ReceiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED;
+
+template<typename> struct IsRefOfRemoteCDMMessageReceiver : std::false_type { };
+template<typename T> struct IsRefOfRemoteCDMMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, IPC::MessageReceiver>> { };
+
+// Registers a Swift receiver's message forwarder. Null if the web process's connection has gone. A template so that
+// Swift, which can't pass a forwarder as the MessageReceiver it is, can pass the Ref to it that it holds. The
+// static_assert is used because the constraint isn't enforced for Swift callers.
+template<typename ForwarderRef>
+RemoteCDMReceiverRegistration* WTF_NULLABLE registerRemoteCDMReceiver(const RemoteCDMRegistry& registry, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
+{
+    static_assert(IsRefOfRemoteCDMMessageReceiver<ForwarderRef>::value);
+    return makeRemoteCDMReceiverRegistration(registry, forwarder.get(), receiverName, identifier);
+}
 
 using RemoteCDMStrings = Vector<String>;
 

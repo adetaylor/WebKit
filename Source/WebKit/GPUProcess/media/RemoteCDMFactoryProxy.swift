@@ -28,12 +28,15 @@ import WebKit_Internal
 import wtf
 
 // Receives the messages of the web process's RemoteCDMFactory, and owns the GPU process's CDMs, CDM instances and
-// sessions, whose messages RemoteCDMRegistry routes.
+// sessions, whose messages their registrations route to them.
 @_expose(Cxx)
 final class RemoteCDMFactoryProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMFactoryProxyMessageForwarder?
     private let registryReference: WebKit.RemoteCDMRegistryWeakReference
+    // By identifier, which ObjectIdentifier makes unique across the three kinds: removed before the receiver, so that its messages stop
+    // before its forwarder goes. Declared first, so that it goes first.
+    private var registrations: [UInt64: WebKit.RemoteCDMReceiverRegistration] = [:]
     private var cdms: [UInt64: RemoteCDMProxy] = [:]
     private var instances: [UInt64: RemoteCDMInstanceProxy] = [:]
     private var sessions: [UInt64: RemoteCDMInstanceSessionProxy] = [:]
@@ -61,10 +64,22 @@ final class RemoteCDMFactoryProxy {
         return registry.sharedPreferencesForWebProcess()
     }
 
-    // When the web process's connection closes, or as the registry is destroyed, so it doesn't reach the registry.
+    // When the web process's connection closes, or as the registry is destroyed, so that the CDMs don't reach the
+    // registry and no receiver's messages are routed once the connection's gone.
     @used
-    func removeCDMs() {
+    func removeCDMsAndRegistrations() {
+        registrations.removeAll()
         cdms.removeAll()
+    }
+
+    @used
+    func hasInstance(_ identifier: UInt64) -> Bool {
+        instances[identifier] != nil
+    }
+
+    @used
+    func allowsExitUnderMemoryPressure() -> Bool {
+        instances.isEmpty
     }
 
     @_expose(!Cxx)
@@ -98,7 +113,7 @@ final class RemoteCDMFactoryProxy {
         let cdm = RemoteCDMProxy(factory: self, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
         let configuration = cdm.configuration(cxxConfiguration)
         let identifier = registry.generateCDMIdentifier()
-        registry.addCDMRoute(identifier, cdm.getMessageReceiver().ptr())
+        registrations[identifier] = WebKit.registerRemoteCDMReceiver(registry, cdm.getMessageReceiver(), .RemoteCDMProxy, identifier)
         cdms[identifier] = cdm
         return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), configuration)
     }
@@ -116,8 +131,10 @@ final class RemoteCDMFactoryProxy {
         guard let registry = registry() else {
             return
         }
-        registry.removeInstance(identifier.rawValue)
+        // Before the registry, which then checks whether the GPU process may exit.
+        registrations.removeValue(forKey: identifier.rawValue)
         instances.removeValue(forKey: identifier.rawValue)
+        registry.removeInstance(identifier.rawValue)
     }
 
     @MainActor
@@ -125,19 +142,20 @@ final class RemoteCDMFactoryProxy {
         guard let registry = registry() else {
             return
         }
-        registry.removeSession(identifier.rawValue)
+        registrations.removeValue(forKey: identifier.rawValue)
         sessions.removeValue(forKey: identifier.rawValue)
+        registry.removeSession(identifier.rawValue)
     }
 
     @_expose(!Cxx)
     func add(instance: RemoteCDMInstanceProxy, identifier: UInt64, registry: WebKit.RemoteCDMRegistry) {
-        registry.addInstanceRoute(identifier, instance.getMessageReceiver().ptr())
+        registrations[identifier] = WebKit.registerRemoteCDMReceiver(registry, instance.getMessageReceiver(), .RemoteCDMInstanceProxy, identifier)
         instances[identifier] = instance
     }
 
     @_expose(!Cxx)
     func add(session: RemoteCDMInstanceSessionProxy, identifier: UInt64, registry: WebKit.RemoteCDMRegistry) {
-        registry.addSessionRoute(identifier, session.getMessageReceiver().ptr())
+        registrations[identifier] = WebKit.registerRemoteCDMReceiver(registry, session.getMessageReceiver(), .RemoteCDMInstanceSessionProxy, identifier)
         sessions[identifier] = session
     }
 }

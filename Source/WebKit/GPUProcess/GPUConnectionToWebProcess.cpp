@@ -88,9 +88,6 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
-#include "RemoteCDMInstanceProxyMessages.h"
-#include "RemoteCDMInstanceSessionProxyMessages.h"
-#include "RemoteCDMProxyMessages.h"
 #include "RemoteCDMRegistry.h"
 #endif
 
@@ -418,6 +415,13 @@ Ref<RemoteSharedResourceCache> GPUConnectionToWebProcess::sharedResourceCache()
 }
 
 uint64_t GPUConnectionToWebProcess::gObjectCountForTesting = 0;
+
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+static bool isRemoteCDMChildReceiverName(IPC::ReceiverName name)
+{
+    return name == IPC::ReceiverName::RemoteCDMProxy || name == IPC::ReceiverName::RemoteCDMInstanceProxy || name == IPC::ReceiverName::RemoteCDMInstanceSessionProxy;
+}
+#endif
 
 void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 {
@@ -1109,18 +1113,10 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 
-    if (decoder.messageReceiverName() == Messages::RemoteCDMProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveCDMMessage(connection, decoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveCDMInstanceMessage(connection, decoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSessionProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveCDMInstanceSessionMessage(connection, decoder);
+    // The CDMs, instances and sessions that the factory makes register their messages in messageReceiverMap(). A
+    // message for one that has gone is dropped, as before they did.
+    if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
+        messageReceiverMap().dispatchMessage(connection, decoder);
         return true;
     }
 #endif
@@ -1217,18 +1213,8 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     }
 
-    if (decoder.messageReceiverName() == Messages::RemoteCDMProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveSyncCDMMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveSyncCDMInstanceMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSessionProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveSyncCDMInstanceSessionMessage(connection, decoder, replyEncoder);
+    if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
+        messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
         return true;
     }
 #endif

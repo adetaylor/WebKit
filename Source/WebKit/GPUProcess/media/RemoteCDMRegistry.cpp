@@ -33,10 +33,7 @@
 #include "RemoteCDMConfiguration.h"
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceMessages.h"
-#include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionMessages.h"
-#include "RemoteCDMInstanceSessionProxyMessages.h"
-#include "RemoteCDMProxyMessages.h"
 #include "WebKit-Swift.h"
 #include <WebCore/CDMFactory.h>
 #include <WebCore/CDMInstance.h>
@@ -218,9 +215,8 @@ RemoteCDMRegistry::~RemoteCDMRegistry()
 
 void RemoteCDMRegistry::clear()
 {
-    m_cdms.clear();
     if (m_swiftFactory)
-        m_swiftFactory->factory.removeCDMs();
+        m_swiftFactory->factory.removeCDMsAndRegistrations();
 }
 
 void RemoteCDMRegistry::didReceiveFactoryMessage(IPC::Connection& connection, IPC::Decoder& decoder)
@@ -233,54 +229,6 @@ void RemoteCDMRegistry::didReceiveSyncFactoryMessage(IPC::Connection& connection
     protect(m_factory)->didReceiveSyncMessage(connection, decoder, encoder);
 }
 
-void RemoteCDMRegistry::didReceiveCDMMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-    if (RemoteCDMIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr cdm = m_cdms.get(RemoteCDMIdentifier(decoder.destinationID())))
-            cdm->didReceiveMessage(connection, decoder);
-    }
-}
-
-void RemoteCDMRegistry::didReceiveSyncCDMMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
-{
-    if (RemoteCDMIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr cdm = m_cdms.get(RemoteCDMIdentifier(decoder.destinationID())))
-            cdm->didReceiveSyncMessage(connection, decoder, encoder);
-    }
-}
-
-void RemoteCDMRegistry::didReceiveCDMInstanceMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-    if (RemoteCDMInstanceIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr instance = m_instances.get(RemoteCDMInstanceIdentifier(decoder.destinationID())))
-            instance->didReceiveMessage(connection, decoder);
-    }
-}
-
-void RemoteCDMRegistry::didReceiveSyncCDMInstanceMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
-{
-    if (RemoteCDMInstanceIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr instance = m_instances.get(RemoteCDMInstanceIdentifier(decoder.destinationID())))
-            instance->didReceiveSyncMessage(connection, decoder, encoder);
-    }
-}
-
-void RemoteCDMRegistry::didReceiveCDMInstanceSessionMessage(IPC::Connection& connection, IPC::Decoder& decoder)
-{
-    if (RemoteCDMInstanceSessionIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr session = m_sessions.get(RemoteCDMInstanceSessionIdentifier(decoder.destinationID())))
-            session->didReceiveMessage(connection, decoder);
-    }
-}
-
-void RemoteCDMRegistry::didReceiveSyncCDMInstanceSessionMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
-{
-    if (RemoteCDMInstanceSessionIdentifier::isValidIdentifier(decoder.destinationID())) {
-        if (RefPtr session = m_sessions.get(RemoteCDMInstanceSessionIdentifier(decoder.destinationID())))
-            session->didReceiveSyncMessage(connection, decoder, encoder);
-    }
-}
-
 RefPtr<CDMInstance> RemoteCDMRegistry::cdmInstance(const RemoteCDMInstanceIdentifier& identifier) const
 {
     return m_cdmInstances.get(identifier);
@@ -288,12 +236,12 @@ RefPtr<CDMInstance> RemoteCDMRegistry::cdmInstance(const RemoteCDMInstanceIdenti
 
 bool RemoteCDMRegistry::hasInstance(const RemoteCDMInstanceIdentifier& identifier) const
 {
-    return m_instances.contains(identifier);
+    return m_swiftFactory && m_swiftFactory->factory.hasInstance(identifier.toUInt64());
 }
 
 bool RemoteCDMRegistry::allowsExitUnderMemoryPressure() const
 {
-    return m_instances.isEmpty();
+    return !m_swiftFactory || m_swiftFactory->factory.allowsExitUnderMemoryPressure();
 }
 
 uint64_t RemoteCDMRegistry::generateCDMIdentifier()
@@ -311,29 +259,9 @@ uint64_t RemoteCDMRegistry::generateSessionIdentifier()
     return RemoteCDMInstanceSessionIdentifier::generate().toUInt64();
 }
 
-void RemoteCDMRegistry::addCDMRoute(uint64_t identifier, RemoteCDMProxyMessageForwarder& forwarder)
-{
-    ASSERT(!m_cdms.contains(RemoteCDMIdentifier(identifier)));
-    m_cdms.set(RemoteCDMIdentifier(identifier), Ref<IPC::MessageReceiver> { forwarder });
-}
-
-void RemoteCDMRegistry::addInstanceRoute(uint64_t identifier, RemoteCDMInstanceProxyMessageForwarder& forwarder)
-{
-    ASSERT(!m_instances.contains(RemoteCDMInstanceIdentifier(identifier)));
-    m_instances.set(RemoteCDMInstanceIdentifier(identifier), Ref<IPC::MessageReceiver> { forwarder });
-}
-
-void RemoteCDMRegistry::addSessionRoute(uint64_t identifier, RemoteCDMInstanceSessionProxyMessageForwarder& forwarder)
-{
-    ASSERT(!m_sessions.contains(RemoteCDMInstanceSessionIdentifier(identifier)));
-    m_sessions.set(RemoteCDMInstanceSessionIdentifier(identifier), Ref<IPC::MessageReceiver> { forwarder });
-}
-
 void RemoteCDMRegistry::removeInstance(uint64_t identifier)
 {
     RemoteCDMInstanceIdentifier instanceIdentifier { identifier };
-    ASSERT(m_instances.contains(instanceIdentifier));
-    m_instances.remove(instanceIdentifier);
     m_instanceClients.remove(instanceIdentifier);
     m_cdmInstances.remove(instanceIdentifier);
     RefPtr connection = m_gpuConnectionToWebProcess.get();
@@ -343,10 +271,7 @@ void RemoteCDMRegistry::removeInstance(uint64_t identifier)
 
 void RemoteCDMRegistry::removeSession(uint64_t identifier)
 {
-    RemoteCDMInstanceSessionIdentifier sessionIdentifier { identifier };
-    ASSERT(m_sessions.contains(sessionIdentifier));
-    m_sessions.remove(sessionIdentifier);
-    m_sessionClients.remove(sessionIdentifier);
+    m_sessionClients.remove(RemoteCDMInstanceSessionIdentifier { identifier });
 }
 
 static CDMFactory* factoryForKeySystem(const String& keySystem)
