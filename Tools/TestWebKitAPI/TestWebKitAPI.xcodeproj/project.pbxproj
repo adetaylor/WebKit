@@ -923,6 +923,7 @@
 				WebCore/GridPosition.cpp,
 				WebCore/H264UtilitiesTests.cpp,
 				WebCore/HEVCUtilitiesTests.cpp,
+				WebCore/HTMLMicrosyntaxesBench.cpp,
 				WebCore/HTMLParserIdioms.cpp,
 				WebCore/HTTPHeaderField.cpp,
 				WebCore/HTTPHeaderMap.cpp,
