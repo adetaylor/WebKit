@@ -31,7 +31,8 @@
 #include <wtf/Noncopyable.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
-#include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/FastMalloc.h>
+#include <limits>
 #include <wtf/Threading.h>
 
 namespace WTF {
@@ -50,13 +51,14 @@ namespace WTF {
 //   on the thread that made it. Moving it leaves the object and its views as they were, and the moved-from
 //   lender lending nothing.
 //
-// The view, a subclass of NonEscapableBorrow, reaches the object only through a ref-counted
+// The view, a subclass of NonEscapableBorrow, reaches the object only through the lender's
 // NonEscapableBorrowLease, whose pointer to the object a lender sets after the object's borrow begins and
-// clears before it ends. Using the view, or any copy of it, after that, or on a thread other than the one
-// that made the lender, crashes.
+// clears before it ends. Using the view, or any copy of it, on a thread other than the one that made the
+// lender crashes, as does making, copying or destroying one there. The lease counts the views, and ending
+// the lend with a view alive crashes, so no view can point to a lease that is gone.
 //
-// The view is SWIFT_NONESCAPABLE, so Swift rejects most attempts to keep it beyond the lend, and the lease
-// catches the rest at run time. Swift treats it as safe without SWIFT_SAFE, because all it holds is a Ref.
+// The view is SWIFT_NONESCAPABLE, so Swift rejects most attempts to keep it beyond the lend, and the count
+// catches the rest when the lend ends.
 // It is copyable because Swift 6.3 leaves Swift functions that take a non-copyable C++ type out of the
 // generated C++ header.
 //
@@ -106,21 +108,22 @@ public:
 
     explicit NonEscapableBorrowLender(BorrowedType& object LIFETIME_BOUND)
         : m_borrow(object)
-        , m_lease(adoptRef(*new NonEscapableBorrowLease<BorrowedType>(object)))
-        , m_view(m_lease.get())
+        , m_lease(object)
+        , m_view(m_lease)
     {
     }
 
+    // The view goes first, then the lease, which crashes if a copy of the view is still alive.
     ~NonEscapableBorrowLender()
     {
-        m_lease->end();
+        m_lease.end();
     }
 
     View& view() LIFETIME_BOUND { return m_view; }
 
 private:
     Borrow<BorrowedType> m_borrow;
-    const Ref<NonEscapableBorrowLease<BorrowedType>> m_lease;
+    NonEscapableBorrowLease<BorrowedType> m_lease;
     View m_view;
 };
 
@@ -132,12 +135,13 @@ public:
 
     explicit NonEscapableBorrowOwningLender(std::unique_ptr<BorrowedType>&& object)
         : m_object(borrow(WTF::move(object)))
-        , m_lease(adoptRef(*new NonEscapableBorrowLease<BorrowedType>(*m_object)))
+        , m_lease(makeUnique<NonEscapableBorrowLease<BorrowedType>>(*m_object))
     {
     }
 
     NonEscapableBorrowOwningLender(NonEscapableBorrowOwningLender&&) = default;
 
+    // Destroying the lease crashes if a view is still alive.
     ~NonEscapableBorrowOwningLender()
     {
         if (!m_object)
@@ -150,7 +154,7 @@ public:
     View view() const LIFETIME_BOUND
     {
         RELEASE_ASSERT(m_object);
-        return View { m_lease.get() };
+        return View { *m_lease };
     }
 
 private:
@@ -163,13 +167,30 @@ private:
     }
 
     std::unique_ptr<BorrowedType> m_object;
-    // A move copies this, so a moved-from lender keeps the lease but, without the object, never ends it.
-    const Ref<NonEscapableBorrowLease<BorrowedType>> m_lease;
+    // On the heap, so that moving the lender doesn't move what its views point to.
+    std::unique_ptr<NonEscapableBorrowLease<BorrowedType>> m_lease;
 };
 
+// The lend of an object, which its lender keeps: in itself, on the stack, or on the heap for an owning lender. Its
+// views point to it without a reference, and it counts them. It must not be destroyed while a view is alive, since the
+// view would point to freed memory, so its destructor crashes then; and the views are made, copied and destroyed only
+// on the thread that made it, so the count is exact.
 template<typename T>
-class NonEscapableBorrowLease final : public ThreadSafeRefCounted<NonEscapableBorrowLease<T>> {
+class NonEscapableBorrowLease final {
+    WTF_MAKE_NONCOPYABLE(NonEscapableBorrowLease);
+    WTF_DEPRECATED_MAKE_FAST_ALLOCATED(NonEscapableBorrowLease);
 public:
+    explicit NonEscapableBorrowLease(T& object)
+        : m_object(&object)
+        , m_threadUID(Thread::currentSingleton().uid())
+    {
+    }
+
+    ~NonEscapableBorrowLease()
+    {
+        RELEASE_ASSERT(!m_viewCount);
+    }
+
     T& get() const
     {
         RELEASE_ASSERT(Thread::currentSingleton().uid() == m_threadUID);
@@ -180,35 +201,60 @@ public:
 private:
     template<typename> friend class NonEscapableBorrowLender;
     template<typename> friend class NonEscapableBorrowOwningLender;
-
-    explicit NonEscapableBorrowLease(T& object)
-        : m_object(&object)
-        , m_threadUID(Thread::currentSingleton().uid())
-    {
-    }
+    template<typename> friend class NonEscapableBorrow;
 
     void end() { m_object = nullptr; }
 
+    void addView()
+    {
+        RELEASE_ASSERT(Thread::currentSingleton().uid() == m_threadUID);
+        RELEASE_ASSERT(m_viewCount < std::numeric_limits<uint32_t>::max());
+        ++m_viewCount;
+    }
+
+    void removeView()
+    {
+        RELEASE_ASSERT(Thread::currentSingleton().uid() == m_threadUID);
+        --m_viewCount;
+    }
+
     T* m_object;
     const uint32_t m_threadUID;
+    uint32_t m_viewCount { 0 };
 };
 
+// SWIFT_SAFE: the lease outlives every view that points to it, since destroying it with a view alive crashes, and a
+// view is only made, copied and destroyed on the lease's thread, so the count it relies on is exact.
 template<typename T>
 class NonEscapableBorrow {
 public:
     using BorrowedType = T;
 
+    NonEscapableBorrow(const NonEscapableBorrow& other)
+        : m_lease(other.m_lease)
+    {
+        m_lease->addView();
+    }
+
+    NonEscapableBorrow& operator=(const NonEscapableBorrow&) = delete;
+
+    ~NonEscapableBorrow()
+    {
+        m_lease->removeView();
+    }
+
 protected:
     explicit NonEscapableBorrow(NonEscapableBorrowLease<T>& lease LIFETIME_BOUND)
-        : m_lease(lease)
+        : m_lease(&lease)
     {
+        m_lease->addView();
     }
 
     T& borrowed() const { return m_lease->get(); }
 
 private:
-    const Ref<NonEscapableBorrowLease<T>> m_lease;
-} SWIFT_NONESCAPABLE;
+    NonEscapableBorrowLease<T>* const m_lease;
+} SWIFT_NONESCAPABLE SWIFT_SAFE;
 
 } // namespace WTF
 

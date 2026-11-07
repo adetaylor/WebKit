@@ -277,7 +277,7 @@ private:
         memcpySpan(values, decoded);
         return true;
     }
-} SWIFT_NONESCAPABLE;
+} SWIFT_NONESCAPABLE SWIFT_SAFE; // As NonEscapableBorrow is: it holds no other pointer.
 
 // The bytes of a std::span<const uint8_t> argument of a message, lent to its Swift handler while the message is
 // dispatched. They are in the message's buffer, which the sender can still write to (a stream connection's buffer is
@@ -330,7 +330,7 @@ private:
 
     size_t m_offset;
     size_t m_size;
-} SWIFT_NONESCAPABLE;
+} SWIFT_NONESCAPABLE SWIFT_SAFE; // As NonEscapableBorrow is: it holds no other pointer.
 
 inline LentBytes SwiftDecoder::lentBytes(const LentBytesPosition& position) const
 {
