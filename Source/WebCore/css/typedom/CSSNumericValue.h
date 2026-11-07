@@ -37,8 +37,6 @@ class UnevaluatedCalcBase;
 }
 
 namespace CSSCalc {
-struct Child;
-struct ChildOrNone;
 struct Tree;
 }
 
@@ -86,7 +84,15 @@ public:
     virtual std::optional<SumValue> toSumValue() const = 0;
     virtual bool equals(const CSSNumericValue&) const = 0;
 
-    virtual std::optional<CSSCalc::Child> toCalcTreeNode() const = 0;
+    // The calc() tree of this value, as a one-child sum when `wrapInSum`; std::nullopt where it has none.
+    std::optional<CSSCalc::Tree> toCalcTree(bool wrapInSum) const;
+
+    // The operands of a math value, in the order its calc() node has them (a clamp's lower, value and upper),
+    // and null past the last one; a CSSUnitValue has none.
+    virtual const CSSNumericValue* mathOperand(size_t) const { return nullptr; }
+    // A CSSUnitValue's value and unit.
+    virtual double unitValue() const { RELEASE_ASSERT_NOT_REACHED(); }
+    virtual CSSUnitType unitType() const { RELEASE_ASSERT_NOT_REACHED(); }
 
     static ExceptionOr<Ref<CSSNumericValue>> reifyMathExpression(const CSS::UnevaluatedCalcBase&);
     static ExceptionOr<Ref<CSSNumericValue>> reifyMathExpression(const CSSCalc::Tree&);

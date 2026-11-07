@@ -2041,6 +2041,8 @@
 		4BAFD0D62192146B00C0AB64 /* CSSStyleValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BAFD0D52192146B00C0AB64 /* CSSStyleValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4BAFD0D921921EA000C0AB64 /* CSSUnparsedValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BAFD0D821921EA000C0AB64 /* CSSUnparsedValue.h */; };
 		4BAFD0E0219220AB00C0AB64 /* CSSNumericValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BAFD0DF219220AB00C0AB64 /* CSSNumericValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B39205B51F574DC1804D52FE /* CSSNumericValueSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 89616D941F1945CC9A22DC0E /* CSSNumericValueSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		EA5E606D888149549E845C5C /* CSSNumericValueSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FC658AE14240BB8953B65E /* CSSNumericValueSwift.swift */; };
 		4BAFD0E1219242A000C0AB64 /* CSSUnitValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BAFD0DD2192209200C0AB64 /* CSSUnitValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4BD781BF21C1965F00D9703E /* StylePropertyMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BD781BE21C1965F00D9703E /* StylePropertyMap.h */; };
 		4BDA3FFE2151B6F500FD6604 /* DOMCSSCustomPropertyDescriptor.h in Headers */ = {isa = PBXBuildFile; fileRef = 4BDA3FF82151B6F200FD6604 /* DOMCSSCustomPropertyDescriptor.h */; };
@@ -12489,6 +12491,8 @@
 		4BAFD0DC2192204A00C0AB64 /* CSSUnitValue.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CSSUnitValue.idl; sourceTree = "<group>"; };
 		4BAFD0DD2192209200C0AB64 /* CSSUnitValue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; path = CSSUnitValue.h; sourceTree = "<group>"; };
 		4BAFD0DF219220AB00C0AB64 /* CSSNumericValue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSNumericValue.h; sourceTree = "<group>"; };
+		C8FC658AE14240BB8953B65E /* CSSNumericValueSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSNumericValueSwift.swift; sourceTree = "<group>"; };
+		89616D941F1945CC9A22DC0E /* CSSNumericValueSwiftTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSNumericValueSwiftTypes.h; sourceTree = "<group>"; };
 		4BD781BC21C1964800D9703E /* StylePropertyMap.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = StylePropertyMap.idl; sourceTree = "<group>"; };
 		4BD781BE21C1965F00D9703E /* StylePropertyMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StylePropertyMap.h; sourceTree = "<group>"; };
 		4BD781C521C1D67700D9703E /* StylePropertyMapReadOnly.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StylePropertyMapReadOnly.cpp; sourceTree = "<group>"; };
@@ -19134,7 +19138,6 @@
 		BC000BE52C5EB9310033AA75 /* CSSCalcTree+Serialization.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSSCalcTree+Serialization.h"; sourceTree = "<group>"; };
 		BC000BEE2C613D5D0033AA75 /* CSSCalcTree+Evaluation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "CSSCalcTree+Evaluation.cpp"; sourceTree = "<group>"; };
 		BC000BEF2C613D810033AA75 /* CSSCalcTree+Evaluation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSSCalcTree+Evaluation.h"; sourceTree = "<group>"; };
-		BC000BF32C6291F00033AA75 /* CSSCalcTree+Traversal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSSCalcTree+Traversal.h"; sourceTree = "<group>"; };
 		BC000BF82C651CF40033AA75 /* CSSCalcTree+ComputedStyleDependencies.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "CSSCalcTree+ComputedStyleDependencies.cpp"; sourceTree = "<group>"; };
 		BC000BF92C651CF40033AA75 /* CSSCalcTree+ComputedStyleDependencies.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CSSCalcTree+ComputedStyleDependencies.h"; sourceTree = "<group>"; };
 		BC000BFA2C65236A0033AA75 /* CSSMathValue.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSMathValue.cpp; sourceTree = "<group>"; };
@@ -28904,6 +28907,8 @@
 				2ACB4D2726DC4AB200BEB753 /* CSSNumericFactory.h */,
 				E329276222543F5800308A9A /* CSSNumericValue.cpp */,
 				4BAFD0DF219220AB00C0AB64 /* CSSNumericValue.h */,
+				C8FC658AE14240BB8953B65E /* CSSNumericValueSwift.swift */,
+				89616D941F1945CC9A22DC0E /* CSSNumericValueSwiftTypes.h */,
 				4BAFD0DB2192202200C0AB64 /* CSSNumericValue.idl */,
 				BC292C1B2F90E451001165EB /* CSSOMKeywordValue.cpp */,
 				BC292C1A2F90E451001165EB /* CSSOMKeywordValue.h */,
@@ -39780,7 +39785,6 @@
 				BC000BE52C5EB9310033AA75 /* CSSCalcTree+Serialization.h */,
 				BC000BDF2C5AF9B70033AA75 /* CSSCalcTree+Simplification.cpp */,
 				BC000BDE2C5AF9B70033AA75 /* CSSCalcTree+Simplification.h */,
-				BC000BF32C6291F00033AA75 /* CSSCalcTree+Traversal.h */,
 				BC000BFE2C66A1240033AA75 /* CSSCalcTree.cpp */,
 				BC000BDB2C5A9D4F0033AA75 /* CSSCalcTree.h */,
 				BC000BD92C5A9A820033AA75 /* CSSCalcType.cpp */,
@@ -45467,6 +45471,7 @@
 				2ACB4D2B26DC4ACE00BEB753 /* CSSNumericFactory.h in Headers */,
 				2AEF6FDD26E7ECCF00326D02 /* CSSNumericType.h in Headers */,
 				4BAFD0E0219220AB00C0AB64 /* CSSNumericValue.h in Headers */,
+				B39205B51F574DC1804D52FE /* CSSNumericValueSwiftTypes.h in Headers */,
 				BC292C232F90E6F8001165EB /* CSSOMKeywordValue.h in Headers */,
 				2ABFFFF326C535C00048875B /* CSSOMVariableReferenceValue.h in Headers */,
 				BC23888A2D8C72D900698102 /* CSSPageDescriptors.h in Headers */,
@@ -51550,6 +51555,7 @@
 				C55B00000000000000000004 /* CSSParserFastPathsSwift.swift in Sources */,
 				C55C00000000000000000006 /* CSSCalcNode.swift in Sources */,
 				C55C00000000000000000004 /* CSSCalcSwift.swift in Sources */,
+				EA5E606D888149549E845C5C /* CSSNumericValueSwift.swift in Sources */,
 				C55C00000000000000000008 /* CSSCalcEvaluation.swift in Sources */,
 				C55C0000000000000000000A /* CSSCalcParser.swift in Sources */,
 				C55C0000000000000000000C /* CSSCalcSerialization.swift in Sources */,
