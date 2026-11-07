@@ -1059,9 +1059,9 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModuleMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureViewMessageReceiver.cpp
-        GPUProcess/graphics/WebGPU/RemoteXRBinding.cpp
-        GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.cpp
-        GPUProcess/graphics/WebGPU/RemoteXRSubImage.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRBindingMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImageMessageReceiver.cpp
         GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
@@ -1764,6 +1764,9 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteShaderModuleMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRBindingMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRProjectionLayerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRSubImageMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapter.swift
@@ -1789,6 +1792,9 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteShaderModule.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTexture.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteTextureView.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRBinding.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImage.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteAdapterMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupLayoutMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBindGroupMessageReceiver.swift
@@ -1812,6 +1818,9 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteShaderModuleMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextureViewMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRBindingMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRProjectionLayerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteXRSubImageMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.swift
     )
 endif ()

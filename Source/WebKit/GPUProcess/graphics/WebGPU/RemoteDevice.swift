@@ -28,8 +28,7 @@
 import WebKit_Internal
 
 // Receives the messages of a WebGPU device, on its stream connection's work queue, and calls its DeviceImpl. The
-// objects it makes go in the registry, with their receivers, except for the XR bindings, whose receivers are C++ and
-// go in the object heap.
+// objects it makes go in the registry, with their receivers.
 @_expose(Cxx)
 final class RemoteDevice {
     private let device: DeviceReference
@@ -72,7 +71,10 @@ final class RemoteDevice {
     }
 
     func createXRBinding(identifier: IPCTypes.WebGPUIdentifier) {
-        link.objects?.host.addXRBinding(link.identifier, identifier.rawValue)
+        guard let bindingLink = link.child(identifier) else {
+            return
+        }
+        RemoteXRBinding.add(device.createXRBinding(), bindingLink)
     }
 
     func createBuffer(descriptor: IPCTypes.BufferDescriptor, identifier: IPCTypes.WebGPUIdentifier) {

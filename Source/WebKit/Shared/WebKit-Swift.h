@@ -124,6 +124,9 @@
 #include "RemoteShaderModuleMessages.h"
 #include "RemoteTextureMessages.h"
 #include "RemoteTextureViewMessages.h"
+#include "RemoteXRBindingMessages.h"
+#include "RemoteXRProjectionLayerMessages.h"
+#include "RemoteXRSubImageMessages.h"
 #include "WebGPUSwiftSupport.h"
 #endif
 

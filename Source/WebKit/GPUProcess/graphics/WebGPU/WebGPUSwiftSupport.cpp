@@ -31,7 +31,6 @@
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteBufferProxy.h"
 #include "RemoteGPU.h"
-#include "RemoteXRBinding.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
@@ -211,19 +210,6 @@ RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() 
     return gpu ? gpu->m_streamConnection : nullptr;
 }
 
-void WebGPUSwiftRegistryHost::addXRBinding(uint64_t deviceIdentifier, uint64_t identifier) const
-{
-    RefPtr objectHeap = m_objectHeap.get();
-    RefPtr gpu = m_gpu.get();
-    RefPtr streamConnection = this->streamConnection();
-    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
-    if (!objectHeap || !streamConnection || !connection)
-        return;
-    WebGPUIdentifier bindingIdentifier { identifier };
-    auto remoteBinding = RemoteXRBinding::create(*connection, objectHeap->swiftImplTable().createXRBinding(deviceIdentifier), *objectHeap, *gpu, streamConnection.releaseNonNull(), bindingIdentifier);
-    objectHeap->addObject(bindingIdentifier, remoteBinding);
-}
-
 #if PLATFORM(COCOA)
 std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftRegistryHost::externalImage(uint64_t imageBufferIdentifier, ::WebGPU::Origin2D origin, bool flipY, bool premultipliedAlpha) const
 {
@@ -258,6 +244,18 @@ WebGPUSwiftReceiverRegistration::~WebGPUSwiftReceiverRegistration()
 {
     m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
 }
+
+#if ENABLE(WEBXR) && PLATFORM(COCOA)
+WebGPUXRFrame::WebGPUXRFrame(IPC::CxxDecodedArgument<MachSendRight>& colorBuffer, IPC::CxxDecodedArgument<MachSendRight>& depthBuffer, IPC::CxxDecodedArgument<MachSendRight>& completionSyncEvent, IPC::CxxDecodedArgument<PlatformXR::RateMapDescription>& rateMapDescription)
+    : m_colorBuffer(colorBuffer.take().value_or(MachSendRight { }))
+    , m_depthBuffer(depthBuffer.take().value_or(MachSendRight { }))
+    , m_completionSyncEvent(completionSyncEvent.take().value_or(MachSendRight { }))
+    , m_rateMapDescription(rateMapDescription.take().value_or(PlatformXR::RateMapDescription { }))
+{
+}
+
+WebGPUXRFrame::~WebGPUXRFrame() = default;
+#endif
 
 OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument)
 {
