@@ -31,10 +31,7 @@
 namespace WebCore {
 
 class Decimal;
-class QualifiedName;
 
-template<typename CharacterType> bool isComma(CharacterType);
-template<typename CharacterType> bool isHTMLSpaceOrComma(CharacterType);
 bool isHTMLLineBreak(char16_t);
 bool isHTMLSpaceButNotLineBreak(char16_t);
 
@@ -61,12 +58,6 @@ NODELETE WEBCORE_EXPORT std::expected<int, HTMLIntegerParsingError> parseHTMLInt
 // http://www.whatwg.org/specs/web-apps/current-work/#rules-for-parsing-non-negative-integers
 WEBCORE_EXPORT std::expected<unsigned, HTMLIntegerParsingError> parseHTMLNonNegativeInteger(StringView);
 
-// https://html.spec.whatwg.org/#valid-non-negative-integer
-std::optional<int> parseValidHTMLNonNegativeInteger(StringView);
-
-// https://html.spec.whatwg.org/#valid-floating-point-number
-std::optional<double> parseValidHTMLFloatingPointNumber(StringView);
-
 // https://html.spec.whatwg.org/#rules-for-parsing-floating-point-number-values
 WEBCORE_EXPORT double parseHTMLFloatingPointNumberValue(StringView, double fallbackValue = std::numeric_limits<double>::quiet_NaN());
 
@@ -78,8 +69,6 @@ WEBCORE_EXPORT bool parseMetaHTTPEquivRefresh(StringView, double& delay, String&
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#cors-settings-attribute
 WEBCORE_EXPORT String parseCORSSettingsAttribute(const AtomString&);
-
-bool threadSafeMatch(const QualifiedName&, const QualifiedName&);
 
 WEBCORE_EXPORT AtomString parseHTMLHashNameReference(StringView);
 
@@ -112,16 +101,6 @@ ALWAYS_INLINE bool containsHTMLLineBreak(StringView view)
     if (view.is8Bit())
         return charactersContain<Latin1Character, '\r', '\n'>(view.span8());
     return charactersContain<char16_t, '\r', '\n'>(view.span16());
-}
-
-template<typename CharacterType> inline bool isComma(CharacterType character)
-{
-    return character == ',';
-}
-
-template<typename CharacterType> inline bool isHTMLSpaceOrComma(CharacterType character)
-{
-    return isComma(character) || isASCIIWhitespace(character);
 }
 
 inline bool isHTMLSpaceButNotLineBreak(char16_t character)
