@@ -1083,6 +1083,19 @@ bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect& rect)
     return equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height();
 }
 
+CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect& rect)
+{
+    auto size = [](const WebCore::FloatSize& size) {
+        return WebCore::ShadowBlurSize { size.width(), size.height() };
+    };
+    const auto& bounds = rect.rect();
+    const auto& radii = rect.radii();
+    return {
+        { bounds.x(), bounds.y(), bounds.width(), bounds.height() },
+        { size(radii.topLeft()), size(radii.topRight()), size(radii.bottomLeft()), size(radii.bottomRight()) }
+    };
+}
+
 void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
 {
     CGContextBeginPath(context);
@@ -1351,22 +1364,28 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
     CAPTURE(fillRect(rect, color));
     bool changesFillColor = fillColor() != color;
     auto packedColor = color.tryGetAsPackedInline();
+    RetainPtr<CGColorRef> platformColor;
     if (packedColor) {
         if (SWIFT_RENDERER(fillRect(rect, packedColor->value, changesFillColor)))
             return;
-    } else if (SWIFT_RENDERER(fillRect(rect, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changesFillColor)))
-        return;
+    } else {
+        platformColor = cachedCGColorInDestinationStandardRange(color, colorSpace());
+        if (SWIFT_RENDERER(fillRect(rect, platformColor.get(), changesFillColor)))
+            return;
+    }
 
     // The renderer declines only blurred shadows.
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
-    if (packedColor && swiftDrawsShadowBlur()) {
-        SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
+    if (swiftDrawsShadowBlur()) {
+        if (packedColor)
+            SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
+        else
+            SWIFT_RENDERER(fillRectWithShadowBlur(rect, platformColor.get(), changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
         return;
     }
 
-    // ShadowBlur draws through this context: where the renderer doesn't draw images (the iOS family), or for a color that
-    // isn't sRGBA8.
+    // ShadowBlur draws through this context where the renderer doesn't draw images (the iOS family).
     const RetainPtr<CGContextRef>& context = contextForDraw();
     Color oldFillColor = fillColor();
     if (changesFillColor)

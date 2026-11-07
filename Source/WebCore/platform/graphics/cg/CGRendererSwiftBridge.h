@@ -34,6 +34,7 @@
 #include <WebCore/PathSegment.h>
 #include <WebCore/PlatformExportMacros.h>
 #include <WebCore/RasterDrawingOptions.h>
+#include <WebCore/ShadowBlurSwiftBridge.h>
 #include <WebCore/TextFlags.h>
 #include <WebCore/WindRule.h>
 #include <algorithm>
@@ -351,6 +352,12 @@ WEBCORE_EXPORT void CGRendererClipOutToRoundedRect(CGContextRef _Nonnull, const 
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect&) CF_RETURNS_RETAINED;
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRectWithRoundedHolePath(CGRect, const WebCore::FloatRoundedRect& hole) CF_RETURNS_RETAINED;
 WEBCORE_EXPORT bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect&);
+// A rounded rect's rect and radii as ShadowBlur takes them (ShadowBlur::drawRectShadow() and drawInsetShadow() of it).
+struct CGRendererShadowBlurRoundedRect {
+    WebCore::ShadowBlurRect rect;
+    WebCore::ShadowBlurCornerRadii radii;
+};
+WEBCORE_EXPORT CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect&);
 
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
@@ -428,8 +435,9 @@ WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::Graphics
 WEBCORE_EXPORT void CGRendererShadowValuesOf(const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const CGRendererShadowValues&, const CGRendererColorData&) __attribute__((availability(swift, unavailable)));
 
-// The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()).
-WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&) __attribute__((availability(swift, unavailable)));
+// The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()),
+// and as the renderer gives ShadowBlur a drop shadow's color.
+WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&);
 // GraphicsContext::computeRectsAndStrokeColorForLinesForText() for a context of the CTM and stroke color: the rects and the
 // color that GraphicsContextCG::drawLinesForText() fills.
 WEBCORE_EXPORT void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment>, bool isPrinting, bool doubleLines, WebCore::StrokeStyle, Vector<CGRect, 4>& rects, WebCore::Color&) __attribute__((availability(swift, unavailable)));

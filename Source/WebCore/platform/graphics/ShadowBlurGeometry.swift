@@ -129,6 +129,21 @@ func shadowBlurDrawInsetShadow(
     shadowBlurDrawInsetShadowPlan(state, plan, fullRect, holeRect, holeRadii, color, &destination)
 }
 
+// ShadowBlur::drawInsetShadow() through a renderer that draws the shadow's pieces itself.
+func shadowBlurDrawInsetShadow<Destination: ShadowDrawing & ~Escapable>(
+    _ state: inout WebCore.ShadowBlurState,
+    _ transform: borrowing WebCore.AffineTransform,
+    _ clipBounds: WebCore.IntRect,
+    _ fullRect: WebCore.ShadowBlurRect,
+    _ holeRect: WebCore.ShadowBlurRect,
+    _ holeRadii: WebCore.ShadowBlurCornerRadii,
+    _ color: borrowing WebCore.Color,
+    into destination: inout Destination
+) {
+    let plan = state.insetShadowPlan(transform, clipBounds, fullRect, holeRect, holeRadii)
+    shadowBlurDrawInsetShadowPlan(state, plan, fullRect, holeRect, holeRadii, color, &destination)
+}
+
 // ShadowBlur::drawShadowLayer().
 @_expose(Cxx)
 func shadowBlurDrawShadowLayer(

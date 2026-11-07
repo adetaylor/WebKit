@@ -475,6 +475,11 @@ private func isIntegral(_ value: Float) -> Bool {
     !value.isInfinite && value.rounded(.towardZero) == value
 }
 
+// ShadowBlur's rect of a rect whose values are floats.
+private func shadowBlurRect(_ rect: CGRect) -> WebCore.ShadowBlurRect {
+    WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))
+}
+
 // What a ShadowBlur shadow the renderer draws for itself needs besides the state: the fill to set for the shadow's color (nil
 // when the C++ state's fill is that color already, so GraphicsContextState::setFillColor() wouldn't touch CG).
 @usableFromInline @frozen struct CGRendererShadowBlurDrawing {
@@ -930,6 +935,43 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 
     private var canUseShadowBlur: Bool {
         isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
+    }
+
+    // GraphicsContextCG::swiftDrawsShadowBlur(): where a receiver's draws with a shadow ShadowBlur draws (canUseShadowBlur)
+    // draw it here; elsewhere they go back to C++.
+    private var receiverDrawsShadowBlur: Bool {
+        #if HAVE_SUPPORT_HDR_DISPLAY_APIS && !WTF_PLATFORM_IOS_FAMILY
+        true
+        #else
+        false
+        #endif
+    }
+
+    // The Color of a drop shadow, as GraphicsContext's state has it, for ShadowBlur.
+    private func dropShadowColor(_ shadow: CGRendererShadow) -> WebCore.Color {
+        var value = CGRendererColorValue()
+        value.isVisible = shadow.isVisible
+        if shadow.platformColorSlot != 0 {
+            value.data = platformColors[Int(shadow.platformColorSlot) - 1].data
+        } else if shadow.isValid {
+            value.isPacked = true
+            value.packedColor = shadow.packedColor
+        }
+        return CGRendererColorFromValue(value)
+    }
+
+    // GraphicsContextCG::shadowColorChangesFill(): whether ShadowBlur's setting the shadow's color as the fill, through a
+    // GraphicsContext, changes the fill brush.
+    private func shadowColorChangesFill(_ shadow: CGRendererShadow) -> Bool {
+        let fill = state.fill
+        if fill.hasPatternOrGradient || !shadow.isValid {
+            return true
+        }
+        if fill.platformColorSlot == 0 || shadow.platformColorSlot == 0 {
+            return fill.platformColorSlot != shadow.platformColorSlot || fill.packedColor != shadow.packedColor
+        }
+        let fillData = platformColors[Int(fill.platformColorSlot) - 1].data
+        return !colorDataAreEqual(fillData, platformColors[Int(shadow.platformColorSlot) - 1].data)
     }
 
     private mutating func platformColor(packed: UInt32, slot: UInt32) -> CGColor {
@@ -1906,7 +1948,7 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         applyPattern(fill: true)
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, shadowColorChangesFill)
+        drawRectShadowBlur(rect, WebCore.ShadowBlurCornerRadii(), shadowColor, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
     }
@@ -1926,7 +1968,7 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         }
         context.saveGState()
         CGContextSetStyle(context, nil)
-        drawRectShadowBlur(rect, shadowColor, shadowColorChangesFill)
+        drawRectShadowBlur(rect, WebCore.ShadowBlurCornerRadii(), shadowColor, shadowColorChangesFill)
         context.fill(rect)
         context.restoreGState()
         if changesFillColor {
@@ -1934,16 +1976,85 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         }
     }
 
-    // ShadowBlur(GraphicsDropShadow, shadowsIgnoreTransforms).drawRectShadow(context, FloatRoundedRect(rect)).
-    private mutating func drawRectShadowBlur(
+    // GraphicsContextCG::fillRect(_:_:) of a color that isn't sRGBA8 with a shadow ShadowBlur draws, as the packed color's.
+    @_expose(Cxx)
+    mutating func fillRectWithShadowBlur(
         _ rect: CGRect,
+        platformColor color: borrowing CGColor,
+        _ changesFillColor: Bool,
         _ shadowColor: borrowing WebCore.Color,
         _ shadowColorChangesFill: Bool
     ) {
-        guard let shadow = state.dropShadow else {
+        assert(canUseShadowBlur)
+        hasDrawn = true
+        if changesFillColor {
+            context.setFillColor(copy color)
+        }
+        context.saveGState()
+        CGContextSetStyle(context, nil)
+        drawRectShadowBlur(rect, WebCore.ShadowBlurCornerRadii(), shadowColor, shadowColorChangesFill)
+        context.fill(rect)
+        context.restoreGState()
+        if changesFillColor {
+            context.setFillColor(platformColor(state.fill))
+        }
+    }
+
+    // ShadowBlur(GraphicsDropShadow, shadowsIgnoreTransforms).drawRectShadow(context, FloatRoundedRect(rect, radii)).
+    private mutating func drawRectShadowBlur(
+        _ rect: CGRect,
+        _ radii: WebCore.ShadowBlurCornerRadii,
+        _ shadowColor: borrowing WebCore.Color,
+        _ shadowColorChangesFill: Bool
+    ) {
+        guard var shadowBlur = beginShadowBlur(shadowColorChangesFill) else {
             return
         }
-        var shadowState = shadowBlurState(
+        shadowBlurDrawRectShadow(
+            &shadowBlur.state,
+            shadowBlur.transform,
+            shadowBlur.clip,
+            shadowBlurRect(rect),
+            radii,
+            shadowColor,
+            into: &self
+        )
+        shadowBlurDrawing = nil
+    }
+
+    // ShadowBlur(GraphicsDropShadow, shadowsIgnoreTransforms).drawInsetShadow(context, rect, FloatRoundedRect(hole, holeRadii)).
+    private mutating func drawInsetShadowBlur(
+        _ rect: CGRect,
+        _ hole: WebCore.ShadowBlurRect,
+        _ holeRadii: WebCore.ShadowBlurCornerRadii,
+        _ shadowColor: borrowing WebCore.Color,
+        _ shadowColorChangesFill: Bool
+    ) {
+        guard var shadowBlur = beginShadowBlur(shadowColorChangesFill) else {
+            return
+        }
+        shadowBlurDrawInsetShadow(
+            &shadowBlur.state,
+            shadowBlur.transform,
+            shadowBlur.clip,
+            shadowBlurRect(rect),
+            hole,
+            holeRadii,
+            shadowColor,
+            into: &self
+        )
+        shadowBlurDrawing = nil
+    }
+
+    // The drop shadow's ShadowBlur, with the CTM and the clip bounds it draws under, as GraphicsContext gives them to it, and
+    // the fill its pieces set (shadowBlurDrawing, which the caller clears after drawing); nil without a shadow.
+    private mutating func beginShadowBlur(
+        _ shadowColorChangesFill: Bool
+    ) -> (state: WebCore.ShadowBlurState, transform: WebCore.AffineTransform, clip: WebCore.IntRect)? {
+        guard let shadow = state.dropShadow else {
+            return nil
+        }
+        let shadowState = shadowBlurState(
             WebCore.ShadowBlurSize(width: shadow.radius, height: shadow.radius),
             WebCore.ShadowBlurSize(width: shadow.width, height: shadow.height),
             shadow.isVisible,
@@ -1956,19 +2067,9 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         let clip = CGRendererIntRect(
             enclosing: CGRendererRect(x: Float(clipBox.origin.x), y: Float(clipBox.origin.y), width: Float(clipBox.size.width), height: Float(clipBox.size.height))
         )
-        let shadowedRect = WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.size.width), height: Float(rect.size.height))
         let fill = CGRendererBrush(packedColor: shadow.packedColor, platformColorSlot: shadow.platformColorSlot, kind: 0, isColorVisible: shadow.isVisible)
         shadowBlurDrawing = CGRendererShadowBlurDrawing(fill: shadowColorChangesFill ? fill : nil)
-        shadowBlurDrawRectShadow(
-            &shadowState,
-            transform,
-            WebCore.IntRect(clip.x, clip.y, clip.width, clip.height),
-            shadowedRect,
-            WebCore.ShadowBlurCornerRadii(),
-            shadowColor,
-            into: &self
-        )
-        shadowBlurDrawing = nil
+        return (shadowState, transform, WebCore.IntRect(clip.x, clip.y, clip.width, clip.height))
     }
 
     @_expose(Cxx)
@@ -3181,17 +3282,32 @@ extension CGRendererCore {
         hasDrawn = true
     }
 
-    // GraphicsContextCG::fillRect(_:_:) of a color: false for a blurred shadow, which the context draws.
+    // GraphicsContextCG::fillRect(_:_:) of a color, with a shadow ShadowBlur draws where the receiver draws those.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) -> Bool {
         let changesFillColor = !fillColorEquals(color)
         if color.isPacked {
-            return fillRect(rect, packedColor: color.packedColor, changesFillColor)
+            if fillRect(rect, packedColor: color.packedColor, changesFillColor) {
+                return true
+            }
+            guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
+                return false
+            }
+            let shadowColor = dropShadowColor(shadow)
+            fillRectWithShadowBlur(rect, packedColor: color.packedColor, changesFillColor, shadowColor, shadowColorChangesFill(shadow))
+            return true
         }
         guard let cgColor = cgColor ?? platformColorCache.color(color.data, destinationColorSpace) else {
             return false
         }
-        return fillRect(rect, platformColor: cgColor, changesFillColor)
+        if fillRect(rect, platformColor: cgColor, changesFillColor) {
+            return true
+        }
+        guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
+            return false
+        }
+        fillRectWithShadowBlur(rect, platformColor: cgColor, changesFillColor, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+        return true
     }
 
     // GraphicsContext::fillRect(_:_:_:_:): the fill in the composite mode, which is set back after it.
@@ -3219,8 +3335,9 @@ extension CGRendererCore {
     }
 
     // GraphicsContext::fillRoundedRect(): a rounded rect with radii as GraphicsContextCG::fillRoundedRectImpl() fills it, in
-    // the composite operator with the blend mode, and one without as a rect. False where C++ draws it: a shadow ShadowBlur
-    // draws, or a gradient C++ paints in a CGLayer.
+    // the composite operator with the blend mode, and one without as a rect, with a shadow ShadowBlur draws. False where C++
+    // draws it: a shadow ShadowBlur draws where the receiver doesn't draw those or of a gradient, or a gradient C++ paints in
+    // a CGLayer.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRoundedRect(
         _ rect: borrowing WebCore.FloatRoundedRect,
@@ -3233,7 +3350,11 @@ extension CGRendererCore {
             return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
         }
         hasDrawn = true
-        if canUseShadowBlur || (state.fill.hasGradient && !receivePaintsGradients()) {
+        let drawsShadowBlur = canUseShadowBlur
+        if drawsShadowBlur && (!receiverDrawsShadowBlur || state.fill.hasGradient) {
+            return false
+        }
+        if state.fill.hasGradient && !receivePaintsGradients() {
             return false
         }
         let changesFillColor = !fillColorEquals(color)
@@ -3251,6 +3372,12 @@ extension CGRendererCore {
         if let fillColor {
             context.setFillColor(fillColor)
         }
+        if drawsShadowBlur, let shadow = state.dropShadow {
+            context.saveGState()
+            CGContextSetStyle(context, nil)
+            let radii = CGRendererShadowBlurRoundedRectOf(rect).radii
+            drawRectShadowBlur(bounds, radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+        }
         let isEllipse = CGRendererRoundedRectIsEllipse(rect)
         if state.fill.hasGradient {
             // fillPath() of the rounded rect's path, in its clip.
@@ -3265,6 +3392,9 @@ extension CGRendererCore {
                 fillPath(path)
             }
         }
+        if drawsShadowBlur {
+            context.restoreGState()
+        }
         if changesFillColor {
             context.setFillColor(platformColor(state.fill))
         }
@@ -3275,8 +3405,9 @@ extension CGRendererCore {
         return true
     }
 
-    // GraphicsContextCG::fillRectWithRoundedHole(): the even-odd fill of a rect and a rounded hole in it, in the color. False
-    // where C++ draws it: ShadowBlur draws the shadow inside the hole.
+    // GraphicsContextCG::fillRectWithRoundedHole(): the even-odd fill of a rect and a rounded hole in it, in the color, with
+    // the shadow inside the hole that ShadowBlur draws. False where C++ draws it: that shadow where the receiver doesn't draw
+    // those.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRectWithRoundedHole(
         _ rect: CGRect,
@@ -3285,7 +3416,8 @@ extension CGRendererCore {
         _ cgColor: CGColor?
     ) -> Bool {
         hasDrawn = true
-        if canUseShadowBlur {
+        let drawsShadowBlur = canUseShadowBlur
+        if drawsShadowBlur && !receiverDrawsShadowBlur {
             return false
         }
         let changesFillColor = !fillColorEquals(color)
@@ -3297,7 +3429,16 @@ extension CGRendererCore {
         if let fillColor {
             context.setFillColor(fillColor)
         }
+        if drawsShadowBlur, let shadow = state.dropShadow {
+            context.saveGState()
+            CGContextSetStyle(context, nil)
+            let shadowedHole = CGRendererShadowBlurRoundedRectOf(hole)
+            drawInsetShadowBlur(rect, shadowedHole.rect, shadowedHole.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+        }
         CGRendererDrawPath(context, .eoFill, path)
+        if drawsShadowBlur {
+            context.restoreGState()
+        }
         if changesFillColor {
             context.setFillColor(platformColor(state.fill))
         }
@@ -3532,7 +3673,15 @@ extension CGRendererCore {
 
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect) -> Bool {
-        fillRect(rect)
+        if fillRect(rect) {
+            return true
+        }
+        // A shadow ShadowBlur draws, where the receiver draws those, with a color or pattern brush.
+        guard receiverDrawsShadowBlur, !state.fill.hasGradient, let shadow = state.dropShadow else {
+            return false
+        }
+        fillRectWithShadowBlur(rect, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+        return true
     }
 
     @_expose(!Cxx)
