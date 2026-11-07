@@ -3302,7 +3302,6 @@
 		7B720B0C2743DBA70008ABED /* GraphicsLayerContentsDisplayDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B720B0A2743DBA60008ABED /* GraphicsLayerContentsDisplayDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7B7363A72EA761A700770085 /* GCGLExtension.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B7363A62EA761A000770085 /* GCGLExtension.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7B8ED5F026F0C13D008AC023 /* CVUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B8ED5ED26F0C123008AC023 /* CVUtilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		7B95CFEB2754FF6E000060CE /* GraphicsContextGLState.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B95CFE92754FF6E000060CE /* GraphicsContextGLState.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7B95CFED2754FF7C000060CE /* GraphicsContextGLANGLE.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B95CFEC2754FF7C000060CE /* GraphicsContextGLANGLE.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BB34A48253776CA00029D08 /* GraphicsContextGLImageExtractor.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BB34A45253776C600029D08 /* GraphicsContextGLImageExtractor.h */; };
 		7BB5984529DC2DC700967DC1 /* PlatformCALayerDelegatedContents.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B434D1329DB0FD00062E8D1 /* PlatformCALayerDelegatedContents.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -15141,7 +15140,6 @@
 		7B8ED5EF26F0C123008AC023 /* CVUtilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CVUtilities.mm; sourceTree = "<group>"; };
 		7B8F26892AF5368500F7AAD2 /* WebGLUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGLUtilities.h; sourceTree = "<group>"; };
 		7B8F268A2AF5368500F7AAD2 /* WebGLUtilities.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGLUtilities.cpp; sourceTree = "<group>"; };
-		7B95CFE92754FF6E000060CE /* GraphicsContextGLState.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = GraphicsContextGLState.h; sourceTree = "<group>"; };
 		7B95CFEC2754FF7C000060CE /* GraphicsContextGLANGLE.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; path = GraphicsContextGLANGLE.h; sourceTree = "<group>"; };
 		7B97D1542AEA4C6B00471B82 /* WebGLDefaultFramebuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGLDefaultFramebuffer.h; sourceTree = "<group>"; };
 		7B97D1552AEA4C6B00471B82 /* WebGLDefaultFramebuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGLDefaultFramebuffer.cpp; sourceTree = "<group>"; };
@@ -37238,7 +37236,6 @@
 				3ABD1569297A289200AF9D76 /* GraphicsContextGLEnums.h */,
 				7BB34A47253776C700029D08 /* GraphicsContextGLImageExtractor.cpp */,
 				7BB34A45253776C600029D08 /* GraphicsContextGLImageExtractor.h */,
-				7B95CFE92754FF6E000060CE /* GraphicsContextGLState.h */,
 				722AF2DD27E1C2050078D997 /* GraphicsContextState.cpp */,
 				722AF2DC27E1C2050078D997 /* GraphicsContextState.h */,
 				722AF2DB27E1C2040078D997 /* GraphicsContextStateSaver.h */,
@@ -46640,7 +46637,6 @@
 				7BDDA31F274FA0210038659E /* GraphicsContextGLCocoa.h in Headers */,
 				3ABD156A297A289300AF9D76 /* GraphicsContextGLEnums.h in Headers */,
 				7BB34A48253776CA00029D08 /* GraphicsContextGLImageExtractor.h in Headers */,
-				7B95CFEB2754FF6E000060CE /* GraphicsContextGLState.h in Headers */,
 				722AF2DF27E1C2060078D997 /* GraphicsContextState.h in Headers */,
 				722AF2DE27E1C2060078D997 /* GraphicsContextStateSaver.h in Headers */,
 				8B960D34DEB7579629359065 /* GraphicsContextSwiftBridge.h in Headers */,
