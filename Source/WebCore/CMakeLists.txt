@@ -3385,6 +3385,7 @@ if (APPLE)
         platform/audio/cocoa/WebAudioBufferList.cpp
         platform/graphics/PixelBufferConversion.cpp
         platform/cocoa/SharedVideoFrameInfo.mm
+        platform/mediastream/MediaConstraintsEvaluation.cpp
 
         platform/graphics/ImageBufferBackend.cpp
         platform/graphics/ShadowBlur.cpp
@@ -3550,6 +3551,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/ShadowBlurKernel.swift
         ${WEBCORE_DIR}/platform/graphics/ShareableBitmapLayout.swift
         ${WEBCORE_DIR}/platform/graphics/cg/CGRenderer.swift
+        ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift

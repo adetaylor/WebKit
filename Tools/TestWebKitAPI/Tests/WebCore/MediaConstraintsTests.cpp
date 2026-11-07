@@ -28,8 +28,28 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include <WebCore/MediaConstraints.h>
+#include <WebCore/MediaConstraintsEvaluation.h>
+#include <WebCore/RealtimeMediaSourceCapabilities.h>
 
 namespace TestWebKitAPI {
+
+// The width applyConstraints() asks a source for, given its current width and the capability's range.
+static std::optional<int> widthForCapabilityRange(WebCore::IntConstraint&& constraint, int current, int capabilityMin, int capabilityMax)
+{
+    WebCore::RealtimeMediaSourceSupportedConstraints supportedConstraints;
+    supportedConstraints.setSupportsWidth(true);
+    WebCore::RealtimeMediaSourceCapabilities capabilities { supportedConstraints };
+    capabilities.setWidth({ capabilityMin, capabilityMax });
+
+    WebCore::MediaConstraints constraints;
+    constraints.mandatoryConstraints.set(WebCore::MediaConstraintType::Width, WTF::move(constraint));
+    constraints.isValid = true;
+
+    auto evaluation = WebCore::evaluateMediaConstraints(constraints, { capabilities, { }, { }, { current, 0 } }, WebCore::MediaConstraintsEvaluationPurpose::VideoPresetConstraints);
+    if (evaluation.hasInvalidConstraint || !evaluation.videoPresetConstraints.hasWidth)
+        return std::nullopt;
+    return evaluation.videoPresetConstraints.width;
+}
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxPreservesValidCurrent)
 {
@@ -39,7 +59,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxPreservesValidCurrent)
 
     // Current value already satisfies [min, max] and there is no ideal, so it
     // should be left unchanged rather than jumping to max.
-    EXPECT_EQ(constraint.valueForCapabilityRange(1280, 0, 4096), 1280);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), 1280);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxClampsAboveMax)
@@ -48,7 +68,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxClampsAboveMax)
     constraint.setMin(640);
     constraint.setMax(1920);
 
-    EXPECT_EQ(constraint.valueForCapabilityRange(2000, 0, 4096), 1920);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 2000, 0, 4096), 1920);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxClampsBelowMin)
@@ -57,7 +77,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxClampsBelowMin)
     constraint.setMin(640);
     constraint.setMax(1920);
 
-    EXPECT_EQ(constraint.valueForCapabilityRange(100, 0, 4096), 640);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 100, 0, 4096), 640);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyClampsAboveMax)
@@ -65,7 +85,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyClampsAboveMax)
     WebCore::IntConstraint constraint;
     constraint.setMax(1920);
 
-    EXPECT_EQ(constraint.valueForCapabilityRange(2000, 0, 4096), 1920);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 2000, 0, 4096), 1920);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyPreservesValidCurrent)
@@ -75,7 +95,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyPreservesValidCurrent)
 
     // Current value already satisfies max and there is no ideal, so it
     // should be left unchanged rather than jumping to max.
-    EXPECT_EQ(constraint.valueForCapabilityRange(1280, 0, 4096), 1280);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), 1280);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyIgnoresCurrentBelowCapabilityMin)
@@ -86,7 +106,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMaxOnlyIgnoresCurrentBelowCapa
     // Current value is below the capability's own minimum (e.g. an unset/default
     // value before the source has produced any frames), so it is not a valid current
     // value and must not be preserved; the constraint should still clamp to max.
-    EXPECT_EQ(constraint.valueForCapabilityRange(0, 1, 4096), 1920);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 0, 1, 4096), 1920);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMinOnlyPreservesValidCurrent)
@@ -96,7 +116,7 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMinOnlyPreservesValidCurrent)
 
     // Current value already satisfies min and there is no ideal, so it
     // should be left unchanged rather than jumping to min.
-    EXPECT_EQ(constraint.valueForCapabilityRange(1280, 0, 4096), 1280);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), 1280);
 }
 
 TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxIdealIsUnaffected)
@@ -106,7 +126,23 @@ TEST(MediaConstraintsTest, ValueForCapabilityRangeMinMaxIdealIsUnaffected)
     constraint.setMax(1920);
     constraint.setIdeal(1024);
 
-    EXPECT_EQ(constraint.valueForCapabilityRange(1280, 0, 4096), 1024);
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), 1024);
+}
+
+TEST(MediaConstraintsTest, ExactOutsideCapabilityRangeIsInvalid)
+{
+    WebCore::IntConstraint constraint;
+    constraint.setExact(5000);
+
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), std::nullopt);
+}
+
+TEST(MediaConstraintsTest, IdealOutsideCapabilityRangeIsClamped)
+{
+    WebCore::IntConstraint constraint;
+    constraint.setIdeal(5000);
+
+    EXPECT_EQ(widthForCapabilityRange(WTF::move(constraint), 1280, 0, 4096), 4096);
 }
 
 } // namespace TestWebKitAPI

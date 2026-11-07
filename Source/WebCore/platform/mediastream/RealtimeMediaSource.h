@@ -83,6 +83,9 @@ namespace WebCore {
 
 class AudioStreamDescription;
 class FloatRect;
+struct MediaConstraintsEvaluation;
+struct MediaVideoPresetTable;
+enum class MediaConstraintsEvaluationPurpose : uint8_t;
 class GraphicsContext;
 class MediaStreamPrivate;
 class OrientationNotifier;
@@ -252,7 +255,6 @@ public:
     WEBCORE_EXPORT VideoPresetConstraints extractVideoPresetConstraints(const MediaConstraints&);
 
     std::optional<MediaConstraintType> hasAnyInvalidConstraint(const MediaConstraints&);
-    bool supportsConstraint(MediaConstraintType);
 
     virtual bool isMockSource() const { return false; }
     virtual bool isCaptureSource() const { return false; }
@@ -318,20 +320,8 @@ protected:
     virtual void startApplyingConstraints() { }
     virtual void endApplyingConstraints() { }
 
-    std::optional<MediaConstraintType> selectSettings(const MediaConstraints&, MediaTrackConstraintSetMap&);
-
-    double fitnessDistance(MediaConstraintType, const IntConstraint&);
-    double fitnessDistance(MediaConstraintType, const DoubleConstraint&);
-    double fitnessDistance(MediaConstraintType, const StringConstraint&);
-    double fitnessDistance(MediaConstraintType, const BooleanConstraint&);
-    double fitnessDistance(MediaConstraintType, const MediaConstraint&);
-
-    void applyConstraint(MediaConstraintType, const MediaConstraint&);
-    void applyConstraints(const MediaTrackConstraintSetMap&);
-    VideoPresetConstraints extractVideoPresetConstraints(const MediaTrackConstraintSetMap&);
-    std::optional<MediaConstraintType> hasInvalidSizeFrameRateAndZoomConstraints(std::optional<IntConstraint> width, std::optional<IntConstraint> height, std::optional<DoubleConstraint>, std::optional<DoubleConstraint>, double& fitnessDistance);
-
-    virtual bool supportsSizeFrameRateAndZoom(const VideoPresetConstraints&);
+    // The presets against which the source checks sizes, frame rates and zooms, if it has any.
+    virtual std::optional<MediaVideoPresetTable> videoPresetTable();
     virtual void setSizeFrameRateAndZoom(const VideoPresetConstraints&);
 
     void notifyMutedObservers();
@@ -371,6 +361,9 @@ private:
     virtual double observedFrameRate() const { return 0.0; }
 
     void updateHasStartedProducingData();
+
+    MediaConstraintsEvaluation evaluateConstraints(const MediaConstraints&, MediaConstraintsEvaluationPurpose);
+    void applyEvaluatedConstraints(const MediaConstraintsEvaluation&);
     void initializeIds();
 
 #if !RELEASE_LOG_DISABLED

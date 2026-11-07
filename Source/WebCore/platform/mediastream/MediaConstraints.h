@@ -110,224 +110,6 @@ public:
         return true;
     }
 
-    bool nearlyEqual(double a, double b) const
-    {
-        // Don't require strict equality when comparing constraints, or many floating point constraint values,
-        // e.g. "aspectRatio: 1.333", will never match.
-        const double epsilon = 0.00001;
-        return std::abs(a - b) <= epsilon;
-    }
-
-    template<typename RangeType>
-    double fitnessDistance(const RangeType& range) const
-    {
-        return fitnessDistance(range.min(), range.max());
-    }
-
-    double fitnessDistance(ValueType rangeMin, ValueType rangeMax) const
-    {
-        // https://w3c.github.io/mediacapture-main/#dfn-applyconstraints
-        // 1. If the constraint is not supported by the browser, the fitness distance is 0.
-        if (isEmpty())
-            return 0;
-
-        // 2. If the constraint is required ('min', 'max', or 'exact'), and the settings
-        //    dictionary's value for the constraint does not satisfy the constraint, the
-        //    fitness distance is positive infinity.
-        bool valid = validForRange(rangeMin, rangeMax);
-        if (m_exact) {
-            if (valid && m_min && m_exact.value() < m_min.value())
-                valid = false;
-            if (valid && m_max && m_exact.value() > m_max.value())
-                valid = false;
-            if (!valid)
-                return std::numeric_limits<double>::infinity();
-        }
-
-        if (m_min) {
-            if (valid && m_max && m_min.value() > m_max.value())
-                valid = false;
-            if (!valid)
-                return std::numeric_limits<double>::infinity();
-        }
-
-        if (m_max) {
-            if (valid && m_min && m_max.value() < m_min.value())
-                valid = false;
-            if (!valid)
-                return std::numeric_limits<double>::infinity();
-        }
-
-        // 3. If no ideal value is specified, the fitness distance is 0.
-        if (!m_ideal)
-            return 0;
-
-        // 4. For all positive numeric non-required constraints (such as height, width, frameRate,
-        //    aspectRatio, sampleRate and sampleSize), the fitness distance is the result of the formula
-        //
-        //         (actual == ideal) ? 0 : |actual - ideal| / max(|actual|,|ideal|)
-        ValueType ideal = m_ideal.value();
-        if (ideal >= rangeMin && ideal <= rangeMax)
-            return 0;
-
-        ideal = ideal > std::max(rangeMin, rangeMax) ? rangeMax : rangeMin;
-        return static_cast<double>(std::abs(ideal - m_ideal.value())) / std::max(std::abs(ideal), std::abs(m_ideal.value()));
-    }
-
-    double fitnessDistance(const Vector<ValueType>& discreteCapabilityValues) const
-    {
-        double minDistance = std::numeric_limits<double>::infinity();
-
-        for (auto& value : discreteCapabilityValues) {
-            auto distance = fitnessDistance(value, value);
-            if (distance < minDistance)
-                minDistance = distance;
-        }
-
-        return minDistance;
-    }
-
-    bool validForRange(ValueType rangeMin, ValueType rangeMax) const
-    {
-        if (isEmpty())
-            return false;
-
-        if (m_exact) {
-            const ValueType exact = m_exact.value();
-            if (exact < rangeMin && !nearlyEqual(exact, rangeMin))
-                return false;
-            if (exact > rangeMax && !nearlyEqual(exact, rangeMax))
-                return false;
-        }
-
-        if (m_min) {
-            const ValueType constraintMin = m_min.value();
-            if (constraintMin > rangeMax && !nearlyEqual(constraintMin, rangeMax))
-                return false;
-        }
-
-        if (m_max) {
-            const ValueType constraintMax = m_max.value();
-            if (constraintMax < rangeMin && !nearlyEqual(constraintMax, rangeMin))
-                return false;
-        }
-
-        return true;
-    }
-
-    ValueType find(NOESCAPE const Function<bool(ValueType)>& function) const
-    {
-        if (m_min && function(m_min.value()))
-            return m_min.value();
-
-        if (m_max && function(m_max.value()))
-            return m_max.value();
-
-        if (m_exact && function(m_exact.value()))
-            return m_exact.value();
-
-        if (m_ideal && function(m_ideal.value()))
-            return m_ideal.value();
-
-        return 0;
-    }
-
-    template<typename RangeType>
-    ValueType valueForCapabilityRange(ValueType current, const RangeType& range) const
-    {
-        return valueForCapabilityRange(current, range.min(), range.max());
-    }
-
-    ValueType valueForCapabilityRange(ValueType current, ValueType capabilityMin, ValueType capabilityMax) const
-    {
-        ValueType value { 0 };
-        ValueType min { capabilityMin };
-        ValueType max { capabilityMax };
-
-        if (m_exact) {
-            ASSERT(validForRange(capabilityMin, capabilityMax));
-            return m_exact.value();
-        }
-
-        if (m_min) {
-            value = m_min.value();
-            ASSERT(validForRange(value, capabilityMax));
-            if (value > min)
-                min = value;
-            if (value < min)
-                value = min;
-
-            // If there is no ideal, don't change if minimum is smaller than current.
-            if (!m_ideal && value < current)
-                value = current;
-        }
-
-        if (m_max) {
-            auto constraintMax = m_max.value();
-            ASSERT(validForRange(capabilityMin, constraintMax));
-            if (constraintMax < max)
-                max = constraintMax;
-
-            if (m_min) {
-                if (value > max)
-                    value = max;
-            } else {
-                value = constraintMax;
-                if (value > max)
-                    value = max;
-
-                // If there is no ideal, don't change if maximum is larger than current, as long as current is a valid value for this capability.
-                if (!m_ideal && current >= min && current < value)
-                    value = current;
-            }
-        }
-
-        if (m_ideal)
-            value = std::max(min, std::min(max, m_ideal.value()));
-
-        return value;
-    }
-
-    std::optional<ValueType> valueForDiscreteCapabilityValues(ValueType current, const Vector<ValueType>& discreteCapabilityValues) const
-    {
-        std::optional<ValueType> value;
-        std::optional<ValueType> min;
-        std::optional<ValueType> max;
-
-        if (m_exact) {
-            ASSERT(discreteCapabilityValues.contains(m_exact.value()));
-            return m_exact.value();
-        }
-
-        if (m_min) {
-            auto index = discreteCapabilityValues.findIf([&](ValueType value) { return m_min.value() >= value; });
-            if (index != notFound) {
-                min = value = discreteCapabilityValues[index];
-
-                // If there is no ideal, don't change if minimum is smaller than current.
-                if (!m_ideal && *value < current)
-                    value = current;
-            }
-        }
-
-        if (m_max && m_max.value() >= discreteCapabilityValues[0]) {
-            for (auto& discreteValue : discreteCapabilityValues) {
-                if (m_max.value() <= discreteValue)
-                    max = value = discreteValue;
-            }
-        }
-
-        if (m_ideal && discreteCapabilityValues.contains(m_ideal.value())) {
-            value = m_ideal.value();
-            if (max)
-                value = std::min(max.value(), *value);
-            if (min)
-                value = std::max(min.value(), *value);
-        }
-
-        return value;
-    }
-
     bool isEmpty() const { return !m_min && !m_max && !m_exact && !m_ideal; }
     bool isMandatory() const { return m_min || m_max || m_exact; }
 
@@ -348,32 +130,6 @@ protected:
 
     NumericConstraint() = default;
 
-    void innerMerge(const NumericConstraint& other)
-    {
-        if (other.isEmpty())
-            return;
-
-        ValueType value;
-        if (other.getExact(value))
-            m_exact = value;
-
-        if (other.getMin(value))
-            m_min = value;
-
-        if (other.getMax(value))
-            m_max = value;
-
-        // https://w3c.github.io/mediacapture-main/#constrainable-interface
-        // When processing advanced constraints:
-        //   ... the User Agent must attempt to apply, individually, any 'ideal' constraints or
-        //   a constraint given as a bare value for the property. Of these properties, it must
-        //   satisfy the largest number that it can, in any order.
-        if (other.getIdeal(value)) {
-            if (!m_ideal || value > m_ideal.value())
-                m_ideal = value;
-        }
-    }
-
     bool isRequired() const final { return !!m_min || !!m_max || !!m_exact; }
 
     std::optional<ValueType> m_min;
@@ -387,11 +143,6 @@ public:
     IntConstraint()
         : NumericConstraint<int>(DataType::Integer)
     {
-    }
-
-    NODELETE void merge(const IntConstraint& other)
-    {
-        NumericConstraint::innerMerge(other);
     }
 
     void logAsInt(MediaConstraintType) const;
@@ -410,11 +161,6 @@ public:
     DoubleConstraint()
         : NumericConstraint<double>(DataType::Double)
     {
-    }
-
-    void merge(const DoubleConstraint& other)
-    {
-        NumericConstraint::innerMerge(other);
     }
 
     void logAsDouble(MediaConstraintType) const;
@@ -454,44 +200,6 @@ public:
 
         ideal = m_ideal.value();
         return true;
-    }
-
-    double fitnessDistance(bool value) const
-    {
-        // https://w3c.github.io/mediacapture-main/#dfn-applyconstraints
-        // 1. If the constraint is not supported by the browser, the fitness distance is 0.
-        if (isEmpty())
-            return 0;
-
-        // 2. If the constraint is required ('min', 'max', or 'exact'), and the settings
-        //    dictionary's value for the constraint does not satisfy the constraint, the
-        //    fitness distance is positive infinity.
-        if (m_exact && value != m_exact.value())
-            return std::numeric_limits<double>::infinity();
-
-        // 3. If no ideal value is specified, the fitness distance is 0.
-        if (!m_ideal || m_ideal.value() == value)
-            return 0;
-
-        // 5. For all string and enum non-required constraints (deviceId, groupId, facingMode,
-        // echoCancellation), the fitness distance is the result of the formula
-        //        (actual == ideal) ? 0 : 1
-        return 1;
-    }
-
-    void merge(const BooleanConstraint& other)
-    {
-        if (other.isEmpty())
-            return;
-
-        bool value;
-        if (other.getExact(value))
-            m_exact = value;
-
-        if (other.getIdeal(value)) {
-            if (!m_ideal || (value && !m_ideal.value()))
-                m_ideal = value;
-        }
     }
 
     bool isEmpty() const { return !m_exact && !m_ideal; };
@@ -562,14 +270,11 @@ public:
         return true;
     }
 
-    double fitnessDistance(const String&) const;
-    double fitnessDistance(const Vector<String>&) const;
-
-    const String& find(NOESCAPE const Function<bool(const String&)>&) const;
+    const Vector<String>& exactValues() const LIFETIME_BOUND { return m_exact; }
+    const Vector<String>& idealValues() const LIFETIME_BOUND { return m_ideal; }
 
     bool isEmpty() const { return m_exact.isEmpty() && m_ideal.isEmpty(); }
     bool isMandatory() const { return !m_exact.isEmpty(); }
-    WEBCORE_EXPORT void merge(const StringConstraint&);
 
     void removeEmptyStringConstraint()
     {
@@ -634,13 +339,6 @@ public:
     WEBCORE_EXPORT void set(MediaConstraintType, std::optional<DoubleConstraint>&&);
     WEBCORE_EXPORT void set(MediaConstraintType, std::optional<BooleanConstraint>&&);
     WEBCORE_EXPORT void set(MediaConstraintType, std::optional<StringConstraint>&&);
-    void set(MediaConstraintType, const MediaConstraint&);
-
-    NODELETE void merge(MediaConstraintType, const IntConstraint&);
-    NODELETE void merge(MediaConstraintType, const DoubleConstraint&);
-    NODELETE void merge(MediaConstraintType, const BooleanConstraint&);
-    void merge(MediaConstraintType, const StringConstraint&);
-    void merge(MediaConstraintType, const MediaConstraint&);
 
     void clearDeviceId() { m_deviceId = { }; }
 
@@ -699,7 +397,7 @@ private:
 struct MediaConstraints {
     void setDefaultAudioConstraints();
     void setDefaultVideoConstraints();
-    bool isConstraintSet(NOESCAPE const Function<bool(const MediaTrackConstraintSetMap&)>&);
+    bool isConstraintSet(NOESCAPE const Function<bool(const MediaTrackConstraintSetMap&)>&) const;
 
     MediaTrackConstraintSetMap mandatoryConstraints;
     Vector<MediaTrackConstraintSetMap> advancedConstraints;

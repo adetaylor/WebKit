@@ -69,6 +69,7 @@
 #include "IntRect.h"
 #include "IntSize.h"
 #include "LightSourceParameters.h"
+#include "MediaConstraintsSwiftBridge.h"
 #include "PixelBufferConversion.h"
 #include "PixelBufferSwiftBridge.h"
 #include "SVGFilterRendererView.h"

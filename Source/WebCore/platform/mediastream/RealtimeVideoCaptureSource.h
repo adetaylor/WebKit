@@ -28,6 +28,7 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include <WebCore/ImageBuffer.h>
+#include <WebCore/MediaConstraintsEvaluation.h>
 #include <WebCore/OrientationNotifier.h>
 #include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/VideoPreset.h>
@@ -45,13 +46,14 @@ class WEBCORE_EXPORT RealtimeVideoCaptureSource : public RealtimeMediaSource, pu
 public:
     virtual ~RealtimeVideoCaptureSource();
 
-    bool supportsSizeFrameRateAndZoom(const VideoPresetConstraints&) override;
     virtual void generatePresets() = 0;
 
     double observedFrameRate() const final { return m_observedFrameRate; }
     Vector<VideoPresetData> presetsData();
 
     void ensureIntrinsicSizeMaintainsAspectRatio();
+
+    NODELETE static std::span<const IntSize> standardVideoSizes();
 
     using RealtimeMediaSource::applyConstraints;
 
@@ -60,6 +62,7 @@ public:
 protected:
     RealtimeVideoCaptureSource(const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
+    std::optional<MediaVideoPresetTable> videoPresetTable() override;
     void setSizeFrameRateAndZoom(const VideoPresetConstraints&) override;
 
     virtual void applyFrameRateAndZoomWithPreset(double, double, std::optional<VideoPreset>&&);
@@ -75,8 +78,6 @@ protected:
 
     void dispatchVideoFrameToObservers(VideoFrame&, VideoFrameTimeMetadata);
 
-    NODELETE static std::span<const IntSize> standardVideoSizes();
-
     virtual Ref<TakePhotoNativePromise> takePhotoInternal(PhotoSettings&&);
     bool mutedForPhotoCapture() const { return m_mutedForPhotoCapture; }
 
@@ -89,14 +90,7 @@ private:
         double requestedFrameRate { 0 };
         double requestedZoom { 0 };
     };
-    bool supportsCaptureSize(std::optional<int>, std::optional<int>, NOESCAPE const Function<bool(const IntSize&)>&);
-
-    enum class TryPreservingSize { No, Yes };
-    std::optional<CaptureSizeFrameRateAndZoom> bestSupportedSizeFrameRateAndZoom(const VideoPresetConstraints&, TryPreservingSize = TryPreservingSize::Yes);
     std::optional<CaptureSizeFrameRateAndZoom> bestSupportedSizeFrameRateAndZoomConsideringObservers(const VideoPresetConstraints&);
-
-    NODELETE bool presetSupportsFrameRate(const VideoPreset&, double);
-    NODELETE bool presetSupportsZoom(const VideoPreset&, double);
 
     void setSizeFrameRateAndZoomForPhoto(CaptureSizeFrameRateAndZoom&&);
     Ref<TakePhotoNativePromise> takePhoto(PhotoSettings&&) final;
@@ -124,6 +118,8 @@ private:
 
     std::optional<VideoPreset> m_currentPreset;
     Vector<VideoPreset> m_presets;
+    Vector<MediaVideoPresetValues> m_presetValues;
+    Vector<MediaFrameRateRangeValues> m_presetFrameRateRanges;
     Deque<double> m_observedFrameTimeStamps;
     double m_observedFrameRate { 0 };
     bool m_mutedForPhotoCapture { false };

@@ -2926,6 +2926,8 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/MDNSRegisterError.h
     platform/mediastream/MediaConstraintType.h
     platform/mediastream/MediaConstraints.h
+    platform/mediastream/MediaConstraintsEvaluation.h
+    platform/mediastream/MediaConstraintsSwiftBridge.h
     platform/mediastream/MediaSettingsRange.h
     platform/mediastream/MediaStreamPrivate.h
     platform/mediastream/MediaStreamRequest.h

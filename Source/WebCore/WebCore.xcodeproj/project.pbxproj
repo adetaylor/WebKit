@@ -292,6 +292,9 @@
 		078E093017D14D1C00420AA1 /* UserMediaRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9117CEC32700848E51 /* UserMediaRequest.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093717D16B2C00420AA1 /* MediaStreamPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093A17D16E1C00420AA1 /* MediaConstraints.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9917CF0AD400848E51 /* MediaConstraints.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B9EA84F177147E948C9A7EBE /* MediaConstraintsEvaluation.h in Headers */ = {isa = PBXBuildFile; fileRef = FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		6DFAB8A24E209E5BE10CDE2C /* MediaConstraintsSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		9126A31163C808E1B978733B /* MediaConstraintsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */; };
 		078E093C17D16E1C00420AA1 /* RTCDataChannelHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA217CF0AD400848E51 /* RTCDataChannelHandler.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093D17D16E1C00420AA1 /* RTCDataChannelHandlerClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA317CF0AD400848E51 /* RTCDataChannelHandlerClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E094017D16E1C00420AA1 /* RTCIceCandidateDescriptor.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA717CF0AD400848E51 /* RTCIceCandidateDescriptor.h */; };
@@ -8242,6 +8245,10 @@
 		07221B9017CEC32700848E51 /* UserMediaRequest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UserMediaRequest.cpp; sourceTree = "<group>"; };
 		07221B9117CEC32700848E51 /* UserMediaRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UserMediaRequest.h; sourceTree = "<group>"; };
 		07221B9917CF0AD400848E51 /* MediaConstraints.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MediaConstraints.h; sourceTree = "<group>"; };
+		FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaConstraintsEvaluation.h; sourceTree = "<group>"; };
+		13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaConstraintsSwiftBridge.h; sourceTree = "<group>"; };
+		09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaConstraintsEngine.swift; sourceTree = "<group>"; };
+		F925DE068AF31A5558542797 /* MediaConstraintsEvaluation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaConstraintsEvaluation.cpp; sourceTree = "<group>"; };
 		07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MediaStreamPrivate.h; sourceTree = "<group>"; };
 		07221BA217CF0AD400848E51 /* RTCDataChannelHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCDataChannelHandler.h; sourceTree = "<group>"; };
 		07221BA317CF0AD400848E51 /* RTCDataChannelHandlerClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCDataChannelHandlerClient.h; sourceTree = "<group>"; };
@@ -24903,6 +24910,10 @@
 				F45EAC952A940124009B986E /* MDNSRegisterError.serialization.in */,
 				1BE5BFC11D515715001666D9 /* MediaConstraints.cpp */,
 				07221B9917CF0AD400848E51 /* MediaConstraints.h */,
+				09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */,
+				F925DE068AF31A5558542797 /* MediaConstraintsEvaluation.cpp */,
+				FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */,
+				13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */,
 				4194EBC12B7266DE005D076C /* MediaConstraintType.cpp */,
 				4194EBC02B7266DD005D076C /* MediaConstraintType.h */,
 				41B28B131F8501A400FB52AC /* MediaEndpointConfiguration.cpp */,
@@ -48325,6 +48336,8 @@
 				931BCC611124DFCB00BE70DD /* MediaCanStartListener.h in Headers */,
 				4A1C0D7F2EB0A11500C0FFEE /* MediaChannelLayout.h in Headers */,
 				078E093A17D16E1C00420AA1 /* MediaConstraints.h in Headers */,
+				B9EA84F177147E948C9A7EBE /* MediaConstraintsEvaluation.h in Headers */,
+				6DFAB8A24E209E5BE10CDE2C /* MediaConstraintsSwiftBridge.h in Headers */,
 				4194EBC22B726719005D076C /* MediaConstraintType.h in Headers */,
 				CDF65CC8145B1E7500C4C7AA /* MediaController.h in Headers */,
 				CDF65CCA145B448800C4C7AA /* MediaControllerInterface.h in Headers */,
@@ -52064,6 +52077,7 @@
 				5C0A1700000000000000000A /* MacScrollerImpState.swift in Sources */,
 				FABE72FE1059C21100D999DD /* MathMLNames.cpp in Sources */,
 				41E9EE1F28B51067006A2298 /* MediaCaptureStatusBarManager.mm in Sources */,
+				9126A31163C808E1B978733B /* MediaConstraintsEngine.swift in Sources */,
 				A1A0B8792F35782E00550471 /* MediaDeviceRoute.mm in Sources */,
 				2D9BF7051DBFBB24007A7D99 /* MediaEncryptedEvent.cpp in Sources */,
 				2D9BF7471DBFDC49007A7D99 /* MediaKeyMessageEvent.cpp in Sources */,

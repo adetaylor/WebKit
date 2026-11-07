@@ -87,7 +87,7 @@ private:
     void stopProducingData() override;
     bool isCaptureSource() const final { return true; }
     CaptureDevice::DeviceType deviceType() const final { return mockCamera() ? CaptureDevice::DeviceType::Camera : CaptureDevice::DeviceType::Screen; }
-    bool supportsSizeFrameRateAndZoom(const VideoPresetConstraints&) final;
+    std::optional<MediaVideoPresetTable> videoPresetTable() final;
     void setSizeFrameRateAndZoom(const VideoPresetConstraints&) override;
     void applyFrameRateAndZoomWithPreset(double, double, std::optional<VideoPreset>&&) final;
 

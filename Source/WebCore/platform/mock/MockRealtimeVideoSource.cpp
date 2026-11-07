@@ -181,14 +181,14 @@ MockRealtimeVideoSource::~MockRealtimeVideoSource()
     allMockRealtimeVideoSource().remove(*this);
 }
 
-bool MockRealtimeVideoSource::supportsSizeFrameRateAndZoom(const VideoPresetConstraints& constraints)
+std::optional<MediaVideoPresetTable> MockRealtimeVideoSource::videoPresetTable()
 {
     // FIXME: consider splitting mock display into another class so we don't have to do this silly dance
     // because of the RealtimeVideoSource inheritance.
     if (mockCamera())
-        return RealtimeVideoCaptureSource::supportsSizeFrameRateAndZoom(constraints);
+        return RealtimeVideoCaptureSource::videoPresetTable();
 
-    return RealtimeMediaSource::supportsSizeFrameRateAndZoom(constraints);
+    return RealtimeMediaSource::videoPresetTable();
 }
 
 void MockRealtimeVideoSource::setSizeFrameRateAndZoom(const VideoPresetConstraints& constraints)
