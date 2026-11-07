@@ -201,7 +201,7 @@ private:
 // process, draws nothing.
 class CGRendererGlyphPreparation {
 public:
-    WEBCORE_EXPORT CGRendererGlyphPreparation(const WebCore::FontBase&, std::span<const CGGlyph>, WebCore::FontSmoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace&, bool isInTransparencyLayer) __attribute__((availability(swift, unavailable)));
+    WEBCORE_EXPORT CGRendererGlyphPreparation(const WebCore::FontBase&, std::span<const CGGlyph>, WebCore::FontSmoothingMode, const WebCore::Color* _Nullable simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace&, bool isInTransparencyLayer) __attribute__((availability(swift, unavailable)));
 
     bool draws() const __attribute__((availability(swift, unavailable))) { return m_draws; }
     std::span<const CGSize> translations() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_translations.span(); }
