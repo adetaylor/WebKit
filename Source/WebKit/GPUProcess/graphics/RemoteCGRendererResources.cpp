@@ -29,10 +29,13 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
+#include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
+#include "SharedFont.h"
+#include <WebCore/Gradient.h>
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NativeImage.h>
@@ -70,6 +73,57 @@ RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResour
     return m_backend->remoteResourceCache().cachedNativeImage(identifier);
 }
 
+RefPtr<SharedFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
+{
+    return m_backend->remoteResourceCache().cachedFont(identifier);
+}
+
+RemoteCGRendererGlyphDraw makeRemoteCGRendererGlyphDraw()
+{
+    return { };
+}
+
+RemoteCGRendererGlyphDraw::~RemoteCGRendererGlyphDraw() = default;
+
+RemoteCGRendererGlyphPreparationResult RemoteCGRendererGlyphDraw::prepare(const RemoteCGRendererGlyphs& glyphs, const RemoteCGRendererResources& resources, RenderingResourceIdentifier fontIdentifier, FontSmoothingMode smoothingMode, const CGRendererGlyphContext& glyphContext)
+{
+    m_preparation = std::nullopt;
+    m_positions.clear();
+    m_glyphs.clear();
+    m_glyphs.append(glyphs.glyphs());
+    // At the precision of RemoteGraphicsContext's DrawGlyphs, so that the run draws as it does there.
+    m_advances.clear();
+    m_advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) {
+        return GlyphBufferAdvance { static_cast<float>(advance.width), static_cast<float>(advance.height) };
+    });
+    RefPtr font = resources.cachedFont(fontIdentifier);
+    if (!font)
+        return { false, false };
+    auto& context = static_cast<GraphicsContextCG&>(resources.target().context());
+    // The fill color is only for the shadow's.
+    std::optional<Color> simpleShadowColor;
+    std::optional<Color> fillColor;
+    if (glyphContext.hasSimpleShadow) {
+        simpleShadowColor = CGRendererColorFromValue(glyphContext.shadowColor);
+        fillColor = CGRendererColorFromValue(glyphContext.fillColor);
+    }
+    m_preparation.emplace(*font, m_glyphs.span(), smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor ? *fillColor : Color::black, context.colorSpace(), context.isInTransparencyLayer() || glyphContext.hasReceiverTransparencyLayer);
+    if (!m_preparation->draws() || !m_preparation->font())
+        return { true, false };
+    m_positions.grow(m_glyphs.size());
+    return { true, true };
+}
+
+CGColorRef copyGlyphShadowFillColor(const RemoteCGRendererGlyphDraw& draw)
+{
+    return RetainPtr { draw.shadowFillColor() }.leakRef();
+}
+
+RefPtr<Gradient> RemoteCGRendererResources::cachedGradient(RemoteGradientIdentifier identifier) const
+{
+    return m_backend->remoteResourceCache().cachedGradient(identifier);
+}
+
 RefPtr<ImageBuffer> RemoteCGRendererResources::imageBuffer(RenderingResourceIdentifier identifier) const
 {
     return m_backend->imageBuffer(identifier);
@@ -102,6 +156,34 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
     if (!image)
         return nullptr;
     return copyImage(*image, facts);
+}
+
+CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources& resources, RemoteGradientIdentifier identifier, const AffineTransform& spaceTransform, bool& found)
+{
+    RefPtr gradient = resources.cachedGradient(identifier);
+    found = !!gradient;
+    if (!gradient)
+        return { };
+    return { gradient.releaseNonNull(), spaceTransform };
+}
+
+CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const PatternParameters& parameters, bool& found)
+{
+    RefPtr tileImage = resources.cachedNativeImage(identifier);
+    found = !!tileImage;
+    if (!tileImage)
+        return { };
+    return CGRendererBrushSource { WebCore::Pattern::create({ tileImage.releaseNonNull() }, parameters) };
+}
+
+CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const PatternParameters& parameters, bool& found, bool& drawsIntoTarget)
+{
+    RefPtr tileImageBuffer = resources.imageBuffer(identifier);
+    found = !!tileImageBuffer;
+    drawsIntoTarget = tileImageBuffer.get() == &resources.target();
+    if (!tileImageBuffer || drawsIntoTarget)
+        return { };
+    return CGRendererBrushSource { WebCore::Pattern::create({ tileImageBuffer.releaseNonNull() }, parameters) };
 }
 
 CFURLRef copyURL(const URL& link)

@@ -35,6 +35,12 @@ private func cgAffineTransform(_ transform: WebCore.AffineTransform) -> CGAffine
     CGAffineTransform(a: transform.a(), b: transform.b(), c: transform.c(), d: transform.d(), tx: transform.e(), ty: transform.f())
 }
 
+// GraphicsContextCG's brush kinds for the renderer (swiftBrushKind()).
+private enum RemoteCGRendererBrushKind {
+    static let gradient: UInt8 = 1
+    static let pattern: UInt8 = 2
+}
+
 // The segment of the Path that RemoteGraphicsContext's handler makes of the message's.
 private func lineSegment(_ line: WebCore.PathDataLine) -> CGRendererPathSegment {
     let start = line.start()
@@ -202,7 +208,14 @@ final class RemoteCGRenderer {
     }
 
     func fillRect(state: inout CGRendererCore, rect: WebCore.FloatRect, requiresClipToRect: WebCore.RequiresClipToRect) -> Bool {
-        state.receiveFillRect(cgRect(rect))
+        if state.receiveFillRect(cgRect(rect)) {
+            return true
+        }
+        // A gradient brush, which GraphicsContextCG::fillRect() paints in the rect.
+        guard !state.receiveFillsWithoutGradient() else {
+            return false
+        }
+        return state.receiveFillRectWithGradient(cgRect(rect), nil, requiresClipToRect == .Yes)
     }
 
     func fillEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) -> Bool {
@@ -305,21 +318,24 @@ final class RemoteCGRenderer {
         if path.isEmpty() {
             return true
         }
-        if path.isSingleDataLine() {
-            return state.receiveStrokePathSegment(path.singleSegmentValues())
-        }
-        guard state.receiveStrokesWithoutGradient() else {
-            return false
-        }
-        state.receiveStrokePath(WebKit.copyPlatformPath(path))
-        return true
+        return stroke(&state, path)
     }
 
+    // GraphicsContextCG::drawPath(): with a gradient, the fill and the stroke one after the other, unless C++ paints a
+    // gradient, which it then does for both.
     func drawPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true
         }
-        return state.receiveDrawPath { WebKit.copyPlatformPath(path) }
+        if state.receiveDrawPath({ WebKit.copyPlatformPath(path) }) {
+            return true
+        }
+        guard state.receivePaintsGradients() else {
+            return false
+        }
+        _ = fill(&state, path)
+        _ = stroke(&state, path)
+        return true
     }
 
     func clipPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
@@ -580,15 +596,147 @@ final class RemoteCGRenderer {
         state.receiveSetURLForRect(url, cgRect(destRect))
     }
 
+    // GraphicsContextCG::fillPath(): a gradient in the clip of the path's own segments.
     private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true
         }
         guard state.receiveFillsWithoutGradient() else {
-            return false
+            let path = copy path
+            let bounds = cgRect(path.fastBoundingRect())
+            return state.receiveFillWithGradient({ bounds }) { context, rule in path.clip(context, rule) }
         }
         state.receiveFillPath(WebKit.copyPlatformPath(path))
         return true
+    }
+
+    // GraphicsContextCG::strokePath(): a single line as a line segment, and a gradient in the clip of the stroked path.
+    private func stroke(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
+        guard state.receiveStrokesWithoutGradient() else {
+            let path = copy path
+            return state.receiveStrokeWithGradient({ context in path.strokedBounds(context) }) { context, thickness in
+                path.clipToStroke(context, thickness)
+            }
+        }
+        if path.isSingleDataLine() {
+            return state.receiveStrokePathSegment(path.singleSegmentValues())
+        }
+        state.receiveStrokePath(WebKit.copyPlatformPath(path))
+        return true
+    }
+
+    // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
+    // resource, or a pattern of the buffer the context draws into, is an invalid message, as in C++.
+
+    func setFillGradient(state: inout CGRendererCore, gradient: WebKit.RemoteCGRendererGradient, spaceTransform: WebCore.AffineTransform) {
+        state.receiveSetFillSource(gradient.brushSource(spaceTransform), RemoteCGRendererBrushKind.gradient)
+    }
+
+    func setStrokeGradient(state: inout CGRendererCore, gradient: WebKit.RemoteCGRendererGradient, spaceTransform: WebCore.AffineTransform) {
+        state.receiveSetStrokeSource(gradient.brushSource(spaceTransform), RemoteCGRendererBrushKind.gradient)
+    }
+
+    func setFillCachedGradient(state: inout CGRendererCore, identifier: WebKit.RemoteGradientIdentifier, spaceTransform: WebCore.AffineTransform) throws(InvalidMessage) {
+        var found = false
+        let source = WebKit.cachedGradientBrush(resources, identifier, spaceTransform, &found)
+        try messageCheck { found }
+        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.gradient)
+    }
+
+    func setStrokeCachedGradient(state: inout CGRendererCore, identifier: WebKit.RemoteGradientIdentifier, spaceTransform: WebCore.AffineTransform) throws(InvalidMessage) {
+        var found = false
+        let source = WebKit.cachedGradientBrush(resources, identifier, spaceTransform, &found)
+        try messageCheck { found }
+        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.gradient)
+    }
+
+    func setFillPatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
+        var found = false
+        let source = WebKit.nativeImagePatternBrush(resources, nativeImageIdentifier, pattern, &found)
+        try messageCheck { found }
+        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.pattern)
+    }
+
+    func setStrokePatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
+        var found = false
+        let source = WebKit.nativeImagePatternBrush(resources, nativeImageIdentifier, pattern, &found)
+        try messageCheck { found }
+        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)
+    }
+
+    func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
+        var found = false
+        var drawsIntoTarget = false
+        let source = WebKit.imageBufferPatternBrush(resources, imageBufferIdentifier, pattern, &found, &drawsIntoTarget)
+        try messageCheck { found }
+        try messageCheck { !drawsIntoTarget }
+        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.pattern)
+    }
+
+    func setStrokePatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
+        var found = false
+        var drawsIntoTarget = false
+        let source = WebKit.imageBufferPatternBrush(resources, imageBufferIdentifier, pattern, &found, &drawsIntoTarget)
+        try messageCheck { found }
+        try messageCheck { !drawsIntoTarget }
+        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)
+    }
+
+    // RemoteGraphicsContext's text decoration handlers.
+
+    func drawLinesForText(
+        state: inout CGRendererCore,
+        point: WebCore.FloatPoint,
+        thickness: Float,
+        lineSegments: WebKit.RemoteCGRendererLineSegments,
+        printing: Bool,
+        doubleLines: Bool,
+        strokeStyle: WebCore.StrokeStyle
+    ) {
+        let lines = WebKit.RemoteCGRendererTextLines(lineSegments, state.receiveCTM(includingDeviceScale: true), state.receiveStrokeColor(), point, thickness, printing, doubleLines, strokeStyle)
+        guard !lines.isEmpty() else {
+            return
+        }
+        var color = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, lines.color(), &color)
+        state.receiveFillRects(lines.rects(), color, cgColor)
+    }
+
+    // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++.
+    func drawGlyphs(
+        state: inout CGRendererCore,
+        fontIdentifier: WebCore.RenderingResourceIdentifier,
+        glyphsAdvances: WebKit.RemoteCGRendererGlyphs,
+        localAnchor: WebCore.FloatPoint,
+        smoothingMode: WebCore.FontSmoothingMode
+    ) throws(InvalidMessage) {
+        var draw = WebKit.makeRemoteCGRendererGlyphDraw()
+        let glyphContext = state.receiveGlyphContext()
+        let preparation = draw.prepare(glyphsAdvances, resources, fontIdentifier, smoothingMode, glyphContext)
+        try messageCheck { preparation.found }
+        guard preparation.draws else {
+            return
+        }
+        let shadowFillColor = glyphContext.hasSimpleShadow ? WebKit.copyGlyphShadowFillColor(draw) : nil
+        state.receiveDrawGlyphs(draw.run(), draw.positions(), draw.facts(), shadowFillColor, localAnchor.x(), localAnchor.y())
+    }
+
+    func drawDotsForDocumentMarker(state: inout CGRendererCore, rect: WebCore.FloatRect, style: WebCore.DocumentMarkerLineStyle) {
+        state.receiveDraw { context in CGRendererDrawDotsForDocumentMarker(context, rect, style) }
+    }
+
+    func fillRectWithGradient(state: inout CGRendererCore, rect: WebCore.FloatRect, gradient: WebKit.RemoteCGRendererGradient) {
+        state.receiveClipAndPaintGradient(cgRect(rect), gradient.brushSource(WebCore.AffineTransform()))
+    }
+
+    func fillRectWithGradientAndSpaceTransform(
+        state: inout CGRendererCore,
+        rect: WebCore.FloatRect,
+        gradient: WebKit.RemoteCGRendererGradient,
+        transform: WebCore.AffineTransform,
+        requiresClipToRect: WebCore.RequiresClipToRect
+    ) -> Bool {
+        state.receiveFillRectWithGradient(cgRect(rect), gradient.brushSource(transform), requiresClipToRect == .Yes)
     }
 }
 

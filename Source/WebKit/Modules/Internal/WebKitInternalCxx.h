@@ -56,7 +56,10 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererGlyphs.h"
+#include "RemoteCGRendererGradient.h"
 #include "RemoteCGRendererLineDash.h"
+#include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"

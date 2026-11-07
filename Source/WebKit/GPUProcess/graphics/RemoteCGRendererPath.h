@@ -101,6 +101,10 @@ public:
         return RetainPtr<CGPathRef> { WebCore::Path { }.platformPath() }.leakRef();
     }
     void clip(CGContextRef context, WebCore::WindRule rule) const { CGRendererClipToPath(context, path(), rule); }
+    // GraphicsContextCG's bounds and clip of the path filled or stroked with a gradient.
+    WebCore::FloatRect fastBoundingRect() const { return path().fastBoundingRect(); }
+    CGRect strokedBounds(CGContextRef context) const { return CGRendererStrokedPathBounds(context, path()); }
+    void clipToStroke(CGContextRef context, float thickness) const { CGRendererClipToStrokedPath(context, path(), thickness); }
     void clipOut(CGContextRef context) const { CGRendererClipOutToPath(context, path()); }
 
     WebCore::Path path() const

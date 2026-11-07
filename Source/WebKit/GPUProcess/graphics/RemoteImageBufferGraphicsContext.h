@@ -40,7 +40,10 @@ class RemoteCGRenderer;
 class RemoteCGRendererLineStrokes;
 class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
+class RemoteCGRendererGlyphs;
+class RemoteCGRendererGradient;
 class RemoteCGRendererLineDash;
+class RemoteCGRendererLineSegments;
 class RemoteCGRendererShadow;
 class RemoteCGRendererStyle;
 #endif
@@ -69,6 +72,12 @@ public:
     void setDropShadow(const RemoteCGRendererShadow&);
     void setStyle(const RemoteCGRendererStyle&);
     void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);
+    void setFillGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
+    void setStrokeGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
+    void fillRectWithGradient(const WebCore::FloatRect&, const RemoteCGRendererGradient&);
+    void drawLinesForText(const WebCore::FloatPoint&, float thickness, const RemoteCGRendererLineSegments&, bool printing, bool doubleLines, WebCore::StrokeStyle);
+    void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
+    void fillRectWithGradientAndSpaceTransform(const WebCore::FloatRect&, const RemoteCGRendererGradient&, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

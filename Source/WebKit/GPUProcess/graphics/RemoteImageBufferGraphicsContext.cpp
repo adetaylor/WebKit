@@ -33,7 +33,10 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
+#include "RemoteCGRendererGlyphs.h"
+#include "RemoteCGRendererGradient.h"
 #include "RemoteCGRendererLineDash.h"
+#include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererPath.h"
@@ -195,6 +198,19 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(BeginTransparencyLayerWithCompositeMode, &RemoteGraphicsContext::beginTransparencyLayerWithCompositeMode)
     HANDLE_CG_RENDERER_MESSAGE(EndTransparencyLayer, &RemoteGraphicsContext::endTransparencyLayer)
     HANDLE_CG_RENDERER_MESSAGE(SetURLForRect, &RemoteGraphicsContext::setURLForRect)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillGradient, &RemoteImageBufferGraphicsContext::setFillGradient)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillCachedGradient, &RemoteGraphicsContext::setFillCachedGradient)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillPatternNativeImage, &RemoteGraphicsContext::setFillPatternNativeImage)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillPatternImageBuffer, &RemoteGraphicsContext::setFillPatternImageBuffer)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeGradient, &RemoteImageBufferGraphicsContext::setStrokeGradient)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeCachedGradient, &RemoteGraphicsContext::setStrokeCachedGradient)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternNativeImage, &RemoteGraphicsContext::setStrokePatternNativeImage)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternImageBuffer, &RemoteGraphicsContext::setStrokePatternImageBuffer)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradient, &RemoteImageBufferGraphicsContext::fillRectWithGradient)
+    HANDLE_CG_RENDERER_MESSAGE(DrawLinesForText, &RemoteImageBufferGraphicsContext::drawLinesForText)
+    HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteGraphicsContext::drawDotsForDocumentMarker)
+    HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -268,6 +284,39 @@ void RemoteImageBufferGraphicsContext::setStyle(const RemoteCGRendererStyle& sty
 void RemoteImageBufferGraphicsContext::setLineDash(const RemoteCGRendererLineDash& dashes, float dashOffset)
 {
     context().setLineDash(DashArray(dashes.span()), dashOffset);
+}
+
+void RemoteImageBufferGraphicsContext::setFillGradient(const RemoteCGRendererGradient& gradient, const AffineTransform& spaceTransform)
+{
+    RemoteGraphicsContext::setFillGradient(gradient.gradient().copyRef(), spaceTransform);
+}
+
+void RemoteImageBufferGraphicsContext::setStrokeGradient(const RemoteCGRendererGradient& gradient, const AffineTransform& spaceTransform)
+{
+    RemoteGraphicsContext::setStrokeGradient(gradient.gradient().copyRef(), spaceTransform);
+}
+
+void RemoteImageBufferGraphicsContext::drawLinesForText(const FloatPoint& point, float thickness, const RemoteCGRendererLineSegments& lineSegments, bool printing, bool doubleLines, StrokeStyle strokeStyle)
+{
+    RemoteGraphicsContext::drawLinesForText(point, thickness, lineSegments.span(), printing, doubleLines, strokeStyle);
+}
+
+void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs& glyphs, FloatPoint localAnchor, FontSmoothingMode smoothingMode)
+{
+    const Vector<GlyphBufferGlyph, 128> glyphsCopy { glyphs.glyphs() };
+    Vector<FloatSize, 128> advances;
+    advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) { return FloatSize { advance }; });
+    RemoteGraphicsContext::drawGlyphs(fontIdentifier, { glyphsCopy.span().data(), advances.span().data(), glyphsCopy.size() }, localAnchor, smoothingMode);
+}
+
+void RemoteImageBufferGraphicsContext::fillRectWithGradient(const FloatRect& rect, const RemoteCGRendererGradient& gradient)
+{
+    RemoteGraphicsContext::fillRectWithGradient(rect, gradient.gradient().copyRef());
+}
+
+void RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform(const FloatRect& rect, const RemoteCGRendererGradient& gradient, const AffineTransform& transform, RequiresClipToRect requiresClipToRect)
+{
+    RemoteGraphicsContext::fillRectWithGradientAndSpaceTransform(rect, gradient.gradient().copyRef(), transform, requiresClipToRect);
 }
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

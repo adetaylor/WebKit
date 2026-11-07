@@ -28,7 +28,10 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "RemoteCGRendererPath.h"
+#include "RemoteGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
+#include <WebCore/AffineTransform.h>
+#include <WebCore/Pattern.h>
 #include <WebCore/Color.h>
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/GraphicsTypes.h>
@@ -38,6 +41,7 @@
 #include <wtf/SwiftBridging.h>
 
 namespace WebCore {
+class Gradient;
 class ImageBuffer;
 class NativeImage;
 }
@@ -45,6 +49,7 @@ class NativeImage;
 namespace WebKit {
 
 class RemoteRenderingBackend;
+class SharedFont;
 
 // What an image buffer's RemoteCGRenderer looks up by identifier, in its rendering backend's resource cache and image buffers,
 // as RemoteGraphicsContext's handlers do.
@@ -60,6 +65,8 @@ public:
     RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
     WebCore::ImageBuffer& target() const { return m_target; }
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
+    RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
+    RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -88,6 +95,13 @@ inline CGColorRef _Nullable copyColor(const RemoteCGRendererResources& resources
     }
     return copyPlatformColor(resources, color, value);
 }
+
+// The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke
+// counterparts, as RemoteGraphicsContext's handlers make it: found is false for a missing resource, and drawsIntoTarget true
+// for a pattern of the image buffer the receiver draws into.
+CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources&, RemoteGradientIdentifier, const WebCore::AffineTransform& spaceTransform, bool& found);
+CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found);
+CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found, bool& drawsIntoTarget);
 
 // The image of a ClipToNativeImage.
 CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier) CF_RETURNS_RETAINED;

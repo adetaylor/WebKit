@@ -158,6 +158,21 @@ header: "RemoteCGRendererStyle.h"
     std::optional<WebCore::GraphicsStyle> style();
 };
 
+header: "RemoteCGRendererGradient.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererGradient {
+    Ref<WebCore::Gradient> gradient();
+};
+
+header: "RemoteCGRendererGlyphs.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererGlyphs {
+    IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphsAdvances();
+};
+
+header: "RemoteCGRendererLineSegments.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineSegments {
+    std::span<const WebCore::FloatSegment> span();
+};
+
 header: "RemoteCGRendererLineDash.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineDash {
     std::span<const double> span();
