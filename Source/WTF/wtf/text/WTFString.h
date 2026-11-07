@@ -117,10 +117,21 @@ public:
 
     unsigned length() const { return m_impl ? m_impl->length() : 0; }
     std::span<const Latin1Character> span8() const LIFETIME_BOUND { return m_impl ? m_impl->span8() : std::span<const Latin1Character>(); }
-    std::span<const char16_t> span16() const LIFETIME_BOUND { return m_impl ? m_impl->span16() : std::span<const char16_t>(); }
+    // Assumes a 16-bit string, which only a debug assertion checks, so Swift uses checkedSpan16() instead.
+    SWIFT_UNSAFE std::span<const char16_t> span16() const LIFETIME_BOUND { return m_impl ? m_impl->span16() : std::span<const char16_t>(); }
+#if defined(__swift__)
+    // Crashes on a non-empty 8-bit string.
+    std::span<const char16_t> checkedSpan16() const LIFETIME_BOUND
+    {
+        if (isEmpty())
+            return { };
+        RELEASE_ASSERT(!is8Bit());
+        return span16();
+    }
+#endif
 
     // Return span8() or span16() depending on CharacterType.
-    template<IsStringStorageCharacter CharacterType> std::span<const CharacterType> span() const LIFETIME_BOUND;
+    template<IsStringStorageCharacter CharacterType> SWIFT_UNSAFE std::span<const CharacterType> span() const LIFETIME_BOUND;
 
     bool is8Bit() const { return !m_impl || m_impl->is8Bit(); }
 
