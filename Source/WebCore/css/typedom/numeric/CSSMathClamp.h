@@ -37,7 +37,15 @@ public:
     const CSSNumericValue& value() const { return m_value.get(); }
     const CSSNumericValue& upper() const { return m_upper.get(); }
 
-    const CSSNumericValue* mathOperand(size_t index) const final { return index == 0 ? m_lower.ptr() : index == 1 ? m_value.ptr() : index == 2 ? m_upper.ptr() : nullptr; }
+    const CSSNumericValue* mathOperand(size_t index) const final
+    {
+        switch (index) {
+        case 0: return m_lower.ptr();
+        case 1: return m_value.ptr();
+        case 2: return m_upper.ptr();
+        }
+        return nullptr;
+    }
 
 private:
     CSSMathOperator getOperator() const final { return CSSMathOperator::Clamp; }

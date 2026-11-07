@@ -45,9 +45,5 @@ enum class MaskBorderSliceOverride : bool { None, AlwaysFill };
 // https://drafts.csswg.org/css-masking-1/#propdef-mask-border-slice
 RefPtr<CSSValue> consumeMaskBorderSlice(CSSParserTokenRange&, CSS::PropertyParserState&, MaskBorderSliceOverride = MaskBorderSliceOverride::None);
 
-// <'mask-border'> = <'mask-border-source'> || <'mask-border-slice'> [ / <'mask-border-width'>? [ / <'mask-border-outset'> ]? ]? || <'mask-border-repeat'> || <'mask-border-mode'>
-// https://drafts.csswg.org/css-masking-1/#propdef-mask-border
-std::optional<CSS::MaskBorder> consumeUnresolvedMaskBorder(CSSParserTokenRange&, CSS::PropertyParserState&, MaskBorderSliceOverride = MaskBorderSliceOverride::None);
-
 } // namespace CSSPropertyParserHelpers
 } // namespace WebCore

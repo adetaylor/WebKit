@@ -62,48 +62,6 @@
 namespace WebCore {
 namespace CSSPropertyParserHelpers {
 
-// MARK: - Border Radius
-
-std::optional<CSS::BorderRadius> consumeUnresolvedBorderRadius(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::BorderRadius>(range, state, CSSPropertyConsumerSwiftConsumer::BorderRadius);
-}
-
-std::optional<CSS::BorderRadius> consumeUnresolvedWebKitBorderRadius(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::BorderRadius>(range, state, CSSPropertyConsumerSwiftConsumer::WebKitBorderRadius);
-}
-
-std::optional<CSS::BorderRadiusSide> consumeUnresolvedBorderRadiusSide(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    return consumeUnresolvedWithSwift<CSS::BorderRadiusSide>(range, state, CSSPropertyConsumerSwiftConsumer::BorderRadiusSide);
-}
-
-std::optional<CSS::BorderRadius::Corner> consumeUnresolvedBorderRadiusCorner(CSSParserTokenRange& range, CSS::PropertyParserState& state)
-{
-    // <'border-top-left-radius'> = <length-percentage [0,∞]>{1,2}
-    // https://drafts.csswg.org/css-backgrounds/#propdef-border-top-left-radius
-    //
-    // The single corner shorthands additionally accept the slash form of
-    // <'border-radius'>, so `corner-top-left: 10px / 5px` is allowed.
-
-    using LengthPercentage = CSS::LengthPercentage<CSS::Nonnegative>;
-
-    auto horizontal = MetaConsumer<LengthPercentage>::consume(range, state);
-    if (!horizontal)
-        return { };
-
-    if (consumeSlashIncludingWhitespace(range)) {
-        auto vertical = MetaConsumer<LengthPercentage>::consume(range, state);
-        if (!vertical)
-            return { };
-        return CSS::BorderRadius::Corner { *horizontal, *vertical };
-    }
-
-    auto vertical = MetaConsumer<LengthPercentage>::consume(range, state);
-    return CSS::BorderRadius::Corner { *horizontal, vertical.value_or(*horizontal) };
-}
-
 // MARK: - Border Image
 
 std::optional<CSS::BorderImageSource> consumeUnresolvedBorderImageSource(CSSParserTokenRange& range, CSS::PropertyParserState& state)
@@ -179,13 +137,6 @@ RefPtr<CSSValue> consumeBorderImageWidth(CSSParserTokenRange& range, CSS::Proper
     if (auto unresolved = consumeUnresolvedBorderImageWidth(range, state, overridesWidth))
         return CSSBorderImageWidthValue::create(WTF::move(*unresolved));
     return nullptr;
-}
-
-std::optional<CSS::BorderImage> consumeUnresolvedBorderImage(CSSParserTokenRange& range, CSS::PropertyParserState& state, BorderImageSliceOverride overridesSlice, BorderImageWidthOverridesWidthForLength overridesWidth)
-{
-    uint8_t options = (overridesSlice == BorderImageSliceOverride::AlwaysFill ? CSSPropertyConsumerSwiftBorderImageSliceAlwaysFill : 0)
-        | (overridesWidth == BorderImageWidthOverridesWidthForLength::Yes ? CSSPropertyConsumerSwiftBorderImageWidthOverridesWidthForLength : 0);
-    return consumeUnresolvedWithSwift<CSS::BorderImage>(range, state, CSSPropertyConsumerSwiftConsumer::BorderImage, options);
 }
 
 // MARK: - Background Size

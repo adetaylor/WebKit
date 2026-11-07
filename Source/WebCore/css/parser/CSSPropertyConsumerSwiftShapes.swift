@@ -794,3 +794,11 @@ extension NumericComponent {
     /// `CSS::Angle<>` with unitless zero angles forbidden, as MetaConsumer reads one by default.
     static var strictAngle: Self { Self(type: angle.type, unitlessZeroAngle: false) }
 }
+
+extension PropertyParser {
+    /// `consumeURLValue`, for the <url> syntax component of a registered custom property
+    /// (CSSPropertyParserDescriptors.swift).
+    mutating func consumeURLValueForDescriptor() -> PropertyValue? {
+        consumeURLValue()
+    }
+}

@@ -54,25 +54,6 @@ enum class BorderImageSliceOverride : bool { None, AlwaysFill };
 // Legacy behavior needed by -webkit-border-image that makes fixed border slices also set the border widths.
 enum class BorderImageWidthOverridesWidthForLength : bool { No, Yes };
 
-// MARK: - Border Radius
-
-// <'border-radius'> = <length-percentage [0,∞]>{1,4} [ / <length-percentage [0,∞]>{1,4} ]?
-// https://drafts.csswg.org/css-backgrounds/#propdef-border-radius
-std::optional<CSS::BorderRadius> consumeUnresolvedBorderRadius(CSSParserTokenRange&, CSS::PropertyParserState&);
-
-// Non-standard -webkit-border-radius.
-std::optional<CSS::BorderRadius> consumeUnresolvedWebKitBorderRadius(CSSParserTokenRange&, CSS::PropertyParserState&);
-
-// <'border-top-radius'>, <'border-right-radius'>, <'border-bottom-radius'>, <'border-left-radius'>, and their logical equivalents.
-// <length-percentage [0,∞]>{1,2} [ / <length-percentage [0,∞]>{1,2} ]?
-// https://drafts.csswg.org/css-borders-4/#corner-sizing-side-shorthands
-std::optional<CSS::BorderRadiusSide> consumeUnresolvedBorderRadiusSide(CSSParserTokenRange&, CSS::PropertyParserState&);
-
-// <'border-top-left-radius'> and the other single corner radius longhands, which the
-// single corner shorthands also accept in the slash form of <'border-radius'>.
-// <length-percentage [0,∞]>{1,2} | <length-percentage [0,∞]> / <length-percentage [0,∞]>
-std::optional<CSS::BorderRadius::Corner> consumeUnresolvedBorderRadiusCorner(CSSParserTokenRange&, CSS::PropertyParserState&);
-
 // MARK: - Border Image
 
 // <'border-image-source'> = none | <image>
@@ -99,9 +80,6 @@ RefPtr<CSSValue> consumeBorderImageSlice(CSSParserTokenRange&, CSS::PropertyPars
 // https://drafts.csswg.org/css-backgrounds/#propdef-border-image-width
 std::optional<CSS::BorderImageWidth> consumeUnresolvedBorderImageWidth(CSSParserTokenRange&, CSS::PropertyParserState&, BorderImageWidthOverridesWidthForLength = BorderImageWidthOverridesWidthForLength::No);
 RefPtr<CSSValue> consumeBorderImageWidth(CSSParserTokenRange&, CSS::PropertyParserState&, BorderImageWidthOverridesWidthForLength = BorderImageWidthOverridesWidthForLength::No);
-
-// https://drafts.csswg.org/css-backgrounds/#border-image
-std::optional<CSS::BorderImage> consumeUnresolvedBorderImage(CSSParserTokenRange&, CSS::PropertyParserState&, BorderImageSliceOverride = BorderImageSliceOverride::None, BorderImageWidthOverridesWidthForLength = BorderImageWidthOverridesWidthForLength::No);
 
 // MARK: - Background Size
 

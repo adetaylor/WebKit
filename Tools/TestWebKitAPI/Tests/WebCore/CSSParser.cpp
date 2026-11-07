@@ -476,29 +476,6 @@ TEST(CSSPropertyParser, CalcLongArgumentLists)
     }
 }
 
-TEST(CSSPropertyParser, MeshGradientControlPoints)
-{
-    // Control points are stored as the 1 to 4 values specified, not completed by copying to 4.
-    auto context = strictCSSParserContext();
-    context.cssMeshGradientsEnabled = true;
-
-    std::pair<ASCIILiteral, ASCIILiteral> cases[] = {
-        { "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s,
-          "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s },
-        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s,
-          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s },
-        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s,
-          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s },
-        { "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s,
-          "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s },
-    };
-    for (auto& [input, output] : cases) {
-        auto properties = MutableStyleProperties::create();
-        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, input, ';'), context));
-        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), String { output });
-    }
-}
-
 TEST(CSSPropertyParser, TransformTokenCounts)
 {
     // calc() arguments of 31 to 33 and 63 to 65 tokens.
@@ -545,6 +522,151 @@ TEST(CSSPropertyParser, GradientStopCounts)
             ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, value, ';'), strictCSSParserContext()));
             EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), value);
         }
+    }
+}
+
+// The value of each layer of a layer list, from 1 to `count`, joined by ", ".
+static String cssPropertyParserLayerList(unsigned count, const Function<String(unsigned)>& layer)
+{
+    StringBuilder builder;
+    for (unsigned i = 1; i <= count; ++i)
+        builder.append(i > 1 ? ", "_s : ""_s, layer(i));
+    return builder.toString();
+}
+
+TEST(CSSPropertyParser, BackgroundLayerCounts)
+{
+    // Backgrounds of 4 and 5 layers, each with a position and a one-value size (its height auto), and a color in
+    // the last.
+    for (unsigned count : { 4u, 5u }) {
+        auto input = cssPropertyParserLayerList(count, [&](unsigned i) {
+            return makeString(i, "px "_s, 10 + i, "px / "_s, 20 + i, "px"_s, i == count ? " red"_s : ""_s);
+        });
+        auto repeated = [&](ASCIILiteral value) {
+            return cssPropertyParserLayerList(count, [&](unsigned) {
+                return String { value };
+            });
+        };
+        std::pair<WebCore::CSSPropertyID, String> longhands[] = {
+            { WebCore::CSSPropertyID::BackgroundImage, repeated("none"_s) },
+            { WebCore::CSSPropertyID::BackgroundPositionX, cssPropertyParserLayerList(count, [](unsigned i) { return makeString(i, "px"_s); }) },
+            { WebCore::CSSPropertyID::BackgroundPositionY, cssPropertyParserLayerList(count, [](unsigned i) { return makeString(10 + i, "px"_s); }) },
+            { WebCore::CSSPropertyID::BackgroundSize, cssPropertyParserLayerList(count, [](unsigned i) { return makeString(20 + i, "px auto"_s); }) },
+            { WebCore::CSSPropertyID::BackgroundRepeat, repeated("repeat"_s) },
+            { WebCore::CSSPropertyID::BackgroundAttachment, repeated("scroll"_s) },
+            { WebCore::CSSPropertyID::BackgroundOrigin, repeated("padding-box"_s) },
+            { WebCore::CSSPropertyID::BackgroundClip, repeated("border-box"_s) },
+            { WebCore::CSSPropertyID::BackgroundColor, String { "red"_s } },
+        };
+
+        auto properties = WebCore::MutableStyleProperties::create();
+        ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, makeString("background: "_s, input, ';'), WebCore::strictCSSParserContext()));
+        for (auto& [longhand, value] : longhands)
+            EXPECT_EQ(properties->getPropertyValue(longhand), value);
+    }
+}
+
+TEST(CSSPropertyParser, AnimationLayerCounts)
+{
+    // Animations of 4 and 5 layers, each with a name and a duration.
+    for (unsigned count : { 4u, 5u }) {
+        auto input = cssPropertyParserLayerList(count, [](unsigned i) { return makeString('a', i, ' ', i, 's'); });
+        auto repeated = [&](ASCIILiteral value) {
+            return cssPropertyParserLayerList(count, [&](unsigned) {
+                return String { value };
+            });
+        };
+        std::pair<WebCore::CSSPropertyID, String> longhands[] = {
+            { WebCore::CSSPropertyID::AnimationDuration, cssPropertyParserLayerList(count, [](unsigned i) { return makeString(i, 's'); }) },
+            { WebCore::CSSPropertyID::AnimationTimingFunction, repeated("ease"_s) },
+            { WebCore::CSSPropertyID::AnimationDelay, repeated("0s"_s) },
+            { WebCore::CSSPropertyID::AnimationIterationCount, repeated("1"_s) },
+            { WebCore::CSSPropertyID::AnimationDirection, repeated("normal"_s) },
+            { WebCore::CSSPropertyID::AnimationFillMode, repeated("none"_s) },
+            { WebCore::CSSPropertyID::AnimationPlayState, repeated("running"_s) },
+            { WebCore::CSSPropertyID::AnimationName, cssPropertyParserLayerList(count, [](unsigned i) { return makeString('a', i); }) },
+            { WebCore::CSSPropertyID::AnimationTimeline, String { "auto"_s } },
+            { WebCore::CSSPropertyID::AnimationRangeStart, String { "normal"_s } },
+            { WebCore::CSSPropertyID::AnimationRangeEnd, String { "normal"_s } },
+        };
+
+        auto properties = WebCore::MutableStyleProperties::create();
+        ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, makeString("animation: "_s, input, ';'), WebCore::strictCSSParserContext()));
+        for (auto& [longhand, value] : longhands)
+            EXPECT_EQ(properties->getPropertyValue(longhand), value);
+    }
+}
+
+TEST(CSSPropertyParser, TransitionLayerCounts)
+{
+    // Transitions of 4 and 5 layers, each with a property and a duration.
+    static constexpr ASCIILiteral transitionProperties[] = { "opacity"_s, "color"_s, "width"_s, "height"_s, "top"_s };
+    for (unsigned count : { 4u, 5u }) {
+        auto input = cssPropertyParserLayerList(count, [](unsigned i) { return makeString(transitionProperties[i - 1], ' ', i, 's'); });
+        auto repeated = [&](ASCIILiteral value) {
+            return cssPropertyParserLayerList(count, [&](unsigned) {
+                return String { value };
+            });
+        };
+        std::pair<WebCore::CSSPropertyID, String> longhands[] = {
+            { WebCore::CSSPropertyID::TransitionProperty, cssPropertyParserLayerList(count, [](unsigned i) { return String { transitionProperties[i - 1] }; }) },
+            { WebCore::CSSPropertyID::TransitionDuration, cssPropertyParserLayerList(count, [](unsigned i) { return makeString(i, 's'); }) },
+            { WebCore::CSSPropertyID::TransitionTimingFunction, repeated("ease"_s) },
+            { WebCore::CSSPropertyID::TransitionDelay, repeated("0s"_s) },
+            { WebCore::CSSPropertyID::TransitionBehavior, repeated("normal"_s) },
+        };
+
+        auto properties = WebCore::MutableStyleProperties::create();
+        ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, makeString("transition: "_s, input, ';'), WebCore::strictCSSParserContext()));
+        for (auto& [longhand, value] : longhands)
+            EXPECT_EQ(properties->getPropertyValue(longhand), value);
+    }
+}
+
+TEST(CSSPropertyParser, TypedOMSumRecordCounts)
+{
+    // Typed OM sums of 31 and 32 lengths, whose calc() trees have 32 and 33 nodes, converted to CSS values.
+    for (unsigned count : { 31u, 32u }) {
+        FixedVector<WebCore::CSSNumberish> operands(count);
+        StringBuilder expected;
+        expected.append("calc("_s);
+        for (unsigned i = 0; i < count; ++i) {
+            auto length = WebCore::CSSUnitValue::create(i + 1, String { "px"_s });
+            ASSERT_FALSE(length.hasException());
+            operands[i] = Ref<WebCore::CSSNumericValue> { length.releaseReturnValue() };
+            expected.append(i ? " + "_s : ""_s, i + 1, "px"_s);
+        }
+        expected.append(')');
+
+        auto sum = WebCore::CSSMathSum::create(WTF::move(operands));
+        ASSERT_FALSE(sum.hasException());
+        Ref<WebCore::CSSStyleValue> value = sum.releaseReturnValue();
+        RefPtr cssValue = value->toCSSValue();
+        ASSERT_TRUE(cssValue);
+        EXPECT_EQ(cssValue->cssText(WebCore::CSS::defaultSerializationContext()), expected.toString());
+    }
+}
+
+TEST(CSSPropertyParser, MeshGradientControlPoints)
+{
+    // Control points are stored as the 1 to 4 values specified, not completed by copying to 4.
+    auto context = strictCSSParserContext();
+    context.cssMeshGradientsEnabled = true;
+
+    std::pair<ASCIILiteral, ASCIILiteral> cases[] = {
+        { "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s,
+          "mesh-gradient(red 0px 0px with 10px 0px / 20px 0px / 30px 0px, blue; green, yellow)"_s },
+        { "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s,
+          "mesh-gradient(red, blue by 10% 0% with 1px 1px from origin; green, yellow)"_s },
+    };
+    for (auto& [input, output] : cases) {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, makeString("background-image: "_s, input, ';'), context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BackgroundImage), String { output });
     }
 }
 
@@ -639,27 +761,136 @@ TEST(CSSPropertyParser, AnimationNameKeyframesNameStrings)
     }
 }
 
-TEST(CSSPropertyParser, TypedOMSumRecordCounts)
+TEST(CSSPropertyParser, BackgroundClipBorderAreaText)
 {
-    // Typed OM sums of 31 and 32 lengths, whose calc() trees have 32 and 33 nodes, converted to CSS values.
-    for (unsigned count : { 31u, 32u }) {
-        FixedVector<WebCore::CSSNumberish> operands(count);
-        StringBuilder expected;
-        expected.append("calc("_s);
-        for (unsigned i = 0; i < count; ++i) {
-            auto length = WebCore::CSSUnitValue::create(i + 1, String { "px"_s });
-            ASSERT_FALSE(length.hasException());
-            operands[i] = Ref<WebCore::CSSNumericValue> { length.releaseReturnValue() };
-            expected.append(i ? " + "_s : ""_s, i + 1, "px"_s);
-        }
-        expected.append(')');
+    // `background: border-area text` and `background: text border-area` both parse: background-clip is the pair
+    // "border-area text", and an absent background-origin defaults to border-box.
+    struct {
+        ASCIILiteral input;
+        ASCIILiteral expectedClip;
+        ASCIILiteral expectedOrigin;
+    } cases[] = {
+        { "border-area text"_s, "border-area text"_s, "border-box"_s },
+        { "text border-area"_s, "border-area text"_s, "border-box"_s },
+    };
+    for (auto& [input, expectedClip, expectedOrigin] : cases) {
+        auto properties = WebCore::MutableStyleProperties::create();
+        ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, makeString("background: "_s, input, ';'), WebCore::strictCSSParserContext()));
+        EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::BackgroundClip), String { expectedClip });
+        EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::BackgroundOrigin), String { expectedOrigin });
+    }
+}
 
-        auto sum = WebCore::CSSMathSum::create(WTF::move(operands));
-        ASSERT_FALSE(sum.hasException());
-        Ref<WebCore::CSSStyleValue> value = sum.releaseReturnValue();
-        RefPtr cssValue = value->toCSSValue();
-        ASSERT_TRUE(cssValue);
-        EXPECT_EQ(cssValue->cssText(WebCore::CSS::defaultSerializationContext()), expected.toString());
+TEST(CSSPropertyParser, CornerShorthand)
+{
+    // The corner and corner-* shorthands implement `<'border-radius'> || <'corner-shape'>`:
+    // either component may be omitted and they may appear in either order.
+    auto context = strictCSSParserContext();
+    context.propertySettings.cssCornersShorthandEnabled = true;
+    context.propertySettings.cssCornerShapeEnabled = true;
+
+    // Shape alone: radius defaults to 0px.
+    {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, "corner: bevel;"_s, context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius), "0px"_s);
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::CornerTopLeftShape), "bevel"_s);
+    }
+
+    // Radius alone: shape defaults to `round` (the initial value, omitted in serialization).
+    {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, "corner: 10px;"_s, context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius), "10px"_s);
+    }
+
+    // Both components, radius first.
+    {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, "corner: 10px bevel;"_s, context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius), "10px"_s);
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::CornerTopLeftShape), "bevel"_s);
+    }
+
+    // Both components, shape first.
+    {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, "corner: bevel 10px;"_s, context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius), "10px"_s);
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::CornerTopLeftShape), "bevel"_s);
+    }
+
+    // The slash belongs to the radius component (horizontal / vertical), not between corners.
+    {
+        auto properties = MutableStyleProperties::create();
+        ASSERT_TRUE(CSSParser::parseDeclarationList(properties, "corner: bevel 10px / 5px;"_s, context));
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius), "10px 5px"_s);
+        EXPECT_EQ(properties->getPropertyValue(CSSPropertyID::CornerTopLeftShape), "bevel"_s);
+    }
+
+    // The old slash-separated corner syntax is invalid.
+    {
+        auto properties = MutableStyleProperties::create();
+        CSSParser::parseDeclarationList(properties, "corner: 10px bevel / 20px scoop;"_s, context);
+        EXPECT_TRUE(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius).isEmpty());
+    }
+
+    // The `normal` keyword is no longer valid.
+    {
+        auto properties = MutableStyleProperties::create();
+        CSSParser::parseDeclarationList(properties, "corner-top-left: normal;"_s, context);
+        EXPECT_TRUE(properties->getPropertyValue(CSSPropertyID::BorderTopLeftRadius).isEmpty());
+    }
+}
+
+TEST(CSSPropertyParser, FlexBasisSizingFunctions)
+{
+    // stretch() and fit-content() in the flex shorthand, behind feature flags.
+    struct TestCase {
+        const char* input;
+        String flexGrow;
+        String flexShrink;
+        String flexBasis;
+    };
+
+    // stretch(<length-percentage>) as flex-basis in the flex shorthand.
+    {
+        auto context = WebCore::strictCSSParserContext();
+        context.cssStretchFunctionEnabled = true;
+        TestCase cases[] = {
+            { "flex: 1 stretch(10px);",   "1"_s, "1"_s, "stretch(10px)"_s },
+            { "flex: stretch(10%) 2 3;",  "2"_s, "3"_s, "stretch(10%)"_s  },
+        };
+        for (auto& tc : cases) {
+            auto properties = WebCore::MutableStyleProperties::create();
+            ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, String::fromUTF8(tc.input), context)) << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexGrow),  tc.flexGrow)  << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexShrink), tc.flexShrink) << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexBasis),  tc.flexBasis)  << tc.input;
+        }
+        // Disabled by default: stretch() is not accepted as flex-basis.
+        auto properties = WebCore::MutableStyleProperties::create();
+        EXPECT_FALSE(WebCore::CSSParser::parseDeclarationList(properties, "flex: 1 stretch(10px);"_s, WebCore::strictCSSParserContext()));
+    }
+
+    // fit-content(<length-percentage>) as flex-basis in the flex shorthand.
+    {
+        auto context = WebCore::strictCSSParserContext();
+        context.cssFitContentFunctionEnabled = true;
+        TestCase cases[] = {
+            { "flex: 1 fit-content(10px);",  "1"_s, "1"_s, "fit-content(10px)"_s },
+            { "flex: fit-content(10%) 2 3;", "2"_s, "3"_s, "fit-content(10%)"_s  },
+        };
+        for (auto& tc : cases) {
+            auto properties = WebCore::MutableStyleProperties::create();
+            ASSERT_TRUE(WebCore::CSSParser::parseDeclarationList(properties, String::fromUTF8(tc.input), context)) << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexGrow),  tc.flexGrow)  << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexShrink), tc.flexShrink) << tc.input;
+            EXPECT_EQ(properties->getPropertyValue(WebCore::CSSPropertyID::FlexBasis),  tc.flexBasis)  << tc.input;
+        }
+        // Disabled by default: fit-content() is not accepted as flex-basis.
+        auto properties = WebCore::MutableStyleProperties::create();
+        EXPECT_FALSE(WebCore::CSSParser::parseDeclarationList(properties, "flex: 1 fit-content(10px);"_s, WebCore::strictCSSParserContext()));
     }
 }
 
