@@ -122,10 +122,10 @@ public:
     WEBCORE_EXPORT ~ContentSecurityPolicy();
 
     enum class ShouldMakeIsolatedCopy : bool { No, Yes };
-    void copyStateFrom(const ContentSecurityPolicy*, ShouldMakeIsolatedCopy = ShouldMakeIsolatedCopy::No);
-    void inheritHeadersFrom(const ContentSecurityPolicyResponseHeaders&);
-    void copyUpgradeInsecureRequestStateFrom(const ContentSecurityPolicy&, ShouldMakeIsolatedCopy = ShouldMakeIsolatedCopy::No);
-    void createPolicyForPluginDocumentFrom(const ContentSecurityPolicy&);
+    WEBCORE_EXPORT void copyStateFrom(const ContentSecurityPolicy*, ShouldMakeIsolatedCopy = ShouldMakeIsolatedCopy::No);
+    WEBCORE_EXPORT void inheritHeadersFrom(const ContentSecurityPolicyResponseHeaders&);
+    WEBCORE_EXPORT void copyUpgradeInsecureRequestStateFrom(const ContentSecurityPolicy&, ShouldMakeIsolatedCopy = ShouldMakeIsolatedCopy::No);
+    WEBCORE_EXPORT void createPolicyForPluginDocumentFrom(const ContentSecurityPolicy&);
 
     void didCreateWindowProxy(JSWindowProxy&) const;
 
@@ -139,21 +139,21 @@ public:
     WEBCORE_EXPORT ContentSecurityPolicyResponseHeaders responseHeaders() const;
     enum ReportParsingErrors : bool { No, Yes };
     WEBCORE_EXPORT void didReceiveHeaders(const ContentSecurityPolicyResponseHeaders&, String&& referrer, ReportParsingErrors = ReportParsingErrors::Yes);
-    void didReceiveHeaders(const ContentSecurityPolicy&, ReportParsingErrors = ReportParsingErrors::Yes);
-    void didReceiveHeader(const String&, ContentSecurityPolicyHeaderType, ContentSecurityPolicy::PolicyFrom, String&& referrer, int httpStatusCode = 0);
+    WEBCORE_EXPORT void didReceiveHeaders(const ContentSecurityPolicy&, ReportParsingErrors = ReportParsingErrors::Yes);
+    WEBCORE_EXPORT void didReceiveHeader(const String&, ContentSecurityPolicyHeaderType, ContentSecurityPolicy::PolicyFrom, String&& referrer, int httpStatusCode = 0);
 
-    bool allowScriptWithNonce(const String& nonce, bool overrideContentSecurityPolicy = false) const;
-    bool allowStyleWithNonce(const String& nonce, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowScriptWithNonce(const String& nonce, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowStyleWithNonce(const String& nonce, bool overrideContentSecurityPolicy = false) const;
 
-    bool allowJavaScriptURLs(const String& contextURL, const OrdinalNumber& contextLine, const String& code, Element*) const;
-    bool allowInlineEventHandlers(const String& contextURL, const OrdinalNumber& contextLine, const String& code, Element*, bool overrideContentSecurityPolicy = false) const;
-    bool allowInlineScript(const String& contextURL, const TextPosition& contextPosition, StringView scriptContent, Element&, const String& nonce, bool overrideContentSecurityPolicy = false) const;
-    bool allowScriptForStrictDynamic(const URL& sourceURL, const URL& contextURL, const OrdinalNumber&, const String& nonce, const String& subResourceIntegrity, const StringView&, ParserInserted) const;
-    bool allowInlineStyle(const String& contextURL, const OrdinalNumber& contextLine, StringView styleContent, CheckUnsafeHashes, Element&, const String&, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowJavaScriptURLs(const String& contextURL, const OrdinalNumber& contextLine, const String& code, Element*) const;
+    WEBCORE_EXPORT bool allowInlineEventHandlers(const String& contextURL, const OrdinalNumber& contextLine, const String& code, Element*, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowInlineScript(const String& contextURL, const TextPosition& contextPosition, StringView scriptContent, Element&, const String& nonce, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowScriptForStrictDynamic(const URL& sourceURL, const URL& contextURL, const OrdinalNumber&, const String& nonce, const String& subResourceIntegrity, const StringView&, ParserInserted) const;
+    WEBCORE_EXPORT bool allowInlineStyle(const String& contextURL, const OrdinalNumber& contextLine, StringView styleContent, CheckUnsafeHashes, Element&, const String&, bool overrideContentSecurityPolicy = false) const;
 
-    bool allowEval(JSC::JSGlobalObject*, LogToConsole, StringView codeContent, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowEval(JSC::JSGlobalObject*, LogToConsole, StringView codeContent, bool overrideContentSecurityPolicy = false) const;
 
-    NODELETE bool allowPluginType(const String& type, const String& typeAttribute, const URL&, bool overrideContentSecurityPolicy = false) const;
+    NODELETE WEBCORE_EXPORT bool allowPluginType(const String& type, const String& typeAttribute, const URL&, bool overrideContentSecurityPolicy = false) const;
 
     bool allowFrameAncestors(const LocalFrame&, const URL&, bool overrideContentSecurityPolicy = false) const;
     WEBCORE_EXPORT bool allowFrameAncestors(const Vector<Ref<SecurityOrigin>>& ancestorOrigins, const URL&, bool overrideContentSecurityPolicy = false) const;
@@ -162,27 +162,27 @@ public:
     enum class RedirectResponseReceived : bool { No, Yes };
     WEBCORE_EXPORT bool allowScriptFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL(), const String& = nullString(), const String& nonce = nullString()) const;
     WEBCORE_EXPORT bool allowWorkerFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
-    bool allowImageFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
-    bool allowPrefetchFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
-    bool allowStyleFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL(), const String& nonce = nullString()) const;
-    bool allowFontFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowImageFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowPrefetchFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowStyleFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL(), const String& nonce = nullString()) const;
+    WEBCORE_EXPORT bool allowFontFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
 #if ENABLE(APPLICATION_MANIFEST)
-    bool allowManifestFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowManifestFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
 #endif
-    bool allowMediaFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowMediaFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
 
-    bool allowChildFrameFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No) const;
+    WEBCORE_EXPORT bool allowChildFrameFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No) const;
     WEBCORE_EXPORT bool allowConnectToSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& requestedURL = URL()) const;
-    bool allowFormAction(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowFormAction(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
 
-    bool allowObjectFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
-    bool allowBaseURI(const URL&, bool overrideContentSecurityPolicy = false) const;
+    WEBCORE_EXPORT bool allowObjectFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived = RedirectResponseReceived::No, const URL& preRedirectURL = URL()) const;
+    WEBCORE_EXPORT bool allowBaseURI(const URL&, bool overrideContentSecurityPolicy = false) const;
 
-    AllowTrustedTypePolicy allowTrustedTypesPolicy(const String&, bool isDuplicate) const;
-    bool requireTrustedTypesForSinkGroup(const String& sinkGroup, IncludeReportOnlyPolicies = IncludeReportOnlyPolicies::Yes) const;
-    bool allowMissingTrustedTypesForSinkGroup(const String& stringContext, const String& sink, const String& sinkGroup, StringView source) const;
+    WEBCORE_EXPORT AllowTrustedTypePolicy allowTrustedTypesPolicy(const String&, bool isDuplicate) const;
+    WEBCORE_EXPORT bool requireTrustedTypesForSinkGroup(const String& sinkGroup, IncludeReportOnlyPolicies = IncludeReportOnlyPolicies::Yes) const;
+    WEBCORE_EXPORT bool allowMissingTrustedTypesForSinkGroup(const String& stringContext, const String& sink, const String& sinkGroup, StringView source) const;
 
-    NODELETE void setOverrideAllowInlineStyle(bool);
+    NODELETE WEBCORE_EXPORT void setOverrideAllowInlineStyle(bool);
 
     void gatherReportURIs(DOMStringList&) const;
 
@@ -239,13 +239,13 @@ public:
     WEBCORE_EXPORT void upgradeInsecureRequestIfNeeded(ResourceRequest&, InsecureRequestType, AlwaysUpgradeRequest = AlwaysUpgradeRequest::No) const;
     WEBCORE_EXPORT void upgradeInsecureRequestIfNeeded(URL&, InsecureRequestType, AlwaysUpgradeRequest = AlwaysUpgradeRequest::No) const;
 
-    NODELETE HashSet<SecurityOriginData> takeNavigationRequestsToUpgrade();
-    void inheritInsecureNavigationRequestsToUpgradeFromOpener(const ContentSecurityPolicy&);
-    void setInsecureNavigationRequestsToUpgrade(HashSet<SecurityOriginData>&&);
+    NODELETE WEBCORE_EXPORT HashSet<SecurityOriginData> takeNavigationRequestsToUpgrade();
+    WEBCORE_EXPORT void inheritInsecureNavigationRequestsToUpgradeFromOpener(const ContentSecurityPolicy&);
+    WEBCORE_EXPORT void setInsecureNavigationRequestsToUpgrade(HashSet<SecurityOriginData>&&);
     const HashSet<SecurityOriginData>& insecureNavigationRequestsToUpgrade() const { return m_insecureNavigationRequestsToUpgrade; }
 
     void setClient(ContentSecurityPolicyClient* client) { m_client = client; }
-    void updateSourceSelf(const SecurityOrigin&);
+    WEBCORE_EXPORT void updateSourceSelf(const SecurityOrigin&);
 
     void setDocumentURL(URL& documentURL) { m_documentURL = documentURL; }
 
@@ -257,7 +257,7 @@ public:
     const String& webAssemblyErrorMessage() const LIFETIME_BOUND { return m_lastPolicyWebAssemblyDisabledErrorMessage; }
 
     ContentSecurityPolicyModeForExtension contentSecurityPolicyModeForExtension() const { return m_contentSecurityPolicyModeForExtension; }
-    const HashAlgorithmSetCollection& hashesToReport() LIFETIME_BOUND;
+    WEBCORE_EXPORT const HashAlgorithmSetCollection& hashesToReport() LIFETIME_BOUND;
 
     void setIsReportingToConsoleEnabled(bool value) { m_isReportingToConsoleEnabled = value; }
     void setIsReportingEnabled(bool value) { m_isReportingEnabled = value; }
