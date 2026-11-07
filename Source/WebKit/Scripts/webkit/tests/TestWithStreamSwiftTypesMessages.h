@@ -26,12 +26,14 @@
 
 #include "ArgumentCoders.h"
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "StreamMessageReceiver.h"
 #include "SwiftCoding.h"
 #include <WebCore/SharedMemory.h>
 #include <span>
 #include <wtf/Forward.h>
+#include <wtf/MachSendRight.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/Vector.h>
@@ -412,6 +414,70 @@ public:
 
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const std::span<const uint8_t>& m_bytes;
+};
+
+class SendSemaphore {
+public:
+    using Arguments = std::tuple<uint32_t, IPC::Semaphore, std::optional<WebCore::SharedMemory::Handle>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendSemaphore; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isStreamBatched = false;
+
+    SendSemaphore(uint32_t value, const IPC::Semaphore& semaphore, std::optional<WebCore::SharedMemory::Handle>&& handle)
+        : m_value(value)
+        , m_semaphore(semaphore)
+        , m_handle(WTF::move(handle))
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_value;
+        encoder << m_semaphore;
+        encoder << WTF::move(m_handle);
+    }
+
+private:
+    uint32_t m_value;
+    const IPC::Semaphore& m_semaphore;
+    std::optional<WebCore::SharedMemory::Handle>&& m_handle;
+};
+
+class SendSendRight {
+public:
+    using Arguments = std::tuple<MachSendRight>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftTypes_SendSendRight; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isReplyStreamEncodable = false;
+    static constexpr bool isStreamBatched = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<Vector<MachSendRight>>;
+    using Reply = CompletionHandler<void(Vector<MachSendRight>&&)>;
+    explicit SendSendRight(MachSendRight&& right)
+        : m_right(WTF::move(right))
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << WTF::move(m_right);
+    }
+
+private:
+    MachSendRight&& m_right;
 };
 
 class SendStringAsyncReply {

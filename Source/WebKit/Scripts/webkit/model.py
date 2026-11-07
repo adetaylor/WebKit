@@ -25,7 +25,7 @@ import re
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
-from .swift_types import UnmappableSwiftType, is_lent_bytes, strip_cpp_type_decorations, swift_type_and_coder
+from .swift_types import UnmappableSwiftType, is_lent_bytes, is_owned_type, strip_cpp_type_decorations, swift_type_and_coder
 from .untrusted_origins import conveys_untrusted_value, is_privileged_receiver, unwrap_if_untrusted, unwrap_untrusted
 
 BUILTIN_ATTRIBUTE = "Builtin"
@@ -230,6 +230,18 @@ class MessageReceiver(object):
                 swift_type_and_coder(parameter.type)
             except UnmappableSwiftType as error:
                 raise Exception("ERROR: Message %s takes Swift types, but cannot take %s '%s': %s" % (description, kind, parameter.name, error))
+        # A Swift value of an owned type (swift_types.is_owned_type) is the only owner of what the message carries, which
+        # the handler takes. So the handler must be called during dispatch, and never decline the message, which would
+        # have C++ handle it again with arguments Swift has taken.
+        owned_parameters = [parameter for _, parameter in parameters if not parameter.attributes and is_owned_type(parameter.type)]
+        if owned_parameters and (self.swift_receiver_state_lender or not (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE) or message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE))):
+            raise Exception("ERROR: Message %s takes Swift types, and the Swift form of '%s' owns what the message carries, so its handler must be called during dispatch: on a stream or WorkQueue, or with '%s'" % (description, owned_parameters[0].name, SWIFT_SYNC_HANDLER_ATTRIBUTE))
+        if any(is_owned_type(parameter.type) for parameter in reply_parameters):
+            if len(reply_parameters) != 1:
+                raise unsupported("with a reply of more than one value that includes an owned type (a ~Copyable Swift value)")
+            # A Synchronous reply to a stream message that doesn't fit in the stream is encoded a second time.
+            if self.has_attribute(STREAM_ATTRIBUTE) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and not message.has_attribute('NotStreamEncodableReply'):
+                raise Exception("ERROR: Message %s takes Swift types, and its Synchronous reply carries an owned type, which can't be encoded twice, so it must be 'NotStreamEncodableReply'" % description)
         for parameter in message.reply_parameters or []:
             # The reply to a message found to be invalid is built from default-constructed values.
             if re.match(r'(?:WTF::)?Ref<', strip_cpp_type_decorations(parameter.type)):

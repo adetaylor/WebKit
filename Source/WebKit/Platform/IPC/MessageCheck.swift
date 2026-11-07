@@ -65,7 +65,7 @@ func messageCheck(
 // Lets generated dispatch mark every handler call with `try`, whether or not that handler throws.
 @inline(__always)
 @discardableResult
-func mayThrowInvalidMessage<T>(_ result: T) throws(InvalidMessage) -> T {
+func mayThrowInvalidMessage<T: ~Copyable>(_ result: consuming T) throws(InvalidMessage) -> T {
     result
 }
 

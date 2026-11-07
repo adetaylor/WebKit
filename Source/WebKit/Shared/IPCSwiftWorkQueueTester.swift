@@ -138,6 +138,37 @@ final class IPCSwiftWorkQueueTester {
         return (UInt32(level.rawValue), count)
     }
 
+    #if WTF_PLATFORM_COCOA
+    func signalSemaphoreSwift(connection: IPC.Connection, semaphore: consuming IPCTypes.Semaphore) {
+        noteDispatch()
+        semaphore.signal()
+    }
+
+    func echoSemaphoreSwift(connection: IPC.Connection, semaphore: consuming IPCTypes.Semaphore) -> IPCTypes.Semaphore {
+        noteDispatch()
+        return semaphore
+    }
+
+    func sharedMemorySizeSwift(connection: IPC.Connection, handle: borrowing IPCTypes.SharedMemoryHandle) -> UInt64 {
+        noteDispatch()
+        return handle.size
+    }
+
+    func echoSharedMemorySwift(
+        connection: IPC.Connection,
+        handle: consuming IPCTypes.SharedMemoryHandle?,
+        reply: consuming IPCSwiftWorkQueueTesterEchoSharedMemorySwiftReply
+    ) {
+        noteDispatch()
+        reply.send(handle)
+    }
+
+    func countSendRightsSwift(connection: IPC.Connection, rights: borrowing IPCTypes.MachSendRightVector) -> UInt64 {
+        noteDispatch()
+        return UInt64(rights.count)
+    }
+    #endif
+
     // The handlers of IPCTester::benchmarkWorkQueueDispatch(), which IPCWorkQueueTester's C++ ones match.
 
     func benchEmpty(connection: IPC.Connection) {

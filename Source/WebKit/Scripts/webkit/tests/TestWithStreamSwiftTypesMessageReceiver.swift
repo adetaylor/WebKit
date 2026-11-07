@@ -305,6 +305,66 @@ final class TestWithStreamSwiftTypesWeakRef {
         }
         return true
     }
+
+    @used
+    func dispatchSendSemaphore(
+        decoder: inout IPC.SwiftDecoder
+    ) -> Bool {
+        let value: UInt32
+        let semaphore: IPCTypes.Semaphore
+        let handle: IPCTypes.SharedMemoryHandle?
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do {
+            handle = try IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendSemaphore(
+                    value: value,
+                    semaphore: semaphore,
+                    handle: handle
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: &decoder)
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendSendRight(
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let right: IPCTypes.MachSendRight
+        do {
+            right = try IPCTypes.MachSendRight.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendSendRight(
+                    right: right,
+                    reply: TestWithStreamSwiftTypesSendSendRightReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: &decoder)
+        }
+        return true
+    }
 }
 
 struct TestWithStreamSwiftTypesSendStringAsyncReply: ~Copyable {
@@ -367,6 +427,23 @@ struct TestWithStreamSwiftTypesSendCxxDecodedReply: ~Copyable {
 
     consuming func send(_ reply: Bool) {
         Bool.encode(reply, to: replyEncoder)
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
+}
+
+struct TestWithStreamSwiftTypesSendSendRightReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: consuming IPCTypes.MachSendRightVector) {
+        IPCTypes.MachSendRightVector.encode(reply, to: replyEncoder)
         replyEncoder.send()
     }
 

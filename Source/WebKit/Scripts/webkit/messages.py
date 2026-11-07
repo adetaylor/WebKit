@@ -2814,6 +2814,7 @@ def generate_swift_message_handler(receiver):
         parameters = ['connection: %s%s' % ('' if swift_receiver_runs_on_work_queue(receiver) else 'sending ', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
+        owned_parameter_names = [parameter.name for parameter in message.parameters if takes_swift_types and not parameter.attributes and swift_types.is_owned_type(parameter.type)]
         # Arguments whose bytes are lent to the handler: generated Swift decodes past them, and lends them once the
         # arguments after them are decoded, for the handler call, which must be during dispatch.
         lent_parameters = []
@@ -2882,10 +2883,21 @@ def generate_swift_message_handler(receiver):
             # Lent bytes and C++-decoded arguments decode without throwing, so a message with lent bytes and no other
             # Swift-decoded argument has no do block, whose catch would be unreachable.
             needs_do = not lent_parameters or any(coder and coder != LENT_BYTES_CODER for _, _, coder in decoded_parameters)
-            indent = '            ' if needs_do else '        '
-            if needs_do:
+            # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a
+            # message with an owned argument is decoded in a block of its own, out of which every path either returns
+            # or leaves it decoded.
+            decodes_each_in_own_block = any(name in owned_parameter_names for name, _, _ in decoded_parameters)
+            indent = '            ' if needs_do and not decodes_each_in_own_block else '        '
+            if needs_do and not decodes_each_in_own_block:
                 result.append('        do {\n')
             for name, swift_type, coder in decoded_parameters:
+                if decodes_each_in_own_block and coder and coder != LENT_BYTES_CODER:
+                    result.append('        do {\n')
+                    result.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
+                    result.append('        } catch {\n')
+                    result.append('            return false\n')
+                    result.append('        }\n')
+                    continue
                 if coder == LENT_BYTES_CODER:
                     result.append('%sguard decoder.decodeLentBytesPosition(&%sPosition) else {\n' % (indent, name))
                     result.append('%s    return false\n' % indent)
@@ -2900,7 +2912,7 @@ def generate_swift_message_handler(receiver):
                 result.append('%s    return false\n' % indent)
                 result.append('%s}\n' % indent)
                 result.append('%s%s = %s\n' % (indent, name, decoded_name))
-            if needs_do:
+            if needs_do and not decodes_each_in_own_block:
                 result.append('        } catch {\n')
                 result.append('            return false\n')
                 result.append('        }\n')
@@ -2918,7 +2930,7 @@ def generate_swift_message_handler(receiver):
                 reply_statements = []
                 cancel_statements = []
                 stream_reply_values.append((message, reply_value_type, encoding_statements))
-            elif is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+            elif is_stream and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and not message.has_attribute(NOT_STREAM_ENCODABLE_REPLY_ATTRIBUTE):
                 # A Synchronous reply that doesn't fit in the stream buffer is encoded a second time, out of stream.
                 reply_statements = encoding_statements + ['if !replyEncoder.send() {'] + ['    %s' % statement for statement in encoding_statements] + ['    replyEncoder.send()', '}']
             elif runs_on_work_queue and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
@@ -3031,7 +3043,8 @@ def generate_swift_message_handler(receiver):
         elif not reply_types:
             send_parameter = ''
         elif len(reply_types) == 1:
-            send_parameter = '_ reply: %s' % reply_types[0]
+            # An owned type's value (swift_types.is_owned_type) is ~Copyable, so the reply takes it over.
+            send_parameter = '_ reply: %s%s' % ('consuming ' if swift_types.is_owned_type(message.reply_parameters[0].type) else '', reply_types[0])
         else:
             send_parameter = '_ reply: (%s)' % ', '.join('%s: %s' % (parameter.name, swift_type) for parameter, swift_type in zip(message.reply_parameters, reply_types))
         result.append('\n')

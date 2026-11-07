@@ -356,6 +356,34 @@ messages -> TestReceiver%s {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument)')
 
+    def test_owned_types(self):
+        stream_receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]
+messages -> TestReceiver Stream {
+    Message(uint32_t value, IPC::Semaphore semaphore) NotStreamEncodable
+    SyncMessage(MachSendRight right) -> (Vector<MachSendRight> rights) Synchronous NotStreamEncodable NotStreamEncodableReply SwiftReplyValue
+}
+"""))
+        swift = messages.generate_swift_message_handler(stream_receiver)
+        dispatch = re.search(r'func dispatchMessage\((.|\n)*?\n    \}\n', swift).group(0)
+        # Each argument decodes in a block of its own, so no path out of a block leaves the ~Copyable value half there.
+        self.assertIn('        do {\n            value = try UInt32.decode(from: &decoder)\n        } catch {\n            return false\n        }\n', dispatch)
+        self.assertIn('        do {\n            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)\n        } catch {\n            return false\n        }\n', dispatch)
+        self.assertIn('consuming func send(_ reply: consuming IPCTypes.MachSendRightVector) {', swift)
+        self.assertIn('IPCTypes.MachSendRightVector.encode(reply, to: replyEncoder)', swift)
+
+        def parse_stream_receiver(message):
+            return parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]\nmessages -> TestReceiver Stream {\n%s\n}\n' % message))
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, and the Swift form of 'semaphore' owns what the message carries, so its handler must be called during dispatch"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message(IPC::Semaphore semaphore)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, and its Synchronous reply carries an owned type, which can't be encoded twice, so it must be 'NotStreamEncodableReply'"):
+            parse_stream_receiver('    Message() -> (MachSendRight right) Synchronous')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with a reply of more than one value that includes an owned type"):
+            parse_stream_receiver('    Message() -> (MachSendRight right, uint32_t value) Synchronous NotStreamEncodableReply')
+        with self.assertRaisesRegex(Exception, r"cannot take parameter 'semaphores': 'Vector<IPC::Semaphore>' has no Swift form"):
+            parse_stream_receiver('    Message(Vector<IPC::Semaphore> semaphores) NotStreamEncodable')
+
     def test_lent_bytes(self):
         stream_receiver = parser.parse(io.StringIO("""
 [ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]

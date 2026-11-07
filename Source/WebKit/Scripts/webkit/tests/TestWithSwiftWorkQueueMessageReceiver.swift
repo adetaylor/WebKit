@@ -167,6 +167,60 @@ final class TestWithSwiftWorkQueueWeakRef {
     }
 
     @used
+    func dispatchSendSharedMemory(
+        connection: IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let handle: IPCTypes.SharedMemoryHandle
+        do {
+            handle = try IPCTypes.SharedMemoryHandle.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendSharedMemory(
+                    connection: connection,
+                    handle: handle,
+                    reply: TestWithSwiftWorkQueueSendSharedMemoryReply(replyEncoder: replyEncoder)
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
+        }
+        return true
+    }
+
+    @used
+    func dispatchSendSemaphoreSync(
+        connection: IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let semaphore: IPCTypes.Semaphore
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do throws(InvalidMessage) {
+            let reply = try mayThrowInvalidMessage(
+                target.sendSemaphoreSync(
+                    connection: connection,
+                    semaphore: semaphore
+                )
+            )
+            IPCTypes.Semaphore.encode(reply, to: replyEncoder)
+            replyEncoder.send()
+        } catch {
+            markMessageInvalid(error, on: connection)
+            replyEncoder.cancel()
+        }
+        return true
+    }
+
+    @used
     func dispatchSendCxxString(
         connection: IPC.Connection,
         url: sending WTF.String
@@ -266,6 +320,23 @@ struct TestWithSwiftWorkQueueSendCxxDecodedReply: ~Copyable {
 
     consuming func send(_ reply: Bool) {
         Bool.encode(reply, to: replyEncoder)
+        replyEncoder.send()
+    }
+
+    deinit {
+        replyEncoder.cancel()
+    }
+}
+
+struct TestWithSwiftWorkQueueSendSharedMemoryReply: ~Copyable {
+    private let replyEncoder: IPC.SwiftReplyEncoder
+
+    fileprivate init(replyEncoder: IPC.SwiftReplyEncoder) {
+        self.replyEncoder = replyEncoder
+    }
+
+    consuming func send(_ reply: consuming IPCTypes.SharedMemoryHandle?) {
+        IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>.encode(reply, to: replyEncoder)
         replyEncoder.send()
     }
 

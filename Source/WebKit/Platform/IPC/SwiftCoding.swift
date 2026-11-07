@@ -25,6 +25,12 @@
 
 import WebKit_Internal
 import wtf
+#if canImport(Darwin)
+import Darwin
+#endif
+#if canImport(IOSurface)
+import IOSurface
+#endif
 
 /// A malformed message argument, which makes C++ mark the message invalid.
 struct IPCDecodingError: Error {}
@@ -656,5 +662,189 @@ extension IPC.LentBytes {
         copyTo(&destination)
     }
 }
+
+#if canImport(Darwin)
+/// The Swift form of an IPC type that owns what a message carries, such as a send right. It is ~Copyable, so one value
+/// owns the resource at a time, and gives it back once: when it is destroyed, or when it is encoded into a reply. Swift
+/// can't copy it, use it once it has encoded it, or give it back twice.
+protocol IPCOwnedCoder: ~Copyable, Sendable {
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self
+    static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder)
+}
+
+extension IPCTypes {
+    /// A send right, as WTF::MachSendRight: deallocated when this is destroyed, unless it is encoded into a reply.
+    struct MachSendRight: ~Copyable, IPCOwnedCoder {
+        /// The name of the right's port, for calls that use the right without taking it over, or MACH_PORT_NULL if the
+        /// sender sent no right.
+        let port: mach_port_t
+
+        // Only this file adopts a port name, so each right has one owner: the value that decoded it.
+        fileprivate init(adopting port: mach_port_t) {
+            self.port = port
+        }
+
+        /// No right.
+        init() {
+            self.init(adopting: mach_port_t(MACH_PORT_NULL))
+        }
+
+        var isNull: Bool {
+            port == mach_port_t(MACH_PORT_NULL)
+        }
+
+        // Gives the right up, undeallocated, to whatever this file hands it to.
+        fileprivate consuming func leakSendRight() -> mach_port_t {
+            let port = self.port
+            discard self
+            return port
+        }
+
+        deinit {
+            if port != mach_port_t(MACH_PORT_NULL) {
+                mach_port_deallocate(IPC.currentTaskPort(), port)
+            }
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            let port = decoder.takeSendRight()
+            guard decoder.isValid() else {
+                throw IPCDecodingError()
+            }
+            return Self(adopting: port)
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            // Safety: the right is the consumed value's own, so the encoder is its only owner.
+            unsafe encoder.encodeSendRight(value.leakSendRight())
+        }
+    }
+
+    /// A Vector<MachSendRight>, which owns its rights until it is destroyed or encoded into a reply. A Swift Array can't
+    /// hold MachSendRights, which are ~Copyable.
+    struct MachSendRightVector: ~Copyable, IPCOwnedCoder {
+        private var ports: [mach_port_t] = []
+
+        init() {
+        }
+
+        var count: Int {
+            ports.count
+        }
+
+        mutating func append(_ right: consuming MachSendRight) {
+            ports.append(right.leakSendRight())
+        }
+
+        deinit {
+            for port in ports where port != mach_port_t(MACH_PORT_NULL) {
+                mach_port_deallocate(IPC.currentTaskPort(), port)
+            }
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            let count = try UInt64.decode(from: &decoder)
+            var rights = Self()
+            // Each right is an attachment, so a count larger than the message's attachments fails on the first right
+            // that isn't there, before anything is allocated for it.
+            for _ in 0..<count {
+                rights.append(try MachSendRight.decode(from: &decoder))
+            }
+            return rights
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            let ports = value.ports
+            value.ports = []
+            encoder.encode(UInt64(ports.count))
+            for port in ports {
+                // Safety: the rights were the consumed value's own, and it no longer holds them.
+                unsafe encoder.encodeSendRight(port)
+            }
+        }
+    }
+
+    /// A semaphore that another process waits on, as IPC::Semaphore: a send right to a Mach semaphore.
+    struct Semaphore: ~Copyable, IPCOwnedCoder {
+        private let sendRight: MachSendRight
+
+        /// The name of the semaphore's port, for C++ that takes a right of its own to it (MachSendRight::create()).
+        var port: mach_port_t {
+            sendRight.port
+        }
+
+        func signal() {
+            semaphore_signal(sendRight.port)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            Self(sendRight: try MachSendRight.decode(from: &decoder))
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            MachSendRight.encode(value.sendRight, to: encoder)
+        }
+    }
+
+    /// A handle to memory that another process shares, as WebCore::SharedMemory::Handle: a send right to a memory entry,
+    /// and the memory's size.
+    struct SharedMemoryHandle: ~Copyable, IPCOwnedCoder {
+        private let sendRight: MachSendRight
+        let size: UInt64
+
+        /// The name of the memory entry's port, for C++ that takes a right of its own to it (MachSendRight::create()).
+        var port: mach_port_t {
+            sendRight.port
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            let sendRight = try MachSendRight.decode(from: &decoder)
+            // As SharedMemoryHandle's validator: a handle always has a right.
+            guard !sendRight.isNull else {
+                decoder.markInvalid()
+                throw IPCDecodingError()
+            }
+            return Self(sendRight: sendRight, size: try UInt64.decode(from: &decoder))
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            let size = value.size
+            MachSendRight.encode(value.sendRight, to: encoder)
+            encoder.encode(size)
+        }
+    }
+}
+
+#if canImport(IOSurface)
+extension IPCTypes.MachSendRight {
+    /// A right to an IOSurface, which another process looks the surface up with, as WebCore::IOSurface::createSendRight().
+    init(surface: IOSurfaceRef) {
+        self.init(adopting: IOSurfaceCreateMachPort(surface))
+    }
+}
+#endif
+
+extension IPCCoding {
+    /// std::optional<T> of an owned type.
+    enum OwnedOptional<Wrapped: IPCOwnedCoder & ~Copyable> {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Wrapped? {
+            guard try Bool.decode(from: &decoder) else {
+                return nil
+            }
+            return try Wrapped.decode(from: &decoder)
+        }
+
+        static func encode(_ value: consuming Wrapped?, to encoder: IPC.SwiftReplyEncoder) {
+            switch consume value {
+            case .some(let wrapped):
+                encoder.encode(true)
+                Wrapped.encode(wrapped, to: encoder)
+            case .none:
+                encoder.encode(false)
+            }
+        }
+    }
+}
+#endif
 
 #endif // ENABLE_SWIFT_IPC_RECEIVERS

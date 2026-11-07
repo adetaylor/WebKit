@@ -1,0 +1,96 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver takes and replies with send rights, semaphores and shared memory handles as Swift values.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="../resources/ipc.js"></script>
+<body>
+<script>
+const defaultTimeout = 1000;
+
+function addTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_AddSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function removeTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_RemoveSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, defaultTimeout, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+const message = name => IPC.messages[`IPCSwiftWorkQueueTester_${name}`].name;
+
+promise_test(async t => {
+    // The messages only exist where WebKit's IPC testing code is built with Swift, on Cocoa.
+    if (!window.IPC || !IPC.messages.IPCSwiftWorkQueueTester_SignalSemaphoreSwift)
+        return;
+
+    let identifier = 5170;
+    for (const processTarget of IPC.processTargets) {
+        ++identifier;
+        addTester(processTarget, identifier);
+        try {
+            const semaphore = IPC.createSemaphore();
+            assert_false(semaphore.waitFor(10), `A new semaphore isn't signalled in ${processTarget}`);
+            IPC.sendMessage(processTarget, identifier, message('SignalSemaphoreSwift'), [{ type: 'Semaphore', value: semaphore }]);
+            assert_true(semaphore.waitFor(defaultTimeout), `The receiver signals the semaphore it takes in ${processTarget}`);
+
+            // The semaphore the receiver replies with is the one it took, not a copy of it: signalling ours wakes theirs.
+            const echoed = IPC.sendSyncMessage(processTarget, identifier, message('EchoSemaphoreSwift'), defaultTimeout, [{ type: 'Semaphore', value: semaphore }]);
+            assert_equals(echoed.arguments[0].type, 'Semaphore', `EchoSemaphoreSwift reply type in ${processTarget}`);
+            const echoedSemaphore = echoed.arguments[0].value;
+            assert_false(echoedSemaphore.waitFor(10), `The echoed semaphore isn't signalled in ${processTarget}`);
+            semaphore.signal();
+            assert_true(echoedSemaphore.waitFor(defaultTimeout), `The echoed semaphore is the same semaphore in ${processTarget}`);
+
+            const bytes = [1, 2, 3, 250, 251, 252, 7];
+            const memory = IPC.createSharedMemory(bytes.length);
+            memory.writeBytes(new Uint8Array(bytes));
+            const size = IPC.sendSyncMessage(processTarget, identifier, message('SharedMemorySizeSwift'), defaultTimeout, [{ type: 'SharedMemory', value: memory, protection: 'ReadOnly' }]);
+            assert_equals(size.arguments[0].value, bytes.length, `SharedMemorySizeSwift in ${processTarget}`);
+
+            // The handle the receiver replies with maps the memory written here.
+            let reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('EchoSharedMemorySwift'), [{ type: 'bool', value: 1 }, { type: 'SharedMemory', value: memory, protection: 'ReadOnly' }]);
+            assert_equals(reply.arguments[0].type, 'SharedMemory', `EchoSharedMemorySwift reply type in ${processTarget}`);
+            assert_equals(reply.arguments[0].dataSize, bytes.length, `EchoSharedMemorySwift reply size in ${processTarget}`);
+            assert_array_equals(Array.from(new Uint8Array(reply.arguments[0].value.readBytes(0, bytes.length))), bytes, `EchoSharedMemorySwift bytes in ${processTarget}`);
+            reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('EchoSharedMemorySwift'), [{ type: 'bool', value: 0 }]);
+            assert_equals(reply.arguments[0], undefined, `EchoSharedMemorySwift of no handle in ${processTarget}`);
+
+            // A Vector<MachSendRight> is its count, then a right per element; a semaphore is sent as its right.
+            const rights = IPC.sendSyncMessage(processTarget, identifier, message('CountSendRightsSwift'), defaultTimeout, [{ type: 'uint64_t', value: 2 }, { type: 'Semaphore', value: IPC.createSemaphore() }, { type: 'Semaphore', value: IPC.createSemaphore() }]);
+            assert_equals(rights.arguments[0].value, 2, `CountSendRightsSwift in ${processTarget}`);
+
+            const onItsQueue = IPC.sendSyncMessage(processTarget, identifier, message('WasAlwaysDispatchedOnItsQueue'), defaultTimeout, []);
+            assert_true(!!onItsQueue.arguments[0].value, `Every message was handled on the work queue in ${processTarget}`);
+        } finally {
+            removeTester(processTarget, identifier);
+        }
+    }
+
+    // The UI process, unlike the others, survives invalid messages when the IPC testing API is enabled.
+    ++identifier;
+    addTester('UI', identifier);
+    takeInvalidMessageString();
+    try {
+        IPC.sendMessage('UI', identifier, message('SignalSemaphoreSwift'), []);
+        IPC.sendSyncMessage('UI', identifier, message('WasAlwaysDispatchedOnItsQueue'), defaultTimeout, []);
+        assert_not_equals(takeInvalidMessageString(), '', 'A message without the semaphore it takes is marked invalid');
+
+        assert_throws_js(TypeError, () => IPC.sendSyncMessage('UI', identifier, message('SharedMemorySizeSwift'), defaultTimeout, [{ type: 'uint64_t', value: 7 }]), 'A shared memory handle without its send right is not handled');
+        assert_not_equals(takeInvalidMessageString(), '', 'A shared memory handle without its send right is marked invalid');
+
+        assert_throws_js(TypeError, () => IPC.sendSyncMessage('UI', identifier, message('CountSendRightsSwift'), defaultTimeout, [{ type: 'uint64_t', value: 3 }, { type: 'Semaphore', value: IPC.createSemaphore() }]), 'A Vector<MachSendRight> with fewer rights than its count is not handled');
+        assert_not_equals(takeInvalidMessageString(), '', 'A Vector<MachSendRight> with fewer rights than its count is marked invalid');
+    } finally {
+        removeTester('UI', identifier);
+    }
+    done();
+}, "A Swift receiver takes and replies with send rights, semaphores and shared memory handles as Swift values, in every process.");
+</script>
+</body>

@@ -351,6 +351,7 @@
 
 [UnsafeWrapper] Vector<MachSendRight> {
     [Legacy] StructureParam WebCore::DynamicContentScalingDisplayList.takeSurfaces()
+    [DebugOnly] MessageParam IPCSwiftWorkQueueTester.CountSendRightsSwift rights
 
     [NotSentFromWebContent] MessageParamReply RemoteCompositorIntegration.RecreateRenderBuffers renderBuffers
     [NotSentFromWebContent] MessageParamReply RemoteGPU.CreateModelBacking renderBuffers
@@ -458,6 +459,8 @@
     [Legacy] StructureParam WebKit::FullScreenMediaDetails.imageHandle
 
     [DebugOnly] MessageParamReply IPCStreamTester.SyncMessageReturningSharedMemory1 handle
+    [DebugOnly] MessageParam IPCSwiftWorkQueueTester.EchoSharedMemorySwift handle
+    [DebugOnly] MessageParamReply IPCSwiftWorkQueueTester.EchoSharedMemorySwift handle
 
     [NotSentFromWebContent] MessageParamReply RemoteAudioVideoRendererProxyManager.Create handle SharedTimebaseHandle
 }
@@ -492,6 +495,7 @@
     [NotSentFromWebContent] MessageParam WebSWClientConnection.SetSWOriginTableSharedMemory handle
     [NotSentFromWebContent] MessageParam RemoteVideoFrameObjectHeapProxyProcessor.SetSharedVideoFrameMemory storageHandle
     [DebugOnly] MessageParam WebPasteboardProxy.TestIPCSharedMemory handle
+    [DebugOnly] MessageParam IPCSwiftWorkQueueTester.SharedMemorySizeSwift handle
 }
 
 [Legacy] StructureParam WebModel::UpdateMeshDescriptor.vertexData Vector<Vector<uint8_t>>

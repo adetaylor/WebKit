@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
+#include "IPCSemaphore.h" // NOLINT
 #include "SharedPreferencesForWebProcess.h" // NOLINT
 #include "TestWithSwiftWorkQueueMessages.h" // NOLINT
 #include <WebCore/SharedMemory.h> // NOLINT
@@ -65,6 +66,10 @@ void TestWithSwiftWorkQueueMessageForwarder::didReceiveMessage(IPC::Connection& 
         IPC::handleSwiftMessageAsync<Messages::TestWithSwiftWorkQueue::SendCxxDecoded>(connection, decoder, m_handler.get(), &TestWithSwiftWorkQueueWeakRef::dispatchSendCxxDecoded);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithSwiftWorkQueue::SendSharedMemory::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftWorkQueue::SendSharedMemory>(connection, decoder, m_handler.get(), &TestWithSwiftWorkQueueWeakRef::dispatchSendSharedMemory);
+        return;
+    }
     if (decoder.messageName() == Messages::TestWithSwiftWorkQueue::SendCxxString::name()) {
         IPC::handleMessage<Messages::TestWithSwiftWorkQueue::SendCxxString>(connection, decoder, m_handler.get(), &TestWithSwiftWorkQueueWeakRef::dispatchSendCxxString);
         return;
@@ -90,6 +95,10 @@ void TestWithSwiftWorkQueueMessageForwarder::didReceiveSyncMessage(IPC::Connecti
     }
     if (decoder.messageName() == Messages::TestWithSwiftWorkQueue::SendStringSync::name()) {
         IPC::handleSwiftMessageSynchronous<Messages::TestWithSwiftWorkQueue::SendStringSync>(connection, decoder, replyEncoder, m_handler.get(), &TestWithSwiftWorkQueueWeakRef::dispatchSendStringSync);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftWorkQueue::SendSemaphoreSync::name()) {
+        IPC::handleSwiftMessageSynchronous<Messages::TestWithSwiftWorkQueue::SendSemaphoreSync>(connection, decoder, replyEncoder, m_handler.get(), &TestWithSwiftWorkQueueWeakRef::dispatchSendSemaphoreSync);
         return;
     }
     if (decoder.messageName() == Messages::TestWithSwiftWorkQueue::SendCxxStringSync::name()) {
@@ -184,6 +193,22 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendCxxDecoded::ReplyArguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSharedMemory>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendSharedMemory::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendSharedMemory>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendSharedMemory::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendSemaphoreSync::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendSemaphoreSync::ReplyArguments>(globalObject, decoder);
+}
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxString>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendCxxString::Arguments>(globalObject, decoder);
@@ -215,6 +240,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendCxxDecodedReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftWorkQueue::SendSharedMemoryReply::Arguments>(globalObject, decoder);
 }
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {

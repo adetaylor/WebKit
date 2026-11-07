@@ -39,4 +39,6 @@ messages -> TestWithStreamSwiftTypes Stream {
     void SendCxxDecoded(uint32_t value, [CxxDecoded] std::optional<WebCore::SharedMemory::Handle> handle) -> (bool success) NotStreamEncodable
     void SendLentBytes(uint32_t value, [Lent] std::span<const uint8_t> bytes, uint64_t tail)
     void SendLentBytesSync([Lent] std::span<const uint8_t> bytes) -> (uint64_t size) Synchronous
+    void SendSemaphore(uint32_t value, IPC::Semaphore semaphore, std::optional<WebCore::SharedMemory::Handle> handle) NotStreamEncodable
+    void SendSendRight(MachSendRight right) -> (Vector<MachSendRight> rights) Synchronous NotStreamEncodable NotStreamEncodableReply SwiftReplyValue
 }

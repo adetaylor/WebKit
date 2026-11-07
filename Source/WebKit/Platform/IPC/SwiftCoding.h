@@ -41,6 +41,11 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/unicode/CharacterNames.h>
 
+#if OS(DARWIN)
+#include <mach/mach_init.h>
+#include <wtf/MachSendRight.h>
+#endif
+
 namespace IPC {
 
 // Writes the UTF-8 form of Latin-1 characters to utf8, which must have room for twice as many bytes, so that
@@ -97,6 +102,11 @@ inline size_t writeUTF8ForUTF16Characters(std::span<const char16_t> characters, 
     }
     return length;
 }
+
+#if OS(DARWIN)
+// The task's own port, for Swift, which can only read mach_task_self_ unsafely.
+inline mach_port_t currentTaskPort() { return mach_task_self(); }
+#endif
 
 // What the generated Swift dispatch of a message to a stream receiver whose state C++ lends did with the message: handled
 // it, declined it, for the lender to handle once the state is no longer lent, or found it invalid.
@@ -223,6 +233,17 @@ public:
     // Decodes a C++-decoded value (IPCCoding.CxxDecoded in Swift) with its own ArgumentCoder. Returns null if
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
+
+#if OS(DARWIN)
+    // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
+    // deallocate it or send it on: in Swift, the IPCTypes.MachSendRight that owns it. If there is none, invalidates the
+    // decoder and returns MACH_PORT_NULL, which a valid message may also carry.
+    mach_port_t takeSendRight()
+    {
+        auto sendRight = borrowed().template decode<MachSendRight>();
+        return sendRight ? sendRight->leakSendRight() : MACH_PORT_NULL;
+    }
+#endif
 
     // Decodes past a std::span<const uint8_t>, as its ArgumentCoder does, and stores where its bytes are.
     [[nodiscard]] bool decodeLentBytesPosition(LentBytesPosition& position)
@@ -459,6 +480,17 @@ public:
 
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
+
+#if OS(DARWIN)
+    // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up
+    // only the right of an IPCTypes.MachSendRight it consumes. A reply with attachments is never in the stream.
+    void encodeSendRight(mach_port_t port) SWIFT_UNSAFE
+    {
+        auto sendRight = MachSendRight::adopt(port);
+        RELEASE_ASSERT(!m_inStream && m_encoder);
+        *m_encoder << WTF::move(sendRight);
+    }
+#endif
 
     // Encodes a value with its own ArgumentCoder, for a reply that C++ encodes (CxxEncodedReply), which isn't in the
     // stream.
