@@ -9604,6 +9604,7 @@
 		9FE0E4A026EE4F8DA09B8C65 /* RemoteCGRendererMessageReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCGRendererMessageReceiver.cpp; sourceTree = "<group>"; };
 		4F709CB0803B4FAABC70FEA3 /* RemoteCGRendererMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCGRendererMessageReceiver.swift; sourceTree = "<group>"; };
 		4F360A9F6E40451C8709E9A5 /* RemoteCGRendererMessages.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererMessages.h; sourceTree = "<group>"; };
+		BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreSwiftForWebKit.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -10928,6 +10929,7 @@
 				46F96C662B02A58100253A2B /* WebContextMenuItemData.serialization.in */,
 				5C426B5A28BEC8D200C695CF /* WebCoreArgumentCoders.serialization.in */,
 				862C44DE2E856922000DB57E /* WebCoreFont.serialization.in */,
+				BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */,
 				8452781AD6F8C6FFA26261B0 /* WebCoreWebGLForWebKit.h */,
 				7AF2361E1E79A3B400438A05 /* WebErrors.cpp */,
 				7AF2361F1E79A3D800438A05 /* WebErrors.h */,
