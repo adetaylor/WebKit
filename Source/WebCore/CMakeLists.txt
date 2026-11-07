@@ -2543,6 +2543,11 @@ if (ENABLE_WEBGL)
         platform/graphics/angle/ANGLEUtilities.cpp
         platform/graphics/angle/GraphicsContextGLANGLE.cpp
     )
+    # GraphicsContextGLANGLE.cpp is a shell over the WebGL island's Swift (platform/graphics/angle/swift), which only the
+    # Apple ports build: its other platforms (EGL, GBM, WinCairo) need those ports' Swift toolchains.
+    if (NOT APPLE)
+        message(FATAL_ERROR "ENABLE_WEBGL needs the WebGL island, WebCore's WebCoreWebGL Swift module, which only the Apple ports build so far")
+    endif ()
 
     list(APPEND WebCore_PRIVATE_LIBRARIES ANGLE::GLES)
 elseif (USE_ANGLE_EGL)
