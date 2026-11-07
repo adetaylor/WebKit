@@ -26,13 +26,15 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebGPUEnabled
+    EnabledBy=WebGPUEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteCompositorIntegration Stream {
 #if PLATFORM(COCOA)
-    void RecreateRenderBuffers(int width, int height, WebCore::ColorSpace destinationColorSpace, enum:uint8_t WebCore::AlphaPremultiplication alphaMode, ::WebGPU::TextureFormat textureFormat, unsigned bufferCount, WebKit::WebGPUIdentifier deviceIdentifier) -> (Vector<MachSendRight> renderBuffers) Synchronous NotStreamEncodableReply
+    void RecreateRenderBuffers(int32_t width, int32_t height, [CxxDecoded] WebCore::ColorSpace destinationColorSpace, enum:uint8_t WebCore::AlphaPremultiplication alphaMode, ::WebGPU::TextureFormat textureFormat, unsigned bufferCount, WebKit::WebGPUIdentifier deviceIdentifier) -> (Vector<MachSendRight> renderBuffers) Synchronous NotStreamEncodableReply CxxEncodedReply
 #endif
-    void PrepareForDisplay(uint32_t frameIndex) -> (Seconds gpuFrameCost, Seconds presentStall) Synchronous NotStreamEncodableReply // Because CanvasRenderingContext::prepareForDisplay() requires the layer contents synchronously, this needs to be Synchronous.
+    void PrepareForDisplay(uint32_t frameIndex) -> (Seconds gpuFrameCost, Seconds presentStall) Synchronous NotStreamEncodableReply SwiftReplyValue // Because CanvasRenderingContext::prepareForDisplay() requires the layer contents synchronously, this needs to be Synchronous.
     void PaintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier imageBuffer, uint32_t bufferIndex) -> () Synchronous
     void Destruct()
     void UpdateContentsHeadroom(float headroom)

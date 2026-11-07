@@ -49,7 +49,6 @@ GPUProcess/graphics/ShareablePixelBuffer.cpp
 GPUProcess/graphics/SharedFont.cpp
 GPUProcess/graphics/Model/ModelObjectHeap.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
-GPUProcess/graphics/WebGPU/RemoteCompositorIntegration.cpp
 GPUProcess/graphics/WebGPU/RemoteGPU.cpp @cost:3
 GPUProcess/graphics/WebGPU/RemoteXRBinding.cpp
 GPUProcess/graphics/WebGPU/RemoteXRProjectionLayer.cpp

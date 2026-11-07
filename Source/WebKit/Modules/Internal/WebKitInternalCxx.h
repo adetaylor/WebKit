@@ -76,6 +76,7 @@
 #include "RemoteBufferMessages.h"
 #include "RemoteCommandBufferMessages.h"
 #include "RemoteCommandEncoderMessages.h"
+#include "RemoteCompositorIntegrationMessages.h"
 #include "RemoteComputePassEncoderMessages.h"
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteDeviceMessages.h"

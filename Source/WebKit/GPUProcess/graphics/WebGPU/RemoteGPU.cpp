@@ -32,7 +32,6 @@
 #include "Logging.h"
 #include "MeshImpl.h"
 #include "ModelObjectHeap.h"
-#include "RemoteCompositorIntegration.h"
 #include "RemoteGPUMessages.h"
 #include "RemoteGPUProxyMessages.h"
 #include "RemoteMesh.h"
@@ -203,10 +202,7 @@ void RemoteGPU::requestAdapter(const WebGPU::RequestAdapterOptions& options, Web
 void RemoteGPU::createPresentationContext(const WebGPU::PresentationContextDescriptor& descriptor, WebGPUIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    Ref objectHeap = m_objectHeap;
-    RefPtr compositorIntegration = objectHeap->compositorIntegration(descriptor.compositorIntegration);
-    MESSAGE_CHECK(compositorIntegration);
-    objectHeap->addPresentationContext(identifier, *compositorIntegration);
+    MESSAGE_CHECK(protect(m_objectHeap)->addPresentationContext(identifier, descriptor.compositorIntegration));
 }
 
 RefPtr<GPUConnectionToWebProcess> RemoteGPU::gpuConnectionToWebProcess() const
@@ -217,9 +213,7 @@ RefPtr<GPUConnectionToWebProcess> RemoteGPU::gpuConnectionToWebProcess() const
 void RemoteGPU::createCompositorIntegration(WebGPUIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    Ref objectHeap = m_objectHeap;
-    auto remoteCompositorIntegration = RemoteCompositorIntegration::create(objectHeap, *m_streamConnection, *this, identifier);
-    objectHeap->addObject(identifier, remoteCompositorIntegration);
+    protect(m_objectHeap)->addCompositorIntegration(identifier);
 }
 
 static void paintToCanvas(WebCore::NativeImage& image, const WebCore::IntSize& canvasSize, WebCore::GraphicsContext& context)

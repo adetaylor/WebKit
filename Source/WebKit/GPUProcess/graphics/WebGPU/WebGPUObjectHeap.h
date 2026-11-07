@@ -49,7 +49,6 @@ namespace WebKit {
 class WebGPUImplTable;
 #endif
 class RemoteGPU;
-class RemoteCompositorIntegration;
 class RemoteXRBinding;
 class RemoteXRProjectionLayer;
 class RemoteXRSubImage;
@@ -70,7 +69,6 @@ public:
 
     ~ObjectHeap();
 
-    void addObject(WebGPUIdentifier, RemoteCompositorIntegration&);
     void addObject(WebGPUIdentifier, RemoteXRBinding&);
     void addObject(WebGPUIdentifier, RemoteXRSubImage&);
     void addObject(WebGPUIdentifier, RemoteXRProjectionLayer&);
@@ -78,10 +76,11 @@ public:
     // The Swift registry, which owns the objects of the other kinds, makes adapters and canvas contexts for RemoteGPU, and
     // the receivers of an XR sub-image's textures. False if the sub-image has no such texture.
     std::optional<RemoteGPURequestAdapterResponse> requestAdapter(const ::WebGPU::RequestAdapterOptions&, WebGPUIdentifier);
-    void addPresentationContext(WebGPUIdentifier, RemoteCompositorIntegration&);
+    void addCompositorIntegration(WebGPUIdentifier);
+    // False if there's no compositor integration with that identifier.
+    bool addPresentationContext(WebGPUIdentifier, WebGPUIdentifier compositorIntegration);
     bool addXRSubImageTexture(WebGPUXRSubImage&, bool depth, WebGPUIdentifier);
 
-    RefPtr<RemoteCompositorIntegration> compositorIntegration(WebGPUIdentifier);
     RefPtr<RemoteXRProjectionLayer> xrProjectionLayer(WebGPUIdentifier);
     bool hasDevice(WebGPUIdentifier);
     // Destroys the devices that are still alive, so that their pending callbacks are called.
@@ -136,7 +135,6 @@ private:
 
     using Object = Variant<
         std::monostate,
-        IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRSubImage>,
         IPC::ScopedActiveMessageReceiveQueue<RemoteXRProjectionLayer>,

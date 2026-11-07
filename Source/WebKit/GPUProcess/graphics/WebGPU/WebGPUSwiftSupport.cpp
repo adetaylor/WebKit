@@ -38,10 +38,12 @@
 #include <WebCore/ColorSpace.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/ImageBuffer.h>
+#include <WebCore/NativeImage.h>
 #include <WebCore/WebGPUExternalTextureDescriptor.h>
 #include <WebCore/WebGPUImageCopyExternalImage.h>
 #include <WebCore/WebGPUImageCopyTextureTagged.h>
 #include <WebCore/WebGPUPredefinedColorSpace.h>
+#include <pal/spi/cg/CoreGraphicsSPI.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeapHandle.h"
@@ -270,6 +272,100 @@ bool isValidWebGPUWriteWithCopySize(size_t size)
 {
     return size <= WebGPU::maxCrossProcessResourceCopySize;
 }
+
+#if PLATFORM(COCOA)
+WebGPUCompositorRenderBuffers* WebGPUCompositorRenderBuffers::create()
+{
+    return &adoptRef(*new WebGPUCompositorRenderBuffers).leakRef();
+}
+
+WebGPUCompositorRenderBuffers::WebGPUCompositorRenderBuffers() = default;
+
+WebGPUCompositorRenderBuffers::~WebGPUCompositorRenderBuffers() = default;
+
+void WebGPUCompositorRenderBuffers::clear()
+{
+    m_buffers.clear();
+}
+
+void WebGPUCompositorRenderBuffers::allocate(int32_t width, int32_t height, IPC::CxxDecodedArgument<WebCore::ColorSpace>& colorSpaceArgument, bool premultiplied, uint8_t textureFormat, uint32_t bufferCount)
+{
+    auto colorSpace = colorSpaceArgument.take();
+    RELEASE_ASSERT(colorSpace);
+
+    constexpr int max2DTextureSize = 16384;
+    width = std::max(1, std::min(max2DTextureSize, width));
+    height = std::max(1, std::min(max2DTextureSize, height));
+    WebCore::IOSurface::Format colorFormat;
+    switch (static_cast<::WebGPU::TextureFormat>(textureFormat)) {
+    case ::WebGPU::TextureFormat::Rgba8unorm:
+    case ::WebGPU::TextureFormat::Rgba8unormSRGB:
+        colorFormat = premultiplied ? WebCore::IOSurface::Format::RGBA : WebCore::IOSurface::Format::RGBX;
+        break;
+#if ENABLE(PIXEL_FORMAT_RGBA16F)
+    case ::WebGPU::TextureFormat::Rgba16float:
+        colorFormat = WebCore::IOSurface::Format::RGBA16F;
+        break;
+#endif
+    default:
+        colorFormat = premultiplied ? WebCore::IOSurface::Format::BGRA : WebCore::IOSurface::Format::BGRX;
+        break;
+    }
+
+    for (unsigned bufferIndex = 0; bufferIndex < std::min<unsigned>(3u, bufferCount); ++bufferIndex) {
+        if (auto buffer = WebCore::IOSurface::create(nullptr, WebCore::IntSize(width, height), *colorSpace, WebCore::IOSurface::Name::WebGPU, colorFormat))
+            m_buffers.append(makeUniqueRefFromNonNullUniquePtr(WTF::move(buffer)));
+    }
+}
+
+IOSurfaceRef copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffers& buffers, size_t index)
+{
+    return RetainPtr { buffers.m_buffers[index]->surface() }.leakRef();
+}
+
+void WebGPUCompositorRenderBuffers::encodeSendRights(IPC::SwiftReplyEncoder& encoder) const
+{
+    encoder.encodeWithArgumentCoder(m_buffers.map([](const auto& buffer) {
+        return buffer->createSendRight();
+    }));
+}
+
+void WebGPUCompositorRenderBuffers::setContentEDRHeadroom(float headroom)
+{
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    for (auto& buffer : m_buffers)
+        buffer->setContentEDRHeadroom(headroom);
+#else
+    UNUSED_PARAM(headroom);
+#endif
+}
+
+void WebGPUCompositorRenderBuffers::paint(const WebGPUSwiftRegistryHost& host, CGImageRef textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const
+{
+    RefPtr gpu = host.m_gpu.get();
+    if (!gpu)
+        return;
+    WebCore::RenderingResourceIdentifier identifier { imageBufferIdentifier };
+    if (textureImage) {
+        if (RefPtr image = WebCore::NativeImage::create(RetainPtr { textureImage })) {
+            CGImageSetCachingFlags(image->platformImage().get(), kCGImageCachingTransient);
+            gpu->paintNativeImageToImageBuffer(*image, identifier);
+        }
+        return;
+    }
+
+    // A premultiplied canvas must keep its alpha channel so transparent pixels
+    // composite over the page; an opaque canvas forces the alpha to be ignored.
+    // This matters for RGBA16F, whose IOSurface format cannot itself encode opacity.
+    auto shouldForceOpaque = premultiplied ? WebCore::IOSurface::ShouldForceOpaque::No : WebCore::IOSurface::ShouldForceOpaque::Yes;
+    m_buffers[bufferIndex]->withNativeImage(shouldForceOpaque, [&](WebCore::NativeImage* image) {
+        if (!image)
+            return;
+        CGImageSetCachingFlags(image->platformImage().get(), kCGImageCachingTransient);
+        gpu->paintNativeImageToImageBuffer(*image, identifier);
+    });
+}
+#endif
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(const WebGPUSwiftRegistryHost& host)

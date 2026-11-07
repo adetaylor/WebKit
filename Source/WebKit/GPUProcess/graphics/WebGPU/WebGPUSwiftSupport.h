@@ -49,7 +49,19 @@
 #include <wtf/CompletionHandler.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/UniqueRef.h>
+#include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
+
+#if PLATFORM(COCOA)
+#include <CoreGraphics/CoreGraphics.h>
+#include <IOSurface/IOSurfaceRef.h>
+#endif
+
+namespace WebCore {
+class ColorSpace;
+class IOSurface;
+}
 
 namespace WebKit {
 
@@ -71,6 +83,8 @@ enum class WebGPUSwiftObjectState : uint8_t {
 // written in C++, and the RemoteGPU, for its stream connection and shared preferences, both weakly.
 class WebGPUSwiftRegistryHost {
 public:
+    friend class WebGPUCompositorRenderBuffers;
+
     WebGPUSwiftRegistryHost(WebGPU::ObjectHeap&, RemoteGPU&);
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
@@ -167,42 +181,6 @@ private:
     ::WebGPU::InstanceDescriptor m_descriptor;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-// A completion handler that a Swift closure calls, which Swift can't take as a parameter. Called at most once, when the
-// closure calls it or else when the last reference goes, on the RemoteGPU's work queue.
-class WebGPUSwiftCompletion final : public RefCounted<WebGPUSwiftCompletion> {
-public:
-    static Ref<WebGPUSwiftCompletion> create(CompletionHandler<void()>&& completionHandler)
-    {
-        return adoptRef(*new WebGPUSwiftCompletion(WTF::move(completionHandler)));
-    }
-
-    ~WebGPUSwiftCompletion()
-    {
-        call();
-    }
-
-    void call()
-    {
-        if (m_completionHandler)
-            m_completionHandler();
-    }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<WebGPUSwiftCompletion>::ref(); }
-    void deref() const { RefCounted<WebGPUSwiftCompletion>::deref(); }
-#endif
-
-private:
-    explicit WebGPUSwiftCompletion(CompletionHandler<void()>&& completionHandler)
-        : m_completionHandler(WTF::move(completionHandler))
-    {
-    }
-
-    CompletionHandler<void()> m_completionHandler;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
 // Swift can't name the ::WebGPU types in the C++ it generates: it names them WebGPU::..., which inside namespace WebKit
 // means WebKit::WebGPU::.... So the ones that the Swift that C++ calls takes have aliases there.
 namespace WebGPU {
@@ -219,6 +197,46 @@ OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore
 bool isValidWebGPUWriteWithCopySize(size_t);
 
 
+
+#if PLATFORM(COCOA)
+// The render buffers that the compositor shows a WebGPU canvas from, which RemoteCompositorIntegration.swift makes and
+// gives the canvas: IOSurfaces, whose send rights its RecreateRenderBuffers reply carries.
+class WebGPUCompositorRenderBuffers final : public RefCounted<WebGPUCompositorRenderBuffers> {
+public:
+    static WebGPUCompositorRenderBuffers* WTF_NONNULL create() SWIFT_RETURNS_RETAINED;
+
+    ~WebGPUCompositorRenderBuffers();
+
+    void clear();
+    // Up to three buffers, at most the largest 2D texture in size, in the IOSurface format of the texture format and the
+    // alpha mode. A buffer that can't be made is left out.
+    void allocate(int32_t width, int32_t height, IPC::CxxDecodedArgument<WebCore::ColorSpace>&, bool premultiplied, uint8_t textureFormat, uint32_t bufferCount);
+    size_t size() const { return m_buffers.size(); }
+    // The reply of RecreateRenderBuffers (CxxEncodedReply): the buffers' send rights.
+    void encodeSendRights(IPC::SwiftReplyEncoder&) const;
+    void setContentEDRHeadroom(float);
+    // RemoteGPU's paint, into the image buffer with that identifier, of the canvas's texture image, or else of the
+    // buffer's own image.
+    void paint(const WebGPUSwiftRegistryHost&, CGImageRef WTF_NULLABLE textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const;
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<WebGPUCompositorRenderBuffers>::ref(); }
+    void deref() const { RefCounted<WebGPUCompositorRenderBuffers>::deref(); }
+#endif
+
+private:
+    friend IOSurfaceRef WTF_NONNULL copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffers&, size_t index) CF_RETURNS_RETAINED;
+
+    WebGPUCompositorRenderBuffers();
+
+    Vector<UniqueRef<WebCore::IOSurface>> m_buffers;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// A render buffer's IOSurface, for the canvas. A function, since Swift takes what a C++ method returns as unretained.
+IOSurfaceRef WTF_NONNULL copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffers&, size_t index) CF_RETURNS_RETAINED;
+#endif
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames

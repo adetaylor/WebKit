@@ -227,13 +227,23 @@ final class WebGPUImplTable {
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
-    // Makes a canvas context, and its receiver, for the compositor integration that shows it, which holds what this
-    // returns.
+    // Makes the receiver of a compositor integration, whose canvas context comes later (addPresentationContext()).
     @used
-    func addPresentationContext(_ identifier: UInt64) -> WebGPUCompositorCanvas {
+    func addCompositorIntegration(_ identifier: UInt64) {
+        RemoteCompositorIntegration.add(WebGPURegistryLink(self, identifier))
+    }
+
+    // Makes a canvas context, and its receiver, for the compositor integration that shows it. False if there's no
+    // compositor integration with that identifier.
+    @used
+    func addPresentationContext(_ identifier: UInt64, _ compositorIntegrationIdentifier: UInt64) -> Bool {
+        guard let compositorIntegration = entries[compositorIntegrationIdentifier]?.receiver as? RemoteCompositorIntegration else {
+            return false
+        }
         let presentationContext = instance.createPresentationContext()
         RemotePresentationContext.add(presentationContext, WebGPURegistryLink(self, identifier))
-        return WebGPUCompositorCanvas(presentationContext)
+        compositorIntegration.setCanvas(WebGPUCompositorCanvas(presentationContext))
+        return true
     }
 
     // Makes the receiver of an XR sub-image's current color or depth texture. False if it has none.
@@ -285,6 +295,11 @@ final class WebGPUImplTable {
             return
         }
         _ = stores.remove(identifier, kind)
+    }
+
+    @_expose(!Cxx)
+    func add(_ identifier: UInt64, _ compositorIntegration: RemoteCompositorIntegration, registration: WebKit.WebGPUSwiftReceiverRegistration?) {
+        add(identifier, Entry(compositorIntegration, compositorIntegration, registration, nil))
     }
 
     @_expose(!Cxx)

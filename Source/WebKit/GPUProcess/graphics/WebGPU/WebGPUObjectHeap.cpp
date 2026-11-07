@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
-#include "RemoteCompositorIntegration.h"
 #include "RemoteGPU.h"
 #include "RemoteXRBinding.h"
 #include "RemoteXRProjectionLayer.h"
@@ -71,12 +70,6 @@ WebGPUImplTable& ObjectHeap::swiftImplTable()
 }
 
 
-void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteCompositorIntegration& querySet)
-{
-    auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration> { protect(querySet) } });
-    ASSERT_UNUSED(result, result.isNewEntry);
-}
-
 void ObjectHeap::addObject(WebGPUIdentifier identifier, RemoteXRBinding& xrBinding)
 {
     auto result = m_objects.add(identifier, Object { IPC::ScopedActiveMessageReceiveQueue<RemoteXRBinding> { protect(xrBinding) } });
@@ -109,17 +102,14 @@ std::optional<RemoteGPURequestAdapterResponse> ObjectHeap::requestAdapter(const 
     return response;
 }
 
-void ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, RemoteCompositorIntegration& compositorIntegration)
+void ObjectHeap::addCompositorIntegration(WebGPUIdentifier identifier)
 {
-    compositorIntegration.setCanvas(swiftImplTable().addPresentationContext(identifier.toUInt64()));
+    swiftImplTable().addCompositorIntegration(identifier.toUInt64());
 }
 
-RefPtr<RemoteCompositorIntegration> ObjectHeap::compositorIntegration(WebGPUIdentifier identifier)
+bool ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, WebGPUIdentifier compositorIntegration)
 {
-    auto iterator = m_objects.find(identifier);
-    if (iterator == m_objects.end() || !std::holds_alternative<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value))
-        return nullptr;
-    return std::get<IPC::ScopedActiveMessageReceiveQueue<RemoteCompositorIntegration>>(iterator->value).get();
+    return swiftImplTable().addPresentationContext(identifier.toUInt64(), compositorIntegration.toUInt64());
 }
 
 bool ObjectHeap::hasDevice(WebGPUIdentifier identifier)

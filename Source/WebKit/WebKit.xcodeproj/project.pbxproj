@@ -130,6 +130,8 @@
 		4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */; };
 		19707119721D983DD12B50CD /* RemoteQuerySet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF60F74AC568B0A2E43AE916 /* RemoteQuerySet.swift */; };
 		1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75FFEAD1E819D990CC620000 /* RemoteBindGroup.swift */; };
+		4928735FACD840DFCA032BAB /* RemoteCompositorIntegration.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE26B6AADA8FADC802E50A44 /* RemoteCompositorIntegration.swift */; };
+		B73E0F9A8815DC7A9F44FB31 /* RemoteCompositorIntegrationMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D4833FEBB5986155165B1DF /* RemoteCompositorIntegrationMessageReceiver.swift */; };
 		E5AC67233BBC9373B29BFD70 /* RemotePresentationContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BE88F8D011DEC884B72C822 /* RemotePresentationContext.swift */; };
 		34EA92CCA45892F34BDCBF45 /* RemotePresentationContextMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC4943DDBA07CB6FC9349E4 /* RemotePresentationContextMessageReceiver.swift */; };
 		6DAE1F965DD7CAE4D530D40E /* RemoteAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */; };
@@ -3837,6 +3839,7 @@
 		0D6D0AB12C6BA0B10073F63D /* RemoteXRViewProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteXRViewProxy.cpp; sourceTree = "<group>"; };
 		0D7A7A78291C3F1600DB4E18 /* RemotePresentationContextProxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemotePresentationContextProxy.h; sourceTree = "<group>"; };
 		0D7A7A7B291C3F1600DB4E18 /* RemotePresentationContextProxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemotePresentationContextProxy.cpp; sourceTree = "<group>"; };
+		EE26B6AADA8FADC802E50A44 /* RemoteCompositorIntegration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCompositorIntegration.swift; sourceTree = "<group>"; };
 		5BE88F8D011DEC884B72C822 /* RemotePresentationContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePresentationContext.swift; sourceTree = "<group>"; };
 		0D7A7A7E291C449D00DB4E18 /* RemotePresentationContext.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RemotePresentationContext.messages.in; sourceTree = "<group>"; };
 		0D7A7A84291C7E0E00DB4E18 /* WebGPUPresentationContextDescriptor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUPresentationContextDescriptor.cpp; sourceTree = "<group>"; };
@@ -4457,9 +4460,7 @@
 		A7E4C0DE2F0000000000A003 /* WebExtensionMessage.serialization.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WebExtensionMessage.serialization.in; sourceTree = "<group>"; };
 		1C4EBD712ABA47610005868F /* WebExtensionMessageSenderParameters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionMessageSenderParameters.h; sourceTree = "<group>"; };
 		1C4EBD732ABA481B0005868F /* WebExtensionMessageSenderParameters.serialization.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WebExtensionMessageSenderParameters.serialization.in; sourceTree = "<group>"; };
-		1C4F5A1C297CB57A005BBEE9 /* RemoteCompositorIntegration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCompositorIntegration.h; sourceTree = "<group>"; };
 		1C4F5A1D297CB57B005BBEE9 /* RemoteCompositorIntegration.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteCompositorIntegration.messages.in; sourceTree = "<group>"; };
-		1C4F5A1E297CB57B005BBEE9 /* RemoteCompositorIntegration.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCompositorIntegration.cpp; sourceTree = "<group>"; };
 		1C4F5A1F297CB5A2005BBEE9 /* RemoteCompositorIntegrationProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCompositorIntegrationProxy.cpp; sourceTree = "<group>"; };
 		1C4F5A20297CB5A3005BBEE9 /* RemoteCompositorIntegrationProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCompositorIntegrationProxy.h; sourceTree = "<group>"; };
 		1C517F482B743C1D00C46EDC /* WebExtensionAPIDevTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionAPIDevTools.h; sourceTree = "<group>"; };
@@ -4640,6 +4641,7 @@
 		6D69B16094AB482D07835395 /* RemoteDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDevice.swift; sourceTree = "<group>"; };
 		A450C45306C79F7CBF16BE0F /* RemotePipelineLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePipelineLayout.swift; sourceTree = "<group>"; };
 		ECFC42008DEC2202E7D00D01 /* RemotePipelineLayoutMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePipelineLayoutMessageReceiver.swift; sourceTree = "<group>"; };
+		6D4833FEBB5986155165B1DF /* RemoteCompositorIntegrationMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCompositorIntegrationMessageReceiver.swift; sourceTree = "<group>"; };
 		0DC4943DDBA07CB6FC9349E4 /* RemotePresentationContextMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePresentationContextMessageReceiver.swift; sourceTree = "<group>"; };
 		B928C92BD891DC41474AC618 /* RemoteRenderPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderPipeline.swift; sourceTree = "<group>"; };
 		C3D6A88F35BF75F545303118 /* RemoteRenderPipelineMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderPipelineMessageReceiver.swift; sourceTree = "<group>"; };
@@ -11658,9 +11660,8 @@
 				C20B9871C9DBF3E49E10FFA4 /* RemoteCommandBuffer.swift */,
 				1C98C0952744BD9B002CCB78 /* RemoteCommandEncoder.messages.in */,
 				91F73EDA391A690F2183C483 /* RemoteCommandEncoder.swift */,
-				1C4F5A1E297CB57B005BBEE9 /* RemoteCompositorIntegration.cpp */,
-				1C4F5A1C297CB57A005BBEE9 /* RemoteCompositorIntegration.h */,
 				1C4F5A1D297CB57B005BBEE9 /* RemoteCompositorIntegration.messages.in */,
+				EE26B6AADA8FADC802E50A44 /* RemoteCompositorIntegration.swift */,
 				1C98C0932744BD9B002CCB78 /* RemoteComputePassEncoder.messages.in */,
 				4FB7746AEDA3A7DDAB261E4D /* RemoteComputePassEncoder.swift */,
 				1C98C08E2744BD9A002CCB78 /* RemoteComputePipeline.messages.in */,
@@ -14035,6 +14036,7 @@
 				1C55A59B275457CA00EB7E95 /* RemoteCommandEncoderMessageReceiver.cpp */,
 				401BD2E4C3C57B8BA55CB864 /* RemoteCommandEncoderMessageReceiver.swift */,
 				1C55A592275457C900EB7E95 /* RemoteCommandEncoderMessages.h */,
+				6D4833FEBB5986155165B1DF /* RemoteCompositorIntegrationMessageReceiver.swift */,
 				1C55A5AE275457CD00EB7E95 /* RemoteComputePassEncoderMessageReceiver.cpp */,
 				B59BA0F4425535431C41C6F3 /* RemoteComputePassEncoderMessageReceiver.swift */,
 				1C55A57B275457C500EB7E95 /* RemoteComputePassEncoderMessages.h */,
@@ -22706,6 +22708,8 @@
 				9FE00196C18CBAD266AC9430 /* RemoteCommandBufferMessageReceiver.swift in Sources */,
 				EE565FE77B9B43E660B85F5B /* RemoteCommandEncoder.swift in Sources */,
 				81FBAB03ACCC134B5E82841C /* RemoteCommandEncoderMessageReceiver.swift in Sources */,
+				4928735FACD840DFCA032BAB /* RemoteCompositorIntegration.swift in Sources */,
+				B73E0F9A8815DC7A9F44FB31 /* RemoteCompositorIntegrationMessageReceiver.swift in Sources */,
 				0CC061041EEDEC74CC214BBD /* RemoteComputePassEncoder.swift in Sources */,
 				DC9FEDA4A25AD12B0AF24DC2 /* RemoteComputePassEncoderMessageReceiver.swift in Sources */,
 				BE22598C2BC56871FAC5DD15 /* RemoteComputePipeline.swift in Sources */,
