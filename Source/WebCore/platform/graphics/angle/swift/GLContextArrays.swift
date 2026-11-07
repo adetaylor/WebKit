@@ -716,7 +716,8 @@ extension GLContext {
     @_expose(!Cxx)
     public func getActiveUniformBlockName(_ program: GLuint, _ uniformBlockIndex: GLuint) -> [UInt8]? {
         let maxLength = activeUniformBlockNameLength(program)
-        return readString(maxLength) { span in ANGLE.getActiveUniformBlockName(program, uniformBlockIndex, &span) } beforeOS26: { ANGLEBeforeOS26.getActiveUniformBlockName(program, uniformBlockIndex, Int(maxLength)) }
+        // ANGLE is asked even for an empty name, so that it checks the index.
+        return readString(maxLength, readsEmpty: true) { span in ANGLE.getActiveUniformBlockName(program, uniformBlockIndex, &span) } beforeOS26: { ANGLEBeforeOS26.getActiveUniformBlockName(program, uniformBlockIndex, Int(maxLength)) }
     }
 
     @_expose(!Cxx)
@@ -813,11 +814,11 @@ extension GLContext {
 
     // A string of up to maxLength bytes with its terminator, which read writes into a span (OS 26 and later) or
     // beforeOS26 returns. nil when maxLength is negative, which means the context isn't current.
-    private func readString(_ maxLength: GLint, read: (inout MutableSpan<UInt8>) -> GLsizei, beforeOS26: () -> ANGLEBytes) -> [UInt8]? {
+    private func readString(_ maxLength: GLint, readsEmpty: Bool = false, read: (inout MutableSpan<UInt8>) -> GLsizei, beforeOS26: () -> ANGLEBytes) -> [UInt8]? {
         if maxLength < 0 {
             return nil
         }
-        if maxLength == 0 {
+        if maxLength == 0 && !readsEmpty {
             return []
         }
         if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
