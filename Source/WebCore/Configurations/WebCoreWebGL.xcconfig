@@ -1,0 +1,57 @@
+// Copyright (C) 2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+// The WebGL island's Swift module, a static library that WebCore.framework force-loads. It has WebCore's Swift settings
+// and none of the framework's.
+#include "WebCore.xcconfig"
+
+PRODUCT_NAME = WebCoreWebGL;
+MACH_O_TYPE = staticlib;
+EXECUTABLE_PREFIX = lib;
+INSTALL_PATH = ;
+SKIP_INSTALL = YES;
+INSTALLHDRS_COPY_PHASE = NO;
+INSTALLHDRS_SCRIPT_PHASE = NO;
+INFOPLIST_FILE = ;
+DYLIB_INSTALL_NAME_BASE = ;
+UNEXPORTED_SYMBOLS_FILE = ;
+WK_WEBGL_ISLAND_LDFLAGS = ;
+WK_WEBCOREEME_TBD_FLAGS_ENABLE_WEBCORE_SWIFT = ;
+GCC_PREFIX_HEADER = ;
+GCC_PRECOMPILE_PREFIX_HEADER = NO;
+SUPPORTS_TEXT_BASED_API = NO;
+
+// The island's own clang modules: WebCoreANGLE, and WebCoreWebGL, which its Swift module extends.
+DEFINES_MODULE = NO;
+MODULEMAP_FILE = ;
+MODULEMAP_PRIVATE_FILE = ;
+ENABLE_MODULE_VERIFIER = NO;
+WK_WEBGL_ISLAND_SOURCE_DIR = $(SRCROOT)/platform/graphics/angle/swift;
+SWIFT_INCLUDE_PATHS = $(inherited) $(WK_WEBGL_ISLAND_SOURCE_DIR);
+WK_WEBGL_ISLAND_SWIFT_FLAGS = -import-underlying-module -Xfrontend -disable-cross-import-overlays -Xcc -I$(WK_WEBGL_ISLAND_SOURCE_DIR) -Xcc -DWEBCORE_EXPORT=;
+
+// Its API is WebCore's C++ only, through its generated header.
+BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
+SWIFT_LIBRARY_LEVEL = ;
+SWIFT_OBJC_INTERFACE_HEADER_NAME = WebCoreWebGLSwift-Generated.h;
+SWIFT_INSTALL_OBJC_HEADER = NO;

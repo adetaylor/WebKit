@@ -7763,6 +7763,18 @@
 		2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AA0CA104B921C41005D089 /* EMEJSON.swift */; };
 		56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */; };
 		2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */; };
+		EAC64F3E977A4190822BF2F0 /* GLLentMemory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */; };
+		8D375ACFE3484823971E2318 /* ANGLECocoaShims.mm in Sources */ = {isa = PBXBuildFile; fileRef = 6A66C2EDA854401CB7F63077 /* ANGLECocoaShims.mm */; };
+		F4110CD310E14A8EA5EEE826 /* GraphicsContextGLANGLEIsland.h in Headers */ = {isa = PBXBuildFile; fileRef = D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */; };
+		DE412C1C31BA4AD995BBD95D /* GLContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BF648996261406AA5BDD357 /* GLContext.swift */; };
+		3CC8300BDF744BC59490B6A7 /* GLContextArrays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C36B159654471486AB7592 /* GLContextArrays.swift */; };
+		35537DDC1E1042E7B6F45B4C /* GLContextPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5359751BA64C31A381063F /* GLContextPlatform.swift */; };
+		BEF55A376AEF4F6180F50446 /* GLExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 728A277A55614F369E475237 /* GLExtensions.swift */; };
+		427612BB1A944BEF8A1E5E94 /* GLLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B704B0DF60349518A38ECF2 /* GLLog.swift */; };
+		DAC6B606EC074D0FAFA2EB19 /* GLScopes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */; };
+		0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1677C9FE1B48D7A1449F82 /* GLState.swift */; };
+		354C93A55960471382F69BAB /* CocoaGLPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B3F9C7A3A4206B1B5E880 /* CocoaGLPlatform.swift */; };
+		598B28086F55413F84394B7E /* GLVideoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -7860,6 +7872,20 @@
 			proxyType = 1;
 			remoteGlobalIDString = D88C08B2320B4F72A5CB6C32;
 			remoteInfo = WebCoreSwiftSupport;
+		};
+		91FE4746866A4300980B3931 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DD041FBE09D9DDBE0010AF2A;
+			remoteInfo = "Derived Sources";
+		};
+		4B58B28032ED4AE79D78D770 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0867D690FE84028FC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 556F6EE312354B4B9A9922DB;
+			remoteInfo = WebCoreWebGL;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -24500,6 +24526,28 @@
 		D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineCodeUnits.swift; sourceTree = "<group>"; };
 		94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreSwiftSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreSwiftSupport.xcconfig; sourceTree = "<group>"; };
+		A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GLLentMemory.cpp; sourceTree = "<group>"; };
+		6A66C2EDA854401CB7F63077 /* ANGLECocoaShims.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ANGLECocoaShims.mm; sourceTree = "<group>"; };
+		D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextGLANGLEIsland.h; sourceTree = "<group>"; };
+		1BF648996261406AA5BDD357 /* GLContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContext.swift; sourceTree = "<group>"; };
+		14C36B159654471486AB7592 /* GLContextArrays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContextArrays.swift; sourceTree = "<group>"; };
+		AF5359751BA64C31A381063F /* GLContextPlatform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContextPlatform.swift; sourceTree = "<group>"; };
+		728A277A55614F369E475237 /* GLExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLExtensions.swift; sourceTree = "<group>"; };
+		3B704B0DF60349518A38ECF2 /* GLLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLLog.swift; sourceTree = "<group>"; };
+		F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLScopes.swift; sourceTree = "<group>"; };
+		CD1677C9FE1B48D7A1449F82 /* GLState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLState.swift; sourceTree = "<group>"; };
+		CB3B3F9C7A3A4206B1B5E880 /* CocoaGLPlatform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CocoaGLPlatform.swift; sourceTree = "<group>"; };
+		67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLVideoUpload.swift; sourceTree = "<group>"; };
+		59B8948C748843E3AB69C285 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		3F82ABC980894E83BF4A51E9 /* WebCoreANGLE.apinotes */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebCoreANGLE.apinotes; sourceTree = "<group>"; };
+		0C44AE42874A440583C462F0 /* WebCoreANGLE.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLE.h; sourceTree = "<group>"; };
+		7478FE862B0C4A8A86007735 /* WebCoreANGLEBeforeOS26.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLEBeforeOS26.h; sourceTree = "<group>"; };
+		5AD0EF5BDC5147C3BC73A671 /* GLLentMemory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GLLentMemory.h; sourceTree = "<group>"; };
+		1907572DE7C54ECAB15B56A8 /* WebCoreWebGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreWebGL.h; sourceTree = "<group>"; };
+		729B00C4BA9F44B3A912901F /* WebCoreWebGL-Swift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WebCoreWebGL-Swift.h"; sourceTree = "<group>"; };
+		C004536D0EFF4AE7A20533B4 /* WebCoreANGLECocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLECocoa.h; sourceTree = "<group>"; };
+		091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreWebGL.xcconfig; sourceTree = "<group>"; };
+		425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreWebGL.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -24570,6 +24618,7 @@
 		034768DFFF38A50411DB9C8B /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */,
 				417DA6D013734E02007C57FB /* libWebCoreTestSupport.dylib */,
 				4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */,
 				94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */,
@@ -26927,6 +26976,7 @@
 				36C6603487B474AAF23D6DD1 /* WebCoreEME.xcconfig */,
 				125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */,
 				4181707D1386EDF20057AAA4 /* WebCoreTestSupport.xcconfig */,
+				091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */,
 			);
 			path = Configurations;
 			sourceTree = "<group>";
@@ -31990,11 +32040,14 @@
 		6E27F2412298CE2E00F1F632 /* angle */ = {
 			isa = PBXGroup;
 			children = (
+				CEC7D38BB89544E485A19376 /* swift */,
 				27E3C806257F5E6E00C986AB /* ANGLEHeaders.h */,
 				7BCD42D8270599EF00EB2127 /* ANGLEUtilities.cpp */,
 				7BB34A1625345CB200029D08 /* ANGLEUtilities.h */,
+				A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */,
 				6E27F2422298CE4B00F1F632 /* GraphicsContextGLANGLE.cpp */,
 				7B95CFEC2754FF7C000060CE /* GraphicsContextGLANGLE.h */,
+				D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */,
 			);
 			path = angle;
 			sourceTree = "<group>";
@@ -37608,6 +37661,7 @@
 			isa = PBXGroup;
 			children = (
 				72F8898D298887C500A6E07A /* controls */,
+				6A66C2EDA854401CB7F63077 /* ANGLECocoaShims.mm */,
 				7BCD42DC2705C94900EB2127 /* ANGLEUtilitiesCocoa.h */,
 				7BCD42DA2705C94900EB2127 /* ANGLEUtilitiesCocoa.mm */,
 				CDF9950124C28149002EA062 /* AudioTrackPrivateWebM.cpp */,
@@ -44699,6 +44753,38 @@
 			path = swift;
 			sourceTree = "<group>";
 		};
+		CEC7D38BB89544E485A19376 /* swift */ = {
+			isa = PBXGroup;
+			children = (
+				CA3A75BFEEB84FB5B675DA12 /* cocoa */,
+				1BF648996261406AA5BDD357 /* GLContext.swift */,
+				14C36B159654471486AB7592 /* GLContextArrays.swift */,
+				AF5359751BA64C31A381063F /* GLContextPlatform.swift */,
+				728A277A55614F369E475237 /* GLExtensions.swift */,
+				5AD0EF5BDC5147C3BC73A671 /* GLLentMemory.h */,
+				3B704B0DF60349518A38ECF2 /* GLLog.swift */,
+				F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */,
+				CD1677C9FE1B48D7A1449F82 /* GLState.swift */,
+				59B8948C748843E3AB69C285 /* module.modulemap */,
+				3F82ABC980894E83BF4A51E9 /* WebCoreANGLE.apinotes */,
+				0C44AE42874A440583C462F0 /* WebCoreANGLE.h */,
+				7478FE862B0C4A8A86007735 /* WebCoreANGLEBeforeOS26.h */,
+				729B00C4BA9F44B3A912901F /* WebCoreWebGL-Swift.h */,
+				1907572DE7C54ECAB15B56A8 /* WebCoreWebGL.h */,
+			);
+			path = swift;
+			sourceTree = "<group>";
+		};
+		CA3A75BFEEB84FB5B675DA12 /* cocoa */ = {
+			isa = PBXGroup;
+			children = (
+				CB3B3F9C7A3A4206B1B5E880 /* CocoaGLPlatform.swift */,
+				67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */,
+				C004536D0EFF4AE7A20533B4 /* WebCoreANGLECocoa.h */,
+			);
+			path = cocoa;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -46633,6 +46719,7 @@
 				313DE87023A96973008FC47B /* GraphicsContextGL.h in Headers */,
 				3ABD156C297A340100AF9D76 /* GraphicsContextGLActiveInfo.h in Headers */,
 				7B95CFED2754FF7C000060CE /* GraphicsContextGLANGLE.h in Headers */,
+				F4110CD310E14A8EA5EEE826 /* GraphicsContextGLANGLEIsland.h in Headers */,
 				7C330A021DF8FAC600D3395C /* GraphicsContextGLAttributes.h in Headers */,
 				7BDDA31F274FA0210038659E /* GraphicsContextGLCocoa.h in Headers */,
 				3ABD156A297A289300AF9D76 /* GraphicsContextGLEnums.h in Headers */,
@@ -51293,6 +51380,7 @@
 				DDE748752F7B28D6008013AB /* PBXBuildRule */,
 			);
 			dependencies = (
+				E76C93701EF34CA9ACD13F97 /* PBXTargetDependency */,
 				E44ACA1E9D6583760E8C5A30 /* PBXTargetDependency */,
 				75CFDC86318F426C9E7BB2F6 /* PBXTargetDependency */,
 				DD041FF109D9E3250010AF2A /* PBXTargetDependency */,
@@ -51337,6 +51425,22 @@
 			name = WebCoreSwiftSupport;
 			productName = WebCoreSwiftSupport;
 			productReference = 94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		556F6EE312354B4B9A9922DB /* WebCoreWebGL */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCE28E5BAEA8449A9037223B /* Build configuration list for PBXNativeTarget "WebCoreWebGL" */;
+			buildPhases = (
+				5FD1942B44B1406CB5AC75BD /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9AC9F722F1647A9B824F3B7 /* PBXTargetDependency */,
+			);
+			name = WebCoreWebGL;
+			productName = WebCoreWebGL;
+			productReference = 425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -51387,6 +51491,7 @@
 				5355E8D11F967E9D0031E08C /* Generate Unified Sources */,
 				6BFD483C9DA6BD1DAA1A0702 /* WebCoreEME */,
 				D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */,
+				556F6EE312354B4B9A9922DB /* WebCoreWebGL */,
 				DD041FBE09D9DDBE0010AF2A /* Derived Sources */,
 				417DA6CF13734E02007C57FB /* WebCoreTestSupport */,
 				5325BDC621DFF33700A0DEE1 /* Apply Configuration to XCFileLists */,
@@ -51808,6 +51913,7 @@
 			files = (
 				71BF4C3229B098A8008344FC /* AcceleratedEffectStack.cpp in Sources */,
 				A9787CB41F5F5C6600C551C6 /* AccessibilityMediaHelpers.cpp in Sources */,
+				8D375ACFE3484823971E2318 /* ANGLECocoaShims.mm in Sources */,
 				7BE37F7D27BB86CD007A6CD3 /* ANGLEUtilities.cpp in Sources */,
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
 				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
@@ -51921,6 +52027,7 @@
 				4664D1A62964FCE8006FE0C5 /* GamepadHapticActuator.cpp in Sources */,
 				51A9D9E9195B931F001B2B5C /* GamepadManager.cpp in Sources */,
 				837964CF1F8DB69D00218EA0 /* GeolocationPositionDataCocoa.mm in Sources */,
+				EAC64F3E977A4190822BF2F0 /* GLLentMemory.cpp in Sources */,
 				6E72F54E229DCD1000B3E151 /* GraphicsContextGLANGLE.cpp in Sources */,
 				7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */,
 				197517565C5615893EA685B3 /* H264Utilities.swift in Sources */,
@@ -52807,6 +52914,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5FD1942B44B1406CB5AC75BD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				354C93A55960471382F69BAB /* CocoaGLPlatform.swift in Sources */,
+				DE412C1C31BA4AD995BBD95D /* GLContext.swift in Sources */,
+				3CC8300BDF744BC59490B6A7 /* GLContextArrays.swift in Sources */,
+				35537DDC1E1042E7B6F45B4C /* GLContextPlatform.swift in Sources */,
+				BEF55A376AEF4F6180F50446 /* GLExtensions.swift in Sources */,
+				427612BB1A944BEF8A1E5E94 /* GLLog.swift in Sources */,
+				DAC6B606EC074D0FAFA2EB19 /* GLScopes.swift in Sources */,
+				0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */,
+				598B28086F55413F84394B7E /* GLVideoUpload.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -52859,6 +52982,16 @@
 			isa = PBXTargetDependency;
 			target = D88C08B2320B4F72A5CB6C32 /* WebCoreSwiftSupport */;
 			targetProxy = 1036992B78C74D09B2F8D996 /* PBXContainerItemProxy */;
+		};
+		C9AC9F722F1647A9B824F3B7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DD041FBE09D9DDBE0010AF2A /* Derived Sources */;
+			targetProxy = 91FE4746866A4300980B3931 /* PBXContainerItemProxy */;
+		};
+		E76C93701EF34CA9ACD13F97 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 556F6EE312354B4B9A9922DB /* WebCoreWebGL */;
+			targetProxy = 4B58B28032ED4AE79D78D770 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -53093,6 +53226,27 @@
 			};
 			name = Production;
 		};
+		2FCE6CB0587C4F40B164A5ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		22F35FA4C37D427697A323C9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		3BDFF0C0FB014575BAA714E6 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */;
+			buildSettings = {
+			};
+			name = Production;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -53182,6 +53336,16 @@
 				41A11A5CE2CB4D9CA8C4F2C9 /* Debug */,
 				617314FE063A427B96B3AA06 /* Release */,
 				4DC21EC555CF4F7EAD84C311 /* Production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Production;
+		};
+		BCE28E5BAEA8449A9037223B /* Build configuration list for PBXNativeTarget "WebCoreWebGL" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2FCE6CB0587C4F40B164A5ED /* Debug */,
+				22F35FA4C37D427697A323C9 /* Release */,
+				3BDFF0C0FB014575BAA714E6 /* Production */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Production;
