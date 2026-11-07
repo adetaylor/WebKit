@@ -7,7 +7,7 @@
 // FIXME: Remove the `__has_feature(modules)` condition when possible.
 #if !__has_feature(modules)
 
-#if ENABLE(WEBXR)
+#if ENABLE(WEBXR) && HAVE(COMPOSITOR_SERVICES)
 
 #import <pal/spi/cocoa/CompositorServicesSPI.h>
 #import <wtf/SoftLinking.h>
@@ -154,6 +154,6 @@ SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CompositorServices, cp_view_texture_map_get_v
 SOFT_LINK_FUNCTION_FOR_HEADER(PAL, CompositorServices, cp_view_texture_map_get_slice_index, size_t, (cp_view_texture_map_t view_texture_map), (view_texture_map))
 #define cp_view_texture_map_get_slice_index PAL::softLink_CompositorServices_cp_view_texture_map_get_slice_index
 
-#endif // ENABLE(WEBXR)
+#endif // ENABLE(WEBXR) && HAVE(COMPOSITOR_SERVICES)
 
 #endif // !__has_feature(modules)
