@@ -984,7 +984,7 @@ void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<cons
         static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
         CGRendererGlyphDrawFacts facts {
             computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
-            static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer()
+            static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer())
         };
         Vector<CGPoint, 256> positions(glyphs.size());
         SWIFT_RENDERER(drawGlyphs(ctFont.get(), CGRendererGlyphRun { glyphs, advances, translations.span() }, CGRendererGlyphPositions { positions.mutableSpan() }, facts, shadowFillColor.get(), point.x(), point.y()));

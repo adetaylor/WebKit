@@ -1533,6 +1533,53 @@ private struct CGRendererColorCache {
         beginTransparencyLayer(state.alpha)
     }
 
+    // Whether a Swift receiver began a transparency layer that is still open, which GraphicsContext doesn't count
+    // (isInTransparencyLayer()).
+    @_expose(Cxx)
+    func hasReceiverTransparencyLayer() -> Bool {
+        for level in 0..<depth where stack[level].purpose == .transparencyLayer && !stack[level].hasCxxLevel {
+            return true
+        }
+        return false
+    }
+
+    // A transparency layer that only the renderer has, which GraphicsContextCG ends as one (endTransparencyLayer()). It starts
+    // with the state reset, as its level's.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveBeginTransparencyLayer(_ opacity: Float) {
+        hasDrawn = true
+        save(true, hasCxxLevel: false)
+        cxxStaleProperties |= CxxStateChange.alpha | CxxStateChange.style | CxxStateChange.dropShadow | CxxStateChange.compositeMode
+        context.setAlpha(CGFloat(opacity))
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        userToDeviceTransformKnownToBeIdentity = false
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveBeginTransparencyLayerWithCurrentAlpha() {
+        receiveBeginTransparencyLayer(state.alpha)
+    }
+
+    // Declines the end of a layer that C++ began, which C++ ends, as it counts it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetURLForRect(_ url: CFURL, _ rect: CGRect) {
+        setURLForRect(url, rect)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveEndTransparencyLayer() -> Bool {
+        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer else {
+            return true
+        }
+        guard !stack[depth - 1].hasCxxLevel else {
+            return false
+        }
+        hasDrawn = true
+        context.endTransparencyLayer()
+        pop()
+        return true
+    }
+
     @_expose(Cxx)
     mutating func endTransparencyLayer() {
         hasDrawn = true
