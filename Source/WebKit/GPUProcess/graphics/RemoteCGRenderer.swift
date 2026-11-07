@@ -548,6 +548,23 @@ final class RemoteCGRenderer {
         return state.receiveFillRect(cgRect(rect), value, cgColor, op, blendMode)
     }
 
+    func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: WebCore.Color, blendMode: WebCore.BlendMode) -> Bool {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), value, cgColor, blendMode)
+    }
+
+    func fillRectWithRoundedHole(
+        state: inout CGRendererCore,
+        rect: WebCore.FloatRect,
+        roundedHoleRect: WebCore.FloatRoundedRect,
+        color: WebCore.Color
+    ) -> Bool {
+        var value = CGRendererColorValue()
+        let cgColor = WebKit.copyColor(resources, color, &value)
+        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, value, cgColor)
+    }
+
     func applyDeviceScaleFactor(state: inout CGRendererCore, scaleFactor: Float) {
         state.receiveApplyDeviceScaleFactor(scaleFactor)
     }

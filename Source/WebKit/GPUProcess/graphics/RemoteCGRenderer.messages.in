@@ -127,6 +127,8 @@ messages -> RemoteCGRenderer Stream {
     DrawDotsForDocumentMarker
     DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
     FillRectWithGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteCGRendererGradient gradient, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
+    FillRoundedRect SwiftMayDecline
+    FillRectWithRoundedHole SwiftMayDecline
 }
 
 #endif

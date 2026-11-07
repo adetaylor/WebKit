@@ -211,6 +211,8 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteGraphicsContext::drawDotsForDocumentMarker)
     HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform)
+    HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteGraphicsContext::fillRoundedRect)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteGraphicsContext::fillRectWithRoundedHole)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
