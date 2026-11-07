@@ -462,21 +462,21 @@ void RemoteGraphicsContextProxy::beginTransparencyLayer(float opacity)
 {
     sendPendingDrawsIfNecessary();
     updateStateForBeginTransparencyLayer(opacity);
-    send(Messages::RemoteGraphicsContext::BeginTransparencyLayer(opacity));
+    SEND_RENDERER_MESSAGE(BeginTransparencyLayer, opacity);
 }
 
 void RemoteGraphicsContextProxy::beginTransparencyLayer(CompositeOperator compositeOperator, BlendMode blendMode)
 {
     sendPendingDrawsIfNecessary();
     updateStateForBeginTransparencyLayer(compositeOperator, blendMode);
-    send(Messages::RemoteGraphicsContext::BeginTransparencyLayerWithCompositeMode({ compositeOperator, blendMode }));
+    SEND_RENDERER_MESSAGE(BeginTransparencyLayerWithCompositeMode, CompositeMode { compositeOperator, blendMode });
 }
 
 void RemoteGraphicsContextProxy::endTransparencyLayer()
 {
     sendPendingDrawsIfNecessary();
     if (updateStateForEndTransparencyLayer())
-        send(Messages::RemoteGraphicsContext::EndTransparencyLayer());
+        SEND_RENDERER_MESSAGE(EndTransparencyLayer);
 }
 
 void RemoteGraphicsContextProxy::drawRect(const FloatRect& rect, float width)
@@ -812,7 +812,7 @@ void RemoteGraphicsContextProxy::setURLForRect(const URL& link, const FloatRect&
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::SetURLForRect(link, destRect));
+    SEND_RENDERER_MESSAGE(SetURLForRect, link, destRect);
 }
 
 bool RemoteGraphicsContextProxy::recordResourceUse(const NativeImage& image)
