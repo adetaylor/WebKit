@@ -87,13 +87,20 @@ SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_LIBRARY_LEVEL = api;
 
 // Use handwritten SPI modules on public SDKs.
-SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(WK_WEBGPU_SWIFT_MODULE_DIR) $(SRCROOT)/../WebGPU/WebGPU/SwiftUnderlyingModule $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
+SWIFT_INCLUDE_PATHS = $(SRCROOT)/Modules/Internal $(WK_WEBGPU_SWIFT_MODULE_DIR) $(SRCROOT)/../WebGPU/WebGPU/SwiftUnderlyingModule $(WK_WEBCORE_WEBGL_SWIFT_MODULE_DIR) $(WK_WEBCORE_WEBGL_MODULE_MAP_DIR) $(SWIFT_INCLUDE_PATHS_$(USE_INTERNAL_SDK));
 SWIFT_INCLUDE_PATHS_ = $(SRCROOT)/Platform/spi/visionos $(SRCROOT)/Platform/spi/ios $(SRCROOT)/Platform/spi/Cocoa $(SRCROOT)/Platform/spi/Cocoa/Modules $(inherited);
 
 // WebGPU.framework's Swift module, WebGPUSwift, which the Swift WebGPU receivers call, where WebGPU's build writes it
 // before copying it into the framework. The framework's Modules directory can't be a Swift include path, since clang
 // would read the framework's module maps from there too.
 WK_WEBGPU_SWIFT_MODULE_DIR = $(OBJROOT)/WebGPU.build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/WebGPU.build/Objects-normal/$(CURRENT_ARCH);
+
+// The WebGL island's Swift module, WebCoreWebGL, which the GPU process's Swift receiver of WebGL calls calls, where
+// WebCore's build writes it, and the module maps of its underlying clang module, which needs ANGLE's headers. WebKit's
+// generated header includes Shared/WebCoreWebGLForWebKit.h, which has what it needs of the island's.
+WK_WEBCORE_WEBGL_SWIFT_MODULE_DIR = $(OBJROOT)/WebCore.build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/WebCoreWebGL.build/Objects-normal/$(CURRENT_ARCH);
+WK_WEBCORE_WEBGL_MODULE_MAP_DIR = $(SRCROOT)/../WebCore/platform/graphics/angle/swift;
+WK_WEBCORE_WEBGL_SWIFT_FLAGS = -Xcc -I$(BUILT_PRODUCTS_DIR)$(WK_LIBRARY_HEADERS_FOLDER_PATH) -Xfrontend -clang-header-expose-module -Xfrontend WebCoreWebGL=WebCoreWebGLForWebKit.h;
 
 OTHER_CPLUSPLUSFLAGS = $(inherited) -fmodules -fno-cxx-modules;
 
@@ -381,7 +388,7 @@ SWIFT_OBJC_INTEROP_MODE_SUPPORTS_SWIFT_OBJCXX_INTEROP_ = $(inherited);
 SWIFT_OBJC_INTERFACE_HEADER_NAME = WebKit-Swift-Generated.h;
 
 // FIXME: (rdar://149474443) Swift/Cxx interop does not respect CLANG_CXX_LANGUAGE_STANDARD = "c++2b";
-OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_$(WK_SUPPORTS_SWIFT_OBJCXX_INTEROP)) -enable-experimental-feature RequiresObjC=Foundation $(WK_SWIFT_ERROR_FLAGS) $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Werror SendableClosureCaptures;
+OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_$(WK_SUPPORTS_SWIFT_OBJCXX_INTEROP)) -enable-experimental-feature RequiresObjC=Foundation $(WK_SWIFT_ERROR_FLAGS) $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Werror SendableClosureCaptures $(WK_WEBCORE_WEBGL_SWIFT_FLAGS);
 // Swift zero-initializes a C++ type with no default constructor and only warns that this is deprecated; such a
 // value can hold a null pointer the type never allows. A Sendable closure capturing C++ state is also only a warning.
 WK_SWIFT_ERROR_FLAGS = -Werror DeprecatedDeclaration -Werror SendableClosureCaptures;
