@@ -742,7 +742,36 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     LOG_WITH_STREAM(Images, stream << "GraphicsContextCG::drawNativeImage " << image.get() << " size " << imageSize << " into " << destRect << " took " << (MonotonicTime::now() - startTime).milliseconds() << "ms");
 }
 
+static CGRendererColorData colorData(const Color&);
+
 } // namespace WebCore
+
+CGColorRef CGRendererCopyColor(const WebCore::GraphicsContextCG& context, const WebCore::Color& color, CGRendererColorValue& value)
+{
+    value = { };
+    value.isVisible = color.isVisible();
+    if (auto packedColor = color.tryGetAsPackedInline()) {
+        value.isPacked = true;
+        value.packedColor = packedColor->value;
+        return nullptr;
+    }
+    value.data = WebCore::colorData(color);
+    return WebCore::cachedCGColorInDestinationStandardRange(color, context.colorSpace()).leakRef();
+}
+
+CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    auto packedColor = shadow.color.tryGetAsPackedInline();
+    values = {
+        shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
+        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible(), shadow.radiusMode == WebCore::ShadowRadiusMode::Legacy
+    };
+    color = { };
+    if (packedColor || !values.isValid)
+        return nullptr;
+    color = WebCore::colorData(shadow.color);
+    return WebCore::cachedCGColorInDestinationStandardRange(shadow.color, context.colorSpace()).leakRef();
+}
 
 CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions options)
 {
@@ -1412,23 +1441,20 @@ void GraphicsContextCG::clearCGDropShadow()
 
 void GraphicsContextCG::setSwiftRendererShadow(const GraphicsDropShadow& shadow, bool isStyle)
 {
-    auto packedColor = shadow.color.tryGetAsPackedInline();
-    CGRendererShadowValues values {
-        shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
-        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible(), shadow.radiusMode == ShadowRadiusMode::Legacy
-    };
-    if (packedColor || !values.isValid) {
+    CGRendererShadowValues values;
+    CGRendererColorData data;
+    RetainPtr color = adoptCF(CGRendererCopyShadow(*this, shadow, values, data));
+    if (!color) {
         if (isStyle)
             SWIFT_RENDERER(setDropShadowStyle(values));
         else
             SWIFT_RENDERER(setDropShadow(values));
         return;
     }
-    RetainPtr color = cachedCGColorInDestinationStandardRange(shadow.color, colorSpace());
     if (isStyle)
-        SWIFT_RENDERER(setDropShadowStyle(values, color.get(), colorData(shadow.color)));
+        SWIFT_RENDERER(setDropShadowStyle(values, color.get(), data));
     else
-        SWIFT_RENDERER(setDropShadow(values, color.get(), colorData(shadow.color)));
+        SWIFT_RENDERER(setDropShadow(values, color.get(), data));
 }
 
 void GraphicsContextCG::didUpdateStateForSwiftRenderer(GraphicsContextState& state)

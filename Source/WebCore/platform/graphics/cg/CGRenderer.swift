@@ -809,9 +809,32 @@ private struct CGRendererColorCache {
         if fill.platformColorSlot == 0 || stroke.platformColorSlot == 0 {
             return fill.platformColorSlot == stroke.platformColorSlot && fill.packedColor == stroke.packedColor
         }
-        let a = platformColors[Int(fill.platformColorSlot) - 1].data
-        let b = platformColors[Int(stroke.platformColorSlot) - 1].data
-        return a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
+        return colorDataAreEqual(platformColors[Int(fill.platformColorSlot) - 1].data, platformColors[Int(stroke.platformColorSlot) - 1].data)
+    }
+
+    // GraphicsContext's fillColor() == color.
+    private func fillColorEquals(_ color: CGRendererColorValue) -> Bool {
+        let fill = state.fill
+        if color.isPacked {
+            return fill.platformColorSlot == 0 && fill.packedColor == color.packedColor
+        }
+        return fill.platformColorSlot != 0 && colorDataAreEqual(platformColors[Int(fill.platformColorSlot) - 1].data, color.data)
+    }
+
+    // GraphicsDropShadow's ==, which compares the offset, the radius and the color, and so GraphicsContextState's setter,
+    // which sets nothing for an equal shadow.
+    private func shadowEquals(_ shadow: CGRendererShadow?, _ values: CGRendererShadowValues, _ color: CGRendererColorData, _ isPlatformColor: Bool) -> Bool {
+        guard let shadow, shadow.width == values.width, shadow.height == values.height, shadow.radius == values.radius, shadow.isValid == values.isValid else {
+            return false
+        }
+        if shadow.platformColorSlot == 0 || !isPlatformColor {
+            return shadow.platformColorSlot == 0 && !isPlatformColor && shadow.packedColor == values.packedColor
+        }
+        return colorDataAreEqual(platformColors[Int(shadow.platformColorSlot) - 1].data, color)
+    }
+
+    private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
+        a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
             && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
             && a.usesFunctionSerialization == b.usesFunctionSerialization
     }
@@ -2733,6 +2756,187 @@ extension CGRendererCore {
     @_spi(WebKitGPU) public mutating func receiveSetStrokePackedColor(_ packed: UInt32) {
         cxxStaleProperties |= CxxStateChange.strokeBrush
         setStrokePackedColor(packed, 0)
+    }
+
+    // A color that the receiver's C++ converted, with its CGColor unless it is packed.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetFillColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) {
+        cxxStaleProperties |= CxxStateChange.fillBrush
+        if let cgColor {
+            setFillPlatformColor(cgColor, color.data, 0, color.isVisible)
+        } else {
+            setFillPackedColor(color.packedColor, 0)
+        }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetStrokeColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) {
+        cxxStaleProperties |= CxxStateChange.strokeBrush
+        if let cgColor {
+            setStrokePlatformColor(cgColor, color.data, 0, color.isVisible)
+        } else {
+            setStrokePackedColor(color.packedColor, 0)
+        }
+    }
+
+    // GraphicsContextCG::fillRect(_:_:) of a color: false for a blurred shadow, which the context draws.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) -> Bool {
+        let changesFillColor = !fillColorEquals(color)
+        if let cgColor {
+            return fillRect(rect, platformColor: cgColor, changesFillColor)
+        }
+        return fillRect(rect, packedColor: color.packedColor, changesFillColor)
+    }
+
+    // GraphicsContext::fillRect(_:_:_:_:): the fill in the composite mode, which is set back after it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillRect(
+        _ rect: CGRect,
+        _ color: CGRendererColorValue,
+        _ cgColor: CGColor?,
+        _ compositeOperator: WebCore.CompositeOperator,
+        _ blendMode: WebCore.BlendMode
+    ) -> Bool {
+        let previousOperator = state.compositeOperator
+        let previousBlendMode = state.blendMode
+        let changesCompositeMode = previousOperator != compositeOperator || previousBlendMode != blendMode
+        guard changesCompositeMode else {
+            return receiveFillRect(rect, color, cgColor)
+        }
+        // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
+        let cxxCompositeModeIsStale = cxxStaleProperties & CxxStateChange.compositeMode
+        setCompositeMode(compositeOperator, blendMode)
+        let drawn = receiveFillRect(rect, color, cgColor)
+        setCompositeMode(previousOperator, previousBlendMode)
+        cxxStaleProperties |= cxxCompositeModeIsStale
+        return drawn
+    }
+
+    // A shadow that the receiver's C++ converted, with the CGColor of a valid color that isn't packed.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetDropShadow(_ values: CGRendererShadowValues, _ cgColor: CGColor?, _ color: CGRendererColorData) {
+        guard !shadowEquals(state.dropShadow, values, color, cgColor != nil) else {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.dropShadow
+        if let cgColor {
+            setDropShadow(values, cgColor, color)
+        } else {
+            setDropShadow(values)
+        }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClearDropShadow() {
+        guard state.dropShadow != nil else {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.dropShadow
+        clearDropShadow()
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetDropShadowStyle(_ values: CGRendererShadowValues, _ cgColor: CGColor?, _ color: CGRendererColorData) {
+        if case .dropShadow(let shadow) = state.style, shadowEquals(shadow, values, color, cgColor != nil) {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.style
+        if let cgColor {
+            setDropShadowStyle(values, cgColor, color)
+        } else {
+            setDropShadowStyle(values)
+        }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetNoStyle() {
+        if case .none = state.style {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.style
+        setNoStyle()
+    }
+
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetGaussianBlurStyle(_ width: Float, _ height: Float) {
+        if case .gaussianBlur(let currentWidth, let currentHeight) = state.style, currentWidth == width, currentHeight == height {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.style
+        setGaussianBlurStyle(width, height)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetColorMatrixStyle(_ matrix: CGRendererColorMatrix) {
+        if case .colorMatrix(let slot) = state.style {
+            var current = CGRendererColorMatrix()
+            copyColorMatrix(slot, &current)
+            if CGRendererColorMatricesAreEqual(current, matrix) {
+                return
+            }
+        }
+        cxxStaleProperties |= CxxStateChange.style
+        setColorMatrixStyle(matrix)
+    }
+    #endif
+
+    // GraphicsContext's setter, after which GraphicsContextCG sets the shadow and the style again, as the flag changes them.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetShadowsIgnoreTransforms(_ shadowsIgnoreTransforms: Bool) {
+        guard state.shadowsIgnoreTransforms != shadowsIgnoreTransforms else {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.shadowsIgnoreTransforms
+        setShadowsIgnoreTransforms(shadowsIgnoreTransforms)
+        if let shadow = state.dropShadow {
+            levelChanges |= CxxStateChange.dropShadow
+            applyShadow(shadow)
+        }
+        switch state.style {
+        case .none:
+            break
+        case .dropShadow(let shadow):
+            levelChanges |= CxxStateChange.style
+            applyShadow(shadow)
+        case .gaussianBlur(let width, let height):
+            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+            setGaussianBlurStyle(width, height)
+            #endif
+        case .colorMatrix(let slot):
+            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+            var matrix = CGRendererColorMatrix()
+            copyColorMatrix(slot, &matrix)
+            setColorMatrixStyle(matrix)
+            #endif
+        }
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetTextDrawingMode(_ mode: UInt8) {
+        guard state.textDrawingMode != mode else {
+            return
+        }
+        cxxStaleProperties |= CxxStateChange.textDrawingMode
+        setTextDrawingMode(mode)
+    }
+
+    // GraphicsContextCG::setLineDash().
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSetLineDash(_ dashes: Span<Double>, _ offset: Float) {
+        clearLineDash()
+        for index in dashes.indices {
+            appendLineDash(dashes[index])
+        }
+        applyLineDash(offset)
+    }
+
+    // GraphicsContextCG::applyDeviceScaleFactor(): GraphicsContext's scale, then the base CTM's.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveApplyDeviceScaleFactor(_ factor: Float) {
+        receiveScale(factor, factor)
+        applyDeviceScaleFactorToBaseCTM(factor)
     }
 
     @_expose(!Cxx)

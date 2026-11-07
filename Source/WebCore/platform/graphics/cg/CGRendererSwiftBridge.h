@@ -32,6 +32,7 @@
 #include <WebCore/PlatformExportMacros.h>
 #include <WebCore/RasterDrawingOptions.h>
 #include <WebCore/WindRule.h>
+#include <algorithm>
 #include <span>
 #include <stdint.h>
 #include <wtf/RefCounted.h>
@@ -54,6 +55,11 @@ struct CGRendererShadowValues {
 struct CGRendererColorMatrix {
     float values[20];
 };
+// GraphicsColorMatrix's ==.
+inline bool CGRendererColorMatricesAreEqual(const CGRendererColorMatrix& a, const CGRendererColorMatrix& b)
+{
+    return std::ranges::equal(a.values, b.values);
+}
 #endif
 
 // A Gradient's geometry (Gradient::LinearData, RadialData or ConicData) and spread method.
@@ -128,6 +134,7 @@ private:
 
 namespace WebCore {
 class CGRendererCore;
+class Color;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
@@ -135,6 +142,7 @@ class Path;
 class PathImpl;
 class Pattern;
 class SourceBrush;
+struct GraphicsDropShadow;
 }
 
 class CGRendererBrushSource;
@@ -276,6 +284,18 @@ struct CGRendererImageFacts {
     bool found;
     bool declines;
 };
+
+// A Color as the renderer takes it, as GraphicsContextCG converts its state's (didUpdateStateForSwiftRenderer()): an sRGBA8
+// color packed, any other as plain values with its CGColor, which CGRendererCopyColor() returns.
+struct CGRendererColorValue {
+    CGRendererColorData data;
+    uint32_t packedColor;
+    bool isPacked;
+    bool isVisible;
+};
+WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyColor(const WebCore::GraphicsContextCG&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
+WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {
