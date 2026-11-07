@@ -118,9 +118,11 @@ TEST(WTF_NonEscapableBorrow, OwningLenderLendsTheObjectItOwnsWhenMoved)
     auto counter = makeUniqueWithoutFastMallocCheck<Counter>();
     counter->value = 41;
     NonEscapableBorrowOwningLender<CounterView> lender { WTF::move(counter) };
-    CounterView view = lender.view();
+    std::optional<CounterView> view = lender.view();
     NonEscapableBorrowOwningLender<CounterView> moved { WTF::move(lender) };
-    view.increment();
+    view->increment();
+    // A view must not outlive the lender that has its lease.
+    view.reset();
     EXPECT_EQ(moved.view().value(), 42);
 }
 
