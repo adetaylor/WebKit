@@ -25,10 +25,7 @@ GPUProcess/GPUProcess.cpp @cost:7
 GPUProcess/GPUConnectionToWebProcess.cpp @cost:8
 GPUProcess/GPUProcessPreferences.cpp
 GPUProcess/RemoteSharedResourceCache.cpp
-GPUProcess/ShapeDetection/RemoteBarcodeDetector.cpp
-GPUProcess/ShapeDetection/RemoteFaceDetector.cpp
-GPUProcess/ShapeDetection/RemoteTextDetector.cpp
-GPUProcess/ShapeDetection/ShapeDetectionObjectHeap.cpp
+GPUProcess/ShapeDetection/RemoteShapeDetectionSupport.cpp
 GPUProcess/graphics/DisplayListDataTester.cpp
 GPUProcess/graphics/ImageBufferShareableAllocator.cpp
 GPUProcess/graphics/RemoteDisplayListRecorder.cpp

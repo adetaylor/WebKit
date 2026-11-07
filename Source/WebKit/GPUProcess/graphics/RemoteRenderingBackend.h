@@ -99,10 +99,6 @@ struct ImageBufferSetPrepareBufferForDisplayInputData;
 struct ImageBufferSetPrepareBufferForDisplayOutputData;
 enum class SwapBuffersDisplayRequirement : uint8_t;
 
-namespace ShapeDetection {
-class ObjectHeap;
-}
-
 class RemoteRenderingBackend : public CanMakeWeakPtr<RemoteRenderingBackend>, public IPC::StreamServerConnection::Client {
     WTF_MAKE_TZONE_ALLOCATED(RemoteRenderingBackend);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteRenderingBackend);
@@ -230,7 +226,6 @@ private:
     HashMap<WebCore::RenderingResourceIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBuffer>> m_remoteImageBuffers WTF_GUARDED_BY_CAPABILITY(workQueue());
 
     HashMap<ImageBufferSetIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBufferSet>> m_remoteImageBufferSets WTF_GUARDED_BY_CAPABILITY(workQueue());
-    const Ref<ShapeDetection::ObjectHeap> m_shapeDetectionObjectHeap;
     HashMap<RemoteDisplayListRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteDisplayListRecorder>> m_remoteDisplayListRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
     HashMap<RemoteSnapshotRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteSnapshotRecorder>> m_remoteSnapshotRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
 };

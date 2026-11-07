@@ -21,12 +21,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=ShapeDetection
+    EnabledBy=ShapeDetection,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteBarcodeDetector Stream {
     void Detect(WebCore::RenderingResourceIdentifier renderingResourceIdentifier) -> (Vector<WebCore::ShapeDetection::DetectedBarcode> detectedBarcodes)

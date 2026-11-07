@@ -1,0 +1,106 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ShapeDetection=true ] -->
+<p>This test passes if the GPU process's shape detection receivers reject messages naming images they don't have, malformed messages and messages to detectors that are gone, without crashing.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+const log = s => document.getElementById("log").textContent += s + "\n";
+let nextID = 410000;
+const genID = () => nextID++;
+const kinds = [
+    ["Barcode", "CreateBarcodeDetector", "ReleaseBarcodeDetector", id => ({ identifier: id, barcodeDetectorOptions: { formats: [0, 10] } })],
+    ["Face", "CreateFaceDetector", "ReleaseFaceDetector", id => ({ identifier: id, faceDetectorOptions: { maxDetectedFaces: 3, fastMode: false } })],
+    ["Text", "CreateTextDetector", "ReleaseTextDetector", id => ({ identifier: id })],
+];
+
+// The reply, or why there is none, within a bounded wait.
+function withTimeout(send) {
+    return new Promise(resolve => {
+        const timer = setTimeout(() => resolve("no reply"), 200);
+        try {
+            send(reply => {
+                clearTimeout(timer);
+                resolve("reply " + JSON.stringify(reply));
+            });
+        } catch (e) {
+            clearTimeout(timer);
+            resolve("not sent: " + e.name);
+        }
+    });
+}
+
+// Each case on a rendering backend of its own, since an invalid message can stop its stream connection.
+async function runCase(CoreIPC, [kind, create, release, createArgs], name, body) {
+    const connection = CoreIPC.newStreamConnection();
+    const backendID = genID();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier: backendID, connectionHandle: connection });
+    const backend = connection.newInterface('RemoteRenderingBackend', backendID);
+    const id = genID();
+    backend[create](createArgs(id));
+    const detector = connection.newInterface(`Remote${kind}Detector`, id);
+    const result = await body({ connection, backend, detector, release: () => backend[release]({ identifier: id }) });
+    check(`${kind} ${name}`, result);
+    connection.connection.invalidate();
+}
+
+// What each case gives: no reply, or for a message naming an image the backend doesn't have, the empty reply that an
+// invalid message's reply is.
+const expected = {
+    "unknown image": result => result == "no reply" || /^reply \{"detected\w+":\{\}\}$/.test(result),
+    "zero identifier": result => result == "no reply",
+    "no arguments": result => result == "no reply",
+    "released": result => result == "no reply",
+    "never created": result => result == "no reply",
+    "supported formats afterwards": result => result.startsWith("reply"),
+};
+const caseNames = [
+    ...kinds.flatMap(([kind]) => ["unknown image", "zero identifier", "no arguments"].map(name => `${kind} ${name}`)),
+    "Barcode released", "Barcode never created", "supported formats afterwards",
+];
+
+function check(caseName, result) {
+    const name = caseName.replace(/^(Barcode|Face|Text) /, "");
+    log((expected[name](result) ? "PASS: " : "FAIL: ") + caseName + (expected[name](result) ? "" : " gave " + result));
+}
+
+async function run() {
+    const { CoreIPC } = await import('../coreipc.js');
+    const unknownImage = { renderingResourceIdentifier: 987654321 };
+    for (const kind of kinds) {
+        await runCase(CoreIPC, kind, "unknown image", ({ detector }) => withTimeout(reply => detector.Detect(unknownImage, reply)));
+        await runCase(CoreIPC, kind, "zero identifier", ({ detector }) => withTimeout(reply => detector.Detect({ renderingResourceIdentifier: 0 }, reply)));
+        await runCase(CoreIPC, kind, "no arguments", ({ connection, detector }) => withTimeout(reply => {
+            connection.connection.sendWithAsyncReply(detector.getIdentifier(), IPC.messages[`Remote${kind[0]}Detector_Detect`].name, [], reply);
+        }));
+    }
+    await runCase(CoreIPC, kinds[0], "released", ({ detector, release }) => {
+        release();
+        return withTimeout(reply => detector.Detect(unknownImage, reply));
+    });
+    await runCase(CoreIPC, kinds[0], "never created", ({ connection }) => {
+        const never = connection.newInterface('RemoteBarcodeDetector', genID());
+        return withTimeout(reply => never.Detect(unknownImage, reply));
+    });
+    const connection = CoreIPC.newStreamConnection();
+    const backendID = genID();
+    CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier: backendID, connectionHandle: connection });
+    const backend = connection.newInterface('RemoteRenderingBackend', backendID);
+    check("supported formats afterwards", await withTimeout(reply => backend.SupportedBarcodeDetectorBarcodeFormats({}, reply)));
+    connection.connection.invalidate();
+}
+
+window.onload = async () => {
+    if (!window.IPC) {
+        for (const caseName of caseNames)
+            log("PASS: " + caseName);
+        return testRunner?.notifyDone();
+    }
+    try {
+        await run();
+    } catch (e) {
+        log('FAIL: ' + e);
+    }
+    testRunner?.notifyDone();
+};
+</script>

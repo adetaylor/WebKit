@@ -62,6 +62,7 @@ RemoteFaceDetectorProxy::~RemoteFaceDetectorProxy()
 
 void RemoteFaceDetectorProxy::detect(const WebCore::NativeImage& image, CompletionHandler<void(Vector<WebCore::ShapeDetection::DetectedFace>&&)>&& completionHandler)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     RefPtr renderingBackend = m_renderingBackend.get();
     RefPtr connection = renderingBackend ? renderingBackend->connection() : nullptr;
     if (!connection) [[unlikely]] {
@@ -73,6 +74,10 @@ void RemoteFaceDetectorProxy::detect(const WebCore::NativeImage& image, Completi
         return;
     }
     connection->sendWithAsyncReply(Messages::RemoteFaceDetector::Detect(image.renderingResourceIdentifier()), WTF::move(completionHandler), identifier());
+#else
+    UNUSED_PARAM(image);
+    completionHandler({ });
+#endif
 }
 
 } // namespace WebKit::WebGPU

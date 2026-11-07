@@ -50,6 +50,12 @@
 #include "RemoteCDMSwiftSupport.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
+#include "RemoteBarcodeDetectorMessages.h"
+#include "RemoteFaceDetectorMessages.h"
+#include "RemoteShapeDetectionSupport.h"
+#include "RemoteTextDetectorMessages.h"
+#endif
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 #include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLUploads.h"
