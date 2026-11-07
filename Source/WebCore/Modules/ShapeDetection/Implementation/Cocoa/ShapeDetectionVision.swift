@@ -37,12 +37,12 @@ import WebCore_Private.Core.ShapeDetectionVisionSupport
 @_spi(WebKitGPU)
 public enum ShapeDetectionVision {
     // In the image's pixels, with y increasing downwards, in Float as WebCore's FloatPoint and FloatRect.
-    public struct Point: Sendable, Equatable {
+    public struct Point: Sendable {
         public var x: Float
         public var y: Float
     }
 
-    public struct Rect: Sendable, Equatable {
+    public struct Rect: Sendable {
         public var x: Float
         public var y: Float
         public var width: Float
