@@ -51,6 +51,8 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('std::pair<uint8_t, String>', ('(UInt8, String?)', 'IPCCoding.Pair<UInt8, IPCCoding.WTFString>')),
             ('std::span<const uint8_t>', ('[UInt8]', 'IPCCoding.Vector<UInt8>')),
             ('unsigned', ('UInt32', 'UInt32')),
+            ('Seconds', ('Double', 'Double')),
+            ('WTF::Seconds', ('Double', 'Double')),
             ('WTFLogLevel', ('IPCTypes.WTFLogLevel', 'IPCTypes.CxxName.WTFLogLevel')),
             ('std::span<const float>', ('[Float]', 'IPCCoding.Vector<Float>')),
             ('Vector<std::pair<Ref<WebCore::SharedBuffer>, WebCore::CDMKeyStatus>>', ('[(WebCore.SharedBuffer, IPCTypes.CDMKeyStatus)]', 'IPCCoding.Vector<IPCCoding.Pair<IPCCoding.CxxDecoded.SharedBuffer, IPCTypes.CxxName.WebCore_CDMKeyStatus>>')),

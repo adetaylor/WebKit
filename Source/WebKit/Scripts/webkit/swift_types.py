@@ -140,6 +140,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('String', 'WTF::String', 'AtomString', 'WTF::AtomString'):
         return ('String?', 'IPCCoding.WTFString')
 
+    # A Seconds is encoded as its value, a double, which Swift takes as the seconds it is.
+    if cpp_type in ('Seconds', 'WTF::Seconds'):
+        return ('Double', 'Double')
+
     # A UTF8CString is encoded as the span of its bytes, which Swift takes a copy of, as of a Vector of them.
     if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
         return ('[UInt8]', 'IPCCoding.Vector<UInt8>')
@@ -185,7 +189,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, String, AtomString, Vector, std::span of const primitives, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
+                              "double, Seconds, String, AtomString, Vector, std::span of const primitives, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
                               "types marked [Swift] in a .serialization.in file, and the C++-decoded types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES))))
 
 
