@@ -349,6 +349,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytes>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendSemaphore:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendSemaphore>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendSendRight:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendSendRight>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendValuesAsyncReply:
@@ -501,6 +505,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendEmptyAsync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemory:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSharedMemory>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxString:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxString>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
@@ -513,6 +521,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendEmptyAsyncReply>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithValidator_AlwaysEnabled:
@@ -630,6 +640,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendCxxDecoded>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftTypes_SendLentBytesSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendLentBytesSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftTypes_SendSendRight:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftTypes_SendSendRight>(globalObject, decoder);
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSuperclass_TestAsyncMessage>(globalObject, decoder);
@@ -708,6 +720,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendEmptyAsync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemory:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendSharedMemory>(globalObject, decoder);
+    case MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftWorkQueue_SendCxxStringSync>(globalObject, decoder);
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsync:
@@ -1447,6 +1463,16 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "bytes"_s, "std::span<const uint8_t>"_s },
         };
+    case MessageName::TestWithStreamSwiftTypes_SendSemaphore:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "semaphore"_s, "IPC::Semaphore"_s },
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
+        };
+    case MessageName::TestWithStreamSwiftTypes_SendSendRight:
+        return Vector<ArgumentDescription> {
+            { "right"_s, "MachSendRight"_s },
+        };
     case MessageName::TestWithStreamSwiftTypes_SendStringAsyncReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
@@ -1741,6 +1767,14 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "value"_s, "uint32_t"_s },
             { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
         };
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemory:
+        return Vector<ArgumentDescription> {
+            { "handle"_s, "WebCore::SharedMemory::Handle"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync:
+        return Vector<ArgumentDescription> {
+            { "semaphore"_s, "IPC::Semaphore"_s },
+        };
     case MessageName::TestWithSwiftWorkQueue_SendCxxString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1762,6 +1796,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithSwiftWorkQueue_SendCxxDecodedReply:
         return Vector<ArgumentDescription> {
             { "success"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply:
+        return Vector<ArgumentDescription> {
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
         };
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringAsyncReply:
         return Vector<ArgumentDescription> {
@@ -1962,6 +2000,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         return Vector<ArgumentDescription> {
             { "size"_s, "uint64_t"_s },
         };
+    case MessageName::TestWithStreamSwiftTypes_SendSendRight:
+        return Vector<ArgumentDescription> {
+            { "rights"_s, "Vector<MachSendRight>"_s },
+        };
 #if ENABLE(TEST_FEATURE)
     case MessageName::TestWithSuperclass_TestAsyncMessage:
         return Vector<ArgumentDescription> {
@@ -2110,6 +2152,14 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftWorkQueue_SendCxxDecoded:
         return Vector<ArgumentDescription> {
             { "success"_s, "bool"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendSharedMemory:
+        return Vector<ArgumentDescription> {
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
+        };
+    case MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync:
+        return Vector<ArgumentDescription> {
+            { "semaphore"_s, "IPC::Semaphore"_s },
         };
     case MessageName::TestWithSwiftWorkQueue_SendCxxStringSync:
         return Vector<ArgumentDescription> {

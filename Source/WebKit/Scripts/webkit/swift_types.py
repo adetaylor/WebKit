@@ -80,6 +80,24 @@ _CXX_DECODED_TYPES = {
 }
 
 
+# Types whose Swift form owns a resource that a message carries, a send right on Darwin (SwiftCoding.swift). They are
+# ~Copyable, so exactly one Swift value owns the resource and gives it back once, when it is destroyed or encoded into
+# a reply. The type is its own coder.
+_OWNED_TYPES = {
+    'MachSendRight': 'IPCTypes.MachSendRight',
+    'WTF::MachSendRight': 'IPCTypes.MachSendRight',
+    'IPC::Semaphore': 'IPCTypes.Semaphore',
+    'WebCore::SharedMemory::Handle': 'IPCTypes.SharedMemoryHandle',
+    'WebCore::SharedMemoryHandle': 'IPCTypes.SharedMemoryHandle',
+}
+
+# Swift Arrays can't hold ~Copyable elements, so the Vectors of owned types that messages carry have their own ~Copyable
+# containers.
+_OWNED_VECTOR_TYPES = {
+    'IPCTypes.MachSendRight': 'IPCTypes.MachSendRightVector',
+}
+
+
 # A [Lent] std::span<const uint8_t> message argument: its bytes are lent to the Swift handler during dispatch, as
 # IPC::LentBytes (SwiftCoding.h), rather than copied into a [UInt8]. Generated Swift decodes past them, then lends them
 # with the arguments after them decoded.
@@ -126,6 +144,15 @@ def swift_cxx_name(cpp_name):
     return cpp_name.removeprefix('::').replace('::', '_')
 
 
+def is_owned_type(cpp_type):
+    """Whether the Swift form of a C++ IPC type is ~Copyable: an owned type, or an optional or Vector of one."""
+    cpp_type = strip_cpp_type_decorations(cpp_type)
+    if cpp_type.removeprefix('::') in _OWNED_TYPES:
+        return True
+    match = re.match(r'^(?:WTF::)?(?:Vector|std::optional)<(.+)>$', cpp_type)
+    return bool(match) and is_owned_type(match.group(1))
+
+
 def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     """Returns (Swift value type, Swift IPCCoder type) for a C++ IPC type, or raises UnmappableSwiftType.
 
@@ -151,10 +178,21 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type.removeprefix('::') in _CXX_DECODED_TYPES:
         return _CXX_DECODED_TYPES[cpp_type.removeprefix('::')]
 
+    if cpp_type.removeprefix('::') in _OWNED_TYPES:
+        swift_type = _OWNED_TYPES[cpp_type.removeprefix('::')]
+        return (swift_type, swift_type)
+
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
     if match:
         template, arguments = match.group(1), split_template_arguments(match.group(2))
         template = re.sub(r'^WTF::', '', template)
+        if any(is_owned_type(argument) for argument in arguments):
+            owned_type = _OWNED_TYPES.get(strip_cpp_type_decorations(arguments[0]).removeprefix('::')) if len(arguments) == 1 else None
+            if template == 'std::optional' and owned_type:
+                return ('%s?' % owned_type, 'IPCCoding.OwnedOptional<%s>' % owned_type)
+            if template == 'Vector' and owned_type in _OWNED_VECTOR_TYPES:
+                return (_OWNED_VECTOR_TYPES[owned_type], _OWNED_VECTOR_TYPES[owned_type])
+            raise UnmappableSwiftType("'%s' has no Swift form: of the types whose Swift form owns a resource, messages that take Swift types support each one, a std::optional of one, and %s." % (cpp_type, ', '.join('Vector<%s>' % name for name in sorted(_OWNED_VECTOR_TYPES))))
         if template in _TWO_ARGUMENT_TEMPLATES and len(arguments) == 2:
             value_format, coder_format = _TWO_ARGUMENT_TEMPLATES[template]
             first_type, first_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
@@ -190,7 +228,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
                               "double, Seconds, String, AtomString, Vector, std::span of const primitives, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
-                              "types marked [Swift] in a .serialization.in file, and the C++-decoded types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES))))
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
 
 
 def swift_coder(cpp_type):

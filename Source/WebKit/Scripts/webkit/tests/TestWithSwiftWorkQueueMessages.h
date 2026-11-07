@@ -26,6 +26,7 @@
 
 #include "ArgumentCoders.h"
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SwiftCoding.h"
@@ -228,6 +229,64 @@ private:
     std::optional<WebCore::SharedMemory::Handle>&& m_handle;
 };
 
+class SendSharedMemory {
+public:
+    using Arguments = std::tuple<WebCore::SharedMemory::Handle>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftWorkQueue_SendSharedMemory; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<std::optional<WebCore::SharedMemory::Handle>>;
+    using Reply = CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>;
+    using Promise = WTF::NativePromise<std::optional<WebCore::SharedMemory::Handle>, IPC::Error>;
+    explicit SendSharedMemory(WebCore::SharedMemory::Handle&& handle)
+        : m_handle(WTF::move(handle))
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << WTF::move(m_handle);
+    }
+
+private:
+    WebCore::SharedMemory::Handle&& m_handle;
+};
+
+class SendSemaphoreSync {
+public:
+    using Arguments = std::tuple<IPC::Semaphore>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftWorkQueue_SendSemaphoreSync; }
+    static constexpr bool isSync = true;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<IPC::Semaphore>;
+    using Reply = CompletionHandler<void(IPC::Semaphore&&)>;
+    explicit SendSemaphoreSync(const IPC::Semaphore& semaphore)
+        : m_semaphore(semaphore)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_semaphore;
+    }
+
+private:
+    const IPC::Semaphore& m_semaphore;
+};
+
 class SendCxxString {
 public:
     using Arguments = std::tuple<String>;
@@ -381,6 +440,31 @@ public:
 
 private:
     bool m_success;
+};
+
+class SendSharedMemoryReply {
+public:
+    using Arguments = std::tuple<std::optional<WebCore::SharedMemory::Handle>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftWorkQueue_SendSharedMemoryReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit SendSharedMemoryReply(std::optional<WebCore::SharedMemory::Handle>&& handle)
+        : m_handle(WTF::move(handle))
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << WTF::move(m_handle);
+    }
+
+private:
+    std::optional<WebCore::SharedMemory::Handle>&& m_handle;
 };
 
 class SendCxxStringAsyncReply {
