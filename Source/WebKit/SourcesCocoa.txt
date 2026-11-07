@@ -976,6 +976,7 @@ RemoteCDMInstanceProxyMessageReceiver.cpp @cost:3
 RemoteCDMInstanceSessionMessageReceiver.cpp
 RemoteCDMInstanceSessionProxyMessageReceiver.cpp
 RemoteCDMProxyMessageReceiver.cpp
+RemoteCGRendererMessageReceiver.cpp
 RemoteImageBufferMessageReceiver.cpp @cost:5
 RemoteImageBufferProxyMessageReceiver.cpp
 RemoteImageBufferSetMessageReceiver.cpp @cost:5
