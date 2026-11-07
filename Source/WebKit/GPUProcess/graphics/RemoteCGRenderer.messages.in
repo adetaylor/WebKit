@@ -110,6 +110,10 @@ messages -> RemoteCGRenderer Stream {
     ClipRoundedRect
     ClipOutRoundedRect
     ClipToNativeImage SwiftMayDecline
+    BeginTransparencyLayer
+    BeginTransparencyLayerWithCompositeMode
+    EndTransparencyLayer SwiftMayDecline
+    SetURLForRect
 }
 
 #endif

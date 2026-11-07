@@ -559,6 +559,27 @@ final class RemoteCGRenderer {
         return true
     }
 
+    // RemoteGraphicsContext's transparency layer and link handlers.
+
+    func beginTransparencyLayer(state: inout CGRendererCore, opacity: Float) {
+        state.receiveBeginTransparencyLayer(opacity)
+    }
+
+    func beginTransparencyLayerWithCompositeMode(state: inout CGRendererCore, compositeMode: WebCore.CompositeMode) {
+        state.receiveBeginTransparencyLayerWithCurrentAlpha()
+    }
+
+    func endTransparencyLayer(state: inout CGRendererCore) -> Bool {
+        state.receiveEndTransparencyLayer()
+    }
+
+    func setURLForRect(state: inout CGRendererCore, link: WTF.URL, destRect: WebCore.FloatRect) {
+        guard let url = WebKit.copyURL(link) else {
+            return
+        }
+        state.receiveSetURLForRect(url, cgRect(destRect))
+    }
+
     private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         if path.isEmpty() {
             return true

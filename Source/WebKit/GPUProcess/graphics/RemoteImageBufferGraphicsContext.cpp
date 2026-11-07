@@ -191,6 +191,10 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(ClipRoundedRect, &RemoteGraphicsContext::clipRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(ClipOutRoundedRect, &RemoteGraphicsContext::clipOutRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(ClipToNativeImage, &RemoteGraphicsContext::clipToNativeImage)
+    HANDLE_CG_RENDERER_MESSAGE(BeginTransparencyLayer, &RemoteGraphicsContext::beginTransparencyLayer)
+    HANDLE_CG_RENDERER_MESSAGE(BeginTransparencyLayerWithCompositeMode, &RemoteGraphicsContext::beginTransparencyLayerWithCompositeMode)
+    HANDLE_CG_RENDERER_MESSAGE(EndTransparencyLayer, &RemoteGraphicsContext::endTransparencyLayer)
+    HANDLE_CG_RENDERER_MESSAGE(SetURLForRect, &RemoteGraphicsContext::setURLForRect)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();

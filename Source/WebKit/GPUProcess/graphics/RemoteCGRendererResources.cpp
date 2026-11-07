@@ -104,6 +104,11 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
     return copyImage(*image, facts);
 }
 
+CFURLRef copyURL(const URL& link)
+{
+    return link.createCFURL().leakRef();
+}
+
 CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
 {
     RefPtr image = resources.cachedNativeImage(identifier);
