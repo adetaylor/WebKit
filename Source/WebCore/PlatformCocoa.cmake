@@ -1303,6 +1303,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/avfoundation/AudioSourceProviderAVFObjC.h
     platform/graphics/avfoundation/AudioVideoRendererAVFObjC.h
     platform/graphics/avfoundation/CDMFairPlayStreaming.h
+    platform/graphics/avfoundation/CDMInstanceFairPlayStreamingHost.h
     platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.h
     platform/graphics/avfoundation/ImageDecoderFactoryAVF.h
     platform/graphics/avfoundation/InbandTextTrackPrivateAVF.h

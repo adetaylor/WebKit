@@ -2064,7 +2064,7 @@ Ref<MediaPromise> AudioVideoRendererAVFObjC::setInitData(Ref<SharedBuffer> initD
         return MediaPromise::createAndResolve();
 
     if (RefPtr cdmInstance = m_cdmInstance) {
-        if (RefPtr instanceSession = cdmInstance->sessionForKeyIDs(keyIDs.value()))
+        if (cdmInstance->hasSessionForKeyIDs(keyIDs.value()))
             return MediaPromise::createAndResolve();
     }
 
@@ -2084,8 +2084,7 @@ void AudioVideoRendererAVFObjC::attemptToDecrypt()
     }
 
     if (RefPtr cdmInstance = m_cdmInstance) {
-        RefPtr instanceSession = cdmInstance->sessionForKeyIDs(m_keyIDs);
-        if (!instanceSession)
+        if (!cdmInstance->hasSessionForKeyIDs(m_keyIDs))
             return;
     } else if (!m_session.get())
         return;

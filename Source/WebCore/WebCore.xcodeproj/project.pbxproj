@@ -4326,8 +4326,6 @@
 		A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDF994FB24C12A6A002EA062 /* SourceBufferParserAVFObjC.mm */; };
 		A100D9532AB254E400E00D67 /* MediaPlaybackTargetPickerMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 078E43DC1ABB6F6F001C2FA6 /* MediaPlaybackTargetPickerMac.mm */; };
 		A1038D442AB20BEA00F57BA4 /* CDMKeyGroupingStrategy.h in Headers */ = {isa = PBXBuildFile; fileRef = A1038D432AB20BEA00F57BA4 /* CDMKeyGroupingStrategy.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		A1038D472AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = A1038D452AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.h */; };
-		A1038D592AB22DFC00F57BA4 /* WebAVContentKeyGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = A1038D572AB22DFC00F57BA4 /* WebAVContentKeyGroup.h */; };
 		A104EC5A220A3DE000CBF67A /* MockPaymentContactFields.h in Headers */ = {isa = PBXBuildFile; fileRef = A104EC55220A39B400CBF67A /* MockPaymentContactFields.h */; };
 		A104EC5D220A3E4B00CBF67A /* JSMockPaymentContactFields.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A104EC5B220A3E4300CBF67A /* JSMockPaymentContactFields.cpp */; };
 		A104EC5E220A3E4E00CBF67A /* JSMockPaymentContactFields.h in Headers */ = {isa = PBXBuildFile; fileRef = A104EC5C220A3E4400CBF67A /* JSMockPaymentContactFields.h */; };
@@ -4470,7 +4468,6 @@
 		A1BC22582F28204000D24FC5 /* MockMediaDeviceRouteURLCallback.h in Headers */ = {isa = PBXBuildFile; fileRef = A150C1EB2F281409003CEC23 /* MockMediaDeviceRouteURLCallback.h */; };
 		A1C1507A1E3F2B3E0032C98C /* PreviewConverter.h in Headers */ = {isa = PBXBuildFile; fileRef = A1C150781E3F2B3E0032C98C /* PreviewConverter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A1C6C20A2BC3AFE7002CDE6F /* NowPlayingMetadataObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = A1C6C2092BC3AFE7002CDE6F /* NowPlayingMetadataObserver.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		A1C7D7C22AB7AD010055AD62 /* ContentKeyGroupDataSource.h in Headers */ = {isa = PBXBuildFile; fileRef = A1C7D7C12AB7AD010055AD62 /* ContentKeyGroupDataSource.h */; };
 		A1C9F8662F281CD500F53830 /* JSMockMediaDeviceRouteURLCallback.h in Headers */ = {isa = PBXBuildFile; fileRef = A1C9F8632F281CD500F53830 /* JSMockMediaDeviceRouteURLCallback.h */; };
 		A1CBEF641F9F11290028DE7C /* MockPaymentMethod.h in Headers */ = {isa = PBXBuildFile; fileRef = A1CBEF631F9F11290028DE7C /* MockPaymentMethod.h */; };
 		A1CC56671F46147A00A4555B /* JSPaymentAddress.h in Headers */ = {isa = PBXBuildFile; fileRef = A1CC56651F46146800A4555B /* JSPaymentAddress.h */; };
@@ -4509,7 +4506,6 @@
 		A1E086642489D35300E496D9 /* MockApplePaySetupFeature.h in Headers */ = {isa = PBXBuildFile; fileRef = A1E086622489D34100E496D9 /* MockApplePaySetupFeature.h */; };
 		A1E4C7012F60A11000B3D4E1 /* WebMediaDevicePlatformRoute.h in Headers */ = {isa = PBXBuildFile; fileRef = A1E4C7002F60A11000B3D4E1 /* WebMediaDevicePlatformRoute.h */; };
 		A1F00E012026070800000C03 /* IfConditionEvaluator.h in Headers */ = {isa = PBXBuildFile; fileRef = A1F00E012026070800000C02 /* IfConditionEvaluator.h */; };
-		A1F1C8722AF20E0E001B27E6 /* WebAVContentKeyGroup.mm in Sources */ = {isa = PBXBuildFile; fileRef = A1038D582AB22DFC00F57BA4 /* WebAVContentKeyGroup.mm */; };
 		A1F600441F4757A90077E83F /* PaymentRequestUpdateEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = A1F600411F4757A90077E83F /* PaymentRequestUpdateEvent.h */; };
 		A1F600491F47594E0077E83F /* PaymentDetailsUpdate.h in Headers */ = {isa = PBXBuildFile; fileRef = A1F600471F47594E0077E83F /* PaymentDetailsUpdate.h */; };
 		A1F6004D1F475A5E0077E83F /* PaymentRequestUpdateEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = A1F6004B1F475A5E0077E83F /* PaymentRequestUpdateEventInit.h */; };
@@ -6258,6 +6254,7 @@
 		CDAD8DFC2BED4D2C00107D24 /* VideoTargetFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = CDAD8DED2BEC7B8000107D24 /* VideoTargetFactory.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDB6354923F6023A00C0F9DE /* WebAVPlayerController.h in Headers */ = {isa = PBXBuildFile; fileRef = CDA29A2C1CBF73FC00901CCF /* WebAVPlayerController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDB7045A1F7465A1003923DF /* CDMFairPlayStreaming.h in Headers */ = {isa = PBXBuildFile; fileRef = CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		E1D5247A3E0646E9BFF2938A /* CDMInstanceFairPlayStreamingHost.h in Headers */ = {isa = PBXBuildFile; fileRef = DB3C20B4773E4BC488683118 /* CDMInstanceFairPlayStreamingHost.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */; };
 		CDBA1F362F8D9FEA00D30314 /* YouTubeCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F352F8D9EB300D30314 /* YouTubeCaptionQuirk.js */; };
 		CDBA1F382F8D9FEA00D30314 /* CNNCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F372F8D9EB300D30314 /* CNNCaptionQuirk.js */; };
@@ -7748,6 +7745,7 @@
 		164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */; };
 		9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */; };
 		003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */; };
+		5A4A9F52E16643198CC57B8E /* CDMInstanceFairPlayStreamingAVF.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */; };
 		B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */; };
 		182D187F1A4EF0CCD58D4057 /* FormatDescriptionCodecString.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */; };
 		34D6913D83C54474255F32FD /* MediaParsersCxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -17334,10 +17332,6 @@
 		A0EE0DF3144F825500F80B0D /* WebGLDebugShaders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebGLDebugShaders.cpp; sourceTree = "<group>"; };
 		A0EE0DF4144F825500F80B0D /* WebGLDebugShaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebGLDebugShaders.h; sourceTree = "<group>"; };
 		A1038D432AB20BEA00F57BA4 /* CDMKeyGroupingStrategy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CDMKeyGroupingStrategy.h; sourceTree = "<group>"; };
-		A1038D452AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentKeyGroupFactoryAVFObjC.h; sourceTree = "<group>"; };
-		A1038D462AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ContentKeyGroupFactoryAVFObjC.mm; sourceTree = "<group>"; };
-		A1038D572AB22DFC00F57BA4 /* WebAVContentKeyGroup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebAVContentKeyGroup.h; sourceTree = "<group>"; };
-		A1038D582AB22DFC00F57BA4 /* WebAVContentKeyGroup.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAVContentKeyGroup.mm; sourceTree = "<group>"; };
 		A104EC53220A017400CBF67A /* PaymentCoordinatorClient.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PaymentCoordinatorClient.cpp; sourceTree = "<group>"; };
 		A104EC55220A39B400CBF67A /* MockPaymentContactFields.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MockPaymentContactFields.h; sourceTree = "<group>"; };
 		A104EC57220A39B400CBF67A /* MockPaymentContactFields.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = MockPaymentContactFields.idl; sourceTree = "<group>"; };
@@ -17555,7 +17549,6 @@
 		A1C5854B2F5E767500ECA4A7 /* fullscreen-placard.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "fullscreen-placard.js"; sourceTree = "<group>"; };
 		A1C6A1862B9A857E0098956C /* CDMFairPlayStreamingAVFObjC.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CDMFairPlayStreamingAVFObjC.mm; sourceTree = "<group>"; };
 		A1C6C2092BC3AFE7002CDE6F /* NowPlayingMetadataObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NowPlayingMetadataObserver.h; sourceTree = "<group>"; };
-		A1C7D7C12AB7AD010055AD62 /* ContentKeyGroupDataSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ContentKeyGroupDataSource.h; sourceTree = "<group>"; };
 		A1C7FAA1133A5D3500D6732D /* JSXPathResultCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXPathResultCustom.cpp; sourceTree = "<group>"; };
 		A1C9F8632F281CD500F53830 /* JSMockMediaDeviceRouteURLCallback.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSMockMediaDeviceRouteURLCallback.h; sourceTree = "<group>"; };
 		A1CBEF631F9F11290028DE7C /* MockPaymentMethod.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MockPaymentMethod.h; sourceTree = "<group>"; };
@@ -21789,6 +21782,7 @@
 		CDAE8C071746B95700532D78 /* PlatformMediaSessionManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformMediaSessionManager.cpp; sourceTree = "<group>"; };
 		CDAE8C081746B95700532D78 /* PlatformMediaSessionManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformMediaSessionManager.h; sourceTree = "<group>"; };
 		CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CDMFairPlayStreaming.h; sourceTree = "<group>"; };
+		DB3C20B4773E4BC488683118 /* CDMInstanceFairPlayStreamingHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CDMInstanceFairPlayStreamingHost.h; sourceTree = "<group>"; };
 		CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CDMFairPlayStreaming.cpp; sourceTree = "<group>"; };
 		CDBA1F332F8C58FA00D30314 /* MediaSessionCaptionTrack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaSessionCaptionTrack.h; sourceTree = "<group>"; };
 		CDBA1F342F8C58FA00D30314 /* MediaSessionCaptionTrack.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = MediaSessionCaptionTrack.idl; sourceTree = "<group>"; };
@@ -24505,6 +24499,7 @@
 		4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitDataRegistry.swift; sourceTree = "<group>"; };
 		5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMClearKeyBridge.swift; sourceTree = "<group>"; };
 		8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMFairPlayStreamingParsing.swift; sourceTree = "<group>"; };
+		D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMInstanceFairPlayStreamingAVF.swift; sourceTree = "<group>"; };
 		ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesParsing.swift; sourceTree = "<group>"; };
 		E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatDescriptionCodecString.swift; sourceTree = "<group>"; };
 		BF1F83AA251C9642C7C554B8 /* MediaParsersCxxBridging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaParsersCxxBridging.h; sourceTree = "<group>"; };
@@ -25007,7 +25002,8 @@
 				CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */,
 				CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */,
 				8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */,
-				A1C7D7C12AB7AD010055AD62 /* ContentKeyGroupDataSource.h */,
+				D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */,
+				DB3C20B4773E4BC488683118 /* CDMInstanceFairPlayStreamingHost.h */,
 				E70750DFDF816DC5FB591ADD /* FormatDescriptionCodecString.swift */,
 				CDD8D311271F2C8D00DAA256 /* FormatDescriptionUtilities.cpp */,
 				CDD8D310271F2C8D00DAA256 /* FormatDescriptionUtilities.h */,
@@ -41300,8 +41296,6 @@
 				CDE595931BF166AD00A1CBE8 /* CDMSessionAVContentKeySession.mm */,
 				CDDE02EA18B3ED6D00CF7FF1 /* CDMSessionAVFoundationObjC.h */,
 				CDDE02EB18B3ED6D00CF7FF1 /* CDMSessionAVFoundationObjC.mm */,
-				A1038D452AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.h */,
-				A1038D462AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.mm */,
 				CD19FEAC1F574B6D000C42FB /* ImageDecoderAVFObjC.h */,
 				CD19FEAD1F574B6D000C42FB /* ImageDecoderAVFObjC.mm */,
 				070E2D0E26F15B190014AAC3 /* InbandChapterTrackPrivateAVFObjC.h */,
@@ -41337,8 +41331,6 @@
 				CD336F6617FA0AC600DDDCD0 /* VideoTrackPrivateAVFObjC.h */,
 				CD8B5A41180D149A008B8E65 /* VideoTrackPrivateMediaSourceAVFObjC.h */,
 				CD8B5A40180D149A008B8E65 /* VideoTrackPrivateMediaSourceAVFObjC.mm */,
-				A1038D572AB22DFC00F57BA4 /* WebAVContentKeyGroup.h */,
-				A1038D582AB22DFC00F57BA4 /* WebAVContentKeyGroup.mm */,
 				CD7E05201651A84100C1201F /* WebCoreAVFResourceLoader.h */,
 				CD7E05211651A84100C1201F /* WebCoreAVFResourceLoader.mm */,
 			);
@@ -45393,6 +45385,7 @@
 				CD3CE0F92401AAD9004BA01D /* CDMFactory.h in Headers */,
 				CDB7045A1F7465A1003923DF /* CDMFairPlayStreaming.h in Headers */,
 				CD3CE0FA2401AAD9004BA01D /* CDMInstance.h in Headers */,
+				E1D5247A3E0646E9BFF2938A /* CDMInstanceFairPlayStreamingHost.h in Headers */,
 				CD3CE0FB2401AAD9004BA01D /* CDMInstanceSession.h in Headers */,
 				A1038D442AB20BEA00F57BA4 /* CDMKeyGroupingStrategy.h in Headers */,
 				CDBEEF9A2ECF843200963F77 /* CDMKeyID.h in Headers */,
@@ -45540,8 +45533,6 @@
 				5CDCDDC623D80A1C00BA34A1 /* ContentFilterClient.h in Headers */,
 				A14090FD1AA51E480091191A /* ContentFilterUnblockHandler.h in Headers */,
 				CA7E9B4924361DC5004E89F6 /* ContentfulPaintChecker.h in Headers */,
-				A1C7D7C22AB7AD010055AD62 /* ContentKeyGroupDataSource.h in Headers */,
-				A1038D472AB2165900F57BA4 /* ContentKeyGroupFactoryAVFObjC.h in Headers */,
 				B5C381C0AE2187EE9DB58B96 /* ContentRuleListBlockedLoadInfo.h in Headers */,
 				E7AA0A0C2E4519DF00ABEF7F /* ContentRuleListMatchedRule.h in Headers */,
 				5C9C2DB52241A67B00996B0B /* ContentRuleListResults.h in Headers */,
@@ -50918,7 +50909,6 @@
 				57152B8021DDA581000C37CA /* WebAuthenticationUtils.h in Headers */,
 				FE7CF1A6010000000000E005 /* WebAuthnOperationErrorCode.h in Headers */,
 				FE7CF1A6010000000000E006 /* WebAuthnOperationException.h in Headers */,
-				A1038D592AB22DFC00F57BA4 /* WebAVContentKeyGroup.h in Headers */,
 				CDB6354923F6023A00C0F9DE /* WebAVPlayerController.h in Headers */,
 				511D6703286C1DA7008C2AED /* WebAVPlayerLayer.h in Headers */,
 				CD0445E12992F1740059B997 /* WebAVPlayerLayerView.h in Headers */,
@@ -51943,6 +51933,7 @@
 				9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */,
 				CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */,
 				003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */,
+				5A4A9F52E16643198CC57B8E /* CDMInstanceFairPlayStreamingAVF.swift in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
 				61C029A6BD383110885018DE /* CGRenderer.swift in Sources */,
 				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
@@ -52868,7 +52859,6 @@
 				A14832B9187F63D500DA63A6 /* WAKView.mm in Sources */,
 				DE5F861E1FA281FD006DB63A /* WebAccessibilityObjectWrapperBase.mm in Sources */,
 				DE5F861D1FA2815B006DB63A /* WebAccessibilityObjectWrapperMac.mm in Sources */,
-				A1F1C8722AF20E0E001B27E6 /* WebAVContentKeyGroup.mm in Sources */,
 				511D6701286C1D70008C2AED /* WebAVPlayerLayer.mm in Sources */,
 				CD0445E22992F1740059B997 /* WebAVPlayerLayerView.mm in Sources */,
 				51F6CA3E2B4D14D400F273C8 /* WebAVSampleBufferListener.mm in Sources */,

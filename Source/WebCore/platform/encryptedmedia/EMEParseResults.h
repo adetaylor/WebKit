@@ -118,15 +118,6 @@ enum class FairPlayConfigurationSupport : uint8_t {
     NoSupportedVideoCapability,
 };
 
-// How far an element of a FairPlay Streaming 'cenc' license response parses: not to a key ID, to a key ID but not a valid
-// payload or error, or to either.
-enum class FairPlayCencResponseEntryStage : uint32_t {
-    NoKeyID,
-    KeyIDOnly,
-    Payload,
-    Error,
-};
-
 // The init data types InitDataRegistry handles. Sinf, Skd and Mpts are FairPlay Streaming's, and only exist where it
 // does.
 enum class InitDataKind : uint8_t {

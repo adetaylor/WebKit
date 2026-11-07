@@ -3084,11 +3084,12 @@ void MediaPlayerPrivateAVFoundationObjC::attemptToDecryptWithInstance(CDMInstanc
     if (!m_keyID || !m_cdmInstance)
         return;
 
-    RefPtr instanceSession = protect(m_cdmInstance)->sessionForKeyIDs(Vector<Ref<SharedBuffer>>::from(*protect(m_keyID)));
-    if (!instanceSession)
+    Ref cdmInstance = *m_cdmInstance;
+    auto keyIDs = Vector<Ref<SharedBuffer>>::from(*protect(m_keyID));
+    if (!cdmInstance->hasSessionForKeyIDs(keyIDs))
         return;
 
-    [protect(instanceSession->contentKeySession()) addContentKeyRecipient:m_avAsset.get()];
+    [cdmInstance->contentKeySessionForKeyIDs(keyIDs) addContentKeyRecipient:m_avAsset.get()];
 
     auto keyURIToRequestMap = WTF::move(m_keyURIToRequestMap);
     for (auto& request : keyURIToRequestMap.values()) {

@@ -103,20 +103,6 @@ public:
     static Vector<Ref<SharedBuffer>> keyIDsForRequest(AVContentKeyRequest *);
 #endif
 
-    // The elements of a 'cenc' license response: each names a key ID, and holds either a payload or an error code.
-    struct CencResponseEntry {
-        // nullopt when the element has no key ID, after which the response is invalid.
-        std::optional<Vector<uint8_t>> keyID;
-        // When the key ID is valid but neither the payload nor the error is.
-        bool isValid { false };
-        std::optional<Vector<uint8_t>> payload;
-        int errorCode { 0 };
-    };
-    // nullopt when the response isn't a JSON array.
-    static std::optional<Vector<CencResponseEntry>> parseCencResponse(const SharedBuffer&);
-    // The 'cenc' license request for key IDs and their requests' data.
-    static Ref<SharedBuffer> cencRequestMessage(const Vector<std::pair<std::span<const uint8_t>, std::span<const uint8_t>>>&);
-
     const String& mediaKeysHashSalt() const LIFETIME_BOUND { return m_mediaKeysHashSalt; }
 
 private:

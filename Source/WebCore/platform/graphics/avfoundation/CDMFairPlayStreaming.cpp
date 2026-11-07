@@ -153,48 +153,6 @@ const Vector<Ref<SharedBuffer>>& CDMPrivateFairPlayStreaming::mptsKeyIDs()
 }
 #endif
 
-auto CDMPrivateFairPlayStreaming::parseCencResponse(const SharedBuffer& response) -> std::optional<Vector<CencResponseEntry>>
-{
-    MediaParserUInt32Vector fields;
-    MediaParserByteVector bytes;
-    if (!fairPlayCencResponseImpl({ response.makeContiguous()->span() }, fields, bytes))
-        return std::nullopt;
-
-    Vector<CencResponseEntry> entries;
-    auto data = bytes.span();
-    for (auto entryFields = fields.span(); entryFields.size() >= 4; entryFields = entryFields.subspan(4)) {
-        auto stage = static_cast<FairPlayCencResponseEntryStage>(entryFields[0]);
-        CencResponseEntry entry;
-        if (stage != FairPlayCencResponseEntryStage::NoKeyID) {
-            entry.keyID = Vector<uint8_t> { data.first(entryFields[1]) };
-            data = data.subspan(entryFields[1]);
-        }
-        if (stage == FairPlayCencResponseEntryStage::Payload) {
-            entry.payload = Vector<uint8_t> { data.first(entryFields[2]) };
-            data = data.subspan(entryFields[2]);
-        }
-        entry.isValid = stage == FairPlayCencResponseEntryStage::Payload || stage == FairPlayCencResponseEntryStage::Error;
-        entry.errorCode = static_cast<int>(entryFields[3]);
-        entries.append(WTF::move(entry));
-    }
-    return entries;
-}
-
-Ref<SharedBuffer> CDMPrivateFairPlayStreaming::cencRequestMessage(const Vector<std::pair<std::span<const uint8_t>, std::span<const uint8_t>>>& requests)
-{
-    MediaParserByteVector bytes;
-    MediaParserUInt32Vector sizes;
-    for (auto& [keyID, payload] : requests) {
-        bytes.append(keyID);
-        bytes.append(payload);
-        sizes.append(static_cast<uint32_t>(keyID.size()));
-        sizes.append(static_cast<uint32_t>(payload.size()));
-    }
-    MediaParserByteVector message;
-    fairPlayCencRequestImpl({ bytes.span() }, sizes, message);
-    return SharedBuffer::create(WTF::move(message));
-}
-
 void CDMFactory::platformRegisterFactories(Vector<WeakRef<CDMFactory>>& factories)
 {
     factories.append(CDMFactoryClearKey::singleton());
