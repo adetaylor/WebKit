@@ -140,6 +140,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('String', 'WTF::String', 'AtomString', 'WTF::AtomString'):
         return ('String?', 'IPCCoding.WTFString')
 
+    # A UTF8CString is encoded as the span of its bytes, which Swift takes a copy of, as of a Vector of them.
+    if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
+        return ('[UInt8]', 'IPCCoding.Vector<UInt8>')
+
     if cpp_type.removeprefix('::') in _CXX_DECODED_TYPES:
         return _CXX_DECODED_TYPES[cpp_type.removeprefix('::')]
 
