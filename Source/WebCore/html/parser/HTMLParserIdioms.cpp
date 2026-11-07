@@ -42,6 +42,11 @@
 #include <wtf/cocoa/RuntimeApplicationChecksCocoa.h>
 #endif
 
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
 String serializeForNumberType(const Decimal& number)
@@ -91,6 +96,7 @@ Decimal parseToDecimalForNumberType(StringView string)
 
 double parseToDoubleForNumberType(StringView string, double fallbackValue)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     // https://html.spec.whatwg.org/#floating-point-numbers
     if (string.isEmpty())
         return fallbackValue;
@@ -123,6 +129,9 @@ double parseToDoubleForNumberType(StringView string, double fallbackValue)
 
     // The following expression converts -0 to +0.
     return value ? value : 0;
+#else
+    return string.is8Bit() ? htmlMicrosyntaxParseFloatingPointNumberValue8(string.span8(), fallbackValue, true) : htmlMicrosyntaxParseFloatingPointNumberValue16(string.span16(), fallbackValue, true);
+#endif
 }
 
 double parseToDoubleForNumberType(StringView string)
@@ -130,6 +139,7 @@ double parseToDoubleForNumberType(StringView string)
     return parseToDoubleForNumberType(string, std::numeric_limits<double>::quiet_NaN());
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 template <typename CharacterType>
 NODELETE static std::expected<int, HTMLIntegerParsingError> parseHTMLIntegerInternal(std::span<const CharacterType> data)
 {
@@ -163,10 +173,12 @@ NODELETE static std::expected<int, HTMLIntegerParsingError> parseHTMLIntegerInte
 
     return isNegative ? -result : result;
 }
+#endif
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
 std::expected<int, HTMLIntegerParsingError> parseHTMLInteger(StringView input)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     if (input.isEmpty())
         return makeUnexpected(HTMLIntegerParsingError::Other);
 
@@ -174,6 +186,10 @@ std::expected<int, HTMLIntegerParsingError> parseHTMLInteger(StringView input)
         return parseHTMLIntegerInternal(input.span8());
 
     return parseHTMLIntegerInternal(input.span16());
+#else
+    auto result = input.is8Bit() ? htmlMicrosyntaxParseInteger8(input.span8()) : htmlMicrosyntaxParseInteger16(input.span16());
+    return result.isValid ? std::expected<int, HTMLIntegerParsingError> { result.value } : makeUnexpected(result.error);
+#endif
 }
 
 // https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-non-negative-integers
@@ -189,6 +205,7 @@ std::expected<unsigned, HTMLIntegerParsingError> parseHTMLNonNegativeInteger(Str
     return static_cast<unsigned>(optionalSignedResult.value());
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 template <typename CharacterType>
 static std::optional<int> parseValidHTMLNonNegativeIntegerInternal(std::span<const CharacterType> data)
 {
@@ -262,16 +279,22 @@ static double parseHTMLFloatingPointNumberValueInternal(std::span<const Characte
     // The following expression converts -0 to +0.
     return number ? number : 0;
 }
+#endif
 
 // https://html.spec.whatwg.org/#rules-for-parsing-floating-point-number-values
 double parseHTMLFloatingPointNumberValue(StringView input, double fallbackValue)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     if (input.is8Bit()) [[likely]]
         return parseHTMLFloatingPointNumberValueInternal(input.span8(), input.length(), fallbackValue);
 
     return parseHTMLFloatingPointNumberValueInternal(input.span16(), input.length(), fallbackValue);
+#else
+    return input.is8Bit() ? htmlMicrosyntaxParseFloatingPointNumberValue8(input.span8(), fallbackValue, false) : htmlMicrosyntaxParseFloatingPointNumberValue16(input.span16(), fallbackValue, false);
+#endif
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 template<typename CharacterType>
 NODELETE static inline bool isHTMLSpaceOrDelimiter(CharacterType character)
 {
@@ -315,14 +338,28 @@ static Vector<double> parseHTMLListOfOfFloatingPointNumberValuesInternal(std::sp
 
     return numbers;
 }
+#endif
 
 Vector<double> parseHTMLListOfOfFloatingPointNumberValues(StringView input)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     if (input.is8Bit()) [[likely]]
         return parseHTMLListOfOfFloatingPointNumberValuesInternal(input.span8());
     return parseHTMLListOfOfFloatingPointNumberValuesInternal(input.span16());
+#else
+    // Each number takes at least one character, and the next one starts after at least one delimiter.
+    Vector<double> numbers((input.length() + 1) / 2);
+    unsigned count = input.is8Bit() ? htmlMicrosyntaxParseListOfFloatingPointNumbers8(input.span8(), numbers.mutableSpan()) : htmlMicrosyntaxParseListOfFloatingPointNumbers16(input.span16(), numbers.mutableSpan());
+    RELEASE_ASSERT(count <= numbers.size());
+    numbers.shrink(count);
+    // A list keeps at most 16 unused elements.
+    if (numbers.capacity() - numbers.size() > 16)
+        numbers.shrinkToFit();
+    return numbers;
+#endif
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 static bool threadSafeEqual(const StringImpl& a, const StringImpl& b)
 {
     if (&a == &b)
@@ -336,6 +373,7 @@ bool threadSafeMatch(const QualifiedName& a, const QualifiedName& b)
 {
     return threadSafeEqual(*a.localName().impl(), *b.localName().impl());
 }
+#endif
 
 String parseCORSSettingsAttribute(const AtomString& value)
 {
@@ -346,6 +384,7 @@ String parseCORSSettingsAttribute(const AtomString& value)
     return "anonymous"_s;
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 template<typename CharacterType>
 NODELETE static bool isASCIIDigitOrPeriod(CharacterType character)
 {
@@ -443,12 +482,20 @@ static bool parseHTTPRefreshInternal(std::span<const CharacterType> data, double
     parsedURL = url.toString();
     return true;
 }
+#endif
 
 bool parseMetaHTTPEquivRefresh(StringView input, double& delay, String& url)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     if (input.is8Bit()) [[likely]]
         return parseHTTPRefreshInternal(input.span8(), delay, url);
     return parseHTTPRefreshInternal(input.span16(), delay, url);
+#else
+    auto result = input.is8Bit() ? htmlMicrosyntaxParseMetaRefresh8(input.span8(), delay) : htmlMicrosyntaxParseMetaRefresh16(input.span16(), delay);
+    if (result.hasURL)
+        url = input.substring(result.urlStart, result.urlLength).toString();
+    return result.isValid;
+#endif
 }
 
 // https://html.spec.whatwg.org/#rules-for-parsing-a-hash-name-reference
@@ -463,6 +510,7 @@ AtomString parseHTMLHashNameReference(StringView usemap)
     return result.toAtomString();
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 struct HTMLDimensionParsingResult {
     double number;
     unsigned parsedLength;
@@ -497,10 +545,12 @@ static std::optional<HTMLDimensionParsingResult> parseHTMLDimensionNumber(std::s
     result.parsedLength = data.data() - begin;
     return result;
 }
+#endif
 
 enum class IsMultiLength : bool { No, Yes };
 static std::optional<HTMLDimension> parseHTMLDimensionInternal(StringView dimensionString, IsMultiLength isMultiLength)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     std::optional<HTMLDimensionParsingResult> result;
     if (dimensionString.is8Bit())
         result = parseHTMLDimensionNumber(dimensionString.span8());
@@ -519,6 +569,10 @@ static std::optional<HTMLDimension> parseHTMLDimensionInternal(StringView dimens
     if (result->parsedLength < dimensionString.length() && dimensionString[result->parsedLength] == '%')
         dimension.type = HTMLDimension::Type::Percentage;
     return dimension;
+#else
+    auto dimension = dimensionString.is8Bit() ? htmlMicrosyntaxParseDimension8(dimensionString.span8(), isMultiLength == IsMultiLength::Yes) : htmlMicrosyntaxParseDimension16(dimensionString.span16(), isMultiLength == IsMultiLength::Yes);
+    return std::isnan(dimension.number) ? std::nullopt : std::optional { dimension };
+#endif
 }
 
 std::optional<HTMLDimension> parseHTMLDimension(StringView dimensionString)
@@ -531,6 +585,7 @@ std::optional<HTMLDimension> parseHTMLMultiLength(StringView multiLengthString)
     return parseHTMLDimensionInternal(multiLengthString, IsMultiLength::Yes);
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 template<typename CharacterType>
 NODELETE static unsigned countCommas(StringParsingBuffer<CharacterType> rawInput)
 {
@@ -673,15 +728,25 @@ static FixedVector<HTMLDimensionsListValue> parseHTMLDimensionsList(StringParsin
 
     return result;
 }
+#endif
 
 FixedVector<HTMLDimensionsListValue> parseHTMLDimensionsList(StringView listOfDimensionsString)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     if (listOfDimensionsString.isEmpty())
         return { };
 
     return readCharactersForParsing(listOfDimensionsString, [](auto buffer) {
         return parseHTMLDimensionsList(buffer);
     });
+#else
+    FixedVector<HTMLDimensionsListValue> result(listOfDimensionsString.is8Bit() ? htmlMicrosyntaxCountDimensions8(listOfDimensionsString.span8()) : htmlMicrosyntaxCountDimensions16(listOfDimensionsString.span16()));
+    if (listOfDimensionsString.is8Bit())
+        htmlMicrosyntaxParseDimensionsList8(listOfDimensionsString.span8(), result.mutableSpan());
+    else
+        htmlMicrosyntaxParseDimensionsList16(listOfDimensionsString.span16(), result.mutableSpan());
+    return result;
+#endif
 }
 
 } // namespace WebCore

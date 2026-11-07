@@ -35,6 +35,14 @@
 #include <unicode/utypes.h>
 #include <wtf/Forward.h>
 
+#if !defined(USE_SWIFT_HTML_MICROSYNTAXES)
+#define USE_SWIFT_HTML_MICROSYNTAXES 0
+#endif
+
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include <wtf/SwiftBridging.h>
+#endif
+
 namespace WebCore {
 
 enum class SecondFormat : uint8_t {
@@ -51,6 +59,10 @@ enum class DateComponentsType : uint8_t {
     Time,
     Week,
 };
+
+#if USE_SWIFT_HTML_MICROSYNTAXES
+class SWIFT_PRIVATE_FILEID("WebCore/DateComponents.swift") DateComponents;
+#endif
 
 // A DateComponents instance represents one of the following date and time combinations:
 // * Month type: year-month
@@ -147,6 +159,7 @@ public:
     static constexpr inline int maximumYear() { return 275760; }
 
 private:
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     template<typename CharacterType> NODELETE bool parseYear(StringParsingBuffer<CharacterType>&);
     template<typename CharacterType> bool parseTimeZone(StringParsingBuffer<CharacterType>&);
     template<typename CharacterType> NODELETE bool parseMonth(StringParsingBuffer<CharacterType>&);
@@ -192,6 +205,7 @@ private:
         Friday,
         Saturday,
     };
+#endif
 
     int m_millisecond; // 0 - 999
     int m_second;

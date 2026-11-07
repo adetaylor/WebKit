@@ -131,5 +131,8 @@
 #include "MediaParsersCxxBridging.h"
 #include "VPCodecConfigurationRecord.h"
 #include "VideoCodecParameterTypes.h"
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#endif
 
 #include "WebCoreSwift-Generated.h"

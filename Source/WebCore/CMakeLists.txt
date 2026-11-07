@@ -3461,6 +3461,24 @@ if (APPLE)
     list(REMOVE_ITEM WebCore_SOURCES ${WebCore_SWIFT_INTEROP_SOURCES})
 endif ()
 
+# With the setting on, these include WebCore-Swift.h, so they build in WebCore_SwiftInterop.
+if (WK_USE_SWIFT_HTML_MICROSYNTAXES)
+    if (NOT (SWIFT_REQUIRED AND APPLE))
+        message(FATAL_ERROR "WK_USE_SWIFT_HTML_MICROSYNTAXES needs WebCore's Swift, which only Apple ports build.")
+    endif ()
+    set(WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES
+        html/parser/HTMLMetaCharsetParser.cpp
+        html/parser/HTMLParserIdioms.cpp
+        html/parser/HTMLSrcsetParser.cpp
+
+        platform/DateComponents.cpp
+    )
+    foreach (_f IN LISTS WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES)
+        cmake_path(GET _f FILENAME _fn)
+        list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_fn}( |$)")
+    endforeach ()
+endif ()
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3708,6 +3726,15 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/cg/ImageDecodingCG.swift
     )
 
+    # HTML microsyntaxes in Swift. Each file is empty unless WK_USE_SWIFT_HTML_MICROSYNTAXES is on.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/html/parser/HTMLMetaCharsetParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLMicrosyntaxCodeUnit.swift
+        ${WEBCORE_DIR}/html/parser/HTMLParserIdioms.swift
+        ${WEBCORE_DIR}/html/parser/HTMLSrcsetParser.swift
+        ${WEBCORE_DIR}/platform/DateComponents.swift
+    )
+
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
         # WebCore.xcconfig's OTHER_SWIFT_FLAGS and SWIFT_TREAT_WARNINGS_AS_ERRORS, with its -O2 for the imported C++
@@ -3746,12 +3773,18 @@ if (APPLE)
     # C++ sources that include WebCoreSwift-Generated.h.
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports}
         ${_webcore_swift_interop_sources_apple})
+    if (WK_USE_SWIFT_HTML_MICROSYNTAXES)
+        webkit_target_add_swift_options(WebCore -DUSE_SWIFT_HTML_MICROSYNTAXES)
+    endif ()
 
     # Whole-module optimization outside Debug, as for WebGPU.
     WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCore)
 
     # As in WebCore.xcconfig, keep the Swift "Cxx" module's symbols private (rdar://139232237, rdar://165050676).
     target_link_options(WebCore PRIVATE "LINKER:-unexported_symbol,_$s*3Cxx*")
+
+    # C++ sources that include WebCoreSwift-Generated.h when WK_USE_SWIFT_HTML_MICROSYNTAXES is on.
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES})
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"

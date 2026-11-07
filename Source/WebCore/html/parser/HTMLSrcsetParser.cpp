@@ -41,8 +41,14 @@
 #include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/StringBuilder.h>
 
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 NODELETE static inline bool compareByDensity(const ImageCandidate& first, const ImageCandidate& second)
 {
     return first.density < second.density;
@@ -207,14 +213,27 @@ static Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(std::span<
     }
     return imageCandidates;
 }
+#endif
 
 Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(StringView attribute)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     // FIXME: We should consider replacing the direct pointers in the parsing process with StringView and positions.
     if (attribute.is8Bit())
         return parseImageCandidatesFromSrcsetAttribute<Latin1Character>(attribute.span8());
     else
         return parseImageCandidatesFromSrcsetAttribute<char16_t>(attribute.span16());
+#else
+    Vector<ImageCandidate> imageCandidates;
+    for (unsigned position = 0; ; ) {
+        auto candidate = attribute.is8Bit() ? htmlMicrosyntaxNextSrcsetCandidate8(attribute.span8(), position) : htmlMicrosyntaxNextSrcsetCandidate16(attribute.span16(), position);
+        if (!candidate.found)
+            return imageCandidates;
+        imageCandidates.append(ImageCandidate(StringViewWithUnderlyingString(attribute.substring(candidate.start, candidate.length), String()), DescriptorParsingResult(), ImageCandidate::SrcsetOrigin));
+        imageCandidates.last().density = candidate.density;
+        imageCandidates.last().resourceWidth = candidate.width;
+    }
+#endif
 }
 
 void getURLsFromSrcsetAttribute(const Element& element, StringView attribute, OrderedHashSet<URL>& urls)
@@ -260,6 +279,7 @@ String replaceURLsInSrcsetAttribute(const Element& element, StringView attribute
 
 static ImageCandidate pickBestImageCandidate(float deviceScaleFactor, Vector<ImageCandidate>& imageCandidates, std::optional<float> sourceSize)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     bool ignoreSrc = false;
     if (imageCandidates.isEmpty())
         return { };
@@ -296,6 +316,17 @@ static ImageCandidate pickBestImageCandidate(float deviceScaleFactor, Vector<Ima
         winner = i;
 
     return imageCandidates[winner];
+#else
+    if (imageCandidates.isEmpty())
+        return { };
+    auto keys = imageCandidates.map<Vector<HTMLMicrosyntaxSrcsetPickKey, 16>>([](auto& candidate) {
+        return HTMLMicrosyntaxSrcsetPickKey { candidate.density, candidate.resourceWidth, candidate.srcOrigin() };
+    });
+    auto index = htmlMicrosyntaxPickBestSrcsetCandidate(deviceScaleFactor, keys.mutableSpan(), sourceSize.value_or(0), sourceSize.has_value());
+    auto winner = imageCandidates[index];
+    winner.density = keys[index].density;
+    return winner;
+#endif
 }
 
 ImageCandidate bestFitSourceForImageAttributes(float deviceScaleFactor, const String& srcAttribute, StringView srcsetAttribute, std::optional<float> sourceSize, NOESCAPE const Function<bool(const ImageCandidate&)>& shouldIgnoreCandidateCallback)

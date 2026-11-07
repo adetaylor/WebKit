@@ -420,3 +420,8 @@ if (NOT APPLE)
         SET_AND_EXPOSE_TO_BUILD(HAVE_STD_EXPERIMENTAL_FILESYSTEM TRUE)
     endif ()
 endif ()
+
+# Parse the HTML microsyntaxes and the date and time values of <input> in Swift. Needs WebCore's Swift, which only
+# Apple ports build.
+option(WK_USE_SWIFT_HTML_MICROSYNTAXES "Parse HTML microsyntaxes in Swift" OFF)
+SET_AND_EXPOSE_TO_BUILD(USE_SWIFT_HTML_MICROSYNTAXES ${WK_USE_SWIFT_HTML_MICROSYNTAXES})

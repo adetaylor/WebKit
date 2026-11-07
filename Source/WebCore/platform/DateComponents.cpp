@@ -39,8 +39,14 @@
 #include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/StringParsingBuffer.h>
 
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 // HTML defines minimum week of year is one.
 static constexpr int minimumWeekNumber = 1;
 
@@ -189,42 +195,73 @@ template<typename F> static std::optional<DateComponents> createFromString(Strin
         return date;
     });
 }
+#else
+// DateComponents.swift's copies of the year limits.
+static_assert(DateComponents::minimumYear() == 1 && DateComponents::maximumYear() == 275760);
+
+// `function` sets what it finds in `date`, a default DateComponents, and returns whether it is valid.
+template<typename F, typename... Arguments> static std::optional<DateComponents> dateComponentsIfValid(DateComponents date, const F& function, const Arguments&... arguments)
+{
+    return function(arguments..., date) ? std::optional { date } : std::nullopt;
+}
+#endif
 
 std::optional<DateComponents> DateComponents::fromParsingMonth(StringView source)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromString(source, [] (auto& buffer, auto& date) {
         return date.parseMonth(buffer);
     });
+#else
+    return source.is8Bit() ? dateComponentsIfValid({ }, dateComponentsFromParsing8, source.span8(), DateComponentsType::Month) : dateComponentsIfValid({ }, dateComponentsFromParsing16, source.span16(), DateComponentsType::Month);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromParsingDate(StringView source)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromString(source, [] (auto& buffer, auto& date) {
         return date.parseDate(buffer);
     });
+#else
+    return source.is8Bit() ? dateComponentsIfValid({ }, dateComponentsFromParsing8, source.span8(), DateComponentsType::Date) : dateComponentsIfValid({ }, dateComponentsFromParsing16, source.span16(), DateComponentsType::Date);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromParsingWeek(StringView source)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromString(source, [] (auto& buffer, auto& date) {
         return date.parseWeek(buffer);
     });
+#else
+    return source.is8Bit() ? dateComponentsIfValid({ }, dateComponentsFromParsing8, source.span8(), DateComponentsType::Week) : dateComponentsIfValid({ }, dateComponentsFromParsing16, source.span16(), DateComponentsType::Week);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromParsingTime(StringView source)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromString(source, [] (auto& buffer, auto& date) {
         return date.parseTime(buffer);
     });
+#else
+    return source.is8Bit() ? dateComponentsIfValid({ }, dateComponentsFromParsing8, source.span8(), DateComponentsType::Time) : dateComponentsIfValid({ }, dateComponentsFromParsing16, source.span16(), DateComponentsType::Time);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromParsingDateTimeLocal(StringView source)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromString(source, [] (auto& buffer, auto& date) {
         return date.parseDateTimeLocal(buffer);
     });
+#else
+    return source.is8Bit() ? dateComponentsIfValid({ }, dateComponentsFromParsing8, source.span8(), DateComponentsType::DateTimeLocal) : dateComponentsIfValid({ }, dateComponentsFromParsing16, source.span16(), DateComponentsType::DateTimeLocal);
+#endif
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 bool DateComponents::addDay(int dayDiff)
 {
     ASSERT(m_monthDay);
@@ -528,49 +565,75 @@ template<typename F> static std::optional<DateComponents> createFromTimeOffset(d
         return std::nullopt;
     return result;
 }
+#endif
 
 std::optional<DateComponents> DateComponents::fromMillisecondsSinceEpochForDate(double ms)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(ms, [] (auto& date, auto ms) {
         return date.setMillisecondsSinceEpochForDate(ms);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMillisecondsSinceEpochForDate, ms);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromMillisecondsSinceEpochForDateTimeLocal(double ms)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(ms, [] (auto& date, auto ms) {
         return date.setMillisecondsSinceEpochForDateTimeLocal(ms);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMillisecondsSinceEpochForDateTimeLocal, ms);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromMillisecondsSinceEpochForMonth(double ms)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(ms, [] (auto& date, auto ms) {
         return date.setMillisecondsSinceEpochForMonth(ms);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMillisecondsSinceEpochForMonth, ms);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromMillisecondsSinceEpochForWeek(double ms)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(ms, [] (auto& date, auto ms) {
         return date.setMillisecondsSinceEpochForWeek(ms);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMillisecondsSinceEpochForWeek, ms);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromMillisecondsSinceMidnight(double ms)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(ms, [] (auto& date, auto ms) {
         return date.setMillisecondsSinceMidnight(ms);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMillisecondsSinceMidnight, ms);
+#endif
 }
 
 std::optional<DateComponents> DateComponents::fromMonthsSinceEpoch(double months)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     return createFromTimeOffset(months, [] (auto& date, auto months) {
         return date.setMonthsSinceEpoch(months);
     });
+#else
+    return dateComponentsIfValid({ }, dateComponentsFromMonthsSinceEpoch, months);
+#endif
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 void DateComponents::setMillisecondsSinceMidnightInternal(double msInDay)
 {
     ASSERT(msInDay >= 0 && msInDay < msPerDay);
@@ -708,9 +771,11 @@ double DateComponents::millisecondsSinceEpochForTime() const
     ASSERT(m_type == DateComponentsType::Time || m_type == DateComponentsType::DateTimeLocal);
     return ((m_hour * minutesPerHour + m_minute) * secondsPerMinute + m_second) * msPerSecond + m_millisecond;
 }
+#endif
 
 double DateComponents::millisecondsSinceEpoch() const
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     switch (m_type) {
     case DateComponentsType::Date:
         return dateToDaysFrom1970(m_year, m_month, m_monthDay) * msPerDay;
@@ -727,14 +792,22 @@ double DateComponents::millisecondsSinceEpoch() const
     }
     ASSERT_NOT_REACHED();
     return invalidMilliseconds();
+#else
+    return dateComponentsMillisecondsSinceEpoch(*this);
+#endif
 }
 
 double DateComponents::monthsSinceEpoch() const
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     ASSERT(m_type == DateComponentsType::Month);
     return (m_year - 1970) * 12 + m_month;
+#else
+    return dateComponentsMonthsSinceEpoch(*this);
+#endif
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 String DateComponents::toStringForTime(SecondFormat format) const
 {
     ASSERT(m_type == DateComponentsType::DateTimeLocal || m_type == DateComponentsType::Time);
@@ -764,9 +837,11 @@ String DateComponents::toStringForTime(SecondFormat format) const
     }
     }
 }
+#endif
 
 String DateComponents::toString(SecondFormat format) const
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     switch (m_type) {
     case DateComponentsType::Date:
         return makeString(pad('0', 4, m_year), '-', pad('0', 2, m_month + 1), '-', pad('0', 2, m_monthDay));
@@ -783,6 +858,9 @@ String DateComponents::toString(SecondFormat format) const
     }
     ASSERT_NOT_REACHED();
     return "(Invalid DateComponents)"_str;
+#else
+    return dateComponentsToString(*this, std::to_underlying(format));
+#endif
 }
 
 } // namespace WebCore

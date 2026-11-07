@@ -73,6 +73,11 @@
 		24F2D28EC630E46BAB683496 /* CSSOpacityFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = BC3078A82CFFF2B000630D75 /* CSSOpacityFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1E7288BB348860CAB8B7923E /* CSSSaturateFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = BC3078AA2CFFF2B000630D75 /* CSSSaturateFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		23C6322090A1AF4671DB76DD /* CSSSepiaFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = BC3078AC2CFFF2B000630D75 /* CSSSepiaFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		80F8529AB80C4E9FB5BFA872 /* HTMLParserIdioms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5991B7A70123413BA01AB9D9 /* HTMLParserIdioms.swift */; };
+		C40293086C03459B8E570D4F /* HTMLSrcsetParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2DB713EC26D4B198703CBCC /* HTMLSrcsetParser.swift */; };
+		4F483206BE1C4507A8BDF234 /* HTMLMetaCharsetParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0C0E8353D0C4CB299ADE390 /* HTMLMetaCharsetParser.swift */; };
+		5328CAC8C68D4DB28EAACDED /* DateComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 045164937F2D414EBB314C40 /* DateComponents.swift */; };
+		AA55B291522641D595D24753 /* HTMLMicrosyntaxCodeUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BE8E5348381473998DF5815 /* HTMLMicrosyntaxCodeUnit.swift */; };
 		B37D5734449A2CF7D02E4B5A /* RasterDrawingOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 2346E0FF92D1BDEFA870881B /* RasterDrawingOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0E527AEF888254BE1ED24498 /* InspectorObjectIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = DDB320A5233FB9CC6D07408D /* InspectorObjectIdentifier.h */; };
 		10ECDBE58AB82CA197AC07B6 /* FilterEffectView.h in Headers */ = {isa = PBXBuildFile; fileRef = BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -97,6 +102,7 @@
 		86E4735E97BB1E77EE1249EF /* CSSStepsEasingFunction.h in Headers */ = {isa = PBXBuildFile; fileRef = BCD2C6EA2D0F43F600F77591 /* CSSStepsEasingFunction.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		C55DD36D2CBB16A5007831A7 /* CSSPropertyParserConsumer+Filter.h in Headers */ = {isa = PBXBuildFile; fileRef = BC95FC0C2C838E9C00051FAE /* CSSPropertyParserConsumer+Filter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		88BB1C013C20C65F384E2112 /* CSSPropertyParserConsumer+LinkParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AB1C0332FD20004008AF649 /* CSSPropertyParserConsumer+LinkParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B5E4FBE2BA8946CFAEBC7510 /* HTMLMicrosyntaxesSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 8F20F3E86F6E403183C0DAF8 /* HTMLMicrosyntaxesSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		D93A5C8E2B10F46A7C05E8D3 /* ReplacedElementIntrinsicSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = E4B7A2C10F63D5948A1E2B70 /* ReplacedElementIntrinsicSizing.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E6C3442408974A03886A869E /* ImmersiveElement.h in Headers */ = {isa = PBXBuildFile; fileRef = C5C1BDC22A5707719EFC9564 /* ImmersiveElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		F3D7B2EBBB8E3FDE13BA0023 /* ReplacedElementSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = E48A470E5FA9F189AC831CF5 /* ReplacedElementSizing.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8053,6 +8059,12 @@
 
 /* Begin PBXFileReference section */
 		2346E0FF92D1BDEFA870881B /* RasterDrawingOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RasterDrawingOptions.h; sourceTree = "<group>"; };
+		4BE8E5348381473998DF5815 /* HTMLMicrosyntaxCodeUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLMicrosyntaxCodeUnit.swift; sourceTree = "<group>"; };
+		5991B7A70123413BA01AB9D9 /* HTMLParserIdioms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLParserIdioms.swift; sourceTree = "<group>"; };
+		F2DB713EC26D4B198703CBCC /* HTMLSrcsetParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLSrcsetParser.swift; sourceTree = "<group>"; };
+		B0C0E8353D0C4CB299ADE390 /* HTMLMetaCharsetParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTMLMetaCharsetParser.swift; sourceTree = "<group>"; };
+		045164937F2D414EBB314C40 /* DateComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateComponents.swift; sourceTree = "<group>"; };
+		8F20F3E86F6E403183C0DAF8 /* HTMLMicrosyntaxesSwiftTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTMLMicrosyntaxesSwiftTypes.h; sourceTree = "<group>"; };
 		F4545C832C4D153807E9E90E /* RasterDrawingOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RasterDrawingOptions.cpp; sourceTree = "<group>"; };
 		BDCDA9A73BA6C7EE1597E72B /* FilterEffectView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectView.h; sourceTree = "<group>"; };
 		4F1398459A92E646A990CF98 /* FilterEffectView.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FilterEffectView.cpp; sourceTree = "<group>"; };
@@ -34660,10 +34672,14 @@
 				97BC849A12370A4B000C6161 /* HTMLInputStream.h */,
 				2BE8E2C812A58A0100FAD550 /* HTMLMetaCharsetParser.cpp */,
 				2BE8E2C612A589EC00FAD550 /* HTMLMetaCharsetParser.h */,
+				B0C0E8353D0C4CB299ADE390 /* HTMLMetaCharsetParser.swift */,
+				4BE8E5348381473998DF5815 /* HTMLMicrosyntaxCodeUnit.swift */,
+				8F20F3E86F6E403183C0DAF8 /* HTMLMicrosyntaxesSwiftTypes.h */,
 				F4B0018826E7F21F006EAABE /* HTMLNameCache.cpp */,
 				F4B0018726E7F21F006EAABE /* HTMLNameCache.h */,
 				93E2A304123E9DC0009FE12A /* HTMLParserIdioms.cpp */,
 				93E2A305123E9DC0009FE12A /* HTMLParserIdioms.h */,
+				5991B7A70123413BA01AB9D9 /* HTMLParserIdioms.swift */,
 				973F4187169B95EF0006BF60 /* HTMLParserOptions.cpp */,
 				973F4188169B95EF0006BF60 /* HTMLParserOptions.h */,
 				977B3857122883E900B81FF8 /* HTMLParserScheduler.cpp */,
@@ -34679,6 +34695,7 @@
 				977B385D122883E900B81FF8 /* HTMLScriptRunnerHost.h */,
 				536D5A1E193E18D000CE4CAB /* HTMLSrcsetParser.cpp */,
 				536D5A1F193E18E900CE4CAB /* HTMLSrcsetParser.h */,
+				F2DB713EC26D4B198703CBCC /* HTMLSrcsetParser.swift */,
 				97C1F552122855CB00EDE616 /* HTMLToken.h */,
 				977B385E122883E900B81FF8 /* HTMLTokenizer.cpp */,
 				977B385F122883E900B81FF8 /* HTMLTokenizer.h */,
@@ -40173,6 +40190,7 @@
 				F473845725DDE9FB006DE8DD /* DataOwnerType.h */,
 				A5732B08136A161D005C8D7C /* DateComponents.cpp */,
 				A5732B09136A161D005C8D7C /* DateComponents.h */,
+				045164937F2D414EBB314C40 /* DateComponents.swift */,
 				37C738F11EDBDE87003F2B0B /* DateTimeChooser.h */,
 				37C738F21EDBDE87003F2B0B /* DateTimeChooserClient.h */,
 				E5C59A9924D0E1AA003B86E1 /* DateTimeChooserParameters.h */,
@@ -46872,6 +46890,7 @@
 				2BE8E2C712A589EC00FAD550 /* HTMLMetaCharsetParser.h in Headers */,
 				A871DC240A15205700B12A68 /* HTMLMetaElement.h in Headers */,
 				A454424B119B3661009BE912 /* HTMLMeterElement.h in Headers */,
+				B5E4FBE2BA8946CFAEBC7510 /* HTMLMicrosyntaxesSwiftTypes.h in Headers */,
 				71A3D1812562B85B0064E2A6 /* HTMLModelElement.h in Headers */,
 				7177AD57274295D1002F103B /* HTMLModelElementCamera.h in Headers */,
 				A8CFF7A70A156978000A4234 /* HTMLModElement.h in Headers */,
@@ -51983,6 +52002,7 @@
 				C55A00000000000000000004 /* CSSTokenizerSwift.swift in Sources */,
 				2D22830323A8470700364B7E /* CursorMac.mm in Sources */,
 				5CBD59592280E926002B22AA /* CustomHeaderFields.cpp in Sources */,
+				5328CAC8C68D4DB28EAACDED /* DateComponents.swift in Sources */,
 				07E4BDBF2A3A5FAB000D5509 /* DictationCaretAnimator.cpp in Sources */,
 				0749E9512E275A23009B912B /* EditingHTMLConverter.mm in Sources */,
 				C692924099778690E1A10A7F /* FEBlendCoreImageApplier.swift in Sources */,
@@ -52047,8 +52067,12 @@
 				5A1F0000000000000000000E /* HTMLElementStack.swift in Sources */,
 				5A1F00000000000000000006 /* HTMLEntityParser.swift in Sources */,
 				5A1F00000000000000000004 /* HTMLFastPathParser.swift in Sources */,
+				4F483206BE1C4507A8BDF234 /* HTMLMetaCharsetParser.swift in Sources */,
+				AA55B291522641D595D24753 /* HTMLMicrosyntaxCodeUnit.swift in Sources */,
 				A8D06B3A0A265DCD005E7203 /* HTMLNames.cpp in Sources */,
+				80F8529AB80C4E9FB5BFA872 /* HTMLParserIdioms.swift in Sources */,
 				BE86BB9BE458E20FF4CB0D5E /* HTMLPreloadScanner.swift in Sources */,
+				C40293086C03459B8E570D4F /* HTMLSrcsetParser.swift in Sources */,
 				5A1F00000000000000000008 /* HTMLTokenizer.swift in Sources */,
 				5A1F0000000000000000000C /* HTMLTreeBuilder.swift in Sources */,
 				1AC900C31943C0FC008625B5 /* HTTPHeaderNames.cpp in Sources */,

@@ -35,6 +35,10 @@
 #include <wtf/OrderedHashSet.h>
 #include <wtf/text/StringView.h>
 
+#if !defined(USE_SWIFT_HTML_MICROSYNTAXES)
+#define USE_SWIFT_HTML_MICROSYNTAXES 0
+#endif
+
 namespace WebCore {
 
 namespace CSS {
@@ -62,9 +66,11 @@ public:
     unsigned resourceWidth() const { ASSERT(hasWidth()); return m_resourceWidth; }
     unsigned resourceHeight() const { ASSERT(hasHeight()); return m_resourceHeight; }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     void setResourceWidth(int width) { ASSERT(width >= 0); m_resourceWidth = (unsigned)width; }
     void setResourceHeight(int height) { ASSERT(height >= 0); m_resourceHeight = (unsigned)height; }
     void setDensity(float densityToSet) { ASSERT(densityToSet >= 0); m_density = densityToSet; }
+#endif
 
 private:
     float m_density;

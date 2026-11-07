@@ -906,6 +906,7 @@
 				WebCore/HEVCUtilitiesTests.cpp,
 				WebCore/HTMLDocumentParserBench.cpp,
 				WebCore/HTMLFastPathParserBench.cpp,
+				WebCore/HTMLMicrosyntaxesBench.cpp,
 				WebCore/HTMLParserIdioms.cpp,
 				WebCore/HTMLPreloadScannerBench.cpp,
 				WebCore/HTMLTokenizerBench.cpp,

@@ -32,6 +32,11 @@
 #include <pal/text/TextEncodingRegistry.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if USE_SWIFT_HTML_MICROSYNTAXES
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+#endif
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(HTMLMetaCharsetParser);
@@ -43,6 +48,7 @@ HTMLMetaCharsetParser::HTMLMetaCharsetParser()
 {
 }
 
+#if !USE_SWIFT_HTML_MICROSYNTAXES
 static StringView extractCharset(StringView value)
 {
     unsigned length = value.length();
@@ -88,6 +94,7 @@ static StringView extractCharset(StringView value)
     }
     return { };
 }
+#endif
 
 bool HTMLMetaCharsetParser::processMeta(HTMLToken& token)
 {
@@ -100,6 +107,7 @@ bool HTMLMetaCharsetParser::processMeta(HTMLToken& token)
 
 PAL::TextEncoding HTMLMetaCharsetParser::encodingFromMetaAttributes(std::span<const std::pair<StringView, StringView>> attributes)
 {
+#if !USE_SWIFT_HTML_MICROSYNTAXES
     bool gotPragma = false;
     enum { None, Charset, Pragma } mode = None;
     StringView charset;
@@ -127,6 +135,21 @@ PAL::TextEncoding HTMLMetaCharsetParser::encodingFromMetaAttributes(std::span<co
         return charset.trim(isASCIIWhitespace<char16_t>);
 
     return PAL::TextEncoding();
+#else
+    HTMLMicrosyntaxMetaCharsetScan scan { };
+    for (unsigned index = 0; index < attributes.size(); ++index) {
+        auto& [name, value] = attributes[index];
+        bool continues = name.is8Bit()
+            ? (value.is8Bit() ? htmlMicrosyntaxScanMetaCharsetAttributeName8Value8(scan, index, name.span8(), value.span8()) : htmlMicrosyntaxScanMetaCharsetAttributeName8Value16(scan, index, name.span8(), value.span16()))
+            : (value.is8Bit() ? htmlMicrosyntaxScanMetaCharsetAttributeName16Value8(scan, index, name.span16(), value.span8()) : htmlMicrosyntaxScanMetaCharsetAttributeName16Value16(scan, index, name.span16(), value.span16()));
+        if (!continues)
+            break;
+    }
+    if (!scan.hasEncoding)
+        return PAL::TextEncoding();
+    RELEASE_ASSERT(scan.attribute < attributes.size());
+    return attributes[scan.attribute].second.substring(scan.start, scan.length);
+#endif
 }
 
 bool HTMLMetaCharsetParser::checkForMetaCharset(std::span<const uint8_t> data)
