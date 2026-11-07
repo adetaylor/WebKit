@@ -62,10 +62,6 @@ public:
     unsigned resourceWidth() const { ASSERT(hasWidth()); return m_resourceWidth; }
     unsigned resourceHeight() const { ASSERT(hasHeight()); return m_resourceHeight; }
 
-    void setResourceWidth(int width) { ASSERT(width >= 0); m_resourceWidth = (unsigned)width; }
-    void setResourceHeight(int height) { ASSERT(height >= 0); m_resourceHeight = (unsigned)height; }
-    void setDensity(float densityToSet) { ASSERT(densityToSet >= 0); m_density = densityToSet; }
-
 private:
     float m_density;
     int m_resourceWidth;

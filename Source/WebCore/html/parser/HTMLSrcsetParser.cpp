@@ -41,180 +41,22 @@
 #include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/StringBuilder.h>
 
+#include "HTMLMicrosyntaxesSwiftTypes.h"
+#include "WebCore-Swift.h"
+
 namespace WebCore {
-
-NODELETE static inline bool compareByDensity(const ImageCandidate& first, const ImageCandidate& second)
-{
-    return first.density < second.density;
-}
-
-enum DescriptorTokenizerState {
-    Initial,
-    InParenthesis,
-    AfterToken,
-};
-
-template<typename CharType>
-static void appendDescriptorAndReset(std::span<const CharType>& descriptorStart, const CharType* position, Vector<StringView>& descriptors)
-{
-    if (position > descriptorStart.data())
-        descriptors.append(StringView { descriptorStart.first(position - descriptorStart.data()) });
-    descriptorStart = { };
-}
-
-// The following is called appendCharacter to match the spec's terminology.
-template<typename CharType>
-NODELETE static void appendCharacter(std::span<const CharType>& descriptorStart, std::span<const CharType> position)
-{
-    // Since we don't copy the tokens, this just set the point where the descriptor tokens start.
-    if (!descriptorStart.data())
-        descriptorStart = position;
-}
-
-template<typename CharType>
-static void tokenizeDescriptors(std::span<const CharType>& position, Vector<StringView>& descriptors)
-{
-    DescriptorTokenizerState state = Initial;
-    auto descriptorsStart = position;
-    auto currentDescriptorStart = descriptorsStart;
-    for (; ; skip(position, 1)) {
-        switch (state) {
-        case Initial:
-            if (position.empty()) {
-                appendDescriptorAndReset(currentDescriptorStart, std::to_address(position.end()), descriptors);
-                return;
-            }
-            if (isComma(position.front())) {
-                appendDescriptorAndReset(currentDescriptorStart, position.data(), descriptors);
-                skip(position, 1);
-                return;
-            }
-            if (isASCIIWhitespace(position.front())) {
-                appendDescriptorAndReset(currentDescriptorStart, position.data(), descriptors);
-                currentDescriptorStart = position.subspan(1);
-                state = AfterToken;
-            } else if (position.front() == '(') {
-                appendCharacter(currentDescriptorStart, position);
-                state = InParenthesis;
-            } else
-                appendCharacter(currentDescriptorStart, position);
-            break;
-        case InParenthesis:
-            if (position.empty()) {
-                appendDescriptorAndReset(currentDescriptorStart, std::to_address(position.end()), descriptors);
-                return;
-            }
-            if (position.front() == ')') {
-                appendCharacter(currentDescriptorStart, position);
-                state = Initial;
-            } else
-                appendCharacter(currentDescriptorStart, position);
-            break;
-        case AfterToken:
-            if (position.empty())
-                return;
-            if (!isASCIIWhitespace(position.front())) {
-                state = Initial;
-                currentDescriptorStart = position;
-                position = descriptorsStart.subspan(position.data() - descriptorsStart.data() - 1, position.size() + 1);
-            }
-            break;
-        }
-    }
-}
-
-static bool parseDescriptors(Vector<StringView>& descriptors, DescriptorParsingResult& result)
-{
-    for (auto& descriptor : descriptors) {
-        if (descriptor.isEmpty())
-            continue;
-        unsigned descriptorCharPosition = descriptor.length() - 1;
-        char16_t descriptorChar = descriptor[descriptorCharPosition];
-        descriptor = descriptor.left(descriptorCharPosition);
-        if (descriptorChar == 'x') {
-            if (result.hasDensity() || result.hasHeight() || result.hasWidth())
-                return false;
-            std::optional<double> density = parseValidHTMLFloatingPointNumber(descriptor);
-            if (!density || density.value() < 0)
-                return false;
-            result.setDensity(density.value());
-        } else if (descriptorChar == 'w') {
-            if (result.hasDensity() || result.hasWidth())
-                return false;
-            std::optional<int> resourceWidth = parseValidHTMLNonNegativeInteger(descriptor);
-            if (!resourceWidth || resourceWidth.value() <= 0)
-                return false;
-            result.setResourceWidth(resourceWidth.value());
-        } else if (descriptorChar == 'h') {
-            // This is here only for future compat purposes.
-            // The value of the 'h' descriptor is not used.
-            if (result.hasDensity() || result.hasHeight())
-                return false;
-            std::optional<int> resourceHeight = parseValidHTMLNonNegativeInteger(descriptor);
-            if (!resourceHeight || resourceHeight.value() <= 0)
-                return false;
-            result.setResourceHeight(resourceHeight.value());
-        } else
-            return false;
-    }
-    return !result.hasHeight() || result.hasWidth();
-}
-
-// http://picture.responsiveimages.org/#parse-srcset-attr
-template<typename CharType>
-static Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(std::span<const CharType> attribute)
-{
-    Vector<ImageCandidate> imageCandidates;
-
-    while (!attribute.empty()) {
-        // 4. Splitting loop: Collect a sequence of characters that are space characters or U+002C COMMA characters.
-        skipWhile<isHTMLSpaceOrComma>(attribute);
-        if (attribute.empty()) {
-            // Contrary to spec language - descriptor parsing happens on each candidate, so when we reach the attributeEnd, we can exit.
-            break;
-        }
-        auto imageURLSpan = attribute;
-        // 6. Collect a sequence of characters that are not space characters, and let that be url.
-
-        skipUntil<isASCIIWhitespace>(attribute);
-        imageURLSpan = imageURLSpan.first(attribute.data() - imageURLSpan.data());
-
-        DescriptorParsingResult result;
-
-        // 8. If url ends with a U+002C COMMA character (,)
-        if (isComma(imageURLSpan.back())) {
-            // Remove all trailing U+002C COMMA characters from url.
-            dropLast(imageURLSpan);
-            while (!imageURLSpan.empty() && isComma(imageURLSpan.back()))
-                dropLast(imageURLSpan);
-
-            // If url is empty, then jump to the step labeled splitting loop.
-            if (imageURLSpan.empty())
-                continue;
-        } else {
-            skipWhile<isASCIIWhitespace>(attribute);
-            Vector<StringView> descriptorTokens;
-            tokenizeDescriptors(attribute, descriptorTokens);
-            // Contrary to spec language - descriptor parsing happens on each candidate.
-            // This is a black-box equivalent, to avoid storing descriptor lists for each candidate.
-            if (!parseDescriptors(descriptorTokens, result))
-                continue;
-        }
-
-        ASSERT(!imageURLSpan.empty());
-        imageCandidates.append(ImageCandidate(StringViewWithUnderlyingString(imageURLSpan, String()), result, ImageCandidate::SrcsetOrigin));
-        // 11. Return to the step labeled splitting loop.
-    }
-    return imageCandidates;
-}
 
 Vector<ImageCandidate> parseImageCandidatesFromSrcsetAttribute(StringView attribute)
 {
-    // FIXME: We should consider replacing the direct pointers in the parsing process with StringView and positions.
-    if (attribute.is8Bit())
-        return parseImageCandidatesFromSrcsetAttribute<Latin1Character>(attribute.span8());
-    else
-        return parseImageCandidatesFromSrcsetAttribute<char16_t>(attribute.span16());
+    Vector<ImageCandidate> imageCandidates;
+    for (unsigned position = 0; ; ) {
+        auto candidate = attribute.is8Bit() ? htmlMicrosyntaxNextSrcsetCandidate8(attribute.span8(), position) : htmlMicrosyntaxNextSrcsetCandidate16(attribute.span16(), position);
+        if (!candidate.found)
+            return imageCandidates;
+        imageCandidates.append(ImageCandidate(StringViewWithUnderlyingString(attribute.substring(candidate.start, candidate.length), String()), DescriptorParsingResult(), ImageCandidate::SrcsetOrigin));
+        imageCandidates.last().density = candidate.density;
+        imageCandidates.last().resourceWidth = candidate.width;
+    }
 }
 
 void getURLsFromSrcsetAttribute(const Element& element, StringView attribute, OrderedHashSet<URL>& urls)
@@ -260,42 +102,15 @@ String replaceURLsInSrcsetAttribute(const Element& element, StringView attribute
 
 static ImageCandidate pickBestImageCandidate(float deviceScaleFactor, Vector<ImageCandidate>& imageCandidates, std::optional<float> sourceSize)
 {
-    bool ignoreSrc = false;
     if (imageCandidates.isEmpty())
         return { };
-
-    // http://picture.responsiveimages.org/#normalize-source-densities
-    for (auto& candidate : imageCandidates) {
-        if (candidate.resourceWidth > 0) {
-            candidate.density = sourceSize
-                ? static_cast<float>(candidate.resourceWidth) / *sourceSize
-                : DefaultDensityValue;
-            ignoreSrc = true;
-        } else if (candidate.density < 0)
-            candidate.density = DefaultDensityValue;
-    }
-
-    std::ranges::stable_sort(imageCandidates, compareByDensity);
-
-    unsigned i;
-    for (i = 0; i < imageCandidates.size() - 1; ++i) {
-        if ((imageCandidates[i].density >= deviceScaleFactor) && (!ignoreSrc || !imageCandidates[i].srcOrigin()))
-            break;
-    }
-
-    if (imageCandidates[i].srcOrigin() && ignoreSrc) {
-        ASSERT(i > 0);
-        --i;
-    }
-    float winningDensity = imageCandidates[i].density;
-
-    unsigned winner = i;
-    // 16. If an entry b in candidates has the same associated ... pixel density as an earlier entry a in candidates,
-    // then remove entry b
-    while ((i > 0) && (imageCandidates[--i].density == winningDensity))
-        winner = i;
-
-    return imageCandidates[winner];
+    auto keys = imageCandidates.map<Vector<HTMLMicrosyntaxSrcsetPickKey, 16>>([](auto& candidate) {
+        return HTMLMicrosyntaxSrcsetPickKey { candidate.density, candidate.resourceWidth, candidate.srcOrigin() };
+    });
+    auto index = htmlMicrosyntaxPickBestSrcsetCandidate(deviceScaleFactor, keys.mutableSpan(), sourceSize.value_or(0), sourceSize.has_value());
+    auto winner = imageCandidates[index];
+    winner.density = keys[index].density;
+    return winner;
 }
 
 ImageCandidate bestFitSourceForImageAttributes(float deviceScaleFactor, const String& srcAttribute, StringView srcsetAttribute, std::optional<float> sourceSize, NOESCAPE const Function<bool(const ImageCandidate&)>& shouldIgnoreCandidateCallback)
