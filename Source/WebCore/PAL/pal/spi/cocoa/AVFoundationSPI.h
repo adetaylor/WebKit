@@ -500,4 +500,54 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 NS_ASSUME_NONNULL_END
 
+#else // __has_feature(modules)
+
+// Swift's view: the content key SPI that WebCore's Swift uses.
+
+#import <wtf/Platform.h>
+
+#if HAVE(AVCONTENTKEYSESSION)
+
+#import <AVFoundation/AVContentKeySession.h>
+
+#if USE(APPLE_INTERNAL_SDK)
+
+#import <AVFoundation/AVContentKeySession_Private.h>
+
+#else
+
+NS_ASSUME_NONNULL_BEGIN
+
+#if HAVE(AVCONTENTKEYREPORTGROUP)
+@interface AVContentKeyReportGroup : NSObject
+@property (readonly, nullable) NSData *contentProtectionSessionIdentifier;
+- (void)expire;
+- (void)processContentKeyRequestWithIdentifier:(nullable id)identifier initializationData:(nullable NSData *)initializationData options:(nullable NSDictionary<NSString *, id> *)options;
+- (void)associateContentKeyRequest:(AVContentKeyRequest *)contentKeyRequest;
+@end
+
+@interface AVContentKeySession (AVContentKeyGroup_Support)
+@property (readonly, nullable) AVContentKeyReportGroup *defaultContentKeyGroup;
+- (AVContentKeyReportGroup *)makeContentKeyGroup;
+@end
+#endif
+
+#if HAVE(AVCONTENTKEYSESSIONWILLOUTPUTBEOBSCURED)
+@interface AVContentKeyRequest (OutputObscured)
+- (BOOL)willOutputBeObscuredDueToInsufficientExternalProtectionForDisplays:(NSArray<NSNumber *> *)displays;
+@end
+#endif
+
+#if HAVE(AVCONTENTKEYREQUEST_PENDING_PROTECTION_STATUS)
+@interface AVContentKeyRequest (AVContentKeyRequest_PendingProtectionStatus)
+- (AVExternalContentProtectionStatus)externalContentProtectionStatus;
+@end
+#endif
+
+NS_ASSUME_NONNULL_END
+
+#endif // USE(APPLE_INTERNAL_SDK)
+
+#endif // HAVE(AVCONTENTKEYSESSION)
+
 #endif // !__has_feature(modules)

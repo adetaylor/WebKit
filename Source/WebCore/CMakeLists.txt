@@ -3695,6 +3695,16 @@ if (APPLE)
     if (WTF_CPU_X86_64)
         webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
     endif ()
+    # WebCore soft-links AVFoundation and CoreMedia, so its Swift doesn't autolink them or their overlays; it takes their
+    # classes and constants from PAL's getters (pal/cocoa/AVFoundationSoftLink.h), and a stray use of their symbols fails
+    # the link. As WebCore.xcconfig.
+    webkit_target_add_swift_options(WebCore
+        "-Xfrontend -disable-autolink-framework -Xfrontend AVFoundation"
+        "-Xfrontend -disable-autolink-framework -Xfrontend AVFAudio"
+        "-Xfrontend -disable-autolink-framework -Xfrontend CoreMedia"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia"
+    )
     # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
     webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
     # The internal SDK's TCC module warns that an attribute on libc++'s div() follows its definition.
