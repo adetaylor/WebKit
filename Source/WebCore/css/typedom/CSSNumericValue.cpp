@@ -164,6 +164,40 @@ ExceptionOr<Ref<CSSNumericValue>> CSSNumericValue::reifyMathExpression(const CSS
     return WTF::move(builder.values[0]);
 }
 
+namespace {
+
+class SwiftTypedOMSource final : public CSSCalcSwiftTypedOMSource {
+    WTF_FORBID_HEAP_ALLOCATION;
+public:
+    explicit SwiftTypedOMSource(const CSSNumericValue& value)
+        : value(value)
+    {
+    }
+
+    const CSSNumericValue& value;
+};
+
+} // namespace (anonymous)
+
+static_assert(isCSSCalcSwiftFacade<CSSCalcSwiftTypedOMSource>);
+
+const CSSNumericValue& CSSCalcSwiftTypedOMSource::root()
+{
+    return static_cast<SwiftTypedOMSource&>(*this).value;
+}
+
+std::optional<CSSCalc::Tree> CSSNumericValue::toCalcTree(bool wrapInSum) const
+{
+    CSSCalc::TreeStorage storage;
+    SwiftTypedOMSource source { *this };
+    CSSCalc::SwiftOutputState output { storage };
+    auto result = cssCalcConvertTypedOM(source, output, wrapInSum);
+    if (!result.ok)
+        return std::nullopt;
+    RELEASE_ASSERT(!storage.nodes.isEmpty());
+    return CSSCalc::Tree { .storage = WTF::move(storage), .type = std::bit_cast<CSSCalc::Type>(result.typeBits), .stage = CSSCalc::Stage::Specified };
+}
+
 static Ref<CSSNumericValue> negate(Ref<CSSNumericValue>&& value)
 {
     // https://drafts.css-houdini.org/css-typed-om/#cssmath-negate-a-cssnumericvalue

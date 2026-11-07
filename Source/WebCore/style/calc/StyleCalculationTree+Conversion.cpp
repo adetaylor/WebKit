@@ -29,7 +29,6 @@
 #include "CSSCalcSymbolTable.h"
 #include "CSSCalcTree+Evaluation.h"
 #include "CSSCalcTree+Simplification.h"
-#include "CSSCalcTree+Traversal.h"
 #include "CSSCalcTree.h"
 #include "CSSPrimitiveNumericCategory.h"
 #include "CSSUnevaluatedCalc.h"

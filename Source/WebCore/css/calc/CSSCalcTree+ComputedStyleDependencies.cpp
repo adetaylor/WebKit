@@ -25,7 +25,7 @@
 #include "config.h"
 #include "CSSCalcTree+ComputedStyleDependencies.h"
 
-#include "CSSCalcTree+Traversal.h"
+#include "CSSCalcTree.h"
 #include "CSSPrimitiveNumericTypes+ComputedStyleDependencies.h"
 #include "CSSPropertyNames.h"
 #include "CSSUnits.h"
@@ -33,54 +33,6 @@
 
 namespace WebCore {
 namespace CSSCalc {
-
-void collectComputedStyleDependencies(const Child& root, ComputedStyleDependencies& dependencies)
-{
-    WTF::switchOn(root,
-        [&](const Number&) {
-            // No potential dependencies.
-        },
-        [&](const Percentage&) {
-            // No potential dependencies.
-        },
-        [&](const CanonicalDimension&) {
-            // No potential dependencies.
-        },
-        [&](const NonCanonicalDimension& root) {
-            if (auto lengthUnit = CSS::toLengthUnit(root.unit))
-                CSS::collectComputedStyleDependencies(dependencies, *lengthUnit);
-        },
-        [&](const Symbol& root) {
-            if (auto lengthUnit = CSS::toLengthUnit(root.unit))
-                CSS::collectComputedStyleDependencies(dependencies, *lengthUnit);
-        },
-        [&](const SiblingCount&) {
-            dependencies.siblingFunctions = true;
-        },
-        [&](const SiblingIndex&) {
-            dependencies.siblingFunctions = true;
-        },
-        [&](const IndirectNode<CalcMix>& root) {
-            for (const auto& item : root->children) {
-                collectComputedStyleDependencies(item.value, dependencies);
-                CSS::collectComputedStyleDependencies(dependencies, item.weight);
-            }
-        },
-        [&](const IndirectNode<Anchor>& anchor) {
-            dependencies.anchorFunctions = true;
-            if (anchor->fallback)
-                collectComputedStyleDependencies(*anchor->fallback, dependencies);
-        },
-        [&](const IndirectNode<AnchorSize>& anchorSize) {
-            dependencies.anchorFunctions = true;
-            if (anchorSize->fallback)
-                collectComputedStyleDependencies(*anchorSize->fallback, dependencies);
-        },
-        [&](const auto& root) {
-            forAllChildNodes(*root, [&](const auto& root) { collectComputedStyleDependencies(root, dependencies); });
-        }
-    );
-}
 
 void collectComputedStyleDependencies(const Tree& tree, ComputedStyleDependencies& dependencies)
 {

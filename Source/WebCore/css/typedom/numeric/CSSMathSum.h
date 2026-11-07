@@ -40,7 +40,7 @@ public:
     static ExceptionOr<Ref<CSSMathSum>> create(Vector<Ref<CSSNumericValue>>);
     const CSSNumericArray& values() const { return m_values.get(); }
 
-    std::optional<CSSCalc::Child> toCalcTreeNode() const final;
+    const CSSNumericValue* mathOperand(size_t index) const final { return index < m_values->length() ? m_values->array()[index].ptr() : nullptr; }
 
 private:
     CSSMathOperator getOperator() const final { return CSSMathOperator::Sum; }

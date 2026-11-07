@@ -56,6 +56,8 @@
 
 #include "CSSCalcSwiftTypes.h"
 
+#include "CSSNumericValueSwiftTypes.h"
+
 #include "CSSPropertyConsumerSwiftTypes.h"
 
 #include "WebCoreSwift-Generated.h"
