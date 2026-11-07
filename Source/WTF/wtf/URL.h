@@ -226,6 +226,8 @@ public:
     WTF_EXPORT_PRIVATE static bool hostIsIPAddress(StringView);
     NODELETE WTF_EXPORT_PRIVATE static bool isIPv6Address(StringView);
 
+    NODELETE WTF_EXPORT_PRIVATE unsigned hostStart() const;
+    unsigned hostEnd() const { return m_hostEnd; }
     NODELETE WTF_EXPORT_PRIVATE unsigned pathStart() const;
     unsigned pathEnd() const;
     unsigned pathAfterLastSlash() const;
@@ -261,7 +263,6 @@ private:
     friend class URLParser;
 
     NODELETE WTF_EXPORT_PRIVATE void invalidate();
-    NODELETE unsigned hostStart() const;
     NODELETE unsigned credentialsEnd() const;
     void remove(unsigned start, unsigned length);
     void parse(String&&);
