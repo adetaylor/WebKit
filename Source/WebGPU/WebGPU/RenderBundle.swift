@@ -97,6 +97,7 @@ public final class RenderBundleImpl: GPUObjectReference, LinkedImpl {
         for group in bindGroups {
             group.renderBundleConsumerCount -= 1
         }
+        linkSlot.end()
     }
 
     init(invalid deviceImpl: DeviceImpl, lastError: String?) {
@@ -114,10 +115,6 @@ public final class RenderBundleImpl: GPUObjectReference, LinkedImpl {
         stencilReadOnly = false
         commandCount = 0
         submitInvalid = false
-    }
-
-    deinit {
-        linkSlot.end()
     }
 
     var link: ImplLink<RenderBundleImpl> {
