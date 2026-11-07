@@ -373,15 +373,24 @@ private func areEssentiallyEqual(_ u: Double, _ v: Double) -> Bool {
 }
 
 // A plain value, so that saving the state is a copy. As in SourceBrush, the color is kept under a gradient or pattern.
-private struct CGRendererBrush {
-    var packedColor: UInt32 = 0x0000_00FF
+@usableFromInline @frozen struct CGRendererBrush {
+    @inlinable
+    init(packedColor: UInt32 = 0x0000_00FF, platformColorSlot: UInt32 = 0, sourceSlot: UInt32 = 0, kind: UInt8 = 0, isColorVisible: Bool = true) {
+        self.packedColor = packedColor
+        self.platformColorSlot = platformColorSlot
+        self.sourceSlot = sourceSlot
+        self.kind = kind
+        self.isColorVisible = isColorVisible
+    }
+
+    @usableFromInline var packedColor: UInt32 = 0x0000_00FF
     // 0 for packedColor, otherwise 1 + the index of a color that isn't sRGBA8 in CGRendererCore.platformColors.
-    var platformColorSlot: UInt32 = 0
+    @usableFromInline var platformColorSlot: UInt32 = 0
     // For a gradient or a pattern, 1 + the index of its CGRendererBrushSource in CGRendererCore.sources.
-    var sourceSlot: UInt32 = 0
+    @usableFromInline var sourceSlot: UInt32 = 0
     // 0 for a color, 1 for a gradient, 2 for a pattern.
-    var kind: UInt8 = 0
-    var isColorVisible = true
+    @usableFromInline var kind: UInt8 = 0
+    @usableFromInline var isColorVisible = true
 
     var hasPatternOrGradient: Bool { kind != 0 }
     var hasGradient: Bool { kind == 1 }
@@ -420,7 +429,7 @@ private func isIntegral(_ value: Float) -> Bool {
 
 // What a ShadowBlur shadow the renderer draws for itself needs besides the state: the fill to set for the shadow's color (nil
 // when the C++ state's fill is that color already, so GraphicsContextState::setFillColor() wouldn't touch CG).
-private struct CGRendererShadowBlurDrawing {
+@usableFromInline @frozen struct CGRendererShadowBlurDrawing {
     var fill: CGRendererBrush?
 }
 
@@ -565,7 +574,7 @@ private enum CGRendererStrokeStyle {
 }
 
 // A GraphicsDropShadow. Its color is as a brush's.
-private struct CGRendererShadow {
+@usableFromInline @frozen struct CGRendererShadow {
     var width: Float
     var height: Float
     var radius: Float
@@ -585,7 +594,7 @@ private struct CGRendererShadow {
     var hasOutsets: Bool { isBlurred || (isVisible && !hasZeroOffset) }
 }
 
-private enum CGRendererStyle {
+@usableFromInline @frozen enum CGRendererStyle {
     case none
     case dropShadow(CGRendererShadow)
     case gaussianBlur(width: Float, height: Float)
@@ -593,7 +602,7 @@ private enum CGRendererStyle {
     case colorMatrix(slot: UInt32)
 }
 
-private struct CGRendererState {
+@usableFromInline @frozen struct CGRendererState {
     var fill = CGRendererBrush()
     var stroke = CGRendererBrush()
     var fillRule: UInt8 = 0
@@ -657,9 +666,9 @@ private enum CGRendererPurpose {
     case transparencyLayer
 }
 
-private struct CGRendererSavedState {
+@usableFromInline struct CGRendererSavedState {
     var state: CGRendererState
-    var purpose: CGRendererPurpose
+    fileprivate var purpose: CGRendererPurpose
     // The side tables' sizes at the save: the restore drops what was added after it.
     var platformColorCount: UInt32 = 0
     var sourceCount: UInt32 = 0
@@ -672,14 +681,14 @@ private struct CGRendererSavedState {
 }
 
 // A color that isn't sRGBA8, as CG draws it and as the C++ state has it.
-private struct CGRendererPlatformColor {
+@usableFromInline struct CGRendererPlatformColor {
     var cgColor: CGColor
     var data: CGRendererColorData
 }
 
 // What a state refers to by slot because it isn't a plain value: a gradient or pattern brush's C++ objects, or a color matrix
 // style's matrix.
-private enum CGRendererSource {
+@usableFromInline enum CGRendererSource {
     case brush(CGRendererBrushSource)
     #if HAVE_CGSTYLE_COLORMATRIX_BLUR
     case colorMatrix(CGRendererColorMatrix)
@@ -701,7 +710,10 @@ private struct CGRendererLineStroke {
 
 // The CGColors of the last two colors that aren't packed which a receiver filled with, by their values, so that a receiver's
 // message doesn't hand Swift a CGColor to release.
-private struct CGRendererPlatformColorCache {
+@usableFromInline @frozen struct CGRendererPlatformColorCache {
+    @inlinable
+    init() {}
+
     private var keys = (CGRendererColorData(), CGRendererColorData())
     private var colors: (CGColor?, CGColor?) = (nil, nil)
     private var next = 0
@@ -735,7 +747,10 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 }
 
 // The CGColors of the last few packed colors this renderer set. A context is used by one thread at a time.
-private struct CGRendererColorCache {
+@usableFromInline @frozen struct CGRendererColorCache {
+    @inlinable
+    init() {}
+
     private var keys: (UInt32, UInt32, UInt32, UInt32) = (0, 0, 0, 0)
     private var colors: (CGColor?, CGColor?, CGColor?, CGColor?) = (nil, nil, nil, nil)
     private var next = 0
@@ -777,7 +792,7 @@ private struct CGRendererColorCache {
 // in place, and forwards each state change, save, restore and draw. A draw returns false when this renderer doesn't do that case yet; GraphicsContextCG then draws it in C++, with the
 // same state.
 @_expose(Cxx)
-@_spi(WebKitGPU) public struct CGRendererCore {
+@_spi(WebKitGPU) @frozen public struct CGRendererCore {
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
