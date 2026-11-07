@@ -30,7 +30,14 @@
 #include <cstdint>
 #include <span>
 #include <type_traits>
+#include <wtf/ExportMacros.h>
 #include <wtf/StdLibExtras.h>
+
+// As PlatformExportMacros.h has it outside WebCore, for the clang importers of WebKit's Swift, which import this header's
+// module without WebCore's headers.
+#if !defined(WEBCORE_EXPORT)
+#define WEBCORE_EXPORT WTF_IMPORT_DECLARATION
+#endif
 
 struct ANGLE;
 
