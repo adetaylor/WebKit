@@ -388,6 +388,28 @@ struct CGRendererGlyphContext {
     bool hasReceiverTransparencyLayer;
 };
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyColor(const WebCore::GraphicsContextCG&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// The value of a color without its CGColor, which the renderer makes itself (CGRendererCopyCGColorForData()) for a Swift
+// receiver's fills of a color, so that the message's CGColor isn't Swift's to release.
+WEBCORE_EXPORT void CGRendererColorValueOf(const WebCore::Color&, CGRendererColorValue&) __attribute__((availability(swift, unavailable)));
+
+// The color space a context draws colors in (GraphicsContextCG::colorSpace()), which GraphicsContextCG gives a renderer it
+// lends, for the CGColors of a Swift receiver's colors that aren't sRGBA8.
+class SWIFT_ESCAPABLE CGRendererDestinationColorSpace {
+public:
+    CGRendererDestinationColorSpace() = default;
+    explicit CGRendererDestinationColorSpace(const WebCore::ColorSpace& colorSpace) __attribute__((availability(swift, unavailable)))
+        : m_colorSpace(colorSpace)
+    {
+    }
+
+    const std::optional<WebCore::ColorSpace>& colorSpace() const __attribute__((availability(swift, unavailable))) { return m_colorSpace; }
+
+private:
+    std::optional<WebCore::ColorSpace> m_colorSpace;
+};
+
+// cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space.
+WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 

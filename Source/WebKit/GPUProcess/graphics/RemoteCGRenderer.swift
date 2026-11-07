@@ -532,8 +532,8 @@ final class RemoteCGRenderer {
 
     func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: WebCore.Color) -> Bool {
         var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        return state.receiveFillRect(cgRect(rect), value, cgColor)
+        WebKit.fillColorValue(color, &value)
+        return state.receiveFillRect(cgRect(rect), value, nil)
     }
 
     func fillCompositedRect(
@@ -544,14 +544,14 @@ final class RemoteCGRenderer {
         blendMode: WebCore.BlendMode
     ) -> Bool {
         var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        return state.receiveFillRect(cgRect(rect), value, cgColor, op, blendMode)
+        WebKit.fillColorValue(color, &value)
+        return state.receiveFillRect(cgRect(rect), value, nil, op, blendMode)
     }
 
     func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: WebCore.Color, blendMode: WebCore.BlendMode) -> Bool {
         var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), value, cgColor, blendMode)
+        WebKit.fillColorValue(color, &value)
+        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), value, nil, blendMode)
     }
 
     func fillRectWithRoundedHole(
@@ -561,8 +561,8 @@ final class RemoteCGRenderer {
         color: WebCore.Color
     ) -> Bool {
         var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, value, cgColor)
+        WebKit.fillColorValue(color, &value)
+        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, value, nil)
     }
 
     func applyDeviceScaleFactor(state: inout CGRendererCore, scaleFactor: Float) {

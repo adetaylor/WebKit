@@ -376,12 +376,14 @@ void GraphicsContextCG::addSwiftRendererLender()
     RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
     ++m_swiftRendererLenders;
     SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
+    SWIFT_RENDERER(setDestinationColorSpace(CGRendererDestinationColorSpace { colorSpace() }));
 }
 
 bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path, CGImageRef image)
 {
     // What a lender's registration gives the renderer (addSwiftRendererLender()).
     SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
+    SWIFT_RENDERER(setDestinationColorSpace(CGRendererDestinationColorSpace { colorSpace() }));
     RetainPtr<CGPathRef> platformPath = path ? path->platformPath() : nullptr;
     bool handled;
     {
@@ -754,6 +756,23 @@ CGColorRef CGRendererCopyColor(const WebCore::GraphicsContextCG& context, const 
     }
     value.data = WebCore::colorData(color);
     return WebCore::cachedCGColorInDestinationStandardRange(color, context.colorSpace()).leakRef();
+}
+
+void CGRendererColorValueOf(const WebCore::Color& color, CGRendererColorValue& value)
+{
+    value = { };
+    value.isVisible = color.isVisible();
+    if (auto packedColor = color.tryGetAsPackedInline()) {
+        value.isPacked = true;
+        value.packedColor = packedColor->value;
+        return;
+    }
+    value.data = WebCore::colorData(color);
+}
+
+CGColorRef CGRendererCopyCGColorForData(const CGRendererColorData& data, const CGRendererDestinationColorSpace& colorSpace)
+{
+    return WebCore::cachedCGColorInDestinationStandardRange(WebCore::colorFromData(data), colorSpace.colorSpace().value_or(WebCore::ColorSpace::SRGB())).leakRef();
 }
 
 CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& font, std::span<const CGGlyph> glyphs, WebCore::FontSmoothingMode smoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace& colorSpace, bool isInTransparencyLayer)

@@ -699,6 +699,41 @@ private struct CGRendererLineStroke {
     var thickness: Float? = nil
 }
 
+// The CGColors of the last two colors that aren't packed which a receiver filled with, by their values, so that a receiver's
+// message doesn't hand Swift a CGColor to release.
+private struct CGRendererPlatformColorCache {
+    private var keys = (CGRendererColorData(), CGRendererColorData())
+    private var colors: (CGColor?, CGColor?) = (nil, nil)
+    private var next = 0
+
+    mutating func color(_ data: CGRendererColorData, _ colorSpace: borrowing CGRendererDestinationColorSpace) -> CGColor? {
+        if let color = colors.0, colorDataAreEqual(keys.0, data) {
+            return color
+        }
+        if let color = colors.1, colorDataAreEqual(keys.1, data) {
+            return color
+        }
+        guard let color = CGRendererCopyCGColorForData(data, colorSpace) else {
+            return nil
+        }
+        if next == 0 {
+            keys.0 = data
+            colors.0 = color
+        } else {
+            keys.1 = data
+            colors.1 = color
+        }
+        next = 1 - next
+        return color
+    }
+}
+
+private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
+    a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
+        && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
+        && a.usesFunctionSerialization == b.usesFunctionSerialization
+}
+
 // The CGColors of the last few packed colors this renderer set. A context is used by one thread at a time.
 private struct CGRendererColorCache {
     private var keys: (UInt32, UInt32, UInt32, UInt32) = (0, 0, 0, 0)
@@ -780,6 +815,8 @@ private struct CGRendererColorCache {
     private var levelHasCxxBrushSource = false
     // The color space the context paints gradients in, which GraphicsContextCG gives a renderer it lends.
     private var gradientColorSpace = CGRendererGradientColorSpace()
+    private var destinationColorSpace = CGRendererDestinationColorSpace()
+    private var platformColorCache = CGRendererPlatformColorCache()
 
     // The C++ destructor of this struct reads its type metadata, whose accessor a Release build (-O -wmo) drops unless Swift
     // uses it (rdar://179098545).
@@ -843,12 +880,6 @@ private struct CGRendererColorCache {
             return shadow.platformColorSlot == 0 && !isPlatformColor && shadow.packedColor == values.packedColor
         }
         return colorDataAreEqual(platformColors[Int(shadow.platformColorSlot) - 1].data, color)
-    }
-
-    private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
-        a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
-            && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
-            && a.usesFunctionSerialization == b.usesFunctionSerialization
     }
 
     private mutating func platformColorSlot(_ cgColor: CGColor, _ color: CGRendererColorData) -> UInt32 {
@@ -1531,6 +1562,20 @@ private struct CGRendererColorCache {
     @_expose(Cxx)
     mutating func setGradientColorSpace(_ colorSpace: borrowing CGRendererGradientColorSpace) {
         gradientColorSpace = copy colorSpace
+    }
+
+    @_expose(Cxx)
+    mutating func setDestinationColorSpace(_ colorSpace: borrowing CGRendererDestinationColorSpace) {
+        destinationColorSpace = copy colorSpace
+        platformColorCache = CGRendererPlatformColorCache()
+    }
+
+    // The CGColor of a receiver's fill color: its own, or one of the renderer's for a color without it.
+    private mutating func fillCGColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) -> CGColor? {
+        if color.isPacked {
+            return colorCache.color(color.packedColor)
+        }
+        return cgColor ?? platformColorCache.color(color.data, destinationColorSpace)
     }
 
     @_expose(Cxx)
@@ -3041,10 +3086,13 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) -> Bool {
         let changesFillColor = !fillColorEquals(color)
-        if let cgColor {
-            return fillRect(rect, platformColor: cgColor, changesFillColor)
+        if color.isPacked {
+            return fillRect(rect, packedColor: color.packedColor, changesFillColor)
         }
-        return fillRect(rect, packedColor: color.packedColor, changesFillColor)
+        guard let cgColor = cgColor ?? platformColorCache.color(color.data, destinationColorSpace) else {
+            return false
+        }
+        return fillRect(rect, platformColor: cgColor, changesFillColor)
     }
 
     // GraphicsContext::fillRect(_:_:_:_:): the fill in the composite mode, which is set back after it.
@@ -3089,6 +3137,11 @@ extension CGRendererCore {
         if canUseShadowBlur || state.fill.hasGradient {
             return false
         }
+        let changesFillColor = !fillColorEquals(color)
+        let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
+        if changesFillColor && fillColor == nil {
+            return false
+        }
         let previousBlendMode = state.blendMode
         let changesCompositeMode = previousBlendMode != blendMode
         // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
@@ -3096,9 +3149,8 @@ extension CGRendererCore {
         if changesCompositeMode {
             setCompositeMode(state.compositeOperator, blendMode)
         }
-        let changesFillColor = !fillColorEquals(color)
-        if changesFillColor {
-            context.setFillColor(cgColor ?? colorCache.color(color.packedColor))
+        if let fillColor {
+            context.setFillColor(fillColor)
         }
         let isEllipse = CGRendererRoundedRectIsEllipse(rect)
         if !state.fill.hasPattern && isEllipse {
@@ -3132,10 +3184,14 @@ extension CGRendererCore {
         if canUseShadowBlur {
             return false
         }
-        let path = CGRendererCopyRectWithRoundedHolePath(rect, hole)
         let changesFillColor = !fillColorEquals(color)
-        if changesFillColor {
-            context.setFillColor(cgColor ?? colorCache.color(color.packedColor))
+        let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
+        if changesFillColor && fillColor == nil {
+            return false
+        }
+        let path = CGRendererCopyRectWithRoundedHolePath(rect, hole)
+        if let fillColor {
+            context.setFillColor(fillColor)
         }
         CGRendererDrawPath(context, .eoFill, path)
         if changesFillColor {

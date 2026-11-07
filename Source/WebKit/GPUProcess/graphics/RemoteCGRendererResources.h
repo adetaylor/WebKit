@@ -109,6 +109,19 @@ CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, We
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;
 
+// A fill's color without a CGColor, which the renderer makes itself.
+inline void fillColorValue(const WebCore::Color& color, CGRendererColorValue& value)
+{
+    if (auto packedColor = color.tryGetAsPackedInline()) {
+        value = { };
+        value.isPacked = true;
+        value.packedColor = packedColor->value;
+        value.isVisible = color.isVisible();
+        return;
+    }
+    CGRendererColorValueOf(color, value);
+}
+
 inline WebCore::FloatRect rectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
 {
     return rect.rect();
