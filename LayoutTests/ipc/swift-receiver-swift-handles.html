@@ -62,6 +62,11 @@ promise_test(async t => {
             reply = await IPC.sendWithPromisedReply(processTarget, identifier, message('EchoSharedMemorySwift'), [{ type: 'bool', value: 0 }]);
             assert_equals(reply.arguments[0], undefined, `EchoSharedMemorySwift of no handle in ${processTarget}`);
 
+            // A [Swift] struct that holds a shared memory handle is ~Copyable in Swift.
+            const ringBuffer = IPC.sendSyncMessage(processTarget, identifier, message('DescribeRingBufferSwift'), defaultTimeout, [{ type: 'SharedMemory', value: memory, protection: 'ReadOnly' }, { type: 'uint64_t', value: 1234 }]);
+            assert_equals(ringBuffer.arguments[0].value, 1234, `DescribeRingBufferSwift frame count in ${processTarget}`);
+            assert_equals(ringBuffer.arguments[1].value, bytes.length, `DescribeRingBufferSwift memory size in ${processTarget}`);
+
             // A Vector<MachSendRight> is its count, then a right per element; a semaphore is sent as its right.
             const rights = IPC.sendSyncMessage(processTarget, identifier, message('CountSendRightsSwift'), defaultTimeout, [{ type: 'uint64_t', value: 2 }, { type: 'Semaphore', value: IPC.createSemaphore() }, { type: 'Semaphore', value: IPC.createSemaphore() }]);
             assert_equals(rights.arguments[0].value, 2, `CountSendRightsSwift in ${processTarget}`);
