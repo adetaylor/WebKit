@@ -1196,6 +1196,9 @@ def generate_messages_header(receiver):
 
 _SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector')
 
+# Plain C structs that a Swift bridge header declares outside any namespace.
+_SWIFT_GLOBAL_TYPES = frozenset(['CGRendererColorValue'])
+
 
 class UnmappableSwiftType(Exception):
     pass
@@ -1242,6 +1245,8 @@ def swift_type_name(cpp_type):
     # .messages.in namespaces everything except WTF, which it writes unqualified: String, URL,
     # Seconds and so on. A non-WTF unqualified typedef would produce a Swift compile error naming
     # the type, rather than anything silent.
+    if cpp_type in _SWIFT_GLOBAL_TYPES:
+        return cpp_type
     if re.match(r'^[A-Za-z_][A-Za-z_0-9]*$', cpp_type):
         return 'WTF.%s' % cpp_type
 
@@ -1584,6 +1589,7 @@ def headers_for_type(type, for_implementation_file=False):
     header_infos_and_types = class_template_headers(type)
 
     special_cases = {
+        'CGRendererColorValue': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CVPixelBufferRef': ['<WebCore/CVUtilities.h>'],
         'GCGLint': ['<WebCore/GraphicsTypesGL.h>'],
         'GenericPromise::Result': ['<wtf/NativePromise.h>'],
