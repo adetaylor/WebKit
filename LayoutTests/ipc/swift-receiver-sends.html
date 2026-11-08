@@ -1,0 +1,57 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver sends messages with Swift-typed arguments.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="../resources/ipc.js"></script>
+<body>
+<script>
+const defaultTimeout = 1000;
+
+function addTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_AddSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function removeTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_RemoveSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+const message = name => IPC.messages[`IPCSwiftWorkQueueTester_${name}`].name;
+
+promise_test(async t => {
+    // The receiver only exists where WebKit's IPC testing code is built with Swift.
+    if (!window.IPC || !IPC.messages.IPCSwiftWorkQueueTester_SendRecordBackSwift)
+        return;
+
+    let identifier = 5270;
+    for (const processTarget of IPC.processTargets) {
+        ++identifier;
+        addTester(processTarget, identifier);
+        try {
+            // The tester sends Record and RecordTextSwift back, to the identifier it is given.
+            IPC.sendMessage(processTarget, identifier, message('SendRecordBackSwift'), [{ type: 'uint64_t', value: identifier }, { type: 'uint32_t', value: 4000000001 }, { type: 'String', value: 'abc☺' }]);
+            const record = IPC.waitForMessage(processTarget, identifier, message('Record'), defaultTimeout);
+            assert_equals(record[0].value, 4000000001, `Record's value from ${processTarget}`);
+            const text = IPC.waitForMessage(processTarget, identifier, message('RecordTextSwift'), defaultTimeout);
+            assert_equals(text[0].value, 'abc☺', `RecordTextSwift's text from ${processTarget}`);
+
+            if (IPC.messages.IPCSwiftWorkQueueTester_SendSemaphoreBackSwift) {
+                // The semaphore that comes back is the one sent: signalling ours wakes it.
+                const semaphore = IPC.createSemaphore();
+                IPC.sendMessage(processTarget, identifier, message('SendSemaphoreBackSwift'), [{ type: 'uint64_t', value: identifier }, { type: 'Semaphore', value: semaphore }]);
+                const sent = IPC.waitForMessage(processTarget, identifier, message('SignalSemaphoreSwift'), defaultTimeout);
+                assert_equals(sent[0].type, 'Semaphore', `SignalSemaphoreSwift's argument from ${processTarget}`);
+                const sentSemaphore = sent[0].value;
+                assert_false(sentSemaphore.waitFor(10), `The semaphore sent back isn't signalled, from ${processTarget}`);
+                semaphore.signal();
+                assert_true(sentSemaphore.waitFor(defaultTimeout), `The semaphore sent back is the same semaphore, from ${processTarget}`);
+            }
+        } finally {
+            removeTester(processTarget, identifier);
+        }
+    }
+    done();
+}, "A Swift receiver sends messages with Swift-typed arguments, in every process.");
+</script>
+</body>

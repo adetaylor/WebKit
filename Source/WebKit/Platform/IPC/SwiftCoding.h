@@ -439,6 +439,10 @@ public:
         return adoptRef(*new SwiftReplyEncoder(connection, syncRequestID, isReplyStreamEncodable, encodeDefaultReply));
     }
 
+    // The encoder of a message that Swift sends to destinationID on connection, with the same coders as a reply. send()
+    // sends it; cancelling or dropping it sends nothing.
+    static SwiftReplyEncoder* WTF_NONNULL createForMessage(Connection&, MessageName, uint64_t destinationID) SWIFT_RETURNS_RETAINED;
+
     ~SwiftReplyEncoder()
     {
         if (m_encoder || m_inStream)
@@ -511,8 +515,13 @@ public:
             continueOutOfStream();
             return false;
         }
-        if (auto encoder = std::exchange(m_encoder, nullptr))
+        if (auto encoder = std::exchange(m_encoder, nullptr)) {
+            if (!m_encodeDefaultReply) {
+                m_connection->sendMessage(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)), { });
+                return true;
+            }
             sendOutOfStream(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
+        }
         return true;
     }
 
@@ -524,7 +533,8 @@ public:
             continueOutOfStream();
         }
         auto encoder = std::exchange(m_encoder, nullptr);
-        if (!encoder)
+        // A message that Swift sends has no default to send instead.
+        if (!encoder || !m_encodeDefaultReply)
             return;
         m_encodeDefaultReply(*encoder);
         sendOutOfStream(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)));
