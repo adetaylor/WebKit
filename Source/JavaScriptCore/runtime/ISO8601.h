@@ -142,12 +142,12 @@ public:
     }
 
     void setField(size_t i, double v) { setField(static_cast<TemporalUnit>(i), v); }
-    void setField(TemporalUnit, double);
+    JS_EXPORT_PRIVATE void setField(TemporalUnit, double);
 
     void clear() { *this = Duration(); }
 
     template<TemporalUnit unit>
-    NODELETE std::optional<Int128> totalNanoseconds() const;
+    JS_EXPORT_PRIVATE NODELETE std::optional<Int128> totalNanoseconds() const;
 
     Duration operator-() const
     {
@@ -193,7 +193,7 @@ public:
     {
         return ExactTime(Int128 { epochMilliseconds } * ExactTime::nsPerMillisecond);
     }
-    static ExactTime fromISOPartsAndOffset(int32_t y, uint8_t mon, uint8_t d, unsigned h, unsigned min, unsigned s, unsigned ms, unsigned micros, unsigned ns, int64_t offset);
+    JS_EXPORT_PRIVATE static ExactTime fromISOPartsAndOffset(int32_t y, uint8_t mon, uint8_t d, unsigned h, unsigned min, unsigned s, unsigned ms, unsigned micros, unsigned ns, int64_t offset);
 
     int64_t epochMilliseconds() const
     {
@@ -237,7 +237,7 @@ public:
 
     friend constexpr auto operator<=>(const ExactTime&, const ExactTime&) = default;
 
-    NODELETE std::optional<ExactTime> add(Duration) const;
+    JS_EXPORT_PRIVATE NODELETE std::optional<ExactTime> add(Duration) const;
     InternalDuration difference(JSGlobalObject*, ExactTime, unsigned, TemporalUnit, RoundingMode) const;
     ExactTime round(JSGlobalObject*, unsigned, TemporalUnit, RoundingMode) const;
 
@@ -266,7 +266,7 @@ public:
         : m_dateDuration(Duration()), m_time(0) { }
     static constexpr Int128 maxTimeDuration = 9'007'199'254'740'992 * ExactTime::nsPerSecond - 1;
 
-    NODELETE int32_t sign() const;
+    JS_EXPORT_PRIVATE NODELETE int32_t sign() const;
 
     int32_t timeDurationSign() const
     {
@@ -507,10 +507,10 @@ struct RFC9557Annotation {
 
 // https://tc39.es/proposal-temporal/#sec-getavailablenamedtimezoneidentifier
 JS_EXPORT_PRIVATE std::optional<TimeZoneID> parseTimeZoneName(StringView);
-std::optional<Duration> parseDuration(StringView);
+JS_EXPORT_PRIVATE std::optional<Duration> parseDuration(StringView);
 enum class SubMinutePrecision : bool { No, Yes };
-std::optional<int64_t> parseUTCOffset(StringView, SubMinutePrecision = SubMinutePrecision::Yes);
-std::optional<int64_t> parseUTCOffsetInMinutes(StringView);
+JS_EXPORT_PRIVATE std::optional<int64_t> parseUTCOffset(StringView, SubMinutePrecision = SubMinutePrecision::Yes);
+JS_EXPORT_PRIVATE std::optional<int64_t> parseUTCOffsetInMinutes(StringView);
 enum class ValidateTimeZoneID : bool { No, Yes };
 using CalendarID = RFC9557Value;
 
@@ -546,29 +546,29 @@ struct TimeZoneIdentifierParseRecord {
     std::optional<int64_t> offsetMinutes; // [[OffsetMinutes]]; std::nullopt means ~empty~.
 };
 
-std::optional<TimeZoneIdentifierParseRecord> parseTimeZoneIdentifier(StringView);
-uint8_t dayOfWeek(PlainDate);
-NODELETE uint16_t dayOfYear(PlainDate);
+JS_EXPORT_PRIVATE std::optional<TimeZoneIdentifierParseRecord> parseTimeZoneIdentifier(StringView);
+JS_EXPORT_PRIVATE uint8_t dayOfWeek(PlainDate);
+JS_EXPORT_PRIVATE NODELETE uint16_t dayOfYear(PlainDate);
 uint8_t weeksInYear(int32_t year);
-uint8_t weekOfYear(PlainDate);
-int32_t yearOfWeek(PlainDate);
-NODELETE uint8_t daysInMonth(int32_t year, uint8_t month);
-uint8_t daysInMonth(uint8_t month);
-String formatTimeZoneOffsetString(int64_t);
-String temporalTimeToString(PlainTime, std::tuple<Precision, unsigned>);
-String temporalDateToString(PlainDate);
+JS_EXPORT_PRIVATE uint8_t weekOfYear(PlainDate);
+JS_EXPORT_PRIVATE int32_t yearOfWeek(PlainDate);
+JS_EXPORT_PRIVATE NODELETE uint8_t daysInMonth(int32_t year, uint8_t month);
+JS_EXPORT_PRIVATE uint8_t daysInMonth(uint8_t month);
+JS_EXPORT_PRIVATE String formatTimeZoneOffsetString(int64_t);
+JS_EXPORT_PRIVATE String temporalTimeToString(PlainTime, std::tuple<Precision, unsigned>);
+JS_EXPORT_PRIVATE String temporalDateToString(PlainDate);
 JS_EXPORT_PRIVATE String temporalDateTimeToString(PlainDate, PlainTime, std::tuple<Precision, unsigned>);
-String temporalYearMonthToString(PlainYearMonth, StringView, unsigned calendarId);
-String temporalMonthDayToString(PlainMonthDay, StringView, unsigned calendarId);
-String monthCode(uint32_t);
+JS_EXPORT_PRIVATE String temporalYearMonthToString(PlainYearMonth, StringView, unsigned calendarId);
+JS_EXPORT_PRIVATE String temporalMonthDayToString(PlainMonthDay, StringView, unsigned calendarId);
+JS_EXPORT_PRIVATE String monthCode(uint32_t);
 
-NODELETE bool isValidDuration(const Duration&);
-NODELETE bool isValidISODate(double, double, double);
+JS_EXPORT_PRIVATE NODELETE bool isValidDuration(const Duration&);
+JS_EXPORT_PRIVATE NODELETE bool isValidISODate(double, double, double);
 
-NODELETE std::optional<ParsedMonthCode> parseMonthCode(StringView);
+JS_EXPORT_PRIVATE NODELETE std::optional<ParsedMonthCode> parseMonthCode(StringView);
 std::optional<TimeZoneIdentifierParseRecord> JS_EXPORT_PRIVATE parseTemporalTimeZoneString(StringView);
 
-bool isDateTimeWithinLimits(int32_t year, uint8_t month, uint8_t day, unsigned hour, unsigned minute, unsigned second, unsigned millisecond, unsigned microsecond, unsigned nanosecond);
+JS_EXPORT_PRIVATE bool isDateTimeWithinLimits(int32_t year, uint8_t month, uint8_t day, unsigned hour, unsigned minute, unsigned second, unsigned millisecond, unsigned microsecond, unsigned nanosecond);
 
 Int128 roundTimeDuration(JSGlobalObject*, Int128, unsigned, TemporalUnit, RoundingMode);
 
@@ -576,6 +576,6 @@ Int128 roundTimeDuration(JSGlobalObject*, Int128, unsigned, TemporalUnit, Roundi
 
 using CheckedInt128 = Checked<Int128, RecordOverflow>;
 
-NODELETE CheckedInt128 checkedCastDoubleToInt128(double n);
+JS_EXPORT_PRIVATE NODELETE CheckedInt128 checkedCastDoubleToInt128(double n);
 
 } // namespace JSC
