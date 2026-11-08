@@ -38,8 +38,8 @@ internal import pal.Core.cocoa.AVFoundationSoftLink
 internal import pal.spi.cocoa.AVFoundationSPI
 import WebCore_Private.Core.CDMInstanceFairPlayStreamingHost
 import WebCore_Private.Core.CDMKeyStatus
-import WebCore_Private.Core.CDMMessageType
-import WebCore_Private.Core.CDMSessionType
+public import WebCore_Private.Core.CDMMessageType
+public import WebCore_Private.Core.CDMSessionType
 import WebCore_Private.Core.MediaParsersCxxBridging
 import WebCoreEME
 import wtf
@@ -557,12 +557,26 @@ private final class FairPlayBuiltInKeyGroup: NSObject {
 
 // MARK: Instance
 
+private struct FairPlayWeakInstance {
+    weak var instance: FairPlayInstance?
+}
+
 private struct FairPlayWeakSession {
     weak var session: FairPlaySession?
 }
 
+@_spi(WebKitGPU)
 @MainActor
-final class FairPlayInstance: FairPlayContentKeySessionClient {
+public final class FairPlayInstance: FairPlayContentKeySessionClient {
+    // The instances by token, which C++ hands out for the C++ CDMInstance that owns each (fairPlayInstanceToken()).
+    private static var instancesByToken: [UInt64: FairPlayWeakInstance] = [:]
+    private static var lastToken: UInt64 = 0
+
+    @_spi(WebKitGPU) public static func instance(forToken token: UInt64) -> FairPlayInstance? {
+        instancesByToken[token]?.instance
+    }
+
+    let token: UInt64
     let host: WebCore.FairPlayInstanceHost
     let mediaKeysHashSalt: Swift.String
     let supportsPersistableState: Bool
@@ -578,10 +592,14 @@ final class FairPlayInstance: FairPlayContentKeySessionClient {
     private var unexpectedKeyRequests: [FairPlayKeyRequest] = []
 
     init(host: sending WebCore.FairPlayInstanceHost, mediaKeysHashSalt: Swift.String, supportsPersistableState: Bool, supportsPersistentKeys: Bool) {
+        Self.lastToken += 1
+        token = Self.lastToken
         self.host = host
         self.mediaKeysHashSalt = mediaKeysHashSalt
         self.supportsPersistableState = supportsPersistableState
         self.supportsPersistentKeys = supportsPersistentKeys
+        Self.instancesByToken = Self.instancesByToken.filter { $0.value.instance != nil }
+        Self.instancesByToken[token] = FairPlayWeakInstance(instance: self)
     }
 
     func log(_ level: WebCore.FairPlayLogLevel, _ method: Swift.String, _ message: Swift.String) {
@@ -619,7 +637,7 @@ final class FairPlayInstance: FairPlayContentKeySessionClient {
         return true
     }
 
-    func setServerCertificate(_ certificate: Data) {
+    @_spi(WebKitGPU) public func setServerCertificate(_ certificate: Data) {
         serverCertificate = certificate
     }
 
@@ -641,7 +659,7 @@ final class FairPlayInstance: FairPlayContentKeySessionClient {
         return newSession
     }
 
-    func makeSession(host: sending WebCore.FairPlaySessionHost) -> FairPlaySession {
+    @_spi(WebKitGPU) public func makeSession(host: any FairPlaySessionHosting) -> FairPlaySession {
         let session = FairPlaySession(instance: self, host: host)
         sessions.removeAll { $0.session == nil }
         sessions.append(FairPlayWeakSession(session: session))
@@ -865,23 +883,153 @@ private final class FairPlayRequestDataAggregator {
     }
 }
 
-enum FairPlayLoadSessionResult: Sendable {
+@_spi(WebKitGPU)
+public enum FairPlayLoadSessionResult: Sendable {
     case notHandled
     case succeeded(releasedKeyCount: Int)
     case mismatchedSessionType
     case noSessionData
 }
 
-struct FairPlayRemoveSessionDataResult: Sendable {
-    var releasedKeyCount = 0
-    var message: Data?
-    var succeeded = false
+@_spi(WebKitGPU)
+public struct FairPlayRemoveSessionDataResult: Sendable {
+    @_spi(WebKitGPU) public var releasedKeyCount = 0
+    @_spi(WebKitGPU) public var message: Data?
+    @_spi(WebKitGPU) public var succeeded = false
 }
 
+@_spi(WebKitGPU)
+public enum FairPlaySessionLogLevel: Sendable {
+    case always
+    case error
+    case info
+}
+
+// What a FairPlay session tells the client of its CDM session: in C++, the CDMInstanceSessionClient behind the session's
+// FairPlaySessionHost; in the GPU process, its Swift CDM receiver. A key status list is the key IDs back to back, their
+// sizes, and the raw value of a CDMKeyStatus for each.
+@_spi(WebKitGPU)
+public protocol FairPlaySessionHosting: AnyObject {
+    var hasSessionClient: Bool { get }
+    func sendSessionMessage(_ type: WebCore.CDMMessageType, _ message: Span<UInt8>)
+    func sessionIdentifierChanged(_ sessionId: Swift.String)
+    func sessionKeyStatusesChanged(_ keyIDs: Span<UInt8>, _ keyIDSizes: Span<UInt32>, _ statuses: Span<UInt8>)
+    func logFromSession(_ level: FairPlaySessionLogLevel, _ method: Swift.String, _ message: Swift.String)
+}
+
+// How a session's license request completes: nil sessionId if the session has no identifier.
+@_spi(WebKitGPU)
+public protocol FairPlayLicenseRequestCompleting: AnyObject {
+    func completeLicenseRequest(_ message: Span<UInt8>, _ sessionId: Swift.String?, _ succeeded: Bool)
+}
+
+// How a session's license update completes. Key statuses are listed as FairPlaySessionHosting lists them.
+@_spi(WebKitGPU)
+public protocol FairPlayLicenseUpdateCompleting: AnyObject {
+    func failLicenseUpdate(sessionWasClosed: Bool)
+    func succeedLicenseUpdate()
+    func succeedLicenseUpdate(keyIDs: Span<UInt8>, keyIDSizes: Span<UInt32>, statuses: Span<UInt8>)
+    func succeedLicenseUpdate(messageType: WebCore.CDMMessageType, message: Span<UInt8>)
+}
+
+private extension FairPlaySessionLogLevel {
+    init(_ level: WebCore.FairPlayLogLevel) {
+        switch level {
+        case .Always:
+            self = .always
+        case .Error:
+            self = .error
+        case .Info:
+            self = .info
+        @unknown default:
+            self = .info
+        }
+    }
+}
+
+private extension WebCore.FairPlayLogLevel {
+    init(_ level: FairPlaySessionLogLevel) {
+        switch level {
+        case .always:
+            self = .Always
+        case .error:
+            self = .Error
+        case .info:
+            self = .Info
+        }
+    }
+}
+
+// The C++ session's host and completions, as the session takes them.
+private final class FairPlayCxxSessionHost: FairPlaySessionHosting {
+    private let host: WebCore.FairPlaySessionHost
+
+    init(_ host: WebCore.FairPlaySessionHost) {
+        self.host = host
+    }
+
+    var hasSessionClient: Bool {
+        host.hasClient()
+    }
+
+    func sendSessionMessage(_ type: WebCore.CDMMessageType, _ message: Span<UInt8>) {
+        host.sendMessage(type, message)
+    }
+
+    func sessionIdentifierChanged(_ sessionId: Swift.String) {
+        host.sessionIdChanged(utf8(sessionId).span)
+    }
+
+    func sessionKeyStatusesChanged(_ keyIDs: Span<UInt8>, _ keyIDSizes: Span<UInt32>, _ statuses: Span<UInt8>) {
+        host.updateKeyStatuses(keyIDs, keyIDSizes, statuses)
+    }
+
+    func logFromSession(_ level: FairPlaySessionLogLevel, _ method: Swift.String, _ message: Swift.String) {
+        host.log(WebCore.FairPlayLogLevel(level), utf8(method).span, utf8(message).span)
+    }
+}
+
+private final class FairPlayCxxLicenseRequestCompletion: FairPlayLicenseRequestCompleting {
+    private let completion: WebCore.FairPlayLicenseCompletion
+
+    init(_ completion: WebCore.FairPlayLicenseCompletion) {
+        self.completion = completion
+    }
+
+    func completeLicenseRequest(_ message: Span<UInt8>, _ sessionId: Swift.String?, _ succeeded: Bool) {
+        completion.complete(message, sessionId != nil, utf8(sessionId ?? "").span, succeeded)
+    }
+}
+
+private final class FairPlayCxxLicenseUpdateCompletion: FairPlayLicenseUpdateCompleting {
+    private let completion: WebCore.FairPlayLicenseUpdateCompletion
+
+    init(_ completion: WebCore.FairPlayLicenseUpdateCompletion) {
+        self.completion = completion
+    }
+
+    func failLicenseUpdate(sessionWasClosed: Bool) {
+        completion.fail(sessionWasClosed)
+    }
+
+    func succeedLicenseUpdate() {
+        completion.succeed()
+    }
+
+    func succeedLicenseUpdate(keyIDs: Span<UInt8>, keyIDSizes: Span<UInt32>, statuses: Span<UInt8>) {
+        completion.succeedWithKeyStatuses(keyIDs, keyIDSizes, statuses)
+    }
+
+    func succeedLicenseUpdate(messageType: WebCore.CDMMessageType, message: Span<UInt8>) {
+        completion.succeedWithMessage(messageType, message)
+    }
+}
+
+@_spi(WebKitGPU)
 @MainActor
-final class FairPlaySession: FairPlayContentKeySessionClient {
+public final class FairPlaySession: FairPlayContentKeySessionClient {
     let instance: FairPlayInstance
-    let host: WebCore.FairPlaySessionHost
+    let host: any FairPlaySessionHosting
 
     #if HAVE_AVCONTENTKEYREPORTGROUP
     private var reportGroup: AVContentKeyReportGroup?
@@ -899,16 +1047,16 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
     private var pendingRequests: [FairPlayRequestGroup] = []
     private var requests: [FairPlayRequestGroup] = []
     private var renewingRequest: FairPlayRequestGroup?
-    private var requestLicenseCallback: WebCore.FairPlayLicenseCompletion?
-    private var updateLicenseCallback: WebCore.FairPlayLicenseUpdateCompletion?
+    private var requestLicenseCallback: (any FairPlayLicenseRequestCompleting)?
+    private var updateLicenseCallback: (any FairPlayLicenseUpdateCompleting)?
 
-    init(instance: FairPlayInstance, host: sending WebCore.FairPlaySessionHost) {
+    init(instance: FairPlayInstance, host: any FairPlaySessionHosting) {
         self.instance = instance
         self.host = host
     }
 
     func log(_ level: WebCore.FairPlayLogLevel, _ method: Swift.String, _ message: Swift.String) {
-        host.log(level, utf8(method).span, utf8(message).span)
+        host.logFromSession(FairPlaySessionLogLevel(level), method, message)
     }
 
     // MARK: Groups
@@ -1033,44 +1181,44 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
 
     // MARK: Callbacks
 
-    private func takeRequestLicenseCallback() -> WebCore.FairPlayLicenseCompletion? {
+    private func takeRequestLicenseCallback() -> (any FairPlayLicenseRequestCompleting)? {
         defer {
             requestLicenseCallback = nil
         }
         return requestLicenseCallback
     }
 
-    private func takeUpdateLicenseCallback() -> WebCore.FairPlayLicenseUpdateCompletion? {
+    private func takeUpdateLicenseCallback() -> (any FairPlayLicenseUpdateCompleting)? {
         defer {
             updateLicenseCallback = nil
         }
         return updateLicenseCallback
     }
 
-    private func complete(_ callback: WebCore.FairPlayLicenseCompletion, message: ContiguousArray<UInt8> = [], sessionId: Swift.String?, succeeded: Bool) {
-        callback.complete(message.span, sessionId != nil, utf8(sessionId ?? "").span, succeeded)
+    private func complete(_ callback: any FairPlayLicenseRequestCompleting, message: ContiguousArray<UInt8> = [], sessionId: Swift.String?, succeeded: Bool) {
+        callback.completeLicenseRequest(message.span, sessionId, succeeded)
     }
 
-    private func completeWithKeyStatuses(_ callback: WebCore.FairPlayLicenseUpdateCompletion, _ statuses: [FairPlayKeyStatus]) {
+    private func completeWithKeyStatuses(_ callback: any FairPlayLicenseUpdateCompleting, _ statuses: [FairPlayKeyStatus]) {
         withFlattenedKeyStatuses(statuses) { keyIDs, sizes, values in
-            callback.succeedWithKeyStatuses(keyIDs, sizes, values)
+            callback.succeedLicenseUpdate(keyIDs: keyIDs, keyIDSizes: sizes, statuses: values)
         }
     }
 
     private func sendKeyStatusesToClient() {
         withFlattenedKeyStatuses(keyStatuses) { keyIDs, sizes, values in
-            host.updateKeyStatuses(keyIDs, sizes, values)
+            host.sessionKeyStatusesChanged(keyIDs, sizes, values)
         }
     }
 
     // MARK: CDMInstanceSession
 
-    func requestLicense(
+    @_spi(WebKitGPU) public func requestLicense(
         _ licenseType: WebCore.CDMSessionType,
         builtInKeyGrouping: Bool,
         initDataType: Swift.String,
         initData: ContiguousArray<UInt8>,
-        callback: sending WebCore.FairPlayLicenseCompletion
+        callback: any FairPlayLicenseRequestCompleting
     ) {
         if !isLicenseTypeSupported(licenseType) {
             log(.Error, "requestLicense", " false, licenseType \"\(sessionTypeName(licenseType))\" not supported")
@@ -1163,23 +1311,23 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         return .unsupported
     }
 
-    func updateLicense(_ responseData: ContiguousArray<UInt8>, callback: sending WebCore.FairPlayLicenseUpdateCompletion) {
+    @_spi(WebKitGPU) public func updateLicense(_ responseData: ContiguousArray<UInt8>, callback: any FairPlayLicenseUpdateCompleting) {
         if !expiredSessions.isEmpty && isText(responseData, "acknowledged") {
             guard let certificate = instance.serverCertificate, let storageURL = instance.storageURL else {
                 log(.Error, "updateLicense", "\"acknowledged\", Failed, no certificate and storageURL")
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
                 return
             }
             log(.Error, "updateLicense", "\"acknowledged\", Succeeded, removing expired session report")
             PAL.removePendingExpiredSessionReports(expiredSessions, certificate, storageURL)
-            callback.succeed()
+            callback.succeedLicenseUpdate()
             return
         }
 
         if !requests.isEmpty && isText(responseData, "renew") {
             guard let request = lastKeyRequest else {
                 log(.Error, "updateLicense", "\"renew\", Failed, no outstanding keys")
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
                 return
             }
             renewingRequest = requests.last
@@ -1191,13 +1339,13 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
 
         guard let currentRequest else {
             log(.Error, "updateLicense", " Failed, no currentRequest")
-            callback.fail(false)
+            callback.failLicenseUpdate(sessionWasClosed: false)
             return
         }
         let keyIDs = currentRequest.keyIDs
         if keyIDs.isEmpty {
             log(.Error, "updateLicense", " Failed, no keyIDs in currentRequest")
-            callback.fail(false)
+            callback.failLicenseUpdate(sessionWasClosed: false)
             return
         }
 
@@ -1209,13 +1357,13 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
             }
 
             guard let entries = FairPlayJSON.cencResponse(responseData.span) else {
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
                 return
             }
             for entry in entries {
                 if !processCencResponseEntry(entry, of: currentRequest) {
                     log(.Error, "updateLicense", "'cenc' initData, Failed, could not parse response")
-                    callback.fail(false)
+                    callback.failLicenseUpdate(sessionWasClosed: false)
                     return
                 }
             }
@@ -1238,7 +1386,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         if !hasResponses {
             log(.Error, "updateLicense", "'cenc' initData, Failed, no responses")
             updateLicenseCallback = nil
-            callback.fail(true)
+            callback.failLicenseUpdate(sessionWasClosed: true)
             return
         }
         log(.Always, "updateLicense", "'cenc' initData, Succeeded, no keyIDs in currentRequest")
@@ -1271,7 +1419,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         return true
     }
 
-    func loadSession(_ licenseType: WebCore.CDMSessionType, sessionId requestedSessionId: Swift.String) -> FairPlayLoadSessionResult {
+    @_spi(WebKitGPU) public func loadSession(_ licenseType: WebCore.CDMSessionType, sessionId requestedSessionId: Swift.String) -> FairPlayLoadSessionResult {
         guard licenseType == .PersistentUsageRecord else {
             return .notHandled
         }
@@ -1311,20 +1459,20 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         return propertyList as? NSDictionary
     }
 
-    func closeSession() {
+    @_spi(WebKitGPU) public func closeSession() {
         log(.Always, "closeSession", "")
         if let callback = takeRequestLicenseCallback() {
             complete(callback, sessionId: sessionId, succeeded: false)
         }
         if let callback = takeUpdateLicenseCallback() {
-            callback.fail(true)
+            callback.failLicenseUpdate(sessionWasClosed: true)
         }
         currentRequest = nil
         pendingRequests = []
         requests = []
     }
 
-    func removeSessionData(_ licenseType: WebCore.CDMSessionType, sessionId requestedSessionId: Swift.String) -> FairPlayRemoveSessionDataResult {
+    @_spi(WebKitGPU) public func removeSessionData(_ licenseType: WebCore.CDMSessionType, sessionId requestedSessionId: Swift.String) -> FairPlayRemoveSessionDataResult {
         if groupObject != nil {
             expireGroup()
         } else {
@@ -1374,7 +1522,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         return result
     }
 
-    func displayChanged() {
+    @_spi(WebKitGPU) public func displayChanged() {
         updateProtectionStatus()
     }
 
@@ -1420,7 +1568,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         if let exception {
             log(.Error, "didProvideRequest", exceptionMessage(exception))
             if let callback = takeUpdateLicenseCallback() {
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
             }
         }
     }
@@ -1435,7 +1583,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         } else if let callback = takeRequestLicenseCallback() {
             complete(callback, message: fairPlayBytes(contentKeyRequestData), sessionId: sessionId, succeeded: true)
         } else {
-            host.sendMessage(.LicenseRequest, fairPlayBytes(contentKeyRequestData).span)
+            host.sendSessionMessage(.LicenseRequest, fairPlayBytes(contentKeyRequestData).span)
         }
     }
 
@@ -1560,7 +1708,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         guard let keyID = newRequest.keyIDs.first else {
             log(.Error, "didProvideRenewingRequest", " Failed, no keyIDs in currentRequest")
             if let callback = takeUpdateLicenseCallback() {
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
             }
             return
         }
@@ -1579,19 +1727,19 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         if let exception {
             log(.Error, "didProvideRenewingRequest", exceptionMessage(exception))
             if let callback = takeUpdateLicenseCallback() {
-                callback.fail(false)
+                callback.failLicenseUpdate(sessionWasClosed: false)
             }
         }
     }
 
     private func didMakeRenewingRequestData(_ contentKeyRequestData: Data?, failed: Bool) {
-        if !host.hasClient() || failed {
+        if !host.hasSessionClient || failed {
             return
         }
         if let callback = takeUpdateLicenseCallback() {
-            callback.succeedWithMessage(.LicenseRenewal, fairPlayBytes(contentKeyRequestData).span)
+            callback.succeedLicenseUpdate(messageType: .LicenseRenewal, message: fairPlayBytes(contentKeyRequestData).span)
         } else {
-            host.sendMessage(.LicenseRenewal, fairPlayBytes(contentKeyRequestData).span)
+            host.sendSessionMessage(.LicenseRenewal, fairPlayBytes(contentKeyRequestData).span)
         }
     }
 
@@ -1615,7 +1763,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
         }
 
         if let callback = takeUpdateLicenseCallback() {
-            callback.fail(false)
+            callback.failLicenseUpdate(sessionWasClosed: false)
         }
         currentRequest = nil
         nextRequest()
@@ -1667,7 +1815,7 @@ final class FairPlaySession: FairPlayContentKeySessionClient {
             return
         }
         sessionId = newSessionId
-        host.sessionIdChanged(utf8(newSessionId).span)
+        host.sessionIdentifierChanged(newSessionId)
     }
 
     func groupSessionIdentifierChanged(_ group: ObjectIdentifier?, _ sessionIdentifier: Data?) {
@@ -1876,7 +2024,13 @@ final class FairPlayInstanceBridge: Sendable {
 
     @_expose(Cxx)
     func makeSession(_ host: sending WebCore.FairPlaySessionHost) -> FairPlaySessionBridge {
-        FairPlaySessionBridge(session: MainActor.assumeIsolated { instance.makeSession(host: host) })
+        FairPlaySessionBridge(session: MainActor.assumeIsolated { instance.makeSession(host: FairPlayCxxSessionHost(host)) })
+    }
+
+    // The token of fairPlayInstanceToken().
+    @_expose(Cxx)
+    func token() -> UInt64 {
+        instance.token
     }
 
     @_expose(Cxx)
@@ -1953,7 +2107,7 @@ final class FairPlaySessionBridge: Sendable {
         let bytes: Span<UInt8> = initData.span()
         let data = fairPlayBytes(bytes)
         MainActor.assumeIsolated {
-            session.requestLicense(licenseType, builtInKeyGrouping: builtInKeyGrouping, initDataType: type, initData: data, callback: callback)
+            session.requestLicense(licenseType, builtInKeyGrouping: builtInKeyGrouping, initDataType: type, initData: data, callback: FairPlayCxxLicenseRequestCompletion(callback))
         }
     }
 
@@ -1962,7 +2116,7 @@ final class FairPlaySessionBridge: Sendable {
         let bytes: Span<UInt8> = response.span()
         let data = fairPlayBytes(bytes)
         MainActor.assumeIsolated {
-            session.updateLicense(data, callback: callback)
+            session.updateLicense(data, callback: FairPlayCxxLicenseUpdateCompletion(callback))
         }
     }
 

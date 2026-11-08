@@ -41,6 +41,7 @@
 
 namespace WebCore {
 
+class CDMInstance;
 class CDMInstanceFairPlayStreamingAVFObjC;
 class CDMInstanceSessionFairPlayStreamingAVFObjC;
 
@@ -163,6 +164,10 @@ private:
 // exception it throws, which Swift can't catch.
 NSException * _Nullable makeFairPlayStreamingContentKeyRequestData(AVContentKeyRequest * _Nonnull, NSData * _Nullable appIdentifier, NSData * _Nullable contentIdentifier, NSDictionary * _Nullable options, void (^ _Nonnull NS_SWIFT_SENDABLE completionHandler)(NSData * _Nullable, NSError * _Nullable));
 #endif
+
+// The token of the Swift FairPlay Streaming instance of a FairPlay Streaming CDMInstance, by which Swift finds it
+// (FairPlayInstance.instance(forToken:)), or 0 for another CDM's instance.
+WEBCORE_EXPORT uint64_t fairPlayInstanceToken(CDMInstance&);
 
 } // namespace WebCore
 

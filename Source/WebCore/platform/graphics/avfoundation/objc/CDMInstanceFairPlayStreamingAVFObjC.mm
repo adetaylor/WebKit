@@ -457,6 +457,12 @@ void CDMInstanceFairPlayStreamingAVFObjC::attachContentKeyToSample(const MediaSa
         ERROR_LOG(LOGIDENTIFIER, "Failed to attach content key with error: %{public}@", error);
 }
 
+uint64_t fairPlayInstanceToken(CDMInstance& instance)
+{
+    RefPtr fairPlayInstance = dynamicDowncast<CDMInstanceFairPlayStreamingAVFObjC>(instance);
+    return fairPlayInstance ? fairPlayInstance->m_swift->bridge.token() : 0;
+}
+
 Ref<CDMInstanceSessionFairPlayStreamingAVFObjC> CDMInstanceSessionFairPlayStreamingAVFObjC::create(Ref<CDMInstanceFairPlayStreamingAVFObjC>&& instance)
 {
     return adoptRef(*new CDMInstanceSessionFairPlayStreamingAVFObjC(WTF::move(instance)));

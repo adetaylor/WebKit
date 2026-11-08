@@ -93,6 +93,7 @@ public:
 private:
     friend class CDMInstanceSessionFairPlayStreamingAVFObjC;
     friend class FairPlayInstanceHost;
+    friend uint64_t fairPlayInstanceToken(CDMInstance&);
 
     explicit CDMInstanceFairPlayStreamingAVFObjC(const CDMPrivateFairPlayStreaming&);
 
