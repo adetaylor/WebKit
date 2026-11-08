@@ -376,16 +376,14 @@ void LibWebRTCCodecsProxyEncoder::setRates(uint32_t bitRate, uint32_t frameRate)
     m_encoder->setRates(bitRate, frameRate);
 }
 
-void LibWebRTCCodecsProxyEncoder::setSharedVideoFrameSemaphore(SharedVideoFrameSemaphoreArgument& semaphore)
+void LibWebRTCCodecsProxyEncoder::setSharedVideoFrameSemaphore(mach_port_t semaphore)
 {
-    if (auto value = semaphore.take())
-        m_frameReader->setSemaphore(WTF::move(*value));
+    m_frameReader->setSemaphore(IPC::Semaphore { MachSendRight::create(semaphore) });
 }
 
-void LibWebRTCCodecsProxyEncoder::setSharedVideoFrameMemory(SharedVideoFrameMemoryArgument& handle)
+void LibWebRTCCodecsProxyEncoder::setSharedVideoFrameMemory(mach_port_t memory, uint64_t size)
 {
-    if (auto value = handle.take())
-        m_frameReader->setSharedMemory(WTF::move(*value));
+    m_frameReader->setSharedMemory({ MachSendRight::create(memory), size });
 }
 
 }

@@ -406,15 +406,15 @@ final class RemoteDevice {
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
     func setSharedVideoFrameSemaphore(
-        semaphore: CxxDecodedArguments.RemoteDevice.SetSharedVideoFrameSemaphoreSemaphore
+        semaphore: borrowing IPCTypes.Semaphore
     ) {
-        videoFrames?.setSemaphore(semaphore)
+        videoFrames?.setSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
-        storageHandle: CxxDecodedArguments.RemoteDevice.SetSharedVideoFrameMemoryStorageHandle
+        storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        videoFrames?.setSharedMemory(storageHandle)
+        videoFrames?.setSharedMemory(storageHandle.port, storageHandle.size)
     }
 
     func importExternalTextureFromVideoFrame(

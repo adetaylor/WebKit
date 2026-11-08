@@ -413,17 +413,17 @@ final class LibWebRTCCodecsProxy {
     func setSharedVideoFrameSemaphore(
         connection: IPC.Connection,
         id: IPCTypes.VideoEncoderIdentifier,
-        semaphore: CxxDecodedArguments.LibWebRTCCodecsProxy.SetSharedVideoFrameSemaphoreSemaphore
+        semaphore: borrowing IPCTypes.Semaphore
     ) {
-        encoders[id]?.platform.setSharedVideoFrameSemaphore(semaphore)
+        encoders[id]?.platform.setSharedVideoFrameSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
         connection: IPC.Connection,
         id: IPCTypes.VideoEncoderIdentifier,
-        storageHandle: CxxDecodedArguments.LibWebRTCCodecsProxy.SetSharedVideoFrameMemoryStorageHandle
+        storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        encoders[id]?.platform.setSharedVideoFrameMemory(storageHandle)
+        encoders[id]?.platform.setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
     }
 
     func setRTCLoggingLevel(connection: IPC.Connection, level: IPCTypes.WTFLogLevel) {

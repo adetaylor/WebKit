@@ -40,8 +40,8 @@ messages -> RemoteQueue Stream {
     void WriteTextureWithCopy(WebKit::WebGPU::ImageCopyTexture destination, [Lent] std::span<const uint8_t> data, WebKit::WebGPU::ImageDataLayout imageDataLayout, WebKit::WebGPU::Extent3D size)
     void CopyExternalImageToTexture(WebKit::WebGPU::ImageCopyExternalImage source, WebKit::WebGPU::ImageCopyTextureTagged destination, WebKit::WebGPU::Extent3D copySize) -> () Synchronous
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-    void SetSharedVideoFrameSemaphore([CxxDecoded] IPC::Semaphore semaphore) NotStreamEncodable
-    void SetSharedVideoFrameMemory([CxxDecoded] WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
+    void SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore) NotStreamEncodable
+    void SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
     // A separate message from CopyExternalImageToTexture, because a shared video frame cannot be
     // written into the stream buffer and adding it here would push the ImageBuffer copy out of the
     // stream too. Unlike that copy this one need not be synchronous: a frame is either owned by the

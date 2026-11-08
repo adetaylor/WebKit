@@ -77,8 +77,9 @@ public:
     // Takes frameFromHeap if the SharedVideoFrame refers to a heap frame, and otherwise reads the frame it carries, and
     // sends it back as 32-bit BGRA.
     WebCore::ColorSpace convertFrameBuffer(SharedVideoFrame&&, WebCore::VideoFrame* WTF_NULLABLE frameFromHeap, bool shouldApplyRotation);
-    void setSharedVideoFrameSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>&);
-    void setSharedVideoFrameMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>&);
+    // Each takes a right of its own to the port that the heap's IPCTypes.Semaphore or SharedMemoryHandle owns.
+    void setSharedVideoFrameSemaphore(mach_port_t);
+    void setSharedVideoFrameMemory(mach_port_t, uint64_t size);
 #endif
 
 private:

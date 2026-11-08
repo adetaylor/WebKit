@@ -237,16 +237,16 @@ final class RemoteVideoFrameObjectHeap {
 
     func setSharedVideoFrameSemaphore(
         connection: IPC.Connection,
-        semaphore: CxxDecodedArguments.RemoteVideoFrameObjectHeap.SetSharedVideoFrameSemaphoreSemaphore
+        semaphore: borrowing IPCTypes.Semaphore
     ) {
-        platform.setSharedVideoFrameSemaphore(semaphore)
+        platform.setSharedVideoFrameSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
         connection: IPC.Connection,
-        storageHandle: CxxDecodedArguments.RemoteVideoFrameObjectHeap.SetSharedVideoFrameMemoryStorageHandle
+        storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        platform.setSharedVideoFrameMemory(storageHandle)
+        platform.setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
     }
     #endif
 }

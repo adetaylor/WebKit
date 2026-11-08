@@ -210,15 +210,15 @@ final class RemoteQueue {
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
     func setSharedVideoFrameSemaphore(
-        semaphore: CxxDecodedArguments.RemoteQueue.SetSharedVideoFrameSemaphoreSemaphore
+        semaphore: borrowing IPCTypes.Semaphore
     ) {
-        videoFrames?.setSemaphore(semaphore)
+        videoFrames?.setSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
-        storageHandle: CxxDecodedArguments.RemoteQueue.SetSharedVideoFrameMemoryStorageHandle
+        storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        videoFrames?.setSharedMemory(storageHandle)
+        videoFrames?.setSharedMemory(storageHandle.port, storageHandle.size)
     }
 
     func copyExternalImageFromVideoFrameToTexture(

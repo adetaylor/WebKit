@@ -46,8 +46,8 @@ messages -> LibWebRTCCodecsProxy WorkQueue {
     EncodeFrame(WebKit::VideoEncoderIdentifier id, [CxxDecoded] struct WebKit::SharedVideoFrame buffer, int64_t timeStamp, std::optional<uint64_t> duration, bool shouldEncodeAsKeyFrame) -> (bool success)
     FlushEncoder(WebKit::VideoEncoderIdentifier id) -> ()
     SetEncodeRates(WebKit::VideoEncoderIdentifier id, uint32_t bitRate, uint32_t frameRate) -> ()
-    SetSharedVideoFrameSemaphore(WebKit::VideoEncoderIdentifier id, [CxxDecoded] IPC::Semaphore semaphore)
-    SetSharedVideoFrameMemory(WebKit::VideoEncoderIdentifier id, [CxxDecoded] WebCore::SharedMemory::Handle storageHandle)
+    SetSharedVideoFrameSemaphore(WebKit::VideoEncoderIdentifier id, IPC::Semaphore semaphore)
+    SetSharedVideoFrameMemory(WebKit::VideoEncoderIdentifier id, WebCore::SharedMemory::Handle storageHandle)
     SetRTCLoggingLevel(WTFLogLevel level)
 }
 

@@ -145,16 +145,14 @@ WebCore::ColorSpace RemoteVideoFrameObjectHeapPlatform::convertFrameBuffer(Share
     return destinationColorSpace;
 }
 
-void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>& semaphore)
+void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameSemaphore(mach_port_t semaphore)
 {
-    if (auto value = semaphore.take())
-        m_sharedVideoFrameReader.setSemaphore(WTF::move(*value));
+    m_sharedVideoFrameReader.setSemaphore(IPC::Semaphore { MachSendRight::create(semaphore) });
 }
 
-void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameMemory(IPC::CxxDecodedArgument<SharedMemory::Handle>& handle)
+void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameMemory(mach_port_t memory, uint64_t size)
 {
-    if (auto value = handle.take())
-        m_sharedVideoFrameReader.setSharedMemory(WTF::move(*value));
+    m_sharedVideoFrameReader.setSharedMemory({ MachSendRight::create(memory), size });
 }
 
 OptionalRemoteVideoFrameReadReference sharedVideoFrameReadReference(const SharedVideoFrame& sharedVideoFrame)

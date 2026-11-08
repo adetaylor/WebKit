@@ -242,8 +242,9 @@ public:
 
     ~WebGPUSwiftVideoFrames();
 
-    void setSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>&);
-    void setSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>&);
+    // Each takes a right of its own to the port that the receiver's IPCTypes.Semaphore or SharedMemoryHandle owns.
+    void setSemaphore(mach_port_t);
+    void setSharedMemory(mach_port_t, uint64_t size);
 
     // The descriptor of a device's ImportExternalTextureFromVideoFrame message, with the pixel buffer of the video frame
     // it names, as WebCore's WebGPU integration imports it. std::nullopt with isInvalid set if the message is invalid, and

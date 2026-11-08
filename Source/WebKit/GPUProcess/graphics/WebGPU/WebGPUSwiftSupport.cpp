@@ -389,16 +389,14 @@ WebGPUSwiftVideoFrames::WebGPUSwiftVideoFrames(const WebGPUSwiftRegistryHost& ho
 
 WebGPUSwiftVideoFrames::~WebGPUSwiftVideoFrames() = default;
 
-void WebGPUSwiftVideoFrames::setSemaphore(IPC::CxxDecodedArgument<IPC::Semaphore>& argument)
+void WebGPUSwiftVideoFrames::setSemaphore(mach_port_t semaphore)
 {
-    if (auto semaphore = argument.take())
-        m_sharedVideoFrameReader->setSemaphore(WTF::move(*semaphore));
+    m_sharedVideoFrameReader->setSemaphore(IPC::Semaphore { MachSendRight::create(semaphore) });
 }
 
-void WebGPUSwiftVideoFrames::setSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>& argument)
+void WebGPUSwiftVideoFrames::setSharedMemory(mach_port_t memory, uint64_t size)
 {
-    if (auto handle = argument.take())
-        m_sharedVideoFrameReader->setSharedMemory(WTF::move(*handle));
+    m_sharedVideoFrameReader->setSharedMemory({ MachSendRight::create(memory), size });
 }
 
 std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::externalTextureDescriptor(IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>& argument, bool& isInvalid)

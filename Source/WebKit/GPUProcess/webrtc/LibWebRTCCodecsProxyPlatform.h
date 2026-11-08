@@ -72,8 +72,6 @@ using CodecStringArgument = IPC::CxxDecodedArgument<String>;
 using ColorSpaceOverrideArgument = IPC::CxxDecodedArgument<std::optional<WebCore::PlatformVideoColorSpace>>;
 using EncoderParametersArgument = IPC::CxxDecodedArgument<Vector<std::pair<String, String>>>;
 using SharedVideoFrameArgument = IPC::CxxDecodedArgument<SharedVideoFrame>;
-using SharedVideoFrameMemoryArgument = IPC::CxxDecodedArgument<WebCore::SharedMemory::Handle>;
-using SharedVideoFrameSemaphoreArgument = IPC::CxxDecodedArgument<IPC::Semaphore>;
 using VideoFrameRotationArgument = IPC::CxxDecodedArgument<WebCore::VideoFrameRotation>;
 using VideoInfoArgument = IPC::CxxDecodedArgument<RefPtr<WebCore::VideoInfo>>;
 
@@ -151,8 +149,9 @@ public:
     [[nodiscard]] bool encodeFrame(SharedVideoFrameArgument&, int64_t timeStamp, bool hasDuration, uint64_t duration, bool shouldEncodeAsKeyFrame);
     void flush();
     void setRates(uint32_t bitRate, uint32_t frameRate);
-    void setSharedVideoFrameSemaphore(SharedVideoFrameSemaphoreArgument&);
-    void setSharedVideoFrameMemory(SharedVideoFrameMemoryArgument&);
+    // Each takes a right of its own to the port that the encoder's IPCTypes.Semaphore or SharedMemoryHandle owns.
+    void setSharedVideoFrameSemaphore(mach_port_t);
+    void setSharedVideoFrameMemory(mach_port_t, uint64_t size);
 
 private:
     LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxyPlatform&, Ref<WebCore::GPUVideoEncoder>&&);

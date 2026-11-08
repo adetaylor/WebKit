@@ -57,8 +57,8 @@ messages -> RemoteDevice Stream {
     void SetLabel(String label)
     void PauseAllErrorReporting(bool pauseErrorReporting)
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-    void SetSharedVideoFrameSemaphore([CxxDecoded] IPC::Semaphore semaphore) NotStreamEncodable
-    void SetSharedVideoFrameMemory([CxxDecoded] WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
+    void SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore) NotStreamEncodable
+    void SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
     void ImportExternalTextureFromVideoFrame([CxxDecoded] WebKit::WebGPU::ExternalTextureDescriptor descriptor, WebKit::WebGPUIdentifier identifier) NotStreamEncodable
     void UpdateExternalTexture(WebKit::WebGPUIdentifier externalTextureIdentifier, WebCore::MediaPlayerIdentifier mediaIdentifier)
 #endif
