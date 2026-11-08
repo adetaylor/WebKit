@@ -1068,7 +1068,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImageMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRViewMessageReceiver.cpp
-        GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
         GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
         UIProcess/API/ios/WKWebViewIOS.mm
@@ -1135,6 +1134,8 @@ webkit_target_add_swift_options(WebKit
 # One batch per core repeats that work for each core and competes with the
 # C++ compiles for memory, so use fewer, larger batches.
 webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
+# Lets WebKit's Swift implement members of C++ classes with @cxx @implementation.
+webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
 webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
 
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)

@@ -45,16 +45,13 @@ class WebGPUCompositorIntegration;
 }
 
 namespace WebKit {
-#if !defined(__swift__)
-class WebGPUImplTable;
-#endif
 class RemoteGPU;
 }
 
 namespace WebKit::WebGPU {
 
 
-class ObjectHeap final : public RefCountedAndCanMakeWeakPtr<ObjectHeap>, public WebGPU::ConvertFromBackingContext {
+class SWIFT_PRIVATE_FILEID("WebKit/WebGPUSwiftSupport.swift") ObjectHeap final : public RefCountedAndCanMakeWeakPtr<ObjectHeap>, public WebGPU::ConvertFromBackingContext {
     WTF_MAKE_TZONE_ALLOCATED(ObjectHeap);
 public:
     static Ref<ObjectHeap> create()
@@ -112,23 +109,34 @@ public:
     };
     ExistsAndValid objectExistsAndValid(WebGPUIdentifier) const;
 
-#if !defined(__swift__)
     // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared,
     // with the instance that the descriptor describes.
     void createSwiftImplTable(RemoteGPU&, ::WebGPU::InstanceDescriptor&&);
-    WebGPUImplTable& swiftImplTable();
-#endif
+
+    // For Swift, which can only name a specialization through an alias.
+    using OptionalAdapterResponse = std::optional<RemoteGPURequestAdapterResponse>;
+
 private:
     ObjectHeap();
+
+    // Implemented in Swift, in WebGPUSwiftSupport.swift, on the registry that m_swiftState holds.
+    static uintptr_t createSwiftState(WebGPUSwiftRegistryHost, WebGPUSwiftInstanceDescriptor* WTF_NONNULL);
+    static void destroySwiftState(uintptr_t);
+    OptionalAdapterResponse swiftRequestAdapter(::WebGPU::RequestAdapterOptions, uint64_t identifier);
+    void swiftAddCompositorIntegration(uint64_t identifier);
+    bool swiftAddPresentationContext(uint64_t identifier, uint64_t compositorIntegration);
+    bool swiftHasDevice(uint64_t identifier) const;
+    void swiftDestroyDevices();
+    void swiftRemoveAll();
+    WebGPUSwiftObjectState swiftObjectState(uint64_t identifier) const;
 
     using Object = Variant<
         std::monostate
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;
-#if !defined(__swift__)
-    std::unique_ptr<WebGPUImplTable> m_swiftImplTable;
-#endif
+    // A retained reference to the Swift registry, as an address, from createSwiftImplTable() to the destructor; 0 before.
+    uintptr_t m_swiftState { 0 };
 };
 
 } // namespace WebKit::WebGPU

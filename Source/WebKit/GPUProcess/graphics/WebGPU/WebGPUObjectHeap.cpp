@@ -29,7 +29,6 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteGPU.h"
-#include "WebKit-Swift.h"
 #include <wtf/TZoneMallocInlines.h>
 
 #include <WebCore/WebGPUCompositorIntegration.h>
@@ -48,50 +47,46 @@ ObjectHeap::ObjectHeap()
 ObjectHeap::~ObjectHeap()
 {
     // A Swift receiver can outlive the heap, and keep the table.
-    if (m_swiftImplTable)
-        m_swiftImplTable->removeAll();
+    if (m_swiftState) {
+        swiftRemoveAll();
+        destroySwiftState(m_swiftState);
+    }
 }
 
 void ObjectHeap::createSwiftImplTable(RemoteGPU& gpu, ::WebGPU::InstanceDescriptor&& instanceDescriptor)
 {
-    ASSERT(!m_swiftImplTable);
+    ASSERT(!m_swiftState);
     Ref descriptor = WebGPUSwiftInstanceDescriptor::create(WTF::move(instanceDescriptor));
-    m_swiftImplTable = makeUniqueWithoutFastMallocCheck<WebGPUImplTable>(WebGPUImplTable::init(WebGPUSwiftRegistryHost { *this, gpu }, descriptor.ptr()));
-}
-
-WebGPUImplTable& ObjectHeap::swiftImplTable()
-{
-    RELEASE_ASSERT(m_swiftImplTable);
-    return *m_swiftImplTable;
+    m_swiftState = createSwiftState(WebGPUSwiftRegistryHost { *this, gpu }, descriptor.ptr());
 }
 
 std::optional<RemoteGPURequestAdapterResponse> ObjectHeap::requestAdapter(const ::WebGPU::RequestAdapterOptions& options, WebGPUIdentifier identifier)
 {
-    RemoteGPURequestAdapterResponse response { };
-    if (!swiftImplTable().requestAdapter(options, identifier.toUInt64(), response))
-        return std::nullopt;
-    return response;
+    RELEASE_ASSERT(m_swiftState);
+    return swiftRequestAdapter(options, identifier.toUInt64());
 }
 
 void ObjectHeap::addCompositorIntegration(WebGPUIdentifier identifier)
 {
-    swiftImplTable().addCompositorIntegration(identifier.toUInt64());
+    RELEASE_ASSERT(m_swiftState);
+    swiftAddCompositorIntegration(identifier.toUInt64());
 }
 
 bool ObjectHeap::addPresentationContext(WebGPUIdentifier identifier, WebGPUIdentifier compositorIntegration)
 {
-    return swiftImplTable().addPresentationContext(identifier.toUInt64(), compositorIntegration.toUInt64());
+    RELEASE_ASSERT(m_swiftState);
+    return swiftAddPresentationContext(identifier.toUInt64(), compositorIntegration.toUInt64());
 }
 
 bool ObjectHeap::hasDevice(WebGPUIdentifier identifier)
 {
-    return m_swiftImplTable && m_swiftImplTable->hasDevice(identifier.toUInt64());
+    return m_swiftState && swiftHasDevice(identifier.toUInt64());
 }
 
 void ObjectHeap::destroyDevices()
 {
-    if (m_swiftImplTable)
-        m_swiftImplTable->destroyDevices();
+    if (m_swiftState)
+        swiftDestroyDevices();
 }
 
 void ObjectHeap::removeObject(WebGPUIdentifier identifier)
@@ -103,8 +98,8 @@ void ObjectHeap::removeObject(WebGPUIdentifier identifier)
 void ObjectHeap::clear()
 {
     m_objects.clear();
-    if (m_swiftImplTable)
-        m_swiftImplTable->removeAll();
+    if (m_swiftState)
+        swiftRemoveAll();
 }
 
 RefPtr<::WebGPU::Adapter> ObjectHeap::convertAdapterFromBacking(WebGPUIdentifier identifier)
@@ -301,7 +296,7 @@ ObjectHeap::ExistsAndValid ObjectHeap::objectExistsAndValid(WebGPUIdentifier ide
     ExistsAndValid result;
     auto it = m_objects.find(identifier);
     if (it == m_objects.end()) {
-        auto state = m_swiftImplTable ? m_swiftImplTable->objectState(identifier.toUInt64()) : WebGPUSwiftObjectState::Absent;
+        auto state = m_swiftState ? swiftObjectState(identifier.toUInt64()) : WebGPUSwiftObjectState::Absent;
         result.exists = state != WebGPUSwiftObjectState::Absent;
         result.valid = state == WebGPUSwiftObjectState::Valid;
         return result;
