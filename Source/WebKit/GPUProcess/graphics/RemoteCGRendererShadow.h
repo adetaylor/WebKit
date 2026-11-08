@@ -33,27 +33,30 @@
 
 namespace WebKit {
 
-class RemoteCGRendererResources;
-
-// The shadow of RemoteCGRenderer's SetDropShadow, which goes as RemoteGraphicsContext's does.
-class RemoteCGRendererShadow {
-public:
-    explicit RemoteCGRendererShadow(const std::optional<WebCore::GraphicsDropShadow>& shadow)
-        : m_shadow(shadow)
-    {
-    }
-
-    const std::optional<WebCore::GraphicsDropShadow>& shadow() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_shadow; }
-    bool hasShadow() const { return !!m_shadow; }
-
-private:
-    std::optional<WebCore::GraphicsDropShadow> m_shadow;
+// The shadow of RemoteCGRenderer's SetDropShadow, as plain values: what the renderer takes of it, and its color's data,
+// which gives back the same shadow (CGRendererShadowValuesOf()). hasShadow is false for none.
+struct RemoteCGRendererShadow {
+    CGRendererShadowValues values;
+    CGRendererColorData color;
+    bool hasShadow;
 };
 
-// What the renderer takes of the shadow, as GraphicsContextCG converts one for the receiver's context, with the CGColor,
-// which this returns, of a valid color that isn't sRGBA8. A function, since Swift takes what a C++ method returns as
-// unretained whatever its annotation.
-CGColorRef _Nullable copyShadow(const RemoteCGRendererResources&, const RemoteCGRendererShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED;
+__attribute__((availability(swift, unavailable))) inline RemoteCGRendererShadow rendererShadow(const std::optional<WebCore::GraphicsDropShadow>& shadow)
+{
+    RemoteCGRendererShadow result { };
+    if (shadow) {
+        result.hasShadow = true;
+        CGRendererShadowValuesOf(*shadow, result.values, result.color);
+    }
+    return result;
+}
+
+__attribute__((availability(swift, unavailable))) inline std::optional<WebCore::GraphicsDropShadow> dropShadowFrom(const RemoteCGRendererShadow& shadow)
+{
+    if (!shadow.hasShadow)
+        return std::nullopt;
+    return CGRendererDropShadowFromValues(shadow.values, shadow.color);
+}
 
 } // namespace WebKit
 

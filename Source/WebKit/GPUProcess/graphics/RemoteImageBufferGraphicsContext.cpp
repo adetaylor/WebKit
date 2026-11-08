@@ -275,12 +275,12 @@ void RemoteImageBufferGraphicsContext::clipOutToPath(const RemoteCGRendererPath&
 
 void RemoteImageBufferGraphicsContext::setDropShadow(const RemoteCGRendererShadow& shadow)
 {
-    RemoteGraphicsContext::setDropShadow(shadow.shadow());
+    RemoteGraphicsContext::setDropShadow(dropShadowFrom(shadow));
 }
 
 void RemoteImageBufferGraphicsContext::setStyle(const RemoteCGRendererStyle& style)
 {
-    RemoteGraphicsContext::setStyle(style.style());
+    RemoteGraphicsContext::setStyle(styleFrom(style));
 }
 
 void RemoteImageBufferGraphicsContext::setLineDash(const RemoteCGRendererLineDash& dashes, float dashOffset)

@@ -484,36 +484,29 @@ final class RemoteCGRenderer {
     }
 
     func setDropShadow(state: inout CGRendererCore, dropShadow: WebKit.RemoteCGRendererShadow) {
-        guard dropShadow.hasShadow() else {
+        guard dropShadow.hasShadow else {
             state.receiveClearDropShadow()
             return
         }
-        var values = CGRendererShadowValues()
-        var color = CGRendererColorData()
-        let cgColor = WebKit.copyShadow(resources, dropShadow, &values, &color)
-        state.receiveSetDropShadow(values, cgColor, color)
+        state.receiveSetDropShadow(dropShadow.values, dropShadow.color)
     }
 
     // Without CGStyle's blur and color matrix, GraphicsContextCG leaves those styles to its C++ state alone.
     func setStyle(state: inout CGRendererCore, style: WebKit.RemoteCGRendererStyle) -> Bool {
-        switch style.kind() {
+        switch style.kind {
         case .None:
             state.receiveSetNoStyle()
         case .DropShadow:
-            var values = CGRendererShadowValues()
-            var color = CGRendererColorData()
-            let cgColor = WebKit.copyStyleShadow(resources, style, &values, &color)
-            state.receiveSetDropShadowStyle(values, cgColor, color)
+            state.receiveSetDropShadowStyle(style.dropShadow.values, style.dropShadow.color)
         case .GaussianBlur:
             #if HAVE_CGSTYLE_COLORMATRIX_BLUR
-            let radius = style.gaussianBlurRadius()
-            state.receiveSetGaussianBlurStyle(radius.width(), radius.height())
+            state.receiveSetGaussianBlurStyle(style.blurWidth, style.blurHeight)
             #else
             return false
             #endif
         case .ColorMatrix:
             #if HAVE_CGSTYLE_COLORMATRIX_BLUR
-            state.receiveSetColorMatrixStyle(style.colorMatrix())
+            state.receiveSetColorMatrixStyle(WebKit.colorMatrix(style))
             #else
             return false
             #endif

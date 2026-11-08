@@ -427,6 +427,9 @@ private:
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// A drop shadow's values and its color's data, as RemoteCGRenderer's messages carry them, and the same shadow back.
+WEBCORE_EXPORT void CGRendererShadowValuesOf(const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) __attribute__((availability(swift, unavailable)));
+WEBCORE_EXPORT WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const CGRendererShadowValues&, const CGRendererColorData&) __attribute__((availability(swift, unavailable)));
 
 // The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()).
 WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&) __attribute__((availability(swift, unavailable)));

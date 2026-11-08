@@ -803,17 +803,28 @@ WebCore::Color CGRendererColorFromValue(const CGRendererColorValue& value)
     return WebCore::colorFromData(value.data);
 }
 
-CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+void CGRendererShadowValuesOf(const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
 {
     auto packedColor = shadow.color.tryGetAsPackedInline();
     values = {
         shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
         packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible(), shadow.radiusMode == WebCore::ShadowRadiusMode::Legacy
     };
-    color = { };
-    if (packedColor || !values.isValid)
-        return nullptr;
     color = WebCore::colorData(shadow.color);
+}
+
+WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const CGRendererShadowValues& values, const CGRendererColorData& color)
+{
+    return { { values.width, values.height }, values.radius, WebCore::colorFromData(color), values.legacyRadius ? WebCore::ShadowRadiusMode::Legacy : WebCore::ShadowRadiusMode::Default, values.opacity };
+}
+
+CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    CGRendererShadowValuesOf(shadow, values, color);
+    if (color.form != 2) {
+        color = { };
+        return nullptr;
+    }
     return WebCore::cachedCGColorInDestinationStandardRange(shadow.color, context.colorSpace()).leakRef();
 }
 

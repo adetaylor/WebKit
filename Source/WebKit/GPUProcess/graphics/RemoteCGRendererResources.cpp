@@ -30,8 +30,6 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererShadow.h"
-#include "RemoteCGRendererStyle.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
 #include "SharedFont.h"
@@ -198,30 +196,6 @@ CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, Re
         return nullptr;
     RetainPtr platformImage = image->platformImage();
     return platformImage.leakRef();
-}
-
-static GraphicsContextCG& targetContext(const RemoteCGRendererResources& resources)
-{
-    return static_cast<GraphicsContextCG&>(resources.target().context());
-}
-
-CGColorRef copyShadow(const RemoteCGRendererResources& resources, const RemoteCGRendererShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
-{
-    values = { };
-    color = { };
-    if (!shadow.shadow())
-        return nullptr;
-    return CGRendererCopyShadow(targetContext(resources), *shadow.shadow(), values, color);
-}
-
-CGColorRef copyStyleShadow(const RemoteCGRendererResources& resources, const RemoteCGRendererStyle& style, CGRendererShadowValues& values, CGRendererColorData& color)
-{
-    values = { };
-    color = { };
-    auto* shadow = style.dropShadow();
-    if (!shadow)
-        return nullptr;
-    return CGRendererCopyShadow(targetContext(resources), *shadow, values, color);
 }
 
 } // namespace WebKit

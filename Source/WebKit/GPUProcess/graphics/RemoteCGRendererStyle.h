@@ -27,60 +27,73 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
+#include "RemoteCGRendererShadow.h"
 #include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/GraphicsStyle.h>
 #include <algorithm>
+#include <array>
 #include <optional>
 #include <span>
 
 namespace WebKit {
 
-class RemoteCGRendererResources;
+enum class RemoteCGRendererStyleKind : uint8_t { None, DropShadow, GaussianBlur, ColorMatrix };
 
-// The style of RemoteCGRenderer's SetStyle, which goes as RemoteGraphicsContext's does, for Swift, which can't switch on
+// The style of RemoteCGRenderer's SetStyle, as plain values (rendererStyle()), for Swift, which can't switch on
 // GraphicsStyle's variant.
-class RemoteCGRendererStyle {
-public:
-    enum class Kind : uint8_t { None, DropShadow, GaussianBlur, ColorMatrix };
-
-    explicit RemoteCGRendererStyle(const std::optional<WebCore::GraphicsStyle>& style)
-        : m_style(style)
-    {
-    }
-
-    const std::optional<WebCore::GraphicsStyle>& style() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_style; }
-
-    Kind kind() const
-    {
-        if (!m_style)
-            return Kind::None;
-        return WTF::switchOn(*m_style,
-            [](const WebCore::GraphicsDropShadow&) { return Kind::DropShadow; },
-            [](const WebCore::GraphicsGaussianBlur&) { return Kind::GaussianBlur; },
-            [](const WebCore::GraphicsColorMatrix&) { return Kind::ColorMatrix; });
-    }
-    const WebCore::GraphicsDropShadow* dropShadow() const __attribute__((availability(swift, unavailable))) { return m_style ? std::get_if<WebCore::GraphicsDropShadow>(&*m_style) : nullptr; }
-    WebCore::FloatSize gaussianBlurRadius() const
-    {
-        auto* blur = m_style ? std::get_if<WebCore::GraphicsGaussianBlur>(&*m_style) : nullptr;
-        return blur ? blur->radius : WebCore::FloatSize { };
-    }
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    CGRendererColorMatrix colorMatrix() const
-    {
-        CGRendererColorMatrix values { };
-        if (auto* matrix = m_style ? std::get_if<WebCore::GraphicsColorMatrix>(&*m_style) : nullptr)
-            std::ranges::copy(matrix->values, std::span { values.values }.begin());
-        return values;
-    }
-#endif
-
-private:
-    std::optional<WebCore::GraphicsStyle> m_style;
+struct RemoteCGRendererStyle {
+    RemoteCGRendererStyleKind kind;
+    RemoteCGRendererShadow dropShadow;
+    float blurWidth;
+    float blurHeight;
+    std::array<float, 20> colorMatrix;
 };
 
-// copyShadow() of the style's drop shadow.
-CGColorRef _Nullable copyStyleShadow(const RemoteCGRendererResources&, const RemoteCGRendererStyle&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED;
+__attribute__((availability(swift, unavailable))) inline RemoteCGRendererStyle rendererStyle(const std::optional<WebCore::GraphicsStyle>& style)
+{
+    RemoteCGRendererStyle result { };
+    if (!style)
+        return result;
+    WTF::switchOn(*style,
+        [&](const WebCore::GraphicsDropShadow& shadow) {
+            result.kind = RemoteCGRendererStyleKind::DropShadow;
+            result.dropShadow = rendererShadow(shadow);
+        },
+        [&](const WebCore::GraphicsGaussianBlur& blur) {
+            result.kind = RemoteCGRendererStyleKind::GaussianBlur;
+            result.blurWidth = blur.radius.width();
+            result.blurHeight = blur.radius.height();
+        },
+        [&](const WebCore::GraphicsColorMatrix& matrix) {
+            result.kind = RemoteCGRendererStyleKind::ColorMatrix;
+            result.colorMatrix = matrix.values;
+        });
+    return result;
+}
+
+__attribute__((availability(swift, unavailable))) inline std::optional<WebCore::GraphicsStyle> styleFrom(const RemoteCGRendererStyle& style)
+{
+    switch (style.kind) {
+    case RemoteCGRendererStyleKind::None:
+        return std::nullopt;
+    case RemoteCGRendererStyleKind::DropShadow:
+        return WebCore::GraphicsStyle { CGRendererDropShadowFromValues(style.dropShadow.values, style.dropShadow.color) };
+    case RemoteCGRendererStyleKind::GaussianBlur:
+        return WebCore::GraphicsStyle { WebCore::GraphicsGaussianBlur { { style.blurWidth, style.blurHeight } } };
+    case RemoteCGRendererStyleKind::ColorMatrix:
+        return WebCore::GraphicsStyle { WebCore::GraphicsColorMatrix { style.colorMatrix } };
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+inline CGRendererColorMatrix colorMatrix(RemoteCGRendererStyle style)
+{
+    CGRendererColorMatrix values { };
+    std::ranges::copy(style.colorMatrix, std::span { values.values }.begin());
+    return values;
+}
+#endif
 
 } // namespace WebKit
 

@@ -1052,9 +1052,9 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
     if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
         SEND_RENDERER_MESSAGE(SetShadowsIgnoreTransforms, state.shadowsIgnoreTransforms());
     if (changes.contains(GraphicsContextState::Change::DropShadow))
-        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetDropShadow, (state.dropShadow()), (RemoteCGRendererShadow { state.dropShadow() }));
+        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetDropShadow, (state.dropShadow()), (rendererShadow(state.dropShadow())));
     if (changes.contains(GraphicsContextState::Change::Style))
-        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStyle, (state.style()), (RemoteCGRendererStyle { state.style() }));
+        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStyle, (state.style()), (rendererStyle(state.style())));
     if (changes.contains(GraphicsContextState::Change::Alpha))
         SEND_RENDERER_MESSAGE(SetAlpha, state.alpha());
     if (changes.contains(GraphicsContextState::Change::TextDrawingMode))

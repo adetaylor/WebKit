@@ -3229,9 +3229,10 @@ extension CGRendererCore {
         return true
     }
 
-    // A shadow that the receiver's C++ converted, with the CGColor of a valid color that isn't packed.
+    // A receiver's shadow, as CGRendererShadowValuesOf() gives its values and its color's data.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetDropShadow(_ values: CGRendererShadowValues, _ cgColor: CGColor?, _ color: CGRendererColorData) {
+    @_spi(WebKitGPU) public mutating func receiveSetDropShadow(_ values: CGRendererShadowValues, _ color: CGRendererColorData) {
+        let cgColor = shadowCGColor(color)
         guard !shadowEquals(state.dropShadow, values, color, cgColor != nil) else {
             return
         }
@@ -3241,6 +3242,12 @@ extension CGRendererCore {
         } else {
             setDropShadow(values)
         }
+    }
+
+    // The CGColor of a receiver's shadow color (CGRendererShadowValuesOf()), as CGRendererCopyShadow() makes it: nil for an
+    // sRGBA8 color, which the renderer sets as packed, and for an invalid one.
+    private mutating func shadowCGColor(_ color: CGRendererColorData) -> CGColor? {
+        color.form == 2 ? platformColorCache.color(color, destinationColorSpace) : nil
     }
 
     @_expose(!Cxx)
@@ -3253,7 +3260,8 @@ extension CGRendererCore {
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveSetDropShadowStyle(_ values: CGRendererShadowValues, _ cgColor: CGColor?, _ color: CGRendererColorData) {
+    @_spi(WebKitGPU) public mutating func receiveSetDropShadowStyle(_ values: CGRendererShadowValues, _ color: CGRendererColorData) {
+        let cgColor = shadowCGColor(color)
         if case .dropShadow(let shadow) = state.style, shadowEquals(shadow, values, color, cgColor != nil) {
             return
         }

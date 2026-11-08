@@ -149,13 +149,27 @@ header: "RemoteCGRendererPath.h"
 };
 
 header: "RemoteCGRendererShadow.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererShadow {
-    std::optional<WebCore::GraphicsDropShadow> shadow();
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebKit::RemoteCGRendererShadow {
+    CGRendererShadowValues values;
+    CGRendererColorData color;
+    bool hasShadow;
 };
 
 header: "RemoteCGRendererStyle.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererStyle {
-    std::optional<WebCore::GraphicsStyle> style();
+enum class WebKit::RemoteCGRendererStyleKind : uint8_t {
+    None,
+    DropShadow,
+    GaussianBlur,
+    ColorMatrix
+};
+
+header: "RemoteCGRendererStyle.h"
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebKit::RemoteCGRendererStyle {
+    WebKit::RemoteCGRendererStyleKind kind;
+    WebKit::RemoteCGRendererShadow dropShadow;
+    float blurWidth;
+    float blurHeight;
+    std::array<float, 20> colorMatrix;
 };
 
 header: "RemoteCGRendererGradient.h"
@@ -189,6 +203,18 @@ header: <WebCore/CGRendererSwiftBridge.h>
     [Validator='*form <= 2'] uint8_t form;
     bool isSemantic;
     bool usesFunctionSerialization;
+};
+
+header: <WebCore/CGRendererSwiftBridge.h>
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererShadowValues {
+    float width;
+    float height;
+    float radius;
+    float opacity;
+    uint32_t packedColor;
+    bool isValid;
+    bool isVisible;
+    bool legacyRadius;
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>

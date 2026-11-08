@@ -99,8 +99,8 @@ messages -> RemoteCGRenderer Stream {
     DrawPatternImageBuffer SwiftMayDecline
     SetFillColor(CGRendererColorValue color) StreamBatched
     SetStrokeColor(CGRendererColorValue color) StreamBatched
-    SetDropShadow(WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
-    SetStyle(WebKit::RemoteCGRendererStyle style) StreamBatched SwiftMayDecline
+    SetDropShadow(struct WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
+    SetStyle(struct WebKit::RemoteCGRendererStyle style) StreamBatched SwiftMayDecline
     SetTextDrawingMode
     SetShadowsIgnoreTransforms
     SetLineDash(WebKit::RemoteCGRendererLineDash dashArray, float dashOffset) StreamBatched

@@ -44,8 +44,8 @@ class RemoteCGRendererGlyphs;
 class RemoteCGRendererGradient;
 class RemoteCGRendererLineDash;
 class RemoteCGRendererLineSegments;
-class RemoteCGRendererShadow;
-class RemoteCGRendererStyle;
+struct RemoteCGRendererShadow;
+struct RemoteCGRendererStyle;
 #endif
 
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
