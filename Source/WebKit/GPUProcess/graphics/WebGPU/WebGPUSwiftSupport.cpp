@@ -331,13 +331,6 @@ IOSurfaceRef copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffe
     return RetainPtr { buffers.m_buffers[index]->surface() }.leakRef();
 }
 
-void WebGPUCompositorRenderBuffers::encodeSendRights(IPC::SwiftReplyEncoder& encoder) const
-{
-    encoder.encodeWithArgumentCoder(m_buffers.map([](const auto& buffer) {
-        return buffer->createSendRight();
-    }));
-}
-
 void WebGPUCompositorRenderBuffers::setContentEDRHeadroom(float headroom)
 {
 #if HAVE(SUPPORT_HDR_DISPLAY)

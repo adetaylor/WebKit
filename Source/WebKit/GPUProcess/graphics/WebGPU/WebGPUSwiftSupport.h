@@ -208,8 +208,6 @@ public:
     // alpha mode. A buffer that can't be made is left out.
     void allocate(int32_t width, int32_t height, IPC::CxxDecodedArgument<WebCore::ColorSpace>&, bool premultiplied, uint8_t textureFormat, uint32_t bufferCount);
     size_t size() const { return m_buffers.size(); }
-    // The reply of RecreateRenderBuffers (CxxEncodedReply): the buffers' send rights.
-    void encodeSendRights(IPC::SwiftReplyEncoder&) const;
     void setContentEDRHeadroom(float);
     // RemoteGPU's paint, into the image buffer with that identifier, of the canvas's texture image, or else of the
     // buffer's own image.

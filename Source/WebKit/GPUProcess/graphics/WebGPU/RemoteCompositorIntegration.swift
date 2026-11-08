@@ -95,17 +95,14 @@ final class RemoteCompositorIntegration {
 
         renderBuffers.allocate(width, height, destinationColorSpace, alphaMode == .premultiplied, textureFormat.rawValue, bufferCount)
 
-        if let canvas {
-            canvas.renderBuffersWereRecreated()
-            for index in 0..<renderBuffers.size() {
-                canvas.addRenderBuffer(WebKit.copyCompositorRenderBufferSurface(renderBuffers, index))
-            }
+        canvas?.renderBuffersWereRecreated()
+        var sendRights = IPCTypes.MachSendRightVector()
+        for index in 0..<renderBuffers.size() {
+            let surface = WebKit.copyCompositorRenderBufferSurface(renderBuffers, index)
+            canvas?.addRenderBuffer(surface)
+            sendRights.append(IPCTypes.MachSendRight(surface: surface))
         }
-
-        let renderBuffers = renderBuffers
-        reply.send { encoder in
-            renderBuffers.encodeSendRights(encoder)
-        }
+        reply.send(sendRights)
     }
     #endif
 
