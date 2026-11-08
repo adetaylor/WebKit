@@ -1591,7 +1591,7 @@ void RemoteGraphicsContextGLProxy::bufferData(GCGLenum target, std::span<const u
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::BufferData1(target, data, usage));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::BufferData1(target, data, usage));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1602,7 +1602,7 @@ void RemoteGraphicsContextGLProxy::bufferSubData(GCGLenum target, GCGLintptr off
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::BufferSubData(target, static_cast<uint64_t>(offset), data));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::BufferSubData(target, static_cast<uint64_t>(offset), data));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1624,7 +1624,7 @@ void RemoteGraphicsContextGLProxy::texImage2D(GCGLenum target, GCGLint level, GC
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::TexImage2D0(target, level, internalformat, width, height, border, format, type, pixels));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::TexImage2D0(target, level, internalformat, width, height, border, format, type, pixels));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1646,7 +1646,7 @@ void RemoteGraphicsContextGLProxy::texSubImage2D(GCGLenum target, GCGLint level,
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::TexSubImage2D0(target, level, xoffset, yoffset, width, height, format, type, pixels));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::TexSubImage2D0(target, level, xoffset, yoffset, width, height, format, type, pixels));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1668,7 +1668,7 @@ void RemoteGraphicsContextGLProxy::compressedTexImage2D(GCGLenum target, GCGLint
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CompressedTexImage2D0(target, level, internalformat, width, height, border, data));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CompressedTexImage2D0(target, level, internalformat, width, height, border, data));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1690,7 +1690,7 @@ void RemoteGraphicsContextGLProxy::compressedTexSubImage2D(GCGLenum target, GCGL
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CompressedTexSubImage2D0(target, level, xoffset, yoffset, width, height, format, data));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CompressedTexSubImage2D0(target, level, xoffset, yoffset, width, height, format, data));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1870,7 +1870,7 @@ void RemoteGraphicsContextGLProxy::texImage3D(GCGLenum target, GCGLint level, GC
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::TexImage3D0(target, level, internalformat, width, height, depth, border, format, type, pixels));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::TexImage3D0(target, level, internalformat, width, height, depth, border, format, type, pixels));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1892,7 +1892,7 @@ void RemoteGraphicsContextGLProxy::texSubImage3D(GCGLenum target, GCGLint level,
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::TexSubImage3D0(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::TexSubImage3D0(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1925,7 +1925,7 @@ void RemoteGraphicsContextGLProxy::compressedTexImage3D(GCGLenum target, GCGLint
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CompressedTexImage3D0(target, level, internalformat, width, height, depth, border, data));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CompressedTexImage3D0(target, level, internalformat, width, height, depth, border, data));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;
@@ -1947,7 +1947,7 @@ void RemoteGraphicsContextGLProxy::compressedTexSubImage3D(GCGLenum target, GCGL
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGL::CompressedTexSubImage3D0(target, level, xoffset, yoffset, zoffset, width, height, depth, format, data));
+    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::CompressedTexSubImage3D0(target, level, xoffset, yoffset, zoffset, width, height, depth, format, data));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;

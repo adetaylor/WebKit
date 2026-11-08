@@ -59,10 +59,70 @@ void RemoteGraphicsContextGLResources::activeUniforms(uint32_t program, Completi
     completionHandler(WTF::move(returnValue));
 }
 
+void RemoteGraphicsContextGLResources::bufferData1(uint32_t target, std::span<const uint8_t>&& data, uint32_t usage)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->bufferData(target, data, usage);
+}
+
+void RemoteGraphicsContextGLResources::bufferSubData(uint32_t target, uint64_t offset, std::span<const uint8_t>&& data)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->bufferSubData(target, static_cast<GCGLintptr>(offset), data);
+}
+
 void RemoteGraphicsContextGLResources::readPixelsBufferObject(WebCore::IntRect&& arg0, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength)
 {
     assertIsCurrent(workQueue());
     protect(m_context)->readPixelsBufferObject(arg0, format, type, static_cast<GCGLintptr>(offset), alignment, rowLength);
+}
+
+void RemoteGraphicsContextGLResources::texImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->texImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+}
+
+void RemoteGraphicsContextGLResources::texSubImage2D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+}
+
+void RemoteGraphicsContextGLResources::compressedTexImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, std::span<const uint8_t>&& data)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->compressedTexImage2D(target, level, internalformat, width, height, border, data);
+}
+
+void RemoteGraphicsContextGLResources::compressedTexSubImage2D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, std::span<const uint8_t>&& data)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->compressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, data);
+}
+
+void RemoteGraphicsContextGLResources::texImage3D0(uint32_t target, int32_t level, int32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->texImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
+}
+
+void RemoteGraphicsContextGLResources::texSubImage3D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+}
+
+void RemoteGraphicsContextGLResources::compressedTexImage3D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t depth, int32_t border, std::span<const uint8_t>&& data)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->compressedTexImage3D(target, level, internalformat, width, height, depth, border, data);
+}
+
+void RemoteGraphicsContextGLResources::compressedTexSubImage3D0(uint32_t target, int32_t level, int32_t xoffset, int32_t yoffset, int32_t zoffset, int32_t width, int32_t height, int32_t depth, uint32_t format, std::span<const uint8_t>&& data)
+{
+    assertIsCurrent(workQueue());
+    protect(m_context)->compressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, data);
 }
 
 void RemoteGraphicsContextGLResources::getTransformFeedbackVarying(uint32_t program, uint32_t index, CompletionHandler<void(std::optional<WebCore::GCGLTransformFeedbackActiveInfo>&&)>&& completionHandler)

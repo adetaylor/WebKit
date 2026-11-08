@@ -32,7 +32,6 @@
 #include "Logging.h"
 #include "RemoteGraphicsContextGLInitializationState.h"
 #include "RemoteGraphicsContextGLMessages.h"
-#include "RemoteGraphicsContextGLUploads.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
 #include "RemoteGraphicsContextGLProxyMessages.h"
 #include "RemoteSharedResourceCache.h"
@@ -167,8 +166,7 @@ void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsCont
             initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
         }
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }));
-        Ref uploads = RemoteGraphicsContextGLUploads::create(*context);
-        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandHandoff(), uploads.ptr()));
+        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandHandoff()));
         Ref glForwarder = m_glReceiver->getMessageReceiver();
         glForwarder->setSharedPreferencesProvider([sharedPreferences = m_sharedPreferencesForWebProcess] {
             return std::optional { sharedPreferences };

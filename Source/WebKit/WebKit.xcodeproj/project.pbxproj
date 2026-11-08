@@ -7623,8 +7623,6 @@
 		176B211A9A6D591960B47377 /* RemoteGraphicsContextGLResources.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGraphicsContextGLResources.messages.in; sourceTree = "<group>"; };
 		DBE28B37B5CAA02759E53821 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp; sourceTree = "<group>"; };
 		AF190BCF124FC13948137C46 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLResourcesFunctionsGenerated.h; sourceTree = "<group>"; };
-		51654764E8CCF49B2699B823 /* RemoteGraphicsContextGLUploads.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLUploads.cpp; sourceTree = "<group>"; };
-		A4C52A33EF8B84A78FDF592A /* RemoteGraphicsContextGLUploads.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLUploads.h; sourceTree = "<group>"; };
 		86F4FE282A98C162007378EE /* SharedVideoFrame.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = SharedVideoFrame.serialization.in; sourceTree = "<group>"; };
 		86F9536018FF4FD4001DB2EF /* ProcessAssertion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProcessAssertion.h; sourceTree = "<group>"; };
 		87233FB01A5FD3F415B003E6 /* GeneratedSerializersCommon.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GeneratedSerializersCommon.mm; sourceTree = "<group>"; };
@@ -15050,8 +15048,6 @@
 				176B211A9A6D591960B47377 /* RemoteGraphicsContextGLResources.messages.in */,
 				DBE28B37B5CAA02759E53821 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp */,
 				AF190BCF124FC13948137C46 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.h */,
-				51654764E8CCF49B2699B823 /* RemoteGraphicsContextGLUploads.cpp */,
-				A4C52A33EF8B84A78FDF592A /* RemoteGraphicsContextGLUploads.h */,
 				7B43C1292D79B0EA00B119F7 /* RemoteGraphicsContextIdentifier.h */,
 				72440D33287CCC0500FADBC4 /* RemoteImageBuffer.cpp */,
 				55AD09422408A02E00DE4D2F /* RemoteImageBuffer.h */,

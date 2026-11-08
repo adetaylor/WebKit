@@ -162,16 +162,16 @@
     [Legacy] MessageParam NetworkTransportSession.SendDatagram datagram
     [Legacy] MessageParam NetworkTransportSession.StreamSendBytes bytes
 
-    [Legacy] MessageParam RemoteGraphicsContextGL.BufferData1 data
-    [Legacy] MessageParam RemoteGraphicsContextGL.BufferSubData data
-    [Legacy] MessageParam RemoteGraphicsContextGL.CompressedTexImage2D0 data
-    [Legacy] MessageParam RemoteGraphicsContextGL.CompressedTexImage3D0 data
-    [Legacy] MessageParam RemoteGraphicsContextGL.CompressedTexSubImage2D0 data
-    [Legacy] MessageParam RemoteGraphicsContextGL.CompressedTexSubImage3D0 data
-    [Legacy] MessageParam RemoteGraphicsContextGL.TexImage2D0 pixels
-    [Legacy] MessageParam RemoteGraphicsContextGL.TexImage3D0 pixels
-    [Legacy] MessageParam RemoteGraphicsContextGL.TexSubImage2D0 pixels
-    [Legacy] MessageParam RemoteGraphicsContextGL.TexSubImage3D0 pixels
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.BufferData1 data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.BufferSubData data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.CompressedTexImage2D0 data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.CompressedTexImage3D0 data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.CompressedTexSubImage2D0 data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.CompressedTexSubImage3D0 data
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.TexImage2D0 pixels
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.TexImage3D0 pixels
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.TexSubImage2D0 pixels
+    [Legacy] MessageParam RemoteGraphicsContextGLResources.TexSubImage3D0 pixels
 
     [Legacy] MessageParam WebPageProxy.RegisterWebProcessAccessibilityToken data
     [Legacy] MessageParam WebPageProxy.RelayAccessibilityNotification notificationData

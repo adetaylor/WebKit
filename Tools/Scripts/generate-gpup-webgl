@@ -229,95 +229,6 @@ extension RemoteGraphicsContextGL {{
 """
 )
 
-uploads_header_fn = root_dir / "Source" / "WebKit" / "GPUProcess" / "graphics" / "RemoteGraphicsContextGLUploads.h"
-uploads_header_template = (
-    template_preamble
-    + """
-#pragma once
-
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
-
-#include <wtf/Ref.h>
-#include <wtf/RefCounted.h>
-#include <wtf/SwiftBridging.h>
-
-namespace IPC {{
-class LentBytes;
-}}
-
-namespace WebCore {{
-class GraphicsContextGL;
-}}
-
-namespace WebKit {{
-
-// The calls of RemoteGraphicsContextGL's Swift handlers that pass a message's lent bytes on to the context, which lends
-// them to the WebGL island for ANGLE's call. Only used on the WebGL work queue.
-class RemoteGraphicsContextGLUploads final : public RefCounted<RemoteGraphicsContextGLUploads> {{
-public:
-    static Ref<RemoteGraphicsContextGLUploads> create(WebCore::GraphicsContextGL&);
-    ~RemoteGraphicsContextGLUploads();
-{}
-
-#ifdef __swift__
-    void ref() const {{ RefCounted<RemoteGraphicsContextGLUploads>::ref(); }}
-    void deref() const {{ RefCounted<RemoteGraphicsContextGLUploads>::deref(); }}
-#endif
-
-private:
-    explicit RemoteGraphicsContextGLUploads(WebCore::GraphicsContextGL&);
-
-    const Ref<WebCore::GraphicsContextGL> m_context;
-}} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-}}
-
-#endif
-"""
-)
-uploads_impl_fn = root_dir / "Source" / "WebKit" / "GPUProcess" / "graphics" / "RemoteGraphicsContextGLUploads.cpp"
-uploads_impl_template = (
-    template_preamble
-    + """
-#include "config.h"
-#include "RemoteGraphicsContextGLUploads.h"
-
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
-
-#include "SwiftCoding.h"
-#include <WebCore/GraphicsContextGL.h>
-
-namespace WebKit {{
-using namespace WebCore;
-
-// An empty payload has no data, as when C++ decoded the message.
-static std::span<const uint8_t> payload(const IPC::LentBytes& bytes)
-{{
-    auto span = bytes.span();
-    if (span.empty())
-        return {{ }};
-    return span;
-}}
-
-Ref<RemoteGraphicsContextGLUploads> RemoteGraphicsContextGLUploads::create(GraphicsContextGL& context)
-{{
-    return adoptRef(*new RemoteGraphicsContextGLUploads(context));
-}}
-
-RemoteGraphicsContextGLUploads::RemoteGraphicsContextGLUploads(GraphicsContextGL& context)
-    : m_context(context)
-{{
-}}
-
-RemoteGraphicsContextGLUploads::~RemoteGraphicsContextGLUploads() = default;
-{}
-
-}}
-
-#endif
-"""
-)
-
 
 def write_file(fn, new_contents):
     try:
@@ -1499,7 +1410,7 @@ def swift_arg_name(name: str) -> str:
 
 
 def is_resources_func(func: cpp_func) -> bool:
-    return bool(func.enabled_by) or func.name in resources_func_names
+    return bool(func.enabled_by) or func.name in resources_func_names or is_payload_func(func)
 
 
 def is_swift_func(func: cpp_func) -> bool:
@@ -1533,8 +1444,6 @@ def swift_message_in_args(func_arg: cpp_arg) -> List[Tuple[str, str, str]]:
         element = str(ipc_type.get_contained_type().get_decay_type())
         return [(element, f"{name}{i}", f"{func_arg.name}[{i}]") for i in range(ipc_type.get_arity())]
     default_expr = str(webkit_ipc_convert_expr(cpp_expr(func_arg.type, func_arg.name), ipc_type))
-    if is_payload_type(ipc_type):
-        return [("[Lent] std::span<const uint8_t>", name, default_expr)]
     return [(type_name, name, default_expr)]
 
 
@@ -1560,8 +1469,6 @@ def swift_message_out_args(func: cpp_func) -> List[str]:
 def swift_type_of_message_type(type_name: str) -> str:
     if type_name in swift_primitive_types:
         return swift_primitive_types[type_name]
-    if type_name == "[Lent] std::span<const uint8_t>":
-        return "IPC.LentBytes"
     if type_name == "UTF8CString":
         return "[UInt8]"
     if type_name == "Vector<UTF8CString>":
@@ -1590,9 +1497,7 @@ class webkit_ipc_swift_impl(object):
         in_args, out_args = func.get_args_categories()
         is_create = is_create_func(func)
         is_delete = is_delete_func(func)
-        payload = is_payload_func(func)
         island_args = []
-        upload_args = []
         if is_create:
             self.params += ["name: UInt32"]
             self.check("name")
@@ -1602,7 +1507,6 @@ class webkit_ipc_swift_impl(object):
                 message_args = swift_message_in_args(a)
                 for type_name, name, _ in message_args:
                     self.params += [f"{name}: {swift_type_of_message_type(type_name)}"]
-                    upload_args += [name]
                 if len(message_args) > 1:
                     island_args += [name for _, name, _ in message_args]
                     continue
@@ -1633,29 +1537,25 @@ class webkit_ipc_swift_impl(object):
                 island_args += [f"count: {count}"]
                 self.reply_types += [f"[{swift_element}]"]
                 self.out_conversion = ".map { $0 != 0 }" if element == "bool" else ""
-        if payload:
-            assert not self.reply_types and func.return_type.is_void()
-            self.body += [f"uploads.{func.name}({', '.join(upload_args)})"]
+        call = f"island.{swift_island_func_names.get((func.name, func.overload_suffix), func.name)}({', '.join(island_args)})"
+        if is_create:
+            self.body += [f"let result = {call}", "if result != 0 {", "    names.add(name, result)", "}"]
+        elif self.reply_types:
+            self.body += [f"return {call}{self.out_conversion}"]
+        elif func.return_type.is_void():
+            self.body += [call]
         else:
-            call = f"island.{swift_island_func_names.get((func.name, func.overload_suffix), func.name)}({', '.join(island_args)})"
-            if is_create:
-                self.body += [f"let result = {call}", "if result != 0 {", "    names.add(name, result)", "}"]
-            elif self.reply_types:
-                self.body += [f"return {call}{self.out_conversion}"]
-            elif func.return_type.is_void():
-                self.body += [call]
+            gcgl_type = func.return_type.type_name
+            ipc_type = str(webkit_ipc_types[func.return_type])
+            if gcgl_type == "GCGLboolean":
+                self.body += [f"return {call} != 0"]
+            elif ipc_type == "UTF8CString":
+                self.body += [f"return {call} ?? []"]
+            elif gcgl_type in ("GCGLintptr", "GCGLsizeiptr"):
+                self.body += [f"return UInt64(truncatingIfNeeded: {call})"]
             else:
-                gcgl_type = func.return_type.type_name
-                ipc_type = str(webkit_ipc_types[func.return_type])
-                if gcgl_type == "GCGLboolean":
-                    self.body += [f"return {call} != 0"]
-                elif ipc_type == "UTF8CString":
-                    self.body += [f"return {call} ?? []"]
-                elif gcgl_type in ("GCGLintptr", "GCGLsizeiptr"):
-                    self.body += [f"return UInt64(truncatingIfNeeded: {call})"]
-                else:
-                    self.body += [f"return {call}"]
-                self.reply_types += [swift_type_of_message_type(ipc_type)]
+                self.body += [f"return {call}"]
+            self.reply_types += [swift_type_of_message_type(ipc_type)]
         throws = " throws(InvalidMessage)" if self.checks else ""
         reply = ""
         if len(self.reply_types) == 1:
@@ -1684,32 +1584,6 @@ class context_swift_webkit_ipc_generator(object):
 
     def generate(self):
         write_file(swift_functions_fn, swift_functions_template.format("\n".join(str(i) for i in self.impls).rstrip("\n")))
-
-
-class context_uploads_webkit_ipc_generator(object):
-    "RemoteGraphicsContextGLUploads generator: the calls that pass lent bytes to the context."
-
-    def __init__(self, funcs: Iterable[cpp_func]):
-        self.declarations = []
-        self.definitions = []
-        for func in funcs:
-            in_args, _ = func.get_args_categories()
-            params = []
-            exprs = []
-            for a in in_args:
-                ipc_type = webkit_ipc_types[a.type]
-                if is_payload_type(ipc_type):
-                    params += [f"const IPC::LentBytes& {a.name}"]
-                    exprs += [f"payload({a.name})"]
-                else:
-                    params += [f"{ipc_type} {a.name}"]
-                    exprs += [str(webkit_ipc_convert_expr(cpp_expr(ipc_type, a.name), a.type))]
-            self.declarations += [f"    void {func.name}({', '.join(params)});"]
-            self.definitions += [f"\nvoid RemoteGraphicsContextGLUploads::{func.name}({', '.join(params)})\n{{\n    m_context->{func.name}({', '.join(exprs)});\n}}"]
-
-    def generate(self):
-        write_file(uploads_header_fn, uploads_header_template.format("\n" + "\n".join(self.declarations)))
-        write_file(uploads_impl_fn, uploads_impl_template.format("\n".join(self.definitions)))
 
 
 def create_cpp_arg(arg_spec: str, arg_index: int):
@@ -1885,7 +1759,6 @@ def main():
         context_msg_webkit_ipc_generator(resources_funcs, resources_messages_fn, resources_messages_template),
         context_cpp_webkit_ipc_generator(resources_funcs),
         context_swift_webkit_ipc_generator(gl_funcs),
-        context_uploads_webkit_ipc_generator([f for f in gl_funcs if is_payload_func(f)]),
     ]
     for g in generators:
         g.generate()

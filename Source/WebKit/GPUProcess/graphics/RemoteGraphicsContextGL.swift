@@ -135,19 +135,16 @@ struct RemoteGraphicsContextGLObjectNames {
 final class RemoteGraphicsContextGL {
     @_expose(!Cxx)
     let island: GLContext
-    @_expose(!Cxx)
-    let uploads: WebKit.RemoteGraphicsContextGLUploads
     var names = RemoteGraphicsContextGLObjectNames()
 
-    private init(island: GLContext, uploads: WebKit.RemoteGraphicsContextGLUploads) {
+    private init(island: GLContext) {
         self.island = island
-        self.uploads = uploads
     }
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
     @used
-    static func create(handoff: inout GLContextHandoff, uploads: WebKit.RemoteGraphicsContextGLUploads) -> RemoteGraphicsContextGL {
-        RemoteGraphicsContextGL(island: handoff.context, uploads: uploads)
+    static func create(handoff: inout GLContextHandoff) -> RemoteGraphicsContextGL {
+        RemoteGraphicsContextGL(island: handoff.context)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: RemoteGraphicsContextGLResources does.

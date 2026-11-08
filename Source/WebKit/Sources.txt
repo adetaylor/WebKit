@@ -32,7 +32,6 @@ GPUProcess/graphics/RemoteDisplayListRecorder.cpp
 GPUProcess/graphics/RemoteGraphicsContext.cpp @cost:3
 GPUProcess/graphics/RemoteGraphicsContextGLResources.cpp @cost:3
 GPUProcess/graphics/RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp
-GPUProcess/graphics/RemoteGraphicsContextGLUploads.cpp
 GPUProcess/graphics/RemoteImageBuffer.cpp
 GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 GPUProcess/graphics/RemoteImageBufferSet.cpp

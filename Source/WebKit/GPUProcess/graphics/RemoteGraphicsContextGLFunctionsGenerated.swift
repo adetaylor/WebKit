@@ -621,40 +621,16 @@ extension RemoteGraphicsContextGL {
         island.bufferDataUninitialized(glTarget, Int(truncatingIfNeeded: arg1), usage)
     }
 
-    func bufferData1(glTarget: UInt32, data: IPC.LentBytes, usage: UInt32) {
-        uploads.bufferData(glTarget, data, usage)
-    }
-
-    func bufferSubData(glTarget: UInt32, offset: UInt64, data: IPC.LentBytes) {
-        uploads.bufferSubData(glTarget, offset, data)
-    }
-
-    func texImage2D0(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, border: Int32, format: UInt32, type: UInt32, pixels: IPC.LentBytes) {
-        uploads.texImage2D(glTarget, level, internalformat, width, height, border, format, type, pixels)
-    }
-
     func texImage2D1(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, border: Int32, format: UInt32, type: UInt32, offset: UInt64) {
         island.texImage2DFromUnpackBuffer(glTarget, level, internalformat, width, height, border, format, type, Int(truncatingIfNeeded: offset))
-    }
-
-    func texSubImage2D0(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, width: Int32, height: Int32, format: UInt32, type: UInt32, pixels: IPC.LentBytes) {
-        uploads.texSubImage2D(glTarget, level, xoffset, yoffset, width, height, format, type, pixels)
     }
 
     func texSubImage2D1(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, width: Int32, height: Int32, format: UInt32, type: UInt32, offset: UInt64) {
         island.texSubImage2DFromUnpackBuffer(glTarget, level, xoffset, yoffset, width, height, format, type, Int(truncatingIfNeeded: offset))
     }
 
-    func compressedTexImage2D0(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, border: Int32, data: IPC.LentBytes) {
-        uploads.compressedTexImage2D(glTarget, level, internalformat, width, height, border, data)
-    }
-
     func compressedTexImage2D1(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, border: Int32, imageSize: Int32, offset: UInt64) {
         island.compressedTexImage2DFromUnpackBuffer(glTarget, level, internalformat, width, height, border, imageSize, Int(truncatingIfNeeded: offset))
-    }
-
-    func compressedTexSubImage2D0(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, width: Int32, height: Int32, format: UInt32, data: IPC.LentBytes) {
-        uploads.compressedTexSubImage2D(glTarget, level, xoffset, yoffset, width, height, format, data)
     }
 
     func compressedTexSubImage2D1(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, width: Int32, height: Int32, format: UInt32, imageSize: Int32, offset: UInt64) {
@@ -728,16 +704,8 @@ extension RemoteGraphicsContextGL {
         island.texStorage3D(glTarget, levels, internalformat, width, height, depth)
     }
 
-    func texImage3D0(glTarget: UInt32, level: Int32, internalformat: Int32, width: Int32, height: Int32, depth: Int32, border: Int32, format: UInt32, type: UInt32, pixels: IPC.LentBytes) {
-        uploads.texImage3D(glTarget, level, internalformat, width, height, depth, border, format, type, pixels)
-    }
-
     func texImage3D1(glTarget: UInt32, level: Int32, internalformat: Int32, width: Int32, height: Int32, depth: Int32, border: Int32, format: UInt32, type: UInt32, offset: UInt64) {
         island.texImage3DFromUnpackBuffer(glTarget, level, internalformat, width, height, depth, border, format, type, Int(truncatingIfNeeded: offset))
-    }
-
-    func texSubImage3D0(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, zoffset: Int32, width: Int32, height: Int32, depth: Int32, format: UInt32, type: UInt32, pixels: IPC.LentBytes) {
-        uploads.texSubImage3D(glTarget, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels)
     }
 
     func texSubImage3D1(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, zoffset: Int32, width: Int32, height: Int32, depth: Int32, format: UInt32, type: UInt32, offset: UInt64) {
@@ -748,16 +716,8 @@ extension RemoteGraphicsContextGL {
         island.copyTexSubImage3D(glTarget, level, xoffset, yoffset, zoffset, x, y, width, height)
     }
 
-    func compressedTexImage3D0(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, depth: Int32, border: Int32, data: IPC.LentBytes) {
-        uploads.compressedTexImage3D(glTarget, level, internalformat, width, height, depth, border, data)
-    }
-
     func compressedTexImage3D1(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, depth: Int32, border: Int32, imageSize: Int32, offset: UInt64) {
         island.compressedTexImage3DFromUnpackBuffer(glTarget, level, internalformat, width, height, depth, border, imageSize, Int(truncatingIfNeeded: offset))
-    }
-
-    func compressedTexSubImage3D0(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, zoffset: Int32, width: Int32, height: Int32, depth: Int32, format: UInt32, data: IPC.LentBytes) {
-        uploads.compressedTexSubImage3D(glTarget, level, xoffset, yoffset, zoffset, width, height, depth, format, data)
     }
 
     func compressedTexSubImage3D1(glTarget: UInt32, level: Int32, xoffset: Int32, yoffset: Int32, zoffset: Int32, width: Int32, height: Int32, depth: Int32, format: UInt32, imageSize: Int32, offset: UInt64) {
