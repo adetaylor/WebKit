@@ -94,7 +94,7 @@ CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, We
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;
 
-inline WebCore::FloatRect rectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
+inline WebCore::FloatRect rectOfRoundedRect(WebCore::FloatRoundedRect rect)
 {
     return rect.rect();
 }
