@@ -41,6 +41,8 @@ _specification = importlib.util.spec_from_file_location('generate_serializers', 
 generate_serializers = importlib.util.module_from_spec(_specification)
 _specification.loader.exec_module(generate_serializers)
 
+from webkit import swift_types  # noqa: E402
+
 tests_directory = os.path.join(module_directory, 'tests')
 
 _identifiers = '''
@@ -125,6 +127,28 @@ class GeneratedSwiftTest(unittest.TestCase):
 ''', swift)
         self.assertIn('        var frameID: IPCTypes.FrameIdentifier\n', swift)
         self.assertIn('        IPCTypes.FrameIdentifier.encode(value.frameID, to: encoder)\n', swift)
+
+    def test_owned_forms(self):
+        source = '''
+[Swift] struct WebKit::Holder {
+    WebCore::SharedMemoryHandle memory;
+    uint64_t frameCount;
+}
+[Swift] using WebKit::Buffer = Variant<std::monostate, MachSendRight, uint32_t>
+'''
+        original = swift_types.OWNED_SERIALIZED_TYPES
+        swift_types.OWNED_SERIALIZED_TYPES = frozenset(['WebKit::Holder', 'WebKit::Buffer'])
+        try:
+            swift = generate_swift(source)
+        finally:
+            swift_types.OWNED_SERIALIZED_TYPES = original
+        self.assertIn('#if canImport(Darwin)\nextension IPCTypes {\n    struct Holder: ~Copyable, Sendable {\n        var memory: IPCTypes.SharedMemoryHandle\n        var frameCount: UInt64\n    }\n}\n', swift)
+        self.assertIn('extension IPCTypes.Holder: IPCOwnedCoder {\n', swift)
+        self.assertIn('        let memory = try IPCTypes.SharedMemoryHandle.decode(from: &decoder)\n        let frameCount = try UInt64.decode(from: &decoder)\n        self.memory = memory\n        self.frameCount = frameCount\n', swift)
+        self.assertIn('    static func encode(_ value: consuming IPCTypes.Holder, to encoder: IPC.SwiftReplyEncoder) {\n        IPCTypes.SharedMemoryHandle.encode(value.memory, to: encoder)\n        UInt64.encode(value.frameCount, to: encoder)\n', swift)
+        self.assertIn('    enum Buffer: ~Copyable, Sendable {\n        case empty\n        case machSendRight(IPCTypes.MachSendRight)\n        case uint32(UInt32)\n', swift)
+        self.assertIn('        switch consume value {\n', swift)
+        self.assertIn('        #if canImport(Darwin)\n        typealias WebKit_Holder = IPCTypes.Holder\n        #endif\n', swift)
 
     def test_conditional_lines_are_indented(self):
         swift = generate_swift('''
@@ -255,6 +279,13 @@ using WebCore::PageIdentifier = Variant<uint32_t, uint64_t>;
     uint32_t {name};
 }}
 ''', rf'member {re.escape(name)}: it would be named {swift_name} in Swift, which cannot be the name of a property')
+
+    def test_owned_forms_must_be_listed(self):
+        self.assertGenerationFails('''
+[Swift] struct WebKit::Holder {
+    MachSendRight right;
+}
+''', r'\[Swift\] WebKit::Holder: it holds a type whose Swift form owns a resource, so its Swift form is ~Copyable, and it must be listed in OWNED_SERIALIZED_TYPES')
 
     def test_unmappable_member_type(self):
         self.assertGenerationFails('''

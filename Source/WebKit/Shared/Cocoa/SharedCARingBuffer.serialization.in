@@ -23,7 +23,7 @@
 #if USE(MEDIATOOLBOX)
 
 header: "SharedCARingBuffer.h"
-[CustomHeader, RValue] struct WebKit::ConsumerSharedCARingBufferHandle {
+[CustomHeader, RValue, Swift] struct WebKit::ConsumerSharedCARingBufferHandle {
     WebCore::SharedMemoryHandle memory;
     uint64_t frameCount;
 };
