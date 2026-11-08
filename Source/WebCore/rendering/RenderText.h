@@ -43,8 +43,8 @@ class RenderText : public RenderObject, private Layout::InlineTextBox {
     WTF_MAKE_TZONE_ALLOCATED(RenderText);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderText);
 public:
-    RenderText(Type, Text&, const String&);
-    RenderText(Type, Document&, const String&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderText(Type, Text&, const String&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderText(Type, Document&, const String&);
     RenderText(Document&, SynthesizedGlyph);
 
     virtual ~RenderText();

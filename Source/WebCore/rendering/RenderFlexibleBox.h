@@ -44,8 +44,8 @@ class RenderFlexibleBox : public RenderBlock {
     WTF_MAKE_TZONE_ALLOCATED(RenderFlexibleBox);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RenderFlexibleBox);
 public:
-    RenderFlexibleBox(Type, Element&, UniqueRef<Style::ComputedStyle>&&);
-    RenderFlexibleBox(Type, Document&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderFlexibleBox(Type, Element&, UniqueRef<Style::ComputedStyle>&&);
+    SWIFT_UNAVAILABLE_IN_SWIFT RenderFlexibleBox(Type, Document&, UniqueRef<Style::ComputedStyle>&&);
     virtual ~RenderFlexibleBox();
 
     using Direction = FlowDirection;
