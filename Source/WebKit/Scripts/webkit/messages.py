@@ -874,6 +874,10 @@ def forward_declarations_and_headers(receiver):
     if cxx_decoded_parameters(receiver):
         headers.add('"SwiftCoding.h"')
 
+    # For IPC::SwiftDecoder, which the dispatch functions that Swift implements take.
+    if receiver.is_swift_implementation() and swift_implementation_messages(receiver):
+        headers.add('"SwiftCoding.h"')
+
     # For IPC::SwiftLentStateDispatch, and the forwarder's reference to its state lender.
     if receiver.swift_receiver_state_lender:
         headers.add('"SwiftCoding.h"')
@@ -1174,6 +1178,16 @@ def generate_messages_header(receiver):
     if cxx_decoded_parameters(receiver):
         if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
 
+    if receiver.is_swift_implementation():
+        # Each is declared whatever the message's condition, as it takes no type the condition could remove.
+        result.append('namespace %s {\nclass %s;\n}\n\n' % (receiver.namespace, receiver.name))
+        result.append('// What %sMessageReceiver.swift implements, with @cxx @implementation: the dispatch of each message that\n' % receiver.name)
+        result.append('// takes Swift types, which decodes it and calls the handler, and returns false if it is malformed.\n')
+        result.append('namespace SwiftDispatch {\nnamespace %s {\n\n' % receiver.name)
+        for message in swift_implementation_messages(receiver):
+            result.append('bool dispatch%s(%s* WTF_NONNULL, IPC::SwiftDecoder);\n' % (message.name, swift_implementation_receiver_class(receiver)))
+        result.append('\n} // namespace %s\n} // namespace SwiftDispatch\n\n' % receiver.name)
+
     if receiver.condition:
         result.append('\n#endif // %s\n' % receiver.condition)
 
@@ -1328,6 +1342,20 @@ def swift_reply_encoding_statements(message, reply_variable, encoder):
     return ['%s.encode(%s.%d, to: %s)' % (swift_types.swift_coder(parameter.type), reply_variable, index, encoder) for index, parameter in enumerate(reply_parameters)]
 
 
+# The function that generated Swift implements to decode a message that takes Swift types, for a receiver with
+# 'SwiftImplementation', and call its handler.
+def swift_implementation_dispatch_function(receiver, message):
+    return 'SwiftDispatch::%s::dispatch%s' % (receiver.name, message.name)
+
+
+def swift_implementation_messages(receiver):
+    return [message for message in receiver.messages if receiver.takes_swift_types(message)]
+
+
+def swift_implementation_receiver_class(receiver):
+    return '%s::%s' % (receiver.namespace, receiver.name)
+
+
 def generates_swift_trampoline(receiver, message):
     return bool(receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and not message.is_async_reply
 
@@ -1385,6 +1413,9 @@ def async_message_statement(receiver, message):
         result.append('        IPC::handleSwiftMessageWithLentState<Messages::%s::%s>(%s);\n' % (receiver.name, message.name, ', '.join(arguments)))
 
     def append_with_dispatch_function_args(receiver, result):
+        if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
+            result.append('        IPC::handleSwiftImplementedMessage<Messages::%s::%s>(connection, decoder, *this, %s);\n' % (receiver.name, message.name, swift_implementation_dispatch_function(receiver, message)))
+            return
         if receiver.swift_receiver_state_lender:
             if_swift_enabled(receiver, result, append_lent_state_dispatch, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, '        IPC::handleMessage<Messages::%s::%s>(connection, %%s);\n' % (receiver.name, message.name), 'this', handler_function(receiver, message)))
             return
@@ -2603,7 +2634,73 @@ def swift_lent_state_dispatch_function(receiver, message):
     return result
 
 
+# The Swift of a receiver with 'SwiftImplementation': for each message that takes Swift types, the dispatch function the
+# messages header declares, which decodes the arguments from the decoder C++ lends for the call, and calls the handler,
+# a Swift method of the C++ receiver class, on the stream connection's work queue, where C++ asserts it is.
+def generate_swift_implementation_message_handler(receiver):
+    result = []
+    result.append(block_to_line_comments(_license_header))
+    result.append('\n')
+    result.append('\n')
+    if receiver.condition:
+        result.append('#if %s\n' % swift_receiver_condition(receiver))
+    result.append('import WebKit_Internal\n')
+    if receiver.condition:
+        result.append('#endif\n')
+    result.append('\n')
+    if receiver.condition:
+        result.append('#if %s\n' % swift_receiver_condition(receiver))
+    result.append('extension SwiftDispatch.%s {\n' % receiver.name)
+    for message in swift_implementation_messages(receiver):
+        function = []
+        function.append('\n')
+        function.append('    @cxx\n')
+        function.append('    @implementation\n')
+        function.append('    static func dispatch%s(\n' % message.name)
+        function.append('        _ receiver: %s,\n' % swift_implementation_receiver_class(receiver).replace('::', '.'))
+        function.append('        _ decoder: IPC.SwiftDecoder\n')
+        function.append('    ) -> Bool {\n')
+        function.append('        var decoder = decoder\n')
+        decoded = [(parameter.name,) + swift_types.swift_type_and_coder(parameter.type) for parameter in message.parameters]
+        for name, swift_type, _ in decoded:
+            function.append('        let %s: %s\n' % (name, swift_type))
+        if decoded:
+            function.append('        do {\n')
+            for name, _, coder in decoded:
+                function.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
+            function.append('        } catch {\n')
+            function.append('            return false\n')
+            function.append('        }\n')
+        function.append('        do throws(InvalidMessage) {\n')
+        function.append('            try mayThrowInvalidMessage(\n')
+        if decoded:
+            function.append('                receiver.%s(\n' % handler_function_name(message))
+            function.append(',\n'.join(['                    %s: %s' % (name, name) for name, _, _ in decoded]))
+            function.append('\n                )\n')
+        else:
+            function.append('                receiver.%s()\n' % handler_function_name(message))
+        function.append('            )\n')
+        function.append('        } catch {\n')
+        function.append('            markMessageInvalid(error, on: &decoder)\n')
+        function.append('        }\n')
+        function.append('        return true\n')
+        function.append('    }\n')
+        if message.condition:
+            try:
+                condition = swift_types.swift_condition(message.condition)
+            except swift_types.UnmappableSwiftCondition as error:
+                raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
+            function = ['\n    #if %s' % condition] + function + ['    #endif\n']
+        result += function
+    result.append('}\n')
+    if receiver.condition:
+        result.append('#endif\n')
+    return ''.join(result)
+
+
 def generate_swift_message_handler(receiver):
+    if receiver.is_swift_implementation():
+        return generate_swift_implementation_message_handler(receiver)
     assert (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by)
     check_swift_types_are_dispatched_on_main_thread(receiver)
     result = []

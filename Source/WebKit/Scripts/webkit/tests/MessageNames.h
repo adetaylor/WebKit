@@ -61,26 +61,27 @@ enum class ReceiverName : uint8_t {
     , TestWithStreamServerConnectionHandle = 17
     , TestWithStreamSwift = 18
     , TestWithStreamSwiftEnabledBy = 19
-    , TestWithStreamSwiftLentState = 20
-    , TestWithStreamSwiftReplyValues = 21
-    , TestWithStreamSwiftTypes = 22
-    , TestWithSuperclass = 23
-    , TestWithSuperclassAndWantsAsyncDispatch = 24
-    , TestWithSuperclassAndWantsDispatch = 25
-    , TestWithSwift = 26
-    , TestWithSwiftConditionally = 27
-    , TestWithSwiftConditionallyAndEnabledBy = 28
-    , TestWithSwiftTypes = 29
-    , TestWithSwiftTypesOptIn = 30
-    , TestWithSwiftWorkQueue = 31
-    , TestWithValidator = 32
-    , TestWithWantsAsyncDispatch = 33
-    , TestWithWantsDispatch = 34
-    , TestWithWantsDispatchNoSyncMessages = 35
-    , TestWithoutAttributes = 36
-    , TestWithoutUsingIPCConnection = 37
-    , IPC = 38
-    , Invalid = 39
+    , TestWithStreamSwiftImplementation = 20
+    , TestWithStreamSwiftLentState = 21
+    , TestWithStreamSwiftReplyValues = 22
+    , TestWithStreamSwiftTypes = 23
+    , TestWithSuperclass = 24
+    , TestWithSuperclassAndWantsAsyncDispatch = 25
+    , TestWithSuperclassAndWantsDispatch = 26
+    , TestWithSwift = 27
+    , TestWithSwiftConditionally = 28
+    , TestWithSwiftConditionallyAndEnabledBy = 29
+    , TestWithSwiftTypes = 30
+    , TestWithSwiftTypesOptIn = 31
+    , TestWithSwiftWorkQueue = 32
+    , TestWithValidator = 33
+    , TestWithWantsAsyncDispatch = 34
+    , TestWithWantsDispatch = 35
+    , TestWithWantsDispatchNoSyncMessages = 36
+    , TestWithoutAttributes = 37
+    , TestWithoutUsingIPCConnection = 38
+    , IPC = 39
+    , Invalid = 40
 };
 
 enum class MessageName : uint16_t {
@@ -151,6 +152,15 @@ enum class MessageName : uint16_t {
     TestWithStreamBuffer_SendStreamBuffer,
     TestWithStreamServerConnectionHandle_SendStreamServerConnection,
     TestWithStreamSwiftEnabledBy_SendString,
+#if PLATFORM(COCOA)
+    TestWithStreamSwiftImplementation_SendCocoaValue,
+#endif
+    TestWithStreamSwiftImplementation_SendCxxString,
+    TestWithStreamSwiftImplementation_SendCxxStringAsyncReply,
+    TestWithStreamSwiftImplementation_SendEmpty,
+    TestWithStreamSwiftImplementation_SendSendRight,
+    TestWithStreamSwiftImplementation_SendString,
+    TestWithStreamSwiftImplementation_SendValues,
     TestWithStreamSwiftLentState_Draw,
     TestWithStreamSwiftLentState_Reset,
     TestWithStreamSwiftLentState_SetValues,
@@ -285,6 +295,7 @@ enum class MessageName : uint16_t {
     TestWithLegacyReceiver_OpaqueTypeSecurityAssertion,
     TestWithLegacyReceiver_RunJavaScriptAlert,
     TestWithSemaphore_ReceiveSemaphore,
+    TestWithStreamSwiftImplementation_SendCxxStringAsync,
     TestWithStreamSwiftTypes_SendCxxDecoded,
     TestWithStreamSwiftTypes_SendEmptyAsync,
     TestWithStreamSwiftTypes_SendStringAsync,

@@ -40,6 +40,10 @@ STREAM_ATTRIBUTE = "Stream"
 # WorkQueueMessageReceiver, and its handlers are called synchronously on that work queue.
 WORK_QUEUE_ATTRIBUTE = "WorkQueue"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
+# A C++ receiver whose messages that take Swift types are decoded and handled in Swift: generated Swift implements a
+# dispatch function for each, with @cxx @implementation, that calls the receiver's handler, a Swift method of the C++
+# class. Its other messages are C++ messages to C++ handlers, which may call members of the class that Swift implements.
+SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 # On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
 # it into an IPC::CxxDecodedArgument, which the Swift handler passes on to C++.
@@ -99,9 +103,12 @@ class MessageReceiver(object):
     def is_swift_receiver(self):
         return bool(self.swift_receiver or self.swift_receiver_build_enabled_by)
 
+    def is_swift_implementation(self):
+        return self.has_attribute(SWIFT_IMPLEMENTATION_ATTRIBUTE)
+
     def takes_swift_types(self, message):
         """Whether the Swift receiver decodes this message's arguments, and encodes its reply, as Swift types."""
-        if message.is_async_reply or not self.is_swift_receiver():
+        if message.is_async_reply or not (self.is_swift_receiver() or self.is_swift_implementation()):
             return False
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE):
             return True
@@ -110,7 +117,8 @@ class MessageReceiver(object):
         return self.swift_types
 
     def enforce_swift_types_constraints(self):
-        if self.swift_types and not self.is_swift_receiver():
+        self._enforce_swift_implementation_constraints()
+        if self.swift_types and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
         if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and not self.is_swift_receiver():
             raise Exception("ERROR: Receiver %s has '%s', which is for Swift receivers: a C++ receiver chooses its own base class" % (self.name, WORK_QUEUE_ATTRIBUTE))
@@ -119,6 +127,29 @@ class MessageReceiver(object):
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
         self._enforce_lent_state_constraints()
+
+    def _enforce_swift_implementation_constraints(self):
+        if not self.is_swift_implementation():
+            return
+        if self.is_swift_receiver() or self.swift_receiver_state_lender:
+            raise Exception("ERROR: Receiver %s has '%s', which is for a C++ receiver, so it cannot be a Swift receiver too" % (self.name, SWIFT_IMPLEMENTATION_ATTRIBUTE))
+        if not self.has_attribute(STREAM_ATTRIBUTE):
+            raise Exception("ERROR: Receiver %s has '%s', which is only supported on a stream receiver" % (self.name, SWIFT_IMPLEMENTATION_ATTRIBUTE))
+        for message in self.messages:
+            if not self.takes_swift_types(message):
+                continue
+
+            def unsupported(what):
+                return Exception("ERROR: Message %s.%s is handled in Swift by a receiver with '%s', which is not supported %s: make it 'CxxTypes'" % (self.name, message.name, SWIFT_IMPLEMENTATION_ATTRIBUTE, what))
+
+            if message.reply_parameters is not None:
+                raise unsupported('for a message with a reply')
+            if message.has_attribute(WANTS_CONNECTION_ATTRIBUTE):
+                raise unsupported("together with '%s'" % WANTS_CONNECTION_ATTRIBUTE)
+            for parameter in message.parameters:
+                for attribute in (CXX_DECODED_ATTRIBUTE, LENT_ATTRIBUTE):
+                    if parameter.has_attribute(attribute):
+                        raise unsupported("with '%s' on parameter '%s'" % (attribute, parameter.name))
 
     def _enforce_lent_state_constraints(self):
         if not self.swift_receiver_state_lender:
@@ -149,7 +180,7 @@ class MessageReceiver(object):
             raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))
         if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and message.has_attribute(CXX_TYPES_ATTRIBUTE):
             raise Exception("ERROR: Message %s cannot have both 'SwiftTypes' and 'CxxTypes'" % description)
-        if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and not self.is_swift_receiver():
+        if message.has_attribute(SWIFT_TYPES_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Message %s has 'SwiftTypes' but receiver %s is not a Swift receiver: it needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % (description, self.name))
         if message.has_attribute(CXX_TYPES_ATTRIBUTE) and not self.swift_types:
             raise Exception("ERROR: Message %s has 'CxxTypes' but receiver %s does not have 'SwiftTypes'" % (description, self.name))

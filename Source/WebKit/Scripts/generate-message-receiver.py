@@ -148,7 +148,7 @@ def main(argv):
             os.makedirs(output_path(receiver_dir))
         with open(output_path(os.path.join(receiver_dir, '%sMessageReceiver.cpp' % receiver.name)), "w+") as implementation_output:
             implementation_output.write(webkit.messages.generate_message_handler(receiver))
-        if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by:
+        if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by or receiver.is_swift_implementation():
             with open(output_path('%sMessageReceiver.swift' % receiver.name), "w+") as swift_implementation_output:
                 swift_implementation_output.write(webkit.messages.generate_swift_message_handler(receiver))
 

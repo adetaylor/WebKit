@@ -95,6 +95,15 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamBuffer_SendStreamBuffer"_s, ReceiverName::TestWithStreamBuffer, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamServerConnectionHandle_SendStreamServerConnection"_s, ReceiverName::TestWithStreamServerConnectionHandle, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftEnabledBy_SendString"_s, ReceiverName::TestWithStreamSwiftEnabledBy, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA)
+    MessageDescription { "TestWithStreamSwiftImplementation_SendCocoaValue"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#endif
+    MessageDescription { "TestWithStreamSwiftImplementation_SendCxxString"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendCxxStringAsyncReply"_s, ReceiverName::TestWithStreamSwiftImplementation, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendEmpty"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendSendRight"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendString"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendValues"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_Draw"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_Reset"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_SetValues"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -227,6 +236,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithLegacyReceiver_OpaqueTypeSecurityAssertion"_s, ReceiverName::TestWithLegacyReceiver, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithLegacyReceiver_RunJavaScriptAlert"_s, ReceiverName::TestWithLegacyReceiver, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSemaphore_ReceiveSemaphore"_s, ReceiverName::TestWithSemaphore, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftImplementation_SendCxxStringAsync"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendCxxDecoded"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendEmptyAsync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendStringAsync"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },

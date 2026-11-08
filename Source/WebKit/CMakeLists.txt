@@ -1177,7 +1177,7 @@ macro(GENERATE_MESSAGE_SOURCES _output_source _inputs)
         # DEPENDS needs the actual path. Check source tree first, then derived.
         if (EXISTS ${WEBKIT_DIR}/${_file}.messages.in)
             list(APPEND _input_files ${WEBKIT_DIR}/${_file}.messages.in)
-            file(STRINGS ${WEBKIT_DIR}/${_file}.messages.in _swift_attr REGEX "SwiftReceiver")
+            file(STRINGS ${WEBKIT_DIR}/${_file}.messages.in _swift_attr REGEX "SwiftReceiver|SwiftImplementation")
             if (_swift_attr)
                 list(APPEND _outputs ${_name}MessageReceiver.swift)
             endif ()
