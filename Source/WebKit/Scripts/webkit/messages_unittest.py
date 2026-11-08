@@ -73,6 +73,7 @@ _test_receiver_names = [
     'TestWithSwift',
     'TestWithSwiftConditionally',
     'TestWithSwiftConditionallyAndEnabledBy',
+    'TestWithSwiftImplementation',
     'TestWithSwiftTypes',
     'TestWithSwiftTypesOptIn',
     'TestWithSwiftWorkQueue',
@@ -80,6 +81,7 @@ _test_receiver_names = [
     'TestWithWantsAsyncDispatch',
     'TestWithWantsDispatch',
     'TestWithWantsDispatchNoSyncMessages',
+    'TestWithWorkQueueSwiftImplementation',
 ]
 
 
@@ -324,21 +326,27 @@ messages -> TestReceiver%s {
         self.assertNotIn('dispatchCxxMessage', header)
         self.assertNotIn('MessageForwarder', header)
         handler = messages.generate_message_handler(receiver)
-        self.assertIn('IPC::handleSwiftImplementedMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, *this, SwiftDispatch::TestReceiver::dispatchSwiftMessage);', handler)
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);', handler)
         self.assertIn('IPC::handleMessage<Messages::TestReceiver::CxxMessage>(connection, decoder, this, &TestReceiver::cxxMessage);', handler)
         swift = messages.generate_swift_message_handler(receiver)
         self.assertIn('extension SwiftDispatch.TestReceiver {', swift)
-        self.assertIn('    static func dispatchSwiftMessage(\n        _ receiver: WebKit.TestReceiver,\n        _ decoder: IPC.SwiftDecoder\n    ) -> Bool {', swift)
+        self.assertIn('    static func dispatchSwiftMessage(\n        _ target: WebKit.TestReceiver,\n        _ decoder: IPC.SwiftDecoder\n    ) -> Bool {', swift)
         self.assertNotIn('CxxMessage', swift)
+        self.assertNotIn('MessageForwarder', swift)
 
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported for a message with a reply: make it 'CxxTypes'"):
-            parse_swift_implementation('    SwiftMessage(uint32_t value) -> (bool reply)')
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported together with 'WantsConnection'"):
-            parse_swift_implementation('    SwiftMessage(uint32_t value) WantsConnection')
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported with 'CxxDecoded' on parameter 'argument'"):
-            parse_swift_implementation('    SwiftMessage([CxxDecoded] WebKit::NoSwiftForm argument) NotStreamEncodable')
-        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is only supported on a stream receiver"):
-            parse_swift_implementation('    SwiftMessage(uint32_t value)', stream=False)
+        # The dispatch function takes what HandleMessage.h passes a Swift receiver's dispatch.
+        self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);', messages.generate_messages_header(parse_swift_implementation('    SwiftMessage(uint32_t value) -> (bool reply)')))
+        self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::StreamServerConnection* WTF_NONNULL, IPC::SwiftDecoder);', messages.generate_messages_header(parse_swift_implementation('    SwiftMessage(uint32_t value) WantsConnection')))
+        self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);', messages.generate_messages_header(parse_swift_implementation('    SwiftMessage(uint32_t value)', stream=False)))
+
+        # On the main thread, dispatch discards the Task it starts, and copies the decoder only if it decodes from it.
+        swift = messages.generate_swift_message_handler(parse_swift_implementation('    EmptyMessage()\n    SwiftMessage(uint32_t value)', stream=False))
+        self.assertIn('        MainActor.assumeIsolated {\n            _ = Task.immediateOnMainActor {\n', swift)
+        self.assertIn('        _ target: sending WebKit.TestReceiver,\n', swift)
+        self.assertEqual(swift.count('        var decoder = decoder\n'), 1)
+        self.assertIn('    ) -> Bool {\n        var decoder = decoder\n        let value: UInt32\n', swift)
+        self.assertIn('var decoder = decoder', messages.generate_swift_message_handler(parse_swift_implementation('    EmptyMessage()')))
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is for a C\+\+ receiver, so it cannot be a Swift receiver too"):
             parse_swift_implementation('    SwiftMessage(uint32_t value)', attributes=('SwiftImplementation', 'SwiftReceiver', 'SwiftTypes'))
 
