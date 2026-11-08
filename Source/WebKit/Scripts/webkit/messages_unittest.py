@@ -63,6 +63,7 @@ _test_receiver_names = [
     'TestWithStreamServerConnectionHandle',
     'TestWithStreamSwift',
     'TestWithStreamSwiftEnabledBy',
+    'TestWithStreamSwiftImplementation',
     'TestWithStreamSwiftLentState',
     'TestWithStreamSwiftReplyValues',
     'TestWithStreamSwiftTypes',
@@ -127,7 +128,7 @@ class GeneratedFileContentsTest(unittest.TestCase):
             self.assertGeneratedFileContentsEqual(header_contents, os.path.join(tests_directory, '{}Messages.h'.format(receiver_name)))
             implementation_contents = messages.generate_message_handler(receiver)
             self.assertGeneratedFileContentsEqual(implementation_contents, os.path.join(tests_directory, '{}MessageReceiver.cpp'.format(receiver_name)))
-            if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by:
+            if receiver.swift_receiver or receiver.swift_receiver_build_enabled_by or receiver.is_swift_implementation():
                 swift_implementation_contents = messages.generate_swift_message_handler(receiver)
                 self.assertGeneratedFileContentsEqual(swift_implementation_contents, os.path.join(tests_directory, '{}MessageReceiver.swift'.format(receiver_name)))
 
@@ -297,6 +298,49 @@ messages -> TestReceiver %s {
 
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftSyncHandler', which is for messages a Swift receiver handles"):
             parse_swift_receiver(['ExceptionForEnabledBy'], '    Message(uint32_t value) SwiftSyncHandler')
+
+    def test_swift_implementation(self):
+        def parse_swift_implementation(messages_text, stream=True, attributes=('SwiftImplementation', 'SwiftTypes')):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver%s {
+%s
+}
+""" % (',\n    '.join(attributes), ' Stream' if stream else '', messages_text)))
+
+        receiver = parse_swift_implementation("""
+    SwiftMessage(uint32_t value)
+    CxxMessage(MachSendRight sendRight) CxxTypes NotStreamEncodable
+""")
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
+        self.assertFalse(receiver.takes_swift_types(receiver.messages[1]))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::SwiftDecoder);', header)
+        self.assertNotIn('dispatchCxxMessage', header)
+        self.assertNotIn('MessageForwarder', header)
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('IPC::handleSwiftImplementedMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, *this, SwiftDispatch::TestReceiver::dispatchSwiftMessage);', handler)
+        self.assertIn('IPC::handleMessage<Messages::TestReceiver::CxxMessage>(connection, decoder, this, &TestReceiver::cxxMessage);', handler)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('extension SwiftDispatch.TestReceiver {', swift)
+        self.assertIn('    static func dispatchSwiftMessage(\n        _ receiver: WebKit.TestReceiver,\n        _ decoder: IPC.SwiftDecoder\n    ) -> Bool {', swift)
+        self.assertNotIn('CxxMessage', swift)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported for a message with a reply: make it 'CxxTypes'"):
+            parse_swift_implementation('    SwiftMessage(uint32_t value) -> (bool reply)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported together with 'WantsConnection'"):
+            parse_swift_implementation('    SwiftMessage(uint32_t value) WantsConnection')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage is handled in Swift by a receiver with 'SwiftImplementation', which is not supported with 'CxxDecoded' on parameter 'argument'"):
+            parse_swift_implementation('    SwiftMessage([CxxDecoded] WebKit::NoSwiftForm argument) NotStreamEncodable')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is only supported on a stream receiver"):
+            parse_swift_implementation('    SwiftMessage(uint32_t value)', stream=False)
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is for a C\+\+ receiver, so it cannot be a Swift receiver too"):
+            parse_swift_implementation('    SwiftMessage(uint32_t value)', attributes=('SwiftImplementation', 'SwiftReceiver', 'SwiftTypes'))
 
     def test_cxx_decoded_arguments(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """

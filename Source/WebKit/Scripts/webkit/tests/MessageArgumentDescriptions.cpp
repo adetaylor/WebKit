@@ -299,6 +299,24 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftEnabledBy_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendValues:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendValues>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendEmpty:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendEmpty>(globalObject, decoder);
+#if PLATFORM(COCOA)
+    case MessageName::TestWithStreamSwiftImplementation_SendCocoaValue:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCocoaValue>(globalObject, decoder);
+#endif
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxString:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxString>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendSendRight:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendSendRight>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftLentState_Reset:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Reset>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftLentState_SetValues:
@@ -592,6 +610,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
 #endif
     case MessageName::TestWithStreamSwift_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftReplyValues_SendLaterSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
@@ -1329,6 +1349,39 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };
+    case MessageName::TestWithStreamSwiftImplementation_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendValues:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "optionalValue"_s, "std::optional<uint64_t>"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendEmpty:
+        return Vector<ArgumentDescription> { };
+#if PLATFORM(COCOA)
+    case MessageName::TestWithStreamSwiftImplementation_SendCocoaValue:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint64_t"_s },
+        };
+#endif
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendSendRight:
+        return Vector<ArgumentDescription> {
+            { "sendRight"_s, "MachSendRight"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
     case MessageName::TestWithStreamSwiftLentState_Reset:
         return Vector<ArgumentDescription> { };
     case MessageName::TestWithStreamSwiftLentState_SetValues:
@@ -1869,6 +1922,10 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithStreamSwift_SendStringSync:
         return Vector<ArgumentDescription> {
             { "returnValue"_s, "int64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
         };
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return Vector<ArgumentDescription> {
