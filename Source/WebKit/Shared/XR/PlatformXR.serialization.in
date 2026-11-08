@@ -128,7 +128,7 @@ using PlatformXR::FrameData::Projection = PlatformXR::FrameData::Projection;
 };
 
 header: <WebCore/PlatformXR.h>
-[CustomHeader] struct PlatformXR::RateMapDescription {
+[CustomHeader, Swift] struct PlatformXR::RateMapDescription {
     WebCore::IntSize screenSize;
     Vector<float> horizontalSamplesLeft;
     Vector<float> horizontalSamplesRight;
