@@ -332,9 +332,6 @@ WEBCORE_EXPORT void CGRendererClipToStrokedPathSegment(CGContextRef _Nonnull, CG
 WEBCORE_EXPORT CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect&);
 WEBCORE_EXPORT void CGRendererClipToRoundedRectPath(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&, WebCore::WindRule);
 WEBCORE_EXPORT CGRect CGRendererStrokedRectBounds(CGContextRef _Nonnull, CGRect, float lineWidth);
-// The same for a path's CGPath, which GraphicsContextCG::drawPath() strokes after a fill without a gradient made it.
-WEBCORE_EXPORT CGRect CGRendererStrokedPlatformPathBounds(CGContextRef _Nonnull, CGPathRef _Nonnull);
-WEBCORE_EXPORT void CGRendererClipToStrokedPlatformPath(CGContextRef _Nonnull, CGPathRef _Nonnull, float thickness);
 WEBCORE_EXPORT void CGRendererClipToStrokedRect(CGContextRef _Nonnull, CGRect, float lineWidth);
 
 // GraphicsContextCG's clipPath() and clipOut(const Path&), for the C++ of a Swift receiver's path clips too.

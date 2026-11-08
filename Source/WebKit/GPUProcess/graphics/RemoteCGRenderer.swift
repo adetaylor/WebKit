@@ -338,8 +338,8 @@ final class RemoteCGRenderer {
         if state.receiveFillsWithoutGradient() {
             let platformPath = WebKit.copyPlatformPath(path)
             state.receiveFillPath(platformPath)
-            _ = state.receiveStrokeWithGradient({ context in CGRendererStrokedPlatformPathBounds(context, platformPath) }) { context, thickness in
-                CGRendererClipToStrokedPlatformPath(context, platformPath, thickness)
+            _ = state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
+                clipToStrokedPlatformPath(context, platformPath, thickness)
             }
             return true
         }
@@ -621,9 +621,9 @@ final class RemoteCGRenderer {
     // GraphicsContextCG::strokePath(): a single line as a line segment, and a gradient in the clip of the stroked path.
     private func stroke(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
         guard state.receiveStrokesWithoutGradient() else {
-            let path = copy path
-            return state.receiveStrokeWithGradient({ context in path.strokedBounds(context) }) { context, thickness in
-                path.clipToStroke(context, thickness)
+            let platformPath = WebKit.copyPlatformPath(path)
+            return state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
+                clipToStrokedPlatformPath(context, platformPath, thickness)
             }
         }
         if path.isSingleDataLine() {

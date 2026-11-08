@@ -107,10 +107,8 @@ public:
         else
             CGRendererClipToPath(context, path(), rule);
     }
-    // GraphicsContextCG's bounds and clip of the path filled or stroked with a gradient.
+    // GraphicsContextCG's bounds of the path filled with a gradient.
     WebCore::FloatRect fastBoundingRect() const { return path().fastBoundingRect(); }
-    CGRect strokedBounds(CGContextRef context) const { return CGRendererStrokedPathBounds(context, path()); }
-    void clipToStroke(CGContextRef context, float thickness) const { CGRendererClipToStrokedPath(context, path(), thickness); }
     void clipOut(CGContextRef context) const
     {
         if (m_kind == Kind::Impl)

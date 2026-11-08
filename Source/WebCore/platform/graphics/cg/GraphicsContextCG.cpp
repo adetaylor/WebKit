@@ -985,23 +985,6 @@ CGRect CGRendererStrokedRectBounds(CGContextRef context, CGRect rect, float line
     });
 }
 
-CGRect CGRendererStrokedPlatformPathBounds(CGContextRef context, CGPathRef path)
-{
-    return WebCore::strokedPathBoundingBox(context, [&] {
-        CGContextBeginPath(context);
-        CGContextAddPath(context, path);
-    });
-}
-
-void CGRendererClipToStrokedPlatformPath(CGContextRef context, CGPathRef path, float thickness)
-{
-    CGContextSetLineWidth(context, thickness);
-    CGContextBeginPath(context);
-    CGContextAddPath(context, path);
-    CGContextReplacePathWithStrokedPath(context);
-    CGContextClip(context);
-}
-
 void CGRendererClipToStrokedRect(CGContextRef context, CGRect rect, float lineWidth)
 {
     CGContextSetLineWidth(context, std::max(lineWidth, 0.f));

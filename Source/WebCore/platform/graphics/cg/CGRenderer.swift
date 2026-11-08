@@ -740,6 +740,33 @@ private struct CGRendererLineStroke {
     }
 }
 
+// GraphicsContextCG's clip to and bounds of a path stroked with a gradient, of the path's CGPath, with the CG calls its
+// C++ makes.
+
+@_expose(!Cxx)
+@_spi(WebKitGPU) public func clipToStrokedPlatformPath(_ context: CGContext, _ path: CGPath, _ thickness: Float) {
+    context.setLineWidth(CGFloat(thickness))
+    context.beginPath()
+    context.addPath(path)
+    context.replacePathWithStrokedPath()
+    context.clip()
+}
+
+// The bounds of the path stroked in the context's stroke style, as the FloatRect that GraphicsContextCG makes of them.
+@_expose(!Cxx)
+@_spi(WebKitGPU) public func strokedPlatformPathBounds(_ context: CGContext, _ path: CGPath) -> CGRect {
+    context.saveGState()
+    context.beginPath()
+    context.addPath(path)
+    context.replacePathWithStrokedPath()
+    let bounds = context.boundingBoxOfPath
+    context.beginPath()
+    context.restoreGState()
+    return CGRect(
+        x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
+        width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+}
+
 private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
     a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
         && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
@@ -3544,8 +3571,8 @@ extension CGRendererCore {
             }
             let path = CGRendererCreatePath(segment)
             fillPath(path)
-            _ = receiveStrokeWithGradient({ context in CGRendererStrokedPlatformPathBounds(context, path) }) { context, thickness in
-                CGRendererClipToStrokedPlatformPath(context, path, thickness)
+            _ = receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
+                clipToStrokedPlatformPath(context, path, thickness)
             }
             return true
         }
