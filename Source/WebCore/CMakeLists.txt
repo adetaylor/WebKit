@@ -3635,6 +3635,12 @@ if (APPLE)
         "-Xfrontend -disable-autolink-library -Xfrontend swiftCompression"
         "-Xfrontend -disable-autolink-library -Xfrontend compression"
     )
+    # On the internal SDK, Vision's Swift interface reaches C++ headers in the SDK's private frameworks that throw,
+    # which -fno-exceptions rejects outside system headers. Search those frameworks as system frameworks, as
+    # WebCore.xcconfig's SYSTEM_FRAMEWORK_SEARCH_PATHS does.
+    if (USE_APPLE_INTERNAL_SDK)
+        webkit_target_add_swift_options(WebCore "-Xcc -iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks")
+    endif ()
 
     # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.
     webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
