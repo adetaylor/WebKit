@@ -1176,7 +1176,10 @@ def generate_messages_header(receiver):
         result.append('} // namespace %s\n} // namespace CxxDecodedArguments\n' % receiver.name)
         result.append('\n')
     if cxx_decoded_parameters(receiver):
-        if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
+        if receiver.is_swift_implementation():
+            append_cxx_decoded_arguments_for_swift(result)
+        else:
+            if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
 
     if receiver.is_swift_implementation():
         # Each is declared whatever the message's condition, as it takes no type the condition could remove.
@@ -1185,7 +1188,7 @@ def generate_messages_header(receiver):
         result.append('// takes Swift types, which decodes it and calls the handler, and returns false if it is malformed.\n')
         result.append('namespace SwiftDispatch {\nnamespace %s {\n\n' % receiver.name)
         for message in swift_implementation_messages(receiver):
-            result.append('bool dispatch%s(%s* WTF_NONNULL, IPC::SwiftDecoder);\n' % (message.name, swift_implementation_receiver_class(receiver)))
+            result.append('bool dispatch%s(%s);\n' % (message.name, ', '.join(swift_implementation_dispatch_parameters(receiver, message))))
         result.append('\n} // namespace %s\n} // namespace SwiftDispatch\n\n' % receiver.name)
 
     if receiver.condition:
@@ -1353,6 +1356,19 @@ def swift_implementation_dispatch_function(receiver, message):
     return 'SwiftDispatch::%s::dispatch%s' % (receiver.name, message.name)
 
 
+# The C++ parameters of a message's dispatch function, as HandleMessage.h passes them: the receiver, the connection
+# unless the message is to a stream and not WantsConnection, the decoder, and the reply encoder if it has a reply.
+def swift_implementation_dispatch_parameters(receiver, message):
+    parameters = ['%s* WTF_NONNULL' % swift_implementation_receiver_class(receiver)]
+    is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
+    if not is_stream or message.has_attribute(WANTS_CONNECTION_ATTRIBUTE):
+        parameters.append('IPC::%s* WTF_NONNULL' % ('StreamServerConnection' if is_stream else 'Connection'))
+    parameters.append('IPC::SwiftDecoder')
+    if message.reply_parameters is not None:
+        parameters.append('IPC::SwiftReplyEncoder* WTF_NONNULL')
+    return parameters
+
+
 def swift_implementation_messages(receiver):
     return [message for message in receiver.messages if receiver.takes_swift_types(message)]
 
@@ -1419,7 +1435,8 @@ def async_message_statement(receiver, message):
 
     def append_with_dispatch_function_args(receiver, result):
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
-            result.append('        IPC::handleSwiftImplementedMessage<Messages::%s::%s>(connection, decoder, *this, %s);\n' % (receiver.name, message.name, swift_implementation_dispatch_function(receiver, message)))
+            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, 'this', swift_implementation_dispatch_function(receiver, message))
             return
         if receiver.swift_receiver_state_lender:
             if_swift_enabled(receiver, result, append_lent_state_dispatch, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, '        IPC::handleMessage<Messages::%s::%s>(connection, %%s);\n' % (receiver.name, message.name), 'this', handler_function(receiver, message)))
@@ -1507,7 +1524,10 @@ def sync_message_statement(receiver, message):
 
     swift_dispatch_function = swift_types_dispatch_function(message) if receiver.takes_swift_types(message) else dispatch_function
     swift_target, swift_function = swift_dispatch_target_and_function(receiver, message)
-    if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
+    if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
+        append_call_with_target_name(result, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message))
+    else:
+        if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
     result.append('        return;\n')
     result.append('    }\n')
     return result
@@ -2640,74 +2660,12 @@ def swift_lent_state_dispatch_function(receiver, message):
     return result
 
 
-# The Swift of a receiver with 'SwiftImplementation': for each message that takes Swift types, the dispatch function the
-# messages header declares, which decodes the arguments from the decoder C++ lends for the call, and calls the handler,
-# a Swift method of the C++ receiver class, on the stream connection's work queue, where C++ asserts it is.
-def generate_swift_implementation_message_handler(receiver):
-    result = []
-    result.append(block_to_line_comments(_license_header))
-    result.append('\n')
-    result.append('\n')
-    if receiver.condition:
-        result.append('#if %s\n' % swift_receiver_condition(receiver))
-    result.append('import WebKit_Internal\n')
-    if receiver.condition:
-        result.append('#endif\n')
-    result.append('\n')
-    if receiver.condition:
-        result.append('#if %s\n' % swift_receiver_condition(receiver))
-    result.append('extension SwiftDispatch.%s {\n' % receiver.name)
-    for message in swift_implementation_messages(receiver):
-        function = []
-        function.append('\n')
-        function.append('    @cxx\n')
-        function.append('    @implementation\n')
-        function.append('    static func dispatch%s(\n' % message.name)
-        function.append('        _ receiver: %s,\n' % swift_implementation_receiver_class(receiver).replace('::', '.'))
-        function.append('        _ decoder: IPC.SwiftDecoder\n')
-        function.append('    ) -> Bool {\n')
-        function.append('        var decoder = decoder\n')
-        decoded = [(parameter.name,) + swift_types.swift_type_and_coder(parameter.type) for parameter in message.parameters]
-        for name, swift_type, _ in decoded:
-            function.append('        let %s: %s\n' % (name, swift_type))
-        if decoded:
-            function.append('        do {\n')
-            for name, _, coder in decoded:
-                function.append('            %s = try %s.decode(from: &decoder)\n' % (name, coder))
-            function.append('        } catch {\n')
-            function.append('            return false\n')
-            function.append('        }\n')
-        function.append('        do throws(InvalidMessage) {\n')
-        function.append('            try mayThrowInvalidMessage(\n')
-        if decoded:
-            function.append('                receiver.%s(\n' % handler_function_name(message))
-            function.append(',\n'.join(['                    %s: %s' % (name, name) for name, _, _ in decoded]))
-            function.append('\n                )\n')
-        else:
-            function.append('                receiver.%s()\n' % handler_function_name(message))
-        function.append('            )\n')
-        function.append('        } catch {\n')
-        function.append('            markMessageInvalid(error, on: &decoder)\n')
-        function.append('        }\n')
-        function.append('        return true\n')
-        function.append('    }\n')
-        if message.condition:
-            try:
-                condition = swift_types.swift_condition(message.condition)
-            except swift_types.UnmappableSwiftCondition as error:
-                raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
-            function = ['\n    #if %s' % condition] + function + ['    #endif\n']
-        result += function
-    result.append('}\n')
-    if receiver.condition:
-        result.append('#endif\n')
-    return ''.join(result)
-
-
+# For a receiver with 'SwiftImplementation', a C++ class, the generated Swift implements, with @cxx @implementation, the
+# dispatch function the messages header declares for each message that takes Swift types. It is a Swift receiver's
+# dispatch with the receiver as its first argument, the target, and the decoder it lends by value.
 def generate_swift_message_handler(receiver):
-    if receiver.is_swift_implementation():
-        return generate_swift_implementation_message_handler(receiver)
-    assert (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by)
+    implementation = receiver.is_swift_implementation()
+    assert (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by or implementation)
     check_swift_types_are_dispatched_on_main_thread(receiver)
     result = []
     result.append(block_to_line_comments(_license_header))
@@ -2724,7 +2682,7 @@ def generate_swift_message_handler(receiver):
         result.append('#endif\n')
     result.append('\n')
 
-    class_name = receiver.name
+    class_name = swift_implementation_receiver_class(receiver).replace('::', '.') if implementation else receiver.name
     message_forwarder_class = class_name + 'MessageForwarder'
     ref_message_forwarder_class = 'Ref' + message_forwarder_class
     weak_ref_class = class_name + 'WeakRef'
@@ -2734,47 +2692,51 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
-    if not swift_receiver_runs_on_work_queue(receiver):
+    if implementation:
+        result.append('extension SwiftDispatch.%s {\n' % receiver.name)
+    if not implementation and not swift_receiver_runs_on_work_queue(receiver):
         result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
-    result.append('@_expose(Cxx)\n')
-    if swift_receiver_runs_on_work_queue(receiver):
-        # A stream receiver's forwarder keeps its target alive, as the stream connection keeps a C++ receiver alive
-        # while it is registered and while it dispatches a batch of messages to it. A weak reference, loaded for
-        # each message, costs more than anything else in dispatch, and makes the target's reference counting go
-        # through a side table. The target must not keep its forwarder. A WorkQueue receiver's does the same, as
-        # the connection keeps a C++ WorkQueue receiver alive while it is registered and for each message it dispatches.
-        result.append('final class %s {\n' % (weak_ref_class))
-        result.append('    private let target: %s\n' % (class_name))
-    else:
-        result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
-        result.append('    private weak var target: %s?\n' % (class_name))
-    result.append('    init(target: %s) {\n' % (class_name))
-    result.append('        self.target = target\n')
-    result.append('    }\n')
-    # @used ensures these are retained even with -O -wmo: rdar://179098545
-    if swift_receiver_runs_on_work_queue(receiver):
-        if receiver_needs_shared_preferences(receiver):
+    if not implementation:
+        result.append('@_expose(Cxx)\n')
+    if not implementation:
+        if swift_receiver_runs_on_work_queue(receiver):
+            # A stream receiver's forwarder keeps its target alive, as the stream connection keeps a C++ receiver alive
+            # while it is registered and while it dispatches a batch of messages to it. A weak reference, loaded for
+            # each message, costs more than anything else in dispatch, and makes the target's reference counting go
+            # through a side table. The target must not keep its forwarder. A WorkQueue receiver's does the same, as
+            # the connection keeps a C++ WorkQueue receiver alive while it is registered and for each message it dispatches.
+            result.append('final class %s {\n' % (weak_ref_class))
+            result.append('    private let target: %s\n' % (class_name))
+        else:
+            result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
+            result.append('    private weak var target: %s?\n' % (class_name))
+        result.append('    init(target: %s) {\n' % (class_name))
+        result.append('        self.target = target\n')
+        result.append('    }\n')
+        # @used ensures these are retained even with -O -wmo: rdar://179098545
+        if swift_receiver_runs_on_work_queue(receiver):
+            if receiver_needs_shared_preferences(receiver):
+                result.append('\n')
+                result.append('    @used\n')
+                result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
+                result.append('        target.sharedPreferencesForWebProcess()\n')
+                result.append('    }\n')
+        else:
+            # Two calls rather than one returning an Optional, which C++ handles through Swift's generic
+            # value witnesses. Both are on the main thread, so the target can't go away between them.
             result.append('\n')
             result.append('    @used\n')
-            result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
-            result.append('        target.sharedPreferencesForWebProcess()\n')
+            result.append('    func hasMessageTarget() -> Bool {\n')
+            result.append('        target != nil\n')
             result.append('    }\n')
-    else:
-        # Two calls rather than one returning an Optional, which C++ handles through Swift's generic
-        # value witnesses. Both are on the main thread, so the target can't go away between them.
-        result.append('\n')
-        result.append('    @used\n')
-        result.append('    func hasMessageTarget() -> Bool {\n')
-        result.append('        target != nil\n')
-        result.append('    }\n')
-        result.append('\n')
-        result.append('    @used\n')
-        result.append('    func messageTarget() -> %s {\n' % (class_name))
-        result.append('        guard let target else {\n')
-        result.append('            fatalError("messageTarget() called without a message target")\n')
-        result.append('        }\n')
-        result.append('        return target\n')
-        result.append('    }\n')
+            result.append('\n')
+            result.append('    @used\n')
+            result.append('    func messageTarget() -> %s {\n' % (class_name))
+            result.append('        guard let target else {\n')
+            result.append('            fatalError("messageTarget() called without a message target")\n')
+            result.append('        }\n')
+            result.append('        return target\n')
+            result.append('    }\n')
 
     stream_reply_values = []
 
@@ -2782,7 +2744,7 @@ def generate_swift_message_handler(receiver):
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
     # failed message check on the handler's behalf, and supplies the reply if the message has one.
     for message in receiver.messages:
-        if not generates_swift_trampoline(receiver, message):
+        if not (receiver.takes_swift_types(message) if implementation else generates_swift_trampoline(receiver, message)):
             continue
 
         message_start = len(result)
@@ -2868,10 +2830,19 @@ def generate_swift_message_handler(receiver):
         stored_names = [p.split(':')[0] for p in stored]
 
         result.append('\n')
-        result.append('    @used\n')
-        result.append('    func dispatch%s(\n' % message.name)
-        result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
-        result.append('\n    ) -> Bool {\n' if takes_swift_types else '\n    ) {\n')
+        if implementation:
+            result.append('    @cxx\n')
+            result.append('    @implementation\n')
+            result.append('    static func dispatch%s(\n' % message.name)
+            implementation_parameters = ['_ target: %s' % class_name] + ['_ %s' % parameter.replace(': inout IPC.SwiftDecoder', ': IPC.SwiftDecoder') for parameter in parameters]
+            result.append(',\n'.join(['        %s' % parameter for parameter in implementation_parameters]))
+            result.append('\n    ) -> Bool {\n')
+            result.append('        var decoder = decoder\n')
+        else:
+            result.append('    @used\n')
+            result.append('    func dispatch%s(\n' % message.name)
+            result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
+            result.append('\n    ) -> Bool {\n' if takes_swift_types else '\n    ) {\n')
         if is_stream and not decodes_on_stream:
             result.append('        assert(connection.isCurrentWorkQueue())\n')
         if decoded_parameters:
@@ -2973,9 +2944,10 @@ def generate_swift_message_handler(receiver):
             append_handler_call('        ', '', True)
         elif sync_handler:
             result.append('        MainActor.assumeIsolated {\n')
-            result.append('            guard let target else {\n')
-            result.append('                return\n')
-            result.append('            }\n')
+            if not implementation:
+                result.append('            guard let target else {\n')
+                result.append('                return\n')
+                result.append('            }\n')
             append_handler_call('            ', '', True)
             result.append('        }\n')
         if sync_handler:
@@ -2992,9 +2964,10 @@ def generate_swift_message_handler(receiver):
             continue
 
         result.append('        MainActor.assumeIsolated {\n')
-        result.append('            guard let target else {\n')
-        result.append('                return\n')
-        result.append('            }\n')
+        if not implementation:
+            result.append('            guard let target else {\n')
+            result.append('                return\n')
+            result.append('            }\n')
         result.append('            Task.immediateOnMainActor {\n')
         result.append('                await %s(\n' % invocation_class)
         result.append(',\n'.join(['                    %s: %s' % (name, name) for name in stored_names]))
@@ -3074,6 +3047,19 @@ def generate_swift_message_handler(receiver):
         if message.condition:
             result.append('#endif\n')
 
+    if not implementation:
+        append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
+
+    if receiver.condition:
+        result.append('#endif\n')
+    if receiver.swift_receiver_build_enabled_by:
+        result.append('#endif\n')
+
+
+    return ''.join(result)
+
+
+def append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class):
     result.append('\n')
     result.append('extension WebKit.%s {\n' % (message_forwarder_class))
     result.append('    static func create(target: %s) -> %s {\n' % (class_name, ref_message_forwarder_class))
@@ -3088,14 +3074,6 @@ def generate_swift_message_handler(receiver):
     result.append('        )\n')
     result.append('    }\n')
     result.append('}\n')
-
-    if receiver.condition:
-        result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#endif\n')
-
-
-    return ''.join(result)
 
 
 def generate_message_names_header(receivers):

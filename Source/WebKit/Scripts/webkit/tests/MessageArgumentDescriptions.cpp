@@ -309,12 +309,32 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
     case MessageName::TestWithStreamSwiftImplementation_SendCocoaValue:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCocoaValue>(globalObject, decoder);
 #endif
+    case MessageName::TestWithStreamSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendEmptySync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendEmptySync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendLaterSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendLaterSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendLentBytes:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendLentBytes>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendWithConnection:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendWithConnection>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendCxxString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxString>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendSendRight:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendSendRight>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendStringAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecodedReply:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxDecodedReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftLentState_Reset:
@@ -429,6 +449,18 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessageReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendString>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendDirect:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendDirect>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendCxxString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendCxxString>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringAsyncReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithoutReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithoutReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithoutParameters:
@@ -545,6 +577,16 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithWantsDispatch_TestSyncMessage>(globalObject, decoder);
     case MessageName::TestWithWantsDispatchNoSyncMessages_TestMessage:
         return jsValueForDecodedMessage<MessageName::TestWithWantsDispatchNoSyncMessages_TestMessage>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithWorkQueueSwiftImplementation_SendString>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendCxxString:
+        return jsValueForDecodedMessage<MessageName::TestWithWorkQueueSwiftImplementation_SendCxxString>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsyncReply>(globalObject, decoder);
     default:
         break;
     }
@@ -620,6 +662,18 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
 #endif
     case MessageName::TestWithStreamSwift_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendEmptySync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendEmptySync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendLaterSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendLaterSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded:
+        return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
         return jsValueForDecodedMessageReply<MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
@@ -678,6 +732,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SendStringSync>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithReply:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithMultipleReplies:
@@ -734,6 +792,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithWantsAsyncDispatch_TestSyncMessage>(globalObject, decoder);
     case MessageName::TestWithWantsDispatch_TestSyncMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithWantsDispatch_TestSyncMessage>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync>(globalObject, decoder);
     default:
         break;
     }
@@ -1382,6 +1444,39 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "value"_s, "uint64_t"_s },
         };
 #endif
+    case MessageName::TestWithStreamSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendEmptySync:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendLaterSync:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync:
+        return Vector<ArgumentDescription> {
+            { "count"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "handle"_s, "std::optional<WebCore::SharedMemory::Handle>"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendLentBytes:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+            { "bytes"_s, "std::span<const uint8_t>"_s },
+            { "tail"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendWithConnection:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+        };
     case MessageName::TestWithStreamSwiftImplementation_SendCxxString:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
@@ -1393,6 +1488,14 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithStreamSwiftImplementation_SendSendRight:
         return Vector<ArgumentDescription> {
             { "sendRight"_s, "MachSendRight"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecodedReply:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
         };
     case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsyncReply:
         return Vector<ArgumentDescription> {
@@ -1613,6 +1716,30 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessageReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendDirect:
+        return Vector<ArgumentDescription> {
+            { "value"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendCxxString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
         };
     case MessageName::TestWithSwiftTypes_MessageWithoutReply:
         return Vector<ArgumentDescription> {
@@ -1846,6 +1973,26 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
         };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendCxxString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
     default:
         break;
     }
@@ -1961,6 +2108,30 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         return Vector<ArgumentDescription> {
             { "returnValue"_s, "int64_t"_s },
         };
+    case MessageName::TestWithStreamSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendEmptySync:
+        return Vector<ArgumentDescription> { };
+    case MessageName::TestWithStreamSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendLaterSync:
+        return Vector<ArgumentDescription> {
+            { "first"_s, "Seconds"_s },
+            { "second"_s, "Seconds"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxEncodedSync:
+        return Vector<ArgumentDescription> {
+            { "rights"_s, "Vector<MachSendRight>"_s },
+        };
+    case MessageName::TestWithStreamSwiftImplementation_SendCxxDecoded:
+        return Vector<ArgumentDescription> {
+            { "success"_s, "bool"_s },
+        };
     case MessageName::TestWithStreamSwiftImplementation_SendCxxStringAsync:
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
@@ -2070,6 +2241,14 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "length"_s, "uint64_t"_s },
         };
     case MessageName::TestWithSwiftTypes_MessageWithReply:
         return Vector<ArgumentDescription> {
@@ -2181,6 +2360,15 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithWantsDispatch_TestSyncMessage:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithWorkQueueSwiftImplementation_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
         };
     default:
         break;

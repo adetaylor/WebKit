@@ -71,17 +71,19 @@ enum class ReceiverName : uint8_t {
     , TestWithSwift = 27
     , TestWithSwiftConditionally = 28
     , TestWithSwiftConditionallyAndEnabledBy = 29
-    , TestWithSwiftTypes = 30
-    , TestWithSwiftTypesOptIn = 31
-    , TestWithSwiftWorkQueue = 32
-    , TestWithValidator = 33
-    , TestWithWantsAsyncDispatch = 34
-    , TestWithWantsDispatch = 35
-    , TestWithWantsDispatchNoSyncMessages = 36
-    , TestWithoutAttributes = 37
-    , TestWithoutUsingIPCConnection = 38
-    , IPC = 39
-    , Invalid = 40
+    , TestWithSwiftImplementation = 30
+    , TestWithSwiftTypes = 31
+    , TestWithSwiftTypesOptIn = 32
+    , TestWithSwiftWorkQueue = 33
+    , TestWithValidator = 34
+    , TestWithWantsAsyncDispatch = 35
+    , TestWithWantsDispatch = 36
+    , TestWithWantsDispatchNoSyncMessages = 37
+    , TestWithWorkQueueSwiftImplementation = 38
+    , TestWithoutAttributes = 39
+    , TestWithoutUsingIPCConnection = 40
+    , IPC = 41
+    , Invalid = 42
 };
 
 enum class MessageName : uint16_t {
@@ -155,12 +157,16 @@ enum class MessageName : uint16_t {
 #if PLATFORM(COCOA)
     TestWithStreamSwiftImplementation_SendCocoaValue,
 #endif
+    TestWithStreamSwiftImplementation_SendCxxDecodedReply,
     TestWithStreamSwiftImplementation_SendCxxString,
     TestWithStreamSwiftImplementation_SendCxxStringAsyncReply,
     TestWithStreamSwiftImplementation_SendEmpty,
+    TestWithStreamSwiftImplementation_SendLentBytes,
     TestWithStreamSwiftImplementation_SendSendRight,
     TestWithStreamSwiftImplementation_SendString,
+    TestWithStreamSwiftImplementation_SendStringAsyncReply,
     TestWithStreamSwiftImplementation_SendValues,
+    TestWithStreamSwiftImplementation_SendWithConnection,
     TestWithStreamSwiftLentState_Draw,
     TestWithStreamSwiftLentState_Reset,
     TestWithStreamSwiftLentState_SetValues,
@@ -193,6 +199,10 @@ enum class MessageName : uint16_t {
     TestWithSuperclass_TestMessageWithMessageName,
     TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessageReply,
     TestWithSwiftConditionally_TestAsyncMessageReply,
+    TestWithSwiftImplementation_SendCxxString,
+    TestWithSwiftImplementation_SendDirect,
+    TestWithSwiftImplementation_SendString,
+    TestWithSwiftImplementation_SendStringAsyncReply,
     TestWithSwiftTypesOptIn_CxxTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageReply,
     TestWithSwiftTypesOptIn_SwiftTypedMessageWithoutReply,
@@ -228,6 +238,9 @@ enum class MessageName : uint16_t {
     TestWithWantsAsyncDispatch_TestMessage,
     TestWithWantsDispatchNoSyncMessages_TestMessage,
     TestWithWantsDispatch_TestMessage,
+    TestWithWorkQueueSwiftImplementation_SendCxxString,
+    TestWithWorkQueueSwiftImplementation_SendString,
+    TestWithWorkQueueSwiftImplementation_SendStringAsyncReply,
 #if (ENABLE(TOUCH_EVENTS) && (NESTED_MESSAGE_CONDITION && SOME_OTHER_MESSAGE_CONDITION))
     TestWithoutAttributes_AddEvent,
 #endif
@@ -297,7 +310,9 @@ enum class MessageName : uint16_t {
     TestWithLegacyReceiver_OpaqueTypeSecurityAssertion,
     TestWithLegacyReceiver_RunJavaScriptAlert,
     TestWithSemaphore_ReceiveSemaphore,
+    TestWithStreamSwiftImplementation_SendCxxDecoded,
     TestWithStreamSwiftImplementation_SendCxxStringAsync,
+    TestWithStreamSwiftImplementation_SendStringAsync,
     TestWithStreamSwiftTypes_SendCxxDecoded,
     TestWithStreamSwiftTypes_SendEmptyAsync,
     TestWithStreamSwiftTypes_SendStringAsync,
@@ -313,6 +328,7 @@ enum class MessageName : uint16_t {
 #endif
     TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessage,
     TestWithSwiftConditionally_TestAsyncMessage,
+    TestWithSwiftImplementation_SendStringAsync,
     TestWithSwiftTypesOptIn_CxxTypedMessage,
     TestWithSwiftTypesOptIn_SwiftTypedMessage,
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
@@ -334,6 +350,7 @@ enum class MessageName : uint16_t {
     TestWithSwift_TestAsyncMessage,
     TestWithSwift_TestMessageWithEmptyReply,
     TestWithValidator_MessageWithReply,
+    TestWithWorkQueueSwiftImplementation_SendStringAsync,
     TestWithoutAttributes_CreatePlugin,
     TestWithoutAttributes_GetPlugins,
 #if PLATFORM(MAC)
@@ -345,6 +362,10 @@ enum class MessageName : uint16_t {
     LastAsynchronous = FirstSynchronous - 1,
     TestWithLegacyReceiver_GetPluginProcessConnection,
     TestWithLegacyReceiver_TestMultipleAttributes,
+    TestWithStreamSwiftImplementation_SendCxxEncodedSync,
+    TestWithStreamSwiftImplementation_SendEmptySync,
+    TestWithStreamSwiftImplementation_SendLaterSync,
+    TestWithStreamSwiftImplementation_SendStringSync,
     TestWithStreamSwiftReplyValues_SendCxxEncodedSync,
     TestWithStreamSwiftReplyValues_SendLaterSync,
     TestWithStreamSwiftTypes_SendEmptySync,
@@ -363,6 +384,7 @@ enum class MessageName : uint16_t {
     TestWithSuperclass_TestSynchronousMessage,
     TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage,
     TestWithSwiftConditionally_TestSyncMessage,
+    TestWithSwiftImplementation_SendStringSync,
     TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage,
     TestWithSwiftTypesOptIn_SwiftTypedSynchronousMessage,
     TestWithSwiftTypes_SynchronousMessage,
@@ -375,6 +397,7 @@ enum class MessageName : uint16_t {
     TestWithSwift_TestThrowingMessageWithReply,
     TestWithWantsAsyncDispatch_TestSyncMessage,
     TestWithWantsDispatch_TestSyncMessage,
+    TestWithWorkQueueSwiftImplementation_SendStringSync,
     TestWithoutAttributes_GetPluginProcessConnection,
     TestWithoutAttributes_TestMultipleAttributes,
     WrappedAsyncMessageForTesting,

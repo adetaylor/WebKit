@@ -636,7 +636,9 @@ void handleMessageAsyncWithReplyID(Connection& connection, Decoder& decoder, T* 
 }
 
 // Dispatch to Swift handlers of messages that take Swift types. The Swift dispatch function decodes the
-// arguments itself, and returns false if they were malformed.
+// arguments itself, and returns false if they were malformed. It is a member of a Swift receiver's generated
+// dispatch, or, for a C++ receiver with 'SwiftImplementation', a function that generated Swift implements and that
+// takes the receiver first.
 
 inline void markSwiftArgumentsInvalid(Decoder& decoder)
 {
@@ -654,51 +656,40 @@ void encodeDefaultSwiftReply(Encoder& encoder)
     });
 }
 
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessage(Connection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessage(Connection& connection, Decoder& decoder, T* object, F function)
 {
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!(object->*function)(&connection, swiftDecoderLender.view()))
+    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view()))
         markSwiftArgumentsInvalid(decoder);
 }
 
 // Calls generated Swift's dispatch of a stream message that takes Swift types, passing it the connection only if it
 // takes one, as only a WantsConnection message's does, so that the others don't retain and release it.
-template<typename T, typename U, typename MF, typename... Arguments>
-bool dispatchSwiftStreamMessage(StreamServerConnection& connection, T* object, MF U::* function, Arguments&&... arguments)
+template<typename T, typename F, typename... Arguments>
+bool dispatchSwiftStreamMessage(StreamServerConnection& connection, T* object, F function, Arguments&&... arguments)
 {
     ASSERT(connection.isCurrentWorkQueue());
-    if constexpr (std::is_invocable_v<MF U::*, T*, StreamServerConnection*, Arguments...>) {
-        SUPPRESS_UNCOUNTED_ARG return (object->*function)(&connection, std::forward<Arguments>(arguments)...);
+    if constexpr (std::is_invocable_v<F, T*, StreamServerConnection*, Arguments...>) {
+        SUPPRESS_UNCOUNTED_ARG return std::invoke(function, object, &connection, std::forward<Arguments>(arguments)...);
     } else
-        return (object->*function)(std::forward<Arguments>(arguments)...);
+        return std::invoke(function, object, std::forward<Arguments>(arguments)...);
 }
 
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessage(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessage(StreamServerConnection& connection, Decoder& decoder, T* object, F function)
 {
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
     if (!dispatchSwiftStreamMessage(connection, object, function, swiftDecoderLender.view()))
         markSwiftArgumentsInvalid(decoder);
 }
 
-// Dispatch of a stream message that takes Swift types to a C++ receiver with 'SwiftImplementation', whose generated Swift
-// implements the dispatch function with @cxx @implementation.
-template<typename MessageType, typename Receiver>
-void handleSwiftImplementedMessage(StreamServerConnection& connection, Decoder& decoder, Receiver& receiver, bool (*function)(Receiver* WTF_NONNULL, SwiftDecoder))
-{
-    ASSERT_UNUSED(connection, connection.isCurrentWorkQueue());
-    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    if (!function(&receiver, swiftDecoderLender.view()))
-        markSwiftArgumentsInvalid(decoder);
-}
-
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object, F function)
 {
     Ref replyEncoder = SwiftReplyEncoder::create(connection, makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!(object->*function)(&connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
         replyEncoder->discard();
         markSwiftArgumentsInvalid(decoder);
         return;
@@ -707,8 +698,8 @@ void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object
 }
 
 // The reply goes through the stream connection's underlying Connection, as a C++ handler's does.
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessageAsync(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessageAsync(StreamServerConnection& connection, Decoder& decoder, T* object, F function)
 {
     Ref replyEncoder = SwiftReplyEncoder::create(connection.connection(), makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
@@ -720,8 +711,8 @@ void handleSwiftMessageAsync(StreamServerConnection& connection, Decoder& decode
     decoder.markHandled();
 }
 
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessageSynchronous(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessageSynchronous(StreamServerConnection& connection, Decoder& decoder, T* object, F function)
 {
     Ref replyEncoder = SwiftReplyEncoder::createForStreamSyncReply(connection, decoder.syncRequestID(), MessageType::isReplyStreamEncodable, encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
@@ -735,8 +726,8 @@ void handleSwiftMessageSynchronous(StreamServerConnection& connection, Decoder& 
 
 // For a message whose Swift handler is given its reply as a value (SwiftReplyValue, CxxEncodedReply), which it may send
 // after it returns: the reply isn't stream-encodable, so the encoder outlives the dispatch.
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessageSynchronousWithReplyValue(StreamServerConnection& connection, Decoder& decoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessageSynchronousWithReplyValue(StreamServerConnection& connection, Decoder& decoder, T* object, F function)
 {
     static_assert(!MessageType::isReplyStreamEncodable);
     Ref replyEncoder = SwiftReplyEncoder::createForStreamSyncReply(connection, decoder.syncRequestID(), MessageType::isReplyStreamEncodable, encodeDefaultSwiftReply<MessageType>);
@@ -747,12 +738,12 @@ void handleSwiftMessageSynchronousWithReplyValue(StreamServerConnection& connect
     }
 }
 
-template<typename MessageType, typename T, typename U, typename MF>
-void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, UniqueRef<Encoder>& replyEncoder, T* object, MF U::* function)
+template<typename MessageType, typename T, typename F>
+void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, UniqueRef<Encoder>& replyEncoder, T* object, F function)
 {
     Ref swiftReplyEncoder = SwiftReplyEncoder::create(connection, WTF::move(replyEncoder), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!(object->*function)(&connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
         replyEncoder = makeUniqueRefFromNonNullUniquePtr(swiftReplyEncoder->discard());
         markSwiftArgumentsInvalid(decoder);
     }

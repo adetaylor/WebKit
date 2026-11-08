@@ -34,6 +34,14 @@ messages -> TestWithStreamSwiftImplementation Stream {
 #if PLATFORM(COCOA)
     void SendCocoaValue(uint64_t value)
 #endif
+    void SendStringSync(String url) -> (String reply, uint64_t length) Synchronous
+    void SendEmptySync() -> () Synchronous WantsConnection
+    void SendStringAsync(String url) -> (String reply)
+    void SendLaterSync(uint32_t value) -> (Seconds first, Seconds second) Synchronous NotStreamEncodableReply SwiftReplyValue
+    void SendCxxEncodedSync(uint32_t count) -> (Vector<MachSendRight> rights) Synchronous NotStreamEncodableReply CxxEncodedReply
+    void SendCxxDecoded(uint32_t value, [CxxDecoded] std::optional<WebCore::SharedMemory::Handle> handle) -> (bool success) NotStreamEncodable
+    void SendLentBytes(uint32_t value, [Lent] std::span<const uint8_t> bytes, uint64_t tail)
+    void SendWithConnection(uint32_t value) WantsConnection
     void SendCxxString(String url) CxxTypes
     void SendCxxStringAsync(String url) -> (String reply) CxxTypes
     void SendSendRight(MachSendRight sendRight) CxxTypes NotStreamEncodable
