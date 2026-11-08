@@ -62,6 +62,10 @@ namespace WebCore {
 class ColorSpace;
 class IOSurface;
 }
+#if ENABLE(WEBXR) && PLATFORM(COCOA)
+#include <WebCore/PlatformXR.h>
+#include <wtf/MachSendRight.h>
+#endif
 
 namespace WebKit {
 
@@ -150,11 +154,6 @@ WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const 
     return &WebGPUSwiftReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
-// Makes the C++ receiver, with 'SwiftImplementation', of the messages of the object whose Swift state is at swiftState,
-// which it takes over, and registers it, as the template above registers a forwarder. Null if the RemoteGPU or its
-// stream connection has gone.
-WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const WebGPUSwiftRegistryHost&, IPC::ReceiverName, uintptr_t swiftState, uint64_t identifier) SWIFT_RETURNS_RETAINED;
-
 // The descriptor of the instance that the registry makes, which C++ makes for it: Swift can't take the descriptor, which
 // can't be copied, as a parameter.
 class WebGPUSwiftInstanceDescriptor final : public RefCounted<WebGPUSwiftInstanceDescriptor> {
@@ -182,6 +181,36 @@ private:
 
     ::WebGPU::InstanceDescriptor m_descriptor;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if ENABLE(WEBXR) && PLATFORM(COCOA)
+// The compositor's buffers and the rasterization rate map of an XR projection layer's StartFrame message, which C++
+// decodes: the send rights, which the frame owns while the Swift receiver starts the layer's frame with them, and the
+// samples, which it lends.
+class WebGPUXRFrame {
+    WTF_MAKE_NONCOPYABLE(WebGPUXRFrame);
+public:
+    WebGPUXRFrame(IPC::CxxDecodedArgument<MachSendRight>& colorBuffer, IPC::CxxDecodedArgument<MachSendRight>& depthBuffer, IPC::CxxDecodedArgument<MachSendRight>& completionSyncEvent, IPC::CxxDecodedArgument<PlatformXR::RateMapDescription>&);
+    WebGPUXRFrame(WebGPUXRFrame&&) = default;
+    ~WebGPUXRFrame();
+
+    // MACH_PORT_NULL for a buffer that the compositor didn't send.
+    mach_port_t colorBuffer() const { return m_colorBuffer.sendRight(); }
+    mach_port_t depthBuffer() const { return m_depthBuffer.sendRight(); }
+    mach_port_t completionSyncEvent() const { return m_completionSyncEvent.sendRight(); }
+
+    uint32_t screenWidth() const { return static_cast<uint32_t>(m_rateMapDescription.screenSize.width()); }
+    uint32_t screenHeight() const { return static_cast<uint32_t>(m_rateMapDescription.screenSize.height()); }
+    ::WebGPU::XRRasterizationSamples horizontalSamplesLeft() const LIFETIME_BOUND { return { m_rateMapDescription.horizontalSamplesLeft.span() }; }
+    ::WebGPU::XRRasterizationSamples horizontalSamplesRight() const LIFETIME_BOUND { return { m_rateMapDescription.horizontalSamplesRight.span() }; }
+    ::WebGPU::XRRasterizationSamples verticalSamples() const LIFETIME_BOUND { return { m_rateMapDescription.verticalSamples.span() }; }
+
+private:
+    MachSendRight m_colorBuffer;
+    MachSendRight m_depthBuffer;
+    MachSendRight m_completionSyncEvent;
+    PlatformXR::RateMapDescription m_rateMapDescription;
+} SWIFT_NONCOPYABLE;
+#endif
 
 using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 

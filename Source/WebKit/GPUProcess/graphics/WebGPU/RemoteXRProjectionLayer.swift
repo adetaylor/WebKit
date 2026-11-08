@@ -26,78 +26,68 @@
 @_spi(WebKitGPU) import WebGPUSwift
 import WebKit_Internal
 
-// The Swift state of a WebXR projection layer's receiver, which the C++ RemoteXRProjectionLayer holds retained, by
-// address, from add() to its destructor: the layer, and the link to the registry that owns it.
-final class RemoteXRProjectionLayerState {
-    let layer: XRProjectionLayerReference
-    let link: WebGPURegistryLink
+// Receives the messages of a WebXR projection layer, on its stream connection's work queue, and calls its
+// XRProjectionLayerReference.
+@_expose(Cxx)
+final class RemoteXRProjectionLayer {
+    private let layer: XRProjectionLayerReference
+    private let link: WebGPURegistryLink
 
-    init(_ layer: XRProjectionLayerReference, _ link: WebGPURegistryLink) {
+    @_expose(!Cxx)
+    private init(_ layer: XRProjectionLayerReference, _ link: WebGPURegistryLink) {
         self.layer = layer
         self.link = link
     }
-}
 
-// The messages of a WebXR projection layer, on its stream connection's work queue, that Swift handles: all but
-// StartFrame, which C++ handles and passes on to startSwiftFrame().
-extension WebKit.RemoteXRProjectionLayer {
-    // Adds the layer, with the receiver of its messages, to the registry that the link names.
+    // Adds the layer, with this receiver of its messages, to the registry that the link names.
+    @_expose(!Cxx)
     static func add(_ layer: XRProjectionLayerReference, _ link: WebGPURegistryLink) {
         guard let objects = link.objects else {
             return
         }
-        let state = RemoteXRProjectionLayerState(layer, link)
-        let address = UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, .RemoteXRProjectionLayer, address, link.identifier)
-        objects.add(link.identifier, layer, receiver: state, registration: registration)
+        let receiver = RemoteXRProjectionLayer(layer, link)
+        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRProjectionLayer, link.identifier)
+        objects.add(link.identifier, layer, receiver: receiver, registration: registration)
     }
 
-    @cxx @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<RemoteXRProjectionLayerState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+    // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteXRProjectionLayerMessageForwarder {
+        WebKit.RemoteXRProjectionLayerMessageForwarder.create(target: self)
     }
 
-    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("A projection layer receiver without its state")
-        }
-        return unsafe address
-    }
-
-    private var state: RemoteXRProjectionLayerState {
-        // Safety: m_swiftState is a retained RemoteXRProjectionLayerState until the destructor, and nothing changes it.
-        unsafe Unmanaged<RemoteXRProjectionLayerState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
+    @_expose(!Cxx)
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        link.sharedPreferencesForWebProcess()
     }
 
     func destruct() {
-        state.link.remove()
+        link.remove()
     }
 
     #if ENABLE_WEBXR && WTF_PLATFORM_COCOA
-    @cxx @implementation
-    func startSwiftFrame(
-        _ frameIndex: UInt64,
-        _ colorBuffer: UInt32,
-        _ depthBuffer: UInt32,
-        _ completionSyncEvent: UInt32,
-        _ textureIndex: UInt64,
-        _ screenWidth: UInt32,
-        _ screenHeight: UInt32,
-        _ horizontalSamplesLeft: WebGPU.XRRasterizationSamples,
-        _ horizontalSamplesRight: WebGPU.XRRasterizationSamples,
-        _ verticalSamples: WebGPU.XRRasterizationSamples
+    // C++ decodes the compositor's buffers and the rasterization rate map, and the frame owns them while the layer
+    // starts with them.
+    func startFrame(
+        frameIndex: UInt64,
+        colorBuffer: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameColorBuffer,
+        depthBuffer: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameDepthBuffer,
+        completionSyncEvent: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameCompletionSyncEvent,
+        textureIndex: UInt64,
+        rateMapDescription: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameRateMapDescription
     ) {
-        state.layer.startFrame(
+        let frame = WebKit.WebGPUXRFrame(colorBuffer, depthBuffer, completionSyncEvent, rateMapDescription)
+        layer.startFrame(
             frameIndex,
-            colorBuffer: colorBuffer,
-            depthBuffer: depthBuffer,
-            completionSyncEvent: completionSyncEvent,
+            colorBuffer: frame.colorBuffer(),
+            depthBuffer: frame.depthBuffer(),
+            completionSyncEvent: frame.completionSyncEvent(),
             reusableTextureIndex: textureIndex,
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
-            horizontalSamplesLeft: horizontalSamplesLeft,
-            horizontalSamplesRight: horizontalSamplesRight,
-            verticalSamples: verticalSamples
+            screenWidth: frame.screenWidth(),
+            screenHeight: frame.screenHeight(),
+            horizontalSamplesLeft: frame.horizontalSamplesLeft(),
+            horizontalSamplesRight: frame.horizontalSamplesRight(),
+            verticalSamples: frame.verticalSamples()
         )
     }
     #endif
@@ -106,7 +96,7 @@ extension WebKit.RemoteXRProjectionLayer {
     }
 
     func destroy() {
-        state.layer.destroy()
+        layer.destroy()
     }
 }
 
