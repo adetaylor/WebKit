@@ -369,7 +369,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             resizePipeline = pipeline
             return pipeline
         } catch {
-            WebGPU.Metal.logAlways("\(error as NSError)")
+            logAlways("\(error as NSError)")
             return nil
         }
     }

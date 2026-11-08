@@ -370,7 +370,7 @@ final class ExternalTextureImporter {
         do {
             library = try metalDevice.makeLibrary(source: premultiplyAlphaShaderSource, options: nil)
         } catch {
-            WebGPU.Metal.logAlways("\(error as NSError)")
+            logAlways("\(error as NSError)")
             return nil
         }
         guard let function = library.makeFunction(name: "premultiplyAlpha") else {
@@ -379,7 +379,7 @@ final class ExternalTextureImporter {
         do {
             premultiplyAlphaPipeline = try metalDevice.makeComputePipelineState(function: function)
         } catch {
-            WebGPU.Metal.logAlways("\(error as NSError)")
+            logAlways("\(error as NSError)")
         }
         return premultiplyAlphaPipeline
     }

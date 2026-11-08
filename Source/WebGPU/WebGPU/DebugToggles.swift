@@ -47,10 +47,22 @@
 import Foundation
 import Metal
 import Synchronization
+import os
 @_implementationOnly import WebGPU_Internal.Device
 
 // The process-wide developer toggles, flipped by `notifyutil -p <name>` on the main queue and read on every Instance's
 // API thread. Each notification handler is registered by the first reader.
+
+// MARK: Logging
+
+private let genericLog = os.Logger(subsystem: "com.apple.WebKit", category: "Generic")
+
+// What WTFLogAlways("%@", message) does: the line on the WebKit subsystem's generic log, then on standard error. Any thread.
+func logAlways(_ message: String) {
+    let line = message + "\n"
+    genericLog.log("\(line)")
+    FileHandle.standardError.write(Data(line.utf8))
+}
 
 // MARK: GPU frame capture
 
@@ -91,11 +103,11 @@ private func captureFrame(_ captureObject: (any MTLDevice)?) {
     let path = descriptor.outputURL?.absoluteString ?? "(null)"
     do {
         try captureManager.startCapture(with: descriptor)
-        WebGPU.Metal.logAlways(
+        logAlways(
             "Success starting GPU frame capture at path \(path) - frame count = \(frameCapture.withLock { $0.maxSubmitCallsToCapture })"
         )
     } catch {
-        WebGPU.Metal.logAlways("Failed to start GPU frame capture at path \(path), error \(error)")
+        logAlways("Failed to start GPU frame capture at path \(path), error \(error)")
     }
 }
 
@@ -136,7 +148,7 @@ private let encoderTimestampsRegistration: Void = WebGPU.Metal.registerNotifyHan
     _ in
     let enabled = !encoderTimestamps.load(ordering: .relaxed)
     encoderTimestamps.store(enabled, ordering: .relaxed)
-    WebGPU.Metal.logAlways("Encoder timestamps are \(enabled ? "ENABLED" : "DISABLED")")
+    logAlways("Encoder timestamps are \(enabled ? "ENABLED" : "DISABLED")")
 }
 
 func enableEncoderTimestamps() -> Bool {

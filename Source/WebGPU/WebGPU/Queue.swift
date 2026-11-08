@@ -1619,7 +1619,7 @@ public final class QueueImpl: GPUObjectReference {
         backingStagedCopyPipelineState = pipelineState
         stagedCopyPipelineCreationFailed = pipelineState == nil
         if pipelineState == nil {
-            WebGPU.Metal.logAlways(
+            logAlways(
                 "WebGPU: staged-copy compute pipeline creation failed (\(errorDescription(error))); staged writes will fall back to blit"
             )
         }
@@ -1658,7 +1658,7 @@ public final class QueueImpl: GPUObjectReference {
 
         guard let pipelineState else {
             copyExternalImagePipelineCreationFailed = true
-            WebGPU.Metal.logAlways("WebGPU: copyExternalImageToTexture render pipeline creation failed (\(errorDescription(error)))")
+            logAlways("WebGPU: copyExternalImageToTexture render pipeline creation failed (\(errorDescription(error)))")
             return nil
         }
         copyExternalImagePipelineStates[pixelFormat.rawValue] = pipelineState

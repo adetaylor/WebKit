@@ -58,7 +58,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     // Always taken out before being called: a callback can re-enter and register the next one.
     private var uncapturedErrorCallback: ((Bool, CaughtError?) -> Void)?
-    private var deviceLostCallback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?
+    private var deviceLostCallback: ((WebGPU.DeviceLostReason) -> Void)?
 
     let capabilities: DeviceCapabilities
     /// The limits the encoders read, and the Metal buffer slots that follow from them.
@@ -195,7 +195,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         metalDevice = nil
         adapterImpl.makeInvalid()
         if let callback = deviceLostCallback.take() {
-            callback(reason, WebGPU.Metal.deviceLostMessage())
+            callback(reason)
         }
         defaultQueueImpl.makeInvalid()
         lost = true
@@ -210,9 +210,9 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
     // MARK: Callbacks
 
     // resolveDeviceLostPromise's callback; nil registers nothing.
-    func setDeviceLostCallback(_ callback: ((WebGPU.DeviceLostReason, WTF.String) -> Void)?) {
+    func setDeviceLostCallback(_ callback: ((WebGPU.DeviceLostReason) -> Void)?) {
         if let previous = deviceLostCallback.take() {
-            previous(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
+            previous(.Destroyed)
         }
         deviceLostCallback = callback
         if lost {
@@ -232,7 +232,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     private func completeCallbacksForDestruction() {
         if let callback = deviceLostCallback.take() {
-            callback(.Destroyed, WebGPU.Metal.deviceDestroyedMessage())
+            callback(.Destroyed)
         }
         if let callback = uncapturedErrorCallback.take() {
             callback(false, nil)
@@ -508,7 +508,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         do {
             buffer = try metalDevice.makeCounterSampleBuffer(descriptor: descriptor)
         } catch {
-            WebGPU.Metal.logAlways("newCounterSamplerBufferWithDescriptor failed \(error.localizedDescription)")
+            logAlways("newCounterSamplerBufferWithDescriptor failed \(error.localizedDescription)")
             return nil
         }
         trackTimestampsBuffer(commandBuffer, buffer)
@@ -762,9 +762,7 @@ extension DeviceImpl {
     }
 
     public func resolveDeviceLostPromise(_ completion: @escaping (WebGPU.DeviceLostReason) -> Void) {
-        setDeviceLostCallback { reason, _ in
-            completion(reason)
-        }
+        setDeviceLostCallback(completion)
     }
 
     // Completes the callbacks that resolveDeviceLostPromise() and resolveUncapturedErrorEvent() hold, and holds none.

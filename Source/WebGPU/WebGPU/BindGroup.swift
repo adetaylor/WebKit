@@ -289,7 +289,7 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
             if sampler.cachedSamplerState() != nil {
                 continue
             }
-            WebGPU.Metal.logAlways(
+            logAlways(
                 "Rebinding of samplers required, if this occurs frequently the application is using too many unique samplers"
             )
             guard let samplerState = sampler.tryCacheSamplerState() else {

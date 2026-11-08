@@ -257,7 +257,7 @@ private func compileOptions(_ library: PreparedLibrary) -> MTLCompileOptions {
 private func libraryCompilationError(_ source: Swift.String, _ compilationError: (any Error)?) -> NSError {
     // FIXME: https://bugs.webkit.org/show_bug.cgi?id=250442
     let description = compilationError.map { ($0 as NSError).localizedDescription } ?? "(null)"
-    WebGPU.Metal.logAlways("MSL compilation error: \(description)")
+    logAlways("MSL compilation error: \(description)")
     return NSError(
         domain: "WebGPU",
         code: 1,
@@ -309,7 +309,7 @@ func compileLibrary(
 
 private func reportPipelineStateError(_ error: NSError?) {
     if let error {
-        WebGPU.Metal.logAlways("Pipeline state creation error: \(error.description)")
+        logAlways("Pipeline state creation error: \(error.description)")
     }
 }
 

@@ -56,13 +56,6 @@ IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebGPU::Metal {
 
-// The messages DeviceImpl gives the device-lost callback (Swift cannot spell an ASCIILiteral).
-inline String deviceLostMessage() { return "Device lost."_s; }
-inline String deviceDestroyedMessage() { return ""_s; }
-
-// WTFLogAlways("%@", message), for Swift, which cannot call a C variadic macro.
-void logAlways(NSString *message);
-
 // The debug encoder timestamps: logs `resolvedBuffers`, which hold MTLCounterResultTimestamps, when `commandBuffer`
 // completes, then calls didLog on the Metal thread.
 void logTimestampsWhenCompleted(id<MTLCommandBuffer>, NSMutableArray *resolvedBuffers, void (^ NS_SWIFT_SENDABLE didLog)(void));

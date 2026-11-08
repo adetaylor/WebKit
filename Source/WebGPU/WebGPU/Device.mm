@@ -52,11 +52,6 @@
 
 namespace WebGPU::Metal {
 
-void logAlways(NSString *message)
-{
-    WTFLogAlways("%@", message); // NOLINT
-}
-
 void registerNotifyHandler(NSString *name, void (^handler)(int))
 {
     int token;

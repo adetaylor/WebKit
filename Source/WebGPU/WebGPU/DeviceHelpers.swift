@@ -338,7 +338,7 @@ private func compileDeviceHelperLibrary(_ metalDevice: (any MTLDevice)?, _ sourc
     do {
         return try metalDevice?.makeLibrary(source: source, options: options)
     } catch {
-        WebGPU.Metal.logAlways("\(error)")
+        logAlways("\(error)")
         return nil
     }
 }
@@ -371,7 +371,7 @@ func createFunction(_ library: (any MTLLibrary)?, _ mangledName: Swift.String?, 
         function.label = label
         return function
     } catch {
-        WebGPU.Metal.logAlways("Function creation error: \(error)")
+        logAlways("Function creation error: \(error)")
         return nil
     }
 }
@@ -555,7 +555,7 @@ extension DeviceImpl {
         do {
             result = try metalDevice.makeRenderPipelineState(descriptor: descriptor)
         } catch {
-            WebGPU.Metal.logAlways("\(error)")
+            logAlways("\(error)")
         }
         setCachedRenderPipelineState(slot, result)
         return result
@@ -601,7 +601,7 @@ extension DeviceImpl {
         do {
             pipelineState = try metalDevice.makeComputePipelineState(function: function)
         } catch {
-            WebGPU.Metal.logAlways("Metal code failure: \(error)")
+            logAlways("Metal code failure: \(error)")
         }
         setCachedDispatchCallPipelineState(pipelineState)
         return pipelineState
