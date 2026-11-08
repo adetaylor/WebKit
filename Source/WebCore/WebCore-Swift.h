@@ -75,4 +75,6 @@
 
 #include "CSSPropertyConsumerSwiftTypes.h"
 
+#include "ContentSecurityPolicySwift.h"
+
 #include "WebCoreSwift-Generated.h"

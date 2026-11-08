@@ -2431,15 +2431,7 @@ page/WindowOrWorkerGlobalScope.cpp
 page/WorkerNavigator.cpp
 page/csp/CSPViolationReportBody.cpp
 page/csp/ContentSecurityPolicy.cpp
-page/csp/ContentSecurityPolicyDirective.cpp
-page/csp/ContentSecurityPolicyDirectiveList.cpp
-page/csp/ContentSecurityPolicyDirectiveNames.cpp
-page/csp/ContentSecurityPolicyMediaListDirective.cpp
 page/csp/ContentSecurityPolicyResponseHeaders.cpp
-page/csp/ContentSecurityPolicySource.cpp
-page/csp/ContentSecurityPolicySourceList.cpp
-page/csp/ContentSecurityPolicySourceListDirective.cpp
-page/csp/ContentSecurityPolicyTrustedTypesDirective.cpp
 page/scrolling/AsyncScrollingCoordinator.cpp @header:RenderStyleGetters @cost:6
 page/scrolling/ScrollAnchoringController.cpp @header:RenderStyleGetters @cost:6
 page/scrolling/ScrollLatchingController.cpp

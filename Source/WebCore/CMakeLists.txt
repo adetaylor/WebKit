@@ -3371,6 +3371,10 @@ foreach (_f IN LISTS WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_fn}( |$)")
 endforeach ()
 
+if (SWIFT_REQUIRED AND APPLE)
+    # Includes WebCoreSwift-Generated.h, so it is built in WebCore_SwiftInterop.
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)ContentSecurityPolicy\\.cpp( |$)")
+endif ()
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3477,6 +3481,19 @@ if (SWIFT_REQUIRED AND APPLE)
 
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp ${WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES})
+
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirective.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirectiveList.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirectiveListVector.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirectiveNames.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyMediaListDirective.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicySource.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicySourceList.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicySourceStore.swift
+        ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyTrustedTypesDirective.swift
+    )
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES page/csp/ContentSecurityPolicy.cpp)
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"

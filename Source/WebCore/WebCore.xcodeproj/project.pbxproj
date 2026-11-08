@@ -6284,16 +6284,19 @@
 		CE1866451F72E5B400A0CAB6 /* MarkedText.h in Headers */ = {isa = PBXBuildFile; fileRef = CE1866431F72E5B400A0CAB6 /* MarkedText.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE1A501F22D5350900CBC927 /* DOMTimerHoldingTank.h in Headers */ = {isa = PBXBuildFile; fileRef = CE1A501D22D5350900CBC927 /* DOMTimerHoldingTank.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE212158240DBEB9006ED443 /* TextPlaceholderElement.h in Headers */ = {isa = PBXBuildFile; fileRef = CE212153240DBD30006ED443 /* TextPlaceholderElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		CE2849871CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h in Headers */ = {isa = PBXBuildFile; fileRef = CE2849861CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h */; };
 		CE45946F24123C960078019F /* AlternativeTextContextController.h in Headers */ = {isa = PBXBuildFile; fileRef = CE45946424121A050078019F /* AlternativeTextContextController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE5FA255209E48C50051D700 /* ContentSecurityPolicyClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CE5FA253209E48C50051D700 /* ContentSecurityPolicyClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE6DADFA1C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h in Headers */ = {isa = PBXBuildFile; fileRef = CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		CE799F981C6A46BC0097B518 /* ContentSecurityPolicySourceList.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */; };
-		CE799F9C1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F9A1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h */; };
-		CE799FA01C6A4C160097B518 /* ContentSecurityPolicySource.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F9E1C6A4C160097B518 /* ContentSecurityPolicySource.h */; };
-		CE799FA41C6A503A0097B518 /* ContentSecurityPolicyDirective.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799FA21C6A503A0097B518 /* ContentSecurityPolicyDirective.h */; };
-		CE799FA81C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799FA61C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h */; };
-		CE799FAC1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799FAA1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h */; };
+		B7393895777D4CCB929EDA74 /* ContentSecurityPolicyDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */; };
+		9E36838CA05F43D5B711F40D /* ContentSecurityPolicyDirectiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */; };
+		F89D7A0866F44625BD461F73 /* ContentSecurityPolicyDirectiveNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */; };
+		B7C7AF8F3F754B9FBFF1C639 /* ContentSecurityPolicyMediaListDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */; };
+		DE01106D645A45CCAB649252 /* ContentSecurityPolicySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */; };
+		EFD4ED5991D9428DABDF9CF8 /* ContentSecurityPolicySourceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */; };
+		EA43004AE91E47C0AB9FAAB4 /* ContentSecurityPolicySourceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */; };
+		D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */; };
+		3F09CD93E8404731A8600720 /* ContentSecurityPolicySwift.h in Headers */ = {isa = PBXBuildFile; fileRef = F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		0C0242DFE14048DEBD64F9A1 /* ContentSecurityPolicyDirectiveListVector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */; };
 		CE7A6C28208537E200FA2B46 /* SameSiteInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = CE7A6C26208537E200FA2B46 /* SameSiteInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE7B2DB31586ABAD0098B3FA /* AlternativeTextUIController.h in Headers */ = {isa = PBXBuildFile; fileRef = CE7B2DAF1586ABAD0098B3FA /* AlternativeTextUIController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE7B2DB51586ABAD0098B3FA /* TextAlternativeWithRange.h in Headers */ = {isa = PBXBuildFile; fileRef = CE7B2DB11586ABAD0098B3FA /* TextAlternativeWithRange.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -17712,8 +17715,6 @@
 		A3AF9D8220325324006CAD06 /* UserAgent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UserAgent.h; sourceTree = "<group>"; };
 		A3AF9D8320325691006CAD06 /* UserAgentIOS.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = UserAgentIOS.mm; sourceTree = "<group>"; };
 		A3AF9D84203256A3006CAD06 /* UserAgentMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = UserAgentMac.mm; sourceTree = "<group>"; };
-		A3B6E9D72B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyTrustedTypesDirective.h; path = csp/ContentSecurityPolicyTrustedTypesDirective.h; sourceTree = "<group>"; };
-		A3B6E9D82B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyTrustedTypesDirective.cpp; path = csp/ContentSecurityPolicyTrustedTypesDirective.cpp; sourceTree = "<group>"; };
 		A3BF7EF2256C8D720044BC75 /* KHRParallelShaderCompile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = KHRParallelShaderCompile.cpp; sourceTree = "<group>"; };
 		A3BF7EF4256C8D720044BC75 /* KHRParallelShaderCompile.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KHRParallelShaderCompile.h; sourceTree = "<group>"; };
 		A3BF7EF5256C8D740044BC75 /* KHRParallelShaderCompile.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = KHRParallelShaderCompile.idl; sourceTree = "<group>"; };
@@ -21926,8 +21927,6 @@
 		CE1A501E22D5350900CBC927 /* DOMTimerHoldingTank.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DOMTimerHoldingTank.cpp; sourceTree = "<group>"; };
 		CE212153240DBD30006ED443 /* TextPlaceholderElement.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextPlaceholderElement.h; sourceTree = "<group>"; };
 		CE212154240DBD30006ED443 /* TextPlaceholderElement.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TextPlaceholderElement.cpp; sourceTree = "<group>"; };
-		CE2849861CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyDirectiveNames.h; path = csp/ContentSecurityPolicyDirectiveNames.h; sourceTree = "<group>"; };
-		CE2849881CA3614600B4A57F /* ContentSecurityPolicyDirectiveNames.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyDirectiveNames.cpp; path = csp/ContentSecurityPolicyDirectiveNames.cpp; sourceTree = "<group>"; };
 		CE45946424121A050078019F /* AlternativeTextContextController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AlternativeTextContextController.h; sourceTree = "<group>"; };
 		CE45946524121A050078019F /* AlternativeTextContextController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AlternativeTextContextController.mm; sourceTree = "<group>"; };
 		CE5169E621F1B84700EA4F78 /* ColorIOS.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ColorIOS.mm; sourceTree = "<group>"; };
@@ -21937,17 +21936,16 @@
 		CE6D89294C7AACE0AD89B3DD /* MathMLMencloseElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MathMLMencloseElement.h; sourceTree = "<group>"; };
 		CE6DADF71C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyResponseHeaders.cpp; path = csp/ContentSecurityPolicyResponseHeaders.cpp; sourceTree = "<group>"; };
 		CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyResponseHeaders.h; path = csp/ContentSecurityPolicyResponseHeaders.h; sourceTree = "<group>"; };
-		CE799F951C6A46BC0097B518 /* ContentSecurityPolicySourceList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicySourceList.cpp; path = csp/ContentSecurityPolicySourceList.cpp; sourceTree = "<group>"; };
-		CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySourceList.h; path = csp/ContentSecurityPolicySourceList.h; sourceTree = "<group>"; };
-		CE799F991C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyDirectiveList.cpp; path = csp/ContentSecurityPolicyDirectiveList.cpp; sourceTree = "<group>"; };
-		CE799F9A1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyDirectiveList.h; path = csp/ContentSecurityPolicyDirectiveList.h; sourceTree = "<group>"; };
-		CE799F9D1C6A4C160097B518 /* ContentSecurityPolicySource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicySource.cpp; path = csp/ContentSecurityPolicySource.cpp; sourceTree = "<group>"; };
-		CE799F9E1C6A4C160097B518 /* ContentSecurityPolicySource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySource.h; path = csp/ContentSecurityPolicySource.h; sourceTree = "<group>"; };
-		CE799FA21C6A503A0097B518 /* ContentSecurityPolicyDirective.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyDirective.h; path = csp/ContentSecurityPolicyDirective.h; sourceTree = "<group>"; };
-		CE799FA51C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyMediaListDirective.cpp; path = csp/ContentSecurityPolicyMediaListDirective.cpp; sourceTree = "<group>"; };
-		CE799FA61C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyMediaListDirective.h; path = csp/ContentSecurityPolicyMediaListDirective.h; sourceTree = "<group>"; };
-		CE799FA91C6A50660097B518 /* ContentSecurityPolicySourceListDirective.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicySourceListDirective.cpp; path = csp/ContentSecurityPolicySourceListDirective.cpp; sourceTree = "<group>"; };
-		CE799FAA1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySourceListDirective.h; path = csp/ContentSecurityPolicySourceListDirective.h; sourceTree = "<group>"; };
+		DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirective.swift; path = csp/ContentSecurityPolicyDirective.swift; sourceTree = "<group>"; };
+		0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveList.swift; path = csp/ContentSecurityPolicyDirectiveList.swift; sourceTree = "<group>"; };
+		BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveNames.swift; path = csp/ContentSecurityPolicyDirectiveNames.swift; sourceTree = "<group>"; };
+		CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyMediaListDirective.swift; path = csp/ContentSecurityPolicyMediaListDirective.swift; sourceTree = "<group>"; };
+		D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySource.swift; path = csp/ContentSecurityPolicySource.swift; sourceTree = "<group>"; };
+		ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySourceList.swift; path = csp/ContentSecurityPolicySourceList.swift; sourceTree = "<group>"; };
+		2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySourceStore.swift; path = csp/ContentSecurityPolicySourceStore.swift; sourceTree = "<group>"; };
+		80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyTrustedTypesDirective.swift; path = csp/ContentSecurityPolicyTrustedTypesDirective.swift; sourceTree = "<group>"; };
+		F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySwift.h; path = csp/ContentSecurityPolicySwift.h; sourceTree = "<group>"; };
+		3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveListVector.swift; path = csp/ContentSecurityPolicyDirectiveListVector.swift; sourceTree = "<group>"; };
 		CE7A6C26208537E200FA2B46 /* SameSiteInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SameSiteInfo.h; sourceTree = "<group>"; };
 		CE7A6C27208537E200FA2B46 /* SameSiteInfo.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SameSiteInfo.cpp; sourceTree = "<group>"; };
 		CE7B2DAF1586ABAD0098B3FA /* AlternativeTextUIController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AlternativeTextUIController.h; sourceTree = "<group>"; };
@@ -21972,7 +21970,6 @@
 		CEEFCD7B19DB33DC003876D7 /* PlatformMediaResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformMediaResourceLoader.h; sourceTree = "<group>"; };
 		CEF418CC1179678C009D112C /* ViewportArguments.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ViewportArguments.cpp; sourceTree = "<group>"; };
 		CEF418CD1179678C009D112C /* ViewportArguments.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ViewportArguments.h; sourceTree = "<group>"; };
-		CEF59B251CA0E11D005C3E13 /* ContentSecurityPolicyDirective.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyDirective.cpp; path = csp/ContentSecurityPolicyDirective.cpp; sourceTree = "<group>"; };
 		D000EBA011BDAFD400C47726 /* FrameLoaderStateMachine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FrameLoaderStateMachine.cpp; sourceTree = "<group>"; };
 		D000EBA111BDAFD400C47726 /* FrameLoaderStateMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FrameLoaderStateMachine.h; sourceTree = "<group>"; };
 		D000ED2511C1B9CD00C47726 /* SubframeLoader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SubframeLoader.cpp; sourceTree = "<group>"; };
@@ -41046,25 +41043,19 @@
 				97C471D912F925BC0086354B /* ContentSecurityPolicy.cpp */,
 				97C471DA12F925BD0086354B /* ContentSecurityPolicy.h */,
 				CE5FA253209E48C50051D700 /* ContentSecurityPolicyClient.h */,
-				CEF59B251CA0E11D005C3E13 /* ContentSecurityPolicyDirective.cpp */,
-				CE799FA21C6A503A0097B518 /* ContentSecurityPolicyDirective.h */,
-				CE799F991C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.cpp */,
-				CE799F9A1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h */,
-				CE2849881CA3614600B4A57F /* ContentSecurityPolicyDirectiveNames.cpp */,
-				CE2849861CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h */,
 				CE7E17821C83A49100AD06AF /* ContentSecurityPolicyHash.h */,
-				CE799FA51C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.cpp */,
-				CE799FA61C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h */,
 				CE6DADF71C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.cpp */,
 				CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */,
-				CE799F9D1C6A4C160097B518 /* ContentSecurityPolicySource.cpp */,
-				CE799F9E1C6A4C160097B518 /* ContentSecurityPolicySource.h */,
-				CE799F951C6A46BC0097B518 /* ContentSecurityPolicySourceList.cpp */,
-				CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */,
-				CE799FA91C6A50660097B518 /* ContentSecurityPolicySourceListDirective.cpp */,
-				CE799FAA1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h */,
-				A3B6E9D82B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.cpp */,
-				A3B6E9D72B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.h */,
+				F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */,
+				3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */,
+				DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */,
+				0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */,
+				BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */,
+				CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */,
+				D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */,
+				ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */,
+				2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */,
+				80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */,
 				7ABA250628AB0A38005D4F6D /* CSPViolationReportBody.cpp */,
 				7ABA250228AAF2D4005D4F6D /* CSPViolationReportBody.h */,
 			);
@@ -45362,15 +45353,9 @@
 				5C9C2DB52241A67B00996B0B /* ContentRuleListResults.h in Headers */,
 				97C471DC12F925BD0086354B /* ContentSecurityPolicy.h in Headers */,
 				CE5FA255209E48C50051D700 /* ContentSecurityPolicyClient.h in Headers */,
-				CE799FA41C6A503A0097B518 /* ContentSecurityPolicyDirective.h in Headers */,
-				CE799F9C1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h in Headers */,
-				CE2849871CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h in Headers */,
 				CE7E17831C83A49100AD06AF /* ContentSecurityPolicyHash.h in Headers */,
-				CE799FA81C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h in Headers */,
 				CE6DADFA1C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h in Headers */,
-				CE799FA01C6A4C160097B518 /* ContentSecurityPolicySource.h in Headers */,
-				CE799F981C6A46BC0097B518 /* ContentSecurityPolicySourceList.h in Headers */,
-				CE799FAC1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h in Headers */,
+				3F09CD93E8404731A8600720 /* ContentSecurityPolicySwift.h in Headers */,
 				726516E62C9CB75600647895 /* ContentsFormat.h in Headers */,
 				726516F72CA4B4A300647895 /* ContentsFormatCocoa.h in Headers */,
 				41D015CA0F4B5C71004A662F /* ContentType.h in Headers */,
@@ -51809,6 +51794,15 @@
 				88C34489AB3494E36F0B2E95 /* ImageDecoding.swift in Sources */,
 				ED666582528540CAF79EE240 /* ImageDecoderCG.swift in Sources */,
 				0C8AB8D60605AC220A644356 /* ImageDecodingCG.swift in Sources */,
+				0C0242DFE14048DEBD64F9A1 /* ContentSecurityPolicyDirectiveListVector.swift in Sources */,
+				B7393895777D4CCB929EDA74 /* ContentSecurityPolicyDirective.swift in Sources */,
+				9E36838CA05F43D5B711F40D /* ContentSecurityPolicyDirectiveList.swift in Sources */,
+				F89D7A0866F44625BD461F73 /* ContentSecurityPolicyDirectiveNames.swift in Sources */,
+				B7C7AF8F3F754B9FBFF1C639 /* ContentSecurityPolicyMediaListDirective.swift in Sources */,
+				DE01106D645A45CCAB649252 /* ContentSecurityPolicySource.swift in Sources */,
+				EFD4ED5991D9428DABDF9CF8 /* ContentSecurityPolicySourceList.swift in Sources */,
+				EA43004AE91E47C0AB9FAAB4 /* ContentSecurityPolicySourceStore.swift in Sources */,
+				D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */,
 				C1692DD223D23ABD006E88F7 /* SystemBattery.mm in Sources */,
 				329C0C2328BD96D600F187D2 /* TagName.cpp in Sources */,
 				CE88EE262414467B007F29C2 /* TextAlternativeWithRange.mm in Sources */,
