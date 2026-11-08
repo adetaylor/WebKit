@@ -31,6 +31,7 @@
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteBufferProxy.h"
 #include "RemoteGPU.h"
+#include "RemoteXRProjectionLayer.h"
 #include "StreamServerConnection.h"
 #include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
@@ -245,17 +246,26 @@ WebGPUSwiftReceiverRegistration::~WebGPUSwiftReceiverRegistration()
     m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
 }
 
-#if ENABLE(WEBXR) && PLATFORM(COCOA)
-WebGPUXRFrame::WebGPUXRFrame(IPC::CxxDecodedArgument<MachSendRight>& colorBuffer, IPC::CxxDecodedArgument<MachSendRight>& depthBuffer, IPC::CxxDecodedArgument<MachSendRight>& completionSyncEvent, IPC::CxxDecodedArgument<PlatformXR::RateMapDescription>& rateMapDescription)
-    : m_colorBuffer(colorBuffer.take().value_or(MachSendRight { }))
-    , m_depthBuffer(depthBuffer.take().value_or(MachSendRight { }))
-    , m_completionSyncEvent(completionSyncEvent.take().value_or(MachSendRight { }))
-    , m_rateMapDescription(rateMapDescription.take().value_or(PlatformXR::RateMapDescription { }))
+WebGPUSwiftReceiverRegistration* registerWebGPUSwiftReceiver(const WebGPUSwiftRegistryHost& host, IPC::ReceiverName receiverName, uintptr_t swiftState, uint64_t identifier)
 {
+    RefPtr<IPC::StreamMessageReceiver> receiver;
+    switch (receiverName) {
+    case IPC::ReceiverName::RemoteXRProjectionLayer: {
+        Ref layer = RemoteXRProjectionLayer::create(swiftState);
+        layer->setSharedPreferencesProvider([host] {
+            return host.sharedPreferencesForWebProcess();
+        });
+        receiver = WTF::move(layer);
+        break;
+    }
+    default:
+        RELEASE_ASSERT_NOT_REACHED();
+    }
+    RefPtr streamConnection = host.streamConnection();
+    if (!streamConnection)
+        return nullptr;
+    return &WebGPUSwiftReceiverRegistration::create(*streamConnection, *receiver, receiverName, identifier).leakRef();
 }
-
-WebGPUXRFrame::~WebGPUXRFrame() = default;
-#endif
 
 OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument)
 {

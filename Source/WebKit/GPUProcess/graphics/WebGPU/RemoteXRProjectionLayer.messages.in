@@ -27,12 +27,12 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=WebXRWebGPUBindingsEnabled,
-    SwiftReceiver,
+    SwiftImplementation,
     SwiftTypes
 ]
 messages -> RemoteXRProjectionLayer Stream {
 #if ENABLE(WEBXR) && PLATFORM(COCOA)
-    void StartFrame(uint64_t frameIndex, [CxxDecoded] MachSendRight colorBuffer, [CxxDecoded] MachSendRight depthBuffer, [CxxDecoded] MachSendRight completionSyncEvent, uint64_t textureIndex, [CxxDecoded] struct PlatformXR::RateMapDescription rateMapDescription) NotStreamEncodable
+    void StartFrame(uint64_t frameIndex, MachSendRight colorBuffer, MachSendRight depthBuffer, MachSendRight completionSyncEvent, uint64_t textureIndex, struct PlatformXR::RateMapDescription rateMapDescription) CxxTypes NotStreamEncodable
 #endif
     void EndFrame()
     void Destroy()

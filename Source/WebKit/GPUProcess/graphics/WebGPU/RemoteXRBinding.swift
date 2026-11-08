@@ -81,7 +81,7 @@ final class RemoteXRBinding {
             textureUsage: textureUsage.rawValue,
             scaleFactor: scaleFactor
         )
-        RemoteXRProjectionLayer.add(layer, layerLink)
+        WebKit.RemoteXRProjectionLayer.add(layer, layerLink)
     }
 
     func getViewSubImage(projectionLayerIdentifier: IPCTypes.WebGPUIdentifier, identifier: IPCTypes.WebGPUIdentifier) {

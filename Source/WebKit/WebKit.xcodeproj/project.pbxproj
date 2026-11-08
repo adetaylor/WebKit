@@ -9619,6 +9619,8 @@
 		7733624ED51D4913B48ABC62 /* RemoteBarcodeDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteBarcodeDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		588C46ABDFB64C12B8D58AB0 /* RemoteFaceDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFaceDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextDetectorMessageReceiver.swift; sourceTree = "<group>"; };
+		7FCA429012854F0EA28094F0 /* RemoteXRProjectionLayer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteXRProjectionLayer.cpp; sourceTree = "<group>"; };
+		CD2842CB24FA455B8E247AF7 /* RemoteXRProjectionLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteXRProjectionLayer.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -11710,6 +11712,8 @@
 				AFCED8768785BCCB10A18533 /* RemoteTextureView.swift */,
 				0D943BF22C65328C00D33BA5 /* RemoteXRBinding.messages.in */,
 				AF84F849A4AE43E387DD4623 /* RemoteXRBinding.swift */,
+				7FCA429012854F0EA28094F0 /* RemoteXRProjectionLayer.cpp */,
+				CD2842CB24FA455B8E247AF7 /* RemoteXRProjectionLayer.h */,
 				0D943BFF2C6546B400D33BA5 /* RemoteXRProjectionLayer.messages.in */,
 				2C2AC636F24A4AD4B57FAB2C /* RemoteXRProjectionLayer.swift */,
 				0D943C082C6555DB00D33BA5 /* RemoteXRSubImage.messages.in */,

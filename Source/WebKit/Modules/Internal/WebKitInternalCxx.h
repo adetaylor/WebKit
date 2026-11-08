@@ -100,6 +100,7 @@
 #include "RemoteTextureMessages.h"
 #include "RemoteTextureViewMessages.h"
 #include "RemoteXRBindingMessages.h"
+#include "RemoteXRProjectionLayer.h"
 #include "RemoteXRProjectionLayerMessages.h"
 #include "RemoteXRSubImageMessages.h"
 #include "RemoteXRViewMessages.h"
