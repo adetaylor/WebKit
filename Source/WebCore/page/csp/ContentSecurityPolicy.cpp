@@ -29,12 +29,7 @@
 
 #include "CSPViolationReportBody.h"
 #include "ContentSecurityPolicyClient.h"
-#include "ContentSecurityPolicyDirective.h"
-#include "ContentSecurityPolicyDirectiveList.h"
-#include "ContentSecurityPolicyDirectiveNames.h"
 #include "ContentSecurityPolicyHash.h"
-#include "ContentSecurityPolicySource.h"
-#include "ContentSecurityPolicySourceList.h"
 #include "DOMStringList.h"
 #include "DOMWrapperWorld.h"
 #include "DeprecationReportBody.h"
@@ -61,6 +56,11 @@
 #include "SubresourceIntegrity.h"
 #include "ViolationReportType.h"
 #include "WorkerGlobalScope.h"
+#include "ContentSecurityPolicySwift.h"
+#include "DocumentSecurityOrigin.h"
+#include "LocalFrameInlines.h"
+#include "PublicSuffixStore.h"
+#include "WebCore-Swift.h"
 #include <JavaScriptCore/HeapCellInlines.h>
 #include <JavaScriptCore/JSGlobalObject.h>
 #include <JavaScriptCore/ScriptCallStack.h>
@@ -82,26 +82,97 @@ using namespace Inspector;
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ContentSecurityPolicy);
 
-static String consoleMessageForViolation(const ContentSecurityPolicyDirective& violatedDirective, const URL& blockedURL, ASCIILiteral prefix, ASCIILiteral subject = "it"_s)
-{
-    bool isDefaultSrc = violatedDirective.isDefaultSrc();
-    String name = violatedDirective.nameForReporting();
-    if (violatedDirective.nameForReporting().startsWith(StringView { ContentSecurityPolicyDirectiveNames::scriptSrc }))
-        name = ContentSecurityPolicyDirectiveNames::scriptSrc;
-    else if (violatedDirective.nameForReporting().startsWith(StringView { ContentSecurityPolicyDirectiveNames::styleSrc }))
-        name = ContentSecurityPolicyDirectiveNames::styleSrc;
+static_assert(!static_cast<uint8_t>(AllowTrustedTypePolicy::Allowed) && static_cast<uint8_t>(AllowTrustedTypePolicy::DisallowedName) == 1 && static_cast<uint8_t>(AllowTrustedTypePolicy::DisallowedDuplicateName) == 2);
+static_assert(!static_cast<uint8_t>(ContentSecurityPolicyHeaderType::Report) && static_cast<uint8_t>(ContentSecurityPolicyHeaderType::Enforce) == 1);
+static_assert(!static_cast<uint8_t>(ContentSecurityPolicy::PolicyFrom::API) && static_cast<uint8_t>(ContentSecurityPolicy::PolicyFrom::HTTPEquivMeta) == 1 && static_cast<uint8_t>(ContentSecurityPolicy::PolicyFrom::HTTPHeader) == 2 && static_cast<uint8_t>(ContentSecurityPolicy::PolicyFrom::Inherited) == 3 && static_cast<uint8_t>(ContentSecurityPolicy::PolicyFrom::InheritedForPluginDocument) == 4);
+static_assert(!static_cast<uint8_t>(ContentSecurityPolicyModeForExtension::None) && static_cast<uint8_t>(ContentSecurityPolicyModeForExtension::ManifestV2) == 1 && static_cast<uint8_t>(ContentSecurityPolicyModeForExtension::ManifestV3) == 2);
+static_assert(static_cast<uint8_t>(ResourceCryptographicDigest::Algorithm::SHA256) == 1 && static_cast<uint8_t>(ResourceCryptographicDigest::Algorithm::SHA384) == 2 && static_cast<uint8_t>(ResourceCryptographicDigest::Algorithm::SHA512) == 4);
+static_assert(ResourceCryptographicDigest::maximumDigestLength == sizeof(ContentSecurityPolicyDigest::words));
+#if !ENABLE(APPLICATION_MANIFEST)
+#error "Content Security Policy needs ENABLE(APPLICATION_MANIFEST): the Swift directive names include manifest-src"
+#endif
 
-    return makeString(violatedDirective.directiveList().isReportOnly() ? "[Report Only] "_s : ""_s,
-        prefix, blockedURL.isEmpty() ? ""_s : " "_s, blockedURL.stringCenterEllipsizedToLength(), " because "_s, subject,
-        isDefaultSrc ? " appears in neither the "_s : " does not appear in the "_s,
-        name,
-        isDefaultSrc ? " directive nor the default-src directive of the Content Security Policy."_s : " directive of the Content Security Policy."_s);
+struct ContentSecurityPolicy::SwiftDirectives {
+    WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftDirectives);
+    ContentSecurityPolicyDirectiveListVector directives;
+};
+
+WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(ContentSecurityPolicy::SwiftDirectives);
+
+// What reportViolation() reads of the policy that was violated.
+struct ContentSecurityPolicy::SwiftViolatedPolicy {
+    const String& header() const LIFETIME_BOUND { return m_header; }
+    bool isReportOnly() const { return m_isReportOnly; }
+    bool shouldReportSample(const String&) const { return m_shouldReportSample; }
+    const Vector<String>& reportToTokens() const LIFETIME_BOUND { return m_reportToTokens; }
+    const Vector<String>& reportURIs() const LIFETIME_BOUND { return m_reportURIs; }
+
+    String m_header;
+    bool m_isReportOnly;
+    bool m_shouldReportSample;
+    Vector<String> m_reportToTokens;
+    Vector<String> m_reportURIs;
+};
+
+static thread_local struct ContentSecurityPolicySwiftScope* currentContentSecurityPolicySwiftScope;
+
+// The policy a call into ContentSecurityPolicyDirectiveListVector is for, and the arguments its callbacks need. It is the
+// calling thread's current scope while it lives, and keeps the policy and its ContentSecurityPolicyDirectiveListVector alive.
+struct ContentSecurityPolicySwiftScope {
+    CheckedRef<const ContentSecurityPolicy> policy;
+    String blockedURL { };
+    URL consoleURL { };
+    String sourceURL { };
+    StringView sourceContent { };
+    std::optional<TextPosition> sourcePosition { };
+    URL preRedirectURL { };
+    JSC::JSGlobalObject* globalObject { nullptr };
+    RefPtr<Element> element { };
+    Vector<ResourceCryptographicDigest> subresourceIntegrityDigests { };
+    // The ancestors of a frame-ancestors check, which outlive the scope: the frame's, or the given origins.
+    RefPtr<const LocalFrame> frame { };
+    const Vector<Ref<SecurityOrigin>>* ancestorOrigins { nullptr };
+    SandboxFlags sandboxFlags { };
+    ContentSecurityPolicyDirectiveListVector directives { policy->m_swiftDirectives->directives };
+    SetForScope<ContentSecurityPolicySwiftScope*> activation { currentContentSecurityPolicySwiftScope, this };
+};
+
+static ContentSecurityPolicySwiftScope& contentSecurityPolicySwiftScope()
+{
+    RELEASE_ASSERT(currentContentSecurityPolicySwiftScope);
+    return *currentContentSecurityPolicySwiftScope;
+}
+
+static ContentSecurityPolicyURLBounds contentSecurityPolicyURLBounds(const URL& url)
+{
+    auto port = url.port();
+    auto defaultPort = WTF::defaultPortForProtocol(url.protocol());
+    return { url.string().length(), url.string().is8Bit(), url.protocol().length(), url.hostStart(), url.hostEnd(), url.pathStart(), url.pathEnd(), port.value_or(0), !!port, url.isValid(), url.protocolIsInHTTPFamily(), defaultPort.value_or(0), !!defaultPort };
+}
+
+static ContentSecurityPolicyDigest contentSecurityPolicyDigest(const ResourceCryptographicDigest& digest)
+{
+    ContentSecurityPolicyDigest result { static_cast<uint8_t>(digest.algorithm), 0xFF, { } };
+    if (digest.value.size() > ResourceCryptographicDigest::maximumDigestLength)
+        return result;
+    result.length = static_cast<uint8_t>(digest.value.size());
+    memcpySpan(asMutableByteSpan(result.words), digest.value.span());
+    return result;
+}
+
+static ContentSecurityPolicyContentHashes contentSecurityPolicyContentHashes(const Vector<ContentSecurityPolicyHash>& hashes)
+{
+    ContentSecurityPolicyContentHashes result { };
+    for (auto& hash : hashes)
+        std::span { result.digests }[result.count++] = contentSecurityPolicyDigest(hash);
+    return result;
 }
 
 ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ContentSecurityPolicyClient* client, ReportingClient* reportingClient)
     : m_client { client }
     , m_reportingClient { reportingClient }
     , m_protectedURL { WTF::move(protectedURL) }
+    , m_swiftDirectives { makeUnique<SwiftDirectives>(ContentSecurityPolicyDirectiveListVector::init()) }
 {
     updateSourceSelf(SecurityOrigin::create(m_protectedURL).get());
 }
@@ -115,6 +186,7 @@ ContentSecurityPolicy::ContentSecurityPolicy(URL&& protectedURL, ScriptExecution
     : m_scriptExecutionContext(scriptExecutionContext)
     , m_reportingClient { scriptExecutionContext.reportingClient() }
     , m_protectedURL { WTF::move(protectedURL) }
+    , m_swiftDirectives { makeUnique<SwiftDirectives>(ContentSecurityPolicyDirectiveListVector::init()) }
 {
     ASSERT(scriptExecutionContext.securityOrigin());
     Ref securityOrigin = *scriptExecutionContext.securityOrigin();
@@ -140,11 +212,11 @@ void ContentSecurityPolicy::copyStateFrom(const ContentSecurityPolicy* other, Sh
 {
     if (m_hasAPIPolicy)
         return;
-    ASSERT(m_policies.isEmpty());
+    ASSERT(m_swiftDirectives->directives.isEmpty());
     m_contentSecurityPolicyModeForExtension = other->m_contentSecurityPolicyModeForExtension;
     m_sandboxFlags = other->m_sandboxFlags;
-    for (auto& policy : other->m_policies)
-        didReceiveHeader(policy->header(), policy->headerType(), ContentSecurityPolicy::PolicyFrom::Inherited, String { });
+    for (unsigned i = 0, count = other->m_swiftDirectives->directives.policyCount(); i < count; ++i)
+        didReceiveHeader(other->m_swiftDirectives->directives.policyHeader(i), static_cast<ContentSecurityPolicyHeaderType>(other->m_swiftDirectives->directives.policyHeaderType(i)), ContentSecurityPolicy::PolicyFrom::Inherited, String { });
     m_referrer = shouldMakeIsolatedCopy == ShouldMakeIsolatedCopy::Yes ? other->m_referrer.isolatedCopy() : other->m_referrer;
     m_httpStatusCode = other->m_httpStatusCode;
 }
@@ -153,7 +225,7 @@ void ContentSecurityPolicy::inheritHeadersFrom(const ContentSecurityPolicyRespon
 {
     if (m_hasAPIPolicy)
         return;
-    ASSERT(m_policies.isEmpty());
+    ASSERT(m_swiftDirectives->directives.isEmpty());
     for (auto& [header, headerType] : headers.m_headers)
         didReceiveHeader(header, headerType, PolicyFrom::Inherited, String { });
 }
@@ -162,9 +234,9 @@ void ContentSecurityPolicy::createPolicyForPluginDocumentFrom(const ContentSecur
 {
     if (m_hasAPIPolicy)
         return;
-    ASSERT(m_policies.isEmpty());
-    for (auto& policy : other.m_policies)
-        didReceiveHeader(policy->header(), policy->headerType(), ContentSecurityPolicy::PolicyFrom::InheritedForPluginDocument, String { });
+    ASSERT(m_swiftDirectives->directives.isEmpty());
+    for (unsigned i = 0, count = other.m_swiftDirectives->directives.policyCount(); i < count; ++i)
+        didReceiveHeader(other.m_swiftDirectives->directives.policyHeader(i), static_cast<ContentSecurityPolicyHeaderType>(other.m_swiftDirectives->directives.policyHeaderType(i)), ContentSecurityPolicy::PolicyFrom::InheritedForPluginDocument, String { });
     m_referrer = other.m_referrer;
     m_httpStatusCode = other.m_httpStatusCode;
 }
@@ -216,9 +288,10 @@ ContentSecurityPolicyResponseHeaders ContentSecurityPolicy::responseHeaders() co
         };
 
         ContentSecurityPolicyResponseHeaders result;
-        result.m_headers = m_policies.map([&makeValidHTTPHeaderIfNeeded](auto& policy) {
-            return std::pair { makeValidHTTPHeaderIfNeeded(policy->header()), policy->headerType() };
-        });
+        for (unsigned i = 0, count = m_swiftDirectives->directives.policyCount(); i < count; ++i) {
+            auto header = m_swiftDirectives->directives.policyHeader(i);
+            result.m_headers.append({ makeValidHTTPHeaderIfNeeded(header), static_cast<ContentSecurityPolicyHeaderType>(m_swiftDirectives->directives.policyHeaderType(i)) });
+        }
         result.m_httpStatusCode = m_httpStatusCode;
         m_cachedResponseHeaders = WTF::move(result);
     }
@@ -237,8 +310,8 @@ void ContentSecurityPolicy::didReceiveHeaders(const ContentSecurityPolicyRespons
 void ContentSecurityPolicy::didReceiveHeaders(const ContentSecurityPolicy& other, ReportParsingErrors reportParsingErrors)
 {
     SetForScope isReportingEnabled(m_isReportingEnabled, reportParsingErrors == ReportParsingErrors::Yes);
-    for (auto& policy : other.m_policies)
-        didReceiveHeader(policy->header(), policy->headerType(), ContentSecurityPolicy::PolicyFrom::HTTPHeader, String { });
+    for (unsigned i = 0, count = other.m_swiftDirectives->directives.policyCount(); i < count; ++i)
+        didReceiveHeader(other.m_swiftDirectives->directives.policyHeader(i), static_cast<ContentSecurityPolicyHeaderType>(other.m_swiftDirectives->directives.policyHeaderType(i)), ContentSecurityPolicy::PolicyFrom::HTTPHeader, String { });
     m_referrer = other.m_referrer;
     m_httpStatusCode = other.m_httpStatusCode;
     m_upgradeInsecureRequests = other.m_upgradeInsecureRequests;
@@ -254,35 +327,20 @@ void ContentSecurityPolicy::didReceiveHeader(const String& header, ContentSecuri
     m_httpStatusCode = httpStatusCode;
 
     if (policyFrom == PolicyFrom::API) {
-        ASSERT(m_policies.isEmpty());
+        ASSERT(m_swiftDirectives->directives.isEmpty());
         m_hasAPIPolicy = true;
     } else if (policyFrom == PolicyFrom::HTTPHeader)
         m_isHeaderDelivered = true;
 
     m_cachedResponseHeaders = std::nullopt;
 
-    // RFC2616, section 4.2 specifies that headers appearing multiple times can
-    // be combined with a comma. Walk the header string, and parse each comma
-    // separated chunk as a separate header.
-    readCharactersForParsing(header, [&](auto buffer) {
-        skipWhile<isASCIIWhitespace>(buffer);
-        auto begin = buffer.position();
-
-        while (buffer.hasCharactersRemaining()) {
-            skipUntil(buffer, ',');
-
-            // header1,header2 OR header1
-            //        ^                  ^
-            m_policies.append(ContentSecurityPolicyDirectiveList::create(*this, String({ begin, buffer.position() }), type, policyFrom));
-
-            // Skip the comma, and begin the next header from the current position.
-            ASSERT(buffer.atEnd() || *buffer == ',');
-            skipExactly(buffer, ',');
-            begin = buffer.position();
-        }
-    });
+    ContentSecurityPolicySwiftScope scope { .policy = *this };
+    for (auto upgrades = scope.directives.didReceiveHeader(header, static_cast<uint8_t>(type), static_cast<uint8_t>(policyFrom), static_cast<uint8_t>(m_contentSecurityPolicyModeForExtension)); upgrades; --upgrades)
+        setUpgradeInsecureRequests(true);
+    enforceSandboxFlags(scope.sandboxFlags);
+    addHashAlgorithmsForInlineScripts(OptionSet<ContentSecurityPolicyHashAlgorithm>::fromRaw(scope.directives.hashAlgorithmsForInlineScripts()));
+    addHashAlgorithmsForInlineStylesheets(OptionSet<ContentSecurityPolicyHashAlgorithm>::fromRaw(scope.directives.hashAlgorithmsForInlineStylesheets()));
     
-
     if (m_scriptExecutionContext)
         applyPolicyToScriptExecutionContext();
 }
@@ -290,7 +348,8 @@ void ContentSecurityPolicy::didReceiveHeader(const String& header, ContentSecuri
 void ContentSecurityPolicy::updateSourceSelf(const SecurityOrigin& securityOrigin)
 {
     m_selfSourceProtocol = securityOrigin.protocol().convertToASCIILowercase();
-    m_selfSource = makeUnique<ContentSecurityPolicySource>(*this, m_selfSourceProtocol, securityOrigin.host(), securityOrigin.port(), emptyString(), false, false, IsSelfSource::Yes);
+    m_selfOrigin = { m_selfSourceProtocol, securityOrigin.host(), securityOrigin.port() };
+    m_swiftDirectives->directives.updateSourceSelf(m_selfSourceProtocol, securityOrigin.host(), securityOrigin.port().value_or(0), !!securityOrigin.port());
 }
 
 void ContentSecurityPolicy::applyPolicyToScriptExecutionContext()
@@ -311,22 +370,13 @@ void ContentSecurityPolicy::applyPolicyToScriptExecutionContext()
     if (!securityOrigin->isOpaque())
         updateSourceSelf(*securityOrigin);
 
-    bool requiresTrustedTypesForScript = false;
-    bool requiresTrustedTypesForScriptEnforced = false;
-    for (auto& policy : m_policies) {
-        const ContentSecurityPolicyDirective* violatedDirective = policy->violatedDirectiveForUnsafeEval();
-        if (violatedDirective && !violatedDirective->directiveList().isReportOnly()) {
-            m_lastPolicyEvalDisabledErrorMessage = policy->evalDisabledErrorMessage();
-            m_lastPolicyWebAssemblyDisabledErrorMessage = policy->webAssemblyDisabledErrorMessage();
-        }
-        if (policy->requiresTrustedTypesForScript()) {
-            requiresTrustedTypesForScript = true;
-            requiresTrustedTypesForScriptEnforced = !policy->isReportOnly();
-        }
-
-        if (!policy->trustedEvalEnabled())
-            m_trustedEvalEnabled = false;
+    if (auto index = m_swiftDirectives->directives.lastEnforcedPolicyDisallowingEval(); index >= 0) {
+        m_lastPolicyEvalDisabledErrorMessage = m_swiftDirectives->directives.evalDisabledErrorMessage(index);
+        m_lastPolicyWebAssemblyDisabledErrorMessage = m_swiftDirectives->directives.webAssemblyDisabledErrorMessage(index);
     }
+    bool requiresTrustedTypesForScript = m_swiftDirectives->directives.requiresTrustedTypesForScript();
+    bool requiresTrustedTypesForScriptEnforced = m_swiftDirectives->directives.lastPolicyRequiringTrustedTypesForScriptIsEnforced();
+    m_trustedEvalEnabled = m_trustedEvalEnabled && m_swiftDirectives->directives.trustedEvalEnabled();
 
     if (!m_lastPolicyEvalDisabledErrorMessage.isNull())
         scriptExecutionContext->disableEval(m_lastPolicyEvalDisabledErrorMessage);
@@ -349,60 +399,11 @@ void ContentSecurityPolicy::setOverrideAllowInlineStyle(bool value)
     m_overrideInlineStyleAllowed = value;
 }
 
-bool ContentSecurityPolicy::urlMatchesSelf(const URL& url) const
-{
-    return m_selfSource->matches(url);
-}
-
 bool ContentSecurityPolicy::allowContentSecurityPolicySourceStarToMatchAnyProtocol() const
 {
     if (auto* document = dynamicDowncast<Document>(m_scriptExecutionContext.get()))
         return document->settings().allowContentSecurityPolicySourceStarToMatchAnyProtocol();
     return false;
-}
-
-template<typename Predicate, typename... Args>
-bool ContentSecurityPolicy::allPoliciesWithDispositionAllow(Disposition disposition, Predicate&& predicate, Args&&... args) const
-    requires (!std::is_convertible_v<Predicate, ContentSecurityPolicy::ViolatedDirectiveCallback>)
-{
-    bool isReportOnly = disposition == ContentSecurityPolicy::Disposition::ReportOnly;
-    for (auto& policy : m_policies) {
-        if (policy->isReportOnly() != isReportOnly)
-            continue;
-        if ((policy.get()->*predicate)(args...))
-            return false;
-    }
-    return true;
-}
-
-template<typename Predicate, typename... Args>
-bool ContentSecurityPolicy::allPoliciesWithDispositionAllow(Disposition disposition, NOESCAPE const ViolatedDirectiveCallback& callback, Predicate&& predicate, Args&&... args) const
-{
-    bool isReportOnly = disposition == ContentSecurityPolicy::Disposition::ReportOnly;
-    bool isAllowed = true;
-    for (auto& policy : m_policies) {
-        if (policy->isReportOnly() != isReportOnly)
-            continue;
-        if (const ContentSecurityPolicyDirective* violatedDirective = (policy.get()->*predicate)(args...)) {
-            isAllowed = false;
-            callback(*violatedDirective);
-        }
-    }
-    return isAllowed;
-}
-
-template<typename Predicate, typename... Args>
-bool ContentSecurityPolicy::allPoliciesAllow(NOESCAPE const ViolatedDirectiveCallback& callback, Predicate&& predicate, Args&&... args) const
-{
-    bool isAllowed = true;
-    for (auto& policy : m_policies) {
-        if (const ContentSecurityPolicyDirective* violatedDirective = (policy.get()->*predicate)(args...)) {
-            if (!violatedDirective->directiveList().isReportOnly())
-                isAllowed = false;
-            callback(*violatedDirective);
-        }
-    }
-    return isAllowed;
 }
 
 static Vector<ResourceCryptographicDigest> parseSubResourceIntegrityIntoDigests(const String& subResourceIntegrity)
@@ -430,190 +431,84 @@ static Vector<ContentSecurityPolicyHash> generateHashesForContent(const StringVi
 
 bool ContentSecurityPolicy::allowJavaScriptURLs(const String& contextURL, const OrdinalNumber& contextLine, const String& source, Element* element) const
 {
-    bool didNotifyInspector = false;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &didNotifyInspector, &contextURL, &contextLine, &source, element = RefPtr { element }] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, URL(), "Refused to execute a script"_s, "its hash or 'unsafe-inline'"_s);
-        checkedThis->reportViolation(violatedDirective, "inline"_s, consoleMessage, contextURL, source, TextPosition(contextLine, OrdinalNumber()), URL(), nullptr, element.get());
-        if (!didNotifyInspector && violatedDirective.directiveList().isReportOnly()) {
-            checkedThis->reportBlockedScriptExecutionToInspector(violatedDirective.text());
-            didNotifyInspector = true;
-        }
-    };
-
-    auto contentHashes = generateHashesForContent(source, m_hashAlgorithmsForInlineScripts);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForInlineJavascriptURL, contentHashes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "inline"_s, .sourceURL = contextURL, .sourceContent = source, .sourcePosition = TextPosition(contextLine, OrdinalNumber()), .element = element };
+    return scope.directives.allowJavaScriptURLs(contentSecurityPolicyContentHashes(generateHashesForContent(source, m_hashAlgorithmsForInlineScripts)));
 }
 
 bool ContentSecurityPolicy::allowInlineEventHandlers(const String& contextURL, const OrdinalNumber& contextLine, const String& source, Element* element, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.isEmpty())
         return true;
-    bool didNotifyInspector = false;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &didNotifyInspector, &contextURL, &contextLine, &source, element = RefPtr { element }] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, URL(), "Refused to execute a script for an inline event handler"_s, "'unsafe-inline'"_s);
-        checkedThis->reportViolation(violatedDirective, "inline"_s, consoleMessage, contextURL, source, TextPosition(contextLine, OrdinalNumber()), URL(), nullptr, element.get());
-        if (!didNotifyInspector && !violatedDirective.directiveList().isReportOnly()) {
-            checkedThis->reportBlockedScriptExecutionToInspector(violatedDirective.text());
-            didNotifyInspector = true;
-        }
-    };
-
-    auto contentHashes = generateHashesForContent(source, m_hashAlgorithmsForInlineScripts);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForInlineEventHandlers, contentHashes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "inline"_s, .sourceURL = contextURL, .sourceContent = source, .sourcePosition = TextPosition(contextLine, OrdinalNumber()), .element = element };
+    return scope.directives.allowInlineEventHandlers(contentSecurityPolicyContentHashes(generateHashesForContent(source, m_hashAlgorithmsForInlineScripts)));
 }
 
 bool ContentSecurityPolicy::allowScriptWithNonce(const String& nonce, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.isEmpty())
         return true;
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    if (trimmedNonce.isEmpty())
-        return false;
-    // FIXME: We need to report violations in report-only policies. See <https://bugs.webkit.org/show_bug.cgi?id=159830>.
-    return allPoliciesWithDispositionAllow(ContentSecurityPolicy::Disposition::Enforce, &ContentSecurityPolicyDirectiveList::violatedDirectiveForScriptNonce, trimmedNonce);
+    return m_swiftDirectives->directives.allowScriptWithNonce(nonce.trim(isASCIIWhitespace));
 }
 
 bool ContentSecurityPolicy::allowStyleWithNonce(const String& nonce, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.isEmpty())
         return true;
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    if (trimmedNonce.isEmpty())
-        return false;
-    // FIXME: We need to report violations in report-only policies. See <https://bugs.webkit.org/show_bug.cgi?id=159830>.
-    return allPoliciesWithDispositionAllow(ContentSecurityPolicy::Disposition::Enforce, &ContentSecurityPolicyDirectiveList::violatedDirectiveForStyleNonce, trimmedNonce);
-}
-
-bool ContentSecurityPolicy::shouldPerformEarlyCSPCheck() const
-{
-    // We perform checks early if strict-dynamic is included in the CSP policy because
-    // we have access to necessary information about the script that we do not have later on.
-    for (auto& policy : m_policies) {
-        if (policy->strictDynamicIncluded())
-            return true;
-    }
-    return false;
+    return m_swiftDirectives->directives.allowStyleWithNonce(nonce.trim(isASCIIWhitespace));
 }
 
 bool ContentSecurityPolicy::allowScriptForStrictDynamic(const URL& sourceURL, const URL& contextURL, const OrdinalNumber& contextLine, const String& nonce, const String& subResourceIntegrity, const StringView& scriptContent, ParserInserted parserInserted) const
 {
-    if (!shouldPerformEarlyCSPCheck() || m_policies.isEmpty())
+    if (!m_swiftDirectives->directives.shouldPerformEarlyCSPCheck() || m_swiftDirectives->directives.isEmpty() || (!sourceURL.isEmpty() && LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(sourceURL.protocol())))
         return true;
-
-    if (!sourceURL.isEmpty() && LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(sourceURL.protocol()))
-        return true;
-
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &contextURL, &contextLine, &scriptContent] (const ContentSecurityPolicyDirective& violatedDirective) {
-        TextPosition sourcePosition(contextLine, OrdinalNumber());
-        const auto message = sourceURL.isEmpty() ? "Refused to execute a script"_s : "Refused to load"_s;
-        String consoleMessage = consoleMessageForViolation(violatedDirective, sourceURL, message);
-        checkedThis->reportViolation(violatedDirective, sourceURL.isEmpty() ? "inline"_s : sourceURL.string(), consoleMessage, contextURL.string(), scriptContent, sourcePosition);
-    };
-
-    auto subResourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity);
-    auto contentHashes = generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts);
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForScriptUnderStrictDynamic, trimmedNonce, contentHashes, subResourceIntegrityDigests, sourceURL, parserInserted);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = sourceURL.isEmpty() ? "inline"_s : sourceURL.string(), .consoleURL = sourceURL, .sourceURL = contextURL.string(), .sourceContent = scriptContent, .sourcePosition = TextPosition(contextLine, OrdinalNumber()),
+        .subresourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity) };
+    return scope.directives.allowScriptForStrictDynamic(sourceURL.string(), contentSecurityPolicyURLBounds(sourceURL), nonce.trim(isASCIIWhitespace), parserInserted == ParserInserted::Yes, contentSecurityPolicyContentHashes(generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts)), scope.subresourceIntegrityDigests.size(), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowInlineScript(const String& contextURL, const TextPosition& contextPosition, StringView scriptContent, Element& element, const String& nonce, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || shouldPerformEarlyCSPCheck() || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.shouldPerformEarlyCSPCheck() || m_swiftDirectives->directives.isEmpty())
         return true;
-    bool didNotifyInspector = false;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &didNotifyInspector, &contextURL, &contextPosition, &scriptContent, element = Ref { element }] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, URL(), "Refused to execute a script"_s, "its hash, its nonce, or 'unsafe-inline'"_s);
-        checkedThis->reportViolation(violatedDirective, "inline"_s, consoleMessage, contextURL, scriptContent, contextPosition, URL(), nullptr, element.ptr());
-        if (!didNotifyInspector && !violatedDirective.directiveList().isReportOnly()) {
-            checkedThis->reportBlockedScriptExecutionToInspector(violatedDirective.text());
-            didNotifyInspector = true;
-        }
-    };
-
-    auto contentHashes = generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts);
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeInlineScriptElement, trimmedNonce, contentHashes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "inline"_s, .sourceURL = contextURL, .sourceContent = scriptContent, .sourcePosition = contextPosition, .element = &element };
+    return scope.directives.allowInlineScript(nonce.trim(isASCIIWhitespace), contentSecurityPolicyContentHashes(generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts)));
 }
 
 bool ContentSecurityPolicy::allowInlineStyle(const String& contextURL, const OrdinalNumber& contextLine, StringView styleContent, CheckUnsafeHashes shouldCheckUnsafeHashes, Element& element, const String& nonce, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.isEmpty() || m_overrideInlineStyleAllowed)
         return true;
-    if (m_overrideInlineStyleAllowed)
-        return true;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &contextURL, &contextLine, &styleContent, element = Ref { element }] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, URL(), "Refused to apply a stylesheet"_s, "its hash, its nonce, or 'unsafe-inline'"_s);
-        checkedThis->reportViolation(violatedDirective, "inline"_s, consoleMessage, contextURL, styleContent, TextPosition(contextLine, OrdinalNumber()), URL(), nullptr, element.ptr());
-    };
-
-    auto contentHashes = generateHashesForContent(styleContent, m_hashAlgorithmsForInlineStylesheets);
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-
-    if (shouldCheckUnsafeHashes == CheckUnsafeHashes::Yes)
-        return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeInlineStyleAttribute, trimmedNonce, contentHashes);
-
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeInlineStyleElement, trimmedNonce, contentHashes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "inline"_s, .sourceURL = contextURL, .sourceContent = styleContent, .sourcePosition = TextPosition(contextLine, OrdinalNumber()), .element = &element };
+    return scope.directives.allowInlineStyle(nonce.trim(isASCIIWhitespace), shouldCheckUnsafeHashes == CheckUnsafeHashes::Yes, contentSecurityPolicyContentHashes(generateHashesForContent(styleContent, m_hashAlgorithmsForInlineStylesheets)));
 }
 
 bool ContentSecurityPolicy::allowEval(JSC::JSGlobalObject* state, LogToConsole shouldLogToConsole, StringView codeContent, bool overrideContentSecurityPolicy) const
 {
-    if (m_policies.isEmpty() || overrideContentSecurityPolicy)
+    if (m_swiftDirectives->directives.isEmpty() || overrideContentSecurityPolicy || (m_trustedEvalEnabled && requireTrustedTypesForSinkGroup("script"_s, IncludeReportOnlyPolicies::No)))
         return true;
-    if (m_trustedEvalEnabled && requireTrustedTypesForSinkGroup("script"_s, IncludeReportOnlyPolicies::No))
-        return true;
-    bool didNotifyInspector = false;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &didNotifyInspector, &state, &shouldLogToConsole, &codeContent] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = shouldLogToConsole == LogToConsole::Yes ? consoleMessageForViolation(violatedDirective, URL(), "Refused to execute a script"_s, "'unsafe-eval' and 'trusted-types-eval'"_s) : String();
-        checkedThis->reportViolation(violatedDirective, "eval"_s, consoleMessage, state, codeContent);
-        if (!didNotifyInspector && !violatedDirective.directiveList().isReportOnly()) {
-            checkedThis->reportBlockedScriptExecutionToInspector(violatedDirective.text());
-            didNotifyInspector = true;
-        }
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeEval);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "eval"_s, .sourceContent = codeContent, .globalObject = state };
+    return scope.directives.allowEval(shouldLogToConsole == LogToConsole::Yes);
 }
 
 bool ContentSecurityPolicy::allowFrameAncestors(const LocalFrame& frame, const URL& url, bool overrideContentSecurityPolicy) const
 {
-    if (m_policies.isEmpty() || overrideContentSecurityPolicy)
+    if (m_swiftDirectives->directives.isEmpty() || overrideContentSecurityPolicy || &frame == &frame.tree().top() || !m_swiftDirectives->directives.hasFrameAncestorsDirective())
         return true;
-    if (&frame == &frame.tree().top())
-        return true;
-    String sourceURL;
-    TextPosition sourcePosition(OrdinalNumber::beforeFirst(), OrdinalNumber());
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &sourcePosition, &url] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, url.string(), consoleMessage, sourceURL, StringView(), sourcePosition);
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForFrameAncestor, frame);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = url.string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()), .frame = &frame };
+    return scope.directives.allowFrameAncestors(allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::overridesXFrameOptions() const
 {
-    // If a resource is delivered with an policy that includes a directive named frame-ancestors and whose disposition
-    // is "enforce", then the X-Frame-Options header MUST be ignored.
-    // https://www.w3.org/TR/CSP3/#frame-ancestors-and-frame-options
-    for (auto& policy : m_policies) {
-        if (!policy->isReportOnly() && policy->hasFrameAncestorsDirective())
-            return true;
-    }
-    return false;
+    return m_swiftDirectives->directives.overridesXFrameOptions();
 }
 
 bool ContentSecurityPolicy::allowFrameAncestors(const Vector<Ref<SecurityOrigin>>& ancestorOrigins, const URL& url, bool overrideContentSecurityPolicy) const
 {
-    if (m_policies.isEmpty() || overrideContentSecurityPolicy)
+    if (m_swiftDirectives->directives.isEmpty() || overrideContentSecurityPolicy || ancestorOrigins.isEmpty() || !m_swiftDirectives->directives.hasFrameAncestorsDirective())
         return true;
-    bool isTopLevelFrame = ancestorOrigins.isEmpty();
-    if (isTopLevelFrame)
-        return true;
-    String sourceURL;
-    TextPosition sourcePosition(OrdinalNumber::beforeFirst(), OrdinalNumber());
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &sourcePosition, &url] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, url.string(), consoleMessage, sourceURL, StringView(), sourcePosition);
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForFrameAncestorOrigins, ancestorOrigins);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = url.string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()), .ancestorOrigins = &ancestorOrigins };
+    return scope.directives.allowFrameAncestors(allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowPluginType(const String&, const String&, const URL&, bool) const
@@ -626,237 +521,118 @@ bool ContentSecurityPolicy::allowPluginType(const String&, const String&, const 
 bool ContentSecurityPolicy::allowObjectFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
     // Report deprecation of 'plugin-types' when an object/embed element is used
-    for (auto& policy : m_policies) {
-        if (policy->hasPluginTypesDirective()) {
-            reportDeprecatedDirective("plugin-types"_s);
-            break;
-        }
-    }
+    if (m_swiftDirectives->directives.hasPluginTypesDirective())
+        reportDeprecatedDirective("plugin-types"_s);
 
-    const auto& urlToCheck = url.isEmpty() ? m_protectedURL : url;
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(urlToCheck.protocol()))
-        return true;
-    String sourceURL;
-    const auto& blockedURL = !preRedirectURL.isNull() ? preRedirectURL : urlToCheck;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, sourcePosition = WTF::move(sourcePosition), &blockedURL, &urlToCheck](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, urlToCheck, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, blockedURL.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForObjectSource, urlToCheck, redirectResponseReceived == RedirectResponseReceived::Yes);
+    return allowResourceFromSource(url.isEmpty() ? m_protectedURL : url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowObjectFromSource, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowChildFrameFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived) const
 {
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()) || url.protocolIsJavaScript())
+    if (url.protocolIsJavaScript())
         return true;
-    String sourceURL;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, sourcePosition = WTF::move(sourcePosition), &url](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, url.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForFrame, url, redirectResponseReceived == RedirectResponseReceived::Yes);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowChildFrameFromSource);
 }
 
-bool ContentSecurityPolicy::allowResourceFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, ResourcePredicate resourcePredicate, const URL& preRedirectURL) const
+template<typename Check>
+bool ContentSecurityPolicy::allowResourceFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, Check check, const URL& preRedirectURL) const
 {
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
+    if (m_swiftDirectives->directives.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    String sourceURL;
-    const auto& blockedURL = !preRedirectURL.isNull() ? preRedirectURL : url;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &blockedURL, sourcePosition = WTF::move(sourcePosition), &url](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, blockedURL.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-    return allPoliciesAllow(handleViolatedDirective, resourcePredicate, url, redirectResponseReceived == RedirectResponseReceived::Yes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = (!preRedirectURL.isNull() ? preRedirectURL : url).string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition) };
+    return (scope.directives.*check)(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowWorkerFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
-        return true;
-
-    String sourceURL;
-    const auto& blockedURL = !preRedirectURL.isNull() ? preRedirectURL : url;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &blockedURL, sourcePosition = WTF::move(sourcePosition), &url](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        auto consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, blockedURL.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForWorker, url, redirectResponseReceived == RedirectResponseReceived::Yes);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowWorkerFromSource, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowScriptFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL, const String& subResourceIntegrity, const String& nonce) const
 {
-    if (m_policies.isEmpty() || shouldPerformEarlyCSPCheck())
+    if (m_swiftDirectives->directives.isEmpty() || m_swiftDirectives->directives.shouldPerformEarlyCSPCheck() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    if (LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
-        return true;
-
-    String sourceURL;
-    const auto& blockedURL = !preRedirectURL.isNull() ? preRedirectURL : url;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &blockedURL, sourcePosition = WTF::move(sourcePosition), &url](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, blockedURL.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-
-    auto subResourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity);
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForScript, url, redirectResponseReceived == RedirectResponseReceived::Yes, subResourceIntegrityDigests, trimmedNonce);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = (!preRedirectURL.isNull() ? preRedirectURL : url).string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition), .subresourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity) };
+    return scope.directives.allowScriptFromSource(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, nonce.trim(isASCIIWhitespace), scope.subresourceIntegrityDigests.size(), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowImageFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForImage, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowImageFromSource, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowPrefetchFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForPrefetch, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowPrefetchFromSource, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowStyleFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL, const String& nonce) const
 {
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
+    if (m_swiftDirectives->directives.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    String sourceURL;
-    const auto& blockedURL = !preRedirectURL.isNull() ? preRedirectURL : url;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &blockedURL, sourcePosition = WTF::move(sourcePosition), &url](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to load"_s);
-        checkedThis->reportViolation(violatedDirective, blockedURL.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition));
-    };
-
-    auto trimmedNonce = nonce.trim(isASCIIWhitespace);
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForStyle, url, redirectResponseReceived == RedirectResponseReceived::Yes, trimmedNonce);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = (!preRedirectURL.isNull() ? preRedirectURL : url).string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition) };
+    return scope.directives.allowStyleFromSource(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, nonce.trim(isASCIIWhitespace), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowFontFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForFont, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowFontFromSource, preRedirectURL);
 }
 
 #if ENABLE(APPLICATION_MANIFEST)
 bool ContentSecurityPolicy::allowManifestFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForManifest, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowManifestFromSource, preRedirectURL);
 }
 #endif // ENABLE(APPLICATION_MANIFEST)
 
 bool ContentSecurityPolicy::allowMediaFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForMedia, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowMediaFromSource, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowConnectToSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    if (m_policies.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
+    if (m_swiftDirectives->directives.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    String sourceURL;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, sourcePosition = WTF::move(sourcePosition), &url, &preRedirectURL](const ContentSecurityPolicyDirective& violatedDirective) mutable {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to connect to"_s);
-        checkedThis->reportViolation(violatedDirective, url.string(), consoleMessage, sourceURL, StringView(), WTF::move(sourcePosition), preRedirectURL);
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForConnectSource, url, redirectResponseReceived == RedirectResponseReceived::Yes);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = url.string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition), .preRedirectURL = preRedirectURL };
+    return scope.directives.allowConnectToSource(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowFormAction(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
 {
-    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveList::violatedDirectiveForFormAction, preRedirectURL);
+    return allowResourceFromSource(url, WTF::move(sourcePosition), redirectResponseReceived, &ContentSecurityPolicyDirectiveListVector::allowFormAction, preRedirectURL);
 }
 
 bool ContentSecurityPolicy::allowBaseURI(const URL& url, bool overrideContentSecurityPolicy) const
 {
-    if (overrideContentSecurityPolicy || m_policies.isEmpty())
+    if (overrideContentSecurityPolicy || m_swiftDirectives->directives.isEmpty() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    if (LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
-        return true;
-    String sourceURL;
-    TextPosition sourcePosition(OrdinalNumber::beforeFirst(), OrdinalNumber());
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &sourcePosition, &url](const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = consoleMessageForViolation(violatedDirective, url, "Refused to change the document base URL to"_s);
-        checkedThis->reportViolation(violatedDirective, url.string(), consoleMessage, sourceURL, StringView(), { sourcePosition });
-    };
-    return allPoliciesAllow(handleViolatedDirective, &ContentSecurityPolicyDirectiveList::violatedDirectiveForBaseURI, url);
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = url.string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()) };
+    return scope.directives.allowBaseURI(url.string(), contentSecurityPolicyURLBounds(url), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 // https://w3c.github.io/trusted-types/dist/spec/#should-block-create-policy
 AllowTrustedTypePolicy ContentSecurityPolicy::allowTrustedTypesPolicy(const String& value, bool isDuplicate) const
 {
-    String sourceURL;
-    TextPosition sourcePosition(OrdinalNumber::beforeFirst(), OrdinalNumber());
-    AllowTrustedTypePolicy details = AllowTrustedTypePolicy::Allowed;
-    auto handleViolatedDirective = [checkedThis = CheckedRef { *this }, &sourceURL, &sourcePosition, &value] (const ContentSecurityPolicyDirective& violatedDirective) {
-        String consoleMessage = makeString(violatedDirective.directiveList().isReportOnly() ? "[Report Only] "_s : ""_s,
-            "Refused to create a TrustedTypePolicy named '"_s, value, "' because it violates the following Content Security Policy directive: \""_s, violatedDirective.text(), '"');
-        checkedThis->reportViolation(violatedDirective, "trusted-types-policy"_s, consoleMessage, sourceURL, StringView(value), sourcePosition);
-    };
-
-    auto isAllowed = true;
-    for (auto& policy : m_policies) {
-        auto perPolicyDetails = AllowTrustedTypePolicy::Allowed;
-        if (auto* violatedDirective = policy.get()->violatedDirectiveForTrustedTypesPolicy(value, isDuplicate, perPolicyDetails)) {
-            if (!violatedDirective->directiveList().isReportOnly())
-                isAllowed = false;
-            // If we already have a violation, we should use the details from the first policy that violated the directive.
-            if (!isAllowed && details == AllowTrustedTypePolicy::Allowed)
-                details = perPolicyDetails;
-            handleViolatedDirective(*violatedDirective);
-        }
-    }
-
-    if (value == "default"_s && isDuplicate)
-        return AllowTrustedTypePolicy::DisallowedDuplicateName;
-
-    return isAllowed
-        ? AllowTrustedTypePolicy::Allowed
-        : details;
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "trusted-types-policy"_s, .sourceURL = String(), .sourceContent = value, .sourcePosition = TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()) };
+    return static_cast<AllowTrustedTypePolicy>(scope.directives.allowTrustedTypesPolicy(value, isDuplicate));
 }
 
 // https://w3c.github.io/trusted-types/dist/spec/#does-sink-require-trusted-types
 bool ContentSecurityPolicy::requireTrustedTypesForSinkGroup(const String& sinkGroup, IncludeReportOnlyPolicies includeReportOnlyPolicies) const
 {
-    for (auto& policy : m_policies) {
-        if (policy->requiresTrustedTypesForScript() && sinkGroup == "script"_s) {
-            if (!policy->isReportOnly())
-                return true;
-            if (includeReportOnlyPolicies == IncludeReportOnlyPolicies::Yes)
-                return true;
-        }
-    }
-    return false;
+    return sinkGroup == "script"_s && m_swiftDirectives->directives.requireTrustedTypesForSinkGroup(includeReportOnlyPolicies == IncludeReportOnlyPolicies::Yes);
 }
 
 // https://w3c.github.io/trusted-types/dist/spec/#should-block-sink-type-mismatch
 bool ContentSecurityPolicy::allowMissingTrustedTypesForSinkGroup(const String& stringContext, const String& sink, const String& sinkGroup, StringView source) const
 {
-    auto isAllowed = true;
-    for (auto& policy : m_policies) {
-        if (policy->requiresTrustedTypesForScript() && sinkGroup == "script"_s) {
-            if (!policy->isReportOnly())
-                isAllowed = false;
-
-            String consoleMessage = makeString(policy->isReportOnly() ? "[Report Only] "_s : ""_s,
-                "This requires a "_s, stringContext, " value else it violates the following Content Security Policy directive: \"require-trusted-types-for 'script'\""_s);
-            StringView sample = source;
-
-            if (sink == "Function"_s) {
-                constexpr std::array<ASCIILiteral, 4> prefixes = {
-                    "function anonymous"_s,
-                    "async function anonymous"_s,
-                    "function* anonymous"_s,
-                    "async function* anonymous"_s
-                };
-                for (auto prefix : prefixes) {
-                    if (sample.startsWith(prefix)) {
-                        sample = sample.substring(prefix.length());
-                        break;
-                    }
-                }
-            }
-            String violationSample = makeString(sink, '|', sample.left(40));
-            reportViolation("require-trusted-types-for"_s, *policy, "trusted-types-sink"_s, consoleMessage, nullString(), violationSample, TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()), nullptr);
-        }
-    }
-    return isAllowed;
+    if (sinkGroup != "script"_s)
+        return true;
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = "trusted-types-sink"_s, .sourceURL = nullString(), .sourceContent = source, .sourcePosition = TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber()) };
+    // The longest prefix allowMissingTrustedTypesSample() strips, "async function* anonymous" (25), and the 40 characters of the sample.
+    return scope.directives.allowMissingTrustedTypesForSinkGroup(stringContext, sink, source.left(65).toString());
 }
 
 static bool shouldReportProtocolOnly(const URL& url)
@@ -872,10 +648,8 @@ String ContentSecurityPolicy::createURLForReporting(const URL& url, const String
     // with the change that cross-origin is considered safe except on some directives.
     // The frame-src, object-src, and block-all-mixed-content directives would allow a website to put another in a frame
     // and listen to emitted securitypolicyviolations.
-    bool directiveIsSafe = violatedDirective != ContentSecurityPolicyDirectiveNames::frameSrc
-        && violatedDirective != ContentSecurityPolicyDirectiveNames::objectSrc
-        && violatedDirective != ContentSecurityPolicyDirectiveNames::blockAllMixedContent;
-    auto securityOrigin = static_cast<SecurityOriginData>(*m_selfSource).securityOrigin();
+    bool directiveIsSafe = violatedDirective != "frame-src"_s && violatedDirective != "object-src"_s && violatedDirective != "block-all-mixed-content"_s;
+    auto securityOrigin = m_selfOrigin.securityOrigin();
 
     if (!url.isValid())
         return { };
@@ -906,24 +680,7 @@ std::optional<CodePosition> ContentSecurityPolicy::getCurrentCodePosition()
     return std::nullopt;
 }
 
-void ContentSecurityPolicy::reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject* state, StringView sourceContent) const
-{
-    // FIXME: Extract source file, and position from JSC::ExecState.
-    return reportViolation(violatedDirective.nameForReporting(), violatedDirective.directiveList(), blockedURL, consoleMessage, String(), sourceContent.left(40), { }, state);
-}
-
-void ContentSecurityPolicy::reportViolation(const String& violatedDirective, const ContentSecurityPolicyDirectiveList& violatedDirectiveList, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject* state) const
-{
-    // FIXME: Extract source file, content, and position from JSC::ExecState.
-    return reportViolation(violatedDirective, violatedDirectiveList, blockedURL, consoleMessage, String(), StringView(), { }, state);
-}
-
-void ContentSecurityPolicy::reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, const URL& preRedirectURL, JSC::JSGlobalObject* state, Element* element) const
-{
-    return reportViolation(violatedDirective.nameForReporting(), violatedDirective.directiveList(), blockedURL, consoleMessage, sourceURL, sourceContent.left(40), WTF::move(sourcePosition), state, preRedirectURL, element);
-}
-
-void ContentSecurityPolicy::reportViolation(const String& effectiveViolatedDirective, const ContentSecurityPolicyDirectiveList& violatedDirectiveList, const String& blockedURLString, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& maybeSourcePosition, JSC::JSGlobalObject* state, const URL& preRedirectURL, Element* element) const
+void ContentSecurityPolicy::reportViolation(const String& effectiveViolatedDirective, const SwiftViolatedPolicy& violatedDirectiveList, const String& blockedURLString, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& maybeSourcePosition, JSC::JSGlobalObject* state, const URL& preRedirectURL, Element* element) const
 {
     TextPosition sourcePosition = maybeSourcePosition.value_or(TextPosition(OrdinalNumber::beforeFirst(), OrdinalNumber::beforeFirst()));
     logToConsole(consoleMessage, sourceURL, sourcePosition.m_line, sourcePosition.m_column, state);
@@ -1035,26 +792,6 @@ void ContentSecurityPolicy::reportViolation(const String& effectiveViolatedDirec
     m_reportingClient->sendReportToEndpoints(m_protectedURL, endpointURIs, endpointTokens, WTF::move(reportFormData), ViolationReportType::ContentSecurityPolicy);
 }
 
-void ContentSecurityPolicy::reportUnsupportedDirective(const String& name) const
-{
-    String message;
-    if (equalLettersIgnoringASCIICase(name, "allow"_s))
-        message = "The 'allow' directive has been replaced with 'default-src'. Please use that directive instead, as 'allow' has no effect."_s;
-    else if (equalLettersIgnoringASCIICase(name, "options"_s))
-        message = "The 'options' directive has been replaced with 'unsafe-inline' and 'unsafe-eval' source expressions for the 'script-src' and 'style-src' directives. Please use those directives instead, as 'options' has no effect."_s;
-    else if (equalLettersIgnoringASCIICase(name, "policy-uri"_s))
-        message = "The 'policy-uri' directive has been removed from the specification. Please specify a complete policy via the Content-Security-Policy header."_s;
-    else
-        message = makeString("Unrecognized Content-Security-Policy directive '"_s, name, "'.\n"_s); // FIXME: Why does this include a newline?
-
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportDeprecatedDirectiveToConsole(const String& name) const
-{
-    logToConsole(makeString("The Content Security Policy directive '"_s, name, "' has been removed from the specification and is ignored.\n"_s));
-}
-
 void ContentSecurityPolicy::reportDeprecatedDirective(const String& name) const
 {
     if (m_reportingClient) {
@@ -1068,98 +805,6 @@ void ContentSecurityPolicy::reportDeprecatedDirective(const String& name) const
         auto type = reportBody->type();
         m_reportingClient->notifyReportObservers(Report::create(type, m_protectedURL.string(), WTF::move(reportBody)));
     }
-}
-
-void ContentSecurityPolicy::reportDirectiveAsSourceExpression(const String& directiveName, StringView sourceExpression) const
-{
-    logToConsole(makeString("The Content Security Policy directive '"_s, directiveName, "' contains '"_s, sourceExpression, "' as a source expression. Did you mean '"_s, directiveName, " ...; "_s, sourceExpression, "...' (note the semicolon)?"_s));
-}
-
-void ContentSecurityPolicy::reportDuplicateDirective(const String& name) const
-{
-    logToConsole(makeString("Ignoring duplicate Content-Security-Policy directive '"_s, name, "'.\n"_s));
-}
-
-void ContentSecurityPolicy::reportInvalidPluginTypes(const String& pluginType) const
-{
-    String message;
-    if (pluginType.isNull())
-        message = "'plugin-types' Content Security Policy directive is empty; all plugins will be blocked.\n"_s;
-    else
-        message = makeString("Invalid plugin type in 'plugin-types' Content Security Policy directive: '"_s, pluginType, "'.\n"_s);
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportInvalidTrustedTypesPolicy(const String& policyName) const
-{
-    String message = makeString("Invalid policy name in 'trusted-types' Content Security Policy directive: '"_s, policyName, "'.\n"_s);
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportInvalidTrustedTypesNoneKeyword() const
-{
-    String message = "Invalid policy name in 'trusted-types' Content Security Policy directive: 'none'. Note that 'none' has no effect unless it is the only expression.\n"_s;
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportInvalidTrustedTypesSinkGroup(const String& sinkGroup) const
-{
-    String message = makeString("Invalid sink group in 'require-trusted-types-for' Content Security Policy directive: '"_s, sinkGroup, "'.\n"_s);
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportEmptyRequireTrustedTypesForDirective() const
-{
-    String message = "'require-trusted-types-for' Content Security Policy directive is empty; The directive has no effect.\n"_s;
-    logToConsole(message);
-}
-
-void ContentSecurityPolicy::reportInvalidSandboxFlags(const String& invalidFlags) const
-{
-    logToConsole(makeString("Error while parsing the 'sandbox' Content Security Policy directive: "_s, invalidFlags));
-}
-
-void ContentSecurityPolicy::reportInvalidDirectiveInReportOnlyMode(const String& directiveName) const
-{
-    logToConsole(makeString("The Content Security Policy directive '"_s, directiveName, "' is ignored when delivered in a report-only policy."_s));
-}
-
-void ContentSecurityPolicy::reportInvalidDirectiveInHTTPEquivMeta(const String& directiveName) const
-{
-    logToConsole(makeString("The Content Security Policy directive '"_s, directiveName, "' is ignored when delivered via an HTML meta element."_s));
-}
-
-void ContentSecurityPolicy::reportInvalidDirectiveValueCharacter(const String& directiveName, const String& value) const
-{
-    logToConsole(makeString("The value for Content Security Policy directive '"_s, directiveName, "' contains an invalid character: '"_s, value, "'. Non-whitespace characters outside ASCII 0x21-0x7E must be percent-encoded, as described in RFC 3986, section 2.1: http://tools.ietf.org/html/rfc3986#section-2.1."_s));
-}
-
-void ContentSecurityPolicy::reportInvalidPathCharacter(const String& directiveName, const String& value, const char invalidChar) const
-{
-    ASSERT(invalidChar == '#' || invalidChar == '?');
-
-    ASCIILiteral ignoring = [&] {
-        if (invalidChar == '?')
-            return "The query component, including the '?', will be ignored."_s;
-        return "The fragment identifier, including the '#', will be ignored."_s;
-    }();
-    logToConsole(makeString("The source list for Content Security Policy directive '"_s, directiveName, "' contains a source with an invalid path: '"_s, value, "'. "_s, ignoring));
-}
-
-void ContentSecurityPolicy::reportInvalidSourceExpression(const String& directiveName, const String& source) const
-{
-    logToConsole(makeString("The source list for Content Security Policy directive '"_s, directiveName, "' contains an invalid source: '"_s, source, "'. It will be ignored."_s,
-        equalLettersIgnoringASCIICase(source, "'none'"_s) ? " Note that 'none' has no effect unless it is the only expression in the source list."_s : ""_s));
-}
-
-void ContentSecurityPolicy::reportMissingReportURI(const String& policy) const
-{
-    logToConsole(makeString("The Content Security Policy '"_s, policy, "' was delivered in report-only mode, but does not specify a 'report-uri'; the policy will have no effect. Please either add a 'report-uri' directive, or deliver the policy via the 'Content-Security-Policy' header."_s));
-}
-
-void ContentSecurityPolicy::reportMissingReportToTokens(const String& policy) const
-{
-    logToConsole(makeString("The Content Security Policy '"_s, policy, "' was delivered in report-only mode, but does not specify a 'report-to'; the policy will have no effect. Please either add a 'report-to' directive, or deliver the policy via the 'Content-Security-Policy' header."_s));
 }
 
 void ContentSecurityPolicy::logToConsole(const String& message, const String& contextURL, const OrdinalNumber& contextLine, const OrdinalNumber& contextColumn, JSC::JSGlobalObject* state) const
@@ -1272,9 +917,9 @@ const HashAlgorithmSetCollection& ContentSecurityPolicy::hashesToReport()
 {
     if (m_hashesToReport.isEmpty()) {
         Vector<std::pair<HashAlgorithmSet, FixedVector<String>>> hashesToReport;
-        for (auto& policy : m_policies) {
-            if (auto hash = policy->reportHash())
-                hashesToReport.append(std::make_pair(hash, policy->reportToTokens()));
+        for (unsigned i = 0, count = m_swiftDirectives->directives.policyCount(); i < count; ++i) {
+            if (auto hash = m_swiftDirectives->directives.policyReportHash(i))
+                hashesToReport.append({ hash, FixedVector<String>::createWithSizeFromGenerator(m_swiftDirectives->directives.policyReportToTokenCount(i), [&](size_t j) { return m_swiftDirectives->directives.policyReportToToken(i, static_cast<unsigned>(j)); }) });
         }
         m_hashesToReport = WTF::move(hashesToReport);
     }
@@ -1334,5 +979,87 @@ void ContentSecurityPolicy::setIsReportingToConsoleEnabledForTesting(bool value)
 void ContentSecurityPolicy::setIsReportingEnabledForTesting(bool value)
 {
     setIsReportingEnabled(value);
+}
+
+void ContentSecurityPolicyCallbacks::logToConsole(String message)
+{
+    contentSecurityPolicySwiftScope().policy->logToConsole(message);
+}
+
+String ContentSecurityPolicyCallbacks::enforceSandboxPolicy(String policy)
+{
+    String invalidTokens;
+    contentSecurityPolicySwiftScope().sandboxFlags.add(SecurityContext::parseSandboxPolicy(policy, invalidTokens));
+    return invalidTokens;
+}
+
+bool ContentSecurityPolicyCallbacks::isPublicSuffix(String host)
+{
+    return PublicSuffixStore::singleton().isPublicSuffix(host);
+}
+
+bool ContentSecurityPolicyCallbacks::isLocalHostOrLoopbackIPAddress(String host)
+{
+    return SecurityOrigin::isLocalHostOrLoopbackIPAddress(host);
+}
+
+bool ContentSecurityPolicyCallbacks::decodedPathSegmentsMatch(String a, String b)
+{
+    return PAL::decodeURLEscapeSequences(a) == PAL::decodeURLEscapeSequences(b);
+}
+
+uint16_t ContentSecurityPolicyCallbacks::defaultPort(bool isSecure)
+{
+    return WTF::defaultPortForProtocol(isSecure ? "https"_s : "http"_s).value_or(isSecure ? 443 : 80);
+}
+
+// The text between a hash-source's quotes: hash-algorithm "-" base64-value, whose value is at most maximumDigestLength
+// bytes. Anything else gives a digest with no algorithm.
+ContentSecurityPolicyDigest ContentSecurityPolicyCallbacks::parseHashSource(String source)
+{
+    return readCharactersForParsing(source, [](auto buffer) {
+        auto digest = parseCryptographicDigest(buffer);
+        if (!digest || !buffer.atEnd() || digest->value.size() > ContentSecurityPolicyHash::maximumDigestLength)
+            return ContentSecurityPolicyDigest { };
+        return contentSecurityPolicyDigest(*digest);
+    });
+}
+
+ContentSecurityPolicyDigest ContentSecurityPolicyCallbacks::integrityDigest(unsigned index)
+{
+    return contentSecurityPolicyDigest(contentSecurityPolicySwiftScope().subresourceIntegrityDigests.at(index));
+}
+
+bool ContentSecurityPolicyCallbacks::frameAncestorURL(unsigned index, String& url, ContentSecurityPolicyURLBounds& bounds)
+{
+    auto& scope = contentSecurityPolicySwiftScope();
+    RefPtr<SecurityOrigin> origin = scope.ancestorOrigins && index < scope.ancestorOrigins->size() ? scope.ancestorOrigins->at(index).ptr() : nullptr;
+    for (Ref localFrame : ancestorFrames<LocalFrame>(scope.frame.get())) {
+        if (!index--) {
+            origin = &protect(localFrame->document())->securityOrigin();
+            break;
+        }
+    }
+    if (!origin)
+        return false;
+    URL ancestorURL { URL { }, origin->toString() };
+    bounds = contentSecurityPolicyURLBounds(ancestorURL);
+    url = ancestorURL.string();
+    return true;
+}
+
+String ContentSecurityPolicyCallbacks::blockedURLForConsole()
+{
+    return contentSecurityPolicySwiftScope().consoleURL.stringCenterEllipsizedToLength();
+}
+
+void ContentSecurityPolicyCallbacks::reportViolation(const String& directive, const String& header, bool isReportOnly, bool shouldReportSample, std::span<const String> reportToTokens NOESCAPE, std::span<const String> reportURIs NOESCAPE, const String& consoleMessage, const String& sample, const String& directiveTextForInspector)
+{
+    auto& scope = contentSecurityPolicySwiftScope();
+    ContentSecurityPolicy::SwiftViolatedPolicy violatedPolicy { header, isReportOnly, shouldReportSample, reportToTokens, reportURIs };
+    auto sourcePosition = scope.sourcePosition;
+    scope.policy->reportViolation(directive, violatedPolicy, scope.blockedURL, consoleMessage, scope.sourceURL, sample.isNull() ? scope.sourceContent.left(40) : StringView { sample }, WTF::move(sourcePosition), scope.globalObject, scope.preRedirectURL, scope.element.get());
+    if (!directiveTextForInspector.isNull())
+        scope.policy->reportBlockedScriptExecutionToInspector(directiveTextForInspector);
 }
 }

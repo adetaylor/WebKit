@@ -73,9 +73,6 @@ struct CodePosition {
     bool isEmpty() const { return sourceURL.isEmpty() && line == OrdinalNumber::beforeFirst(); }
 };
 
-class ContentSecurityPolicyDirective;
-class ContentSecurityPolicyDirectiveList;
-class ContentSecurityPolicySource;
 class DOMStringList;
 class Element;
 class JSWindowProxy;
@@ -90,8 +87,6 @@ static_assert(static_cast<unsigned>(ParserInserted::Yes) <= ((1U << bitWidthOfPa
 
 enum class LogToConsole : bool { No, Yes };
 enum class CheckUnsafeHashes : bool { No, Yes };
-
-typedef Vector<std::unique_ptr<ContentSecurityPolicyDirectiveList>> CSPDirectiveListVector;
 
 enum class ContentSecurityPolicyModeForExtension : uint8_t {
     None,
@@ -187,39 +182,9 @@ public:
 
     void gatherReportURIs(DOMStringList&) const;
 
-    // The following functions are used by internal data structures to call back into this object when parsing, validating,
-    // and applying a Content Security Policy.
-    // FIXME: We should make the various directives serve only as state stores for the parsed policy and remove these functions.
-    // This class should traverse the directives, validating the policy, and applying it to the script execution context.
-
-    // Used by ContentSecurityPolicyMediaListDirective
-    void reportInvalidPluginTypes(const String&) const;
-
-    // Used by ContentSecurityPolicyTrustedTypesDirective
-    void reportInvalidTrustedTypesPolicy(const String&) const;
-    void reportInvalidTrustedTypesNoneKeyword() const;
-
-    void reportInvalidTrustedTypesSinkGroup(const String&) const;
-    void reportEmptyRequireTrustedTypesForDirective() const;
-
-    // Used by ContentSecurityPolicySourceList
-    void reportDirectiveAsSourceExpression(const String& directiveName, StringView sourceExpression) const;
-    void reportInvalidPathCharacter(const String& directiveName, const String& value, const char) const;
-    void reportInvalidSourceExpression(const String& directiveName, const String& source) const;
-    bool urlMatchesSelf(const URL&) const;
     NODELETE bool allowContentSecurityPolicySourceStarToMatchAnyProtocol() const;
 
-    // Used by ContentSecurityPolicyDirectiveList
-    void reportDuplicateDirective(const String&) const;
-    void reportInvalidDirectiveValueCharacter(const String& directiveName, const String& value) const;
-    void reportInvalidSandboxFlags(const String&) const;
-    void reportInvalidDirectiveInReportOnlyMode(const String&) const;
-    void reportInvalidDirectiveInHTTPEquivMeta(const String&) const;
-    void reportMissingReportToTokens(const String&) const;
-    void reportMissingReportURI(const String&) const;
-    void reportUnsupportedDirective(const String&) const;
     void reportDeprecatedDirective(const String&) const;
-    void reportDeprecatedDirectiveToConsole(const String&) const;
     void enforceSandboxFlags(SandboxFlags sandboxFlags) { m_sandboxFlags.add(sandboxFlags); }
     void addHashAlgorithmsForInlineScripts(OptionSet<ContentSecurityPolicyHashAlgorithm> hashAlgorithmsForInlineScripts)
     {
@@ -288,30 +253,13 @@ private:
 
     const PAL::TextEncoding documentEncoding() const;
 
-    enum class Disposition {
-        Enforce,
-        ReportOnly,
-    };
-
-    using ViolatedDirectiveCallback = std::function<void (const ContentSecurityPolicyDirective&)>;
-
-    template<typename Predicate, typename... Args>
-    bool allPoliciesWithDispositionAllow(Disposition, Predicate&&, Args&&...) const requires (!std::is_convertible_v<Predicate, ViolatedDirectiveCallback>);
-
-    template<typename Predicate, typename... Args>
-    bool allPoliciesWithDispositionAllow(Disposition, NOESCAPE const ViolatedDirectiveCallback&, Predicate&&, Args&&...) const;
-
-    template<typename Predicate, typename... Args>
-    [[nodiscard]] bool allPoliciesAllow(NOESCAPE const ViolatedDirectiveCallback&, Predicate&&, Args&&...) const;
-    bool shouldPerformEarlyCSPCheck() const;
-    
-    using ResourcePredicate = const ContentSecurityPolicyDirective *(ContentSecurityPolicyDirectiveList::*)(const URL &, bool) const;
-    bool allowResourceFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived, ResourcePredicate, const URL& preRedirectURL = URL()) const;
-
-    void reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject*, StringView sourceContent) const;
-    void reportViolation(const String& effectiveViolatedDirective, const ContentSecurityPolicyDirectiveList&, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject* = nullptr) const;
-    void reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, const URL& preRedirectURL = URL(), JSC::JSGlobalObject* = nullptr, Element* = nullptr) const;
-    void reportViolation(const String& violatedDirective, const ContentSecurityPolicyDirectiveList& violatedDirectiveList, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, JSC::JSGlobalObject*, const URL& preRedirectURL = URL(), Element* = nullptr) const;
+    friend struct ContentSecurityPolicyCallbacks;
+    friend struct ContentSecurityPolicySwiftScope;
+    struct SwiftDirectives;
+    struct SwiftViolatedPolicy;
+    template<typename Check>
+    bool allowResourceFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived, Check, const URL& preRedirectURL = URL()) const;
+    void reportViolation(const String& violatedDirective, const SwiftViolatedPolicy& violatedDirectiveList, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, JSC::JSGlobalObject*, const URL& preRedirectURL = URL(), Element* = nullptr) const;
     void reportBlockedScriptExecutionToInspector(const String& directiveText) const;
 
     // We can never have both a script execution context and a ContentSecurityPolicyClient.
@@ -321,9 +269,9 @@ private:
 
     URL m_protectedURL;
     std::optional<URL> m_documentURL;
-    std::unique_ptr<ContentSecurityPolicySource> m_selfSource;
+    SecurityOriginData m_selfOrigin;
+    std::unique_ptr<SwiftDirectives> m_swiftDirectives;
     String m_selfSourceProtocol;
-    CSPDirectiveListVector m_policies;
     String m_lastPolicyEvalDisabledErrorMessage;
     String m_lastPolicyWebAssemblyDisabledErrorMessage;
     String m_referrer;
