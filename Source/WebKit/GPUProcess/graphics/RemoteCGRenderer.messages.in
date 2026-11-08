@@ -114,19 +114,17 @@ messages -> RemoteCGRenderer Stream {
     BeginTransparencyLayerWithCompositeMode
     EndTransparencyLayer SwiftMayDecline
     SetURLForRect
-    SetFillGradient(WebKit::RemoteCGRendererGradient gradient, WebCore::AffineTransform spaceTransform) StreamBatched
     SetFillCachedGradient
     SetFillPatternNativeImage
     SetFillPatternImageBuffer
-    SetStrokeGradient(WebKit::RemoteCGRendererGradient gradient, WebCore::AffineTransform spaceTransform) StreamBatched
     SetStrokeCachedGradient
     SetStrokePatternNativeImage
     SetStrokePatternImageBuffer
-    FillRectWithGradient(WebCore::FloatRect rect, WebKit::RemoteCGRendererGradient gradient) StreamBatched
+    FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
     DrawLinesForText(WebCore::FloatPoint point, float thickness, WebKit::RemoteCGRendererLineSegments lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched
     DrawDotsForDocumentMarker
     DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
-    FillRectWithGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteCGRendererGradient gradient, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
+    FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched SwiftMayDecline
 }

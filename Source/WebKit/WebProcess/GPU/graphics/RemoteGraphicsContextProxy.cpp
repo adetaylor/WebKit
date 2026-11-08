@@ -32,7 +32,6 @@
 #include "RemoteGraphicsContextMessages.h"
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererGradient.h"
 #include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
@@ -621,14 +620,28 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, Gradient& gradi
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillRectWithGradient, (rect, gradient), (rect, RemoteCGRendererGradient { Ref { gradient } }));
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (m_drawsWithCGRendererReceiver) {
+        if (auto identifier = recordResourceUse(gradient))
+            send(Messages::RemoteCGRenderer::FillRectWithCachedGradient(rect, *identifier));
+        return;
+    }
+#endif
+    send(Messages::RemoteGraphicsContext::FillRectWithGradient(rect, gradient));
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect requiresClipToRect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillRectWithGradientAndSpaceTransform, (rect, gradient, gradientSpaceTransform, requiresClipToRect), (rect, RemoteCGRendererGradient { Ref { gradient } }, gradientSpaceTransform, requiresClipToRect));
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (m_drawsWithCGRendererReceiver) {
+        if (auto identifier = recordResourceUse(gradient))
+            send(Messages::RemoteCGRenderer::FillRectWithCachedGradientAndSpaceTransform(rect, *identifier, gradientSpaceTransform, requiresClipToRect));
+        return;
+    }
+#endif
+    send(Messages::RemoteGraphicsContext::FillRectWithGradientAndSpaceTransform(rect, gradient, gradientSpaceTransform, requiresClipToRect));
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& color, CompositeOperator op, BlendMode mode)
@@ -905,7 +918,12 @@ bool RemoteGraphicsContextProxy::recordResourceUse(FontBase& font)
 
 std::optional<RemoteGradientIdentifier> RemoteGraphicsContextProxy::recordResourceUse(Gradient& gradient)
 {
-    if (gradient.isTransient())
+    // RemoteCGRenderer takes every gradient from the resource cache, and RemoteGraphicsContext a transient one inline.
+    bool cachesTransientGradients = false;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    cachesTransientGradients = m_drawsWithCGRendererReceiver;
+#endif
+    if (gradient.isTransient() && !cachesTransientGradients)
         return std::nullopt;
     RefPtr renderingBackend = m_renderingBackend.get();
     if (!renderingBackend) [[unlikely]] {
@@ -1011,7 +1029,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             if (auto identifier = recordResourceUse(*gradient))
                 SEND_RENDERER_MESSAGE(SetFillCachedGradient, *identifier, fillBrush.gradientSpaceTransform());
             else
-                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetFillGradient, (*gradient, fillBrush.gradientSpaceTransform()), (RemoteCGRendererGradient { Ref { *gradient } }, fillBrush.gradientSpaceTransform()));
+                send(Messages::RemoteGraphicsContext::SetFillGradient(*gradient, fillBrush.gradientSpaceTransform()));
         } else
             SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetFillColor, (fillBrush.color()), (rendererColorValue(fillBrush.color())));
     }
@@ -1035,7 +1053,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             if (auto identifier = recordResourceUse(*gradient))
                 SEND_RENDERER_MESSAGE(SetStrokeCachedGradient, *identifier, strokeBrush.gradientSpaceTransform());
             else
-                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokeGradient, (*gradient, strokeBrush.gradientSpaceTransform()), (RemoteCGRendererGradient { Ref { *gradient } }, strokeBrush.gradientSpaceTransform()));
+                send(Messages::RemoteGraphicsContext::SetStrokeGradient(*gradient, strokeBrush.gradientSpaceTransform()));
         } else
             SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokeColor, (strokeBrush.color()), (rendererColorValue(strokeBrush.color())));
     }

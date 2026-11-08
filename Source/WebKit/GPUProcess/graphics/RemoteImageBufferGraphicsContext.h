@@ -41,7 +41,6 @@ class RemoteCGRendererLineStrokes;
 class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
 class RemoteCGRendererGlyphs;
-class RemoteCGRendererGradient;
 class RemoteCGRendererLineDash;
 class RemoteCGRendererLineSegments;
 struct RemoteCGRendererShadow;
@@ -78,12 +77,10 @@ public:
     void fillCompositedRect(const WebCore::FloatRect&, const CGRendererColorValue&, WebCore::CompositeOperator, WebCore::BlendMode);
     void fillRoundedRect(const WebCore::FloatRoundedRect&, const CGRendererColorValue&, WebCore::BlendMode);
     void fillRectWithRoundedHole(const WebCore::FloatRect&, const WebCore::FloatRoundedRect&, const CGRendererColorValue&);
-    void setFillGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
-    void setStrokeGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
-    void fillRectWithGradient(const WebCore::FloatRect&, const RemoteCGRendererGradient&);
+    void fillRectWithCachedGradient(const WebCore::FloatRect&, RemoteGradientIdentifier);
     void drawLinesForText(const WebCore::FloatPoint&, float thickness, const RemoteCGRendererLineSegments&, bool printing, bool doubleLines, WebCore::StrokeStyle);
     void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
-    void fillRectWithGradientAndSpaceTransform(const WebCore::FloatRect&, const RemoteCGRendererGradient&, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
+    void fillRectWithCachedGradientAndSpaceTransform(const WebCore::FloatRect&, RemoteGradientIdentifier, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

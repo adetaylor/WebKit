@@ -172,11 +172,6 @@ header: "RemoteCGRendererStyle.h"
     std::array<float, 20> colorMatrix;
 };
 
-header: "RemoteCGRendererGradient.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererGradient {
-    Ref<WebCore::Gradient> gradient();
-};
-
 header: "RemoteCGRendererGlyphs.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererGlyphs {
     IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphsAdvances();

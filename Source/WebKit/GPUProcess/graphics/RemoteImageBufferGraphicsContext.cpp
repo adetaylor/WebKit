@@ -34,7 +34,6 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
 #include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererGradient.h"
 #include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
@@ -44,7 +43,9 @@
 #include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
+#include "RemoteResourceCache.h"
 #include "WebKit-Swift.h"
+#include <WebCore/Gradient.h>
 #endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_renderingBackend->streamConnection());
@@ -198,19 +199,17 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(BeginTransparencyLayerWithCompositeMode, &RemoteGraphicsContext::beginTransparencyLayerWithCompositeMode)
     HANDLE_CG_RENDERER_MESSAGE(EndTransparencyLayer, &RemoteGraphicsContext::endTransparencyLayer)
     HANDLE_CG_RENDERER_MESSAGE(SetURLForRect, &RemoteGraphicsContext::setURLForRect)
-    HANDLE_CG_RENDERER_MESSAGE(SetFillGradient, &RemoteImageBufferGraphicsContext::setFillGradient)
     HANDLE_CG_RENDERER_MESSAGE(SetFillCachedGradient, &RemoteGraphicsContext::setFillCachedGradient)
     HANDLE_CG_RENDERER_MESSAGE(SetFillPatternNativeImage, &RemoteGraphicsContext::setFillPatternNativeImage)
     HANDLE_CG_RENDERER_MESSAGE(SetFillPatternImageBuffer, &RemoteGraphicsContext::setFillPatternImageBuffer)
-    HANDLE_CG_RENDERER_MESSAGE(SetStrokeGradient, &RemoteImageBufferGraphicsContext::setStrokeGradient)
     HANDLE_CG_RENDERER_MESSAGE(SetStrokeCachedGradient, &RemoteGraphicsContext::setStrokeCachedGradient)
     HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternNativeImage, &RemoteGraphicsContext::setStrokePatternNativeImage)
     HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternImageBuffer, &RemoteGraphicsContext::setStrokePatternImageBuffer)
-    HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradient, &RemoteImageBufferGraphicsContext::fillRectWithGradient)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradient, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradient)
     HANDLE_CG_RENDERER_MESSAGE(DrawLinesForText, &RemoteImageBufferGraphicsContext::drawLinesForText)
     HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteGraphicsContext::drawDotsForDocumentMarker)
     HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
-    HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform)
     HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteImageBufferGraphicsContext::fillRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteImageBufferGraphicsContext::fillRectWithRoundedHole)
 #undef HANDLE_CG_RENDERER_MESSAGE
@@ -318,16 +317,6 @@ void RemoteImageBufferGraphicsContext::fillRectWithRoundedHole(const FloatRect& 
     RemoteGraphicsContext::fillRectWithRoundedHole(rect, roundedHoleRect, CGRendererColorFromValue(color));
 }
 
-void RemoteImageBufferGraphicsContext::setFillGradient(const RemoteCGRendererGradient& gradient, const AffineTransform& spaceTransform)
-{
-    RemoteGraphicsContext::setFillGradient(gradient.gradient().copyRef(), spaceTransform);
-}
-
-void RemoteImageBufferGraphicsContext::setStrokeGradient(const RemoteCGRendererGradient& gradient, const AffineTransform& spaceTransform)
-{
-    RemoteGraphicsContext::setStrokeGradient(gradient.gradient().copyRef(), spaceTransform);
-}
-
 void RemoteImageBufferGraphicsContext::drawLinesForText(const FloatPoint& point, float thickness, const RemoteCGRendererLineSegments& lineSegments, bool printing, bool doubleLines, StrokeStyle strokeStyle)
 {
     RemoteGraphicsContext::drawLinesForText(point, thickness, lineSegments.span(), printing, doubleLines, strokeStyle);
@@ -341,14 +330,18 @@ void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fo
     RemoteGraphicsContext::drawGlyphs(fontIdentifier, { glyphsCopy.span().data(), advances.span().data(), glyphsCopy.size() }, localAnchor, smoothingMode);
 }
 
-void RemoteImageBufferGraphicsContext::fillRectWithGradient(const FloatRect& rect, const RemoteCGRendererGradient& gradient)
+void RemoteImageBufferGraphicsContext::fillRectWithCachedGradient(const FloatRect& rect, RemoteGradientIdentifier identifier)
 {
-    RemoteGraphicsContext::fillRectWithGradient(rect, gradient.gradient().copyRef());
+    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    MESSAGE_CHECK(gradient);
+    context().fillRect(rect, *gradient);
 }
 
-void RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform(const FloatRect& rect, const RemoteCGRendererGradient& gradient, const AffineTransform& transform, RequiresClipToRect requiresClipToRect)
+void RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform(const FloatRect& rect, RemoteGradientIdentifier identifier, const AffineTransform& transform, RequiresClipToRect requiresClipToRect)
 {
-    RemoteGraphicsContext::fillRectWithGradientAndSpaceTransform(rect, gradient.gradient().copyRef(), transform, requiresClipToRect);
+    RefPtr gradient = resourceCache().cachedGradient(identifier);
+    MESSAGE_CHECK(gradient);
+    context().fillRect(rect, *gradient, transform, requiresClipToRect);
 }
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

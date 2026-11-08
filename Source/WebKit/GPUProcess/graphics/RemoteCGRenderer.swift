@@ -636,14 +636,6 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
     // resource, or a pattern of the buffer the context draws into, is an invalid message, as in C++.
 
-    func setFillGradient(state: inout CGRendererCore, gradient: WebKit.RemoteCGRendererGradient, spaceTransform: WebCore.AffineTransform) {
-        state.receiveSetFillSource(gradient.brushSource(spaceTransform), RemoteCGRendererBrushKind.gradient)
-    }
-
-    func setStrokeGradient(state: inout CGRendererCore, gradient: WebKit.RemoteCGRendererGradient, spaceTransform: WebCore.AffineTransform) {
-        state.receiveSetStrokeSource(gradient.brushSource(spaceTransform), RemoteCGRendererBrushKind.gradient)
-    }
-
     func setFillCachedGradient(state: inout CGRendererCore, identifier: WebKit.RemoteGradientIdentifier, spaceTransform: WebCore.AffineTransform) throws(InvalidMessage) {
         var found = false
         let source = WebKit.cachedGradientBrush(resources, identifier, spaceTransform, &found)
@@ -731,18 +723,24 @@ final class RemoteCGRenderer {
         state.receiveDraw { context in CGRendererDrawDotsForDocumentMarker(context, rect, style) }
     }
 
-    func fillRectWithGradient(state: inout CGRendererCore, rect: WebCore.FloatRect, gradient: WebKit.RemoteCGRendererGradient) {
-        state.receiveClipAndPaintGradient(cgRect(rect), gradient.brushSource(WebCore.AffineTransform()))
+    func fillRectWithCachedGradient(state: inout CGRendererCore, rect: WebCore.FloatRect, identifier: WebKit.RemoteGradientIdentifier) throws(InvalidMessage) {
+        var found = false
+        let source = WebKit.cachedGradientBrush(resources, identifier, WebCore.AffineTransform(), &found)
+        try messageCheck { found }
+        state.receiveClipAndPaintGradient(cgRect(rect), source)
     }
 
-    func fillRectWithGradientAndSpaceTransform(
+    func fillRectWithCachedGradientAndSpaceTransform(
         state: inout CGRendererCore,
         rect: WebCore.FloatRect,
-        gradient: WebKit.RemoteCGRendererGradient,
+        identifier: WebKit.RemoteGradientIdentifier,
         transform: WebCore.AffineTransform,
         requiresClipToRect: WebCore.RequiresClipToRect
-    ) -> Bool {
-        state.receiveFillRectWithGradient(cgRect(rect), gradient.brushSource(transform), requiresClipToRect == .Yes)
+    ) throws(InvalidMessage) -> Bool {
+        var found = false
+        let source = WebKit.cachedGradientBrush(resources, identifier, transform, &found)
+        try messageCheck { found }
+        return state.receiveFillRectWithGradient(cgRect(rect), source, requiresClipToRect == .Yes)
     }
 }
 

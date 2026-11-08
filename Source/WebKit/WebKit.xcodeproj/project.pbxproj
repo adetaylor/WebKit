@@ -9589,7 +9589,6 @@
 		11149EDF3516470F8D885252 /* RemoteCGRenderer.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteCGRenderer.messages.in; sourceTree = "<group>"; };
 		0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCGRenderer.swift; sourceTree = "<group>"; };
 		45302C7EC4D649C7835F5249 /* RemoteCGRendererGlyphs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererGlyphs.h; sourceTree = "<group>"; };
-		5049D1BBAF464F97AEB1B0AD /* RemoteCGRendererGradient.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererGradient.h; sourceTree = "<group>"; };
 		E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineDash.h; sourceTree = "<group>"; };
 		20166B90E8394C948FB307D4 /* RemoteCGRendererLineSegments.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineSegments.h; sourceTree = "<group>"; };
 		B1372BAAE5C24A7289E58930 /* RemoteCGRendererLineStrokes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineStrokes.h; sourceTree = "<group>"; };
@@ -15019,7 +15018,6 @@
 				11149EDF3516470F8D885252 /* RemoteCGRenderer.messages.in */,
 				0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */,
 				45302C7EC4D649C7835F5249 /* RemoteCGRendererGlyphs.h */,
-				5049D1BBAF464F97AEB1B0AD /* RemoteCGRendererGradient.h */,
 				E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */,
 				20166B90E8394C948FB307D4 /* RemoteCGRendererLineSegments.h */,
 				B1372BAAE5C24A7289E58930 /* RemoteCGRendererLineStrokes.h */,
