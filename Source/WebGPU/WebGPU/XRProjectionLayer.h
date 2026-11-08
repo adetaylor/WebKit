@@ -53,6 +53,6 @@ struct XRProjectionLayerParameters {
 // an opt-in WebXR build starts frames, makeXRSharedTexture() makes a texture from the IOSurface that it sends.
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeft, const WebGPU::XRRasterizationSamples& horizontalSamplesRight, const WebGPU::XRRasterizationSamples& verticalSamples);
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, std::span<const float> horizontalSamplesLeft NOESCAPE, std::span<const float> horizontalSamplesRight NOESCAPE, std::span<const float> verticalSamples NOESCAPE);
 
 } // namespace WebGPU::Metal

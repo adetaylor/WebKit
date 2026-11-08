@@ -245,17 +245,6 @@ WebGPUSwiftReceiverRegistration::~WebGPUSwiftReceiverRegistration()
     m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
 }
 
-#if ENABLE(WEBXR) && PLATFORM(COCOA)
-WebGPUXRFrame::WebGPUXRFrame(IPC::CxxDecodedArgument<MachSendRight>& colorBuffer, IPC::CxxDecodedArgument<MachSendRight>& depthBuffer, IPC::CxxDecodedArgument<MachSendRight>& completionSyncEvent, IPC::CxxDecodedArgument<PlatformXR::RateMapDescription>& rateMapDescription)
-    : m_colorBuffer(colorBuffer.take().value_or(MachSendRight { }))
-    , m_depthBuffer(depthBuffer.take().value_or(MachSendRight { }))
-    , m_completionSyncEvent(completionSyncEvent.take().value_or(MachSendRight { }))
-    , m_rateMapDescription(rateMapDescription.take().value_or(PlatformXR::RateMapDescription { }))
-{
-}
-
-WebGPUXRFrame::~WebGPUXRFrame() = default;
-#endif
 
 OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore::SharedMemory::Handle>>& argument)
 {

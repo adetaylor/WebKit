@@ -102,11 +102,8 @@ id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice> device, mach_port_t machPort)
     return [(id<MTLDeviceSPI>)device newSharedEventWithMachPort:machPort];
 }
 
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice> device, unsigned screenWidth, unsigned screenHeight, const WebGPU::XRRasterizationSamples& horizontalSamplesLeftView, const WebGPU::XRRasterizationSamples& horizontalSamplesRightView, const WebGPU::XRRasterizationSamples& verticalSamplesView)
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice> device, unsigned screenWidth, unsigned screenHeight, std::span<const float> horizontalSamplesLeft NOESCAPE, std::span<const float> horizontalSamplesRight NOESCAPE, std::span<const float> verticalSamples NOESCAPE)
 {
-    auto horizontalSamplesLeft = horizontalSamplesLeftView.samples;
-    auto horizontalSamplesRight = horizontalSamplesRightView.samples;
-    auto verticalSamples = verticalSamplesView.samples;
     MTLSize screenSize = MTLSizeMake(screenWidth, screenHeight, 0);
     MTLRasterizationRateLayerDescriptor* layerLeft = [[MTLRasterizationRateLayerDescriptor alloc] initWithSampleCount:MTLSizeMake(horizontalSamplesLeft.size(), verticalSamples.size(), 0) horizontal:horizontalSamplesLeft.data() vertical:verticalSamples.data()];
 
@@ -160,7 +157,7 @@ id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t)
     return nil;
 }
 
-NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned, unsigned, const WebGPU::XRRasterizationSamples&, const WebGPU::XRRasterizationSamples&, const WebGPU::XRRasterizationSamples&)
+NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned, unsigned, std::span<const float> horizontalSamplesLeft NOESCAPE, std::span<const float> horizontalSamplesRight NOESCAPE, std::span<const float> verticalSamples NOESCAPE)
 {
     return nil;
 }

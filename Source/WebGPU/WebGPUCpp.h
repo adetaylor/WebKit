@@ -988,12 +988,6 @@ struct XRProjectionLayerDescriptor {
     double scaleFactor { 1 };
 };
 
-// A frame's rasterization samples, borrowed for the duration of an XR projection layer's startFrame: a nonescapable
-// view, which Swift hands to C++ without reading it, where a std::span would be unsafe to pass.
-struct XRRasterizationSamples {
-    std::span<const float> samples;
-} SWIFT_VIEW;
-
 // The element types of spans that the span accessors below hand to Swift, which can name a specialization only through
 // a type alias.
 using OptionalTextureFormat = std::optional<TextureFormat>;

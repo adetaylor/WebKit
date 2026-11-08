@@ -66,28 +66,27 @@ final class RemoteXRProjectionLayer {
     }
 
     #if ENABLE_WEBXR && WTF_PLATFORM_COCOA
-    // C++ decodes the compositor's buffers and the rasterization rate map, and the frame owns them while the layer
-    // starts with them.
+    // The compositor's buffers, whose send rights dispatch owns while the layer starts with them, MACH_PORT_NULL for one
+    // the compositor didn't send.
     func startFrame(
         frameIndex: UInt64,
-        colorBuffer: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameColorBuffer,
-        depthBuffer: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameDepthBuffer,
-        completionSyncEvent: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameCompletionSyncEvent,
+        colorBuffer: borrowing IPCTypes.MachSendRight,
+        depthBuffer: borrowing IPCTypes.MachSendRight,
+        completionSyncEvent: borrowing IPCTypes.MachSendRight,
         textureIndex: UInt64,
-        rateMapDescription: CxxDecodedArguments.RemoteXRProjectionLayer.StartFrameRateMapDescription
+        rateMapDescription: IPCTypes.RateMapDescription
     ) {
-        let frame = WebKit.WebGPUXRFrame(colorBuffer, depthBuffer, completionSyncEvent, rateMapDescription)
         layer.startFrame(
             frameIndex,
-            colorBuffer: frame.colorBuffer(),
-            depthBuffer: frame.depthBuffer(),
-            completionSyncEvent: frame.completionSyncEvent(),
+            colorBuffer: colorBuffer.port,
+            depthBuffer: depthBuffer.port,
+            completionSyncEvent: completionSyncEvent.port,
             reusableTextureIndex: textureIndex,
-            screenWidth: frame.screenWidth(),
-            screenHeight: frame.screenHeight(),
-            horizontalSamplesLeft: frame.horizontalSamplesLeft(),
-            horizontalSamplesRight: frame.horizontalSamplesRight(),
-            verticalSamples: frame.verticalSamples()
+            screenWidth: UInt32(truncatingIfNeeded: rateMapDescription.screenSize.width),
+            screenHeight: UInt32(truncatingIfNeeded: rateMapDescription.screenSize.height),
+            horizontalSamplesLeft: rateMapDescription.horizontalSamplesLeft,
+            horizontalSamplesRight: rateMapDescription.horizontalSamplesRight,
+            verticalSamples: rateMapDescription.verticalSamples
         )
     }
     #endif

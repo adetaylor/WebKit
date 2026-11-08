@@ -68,9 +68,9 @@ final class XRProjectionLayerImpl {
         _ reusableTextureIndex: UInt64,
         _ screenWidth: UInt32,
         _ screenHeight: UInt32,
-        _ horizontalSamplesLeft: borrowing WebGPU.XRRasterizationSamples,
-        _ horizontalSamplesRight: borrowing WebGPU.XRRasterizationSamples,
-        _ verticalSamples: borrowing WebGPU.XRRasterizationSamples
+        _ horizontalSamplesLeft: [Float],
+        _ horizontalSamplesRight: [Float],
+        _ verticalSamples: [Float]
     ) {
         let device = deviceImpl.device()
         self.reusableTextureIndex = reusableTextureIndex
@@ -109,9 +109,9 @@ final class XRProjectionLayerImpl {
                 device,
                 screenWidth,
                 screenHeight,
-                horizontalSamplesLeft,
-                horizontalSamplesRight,
-                verticalSamples
+                horizontalSamplesLeft.span,
+                horizontalSamplesRight.span,
+                verticalSamples.span
             )
             leftRasterizationMap = rasterizationRateMaps?.first
             rightRasterizationMap = rasterizationRateMaps?.last
@@ -197,9 +197,9 @@ public final class XRProjectionLayerReference {
         reusableTextureIndex: UInt64,
         screenWidth: UInt32,
         screenHeight: UInt32,
-        horizontalSamplesLeft: borrowing WebGPU.XRRasterizationSamples,
-        horizontalSamplesRight: borrowing WebGPU.XRRasterizationSamples,
-        verticalSamples: borrowing WebGPU.XRRasterizationSamples
+        horizontalSamplesLeft: [Float],
+        horizontalSamplesRight: [Float],
+        verticalSamples: [Float]
     ) {
         impl.startFrame(
             frameIndex,
