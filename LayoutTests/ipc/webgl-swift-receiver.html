@@ -39,7 +39,7 @@ promise_test(async () => {
     const glConnection = Object.assign(Object.create(StreamConnection.prototype), { connection: glStream, handle: glHandle });
     CoreIPC.GPU.GPUConnectionToWebProcess.CreateGraphicsContextGL(0, {
         identifier,
-        attributes: { alpha: true, premultipliedAlpha: true, powerPreference: 0, isWebGL2: true, supportWebGLDraftExtensions: false, windowGPUID: 0, failContextCreationForTesting: 0 },
+        attributes: { alpha: true, premultipliedAlpha: true, powerPreference: 0, isWebGL2: true, supportWebGLDraftExtensions: false, windowGPUID: 0, xrCompatible: false, failContextCreationForTesting: 0 },
         renderingBackendIdentifier,
         serverConnection: glConnection,
     });
