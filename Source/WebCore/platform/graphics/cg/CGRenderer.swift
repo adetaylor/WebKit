@@ -1233,7 +1233,7 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
             let alphaByte = UInt32(min(max((alpha * 255).rounded(.toNearestOrAwayFromZero), 0), 255))
             color = colorCache.color((shadow.packedColor & 0xFFFF_FF00) | alphaByte)
         } else {
-            let platformColor = platformColors[Int(shadow.platformColorSlot) - 1]
+            let platformColor = platformColor(packed: shadow.packedColor, slot: shadow.platformColorSlot)
             color = platformColor.copy(alpha: CGFloat(Float(platformColor.alpha) * shadow.opacity)) ?? platformColor
         }
         CGContextSetStyle(context, CGStyleCreateShadow2(offset, blurRadius, color))
