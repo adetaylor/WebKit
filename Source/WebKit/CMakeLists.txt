@@ -1059,6 +1059,8 @@ if (SWIFT_REQUIRED)
     webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
 endif ()
 
+# Lets WebKit's Swift implement members of C++ classes with @cxx @implementation.
+webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
     WEBKIT_COPY_FILES(WebKit_CopyHeaders
         DESTINATION ${WebKit_HEADERS_DIR}
