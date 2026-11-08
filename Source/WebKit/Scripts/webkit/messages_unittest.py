@@ -356,6 +356,43 @@ messages -> TestReceiver%s {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument)')
 
+    def test_swift_sends(self):
+        sender = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftSends=Destination]
+messages -> Sender WorkQueue {
+    Message(uint32_t value)
+}
+"""))
+        destination = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy]
+messages -> Destination {
+    Notify(uint32_t value, String text)
+#if PLATFORM(COCOA)
+    TakeSemaphore(IPC::Semaphore semaphore)
+#endif
+    WithReply(uint32_t value) -> (bool done)
+    Unmappable(URL url)
+}
+"""))
+        parser.resolve_swift_sends([sender, destination])
+        swift = messages.generate_swift_message_handler(sender)
+        senders = swift[swift.index('extension Sender {'):]
+        self.assertIn('    enum DestinationMessages {\n', senders)
+        self.assertIn('        static func notify(on ipcConnection: IPC.Connection, to ipcDestinationID: UInt64, value: UInt32, text: String?) {\n'
+            '            let ipcEncoder = IPC.SwiftReplyEncoder.createForMessage(ipcConnection, .Destination_Notify, ipcDestinationID)\n'
+            '            UInt32.encode(value, to: ipcEncoder)\n'
+            '            IPCCoding.WTFString.encode(text, to: ipcEncoder)\n'
+            '            ipcEncoder.send()\n', senders)
+        self.assertIn('        #if WTF_PLATFORM_COCOA\n        static func takeSemaphore(on ipcConnection: IPC.Connection, to ipcDestinationID: UInt64, semaphore: consuming IPCTypes.Semaphore) {\n', senders)
+        # Swift sends only messages without replies, whose arguments have Swift forms.
+        self.assertNotIn('withReply', senders)
+        self.assertNotIn('unmappable', senders)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=Missing', which is not one of the receivers generated with it"):
+            parser.resolve_swift_sends([parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftSends=Missing]\nmessages -> Sender WorkQueue {\n    Message(uint32_t value)\n}\n'))])
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=', which is for Swift receivers"):
+            parser.resolve_swift_sends([parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftSends=Destination]\nmessages -> Sender {\n    Message(uint32_t value)\n}\n')), destination])
+
     def test_owned_types(self):
         stream_receiver = parser.parse(io.StringIO("""
 [ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]

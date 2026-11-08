@@ -26,7 +26,8 @@
     ExceptionForDispatchedFrom,
     ExceptionForDispatchedTo,
     ExceptionForEnabledBy,
-    SwiftReceiver
+    SwiftReceiver,
+    SwiftSends=IPCSwiftWorkQueueTester
 ]
 messages -> IPCSwiftWorkQueueTester WorkQueue {
     Record(uint32_t value)
@@ -41,12 +42,14 @@ messages -> IPCSwiftWorkQueueTester WorkQueue {
     HalveEvenNumberSwift(uint32_t value) -> (uint32_t half) SwiftTypes
     DigestBytesSwift(std::span<const uint8_t> bytes) -> (uint32_t count, uint32_t digest) Synchronous SwiftTypes
     DescribeLogLevelSwift(WTFLogLevel level, unsigned count) -> (uint32_t levelValue, uint32_t count) Synchronous SwiftTypes
+    SendRecordBackSwift(uint64_t testerIdentifier, uint32_t value, String text) SwiftTypes
 #if PLATFORM(COCOA)
     SignalSemaphoreSwift(IPC::Semaphore semaphore) SwiftTypes
     EchoSemaphoreSwift(IPC::Semaphore semaphore) -> (IPC::Semaphore semaphore) Synchronous SwiftTypes
     SharedMemorySizeSwift(WebCore::SharedMemory::Handle handle) -> (uint64_t size) Synchronous SwiftTypes
     EchoSharedMemorySwift(std::optional<WebCore::SharedMemory::Handle> handle) -> (std::optional<WebCore::SharedMemory::Handle> handle) SwiftTypes
     CountSendRightsSwift(Vector<MachSendRight> rights) -> (uint64_t count) Synchronous SwiftTypes
+    SendSemaphoreBackSwift(uint64_t testerIdentifier, IPC::Semaphore semaphore) SwiftTypes
 #endif
 
     BenchEmpty()

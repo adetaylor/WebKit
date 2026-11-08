@@ -138,7 +138,20 @@ final class IPCSwiftWorkQueueTester {
         return (UInt32(level.rawValue), count)
     }
 
+    // Sends Record and RecordTextSwift back to the process that sent this, to the tester there with that identifier.
+    func sendRecordBackSwift(connection: IPC.Connection, testerIdentifier: UInt64, value: UInt32, text: String?) {
+        noteDispatch()
+        Self.IPCSwiftWorkQueueTesterMessages.record(on: connection, to: testerIdentifier, value: value)
+        Self.IPCSwiftWorkQueueTesterMessages.recordTextSwift(on: connection, to: testerIdentifier, text: text)
+    }
+
     #if WTF_PLATFORM_COCOA
+    // Sends the semaphore back, in a SignalSemaphoreSwift message.
+    func sendSemaphoreBackSwift(connection: IPC.Connection, testerIdentifier: UInt64, semaphore: consuming IPCTypes.Semaphore) {
+        noteDispatch()
+        Self.IPCSwiftWorkQueueTesterMessages.signalSemaphoreSwift(on: connection, to: testerIdentifier, semaphore: semaphore)
+    }
+
     func signalSemaphoreSwift(connection: IPC.Connection, semaphore: consuming IPCTypes.Semaphore) {
         noteDispatch()
         semaphore.signal()

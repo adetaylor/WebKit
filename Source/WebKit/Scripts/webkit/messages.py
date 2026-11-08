@@ -3050,6 +3050,9 @@ def generate_swift_message_handler(receiver):
     if not implementation:
         append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
 
+    for destination in receiver.swift_sends:
+        result.append(generate_swift_message_senders(class_name, destination))
+
     if receiver.condition:
         result.append('#endif\n')
     if receiver.swift_receiver_build_enabled_by:
@@ -3074,6 +3077,54 @@ def append_message_forwarder_creation(result, message_forwarder_class, ref_messa
     result.append('        )\n')
     result.append('    }\n')
     result.append('}\n')
+
+
+# The messages of a receiver that Swift can send: those without a reply, whose arguments all have Swift forms.
+def swift_sendable_messages(destination):
+    messages = []
+    for message in destination.messages:
+        if message.reply_parameters is not None or message.is_async_reply or message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+            continue
+        if any(parameter.attributes for parameter in message.parameters):
+            continue
+        try:
+            coders = [swift_types.swift_type_and_coder(parameter.type) for parameter in message.parameters]
+        except swift_types.UnmappableSwiftType:
+            continue
+        messages.append((message, coders))
+    return messages
+
+
+# For a Swift receiver with 'SwiftSends=', a function for each message of the destination that Swift can send, in a
+# namespace nested in the receiver, which encodes the arguments as C++ would and sends the message on the connection.
+def generate_swift_message_senders(class_name, destination):
+    result = []
+    result.append('\n')
+    if destination.condition:
+        result.append('#if %s\n' % swift_types.swift_condition(destination.condition))
+    result.append('extension %s {\n' % class_name)
+    result.append('    // The %s messages that Swift sends.\n' % destination.name)
+    result.append('    enum %sMessages {\n' % destination.name)
+    for message, coders in swift_sendable_messages(destination):
+        if message.condition:
+            result.append('        #if %s\n' % swift_types.swift_condition(message.condition))
+        parameters = ['on ipcConnection: IPC.Connection', 'to ipcDestinationID: UInt64']
+        for parameter, (swift_type, _) in zip(message.parameters, coders):
+            ownership = 'consuming ' if swift_types.is_owned_type(parameter.type) else ''
+            parameters.append('%s: %s%s' % (parameter.name, ownership, swift_type))
+        result.append('        static func %s(%s) {\n' % (handler_function_name(message), ', '.join(parameters)))
+        result.append('            let ipcEncoder = IPC.SwiftReplyEncoder.createForMessage(ipcConnection, .%s_%s, ipcDestinationID)\n' % (destination.name, message.name))
+        for parameter, (_, coder) in zip(message.parameters, coders):
+            result.append('            %s.encode(%s, to: ipcEncoder)\n' % (coder, parameter.name))
+        result.append('            ipcEncoder.send()\n')
+        result.append('        }\n')
+        if message.condition:
+            result.append('        #endif\n')
+    result.append('    }\n')
+    result.append('}\n')
+    if destination.condition:
+        result.append('#endif\n')
+    return ''.join(result)
 
 
 def generate_message_names_header(receivers):

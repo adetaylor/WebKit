@@ -119,6 +119,7 @@ def main(argv):
             sys.exit(1)
 
     webkit.parser.resolve_message_references(receivers)
+    webkit.parser.resolve_swift_sends(receivers)
     for receiver in receivers:
         receiver.enforce_attribute_constraints()
         receiver.enforce_opaque_ipc_types_usage()
