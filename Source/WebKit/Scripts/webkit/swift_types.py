@@ -44,6 +44,8 @@ _PRIMITIVE_TYPES = {
     'uint64_t': 'UInt64',
     # unsigned is 32 bits on every platform WebKit supports, and is encoded as uint32_t.
     'unsigned': 'UInt32',
+    # So is int, as int32_t.
+    'int': 'Int32',
     'int8_t': 'Int8',
     'int16_t': 'Int16',
     'int32_t': 'Int32',

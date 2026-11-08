@@ -51,6 +51,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('std::pair<uint8_t, String>', ('(UInt8, String?)', 'IPCCoding.Pair<UInt8, IPCCoding.WTFString>')),
             ('std::span<const uint8_t>', ('[UInt8]', 'IPCCoding.Vector<UInt8>')),
             ('unsigned', ('UInt32', 'UInt32')),
+            ('int', ('Int32', 'Int32')),
             ('Seconds', ('Double', 'Double')),
             ('WTF::Seconds', ('Double', 'Double')),
             ('WTFLogLevel', ('IPCTypes.WTFLogLevel', 'IPCTypes.CxxName.WTFLogLevel')),
@@ -79,7 +80,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['int', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, int>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>']:
+        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 
