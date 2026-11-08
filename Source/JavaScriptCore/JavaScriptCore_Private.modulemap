@@ -137,6 +137,119 @@ framework module JavaScriptCore_Private [system] {
         exclude header "PASReportCrashPrivate.h"
         exclude header "LiteralParserSwiftTypes.h"
 
+        // Each of these headers forward-declares a type whose definition is in a header it can't include without a
+        // cycle. Exporting the defining header's submodule keeps that definition reachable wherever the forward
+        // declaration is visible, which Swift needs to import the type.
+        module BufferMemoryHandle {
+            header "BufferMemoryHandle.h"
+            export *
+            export WasmInstanceAnchor
+        }
+
+        module CalleeBits {
+            header "CalleeBits.h"
+            export *
+            export NativeCallee
+        }
+
+        module ClassInfo {
+            header "ClassInfo.h"
+            export *
+            export Snippet
+        }
+
+        module DOMJITGetterSetter {
+            header "DOMJITGetterSetter.h"
+            export *
+            export DOMJITCallDOMGetterSnippet
+        }
+
+        module Heap {
+            header "Heap.h"
+            export *
+            export WasmCallee
+        }
+
+        module Interpreter {
+            header "Interpreter.h"
+            export *
+            export WasmCallee
+        }
+
+        module JSWebAssemblyModule {
+            header "JSWebAssemblyModule.h"
+            export *
+            export WasmModule
+            export WasmModuleInformation
+        }
+
+        module NativeCalleeRegistry {
+            header "NativeCalleeRegistry.h"
+            export *
+            export NativeCallee
+        }
+
+        module StructuredCloneTags {
+            header "StructuredCloneTags.h"
+            export *
+            export WasmModule
+        }
+
+        module WasmCallee {
+            header "WasmCallee.h"
+            export *
+            export WasmCalleeGroup
+        }
+
+        module WasmCalleeGroup {
+            header "WasmCalleeGroup.h"
+            export *
+            export WasmModuleInformation
+        }
+
+        module WasmFormat {
+            header "WasmFormat.h"
+            export *
+            export WasmModuleInformation
+        }
+
+        module WasmFunctionIPIntMetadataGenerator {
+            header "WasmFunctionIPIntMetadataGenerator.h"
+            export *
+            export WasmCallee
+        }
+
+        module WasmInstanceAnchor {
+            header "WasmInstanceAnchor.h"
+            export *
+            export WasmModule
+        }
+
+        module WasmIPIntGenerator {
+            header "WasmIPIntGenerator.h"
+            export *
+            export WasmModuleDebugInfo
+            export WasmModuleInformation
+        }
+
+        module WasmModule {
+            header "WasmModule.h"
+            export *
+            export WasmModuleInformation
+        }
+
+        module WasmStreamingParser {
+            header "WasmStreamingParser.h"
+            export *
+            export WasmModuleInformation
+        }
+
+        module WasmTypeDefinition {
+            header "WasmTypeDefinition.h"
+            export *
+            export WasmCallee
+        }
+
         module * {
             export *
         }
