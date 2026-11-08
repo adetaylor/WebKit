@@ -80,7 +80,7 @@ private func fairPlayString(_ text: borrowing WebCore.MediaParserText) -> Swift.
     for index in characters.indices {
         units.append(characters[index])
     }
-    return Swift.String(decoding: units, as: UTF16.self)
+    return Swift.String(decoding: units, as: Unicode.UTF16.self)
 }
 
 private func fairPlayBytes(_ bytes: Span<UInt8>) -> ContiguousArray<UInt8> {
@@ -1299,7 +1299,7 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
                 return .noFairPlayPssh
             }
             let pssh = WTFBase64.encode(initData.span.extracting(range))
-            let psshString = Swift.String(decoding: pssh, as: UTF8.self)
+            let psshString = Swift.String(decoding: pssh, as: Unicode.UTF8.self)
             return .initializationData(try? JSONSerialization.data(withJSONObject: ["pssh": psshString], options: .prettyPrinted))
         }
         #endif
