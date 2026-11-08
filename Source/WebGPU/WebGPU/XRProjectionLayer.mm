@@ -159,6 +159,9 @@ id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t)
 
 NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned, unsigned, std::span<const float> horizontalSamplesLeft NOESCAPE, std::span<const float> horizontalSamplesRight NOESCAPE, std::span<const float> verticalSamples NOESCAPE)
 {
+    UNUSED_PARAM(horizontalSamplesLeft);
+    UNUSED_PARAM(horizontalSamplesRight);
+    UNUSED_PARAM(verticalSamples);
     return nil;
 }
 
