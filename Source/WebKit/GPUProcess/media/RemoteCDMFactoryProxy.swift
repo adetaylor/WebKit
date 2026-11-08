@@ -139,12 +139,11 @@ final class RemoteCDMFactoryProxy {
 
     @MainActor
     func removeSession(connection: IPC.Connection, identifier: IPCTypes.RemoteCDMInstanceSessionIdentifier) {
-        guard let registry = registry() else {
+        guard registry() != nil else {
             return
         }
         registrations.removeValue(forKey: identifier.rawValue)
         sessions.removeValue(forKey: identifier.rawValue)
-        registry.removeSession(identifier.rawValue)
     }
 
     @_expose(!Cxx)

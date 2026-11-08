@@ -33,11 +33,9 @@
 #include "RemoteCDMConfiguration.h"
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceMessages.h"
-#include "RemoteCDMInstanceSessionMessages.h"
 #include "WebKit-Swift.h"
 #include <WebCore/CDMFactory.h>
 #include <WebCore/CDMInstance.h>
-#include <WebCore/CDMInstanceSession.h>
 #include <WebCore/CDMKeySystemConfiguration.h>
 #include <WebCore/SharedBuffer.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -115,68 +113,6 @@ private:
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMInstanceClient);
 
-// The CDMInstanceSessionClient of a C++ CDM's session.
-class RemoteCDMInstanceSessionClient final : public CDMInstanceSessionClient, public RefCounted<RemoteCDMInstanceSessionClient> {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMInstanceSessionClient);
-public:
-    static Ref<RemoteCDMInstanceSessionClient> create(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, CDMInstanceSession& session, RemoteCDMInstanceSessionIdentifier identifier)
-    {
-        Ref client = adoptRef(*new RemoteCDMInstanceSessionClient(registry, cdm, identifier));
-        session.setClient(WeakPtr<CDMInstanceSessionClient> { client.get() });
-        return client;
-    }
-
-    void ref() const final { RefCounted::ref(); }
-    void deref() const final { RefCounted::deref(); }
-
-private:
-    RemoteCDMInstanceSessionClient(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, RemoteCDMInstanceSessionIdentifier identifier)
-        : m_registry(registry)
-        , m_cdm(cdm)
-        , m_identifier(identifier)
-    {
-    }
-
-    template<typename Message> void send(Message&& message)
-    {
-        if (!m_cdm)
-            return;
-
-        RefPtr registry = m_registry;
-        if (!registry)
-            return;
-
-        RefPtr gpuConnectionToWebProcess = registry->gpuConnectionToWebProcess();
-        if (!gpuConnectionToWebProcess)
-            return;
-
-        gpuConnectionToWebProcess->connection().send(std::forward<Message>(message), m_identifier);
-    }
-
-    void updateKeyStatuses(KeyStatusVector&& keyStatuses) final
-    {
-        send(Messages::RemoteCDMInstanceSession::UpdateKeyStatuses(WTF::move(keyStatuses)));
-    }
-
-    void sendMessage(CDMMessageType type, Ref<SharedBuffer>&& message) final
-    {
-        send(Messages::RemoteCDMInstanceSession::SendMessage(type, WTF::move(message)));
-    }
-
-    void sessionIdChanged(const String& sessionId) final
-    {
-        send(Messages::RemoteCDMInstanceSession::SessionIdChanged(sessionId));
-    }
-
-    PlatformDisplayID displayID() final { return m_displayID; }
-
-    WeakPtr<RemoteCDMRegistry> m_registry;
-    WeakPtr<RemoteCDMPrivateHandle> m_cdm;
-    RemoteCDMInstanceSessionIdentifier m_identifier;
-    PlatformDisplayID m_displayID { 0 };
-};
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMInstanceSessionClient);
 
 struct RemoteCDMRegistry::SwiftFactory {
     WTF_MAKE_STRUCT_TZONE_ALLOCATED(SwiftFactory);
@@ -269,11 +205,6 @@ void RemoteCDMRegistry::removeInstance(uint64_t identifier)
         connection->gpuProcess().tryExitIfUnusedAndUnderMemoryPressure();
 }
 
-void RemoteCDMRegistry::removeSession(uint64_t identifier)
-{
-    m_sessionClients.remove(RemoteCDMInstanceSessionIdentifier { identifier });
-}
-
 static CDMFactory* factoryForKeySystem(const String& keySystem)
 {
     auto& factories = CDMFactory::registeredFactories();
@@ -310,12 +241,6 @@ void RemoteCDMRegistry::registerCxxInstance(uint64_t identifier, RemoteCDMPrivat
     RemoteCDMInstanceIdentifier instanceIdentifier { identifier };
     m_instanceClients.set(instanceIdentifier, RemoteCDMInstanceClient::create(*this, cdm, instance, instanceIdentifier));
     m_cdmInstances.set(instanceIdentifier, instance);
-}
-
-void RemoteCDMRegistry::registerCxxSession(uint64_t identifier, RemoteCDMPrivateHandle& cdm, CDMInstanceSession& session)
-{
-    RemoteCDMInstanceSessionIdentifier sessionIdentifier { identifier };
-    m_sessionClients.set(sessionIdentifier, RemoteCDMInstanceSessionClient::create(*this, cdm, session, sessionIdentifier));
 }
 
 RefPtr<GPUConnectionToWebProcess> RemoteCDMRegistry::gpuConnectionToWebProcess() const

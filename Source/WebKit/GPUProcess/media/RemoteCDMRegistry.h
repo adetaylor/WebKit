@@ -50,7 +50,6 @@ class MessageReceiver;
 
 namespace WebCore {
 class CDMInstance;
-class CDMInstanceSession;
 class SharedBuffer;
 struct CDMKeySystemConfiguration;
 }
@@ -59,7 +58,6 @@ namespace WebKit {
 
 class GPUConnectionToWebProcess;
 class RemoteCDMInstanceClient;
-class RemoteCDMInstanceSessionClient;
 class RemoteCDMPrivateHandle;
 struct RemoteCDMConfiguration;
 struct SharedPreferencesForWebProcess;
@@ -89,7 +87,6 @@ public:
     uint64_t generateInstanceIdentifier();
     uint64_t generateSessionIdentifier();
     void removeInstance(uint64_t identifier);
-    void removeSession(uint64_t identifier);
 
     // Whether a C++ CDM factory supports a key system, and a C++ CDM for it, with its configuration.
     bool supportsKeySystem(const String&) const;
@@ -97,7 +94,6 @@ public:
     // A C++ CDM's instance and session (RemoteCDMSwiftSupport.h): the players can find the instance, and both send their
     // notifications.
     void registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle&, WebCore::CDMInstance&);
-    void registerCxxSession(uint64_t identifier, RemoteCDMPrivateHandle&, WebCore::CDMInstanceSession&);
 
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
     String mediaKeysStorageDirectory() const;
@@ -119,7 +115,6 @@ private:
     RefPtr<IPC::MessageReceiver> m_factory;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> m_instanceClients;
-    HashMap<RemoteCDMInstanceSessionIdentifier, Ref<RemoteCDMInstanceSessionClient>> m_sessionClients;
 
 #if !RELEASE_LOG_DISABLED
     mutable RefPtr<Logger> m_logger;

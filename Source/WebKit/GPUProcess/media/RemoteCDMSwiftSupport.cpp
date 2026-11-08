@@ -30,9 +30,11 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "GeneratedSerializers.h"
-#include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
 #include <WebCore/CDMInstance.h>
+#if HAVE(AVCONTENTKEYSESSION)
+#include <WebCore/CDMInstanceFairPlayStreamingHost.h>
+#endif
 #include <WebCore/CDMInstanceSession.h>
 #include <WebCore/SharedBuffer.h>
 
@@ -72,28 +74,19 @@ SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
     return &SharedBuffer::create(bytes).leakRef();
 }
 
-CDMInstance* createRemoteCDMInstance(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem)
+CDMInstance* createRemoteCDMInstance(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken)
 {
     RefPtr instance = cdm.createInstance();
     if (!instance)
         return nullptr;
     keySystem = instance->keySystem();
+#if HAVE(AVCONTENTKEYSESSION)
+    fairPlayInstanceToken = WebCore::fairPlayInstanceToken(*instance);
+#else
+    fairPlayInstanceToken = 0;
+#endif
     registry.registerCxxInstance(identifier, cdm, *instance);
     return instance.leakRef();
-}
-
-CDMInstanceSession* createRemoteCDMInstanceSession(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, uint64_t identifier, uint64_t logIdentifier)
-{
-    RefPtr session = instance.createSession();
-    if (!session)
-        return nullptr;
-#if !RELEASE_LOG_DISABLED
-    session->setLogIdentifier(logIdentifier);
-#else
-    UNUSED_PARAM(logIdentifier);
-#endif
-    registry.registerCxxSession(identifier, cdm, *session);
-    return session.leakRef();
 }
 
 void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMConfigurationArgument& configuration, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
@@ -105,24 +98,10 @@ void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMConfigurationAr
     instance.initializeWithConfiguration(WTF::move(*value), allowDistinctiveIdentifiers, allowPersistentState, WTF::move(completionHandler));
 }
 
-void setRemoteCDMInstanceServerCertificate(CDMInstance& instance, SharedBuffer& certificate, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
-{
-    instance.setServerCertificate(certificate, WTF::move(completionHandler));
-}
-
 void setRemoteCDMInstanceStorageDirectory(CDMInstance& instance, const String& directory)
 {
     instance.setStorageDirectory(directory);
 }
-
-RemoteCDMEncodedReply::RemoteCDMEncodedReply(IPC::Encoder& encoder)
-    : m_decoder(IPC::Decoder::create(encoder.span(), encoder.releaseAttachments()))
-{
-}
-
-RemoteCDMEncodedReply::RemoteCDMEncodedReply(RemoteCDMEncodedReply&&) = default;
-
-RemoteCDMEncodedReply::~RemoteCDMEncodedReply() = default;
 
 bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle& cdm, const String& initDataType, const SharedBuffer& initData)
 {
@@ -141,62 +120,6 @@ bool sanitizeRemoteCDMSessionId(RemoteCDMPrivateHandle& cdm, const String& sessi
         return false;
     sanitizedSessionId = WTF::move(*sanitized);
     return true;
-}
-
-void setRemoteCDMInstanceSessionLogIdentifier(CDMInstanceSession& session, uint64_t logIdentifier)
-{
-#if !RELEASE_LOG_DISABLED
-    session.setLogIdentifier(logIdentifier);
-#else
-    UNUSED_PARAM(session);
-    UNUSED_PARAM(logIdentifier);
-#endif
-}
-
-void requestRemoteCDMLicense(CDMInstanceSession& session, uint8_t type, bool keyGroupingStrategy, const String& initDataType, SharedBuffer& initData, RemoteCDMEncodedReplyCompletionHandler&& completionHandler)
-{
-    session.requestLicense(static_cast<CDMSessionType>(type), static_cast<CDMKeyGroupingStrategy>(keyGroupingStrategy), initDataType, initData, [completionHandler = WTF::move(completionHandler)](Ref<SharedBuffer>&& message, const String& sessionId, bool needsIndividualization, CDMInstanceSession::SuccessValue succeeded) mutable {
-        IPC::Encoder encoder(Messages::RemoteCDMInstanceSessionProxy::RequestLicense::asyncMessageReplyName(), 0);
-        encoder << RefPtr { WTF::move(message) } << sessionId << needsIndividualization << (succeeded == CDMInstanceSession::Succeeded);
-        completionHandler(RemoteCDMEncodedReply { encoder });
-    });
-}
-
-void updateRemoteCDMLicense(CDMInstanceSession& session, const String& sessionId, uint8_t type, SharedBuffer& response, RemoteCDMEncodedReplyCompletionHandler&& completionHandler)
-{
-    session.updateLicense(sessionId, static_cast<CDMSessionType>(type), response, [completionHandler = WTF::move(completionHandler)](bool sessionWasClosed, std::optional<CDMInstanceSession::KeyStatusVector>&& changedKeys, std::optional<double>&& changedExpiration, std::optional<CDMInstanceSession::Message>&& message, CDMInstanceSession::SuccessValue succeeded) mutable {
-        IPC::Encoder encoder(Messages::RemoteCDMInstanceSessionProxy::UpdateLicense::asyncMessageReplyName(), 0);
-        encoder << sessionWasClosed << changedKeys << changedExpiration << message << (succeeded == CDMInstanceSession::Succeeded);
-        completionHandler(RemoteCDMEncodedReply { encoder });
-    });
-}
-
-void loadRemoteCDMSession(CDMInstanceSession& session, uint8_t type, const String& sessionId, const String& origin, RemoteCDMEncodedReplyCompletionHandler&& completionHandler)
-{
-    session.loadSession(static_cast<CDMSessionType>(type), sessionId, origin, [completionHandler = WTF::move(completionHandler)](std::optional<CDMInstanceSession::KeyStatusVector>&& changedKeys, std::optional<double>&& changedExpiration, std::optional<CDMInstanceSession::Message>&& message, CDMInstanceSession::SuccessValue succeeded, CDMInstanceSession::SessionLoadFailure loadFailure) mutable {
-        IPC::Encoder encoder(Messages::RemoteCDMInstanceSessionProxy::LoadSession::asyncMessageReplyName(), 0);
-        encoder << changedKeys << changedExpiration << message << (succeeded == CDMInstanceSession::Succeeded) << loadFailure;
-        completionHandler(RemoteCDMEncodedReply { encoder });
-    });
-}
-
-void closeRemoteCDMSession(CDMInstanceSession& session, const String& sessionId, WTF::VoidCompletionHandler&& completionHandler)
-{
-    session.closeSession(sessionId, WTF::move(completionHandler));
-}
-
-void removeRemoteCDMSessionData(CDMInstanceSession& session, const String& sessionId, uint8_t type, RemoteCDMEncodedReplyCompletionHandler&& completionHandler)
-{
-    session.removeSessionData(sessionId, static_cast<CDMSessionType>(type), [completionHandler = WTF::move(completionHandler)](CDMInstanceSession::KeyStatusVector&& changedKeys, RefPtr<SharedBuffer>&& message, CDMInstanceSession::SuccessValue succeeded) mutable {
-        IPC::Encoder encoder(Messages::RemoteCDMInstanceSessionProxy::RemoveSessionData::asyncMessageReplyName(), 0);
-        encoder << changedKeys << message << (succeeded == CDMInstanceSession::Succeeded);
-        completionHandler(RemoteCDMEncodedReply { encoder });
-    });
-}
-
-void storeRemoteCDMRecordOfKeyUsage(CDMInstanceSession& session, const String& sessionId)
-{
-    session.storeRecordOfKeyUsage(sessionId);
 }
 
 static std::unique_ptr<IPC::Decoder> decoderForConfiguration(const std::optional<CDMKeySystemConfiguration>& configuration)

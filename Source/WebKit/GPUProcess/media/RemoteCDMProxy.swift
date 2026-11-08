@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
 
+@_spi(WebKitGPU) internal import WebCore
 import WebCoreEME
 import WebKit_Internal
 import wtf
@@ -124,10 +125,11 @@ final class RemoteCDMProxy {
             keySystem = ClearKey.keySystem
         } else {
             var cxxKeySystem = WTF.String()
-            guard let instance = WebKit.createRemoteCDMInstance(registry, cdm, identifier, &cxxKeySystem) else {
+            var fairPlayInstanceToken: UInt64 = 0
+            guard let instance = WebKit.createRemoteCDMInstance(registry, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
                 return noInstance
             }
-            backend = CxxCDMInstanceBackend(instance)
+            backend = FairPlayCDMInstanceBackend(instance, fairPlayInstance: FairPlayInstance.instance(forToken: fairPlayInstanceToken))
             keySystem = IPCCoding.WTFString.swiftString(cxxKeySystem)
         }
         let logIdentifier = isClearKey ? 0 : cdm.logIdentifier()

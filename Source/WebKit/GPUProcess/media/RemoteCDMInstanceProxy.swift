@@ -67,7 +67,7 @@ final class RemoteCDMInstanceProxy {
             return nil
         }
         let identifier = registry.generateSessionIdentifier()
-        guard let session = backend.makeSession(identifier: identifier, registry: registry, cdm: cdm.cdm, logIdentifier: self.logIdentifier) else {
+        guard let session = backend.makeSession(identifier: identifier, cdm: cdm, connection: connection, logIdentifier: self.logIdentifier) else {
             return nil
         }
         factory.add(

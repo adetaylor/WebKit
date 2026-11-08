@@ -30,7 +30,8 @@
     DispatchedTo=GPU,
     EnabledBy=EncryptedMediaAPIEnabled,
     SwiftReceiver,
-    SwiftTypes
+    SwiftTypes,
+    SwiftSends=RemoteCDMInstanceSession
 ]
 messages -> RemoteCDMInstanceSessionProxy {
     SetLogIdentifier(uint64_t logIdentifier) SwiftSyncHandler
