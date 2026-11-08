@@ -1709,6 +1709,10 @@ NODELETE void makeMatrixRenderable(TransformationMatrix&, bool has3DRendering);
 
 NODELETE bool compositedWithOwnBackingStore(const RenderLayer&);
 
+// Walks of the layer links with the reads inlined, for the tree benchmark. Each returns a digest of what it visited.
+WEBCORE_EXPORT uint64_t renderLayerPreorderWalkForTesting(const RenderLayer& root);
+WEBCORE_EXPORT uint64_t renderLayerAncestorWalkForTesting(std::span<const RenderLayer* const>);
+
 WTF::TextStream& operator<<(WTF::TextStream&, ClipRectsType);
 WTF::TextStream& operator<<(WTF::TextStream&, const RenderLayer&);
 WTF::TextStream& operator<<(WTF::TextStream&, const RenderLayer::ClipRectsContext&);
