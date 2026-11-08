@@ -2293,6 +2293,8 @@ class SwiftMember(object):
         self.coder = coder
         self.index = index
         self.condition = condition
+        # Whether its Swift form is ~Copyable (swift_types.is_owned_type).
+        self.owned = False
 
 
 def swift_identifier(name):
@@ -2381,6 +2383,9 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
     """Checks that each type that cpp_type names, which swift_types maps to IPCTypes by its unqualified name,
     is the C++ type that has that Swift form, and is held as C++ holds it."""
     cpp_type = swift_types.strip_cpp_type_decorations(cpp_type)
+    # SwiftCoding.swift defines these, not a .serialization.in file.
+    if swift_types.is_owned_primitive(cpp_type):
+        return
     match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9:]*)<(.+)>', cpp_type)
     if match:
         template = match.group(1).removeprefix('WTF::')
@@ -2456,8 +2461,42 @@ def swift_members(type, context, swift_names):
         if match.group(1) in _SWIFT_DISALLOWED_MEMBER_NAMES or match.group(1) == 'self':
             raise Exception(f'{member_context}: it would be named {match.group(1)} in Swift, which cannot be the name of a property.')
         swift_type, swift_coder = swift_type_and_coder(member.type, member_context, swift_names)
-        members.append(SwiftMember(match.group(1), swift_type, swift_coder, condition=swift_condition(member.condition, member_context)))
+        swift_member = SwiftMember(match.group(1), swift_type, swift_coder, condition=swift_condition(member.condition, member_context))
+        swift_member.owned = swift_types.is_owned_type(member.type)
+        members.append(swift_member)
     return members
+
+
+def check_swift_owned_form(cpp_name, owned, context):
+    """A [Swift] type that holds an owned type is ~Copyable, which the message generator must know (swift_types.py)."""
+    listed = cpp_name.removeprefix('::') in swift_types.OWNED_SERIALIZED_TYPES
+    if owned and not listed:
+        raise Exception(f'{context}: it holds a type whose Swift form owns a resource, so its Swift form is ~Copyable, and it must be listed in OWNED_SERIALIZED_TYPES in swift_types.py.')
+    if listed and not owned:
+        raise Exception(f'{context}: it is listed in OWNED_SERIALIZED_TYPES in swift_types.py, but holds no type whose Swift form owns a resource.')
+
+
+def swift_owned_coder_conformance(name, decode_lines, encode_lines, before_decode_lines=None):
+    """The IPCOwnedCoder conformance of a ~Copyable Swift form, whose encoding consumes the value."""
+    qualified_name = swift_qualified_name(name)
+    result = []
+    result.append(f'extension {qualified_name}: IPCOwnedCoder {{')
+    if before_decode_lines:
+        result.extend(before_decode_lines)
+        result.append('')
+    result.append(f'    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> {qualified_name} {{')
+    result.extend(decode_lines)
+    result.append('    }')
+    result.append('')
+    result.append(f'    static func encode(_ value: consuming {qualified_name}, to encoder: IPC.SwiftReplyEncoder) {{')
+    result.extend(encode_lines)
+    result.append('    }')
+    result.append('}')
+    return result
+
+
+# The owned types exist only where Mach send rights do (SwiftCoding.swift).
+SWIFT_OWNED_FORMS_CONDITION = 'canImport(Darwin)'
 
 
 def check_swift_names_are_unique(names, context, what, conditions=None):
@@ -2515,22 +2554,31 @@ def generate_swift_struct(type, swift_names):
     check_swift_names_are_unique([member.name for member in members], context, 'members', [member.condition for member in members])
     name = type.name
     qualified_name = swift_qualified_name(name)
+    owned = any(member.owned for member in members)
+    check_swift_owned_form(type.namespace_and_name(), owned, context)
 
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
-    result.append(f'    struct {name}: Sendable, Equatable {{')
+    result.append(f'    struct {name}: ' + ('~Copyable, Sendable {' if owned else 'Sendable, Equatable {'))
     result.extend(swift_conditional_lines(members, lambda member: [f'        var {swift_identifier(member.name)}: {member.type}']))
     result.append('    }')
     result.append('}')
     result.append('')
     decoding_initializer = ['    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {']
-    decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)']))
+    if owned:
+        # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any.
+        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)']))
+        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}']))
+    else:
+        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)']))
     decoding_initializer.append('    }')
-    result.extend(swift_coder_conformance(
+    result.extend((swift_owned_coder_conformance if owned else swift_coder_conformance)(
         name,
         [f'        try {qualified_name}(ipcDecodingFrom: &decoder)'],
         swift_conditional_lines(members, lambda member: [f'        {member.coder}.encode(value.{swift_identifier(member.name)}, to: encoder)']),
         decoding_initializer))
+    if owned:
+        result = swift_guarded(SWIFT_OWNED_FORMS_CONDITION, result)
     return swift_guarded(swift_condition(type.condition, context), result)
 
 
@@ -2645,20 +2693,24 @@ def generate_swift_variant(using_statement, swift_names):
             cases.append(SwiftMember('empty', None, None))
             continue
         swift_type, swift_coder = swift_type_and_coder(alternative, f'{context}: alternative {alternative}', swift_names)
-        cases.append(SwiftMember(swift_variant_case_name(alternative), swift_type, swift_coder))
+        case = SwiftMember(swift_variant_case_name(alternative), swift_type, swift_coder)
+        case.owned = swift_types.is_owned_type(alternative)
+        cases.append(case)
     check_swift_names_are_unique([case.name for case in cases], context, 'alternatives')
+    owned = any(case.owned for case in cases)
+    check_swift_owned_form(using_statement.name, owned, context)
 
     name = using_statement.name.split('::')[-1]
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
-    result.append(f'    enum {name}: Sendable, Equatable {{')
+    result.append(f'    enum {name}: ' + ('~Copyable, Sendable {' if owned else 'Sendable, Equatable {'))
     for case in cases:
         result.append(f'        case {swift_identifier(case.name)}' + (f'({case.type})' if case.type else ''))
     result.append('    }')
     result.append('}')
     result.append('')
     decode_lines = ['        switch try UInt8.decode(from: &decoder) {']
-    encode_lines = ['        switch value {']
+    encode_lines = ['        switch consume value {' if owned else '        switch value {']
     for index, case in enumerate(cases):
         decode_lines.append(f'        case {index}:')
         if case.type:
@@ -2674,7 +2726,9 @@ def generate_swift_variant(using_statement, swift_names):
     decode_lines.append('            throw IPCDecodingError()')
     decode_lines.append('        }')
     encode_lines.append('        }')
-    result.extend(swift_coder_conformance(name, decode_lines, encode_lines))
+    result.extend((swift_owned_coder_conformance if owned else swift_coder_conformance)(name, decode_lines, encode_lines))
+    if owned:
+        result = swift_guarded(SWIFT_OWNED_FORMS_CONDITION, result)
     return swift_guarded(swift_condition(using_statement.condition, context), result)
 
 
@@ -2707,7 +2761,10 @@ def generate_swift_cxx_names(identifiers, serialized_types, serialized_enums, us
     aliases = []
     for cpp_name, swift_name, condition in types:
         cpp_name = cpp_name.removeprefix('::')
-        alias = SwiftCxxName(swift_types.swift_cxx_name(cpp_name), swift_name, swift_condition(condition, f'[Swift] {cpp_name}'))
+        alias_condition = swift_condition(condition, f'[Swift] {cpp_name}')
+        if cpp_name in swift_types.OWNED_SERIALIZED_TYPES:
+            alias_condition = f'({alias_condition}) && {SWIFT_OWNED_FORMS_CONDITION}' if alias_condition else SWIFT_OWNED_FORMS_CONDITION
+        alias = SwiftCxxName(swift_types.swift_cxx_name(cpp_name), swift_name, alias_condition)
         if cpp_names.setdefault(alias.name, cpp_name) != cpp_name:
             raise Exception(f'{cpp_names[alias.name]} and {cpp_name} would both be {swift_qualified_name(swift_types.SWIFT_CXX_NAMES)}.{alias.name} in Swift.')
         if not any(existing.name == alias.name and existing.condition == alias.condition for existing in aliases):

@@ -93,6 +93,12 @@ _OWNED_TYPES = {
     'WebCore::SharedMemoryHandle': 'IPCTypes.SharedMemoryHandle',
 }
 
+# Types marked [Swift] in a .serialization.in file that hold an owned type, so whose Swift forms are ~Copyable too.
+# generate-serializers.py checks that this lists exactly those.
+OWNED_SERIALIZED_TYPES = frozenset([
+    'WebKit::ConsumerSharedCARingBufferHandle',
+])
+
 # Swift Arrays can't hold ~Copyable elements, so the Vectors of owned types that messages carry have their own ~Copyable
 # containers.
 _OWNED_VECTOR_TYPES = {
@@ -146,10 +152,15 @@ def swift_cxx_name(cpp_name):
     return cpp_name.removeprefix('::').replace('::', '_')
 
 
+def is_owned_primitive(cpp_type):
+    """Whether the Swift form of a C++ IPC type is one of SwiftCoding.swift's owned types, like IPCTypes.MachSendRight."""
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _OWNED_TYPES
+
+
 def is_owned_type(cpp_type):
     """Whether the Swift form of a C++ IPC type is ~Copyable: an owned type, or an optional or Vector of one."""
     cpp_type = strip_cpp_type_decorations(cpp_type)
-    if cpp_type.removeprefix('::') in _OWNED_TYPES:
+    if is_owned_primitive(cpp_type) or cpp_type.removeprefix('::') in OWNED_SERIALIZED_TYPES:
         return True
     match = re.match(r'^(?:WTF::)?(?:Vector|std::optional)<(.+)>$', cpp_type)
     return bool(match) and is_owned_type(match.group(1))
@@ -190,8 +201,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         template = re.sub(r'^WTF::', '', template)
         if any(is_owned_type(argument) for argument in arguments):
             owned_type = _OWNED_TYPES.get(strip_cpp_type_decorations(arguments[0]).removeprefix('::')) if len(arguments) == 1 else None
-            if template == 'std::optional' and owned_type:
-                return ('%s?' % owned_type, 'IPCCoding.OwnedOptional<%s>' % owned_type)
+            # A std::optional of an owned type, but not of a container of one.
+            if template == 'std::optional' and len(arguments) == 1 and not re.match(r'^(?:WTF::)?(?:Vector|std::optional)<', strip_cpp_type_decorations(arguments[0])):
+                inner_type, inner_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
+                return ('%s?' % inner_type, 'IPCCoding.OwnedOptional<%s>' % inner_coder)
             if template == 'Vector' and owned_type in _OWNED_VECTOR_TYPES:
                 return (_OWNED_VECTOR_TYPES[owned_type], _OWNED_VECTOR_TYPES[owned_type])
             raise UnmappableSwiftType("'%s' has no Swift form: of the types whose Swift form owns a resource, messages that take Swift types support each one, a std::optional of one, and %s." % (cpp_type, ', '.join('Vector<%s>' % name for name in sorted(_OWNED_VECTOR_TYPES))))

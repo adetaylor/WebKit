@@ -152,6 +152,15 @@ final class IPCSwiftWorkQueueTester {
         Self.IPCSwiftWorkQueueTesterMessages.signalSemaphoreSwift(on: connection, to: testerIdentifier, semaphore: semaphore)
     }
 
+    // A [Swift] struct that holds an owned type is ~Copyable, so the handler borrows it.
+    func describeRingBufferSwift(
+        connection: IPC.Connection,
+        handle: borrowing IPCTypes.ConsumerSharedCARingBufferHandle
+    ) -> (frameCount: UInt64, memorySize: UInt64) {
+        noteDispatch()
+        return (handle.frameCount, handle.memory.size)
+    }
+
     func signalSemaphoreSwift(connection: IPC.Connection, semaphore: consuming IPCTypes.Semaphore) {
         noteDispatch()
         semaphore.signal()

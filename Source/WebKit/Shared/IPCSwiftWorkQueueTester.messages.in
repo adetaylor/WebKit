@@ -50,6 +50,7 @@ messages -> IPCSwiftWorkQueueTester WorkQueue {
     EchoSharedMemorySwift(std::optional<WebCore::SharedMemory::Handle> handle) -> (std::optional<WebCore::SharedMemory::Handle> handle) SwiftTypes
     CountSendRightsSwift(Vector<MachSendRight> rights) -> (uint64_t count) Synchronous SwiftTypes
     SendSemaphoreBackSwift(uint64_t testerIdentifier, IPC::Semaphore semaphore) SwiftTypes
+    DescribeRingBufferSwift(WebKit::ConsumerSharedCARingBufferHandle handle) -> (uint64_t frameCount, uint64_t memorySize) Synchronous SwiftTypes
 #endif
 
     BenchEmpty()
