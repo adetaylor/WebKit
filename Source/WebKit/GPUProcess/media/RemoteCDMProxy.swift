@@ -90,14 +90,13 @@ final class RemoteCDMProxy {
     @MainActor
     func getSupportedConfiguration(
         connection: IPC.Connection,
-        candidateConfiguration: IPCTypes.CDMKeySystemConfiguration,
+        candidateConfiguration: CxxDecodedArguments.RemoteCDMProxy.GetSupportedConfigurationCandidateConfiguration,
         access: IPCTypes.CDMPrivateLocalStorageAccess
     ) async -> IPCTypes.CDMKeySystemConfiguration? {
-        var builder = remoteCDMKeySystemConfigurationBuilder(candidateConfiguration)
-        return await withCheckedContinuation { continuation in
+        await withCheckedContinuation { continuation in
             WebKit.getSupportedRemoteCDMConfiguration(
                 cdm,
-                &builder,
+                candidateConfiguration,
                 access == .allowed,
                 consuming: .init { (encodedConfiguration: consuming WebKit.RemoteCDMEncodedConfiguration) in
                     var decoder = WebKit.swiftDecoder(encodedConfiguration)
@@ -161,34 +160,6 @@ final class RemoteCDMProxy {
         }
         return result
     }
-}
-
-// The C++ form of a configuration that a Swift receiver hands to a C++ CDM.
-func remoteCDMKeySystemConfigurationBuilder(
-    _ configuration: IPCTypes.CDMKeySystemConfiguration
-) -> WebKit.RemoteCDMKeySystemConfigurationBuilder {
-    var builder = WebKit.RemoteCDMKeySystemConfigurationBuilder()
-    builder.setLabel(IPCCoding.WTFString.cxxString(configuration.label))
-    for type in configuration.initDataTypes {
-        builder.appendInitDataType(IPCCoding.WTFString.cxxString(type))
-    }
-    for (isVideo, capabilities) in [(false, configuration.audioCapabilities), (true, configuration.videoCapabilities)] {
-        for capability in capabilities {
-            builder.appendCapability(
-                isVideo,
-                IPCCoding.WTFString.cxxString(capability.contentType),
-                IPCCoding.WTFString.cxxString(capability.robustness),
-                capability.encryptionScheme != nil,
-                capability.encryptionScheme == .cbcs
-            )
-        }
-    }
-    builder.setDistinctiveIdentifier(configuration.distinctiveIdentifier.rawValue)
-    builder.setPersistentState(configuration.persistentState.rawValue)
-    for type in configuration.sessionTypes {
-        builder.appendSessionType(type.rawValue)
-    }
-    return builder
 }
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT

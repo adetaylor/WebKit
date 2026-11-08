@@ -96,11 +96,13 @@ CDMInstanceSession* createRemoteCDMInstanceSession(RemoteCDMRegistry& registry, 
     return session.leakRef();
 }
 
-void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMKeySystemConfigurationBuilder& builder, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
+void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMConfigurationArgument& configuration, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
 {
     auto allowDistinctiveIdentifiers = distinctiveIdentifiersAllowed ? CDMInstance::AllowDistinctiveIdentifiers::Yes : CDMInstance::AllowDistinctiveIdentifiers::No;
     auto allowPersistentState = persistentStateAllowed ? CDMInstance::AllowPersistentState::Yes : CDMInstance::AllowPersistentState::No;
-    instance.initializeWithConfiguration(builder.take(), allowDistinctiveIdentifiers, allowPersistentState, WTF::move(completionHandler));
+    auto value = configuration.take();
+    RELEASE_ASSERT(value);
+    instance.initializeWithConfiguration(WTF::move(*value), allowDistinctiveIdentifiers, allowPersistentState, WTF::move(completionHandler));
 }
 
 void setRemoteCDMInstanceServerCertificate(CDMInstance& instance, SharedBuffer& certificate, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
@@ -213,10 +215,12 @@ RemoteCDMEncodedConfiguration::RemoteCDMEncodedConfiguration(RemoteCDMEncodedCon
 
 RemoteCDMEncodedConfiguration::~RemoteCDMEncodedConfiguration() = default;
 
-void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle& cdm, RemoteCDMKeySystemConfigurationBuilder& builder, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&& completionHandler)
+void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle& cdm, RemoteCDMConfigurationArgument& candidateConfiguration, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&& completionHandler)
 {
     auto access = localStorageAccessAllowed ? CDMPrivate::LocalStorageAccess::Allowed : CDMPrivate::LocalStorageAccess::NotAllowed;
-    cdm.getSupportedConfiguration(builder.take(), access, [completionHandler = WTF::move(completionHandler)](std::optional<CDMKeySystemConfiguration> configuration) mutable {
+    auto value = candidateConfiguration.take();
+    RELEASE_ASSERT(value);
+    cdm.getSupportedConfiguration(WTF::move(*value), access, [completionHandler = WTF::move(completionHandler)](std::optional<CDMKeySystemConfiguration> configuration) mutable {
         completionHandler(RemoteCDMEncodedConfiguration { configuration });
     });
 }

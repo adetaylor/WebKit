@@ -127,25 +127,8 @@ WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOES
 WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem) SWIFT_RETURNS_RETAINED;
 WebCore::CDMInstanceSession* WTF_NULLABLE createRemoteCDMInstanceSession(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, WebCore::CDMInstance&, uint64_t identifier, uint64_t logIdentifier) SWIFT_RETURNS_RETAINED;
 
-// Builds the CDMKeySystemConfiguration that a Swift receiver hands to C++.
-class RemoteCDMKeySystemConfigurationBuilder {
-public:
-    void setLabel(const String& label) { m_configuration.label = label; }
-    void appendInitDataType(const String& type) { m_configuration.initDataTypes.append(AtomString { type }); }
-    void appendCapability(bool isVideo, const String& contentType, const String& robustness, bool hasEncryptionScheme, bool encryptionScheme)
-    {
-        auto& capabilities = isVideo ? m_configuration.videoCapabilities : m_configuration.audioCapabilities;
-        capabilities.append({ contentType, robustness, hasEncryptionScheme ? std::optional { static_cast<WebCore::CDMEncryptionScheme>(encryptionScheme) } : std::nullopt });
-    }
-    void setDistinctiveIdentifier(uint8_t requirement) { m_configuration.distinctiveIdentifier = static_cast<WebCore::CDMRequirement>(requirement); }
-    void setPersistentState(uint8_t requirement) { m_configuration.persistentState = static_cast<WebCore::CDMRequirement>(requirement); }
-    void appendSessionType(uint8_t type) { m_configuration.sessionTypes.append(static_cast<WebCore::CDMSessionType>(type)); }
-
-    WebCore::CDMKeySystemConfiguration take() { return WTF::move(m_configuration); }
-
-private:
-    WebCore::CDMKeySystemConfiguration m_configuration;
-} SWIFT_SELF_CONTAINED;
+// The CDMKeySystemConfiguration of a message, which C++ decodes for the C++ CDM that a Swift receiver hands it to.
+using RemoteCDMConfigurationArgument = IPC::CxxDecodedArgument<WebCore::CDMKeySystemConfiguration>;
 
 // A CDMKeySystemConfiguration from C++, encoded as IPC encodes it so that Swift can decode it with the
 // coders of its messages.
@@ -169,11 +152,11 @@ inline IPC::SwiftDecoder swiftDecoder(const RemoteCDMEncodedConfiguration& confi
 
 using RemoteCDMSupportedConfigurationCompletionHandler = CompletionHandler<void(RemoteCDMEncodedConfiguration&&)>;
 
-void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle&, RemoteCDMKeySystemConfigurationBuilder&, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&&);
+void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle&, RemoteCDMConfigurationArgument&, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&&);
 
 using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore::CDMInstanceSuccessValue)>;
 
-void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMKeySystemConfigurationBuilder&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
+void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMConfigurationArgument&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
 void setRemoteCDMInstanceServerCertificate(WebCore::CDMInstance&, WebCore::SharedBuffer&, RemoteCDMInstanceSuccessCompletionHandler&&);
 void setRemoteCDMInstanceStorageDirectory(WebCore::CDMInstance&, const String&);
 

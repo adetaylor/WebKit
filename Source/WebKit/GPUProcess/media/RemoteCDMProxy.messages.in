@@ -33,7 +33,7 @@
     SwiftTypes
 ]
 messages -> RemoteCDMProxy {
-    GetSupportedConfiguration(struct WebCore::CDMKeySystemConfiguration candidateConfiguration, enum:bool WebCore::CDMPrivateLocalStorageAccess access) -> (struct std::optional<WebCore::CDMKeySystemConfiguration> accumulatedConfiguration)
+    GetSupportedConfiguration([CxxDecoded] struct WebCore::CDMKeySystemConfiguration candidateConfiguration, enum:bool WebCore::CDMPrivateLocalStorageAccess access) -> (struct std::optional<WebCore::CDMKeySystemConfiguration> accumulatedConfiguration)
     CreateInstance() -> (std::optional<WebKit::RemoteCDMInstanceIdentifier> identifier, struct WebKit::RemoteCDMInstanceConfiguration configuration) Synchronous SwiftSyncHandler
     LoadAndInitialize() SwiftSyncHandler
     SetLogIdentifier(uint64_t logIdentifier) SwiftSyncHandler

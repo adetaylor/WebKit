@@ -45,7 +45,7 @@ typealias RemoteCDMRemovedSessionData = (changedKeys: RemoteCDMKeyStatuses, mess
 @MainActor
 protocol RemoteCDMInstanceBackend: AnyObject {
     func initialize(
-        _ configuration: IPCTypes.CDMKeySystemConfiguration,
+        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool
@@ -99,7 +99,7 @@ final class ClearKeyInstanceBackend: RemoteCDMInstanceBackend {
     private let instance = ClearKeyInstance()
 
     func initialize(
-        _ configuration: IPCTypes.CDMKeySystemConfiguration,
+        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool {
@@ -223,15 +223,14 @@ final class CxxCDMInstanceBackend: RemoteCDMInstanceBackend {
     }
 
     func initialize(
-        _ configuration: IPCTypes.CDMKeySystemConfiguration,
+        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool {
-        var builder = remoteCDMKeySystemConfigurationBuilder(configuration)
         let success = await withCheckedContinuation { continuation in
             WebKit.initializeRemoteCDMInstance(
                 instance,
-                &builder,
+                configuration,
                 distinctiveIdentifiersAllowed,
                 persistentStateAllowed,
                 consuming: .init(continuation)
