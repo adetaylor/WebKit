@@ -45,8 +45,11 @@ public final class GLContext {
     private let cocoaPlatform: CocoaGLPlatform?
 #endif
     let display: ANGLEDisplay
+    @_expose(!Cxx)
     let eglContext: ANGLEContext
+    @_expose(!Cxx)
     let isForWebGL2: Bool
+    @_expose(!Cxx)
     let supportsWebGLDraftExtensions: Bool
 
     var state = GLState()
@@ -66,16 +69,19 @@ public final class GLContext {
         set { errorsStorage.store(newValue.rawValue, ordering: .relaxed) }
     }
 
+    @_expose(!Cxx)
     var contextLost: Bool {
         get { contextLostStorage.load(ordering: .relaxed) }
         set { contextLostStorage.store(newValue, ordering: .relaxed) }
     }
 
+    @_expose(!Cxx)
     var boundReadFBO: GLuint {
         get { boundReadFBOStorage.load(ordering: .relaxed) }
         set { boundReadFBOStorage.store(newValue, ordering: .relaxed) }
     }
 
+    @_expose(!Cxx)
     var boundDrawFBO: GLuint {
         get { boundDrawFBOStorage.load(ordering: .relaxed) }
         set { boundDrawFBOStorage.store(newValue, ordering: .relaxed) }
@@ -89,6 +95,7 @@ public final class GLContext {
         }
     }
     private(set) var texture: GLuint = 0
+    @_expose(!Cxx)
     private(set) var fbo: GLuint = 0
 
     // A context whose platform is C++, which made its EGL context.
@@ -151,7 +158,7 @@ public final class GLContext {
         return ANGLE.makeCurrent(display, context)
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     public static func releaseCurrentContext(_ display: ANGLEDisplay) -> Bool {
         forgetCurrentContext()
         return ANGLE.releaseCurrentContext(display)
@@ -305,7 +312,7 @@ public final class GLContext {
 
     // Deletes the context's own GL objects before the platform destroys its EGL context, and reports whether the
     // context had noticed a GPU reset.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     public func willDestroy() -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -389,7 +396,7 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
+    @_expose(!Cxx)
     public func isContextLost() -> Bool {
         contextLost
     }
@@ -489,6 +496,7 @@ public final class GLContext {
     // Errors.
 
     @discardableResult
+    @_expose(!Cxx)
     func updateErrors() -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -927,6 +935,7 @@ public final class GLContext {
         return ANGLEReadPixelsStatus(width: result.columns, height: result.rows, succeeded: true)
     }
 
+    @_expose(!Cxx)
     func setPackParameters(_ alignment: GLint, _ rowLength: GLint, _ reverseRowOrder: GLboolean) {
         if state.packAlignment != alignment {
             GL_PixelStorei(GLenum(GL_PACK_ALIGNMENT), alignment)
@@ -1215,6 +1224,7 @@ public final class GLContext {
 
     // ClearBuffer*v are missing ANGLE Robust* entry points. Make the call act similar way as other calls that validate
     // buffer sizes by validating it here.
+    @_expose(!Cxx)
     func validateClearBufferv(_ buffer: GLenum, _ valuesSize: Int) -> Bool {
         switch buffer {
         case GLenum(GL_COLOR):
@@ -1560,6 +1570,7 @@ public final class GLContext {
     }
 
     // The name of the variable that getTransformFeedbackVarying() last returned.
+    @_expose(!Cxx)
     private(set) var lastVariableName = std.string()
 
     @_expose(Cxx)
@@ -1624,6 +1635,7 @@ public final class GLContext {
     }
 
     // An active uniform's block layout, and its location count: one per element if it isn't in a block.
+    @_expose(!Cxx)
     func activeUniformInfo(_ program: GLuint, _ index: GLuint, _ type: GLenum, _ size: GLint, _ nameLength: GLint) -> ANGLEActiveUniformInfo {
         var info = ANGLEActiveUniformInfo(type: type, size: size, blockIndex: -1, offset: -1, arrayStride: -1, matrixStride: -1, isRowMajor: -1, nameLength: nameLength, locationCount: 0)
         if isForWebGL2 {
@@ -1658,7 +1670,7 @@ public final class GLContext {
     // Strings.
 
     // The length of a GL string, or -1 if it is null or the context isn't current.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     public func stringLength(_ name: GLenum) -> Int {
         guard makeContextCurrent() else {
             return -1
@@ -2391,7 +2403,7 @@ public final class GLContext {
     }
 
     // Destroys the external images and syncs left, before the platform destroys the EGL context.
-    @_expose(Cxx)
+    @_expose(!Cxx)
     public func destroyExternalImagesAndSyncs() {
         for image in externalImages.values {
             let result = ANGLE.destroyImage(display, image)

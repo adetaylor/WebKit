@@ -79,13 +79,16 @@ struct CocoaGLSpareBuffer {
 public final class CocoaGLPlatform: GLContextPlatform {
     static let maxReusedDrawingBuffers = 3
     // On iOS CoreAnimation keeps a displayed buffer for about 4 frames; one more for headroom.
+    @_expose(!Cxx)
     static let maxSpareDrawingBuffers = 5
 
     let contextID: UInt64
     let attributes: CocoaGLContextAttributes
     private(set) var display = ANGLEDisplay()
+    @_expose(!Cxx)
     private(set) var displayKey = 0
     private(set) var config = ANGLEConfig()
+    @_expose(!Cxx)
     private(set) var eglContext = ANGLEContext()
     private var isInitialized = false
 
@@ -230,6 +233,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
     }
 
+    @_expose(!Cxx)
     static func releaseDisplay(_ display: ANGLEDisplay, _ displayKey: Int) {
         let identity = display.identity()
         let terminates = cocoaGLDisplays.withLock { displays -> Bool in
