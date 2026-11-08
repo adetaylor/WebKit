@@ -28,73 +28,31 @@
 
 #if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 
-#include "RemoteBarcodeDetectorMessages.h"
-#include "RemoteFaceDetectorMessages.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
-#include "RemoteTextDetectorMessages.h"
-#include "WebKit-Swift.h"
-#include <WebCore/BarcodeDetectorImplementation.h>
-#include <WebCore/BarcodeDetectorOptionsInterface.h>
-#include <WebCore/FaceDetectorOptionsInterface.h>
 #include <WebCore/NativeImage.h>
 
 namespace WebKit {
 
-RemoteShapeDetectionResources::RemoteShapeDetectionResources(RemoteRenderingBackend& backend)
+RemoteShapeDetector::RemoteShapeDetector(RemoteRenderingBackend& backend)
     : m_backend(backend)
 {
 }
 
-RemoteShapeDetectionResources::~RemoteShapeDetectionResources() = default;
+RemoteShapeDetector::~RemoteShapeDetector() = default;
 
-RemoteRenderingBackend& RemoteShapeDetectionResources::backend() const
-{
-    return m_backend.get();
-}
-
-std::optional<SharedPreferencesForWebProcess> RemoteShapeDetectionResources::sharedPreferencesForWebProcess() const
+std::optional<SharedPreferencesForWebProcess> RemoteShapeDetector::sharedPreferencesForWebProcess() const
 {
     return m_backend.get().sharedPreferencesForWebProcess();
 }
 
-CGImageRef copyShapeDetectionImage(const RemoteShapeDetectionResources& resources, uint64_t renderingResourceIdentifier, bool& found)
+CGImageRef RemoteShapeDetector::copyImage(uint64_t renderingResourceIdentifier, bool& found) const
 {
-    RefPtr image = resources.backend().remoteResourceCache().cachedNativeImage(WebCore::RenderingResourceIdentifier { renderingResourceIdentifier });
+    RefPtr image = m_backend.get().remoteResourceCache().cachedNativeImage(WebCore::RenderingResourceIdentifier { renderingResourceIdentifier });
     found = !!image;
     if (!image)
         return nullptr;
     return image->platformImage().leakRef();
-}
-
-template<typename Forwarder>
-static Ref<IPC::StreamMessageReceiver> withSharedPreferences(Ref<Forwarder>&& forwarder, Ref<RemoteShapeDetectionResources>&& resources)
-{
-    forwarder->setSharedPreferencesProvider([resources = WTF::move(resources)] {
-        return resources->sharedPreferencesForWebProcess();
-    });
-    return forwarder;
-}
-
-Ref<IPC::StreamMessageReceiver> createRemoteBarcodeDetectorReceiver(RemoteRenderingBackend& backend, const WebCore::ShapeDetection::BarcodeDetectorOptions& options)
-{
-    Ref resources = RemoteShapeDetectionResources::create(backend);
-    Ref forwarder = RemoteBarcodeDetector::createMessageReceiver(resources.ptr(), WebCore::ShapeDetection::BarcodeDetectorImpl::formatMask(options.formats));
-    return withSharedPreferences(WTF::move(forwarder), WTF::move(resources));
-}
-
-Ref<IPC::StreamMessageReceiver> createRemoteFaceDetectorReceiver(RemoteRenderingBackend& backend, const WebCore::ShapeDetection::FaceDetectorOptions& options)
-{
-    Ref resources = RemoteShapeDetectionResources::create(backend);
-    Ref forwarder = RemoteFaceDetector::createMessageReceiver(resources.ptr(), options.maxDetectedFaces);
-    return withSharedPreferences(WTF::move(forwarder), WTF::move(resources));
-}
-
-Ref<IPC::StreamMessageReceiver> createRemoteTextDetectorReceiver(RemoteRenderingBackend& backend)
-{
-    Ref resources = RemoteShapeDetectionResources::create(backend);
-    Ref forwarder = RemoteTextDetector::createMessageReceiver(resources.ptr());
-    return withSharedPreferences(WTF::move(forwarder), WTF::move(resources));
 }
 
 } // namespace WebKit

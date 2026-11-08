@@ -28,59 +28,33 @@
 #if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 
 #include "SharedPreferencesForWebProcess.h"
+#include "StreamMessageReceiver.h"
 #include <CoreGraphics/CoreGraphics.h>
 #include <optional>
-#include <wtf/Ref.h>
-#include <wtf/RefCounted.h>
-#include <wtf/SwiftBridging.h>
 #include <wtf/WeakRef.h>
-
-namespace IPC {
-class StreamMessageReceiver;
-}
-
-namespace WebCore::ShapeDetection {
-struct BarcodeDetectorOptions;
-struct FaceDetectorOptions;
-}
 
 namespace WebKit {
 
 class RemoteRenderingBackend;
 
-// What the GPU process's Swift shape detection receivers (RemoteShapeDetectors.swift) look up in the rendering backend
-// that created them.
-class RemoteShapeDetectionResources final : public RefCounted<RemoteShapeDetectionResources> {
+// A shape detector's receiver, on the stream connection of the rendering backend that created it, so in its work queue.
+// Swift handles the detectors' messages (RemoteShapeDetectors.swift), in native images the backend has cached.
+class RemoteShapeDetector : public IPC::StreamMessageReceiver {
 public:
-    static Ref<RemoteShapeDetectionResources> create(RemoteRenderingBackend& backend) { return adoptRef(*new RemoteShapeDetectionResources(backend)); }
-    ~RemoteShapeDetectionResources();
+    virtual ~RemoteShapeDetector();
 
-    RemoteRenderingBackend& backend() const;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { RefCounted<RemoteShapeDetectionResources>::ref(); }
-    void deref() const { RefCounted<RemoteShapeDetectionResources>::deref(); }
-#endif
+protected:
+    explicit RemoteShapeDetector(RemoteRenderingBackend&);
+
+    // The image of the native image the backend has cached under the identifier: found is false if it has none, and the
+    // image is null if the native image has no platform image.
+    CGImageRef WTF_NULLABLE copyImage(uint64_t renderingResourceIdentifier, bool& found) const CF_RETURNS_RETAINED;
 
 private:
-    explicit RemoteShapeDetectionResources(RemoteRenderingBackend&);
-
     const WeakRef<RemoteRenderingBackend> m_backend;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-// The image of the native image the backend has cached under the identifier: found is false if it has none, and the
-// image is null if the native image has no platform image. A function, since Swift takes what a C++ method returns as
-// unretained whatever its annotation.
-CGImageRef WTF_NULLABLE copyShapeDetectionImage(const RemoteShapeDetectionResources&, uint64_t renderingResourceIdentifier, bool& found) CF_RETURNS_RETAINED;
-
-#ifndef __swift__
-// The receivers of a new detector's messages, which the backend registers on its stream connection.
-Ref<IPC::StreamMessageReceiver> createRemoteBarcodeDetectorReceiver(RemoteRenderingBackend&, const WebCore::ShapeDetection::BarcodeDetectorOptions&);
-Ref<IPC::StreamMessageReceiver> createRemoteFaceDetectorReceiver(RemoteRenderingBackend&, const WebCore::ShapeDetection::FaceDetectorOptions&);
-Ref<IPC::StreamMessageReceiver> createRemoteTextDetectorReceiver(RemoteRenderingBackend&);
-#endif
+};
 
 } // namespace WebKit
 

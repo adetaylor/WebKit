@@ -27,132 +27,59 @@ internal import CoreGraphics
 @_spi(WebKitGPU) internal import WebCore
 import WebKit_Internal
 
-// The receivers of a shape detector's messages, on the stream connection of the rendering backend that created it, so
-// in its work queue. They detect with WebCore's ShapeDetectionVision, in native images the backend has cached.
+// The Swift handlers of the shape detectors' C++ receivers (RemoteBarcodeDetector.h, RemoteFaceDetector.h and
+// RemoteTextDetector.h), on the stream connection of the rendering backend that created them, so in its work queue. They
+// detect with WebCore's ShapeDetectionVision, in native images the backend has cached.
 
-@_expose(Cxx)
-final class RemoteBarcodeDetector {
-    private let detector: ShapeDetectionVision.BarcodeDetector
-    private let resources: WebKit.RemoteShapeDetectionResources
-
-    @_expose(!Cxx)
-    private init(_ detector: ShapeDetectionVision.BarcodeDetector, _ resources: WebKit.RemoteShapeDetectionResources) {
-        self.detector = detector
-        self.resources = resources
-    }
-
-    // A new receiver, and the forwarder of its messages, which keeps it. Only C++ calls it, so @used keeps it under
-    // -O -wmo (rdar://179098545).
-    @used
-    static func createMessageReceiver(
-        _ resources: WebKit.RemoteShapeDetectionResources,
-        _ requestedFormatMask: UInt16
-    ) -> RefRemoteBarcodeDetectorMessageForwarder {
-        WebKit.RemoteBarcodeDetectorMessageForwarder.create(
-            target: RemoteBarcodeDetector(.init(requestedFormatMask: requestedFormatMask), resources)
-        )
-    }
-
-    @_expose(!Cxx)
-    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        resources.sharedPreferencesForWebProcess()
-    }
-
+extension WebKit.RemoteBarcodeDetector {
     func detect(
         renderingResourceIdentifier: IPCTypes.RenderingResourceIdentifier,
         reply: consuming RemoteBarcodeDetectorDetectReply
     ) throws(InvalidMessage) {
-        guard let image = try sourceImage(resources, renderingResourceIdentifier) else {
+        var found = false
+        let image = WebKit.copyShapeDetectionImage(self, renderingResourceIdentifier.rawValue, &found)
+        try messageCheck { found }
+        guard let image else {
             reply.send([])
             return
         }
+        let detector: ShapeDetectionVision.BarcodeDetector = .init(requestedFormatMask: requestedFormatMask())
         reply.send(detector.detect(image).map(ipcDetectedBarcode))
     }
 }
 
-@_expose(Cxx)
-final class RemoteFaceDetector {
-    private let detector: ShapeDetectionVision.FaceDetector
-    private let resources: WebKit.RemoteShapeDetectionResources
-
-    @_expose(!Cxx)
-    private init(_ detector: ShapeDetectionVision.FaceDetector, _ resources: WebKit.RemoteShapeDetectionResources) {
-        self.detector = detector
-        self.resources = resources
-    }
-
-    // A new receiver, and the forwarder of its messages, which keeps it. Only C++ calls it, so @used keeps it under
-    // -O -wmo (rdar://179098545).
-    @used
-    static func createMessageReceiver(
-        _ resources: WebKit.RemoteShapeDetectionResources,
-        _ maxDetectedFaces: UInt16
-    ) -> RefRemoteFaceDetectorMessageForwarder {
-        WebKit.RemoteFaceDetectorMessageForwarder.create(target: RemoteFaceDetector(.init(maxDetectedFaces: maxDetectedFaces), resources))
-    }
-
-    @_expose(!Cxx)
-    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        resources.sharedPreferencesForWebProcess()
-    }
-
+extension WebKit.RemoteFaceDetector {
     func detect(
         renderingResourceIdentifier: IPCTypes.RenderingResourceIdentifier,
         reply: consuming RemoteFaceDetectorDetectReply
     ) throws(InvalidMessage) {
-        guard let image = try sourceImage(resources, renderingResourceIdentifier) else {
+        var found = false
+        let image = WebKit.copyShapeDetectionImage(self, renderingResourceIdentifier.rawValue, &found)
+        try messageCheck { found }
+        guard let image else {
             reply.send([])
             return
         }
+        let detector: ShapeDetectionVision.FaceDetector = .init(maxDetectedFaces: maxDetectedFaces())
         reply.send(detector.detect(image).map(ipcDetectedFace))
     }
 }
 
-@_expose(Cxx)
-final class RemoteTextDetector {
-    private let detector: ShapeDetectionVision.TextDetector
-    private let resources: WebKit.RemoteShapeDetectionResources
-
-    @_expose(!Cxx)
-    private init(_ detector: ShapeDetectionVision.TextDetector, _ resources: WebKit.RemoteShapeDetectionResources) {
-        self.detector = detector
-        self.resources = resources
-    }
-
-    // A new receiver, and the forwarder of its messages, which keeps it. Only C++ calls it, so @used keeps it under
-    // -O -wmo (rdar://179098545).
-    @used
-    static func createMessageReceiver(_ resources: WebKit.RemoteShapeDetectionResources) -> RefRemoteTextDetectorMessageForwarder {
-        WebKit.RemoteTextDetectorMessageForwarder.create(target: RemoteTextDetector(.init(), resources))
-    }
-
-    @_expose(!Cxx)
-    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        resources.sharedPreferencesForWebProcess()
-    }
-
+extension WebKit.RemoteTextDetector {
     func detect(
         renderingResourceIdentifier: IPCTypes.RenderingResourceIdentifier,
         reply: consuming RemoteTextDetectorDetectReply
     ) throws(InvalidMessage) {
-        guard let image = try sourceImage(resources, renderingResourceIdentifier) else {
+        var found = false
+        let image = WebKit.copyShapeDetectionImage(self, renderingResourceIdentifier.rawValue, &found)
+        try messageCheck { found }
+        guard let image else {
             reply.send([])
             return
         }
+        let detector: ShapeDetectionVision.TextDetector = .init()
         reply.send(detector.detect(image).map(ipcDetectedText))
     }
-}
-
-// The image of the native image the backend has cached under the identifier, which is nil if it has none. An identifier
-// the backend has no native image for is an invalid message.
-private func sourceImage(
-    _ resources: WebKit.RemoteShapeDetectionResources,
-    _ identifier: IPCTypes.RenderingResourceIdentifier
-) throws(InvalidMessage) -> CGImage? {
-    var found = false
-    let image = WebKit.copyShapeDetectionImage(resources, identifier.rawValue, &found)
-    try messageCheck { found }
-    return image
 }
 
 private func ipcRect(_ rect: ShapeDetectionVision.Rect) -> IPCTypes.FloatRect {

@@ -9613,6 +9613,9 @@
 		7150B219724045ABB4DB7055 /* RemoteShapeDetectors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShapeDetectors.swift; sourceTree = "<group>"; };
 		3DE265452A7F4900B61B3D8E /* RemoteShapeDetectionSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteShapeDetectionSupport.cpp; sourceTree = "<group>"; };
 		1F7C3FF674FA435695DD0F48 /* RemoteShapeDetectionSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteShapeDetectionSupport.h; sourceTree = "<group>"; };
+		AE79C0D2D30B9CE28BD0DA6D /* RemoteBarcodeDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteBarcodeDetector.h; sourceTree = "<group>"; };
+		CF50CF3EEF2C22B18F408C38 /* RemoteFaceDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteFaceDetector.h; sourceTree = "<group>"; };
+		C610B349FA4EB3EC0767FAEB /* RemoteTextDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteTextDetector.h; sourceTree = "<group>"; };
 		7733624ED51D4913B48ABC62 /* RemoteBarcodeDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteBarcodeDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		588C46ABDFB64C12B8D58AB0 /* RemoteFaceDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFaceDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextDetectorMessageReceiver.swift; sourceTree = "<group>"; };
@@ -11770,11 +11773,14 @@
 		1C9F4BF929E51D300015819E /* ShapeDetection */ = {
 			isa = PBXGroup;
 			children = (
+				AE79C0D2D30B9CE28BD0DA6D /* RemoteBarcodeDetector.h */,
 				1C9F4C0029E51D890015819E /* RemoteBarcodeDetector.messages.in */,
+				CF50CF3EEF2C22B18F408C38 /* RemoteFaceDetector.h */,
 				1C9F4C0129E51D940015819E /* RemoteFaceDetector.messages.in */,
 				3DE265452A7F4900B61B3D8E /* RemoteShapeDetectionSupport.cpp */,
 				1F7C3FF674FA435695DD0F48 /* RemoteShapeDetectionSupport.h */,
 				7150B219724045ABB4DB7055 /* RemoteShapeDetectors.swift */,
+				C610B349FA4EB3EC0767FAEB /* RemoteTextDetector.h */,
 				1C9F4C0229E51D9D0015819E /* RemoteTextDetector.messages.in */,
 			);
 			path = ShapeDetection;

@@ -27,7 +27,7 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=ShapeDetection,
-    SwiftReceiver,
+    SwiftImplementation,
     SwiftTypes
 ]
 messages -> RemoteTextDetector Stream {

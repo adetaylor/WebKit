@@ -1021,9 +1021,6 @@ if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
 endif ()
 if (APPLE)
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteTextDetectorMessageReceiver.cpp
         GPUProcess/ShapeDetection/RemoteShapeDetectionSupport.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
