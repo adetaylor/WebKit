@@ -682,6 +682,17 @@ void handleSwiftMessage(StreamServerConnection& connection, Decoder& decoder, T*
         markSwiftArgumentsInvalid(decoder);
 }
 
+// Dispatch of a stream message that takes Swift types to a C++ receiver with 'SwiftImplementation', whose generated Swift
+// implements the dispatch function with @cxx @implementation.
+template<typename MessageType, typename Receiver>
+void handleSwiftImplementedMessage(StreamServerConnection& connection, Decoder& decoder, Receiver& receiver, bool (*function)(Receiver* WTF_NONNULL, SwiftDecoder))
+{
+    ASSERT_UNUSED(connection, connection.isCurrentWorkQueue());
+    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+    if (!function(&receiver, swiftDecoderLender.view()))
+        markSwiftArgumentsInvalid(decoder);
+}
+
 template<typename MessageType, typename T, typename U, typename MF>
 void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object, MF U::* function)
 {
