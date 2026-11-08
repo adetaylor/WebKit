@@ -403,9 +403,8 @@ struct CGRendererGlyphContext {
     bool hasSimpleShadow;
     bool hasReceiverTransparencyLayer;
 };
-WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyColor(const WebCore::GraphicsContextCG&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
-// The value of a color without its CGColor, which the renderer makes itself (CGRendererCopyCGColorForData()) for a Swift
-// receiver's fills of a color, so that the message's CGColor isn't Swift's to release.
+// The value of a color without its CGColor, as RemoteCGRenderer's messages carry one: the renderer makes the CGColor itself
+// (CGRendererCopyCGColorForData()), and CGRendererColorFromValue() gives back the same Color.
 WEBCORE_EXPORT void CGRendererColorValueOf(const WebCore::Color&, CGRendererColorValue&) __attribute__((availability(swift, unavailable)));
 
 // The color space a context draws colors in (GraphicsContextCG::colorSpace()), which GraphicsContextCG gives a renderer it

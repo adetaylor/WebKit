@@ -177,4 +177,25 @@ header: "RemoteCGRendererLineDash.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineDash {
     std::span<const double> span();
 };
+
+header: <WebCore/CGRendererSwiftBridge.h>
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorData {
+    float c1;
+    float c2;
+    float c3;
+    float alpha;
+    uint32_t packedColor;
+    [Validator='WTF::isValidEnum<WebCore::ColorSpaceName>(*colorSpace)'] uint8_t colorSpace;
+    [Validator='*form <= 2'] uint8_t form;
+    bool isSemantic;
+    bool usesFunctionSerialization;
+};
+
+header: <WebCore/CGRendererSwiftBridge.h>
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorValue {
+    CGRendererColorData data;
+    uint32_t packedColor;
+    bool isPacked;
+    bool isVisible;
+};
 #endif

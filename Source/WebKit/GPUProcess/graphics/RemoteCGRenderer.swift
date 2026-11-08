@@ -475,16 +475,12 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's color, shadow, style and state handlers, with the colors converted for the context as
     // GraphicsContextCG converts its state's.
 
-    func setFillColor(state: inout CGRendererCore, color: WebCore.Color) {
-        var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        state.receiveSetFillColor(value, cgColor)
+    func setFillColor(state: inout CGRendererCore, color: CGRendererColorValue) {
+        state.receiveSetFillColor(color, nil)
     }
 
-    func setStrokeColor(state: inout CGRendererCore, color: WebCore.Color) {
-        var value = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, color, &value)
-        state.receiveSetStrokeColor(value, cgColor)
+    func setStrokeColor(state: inout CGRendererCore, color: CGRendererColorValue) {
+        state.receiveSetStrokeColor(color, nil)
     }
 
     func setDropShadow(state: inout CGRendererCore, dropShadow: WebKit.RemoteCGRendererShadow) {
@@ -540,39 +536,31 @@ final class RemoteCGRenderer {
         state.receiveSetLineDash(dashes, dashOffset)
     }
 
-    func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: WebCore.Color) -> Bool {
-        var value = CGRendererColorValue()
-        WebKit.fillColorValue(color, &value)
-        return state.receiveFillRect(cgRect(rect), value, nil)
+    func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: CGRendererColorValue) -> Bool {
+        state.receiveFillRect(cgRect(rect), color, nil)
     }
 
     func fillCompositedRect(
         state: inout CGRendererCore,
         rect: WebCore.FloatRect,
-        color: WebCore.Color,
+        color: CGRendererColorValue,
         op: WebCore.CompositeOperator,
         blendMode: WebCore.BlendMode
     ) -> Bool {
-        var value = CGRendererColorValue()
-        WebKit.fillColorValue(color, &value)
-        return state.receiveFillRect(cgRect(rect), value, nil, op, blendMode)
+        return state.receiveFillRect(cgRect(rect), color, nil, op, blendMode)
     }
 
-    func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: WebCore.Color, blendMode: WebCore.BlendMode) -> Bool {
-        var value = CGRendererColorValue()
-        WebKit.fillColorValue(color, &value)
-        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), value, nil, blendMode)
+    func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: CGRendererColorValue, blendMode: WebCore.BlendMode) -> Bool {
+        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), color, nil, blendMode)
     }
 
     func fillRectWithRoundedHole(
         state: inout CGRendererCore,
         rect: WebCore.FloatRect,
         roundedHoleRect: WebCore.FloatRoundedRect,
-        color: WebCore.Color
+        color: CGRendererColorValue
     ) -> Bool {
-        var value = CGRendererColorValue()
-        WebKit.fillColorValue(color, &value)
-        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, value, nil)
+        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, color, nil)
     }
 
     func applyDeviceScaleFactor(state: inout CGRendererCore, scaleFactor: Float) {
@@ -724,9 +712,7 @@ final class RemoteCGRenderer {
         guard !lines.isEmpty() else {
             return
         }
-        var color = CGRendererColorValue()
-        let cgColor = WebKit.copyColor(resources, lines.color(), &color)
-        state.receiveFillRects(lines.rects(), color, cgColor)
+        state.receiveFillRects(lines.rects(), lines.color(), nil)
     }
 
     // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++.

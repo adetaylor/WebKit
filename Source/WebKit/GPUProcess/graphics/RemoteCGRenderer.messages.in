@@ -97,15 +97,15 @@ messages -> RemoteCGRenderer Stream {
     DrawImageBuffer SwiftMayDecline
     DrawPatternNativeImage
     DrawPatternImageBuffer SwiftMayDecline
-    SetFillColor
-    SetStrokeColor
+    SetFillColor(CGRendererColorValue color) StreamBatched
+    SetStrokeColor(CGRendererColorValue color) StreamBatched
     SetDropShadow(WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
     SetStyle(WebKit::RemoteCGRendererStyle style) StreamBatched SwiftMayDecline
     SetTextDrawingMode
     SetShadowsIgnoreTransforms
     SetLineDash(WebKit::RemoteCGRendererLineDash dashArray, float dashOffset) StreamBatched
-    FillRectWithColor SwiftMayDecline
-    FillCompositedRect SwiftMayDecline
+    FillRectWithColor(WebCore::FloatRect rect, CGRendererColorValue color) StreamBatched SwiftMayDecline
+    FillCompositedRect(WebCore::FloatRect rect, CGRendererColorValue color, enum:uint8_t WebCore::CompositeOperator op, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline
     ApplyDeviceScaleFactor
     ClipRoundedRect
     ClipOutRoundedRect
@@ -127,8 +127,8 @@ messages -> RemoteCGRenderer Stream {
     DrawDotsForDocumentMarker
     DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
     FillRectWithGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteCGRendererGradient gradient, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
-    FillRoundedRect SwiftMayDecline
-    FillRectWithRoundedHole SwiftMayDecline
+    FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline
+    FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched SwiftMayDecline
 }
 
 #endif

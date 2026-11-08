@@ -81,21 +81,6 @@ private:
     const Ref<WebCore::ImageBuffer> m_target;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-// What the renderer takes of a color, as GraphicsContextCG converts one for the receiver's context, with the CGColor, which
-// this returns, of a color that isn't sRGBA8. Inline for the sRGBA8 colors that most are.
-CGColorRef _Nullable copyPlatformColor(const RemoteCGRendererResources&, const WebCore::Color&, CGRendererColorValue&) CF_RETURNS_RETAINED;
-inline CGColorRef _Nullable copyColor(const RemoteCGRendererResources& resources, const WebCore::Color& color, CGRendererColorValue& value) CF_RETURNS_RETAINED
-{
-    if (auto packedColor = color.tryGetAsPackedInline()) {
-        value = { };
-        value.isPacked = true;
-        value.packedColor = packedColor->value;
-        value.isVisible = color.isVisible();
-        return nullptr;
-    }
-    return copyPlatformColor(resources, color, value);
-}
-
 // The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke
 // counterparts, as RemoteGraphicsContext's handlers make it: found is false for a missing resource, and drawsIntoTarget true
 // for a pattern of the image buffer the receiver draws into.
@@ -108,19 +93,6 @@ CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, We
 
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;
-
-// A fill's color without a CGColor, which the renderer makes itself.
-inline void fillColorValue(const WebCore::Color& color, CGRendererColorValue& value)
-{
-    if (auto packedColor = color.tryGetAsPackedInline()) {
-        value = { };
-        value.isPacked = true;
-        value.packedColor = packedColor->value;
-        value.isVisible = color.isVisible();
-        return;
-    }
-    CGRendererColorValueOf(color, value);
-}
 
 inline WebCore::FloatRect rectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
 {

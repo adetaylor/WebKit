@@ -181,15 +181,15 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(DrawImageBuffer, &RemoteImageBufferGraphicsContext::drawImageBuffer)
     HANDLE_CG_RENDERER_MESSAGE(DrawPatternNativeImage, &RemoteGraphicsContext::drawPatternNativeImage)
     HANDLE_CG_RENDERER_MESSAGE(DrawPatternImageBuffer, &RemoteGraphicsContext::drawPatternImageBuffer)
-    HANDLE_CG_RENDERER_MESSAGE(SetFillColor, &RemoteGraphicsContext::setFillColor)
-    HANDLE_CG_RENDERER_MESSAGE(SetStrokeColor, &RemoteGraphicsContext::setStrokeColor)
+    HANDLE_CG_RENDERER_MESSAGE(SetFillColor, &RemoteImageBufferGraphicsContext::setFillColor)
+    HANDLE_CG_RENDERER_MESSAGE(SetStrokeColor, &RemoteImageBufferGraphicsContext::setStrokeColor)
     HANDLE_CG_RENDERER_MESSAGE(SetDropShadow, &RemoteImageBufferGraphicsContext::setDropShadow)
     HANDLE_CG_RENDERER_MESSAGE(SetStyle, &RemoteImageBufferGraphicsContext::setStyle)
     HANDLE_CG_RENDERER_MESSAGE(SetTextDrawingMode, &RemoteGraphicsContext::setTextDrawingMode)
     HANDLE_CG_RENDERER_MESSAGE(SetShadowsIgnoreTransforms, &RemoteGraphicsContext::setShadowsIgnoreTransforms)
     HANDLE_CG_RENDERER_MESSAGE(SetLineDash, &RemoteImageBufferGraphicsContext::setLineDash)
-    HANDLE_CG_RENDERER_MESSAGE(FillRectWithColor, &RemoteGraphicsContext::fillRectWithColor)
-    HANDLE_CG_RENDERER_MESSAGE(FillCompositedRect, &RemoteGraphicsContext::fillCompositedRect)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithColor, &RemoteImageBufferGraphicsContext::fillRectWithColor)
+    HANDLE_CG_RENDERER_MESSAGE(FillCompositedRect, &RemoteImageBufferGraphicsContext::fillCompositedRect)
     HANDLE_CG_RENDERER_MESSAGE(ApplyDeviceScaleFactor, &RemoteGraphicsContext::applyDeviceScaleFactor)
     HANDLE_CG_RENDERER_MESSAGE(ClipRoundedRect, &RemoteGraphicsContext::clipRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(ClipOutRoundedRect, &RemoteGraphicsContext::clipOutRoundedRect)
@@ -211,8 +211,8 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteGraphicsContext::drawDotsForDocumentMarker)
     HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithGradientAndSpaceTransform)
-    HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteGraphicsContext::fillRoundedRect)
-    HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteGraphicsContext::fillRectWithRoundedHole)
+    HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteImageBufferGraphicsContext::fillRoundedRect)
+    HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteImageBufferGraphicsContext::fillRectWithRoundedHole)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -286,6 +286,36 @@ void RemoteImageBufferGraphicsContext::setStyle(const RemoteCGRendererStyle& sty
 void RemoteImageBufferGraphicsContext::setLineDash(const RemoteCGRendererLineDash& dashes, float dashOffset)
 {
     context().setLineDash(DashArray(dashes.span()), dashOffset);
+}
+
+void RemoteImageBufferGraphicsContext::setFillColor(const CGRendererColorValue& color)
+{
+    RemoteGraphicsContext::setFillColor(CGRendererColorFromValue(color));
+}
+
+void RemoteImageBufferGraphicsContext::setStrokeColor(const CGRendererColorValue& color)
+{
+    RemoteGraphicsContext::setStrokeColor(CGRendererColorFromValue(color));
+}
+
+void RemoteImageBufferGraphicsContext::fillRectWithColor(const FloatRect& rect, const CGRendererColorValue& color)
+{
+    RemoteGraphicsContext::fillRectWithColor(rect, CGRendererColorFromValue(color));
+}
+
+void RemoteImageBufferGraphicsContext::fillCompositedRect(const FloatRect& rect, const CGRendererColorValue& color, CompositeOperator op, BlendMode blendMode)
+{
+    RemoteGraphicsContext::fillCompositedRect(rect, CGRendererColorFromValue(color), op, blendMode);
+}
+
+void RemoteImageBufferGraphicsContext::fillRoundedRect(const FloatRoundedRect& rect, const CGRendererColorValue& color, BlendMode blendMode)
+{
+    RemoteGraphicsContext::fillRoundedRect(rect, CGRendererColorFromValue(color), blendMode);
+}
+
+void RemoteImageBufferGraphicsContext::fillRectWithRoundedHole(const FloatRect& rect, const FloatRoundedRect& roundedHoleRect, const CGRendererColorValue& color)
+{
+    RemoteGraphicsContext::fillRectWithRoundedHole(rect, roundedHoleRect, CGRendererColorFromValue(color));
 }
 
 void RemoteImageBufferGraphicsContext::setFillGradient(const RemoteCGRendererGradient& gradient, const AffineTransform& spaceTransform)

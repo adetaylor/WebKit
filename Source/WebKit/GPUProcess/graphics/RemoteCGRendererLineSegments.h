@@ -60,7 +60,13 @@ public:
 
     bool isEmpty() const { return m_rects.isEmpty(); }
     CGRendererRects rects() const LIFETIME_BOUND { return CGRendererRects { m_rects.span() }; }
-    WebCore::Color color() const { return m_color; }
+    // The color, as a value whose CGColor the renderer makes.
+    CGRendererColorValue color() const
+    {
+        CGRendererColorValue value;
+        CGRendererColorValueOf(m_color, value);
+        return value;
+    }
 
 private:
     Vector<CGRect, 4> m_rects;

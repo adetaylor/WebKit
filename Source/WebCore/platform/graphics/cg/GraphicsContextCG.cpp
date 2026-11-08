@@ -745,29 +745,15 @@ static FloatRect boundsIncludingDropShadowOf(CGContextRef, const GraphicsDropSha
 
 } // namespace WebCore
 
-CGColorRef CGRendererCopyColor(const WebCore::GraphicsContextCG& context, const WebCore::Color& color, CGRendererColorValue& value)
-{
-    value = { };
-    value.isVisible = color.isVisible();
-    if (auto packedColor = color.tryGetAsPackedInline()) {
-        value.isPacked = true;
-        value.packedColor = packedColor->value;
-        return nullptr;
-    }
-    value.data = WebCore::colorData(color);
-    return WebCore::cachedCGColorInDestinationStandardRange(color, context.colorSpace()).leakRef();
-}
-
 void CGRendererColorValueOf(const WebCore::Color& color, CGRendererColorValue& value)
 {
     value = { };
     value.isVisible = color.isVisible();
+    value.data = WebCore::colorData(color);
     if (auto packedColor = color.tryGetAsPackedInline()) {
         value.isPacked = true;
         value.packedColor = packedColor->value;
-        return;
     }
-    value.data = WebCore::colorData(color);
 }
 
 CGColorRef CGRendererCopyCGColorForData(const CGRendererColorData& data, const CGRendererDestinationColorSpace& colorSpace)
@@ -810,6 +796,8 @@ CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& 
 
 WebCore::Color CGRendererColorFromValue(const CGRendererColorValue& value)
 {
+    if (value.data.form)
+        return WebCore::colorFromData(value.data);
     if (value.isPacked)
         return WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { value.packedColor }) };
     return WebCore::colorFromData(value.data);

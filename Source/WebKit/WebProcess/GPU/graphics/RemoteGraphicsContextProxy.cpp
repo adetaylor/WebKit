@@ -112,6 +112,16 @@ RemoteGraphicsContextProxy::~RemoteGraphicsContextProxy() = default;
 #endif
 #define SEND_RENDERER_MESSAGE(name, ...) SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(name, (__VA_ARGS__), (__VA_ARGS__))
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// A color as RemoteCGRenderer takes it: plain values, from which the GPU process rebuilds the same Color.
+static CGRendererColorValue rendererColorValue(const Color& color)
+{
+    CGRendererColorValue value;
+    CGRendererColorValueOf(color, value);
+    return value;
+}
+#endif
+
 template<typename T>
 ALWAYS_INLINE void RemoteGraphicsContextProxy::send(T&& message)
 {
@@ -604,7 +614,7 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& co
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE(FillRectWithColor, rect, color);
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillRectWithColor, (rect, color), (rect, rendererColorValue(color)));
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, Gradient& gradient)
@@ -625,21 +635,21 @@ void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, const Color& co
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE(FillCompositedRect, rect, color, op, mode);
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillCompositedRect, (rect, color, op, mode), (rect, rendererColorValue(color), op, mode));
 }
 
 void RemoteGraphicsContextProxy::fillRoundedRect(const FloatRoundedRect& roundedRect, const Color& color, BlendMode mode)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE(FillRoundedRect, roundedRect, color, mode);
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillRoundedRect, (roundedRect, color, mode), (roundedRect, rendererColorValue(color), mode));
 }
 
 void RemoteGraphicsContextProxy::fillRectWithRoundedHole(const FloatRect& rect, const FloatRoundedRect& roundedRect, const Color& color)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE(FillRectWithRoundedHole, rect, roundedRect, color);
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillRectWithRoundedHole, (rect, roundedRect, color), (rect, roundedRect, rendererColorValue(color)));
 }
 
 void RemoteGraphicsContextProxy::fillEllipse(const FloatRect& rect)
@@ -1003,7 +1013,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             else
                 SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetFillGradient, (*gradient, fillBrush.gradientSpaceTransform()), (RemoteCGRendererGradient { Ref { *gradient } }, fillBrush.gradientSpaceTransform()));
         } else
-            SEND_RENDERER_MESSAGE(SetFillColor, fillBrush.color());
+            SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetFillColor, (fillBrush.color()), (rendererColorValue(fillBrush.color())));
     }
     if (changes.contains(GraphicsContextState::Change::StrokeBrush)) {
         const auto& strokeBrush = state.strokeBrush();
@@ -1027,7 +1037,7 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
             else
                 SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokeGradient, (*gradient, strokeBrush.gradientSpaceTransform()), (RemoteCGRendererGradient { Ref { *gradient } }, strokeBrush.gradientSpaceTransform()));
         } else
-            SEND_RENDERER_MESSAGE(SetStrokeColor, strokeBrush.color());
+            SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStrokeColor, (strokeBrush.color()), (rendererColorValue(strokeBrush.color())));
     }
     if (changes.contains(GraphicsContextState::Change::FillRule))
         SEND_RENDERER_MESSAGE(SetFillRule, state.fillRule());

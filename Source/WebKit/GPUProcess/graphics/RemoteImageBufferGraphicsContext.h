@@ -72,6 +72,12 @@ public:
     void setDropShadow(const RemoteCGRendererShadow&);
     void setStyle(const RemoteCGRendererStyle&);
     void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);
+    void setFillColor(const CGRendererColorValue&);
+    void setStrokeColor(const CGRendererColorValue&);
+    void fillRectWithColor(const WebCore::FloatRect&, const CGRendererColorValue&);
+    void fillCompositedRect(const WebCore::FloatRect&, const CGRendererColorValue&, WebCore::CompositeOperator, WebCore::BlendMode);
+    void fillRoundedRect(const WebCore::FloatRoundedRect&, const CGRendererColorValue&, WebCore::BlendMode);
+    void fillRectWithRoundedHole(const WebCore::FloatRect&, const WebCore::FloatRoundedRect&, const CGRendererColorValue&);
     void setFillGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
     void setStrokeGradient(const RemoteCGRendererGradient&, const WebCore::AffineTransform& spaceTransform);
     void fillRectWithGradient(const WebCore::FloatRect&, const RemoteCGRendererGradient&);

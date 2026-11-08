@@ -205,11 +205,6 @@ static GraphicsContextCG& targetContext(const RemoteCGRendererResources& resourc
     return static_cast<GraphicsContextCG&>(resources.target().context());
 }
 
-CGColorRef copyPlatformColor(const RemoteCGRendererResources& resources, const Color& color, CGRendererColorValue& value)
-{
-    return CGRendererCopyColor(targetContext(resources), color, value);
-}
-
 CGColorRef copyShadow(const RemoteCGRendererResources& resources, const RemoteCGRendererShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
 {
     values = { };

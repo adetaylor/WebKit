@@ -2891,17 +2891,26 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetFillColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) {
         cxxStaleProperties |= CxxStateChange.fillBrush
-        if let cgColor {
+        if let cgColor = receivedCGColor(color, cgColor) {
             setFillPlatformColor(cgColor, color.data, 0, color.isVisible)
         } else {
             setFillPackedColor(color.packedColor, 0)
         }
     }
 
+    // The CGColor of a color that a receiver sends without one (CGRendererColorValueOf()): nil for an sRGBA8 color, which the
+    // renderer sets as packed.
+    private mutating func receivedCGColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) -> CGColor? {
+        if let cgColor {
+            return cgColor
+        }
+        return color.isPacked ? nil : platformColorCache.color(color.data, destinationColorSpace)
+    }
+
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetStrokeColor(_ color: CGRendererColorValue, _ cgColor: CGColor?) {
         cxxStaleProperties |= CxxStateChange.strokeBrush
-        if let cgColor {
+        if let cgColor = receivedCGColor(color, cgColor) {
             setStrokePlatformColor(cgColor, color.data, 0, color.isVisible)
         } else {
             setStrokePackedColor(color.packedColor, 0)
@@ -3076,7 +3085,7 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRects(_ rects: CGRendererRects, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
         let changesFillColor = !fillColorEquals(color)
-        if let cgColor {
+        if let cgColor = receivedCGColor(color, cgColor) {
             fillRectsInPlatformColor(rects, cgColor, changesFillColor)
         } else {
             fillRectsInPackedColor(rects, color.packedColor, changesFillColor)
