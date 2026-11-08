@@ -44,6 +44,13 @@ public:
     // Same result as replace(clone(other)), without allocating.
     void cloneFrom(const ComputedStyle&);
 
+    // The getters that Swift calls on a borrowed style: the importer takes no member of the generated base. They have
+    // names of their own because the generated code takes the base getters' addresses; Swift sees the plain names.
+    inline BackfaceVisibility backfaceVisibilityForSwift() const SWIFT_NAME(backfaceVisibility());
+    inline bool hasFilterForSwift() const SWIFT_NAME(hasFilter());
+    inline PositionType positionForSwift() const SWIFT_NAME(position());
+    inline std::optional<PseudoElementType> pseudoElementTypeForSwift() const SWIFT_NAME(pseudoElementType());
+
     NODELETE static ComputedStyle& defaultStyleSingleton();
 
     // MARK: - Initialization
@@ -231,7 +238,15 @@ public:
 private:
     // Layout::Box stores its style inline and folds it into its CheckedPtr deletion check.
     friend class Layout::Box;
+#if defined(__swift__)
+    // Swift's importer takes a C++ value type only with a public copy or move constructor, and drops the type and every
+    // member that names it otherwise. Swift only borrows a style: it never holds one by value, so it never moves one.
+public:
+#endif
     ComputedStyle(ComputedStyle&&);
+#if defined(__swift__)
+private:
+#endif
 
     explicit ComputedStyle(CreateDefaultStyleTag);
     ComputedStyle(const ComputedStyle&, CloneTag);
