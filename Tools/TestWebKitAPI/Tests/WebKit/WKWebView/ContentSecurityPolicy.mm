@@ -75,6 +75,20 @@ TEST(WKWebView, SetOverrideContentSecurityPolicyForPageWithoutCSP)
     }
 }
 
+TEST(WKWebView, SetOverrideContentSecurityPolicyWithManyNoncesForPageWithoutCSP)
+{
+    @autoreleasepool {
+        RetainPtr<WKWebViewConfiguration> configuration = adoptNS([[WKWebViewConfiguration alloc] init]);
+        [configuration _setOverrideContentSecurityPolicy:@"script-src 'nonce-n1' 'nonce-n2' 'nonce-n3' 'nonce-n4' 'nonce-n5' 'nonce-n6' 'nonce-n7' 'nonce-n8' 'nonce-n9' 'nonce-n10' 'nonce-n11' 'nonce-n12' 'nonce-n13' 'nonce-n14' 'nonce-n15' 'nonce-n16' 'nonce-b'"];
+
+        RetainPtr<TestWKWebView> webView = adoptNS([[TestWKWebView alloc] initWithFrame:NSMakeRect(0, 0, 800, 600) configuration:configuration.get()]);
+        NSURLRequest *request = [NSURLRequest requestWithURL:[NSBundle.test_resourcesBundle URLForResource:@"page-without-csp" withExtension:@"html"]];
+        [webView loadRequest:request];
+
+        [webView waitForMessages:@[@"MainFrame: B", @"Subframe: B"]];
+    }
+}
+
 TEST(WKWebView, CheckViolationReportDocumentURIForFileProtocol)
 {
     @autoreleasepool {
