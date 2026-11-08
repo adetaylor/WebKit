@@ -364,8 +364,9 @@ inline LentBytes SwiftDecoder::lentBytes(const LentBytesPosition& position) cons
 template<typename T>
 class CxxDecodedArgument final : public RefCounted<CxxDecodedArgument<T>> {
 public:
-    // Null if the argument is malformed.
-    static CxxDecodedArgument* WTF_NULLABLE decode(SwiftDecoder& decoder) SWIFT_RETURNS_RETAINED
+    // Null if the argument is malformed. Sending: the holder is new, and Swift has its only reference, so dispatch can send
+    // it to a handler that runs in a Task.
+    static CxxDecodedArgument* WTF_NULLABLE decode(SwiftDecoder& decoder) SWIFT_RETURNS_RETAINED __attribute__((swift_attr("sending")))
     {
         auto value = decoder.borrowed().template decode<T>();
         if (!value)
