@@ -259,9 +259,9 @@ using WebCore::PageIdentifier = Variant<uint32_t, uint64_t>;
     def test_unmappable_member_type(self):
         self.assertGenerationFails('''
 [Swift] struct WebKit::S {
-    int value;
+    long value;
 }
-''', r"\[Swift\] WebKit::S: member value: 'int' has no Swift form")
+''', r"\[Swift\] WebKit::S: member value: 'long' has no Swift form")
         self.assertGenerationFails('''
 [Swift] struct WebKit::S {
     HashMap<String, String> map;
@@ -488,10 +488,10 @@ class WebKit::Base {
 ''' + ''.join(f'    Value{index},\n' for index in range(9)) + '''}
 ''', r'it has more values than uint8_t has bits')
         self.assertGenerationFails('''
-[Swift] enum class WebKit::E : int {
+[Swift] enum class WebKit::E : long {
     A
 }
-''', r"'int' has no Swift form")
+''', r"'long' has no Swift form")
         self.assertGenerationFails('''
 [Swift, Unknown] enum class WebKit::E : uint8_t {
     A
@@ -515,8 +515,8 @@ class WebKit::Base {
 [Swift] using WebKit::V = Variant<uint8_t, uint8_t>
 ''', r'more than one of its alternatives would be named uint8 in Swift')
         self.assertGenerationFails('''
-[Swift] using WebKit::V = Variant<uint8_t, int>
-''', r"alternative int: 'int' has no Swift form")
+[Swift] using WebKit::V = Variant<uint8_t, long>
+''', r"alternative long: 'long' has no Swift form")
 
 
 if __name__ == '__main__':
