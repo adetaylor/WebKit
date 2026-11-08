@@ -884,7 +884,7 @@ private final class FairPlayRequestDataAggregator {
 }
 
 @_spi(WebKitGPU)
-public enum FairPlayLoadSessionResult: Sendable {
+@frozen public enum FairPlayLoadSessionResult: Sendable {
     case notHandled
     case succeeded(releasedKeyCount: Int)
     case mismatchedSessionType
@@ -899,7 +899,7 @@ public struct FairPlayRemoveSessionDataResult: Sendable {
 }
 
 @_spi(WebKitGPU)
-public enum FairPlaySessionLogLevel: Sendable {
+@frozen public enum FairPlaySessionLogLevel: Sendable {
     case always
     case error
     case info
