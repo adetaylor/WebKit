@@ -59,6 +59,7 @@ def parse(file):
     swift_types = False
     swift_implementation = False
     messages_from = None
+    swift_sends = None
     destination = None
     messages = []
     conditions = []
@@ -93,6 +94,9 @@ def parse(file):
                     continue
                 if match.group('name') == 'MessagesFrom':
                     messages_from = match.group('value')
+                    continue
+                if match.group('name') == 'SwiftSends':
+                    swift_sends = match.group('value').split()
                     continue
                 raise Exception("ERROR: Unknown extended attribute  '%s'" % attribute)
             elif attribute == 'SharedPreferencesNeedsConnection':
@@ -226,7 +230,7 @@ def parse(file):
 
     if swift_implementation:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_IMPLEMENTATION_ATTRIBUTE]
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from)
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends)
     if not messages_from:
         receiver.enforce_swift_types_constraints()
     return receiver
@@ -238,6 +242,22 @@ class MessageReference(object):
         self.name = name
         self.attributes = frozenset(attributes or [])
         self.condition = condition
+
+
+def resolve_swift_sends(receivers):
+    """Finds the receivers that each receiver with 'SwiftSends=' names, whose messages its Swift sends."""
+    receivers_by_name = {receiver.name: receiver for receiver in receivers}
+    for receiver in receivers:
+        if not receiver.swift_sends_names:
+            continue
+        if not (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by):
+            raise Exception("ERROR: Receiver %s has 'SwiftSends=', which is for Swift receivers" % receiver.name)
+        receiver.swift_sends = []
+        for name in receiver.swift_sends_names:
+            destination = receivers_by_name.get(name)
+            if not destination:
+                raise Exception("ERROR: Receiver %s has 'SwiftSends=%s', which is not one of the receivers generated with it" % (receiver.name, name))
+            receiver.swift_sends.append(destination)
 
 
 def resolve_message_references(receivers):
