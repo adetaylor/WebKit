@@ -26,6 +26,8 @@
 
 #pragma once
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
+
 #include "ContentSecurityPolicyDirective.h"
 #include "ContentSecurityPolicySourceList.h"
 #include <wtf/TZoneMalloc.h>
@@ -63,3 +65,5 @@ private:
 };
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

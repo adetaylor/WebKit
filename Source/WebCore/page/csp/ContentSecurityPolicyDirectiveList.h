@@ -26,6 +26,8 @@
 
 #pragma once
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
+
 #include "ContentSecurityPolicy.h"
 #include "ContentSecurityPolicyHash.h"
 #include "ContentSecurityPolicyMediaListDirective.h"
@@ -176,3 +178,5 @@ private:
 };
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

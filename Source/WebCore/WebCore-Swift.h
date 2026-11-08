@@ -152,4 +152,6 @@
 #include "ParsedContentRange.h"
 #include "ServerTiming.h"
 
+#include "ContentSecurityPolicySwift.h"
+
 #include "WebCoreSwift-Generated.h"

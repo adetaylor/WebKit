@@ -73,9 +73,11 @@ struct CodePosition {
     bool isEmpty() const { return sourceURL.isEmpty() && line == OrdinalNumber::beforeFirst(); }
 };
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 class ContentSecurityPolicyDirective;
 class ContentSecurityPolicyDirectiveList;
 class ContentSecurityPolicySource;
+#endif
 class DOMStringList;
 class Element;
 class JSWindowProxy;
@@ -91,7 +93,9 @@ static_assert(static_cast<unsigned>(ParserInserted::Yes) <= ((1U << bitWidthOfPa
 enum class LogToConsole : bool { No, Yes };
 enum class CheckUnsafeHashes : bool { No, Yes };
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 typedef Vector<std::unique_ptr<ContentSecurityPolicyDirectiveList>> CSPDirectiveListVector;
+#endif
 
 enum class ContentSecurityPolicyModeForExtension : uint8_t {
     None,
@@ -187,6 +191,7 @@ public:
 
     void gatherReportURIs(DOMStringList&) const;
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     // The following functions are used by internal data structures to call back into this object when parsing, validating,
     // and applying a Content Security Policy.
     // FIXME: We should make the various directives serve only as state stores for the parsed policy and remove these functions.
@@ -207,8 +212,10 @@ public:
     void reportInvalidPathCharacter(const String& directiveName, const String& value, const char) const;
     void reportInvalidSourceExpression(const String& directiveName, const String& source) const;
     bool urlMatchesSelf(const URL&) const;
+#endif
     NODELETE bool allowContentSecurityPolicySourceStarToMatchAnyProtocol() const;
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     // Used by ContentSecurityPolicyDirectiveList
     void reportDuplicateDirective(const String&) const;
     void reportInvalidDirectiveValueCharacter(const String& directiveName, const String& value) const;
@@ -218,8 +225,11 @@ public:
     void reportMissingReportToTokens(const String&) const;
     void reportMissingReportURI(const String&) const;
     void reportUnsupportedDirective(const String&) const;
+#endif
     void reportDeprecatedDirective(const String&) const;
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     void reportDeprecatedDirectiveToConsole(const String&) const;
+#endif
     void enforceSandboxFlags(SandboxFlags sandboxFlags) { m_sandboxFlags.add(sandboxFlags); }
     void addHashAlgorithmsForInlineScripts(OptionSet<ContentSecurityPolicyHashAlgorithm> hashAlgorithmsForInlineScripts)
     {
@@ -288,6 +298,7 @@ private:
 
     const PAL::TextEncoding documentEncoding() const;
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     enum class Disposition {
         Enforce,
         ReportOnly,
@@ -312,6 +323,16 @@ private:
     void reportViolation(const String& effectiveViolatedDirective, const ContentSecurityPolicyDirectiveList&, const String& blockedURL, const String& consoleMessage, JSC::JSGlobalObject* = nullptr) const;
     void reportViolation(const ContentSecurityPolicyDirective& violatedDirective, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, const URL& preRedirectURL = URL(), JSC::JSGlobalObject* = nullptr, Element* = nullptr) const;
     void reportViolation(const String& violatedDirective, const ContentSecurityPolicyDirectiveList& violatedDirectiveList, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, JSC::JSGlobalObject*, const URL& preRedirectURL = URL(), Element* = nullptr) const;
+#endif
+#if USE_SWIFT_CONTENT_SECURITY_POLICY
+    friend struct ContentSecurityPolicyCallbacks;
+    friend struct ContentSecurityPolicySwiftScope;
+    struct SwiftDirectives;
+    struct SwiftViolatedPolicy;
+    template<typename Check>
+    bool allowResourceFromSource(const URL&, std::optional<TextPosition>&&, RedirectResponseReceived, Check, const URL& preRedirectURL = URL()) const;
+    void reportViolation(const String& violatedDirective, const SwiftViolatedPolicy& violatedDirectiveList, const String& blockedURL, const String& consoleMessage, const String& sourceURL, StringView sourceContent, std::optional<TextPosition>&& sourcePosition, JSC::JSGlobalObject*, const URL& preRedirectURL = URL(), Element* = nullptr) const;
+#endif
     void reportBlockedScriptExecutionToInspector(const String& directiveText) const;
 
     // We can never have both a script execution context and a ContentSecurityPolicyClient.
@@ -321,9 +342,16 @@ private:
 
     URL m_protectedURL;
     std::optional<URL> m_documentURL;
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     std::unique_ptr<ContentSecurityPolicySource> m_selfSource;
+#else
+    SecurityOriginData m_selfOrigin;
+    std::unique_ptr<SwiftDirectives> m_swiftDirectives;
+#endif
     String m_selfSourceProtocol;
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
     CSPDirectiveListVector m_policies;
+#endif
     String m_lastPolicyEvalDisabledErrorMessage;
     String m_lastPolicyWebAssemblyDisabledErrorMessage;
     String m_referrer;

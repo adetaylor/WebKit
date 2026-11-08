@@ -25,6 +25,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicySource.h"
 
 #include "ContentSecurityPolicy.h"
@@ -220,3 +222,5 @@ ContentSecurityPolicySource::operator SecurityOriginData() const
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

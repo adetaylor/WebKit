@@ -25,6 +25,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicySourceListDirective.h"
 
 #include "ContentSecurityPolicy.h"
@@ -71,3 +73,5 @@ bool ContentSecurityPolicySourceListDirective::allowUnsafeHashes(const Vector<Co
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

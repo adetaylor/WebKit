@@ -25,6 +25,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicySourceList.h"
 
 #include "ContentSecurityPolicy.h"
@@ -641,3 +643,5 @@ template<typename CharacterType> bool ContentSecurityPolicySourceList::parseHash
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

@@ -24,6 +24,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicyDirective.h"
 
 #include "ContentSecurityPolicyDirectiveList.h"
@@ -41,3 +43,5 @@ bool ContentSecurityPolicyDirective::isDefaultSrc() const
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

@@ -867,6 +867,7 @@
 				WebCore/ColorTests.cpp,
 				WebCore/ComplexTextController.cpp,
 				WebCore/ContentExtensions.cpp,
+				WebCore/ContentSecurityPolicyBench.cpp,
 				WebCore/ContextMenuAction.cpp,
 				WebCore/CookieJar.cpp,
 				WebCore/CredentialStorage.cpp,

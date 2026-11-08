@@ -425,3 +425,6 @@ endif ()
 # Apple ports build.
 option(WK_USE_SWIFT_HTML_MICROSYNTAXES "Parse HTML microsyntaxes in Swift" OFF)
 SET_AND_EXPOSE_TO_BUILD(USE_SWIFT_HTML_MICROSYNTAXES ${WK_USE_SWIFT_HTML_MICROSYNTAXES})
+# Selects the Swift implementation of Content Security Policy. Only Apple's ports build the Swift, and OptionsCocoa.cmake
+# turns it on with WK_USE_SWIFT_CONTENT_SECURITY_POLICY; the other ports keep the C++.
+SET_AND_EXPOSE_TO_BUILD(USE_SWIFT_CONTENT_SECURITY_POLICY OFF)

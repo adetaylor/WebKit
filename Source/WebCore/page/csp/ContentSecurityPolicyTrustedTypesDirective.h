@@ -25,6 +25,8 @@
 
 #pragma once
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
+
 #include "ContentSecurityPolicyDirective.h"
 #include <wtf/Forward.h>
 #include <wtf/HashSet.h>
@@ -51,3 +53,5 @@ private:
 };
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

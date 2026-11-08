@@ -6401,6 +6401,16 @@
 		CE45946F24123C960078019F /* AlternativeTextContextController.h in Headers */ = {isa = PBXBuildFile; fileRef = CE45946424121A050078019F /* AlternativeTextContextController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE5FA255209E48C50051D700 /* ContentSecurityPolicyClient.h in Headers */ = {isa = PBXBuildFile; fileRef = CE5FA253209E48C50051D700 /* ContentSecurityPolicyClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CE6DADFA1C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h in Headers */ = {isa = PBXBuildFile; fileRef = CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B7393895777D4CCB929EDA74 /* ContentSecurityPolicyDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */; };
+		9E36838CA05F43D5B711F40D /* ContentSecurityPolicyDirectiveList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */; };
+		F89D7A0866F44625BD461F73 /* ContentSecurityPolicyDirectiveNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */; };
+		B7C7AF8F3F754B9FBFF1C639 /* ContentSecurityPolicyMediaListDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */; };
+		DE01106D645A45CCAB649252 /* ContentSecurityPolicySource.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */; };
+		EFD4ED5991D9428DABDF9CF8 /* ContentSecurityPolicySourceList.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */; };
+		EA43004AE91E47C0AB9FAAB4 /* ContentSecurityPolicySourceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */; };
+		D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */; };
+		3F09CD93E8404731A8600720 /* ContentSecurityPolicySwift.h in Headers */ = {isa = PBXBuildFile; fileRef = F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		0C0242DFE14048DEBD64F9A1 /* ContentSecurityPolicyDirectiveListVector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */; };
 		CE799F981C6A46BC0097B518 /* ContentSecurityPolicySourceList.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */; };
 		CE799F9C1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F9A1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h */; };
 		CE799FA01C6A4C160097B518 /* ContentSecurityPolicySource.h in Headers */ = {isa = PBXBuildFile; fileRef = CE799F9E1C6A4C160097B518 /* ContentSecurityPolicySource.h */; };
@@ -22080,6 +22090,16 @@
 		CE6D89294C7AACE0AD89B3DD /* MathMLMencloseElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MathMLMencloseElement.h; sourceTree = "<group>"; };
 		CE6DADF71C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyResponseHeaders.cpp; path = csp/ContentSecurityPolicyResponseHeaders.cpp; sourceTree = "<group>"; };
 		CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicyResponseHeaders.h; path = csp/ContentSecurityPolicyResponseHeaders.h; sourceTree = "<group>"; };
+		DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirective.swift; path = csp/ContentSecurityPolicyDirective.swift; sourceTree = "<group>"; };
+		0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveList.swift; path = csp/ContentSecurityPolicyDirectiveList.swift; sourceTree = "<group>"; };
+		BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveNames.swift; path = csp/ContentSecurityPolicyDirectiveNames.swift; sourceTree = "<group>"; };
+		CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyMediaListDirective.swift; path = csp/ContentSecurityPolicyMediaListDirective.swift; sourceTree = "<group>"; };
+		D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySource.swift; path = csp/ContentSecurityPolicySource.swift; sourceTree = "<group>"; };
+		ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySourceList.swift; path = csp/ContentSecurityPolicySourceList.swift; sourceTree = "<group>"; };
+		2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicySourceStore.swift; path = csp/ContentSecurityPolicySourceStore.swift; sourceTree = "<group>"; };
+		80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyTrustedTypesDirective.swift; path = csp/ContentSecurityPolicyTrustedTypesDirective.swift; sourceTree = "<group>"; };
+		F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySwift.h; path = csp/ContentSecurityPolicySwift.h; sourceTree = "<group>"; };
+		3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ContentSecurityPolicyDirectiveListVector.swift; path = csp/ContentSecurityPolicyDirectiveListVector.swift; sourceTree = "<group>"; };
 		CE799F951C6A46BC0097B518 /* ContentSecurityPolicySourceList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicySourceList.cpp; path = csp/ContentSecurityPolicySourceList.cpp; sourceTree = "<group>"; };
 		CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ContentSecurityPolicySourceList.h; path = csp/ContentSecurityPolicySourceList.h; sourceTree = "<group>"; };
 		CE799F991C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ContentSecurityPolicyDirectiveList.cpp; path = csp/ContentSecurityPolicyDirectiveList.cpp; sourceTree = "<group>"; };
@@ -41206,23 +41226,33 @@
 				CE5FA253209E48C50051D700 /* ContentSecurityPolicyClient.h */,
 				CEF59B251CA0E11D005C3E13 /* ContentSecurityPolicyDirective.cpp */,
 				CE799FA21C6A503A0097B518 /* ContentSecurityPolicyDirective.h */,
+				DE891B3EE63E4CD4B10AF6AD /* ContentSecurityPolicyDirective.swift */,
 				CE799F991C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.cpp */,
 				CE799F9A1C6A4BCD0097B518 /* ContentSecurityPolicyDirectiveList.h */,
+				0D60448E9DBA402AB1F27AF1 /* ContentSecurityPolicyDirectiveList.swift */,
+				3F182F97C34B4848B3B18949 /* ContentSecurityPolicyDirectiveListVector.swift */,
 				CE2849881CA3614600B4A57F /* ContentSecurityPolicyDirectiveNames.cpp */,
 				CE2849861CA360DF00B4A57F /* ContentSecurityPolicyDirectiveNames.h */,
+				BA6BA8B608084592970EFF50 /* ContentSecurityPolicyDirectiveNames.swift */,
 				CE7E17821C83A49100AD06AF /* ContentSecurityPolicyHash.h */,
 				CE799FA51C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.cpp */,
 				CE799FA61C6A50570097B518 /* ContentSecurityPolicyMediaListDirective.h */,
+				CDFE7D83739D4BA3BC56E31C /* ContentSecurityPolicyMediaListDirective.swift */,
 				CE6DADF71C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.cpp */,
 				CE6DADF81C591E6A003F6A88 /* ContentSecurityPolicyResponseHeaders.h */,
 				CE799F9D1C6A4C160097B518 /* ContentSecurityPolicySource.cpp */,
 				CE799F9E1C6A4C160097B518 /* ContentSecurityPolicySource.h */,
+				D5AC6D3C9C154FB7954D1552 /* ContentSecurityPolicySource.swift */,
 				CE799F951C6A46BC0097B518 /* ContentSecurityPolicySourceList.cpp */,
 				CE799F961C6A46BC0097B518 /* ContentSecurityPolicySourceList.h */,
+				ABA7F8A0FDD64242A2381B88 /* ContentSecurityPolicySourceList.swift */,
 				CE799FA91C6A50660097B518 /* ContentSecurityPolicySourceListDirective.cpp */,
 				CE799FAA1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h */,
+				2001E0BE26614C2DA7BE6ECE /* ContentSecurityPolicySourceStore.swift */,
+				F4286243B6CA410597C991A3 /* ContentSecurityPolicySwift.h */,
 				A3B6E9D82B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.cpp */,
 				A3B6E9D72B56D278008AB813 /* ContentSecurityPolicyTrustedTypesDirective.h */,
+				80A61F32D9EA46948F2B8510 /* ContentSecurityPolicyTrustedTypesDirective.swift */,
 				7ABA250628AB0A38005D4F6D /* CSPViolationReportBody.cpp */,
 				7ABA250228AAF2D4005D4F6D /* CSPViolationReportBody.h */,
 			);
@@ -45589,6 +45619,7 @@
 				CE799FA01C6A4C160097B518 /* ContentSecurityPolicySource.h in Headers */,
 				CE799F981C6A46BC0097B518 /* ContentSecurityPolicySourceList.h in Headers */,
 				CE799FAC1C6A50660097B518 /* ContentSecurityPolicySourceListDirective.h in Headers */,
+				3F09CD93E8404731A8600720 /* ContentSecurityPolicySwift.h in Headers */,
 				726516E62C9CB75600647895 /* ContentsFormat.h in Headers */,
 				726516F72CA4B4A300647895 /* ContentsFormatCocoa.h in Headers */,
 				41D015CA0F4B5C71004A662F /* ContentType.h in Headers */,
@@ -51997,6 +52028,15 @@
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
 				B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */,
 				A14090FB1AA51E1D0091191A /* ContentFilterUnblockHandlerCocoa.mm in Sources */,
+				B7393895777D4CCB929EDA74 /* ContentSecurityPolicyDirective.swift in Sources */,
+				9E36838CA05F43D5B711F40D /* ContentSecurityPolicyDirectiveList.swift in Sources */,
+				0C0242DFE14048DEBD64F9A1 /* ContentSecurityPolicyDirectiveListVector.swift in Sources */,
+				F89D7A0866F44625BD461F73 /* ContentSecurityPolicyDirectiveNames.swift in Sources */,
+				B7C7AF8F3F754B9FBFF1C639 /* ContentSecurityPolicyMediaListDirective.swift in Sources */,
+				DE01106D645A45CCAB649252 /* ContentSecurityPolicySource.swift in Sources */,
+				EFD4ED5991D9428DABDF9CF8 /* ContentSecurityPolicySourceList.swift in Sources */,
+				EA43004AE91E47C0AB9FAAB4 /* ContentSecurityPolicySourceStore.swift in Sources */,
+				D5D694719C454413958692D7 /* ContentSecurityPolicyTrustedTypesDirective.swift in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
 				46C696CC1E7205FC00597937 /* CPUMonitor.cpp in Sources */,
 				C55C00000000000000000008 /* CSSCalcEvaluation.swift in Sources */,

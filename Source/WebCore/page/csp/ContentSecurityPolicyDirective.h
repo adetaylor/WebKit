@@ -26,6 +26,8 @@
 
 #pragma once
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
+
 #include <wtf/TZoneMalloc.h>
 #include <wtf/text/MakeString.h>
 #include <wtf/text/WTFString.h>
@@ -61,3 +63,5 @@ private:
 };
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

@@ -25,6 +25,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicyDirectiveList.h"
 
 #include "ContentSecurityPolicyDirectiveNames.h"
@@ -798,3 +800,5 @@ HashAlgorithmSet ContentSecurityPolicyDirectiveList::reportHash() const
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

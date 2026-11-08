@@ -24,6 +24,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicyDirectiveNames.h"
 
 #include <wtf/text/ASCIILiteral.h>
@@ -66,3 +68,5 @@ ASCIILiteral workerSrc = "worker-src"_s;
 } // namespace ContentSecurityPolicyDirectiveNames
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

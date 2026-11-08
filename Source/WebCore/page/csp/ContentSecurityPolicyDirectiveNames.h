@@ -25,6 +25,8 @@
 
 #pragma once
 
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
+
 #include <wtf/Forward.h>
 
 namespace WebCore {
@@ -66,3 +68,5 @@ extern ASCIILiteral workerSrc;
 
 } // namespace WebCore
 
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY

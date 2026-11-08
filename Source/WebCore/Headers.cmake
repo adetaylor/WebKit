@@ -2166,6 +2166,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     page/csp/ContentSecurityPolicyClient.h
     page/csp/ContentSecurityPolicyHash.h
     page/csp/ContentSecurityPolicyResponseHeaders.h
+    page/csp/ContentSecurityPolicySwift.h
 
     page/scrolling/AsyncScrollingCoordinator.h
     page/scrolling/ScrollSnapOffsetsInfo.h

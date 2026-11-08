@@ -4,6 +4,12 @@ framework module WebCore_Private [system] {
         export *
     }
 
+    explicit module ContentSecurityPolicySwift {
+        header "ContentSecurityPolicySwift.h"
+        requires cplusplus
+        export *
+    }
+
     explicit module HTTPHeaderParsersTypes {
         header "HTTPHeaderParsersTypes.h"
         requires cplusplus

@@ -197,6 +197,7 @@ list(APPEND TestWebCore_SOURCES
     Helpers/cocoa/UtilitiesCocoa.mm
 
     Tests/WebCore/ContentExtensions.cpp
+    Tests/WebCore/ContentSecurityPolicyBench.cpp
     Tests/WebCore/HysteresisActivityTests.cpp
     Tests/WebCore/ISOBox.cpp
     Tests/WebCore/KeyboardScrollingKeys.cpp

@@ -25,6 +25,8 @@
  */
 
 #include "config.h"
+
+#if !USE_SWIFT_CONTENT_SECURITY_POLICY
 #include "ContentSecurityPolicyMediaListDirective.h"
 
 #include "ContentSecurityPolicy.h"
@@ -114,3 +116,5 @@ void ContentSecurityPolicyMediaListDirective::parse(const String& value)
 }
 
 } // namespace WebCore
+
+#endif // !USE_SWIFT_CONTENT_SECURITY_POLICY
