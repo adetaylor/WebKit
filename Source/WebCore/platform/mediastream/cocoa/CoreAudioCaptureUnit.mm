@@ -134,63 +134,17 @@ void unregisterAudioInputMuteChangeListener(WebCoreAudioInputMuteChangeListener 
 #endif // HAVE(AVAUDIOAPPLICATION)
 
 #if PLATFORM(MAC) && HAVE(VOICEACTIVITYDETECTION)
-static int speechActivityListenerCallback(AudioObjectID deviceID, UInt32, const AudioObjectPropertyAddress*, void*)
-{
-    CoreAudioCaptureUnit::processVoiceActivityEvent(deviceID);
-    return 0;
-}
-
 static bool manageSpeechActivityListener(uint32_t deviceID, bool enable)
 {
-    const AudioObjectPropertyAddress kVoiceActivityDetectionEnable {
-        kAudioDevicePropertyVoiceActivityDetectionEnable,
-        kAudioDevicePropertyScopeInput,
-        kAudioObjectPropertyElementMain
-    };
-    UInt32 shouldEnable = enable;
-    auto error = AudioObjectSetPropertyData(deviceID, &kVoiceActivityDetectionEnable, 0, NULL, sizeof(UInt32), &shouldEnable);
-    if (error) {
+    uint32_t failedStep = 0;
+    auto error = AudioCaptureUnitHandle::setDeviceVoiceActivityDetection(deviceID, enable, failedStep);
+    if (failedStep == 1)
         RELEASE_LOG_ERROR(WebRTC, "CoreAudioCaptureUnit manageSpeechActivityListener unable to set kVoiceActivityDetectionEnable, error %d (%.4s)", (int)error, (char*)&error);
-        return false;
-    }
-
-    const AudioObjectPropertyAddress kVoiceActivityDetectionState {
-        kAudioDevicePropertyVoiceActivityDetectionState,
-        kAudioDevicePropertyScopeInput,
-        kAudioObjectPropertyElementMain
-    };
-
-    if (!enable) {
-        error = AudioObjectRemovePropertyListener(deviceID, &kVoiceActivityDetectionState, (AudioObjectPropertyListenerProc)speechActivityListenerCallback, NULL);
-        RELEASE_LOG_ERROR_IF(error, WebRTC, "CoreAudioCaptureUnit manageSpeechActivityListener unable to remove kVoiceActivityDetectionEnable listener, error %d (%.4s)", (int)error, (char*)&error);
-        return !error;
-    }
-
-    error = AudioObjectAddPropertyListener(deviceID, &kVoiceActivityDetectionState, (AudioObjectPropertyListenerProc)speechActivityListenerCallback, NULL);
-    RELEASE_LOG_ERROR_IF(error, WebRTC, "CoreAudioCaptureUnit manageSpeechActivityListener unable to set kVoiceActivityDetectionEnable listener, error %d (%.4s)", (int)error, (char*)&error);
+    else if (error && !enable)
+        RELEASE_LOG_ERROR(WebRTC, "CoreAudioCaptureUnit manageSpeechActivityListener unable to remove kVoiceActivityDetectionEnable listener, error %d (%.4s)", (int)error, (char*)&error);
+    else if (error)
+        RELEASE_LOG_ERROR(WebRTC, "CoreAudioCaptureUnit manageSpeechActivityListener unable to set kVoiceActivityDetectionEnable listener, error %d (%.4s)", (int)error, (char*)&error);
     return !error;
-}
-
-void CoreAudioCaptureUnit::processVoiceActivityEvent(AudioObjectID deviceID)
-{
-    UInt32 voiceDetected = 0;
-    UInt32 propertySize = sizeof(UInt32);
-
-    const AudioObjectPropertyAddress kVoiceActivityDetectionState {
-        kAudioDevicePropertyVoiceActivityDetectionState,
-        kAudioDevicePropertyScopeInput,
-        kAudioObjectPropertyElementMain
-    };
-    OSStatus status = AudioObjectGetPropertyData(deviceID, &kVoiceActivityDetectionState, 0, NULL, &propertySize, &voiceDetected);
-    if (status != kAudioHardwareNoError)
-        return;
-
-    if (voiceDetected != 1)
-        return;
-
-    callOnMainRunLoop([] {
-        CoreAudioCaptureUnit::defaultSingleton().voiceActivityDetected();
-    });
 }
 #endif // PLATFORM(MAC) && HAVE(VOICEACTIVITYDETECTION)
 

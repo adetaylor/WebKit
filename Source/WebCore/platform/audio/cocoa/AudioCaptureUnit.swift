@@ -579,6 +579,18 @@ func audioCaptureUnitSetMutedSpeechActivityListener(_ identifier: UInt64, _ enab
 #endif
 
 #if os(macOS)
+// The capture device's voice activity detection, which tells WebCore when speech starts. Returns noErr, or the status of the
+// step that failed as the value (1: the detection, 2: the listener).
+@_expose(Cxx)
+func audioCaptureSetDeviceVoiceActivityDetection(_ deviceID: UInt32, _ enable: Bool) -> WebCore.AudioCaptureUnitPropertyValue {
+    precondition(WTF.isMainThread())
+    let (status, failedStep) = setDeviceVoiceActivityDetection(deviceID, enable)
+    var result = WebCore.AudioCaptureUnitPropertyValue()
+    result.status = status
+    result.value = failedStep
+    return result
+}
+
 // CoreAudioCaptureUnit::prewarmAudioUnitCreation(), on its creation queue: makes a voice processing unit for the next
 // capture. Returns whether one is stored, which C++ deallocates after a while.
 @_expose(Cxx)

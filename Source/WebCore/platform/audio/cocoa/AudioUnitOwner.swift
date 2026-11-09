@@ -51,6 +51,9 @@
 #if ENABLE_WEBCORE_SWIFT
 
 import AudioToolbox
+#if os(macOS)
+import CoreAudio
+#endif
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 
@@ -359,6 +362,52 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
 }
 
 #if os(macOS)
+// CoreAudioCaptureUnit's voice activity detection on macOS, which the capture device does: enables or disables it and the
+// listener of its state, which tells WebCore when speech starts. Returns noErr, or the status of the step that failed (1:
+// enabling or disabling the detection, 2: adding or removing the listener).
+func setDeviceVoiceActivityDetection(_ deviceID: AudioObjectID, _ enable: Bool) -> (OSStatus, UInt32) {
+    var enableAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyVoiceActivityDetectionEnable,
+        mScope: kAudioDevicePropertyScopeInput,
+        mElement: kAudioObjectPropertyElementMain
+    )
+    var shouldEnable: UInt32 = enable ? 1 : 0
+    let status = unsafe AudioObjectSetPropertyData(deviceID, &enableAddress, 0, nil, UInt32(MemoryLayout<UInt32>.size), &shouldEnable)
+    if status != noErr {
+        return (status, 1)
+    }
+    var stateAddress = voiceActivityStateAddress
+    let listenerStatus =
+        enable
+        ? unsafe AudioObjectAddPropertyListener(deviceID, &stateAddress, voiceActivityListener, nil)
+        : unsafe AudioObjectRemovePropertyListener(deviceID, &stateAddress, voiceActivityListener, nil)
+    return (listenerStatus, listenerStatus == noErr ? 0 : 2)
+}
+
+private var voiceActivityStateAddress: AudioObjectPropertyAddress {
+    AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyVoiceActivityDetectionState,
+        mScope: kAudioDevicePropertyScopeInput,
+        mElement: kAudioObjectPropertyElementMain
+    )
+}
+
+// On a HAL notification thread, as CoreAudioCaptureUnit::processVoiceActivityEvent() was.
+private func voiceActivityListener(
+    _ deviceID: AudioObjectID,
+    _ addressCount: UInt32,
+    _ addresses: UnsafePointer<AudioObjectPropertyAddress>,
+    _ context: UnsafeMutableRawPointer?
+) -> OSStatus {
+    var address = voiceActivityStateAddress
+    var voiceDetected: UInt32 = 0
+    var size = UInt32(MemoryLayout<UInt32>.size)
+    if unsafe AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &voiceDetected) == kAudioHardwareNoError && voiceDetected == 1 {
+        WebCore.audioCaptureVoiceActivityDetected()
+    }
+    return 0
+}
+
 // A voice processing unit without render state, kept by the main thread or made ahead of time by any thread.
 nonisolated(unsafe) private let storedVoiceProcessingUnit = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
 #endif

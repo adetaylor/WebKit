@@ -172,6 +172,9 @@ public:
     // On any thread: makes a voice processing unit for the next capture. Returns whether one is stored.
     static bool prewarmStoredUnit();
     static void deallocateStoredUnit();
+    // The capture device's voice activity detection and its listener, which calls voiceActivityDetected(). Without
+    // success, failedStep is 1 for the detection, 2 for the listener.
+    static OSStatus setDeviceVoiceActivityDetection(uint32_t deviceID, bool enable, uint32_t& failedStep);
 #endif
 
     bool isMock() const { return m_kind == Kind::MockWithEchoCancellation || m_kind == Kind::MockWithoutEchoCancellation; }

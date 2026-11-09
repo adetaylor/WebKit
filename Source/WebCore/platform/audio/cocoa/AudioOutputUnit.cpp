@@ -240,6 +240,13 @@ void AudioCaptureUnitHandle::deallocateStoredUnit()
 {
     audioCaptureUnitDeallocateStoredVoiceProcessingUnit();
 }
+
+OSStatus AudioCaptureUnitHandle::setDeviceVoiceActivityDetection(uint32_t deviceID, bool enable, uint32_t& failedStep)
+{
+    auto result = audioCaptureSetDeviceVoiceActivityDetection(deviceID, enable);
+    failedStep = result.value;
+    return result.status;
+}
 #endif
 
 OSStatus AudioCaptureUnitHandle::setSmallPropertyBytes(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, uint64_t bytes, uint32_t size)

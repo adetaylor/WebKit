@@ -84,7 +84,6 @@ public:
     WEBCORE_EXPORT void disableMutedSpeechActivityEventListener();
 
 #if PLATFORM(MAC)
-    static void processVoiceActivityEvent(uint32_t);
     WEBCORE_EXPORT void prewarmAudioUnitCreation(CompletionHandler<void()>&&) final;
 #endif
 
