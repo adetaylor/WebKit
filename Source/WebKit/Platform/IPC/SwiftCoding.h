@@ -295,8 +295,7 @@ private:
 } SWIFT_NONESCAPABLE SWIFT_SAFE; // As NonEscapableBorrow is: it holds no other pointer.
 
 // The bytes of a std::span<const uint8_t> argument of a message, lent to its Swift handler while the message is
-// dispatched. They are in the message's buffer, which the sender can still write to (a stream connection's buffer is
-// shared with it), so Swift reaches them only by copying them, and must use only its copy: two copies may differ.
+// dispatched. They are in the message's buffer, so Swift reaches them only by copying them, and uses only its copy.
 //
 // Like SwiftDecoder, this reaches the decoder only through the lease of its lend, so using it, or a copy of it, after
 // the dispatch, or on another thread, crashes; it holds no pointer to the bytes. Swift has no way to keep a pointer

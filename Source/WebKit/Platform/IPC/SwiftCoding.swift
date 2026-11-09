@@ -633,8 +633,8 @@ enum IPCCoding {
     }
 }
 
-// The bytes of a std::span<const uint8_t> message argument, lent to its handler during dispatch. The sender can change
-// them while they are lent, so a handler uses them only as a copy, in memory of its own.
+// The bytes of a std::span<const uint8_t> message argument, lent to its handler during dispatch. A handler reaches them
+// only as a copy, in memory of its own.
 extension IPC.LentBytes {
     /// A copy of the bytes.
     func copied() -> [UInt8] {
