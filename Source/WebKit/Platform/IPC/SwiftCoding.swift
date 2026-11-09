@@ -701,9 +701,7 @@ extension IPCTypes {
         }
 
         deinit {
-            if port != mach_port_t(MACH_PORT_NULL) {
-                mach_port_deallocate(IPC.currentTaskPort(), port)
-            }
+            WTF.deallocateSendRightSafely(port)
         }
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
@@ -737,8 +735,8 @@ extension IPCTypes {
         }
 
         deinit {
-            for port in ports where port != mach_port_t(MACH_PORT_NULL) {
-                mach_port_deallocate(IPC.currentTaskPort(), port)
+            for port in ports {
+                WTF.deallocateSendRightSafely(port)
             }
         }
 

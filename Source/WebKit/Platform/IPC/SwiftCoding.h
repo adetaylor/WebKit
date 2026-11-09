@@ -42,7 +42,6 @@
 #include <wtf/unicode/CharacterNames.h>
 
 #if OS(DARWIN)
-#include <mach/mach_init.h>
 #include <wtf/MachSendRight.h>
 #endif
 
@@ -102,11 +101,6 @@ inline size_t writeUTF8ForUTF16Characters(std::span<const char16_t> characters, 
     }
     return length;
 }
-
-#if OS(DARWIN)
-// The task's own port, for Swift, which can only read mach_task_self_ unsafely.
-inline mach_port_t currentTaskPort() { return mach_task_self(); }
-#endif
 
 // What the generated Swift dispatch of a message to a stream receiver whose state C++ lends did with the message: handled
 // it, declined it, for the lender to handle once the state is no longer lent, or found it invalid.
