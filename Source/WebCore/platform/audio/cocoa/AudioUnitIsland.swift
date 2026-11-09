@@ -24,13 +24,15 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
+import Accelerate
 import AudioToolbox
 import Darwin
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 
 // The audited `unsafe` of WebCore's CoreAudio glue: memory that C++ or CoreAudio hands over as pointers, and the atomics
-// shared with other threads and processes. Everything else in the glue is safe Swift over what this file lends it.
+// shared with other threads and processes. Apart from AudioUnitOwner.swift's AudioUnit calls, the rest of the glue is safe
+// Swift over what this file lends it.
 //
 // Code that can run on an audio IO thread is written so that it needs no Swift runtime even at -Onone: no generics,
 // closures, globals, classes or Optional payloads of classes; while loops; and memmove, memset and atomics only.
@@ -258,10 +260,32 @@ func caRingBufferFetchTimeBounds(
 // stopped.
 @unsafe struct OutputRenderState: ~Copyable {
     let isRendering = Atomic<Bool>(false)
+    // AudioUnitEvent bits for the main thread, which the IO thread wakes through controlSemaphore.
+    let pendingEvents = Atomic<UInt32>(0)
+    var controlSemaphore: semaphore_t = 0
     var ring = unsafe WebCore.AudioOutputUnitRingAttachment()
     var startFrame: UInt64 = 0
     let lastRenderedSamples: UnsafeMutableRawPointer
     let lastRenderedSampleCount: Int
+    // A track renderer's: the sample time of the last quantum (0 before the first), how to clip its output, and the C++
+    // render callback of an in-process track renderer.
+    var lastSampleTime: UInt64 = 0
+    var clipFormat: UInt8 = 0
+    var cxxRender: AURenderCallback? = nil
+    var cxxRefCon: UnsafeMutableRawPointer? = nil
+}
+
+// The events of a unit's IO thread that only the main thread can act on (WebCore::AudioOutputUnit::Event).
+enum AudioUnitEvent {
+    // A track renderer saw its timeline jump.
+    static var timelineDiscontinuity: UInt32 { 1 }
+}
+
+// How a track renderer clips its output (CAAudioStreamDescription::PCMFormat): Float32 and Float64 to [-1, 1].
+enum TrackClipFormat {
+    static var none: UInt8 { 0 }
+    static var float32: UInt8 { 1 }
+    static var float64: UInt8 { 2 }
 }
 
 // An output unit's render state, which its owner frees.
@@ -280,7 +304,44 @@ func makeRenderState(sampleCapacity: Int) -> RenderStateReference {
     unsafe samples.initializeMemory(as: UInt8.self, repeating: 0, count: sampleCapacity &* 4)
     let state = UnsafeMutablePointer<OutputRenderState>.allocate(capacity: 1)
     unsafe state.initialize(to: OutputRenderState(lastRenderedSamples: samples, lastRenderedSampleCount: sampleCapacity))
+    unsafe state.pointee.controlSemaphore = audioControlSemaphore()
     return unsafe RenderStateReference(state: state)
+}
+
+// The main thread's, while the unit is stopped.
+func setTrackClipFormat(_ reference: RenderStateReference, _ format: UInt8) {
+    unsafe reference.state.pointee.clipFormat = format
+}
+
+// Main thread only: the events that the unit's IO thread posted since the last call.
+func takeRenderStateEvents(_ reference: RenderStateReference) -> UInt32 {
+    unsafe reference.state.pointee.pendingEvents.exchange(0, ordering: .acquiring)
+}
+
+// MARK: The control thread
+
+// IO threads can't dispatch to the main thread, so a unit's posts an event bit and signals this process's audio control
+// semaphore, which wakes a thread that has C++ hop to the main thread (audioUnitEventsArrived()).
+
+nonisolated(unsafe) private var controlSemaphore: semaphore_t = 0
+
+// Main thread only: the semaphore, which starts the control thread the first time.
+private func audioControlSemaphore() -> semaphore_t {
+    precondition(WTF.isMainThread())
+    if unsafe controlSemaphore == 0 {
+        var semaphore: semaphore_t = 0
+        precondition(unsafe semaphore_create(mach_task_self_, &semaphore, SYNC_POLICY_FIFO, 0) == KERN_SUCCESS)
+        unsafe controlSemaphore = semaphore
+        startAudioControlThread(semaphore)
+    }
+    return unsafe controlSemaphore
+}
+
+// On an IO thread: wait-free.
+@inline(__always)
+private func postEvent(_ state: UnsafeMutablePointer<OutputRenderState>, _ event: UInt32) {
+    _ = unsafe state.pointee.pendingEvents.bitwiseOr(event, ordering: .releasing)
+    _ = unsafe semaphore_signal(state.pointee.controlSemaphore)
 }
 
 // Only once the unit that renders with it is disposed of.
@@ -316,6 +377,87 @@ func removeOutputUnit(_ identifier: UInt64) -> OutputUnit? {
     return unsafe outputUnits.removeValue(forKey: identifier)
 }
 
+extension SwiftRenderCallback {
+    var function: AURenderCallback {
+        switch self {
+        case .remoteDestination:
+            unsafe remoteDestinationRenderCallback
+        case .trackPlayout:
+            unsafe trackRendererRenderCallback
+        case .inProcessTrack:
+            unsafe inProcessTrackRendererRenderCallback
+        }
+    }
+}
+
+// What AudioOutputUnit.swift's units take from C++ as pointers.
+extension OutputUnit {
+    func setObject(_ object: UnsafeMutableRawPointer?, for property: AudioUnitPropertyID) -> OSStatus {
+        if let owner = stopped.take() {
+            let status = unsafe owner.setObject(object, for: property)
+            stopped = consume owner
+            return status
+        }
+        if let unit = running.take() {
+            let status = unsafe unit.setObject(object, for: property)
+            running = consume unit
+            return status
+        }
+        return kAudio_ParamError
+    }
+
+    func setCxxRenderCallback(_ callback: AURenderCallback, _ refCon: UnsafeMutableRawPointer?) {
+        precondition(!isRunning)
+        if kind == .trackRenderer {
+            precondition(!rendersPlayout)
+            if let renderState {
+                unsafe setTrackRenderSource(renderState, nil, callback, refCon)
+                hasRenderCallback = unsafe refCon != nil
+            }
+            return
+        }
+        precondition(kind == .inProcessDestination)
+        hasRenderCallback = true
+        if let owner = stopped.take() {
+            _ = unsafe owner.setRenderCallback(callback, refCon, scope: renderCallbackScope)
+            stopped = consume owner
+        }
+    }
+
+    func attachTrackPlayout(_ attachment: WebCore.AudioOutputUnitRingAttachment) {
+        precondition(kind == .trackRenderer && rendersPlayout && !isRunning)
+        if let renderState {
+            unsafe setTrackRenderSource(renderState, attachment.track, nil, nil)
+            hasRenderCallback = true
+        }
+    }
+
+    func renderForTesting(
+        _ ioData: UnsafeMutablePointer<AudioBufferList>,
+        _ frameCount: UInt32,
+        _ sampleTime: Float64,
+        _ throughAudioUnit: Bool,
+        _ actionFlags: UnsafeMutablePointer<UInt32>
+    ) -> OSStatus {
+        precondition(kind != .inProcessDestination && hasRenderCallback && (kind == .genericOutputForTesting || !throughAudioUnit))
+        guard let renderCallback, let owner = stopped.take() else {
+            return kAudio_ParamError
+        }
+        let status = unsafe owner.renderForTesting(renderCallback, ioData, frameCount, sampleTime, throughAudioUnit, actionFlags)
+        stopped = consume owner
+        return status
+    }
+}
+
+// Sets a global property whose value is an object, such as kAudioOutputUnitProperty_IntendedSpatialExperience.
+@_expose(Cxx)
+func audioOutputUnitSetObjectProperty(_ identifier: UInt64, _ property: UInt32, _ object: UnsafeMutableRawPointer?) -> Int32 {
+    guard let unit = outputUnit(identifier) else {
+        return kAudio_ParamError
+    }
+    return unsafe unit.setObject(object, for: property)
+}
+
 // MARK: Attaching what a stopped unit renders from
 
 // Traps unless the attachment's memory covers what the unit will read and write, aligned for its atomics.
@@ -336,10 +478,18 @@ private func checkRingAttachment(_ attachment: WebCore.AudioOutputUnitRingAttach
     }
 }
 
-// A remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing()). The caller keeps their
-// memory and the semaphore alive until it attaches others or destroys the unit. A ring without a header is no ring.
+// A remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing()), or a track renderer's
+// playout (attachTrackPlayout()). The caller keeps their memory and the semaphore alive until it attaches others or destroys
+// the unit. A ring without a header is no ring.
 @_expose(Cxx)
 func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutputUnitRingAttachment) {
+    if unsafe attachment.track != nil {
+        guard let unit = outputUnit(identifier) else {
+            return
+        }
+        unsafe unit.attachTrackPlayout(attachment)
+        return
+    }
     unsafe checkRingAttachment(attachment)
     var ring = unsafe attachment
     if unsafe ring.frameCounterByteCount == 0 {
@@ -350,8 +500,21 @@ func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutput
     }
 }
 
-// An in-process destination's C++ render callback (WebCore::AudioOutputUnit::attachRenderCallback()), before the unit
-// first starts. The unit calls it on its IO thread with refCon, so no Swift runs there. callback is an AURenderCallback.
+// Stores what a stopped track renderer renders from: a GPU-process playout or an in-process C++ render callback.
+func setTrackRenderSource(
+    _ reference: RenderStateReference,
+    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>?,
+    _ cxxRender: AURenderCallback?,
+    _ cxxRefCon: UnsafeMutableRawPointer?
+) {
+    unsafe reference.state.pointee.ring.track = track
+    unsafe reference.state.pointee.cxxRender = cxxRender
+    unsafe reference.state.pointee.cxxRefCon = cxxRefCon
+}
+
+// An in-process destination's or track renderer's C++ render callback (WebCore::AudioOutputUnit::attachRenderCallback()),
+// before the unit first starts. A destination's unit calls it on its IO thread with refCon, so no Swift runs there; a track
+// renderer's checks its timeline, calls it and clips. callback is an AURenderCallback.
 @_expose(Cxx)
 func audioOutputUnitAttachCxxRenderCallback(_ identifier: UInt64, _ callback: UnsafeRawPointer, _ refCon: UnsafeMutableRawPointer?) {
     let renderCallback = unsafe unsafeBitCast(callback, to: AURenderCallback.self)
@@ -420,6 +583,167 @@ private func renderRemoteDestination(
     return rendered ? 0 : -1
 }
 
+// The render callback of a GPU-process track renderer (RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit): checks
+// the timeline, plays out the ring the web process writes and clips, as LocalAudioMediaStreamTrackRendererInternalUnit's
+// render() and the manager unit's render() did. A timeline jump is an event for the main thread, which resets the track.
+func trackRendererRenderCallback(
+    _ refCon: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    precondition(pthread_main_np() == 0)
+    let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
+    precondition(!(unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring)))
+    unsafe checkTimeline(state, timeStamp.pointee.mSampleTime, frameCount)
+    guard let ioData = unsafe ioData, let track = unsafe state.pointee.ring.track else {
+        preconditionFailure()
+    }
+    let status = unsafe renderTrack(track, ioData, frameCount, actionFlags)
+    unsafe clip(ioData, state.pointee.clipFormat)
+    unsafe state.pointee.isRendering.store(false, ordering: .releasing)
+    return status
+}
+
+// The render callback of an in-process track renderer: checks the timeline, calls the C++ render callback that mixes the
+// track's sources, and clips. The call to C++ is the one indirect call of the IO path, and only in process.
+func inProcessTrackRendererRenderCallback(
+    _ refCon: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    precondition(pthread_main_np() == 0)
+    let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
+    precondition(!(unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring)))
+    unsafe checkTimeline(state, timeStamp.pointee.mSampleTime, frameCount)
+    guard let render = unsafe state.pointee.cxxRender, let cxxRefCon = unsafe state.pointee.cxxRefCon, let ioData = unsafe ioData else {
+        preconditionFailure()
+    }
+    let status = unsafe render(cxxRefCon, actionFlags, timeStamp, busNumber, frameCount, ioData)
+    unsafe clip(ioData, state.pointee.clipFormat)
+    unsafe state.pointee.isRendering.store(false, ordering: .releasing)
+    return status
+}
+
+// LocalAudioMediaStreamTrackRendererInternalUnit::render()'s timeline check: a quantum that starts more than a quantum
+// after the last one, or not after it, means the timeline jumped.
+@inline(__always)
+private func checkTimeline(_ state: UnsafeMutablePointer<OutputRenderState>, _ sampleTime: Float64, _ frameCount: UInt32) {
+    let lastSampleTime = unsafe state.pointee.lastSampleTime
+    if lastSampleTime != 0
+        && (float64(lastSampleTime &+ UInt64(2 &* frameCount)) < sampleTime || sampleTime <= float64(lastSampleTime))
+    {
+        unsafe postEvent(state, AudioUnitEvent.timelineDiscontinuity)
+    }
+    // std::numeric_limits<Float64>::max().
+    let isValid = sampleTime < 1.7976931348623157e308 - Float64(Int(frameCount)) && sampleTime >= 0
+        && sampleTime < 18_446_744_073_709_551_616.0
+    unsafe state.pointee.lastSampleTime = isValid ? UInt64(sampleTime) : 0
+}
+
+// The C++ conversion of a uint64_t to a double: both halves convert exactly, so their sum rounds once, as the conversion
+// does. Swift's Double(_: UInt64) is generic, which needs the Swift runtime at -Onone.
+@inline(__always)
+private func float64(_ value: UInt64) -> Float64 {
+    Float64(Int(value >> 32)) * 4_294_967_296.0 + Float64(Int(value & 0xFFFF_FFFF))
+}
+
+// Clips Float32 or Float64 samples to [-1, 1] with vDSP, as the C++ did.
+private func clip(_ ioData: UnsafeMutablePointer<AudioBufferList>, _ format: UInt8) {
+    if format == TrackClipFormat.none {
+        return
+    }
+    let bufferCount = Int(unsafe ioData.pointee.mNumberBuffers)
+    let first = unsafe UnsafeMutableRawPointer(ioData).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    var index = 0
+    while index < bufferCount {
+        let buffer = unsafe first.advanced(by: index).pointee
+        if let data = unsafe buffer.mData {
+            if format == TrackClipFormat.float32 {
+                var minimum: Float = -1
+                var maximum: Float = 1
+                let samples = unsafe data.assumingMemoryBound(to: Float.self)
+                unsafe vDSP_vclip(samples, 1, &minimum, &maximum, samples, 1, vDSP_Length(buffer.mDataByteSize / 4))
+            } else {
+                var minimum: Double = -1
+                var maximum: Double = 1
+                let samples = unsafe data.assumingMemoryBound(to: Double.self)
+                unsafe vDSP_vclipD(samples, 1, &minimum, &maximum, samples, 1, vDSP_Length(buffer.mDataByteSize / 8))
+            }
+        }
+        index &+= 1
+    }
+}
+
+// The manager unit's render(): plays out the track's ring into ioData and signals its semaphore for each chunk it asks for.
+// Traps unless the track's ring covers what it reads.
+private func renderTrack(
+    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>,
+    _ frameCount: UInt32,
+    _ actionFlags: UnsafeMutablePointer<UInt32>
+) -> OSStatus {
+    let renderingGuard = unsafe UnsafeMutableRawPointer(track).assumingMemoryBound(to: Atomic<UInt64>.self)
+    precondition(unsafe renderingGuard.pointee.exchange(1, ordering: .acquiring) == 0)
+    let ring = unsafe track.pointee.ring
+    var output = unsafe IOBufferList(ioData)
+    var signalCount: UInt64 = 0
+    var fetched = false
+    if let header = unsafe ring.header {
+        let geometry = unsafe ring.geometry
+        let (byteCount, overflow) = geometry.capacityBytes.multipliedReportingOverflow(by: UInt64(geometry.channelCount))
+        let channelsByteCount = unsafe ring.channelsByteCount
+        precondition(!overflow && byteCount <= channelsByteCount && channelsByteCount <= UInt64(Int.max))
+        let headerAddress = unsafe checkRingHeader(UnsafeRawPointer(header), ringHeaderByteCount)
+        let bounds = unsafe loadRingBounds(at: headerAddress)
+        let channels = unsafe IOConstBytes(UnsafeRawPointer(ring.channels), Int(ring.channelsByteCount))
+        fetched = unsafe renderTrackQuantum(
+            geometry,
+            bounds,
+            channels,
+            &output,
+            &track.pointee.readOffset,
+            &track.pointee.generateOffset,
+            &signalCount,
+            UInt64(frameCount),
+            track.pointee.frameChunkSize,
+            track.pointee.bytesPerFrame
+        )
+    } else {
+        // Not reached: a track renderer starts only once its track has a ring.
+        unsafe zeroTrackOutput(&output, UInt64(frameCount) &* track.pointee.bytesPerFrame)
+    }
+    if !fetched {
+        // kAudioUnitRenderAction_OutputIsSilence.
+        unsafe actionFlags.pointee = 1 << 4
+    }
+    let semaphore = unsafe ring.semaphore
+    while signalCount > 0 {
+        _ = semaphore_signal(semaphore)
+        signalCount &-= 1
+    }
+    unsafe renderingGuard.pointee.store(0, ordering: .releasing)
+    return fetched ? 0 : -1
+}
+
+// The capture unit's speaker callback, on its IO thread (RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::
+// produceSpeakerSamples()), until that callback is Swift: plays out a track as its unit's render callback does, without
+// the timeline check or clipping, as the C++ did.
+@_expose(Cxx)
+func audioTrackRenderForSpeaker(
+    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>,
+    _ frameCount: UInt32,
+    _ actionFlags: UnsafeMutablePointer<UInt32>
+) -> Int32 {
+    unsafe renderTrack(track, ioData, frameCount, actionFlags)
+}
+
 // MARK: Tests
 
 // Tests only, on a thread other than the main thread and while the main thread leaves the unit alone: renders one quantum
@@ -431,12 +755,13 @@ func audioOutputUnitRenderForTesting(
     _ ioData: UnsafeMutablePointer<AudioBufferList>,
     _ frameCount: UInt32,
     _ sampleTime: Float64,
-    _ throughAudioUnit: Bool
+    _ throughAudioUnit: Bool,
+    _ actionFlags: UnsafeMutablePointer<UInt32>
 ) -> Int32 {
     guard let unit = unsafe outputUnits[identifier] else {
         return kAudio_ParamError
     }
-    return unsafe unit.renderForTesting(ioData, frameCount, sampleTime, throughAudioUnit)
+    return unsafe unit.renderForTesting(ioData, frameCount, sampleTime, throughAudioUnit, actionFlags)
 }
 
 #endif // ENABLE_WEBCORE_SWIFT

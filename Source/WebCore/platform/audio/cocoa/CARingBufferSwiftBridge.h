@@ -88,6 +88,8 @@ static_assert(sizeof(WebAudioBufferListSizes) == 24);
 // geometry, bounds and channels, the shared counter it adds each quantum's frames to, and the semaphore it signals after
 // each quantum. Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the
 // unit. Without a header, there is no ring.
+struct AudioTrackPlayoutState;
+
 struct AudioOutputUnitRingAttachment {
     CARingBufferGeometry geometry;
     const CARingBufferBoundsStorage* header { nullptr };
@@ -96,14 +98,36 @@ struct AudioOutputUnitRingAttachment {
     uint32_t* frameCounter { nullptr };
     uint64_t frameCounterByteCount { 0 };
     uint32_t semaphore { 0 };
+    // A track renderer's playout, instead of the fields above.
+    AudioTrackPlayoutState* track { nullptr };
 };
 
-// What a track renderer's render quantum did: whether it fetched, and how many chunks to ask the writer for.
-struct CARingBufferTrackRenderResult {
-    uint64_t signalCount { 0 };
-    bool fetched { false };
+// What a GPU-process track renderer plays out (AudioUnitIsland.swift): the ring the web process writes and the semaphore
+// it signals for each chunk of frameChunkSize frames it asks for, and where it reads. Its owner keeps it, its ring and
+// its semaphore alive while a unit or the capture unit renders from it, and changes it only while neither does.
+struct AudioTrackPlayoutState {
+    // Only Swift uses it, atomically, to check that two threads don't render from the state at once.
+    uint64_t renderingGuard { 0 };
+    AudioOutputUnitRingAttachment ring;
+    uint64_t readOffset { 0 };
+    uint64_t generateOffset { 0 };
+    uint64_t frameChunkSize { 0 };
+    uint64_t bytesPerFrame { 0 };
 };
-static_assert(sizeof(CARingBufferTrackRenderResult) == 16);
+
+// What creating a track renderer's unit did: its identifier, or 0 and the status of the step that failed (1: finding the
+// component, 2: making the unit, 3: enabling output, 4: setting the device, 5: setting the render callback, 6: getting the
+// stream format, 7: setting it, 8: initializing), and its stream format.
+struct AudioOutputUnitTrackRendererCreation {
+    uint64_t identifier { 0 };
+    AudioStreamBasicDescription format { };
+    int32_t status { 0 };
+    uint32_t failedStep { 0 };
+};
+static_assert(!(sizeof(AudioOutputUnitTrackRendererCreation) % 8));
+
+// Called on any thread once audio units have events for the main thread (AudioOutputUnit.cpp).
+void audioUnitEventsArrived();
 
 // The floating-point mixes of a fetch and of AudioSampleBufferList, as their C++ did them: through VectorMath::add(), so
 // vDSP decides which NaN a sum of two NaNs gives. The sampleCount float (or, if isDouble, double) samples of source from

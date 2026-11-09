@@ -1,0 +1,3 @@
+
+PASS Test that a GPU-process audio destination plays out its ring, survives rings it can't use, and stops, starts and goes away in any order.
+

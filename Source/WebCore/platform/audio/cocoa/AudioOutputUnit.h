@@ -25,17 +25,21 @@
 
 #pragma once
 
-#if ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
+#if (ENABLE(WEB_AUDIO) || ENABLE(MEDIA_STREAM)) && USE(MEDIATOOLBOX)
 
 #include <AudioToolbox/AudioToolbox.h>
+#include <optional>
 #include <span>
+#include <wtf/Function.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/OptionSet.h>
 
 OBJC_CLASS CASpatialAudioExperience;
 
 namespace WebCore {
 
 class CARingBuffer;
+struct AudioTrackPlayoutState;
 
 // An output AudioUnit, the default output unit (RemoteIO on iOS), that AudioOutputUnit.swift owns. Use it on the main
 // thread only.
@@ -54,6 +58,30 @@ public:
     WEBCORE_EXPORT AudioOutputUnit(Kind, float hardwareSampleRate, unsigned numberOfOutputChannels);
     WEBCORE_EXPORT ~AudioOutputUnit();
 
+    // A MediaStream track renderer on the given device (0: the default one), in the given format or the unit's own at
+    // sampleRate. It plays out a track (attachTrackPlayout()) or renders from a C++ callback (attachRenderCallback()); it
+    // checks its timeline and clips its output either way. Without a unit, failedStep says which step failed.
+    struct TrackRenderer {
+        std::unique_ptr<AudioOutputUnit> unit;
+        AudioStreamBasicDescription format { };
+        OSStatus status { noErr };
+        uint32_t failedStep { 0 };
+    };
+    WEBCORE_EXPORT static TrackRenderer createTrackRenderer(uint32_t deviceID, double sampleRate, const std::optional<AudioStreamBasicDescription>&, bool playsOutTrack);
+
+    // While stopped: the track a track renderer plays out. The caller keeps it alive until it destroys the unit.
+    WEBCORE_EXPORT void attachTrackPlayout(AudioTrackPlayoutState&);
+
+    // The capture unit's speaker callback, on its IO thread: plays out a track as a track renderer does, without its
+    // timeline check or clipping.
+    WEBCORE_EXPORT static OSStatus renderTrackForSpeaker(AudioTrackPlayoutState&, AudioBufferList&, uint32_t frameCount, AudioUnitRenderActionFlags&);
+
+    // Events of the unit's IO thread, which the handler gets on the main thread.
+    enum class Event : uint32_t {
+        TimelineDiscontinuity = 1 << 0,
+    };
+    WEBCORE_EXPORT void setEventHandler(Function<void(OptionSet<Event>)>&&);
+
     WEBCORE_EXPORT OSStatus start();
     WEBCORE_EXPORT OSStatus stop();
     WEBCORE_EXPORT size_t outputLatency() const;
@@ -71,13 +99,18 @@ public:
     WEBCORE_EXPORT void attachRenderCallback(AURenderCallback, void* refCon);
 
     // Tests only, off the main thread, while stopped: renders one quantum into the list, through AudioUnitRender() on a
-    // GenericOutputForTesting unit, or by calling a remote destination's render callback directly.
-    WEBCORE_EXPORT OSStatus renderForTesting(AudioBufferList&, uint32_t frameCount, double sampleTime, bool throughAudioUnit);
+    // GenericOutputForTesting unit, or by calling the unit's Swift render callback directly.
+    WEBCORE_EXPORT OSStatus renderForTesting(AudioBufferList&, uint32_t frameCount, double sampleTime, bool throughAudioUnit, AudioUnitRenderActionFlags* = nullptr);
+
+    static void dispatchEvents();
 
 private:
+    explicit AudioOutputUnit(uint64_t identifier);
+
     const uint64_t m_identifier;
+    Function<void(OptionSet<Event>)> m_eventHandler;
 };
 
 } // namespace WebCore
 
-#endif // ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
+#endif // (ENABLE(WEB_AUDIO) || ENABLE(MEDIA_STREAM)) && USE(MEDIATOOLBOX)

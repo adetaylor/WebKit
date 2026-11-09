@@ -38,7 +38,7 @@
 #include <WebCore/AVAudioSessionCaptureDeviceManager.h>
 #include <WebCore/AudioMediaStreamTrackRenderer.h>
 #include <WebCore/AudioMediaStreamTrackRendererInternalUnit.h>
-#include <WebCore/AudioSampleBufferList.h>
+#include <WebCore/AudioOutputUnit.h>
 #include <WebCore/AudioUtilities.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CARingBuffer.h>
@@ -91,9 +91,10 @@ private:
 
     AudioMediaStreamTrackRendererInternalUnitIdentifier m_identifier;
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
+    // What the local unit and the capture unit's speaker callback play out (AudioUnitIsland.swift). Only the main thread
+    // changes it, while neither renders.
+    WebCore::AudioTrackPlayoutState m_playoutState;
     const Ref<WebCore::AudioMediaStreamTrackRendererInternalUnit> m_localUnit;
-    uint64_t m_readOffset { 0 };
-    uint64_t m_generateOffset { 0 };
     uint64_t m_frameChunkSize { 0 };
     IPC::Semaphore m_renderSemaphore;
     std::unique_ptr<ConsumerSharedCARingBuffer> m_ringBuffer;
@@ -204,6 +205,7 @@ RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::RemoteAudioMediaStre
     , m_canUseCaptureUnit(deviceID == WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID())
 {
     ASSERT(isMainRunLoop());
+    m_localUnit->setTrackPlayoutState(m_playoutState);
     m_localUnit->retrieveFormatDescription([weakThis = ThreadSafeWeakPtr { *this }, callback = WTF::move(callback)](auto&& description) mutable {
         RefPtr protectedThis = weakThis;
         if (!protectedThis || !description) {
@@ -266,13 +268,19 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::start(ConsumerS
     if (m_isPlaying)
         stop();
     m_ringBuffer = ConsumerSharedCARingBuffer::map(*m_description, WTF::move(handle));
+    m_playoutState = { };
     if (!m_ringBuffer)
         return;
-    m_readOffset = 0;
-    m_generateOffset = 0;
     m_isPlaying = true;
     m_canReset = true;
     m_renderSemaphore = WTF::move(semaphore);
+    m_playoutState.ring.geometry = m_ringBuffer->geometry();
+    m_playoutState.ring.header = &m_ringBuffer->boundsStorage();
+    m_playoutState.ring.channels = m_ringBuffer->channelData().data();
+    m_playoutState.ring.channelsByteCount = m_ringBuffer->channelData().size();
+    m_playoutState.ring.semaphore = m_renderSemaphore.machSemaphore();
+    m_playoutState.frameChunkSize = m_frameChunkSize;
+    m_playoutState.bytesPerFrame = m_description->bytesPerFrame();
     m_shouldRegisterAsSpeakerSamplesProducer = computeShouldRegisterAsSpeakerSamplesProducer();
 
     if (m_shouldRegisterAsSpeakerSamplesProducer) {
@@ -297,20 +305,11 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::updateShouldReg
     setShouldRegisterAsSpeakerSamplesProducer(computeShouldRegisterAsSpeakerSamplesProducer());
 }
 
+// The capture unit's speaker callback, on its IO thread. The local unit plays out the track itself.
 OSStatus RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(size_t sampleCount, AudioBufferList& list, uint64_t, double, AudioUnitRenderActionFlags& flags)
 {
     ASSERT(!isMainRunLoop());
-
-    auto result = m_ringBuffer->renderForTrackRenderer(m_readOffset, m_generateOffset, list, sampleCount, m_frameChunkSize);
-    if (!result.fetched) {
-        WebCore::AudioSampleBufferList::zeroABL(list, static_cast<size_t>(sampleCount * m_description->bytesPerFrame()));
-        flags = kAudioUnitRenderAction_OutputIsSilence;
-    }
-
-    for (uint64_t i = 0; i < result.signalCount; ++i)
-        m_renderSemaphore.signal();
-
-    return result.fetched ? noErr : -1;
+    return WebCore::AudioOutputUnit::renderTrackForSpeaker(m_playoutState, list, sampleCount, flags);
 }
 
 void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::captureUnitIsStarting()

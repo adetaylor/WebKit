@@ -164,30 +164,48 @@ private func fadeOutToSilence(_ output: inout IOBufferList, _ frameCount: Int, _
     last.zero(at: 0, count: lastCount &* 4)
 }
 
-// RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(), up to its zeroing of the output on an underrun:
-// fetches sampleCount frames from readOffset and advances it, and counts the chunks of frameChunkSize frames to ask the
-// web process for.
-@_expose(Cxx)
-func caRingBufferRenderForTrackRenderer(
-    _ ring: borrowing WebCore.CARingBufferReadView,
+// RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(), on a track renderer unit's IO thread or the capture
+// unit's (AudioUnitIsland.swift): fetches sampleCount frames from readOffset and advances it, or on an underrun zeroes
+// sampleCount frames of each buffer; and counts the chunks of frameChunkSize frames to ask the web process for, which the
+// caller signals. Returns whether it fetched.
+func renderTrackQuantum(
+    _ geometry: WebCore.CARingBufferGeometry,
+    _ storedBounds: WebCore.CARingBufferBounds,
+    _ channels: borrowing IOConstBytes,
+    _ output: inout IOBufferList,
     _ readOffset: inout UInt64,
     _ generateOffset: inout UInt64,
-    _ output: inout WebCore.AudioBufferListView,
+    _ signalCount: inout UInt64,
     _ sampleCount: UInt64,
-    _ frameChunkSize: UInt64
-) -> WebCore.CARingBufferTrackRenderResult {
-    var result = WebCore.CARingBufferTrackRenderResult()
-    if fetchIfHasEnoughData(ring, &output, sampleCount, readOffset, .copy) {
+    _ frameChunkSize: UInt64,
+    _ bytesPerFrame: UInt64
+) -> Bool {
+    let fetched = fetchIfHasEnoughData(geometry, storedBounds, channels, &output, sampleCount, readOffset)
+    if fetched {
         readOffset &+= sampleCount
-        result.fetched = true
+    } else {
+        zeroTrackOutput(&output, sampleCount &* bytesPerFrame)
     }
     var requestedSampleCount = generateOffset
+    signalCount = 0
     while requestedSampleCount < sampleCount {
         requestedSampleCount &+= frameChunkSize
-        result.signalCount &+= 1
+        signalCount &+= 1
     }
     generateOffset = requestedSampleCount &- sampleCount
-    return result
+    return fetched
+}
+
+// AudioSampleBufferList::zeroABL(), which traps unless every buffer holds the bytes.
+func zeroTrackOutput(_ output: inout IOBufferList, _ byteCount: UInt64) {
+    let bufferCount = output.bufferCount
+    var index = 0
+    while index < bufferCount {
+        var bytes = output.bytes(index)
+        precondition(byteCount <= UInt64(bytes.count))
+        bytes.zero(at: 0, count: Int(byteCount))
+        index &+= 1
+    }
 }
 
 #endif // ENABLE_WEBCORE_SWIFT

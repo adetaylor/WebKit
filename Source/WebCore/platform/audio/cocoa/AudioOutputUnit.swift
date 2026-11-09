@@ -26,6 +26,7 @@
 // THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // Copyright (C) 2020 Apple Inc. All rights reserved.
+// Copyright (C) 2021 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -66,20 +67,33 @@ enum OutputUnitKind: UInt8 {
     case inProcessDestination
     // A remote destination on a generic output unit, which needs no hardware: tests render it on their own thread.
     case genericOutputForTesting
+    // A MediaStream track renderer: a GPU-process one plays out a ring (attachTrackPlayout()), an in-process one renders
+    // from a C++ callback (attachRenderCallback()).
+    case trackRenderer
 }
 
 final class OutputUnit {
     let kind: OutputUnitKind
     let renderCallbackScope: AudioUnitScope
+    // The callback installed on the unit, if Swift's, and the state it renders with.
+    let renderCallback: SwiftRenderCallback?
+    let renderState: RenderStateReference?
     var stopped: AudioUnitOwner?
     var running: RunningAudioUnit?
     var hasRenderCallback: Bool
 
-    init(_ kind: OutputUnitKind, _ renderCallbackScope: AudioUnitScope, _ owner: consuming AudioUnitOwner?) {
+    init(_ kind: OutputUnitKind, _ renderCallbackScope: AudioUnitScope, _ renderCallback: SwiftRenderCallback?, _ owner: consuming AudioUnitOwner?) {
         self.kind = kind
         self.renderCallbackScope = renderCallbackScope
-        stopped = consume owner
-        hasRenderCallback = kind != .inProcessDestination
+        self.renderCallback = renderCallback
+        if let owner = owner.take() {
+            renderState = owner.renderState
+            stopped = consume owner
+        } else {
+            renderState = nil
+            stopped = nil
+        }
+        hasRenderCallback = kind == .remoteDestination || kind == .genericOutputForTesting
     }
 
     deinit {
@@ -144,20 +158,6 @@ final class OutputUnit {
         return 0
     }
 
-    func setObject(_ object: UnsafeMutableRawPointer?, for property: AudioUnitPropertyID) -> OSStatus {
-        if let owner = stopped.take() {
-            let status = unsafe owner.setObject(object, for: property)
-            stopped = consume owner
-            return status
-        }
-        if let unit = running.take() {
-            let status = unsafe unit.setObject(object, for: property)
-            running = consume unit
-            return status
-        }
-        return kAudio_ParamError
-    }
-
     var isRunning: Bool {
         running != nil
     }
@@ -171,25 +171,14 @@ final class OutputUnit {
         }
     }
 
-    func renderForTesting(_ ioData: UnsafeMutablePointer<AudioBufferList>, _ frameCount: UInt32, _ sampleTime: Float64, _ throughAudioUnit: Bool)
-        -> OSStatus
-    {
-        precondition(kind != .inProcessDestination && (kind == .genericOutputForTesting || !throughAudioUnit))
-        guard let owner = stopped.take() else {
-            return kAudio_ParamError
-        }
-        let status = unsafe owner.renderForTesting(ioData, frameCount, sampleTime, throughAudioUnit)
-        stopped = consume owner
-        return status
-    }
+    // Whether the unit is a track renderer that plays out a track (attachTrackPlayout()).
+    var rendersPlayout = false
 
-    func setCxxRenderCallback(_ callback: AURenderCallback, _ refCon: UnsafeMutableRawPointer?) {
-        precondition(kind == .inProcessDestination && !isRunning)
-        hasRenderCallback = true
-        if let owner = stopped.take() {
-            _ = unsafe owner.setRenderCallback(callback, refCon, scope: renderCallbackScope)
-            stopped = consume owner
+    func takeEvents() -> UInt32 {
+        guard let renderState else {
+            return 0
         }
+        return takeRenderStateEvents(renderState)
     }
 }
 
@@ -212,25 +201,25 @@ private func makeOutputUnit(_ kind: OutputUnitKind, _ sampleRate: Float, _ chann
         let scope = kAudioUnitScope_Input
         guard let owner = AudioUnitOwner(componentSubType: kAudioUnitSubType_GenericOutput, renderSampleCapacity: sampleCapacity)
         else {
-            return OutputUnit(kind, scope, nil)
+            return OutputUnit(kind, scope, nil, nil)
         }
         var format = AudioStreamBasicDescription()
         setFloat32StreamFormat(&format, sampleRate, channelCount)
         _ = owner.setStreamFormat(format, scope: kAudioUnitScope_Input)
         _ = owner.setStreamFormat(format, scope: kAudioUnitScope_Output)
-        _ = unsafe owner.setRenderCallback(remoteDestinationRenderCallback, owner.renderState.refCon, scope: scope)
+        _ = owner.installRenderCallback(.remoteDestination, scope: scope)
         _ = owner.initialize()
-        return OutputUnit(kind, scope, owner)
+        return OutputUnit(kind, scope, .remoteDestination, owner)
     }
 #if os(macOS)
     let scope = kAudioUnitScope_Global
     guard let owner = AudioUnitOwner(componentSubType: kAudioUnitSubType_DefaultOutput, renderSampleCapacity: sampleCapacity)
     else {
-        return OutputUnit(kind, scope, nil)
+        return OutputUnit(kind, scope, nil, nil)
     }
     _ = owner.initialize()
     if kind == .remoteDestination {
-        _ = unsafe owner.setRenderCallback(remoteDestinationRenderCallback, owner.renderState.refCon, scope: scope)
+        _ = owner.installRenderCallback(.remoteDestination, scope: scope)
     }
     var format = AudioStreamBasicDescription()
     setFloat32StreamFormat(&format, sampleRate, channelCount)
@@ -239,18 +228,18 @@ private func makeOutputUnit(_ kind: OutputUnitKind, _ sampleRate: Float, _ chann
     let scope = kAudioUnitScope_Input
     guard let owner = AudioUnitOwner(componentSubType: kAudioUnitSubType_RemoteIO, renderSampleCapacity: sampleCapacity)
     else {
-        return OutputUnit(kind, scope, nil)
+        return OutputUnit(kind, scope, nil, nil)
     }
     _ = owner.setUInt32(1, for: kAudioOutputUnitProperty_EnableIO, scope: kAudioUnitScope_Output)
     _ = owner.initialize()
     if kind == .remoteDestination {
-        _ = unsafe owner.setRenderCallback(remoteDestinationRenderCallback, owner.renderState.refCon, scope: scope)
+        _ = owner.installRenderCallback(.remoteDestination, scope: scope)
     }
     var format = owner.streamFormat(scope: kAudioUnitScope_Output)
     setFloat32StreamFormat(&format, sampleRate, channelCount)
     _ = owner.setStreamFormat(format, scope: kAudioUnitScope_Input)
 #endif
-    return OutputUnit(kind, scope, owner)
+    return OutputUnit(kind, scope, kind == .remoteDestination ? .remoteDestination : nil, owner)
 }
 
 private func withOutputUnit<Result>(_ identifier: UInt64, _ missing: Result, _ body: (OutputUnit) -> Result) -> Result {
@@ -266,10 +255,105 @@ func withStoppedOutputUnitRenderState(_ identifier: UInt64, _ body: (RenderState
     withOutputUnit(identifier, ()) { $0.withStoppedRenderState(body) }
 }
 
+// LocalAudioMediaStreamTrackRendererInternalUnit::createAudioUnitIfNeeded(): the default output unit (RemoteIO on iOS) on
+// the given device (0: the default one, or iOS), in the given stream format or, if there's none, the unit's own at
+// sampleRate. Its render callback plays out a track (rendersPlayout) or calls a C++ one.
+@_expose(Cxx)
+func audioOutputUnitCreateTrackRenderer(
+    _ deviceID: UInt32,
+    _ sampleRate: Float64,
+    _ format: AudioStreamBasicDescription,
+    _ hasFormat: Bool,
+    _ rendersPlayout: Bool
+) -> WebCore.AudioOutputUnitTrackRendererCreation {
+    precondition(WTF.isMainThread())
+#if os(macOS)
+    let subType = kAudioUnitSubType_DefaultOutput
+#else
+    let subType = kAudioUnitSubType_RemoteIO
+#endif
+    let owner: AudioUnitOwner
+    switch AudioUnitOwner.make(componentSubType: subType, renderSampleCapacity: 0) {
+    case .made(let made):
+        owner = made
+    case .noComponent:
+        return trackRendererCreationFailure(noErr, 1)
+    case .failed(let status):
+        return trackRendererCreationFailure(status, 2)
+    }
+#if os(macOS)
+    if deviceID != 0 {
+        let status = owner.setUInt32(deviceID, for: kAudioOutputUnitProperty_CurrentDevice, scope: kAudioUnitScope_Global)
+        if status != noErr {
+            owner.dispose()
+            return trackRendererCreationFailure(status, 4)
+        }
+    }
+#else
+    let enableStatus = owner.setUInt32(1, for: kAudioOutputUnitProperty_EnableIO, scope: kAudioUnitScope_Output)
+    if enableStatus != noErr {
+        owner.dispose()
+        return trackRendererCreationFailure(enableStatus, 3)
+    }
+#endif
+    let callback: SwiftRenderCallback = rendersPlayout ? .trackPlayout : .inProcessTrack
+    let callbackStatus = owner.installRenderCallback(callback, scope: kAudioUnitScope_Global)
+    if callbackStatus != noErr {
+        owner.dispose()
+        return trackRendererCreationFailure(callbackStatus, 5)
+    }
+    var streamFormat = format
+    if !hasFormat {
+        let status = owner.streamFormat(&streamFormat, scope: kAudioUnitScope_Input)
+        if status != noErr {
+            owner.dispose()
+            return trackRendererCreationFailure(status, 6)
+        }
+        streamFormat.mSampleRate = sampleRate
+    }
+    let formatStatus = owner.setStreamFormat(streamFormat, scope: kAudioUnitScope_Input)
+    if formatStatus != noErr {
+        owner.dispose()
+        return trackRendererCreationFailure(formatStatus, 7)
+    }
+    let initializeStatus = owner.initialize()
+    if initializeStatus != noErr {
+        owner.dispose()
+        return trackRendererCreationFailure(initializeStatus, 8)
+    }
+    switch AudioStreamPCMFormat(rawValue: caAudioStreamDescriptionFormat(streamFormat)) {
+    case .float32:
+        setTrackClipFormat(owner.renderState, TrackClipFormat.float32)
+    case .float64:
+        setTrackClipFormat(owner.renderState, TrackClipFormat.float64)
+    default:
+        break
+    }
+    let unit = OutputUnit(.trackRenderer, kAudioUnitScope_Global, callback, owner)
+    unit.rendersPlayout = rendersPlayout
+    var result = WebCore.AudioOutputUnitTrackRendererCreation()
+    result.format = streamFormat
+    result.identifier = addOutputUnit(unit)
+    return result
+}
+
+private func trackRendererCreationFailure(_ status: OSStatus, _ step: UInt32) -> WebCore.AudioOutputUnitTrackRendererCreation {
+    var result = WebCore.AudioOutputUnitTrackRendererCreation()
+    result.status = status
+    result.failedStep = step
+    return result
+}
+
+// Main thread only: the events of the unit's IO thread since the last call (AudioUnitEvent).
+@_expose(Cxx)
+func audioOutputUnitTakeEvents(_ identifier: UInt64) -> UInt32 {
+    withOutputUnit(identifier, 0) { $0.takeEvents() }
+}
+
 @_expose(Cxx)
 func audioOutputUnitCreate(_ kind: UInt8, _ sampleRate: Float, _ channelCount: UInt32) -> UInt64 {
     precondition(WTF.isMainThread())
-    guard let kind = OutputUnitKind(rawValue: kind) else {
+    guard let kind = OutputUnitKind(rawValue: kind), kind != .trackRenderer else {
         preconditionFailure()
     }
     return addOutputUnit(makeOutputUnit(kind, sampleRate, channelCount))
@@ -294,12 +378,6 @@ func audioOutputUnitStop(_ identifier: UInt64) -> Int32 {
 @_expose(Cxx)
 func audioOutputUnitLatency(_ identifier: UInt64) -> UInt64 {
     withOutputUnit(identifier, 0) { $0.latency() }
-}
-
-// Sets a global property whose value is an object, such as kAudioOutputUnitProperty_IntendedSpatialExperience.
-@_expose(Cxx)
-func audioOutputUnitSetObjectProperty(_ identifier: UInt64, _ property: UInt32, _ object: UnsafeMutableRawPointer?) -> Int32 {
-    withOutputUnit(identifier, kAudio_ParamError) { unsafe $0.setObject(object, for: property) }
 }
 
 #endif // ENABLE_WEBCORE_SWIFT

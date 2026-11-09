@@ -28,6 +28,8 @@
 #if ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
 
 #include "Helpers/Test.h"
+#include "Utilities.h"
+#include <Accelerate/Accelerate.h>
 #include <WebCore/AudioOutputUnit.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CARingBuffer.h>
@@ -337,6 +339,182 @@ TEST_F(AudioOutputUnitTest, RemoteDestinationRendersAsTheCxxDid)
         if (::testing::Test::HasFailure())
             return;
     }
+}
+
+// The C++ that rendered a GPU-process track renderer's quantum before it moved to Swift: the timeline check of
+// LocalAudioMediaStreamTrackRendererInternalUnit::render(), RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render()
+// over the same ring API, and the clipping of Float32 samples.
+class ReferenceTrack {
+public:
+    ReferenceTrack(CARingBuffer& ring, uint64_t frameChunkSize, uint64_t bytesPerFrame)
+        : m_ringBuffer(ring)
+        , m_frameChunkSize(frameChunkSize)
+        , m_bytesPerFrame(bytesPerFrame)
+    {
+    }
+
+    OSStatus render(UInt32 sampleCount, AudioBufferList& list, double sampleTime, AudioUnitRenderActionFlags& flags, bool checkTimelineAndClip)
+    {
+        if (checkTimelineAndClip) {
+            if (m_sampleTime && (m_sampleTime + 2 * sampleCount < sampleTime || sampleTime <= m_sampleTime))
+                ++m_resets;
+            m_sampleTime = sampleTime < std::numeric_limits<Float64>::max() - sampleCount ? sampleTime : 0;
+        }
+
+        bool fetched = m_ringBuffer.fetchIfHasEnoughData(&list, sampleCount, m_readOffset);
+        if (fetched)
+            m_readOffset += sampleCount;
+        uint64_t requestedSampleCount = m_generateOffset;
+        while (requestedSampleCount < sampleCount) {
+            requestedSampleCount += m_frameChunkSize;
+            ++m_signals;
+        }
+        m_generateOffset = requestedSampleCount - sampleCount;
+        if (!fetched) {
+            for (auto& buffer : unsafeMakeSpan(list.mBuffers, list.mNumberBuffers))
+                memset(buffer.mData, 0, static_cast<size_t>(sampleCount * m_bytesPerFrame));
+            flags = kAudioUnitRenderAction_OutputIsSilence;
+        }
+
+        if (checkTimelineAndClip) {
+            for (auto& buffer : unsafeMakeSpan(list.mBuffers, list.mNumberBuffers)) {
+                float minimum = -1;
+                float maximum = 1;
+                vDSP_vclip(static_cast<float*>(buffer.mData), 1, &minimum, &maximum, static_cast<float*>(buffer.mData), 1, buffer.mDataByteSize / sizeof(float));
+            }
+        }
+        return fetched ? noErr : -1;
+    }
+
+    unsigned signals() const { return m_signals; }
+    unsigned resets() const { return m_resets; }
+
+private:
+    CARingBuffer& m_ringBuffer;
+    uint64_t m_frameChunkSize;
+    uint64_t m_bytesPerFrame;
+    uint64_t m_readOffset { 0 };
+    uint64_t m_generateOffset { 0 };
+    uint64_t m_sampleTime { 0 };
+    unsigned m_signals { 0 };
+    unsigned m_resets { 0 };
+};
+
+static AudioStreamBasicDescription float32Format(uint32_t channels)
+{
+    return CAAudioStreamDescription(44100, channels, CAAudioStreamDescription::PCMFormat::Float32, CAAudioStreamDescription::IsInterleaved::No).streamDescription();
+}
+
+TEST_F(AudioOutputUnitTest, TrackRendererRendersAsTheCxxDid)
+{
+    unsigned caseCount = 200;
+    if (auto* cases = getenv("AUDIO_OUTPUT_UNIT_CASES"))
+        caseCount = atoi(cases);
+    for (unsigned seed = 1; seed <= caseCount; ++seed) {
+        std::mt19937_64 random(seed);
+        auto pick = [&](uint64_t bound) { return bound ? random() % bound : 0; };
+        uint32_t channels = 1 + pick(2);
+        size_t ringFrames = size_t { 64 } << pick(4);
+        auto ring = makeRing(channels, ringFrames);
+        uint64_t frameChunkSize = 128 + pick(400);
+        auto renderer = AudioOutputUnit::createTrackRenderer(0, 44100, float32Format(channels), true);
+        ASSERT_TRUE(!!renderer.unit) << "step " << renderer.failedStep << " status " << renderer.status;
+        AudioTrackPlayoutState state;
+        state.ring.geometry = ring->geometry();
+        state.ring.header = &ring->boundsStorage();
+        state.ring.channels = ring->channelData().data();
+        state.ring.channelsByteCount = ring->channelData().size();
+        state.ring.semaphore = semaphore();
+        state.frameChunkSize = frameChunkSize;
+        state.bytesPerFrame = sizeof(float);
+        renderer.unit->attachTrackPlayout(state);
+        ReferenceTrack reference { *ring, frameChunkSize, sizeof(float) };
+        bool useSpeakerPath = !pick(4);
+
+        runOffMainThread([&] {
+            uint64_t writeFrame = 0;
+            double sampleTime = 1 + pick(1000);
+            for (unsigned step = 0; step < 40; ++step) {
+                if (pick(3)) {
+                    uint32_t frames = 1 + pick(ringFrames);
+                    Vector<uint32_t> sizes(FillWith { }, static_cast<size_t>(channels), static_cast<uint32_t>(frames * sizeof(float)));
+                    TestBufferList source { sizes };
+                    for (uint32_t channel = 0; channel < channels; ++channel) {
+                        auto* samples = static_cast<uint32_t*>(source.list().mBuffers[channel].mData);
+                        for (uint32_t frame = 0; frame < frames; ++frame)
+                            samples[frame] = pick(10) ? std::bit_cast<uint32_t>((static_cast<float>(pick(4001)) - 2000.f) / 1000.f) : static_cast<uint32_t>(random());
+                    }
+                    ring->store(&source.list(), frames, writeFrame);
+                    writeFrame += frames;
+                }
+                uint32_t frames = 1 + pick(256);
+                Vector<uint32_t> sizes(FillWith { }, static_cast<size_t>(channels), static_cast<uint32_t>(frames * sizeof(float) + 4 * pick(3)));
+                TestBufferList expected { sizes };
+                TestBufferList actual { sizes };
+                AudioUnitRenderActionFlags expectedFlags = 0;
+                AudioUnitRenderActionFlags actualFlags = 0;
+                auto expectedStatus = reference.render(frames, expected.list(), sampleTime, expectedFlags, !useSpeakerPath);
+                auto actualStatus = useSpeakerPath ? AudioOutputUnit::renderTrackForSpeaker(state, actual.list(), frames, actualFlags) : renderer.unit->renderForTesting(actual.list(), frames, sampleTime, false, &actualFlags);
+                EXPECT_EQ(actualStatus, expectedStatus) << "seed " << seed << " step " << step;
+                EXPECT_EQ(actualFlags, expectedFlags) << "seed " << seed << " step " << step;
+                for (uint32_t channel = 0; channel < channels; ++channel) {
+                    EXPECT_EQ(actual.list().mBuffers[channel].mDataByteSize, expected.list().mBuffers[channel].mDataByteSize) << "seed " << seed << " step " << step;
+                    EXPECT_TRUE(std::ranges::equal(actual.bytes(channel), expected.bytes(channel))) << "seed " << seed << " step " << step << " channel " << channel;
+                }
+                if (::testing::Test::HasFailure())
+                    return;
+                sampleTime += pick(12) ? frames : pick(4 * frames);
+            }
+        });
+        EXPECT_EQ(takeSignals(), reference.signals()) << "seed " << seed;
+        if (::testing::Test::HasFailure())
+            return;
+    }
+}
+
+TEST_F(AudioOutputUnitTest, TrackRendererResetsOnTheMainThreadWhenItsTimelineJumps)
+{
+    auto ring = makeRing(1, 1024);
+    auto renderer = AudioOutputUnit::createTrackRenderer(0, 44100, float32Format(1), true);
+    ASSERT_TRUE(!!renderer.unit);
+    AudioTrackPlayoutState state;
+    state.ring.geometry = ring->geometry();
+    state.ring.header = &ring->boundsStorage();
+    state.ring.channels = ring->channelData().data();
+    state.ring.channelsByteCount = ring->channelData().size();
+    state.ring.semaphore = semaphore();
+    state.frameChunkSize = 441;
+    state.bytesPerFrame = sizeof(float);
+    renderer.unit->attachTrackPlayout(state);
+    unsigned resets = 0;
+    renderer.unit->setEventHandler([&](OptionSet<AudioOutputUnit::Event> events) {
+        EXPECT_TRUE(isMainThread());
+        if (events.contains(AudioOutputUnit::Event::TimelineDiscontinuity))
+            ++resets;
+    });
+
+    auto render = [&](double sampleTime) {
+        runOffMainThread([&] {
+            TestBufferList output { { 128 * sizeof(float) } };
+            renderer.unit->renderForTesting(output.list(), 128, sampleTime, false);
+        });
+    };
+    render(128);
+    render(256);
+    render(384);
+    Util::runFor(0.1_s);
+    EXPECT_EQ(resets, 0u);
+
+    render(4096);
+    for (unsigned i = 0; i < 500 && resets < 1; ++i)
+        Util::runFor(10_ms);
+    EXPECT_EQ(resets, 1u);
+
+    render(4096 + 128);
+    render(1000);
+    for (unsigned i = 0; i < 500 && resets < 2; ++i)
+        Util::runFor(10_ms);
+    EXPECT_EQ(resets, 2u);
 }
 
 } // namespace TestWebKitAPI

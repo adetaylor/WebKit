@@ -65,9 +65,6 @@ public:
 
     WEBCORE_EXPORT TimeBounds getFetchTimeBounds();
 
-    // The GPU process's track renderer render quantum (CARingBufferPlayout.swift): fetches sampleCount frames from
-    // readOffset and advances it, and counts the chunks of frameChunkSize frames to ask the writer for.
-    WEBCORE_EXPORT CARingBufferTrackRenderResult renderForTrackRenderer(uint64_t& readOffset, uint64_t& generateOffset, AudioBufferList&, size_t sampleCount, uint64_t frameChunkSize);
 
     uint32_t channelCount() const { return m_geometry.channelCount; }
     uint32_t frameCount() const { return m_geometry.frameCount; }

@@ -6289,6 +6289,7 @@
 		62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */; };
 		4A01C0BFDB37FC20485E98D8 /* CAAudioStreamDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88A8C82622D17428EA4D912 /* CAAudioStreamDescription.swift */; };
 		3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */; };
+		3272A4D9C454A8793AFBCC67 /* AudioControlThread.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46942D83D5AABCD5B8045011 /* AudioControlThread.swift */; };
 		F829CFD3C7FA9FA96C68A2B0 /* AudioUnitOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6682717444D224A2211C145 /* AudioUnitOwner.swift */; };
 		21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */; };
 		4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */; };
@@ -21852,6 +21853,7 @@
 		E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBuffer.swift; sourceTree = "<group>"; };
 		298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferMix.swift; sourceTree = "<group>"; };
 		443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferPlayout.swift; sourceTree = "<group>"; };
+		46942D83D5AABCD5B8045011 /* AudioControlThread.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioControlThread.swift; sourceTree = "<group>"; };
 		C6682717444D224A2211C145 /* AudioUnitOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitOwner.swift; sourceTree = "<group>"; };
 		83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputUnit.swift; sourceTree = "<group>"; };
 		60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitIsland.swift; sourceTree = "<group>"; };
@@ -40762,6 +40764,7 @@
 		CD669D651D232DF4004D1866 /* cocoa */ = {
 			isa = PBXGroup;
 			children = (
+				46942D83D5AABCD5B8045011 /* AudioControlThread.swift */,
 				51DCE1AA2CF5800D00BE7E84 /* AudioDecoderCocoa.cpp */,
 				51DCE1A92CF5800D00BE7E84 /* AudioDecoderCocoa.h */,
 				413151842357745E00115E6E /* AudioDestinationCocoa.cpp */,
@@ -51956,6 +51959,7 @@
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
 				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
 				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
+				3272A4D9C454A8793AFBCC67 /* AudioControlThread.swift in Sources */,
 				21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */,
 				62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */,
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,

@@ -61,6 +61,37 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
     private let unit: AudioUnit
     let renderState: RenderStateReference
 
+    enum MakeResult: ~Copyable {
+        case made(AudioUnitOwner)
+        case noComponent
+        case failed(OSStatus)
+    }
+
+    // An output unit of the given subtype, or why there's none.
+    static func make(componentSubType: OSType, renderSampleCapacity: Int) -> MakeResult {
+        var description = AudioComponentDescription(
+            componentType: kAudioUnitType_Output,
+            componentSubType: componentSubType,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+        guard let component = unsafe AudioComponentFindNext(nil, &description) else {
+            return .noComponent
+        }
+        var instance: AudioComponentInstance?
+        let status = unsafe AudioComponentInstanceNew(component, &instance)
+        guard status == noErr, let instance = unsafe instance else {
+            return .failed(status)
+        }
+        return .made(unsafe AudioUnitOwner(instance, renderSampleCapacity))
+    }
+
+    private init(_ instance: AudioUnit, _ renderSampleCapacity: Int) {
+        unsafe unit = instance
+        renderState = makeRenderState(sampleCapacity: renderSampleCapacity)
+    }
+
     // An output unit of the given subtype whose render callback can remember renderSampleCapacity samples.
     init?(componentSubType: OSType, renderSampleCapacity: Int) {
         var description = AudioComponentDescription(
@@ -94,6 +125,11 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         return unsafe AudioUnitSetProperty(unit, property, scope, 0, &value, UInt32(MemoryLayout<UInt32>.size))
     }
 
+    func streamFormat(_ format: inout AudioStreamBasicDescription, scope: AudioUnitScope) -> OSStatus {
+        var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+        return unsafe AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, scope, 0, &format, &size)
+    }
+
     func streamFormat(scope: AudioUnitScope) -> AudioStreamBasicDescription {
         var format = AudioStreamBasicDescription()
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
@@ -111,6 +147,10 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
             &format,
             UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         )
+    }
+
+    func installRenderCallback(_ callback: SwiftRenderCallback, scope: AudioUnitScope) -> OSStatus {
+        unsafe setRenderCallback(callback.function, renderState.refCon, scope: scope)
     }
 
     func setRenderCallback(_ callback: AURenderCallback, _ refCon: UnsafeMutableRawPointer?, scope: AudioUnitScope)
@@ -150,17 +190,21 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
 
     // Renders one quantum of frameCount frames into ioData on this thread, through AudioUnitRender() or by calling the
     // remote destination render callback directly.
-    func renderForTesting(_ ioData: UnsafeMutablePointer<AudioBufferList>, _ frameCount: UInt32, _ sampleTime: Float64, _ throughAudioUnit: Bool)
-        -> OSStatus
-    {
+    func renderForTesting(
+        _ renderCallback: SwiftRenderCallback,
+        _ ioData: UnsafeMutablePointer<AudioBufferList>,
+        _ frameCount: UInt32,
+        _ sampleTime: Float64,
+        _ throughAudioUnit: Bool,
+        _ actionFlags: UnsafeMutablePointer<UInt32>
+    ) -> OSStatus {
         var timeStamp = AudioTimeStamp()
         timeStamp.mSampleTime = sampleTime
         timeStamp.mFlags = .sampleTimeValid
-        var flags: UInt32 = 0
         if throughAudioUnit {
-            return unsafe AudioUnitRender(unit, &flags, &timeStamp, 0, frameCount, ioData)
+            return unsafe AudioUnitRender(unit, actionFlags, &timeStamp, 0, frameCount, ioData)
         }
-        return unsafe remoteDestinationRenderCallback(renderState.refCon, &flags, &timeStamp, 0, frameCount, ioData)
+        return unsafe renderCallback.function(renderState.refCon, actionFlags, &timeStamp, 0, frameCount, ioData)
     }
 
     consuming func start() -> AudioUnitStartResult {
@@ -189,6 +233,13 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
     fileprivate func latencyWhileRunning() -> UInt64 {
         latency()
     }
+}
+
+// The Swift render callbacks of AudioUnitIsland.swift that a unit can have, with its render state as refCon.
+enum SwiftRenderCallback {
+    case remoteDestination
+    case trackPlayout
+    case inProcessTrack
 }
 
 enum AudioUnitStartResult: ~Copyable {

@@ -113,12 +113,6 @@ void CARingBuffer::fetch(AudioBufferList* list, size_t frameCount, uint64_t star
     caRingBufferFetch(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), false);
 }
 
-CARingBufferTrackRenderResult CARingBuffer::renderForTrackRenderer(uint64_t& readOffset, uint64_t& generateOffset, AudioBufferList& output, size_t sampleCount, uint64_t frameChunkSize)
-{
-    AudioBufferListView destination { &output };
-    return caRingBufferRenderForTrackRenderer(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, readOffset, generateOffset, destination, sampleCount, frameChunkSize);
-}
-
 std::unique_ptr<InProcessCARingBuffer> InProcessCARingBuffer::allocate(const WebCore::CAAudioStreamDescription& format, size_t frameCount)
 {
     auto bytesPerFrame = format.bytesPerFrame();
