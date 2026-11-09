@@ -1228,6 +1228,14 @@ $(PROJECT_DIR)/Modules/webxr/XRVisibilityState.idl
 $(PROJECT_DIR)/Modules/webxr/XRWebGLBinding.idl
 $(PROJECT_DIR)/Modules/webxr/XRWebGLLayerInit.idl
 $(PROJECT_DIR)/Modules/webxr/XRWebGLSubImage.idl
+$(PROJECT_DIR)/PAL/pal/cf/AudioToolboxSoftLink.cpp
+$(PROJECT_DIR)/PAL/pal/cf/AudioToolboxSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cf/CoreMediaSoftLink.cpp
+$(PROJECT_DIR)/PAL/pal/cf/CoreMediaSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cocoa/AVFAudioSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cocoa/AVFAudioSoftLink.mm
+$(PROJECT_DIR)/PAL/pal/cocoa/AVFoundationSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cocoa/AVFoundationSoftLink.mm
 $(PROJECT_DIR)/Scripts/GenerateQuirkBehaviors.rb
 $(PROJECT_DIR)/Scripts/GenerateSettings.rb
 $(PROJECT_DIR)/Scripts/QuirkBehaviorsTemplates/QuirkBehaviorDeclarations.cpp.erb
@@ -1243,6 +1251,7 @@ $(PROJECT_DIR)/Scripts/SettingsTemplates/Settings.cpp.erb
 $(PROJECT_DIR)/Scripts/SettingsTemplates/Settings.h.erb
 $(PROJECT_DIR)/Scripts/generate-log-declarations.py
 $(PROJECT_DIR)/Scripts/generate-process-sync-data.py
+$(PROJECT_DIR)/Scripts/generate-soft-link-accessors.py
 $(PROJECT_DIR)/accessibility/AccessibilityRole.idl
 $(PROJECT_DIR)/accessibility/AriaAttributes.idl
 $(PROJECT_DIR)/animation/Animatable.idl
@@ -2066,6 +2075,7 @@ $(PROJECT_DIR)/page/WindowSessionStorage.idl
 $(PROJECT_DIR)/page/WorkerNavigator.idl
 $(PROJECT_DIR)/platform/ColorData.gperf
 $(PROJECT_DIR)/platform/LogMessages.in
+$(PROJECT_DIR)/platform/cocoa/SoftLinkAccessors.in
 $(PROJECT_DIR)/platform/network/HTTPHeaderNames.in
 $(PROJECT_DIR)/platform/network/create-http-header-name-table
 $(PROJECT_DIR)/plugins/DOMMimeType.idl

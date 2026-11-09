@@ -7784,6 +7784,9 @@
 		598B28086F55413F84394B7E /* GLVideoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */; };
 		89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */; };
 		D696FCA46C2D4F7EA0C6A4B2 /* ShapeDetectionVisionSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = 8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */; };
+		FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */; };
+		46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -24565,6 +24568,9 @@
 		624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeDetectionVision.swift; sourceTree = "<group>"; };
 		8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShapeDetectionVisionSupport.h; sourceTree = "<group>"; };
 		CB93BA49C26546E88CDB2257 /* ShapeDetectionVisionSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShapeDetectionVisionSupport.mm; sourceTree = "<group>"; };
+		7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31256,6 +31262,9 @@
 				26AA0F9F18D2A1C100419381 /* SelectorPseudoElementMap.gperf */,
 				7CEB57EA1F95651500097AEC /* Settings.cpp */,
 				7CEB57E91F95651500097AEC /* Settings.h */,
+				2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */,
+				7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */,
+				8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */,
 				9908B0FD1BCAD07D00ED0F55 /* StreamInternalsBuiltins.cpp */,
 				9B03D8061BB3110D00B764C9 /* StreamInternalsBuiltins.h */,
 				8386A96E19F61E4F00E1EC4A /* StyleBuilderGenerated.cpp */,
@@ -52187,6 +52196,9 @@
 				5A1E00000000000000000008 /* SIMDHighBitMask.swift in Sources */,
 				5A1E00000000000000000006 /* SIMDSaturatingSubtract.swift in Sources */,
 				5A1E00000000000000000004 /* SIMDTableLookup.swift in Sources */,
+				46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */,
+				31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */,
+				FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */,
 				FAFC665E50AE3137A8B4F14B /* SourceAlphaCoreImageApplier.swift in Sources */,
 				649031DC6302DE3AC23EAFFE /* SourceAlphaSoftwareApplier.swift in Sources */,
 				A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */,
