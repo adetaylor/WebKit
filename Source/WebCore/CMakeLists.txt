@@ -3394,8 +3394,6 @@ if (APPLE)
         platform/graphics/cg/GraphicsContextCG.cpp
         platform/graphics/cg/ShareableBitmapCG.mm
 
-        platform/graphics/coreimage/FilterCoreImageSwiftBridge.mm
-
         platform/graphics/filters/FEColorMatrix.cpp
         platform/graphics/filters/FEConvolveMatrix.cpp
         platform/graphics/filters/FEDisplacementMap.cpp

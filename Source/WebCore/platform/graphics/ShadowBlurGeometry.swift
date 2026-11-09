@@ -27,8 +27,7 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-// The safe MutableSpan overload Swift synthesizes for MutablePixelBytes's span accessor, and std::optional's value, come
-// from Cxx. Xcode builds don't find them unless this file imports Cxx.
+// std::optional's value comes from Cxx. Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
 import WebCore_Private.Core.AffineTransform
 import WebCore_Private.Core.Color
@@ -81,19 +80,6 @@ func shadowBlurState(
         state.type = .SolidShadow
     }
     return state
-}
-
-// ShadowBlur::blurLayerImage().
-@_expose(Cxx)
-func shadowBlurLayerImage(
-    _ state: borrowing WebCore.ShadowBlurState,
-    _ pixels: inout WebCore.MutablePixelBytes,
-    _ width: Int32,
-    _ height: Int32,
-    _ rowStride: Int32
-) {
-    var image: MutableSpan<UInt8> = pixels.mutableSpan()
-    state.blur(&image, width, height, rowStride)
 }
 
 // ShadowBlur::drawRectShadow().

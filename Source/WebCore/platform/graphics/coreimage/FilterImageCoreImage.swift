@@ -28,7 +28,6 @@ import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import IOSurface
-import Synchronization
 import WebCore_Private.Core.ColorSpace
 import WebCore_Private.Core.FilterCoreImageSwiftBridge
 import WebCore_Private.Core.FilterGraphicsBridge
@@ -123,25 +122,8 @@ private func filterResultContext(workingColorSpace: borrowing WebCore.ColorSpace
     CIContext(options: [.workingColorSpace: WebCore.FilterCoreImageSwiftBridge.platformColorSpace(workingColorSpace) as Any])
 }
 
-private struct FilterResultContextsForTesting: Sendable {
-    var linearSRGB: CIContext?
-    var sRGB: CIContext?
-}
-
-private let filterResultContextsForTesting = Mutex(FilterResultContextsForTesting())
-
 private func filterResultContext(linearSRGB: Bool) -> CIContext {
-    let contextForTesting = filterResultContextsForTesting.withLock { linearSRGB ? $0.linearSRGB : $0.sRGB }
-    if let contextForTesting {
-        return contextForTesting
-    }
-    return linearSRGB ? linearSRGBFilterResultContext : sRGBFilterResultContext
-}
-
-// Replaces the contexts that render filter results, or restores them with nil.
-@_expose(Cxx)
-func setFilterResultContextsForTesting(_ linearSRGB: CIContext?, _ sRGB: CIContext?) {
-    filterResultContextsForTesting.withLock { $0 = FilterResultContextsForTesting(linearSRGB: linearSRGB, sRGB: sRGB) }
+    linearSRGB ? linearSRGBFilterResultContext : sRGBFilterResultContext
 }
 
 #endif // USE_CORE_IMAGE

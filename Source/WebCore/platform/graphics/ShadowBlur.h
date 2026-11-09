@@ -70,8 +70,6 @@ public:
     void drawInsetShadow(const AffineTransform&, const IntRect& clipBounds, const FloatRect& fullRect, const FloatRoundedRect& holeRect, NOESCAPE const DrawBufferCallback&, NOESCAPE const DrawImageCallback&, NOESCAPE const FillRectWithHoleCallback&);
     void drawShadowLayer(const AffineTransform&, const IntRect& clipBounds, const FloatRect& layerArea, NOESCAPE const DrawShadowCallback&, NOESCAPE const DrawBufferCallback&);
 
-    void blurLayerImage(std::span<uint8_t>, const IntSize&, int stride);
-
     ShadowType type() const;
 
 private:

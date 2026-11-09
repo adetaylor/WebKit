@@ -67,12 +67,6 @@ ShadowBlur::ShadowType ShadowBlur::type() const
     return static_cast<ShadowType>(m_state.type);
 }
 
-void ShadowBlur::blurLayerImage(std::span<uint8_t> imageData, const IntSize& size, int rowStride)
-{
-    MutablePixelBytes pixels { imageData };
-    shadowBlurLayerImage(m_state, pixels, size.width(), size.height(), rowStride);
-}
-
 static_assert(static_cast<int>(ShadowBlurType::NoShadow) == ShadowBlur::NoShadow);
 static_assert(static_cast<int>(ShadowBlurType::SolidShadow) == ShadowBlur::SolidShadow);
 static_assert(static_cast<int>(ShadowBlurType::BlurShadow) == ShadowBlur::BlurShadow);
