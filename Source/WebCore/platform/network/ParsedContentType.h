@@ -45,12 +45,12 @@ public:
 
     String mimeType() const { return m_mimeType; }
     String contentType() const { return m_contentType; }
-    String charset() const;
-    void setCharset(String&&);
+    WEBCORE_EXPORT String charset() const;
+    WEBCORE_EXPORT void setCharset(String&&);
 
     // Note that in the case of multiple values for the same name, the last value is returned.
     WEBCORE_EXPORT String parameterValueForName(const String&) const;
-    NODELETE size_t parameterCount() const;
+    NODELETE WEBCORE_EXPORT size_t parameterCount() const;
 
     WEBCORE_EXPORT String serialize() const;
 
