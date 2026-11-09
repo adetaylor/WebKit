@@ -27,6 +27,7 @@
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 
+#include <WebCore/DisplayCaptureCore.h>
 #include <WebCore/DisplayCaptureManager.h>
 #include <WebCore/DisplayCaptureSourceCocoa.h>
 #include <WebCore/ScreenCaptureKitSharingSessionManager.h>
@@ -95,6 +96,7 @@ private:
     DisplaySurfaceType surfaceType() const final;
     void commitConfiguration(const RealtimeMediaSourceSettings&) final;
     IntSize intrinsicSize() const final;
+    FloatSize contentSize() const;
     void whenReady(CompletionHandler<void(CaptureSourceError&&)>&&) final;
 
     // LoggerHelper
@@ -129,17 +131,10 @@ private:
     OSObjectPtr<dispatch_queue_t> m_captureQueue;
     CaptureDevice m_captureDevice;
     uint32_t m_deviceID { 0 };
-    mutable std::optional<IntSize> m_intrinsicSize;
     const std::unique_ptr<ImageTransferSessionVT> m_transferSession;
 
-    FloatSize m_contentSize;
-    uint32_t m_width { 0 };
-    uint32_t m_height { 0 };
-    float m_frameRate { 0 };
-    bool m_isRunning { false };
+    mutable ScreenCaptureKitCaptureCore m_core;
     bool m_isVideoEffectEnabled { false };
-    bool m_didReceiveVideoFrame { false };
-    bool m_isPrewarming { false };
     CompletionHandler<void(CaptureSourceError&&)> m_whenReadyCallback;
 };
 

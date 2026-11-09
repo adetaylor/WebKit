@@ -29,6 +29,7 @@
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
 #include <WebCore/CaptureDevice.h>
+#include <WebCore/DisplayCaptureCore.h>
 #include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/RealtimeMediaSourceSettings.h>
 #include <WebCore/UserActivity.h>
@@ -132,8 +133,6 @@ public:
     static CaptureSourceOrError create(const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
     static CaptureSourceOrError create(NOESCAPE const std::function<UniqueRef<Capturer>(CapturerObserver&)>&, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
 
-    Seconds elapsedTime();
-
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
     virtual ~DisplayCaptureSourceCocoa();
 
@@ -171,8 +170,7 @@ private:
     std::optional<RealtimeMediaSourceSettings> m_currentSettings;
     RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
 
-    MonotonicTime m_startTime { MonotonicTime::nan() };
-    Seconds m_elapsedTime { 0_s };
+    DisplayCaptureSourceCore m_core;
 
     RunLoop::Timer m_timer;
     UserActivity m_userActivity;

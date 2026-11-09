@@ -130,7 +130,12 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(ScreenCaptureKitCaptureSource);
 
 ALLOW_NEW_API_WITHOUT_GUARDS_BEGIN
 
-constexpr IntSize defaultIntrinsicSize = { 640, 480 };
+static_assert(static_cast<int64_t>(SCFrameStatusComplete) == static_cast<int64_t>(DisplayCaptureFrameStatus::Complete));
+static_assert(static_cast<int64_t>(SCFrameStatusIdle) == static_cast<int64_t>(DisplayCaptureFrameStatus::Idle));
+static_assert(static_cast<int64_t>(SCFrameStatusBlank) == static_cast<int64_t>(DisplayCaptureFrameStatus::Blank));
+static_assert(static_cast<int64_t>(SCFrameStatusSuspended) == static_cast<int64_t>(DisplayCaptureFrameStatus::Suspended));
+static_assert(static_cast<int64_t>(SCFrameStatusStarted) == static_cast<int64_t>(DisplayCaptureFrameStatus::Started));
+static_assert(static_cast<int64_t>(SCFrameStatusStopped) == static_cast<int64_t>(DisplayCaptureFrameStatus::Stopped));
 
 bool ScreenCaptureKitCaptureSource::isAvailable()
 {
@@ -169,48 +174,43 @@ ScreenCaptureKitCaptureSource::~ScreenCaptureKitCaptureSource()
 
 void ScreenCaptureKitCaptureSource::whenReady(CompletionHandler<void(CaptureSourceError&&)>&& callback)
 {
-    if (m_didReceiveVideoFrame) {
+    switch (m_core.whenReady()) {
+    case ScreenCaptureKitCaptureCore::WhenReadyAction::CallNow:
         callback({ });
         return;
-    }
-
-    m_whenReadyCallback = WTF::move(callback);
-
-    if (m_isRunning)
+    case ScreenCaptureKitCaptureCore::WhenReadyAction::Wait:
+        m_whenReadyCallback = WTF::move(callback);
         return;
-
-    m_isPrewarming = true;
-    // We start to get the first frame. The frame size allows to finalize initialization of the source settings.
-    startInternal(IsPrewarming::Yes);
+    case ScreenCaptureKitCaptureCore::WhenReadyAction::StartPrewarming:
+        m_whenReadyCallback = WTF::move(callback);
+        // We start to get the first frame. The frame size allows to finalize initialization of the source settings.
+        startInternal(IsPrewarming::Yes);
+        return;
+    }
 }
 
 bool ScreenCaptureKitCaptureSource::start()
 {
     startInternal(IsPrewarming::No);
-    return m_isRunning;
+    return m_core.isRunning();
 }
 
 void ScreenCaptureKitCaptureSource::startInternal(IsPrewarming isPrewarming)
 {
     ASSERT(isAvailable());
-    ASSERT(!m_whenReadyCallback || !m_isRunning);
+    ASSERT(!m_whenReadyCallback || !m_core.isRunning());
 
     ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER);
 
-    m_isPrewarming = isPrewarming == IsPrewarming::Yes;
-
-    if (m_isRunning)
-        return;
-
-    m_isRunning = true;
-    startContentStream();
+    if (m_core.startInternal(isPrewarming == IsPrewarming::Yes))
+        startContentStream();
 }
 
 void ScreenCaptureKitCaptureSource::stop()
 {
     ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER);
 
-    m_isRunning = false;
+    m_core.stop();
     if (!contentStream())
         return;
 
@@ -239,7 +239,7 @@ void ScreenCaptureKitCaptureSource::sessionFailedWithError(RetainPtr<NSError>&& 
 {
     ASSERT(isMainThread());
 
-    if (!m_isRunning)
+    if (!m_core.isRunning())
         return;
 
     ERROR_LOG_IF(loggerPtr() && error, LOGIDENTIFIER, message, " with error '", error.get(), "'");
@@ -292,7 +292,7 @@ void ScreenCaptureKitCaptureSource::sessionFilterDidChange(SCContentFilter* cont
     }
 
     m_captureDevice = device.value();
-    m_intrinsicSize = { };
+    m_core.resetIntrinsicSize();
     if (contentStream()) {
         auto completionHandler = makeBlockPtr([weakThis = WeakPtr { *this }] (NSError *error) mutable {
             if (!error)
@@ -340,25 +340,13 @@ RetainPtr<SCStreamConfiguration> ScreenCaptureKitCaptureSource::streamConfigurat
     [m_streamConfiguration setPresenterOverlayPrivacyAlertSetting:SCPresenterOverlayAlertSettingNever];
 #endif
 
-    if (m_frameRate)
-        [m_streamConfiguration setMinimumFrameInterval:PAL::CMTimeMakeWithSeconds(1 / m_frameRate, 1000)];
+    auto configuration = m_core.streamConfiguration();
+    if (configuration.hasMinimumFrameInterval)
+        [m_streamConfiguration setMinimumFrameInterval:PAL::CMTimeMakeWithSeconds(configuration.minimumFrameInterval, 1000)];
 
-    auto width = m_width;
-    auto height = m_height;
-
-    if (!width && !height) {
-        width = m_contentSize.width();
-        height = m_contentSize.height();
-    } else if (!m_contentSize.isEmpty()) {
-        if (!width)
-            width = height * m_contentSize.aspectRatio();
-        else
-            height = width / m_contentSize.aspectRatio();
-    }
-
-    if (width && height) {
-        [m_streamConfiguration setWidth:width];
-        [m_streamConfiguration setHeight:height];
+    if (configuration.hasSize) {
+        [m_streamConfiguration setWidth:configuration.width];
+        [m_streamConfiguration setHeight:configuration.height];
     }
 
     return m_streamConfiguration;
@@ -373,14 +361,10 @@ void ScreenCaptureKitCaptureSource::startContentStream()
 
     if (!m_contentFilter) {
         m_contentFilter = ScreenCaptureKitSharingSessionManager::singleton().contentFilter(m_captureDevice);
-        m_contentSize = FloatSize { [m_contentFilter contentRect].size };
+        auto contentRect = [m_contentFilter contentRect];
+        m_core.setContentSize(contentRect.size.width, contentRect.size.height, [m_contentFilter pointPixelScale]);
 
-        if (m_contentSize.isEmpty())
-            m_contentSize = defaultIntrinsicSize;
-        if ([m_contentFilter pointPixelScale])
-            m_contentSize.scale([m_contentFilter pointPixelScale]);
-
-        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "contentFilter.contentRect = ", m_contentSize, ", contentFilter.pointPixelScale = ", [m_contentFilter pointPixelScale]);
+        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "contentFilter.contentRect = ", contentSize(), ", contentFilter.pointPixelScale = ", [m_contentFilter pointPixelScale]);
     }
 
     if (!m_contentFilter) {
@@ -442,7 +426,7 @@ void ScreenCaptureKitCaptureSource::startContentStream()
                 return;
             }
 
-            protectedThis->m_intrinsicSize = { };
+            protectedThis->m_core.resetIntrinsicSize();
             protectedThis->configurationChanged();
             ALWAYS_LOG_WITH_THIS_IF_POSSIBLE(protectedThis, identifier, "stream started");
         });
@@ -450,38 +434,38 @@ void ScreenCaptureKitCaptureSource::startContentStream()
 
     [contentStream startCaptureWithCompletionHandler:completionHandler.get()];
 
-    m_isRunning = true;
+    m_core.didStartContentStream();
 }
 
 IntSize ScreenCaptureKitCaptureSource::intrinsicSize() const
 {
-    if (m_intrinsicSize)
-        return m_intrinsicSize.value();
-
+    std::optional<CGRect> frame;
 #if HAVE(WINDOW_CAPTURE)
-    if (!m_content)
-        return defaultIntrinsicSize;
-
-    auto frame = switchOn(m_content.value(),
-        [] (const RetainPtr<SCDisplay> display) -> CGRect {
-            return [display frame];
-        },
-        [] (const RetainPtr<SCWindow> window) -> CGRect {
-            return [window frame];
-        }
-    );
+    constexpr bool isEmptyContentFrameDefault = false;
+    if (m_content) {
+        frame = switchOn(m_content.value(),
+            [](const RetainPtr<SCDisplay> display) -> CGRect {
+                return [display frame];
+            },
+            [](const RetainPtr<SCWindow> window) -> CGRect {
+                return [window frame];
+            }
+        );
+    }
 #else
-    if (!m_contentFilter)
-        return defaultIntrinsicSize;
-
-    CGRect frame = [m_contentFilter contentRect];
-    if (!frame.size.width || !frame.size.height)
-        return defaultIntrinsicSize;
+    constexpr bool isEmptyContentFrameDefault = true;
+    if (m_contentFilter)
+        frame = [m_contentFilter contentRect];
 #endif
 
-    m_intrinsicSize = IntSize(static_cast<int>(frame.size.width), static_cast<int>(frame.size.height));
+    auto size = m_core.intrinsicSize(!!frame, frame ? frame->size.width : 0, frame ? frame->size.height : 0, isEmptyContentFrameDefault);
+    return { size.width, size.height };
+}
 
-    return m_intrinsicSize.value();
+FloatSize ScreenCaptureKitCaptureSource::contentSize() const
+{
+    auto size = m_core.contentSize();
+    return { size.width, size.height };
 }
 
 void ScreenCaptureKitCaptureSource::updateStreamConfiguration()
@@ -505,14 +489,10 @@ void ScreenCaptureKitCaptureSource::updateStreamConfiguration()
 
 void ScreenCaptureKitCaptureSource::commitConfiguration(const RealtimeMediaSourceSettings& settings)
 {
-    if (m_width == settings.width() && m_height == settings.height() && m_frameRate == settings.frameRate())
+    if (!m_core.commitConfiguration(settings.width(), settings.height(), settings.frameRate()))
         return;
 
-    m_width = settings.width();
-    m_height = settings.height();
-    m_frameRate = settings.frameRate();
-
-    ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, IntSize(m_width, m_height), ", ", m_frameRate);
+    ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, IntSize(settings.width(), settings.height()), ", ", settings.frameRate());
 
     if (!contentStream())
         return;
@@ -521,38 +501,37 @@ void ScreenCaptureKitCaptureSource::commitConfiguration(const RealtimeMediaSourc
     updateStreamConfiguration();
 }
 
+static DisplayCaptureFloatSize presentationSize(CMSampleBufferRef sampleBuffer)
+{
+    FloatSize size { PAL::CMVideoFormatDescriptionGetPresentationDimensions(protect(PAL::CMSampleBufferGetFormatDescription(sampleBuffer)), true, true) };
+    return { size.width(), size.height() };
+}
+
 void ScreenCaptureKitCaptureSource::streamDidOutputVideoSampleBuffer(RetainPtr<CMSampleBufferRef> sampleBuffer)
 {
     ASSERT(isMainThread());
     ASSERT(sampleBuffer);
 
-    if (m_didReceiveVideoFrame && m_isPrewarming) {
-        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "pre-warming, ignoring frame");
-        return;
-    }
-
     RetainPtr attachments = (__bridge NSArray *)PAL::CMSampleBufferGetSampleAttachmentsArray(sampleBuffer.get(), false);
-    std::optional<SCFrameStatus> status;
-    double contentScale = 1;
-    double scaleFactor = 1;
-    FloatRect contentRect;
-    bool shouldDisallowReconfiguration = false;
-    [attachments.get() enumerateObjectsUsingBlock:makeBlockPtr([weakThis = WeakPtr { *this }, &scaleFactor, &contentScale, &contentRect, &shouldDisallowReconfiguration, &status] (NSDictionary *attachment, NSUInteger, BOOL*) {
+    DisplayCaptureFrameAttachments frameAttachments;
+    [attachments.get() enumerateObjectsUsingBlock:makeBlockPtr([weakThis = WeakPtr { *this }, &frameAttachments](NSDictionary *attachment, NSUInteger, BOOL*) {
 
         RefPtr protectedThis = weakThis.get();
         if (!protectedThis)
             return;
 
         if (RetainPtr scaleFactorNumber = dynamic_objc_cast<NSNumber>(attachment[SCStreamFrameInfoScaleFactor]))
-            scaleFactor = [scaleFactorNumber floatValue];
+            frameAttachments.scaleFactor = [scaleFactorNumber floatValue];
 
         if (RetainPtr contentScaleNumber = dynamic_objc_cast<NSNumber>(attachment[SCStreamFrameInfoContentScale]))
-            contentScale = [contentScaleNumber floatValue];
+            frameAttachments.contentScale = [contentScaleNumber floatValue];
 
         if (RetainPtr contentRectDictionary = dynamic_cf_cast<CFDictionaryRef>(attachment[SCStreamFrameInfoContentRect])) {
             CGRect cgRect;
-            if (CGRectMakeWithDictionaryRepresentation(contentRectDictionary.get(), &cgRect))
-                contentRect = cgRect;
+            if (CGRectMakeWithDictionaryRepresentation(contentRectDictionary.get(), &cgRect)) {
+                FloatRect contentRect { cgRect };
+                frameAttachments.contentRect = { contentRect.x(), contentRect.y(), contentRect.width(), contentRect.height() };
+            }
         }
 
 #if HAVE(WINDOW_CAPTURE)
@@ -560,83 +539,59 @@ void ScreenCaptureKitCaptureSource::streamDidOutputVideoSampleBuffer(RetainPtr<C
             if (RetainPtr overlayRectDictionary = dynamic_cf_cast<CFDictionaryRef>(attachment[SCStreamFrameInfoPresenterOverlayContentRect])) {
                 CGRect overlayRect;
                 if (CGRectMakeWithDictionaryRepresentation(overlayRectDictionary.get(), &overlayRect))
-                    shouldDisallowReconfiguration = overlayRect.origin.x && overlayRect.origin.y;
+                    frameAttachments.shouldDisallowReconfiguration = overlayRect.origin.x && overlayRect.origin.y;
             }
         }
 
-        if (!status) {
+        if (!frameAttachments.hasStatus) {
             RetainPtr statusNumber = dynamic_objc_cast<NSNumber>(attachment[SCStreamFrameInfoStatus]);
             if (!statusNumber)
                 return;
 
-            status = (SCFrameStatus)[statusNumber integerValue];
+            frameAttachments.hasStatus = true;
+            frameAttachments.status = [statusNumber integerValue];
         }
-#else
-        UNUSED_PARAM(status);
-        UNUSED_PARAM(shouldDisallowReconfiguration);
 #endif
     }).get()];
 
-    if (status) {
-        switch (*status) {
-        case SCFrameStatusStarted:
-        case SCFrameStatusComplete:
-            break;
-        case SCFrameStatusIdle:
-        case SCFrameStatusBlank:
-        case SCFrameStatusSuspended:
-        case SCFrameStatusStopped:
-            return;
-        }
+    auto decision = m_core.frameDidArrive(frameAttachments);
+    if (decision.isPrewarmingFrame) {
+        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "pre-warming, ignoring frame");
+        return;
     }
+    if (!decision.shouldUseFrame)
+        return;
 
     m_currentFrame = WTF::move(sampleBuffer);
 
-    if (scaleFactor != 1)
-        contentRect.scale(scaleFactor);
-
-    auto scaledContentRect = contentRect;
-    if (contentScale && contentScale != 1)
-        scaledContentRect.scale(1 / contentScale);
-
-    auto areSizesRoughlyEqual = [] (auto sizeA, auto sizeB) {
-        return std::fabs(sizeA.width() - sizeB.width()) < 2 && std::abs(sizeA.height() - sizeB.height()) < 2;
-    };
     // FIXME: for now we will rely on cropping to handle large presenter overlay.
     // We might further want to reduce calling updateStreamConfiguration once we crop when user is resizing.
-    if (!shouldDisallowReconfiguration && !areSizesRoughlyEqual(m_contentSize, scaledContentRect.size())) {
-        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "resetting m_contentSize to ", m_contentSize);
-        m_contentSize = scaledContentRect.size();
+    if (decision.shouldUpdateStreamConfiguration) {
+        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "resetting m_contentSize to ", contentSize());
         m_streamConfiguration = nullptr;
         updateStreamConfiguration();
     }
 
-    auto intrinsicSize = FloatSize(PAL::CMVideoFormatDescriptionGetPresentationDimensions(protect(PAL::CMSampleBufferGetFormatDescription(m_currentFrame.get())), true, true));
+    auto frameSize = presentationSize(m_currentFrame.get());
+    if (ScreenCaptureKitCaptureCore::shouldCropFrame(decision.contentRect, frameSize)) {
+        if (!m_transferSession)
+            lazyInitialize(m_transferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
 
-    if (!contentRect.size().isEmpty() && !intrinsicSize.isEmpty()) {
-        if (!areSizesRoughlyEqual(contentRect.size(), intrinsicSize)) {
-            if (!m_transferSession)
-                lazyInitialize(m_transferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
-
-            m_transferSession->setCroppingRectangle(contentRect, intrinsicSize);
-            if (auto newFrame = m_transferSession->convertCMSampleBuffer(m_currentFrame.get(), IntSize { contentRect.size() })) {
-                m_currentFrame = WTF::move(newFrame);
-                intrinsicSize = FloatSize(PAL::CMVideoFormatDescriptionGetPresentationDimensions(protect(PAL::CMSampleBufferGetFormatDescription(m_currentFrame.get())), true, true));
-            }
+        FloatRect contentRect { decision.contentRect.x, decision.contentRect.y, decision.contentRect.width, decision.contentRect.height };
+        m_transferSession->setCroppingRectangle(contentRect, FloatSize { frameSize.width, frameSize.height });
+        if (auto newFrame = m_transferSession->convertCMSampleBuffer(m_currentFrame.get(), IntSize { contentRect.size() })) {
+            m_currentFrame = WTF::move(newFrame);
+            frameSize = presentationSize(m_currentFrame.get());
         }
     }
 
-    if (!m_intrinsicSize || *m_intrinsicSize != IntSize(intrinsicSize)) {
-        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "resetting m_intrinsicSize to ", m_intrinsicSize);
-        m_intrinsicSize = IntSize(intrinsicSize);
+    if (m_core.intrinsicSizeDidChange(frameSize)) {
+        ALWAYS_LOG_IF_POSSIBLE(LOGIDENTIFIER, "resetting m_intrinsicSize to ", intrinsicSize());
         configurationChanged();
     }
 
-    if (!m_didReceiveVideoFrame) {
-        m_didReceiveVideoFrame = true;
-        if (m_whenReadyCallback)
-            m_whenReadyCallback({ });
-    }
+    if (m_core.firstFrameDidArrive() && m_whenReadyCallback)
+        m_whenReadyCallback({ });
 }
 
 dispatch_queue_t ScreenCaptureKitCaptureSource::captureQueue()

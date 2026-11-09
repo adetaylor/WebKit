@@ -178,9 +178,14 @@ void DisplayCaptureSourceCocoa::settingsDidChange(OptionSet<RealtimeMediaSourceS
     m_currentSettings = { };
 }
 
+static double displayCaptureNow()
+{
+    return MonotonicTime::now().secondsSinceEpoch().seconds();
+}
+
 void DisplayCaptureSourceCocoa::startProducingData()
 {
-    m_startTime = MonotonicTime::now();
+    m_core.startClock(displayCaptureNow());
     m_timer.startRepeating(1_s / frameRate());
     m_userActivity.start();
 
@@ -193,8 +198,7 @@ void DisplayCaptureSourceCocoa::stopProducingData()
 {
     m_timer.stop();
     m_userActivity.stop();
-    m_elapsedTime += MonotonicTime::now() - m_startTime;
-    m_startTime = MonotonicTime::nan();
+    m_core.stopClock(displayCaptureNow());
 
     m_capturer->stop();
 }
@@ -209,38 +213,10 @@ void DisplayCaptureSourceCocoa::whenReady(CompletionHandler<void(CaptureSourceEr
     m_capturer->whenReady(WTF::move(callback));
 }
 
-Seconds DisplayCaptureSourceCocoa::elapsedTime()
-{
-    if (m_startTime.isNaN())
-        return m_elapsedTime;
-
-    return m_elapsedTime + (MonotonicTime::now() - m_startTime);
-}
-
 IntSize DisplayCaptureSourceCocoa::computeResizedVideoFrameSize(IntSize desiredSize, IntSize intrinsicSize)
 {
-    // We keep the aspect ratio of the intrinsic size for the frame size as getDisplayMedia allows max constraints only.
-    if (!intrinsicSize.width() || !intrinsicSize.height())
-        return desiredSize;
-
-    if (!desiredSize.height())
-        desiredSize.setHeight(intrinsicSize.height());
-    if (!desiredSize.width())
-        desiredSize.setWidth(intrinsicSize.width());
-
-    auto maxHeight = std::min(desiredSize.height(), intrinsicSize.height());
-    auto maxWidth = std::min(desiredSize.width(), intrinsicSize.width());
-
-    auto heightForMaxWidth = maxWidth * intrinsicSize.height() / intrinsicSize.width();
-    auto widthForMaxHeight = maxHeight * intrinsicSize.width() / intrinsicSize.height();
-
-    if (heightForMaxWidth <= maxHeight)
-        return { maxWidth, heightForMaxWidth };
-
-    if (widthForMaxHeight <= maxWidth)
-        return { widthForMaxHeight, maxHeight };
-
-    return intrinsicSize;
+    auto size = DisplayCaptureSourceCore::resizedVideoFrameSize({ desiredSize.width(), desiredSize.height() }, { intrinsicSize.width(), intrinsicSize.height() });
+    return { size.width, size.height };
 }
 
 void DisplayCaptureSourceCocoa::setSizeFrameRateAndZoom(const VideoPresetConstraints& constraints)
@@ -259,8 +235,7 @@ void DisplayCaptureSourceCocoa::emitFrame()
     if (!m_imageTransferSession)
         lazyInitialize(m_imageTransferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
 
-    auto elapsedTime = this->elapsedTime();
-    auto sampleTime = MediaTime::createWithDouble((elapsedTime + 100_ms).seconds());
+    auto sampleTime = MediaTime::createWithDouble(m_core.sampleTime(displayCaptureNow()));
 
     auto frame = m_capturer->generateFrame();
     auto imageSize = WTF::switchOn(frame,

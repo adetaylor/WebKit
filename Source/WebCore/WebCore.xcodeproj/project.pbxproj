@@ -299,6 +299,8 @@
 		078E093717D16B2C00420AA1 /* MediaStreamPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093A17D16E1C00420AA1 /* MediaConstraints.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9917CF0AD400848E51 /* MediaConstraints.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B9EA84F177147E948C9A7EBE /* MediaConstraintsEvaluation.h in Headers */ = {isa = PBXBuildFile; fileRef = FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		525B81E60AA9407EF00D3327 /* DisplayCaptureCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 0BF208C601941937942E9DD0 /* DisplayCaptureCore.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		DCDC6165505D8231123FAC1A /* DisplayCaptureCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureCore.swift */; };
 		6DFAB8A24E209E5BE10CDE2C /* MediaConstraintsSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9126A31163C808E1B978733B /* MediaConstraintsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */; };
 		078E093C17D16E1C00420AA1 /* RTCDataChannelHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA217CF0AD400848E51 /* RTCDataChannelHandler.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8481,6 +8483,8 @@
 		07B93ECC2BF6FEBE0072078C /* CharacterRange.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CharacterRange.cpp; sourceTree = "<group>"; };
 		07B93FF923B92AAA0036F8EA /* MIMETypeCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MIMETypeCache.h; sourceTree = "<group>"; };
 		07B93FFB23B92AAB0036F8EA /* MIMETypeCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MIMETypeCache.cpp; sourceTree = "<group>"; };
+		0BF208C601941937942E9DD0 /* DisplayCaptureCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureCore.h; sourceTree = "<group>"; };
+		FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCaptureCore.swift; sourceTree = "<group>"; };
 		07BB1E6E27176CCA001DF289 /* DisplayCaptureSourceCocoa.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DisplayCaptureSourceCocoa.cpp; sourceTree = "<group>"; };
 		07BB1E6F27176CCA001DF289 /* DisplayCaptureSourceCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureSourceCocoa.h; sourceTree = "<group>"; };
 		07BD443A2E2818B800F37729 /* NodeHTMLConverter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NodeHTMLConverter.h; sourceTree = "<group>"; };
@@ -28317,6 +28321,8 @@
 				410AD2DF2822BBF6009C93C8 /* CoreAudioCaptureUnit.cpp */,
 				410AD2DE2822BBF6009C93C8 /* CoreAudioCaptureUnit.h */,
 				418BC5DF2C5CBDB600152089 /* CoreAudioCaptureUnit.mm */,
+				0BF208C601941937942E9DD0 /* DisplayCaptureCore.h */,
+				FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureCore.swift */,
 				07A6D8481FEB700B006441DE /* DisplayCaptureManagerCocoa.cpp */,
 				07A6D8491FEB700C006441DE /* DisplayCaptureManagerCocoa.h */,
 				07BB1E6E27176CCA001DF289 /* DisplayCaptureSourceCocoa.cpp */,
@@ -46184,6 +46190,7 @@
 				835D54C51F4DE53800E60671 /* DirectoryFileListCreator.h in Headers */,
 				F47A09D120A93A9700240FAE /* DisabledAdaptations.h in Headers */,
 				7EDAAFC919A2CCDC0034DFD1 /* DiskCacheMonitorCocoa.h in Headers */,
+				525B81E60AA9407EF00D3327 /* DisplayCaptureCore.h in Headers */,
 				07ED19382762769400AF1EC5 /* DisplayCaptureManager.h in Headers */,
 				07C6778629ACFB820083C923 /* DisplayCapturePromptType.h in Headers */,
 				07BB1E7027176CD9001DF289 /* DisplayCaptureSourceCocoa.h in Headers */,
@@ -52021,6 +52028,7 @@
 				5CBD59592280E926002B22AA /* CustomHeaderFields.cpp in Sources */,
 				5328CAC8C68D4DB28EAACDED /* DateComponents.swift in Sources */,
 				07E4BDBF2A3A5FAB000D5509 /* DictationCaretAnimator.cpp in Sources */,
+				DCDC6165505D8231123FAC1A /* DisplayCaptureCore.swift in Sources */,
 				0749E9512E275A23009B912B /* EditingHTMLConverter.mm in Sources */,
 				C692924099778690E1A10A7F /* FEBlendCoreImageApplier.swift in Sources */,
 				06F918D8AAA5C08CDD4ECCB2 /* FEBlendSoftwareApplier.swift in Sources */,
