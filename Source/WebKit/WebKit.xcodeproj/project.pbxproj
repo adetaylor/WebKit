@@ -2960,6 +2960,7 @@
 		D0BCC1BF4CC341B99CD2C0EA /* RemoteXRViewMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = E976BCF61CF3425C8FA25BEE /* RemoteXRViewMessageReceiver.swift */; };
 		D0B380CB197443E79AC83409 /* RemoteShapeDetectors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7150B219724045ABB4DB7055 /* RemoteShapeDetectors.swift */; };
 		F9F13D992BA842BD94A2450A /* RemoteBarcodeDetectorMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7733624ED51D4913B48ABC62 /* RemoteBarcodeDetectorMessageReceiver.swift */; };
+		1EC4316D0D4D4273A87A6EEC /* RemoteRenderingBackendMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9103CA510A634B34B92DDFE6 /* RemoteRenderingBackendMessageReceiver.swift */; };
 		6C666A6AA907427995EE3688 /* RemoteFaceDetectorMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588C46ABDFB64C12B8D58AB0 /* RemoteFaceDetectorMessageReceiver.swift */; };
 		4DA1AC01D71C47279D83AD97 /* RemoteTextDetectorMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */; };
 /* End PBXBuildFile section */
@@ -9607,12 +9608,8 @@
 		51456B1663D34E5D8BAC139F /* RemoteXRSubImageMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRSubImageMessageReceiver.swift; sourceTree = "<group>"; };
 		E976BCF61CF3425C8FA25BEE /* RemoteXRViewMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteXRViewMessageReceiver.swift; sourceTree = "<group>"; };
 		7150B219724045ABB4DB7055 /* RemoteShapeDetectors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShapeDetectors.swift; sourceTree = "<group>"; };
-		3DE265452A7F4900B61B3D8E /* RemoteShapeDetectionSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteShapeDetectionSupport.cpp; sourceTree = "<group>"; };
-		1F7C3FF674FA435695DD0F48 /* RemoteShapeDetectionSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteShapeDetectionSupport.h; sourceTree = "<group>"; };
-		AE79C0D2D30B9CE28BD0DA6D /* RemoteBarcodeDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteBarcodeDetector.h; sourceTree = "<group>"; };
-		CF50CF3EEF2C22B18F408C38 /* RemoteFaceDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteFaceDetector.h; sourceTree = "<group>"; };
-		C610B349FA4EB3EC0767FAEB /* RemoteTextDetector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteTextDetector.h; sourceTree = "<group>"; };
 		7733624ED51D4913B48ABC62 /* RemoteBarcodeDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteBarcodeDetectorMessageReceiver.swift; sourceTree = "<group>"; };
+		9103CA510A634B34B92DDFE6 /* RemoteRenderingBackendMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderingBackendMessageReceiver.swift; sourceTree = "<group>"; };
 		588C46ABDFB64C12B8D58AB0 /* RemoteFaceDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFaceDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -11767,14 +11764,9 @@
 		1C9F4BF929E51D300015819E /* ShapeDetection */ = {
 			isa = PBXGroup;
 			children = (
-				AE79C0D2D30B9CE28BD0DA6D /* RemoteBarcodeDetector.h */,
 				1C9F4C0029E51D890015819E /* RemoteBarcodeDetector.messages.in */,
-				CF50CF3EEF2C22B18F408C38 /* RemoteFaceDetector.h */,
 				1C9F4C0129E51D940015819E /* RemoteFaceDetector.messages.in */,
-				3DE265452A7F4900B61B3D8E /* RemoteShapeDetectionSupport.cpp */,
-				1F7C3FF674FA435695DD0F48 /* RemoteShapeDetectionSupport.h */,
 				7150B219724045ABB4DB7055 /* RemoteShapeDetectors.swift */,
-				C610B349FA4EB3EC0767FAEB /* RemoteTextDetector.h */,
 				1C9F4C0229E51D9D0015819E /* RemoteTextDetector.messages.in */,
 			);
 			path = ShapeDetection;
@@ -14117,6 +14109,7 @@
 				A18DA1BCB46EBE474E0D40EB /* RemoteRenderBundleMessageReceiver.swift */,
 				1C55A5A8275457CC00EB7E95 /* RemoteRenderBundleMessages.h */,
 				F4517D7726FBCCE4004C8475 /* RemoteRenderingBackendMessageReceiver.cpp */,
+				9103CA510A634B34B92DDFE6 /* RemoteRenderingBackendMessageReceiver.swift */,
 				F4517D7A26FBCD38004C8475 /* RemoteRenderingBackendMessages.h */,
 				1C55A57F275457C500EB7E95 /* RemoteRenderPassEncoderMessageReceiver.cpp */,
 				6AFB06D53415594B42590710 /* RemoteRenderPassEncoderMessageReceiver.swift */,
@@ -22739,6 +22732,7 @@
 				65517E291F9B93AC2BA18766 /* RemoteRenderBundleEncoder.swift in Sources */,
 				8C34F27914EE28E5D10EBB14 /* RemoteRenderBundleEncoderMessageReceiver.swift in Sources */,
 				C51A6A54FF93206D16C06AC9 /* RemoteRenderBundleMessageReceiver.swift in Sources */,
+				1EC4316D0D4D4273A87A6EEC /* RemoteRenderingBackendMessageReceiver.swift in Sources */,
 				B5287D27CA6057AB0BDC45A7 /* RemoteRenderPassEncoder.swift in Sources */,
 				AE068C1B7529B6B326A9E0A3 /* RemoteRenderPassEncoderMessageReceiver.swift in Sources */,
 				95350091F683CDE5D234B818 /* RemoteRenderPipeline.swift in Sources */,

@@ -81,11 +81,10 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-#include "RemoteBarcodeDetector.h"
 #include "RemoteBarcodeDetectorMessages.h"
-#include "RemoteFaceDetector.h"
 #include "RemoteFaceDetectorMessages.h"
-#include "RemoteTextDetector.h"
+#include "RemoteRenderingBackend.h"
+#include "RemoteRenderingBackendMessages.h"
 #include "RemoteTextDetectorMessages.h"
 #endif
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)

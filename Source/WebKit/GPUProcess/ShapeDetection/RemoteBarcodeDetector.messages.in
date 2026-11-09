@@ -27,7 +27,7 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=ShapeDetection,
-    SwiftImplementation,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteBarcodeDetector Stream {

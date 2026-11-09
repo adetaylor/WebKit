@@ -117,22 +117,32 @@ bool StreamServerConnection::isCurrentWorkQueue() const
 
 void StreamServerConnection::startReceivingMessages(StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t destinationID)
 {
-    auto key = std::make_pair(static_cast<uint8_t>(receiverName), destinationID);
-    Locker locker { m_receiversLock };
-    if (m_didInvalidateReceivers)
-        return;
-    auto result = m_receivers.add(key, receiver);
-    ASSERT_UNUSED(result, result.isNewEntry);
+    bool didStart = tryStartReceivingMessages(receiver, receiverName, destinationID);
+    ASSERT_UNUSED(didStart, didStart);
 }
 
 void StreamServerConnection::stopReceivingMessages(ReceiverName receiverName, uint64_t destinationID)
 {
+    bool didStop = tryStopReceivingMessages(receiverName, destinationID);
+    ASSERT_UNUSED(didStop, didStop);
+}
+
+bool StreamServerConnection::tryStartReceivingMessages(StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t destinationID)
+{
+    auto key = std::make_pair(static_cast<uint8_t>(receiverName), destinationID);
+    Locker locker { m_receiversLock };
+    if (m_didInvalidateReceivers)
+        return true;
+    return m_receivers.add(key, receiver).isNewEntry;
+}
+
+bool StreamServerConnection::tryStopReceivingMessages(ReceiverName receiverName, uint64_t destinationID)
+{
     auto key = std::make_pair(static_cast<uint8_t>(receiverName), destinationID);
     Locker locker { m_receiversLock };
     m_receiversGeneration.fetch_add(1, std::memory_order_relaxed);
-    bool didRemove = m_receivers.remove(key);
     // Receivers can be unregistered after invalidate(), which has already let go of them.
-    ASSERT_UNUSED(didRemove, didRemove || m_didInvalidateReceivers);
+    return m_receivers.remove(key) || m_didInvalidateReceivers;
 }
 
 void StreamServerConnection::enqueueMessage(Connection&, UniqueRef<Decoder>&& message)

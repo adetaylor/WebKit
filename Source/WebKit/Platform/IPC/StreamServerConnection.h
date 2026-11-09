@@ -102,6 +102,10 @@ public:
     void startReceivingMessages(StreamMessageReceiver&, ReceiverName, uint64_t destinationID);
     // Stops the message receipt. Note: already received messages might still be delivered.
     void stopReceivingMessages(ReceiverName, uint64_t destinationID);
+    // As startReceivingMessages() and stopReceivingMessages(), for a destination that a message names, which may already
+    // have a receiver, or have none: false then.
+    bool tryStartReceivingMessages(StreamMessageReceiver&, ReceiverName, uint64_t destinationID);
+    bool tryStopReceivingMessages(ReceiverName, uint64_t destinationID);
 
     Connection& connection() { return m_connection; }
     bool isCurrentWorkQueue() const;
@@ -244,6 +248,14 @@ inline void markCurrentlyDispatchedMessageAsInvalid(const RefPtr<StreamServerCon
 {
     if (connection)
         connection->markCurrentlyDispatchedMessageAsInvalid(error);
+}
+
+// tryStartReceivingMessages() for a Swift receiver's message forwarder, which Swift can't pass as the
+// StreamMessageReceiver it is: a template so that Swift can pass the Ref to the forwarder that it holds.
+template<typename ForwarderRef>
+bool tryStartReceivingSwiftMessages(StreamServerConnection& connection, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t destinationID)
+{
+    return connection.tryStartReceivingMessages(forwarder.get(), receiverName, destinationID);
 }
 
 }

@@ -1019,7 +1019,6 @@ if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
 endif ()
 if (APPLE)
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-        GPUProcess/ShapeDetection/RemoteShapeDetectionSupport.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
@@ -1027,6 +1026,10 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
         GPUProcess/media/RemoteCDMRegistry.cpp
+
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteTextDetectorMessageReceiver.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
@@ -1730,12 +1733,14 @@ if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBarcodeDetectorMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteFaceDetectorMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextDetectorMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/ShapeDetection/RemoteShapeDetectors.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteBarcodeDetectorMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteFaceDetectorMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteRenderingBackendMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteTextDetectorMessageReceiver.swift
     )
 endif ()

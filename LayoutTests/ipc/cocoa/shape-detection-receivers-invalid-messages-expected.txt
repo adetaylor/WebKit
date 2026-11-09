@@ -1,4 +1,4 @@
-This test passes if the GPU process's shape detection receivers reject messages naming images they don't have, malformed messages and messages to detectors that are gone, without crashing.
+This test passes if the GPU process's shape detection receivers and the rendering backend's shape detection handlers reject messages naming images they don't have, malformed messages and messages to detectors that are gone or never were, without crashing.
 
 PASS: Barcode unknown image
 PASS: Barcode zero identifier
@@ -11,5 +11,13 @@ PASS: Text zero identifier
 PASS: Text no arguments
 PASS: Barcode released
 PASS: Barcode never created
+PASS: Barcode created with an unknown format
+PASS: Face created with an invalid field
+PASS: Barcode created twice
+PASS: Barcode released before it was created
+PASS: Face created twice
+PASS: Face released before it was created
+PASS: Text created twice
+PASS: Text released before it was created
 PASS: supported formats afterwards
 

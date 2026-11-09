@@ -806,42 +806,68 @@ void RemoteRenderingBackendProxy::getImageBufferResourceLimitsForTesting(Complet
 Ref<ShapeDetection::RemoteBarcodeDetectorProxy> RemoteRenderingBackendProxy::createBarcodeDetector(const WebCore::ShapeDetection::BarcodeDetectorOptions& options)
 {
     Ref instance = ShapeDetection::RemoteBarcodeDetectorProxy::create(*this);
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::CreateBarcodeDetector(instance->identifier(), options));
+#else
+    UNUSED_PARAM(options);
+#endif
     return instance;
 }
 
 void RemoteRenderingBackendProxy::releaseBarcodeDetector(ShapeDetection::RemoteBarcodeDetectorProxy& instance)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::ReleaseBarcodeDetector(instance.identifier()));
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 void RemoteRenderingBackendProxy::supportedBarcodeDetectorBarcodeFormats(CompletionHandler<void(Vector<WebCore::ShapeDetection::BarcodeFormat>&&)> completionHandler)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     sendWithAsyncReply(Messages::RemoteRenderingBackend::SupportedBarcodeDetectorBarcodeFormats(), WTF::move(completionHandler));
+#else
+    completionHandler({ });
+#endif
 }
 
 Ref<ShapeDetection::RemoteFaceDetectorProxy> RemoteRenderingBackendProxy::createFaceDetector(const WebCore::ShapeDetection::FaceDetectorOptions& options)
 {
     Ref instance = ShapeDetection::RemoteFaceDetectorProxy::create(*this);
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::CreateFaceDetector(instance->identifier(), options));
+#else
+    UNUSED_PARAM(options);
+#endif
     return instance;
 }
 
 void RemoteRenderingBackendProxy::releaseFaceDetector(ShapeDetection::RemoteFaceDetectorProxy& instance)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::ReleaseFaceDetector(instance.identifier()));
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 Ref<ShapeDetection::RemoteTextDetectorProxy> RemoteRenderingBackendProxy::createTextDetector()
 {
     Ref instance = ShapeDetection::RemoteTextDetectorProxy::create(*this);
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::CreateTextDetector(instance->identifier()));
+#endif
     return instance;
 }
 
 void RemoteRenderingBackendProxy::releaseTextDetector(ShapeDetection::RemoteTextDetectorProxy& instance)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     send(Messages::RemoteRenderingBackend::ReleaseTextDetector(instance.identifier()));
+#else
+    UNUSED_PARAM(instance);
+#endif
 }
 
 } // namespace WebKit

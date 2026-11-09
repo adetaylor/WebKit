@@ -87,6 +87,15 @@ public enum ShapeDetectionVision {
             self.requestedFormatMask = requestedFormatMask
         }
 
+        // The formats are values of WebCore::ShapeDetection::BarcodeFormat.
+        public init(requestedFormats: [UInt8]) {
+            var requestedFormatMask: UInt16 = 0
+            for format in requestedFormats where format < UInt16.bitWidth {
+                requestedFormatMask |= 1 << UInt16(format)
+            }
+            self.init(requestedFormatMask: requestedFormatMask)
+        }
+
         public func detect(_ image: CGImage) -> [DetectedBarcode] {
             guard let request = createVisionBarcodesRequest() else {
                 return []
@@ -108,6 +117,12 @@ public enum ShapeDetectionVision {
                     cornerPoints: cornerPoints(imageSize, observation)
                 )
             }
+        }
+
+        // The formats that Vision detects, as values of WebCore::ShapeDetection::BarcodeFormat, in increasing order.
+        public static func supportedFormats() -> [UInt8] {
+            let formatMask = supportedFormatMask()
+            return (0..<UInt8(UInt16.bitWidth)).filter { formatMask & (1 << UInt16($0)) != 0 }
         }
 
         // The formats that Vision detects, as a mask like requestedFormatMask.

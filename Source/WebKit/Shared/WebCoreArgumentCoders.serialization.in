@@ -4947,7 +4947,7 @@ class WebCore::Credential {
 
 #if ENABLE(GPU_PROCESS)
 header: <WebCore/BarcodeDetectorOptionsInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::BarcodeDetectorOptions {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::BarcodeDetectorOptions {
     Vector<WebCore::ShapeDetection::BarcodeFormat> formats;
 };
 
@@ -4991,7 +4991,7 @@ header: <WebCore/DetectedTextInterface.h>
 };
 
 header: <WebCore/FaceDetectorOptionsInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::FaceDetectorOptions {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::FaceDetectorOptions {
     uint16_t maxDetectedFaces;
     bool fastMode;
 };

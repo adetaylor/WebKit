@@ -350,6 +350,30 @@ messages -> TestReceiver%s {
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is for a C\+\+ receiver, so it cannot be a Swift receiver too"):
             parse_swift_implementation('    SwiftMessage(uint32_t value)', attributes=('SwiftImplementation', 'SwiftReceiver', 'SwiftTypes'))
 
+        # A C++ receiver that Swift implements only some messages of, and only where a feature is: its C++ dispatch calls
+        # Swift's only there, and its Swift dispatch compiles to nothing elsewhere. Its header declares the Swift dispatch
+        # functions everywhere, with types every port has.
+        receiver = parse_swift_implementation("""
+    CxxMessage(uint32_t value)
+#if HAVE(FEATURE)
+    SwiftMessage(uint32_t value) SwiftTypes
+    SwiftReplyMessage() -> (Vector<uint8_t> values) Async SwiftTypes
+#endif
+""", attributes=('SwiftImplementation',))
+        self.assertFalse(receiver.takes_swift_types(receiver.messages[0]))
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[1]))
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('        IPC::handleMessage<Messages::TestReceiver::CxxMessage>(connection, decoder, this, &TestReceiver::cxxMessage);\n        return;\n    }\n#if HAVE(FEATURE)\n    if (decoder.messageName() == Messages::TestReceiver::SwiftMessage::name()) {\n        IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n', handler)
+        self.assertIn('        IPC::handleSwiftMessageAsync<Messages::TestReceiver::SwiftReplyMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftReplyMessage);\n        return;\n    }\n#endif\n', handler)
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('#include "SwiftCoding.h"', header)
+        self.assertIn('bool dispatchSwiftReplyMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::SwiftDecoder, IPC::SwiftReplyEncoder* WTF_NONNULL);', header)
+        self.assertNotIn('dispatchCxxMessage', header)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('extension SwiftDispatch.TestReceiver {\n    #if HAVE_FEATURE\n', swift)
+        self.assertEqual(swift.count('    #if HAVE_FEATURE\n'), 2)
+        self.assertNotIn('CxxMessage', swift)
+
     def test_cxx_decoded_arguments(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     Message(uint32_t value, [CxxDecoded] WebKit::NoSwiftForm argument)

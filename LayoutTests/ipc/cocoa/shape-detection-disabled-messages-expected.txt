@@ -1,0 +1,8 @@
+This test passes if the GPU process's rendering backend handles no shape detection message while shape detection is disabled, without crashing.
+
+PASS: supported formats
+PASS: Barcode created
+PASS: Face created
+PASS: Text created
+PASS: backend afterwards
+

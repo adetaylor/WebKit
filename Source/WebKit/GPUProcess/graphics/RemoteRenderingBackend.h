@@ -50,7 +50,6 @@
 #include "RenderingUpdateID.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "ScopedRenderingResourcesRequest.h"
-#include "ShapeDetectionIdentifier.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamConnectionWorkQueue.h"
 #include "StreamMessageReceiver.h"
@@ -61,8 +60,13 @@
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/HashMap.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
+
+#if USE(CG)
+#include <CoreGraphics/CoreGraphics.h>
+#endif
 
 namespace WTF {
 enum class Critical : bool;
@@ -78,12 +82,6 @@ class MediaPlayer;
 class NativeImage;
 enum class RenderingMode : uint8_t;
 struct FontCustomPlatformSerializedData;
-
-namespace ShapeDetection {
-struct BarcodeDetectorOptions;
-enum class BarcodeFormat : uint8_t;
-struct FaceDetectorOptions;
-}
 
 }
 
@@ -122,6 +120,12 @@ public:
     void dispatch(Function<void()>&&);
 
     IPC::StreamServerConnection& streamConnection() const { return m_streamConnection.get(); }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { IPC::StreamMessageReceiver::ref(); }
+    void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
 
     GPUConnectionToWebProcess& gpuConnectionToWebProcess() { return m_gpuConnectionToWebProcess.get(); }
 
@@ -199,14 +203,6 @@ private:
     void createSnapshotRecorder(RemoteSnapshotRecorderIdentifier, RemoteSnapshotIdentifier);
     void sinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier, WebCore::FrameIdentifier, CompletionHandler<void(bool)>&&);
 
-    void createBarcodeDetector(ShapeDetectionIdentifier, const WebCore::ShapeDetection::BarcodeDetectorOptions&);
-    void releaseBarcodeDetector(ShapeDetectionIdentifier);
-    void supportedBarcodeDetectorBarcodeFormats(CompletionHandler<void(Vector<WebCore::ShapeDetection::BarcodeFormat>&&)>&&);
-    void createFaceDetector(ShapeDetectionIdentifier, const WebCore::ShapeDetection::FaceDetectorOptions&);
-    void releaseFaceDetector(ShapeDetectionIdentifier);
-    void createTextDetector(ShapeDetectionIdentifier);
-    void releaseTextDetector(ShapeDetectionIdentifier);
-
     NODELETE bool shouldUseLockdownFontParser() const;
 
     void getImageBufferResourceLimitsForTesting(CompletionHandler<void(WebCore::ImageBufferResourceLimits)>&&);
@@ -228,9 +224,16 @@ private:
     HashMap<ImageBufferSetIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBufferSet>> m_remoteImageBufferSets WTF_GUARDED_BY_CAPABILITY(workQueue());
     HashMap<RemoteDisplayListRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteDisplayListRecorder>> m_remoteDisplayListRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
     HashMap<RemoteSnapshotRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteSnapshotRecorder>> m_remoteSnapshotRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 bool isSmallLayerBacking(const WebCore::ImageBufferParameters&);
+
+#if USE(CG)
+// The image of the native image the backend has cached under the identifier, for Swift, which takes what a C++ method
+// returns as unretained whatever its annotation: found is false if it has none, and the image is null if the native image
+// has no platform image.
+CGImageRef WTF_NULLABLE copyCachedNativeImage(RemoteRenderingBackend&, uint64_t renderingResourceIdentifier, bool& found) CF_RETURNS_RETAINED;
+#endif
 
 } // namespace WebKit
 
