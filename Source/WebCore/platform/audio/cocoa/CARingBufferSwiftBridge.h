@@ -31,7 +31,6 @@
 #include <wtf/Assertions.h>
 #include <wtf/Compiler.h>
 #include <wtf/MainThread.h>
-#include <wtf/SequenceLocked.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/SwiftBridging.h>
 
@@ -51,6 +50,13 @@ struct CARingBufferBounds {
     friend bool operator==(const CARingBufferBounds&, const CARingBufferBounds&) = default;
 };
 static_assert(sizeof(CARingBufferBounds) == 24);
+
+// The 32 bytes before a ring's channels: a sequence count, then the bounds' three words. Only AudioUnitIsland.swift reads
+// and writes them, as a sequence lock, with atomic loads and stores.
+struct alignas(8) CARingBufferBoundsStorage {
+    uint64_t words[4] { };
+};
+static_assert(sizeof(CARingBufferBoundsStorage) == 32);
 
 // A ring's layout: channelCount channels of capacityBytes each, frameCount frames of bytesPerFrame.
 struct CARingBufferGeometry {
@@ -99,13 +105,13 @@ ALWAYS_INLINE void assertMakingAudioViewOffMainThread()
 }
 #endif
 
-// A ring, for a fetch: its geometry, the bounds the C++ read from it and its channels.
+// A ring, for a fetch: its geometry, its bounds' storage and its channels.
 class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE CARingBufferReadView {
 public:
 #if !defined(__swift__)
-    CARingBufferReadView(const CARingBufferGeometry& geometry, const CARingBufferBounds& storedBounds, std::span<const uint8_t> channels)
+    CARingBufferReadView(const CARingBufferGeometry& geometry, const CARingBufferBoundsStorage& bounds, std::span<const uint8_t> channels)
         : m_geometry(geometry)
-        , m_storedBounds(storedBounds)
+        , m_bounds(asByteSpan(bounds))
         , m_channels(channels)
     {
         assertMakingAudioViewOffMainThread();
@@ -115,12 +121,12 @@ public:
     CARingBufferReadView(CARingBufferReadView&&) = default;
 
     ALWAYS_INLINE CARingBufferGeometry geometry() const { return m_geometry; }
-    ALWAYS_INLINE CARingBufferBounds storedBounds() const { return m_storedBounds; }
+    ALWAYS_INLINE std::span<const uint8_t> header() const LIFETIME_BOUND { return m_bounds; }
     ALWAYS_INLINE std::span<const uint8_t> channels() const LIFETIME_BOUND { return m_channels; }
 
 private:
     CARingBufferGeometry m_geometry;
-    CARingBufferBounds m_storedBounds;
+    std::span<const uint8_t> m_bounds;
     std::span<const uint8_t> m_channels;
 };
 
@@ -128,9 +134,9 @@ private:
 class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE CARingBufferWriteView {
 public:
 #if !defined(__swift__)
-    CARingBufferWriteView(const CARingBufferGeometry& geometry, SequenceLocked<CARingBufferBounds>& bounds, std::span<uint8_t> channels)
+    CARingBufferWriteView(const CARingBufferGeometry& geometry, CARingBufferBoundsStorage& bounds, std::span<uint8_t> channels)
         : m_geometry(geometry)
-        , m_bounds(&bounds)
+        , m_bounds(asMutableByteSpan(bounds))
         , m_channels(channels)
     {
         assertMakingAudioViewOffMainThread();
@@ -140,12 +146,12 @@ public:
     CARingBufferWriteView(CARingBufferWriteView&&) = default;
 
     ALWAYS_INLINE CARingBufferGeometry geometry() const { return m_geometry; }
-    ALWAYS_INLINE void storeBounds(const CARingBufferBounds& bounds) { m_bounds->store(bounds); }
+    ALWAYS_INLINE std::span<uint8_t> mutableHeader() LIFETIME_BOUND { return m_bounds; }
     ALWAYS_INLINE std::span<uint8_t> mutableChannels() LIFETIME_BOUND { return m_channels; }
 
 private:
     CARingBufferGeometry m_geometry;
-    SequenceLocked<CARingBufferBounds>* m_bounds;
+    std::span<uint8_t> m_bounds;
     std::span<uint8_t> m_channels;
 };
 

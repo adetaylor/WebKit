@@ -84,14 +84,6 @@ void mixFloatingPointSamples(std::span<uint8_t> destination NOESCAPE, size_t des
         mixSamples<float>(destination, destinationOffset, source, sourceOffset, sampleCount);
 }
 
-// The writer can be another process, so don't wait for it to finish a write.
-static constexpr unsigned maxBoundsLoadAttempts = 64;
-
-CARingBuffer::TimeBounds CARingBuffer::loadBounds() const
-{
-    return m_timeBounds->loadWithRetryLimit(maxBoundsLoadAttempts);
-}
-
 CARingBuffer::TimeBounds CARingBuffer::getStoreTimeBounds()
 {
     return m_storeBounds;
@@ -106,32 +98,32 @@ CARingBuffer::Error CARingBuffer::store(const AudioBufferList* list, size_t fram
 
 CARingBuffer::TimeBounds CARingBuffer::getFetchTimeBounds()
 {
-    return caRingBufferFetchTimeBounds(m_geometry, loadBounds());
+    return caRingBufferFetchTimeBounds(m_geometry, m_timeBounds);
 }
 
 bool CARingBuffer::fetchIfHasEnoughData(AudioBufferList* list, size_t frameCount, uint64_t startRead, FetchMode mode)
 {
     AudioBufferListView destination { list };
-    return caRingBufferFetch(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), true);
+    return caRingBufferFetch(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), true);
 }
 
 void CARingBuffer::fetch(AudioBufferList* list, size_t frameCount, uint64_t startRead, FetchMode mode)
 {
     AudioBufferListView destination { list };
-    caRingBufferFetch(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), false);
+    caRingBufferFetch(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, destination, frameCount, startRead, static_cast<uint32_t>(mode), false);
 }
 
 bool CARingBuffer::renderForAudioDestination(uint64_t& startFrame, AudioBufferList* output, std::span<float> lastRenderedSamples, uint32_t frameCount)
 {
     AudioBufferListView destination { output };
     FloatSamplesView samples { lastRenderedSamples };
-    return caRingBufferRenderForAudioDestination(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, startFrame, destination, samples, frameCount);
+    return caRingBufferRenderForAudioDestination(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, startFrame, destination, samples, frameCount);
 }
 
 CARingBufferTrackRenderResult CARingBuffer::renderForTrackRenderer(uint64_t& readOffset, uint64_t& generateOffset, AudioBufferList& output, size_t sampleCount, uint64_t frameChunkSize)
 {
     AudioBufferListView destination { &output };
-    return caRingBufferRenderForTrackRenderer(CARingBufferReadView { m_geometry, loadBounds(), m_channelData }, readOffset, generateOffset, destination, sampleCount, frameChunkSize);
+    return caRingBufferRenderForTrackRenderer(CARingBufferReadView { m_geometry, *m_timeBounds, m_channelData }, readOffset, generateOffset, destination, sampleCount, frameChunkSize);
 }
 
 std::unique_ptr<InProcessCARingBuffer> InProcessCARingBuffer::allocate(const WebCore::CAAudioStreamDescription& format, size_t frameCount)

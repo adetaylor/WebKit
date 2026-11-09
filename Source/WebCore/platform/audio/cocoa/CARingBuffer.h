@@ -33,7 +33,6 @@
 #include <optional>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/Lock.h>
-#include <wtf/SequenceLocked.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
@@ -87,12 +86,10 @@ protected:
 
     virtual void* data() LIFETIME_BOUND = 0;
     std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), static_cast<size_t>(m_geometry.channelCount * m_geometry.capacityBytes)); }
-    using TimeBoundsBuffer = SequenceLocked<TimeBounds>;
+    using TimeBoundsBuffer = CARingBufferBoundsStorage;
     virtual TimeBoundsBuffer& timeBoundsBuffer() LIFETIME_BOUND = 0;
 
 private:
-    TimeBounds loadBounds() const;
-
     // CARingBuffer.swift implements the ring's logic over these.
     const CARingBufferGeometry m_geometry;
     std::span<uint8_t> m_channelData;

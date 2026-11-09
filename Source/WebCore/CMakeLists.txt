@@ -3551,6 +3551,7 @@ endif ()
 if (APPLE)
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioSampleBufferList.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioUnitIsland.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CAAudioStreamDescription.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBuffer.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferMix.swift

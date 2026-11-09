@@ -151,7 +151,8 @@ private func setBounds(
     _ ring: inout WebCore.CARingBufferWriteView,
     _ bounds: WebCore.CARingBufferBounds
 ) {
-    ring.storeBounds(bounds)
+    var header: MutableSpan<UInt8> = ring.mutableHeader()
+    storeRingBounds(&header, bounds)
     storeBounds = bounds
 }
 
@@ -280,8 +281,7 @@ private func fetchBounds(_ layout: RingLayout, _ storedBounds: WebCore.CARingBuf
     return bounds
 }
 
-@_expose(Cxx)
-func caRingBufferFetchTimeBounds(_ geometry: WebCore.CARingBufferGeometry, _ storedBounds: WebCore.CARingBufferBounds)
+func caRingBufferFetchBounds(_ geometry: WebCore.CARingBufferGeometry, _ storedBounds: WebCore.CARingBufferBounds)
     -> WebCore.CARingBufferBounds
 {
     fetchBounds(RingLayout(geometry), storedBounds)
@@ -311,7 +311,7 @@ func caRingBufferFetch(
         UInt(truncatingIfNeeded: frameCount),
         startFrame,
         CARingBufferFetchMode(rawValue: mode),
-        fetchBounds(layout, ring.storedBounds())
+        fetchBounds(layout, loadRingBounds(ring.header()))
     )
     return true
 }
@@ -325,7 +325,7 @@ func fetchIfHasEnoughData(
     _ mode: CARingBufferFetchMode?
 ) -> Bool {
     let layout = RingLayout(ring.geometry())
-    let bounds = fetchBounds(layout, ring.storedBounds())
+    let bounds = fetchBounds(layout, loadRingBounds(ring.header()))
     if startFrame < bounds.startFrame || startFrame &+ frameCount > bounds.endFrame {
         return false
     }

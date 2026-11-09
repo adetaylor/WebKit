@@ -6290,6 +6290,7 @@
 		62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */; };
 		4A01C0BFDB37FC20485E98D8 /* CAAudioStreamDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88A8C82622D17428EA4D912 /* CAAudioStreamDescription.swift */; };
 		3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */; };
+		4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */; };
 		CDC7470424BE2FC700C1868B /* PowerSourceNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC7470024BE267900C1868B /* PowerSourceNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */; };
 		CDC8B5A3180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC8B5A1180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h */; };
@@ -21853,6 +21854,7 @@
 		E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBuffer.swift; sourceTree = "<group>"; };
 		298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferMix.swift; sourceTree = "<group>"; };
 		443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferPlayout.swift; sourceTree = "<group>"; };
+		60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitIsland.swift; sourceTree = "<group>"; };
 		23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CARingBufferSwiftBridge.h; sourceTree = "<group>"; };
 		CDC7470024BE267900C1868B /* PowerSourceNotifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PowerSourceNotifier.h; sourceTree = "<group>"; };
 		CDC7470124BE267900C1868B /* PowerSourceNotifier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PowerSourceNotifier.mm; sourceTree = "<group>"; };
@@ -40782,6 +40784,7 @@
 				073B87641E43859D0071C0EC /* AudioSampleDataSource.mm */,
 				CDE104F129E621F500CBAE11 /* AudioSessionCocoa.h */,
 				CDE104F229E621F500CBAE11 /* AudioSessionCocoa.mm */,
+				60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */,
 				7BC9642D291E770300377DF1 /* AudioUtilitiesCocoa.cpp */,
 				7BC9642E291E770400377DF1 /* AudioUtilitiesCocoa.h */,
 				073B87571E40DCFD0071C0EC /* CAAudioStreamDescription.cpp */,
@@ -51959,6 +51962,7 @@
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,
 				CDA79827170A279100D45C55 /* AudioSessionIOS.mm in Sources */,
 				CD8A7BBB197735FE00CBD643 /* AudioSourceProviderAVFObjC.mm in Sources */,
+				4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */,
 				52B07441284680CA00511B65 /* AuthenticationExtensionsClientInputs.cpp in Sources */,
 				52B074432846810A00511B65 /* AuthenticationExtensionsClientOutputs.cpp in Sources */,
 				78ABC124E9B883BD3F327D6C /* AV1Utilities.swift in Sources */,

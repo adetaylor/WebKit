@@ -269,30 +269,58 @@ TEST_F(CARingBufferTest, FetchTimeBoundsInvalid)
         ringBuffer().store(&bufferList(), 8, 0);
         EXPECT_EQ(makeBounds(0u, 8u), ringBuffer().getFetchTimeBounds());
 
+        // Bounds that a writer in another process could store: the header is a sequence count, then the bounds.
         auto& boundsBuffer = ringBuffer().timeBoundsBufferForTesting();
-        boundsBuffer.store({ 1u, 3u });
+        auto storeBounds = [&](uint64_t startFrame, uint64_t endFrame) {
+            boundsBuffer.words[0] += 2;
+            boundsBuffer.words[1] = startFrame;
+            boundsBuffer.words[2] = endFrame;
+            boundsBuffer.words[3] = 0;
+        };
+        storeBounds(1u, 3u);
         EXPECT_EQ(makeBounds(1u, 3u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 3u, 3u });
+        storeBounds(3u, 3u);
         EXPECT_EQ(makeBounds(3u, 3u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 4u, 3u });
+        storeBounds(4u, 3u);
         EXPECT_EQ(makeBounds(4u, 4u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 5u, 5u + 32u });
+        storeBounds(5u, 5u + 32u);
         EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 5u, 5u + 33u });
+        storeBounds(5u, 5u + 33u);
         EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 5u, 5u + 34u });
+        storeBounds(5u, 5u + 34u);
         EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ 5u, std::numeric_limits<uint64_t>::max() - 1u });
+        storeBounds(5u, std::numeric_limits<uint64_t>::max() - 1u);
         EXPECT_EQ(makeBounds(5u, 5u + 32u), ringBuffer().getFetchTimeBounds());
 
-        boundsBuffer.store({ std::numeric_limits<uint64_t>::max() - 1u, std::numeric_limits<uint64_t>::max() });
+        storeBounds(std::numeric_limits<uint64_t>::max() - 1u, std::numeric_limits<uint64_t>::max());
         EXPECT_EQ(makeBounds(std::numeric_limits<uint64_t>::max() - 32u, std::numeric_limits<uint64_t>::max()), ringBuffer().getFetchTimeBounds());
+    });
+}
+
+TEST_F(CARingBufferTest, FetchTimeBoundsWhileAWriteNeverFinishes)
+{
+    runOffMainThread([&] {
+        const size_t capacity = 32;
+        setup(44100, 1, CAAudioStreamDescription::PCMFormat::Float32, true, capacity);
+
+        // A writer in another process that keeps the sequence count odd: the reader gives up waiting, and the bounds it
+        // read are clamped to the ring.
+        auto& boundsBuffer = ringBuffer().timeBoundsBufferForTesting();
+        boundsBuffer.words[0] = 1;
+        boundsBuffer.words[1] = 10;
+        boundsBuffer.words[2] = 100;
+        EXPECT_EQ(makeBounds(10u, 10u + 32u), ringBuffer().getFetchTimeBounds());
+
+        boundsBuffer.words[0] = 2;
+        EXPECT_EQ(makeBounds(10u, 10u + 32u), ringBuffer().getFetchTimeBounds());
+        boundsBuffer.words[2] = 20;
+        EXPECT_EQ(makeBounds(10u, 20u), ringBuffer().getFetchTimeBounds());
     });
 }
 
