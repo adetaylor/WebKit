@@ -42,6 +42,7 @@
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
 #include <WebCore/IntDegrees.h>
+#include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/NowPlayingManager.h>
 #include <WebCore/PageIdentifier.h>
 #include <WebCore/ProcessIdentifier.h>
@@ -89,6 +90,7 @@ enum class Synchronous : bool;
 }
 
 namespace WebCore {
+class MediaPlayer;
 class SecurityOrigin;
 class SecurityOriginData;
 }

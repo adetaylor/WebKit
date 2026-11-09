@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <WebCore/WebGPUProgrammableStage.h>
@@ -42,18 +41,6 @@ std::optional<ProgrammableStage> ConvertToBackingContext::convertToBacking(const
         return PipelineConstant { constant.key, constant.value };
     });
     return { { module, programmableStage.entryPoint, WTF::move(constants) } };
-}
-
-std::optional<::WebGPU::ProgrammableStage> ConvertFromBackingContext::convertFromBacking(const ProgrammableStage& programmableStage, Vector<::WebGPU::ConstantEntry>& constantsStorage)
-{
-    RefPtr shaderModule = convertShaderModuleFromBacking(programmableStage.module);
-    if (!shaderModule)
-        return std::nullopt;
-
-    constantsStorage = programmableStage.constants.map([](auto& constant) {
-        return ::WebGPU::ConstantEntry { .key = constant.key, .value = constant.value };
-    });
-    return { { shaderModule.releaseNonNull(), programmableStage.entryPoint, constantsStorage.span() } };
 }
 
 } // namespace WebKit

@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 
@@ -39,15 +38,6 @@ std::optional<ImageCopyTexture> ConvertToBackingContext::convertToBacking(const 
     auto texture = convertToBacking(protect(imageCopyTexture.texture).get());
 
     return { { texture, imageCopyTexture.mipLevel, imageCopyTexture.origin, imageCopyTexture.aspect } };
-}
-
-std::optional<::WebGPU::TexelCopyTextureInfo> ConvertFromBackingContext::convertFromBacking(const ImageCopyTexture& imageCopyTexture)
-{
-    RefPtr texture = convertTextureFromBacking(imageCopyTexture.texture);
-    if (!texture)
-        return std::nullopt;
-
-    return { { *texture, imageCopyTexture.mipLevel, imageCopyTexture.origin.value_or(::WebGPU::Origin3D { }), imageCopyTexture.aspect } };
 }
 
 } // namespace WebKit

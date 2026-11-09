@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 
@@ -39,15 +38,6 @@ std::optional<BufferBinding> ConvertToBackingContext::convertToBacking(const ::W
     auto buffer = convertToBacking(protect(bufferBinding.buffer).get());
 
     return { { buffer, bufferBinding.offset, bufferBinding.size } };
-}
-
-std::optional<::WebGPU::BufferBinding> ConvertFromBackingContext::convertFromBacking(const BufferBinding& bufferBinding)
-{
-    RefPtr buffer = convertBufferFromBacking(bufferBinding.buffer);
-    if (!buffer)
-        return std::nullopt;
-
-    return { { *buffer, bufferBinding.offset, bufferBinding.size } };
 }
 
 } // namespace WebKit

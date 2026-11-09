@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/Borrow.h>
@@ -41,13 +40,6 @@ std::optional<BindGroupLayoutDescriptor> ConvertToBackingContext::convertToBacki
 }
 
 // The descriptor borrows the entries from entries.
-std::optional<::WebGPU::BindGroupLayoutDescriptor> ConvertFromBackingContext::convertFromBacking(const BindGroupLayoutDescriptor& bindGroupLayoutDescriptor, Vector<::WebGPU::BindGroupLayoutEntry>& entries)
-{
-    entries = bindGroupLayoutDescriptor.entries;
-
-    return ::WebGPU::BindGroupLayoutDescriptor { .label = bindGroupLayoutDescriptor.label, .entries = entries.span() };
-}
-
 } // namespace WebKit
 
 #endif // ENABLE(GPU_PROCESS)

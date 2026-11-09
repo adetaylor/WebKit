@@ -61,7 +61,6 @@
 #include "RotationMonitoringReason.h"
 #include "ScopedRenderingResourcesRequest.h"
 #include "WebErrors.h"
-#include "WebGPUObjectHeap.h"
 #include "WebProcessMessages.h"
 #include <WebCore/LogInitialization.h>
 #include <WebCore/MediaPlayer.h>

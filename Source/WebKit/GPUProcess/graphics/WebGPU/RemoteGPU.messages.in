@@ -26,7 +26,9 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebGPUEnabled
+    EnabledBy=WebGPUEnabled,
+    SwiftImplementation,
+    SwiftTypes
 ]
 messages -> RemoteGPU Stream {
     void RequestAdapter(WebKit::WebGPU::RequestAdapterOptions options, WebKit::WebGPUIdentifier identifier) -> (struct std::optional<WebKit::RemoteGPURequestAdapterResponse> response) Synchronous
@@ -35,7 +37,7 @@ messages -> RemoteGPU Stream {
 
     void IsValid(WebKit::WebGPUIdentifier identifier) -> (bool isValid, bool exists) Synchronous
 #if ENABLE(GPU_PROCESS_MODEL)
-    void CreateModelBacking(unsigned width, unsigned height, struct WebModel::ImageAsset diffuseAsset, struct WebModel::ImageAsset specularAsset, WebKit::WebModelIdentifier identifier, bool standardDynamicRange) -> (Vector<MachSendRight> renderBuffers) Synchronous NotStreamEncodable NotStreamEncodableReply
+    void CreateModelBacking(unsigned width, unsigned height, struct WebModel::ImageAsset diffuseAsset, struct WebModel::ImageAsset specularAsset, WebKit::WebModelIdentifier identifier, bool standardDynamicRange) -> (Vector<MachSendRight> renderBuffers) Synchronous NotStreamEncodable NotStreamEncodableReply CxxTypes
 #endif
 }
 

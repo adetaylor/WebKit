@@ -30,30 +30,19 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
-#include "MeshImpl.h"
 #include "ModelObjectHeap.h"
 #include "RemoteGPUMessages.h"
 #include "RemoteGPUProxyMessages.h"
-#include "RemoteMesh.h"
 #include "RemoteRenderingBackend.h"
 #include "StreamServerConnection.h"
-#include "WebGPUObjectHeap.h"
+#include "WebGPUSwiftSupport.h"
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
-#include <wtf/NeverDestroyed.h>
-#include <wtf/WorkQueue.h>
 #include <wtf/threads/BinarySemaphore.h>
-
-#if ENABLE(GPU_PROCESS_MODEL)
-#include "ModelTypes.h"
-#include "WebKitMesh.h"
-#endif
-
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
 
 namespace WebKit {
 
@@ -64,7 +53,6 @@ RemoteGPU::RemoteGPU(WebGPUIdentifier identifier, GPUConnectionToWebProcess& gpu
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_workQueue(IPC::StreamConnectionWorkQueue::create("WebGPU work queue"_s))
     , m_streamConnection(WTF::move(streamConnection))
-    , m_objectHeap(WebGPU::ObjectHeap::create())
     , m_modelObjectHeap(ModelObjectHeap::create())
     , m_identifier(identifier)
     , m_renderingBackend(renderingBackend)
@@ -72,7 +60,10 @@ RemoteGPU::RemoteGPU(WebGPUIdentifier identifier, GPUConnectionToWebProcess& gpu
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
 }
 
-RemoteGPU::~RemoteGPU() = default;
+RemoteGPU::~RemoteGPU()
+{
+    ASSERT(!m_swiftState);
+}
 
 void RemoteGPU::initialize()
 {
@@ -94,20 +85,13 @@ void RemoteGPU::stopListeningForIPC()
     });
     m_workQueue->stopAndWaitForCompletion([this] {
         assertIsCurrent(workQueue());
-        performWorkScheduledWhileStopping(WorkQueueState::Stopping);
-        // The work can create objects, such as asynchronously created pipelines.
-        m_objectHeap->clear();
-        m_modelObjectHeap->clear();
-        // Only now, after the objects are gone from this thread, may scheduleWork() release work elsewhere.
         performWorkScheduledWhileStopping(WorkQueueState::Stopped);
+        // The work can create objects, such as asynchronously created pipelines. Releasing the registry also releases
+        // its reference to this, if workQueueUninitialize() didn't run.
+        if (m_swiftState)
+            swiftUninitialize();
+        m_modelObjectHeap->clear();
     });
-}
-
-// Releases the work scheduled once a RemoteGPU's work queue has stopped, one item at a time.
-static WorkQueue& stoppedWorkReleaseQueueSingleton()
-{
-    static NeverDestroyed<Ref<WorkQueue>> queue(WorkQueue::create("com.apple.WebKit.WebGPU.StoppedWorkRelease"_s));
-    return queue.get();
 }
 
 void RemoteGPU::scheduleWork(Function<void()>&& workItem)
@@ -121,8 +105,6 @@ void RemoteGPU::scheduleWork(Function<void()>&& workItem)
         m_workScheduledWhileStopping.append(WTF::move(workItem));
         return;
     case WorkQueueState::Stopped:
-        // What the work holds for the instance's API thread goes on one serial queue, never on two threads at once.
-        stoppedWorkReleaseQueueSingleton().dispatch([workItem = WTF::move(workItem)] { });
         return;
     }
 }
@@ -154,15 +136,16 @@ void RemoteGPU::workQueueInitialize()
     streamConnection->startReceivingMessages(*this, Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
 
     // BEWARE: This is a retain cycle.
-    // this owns the instance, but the instance's scheduleWork has a strong reference to this.
-    // The retain cycle is required because the work it schedules must run even if this is disowned
+    // this owns the registry and its instance, but the registry, and the instance's scheduleWork, have strong references
+    // to this. The retain cycle is required because the work it schedules must run even if this is disowned
     // (because the work handles resource cleanup, etc.).
     // The retain cycle is broken in workQueueUninitialize().
     RefPtr gpuProcessConnection = m_gpuConnectionToWebProcess.get();
 #if !HAVE(TASK_IDENTITY_TOKEN)
     UNUSED_VARIABLE(gpuProcessConnection);
 #endif
-    m_objectHeap->createSwiftImplTable(*this, ::WebGPU::InstanceDescriptor {
+    ASSERT(!m_swiftState);
+    Ref descriptor = WebGPUSwiftInstanceDescriptor::create(::WebGPU::InstanceDescriptor {
         .scheduleWork = [protectedThis = protect(*this)](Function<void()>&& workItem) {
             protectedThis->scheduleWork(WTF::move(workItem));
         },
@@ -172,6 +155,7 @@ void RemoteGPU::workQueueInitialize()
         .webProcessResourceOwner = std::nullopt,
 #endif
     });
+    swiftInitialize(descriptor.ptr());
     send(Messages::RemoteGPUProxy::WasCreated(true));
 }
 
@@ -184,9 +168,9 @@ void RemoteGPU::workQueueUninitialize()
     m_streamConnection = nullptr;
     performWorkScheduledWhileStopping(WorkQueueState::Stopping);
     // Once the work queue stops, nothing can run the work that would call the callbacks pending on the
-    // devices' queues, so destroying the devices calls them now.
-    m_objectHeap->destroyDevices();
-    m_objectHeap->clear();
+    // devices' queues, so the registry destroys the devices, which calls them now.
+    if (m_swiftState)
+        swiftUninitialize();
     m_modelObjectHeap->clear();
 }
 
@@ -202,31 +186,9 @@ void RemoteGPU::didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::Mess
 }
 
 
-void RemoteGPU::requestAdapter(const WebGPU::RequestAdapterOptions& options, WebGPUIdentifier identifier, CompletionHandler<void(std::optional<RemoteGPURequestAdapterResponse>&&)>&& callback)
-{
-    assertIsCurrent(workQueue());
-    auto adapterOptions = options;
-#if CPU(X86_64)
-    adapterOptions.powerPreference = ::WebGPU::PowerPreference::HighPerformance;
-#endif
-    callback(protect(m_objectHeap)->requestAdapter(adapterOptions, identifier));
-}
-
-void RemoteGPU::createPresentationContext(const WebGPU::PresentationContextDescriptor& descriptor, WebGPUIdentifier identifier)
-{
-    assertIsCurrent(workQueue());
-    MESSAGE_CHECK(protect(m_objectHeap)->addPresentationContext(identifier, descriptor.compositorIntegration));
-}
-
 RefPtr<GPUConnectionToWebProcess> RemoteGPU::gpuConnectionToWebProcess() const
 {
     return m_gpuConnectionToWebProcess.get();
-}
-
-void RemoteGPU::createCompositorIntegration(WebGPUIdentifier identifier)
-{
-    assertIsCurrent(workQueue());
-    protect(m_objectHeap)->addCompositorIntegration(identifier);
 }
 
 static void paintToCanvas(WebCore::NativeImage& image, const WebCore::IntSize& canvasSize, WebCore::GraphicsContext& context)
@@ -274,110 +236,6 @@ RefPtr<WebCore::ImageBuffer> RemoteGPU::imageBuffer(WebCore::RenderingResourceId
     return result;
 }
 
-
-#if ENABLE(GPU_PROCESS_MODEL)
-Vector<UniqueRef<WebCore::IOSurface>> RemoteGPU::createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity& processIdentity, bool standardDynamicRange)
-{
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    const auto colorFormat = standardDynamicRange ? WebCore::IOSurface::Format::BGRA : WebCore::IOSurface::Format::RGBA16F;
-#else
-    const auto colorFormat = WebCore::IOSurface::Format::BGRA;
-#endif
-    const auto colorSpace = standardDynamicRange ? WebCore::ColorSpace::LinearDisplayP3() : WebCore::ColorSpace::ExtendedLinearDisplayP3();
-
-    Vector<UniqueRef<WebCore::IOSurface>> ioSurfaces;
-
-    constexpr auto surfaceCount = 2;
-    for (auto i = 0; i < surfaceCount; ++i) {
-        if (auto buffer = WebCore::IOSurface::create(nullptr, WebCore::IntSize(width, height), colorSpace, WebCore::IOSurface::Name::WebGPU, colorFormat)) {
-            buffer->setOwnershipIdentity(processIdentity);
-            ioSurfaces.append(makeUniqueRefFromNonNullUniquePtr(WTF::move(buffer)));
-        }
-    }
-
-    return ioSurfaces;
-}
-#endif
-
-#if ENABLE(GPU_PROCESS_MODEL)
-static RefPtr<WebKit::Mesh> createModelBackingInternal(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, const WebCore::ProcessIdentity& processIdentity, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
-{
-    auto ioSurfaceVector = RemoteGPU::createRenderBuffers(width, height, processIdentity, standardDynamicRange);
-    Vector<RetainPtr<IOSurfaceRef>> ioSurfaces;
-    for (auto& ioSurface : ioSurfaceVector)
-        ioSurfaces.append(ioSurface->surface());
-
-    WebModelCreateMeshDescriptor backingDescriptor {
-        .width = width,
-        .height = height,
-        .ioSurfaces = WTF::move(ioSurfaces),
-        .diffuseTexture = WTF::move(diffuseTexture),
-        .specularTexture = WTF::move(specularTexture),
-        .processIdentity = &processIdentity,
-        .standardDynamicRange = standardDynamicRange
-    };
-
-    auto mesh = WebKit::MeshImpl::create(WebMesh::create(backingDescriptor), WTF::move(ioSurfaceVector));
-    callback(mesh->ioSurfaceHandles());
-    return mesh;
-}
-#endif
-
-void RemoteGPU::createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebModelIdentifier identifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
-{
-#if ENABLE(GPU_PROCESS_MODEL)
-    assertIsCurrent(workQueue());
-
-    MESSAGE_CHECK(width <= WKBridgeMaximumTextureDimension && height <= WKBridgeMaximumTextureDimension);
-    auto& inputSpecularTexture = specularTexture;
-    auto& inputDiffuseTexture = diffuseTexture;
-    {
-#define loadData(...) std::nullopt
-        WEBMODEL_WEB_MODEL_PLAYER_DECLARE_DIFFUSE_AND_SPECULAR_TEXTURES
-#undef loadData
-#define equalIgnoringDataContents(a, b, dataSize) \
-            (a.dataHandle ? a.dataHandle->size() : 0) == dataSize && \
-            a.width == b.width && \
-            a.height == b.height && \
-            a.depth == b.depth && \
-            a.textureType == b.textureType && \
-            a.pixelFormat == b.pixelFormat && \
-            a.mipmapLevelCount == b.mipmapLevelCount && \
-            a.arrayLength == b.arrayLength && \
-            a.textureUsage == b.textureUsage
-
-        MESSAGE_CHECK(equalIgnoringDataContents(inputDiffuseTexture, diffuseTexture, 49152));
-        MESSAGE_CHECK(equalIgnoringDataContents(inputSpecularTexture, specularTexture, 1048572));
-#undef equalIgnoringDataContents
-    }
-    Ref objectHeap = m_modelObjectHeap.get();
-
-    auto gpuProcessConnection = m_gpuConnectionToWebProcess.get();
-    MESSAGE_CHECK(gpuProcessConnection);
-
-    auto mesh = createModelBackingInternal(width, height, WTF::move(diffuseTexture), WTF::move(specularTexture), gpuProcessConnection->webProcessIdentity(), standardDynamicRange, WTF::move(callback));
-    auto remoteMesh = RemoteMesh::create(*m_gpuConnectionToWebProcess.get(), *this, *mesh, objectHeap, protect(*m_streamConnection), identifier, standardDynamicRange);
-    objectHeap->addObject(identifier, remoteMesh);
-#else
-    UNUSED_PARAM(width);
-    UNUSED_PARAM(height);
-    UNUSED_PARAM(diffuseTexture);
-    UNUSED_PARAM(specularTexture);
-    UNUSED_PARAM(identifier);
-    UNUSED_PARAM(standardDynamicRange);
-    UNUSED_PARAM(callback);
-#endif
-}
-
-void RemoteGPU::isValid(WebGPUIdentifier identifier, CompletionHandler<void(bool, bool)>&& completionHandler)
-{
-    assertIsCurrent(workQueue());
-    auto result = m_objectHeap->objectExistsAndValid(identifier);
-    completionHandler(result.valid, result.exists);
-}
-
 } // namespace WebKit
-
-#undef MESSAGE_CHECK
 
 #endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

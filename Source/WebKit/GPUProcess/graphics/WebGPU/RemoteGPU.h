@@ -27,27 +27,24 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
-#include "ModelObjectHeap.h"
 #include "RemoteGPURequestAdapterResponse.h"
-#include "RemoteVideoFrameIdentifier.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamConnectionWorkQueue.h"
 #include "StreamMessageReceiver.h"
 #include "StreamServerConnection.h"
 #include "WebGPUIdentifier.h"
-#include "WebGPUObjectHeap.h"
-#include "WebGPURequestAdapterOptions.h"
-#include "WebGPUSupportedLimits.h"
-#include <WebCore/MediaPlayerIdentifier.h>
-#include <WebCore/ProcessIdentifier.h>
+#include "WebModelIdentifier.h"
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/Deque.h>
 #include <wtf/Lock.h>
+#include <wtf/MachSendRight.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadAssertions.h>
 #include <wtf/ThreadSafeWeakPtr.h>
+#include <wtf/UniqueRef.h>
 #include <wtf/WeakPtr.h>
 
 namespace IPC {
@@ -57,10 +54,8 @@ class Connection;
 namespace WebCore {
 class IOSurface;
 class ImageBuffer;
-class MediaPlayer;
 class NativeImage;
 class ProcessIdentity;
-class VideoFrame;
 }
 
 namespace WebModel {
@@ -70,13 +65,14 @@ struct ImageAsset;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
+class ModelObjectHeap;
 class RemoteRenderingBackend;
+class WebGPUSwiftInstanceDescriptor;
 
-namespace WebGPU {
-class ObjectHeap;
-}
-
-class RemoteGPU final : public CanMakeWeakPtr<RemoteGPU>, public IPC::StreamServerConnection::Client {
+// The receiver of a web process's WebGPU messages to its GPU, on its own work queue. Swift handles the WebGPU messages
+// (RemoteGPU.swift), on the registry of WebGPU objects that m_swiftState holds; C++ keeps the receiver's lifecycle, the
+// rendering backend's image buffers, and the Model process's meshes.
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteGPU.swift") RemoteGPU final : public CanMakeWeakPtr<RemoteGPU>, public IPC::StreamServerConnection::Client {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGPU);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGPU);
 public:
@@ -96,14 +92,21 @@ public:
     void paintNativeImageToImageBuffer(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
+    // Null once the receiver stops listening.
+    RefPtr<IPC::StreamServerConnection> streamConnection() const { return m_streamConnection; }
 
     static Vector<UniqueRef<WebCore::IOSurface>> createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity&, bool standardDynamicRange = false);
     IPC::StreamConnectionWorkQueue& workQueue() const { return m_workQueue; }
 
-private:
-    friend class WebGPU::ObjectHeap;
-    friend class WebGPUSwiftRegistryHost;
+    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
 
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { IPC::StreamMessageReceiver::ref(); }
+    void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
+
+private:
     RemoteGPU(WebGPUIdentifier, GPUConnectionToWebProcess&, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
 
     RemoteGPU(const RemoteGPU&) = delete;
@@ -125,33 +128,29 @@ private:
         return protect(*m_streamConnection)->send(std::forward<T>(message), m_identifier);
     }
 
-    // IPC::StreamMessageReceiver overrides.
-    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
     // IPC::StreamServerConnection::Client overrides.
     void didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName, const Vector<uint32_t>&) final;
 
-    void requestAdapter(const WebGPU::RequestAdapterOptions&, WebGPUIdentifier, CompletionHandler<void(std::optional<RemoteGPURequestAdapterResponse>&&)>&&);
     NODELETE void createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebKit::WebModelIdentifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&&);
 
-    void createPresentationContext(const WebGPU::PresentationContextDescriptor&, WebGPUIdentifier);
-
-    void createCompositorIntegration(WebGPUIdentifier);
-
-    void isValid(WebGPUIdentifier, CompletionHandler<void(bool, bool)>&&);
+    // Implemented in Swift (RemoteGPU.swift). The registry made from the descriptor, which m_swiftState holds, holds
+    // this receiver until swiftUninitialize() releases it; m_swiftState is 0 before workQueueInitialize() and after.
+    void swiftInitialize(WebGPUSwiftInstanceDescriptor* WTF_NONNULL);
+    void swiftUninitialize();
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
     RefPtr<IPC::StreamServerConnection> m_streamConnection;
-    const Ref<WebGPU::ObjectHeap> m_objectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
     const Ref<ModelObjectHeap> m_modelObjectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
     const WebGPUIdentifier m_identifier;
     const Ref<RemoteRenderingBackend> m_renderingBackend;
+    uintptr_t m_swiftState { 0 };
     Lock m_scheduledWorkLock;
     WorkQueueState m_workQueueState WTF_GUARDED_BY_LOCK(m_scheduledWorkLock) { WorkQueueState::Running };
     // A stopping work queue drops the work dispatched to it, so the work scheduled meanwhile waits here to run before it stops.
     Deque<Function<void()>> m_workScheduledWhileStopping WTF_GUARDED_BY_LOCK(m_scheduledWorkLock);
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

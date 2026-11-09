@@ -127,7 +127,7 @@ extension WebGPU.Limits {
 }
 
 extension IPCTypes.Limits {
-    fileprivate init(_ limits: WebGPU.Limits) {
+    init(_ limits: WebGPU.Limits) {
         self.init(
             maxTextureDimension1D: limits.maxTextureDimension1D,
             maxTextureDimension2D: limits.maxTextureDimension2D,

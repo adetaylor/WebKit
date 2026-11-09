@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::RequestAdapterOptions {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::RequestAdapterOptions {
     std::optional<::WebGPU::PowerPreference> powerPreference;
     bool forceFallbackAdapter;
     bool xrCompatible;

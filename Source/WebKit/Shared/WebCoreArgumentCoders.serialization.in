@@ -5458,7 +5458,10 @@ header: <WebGPU/WebGPUCpp.h>
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::PowerPreference : bool
+[Swift] enum class ::WebGPU::PowerPreference : bool {
+    LowPower,
+    HighPerformance,
+};
 
 header: <WebCore/WebGPUCppAPI.h>
 using ::WebGPU::PowerPreference = ::WebGPU::PowerPreference

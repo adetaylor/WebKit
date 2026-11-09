@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUComputePipelineDescriptor.h>
 
@@ -45,19 +44,6 @@ std::optional<ComputePipelineDescriptor> ConvertToBackingContext::convertToBacki
         return std::nullopt;
 
     return { { { { computePipelineDescriptor.label }, layout }, WTF::move(*compute) } };
-}
-
-std::optional<::WebGPU::ComputePipelineDescriptor> ConvertFromBackingContext::convertFromBacking(const ComputePipelineDescriptor& computePipelineDescriptor, Vector<::WebGPU::ConstantEntry>& constantsStorage, bool allowMissingPipelineLayout)
-{
-    auto layout = convertLayoutFromBacking(computePipelineDescriptor, allowMissingPipelineLayout);
-    if (!layout)
-        return std::nullopt;
-
-    auto compute = convertFromBacking(computePipelineDescriptor.compute, constantsStorage);
-    if (!compute)
-        return std::nullopt;
-
-    return { { computePipelineDescriptor.label, WTF::move(*layout), WTF::move(*compute) } };
 }
 
 } // namespace WebKit

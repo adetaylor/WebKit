@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUShaderModuleDescriptor.h>
 #include <wtf/Borrow.h>
@@ -41,19 +40,6 @@ std::optional<ShaderModuleDescriptor> ConvertToBackingContext::convertToBacking(
         return ShaderModuleCompilationHintEntry { hint.entryPoint, ShaderModuleCompilationHint { convertToBacking(hint.layout.get()) } };
     });
     return { { { shaderModuleDescriptor.label }, shaderModuleDescriptor.code, WTF::move(hints) } };
-}
-
-std::optional<::WebGPU::ShaderModuleDescriptor> ConvertFromBackingContext::convertFromBacking(const ShaderModuleDescriptor& shaderModuleDescriptor, Vector<::WebGPU::ShaderModuleCompilationHint>& hintsStorage)
-{
-    hintsStorage.reserveInitialCapacity(shaderModuleDescriptor.hints.size());
-    for (const auto& hint : borrow(shaderModuleDescriptor.hints)) {
-        RefPtr pipelineLayout = convertPipelineLayoutFromBacking(hint.hint.pipelineLayout);
-        if (!pipelineLayout)
-            return std::nullopt;
-        hintsStorage.append({ .entryPoint = hint.entryPoint, .layout = pipelineLayout.releaseNonNull() });
-    }
-
-    return { { shaderModuleDescriptor.label, shaderModuleDescriptor.code, hintsStorage.span() } };
 }
 
 } // namespace WebKit

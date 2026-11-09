@@ -202,7 +202,7 @@ final class RemoteQueue {
             return
         }
         let origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
-        guard let image = objects.host.externalImage(imageBufferIdentifier.rawValue, origin, source.flipY, source.premultipliedAlpha).value else {
+        guard let image = WebKit.webGPUExternalImage(objects.host, imageBufferIdentifier.rawValue, origin, source.flipY, source.premultipliedAlpha).value else {
             return
         }
         queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))

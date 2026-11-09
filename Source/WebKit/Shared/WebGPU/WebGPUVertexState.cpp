@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUVertexState.h>
 #include <wtf/Borrow.h>
@@ -53,30 +52,6 @@ std::optional<VertexState> ConvertToBackingContext::convertToBacking(const ::Web
     }
 
     return { { WTF::move(*base), WTF::move(buffers) } };
-}
-
-std::optional<::WebGPU::VertexState> ConvertFromBackingContext::convertFromBacking(const VertexState& vertexState, RenderPipelineDescriptorStorage& storage)
-{
-    auto stage = convertFromBacking(static_cast<const ProgrammableStage&>(vertexState), storage.vertexConstants);
-    if (!stage)
-        return std::nullopt;
-
-    // The attributes of each buffer are sized up front, so that the spans into them stay valid.
-    Borrow buffers { vertexState.buffers };
-    storage.vertexAttributes.resize(buffers->size());
-    storage.vertexBuffers.reserveInitialCapacity(buffers->size());
-    for (size_t i = 0; i < buffers->size(); ++i) {
-        auto& backingBuffer = buffers[i];
-        if (backingBuffer) {
-            auto buffer = convertFromBacking(*backingBuffer, storage.vertexAttributes[i]);
-            if (!buffer)
-                return std::nullopt;
-            storage.vertexBuffers.append(WTF::move(*buffer));
-        } else
-            storage.vertexBuffers.append(std::nullopt);
-    }
-
-    return { { WTF::move(*stage), storage.vertexBuffers.span() } };
 }
 
 } // namespace WebKit

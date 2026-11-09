@@ -28,18 +28,12 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUObjectDescriptorBase.h>
 
 namespace WebKit::WebGPU {
 
 std::optional<ObjectDescriptorBase> ConvertToBackingContext::convertToBacking(const WebCore::WebGPUObjectDescriptorBase& objectDescriptorBase)
-{
-    return { { objectDescriptorBase.label } };
-}
-
-std::optional<WebCore::WebGPUObjectDescriptorBase> ConvertFromBackingContext::convertFromBacking(const ObjectDescriptorBase& objectDescriptorBase)
 {
     return { { objectDescriptorBase.label } };
 }

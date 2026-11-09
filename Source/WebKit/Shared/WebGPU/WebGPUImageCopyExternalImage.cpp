@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUImageCopyExternalImage.h>
 
@@ -37,13 +36,6 @@ namespace WebKit::WebGPU {
 std::optional<ImageCopyExternalImage> ConvertToBackingContext::convertToBacking(const WebCore::WebGPUExternalImageSource& imageCopyExternalImage)
 {
     return { { imageCopyExternalImage.origin, imageCopyExternalImage.flipY, imageCopyExternalImage.imageBuffer ? std::optional { imageCopyExternalImage.imageBuffer->renderingResourceIdentifier() } : std::nullopt, imageCopyExternalImage.premultipliedAlpha } };
-}
-
-std::optional<WebCore::WebGPUExternalImageSource> ConvertFromBackingContext::convertFromBacking(const ImageCopyExternalImage& imageCopyExternalImage)
-{
-    // The source ImageBuffer cannot be resolved here; RemoteQueue looks it up through RemoteGPU
-    // and fills it in, because only RemoteGPU can reach the RemoteRenderingBackend.
-    return { { imageCopyExternalImage.origin, imageCopyExternalImage.flipY, nullptr, imageCopyExternalImage.premultipliedAlpha, std::nullopt } };
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -62,14 +54,6 @@ std::optional<ImageCopyExternalImageVideoSource> ConvertToBackingContext::conver
     return { { imageCopyExternalImage.origin, imageCopyExternalImage.flipY, mediaIdentifier, std::nullopt } };
 }
 
-std::optional<WebCore::WebGPUExternalImageSource> ConvertFromBackingContext::convertFromBacking(const ImageCopyExternalImageVideoSource& imageCopyExternalImage, ConvertFromBackingContext::PixelBufferType pixelBuffer, WebCore::VideoFrameRotation rotation, bool isMirrored)
-{
-    // RemoteQueue has already resolved the media player identifier, or read the shared frame, into
-    // the pixel buffer the backing queue wraps, and read the display transform off the frame the
-    // pixel buffer came from; a decoded frame is opaque, so its alpha needs neither premultiplying
-    // nor undoing.
-    return { { imageCopyExternalImage.origin, imageCopyExternalImage.flipY, nullptr, true, WebCore::WebGPUVideoSourceIdentifier { pixelBuffer }, rotation, isMirrored } };
-}
 #endif
 
 } // namespace WebKit

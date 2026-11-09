@@ -29,7 +29,7 @@
 
 #include "IPCSemaphore.h"
 #include "MessageReceiver.h"
-#include "RemoteGPURequestAdapterResponse.h"
+#include "RemoteGPU.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
@@ -40,7 +40,6 @@
 #include "WebGPUImageCopyTexture.h"
 #include "WebGPUImageCopyTextureTagged.h"
 #include "WebGPUImageDataLayout.h"
-#include "WebGPURequestAdapterOptions.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
 #include <concepts>
@@ -65,44 +64,14 @@ class IOSurface;
 
 namespace WebKit {
 
-class RemoteGPU;
 class SharedVideoFrameReader;
 
-namespace WebGPU {
-class ObjectHeap;
-}
-
-// Whether the Swift registry of WebGPU objects has an object, and whether it's valid, for RemoteGPU::isValid().
-enum class WebGPUSwiftObjectState : uint8_t {
-    Absent,
-    Invalid,
-    Valid,
-};
-
-// What the Swift registry of WebGPU objects uses of the C++ around it: the object heap, which owns the receivers still
-// written in C++, and the RemoteGPU, for its stream connection and shared preferences, both weakly.
-class WebGPUSwiftRegistryHost {
-public:
-    friend class WebGPUCompositorRenderBuffers;
-
-    WebGPUSwiftRegistryHost(WebGPU::ObjectHeap&, RemoteGPU&);
-
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
-    RefPtr<IPC::StreamServerConnection> streamConnection() const;
-
 #if PLATFORM(COCOA)
-    // The source of a queue's CopyExternalImageToTexture message, as WebCore's WebGPU integration copies from it: the
-    // IOSurface of the RemoteGPU's rendering backend's image buffer with that identifier, read from the origin.
-    // std::nullopt if there's nothing to copy.
-    std::optional<::WebGPU::ImageCopyExternalImage> externalImage(uint64_t imageBufferIdentifier, ::WebGPU::Origin2D, bool flipY, bool premultipliedAlpha) const;
+// The source of a queue's CopyExternalImageToTexture message, as WebCore's WebGPU integration copies from it: the
+// IOSurface of the RemoteGPU's rendering backend's image buffer with that identifier, read from the origin.
+// std::nullopt if there's nothing to copy.
+std::optional<::WebGPU::ImageCopyExternalImage> webGPUExternalImage(RemoteGPU&, uint64_t imageBufferIdentifier, ::WebGPU::Origin2D, bool flipY, bool premultipliedAlpha);
 #endif
-
-private:
-    friend class WebGPUSwiftVideoFrames;
-
-    WeakPtr<WebGPU::ObjectHeap> m_objectHeap;
-    WeakPtr<RemoteGPU> m_gpu;
-} SWIFT_SELF_CONTAINED;
 
 // Keeps the messages for a WebGPU receiver written in Swift coming from the stream connection, as
 // IPC::ScopedActiveMessageReceiveQueue does for a C++ receiver, until it goes.
@@ -134,18 +103,20 @@ template<typename> struct IsRefOfStreamMessageReceiver : std::false_type { };
 template<typename T> struct IsRefOfStreamMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, IPC::StreamMessageReceiver>> { };
 
 // Registers a Swift receiver's message forwarder for those messages, with the RemoteGPU's shared preferences. Null if
-// the RemoteGPU or its stream connection has gone. A template so that Swift, which can't pass a forwarder as the
+// the RemoteGPU's stream connection has gone. A template so that Swift, which can't pass a forwarder as the
 // StreamMessageReceiver it is, can pass the Ref to it that it holds. The static_assert is used because the constraint
 // isn't enforced for Swift callers.
 template<typename ForwarderRef>
-WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(const WebGPUSwiftRegistryHost& host, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
+WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(RemoteGPU& gpu, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
 {
     static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
-    RefPtr streamConnection = host.streamConnection();
+    RefPtr streamConnection = gpu.streamConnection();
     if (!streamConnection)
         return nullptr;
-    forwarder->setSharedPreferencesProvider([host] {
-        return host.sharedPreferencesForWebProcess();
+    forwarder->setSharedPreferencesProvider([weakGPU = WeakPtr { gpu }]() -> std::optional<SharedPreferencesForWebProcess> {
+        if (RefPtr gpu = weakGPU.get())
+            return gpu->sharedPreferencesForWebProcess();
+        return std::nullopt;
     });
     return &WebGPUSwiftReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
@@ -207,7 +178,7 @@ public:
     void setContentEDRHeadroom(float);
     // RemoteGPU's paint, into the image buffer with that identifier, of the canvas's texture image, or else of the
     // buffer's own image.
-    void paint(const WebGPUSwiftRegistryHost&, CGImageRef WTF_NULLABLE textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const;
+    void paint(RemoteGPU&, CGImageRef WTF_NULLABLE textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const;
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the
@@ -233,8 +204,8 @@ IOSurfaceRef WTF_NONNULL copyCompositorRenderBufferSurface(const WebGPUComposito
 // as external textures, which take WebCore's media types.
 class WebGPUSwiftVideoFrames final : public RefCounted<WebGPUSwiftVideoFrames> {
 public:
-    // Null if the RemoteGPU or its connection to the web process has gone.
-    static WebGPUSwiftVideoFrames* WTF_NULLABLE create(const WebGPUSwiftRegistryHost&) SWIFT_RETURNS_RETAINED;
+    // Null if the RemoteGPU's connection to the web process has gone.
+    static WebGPUSwiftVideoFrames* WTF_NULLABLE create(RemoteGPU&) SWIFT_RETURNS_RETAINED;
 
     ~WebGPUSwiftVideoFrames();
 
@@ -261,9 +232,9 @@ public:
 #endif
 
 private:
-    WebGPUSwiftVideoFrames(const WebGPUSwiftRegistryHost&, std::unique_ptr<SharedVideoFrameReader>&&);
+    WebGPUSwiftVideoFrames(RemoteGPU&, std::unique_ptr<SharedVideoFrameReader>&&);
 
-    const WebGPUSwiftRegistryHost m_host;
+    const WeakPtr<RemoteGPU> m_gpu;
     const std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 #endif

@@ -86,6 +86,8 @@
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteDeviceMessages.h"
 #include "RemoteExternalTextureMessages.h"
+#include "RemoteGPU.h"
+#include "RemoteGPUMessages.h"
 #include "RemotePipelineLayoutMessages.h"
 #include "RemotePresentationContextMessages.h"
 #include "RemoteQuerySetMessages.h"
@@ -102,6 +104,5 @@
 #include "RemoteXRProjectionLayerMessages.h"
 #include "RemoteXRSubImageMessages.h"
 #include "RemoteXRViewMessages.h"
-#include "WebGPUObjectHeap.h"
 #include "WebGPUSwiftSupport.h"
 #endif

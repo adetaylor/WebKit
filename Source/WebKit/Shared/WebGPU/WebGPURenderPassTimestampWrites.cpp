@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 
@@ -39,15 +38,6 @@ std::optional<RenderPassTimestampWrites> ConvertToBackingContext::convertToBacki
     auto querySet = convertToBacking(protect(renderPassTimestampWrite.querySet).get());
 
     return { { querySet, renderPassTimestampWrite.beginningOfPassWriteIndex, renderPassTimestampWrite.endOfPassWriteIndex } };
-}
-
-std::optional<::WebGPU::PassTimestampWrites> ConvertFromBackingContext::convertFromBacking(const RenderPassTimestampWrites& renderPassTimestampWrite)
-{
-    RefPtr querySet = convertQuerySetFromBacking(renderPassTimestampWrite.querySet);
-    if (!querySet)
-        return std::nullopt;
-
-    return { { querySet.releaseNonNull(), renderPassTimestampWrite.beginningOfPassWriteIndex, renderPassTimestampWrite.endOfPassWriteIndex } };
 }
 
 } // namespace WebKit

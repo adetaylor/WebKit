@@ -41,6 +41,7 @@ extension IPCTypes.CxxName {
     typealias WebKit_WebGPU_ImageDataLayout = IPCTypes.TexelCopyBufferLayout
     typealias WebKit_WebGPU_QuerySetDescriptor = IPCTypes.QuerySetDescriptor
     typealias WebKit_WebGPU_RenderBundleDescriptor = IPCTypes.RenderBundleDescriptor
+    typealias WebKit_WebGPU_RequestAdapterOptions = IPCTypes.RequestAdapterOptions
     typealias WebKit_WebGPU_SamplerDescriptor = IPCTypes.SamplerDescriptor
     typealias WebKit_WebGPU_SupportedLimits = IPCTypes.Limits
     typealias WebKit_WebGPU_TextureViewDescriptor = IPCTypes.TextureViewDescriptor
@@ -75,8 +76,8 @@ where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
 // The registry of the WebGPU objects of a RemoteGPU whose messages Swift receives, by identifier: each object's
 // reference, its receiver, and the registration that keeps its messages coming, which the receiver removes when the
 // web process destructs the object. It has the RemoteGPU's instance, which makes the adapters and canvas contexts. Used
-// only on the RemoteGPU's work queue. The RemoteGPU's object heap, which owns the receivers still written in C++, owns
-// the registry, and empties it when it's cleared or destroyed.
+// only on the RemoteGPU's work queue. The RemoteGPU owns the registry (RemoteGPU.swift), which holds it in turn until the
+// RemoteGPU empties and releases the registry, when it stops.
 final class WebGPUImplTable {
     private final class Entry {
         let object: AnyObject
@@ -169,20 +170,17 @@ final class WebGPUImplTable {
         }
     }
 
-    let host: WebKit.WebGPUSwiftRegistryHost
+    let host: WebKit.RemoteGPU
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
     private var stores = Stores()
     // Every device made: work in flight can keep a device alive after its entry is removed.
     private var devices: [DeviceWeakReference] = []
 
-    init(host: WebKit.WebGPUSwiftRegistryHost, instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
+    init(host: WebKit.RemoteGPU, instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
         self.host = host
         var descriptor = instanceDescriptor.take()
-        // Safety: RemoteGPU's work queue is the instance's API thread, which receives every message that calls into the
-        // instance and its objects; RemoteGPU::scheduleWork() runs work there later, one item at a time, and once the queue
-        // has stopped releases it on one serial queue.
-        instance = unsafe InstanceReference(&descriptor)
+        instance = InstanceReference(&descriptor)
     }
 
     func remove(_ identifier: UInt64) {
@@ -200,24 +198,22 @@ final class WebGPUImplTable {
         swap(&stores, &removedStores)
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: makes the adapter and its receiver, and fills in the
-    // reply that describes it. False, with no reply, if there's no adapter.
-    func requestAdapter(_ options: WebGPU.RequestAdapterOptions, _ identifier: UInt64, _ response: inout WebKit.RemoteGPURequestAdapterResponse) -> Bool {
+    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: makes the adapter and its receiver, and the reply that
+    // describes it. nil if there's no adapter.
+    func requestAdapter(_ options: WebGPU.RequestAdapterOptions, _ identifier: UInt64) -> IPCTypes.RemoteGPURequestAdapterResponse? {
         guard let adapter = instance.requestAdapter(options) else {
-            return false
+            return nil
         }
         RemoteAdapter.add(adapter, WebGPURegistryLink(self, identifier))
-
-        response.name = WTF.String(adapter.name)
-        for feature in adapter.features {
-            response.features.append(consuming: feature)
-        }
-        response.limits = adapter.limits
-        response.isFallbackAdapter = false
         let subgroupSizes = adapter.subgroupSizes
-        response.subgroupMinSize = subgroupSizes.min
-        response.subgroupMaxSize = subgroupSizes.max
-        return true
+        return IPCTypes.RemoteGPURequestAdapterResponse(
+            name: adapter.name,
+            features: adapter.features.map { sameNumbering($0) },
+            limits: IPCTypes.Limits(adapter.limits),
+            isFallbackAdapter: false,
+            subgroupMinSize: subgroupSizes.min,
+            subgroupMaxSize: subgroupSizes.max
+        )
     }
 
     // Makes the receivers of a device that an adapter made, and of its queue.
@@ -257,16 +253,17 @@ final class WebGPUImplTable {
         devices = []
     }
 
-    // Whether an object that Swift owns is valid, as WebGPUIntegration::isValid() says for its shell.
-    func objectState(_ identifier: UInt64) -> WebKit.WebGPUSwiftObjectState {
+    // Whether there's an object with that identifier, and whether it's valid, as WebGPUIntegration::isValid() says for
+    // its shell.
+    func objectState(_ identifier: UInt64) -> (exists: Bool, valid: Bool) {
         guard let object = entries[identifier]?.object else {
-            return .Absent
+            return (false, false)
         }
         // The WebXR objects are never invalid, as when C++ received their messages.
         guard let reference = object as? any GPUObjectReference else {
-            return .Valid
+            return (true, true)
         }
-        return reference.isValid ? .Valid : .Invalid
+        return (true, reference.isValid)
     }
 
     // Adds an object that Swift owns, in place of any with the same identifier, with its receiver and the registration
@@ -469,75 +466,6 @@ final class WebGPUImplTable {
     }
 }
 
-// The object heap's members that reach its registry, which m_swiftState holds retained, by address, from
-// createSwiftImplTable() to the heap's destructor.
-extension WebKit.WebGPU.ObjectHeap {
-    @cxx @implementation
-    static func createSwiftState(
-        _ host: WebKit.WebGPUSwiftRegistryHost,
-        _ instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor
-    ) -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(WebGPUImplTable(host: host, instanceDescriptor: instanceDescriptor)).toOpaque())
-    }
-
-    @cxx @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<WebGPUImplTable>.fromOpaque(registryAddress(swiftState)).takeRetainedValue()
-    }
-
-    private static func registryAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("The object heap has no registry yet")
-        }
-        return unsafe address
-    }
-
-    // Only called once the registry exists, which the C++ checks.
-    private var table: WebGPUImplTable {
-        // Safety: m_swiftState is a retained WebGPUImplTable until the destructor, and nothing else changes it.
-        unsafe Unmanaged<WebGPUImplTable>.fromOpaque(Self.registryAddress(m_swiftState)).takeUnretainedValue()
-    }
-
-    @cxx @implementation
-    func swiftRequestAdapter(_ options: WebGPU.RequestAdapterOptions, _ identifier: UInt64) -> OptionalAdapterResponse {
-        var response = WebKit.RemoteGPURequestAdapterResponse()
-        guard table.requestAdapter(options, identifier, &response) else {
-            return OptionalAdapterResponse()
-        }
-        return OptionalAdapterResponse(response)
-    }
-
-    @cxx @implementation
-    func swiftAddCompositorIntegration(_ identifier: UInt64) {
-        table.addCompositorIntegration(identifier)
-    }
-
-    @cxx @implementation
-    func swiftAddPresentationContext(_ identifier: UInt64, _ compositorIntegration: UInt64) -> Bool {
-        table.addPresentationContext(identifier, compositorIntegration)
-    }
-
-    @cxx @implementation
-    func swiftHasDevice(_ identifier: UInt64) -> Bool {
-        table.hasDevice(identifier)
-    }
-
-    @cxx @implementation
-    func swiftDestroyDevices() {
-        table.destroyDevices()
-    }
-
-    @cxx @implementation
-    func swiftRemoveAll() {
-        table.removeAll()
-    }
-
-    @cxx @implementation
-    func swiftObjectState(_ identifier: UInt64) -> WebKit.WebGPUSwiftObjectState {
-        table.objectState(identifier)
-    }
-}
-
 // The objects of one kind in a registry, by identifier: open addressing with linear probing, and a hash of one
 // multiplication, as WTF's integer hash tables have, which costs much less than Dictionary's SipHash.
 private struct WebGPUObjectStore<Object: AnyObject> {
@@ -693,9 +621,9 @@ extension TextureCopyLocation {
 
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its
 // object, and the objects its messages name, which most messages look up. Strong, because a weak reference costs as much
-// to load as the lookup itself. The cycle through the registry's entries ends when the object heap empties the registry,
-// as it does when it's cleared or destroyed; work still in flight after that finds nothing, and the registry's host, whose
-// pointers are weak, does nothing.
+// to load as the lookup itself. The cycle through the registry's entries ends when the RemoteGPU empties the registry, as
+// it does when it stops; work still in flight after that finds nothing, and the RemoteGPU, whose stream connection has
+// gone by then, registers nothing.
 struct WebGPURegistryLink {
     let objects: WebGPUImplTable?
     let identifier: UInt64

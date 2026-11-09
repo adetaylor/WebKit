@@ -32,13 +32,11 @@
 #include "RemoteBufferProxy.h"
 #include "RemoteGPU.h"
 #include "StreamServerConnection.h"
-#include "WebGPUObjectHeap.h"
 #include "WebKit-Swift.h"
 #include <WebCore/ColorSpace.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NativeImage.h>
-#include <WebCore/WebGPUExternalTextureDescriptor.h>
 #include <WebCore/WebGPUImageCopyExternalImage.h>
 #include <WebCore/WebGPUImageCopyTextureTagged.h>
 #include <WebCore/WebGPUPredefinedColorSpace.h>
@@ -119,69 +117,66 @@ static std::optional<SourceTextureFormat> LEGACY_NODELETE sourceTextureFormat(We
     return std::nullopt;
 }
 
-static std::optional<::WebGPU::ImageCopyExternalImage> backingImageCopyExternalImage(const WebCore::WebGPUExternalImageSource& source)
+// The image buffer source of a queue's CopyExternalImageToTexture message.
+static std::optional<::WebGPU::ImageCopyExternalImage> backingImageCopyExternalImage(RefPtr<WebCore::ImageBuffer>&& sourceImageBuffer, ::WebGPU::Origin2D origin, bool flipY, bool premultipliedAlpha)
 {
     ::WebGPU::ImageCopyExternalImage backingSource;
-    backingSource.origin = source.origin.value_or(::WebGPU::Origin2D { });
-    backingSource.flipY = source.flipY;
+    backingSource.origin = origin;
+    backingSource.flipY = flipY;
     backingSource.hasAlpha = false;
     // An ImageBitmap created with premultiplyAlpha: "none" was put into its buffer straight, so
     // the caller has to say; a buffer a 2D context composited is premultiplied.
-    backingSource.premultipliedAlpha = source.premultipliedAlpha;
+    backingSource.premultipliedAlpha = premultipliedAlpha;
 
-#if ENABLE(VIDEO)
-    if (source.videoSource) {
-        // The decoded frame the GPU process resolved for us. Its extent, its crop and its primaries
-        // all travel with the frame, so the backing queue reads them off it rather than being told
-        // here; and a decoded frame is opaque, so its alpha is replaced with 1 the way an external
-        // texture's is.
-        auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&*source.videoSource);
-        if (!pixelBuffer || !*pixelBuffer)
-            return std::nullopt;
+    if (!sourceImageBuffer)
+        return std::nullopt;
 
-        backingSource.pixelBuffer = *pixelBuffer;
-        // The display transform is the one thing about the frame its pixel buffer does not carry.
-        backingSource.pixelBufferRotation = convertToAPI(source.videoSourceRotation);
-        backingSource.pixelBufferIsMirrored = source.videoSourceIsMirrored;
-        backingSource.premultipliedAlpha = true;
-    } else
-#endif
-    {
-        RefPtr sourceImageBuffer = source.imageBuffer;
-        if (!sourceImageBuffer)
-            return std::nullopt;
+    // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects
+    // unaccelerated sources before we get here, but the backing may have been dropped since.
+    auto* surface = sourceImageBuffer->surface();
+    if (!surface)
+        return std::nullopt;
 
-        // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects
-        // unaccelerated sources before we get here, but the backing may have been dropped since.
-        auto* surface = sourceImageBuffer->surface();
-        if (!surface)
-            return std::nullopt;
+    auto sourceSize = sourceImageBuffer->truncatedLogicalSize();
+    if (!sourceSize.width() || !sourceSize.height())
+        return std::nullopt;
 
-        auto sourceSize = sourceImageBuffer->truncatedLogicalSize();
-        if (!sourceSize.width() || !sourceSize.height())
-            return std::nullopt;
+    auto sourceFormat = sourceTextureFormat(sourceImageBuffer->pixelFormat());
+    if (!sourceFormat)
+        return std::nullopt;
 
-        auto sourceFormat = sourceTextureFormat(sourceImageBuffer->pixelFormat());
-        if (!sourceFormat)
-            return std::nullopt;
-
-        backingSource.source = surface->surface();
-        backingSource.sourceFormat = sourceFormat->format;
-        backingSource.sourceSize = { static_cast<uint32_t>(sourceSize.width()), static_cast<uint32_t>(sourceSize.height()) };
-        backingSource.hasAlpha = sourceFormat->hasAlpha;
-        backingSource.colorSpace = sourceImageBuffer->colorSpace() == WebCore::ColorSpace::DisplayP3() ? ::WebGPU::PredefinedColorSpace::DisplayP3 : ::WebGPU::PredefinedColorSpace::SRGB;
-    }
+    backingSource.source = surface->surface();
+    backingSource.sourceFormat = sourceFormat->format;
+    backingSource.sourceSize = { static_cast<uint32_t>(sourceSize.width()), static_cast<uint32_t>(sourceSize.height()) };
+    backingSource.hasAlpha = sourceFormat->hasAlpha;
+    backingSource.colorSpace = sourceImageBuffer->colorSpace() == WebCore::ColorSpace::DisplayP3() ? ::WebGPU::PredefinedColorSpace::DisplayP3 : ::WebGPU::PredefinedColorSpace::SRGB;
 
     return backingSource;
 }
 
 #if ENABLE(VIDEO)
-static ::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(const WebCore::WebGPUExternalTextureDescriptor& descriptor)
+// The decoded frame the GPU process resolved for a queue's CopyExternalImageFromVideoFrameToTexture message. Its
+// extent, its crop and its primaries all travel with the frame, so the backing queue reads them off it rather than
+// being told here; and a decoded frame is opaque, so its alpha is replaced with 1 the way an external texture's is.
+static ::WebGPU::ImageCopyExternalImage backingImageCopyExternalImage(const WebGPU::ImageCopyExternalImageVideoSource& source, RetainPtr<CVPixelBufferRef>&& pixelBuffer, WebCore::VideoFrameRotation rotation, bool isMirrored)
 {
-    auto* pixelBuffer = std::get_if<RetainPtr<CVPixelBufferRef>>(&descriptor.videoBacking);
+    ::WebGPU::ImageCopyExternalImage backingSource;
+    backingSource.origin = source.origin.value_or(::WebGPU::Origin2D { });
+    backingSource.flipY = source.flipY;
+    backingSource.hasAlpha = false;
+    backingSource.pixelBuffer = WTF::move(pixelBuffer);
+    // The display transform is the one thing about the frame its pixel buffer does not carry.
+    backingSource.pixelBufferRotation = convertToAPI(rotation);
+    backingSource.pixelBufferIsMirrored = isMirrored;
+    backingSource.premultipliedAlpha = true;
+    return backingSource;
+}
+
+static ::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(const WebGPU::ExternalTextureDescriptor& descriptor, RetainPtr<CVPixelBufferRef>&& pixelBuffer)
+{
     return {
         .label = descriptor.label,
-        .pixelBuffer = pixelBuffer ? *pixelBuffer : nullptr,
+        .pixelBuffer = WTF::move(pixelBuffer),
         .colorSpace = WebCore::convertToWebGPU(descriptor.colorSpace),
         .visibleSize = {
             .width = static_cast<uint32_t>(std::max(0, descriptor.visibleSize.width())),
@@ -191,44 +186,11 @@ static ::WebGPU::ExternalTextureDescriptor backingExternalTextureDescriptor(cons
 }
 #endif
 
-WebGPUSwiftRegistryHost::WebGPUSwiftRegistryHost(WebGPU::ObjectHeap& objectHeap, RemoteGPU& gpu)
-    : m_objectHeap(objectHeap)
-    , m_gpu(gpu)
-{
-}
-
-std::optional<SharedPreferencesForWebProcess> WebGPUSwiftRegistryHost::sharedPreferencesForWebProcess() const
-{
-    if (RefPtr gpu = m_gpu.get())
-        return gpu->sharedPreferencesForWebProcess();
-    return std::nullopt;
-}
-
-RefPtr<IPC::StreamServerConnection> WebGPUSwiftRegistryHost::streamConnection() const
-{
-    RefPtr gpu = m_gpu.get();
-    return gpu ? gpu->m_streamConnection : nullptr;
-}
-
 #if PLATFORM(COCOA)
-std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftRegistryHost::externalImage(uint64_t imageBufferIdentifier, ::WebGPU::Origin2D origin, bool flipY, bool premultipliedAlpha) const
+std::optional<::WebGPU::ImageCopyExternalImage> webGPUExternalImage(RemoteGPU& gpu, uint64_t imageBufferIdentifier, ::WebGPU::Origin2D origin, bool flipY, bool premultipliedAlpha)
 {
-    RefPtr gpu = m_gpu.get();
-    if (!gpu)
-        return std::nullopt;
-
-    // ConvertFromBackingContext cannot resolve the source, because only RemoteGPU can reach the
-    // RemoteRenderingBackend which owns the ImageBuffer.
-    RefPtr imageBuffer = gpu->imageBuffer(WebCore::RenderingResourceIdentifier { imageBufferIdentifier });
-    if (!imageBuffer)
-        return std::nullopt;
-
-    return backingImageCopyExternalImage({
-        .origin = origin,
-        .flipY = flipY,
-        .imageBuffer = WTF::move(imageBuffer),
-        .premultipliedAlpha = premultipliedAlpha,
-    });
+    // Only RemoteGPU can reach the RemoteRenderingBackend which owns the ImageBuffer.
+    return backingImageCopyExternalImage(gpu.imageBuffer(WebCore::RenderingResourceIdentifier { imageBufferIdentifier }), origin, flipY, premultipliedAlpha);
 }
 #endif
 
@@ -320,11 +282,9 @@ void WebGPUCompositorRenderBuffers::setContentEDRHeadroom(float headroom)
 #endif
 }
 
-void WebGPUCompositorRenderBuffers::paint(const WebGPUSwiftRegistryHost& host, CGImageRef textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const
+void WebGPUCompositorRenderBuffers::paint(RemoteGPU& gpuReference, CGImageRef textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const
 {
-    RefPtr gpu = host.m_gpu.get();
-    if (!gpu)
-        return;
+    Ref gpu = gpuReference;
     WebCore::RenderingResourceIdentifier identifier { imageBufferIdentifier };
     if (textureImage) {
         if (RefPtr image = WebCore::NativeImage::create(RetainPtr { textureImage })) {
@@ -348,20 +308,19 @@ void WebGPUCompositorRenderBuffers::paint(const WebGPUSwiftRegistryHost& host, C
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(const WebGPUSwiftRegistryHost& host)
+WebGPUSwiftVideoFrames* WebGPUSwiftVideoFrames::create(RemoteGPU& gpu)
 {
-    RefPtr gpu = host.m_gpu.get();
-    RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
+    RefPtr connection = gpu.gpuConnectionToWebProcess();
     if (!connection)
         return nullptr;
     // As for RemoteDevice: a frame shared across is usually a reference into the video frame object heap, and the web
     // process's identity attributes any buffer read out of shared memory.
     auto reader = makeUnique<SharedVideoFrameReader>(RefPtr<RemoteVideoFrameObjectHeap> { &connection->videoFrameObjectHeap() }, connection->webProcessIdentity());
-    return &adoptRef(*new WebGPUSwiftVideoFrames(host, WTF::move(reader))).leakRef();
+    return &adoptRef(*new WebGPUSwiftVideoFrames(gpu, WTF::move(reader))).leakRef();
 }
 
-WebGPUSwiftVideoFrames::WebGPUSwiftVideoFrames(const WebGPUSwiftRegistryHost& host, std::unique_ptr<SharedVideoFrameReader>&& sharedVideoFrameReader)
-    : m_host(host)
+WebGPUSwiftVideoFrames::WebGPUSwiftVideoFrames(RemoteGPU& gpu, std::unique_ptr<SharedVideoFrameReader>&& sharedVideoFrameReader)
+    : m_gpu(gpu)
     , m_sharedVideoFrameReader(WTF::move(sharedVideoFrameReader))
 {
 }
@@ -387,9 +346,8 @@ std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::exter
         return std::nullopt;
     }
 
-    RefPtr gpu = m_host.m_gpu.get();
-    RefPtr objectHeap = m_host.m_objectHeap.get();
-    if (!gpu || !objectHeap)
+    RefPtr gpu = m_gpu.get();
+    if (!gpu)
         return std::nullopt;
 
     std::optional<WebKit::SharedVideoFrame> sharedVideoFrame = WTF::move(descriptor->sharedFrame);
@@ -406,17 +364,12 @@ std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::exter
         }
     }
 
-    auto convertedDescriptor = objectHeap->convertFromBacking(*descriptor, pixelBuffer);
-    if (!convertedDescriptor) {
-        isInvalid = true;
-        return std::nullopt;
-    }
-    return backingExternalTextureDescriptor(*convertedDescriptor);
+    return backingExternalTextureDescriptor(*descriptor, WTF::move(pixelBuffer));
 }
 
 std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::mediaPlayerFrame(uint64_t mediaPlayerIdentifier)
 {
-    RefPtr gpu = m_host.m_gpu.get();
+    RefPtr gpu = m_gpu.get();
     RefPtr connection = gpu ? gpu->gpuConnectionToWebProcess() : nullptr;
     if (!connection)
         return std::nullopt;
@@ -431,9 +384,8 @@ std::optional<::WebGPU::ExternalTextureDescriptor> WebGPUSwiftVideoFrames::media
 std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftVideoFrames::externalImage(IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImageVideoSource>& sourceArgument)
 {
     auto source = sourceArgument.take();
-    RefPtr objectHeap = m_host.m_objectHeap.get();
-    RefPtr gpu = m_host.m_gpu.get();
-    if (!source || !objectHeap || !gpu)
+    RefPtr gpu = m_gpu.get();
+    if (!source || !gpu)
         return std::nullopt;
 
     // Resolved the same way RemoteDevice resolves an external texture's frame: a shared frame is read
@@ -467,11 +419,7 @@ std::optional<::WebGPU::ImageCopyExternalImage> WebGPUSwiftVideoFrames::external
     if (!pixelBuffer)
         return std::nullopt;
 
-    auto convertedSource = objectHeap->convertFromBacking(*source, WTF::move(pixelBuffer), rotation, isMirrored);
-    ASSERT(convertedSource);
-    if (!convertedSource)
-        return std::nullopt;
-    return backingImageCopyExternalImage(*convertedSource);
+    return backingImageCopyExternalImage(*source, WTF::move(pixelBuffer), rotation, isMirrored);
 }
 #endif // PLATFORM(COCOA) && ENABLE(VIDEO)
 

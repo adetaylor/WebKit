@@ -43,9 +43,9 @@ GPUProcess/graphics/ScopedWebGLRenderingResourcesRequest.cpp
 GPUProcess/graphics/ShareablePixelBuffer.cpp
 GPUProcess/graphics/SharedFont.cpp
 GPUProcess/graphics/Model/ModelObjectHeap.cpp
+GPUProcess/graphics/Model/RemoteGPUModel.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
 GPUProcess/graphics/WebGPU/RemoteGPU.cpp @cost:3
-GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp @cost:3
 GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 GPUProcess/media/RemoteAudioHardwareListenerProxy.cpp
 GPUProcess/media/RemoteAudioSessionProxy.cpp
