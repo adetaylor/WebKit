@@ -56,15 +56,6 @@ IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebGPU::Metal {
 
-// The debug encoder timestamps: logs `resolvedBuffers`, which hold MTLCounterResultTimestamps, when `commandBuffer`
-// completes, then calls didLog on the Metal thread.
-void logTimestampsWhenCompleted(id<MTLCommandBuffer>, NSMutableArray *resolvedBuffers, void (^ NS_SWIFT_SENDABLE didLog)(void));
-
-// notify(3) for DebugToggles.swift, with no pointer crossing into Swift: the registration's token and the state are
-// out-parameters, which Swift can only pass as unsafe pointers. The handler stays registered, and runs on the main queue.
-void registerNotifyHandler(NSString *name, void (^ NS_SWIFT_SENDABLE handler)(int token));
-uint64_t notifyState(int token);
-
 #define WEBKIT_DRAW_INDEXED_INDIRECT_STRUCT_TYPE \
 struct WebKitMTLDrawIndexedPrimitivesIndirectArguments { \
     MTLDrawIndexedPrimitivesIndirectArguments args;         \
@@ -78,13 +69,6 @@ struct WebKitMTLDrawPrimitivesIndirectArguments { \
     unsigned lostOrOOBRead;                                 \
 };
 WEBKIT_DRAW_INDIRECT_STRUCT_TYPE
-
-#if PLATFORM(MAC)
-// The macOS device observer, for DeviceImpl: deviceWasNotified runs on an observer thread for each notification about
-// the device. Returns the observer's token, which removeDeviceObserver() takes.
-id<NSObject> _Nullable addDeviceObserver(id<MTLDevice>, void (^ NS_SWIFT_SENDABLE deviceWasNotified)(void));
-void removeDeviceObserver(id<NSObject>);
-#endif
 
 } // namespace WebGPU::Metal
 

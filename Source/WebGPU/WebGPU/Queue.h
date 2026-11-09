@@ -107,11 +107,6 @@ struct CopyExternalImageSource {
     WebGPU::PredefinedColorSpace colorSpace { WebGPU::PredefinedColorSpace::SRGB };
 };
 
-// The handlers QueueImpl gives each command buffer just before committing it. Both blocks run on Metal threads:
-// didSchedule once the command buffer is scheduled, didComplete once it completed, with whether to lose the device.
-// A fatal command buffer error, or no completion within 3 s, crashes the GPU process.
-void addCommitHandlers(id<MTLCommandBuffer>, void (^ NS_SWIFT_SENDABLE didSchedule)(void), void (^ NS_SWIFT_SENDABLE didComplete)(bool loseTheDevice));
-
 // A buffer over `length` bytes of the ByteOwner from `offset`, which keeps the ByteOwner alive for as long as it exists.
 // Null when the ByteOwner has fewer bytes.
 id<MTLBuffer> _Nullable newBufferAliasingOwner(id<MTLDevice> _Nullable, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);

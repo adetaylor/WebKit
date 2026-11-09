@@ -40,7 +40,6 @@
 		F4660E6CF3264519B8BC21E4 /* RenderPipelineTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */; };
 		EA7AF98841244F718F395E0C /* QuerySet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C859B61D2EAF4362828276FE /* QuerySet.swift */; };
 		47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C53A4E591654B1482CECFBD /* ComputePipeline.swift */; };
-		1C5ACAC1273A426D0095F8D5 /* Device.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA3273A426D0095F8D5 /* Device.mm */; };
 		9CD556ADB11D44B881D5A967 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAF065BC4E44B17BDEC4DEC /* Device.swift */; };
 		92419AA717304E83930CE6D4 /* DeviceHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */; };
 		40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */; };
@@ -289,7 +288,6 @@
 		C859B61D2EAF4362828276FE /* QuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuerySet.swift; sourceTree = "<group>"; };
 		1C5ACAA0273A426D0095F8D5 /* Instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Instance.h; sourceTree = "<group>"; };
 		9C53A4E591654B1482CECFBD /* ComputePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePipeline.swift; sourceTree = "<group>"; };
-		1C5ACAA3273A426D0095F8D5 /* Device.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Device.mm; sourceTree = "<group>"; };
 		5DAF065BC4E44B17BDEC4DEC /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHelpers.swift; sourceTree = "<group>"; };
 		37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToggles.swift; sourceTree = "<group>"; };
@@ -555,7 +553,6 @@
 				079861932EF13A1100659042 /* CxxBridgingPublic.h */,
 				37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */,
 				1C5ACA9B273A426D0095F8D5 /* Device.h */,
-				1C5ACAA3273A426D0095F8D5 /* Device.mm */,
 				5DAF065BC4E44B17BDEC4DEC /* Device.swift */,
 				B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */,
 				107AEF60B221432FA7535326 /* EncoderModel.swift */,
@@ -1117,7 +1114,6 @@
 				00330FD34B5348898ECBADDE /* ComputePassEncoder.swift in Sources */,
 				47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */,
 				40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */,
-				1C5ACAC1273A426D0095F8D5 /* Device.mm in Sources */,
 				9CD556ADB11D44B881D5A967 /* Device.swift in Sources */,
 				92419AA717304E83930CE6D4 /* DeviceHelpers.swift in Sources */,
 				F7F16EBAB7694542B1E6CAAD /* EncoderModel.swift in Sources */,

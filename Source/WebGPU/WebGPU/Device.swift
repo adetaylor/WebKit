@@ -163,7 +163,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         linkSlot.end()
         #if WTF_PLATFORM_MAC
         if let backingDeviceObserver {
-            WebGPU.Metal.removeDeviceObserver(backingDeviceObserver)
+            removeDeviceObserver(backingDeviceObserver)
         }
         #endif
         completeCallbacksForDestruction()
@@ -311,9 +311,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard instanceImpl != nil, let instanceSchedulerHandle else {
             return work()
         }
-        // Safety: the work goes to the API thread at once. Callers are on the API thread, except CommandBufferImpl's
-        // deinit, which only hands on the references it owns.
-        unsafe APIThreadWork<Void>(on: instanceSchedulerHandle) { _ in work() }.schedule(())
+        APIThreadWork<Void> { _ in work() }.schedule((), on: instanceSchedulerHandle)
     }
 
     // Returns the previous value.
@@ -555,16 +553,15 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
                 resolvedBuffers = NSMutableArray(object: counterDataBuffer)
                 resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
             }
-            let forget = instanceSchedulerHandle.map { scheduler in
-                // Safety: on the API thread.
-                unsafe APIThreadWork<Void>(on: scheduler) { [link, weak commandBuffer] _ in
-                    if let commandBuffer {
-                        link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
-                    }
+            let logAndForget = APIThreadWork<Void> { [link, weak commandBuffer] _ in
+                logEncoderTimestamps(resolvedBuffers)
+                if let commandBuffer {
+                    link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
                 }
             }
-            WebGPU.Metal.logTimestampsWhenCompleted(commandBuffer, resolvedBuffers) {
-                forget?.schedule(())
+            let scheduler = instanceSchedulerHandle
+            commandBuffer.addCompletedHandler { _ in
+                logAndForget.schedule((), on: scheduler)
             }
         }
     }
@@ -689,21 +686,65 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard let metalDevice else {
             return
         }
-        let lose = instanceSchedulerHandle.map { scheduler in
-            // Safety: on the API thread.
-            unsafe APIThreadWork<Void>(on: scheduler) { [link] _ in
-                guard let self = link.impl, self.metalDevice != nil else {
-                    return
-                }
-                self.loseTheDevice(.Unknown)
+        let scheduler = instanceSchedulerHandle
+        let lose = APIThreadWork<Void> { [link] _ in
+            guard let self = link.impl, self.metalDevice != nil else {
+                return
             }
+            self.loseTheDevice(.Unknown)
         }
-        backingDeviceObserver = WebGPU.Metal.addDeviceObserver(metalDevice) {
-            lose?.schedule(())
+        backingDeviceObserver = addDeviceObserver(metalDevice) {
+            lose.schedule((), on: scheduler)
         }
         #endif
     }
 }
+
+// The debug encoder timestamps of a completed command buffer: `resolvedBuffers` hold MTLCounterResultTimestamps, in pairs
+// that bracket an encoder.
+private func logEncoderTimestamps(_ resolvedBuffers: NSMutableArray) {
+    // What printf's %f prints.
+    let printfFixedFormat = FloatingPointFormatStyle<Double>(locale: Locale(identifier: "en_US_POSIX")).precision(.fractionLength(6)).grouping(.never)
+    let stride = MemoryLayout<MTLCounterResultTimestamp>.size
+    for case let buffer as any MTLBuffer in resolvedBuffers {
+        buffer.withCPUVisibleContents { contents in
+            let timestampCount = contents.byteCount / stride
+            logAlways("Timestamps for buffer \(buffer.label ?? "(null)")")
+            var index = 0
+            while index + 1 < timestampCount {
+                let start = contents.bytes.load(fromByteOffset: index * stride, as: UInt64.self)
+                let end = contents.bytes.load(fromByteOffset: (index + 1) * stride, as: UInt64.self)
+                let encoderTime = Double(Float(end &- start) / 100_000)
+                logAlways("\tencoder time \(encoderTime.formatted(printfFixedFormat))")
+                index += 2
+            }
+        }
+    }
+}
+
+#if WTF_PLATFORM_MAC
+// The macOS device observer: deviceWasNotified runs on an observer thread for each notification about the device. Returns
+// the observer's token, which removeDeviceObserver() takes.
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "Device removal notifications have no replacement")
+#endif
+private func addDeviceObserver(_ device: any MTLDevice, _ deviceWasNotified: @escaping @Sendable () -> Void) -> (any NSObjectProtocol)? {
+    let (devices, observer) = MTLCopyAllDevicesWithObserver { notifiedDevice, _ in
+        if notifiedDevice.isEqual(device) {
+            deviceWasNotified()
+        }
+    }
+    assert(devices.contains { $0.isEqual(device) })
+    return observer
+}
+
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "Device removal notifications have no replacement")
+#endif
+private func removeDeviceObserver(_ deviceObserver: any NSObjectProtocol) {
+    MTLRemoveDeviceObserver(deviceObserver)
+}
+#endif
 
 // An error that an error scope caught, or an uncaptured one.
 typealias CaughtError = (type: WebGPU.ErrorType, message: WTF.String)

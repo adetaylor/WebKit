@@ -44,11 +44,12 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
+import Dispatch
 import Foundation
 import Metal
 import Synchronization
+import notify
 import os
-@_implementationOnly import WebGPU_Internal.Device
 
 // The process-wide developer toggles, flipped by `notifyutil -p <name>` on the main queue and read on every Instance's
 // API thread. Each notification handler is registered by the first reader.
@@ -62,6 +63,23 @@ func logAlways(_ message: String) {
     let line = message + "\n"
     genericLog.log("\(line)")
     FileHandle.standardError.write(Data(line.utf8))
+}
+
+// MARK: notify(3)
+
+// Registers the handler, which stays registered, for notifications named `name`; it runs on the main queue with the
+// registration's token.
+private func registerNotifyHandler(_ name: String, _ handler: @escaping @Sendable (Int32) -> Void) {
+    var token: Int32 = 0
+    // Safety: notify_register_dispatch() copies the name and writes the token before it returns.
+    _ = unsafe notify_register_dispatch(name, &token, DispatchQueue.main, handler)
+}
+
+private func notifyState(_ token: Int32) -> UInt64 {
+    var state: UInt64 = 0
+    // Safety: notify_get_state() writes the state before it returns.
+    _ = unsafe notify_get_state(token, &state)
+    return state
 }
 
 // MARK: GPU frame capture
@@ -79,14 +97,14 @@ private struct FrameCaptureState {
 private let frameCapture = Mutex(FrameCaptureState())
 
 private let frameCaptureRegistration: Void = {
-    WebGPU.Metal.registerNotifyHandler("com.apple.WebKit.WebGPU.CaptureFrame") { token in
-        let state = WebGPU.Metal.notifyState(token)
+    registerNotifyHandler("com.apple.WebKit.WebGPU.CaptureFrame") { token in
+        let state = notifyState(token)
         frameCapture.withLock {
             $0.maxSubmitCallsToCapture = max(1, Int32(truncatingIfNeeded: state))
             $0.enabled = true
         }
     }
-    WebGPU.Metal.registerNotifyHandler("com.apple.WebKit.WebGPU.ToggleCaptureFirstFrame") { _ in
+    registerNotifyHandler("com.apple.WebKit.WebGPU.ToggleCaptureFirstFrame") { _ in
         frameCapture.withLock { $0.captureFirstFrame.toggle() }
     }
 }()
@@ -144,7 +162,7 @@ func shouldStopCaptureAfterSubmit() -> Bool {
 
 private let encoderTimestamps = Atomic<Bool>(false)
 
-private let encoderTimestampsRegistration: Void = WebGPU.Metal.registerNotifyHandler("com.apple.WebKit.WebGPU.EnableEncoderTimestamps") {
+private let encoderTimestampsRegistration: Void = registerNotifyHandler("com.apple.WebKit.WebGPU.EnableEncoderTimestamps") {
     _ in
     let enabled = !encoderTimestamps.load(ordering: .relaxed)
     encoderTimestamps.store(enabled, ordering: .relaxed)
@@ -160,7 +178,7 @@ func enableEncoderTimestamps() -> Bool {
 
 private let dumpMetalCode = Atomic<Bool>(false)
 
-private let dumpMetalCodeRegistration: Void = WebGPU.Metal.registerNotifyHandler("com.apple.WebKit.WebGPU.TogglePrintMetalCode") { _ in
+private let dumpMetalCodeRegistration: Void = registerNotifyHandler("com.apple.WebKit.WebGPU.TogglePrintMetalCode") { _ in
     dumpMetalCode.store(!dumpMetalCode.load(ordering: .relaxed), ordering: .relaxed)
 }
 
@@ -180,7 +198,7 @@ func dumpMetalCodeIfNeeded(_ utf8: ContiguousArray<UInt8>) {
 #if ENABLE_WEBGPU_BY_DEFAULT
 private let shaderValidation = Atomic<Bool>(false)
 
-private let shaderValidationRegistration: Void = WebGPU.Metal.registerNotifyHandler("com.apple.WebKit.WebGPU.ToggleShaderValidationState") {
+private let shaderValidationRegistration: Void = registerNotifyHandler("com.apple.WebKit.WebGPU.ToggleShaderValidationState") {
     _ in
     shaderValidation.store(!shaderValidation.load(ordering: .relaxed), ordering: .relaxed)
 }

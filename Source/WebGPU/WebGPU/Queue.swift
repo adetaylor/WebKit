@@ -49,6 +49,7 @@ import Dispatch
 import Foundation
 import IOSurface
 import Metal
+import Synchronization
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
@@ -288,6 +289,113 @@ private func untaggedDestination(_ destination: GPUCopyExternalImageDestination)
 // As WTFLogAlways("%@") prints an NSError, or nil.
 private func errorDescription(_ error: (any Error)?) -> String {
     error.map { "\($0 as NSError)" } ?? "(null)"
+}
+
+// MARK: Commit handlers
+
+// One function per fatal command buffer error code, so that each has a crash signature of its own.
+private func logFatalCommandBufferError(_ error: (any Error)?, _ underlyingError: NSError?) {
+    logAlways("Encountered fatal command buffer error \(errorDescription(error)), underlying error \(errorDescription(underlyingError))")
+}
+
+// kIOGPUCommandBufferCallbackErrorInvalidResource
+@inline(never)
+private func crashGPUProcessCommandBufferError9(_ error: (any Error)?, _ underlyingError: NSError?) -> Never {
+    logFatalCommandBufferError(error, underlyingError)
+    fatalError("Fatal command buffer error 9")
+}
+
+// kIOGPUCommandBufferCallbackErrorInvalidInput
+@inline(never)
+private func crashGPUProcessCommandBufferError10(_ error: (any Error)?, _ underlyingError: NSError?) -> Never {
+    logFatalCommandBufferError(error, underlyingError)
+    fatalError("Fatal command buffer error 10")
+}
+
+// kIOGPUCommandBufferCallbackErrorPageFault
+@inline(never)
+private func crashGPUProcessCommandBufferError11(_ error: (any Error)?, _ underlyingError: NSError?) -> Never {
+    logFatalCommandBufferError(error, underlyingError)
+    fatalError("Fatal command buffer error 11")
+}
+
+// kIOGPUCommandBufferCallbackErrorProtectionViolation
+@inline(never)
+private func crashGPUProcessCommandBufferError16(_ error: (any Error)?, _ underlyingError: NSError?) -> Never {
+    logFatalCommandBufferError(error, underlyingError)
+    fatalError("Fatal command buffer error 16")
+}
+
+// kIOGPUCommandBufferCallbackErrorStackOverflow
+@inline(never)
+private func crashGPUProcessCommandBufferError17(_ error: (any Error)?, _ underlyingError: NSError?) -> Never {
+    logFatalCommandBufferError(error, underlyingError)
+    fatalError("Fatal command buffer error 17")
+}
+
+@inline(never)
+private func crashGPUProcess(_ error: String) -> Never {
+    logAlways("Encountered fatal GPU error \(error)")
+    fatalError("Fatal GPU error")
+}
+
+// Whether the command buffer completed with an error that loses the device. Crashes the GPU process on a fatal one.
+private func commandBufferErrorLosesTheDevice(_ commandBuffer: any MTLCommandBuffer) -> Bool {
+    guard commandBuffer.status != .completed else {
+        return false
+    }
+    let error = commandBuffer.error
+    guard error.map({ ($0 as NSError).code != Int(MTLCommandBufferError.Code.notPermitted.rawValue) }) ?? true else {
+        return false
+    }
+    let underlyingError = (error as NSError?)?.userInfo[NSUnderlyingErrorKey] as? NSError
+    switch underlyingError?.code ?? 0 {
+    case 0x10a, 0x5:
+        return false
+    case 9:
+        crashGPUProcessCommandBufferError9(error, underlyingError)
+    case 10:
+        crashGPUProcessCommandBufferError10(error, underlyingError)
+    case 11:
+        crashGPUProcessCommandBufferError11(error, underlyingError)
+    case 16:
+        crashGPUProcessCommandBufferError16(error, underlyingError)
+    case 17:
+        crashGPUProcessCommandBufferError17(error, underlyingError)
+    default:
+        logAlways("Encountered non-fatal command buffer error \(errorDescription(error)), underlying error \(errorDescription(underlyingError))")
+        return true
+    }
+}
+
+private final class CommandBufferCompletionFlag: Sendable {
+    let completed = Atomic<Bool>(false)
+}
+
+// The handlers QueueImpl gives each command buffer just before committing it. Both run on Metal threads: didSchedule
+// once the command buffer is scheduled, didComplete once it completed, with whether to lose the device. A fatal command
+// buffer error, or no completion within 3 s, crashes the GPU process.
+private func addMetalCommitHandlers(
+    _ commandBuffer: any MTLCommandBuffer,
+    _ didSchedule: @escaping @Sendable () -> Void,
+    _ didComplete: @escaping @Sendable (Bool) -> Void
+) {
+    commandBuffer.addScheduledHandler { _ in
+        didSchedule()
+    }
+    let flag = CommandBufferCompletionFlag()
+    commandBuffer.addCompletedHandler { completedCommandBuffer in
+        flag.completed.store(true, ordering: .relaxed)
+        didComplete(commandBufferErrorLosesTheDevice(completedCommandBuffer))
+    }
+
+    // QueueImpl commits the command buffer as soon as this returns.
+    let label = commandBuffer.label
+    DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
+        if !flag.completed.load(ordering: .relaxed) {
+            crashGPUProcess("WebGPU: command buffer \(label ?? "(null)") did not complete within 3s timeout")
+        }
+    }
 }
 
 private func copyExternalImageSourceStorageMode(_ deviceImpl: DeviceImpl) -> MTLStorageMode {
@@ -953,7 +1061,7 @@ public final class QueueImpl: GPUObjectReference {
                 self.deviceImpl?.loseTheDevice(.Unknown)
             }
         }
-        WebGPU.Metal.addCommitHandlers(
+        addMetalCommitHandlers(
             commandBuffer,
             {
                 didSchedule.schedule((), on: scheduler)
