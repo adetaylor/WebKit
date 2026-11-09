@@ -2287,12 +2287,11 @@ class SwiftCxxName(object):
 
 
 class SwiftMember(object):
-    def __init__(self, name, type, coder, index=None, condition=None):
+    def __init__(self, name, type, coder, index=None):
         self.name = name
         self.type = type
         self.coder = coder
         self.index = index
-        self.condition = condition
         # Whether its Swift form is ~Copyable (swift_types.is_owned_type).
         self.owned = False
 
@@ -2345,7 +2344,37 @@ def swift_identifiers(serialized_types, serialized_enums, using_statements):
     return result
 
 
+def swift_description_form(description):
+    """What a description of a type says about how it is encoded."""
+    if isinstance(description, SerializedEnum):
+        return ('enum', description.underlying_type, [(value.name, value.condition) for value in description.valid_values])
+    if isinstance(description, UsingStatement):
+        return ('using', [line.strip() for line in description.alias_lines])
+    return ('type', description.struct_or_class, description.parent_class_name, [(member.name, member.type, member.condition, member.attributes) for member in description.members])
+
+
+def check_swift_descriptions_agree(serialized_types, serialized_enums, using_statements):
+    """A type marked [Swift] that is described more than once must be encoded alike by every description, since
+    Swift does not see every macro that C++ does, so could choose a different description from the one C++ encodes."""
+    descriptions = {}
+    for description in list(serialized_types) + list(serialized_enums):
+        descriptions.setdefault(description.namespace_and_name().removeprefix('::'), []).append(description)
+    for using_statement in using_statements:
+        name = using_statement.name.removeprefix('::')
+        # A using statement that names the type itself adds no description of how it is encoded.
+        if not using_statement.is_swift() and [line.strip().rstrip(';').removeprefix('::') for line in using_statement.alias_lines] == [name]:
+            continue
+        descriptions.setdefault(name, []).append(using_statement)
+    for cpp_name, group in descriptions.items():
+        if len(group) < 2 or not any(description.swift if isinstance(description, SerializedType) else description.is_swift() for description in group):
+            continue
+        form = swift_description_form(group[0])
+        if any(swift_description_form(description) != form for description in group[1:]):
+            raise Exception(f'{cpp_name} cannot be marked [Swift] and be described more than once in different ways, because Swift does not see every macro that C++ does, so could choose a different description from the one C++ encodes.')
+
+
 def swift_type_names(serialized_types, serialized_enums, using_statements):
+    check_swift_descriptions_agree(serialized_types, serialized_enums, using_statements)
     names = {}
 
     def add(swift_name, cpp_name, kind):
@@ -2358,8 +2387,8 @@ def swift_type_names(serialized_types, serialized_enums, using_statements):
             raise Exception(f'{cpp_name} cannot have a Swift form, because {swift_qualified_name(swift_name)} is the generated index of Swift forms by C++ name.')
         existing = names.get(swift_name)
         if existing is not None:
-            # A type can be declared more than once under different conditions, and an identifier can be listed more
-            # than once.
+            # A type can be described more than once, alike (check_swift_descriptions_agree), and an identifier can be
+            # listed more than once.
             if existing.cpp_name == cpp_name and existing.kind == kind:
                 return
             raise Exception(f'{existing.cpp_name} and {cpp_name} would both be {swift_qualified_name(swift_name)} in Swift.')
@@ -2455,13 +2484,15 @@ def swift_members(type, context, swift_names):
         for attribute in attributes:
             if attribute not in _SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES:
                 raise Exception(f'{member_context}: types marked [Swift] do not support the member attribute {attribute}.')
+        if member.condition is not None:
+            raise Exception(f'{member_context}: types marked [Swift] cannot have conditional members, because Swift does not see every macro that C++ does, so could decode different members from the ones C++ encodes.')
         match = re.fullmatch(r'(?:m_(?=[A-Za-z_]))?([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?', member.name)
         if not match:
             raise Exception(f'{member_context}: types marked [Swift] can only have members that are variables or member functions without arguments.')
         if match.group(1) in _SWIFT_DISALLOWED_MEMBER_NAMES or match.group(1) == 'self':
             raise Exception(f'{member_context}: it would be named {match.group(1)} in Swift, which cannot be the name of a property.')
         swift_type, swift_coder = swift_type_and_coder(member.type, member_context, swift_names)
-        swift_member = SwiftMember(match.group(1), swift_type, swift_coder, condition=swift_condition(member.condition, member_context))
+        swift_member = SwiftMember(match.group(1), swift_type, swift_coder)
         swift_member.owned = swift_types.is_owned_type(member.type)
         members.append(swift_member)
     return members
@@ -2499,14 +2530,12 @@ def swift_owned_coder_conformance(name, decode_lines, encode_lines, before_decod
 SWIFT_OWNED_FORMS_CONDITION = 'canImport(Darwin)'
 
 
-def check_swift_names_are_unique(names, context, what, conditions=None):
-    seen = {}
-    for name, condition in zip(names, conditions or [None] * len(names)):
+def check_swift_names_are_unique(names, context, what):
+    seen = set()
+    for name in names:
         if name in seen:
-            # The same name under #if and #else is fine.
-            if condition is None or seen[name] is None or condition == seen[name]:
-                raise Exception(f'{context}: more than one of its {what} would be named {name} in Swift.')
-        seen[name] = condition
+            raise Exception(f'{context}: more than one of its {what} would be named {name} in Swift.')
+        seen.add(name)
 
 
 def swift_conditional_lines(items, lines_for_item):
@@ -2551,7 +2580,7 @@ def generate_swift_struct(type, swift_names):
     context = f'[Swift] {type.namespace_and_name()}'
     check_swift_type_attributes(type, context)
     members = swift_members(type, context, swift_names)
-    check_swift_names_are_unique([member.name for member in members], context, 'members', [member.condition for member in members])
+    check_swift_names_are_unique([member.name for member in members], context, 'members')
     name = type.name
     qualified_name = swift_qualified_name(name)
     owned = any(member.owned for member in members)
@@ -2560,22 +2589,22 @@ def generate_swift_struct(type, swift_names):
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
     result.append(f'    struct {name}: ' + ('~Copyable, Sendable {' if owned else 'Sendable, Equatable {'))
-    result.extend(swift_conditional_lines(members, lambda member: [f'        var {swift_identifier(member.name)}: {member.type}']))
+    result.extend(f'        var {swift_identifier(member.name)}: {member.type}' for member in members)
     result.append('    }')
     result.append('}')
     result.append('')
     decoding_initializer = ['    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {']
     if owned:
         # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any.
-        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)']))
-        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}']))
+        decoding_initializer.extend(f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)' for member in members)
+        decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}' for member in members)
     else:
-        decoding_initializer.extend(swift_conditional_lines(members, lambda member: [f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)']))
+        decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)' for member in members)
     decoding_initializer.append('    }')
     result.extend((swift_owned_coder_conformance if owned else swift_coder_conformance)(
         name,
         [f'        try {qualified_name}(ipcDecodingFrom: &decoder)'],
-        swift_conditional_lines(members, lambda member: [f'        {member.coder}.encode(value.{swift_identifier(member.name)}, to: encoder)']),
+        [f'        {member.coder}.encode(value.{swift_identifier(member.name)}, to: encoder)' for member in members],
         decoding_initializer))
     if owned:
         result = swift_guarded(SWIFT_OWNED_FORMS_CONDITION, result)
@@ -2590,9 +2619,6 @@ def generate_swift_enum(enum):
     values = enum.valid_values
     if not values:
         raise Exception(f'{context}: an enum marked [Swift] must list its values.')
-    # Swift does not allow an enum with no cases to have a raw type.
-    if all(value.condition is not None for value in values):
-        raise Exception(f'{context}: an enum marked [Swift] must have at least one value that is not conditional.')
 
     if enum.underlying_type == 'bool':
         if len(values) != 2 or any(value.condition is not None for value in values):
@@ -2610,12 +2636,13 @@ def generate_swift_enum(enum):
         if enum.is_option_set() and len(values) > int(re.search(r'\d+', raw_type).group(0)):
             raise Exception(f'{context}: it has more values than {enum.underlying_type} has bits.')
 
+    # Swift has every value, under whatever condition, so that it accepts each value that C++ can encode: Swift does not
+    # see every macro that C++ does. swift_enum_value_assertions() checks the values C++ has.
     case_names = [swift_lower_camel_case(value.name) for value in values]
-    check_swift_names_are_unique(case_names, context, 'values', [value.condition for value in values])
+    check_swift_names_are_unique(case_names, context, 'values')
     if 'rawValue' in case_names:
         raise Exception(f'{context}: a value would be named rawValue in Swift.')
-    cases = [SwiftMember(swift_identifier(case_name), None, None, index, condition=swift_condition(value.condition, f'{context}: value {value.name}'))
-             for index, (case_name, value) in enumerate(zip(case_names, values))]
+    cases = [SwiftMember(swift_identifier(case_name), None, None, index) for index, case_name in enumerate(case_names)]
 
     name = enum.name
     qualified_name = swift_qualified_name(name)
@@ -2625,11 +2652,11 @@ def generate_swift_enum(enum):
         result.append(f'    struct {name}: OptionSet, Sendable, Hashable {{')
         result.append(f'        let rawValue: {raw_type}')
         result.append('')
-        result.extend(swift_conditional_lines(cases, lambda case: [f'        static let {case.name} = {name}(rawValue: 1 << {case.index})']))
+        result.extend(f'        static let {case.name} = {name}(rawValue: 1 << {case.index})' for case in cases)
         result.append('    }')
         decode_lines = [f'        let value = {qualified_name}(rawValue: try {raw_coder}.decode(from: &decoder))']
         decode_lines.append('        var unknownValues = value')
-        decode_lines.extend(swift_conditional_lines(cases, lambda case: [f'        unknownValues.subtract(.{case.name})']))
+        decode_lines.extend(f'        unknownValues.subtract(.{case.name})' for case in cases)
         decode_lines.append('        guard unknownValues.isEmpty else {')
         decode_lines.append('            throw IPCDecodingError()')
         decode_lines.append('        }')
@@ -2637,7 +2664,7 @@ def generate_swift_enum(enum):
         encode_lines = [f'        {raw_coder}.encode(value.rawValue, to: encoder)']
     else:
         result.append(f'    enum {name}: {raw_type}, Sendable, Hashable {{')
-        result.extend(swift_conditional_lines(cases, lambda case: [f'        case {case.name} = {case.index}']))
+        result.extend(f'        case {case.name} = {case.index}' for case in cases)
         result.append('    }')
         if enum.underlying_type == 'bool':
             raw_value = f'try {raw_coder}.decode(from: &decoder) ? 1 : 0'
