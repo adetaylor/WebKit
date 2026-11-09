@@ -143,13 +143,21 @@ final class IPCSwiftStreamTester {
             digest = digest &* 31 &+ value
         }
         mix(UInt64(shorts.count))
-        shorts.forEach { mix(UInt64($0)) }
+        for value in shorts {
+            mix(UInt64(value))
+        }
         mix(UInt64(words.count))
-        words.forEach { mix(UInt64($0)) }
+        for value in words {
+            mix(UInt64(value))
+        }
         mix(UInt64(longs.count))
-        longs.forEach { mix(UInt64(bitPattern: $0)) }
+        for value in longs {
+            mix(UInt64(bitPattern: value))
+        }
         mix(UInt64(doubles.count))
-        doubles.forEach { mix($0.bitPattern) }
+        for value in doubles {
+            mix(value.bitPattern)
+        }
         return digest
     }
 
