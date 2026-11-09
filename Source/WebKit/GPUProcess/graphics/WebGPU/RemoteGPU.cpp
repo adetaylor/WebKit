@@ -37,11 +37,13 @@
 #include "StreamServerConnection.h"
 #include "WebGPUSwiftSupport.h"
 #include <WebCore/GraphicsContext.h>
+#include <WebCore/IOSurface.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <pal/spi/cg/CoreGraphicsSPI.h>
 #include <wtf/threads/BinarySemaphore.h>
 
 namespace WebKit {
@@ -167,6 +169,48 @@ void RemoteGPU::paintNativeImageToImageBuffer(WebCore::NativeImage& nativeImage,
         semaphore.signal();
     });
     semaphore.wait();
+}
+
+void RemoteGPU::paintToImageBuffer(CGImageRef image, IOSurfaceRef surface, bool forceOpaque, uint64_t imageBufferIdentifier)
+{
+    WebCore::RenderingResourceIdentifier identifier { imageBufferIdentifier };
+    if (image) {
+        if (RefPtr nativeImage = WebCore::NativeImage::create(RetainPtr { image })) {
+            CGImageSetCachingFlags(nativeImage->platformImage().get(), kCGImageCachingTransient);
+            paintNativeImageToImageBuffer(*nativeImage, identifier);
+        }
+        return;
+    }
+
+    auto ioSurface = WebCore::IOSurface::createFromSurface(surface, std::nullopt);
+    if (!ioSurface)
+        return;
+    // A surface made with an opaque format (BGRX, RGBX) reads back as its alpha format's, so the alpha channel to ignore
+    // is chosen here, as the opaque format's bitmap configuration and IOSurface::withNativeImage() would.
+    std::optional<CGImageAlphaInfo> alphaInfo;
+    if (forceOpaque) {
+        switch (ioSurface->pixelFormat().value_or(WebCore::IOSurface::Format::BGRA)) {
+        case WebCore::IOSurface::Format::BGRA:
+        case WebCore::IOSurface::Format::RGBA:
+            alphaInfo = kCGImageAlphaNoneSkipFirst;
+            break;
+#if ENABLE(PIXEL_FORMAT_RGBA16F)
+        case WebCore::IOSurface::Format::RGBA16F:
+            alphaInfo = kCGImageAlphaNoneSkipLast;
+            break;
+#endif
+        default:
+            break;
+        }
+    }
+    RetainPtr context = ioSurface->createPlatformContext(0, alphaInfo);
+    if (!context)
+        return;
+    RefPtr nativeImage = WebCore::NativeImage::create(ioSurface->createImage(context.get()));
+    if (!nativeImage)
+        return;
+    CGImageSetCachingFlags(nativeImage->platformImage().get(), kCGImageCachingTransient);
+    paintNativeImageToImageBuffer(*nativeImage, identifier);
 }
 
 RefPtr<WebCore::ImageBuffer> RemoteGPU::imageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier)

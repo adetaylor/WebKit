@@ -132,43 +132,6 @@ bool isValidWebGPUWriteWithCopySize(size_t);
 
 
 
-#if PLATFORM(COCOA)
-// The render buffers that the compositor shows a WebGPU canvas from, which RemoteCompositorIntegration.swift makes and
-// gives the canvas: IOSurfaces, whose send rights its RecreateRenderBuffers reply carries.
-class WebGPUCompositorRenderBuffers final : public RefCounted<WebGPUCompositorRenderBuffers> {
-public:
-    static WebGPUCompositorRenderBuffers* WTF_NONNULL create() SWIFT_RETURNS_RETAINED;
-
-    ~WebGPUCompositorRenderBuffers();
-
-    void clear();
-    // Up to three buffers, at most the largest 2D texture in size, in the IOSurface format of the texture format and the
-    // alpha mode. A buffer that can't be made is left out.
-    void allocate(int32_t width, int32_t height, IPC::CxxDecodedArgument<WebCore::ColorSpace>&, bool premultiplied, uint8_t textureFormat, uint32_t bufferCount);
-    size_t size() const { return m_buffers.size(); }
-    void setContentEDRHeadroom(float);
-    // RemoteGPU's paint, into the image buffer with that identifier, of the canvas's texture image, or else of the
-    // buffer's own image.
-    void paint(RemoteGPU&, CGImageRef WTF_NULLABLE textureImage, uint32_t bufferIndex, bool premultiplied, uint64_t imageBufferIdentifier) const;
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<WebGPUCompositorRenderBuffers>::ref(); }
-    void deref() const { RefCounted<WebGPUCompositorRenderBuffers>::deref(); }
-#endif
-
-private:
-    friend IOSurfaceRef WTF_NONNULL copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffers&, size_t index) CF_RETURNS_RETAINED;
-
-    WebGPUCompositorRenderBuffers();
-
-    Vector<UniqueRef<WebCore::IOSurface>> m_buffers;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-// A render buffer's IOSurface, for the canvas. A function, since Swift takes what a C++ method returns as unretained.
-IOSurfaceRef WTF_NONNULL copyCompositorRenderBufferSurface(const WebGPUCompositorRenderBuffers&, size_t index) CF_RETURNS_RETAINED;
-#endif
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames

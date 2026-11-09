@@ -9615,6 +9615,8 @@
 		2E75B780AC2843BF82E220D1 /* RemoteGPU.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteGPU.swift; sourceTree = "<group>"; };
 		5352BC963EAD4935A4834B0D /* RemoteGPUMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteGPUMessageReceiver.swift; sourceTree = "<group>"; };
 		CBEBC52D88494AB095B2410D /* RemoteGPUModel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGPUModel.cpp; sourceTree = "<group>"; };
+		DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUProcessIOSurfaces.cpp; sourceTree = "<group>"; };
+		F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUProcessIOSurfaces.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -15007,6 +15009,8 @@
 				1C98C01C27446926002CCB78 /* WebGPU */,
 				6741DCABDB6A2ED332C01DDD /* DisplayListDataTester.cpp */,
 				B4848398B0965F2C40442DED /* DisplayListDataTester.h */,
+				DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */,
+				F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */,
 				724DCF22284862FC0026ACF4 /* ImageBufferShareableAllocator.cpp */,
 				724DCF21284862FC0026ACF4 /* ImageBufferShareableAllocator.h */,
 				723C90A22A377AB400038126 /* PathSegment.serialization.in */,

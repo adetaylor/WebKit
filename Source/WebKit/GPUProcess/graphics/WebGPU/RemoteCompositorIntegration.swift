@@ -24,15 +24,19 @@
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
 import CoreGraphics
+import Foundation
 import IOSurface
 import WebKit_Internal
 
 // Receives the compositor messages of a WebGPU canvas, on the RemoteGPU's work queue: the render buffers that the compositor
-// shows the canvas from, which C++ makes (WebGPUCompositorRenderBuffers), and the canvas context that draws into them.
+// shows the canvas from, IOSurfaces whose send rights the RecreateRenderBuffers reply carries, and the canvas context that
+// draws into them.
 @_expose(Cxx)
 final class RemoteCompositorIntegration {
     private let link: WebGPURegistryLink
-    private let renderBuffers = WebKit.WebGPUCompositorRenderBuffers.create()
+    private var renderBuffers: [IOSurfaceRef] = []
+    // The EDR headroom last set on the render buffers.
+    private var contentHeadroom: Float?
     private var canvas: WebGPUCompositorCanvas?
     private var alphaMode = IPCTypes.AlphaPremultiplication.premultiplied
     // Whether the render buffers have been made for a device.
@@ -87,18 +91,31 @@ final class RemoteCompositorIntegration {
             link.objects?.hasDevice(deviceIdentifier.rawValue) ?? false
         }
 
-        renderBuffers.clear()
+        renderBuffers = []
+        contentHeadroom = nil
         hasDevice = true
         self.alphaMode = alphaMode
 
         canvas?.unconfigure()
 
-        renderBuffers.allocate(width, height, destinationColorSpace, alphaMode == .premultiplied, textureFormat.rawValue, bufferCount)
+        // Up to three buffers, at most the largest 2D texture in size.
+        let max2DTextureSize: Int32 = 16384
+        var surfaces: [IOSurfaceRef] = []
+        WebKit.createGPUProcessIOSurfaces(
+            destinationColorSpace,
+            max(1, min(max2DTextureSize, width)),
+            max(1, min(max2DTextureSize, height)),
+            renderBufferFormat(textureFormat, premultiplied: alphaMode == .premultiplied),
+            .WebGPU,
+            min(3, bufferCount)
+        ) { surface in
+            surfaces.append(surface)
+        }
+        renderBuffers = surfaces
 
         canvas?.renderBuffersWereRecreated()
         var sendRights = IPCTypes.MachSendRightVector()
-        for index in 0..<renderBuffers.size() {
-            let surface = WebKit.copyCompositorRenderBufferSurface(renderBuffers, index)
+        for surface in renderBuffers {
             canvas?.addRenderBuffer(surface)
             sendRights.append(IPCTypes.MachSendRight(surface: surface))
         }
@@ -122,7 +139,7 @@ final class RemoteCompositorIntegration {
     }
 
     func paintCompositedResultsToCanvas(imageBuffer: IPCTypes.RenderingResourceIdentifier, bufferIndex: UInt32) {
-        guard Int(bufferIndex) < renderBuffers.size(), hasDevice, let objects = link.objects else {
+        guard Int(bufferIndex) < renderBuffers.count, hasDevice, let objects = link.objects else {
             return
         }
         var isIOSurfaceSupportedFormat = false
@@ -130,7 +147,10 @@ final class RemoteCompositorIntegration {
         guard textureImage != nil || isIOSurfaceSupportedFormat else {
             return
         }
-        renderBuffers.paint(objects.host, textureImage, bufferIndex, alphaMode == .premultiplied, imageBuffer.rawValue)
+        // A premultiplied canvas must keep its alpha channel so transparent pixels composite over the page; an opaque
+        // canvas forces the alpha to be ignored. This matters for RGBA16F, whose IOSurface format cannot itself encode
+        // opacity.
+        objects.host.paintToImageBuffer(textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
     }
 
     func destruct() {
@@ -138,8 +158,32 @@ final class RemoteCompositorIntegration {
     }
 
     func updateContentsHeadroom(headroom: Float) {
-        renderBuffers.setContentEDRHeadroom(headroom)
+        #if HAVE_SUPPORT_HDR_DISPLAY
+        guard contentHeadroom != headroom else {
+            return
+        }
+        contentHeadroom = headroom
+        for surface in renderBuffers {
+            IOSurfaceSetValue(surface, kIOSurfaceContentHeadroom, NSNumber(value: headroom))
+        }
+        #endif
     }
 }
+
+#if WTF_PLATFORM_COCOA
+// The IOSurface format of a render buffer for the texture format and the alpha mode.
+private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> WebKit.GPUProcessIOSurfaceFormat {
+    switch textureFormat {
+    case .rgba8unorm, .rgba8unormSRGB:
+        return premultiplied ? .RGBA : .RGBX
+    #if ENABLE_PIXEL_FORMAT_RGBA16F
+    case .rgba16float:
+        return .RGBA16F
+    #endif
+    default:
+        return premultiplied ? .BGRA : .BGRX
+    }
+}
+#endif
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT

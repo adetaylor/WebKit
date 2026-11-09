@@ -34,6 +34,8 @@
 #include "StreamServerConnection.h"
 #include "WebGPUIdentifier.h"
 #include "WebModelIdentifier.h"
+#include <CoreGraphics/CGImage.h>
+#include <IOSurface/IOSurfaceRef.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/MachSendRight.h>
@@ -87,6 +89,8 @@ public:
     void stopListeningForIPC();
 
     void paintNativeImageToImageBuffer(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
+    // Paints the image, or else the IOSurface's image, into the rendering backend's image buffer with that identifier.
+    void paintToImageBuffer(CGImageRef WTF_NULLABLE, IOSurfaceRef WTF_NULLABLE, bool forceOpaque, uint64_t imageBufferIdentifier);
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
     // Null once the receiver stops listening.
