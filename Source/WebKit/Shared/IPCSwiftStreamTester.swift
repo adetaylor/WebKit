@@ -164,9 +164,13 @@ final class IPCSwiftStreamTester {
             digest = digest &* 31 &+ UInt32(truncatingIfNeeded: value)
         }
         mix(copy.count)
-        copy.forEach { mix(Int($0)) }
+        for byte in copy {
+            mix(Int(byte))
+        }
         mix(lentBytesStorage.count)
-        lentBytesStorage.forEach { mix(Int($0)) }
+        for byte in lentBytesStorage {
+            mix(Int(byte))
+        }
         digest = digest &* 31 &+ tail
         return digest
     }
