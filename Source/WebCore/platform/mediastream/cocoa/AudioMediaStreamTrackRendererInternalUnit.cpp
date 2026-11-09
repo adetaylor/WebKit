@@ -68,7 +68,7 @@ private:
     void start() final;
     void stop() final;
     void retrieveFormatDescription(CompletionHandler<void(std::optional<CAAudioStreamDescription>)>&&) final;
-    void setTrackPlayoutState(AudioTrackPlayoutState& state) final { m_trackPlayoutState = &state; }
+    void setTrackPlayout(const AudioTrackPlayout& track) final { m_trackPlayout = &track; }
     void setAudioOutputDevice(const String&);
 
     // An in-process unit's render callback, which AudioOutputUnit.swift calls between its timeline check and its clipping.
@@ -77,7 +77,7 @@ private:
     ThreadSafeWeakPtr<Client> m_client;
     std::optional<CAAudioStreamDescription> m_outputDescription;
     std::unique_ptr<AudioOutputUnit> m_unit;
-    AudioTrackPlayoutState* m_trackPlayoutState { nullptr };
+    const AudioTrackPlayout* m_trackPlayout { nullptr };
     bool m_isStarted { false };
 #if PLATFORM(MAC)
     uint32_t m_deviceID { 0 };
@@ -175,7 +175,7 @@ void LocalAudioMediaStreamTrackRendererInternalUnit::createAudioUnitIfNeeded()
     std::optional<AudioStreamBasicDescription> format;
     if (m_outputDescription)
         format = m_outputDescription->streamDescription();
-    auto renderer = AudioOutputUnit::createTrackRenderer(deviceID, AudioSession::singleton().sampleRate(), format, !!m_trackPlayoutState);
+    auto renderer = AudioOutputUnit::createTrackRenderer(deviceID, AudioSession::singleton().sampleRate(), format, !!m_trackPlayout);
     if (!renderer.unit) {
         static constexpr std::array<ASCIILiteral, 9> steps { ""_s, "unable to find remote IO unit component"_s, "unable to open vpio unit"_s, "unable to enable vpio unit output"_s, "unable to set unit device ID"_s, "unable to set vpio unit speaker proc"_s, "unable to get input stream format"_s, "unable to set input stream format"_s, "AudioUnitInitialize() failed"_s };
         RELEASE_LOG_ERROR(WebRTC, "AudioMediaStreamTrackRendererInternalUnit::createAudioUnit %" PUBLIC_LOG_STRING ", error = %d", steps[std::min<size_t>(renderer.failedStep, steps.size() - 1)].characters(), static_cast<int>(renderer.status));
@@ -184,8 +184,8 @@ void LocalAudioMediaStreamTrackRendererInternalUnit::createAudioUnitIfNeeded()
 
     if (!m_outputDescription)
         m_outputDescription = renderer.format;
-    if (m_trackPlayoutState)
-        renderer.unit->attachTrackPlayout(*m_trackPlayoutState);
+    if (m_trackPlayout)
+        renderer.unit->attachTrackPlayout(*m_trackPlayout);
     else
         renderer.unit->attachRenderCallback(renderClient, this);
     renderer.unit->setEventHandler([this](OptionSet<AudioOutputUnit::Event> events) {

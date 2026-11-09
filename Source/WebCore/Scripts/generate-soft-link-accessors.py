@@ -208,8 +208,11 @@ def parse_manifest(lines):
         if len(words) == 5 and words[0] == 'constant' and words[3] == 'as':
             entries.append(tuple(words[:3]) + (words[4],))
             continue
+        if len(words) == 5 and words[0] == 'function' and words[3:] == ['with', 'pointer']:
+            entries.append(tuple(words[:3]) + ('pointer',))
+            continue
         if len(words) != 3 or words[0] not in KINDS:
-            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "constant <framework> <symbol> as <type>", or "member <framework> <class> <selector> <declaration>"')
+            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "constant <framework> <symbol> as <type>", "member <framework> <class> <selector> <declaration>", or "function <framework> <symbol> with pointer"')
         entries.append(tuple(words) + (None,))
     return entries
 
@@ -318,7 +321,7 @@ def audited_name(name, section):
     return f'@section("{section}") @used private let auditedName_{name}: {tuple_type} = ({characters})'
 
 
-def function_accessor(declaration, typedef, imported):
+def function_accessor(declaration, typedef, imported, with_pointer=False):
     name = declaration.name
     pointer_parameters, pointer_result, typedef_is_unsafe = typedef
     declared_parameters, declared_result = imported
@@ -362,6 +365,11 @@ def function_accessor(declaration, typedef, imported):
 
     if declaration.may_fail:
         lines.append(f'var canLoad_{declaration.framework}_{name}: Bool {{ unsafe softLink_{name} != nil }}')
+    if with_pointer:
+        if declaration.may_fail:
+            raise GeneratorError(f'{name}: "with pointer" needs a function that can\'t fail')
+        # For real-time code, which copies the pointer on the main thread so that its own thread never initializes it.
+        lines.append(f'var softLinkPointer_{name}: {pointer_type} {{ unsafe softLink_{name} }}')
     result = '' if declared_result == 'Void' else f' -> {declared_result}'
     lines.append(f'func {name}({", ".join(signature)}){result} {{ {"unsafe " if needs_unsafe else ""}{body} }}')
     return lines
@@ -695,7 +703,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for, h
             imported = find_declaration(interfaces_for(framework), name)
             if not typedef or not imported:
                 raise GeneratorError(f'{name}: no typedef or imported declaration found')
-            w += function_accessor(declaration, typedef, imported)
+            w += function_accessor(declaration, typedef, imported, swift_type == 'pointer')
         elif kind == 'constant':
             pointee = find_constant_typedef(typedefs, f'PALSoftLink_{name}_t')
             if not pointee:

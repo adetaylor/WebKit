@@ -31,6 +31,7 @@
 #include "CARingBuffer.h"
 #include "Logging.h"
 #include "WebCore-Swift.h"
+#include <pal/cf/CoreAudioExtras.h>
 #include <wtf/HashMap.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
@@ -41,11 +42,11 @@
 
 namespace WebCore {
 
-// The units with an event handler, by identifier, on the main thread.
-static HashMap<uint64_t, AudioOutputUnit*>& unitsWithEventHandlers()
+// The event handlers of the output and capture units that have one, by identifier, on the main thread.
+static HashMap<uint64_t, Function<void(OptionSet<AudioOutputUnit::Event>)>*>& eventHandlers()
 {
-    static NeverDestroyed<HashMap<uint64_t, AudioOutputUnit*>> units;
-    return units;
+    static NeverDestroyed<HashMap<uint64_t, Function<void(OptionSet<AudioOutputUnit::Event>)>*>> handlers;
+    return handlers;
 }
 
 void audioUnitEventsArrived()
@@ -58,13 +59,22 @@ void audioUnitEventsArrived()
 void AudioOutputUnit::dispatchEvents()
 {
     ASSERT(isMainThread());
-    for (auto identifier : copyToVector(unitsWithEventHandlers().keys())) {
-        auto* unit = unitsWithEventHandlers().get(identifier);
-        if (!unit)
+    for (auto identifier : copyToVector(eventHandlers().keys())) {
+        auto* handler = eventHandlers().get(identifier);
+        if (!handler)
             continue;
         if (auto events = audioOutputUnitTakeEvents(identifier))
-            unit->m_eventHandler(OptionSet<Event>::fromRaw(events));
+            (*handler)(OptionSet<Event>::fromRaw(events));
     }
+}
+
+void AudioOutputUnit::setEventHandler(uint64_t identifier, Function<void(OptionSet<Event>)>* handler)
+{
+    ASSERT(isMainThread());
+    if (handler && *handler)
+        eventHandlers().set(identifier, handler);
+    else
+        eventHandlers().remove(identifier);
 }
 
 AudioOutputUnit::AudioOutputUnit(uint64_t identifier)
@@ -80,26 +90,17 @@ auto AudioOutputUnit::createTrackRenderer(uint32_t deviceID, double sampleRate, 
     return { std::unique_ptr<AudioOutputUnit>(new AudioOutputUnit(creation.identifier)), creation.format, noErr, 0 };
 }
 
-void AudioOutputUnit::attachTrackPlayout(AudioTrackPlayoutState& track)
+void AudioOutputUnit::attachTrackPlayout(const AudioTrackPlayout& track)
 {
     AudioOutputUnitRingAttachment attachment;
-    attachment.track = &track;
+    attachment.trackPlayoutIdentifier = track.identifier();
     audioUnitAttachRing(m_identifier, attachment);
-}
-
-OSStatus AudioOutputUnit::renderTrackForSpeaker(AudioTrackPlayoutState& track, AudioBufferList& list, uint32_t frameCount, AudioUnitRenderActionFlags& flags)
-{
-    return audioTrackRenderForSpeaker(&track, &list, frameCount, &flags);
 }
 
 void AudioOutputUnit::setEventHandler(Function<void(OptionSet<Event>)>&& handler)
 {
-    ASSERT(isMainThread());
     m_eventHandler = WTF::move(handler);
-    if (m_eventHandler)
-        unitsWithEventHandlers().set(m_identifier, this);
-    else
-        unitsWithEventHandlers().remove(m_identifier);
+    setEventHandler(m_identifier, &m_eventHandler);
 }
 
 AudioOutputUnit::AudioOutputUnit(Kind kind, float hardwareSampleRate, unsigned numberOfOutputChannels)
@@ -115,8 +116,7 @@ AudioOutputUnit::AudioOutputUnit(Kind kind, float hardwareSampleRate, unsigned n
 
 AudioOutputUnit::~AudioOutputUnit()
 {
-    if (m_eventHandler)
-        unitsWithEventHandlers().remove(m_identifier);
+    setEventHandler(m_identifier, nullptr);
     audioOutputUnitDestroy(m_identifier);
 }
 
@@ -175,6 +175,206 @@ OSStatus AudioOutputUnit::renderForTesting(AudioBufferList& list, uint32_t frame
         *actionFlags = flags;
     return status;
 }
+
+AudioTrackPlayout::AudioTrackPlayout()
+    : m_identifier(audioTrackPlayoutCreate())
+{
+}
+
+AudioTrackPlayout::~AudioTrackPlayout()
+{
+    audioTrackPlayoutDestroy(m_identifier);
+}
+
+void AudioTrackPlayout::attachRing(const CARingBuffer* ring, uint32_t semaphore, uint64_t frameChunkSize, uint64_t bytesPerFrame)
+{
+    AudioOutputUnitRingAttachment attachment;
+    if (ring) {
+        attachment.geometry = ring->geometry();
+        attachment.header = &ring->boundsStorage();
+        attachment.channels = ring->channelData().data();
+        attachment.channelsByteCount = ring->channelData().size();
+    }
+    attachment.semaphore = semaphore;
+    attachment.frameChunkSize = frameChunkSize;
+    attachment.bytesPerFrame = bytesPerFrame;
+    audioUnitAttachRing(m_identifier, attachment);
+}
+
+#if ENABLE(MEDIA_STREAM)
+AudioCaptureUnitHandle::AudioCaptureUnitHandle(uint64_t identifier, Kind kind)
+    : m_identifier(identifier)
+    , m_kind(kind)
+{
+}
+
+auto AudioCaptureUnitHandle::create(Kind kind) -> Creation
+{
+    auto creation = audioCaptureUnitCreate(static_cast<uint8_t>(kind));
+    if (!creation.identifier)
+        return { nullptr, creation.status, false };
+    return { std::unique_ptr<AudioCaptureUnitHandle>(new AudioCaptureUnitHandle(creation.identifier, kind)), noErr, creation.reusedStoredUnit };
+}
+
+AudioCaptureUnitHandle::~AudioCaptureUnitHandle()
+{
+    destroy();
+}
+
+bool AudioCaptureUnitHandle::destroy()
+{
+    if (std::exchange(m_isDestroyed, true))
+        return false;
+    AudioOutputUnit::setEventHandler(m_identifier, nullptr);
+    return audioCaptureUnitDestroy(m_identifier);
+}
+
+#if PLATFORM(MAC)
+bool AudioCaptureUnitHandle::prewarmStoredUnit()
+{
+    return audioCaptureUnitPrewarmVoiceProcessingUnit();
+}
+
+void AudioCaptureUnitHandle::deallocateStoredUnit()
+{
+    audioCaptureUnitDeallocateStoredVoiceProcessingUnit();
+}
+#endif
+
+OSStatus AudioCaptureUnitHandle::setSmallPropertyBytes(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, uint64_t bytes, uint32_t size)
+{
+    return audioCaptureUnitSetProperty(m_identifier, property, scope, element, bytes, size);
+}
+
+OSStatus AudioCaptureUnitHandle::getUInt32Property(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, uint32_t& value)
+{
+    auto result = audioCaptureUnitGetUInt32Property(m_identifier, property, scope, element);
+    if (!result.status)
+        value = result.value;
+    return result.status;
+}
+
+static AudioCaptureUnitHandle::Format captureUnitFormat(const AudioCaptureUnitFormat& result)
+{
+    if (result.status || result.failedStep)
+        return { std::nullopt, result.status, result.failedStep };
+    return { result.format, noErr, 0 };
+}
+
+auto AudioCaptureUnitHandle::configureMicrophone(double sampleRate) -> Format
+{
+    return captureUnitFormat(audioCaptureUnitConfigureMicrophone(m_identifier, sampleRate));
+}
+
+void AudioCaptureUnitHandle::allocateMicrophoneBuffers(const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio)
+{
+    AudioCaptureMicrophoneBuffers buffers;
+    auto sizeBuffers = span(sizes);
+    buffers.bufferCount = sizeBuffers.size();
+    if (!sizeBuffers.empty()) {
+        buffers.channelsPerBuffer = sizeBuffers[0].mNumberChannels;
+        buffers.bytesPerBuffer = sizeBuffers[0].mDataByteSize;
+    }
+    buffers.sampleRate = sampleRate;
+    buffers.dtsConversionRatio = dtsConversionRatio;
+    audioCaptureUnitAllocateMicrophoneBuffers(m_identifier, buffers);
+}
+
+auto AudioCaptureUnitHandle::configureSpeaker(double sampleRate, const std::optional<AudioStreamBasicDescription>& producerFormat) -> Format
+{
+    return captureUnitFormat(audioCaptureUnitConfigureSpeaker(m_identifier, sampleRate, producerFormat.value_or(AudioStreamBasicDescription { }), !!producerFormat));
+}
+
+OSStatus AudioCaptureUnitHandle::initialize()
+{
+    return audioCaptureUnitInitialize(m_identifier);
+}
+
+OSStatus AudioCaptureUnitHandle::uninitialize()
+{
+    return audioCaptureUnitUninitialize(m_identifier);
+}
+
+OSStatus AudioCaptureUnitHandle::start()
+{
+    return audioCaptureUnitStart(m_identifier);
+}
+
+OSStatus AudioCaptureUnitHandle::stop()
+{
+    return audioCaptureUnitStop(m_identifier);
+}
+
+void AudioCaptureUnitHandle::setSwitch(Switch captureSwitch, bool value)
+{
+    audioCaptureUnitSetSwitch(m_identifier, static_cast<uint8_t>(captureSwitch), value);
+}
+
+#if HAVE(VOICEACTIVITYDETECTION) && !PLATFORM(MAC)
+OSStatus AudioCaptureUnitHandle::setMutedSpeechActivityListener(bool enable)
+{
+    return audioCaptureUnitSetMutedSpeechActivityListener(m_identifier, enable);
+}
+#endif
+
+void AudioCaptureUnitHandle::attach(void* deliveryContext, const AudioTrackPlayout* speakerTrack)
+{
+    AudioOutputUnitRingAttachment attachment;
+    attachment.cxxDeliveryContext = deliveryContext;
+    attachment.trackPlayoutIdentifier = speakerTrack ? speakerTrack->identifier() : 0;
+    audioUnitAttachRing(m_identifier, attachment);
+}
+
+OSStatus AudioCaptureUnitHandle::renderSpeakerForTesting(AudioBufferList& list, uint32_t frameCount, double sampleTime, AudioUnitRenderActionFlags* actionFlags)
+{
+    AudioUnitRenderActionFlags flags = 0;
+    auto status = audioOutputUnitRenderForTesting(m_identifier, &list, frameCount, sampleTime, false, &flags);
+    if (actionFlags)
+        *actionFlags = flags;
+    return status;
+}
+
+auto AudioCaptureUnitHandle::counters() const -> Counters
+{
+    auto counters = audioCaptureUnitCounters(m_identifier);
+    Counters result { counters.microphoneProcCount, std::nullopt };
+    if (counters.hasFailedRenderFrameCount)
+        result.failedRenderFrameCount = counters.failedRenderFrameCount;
+    return result;
+}
+
+void AudioCaptureUnitHandle::setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&& handler)
+{
+    m_eventHandler = WTF::move(handler);
+    AudioOutputUnit::setEventHandler(m_identifier, &m_eventHandler);
+}
+
+void AudioCaptureUnitHandle::configureMock(double deviceSampleRate, size_t bufferSize)
+{
+    audioCaptureUnitConfigureMock(m_identifier, deviceSampleRate, bufferSize);
+}
+
+void AudioCaptureUnitHandle::setMockPaused(bool paused)
+{
+    audioCaptureUnitSetMockPaused(m_identifier, paused);
+}
+
+void AudioCaptureUnitHandle::setMockIncreaseBufferSize(bool value)
+{
+    audioCaptureUnitSetMockIncreaseBufferSize(value);
+}
+#else
+// AudioCaptureUnit.swift's microphone callback and voice activity listener, without capture units.
+void deliverToCxxObservers(void*, const AudioBufferList*, uint32_t, const AudioCaptureTimes&)
+{
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+void audioCaptureVoiceActivityDetected()
+{
+    RELEASE_ASSERT_NOT_REACHED();
+}
+#endif // ENABLE(MEDIA_STREAM)
 
 } // namespace WebCore
 

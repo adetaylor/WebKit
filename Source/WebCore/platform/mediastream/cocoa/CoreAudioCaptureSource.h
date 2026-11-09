@@ -49,6 +49,7 @@ namespace WebCore {
 
 class AudioSampleBufferList;
 class AudioSampleDataSource;
+class AudioTrackPlayout;
 class CoreAudioCaptureUnit;
 class CaptureDeviceInfo;
 class WebAudioSourceProviderAVFObjC;
@@ -135,8 +136,8 @@ public:
     virtual void captureUnitIsStarting() = 0;
     virtual void captureUnitHasStopped() = 0;
     virtual void canRenderAudioChanged() = 0;
-    // Background thread.
-    virtual OSStatus produceSpeakerSamples(size_t sampleCount, AudioBufferList&, uint64_t sampleTime, double hostTime, AudioUnitRenderActionFlags&) = 0;
+    // What the capture unit's speaker plays out, which it keeps alive while it does.
+    virtual const AudioTrackPlayout& speakerTrackPlayout() = 0;
 };
 
 class CoreAudioCaptureSourceFactory : public AudioCaptureFactory, public AudioSessionInterruptionObserver, public RefCounted<CoreAudioCaptureSourceFactory> {

@@ -123,8 +123,11 @@ class ManifestTest(unittest.TestCase):
         entries = generator.parse_manifest(['# comment', '', 'function Media MediaThingCopyName  # trailing', 'constant Media MediaKey as MediaKeyName', 'class Media MediaPlayer'])
         self.assertEqual(entries, [('function', 'Media', 'MediaThingCopyName', None), ('constant', 'Media', 'MediaKey', 'MediaKeyName'), ('class', 'Media', 'MediaPlayer', None)])
 
+    def test_function_with_pointer(self):
+        self.assertEqual(generator.parse_manifest(['function Media MediaRender with pointer']), [('function', 'Media', 'MediaRender', 'pointer')])
+
     def test_malformed_lines(self):
-        for line in ('method Media X', 'function Media', 'function Media X Y', 'class Media X as Y', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play'):
+        for line in ('method Media X', 'function Media', 'function Media X Y', 'class Media X as Y', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
             with self.assertRaises(generator.GeneratorError, msg=line):
                 generator.parse_manifest([line])
 
@@ -216,6 +219,13 @@ class AccessorTest(unittest.TestCase):
             'private let softLink_MediaMake: PALSoftLink_MediaMake_t = unsafe unsafeBitCast(softLinkRequiredSymbol(auditedName_MediaMake), to: PALSoftLink_MediaMake_t.self)',
             'func MediaMake(value: Int64, timescale: Int32) -> MediaTime { softLink_MediaMake(value, timescale) }',
         ])
+
+    def test_required_function_with_pointer(self):
+        declaration = generator.Declaration('function', 'Media', 'MediaRender', False)
+        lines = generator.function_accessor(declaration, (['Int32'], 'Int32', False), (['_ value: Int32'], 'Int32'), with_pointer=True)
+        self.assertIn('var softLinkPointer_MediaRender: PALSoftLink_MediaRender_t { unsafe softLink_MediaRender }', lines)
+        with self.assertRaises(generator.GeneratorError):
+            generator.function_accessor(generator.Declaration('function', 'Media', 'MediaRender', True), (['Int32'], 'Int32', False), (['_ value: Int32'], 'Int32'), with_pointer=True)
 
     def test_may_fail_function(self):
         lines = self.function('MediaReset', True, (['MediaThing'], 'Void', False), (['_ thing: MediaThing'], 'Void'))

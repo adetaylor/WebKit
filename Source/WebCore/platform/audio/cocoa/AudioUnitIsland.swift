@@ -267,18 +267,53 @@ func caRingBufferFetchTimeBounds(
     var startFrame: UInt64 = 0
     let lastRenderedSamples: UnsafeMutableRawPointer
     let lastRenderedSampleCount: Int
-    // A track renderer's: the sample time of the last quantum (0 before the first), how to clip its output, and the C++
-    // render callback of an in-process track renderer.
+    // A track renderer's: the sample time of the last quantum (0 before the first), how to clip its output, and what it
+    // renders from, a GPU-process track playout or the C++ render callback of an in-process track renderer.
     var lastSampleTime: UInt64 = 0
     var clipFormat: UInt8 = 0
+    var track: UnsafeMutablePointer<TrackPlayoutState>? = nil
     var cxxRender: AURenderCallback? = nil
     var cxxRefCon: UnsafeMutableRawPointer? = nil
+    // A capture unit's (AudioCaptureUnit.swift): what renders its microphone, AudioUnitRender() on its AudioUnit or the
+    // mock's render function, into its own buffers; how it times a quantum; whom it delivers the quantum to; the main
+    // thread's switches; the speaker's snapshot hand-off (CaptureSnapshot); and its counters.
+    var captureRender: CaptureRenderFunction? = nil
+    var captureRenderTarget: UnsafeMutableRawPointer? = nil
+    var microphoneList: UnsafeMutablePointer<AudioBufferList>? = nil
+    var microphoneData: UnsafeMutableRawPointer? = nil
+    var microphoneBufferByteCount: Int = 0
+    var microphoneChannelsPerBuffer: UInt32 = 0
+    var microphoneSampleRate: Float64 = 0
+    var dtsConversionRatio: Float64 = 0
+    var speakerBytesPerFrame: UInt64 = 0
+    var cxxDeliveryContext: UnsafeMutableRawPointer? = nil
+    let isCapturing = Atomic<Bool>(false)
+    let isProducingMicrophoneSamples = Atomic<Bool>(false)
+    let isReconfiguring = Atomic<Bool>(false)
+    let speakerStartPending = Atomic<Bool>(false)
+    let speakerStartAcknowledged = Atomic<Bool>(false)
+    let microphoneProcCount = Atomic<UInt64>(0)
+    // 0, or failedRenderFlag and the frame count of the first quantum the microphone buffer was too small for.
+    let failedRenderFrames = Atomic<UInt64>(0)
+    let pendingSnapshot = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
+    let retiredSnapshot = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
+    var currentSnapshot: UnsafeMutableRawPointer? = nil
 }
+
+// AudioUnitRender()'s signature, which the mock capture unit's render function shares.
+typealias CaptureRenderFunction = @convention(c) (
+    UnsafeMutableRawPointer, UnsafeMutablePointer<UInt32>?, UnsafePointer<AudioTimeStamp>, UInt32, UInt32,
+    UnsafeMutablePointer<AudioBufferList>
+) -> OSStatus
 
 // The events of a unit's IO thread that only the main thread can act on (WebCore::AudioOutputUnit::Event).
 enum AudioUnitEvent {
     // A track renderer saw its timeline jump.
     static var timelineDiscontinuity: UInt32 { 1 }
+    // A capture unit's speaker callback ran for the first time since the unit started.
+    static var speakerStarting: UInt32 { 2 }
+    // A capture unit's microphone buffer was too small for a quantum (failedRenderFrames).
+    static var microphoneBufferTooSmall: UInt32 { 4 }
 }
 
 // How a track renderer clips its output (CAAudioStreamDescription::PCMFormat): Float32 and Float64 to [-1, 1].
@@ -288,8 +323,8 @@ enum TrackClipFormat {
     static var float64: UInt8 { 2 }
 }
 
-// An output unit's render state, which its owner frees.
-@safe struct RenderStateReference {
+// An output unit's render state, which its owner frees. The IO threads and the mock capture unit's queue use it too.
+@safe struct RenderStateReference: @unchecked Sendable {
     fileprivate let state: UnsafeMutablePointer<OutputRenderState>
 
     var refCon: UnsafeMutableRawPointer {
@@ -386,6 +421,10 @@ extension SwiftRenderCallback {
             unsafe trackRendererRenderCallback
         case .inProcessTrack:
             unsafe inProcessTrackRendererRenderCallback
+        case .microphone:
+            unsafe microphoneRenderCallback
+        case .speaker:
+            unsafe speakerRenderCallback
         }
     }
 }
@@ -424,10 +463,11 @@ extension OutputUnit {
         }
     }
 
-    func attachTrackPlayout(_ attachment: WebCore.AudioOutputUnitRingAttachment) {
+    func attachTrackPlayout(_ track: TrackPlayout) {
         precondition(kind == .trackRenderer && rendersPlayout && !isRunning)
         if let renderState {
-            unsafe setTrackRenderSource(renderState, attachment.track, nil, nil)
+            setTrackRenderSource(renderState, track, nil, nil)
+            trackPlayout = track
             hasRenderCallback = true
         }
     }
@@ -458,6 +498,293 @@ func audioOutputUnitSetObjectProperty(_ identifier: UInt64, _ property: UInt32, 
     return unsafe unit.setObject(object, for: property)
 }
 
+// MARK: Track playouts
+
+// What a GPU-process track renderer and the capture unit's speaker callback play out
+// (RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit): the ring the web process writes, the semaphore it signals for
+// each chunk of frameChunkSize frames it asks for, and where it reads. The main thread changes it only while it holds
+// isRendering; a render callback that finds it held outputs silence.
+@unsafe struct TrackPlayoutState: ~Copyable {
+    let isRendering = Atomic<Bool>(false)
+    var ring = unsafe WebCore.AudioOutputUnitRingAttachment()
+    var readOffset: UInt64 = 0
+    var generateOffset: UInt64 = 0
+    var frameChunkSize: UInt64 = 0
+    var bytesPerFrame: UInt64 = 0
+}
+
+// A track playout on the main thread. Its state lives until the last of its owner (the table, until
+// audioTrackPlayoutDestroy()), the track renderer units that render from it and the capture snapshots that hold it lets go.
+@safe final class TrackPlayout {
+    fileprivate let state: UnsafeMutablePointer<TrackPlayoutState>
+
+    init() {
+        unsafe state = UnsafeMutablePointer<TrackPlayoutState>.allocate(capacity: 1)
+        unsafe state.initialize(to: TrackPlayoutState())
+    }
+
+    deinit {
+        unsafe state.deinitialize(count: 1)
+        unsafe state.deallocate()
+    }
+
+    // A new ring, read from its start in chunks of the attachment's frameChunkSize frames of bytesPerFrame bytes. Waits for
+    // a render callback that is rendering from the track to finish, as the C++ waited for the speaker callback's lock.
+    func attachRing(_ attachment: WebCore.AudioOutputUnitRingAttachment) {
+        precondition(WTF.isMainThread())
+        while unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring) {
+            sched_yield()
+        }
+        unsafe state.pointee.ring = attachment
+        unsafe state.pointee.ring.frameCounter = nil
+        unsafe state.pointee.readOffset = 0
+        unsafe state.pointee.generateOffset = 0
+        unsafe state.pointee.frameChunkSize = attachment.frameChunkSize
+        unsafe state.pointee.bytesPerFrame = attachment.bytesPerFrame
+        unsafe state.pointee.isRendering.store(false, ordering: .releasing)
+    }
+}
+
+nonisolated(unsafe) private var trackPlayouts: [UInt64: TrackPlayout] = [:]
+
+func trackPlayout(_ identifier: UInt64) -> TrackPlayout? {
+    precondition(WTF.isMainThread())
+    return unsafe trackPlayouts[identifier]
+}
+
+// RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit's playout (WebCore::AudioTrackPlayout), without a ring until
+// it attaches one (audioUnitAttachRing()).
+@_expose(Cxx)
+func audioTrackPlayoutCreate() -> UInt64 {
+    precondition(WTF.isMainThread())
+    unsafe lastOutputUnitIdentifier &+= 1
+    unsafe trackPlayouts[lastOutputUnitIdentifier] = TrackPlayout()
+    return unsafe lastOutputUnitIdentifier
+}
+
+// Its ring goes first: the units that still hold the track play out silence.
+@_expose(Cxx)
+func audioTrackPlayoutDestroy(_ identifier: UInt64) {
+    precondition(WTF.isMainThread())
+    guard let track = unsafe trackPlayouts.removeValue(forKey: identifier) else {
+        return
+    }
+    unsafe track.attachRing(WebCore.AudioOutputUnitRingAttachment())
+}
+
+// MARK: Capture units
+
+nonisolated(unsafe) private var captureUnits: [UInt64: CaptureUnit] = [:]
+
+func addCaptureUnit(_ unit: CaptureUnit) -> UInt64 {
+    precondition(WTF.isMainThread())
+    unsafe lastOutputUnitIdentifier &+= 1
+    unsafe captureUnits[lastOutputUnitIdentifier] = unit
+    return unsafe lastOutputUnitIdentifier
+}
+
+func captureUnit(_ identifier: UInt64) -> CaptureUnit? {
+    precondition(WTF.isMainThread())
+    return unsafe captureUnits[identifier]
+}
+
+func removeCaptureUnit(_ identifier: UInt64) -> CaptureUnit? {
+    precondition(WTF.isMainThread())
+    return unsafe captureUnits.removeValue(forKey: identifier)
+}
+
+// What a capture unit's speaker callback renders from, published by the main thread and taken by the IO thread without
+// waiting (the hand-off): the track playout it plays out, if any. The snapshot keeps the track alive.
+@unsafe struct CaptureSnapshot: ~Copyable {
+    let speakerTrack: UnsafeMutablePointer<TrackPlayoutState>?
+    let speakerTrackOwner: Unmanaged<TrackPlayout>?
+}
+
+// The capture unit's state's capture fields, on the main thread while the unit is stopped (AudioCaptureUnit.swift).
+extension RenderStateReference {
+    // Microphone buffers for bufferCount buffers of byteCount bytes, in one flat buffer as WebAudioBufferList's, freeing the
+    // previous ones.
+    func allocateMicrophoneBuffers(bufferCount: Int, byteCount: Int, channelsPerBuffer: UInt32) {
+        freeMicrophoneBuffers()
+        precondition(bufferCount > 0 && bufferCount <= 1024 && byteCount >= 0 && byteCount <= Int(UInt32.max))
+        let (flatByteCount, overflow) = bufferCount.multipliedReportingOverflow(by: byteCount)
+        precondition(!overflow)
+        let list = unsafe UnsafeMutableRawPointer.allocate(
+            byteCount: 8 &+ bufferCount &* MemoryLayout<AudioBuffer>.stride,
+            alignment: 16
+        ).assumingMemoryBound(to: AudioBufferList.self)
+        unsafe list.pointee.mNumberBuffers = UInt32(bufferCount)
+        let data = UnsafeMutableRawPointer.allocate(byteCount: flatByteCount == 0 ? 1 : flatByteCount, alignment: 16)
+        unsafe data.initializeMemory(as: UInt8.self, repeating: 0, count: flatByteCount)
+        unsafe state.pointee.microphoneList = list
+        unsafe state.pointee.microphoneData = data
+        unsafe state.pointee.microphoneBufferByteCount = byteCount
+        unsafe state.pointee.microphoneChannelsPerBuffer = channelsPerBuffer
+        let buffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+        var index = 0
+        while index < bufferCount {
+            unsafe buffers.advanced(by: index).initialize(to: AudioBuffer())
+            index &+= 1
+        }
+        unsafe resetMicrophoneBuffers(state)
+    }
+
+    func freeMicrophoneBuffers() {
+        guard let list = unsafe state.pointee.microphoneList, let data = unsafe state.pointee.microphoneData else {
+            return
+        }
+        unsafe data.deallocate()
+        unsafe UnsafeMutableRawPointer(list).deallocate()
+        unsafe state.pointee.microphoneList = nil
+        unsafe state.pointee.microphoneData = nil
+        unsafe state.pointee.microphoneBufferByteCount = 0
+    }
+
+    func setCaptureRender(_ function: CaptureRenderFunction, target: UnsafeMutableRawPointer) {
+        unsafe state.pointee.captureRender = function
+        unsafe state.pointee.captureRenderTarget = target
+    }
+
+    func setMicrophoneTiming(sampleRate: Float64, dtsConversionRatio: Float64) {
+        unsafe state.pointee.microphoneSampleRate = sampleRate
+        unsafe state.pointee.dtsConversionRatio = dtsConversionRatio
+    }
+
+    func setSpeakerBytesPerFrame(_ bytesPerFrame: UInt64) {
+        unsafe state.pointee.speakerBytesPerFrame = bytesPerFrame
+    }
+
+    func setCxxDeliveryContext(_ context: UnsafeMutableRawPointer?) {
+        unsafe state.pointee.cxxDeliveryContext = context
+    }
+
+    // The main thread's switches, which the IO thread reads at each quantum.
+    func setProducingMicrophoneSamples(_ value: Bool) {
+        unsafe state.pointee.isProducingMicrophoneSamples.store(value, ordering: .releasing)
+    }
+
+    func setReconfiguring(_ value: Bool) {
+        unsafe state.pointee.isReconfiguring.store(value, ordering: .releasing)
+    }
+
+    // The speaker callback asks the main thread to tell the speaker's producer once, then outputs silence until the main
+    // thread has.
+    func speakerWillStart() {
+        unsafe state.pointee.speakerStartAcknowledged.store(false, ordering: .releasing)
+        unsafe state.pointee.speakerStartPending.store(true, ordering: .releasing)
+    }
+
+    func acknowledgeSpeakerStart() {
+        unsafe state.pointee.speakerStartAcknowledged.store(true, ordering: .releasing)
+    }
+
+    var microphoneProcCount: UInt64 {
+        unsafe state.pointee.microphoneProcCount.load(ordering: .relaxed)
+    }
+
+    func resetMicrophoneProcCount() {
+        unsafe state.pointee.microphoneProcCount.store(0, ordering: .relaxed)
+    }
+
+    // 0, or failedRenderFlag and the frame count of the first quantum the microphone buffer was too small for, which the
+    // next unit provides for.
+    var failedRenderFrames: UInt64 {
+        unsafe state.pointee.failedRenderFrames.load(ordering: .acquiring)
+    }
+
+    // Main thread only: publishes what the speaker callback renders from. The IO thread swaps it in at its next quantum;
+    // the snapshot it retires is freed here, at the next publication or once the unit stops.
+    func publishSnapshot(speakerTrack: TrackPlayout?) {
+        collectRetiredSnapshot()
+        let snapshot = UnsafeMutablePointer<CaptureSnapshot>.allocate(capacity: 1)
+        unsafe snapshot.initialize(
+            to: CaptureSnapshot(
+                speakerTrack: speakerTrack?.state,
+                speakerTrackOwner: speakerTrack.map { unsafe Unmanaged.passRetained($0) }
+            )
+        )
+        if let unseen = unsafe state.pointee.pendingSnapshot.exchange(UnsafeMutableRawPointer(snapshot), ordering: .acquiringAndReleasing) {
+            unsafe freeSnapshot(unseen)
+        }
+    }
+
+    func collectRetiredSnapshot() {
+        if let retired = unsafe state.pointee.retiredSnapshot.exchange(nil, ordering: .acquiring) {
+            unsafe freeSnapshot(retired)
+        }
+    }
+
+    // Once the unit stopped, so no IO thread holds a snapshot: frees them all.
+    func freeSnapshotsWhileStopped() {
+        collectRetiredSnapshot()
+        if let pending = unsafe state.pointee.pendingSnapshot.exchange(nil, ordering: .acquiring) {
+            unsafe freeSnapshot(pending)
+        }
+        if let current = unsafe state.pointee.currentSnapshot {
+            unsafe state.pointee.currentSnapshot = nil
+            unsafe freeSnapshot(current)
+        }
+    }
+
+    // Once the unit stopped: hands the IO thread's snapshot back as the pending one, so the next start renders from it.
+    func returnCurrentSnapshotWhileStopped() {
+        collectRetiredSnapshot()
+        guard let current = unsafe state.pointee.currentSnapshot else {
+            return
+        }
+        unsafe state.pointee.currentSnapshot = nil
+        if unsafe state.pointee.pendingSnapshot.load(ordering: .acquiring) == nil {
+            unsafe state.pointee.pendingSnapshot.store(current, ordering: .releasing)
+        } else {
+            unsafe freeSnapshot(current)
+        }
+    }
+}
+
+// AudioSampleBufferList::reset(): every microphone buffer back to its place in the flat buffer and its capacity, in case
+// the last render moved it.
+@inline(__always)
+private func resetMicrophoneBuffers(_ state: UnsafeMutablePointer<OutputRenderState>) {
+    guard let list = unsafe state.pointee.microphoneList, let data = unsafe state.pointee.microphoneData else {
+        preconditionFailure()
+    }
+    let byteCount = unsafe state.pointee.microphoneBufferByteCount
+    let channels = unsafe state.pointee.microphoneChannelsPerBuffer
+    let buffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    var index = 0
+    while index < Int(unsafe list.pointee.mNumberBuffers) {
+        unsafe buffers.advanced(by: index).pointee.mNumberChannels = channels
+        unsafe buffers.advanced(by: index).pointee.mDataByteSize = UInt32(truncatingIfNeeded: byteCount)
+        unsafe buffers.advanced(by: index).pointee.mData = data.advanced(by: index &* byteCount)
+        index &+= 1
+    }
+}
+
+var failedRenderFlag: UInt64 { 1 << 32 }
+
+private func freeSnapshot(_ raw: UnsafeMutableRawPointer) {
+    let snapshot = unsafe raw.assumingMemoryBound(to: CaptureSnapshot.self)
+    unsafe snapshot.pointee.speakerTrackOwner?.release()
+    unsafe snapshot.deinitialize(count: 1)
+    unsafe snapshot.deallocate()
+}
+
+// IO thread only, wait-free: takes a published snapshot once the main thread has freed the one retired before.
+@inline(__always)
+private func takePublishedSnapshot(_ state: UnsafeMutablePointer<OutputRenderState>) {
+    if unsafe state.pointee.retiredSnapshot.load(ordering: .acquiring) != nil {
+        return
+    }
+    guard let next = unsafe state.pointee.pendingSnapshot.exchange(nil, ordering: .acquiring) else {
+        return
+    }
+    if let current = unsafe state.pointee.currentSnapshot {
+        unsafe state.pointee.retiredSnapshot.store(current, ordering: .releasing)
+    }
+    unsafe state.pointee.currentSnapshot = next
+}
+
+
 // MARK: Attaching what a stopped unit renders from
 
 // Traps unless the attachment's memory covers what the unit will read and write, aligned for its atomics.
@@ -478,16 +805,36 @@ private func checkRingAttachment(_ attachment: WebCore.AudioOutputUnitRingAttach
     }
 }
 
-// A remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing()), or a track renderer's
-// playout (attachTrackPlayout()). The caller keeps their memory and the semaphore alive until it attaches others or destroys
-// the unit. A ring without a header is no ring.
+// What a unit renders from or delivers to:
+// - a remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing());
+// - a track renderer's track playout, by identifier (WebCore::AudioOutputUnit::attachTrackPlayout());
+// - a track playout's ring and semaphore (WebCore::AudioTrackPlayout::attachRing());
+// - the C++ that a capture unit delivers its microphone's quanta to, and the track playout its speaker plays out, by
+//   identifier (WebCore::AudioCaptureUnitHandle::attach()).
+// The caller keeps their memory and the semaphore alive until it attaches others or destroys the unit. A ring without a
+// header is no ring.
 @_expose(Cxx)
 func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutputUnitRingAttachment) {
-    if unsafe attachment.track != nil {
-        guard let unit = outputUnit(identifier) else {
+    if let track = trackPlayout(identifier) {
+        unsafe checkRingAttachment(attachment)
+        unsafe track.attachRing(attachment)
+        return
+    }
+    if let unit = captureUnit(identifier) {
+        if !unit.hasCxxDeliveryContext {
+            precondition(!unit.isRunning)
+            unsafe unit.renderState.setCxxDeliveryContext(attachment.cxxDeliveryContext)
+            unit.hasCxxDeliveryContext = true
+        }
+        let speakerTrack = unsafe attachment.trackPlayoutIdentifier
+        unit.attachSpeakerTrack(speakerTrack == 0 ? nil : trackPlayout(speakerTrack))
+        return
+    }
+    if unsafe attachment.trackPlayoutIdentifier != 0 {
+        guard let unit = outputUnit(identifier), let track = trackPlayout(unsafe attachment.trackPlayoutIdentifier) else {
             return
         }
-        unsafe unit.attachTrackPlayout(attachment)
+        unit.attachTrackPlayout(track)
         return
     }
     unsafe checkRingAttachment(attachment)
@@ -503,11 +850,11 @@ func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutput
 // Stores what a stopped track renderer renders from: a GPU-process playout or an in-process C++ render callback.
 func setTrackRenderSource(
     _ reference: RenderStateReference,
-    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>?,
+    _ track: TrackPlayout?,
     _ cxxRender: AURenderCallback?,
     _ cxxRefCon: UnsafeMutableRawPointer?
 ) {
-    unsafe reference.state.pointee.ring.track = track
+    unsafe reference.state.pointee.track = track?.state
     unsafe reference.state.pointee.cxxRender = cxxRender
     unsafe reference.state.pointee.cxxRefCon = cxxRefCon
 }
@@ -598,7 +945,7 @@ func trackRendererRenderCallback(
     let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
     precondition(!(unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring)))
     unsafe checkTimeline(state, timeStamp.pointee.mSampleTime, frameCount)
-    guard let ioData = unsafe ioData, let track = unsafe state.pointee.ring.track else {
+    guard let ioData = unsafe ioData, let track = unsafe state.pointee.track else {
         preconditionFailure()
     }
     let status = unsafe renderTrack(track, ioData, frameCount, actionFlags)
@@ -681,17 +1028,21 @@ private func clip(_ ioData: UnsafeMutablePointer<AudioBufferList>, _ format: UIn
 }
 
 // The manager unit's render(): plays out the track's ring into ioData and signals its semaphore for each chunk it asks for.
-// Traps unless the track's ring covers what it reads.
+// Traps unless the track's ring covers what it reads. While the main thread changes the track, it outputs silence, as the
+// C++'s speaker callback did when it couldn't take its lock.
 private func renderTrack(
-    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>,
+    _ track: UnsafeMutablePointer<TrackPlayoutState>,
     _ ioData: UnsafeMutablePointer<AudioBufferList>,
     _ frameCount: UInt32,
     _ actionFlags: UnsafeMutablePointer<UInt32>
 ) -> OSStatus {
-    let renderingGuard = unsafe UnsafeMutableRawPointer(track).assumingMemoryBound(to: Atomic<UInt64>.self)
-    precondition(unsafe renderingGuard.pointee.exchange(1, ordering: .acquiring) == 0)
-    let ring = unsafe track.pointee.ring
     var output = unsafe IOBufferList(ioData)
+    if unsafe track.pointee.isRendering.exchange(true, ordering: .acquiring) {
+        unsafe zeroTrackOutput(&output, UInt64(frameCount) &* track.pointee.bytesPerFrame)
+        unsafe actionFlags.pointee = silenceActionFlag
+        return 0
+    }
+    let ring = unsafe track.pointee.ring
     var signalCount: UInt64 = 0
     var fetched = false
     if let header = unsafe ring.header {
@@ -719,36 +1070,346 @@ private func renderTrack(
         unsafe zeroTrackOutput(&output, UInt64(frameCount) &* track.pointee.bytesPerFrame)
     }
     if !fetched {
-        // kAudioUnitRenderAction_OutputIsSilence.
-        unsafe actionFlags.pointee = 1 << 4
+        unsafe actionFlags.pointee = silenceActionFlag
     }
     let semaphore = unsafe ring.semaphore
     while signalCount > 0 {
         _ = semaphore_signal(semaphore)
         signalCount &-= 1
     }
-    unsafe renderingGuard.pointee.store(0, ordering: .releasing)
+    unsafe track.pointee.isRendering.store(false, ordering: .releasing)
     return fetched ? 0 : -1
 }
 
-// The capture unit's speaker callback, on its IO thread (RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::
-// produceSpeakerSamples()), until that callback is Swift: plays out a track as its unit's render callback does, without
-// the timeline check or clipping, as the C++ did.
-@_expose(Cxx)
-func audioTrackRenderForSpeaker(
-    _ track: UnsafeMutablePointer<WebCore.AudioTrackPlayoutState>,
-    _ ioData: UnsafeMutablePointer<AudioBufferList>,
+// kAudioUnitRenderAction_OutputIsSilence.
+private var silenceActionFlag: UInt32 { 1 << 4 }
+
+// MARK: Capture callbacks
+
+// The capture unit's microphone callback (CoreAudioCaptureUnit::processMicrophoneSamples()): renders the quantum into the
+// unit's own buffers through AudioUnitRender() (or the mock's render function: the one indirect call of the GPU IO path),
+// counts it, times it and, while the unit produces microphone samples, delivers it to the C++ observers. A buffer too small
+// for the quantum is an event for the main thread, which reconfigures the unit.
+func microphoneRenderCallback(
+    _ refCon: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
     _ frameCount: UInt32,
-    _ actionFlags: UnsafeMutablePointer<UInt32>
-) -> Int32 {
-    unsafe renderTrack(track, ioData, frameCount, actionFlags)
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    precondition(pthread_main_np() == 0)
+    let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
+    precondition(!(unsafe state.pointee.isCapturing.exchange(true, ordering: .acquiring)))
+    let status = unsafe captureMicrophone(state, actionFlags, timeStamp, busNumber, frameCount)
+    unsafe state.pointee.isCapturing.store(false, ordering: .releasing)
+    return status
 }
+
+private func captureMicrophone(
+    _ state: UnsafeMutablePointer<OutputRenderState>,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32
+) -> OSStatus {
+    if unsafe state.pointee.isReconfiguring.load(ordering: .acquiring) {
+        return 0
+    }
+    guard let render = unsafe state.pointee.captureRender, let target = unsafe state.pointee.captureRenderTarget,
+        let list = unsafe state.pointee.microphoneList
+    else {
+        preconditionFailure()
+    }
+    unsafe resetMicrophoneBuffers(state)
+    // The one indirect call of the GPU-process IO path: AudioUnitRender(), or the mock's render function.
+    let status = unsafe render(target, actionFlags, timeStamp, busNumber, frameCount, list)
+    if status != 0 {
+        // kAudio_ParamError: the buffer might be too small for the preferred buffer size or sample rate.
+        if status == -50
+            && (unsafe state.pointee.failedRenderFrames.compareExchange(
+                expected: 0,
+                desired: failedRenderFlag | UInt64(frameCount),
+                ordering: .acquiringAndReleasing
+            ).exchanged)
+        {
+            unsafe postEvent(state, AudioUnitEvent.microphoneBufferTooSmall)
+        }
+        return status
+    }
+    _ = unsafe state.pointee.microphoneProcCount.add(1, ordering: .relaxed)
+    if !(unsafe state.pointee.isProducingMicrophoneSamples.load(ordering: .acquiring)) {
+        return 0
+    }
+    let times = unsafe audioCaptureTimes(
+        timeStamp.pointee.mSampleTime,
+        timeStamp.pointee.mHostTime,
+        state.pointee.dtsConversionRatio,
+        state.pointee.microphoneSampleRate
+    )
+    if let context = unsafe state.pointee.cxxDeliveryContext {
+        unsafe WebCore.deliverToCxxObservers(context, list, frameCount, times)
+    }
+    return 0
+}
+
+// The times of a microphone quantum, with the C++'s conversions as compiled for arm64 (saturating): its sample time
+// truncated to an integer frame, the host time scaled to the presentation clock, and the times its sample buffer records.
+private func audioCaptureTimes(_ sampleTime: Float64, _ hostTime: UInt64, _ dtsConversionRatio: Float64, _ sampleRate: Float64)
+    -> WebCore.AudioCaptureTimes
+{
+    var times = WebCore.AudioCaptureTimes()
+    let adjustedHostTime = dtsConversionRatio * float64(hostTime)
+    let frame = saturatingUInt64(sampleTime)
+    times.sampleTime = sampleTime
+    times.mediaTimeValue = Int64(bitPattern: frame)
+    let scale = saturatingUInt64(sampleRate)
+    times.mediaTimeScale = scale > 0xFFFF_FFFF ? 0xFFFF_FFFF : UInt32(truncatingIfNeeded: scale)
+    times.adjustedHostTime = adjustedHostTime
+    times.bufferTimestamp = saturatingUInt64(adjustedHostTime)
+    times.bufferHostTime = float64(frame)
+    return times
+}
+
+// A double converted to uint64_t as arm64's fcvtzu does: NaN and negative values give 0, values too large give the maximum.
+@inline(__always)
+private func saturatingUInt64(_ value: Float64) -> UInt64 {
+    if value >= 18_446_744_073_709_551_616.0 {
+        return UInt64.max
+    }
+    return value > 0 ? UInt64(value) : 0
+}
+
+// The capture unit's speaker callback (CoreAudioCaptureUnit::provideSpeakerData()): takes the speaker snapshot the main
+// thread published, then plays out its track Swift to Swift, or outputs silence while the unit reconfigures, until the main
+// thread has told the speaker's producer that the unit started, or without a track.
+func speakerRenderCallback(
+    _ refCon: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    precondition(pthread_main_np() == 0)
+    let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
+    precondition(!(unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring)))
+    guard let ioData = unsafe ioData else {
+        preconditionFailure()
+    }
+    unsafe takePublishedSnapshot(state)
+    var track: UnsafeMutablePointer<TrackPlayoutState>? = nil
+    if let snapshot = unsafe state.pointee.currentSnapshot {
+        unsafe track = snapshot.assumingMemoryBound(to: CaptureSnapshot.self).pointee.speakerTrack
+    }
+    let status: OSStatus
+    if let track = unsafe track, !(unsafe state.pointee.isReconfiguring.load(ordering: .acquiring)),
+        !(unsafe state.pointee.speakerStartPending.load(ordering: .acquiring)),
+        unsafe state.pointee.speakerStartAcknowledged.load(ordering: .acquiring)
+    {
+        status = unsafe renderTrack(track, ioData, frameCount, actionFlags)
+    } else {
+        if unsafe state.pointee.speakerStartPending.exchange(false, ordering: .acquiringAndReleasing) {
+            unsafe postEvent(state, AudioUnitEvent.speakerStarting)
+        }
+        var output = unsafe IOBufferList(ioData)
+        unsafe zeroTrackOutput(&output, UInt64(frameCount) &* state.pointee.speakerBytesPerFrame)
+        unsafe actionFlags.pointee = silenceActionFlag
+        status = 0
+    }
+    unsafe state.pointee.isRendering.store(false, ordering: .releasing)
+    return status
+}
+
+// MARK: The mock capture unit
+
+// MockAudioCaptureUnit::increaseBufferSize(): the mock's quanta fake a microphone buffer that is too small until a buffer
+// is big enough (mockCaptureRender()).
+let mockShouldIncreaseBufferSize = Atomic<Bool>(false)
+
+// The mock microphone's buffers (AudioCaptureUnit.swift's MockCaptureBackend), at an address that stays put for the mock's
+// life, which its render function copies into the microphone's, as MockAudioCaptureInternalUnit's did. The mock's queue
+// allocates them before its first quantum.
+@unsafe struct MockCaptureBuffers: ~Copyable {
+    var list: UnsafeMutablePointer<AudioBufferList>? = nil
+    var data: UnsafeMutableRawPointer? = nil
+    var bytesPerBuffer: Int = 0
+    var bytesPerPacket: UInt32 = 0
+}
+
+@safe struct MockCaptureBuffersReference: @unchecked Sendable {
+    fileprivate let buffers: UnsafeMutablePointer<MockCaptureBuffers>
+}
+
+func makeMockCaptureBuffers() -> MockCaptureBuffersReference {
+    let buffers = UnsafeMutablePointer<MockCaptureBuffers>.allocate(capacity: 1)
+    unsafe buffers.initialize(to: MockCaptureBuffers())
+    return unsafe MockCaptureBuffersReference(buffers: buffers)
+}
+
+// Once the mock's queue is done with them.
+func freeMockCaptureBuffers(_ reference: MockCaptureBuffersReference) {
+    reference.freeList()
+    unsafe reference.buffers.deinitialize(count: 1)
+    unsafe reference.buffers.deallocate()
+}
+
+extension MockCaptureBuffersReference {
+    var isAllocated: Bool {
+        unsafe buffers.pointee.list != nil
+    }
+
+    fileprivate func freeList() {
+        if let list = unsafe buffers.pointee.list {
+            unsafe UnsafeMutableRawPointer(list).deallocate()
+        }
+        unsafe buffers.pointee.data?.deallocate()
+        unsafe buffers.pointee.list = nil
+        unsafe buffers.pointee.data = nil
+    }
+
+    // A WebAudioBufferList's buffers for frameCount frames of the format, zeroed.
+    func allocate(_ format: AudioStreamBasicDescription, frameCount: Int) {
+        freeList()
+        let isInterleaved = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved == 0
+        let bufferCount = isInterleaved ? 1 : Int(format.mChannelsPerFrame)
+        let channelsPerBuffer: UInt32 = isInterleaved ? format.mChannelsPerFrame : 1
+        let sizes = webAudioBufferListSizes(channelsPerBuffer, format.mBytesPerFrame, UInt32(bufferCount), UInt64(frameCount))
+        precondition(sizes.isValid && bufferCount > 0 && sizes.bytesPerBuffer <= UInt64(UInt32.max))
+        let bytesPerBuffer = Int(sizes.bytesPerBuffer)
+        let list = unsafe UnsafeMutableRawPointer.allocate(byteCount: 8 &+ bufferCount &* MemoryLayout<AudioBuffer>.stride, alignment: 16)
+            .assumingMemoryBound(to: AudioBufferList.self)
+        unsafe list.pointee.mNumberBuffers = UInt32(bufferCount)
+        let flatByteCount = Int(sizes.flatBufferSize)
+        let data = UnsafeMutableRawPointer.allocate(byteCount: flatByteCount == 0 ? 1 : flatByteCount, alignment: 16)
+        unsafe data.initializeMemory(as: UInt8.self, repeating: 0, count: flatByteCount)
+        let audioBuffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+        var index = 0
+        while index < bufferCount {
+            unsafe audioBuffers.advanced(by: index).initialize(
+                to: AudioBuffer(
+                    mNumberChannels: channelsPerBuffer,
+                    mDataByteSize: UInt32(bytesPerBuffer),
+                    mData: data.advanced(by: index &* bytesPerBuffer)
+                )
+            )
+            index &+= 1
+        }
+        unsafe buffers.pointee.list = list
+        unsafe buffers.pointee.data = data
+        unsafe buffers.pointee.bytesPerBuffer = bytesPerBuffer
+        unsafe buffers.pointee.bytesPerPacket = format.mBytesPerPacket
+    }
+
+    // MockAudioCaptureInternalUnit::generateSampleBuffers(): each buffer holds byteCount bytes, the first count Float32
+    // samples of which are samples from start plus a hum of humPeriod frames from frame humStart, as addHum() made it.
+    func fill(byteCount: UInt32, _ samples: borrowing [Float], start: Int, count: Int, humStart: UInt64, humPeriod: Float) {
+        guard let list = unsafe buffers.pointee.list else {
+            preconditionFailure()
+        }
+        let bytesPerBuffer = unsafe buffers.pointee.bytesPerBuffer
+        precondition(Int(byteCount) <= bytesPerBuffer && count >= 0 && count &* 4 <= Int(byteCount))
+        precondition(start >= 0 && count <= samples.count &- start)
+        let audioBuffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+        let tau = 2 * Double.pi
+        var index = 0
+        while index < Int(unsafe list.pointee.mNumberBuffers) {
+            let buffer = unsafe audioBuffers.advanced(by: index)
+            unsafe buffer.pointee.mDataByteSize = byteCount
+            guard let floats = unsafe buffer.pointee.mData?.assumingMemoryBound(to: Float.self) else {
+                preconditionFailure()
+            }
+            var frame = 0
+            while frame < count {
+                let hum = Float(Double(Float(0.1)) * sin(Double(humStart &+ UInt64(frame)) * tau / Double(humPeriod)))
+                unsafe floats[frame] = samples[start &+ frame] + hum
+                frame &+= 1
+            }
+            index &+= 1
+        }
+    }
+}
+
+// The microphone callback of a mock capture unit renders the mock's buffers with mockCaptureRender().
+func attachMockCaptureRender(_ state: RenderStateReference, _ buffers: MockCaptureBuffersReference) {
+    unsafe state.setCaptureRender(mockCaptureRender, target: UnsafeMutableRawPointer(buffers.buffers))
+}
+
+// MockAudioCaptureInternalUnit::render(): copies frameCount packets of each mock buffer into the destination, or fails as
+// the C++ did when asked to fake a too-small buffer.
+private func mockCaptureRender(
+    _ target: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>?,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32,
+    _ destination: UnsafeMutablePointer<AudioBufferList>
+) -> OSStatus {
+    let mock = unsafe target.assumingMemoryBound(to: MockCaptureBuffers.self)
+    let destinationCount = Int(unsafe destination.pointee.mNumberBuffers)
+    let destinationBuffers = unsafe UnsafeMutableRawPointer(destination).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    let copySize = Int(frameCount) &* Int(unsafe mock.pointee.bytesPerPacket)
+    if mockShouldIncreaseBufferSize.load(ordering: .relaxed) {
+        if destinationCount != 0 && copySize <= Int(unsafe destinationBuffers.pointee.mDataByteSize) {
+            mockShouldIncreaseBufferSize.store(false, ordering: .relaxed)
+        }
+        // Still an error: there isn't enough data to write.
+        return -50
+    }
+    guard let source = unsafe mock.pointee.list else {
+        preconditionFailure()
+    }
+    let sourceCount = Int(unsafe source.pointee.mNumberBuffers)
+    if destinationCount > sourceCount {
+        return -50
+    }
+    let sourceBuffers = unsafe UnsafeMutableRawPointer(source).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    var index = 0
+    while index < destinationCount {
+        let from = unsafe sourceBuffers.advanced(by: index).pointee
+        let to = unsafe destinationBuffers.advanced(by: index).pointee
+        precondition(copySize <= Int(unsafe from.mDataByteSize))
+        if copySize > Int(unsafe to.mDataByteSize) {
+            return -50
+        }
+        if copySize != 0 {
+            guard let toData = unsafe to.mData, let fromData = unsafe from.mData else {
+                preconditionFailure()
+            }
+            _ = unsafe memmove(toData, fromData, copySize)
+        }
+        index &+= 1
+    }
+    return 0
+}
+
+// MockAudioCaptureInternalUnit::emitSampleBuffers(): calls a capture unit's microphone callback for exposedFrameCount
+// frames, then its speaker callback for frameCount frames into the mock's buffers, as its IO thread would.
+func emitMockQuantum(
+    _ state: RenderStateReference,
+    _ buffers: MockCaptureBuffersReference,
+    sampleTime: Float64,
+    frameCount: UInt32,
+    exposedFrameCount: UInt32
+) {
+    guard let list = unsafe buffers.buffers.pointee.list else {
+        preconditionFailure()
+    }
+    var timeStamp = AudioTimeStamp()
+    timeStamp.mSampleTime = sampleTime
+    timeStamp.mHostTime = saturatingUInt64(sampleTime)
+    var flags: UInt32 = 0
+    _ = unsafe microphoneRenderCallback(state.refCon, &flags, &timeStamp, 1, exposedFrameCount, nil)
+    flags = 0
+    _ = unsafe speakerRenderCallback(state.refCon, &flags, &timeStamp, 1, frameCount, list)
+}
+
 
 // MARK: Tests
 
 // Tests only, on a thread other than the main thread and while the main thread leaves the unit alone: renders one quantum
-// of frameCount frames into ioData, by calling the unit's render callback directly, or through AudioUnitRender() on a unit
-// made for testing.
+// of frameCount frames into ioData, by calling the unit's render callback (a capture unit's speaker callback) directly, or
+// through AudioUnitRender() on a unit made for testing.
 @_expose(Cxx)
 func audioOutputUnitRenderForTesting(
     _ identifier: UInt64,
@@ -758,6 +1419,13 @@ func audioOutputUnitRenderForTesting(
     _ throughAudioUnit: Bool,
     _ actionFlags: UnsafeMutablePointer<UInt32>
 ) -> Int32 {
+    if let unit = unsafe captureUnits[identifier] {
+        precondition(!throughAudioUnit)
+        var timeStamp = AudioTimeStamp()
+        timeStamp.mSampleTime = sampleTime
+        timeStamp.mFlags = .sampleTimeValid
+        return unsafe speakerRenderCallback(unit.renderState.refCon, actionFlags, &timeStamp, 0, frameCount, ioData)
+    }
     guard let unit = unsafe outputUnits[identifier] else {
         return kAudio_ParamError
     }

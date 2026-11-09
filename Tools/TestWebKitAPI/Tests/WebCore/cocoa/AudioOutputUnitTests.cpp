@@ -419,17 +419,17 @@ TEST_F(AudioOutputUnitTest, TrackRendererRendersAsTheCxxDid)
         uint64_t frameChunkSize = 128 + pick(400);
         auto renderer = AudioOutputUnit::createTrackRenderer(0, 44100, float32Format(channels), true);
         ASSERT_TRUE(!!renderer.unit) << "step " << renderer.failedStep << " status " << renderer.status;
-        AudioTrackPlayoutState state;
-        state.ring.geometry = ring->geometry();
-        state.ring.header = &ring->boundsStorage();
-        state.ring.channels = ring->channelData().data();
-        state.ring.channelsByteCount = ring->channelData().size();
-        state.ring.semaphore = semaphore();
-        state.frameChunkSize = frameChunkSize;
-        state.bytesPerFrame = sizeof(float);
-        renderer.unit->attachTrackPlayout(state);
+        AudioTrackPlayout track;
+        track.attachRing(ring.get(), semaphore(), frameChunkSize, sizeof(float));
+        renderer.unit->attachTrackPlayout(track);
         ReferenceTrack reference { *ring, frameChunkSize, sizeof(float) };
         bool useSpeakerPath = !pick(4);
+        // The capture unit's speaker plays out the track once the main thread has told the track's producer.
+        auto capture = AudioCaptureUnitHandle::create(AudioCaptureUnitHandle::Kind::MockWithEchoCancellation);
+        ASSERT_TRUE(!!capture.unit);
+        capture.unit->configureSpeaker(44100, float32Format(channels));
+        capture.unit->attach(nullptr, &track);
+        capture.unit->setSwitch(AudioCaptureUnitHandle::Switch::SpeakerStartAcknowledged, true);
 
         runOffMainThread([&] {
             uint64_t writeFrame = 0;
@@ -454,7 +454,7 @@ TEST_F(AudioOutputUnitTest, TrackRendererRendersAsTheCxxDid)
                 AudioUnitRenderActionFlags expectedFlags = 0;
                 AudioUnitRenderActionFlags actualFlags = 0;
                 auto expectedStatus = reference.render(frames, expected.list(), sampleTime, expectedFlags, !useSpeakerPath);
-                auto actualStatus = useSpeakerPath ? AudioOutputUnit::renderTrackForSpeaker(state, actual.list(), frames, actualFlags) : renderer.unit->renderForTesting(actual.list(), frames, sampleTime, false, &actualFlags);
+                auto actualStatus = useSpeakerPath ? capture.unit->renderSpeakerForTesting(actual.list(), frames, sampleTime, &actualFlags) : renderer.unit->renderForTesting(actual.list(), frames, sampleTime, false, &actualFlags);
                 EXPECT_EQ(actualStatus, expectedStatus) << "seed " << seed << " step " << step;
                 EXPECT_EQ(actualFlags, expectedFlags) << "seed " << seed << " step " << step;
                 for (uint32_t channel = 0; channel < channels; ++channel) {
@@ -477,15 +477,9 @@ TEST_F(AudioOutputUnitTest, TrackRendererResetsOnTheMainThreadWhenItsTimelineJum
     auto ring = makeRing(1, 1024);
     auto renderer = AudioOutputUnit::createTrackRenderer(0, 44100, float32Format(1), true);
     ASSERT_TRUE(!!renderer.unit);
-    AudioTrackPlayoutState state;
-    state.ring.geometry = ring->geometry();
-    state.ring.header = &ring->boundsStorage();
-    state.ring.channels = ring->channelData().data();
-    state.ring.channelsByteCount = ring->channelData().size();
-    state.ring.semaphore = semaphore();
-    state.frameChunkSize = 441;
-    state.bytesPerFrame = sizeof(float);
-    renderer.unit->attachTrackPlayout(state);
+    AudioTrackPlayout track;
+    track.attachRing(ring.get(), semaphore(), 441, sizeof(float));
+    renderer.unit->attachTrackPlayout(track);
     unsigned resets = 0;
     renderer.unit->setEventHandler([&](OptionSet<AudioOutputUnit::Event> events) {
         EXPECT_TRUE(isMainThread());

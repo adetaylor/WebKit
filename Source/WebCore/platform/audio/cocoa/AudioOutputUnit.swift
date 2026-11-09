@@ -171,8 +171,10 @@ final class OutputUnit {
         }
     }
 
-    // Whether the unit is a track renderer that plays out a track (attachTrackPlayout()).
+    // Whether the unit is a track renderer that plays out a track (attachTrackPlayout()), and the track, which it keeps
+    // alive for as long as it can render from it.
     var rendersPlayout = false
+    var trackPlayout: TrackPlayout?
 
     func takeEvents() -> UInt32 {
         guard let renderState else {
@@ -344,10 +346,13 @@ private func trackRendererCreationFailure(_ status: OSStatus, _ step: UInt32) ->
     return result
 }
 
-// Main thread only: the events of the unit's IO thread since the last call (AudioUnitEvent).
+// Main thread only: the events of the output or capture unit's IO threads since the last call (AudioUnitEvent).
 @_expose(Cxx)
 func audioOutputUnitTakeEvents(_ identifier: UInt64) -> UInt32 {
-    withOutputUnit(identifier, 0) { $0.takeEvents() }
+    if let events = takeCaptureUnitEvents(identifier) {
+        return events
+    }
+    return withOutputUnit(identifier, 0) { $0.takeEvents() }
 }
 
 @_expose(Cxx)

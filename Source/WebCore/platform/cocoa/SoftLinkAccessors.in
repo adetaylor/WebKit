@@ -5,6 +5,7 @@
 #                                                  (an Objective-C member whose SDK declaration names a class of the
 #                                                  framework: the Swift declaration, with NSArray and NSDictionary for its
 #                                                  typed collections, and `[T] counted by <property>` for a `const T *`)
+#     function <framework> <symbol> with pointer    (also the function's pointer, for real-time code to copy on the main thread)
 # PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
 # Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
 # List only what Swift calls, so that the accessors stay small enough to review.
@@ -28,7 +29,7 @@ function AudioToolbox AudioUnitInitialize
 function AudioToolbox AudioUnitUninitialize
 function AudioToolbox AudioOutputUnitStart
 function AudioToolbox AudioOutputUnitStop
-function AudioToolbox AudioUnitRender
+function AudioToolbox AudioUnitRender with pointer
 
 # The microphone mute state.
 class AVFAudio AVAudioApplication

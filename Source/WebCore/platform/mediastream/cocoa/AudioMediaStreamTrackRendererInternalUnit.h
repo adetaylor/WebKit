@@ -34,8 +34,8 @@
 namespace WebCore {
 
 class AudioMediaStreamTrackRendererUnit;
+class AudioTrackPlayout;
 class CAAudioStreamDescription;
-struct AudioTrackPlayoutState;
 
 class AudioMediaStreamTrackRendererInternalUnit {
 public:
@@ -61,9 +61,9 @@ public:
     virtual void retrieveFormatDescription(CompletionHandler<void(std::optional<CAAudioStreamDescription>)>&&) = 0;
     virtual void setLastDeviceUsed(const String&) { }
     virtual void deleteUnitForTesting() { }
-    // A GPU-process unit plays out the track instead of calling its client's render(). The caller keeps the state alive
-    // for as long as the unit, and changes it only while the unit is stopped.
-    virtual void setTrackPlayoutState(AudioTrackPlayoutState&) { }
+    // A GPU-process unit plays out the track instead of calling its client's render(). The caller keeps the track alive
+    // until the unit has made its AudioUnit, which then keeps it alive.
+    virtual void setTrackPlayout(const AudioTrackPlayout&) { }
 };
 
 }

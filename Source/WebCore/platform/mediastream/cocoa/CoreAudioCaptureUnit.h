@@ -39,19 +39,8 @@ OBJC_CLASS WebCoreAudioInputMuteChangeListener;
 typedef UInt32 AudioUnitPropertyID;
 typedef UInt32 AudioUnitScope;
 typedef UInt32 AudioUnitElement;
-typedef UInt32 AudioUnitRenderActionFlags;
 
 struct AudioBufferList;
-struct AudioTimeStamp;
-
-#if TARGET_OS_IPHONE || (defined(AUDIOCOMPONENT_NOCARBONINSTANCES) && AUDIOCOMPONENT_NOCARBONINSTANCES)
-typedef struct OpaqueAudioComponentInstance* AudioComponentInstance;
-using AudioUnitStruct = OpaqueAudioComponentInstance;
-#else
-typedef struct ComponentInstanceRecord* AudioComponentInstance;
-using AudioUnitStruct = ComponentInstanceRecord;
-#endif
-typedef AudioComponentInstance AudioUnit;
 
 namespace WebCore {
 
@@ -59,28 +48,12 @@ namespace WebCore {
 class MediaCaptureStatusBarManager;
 #endif
 
+class AudioCaptureUnitHandle;
 class CoreAudioSpeakerSamplesProducer;
+struct AudioCaptureTimes;
 
 class CoreAudioCaptureUnit final : public BaseAudioCaptureUnit {
 public:
-    class InternalUnit {
-    public:
-        virtual ~InternalUnit() = default;
-        virtual OSStatus initialize() = 0;
-        virtual OSStatus uninitialize() = 0;
-        virtual OSStatus start() = 0;
-        virtual OSStatus stop() = 0;
-        virtual OSStatus set(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, const void*, UInt32) = 0;
-        virtual OSStatus get(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, void*, UInt32*) = 0;
-        virtual OSStatus render(AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32, UInt32, AudioBufferList*) = 0;
-        virtual OSStatus defaultInputDevice(uint32_t*) = 0;
-        virtual OSStatus defaultOutputDevice(uint32_t*) = 0;
-        virtual void delaySamples(Seconds) { }
-        virtual Seconds verifyCaptureInterval(bool isProducingSamples) const { return isProducingSamples ? 20_s : 2_s; }
-        virtual bool setVoiceActivityDetection(bool) = 0;
-        virtual bool canRenderAudio() const { return true; }
-    };
-
     // The default unit - the only one that may render audio when capturing
     WEBCORE_EXPORT static CoreAudioCaptureUnit& defaultSingleton();
     static Ref<CoreAudioCaptureUnit> createNonVPIOUnit();
@@ -89,8 +62,8 @@ public:
     WEBCORE_EXPORT static void forEach(NOESCAPE const Function<void(CoreAudioCaptureUnit&)>&);
     static void forNewUnit(Function<void(CoreAudioCaptureUnit&)>&&);
 
-    using CreationCallback = Function<std::expected<UniqueRef<InternalUnit>, OSStatus>(bool enableEchoCancellation)>;
-    void setInternalUnitCreationCallback(CreationCallback&& callback) { m_creationCallback = WTF::move(callback); }
+    // Whether the unit's next AudioUnit is a mock that needs no hardware (MockAudioCaptureUnit).
+    void setUsesMockUnit(bool usesMockUnit) { m_usesMockUnit = usesMockUnit; }
     using GetSampleRateCallback = Function<int()>;
     void setInternalUnitGetSampleRateCallback(GetSampleRateCallback&& callback) { m_getSampleRateCallback = WTF::move(callback); }
 
@@ -105,16 +78,6 @@ public:
 #endif
 
     bool canRenderAudio() const { return m_canRenderAudio; }
-
-    struct AudioUnitDeallocator {
-        void operator()(AudioUnit) const;
-    };
-    using StoredAudioUnit = std::unique_ptr<AudioUnitStruct, AudioUnitDeallocator>;
-
-#if PLATFORM(MAC)
-    void setStoredVPIOUnit(StoredAudioUnit&&);
-    StoredAudioUnit takeStoredVPIOUnit();
-#endif
 
     WEBCORE_EXPORT void enableMutedSpeechActivityEventListener(Function<void()>&&);
     WEBCORE_EXPORT void disableMutedSpeechActivityEventListener();
@@ -134,12 +97,14 @@ public:
 
     void delaySamples(Seconds) final;
 
+    // On the unit's microphone IO thread (deliverToCxxObservers()).
+    void deliverMicrophoneSamples(const AudioBufferList&, uint32_t frameCount, const AudioCaptureTimes&);
+
 private:
     explicit CoreAudioCaptureUnit(CanEnableEchoCancellation);
 
     friend class NeverDestroyed<CoreAudioCaptureUnit>;
-    friend class MockAudioCaptureInternalUnit;
-    friend class CoreAudioCaptureInternalUnit;
+    friend void audioCaptureVoiceActivityDetected();
 
     static size_t preferredIOBufferSize();
 
@@ -158,6 +123,7 @@ private:
     void validateOutputDevice(uint32_t deviceID) final;
 #if PLATFORM(MAC)
     bool migrateToNewDefaultDevice(const CaptureDevice&) final;
+    void storedVPIOUnitWasKept();
     void deallocateStoredVPIOUnit();
 #endif
     void resetSampleRate();
@@ -167,11 +133,16 @@ private:
     OSStatus configureSpeakerProc(int sampleRate);
     OSStatus configureMicrophoneProc(int sampleRate);
 
-    static OSStatus microphoneCallback(void*, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32, UInt32, AudioBufferList*);
-    OSStatus processMicrophoneSamples(AudioUnitRenderActionFlags&, const AudioTimeStamp&, UInt32, UInt32, AudioBufferList*);
-
-    static OSStatus speakerCallback(void*, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32, UInt32, AudioBufferList*);
-    OSStatus provideSpeakerData(AudioUnitRenderActionFlags&, const AudioTimeStamp&, UInt32, UInt32, AudioBufferList&);
+    // What the AudioUnit (or its mock) did and does not need the AudioUnit for.
+    OSStatus setUnitProperty(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint32_t);
+    OSStatus defaultInputDevice(uint32_t&);
+    OSStatus defaultOutputDevice(uint32_t&);
+    bool setUnitVoiceActivityDetection(bool);
+    Seconds verifyCaptureInterval(bool isProducingSamples) const;
+    void attachSpeakerSamplesProducer();
+    // AudioOutputUnit::Event bits.
+    void handleUnitEvents(uint32_t);
+    void mockVoiceDetected();
 
     void unduck();
 
@@ -189,9 +160,9 @@ private:
     static bool isAnyUnitCapturingExceptFor(CoreAudioCaptureUnit*);
     static bool isAnyUnitCapturing();
 
-    CreationCallback m_creationCallback;
+    bool m_usesMockUnit { false };
     GetSampleRateCallback m_getSampleRateCallback;
-    std::unique_ptr<InternalUnit> m_ioUnit;
+    std::unique_ptr<AudioCaptureUnitHandle> m_ioUnit;
 
     // Only read/modified from the IO thread.
     Vector<Ref<AudioSampleDataSource>> m_activeSources;
@@ -211,13 +182,12 @@ private:
     mutable std::optional<RealtimeMediaSourceSettings> m_currentSettings;
 
 #if !LOG_DISABLED
-    void checkTimestamps(const AudioTimeStamp&, double);
+    void checkTimestamps(double sampleTime, double hostTime);
 
 #endif
 
     LongCapabilityRange m_sampleRateCapabilities;
 
-    std::atomic<uint64_t> m_microphoneProcsCalled { 0 };
     uint64_t m_microphoneProcsCalledLastTime { 0 };
     const std::unique_ptr<Timer> m_verifyCapturingTimer;
 
@@ -225,8 +195,6 @@ private:
 
     std::optional<size_t> m_minimumMicrophoneSampleFrames;
     bool m_isReconfiguring { false };
-    bool m_shouldNotifySpeakerSamplesProducer { false };
-    bool m_hasNotifiedSpeakerSamplesProducer { false };
     mutable Lock m_speakerSamplesProducerLock;
     CoreAudioSpeakerSamplesProducer* m_speakerSamplesProducer WTF_GUARDED_BY_LOCK(m_speakerSamplesProducerLock) { nullptr };
 
@@ -238,8 +206,14 @@ private:
     bool m_shouldUseVPIO { true };
     bool m_canRenderAudio { true };
     bool m_voiceActivityDetectionEnabled { false };
+    // A mock AudioUnit's: whether its output is muted, whether it detects voice activity, which it then fakes, and how long
+    // it pauses its samples.
+    bool m_mockOutputMuted { false };
+    bool m_mockVoiceActivityDetectionEnabled { false };
+    std::unique_ptr<Timer> m_mockVoiceDetectionTimer;
+    std::unique_ptr<Timer> m_mockDelayTimer;
 #if PLATFORM(MAC)
-    StoredAudioUnit m_storedVPIOUnit { nullptr };
+    bool m_hasStoredVPIOUnit { false };
     Timer m_storedVPIOUnitDeallocationTimer;
     RefPtr<GenericNonExclusivePromise> m_audioUnitCreationWarmupPromise;
 #endif

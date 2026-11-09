@@ -51,6 +51,7 @@
 #if ENABLE_WEBCORE_SWIFT
 
 import AudioToolbox
+import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 
 // An IO AudioUnit, from its creation to its disposal, on the main thread, through the soft-linked AudioToolbox accessors.
@@ -92,6 +93,62 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         renderState = makeRenderState(sampleCapacity: renderSampleCapacity)
     }
 
+#if os(macOS)
+    // The stored voice processing unit, if there's one (storeForReuse(), prewarmVoiceProcessingUnit()).
+    static func takeStoredVoiceProcessingUnit(renderSampleCapacity: Int) -> AudioUnitOwner? {
+        precondition(WTF.isMainThread())
+        guard let stored = unsafe storedVoiceProcessingUnit.exchange(nil, ordering: .acquiring) else {
+            return nil
+        }
+        return unsafe AudioUnitOwner(AudioUnit(OpaquePointer(stored)), renderSampleCapacity)
+    }
+
+    // Keeps a stopped voice processing unit for the next capture, which starts sooner with it, instead of disposing of it.
+    // Its callbacks go, with the state they render with.
+    consuming func storeForReuse() {
+        precondition(WTF.isMainThread())
+        _ = unsafe setRenderCallback(nil, nil, property: kAudioOutputUnitProperty_SetInputCallback, scope: kAudioUnitScope_Global, element: 1)
+        _ = unsafe setRenderCallback(nil, nil, property: kAudioUnitProperty_SetRenderCallback, scope: kAudioUnitScope_Input, element: 0)
+        freeRenderState(renderState)
+        let raw = unsafe UnsafeMutableRawPointer(unit)
+        discard self
+        if let previous = unsafe storedVoiceProcessingUnit.exchange(raw, ordering: .acquiringAndReleasing) {
+            _ = unsafe AudioComponentInstanceDispose(AudioUnit(OpaquePointer(previous)))
+        }
+    }
+
+    // On any thread: makes a voice processing unit and stores it, unless one is stored already. Returns whether one is.
+    static func prewarmVoiceProcessingUnit() -> Bool {
+        var description = AudioComponentDescription(
+            componentType: kAudioUnitType_Output,
+            componentSubType: kAudioUnitSubType_VoiceProcessingIO,
+            componentManufacturer: kAudioUnitManufacturer_Apple,
+            componentFlags: 0,
+            componentFlagsMask: 0
+        )
+        guard let component = unsafe AudioComponentFindNext(nil, &description) else {
+            return false
+        }
+        var instance: AudioComponentInstance?
+        guard unsafe AudioComponentInstanceNew(component, &instance) == noErr, let instance = unsafe instance else {
+            return false
+        }
+        let raw = UnsafeMutableRawPointer(instance)
+        if !(unsafe storedVoiceProcessingUnit.compareExchange(expected: nil, desired: raw, ordering: .acquiringAndReleasing).exchanged) {
+            _ = unsafe AudioComponentInstanceDispose(instance)
+        }
+        return true
+    }
+
+    // The main thread's, after a while without a capture.
+    static func deallocateStoredVoiceProcessingUnit() {
+        precondition(WTF.isMainThread())
+        if let stored = unsafe storedVoiceProcessingUnit.exchange(nil, ordering: .acquiring) {
+            _ = unsafe AudioComponentInstanceDispose(AudioUnit(OpaquePointer(stored)))
+        }
+    }
+#endif
+
     // An output unit of the given subtype whose render callback can remember renderSampleCapacity samples.
     init?(componentSubType: OSType, renderSampleCapacity: Int) {
         var description = AudioComponentDescription(
@@ -120,14 +177,34 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         unsafe AudioUnitInitialize(unit)
     }
 
-    func setUInt32(_ value: UInt32, for property: AudioUnitPropertyID, scope: AudioUnitScope) -> OSStatus {
-        var value = value
-        return unsafe AudioUnitSetProperty(unit, property, scope, 0, &value, UInt32(MemoryLayout<UInt32>.size))
+    func uninitialize() -> OSStatus {
+        unsafe AudioUnitUninitialize(unit)
     }
 
-    func streamFormat(_ format: inout AudioStreamBasicDescription, scope: AudioUnitScope) -> OSStatus {
+    func setUInt32(_ value: UInt32, for property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement = 0) -> OSStatus {
+        var value = value
+        return unsafe AudioUnitSetProperty(unit, property, scope, element, &value, UInt32(MemoryLayout<UInt32>.size))
+    }
+
+    // A property whose value is the first size bytes of value, at most 8, such as a UInt32 or a small struct.
+    func setSmallValue(_ value: UInt64, size: UInt32, for property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement)
+        -> OSStatus
+    {
+        precondition(size <= 8)
+        var value = value
+        return unsafe AudioUnitSetProperty(unit, property, scope, element, &value, size)
+    }
+
+    func uint32(for property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement) -> (OSStatus, UInt32) {
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        let status = unsafe AudioUnitGetProperty(unit, property, scope, element, &value, &size)
+        return (status, value)
+    }
+
+    func streamFormat(_ format: inout AudioStreamBasicDescription, scope: AudioUnitScope, element: AudioUnitElement = 0) -> OSStatus {
         var size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
-        return unsafe AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, scope, 0, &format, &size)
+        return unsafe AudioUnitGetProperty(unit, kAudioUnitProperty_StreamFormat, scope, element, &format, &size)
     }
 
     func streamFormat(scope: AudioUnitScope) -> AudioStreamBasicDescription {
@@ -137,34 +214,80 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         return format
     }
 
-    func setStreamFormat(_ format: AudioStreamBasicDescription, scope: AudioUnitScope) -> OSStatus {
+    func setStreamFormat(_ format: AudioStreamBasicDescription, scope: AudioUnitScope, element: AudioUnitElement = 0) -> OSStatus {
         var format = format
         return unsafe AudioUnitSetProperty(
             unit,
             kAudioUnitProperty_StreamFormat,
             scope,
-            0,
+            element,
             &format,
             UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
         )
     }
 
-    func installRenderCallback(_ callback: SwiftRenderCallback, scope: AudioUnitScope) -> OSStatus {
-        unsafe setRenderCallback(callback.function, renderState.refCon, scope: scope)
+    func installRenderCallback(
+        _ callback: SwiftRenderCallback,
+        property: AudioUnitPropertyID = kAudioUnitProperty_SetRenderCallback,
+        scope: AudioUnitScope,
+        element: AudioUnitElement = 0
+    ) -> OSStatus {
+        unsafe setRenderCallback(callback.function, renderState.refCon, property: property, scope: scope, element: element)
     }
 
-    func setRenderCallback(_ callback: AURenderCallback, _ refCon: UnsafeMutableRawPointer?, scope: AudioUnitScope)
-        -> OSStatus
-    {
+    func setRenderCallback(
+        _ callback: AURenderCallback?,
+        _ refCon: UnsafeMutableRawPointer?,
+        property: AudioUnitPropertyID = kAudioUnitProperty_SetRenderCallback,
+        scope: AudioUnitScope,
+        element: AudioUnitElement = 0
+    ) -> OSStatus {
         var callbackStruct = unsafe AURenderCallbackStruct(inputProc: callback, inputProcRefCon: refCon)
         return unsafe AudioUnitSetProperty(
             unit,
-            kAudioUnitProperty_SetRenderCallback,
+            property,
             scope,
-            0,
+            element,
             &callbackStruct,
             UInt32(MemoryLayout<AURenderCallbackStruct>.size)
         )
+    }
+
+#if os(iOS) || os(visionOS)
+    // CoreAudioCaptureInternalUnit::setVoiceActivityDetection(): while its output is muted, a voice processing unit tells
+    // WebCore when speech starts.
+    func setMutedSpeechActivityListener(_ enable: Bool) -> OSStatus {
+        if !enable {
+            return unsafe AudioUnitSetProperty(unit, kAUVoiceIOProperty_MutedSpeechActivityEventListener, kAudioUnitScope_Global, 0, nil, 0)
+        }
+        let listener: AUVoiceIOMutedSpeechActivityEventListener = { event in
+            // kAUVoiceIOSpeechActivityHasStarted.
+            if event.rawValue == 0 {
+                WebCore.audioCaptureVoiceActivityDetected()
+            }
+        }
+        // The property's value is the block pointer, which the unit copies.
+        let audioUnit = unsafe unit
+        return withExtendedLifetime(listener) {
+            var block = unsafe unsafeBitCast(listener, to: UnsafeRawPointer.self)
+            return unsafe AudioUnitSetProperty(
+                audioUnit,
+                kAUVoiceIOProperty_MutedSpeechActivityEventListener,
+                kAudioUnitScope_Global,
+                0,
+                &block,
+                UInt32(MemoryLayout<UnsafeRawPointer>.size)
+            )
+        }
+    }
+#endif
+
+    // A capture unit's microphone callback renders the unit's input with AudioUnitRender(), through the pointer this copies
+    // on the main thread, so that the IO thread never resolves the soft link.
+    func attachCaptureRender() {
+        precondition(WTF.isMainThread())
+        let render = unsafe unsafeBitCast(softLinkPointer_AudioUnitRender, to: CaptureRenderFunction.self)
+        unsafe renderState.setCaptureRender(render, target: UnsafeMutableRawPointer(unit))
     }
 
     // A global property whose value is an object, passed as AudioUnitSetProperty()'s data, as the C++ did.
@@ -235,11 +358,18 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
     }
 }
 
+#if os(macOS)
+// A voice processing unit without render state, kept by the main thread or made ahead of time by any thread.
+nonisolated(unsafe) private let storedVoiceProcessingUnit = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
+#endif
+
 // The Swift render callbacks of AudioUnitIsland.swift that a unit can have, with its render state as refCon.
 enum SwiftRenderCallback {
     case remoteDestination
     case trackPlayout
     case inProcessTrack
+    case microphone
+    case speaker
 }
 
 enum AudioUnitStartResult: ~Copyable {
@@ -267,6 +397,11 @@ struct RunningAudioUnit: ~Copyable {
 
     func setObject(_ object: UnsafeMutableRawPointer?, for property: AudioUnitPropertyID) -> OSStatus {
         unsafe owner.setObject(object, for: property)
+    }
+
+    // What a running unit can do that a stopped one can, such as setting a property.
+    func withOwner<Result>(_ body: (borrowing AudioUnitOwner) -> Result) -> Result {
+        body(owner)
     }
 
     consuming func stop() -> AudioUnitStopResult {

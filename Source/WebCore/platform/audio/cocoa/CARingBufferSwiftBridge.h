@@ -84,12 +84,16 @@ struct WebAudioBufferListSizes {
 };
 static_assert(sizeof(WebAudioBufferListSizes) == 24);
 
-// What an audio destination of the GPU process plays out on its unit's IO thread (AudioUnitIsland.swift): a ring's
-// geometry, bounds and channels, the shared counter it adds each quantum's frames to, and the semaphore it signals after
-// each quantum. Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the
-// unit. Without a header, there is no ring.
-struct AudioTrackPlayoutState;
-
+// What a unit renders from or delivers to on its IO threads (AudioUnitIsland.swift's audioUnitAttachRing()):
+// - an audio destination of the GPU process: a ring's geometry, bounds and channels, the shared counter it adds each
+//   quantum's frames to, and the semaphore it signals after each quantum;
+// - a track playout: a ring, the semaphore it signals for each chunk of frameChunkSize frames of bytesPerFrame bytes it
+//   asks for;
+// - a track renderer: the track playout it plays out;
+// - a capture unit: the context it hands each microphone quantum to (deliverToCxxObservers()) and the track playout its
+//   speaker plays out.
+// Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the unit. Without a
+// header, there is no ring.
 struct AudioOutputUnitRingAttachment {
     CARingBufferGeometry geometry;
     const CARingBufferBoundsStorage* header { nullptr };
@@ -98,21 +102,10 @@ struct AudioOutputUnitRingAttachment {
     uint32_t* frameCounter { nullptr };
     uint64_t frameCounterByteCount { 0 };
     uint32_t semaphore { 0 };
-    // A track renderer's playout, instead of the fields above.
-    AudioTrackPlayoutState* track { nullptr };
-};
-
-// What a GPU-process track renderer plays out (AudioUnitIsland.swift): the ring the web process writes and the semaphore
-// it signals for each chunk of frameChunkSize frames it asks for, and where it reads. Its owner keeps it, its ring and
-// its semaphore alive while a unit or the capture unit renders from it, and changes it only while neither does.
-struct AudioTrackPlayoutState {
-    // Only Swift uses it, atomically, to check that two threads don't render from the state at once.
-    uint64_t renderingGuard { 0 };
-    AudioOutputUnitRingAttachment ring;
-    uint64_t readOffset { 0 };
-    uint64_t generateOffset { 0 };
     uint64_t frameChunkSize { 0 };
     uint64_t bytesPerFrame { 0 };
+    uint64_t trackPlayoutIdentifier { 0 };
+    void* cxxDeliveryContext { nullptr };
 };
 
 // What creating a track renderer's unit did: its identifier, or 0 and the status of the step that failed (1: finding the
@@ -126,8 +119,64 @@ struct AudioOutputUnitTrackRendererCreation {
 };
 static_assert(!(sizeof(AudioOutputUnitTrackRendererCreation) % 8));
 
+// What creating a capture unit did: its identifier and whether it is the stored voice processing unit, or 0 and the status
+// of the step that failed (-1: finding the component).
+struct AudioCaptureUnitCreation {
+    uint64_t identifier { 0 };
+    int32_t status { 0 };
+    bool reusedStoredUnit { false };
+};
+
+struct AudioCaptureUnitPropertyValue {
+    int32_t status { 0 };
+    uint32_t value { 0 };
+};
+
+// A format a capture unit set, or the status of the step that failed.
+struct AudioCaptureUnitFormat {
+    AudioStreamBasicDescription format { };
+    int32_t status { 0 };
+    uint32_t failedStep { 0 };
+};
+
+// The microphone buffers of a capture unit: bufferCount buffers of bytesPerBuffer bytes, as CoreAudioCaptureUnit's
+// AudioSampleBufferList has, and how the microphone times its quanta: at sampleRate, with host times scaled by
+// dtsConversionRatio.
+struct AudioCaptureMicrophoneBuffers {
+    uint32_t bufferCount { 0 };
+    uint32_t channelsPerBuffer { 0 };
+    uint64_t bytesPerBuffer { 0 };
+    double sampleRate { 0 };
+    double dtsConversionRatio { 0 };
+};
+
+struct AudioCaptureUnitCounters {
+    uint64_t microphoneProcCount { 0 };
+    uint32_t failedRenderFrameCount { 0 };
+    bool hasFailedRenderFrameCount { false };
+};
+
+// The times of a microphone quantum, as CoreAudioCaptureUnit::processMicrophoneSamples() computed them: its sample time;
+// its MediaTime (mediaTimeValue / mediaTimeScale); the host time scaled to seconds; and the times its
+// AudioSampleBufferList records (setTimes()).
+struct AudioCaptureTimes {
+    double sampleTime { 0 };
+    int64_t mediaTimeValue { 0 };
+    uint32_t mediaTimeScale { 0 };
+    double adjustedHostTime { 0 };
+    uint64_t bufferTimestamp { 0 };
+    double bufferHostTime { 0 };
+};
+
 // Called on any thread once audio units have events for the main thread (AudioOutputUnit.cpp).
 void audioUnitEventsArrived();
+
+// On any thread: a capture unit heard speech while its output was muted (CoreAudioCaptureUnit.cpp).
+void audioCaptureVoiceActivityDetected();
+
+// On a capture unit's IO thread: copies a microphone quantum into the CoreAudioCaptureUnit's buffer, applies its volume and
+// delivers it to its observers (CoreAudioCaptureUnit.cpp). The context is the one the unit was attached.
+void deliverToCxxObservers(void* context, const AudioBufferList*, uint32_t frameCount, const AudioCaptureTimes&);
 
 // The floating-point mixes of a fetch and of AudioSampleBufferList, as their C++ did them: through VectorMath::add(), so
 // vDSP decides which NaN a sum of two NaNs gives. The sampleCount float (or, if isDouble, double) samples of source from

@@ -28,7 +28,7 @@
 
 #if ENABLE(MEDIA_STREAM)
 
-#include "CoreAudioCaptureInternalUnit.h"
+#include "AudioOutputUnit.h"
 #include "Logging.h"
 
 #include <AudioUnit/AudioUnit.h>
@@ -194,25 +194,28 @@ void CoreAudioCaptureUnit::processVoiceActivityEvent(AudioObjectID deviceID)
 }
 #endif // PLATFORM(MAC) && HAVE(VOICEACTIVITYDETECTION)
 
-bool CoreAudioCaptureInternalUnit::setVoiceActivityDetection(bool shouldEnable)
+// A mock fakes voice activity every 100 ms while its output is muted.
+bool CoreAudioCaptureUnit::setUnitVoiceActivityDetection(bool shouldEnable)
 {
+    if (m_ioUnit->isMock()) {
+        m_mockVoiceActivityDetectionEnabled = shouldEnable;
+        if (!m_mockVoiceDetectionTimer)
+            lazyInitialize(m_mockVoiceDetectionTimer, makeUnique<Timer>(*this, &CoreAudioCaptureUnit::mockVoiceDetected));
+        if (!m_mockVoiceActivityDetectionEnabled || !m_mockOutputMuted)
+            m_mockVoiceDetectionTimer->stop();
+        else
+            m_mockVoiceDetectionTimer->startRepeating(100_ms);
+        return true;
+    }
+
 #if HAVE(VOICEACTIVITYDETECTION)
 #if PLATFORM(MAC)
     auto deviceID = CoreAudioCaptureUnit::defaultSingleton().captureDeviceID();
-    if (!deviceID && defaultInputDevice(&deviceID))
+    if (!deviceID && defaultInputDevice(deviceID))
         return false;
     return manageSpeechActivityListener(deviceID, shouldEnable);
 #else
-    const UInt32 outputBus = 0;
-    AUVoiceIOMutedSpeechActivityEventListener listener = ^(AUVoiceIOSpeechActivityEvent event) {
-        if (event == kAUVoiceIOSpeechActivityHasStarted) {
-            callOnMainThread([] {
-                CoreAudioCaptureUnit::defaultSingleton().voiceActivityDetected();
-            });
-        }
-    };
-
-    auto err = set(kAUVoiceIOProperty_MutedSpeechActivityEventListener, kAudioUnitScope_Global, outputBus, shouldEnable ? &listener : nullptr, shouldEnable ? sizeof(AUVoiceIOMutedSpeechActivityEventListener) : 0);
+    auto err = m_ioUnit->setMutedSpeechActivityListener(shouldEnable);
     RELEASE_LOG_ERROR_IF(err, WebRTC, "CoreAudioCaptureInternalUnit::setVoiceActivityDetection failed activation, error %d (%.4s)", (int)err, (char*)&err);
     return !err;
 #endif

@@ -78,9 +78,7 @@ private:
     void captureUnitIsStarting() final;
     void captureUnitHasStopped() final;
     void canRenderAudioChanged() final;
-
-    // Background thread.
-    OSStatus produceSpeakerSamples(size_t sampleCount, AudioBufferList&, uint64_t sampleTime, double hostTime, AudioUnitRenderActionFlags&) final;
+    const WebCore::AudioTrackPlayout& speakerTrackPlayout() final { return m_playout; }
 
     // WebCore::AudioMediaStreamTrackRendererInternal::Client
     OSStatus render(size_t sampleCount, AudioBufferList&, uint64_t sampleTime, double hostTime, AudioUnitRenderActionFlags&) final;
@@ -91,9 +89,8 @@ private:
 
     AudioMediaStreamTrackRendererInternalUnitIdentifier m_identifier;
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
-    // What the local unit and the capture unit's speaker callback play out (AudioUnitIsland.swift). Only the main thread
-    // changes it, while neither renders.
-    WebCore::AudioTrackPlayoutState m_playoutState;
+    // What the local unit and the capture unit's speaker play out (AudioUnitIsland.swift).
+    WebCore::AudioTrackPlayout m_playout;
     const Ref<WebCore::AudioMediaStreamTrackRendererInternalUnit> m_localUnit;
     uint64_t m_frameChunkSize { 0 };
     IPC::Semaphore m_renderSemaphore;
@@ -205,7 +202,7 @@ RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::RemoteAudioMediaStre
     , m_canUseCaptureUnit(deviceID == WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID())
 {
     ASSERT(isMainRunLoop());
-    m_localUnit->setTrackPlayoutState(m_playoutState);
+    m_localUnit->setTrackPlayout(m_playout);
     m_localUnit->retrieveFormatDescription([weakThis = ThreadSafeWeakPtr { *this }, callback = WTF::move(callback)](auto&& description) mutable {
         RefPtr protectedThis = weakThis;
         if (!protectedThis || !description) {
@@ -225,6 +222,8 @@ RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::~RemoteAudioMediaStr
     ASSERT(isMainRunLoop());
     ASSERT(!m_isPlaying);
     stop();
+    // The units that still hold the track stop reading the ring and signalling the semaphore before they go.
+    m_playout.attachRing(nullptr, 0, 0, 0);
 }
 
 bool RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::computeShouldRegisterAsSpeakerSamplesProducer() const
@@ -267,20 +266,15 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::start(ConsumerS
 {
     if (m_isPlaying)
         stop();
+    // The units that still hold the track stop reading the old ring and signalling the old semaphore before they go.
+    m_playout.attachRing(nullptr, 0, 0, 0);
     m_ringBuffer = ConsumerSharedCARingBuffer::map(*m_description, WTF::move(handle));
-    m_playoutState = { };
     if (!m_ringBuffer)
         return;
     m_isPlaying = true;
     m_canReset = true;
     m_renderSemaphore = WTF::move(semaphore);
-    m_playoutState.ring.geometry = m_ringBuffer->geometry();
-    m_playoutState.ring.header = &m_ringBuffer->boundsStorage();
-    m_playoutState.ring.channels = m_ringBuffer->channelData().data();
-    m_playoutState.ring.channelsByteCount = m_ringBuffer->channelData().size();
-    m_playoutState.ring.semaphore = m_renderSemaphore.machSemaphore();
-    m_playoutState.frameChunkSize = m_frameChunkSize;
-    m_playoutState.bytesPerFrame = m_description->bytesPerFrame();
+    m_playout.attachRing(m_ringBuffer.get(), m_renderSemaphore.machSemaphore(), m_frameChunkSize, m_description->bytesPerFrame());
     m_shouldRegisterAsSpeakerSamplesProducer = computeShouldRegisterAsSpeakerSamplesProducer();
 
     if (m_shouldRegisterAsSpeakerSamplesProducer) {
@@ -305,11 +299,11 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::updateShouldReg
     setShouldRegisterAsSpeakerSamplesProducer(computeShouldRegisterAsSpeakerSamplesProducer());
 }
 
-// The capture unit's speaker callback, on its IO thread. The local unit plays out the track itself.
-OSStatus RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(size_t sampleCount, AudioBufferList& list, uint64_t, double, AudioUnitRenderActionFlags& flags)
+// The local unit and the capture unit's speaker play out the track themselves.
+OSStatus RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(size_t, AudioBufferList&, uint64_t, double, AudioUnitRenderActionFlags&)
 {
-    ASSERT(!isMainRunLoop());
-    return WebCore::AudioOutputUnit::renderTrackForSpeaker(m_playoutState, list, sampleCount, flags);
+    ASSERT_NOT_REACHED();
+    return kAudio_ParamError;
 }
 
 void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::captureUnitIsStarting()
@@ -332,12 +326,6 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::canRenderAudioC
         if (protectedThis->m_isPlaying)
             protectedThis->updateShouldRegisterAsSpeakerSamplesProducer();
     });
-}
-
-// Background thread.
-OSStatus RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::produceSpeakerSamples(size_t sampleCount, AudioBufferList& list, uint64_t sampleTime, double hostTime, AudioUnitRenderActionFlags& flags)
-{
-    return render(sampleCount, list, sampleTime, hostTime, flags);
 }
 
 void RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::beginAudioSessionInterruption()

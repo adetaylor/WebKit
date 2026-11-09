@@ -33,13 +33,14 @@
 #include <wtf/Function.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/OptionSet.h>
+#include <wtf/StdLibExtras.h>
 
 OBJC_CLASS CASpatialAudioExperience;
 
 namespace WebCore {
 
+class AudioTrackPlayout;
 class CARingBuffer;
-struct AudioTrackPlayoutState;
 
 // An output AudioUnit, the default output unit (RemoteIO on iOS), that AudioOutputUnit.swift owns. Use it on the main
 // thread only.
@@ -69,16 +70,14 @@ public:
     };
     WEBCORE_EXPORT static TrackRenderer createTrackRenderer(uint32_t deviceID, double sampleRate, const std::optional<AudioStreamBasicDescription>&, bool playsOutTrack);
 
-    // While stopped: the track a track renderer plays out. The caller keeps it alive until it destroys the unit.
-    WEBCORE_EXPORT void attachTrackPlayout(AudioTrackPlayoutState&);
+    // While stopped: the track a track renderer plays out, which the unit keeps alive.
+    WEBCORE_EXPORT void attachTrackPlayout(const AudioTrackPlayout&);
 
-    // The capture unit's speaker callback, on its IO thread: plays out a track as a track renderer does, without its
-    // timeline check or clipping.
-    WEBCORE_EXPORT static OSStatus renderTrackForSpeaker(AudioTrackPlayoutState&, AudioBufferList&, uint32_t frameCount, AudioUnitRenderActionFlags&);
-
-    // Events of the unit's IO thread, which the handler gets on the main thread.
+    // Events of an output or capture unit's IO threads, which the handler gets on the main thread.
     enum class Event : uint32_t {
         TimelineDiscontinuity = 1 << 0,
+        SpeakerStarting = 1 << 1,
+        MicrophoneBufferTooSmall = 1 << 2,
     };
     WEBCORE_EXPORT void setEventHandler(Function<void(OptionSet<Event>)>&&);
 
@@ -103,6 +102,7 @@ public:
     WEBCORE_EXPORT OSStatus renderForTesting(AudioBufferList&, uint32_t frameCount, double sampleTime, bool throughAudioUnit, AudioUnitRenderActionFlags* = nullptr);
 
     static void dispatchEvents();
+    static void setEventHandler(uint64_t identifier, Function<void(OptionSet<Event>)>*);
 
 private:
     explicit AudioOutputUnit(uint64_t identifier);
@@ -110,6 +110,128 @@ private:
     const uint64_t m_identifier;
     Function<void(OptionSet<Event>)> m_eventHandler;
 };
+
+// What a GPU-process track renderer and the capture unit's speaker play out (AudioUnitIsland.swift's TrackPlayout): the ring
+// the web process writes and the semaphore it signals for each chunk of frames it asks for. The units that play it out
+// keep it alive. Main thread only.
+class AudioTrackPlayout {
+    WTF_MAKE_NONCOPYABLE(AudioTrackPlayout);
+public:
+    WEBCORE_EXPORT AudioTrackPlayout();
+    WEBCORE_EXPORT ~AudioTrackPlayout();
+
+    // A ring (or none) read from its start, in chunks of frameChunkSize frames of bytesPerFrame bytes, and the semaphore
+    // signalled for each. The caller keeps them alive until it attaches others or destroys the playout.
+    WEBCORE_EXPORT void attachRing(const CARingBuffer*, uint32_t semaphore, uint64_t frameChunkSize, uint64_t bytesPerFrame);
+
+    uint64_t identifier() const { return m_identifier; }
+
+private:
+    const uint64_t m_identifier;
+};
+
+#if ENABLE(MEDIA_STREAM)
+// A capture AudioUnit that AudioCaptureUnit.swift owns, with its Swift microphone and speaker callbacks. Main thread only.
+class AudioCaptureUnitHandle {
+    WTF_MAKE_NONCOPYABLE(AudioCaptureUnitHandle);
+public:
+    enum class Kind : uint8_t {
+        VoiceProcessing,
+        Plain,
+        MockWithEchoCancellation,
+        MockWithoutEchoCancellation,
+    };
+    enum class Switch : uint8_t {
+        ProducingMicrophoneSamples,
+        Reconfiguring,
+        SpeakerStartAcknowledged,
+    };
+
+    // A unit, or the status of the step that failed (-1: finding the component). On macOS, a voice processing unit may be
+    // the stored one.
+    struct Creation {
+        std::unique_ptr<AudioCaptureUnitHandle> unit;
+        OSStatus status { noErr };
+        bool reusedStoredUnit { false };
+    };
+    WEBCORE_EXPORT static Creation create(Kind);
+    WEBCORE_EXPORT ~AudioCaptureUnitHandle();
+
+    // Stops and disposes of the unit or, on macOS, keeps a voice processing unit for the next capture. Returns whether it
+    // kept it.
+    bool destroy();
+
+#if PLATFORM(MAC)
+    // On any thread: makes a voice processing unit for the next capture. Returns whether one is stored.
+    static bool prewarmStoredUnit();
+    static void deallocateStoredUnit();
+#endif
+
+    bool isMock() const { return m_kind == Kind::MockWithEchoCancellation || m_kind == Kind::MockWithoutEchoCancellation; }
+
+    OSStatus setUInt32Property(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, uint32_t value) { return setSmallProperty(property, scope, element, value); }
+    template<typename T> OSStatus setSmallProperty(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, const T&);
+    OSStatus getUInt32Property(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint32_t&);
+
+    struct Format {
+        std::optional<AudioStreamBasicDescription> format;
+        OSStatus status { noErr };
+        uint32_t failedStep { 0 };
+    };
+    Format configureMicrophone(double sampleRate);
+    // Buffers of the sizes of the list's, which the microphone renders into.
+    void allocateMicrophoneBuffers(const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio);
+    WEBCORE_EXPORT Format configureSpeaker(double sampleRate, const std::optional<AudioStreamBasicDescription>& producerFormat);
+
+    OSStatus initialize();
+    OSStatus uninitialize();
+    OSStatus start();
+    OSStatus stop();
+
+    WEBCORE_EXPORT void setSwitch(Switch, bool);
+#if HAVE(VOICEACTIVITYDETECTION) && !PLATFORM(MAC)
+    OSStatus setMutedSpeechActivityListener(bool);
+#endif
+
+    // The context the microphone hands its quanta to (deliverToCxxObservers()), which stays the same for the unit's life,
+    // and the track the speaker plays out (or none), which may change while the unit runs.
+    WEBCORE_EXPORT void attach(void* deliveryContext, const AudioTrackPlayout*);
+
+    // Tests only, off the main thread, while the main thread leaves the unit alone: renders one quantum into the list by
+    // calling the unit's speaker callback directly.
+    WEBCORE_EXPORT OSStatus renderSpeakerForTesting(AudioBufferList&, uint32_t frameCount, double sampleTime, AudioUnitRenderActionFlags*);
+
+    struct Counters {
+        uint64_t microphoneProcCount { 0 };
+        std::optional<uint32_t> failedRenderFrameCount;
+    };
+    Counters counters() const;
+
+    void setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&&);
+
+    // A mock's device sample rate (0: none) and the buffer size its quanta follow; pausing and resuming its quanta.
+    void configureMock(double deviceSampleRate, size_t bufferSize);
+    void setMockPaused(bool);
+    static void setMockIncreaseBufferSize(bool);
+
+private:
+    AudioCaptureUnitHandle(uint64_t identifier, Kind);
+    OSStatus setSmallPropertyBytes(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint64_t bytes, uint32_t size);
+
+    const uint64_t m_identifier;
+    const Kind m_kind;
+    bool m_isDestroyed { false };
+    Function<void(OptionSet<AudioOutputUnit::Event>)> m_eventHandler;
+};
+
+template<typename T> OSStatus AudioCaptureUnitHandle::setSmallProperty(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, const T& value)
+{
+    static_assert(sizeof(T) <= sizeof(uint64_t) && std::is_trivially_copyable_v<T>);
+    uint64_t bytes = 0;
+    memcpySpan(asMutableByteSpan(bytes).first(sizeof(T)), asByteSpan(value));
+    return setSmallPropertyBytes(property, scope, element, bytes, sizeof(T));
+}
+#endif // ENABLE(MEDIA_STREAM)
 
 } // namespace WebCore
 
