@@ -295,13 +295,12 @@ WK_WEBCOREEME_TBD_FLAGS_ENABLE_WEBCORE_SWIFT = -Xfrontend -embed-tbd-for-module 
 // WebCore soft-links AVFoundation and CoreMedia, so its Swift doesn't autolink them or their overlays; it takes their
 // classes and constants from PAL's getters (pal/cocoa/AVFoundationSoftLink.h), and a stray use of their symbols fails
 // the link.
-WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS = -Xfrontend -disable-autolink-framework -Xfrontend AVFoundation -Xfrontend -disable-autolink-framework -Xfrontend AVFAudio -Xfrontend -disable-autolink-framework -Xfrontend CoreMedia -Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation -Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia swiftAVFAudio AudioToolbox swiftAudioToolbox AudioToolboxCore swiftAudioToolboxCore MediaToolbox swiftMediaToolbox VideoToolbox swiftVideoToolbox -I $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes;
+WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS = -Xfrontend -disable-autolink-framework -Xfrontend AVFoundation -Xfrontend -disable-autolink-framework -Xfrontend AVFAudio -Xfrontend -disable-autolink-framework -Xfrontend CoreMedia -Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation -Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia swiftAVFAudio AudioToolbox swiftAudioToolbox AudioToolboxCore swiftAudioToolboxCore MediaToolbox swiftMediaToolbox VideoToolbox swiftVideoToolbox -I $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes CoreML swiftCoreML Vision swiftVision swiftCompression compression;
 // Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
 WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes;
 
 // ShapeDetectionVision.swift imports Vision, which WebCore soft-links: keep Vision, and the Swift overlays that only its
 // import brings, out of WebCore's load commands.
-WK_VISION_SOFT_LINK_SWIFT_FLAGS = -Xfrontend -disable-autolink-framework -Xfrontend Vision -Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation -Xfrontend -disable-autolink-library -Xfrontend swiftCompression -Xfrontend -disable-autolink-library -Xfrontend compression;
 
 // The WebGL island (WebCoreWebGL.xcconfig): WebCore force-loads it, and its C++ includes the island's generated header
 // and the headers beside its module maps. WebKit's Swift calls its Swift, so that is exported; GraphicsContextGLANGLE's

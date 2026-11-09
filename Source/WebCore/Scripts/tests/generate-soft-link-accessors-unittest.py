@@ -124,9 +124,23 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(entries, [('function', 'Media', 'MediaThingCopyName', None), ('constant', 'Media', 'MediaKey', 'MediaKeyName'), ('class', 'Media', 'MediaPlayer', None)])
 
     def test_malformed_lines(self):
-        for line in ('method Media X', 'function Media', 'function Media X Y', 'class Media X as Y'):
+        for line in ('method Media X', 'function Media', 'function Media X Y', 'class Media X as Y', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play'):
             with self.assertRaises(generator.GeneratorError, msg=line):
                 generator.parse_manifest([line])
+
+    def test_members(self):
+        entries = generator.parse_manifest([
+            'member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws',
+            'member Media MediaPlayer items var items: NSArray? { get }',
+            'member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint] counted by pointCount',
+        ])
+        self.assertEqual([entry[:3] for entry in entries], [('member', 'Media', 'MediaPlayer playItems:error:'), ('member', 'Media', 'MediaPlayer items'), ('member', 'Media', 'MediaRegion pointsAtScale:')])
+        play, items, points = (entry[3] for entry in entries)
+        self.assertEqual((play.name, play.parameters, play.throws, play.result, play.is_property), ('playItems', [('_', 'items', 'NSArray')], True, 'Void', False))
+        self.assertEqual((items.name, items.result, items.is_property), ('items', 'NSArray?', True))
+        self.assertEqual((points.parameters, points.result, points.counted_by), ([('atScale', 'scale', 'CGFloat')], '[CGPoint]', 'pointCount'))
+        with self.assertRaisesRegex(generator.GeneratorError, 'needs an array result'):
+            generator.parse_manifest(['member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> CGPoint counted by pointCount'])
 
     def test_validation(self):
         result = declarations()
@@ -142,12 +156,17 @@ class ManifestTest(unittest.TestCase):
                 generator.validate(entries, result, ['Media', 'MediaCore'])
         with self.assertRaisesRegex(generator.GeneratorError, 'not one of the frameworks'):
             generator.validate([('class', 'Media', 'MediaPlayer', None)], result, ['Other'])
+        # A member's class needn't be soft-linked: it's only a static type.
+        member = generator.parse_manifest(['member Media MediaBase items var items: NSArray? { get }'])
+        generator.validate(member, result, ['Media'])
+        with self.assertRaisesRegex(generator.GeneratorError, 'listed twice'):
+            generator.validate(member * 2, result, ['Media'])
 
     def test_webcore_manifest_matches_pal(self):
         with open(os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in')) as f:
             entries = generator.parse_manifest(f.readlines())
         pal = os.path.join(WEBCORE_DIR, 'PAL', 'pal')
-        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h')])
+        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h')])
         generator.validate(entries, result, sorted({framework for _, framework, _, _ in entries}))
 
 
@@ -255,6 +274,83 @@ class AccessorTest(unittest.TestCase):
         self.assertEqual(generator.audited_name('AB', '__TEXT,__dlsym_cstr'), '@section("__TEXT,__dlsym_cstr") @used private let auditedName_AB: (CChar, CChar, CChar) = (65, 66, 0)')
 
 
+class MemberTest(unittest.TestCase):
+    HEADERS = ['''
+typedef NSString *MediaStage NS_STRING_ENUM;
+/* @interface MediaCommentedOut : NSObject
+- (void)ignored;
+@end */
+@interface MediaBase : NSObject <NSCopying>
+@property (readonly, nonatomic, copy, nullable) NSArray<__kindof MediaItem*>* items;
+- (nullable NSDictionary<MediaStage, NSArray<id<MediaDevice>>*>*) stageDevicesAndReturnError:(NSError**)error NS_REFINED_FOR_SWIFT;
+- (void) setDevice:(nullable id<MediaDevice>)device forStage:(MediaStage)stage API_AVAILABLE(macos(14.0));
+@end
+''', '''
+@interface MediaPlayer : MediaBase
+- (BOOL)playItems:(NSArray<MediaItem *> *)items error:(NSError **)error;
+- (NSArray<MediaText*>*) topTexts:(NSUInteger)count;
+@end
+@interface MediaRegion : NSObject
+@property (readonly) NSUInteger pointCount;
+- (const CGPoint*) pointsAtScale:(CGFloat)scale NS_RETURNS_INNER_POINTER;
+@end
+''']
+
+    def member(self, line):
+        return generator.parse_manifest([line])[0][3]
+
+    def test_headers(self):
+        headers = generator.ObjCHeaders(self.HEADERS)
+        self.assertEqual(headers.find('MediaPlayer', 'items'), ('NSArray<MediaItem*>*', []))
+        self.assertEqual(headers.find('MediaPlayer', 'playItems:error:'), ('BOOL', ['NSArray<MediaItem*>*', 'NSError**']))
+        self.assertEqual(headers.find('MediaBase', 'setDevice:forStage:'), ('void', ['id<MediaDevice>', 'MediaStage']))
+        self.assertEqual(headers.find('MediaRegion', 'pointsAtScale:'), ('const CGPoint*', ['CGFloat']))
+        self.assertIsNone(headers.find('MediaCommentedOut', 'ignored'))
+        self.assertIn('MediaStage', headers.string_typedefs)
+
+    def test_checks(self):
+        headers = generator.ObjCHeaders(self.HEADERS)
+        for line in (
+            'member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws',
+            'member Media MediaPlayer items var items: NSArray? { get }',
+            'member Media MediaPlayer stageDevicesAndReturnError: func stageDevices() throws -> NSDictionary',
+            'member Media MediaPlayer setDevice:forStage: func setDevice(_ device: AnyObject?, forStage stage: NSString)',
+            'member Media MediaPlayer topTexts: func topTexts(_ count: Int) -> NSArray',
+            'member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint] counted by pointCount',
+        ):
+            headers.check(self.member(line))
+        cases = [
+            ('member Media MediaPlayer missing: func missing(_ x: Int)', 'declare no such member'),
+            ('member Media MediaPlayer playItems:error: func playItems(_ items: NSArray)', 'throws in the SDK'),
+            ('member Media MediaPlayer topTexts: func topTexts(_ count: Int) throws -> NSArray', 'does not throw'),
+            ('member Media MediaPlayer topTexts: func topTexts(_ count: Int, _ more: Int) -> NSArray', '1 parameters in the SDK, 2'),
+            ('member Media MediaPlayer playItems:error: func playItems(_ items: [AnyObject]) throws', 'cannot stand for'),
+            ('member Media MediaPlayer items var items: NSDictionary? { get }', 'cannot stand for'),
+            ('member Media MediaPlayer setDevice:forStage: func setDevice(_ device: AnyObject?, forStage stage: Int)', 'cannot stand for'),
+            ('member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint]', 'cannot stand for'),
+        ]
+        for line, message in cases:
+            with self.assertRaisesRegex(generator.GeneratorError, message, msg=line):
+                headers.check(self.member(line))
+
+    def test_views(self):
+        lines = generator.member_accessor('Media', self.member('member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws'))
+        self.assertIn('@objc protocol MediaMember_MediaPlayer_playItems {', lines)
+        self.assertIn('    @objc(playItems:error:) func playItems(_ items: NSArray) throws', lines)
+        self.assertIn('    static func playItems(of object: Media.MediaPlayer) -> (any MediaMember_MediaPlayer_playItems)? {', lines)
+        self.assertIn('        guard object.responds(to: NSSelectorFromString("playItems:error:")) else {', lines)
+        self.assertIn('        return unsafe unsafeBitCast(object, to: (any MediaMember_MediaPlayer_playItems).self)', lines)
+        lines = generator.member_accessor('Media', self.member('member Media MediaPlayer items var items: NSArray? { get }'))
+        self.assertIn('    @objc(items) var items: NSArray? { get }', lines)
+
+    def test_counted_adapter(self):
+        lines = generator.member_accessor('Media', self.member('member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint] counted by pointCount'))
+        self.assertIn('    @objc(pointsAtScale:) func points(atScale scale: CGFloat) -> UnsafePointer<CGPoint>?', lines)
+        self.assertIn('    static func points(of object: Media.MediaRegion, atScale scale: CGFloat) -> [CGPoint]? {', lines)
+        self.assertIn('        guard let elements = unsafe view.points(atScale: scale) else {', lines)
+        self.assertIn('        return unsafe Array(UnsafeBufferPointer(start: elements, count: object.pointCount))', lines)
+
+
 class FileTest(unittest.TestCase):
     def test_accessors_file(self):
         result = declarations()
@@ -272,14 +368,27 @@ class FileTest(unittest.TestCase):
         self.assertIn('/System/Library/PrivateFrameworks/MediaCore.framework/MediaCore', private)
         self.assertNotIn('softLinkRequiredSymbol', private)
         self.assertNotIn('softLinkClass', private)
+        members = generator.parse_manifest(['member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws'])
+        content = generator.accessors_file('Media', entries + members, result, SignatureParsingTest.TYPEDEFS, lambda framework: [SignatureParsingTest.INTERFACE], lambda framework: generator.ObjCHeaders(MemberTest.HEADERS))
+        self.assertIn('enum MediaMember { }', content)
+        self.assertIn('@objc protocol MediaMember_MediaPlayer_playItems {', content)
+        self.assertNotIn('auditedName_MediaPlayer playItems', content)
+        with self.assertRaisesRegex(generator.GeneratorError, 'declare no such member'):
+            generator.accessors_file('Media', generator.parse_manifest(['member Media MediaPlayer missing var missing: NSArray? { get }']), result, '', lambda framework: [], lambda framework: generator.ObjCHeaders(MemberTest.HEADERS))
+
+    def test_stub_file(self):
+        stub = generator.stub_file('Vision')
+        self.assertIn('no Vision', stub)
+        self.assertNotIn('import', stub)
 
     def test_types_header(self):
-        header = generator.types_header([('function', 'AudioToolbox', 'AudioUnitRender', None), ('class', 'AVFoundation', 'AVPlayer', None), ('constant', 'AVFoundation', 'AVMediaTypeVideo', None)])
+        header = generator.types_header([('function', 'AudioToolbox', 'AudioUnitRender', None), ('class', 'AVFoundation', 'AVPlayer', None), ('constant', 'AVFoundation', 'AVMediaTypeVideo', None)] + generator.parse_manifest(['member Media MediaPlayer items var items: NSArray? { get }']))
         self.assertIn('#import <AVFoundation/AVFoundation.h>', header)
         self.assertIn('#include <AudioToolbox/AudioToolbox.h>', header)
         self.assertIn('typedef __typeof__(&AudioUnitRender) PALSoftLink_AudioUnitRender_t;', header)
         self.assertIn('typedef __typeof__(&AVMediaTypeVideo) PALSoftLink_AVMediaTypeVideo_t;', header)
         self.assertNotIn('AVPlayer', header)
+        self.assertNotIn('MediaPlayer', header)
 
 
 class SynthesizerTest(unittest.TestCase):
@@ -318,8 +427,8 @@ class SDKTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output:
             arguments = argparse.Namespace(
                 manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
-                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h')],
-                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h')],
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'Vision'], stub_framework=[], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
                 synthesize_interface=None, synthesize_argument=[])
             generator.generate(arguments)
             with open(os.path.join(output, 'AudioToolboxSoftLinkAccessors.swift')) as f:
@@ -329,6 +438,25 @@ class SDKTest(unittest.TestCase):
                 avfoundation = f.read()
             self.assertIn('static let AVContentKeySystemFairPlayStreaming: AVContentKeySystem? = {', avfoundation)
             self.assertTrue(os.path.exists(os.path.join(output, 'PALSoftLinkTypes', 'module.modulemap')))
+            with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
+                vision = f.read()
+            self.assertIn('static let VNBarcodeSymbologyQR: VNBarcodeSymbology = {', vision)
+            self.assertIn('static func pointsInImage(of object: Vision.VNFaceLandmarkRegion2D, imageSize: CGSize) -> [CGPoint]? {', vision)
+
+    def test_stub_frameworks(self):
+        sdk = subprocess.run(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], capture_output=True, text=True).stdout.strip()
+        pal = os.path.join(WEBCORE_DIR, 'PAL', 'pal')
+        with tempfile.TemporaryDirectory() as output:
+            arguments = argparse.Namespace(
+                manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
+                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h')],
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML'], stub_framework=['Vision'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                synthesize_interface=None, synthesize_argument=[])
+            generator.generate(arguments)
+            with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
+                self.assertEqual(f.read(), generator.stub_file('Vision'))
+            with open(os.path.join(output, 'PALSoftLinkTypes', 'PALSoftLinkTypes.h')) as f:
+                self.assertNotIn('Vision', f.read())
 
 
 if __name__ == '__main__':

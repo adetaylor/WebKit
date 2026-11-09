@@ -3652,11 +3652,9 @@ if (APPLE)
         ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVision.swift
     )
 
-    # ShapeDetectionVision.swift imports Vision, which WebCore soft-links: keep Vision, and the Swift overlays that only
-    # its import brings, out of WebCore's load commands, as WebCore.xcconfig does.
+    # Vision's import also brings the Compression overlay and libcompression, which WebCore doesn't use: keep them out of
+    # its load commands, as WebCore.xcconfig does. Vision and CoreML are on WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS below.
     webkit_target_add_swift_options(WebCore
-        "-Xfrontend -disable-autolink-framework -Xfrontend Vision"
-        "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
         "-Xfrontend -disable-autolink-library -Xfrontend swiftCompression"
         "-Xfrontend -disable-autolink-library -Xfrontend compression"
     )
@@ -3761,9 +3759,10 @@ if (APPLE)
     endif ()
     # WebCore soft-links these frameworks, so its Swift doesn't autolink them or their overlays, and a stray use of
     # their symbols fails the link. As WebCore.xcconfig's WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS. The check at the end of
-    # this file keeps the list complete for direct imports; MediaToolbox and VideoToolbox come through the C++ modules.
+    # this file keeps the list complete for direct imports; MediaToolbox and VideoToolbox come through the C++ modules,
+    # CoreML through Vision's.
     set(WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS
-        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreMedia MediaToolbox VideoToolbox)
+        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox Vision VideoToolbox)
     foreach (_framework IN LISTS WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
         webkit_target_add_swift_options(WebCore
             "-Xfrontend -disable-autolink-framework -Xfrontend ${_framework}"
@@ -3774,13 +3773,15 @@ if (APPLE)
     # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
     # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
     # C++ interop mode, as WebCore's Swift imports them.
-    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox)
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML Vision)
     set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
     set(_soft_link_pal_headers
         ${PAL_DIR}/pal/cf/AudioToolboxSoftLink.h
         ${PAL_DIR}/pal/cf/CoreMediaSoftLink.h
         ${PAL_DIR}/pal/cocoa/AVFAudioSoftLink.h
         ${PAL_DIR}/pal/cocoa/AVFoundationSoftLink.h
+        ${PAL_DIR}/pal/cocoa/CoreMLSoftLink.h
+        ${PAL_DIR}/pal/cocoa/VisionSoftLink.h
     )
     # The clients of WebCore's Swift module load the modules it imports, and search this directory for WebCore's.
     set(_soft_link_accessors_types
@@ -4358,7 +4359,7 @@ if (DEFINED WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             endforeach ()
         endif ()
     endforeach ()
-    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreMedia MediaToolbox VideoToolbox)
+    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox Vision VideoToolbox)
         if (_framework IN_LIST _webcore_swift_imports AND NOT _framework IN_LIST WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             message(FATAL_ERROR "WebCore's Swift imports ${_framework}, which WebCore soft-links: add it to WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS, and to WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS in WebCore.xcconfig")
         endif ()

@@ -2915,7 +2915,13 @@ $(WEBCORE_LOG_DECLARATIONS_FILES) : $(WebCore)/platform/LogMessages.in $(WebCore
 # The Swift accessors for the symbols of the frameworks that WebCore soft-links (platform/cocoa/SoftLinkAccessors.in),
 # generated with the target's SDK from PAL's SOFT_LINK declarations, as Source/WebCore/CMakeLists.txt does.
 
-SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFAudio AVFoundation AudioToolbox
+SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFAudio AVFoundation AudioToolbox CoreML
+# Vision isn't in every SDK (HAVE(VISION)): without it, its file is an empty stub, so the project's sources stay the same.
+ifneq ($(filter HAVE_VISION,$(FEATURE_AND_PLATFORM_DEFINES)),)
+    SOFT_LINK_ACCESSOR_FRAMEWORKS += Vision
+else
+    SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS = Vision
+endif
 
 SOFT_LINK_ACCESSOR_PAL_FILES = \
     $(WebCore)/PAL/pal/cf/AudioToolboxSoftLink.cpp \
@@ -2926,12 +2932,16 @@ SOFT_LINK_ACCESSOR_PAL_FILES = \
     $(WebCore)/PAL/pal/cocoa/AVFAudioSoftLink.mm \
     $(WebCore)/PAL/pal/cocoa/AVFoundationSoftLink.h \
     $(WebCore)/PAL/pal/cocoa/AVFoundationSoftLink.mm \
+    $(WebCore)/PAL/pal/cocoa/CoreMLSoftLink.h \
+    $(WebCore)/PAL/pal/cocoa/CoreMLSoftLink.mm \
+    $(WebCore)/PAL/pal/cocoa/VisionSoftLink.h \
+    $(WebCore)/PAL/pal/cocoa/VisionSoftLink.mm \
 #
 
 SOFT_LINK_ACCESSOR_FILES = \
     SoftLinkAccessors/PALSoftLinkTypes/PALSoftLinkTypes.h \
     SoftLinkAccessors/PALSoftLinkTypes/module.modulemap \
-    $(foreach framework, $(SOFT_LINK_ACCESSOR_FRAMEWORKS), SoftLinkAccessors/$(framework)SoftLinkAccessors.swift) \
+    $(foreach framework, $(SOFT_LINK_ACCESSOR_FRAMEWORKS) $(SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS), SoftLinkAccessors/$(framework)SoftLinkAccessors.swift) \
 #
 
 SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS = --synthesize-argument=-cxx-interoperability-mode=default --synthesize-argument=-Xcc --synthesize-argument=-std=c++2b
@@ -2946,6 +2956,6 @@ all : $(SOFT_LINK_ACCESSOR_FILES)
 $(SOFT_LINK_ACCESSOR_PATTERNS) : $(WebCore)/Scripts/generate-soft-link-accessors.py $(WebCore)/platform/cocoa/SoftLinkAccessors.in $(SOFT_LINK_ACCESSOR_PAL_FILES)
 	@echo Generating the soft-link accessors
 	$(PYTHON) $(WebCore)/Scripts/generate-soft-link-accessors.py --manifest $(WebCore)/platform/cocoa/SoftLinkAccessors.in \
-	    $(addprefix --framework , $(SOFT_LINK_ACCESSOR_FRAMEWORKS)) $(addprefix --pal-header , $(filter %.h, $(SOFT_LINK_ACCESSOR_PAL_FILES))) \
+	    $(addprefix --framework , $(SOFT_LINK_ACCESSOR_FRAMEWORKS)) $(addprefix --stub-framework , $(SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS)) $(addprefix --pal-header , $(filter %.h, $(SOFT_LINK_ACCESSOR_PAL_FILES))) \
 	    --output-dir SoftLinkAccessors --sdk $(SDKROOT) --target $(WK_CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX) \
 	    --synthesize-interface $(shell xcrun --sdk $(SDK_NAME) -f swift-synthesize-interface) $(SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS)

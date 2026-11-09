@@ -1,6 +1,10 @@
 # The symbols of soft-linked frameworks that WebCore's Swift uses, one per line:
 #     <function|constant|class> <framework> <symbol>
 #     constant <framework> <symbol> as <type>      (an NSString constant of a typed string enum)
+#     member <framework> <class> <selector> <declaration>
+#                                                  (an Objective-C member whose SDK declaration names a class of the
+#                                                  framework: the Swift declaration, with NSArray and NSDictionary for its
+#                                                  typed collections, and `[T] counted by <property>` for a `const T *`)
 # PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
 # Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
 # List only what Swift calls, so that the accessors stay small enough to review.
@@ -30,3 +34,43 @@ function AudioToolbox AudioUnitRender
 class AVFAudio AVAudioApplication
 constant AVFAudio AVAudioApplicationInputMuteStateChangeNotification as NSNotification.Name
 constant AVFAudio AVAudioApplicationMuteStateKey
+
+# Shape detection (ShapeDetectionVision.swift).
+constant Vision VNBarcodeSymbologyAztec as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCodabar as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode39 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode39Checksum as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode39FullASCII as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode39FullASCIIChecksum as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode93 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode93i as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyCode128 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyDataMatrix as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyEAN8 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyEAN13 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyGS1DataBar as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyGS1DataBarExpanded as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyGS1DataBarLimited as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyI2of5 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyI2of5Checksum as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyITF14 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyMicroPDF417 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyMicroQR as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyPDF417 as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyQR as VNBarcodeSymbology
+constant Vision VNBarcodeSymbologyUPCE as VNBarcodeSymbology
+class Vision VNBarcodeObservation
+class Vision VNDetectBarcodesRequest
+class Vision VNDetectFaceLandmarksRequest
+class Vision VNFaceObservation
+class Vision VNImageRequestHandler
+class Vision VNRecognizeTextRequest
+class Vision VNRecognizedText
+class Vision VNRecognizedTextObservation
+class CoreML MLGPUComputeDevice
+member Vision VNImageRequestHandler performRequests:error: func performRequests(_ requests: NSArray) throws
+member Vision VNRequest results var results: NSArray? { get }
+member Vision VNRequest supportedComputeStageDevicesAndReturnError: func supportedComputeStageDevices() throws -> NSDictionary
+member Vision VNRequest setComputeDevice:forComputeStage: func setComputeDevice(_ computeDevice: AnyObject?, forComputeStage computeStage: NSString)
+member Vision VNRecognizedTextObservation topCandidates: func topCandidates(_ maxCandidateCount: Int) -> NSArray
+member Vision VNFaceLandmarkRegion2D pointsInImageOfSize: func pointsInImage(imageSize: CGSize) -> [CGPoint] counted by pointCount

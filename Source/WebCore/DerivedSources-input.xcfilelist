@@ -1236,6 +1236,10 @@ $(PROJECT_DIR)/PAL/pal/cocoa/AVFAudioSoftLink.h
 $(PROJECT_DIR)/PAL/pal/cocoa/AVFAudioSoftLink.mm
 $(PROJECT_DIR)/PAL/pal/cocoa/AVFoundationSoftLink.h
 $(PROJECT_DIR)/PAL/pal/cocoa/AVFoundationSoftLink.mm
+$(PROJECT_DIR)/PAL/pal/cocoa/CoreMLSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cocoa/CoreMLSoftLink.mm
+$(PROJECT_DIR)/PAL/pal/cocoa/VisionSoftLink.h
+$(PROJECT_DIR)/PAL/pal/cocoa/VisionSoftLink.mm
 $(PROJECT_DIR)/Scripts/GenerateQuirkBehaviors.rb
 $(PROJECT_DIR)/Scripts/GenerateSettings.rb
 $(PROJECT_DIR)/Scripts/QuirkBehaviorsTemplates/QuirkBehaviorDeclarations.cpp.erb
