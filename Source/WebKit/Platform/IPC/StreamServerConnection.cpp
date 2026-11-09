@@ -175,8 +175,8 @@ StreamServerConnection::DispatchResult StreamServerConnection::dispatchStreamMes
     uint8_t currentReceiverName = static_cast<uint8_t>(ReceiverName::Invalid);
     unsigned currentReceiverGeneration = 0;
     // The receiver of the same destination that dispatch last switched away from, so that a stream that alternates
-    // between two receivers, as an image buffer's context does between its C++ and Swift receivers, doesn't look it
-    // up again. It is used only if no receiver has stopped receiving messages since it was looked up.
+    // between two receivers of one destination doesn't look either up again. It is used only if no receiver has stopped
+    // receiving messages since it was looked up.
     RefPtr<StreamMessageReceiver> previousReceiver;
     uint8_t previousReceiverName = static_cast<uint8_t>(ReceiverName::Invalid);
     unsigned previousReceiverGeneration = 0;
