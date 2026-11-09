@@ -339,6 +339,13 @@ messages -> TestReceiver%s {
         self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::StreamServerConnection* WTF_NONNULL, IPC::SwiftDecoder);', messages.generate_messages_header(parse_swift_implementation('    SwiftMessage(uint32_t value) WantsConnection')))
         self.assertIn('bool dispatchSwiftMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);', messages.generate_messages_header(parse_swift_implementation('    SwiftMessage(uint32_t value)', stream=False)))
 
+        # On the main thread, dispatch discards the Task it starts, and copies the decoder only if it decodes from it.
+        swift = messages.generate_swift_message_handler(parse_swift_implementation('    EmptyMessage()\n    SwiftMessage(uint32_t value)', stream=False))
+        self.assertIn('        MainActor.assumeIsolated {\n            _ = Task.immediateOnMainActor {\n', swift)
+        self.assertEqual(swift.count('        var decoder = decoder\n'), 1)
+        self.assertIn('    ) -> Bool {\n        var decoder = decoder\n        let value: UInt32\n', swift)
+        self.assertIn('var decoder = decoder', messages.generate_swift_message_handler(parse_swift_implementation('    EmptyMessage()')))
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is for a C\+\+ receiver, so it cannot be a Swift receiver too"):
             parse_swift_implementation('    SwiftMessage(uint32_t value)', attributes=('SwiftImplementation', 'SwiftReceiver', 'SwiftTypes'))
 

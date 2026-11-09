@@ -2837,7 +2837,8 @@ def generate_swift_message_handler(receiver):
             implementation_parameters = ['_ target: %s' % class_name] + ['_ %s' % parameter.replace(': inout IPC.SwiftDecoder', ': IPC.SwiftDecoder') for parameter in parameters]
             result.append(',\n'.join(['        %s' % parameter for parameter in implementation_parameters]))
             result.append('\n    ) -> Bool {\n')
-            result.append('        var decoder = decoder\n')
+            if decoded_parameters or decodes_on_stream:
+                result.append('        var decoder = decoder\n')
         else:
             result.append('    @used\n')
             result.append('    func dispatch%s(\n' % message.name)
@@ -2968,7 +2969,8 @@ def generate_swift_message_handler(receiver):
             result.append('            guard let target else {\n')
             result.append('                return\n')
             result.append('            }\n')
-        result.append('            Task.immediateOnMainActor {\n')
+        # Without the guard, the Task would be the closure's result, and so the unused result of assumeIsolated.
+        result.append('            %sTask.immediateOnMainActor {\n' % ('_ = ' if implementation else ''))
         result.append('                await %s(\n' % invocation_class)
         result.append(',\n'.join(['                    %s: %s' % (name, name) for name in stored_names]))
         result.append('\n                )\n')

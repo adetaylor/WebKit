@@ -41,7 +41,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
             return false
         }
         MainActor.assumeIsolated {
-            Task.immediateOnMainActor {
+            _ = Task.immediateOnMainActor {
                 await SendStringInvocation(
                     target: target,
                     connection: connection,
@@ -99,7 +99,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
             return false
         }
         MainActor.assumeIsolated {
-            Task.immediateOnMainActor {
+            _ = Task.immediateOnMainActor {
                 await SendStringAsyncInvocation(
                     target: target,
                     connection: connection,
@@ -164,7 +164,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
             return false
         }
         MainActor.assumeIsolated {
-            Task.immediateOnMainActor {
+            _ = Task.immediateOnMainActor {
                 await SendStringSyncInvocation(
                     target: target,
                     connection: connection,
