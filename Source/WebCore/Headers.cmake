@@ -1843,6 +1843,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     loader/ResourceTiming.h
     loader/ResourceTimingInformation.h
     loader/ServerTiming.h
+    loader/ServerTimingParser.h
     loader/ShouldTreatAsContinuingLoad.h
     loader/SpeculationRules.h
     loader/SubframeLoader.h

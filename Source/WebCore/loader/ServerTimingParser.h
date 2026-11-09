@@ -33,7 +33,7 @@ struct ServerTiming;
 
 namespace ServerTimingParser {
 
-Vector<ServerTiming> parseServerTiming(const String&);
+WEBCORE_EXPORT Vector<ServerTiming> parseServerTiming(const String&);
 
 }
 
