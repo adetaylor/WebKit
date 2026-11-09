@@ -7669,6 +7669,9 @@
 		5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */ = {isa = PBXBuildFile; fileRef = 9696F89359DB2093C05E5988 /* ImageContentSettings.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DECA8791265D4C1DBC7BA7F1 /* PageAnimationAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = 61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */; };
 		56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */; };
+		31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */; };
+		FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */; };
+		46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -24374,6 +24377,9 @@
 		D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineCodeUnits.swift; sourceTree = "<group>"; };
 		94CDFAEFBEDE4ED5A8F0C190 /* libWebCoreSwiftSupport.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreSwiftSupport.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreSwiftSupport.xcconfig; sourceTree = "<group>"; };
+		7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -31082,6 +31088,9 @@
 				26AA0F9F18D2A1C100419381 /* SelectorPseudoElementMap.gperf */,
 				7CEB57EA1F95651500097AEC /* Settings.cpp */,
 				7CEB57E91F95651500097AEC /* Settings.h */,
+				2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */,
+				7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */,
+				8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */,
 				9908B0FD1BCAD07D00ED0F55 /* StreamInternalsBuiltins.cpp */,
 				9B03D8061BB3110D00B764C9 /* StreamInternalsBuiltins.h */,
 				8386A96E19F61E4F00E1EC4A /* StyleBuilderGenerated.cpp */,
@@ -51729,6 +51738,9 @@
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
 				41DF2D5E27A9452A00F25A21 /* SharedVideoFrameInfo.mm in Sources */,
+				46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */,
+				31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */,
+				FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */,
 				A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */,
 				CDC8B5AA18047FF10016E685 /* SourceBufferPrivateAVFObjC.mm in Sources */,
 				51D8380C2F5ACAA000E06540 /* SpatialAudioPlaybackHelperIOS.mm in Sources */,
