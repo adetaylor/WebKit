@@ -1445,6 +1445,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.h
     platform/mediastream/cocoa/BaseAudioCaptureUnit.h
     platform/mediastream/cocoa/BaseAudioMediaStreamTrackRendererUnit.h
+    platform/mediastream/cocoa/CameraCaptureCore.h
     platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.h
     platform/mediastream/cocoa/CoreAudioCaptureSource.h
     platform/mediastream/cocoa/CoreAudioCaptureUnit.h

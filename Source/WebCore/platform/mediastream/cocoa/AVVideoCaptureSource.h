@@ -28,6 +28,7 @@
 #include <wtf/Platform.h>
 #if ENABLE(MEDIA_STREAM) && HAVE(AVCAPTUREDEVICE)
 
+#include <WebCore/CameraCaptureCore.h>
 #include <WebCore/IntSize.h>
 #include <WebCore/RealtimeVideoCaptureSource.h>
 #include <WebCore/Timer.h>
@@ -111,7 +112,7 @@ private:
     CaptureDevice::DeviceType deviceType() const final { return CaptureDevice::DeviceType::Camera; }
     bool interrupted() const final;
 
-    VideoFrameRotation videoFrameRotation() const final { return m_videoFrameRotation; }
+    VideoFrameRotation videoFrameRotation() const final { return static_cast<VideoFrameRotation>(m_core.videoFrameRotation()); }
     void applyFrameRateAndZoomWithPreset(double, double, std::optional<VideoPreset>&&) final;
     void generatePresets() final;
     bool canResizeVideoFrames() const final { return true; }
@@ -169,10 +170,6 @@ private:
     RefPtr<VideoFrame> m_buffer;
     RetainPtr<AVCaptureVideoDataOutput> m_videoOutput;
 
-    IntDegrees m_sensorOrientation { 0 };
-    IntDegrees m_deviceOrientation { 0 };
-    VideoFrameRotation m_videoFrameRotation { };
-
     std::optional<RealtimeMediaSourceSettings> m_currentSettings WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::optional<RealtimeMediaSourceCapabilities> m_capabilities WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::optional<PhotoCapabilities> m_photoCapabilities WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
@@ -193,29 +190,18 @@ private:
     std::optional<VideoPreset> m_currentPreset WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::optional<VideoPreset> m_appliedPreset WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
 
-    double m_currentFrameRate { 0 };
-    double m_currentZoom { 1 };
-    double m_zoomScaleFactor { 1 };
-    uint64_t m_beginConfigurationCount { 0 };
-    bool m_interrupted { false };
-    bool m_isRunning { false };
-    bool m_hasBegunConfigurationForConstraints { false };
-    bool m_needsTorchReconfiguration { false };
-    bool m_needsWhiteBalanceReconfiguration { false };
+    CameraCaptureCore m_core;
 
     static constexpr Seconds verifyCaptureInterval = 30_s;
     static const uint64_t framesToDropWhenStarting = 4;
 
 #if PLATFORM(IOS_FAMILY)
-    bool m_shouldCallNotifyMutedChange { false };
     const std::unique_ptr<Timer> m_startupTimer;
 #endif
     const std::unique_ptr<Timer> m_verifyCapturingTimer;
     std::atomic<uint64_t> m_framesCount { 0 };
-    uint64_t m_lastFramesCount { 0 };
     int64_t m_defaultTorchMode { 0 };
     OptionSet<RealtimeMediaSourceSettings::Flag> m_pendingSettingsChanges;
-    bool m_useSensorAndDeviceOrientation { true };
 };
 
 } // namespace WebCore
