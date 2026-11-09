@@ -59,58 +59,6 @@ struct RenderPipelineParameters {
     bool writesStencil { false };
 };
 
-// For RenderPipeline.swift: the parts of a WebGPU::RenderPipelineDescriptor it cannot read as Spans or directly: the
-// vertex buffer layouts (optionals of a struct holding a span) and the optional fragment state (a view).
-struct RenderPipelineVertexBufferFields {
-    uint64_t arrayStride { 0 };
-    WebGPU::VertexStepMode stepMode { WebGPU::VertexStepMode::Vertex };
-};
-
-using OptionalColorTargetState = std::optional<WebGPU::ColorTargetState>;
-
-inline size_t renderPipelineVertexBufferCount(const WebGPU::RenderPipelineDescriptor& descriptor)
-{
-    return descriptor.vertex.buffers.size();
-}
-
-// std::nullopt for an empty vertex buffer slot.
-inline std::optional<RenderPipelineVertexBufferFields> renderPipelineVertexBuffer(const WebGPU::RenderPipelineDescriptor& descriptor, size_t index)
-{
-    auto& buffer = descriptor.vertex.buffers[index];
-    if (!buffer)
-        return std::nullopt;
-    return RenderPipelineVertexBufferFields { .arrayStride = buffer->arrayStride, .stepMode = buffer->stepMode };
-}
-
-// Empty for an empty vertex buffer slot.
-inline std::span<const WebGPU::VertexAttribute> renderPipelineVertexAttributes(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND, size_t index)
-{
-    auto& buffer = descriptor.vertex.buffers[index];
-    return buffer ? buffer->attributes : std::span<const WebGPU::VertexAttribute> { };
-}
-
-inline bool renderPipelineHasFragment(const WebGPU::RenderPipelineDescriptor& descriptor)
-{
-    return !!descriptor.fragment;
-}
-
-// Only called when renderPipelineHasFragment().
-inline String renderPipelineFragmentEntryPoint(const WebGPU::RenderPipelineDescriptor& descriptor)
-{
-    return descriptor.fragment->stage.entryPoint;
-}
-
-// Empty without a fragment state.
-inline std::span<const WebGPU::ConstantEntry> renderPipelineFragmentConstants(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND)
-{
-    return descriptor.fragment ? descriptor.fragment->stage.constants : std::span<const WebGPU::ConstantEntry> { };
-}
-
-inline std::span<const OptionalColorTargetState> renderPipelineColorTargets(const WebGPU::RenderPipelineDescriptor& descriptor LIFETIME_BOUND)
-{
-    return descriptor.fragment ? descriptor.fragment->targets : std::span<const OptionalColorTargetState> { };
-}
-
 // For RenderPipeline.swift: what Swift cannot do itself (call a private selector). Defined in RenderPipeline.mm.
 void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *, uint32_t);
 

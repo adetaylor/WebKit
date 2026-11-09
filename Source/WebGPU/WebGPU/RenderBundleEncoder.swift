@@ -257,17 +257,6 @@ private func updateDynamicOffsets(
     return result
 }
 
-// The encoders keep a copy of setBindGroup's dynamic offsets.
-func copyDynamicOffsets(_ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView) -> [UInt32] {
-    let offsets: Span<UInt32> = dynamicOffsets.span()
-    var result: [UInt32] = []
-    result.reserveCapacity(offsets.count)
-    for index in offsets.indices {
-        result.append(offsets[index])
-    }
-    return result
-}
-
 // One per GPURenderBundleEncoder. Owns all of the encoder's state and runs every method's logic in record mode, in ICB
 // replay (finish) and in command replay into a render pass (RenderBundleImpl.replayCommands). Replayed commands
 // re-enter the entry points, the render pass can invalidate this object, and a reported error can re-enter it from the
@@ -1750,15 +1739,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         // MTLIndirectCommandBuffers don't support debug commands.
     }
 
-    func setBindGroup(
-        _ groupIndex: UInt32,
-        _ groupImpl: BindGroupImpl,
-        _ hasDynamicOffsets: Bool,
-        _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) {
-        setBindGroup(groupIndex, groupImpl, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
-    }
-
     // A nil list counts as an empty one.
     fileprivate func setBindGroup(
         _ groupIndex: UInt32,
@@ -1828,15 +1808,6 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
             return
         }
         bindFragmentArgumentBuffer(groupIndex, groupImpl)
-    }
-
-    // setBindGroup with a null bind group.
-    func clearBindGroup(
-        _ groupIndex: UInt32,
-        _ hasDynamicOffsets: Bool,
-        _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) {
-        clearBindGroup(groupIndex, offsets: hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
     }
 
     fileprivate func clearBindGroup(_ groupIndex: UInt32, offsets: [UInt32]?) {

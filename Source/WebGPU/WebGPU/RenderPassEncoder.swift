@@ -3052,15 +3052,6 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    func setBindGroup(
-        _ groupIndex: UInt32,
-        _ groupImpl: BindGroupImpl,
-        _ hasDynamicOffsets: Bool,
-        _ dynamicOffsetsView: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) {
-        setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsetsView) : nil)
-    }
-
     private func setBindGroup(_ groupIndex: UInt32, _ groupImpl: BindGroupImpl, _ dynamicOffsets: [UInt32]?) {
         if encodingHasFinished() {
             generateAValidationError(

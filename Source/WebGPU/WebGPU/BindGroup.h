@@ -63,9 +63,5 @@ void writeExternalTextureConstants(id<MTLArgumentEncoder>, NSUInteger firstIndex
 void writeBufferLengthConstant(id<MTLArgumentEncoder>, NSUInteger index, uint32_t length);
 // buffer.label = encoder.label, without bridging the label through a Swift String.
 void copyArgumentEncoderLabel(id<MTLArgumentEncoder>, id<MTLBuffer>);
-// The WTF::HashSet that checks EncoderModel.swift's WTFHashMap replica. An operation >= 0 adds that key, a negative one
-// removes -operation - 1, and INT64_MIN clears; `keys` receives the keys in iteration order, and the result is the set's
-// size.
-size_t wtfHashSetOrderForOperations(std::span<const int64_t> operations NOESCAPE, std::span<uint32_t> keys NOESCAPE);
 
 } // namespace WebGPU::Metal

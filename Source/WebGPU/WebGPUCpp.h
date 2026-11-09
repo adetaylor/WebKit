@@ -1042,8 +1042,6 @@ struct ProgrammableStage {
     Ref<ShaderModule> module;
     String entryPoint; // A null string: the only entry point of the module for the stage.
     std::span<const ConstantEntry> constants; // Borrowed for the duration of the call.
-
-    std::span<const ConstantEntry> constantsSpan() const LIFETIME_BOUND { return constants; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpucomputepipelinedescriptor

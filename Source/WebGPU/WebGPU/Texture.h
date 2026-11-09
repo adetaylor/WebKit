@@ -78,11 +78,5 @@ struct TextureViewDescriptorParameters {
     WebGPU::TextureComponentSwizzle swizzle;
 };
 
-// View formats borrowed for the duration of a call into Texture.swift, which reads them as a Span.
-struct TextureFormatsView {
-    std::span<const WebGPU::TextureFormat> formats;
-    std::span<const WebGPU::TextureFormat> span() const LIFETIME_BOUND { return formats; }
-} SWIFT_VIEW;
-
 } // namespace WebGPU::Metal
 

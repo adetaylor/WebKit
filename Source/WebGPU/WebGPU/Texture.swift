@@ -1284,16 +1284,6 @@ private func textureCreationError(
     return nil
 }
 
-private func copyViewFormats(_ viewFormats: borrowing WebGPU.Metal.TextureFormatsView) -> [WebGPU.TextureFormat] {
-    let formats: Span<WebGPU.TextureFormat> = viewFormats.span()
-    var result: [WebGPU.TextureFormat] = []
-    result.reserveCapacity(formats.count)
-    for index in formats.indices {
-        result.append(formats[index])
-    }
-    return result
-}
-
 @_spi(WebKitGPU)
 public typealias TextureReference = TextureImpl
 
@@ -1352,27 +1342,6 @@ func createTextureImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescrip
         hasUnifiedMemory(deviceImpl),
         deviceImpl.supportsNonPrivateDepthStencilTextures(),
         deviceImpl.supportsMemorylessTextures()
-    )
-}
-
-// Device::createTexture. Returns an invalid texture on failure; the valid ones are recorded in DeviceImpl.
-func createTextureImpl(
-    _ deviceImpl: DeviceImpl,
-    _ descriptor: WebGPU.Metal.TextureParameters,
-    _ viewFormatsView: borrowing WebGPU.Metal.TextureFormatsView,
-    _ label: WTF.String,
-    _ hasUnifiedMemory: Bool,
-    _ supportsNonPrivateDepthStencilTextures: Bool,
-    _ supportsMemorylessTextures: Bool
-) -> TextureImpl {
-    createTextureImpl(
-        deviceImpl,
-        descriptor,
-        viewFormats: copyViewFormats(viewFormatsView),
-        label,
-        hasUnifiedMemory,
-        supportsNonPrivateDepthStencilTextures,
-        supportsMemorylessTextures
     )
 }
 

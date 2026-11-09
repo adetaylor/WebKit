@@ -671,16 +671,6 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         maxDynamicOffsetAtIndex[Int(groupIndex)] = 0
     }
 
-    func setBindGroup(
-        _ groupIndex: UInt32,
-        _ groupImpl: BindGroupImpl,
-        _ hasDynamicOffsets: Bool,
-        _ dynamicOffsets: borrowing WebGPU.Metal.DynamicOffsetsView
-    ) {
-        // The encoder keeps its own copy. Without dynamic offsets the span is empty.
-        setBindGroup(groupIndex, groupImpl, hasDynamicOffsets ? copyDynamicOffsets(dynamicOffsets) : nil)
-    }
-
     // setBindGroup, for a Swift caller.
     @_spi(WebKitGPU)
     public func setBindGroup(_ groupIndex: UInt32, _ group: BindGroupReference?, dynamicOffsets: [UInt32]?) {

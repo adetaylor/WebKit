@@ -29,9 +29,7 @@
 #import "Buffer.h"
 #import "Device.h"
 #import "Texture.h"
-#import <limits>
 #import <simd/simd.h>
-#import <wtf/HashSet.h>
 #import <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(WEBGPU_SWIFT)
@@ -70,26 +68,6 @@ void writeBufferLengthConstant(id<MTLArgumentEncoder> argumentEncoder, NSUIntege
 void copyArgumentEncoderLabel(id<MTLArgumentEncoder> argumentEncoder, id<MTLBuffer> buffer)
 {
     buffer.label = argumentEncoder.label;
-}
-
-size_t wtfHashSetOrderForOperations(std::span<const int64_t> operations NOESCAPE, std::span<uint32_t> keys NOESCAPE)
-{
-    HashSet<uint32_t, DefaultHash<uint32_t>, WTF::UnsignedWithZeroKeyHashTraits<uint32_t>> table;
-    for (auto operation : operations) {
-        if (operation == std::numeric_limits<int64_t>::min())
-            table.clear();
-        else if (operation >= 0)
-            table.add(static_cast<uint32_t>(operation));
-        else
-            table.remove(static_cast<uint32_t>(-(operation + 1)));
-    }
-    size_t index = 0;
-    for (auto key : table) {
-        if (index < keys.size())
-            keys[index] = key;
-        ++index;
-    }
-    return index;
 }
 
 } // namespace WebGPU::Metal

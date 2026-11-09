@@ -71,21 +71,6 @@ private func makeIdentifierRanges(xidContinue: Bool) -> [UInt32] {
 
 // MARK: - Strings
 
-// A null String is an empty Name.
-func makeName(_ string: borrowing WTF.String) -> Name {
-    let length = Int(string.length())
-    if string.is8Bit() {
-        var codeUnits = ContiguousArray<UInt8>(repeating: 0, count: length)
-        var destination = codeUnits.mutableSpan
-        WGSL.Interop.copyLatin1CodeUnits(string, &destination)
-        return Name(latin1: codeUnits)
-    }
-    var codeUnits = ContiguousArray<UInt16>(repeating: 0, count: length)
-    var destination = codeUnits.mutableSpan
-    WGSL.Interop.copyUTF16CodeUnits(string, &destination)
-    return Name(utf16: codeUnits)
-}
-
 func wtfString(_ name: Name) -> WTF.String {
     wtfString(utf16: name.utf16)
 }
@@ -125,18 +110,3 @@ func stringNilIfEmpty(_ string: borrowing WTF.String) -> Swift.String? {
     return Swift.String(decoding: utf16, as: UTF16.self)
 }
 
-// MARK: - Pipeline constants
-
-func pipelineConstants(_ stage: borrowing WebGPU.ProgrammableStage) -> [PipelineConstant] {
-    let constants: Span<WebGPU.ConstantEntry> = stage.constantsSpan()
-    return pipelineConstants(constants)
-}
-
-func pipelineConstants(_ constants: Span<WebGPU.ConstantEntry>) -> [PipelineConstant] {
-    var result: [PipelineConstant] = []
-    result.reserveCapacity(constants.count)
-    for index in constants.indices {
-        result.append(PipelineConstant(key: makeName(constants[index].key), value: constants[index].value))
-    }
-    return result
-}
