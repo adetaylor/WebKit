@@ -233,6 +233,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/cocoa/ShareableSpatialImageTests.mm
     Tests/WebCore/cocoa/SharedBuffer.mm
     Tests/WebCore/cocoa/SharedVideoFrame.mm
+    Tests/WebCore/cocoa/SoftLinkAccessors.mm
     Tests/WebCore/cocoa/TestGraphicsContextGLCocoa.mm
     Tests/WebCore/cocoa/TestUTIRegistry.cpp
     Tests/WebCore/cocoa/TestUTIUtilities.cpp

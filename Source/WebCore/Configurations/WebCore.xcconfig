@@ -271,7 +271,12 @@ MODULE_VERIFIER_SUPPORTED_LANGUAGES = objective-c++;
 MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = c++23;
 MODULE_VERIFIER_KIND = builtin;
 
-OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS);
+// WebCore soft-links these frameworks, so its Swift doesn't autolink them or their overlays, and a stray use of their
+// symbols fails the link (WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS in CMakeLists.txt). Its Swift reaches them through the
+// accessors that DerivedSources.make generates, with the types module they import.
+WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS = -Xfrontend -disable-autolink-framework -Xfrontend AVFAudio -Xfrontend -disable-autolink-library -Xfrontend swiftAVFAudio -Xfrontend -disable-autolink-framework -Xfrontend AVFoundation -Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation -Xfrontend -disable-autolink-framework -Xfrontend AudioToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftAudioToolbox -Xfrontend -disable-autolink-framework -Xfrontend AudioToolboxCore -Xfrontend -disable-autolink-library -Xfrontend swiftAudioToolboxCore -Xfrontend -disable-autolink-framework -Xfrontend CoreMedia -Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia -Xfrontend -disable-autolink-framework -Xfrontend MediaToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftMediaToolbox -Xfrontend -disable-autolink-framework -Xfrontend VideoToolbox -Xfrontend -disable-autolink-library -Xfrontend swiftVideoToolbox -I $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes;
+
+OTHER_SWIFT_FLAGS = $(inherited) -Xcc -std=c++2b -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal $(WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS) $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS);
 
 SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
 SWIFT_STRICT_CONCURRENCY = complete;

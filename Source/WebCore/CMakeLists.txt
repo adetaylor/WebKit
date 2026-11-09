@@ -3375,6 +3375,74 @@ if (SWIFT_REQUIRED AND APPLE)
         "-library-level spi"
     )
 
+    # WebCore soft-links these frameworks, so its Swift doesn't autolink them or their overlays, and a stray use of
+    # their symbols fails the link. As WebCore.xcconfig's WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS. The check at the end of
+    # this file keeps the list complete for direct imports; the others come in through the modules that those import.
+    set(WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS
+        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreMedia MediaToolbox VideoToolbox
+    )
+    foreach (_framework IN LISTS WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
+        webkit_target_add_swift_options(WebCore
+            "-Xfrontend -disable-autolink-framework -Xfrontend ${_framework}"
+            "-Xfrontend -disable-autolink-library -Xfrontend swift${_framework}"
+        )
+    endforeach ()
+
+    # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
+    # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
+    # C++ interop mode, as WebCore's Swift imports them.
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFoundation CoreMedia)
+    set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
+    set(_soft_link_pal_headers
+        ${PAL_DIR}/pal/cf/CoreMediaSoftLink.h
+        ${PAL_DIR}/pal/cocoa/AVFoundationSoftLink.h
+    )
+    # The clients of WebCore's Swift module load the modules it imports, and search this directory for WebCore's.
+    set(_soft_link_accessors_types
+        ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/module.modulemap
+        ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/PALSoftLinkTypes.h
+    )
+    set(_soft_link_accessors_sources "")
+    set(_soft_link_accessors_arguments "")
+    foreach (_framework IN LISTS WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS)
+        list(APPEND _soft_link_accessors_sources ${_soft_link_accessors_dir}/${_framework}SoftLinkAccessors.swift)
+        list(APPEND _soft_link_accessors_arguments --framework ${_framework})
+    endforeach ()
+    set(_soft_link_pal_sources "")
+    foreach (_header IN LISTS _soft_link_pal_headers)
+        list(APPEND _soft_link_accessors_arguments --pal-header ${_header})
+        string(REGEX REPLACE "\\.h$" "" _stem "${_header}")
+        foreach (_extension IN ITEMS .cpp .mm)
+            if (EXISTS "${_stem}${_extension}")
+                list(APPEND _soft_link_pal_sources "${_stem}${_extension}")
+            endif ()
+        endforeach ()
+    endforeach ()
+    WEBKIT_RESOLVE_TOOL(_swift_synthesize_interface swift-synthesize-interface)
+    set(_soft_link_synthesize_arguments
+        --synthesize-argument=-cxx-interoperability-mode=default --synthesize-argument=-Xcc --synthesize-argument=-std=c++2b
+    )
+    if (USE_APPLE_INTERNAL_SDK)
+        list(APPEND _soft_link_synthesize_arguments
+            --synthesize-argument=-F${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks
+            --synthesize-argument=-Xcc --synthesize-argument=-iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks)
+    endif ()
+    add_custom_command(
+        OUTPUT ${_soft_link_accessors_sources} ${_soft_link_accessors_types}
+        MAIN_DEPENDENCY ${WEBCORE_DIR}/platform/cocoa/SoftLinkAccessors.in
+        DEPENDS ${WEBCORE_DIR}/Scripts/generate-soft-link-accessors.py ${_soft_link_pal_headers} ${_soft_link_pal_sources}
+        COMMAND ${PYTHON_EXECUTABLE} ${WEBCORE_DIR}/Scripts/generate-soft-link-accessors.py
+            --manifest ${WEBCORE_DIR}/platform/cocoa/SoftLinkAccessors.in ${_soft_link_accessors_arguments}
+            --output-dir ${_soft_link_accessors_dir} --types-output-dir ${CMAKE_CURRENT_BINARY_DIR}
+            --sdk ${CMAKE_OSX_SYSROOT} --target ${CMAKE_Swift_COMPILER_TARGET}
+            --synthesize-interface ${_swift_synthesize_interface} ${_soft_link_synthesize_arguments}
+        VERBATIM)
+    target_sources(WebCore PRIVATE
+        ${_soft_link_accessors_sources}
+        ${WEBCORE_DIR}/platform/cocoa/SoftLinkAccessorsExample.swift
+    )
+    webkit_target_add_swift_options(WebCore "-I ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes")
+
     # C++ sources that include WebCoreSwift-Generated.h.
     set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
 
@@ -3513,4 +3581,25 @@ if (${WebCore_LIBRARY_TYPE} MATCHES "SHARED")
         set_target_properties(WebCore PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
     endif ()
     install(TARGETS WebCore DESTINATION "${LIB_INSTALL_DIR}")
+endif ()
+
+# Each framework that WebCore soft-links and that its Swift imports needs both of its autolink flags
+# (WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS above), or the import loads it with WebCore.
+if (DEFINED WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
+    set(_webcore_swift_imports ${WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS})
+    get_target_property(_webcore_sources WebCore SOURCES)
+    foreach (_source IN LISTS _webcore_sources)
+        if (_source MATCHES "\\.swift$" AND EXISTS "${_source}")
+            file(STRINGS "${_source}" _import_lines REGEX "^[ \t]*(@[A-Za-z_]+ +)*((public|package|internal|fileprivate|private) +)?import +[A-Za-z]+")
+            foreach (_line IN LISTS _import_lines)
+                string(REGEX REPLACE "^[ \t]*(@[A-Za-z_]+ +)*((public|package|internal|fileprivate|private) +)?import +([A-Za-z]+).*$" "\\4" _module "${_line}")
+                list(APPEND _webcore_swift_imports ${_module})
+            endforeach ()
+        endif ()
+    endforeach ()
+    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreMedia MediaToolbox VideoToolbox)
+        if (_framework IN_LIST _webcore_swift_imports AND NOT _framework IN_LIST WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
+            message(FATAL_ERROR "WebCore's Swift imports ${_framework}, which WebCore soft-links: add it to WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS, and to WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS in WebCore.xcconfig")
+        endif ()
+    endforeach ()
 endif ()

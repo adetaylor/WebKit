@@ -1,0 +1,11 @@
+# The symbols of soft-linked frameworks that WebCore's Swift uses, one per line:
+#     <function|constant|class> <framework> <symbol>
+#     constant <framework> <symbol> as <type>      (an NSString constant of a typed string enum)
+# PAL must soft-link each one (pal/cf/CoreMediaSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
+# Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
+# List only what Swift calls, so that the accessors stay small enough to review.
+
+# The example in platform/cocoa/SoftLinkAccessorsExample.swift.
+function CoreMedia CMTimeMake
+constant AVFoundation AVMediaTypeVideo as AVMediaType
+class AVFoundation AVURLAsset

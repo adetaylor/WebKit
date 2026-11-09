@@ -2910,3 +2910,37 @@ WEBCORE_LOG_DECLARATIONS_FILES = \
 $(WEBCORE_LOG_DECLARATIONS_FILES) : $(WebCore)/platform/LogMessages.in $(WebCore)/Scripts/generate-log-declarations.py
 	@echo Creating WebCore log definitions $@
 	$(PYTHON) $(WebCore)/Scripts/generate-log-declarations.py $< $(WEBCORE_LOG_DECLARATIONS_FILES)
+
+# The Swift accessors for the symbols of the frameworks that WebCore soft-links (platform/cocoa/SoftLinkAccessors.in),
+# generated with the target's SDK from PAL's SOFT_LINK declarations, as Source/WebCore/CMakeLists.txt does.
+
+SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFoundation CoreMedia
+
+SOFT_LINK_ACCESSOR_PAL_FILES = \
+    $(WebCore)/PAL/pal/cf/CoreMediaSoftLink.cpp \
+    $(WebCore)/PAL/pal/cf/CoreMediaSoftLink.h \
+    $(WebCore)/PAL/pal/cocoa/AVFoundationSoftLink.h \
+    $(WebCore)/PAL/pal/cocoa/AVFoundationSoftLink.mm \
+#
+
+SOFT_LINK_ACCESSOR_FILES = \
+    SoftLinkAccessors/PALSoftLinkTypes/PALSoftLinkTypes.h \
+    SoftLinkAccessors/PALSoftLinkTypes/module.modulemap \
+    $(foreach framework, $(SOFT_LINK_ACCESSOR_FRAMEWORKS), SoftLinkAccessors/$(framework)SoftLinkAccessors.swift) \
+#
+
+SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS = --synthesize-argument=-cxx-interoperability-mode=default --synthesize-argument=-Xcc --synthesize-argument=-std=c++2b
+ifeq ($(USE_INTERNAL_SDK), YES)
+    SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS += --synthesize-argument=-F$(SDKROOT)/System/Library/PrivateFrameworks --synthesize-argument=-Xcc --synthesize-argument=-iframework$(SDKROOT)/System/Library/PrivateFrameworks
+endif
+
+SOFT_LINK_ACCESSOR_PATTERNS = $(subst .swift,%swift, $(subst .h,%h, $(subst .modulemap,%modulemap, $(SOFT_LINK_ACCESSOR_FILES))))
+
+all : $(SOFT_LINK_ACCESSOR_FILES)
+
+$(SOFT_LINK_ACCESSOR_PATTERNS) : $(WebCore)/Scripts/generate-soft-link-accessors.py $(WebCore)/platform/cocoa/SoftLinkAccessors.in $(SOFT_LINK_ACCESSOR_PAL_FILES)
+	@echo Generating the soft-link accessors
+	$(PYTHON) $(WebCore)/Scripts/generate-soft-link-accessors.py --manifest $(WebCore)/platform/cocoa/SoftLinkAccessors.in \
+	    $(addprefix --framework , $(SOFT_LINK_ACCESSOR_FRAMEWORKS)) $(addprefix --pal-header , $(filter %.h, $(SOFT_LINK_ACCESSOR_PAL_FILES))) \
+	    --output-dir SoftLinkAccessors --sdk $(SDKROOT) --target $(WK_CURRENT_ARCH)-$(LLVM_TARGET_TRIPLE_VENDOR)-$(LLVM_TARGET_TRIPLE_OS_VERSION)$(LLVM_TARGET_TRIPLE_SUFFIX) \
+	    --synthesize-interface $(shell xcrun --sdk $(SDK_NAME) -f swift-synthesize-interface) $(SOFT_LINK_ACCESSOR_SYNTHESIZE_ARGUMENTS)

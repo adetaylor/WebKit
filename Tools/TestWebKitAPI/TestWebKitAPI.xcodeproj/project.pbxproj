@@ -836,6 +836,7 @@
 				WebCore/cocoa/ShareableSpatialImageTests.mm,
 				WebCore/cocoa/SharedBuffer.mm,
 				WebCore/cocoa/SharedVideoFrame.mm,
+				WebCore/cocoa/SoftLinkAccessors.mm,
 				WebCore/cocoa/TestGraphicsContextGLCocoa.mm,
 				WebCore/cocoa/TestUTIRegistry.cpp,
 				WebCore/cocoa/TestUTIUtilities.cpp,

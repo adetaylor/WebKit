@@ -7531,6 +7531,9 @@
 		807547D380B36BF6457BF6C4 /* ColorAppearance.h in Headers */ = {isa = PBXBuildFile; fileRef = A0FE1D51155B617031EC275F /* ColorAppearance.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */ = {isa = PBXBuildFile; fileRef = 9696F89359DB2093C05E5988 /* ImageContentSettings.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DECA8791265D4C1DBC7BA7F1 /* PageAnimationAgent.h in Headers */ = {isa = PBXBuildFile; fileRef = 61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */; };
+		FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */; };
+		5E549B3A7CF845C3A02EA9F7 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC1144CF00E4EA58321A6F1 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */; };
+		18B3E2C94A4C46D48193EEBA /* SoftLinkAccessorsExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA5215F2671459C94DC7F8B /* SoftLinkAccessorsExample.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -24155,6 +24158,9 @@
 		E0BA4176CB20FD04A40E4570 /* ImageRenditionOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ImageRenditionOptions.cpp; sourceTree = "<group>"; };
 		61D2ED4C387044AEAE6FA67C /* PageAnimationAgent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PageAnimationAgent.h; sourceTree = "<group>"; };
 		9829198B5E944BBE98399502 /* PageAnimationAgent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PageAnimationAgent.cpp; sourceTree = "<group>"; };
+		8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		ABC1144CF00E4EA58321A6F1 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		1CA5215F2671459C94DC7F8B /* SoftLinkAccessorsExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessorsExample.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -30835,6 +30841,8 @@
 				26AA0F9F18D2A1C100419381 /* SelectorPseudoElementMap.gperf */,
 				7CEB57EA1F95651500097AEC /* Settings.cpp */,
 				7CEB57E91F95651500097AEC /* Settings.h */,
+				8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */,
+				ABC1144CF00E4EA58321A6F1 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */,
 				9908B0FD1BCAD07D00ED0F55 /* StreamInternalsBuiltins.cpp */,
 				9B03D8061BB3110D00B764C9 /* StreamInternalsBuiltins.h */,
 				8386A96E19F61E4F00E1EC4A /* StyleBuilderGenerated.cpp */,
@@ -34846,6 +34854,7 @@
 				4688C4B42B6B0697003533C9 /* SharedMemoryCocoa.mm */,
 				41DC04FB27A83C92008CF968 /* SharedVideoFrameInfo.h */,
 				41DC04FD27A83C93008CF968 /* SharedVideoFrameInfo.mm */,
+				1CA5215F2671459C94DC7F8B /* SoftLinkAccessorsExample.swift */,
 				ECA680C61E67724500731D20 /* StringUtilities.h */,
 				ECA680C81E67730B00731D20 /* StringUtilities.mm */,
 				C1692DD423D23AE0006E88F7 /* SystemBattery.h */,
@@ -51323,6 +51332,9 @@
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
 				41DF2D5E27A9452A00F25A21 /* SharedVideoFrameInfo.mm in Sources */,
+				FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */,
+				5E549B3A7CF845C3A02EA9F7 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */,
+				18B3E2C94A4C46D48193EEBA /* SoftLinkAccessorsExample.swift in Sources */,
 				A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */,
 				CDC8B5AA18047FF10016E685 /* SourceBufferPrivateAVFObjC.mm in Sources */,
 				51D8380C2F5ACAA000E06540 /* SpatialAudioPlaybackHelperIOS.mm in Sources */,
