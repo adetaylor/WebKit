@@ -482,7 +482,7 @@ public:
 #if OS(DARWIN)
     // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up
     // only the right of an IPCTypes.MachSendRight it consumes. A reply with attachments is never in the stream.
-    void encodeSendRight(mach_port_t port) SWIFT_UNSAFE
+    SWIFT_UNSAFE void encodeSendRight(mach_port_t port)
     {
         auto sendRight = MachSendRight::adopt(port);
         RELEASE_ASSERT(!m_inStream && m_encoder);

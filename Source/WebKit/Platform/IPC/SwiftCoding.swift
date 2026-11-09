@@ -664,9 +664,10 @@ extension IPC.LentBytes {
 }
 
 #if canImport(Darwin)
-/// The Swift form of an IPC type that owns what a message carries, such as a send right. It is ~Copyable, so one value
-/// owns the resource at a time, and gives it back once: when it is destroyed, or when it is encoded into a reply. Swift
-/// can't copy it, use it once it has encoded it, or give it back twice.
+/// The Swift form of an IPC type that owns what a message carries, such as a send right.
+///
+/// It is ~Copyable, so one value owns the resource at a time, and gives it back once: when it is destroyed, or when it
+/// is encoded into a reply. Swift can't copy it, use it once it has encoded it, or give it back twice.
 protocol IPCOwnedCoder: ~Copyable, Sendable {
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self
     static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder)
@@ -718,8 +719,9 @@ extension IPCTypes {
         }
     }
 
-    /// A Vector<MachSendRight>, which owns its rights until it is destroyed or encoded into a reply. A Swift Array can't
-    /// hold MachSendRights, which are ~Copyable.
+    /// A Vector<MachSendRight>, which owns its rights until it is destroyed or encoded into a reply.
+    ///
+    /// A Swift Array can't hold MachSendRights, which are ~Copyable.
     struct MachSendRightVector: ~Copyable, IPCOwnedCoder {
         private var ports: [mach_port_t] = []
 
