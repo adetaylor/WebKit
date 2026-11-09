@@ -74,8 +74,12 @@ inline size_t writeUTF8ForLatin1Characters(std::span<const Latin1Character> char
 inline size_t writeUTF8ForUTF16Characters(std::span<const char16_t> characters, std::span<uint8_t> utf8)
 {
     RELEASE_ASSERT(utf8.size() / 3 >= characters.size());
-    auto isLeadSurrogate = [](char32_t character) { return (character & 0xFFFFFC00) == 0xD800; };
-    auto isTrailSurrogate = [](char32_t character) { return (character & 0xFFFFFC00) == 0xDC00; };
+    auto isLeadSurrogate = [](char32_t character) {
+        return (character & 0xFFFFFC00) == 0xD800;
+    };
+    auto isTrailSurrogate = [](char32_t character) {
+        return (character & 0xFFFFFC00) == 0xDC00;
+    };
     size_t length = 0;
     for (size_t index = 0; index < characters.size(); ++index) {
         char32_t character = characters[index];
