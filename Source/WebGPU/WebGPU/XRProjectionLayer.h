@@ -48,12 +48,12 @@ struct XRProjectionLayerParameters {
     double scaleFactor { 1 };
 };
 
-// The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl::startFrame makes. They return nil
-// outside internal SDK device builds with CompositorServices (visionOS, and the Mac from macOS 27), except that on
-// other Mac builds, where only the simulated XR device of an opt-in WebXR build starts frames, makeXRSharedTexture()
-// makes a texture from the IOSurface that it sends.
+#if USE(APPLE_INTERNAL_SDK) && HAVE(COMPOSITOR_SERVICES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
+// The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl.startFrame makes in internal SDK device builds
+// with CompositorServices (visionOS, and the Mac from macOS 27). XRProjectionLayer.swift makes the other builds' textures.
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice>, mach_port_t);
 id<MTLSharedEvent> makeXRSharedEvent(id<MTLDevice>, mach_port_t);
 NSArray<id<MTLRasterizationRateMap>> *makeXRRasterizationRateMaps(id<MTLDevice>, unsigned screenWidth, unsigned screenHeight, std::span<const float> horizontalSamplesLeft NOESCAPE, std::span<const float> horizontalSamplesRight NOESCAPE, std::span<const float> verticalSamples NOESCAPE);
+#endif
 
 } // namespace WebGPU::Metal

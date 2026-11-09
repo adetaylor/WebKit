@@ -21,6 +21,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#if os(macOS)
+import IOSurface
+#endif
 import Metal
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
@@ -78,14 +81,14 @@ final class XRProjectionLayerImpl {
         // A frame that sent a buffer makes its texture current and caches it at the reusable index; a frame that
         // did not reuses the cached one.
         if colorBuffer != 0 {
-            colorTexture = WebGPU.Metal.makeXRSharedTexture(device, colorBuffer)
+            colorTexture = makeXRSharedTexture(device, colorBuffer)
             colorTextures[reusableTextureIndex] = colorTexture
         } else {
             colorTexture = colorTextures[reusableTextureIndex]
         }
 
         if depthBuffer != 0 {
-            depthTexture = WebGPU.Metal.makeXRSharedTexture(device, depthBuffer)
+            depthTexture = makeXRSharedTexture(device, depthBuffer)
             depthTextures[reusableTextureIndex] = depthTexture
         } else {
             depthTexture = depthTextures[reusableTextureIndex]
@@ -99,19 +102,19 @@ final class XRProjectionLayerImpl {
         }
 
         if completionSyncEvent != 0 {
-            completionEvent = WebGPU.Metal.makeXRSharedEvent(device, completionSyncEvent)
+            completionEvent = makeXRSharedEvent(device, completionSyncEvent)
             completionEventSignalValue = frameIndex
         }
 
         let screenSize = leftRasterizationMap?.screenSize ?? MTLSize(width: 0, height: 0, depth: 0)
         if screenSize.width != Int(screenWidth) || screenSize.height != Int(screenHeight) {
-            let rasterizationRateMaps: [any MTLRasterizationRateMap]? = WebGPU.Metal.makeXRRasterizationRateMaps(
+            let rasterizationRateMaps = makeXRRasterizationRateMaps(
                 device,
                 screenWidth,
                 screenHeight,
-                horizontalSamplesLeft.span,
-                horizontalSamplesRight.span,
-                verticalSamples.span
+                horizontalSamplesLeft,
+                horizontalSamplesRight,
+                verticalSamples
             )
             leftRasterizationMap = rasterizationRateMaps?.first
             rightRasterizationMap = rasterizationRateMaps?.last
@@ -226,3 +229,77 @@ func makeXRProjectionLayerImpl(
 ) -> XRProjectionLayerImpl {
     XRProjectionLayerImpl(parameters: parameters, deviceImpl: deviceImpl)
 }
+
+// MARK: - Compositor textures, events and rasterization rate maps
+
+// What startFrame makes of a frame's send rights. Only internal SDK device builds with CompositorServices (visionOS, and
+// the Mac from macOS 27) have the compositor's; XRProjectionLayer.mm makes those. Other Mac builds, where only the
+// simulated XR device of an opt-in WebXR build starts frames, make a texture from the IOSurface that it sends.
+
+#if USE_APPLE_INTERNAL_SDK && HAVE_COMPOSITOR_SERVICES && !targetEnvironment(simulator)
+
+private func makeXRSharedTexture(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLTexture)? {
+    WebGPU.Metal.makeXRSharedTexture(device, machPort)
+}
+
+private func makeXRSharedEvent(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLSharedEvent)? {
+    WebGPU.Metal.makeXRSharedEvent(device, machPort)
+}
+
+private func makeXRRasterizationRateMaps(
+    _ device: (any MTLDevice)?,
+    _ screenWidth: UInt32,
+    _ screenHeight: UInt32,
+    _ horizontalSamplesLeft: [Float],
+    _ horizontalSamplesRight: [Float],
+    _ verticalSamples: [Float]
+) -> [any MTLRasterizationRateMap]? {
+    WebGPU.Metal.makeXRRasterizationRateMaps(
+        device,
+        screenWidth,
+        screenHeight,
+        horizontalSamplesLeft.span,
+        horizontalSamplesRight.span,
+        verticalSamples.span
+    )
+}
+
+#else
+
+#if os(macOS)
+// The Mac has no compositor. There a frame's buffer is an IOSurface, which only WebKit's simulated XR device sends.
+private func makeXRSharedTexture(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLTexture)? {
+    guard let surface = IOSurfaceLookupFromMachPort(machPort) else {
+        return nil
+    }
+    let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+        pixelFormat: .bgra8Unorm,
+        width: IOSurfaceGetWidth(surface),
+        height: IOSurfaceGetHeight(surface),
+        mipmapped: false
+    )
+    descriptor.usage = [.renderTarget, .shaderRead]
+    return device?.makeTexture(descriptor: descriptor, iosurface: surface, plane: 0)
+}
+#else
+private func makeXRSharedTexture(_: (any MTLDevice)?, _: mach_port_t) -> (any MTLTexture)? {
+    nil
+}
+#endif
+
+private func makeXRSharedEvent(_: (any MTLDevice)?, _: mach_port_t) -> (any MTLSharedEvent)? {
+    nil
+}
+
+private func makeXRRasterizationRateMaps(
+    _: (any MTLDevice)?,
+    _: UInt32,
+    _: UInt32,
+    _: [Float],
+    _: [Float],
+    _: [Float]
+) -> [any MTLRasterizationRateMap]? {
+    nil
+}
+
+#endif
