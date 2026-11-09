@@ -28,22 +28,28 @@
 
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 
+#import "DetectedShapes.h"
 #import "DetectedTextInterface.h"
 #import "NativeImage.h"
-#import "ShapeDetectionVisionSupport.h"
 #import "WebCore-Swift.h"
+#import <wtf/RuntimeApplicationChecks.h>
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore::ShapeDetection {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(TextDetectorImpl);
 
-TextDetectorImpl::TextDetectorImpl() = default;
+TextDetectorImpl::TextDetectorImpl()
+{
+    // The GPU process detects through ShapeDetectionVision directly (RemoteShapeDetectors.swift): only WebKitLegacy uses this.
+    ASSERT(!isInGPUProcess());
+}
 
 TextDetectorImpl::~TextDetectorImpl() = default;
 
 void TextDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(Vector<DetectedText>&&)>&& completionHandler)
 {
+    ASSERT(!isInGPUProcess());
     auto platformImage = image.platformImage();
     if (!platformImage) {
         completionHandler({ });

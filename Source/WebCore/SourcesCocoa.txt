@@ -84,8 +84,8 @@ JSSpeechSynthesisErrorEvent.cpp
 JSSpeechSynthesisErrorEventInit.cpp
 JSSpeechSynthesisEventInit.cpp
 Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.mm @nonARC
+Modules/ShapeDetection/Implementation/Cocoa/DetectedShapes.mm @nonARC
 Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.mm @nonARC
-Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVisionSupport.mm @nonARC
 Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.mm @nonARC
 Modules/airplay/WebMediaSessionManager.mm @nonARC
 Modules/applepay/ApplePayCouponCodeChangedEvent.cpp

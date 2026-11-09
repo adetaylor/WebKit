@@ -31,9 +31,10 @@
 #import "BarcodeDetectorOptionsInterface.h"
 #import "BarcodeFormatInterface.h"
 #import "DetectedBarcodeInterface.h"
+#import "DetectedShapes.h"
 #import "NativeImage.h"
-#import "ShapeDetectionVisionSupport.h"
 #import "WebCore-Swift.h"
+#import <wtf/RuntimeApplicationChecks.h>
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore::ShapeDetection {
@@ -64,17 +65,21 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(BarcodeDetectorImpl);
 BarcodeDetectorImpl::BarcodeDetectorImpl(const BarcodeDetectorOptions& barcodeDetectorOptions)
     : m_requestedFormatMask(formatMask(barcodeDetectorOptions.formats))
 {
+    // The GPU process detects through ShapeDetectionVision directly (RemoteShapeDetectors.swift): only WebKitLegacy uses this.
+    ASSERT(!isInGPUProcess());
 }
 
 BarcodeDetectorImpl::~BarcodeDetectorImpl() = default;
 
 void BarcodeDetectorImpl::getSupportedFormats(CompletionHandler<void(Vector<BarcodeFormat>&&)>&& completionHandler)
 {
+    ASSERT(!isInGPUProcess());
     completionHandler(formats(WebCore::shapeDetectionSupportedBarcodeFormats()));
 }
 
 void BarcodeDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(Vector<DetectedBarcode>&&)>&& completionHandler)
 {
+    ASSERT(!isInGPUProcess());
     auto platformImage = image.platformImage();
     if (!platformImage) {
         completionHandler({ });

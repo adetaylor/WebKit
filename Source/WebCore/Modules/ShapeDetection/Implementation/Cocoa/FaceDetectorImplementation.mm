@@ -29,10 +29,11 @@
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 
 #import "DetectedFaceInterface.h"
+#import "DetectedShapes.h"
 #import "FaceDetectorOptionsInterface.h"
 #import "NativeImage.h"
-#import "ShapeDetectionVisionSupport.h"
 #import "WebCore-Swift.h"
+#import <wtf/RuntimeApplicationChecks.h>
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore::ShapeDetection {
@@ -42,12 +43,15 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(FaceDetectorImpl);
 FaceDetectorImpl::FaceDetectorImpl(const FaceDetectorOptions& faceDetectorOptions)
     : m_maxDetectedFaces(faceDetectorOptions.maxDetectedFaces)
 {
+    // The GPU process detects through ShapeDetectionVision directly (RemoteShapeDetectors.swift): only WebKitLegacy uses this.
+    ASSERT(!isInGPUProcess());
 }
 
 FaceDetectorImpl::~FaceDetectorImpl() = default;
 
 void FaceDetectorImpl::detect(const NativeImage& image, CompletionHandler<void(Vector<DetectedFace>&&)>&& completionHandler)
 {
+    ASSERT(!isInGPUProcess());
     auto platformImage = image.platformImage();
     if (!platformImage) {
         completionHandler({ });

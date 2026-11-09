@@ -74,7 +74,7 @@
 #include "PixelBufferSwiftBridge.h"
 #include "SVGFilterRendererView.h"
 #include "ShadowBlurSwiftBridge.h"
-#include "ShapeDetectionVisionSupport.h"
+#include "DetectedShapes.h"
 #include "ShareableBitmapSwiftBridge.h"
 #include "SharedVideoFrameSwiftBridge.h"
 #include "SourceGraphicParameters.h"

@@ -28,9 +28,9 @@ import Foundation
 import Vision
 import WebCore_Private.Core.BarcodeFormatInterface
 import WebCore_Private.Core.LandmarkTypeInterface
-import WebCore_Private.Core.ShapeDetectionVisionSupport
 
-// Barcode, face and text detection with Vision, for the GPU process's receivers and for WebCore's C++ detectors.
+// Barcode, face and text detection with Vision, for the GPU process's receivers and, through ShapeDetectionFacade.swift,
+// for WebCore's C++ detectors.
 //
 // WebCore soft-links Vision and CoreML, so this never names one of their classes or constants in a way that needs their
 // symbols (a cast, a typed array, a constant, a class object): it reaches those through the generated accessors
@@ -542,58 +542,6 @@ extension ShapeDetectionVision {
         }
         return result
     }
-}
-
-// What WebCore's C++ detectors (BarcodeDetectorImpl and the others) call.
-
-@_expose(Cxx)
-func shapeDetectionSupportedBarcodeFormats() -> UInt16 {
-    ShapeDetectionVision.BarcodeDetector.supportedFormatMask()
-}
-
-@_expose(Cxx)
-func shapeDetectionDetectBarcodes(_ requestedFormatMask: UInt16, _ image: CGImage, _ shapes: WebCore.ShapeDetection.DetectedShapes) {
-    for barcode in ShapeDetectionVision.BarcodeDetector(requestedFormatMask: requestedFormatMask).detect(image) {
-        let corners = barcode.cornerPoints.map(cgPoint)
-        shapes.appendBarcode(
-            cgRect(barcode.boundingBox),
-            barcode.rawValue,
-            barcode.barcodeFormat,
-            corners[0],
-            corners[1],
-            corners[2],
-            corners[3]
-        )
-    }
-}
-
-@_expose(Cxx)
-func shapeDetectionDetectFaces(_ maxDetectedFaces: UInt16, _ image: CGImage, _ shapes: WebCore.ShapeDetection.DetectedShapes) {
-    for face in ShapeDetectionVision.FaceDetector(maxDetectedFaces: maxDetectedFaces).detect(image) {
-        shapes.appendFace(cgRect(face.boundingBox))
-        for landmark in face.landmarks {
-            shapes.appendFaceLandmark(landmark.landmarkType)
-            for location in landmark.locations {
-                shapes.appendFaceLandmarkLocation(cgPoint(location))
-            }
-        }
-    }
-}
-
-@_expose(Cxx)
-func shapeDetectionDetectTexts(_ image: CGImage, _ shapes: WebCore.ShapeDetection.DetectedShapes) {
-    for text in ShapeDetectionVision.TextDetector().detect(image) {
-        let corners = text.cornerPoints.map(cgPoint)
-        shapes.appendText(cgRect(text.boundingBox), text.rawValue, corners[0], corners[1], corners[2], corners[3])
-    }
-}
-
-private func cgRect(_ rect: ShapeDetectionVision.Rect) -> CGRect {
-    CGRect(x: CGFloat(rect.x), y: CGFloat(rect.y), width: CGFloat(rect.width), height: CGFloat(rect.height))
-}
-
-private func cgPoint(_ point: ShapeDetectionVision.Point) -> CGPoint {
-    CGPoint(x: CGFloat(point.x), y: CGFloat(point.y))
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && HAVE_SHAPE_DETECTION_API_IMPLEMENTATION && HAVE_VISION

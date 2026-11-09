@@ -141,12 +141,6 @@
 #include <wtf/NativePromise.h>
 #include <wtf/TZoneMallocInlines.h>
 
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-#import <WebCore/BarcodeDetectorImplementation.h>
-#import <WebCore/FaceDetectorImplementation.h>
-#import <WebCore/TextDetectorImplementation.h>
-#endif
-
 #if ENABLE(APPLE_PAY_AMS_UI)
 #include <WebCore/ApplePayAMSUIRequest.h>
 #endif
@@ -1343,8 +1337,6 @@ RefPtr<WebCore::ShapeDetection::BarcodeDetector> WebChromeClient::createBarcodeD
         return nullptr;
     Ref renderingBackend = page->ensureRemoteRenderingBackendProxy();
     return renderingBackend->createBarcodeDetector(barcodeDetectorOptions);
-#elif HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    return WebCore::ShapeDetection::BarcodeDetectorImpl::create(barcodeDetectorOptions);
 #else
     return nullptr;
 #endif
@@ -1360,8 +1352,6 @@ void WebChromeClient::getBarcodeDetectorSupportedFormats(CompletionHandler<void(
     }
     Ref renderingBackend = page->ensureRemoteRenderingBackendProxy();
     renderingBackend->supportedBarcodeDetectorBarcodeFormats(WTF::move(completionHandler));
-#elif HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    WebCore::ShapeDetection::BarcodeDetectorImpl::getSupportedFormats(WTF::move(completionHandler));
 #else
     completionHandler({ });
 #endif
@@ -1375,8 +1365,6 @@ RefPtr<WebCore::ShapeDetection::FaceDetector> WebChromeClient::createFaceDetecto
         return nullptr;
     Ref renderingBackend = page->ensureRemoteRenderingBackendProxy();
     return renderingBackend->createFaceDetector(faceDetectorOptions);
-#elif HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    return WebCore::ShapeDetection::FaceDetectorImpl::create(faceDetectorOptions);
 #else
     return nullptr;
 #endif
@@ -1390,8 +1378,6 @@ RefPtr<WebCore::ShapeDetection::TextDetector> WebChromeClient::createTextDetecto
         return nullptr;
     Ref renderingBackend = page->ensureRemoteRenderingBackendProxy();
     return renderingBackend->createTextDetector();
-#elif HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    return WebCore::ShapeDetection::TextDetectorImpl::create();
 #else
     return nullptr;
 #endif

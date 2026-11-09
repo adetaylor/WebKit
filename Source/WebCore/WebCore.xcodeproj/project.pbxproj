@@ -7789,8 +7789,9 @@
 		0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1677C9FE1B48D7A1449F82 /* GLState.swift */; };
 		354C93A55960471382F69BAB /* CocoaGLPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3B3F9C7A3A4206B1B5E880 /* CocoaGLPlatform.swift */; };
 		598B28086F55413F84394B7E /* GLVideoUpload.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D139DA094F4FC9807A98E3 /* GLVideoUpload.swift */; };
+		6B1B1D396B97422B8D0F43D2 /* ShapeDetectionFacade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9075F063427F452AB05E6158 /* ShapeDetectionFacade.swift */; };
 		89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */; };
-		D696FCA46C2D4F7EA0C6A4B2 /* ShapeDetectionVisionSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = 8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		D696FCA46C2D4F7EA0C6A4B2 /* DetectedShapes.h in Headers */ = {isa = PBXBuildFile; fileRef = 8191ABD46B0644988D632FB8 /* DetectedShapes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */; };
 		FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */; };
 		B24B331C8A5341318D91D032 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */; };
@@ -24579,9 +24580,10 @@
 		C004536D0EFF4AE7A20533B4 /* WebCoreANGLECocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLECocoa.h; sourceTree = "<group>"; };
 		091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreWebGL.xcconfig; sourceTree = "<group>"; };
 		425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreWebGL.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		9075F063427F452AB05E6158 /* ShapeDetectionFacade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeDetectionFacade.swift; sourceTree = "<group>"; };
 		624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeDetectionVision.swift; sourceTree = "<group>"; };
-		8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShapeDetectionVisionSupport.h; sourceTree = "<group>"; };
-		CB93BA49C26546E88CDB2257 /* ShapeDetectionVisionSupport.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ShapeDetectionVisionSupport.mm; sourceTree = "<group>"; };
+		8191ABD46B0644988D632FB8 /* DetectedShapes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DetectedShapes.h; sourceTree = "<group>"; };
+		CB93BA49C26546E88CDB2257 /* DetectedShapes.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = DetectedShapes.mm; sourceTree = "<group>"; };
 		7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/CoreMLSoftLinkAccessors.swift; sourceTree = "<group>"; };
@@ -26826,11 +26828,12 @@
 			children = (
 				1C38F28D29E3B497008795CC /* BarcodeDetectorImplementation.h */,
 				1C38F28C29E3B497008795CC /* BarcodeDetectorImplementation.mm */,
+				8191ABD46B0644988D632FB8 /* DetectedShapes.h */,
+				CB93BA49C26546E88CDB2257 /* DetectedShapes.mm */,
 				1C38F28F29E3B4D7008795CC /* FaceDetectorImplementation.h */,
 				1C38F28E29E3B4D7008795CC /* FaceDetectorImplementation.mm */,
+				9075F063427F452AB05E6158 /* ShapeDetectionFacade.swift */,
 				624CE21BB7124A9C925BD90D /* ShapeDetectionVision.swift */,
-				8191ABD46B0644988D632FB8 /* ShapeDetectionVisionSupport.h */,
-				CB93BA49C26546E88CDB2257 /* ShapeDetectionVisionSupport.mm */,
 				1C38F29129E3B4E1008795CC /* TextDetectorImplementation.h */,
 				1C38F29029E3B4E1008795CC /* TextDetectorImplementation.mm */,
 			);
@@ -46150,6 +46153,7 @@
 				411223C52603567D00B0A0B6 /* DetachedRTCDataChannel.h in Headers */,
 				1C9F4C1729E529660015819E /* DetectedBarcodeInterface.h in Headers */,
 				1C9F4C1429E529660015819E /* DetectedFaceInterface.h in Headers */,
+				D696FCA46C2D4F7EA0C6A4B2 /* DetectedShapes.h in Headers */,
 				1C9F4C1E29E529660015819E /* DetectedTextInterface.h in Headers */,
 				CCC2B51415F613060048CDD6 /* DeviceClient.h in Headers */,
 				CCC2B51615F613060048CDD6 /* DeviceController.h in Headers */,
@@ -49785,7 +49789,6 @@
 				A6D169641346B4C1000EB770 /* ShadowRoot.h in Headers */,
 				056A7AC8256C4F48002F9DDC /* ShadowRootInit.h in Headers */,
 				46DFF4981DC2603100B80B48 /* ShadowRootMode.h in Headers */,
-				D696FCA46C2D4F7EA0C6A4B2 /* ShapeDetectionVisionSupport.h in Headers */,
 				FD45A95B175D41EE00C21EC8 /* ShapeInterval.h in Headers */,
 				FD45A952175D3F3E00C21EC8 /* ShapeOutsideInfo.h in Headers */,
 				46C963C22B6C992A002F46D1 /* ShareableBitmap.h in Headers */,
@@ -52216,6 +52219,7 @@
 				33F386FDB57DCC37192407D5 /* ShadowBlurDrawing.swift in Sources */,
 				8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */,
 				8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */,
+				6B1B1D396B97422B8D0F43D2 /* ShapeDetectionFacade.swift in Sources */,
 				89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */,
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
 				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,

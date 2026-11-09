@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "ShapeDetectionVisionSupport.h"
+#import "DetectedShapes.h"
 
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION) && HAVE(VISION)
 

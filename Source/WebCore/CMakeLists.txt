@@ -3649,6 +3649,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/media-parsers/MutableSpanCopy.swift
         ${WEBCORE_DIR}/platform/media-parsers/WTFCompatParsing.swift
 
+        ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionFacade.swift
         ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVision.swift
     )
 

@@ -35,6 +35,7 @@
 #include <WebCore/LandmarkTypeInterface.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
+#include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 
@@ -45,7 +46,11 @@ namespace WebCore::ShapeDetection {
 // What the Swift detectors find, for the C++ detectors (BarcodeDetectorImpl and the others), which WebKitLegacy uses.
 class DetectedShapes final : public RefCounted<DetectedShapes> {
 public:
-    static Ref<DetectedShapes> create() { return adoptRef(*new DetectedShapes); }
+    static Ref<DetectedShapes> create()
+    {
+        ASSERT(!isInGPUProcess());
+        return adoptRef(*new DetectedShapes);
+    }
 
     void appendBarcode(CGRect boundingBox, NSString * WTF_NULLABLE rawValue, BarcodeFormat, CGPoint topLeft, CGPoint topRight, CGPoint bottomRight, CGPoint bottomLeft);
     // A face, with its landmarks appended after it.
