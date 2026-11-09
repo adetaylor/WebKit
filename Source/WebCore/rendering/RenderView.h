@@ -162,6 +162,8 @@ public:
     NODELETE WEBCORE_EXPORT bool usesCompositing() const;
 
     WEBCORE_EXPORT IntRect unscaledDocumentRect() const;
+    LayoutPoint frameViewScrollPositionForFixedPositionForSwift() const;
+    bool frameViewHasFlippedBlockRenderersForSwift() const;
     LayoutRect unextendedBackgroundRect() const;
     LayoutRect backgroundRect() const;
 

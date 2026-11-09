@@ -802,10 +802,12 @@ public:
         Temporary                   = 1 << 2,
         OutsideFilter               = 1 << 3,
     };
+    using ClipRectsOptions = OptionSet<ClipRectsOption>;
 
     static constexpr OptionSet<ClipRectsOption> clipRectOptionsForPaintingOverflowContents = { };
     static constexpr OptionSet<ClipRectsOption> clipRectDefaultOptions = { ClipRectsOption::RespectOverflowClip };
     static constexpr OptionSet<ClipRectsOption> clipRectTemporaryOptions = { ClipRectsOption::RespectOverflowClip, ClipRectsOption::Temporary };
+    static constexpr ClipRectsOptions clipRectDefaultOptionsForSwift() { return clipRectDefaultOptions; }
 
     struct SWIFT_UNAVAILABLE_IN_SWIFT ClipRectsContext {
         ClipRectsContext(const RenderLayer* inRootLayer, ClipRectsType inClipRectsType, OptionSet<ClipRectsOption> inOptions = clipRectDefaultOptions)
@@ -841,7 +843,7 @@ public:
     bool clipCrossesPaintingBoundary(ClipRectsType) const;
 
     // Pass offsetFromRoot if known.
-    bool intersectsDamageRect(const LayoutRect& layerBounds, const LayoutRect& damageRect, const RenderLayer* rootLayer, const LayoutSize& offsetFromRoot, const std::optional<LayoutRect>& cachedBoundingBox = std::nullopt) const;
+    bool intersectsDamageRect(LayoutRect layerBounds, LayoutRect damageRect, const RenderLayer* rootLayer, LayoutSize offsetFromRoot, std::optional<LayoutRect> cachedBoundingBox = std::nullopt) const;
 
     enum CalculateLayerBoundsFlag {
         IncludeSelfTransform                           = 1 << 0,
@@ -860,10 +862,11 @@ public:
         ExcludeFilterOutsetsFromSelfBounds             = 1 << 13,
         IncludeDescendantTransforms                    = 1 << 14,
     };
+    using CalculateLayerBoundsFlags = OptionSet<CalculateLayerBoundsFlag>;
     static constexpr OptionSet<CalculateLayerBoundsFlag> defaultCalculateLayerBoundsFlags() { return { IncludeSelfTransform, UseLocalClipRectIfPossible, IncludePaintedFilterOutsets, UseFragmentBoxesExcludingCompositing }; }
 
     // Bounding box relative to some ancestor layer. Pass offsetFromRoot if known.
-    LayoutRect boundingBox(const RenderLayer* rootLayer, const LayoutSize& offsetFromRoot = LayoutSize(), OptionSet<CalculateLayerBoundsFlag> = { }) const;
+    LayoutRect boundingBox(const RenderLayer* rootLayer, LayoutSize offsetFromRoot = LayoutSize(), OptionSet<CalculateLayerBoundsFlag> = { }) const;
     // Bounding box in the coordinates of this layer.
     LayoutRect localBoundingBox(OptionSet<CalculateLayerBoundsFlag> = { }) const;
     // Deprecated: Pixel snapped bounding box relative to the root.
@@ -883,7 +886,7 @@ public:
     inline bool overlapBoundsIncludeChildren() const;
 
     // Can pass offsetFromRoot if known.
-    LayoutRect calculateLayerBounds(const RenderLayer* ancestorLayer, const LayoutSize& offsetFromRoot, OptionSet<CalculateLayerBoundsFlag> = defaultCalculateLayerBoundsFlags()) const;
+    LayoutRect calculateLayerBounds(const RenderLayer* ancestorLayer, LayoutSize offsetFromRoot, OptionSet<CalculateLayerBoundsFlag> = defaultCalculateLayerBoundsFlags()) const;
     
     NODELETE LayoutRect repaintRectIncludingNonCompositingDescendants() const;
 

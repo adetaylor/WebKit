@@ -66,6 +66,7 @@ public:
     inline bool hasSameWritingModeForSwift(const ComputedStyle&) const SWIFT_NAME(hasSameWritingMode(_:));
     inline bool viewTransitionNameIsNoneForSwift() const SWIFT_NAME(viewTransitionNameIsNone());
     inline bool perspectiveIsNoneForSwift() const SWIFT_NAME(perspectiveIsNone());
+    inline bool hasBorderRadiusForSwift() const SWIFT_NAME(hasBorderRadius());
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 

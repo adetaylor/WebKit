@@ -26,6 +26,9 @@
 #pragma once
 
 #include <WebCore/LayoutRect.h>
+#include <wtf/Ref.h>
+#include <wtf/RefCounted.h>
+#include <wtf/TZoneMallocInlines.h>
 
 namespace WTF {
 class TextStream;
@@ -45,6 +48,7 @@ public:
     }
     
     const LayoutRect& rect() const LIFETIME_BOUND { return m_rect; }
+    LayoutRect rectValue() const { return m_rect; }
 
     void reset() { m_rect = LayoutRect::infiniteRect(); }
 
@@ -106,5 +110,91 @@ inline ClipRect intersection(const ClipRect& a, const ClipRect& b)
 }
 
 WTF::TextStream& operator<<(WTF::TextStream&, const ClipRect&);
+
+class ClipRects : public RefCounted<ClipRects> {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(ClipRects);
+public:
+    NODELETE static Ref<ClipRects> create()
+    {
+        return adoptRef(*new ClipRects);
+    }
+
+    NODELETE static Ref<ClipRects> create(const ClipRects& other)
+    {
+        return adoptRef(*new ClipRects(other));
+    }
+
+    // A new object for Swift, which takes the reference that create() would return.
+    static ClipRects& createForSwift() SWIFT_RETURNS_RETAINED { return create().leakRef(); }
+
+    NODELETE void reset()
+    {
+        m_overflowClipRect.reset();
+        m_fixedClipRect.reset();
+        m_posClipRect.reset();
+        m_fixed = false;
+    }
+
+    NODELETE const ClipRect& overflowClipRect() const { return m_overflowClipRect; }
+    NODELETE void setOverflowClipRect(const ClipRect& clipRect) { m_overflowClipRect = clipRect; }
+
+    NODELETE const ClipRect& fixedClipRect() const { return m_fixedClipRect; }
+    NODELETE void setFixedClipRect(const ClipRect& clipRect) { m_fixedClipRect = clipRect; }
+
+    NODELETE const ClipRect& posClipRect() const { return m_posClipRect; }
+    NODELETE void setPosClipRect(const ClipRect& clipRect) { m_posClipRect = clipRect; }
+
+    // The getters that Swift calls: it takes no reference results.
+    ClipRect overflowClipRectForSwift() const SWIFT_NAME(overflowClipRect()) { return m_overflowClipRect; }
+    ClipRect fixedClipRectForSwift() const SWIFT_NAME(fixedClipRect()) { return m_fixedClipRect; }
+    ClipRect posClipRectForSwift() const SWIFT_NAME(posClipRect()) { return m_posClipRect; }
+
+    NODELETE bool fixed() const { return m_fixed; }
+    NODELETE void setFixed(bool fixed) { m_fixed = fixed; }
+
+    NODELETE void setOverflowClipRectAffectedByRadius() { m_overflowClipRect.setAffectedByRadius(true); }
+
+    NODELETE bool operator==(const ClipRects& other) const
+    {
+        return m_overflowClipRect == other.overflowClipRect()
+            && m_fixedClipRect == other.fixedClipRect()
+            && m_posClipRect == other.posClipRect()
+            && m_fixed == other.fixed();
+    }
+
+    NODELETE ClipRects& operator=(const ClipRects& other)
+    {
+        m_overflowClipRect = other.overflowClipRect();
+        m_fixedClipRect = other.fixedClipRect();
+        m_posClipRect = other.posClipRect();
+        m_fixed = other.fixed();
+        return *this;
+    }
+
+private:
+    ClipRects() = default;
+
+    ClipRects(const LayoutRect& clipRect)
+        : m_overflowClipRect(clipRect)
+        , m_fixedClipRect(clipRect)
+        , m_posClipRect(clipRect)
+    {
+    }
+
+    ClipRects(const ClipRects& other)
+        : RefCounted()
+        , m_fixed(other.fixed())
+        , m_overflowClipRect(other.overflowClipRect())
+        , m_fixedClipRect(other.fixedClipRect())
+        , m_posClipRect(other.posClipRect())
+    {
+    }
+
+    bool m_fixed { false };
+    ClipRect m_overflowClipRect;
+    ClipRect m_fixedClipRect;
+    ClipRect m_posClipRect;
+};
+
 
 } // namespace WebCore
