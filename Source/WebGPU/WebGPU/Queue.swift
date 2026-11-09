@@ -2813,12 +2813,12 @@ public final class QueueImpl: GPUObjectReference {
     fileprivate func copyExternalImageToTexture(
         _ deviceImpl: DeviceImpl,
         _ textureImpl: TextureImpl,
-        _ source: WebGPU.Metal.CopyExternalImageSource,
-        _ ioSurface: IOSurfaceRef?,
-        _ pixelBuffer: CVPixelBuffer?,
+        _ source: GPUCopyExternalImageSource,
         _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D
     ) {
+        let ioSurface = source.surface
+        let pixelBuffer = source.pixelBuffer
         // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
         if textureImpl.isDestroyed() {
             deviceImpl.generateAValidationError("GPUQueue.copyExternalImageToTexture: destination texture is destroyed")
@@ -2921,7 +2921,7 @@ public final class QueueImpl: GPUObjectReference {
                 return
             }
 
-            guard let sourceFormat = Optional(fromCxx: source.sourceFormat) else {
+            guard let sourceFormat = source.sourceFormat else {
                 return
             }
             let sourcePixelFormat = texturePixelFormat(sourceFormat)
@@ -3149,7 +3149,7 @@ extension QueueImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture
     public func copyExternalImageToTexture(
-        _ source: WebGPU.ImageCopyExternalImage,
+        _ source: GPUCopyExternalImageSource,
         _ texture: TextureReference,
         _ destination: GPUCopyExternalImageDestination,
         _ copySize: WebGPU.Extent3D
@@ -3157,15 +3157,7 @@ extension QueueImpl {
         guard let deviceImpl = deviceImpl(sharedBy: texture.deviceImpl) else {
             return
         }
-        copyExternalImageToTexture(
-            deviceImpl,
-            texture,
-            copyExternalImageSourceParameters(source),
-            WebGPU.sourceSurface(source),
-            WebGPU.sourcePixelBuffer(source),
-            destination,
-            copySize
-        )
+        copyExternalImageToTexture(deviceImpl, texture, source, destination, copySize)
     }
 
     // A null label is empty.
@@ -3188,19 +3180,29 @@ public struct GPUCopyExternalImageDestination {
 
 }
 
-// The parts of an external image source that QueueImpl reads besides its IOSurface or pixel buffer.
-private func copyExternalImageSourceParameters(_ source: WebGPU.ImageCopyExternalImage) -> WebGPU.Metal.CopyExternalImageSource {
-    var parameters = WebGPU.Metal.CopyExternalImageSource()
-    parameters.sourceFormat = source.sourceFormat
-    parameters.sourceSize = source.sourceSize
-    parameters.pixelBufferRotation = source.pixelBufferRotation
-    parameters.pixelBufferIsMirrored = source.pixelBufferIsMirrored
-    parameters.origin = source.origin
-    parameters.flipY = source.flipY
-    parameters.hasAlpha = source.hasAlpha
-    parameters.premultipliedAlpha = source.premultipliedAlpha
-    parameters.colorSpace = source.colorSpace
-    return parameters
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagesourceinfo, with the IOSurface of an image or canvas, or
+// the pixel buffer of a video frame, as the source. Exactly one of them is set.
+@_spi(WebKitGPU)
+public struct GPUCopyExternalImageSource {
+    public var surface: IOSurfaceRef?
+    // The format of the single plane of the IOSurface. An accelerated 2D canvas can be backed by it.
+    public var sourceFormat: WebGPU.TextureFormat?
+    // The logical extent of the IOSurface, which may be larger.
+    public var sourceSize = WebGPU.Extent2D()
+    // A video frame carries its own extent, crop and primaries, and it is treated as opaque.
+    public var pixelBuffer: CVPixelBuffer?
+    // The display transform of the frame: a horizontal mirror, then a clockwise rotation.
+    public var pixelBufferRotation = WebGPU.VideoFrameRotation.None
+    public var pixelBufferIsMirrored = false
+    public var origin = WebGPU.Origin2D()
+    public var flipY = false
+    // False when the alpha channel of the source carries no data, as for an opaque canvas.
+    public var hasAlpha = true
+    public var premultipliedAlpha = true
+    public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
+
+    public init() {
+    }
 }
 
 func makeQueueImpl(_ commandQueue: (any MTLCommandQueue)?) -> QueueImpl {

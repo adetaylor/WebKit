@@ -25,6 +25,7 @@
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
 @_spi(WebKitGPU) import WebGPUSwift
+internal import WebGPU_Private
 import WebKit_Internal
 
 // Receives the messages of a WebGPU queue, on its stream connection's work queue, and calls its QueueImpl, with the
@@ -205,7 +206,7 @@ final class RemoteQueue {
         guard let image = WebKit.webGPUExternalImage(objects.host, imageBufferIdentifier.rawValue, origin, source.flipY, source.premultipliedAlpha).value else {
             return
         }
-        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
+        queue.copyExternalImageToTexture(GPUCopyExternalImageSource(image), texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
@@ -231,12 +232,30 @@ final class RemoteQueue {
         guard let texture, let image = videoFrames?.externalImage(source).value else {
             return
         }
-        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
+        queue.copyExternalImageToTexture(GPUCopyExternalImageSource(image), texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
     #endif
 
     func setLabel(label: String?) {
         queue.setLabel(label)
+    }
+}
+
+extension GPUCopyExternalImageSource {
+    // The WebGPU implementation's form of the source that webGPUExternalImage() or WebGPUSwiftVideoFrames resolves.
+    fileprivate init(_ source: borrowing WebGPU.ImageCopyExternalImage) {
+        self.init()
+        surface = WebGPU.sourceSurface(source)
+        sourceFormat = Optional(fromCxx: source.sourceFormat)
+        sourceSize = source.sourceSize
+        pixelBuffer = WebGPU.sourcePixelBuffer(source)
+        pixelBufferRotation = source.pixelBufferRotation
+        pixelBufferIsMirrored = source.pixelBufferIsMirrored
+        origin = source.origin
+        flipY = source.flipY
+        hasAlpha = source.hasAlpha
+        premultipliedAlpha = source.premultipliedAlpha
+        colorSpace = source.colorSpace
     }
 }
 

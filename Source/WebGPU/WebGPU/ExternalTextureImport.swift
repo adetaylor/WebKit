@@ -90,7 +90,7 @@ final class ExternalTextureImporter {
         premultiplyAlpha: Bool
     ) -> ImportedExternalTexture {
         let failure = ImportedExternalTexture(texture0: nil, texture1: nil, constants: WebGPU.Metal.ExternalTextureConstants())
-        // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: Queue.mm checks that the two agree.
+        // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: Queue.h checks that the two agree.
         #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
         var constants = WebGPU.Metal.ExternalTextureConstants()
         // The conversion is row-major, and Metal indexes a float3x4 by column. All zero, which no real conversion can be,
@@ -170,7 +170,7 @@ final class ExternalTextureImporter {
             guard let texture = deviceImpl.device()?.makeTexture(descriptor: descriptor) else {
                 return nil
             }
-            WebGPU.Metal.copyPixelBufferPlane(texture, pixelBuffer, plane, copiedBytesPerPixel(descriptor.pixelFormat))
+            copyPixelBufferPlane(texture, pixelBuffer, plane, copiedBytesPerPixel(descriptor.pixelFormat))
             textures[plane] = texture
         }
 
@@ -233,7 +233,7 @@ final class ExternalTextureImporter {
         var baseTexture = CVMetalTextureGetTexture(plane0)
         var texture0 = baseTexture
         deviceImpl.setOwnerWithIdentity(texture0)
-        let texCoords = WebGPU.Metal.cleanTexCoords(plane0)
+        let texCoords = cleanTexCoords(plane0)
         if let firstPlaneSwizzle {
             texture0 = textureView(texture0, swizzle: firstPlaneSwizzle)
         }
@@ -387,17 +387,12 @@ final class ExternalTextureImporter {
 
 // MARK: CoreVideo and IOSurface helpers
 
-// The frame's IOSurface, which the frame keeps alive.
 private func isIntelDevice(_ deviceImpl: DeviceImpl) -> Bool {
     #if arch(x86_64)
     deviceImpl.device().map(isIntel) ?? false
     #else
     false
     #endif
-}
-
-func pixelBufferIOSurface(_ pixelBuffer: CVPixelBuffer) -> IOSurfaceRef? {
-    WebGPU.Metal.pixelBufferIOSurface(pixelBuffer)
 }
 
 // Attributes the surface's memory to the web process, when the Instance has its identity. The right is kept alive
@@ -411,25 +406,6 @@ func setIOSurfaceOwnershipIdentity(_ surface: IOSurfaceRef, _ deviceImpl: Device
         }
     }
 }
-
-#if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
-private func makeTextureCache(_ device: any MTLDevice) -> CVMetalTextureCache? {
-    WebGPU.Metal.createCoreVideoTextureCache(device)
-}
-
-// nil unless CoreVideo succeeded, which it cannot without a cache.
-private func makeTextureCachePlane(
-    _ cache: CVMetalTextureCache?,
-    _ pixelBuffer: CVPixelBuffer,
-    _ pixelFormat: MTLPixelFormat,
-    _ plane: Int
-) -> CVMetalTexture? {
-    guard let cache else {
-        return nil
-    }
-    return WebGPU.Metal.createCoreVideoPlaneTexture(cache, pixelBuffer, pixelFormat, plane)
-}
-#endif
 
 private func externalTexturePlaneStorageMode(_ hasUnifiedMemory: Bool) -> MTLStorageMode {
     #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST

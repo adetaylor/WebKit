@@ -13,7 +13,6 @@
 		07D291722EC9CECC00A32120 /* BindGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAD5273A4D700095F8D5 /* BindGroup.h */; };
 		07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */; };
 		07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD80B2716C37900A5254D /* ExportMacros.h */; };
-		07D291792EC9CEFF00A32120 /* PresentationContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C9F7CDE29762F51006B5BE9 /* PresentationContext.h */; };
 		07D2917C2EC9CF0E00A32120 /* RenderBundleEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */; };
 		07D2917D2EC9CF1100A32120 /* RenderPassEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */; };
 		07D2917E2EC9CF1500A32120 /* RenderPipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */; };
@@ -35,6 +34,7 @@
 		F4660E6CF3264519B8BC21E4 /* RenderPipelineTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */; };
 		EA7AF98841244F718F395E0C /* QuerySet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C859B61D2EAF4362828276FE /* QuerySet.swift */; };
 		47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C53A4E591654B1482CECFBD /* ComputePipeline.swift */; };
+		E5C0A1D24B8F4E6D9A3B7C10 /* CoreVideoInterop.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C0A1D24B8F4E6D9A3B7C11 /* CoreVideoInterop.swift */; };
 		9CD556ADB11D44B881D5A967 /* Device.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DAF065BC4E44B17BDEC4DEC /* Device.swift */; };
 		92419AA717304E83930CE6D4 /* DeviceHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */; };
 		40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */; };
@@ -58,7 +58,6 @@
 		79B8DBAA488349DEB3381595 /* TextureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F95E09DD3B44127AD597E89 /* TextureView.swift */; };
 		1CA5B5002A6F2A5E00E5F297 /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
 		1CBAB0922718CCA0006080BB /* JavaScriptCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */; };
-		1CBD2E992977DAC900BBF52C /* PresentationContextIOSurface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */; };
 		F38058A46A94443AA6E203B0 /* PresentationContextIOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A25A492A7F4178A7591739 /* PresentationContextIOSurface.swift */; };
 		1CEBD7E72716AFBA00A5254D /* WebGPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD7E62716AFBA00A5254D /* WebGPU.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1CEBD8262716CACC00A5254D /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
@@ -274,6 +273,7 @@
 		1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommandEncoder.h; sourceTree = "<group>"; };
 		C859B61D2EAF4362828276FE /* QuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuerySet.swift; sourceTree = "<group>"; };
 		9C53A4E591654B1482CECFBD /* ComputePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePipeline.swift; sourceTree = "<group>"; };
+		E5C0A1D24B8F4E6D9A3B7C11 /* CoreVideoInterop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreVideoInterop.swift; sourceTree = "<group>"; };
 		5DAF065BC4E44B17BDEC4DEC /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHelpers.swift; sourceTree = "<group>"; };
 		37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToggles.swift; sourceTree = "<group>"; };
@@ -300,12 +300,10 @@
 		708EA25296634EC08BBFD53C /* PipelineModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineModel.swift; sourceTree = "<group>"; };
 		CC59D47879744629A775E6C1 /* RenderBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundle.swift; sourceTree = "<group>"; };
 		4F95E09DD3B44127AD597E89 /* TextureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureView.swift; sourceTree = "<group>"; };
-		1C9F7CDE29762F51006B5BE9 /* PresentationContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PresentationContext.h; sourceTree = "<group>"; };
 		1CA5B4F12A6F28C400E5F297 /* wgslfuzz */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wgslfuzz; sourceTree = BUILT_PRODUCTS_DIR; };
 		1CA5B4F92A6F28E500E5F297 /* wgslfuzz.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = wgslfuzz.xcconfig; sourceTree = "<group>"; };
 		1CA5B4FE2A6F2A5800E5F297 /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/System/iOSSupport/System/Library/Frameworks/JavaScriptCore.framework; sourceTree = DEVELOPER_DIR; };
 		1CBAB0912718CCA0006080BB /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = JavaScriptCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PresentationContextIOSurface.mm; sourceTree = "<group>"; };
 		D0D52564E59F4C4C93C58A39 /* GPUObjectReference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUObjectReference.swift; sourceTree = "<group>"; };
 		B1A25A492A7F4178A7591739 /* PresentationContextIOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationContextIOSurface.swift; sourceTree = "<group>"; };
 		1CC0C8C9273A7D8900D0B481 /* WebGPU.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = WebGPU.modulemap; sourceTree = "<group>"; };
@@ -531,6 +529,7 @@
 				1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */,
 				9C53A4E591654B1482CECFBD /* ComputePipeline.swift */,
 				1CEBD80A2716C36C00A5254D /* config.h */,
+				E5C0A1D24B8F4E6D9A3B7C11 /* CoreVideoInterop.swift */,
 				07D2916C2EC9C4D200A32120 /* CxxBridging.h */,
 				079861932EF13A1100659042 /* CxxBridgingPublic.h */,
 				37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */,
@@ -550,8 +549,6 @@
 				F9F9EB9D37864283BA2BF4E7 /* Pipeline.swift */,
 				A5ACC01B76804CCC9CE50587 /* PipelineLayout.swift */,
 				708EA25296634EC08BBFD53C /* PipelineModel.swift */,
-				1C9F7CDE29762F51006B5BE9 /* PresentationContext.h */,
-				1CBD2E952977DAC900BBF52C /* PresentationContextIOSurface.mm */,
 				B1A25A492A7F4178A7591739 /* PresentationContextIOSurface.swift */,
 				C859B61D2EAF4362828276FE /* QuerySet.swift */,
 				1C5ACA9C273A426D0095F8D5 /* Queue.h */,
@@ -820,7 +817,6 @@
 				941C64B72CAB4A0700A63214 /* Device.h in Headers */,
 				07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */,
 				0D509DCD29CAB6EC00546D84 /* MetalSPI.h in Headers */,
-				07D291792EC9CEFF00A32120 /* PresentationContext.h in Headers */,
 				941C1EE62CA33255004D4220 /* Queue.h in Headers */,
 				07D2917C2EC9CF0E00A32120 /* RenderBundleEncoder.h in Headers */,
 				07D2917D2EC9CF1100A32120 /* RenderPassEncoder.h in Headers */,
@@ -1082,6 +1078,7 @@
 				94200C512CADBD7200484401 /* CommandEncoder.swift in Sources */,
 				00330FD34B5348898ECBADDE /* ComputePassEncoder.swift in Sources */,
 				47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */,
+				E5C0A1D24B8F4E6D9A3B7C10 /* CoreVideoInterop.swift in Sources */,
 				40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */,
 				9CD556ADB11D44B881D5A967 /* Device.swift in Sources */,
 				92419AA717304E83930CE6D4 /* DeviceHelpers.swift in Sources */,
@@ -1096,7 +1093,6 @@
 				75830AE5E91643459C6FB31A /* Pipeline.swift in Sources */,
 				70583F728A5D448C9469F484 /* PipelineLayout.swift in Sources */,
 				3D4A69822245433580AA6E1F /* PipelineModel.swift in Sources */,
-				1CBD2E992977DAC900BBF52C /* PresentationContextIOSurface.mm in Sources */,
 				F38058A46A94443AA6E203B0 /* PresentationContextIOSurface.swift in Sources */,
 				EA7AF98841244F718F395E0C /* QuerySet.swift in Sources */,
 				1C5ACACB273A426E0095F8D5 /* Queue.mm in Sources */,

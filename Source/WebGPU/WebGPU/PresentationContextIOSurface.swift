@@ -22,11 +22,11 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import CoreGraphics
+import Foundation
 public import IOSurface
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.Texture
 #if hasAttribute(diagnose)
@@ -543,7 +543,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             bitmapInfo = alphaInfo.rawValue | CGImageByteOrderInfo.order16Host.rawValue | CGBitmapInfo.floatComponents.rawValue
         }
 
-        return WebGPU.Metal.createImageWithTextureBytes(
+        return createImageWithTextureBytes(
             mtlTexture,
             width,
             height,
@@ -658,4 +658,41 @@ private func compileLibraryWithFastMath(_ device: any MTLDevice, _ source: Strin
         return nil
     }
     return library
+}
+
+// The texture's bytes as an image; nil when they cannot be allocated.
+private func createImageWithTextureBytes(
+    _ texture: any MTLTexture,
+    _ width: Int,
+    _ height: Int,
+    _ bitsPerComponent: Int,
+    _ bitsPerPixel: Int,
+    _ bytesPerRow: Int,
+    _ colorSpace: CGColorSpace?,
+    _ bitmapInfo: CGBitmapInfo
+) -> CGImage? {
+    let (imageBytesSize, overflow) = bytesPerRow.multipliedReportingOverflow(by: height)
+    guard !overflow, let imageBytes = NSMutableData(length: imageBytesSize) else {
+        return nil
+    }
+    // Safety: Metal writes `height` rows of the region, `bytesPerRow` apart, into the imageBytesSize bytes just allocated,
+    // which `imageBytes` keeps alive past the call.
+    unsafe texture.getBytes(imageBytes.mutableBytes, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+    guard let colorSpace, let dataProvider = CGDataProvider(data: imageBytes) else {
+        return nil
+    }
+    // Safety: the only pointer argument, the decode array, is nil.
+    return unsafe CGImage(
+        width: width,
+        height: height,
+        bitsPerComponent: bitsPerComponent,
+        bitsPerPixel: bitsPerPixel,
+        bytesPerRow: bytesPerRow,
+        space: colorSpace,
+        bitmapInfo: bitmapInfo,
+        provider: dataProvider,
+        decode: nil,
+        shouldInterpolate: false,
+        intent: .defaultIntent
+    )
 }

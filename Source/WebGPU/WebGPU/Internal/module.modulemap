@@ -62,11 +62,6 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module PresentationContext {
-        header "../PresentationContext.h"
-        export *
-    }
-
     explicit module Queue {
         header "../Queue.h"
         export *

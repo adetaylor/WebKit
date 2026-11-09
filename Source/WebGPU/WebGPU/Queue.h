@@ -92,45 +92,14 @@ static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMat
 static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
 static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
 
-// The scalars of a WebGPU::ImageCopyExternalImage, handed to Swift in one value. Its IOSurface and pixel buffer
-// are passed alongside.
-struct CopyExternalImageSource {
-    std::optional<WebGPU::TextureFormat> sourceFormat;
-    WebGPU::Extent2D sourceSize;
-    WebGPU::VideoFrameRotation pixelBufferRotation { WebGPU::VideoFrameRotation::None };
-    bool pixelBufferIsMirrored { false };
-    WebGPU::Origin2D origin;
-    bool flipY { false };
-    bool hasAlpha { true };
-    bool premultipliedAlpha { true };
-    WebGPU::PredefinedColorSpace colorSpace { WebGPU::PredefinedColorSpace::SRGB };
-};
-
 // A buffer over `length` bytes of the ByteOwner from `offset`, which keeps the ByteOwner alive for as long as it exists.
 // Null when the ByteOwner has fewer bytes.
 id<MTLBuffer> _Nullable newBufferAliasingOwner(id<MTLDevice> _Nullable, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);
 
-// For ExternalTextureImport.swift: a plane's bytes, through a raw pointer, into as much of the texture as both have, when
-// the plane's rows hold `bytesPerPixel` bytes (those of the texture's format; 0 if unknown) for every pixel copied. The
-// base address must be locked.
-void copyPixelBufferPlane(id<MTLTexture>, CVPixelBufferRef, size_t plane, size_t bytesPerPixel);
-
-// CoreVideo calls for ExternalTextureImport.swift, with their results returned: CVPixelBufferGetIOSurface is not
-// audited for Swift, which would get an Unmanaged reference, and the others write through out-parameters, which Swift
-// can only pass as unsafe pointers.
-IOSurfaceRef _Nullable pixelBufferIOSurface(CVPixelBufferRef) CF_RETURNS_NOT_RETAINED;
-#if HAVE(COREVIDEO_METAL_SUPPORT)
-CVMetalTextureCacheRef _Nullable createCoreVideoTextureCache(id<MTLDevice>) CF_RETURNS_RETAINED;
-// Null unless CoreVideo succeeded.
-CVMetalTextureRef _Nullable createCoreVideoPlaneTexture(CVMetalTextureCacheRef, CVPixelBufferRef, MTLPixelFormat, size_t plane) CF_RETURNS_RETAINED;
-// The coordinates of a plane's clean aperture that the import's UV remapping needs.
-struct CleanTexCoords {
-    float lowerLeftX { 0 };
-    float lowerRightY { 0 };
-    float upperRightX { 0 };
-    float upperLeftY { 0 };
-};
-CleanTexCoords cleanTexCoords(CVMetalTextureRef);
+// CoreVideoInterop.swift and ExternalTextureImport.swift spell HAVE(COREVIDEO_METAL_SUPPORT) out, because Swift cannot
+// evaluate the CoreVideo macro it expands to.
+#if HAVE(COREVIDEO_METAL_SUPPORT) != (HAVE(WEBGPU_IMPLEMENTATION) && (PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(VISION)))
+#error "Update the HAVE(COREVIDEO_METAL_SUPPORT) conditions in CoreVideoInterop.swift and ExternalTextureImport.swift"
 #endif
 
 } // namespace WebGPU::Metal

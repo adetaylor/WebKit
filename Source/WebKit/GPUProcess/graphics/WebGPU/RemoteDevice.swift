@@ -25,6 +25,7 @@
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
 @_spi(WebKitGPU) import WebGPUSwift
+internal import WebGPU_Private
 import WebKit_Internal
 
 // Receives the messages of a WebGPU device, on its stream connection's work queue, and calls its DeviceImpl. The
@@ -432,7 +433,7 @@ final class RemoteDevice {
         guard let externalTextureDescriptor = externalTextureDescriptor.value else {
             return
         }
-        RemoteExternalTexture.add(device.importExternalTexture(externalTextureDescriptor), externalTextureLink)
+        RemoteExternalTexture.add(device.importExternalTexture(GPUExternalTextureDescriptor(externalTextureDescriptor)), externalTextureLink)
     }
 
     func updateExternalTexture(
@@ -446,7 +447,7 @@ final class RemoteDevice {
         guard let frame = videoFrames.mediaPlayerFrame(mediaIdentifier.rawValue).value else {
             return
         }
-        externalTexture.update(frame)
+        externalTexture.update(GPUExternalTextureDescriptor(frame))
     }
     #endif
 
@@ -650,5 +651,17 @@ extension GPUColorTargetState {
         writeMask = state.writeMask.rawValue
     }
 }
+
+#if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+extension GPUExternalTextureDescriptor {
+    // The WebGPU implementation's form of the descriptor that WebGPUSwiftVideoFrames resolves.
+    fileprivate init(_ descriptor: borrowing WebGPU.ExternalTextureDescriptor) {
+        self.init()
+        pixelBuffer = WebGPU.framePixelBuffer(descriptor)
+        colorSpace = descriptor.colorSpace
+        visibleSize = descriptor.visibleSize
+    }
+}
+#endif
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
