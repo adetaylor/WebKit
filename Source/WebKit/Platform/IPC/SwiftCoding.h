@@ -364,9 +364,9 @@ public:
         auto value = decoder.borrowed().template decode<T>();
         if (!value)
             return nullptr;
-        // Swift emits decode() and deref(), and Xcode.app's Swift (6.5.0.12.6) doesn't emit the inline operator delete
-        // of RefCounted that a new-expression or a delete-expression would reference, so these allocate and free with
-        // fastMalloc() and fastFree(), as that operator delete does.
+        // Swift emits decode() and deref(), and some Swift compilers don't emit RefCounted's inline operator delete,
+        // which a new-expression or a delete-expression would reference, so these allocate and free with fastMalloc()
+        // and fastFree(), as that operator delete does.
         auto* argument = ::new (WTF::fastMalloc(sizeof(CxxDecodedArgument))) CxxDecodedArgument(WTF::move(*value));
         return &adoptRef(*argument).leakRef();
     }
