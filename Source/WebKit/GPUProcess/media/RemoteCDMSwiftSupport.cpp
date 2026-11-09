@@ -80,20 +80,6 @@ bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle& cdm, const String& initDa
     return cdm.supportsInitData(initDataType, initData);
 }
 
-SharedBuffer* sanitizeRemoteCDMResponse(RemoteCDMPrivateHandle& cdm, const SharedBuffer& response)
-{
-    return cdm.sanitizeResponse(response).leakRef();
-}
-
-bool sanitizeRemoteCDMSessionId(RemoteCDMPrivateHandle& cdm, const String& sessionId, String& sanitizedSessionId)
-{
-    auto sanitized = cdm.sanitizeSessionId(sessionId);
-    if (!sanitized)
-        return false;
-    sanitizedSessionId = WTF::move(*sanitized);
-    return true;
-}
-
 static std::unique_ptr<IPC::Decoder> decoderForConfiguration(const std::optional<CDMKeySystemConfiguration>& configuration)
 {
     IPC::Encoder encoder(Messages::RemoteCDMProxy::GetSupportedConfiguration::asyncMessageReplyName(), 0);

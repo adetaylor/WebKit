@@ -88,10 +88,10 @@ final class RemoteCDMInstanceSessionProxy {
         guard let response else {
             return (true, nil, nil, nil, false)
         }
-        guard let cdm else {
+        guard cdm != nil else {
             return remoteCDMFailedUpdate
         }
-        return await backend.updateLicense(sessionId, type, response, cdm: cdm.cdm)
+        return await backend.updateLicense(sessionId, type, response)
     }
 
     @MainActor
@@ -101,10 +101,10 @@ final class RemoteCDMInstanceSessionProxy {
         sessionId: String?,
         origin: String?
     ) async -> RemoteCDMLoadedSession {
-        guard let cdm else {
+        guard cdm != nil else {
             return remoteCDMNotLoaded
         }
-        return await backend.loadSession(type, sessionId, origin, cdm: cdm.cdm)
+        return await backend.loadSession(type, sessionId, origin)
     }
 
     @MainActor

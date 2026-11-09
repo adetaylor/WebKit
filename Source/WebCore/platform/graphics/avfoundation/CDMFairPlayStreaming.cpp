@@ -178,9 +178,7 @@ std::unique_ptr<CDMPrivate> CDMFactoryFairPlayStreaming::createCDM(const String&
 
 bool CDMFactoryFairPlayStreaming::supportsKeySystem(const String& keySystem)
 {
-    // https://w3c.github.io/encrypted-media/#key-system
-    // "Key System strings are compared using case-sensitive matching."
-    return keySystem == "com.apple.fps"_s || keySystem.startsWith("com.apple.fps."_s);
+    return fairPlaySupportsKeySystemImpl(mediaParserShortName(StringView(keySystem).left(MediaParserShortName::capacity)), keySystem.length());
 }
 
 CDMPrivateFairPlayStreaming::CDMPrivateFairPlayStreaming(const String& mediaKeysHashSalt, const CDMPrivateClient& client)

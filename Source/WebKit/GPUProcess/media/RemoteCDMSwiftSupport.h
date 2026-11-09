@@ -29,7 +29,6 @@
 
 #include "Decoder.h"
 #include "MessageReceiver.h"
-#include "RemoteCDMConfiguration.h"
 #include "RemoteCDMFactoryProxy.h"
 #include "SwiftCoding.h"
 #include "SwiftReceiverRegistration.h"
@@ -48,18 +47,6 @@ namespace WebKit {
 
 // What the Swift EME message receivers use of RemoteCDMFactoryProxy and of the C++ CDMs that Swift cannot reach
 // directly: Swift cannot call a C++ virtual function's overriders' callbacks.
-
-using RemoteCDMStrings = Vector<String>;
-
-inline size_t remoteCDMStringCount(const RemoteCDMStrings& strings)
-{
-    return strings.size();
-}
-
-inline String remoteCDMString(const RemoteCDMStrings& strings, size_t index)
-{
-    return index < strings.size() ? strings[index] : String();
-}
 
 // The bytes of a buffer from IPC, and a buffer for a reply.
 using RemoteCDMBytes = Vector<uint8_t>;
@@ -107,10 +94,8 @@ using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore
 void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMConfigurationArgument&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
 void setRemoteCDMInstanceStorageDirectory(WebCore::CDMInstance&, const String&);
 
-// The CDMPrivate checks of the session's messages.
+// The CDMPrivate check of a license request.
 bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle&, const String& initDataType, const WebCore::SharedBuffer& initData);
-WebCore::SharedBuffer* WTF_NULLABLE sanitizeRemoteCDMResponse(RemoteCDMPrivateHandle&, const WebCore::SharedBuffer& response) SWIFT_RETURNS_RETAINED;
-bool sanitizeRemoteCDMSessionId(RemoteCDMPrivateHandle&, const String& sessionId, String& sanitizedSessionId);
 
 } // namespace WebKit
 

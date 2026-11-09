@@ -197,6 +197,71 @@ enum FairPlayStreamingParsing {
     }
 }
 
+/// What the FairPlay Streaming CDM reports of itself, as CDMPrivateFairPlayStreaming does, and its key systems.
+///
+/// For CDMFairPlayStreaming.cpp and the GPU process's EME receivers. It keeps responses and session IDs as they are
+/// (CDMPrivateFairPlayStreaming::sanitizeResponse() and sanitizeSessionId()).
+@_spi(WebKitGPU)
+public enum FairPlayCDM {
+    /// CDMPrivate::supportedInitDataTypes().
+    @_spi(WebKitGPU)
+    public static let supportedInitDataTypes: [Swift.String] = {
+        var types = ["sinf", "skd"]
+        #if HAVE_FAIRPLAYSTREAMING_CENC_INITDATA
+        types.append("cenc")
+        #endif
+        #if HAVE_FAIRPLAYSTREAMING_MTPS_INITDATA
+        types.append("mpts")
+        #endif
+        return types
+    }()
+    /// CDMPrivate::supportedRobustnesses(): only the empty robustness.
+    @_spi(WebKitGPU)
+    public static let supportedRobustnesses = [""]
+    /// CDMPrivate::supportsServerCertificates().
+    @_spi(WebKitGPU)
+    public static let supportsServerCertificates = true
+    /// CDMPrivate::supportsSessions().
+    @_spi(WebKitGPU)
+    public static let supportsSessions = true
+
+    private static let keySystem: ContiguousArray<UInt8> = ContiguousArray("com.apple.fps".utf8)
+
+    /// CDMFactory::supportsKeySystem(): "com.apple.fps", or one that starts with "com.apple.fps.".
+    ///
+    /// Key systems compare case-sensitively (https://w3c.github.io/encrypted-media/#key-system). The check reads a key
+    /// system's length and no more than its first 14 code units, which prefix has, or all of them if it has fewer.
+    static func supportsKeySystem<CodeUnit: FixedWidthInteger & UnsignedInteger>(prefix: Span<CodeUnit>, length: Int) -> Bool {
+        let nameLength = keySystem.count
+        guard length >= nameLength, prefix.count >= min(length, nameLength + 1) else {
+            return false
+        }
+        for index in 0..<nameLength where prefix[index] != CodeUnit(keySystem[index]) {
+            return false
+        }
+        return length == nameLength || prefix[nameLength] == CodeUnit(UInt8(ascii: "."))
+    }
+
+    /// supportsKeySystem() of a Swift string, whose UTF-16 code units are a WTF::String's.
+    @_spi(WebKitGPU)
+    public static func supportsKeySystem(_ keySystem: Swift.String?) -> Bool {
+        let codeUnits = ContiguousArray((keySystem ?? "").utf16)
+        return supportsKeySystem(prefix: codeUnits.span, length: codeUnits.count)
+    }
+}
+
+// CDMFactoryFairPlayStreaming::supportsKeySystem() of a key system's first MediaParserShortName.capacity characters, and
+// its length.
+@_expose(Cxx)
+func fairPlaySupportsKeySystemImpl(_ prefix: WebCore.MediaParserShortName, _ length: UInt64) -> Bool {
+    var characters = ContiguousArray<UInt8>()
+    for index in 0..<Int(prefix.length) {
+        let word = UInt64(littleEndian: index < 8 ? prefix.words.0 : prefix.words.1)
+        characters.append(UInt8(truncatingIfNeeded: word >> UInt64(8 * (index & 7))))
+    }
+    return FairPlayCDM.supportsKeySystem(prefix: characters.span, length: Int(clamping: length))
+}
+
 // The key IDs of 'sinf' and 'mpts' init data. For 'sinf' init data, true when some entry has a scheme and a key ID; the
 // 16 bytes of each such key ID with a valid scheme are appended to keyIDs. For 'mpts' init data, whether it is valid; its
 // key ID is the C++ mptsKeyIDs(). False for other types.

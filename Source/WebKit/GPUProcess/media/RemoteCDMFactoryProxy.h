@@ -57,7 +57,6 @@ namespace WebKit {
 class GPUConnectionToWebProcess;
 class RemoteCDMInstanceClient;
 class RemoteCDMPrivateHandle;
-struct RemoteCDMConfiguration;
 struct SharedPreferencesForWebProcess;
 
 // Receives the EME factory messages of one web process's connection to the GPU process, and gives the media players the
@@ -94,9 +93,8 @@ public:
     bool addSwiftReceiver(IPC::ReceiverName, uint64_t identifier, IPC::MessageReceiver&);
     void removeSwiftReceiver(IPC::ReceiverName, uint64_t identifier);
 
-    // Whether a C++ CDM factory supports a key system, and a C++ CDM for it, with its configuration.
-    bool supportsKeySystem(const String&) const;
-    RemoteCDMPrivateHandle* WTF_NULLABLE createCDM(const String& keySystem, const String& mediaKeysHashSalt, RemoteCDMConfiguration&) SWIFT_RETURNS_RETAINED;
+    // A C++ CDM for a key system, for the configuration algorithm and the instances that the players use.
+    RemoteCDMPrivateHandle* WTF_NULLABLE createCDM(const String& keySystem, const String& mediaKeysHashSalt) SWIFT_RETURNS_RETAINED;
     // A C++ CDM's instance and session (RemoteCDMSwiftSupport.h): the players can find the instance, and both send their
     // notifications.
     void registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle&, WebCore::CDMInstance&);
@@ -138,14 +136,11 @@ public:
     static Ref<RemoteCDMPrivateHandle> create(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&);
     ~RemoteCDMPrivateHandle();
 
-    RemoteCDMConfiguration configuration() const;
     void getSupportedConfiguration(WebCore::CDMKeySystemConfiguration&&, WebCore::CDMPrivate::LocalStorageAccess, CompletionHandler<void(std::optional<WebCore::CDMKeySystemConfiguration>)>&&);
     RefPtr<WebCore::CDMInstance> createInstance();
     void loadAndInitialize();
     void setLogIdentifier(uint64_t);
     bool supportsInitData(const String&, const WebCore::SharedBuffer&) const;
-    RefPtr<WebCore::SharedBuffer> sanitizeResponse(const WebCore::SharedBuffer&) const;
-    std::optional<String> sanitizeSessionId(const String&) const;
 
 #if !RELEASE_LOG_DISABLED
     const Logger& logger() const { return m_logger; }

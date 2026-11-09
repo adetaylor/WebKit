@@ -79,15 +79,9 @@ protocol RemoteCDMSessionBackend: AnyObject {
     func updateLicense(
         _ sessionId: String?,
         _ type: IPCTypes.CDMSessionType,
-        _ response: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ response: WebCore.SharedBuffer
     ) async -> RemoteCDMLicenseUpdate
-    func loadSession(
-        _ type: IPCTypes.CDMSessionType,
-        _ sessionId: String?,
-        _ origin: String?,
-        cdm: WebKit.RemoteCDMPrivateHandle
-    ) async -> RemoteCDMLoadedSession
+    func loadSession(_ type: IPCTypes.CDMSessionType, _ sessionId: String?, _ origin: String?) async -> RemoteCDMLoadedSession
     func closeSession(_ sessionId: String?) async
     func removeSessionData(_ sessionId: String?, _ type: IPCTypes.CDMSessionType) async -> RemoteCDMRemovedSessionData
     func storeRecordOfKeyUsage(_ sessionId: String?)
@@ -171,20 +165,14 @@ final class ClearKeySessionBackend: RemoteCDMSessionBackend {
     func updateLicense(
         _ sessionId: String?,
         _ type: IPCTypes.CDMSessionType,
-        _ response: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ response: WebCore.SharedBuffer
     ) async -> RemoteCDMLicenseUpdate {
         let responseBytes = remoteCDMBytes(response)
         let update = session.updateLicense(responseBytes.span())
         return (update.sessionWasClosed, update.changedKeys.map(remoteCDMKeyStatuses), nil, nil, update.succeeded)
     }
 
-    func loadSession(
-        _ type: IPCTypes.CDMSessionType,
-        _ sessionId: String?,
-        _ origin: String?,
-        cdm: WebKit.RemoteCDMPrivateHandle
-    ) async -> RemoteCDMLoadedSession {
+    func loadSession(_ type: IPCTypes.CDMSessionType, _ sessionId: String?, _ origin: String?) async -> RemoteCDMLoadedSession {
         // The check CDMPrivate::sanitizeSessionId() makes.
         guard ClearKey.isValidSessionID(sessionId) else {
             return remoteCDMNotLoaded
@@ -308,7 +296,11 @@ final class RemoteFairPlaySessionHost: FairPlaySessionHosting {
         guard hasSessionClient else {
             return
         }
-        RemoteCDMInstanceSessionProxy.RemoteCDMInstanceSessionMessages.sessionIdChanged(on: connection, to: identifier, sessionId: sessionId)
+        RemoteCDMInstanceSessionProxy.RemoteCDMInstanceSessionMessages.sessionIdChanged(
+            on: connection,
+            to: identifier,
+            sessionId: sessionId
+        )
     }
 
     func sessionKeyStatusesChanged(_ keyIDs: Span<UInt8>, _ keyIDSizes: Span<UInt32>, _ statuses: Span<UInt8>) {
@@ -456,17 +448,13 @@ final class FairPlayCDMSessionBackend: RemoteCDMSessionBackend {
         }
     }
 
+    // FairPlay Streaming keeps responses and session IDs as they are (FairPlayCDM).
     func updateLicense(
         _ sessionId: String?,
         _ type: IPCTypes.CDMSessionType,
-        _ response: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ response: WebCore.SharedBuffer
     ) async -> RemoteCDMLicenseUpdate {
-        // The check CDMPrivate::sanitizeResponse() makes.
-        guard let sanitizedResponse = WebKit.sanitizeRemoteCDMResponse(cdm, response) else {
-            return remoteCDMFailedUpdate
-        }
-        let bytes = remoteCDMBytes(sanitizedResponse)
+        let bytes = remoteCDMBytes(response)
         let responseBytes = contiguousBytes(bytes.span())
         return await withCheckedContinuation { continuation in
             session.updateLicense(responseBytes, callback: FairPlayLicenseUpdate(continuation))
@@ -475,18 +463,8 @@ final class FairPlayCDMSessionBackend: RemoteCDMSessionBackend {
 
     // A load that FairPlay doesn't handle, of a session that isn't a persistent usage record, which the web process
     // never asks for, fails.
-    func loadSession(
-        _ type: IPCTypes.CDMSessionType,
-        _ sessionId: String?,
-        _ origin: String?,
-        cdm: WebKit.RemoteCDMPrivateHandle
-    ) async -> RemoteCDMLoadedSession {
-        // The check CDMPrivate::sanitizeSessionId() makes.
-        var sanitizedSessionId = WTF.String()
-        guard WebKit.sanitizeRemoteCDMSessionId(cdm, IPCCoding.WTFString.cxxString(sessionId), &sanitizedSessionId) else {
-            return remoteCDMNotLoaded
-        }
-        switch session.loadSession(fairPlaySessionType(type), sessionId: IPCCoding.WTFString.swiftString(sanitizedSessionId) ?? "") {
+    func loadSession(_ type: IPCTypes.CDMSessionType, _ sessionId: String?, _ origin: String?) async -> RemoteCDMLoadedSession {
+        switch session.loadSession(fairPlaySessionType(type), sessionId: sessionId ?? "") {
         case .notHandled:
             return remoteCDMNotLoaded
         case .succeeded(let releasedKeyCount):
@@ -504,7 +482,10 @@ final class FairPlayCDMSessionBackend: RemoteCDMSessionBackend {
 
     func removeSessionData(_ sessionId: String?, _ type: IPCTypes.CDMSessionType) async -> RemoteCDMRemovedSessionData {
         let removed = session.removeSessionData(fairPlaySessionType(type), sessionId: sessionId ?? "")
-        return (releasedKeyStatuses(removed.releasedKeyCount), removed.message.map { remoteCDMBuffer(ContiguousArray<UInt8>($0)) }, removed.succeeded)
+        return (
+            releasedKeyStatuses(removed.releasedKeyCount), removed.message.map { remoteCDMBuffer(ContiguousArray<UInt8>($0)) },
+            removed.succeeded
+        )
     }
 
     // Key usage is stored as it happens.

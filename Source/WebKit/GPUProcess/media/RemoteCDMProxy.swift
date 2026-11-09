@@ -33,7 +33,7 @@ extension WebKit.RemoteCDMSupportedConfigurationCompletionHandler: @unsafe CxxCo
 }
 
 // Receives the messages of one of the web process's RemoteCDMs. ClearKey's instances are WebCoreEME's; its C++
-// CDMPrivate answers only the configuration algorithm's questions. Other CDMs are C++.
+// CDMPrivate answers only the configuration algorithm's questions. The other CDM is FairPlay Streaming's.
 @_expose(Cxx)
 final class RemoteCDMProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
@@ -67,9 +67,9 @@ final class RemoteCDMProxy {
         return proxy.sharedPreferencesForWebProcess()
     }
 
-    // The configuration the web process's RemoteCDM reports: ClearKey's, or the C++ CDM's.
+    // The configuration the web process's RemoteCDM reports: ClearKey's, or FairPlay Streaming's.
     @_expose(!Cxx)
-    func configuration(_ cxxConfiguration: borrowing WebKit.RemoteCDMConfiguration) -> IPCTypes.RemoteCDMConfiguration {
+    var configuration: IPCTypes.RemoteCDMConfiguration {
         if isClearKey {
             return IPCTypes.RemoteCDMConfiguration(
                 supportedInitDataTypes: ClearKey.supportedInitDataTypes,
@@ -80,11 +80,11 @@ final class RemoteCDMProxy {
             )
         }
         return IPCTypes.RemoteCDMConfiguration(
-            supportedInitDataTypes: Self.swiftStrings(cxxConfiguration.supportedInitDataTypes),
-            supportedRobustnesses: Self.swiftStrings(cxxConfiguration.supportedRobustnesses),
-            supportsServerCertificates: cxxConfiguration.supportsServerCertificates,
-            supportsSessions: cxxConfiguration.supportsSessions,
-            logIdentifier: cxxConfiguration.logIdentifier
+            supportedInitDataTypes: FairPlayCDM.supportedInitDataTypes,
+            supportedRobustnesses: FairPlayCDM.supportedRobustnesses,
+            supportsServerCertificates: FairPlayCDM.supportsServerCertificates,
+            supportsSessions: FairPlayCDM.supportsSessions,
+            logIdentifier: 0
         )
     }
 
@@ -152,14 +152,6 @@ final class RemoteCDMProxy {
         if !isClearKey {
             cdm.setLogIdentifier(logIdentifier)
         }
-    }
-
-    private static func swiftStrings(_ strings: borrowing WebKit.RemoteCDMStrings) -> [String?] {
-        var result: [String?] = []
-        for index in 0..<WebKit.remoteCDMStringCount(strings) {
-            result.append(IPCCoding.WTFString.swiftString(WebKit.remoteCDMString(strings, index)))
-        }
-        return result
     }
 }
 

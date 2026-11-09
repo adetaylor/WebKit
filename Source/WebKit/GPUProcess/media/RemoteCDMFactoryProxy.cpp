@@ -30,7 +30,6 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
-#include "RemoteCDMConfiguration.h"
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMIdentifier.h"
 #include "RemoteCDMInstanceMessages.h"
@@ -187,12 +186,7 @@ static CDMFactory* factoryForKeySystem(const String& keySystem)
     return factories[foundIndex].ptr();
 }
 
-bool RemoteCDMFactoryProxy::supportsKeySystem(const String& keySystem) const
-{
-    return factoryForKeySystem(keySystem);
-}
-
-RemoteCDMPrivateHandle* RemoteCDMFactoryProxy::createCDM(const String& keySystem, const String& mediaKeysHashSalt, RemoteCDMConfiguration& configuration)
+RemoteCDMPrivateHandle* RemoteCDMFactoryProxy::createCDM(const String& keySystem, const String& mediaKeysHashSalt)
 {
     RefPtr factory = factoryForKeySystem(keySystem);
     if (!factory)
@@ -202,9 +196,7 @@ RemoteCDMPrivateHandle* RemoteCDMFactoryProxy::createCDM(const String& keySystem
     if (!privateCDM)
         return nullptr;
 
-    Ref cdm = RemoteCDMPrivateHandle::create(*this, makeUniqueRefFromNonNullUniquePtr(WTF::move(privateCDM)));
-    configuration = cdm->configuration();
-    return &cdm.leakRef();
+    return &RemoteCDMPrivateHandle::create(*this, makeUniqueRefFromNonNullUniquePtr(WTF::move(privateCDM))).leakRef();
 }
 
 void RemoteCDMFactoryProxy::registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle& cdm, CDMInstance& instance)
@@ -261,16 +253,6 @@ RemoteCDMPrivateHandle::RemoteCDMPrivateHandle(RemoteCDMFactoryProxy& factory, U
 
 RemoteCDMPrivateHandle::~RemoteCDMPrivateHandle() = default;
 
-RemoteCDMConfiguration RemoteCDMPrivateHandle::configuration() const
-{
-    return {
-        m_private->supportedInitDataTypes(),
-        m_private->supportedRobustnesses(),
-        m_private->supportsServerCertificates(),
-        m_private->supportsSessions()
-    };
-}
-
 void RemoteCDMPrivateHandle::getSupportedConfiguration(CDMKeySystemConfiguration&& configuration, CDMPrivate::LocalStorageAccess access, CompletionHandler<void(std::optional<CDMKeySystemConfiguration>)>&& callback)
 {
     m_private->getSupportedConfiguration(WTF::move(configuration), access, WTF::move(callback));
@@ -300,16 +282,6 @@ void RemoteCDMPrivateHandle::setLogIdentifier(uint64_t logIdentifier)
 bool RemoteCDMPrivateHandle::supportsInitData(const String& type, const SharedBuffer& data) const
 {
     return m_private->supportsInitData(type, data);
-}
-
-RefPtr<SharedBuffer> RemoteCDMPrivateHandle::sanitizeResponse(const SharedBuffer& response) const
-{
-    return m_private->sanitizeResponse(response);
-}
-
-std::optional<String> RemoteCDMPrivateHandle::sanitizeSessionId(const String& sessionId) const
-{
-    return m_private->sanitizeSessionId(sessionId);
 }
 
 } // namespace WebKit

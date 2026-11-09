@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
 
+@_spi(WebKitGPU) internal import WebCore
 import WebCoreEME
 import WebKit_Internal
 import wtf
@@ -157,27 +158,19 @@ extension WebKit.RemoteCDMFactoryProxy {
             supportsSessions: false,
             logIdentifier: 0
         )
-        var cxxConfiguration = WebKit.RemoteCDMConfiguration()
-        guard
-            let handle = createCDM(
-                IPCCoding.WTFString.cxxString(keySystem),
-                IPCCoding.WTFString.cxxString(mediaKeysHashSalt),
-                &cxxConfiguration
-            )
-        else {
+        guard let handle = createCDM(IPCCoding.WTFString.cxxString(keySystem), IPCCoding.WTFString.cxxString(mediaKeysHashSalt)) else {
             return (nil, noCDM)
         }
         let state = state
         let cdm = RemoteCDMProxy(factory: state, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
-        let configuration = cdm.configuration(cxxConfiguration)
         let identifier = Self.generateCDMIdentifier()
         state.add(cdm: cdm, identifier: identifier)
-        return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), configuration)
+        return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), cdm.configuration)
     }
 
     @MainActor
     func supportsKeySystem(connection: IPC.Connection, keySystem: String?) -> Bool {
-        ClearKey.supportsKeySystem(keySystem) || supportsKeySystem(IPCCoding.WTFString.cxxString(keySystem))
+        ClearKey.supportsKeySystem(keySystem) || FairPlayCDM.supportsKeySystem(keySystem)
     }
 
     @MainActor
