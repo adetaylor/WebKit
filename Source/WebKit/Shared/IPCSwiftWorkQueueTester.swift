@@ -119,7 +119,11 @@ final class IPCSwiftWorkQueueTester {
         }
     }
 
-    func halveEvenNumberSwift(connection: IPC.Connection, value: UInt32, reply: consuming IPCSwiftWorkQueueTesterHalveEvenNumberSwiftReply) throws(InvalidMessage) {
+    func halveEvenNumberSwift(
+        connection: IPC.Connection,
+        value: UInt32,
+        reply: consuming IPCSwiftWorkQueueTesterHalveEvenNumberSwiftReply
+    ) throws(InvalidMessage) {
         noteDispatch()
         try messageCheck("HalveEvenNumberSwift takes an even number") {
             value.isMultiple(of: 2)

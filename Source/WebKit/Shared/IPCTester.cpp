@@ -917,7 +917,7 @@ static std::atomic<unsigned> liveSwiftWorkQueueTesters;
 
 bool isOnSwiftWorkQueueTesterQueue()
 {
-    return !isMainThread() && swiftWorkQueueTesterQueue().isCurrent();
+    return !isMainRunLoop() && swiftWorkQueueTesterQueue().isCurrent();
 }
 
 void didCreateSwiftWorkQueueTester()
