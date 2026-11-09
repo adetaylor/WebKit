@@ -41,6 +41,7 @@
 // If Swift function parameters or return types depend on C++ types, the
 // relevant headers must be included here.
 #include "AffineTransform.h"
+#include "AudioVideoRendererHost.h"
 #include "CARingBufferSwiftBridge.h"
 #include "CDMInstanceFairPlayStreamingHost.h"
 #include "CGRendererSwiftBridge.h"
@@ -78,7 +79,6 @@
 #include "ShareableBitmapSwiftBridge.h"
 #include "SharedVideoFrameSwiftBridge.h"
 #include "SourceGraphicParameters.h"
-#include "VideoMediaSampleRendererHost.h"
 
 #include "ContainerNode.h"
 #include "Document.h"

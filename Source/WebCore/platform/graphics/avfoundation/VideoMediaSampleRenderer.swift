@@ -21,44 +21,44 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-// The video sample renderer's core: the compressed and decoded sample queues, the decoding decisions, which frame is
-// displayed and when the decoded queue is purged, readiness for more samples, and the playback statistics. It owns
-// the AVSampleBufferVideoRenderer that the renderer's queue enqueues decoded frames into. VideoMediaSampleRenderer.mm
-// keeps the C++ renderer that AudioVideoRendererAVFObjC holds: the clients' callbacks and promises, the observation of
-// the renderer, the main thread's renderer or display layer, the timebase and its purge timer, the decompression
-// session and the logger, which this reaches through VideoMediaSampleRendererHost.
+// The video sample renderer: the compressed and decoded sample queues, the decoding decisions, which frame is displayed
+// and when the decoded queue is purged, readiness for more samples, the playback statistics, the observation of the
+// renderer, and the renderer or display layer with the AVSampleBufferVideoRenderer that its queue enqueues decoded
+// frames into. AudioVideoRendererAVFObjC.swift owns it. It reaches the C++ AudioVideoRendererAVFObjC through
+// AudioVideoRendererHost for the decompression session, the timebase and its purge timer, the resource owner and the
+// logger.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their symbols come from the generated accessors (platform/cocoa/
 // SoftLinkAccessors.in). No AVFoundation class is used where its class object would be needed.
 //
 // Threads: state marked "queue" is the renderer queue's (host.dispatchQueue()); state marked "main" is the main
-// thread's; the rest is atomic or under `lock`, as in the C++ renderer.
+// thread's; the rest is atomic or under a mutex, as in the C++ renderer.
 
 internal import AVFoundation
 internal import CoreMedia
 internal import Synchronization
-import WebCore_Private.Core.VideoMediaSampleRendererHost
+import WebCore_Private.Core.AudioVideoRendererHost
 
 // MediaTime's semantics over CMTime, as PAL's toMediaTime() maps one to the other.
 
-private enum TimeOrdering {
+enum TimeOrdering {
     case less
     case equivalent
     case greater
     case unordered
 }
 
-private let timeValid = CMTimeFlags.valid
-private let timeSpecial: CMTimeFlags = [.positiveInfinity, .negativeInfinity, .indefinite]
+let timeValid = CMTimeFlags.valid
+let timeSpecial: CMTimeFlags = [.positiveInfinity, .negativeInfinity, .indefinite]
 
-private func mediaTimeFlags(_ time: CMTime) -> CMTimeFlags {
+func mediaTimeFlags(_ time: CMTime) -> CMTimeFlags {
     guard time.flags.contains(timeValid) else {
         return []
     }
     return time.flags.intersection([.valid, .positiveInfinity, .negativeInfinity, .indefinite])
 }
 
-private func compareTimes(_ a: CMTime, _ b: CMTime) -> TimeOrdering {
+func compareTimes(_ a: CMTime, _ b: CMTime) -> TimeOrdering {
     let aFlags = mediaTimeFlags(a)
     let bFlags = mediaTimeFlags(b)
     let andFlags = aFlags.intersection(bFlags)
@@ -85,7 +85,7 @@ private func compareTimes(_ a: CMTime, _ b: CMTime) -> TimeOrdering {
     return result < 0 ? .less : (result > 0 ? .greater : .equivalent)
 }
 
-private struct RendererTime {
+struct RendererTime {
     var time: CMTime
 
     static let invalid = RendererTime(time: CMTime(value: 0, timescale: 0, flags: [], epoch: 0))
@@ -146,6 +146,11 @@ private struct RendererTime {
     }
 }
 
+extension RendererTime {
+    static func maximum(_ a: RendererTime, _ b: RendererTime) -> RendererTime { a < b ? b : a }
+    var logDescription: Swift.String { describe(self) }
+}
+
 private func maxTime(_ a: RendererTime, _ b: RendererTime) -> RendererTime { a < b ? b : a }
 private func minTime(_ a: RendererTime, _ b: RendererTime) -> RendererTime { b < a ? b : a }
 
@@ -171,7 +176,7 @@ private struct DecodedSample: @unchecked Sendable {
 
 private struct CompressedSample: @unchecked Sendable {
     let sampleBuffer: CMSampleBuffer
-    let info: WebCore.VideoMediaSampleRendererSampleInfo
+    let info: WebCore.AudioVideoRendererSampleInfo
     let minimumUpcomingTime: RendererTime?
     let flushId: Int32
     // Whether the decompression session was blocked when it was enqueued; or, for a sample already decoded, true.
@@ -202,12 +207,6 @@ private struct RendererPreferences: OptionSet {
     static let useStereoDecoding = RendererPreferences(rawValue: 1 << 3)
 }
 
-// What VideoMediaSampleRendererCore.enqueueSample() leaves to the C++ renderer.
-private enum EnqueueAction: UInt8 {
-    case none = 0
-    case enqueueToRenderer = 1
-}
-
 private func presentationTimeOfDecodedFrame(_ sampleBuffer: CMSampleBuffer) -> RendererTime {
     var time = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
     if !time.flags.contains(timeValid) {
@@ -216,11 +215,29 @@ private func presentationTimeOfDecodedFrame(_ sampleBuffer: CMSampleBuffer) -> R
     return RendererTime(time: time)
 }
 
-// What VideoMediaSampleRenderer.mm calls.
-@_expose(Cxx)
-final class VideoMediaSampleRendererCore: @unchecked Sendable {
-    private let host: WebCore.VideoMediaSampleRendererHost
+// What the video sample renderer tells AudioVideoRendererAVFObjC.swift, on the main thread.
+protocol VideoMediaSampleRendererClient: AnyObject, Sendable {
+    func videoRendererFirstFrameAvailable(_ presentationTime: RendererTime, _ displayTime: Double)
+    func videoRendererHasAvailableVideoFrame(_ presentationTime: RendererTime, _ displayTime: Double)
+    // An error; with the output-obscured state when it is the renderer's external protection that changed.
+    func videoRendererErrorOccurred(hdcpObscured: Bool?)
+    func videoRendererRequiresFlushToResume()
+    func videoRendererReadyForMoreMediaData()
+}
+
+// The renderer the samples go to on the main thread: a display layer or a video renderer, which the C++ renderer made.
+struct VideoMediaSampleMainRenderer {
+    let kind: WebCore.AudioVideoRendererObject
+    let renderer: any QueuedSampleBufferRenderer
+    let videoRenderer: VideoRendererHandle?
+}
+
+final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBufferListenerClient {
+    private let host: WebCore.AudioVideoRendererHost
     private let queue: DispatchQueue
+    let identifier: UInt64
+    private weak var client: (any VideoMediaSampleRendererClient)?
+    private var listener: WebAVSampleBufferListener?
     private let lowWaterMark: RendererTime
     private let highWaterMark: RendererTime
     private let sampleQueueHighWaterMark: Int
@@ -247,6 +264,9 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
     private let startupTime = Mutex<Double>(0)
 
     // Main.
+    private var mainRenderer: VideoMediaSampleMainRenderer?
+    private var needsFlushing = false
+    private var requestMediaDataPending = false
     private var decompressionSessionBlocked = false
     private var droppedVideoFramesOffset: UInt32 = 0
     private var sampleCount: UInt32 = 0
@@ -254,7 +274,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
     private var copiedPresentationTime = RendererTime.invalid
 
     // Queue.
-    private var renderer: (any SampleBufferRenderer)?
+    private var renderer: VideoRendererHandle?
     private var compressedSampleQueue: [CompressedSample] = []
     private var decodedSampleQueue: [DecodedSample] = []
     private var decompressionSessionWasBlocked = false
@@ -276,22 +296,38 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
     private var decodingFlags = DecodingFlags()
     private var decodingNumberOfSamples = 0
 
-    // The renderer is the AVSampleBufferVideoRenderer of the C++ renderer's renderer or display layer, or nil. It is
-    // borrowed.
-    @_expose(Cxx)
-    init(_ host: WebCore.VideoMediaSampleRendererHost, _ renderer: borrowing NSObject?, _ decodeWindow: WebCore.VideoMediaSampleRendererDecodeWindow) {
+    init(host: WebCore.AudioVideoRendererHost, configuration: WebCore.AudioVideoRendererConfiguration, identifier: UInt64, client: any VideoMediaSampleRendererClient, mainRenderer: VideoMediaSampleMainRenderer?) {
         self.host = host
         queue = host.dispatchQueue()
-        lowWaterMark = RendererTime(time: decodeWindow.lowWaterMark)
-        highWaterMark = RendererTime(time: decodeWindow.highWaterMark)
-        sampleQueueHighWaterMark = decodeWindow.sampleQueueHighWaterMark
-        sampleQueueLowWaterMark = decodeWindow.sampleQueueLowWaterMark
-        self.renderer = rendererHandle(copy renderer)
+        self.identifier = identifier
+        self.client = client
+        lowWaterMark = RendererTime(time: configuration.lowWaterMark)
+        highWaterMark = RendererTime(time: configuration.highWaterMark)
+        sampleQueueHighWaterMark = configuration.sampleQueueHighWaterMark
+        sampleQueueLowWaterMark = configuration.sampleQueueLowWaterMark
+        self.mainRenderer = mainRenderer
+        renderer = mainRenderer?.videoRenderer
+        let listener = WebAVSampleBufferListener(client: self)
+        self.listener = listener
+        if let mainRenderer {
+            listener.beginObservingVideoRenderer(mainRenderer.renderer.object)
+        }
+    }
+
+    // Before the core goes away, as the C++ renderer's destructor did.
+    func invalidate() {
+        assertOnMain()
+        if let mainRenderer {
+            listener?.stopObservingVideoRenderer(mainRenderer.renderer.object)
+        }
+        shutdown()
+        listener?.invalidate()
+        listener = nil
     }
 
     // MARK: Logging
 
-    private func log(_ level: WebCore.VideoMediaSampleRendererLogLevel, _ message: @autoclosure () -> Swift.String) {
+    private func log(_ level: WebCore.AudioVideoRendererLogLevel, _ message: @autoclosure () -> Swift.String) {
         guard host.willLog(level) else {
             return
         }
@@ -338,9 +374,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         counter.wrappingAdd(amount, ordering: .sequentiallyConsistent)
     }
 
-    // MARK: State, for the C++ renderer (main thread)
+    // MARK: State (main thread)
 
-    @_expose(Cxx)
     func setPreferences(_ rawValue: UInt8) {
         assertOnMain()
         if preferences.rawValue == rawValue || isUsingDecompressionSession() {
@@ -353,7 +388,6 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         RendererPreferences(rawValue: preferencesValue.load(ordering: .sequentiallyConsistent))
     }
 
-    @_expose(Cxx)
     func prefersDecompressionSession() -> Bool {
         preferences.contains(.prefersDecompressionSession)
     }
@@ -362,42 +396,34 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
     private var useDecompressionSessionForProtectedFallback: Bool { useDecompressionSessionForProtectedContent || preferences.contains(.protectedFallbackDisabled) }
     private var useStereoDecoding: Bool { preferences.contains(.useStereoDecoding) }
 
-    @_expose(Cxx)
     func isUsingDecompressionSession() -> Bool {
         isUsingDecompressionSessionValue.load(ordering: .sequentiallyConsistent)
     }
 
-    @_expose(Cxx)
     func isReceivingDecodedSamples() -> Bool {
         lastEnqueuedSampleWasDecodedValue.load(ordering: .sequentiallyConsistent)
     }
 
-    @_expose(Cxx)
     func managesDecodedFrames() -> Bool {
         isUsingDecompressionSession() || isReceivingDecodedSamplesValue.load(ordering: .sequentiallyConsistent)
     }
 
-    @_expose(Cxx)
     func areSamplesQueuesReadyForMoreMediaData() -> Bool {
         compressedSamplesCount <= sampleQueueHighWaterMark
     }
 
-    @_expose(Cxx)
     func setHasResourceOwner(_ hasResourceOwner: Bool) {
         hasResourceOwnerValue.store(hasResourceOwner, ordering: .sequentiallyConsistent)
     }
 
-    @_expose(Cxx)
     func setNotifyWhenHasAvailableVideoFrame(_ notify: Bool) {
         notifyWhenHasAvailableVideoFrameValue.store(notify, ordering: .sequentiallyConsistent)
     }
 
-    @_expose(Cxx)
     func secondsSinceFirstSample() -> Double {
         secondsSinceStartup()
     }
 
-    @_expose(Cxx)
     func totalDisplayedFrames() -> UInt32 {
         assertOnMain()
         if managesDecodedFrames() {
@@ -407,29 +433,72 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         return sampleCount
     }
 
-    @_expose(Cxx)
-    func metrics() -> WebCore.VideoMediaSampleRendererMetrics {
-        WebCore.VideoMediaSampleRendererMetrics(
+    func metrics() -> WebCore.AudioVideoRendererVideoMetrics {
+        WebCore.AudioVideoRendererVideoMetrics(
             totalVideoFrames: totalVideoFramesValue.load(ordering: .sequentiallyConsistent),
             droppedVideoFrames: droppedVideoFramesValue.load(ordering: .sequentiallyConsistent),
             corruptedVideoFrames: corruptedVideoFramesValue.load(ordering: .sequentiallyConsistent),
             presentedVideoFrames: presentedVideoFramesValue.load(ordering: .sequentiallyConsistent),
             droppedVideoFramesOffset: droppedVideoFramesOffset,
             totalFrameDelay: 0,
+            rendererObject: mainRenderer?.kind.rawValue ?? 0,
+            hasVideoRenderer: true,
+            hasRenderer: mainRenderer != nil,
+            managesDecodedFrames: managesDecodedFrames(),
+            usingDecompressionSession: isUsingDecompressionSession(),
             decompressionSessionBlocked: decompressionSessionBlocked
         )
     }
 
+    var mainRendererKind: WebCore.AudioVideoRendererObject? { mainRenderer?.kind }
+
+    var mainRendererObject: NSObject? { mainRenderer?.renderer.object }
+
     // MARK: Renderer
 
-    // On the queue, for changeRenderer().
-    @_expose(Cxx)
-    func changeRendererOnQueue(_ newRenderer: NSObject?) {
+    // Then completion, on the main thread.
+    func changeRenderer(_ newMainRenderer: VideoMediaSampleMainRenderer?, completion: @escaping @Sendable () -> Void) {
+        log(.Always, "VideoMediaSampleRenderer::changeRenderer")
+        assertOnMain()
+
+        let previousRenderer = mainRenderer?.renderer
+        let videoRenderer = newMainRenderer?.videoRenderer
+        let previousVideoRenderer = mainRenderer?.videoRenderer
+        if previousVideoRenderer?.renderer === videoRenderer?.renderer {
+            DispatchQueue.main.async(execute: completion)
+            return
+        }
+
+        if let previousRenderer {
+            listener?.stopObservingVideoRenderer(previousRenderer.object)
+        }
+        if let newMainRenderer {
+            listener?.beginObservingVideoRenderer(newMainRenderer.renderer.object)
+        }
+        mainRenderer = newMainRenderer
+
+        if !managesDecodedFrames() {
+            if let previousRenderer {
+                previousRenderer.flush()
+                previousRenderer.stopRequestingMediaData()
+            }
+            if newMainRenderer != nil {
+                resetReadyForMoreMediaData()
+            }
+        }
+
+        let box = VideoRendererBox(handle: videoRenderer)
+        queue.async { [weak self] in
+            self?.changeRendererOnQueue(box.handle)
+            DispatchQueue.main.async(execute: completion)
+        }
+    }
+
+    private func changeRendererOnQueue(_ videoRenderer: VideoRendererHandle?) {
         assertOnQueue()
-        let videoRenderer = rendererHandle(newRenderer)
         if let previousRenderer = renderer {
-            previousRenderer.flush()
-            previousRenderer.stopRequestingMediaData()
+            previousRenderer.queued.flush()
+            previousRenderer.queued.stopRequestingMediaData()
         }
         renderer = videoRenderer
         if !managesDecodedFrames() {
@@ -438,7 +507,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         purgeDecodedSampleQueue(flushId)
         if let videoRenderer {
             for sample in decodedSampleQueue {
-                videoRenderer.enqueue(sample.sampleBuffer)
+                videoRenderer.queued.enqueue(sample.sampleBuffer)
             }
         }
         waitingForMoreMediaData = false
@@ -449,12 +518,12 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
 
     private func maybeBecomeReadyForMoreMediaData() {
         assertOnQueue()
-        if let renderer, !renderer.isReadyForMoreMediaData {
+        if let renderer = renderer?.queued, !renderer.isReadyForMoreMediaData {
             if waitingForMoreMediaData {
                 return
             }
             waitingForMoreMediaData = true
-            let weakRenderer = renderer.weakReference()
+            let weakRenderer = WeakQueuedSampleBufferRenderer(renderer)
             renderer.requestMediaDataWhenReady(on: queue) { [weak self] in
                 weakRenderer.stopRequestingMediaData()
                 guard let self else {
@@ -480,42 +549,89 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
                 return
             }
             self.waitingForMoreMediaDataPendingValue.store(false, ordering: .sequentiallyConsistent)
-            self.host.requestMediaDataResolved()
+            self.resolveRequestMediaDataIfNeeded()
         }
     }
 
-    // For resetReadyForMoreMediaData(), when the queue decides.
-    @_expose(Cxx)
-    func checkReadyForMoreMediaData() {
+    private func checkReadyForMoreMediaData() {
         queue.async { [weak self] in
             self?.maybeBecomeReadyForMoreMediaData()
         }
     }
 
-    @_expose(Cxx)
-    func stopRequestingMediaData() {
-        // stopRequestingMediaData may deadlock if used on the main thread while enqueuing on the queue.
-        queue.async { [weak self] in
-            guard let self else {
-                return
-            }
-            self.waitingForMoreMediaData = false
-            self.renderer?.stopRequestingMediaData()
+    private func resolveRequestMediaDataIfNeeded() {
+        assertOnMain()
+        if !requestMediaDataPending {
+            return
         }
+        requestMediaDataPending = false
+        client?.videoRendererReadyForMoreMediaData()
+    }
+
+    func isReadyForMoreMediaData() -> Bool {
+        assertOnMain()
+        return areSamplesQueuesReadyForMoreMediaData() && (mainRenderer.map { $0.renderer.isReadyForMoreMediaData } ?? true)
+    }
+
+    // Then the client hears videoRendererReadyForMoreMediaData().
+    func requestMediaDataWhenReady() {
+        assertOnMain()
+        requestMediaDataPending = true
+        resetReadyForMoreMediaData()
+    }
+
+    private func resetReadyForMoreMediaData() {
+        assertOnMain()
+        guard let mainRenderer, !managesDecodedFrames() else {
+            checkReadyForMoreMediaData()
+            return
+        }
+        if !requestMediaDataPending {
+            return
+        }
+        let weakRenderer = WeakQueuedSampleBufferRenderer(mainRenderer.renderer)
+        mainRenderer.renderer.requestMediaDataWhenReady(on: .main) { [weak self] in
+            weakRenderer.stopRequestingMediaData()
+            self?.resolveRequestMediaDataIfNeeded()
+        }
+    }
+
+    func stopRequestingMediaData() {
+        assertOnMain()
+        requestMediaDataPending = false
+        if managesDecodedFrames() {
+            // stopRequestingMediaData may deadlock if used on the main thread while enqueuing on the queue.
+            queue.async { [weak self] in
+                guard let self else {
+                    return
+                }
+                self.waitingForMoreMediaData = false
+                self.renderer?.queued.stopRequestingMediaData()
+            }
+            return
+        }
+        mainRenderer?.renderer.stopRequestingMediaData()
     }
 
     // MARK: Enqueuing (main thread)
 
-    // Returns an EnqueueAction.
-    @_expose(Cxx)
-    func enqueueSample(_ sampleBuffer: CMSampleBuffer, _ info: WebCore.VideoMediaSampleRendererSampleInfo, _ hasMinimumUpcomingTime: Bool, _ minimumUpcomingTime: CMTime, _ hasRenderer: Bool) -> UInt8 {
+    func enqueueSample(_ sampleBuffer: CMSampleBuffer, _ info: WebCore.AudioVideoRendererSampleInfo) {
         assertOnMain()
-        let minimumUpcoming = hasMinimumUpcomingTime ? RendererTime(time: minimumUpcomingTime) : nil
+        log(.Debug, "VideoMediaSampleRenderer::enqueueSample presentationTime: \(describe(RendererTime(time: info.presentationTime)))")
+
+        if needsFlushing {
+            // The client resubmits samples once it has flushed.
+            log(.Debug, "VideoMediaSampleRenderer::enqueueSample Dropping sample, waiting for flush")
+            return
+        }
+
+        let minimumUpcoming = info.hasMinimumUpcomingTime ? RendererTime(time: info.minimumUpcomingTime) : nil
+        let hasRenderer = mainRenderer != nil
 
         if info.hasImageBuffer {
             lastEnqueuedSampleWasDecodedValue.store(true, ordering: .sequentiallyConsistent)
             enqueueAlreadyDecodedSample(sampleBuffer, info)
-            return EnqueueAction.none.rawValue
+            return
         }
         lastEnqueuedSampleWasDecodedValue.store(false, ordering: .sequentiallyConsistent)
 
@@ -536,7 +652,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
 
         if !isUsingDecompressionSession() {
             if !isReceivingDecodedSamplesValue.load(ordering: .sequentiallyConsistent) {
-                return EnqueueAction.enqueueToRenderer.rawValue
+                mainRenderer?.renderer.enqueue(sampleBuffer)
+                return
             }
 
             // Decoded samples reach the renderer from the queue, so compressed samples follow the same path to stay behind them.
@@ -551,16 +668,16 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
                 if sampleFlushId == self.flushId {
                     self.increment(self.totalVideoFramesValue)
                     self.increment(self.presentedVideoFramesValue)
-                    self.renderer?.enqueue(sample.sampleBuffer)
+                    self.renderer?.queued.enqueue(sample.sampleBuffer)
                 }
                 self.maybeBecomeReadyForMoreMediaData()
             }
-            return EnqueueAction.none.rawValue
+            return
         }
 
         if !useDecompressionSessionForProtectedFallback && !decompressionSessionBlocked && info.isProtected {
             decompressionSessionBlocked = true
-            let numberOfDroppedVideoFrames = host.rendererDroppedVideoFrames()
+            let numberOfDroppedVideoFrames = host.rendererDroppedVideoFrames(mainRenderer?.kind ?? .DisplayLayer)
             let dropped = droppedVideoFramesValue.load(ordering: .sequentiallyConsistent)
             if dropped >= numberOfDroppedVideoFrames {
                 droppedVideoFramesOffset = dropped - numberOfDroppedVideoFrames
@@ -583,7 +700,6 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
             self.decodeNextSampleIfNeeded()
             self.compressedSamplesCountValue.store(self.compressedSampleQueue.count, ordering: .sequentiallyConsistent)
         }
-        return EnqueueAction.none.rawValue
     }
 
     private func initializeDecompressionSession() {
@@ -592,7 +708,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         if hasDecompressionSession.withLock({ $0 }) {
             return
         }
-        host.initializeDecompressionSession()
+        host.initializeDecompressionSession(identifier, mainRenderer?.kind.rawValue ?? 0xFF)
         hasDecompressionSession.withLock { $0 = true }
         isUsingDecompressionSessionValue.store(true, ordering: .sequentiallyConsistent)
         noteStartupIfNeeded()
@@ -604,7 +720,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         checkReadyForMoreMediaData()
     }
 
-    private func enqueueAlreadyDecodedSample(_ sampleBuffer: CMSampleBuffer, _ info: WebCore.VideoMediaSampleRendererSampleInfo) {
+    private func enqueueAlreadyDecodedSample(_ sampleBuffer: CMSampleBuffer, _ info: WebCore.AudioVideoRendererSampleInfo) {
         assertOnMain()
         if !isReceivingDecodedSamplesValue.exchange(true, ordering: .sequentiallyConsistent) {
             log(.Always, "VideoMediaSampleRenderer::enqueueAlreadyDecodedSample Receiving decoded samples")
@@ -754,12 +870,11 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
             self.decodingFlags = decodingFlags
             decodingNumberOfSamples = CMSampleBufferGetNumSamples(sample.sampleBuffer)
             decodeStartTime = ProcessInfo.processInfo.systemUptime
-            host.decodeSample(sample.sampleBuffer, decodingFlags.rawValue, sample.flushId)
+            host.decodeSample(sample.sampleBuffer, decodingFlags.rawValue, identifier, sample.flushId)
         }
     }
 
     // On the queue, when the decompression session settles a decodeSample(): its frames, or its error status.
-    @_expose(Cxx)
     func decodeCompleted(_ sampleFlushId: Int32, _ succeeded: Bool, _ status: Int32, _ frames: NSArray?) {
         assertOnQueue()
         let decodingFlags = self.decodingFlags
@@ -782,15 +897,15 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
             // had got. Both mean the session is gone and a flush is what resumes decoding.
             if status == invalidSessionError || status == decoderMalfunctionError {
                 log(.Always, "VideoMediaSampleRenderer::decodeNextSampleIfNeeded VTDecompressionSession got invalidated (\(status)), requesting flush")
-                host.invalidateDecompressionSession()
+                invalidateDecompressionSession()
                 return
             }
 
             gotDecodingErrorValue.store(true, ordering: .sequentiallyConsistent)
             increment(corruptedVideoFramesValue)
 
-            DispatchQueue.main.async { [self] in
-                host.decodingErrorOccurred(status)
+            DispatchQueue.main.async { [weak self] in
+                self?.notifyErrorHasOccurred(hdcpObscured: nil)
             }
             return
         }
@@ -847,7 +962,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
             host.assignResourceOwner(sample.sampleBuffer)
         }
 
-        renderer?.enqueue(sample.sampleBuffer)
+        renderer?.queued.enqueue(sample.sampleBuffer)
 
         if host.hasTimebase() {
             enqueueDecodedSample(sample)
@@ -921,7 +1036,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
                 guard let self, sampleFlushId == self.flushId else {
                     return
                 }
-                self.host.firstFrameAvailable(presentationTime.time, displayTime)
+                self.client?.videoRendererFirstFrameAvailable(presentationTime, displayTime)
             }
             notifiedFirstFrameAvailable = true
         }
@@ -933,14 +1048,13 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
             guard let self, sampleFlushId == self.flushId else {
                 return
             }
-            self.host.hasAvailableVideoFrame(presentationTime.time, displayTime)
+            self.client?.videoRendererHasAvailableVideoFrame(presentationTime, displayTime)
         }
     }
 
     // MARK: Purging (queue)
 
     // On the queue, when the purge timer fires or the effective rate becomes non-zero.
-    @_expose(Cxx)
     func purgeDecodedSampleQueue() {
         purgeDecodedSampleQueue(flushId)
     }
@@ -1073,17 +1187,28 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         hasReachedHighWatermark = false
     }
 
-    // flush() when the renderer manages decoded frames: after the C++ renderer flushed its renderer and cancelled the
-    // purge timer, flushCompressedSamples(), then the decompression session's flush, then flushDecodedSamples().
-    @_expose(Cxx)
-    func flushCompressedSamples() {
-        assertOnMain()
-        flushCompressedSampleQueue()
+    private func cancelTimer() {
+        if host.hasTimebase() {
+            host.setPurgeTimerFireTime(RendererTime.invalid.time)
+        }
     }
 
-    @_expose(Cxx)
-    func flushDecodedSamples() {
+    func flush() {
         assertOnMain()
+
+        needsFlushing = false
+
+        mainRenderer?.renderer.flush()
+
+        if !managesDecodedFrames() {
+            resetReadyForMoreMediaData()
+            return
+        }
+
+        cancelTimer()
+        flushCompressedSampleQueue()
+
+        host.flushDecompressionSession()
         queue.async { [weak self] in
             guard let self else {
                 return
@@ -1095,26 +1220,116 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         }
     }
 
-    // shutdown(), after the C++ renderer cleared the timebase and flushed its renderer.
-    @_expose(Cxx)
     func shutdown() {
         assertOnMain()
+
+        requestMediaDataPending = false
+        host.setVideoRendererTimebase(false, identifier)
+        mainRenderer?.renderer.flush()
+        cancelTimer()
         flushCompressedSampleQueue()
         hasDecompressionSession.withLock { $0 = false }
+        host.shutDownDecompressionSession()
+
+        if let renderer = mainRenderer?.renderer {
+            renderer.flush()
+            renderer.stopRequestingMediaData()
+        }
+
+        if managesDecodedFrames(), let videoRenderer = mainRenderer?.videoRenderer {
+            // stopRequestingMediaData may deadlock if used on the main thread while enqueuing on the queue.
+            let box = VideoRendererBox(handle: videoRenderer)
+            queue.async {
+                box.handle?.queued.stopRequestingMediaData()
+            }
+        }
     }
 
-    // invalidateDecompressionSession(), after the C++ renderer invalidated the session: drops the samples already queued
-    // for it.
-    @_expose(Cxx)
-    func decompressionSessionInvalidated() {
+    // On the main thread or the queue. Drops the samples already queued for the session, and asks for a flush.
+    func invalidateDecompressionSession() {
+        host.invalidateDecompressionSession(identifier)
         hasDecompressionSession.withLock { $0 = false }
         flushIdValue.wrappingAdd(1, ordering: .sequentiallyConsistent)
+        onMainThread { [weak self] in
+            self?.notifyVideoRendererRequiresFlushToResumeDecoding()
+        }
+    }
+
+    func expectMinimumUpcomingSampleBufferPresentationTime(_ time: CMTime) {
+        assertOnMain()
+        guard let mainRenderer, !managesDecodedFrames() else {
+            return
+        }
+        host.expectMinimumUpcomingPresentationTime(mainRenderer.kind, time)
+    }
+
+    // MARK: Errors and the renderer's state (main thread)
+
+    private func notifyErrorHasOccurred(hdcpObscured: Bool?) {
+        log(.Always, "VideoMediaSampleRenderer::notifyErrorHasOccurred")
+        assertOnMain()
+        client?.videoRendererErrorOccurred(hdcpObscured: hdcpObscured)
+    }
+
+    private func notifyVideoRendererRequiresFlushToResumeDecoding() {
+        log(.Always, "VideoMediaSampleRenderer::notifyVideoRendererRequiresFlushToResumeDecoding")
+        assertOnMain()
+        needsFlushing = true
+        client?.videoRendererRequiresFlushToResume()
+    }
+
+    func videoRendererDidReceiveError(_ renderer: NSObject, _ error: NSError?) {
+        assertOnMain()
+        guard renderer === mainRenderer?.renderer.object else {
+            return
+        }
+#if os(iOS) || os(tvOS) || os(visionOS) || os(watchOS)
+        if let mainRenderer, let error {
+            let status = mainRenderer.renderer.status
+            // AVQueuedSampleBufferRenderingStatus.failed / .unknown, AVError.operationInterrupted.
+            if (status == 2 || status == 0) && error.domain == "AVFoundationErrorDomain" && error.code == -11847 {
+                notifyVideoRendererRequiresFlushToResumeDecoding()
+                return
+            }
+            log(.Always, "VideoMediaSampleRenderer::videoRendererDidReceiveError status: \(status) domain: \(error.domain) errorCode: \(error.code)")
+        }
+#endif
+        notifyErrorHasOccurred(hdcpObscured: nil)
+    }
+
+    func videoRendererRequiresFlushToResumeDecodingChanged(_ renderer: NSObject, _ requiresFlush: Bool) {
+        log(.Always, "VideoMediaSampleRenderer::videoRendererRequiresFlushToResumeDecodingChanged requiresFlush:\(requiresFlush)")
+        assertOnMain()
+        guard renderer === mainRenderer?.renderer.object, requiresFlush else {
+            return
+        }
+        notifyVideoRendererRequiresFlushToResumeDecoding()
+    }
+
+    func videoRendererReadyForDisplayChanged(_ renderer: NSObject, _ isReadyForDisplay: Bool) {
+        log(.Always, "VideoMediaSampleRenderer::videoRendererReadyForDisplayChanged isReadyForDisplay:\(isReadyForDisplay)")
+        assertOnMain()
+        guard renderer === mainRenderer?.renderer.object, isReadyForDisplay else {
+            return
+        }
+        if !managesDecodedFrames() {
+            client?.videoRendererFirstFrameAvailable(currentTime(), secondsSinceStartup())
+        }
+    }
+
+    func outputObscuredDueToInsufficientExternalProtectionChanged(_ obscured: Bool) {
+        notifyErrorHasOccurred(hdcpObscured: obscured)
+    }
+
+    func audioRendererDidReceiveError(_ renderer: NSObject, _ error: NSError?) {
+    }
+
+    func audioRendererWasAutomaticallyFlushed(_ renderer: NSObject, _ flushTime: CMTime) {
     }
 
     // MARK: Displayed frame (main thread)
 
     // The decoded sample to display at the current time, or nil; then lastCopiedPresentationTime() is its time.
-    @_expose(Cxx)
     func copyDecodedSample() -> CMSampleBuffer? {
         assertOnMain()
         let (sample, presentationTime): (CMSampleBuffer?, RendererTime) = queue.sync {
@@ -1142,80 +1357,13 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable {
         return sample
     }
 
-    @_expose(Cxx)
     func lastCopiedPresentationTime() -> CMTime {
         copiedPresentationTime.time
     }
 }
 
-// AVSampleBufferVideoRenderer's queue management, which the SDK deprecates in favour of a render synchronizer's sample
-// buffer receivers. The C++ renderer used these methods; the core calls them through this protocol, whose deprecated
-// witnesses keep the deprecation warnings out of its callers.
-private protocol SampleBufferRenderer: Sendable {
-    var isReadyForMoreMediaData: Bool { get }
-    func enqueue(_ sampleBuffer: CMSampleBuffer)
-    func flush()
-    func stopRequestingMediaData()
-    func requestMediaDataWhenReady(on queue: DispatchQueue, using block: @escaping @Sendable () -> Void)
-    func expectMinimumUpcomingSampleBufferPresentationTime(_ time: CMTime)
-    func weakReference() -> WeakVideoRendererHandle
-}
-
-private struct VideoRendererHandle: SampleBufferRenderer, @unchecked Sendable {
-    let renderer: AVSampleBufferVideoRenderer
-
-    @available(*, deprecated)
-    var isReadyForMoreMediaData: Bool { renderer.isReadyForMoreMediaData }
-
-    @available(*, deprecated)
-    func enqueue(_ sampleBuffer: CMSampleBuffer) { renderer.enqueue(sampleBuffer) }
-
-    @available(*, deprecated)
-    func flush() { renderer.flush() }
-
-    @available(*, deprecated)
-    func stopRequestingMediaData() { renderer.stopRequestingMediaData() }
-
-    @available(*, deprecated)
-    func requestMediaDataWhenReady(on queue: DispatchQueue, using block: @escaping @Sendable () -> Void) {
-        renderer.requestMediaDataWhenReady(on: queue, using: block)
-    }
-
-    func expectMinimumUpcomingSampleBufferPresentationTime(_ time: CMTime) {
-#if !os(watchOS)
-        renderer.__expectMinimumUpcomingSampleBufferPresentationTime(time)
-#endif
-    }
-
-    func weakReference() -> WeakVideoRendererHandle {
-        WeakVideoRendererHandle(renderer)
-    }
-}
-
-// The AVSampleBufferVideoRenderer that the C++ renderer passes, if it is one. No generic code over the class: it would
-// need the class object, which WebCore doesn't link.
-private func rendererHandle(_ object: NSObject?) -> (any SampleBufferRenderer)? {
-    if let renderer = AVFoundationClass.cast(object, to: AVFoundationClass.AVSampleBufferVideoRenderer) {
-        return VideoRendererHandle(renderer: renderer)
-    }
-    return nil
-}
-
-// The renderer, weakly, for its own request callback.
-private final class WeakVideoRendererHandle: @unchecked Sendable {
-    weak var renderer: AVSampleBufferVideoRenderer?
-
-    init(_ renderer: AVSampleBufferVideoRenderer) {
-        self.renderer = renderer
-    }
-
-    func stopRequestingMediaData() {
-        guard let renderer else {
-            return
-        }
-        let handle: any SampleBufferRenderer = VideoRendererHandle(renderer: renderer)
-        handle.stopRequestingMediaData()
-    }
+private struct VideoRendererBox: @unchecked Sendable {
+    let handle: VideoRendererHandle?
 }
 
 private let vp8FourCC: FourCharCode = 0x7670_3038 // 'vp08'

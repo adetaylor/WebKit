@@ -75,10 +75,21 @@ member Vision VNRequest setComputeDevice:forComputeStage: func setComputeDevice(
 member Vision VNRecognizedTextObservation topCandidates: func topCandidates(_ maxCandidateCount: Int) -> NSArray
 member Vision VNFaceLandmarkRegion2D pointsInImageOfSize: func pointsInImage(imageSize: CGSize) -> [CGPoint] counted by pointCount
 
-# The video sample renderer (VideoMediaSampleRenderer.swift).
+# The audio and video renderer (AudioVideoRendererAVFObjC.swift, VideoMediaSampleRenderer.swift, WebAVSampleBufferListener.swift).
+class AVFoundation AVSampleBufferAudioRenderer
+class AVFoundation AVSampleBufferDisplayLayer
+class AVFoundation AVSampleBufferRenderSynchronizer
 class AVFoundation AVSampleBufferVideoRenderer
+constant AVFoundation AVSampleBufferAudioRendererFlushTimeKey
+constant AVFoundation AVSampleBufferAudioRendererWasFlushedAutomaticallyNotification as NSNotification.Name
+constant AVFoundation AVSampleBufferDisplayLayerFailedToDecodeNotification as NSNotification.Name
+constant AVFoundation AVSampleBufferDisplayLayerFailedToDecodeNotificationErrorKey
+constant AVFoundation AVSampleBufferDisplayLayerReadyForDisplayDidChangeNotification as NSNotification.Name
+constant AVFoundation AVSampleBufferDisplayLayerRequiresFlushToResumeDecodingDidChangeNotification as NSNotification.Name
+constant AVFoundation AVSampleBufferVideoRendererDidFailToDecodeNotification as NSNotification.Name
+constant AVFoundation AVSampleBufferVideoRendererRequiresFlushToResumeDecodingDidChangeNotification as NSNotification.Name
+function CoreMedia CMClockMakeHostTimeFromSystemUnits
 function CoreMedia CMFormatDescriptionGetMediaSubType
-function CoreMedia CMFormatDescriptionGetMediaType
 function CoreMedia CMSampleBufferGetFormatDescription
 function CoreMedia CMSampleBufferGetNumSamples
 function CoreMedia CMSampleBufferGetOutputPresentationTimeStamp
@@ -86,3 +97,5 @@ function CoreMedia CMSampleBufferGetPresentationTimeStamp
 function CoreMedia CMTimeAdd
 function CoreMedia CMTimeCompare
 function CoreMedia CMTimeGetSeconds
+function CoreMedia CMTimebaseGetEffectiveRate
+function CoreMedia CMTimebaseGetTime

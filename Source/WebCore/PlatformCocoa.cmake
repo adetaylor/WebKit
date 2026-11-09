@@ -438,7 +438,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/avfoundation/MediaPlaybackTargetCocoa.mm
     platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.cpp
     platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
-    platform/graphics/avfoundation/WebAVSampleBufferListener.mm
 
     platform/graphics/avfoundation/objc/AVAssetTrackUtilities.mm
     platform/graphics/avfoundation/objc/AudioTrackPrivateAVFObjC.mm
@@ -1303,6 +1302,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     platform/graphics/avfoundation/AudioSourceProviderAVFObjC.h
     platform/graphics/avfoundation/AudioVideoRendererAVFObjC.h
+    platform/graphics/avfoundation/AudioVideoRendererHost.h
     platform/graphics/avfoundation/CDMFairPlayStreaming.h
     platform/graphics/avfoundation/CDMInstanceFairPlayStreamingHost.h
     platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.h
@@ -1311,7 +1311,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/avfoundation/MediaPlaybackTargetCocoa.h
     platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.h
     platform/graphics/avfoundation/SampleBufferDisplayLayer.h
-    platform/graphics/avfoundation/WebAVSampleBufferListener.h
     platform/graphics/avfoundation/WebMediaSessionManagerMac.h
 
     platform/graphics/avfoundation/objc/AVAssetMIMETypeCache.h
@@ -1382,7 +1381,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/cocoa/SystemFontDatabaseCoreText.h
     platform/graphics/cocoa/TextTrackRepresentationCocoa.h
     platform/graphics/cocoa/VP9UtilitiesCocoa.h
-    platform/graphics/cocoa/VideoMediaSampleRendererHost.h
     platform/graphics/cocoa/VideoTargetFactory.h
     platform/graphics/cocoa/WebActionDisablingCALayerDelegate.h
     platform/graphics/cocoa/WebCoreCALayerExtras.h

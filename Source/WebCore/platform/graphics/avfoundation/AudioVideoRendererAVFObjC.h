@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2023 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,12 +26,12 @@
 
 #pragma once
 
+#include <CoreMedia/CMTime.h>
 #include <WebCore/AudioVideoRenderer.h>
 #include <WebCore/PeriodicSharedTimer.h>
 #include <WebCore/PlatformDynamicRangeLimit.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/TrackInfo.h>
-#include <WebCore/WebAVSampleBufferListener.h>
 #include <wtf/Deque.h>
 #include <wtf/Forward.h>
 #include <wtf/Function.h>
@@ -41,29 +42,40 @@
 #include <wtf/RetainPtr.h>
 #include <wtf/StdUnorderedMap.h>
 #include <wtf/ThreadSafeWeakPtr.h>
+#include <wtf/darwin/DispatchOSObject.h>
 
 OBJC_CLASS AVSampleBufferAudioRenderer;
 OBJC_CLASS AVSampleBufferDisplayLayer;
 OBJC_CLASS AVSampleBufferRenderSynchronizer;
 OBJC_CLASS AVSampleBufferVideoRenderer;
+OBJC_CLASS NSObject;
 OBJC_PROTOCOL(WebSampleBufferVideoRendering);
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
+typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
 
 namespace WebCore {
 
+class AudioVideoRendererHost;
 class CDMInstanceFairPlayStreamingAVFObjC;
 class CDMSessionAVContentKeySession;
 class EffectiveRateChangedListener;
+class FrameRateMonitor;
 class MediaSample;
 class NativeImage;
 class PixelBufferConformerCV;
 class SharedTimebase;
 class VideoLayerManagerObjC;
-class VideoMediaSampleRenderer;
+class WebCoreDecompressionSession;
+enum class AudioVideoRendererBlockedSamples : uint8_t;
+enum class AudioVideoRendererLogLevel : uint8_t;
+enum class AudioVideoRendererObject : uint8_t;
 
+// The C++ side of the audio and video renderer: what AudioVideoRenderer's clients call. The tracks, the synchronizer's
+// rate and time, seeking, readiness and the video sample renderer are AudioVideoRendererAVFObjC.swift's; this keeps the
+// clients' callbacks and promises, the shared timebase, the synchronizer and the renderers it makes and configures,
+// the layer manager, content keys, and the video renderer's decompression session and purge timer.
 class AudioVideoRendererAVFObjC
     : public AudioVideoRenderer
-    , public WebAVSampleBufferListenerClient
     , public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AudioVideoRendererAVFObjC, WTF::DestructionThread::Main>
     , private PeriodicSharedTimer::Client
     , private LoggerHelper {
@@ -71,8 +83,8 @@ class AudioVideoRendererAVFObjC
 public:
     WEBCORE_EXPORT static Ref<AudioVideoRendererAVFObjC> create(const Logger&, uint64_t logIdentifier);
     WEBCORE_EXPORT static Ref<AudioVideoRendererAVFObjC> create(const Logger&, uint64_t logIdentifier, UniqueRef<SharedTimebase>&&);
-
     ~AudioVideoRendererAVFObjC();
+
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
 
     void shutdown() final;
@@ -122,10 +134,8 @@ public:
     void setVolume(float) final;
     void setMuted(bool) final;
     void setPreservesPitchAndCorrectionAlgorithm(bool, std::optional<PitchCorrectionAlgorithm>) final;
-    void setAudioTimePitchAlgorithm(AVSampleBufferAudioRenderer *, NSString *) const;
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     void setOutputDeviceId(const String&) final;
-    void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
 #endif
 
     // VideoInterface
@@ -161,56 +171,68 @@ public:
     void isInFullscreenOrPictureInPictureChanged(bool) final;
 
 private:
+    friend class AudioVideoRendererHost;
+
     WEBCORE_EXPORT AudioVideoRendererAVFObjC(const Logger&, uint64_t, std::unique_ptr<SharedTimebase>&&);
 
-    NODELETE MediaTime clampTimeToLastSeekTime(const MediaTime&) const;
-    NODELETE void setTimeFloor(const MediaTime&);
-    void maybeCompleteSeek();
-    bool shouldBePlaying() const;
-    bool allRenderersHaveAvailableSamples() const { return m_allRenderersHaveAvailableSamples; }
-    void updateAllRenderersHaveAvailableSamples();
-    void setHasAvailableVideoFrame(bool);
-    void setHasAvailableAudioSample(TrackIdentifier, bool);
-
-    NODELETE std::optional<TrackType> typeOf(TrackIdentifier) const;
-
-    void addAudioRenderer(TrackIdentifier);
-    void removeAudioRenderer(TrackIdentifier);
-    void destroyAudioRenderers();
-    void destroyAudioRenderer(RetainPtr<AVSampleBufferAudioRenderer>);
-    RetainPtr<AVSampleBufferAudioRenderer> audioRendererFor(TrackIdentifier) const;
-    void applyOnAudioRenderers(NOESCAPE const Function<void(AVSampleBufferAudioRenderer *)>&) const;
-
-    Ref<GenericPromise> updateDisplayLayerIfNeeded();
-    NODELETE bool shouldEnsureLayerOrVideoRenderer() const;
-    NODELETE WebSampleBufferVideoRendering *layerOrVideoRenderer() const;
-    Ref<GenericPromise> ensureLayerOrVideoRenderer();
-    void ensureLayer();
-    void destroyLayer();
-    NODELETE void ensureVideoRenderer();
-    NODELETE void destroyVideoRenderer();
-    NODELETE void destroyExpiringVideoRenderersIfNeeded();
-    Ref<GenericPromise> setVideoRenderer(WebSampleBufferVideoRendering *);
-    void configureHasAvailableVideoFrameCallbackIfNeeded();
-    void configureLayerOrVideoRenderer(WebSampleBufferVideoRendering *);
-    Ref<GenericPromise> stageVideoRenderer(WebSampleBufferVideoRendering *);
-    void destroyVideoTrack();
-    void removeRendererFromSynchronizerIfNeeded(id);
-
-    enum class AcceleratedVideoMode: uint8_t {
-        Layer = 0,
-        VideoRenderer,
-    };
-    NODELETE AcceleratedVideoMode acceleratedVideoMode() const;
-
     void notifyError(PlatformMediaError);
-    // WebAVSampleBufferListenerClient
-    void audioRendererDidReceiveError(AVSampleBufferAudioRenderer *, NSError *) final;
-    void audioRendererWasAutomaticallyFlushed(AVSampleBufferAudioRenderer *, const CMTime&) final;
-
+    String toString(TrackIdentifier) const;
+    std::optional<TrackType> typeOf(TrackIdentifier) const;
+    void periodicSharedTimerFired() final;
+    void applyAudioTimePitchAlgorithm(AVSampleBufferAudioRenderer *) const;
+#if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
+    void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
+#endif
 #if HAVE(SPATIAL_TRACKING_LABEL)
     void setSpatialTrackingInfo(bool prefersSpatialAudioExperience, SoundStageSize, const String& sceneIdentifier, const String& defaultLabel, const String& label) final;
+#endif
     void updateSpatialTrackingLabel();
+
+    struct DisplayedPixelBuffer {
+        RetainPtr<CVPixelBufferRef> pixelBuffer;
+        MediaTime presentationTimeStamp;
+    };
+    DisplayedPixelBuffer copyDisplayedPixelBuffer() const;
+    void setNeedsPlaceholderImage(bool);
+
+    // What AudioVideoRendererHost calls.
+    NSObject *renderingObject(AudioVideoRendererObject, uint64_t trackIdentifier) const;
+    bool createRenderingObject(AudioVideoRendererObject, uint64_t trackIdentifier);
+    void destroyRenderingObject(AudioVideoRendererObject, uint64_t trackIdentifier);
+    void expireVideoRendererForTarget();
+    void destroyExpiringVideoRenderers();
+    bool addToSynchronizer(AudioVideoRendererObject, uint64_t trackIdentifier);
+    void removeFromSynchronizer(AudioVideoRendererObject, uint64_t trackIdentifier);
+    void setVideoRendererTimebase(bool, uint64_t rendererIdentifier);
+    bool hasVideoRendererTimebase() const;
+    void setVideoRendererPurgeTimerFireTime(CMTime);
+    void initializeDecompressionSession(uint64_t rendererIdentifier, uint8_t rendererObject);
+    RefPtr<WebCoreDecompressionSession> decompressionSession() const;
+    void decodeSample(CMSampleBufferRef, uint8_t decodingFlags, uint64_t rendererIdentifier, int32_t flushId);
+    void invalidateDecompressionSession(std::optional<uint64_t> rendererIdentifier);
+    double updateFrameRateMonitor();
+    void assignResourceOwner(CMSampleBufferRef);
+    uint32_t rendererDroppedVideoFrames(AudioVideoRendererObject) const;
+    void expectMinimumUpcomingPresentationTime(AudioVideoRendererObject, CMTime);
+    void removeBlockedSamples(AudioVideoRendererBlockedSamples, uint64_t trackIdentifier);
+    void setSharedTimerActive(bool);
+    void storeSharedTimebaseSnapshot(CMTime, double playbackRate);
+    bool willLog(AudioVideoRendererLogLevel) const;
+    void log(AudioVideoRendererLogLevel, std::span<const uint8_t>) const;
+
+    void mediaDataRequestSettled(bool isVideo, uint64_t trackIdentifier, bool resolved);
+    void seekSettled(bool resolved);
+    void timeReached();
+    void performTask(CMTime);
+    void timeObserverFired(CMTime);
+    void audioRendererWasFlushed(uint64_t trackIdentifier, CMTime);
+    void hdcpStatusChanged(bool obscured);
+    void videoTargetSettled(bool resolved);
+
+#if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
+    void tryToEnqueueBlockedSamples();
+    bool canEnqueueSample(TrackIdentifier, const MediaSample&);
+    void attachContentKeyToSampleIfNeeded(const MediaSample&);
 #endif
 
 #if HAVE(AVCONTENTKEYSESSION)
@@ -225,81 +247,22 @@ private:
 #endif
 #endif
 
-    void setSynchronizerRate(float, std::optional<MonotonicTime>);
-    // Returns the rate we last passed to [m_synchronizer setRate:]. Cached
-    // because [m_synchronizer rate] is heavy (dispatch_sync), and querying
-    // it can interact poorly with AVF's internal serialization of rate
-    // changes. The cached value reflects the rate we set, not the actual
-    // timebase rate.
-    float synchronizerRate() const { return m_lastSetSyncRate; }
-    void handleEffectiveRateChanged(double);
-    void releaseStartupGateAndForwardRate();
-    void cancelStartupGateObserver();
-    void updateSharedTimebase();
-    void publishSnapshot(MediaTime currentTime, double playbackRate);
-    void periodicSharedTimerFired() final;
-    bool updateLastPixelBuffer();
-    void maybePurgeLastPixelBuffer();
-    void setNeedsPlaceholderImage(bool);
-
-    NODELETE bool isEnabledVideoTrackId(TrackIdentifier) const;
-    NODELETE bool hasSelectedVideo() const;
-    void flushVideo();
-    void flushAudio();
-    void flushAudioTrack(TrackIdentifier);
-    void removeBlockedSamples(NOESCAPE const Function<bool(TrackIdentifier)>& = { });
-    void notifyRequiresFlushToResume();
-    void requestVideoDataWhenReady(TrackIdentifier);
-    void cancelVideoDataRequest();
-    void clearReadyToRequestVideoData();
-    void requestAudioDataWhenReady(TrackIdentifier);
-    void setReadyToRequestVideoData();
-    void setReadyToRequestAudioData(TrackIdentifier);
-
-    void cancelSeekingPromiseIfNeeded();
-    void cancelPerformTaskAtTimeObserverIfNeeded();
-
-    NODELETE bool canUseDecompressionSession() const;
-    NODELETE bool isUsingDecompressionSession() const;
-    NODELETE bool isReceivingDecodedSamples() const;
-    NODELETE bool willUseDecompressionSessionIfNeeded() const;
-
-    void sizeWillChangeAtTime(const MediaTime&, const FloatSize&);
-    void flushPendingSizeChanges();
-
-#if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
-    void tryToEnqueueBlockedSamples();
-    bool canEnqueueSample(TrackIdentifier, const MediaSample&);
-    void attachContentKeyToSampleIfNeeded(const MediaSample&);
-#endif
-
     // Logger
     const Logger& logger() const final { return m_logger.get(); }
     ASCIILiteral logClassName() const final { return "AudioVideoRendererAVFObjC"_s; }
     uint64_t logIdentifier() const final { return m_logIdentifier; }
     WTFLogChannel& logChannel() const final;
 
-    enum SeekState {
-        Seeking,
-        WaitingForAvailableFame,
-        SeekCompleted,
-    };
-    struct AudioTrackProperties {
-        bool hasAudibleSample { false };
-        bool readyToRequestAudioData { true };
-        std::unique_ptr<RequestPromise::AutoRejectProducer> requestPromise;
-        Function<void(TrackIdentifier, const MediaTime&)> callbackForReenqueuing;
-    };
-    NODELETE AudioTrackProperties& audioTrackPropertiesFor(TrackIdentifier);
-
-    String toString(TrackIdentifier) const;
-    String toString(SeekState) const;
-
     const Ref<const Logger> m_logger;
     const uint64_t m_logIdentifier;
     const UniqueRef<VideoLayerManagerObjC> m_videoLayerManager;
     const RetainPtr<AVSampleBufferRenderSynchronizer> m_synchronizer;
-    const Ref<WebAVSampleBufferListener> m_listener;
+    const std::unique_ptr<SharedTimebase> m_sharedTimebase;
+
+    struct Core;
+    std::unique_ptr<Core> m_core;
+
+    bool m_isShutdown { false };
 
     Function<void(PlatformMediaError)> m_errorCallback;
     Function<void()> m_firstFrameAvailableCallback;
@@ -307,22 +270,22 @@ private:
     Function<void()> m_notifyWhenRequiresFlushToResume;
     Function<void()> m_renderingModeChangedCallback;
     Function<void(const MediaTime&, FloatSize)> m_sizeChangedCallback;
+    Function<void(double)> m_effectiveRateChangedCallback;
+    Function<void(const MediaTime&)> m_performTask;
+    Function<void(const MediaTime&)> m_timeObserverCallback;
+    HashMap<uint64_t, Function<void(TrackIdentifier, const MediaTime&)>> m_reenqueueCallbacks;
 
-    RetainPtr<id> m_currentTimeObserver;
     std::optional<MediaTimePromise::Producer> m_stallProducer;
-    RetainPtr<id> m_performTaskObserver;
-    RetainPtr<id> m_timeChangedObserver;
+    MediaTime m_stallBoundary;
+    std::optional<GenericPromise::AutoRejectProducer> m_seekPromise;
+    MediaTime m_lastSeekTargetTime;
+    std::optional<RequestPromise::AutoRejectProducer> m_requestVideoPromise;
+    HashMap<uint64_t, std::unique_ptr<RequestPromise::AutoRejectProducer>> m_requestAudioPromises;
+#if ENABLE(LINEAR_MEDIA_PLAYER)
+    std::optional<GenericPromise::AutoRejectProducer> m_videoTargetPromise;
+#endif
 
-    bool m_isPlaying { false };
-    bool m_isShutdown { false };
     double m_rate { 1 };
-    // Cached value of the rate last passed to [m_synchronizer setRate:].
-    // Avoid querying [m_synchronizer rate] (heavy dispatch_sync) — read this
-    // via synchronizerRate() instead.
-    float m_lastSetSyncRate { 0 };
-    RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
-    bool m_needsPlaceholderImage { false };
-
     float m_volume { 1 };
     bool m_muted { false };
     bool m_preservesPitch { true };
@@ -331,70 +294,31 @@ private:
     String m_audioOutputDeviceId;
 #endif
 
-    mutable Lock m_publishLock;
-    // Seek Logic
-    MediaTime m_lastSeekTime;
-    SeekState m_seekState { SeekCompleted };
-    std::optional<GenericPromise::AutoRejectProducer> m_seekPromise;
-    const RetainPtr<id> m_timeJumpedObserver;
-    bool m_isSynchronizerSeeking { false };
-    bool m_hasAvailableVideoFrame { false };
-    bool m_allRenderersHaveAvailableSamples { false };
-
-    HashMap<TrackIdentifier, AudioTrackProperties> m_audioTracksMap;
-    std::optional<RequestPromise::AutoRejectProducer> m_requestVideoPromise;
-    // Tracks the pending VideoMediaSampleRenderer::requestMediaDataWhenReady() callback.
-    const Ref<NativePromiseRequest> m_videoDataRequest { NativePromiseRequest::create() };
-    bool m_readyToRequestVideoData { true };
-    bool m_hasEverSubmittedVideoSample { false };
-
-    HashMap<TrackIdentifier, TrackType> m_trackTypes;
-    HashMap<TrackIdentifier, RetainPtr<AVSampleBufferAudioRenderer>> m_audioRenderers;
+    HashMap<uint64_t, RetainPtr<AVSampleBufferAudioRenderer>> m_audioRenderers;
     RetainPtr<AVSampleBufferDisplayLayer> m_sampleBufferDisplayLayer;
     RetainPtr<AVSampleBufferVideoRenderer> m_sampleBufferVideoRenderer;
-    RefPtr<VideoMediaSampleRenderer> m_videoRenderer;
+    RetainPtr<AVSampleBufferVideoRenderer> m_expiredVideoRendererPendingRemoval;
     Vector<RetainPtr<AVSampleBufferVideoRenderer>> m_expiringSampleBufferVideoRenderers;
-    enum class SampleBufferLayerState : uint8_t {
-        AddedToSynchronizer,
-        PendingRemovalFromSynchronizer,
-        RemovedFromSynchronizer
-    };
-    SampleBufferLayerState m_sampleBufferDisplayLayerState { SampleBufferLayerState::RemovedFromSynchronizer };
-    bool m_renderingCanBeAccelerated { false };
+    RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
+    bool m_needsPlaceholderImage { false };
     bool m_visible { false };
     IntSize m_presentationSize;
     bool m_shouldMaintainAspectRatio { true };
-    std::optional<TrackIdentifier> m_enabledVideoTrackId;
-    std::optional<FloatSize> m_cachedSize;
-    Deque<RetainPtr<id>> m_sizeChangeObservers;
     bool m_shouldDisableHDR { false };
     PlatformDynamicRangeLimit m_dynamicRangeLimit { PlatformDynamicRangeLimit::initialValueForVideos() };
     ProcessIdentity m_resourceOwner;
-    VideoRendererPreferences m_preferences;
-    bool m_hasProtectedVideoContent { false };
-    struct RendererConfiguration {
-        bool isRenderingCompressedVideo { false };
-        bool operator==(const RendererConfiguration&) const = default;
-    };
-    RendererConfiguration m_previousRendererConfiguration;
 
-    // Video Frame metadata gathering
-    RetainPtr<id> m_videoFrameMetadataGatheringObserver;
-    MonotonicTime m_startupTime;
-    const std::unique_ptr<SharedTimebase> m_sharedTimebase;
     bool m_registeredWithSharedTimer { false };
-    std::optional<MediaTime> m_stallCap WTF_GUARDED_BY_LOCK(m_publishLock);
-    // Floor for SharedTimebase publishes; locked so off-main-thread publishers can read it.
-    MediaTime m_publishedTimeFloor WTF_GUARDED_BY_LOCK(m_publishLock);
-
     RefPtr<EffectiveRateChangedListener> m_effectiveRateChangedListener;
-    Function<void(double)> m_effectiveRateChangedCallback;
-    double m_lastForwardedEffectiveRate { 0 };
-    // Set between a 0 → non-zero rate notification and the moment the
-    // synchronizer's timebase is observed to actually move. While set,
-    // effectiveRate() returns 0 — masking AVSampleBufferRenderSynchronizer's
-    // habit of publishing a non-zero rate before its timebase starts moving.
-    RetainPtr<id> m_startupGateObserver;
+
+    // The video renderer's timebase timer, rate listener and decompression session.
+    mutable Lock m_videoRendererLock;
+    OSObjectPtr<dispatch_source_t> m_videoRendererTimerSource WTF_GUARDED_BY_LOCK(m_videoRendererLock);
+    uint64_t m_videoRendererTimebaseIdentifier WTF_GUARDED_BY_LOCK(m_videoRendererLock) { 0 };
+    RefPtr<EffectiveRateChangedListener> m_videoRendererRateListener;
+    RefPtr<WebCoreDecompressionSession> m_decompressionSession WTF_GUARDED_BY_LOCK(m_videoRendererLock);
+    uint64_t m_decompressionSessionIdentifier WTF_GUARDED_BY_LOCK(m_videoRendererLock) { 0 };
+    const std::unique_ptr<FrameRateMonitor> m_frameRateMonitor;
 
     mutable std::unique_ptr<PixelBufferConformerCV> m_rgbConformer;
 
@@ -424,7 +348,6 @@ private:
     ThreadSafeWeakPtr<CDMSessionAVContentKeySession> m_session;
 #endif
 #endif
-    bool m_keyframeNeeded { true };
 };
 
 } // namespace WebCore

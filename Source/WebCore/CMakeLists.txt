@@ -3424,6 +3424,7 @@ if (APPLE)
         platform/graphics/HEVCUtilities.cpp
         platform/graphics/VP9Utilities.cpp
 
+        platform/graphics/avfoundation/AudioVideoRendererAVFObjC.mm
         platform/graphics/avfoundation/CDMFairPlayStreaming.cpp
         platform/graphics/avfoundation/FormatDescriptionUtilities.cpp
         platform/graphics/avfoundation/objc/CDMFairPlayStreamingAVFObjC.mm
@@ -3435,7 +3436,6 @@ if (APPLE)
         platform/graphics/cocoa/H264UtilitiesCocoa.mm
         platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
         platform/graphics/cocoa/VP9UtilitiesCocoa.mm
-        platform/graphics/cocoa/VideoMediaSampleRenderer.mm
 
         platform/graphics/iso/ISOBox.cpp
         platform/graphics/iso/ISOOriginalFormatBox.cpp
@@ -3637,12 +3637,14 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/HEVCBitstreamParser.swift
         ${WEBCORE_DIR}/platform/graphics/HEVCCodecStrings.swift
         ${WEBCORE_DIR}/platform/graphics/VP9Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/AudioVideoRendererAVFObjC.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMFairPlayStreamingParsing.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMInstanceFairPlayStreamingAVF.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
-        ${WEBCORE_DIR}/platform/graphics/cocoa/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift
         ${WEBCORE_DIR}/platform/media-parsers/AnnexB.swift

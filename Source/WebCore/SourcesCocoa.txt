@@ -379,7 +379,6 @@ platform/graphics/avfoundation/MediaPlaybackTargetCocoa.mm @nonARC
 platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.cpp
 platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm @nonARC
 platform/graphics/avfoundation/SampleBufferDisplayLayer.cpp
-platform/graphics/avfoundation/WebAVSampleBufferListener.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/WebMediaSessionManagerMac.cpp
 platform/graphics/avfoundation/objc/AVAssetMIMETypeCache.mm @nonARC
 platform/graphics/avfoundation/objc/AVAssetTrackUtilities.mm @nonARC @no-unify-when(bundle<=8)
@@ -499,7 +498,6 @@ platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm @nonARC
 platform/graphics/cocoa/WebCoreCALayerExtras.mm @nonARC
 platform/graphics/cocoa/WebCoreDecompressionSession.mm @nonARC
 platform/graphics/cocoa/WebProcessGraphicsContextGLCocoa.mm @nonARC
-platform/graphics/cocoa/VideoMediaSampleRenderer.mm @nonARC
 platform/graphics/cocoa/VideoTrackPrivateWebM.cpp
 platform/graphics/cocoa/WebLayer.mm @nonARC
 platform/graphics/cocoa/controls/ApplePayButtonCocoa.mm @nonARC
