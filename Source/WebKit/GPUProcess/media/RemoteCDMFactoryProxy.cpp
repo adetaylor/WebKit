@@ -161,6 +161,21 @@ void RemoteCDMFactoryProxy::removeInstance(uint64_t identifier)
         connection->gpuProcess().tryExitIfUnusedAndUnderMemoryPressure();
 }
 
+bool RemoteCDMFactoryProxy::addSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier, IPC::MessageReceiver& receiver)
+{
+    RefPtr connection = m_gpuConnectionToWebProcess.get();
+    if (!connection)
+        return false;
+    connection->messageReceiverMap().addMessageReceiver(receiverName, identifier, receiver);
+    return true;
+}
+
+void RemoteCDMFactoryProxy::removeSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier)
+{
+    if (RefPtr connection = m_gpuConnectionToWebProcess.get())
+        connection->messageReceiverMap().removeMessageReceiver(receiverName, identifier);
+}
+
 static CDMFactory* factoryForKeySystem(const String& keySystem)
 {
     auto& factories = CDMFactory::registeredFactories();

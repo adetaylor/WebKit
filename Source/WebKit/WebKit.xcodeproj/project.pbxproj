@@ -9612,6 +9612,7 @@
 		9103CA510A634B34B92DDFE6 /* RemoteRenderingBackendMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderingBackendMessageReceiver.swift; sourceTree = "<group>"; };
 		588C46ABDFB64C12B8D58AB0 /* RemoteFaceDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFaceDetectorMessageReceiver.swift; sourceTree = "<group>"; };
 		F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextDetectorMessageReceiver.swift; sourceTree = "<group>"; };
+		872B613F461445249AF71B43 /* SwiftReceiverRegistration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftReceiverRegistration.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -11429,6 +11430,7 @@
 				7BE5134A29768F0E00814F18 /* StreamServerConnectionBuffer.h */,
 				C8E3B43BCEE7D74B03CB891B /* SwiftCoding.h */,
 				9AC1A9B66F5A162913E0254E /* SwiftCoding.swift */,
+				872B613F461445249AF71B43 /* SwiftReceiverRegistration.h */,
 				7B2E73472CA2C611002C1A84 /* SyncRequestID.h */,
 				7BE37F6F27B1475F007A6CD3 /* ThreadSafeObjectHeap.h */,
 				F48570A22644BEC400C05F71 /* Timeout.h */,

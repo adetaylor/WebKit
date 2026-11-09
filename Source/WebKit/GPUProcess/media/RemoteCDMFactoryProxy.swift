@@ -34,7 +34,7 @@ final class RemoteCDMFactoryState {
     private(set) var proxy: WebKit.RemoteCDMFactoryProxy?
     // By identifier, which ObjectIdentifier makes unique across the three kinds: removed before the receiver, so that its
     // messages stop before its forwarder goes. Declared first, so that it goes first.
-    private var registrations: [UInt64: WebKit.RemoteCDMReceiverRegistration] = [:]
+    private var registrations: [UInt64: IPC.SwiftReceiverRegistration] = [:]
     private var cdms: [UInt64: RemoteCDMProxy] = [:]
     private var instances: [UInt64: RemoteCDMInstanceProxy] = [:]
     private var sessions: [UInt64: RemoteCDMInstanceSessionProxy] = [:]
@@ -58,23 +58,27 @@ final class RemoteCDMFactoryState {
         instances.isEmpty
     }
 
-    fileprivate func add(cdm: RemoteCDMProxy, identifier: UInt64, proxy: WebKit.RemoteCDMFactoryProxy) {
-        registrations[identifier] = WebKit.registerRemoteCDMReceiver(proxy, cdm.getMessageReceiver(), .RemoteCDMProxy, identifier)
+    fileprivate func add(cdm: RemoteCDMProxy, identifier: UInt64) {
+        guard let proxy else {
+            return
+        }
+        registrations[identifier] = IPC.registerSwiftReceiver(proxy, cdm.getMessageReceiver(), .RemoteCDMProxy, identifier)
         cdms[identifier] = cdm
     }
 
-    func add(instance: RemoteCDMInstanceProxy, identifier: UInt64, proxy: WebKit.RemoteCDMFactoryProxy) {
-        registrations[identifier] = WebKit.registerRemoteCDMReceiver(
-            proxy,
-            instance.getMessageReceiver(),
-            .RemoteCDMInstanceProxy,
-            identifier
-        )
+    func add(instance: RemoteCDMInstanceProxy, identifier: UInt64) {
+        guard let proxy else {
+            return
+        }
+        registrations[identifier] = IPC.registerSwiftReceiver(proxy, instance.getMessageReceiver(), .RemoteCDMInstanceProxy, identifier)
         instances[identifier] = instance
     }
 
-    func add(session: RemoteCDMInstanceSessionProxy, identifier: UInt64, proxy: WebKit.RemoteCDMFactoryProxy) {
-        registrations[identifier] = WebKit.registerRemoteCDMReceiver(
+    func add(session: RemoteCDMInstanceSessionProxy, identifier: UInt64) {
+        guard let proxy else {
+            return
+        }
+        registrations[identifier] = IPC.registerSwiftReceiver(
             proxy,
             session.getMessageReceiver(),
             .RemoteCDMInstanceSessionProxy,
@@ -167,7 +171,7 @@ extension WebKit.RemoteCDMFactoryProxy {
         let cdm = RemoteCDMProxy(factory: state, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
         let configuration = cdm.configuration(cxxConfiguration)
         let identifier = Self.generateCDMIdentifier()
-        state.add(cdm: cdm, identifier: identifier, proxy: self)
+        state.add(cdm: cdm, identifier: identifier)
         return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), configuration)
     }
 

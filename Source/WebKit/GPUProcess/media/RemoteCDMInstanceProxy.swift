@@ -63,7 +63,7 @@ final class RemoteCDMInstanceProxy {
 
     @MainActor
     func createSession(connection: IPC.Connection, logIdentifier: UInt64) -> IPCTypes.RemoteCDMInstanceSessionIdentifier? {
-        guard let cdm, let factory, let proxy = factory.proxy else {
+        guard let cdm, let factory, factory.proxy != nil else {
             return nil
         }
         let identifier = WebKit.RemoteCDMFactoryProxy.generateSessionIdentifier()
@@ -73,8 +73,7 @@ final class RemoteCDMInstanceProxy {
         }
         factory.add(
             session: RemoteCDMInstanceSessionProxy(factory: factory, cdm: cdm, backend: session),
-            identifier: identifier,
-            proxy: proxy
+            identifier: identifier
         )
         return IPCTypes.RemoteCDMInstanceSessionIdentifier(rawValue: identifier)
     }

@@ -135,8 +135,7 @@ final class RemoteCDMProxy {
         let logIdentifier = isClearKey ? 0 : cdm.logIdentifier()
         factory.add(
             instance: RemoteCDMInstanceProxy(factory: factory, cdm: self, backend: backend, logIdentifier: logIdentifier),
-            identifier: identifier,
-            proxy: proxy
+            identifier: identifier
         )
         return (IPCTypes.RemoteCDMInstanceIdentifier(rawValue: identifier), IPCTypes.RemoteCDMInstanceConfiguration(keySystem: keySystem))
     }

@@ -43,6 +43,7 @@ namespace IPC {
 class Connection;
 class Decoder;
 class Encoder;
+enum class ReceiverName : uint8_t;
 }
 
 namespace WebCore {
@@ -88,6 +89,10 @@ public:
     static uint64_t generateInstanceIdentifier();
     static uint64_t generateSessionIdentifier();
     void removeInstance(uint64_t identifier);
+    // For IPC::registerSwiftReceiver(): routes the web process's messages to identifier to receiver until
+    // removeSwiftReceiver(). False if the web process's connection has gone.
+    bool addSwiftReceiver(IPC::ReceiverName, uint64_t identifier, IPC::MessageReceiver&);
+    void removeSwiftReceiver(IPC::ReceiverName, uint64_t identifier);
 
     // Whether a C++ CDM factory supports a key system, and a C++ CDM for it, with its configuration.
     bool supportsKeySystem(const String&) const;
