@@ -29,7 +29,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
     @cxx
     @implementation
     static func dispatchSendString(
-        _ target: WebKit.TestWithSwiftImplementation,
+        _ target: sending WebKit.TestWithSwiftImplementation,
         _ connection: sending IPC.Connection,
         _ decoder: IPC.SwiftDecoder
     ) -> Bool {
@@ -86,7 +86,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
     @cxx
     @implementation
     static func dispatchSendStringAsync(
-        _ target: WebKit.TestWithSwiftImplementation,
+        _ target: sending WebKit.TestWithSwiftImplementation,
         _ connection: sending IPC.Connection,
         _ decoder: IPC.SwiftDecoder,
         _ replyEncoder: sending IPC.SwiftReplyEncoder
@@ -151,7 +151,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
     @cxx
     @implementation
     static func dispatchSendStringSync(
-        _ target: WebKit.TestWithSwiftImplementation,
+        _ target: sending WebKit.TestWithSwiftImplementation,
         _ connection: sending IPC.Connection,
         _ decoder: IPC.SwiftDecoder,
         _ replyEncoder: sending IPC.SwiftReplyEncoder
@@ -216,7 +216,7 @@ extension SwiftDispatch.TestWithSwiftImplementation {
     @cxx
     @implementation
     static func dispatchSendDirect(
-        _ target: WebKit.TestWithSwiftImplementation,
+        _ target: sending WebKit.TestWithSwiftImplementation,
         _ connection: sending IPC.Connection,
         _ decoder: IPC.SwiftDecoder
     ) -> Bool {

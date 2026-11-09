@@ -2834,7 +2834,8 @@ def generate_swift_message_handler(receiver):
             result.append('    @cxx\n')
             result.append('    @implementation\n')
             result.append('    static func dispatch%s(\n' % message.name)
-            implementation_parameters = ['_ target: %s' % class_name] + ['_ %s' % parameter.replace(': inout IPC.SwiftDecoder', ': IPC.SwiftDecoder') for parameter in parameters]
+            # Main-thread dispatch sends the target to the main actor, as it does the connection.
+            implementation_parameters = ['_ target: %s%s' % ('' if runs_on_work_queue else 'sending ', class_name)] + ['_ %s' % parameter.replace(': inout IPC.SwiftDecoder', ': IPC.SwiftDecoder') for parameter in parameters]
             result.append(',\n'.join(['        %s' % parameter for parameter in implementation_parameters]))
             result.append('\n    ) -> Bool {\n')
             if decoded_parameters or decodes_on_stream:
