@@ -670,9 +670,9 @@ template<typename T, typename F, typename... Arguments>
 bool dispatchSwiftStreamMessage(StreamServerConnection& connection, T* object, F function, Arguments&&... arguments)
 {
     ASSERT(connection.isCurrentWorkQueue());
-    if constexpr (std::is_invocable_v<F, T*, StreamServerConnection*, Arguments...>) {
+    if constexpr (std::is_invocable_v<F, T*, StreamServerConnection*, Arguments...>)
         SUPPRESS_UNCOUNTED_ARG return std::invoke(function, object, &connection, std::forward<Arguments>(arguments)...);
-    } else
+    else
         return std::invoke(function, object, std::forward<Arguments>(arguments)...);
 }
 
