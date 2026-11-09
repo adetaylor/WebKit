@@ -525,28 +525,8 @@ platform/graphics/mac/IconMac.mm @nonARC
 platform/graphics/mac/LegacyDisplayRefreshMonitorMac.cpp
 platform/graphics/mac/ScrollbarTrackCornerSystemImageMac.mm @nonARC
 platform/graphics/mac/WebKitNSImageExtras.mm @nonARC
-platform/graphics/mac/controls/ButtonMac.mm @nonARC
-platform/graphics/mac/controls/ButtonControlMac.mm @nonARC
-platform/graphics/mac/controls/ColorWellMac.mm @nonARC
 platform/graphics/mac/controls/ControlFactoryMac.mm @nonARC
-platform/graphics/mac/controls/ControlMac.mm @nonARC
-platform/graphics/mac/controls/ImageControlsButtonMac.mm @nonARC
-platform/graphics/mac/controls/InnerSpinButtonMac.mm @nonARC
-platform/graphics/mac/controls/MenuListButtonMac.mm @nonARC
-platform/graphics/mac/controls/MenuListMac.mm @nonARC
-platform/graphics/mac/controls/MeterMac.mm @nonARC
-platform/graphics/mac/controls/ProgressBarMac.mm @nonARC
-platform/graphics/mac/controls/SearchControlMac.mm @nonARC
-platform/graphics/mac/controls/SearchFieldCancelButtonMac.mm @nonARC
-platform/graphics/mac/controls/SearchFieldMac.mm @nonARC
-platform/graphics/mac/controls/SearchFieldResultsMac.mm @nonARC
-platform/graphics/mac/controls/SliderThumbMac.mm @nonARC
-platform/graphics/mac/controls/SliderTrackMac.mm @nonARC
-platform/graphics/mac/controls/SwitchMacUtilities.mm @nonARC
-platform/graphics/mac/controls/SwitchMac.mm @nonARC
-platform/graphics/mac/controls/TextAreaMac.mm @nonARC
-platform/graphics/mac/controls/TextFieldMac.mm @nonARC
-platform/graphics/mac/controls/ToggleButtonMac.mm @nonARC
+platform/graphics/mac/controls/PlatformControlMac.mm @nonARC
 platform/graphics/mac/controls/WebControlView.mm @nonARC
 platform/graphics/opentype/OpenTypeCG.cpp
 platform/graphics/re/DynamicContentScalingResourceCache.mm @nonARC

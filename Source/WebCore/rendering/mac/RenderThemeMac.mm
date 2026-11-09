@@ -31,6 +31,7 @@
 #import "ColorBlending.h"
 #import "ColorMac.h"
 #import "ColorSerialization.h"
+#import "ControlFactoryMac.h"
 #import "Document.h"
 #import "ElementInlines.h"
 #import "FileList.h"
@@ -46,7 +47,6 @@
 #import "HTMLPlugInElement.h"
 #import "Icon.h"
 #import "Image.h"
-#import "ImageControlsButtonMac.h"
 #import "LocalCurrentGraphicsContext.h"
 #import "LocalDefaultSystemAppearance.h"
 #import "LocalFrame.h"
@@ -1793,7 +1793,7 @@ String RenderThemeMac::fileListNameForWidth(const FileList* fileList, const Font
 #if ENABLE(SERVICE_CONTROLS)
 IntSize RenderThemeMac::imageControlsButtonSize() const
 {
-    return ImageControlsButtonMac::servicesRolloverButtonCellSize();
+    return IntSize { ControlFactoryMac::singleton().painter().servicesRolloverButtonCellSize() };
 }
 
 bool RenderThemeMac::isImageControlsButton(const Element& element) const

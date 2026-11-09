@@ -1654,6 +1654,9 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/mac/GraphicsChecksMac.h
     platform/graphics/mac/ScrollbarTrackCornerSystemImageMac.h
 
+    platform/graphics/mac/controls/MacControlPainter.h
+    platform/graphics/mac/controls/WebControlView.h
+
     platform/mac/DataDetectorHighlight.h
     platform/mac/HIDDevice.h
     platform/mac/HIDElement.h

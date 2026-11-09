@@ -299,6 +299,9 @@
 		078E093717D16B2C00420AA1 /* MediaStreamPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093A17D16E1C00420AA1 /* MediaConstraints.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9917CF0AD400848E51 /* MediaConstraints.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B9EA84F177147E948C9A7EBE /* MediaConstraintsEvaluation.h in Headers */ = {isa = PBXBuildFile; fileRef = FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		BDD6F1CF970D62BC5CDBABF7 /* MacControlPainter.h in Headers */ = {isa = PBXBuildFile; fileRef = 94ECF0E537016231C42D3609 /* MacControlPainter.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		7777FCE0AEFF93FA6147EC1C /* MacControlPainter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD68869E5A11B99B6BED27 /* MacControlPainter.swift */; };
+		7B190D9D0A9F544BF209BA1E /* WebControlView.h in Headers */ = {isa = PBXBuildFile; fileRef = 72A6451F2948F25900C14BA3 /* WebControlView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E5EE565393DEC49CCF5EE57F /* CameraCaptureCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 508211BEB76659F0555106E9 /* CameraCaptureCore.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		889F75B279953818A0D73600 /* CameraCaptureCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CB46734E28654C089A5EA2 /* CameraCaptureCore.swift */; };
 		525B81E60AA9407EF00D3327 /* DisplayCaptureCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 0BF208C601941937942E9DD0 /* DisplayCaptureCore.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3170,8 +3173,6 @@
 		72BA2ACF2952445D00678507 /* ProgressBarPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BA2ACE2952354E00678507 /* ProgressBarPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BAC3AE23E1F0B0008D741C /* ImageBufferBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BAC3A523E17328008D741C /* ImageBufferBackend.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BB9E87295257FA00842DBB /* ToggleButtonPart.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BB9E86295257F800842DBB /* ToggleButtonPart.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		72BB9E8A2952582000842DBB /* ToggleButtonMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BB9E882952581E00842DBB /* ToggleButtonMac.h */; };
-		72BB9E8F2952591000842DBB /* ButtonControlMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BB9E8D2952590F00842DBB /* ButtonControlMac.h */; };
 		72BDED112F8DABFA00199F64 /* CVPixelBufferUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BDED0F2F8D9F9700199F64 /* CVPixelBufferUtilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BDED122F8DAC0A00199F64 /* ShareableCVPixelBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BDED0D2F8D9B1600199F64 /* ShareableCVPixelBuffer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		72BDF25F2A2B670D00260319 /* PathSegmentData.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BDF25E2A2B647200260319 /* PathSegmentData.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6430,7 +6431,6 @@
 		D2042D532EFC45500047B572 /* GraphicsLayerTransformAnimationValue.h in Headers */ = {isa = PBXBuildFile; fileRef = D2042D4E2EFC44C30047B572 /* GraphicsLayerTransformAnimationValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		D2042D542EFC45580047B572 /* GraphicsLayerFloatAnimationValue.h in Headers */ = {isa = PBXBuildFile; fileRef = D2042D4D2EFC449C0047B572 /* GraphicsLayerFloatAnimationValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		D2042D552EFC45610047B572 /* GraphicsLayerAnimationValue.h in Headers */ = {isa = PBXBuildFile; fileRef = D2042D4C2EFC445A0047B572 /* GraphicsLayerAnimationValue.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		D20E878D2AF44B5E004579F3 /* SwitchMacUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = D20E878C2AF44B5E004579F3 /* SwitchMacUtilities.h */; };
 		D22B85932EB4EF6D000D2DC3 /* HTMLSelectedContentElement.h in Headers */ = {isa = PBXBuildFile; fileRef = D22B85912EB4EF6D000D2DC3 /* HTMLSelectedContentElement.h */; };
 		D245256B2F22773C000DFFF6 /* SelectFallbackButtonElement.h in Headers */ = {isa = PBXBuildFile; fileRef = D21A65EB2F2276ED004D221F /* SelectFallbackButtonElement.h */; };
 		D245256C2F22773C000DFFF7 /* SelectPopoverElement.h in Headers */ = {isa = PBXBuildFile; fileRef = D21A65ED2F2276ED004D221F /* SelectPopoverElement.h */; };
@@ -8491,6 +8491,10 @@
 		07B93ECC2BF6FEBE0072078C /* CharacterRange.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CharacterRange.cpp; sourceTree = "<group>"; };
 		07B93FF923B92AAA0036F8EA /* MIMETypeCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MIMETypeCache.h; sourceTree = "<group>"; };
 		07B93FFB23B92AAB0036F8EA /* MIMETypeCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MIMETypeCache.cpp; sourceTree = "<group>"; };
+		94ECF0E537016231C42D3609 /* MacControlPainter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MacControlPainter.h; sourceTree = "<group>"; };
+		FDBD68869E5A11B99B6BED27 /* MacControlPainter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacControlPainter.swift; sourceTree = "<group>"; };
+		51F94DB50E36F6B5A95BDC6D /* PlatformControlMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformControlMac.h; sourceTree = "<group>"; };
+		26585E49ABF5E46A21471C87 /* PlatformControlMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformControlMac.mm; sourceTree = "<group>"; };
 		508211BEB76659F0555106E9 /* CameraCaptureCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraCaptureCore.h; sourceTree = "<group>"; };
 		07CB46734E28654C089A5EA2 /* CameraCaptureCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureCore.swift; sourceTree = "<group>"; };
 		0BF208C601941937942E9DD0 /* DisplayCaptureCore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureCore.h; sourceTree = "<group>"; };
@@ -10513,8 +10517,6 @@
 		2ACB4D2726DC4AB200BEB753 /* CSSNumericFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSNumericFactory.h; sourceTree = "<group>"; };
 		2ACB4D2926DC4AB300BEB753 /* CSSNumericFactory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSNumericFactory.cpp; sourceTree = "<group>"; };
 		2ACB4D2C26DDAB8E00BEB753 /* DOMCSSNamespace+CSSNumericFactory.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = "DOMCSSNamespace+CSSNumericFactory.idl"; sourceTree = "<group>"; };
-		2ACE96782A8ABC3A00ED6C38 /* SwitchMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SwitchMac.mm; sourceTree = "<group>"; };
-		2ACE96792A8ABC3A00ED6C38 /* SwitchMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwitchMac.h; sourceTree = "<group>"; };
 		2AEF6FBC26E716EE00326D02 /* CSSMathProduct.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CSSMathProduct.idl; sourceTree = "<group>"; };
 		2AEF6FBD26E716EE00326D02 /* CSSMathMax.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSMathMax.h; sourceTree = "<group>"; };
 		2AEF6FBE26E716EE00326D02 /* CSSMathValue.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CSSMathValue.idl; sourceTree = "<group>"; };
@@ -14689,14 +14691,8 @@
 		7214B9B7274458FA003BE6DF /* FilterEffectVector.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectVector.h; sourceTree = "<group>"; };
 		721B02F52FBE7E7700688E0A /* ImageDecoderFactoryAVF.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageDecoderFactoryAVF.h; sourceTree = "<group>"; };
 		721B02F62FBE7E7700688E0A /* ImageDecoderFactoryAVF.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ImageDecoderFactoryAVF.cpp; sourceTree = "<group>"; };
-		721B3E9329679E02004F5FF6 /* InnerSpinButtonMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InnerSpinButtonMac.h; sourceTree = "<group>"; };
-		721B3E9429679E02004F5FF6 /* InnerSpinButtonMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = InnerSpinButtonMac.mm; sourceTree = "<group>"; };
 		721B3E9529679E38004F5FF6 /* InnerSpinButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InnerSpinButtonPart.h; sourceTree = "<group>"; };
 		721B3ECE29680811004F5FF6 /* ColorWellPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorWellPart.h; sourceTree = "<group>"; };
-		721B3ED02968082E004F5FF6 /* ColorWellMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ColorWellMac.h; sourceTree = "<group>"; };
-		721B3ED12968082F004F5FF6 /* ColorWellMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ColorWellMac.mm; sourceTree = "<group>"; };
-		721B3EF22968F45D004F5FF6 /* MenuListButtonMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MenuListButtonMac.h; sourceTree = "<group>"; };
-		721B3EF32968F45E004F5FF6 /* MenuListButtonMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MenuListButtonMac.mm; sourceTree = "<group>"; };
 		721B3EF42968F47D004F5FF6 /* MenuListButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MenuListButtonPart.h; sourceTree = "<group>"; };
 		72242937301AA86900856621 /* CanvasElementImage.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CanvasElementImage.idl; sourceTree = "<group>"; };
 		72242938301AAC3E00856621 /* CanvasDrawElementImage.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CanvasDrawElementImage.idl; sourceTree = "<group>"; };
@@ -14715,12 +14711,8 @@
 		722623C229486B4A006DCCF1 /* ControlPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ControlPart.h; sourceTree = "<group>"; };
 		722623C329486B6A006DCCF1 /* MeterPart.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MeterPart.cpp; sourceTree = "<group>"; };
 		722623C429486B6A006DCCF1 /* MeterPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeterPart.h; sourceTree = "<group>"; };
-		722623C629486C32006DCCF1 /* ControlMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ControlMac.mm; sourceTree = "<group>"; };
-		722623C729486C32006DCCF1 /* ControlMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ControlMac.h; sourceTree = "<group>"; };
 		722623C829486C65006DCCF1 /* ControlFactoryMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ControlFactoryMac.mm; sourceTree = "<group>"; };
 		722623C929486C65006DCCF1 /* ControlFactoryMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ControlFactoryMac.h; sourceTree = "<group>"; };
-		722623CA29486C8F006DCCF1 /* MeterMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MeterMac.mm; sourceTree = "<group>"; };
-		722623CB29486C8F006DCCF1 /* MeterMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeterMac.h; sourceTree = "<group>"; };
 		722623CC29486CC8006DCCF1 /* PlatformControl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformControl.h; sourceTree = "<group>"; };
 		722623CD29487DB8006DCCF1 /* ControlStyle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ControlStyle.h; sourceTree = "<group>"; };
 		722623D02948EEF4006DCCF1 /* WebControlView.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebControlView.mm; sourceTree = "<group>"; };
@@ -14809,8 +14801,6 @@
 		72854E662B6987B600E0181A /* BitmapImageSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BitmapImageSource.h; sourceTree = "<group>"; };
 		72854E672B6987B600E0181A /* BitmapImageSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BitmapImageSource.cpp; sourceTree = "<group>"; };
 		7287A83A29879695004A50E2 /* SearchFieldResultsPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SearchFieldResultsPart.h; sourceTree = "<group>"; };
-		7287A83B298797E9004A50E2 /* SearchFieldResultsMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SearchFieldResultsMac.mm; sourceTree = "<group>"; };
-		7287A83C298797E9004A50E2 /* SearchFieldResultsMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SearchFieldResultsMac.h; sourceTree = "<group>"; };
 		7295D020E0F0C07C868B904C /* UnifiedSource63-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource63-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
 		72963B6C29510287004FF6FB /* TextAreaPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextAreaPart.h; sourceTree = "<group>"; };
 		729661A2275960A500E7DF9B /* FilterEffectGeometry.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FilterEffectGeometry.h; sourceTree = "<group>"; };
@@ -14824,13 +14814,7 @@
 		72A6451F2948F25900C14BA3 /* WebControlView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebControlView.h; sourceTree = "<group>"; };
 		72A645A4294FCDC600C14BA3 /* ControlStyle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ControlStyle.cpp; sourceTree = "<group>"; };
 		72B2212E295015BB002B5609 /* TextFieldPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldPart.h; sourceTree = "<group>"; };
-		72B2212F295015D5002B5609 /* TextFieldMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TextFieldMac.mm; sourceTree = "<group>"; };
-		72B22130295015D5002B5609 /* TextFieldMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextFieldMac.h; sourceTree = "<group>"; };
-		72B221472950FFEB002B5609 /* TextAreaMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = TextAreaMac.mm; sourceTree = "<group>"; };
-		72B221482950FFEB002B5609 /* TextAreaMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TextAreaMac.h; sourceTree = "<group>"; };
 		72B8B03227533F8100F752AA /* Filter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Filter.cpp; sourceTree = "<group>"; };
-		72BA2ACB295233B900678507 /* ProgressBarMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ProgressBarMac.mm; sourceTree = "<group>"; };
-		72BA2ACC295233B900678507 /* ProgressBarMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProgressBarMac.h; sourceTree = "<group>"; };
 		72BA2ACD2952354E00678507 /* ProgressBarPart.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressBarPart.cpp; sourceTree = "<group>"; };
 		72BA2ACE2952354E00678507 /* ProgressBarPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ProgressBarPart.h; sourceTree = "<group>"; };
 		72BAC3A423E17327008D741C /* ImageBufferBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferBackend.cpp; sourceTree = "<group>"; };
@@ -14843,10 +14827,6 @@
 		72BAC3AC23E1E545008D741C /* ImageBufferCGBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferCGBackend.cpp; sourceTree = "<group>"; };
 		72BAC3AD23E1E545008D741C /* ImageBufferCGBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferCGBackend.h; sourceTree = "<group>"; };
 		72BB9E86295257F800842DBB /* ToggleButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ToggleButtonPart.h; sourceTree = "<group>"; };
-		72BB9E882952581E00842DBB /* ToggleButtonMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ToggleButtonMac.h; sourceTree = "<group>"; };
-		72BB9E892952581F00842DBB /* ToggleButtonMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ToggleButtonMac.mm; sourceTree = "<group>"; };
-		72BB9E8C2952590E00842DBB /* ButtonControlMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ButtonControlMac.mm; sourceTree = "<group>"; };
-		72BB9E8D2952590F00842DBB /* ButtonControlMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ButtonControlMac.h; sourceTree = "<group>"; };
 		72BDED0D2F8D9B1600199F64 /* ShareableCVPixelBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShareableCVPixelBuffer.h; sourceTree = "<group>"; };
 		72BDED0E2F8D9B1600199F64 /* ShareableCVPixelBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ShareableCVPixelBuffer.cpp; sourceTree = "<group>"; };
 		72BDED0F2F8D9F9700199F64 /* CVPixelBufferUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CVPixelBufferUtilities.h; sourceTree = "<group>"; };
@@ -14860,19 +14840,7 @@
 		72C18A3F230B04B7006847C7 /* ImageDrawDescriptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageDrawDescriptor.h; sourceTree = "<group>"; };
 		72C37B9B29650466007E8F52 /* SearchFieldPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchFieldPart.h; sourceTree = "<group>"; };
 		72C37B9C29650466007E8F52 /* SearchFieldCancelButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchFieldCancelButtonPart.h; sourceTree = "<group>"; };
-		72C37B9F29650481007E8F52 /* SearchControlMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SearchControlMac.mm; sourceTree = "<group>"; };
-		72C37BA029650481007E8F52 /* SearchFieldMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchFieldMac.h; sourceTree = "<group>"; };
-		72C37BA129650482007E8F52 /* SearchControlMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchControlMac.h; sourceTree = "<group>"; };
-		72C37BA229650482007E8F52 /* SearchFieldCancelButtonMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SearchFieldCancelButtonMac.h; sourceTree = "<group>"; };
-		72C37BA329650482007E8F52 /* SearchFieldMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SearchFieldMac.mm; sourceTree = "<group>"; };
-		72C37BA429650483007E8F52 /* SearchFieldCancelButtonMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SearchFieldCancelButtonMac.mm; sourceTree = "<group>"; };
 		72C37BEB29665FC9007E8F52 /* ButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ButtonPart.h; sourceTree = "<group>"; };
-		72C37BED29665FDC007E8F52 /* ButtonMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ButtonMac.mm; sourceTree = "<group>"; };
-		72C37BEE29665FDD007E8F52 /* ButtonMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ButtonMac.h; sourceTree = "<group>"; };
-		72C37C1629677448007E8F52 /* SliderThumbMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SliderThumbMac.mm; sourceTree = "<group>"; };
-		72C37C1729677448007E8F52 /* SliderTrackMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SliderTrackMac.h; sourceTree = "<group>"; };
-		72C37C1829677449007E8F52 /* SliderThumbMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SliderThumbMac.h; sourceTree = "<group>"; };
-		72C37C1929677449007E8F52 /* SliderTrackMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SliderTrackMac.mm; sourceTree = "<group>"; };
 		72C37C1A2967747D007E8F52 /* SliderTrackPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SliderTrackPart.h; sourceTree = "<group>"; };
 		72C37C1A2967747D007E8F53 /* SwitchPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SwitchPart.h; sourceTree = "<group>"; };
 		72C37C1B2967747E007E8F52 /* SliderTrackPart.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SliderTrackPart.cpp; sourceTree = "<group>"; };
@@ -14884,8 +14852,6 @@
 		72C9B6512F9994AD0070F060 /* GainMap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GainMap.h; sourceTree = "<group>"; };
 		72CC6D34304E369F006895A1 /* FontBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FontBase.h; sourceTree = "<group>"; };
 		72CC6D35304E369F006895A1 /* FontBase.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FontBase.cpp; sourceTree = "<group>"; };
-		72CE4EA32970FF8800A2AD95 /* ImageControlsButtonMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ImageControlsButtonMac.mm; sourceTree = "<group>"; };
-		72CE4EA42970FF8800A2AD95 /* ImageControlsButtonMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageControlsButtonMac.h; sourceTree = "<group>"; };
 		72CE4EA5297102B800A2AD95 /* ImageControlsButtonPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageControlsButtonPart.h; sourceTree = "<group>"; };
 		72D075142DB9231000F75BC1 /* SVGFilterPrimitiveGraph.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SVGFilterPrimitiveGraph.h; sourceTree = "<group>"; };
 		D36347EBF659AB2B00FF6C88 /* PDFDocumentBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDFDocumentBuffer.cpp; sourceTree = "<group>"; };
@@ -14942,8 +14908,6 @@
 		72FB238822497B15007E5AC7 /* SVGValuePropertyListAnimator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SVGValuePropertyListAnimator.h; sourceTree = "<group>"; };
 		72FD30A927E3217A0023CDAC /* SourceBrush.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SourceBrush.cpp; sourceTree = "<group>"; };
 		72FD30AA27E3217B0023CDAC /* SourceBrush.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SourceBrush.h; sourceTree = "<group>"; };
-		72FD88CE295D55A5006FACDC /* MenuListMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = MenuListMac.mm; sourceTree = "<group>"; };
-		72FD88CF295D55A5006FACDC /* MenuListMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MenuListMac.h; sourceTree = "<group>"; };
 		72FD88D0295D56E2006FACDC /* MenuListPart.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MenuListPart.h; sourceTree = "<group>"; };
 		72FE4046292F3D3A001D3855 /* ImageBufferContextSwitcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferContextSwitcher.h; sourceTree = "<group>"; };
 		72FE4047292F3D3B001D3855 /* ImageBufferContextSwitcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferContextSwitcher.cpp; sourceTree = "<group>"; };
@@ -22158,8 +22122,6 @@
 		D2042D4E2EFC44C30047B572 /* GraphicsLayerTransformAnimationValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = GraphicsLayerTransformAnimationValue.h; sourceTree = "<group>"; };
 		D2042D4F2EFC44DF0047B572 /* GraphicsLayerFilterAnimationValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = GraphicsLayerFilterAnimationValue.h; sourceTree = "<group>"; };
 		D2042D502EFC450D0047B572 /* GraphicsLayerKeyframeValueList.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = GraphicsLayerKeyframeValueList.h; sourceTree = "<group>"; };
-		D20E878C2AF44B5E004579F3 /* SwitchMacUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwitchMacUtilities.h; sourceTree = "<group>"; };
-		D20E878E2AF44BD8004579F3 /* SwitchMacUtilities.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = SwitchMacUtilities.mm; sourceTree = "<group>"; };
 		D21A65EB2F2276ED004D221F /* SelectFallbackButtonElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = SelectFallbackButtonElement.h; sourceTree = "<group>"; };
 		D21A65EC2F2276ED004D221F /* SelectFallbackButtonElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; lineEnding = 0; path = SelectFallbackButtonElement.cpp; sourceTree = "<group>"; };
 		D21A65ED2F2276ED004D221F /* SelectPopoverElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; lineEnding = 0; path = SelectPopoverElement.h; sourceTree = "<group>"; };
@@ -31294,9 +31256,9 @@
 				2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */,
 				7212569D51394913A122FD12 /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift */,
 				8B0CA4EC7EC243BAB86C4AB3 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift */,
+				5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */,
 				ABC91CC583F841EAB1620606 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift */,
 				61850C23954D4325BC4D79E9 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift */,
-				5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */,
 				9908B0FD1BCAD07D00ED0F55 /* StreamInternalsBuiltins.cpp */,
 				9B03D8061BB3110D00B764C9 /* StreamInternalsBuiltins.h */,
 				8386A96E19F61E4F00E1EC4A /* StyleBuilderGenerated.cpp */,
@@ -32639,50 +32601,12 @@
 		722623C529486BBC006DCCF1 /* controls */ = {
 			isa = PBXGroup;
 			children = (
-				72BB9E8D2952590F00842DBB /* ButtonControlMac.h */,
-				72BB9E8C2952590E00842DBB /* ButtonControlMac.mm */,
-				72C37BEE29665FDD007E8F52 /* ButtonMac.h */,
-				72C37BED29665FDC007E8F52 /* ButtonMac.mm */,
-				721B3ED02968082E004F5FF6 /* ColorWellMac.h */,
-				721B3ED12968082F004F5FF6 /* ColorWellMac.mm */,
 				722623C929486C65006DCCF1 /* ControlFactoryMac.h */,
 				722623C829486C65006DCCF1 /* ControlFactoryMac.mm */,
-				722623C729486C32006DCCF1 /* ControlMac.h */,
-				722623C629486C32006DCCF1 /* ControlMac.mm */,
-				72CE4EA42970FF8800A2AD95 /* ImageControlsButtonMac.h */,
-				72CE4EA32970FF8800A2AD95 /* ImageControlsButtonMac.mm */,
-				721B3E9329679E02004F5FF6 /* InnerSpinButtonMac.h */,
-				721B3E9429679E02004F5FF6 /* InnerSpinButtonMac.mm */,
-				721B3EF22968F45D004F5FF6 /* MenuListButtonMac.h */,
-				721B3EF32968F45E004F5FF6 /* MenuListButtonMac.mm */,
-				72FD88CF295D55A5006FACDC /* MenuListMac.h */,
-				72FD88CE295D55A5006FACDC /* MenuListMac.mm */,
-				722623CB29486C8F006DCCF1 /* MeterMac.h */,
-				722623CA29486C8F006DCCF1 /* MeterMac.mm */,
-				72BA2ACC295233B900678507 /* ProgressBarMac.h */,
-				72BA2ACB295233B900678507 /* ProgressBarMac.mm */,
-				72C37BA129650482007E8F52 /* SearchControlMac.h */,
-				72C37B9F29650481007E8F52 /* SearchControlMac.mm */,
-				72C37BA229650482007E8F52 /* SearchFieldCancelButtonMac.h */,
-				72C37BA429650483007E8F52 /* SearchFieldCancelButtonMac.mm */,
-				72C37BA029650481007E8F52 /* SearchFieldMac.h */,
-				72C37BA329650482007E8F52 /* SearchFieldMac.mm */,
-				7287A83C298797E9004A50E2 /* SearchFieldResultsMac.h */,
-				7287A83B298797E9004A50E2 /* SearchFieldResultsMac.mm */,
-				72C37C1829677449007E8F52 /* SliderThumbMac.h */,
-				72C37C1629677448007E8F52 /* SliderThumbMac.mm */,
-				72C37C1729677448007E8F52 /* SliderTrackMac.h */,
-				72C37C1929677449007E8F52 /* SliderTrackMac.mm */,
-				2ACE96792A8ABC3A00ED6C38 /* SwitchMac.h */,
-				2ACE96782A8ABC3A00ED6C38 /* SwitchMac.mm */,
-				D20E878C2AF44B5E004579F3 /* SwitchMacUtilities.h */,
-				D20E878E2AF44BD8004579F3 /* SwitchMacUtilities.mm */,
-				72B221482950FFEB002B5609 /* TextAreaMac.h */,
-				72B221472950FFEB002B5609 /* TextAreaMac.mm */,
-				72B22130295015D5002B5609 /* TextFieldMac.h */,
-				72B2212F295015D5002B5609 /* TextFieldMac.mm */,
-				72BB9E882952581E00842DBB /* ToggleButtonMac.h */,
-				72BB9E892952581F00842DBB /* ToggleButtonMac.mm */,
+				94ECF0E537016231C42D3609 /* MacControlPainter.h */,
+				FDBD68869E5A11B99B6BED27 /* MacControlPainter.swift */,
+				51F94DB50E36F6B5A95BDC6D /* PlatformControlMac.h */,
+				26585E49ABF5E46A21471C87 /* PlatformControlMac.mm */,
 				72A6451F2948F25900C14BA3 /* WebControlView.h */,
 				722623D02948EEF4006DCCF1 /* WebControlView.mm */,
 			);
@@ -45359,7 +45283,6 @@
 				51F645D62026050100B54DED /* BrowsingContextGroupIdentifier.h in Headers */,
 				7A45033018DB717200377B34 /* BufferedLineReader.h in Headers */,
 				2DFA488F1DB541D000362B99 /* BufferSource.h in Headers */,
-				72BB9E8F2952591000842DBB /* ButtonControlMac.h in Headers */,
 				F55B3DB01251F12D003EF269 /* ButtonInputType.h in Headers */,
 				72C37BEC29665FC9007E8F52 /* ButtonPart.h in Headers */,
 				07C046C41E42508B007201E7 /* CAAudioStreamDescription.h in Headers */,
@@ -48357,6 +48280,7 @@
 				E3C788FD2D039A2500D6C13D /* LogMessages.in in Headers */,
 				93A806171E03B51C008A1F26 /* LongRange.h in Headers */,
 				46EFAF121E5FB9F100E7F34B /* LowPowerModeNotifier.h in Headers */,
+				BDD6F1CF970D62BC5CDBABF7 /* MacControlPainter.h in Headers */,
 				D98DB1B328CFEE6F00369DDE /* MainThreadPermissionObserver.h in Headers */,
 				D98DB1B228CFEE6A00369DDE /* MainThreadPermissionObserverIdentifier.h in Headers */,
 				7AE6C93C1BE0C60100E19E03 /* MainThreadSharedTimer.h in Headers */,
@@ -50608,7 +50532,6 @@
 				55FA7FFB2110ECD7005AEFE7 /* SVGZoomAndPanType.h in Headers */,
 				46ECB6381FD0A3C80088E5AD /* SWClientConnection.h in Headers */,
 				46658DC91FA24B8700F7DD54 /* SWContextManager.h in Headers */,
-				D20E878D2AF44B5E004579F3 /* SwitchMacUtilities.h in Headers */,
 				72C37C1D2967747E007E8F53 /* SwitchPart.h in Headers */,
 				A5AFB350115151A700B045CC /* SwitchTrigger.h in Headers */,
 				4151E5BB1FBA4C7A00E47E2D /* SWOriginStore.h in Headers */,
@@ -50753,7 +50676,6 @@
 				2D7ED0AB1BAE99170043B3E5 /* TimerEventBasedMock.h in Headers */,
 				5CC7900E266AFA89006924FE /* TimingAllowOrigin.h in Headers */,
 				49E912AE0EFAC906009D0CAF /* TimingFunction.h in Headers */,
-				72BB9E8A2952582000842DBB /* ToggleButtonMac.h in Headers */,
 				72BB9E87295257FA00842DBB /* ToggleButtonPart.h in Headers */,
 				0F54DD081881D5F5003EEDBB /* Touch.h in Headers */,
 				71B7EE0D21B5C6870031C1EF /* TouchAction.h in Headers */,
@@ -51025,6 +50947,7 @@
 				4110A21C28E3441600321D09 /* WebCodecsVideoFrameOutputCallback.h in Headers */,
 				A5B81CB51FAA44620037D1E6 /* WebConsoleAgent.h in Headers */,
 				9BBA2CAB1F679E0C00FD1C1E /* WebContentReader.h in Headers */,
+				7B190D9D0A9F544BF209BA1E /* WebControlView.h in Headers */,
 				07E047C7305A9DB000DFCC4B /* WebCore-Swift.h in Headers */,
 				419BE7591BC7F42B00E1C85B /* WebCoreBuiltinNames.h in Headers */,
 				2D3EF44A1917915C00034184 /* WebCoreCALayerExtras.h in Headers */,
@@ -52146,6 +52069,7 @@
 				CDE8B5F01A69778B00B4B66A /* LegacyCDMSessionClearKey.cpp in Sources */,
 				38303D7198597155D871F9FB /* LightingModel.swift in Sources */,
 				A100D94D2AB251A500E00D67 /* LocalSampleBufferDisplayLayer.mm in Sources */,
+				7777FCE0AEFF93FA6147EC1C /* MacControlPainter.swift in Sources */,
 				5C0A1700000000000000000A /* MacScrollerImpState.swift in Sources */,
 				FABE72FE1059C21100D999DD /* MathMLNames.cpp in Sources */,
 				41E9EE1F28B51067006A2298 /* MediaCaptureStatusBarManager.mm in Sources */,
@@ -52239,9 +52163,9 @@
 				46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */,
 				31C6A0E0EC5C4B408DF99E5B /* SoftLinkAccessors/AVFAudioSoftLinkAccessors.swift in Sources */,
 				FF9BBDD26F0142B28E709E48 /* SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift in Sources */,
+				F936C9750E104D8DB4F60324 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */,
 				B24B331C8A5341318D91D032 /* SoftLinkAccessors/CoreMLSoftLinkAccessors.swift in Sources */,
 				ECB218D4D904440A9EE8E0A7 /* SoftLinkAccessors/VisionSoftLinkAccessors.swift in Sources */,
-				F936C9750E104D8DB4F60324 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */,
 				FAFC665E50AE3137A8B4F14B /* SourceAlphaCoreImageApplier.swift in Sources */,
 				649031DC6302DE3AC23EAFFE /* SourceAlphaSoftwareApplier.swift in Sources */,
 				A100D94F2AB251C400E00D67 /* SourceBufferParserAVFObjC.mm in Sources */,

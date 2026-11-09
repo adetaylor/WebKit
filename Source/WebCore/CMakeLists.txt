@@ -3576,6 +3576,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureCore.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureCore.swift
+        ${WEBCORE_DIR}/platform/graphics/mac/controls/MacControlPainter.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift
