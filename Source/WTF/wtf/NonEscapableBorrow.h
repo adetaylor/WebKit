@@ -25,14 +25,14 @@
 
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <wtf/Borrow.h>
+#include <wtf/FastMalloc.h>
 #include <wtf/ForbidHeapAllocation.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
-#include <wtf/FastMalloc.h>
-#include <limits>
 #include <wtf/Threading.h>
 
 namespace WTF {
@@ -172,9 +172,8 @@ private:
 };
 
 // The lend of an object, which its lender keeps: in itself, on the stack, or on the heap for an owning lender. Its
-// views point to it without a reference, and it counts them. It must not be destroyed while a view is alive, since the
-// view would point to freed memory, so its destructor crashes then; and the views are made, copied and destroyed only
-// on the thread that made it, so the count is exact.
+// views point to it without a reference, and it counts them. Its destructor crashes if a view is still alive, and the
+// views are made, copied and destroyed only on the thread that made it, so the count is exact.
 template<typename T>
 class NonEscapableBorrowLease final {
     WTF_MAKE_NONCOPYABLE(NonEscapableBorrowLease);
