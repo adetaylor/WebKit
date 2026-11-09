@@ -286,8 +286,8 @@ def resolve_message_references(receivers):
                 for parameter in parameters + (reply_parameters or []):
                     parameter.condition = condition
                 messages.append(model.Message(definition.name, parameters, reply_parameters, definition.attributes | message.attributes, condition,
-                    definition.validator, definition.enabled_by, definition.enabled_by_exception, definition.enabled_by_conjunction,
-                    definition.coalescing_key_indices))
+                                              definition.validator, definition.enabled_by, definition.enabled_by_exception, definition.enabled_by_conjunction,
+                                              definition.coalescing_key_indices))
         receiver.messages = messages
         receiver.enforce_swift_types_constraints()
 
