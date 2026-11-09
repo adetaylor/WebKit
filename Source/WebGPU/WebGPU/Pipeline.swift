@@ -266,12 +266,13 @@ private func newComputePipelineStateKeepingWarnings(
     }
     var error: NSError?
     // Safety: as in newLibraryKeepingWarnings().
-    let state = unsafe (device as AnyObject).makeComputePipelineStateKeepingWarnings(
-        descriptor: descriptor,
-        options: [],
-        reflection: nil,
-        error: &error
-    )
+    let state = unsafe (device as AnyObject)
+        .makeComputePipelineStateKeepingWarnings(
+            descriptor: descriptor,
+            options: [],
+            reflection: nil,
+            error: &error
+        )
     return (state, error)
 }
 
@@ -506,7 +507,7 @@ private let psoExitHandlersRegistered: Bool = {
 }()
 
 private func printToFileForPsoRepro() {
-    #if os(macOS)
+    #if WTF_PLATFORM_MAC
     let defaultURL = FileManager.default.temporaryDirectory
     #else
     let defaultURL = URL(fileURLWithPath: "/tmp/", isDirectory: true)
@@ -591,7 +592,8 @@ private func dumpMetalReproCaseRenderPSO(
     repro += "\(UInt32(truncatingIfNeeded: descriptor.stencilAttachmentPixelFormat.rawValue))"
     repro += ";\n mtlRenderPipelineDescriptor.inputPrimitiveTopology = (MTLPrimitiveTopologyClass)"
     repro += "\(UInt32(truncatingIfNeeded: descriptor.inputPrimitiveTopology.rawValue))"
-    repro += ";\n mtlRenderPipelineDescriptor.supportIndirectCommandBuffers = YES;\n MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor new];"
+    repro +=
+        ";\n mtlRenderPipelineDescriptor.supportIndirectCommandBuffers = YES;\n MTLVertexDescriptor *vertexDescriptor = [MTLVertexDescriptor new];"
 
     for i in 0..<Int(maxVertexBuffers) {
         if let d = descriptor.vertexDescriptor?.layouts[i] {
@@ -625,7 +627,8 @@ private func dumpMetalReproCaseRenderPSO(
         if let c = descriptor.colorAttachments[i] {
             repro += "{uint32_t i = "
             repro += "\(i)"
-            repro += "; MTLRenderPipelineColorAttachmentDescriptor* c = mtlRenderPipelineDescriptor.colorAttachments[i]; c.pixelFormat = (MTLPixelFormat)"
+            repro +=
+                "; MTLRenderPipelineColorAttachmentDescriptor* c = mtlRenderPipelineDescriptor.colorAttachments[i]; c.pixelFormat = (MTLPixelFormat)"
             repro += "\(UInt32(truncatingIfNeeded: c.pixelFormat.rawValue))"
             repro += "; c.blendingEnabled = (BOOL)"
             repro += c.isBlendingEnabled ? "1" : "0"
@@ -662,7 +665,6 @@ private func clearMetalPSORepro() {
 }
 
 // MARK: The repro case's fixed text
-
 
 private let psoPreamble =
     #"""

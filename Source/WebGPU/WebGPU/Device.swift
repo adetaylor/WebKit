@@ -696,7 +696,8 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 // that bracket an encoder.
 private func logEncoderTimestamps(_ resolvedBuffers: NSMutableArray) {
     // What printf's %f prints.
-    let printfFixedFormat = FloatingPointFormatStyle<Double>(locale: Locale(identifier: "en_US_POSIX")).precision(.fractionLength(6)).grouping(.never)
+    let printfFixedFormat = FloatingPointFormatStyle<Double>(locale: Locale(identifier: "en_US_POSIX")).precision(.fractionLength(6))
+        .grouping(.never)
     let stride = MemoryLayout<MTLCounterResultTimestamp>.size
     for case let buffer as any MTLBuffer in resolvedBuffers {
         buffer.withCPUVisibleContents { contents in

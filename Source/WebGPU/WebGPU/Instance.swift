@@ -34,8 +34,9 @@ public import WebGPU_Private.WebGPUCpp
 // A work item, which runs on the Instance's API thread.
 typealias InstanceWorkItem = @Sendable () -> Void
 
-// The embedder's scheduleWork: runs a work item on the thread the Instance calls back on. Metal threads call it
-// concurrently with the API thread.
+/// The embedder's scheduleWork: runs a work item on the thread the Instance calls back on.
+///
+/// Metal threads call it concurrently with the API thread.
 @_spi(WebKitGPU)
 public typealias InstanceScheduleWork = @Sendable (@escaping @Sendable () -> Void) -> Void
 
@@ -130,9 +131,10 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
 
     // On the Metal thread.
     func schedule(_ argument: Argument, on scheduler: InstanceSchedulerHandle?) {
-        scheduler?.scheduleWork {
-            self.run(argument)
-        }
+        scheduler?
+            .scheduleWork {
+                self.run(argument)
+            }
     }
 
     private func run(_ argument: Argument) {
@@ -186,8 +188,9 @@ public final class InstanceImpl: LinkedImpl {
     private var retainedDevices: [ObjectIdentifier: RetainedDevice] = [:]
     private let events: InstanceEventQueue
 
-    // Without scheduleWork, the work items wait for processEvents(). The resource owner is the task that owns the
-    // resources the Instance allocates, or an empty right.
+    /// An Instance whose work items scheduleWork runs, or which wait for processEvents() without it.
+    ///
+    /// The resource owner is the task that owns the resources the Instance allocates, or an empty right.
     public init(scheduleWork: InstanceScheduleWork?, webProcessResourceOwner: WTF.MachSendRight) {
         let events = InstanceEventQueue()
         scheduler = InstanceScheduler(embedder: scheduleWork, events: events)
@@ -209,9 +212,14 @@ public final class InstanceImpl: LinkedImpl {
         backingWebProcessID
     }
 
-    // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU, and for a fallback
-    // adapter, which there isn't.
-    public func requestAdapter(powerPreference: WebGPU.PowerPreference?, forceFallbackAdapter: Bool, xrCompatible: Bool) -> AdapterReference? {
+    /// https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU.
+    ///
+    /// nil for a fallback adapter too, which there isn't.
+    public func requestAdapter(
+        powerPreference: WebGPU.PowerPreference?,
+        forceFallbackAdapter: Bool,
+        xrCompatible: Bool
+    ) -> AdapterReference? {
         // FIXME: Deal with options.compatibleSurface.
         guard !forceFallbackAdapter, let device = sortedAdapterDevices(powerPreference).first,
             let capabilities = hardwareCapabilities(device)

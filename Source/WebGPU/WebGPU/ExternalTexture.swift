@@ -33,16 +33,19 @@ public import WebGPU_Private.WebGPUCpp
 @_spi(WebKitGPU)
 public typealias ExternalTextureReference = ExternalTextureImpl
 
-// https://gpuweb.github.io/gpuweb/#dictdef-gpuexternaltexturedescriptor, without its label, with the pixel buffer of the
-// video source.
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpuexternaltexturedescriptor, without its label, with the video source's pixel buffer.
 @_spi(WebKitGPU)
 public struct GPUExternalTextureDescriptor {
+    /// The video frame, nil for none.
     public var pixelBuffer: CVPixelBuffer?
+    /// The color space the texture is sampled in.
     public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
-    // The size the source presents the frame at, which the pixel buffer does not carry. Zero when the source could not
-    // say, and then the decoded size of the frame stands in for it.
+    /// The size the source presents the frame at, which the pixel buffer does not carry.
+    ///
+    /// Zero when the source could not say, and then the decoded size of the frame stands in for it.
     public var visibleSize = WebGPU.Extent2D()
 
+    /// A descriptor with no frame.
     public init() {
     }
 }
@@ -50,7 +53,9 @@ public struct GPUExternalTextureDescriptor {
 @_spi(WebKitGPU)
 extension ExternalTextureImpl {
 
-    // The descriptor's video frame, which the texture shows from now on: none if it has no pixel buffer. Only the pixel buffer is read.
+    /// Shows the descriptor's video frame from now on: none if it has no pixel buffer.
+    ///
+    /// Only the pixel buffer is read.
     public func update(_ descriptor: GPUExternalTextureDescriptor) {
         if let pixelBuffer = descriptor.pixelBuffer {
             update(pixelBuffer)
@@ -62,7 +67,7 @@ extension ExternalTextureImpl {
 
 @_spi(WebKitGPU)
 extension DeviceReference {
-    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-importexternaltexture.
     public func importExternalTexture(_ descriptor: GPUExternalTextureDescriptor) -> ExternalTextureReference {
         guard isValid() else {
             return makeInvalidExternalTextureImpl(self)

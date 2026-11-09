@@ -207,7 +207,13 @@ final class WebGPUImplTable {
         _ xrCompatible: Bool,
         _ identifier: UInt64
     ) -> IPCTypes.RemoteGPURequestAdapterResponse? {
-        guard let adapter = instance.requestAdapter(powerPreference: powerPreference, forceFallbackAdapter: forceFallbackAdapter, xrCompatible: xrCompatible) else {
+        guard
+            let adapter = instance.requestAdapter(
+                powerPreference: powerPreference,
+                forceFallbackAdapter: forceFallbackAdapter,
+                xrCompatible: xrCompatible
+            )
+        else {
             return nil
         }
         RemoteAdapter.add(adapter, WebGPURegistryLink(self, identifier))
@@ -226,7 +232,12 @@ final class WebGPUImplTable {
     func addDevice(_ device: DeviceReference, _ identifier: UInt64, _ queueIdentifier: UInt64) {
         devices.append(device.weakReference)
         let receiver = RemoteDevice(device, link: WebGPURegistryLink(self, identifier))
-        add(identifier, device, receiver: receiver, registration: IPC.registerSwiftStreamReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier))
+        add(
+            identifier,
+            device,
+            receiver: receiver,
+            registration: IPC.registerSwiftStreamReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier)
+        )
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
 
@@ -281,7 +292,8 @@ final class WebGPUImplTable {
         _ = stores.remove(identifier, kind)
     }
 
-    func add(_ identifier: UInt64, _ compositorIntegration: RemoteCompositorIntegration, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(_ identifier: UInt64, _ compositorIntegration: RemoteCompositorIntegration, registration: IPC.SwiftStreamReceiverRegistration?)
+    {
         add(identifier, Entry(compositorIntegration, compositorIntegration, registration, nil))
     }
 
@@ -294,7 +306,12 @@ final class WebGPUImplTable {
         stores.bindGroups.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: BindGroupLayoutReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: BindGroupLayoutReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .bindGroupLayout))
         stores.bindGroupLayouts.insert(object, identifier)
     }
@@ -304,20 +321,40 @@ final class WebGPUImplTable {
         stores.buffers.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: CommandBufferReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: CommandBufferReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .commandBuffer))
         stores.commandBuffers.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: CommandEncoderReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: CommandEncoderReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: ComputePassEncoderReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: ComputePassEncoderReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: ComputePipelineReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: ComputePipelineReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .computePipeline))
         stores.computePipelines.insert(object, identifier)
     }
@@ -327,17 +364,32 @@ final class WebGPUImplTable {
         stores.devices.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: ExternalTextureReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: ExternalTextureReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .externalTexture))
         stores.externalTextures.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: PipelineLayoutReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: PipelineLayoutReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .pipelineLayout))
         stores.pipelineLayouts.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: PresentationContextReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: PresentationContextReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
@@ -350,20 +402,36 @@ final class WebGPUImplTable {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: RenderBundleReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(_ identifier: UInt64, _ object: RenderBundleReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?)
+    {
         add(identifier, Entry(object, receiver, registration, .renderBundle))
         stores.renderBundles.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: RenderBundleEncoderReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: RenderBundleEncoderReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: RenderPassEncoderReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: RenderPassEncoderReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: RenderPipelineReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: RenderPipelineReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .renderPipeline))
         stores.renderPipelines.insert(object, identifier)
     }
@@ -373,7 +441,8 @@ final class WebGPUImplTable {
         stores.samplers.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: ShaderModuleReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(_ identifier: UInt64, _ object: ShaderModuleReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?)
+    {
         add(identifier, Entry(object, receiver, registration, .shaderModule))
         stores.shaderModules.insert(object, identifier)
     }
@@ -383,7 +452,8 @@ final class WebGPUImplTable {
         stores.textures.insert(object, identifier)
     }
 
-    func add(_ identifier: UInt64, _ object: TextureViewReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(_ identifier: UInt64, _ object: TextureViewReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?)
+    {
         add(identifier, Entry(object, receiver, registration, .textureView))
         stores.textureViews.insert(object, identifier)
     }
@@ -392,7 +462,12 @@ final class WebGPUImplTable {
         add(identifier, Entry(object, receiver, registration, nil))
     }
 
-    func add(_ identifier: UInt64, _ object: XRProjectionLayerReference, receiver: AnyObject, registration: IPC.SwiftStreamReceiverRegistration?) {
+    func add(
+        _ identifier: UInt64,
+        _ object: XRProjectionLayerReference,
+        receiver: AnyObject,
+        registration: IPC.SwiftStreamReceiverRegistration?
+    ) {
         add(identifier, Entry(object, receiver, registration, .xrProjectionLayer))
         stores.xrProjectionLayers.insert(object, identifier)
     }

@@ -46,7 +46,12 @@ final class RemotePipelineLayout {
             return
         }
         let receiver = RemotePipelineLayout(pipelineLayout, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemotePipelineLayout, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(
+            objects.host,
+            receiver.getMessageReceiver(),
+            .RemotePipelineLayout,
+            link.identifier
+        )
         objects.add(link.identifier, pipelineLayout, receiver: receiver, registration: registration)
     }
 

@@ -120,7 +120,7 @@ void RemoteGPU::createModelBacking(unsigned width, unsigned height, WebModel::Im
         MESSAGE_CHECK(equalIgnoringDataContents(inputSpecularTexture, specularTexture, 1048572));
 #undef equalIgnoringDataContents
     }
-    Ref objectHeap = m_modelObjectHeap.get();
+    Ref objectHeap = m_modelObjectHeap;
 
     auto gpuProcessConnection = m_gpuConnectionToWebProcess.get();
     MESSAGE_CHECK(gpuProcessConnection);

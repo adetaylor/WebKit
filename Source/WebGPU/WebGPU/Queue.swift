@@ -67,9 +67,10 @@ import simd
 // The writes of a GPUByteOwner's bytes may read at least this many of them in place, rather than copy them.
 private let largeBufferSize: UInt64 = 32 * 1024 * 1024
 
-// The owner of a write's bytes, which a large write may read after it returns, keeping the owner until it has: the bytes
-// stay at the same address and size, and this process doesn't change them, for as long as the owner exists. The last
-// reference to it may go on any thread.
+/// The owner of a write's bytes, which a large write may read after it returns, keeping the owner until it has.
+///
+/// The bytes stay at the same address and size, and this process doesn't change them, for as long as the owner exists.
+/// The last reference to it may go on any thread.
 @_spi(WebKitGPU)
 public protocol GPUByteOwner: AnyObject, Sendable {
     func withBytes<R>(_ body: (RawSpan) -> R) -> R
@@ -357,7 +358,9 @@ private func commandBufferErrorLosesTheDevice(_ commandBuffer: any MTLCommandBuf
     case 17:
         crashGPUProcessCommandBufferError17(error, underlyingError)
     default:
-        logAlways("Encountered non-fatal command buffer error \(errorDescription(error)), underlying error \(errorDescription(underlyingError))")
+        logAlways(
+            "Encountered non-fatal command buffer error \(errorDescription(error)), underlying error \(errorDescription(underlyingError))"
+        )
         return true
     }
 }
@@ -385,11 +388,12 @@ private func addMetalCommitHandlers(
 
     // QueueImpl commits the command buffer as soon as this returns.
     let label = commandBuffer.label
-    DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
-        if !flag.completed.load(ordering: .relaxed) {
-            crashGPUProcess("WebGPU: command buffer \(label ?? "(null)") did not complete within 3s timeout")
+    DispatchQueue.global()
+        .asyncAfter(deadline: .now() + 3) {
+            if !flag.completed.load(ordering: .relaxed) {
+                crashGPUProcess("WebGPU: command buffer \(label ?? "(null)") did not complete within 3s timeout")
+            }
         }
-    }
 }
 
 private func copyExternalImageSourceStorageMode(_ deviceImpl: DeviceImpl) -> MTLStorageMode {
@@ -3117,8 +3121,7 @@ extension QueueImpl {
         _ = writeTexture(deviceImpl, texture, destination, bytes: data, nil, dataLayout, size, false, .decide)
     }
 
-    // writeBuffer() of the owner's bytes, which it may read after returning (see largeBufferSize), keeping the owner until
-    // it has.
+    /// writeBuffer() of the owner's bytes, which it may read after returning (see largeBufferSize), keeping the owner.
     public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: any GPUByteOwner) {
         guard let deviceImpl = deviceImpl(sharedBy: buffer.deviceImpl) else {
             return
@@ -3177,27 +3180,35 @@ public struct GPUCopyExternalImageDestination {
 
 }
 
-// https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagesourceinfo, with the IOSurface of an image or canvas, or
-// the pixel buffer of a video frame, as the source. Exactly one of them is set.
+/// https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagesourceinfo, with the source's IOSurface or pixel buffer.
+///
+/// The IOSurface is an image's or a canvas's, the pixel buffer a video frame's. Exactly one of them is set.
 @_spi(WebKitGPU)
 public struct GPUCopyExternalImageSource {
+    /// The IOSurface of an image or a canvas.
     public var surface: IOSurfaceRef?
-    // The format of the single plane of the IOSurface. An accelerated 2D canvas can be backed by it.
+    /// The format of the single plane of the IOSurface, which can back an accelerated 2D canvas.
     public var sourceFormat: WebGPU.TextureFormat?
-    // The logical extent of the IOSurface, which may be larger.
+    /// The logical extent of the IOSurface, which may be larger.
     public var sourceSize = WebGPU.Extent2D()
-    // A video frame carries its own extent, crop and primaries, and it is treated as opaque.
+    /// A video frame, which carries its own extent, crop and primaries, and is treated as opaque.
     public var pixelBuffer: CVPixelBuffer?
-    // The display transform of the frame: a horizontal mirror, then a clockwise rotation.
+    /// The display transform of the frame: a horizontal mirror, then a clockwise rotation.
     public var pixelBufferRotation = WebGPU.VideoFrameRotation.None
+    /// Whether the display transform mirrors the frame.
     public var pixelBufferIsMirrored = false
+    /// The origin of the copy in the source.
     public var origin = WebGPU.Origin2D()
+    /// Whether the copy flips the source vertically.
     public var flipY = false
-    // False when the alpha channel of the source carries no data, as for an opaque canvas.
+    /// False when the alpha channel of the source carries no data, as for an opaque canvas.
     public var hasAlpha = true
+    /// Whether the source's color is premultiplied by its alpha.
     public var premultipliedAlpha = true
+    /// The color space of the source.
     public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
 
+    /// A source with neither an IOSurface nor a pixel buffer.
     public init() {
     }
 }

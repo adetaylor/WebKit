@@ -964,10 +964,11 @@ private struct BindGroupCreation {
             encoders[stage]?.setBuffer(mtlBuffer, offset: Int(truncatingIfNeeded: entryOffset), index: Int(index))
             if let bufferSizeIndex = layoutEntry.bufferSizeArgumentBufferIndices[stage] {
                 argumentIndices[stage].remove(bufferSizeIndex)
-                encoders[stage]?.storeConstant(
-                    min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)),
-                    at: Int(bufferSizeIndex)
-                )
+                encoders[stage]?
+                    .storeConstant(
+                        min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)),
+                        at: Int(bufferSizeIndex)
+                    )
             }
         }
         if let mtlBuffer {

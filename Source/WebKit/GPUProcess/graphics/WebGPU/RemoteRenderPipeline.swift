@@ -46,7 +46,12 @@ final class RemoteRenderPipeline {
             return
         }
         let receiver = RemoteRenderPipeline(renderPipeline, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderPipeline, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(
+            objects.host,
+            receiver.getMessageReceiver(),
+            .RemoteRenderPipeline,
+            link.identifier
+        )
         objects.add(link.identifier, renderPipeline, receiver: receiver, registration: registration)
     }
 

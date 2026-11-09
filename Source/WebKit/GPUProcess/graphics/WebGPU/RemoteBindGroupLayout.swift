@@ -47,7 +47,12 @@ final class RemoteBindGroupLayout {
             return
         }
         let receiver = RemoteBindGroupLayout(bindGroupLayout, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBindGroupLayout, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(
+            objects.host,
+            receiver.getMessageReceiver(),
+            .RemoteBindGroupLayout,
+            link.identifier
+        )
         objects.add(link.identifier, bindGroupLayout, receiver: receiver, registration: registration)
     }
 

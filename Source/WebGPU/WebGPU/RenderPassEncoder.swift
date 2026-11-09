@@ -80,13 +80,19 @@ private func lostOrOOBRead<Arguments>(_ buffer: (any MTLBuffer)?, _ offset: UInt
 
 private func drawIndirectArgumentsLostOrOOBRead(_ scratch: any MTLBuffer, _ offset: UInt64) -> Bool {
     typealias Arguments = WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments
-    let flag = lostOrOOBRead(scratch, offset, Arguments.self, flagOffset: MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead)!)
+    guard let flagOffset = MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead) else {
+        preconditionFailure("lostOrOOBRead is a stored property")
+    }
+    let flag = lostOrOOBRead(scratch, offset, Arguments.self, flagOffset: flagOffset)
     return (flag ?? 0) != 0
 }
 
 private func indexedIndirectArgumentsLostOrOOBRead(_ indexedIndirectBuffer: (any MTLBuffer)?, _ offset: UInt64) -> UInt32? {
     typealias Arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments
-    return lostOrOOBRead(indexedIndirectBuffer, offset, Arguments.self, flagOffset: MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead)!)
+    guard let flagOffset = MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead) else {
+        preconditionFailure("lostOrOOBRead is a stored property")
+    }
+    return lostOrOOBRead(indexedIndirectBuffer, offset, Arguments.self, flagOffset: flagOffset)
 }
 
 // The out-of-bounds flag a completed index clamp wrote into an ICB's flag. nil if it can't be read.

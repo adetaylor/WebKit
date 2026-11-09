@@ -103,7 +103,8 @@ final class RemoteGPUState {
 // RemoteGPU's WebGPU messages (RemoteGPU.h), on its work queue, and its Swift state, which m_swiftState holds retained,
 // by address, from swiftInitialize() to the destructor.
 extension WebKit.RemoteGPU {
-    @cxx @implementation
+    @cxx
+    @implementation
     func swiftInitialize(_ webProcessResourceOwner: WTF.MachSendRight) {
         precondition(m_swiftState == 0)
         let scheduler = RemoteGPUWorkScheduler(workQueue())
@@ -119,25 +120,31 @@ extension WebKit.RemoteGPU {
     }
 
     // Static, so that the destructor never retains the RemoteGPU it destroys.
-    @cxx @implementation
+    @cxx
+    @implementation
     static func destroySwiftState(_ swiftState: UInt) {
         // Safety: swiftInitialize() retained the state at this address, and only the destructor releases it.
-        _ = unsafe Unmanaged<RemoteGPUState>.fromOpaque(UnsafeMutableRawPointer(bitPattern: swiftState)!).takeRetainedValue()
+        _ = unsafe Unmanaged<RemoteGPUState>
+            .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
+            .takeRetainedValue()
     }
 
-    @cxx @implementation
+    @cxx
+    @implementation
     func swiftBeginStopping() {
         state.scheduler.beginStopping()
     }
 
-    @cxx @implementation
+    @cxx
+    @implementation
     func swiftRunScheduledWork(_ thenStopped: Bool) {
         state.scheduler.runWaitingWork(thenStopped: thenStopped)
     }
 
     // Destroys the devices that are still alive, so that their pending callbacks are called, empties the registry, and
     // releases it, and with it the registry's reference to this.
-    @cxx @implementation
+    @cxx
+    @implementation
     func swiftUninitialize() {
         let state = self.state
         guard let registry = state.registry else {
@@ -151,7 +158,9 @@ extension WebKit.RemoteGPU {
     private var state: RemoteGPUState {
         precondition(m_swiftState != 0, "RemoteGPU has no Swift state")
         // Safety: m_swiftState is a retained RemoteGPUState from swiftInitialize() to the destructor.
-        return unsafe Unmanaged<RemoteGPUState>.fromOpaque(UnsafeMutableRawPointer(bitPattern: m_swiftState)!).takeUnretainedValue()
+        return unsafe Unmanaged<RemoteGPUState>
+            .fromOpaque(UnsafeRawPointer(bitPattern: m_swiftState) ?? noSwiftState())
+            .takeUnretainedValue()
     }
 
     // Only reached by messages, which come between workQueueInitialize() and swiftUninitialize().
@@ -193,6 +202,10 @@ extension WebKit.RemoteGPU {
         let state = table.objectState(identifier.rawValue)
         return (state.valid, state.exists)
     }
+}
+
+private func noSwiftState<T>() -> T {
+    preconditionFailure("RemoteGPU has no Swift state")
 }
 
 #endif // ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT

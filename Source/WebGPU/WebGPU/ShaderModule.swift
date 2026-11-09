@@ -548,9 +548,11 @@ private final class WGSLCompileThreadCall: @unchecked Sendable {
     }
 }
 
-/// `keys` (distinct) in the order a HashMap<uint32_t, T, DefaultHash<uint32_t>, UnsignedWithZeroKeyHashTraits<uint32_t>>
-/// filled with them in their current order iterates them, for walks whose first failure picks an error message. Table
-/// sizing ignores the value type, so a WTFHashSet replica of the keys iterates in the same order.
+/// `keys` (distinct) in WTF hash table order, for walks whose first failure picks an error message.
+///
+/// That is the order of a HashMap<uint32_t, T, DefaultHash<uint32_t>, UnsignedWithZeroKeyHashTraits<uint32_t>> filled
+/// with them in their current order. Table sizing ignores the value type, so a WTFHashSet replica of the keys iterates
+/// in the same order.
 func sortedInWTFHashTableOrder(_ keys: [UInt32]) -> [UInt32] {
     var table = WTFHashSet<UInt32>()
     for key in keys {

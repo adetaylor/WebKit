@@ -257,7 +257,7 @@ RefPtr<WebCore::ImageBuffer> RemoteGPU::imageBuffer(WebCore::RenderingResourceId
 
     RefPtr<WebCore::ImageBuffer> result;
     Ref renderingBackend = m_renderingBackend;
-    renderingBackend->dispatch([&]() mutable {
+    renderingBackend->dispatch([&] mutable {
         if (RefPtr imageBuffer = renderingBackend->imageBuffer(imageBufferIdentifier)) {
             imageBuffer->flushDrawingContext();
             result = WTF::move(imageBuffer);

@@ -47,7 +47,12 @@ final class RemoteRenderBundleEncoder {
             return
         }
         let receiver = RemoteRenderBundleEncoder(encoder, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderBundleEncoder, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(
+            objects.host,
+            receiver.getMessageReceiver(),
+            .RemoteRenderBundleEncoder,
+            link.identifier
+        )
         objects.add(link.identifier, encoder, receiver: receiver, registration: registration)
     }
 

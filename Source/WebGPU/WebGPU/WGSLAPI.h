@@ -27,6 +27,8 @@
 
 #include <optional>
 #include <span>
+#include <unicode/uchar.h>
+#include <unicode/uset.h>
 #include <wtf/OptionSet.h>
 #include <wtf/PrintStream.h>
 #include <wtf/StdLibExtras.h>
@@ -34,8 +36,6 @@
 #include <wtf/Variant.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
-#include <unicode/uchar.h>
-#include <unicode/uset.h>
 
 // The string helpers WGSLBridge.swift copies through between WTF and the Swift WGSL compiler, and the ICU sets that
 // ShaderModule.swift reads the identifier character classes from.

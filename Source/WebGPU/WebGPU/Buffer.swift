@@ -957,15 +957,31 @@ private func verifyBundleIndirectDrawIndexBufferForSlowPath(
     if overflowed || UInt64(indirectBuffer.length) < argumentsEnd {
         return false
     }
-    let baseVertexOffset = MemoryLayout<MTLDrawIndexedPrimitivesIndirectArguments>.offset(of: \.baseVertex)!
+    guard let baseVertexOffset = MemoryLayout<MTLDrawIndexedPrimitivesIndirectArguments>.offset(of: \.baseVertex) else {
+        preconditionFailure("baseVertex is a stored property")
+    }
     let baseVertex = indirectBuffer.withContents { arguments in
         arguments.bytes.load(fromByteOffset: Int(indirectOffset) + baseVertexOffset, as: Int32.self)
     }
     return withContents(of: indexBuffer) { contents in
         if isUInt16 {
-            return verifyClampedIndirectIndexBufferData(contents.bytes, UInt16.self, indexBufferOffset, vertexCount, primitiveOffset, baseVertex)
+            return verifyClampedIndirectIndexBufferData(
+                contents.bytes,
+                UInt16.self,
+                indexBufferOffset,
+                vertexCount,
+                primitiveOffset,
+                baseVertex
+            )
         }
-        return verifyClampedIndirectIndexBufferData(contents.bytes, UInt32.self, indexBufferOffset, vertexCount, primitiveOffset, baseVertex)
+        return verifyClampedIndirectIndexBufferData(
+            contents.bytes,
+            UInt32.self,
+            indexBufferOffset,
+            vertexCount,
+            primitiveOffset,
+            baseVertex
+        )
     }
 }
 

@@ -36,15 +36,15 @@ namespace WebKit {
 static WebCore::IOSurface::Format webCoreFormat(GPUProcessIOSurfaceFormat format)
 {
     switch (format) {
-    case GPUProcessIOSurfaceFormat::BGRA:
+    case GPUProcessIOSurfaceFormat::Bgra:
         return WebCore::IOSurface::Format::BGRA;
-    case GPUProcessIOSurfaceFormat::BGRX:
+    case GPUProcessIOSurfaceFormat::Bgrx:
         return WebCore::IOSurface::Format::BGRX;
-    case GPUProcessIOSurfaceFormat::RGBA:
+    case GPUProcessIOSurfaceFormat::Rgba:
         return WebCore::IOSurface::Format::RGBA;
-    case GPUProcessIOSurfaceFormat::RGBX:
+    case GPUProcessIOSurfaceFormat::Rgbx:
         return WebCore::IOSurface::Format::RGBX;
-    case GPUProcessIOSurfaceFormat::RGBA16F:
+    case GPUProcessIOSurfaceFormat::Rgba16F:
 #if ENABLE(PIXEL_FORMAT_RGBA16F)
         return WebCore::IOSurface::Format::RGBA16F;
 #else

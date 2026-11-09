@@ -54,7 +54,12 @@ final class RemoteCompositorIntegration {
             return
         }
         let receiver = RemoteCompositorIntegration(link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCompositorIntegration, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(
+            objects.host,
+            receiver.getMessageReceiver(),
+            .RemoteCompositorIntegration,
+            link.identifier
+        )
         objects.add(link.identifier, receiver, registration: registration)
     }
 
@@ -175,13 +180,13 @@ final class RemoteCompositorIntegration {
 private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> WebKit.GPUProcessIOSurfaceFormat {
     switch textureFormat {
     case .rgba8unorm, .rgba8unormSRGB:
-        return premultiplied ? .RGBA : .RGBX
+        return premultiplied ? .Rgba : .Rgbx
     #if ENABLE_PIXEL_FORMAT_RGBA16F
     case .rgba16float:
-        return .RGBA16F
+        return .Rgba16F
     #endif
     default:
-        return premultiplied ? .BGRA : .BGRX
+        return premultiplied ? .Bgra : .Bgrx
     }
 }
 #endif

@@ -65,7 +65,7 @@ extension MutableRawSpan {
         withUnsafeMutableBytes { destination in
             source.withUnsafeBytes { sourceBytes in
                 // Safety: the precondition keeps [byteOffset, byteOffset + source.byteCount) inside the destination.
-                unsafe destination.baseAddress!.advanced(by: byteOffset).copyMemory(from: sourceBytes.baseAddress!, byteCount: sourceBytes.count)
+                unsafe UnsafeMutableRawBufferPointer(rebasing: destination[byteOffset...]).copyMemory(from: sourceBytes)
             }
         }
     }
@@ -173,7 +173,12 @@ struct TexelBlockLayout {
 
 // The bytes replaceRegion:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage: reads: each of the region's images,
 // bytesPerImage apart, has its rows of blocks, bytesPerRow apart, and the last row is only as long as the region's blocks.
-private func replaceRegionSourceSize(_ region: MTLRegion, _ bytesPerRow: UInt64, _ bytesPerImage: UInt64, _ block: TexelBlockLayout) -> UInt64 {
+private func replaceRegionSourceSize(
+    _ region: MTLRegion,
+    _ bytesPerRow: UInt64,
+    _ bytesPerImage: UInt64,
+    _ block: TexelBlockLayout
+) -> UInt64 {
     precondition(block.width != 0 && block.height != 0)
     let blockWidth = UInt64(block.width)
     let blockHeight = UInt64(block.height)
@@ -251,23 +256,24 @@ func makeBuffer(_ device: (any MTLDevice)?, aliasing owner: any GPUByteOwner, fr
         guard offset <= byteCount, length <= byteCount - offset, let device else {
             return nil
         }
-        return bytes.extracting(Int(offset)..<Int(offset + length)).withUnsafeBytes { range -> (any MTLBuffer)? in
-            guard let baseAddress = range.baseAddress else {
-                return nil
-            }
-            // Safety: Metal reads the bytes in place until it destroys the buffer, and only then releases the
-            // deallocator, which holds their owner, whose bytes stay at this address until it goes. The buffer is only
-            // ever a copy source, so nothing writes to them.
-            return unsafe device.makeBuffer(
-                bytesNoCopy: UnsafeMutableRawPointer(mutating: baseAddress),
-                length: range.count,
-                options: .storageModeShared,
-                deallocator: { _, _ in
-                    withExtendedLifetime(owner) {
-                    }
+        return bytes.extracting(Int(offset)..<Int(offset + length))
+            .withUnsafeBytes { range -> (any MTLBuffer)? in
+                guard let baseAddress = range.baseAddress else {
+                    return nil
                 }
-            )
-        }
+                // Safety: Metal reads the bytes in place until it destroys the buffer, and only then releases the
+                // deallocator, which holds their owner, whose bytes stay at this address until it goes. The buffer is only
+                // ever a copy source, so nothing writes to them.
+                return unsafe device.makeBuffer(
+                    bytesNoCopy: UnsafeMutableRawPointer(mutating: baseAddress),
+                    length: range.count,
+                    options: .storageModeShared,
+                    deallocator: { _, _ in
+                        withExtendedLifetime(owner) {
+                        }
+                    }
+                )
+            }
     }
 }
 

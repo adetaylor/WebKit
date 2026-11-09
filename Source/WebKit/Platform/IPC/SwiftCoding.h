@@ -695,8 +695,7 @@ template<typename T> struct IsRefOfStreamMessageReceiver<Ref<T>> : std::bool_con
 // forwarder as the StreamMessageReceiver it is, but can pass the Ref to it that it holds. The static_asserts are there
 // because the constraints aren't enforced for Swift callers.
 template<typename OwnerPointer, typename ForwarderRef>
-SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
-{
+SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED {
     static_assert(std::is_pointer_v<OwnerPointer>);
     static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
     auto& owner = *ownerPointer;
@@ -704,7 +703,7 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
     if (!streamConnection)
         return nullptr;
     using SharedPreferences = decltype(owner.sharedPreferencesForWebProcess());
-    forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }]() -> SharedPreferences {
+    forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }] -> SharedPreferences {
         if (RefPtr protectedOwner = weakOwner.get())
             return protectedOwner->sharedPreferencesForWebProcess();
         return std::nullopt;

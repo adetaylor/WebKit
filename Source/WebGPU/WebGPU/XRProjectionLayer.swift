@@ -21,7 +21,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#if os(macOS)
+#if WTF_PLATFORM_MAC
 import IOSurface
 #endif
 import Metal
@@ -266,7 +266,7 @@ private func makeXRRasterizationRateMaps(
 
 #else
 
-#if os(macOS)
+#if WTF_PLATFORM_MAC
 // The Mac has no compositor. There a frame's buffer is an IOSurface, which only WebKit's simulated XR device sends.
 private func makeXRSharedTexture(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLTexture)? {
     guard let surface = IOSurfaceLookupFromMachPort(machPort) else {

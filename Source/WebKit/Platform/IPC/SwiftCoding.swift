@@ -822,8 +822,9 @@ extension IPCTypes {
         }
     }
 
-    /// Memory that another process shares, mapped read-only into this one until this goes. Its bytes stay at the same
-    /// address, and this process can't change them; the other process can.
+    /// Memory that another process shares, mapped read-only into this one until this goes.
+    ///
+    /// Its bytes stay at the same address, and this process can't change them; the other process can.
     final class ReadOnlySharedMemory: Sendable {
         private let task: mach_port_t
         private let address: mach_vm_address_t
@@ -862,7 +863,8 @@ extension IPCTypes {
             let result = mach_vm_deallocate(task, address, size)
             if result != KERN_SUCCESS {
                 #if canImport(os)
-                WebKit.LogChannel.VirtualMemory().releaseLog.error("SharedMemory::~SharedMemory: Failed to deallocate shared memory. (\(result))")
+                WebKit.LogChannel.VirtualMemory().releaseLog
+                    .error("SharedMemory::~SharedMemory: Failed to deallocate shared memory. (\(result))")
                 #endif
                 assertionFailure()
             }
@@ -874,7 +876,10 @@ extension IPCTypes {
                 return body(RawSpan())
             }
             // Safety: mach_vm_map() mapped `size` readable bytes at `address`, which stay mapped until the deinit.
-            let bytes = unsafe RawSpan(_unsafeStart: UnsafeRawPointer(bitPattern: UInt(address))!, byteCount: byteCount)
+            let bytes = unsafe RawSpan(
+                _unsafeStart: UnsafeRawPointer(bitPattern: UInt(address)) ?? mappingAtAddressZero(),
+                byteCount: byteCount
+            )
             return body(bytes)
         }
     }
@@ -909,6 +914,10 @@ extension IPCCoding {
             }
         }
     }
+}
+
+private func mappingAtAddressZero<T>() -> T {
+    preconditionFailure("a mapping at address 0")
 }
 #endif
 

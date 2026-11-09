@@ -39,11 +39,11 @@ namespace WebKit {
 
 // The WebCore::IOSurface formats and names that the GPU process's Swift allocates.
 enum class GPUProcessIOSurfaceFormat : uint8_t {
-    BGRA,
-    BGRX,
-    RGBA,
-    RGBX,
-    RGBA16F,
+    Bgra,
+    Bgrx,
+    Rgba,
+    Rgbx,
+    Rgba16F,
 };
 
 enum class GPUProcessIOSurfaceName : uint8_t {
