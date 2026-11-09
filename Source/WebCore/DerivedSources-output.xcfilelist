@@ -3853,6 +3853,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/AVFAudioSoftLinkA
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/AVFoundationSoftLinkAccessors.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/CoreMLSoftLinkAccessors.swift
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes/PALSoftLinkTypes.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/PALSoftLinkTypes/module.modulemap
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/SoftLinkAccessors/VisionSoftLinkAccessors.swift

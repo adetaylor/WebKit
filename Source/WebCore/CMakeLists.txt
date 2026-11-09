@@ -3435,6 +3435,7 @@ if (APPLE)
         platform/graphics/cocoa/H264UtilitiesCocoa.mm
         platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
         platform/graphics/cocoa/VP9UtilitiesCocoa.mm
+        platform/graphics/cocoa/VideoMediaSampleRenderer.mm
 
         platform/graphics/iso/ISOBox.cpp
         platform/graphics/iso/ISOOriginalFormatBox.cpp
@@ -3641,6 +3642,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift
         ${WEBCORE_DIR}/platform/media-parsers/AnnexB.swift
@@ -3774,7 +3776,7 @@ if (APPLE)
     # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
     # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
     # C++ interop mode, as WebCore's Swift imports them.
-    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML Vision)
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia Vision)
     set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
     set(_soft_link_pal_headers
         ${PAL_DIR}/pal/cf/AudioToolboxSoftLink.h

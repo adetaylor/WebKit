@@ -78,6 +78,7 @@
 #include "ShareableBitmapSwiftBridge.h"
 #include "SharedVideoFrameSwiftBridge.h"
 #include "SourceGraphicParameters.h"
+#include "VideoMediaSampleRendererHost.h"
 
 #include "ContainerNode.h"
 #include "Document.h"

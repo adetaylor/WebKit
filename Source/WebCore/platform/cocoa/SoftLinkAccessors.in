@@ -74,3 +74,15 @@ member Vision VNRequest supportedComputeStageDevicesAndReturnError: func support
 member Vision VNRequest setComputeDevice:forComputeStage: func setComputeDevice(_ computeDevice: AnyObject?, forComputeStage computeStage: NSString)
 member Vision VNRecognizedTextObservation topCandidates: func topCandidates(_ maxCandidateCount: Int) -> NSArray
 member Vision VNFaceLandmarkRegion2D pointsInImageOfSize: func pointsInImage(imageSize: CGSize) -> [CGPoint] counted by pointCount
+
+# The video sample renderer (VideoMediaSampleRenderer.swift).
+class AVFoundation AVSampleBufferVideoRenderer
+function CoreMedia CMFormatDescriptionGetMediaSubType
+function CoreMedia CMFormatDescriptionGetMediaType
+function CoreMedia CMSampleBufferGetFormatDescription
+function CoreMedia CMSampleBufferGetNumSamples
+function CoreMedia CMSampleBufferGetOutputPresentationTimeStamp
+function CoreMedia CMSampleBufferGetPresentationTimeStamp
+function CoreMedia CMTimeAdd
+function CoreMedia CMTimeCompare
+function CoreMedia CMTimeGetSeconds

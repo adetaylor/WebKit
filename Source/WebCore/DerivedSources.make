@@ -2915,7 +2915,7 @@ $(WEBCORE_LOG_DECLARATIONS_FILES) : $(WebCore)/platform/LogMessages.in $(WebCore
 # The Swift accessors for the symbols of the frameworks that WebCore soft-links (platform/cocoa/SoftLinkAccessors.in),
 # generated with the target's SDK from PAL's SOFT_LINK declarations, as Source/WebCore/CMakeLists.txt does.
 
-SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFAudio AVFoundation AudioToolbox CoreML
+SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFAudio AVFoundation AudioToolbox CoreML CoreMedia
 # Vision isn't in every SDK (HAVE(VISION)): without it, its file is an empty stub, so the project's sources stay the same.
 ifneq ($(filter HAVE_VISION,$(FEATURE_AND_PLATFORM_DEFINES)),)
     SOFT_LINK_ACCESSOR_FRAMEWORKS += Vision
