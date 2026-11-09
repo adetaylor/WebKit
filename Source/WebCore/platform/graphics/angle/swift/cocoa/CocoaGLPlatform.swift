@@ -77,16 +77,20 @@ struct CocoaGLSpareBuffer {
 // buffers it renders to and displays.
 @_expose(Cxx)
 public final class CocoaGLPlatform: GLContextPlatform {
+    @_expose(!Cxx)
     static let maxReusedDrawingBuffers = 3
     // On iOS CoreAnimation keeps a displayed buffer for about 4 frames; one more for headroom.
     @_expose(!Cxx)
     static let maxSpareDrawingBuffers = 5
 
+    @_expose(!Cxx)
     let contextID: UInt64
     let attributes: CocoaGLContextAttributes
+    @_expose(!Cxx)
     private(set) var display = ANGLEDisplay()
     @_expose(!Cxx)
     private(set) var displayKey = 0
+    @_expose(!Cxx)
     private(set) var config = ANGLEConfig()
     @_expose(!Cxx)
     private(set) var eglContext = ANGLEContext()
@@ -225,6 +229,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     // The other contexts of the display may notice the reset later, so the key is incremented only once.
+    @_expose(!Cxx)
     static func didLoseDisplay(_ displayKey: Int) {
         cocoaGLDisplays.withLock { displays in
             if displayKey == displays.currentKey {
@@ -308,6 +313,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
 #endif
     }
 
+    @_expose(!Cxx)
     func didLoseDisplay() {
         GLLog.webGL("GPU has reset (context \(contextID)). Lose the context.")
         Self.didLoseDisplay(displayKey)

@@ -38,12 +38,14 @@ public final class GLContext {
     // The identifier of the context whose EGL context is current on this thread, as far as the island knows.
     private static let currentContextID = Atomic<UInt64>(0)
 
+    @_expose(!Cxx)
     let contextID: UInt64
     private let platform: any GLContextPlatform
 #if WTF_PLATFORM_COCOA
     // The platform again, for its Cocoa entry points.
     private let cocoaPlatform: CocoaGLPlatform?
 #endif
+    @_expose(!Cxx)
     let display: ANGLEDisplay
     @_expose(!Cxx)
     let eglContext: ANGLEContext
@@ -94,6 +96,7 @@ public final class GLContext {
             maxInternalFramebufferHeight.store(newValue.height, ordering: .relaxed)
         }
     }
+    @_expose(!Cxx)
     private(set) var texture: GLuint = 0
     @_expose(!Cxx)
     private(set) var fbo: GLuint = 0
@@ -350,6 +353,7 @@ public final class GLContext {
         errors.formUnion(error)
     }
 
+    @_expose(!Cxx)
     func forceContextLost() {
         contextLost = true
         GLContextCallbacks.forceContextLost(contextID)
@@ -379,6 +383,7 @@ public final class GLContext {
     }
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
+    @_expose(!Cxx)
     func checkGPUStatus() {
         if contextLost {
             return
@@ -3395,6 +3400,7 @@ enum GLContextSimulatedEvent {
 // A context for the GPU process's Swift receiver, which C++ hands it by the address of this struct's storage.
 @_expose(Cxx)
 public struct GLContextHandoff {
+    @_expose(!Cxx)
     public let context: GLContext
 
     @_expose(Cxx)
