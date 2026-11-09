@@ -2694,6 +2694,7 @@ def generate_swift_message_handler(receiver):
 
     if implementation:
         result.append('extension SwiftDispatch.%s {\n' % receiver.name)
+    first_message_index = len(result)
     if not implementation and not swift_receiver_runs_on_work_queue(receiver):
         result.append('// Safety: target is only written in init, assumeIsolated asserts the main thread, and weak loads are atomic in the Swift runtime\n')
     if not implementation:
@@ -3009,6 +3010,12 @@ def generate_swift_message_handler(receiver):
             result.insert(message_start, '\n    #if %s' % condition)
             result.append('    #endif\n')
 
+    # No empty line opens the extension.
+    if implementation and first_message_index < len(result) and result[first_message_index].startswith('\n'):
+        if result[first_message_index] == '\n':
+            del result[first_message_index]
+        else:
+            result[first_message_index] = result[first_message_index][1:]
     result.append('}\n')
 
     for message, reply_value_type, encoding_statements in stream_reply_values:
@@ -3060,7 +3067,6 @@ def generate_swift_message_handler(receiver):
         result.append('#endif\n')
     if receiver.swift_receiver_build_enabled_by:
         result.append('#endif\n')
-
 
     return ''.join(result)
 

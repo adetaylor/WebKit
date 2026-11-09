@@ -25,7 +25,6 @@
 import WebKit_Internal
 
 extension SwiftDispatch.TestWithSwiftImplementation {
-
     @cxx
     @implementation
     static func dispatchSendString(

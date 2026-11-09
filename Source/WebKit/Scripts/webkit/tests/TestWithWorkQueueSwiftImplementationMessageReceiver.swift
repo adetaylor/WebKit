@@ -25,7 +25,6 @@
 import WebKit_Internal
 
 extension SwiftDispatch.TestWithWorkQueueSwiftImplementation {
-
     @cxx
     @implementation
     static func dispatchSendString(
