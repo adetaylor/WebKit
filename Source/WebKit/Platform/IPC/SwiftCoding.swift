@@ -743,8 +743,7 @@ extension IPCTypes {
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
             let count = try UInt64.decode(from: &decoder)
             var rights = Self()
-            // Each right is an attachment, so a count larger than the message's attachments fails on the first right
-            // that isn't there, before anything is allocated for it.
+            // Each right is an attachment, so decoding stops at the first missing one.
             for _ in 0..<count {
                 rights.append(try MachSendRight.decode(from: &decoder))
             }
