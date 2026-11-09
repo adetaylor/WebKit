@@ -24,16 +24,18 @@
  */
 
 #import "config.h"
-#import "LibWebRTCCodecsProxyPlatform.h"
+#import "LibWebRTCCodecsProxy.h"
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 
 #import "Connection.h"
+#import "GPUConnectionToWebProcess.h"
+#import "GPUProcess.h"
 #import "LibWebRTCCodecsMessages.h"
 #import "LibWebRTCCodecsProxyMessages.h"
 #import "Logging.h"
 #import "RemoteVideoFrameIdentifier.h"
-#import "RemoteVideoFrameObjectHeapHandle.h"
+#import "RemoteVideoFrameObjectHeap.h"
 #import "SharedVideoFrame.h"
 #import <WebCore/CMUtilities.h>
 #import <WebCore/CVUtilities.h>
@@ -47,6 +49,7 @@
 #import <wtf/BlockPtr.h>
 #import <wtf/MediaTime.h>
 #import <wtf/Scope.h>
+#import <wtf/TZoneMallocInlines.h>
 
 WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
 
@@ -59,6 +62,8 @@ WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
 
 namespace WebKit {
 using namespace WebCore;
+
+WTF_MAKE_TZONE_ALLOCATED_IMPL(LibWebRTCCodecsProxy);
 
 // Hands a decoder's or an encoder's results to LibWebRTCCodecsProxy.swift on the codecs queue. The platform callbacks
 // that report them keep it, so it doesn't keep the decoder or the encoder.
@@ -88,50 +93,59 @@ private:
     const BlockPtr<void(bool)> m_callback;
 };
 
-Ref<LibWebRTCCodecsProxyPlatform> LibWebRTCCodecsProxyPlatform::create(Ref<IPC::Connection>&& connection, Ref<WorkQueue>&& queue, Ref<RemoteVideoFrameObjectHeapHandle>&& videoFrameObjectHeap, const ProcessIdentity& resourceOwner, const SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
+Ref<LibWebRTCCodecsProxy> LibWebRTCCodecsProxy::create(GPUConnectionToWebProcess& webProcessConnection, SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
 {
-    return adoptRef(*new LibWebRTCCodecsProxyPlatform(WTF::move(connection), WTF::move(queue), WTF::move(videoFrameObjectHeap), resourceOwner, sharedPreferencesForWebProcess));
+    Ref proxy = adoptRef(*new LibWebRTCCodecsProxy(webProcessConnection.connection(), webProcessConnection.gpuProcess().libWebRTCCodecsQueue(), webProcessConnection.videoFrameObjectHeap(), webProcessConnection.webProcessIdentity(), sharedPreferencesForWebProcess));
+    proxy->m_connection->addWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName(), proxy->m_queue.get(), proxy.get());
+    return proxy;
 }
 
-LibWebRTCCodecsProxyPlatform::LibWebRTCCodecsProxyPlatform(Ref<IPC::Connection>&& connection, Ref<WorkQueue>&& queue, Ref<RemoteVideoFrameObjectHeapHandle>&& videoFrameObjectHeap, const ProcessIdentity& resourceOwner, const SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
+LibWebRTCCodecsProxy::LibWebRTCCodecsProxy(Ref<IPC::Connection>&& connection, Ref<WorkQueue>&& queue, Ref<RemoteVideoFrameObjectHeap>&& videoFrameObjectHeap, const ProcessIdentity& resourceOwner, const SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
     : m_connection(WTF::move(connection))
     , m_queue(WTF::move(queue))
     , m_videoFrameObjectHeap(WTF::move(videoFrameObjectHeap))
     , m_resourceOwner(resourceOwner)
     , m_sharedPreferencesForWebProcess(sharedPreferencesForWebProcess)
+    , m_swiftState(createSwiftState())
 {
     m_queue->dispatch([this, protectedThis = Ref { *this }, sharedPreferencesForWebProcess] {
         m_sharedPreferencesForWebProcess = sharedPreferencesForWebProcess;
     });
 }
 
-LibWebRTCCodecsProxyPlatform::~LibWebRTCCodecsProxyPlatform() = default;
-
-void LibWebRTCCodecsProxyPlatform::stopReceivingMessages()
+LibWebRTCCodecsProxy::~LibWebRTCCodecsProxy()
 {
-    m_connection->removeWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName());
+    destroySwiftState(m_swiftState);
 }
 
-void LibWebRTCCodecsProxyPlatform::dispatch(void (^task)())
+void LibWebRTCCodecsProxy::stopListeningForIPC(Ref<LibWebRTCCodecsProxy>&& refFromConnection)
+{
+    m_connection->removeWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName());
+    m_queue->dispatch([protectedThis = WTF::move(refFromConnection)] {
+        protectedThis->failPendingReplies();
+    });
+}
+
+void LibWebRTCCodecsProxy::dispatch(void (^task)())
 {
     m_queue->dispatch([task = makeBlockPtr(task)] {
         task();
     });
 }
 
-std::optional<SharedPreferencesForWebProcess> LibWebRTCCodecsProxyPlatform::sharedPreferencesForWebProcess() const
+std::optional<SharedPreferencesForWebProcess> LibWebRTCCodecsProxy::sharedPreferencesForWebProcess() const
 {
     return m_sharedPreferencesForWebProcess;
 }
 
-void LibWebRTCCodecsProxyPlatform::updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess sharedPreferencesForWebProcess)
+void LibWebRTCCodecsProxy::updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess sharedPreferencesForWebProcess)
 {
     m_queue->dispatch([this, protectedThis = Ref { *this }, sharedPreferencesForWebProcess = WTF::move(sharedPreferencesForWebProcess)] {
         m_sharedPreferencesForWebProcess = sharedPreferencesForWebProcess;
     });
 }
 
-void LibWebRTCCodecsProxyPlatform::releaseVideoFrame(SharedVideoFrameArgument& argument)
+void LibWebRTCCodecsProxy::releaseVideoFrame(SharedVideoFrameArgument& argument)
 {
     auto sharedVideoFrame = argument.take();
     if (!sharedVideoFrame)
@@ -141,7 +155,7 @@ void LibWebRTCCodecsProxyPlatform::releaseVideoFrame(SharedVideoFrameArgument& a
         m_videoFrameObjectHeap->get(WTF::move(std::get<RemoteVideoFrameReadReference>(sharedVideoFrame->buffer)));
 }
 
-PixelBufferConformerCV& LibWebRTCCodecsProxyPlatform::pixelBufferConformer()
+PixelBufferConformerCV& LibWebRTCCodecsProxy::pixelBufferConformer()
 {
     assertIsCurrent(m_queue);
     if (!m_pixelBufferConformer)
@@ -149,7 +163,7 @@ PixelBufferConformerCV& LibWebRTCCodecsProxyPlatform::pixelBufferConformer()
     return *m_pixelBufferConformer;
 }
 
-void LibWebRTCCodecsProxyPlatform::setRTCLoggingLevel(uint8_t level)
+void LibWebRTCCodecsProxy::setRTCLoggingLevel(uint8_t level)
 {
     WebCore::LibWebRTCProvider::setRTCLogging(static_cast<WTFLogLevel>(level));
 }
@@ -176,15 +190,15 @@ static std::unique_ptr<FrameRateMonitor> createReceivedFrameRateMonitor(VideoDec
     });
 }
 
-static auto createDecoderCallback(LibWebRTCCodecsProxyPlatform& platform, VideoDecoderIdentifier identifier, bool useRemoteFrames, bool enableAdditionalLogging, VideoFrameRotation rotation, bool isMirrored, Ref<LibWebRTCCodecsProxyResultCallback>&& resultCallback)
+static auto createDecoderCallback(LibWebRTCCodecsProxy& proxy, VideoDecoderIdentifier identifier, bool useRemoteFrames, bool enableAdditionalLogging, VideoFrameRotation rotation, bool isMirrored, Ref<LibWebRTCCodecsProxyResultCallback>&& resultCallback)
 {
-    RefPtr<RemoteVideoFrameObjectHeapHandle> videoFrameObjectHeap;
+    RefPtr<RemoteVideoFrameObjectHeap> videoFrameObjectHeap;
     if (useRemoteFrames)
-        videoFrameObjectHeap = &platform.videoFrameObjectHeap();
+        videoFrameObjectHeap = &proxy.videoFrameObjectHeap();
     std::unique_ptr<FrameRateMonitor> frameRateMonitor;
     if (enableAdditionalLogging)
         frameRateMonitor = createGeneratedFrameRateMonitor(identifier);
-    return [resultCallback = WTF::move(resultCallback), identifier, rotation, isMirrored, connection = Ref { platform.connection() }, resourceOwner = platform.resourceOwner(), videoFrameObjectHeap = WTF::move(videoFrameObjectHeap), frameRateMonitor = WTF::move(frameRateMonitor)](CVPixelBufferRef pixelBuffer, int64_t timeStamp, int64_t timeStampNs, bool isReordered) mutable {
+    return [resultCallback = WTF::move(resultCallback), identifier, rotation, isMirrored, connection = Ref { proxy.connection() }, resourceOwner = proxy.resourceOwner(), videoFrameObjectHeap = WTF::move(videoFrameObjectHeap), frameRateMonitor = WTF::move(frameRateMonitor)](CVPixelBufferRef pixelBuffer, int64_t timeStamp, int64_t timeStampNs, bool isReordered) mutable {
         auto scope = makeScopeExit([&, pixelBuffer = retainPtr(pixelBuffer)] {
             bool isGettingReorderedFrame = pixelBuffer && isReordered;
             if (!isGettingReorderedFrame)
@@ -214,9 +228,9 @@ static auto createDecoderCallback(LibWebRTCCodecsProxyPlatform& platform, VideoD
     };
 }
 
-RefPtr<LibWebRTCCodecsProxyDecoder> LibWebRTCCodecsProxyDecoder::create(LibWebRTCCodecsProxyPlatform& platform, uint64_t rawIdentifier, VideoCodecType codecType, CodecStringArgument& codecStringArgument, bool useRemoteFrames, bool enableAdditionalLogging, ColorSpaceOverrideArgument& colorSpaceOverrideArgument, VideoFrameRotationArgument& rotationArgument, bool isMirrored, void (^resultCallback)(bool))
+RefPtr<LibWebRTCCodecsProxyDecoder> LibWebRTCCodecsProxyDecoder::create(LibWebRTCCodecsProxy& proxy, uint64_t rawIdentifier, VideoCodecType codecType, CodecStringArgument& codecStringArgument, bool useRemoteFrames, bool enableAdditionalLogging, ColorSpaceOverrideArgument& colorSpaceOverrideArgument, VideoFrameRotationArgument& rotationArgument, bool isMirrored, void (^resultCallback)(bool))
 {
-    assertIsCurrent(platform.workQueue());
+    assertIsCurrent(proxy.workQueue());
 
     auto codecString = codecStringArgument.take();
     auto colorSpaceOverride = colorSpaceOverrideArgument.take();
@@ -228,8 +242,8 @@ RefPtr<LibWebRTCCodecsProxyDecoder> LibWebRTCCodecsProxyDecoder::create(LibWebRT
         return nullptr;
 
     VideoDecoderIdentifier identifier { rawIdentifier };
-    Ref callback = LibWebRTCCodecsProxyResultCallback::create(platform.workQueue(), resultCallback);
-    auto decoder = GPUVideoDecoder::create(makeBlockPtr(createDecoderCallback(platform, identifier, useRemoteFrames, enableAdditionalLogging, *rotation, isMirrored, WTF::move(callback))).get(), Ref { platform.workQueue() }, WTF::move(*colorSpaceOverride));
+    Ref callback = LibWebRTCCodecsProxyResultCallback::create(proxy.workQueue(), resultCallback);
+    auto decoder = GPUVideoDecoder::create(makeBlockPtr(createDecoderCallback(proxy, identifier, useRemoteFrames, enableAdditionalLogging, *rotation, isMirrored, WTF::move(callback))).get(), Ref { proxy.workQueue() }, WTF::move(*colorSpaceOverride));
     if (!decoder)
         return nullptr;
 
@@ -237,7 +251,7 @@ RefPtr<LibWebRTCCodecsProxyDecoder> LibWebRTCCodecsProxyDecoder::create(LibWebRT
     if (enableAdditionalLogging)
         frameRateMonitor = createReceivedFrameRateMonitor(identifier);
 
-    return adoptRef(*new LibWebRTCCodecsProxyDecoder(platform.connection(), identifier, WTF::move(decoder), WTF::move(frameRateMonitor)));
+    return adoptRef(*new LibWebRTCCodecsProxyDecoder(proxy.connection(), identifier, WTF::move(decoder), WTF::move(frameRateMonitor)));
 }
 
 LibWebRTCCodecsProxyDecoder::LibWebRTCCodecsProxyDecoder(Ref<IPC::Connection>&& connection, VideoDecoderIdentifier identifier, std::unique_ptr<GPUVideoDecoder>&& decoder, std::unique_ptr<FrameRateMonitor>&& frameRateMonitor)
@@ -284,9 +298,9 @@ void LibWebRTCCodecsProxyDecoder::setFrameSize(uint16_t width, uint16_t height)
     m_decoder->setFrameSize(width, height);
 }
 
-RefPtr<LibWebRTCCodecsProxyEncoder> LibWebRTCCodecsProxyEncoder::create(LibWebRTCCodecsProxyPlatform& platform, uint64_t rawIdentifier, VideoCodecType codecType, CodecStringArgument& codecStringArgument, EncoderParametersArgument& parametersArgument, bool useLowLatency, bool useAnnexB, VideoEncoderScalabilityMode scalabilityMode, void (^resultCallback)(bool))
+RefPtr<LibWebRTCCodecsProxyEncoder> LibWebRTCCodecsProxyEncoder::create(LibWebRTCCodecsProxy& proxy, uint64_t rawIdentifier, VideoCodecType codecType, CodecStringArgument& codecStringArgument, EncoderParametersArgument& parametersArgument, bool useLowLatency, bool useAnnexB, VideoEncoderScalabilityMode scalabilityMode, void (^resultCallback)(bool))
 {
-    assertIsCurrent(platform.workQueue());
+    assertIsCurrent(proxy.workQueue());
 
     auto codecString = codecStringArgument.take();
     auto parameters = parametersArgument.take();
@@ -297,15 +311,15 @@ RefPtr<LibWebRTCCodecsProxyEncoder> LibWebRTCCodecsProxyEncoder::create(LibWebRT
         return nullptr;
 
     VideoEncoderIdentifier identifier { rawIdentifier };
-    Ref callback = LibWebRTCCodecsProxyResultCallback::create(platform.workQueue(), resultCallback);
+    Ref callback = LibWebRTCCodecsProxyResultCallback::create(proxy.workQueue(), resultCallback);
     auto errorBlock = [callback](bool result) {
         callback->notify(result);
     };
-    auto newFrameBlock = [callback, connection = Ref { platform.connection() }, identifier](std::span<const uint8_t> buffer, const WebCore::GPUVideoEncoderFrameInfo& frameInfo) {
+    auto newFrameBlock = [callback, connection = Ref { proxy.connection() }, identifier](std::span<const uint8_t> buffer, const WebCore::GPUVideoEncoderFrameInfo& frameInfo) {
         connection->send(Messages::LibWebRTCCodecs::CompletedEncoding { identifier, buffer, frameInfo }, 0);
         callback->notify(true);
     };
-    auto newConfigurationBlock = [connection = Ref { platform.connection() }, identifier](std::span<const uint8_t> buffer, const PlatformVideoColorSpace& encoderColorSpace) {
+    auto newConfigurationBlock = [connection = Ref { proxy.connection() }, identifier](std::span<const uint8_t> buffer, const PlatformVideoColorSpace& encoderColorSpace) {
         connection->send(Messages::LibWebRTCCodecs::SetEncodingConfiguration { identifier, buffer, encoderColorSpace }, 0);
     };
 
@@ -314,18 +328,18 @@ RefPtr<LibWebRTCCodecsProxyEncoder> LibWebRTCCodecsProxyEncoder::create(LibWebRT
         .useAnnexB = useAnnexB,
         .scalabilityMode = scalabilityMode,
         .isLowLatencyEnabled = useLowLatency,
-        .queue = platform.workQueue()
+        .queue = proxy.workQueue()
     }, *parameters, WTF::move(newFrameBlock), WTF::move(newConfigurationBlock), WTF::move(errorBlock));
     if (!encoder)
         return nullptr;
 
-    return adoptRef(*new LibWebRTCCodecsProxyEncoder(platform, encoder.releaseNonNull()));
+    return adoptRef(*new LibWebRTCCodecsProxyEncoder(proxy, encoder.releaseNonNull()));
 }
 
-LibWebRTCCodecsProxyEncoder::LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxyPlatform& platform, Ref<GPUVideoEncoder>&& encoder)
-    : m_platform(platform)
+LibWebRTCCodecsProxyEncoder::LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxy& proxy, Ref<GPUVideoEncoder>&& encoder)
+    : m_proxy(proxy)
     , m_encoder(WTF::move(encoder))
-    , m_frameReader(makeUniqueRef<SharedVideoFrameReader>(Ref { platform.videoFrameObjectHeap() }, platform.resourceOwner()))
+    , m_frameReader(makeUniqueRef<SharedVideoFrameReader>(Ref { proxy.videoFrameObjectHeap() }, proxy.resourceOwner()))
 {
 }
 
@@ -349,7 +363,10 @@ bool LibWebRTCCodecsProxyEncoder::encodeFrame(SharedVideoFrameArgument& argument
 
     if (CVPixelBufferGetPixelFormatType(pixelBuffer.get()) == kCVPixelFormatType_32BGRA) {
         sharedVideoFrame->colorSpace = srgbColorSpace();
-        pixelBuffer = m_platform->pixelBufferConformer().convert(pixelBuffer.get());
+        RefPtr proxy = m_proxy;
+        if (!proxy)
+            return false;
+        pixelBuffer = proxy->pixelBufferConformer().convert(pixelBuffer.get());
         if (!pixelBuffer)
             return false;
     }

@@ -32,6 +32,7 @@
 #include "SwiftCoding.h"
 #include "VideoDecoderIdentifier.h"
 #include "VideoEncoderIdentifier.h"
+#include "WorkQueueMessageReceiver.h"
 #include <WebCore/PlatformVideoColorSpace.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
@@ -42,7 +43,10 @@
 #include <wtf/Function.h>
 #include <wtf/Ref.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
+#include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
 #include <wtf/WorkQueue.h>
@@ -64,7 +68,8 @@ enum class VideoFrameRotation : uint16_t;
 
 namespace WebKit {
 
-class RemoteVideoFrameObjectHeapHandle;
+class GPUConnectionToWebProcess;
+class RemoteVideoFrameObjectHeap;
 
 // Swift doesn't give a function that takes a class template's reference type the overloads that take a Span, unless
 // the type is spelled through an alias.
@@ -75,19 +80,29 @@ using SharedVideoFrameArgument = IPC::CxxDecodedArgument<SharedVideoFrame>;
 using VideoFrameRotationArgument = IPC::CxxDecodedArgument<WebCore::VideoFrameRotation>;
 using VideoInfoArgument = IPC::CxxDecodedArgument<RefPtr<WebCore::VideoInfo>>;
 
-// What LibWebRTCCodecsProxy.swift does through C++ for all its decoders and encoders: its connection and codecs queue,
-// the shared preferences its messages are enabled by, and the frames it reads from the video frame heap.
-class LibWebRTCCodecsProxyPlatform final : public ThreadSafeRefCounted<LibWebRTCCodecsProxyPlatform> {
+// The receiver of the web process's video decoder and encoder messages, which run on the codecs queue. Swift handles
+// them (LibWebRTCCodecsProxy.swift), keeping the decoders and encoders in the Swift state that m_swiftState holds; this
+// keeps the connection and codecs queue, the shared preferences the messages are enabled by, and the frames read from
+// the video frame heap.
+class SWIFT_PRIVATE_FILEID("WebKit/LibWebRTCCodecsProxy.swift") LibWebRTCCodecsProxy final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
+    WTF_MAKE_TZONE_ALLOCATED(LibWebRTCCodecsProxy);
 public:
-    static Ref<LibWebRTCCodecsProxyPlatform> create(Ref<IPC::Connection>&&, Ref<WorkQueue>&&, Ref<RemoteVideoFrameObjectHeapHandle>&&, const WebCore::ProcessIdentity&, const SharedPreferencesForWebProcess&);
-    ~LibWebRTCCodecsProxyPlatform();
+    static Ref<LibWebRTCCodecsProxy> create(GPUConnectionToWebProcess&, SharedPreferencesForWebProcess&);
+    ~LibWebRTCCodecsProxy();
+
+    void ref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::ref(); }
+    void deref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::deref(); }
+
+    // Fails what is pending once the messages already queued have been handled.
+    void stopListeningForIPC(Ref<LibWebRTCCodecsProxy>&& refFromConnection);
+    // Implemented in Swift; called on the main thread.
+    bool allowsExitUnderMemoryPressure() const;
 
     IPC::Connection& connection() const LIFETIME_BOUND { return m_connection; }
     WorkQueue& workQueue() const LIFETIME_BOUND { return m_queue; }
-    RemoteVideoFrameObjectHeapHandle& videoFrameObjectHeap() const LIFETIME_BOUND { return m_videoFrameObjectHeap; }
+    RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const LIFETIME_BOUND { return m_videoFrameObjectHeap; }
     const WebCore::ProcessIdentity& resourceOwner() const LIFETIME_BOUND { return m_resourceOwner; }
 
-    void stopReceivingMessages();
     // Runs the block on the codecs queue, after what is already queued there.
     void dispatch(void (^WTF_NONNULL)());
 
@@ -101,23 +116,32 @@ public:
 
     static void setRTCLoggingLevel(uint8_t);
 
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
+
 private:
-    LibWebRTCCodecsProxyPlatform(Ref<IPC::Connection>&&, Ref<WorkQueue>&&, Ref<RemoteVideoFrameObjectHeapHandle>&&, const WebCore::ProcessIdentity&, const SharedPreferencesForWebProcess&);
+    LibWebRTCCodecsProxy(Ref<IPC::Connection>&&, Ref<WorkQueue>&&, Ref<RemoteVideoFrameObjectHeap>&&, const WebCore::ProcessIdentity&, const SharedPreferencesForWebProcess&);
+
+    // Implemented in Swift, in LibWebRTCCodecsProxy.swift, on the state that m_swiftState holds.
+    static uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
+    void failPendingReplies();
 
     const Ref<IPC::Connection> m_connection;
     const Ref<WorkQueue> m_queue;
-    const Ref<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
+    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
     const WebCore::ProcessIdentity m_resourceOwner;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
     std::unique_ptr<WebCore::PixelBufferConformerCV> m_pixelBufferConformer;
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    const uintptr_t m_swiftState;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // A decoder of LibWebRTCCodecsProxy.swift. What it decodes goes to the web process, with the frames lent through the
 // video frame heap when the web process asked for remote frames, and each result goes to the callback on the codecs queue.
 class LibWebRTCCodecsProxyDecoder final : public ThreadSafeRefCounted<LibWebRTCCodecsProxyDecoder> {
 public:
     // Null if the codec string isn't valid for the codec, or there is no decoder for it.
-    static RefPtr<LibWebRTCCodecsProxyDecoder> create(LibWebRTCCodecsProxyPlatform&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, bool useRemoteFrames, bool enableAdditionalLogging, ColorSpaceOverrideArgument&, VideoFrameRotationArgument&, bool isMirrored, void (^WTF_NONNULL resultCallback)(bool));
+    static RefPtr<LibWebRTCCodecsProxyDecoder> create(LibWebRTCCodecsProxy&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, bool useRemoteFrames, bool enableAdditionalLogging, ColorSpaceOverrideArgument&, VideoFrameRotationArgument&, bool isMirrored, void (^WTF_NONNULL resultCallback)(bool));
     ~LibWebRTCCodecsProxyDecoder();
 
     void flush();
@@ -141,7 +165,7 @@ private:
 class LibWebRTCCodecsProxyEncoder final : public ThreadSafeRefCounted<LibWebRTCCodecsProxyEncoder> {
 public:
     // Null if the configuration isn't valid, or there is no encoder for it.
-    static RefPtr<LibWebRTCCodecsProxyEncoder> create(LibWebRTCCodecsProxyPlatform&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, EncoderParametersArgument&, bool useLowLatency, bool useAnnexB, WebCore::VideoEncoderScalabilityMode, void (^WTF_NONNULL resultCallback)(bool));
+    static RefPtr<LibWebRTCCodecsProxyEncoder> create(LibWebRTCCodecsProxy&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, EncoderParametersArgument&, bool useLowLatency, bool useAnnexB, WebCore::VideoEncoderScalabilityMode, void (^WTF_NONNULL resultCallback)(bool));
     ~LibWebRTCCodecsProxyEncoder();
 
     void initialize(uint16_t width, uint16_t height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, uint32_t maxFramerate);
@@ -154,9 +178,10 @@ public:
     void setSharedVideoFrameMemory(mach_port_t, uint64_t size);
 
 private:
-    LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxyPlatform&, Ref<WebCore::GPUVideoEncoder>&&);
+    LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxy&, Ref<WebCore::GPUVideoEncoder>&&);
 
-    const Ref<LibWebRTCCodecsProxyPlatform> m_platform;
+    // Weak, since the proxy's Swift state keeps the encoder.
+    const ThreadSafeWeakPtr<LibWebRTCCodecsProxy> m_proxy;
     const Ref<WebCore::GPUVideoEncoder> m_encoder;
     const UniqueRef<SharedVideoFrameReader> m_frameReader;
 };

@@ -1001,7 +1001,6 @@ if (NOT APPLE)
 endif ()
 
 set(WebKit_SWIFT_INTEROP_SOURCES
-    GPUProcess/media/RemoteVideoFrameObjectHeapHandle.cpp
     Shared/IPCStreamTester.cpp
     Shared/IPCTester.cpp
     UIProcess/ProvisionalPageProxy.cpp
@@ -1011,7 +1010,6 @@ set(WebKit_SWIFT_INTEROP_SOURCES
     UIProcess/Automation/WebAutomationSession.cpp
     WebProcess/WebPage/IPCTestingAPI.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
-    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeapMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
@@ -1029,9 +1027,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
         GPUProcess/media/RemoteCDMRegistry.cpp
-
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
-        GPUProcess/webrtc/LibWebRTCCodecsProxyHandle.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp

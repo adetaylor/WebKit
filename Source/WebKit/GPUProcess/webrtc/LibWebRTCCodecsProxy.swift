@@ -99,74 +99,86 @@ private func isValidEncoderInitialization(codecType: IPCTypes.VideoCodecType, us
     }
 }
 
-// The web process's video decoders and encoders in the GPU process, which run on the codecs queue, as do their messages.
-@_expose(Cxx)
-final class LibWebRTCCodecsProxy {
-    private let platform: WebKit.LibWebRTCCodecsProxyPlatform
-    private var decoders: [IPCTypes.VideoDecoderIdentifier: Decoder] = [:]
-    private var encoders: [IPCTypes.VideoEncoderIdentifier: Encoder] = [:]
+// The decoders and encoders of a LibWebRTCCodecsProxy, with the replies they owe, on the codecs queue, apart from the flag
+// the main thread reads.
+private final class LibWebRTCCodecsProxyState {
+    var decoders: [IPCTypes.VideoDecoderIdentifier: Decoder] = [:]
+    var encoders: [IPCTypes.VideoEncoderIdentifier: Encoder] = [:]
     // Read on the main thread.
-    private let hasEncodersOrDecoders = Atomic<Bool>(false)
+    let hasEncodersOrDecoders = Atomic<Bool>(false)
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(platform: WebKit.LibWebRTCCodecsProxyPlatform) {
-        self.platform = platform
-    }
-
-    // The forwarder keeps this alive, so this mustn't keep the forwarder: the connection it is registered with does.
-    @used
-    func getMessageReceiver() -> RefLibWebRTCCodecsProxyMessageForwarder {
-        WebKit.LibWebRTCCodecsProxyMessageForwarder.create(target: self)
-    }
-
-    @used
-    func allowsExitUnderMemoryPressure() -> Bool {
-        !hasEncodersOrDecoders.load(ordering: .relaxed)
-    }
-
-    // Fails what is pending once the messages already queued have been handled.
-    @used
-    func stopListeningForIPC() {
-        platform.stopReceivingMessages()
-        platform.dispatch {
-            let decoders = self.decoders
-            self.decoders = [:]
-            for decoder in decoders.values {
-                for pending in decoder.pendingReplies {
-                    pending.reply.take()?.send(false)
-                }
-            }
-            let encoders = self.encoders
-            self.encoders = [:]
-            for encoder in encoders.values {
-                for pending in encoder.pendingReplies {
-                    pending.reply.take()?.send(false)
-                }
-            }
-        }
-    }
-
-    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        platform.sharedPreferencesForWebProcess()
-    }
-
-    private func updateHasEncodersOrDecoders() {
+    func updateHasEncodersOrDecoders() {
         hasEncodersOrDecoders.store(!encoders.isEmpty || !decoders.isEmpty, ordering: .relaxed)
     }
 
-    private func notifyDecoderResult(_ id: IPCTypes.VideoDecoderIdentifier, _ result: Bool) {
+    func notifyDecoderResult(_ id: IPCTypes.VideoDecoderIdentifier, _ result: Bool) {
         guard let decoder = decoders[id] else {
             return
         }
         decoder.pendingReplies.removeFirst().reply.take()?.send(result)
     }
 
-    private func notifyEncoderResult(_ id: IPCTypes.VideoEncoderIdentifier, _ result: Bool) {
+    func notifyEncoderResult(_ id: IPCTypes.VideoEncoderIdentifier, _ result: Bool) {
         guard let encoder = encoders[id] else {
             return
         }
         encoder.pendingReplies.removeFirst().reply.take()?.send(result)
+    }
+}
+
+// The handlers of the web process's video decoder and encoder messages (LibWebRTCCodecsProxy.h), on the codecs queue, and
+// the members of the C++ receiver that reach its Swift state, which m_swiftState holds retained, by address, from the
+// receiver's constructor to its destructor.
+extension WebKit.LibWebRTCCodecsProxy {
+    @cxx
+    @implementation
+    static func createSwiftState() -> UInt {
+        UInt(bitPattern: unsafe Unmanaged.passRetained(LibWebRTCCodecsProxyState()).toOpaque())
+    }
+
+    @cxx
+    @implementation
+    static func destroySwiftState(_ swiftState: UInt) {
+        _ = unsafe Unmanaged<LibWebRTCCodecsProxyState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+    }
+
+    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
+            preconditionFailure("The proxy has no Swift state")
+        }
+        return unsafe address
+    }
+
+    private var state: LibWebRTCCodecsProxyState {
+        // Safety: m_swiftState is a retained LibWebRTCCodecsProxyState from the constructor to the destructor, and
+        // nothing changes it.
+        unsafe Unmanaged<LibWebRTCCodecsProxyState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
+    }
+
+    @cxx
+    @implementation
+    func allowsExitUnderMemoryPressure() -> Bool {
+        !state.hasEncodersOrDecoders.load(ordering: .relaxed)
+    }
+
+    @cxx
+    @implementation
+    func failPendingReplies() {
+        let state = state
+        let decoders = state.decoders
+        state.decoders = [:]
+        for decoder in decoders.values {
+            for pending in decoder.pendingReplies {
+                pending.reply.take()?.send(false)
+            }
+        }
+        let encoders = state.encoders
+        state.encoders = [:]
+        for encoder in encoders.values {
+            for pending in encoder.pendingReplies {
+                pending.reply.take()?.send(false)
+            }
+        }
     }
 
     func createDecoder(
@@ -181,7 +193,7 @@ final class LibWebRTCCodecsProxy {
         isMirrored: Bool,
         reply: consuming LibWebRTCCodecsProxyCreateDecoderReply
     ) throws(InvalidMessage) {
-        guard decoders[id] == nil else {
+        guard state.decoders[id] == nil else {
             reply.send(false)
             try messageCheck { false }
             return
@@ -190,7 +202,7 @@ final class LibWebRTCCodecsProxy {
         guard
             let decoder = WebKit.LibWebRTCCodecsProxyDecoder
                 .create(
-                    platform,
+                    self,
                     id.rawValue,
                     codecType.cxxValue,
                     codecString,
@@ -199,7 +211,7 @@ final class LibWebRTCCodecsProxy {
                     colorSpaceOverride,
                     rotation,
                     isMirrored,
-                    { [weak self] result in self?.notifyDecoderResult(id, result) }
+                    { [weak state] result in state?.notifyDecoderResult(id, result) }
                 )
                 .get()
         else {
@@ -207,22 +219,22 @@ final class LibWebRTCCodecsProxy {
             return
         }
 
-        decoders[id] = Decoder(platform: decoder)
-        updateHasEncodersOrDecoders()
+        state.decoders[id] = Decoder(platform: decoder)
+        state.updateHasEncodersOrDecoders()
         reply.send(true)
     }
 
     func releaseDecoder(connection: IPC.Connection, id: IPCTypes.VideoDecoderIdentifier) {
-        guard let decoder = decoders.removeValue(forKey: id) else {
+        guard let decoder = state.decoders.removeValue(forKey: id) else {
             return
         }
         let pendingReplies = decoder.pendingReplies
-        platform.dispatch {
+        dispatch {
             for pending in pendingReplies {
                 pending.reply.take()?.send(true)
             }
         }
-        updateHasEncodersOrDecoders()
+        state.updateHasEncodersOrDecoders()
     }
 
     func flushDecoder(
@@ -230,12 +242,12 @@ final class LibWebRTCCodecsProxy {
         id: IPCTypes.VideoDecoderIdentifier,
         reply: consuming LibWebRTCCodecsProxyFlushDecoderReply
     ) {
-        guard let decoder = decoders[id] else {
+        guard let decoder = state.decoders[id] else {
             return
         }
         decoder.platform.flush()
         let pending = PendingReply(reply)
-        platform.dispatch {
+        dispatch {
             pending.reply.take()?.send()
         }
     }
@@ -248,7 +260,7 @@ final class LibWebRTCCodecsProxy {
         width: UInt16,
         height: UInt16
     ) {
-        guard let decoder = decoders[id] else {
+        guard let decoder = state.decoders[id] else {
             return
         }
         let description = sliceForCxx(description)
@@ -260,7 +272,7 @@ final class LibWebRTCCodecsProxy {
         id: IPCTypes.VideoDecoderIdentifier,
         colorSpaceOverride: CxxDecodedArguments.LibWebRTCCodecsProxy.SetDecoderColorSpaceOverrideColorSpaceOverride
     ) {
-        decoders[id]?.platform.setColorSpaceOverride(colorSpaceOverride)
+        state.decoders[id]?.platform.setColorSpaceOverride(colorSpaceOverride)
     }
 
     func decodeFrame(
@@ -271,7 +283,7 @@ final class LibWebRTCCodecsProxy {
         videoInfo: CxxDecodedArguments.LibWebRTCCodecsProxy.DecodeFrameVideoInfo,
         reply: consuming LibWebRTCCodecsProxyDecodeFrameReply
     ) {
-        guard let decoder = decoders[id] else {
+        guard let decoder = state.decoders[id] else {
             return
         }
         let data = sliceForCxx(data)
@@ -283,7 +295,7 @@ final class LibWebRTCCodecsProxy {
     }
 
     func setFrameSize(connection: IPC.Connection, id: IPCTypes.VideoDecoderIdentifier, width: UInt16, height: UInt16) {
-        decoders[id]?.platform.setFrameSize(width, height)
+        state.decoders[id]?.platform.setFrameSize(width, height)
     }
 
     func createEncoder(
@@ -297,7 +309,7 @@ final class LibWebRTCCodecsProxy {
         scalabilityMode: IPCTypes.VideoEncoderScalabilityMode,
         reply: consuming LibWebRTCCodecsProxyCreateEncoderReply
     ) throws(InvalidMessage) {
-        guard encoders[id] == nil else {
+        guard state.encoders[id] == nil else {
             reply.send(false)
             try messageCheck { false }
             return
@@ -311,7 +323,7 @@ final class LibWebRTCCodecsProxy {
         guard
             let encoder = WebKit.LibWebRTCCodecsProxyEncoder
                 .create(
-                    platform,
+                    self,
                     id.rawValue,
                     codecType.cxxValue,
                     codecString,
@@ -319,7 +331,7 @@ final class LibWebRTCCodecsProxy {
                     useLowLatency,
                     useAnnexB,
                     scalabilityMode.cxxValue,
-                    { [weak self] result in self?.notifyEncoderResult(id, result) }
+                    { [weak state] result in state?.notifyEncoderResult(id, result) }
                 )
                 .get()
         else {
@@ -327,22 +339,22 @@ final class LibWebRTCCodecsProxy {
             return
         }
 
-        encoders[id] = Encoder(platform: encoder, codecType: codecType, useLowLatency: useLowLatency)
-        updateHasEncodersOrDecoders()
+        state.encoders[id] = Encoder(platform: encoder, codecType: codecType, useLowLatency: useLowLatency)
+        state.updateHasEncodersOrDecoders()
         reply.send(true)
     }
 
     func releaseEncoder(connection: IPC.Connection, id: IPCTypes.VideoEncoderIdentifier) {
-        guard let encoder = encoders.removeValue(forKey: id) else {
+        guard let encoder = state.encoders.removeValue(forKey: id) else {
             return
         }
         let pendingReplies = encoder.pendingReplies
-        platform.dispatch {
+        dispatch {
             for pending in pendingReplies {
                 pending.reply.take()?.send(true)
             }
         }
-        updateHasEncodersOrDecoders()
+        state.updateHasEncodersOrDecoders()
     }
 
     func initializeEncoder(
@@ -355,7 +367,7 @@ final class LibWebRTCCodecsProxy {
         minBitrate: UInt32,
         maxFramerate: UInt32
     ) {
-        guard let encoder = encoders[id] else {
+        guard let encoder = state.encoders[id] else {
             return
         }
         guard isValidEncoderInitialization(codecType: encoder.codecType, useLowLatency: encoder.useLowLatency, width: width, height: height)
@@ -375,8 +387,8 @@ final class LibWebRTCCodecsProxy {
         shouldEncodeAsKeyFrame: Bool,
         reply: consuming LibWebRTCCodecsProxyEncodeFrameReply
     ) {
-        guard let encoder = encoders[id], !encoder.isInvalid else {
-            platform.releaseVideoFrame(buffer)
+        guard let encoder = state.encoders[id], !encoder.isInvalid else {
+            releaseVideoFrame(buffer)
             reply.send(false)
             return
         }
@@ -392,9 +404,9 @@ final class LibWebRTCCodecsProxy {
         id: IPCTypes.VideoEncoderIdentifier,
         reply: consuming LibWebRTCCodecsProxyFlushEncoderReply
     ) {
-        encoders[id]?.platform.flush()
+        state.encoders[id]?.platform.flush()
         let pending = PendingReply(reply)
-        platform.dispatch {
+        dispatch {
             pending.reply.take()?.send()
         }
     }
@@ -406,7 +418,7 @@ final class LibWebRTCCodecsProxy {
         frameRate: UInt32,
         reply: consuming LibWebRTCCodecsProxySetEncodeRatesReply
     ) {
-        encoders[id]?.platform.setRates(bitRate, frameRate)
+        state.encoders[id]?.platform.setRates(bitRate, frameRate)
         reply.send()
     }
 
@@ -415,7 +427,7 @@ final class LibWebRTCCodecsProxy {
         id: IPCTypes.VideoEncoderIdentifier,
         semaphore: borrowing IPCTypes.Semaphore
     ) {
-        encoders[id]?.platform.setSharedVideoFrameSemaphore(semaphore.port)
+        state.encoders[id]?.platform.setSharedVideoFrameSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
@@ -423,11 +435,11 @@ final class LibWebRTCCodecsProxy {
         id: IPCTypes.VideoEncoderIdentifier,
         storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        encoders[id]?.platform.setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
+        state.encoders[id]?.platform.setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
     }
 
     func setRTCLoggingLevel(connection: IPC.Connection, level: IPCTypes.WTFLogLevel) {
-        WebKit.LibWebRTCCodecsProxyPlatform.setRTCLoggingLevel(level.rawValue)
+        WebKit.LibWebRTCCodecsProxy.setRTCLoggingLevel(level.rawValue)
     }
 }
 

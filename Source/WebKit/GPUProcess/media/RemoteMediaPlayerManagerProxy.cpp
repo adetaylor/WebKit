@@ -35,7 +35,7 @@
 #include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
 #include "RemoteMediaPlayerProxyConfiguration.h"
-#include "RemoteVideoFrameObjectHeapHandle.h"
+#include "RemoteVideoFrameObjectHeap.h"
 #include "ScopedRenderingResourcesRequest.h"
 #include "SharedPreferencesForWebProcess.h"
 #include <WebCore/GraphicsContext.h>

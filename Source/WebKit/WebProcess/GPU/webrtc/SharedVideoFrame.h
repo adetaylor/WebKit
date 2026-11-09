@@ -60,7 +60,7 @@ class VideoFrameBuffer;
 
 namespace WebKit {
 
-class RemoteVideoFrameObjectHeapHandle;
+class RemoteVideoFrameObjectHeap;
 #if !defined(__swift__)
 class SharedVideoFrameReaderImpl;
 class SharedVideoFrameWriterImpl;
@@ -127,7 +127,7 @@ public:
     ~SharedVideoFrameReader();
 
     enum class UseIOSurfaceBufferPool : bool { No, Yes };
-    explicit SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeapHandle>&&, const WebCore::ProcessIdentity& = { }, UseIOSurfaceBufferPool = UseIOSurfaceBufferPool::Yes);
+    explicit SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeap>&&, const WebCore::ProcessIdentity& = { }, UseIOSurfaceBufferPool = UseIOSurfaceBufferPool::Yes);
     SharedVideoFrameReader();
 
     void setSemaphore(IPC::Semaphore&& semaphore) { m_semaphore = WTF::move(semaphore); }
@@ -143,7 +143,7 @@ private:
     SharedVideoFrameReaderImpl& swiftImpl() LIFETIME_BOUND;
 #endif
 
-    const RefPtr<RemoteVideoFrameObjectHeapHandle> m_objectHeap;
+    const RefPtr<RemoteVideoFrameObjectHeap> m_objectHeap;
     WebCore::ProcessIdentity m_resourceOwner;
     std::optional<IPC::Semaphore> m_semaphore;
     RefPtr<WebCore::SharedMemory> m_storage;

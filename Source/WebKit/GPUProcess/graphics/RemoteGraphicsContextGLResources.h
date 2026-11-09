@@ -77,7 +77,7 @@ class MachSendRight;
 
 namespace WebKit {
 #if ENABLE(VIDEO)
-class RemoteVideoFrameObjectHeapHandle;
+class RemoteVideoFrameObjectHeap;
 #endif
 class RemoteGraphicsContextGL;
 
@@ -186,7 +186,7 @@ protected:
     const Ref<RemoteRenderingBackend> m_renderingBackend;
     const Ref<RemoteSharedResourceCache> m_sharedResourceCache;
 #if ENABLE(VIDEO)
-    const Ref<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
+    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
 #if PLATFORM(COCOA)
     SharedVideoFrameReader m_sharedVideoFrameReader;
 #endif

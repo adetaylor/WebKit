@@ -37,7 +37,7 @@
 #include "RemoteCDMRegistry.h"
 #include "RemoteLegacyCDMFactoryProxy.h"
 #include "RemoteLegacyCDMSessionProxy.h"
-#include "RemoteVideoFrameObjectHeapHandle.h"
+#include "RemoteVideoFrameObjectHeap.h"
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include "VideoReceiverEndpointManager.h"
 #endif

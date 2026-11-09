@@ -50,7 +50,7 @@
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 #include "IPCSemaphore.h"
-#include "RemoteVideoFrameObjectHeapHandle.h"
+#include "RemoteVideoFrameObjectHeap.h"
 #endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_renderingBackend->streamConnection());

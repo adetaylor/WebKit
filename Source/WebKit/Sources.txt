@@ -63,8 +63,7 @@ GPUProcess/media/RemoteMediaPlayerManagerProxy.cpp @cost:4
 GPUProcess/media/RemoteMediaPlayerProxy.cpp @cost:4
 GPUProcess/media/RemoteMediaResource.cpp @cost:3
 GPUProcess/media/RemoteMediaResourceLoader.cpp @cost:3
-GPUProcess/media/RemoteVideoFrameObjectHeapHandle.cpp
-GPUProcess/media/RemoteVideoFrameObjectHeapPlatform.cpp
+GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
 GPUProcess/media/RemoteRemoteCommandListenerProxy.cpp
 GPUProcess/media/RemoteTextTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteVideoTrackProxy.cpp @cost:3

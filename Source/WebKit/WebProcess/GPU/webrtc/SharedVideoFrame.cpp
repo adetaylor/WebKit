@@ -29,7 +29,7 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
 
 #include "Logging.h"
-#include "RemoteVideoFrameObjectHeapHandle.h"
+#include "RemoteVideoFrameObjectHeap.h"
 #include "RemoteVideoFrameProxy.h"
 #include "SharedVideoFrameImplBridge.h"
 #include "WebKit-Swift.h"
@@ -297,7 +297,7 @@ CVPixelBufferRef createSharedVideoFramePixelBuffer(SharedVideoFrameInfo& info, N
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SharedVideoFrameReader);
 
-SharedVideoFrameReader::SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeapHandle>&& objectHeap, const ProcessIdentity& resourceOwner, UseIOSurfaceBufferPool useIOSurfaceBufferPool)
+SharedVideoFrameReader::SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeap>&& objectHeap, const ProcessIdentity& resourceOwner, UseIOSurfaceBufferPool useIOSurfaceBufferPool)
     : m_objectHeap(WTF::move(objectHeap))
     , m_resourceOwner(resourceOwner)
 {

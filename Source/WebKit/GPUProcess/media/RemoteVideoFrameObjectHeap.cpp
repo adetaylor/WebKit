@@ -24,7 +24,7 @@
  */
 
 #include "config.h"
-#include "RemoteVideoFrameObjectHeapPlatform.h"
+#include "RemoteVideoFrameObjectHeap.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 #include "Connection.h"
@@ -34,6 +34,9 @@
 #include "RemoteVideoFrameObjectHeapMessages.h"
 #include "RemoteVideoFrameObjectHeapProxyProcessorMessages.h"
 #include <wtf/MainThread.h>
+#include <wtf/NeverDestroyed.h>
+#include <wtf/TZoneMallocInlines.h>
+#include <wtf/WorkQueue.h>
 
 #if PLATFORM(COCOA)
 #include <WebCore/CVUtilities.h>
@@ -49,32 +52,81 @@ namespace WebKit {
 
 using namespace WebCore;
 
-Ref<RemoteVideoFrameObjectHeapPlatform> RemoteVideoFrameObjectHeapPlatform::create(Ref<IPC::Connection>&& connection)
+WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteVideoFrameObjectHeap);
+
+static WorkQueue& remoteVideoFrameObjectHeapQueueSingleton()
 {
-    return adoptRef(*new RemoteVideoFrameObjectHeapPlatform(WTF::move(connection)));
+    static NeverDestroyed queue = WorkQueue::create("org.webkit.RemoteVideoFrameObjectHeap"_s, WorkQueue::QOS::UserInteractive);
+    return queue.get();
 }
 
-RemoteVideoFrameObjectHeapPlatform::RemoteVideoFrameObjectHeapPlatform(Ref<IPC::Connection>&& connection)
+Ref<RemoteVideoFrameObjectHeap> RemoteVideoFrameObjectHeap::create(Ref<IPC::Connection>&& connection)
+{
+    Ref heap = adoptRef(*new RemoteVideoFrameObjectHeap(WTF::move(connection)));
+    heap->m_connection->addWorkQueueMessageReceiver(Messages::RemoteVideoFrameObjectHeap::messageReceiverName(), remoteVideoFrameObjectHeapQueueSingleton(), heap.get());
+    return heap;
+}
+
+RemoteVideoFrameObjectHeap::RemoteVideoFrameObjectHeap(Ref<IPC::Connection>&& connection)
     : m_connection(WTF::move(connection))
+    , m_swiftState(createSwiftState())
 {
 }
 
-RemoteVideoFrameObjectHeapPlatform::~RemoteVideoFrameObjectHeapPlatform() = default;
+RemoteVideoFrameObjectHeap::~RemoteVideoFrameObjectHeap()
+{
+    ASSERT(m_isClosed);
+    destroySwiftState(m_swiftState);
+}
 
-void RemoteVideoFrameObjectHeapPlatform::close()
+void RemoteVideoFrameObjectHeap::close()
 {
     assertIsMainThread();
+
+    if (m_isClosed)
+        return;
+    m_isClosed = true;
 
     protect(m_connection)->removeWorkQueueMessageReceiver(Messages::RemoteVideoFrameObjectHeap::messageReceiverName());
 
 #if PLATFORM(COCOA)
     m_sharedVideoFrameWriter.disable();
 #endif
+
+    swiftRemoveAll();
+}
+
+RemoteVideoFrameReference RemoteVideoFrameObjectHeap::add(Ref<VideoFrame>&& frame)
+{
+    auto reference = RemoteVideoFrameReference::generateForAdd();
+    add(reference, WTF::move(frame));
+    return reference;
+}
+
+void RemoteVideoFrameObjectHeap::add(RemoteVideoFrameReference reference, Ref<VideoFrame>&& frame)
+{
+#if ASSERT_ENABLED
+    frame->markAsPublished();
+#endif
+    swiftAdd(reference.identifier().toUInt64(), frame.ptr());
+}
+
+RefPtr<VideoFrame> RemoteVideoFrameObjectHeap::get(RemoteVideoFrameReadReference&& read)
+{
+    return swiftRead(read.identifier().toUInt64(), read.version());
+}
+
+void RemoteVideoFrameObjectHeap::releaseVideoFrame(RemoteVideoFrameWriteReference&& write)
+{
+    swiftRelease(write.identifier().toUInt64(), write.version(), write.pendingReads());
 }
 
 #if PLATFORM(COCOA)
-void RemoteVideoFrameObjectHeapPlatform::sendVideoFrameBuffer(RemoteVideoFrameIdentifier identifier, VideoFrame* videoFrame)
+void RemoteVideoFrameObjectHeap::getVideoFrameBuffer(RemoteVideoFrameReadReference&& read)
 {
+    auto identifier = read.identifier();
+    RefPtr videoFrame = get(WTF::move(read));
+
     std::optional<SharedVideoFrame::Buffer> buffer;
     Ref connection = m_connection;
 
@@ -88,7 +140,15 @@ void RemoteVideoFrameObjectHeapPlatform::sendVideoFrameBuffer(RemoteVideoFrameId
     connection->send(Messages::RemoteVideoFrameObjectHeapProxyProcessor::NewVideoFrameBuffer { identifier, WTF::move(buffer) }, 0);
 }
 
-WebCore::ColorSpace RemoteVideoFrameObjectHeapPlatform::convertFrameBuffer(SharedVideoFrame&& sharedVideoFrame, VideoFrame* frameFromHeap, bool shouldApplyRotation)
+void RemoteVideoFrameObjectHeap::convertFrameBuffer(SharedVideoFrame&& sharedVideoFrame, bool shouldApplyRotation, CompletionHandler<void(WebCore::ColorSpace)>&& completionHandler)
+{
+    RefPtr<VideoFrame> frameFromHeap;
+    if (auto* reference = std::get_if<RemoteVideoFrameReadReference>(&sharedVideoFrame.buffer))
+        frameFromHeap = get(RemoteVideoFrameReadReference { *reference });
+    completionHandler(sendConvertedFrameBuffer(WTF::move(sharedVideoFrame), frameFromHeap.get(), shouldApplyRotation));
+}
+
+WebCore::ColorSpace RemoteVideoFrameObjectHeap::sendConvertedFrameBuffer(SharedVideoFrame&& sharedVideoFrame, VideoFrame* frameFromHeap, bool shouldApplyRotation)
 {
     ColorSpace destinationColorSpace { ColorSpace::SRGB().platformColorSpace() };
 
@@ -145,25 +205,19 @@ WebCore::ColorSpace RemoteVideoFrameObjectHeapPlatform::convertFrameBuffer(Share
     return destinationColorSpace;
 }
 
-void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameSemaphore(mach_port_t semaphore)
+void RemoteVideoFrameObjectHeap::setSharedVideoFrameSemaphore(mach_port_t semaphore)
 {
     m_sharedVideoFrameReader.setSemaphore(IPC::Semaphore { MachSendRight::create(semaphore) });
 }
 
-void RemoteVideoFrameObjectHeapPlatform::setSharedVideoFrameMemory(mach_port_t memory, uint64_t size)
+void RemoteVideoFrameObjectHeap::setSharedVideoFrameMemory(mach_port_t memory, uint64_t size)
 {
     m_sharedVideoFrameReader.setSharedMemory({ MachSendRight::create(memory), size });
 }
 
-OptionalRemoteVideoFrameReadReference sharedVideoFrameReadReference(const SharedVideoFrame& sharedVideoFrame)
-{
-    if (auto* reference = std::get_if<RemoteVideoFrameReadReference>(&sharedVideoFrame.buffer))
-        return *reference;
-    return std::nullopt;
-}
 #endif
 
-void RemoteVideoFrameObjectHeapPlatform::lowMemoryHandler()
+void RemoteVideoFrameObjectHeap::lowMemoryHandler()
 {
 #if PLATFORM(COCOA)
     Locker locker { m_pixelBufferConformerLock };

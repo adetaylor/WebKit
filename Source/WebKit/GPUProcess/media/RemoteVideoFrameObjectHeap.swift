@@ -122,67 +122,27 @@ private struct VideoFrameTable {
     }
 }
 
-private func videoFrameReference(_ read: borrowing WebKit.RemoteVideoFrameReadReference) -> VideoFrameReference {
-    VideoFrameReference(identifier: WebKit.remoteVideoFrameIdentifierValue(read.identifier()), version: read.version())
-}
+// The frames of a RemoteVideoFrameObjectHeap, for any thread.
+private final class RemoteVideoFrameObjectHeapState {
+    let frames = Mutex(VideoFrameTable())
 
-// Holds the VideoFrames that the GPU process lends to the web process, which refers to them with RemoteVideoFrameReferences,
-// for any thread, and handles the web process's messages about them on its work queue.
-@_expose(Cxx)
-final class RemoteVideoFrameObjectHeap {
-    private let platform: WebKit.RemoteVideoFrameObjectHeapPlatform
-    private let frames = Mutex(VideoFrameTable())
-    private let isClosedFlag = Atomic<Bool>(false)
-
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(platform: WebKit.RemoteVideoFrameObjectHeapPlatform) {
-        self.platform = platform
-    }
-
-    // The forwarder keeps this alive, so this mustn't keep the forwarder: the connection it is registered with does.
-    @used
-    func getMessageReceiver() -> RefRemoteVideoFrameObjectHeapMessageForwarder {
-        WebKit.RemoteVideoFrameObjectHeapMessageForwarder.create(target: self)
-    }
-
-    // Clients might hold on to the heap after this. They should also stop themselves, but if they do not, releasing the
-    // frames avoids big memory leaks, and they fail gracefully to look them up. Frames can still be added.
-    @used
-    func close() {
-        guard !isClosedFlag.exchange(true, ordering: .relaxed) else {
-            return
+    func add(_ reference: VideoFrameReference, _ frame: HeapFrame) {
+        let (_, waiters) = frames.withLock { ($0.add(reference, frame), $0.takeWaiters()) }
+        for waiter in waiters {
+            waiter.signal()
         }
-        platform.close()
+    }
+
+    func removeAll() {
         let (_, waiters) = frames.withLock { ($0.removeAll(), $0.takeWaiters()) }
         for waiter in waiters {
             waiter.signal()
         }
     }
 
-    @used
-    func isClosed() -> Bool {
-        isClosedFlag.load(ordering: .relaxed)
-    }
-
-    @used
-    func add(identifier: UInt64, frame: WebCore.VideoFrame) {
-        let (_, waiters) = frames.withLock {
-            ($0.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(frame: frame)), $0.takeWaiters())
-        }
-        for waiter in waiters {
-            waiter.signal()
-        }
-    }
-
-    @used
-    func read(identifier: UInt64, version: UInt64) -> WebKit.RefPtrVideoFrame {
-        WebKit.RefPtrVideoFrame(readFrame(VideoFrameReference(identifier: identifier, version: version)))
-    }
-
     // Waits for a frame that isn't in the heap yet only if the web process allocated its reference
     // (remoteVideoFrameReadTimeoutSeconds()).
-    private func readFrame(_ reference: VideoFrameReference) -> WebCore.VideoFrame? {
+    func read(_ reference: VideoFrameReference) -> WebCore.VideoFrame? {
         let timeout = WebKit.remoteVideoFrameReadTimeoutSeconds(reference.identifier)
         guard timeout > 0 else {
             return frames.withLock { $0.read(reference) }?.frame
@@ -204,49 +164,83 @@ final class RemoteVideoFrameObjectHeap {
                 return frames.withLock { table in
                     table.removeWaiter(waiter)
                     return table.read(reference)
-                }?.frame
+                }?
+                .frame
             }
         }
     }
 
-    func releaseVideoFrame(connection: IPC.Connection, write: WebKit.RemoteVideoFrameWriteReference) {
-        let reference = VideoFrameReference(
-            identifier: WebKit.remoteVideoFrameIdentifierValue(write.identifier()),
-            version: write.version()
-        )
-        let pendingReads = write.pendingReads()
+    func release(_ reference: VideoFrameReference, pendingReads: UInt64) {
         _ = frames.withLock { $0.remove(reference, pendingReads: pendingReads) }
+    }
+}
+
+// The members of the C++ heap (RemoteVideoFrameObjectHeap.h) that reach its Swift state, which m_swiftState holds
+// retained, by address, from the heap's constructor to its destructor, and the handlers of its messages that take Swift
+// types, on its work queue.
+extension WebKit.RemoteVideoFrameObjectHeap {
+    @cxx
+    @implementation
+    static func createSwiftState() -> UInt {
+        UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteVideoFrameObjectHeapState()).toOpaque())
+    }
+
+    @cxx
+    @implementation
+    static func destroySwiftState(_ swiftState: UInt) {
+        _ = unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+    }
+
+    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
+            preconditionFailure("The heap has no Swift state")
+        }
+        return unsafe address
+    }
+
+    private var state: RemoteVideoFrameObjectHeapState {
+        // Safety: m_swiftState is a retained RemoteVideoFrameObjectHeapState from the constructor to the destructor, and
+        // nothing changes it.
+        unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
+    }
+
+    @cxx
+    @implementation
+    func swiftAdd(_ identifier: UInt64, _ frame: WebCore.VideoFrame) {
+        state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(frame: frame))
+    }
+
+    @cxx
+    @implementation
+    func swiftRead(_ identifier: UInt64, _ version: UInt64) -> WebKit.RefPtrVideoFrame {
+        WebKit.RefPtrVideoFrame(state.read(VideoFrameReference(identifier: identifier, version: version)))
+    }
+
+    @cxx
+    @implementation
+    func swiftRelease(_ identifier: UInt64, _ version: UInt64, _ pendingReads: UInt64) {
+        state.release(VideoFrameReference(identifier: identifier, version: version), pendingReads: pendingReads)
+    }
+
+    @cxx
+    @implementation
+    func swiftRemoveAll() {
+        state.removeAll()
     }
 
     #if WTF_PLATFORM_COCOA
-    func getVideoFrameBuffer(connection: IPC.Connection, read: WebKit.RemoteVideoFrameReadReference) {
-        platform.sendVideoFrameBuffer(read.identifier(), readFrame(videoFrameReference(read)))
-    }
-
-    func convertFrameBuffer(
-        connection: IPC.Connection,
-        frame: consuming WebKit.SharedVideoFrame,
-        shouldApplyRotation: Bool
-    ) -> WebCore.ColorSpace {
-        var frameFromHeap: WebCore.VideoFrame?
-        if let read = WebKit.sharedVideoFrameReadReference(frame).value {
-            frameFromHeap = readFrame(videoFrameReference(read))
-        }
-        return platform.convertFrameBuffer(consuming: frame, frameFromHeap, shouldApplyRotation)
-    }
-
     func setSharedVideoFrameSemaphore(
         connection: IPC.Connection,
         semaphore: borrowing IPCTypes.Semaphore
     ) {
-        platform.setSharedVideoFrameSemaphore(semaphore.port)
+        setSharedVideoFrameSemaphore(semaphore.port)
     }
 
     func setSharedVideoFrameMemory(
         connection: IPC.Connection,
         storageHandle: borrowing IPCTypes.SharedMemoryHandle
     ) {
-        platform.setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
+        setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
     }
     #endif
 }

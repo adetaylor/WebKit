@@ -59,13 +59,13 @@
 #include "WebPageProxy.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#include "RemoteVideoFrameObjectHeap.h"
 #include "RemoteVideoFrameObjectHeapMessages.h"
-#include "RemoteVideoFrameObjectHeapPlatform.h"
 #endif
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
+#include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
-#include "LibWebRTCCodecsProxyPlatform.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)

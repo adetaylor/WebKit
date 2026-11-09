@@ -37,7 +37,7 @@
 #include "GPUProcessMessages.h"
 #include "GPUProcessProxyMessages.h"
 #include "LayerHostingContext.h"
-#include "LibWebRTCCodecsProxyHandle.h"
+#include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
 #include "Logging.h"
 #include "MediaOverridesForTesting.h"
@@ -174,7 +174,7 @@
 #endif
 
 #if ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeapHandle.h"
+#include "RemoteVideoFrameObjectHeap.h"
 #endif
 
 #if ENABLE(LINEAR_MEDIA_PLAYER)
@@ -278,7 +278,7 @@ private:
         return m_process.get()->webProcessIdentity();
     }
 
-    RemoteVideoFrameObjectHeapHandle* remoteVideoFrameObjectHeap() final { return &m_process.get()->videoFrameObjectHeap(); }
+    RemoteVideoFrameObjectHeap* remoteVideoFrameObjectHeap() final { return &m_process.get()->videoFrameObjectHeap(); }
 
     void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier pageIdentifier, const String& persistentId) final
     {
@@ -336,10 +336,10 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     , m_captureOrigin(SecurityOrigin::createOpaque())
 #endif
 #if ENABLE(VIDEO)
-    , m_videoFrameObjectHeap(RemoteVideoFrameObjectHeapHandle::create(m_connection.get()))
+    , m_videoFrameObjectHeap(RemoteVideoFrameObjectHeap::create(m_connection.get()))
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    , m_libWebRTCCodecsProxy(LibWebRTCCodecsProxyHandle::create(*this, parameters.sharedPreferencesForWebProcess))
+    , m_libWebRTCCodecsProxy(LibWebRTCCodecsProxy::create(*this, parameters.sharedPreferencesForWebProcess))
 #endif
 #if HAVE(AUDIT_TOKEN)
     , m_presentingApplicationAuditTokens(WTF::move(parameters.presentingApplicationAuditTokens))
@@ -1372,7 +1372,7 @@ bool GPUConnectionToWebProcess::setCaptureAttributionString()
 #endif // ENABLE(MEDIA_STREAM)
 
 #if ENABLE(VIDEO)
-RemoteVideoFrameObjectHeapHandle& GPUConnectionToWebProcess::videoFrameObjectHeap() const
+RemoteVideoFrameObjectHeap& GPUConnectionToWebProcess::videoFrameObjectHeap() const
 {
     return *m_videoFrameObjectHeap.get();
 }

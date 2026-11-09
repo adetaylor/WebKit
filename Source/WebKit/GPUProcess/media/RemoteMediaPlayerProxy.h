@@ -103,7 +103,7 @@ class RemoteAudioTrackProxy;
 class RemoteAudioSourceProviderProxy;
 class RemoteMediaPlayerManagerProxy;
 class RemoteTextTrackProxy;
-class RemoteVideoFrameObjectHeapHandle;
+class RemoteVideoFrameObjectHeap;
 class RemoteVideoTrackProxy;
 
 class RemoteMediaPlayerProxy final
@@ -115,7 +115,7 @@ class RemoteMediaPlayerProxy final
 public:
     USING_CAN_MAKE_WEAKPTR(WebCore::MediaPlayerClient);
 
-    static Ref<RemoteMediaPlayerProxy> create(RemoteMediaPlayerManagerProxy&, WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, Ref<IPC::Connection>&&, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&, RemoteVideoFrameObjectHeapHandle&, const WebCore::ProcessIdentity&);
+    static Ref<RemoteMediaPlayerProxy> create(RemoteMediaPlayerManagerProxy&, WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, Ref<IPC::Connection>&&, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&, RemoteVideoFrameObjectHeap&, const WebCore::ProcessIdentity&);
     ~RemoteMediaPlayerProxy();
 
     void ref() const final { RefCounted::ref(); }
@@ -244,7 +244,7 @@ public:
     void destroyResourceLoader(RemoteMediaResourceLoaderIdentifier);
 
 private:
-    RemoteMediaPlayerProxy(RemoteMediaPlayerManagerProxy&, WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, Ref<IPC::Connection>&&, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&, RemoteVideoFrameObjectHeapHandle&, const WebCore::ProcessIdentity&);
+    RemoteMediaPlayerProxy(RemoteMediaPlayerManagerProxy&, WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, Ref<IPC::Connection>&&, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&, RemoteVideoFrameObjectHeap&, const WebCore::ProcessIdentity&);
 
     // MediaPlayerClient
     void mediaPlayerCharacteristicChanged() final;
@@ -447,7 +447,7 @@ private:
     ScopedRenderingResourcesRequest m_renderingResourcesRequest;
 
     bool m_observingTimeChanges { false };
-    const Ref<RemoteVideoFrameObjectHeapHandle> m_videoFrameObjectHeap;
+    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
     RefPtr<WebCore::VideoFrame> m_videoFrameForCurrentTime;
     bool m_shouldCheckHardwareSupport { false };
     SoundStageSize m_soundStageSize { SoundStageSize::Auto };

@@ -32,7 +32,7 @@
 #import "LayerHostingContextManager.h"
 #import "Logging.h"
 #import "MediaPlayerPrivateRemoteMessages.h"
-#import "RemoteVideoFrameObjectHeapHandle.h"
+#import "RemoteVideoFrameObjectHeap.h"
 #import <QuartzCore/QuartzCore.h>
 #import <WebCore/ColorSpace.h>
 #import <WebCore/FloatRect.h>
