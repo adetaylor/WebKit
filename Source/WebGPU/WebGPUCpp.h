@@ -973,10 +973,6 @@ struct ImageCopyExternalImage {
     PredefinedColorSpace colorSpace { PredefinedColorSpace::SRGB };
 };
 
-// The CF objects of these, for Swift.
-inline CVPixelBufferRef framePixelBuffer(const ExternalTextureDescriptor& descriptor) CF_RETURNS_NOT_RETAINED { return descriptor.pixelBuffer.get(); }
-inline IOSurfaceRef sourceSurface(const ImageCopyExternalImage& source) CF_RETURNS_NOT_RETAINED { return source.source.get(); }
-inline CVPixelBufferRef sourcePixelBuffer(const ImageCopyExternalImage& source) CF_RETURNS_NOT_RETAINED { return source.pixelBuffer.get(); }
 #endif
 
 // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dictdef-xrgpuprojectionlayerinit
