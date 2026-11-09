@@ -29,6 +29,7 @@
 #include <unicode/utypes.h>
 #include <wtf/Forward.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/ConversionMode.h>
@@ -103,9 +104,20 @@ public:
 
     const void* rawCharacters() const LIFETIME_BOUND { return m_characters; }
     std::span<const Latin1Character> span8() const LIFETIME_BOUND;
-    std::span<const char16_t> span16() const LIFETIME_BOUND;
-    std::span<const char16_t> unsafeSpan16() const { return span16(); }
-    template<typename CharacterType> std::span<const CharacterType> span() const LIFETIME_BOUND;
+    // Assumes a 16-bit view, which only a debug assertion checks, so Swift uses checkedSpan16() instead.
+    SWIFT_UNSAFE std::span<const char16_t> span16() const LIFETIME_BOUND;
+    SWIFT_UNSAFE std::span<const char16_t> unsafeSpan16() const { return span16(); }
+#if defined(__swift__)
+    // Crashes on a non-empty 8-bit view.
+    std::span<const char16_t> checkedSpan16() const LIFETIME_BOUND
+    {
+        if (isEmpty())
+            return { };
+        RELEASE_ASSERT(!is8Bit());
+        return span16();
+    }
+#endif
+    template<typename CharacterType> SWIFT_UNSAFE std::span<const CharacterType> span() const LIFETIME_BOUND;
 
     unsigned hash() const;
 
