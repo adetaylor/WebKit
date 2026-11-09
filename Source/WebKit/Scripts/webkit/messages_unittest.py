@@ -362,6 +362,10 @@ messages -> TestReceiver%s {
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument) CxxTypes')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for messages that take Swift types"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([CxxDecoded] WebKit::NoSwiftForm argument)')
+        for argument_type in ['std::span<const uint8_t>', 'std::optional<std::span<const float, 4>>', 'Vector<std::span<const uint8_t>>', 'IPC::ArrayReferenceTuple<float, double>', 'StringView', 'WTF::StringView', 'std::string_view']:
+            with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'CxxDecoded' on parameter 'argument', which is only for types that own their storage"):
+                parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([CxxDecoded] %s argument)' % argument_type)
+        parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message([CxxDecoded] WebKit::MutableSpanHolder argument)')
 
     def test_swift_sends(self):
         sender = parser.parse(io.StringIO("""
