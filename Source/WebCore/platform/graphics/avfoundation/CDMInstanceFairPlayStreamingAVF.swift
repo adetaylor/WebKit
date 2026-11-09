@@ -29,13 +29,14 @@
 // keeps the C++ CDMInstance and CDMInstanceSession that own them, for the players and the CDM interfaces.
 //
 // WebCore soft-links AVFoundation, and its Swift doesn't autolink it (CMakeLists.txt, WebCore.xcconfig): the classes and
-// constants come from PAL's getters (pal/cocoa/AVFoundationSoftLink.h). A use of an AVFoundation class that needs its
-// class object, such as a container of it, a cast to it or its metatype, references a symbol that WebCore doesn't link,
-// and fails the link; such objects are kept in the wrapper structs below, and cast with PAL's helpers.
+// constants come from the generated accessors (AVFoundationSoftLinkAccessors.swift, from
+// platform/cocoa/SoftLinkAccessors.in). A use of an AVFoundation class that needs its class object, such as a
+// container of it, a cast to it, its metatype or `!= nil` on an optional of it, references a symbol that WebCore
+// doesn't link, and fails the link; such objects are kept in the wrapper structs below, and cast with the accessors'
+// cast(_:to:).
 
 internal import AVFoundation
 private import Cxx
-internal import pal.Core.cocoa.AVFoundationSoftLink
 internal import pal.spi.cocoa.AVFoundationSPI
 import WebCore_Private.Core.CDMInstanceFairPlayStreamingHost
 import WebCore_Private.Core.CDMKeyStatus
@@ -310,8 +311,8 @@ private func groupObject(for request: AVContentKeyRequest) -> AnyObject? {
 
 // The options of a streaming content key request: a device identifier seed from the media keys' hash salt.
 private func keyRequestOptions(hashSalt: Swift.String) -> [Swift.String: Any] {
-    guard PAL.canLoad_AVFoundation_AVContentKeyRequestRandomDeviceIdentifierSeedKey(),
-        PAL.canLoad_AVFoundation_AVContentKeyRequestShouldRandomizeDeviceIdentifierKey()
+    guard let seedKey = AVFoundationSoftLink.AVContentKeyRequestRandomDeviceIdentifierSeedKey,
+        let shouldRandomizeKey = AVFoundationSoftLink.AVContentKeyRequestShouldRandomizeDeviceIdentifierKey
     else {
         return [:]
     }
@@ -334,9 +335,46 @@ private func keyRequestOptions(hashSalt: Swift.String) -> [Swift.String: Any] {
         seed.append(contentsOf: repeatElement(0, count: maximumDeviceIdentifierSeedSize - seed.count))
     }
     return [
-        PAL.get_AVFoundation_AVContentKeyRequestShouldRandomizeDeviceIdentifierKeySingleton(): true,
-        PAL.get_AVFoundation_AVContentKeyRequestRandomDeviceIdentifierSeedKeySingleton(): Data(seed),
+        shouldRandomizeKey: true,
+        seedKey: Data(seed),
     ]
+}
+
+// MARK: AVContentKeySession's class methods, through the class object that the accessors look up
+
+private func makeFairPlayStreamingContentKeySession(_ storageURL: Foundation.URL?) -> AVContentKeySession? {
+    guard let keySystem = AVFoundationSoftLink.AVContentKeySystemFairPlayStreaming,
+        let sessionClass = AVFoundationClass.AVContentKeySession
+    else {
+        return nil
+    }
+    guard let storageURL else {
+        return sessionClass.init(keySystem: keySystem)
+    }
+    return sessionClass.init(keySystem: keySystem, storageDirectoryAt: storageURL)
+}
+
+private func makeFairPlayStreamingContentKeyResponse(_ keyResponseData: Data) -> AVContentKeyResponse? {
+    AVFoundationClass.AVContentKeyResponse?.init(fairPlayStreamingKeyResponseData: keyResponseData)
+}
+
+private func pendingExpiredSessionReports(_ appIdentifier: Data, _ storageURL: Foundation.URL) -> [Data] {
+    guard let sessionClass = AVFoundationClass.AVContentKeySession else {
+        return []
+    }
+    return sessionClass.pendingExpiredSessionReports(withAppIdentifier: appIdentifier, storageDirectoryAt: storageURL)
+}
+
+private func removePendingExpiredSessionReports(
+    _ expiredSessionReports: [Data],
+    _ appIdentifier: Data,
+    _ storageURL: Foundation.URL
+) {
+    AVFoundationClass.AVContentKeySession?.removePendingExpiredSessionReports(
+        expiredSessionReports,
+        withAppIdentifier: appIdentifier,
+        storageDirectoryAt: storageURL
+    )
 }
 
 // MARK: Content key session delegate
@@ -372,7 +410,7 @@ private final class FairPlayRequestsDelegate: NSObject, Sendable {
         var requests: [FairPlayKeyRequest] = []
         requests.reserveCapacity(keyRequests.count)
         for element in keyRequests {
-            if let request = PAL.dynamicCastToAVContentKeyRequest(element) {
+            if let request = AVFoundationClass.cast(element as AnyObject, to: AVFoundationClass.AVContentKeyRequest) {
                 requests.append(FairPlayKeyRequest(request))
             }
         }
@@ -631,7 +669,7 @@ public final class FairPlayInstance: FairPlayContentKeySessionClient {
         if sessionTypesIncludePersistentLicense && !supportsPersistentKeys {
             return false
         }
-        if !PAL.canLoad_AVFoundation_AVContentKeySystemFairPlayStreaming() {
+        if AVFoundationSoftLink.AVContentKeySystemFairPlayStreaming == nil {
             return false
         }
         persistentStateAllowed = allowsPersistentState
@@ -650,7 +688,7 @@ public final class FairPlayInstance: FairPlayContentKeySessionClient {
         if let keySession {
             return keySession
         }
-        guard let newSession = PAL.makeFairPlayStreamingContentKeySession(persistentStateAllowed ? storageURL : nil) else {
+        guard let newSession = makeFairPlayStreamingContentKeySession(persistentStateAllowed ? storageURL : nil) else {
             return nil
         }
         keySession = newSession
@@ -1320,7 +1358,7 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
                 return
             }
             log(.Error, "updateLicense", "\"acknowledged\", Succeeded, removing expired session report")
-            PAL.removePendingExpiredSessionReports(expiredSessions, certificate, storageURL)
+            removePendingExpiredSessionReports(expiredSessions, certificate, storageURL)
             callback.succeedLicenseUpdate()
             return
         }
@@ -1370,9 +1408,9 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
             }
         } else {
             log(.Always, "updateLicense", "'sinf' initData, processing response")
-            currentRequest.requests.first?.request.processContentKeyResponse(
-                PAL.makeFairPlayStreamingContentKeyResponse(Data(responseData))
-            )
+            if let response = makeFairPlayStreamingContentKeyResponse(Data(responseData)) {
+                currentRequest.requests.first?.request.processContentKeyResponse(response)
+            }
         }
 
         // FIXME(rdar://problem/35592277): stash the callback and call it once AVContentKeyResponse supports a success
@@ -1413,7 +1451,9 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
         case .noKeyID, .keyIDOnly:
             return false
         case .payload(_, let payload):
-            request.processContentKeyResponse(PAL.makeFairPlayStreamingContentKeyResponse(Data(payload)))
+            if let response = makeFairPlayStreamingContentKeyResponse(Data(payload)) {
+                request.processContentKeyResponse(response)
+            }
         case .error(_, let code):
             request.processContentKeyResponseError(NSError(domain: "org.webkit.eme", code: Int(code), userInfo: nil))
         }
@@ -1434,7 +1474,7 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
         }
 
         var releasedKeyCount = 0
-        for expiredSessionData in PAL.pendingExpiredSessionReports(certificate, storageURL) {
+        for expiredSessionData in pendingExpiredSessionReports(certificate, storageURL) {
             guard let expiredSession = expiredSessionReport(expiredSessionData),
                 let playbackSessionId = expiredSession["PlaybackSessionID"] as? NSString,
                 sameName(requestedSessionId, playbackSessionId as Swift.String)
@@ -1490,7 +1530,7 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
 
         var result = FairPlayRemoveSessionDataResult()
         var expiredSessionReports: [NSDictionary] = []
-        for expiredSessionData in PAL.pendingExpiredSessionReports(certificate, storageURL) {
+        for expiredSessionData in pendingExpiredSessionReports(certificate, storageURL) {
             guard let expiredSession = expiredSessionReport(expiredSessionData),
                 let playbackSessionId = expiredSession["PlaybackSessionID"] as? NSString,
                 sameName(requestedSessionId, playbackSessionId as Swift.String)
@@ -1932,7 +1972,7 @@ public final class FairPlaySession: FairPlayContentKeySessionClient {
             return true
         }
 
-        guard let newSession = PAL.makeFairPlayStreamingContentKeySession(instance.persistentStateAllowed ? instance.storageURL : nil) else {
+        guard let newSession = makeFairPlayStreamingContentKeySession(instance.persistentStateAllowed ? instance.storageURL : nil) else {
             return false
         }
         ownSession = newSession
