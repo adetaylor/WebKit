@@ -53,7 +53,6 @@ class MediaSourcePrivateClient;
 class SourceBufferPrivateAVFObjC;
 class TimeRanges;
 class WebCoreDecompressionSession;
-class VideoMediaSampleRenderer;
 struct MediaSourceConfiguration;
 
 class MediaSourcePrivateAVFObjC final
@@ -78,10 +77,6 @@ public:
     FloatSize naturalSize() const;
 
     void hasSelectedVideoChanged(SourceBufferPrivateAVFObjC&);
-    void setVideoRenderer(VideoMediaSampleRenderer*);
-    void stageVideoRenderer(VideoMediaSampleRenderer*);
-    void videoRendererWillReconfigure(VideoMediaSampleRenderer&);
-    void videoRendererDidReconfigure(VideoMediaSampleRenderer&);
 
     void flushAndReenqueueActiveVideoSourceBuffers();
 
