@@ -27,16 +27,17 @@
 # Inputs:
 #   - PAL's SOFT_LINK_*_FOR_HEADER declarations (and the matching *_FOR_SOURCE ones), the source of truth for which
 #     symbols are soft-linked, from which framework, whether that framework is private, and whether a symbol may fail.
-#   - A manifest (WebCore/platform/cocoa/SoftLinkAccessors.in) of the symbols Swift uses: `kind framework symbol`.
+#   - A manifest (WebCore/platform/cocoa/SoftLinkAccessors.in) of the symbols Swift uses: `kind framework symbol`, and
+#     of the Objective-C members it reaches through a re-declared selector: `member framework class selector declaration`.
 #   - The SDK: a generated header of `typedef __typeof__(&symbol)` names each symbol's type as the SDK declares it
 #     (__typeof__ is unevaluated, so the header references no symbol), and swift-synthesize-interface gives the imported
-#     declarations' Swift signatures.
+#     declarations' Swift signatures. The framework's Objective-C headers give each member's selector and types.
 #
 # Outputs, in --output-dir:
 #   - PALSoftLinkTypes/{module.modulemap,PALSoftLinkTypes.h}, or in --types-output-dir: a directory that the clients of
 #     the Swift module search, since they load the modules it imports
 #   - <Framework>SoftLinkAccessors.swift for each --framework: dlopen, dlsym and objc_lookUpClass, and the casts to the
-#     SDK's types. These are the only files with soft-link `unsafe`.
+#     SDK's types, and the members' views. These are the only files with soft-link `unsafe`.
 
 import argparse
 import os
@@ -49,12 +50,15 @@ FRAMEWORK_HEADERS = {
     'AVFoundation': '#import <AVFoundation/AVFoundation.h>',
     'AVKit': '#import <AVKit/AVKit.h>',
     'AudioToolbox': '#include <AudioToolbox/AudioToolbox.h>',
+    'CoreML': '#import <CoreML/CoreML.h>',
     'CoreMedia': '#include <CoreMedia/CoreMedia.h>',
     'MediaToolbox': '#include <MediaToolbox/MediaToolbox.h>',
+    'Vision': '#import <Vision/Vision.h>',
     'VideoToolbox': '#include <VideoToolbox/VideoToolbox.h>',
 }
 
-KINDS = ('function', 'constant', 'class')
+KINDS = ('function', 'constant', 'class', 'member')
+SYMBOL_KINDS = ('function', 'constant')
 
 
 class GeneratorError(Exception):
@@ -149,6 +153,47 @@ def parse_pal(paths):
     return declarations
 
 
+# An Objective-C member that Swift calls through a re-declared selector, because the SDK's own declaration names a class
+# of the soft-linked framework (a typed collection), which would link it: `member <framework> <class> <selector>
+# <declaration>`, where the declaration is the Swift one with NSArray and NSDictionary for the SDK's typed collections, as
+# `func name(labels: Types) [throws] [-> Type]` or `var name: Type { get }`. `[T] counted by property` stands for a
+# `const T *` the object owns, which the generated adapter copies, so the pointer never leaves the generated file.
+class Member:
+    def __init__(self, cls, selector, declaration):
+        self.cls = cls
+        self.selector = selector
+        self.declaration = declaration
+        m = re.fullmatch(r'var (\w+): (.+?) \{ get \}', declaration)
+        if m:
+            self.name, self.is_property, self.parameters, self.throws, self.result, self.counted_by = m.group(1), True, [], False, m.group(2), None
+            return
+        m = re.fullmatch(r'func (\w+)\((.*?)\)( throws)?(?: -> (.+?))?(?: counted by (\w+))?', declaration)
+        if not m:
+            raise GeneratorError(f'{cls} {selector}: expected "func name(labels: Types) [throws] [-> Type] [counted by property]" or "var name: Type {{ get }}", not "{declaration}"')
+        self.name, self.is_property, self.throws, self.result, self.counted_by = m.group(1), False, bool(m.group(3)), m.group(4) or 'Void', m.group(5)
+        self.parameters = []
+        for parameter in split_parameters(m.group(2)):
+            head, parameter_type = parameter.rsplit(':', 1)
+            words = head.split()
+            self.parameters.append((words[0], words[-1], parameter_type.strip()))
+        if self.counted_by and not re.fullmatch(r'\[\w+\]', self.result):
+            raise GeneratorError(f'{cls} {selector}: "counted by" needs an array result, not {self.result}')
+
+    @property
+    def key(self):
+        return f'{self.cls} {self.selector}'
+
+    @property
+    def protocol(self):
+        return f'Member_{self.cls}_{self.name}'
+
+    def __eq__(self, other):
+        return isinstance(other, Member) and (self.cls, self.selector, self.declaration) == (other.cls, other.selector, other.declaration)
+
+    def __repr__(self):
+        return f'Member({self.cls}, {self.selector}, {self.declaration})'
+
+
 def parse_manifest(lines):
     entries = []
     for number, line in enumerate(lines, 1):
@@ -156,11 +201,15 @@ def parse_manifest(lines):
         if not line:
             continue
         words = line.split()
+        if len(words) >= 6 and words[0] == 'member':
+            member = Member(words[2], words[3], ' '.join(words[4:]))
+            entries.append(('member', words[1], member.key, member))
+            continue
         if len(words) == 5 and words[0] == 'constant' and words[3] == 'as':
             entries.append(tuple(words[:3]) + (words[4],))
             continue
         if len(words) != 3 or words[0] not in KINDS:
-            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS)}> <framework> <symbol>", or "constant <framework> <symbol> as <type>"')
+            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "constant <framework> <symbol> as <type>", or "member <framework> <class> <selector> <declaration>"')
         entries.append(tuple(words) + (None,))
     return entries
 
@@ -172,13 +221,16 @@ def validate(entries, declarations, frameworks):
         if name in seen:
             errors.append(f'{name}: listed twice')
         seen.add(name)
+        if framework not in frameworks:
+            errors.append(f'{name}: {framework} is not one of the frameworks to generate ({", ".join(frameworks)})')
+        if kind == 'member':
+            # A member's class is only a static type, which needs no symbol, so PAL needn't soft-link it.
+            continue
         declaration = declarations.symbols.get(name)
         if not declaration:
             errors.append(f'{name}: not soft-linked by PAL (add a SOFT_LINK_* declaration first)')
         elif declaration.kind != kind or declaration.framework != framework:
             errors.append(f'{name}: the manifest says {kind} in {framework}, PAL says {declaration.kind} in {declaration.framework}')
-        if framework not in frameworks:
-            errors.append(f'{name}: {framework} is not one of the frameworks to generate ({", ".join(frameworks)})')
         if framework not in FRAMEWORK_HEADERS and kind != 'class':
             errors.append(f'{name}: no SDK header known for {framework}')
     if errors:
@@ -389,15 +441,200 @@ def class_accessor(declaration, module):
     return lines
 
 
+# The members that the framework's Objective-C headers declare, by class: the selector, then the return type and the
+# parameters' types, with nullability and __kindof dropped. Categories and class extensions add to their class.
+class ObjCHeaders:
+    def __init__(self, texts):
+        self.superclasses = {}
+        self.members = {}
+        self.string_typedefs = set()
+        for text in texts:
+            self.parse(strip_comments(text))
+
+    @staticmethod
+    def normalize_type(text):
+        text = re.sub(r'\b(nullable|nonnull|null_unspecified|_Nullable|_Nonnull|_Null_unspecified|__nullable|__nonnull|__kindof|__strong|__unsafe_unretained)\b', ' ', text)
+        text = re.sub(r'\s*\*\s*', '*', text)
+        text = re.sub(r'\s*([<>,])\s*', r'\1', text)
+        return ' '.join(text.split())
+
+    @staticmethod
+    def strip_trailing_macros(text):
+        while True:
+            m = re.search(r'\s+(?:[A-Z_][A-Z0-9_]*|__attribute__)\s*(?:\((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\))?\s*$', text)
+            if not m:
+                return text.strip()
+            text = text[:m.start()]
+
+    @staticmethod
+    def balanced(text, start):
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == '(':
+                depth += 1
+            elif text[i] == ')':
+                depth -= 1
+                if not depth:
+                    return text[start + 1:i], i + 1
+        raise GeneratorError(f'unbalanced parentheses in "{text}"')
+
+    def parse(self, text):
+        for m in re.finditer(r'typedef\s+NSString\s*\*\s*(\w+)', text):
+            self.string_typedefs.add(m.group(1))
+        for m in re.finditer(r'@interface\s+(\w+)\s*(?::\s*(\w+))?[^\n]*?\n(.*?)@end', text, re.S):
+            name, superclass, body = m.group(1), m.group(2), m.group(3)
+            if superclass:
+                self.superclasses[name] = superclass
+            members = self.members.setdefault(name, {})
+            body = re.sub(r'\{[^{}]*\}', ';', body, count=1) if body.lstrip().startswith('{') else body
+            for statement in body.split(';'):
+                statement = ' '.join(statement.split())
+                if statement.startswith('@property'):
+                    declaration = self.strip_trailing_macros(re.sub(r'^@property\s*(\([^)]*\))?', '', statement))
+                    p = re.fullmatch(r'(.*?)\s*\b(\w+)', declaration)
+                    if p:
+                        members[p.group(2)] = (self.normalize_type(p.group(1)), [])
+                elif statement[:1] in '-+' and '(' in statement:
+                    return_type, end = self.balanced(statement, statement.index('('))
+                    rest = self.strip_trailing_macros(statement[end:])
+                    pieces, parameters = [], []
+                    while True:
+                        k = re.match(r'\s*(\w+)\s*:\s*', rest)
+                        if not k:
+                            break
+                        parameter_type, end = self.balanced(rest, k.end())
+                        pieces.append(k.group(1))
+                        parameters.append(self.normalize_type(parameter_type))
+                        rest = re.sub(r'^\s*\w+', '', rest[end:], count=1)
+                    selector = ''.join(f'{piece}:' for piece in pieces) if pieces else rest.strip()
+                    if selector:
+                        members[selector] = (self.normalize_type(return_type), parameters)
+
+    def find(self, cls, selector):
+        while cls:
+            member = self.members.get(cls, {}).get(selector)
+            if member:
+                return member
+            cls = self.superclasses.get(cls)
+        return None
+
+    # The Swift type that may stand for an Objective-C type in a member's re-declaration: the plain type, with NSArray and
+    # NSDictionary for typed collections and AnyObject for protocol-typed objects, which would otherwise name the
+    # framework's classes and protocols.
+    def erased_types(self, objc_type):
+        objc_type = objc_type.strip()
+        if re.fullmatch(r'NSArray(<.*>)?\*', objc_type):
+            return {'NSArray'}
+        if re.fullmatch(r'NSDictionary(<.*>)?\*', objc_type):
+            return {'NSDictionary'}
+        if re.fullmatch(r'id(<.*>)?', objc_type):
+            return {'AnyObject'}
+        if objc_type == 'NSString*' or objc_type in self.string_typedefs:
+            return {'String', 'NSString'}
+        plain = {'BOOL': 'Bool', 'NSUInteger': 'Int', 'NSInteger': 'Int', 'void': 'Void', 'CGSize': 'CGSize', 'CGPoint': 'CGPoint', 'CGRect': 'CGRect', 'CGFloat': 'CGFloat', 'float': 'Float', 'double': 'Double'}
+        if objc_type in plain:
+            return {plain[objc_type]}
+        m = re.fullmatch(r'const (\w+)\*', objc_type)
+        if m and m.group(1) in plain:
+            return {f'[{plain[m.group(1)]}] counted'}
+        m = re.fullmatch(r'(\w+)\*', objc_type)
+        if m:
+            return {m.group(1), 'AnyObject'}
+        return set()
+
+    def check(self, member):
+        found = self.find(member.cls, member.selector)
+        if not found:
+            raise GeneratorError(f'{member.key}: the SDK\'s headers declare no such member of {member.cls} or its superclasses')
+        return_type, parameters = found
+        swift_parameters = [parameter_type for _, _, parameter_type in member.parameters]
+        throws = bool(parameters) and parameters[-1] == 'NSError**'
+        if throws:
+            parameters = parameters[:-1]
+        if throws != member.throws:
+            raise GeneratorError(f'{member.key}: {"throws" if throws else "does not throw"} in the SDK (an NSError ** last parameter)')
+        if len(parameters) != len(swift_parameters):
+            raise GeneratorError(f'{member.key}: {len(parameters)} parameters in the SDK, {len(swift_parameters)} in "{member.declaration}"')
+
+        def strip(swift_type):
+            return swift_type[:-1] if swift_type.endswith('?') else swift_type
+
+        for objc_type, swift_type in zip(parameters, swift_parameters):
+            if strip(swift_type) not in self.erased_types(objc_type):
+                raise GeneratorError(f'{member.key}: a parameter is {objc_type} in the SDK, which {swift_type} cannot stand for')
+        result = strip(member.result)
+        if member.counted_by:
+            result += ' counted'
+        if throws and return_type == 'BOOL':
+            expected = {'Void'}
+        else:
+            expected = self.erased_types(return_type)
+        if result not in expected:
+            raise GeneratorError(f'{member.key}: the result is {return_type} in the SDK, which {member.result} cannot stand for')
+
+
+def member_accessor(framework, member):
+    protocol = f'{framework}{member.protocol}'
+    qualified = f'{framework}.{member.cls}'
+    lines = [f'// -[{member.cls} {member.selector}], with NSArray and NSDictionary for the SDK\'s typed collections.']
+    lines.append(f'@objc protocol {protocol} {{')
+    if member.is_property:
+        lines.append(f'    @objc({member.selector}) var {member.name}: {member.result} {{ get }}')
+    else:
+        parameters = ', '.join(f'{label} {local}: {parameter_type}' if label != local else f'{label}: {parameter_type}' for label, local, parameter_type in member.parameters)
+        if member.counted_by:
+            element = member.result[1:-1]
+            result = f' -> UnsafePointer<{element}>?'
+        else:
+            result = '' if member.result == 'Void' else f' -> {member.result}'
+        lines.append(f'    @objc({member.selector}) func {member.name}({parameters}){" throws" if member.throws else ""}{result}')
+    lines.append('}')
+    lines.append('')
+    lines.append(f'extension {framework}Member {{')
+    if member.counted_by:
+        signature = ''.join(f', {label} {local}: {parameter_type}' if label != local else f', {label}: {parameter_type}' for label, local, parameter_type in member.parameters)
+        arguments = ', '.join(local if label == '_' else f'{label}: {local}' for label, local, _ in member.parameters)
+        lines += [
+            f'    // A copy of the object\'s {member.counted_by} elements, or nil if the object doesn\'t answer the selector.',
+            f'    static func {member.name}(of object: {qualified}{signature}) -> {member.result}? {{',
+            f'        guard object.responds(to: NSSelectorFromString("{member.selector}")) else {{',
+            '            return nil',
+            '        }',
+            f'        let view = unsafe unsafeBitCast(object, to: (any {protocol}).self)',
+            f'        guard let elements = unsafe view.{member.name}({arguments}) else {{',
+            '            return []',
+            '        }',
+            f'        return unsafe Array(UnsafeBufferPointer(start: elements, count: object.{member.counted_by}))',
+            '    }',
+        ]
+    else:
+        lines += [
+            '    // The object, seen through the re-declaration, or nil if it doesn\'t answer the selector.',
+            f'    static func {member.name}(of object: {qualified}) -> (any {protocol})? {{',
+            f'        guard object.responds(to: NSSelectorFromString("{member.selector}")) else {{',
+            '            return nil',
+            '        }',
+            f'        return unsafe unsafeBitCast(object, to: (any {protocol}).self)',
+            '    }',
+        ]
+    lines.append('}')
+    return lines
+
+
 def framework_path(framework, private_frameworks):
     directory = 'PrivateFrameworks' if framework in private_frameworks else 'Frameworks'
     return f'/System/Library/{directory}/{framework}.framework/{framework}'
 
 
-def accessors_file(framework, entries, declarations, typedefs, interfaces_for):
+def accessors_file(framework, entries, declarations, typedefs, interfaces_for, headers_for=None):
     path = framework_path(framework, declarations.private_frameworks)
-    framework_entries = [(kind, name, swift_type) for kind, f, name, swift_type in entries if f == framework]
+    members = [member for kind, f, _, member in entries if f == framework and kind == 'member']
+    framework_entries = [(kind, name, swift_type) for kind, f, name, swift_type in entries if f == framework and kind != 'member']
     kinds = {kind for kind, _, _ in framework_entries}
+    if members:
+        headers = headers_for(framework)
+        for member in members:
+            headers.check(member)
     w = []
     w.append('// Generated by WebCore/Scripts/generate-soft-link-accessors.py from PAL\'s SOFT_LINK declarations,')
     w.append('// WebCore/platform/cocoa/SoftLinkAccessors.in and the SDK. Do not edit.')
@@ -408,7 +645,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for):
     w.append('// PAL\'s RELEASE_ASSERT does, unless PAL declares the symbol MAY_FAIL or the class OPTIONAL.')
     w.append('')
     w.append('import Darwin')
-    if 'class' in kinds:
+    if 'class' in kinds or members:
         w.append('import Foundation')
     w.append(f'import {framework}')
     w.append('import ObjectiveC')
@@ -418,7 +655,9 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for):
         w.append(f'enum {framework}SoftLink {{ }}')
     if 'class' in kinds:
         w.append(f'enum {framework}Class {{ }}')
-    if 'constant' in kinds or 'class' in kinds:
+    if members:
+        w.append(f'enum {framework}Member {{ }}')
+    if 'constant' in kinds or 'class' in kinds or members:
         w.append('')
     w.append('nonisolated(unsafe) private let frameworkHandle: UnsafeMutableRawPointer = {')
     w.append(f'    guard let handle = unsafe dlopen("{path}", RTLD_NOW) else {{')
@@ -465,11 +704,21 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for):
         else:
             w += class_accessor(declaration, framework)
         w.append('')
+    for member in members:
+        w += member_accessor(framework, member)
+        w.append('')
     return '\n'.join(w).rstrip('\n') + '\n'
 
 
+# The file for a framework that the target's SDK doesn't have (Vision on watchOS), so that the build's list of generated
+# files stays the same: nothing in it, and nothing may use it.
+def stub_file(framework):
+    return ('// Generated by WebCore/Scripts/generate-soft-link-accessors.py. Do not edit.\n'
+            f'// The target\'s SDK has no {framework}, so WebCore\'s Swift has no accessors for it.\n')
+
+
 def types_header(entries):
-    frameworks = sorted({f for kind, f, _, _ in entries if kind != 'class'})
+    frameworks = sorted({f for kind, f, _, _ in entries if kind in SYMBOL_KINDS})
     w = ['// Generated by WebCore/Scripts/generate-soft-link-accessors.py. Do not edit.',
          '// Each typedef names the type of a soft-linked symbol as the SDK declares it. __typeof__ is unevaluated, so this',
          '// header references no symbol.',
@@ -482,7 +731,7 @@ def types_header(entries):
     w.append('#pragma clang diagnostic push')
     w.append('#pragma clang diagnostic ignored "-Wunguarded-availability-new"')
     for kind, _, name, _ in entries:
-        if kind != 'class':
+        if kind in SYMBOL_KINDS:
             w.append(f'typedef __typeof__(&{name}) PALSoftLink_{name}_t;')
     w.append('#pragma clang diagnostic pop')
     return '\n'.join(w) + '\n'
@@ -535,9 +784,23 @@ class Synthesizer:
             yield from self.module_and_submodules(name)
 
 
+def framework_headers(sdk, framework):
+    directory = os.path.join(sdk, 'System', 'Library', 'Frameworks', f'{framework}.framework', 'Headers')
+    if not os.path.isdir(directory):
+        raise GeneratorError(f'{framework}: no headers in {directory}')
+    texts = []
+    for name in sorted(os.listdir(directory)):
+        if name.endswith('.h'):
+            with open(os.path.join(directory, name), errors='replace') as f:
+                texts.append(f.read())
+    return ObjCHeaders(texts)
+
+
 def generate(arguments):
     with open(arguments.manifest) as f:
         entries = parse_manifest(f.readlines())
+    stubs = set(arguments.stub_framework)
+    entries = [entry for entry in entries if entry[1] not in stubs]
     declarations = parse_pal(arguments.pal_header)
     validate(entries, declarations, arguments.framework)
 
@@ -548,10 +811,12 @@ def generate(arguments):
 
     tool = [arguments.synthesize_interface] if arguments.synthesize_interface else ['xcrun', 'swift-synthesize-interface']
     synthesize = Synthesizer(tool, arguments.sdk, arguments.target, arguments.synthesize_argument)
-    typedefs = synthesize('PALSoftLinkTypes', [types_dir]) if any(kind != 'class' for kind, _, _, _ in entries) else ''
+    typedefs = synthesize('PALSoftLinkTypes', [types_dir]) if any(kind in SYMBOL_KINDS for kind, _, _, _ in entries) else ''
     for framework in arguments.framework:
-        content = accessors_file(framework, entries, declarations, typedefs, synthesize.framework)
+        content = accessors_file(framework, entries, declarations, typedefs, synthesize.framework, lambda framework: framework_headers(arguments.sdk, framework))
         write_if_changed(os.path.join(arguments.output_dir, f'{framework}SoftLinkAccessors.swift'), content)
+    for framework in stubs:
+        write_if_changed(os.path.join(arguments.output_dir, f'{framework}SoftLinkAccessors.swift'), stub_file(framework))
 
 
 def main(argv):
@@ -559,6 +824,7 @@ def main(argv):
     parser.add_argument('--manifest', required=True)
     parser.add_argument('--pal-header', action='append', required=True)
     parser.add_argument('--framework', action='append', required=True, help='a framework to write accessors for')
+    parser.add_argument('--stub-framework', action='append', default=[], help='a framework the SDK lacks: write an empty file for it')
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--types-output-dir', help='where to write PALSoftLinkTypes/ (default: --output-dir)')
     parser.add_argument('--sdk', required=True)
