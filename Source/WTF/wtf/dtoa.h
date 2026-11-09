@@ -68,6 +68,12 @@ inline double parseDouble(StringView string, size_t& parsedLength)
     return parseDouble(string.span16(), parsedLength);
 }
 
+#if defined(__swift__)
+// For Swift: the importer makes safe Span<UInt8> and Span<UInt16> overloads of these two.
+inline double parseDoubleFromLatin1(std::span<const uint8_t> string NOESCAPE, size_t& parsedLength) { return parseDouble(byteCast<Latin1Character>(string), parsedLength); }
+inline double parseDoubleFromUTF16(std::span<const char16_t> string NOESCAPE, size_t& parsedLength) { return parseDouble(string, parsedLength); }
+#endif
+
 } // namespace WTF
 
 using WTF::NumberToStringBuffer;
