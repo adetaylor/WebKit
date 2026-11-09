@@ -986,7 +986,6 @@
 		1DAB3112251D6BF300FC9485 /* WebVideoContainerLayer.h in Headers */ = {isa = PBXBuildFile; fileRef = CD8B31A12379DC8300883FDE /* WebVideoContainerLayer.h */; };
 		1DAB3114251D725C00FC9485 /* VideoLayerManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1DAB3113251D725C00FC9485 /* VideoLayerManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1DAB3115251D74DB00FC9485 /* VideoLayerManagerObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = 52D5A18E1C54590300DE34A3 /* VideoLayerManagerObjC.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		1DB66D3B2537A95600B671B9 /* AudioOutputUnitAdaptor.h in Headers */ = {isa = PBXBuildFile; fileRef = 1DB66D37253678EA00B671B9 /* AudioOutputUnitAdaptor.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1DBC1B562347B3D200B901AF /* PictureInPictureObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = 1DBC1B552347B3D200B901AF /* PictureInPictureObserver.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1DBFC1299FEF9A9E5C831F9F /* Forward.svg in Copy Modern Media Controls Images */ = {isa = PBXBuildFile; fileRef = A09529DE41F0D962DE6E0419 /* Forward.svg */; platformFilters = (macos, ); };
 		1DEC0126000000000000A0DE /* StyleTextDecorationInset.h in Headers */ = {isa = PBXBuildFile; fileRef = 1DEC0126000000000000B0DE /* StyleTextDecorationInset.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6087,7 +6086,6 @@
 		CD06644B2E723F3D00B7D658 /* StyleableInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = CD06644A2E723F3D00B7D658 /* StyleableInlines.h */; };
 		CD06644D2E72415A00B7D658 /* NodeDocument.h in Headers */ = {isa = PBXBuildFile; fileRef = CD06644C2E72415A00B7D658 /* NodeDocument.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD0E2ED72998B76E005FE2BB /* HTMLNameCollectionInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = CD0E2ED62998B76E005FE2BB /* HTMLNameCollectionInlines.h */; };
-		CD0EEE0E14743F39003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CD0EEE0B14743E35003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp */; };
 		CD1115B42E8368B3000E9E44 /* WebCoreVirtualLogFunctions.h in Headers */ = {isa = PBXBuildFile; fileRef = CDE44A4D2E6CA88000CA40CD /* WebCoreVirtualLogFunctions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD1115B52E836A14000E9E44 /* WebCoreLogDefinitions.h in Headers */ = {isa = PBXBuildFile; fileRef = CDE44A4C2E6CA88000CA40CD /* WebCoreLogDefinitions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD127DEE14F3098400E84779 /* WebCoreFullScreenWindow.h in Headers */ = {isa = PBXBuildFile; fileRef = CD127DEA14F3097900E84779 /* WebCoreFullScreenWindow.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6285,11 +6283,14 @@
 		CDC69DDA16371FD4007C38DF /* WebCoreFullScreenPlaceholderView.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC69DD816371FD3007C38DF /* WebCoreFullScreenPlaceholderView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC734151977896D0046BFC5 /* CARingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC734131977896C0046BFC5 /* CARingBuffer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3A759A057D9A7ED11EE5AF5F /* CARingBufferSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		DBDCC5E63AAA4B4670635F61 /* AudioOutputUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 12E4398BC7BEBE46F0A45731 /* AudioOutputUnit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */; };
 		0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */; };
 		62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12470AC8003684594A0702F7 /* AudioSampleBufferList.swift */; };
 		4A01C0BFDB37FC20485E98D8 /* CAAudioStreamDescription.swift in Sources */ = {isa = PBXBuildFile; fileRef = E88A8C82622D17428EA4D912 /* CAAudioStreamDescription.swift */; };
 		3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */; };
+		F829CFD3C7FA9FA96C68A2B0 /* AudioUnitOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6682717444D224A2211C145 /* AudioUnitOwner.swift */; };
+		21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */; };
 		4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */; };
 		CDC7470424BE2FC700C1868B /* PowerSourceNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC7470024BE267900C1868B /* PowerSourceNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */; };
@@ -10264,8 +10265,6 @@
 		1D2E7A27D4CA429D6537A1BC /* UnifiedSource49-header-RenderStyleGetters.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "UnifiedSource49-header-RenderStyleGetters.cpp"; sourceTree = "<group>"; };
 		1D47658D25CCA778007AF312 /* ImageDecoderIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageDecoderIdentifier.h; sourceTree = "<group>"; };
 		1DAB3113251D725C00FC9485 /* VideoLayerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = VideoLayerManager.h; sourceTree = "<group>"; };
-		1DB66D37253678EA00B671B9 /* AudioOutputUnitAdaptor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioOutputUnitAdaptor.h; sourceTree = "<group>"; };
-		1DB66D38253678EA00B671B9 /* AudioOutputUnitAdaptor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AudioOutputUnitAdaptor.cpp; sourceTree = "<group>"; };
 		1DBC1B552347B3D200B901AF /* PictureInPictureObserver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PictureInPictureObserver.h; sourceTree = "<group>"; };
 		1DC553FD211BA12A004B780E /* NavigatorShare.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NavigatorShare.idl; sourceTree = "<group>"; };
 		1DC553FF211BA841004B780E /* ShareData.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ShareData.idl; sourceTree = "<group>"; };
@@ -21451,7 +21450,6 @@
 		CD06644A2E723F3D00B7D658 /* StyleableInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StyleableInlines.h; sourceTree = "<group>"; };
 		CD06644C2E72415A00B7D658 /* NodeDocument.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NodeDocument.h; sourceTree = "<group>"; };
 		CD0E2ED62998B76E005FE2BB /* HTMLNameCollectionInlines.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HTMLNameCollectionInlines.h; sourceTree = "<group>"; };
-		CD0EEE0B14743E35003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioOutputUnitAdaptorIOS.cpp; sourceTree = "<group>"; };
 		CD11B3DF227CAAA90023AFC7 /* AVStreamDataParserMIMETypeCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AVStreamDataParserMIMETypeCache.h; sourceTree = "<group>"; };
 		CD11B3E0227CAAA90023AFC7 /* AVStreamDataParserMIMETypeCache.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AVStreamDataParserMIMETypeCache.mm; sourceTree = "<group>"; };
 		CD127DEA14F3097900E84779 /* WebCoreFullScreenWindow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebCoreFullScreenWindow.h; sourceTree = "<group>"; };
@@ -21854,8 +21852,11 @@
 		E3C4FF0344F6FE56159CDA13 /* CARingBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBuffer.swift; sourceTree = "<group>"; };
 		298A3F550CA51EF8DEEF4421 /* CARingBufferMix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferMix.swift; sourceTree = "<group>"; };
 		443D5D95EA55098A1F2F5F5C /* CARingBufferPlayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CARingBufferPlayout.swift; sourceTree = "<group>"; };
+		C6682717444D224A2211C145 /* AudioUnitOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitOwner.swift; sourceTree = "<group>"; };
+		83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputUnit.swift; sourceTree = "<group>"; };
 		60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitIsland.swift; sourceTree = "<group>"; };
 		23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CARingBufferSwiftBridge.h; sourceTree = "<group>"; };
+		12E4398BC7BEBE46F0A45731 /* AudioOutputUnit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioOutputUnit.h; sourceTree = "<group>"; };
 		CDC7470024BE267900C1868B /* PowerSourceNotifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PowerSourceNotifier.h; sourceTree = "<group>"; };
 		CDC7470124BE267900C1868B /* PowerSourceNotifier.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PowerSourceNotifier.mm; sourceTree = "<group>"; };
 		CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MediaPlayerPrivateMediaSourceAVFObjC.mm; sourceTree = "<group>"; };
@@ -24274,7 +24275,6 @@
 		FD31607812B026F700C1A359 /* VectorMath.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VectorMath.cpp; sourceTree = "<group>"; };
 		FD31607912B026F700C1A359 /* VectorMath.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VectorMath.h; sourceTree = "<group>"; };
 		FD3160B512B0272A00C1A359 /* AudioBusMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioBusMac.mm; sourceTree = "<group>"; };
-		FD3160B612B0272A00C1A359 /* AudioOutputUnitAdaptorMac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioOutputUnitAdaptorMac.cpp; sourceTree = "<group>"; };
 		FD3160BA12B0272A00C1A359 /* FFTFrameMac.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FFTFrameMac.cpp; sourceTree = "<group>"; };
 		FD35918D138DB22000E1EBEC /* AudioParamTimeline.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AudioParamTimeline.cpp; sourceTree = "<group>"; };
 		FD35918E138DB22000E1EBEC /* AudioParamTimeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AudioParamTimeline.h; sourceTree = "<group>"; };
@@ -40551,7 +40551,6 @@
 		CD0EEE0D14743E48003EAFA2 /* ios */ = {
 			isa = PBXGroup;
 			children = (
-				CD0EEE0B14743E35003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp */,
 				CD36C1612607E78600C8C529 /* AudioSessionIOS.h */,
 				CDA79825170A279000D45C55 /* AudioSessionIOS.mm */,
 				A1AC9A352ED3028B0011617C /* MediaDeviceRoute.h */,
@@ -40771,8 +40770,8 @@
 				510CF7552CFDB1B3005E1950 /* AudioEncoderCocoa.h */,
 				46AAAA3A25D3631400BAF42F /* AudioFileReaderCocoa.h */,
 				46AAAA3C25D3631400BAF42F /* AudioFileReaderCocoa.mm */,
-				1DB66D38253678EA00B671B9 /* AudioOutputUnitAdaptor.cpp */,
-				1DB66D37253678EA00B671B9 /* AudioOutputUnitAdaptor.h */,
+				12E4398BC7BEBE46F0A45731 /* AudioOutputUnit.h */,
+				83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */,
 				41E1F33F248A62B60022D5DE /* AudioSampleBufferConverter.h */,
 				41E1F33D248A62B60022D5DE /* AudioSampleBufferConverter.mm */,
 				073B87621E43859D0071C0EC /* AudioSampleBufferList.cpp */,
@@ -40785,6 +40784,7 @@
 				CDE104F129E621F500CBAE11 /* AudioSessionCocoa.h */,
 				CDE104F229E621F500CBAE11 /* AudioSessionCocoa.mm */,
 				60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */,
+				C6682717444D224A2211C145 /* AudioUnitOwner.swift */,
 				7BC9642D291E770300377DF1 /* AudioUtilitiesCocoa.cpp */,
 				7BC9642E291E770400377DF1 /* AudioUtilitiesCocoa.h */,
 				073B87571E40DCFD0071C0EC /* CAAudioStreamDescription.cpp */,
@@ -44543,7 +44543,6 @@
 				FD3160B512B0272A00C1A359 /* AudioBusMac.mm */,
 				CD2F4A2518D8A3490063746D /* AudioHardwareListenerMac.cpp */,
 				CD2F4A2618D8A3490063746D /* AudioHardwareListenerMac.h */,
-				FD3160B612B0272A00C1A359 /* AudioOutputUnitAdaptorMac.cpp */,
 				CD36C15F26067C1F00C8C529 /* AudioSessionMac.h */,
 				CD54DE4917469C6D005E5B36 /* AudioSessionMac.mm */,
 				FD3160BA12B0272A00C1A359 /* FFTFrameMac.cpp */,
@@ -45119,7 +45118,7 @@
 				FD31601612B0267600C1A359 /* AudioNodeInput.h in Headers */,
 				E71467B324ABAEF200FB2F50 /* AudioNodeOptions.h in Headers */,
 				FD31601812B0267600C1A359 /* AudioNodeOutput.h in Headers */,
-				1DB66D3B2537A95600B671B9 /* AudioOutputUnitAdaptor.h in Headers */,
+				DBDCC5E63AAA4B4670635F61 /* AudioOutputUnit.h in Headers */,
 				FD31601D12B0267600C1A359 /* AudioParam.h in Headers */,
 				8375699E252CF36200E1B956 /* AudioParamDescriptor.h in Headers */,
 				83B9870C25225F8300A939F1 /* AudioParamMap.h in Headers */,
@@ -51957,12 +51956,13 @@
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
 				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
 				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
-				CD0EEE0E14743F39003EAFA2 /* AudioOutputUnitAdaptorIOS.cpp in Sources */,
+				21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */,
 				62BDD25D295CD6E7A161E146 /* AudioSampleBufferList.swift in Sources */,
 				CDE104F329E6220C00CBAE11 /* AudioSessionCocoa.mm in Sources */,
 				CDA79827170A279100D45C55 /* AudioSessionIOS.mm in Sources */,
 				CD8A7BBB197735FE00CBD643 /* AudioSourceProviderAVFObjC.mm in Sources */,
 				4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */,
+				F829CFD3C7FA9FA96C68A2B0 /* AudioUnitOwner.swift in Sources */,
 				52B07441284680CA00511B65 /* AuthenticationExtensionsClientInputs.cpp in Sources */,
 				52B074432846810A00511B65 /* AuthenticationExtensionsClientOutputs.cpp in Sources */,
 				78ABC124E9B883BD3F327D6C /* AV1Utilities.swift in Sources */,

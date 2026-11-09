@@ -30,65 +30,122 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
 // (RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit), which play out rings the web process writes. Their
 // output buffers are deinterleaved Float32, one per channel. Samples are moved as bit patterns, so NaNs keep theirs.
 
-private func sampleCount(_ bytes: borrowing MutableSpan<UInt8>) -> Int {
-    bytes.count / 4
-}
-
-private func loadSample(_ bytes: inout MutableSpan<UInt8>, _ index: Int) -> Float {
-    Float(bitPattern: bytes.mutableBytes.load(fromByteOffset: index &* 4, as: UInt32.self))
-}
-
-private func storeSample(_ bytes: inout MutableSpan<UInt8>, _ index: Int, _ value: Float) {
-    var raw = bytes.mutableBytes
-    raw.storeBytes(of: value.bitPattern, toByteOffset: index &* 4, as: UInt32.self)
-}
-
-// RemoteAudioDestination::render(), after its check for a ring: fetches frameCount frames from startFrame and advances
-// it, remembering each channel's last sample, or on an underrun fades the output from those samples to silence rather
-// than leave stale samples in it. Returns whether it fetched.
-@_expose(Cxx)
-func caRingBufferRenderForAudioDestination(
-    _ ring: borrowing WebCore.CARingBufferReadView,
+// RemoteAudioDestination::render(), after its check for a ring, on the destination unit's IO thread
+// (AudioUnitIsland.swift): fetches frameCount frames from startFrame and advances it, remembering each channel's last
+// sample, or on an underrun fades the output from those samples to silence rather than leave stale samples in it. Returns
+// whether it fetched. Like the rest of the IO path, it needs no Swift runtime, even at -Onone.
+func renderRemoteDestinationQuantum(
+    _ geometry: WebCore.CARingBufferGeometry,
+    _ storedBounds: WebCore.CARingBufferBounds,
+    _ channels: borrowing IOConstBytes,
+    _ output: inout IOBufferList,
+    _ lastRenderedSamples: inout IOBytes,
     _ startFrame: inout UInt64,
-    _ output: inout WebCore.AudioBufferListView,
-    _ lastRenderedSamples: inout WebCore.FloatSamplesView,
     _ frameCount: UInt32
 ) -> Bool {
-    var last: MutableSpan<UInt8> = lastRenderedSamples.mutableBytes()
-    if fetchIfHasEnoughData(ring, &output, UInt64(frameCount), startFrame, .copy) {
+    if fetchIfHasEnoughData(geometry, storedBounds, channels, &output, UInt64(frameCount), startFrame) {
         startFrame &+= UInt64(frameCount)
-        rememberLastRenderedSamples(&output, Int(frameCount), &last)
+        rememberLastRenderedSamples(&output, Int(frameCount), &lastRenderedSamples)
         return true
     }
-    fadeOutToSilence(&output, Int(frameCount), &last)
+    fadeOutToSilence(&output, Int(frameCount), &lastRenderedSamples)
     return false
 }
 
-@inline(__always)
-private func rememberLastRenderedSamples(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<UInt8>) {
+// CARingBuffer::fetchIfHasEnoughData() in Copy mode, into the buffers of a render callback.
+private func fetchIfHasEnoughData(
+    _ geometry: WebCore.CARingBufferGeometry,
+    _ storedBounds: WebCore.CARingBufferBounds,
+    _ channels: borrowing IOConstBytes,
+    _ output: inout IOBufferList,
+    _ frameCount: UInt64,
+    _ startFrame: UInt64
+) -> Bool {
+    let layout = RingLayout(geometry)
+    let bounds = fetchBounds(layout, storedBounds)
+    if startFrame < bounds.startFrame || startFrame &+ frameCount > bounds.endFrame {
+        return false
+    }
+    if frameCount == 0 {
+        return true
+    }
+    // The ring holds every frame, so nothing is zeroed.
+    let offset0 = layout.frameOffset(startFrame)
+    let offset1 = layout.frameOffset(startFrame &+ frameCount)
+    if offset0 < offset1 {
+        copyChannels(&output, 0, channels, layout, offset0, offset1 &- offset0, true)
+    } else {
+        let firstByteCount = layout.capacityBytes &- offset0
+        copyChannels(&output, 0, channels, layout, offset0, firstByteCount, offset1 == 0)
+        if offset1 != 0 {
+            copyChannels(&output, firstByteCount, channels, layout, 0, offset1, true)
+        }
+    }
+    return true
+}
+
+// Copies byteCount bytes of each channel from sourceOffset into its output buffer at destinationOffset, as far as the
+// buffer goes, as CARingBuffer.swift's fetchBuffers() does in Copy mode.
+private func copyChannels(
+    _ output: inout IOBufferList,
+    _ destinationOffset: UInt,
+    _ channels: borrowing IOConstBytes,
+    _ layout: RingLayout,
+    _ sourceOffset: UInt,
+    _ byteCount: UInt,
+    _ updateDataByteSize: Bool
+) {
+    let bufferCount = output.bufferCount
+    assert(bufferCount == Int(layout.channelCount))
+    let count = bufferCount < Int(layout.channelCount) ? bufferCount : Int(layout.channelCount)
+    var index = 0
+    while index < count {
+        var copied: UInt? = nil
+        do {
+            var bytes = output.bytes(index)
+            let size = UInt(bytes.count)
+            if destinationOffset <= size {
+                // The channel's bytes, as CARingBuffer.swift's channelRange() and its checks bound them.
+                let channelStart = UInt(index) &* layout.capacityBytes
+                precondition(channelStart <= UInt(channels.count) && layout.capacityBytes <= UInt(channels.count) &- channelStart)
+                precondition(sourceOffset <= layout.capacityBytes)
+                let length = audioMinimum(byteCount, size &- destinationOffset)
+                precondition(length <= layout.capacityBytes &- sourceOffset)
+                bytes.copy(from: channels, at: Int(channelStart &+ sourceOffset), to: Int(destinationOffset), count: Int(length))
+                copied = length
+            }
+        }
+        if let copied, updateDataByteSize {
+            output.setDataByteSize(index, UInt32(truncatingIfNeeded: destinationOffset &+ copied))
+        }
+        index &+= 1
+    }
+}
+
+private func rememberLastRenderedSamples(_ output: inout IOBufferList, _ frameCount: Int, _ last: inout IOBytes) {
     if frameCount == 0 {
         return
     }
-    let bufferCount = Int(output.bufferCount())
+    let bufferCount = output.bufferCount
+    let lastCount = last.count / 4
     var channel = 0
-    let lastCount = sampleCount(last)
     while channel < lastCount && channel < bufferCount {
-        var samples: MutableSpan<UInt8> = output.mutableBytes(UInt32(channel))
-        let count = min(frameCount, sampleCount(samples))
-        storeSample(&last, channel, count != 0 ? loadSample(&samples, count &- 1) : 0)
+        let samples = output.bytes(channel)
+        let count = audioMinimum(frameCount, samples.count / 4)
+        last.setSampleBits(count != 0 ? samples.sampleBits(at: count &- 1) : 0, at: channel)
         channel &+= 1
     }
 }
 
-private func fadeOutToSilence(_ output: inout WebCore.AudioBufferListView, _ frameCount: Int, _ last: inout MutableSpan<UInt8>) {
-    let bufferCount = output.bufferCount()
-    let lastCount = sampleCount(last)
-    var channel: UInt32 = 0
+private func fadeOutToSilence(_ output: inout IOBufferList, _ frameCount: Int, _ last: inout IOBytes) {
+    let bufferCount = output.bufferCount
+    let lastCount = last.count / 4
+    var channel = 0
     while channel < bufferCount {
-        var samples: MutableSpan<UInt8> = output.mutableBytes(channel)
-        let total = sampleCount(samples)
-        let count = min(frameCount, total)
-        let startSample: Float = Int(channel) < lastCount ? loadSample(&last, Int(channel)) : 0
+        var samples = output.bytes(channel)
+        let total = samples.count / 4
+        let count = audioMinimum(frameCount, total)
+        let startSample: Float = channel < lastCount ? last.float(at: channel) : 0
         var frame = 0
         if startSample != 0 && count != 0 {
             // A linear ramp from the last rendered sample down to zero, to declick.
@@ -96,15 +153,15 @@ private func fadeOutToSilence(_ output: inout WebCore.AudioBufferListView, _ fra
             var value = startSample
             while frame < count {
                 value -= step
-                storeSample(&samples, frame, value)
+                samples.setFloat(value, at: frame)
                 frame &+= 1
             }
         }
-        zeroAudioBytes(&samples, at: frame &* 4, count: (total &- frame) &* 4)
+        samples.zero(at: frame &* 4, count: (total &- frame) &* 4)
         channel &+= 1
     }
     // Silent now, so a following underrun outputs pure silence.
-    zeroAudioBytes(&last, at: 0, count: lastCount &* 4)
+    last.zero(at: 0, count: lastCount &* 4)
 }
 
 // RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit::render(), up to its zeroing of the output on an underrun:

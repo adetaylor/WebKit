@@ -41,7 +41,7 @@ enum CARingBufferFetchMode: UInt32 {
     case mixFloat64
 }
 
-private struct RingLayout {
+struct RingLayout {
     let bytesPerFrame: UInt
     let capacityBytes: UInt
     let channelCount: UInt32
@@ -76,6 +76,19 @@ private func makeBounds(_ startFrame: UInt64, _ endFrame: UInt64, _ writeAhead: 
 // std::clamp().
 private func clamp(_ value: UInt64, _ low: UInt64, _ high: UInt64) -> UInt64 {
     value < low ? low : (high < value ? high : value)
+}
+
+// std::min(), for the IO path: Swift's generic min() needs the Swift runtime at -Onone.
+func audioMinimum(_ a: UInt64, _ b: UInt64) -> UInt64 {
+    b < a ? b : a
+}
+
+func audioMinimum(_ a: UInt, _ b: UInt) -> UInt {
+    b < a ? b : a
+}
+
+func audioMinimum(_ a: Int, _ b: Int) -> Int {
+    b < a ? b : a
 }
 
 // std::bit_ceil(), which traps if the result doesn't fit.
@@ -273,10 +286,10 @@ private func storeChannels(
 }
 
 // CARingBuffer::getFetchTimeBounds(): the bounds a writer stored, limited to frameCount frames.
-private func fetchBounds(_ layout: RingLayout, _ storedBounds: WebCore.CARingBufferBounds) -> WebCore.CARingBufferBounds {
+func fetchBounds(_ layout: RingLayout, _ storedBounds: WebCore.CARingBufferBounds) -> WebCore.CARingBufferBounds {
     var bounds = storedBounds
     let frameCount = UInt64(layout.frameCount)
-    bounds.startFrame = min(bounds.startFrame, UInt64.max &- frameCount)
+    bounds.startFrame = audioMinimum(bounds.startFrame, UInt64.max &- frameCount)
     bounds.endFrame = clamp(bounds.endFrame, bounds.startFrame, bounds.startFrame &+ frameCount)
     return bounds
 }

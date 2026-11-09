@@ -1,4 +1,4 @@
-// Copyright (C) 2026 Apple Inc. All rights reserved.
+// Copyright (C) 2020-2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions
@@ -24,6 +24,8 @@
 #if ENABLE_WEBCORE_SWIFT
 
 private import Cxx
+import AudioToolbox
+import Darwin
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 
@@ -123,6 +125,318 @@ func caRingBufferFetchTimeBounds(
 ) -> WebCore.CARingBufferBounds {
     let address = unsafe checkRingHeader(UnsafeRawPointer(header), ringHeaderByteCount)
     return caRingBufferFetchBounds(geometry, unsafe loadRingBounds(at: address))
+}
+
+// MARK: IO views
+
+// What a render callback lends the code it calls for one quantum: the buffers of the AudioBufferList that CoreAudio passes
+// it, a ring's channels and the unit's own samples. They can't outlive the callback, and every access is checked against
+// the bytes they cover, as a span's is. They are not spans because a span's copy and fill need the Swift runtime at -Onone.
+
+// Bytes that a render callback reads.
+@safe struct IOConstBytes: ~Escapable {
+    private let base: UnsafeRawPointer?
+    let count: Int
+
+    @_lifetime(borrow base)
+    fileprivate init(_ base: UnsafeRawPointer?, _ count: Int) {
+        precondition(count >= 0)
+        precondition(unsafe base != nil || count == 0)
+        unsafe self.base = base
+        self.count = count
+    }
+
+    fileprivate func address(_ offset: Int) -> UnsafeRawPointer {
+        guard let base = unsafe base else {
+            preconditionFailure()
+        }
+        return unsafe base.advanced(by: offset)
+    }
+}
+
+// Bytes that a render callback writes.
+@safe struct IOBytes: ~Copyable, ~Escapable {
+    private let base: UnsafeMutableRawPointer?
+    let count: Int
+
+    @_lifetime(borrow base)
+    fileprivate init(_ base: UnsafeMutableRawPointer?, _ count: Int) {
+        precondition(count >= 0)
+        precondition(unsafe base != nil || count == 0)
+        unsafe self.base = base
+        self.count = count
+    }
+
+    private func address(_ offset: Int) -> UnsafeMutableRawPointer {
+        guard let base = unsafe base else {
+            preconditionFailure()
+        }
+        return unsafe base.advanced(by: offset)
+    }
+
+    // Zeroes byteCount bytes from offset, as memset does. Traps unless the range is inside the bytes.
+    mutating func zero(at offset: Int, count byteCount: Int) {
+        precondition(byteCount >= 0 && offset >= 0 && byteCount <= count &- offset)
+        if byteCount == 0 {
+            return
+        }
+        _ = unsafe memset(address(offset), 0, byteCount)
+    }
+
+    // Copies byteCount bytes of source from sourceOffset to offset, as memmove does. Traps unless both ranges are inside
+    // their bytes.
+    mutating func copy(from source: borrowing IOConstBytes, at sourceOffset: Int, to offset: Int, count byteCount: Int) {
+        precondition(
+            byteCount >= 0 && sourceOffset >= 0 && offset >= 0 && byteCount <= source.count &- sourceOffset
+                && byteCount <= count &- offset
+        )
+        if byteCount == 0 {
+            return
+        }
+        _ = unsafe memmove(address(offset), source.address(sourceOffset), byteCount)
+    }
+
+    // The 32-bit sample at index, as a float or as its bit pattern. Traps unless the sample is inside the bytes.
+    func float(at index: Int) -> Float {
+        precondition(index >= 0 && index < count / 4)
+        return unsafe address(0).loadUnaligned(fromByteOffset: index &* 4, as: Float.self)
+    }
+
+    func sampleBits(at index: Int) -> UInt32 {
+        precondition(index >= 0 && index < count / 4)
+        return unsafe address(0).loadUnaligned(fromByteOffset: index &* 4, as: UInt32.self)
+    }
+
+    mutating func setFloat(_ value: Float, at index: Int) {
+        precondition(index >= 0 && index < count / 4)
+        unsafe address(0).storeBytes(of: value, toByteOffset: index &* 4, as: Float.self)
+    }
+
+    mutating func setSampleBits(_ value: UInt32, at index: Int) {
+        precondition(index >= 0 && index < count / 4)
+        unsafe address(0).storeBytes(of: value, toByteOffset: index &* 4, as: UInt32.self)
+    }
+}
+
+// The AudioBufferList that CoreAudio passes a render callback. Its buffer count and sizes are read when they are used, and
+// trusted, as the C++ that reads an AudioBufferList does.
+@safe struct IOBufferList: ~Copyable, ~Escapable {
+    private let list: UnsafeMutablePointer<AudioBufferList>
+
+    @_lifetime(borrow list)
+    fileprivate init(_ list: UnsafeMutablePointer<AudioBufferList>) {
+        unsafe self.list = list
+    }
+
+    var bufferCount: Int {
+        Int(unsafe list.pointee.mNumberBuffers)
+    }
+
+    private func buffer(_ index: Int) -> UnsafeMutablePointer<AudioBuffer> {
+        precondition(index >= 0 && index < bufferCount)
+        // mBuffers follows mNumberBuffers, aligned for AudioBuffer's pointer.
+        let first = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+        return unsafe first.advanced(by: index)
+    }
+
+    @_lifetime(&self)
+    mutating func bytes(_ index: Int) -> IOBytes {
+        let buffer = unsafe buffer(index)
+        let bytes = unsafe IOBytes(buffer.pointee.mData, Int(buffer.pointee.mDataByteSize))
+        return unsafe _overrideLifetime(bytes, mutating: &self)
+    }
+
+    mutating func setDataByteSize(_ index: Int, _ size: UInt32) {
+        unsafe buffer(index).pointee.mDataByteSize = size
+    }
+}
+
+// MARK: Render state
+
+// What an output unit's render callback keeps between quanta, at an address that stays put from before the callback is
+// installed until after the unit is disposed of (AudioUnitOwner). The main thread changes it only while the unit is
+// stopped.
+@unsafe struct OutputRenderState: ~Copyable {
+    let isRendering = Atomic<Bool>(false)
+    var ring = unsafe WebCore.AudioOutputUnitRingAttachment()
+    var startFrame: UInt64 = 0
+    let lastRenderedSamples: UnsafeMutableRawPointer
+    let lastRenderedSampleCount: Int
+}
+
+// An output unit's render state, which its owner frees.
+@safe struct RenderStateReference {
+    fileprivate let state: UnsafeMutablePointer<OutputRenderState>
+
+    var refCon: UnsafeMutableRawPointer {
+        unsafe UnsafeMutableRawPointer(state)
+    }
+}
+
+// The state of a render callback that remembers sampleCapacity samples between quanta, zeroed.
+func makeRenderState(sampleCapacity: Int) -> RenderStateReference {
+    precondition(sampleCapacity >= 0 && sampleCapacity <= Int.max / 4)
+    let samples = UnsafeMutableRawPointer.allocate(byteCount: sampleCapacity &* 4, alignment: 16)
+    unsafe samples.initializeMemory(as: UInt8.self, repeating: 0, count: sampleCapacity &* 4)
+    let state = UnsafeMutablePointer<OutputRenderState>.allocate(capacity: 1)
+    unsafe state.initialize(to: OutputRenderState(lastRenderedSamples: samples, lastRenderedSampleCount: sampleCapacity))
+    return unsafe RenderStateReference(state: state)
+}
+
+// Only once the unit that renders with it is disposed of.
+func freeRenderState(_ reference: RenderStateReference) {
+    let samples = unsafe reference.state.pointee.lastRenderedSamples
+    unsafe reference.state.deinitialize(count: 1)
+    unsafe reference.state.deallocate()
+    unsafe samples.deallocate()
+}
+
+// MARK: The output units
+
+// AudioOutputUnit.swift's units by identifier, on WebCore's main thread only (which is the web thread on iOS's WebKit1, so
+// not the main actor).
+nonisolated(unsafe) private var outputUnits: [UInt64: OutputUnit] = [:]
+
+nonisolated(unsafe) private var lastOutputUnitIdentifier: UInt64 = 0
+
+func addOutputUnit(_ unit: OutputUnit) -> UInt64 {
+    precondition(WTF.isMainThread())
+    unsafe lastOutputUnitIdentifier &+= 1
+    unsafe outputUnits[lastOutputUnitIdentifier] = unit
+    return unsafe lastOutputUnitIdentifier
+}
+
+func outputUnit(_ identifier: UInt64) -> OutputUnit? {
+    precondition(WTF.isMainThread())
+    return unsafe outputUnits[identifier]
+}
+
+func removeOutputUnit(_ identifier: UInt64) -> OutputUnit? {
+    precondition(WTF.isMainThread())
+    return unsafe outputUnits.removeValue(forKey: identifier)
+}
+
+// MARK: Attaching what a stopped unit renders from
+
+// Traps unless the attachment's memory covers what the unit will read and write, aligned for its atomics.
+private func checkRingAttachment(_ attachment: WebCore.AudioOutputUnitRingAttachment) {
+    let geometry = unsafe attachment.geometry
+    let channels = unsafe attachment.channels
+    let channelsByteCount = unsafe attachment.channelsByteCount
+    let frameCounterByteCount = unsafe attachment.frameCounterByteCount
+    if let header = unsafe attachment.header {
+        _ = unsafe checkRingHeader(UnsafeRawPointer(header), ringHeaderByteCount)
+        let (byteCount, overflow) = geometry.capacityBytes.multipliedReportingOverflow(by: UInt64(geometry.channelCount))
+        precondition(!overflow && byteCount <= channelsByteCount && channelsByteCount <= UInt64(Int.max))
+        precondition(unsafe channels != nil || channelsByteCount == 0)
+    }
+    if let counter = unsafe attachment.frameCounter {
+        precondition(frameCounterByteCount % 4 == 0)
+        precondition(Int(bitPattern: UnsafeRawPointer(counter)) & 3 == 0)
+    }
+}
+
+// A remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing()). The caller keeps their
+// memory and the semaphore alive until it attaches others or destroys the unit. A ring without a header is no ring.
+@_expose(Cxx)
+func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutputUnitRingAttachment) {
+    unsafe checkRingAttachment(attachment)
+    var ring = unsafe attachment
+    if unsafe ring.frameCounterByteCount == 0 {
+        unsafe ring.frameCounter = nil
+    }
+    withStoppedOutputUnitRenderState(identifier) { reference in
+        unsafe reference.state.pointee.ring = ring
+    }
+}
+
+// An in-process destination's C++ render callback (WebCore::AudioOutputUnit::attachRenderCallback()), before the unit
+// first starts. The unit calls it on its IO thread with refCon, so no Swift runs there. callback is an AURenderCallback.
+@_expose(Cxx)
+func audioOutputUnitAttachCxxRenderCallback(_ identifier: UInt64, _ callback: UnsafeRawPointer, _ refCon: UnsafeMutableRawPointer?) {
+    let renderCallback = unsafe unsafeBitCast(callback, to: AURenderCallback.self)
+    guard let unit = outputUnit(identifier) else {
+        return
+    }
+    unsafe unit.setCxxRenderCallback(renderCallback, refCon)
+}
+
+// MARK: Render callbacks
+
+// The render callback of a GPU-process audio destination (RemoteAudioDestination): plays out the ring the web process
+// writes, then adds the quantum's frames to the shared counter and signals the semaphore, as RemoteAudioDestination::render()
+// did.
+func remoteDestinationRenderCallback(
+    _ refCon: UnsafeMutableRawPointer,
+    _ actionFlags: UnsafeMutablePointer<UInt32>,
+    _ timeStamp: UnsafePointer<AudioTimeStamp>,
+    _ busNumber: UInt32,
+    _ frameCount: UInt32,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    precondition(pthread_main_np() == 0)
+    let state = unsafe refCon.assumingMemoryBound(to: OutputRenderState.self)
+    precondition(!(unsafe state.pointee.isRendering.exchange(true, ordering: .acquiring)))
+    let status = unsafe renderRemoteDestination(state, frameCount, ioData)
+    unsafe state.pointee.isRendering.store(false, ordering: .releasing)
+    return status
+}
+
+private func renderRemoteDestination(
+    _ state: UnsafeMutablePointer<OutputRenderState>,
+    _ frameCount: UInt32,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    let ring = unsafe state.pointee.ring
+    guard let header = unsafe ring.header else {
+        return -1
+    }
+    guard let ioData = unsafe ioData else {
+        preconditionFailure()
+    }
+    let bounds = unsafe loadRingBounds(at: UnsafeRawPointer(header))
+    let channels = unsafe IOConstBytes(UnsafeRawPointer(ring.channels), Int(ring.channelsByteCount))
+    var output = unsafe IOBufferList(ioData)
+    var lastRenderedSamples = unsafe IOBytes(
+        state.pointee.lastRenderedSamples,
+        state.pointee.lastRenderedSampleCount &* 4
+    )
+    let rendered = unsafe renderRemoteDestinationQuantum(
+        ring.geometry,
+        bounds,
+        channels,
+        &output,
+        &lastRenderedSamples,
+        &state.pointee.startFrame,
+        frameCount
+    )
+    if let counter = unsafe ring.frameCounter {
+        _ = unsafe UnsafeMutableRawPointer(counter).assumingMemoryBound(to: Atomic<UInt32>.self).pointee.add(
+            frameCount,
+            ordering: .sequentiallyConsistent
+        )
+    }
+    _ = unsafe semaphore_signal(ring.semaphore)
+    return rendered ? 0 : -1
+}
+
+// MARK: Tests
+
+// Tests only, on a thread other than the main thread and while the main thread leaves the unit alone: renders one quantum
+// of frameCount frames into ioData, by calling the unit's render callback directly, or through AudioUnitRender() on a unit
+// made for testing.
+@_expose(Cxx)
+func audioOutputUnitRenderForTesting(
+    _ identifier: UInt64,
+    _ ioData: UnsafeMutablePointer<AudioBufferList>,
+    _ frameCount: UInt32,
+    _ sampleTime: Float64,
+    _ throughAudioUnit: Bool
+) -> Int32 {
+    guard let unit = unsafe outputUnits[identifier] else {
+        return kAudio_ParamError
+    }
+    return unsafe unit.renderForTesting(ioData, frameCount, sampleTime, throughAudioUnit)
 }
 
 #endif // ENABLE_WEBCORE_SWIFT

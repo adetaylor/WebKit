@@ -219,6 +219,7 @@ list(APPEND TestWebCore_SOURCES
 
     Tests/WebCore/cocoa/AVFoundationSoftLinkTest.mm
     Tests/WebCore/cocoa/AttributedStringFontCache.mm
+    Tests/WebCore/cocoa/AudioOutputUnitTests.cpp
     Tests/WebCore/cocoa/AudioSampleBufferListTest.cpp
     Tests/WebCore/cocoa/AudioStreamDescriptionCocoa.mm
     Tests/WebCore/cocoa/AudioVideoRendererAVFObjCTests.mm

@@ -825,6 +825,7 @@
 				WebCore/CBORWriterTest.cpp,
 				WebCore/CDMClearKeyTests.cpp,
 				WebCore/cocoa/AttributedStringFontCache.mm,
+				WebCore/cocoa/AudioOutputUnitTests.cpp,
 				WebCore/cocoa/AudioSampleBufferListTest.cpp,
 				WebCore/cocoa/AudioStreamDescriptionCocoa.mm,
 				WebCore/cocoa/AudioVideoRendererAVFObjCTests.mm,

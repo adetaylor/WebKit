@@ -1228,7 +1228,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/TextRecognitionResult.h
     platform/WebCoreMainThread.h
 
-    platform/audio/cocoa/AudioOutputUnitAdaptor.h
+    platform/audio/cocoa/AudioOutputUnit.h
     platform/audio/cocoa/AudioSampleBufferList.h
     platform/audio/cocoa/AudioSampleDataConverter.h
     platform/audio/cocoa/AudioSampleDataSource.h

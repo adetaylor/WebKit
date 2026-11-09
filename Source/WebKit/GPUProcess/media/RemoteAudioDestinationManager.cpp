@@ -32,14 +32,13 @@
 #include "GPUProcess.h"
 #include "Logging.h"
 #include <WebCore/AudioUtilities.h>
-#include <wtf/FixedVector.h>
 #include <wtf/LoggerHelper.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 #if PLATFORM(COCOA)
 #include "SharedCARingBuffer.h"
-#include <WebCore/AudioOutputUnitAdaptor.h>
+#include <WebCore/AudioOutputUnit.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CARingBuffer.h>
 #include <WebCore/WebAudioBufferList.h>
@@ -54,11 +53,7 @@
 
 namespace WebKit {
 
-class RemoteAudioDestination final
-#if PLATFORM(COCOA)
-    : public WebCore::AudioUnitRenderer
-#endif
-{
+class RemoteAudioDestination final {
     WTF_MAKE_TZONE_ALLOCATED_INLINE(RemoteAudioDestination);
 public:
     RemoteAudioDestination(GPUConnectionToWebProcess& connection, const String& inputDeviceId, uint32_t numberOfInputChannels, uint32_t numberOfOutputChannels, float sampleRate, float hardwareSampleRate, IPC::Semaphore&& renderSemaphore)
@@ -68,16 +63,12 @@ public:
         , m_logIdentifier(LoggerHelper::uniqueLogIdentifier())
 #endif
 #if PLATFORM(COCOA)
-        , m_audioOutputUnitAdaptor(*this)
         , m_numOutputChannels(numberOfOutputChannels)
+        , m_audioOutputUnit(WebCore::AudioOutputUnit::Kind::RemoteDestination, hardwareSampleRate, numberOfOutputChannels)
 #endif
     {
         ASSERT(isMainRunLoop());
         ALWAYS_LOG(LOGIDENTIFIER);
-#if PLATFORM(COCOA)
-        m_audioOutputUnitAdaptor.configure(hardwareSampleRate, numberOfOutputChannels);
-        m_lastRenderedSamples = FixedVector<float>(FillWith { }, m_numOutputChannels, 0.f);
-#endif
     }
 
     ~RemoteAudioDestination()
@@ -93,6 +84,7 @@ public:
     void setSharedMemory(WebCore::SharedMemory::Handle&& handle)
     {
         m_frameCount = WebCore::SharedMemory::map(WTF::move(handle), WebCore::SharedMemory::Protection::ReadWrite);
+        attachRing();
     }
 
     void audioSamplesStorageChanged(ConsumerSharedCARingBuffer::Handle&& handle)
@@ -105,6 +97,7 @@ public:
                 return;
         }
         m_ringBuffer = ConsumerSharedCARingBuffer::map(sizeof(Float32), m_numOutputChannels, WTF::move(handle));
+        attachRing();
         if (!m_ringBuffer)
             return;
         if (wasPlaying) {
@@ -128,7 +121,7 @@ public:
 
         ALWAYS_LOG(LOGIDENTIFIER, sceneIdentifier);
         RetainPtr experience = WebCore::createSpatialAudioExperienceWithOptions({ .sceneIdentifier = m_sceneIdentifier });
-        m_audioOutputUnitAdaptor.setSpatialAudioExperience(experience.get());
+        m_audioOutputUnit.setSpatialAudioExperience(experience.get());
 #endif
     }
 #endif
@@ -140,7 +133,7 @@ public:
     void start()
     {
 #if PLATFORM(COCOA)
-        if (m_audioOutputUnitAdaptor.start()) {
+        if (m_audioOutputUnit.start()) {
             ERROR_LOG(LOGIDENTIFIER, "Failed to start AudioOutputUnit");
             return;
         }
@@ -153,7 +146,7 @@ public:
     void stop()
     {
 #if PLATFORM(COCOA)
-        if (m_audioOutputUnitAdaptor.stop()) {
+        if (m_audioOutputUnit.stop()) {
             ERROR_LOG(LOGIDENTIFIER, "Failed to stop AudioOutputUnit");
             return;
         }
@@ -168,7 +161,7 @@ public:
     size_t audioUnitLatency() const
     {
 #if PLATFORM(COCOA)
-        return m_audioOutputUnitAdaptor.outputLatency();
+        return m_audioOutputUnit.outputLatency();
 #else
         return 0;
 #endif
@@ -176,28 +169,10 @@ public:
 
 private:
 #if PLATFORM(COCOA)
-    NODELETE void incrementTotalFrameCount(UInt32 numberOfFrames)
+    // The unit plays out the ring on its IO thread (AudioUnitIsland.swift). It's stopped whenever the ring changes.
+    void attachRing()
     {
-        static_assert(std::atomic<UInt32>::is_always_lock_free, "Shared memory atomic usage assumes lock free primitives are used");
-        if (m_frameCount)
-            WTF::atomicExchangeAdd(spanReinterpretCast<uint32_t>(m_frameCount->mutableSpan()).data(), numberOfFrames);
-    }
-
-    OSStatus render(double sampleTime, uint64_t hostTime, UInt32 numberOfFrames, AudioBufferList* ioData)
-    {
-        ASSERT(!isMainRunLoop());
-
-        if (!m_ringBuffer)
-            return -1;
-
-        // On a ring buffer underrun (common at stream start or under load), this fades out from the last rendered samples
-        // to silence rather than leave stale samples in the output buffer.
-        bool rendered = m_ringBuffer->renderForAudioDestination(m_startFrame, ioData, m_lastRenderedSamples.mutableSpan(), numberOfFrames);
-
-        incrementTotalFrameCount(numberOfFrames);
-        m_renderSemaphore.signal();
-
-        return rendered ? noErr : -1;
+        m_audioOutputUnit.attachRing(m_ringBuffer.get(), m_frameCount ? m_frameCount->mutableSpan() : std::span<uint8_t> { }, m_renderSemaphore.machSemaphore());
     }
 #endif
 
@@ -215,13 +190,11 @@ private:
 #endif
 
 #if PLATFORM(COCOA)
-    WebCore::AudioOutputUnitAdaptor m_audioOutputUnitAdaptor;
+    // The unit renders from the ring, the counter and the semaphore, so it is destroyed before them.
     RefPtr<WebCore::SharedMemory> m_frameCount;
     const uint32_t m_numOutputChannels;
     std::unique_ptr<ConsumerSharedCARingBuffer> m_ringBuffer;
-    uint64_t m_startFrame { 0 };
-    // Last rendered sample per channel, used to fade out to silence on a ring buffer underrun.
-    FixedVector<float> m_lastRenderedSamples;
+    WebCore::AudioOutputUnit m_audioOutputUnit;
 #endif
 
 #if PLATFORM(IOS_FAMILY)

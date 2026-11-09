@@ -273,7 +273,7 @@ platform/audio/cocoa/AudioDecoderCocoa.cpp
 platform/audio/cocoa/AudioDestinationCocoa.cpp
 platform/audio/cocoa/AudioEncoderCocoa.cpp
 platform/audio/cocoa/AudioFileReaderCocoa.mm @nonARC
-platform/audio/cocoa/AudioOutputUnitAdaptor.cpp
+platform/audio/cocoa/AudioOutputUnit.cpp
 platform/audio/cocoa/AudioSampleBufferList.cpp
 platform/audio/cocoa/AudioSampleBufferConverter.mm @nonARC
 platform/audio/cocoa/AudioSampleDataConverter.mm @nonARC
@@ -287,14 +287,12 @@ platform/audio/cocoa/PlatformRawAudioDataCocoa.cpp
 platform/audio/cocoa/PitchShiftAudioUnit.mm @nonARC
 platform/audio/cocoa/SpatialAudioExperienceHelper.mm @nonARC
 platform/audio/cocoa/WebAudioBufferList.cpp
-platform/audio/ios/AudioOutputUnitAdaptorIOS.cpp @no-unify
 platform/audio/ios/AudioSessionIOS.mm @nonARC @no-unify
 platform/audio/ios/MediaDeviceRoute.mm @nonARC @no-unify
 platform/audio/ios/MediaDeviceRouteController.mm @nonARC
 platform/audio/ios/MediaSessionHelperIOS.mm @nonARC @no-unify
 platform/audio/ios/MediaSessionManagerIOS.mm @nonARC @no-unify
 platform/audio/ios/SpatialAudioPlaybackHelperIOS.mm @nonARC @no-unify
-platform/audio/mac/AudioOutputUnitAdaptorMac.cpp
 platform/audio/mac/AudioHardwareListenerMac.cpp
 platform/audio/mac/AudioSessionMac.mm @nonARC
 platform/audio/mac/SharedRoutingArbitrator.mm @nonARC

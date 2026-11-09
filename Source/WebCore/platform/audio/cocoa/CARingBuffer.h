@@ -65,16 +65,17 @@ public:
 
     WEBCORE_EXPORT TimeBounds getFetchTimeBounds();
 
-    // The GPU process's render quanta (CARingBufferPlayout.swift). For an audio destination: fetches frameCount frames
-    // from startFrame and advances it, or on an underrun fades the output from lastRenderedSamples to silence. Returns
-    // whether it fetched.
-    WEBCORE_EXPORT bool renderForAudioDestination(uint64_t& startFrame, AudioBufferList*, std::span<float> lastRenderedSamples, uint32_t frameCount);
-    // For a track renderer: fetches sampleCount frames from readOffset and advances it, and counts the chunks of
-    // frameChunkSize frames to ask the writer for.
+    // The GPU process's track renderer render quantum (CARingBufferPlayout.swift): fetches sampleCount frames from
+    // readOffset and advances it, and counts the chunks of frameChunkSize frames to ask the writer for.
     WEBCORE_EXPORT CARingBufferTrackRenderResult renderForTrackRenderer(uint64_t& readOffset, uint64_t& generateOffset, AudioBufferList&, size_t sampleCount, uint64_t frameChunkSize);
 
     uint32_t channelCount() const { return m_geometry.channelCount; }
     uint32_t frameCount() const { return m_geometry.frameCount; }
+
+    // The ring's memory, for a reader that plays it out on an audio unit's IO thread (AudioOutputUnit).
+    const CARingBufferGeometry& geometry() const { return m_geometry; }
+    const CARingBufferBoundsStorage& boundsStorage() const LIFETIME_BOUND { return *m_timeBounds; }
+    std::span<const uint8_t> channelData() const LIFETIME_BOUND { return m_channelData; }
 
 protected:
     WEBCORE_EXPORT CARingBuffer(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);

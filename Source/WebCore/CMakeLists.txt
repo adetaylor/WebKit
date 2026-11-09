@@ -3379,6 +3379,7 @@ if (APPLE)
         Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.mm
         Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.mm
 
+        platform/audio/cocoa/AudioOutputUnit.cpp
         platform/audio/cocoa/AudioSampleBufferList.cpp
         platform/audio/cocoa/CAAudioStreamDescription.cpp
         platform/audio/cocoa/CARingBuffer.cpp
@@ -3550,8 +3551,10 @@ endif ()
 
 if (APPLE)
     target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioOutputUnit.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioSampleBufferList.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioUnitIsland.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioUnitOwner.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CAAudioStreamDescription.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBuffer.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferMix.swift

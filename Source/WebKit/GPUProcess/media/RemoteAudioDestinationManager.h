@@ -39,7 +39,6 @@
 #include <wtf/WeakRef.h>
 
 #if PLATFORM(COCOA)
-#include <WebCore/AudioOutputUnitAdaptor.h>
 #include "SharedCARingBuffer.h"
 #endif
 

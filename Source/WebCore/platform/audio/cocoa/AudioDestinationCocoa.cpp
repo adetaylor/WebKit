@@ -74,9 +74,9 @@ unsigned long AudioDestination::maxChannelCount()
 
 AudioDestinationCocoa::AudioDestinationCocoa(const CreationOptions& options)
     : AudioDestinationResampler(options, hardwareSampleRate())
-    , m_audioOutputUnitAdaptor(*this)
+    , m_audioOutputUnit(AudioOutputUnit::Kind::InProcessDestination, hardwareSampleRate(), options.numberOfOutputChannels)
 {
-    m_audioOutputUnitAdaptor.configure(hardwareSampleRate(), options.numberOfOutputChannels);
+    m_audioOutputUnit.attachRenderCallback(renderCallback, this);
 
 #if PLATFORM(IOS_FAMILY)
     setSceneIdentifier(options.sceneIdentifier);
@@ -88,7 +88,7 @@ AudioDestinationCocoa::~AudioDestinationCocoa() = default;
 void AudioDestinationCocoa::startRendering(CompletionHandler<void(bool)>&& completionHandler)
 {
     ASSERT(isMainThread());
-    auto success = m_audioOutputUnitAdaptor.start() == noErr;
+    auto success = m_audioOutputUnit.start() == noErr;
     if (success)
         setIsPlaying(true);
 
@@ -100,13 +100,26 @@ void AudioDestinationCocoa::startRendering(CompletionHandler<void(bool)>&& compl
 void AudioDestinationCocoa::stopRendering(CompletionHandler<void(bool)>&& completionHandler)
 {
     ASSERT(isMainThread());
-    auto success = m_audioOutputUnitAdaptor.stop() == noErr;
+    auto success = m_audioOutputUnit.stop() == noErr;
     if (success)
         setIsPlaying(false);
 
     callOnMainThread([completionHandler = WTF::move(completionHandler), success]() mutable {
         completionHandler(success);
     });
+}
+
+// The output unit's render callback, on its IO thread.
+OSStatus AudioDestinationCocoa::renderCallback(void* userData, AudioUnitRenderActionFlags*, const AudioTimeStamp* timeStamp, UInt32 /*busNumber*/, UInt32 numberOfFrames, AudioBufferList* ioData)
+{
+    double sampleTime = 0.;
+    uint64_t hostTime = 0;
+    if (timeStamp) {
+        sampleTime = timeStamp->mSampleTime;
+        hostTime = timeStamp->mHostTime;
+    }
+
+    return static_cast<AudioDestinationCocoa*>(userData)->render(sampleTime, hostTime, numberOfFrames, ioData);
 }
 
 // Pulls on our provider to get rendered audio stream.
@@ -131,7 +144,7 @@ OSStatus AudioDestinationCocoa::render(double sampleTime, uint64_t hostTime, UIn
 
 MediaTime AudioDestinationCocoa::outputLatency() const
 {
-    return MediaTime { static_cast<int64_t>(m_audioOutputUnitAdaptor.outputLatency()), static_cast<uint32_t>(sampleRate()) } + MediaTime { static_cast<int64_t>(AudioSession::singleton().outputLatency()), static_cast<uint32_t>(AudioSession::singleton().sampleRate()) };
+    return MediaTime { static_cast<int64_t>(m_audioOutputUnit.outputLatency()), static_cast<uint32_t>(sampleRate()) } + MediaTime { static_cast<int64_t>(AudioSession::singleton().outputLatency()), static_cast<uint32_t>(AudioSession::singleton().sampleRate()) };
 }
 
 #if PLATFORM(IOS_FAMILY)
@@ -143,7 +156,7 @@ void AudioDestinationCocoa::setSceneIdentifier(const String& identifier)
     m_sceneIdentifier = identifier;
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
     RetainPtr experience = createSpatialAudioExperienceWithOptions({ .sceneIdentifier = m_sceneIdentifier });
-    m_audioOutputUnitAdaptor.setSpatialAudioExperience(experience.get());
+    m_audioOutputUnit.setSpatialAudioExperience(experience.get());
 #endif
 }
 #endif

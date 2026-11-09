@@ -84,6 +84,20 @@ struct WebAudioBufferListSizes {
 };
 static_assert(sizeof(WebAudioBufferListSizes) == 24);
 
+// What an audio destination of the GPU process plays out on its unit's IO thread (AudioUnitIsland.swift): a ring's
+// geometry, bounds and channels, the shared counter it adds each quantum's frames to, and the semaphore it signals after
+// each quantum. Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the
+// unit. Without a header, there is no ring.
+struct AudioOutputUnitRingAttachment {
+    CARingBufferGeometry geometry;
+    const CARingBufferBoundsStorage* header { nullptr };
+    const uint8_t* channels { nullptr };
+    uint64_t channelsByteCount { 0 };
+    uint32_t* frameCounter { nullptr };
+    uint64_t frameCounterByteCount { 0 };
+    uint32_t semaphore { 0 };
+};
+
 // What a track renderer's render quantum did: whether it fetched, and how many chunks to ask the writer for.
 struct CARingBufferTrackRenderResult {
     uint64_t signalCount { 0 };
@@ -204,26 +218,6 @@ public:
 
 private:
     const ::AudioBufferList* m_list;
-};
-
-// Floats Swift writes, such as an audio destination's last rendered samples.
-class SWIFT_NONCOPYABLE SWIFT_NONESCAPABLE SWIFT_SAFE FloatSamplesView {
-public:
-#if !defined(__swift__)
-    explicit FloatSamplesView(std::span<float> samples)
-        : m_bytes(asWritableBytes(samples))
-    {
-        assertMakingAudioViewOffMainThread();
-    }
-#endif
-    FloatSamplesView(const FloatSamplesView&) = delete;
-    FloatSamplesView(FloatSamplesView&&) = default;
-
-    // The samples' bytes: Swift's span of a byte span inlines, where a span of floats can stay an out-of-line call.
-    ALWAYS_INLINE std::span<uint8_t> mutableBytes() LIFETIME_BOUND { return m_bytes; }
-
-private:
-    std::span<uint8_t> m_bytes;
 };
 
 } // namespace WebCore
