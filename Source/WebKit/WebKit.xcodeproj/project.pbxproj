@@ -4660,8 +4660,6 @@
 		A18DA1BCB46EBE474E0D40EB /* RemoteRenderBundleMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderBundleMessageReceiver.swift; sourceTree = "<group>"; };
 		EF60F74AC568B0A2E43AE916 /* RemoteQuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteQuerySet.swift; sourceTree = "<group>"; };
 		D341671445A36D6816316A60 /* RemoteQuerySetMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteQuerySetMessageReceiver.swift; sourceTree = "<group>"; };
-		4619C7CCD9E98B118E40FEA7 /* WebGPUSwiftSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WebGPUSwiftSupport.cpp; sourceTree = "<group>"; };
-		B298AC711AFBF8A690306E10 /* WebGPUSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGPUSwiftSupport.h; sourceTree = "<group>"; };
 		72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebGPUSwiftSupport.swift; sourceTree = "<group>"; };
 		AEEF99B3E6E1849A526ED461 /* RemoteComputePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePipeline.swift; sourceTree = "<group>"; };
 		3F7CCB489DCB7E24BC18DC1B /* RemoteComputePipelineMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteComputePipelineMessageReceiver.swift; sourceTree = "<group>"; };
@@ -11719,8 +11717,6 @@
 				66A3E733D1E646C4B179A67C /* RemoteXRSubImage.swift */,
 				0D6D0AA52C6AD99B0073F63D /* RemoteXRView.messages.in */,
 				9D08DC1CF64B4F91A711B60A /* RemoteXRView.swift */,
-				4619C7CCD9E98B118E40FEA7 /* WebGPUSwiftSupport.cpp */,
-				B298AC711AFBF8A690306E10 /* WebGPUSwiftSupport.h */,
 				72D46AC1AD668E5C48C240E8 /* WebGPUSwiftSupport.swift */,
 			);
 			path = WebGPU;

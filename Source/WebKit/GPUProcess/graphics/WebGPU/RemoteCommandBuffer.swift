@@ -46,7 +46,7 @@ final class RemoteCommandBuffer {
             return
         }
         let receiver = RemoteCommandBuffer(commandBuffer, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCommandBuffer, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCommandBuffer, link.identifier)
         objects.add(link.identifier, commandBuffer, receiver: receiver, registration: registration)
     }
 

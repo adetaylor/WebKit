@@ -28,6 +28,9 @@ import wtf
 #if canImport(Darwin)
 import Darwin
 #endif
+#if canImport(os)
+import os
+#endif
 #if canImport(IOSurface)
 import IOSurface
 #endif
@@ -702,17 +705,15 @@ extension IPCTypes {
         }
 
         deinit {
-            // Safety: the value owns the right, and only this deinit, or the encoding that leaks it, gives it up.
-            unsafe WTF.deallocateSendRightSafely(port)
+            WTF.deallocateSendRightSafely(port)
         }
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
-            // Safety: takeSendRight() gives the caller the right, which the new value then owns.
-            let right = unsafe Self(adopting: decoder.takeSendRight())
+            let port = decoder.takeSendRight()
             guard decoder.isValid() else {
                 throw IPCDecodingError()
             }
-            return right
+            return Self(adopting: port)
         }
 
         static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
@@ -740,8 +741,7 @@ extension IPCTypes {
 
         deinit {
             for port in ports {
-                // Safety: append() took each right over from the value that owned it.
-                unsafe WTF.deallocateSendRightSafely(port)
+                WTF.deallocateSendRightSafely(port)
             }
         }
 
@@ -813,6 +813,69 @@ extension IPCTypes {
             let size = value.size
             MachSendRight.encode(value.sendRight, to: encoder)
             encoder.encode(size)
+        }
+
+        /// The memory, mapped read-only, as WebCore::SharedMemory::map(handle, Protection::ReadOnly) maps it. nil if it
+        /// can't be mapped.
+        consuming func mapReadOnly() -> ReadOnlySharedMemory? {
+            ReadOnlySharedMemory(self)
+        }
+    }
+
+    /// Memory that another process shares, mapped read-only into this one until this goes. Its bytes stay at the same
+    /// address, and this process can't change them; the other process can.
+    final class ReadOnlySharedMemory: Sendable {
+        private let task: mach_port_t
+        private let address: mach_vm_address_t
+        let size: UInt64
+
+        fileprivate init?(_ handle: borrowing SharedMemoryHandle) {
+            var mappedAddress: mach_vm_address_t = 0
+            // Safety: mach_task_self_ is set before any Swift code runs, and never changes.
+            let task = unsafe mach_task_self_
+            // Safety: mach_vm_map() writes the address before it returns.
+            let result = unsafe mach_vm_map(
+                task,
+                &mappedAddress,
+                handle.size,
+                0,
+                VM_FLAGS_ANYWHERE | VM_FLAGS_RETURN_DATA_ADDR,
+                handle.port,
+                0,
+                0,
+                VM_PROT_READ,
+                VM_PROT_READ,
+                VM_INHERIT_NONE
+            )
+            guard result == KERN_SUCCESS else {
+                #if canImport(os)
+                WebKit.LogChannel.VirtualMemory().releaseLog.error("SharedMemory::map: Failed to map shared memory. (\(result))")
+                #endif
+                return nil
+            }
+            self.task = task
+            address = mappedAddress
+            size = handle.size
+        }
+
+        deinit {
+            let result = mach_vm_deallocate(task, address, size)
+            if result != KERN_SUCCESS {
+                #if canImport(os)
+                WebKit.LogChannel.VirtualMemory().releaseLog.error("SharedMemory::~SharedMemory: Failed to deallocate shared memory. (\(result))")
+                #endif
+                assertionFailure()
+            }
+        }
+
+        /// The `size` bytes of the mapping.
+        func withBytes<R>(_ body: (RawSpan) -> R) -> R {
+            guard let byteCount = Int(exactly: size), byteCount > 0 else {
+                return body(RawSpan())
+            }
+            // Safety: mach_vm_map() mapped `size` readable bytes at `address`, which stay mapped until the deinit.
+            let bytes = unsafe RawSpan(_unsafeStart: UnsafeRawPointer(bitPattern: UInt(address))!, byteCount: byteCount)
+            return body(bytes)
         }
     }
 }

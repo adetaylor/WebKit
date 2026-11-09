@@ -46,7 +46,7 @@ final class RemoteXRBinding {
             return
         }
         let receiver = RemoteXRBinding(binding, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRBinding, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRBinding, link.identifier)
         objects.add(link.identifier, binding, receiver: receiver, registration: registration)
     }
 

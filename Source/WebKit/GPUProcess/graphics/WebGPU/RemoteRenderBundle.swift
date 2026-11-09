@@ -46,7 +46,7 @@ final class RemoteRenderBundle {
             return
         }
         let receiver = RemoteRenderBundle(renderBundle, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderBundle, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderBundle, link.identifier)
         objects.add(link.identifier, renderBundle, receiver: receiver, registration: registration)
     }
 

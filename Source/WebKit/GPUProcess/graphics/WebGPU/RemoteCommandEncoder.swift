@@ -48,7 +48,7 @@ final class RemoteCommandEncoder {
             return
         }
         let receiver = RemoteCommandEncoder(encoder, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCommandEncoder, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCommandEncoder, link.identifier)
         objects.add(link.identifier, encoder, receiver: receiver, registration: registration)
     }
 

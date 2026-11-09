@@ -53,7 +53,7 @@ final class RemoteBuffer {
             return
         }
         let receiver = RemoteBuffer(buffer, mappedAtCreation: mappedAtCreation, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBuffer, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBuffer, link.identifier)
         objects.add(link.identifier, buffer, receiver: receiver, registration: registration)
     }
 
@@ -106,16 +106,16 @@ final class RemoteBuffer {
     }
 
     func copy(
-        data: CxxDecodedArguments.RemoteBuffer.CopyData,
+        data: consuming IPCTypes.SharedMemoryHandle?,
         offset: UInt64,
         reply: consuming RemoteBufferCopyReply
     ) {
-        guard canWrite, let bytes = WebKit.mapSharedMemory(data).value else {
+        guard canWrite, let bytes = mapWebGPUWriteSharedMemory(data) else {
             reply.send(false)
             return
         }
-        let span: Span<UInt8> = bytes.span()
-        reply.send(buffer.writeContents(span, at: offset))
+        let written = bytes.withBytes { buffer.writeContents(Span<UInt8>(viewing: $0), at: offset) }
+        reply.send(written)
     }
 
     func copyWithCopy(data: [UInt8], offset: UInt64) {

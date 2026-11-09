@@ -47,7 +47,7 @@ final class RemoteComputePassEncoder {
             return
         }
         let receiver = RemoteComputePassEncoder(computePassEncoder, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteComputePassEncoder, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteComputePassEncoder, link.identifier)
         objects.add(link.identifier, computePassEncoder, receiver: receiver, registration: registration)
     }
 

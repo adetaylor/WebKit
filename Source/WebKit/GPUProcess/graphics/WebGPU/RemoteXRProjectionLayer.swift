@@ -47,7 +47,7 @@ final class RemoteXRProjectionLayer {
             return
         }
         let receiver = RemoteXRProjectionLayer(layer, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRProjectionLayer, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRProjectionLayer, link.identifier)
         objects.add(link.identifier, layer, receiver: receiver, registration: registration)
     }
 

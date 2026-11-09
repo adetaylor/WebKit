@@ -1061,7 +1061,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRProjectionLayerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImageMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRViewMessageReceiver.cpp
-        GPUProcess/graphics/WebGPU/WebGPUSwiftSupport.cpp
 
         UIProcess/API/ios/WKWebViewIOS.mm
         UIProcess/API/mac/WKWebViewMac.mm

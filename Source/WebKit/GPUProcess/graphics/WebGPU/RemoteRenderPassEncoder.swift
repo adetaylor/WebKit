@@ -47,7 +47,7 @@ final class RemoteRenderPassEncoder {
             return
         }
         let receiver = RemoteRenderPassEncoder(renderPassEncoder, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderPassEncoder, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteRenderPassEncoder, link.identifier)
         objects.add(link.identifier, renderPassEncoder, receiver: receiver, registration: registration)
     }
 

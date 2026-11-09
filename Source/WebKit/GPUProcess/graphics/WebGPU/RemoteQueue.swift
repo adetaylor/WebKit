@@ -29,8 +29,8 @@ internal import WebGPU_Private
 import WebKit_Internal
 
 // Receives the messages of a WebGPU queue, on its stream connection's work queue, and calls its QueueImpl, with the
-// references of the objects they name, from the registry. The writes and copies whose sources are shared memory, image
-// buffers or video frames, which WebCore's types carry, go to C++.
+// references of the objects they name, from the registry. The copies whose sources are image buffers or video frames,
+// which WebCore's types carry, go to C++.
 @_expose(Cxx)
 final class RemoteQueue {
     private let queue: QueueReference
@@ -55,7 +55,7 @@ final class RemoteQueue {
             return
         }
         let receiver = RemoteQueue(queue, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
         objects.add(link.identifier, queue, receiver: receiver, registration: registration)
     }
 
@@ -125,7 +125,7 @@ final class RemoteQueue {
             return
         }
         try messageCheck {
-            WebKit.isValidWebGPUWriteWithCopySize(data.size())
+            isValidWebGPUWriteWithCopySize(data.size())
         }
         withCopy(of: data) { bytes in
             queue.writeBuffer(buffer, bufferOffset, bytes)
@@ -135,7 +135,7 @@ final class RemoteQueue {
     func writeBuffer(
         identifier: IPCTypes.WebGPUIdentifier,
         bufferOffset: UInt64,
-        data: CxxDecodedArguments.RemoteQueue.WriteBufferData,
+        data: consuming IPCTypes.SharedMemoryHandle?,
         reply: consuming RemoteQueueWriteBufferReply
     ) {
         let buffer = link.objects?.object(identifier, as: BufferReference.self)
@@ -145,7 +145,7 @@ final class RemoteQueue {
             return
         }
         // A large write reads the mapping in place, and keeps it alive until the GPU has.
-        guard let bytes = WebKit.mapSharedMemory(data).value else {
+        guard let bytes = mapWebGPUWriteSharedMemory(data) else {
             reply.send(false)
             return
         }
@@ -155,12 +155,12 @@ final class RemoteQueue {
 
     func writeTexture(
         destination: IPCTypes.ImageCopyTexture,
-        dataHandle: CxxDecodedArguments.RemoteQueue.WriteTextureDataHandle,
+        dataHandle: consuming IPCTypes.SharedMemoryHandle?,
         imageDataLayout: IPCTypes.ImageDataLayout,
         size: IPCTypes.Extent3D,
         reply: consuming RemoteQueueWriteTextureReply
     ) {
-        let bytes = WebKit.mapSharedMemory(dataHandle).value
+        let bytes = mapWebGPUWriteSharedMemory(dataHandle)
         let texture = link.objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
         guard let texture, let bytes else {
@@ -183,7 +183,7 @@ final class RemoteQueue {
             return
         }
         try messageCheck {
-            WebKit.isValidWebGPUWriteWithCopySize(data.size())
+            isValidWebGPUWriteWithCopySize(data.size())
         }
         withCopy(of: data) { bytes in
             queue.writeTexture(texture, TextureCopyLocation(destination), bytes, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))

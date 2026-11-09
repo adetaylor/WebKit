@@ -46,7 +46,7 @@ final class RemoteAdapter {
             return
         }
         let receiver = RemoteAdapter(adapter, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteAdapter, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteAdapter, link.identifier)
         objects.add(link.identifier, adapter, receiver: receiver, registration: registration)
     }
 

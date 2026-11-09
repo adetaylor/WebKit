@@ -36,7 +36,6 @@
 #include "RemoteGPUProxyMessages.h"
 #include "RemoteRenderingBackend.h"
 #include "StreamServerConnection.h"
-#include "WebGPUSwiftSupport.h"
 #include <WebCore/ColorSpace.h>
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/IOSurface.h>

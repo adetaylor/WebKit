@@ -47,7 +47,7 @@ final class RemoteXRSubImage {
             return
         }
         let receiver = RemoteXRSubImage(subImage, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRSubImage, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRSubImage, link.identifier)
         objects.add(link.identifier, subImage, receiver: receiver, registration: registration)
     }
 

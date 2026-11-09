@@ -135,7 +135,6 @@
 #include "RemoteXRProjectionLayerMessages.h"
 #include "RemoteXRSubImageMessages.h"
 #include "RemoteXRViewMessages.h"
-#include "WebGPUSwiftSupport.h"
 #endif
 
 #if ENABLE(PHONE_NUMBER_POSSESSION)

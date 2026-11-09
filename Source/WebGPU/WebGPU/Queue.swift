@@ -64,21 +64,15 @@ import WebGPU_Private.WebGPU
 public import WebGPU_Private.WebGPUCpp
 import simd
 
-private let largeBufferSize = WebGPU.largeBufferSize
+// The writes of a GPUByteOwner's bytes may read at least this many of them in place, rather than copy them.
+private let largeBufferSize: UInt64 = 32 * 1024 * 1024
 
-// The ByteOwner of a write's bytes, which a large write reads in place. A Swift class, so that writes without one pass
-// nil: an Optional foreign reference type is not safe to copy.
-private final class AliasableBytes {
-    private let owner: WebGPU.ByteOwner
-
-    init(_ owner: WebGPU.ByteOwner) {
-        self.owner = owner
-    }
-
-    // A buffer over `length` of the owner's bytes from `offset`, which keeps the owner alive for as long as it exists.
-    func newBuffer(_ metalDevice: (any MTLDevice)?, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
-        WebGPU.Metal.newBufferAliasingOwner(metalDevice, owner, offset, length)
-    }
+// The owner of a write's bytes, which a large write may read after it returns, keeping the owner until it has: the bytes
+// stay at the same address and size, and this process doesn't change them, for as long as the owner exists. The last
+// reference to it may go on any thread.
+@_spi(WebKitGPU)
+public protocol GPUByteOwner: AnyObject, Sendable {
+    func withBytes<R>(_ body: (RawSpan) -> R) -> R
 }
 
 // WTF's checkedSum<T>() and checkedProduct<T>() for unsigned operands: nil, where they report an overflow, when an
@@ -1445,7 +1439,7 @@ public final class QueueImpl: GPUObjectReference {
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>,
-        _ aliasable: AliasableBytes?
+        _ aliasable: (any GPUByteOwner)?
     ) {
         if writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: data) {
             return
@@ -1530,7 +1524,7 @@ public final class QueueImpl: GPUObjectReference {
     private func newTemporaryBuffer(
         _ deviceImpl: DeviceImpl,
         bytes data: Span<UInt8>,
-        aliasing aliasable: AliasableBytes?,
+        aliasing aliasable: (any GPUByteOwner)?,
         from ownerOffset: UInt64,
         _ noCopy: Bool,
         _ offset: inout UInt64
@@ -1538,7 +1532,7 @@ public final class QueueImpl: GPUObjectReference {
         if noCopy {
             offset = 0
             if let aliasable {
-                return aliasable.newBuffer(deviceImpl.device(), from: ownerOffset, length: UInt64(data.count))
+                return makeBuffer(deviceImpl.device(), aliasing: aliasable, from: ownerOffset, length: UInt64(data.count))
             }
             // Without an owner, nothing keeps `data` alive until the GPU has read it. So it is copied, into a buffer
             // of its own that the command buffer which reads it releases: the temporary buffer does not grow to its size.
@@ -1600,7 +1594,7 @@ public final class QueueImpl: GPUObjectReference {
         _ buffer: (any MTLBuffer)?,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>,
-        _ aliasable: AliasableBytes?
+        _ aliasable: (any GPUByteOwner)?
     ) {
         guard let buffer, !data.isEmpty else {
             return
@@ -2066,7 +2060,7 @@ public final class QueueImpl: GPUObjectReference {
         _ textureImpl: TextureImpl,
         _ destination: TextureCopyLocation,
         bytes data: Span<UInt8>,
-        _ aliasable: AliasableBytes?,
+        _ aliasable: (any GPUByteOwner)?,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D,
         _ skipValidation: Bool,
@@ -3123,28 +3117,31 @@ extension QueueImpl {
         _ = writeTexture(deviceImpl, texture, destination, bytes: data, nil, dataLayout, size, false, .decide)
     }
 
-    // writeBuffer() of the bytes, which it may read after returning (see largeBufferSize), keeping them until it has.
-    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: WebGPU.OwnedBytes) {
+    // writeBuffer() of the owner's bytes, which it may read after returning (see largeBufferSize), keeping the owner until
+    // it has.
+    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: any GPUByteOwner) {
         guard let deviceImpl = deviceImpl(sharedBy: buffer.deviceImpl) else {
             return
         }
-        let bytes: Span<UInt8> = data.span()
-        writeBuffer(deviceImpl, buffer, bufferOffset, bytes: bytes, AliasableBytes(data.owner()))
+        data.withBytes { bytes in
+            writeBuffer(deviceImpl, buffer, bufferOffset, bytes: Span<UInt8>(viewing: bytes), data)
+        }
     }
 
     // writeTexture() of the bytes, as writeBuffer() of them.
     public func writeTexture(
         _ texture: TextureReference,
         _ destination: TextureCopyLocation,
-        _ data: WebGPU.OwnedBytes,
+        _ data: any GPUByteOwner,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {
         guard let deviceImpl = deviceImpl(sharedBy: texture.deviceImpl) else {
             return
         }
-        let bytes: Span<UInt8> = data.span()
-        _ = writeTexture(deviceImpl, texture, destination, bytes: bytes, AliasableBytes(data.owner()), dataLayout, size, false, .decide)
+        data.withBytes { bytes in
+            _ = writeTexture(deviceImpl, texture, destination, bytes: Span<UInt8>(viewing: bytes), data, dataLayout, size, false, .decide)
+        }
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture

@@ -48,7 +48,7 @@ final class RemotePresentationContext {
             return
         }
         let receiver = RemotePresentationContext(presentationContext, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemotePresentationContext, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemotePresentationContext, link.identifier)
         objects.add(link.identifier, presentationContext, receiver: receiver, registration: registration)
     }
 

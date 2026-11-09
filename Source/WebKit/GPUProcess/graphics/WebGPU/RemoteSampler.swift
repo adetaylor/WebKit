@@ -46,7 +46,7 @@ final class RemoteSampler {
             return
         }
         let receiver = RemoteSampler(sampler, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteSampler, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteSampler, link.identifier)
         objects.add(link.identifier, sampler, receiver: receiver, registration: registration)
     }
 

@@ -243,6 +243,34 @@ extension MTLArgumentEncoder {
     }
 }
 
+// A buffer over `length` of the owner's bytes from `offset`, which keeps the owner alive for as long as it exists. nil
+// when the owner has fewer bytes.
+func makeBuffer(_ device: (any MTLDevice)?, aliasing owner: any GPUByteOwner, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
+    owner.withBytes { bytes -> (any MTLBuffer)? in
+        let byteCount = UInt64(bytes.byteCount)
+        guard offset <= byteCount, length <= byteCount - offset, let device else {
+            return nil
+        }
+        return bytes.extracting(Int(offset)..<Int(offset + length)).withUnsafeBytes { range -> (any MTLBuffer)? in
+            guard let baseAddress = range.baseAddress else {
+                return nil
+            }
+            // Safety: Metal reads the bytes in place until it destroys the buffer, and only then releases the
+            // deallocator, which holds their owner, whose bytes stay at this address until it goes. The buffer is only
+            // ever a copy source, so nothing writes to them.
+            return unsafe device.makeBuffer(
+                bytesNoCopy: UnsafeMutableRawPointer(mutating: baseAddress),
+                length: range.count,
+                options: .storageModeShared,
+                deallocator: { _, _ in
+                    withExtendedLifetime(owner) {
+                    }
+                }
+            )
+        }
+    }
+}
+
 // Makes CPU writes to the range of a managed buffer (Macs with discrete memory) visible to the GPU.
 #if hasAttribute(diagnose)
 @diagnose(DeprecatedDeclaration, as: ignored, reason: "Managed buffers on Macs with discrete memory still need it")

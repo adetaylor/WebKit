@@ -45,7 +45,7 @@ final class RemoteBindGroup {
             return
         }
         let receiver = RemoteBindGroup(bindGroup, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBindGroup, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBindGroup, link.identifier)
         objects.add(link.identifier, bindGroup, receiver: receiver, registration: registration)
     }
 

@@ -54,7 +54,7 @@ final class RemoteCompositorIntegration {
             return
         }
         let receiver = RemoteCompositorIntegration(link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCompositorIntegration, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteCompositorIntegration, link.identifier)
         objects.add(link.identifier, receiver, registration: registration)
     }
 

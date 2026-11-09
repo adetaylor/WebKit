@@ -92,9 +92,6 @@ static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMat
 static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
 static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
 
-// A buffer over `length` bytes of the ByteOwner from `offset`, which keeps the ByteOwner alive for as long as it exists.
-// Null when the ByteOwner has fewer bytes.
-id<MTLBuffer> _Nullable newBufferAliasingOwner(id<MTLDevice> _Nullable, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);
 
 // CoreVideoInterop.swift and ExternalTextureImport.swift spell HAVE(COREVIDEO_METAL_SUPPORT) out, because Swift cannot
 // evaluate the CoreVideo macro it expands to.

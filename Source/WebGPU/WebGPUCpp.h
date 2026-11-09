@@ -703,7 +703,6 @@ class Adapter;
 class BindGroup;
 class BindGroupLayout;
 class Buffer;
-class ByteOwner;
 class CommandBuffer;
 class CommandEncoder;
 class ComputePassEncoder;
@@ -1263,8 +1262,6 @@ inline void refWebGPUBindGroupLayout(::WebGPU::BindGroupLayout*);
 inline void derefWebGPUBindGroupLayout(::WebGPU::BindGroupLayout*);
 inline void refWebGPUBuffer(::WebGPU::Buffer*);
 inline void derefWebGPUBuffer(::WebGPU::Buffer*);
-inline void refWebGPUByteOwner(::WebGPU::ByteOwner*);
-inline void derefWebGPUByteOwner(::WebGPU::ByteOwner*);
 inline void refWebGPUCommandBuffer(::WebGPU::CommandBuffer*);
 inline void derefWebGPUCommandBuffer(::WebGPU::CommandBuffer*);
 inline void refWebGPUCommandEncoder(::WebGPU::CommandEncoder*);
@@ -1378,67 +1375,6 @@ public:
 protected:
     Buffer() = default;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUBuffer, derefWebGPUBuffer);
-
-// Bytes that stay at the same address and size, and that this process does not change, for as long as any reference
-// to their owner exists. The span is fixed at creation and only read through, the reference count is atomic, and the
-// last reference may be dropped on any thread. Another process sharing the memory behind the bytes can still change
-// them.
-class ByteOwner : public ThreadSafeRefCounted<ByteOwner> {
-public:
-    // `owner` owns the bytes its span() returns, at the same address and size, until it is destroyed, as
-    // WebCore::SharedMemory does.
-    template<typename T> static Ref<ByteOwner> create(Ref<T>&& owner);
-
-    virtual ~ByteOwner() = default;
-
-    std::span<const uint8_t> span() const LIFETIME_BOUND { return m_bytes; }
-
-private:
-    template<typename> friend class ByteOwnerOf;
-
-    explicit ByteOwner(std::span<const uint8_t> bytes)
-        : m_bytes(bytes)
-    {
-    }
-
-    const std::span<const uint8_t> m_bytes;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUByteOwner, derefWebGPUByteOwner);
-
-template<typename T> class ByteOwnerOf final : public ByteOwner {
-private:
-    friend class ByteOwner;
-
-    // The base is initialized first, from the object that the member then holds.
-    explicit ByteOwnerOf(Ref<T>&& owner)
-        : ByteOwner(owner->span())
-        , m_owner(WTF::move(owner))
-    {
-    }
-
-    const Ref<T> m_owner;
-};
-
-template<typename T> Ref<ByteOwner> ByteOwner::create(Ref<T>&& owner)
-{
-    static_assert(std::is_base_of_v<WTF::ThreadSafeRefCountedBase, T>, "The last reference to a ByteOwner may be dropped on any thread");
-    return adoptRef(*new ByteOwnerOf<T>(WTF::move(owner)));
-}
-
-// A ByteOwner's bytes, with a reference to it, for Swift, which can't read a span from a shared reference
-// (rdar://161274084). The span lasts as long as this does, and this keeps the bytes.
-class OwnedBytes {
-public:
-    explicit OwnedBytes(Ref<ByteOwner>&& owner)
-        : m_owner(WTF::move(owner))
-    {
-    }
-
-    std::span<const uint8_t> span() const LIFETIME_BOUND { return m_owner->span(); }
-    ByteOwner& owner() const SWIFT_RETURNS_UNRETAINED { return m_owner; }
-
-private:
-    Ref<ByteOwner> m_owner;
-} SWIFT_SELF_CONTAINED;
 
 class CommandBuffer : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<CommandBuffer> {
 public:
@@ -1639,10 +1575,6 @@ protected:
     QuerySet() = default;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUQuerySet, derefWebGPUQuerySet);
 
-// Queue::writeBuffer() and Queue::writeTexture() may read at least this many bytes of a ByteOwner in place, rather
-// than copy them.
-constexpr uint64_t largeBufferSize = 32 * 1024 * 1024;
-
 class Queue : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Queue> {
 public:
     virtual ~Queue() = default;
@@ -1657,10 +1589,6 @@ public:
 #endif
     virtual void setLabel(String&&) = 0;
     virtual bool isValid() const = 0;
-    // The span writes, except that an implementation may read the bytes after returning (see largeBufferSize), and
-    // then keeps a reference to their owner until it has. By default, they are read before returning.
-    virtual void writeBuffer(Buffer& buffer, uint64_t bufferOffset, Ref<ByteOwner>&& data) { writeBuffer(buffer, bufferOffset, data->span()); }
-    virtual void writeTexture(const TexelCopyTextureInfo& destination, Ref<ByteOwner>&& data, const TexelCopyBufferLayout& dataLayout, const Extent3D& writeSize) { writeTexture(destination, data->span(), dataLayout, writeSize); }
 
 protected:
     Queue() = default;
@@ -1898,16 +1826,6 @@ inline void refWebGPUBuffer(::WebGPU::Buffer* object)
 }
 
 inline void derefWebGPUBuffer(::WebGPU::Buffer* object)
-{
-    object->deref();
-}
-
-inline void refWebGPUByteOwner(::WebGPU::ByteOwner* object)
-{
-    object->ref();
-}
-
-inline void derefWebGPUByteOwner(::WebGPU::ByteOwner* object)
 {
     object->deref();
 }

@@ -46,7 +46,7 @@ final class RemoteTextureView {
             return
         }
         let receiver = RemoteTextureView(textureView, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteTextureView, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteTextureView, link.identifier)
         objects.add(link.identifier, textureView, receiver: receiver, registration: registration)
     }
 

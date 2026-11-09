@@ -86,7 +86,6 @@ set_target_properties(WebGPU PROPERTIES
 # These #import the generated Swift interop header, so they build in a
 # subtarget that can be ordered after it. Keep them out of the bundles.
 set(WebGPU_SWIFT_INTEROP_SOURCES
-    Queue.mm
     XRProjectionLayer.mm
 )
 foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)

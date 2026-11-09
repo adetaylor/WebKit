@@ -46,7 +46,7 @@ final class RemoteComputePipeline {
             return
         }
         let receiver = RemoteComputePipeline(computePipeline, link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteComputePipeline, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteComputePipeline, link.identifier)
         objects.add(link.identifier, computePipeline, receiver: receiver, registration: registration)
     }
 

@@ -42,7 +42,6 @@
 		5BED2C82A58B4F9E81044222 /* RenderPassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */; };
 		00330FD34B5348898ECBADDE /* ComputePassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */; };
 		BE22746A4AA74071952AD50A /* Adapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208E06EA3939456FB419C36D /* Adapter.swift */; };
-		1C5ACACB273A426E0095F8D5 /* Queue.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAAD273A426D0095F8D5 /* Queue.mm */; };
 		20910A885B0E4806BC4E2570 /* RenderBundleEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */; };
 		32047F57F90645ECA7E2459C /* RenderBundleEncoderCreation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */; };
 		53EDDB13D745490CABB02955 /* ShaderModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F196A7F2DBC64687BA86009A /* ShaderModule.swift */; };
@@ -284,7 +283,6 @@
 		1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePipeline.h; sourceTree = "<group>"; };
 		04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePassEncoder.swift; sourceTree = "<group>"; };
 		208E06EA3939456FB419C36D /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
-		1C5ACAAD273A426D0095F8D5 /* Queue.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Queue.mm; sourceTree = "<group>"; };
 		F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoder.swift; sourceTree = "<group>"; };
 		DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoderCreation.swift; sourceTree = "<group>"; };
 		1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderPipeline.h; sourceTree = "<group>"; };
@@ -552,7 +550,6 @@
 				B1A25A492A7F4178A7591739 /* PresentationContextIOSurface.swift */,
 				C859B61D2EAF4362828276FE /* QuerySet.swift */,
 				1C5ACA9C273A426D0095F8D5 /* Queue.h */,
-				1C5ACAAD273A426D0095F8D5 /* Queue.mm */,
 				941C1EE42CA328EE004D4220 /* Queue.swift */,
 				CC59D47879744629A775E6C1 /* RenderBundle.swift */,
 				1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */,
@@ -1095,7 +1092,6 @@
 				3D4A69822245433580AA6E1F /* PipelineModel.swift in Sources */,
 				F38058A46A94443AA6E203B0 /* PresentationContextIOSurface.swift in Sources */,
 				EA7AF98841244F718F395E0C /* QuerySet.swift in Sources */,
-				1C5ACACB273A426E0095F8D5 /* Queue.mm in Sources */,
 				941C1EE52CA328F7004D4220 /* Queue.swift in Sources */,
 				DD5697FE2DC1316A00050321 /* rdar150228472.swift in Sources */,
 				C9E70799359449259BC53950 /* RenderBundle.swift in Sources */,

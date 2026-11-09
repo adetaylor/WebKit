@@ -31,6 +31,8 @@
 #include "StreamConnectionEncoder.h"
 #include "StreamServerConnection.h"
 #include <WebCore/SharedBuffer.h>
+#include <concepts>
+#include <type_traits>
 #include <wtf/EscapableByteSpan.h>
 #include <wtf/NonEscapableBorrow.h>
 #include <wtf/Noncopyable.h>
@@ -38,6 +40,7 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
+#include <wtf/WeakPtr.h>
 #include <wtf/text/StringBuilder.h>
 #include <wtf/unicode/CharacterNames.h>
 
@@ -236,7 +239,7 @@ public:
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
     // deallocate it or send it on: in Swift, the IPCTypes.MachSendRight that owns it. If there is none, invalidates the
     // decoder and returns MACH_PORT_NULL, which a valid message may also carry.
-    SWIFT_UNSAFE mach_port_t takeSendRight()
+    mach_port_t takeSendRight()
     {
         auto sendRight = borrowed().template decode<MachSendRight>();
         return sendRight ? sendRight->leakSendRight() : MACH_PORT_NULL;
@@ -376,9 +379,10 @@ public:
     }
 
 #ifdef __swift__
-    // Swift's release, which frees with fastFree() as decode() allocates. Unsafe: an extra call frees an object that Swift
-    // still uses.
-    SWIFT_UNSAFE void swiftDeref() const
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
+    void deref() const
     {
         if (!this->derefBase())
             return;
@@ -398,7 +402,7 @@ private:
     }
 
     std::optional<T> m_value;
-} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
@@ -447,6 +451,13 @@ public:
         if (m_encoder || m_inStream)
             cancel();
     }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::ref(); }
+    void deref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::deref(); }
+#endif
 
     void encode(bool value) { encodeValue(value); }
     void encode(uint8_t value) { encodeValue(value); }
@@ -638,6 +649,67 @@ inline size_t writeUTF8ForLatin1String(const String& string, WTF::MutableSpanUIn
 {
     RELEASE_ASSERT(string.is8Bit());
     return writeUTF8ForLatin1Characters(string.span8(), utf8);
+}
+
+// Keeps the messages for a receiver written in Swift coming from the stream connection, as
+// ScopedActiveMessageReceiveQueue does for a C++ receiver, until it goes.
+class SwiftStreamReceiverRegistration final : public RefCounted<SwiftStreamReceiverRegistration> {
+public:
+    static Ref<SwiftStreamReceiverRegistration> create(StreamServerConnection& streamConnection, StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t identifier)
+    {
+        return adoptRef(*new SwiftStreamReceiverRegistration(streamConnection, receiver, receiverName, identifier));
+    }
+
+    ~SwiftStreamReceiverRegistration()
+    {
+        m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
+    }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the
+    // type hierarchy.
+    void ref() const { RefCounted<SwiftStreamReceiverRegistration>::ref(); }
+    void deref() const { RefCounted<SwiftStreamReceiverRegistration>::deref(); }
+#endif
+
+private:
+    SwiftStreamReceiverRegistration(StreamServerConnection& streamConnection, StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t identifier)
+        : m_streamConnection(streamConnection)
+        , m_receiverName(receiverName)
+        , m_identifier(identifier)
+    {
+        streamConnection.startReceivingMessages(receiver, receiverName, identifier);
+    }
+
+    const Ref<StreamServerConnection> m_streamConnection;
+    const ReceiverName m_receiverName;
+    const uint64_t m_identifier;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+template<typename> struct IsRefOfStreamMessageReceiver : std::false_type { };
+template<typename T> struct IsRefOfStreamMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, StreamMessageReceiver>> { };
+
+// Registers a Swift receiver's message forwarder for those messages on the stream connection of the receiver that owns
+// it, whose shared preferences the forwarder then reads, through a weak pointer. Null if the owner's stream connection
+// has gone. For Swift, which passes the owner, a foreign reference type, as a pointer to it, and which can't pass a
+// forwarder as the StreamMessageReceiver it is, but can pass the Ref to it that it holds. The static_asserts are there
+// because the constraints aren't enforced for Swift callers.
+template<typename OwnerPointer, typename ForwarderRef>
+SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
+{
+    static_assert(std::is_pointer_v<OwnerPointer>);
+    static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
+    auto& owner = *ownerPointer;
+    RefPtr streamConnection = owner.streamConnection();
+    if (!streamConnection)
+        return nullptr;
+    using SharedPreferences = decltype(owner.sharedPreferencesForWebProcess());
+    forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }]() -> SharedPreferences {
+        if (RefPtr protectedOwner = weakOwner.get())
+            return protectedOwner->sharedPreferencesForWebProcess();
+        return std::nullopt;
+    });
+    return &SwiftStreamReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
 // Builds the WTF::String that generated Swift hands to C++ for a Swift String, one code unit at a time

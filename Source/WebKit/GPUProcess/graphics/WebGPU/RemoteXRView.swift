@@ -44,7 +44,7 @@ final class RemoteXRView {
             return
         }
         let receiver = RemoteXRView(link)
-        let registration = WebKit.registerWebGPUSwiftReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRView, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteXRView, link.identifier)
         objects.add(link.identifier, view: receiver, registration: registration)
     }
 
