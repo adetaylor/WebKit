@@ -54,6 +54,8 @@ enum CaptureUnitSwitch: UInt8 {
     case reconfiguring
     // The speaker's producer knows that the unit started (AudioUnitEvent.speakerStarting), so the speaker can play it out.
     case speakerStartAcknowledged
+    // The next microphone quantum is an event (AudioUnitEvent.firstMicrophoneQuantum).
+    case firstMicrophoneQuantumArmed
 }
 
 private var outputBus: AudioUnitElement { 0 }
@@ -68,6 +70,12 @@ final class CaptureUnit {
     private var speakerTrack: TrackPlayout?
     // Whether C++ attached the context the microphone callback hands its quanta to, which stays the same for the unit's life.
     var hasCxxDeliveryContext = false
+    // What the microphone callback does with each quantum: the sinks it feeds, the volume, and whether the C++ observers
+    // get the quantum.
+    private var sinks: [(identifier: UInt64, sink: CaptureSink)] = []
+    private var gain: Float = 1
+    private var appliesGain = false
+    private var deliversToCxx = true
 
     init(_ kind: CaptureUnitKind, _ owner: consuming AudioUnitOwner) {
         self.kind = kind
@@ -170,7 +178,7 @@ final class CaptureUnit {
     func stop() -> OSStatus {
         if let mock {
             mock.stop()
-            renderState.returnCurrentSnapshotWhileStopped()
+            renderState.returnCurrentSnapshotsWhileStopped()
             return noErr
         }
         if let owner = stopped.take() {
@@ -184,7 +192,7 @@ final class CaptureUnit {
         switch unit.stop() {
         case .stopped(let owner):
             stopped = consume owner
-            renderState.returnCurrentSnapshotWhileStopped()
+            renderState.returnCurrentSnapshotsWhileStopped()
             return noErr
         case .running(let unit, let status):
             running = consume unit
@@ -209,7 +217,39 @@ final class CaptureUnit {
         case .speakerStartAcknowledged:
             precondition(value)
             renderState.acknowledgeSpeakerStart()
+        case .firstMicrophoneQuantumArmed:
+            precondition(value)
+            renderState.armFirstMicrophoneQuantum()
         }
+    }
+
+    // A sink detaches by identifier, even once C++ destroyed it.
+    func attachSink(_ identifier: UInt64, _ attach: Bool) {
+        let index = sinks.firstIndex { $0.identifier == identifier }
+        if attach == (index != nil) {
+            return
+        }
+        if let index {
+            sinks.remove(at: index)
+        } else {
+            guard let sink = captureSink(identifier) else {
+                return
+            }
+            sink.isAttachedToUnit = true
+            sinks.append((identifier, sink))
+        }
+        publishMicrophoneSnapshot()
+    }
+
+    func setMicrophoneOptions(gain: Float, appliesGain: Bool, deliversToCxx: Bool) {
+        self.gain = gain
+        self.appliesGain = appliesGain
+        self.deliversToCxx = deliversToCxx
+        publishMicrophoneSnapshot()
+    }
+
+    private func publishMicrophoneSnapshot() {
+        renderState.publishMicrophoneSnapshot(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx, sinks: sinks.map { $0.sink })
     }
 }
 
@@ -357,6 +397,7 @@ func audioCaptureUnitAllocateMicrophoneBuffers(_ identifier: UInt64, _ buffers: 
             byteCount: Int(buffers.bytesPerBuffer),
             channelsPerBuffer: buffers.channelsPerBuffer
         )
+        unit.renderState.setMicrophoneFormat(buffers.format)
         unit.renderState.setMicrophoneTiming(sampleRate: buffers.sampleRate, dtsConversionRatio: buffers.dtsConversionRatio)
         if let mock = unit.mock {
             mock.attachRender(unit.renderState)
@@ -468,11 +509,60 @@ func audioCaptureUnitCounters(_ identifier: UInt64) -> WebCore.AudioCaptureUnitC
     return counters
 }
 
+// What the microphone callback does with each quantum besides counting it: the volume (AudioSampleBufferList::applyGain(),
+// if appliesGain), and whether the C++ observers get it (deliverToCxxObservers()).
+@_expose(Cxx)
+func audioCaptureUnitSetMicrophoneOptions(_ identifier: UInt64, _ gain: Float, _ appliesGain: Bool, _ deliversToCxx: Bool) {
+    withCaptureUnit(identifier, ()) { $0.setMicrophoneOptions(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx) }
+}
+
+// The sinks a unit feeds, which C++ attaches again to each new unit.
+@_expose(Cxx)
+func audioCaptureUnitAttachSink(_ identifier: UInt64, _ sinkIdentifier: UInt64, _ attach: Bool) {
+    withCaptureUnit(identifier, ()) { $0.attachSink(sinkIdentifier, attach) }
+}
+
+// A producer, which stores the quanta of the given format into the ring that C++ then attaches (audioUnitAttachRing()), or
+// a peak (WebCore::AudioCaptureSink).
+@_expose(Cxx)
+func audioCaptureSinkCreate(_ isProducer: Bool, _ format: AudioStreamBasicDescription) -> UInt64 {
+    addCaptureSink(CaptureSink(isProducer: isProducer, format: format))
+}
+
+// Its ring goes first, so C++ can then free it and the semaphore.
+@_expose(Cxx)
+func audioCaptureSinkDestroy(_ identifier: UInt64) {
+    guard let sink = removeCaptureSink(identifier) else {
+        return
+    }
+    if sink.isProducer {
+        sink.detachRing()
+    }
+}
+
+// The main thread enables a sink while its source produces data.
+@_expose(Cxx)
+func audioCaptureSinkSetEnabled(_ identifier: UInt64, _ value: Bool) {
+    captureSink(identifier)?.setEnabled(value)
+}
+
+// A producer's first stored frame's MediaTime, once there's one, and the quanta it dropped because their format wasn't its.
+@_expose(Cxx)
+func audioCaptureSinkStatus(_ identifier: UInt64) -> WebCore.AudioCaptureSinkStatus {
+    captureSink(identifier)?.status() ?? WebCore.AudioCaptureSinkStatus()
+}
+
+// A peak's largest sample magnitude since the last call.
+@_expose(Cxx)
+func audioCaptureSinkTakePeak(_ identifier: UInt64) -> Float {
+    captureSink(identifier)?.takePeak() ?? 0
+}
+
 func takeCaptureUnitEvents(_ identifier: UInt64) -> UInt32? {
     guard let unit = captureUnit(identifier) else {
         return nil
     }
-    unit.renderState.collectRetiredSnapshot()
+    unit.renderState.collectRetiredSnapshots()
     return takeRenderStateEvents(unit.renderState)
 }
 

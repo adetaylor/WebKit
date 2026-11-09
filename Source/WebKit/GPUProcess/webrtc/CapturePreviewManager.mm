@@ -33,6 +33,7 @@
 #include "LayerHostingContext.h"
 #include "Logging.h"
 #include "RotationMonitoringReason.h"
+#include <WebCore/AudioOutputUnit.h>
 #include <WebCore/AudioStreamDescription.h>
 #include <WebCore/MediaDeviceHashSalts.h>
 #include <WebCore/RealtimeMediaSourceCenter.h>
@@ -159,7 +160,12 @@ void CapturePreviewManager::startAudioSource(const WebCore::CaptureDevice& devic
         return;
     }
 
-    protect(m_audioSource)->addAudioSampleObserver(*this);
+    // A microphone's capture unit keeps the peak on its IO thread instead.
+    if (protect(m_audioSource)->canHaveAudioCaptureSinks()) {
+        m_audioPeakSink = makeUnique<WebCore::AudioCaptureSink>(WebCore::AudioCaptureSink::Kind::Peak, AudioStreamBasicDescription { });
+        protect(m_audioSource)->addAudioCaptureSink(*m_audioPeakSink);
+    } else
+        protect(m_audioSource)->addAudioSampleObserver(*this);
     protect(m_audioSource)->start();
     m_audioLevelTimer.startRepeating(audioLevelInterval);
 }
@@ -284,7 +290,10 @@ void CapturePreviewManager::detachAudioSource()
 {
     m_audioLevelTimer.stop();
     if (RefPtr audioSource = WTF::move(m_audioSource)) {
-        audioSource->removeAudioSampleObserver(*this);
+        if (auto peakSink = WTF::move(m_audioPeakSink))
+            audioSource->removeAudioCaptureSink(*peakSink);
+        else
+            audioSource->removeAudioSampleObserver(*this);
         audioSource->endImmediatly();
     }
 }
@@ -370,6 +379,8 @@ void CapturePreviewManager::sendAudioLevel()
         Locker locker { m_audioLevelLock };
         peak = std::exchange(m_peakSinceLastLevel, 0);
     }
+    if (m_audioPeakSink)
+        peak = std::max(peak, m_audioPeakSink->takePeak());
 
     if (m_audioLevelHandler)
         m_audioLevelHandler(normalizedLevelFromPeak(peak));

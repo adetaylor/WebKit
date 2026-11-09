@@ -208,4 +208,170 @@ func zeroTrackOutput(_ output: inout IOBufferList, _ byteCount: UInt64) {
     }
 }
 
+// MARK: Stores
+
+// CARingBuffer::store(), in three steps that each caller runs with its own views of the ring and the source: the plan,
+// with the bounds to publish before the write; each channel's write (storeRingChannel()); and the bounds to publish after.
+// The capture unit's producer sink stores this way on its IO thread (AudioUnitIsland.swift), and so does the C++ store
+// (CARingBuffer.swift's caRingBufferStore()).
+struct RingStorePlan {
+    let layout: RingLayout
+    // Whether the store publishes boundsBefore before it writes: it goes backwards, or overwrites the oldest frames.
+    let publishesBoundsBefore: Bool
+    let boundsBefore: WebCore.CARingBufferBounds
+    let boundsAfter: WebCore.CARingBufferBounds
+    // The frames it skips, which it zeroes: zeroCount0 bytes from zeroOffset0, then zeroCount1 bytes from 0.
+    let zeroOffset0: UInt
+    let zeroCount0: UInt
+    let zeroCount1: UInt
+    // The frames it copies: copyCount0 bytes from copyOffset0, then copyCount1 bytes from 0, which come copyCount0 bytes
+    // into each source buffer.
+    let copyOffset0: UInt
+    let copyCount0: UInt
+    let copyCount1: UInt
+}
+
+private func ringBounds(_ startFrame: UInt64, _ endFrame: UInt64, _ writeAhead: UInt64) -> WebCore.CARingBufferBounds {
+    var bounds = WebCore.CARingBufferBounds()
+    bounds.startFrame = startFrame
+    bounds.endFrame = endFrame
+    bounds.writeAhead = writeAhead
+    return bounds
+}
+
+// The plan of a store of frameCount frames from startFrame, or none: a store of no frames writes nothing, and one of more
+// frames than the ring holds is CARingBuffer::TooMuch.
+func planRingStore(
+    _ geometry: WebCore.CARingBufferGeometry,
+    _ storeBounds: WebCore.CARingBufferBounds,
+    _ frameCount: UInt64,
+    _ startFrame: UInt64,
+    _ writeAhead: UInt64
+) -> RingStorePlan? {
+    let layout = RingLayout(geometry)
+    if frameCount == 0 || frameCount > UInt64(layout.frameCount) {
+        return nil
+    }
+    let endFrame = startFrame &+ frameCount
+    var publishesBoundsBefore = false
+    var bounds = storeBounds
+    if startFrame < bounds.startFrame {
+        // Throw everything out when going backwards.
+        bounds = ringBounds(startFrame, startFrame, 0)
+        publishesBoundsBefore = true
+    } else if endFrame &- bounds.startFrame > UInt64(layout.frameCount) {
+        // Advance the start past the frames about to be overwritten, one buffer of time behind where this writes.
+        let newStartFrame = endFrame &- UInt64(layout.frameCount)
+        bounds = ringBounds(newStartFrame, bounds.endFrame < newStartFrame ? newStartFrame : bounds.endFrame, 0)
+        publishesBoundsBefore = true
+    }
+
+    var zeroOffset0: UInt = 0
+    var zeroCount0: UInt = 0
+    var zeroCount1: UInt = 0
+    var offset0: UInt
+    if startFrame > bounds.endFrame {
+        // Zero the frames this skips.
+        offset0 = layout.frameOffset(bounds.endFrame)
+        let offset1 = layout.frameOffset(startFrame)
+        zeroOffset0 = offset0
+        if offset0 < offset1 {
+            zeroCount0 = offset1 &- offset0
+        } else {
+            zeroCount0 = layout.capacityBytes &- offset0
+            zeroCount1 = offset1
+        }
+        offset0 = offset1
+    } else {
+        offset0 = layout.frameOffset(startFrame)
+    }
+    let offset1 = layout.frameOffset(endFrame)
+    let copyCount0 = offset0 < offset1 ? offset1 &- offset0 : layout.capacityBytes &- offset0
+    let copyCount1 = offset0 < offset1 ? 0 : offset1
+    // Each channel's ranges, as the C++'s subspan() checks them.
+    if layout.channelCount != 0 {
+        precondition(zeroOffset0 <= layout.capacityBytes && zeroCount0 <= layout.capacityBytes &- zeroOffset0)
+        precondition(zeroCount1 <= layout.capacityBytes)
+        precondition(offset0 <= layout.capacityBytes && copyCount0 <= layout.capacityBytes &- offset0)
+        precondition(copyCount1 <= layout.capacityBytes)
+    }
+    return RingStorePlan(
+        layout: layout,
+        publishesBoundsBefore: publishesBoundsBefore,
+        boundsBefore: bounds,
+        boundsAfter: ringBounds(bounds.startFrame, endFrame, writeAhead),
+        zeroOffset0: zeroOffset0,
+        zeroCount0: zeroCount0,
+        zeroCount1: zeroCount1,
+        copyOffset0: offset0,
+        copyCount0: copyCount0,
+        copyCount1: copyCount1
+    )
+}
+
+// One channel's write of a store: zeroes the frames it skips, then copies the source buffer's bytes, zeroing what the
+// buffer doesn't cover. Where the channel's bytes are among all the channels' bytes is checked as they are written.
+func storeRingChannel(_ plan: RingStorePlan, _ channels: inout IOBytes, _ channel: UInt32, _ source: borrowing IOConstBytes) {
+    let channelStart = zeroSkippedRingFrames(plan, &channels, channel)
+    storeRingBytes(&channels, channelStart &+ Int(truncatingIfNeeded: plan.copyOffset0), source, 0, plan.copyCount0)
+    storeRingBytes(&channels, channelStart, source, plan.copyCount0, plan.copyCount1)
+}
+
+// The write of a channel without a source buffer, which zeroes its frames.
+func zeroRingChannel(_ plan: RingStorePlan, _ channels: inout IOBytes, _ channel: UInt32) {
+    let channelStart = zeroSkippedRingFrames(plan, &channels, channel)
+    channels.zero(at: channelStart &+ Int(truncatingIfNeeded: plan.copyOffset0), count: Int(plan.copyCount0))
+    channels.zero(at: channelStart, count: Int(plan.copyCount1))
+}
+
+private func zeroSkippedRingFrames(_ plan: RingStorePlan, _ channels: inout IOBytes, _ channel: UInt32) -> Int {
+    let channelStart = Int(truncatingIfNeeded: UInt(channel) &* plan.layout.capacityBytes)
+    channels.zero(at: channelStart &+ Int(truncatingIfNeeded: plan.zeroOffset0), count: Int(plan.zeroCount0))
+    channels.zero(at: channelStart, count: Int(plan.zeroCount1))
+    return channelStart
+}
+
+private func storeRingBytes(_ channels: inout IOBytes, _ start: Int, _ source: borrowing IOConstBytes, _ sourceOffset: UInt, _ byteCount: UInt) {
+    var copied: UInt = 0
+    let available = UInt(source.count)
+    if sourceOffset <= available {
+        copied = audioMinimum(byteCount, available &- sourceOffset)
+        channels.copy(from: source, at: Int(sourceOffset), to: start, count: Int(copied))
+    }
+    channels.zero(at: start &+ Int(copied), count: Int(byteCount &- copied))
+}
+
+// The capture unit's producer sink (AudioUnitIsland.swift): stores frameCount frames of each source buffer from
+// startFrame into the ring, as CARingBuffer::store() does. False for CARingBuffer::TooMuch.
+func storeRingQuantum(
+    _ geometry: WebCore.CARingBufferGeometry,
+    _ header: inout IORingHeader,
+    _ channels: inout IOBytes,
+    _ storeBounds: inout WebCore.CARingBufferBounds,
+    _ sources: borrowing IOSourceBuffers,
+    _ frameCount: UInt64,
+    _ startFrame: UInt64
+) -> Bool {
+    guard let plan = planRingStore(geometry, storeBounds, frameCount, startFrame, 0) else {
+        return frameCount == 0
+    }
+    assert(sources.count == Int(plan.layout.channelCount))
+    if plan.publishesBoundsBefore {
+        header.store(plan.boundsBefore)
+        storeBounds = plan.boundsBefore
+    }
+    var channel: UInt32 = 0
+    while channel < plan.layout.channelCount {
+        if Int(channel) < sources.count {
+            storeRingChannel(plan, &channels, channel, sources.bytes(Int(channel)))
+        } else {
+            zeroRingChannel(plan, &channels, channel)
+        }
+        channel &+= 1
+    }
+    header.store(plan.boundsAfter)
+    storeBounds = plan.boundsAfter
+    return true
+}
+
 #endif // ENABLE_WEBCORE_SWIFT

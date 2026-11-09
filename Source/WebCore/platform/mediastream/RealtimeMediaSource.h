@@ -81,6 +81,7 @@ class MediaTime;
 
 namespace WebCore {
 
+class AudioCaptureSink;
 class AudioStreamDescription;
 class FloatRect;
 struct MediaConstraintsEvaluation;
@@ -180,6 +181,18 @@ public:
 
     WEBCORE_EXPORT void addAudioSampleObserver(AudioSampleObserver&);
     WEBCORE_EXPORT void removeAudioSampleObserver(AudioSampleObserver&);
+    bool hasAudioSampleObservers() const;
+
+    // A consumer of the source's audio that its capture unit feeds on its IO thread, instead of an AudioSampleObserver
+    // (CoreAudioCaptureSource). The caller removes the sink before destroying it.
+    virtual bool canHaveAudioCaptureSinks() const { return false; }
+    virtual void addAudioCaptureSink(AudioCaptureSink&) { }
+    virtual void removeAudioCaptureSink(AudioCaptureSink&) { }
+
+    // Main thread: whether the source delivered a sample since it was created, and what delivering the first one does, for
+    // a source whose capture unit doesn't deliver to the C++ observers.
+    bool didStartProducingData() const { return m_hasStartedProducingData; }
+    void noteStartedProducingData() { updateHasStartedProducingData(); }
 
     WEBCORE_EXPORT void addVideoFrameObserver(VideoFrameObserver&);
     WEBCORE_EXPORT void addVideoFrameObserver(VideoFrameObserver&, IntSize, double);
@@ -316,6 +329,9 @@ protected:
     RealtimeMediaSource(const CaptureDevice&, MediaDeviceHashSalts&& hashSalts = { }, std::optional<PageIdentifier> = std::nullopt);
 
     void scheduleDeferredTask(Function<void()>&&);
+
+    // Main thread: once an audio sample observer was added or removed.
+    virtual void audioSampleObserversChanged() { }
 
     virtual void startApplyingConstraints() { }
     virtual void endApplyingConstraints() { }

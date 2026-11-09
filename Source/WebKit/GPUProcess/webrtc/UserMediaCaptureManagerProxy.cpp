@@ -36,6 +36,7 @@
 #include "SharedPreferencesForWebProcess.h"
 #include "UserMediaCaptureManagerMessages.h"
 #include "UserMediaCaptureManagerProxyMessages.h"
+#include <WebCore/AudioOutputUnit.h>
 #include <WebCore/AudioSession.h>
 #include <WebCore/AudioUtilities.h>
 #include <WebCore/CARingBuffer.h>
@@ -82,7 +83,10 @@ public:
 
         switch (m_source->type()) {
         case RealtimeMediaSource::Type::Audio:
-            m_source->removeAudioSampleObserver(*this);
+            if (m_usesAudioSink)
+                removeAudioSink();
+            else
+                m_source->removeAudioSampleObserver(*this);
             break;
         case RealtimeMediaSource::Type::Video:
             m_source->removeVideoFrameObserver(*this);
@@ -98,7 +102,13 @@ public:
 
         switch (m_source->type()) {
         case RealtimeMediaSource::Type::Audio:
-            m_source->addAudioSampleObserver(*this);
+            if (m_usesAudioSink) {
+                if (!m_audioSink)
+                    prepareAudioSink(m_source->audioStreamDescription());
+                else
+                    m_source->addAudioCaptureSink(*m_audioSink);
+            } else
+                m_source->addAudioSampleObserver(*this);
             break;
         case RealtimeMediaSource::Type::Video:
             if (m_widthConstraint || m_heightConstraint || m_frameRateConstraint)
@@ -151,7 +161,9 @@ public:
         m_source->start();
 
         if (m_source->type() == RealtimeMediaSource::Type::Audio) {
-            if (auto* description = m_source->audioStreamDescription())
+            if (m_usesAudioSink)
+                prepareAudioSink(m_source->audioStreamDescription());
+            else if (auto* description = m_source->audioStreamDescription())
                 prepareAudioDescription(*description);
         }
 
@@ -347,6 +359,7 @@ private:
     {
         m_source->addObserver(*this);
         m_source->setCanUseIOSurface();
+        m_usesAudioSink = m_source->type() == RealtimeMediaSource::Type::Audio && m_source->canHaveAudioCaptureSinks();
     }
 
     // CheckedPtr interface
@@ -398,6 +411,52 @@ private:
         auto [ringBuffer, audioHandle] = WTF::move(*result);
         m_ringBuffer = WTF::move(ringBuffer);
         m_audioHandle = WTF::move(audioHandle);
+    }
+
+    // The sink the capture unit stores into the ring with on its IO thread, instead of audioSamplesAvailable() (DEV-CAP-1:
+    // the ring and the semaphore are made here, on the main thread). Without a format yet, the sink waits for the unit's.
+    // The old sink goes first, as its removal waits for the IO thread to finish with the old ring and semaphore.
+    void prepareAudioSink(const AudioStreamDescription* description)
+    {
+        ASSERT(isMainRunLoop());
+        removeAudioSink();
+        std::optional<AudioStreamBasicDescription> format;
+        if (description) {
+            prepareAudioDescription(*description);
+            m_frameChunkSize = std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize());
+            format = m_description->streamDescription();
+        }
+        m_audioSink = makeUnique<WebCore::AudioCaptureSink>(WebCore::AudioCaptureSink::Kind::Producer, format.value_or(AudioStreamBasicDescription { }));
+        if (format)
+            m_audioSink->attachRing(*m_ringBuffer, m_captureSemaphore->machSemaphore(), m_frameChunkSize);
+        m_audioSink->setStartedHandler([weakThis = WeakPtr { *this }](int64_t value, uint32_t scale) {
+            if (RefPtr protectedThis = weakThis.get())
+                protectedThis->audioSinkStarted(MediaTime { value, scale });
+        });
+        m_audioSink->setFormatChangedHandler([weakThis = WeakPtr { *this }] {
+            if (RefPtr protectedThis = weakThis.get(); protectedThis && protectedThis->m_audioSink)
+                protectedThis->prepareAudioSink(protectedThis->m_source->audioStreamDescription());
+        });
+        if (m_isObservingMedia)
+            m_source->addAudioCaptureSink(*m_audioSink);
+    }
+
+    void removeAudioSink()
+    {
+        if (!m_audioSink)
+            return;
+        m_source->removeAudioCaptureSink(*m_audioSink);
+        m_audioSink = nullptr;
+    }
+
+    // The first quantum the sink stored: the ring's start time, as audioSamplesAvailable() reset the storage.
+    void audioSinkStarted(const MediaTime& time)
+    {
+        if (!m_audioHandle)
+            return;
+        m_startTime = time;
+        m_connection->send(Messages::RemoteCaptureSampleManager::AudioStorageChanged(m_id, WTF::move(*m_audioHandle), *m_description, *m_captureSemaphore, m_startTime, m_frameChunkSize), 0);
+        m_audioHandle = { };
     }
 
     // May get called on a background thread.
@@ -456,6 +515,9 @@ private:
     bool m_isStopped { false };
     bool m_isEnded { false };
     std::atomic<bool> m_shouldReset { false };
+    // A microphone of the GPU process stores into the ring on its IO thread (WebCore::AudioCaptureSink).
+    bool m_usesAudioSink { false };
+    std::unique_ptr<WebCore::AudioCaptureSink> m_audioSink;
 
     RealtimeMediaSourceIdentifier m_id;
     const Ref<IPC::Connection> m_connection;

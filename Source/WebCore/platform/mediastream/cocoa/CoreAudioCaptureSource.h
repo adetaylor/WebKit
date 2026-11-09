@@ -69,6 +69,9 @@ public:
 #endif
     void echoCancellationChanged();
 
+    // The sinks its capture unit feeds while it produces data (AudioCaptureSink).
+    const Vector<WeakPtr<AudioCaptureSink>>& audioCaptureSinks() const LIFETIME_BOUND { return m_audioCaptureSinks; }
+
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
     virtual ~CoreAudioCaptureSource();
 
@@ -84,6 +87,10 @@ private:
     friend class CoreAudioCaptureSourceFactory;
 
     bool isCaptureSource() const final { return true; }
+    bool canHaveAudioCaptureSinks() const final { return true; }
+    void addAudioCaptureSink(AudioCaptureSink&) final;
+    void removeAudioCaptureSink(AudioCaptureSink&) final;
+    void audioSampleObserversChanged() final;
     void startProducingData() final;
     void stopProducingData() final;
     void endProducingData() final;
@@ -126,6 +133,7 @@ private:
     bool m_echoCancellationChanging { false };
 
     std::optional<bool> m_echoCancellationCapability;
+    Vector<WeakPtr<AudioCaptureSink>> m_audioCaptureSinks;
 };
 
 class CoreAudioSpeakerSamplesProducer {

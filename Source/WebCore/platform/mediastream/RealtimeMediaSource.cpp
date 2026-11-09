@@ -137,15 +137,27 @@ void RealtimeMediaSource::initializeIds()
 void RealtimeMediaSource::addAudioSampleObserver(AudioSampleObserver& observer)
 {
     ASSERT(isMainThread());
-    Locker locker { m_audioSampleObserversLock };
-    m_audioSampleObservers.add(&observer);
+    {
+        Locker locker { m_audioSampleObserversLock };
+        m_audioSampleObservers.add(&observer);
+    }
+    audioSampleObserversChanged();
 }
 
 void RealtimeMediaSource::removeAudioSampleObserver(AudioSampleObserver& observer)
 {
     ASSERT(isMainThread());
+    {
+        Locker locker { m_audioSampleObserversLock };
+        m_audioSampleObservers.remove(&observer);
+    }
+    audioSampleObserversChanged();
+}
+
+bool RealtimeMediaSource::hasAudioSampleObservers() const
+{
     Locker locker { m_audioSampleObserversLock };
-    m_audioSampleObservers.remove(&observer);
+    return !m_audioSampleObservers.isEmpty();
 }
 
 void RealtimeMediaSource::addVideoFrameObserver(VideoFrameObserver& observer)

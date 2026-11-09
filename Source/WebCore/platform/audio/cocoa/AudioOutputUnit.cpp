@@ -35,6 +35,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/TZoneMallocInlines.h>
 
 #if PLATFORM(IOS_FAMILY)
 #include "AudioSession.h"
@@ -266,9 +267,10 @@ auto AudioCaptureUnitHandle::configureMicrophone(double sampleRate) -> Format
     return captureUnitFormat(audioCaptureUnitConfigureMicrophone(m_identifier, sampleRate));
 }
 
-void AudioCaptureUnitHandle::allocateMicrophoneBuffers(const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio)
+void AudioCaptureUnitHandle::allocateMicrophoneBuffers(const AudioStreamBasicDescription& format, const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio)
 {
     AudioCaptureMicrophoneBuffers buffers;
+    buffers.format = format;
     auto sizeBuffers = span(sizes);
     buffers.bufferCount = sizeBuffers.size();
     if (!sizeBuffers.empty()) {
@@ -325,6 +327,16 @@ void AudioCaptureUnitHandle::attach(void* deliveryContext, const AudioTrackPlayo
     audioUnitAttachRing(m_identifier, attachment);
 }
 
+void AudioCaptureUnitHandle::attachSink(uint64_t sinkIdentifier, bool attach)
+{
+    audioCaptureUnitAttachSink(m_identifier, sinkIdentifier, attach);
+}
+
+void AudioCaptureUnitHandle::setMicrophoneOptions(float gain, bool appliesGain, bool deliversToCxx)
+{
+    audioCaptureUnitSetMicrophoneOptions(m_identifier, gain, appliesGain, deliversToCxx);
+}
+
 OSStatus AudioCaptureUnitHandle::renderSpeakerForTesting(AudioBufferList& list, uint32_t frameCount, double sampleTime, AudioUnitRenderActionFlags* actionFlags)
 {
     AudioUnitRenderActionFlags flags = 0;
@@ -362,6 +374,90 @@ void AudioCaptureUnitHandle::setMockPaused(bool paused)
 void AudioCaptureUnitHandle::setMockIncreaseBufferSize(bool value)
 {
     audioCaptureUnitSetMockIncreaseBufferSize(value);
+}
+
+WTF_MAKE_TZONE_ALLOCATED_IMPL(AudioCaptureSink);
+
+AudioCaptureSink::AudioCaptureSink(Kind kind, const AudioStreamBasicDescription& format)
+    : m_kind(kind)
+    , m_format(format)
+    , m_identifier(audioCaptureSinkCreate(kind == Kind::Producer, format))
+{
+}
+
+AudioCaptureSink::~AudioCaptureSink()
+{
+    audioCaptureSinkDestroy(m_identifier);
+}
+
+void AudioCaptureSink::attachRing(CARingBuffer& ring, uint32_t semaphore, uint64_t frameChunkSize)
+{
+    ASSERT(m_kind == Kind::Producer);
+    AudioOutputUnitRingAttachment attachment;
+    attachment.geometry = ring.geometry();
+    attachment.header = &ring.boundsStorage();
+    attachment.channels = ring.channelData().data();
+    attachment.channelsByteCount = ring.channelData().size();
+    attachment.semaphore = semaphore;
+    attachment.frameChunkSize = frameChunkSize;
+    audioUnitAttachRing(m_identifier, attachment);
+}
+
+std::optional<std::pair<int64_t, uint32_t>> AudioCaptureSink::startTime() const
+{
+    auto status = audioCaptureSinkStatus(m_identifier);
+    if (!status.hasStartTime)
+        return std::nullopt;
+    return std::pair { status.startTimeValue, status.startTimeScale };
+}
+
+uint64_t AudioCaptureSink::droppedQuantumCount() const
+{
+    return audioCaptureSinkStatus(m_identifier).droppedQuantumCount;
+}
+
+uint64_t AudioCaptureSink::takeNewDroppedQuantumCount()
+{
+    auto count = droppedQuantumCount();
+    return count - std::exchange(m_reportedDroppedQuantumCount, count);
+}
+
+float AudioCaptureSink::takePeak()
+{
+    return audioCaptureSinkTakePeak(m_identifier);
+}
+
+void AudioCaptureSink::setEnabled(bool value)
+{
+    audioCaptureSinkSetEnabled(m_identifier, value);
+}
+
+void AudioCaptureSink::setStartedHandler(Function<void(int64_t, uint32_t)>&& handler)
+{
+    m_startedHandler = WTF::move(handler);
+}
+
+void AudioCaptureSink::setFormatChangedHandler(Function<void()>&& handler)
+{
+    m_formatChangedHandler = WTF::move(handler);
+}
+
+void AudioCaptureSink::notifyStartedIfNeeded()
+{
+    if (m_hasNotifiedStart || m_kind != Kind::Producer)
+        return;
+    auto time = startTime();
+    if (!time)
+        return;
+    m_hasNotifiedStart = true;
+    if (m_startedHandler)
+        m_startedHandler(time->first, time->second);
+}
+
+void AudioCaptureSink::notifyFormatChanged()
+{
+    if (m_formatChangedHandler)
+        m_formatChangedHandler();
 }
 #else
 // AudioCaptureUnit.swift's microphone callback and voice activity listener, without capture units.

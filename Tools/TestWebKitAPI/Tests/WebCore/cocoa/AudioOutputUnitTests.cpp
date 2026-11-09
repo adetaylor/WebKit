@@ -33,10 +33,13 @@
 #include <WebCore/AudioOutputUnit.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CARingBuffer.h>
+#include <bit>
 #include <mach/mach.h>
+#include <numbers>
 #include <random>
 #include <wtf/FixedVector.h>
 #include <wtf/MainThread.h>
+#include <wtf/NeverDestroyed.h>
 #include <wtf/Threading.h>
 #include <wtf/Vector.h>
 
@@ -510,6 +513,104 @@ TEST_F(AudioOutputUnitTest, TrackRendererResetsOnTheMainThreadWhenItsTimelineJum
         Util::runFor(10_ms);
     EXPECT_EQ(resets, 2u);
 }
+
+#if ENABLE(MEDIA_STREAM)
+
+// The samples of the mock capture unit with echo cancellation at 44100 Hz, as MockAudioCaptureInternalUnit made them: the
+// bip-bop of reconfigure() plus generateSampleBuffers()'s hum, from frame 0.
+static constexpr int mockCaptureRate = 44100;
+
+// addHum()'s sample at index.
+static float mockCaptureHum(float amplitude, float frequency, uint64_t index)
+{
+    constexpr double tau = 2 * std::numbers::pi;
+    float humPeriod = static_cast<float>(mockCaptureRate) / frequency;
+    return amplitude * sin(index * tau / humPeriod);
+}
+
+static float mockCaptureSample(uint64_t frame)
+{
+    constexpr int rate = mockCaptureRate;
+    auto hum = mockCaptureHum;
+    static NeverDestroyed<Vector<float>> bipBop = [] {
+        auto hum = mockCaptureHum;
+        Vector<float> samples(FillWith { }, static_cast<size_t>(2 * rate), 0.f);
+        size_t bipBopSampleCount = ceil(0.07 * rate);
+        for (size_t i = 0; i < bipBopSampleCount; ++i) {
+            samples[i] += hum(0.5, 1500, i);
+            samples[rate + i] += hum(0.5, 500, i);
+        }
+        return samples;
+    }();
+    float sample = bipBop.get()[frame % bipBop->size()];
+    sample += hum(0.1, 150, frame);
+    return sample;
+}
+
+TEST_F(AudioOutputUnitTest, CaptureSinksStoreAndMeasureWhatTheMockCaptures)
+{
+    AudioCaptureUnitHandle::setMockIncreaseBufferSize(false);
+    auto creation = AudioCaptureUnitHandle::create(AudioCaptureUnitHandle::Kind::MockWithEchoCancellation);
+    ASSERT_TRUE(!!creation.unit);
+    auto& unit = *creation.unit;
+    auto microphone = unit.configureMicrophone(44100);
+    ASSERT_TRUE(!!microphone.format);
+    TestBufferList sizes { { 8192, 8192 } };
+    unit.allocateMicrophoneBuffers(*microphone.format, sizes.list(), 44100, 1e-9);
+    ASSERT_TRUE(!!unit.configureSpeaker(44100, std::nullopt).format);
+    ASSERT_EQ(unit.initialize(), noErr);
+    unit.attach(nullptr, nullptr);
+    unit.configureMock(0, 512);
+    unit.setSwitch(AudioCaptureUnitHandle::Switch::ProducingMicrophoneSamples, true);
+
+    constexpr uint64_t frameChunkSize = 441;
+    auto ring = makeRing(2, 16384);
+    auto producerSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Producer, *microphone.format);
+    auto& producer = *producerSink;
+    producer.attachRing(*ring, semaphore(), frameChunkSize);
+    auto peakSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Peak, *microphone.format);
+    auto& peak = *peakSink;
+    for (auto* sink : { &producer, &peak }) {
+        unit.attachSink(sink->identifier(), true);
+        sink->setEnabled(true);
+    }
+    constexpr float gain = 0.5;
+    unit.setMicrophoneOptions(gain, true, false);
+
+    ASSERT_EQ(unit.start(), noErr);
+    for (unsigned i = 0; i < 300 && ring->getFetchTimeBounds().endFrame < 4410; ++i)
+        Util::runFor(10_ms);
+    EXPECT_EQ(unit.stop(), noErr);
+
+    auto bounds = ring->getFetchTimeBounds();
+    ASSERT_GE(bounds.endFrame, 4410u);
+    auto startTime = producer.startTime();
+    ASSERT_TRUE(!!startTime);
+    EXPECT_EQ(startTime->first, 0);
+    EXPECT_EQ(startTime->second, 44100u);
+    EXPECT_EQ(producer.droppedQuantumCount(), 0u);
+    EXPECT_EQ(takeSignals(), bounds.endFrame / frameChunkSize);
+
+    TestBufferList stored { { 4410 * sizeof(float), 4410 * sizeof(float) } };
+    runOffMainThread([&] {
+        ring->fetch(&stored.list(), 4410, 0);
+    });
+    float expectedPeak = 0;
+    for (uint64_t frame = 0; frame < bounds.endFrame; ++frame) {
+        float expected = mockCaptureSample(frame);
+        vDSP_vsmul(&expected, 1, &gain, &expected, 1, 1);
+        expectedPeak = std::max(expectedPeak, std::abs(expected));
+        if (frame >= 4410)
+            continue;
+        for (uint32_t channel = 0; channel < 2; ++channel)
+            EXPECT_EQ(std::bit_cast<uint32_t>(stored.sample(channel, frame)), std::bit_cast<uint32_t>(expected)) << "frame " << frame << " channel " << channel;
+        if (::testing::Test::HasFailure())
+            return;
+    }
+    EXPECT_EQ(std::bit_cast<uint32_t>(peak.takePeak()), std::bit_cast<uint32_t>(expectedPeak));
+}
+
+#endif // ENABLE(MEDIA_STREAM)
 
 } // namespace TestWebKitAPI
 

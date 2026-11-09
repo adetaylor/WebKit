@@ -33,12 +33,16 @@
 #include <wtf/Function.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/OptionSet.h>
+#include <wtf/CheckedPtr.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/TZoneMalloc.h>
+#include <wtf/WeakPtr.h>
 
 OBJC_CLASS CASpatialAudioExperience;
 
 namespace WebCore {
 
+class AudioCaptureSink;
 class AudioTrackPlayout;
 class CARingBuffer;
 
@@ -78,6 +82,8 @@ public:
         TimelineDiscontinuity = 1 << 0,
         SpeakerStarting = 1 << 1,
         MicrophoneBufferTooSmall = 1 << 2,
+        FirstMicrophoneQuantum = 1 << 3,
+        SinkStarted = 1 << 4,
     };
     WEBCORE_EXPORT void setEventHandler(Function<void(OptionSet<Event>)>&&);
 
@@ -145,6 +151,7 @@ public:
         ProducingMicrophoneSamples,
         Reconfiguring,
         SpeakerStartAcknowledged,
+        FirstMicrophoneQuantumArmed,
     };
 
     // A unit, or the status of the step that failed (-1: finding the component). On macOS, a voice processing unit may be
@@ -178,15 +185,15 @@ public:
         OSStatus status { noErr };
         uint32_t failedStep { 0 };
     };
-    Format configureMicrophone(double sampleRate);
-    // Buffers of the sizes of the list's, which the microphone renders into.
-    void allocateMicrophoneBuffers(const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio);
+    WEBCORE_EXPORT Format configureMicrophone(double sampleRate);
+    // Buffers of the sizes of the list's, which the microphone renders into in the given format.
+    WEBCORE_EXPORT void allocateMicrophoneBuffers(const AudioStreamBasicDescription&, const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio);
     WEBCORE_EXPORT Format configureSpeaker(double sampleRate, const std::optional<AudioStreamBasicDescription>& producerFormat);
 
-    OSStatus initialize();
+    WEBCORE_EXPORT OSStatus initialize();
     OSStatus uninitialize();
-    OSStatus start();
-    OSStatus stop();
+    WEBCORE_EXPORT OSStatus start();
+    WEBCORE_EXPORT OSStatus stop();
 
     WEBCORE_EXPORT void setSwitch(Switch, bool);
 #if HAVE(VOICEACTIVITYDETECTION) && !PLATFORM(MAC)
@@ -196,6 +203,11 @@ public:
     // The context the microphone hands its quanta to (deliverToCxxObservers()), which stays the same for the unit's life,
     // and the track the speaker plays out (or none), which may change while the unit runs.
     WEBCORE_EXPORT void attach(void* deliveryContext, const AudioTrackPlayout*);
+
+    // What the microphone does with each quantum besides counting it: the sinks it feeds, the volume (if appliesGain), and
+    // whether the C++ observers get it. They may change while the unit runs.
+    WEBCORE_EXPORT void attachSink(uint64_t sinkIdentifier, bool);
+    WEBCORE_EXPORT void setMicrophoneOptions(float gain, bool appliesGain, bool deliversToCxx);
 
     // Tests only, off the main thread, while the main thread leaves the unit alone: renders one quantum into the list by
     // calling the unit's speaker callback directly.
@@ -210,9 +222,9 @@ public:
     void setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&&);
 
     // A mock's device sample rate (0: none) and the buffer size its quanta follow; pausing and resuming its quanta.
-    void configureMock(double deviceSampleRate, size_t bufferSize);
+    WEBCORE_EXPORT void configureMock(double deviceSampleRate, size_t bufferSize);
     void setMockPaused(bool);
-    static void setMockIncreaseBufferSize(bool);
+    WEBCORE_EXPORT static void setMockIncreaseBufferSize(bool);
 
 private:
     AudioCaptureUnitHandle(uint64_t identifier, Kind);
@@ -222,6 +234,56 @@ private:
     const Kind m_kind;
     bool m_isDestroyed { false };
     Function<void(OptionSet<AudioOutputUnit::Event>)> m_eventHandler;
+};
+
+// What a GPU-process consumer of a capture source takes from each microphone quantum on the capture unit's IO thread,
+// instead of an AudioSampleObserver (AudioUnitIsland.swift's CaptureSink): a producer stores the quanta of its format into a
+// ring the web process reads and signals a semaphore for each chunk of frames; a peak keeps the largest sample magnitude.
+// Main thread only.
+class AudioCaptureSink : public CanMakeWeakPtr<AudioCaptureSink>, public CanMakeCheckedPtr<AudioCaptureSink> {
+    WTF_MAKE_NONCOPYABLE(AudioCaptureSink);
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(AudioCaptureSink, WEBCORE_EXPORT);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(AudioCaptureSink);
+public:
+    enum class Kind : bool { Producer, Peak };
+    WEBCORE_EXPORT AudioCaptureSink(Kind, const AudioStreamBasicDescription& format);
+    // Waits for the IO thread to finish a write into the ring, so the ring and the semaphore can go once it returns.
+    WEBCORE_EXPORT ~AudioCaptureSink();
+
+    // A producer, before a source has it: the ring it writes from frame 0, and the semaphore it signals for each chunk of
+    // frameChunkSize frames. The caller keeps them alive until it destroys the sink.
+    WEBCORE_EXPORT void attachRing(CARingBuffer&, uint32_t semaphore, uint64_t frameChunkSize);
+
+    Kind kind() const { return m_kind; }
+    const AudioStreamBasicDescription& format() const LIFETIME_BOUND { return m_format; }
+    uint64_t identifier() const { return m_identifier; }
+
+    // A producer's first stored frame's MediaTime, once there's one (Event::SinkStarted), and the quanta it dropped because
+    // their format wasn't its.
+    WEBCORE_EXPORT std::optional<std::pair<int64_t, uint32_t>> startTime() const;
+    WEBCORE_EXPORT uint64_t droppedQuantumCount() const;
+    // The quanta dropped since the last call.
+    uint64_t takeNewDroppedQuantumCount();
+    // A peak's largest sample magnitude since the last call.
+    WEBCORE_EXPORT float takePeak();
+
+    WEBCORE_EXPORT void setEnabled(bool);
+
+    // Called by the capture source on the main thread: once the producer stored its first frame, and when the microphone's
+    // format changes from the sink's.
+    WEBCORE_EXPORT void setStartedHandler(Function<void(int64_t value, uint32_t scale)>&&);
+    WEBCORE_EXPORT void setFormatChangedHandler(Function<void()>&&);
+    void notifyStartedIfNeeded();
+    void notifyFormatChanged();
+
+private:
+    const Kind m_kind;
+    const AudioStreamBasicDescription m_format;
+    const uint64_t m_identifier;
+    bool m_hasNotifiedStart { false };
+    uint64_t m_reportedDroppedQuantumCount { 0 };
+    Function<void(int64_t, uint32_t)> m_startedHandler;
+    Function<void()> m_formatChangedHandler;
 };
 
 template<typename T> OSStatus AudioCaptureUnitHandle::setSmallProperty(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, const T& value)

@@ -303,6 +303,8 @@ OSStatus CoreAudioCaptureUnit::setupAudioUnit()
     m_ioUnit->setSwitch(AudioCaptureUnitHandle::Switch::Reconfiguring, m_isReconfiguring);
     m_ioUnit->setSwitch(AudioCaptureUnitHandle::Switch::ProducingMicrophoneSamples, isProducingMicrophoneSamples());
     attachSpeakerSamplesProducer();
+    m_attachedSinkIdentifiers.clear();
+    updateMicrophoneConfiguration();
     if (m_ioUnit->isMock())
         m_ioUnit->configureMock(0, preferredIOBufferSize());
 
@@ -444,7 +446,17 @@ OSStatus CoreAudioCaptureUnit::configureMicrophoneProc(int sampleRate)
     }
     m_microphoneSampleBuffer = AudioSampleBufferList::create(microphoneProcFormat, bufferSize * 2);
     m_microphoneProcFormat = microphoneProcFormat;
-    m_ioUnit->allocateMicrophoneBuffers(*m_microphoneSampleBuffer->bufferList().list(), m_microphoneProcFormat->sampleRate(), m_DTSConversionRatio);
+    m_ioUnit->allocateMicrophoneBuffers(microphoneProcFormat, *m_microphoneSampleBuffer->bufferList().list(), m_microphoneProcFormat->sampleRate(), m_DTSConversionRatio);
+
+    // Sinks of another format would drop the quanta: their owners give them rings in this one, before the unit starts.
+    Vector<WeakPtr<AudioCaptureSink>> sinks;
+    forEachClient([&](auto& client) {
+        sinks.appendVector(client.audioCaptureSinks());
+    });
+    for (auto& weakSink : sinks) {
+        if (auto* sink = weakSink.get(); sink && !(sink->format() == microphoneProcFormat))
+            sink->notifyFormatChanged();
+    }
 
     return noErr;
 }
@@ -507,9 +519,7 @@ void CoreAudioCaptureUnit::deliverMicrophoneSamples(const AudioBufferList& list,
     m_latestMicTimeStamp = times.sampleTime;
     microphoneSampleBuffer->setTimes(times.bufferTimestamp, times.bufferHostTime);
 
-    if (volume() != 1.0)
-        microphoneSampleBuffer->applyGain(volume());
-
+    // The Swift microphone callback applied the volume.
     audioSamplesAvailable(MediaTime(times.mediaTimeValue, times.mediaTimeScale), microphoneSampleBuffer->bufferList(), *m_microphoneProcFormat, frameCount);
 }
 
@@ -527,6 +537,22 @@ void CoreAudioCaptureUnit::handleUnitEvents(uint32_t rawEvents)
         if (m_ioUnit)
             m_ioUnit->setSwitch(AudioCaptureUnitHandle::Switch::SpeakerStartAcknowledged, true);
     }
+    if (events.contains(Event::FirstMicrophoneQuantum)) {
+        forEachClient([](auto& client) {
+            if (client.isProducingData())
+                client.noteStartedProducingData();
+        });
+    }
+    if (events.contains(Event::SinkStarted)) {
+        Vector<WeakPtr<AudioCaptureSink>> sinks;
+        forEachClient([&](auto& client) {
+            sinks.appendVector(client.audioCaptureSinks());
+        });
+        for (auto& weakSink : sinks) {
+            if (auto* sink = weakSink.get())
+                sink->notifyStartedIfNeeded();
+        }
+    }
     if (events.contains(Event::MicrophoneBufferTooSmall) && m_ioUnit && !m_minimumMicrophoneSampleFrames) {
         if (auto frameCount = m_ioUnit->counters().failedRenderFrameCount) {
             RELEASE_LOG_ERROR(WebRTC, "CoreAudioCaptureUnit::processMicrophoneSamples(%p) AudioUnitRender failed with error %d, inNumberFrames %d ", this, (int)kAudio_ParamError, (int)*frameCount);
@@ -538,6 +564,43 @@ void CoreAudioCaptureUnit::handleUnitEvents(uint32_t rawEvents)
             });
         }
     }
+}
+
+void CoreAudioCaptureUnit::updateMicrophoneConfiguration()
+{
+    ASSERT(isMainThread());
+    if (!m_ioUnit)
+        return;
+
+    bool deliversToCxx = false;
+    bool needsFirstQuantum = false;
+    HashSet<uint64_t> sinkIdentifiers;
+    forEachClient([&](auto& client) {
+        bool isProducing = client.isProducingData();
+        if (isProducing && client.hasAudioSampleObservers())
+            deliversToCxx = true;
+        if (isProducing && !client.didStartProducingData())
+            needsFirstQuantum = true;
+        for (auto& weakSink : client.audioCaptureSinks()) {
+            auto* sink = weakSink.get();
+            if (!sink)
+                continue;
+            sink->setEnabled(isProducing);
+            sinkIdentifiers.add(sink->identifier());
+            if (!m_attachedSinkIdentifiers.contains(sink->identifier()))
+                m_ioUnit->attachSink(sink->identifier(), true);
+        }
+    });
+    for (auto identifier : m_attachedSinkIdentifiers) {
+        if (!sinkIdentifiers.contains(identifier))
+            m_ioUnit->attachSink(identifier, false);
+    }
+    m_attachedSinkIdentifiers = WTF::move(sinkIdentifiers);
+
+    m_ioUnit->setMicrophoneOptions(volume(), volume() != 1.0, deliversToCxx);
+    // Delivering the first sample tells the source's observers it started producing data.
+    if (needsFirstQuantum && !deliversToCxx)
+        m_ioUnit->setSwitch(AudioCaptureUnitHandle::Switch::FirstMicrophoneQuantumArmed, true);
 }
 
 void CoreAudioCaptureUnit::attachSpeakerSamplesProducer()
@@ -798,6 +861,15 @@ void CoreAudioCaptureUnit::deallocateStoredVPIOUnit()
 
 void CoreAudioCaptureUnit::verifyIsCapturing()
 {
+    forEachClient([](auto& client) {
+        for (auto& weakSink : client.audioCaptureSinks()) {
+            if (auto* sink = weakSink.get(); sink && sink->kind() == AudioCaptureSink::Kind::Producer) {
+                if (auto dropped = sink->takeNewDroppedQuantumCount())
+                    RELEASE_LOG_ERROR(WebRTC, "CoreAudioCaptureUnit::verifyIsCapturing - a producer sink dropped %llu quanta of another format", dropped);
+            }
+        }
+    });
+
     auto microphoneProcsCalled = m_ioUnit ? m_ioUnit->counters().microphoneProcCount : 0;
     if (m_microphoneProcsCalledLastTime != microphoneProcsCalled) {
         m_microphoneProcsCalledLastTime = microphoneProcsCalled;

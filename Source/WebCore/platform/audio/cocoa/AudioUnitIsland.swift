@@ -253,6 +253,102 @@ func caRingBufferFetchTimeBounds(
     }
 }
 
+// The buffers of an AudioBufferList that a store reads, as the list lays them out. Their count, sizes and pointers are
+// trusted, as the C++ that reads an AudioBufferList trusts them.
+@safe struct IOSourceBuffers: ~Escapable {
+    private let buffers: UnsafePointer<AudioBuffer>?
+    let count: Int
+
+    @_lifetime(borrow buffers)
+    fileprivate init(_ buffers: UnsafePointer<AudioBuffer>?, _ count: Int) {
+        precondition(count >= 0)
+        precondition(unsafe buffers != nil || count == 0)
+        unsafe self.buffers = buffers
+        self.count = count
+    }
+
+    @_lifetime(copy self)
+    func bytes(_ index: Int) -> IOConstBytes {
+        precondition(index >= 0 && index < count)
+        guard let buffers = unsafe buffers else {
+            preconditionFailure()
+        }
+        let buffer = unsafe buffers.advanced(by: index).pointee
+        let bytes = unsafe IOConstBytes(UnsafeRawPointer(buffer.mData), Int(buffer.mDataByteSize))
+        return unsafe _overrideLifetime(bytes, copying: self)
+    }
+}
+
+// The header of a ring that a store writes, whose bounds it stores as the seqlock's writer.
+@safe struct IORingHeader: ~Copyable, ~Escapable {
+    private let address: UnsafeMutableRawPointer
+
+    @_lifetime(borrow address)
+    fileprivate init(_ address: UnsafeMutableRawPointer) {
+        unsafe self.address = address
+    }
+
+    mutating func store(_ bounds: WebCore.CARingBufferBounds) {
+        unsafe storeRingBounds(at: address, bounds)
+    }
+}
+
+// The bytes a span lends, as an IO view, for the C++ entries that take views and share the IO path's kernels.
+@_lifetime(copy span)
+private func ioConstBytes(_ span: Span<UInt8>) -> IOConstBytes {
+    let base = span.withUnsafeBytes { $0.baseAddress }
+    let bytes = unsafe IOConstBytes(base, span.count)
+    return unsafe _overrideLifetime(bytes, copying: span)
+}
+
+@_lifetime(&span)
+private func ioBytes(_ span: inout MutableSpan<UInt8>) -> IOBytes {
+    let count = span.count
+    let base = span.withUnsafeMutableBytes { $0.baseAddress }
+    let bytes = unsafe IOBytes(base, count)
+    return unsafe _overrideLifetime(bytes, mutating: &span)
+}
+
+// CARingBuffer::store() (CARingBuffer.swift's caRingBufferStore()), through the store core the IO path shares. False for
+// CARingBuffer::TooMuch.
+func storeThroughIOViews(
+    _ ring: inout WebCore.CARingBufferWriteView,
+    _ storeBounds: inout WebCore.CARingBufferBounds,
+    _ source: borrowing WebCore.ConstAudioBufferListView,
+    _ frameCount: UInt64,
+    _ startFrame: UInt64,
+    _ writeAhead: UInt64
+) -> Bool {
+    guard let plan = planRingStore(ring.geometry(), storeBounds, frameCount, startFrame, writeAhead) else {
+        return frameCount == 0
+    }
+    let bufferCount = source.bufferCount()
+    assert(bufferCount == plan.layout.channelCount)
+    if plan.publishesBoundsBefore {
+        var header: MutableSpan<UInt8> = ring.mutableHeader()
+        storeRingBounds(&header, plan.boundsBefore)
+        storeBounds = plan.boundsBefore
+    }
+    do {
+        var channelSpan: MutableSpan<UInt8> = ring.mutableChannels()
+        var channels = ioBytes(&channelSpan)
+        var channel: UInt32 = 0
+        while channel < plan.layout.channelCount {
+            if channel < bufferCount {
+                let bytes: Span<UInt8> = source.bytes(channel)
+                storeRingChannel(plan, &channels, channel, ioConstBytes(bytes))
+            } else {
+                zeroRingChannel(plan, &channels, channel)
+            }
+            channel &+= 1
+        }
+    }
+    var header: MutableSpan<UInt8> = ring.mutableHeader()
+    storeRingBounds(&header, plan.boundsAfter)
+    storeBounds = plan.boundsAfter
+    return true
+}
+
 // MARK: Render state
 
 // What an output unit's render callback keeps between quanta, at an address that stays put from before the callback is
@@ -295,9 +391,23 @@ func caRingBufferFetchTimeBounds(
     let microphoneProcCount = Atomic<UInt64>(0)
     // 0, or failedRenderFlag and the frame count of the first quantum the microphone buffer was too small for.
     let failedRenderFrames = Atomic<UInt64>(0)
-    let pendingSnapshot = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
-    let retiredSnapshot = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
-    var currentSnapshot: UnsafeMutableRawPointer? = nil
+    // The microphone's format, as AudioStreamPCMFormat for the volume, and whole for the sinks.
+    var microphonePCMFormat: UInt32 = 0
+    var microphoneFormat = AudioStreamBasicDescription()
+    // Set by the main thread: the next microphone quantum is an event (AudioUnitEvent.firstMicrophoneQuantum).
+    let isFirstMicrophoneQuantumArmed = Atomic<Bool>(false)
+    var speakerMailbox = unsafe SnapshotMailbox()
+    var microphoneMailbox = unsafe SnapshotMailbox()
+}
+
+// The hand-off of what an IO callback renders with: the main thread publishes immutable snapshots, the IO thread takes the
+// latest at its next quantum without waiting, and the main thread frees the one it retires, at the next publication or
+// once the unit stops.
+@unsafe struct SnapshotMailbox: ~Copyable {
+    let pending = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
+    let retired = unsafe Atomic<UnsafeMutableRawPointer?>(nil)
+    // The IO thread's, or the main thread's while the unit is stopped.
+    var current: UnsafeMutableRawPointer? = nil
 }
 
 // AudioUnitRender()'s signature, which the mock capture unit's render function shares.
@@ -314,6 +424,10 @@ enum AudioUnitEvent {
     static var speakerStarting: UInt32 { 2 }
     // A capture unit's microphone buffer was too small for a quantum (failedRenderFrames).
     static var microphoneBufferTooSmall: UInt32 { 4 }
+    // A capture unit's microphone produced a quantum since the main thread armed it.
+    static var firstMicrophoneQuantum: UInt32 { 8 }
+    // A capture unit's producer sink stored its first quantum.
+    static var sinkStarted: UInt32 { 16 }
 }
 
 // How a track renderer clips its output (CAAudioStreamDescription::PCMFormat): Float32 and Float64 to [-1, 1].
@@ -645,6 +759,11 @@ extension RenderStateReference {
         unsafe state.pointee.captureRenderTarget = target
     }
 
+    func setMicrophoneFormat(_ format: AudioStreamBasicDescription) {
+        unsafe state.pointee.microphoneFormat = format
+        unsafe state.pointee.microphonePCMFormat = caAudioStreamDescriptionFormat(format)
+    }
+
     func setMicrophoneTiming(sampleRate: Float64, dtsConversionRatio: Float64) {
         unsafe state.pointee.microphoneSampleRate = sampleRate
         unsafe state.pointee.dtsConversionRatio = dtsConversionRatio
@@ -692,10 +811,8 @@ extension RenderStateReference {
         unsafe state.pointee.failedRenderFrames.load(ordering: .acquiring)
     }
 
-    // Main thread only: publishes what the speaker callback renders from. The IO thread swaps it in at its next quantum;
-    // the snapshot it retires is freed here, at the next publication or once the unit stops.
+    // Main thread only: publishes the track the speaker callback plays out.
     func publishSnapshot(speakerTrack: TrackPlayout?) {
-        collectRetiredSnapshot()
         let snapshot = UnsafeMutablePointer<CaptureSnapshot>.allocate(capacity: 1)
         unsafe snapshot.initialize(
             to: CaptureSnapshot(
@@ -703,42 +820,106 @@ extension RenderStateReference {
                 speakerTrackOwner: speakerTrack.map { unsafe Unmanaged.passRetained($0) }
             )
         )
-        if let unseen = unsafe state.pointee.pendingSnapshot.exchange(UnsafeMutableRawPointer(snapshot), ordering: .acquiringAndReleasing) {
-            unsafe freeSnapshot(unseen)
-        }
+        unsafe publish(&state.pointee.speakerMailbox, UnsafeMutableRawPointer(snapshot), freeSpeakerSnapshot)
     }
 
-    func collectRetiredSnapshot() {
-        if let retired = unsafe state.pointee.retiredSnapshot.exchange(nil, ordering: .acquiring) {
-            unsafe freeSnapshot(retired)
+    // Main thread only: publishes what the microphone callback does with each quantum besides counting it.
+    func publishMicrophoneSnapshot(gain: Float, appliesGain: Bool, deliversToCxx: Bool, sinks: [CaptureSink]) {
+        let snapshot = UnsafeMutablePointer<MicrophoneSnapshot>.allocate(capacity: 1)
+        let states = sinks.isEmpty ? nil : UnsafeMutablePointer<UnsafeMutablePointer<CaptureSinkState>>.allocate(capacity: sinks.count)
+        let owners = sinks.isEmpty ? nil : UnsafeMutablePointer<Unmanaged<CaptureSink>>.allocate(capacity: sinks.count)
+        var index = 0
+        while index < sinks.count {
+            unsafe states?.advanced(by: index).initialize(to: sinks[index].state)
+            unsafe owners?.advanced(by: index).initialize(to: Unmanaged.passRetained(sinks[index]))
+            index += 1
         }
+        unsafe snapshot.initialize(
+            to: MicrophoneSnapshot(
+                gain: gain,
+                gainAsDouble: Double(gain),
+                appliesGain: appliesGain,
+                deliversToCxx: deliversToCxx,
+                sinkCount: sinks.count,
+                sinks: states,
+                sinkOwners: owners
+            )
+        )
+        unsafe publish(&state.pointee.microphoneMailbox, UnsafeMutableRawPointer(snapshot), freeMicrophoneSnapshot)
+    }
+
+    func armFirstMicrophoneQuantum() {
+        unsafe state.pointee.isFirstMicrophoneQuantumArmed.store(true, ordering: .releasing)
+    }
+
+    func collectRetiredSnapshots() {
+        unsafe collectRetired(&state.pointee.speakerMailbox, freeSpeakerSnapshot)
+        unsafe collectRetired(&state.pointee.microphoneMailbox, freeMicrophoneSnapshot)
     }
 
     // Once the unit stopped, so no IO thread holds a snapshot: frees them all.
     func freeSnapshotsWhileStopped() {
-        collectRetiredSnapshot()
-        if let pending = unsafe state.pointee.pendingSnapshot.exchange(nil, ordering: .acquiring) {
-            unsafe freeSnapshot(pending)
-        }
-        if let current = unsafe state.pointee.currentSnapshot {
-            unsafe state.pointee.currentSnapshot = nil
-            unsafe freeSnapshot(current)
-        }
+        unsafe freeAll(&state.pointee.speakerMailbox, freeSpeakerSnapshot)
+        unsafe freeAll(&state.pointee.microphoneMailbox, freeMicrophoneSnapshot)
     }
 
-    // Once the unit stopped: hands the IO thread's snapshot back as the pending one, so the next start renders from it.
-    func returnCurrentSnapshotWhileStopped() {
-        collectRetiredSnapshot()
-        guard let current = unsafe state.pointee.currentSnapshot else {
-            return
-        }
-        unsafe state.pointee.currentSnapshot = nil
-        if unsafe state.pointee.pendingSnapshot.load(ordering: .acquiring) == nil {
-            unsafe state.pointee.pendingSnapshot.store(current, ordering: .releasing)
-        } else {
-            unsafe freeSnapshot(current)
-        }
+    // Once the unit stopped: hands the IO threads' snapshots back as the pending ones, so the next start renders from them.
+    func returnCurrentSnapshotsWhileStopped() {
+        unsafe returnCurrent(&state.pointee.speakerMailbox, freeSpeakerSnapshot)
+        unsafe returnCurrent(&state.pointee.microphoneMailbox, freeMicrophoneSnapshot)
     }
+}
+
+private func publish(_ mailbox: inout SnapshotMailbox, _ snapshot: UnsafeMutableRawPointer, _ free: (UnsafeMutableRawPointer) -> Void) {
+    unsafe collectRetired(&mailbox, free)
+    if let unseen = unsafe mailbox.pending.exchange(snapshot, ordering: .acquiringAndReleasing) {
+        unsafe free(unseen)
+    }
+}
+
+private func collectRetired(_ mailbox: inout SnapshotMailbox, _ free: (UnsafeMutableRawPointer) -> Void) {
+    if let retired = unsafe mailbox.retired.exchange(nil, ordering: .acquiring) {
+        unsafe free(retired)
+    }
+}
+
+private func freeAll(_ mailbox: inout SnapshotMailbox, _ free: (UnsafeMutableRawPointer) -> Void) {
+    unsafe collectRetired(&mailbox, free)
+    if let pending = unsafe mailbox.pending.exchange(nil, ordering: .acquiring) {
+        unsafe free(pending)
+    }
+    if let current = unsafe mailbox.current {
+        unsafe mailbox.current = nil
+        unsafe free(current)
+    }
+}
+
+private func returnCurrent(_ mailbox: inout SnapshotMailbox, _ free: (UnsafeMutableRawPointer) -> Void) {
+    unsafe collectRetired(&mailbox, free)
+    guard let current = unsafe mailbox.current else {
+        return
+    }
+    unsafe mailbox.current = nil
+    if unsafe mailbox.pending.load(ordering: .acquiring) == nil {
+        unsafe mailbox.pending.store(current, ordering: .releasing)
+    } else {
+        unsafe free(current)
+    }
+}
+
+// IO thread only, wait-free: takes a published snapshot once the main thread has freed the one retired before.
+@inline(__always)
+private func takePublished(_ mailbox: inout SnapshotMailbox) {
+    if unsafe mailbox.retired.load(ordering: .acquiring) != nil {
+        return
+    }
+    guard let next = unsafe mailbox.pending.exchange(nil, ordering: .acquiring) else {
+        return
+    }
+    if let current = unsafe mailbox.current {
+        unsafe mailbox.retired.store(current, ordering: .releasing)
+    }
+    unsafe mailbox.current = next
 }
 
 // AudioSampleBufferList::reset(): every microphone buffer back to its place in the flat buffer and its capacity, in case
@@ -762,28 +943,158 @@ private func resetMicrophoneBuffers(_ state: UnsafeMutablePointer<OutputRenderSt
 
 var failedRenderFlag: UInt64 { 1 << 32 }
 
-private func freeSnapshot(_ raw: UnsafeMutableRawPointer) {
+private func freeSpeakerSnapshot(_ raw: UnsafeMutableRawPointer) {
     let snapshot = unsafe raw.assumingMemoryBound(to: CaptureSnapshot.self)
     unsafe snapshot.pointee.speakerTrackOwner?.release()
     unsafe snapshot.deinitialize(count: 1)
     unsafe snapshot.deallocate()
 }
 
-// IO thread only, wait-free: takes a published snapshot once the main thread has freed the one retired before.
-@inline(__always)
-private func takePublishedSnapshot(_ state: UnsafeMutablePointer<OutputRenderState>) {
-    if unsafe state.pointee.retiredSnapshot.load(ordering: .acquiring) != nil {
-        return
+private func freeMicrophoneSnapshot(_ raw: UnsafeMutableRawPointer) {
+    let snapshot = unsafe raw.assumingMemoryBound(to: MicrophoneSnapshot.self)
+    var index = 0
+    while index < (unsafe snapshot.pointee.sinkCount) {
+        unsafe snapshot.pointee.sinkOwners?.advanced(by: index).pointee.release()
+        index += 1
     }
-    guard let next = unsafe state.pointee.pendingSnapshot.exchange(nil, ordering: .acquiring) else {
-        return
-    }
-    if let current = unsafe state.pointee.currentSnapshot {
-        unsafe state.pointee.retiredSnapshot.store(current, ordering: .releasing)
-    }
-    unsafe state.pointee.currentSnapshot = next
+    unsafe snapshot.pointee.sinks?.deallocate()
+    unsafe snapshot.pointee.sinkOwners?.deallocate()
+    unsafe snapshot.deinitialize(count: 1)
+    unsafe snapshot.deallocate()
 }
 
+// What the microphone callback does with each quantum besides counting it (AudioCaptureUnit.swift): the volume, whether
+// it hands the quantum to the C++ observers, and the sinks it feeds. The snapshot keeps the sinks alive.
+@unsafe struct MicrophoneSnapshot: ~Copyable {
+    let gain: Float
+    // The gain for Float64 samples, which the C++ widened from the Float32 one.
+    let gainAsDouble: Double
+    let appliesGain: Bool
+    let deliversToCxx: Bool
+    let sinkCount: Int
+    let sinks: UnsafeMutablePointer<UnsafeMutablePointer<CaptureSinkState>>?
+    let sinkOwners: UnsafeMutablePointer<Unmanaged<CaptureSink>>?
+}
+
+
+// MARK: Capture sinks
+
+// What a GPU-process consumer of a capture source takes from each microphone quantum on the capture unit's IO thread,
+// instead of an observer of the C++ fan-out (WebCore::AudioCaptureSink). A producer stores the quantum into a ring the web
+// process reads and signals a semaphore for each chunk of frames, as UserMediaCaptureManagerProxy's source proxy did; a
+// peak keeps the largest sample magnitude for the main thread, as CapturePreviewManager did. The main thread enables a
+// sink while its source produces data.
+@unsafe struct CaptureSinkState: ~Copyable {
+    let isProducer: Bool
+    // The format of the quanta a producer stores; it drops and counts the others, until the main thread gives it a ring in
+    // the new format.
+    let format: AudioStreamBasicDescription
+    let isEnabled = Atomic<Bool>(false)
+    var ring = unsafe WebCore.AudioOutputUnitRingAttachment()
+    // The IO thread's: the store's bounds, where it writes, and the frames it hasn't signalled a chunk for.
+    var storeBounds = WebCore.CARingBufferBounds()
+    var writeOffset: UInt64 = 0
+    var remainingFrameCount: UInt64 = 0
+    var hasStarted = false
+    // The MediaTime of the first frame stored, which the main thread reads once startTimeIsSet.
+    var startTimeValue: Int64 = 0
+    var startTimeScale: UInt32 = 0
+    let startTimeIsSet = Atomic<Bool>(false)
+    let droppedQuantumCount = Atomic<UInt64>(0)
+    // A peak's: the largest magnitude, as the bits of a Float32 between 0 and infinity.
+    let peakBits = Atomic<UInt32>(0)
+    // Held by the IO thread while a producer writes the ring, and by the main thread while it takes the ring away.
+    let isFeeding = Atomic<Bool>(false)
+}
+
+// A sink on the main thread. Its state lives until the last of its owner (the table) and the microphone snapshots that
+// hold it lets go.
+@safe final class CaptureSink {
+    fileprivate let state: UnsafeMutablePointer<CaptureSinkState>
+    // Whether a capture unit feeds it, after which its ring stays.
+    var isAttachedToUnit = false
+
+    init(isProducer: Bool, format: AudioStreamBasicDescription) {
+        unsafe state = UnsafeMutablePointer<CaptureSinkState>.allocate(capacity: 1)
+        unsafe state.initialize(to: CaptureSinkState(isProducer: isProducer, format: format))
+    }
+
+    deinit {
+        unsafe state.deinitialize(count: 1)
+        unsafe state.deallocate()
+    }
+
+    var isProducer: Bool {
+        unsafe state.pointee.isProducer
+    }
+
+    // A producer's ring, frame chunk size and semaphore, before a unit feeds it. Traps unless the attachment's memory covers
+    // what the producer writes.
+    func attachRing(_ attachment: WebCore.AudioOutputUnitRingAttachment) {
+        precondition(WTF.isMainThread() && isProducer && !isAttachedToUnit)
+        unsafe checkRingAttachment(attachment)
+        precondition(unsafe attachment.header != nil && attachment.frameChunkSize != 0)
+        unsafe state.pointee.ring = attachment
+        unsafe state.pointee.ring.frameCounter = nil
+    }
+
+    // Before the ring's memory or semaphore goes: waits for the IO thread to finish a write, as the C++ observer's removal
+    // waited for the fan-out's lock. The producer then stores nothing.
+    func detachRing() {
+        precondition(WTF.isMainThread())
+        while unsafe state.pointee.isFeeding.exchange(true, ordering: .acquiring) {
+            sched_yield()
+        }
+        unsafe state.pointee.ring = WebCore.AudioOutputUnitRingAttachment()
+        unsafe state.pointee.isFeeding.store(false, ordering: .releasing)
+    }
+
+    func setEnabled(_ value: Bool) {
+        unsafe state.pointee.isEnabled.store(value, ordering: .releasing)
+    }
+
+    func status() -> WebCore.AudioCaptureSinkStatus {
+        var status = WebCore.AudioCaptureSinkStatus()
+        if unsafe state.pointee.startTimeIsSet.load(ordering: .acquiring) {
+            status.hasStartTime = true
+            status.startTimeValue = unsafe state.pointee.startTimeValue
+            status.startTimeScale = unsafe state.pointee.startTimeScale
+        }
+        status.droppedQuantumCount = unsafe state.pointee.droppedQuantumCount.load(ordering: .relaxed)
+        return status
+    }
+
+    // The largest magnitude since the last call.
+    func takePeak() -> Float {
+        Float(bitPattern: unsafe state.pointee.peakBits.exchange(0, ordering: .relaxed))
+    }
+}
+
+nonisolated(unsafe) private var captureSinks: [UInt64: CaptureSink] = [:]
+
+func addCaptureSink(_ sink: CaptureSink) -> UInt64 {
+    precondition(WTF.isMainThread())
+    unsafe lastOutputUnitIdentifier &+= 1
+    unsafe captureSinks[lastOutputUnitIdentifier] = sink
+    return unsafe lastOutputUnitIdentifier
+}
+
+func captureSink(_ identifier: UInt64) -> CaptureSink? {
+    precondition(WTF.isMainThread())
+    return unsafe captureSinks[identifier]
+}
+
+func removeCaptureSink(_ identifier: UInt64) -> CaptureSink? {
+    precondition(WTF.isMainThread())
+    return unsafe captureSinks.removeValue(forKey: identifier)
+}
+
+private func formatsMatch(_ a: AudioStreamBasicDescription, _ b: AudioStreamBasicDescription) -> Bool {
+    a.mSampleRate == b.mSampleRate && a.mFormatID == b.mFormatID && a.mFormatFlags == b.mFormatFlags
+        && a.mBytesPerPacket == b.mBytesPerPacket && a.mFramesPerPacket == b.mFramesPerPacket
+        && a.mBytesPerFrame == b.mBytesPerFrame && a.mChannelsPerFrame == b.mChannelsPerFrame
+        && a.mBitsPerChannel == b.mBitsPerChannel
+}
 
 // MARK: Attaching what a stopped unit renders from
 
@@ -809,6 +1120,7 @@ private func checkRingAttachment(_ attachment: WebCore.AudioOutputUnitRingAttach
 // - a remote destination's ring, frame counter and semaphore (WebCore::AudioOutputUnit::attachRing());
 // - a track renderer's track playout, by identifier (WebCore::AudioOutputUnit::attachTrackPlayout());
 // - a track playout's ring and semaphore (WebCore::AudioTrackPlayout::attachRing());
+// - a capture producer sink's ring, which it writes, and semaphore (WebCore::AudioCaptureSink::attachRing());
 // - the C++ that a capture unit delivers its microphone's quanta to, and the track playout its speaker plays out, by
 //   identifier (WebCore::AudioCaptureUnitHandle::attach()).
 // The caller keeps their memory and the semaphore alive until it attaches others or destroys the unit. A ring without a
@@ -818,6 +1130,10 @@ func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutput
     if let track = trackPlayout(identifier) {
         unsafe checkRingAttachment(attachment)
         unsafe track.attachRing(attachment)
+        return
+    }
+    if let sink = captureSink(identifier) {
+        unsafe sink.attachRing(attachment)
         return
     }
     if let unit = captureUnit(identifier) {
@@ -1147,10 +1463,192 @@ private func captureMicrophone(
         state.pointee.dtsConversionRatio,
         state.pointee.microphoneSampleRate
     )
-    if let context = unsafe state.pointee.cxxDeliveryContext {
+    unsafe takePublished(&state.pointee.microphoneMailbox)
+    // Until the main thread publishes a snapshot, which it does before the unit starts, the C++ observers get the quantum.
+    var deliversToCxx = true
+    if let raw = unsafe state.pointee.microphoneMailbox.current {
+        let snapshot = unsafe raw.assumingMemoryBound(to: MicrophoneSnapshot.self)
+        if unsafe snapshot.pointee.appliesGain {
+            unsafe applyMicrophoneGain(list, state.pointee.microphonePCMFormat, snapshot.pointee.gain, snapshot.pointee.gainAsDouble)
+        }
+        deliversToCxx = unsafe snapshot.pointee.deliversToCxx
+        var index = 0
+        while index < (unsafe snapshot.pointee.sinkCount) {
+            guard let sink = unsafe snapshot.pointee.sinks?.advanced(by: index).pointee else {
+                preconditionFailure()
+            }
+            if unsafe sink.pointee.isEnabled.load(ordering: .acquiring) {
+                if unsafe sink.pointee.isProducer {
+                    unsafe feedProducer(state, sink, list, frameCount, times)
+                } else {
+                    unsafe feedPeak(state, sink, list)
+                }
+            }
+            index &+= 1
+        }
+    }
+    if unsafe state.pointee.isFirstMicrophoneQuantumArmed.exchange(false, ordering: .acquiringAndReleasing) {
+        unsafe postEvent(state, AudioUnitEvent.firstMicrophoneQuantum)
+    }
+    if deliversToCxx, let context = unsafe state.pointee.cxxDeliveryContext {
         unsafe WebCore.deliverToCxxObservers(context, list, frameCount, times)
     }
     return 0
+}
+
+// AudioSampleBufferList::applyGain(): every whole sample of every buffer times gain, with vDSP for the floating-point
+// formats, as the C++ did. Like the C++ in release, it leaves the other formats alone.
+private func applyMicrophoneGain(_ list: UnsafeMutablePointer<AudioBufferList>, _ format: UInt32, _ gain: Float, _ gainAsDouble: Double) {
+    let buffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    var index = 0
+    while index < Int(unsafe list.pointee.mNumberBuffers) {
+        let buffer = unsafe buffers.advanced(by: index).pointee
+        let byteCount = Int(unsafe buffer.mDataByteSize)
+        if let data = unsafe buffer.mData {
+            if format == AudioStreamPCMFormat.float32.rawValue {
+                var floatGain = gain
+                let samples = unsafe data.assumingMemoryBound(to: Float.self)
+                unsafe vDSP_vsmul(samples, 1, &floatGain, samples, 1, vDSP_Length(byteCount / 4))
+            } else if format == AudioStreamPCMFormat.float64.rawValue {
+                var doubleGain = gainAsDouble
+                let samples = unsafe data.assumingMemoryBound(to: Double.self)
+                unsafe vDSP_vsmulD(samples, 1, &doubleGain, samples, 1, vDSP_Length(byteCount / 8))
+            } else if format == AudioStreamPCMFormat.int16.rawValue {
+                // Conversions through Int and bit patterns, as the generic ones need the Swift runtime at -Onone.
+                var offset = 0
+                while offset < byteCount & ~1 {
+                    let bits = unsafe data.loadUnaligned(fromByteOffset: offset, as: UInt16.self)
+                    let value = fcvtzsInt32(Float(Int(truncatingIfNeeded: Int16(bitPattern: bits))) * gain)
+                    unsafe data.storeBytes(of: UInt16(truncatingIfNeeded: value), toByteOffset: offset, as: UInt16.self)
+                    offset &+= 2
+                }
+            } else if format == AudioStreamPCMFormat.int32.rawValue {
+                var offset = 0
+                while offset < byteCount & ~3 {
+                    let bits = unsafe data.loadUnaligned(fromByteOffset: offset, as: UInt32.self)
+                    let value = fcvtzsInt32(Float(Int(truncatingIfNeeded: Int32(bitPattern: bits))) * gain)
+                    unsafe data.storeBytes(of: UInt32(truncatingIfNeeded: value), toByteOffset: offset, as: UInt32.self)
+                    offset &+= 4
+                }
+            }
+        }
+        index &+= 1
+    }
+}
+
+// A Float32 converted to Int32 as arm64's FCVTZS does: NaN gives 0, values out of range saturate.
+@inline(__always)
+private func fcvtzsInt32(_ value: Float) -> Int32 {
+    if value != value {
+        return 0
+    }
+    if value >= 2_147_483_648.0 {
+        return 2_147_483_647
+    }
+    if value <= -2_147_483_648.0 {
+        return -2_147_483_648
+    }
+    return Int32(value)
+}
+
+// UserMediaCaptureManagerProxy's source proxy's audioSamplesAvailable(): stores the quantum into the ring and signals the
+// semaphore for each chunk of frames the web process can read. Its first stored quantum is an event for the main thread,
+// which sends the web process the ring and the quantum's time.
+private func feedProducer(
+    _ state: UnsafeMutablePointer<OutputRenderState>,
+    _ sink: UnsafeMutablePointer<CaptureSinkState>,
+    _ list: UnsafeMutablePointer<AudioBufferList>,
+    _ frameCount: UInt32,
+    _ times: WebCore.AudioCaptureTimes
+) {
+    if !formatsMatch(unsafe sink.pointee.format, unsafe state.pointee.microphoneFormat) {
+        _ = unsafe sink.pointee.droppedQuantumCount.add(1, ordering: .relaxed)
+        return
+    }
+    if unsafe sink.pointee.isFeeding.exchange(true, ordering: .acquiring) {
+        return
+    }
+    unsafe storeIntoProducerRing(state, sink, list, frameCount, times)
+    unsafe sink.pointee.isFeeding.store(false, ordering: .releasing)
+}
+
+private func storeIntoProducerRing(
+    _ state: UnsafeMutablePointer<OutputRenderState>,
+    _ sink: UnsafeMutablePointer<CaptureSinkState>,
+    _ list: UnsafeMutablePointer<AudioBufferList>,
+    _ frameCount: UInt32,
+    _ times: WebCore.AudioCaptureTimes
+) {
+    let ring = unsafe sink.pointee.ring
+    guard let header = unsafe ring.header else {
+        return
+    }
+    if !(unsafe sink.pointee.hasStarted) {
+        unsafe sink.pointee.hasStarted = true
+        unsafe sink.pointee.writeOffset = 0
+        unsafe sink.pointee.remainingFrameCount = 0
+        unsafe sink.pointee.startTimeValue = times.mediaTimeValue
+        unsafe sink.pointee.startTimeScale = times.mediaTimeScale
+        unsafe sink.pointee.startTimeIsSet.store(true, ordering: .releasing)
+        unsafe postEvent(state, AudioUnitEvent.sinkStarted)
+    }
+    var headerView = unsafe IORingHeader(UnsafeMutableRawPointer(mutating: header))
+    var channels = unsafe IOBytes(UnsafeMutableRawPointer(mutating: ring.channels), Int(ring.channelsByteCount))
+    let sources = unsafe IOSourceBuffers(
+        UnsafeRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self),
+        Int(list.pointee.mNumberBuffers)
+    )
+    let writeOffset = unsafe sink.pointee.writeOffset
+    _ = unsafe storeRingQuantum(ring.geometry, &headerView, &channels, &sink.pointee.storeBounds, sources, UInt64(frameCount), writeOffset)
+    unsafe sink.pointee.writeOffset = writeOffset &+ UInt64(frameCount)
+    let framesToSend = UInt64(frameCount) &+ (unsafe sink.pointee.remainingFrameCount)
+    let frameChunkSize = unsafe ring.frameChunkSize
+    var signalCount = framesToSend / frameChunkSize
+    unsafe sink.pointee.remainingFrameCount = framesToSend &- signalCount &* frameChunkSize
+    let semaphore = unsafe ring.semaphore
+    while signalCount > 0 {
+        _ = semaphore_signal(semaphore)
+        signalCount &-= 1
+    }
+}
+
+// CapturePreviewManager::audioSamplesAvailable(): the largest magnitude of the quantum's samples, read as Float32 as the C++
+// read them, NaNs aside, kept until the main thread takes it.
+private func feedPeak(
+    _ state: UnsafeMutablePointer<OutputRenderState>,
+    _ sink: UnsafeMutablePointer<CaptureSinkState>,
+    _ list: UnsafeMutablePointer<AudioBufferList>
+) {
+    if unsafe state.pointee.microphoneFormat.mFormatFlags & kAudioFormatFlagIsFloat == 0 {
+        return
+    }
+    let buffers = unsafe UnsafeMutableRawPointer(list).advanced(by: 8).assumingMemoryBound(to: AudioBuffer.self)
+    var peak: UInt32 = 0
+    var index = 0
+    while index < Int(unsafe list.pointee.mNumberBuffers) {
+        let buffer = unsafe buffers.advanced(by: index).pointee
+        if let data = unsafe buffer.mData {
+            let count = Int(unsafe buffer.mDataByteSize) / 4
+            var sample = 0
+            while sample < count {
+                // A magnitude's bits order as the magnitude does; those above infinity's are NaNs, which std::max() ignored.
+                let magnitude = unsafe data.loadUnaligned(fromByteOffset: sample &* 4, as: UInt32.self) & 0x7FFF_FFFF
+                if magnitude <= 0x7F80_0000 && magnitude > peak {
+                    peak = magnitude
+                }
+                sample &+= 1
+            }
+        }
+        index &+= 1
+    }
+    var current = unsafe sink.pointee.peakBits.load(ordering: .relaxed)
+    while peak > current {
+        let (exchanged, original) = unsafe sink.pointee.peakBits.compareExchange(expected: current, desired: peak, ordering: .relaxed)
+        if exchanged {
+            break
+        }
+        current = original
+    }
 }
 
 // The times of a microphone quantum, with the C++'s conversions as compiled for arm64 (saturating): its sample time
@@ -1197,9 +1695,9 @@ func speakerRenderCallback(
     guard let ioData = unsafe ioData else {
         preconditionFailure()
     }
-    unsafe takePublishedSnapshot(state)
+    unsafe takePublished(&state.pointee.speakerMailbox)
     var track: UnsafeMutablePointer<TrackPlayoutState>? = nil
-    if let snapshot = unsafe state.pointee.currentSnapshot {
+    if let snapshot = unsafe state.pointee.speakerMailbox.current {
         unsafe track = snapshot.assumingMemoryBound(to: CaptureSnapshot.self).pointee.speakerTrack
     }
     let status: OSStatus

@@ -107,6 +107,7 @@ private:
 
     RefPtr<WebCore::RealtimeMediaSource> m_videoSource WTF_GUARDED_BY_CAPABILITY(mainThread);
     RefPtr<WebCore::RealtimeMediaSource> m_audioSource WTF_GUARDED_BY_CAPABILITY(mainThread);
+    std::unique_ptr<WebCore::AudioCaptureSink> m_audioPeakSink WTF_GUARDED_BY_CAPABILITY(mainThread);
     mutable Lock m_displayLayerLock;
     RefPtr<WebCore::SampleBufferDisplayLayer> m_displayLayer WTF_GUARDED_BY_LOCK(m_displayLayerLock);
     std::unique_ptr<LayerHostingContext> m_layerHostingContext WTF_GUARDED_BY_CAPABILITY(mainThread);

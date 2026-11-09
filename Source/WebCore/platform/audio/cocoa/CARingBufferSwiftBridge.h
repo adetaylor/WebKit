@@ -91,7 +91,8 @@ static_assert(sizeof(WebAudioBufferListSizes) == 24);
 //   asks for;
 // - a track renderer: the track playout it plays out;
 // - a capture unit: the context it hands each microphone quantum to (deliverToCxxObservers()) and the track playout its
-//   speaker plays out.
+//   speaker plays out;
+// - a capture producer sink: the ring it writes and the semaphore it signals for each chunk of frameChunkSize frames.
 // Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the unit. Without a
 // header, there is no ring.
 struct AudioOutputUnitRingAttachment {
@@ -140,14 +141,24 @@ struct AudioCaptureUnitFormat {
 };
 
 // The microphone buffers of a capture unit: bufferCount buffers of bytesPerBuffer bytes, as CoreAudioCaptureUnit's
-// AudioSampleBufferList has, and how the microphone times its quanta: at sampleRate, with host times scaled by
-// dtsConversionRatio.
+// AudioSampleBufferList has, in the microphone's format; and how the microphone times its quanta: at sampleRate, with host
+// times scaled by dtsConversionRatio.
 struct AudioCaptureMicrophoneBuffers {
+    AudioStreamBasicDescription format { };
     uint32_t bufferCount { 0 };
     uint32_t channelsPerBuffer { 0 };
     uint64_t bytesPerBuffer { 0 };
     double sampleRate { 0 };
     double dtsConversionRatio { 0 };
+};
+
+// A capture producer sink's first stored frame's MediaTime (startTimeValue / startTimeScale), once there's one, and the
+// quanta it dropped because their format wasn't its.
+struct AudioCaptureSinkStatus {
+    int64_t startTimeValue { 0 };
+    uint32_t startTimeScale { 0 };
+    bool hasStartTime { false };
+    uint64_t droppedQuantumCount { 0 };
 };
 
 struct AudioCaptureUnitCounters {

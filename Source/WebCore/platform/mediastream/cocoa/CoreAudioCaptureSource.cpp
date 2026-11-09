@@ -28,6 +28,7 @@
 
 #if ENABLE(MEDIA_STREAM)
 
+#include "AudioOutputUnit.h"
 #include "AudioSampleBufferList.h"
 #include "AudioSampleDataSource.h"
 #include "AudioSession.h"
@@ -258,12 +259,35 @@ void CoreAudioCaptureSource::startProducingData()
     initializeToStartProducingData();
     protect(m_unit)->startProducingData();
     m_currentSettings = { };
+    protect(m_unit)->updateMicrophoneConfiguration();
 }
 
 void CoreAudioCaptureSource::stopProducingData()
 {
     ALWAYS_LOG_IF(loggerPtr(), LOGIDENTIFIER);
     protect(m_unit)->stopProducingData();
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::addAudioCaptureSink(AudioCaptureSink& sink)
+{
+    ASSERT(isMainThread());
+    m_audioCaptureSinks.append(sink);
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::removeAudioCaptureSink(AudioCaptureSink& sink)
+{
+    ASSERT(isMainThread());
+    m_audioCaptureSinks.removeAllMatching([&](auto& weakSink) {
+        return !weakSink || weakSink.get() == &sink;
+    });
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::audioSampleObserversChanged()
+{
+    protect(m_unit)->updateMicrophoneConfiguration();
 }
 
 void CoreAudioCaptureSource::endProducingData()

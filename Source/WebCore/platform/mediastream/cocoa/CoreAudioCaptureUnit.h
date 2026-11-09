@@ -33,6 +33,7 @@
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CoreAudioCaptureSource.h>
 #include <WebCore/Timer.h>
+#include <wtf/HashSet.h>
 
 OBJC_CLASS WebCoreAudioInputMuteChangeListener;
 
@@ -100,6 +101,10 @@ public:
     // On the unit's microphone IO thread (deliverToCxxObservers()).
     void deliverMicrophoneSamples(const AudioBufferList&, uint32_t frameCount, const AudioCaptureTimes&);
 
+    // What the microphone does with each quantum, from the clients: the sinks of those that produce data, the volume, and
+    // whether any of those has C++ observers.
+    void updateMicrophoneConfiguration();
+
 private:
     explicit CoreAudioCaptureUnit(CanEnableEchoCancellation);
 
@@ -120,6 +125,8 @@ private:
     void stopInternal() final;
     bool isProducingData() const final { return m_ioUnitStarted; }
     void isProducingMicrophoneSamplesChanged() final;
+    void volumeChanged() final { updateMicrophoneConfiguration(); }
+    void clientsChanged() final { updateMicrophoneConfiguration(); }
     void validateOutputDevice(uint32_t deviceID) final;
 #if PLATFORM(MAC)
     bool migrateToNewDefaultDevice(const CaptureDevice&) final;
@@ -163,6 +170,7 @@ private:
     bool m_usesMockUnit { false };
     GetSampleRateCallback m_getSampleRateCallback;
     std::unique_ptr<AudioCaptureUnitHandle> m_ioUnit;
+    HashSet<uint64_t> m_attachedSinkIdentifiers;
 
     // Only read/modified from the IO thread.
     Vector<Ref<AudioSampleDataSource>> m_activeSources;

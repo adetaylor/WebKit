@@ -65,8 +65,11 @@ void BaseAudioCaptureUnit::addClient(CoreAudioCaptureSource& client)
 {
     ASSERT(isMainThread());
     m_clients.add(client);
-    Locker locker { m_audioThreadClientsLock };
-    m_audioThreadClients = m_clients.weakValues();
+    {
+        Locker locker { m_audioThreadClientsLock };
+        m_audioThreadClients = m_clients.weakValues();
+    }
+    clientsChanged();
 }
 
 void BaseAudioCaptureUnit::removeClient(CoreAudioCaptureSource& client)
@@ -77,6 +80,7 @@ void BaseAudioCaptureUnit::removeClient(CoreAudioCaptureSource& client)
         Locker locker { m_audioThreadClientsLock };
         m_audioThreadClients = m_clients.weakValues();
     }
+    clientsChanged();
 
     if (!shouldContinueRunning())
         stopRunning();
@@ -182,6 +186,7 @@ OSStatus BaseAudioCaptureUnit::startUnit()
 void BaseAudioCaptureUnit::prepareForNewCapture()
 {
     m_volume = 1;
+    volumeChanged();
     resetSampleRate();
 
     if (!m_suspended)

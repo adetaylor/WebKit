@@ -75,7 +75,11 @@ public:
     int sampleRate() const { return m_sampleRate; }
     bool enableEchoCancellation() const { return m_enableEchoCancellation; }
 
-    void setVolume(double volume) { m_volume = volume; }
+    void setVolume(double volume)
+    {
+        m_volume = volume;
+        volumeChanged();
+    }
     void setSampleRate(int sampleRate) { m_sampleRate = sampleRate; }
 #if !PLATFORM(MAC)
     void setEnableEchoCancellation(bool);
@@ -131,6 +135,9 @@ protected:
     void setOutputDeviceID(uint32_t deviceID) { m_outputDeviceID = deviceID; }
 
     virtual void isProducingMicrophoneSamplesChanged() { }
+    virtual void volumeChanged() { }
+    // A client was added or removed.
+    virtual void clientsChanged() { }
     virtual void validateOutputDevice(uint32_t /* currentOutputDeviceID */) { }
     virtual bool migrateToNewDefaultDevice(const CaptureDevice&) { return false; }
 

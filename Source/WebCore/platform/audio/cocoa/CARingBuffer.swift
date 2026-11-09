@@ -65,14 +65,6 @@ struct RingLayout {
     }
 }
 
-private func makeBounds(_ startFrame: UInt64, _ endFrame: UInt64, _ writeAhead: UInt64 = 0) -> WebCore.CARingBufferBounds {
-    var bounds = WebCore.CARingBufferBounds()
-    bounds.startFrame = startFrame
-    bounds.endFrame = endFrame
-    bounds.writeAhead = writeAhead
-    return bounds
-}
-
 // std::clamp().
 private func clamp(_ value: UInt64, _ low: UInt64, _ high: UInt64) -> UInt64 {
     value < low ? low : (high < value ? high : value)
@@ -159,16 +151,6 @@ func caRingBufferMappedStorageSize(_ bytesPerFrame: UInt32, _ frameCount: UInt64
     return size
 }
 
-private func setBounds(
-    _ storeBounds: inout WebCore.CARingBufferBounds,
-    _ ring: inout WebCore.CARingBufferWriteView,
-    _ bounds: WebCore.CARingBufferBounds
-) {
-    var header: MutableSpan<UInt8> = ring.mutableHeader()
-    storeRingBounds(&header, bounds)
-    storeBounds = bounds
-}
-
 // CARingBuffer::store(). False for CARingBuffer::TooMuch.
 @_expose(Cxx)
 func caRingBufferStore(
@@ -179,110 +161,7 @@ func caRingBufferStore(
     _ startFrame: UInt64,
     _ writeAhead: UInt64
 ) -> Bool {
-    if frameCount == 0 {
-        return true
-    }
-    let layout = RingLayout(ring.geometry())
-    if frameCount > UInt64(layout.frameCount) {
-        return false
-    }
-
-    let endFrame = startFrame &+ frameCount
-    if startFrame < storeBounds.startFrame {
-        // Throw everything out when going backwards.
-        setBounds(&storeBounds, &ring, makeBounds(startFrame, startFrame))
-    } else if endFrame &- storeBounds.startFrame > UInt64(layout.frameCount) {
-        // Advance the start past the frames about to be overwritten, one buffer of time behind where this writes.
-        let newStartFrame = endFrame &- UInt64(layout.frameCount)
-        setBounds(&storeBounds, &ring, makeBounds(newStartFrame, max(newStartFrame, storeBounds.endFrame)))
-    }
-
-    storeFrames(layout, &ring, storeBounds.endFrame, source, startFrame, endFrame)
-
-    setBounds(&storeBounds, &ring, makeBounds(storeBounds.startFrame, endFrame, writeAhead))
-    return true
-}
-
-// Out of line: the store entry then saves fewer registers, which measured about 1% faster for small stores.
-@inline(never)
-private func storeFrames(
-    _ layout: RingLayout,
-    _ ring: inout WebCore.CARingBufferWriteView,
-    _ storedEndFrame: UInt64,
-    _ source: borrowing WebCore.ConstAudioBufferListView,
-    _ startFrame: UInt64,
-    _ endFrame: UInt64
-) {
-    var channels: MutableSpan<UInt8> = ring.mutableChannels()
-    var offset0: UInt
-    if startFrame > storedEndFrame {
-        // Zero the frames this skips.
-        offset0 = layout.frameOffset(storedEndFrame)
-        let offset1 = layout.frameOffset(startFrame)
-        if offset0 < offset1 {
-            zeroChannels(&channels, layout, offset0, offset1 &- offset0)
-        } else {
-            zeroChannels(&channels, layout, offset0, layout.capacityBytes &- offset0)
-            zeroChannels(&channels, layout, 0, offset1)
-        }
-        offset0 = offset1
-    } else {
-        offset0 = layout.frameOffset(startFrame)
-    }
-
-    let offset1 = layout.frameOffset(endFrame)
-    if offset0 < offset1 {
-        storeChannels(&channels, layout, offset0, source, 0, offset1 &- offset0)
-    } else {
-        let byteCount = layout.capacityBytes &- offset0
-        storeChannels(&channels, layout, offset0, source, 0, byteCount)
-        storeChannels(&channels, layout, 0, source, byteCount, offset1)
-    }
-}
-
-private func zeroChannels(_ channels: inout MutableSpan<UInt8>, _ layout: RingLayout, _ offset: UInt, _ byteCount: UInt) {
-    // Each channel's range, as the C++'s subspan() checks it.
-    precondition(layout.channelCount == 0 || (offset <= layout.capacityBytes && byteCount <= layout.capacityBytes &- offset))
-    // Where the channels are in the span is checked when they are zeroed.
-    var start = Int(truncatingIfNeeded: offset)
-    var channel: UInt32 = 0
-    while channel < layout.channelCount {
-        zeroAudioBytes(&channels, at: start, count: Int(byteCount))
-        start &+= Int(truncatingIfNeeded: layout.capacityBytes)
-        channel &+= 1
-    }
-}
-
-// Copies byteCount bytes of each source buffer from sourceOffset to its channel at offset. The part of that range that
-// the buffer doesn't cover, all of it for a channel without a buffer, is zeroed.
-private func storeChannels(
-    _ channels: inout MutableSpan<UInt8>,
-    _ layout: RingLayout,
-    _ offset: UInt,
-    _ source: borrowing WebCore.ConstAudioBufferListView,
-    _ sourceOffset: UInt,
-    _ byteCount: UInt
-) {
-    precondition(layout.channelCount == 0 || (offset <= layout.capacityBytes && byteCount <= layout.capacityBytes &- offset))
-    let bufferCount = source.bufferCount()
-    assert(bufferCount == layout.channelCount)
-    // Where the channels are in the span is checked when they are written.
-    var start = Int(truncatingIfNeeded: offset)
-    var channel: UInt32 = 0
-    while channel < layout.channelCount {
-        var copied: UInt = 0
-        if channel < bufferCount {
-            let bytes: Span<UInt8> = source.bytes(channel)
-            let available = UInt(bytes.count)
-            if sourceOffset <= available {
-                copied = min(byteCount, available &- sourceOffset)
-                copyBytes(from: bytes, at: Int(sourceOffset), to: &channels, at: start, count: Int(copied))
-            }
-        }
-        zeroAudioBytes(&channels, at: start &+ Int(copied), count: Int(byteCount &- copied))
-        start &+= Int(truncatingIfNeeded: layout.capacityBytes)
-        channel &+= 1
-    }
+    storeThroughIOViews(&ring, &storeBounds, source, frameCount, startFrame, writeAhead)
 }
 
 // CARingBuffer::getFetchTimeBounds(): the bounds a writer stored, limited to frameCount frames.
