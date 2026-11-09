@@ -1,0 +1,32 @@
+# The symbols of soft-linked frameworks that WebCore's Swift uses, one per line:
+#     <function|constant|class> <framework> <symbol>
+#     constant <framework> <symbol> as <type>      (an NSString constant of a typed string enum)
+# PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
+# Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
+# List only what Swift calls, so that the accessors stay small enough to review.
+
+# The FairPlay Streaming CDM (CDMInstanceFairPlayStreamingAVF.swift).
+constant AVFoundation AVContentKeySystemFairPlayStreaming as AVContentKeySystem
+constant AVFoundation AVContentKeyRequestShouldRandomizeDeviceIdentifierKey
+constant AVFoundation AVContentKeyRequestRandomDeviceIdentifierSeedKey
+class AVFoundation AVContentKeyRequest
+class AVFoundation AVContentKeyResponse
+class AVFoundation AVContentKeySession
+
+# The IO audio units: the output units and the capture unit.
+function AudioToolbox AudioComponentFindNext
+function AudioToolbox AudioComponentCopyName
+function AudioToolbox AudioComponentInstanceNew
+function AudioToolbox AudioComponentInstanceDispose
+function AudioToolbox AudioUnitGetProperty
+function AudioToolbox AudioUnitSetProperty
+function AudioToolbox AudioUnitInitialize
+function AudioToolbox AudioUnitUninitialize
+function AudioToolbox AudioOutputUnitStart
+function AudioToolbox AudioOutputUnitStop
+function AudioToolbox AudioUnitRender
+
+# The microphone mute state.
+class AVFAudio AVAudioApplication
+constant AVFAudio AVAudioApplicationInputMuteStateChangeNotification as NSNotification.Name
+constant AVFAudio AVAudioApplicationMuteStateKey
