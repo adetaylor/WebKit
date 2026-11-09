@@ -127,6 +127,12 @@ SWIFT_LIBRARY_LEVEL = spi;
 SWIFT_COMPILATION_MODE = wholemodule;
 SWIFT_COMPILATION_MODE[config=Debug] = singlefile;
 
+// Pipeline.swift's PSO repro tooling, in the builds that had it in C++: !NDEBUG || (ENABLE_LIBFUZZER && ASAN_ENABLED).
+WEBGPU_PSO_REPRO_CONDITIONS = $(WEBGPU_PSO_REPRO_CONDITIONS_$(ENABLE_LIBFUZZER)_$(ENABLE_ADDRESS_SANITIZER));
+WEBGPU_PSO_REPRO_CONDITIONS[config=Debug] = WEBGPU_PSO_REPRO $(WEBGPU_PSO_REPRO_CONDITIONS_$(ENABLE_LIBFUZZER)_$(ENABLE_ADDRESS_SANITIZER));
+WEBGPU_PSO_REPRO_CONDITIONS_YES_YES = WEBGPU_PSO_REPRO WEBGPU_PSO_REPRO_ALWAYS;
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(WEBGPU_PSO_REPRO_CONDITIONS);
+
 // Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
 WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes;
 OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -Werror SendableClosureCaptures -enable-experimental-feature CheckImplementationOnly;

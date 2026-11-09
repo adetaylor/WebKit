@@ -55,7 +55,6 @@ import Synchronization
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.ShaderModule
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.WebGPU
 
@@ -3582,17 +3581,15 @@ public final class CommandEncoderImpl: GPUObjectReference, LinkedImpl {
         let deviceImpl = self.deviceImpl
         let queueImpl = deviceImpl.defaultQueueImpl
         let encoderHandle = queueImpl.retainCounterSampleBuffers(self)
-        let completion = deviceImpl.schedulerHandle().map { scheduler in
-            // Safety: on the API thread.
-            unsafe APIThreadWork<Bool>(on: scheduler) { completed in
-                queueImpl.releaseCounterSampleBuffers(encoderHandle)
-                withExtendedLifetime(deviceImpl) {
-                    body(completed)
-                }
+        let completion = APIThreadWork<Bool> { completed in
+            queueImpl.releaseCounterSampleBuffers(encoderHandle)
+            withExtendedLifetime(deviceImpl) {
+                body(completed)
             }
         }
+        let scheduler = deviceImpl.schedulerHandle()
         commandBuffer()?.addCompletedHandler { completedCommandBuffer in
-            completion?.schedule(completedCommandBuffer.status == .completed)
+            completion.schedule(completedCommandBuffer.status == .completed, on: scheduler)
         }
     }
 

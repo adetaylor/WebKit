@@ -28,7 +28,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.ShaderModule
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif

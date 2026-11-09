@@ -345,7 +345,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
             return
         }
         // A library that fails to compile keeps the previous pipeline.
-        guard let library = WebGPU.Metal.compileLibraryWithFastMath(metalDevice, luminanceClampKernelSource) else {
+        guard let library = compileLibraryWithFastMath(metalDevice, luminanceClampKernelSource) else {
             return
         }
         let function = library.makeFunction(name: "luminanceClamp")
@@ -359,7 +359,7 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         }
 
         guard let metalDevice,
-            let library = WebGPU.Metal.compileLibraryWithFastMath(metalDevice, resizeKernelSource),
+            let library = compileLibraryWithFastMath(metalDevice, resizeKernelSource),
             let function = library.makeFunction(name: "resize")
         else {
             return nil
@@ -647,3 +647,15 @@ private let luminanceClampKernelSource = """
             outTexture.write(float4(outColor, inColor.a), gid);
         }
     """
+
+// nil, logged, when Metal reports any error, including warnings alongside a library.
+private func compileLibraryWithFastMath(_ device: any MTLDevice, _ source: String) -> (any MTLLibrary)? {
+    let options = MTLCompileOptions()
+    enableFastMath(options)
+    let (library, error) = newLibraryKeepingWarnings(device, source, options)
+    if let error {
+        logAlways("\(error)")
+        return nil
+    }
+    return library
+}

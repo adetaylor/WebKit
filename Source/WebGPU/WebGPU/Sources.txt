@@ -23,9 +23,6 @@
 
 HardwareCapabilities.mm
 Instance.mm
-Pipeline.mm
 PresentationContextIOSurface.mm
 Queue.mm
-RenderPipeline.mm
-ShaderModule.mm
 XRProjectionLayer.mm

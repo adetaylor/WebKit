@@ -55,7 +55,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Queue
 @_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.ShaderModule
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.CxxBridgingPublic
 @_spiOnly import WebGPU_Private.WebGPUCpp

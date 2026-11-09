@@ -30,10 +30,7 @@
 
 namespace WebGPU::Metal {
 
-// For PresentationContextIOSurface.swift, which cannot copy raw bytes, set the deprecated fastMathEnabled or call the
-// variadic WTFLogAlways. Defined in PresentationContextIOSurface.mm.
-// nil, logged, when Metal reports any error, including warnings alongside a library.
-id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice>, NSString *source);
+// For PresentationContextIOSurface.swift, which cannot copy raw bytes. Defined in PresentationContextIOSurface.mm.
 // nullptr when the bytes cannot be allocated.
 CGImageRef createImageWithTextureBytes(id<MTLTexture>, size_t width, size_t height, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, CGColorSpaceRef, CGBitmapInfo) CF_RETURNS_RETAINED;
 

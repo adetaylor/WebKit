@@ -34,8 +34,11 @@
 #include <wtf/Variant.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
+#include <unicode/uchar.h>
+#include <unicode/uset.h>
 
-// The string and ICU helpers WGSLBridge.swift copies through between WTF and the Swift WGSL compiler.
+// The string helpers WGSLBridge.swift copies through between WTF and the Swift WGSL compiler, and the ICU sets that
+// ShaderModule.swift reads the identifier character classes from.
 
 // Never test HAVE_WGSL_COMPILER in this or any other header Swift imports: CMake does not pass it to Swift's clang importer, so Swift and Objective-C++ would disagree on layouts.
 
@@ -46,13 +49,6 @@ namespace Interop {
 // Copy a String's code units into storage Swift lends as a MutableSpan of exactly length() elements.
 inline void copyLatin1CodeUnits(const String& string, std::span<uint8_t> destination NOESCAPE) { memcpySpan(destination, byteCast<uint8_t>(string.span8())); }
 inline void copyUTF16CodeUnits(const String& string, std::span<char16_t> destination NOESCAPE) { memcpySpan(destination, string.span16()); }
-
-// XID_Start (false) or XID_Continue (true) of the running OS's ICU, as the sorted, disjoint, half-open
-// [start, end) scalar ranges the lexer classifies identifiers with, flattened. Defined in ShaderModule.mm,
-// so that ICU stays in C++.
-using IdentifierRanges = Vector<uint32_t>;
-IdentifierRanges icuIdentifierRanges(bool xidContinue);
-inline void copyIdentifierRanges(const IdentifierRanges& ranges, std::span<uint32_t> destination NOESCAPE) { memcpySpan(destination, ranges.span()); }
 
 // Swift lends these spans from ContiguousArray storage (ContiguousArray.span back-deploys; Array.span
 // needs macOS 26). Each is one copy; ASCII UTF-8 becomes an 8-bit String.

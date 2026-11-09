@@ -25,8 +25,6 @@
 
 #pragma once
 
-#import "Pipeline.h"
-
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
 #import <memory>
@@ -58,10 +56,5 @@ struct RenderPipelineParameters {
     bool hasFragment { false };
     bool writesStencil { false };
 };
-
-// For RenderPipeline.swift: what Swift cannot do itself (call a private selector). Defined in RenderPipeline.mm.
-void setRenderPipelineSampleMask(MTLRenderPipelineDescriptor *, uint32_t);
-
-// As callCreateComputePipelineAsyncCallback.
 
 } // namespace WebGPU::Metal

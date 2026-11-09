@@ -25,8 +25,6 @@
 
 #pragma once
 
-#import "Pipeline.h"
-
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
 #import <cstddef>

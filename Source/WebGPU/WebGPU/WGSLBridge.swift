@@ -27,18 +27,8 @@
 
 private import CxxStdlib
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.ShaderModule
 @_implementationOnly import WebGPU_Internal.WGSLAPI
 import WebGPU_Private.WebGPUCpp
-
-// MARK: - Called from C++
-
-// The stack size of the thread WebGPU.Metal.runOnWGSLCompileThread runs the static check, compileEntryPoint and
-// evaluateWorkgroupSize on; 0 means the calling thread.
-@_expose(Cxx)
-func wgslRecommendedCompileStackSize() -> UInt64 {
-    UInt64(CompileThread.recommendedStackSize ?? 0)
-}
 
 // MARK: - Metal buffer slots
 
@@ -57,17 +47,9 @@ func wgslHDRToSDRMetalSource() -> String {
 // The running OS's ICU XID tables, so that identifiers lex as ICU's u_stringHasBinaryProperty classifies them.
 // Built once per process, possibly on the WGSL compile thread (a global's lazy initialization is thread-safe).
 let icuIdentifierCharacterClasses = IdentifierCharacterClasses(
-    xidStartRanges: makeIdentifierRanges(xidContinue: false),
-    xidContinueRanges: makeIdentifierRanges(xidContinue: true)
+    xidStartRanges: icuIdentifierRanges(xidContinue: false),
+    xidContinueRanges: icuIdentifierRanges(xidContinue: true)
 )
-
-private func makeIdentifierRanges(xidContinue: Bool) -> [UInt32] {
-    let ranges = WGSL.Interop.icuIdentifierRanges(xidContinue)
-    var copy = ContiguousArray<UInt32>(repeating: 0, count: Int(ranges.size()))
-    var destination = copy.mutableSpan
-    WGSL.Interop.copyIdentifierRanges(ranges, &destination)
-    return Array(copy)
-}
 
 // MARK: - Strings
 

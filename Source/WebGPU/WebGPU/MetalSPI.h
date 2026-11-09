@@ -25,6 +25,9 @@
 
 #pragma once
 
+#import <wtf/Compiler.h>
+#import <wtf/Platform.h>
+
 DECLARE_SYSTEM_HEADER
 
 #import <Metal/Metal.h>
@@ -104,3 +107,16 @@ constexpr MTLPixelFormat MTLPixelFormatRG10Unorm_PACKED = static_cast<MTLPixelFo
 @end
 
 #endif
+
+// Metal's compiles as Swift imports them without dropping the error (warnings) that comes with an object: Swift calls these
+// selectors on an MTLDevice through AnyObject.
+@protocol WebGPUMTLDeviceCompilation
+- (nullable id<MTLLibrary>)newLibraryWithSource:(NSString * _Nonnull)source options:(nullable MTLCompileOptions *)options error:(NSError * _Nullable * _Nullable)error NS_SWIFT_NOTHROW NS_SWIFT_NAME(makeLibraryKeepingWarnings(source:options:error:));
+- (nullable id<MTLComputePipelineState>)newComputePipelineStateWithDescriptor:(MTLComputePipelineDescriptor * _Nonnull)descriptor options:(MTLPipelineOption)options reflection:(MTLAutoreleasedComputePipelineReflection * _Nullable)reflection error:(NSError * _Nullable * _Nullable)error NS_SWIFT_NOTHROW NS_SWIFT_NAME(makeComputePipelineStateKeepingWarnings(descriptor:options:reflection:error:));
+- (nullable id<MTLRenderPipelineState>)newRenderPipelineStateWithDescriptor:(MTLRenderPipelineDescriptor * _Nonnull)descriptor error:(NSError * _Nullable * _Nullable)error NS_SWIFT_NOTHROW NS_SWIFT_NAME(makeRenderPipelineStateKeepingWarnings(descriptor:error:));
+@end
+
+// FIXME: remove after radar://104903411 or after we place the mask into the last buffer
+@interface MTLRenderPipelineDescriptor (WebGPUSampleMask)
+- (void)setSampleMask:(NSUInteger)mask;
+@end

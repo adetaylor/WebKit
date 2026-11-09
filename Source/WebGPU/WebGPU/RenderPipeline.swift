@@ -25,9 +25,9 @@ import Metal
 @_implementationOnly import WGSL
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.MetalSPI
 @_implementationOnly import WebGPU_Internal.PresentationContext
 @_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.ShaderModule
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -615,7 +615,7 @@ final class RenderPipelineBuilder {
 
         let renderPipelineDescriptor = MTLRenderPipelineDescriptor()
         setRenderShaderValidation(renderPipelineDescriptor)
-        precondition(renderPipelineDescriptor.responds(to: Selector(("setSampleMask:"))))
+        precondition(renderPipelineDescriptor.responds(to: #selector(MTLRenderPipelineDescriptor.setSampleMask(_:))))
 
         let pending = prepare(descriptor, renderPipelineDescriptor)
         if let error = pending.backingErrorMessage {
@@ -632,20 +632,21 @@ final class RenderPipelineBuilder {
                     return fail(error)
                 }
                 let renderPipelineDescriptor = pending.renderPipelineDescriptor()
-                if WebGPU.Metal.psoLoggingIsEnabled() {
-                    let shaderLocations = ContiguousArray(pending.shaderLocations)
-                    let error = WebGPU.Metal.reproduceRenderPipelineState(
+                #if WEBGPU_PSO_REPRO
+                if psoLoggingIsEnabled() {
+                    let error = reproduceRenderPipelineState(
                         deviceImpl.device(),
                         deviceImpl.deviceLimits().maxVertexBuffers,
                         renderPipelineDescriptor,
                         vertexLibrary.metalSource,
                         fragmentLibrary?.metalSource ?? WTF.String(),
-                        shaderLocations.span
+                        pending.shaderLocations
                     )
-                    if !error.isNull() {
-                        return fail(stringNilIfEmpty(error) ?? "")
+                    if let error {
+                        return fail(error)
                     }
                 }
+                #endif
 
                 guard let scheduler = asynchronousCompileScheduler(compilation, deviceImpl) else {
                     return report(impl, nil)
@@ -934,7 +935,7 @@ final class RenderPipelineBuilder {
         var sampleMask = defaultRenderPipelineSampleMask
         if multisample.mask != sampleMask {
             if !usesSampleMask {
-                WebGPU.Metal.setRenderPipelineSampleMask(renderPipelineDescriptor, multisample.mask)
+                renderPipelineDescriptor.setSampleMask(Int(multisample.mask))
             }
             sampleMask = multisample.mask
         }

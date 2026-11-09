@@ -21,10 +21,11 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import Foundation
 import Metal
 @_implementationOnly import WGSL
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.ShaderModule
+@_implementationOnly import WebGPU_Internal.WGSLAPI
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 private struct Message {
@@ -139,7 +140,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
         }
         if checkedModule == nil {
             var checked: CheckedModuleBox?
-            WebGPU.Metal.runOnWGSLCompileThread {
+            runOnWGSLCompileThread {
                 // The source passed this check when the module was created, so it passes again.
                 switch staticCheck(source.text, configuration: source.configuration) {
                 case .failure:
@@ -213,7 +214,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
             preconditionFailure("compile() on a shader module without a use of its checked module")
         }
         var compilation: EntryPointCompilation?
-        WebGPU.Metal.runOnWGSLCompileThread {
+        runOnWGSLCompileThread {
             if var layout = explicitLayout {
                 compilation = checkedModule.module.compileEntryPoint(
                     entryPoint,
@@ -242,7 +243,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
             preconditionFailure("evaluateWorkgroupSize() on a shader module without a use of its checked module")
         }
         var size: WorkgroupExtent?
-        WebGPU.Metal.runOnWGSLCompileThread {
+        runOnWGSLCompileThread {
             size = checkedModule.module.evaluateWorkgroupSize(entryPoint: entryPoint, overrides: overrides).size
         }
         return size
@@ -334,9 +335,7 @@ private func inWTFHashTableOrder<Value>(_ entries: [(location: UInt32, value: Va
     guard unique.count > 1 else {
         return unique
     }
-    var keys = ContiguousArray(unique.map { $0.location })
-    var destination = keys.mutableSpan
-    WebGPU.Metal.sortInWTFHashTableOrder(&destination)
+    let keys = sortedInWTFHashTableOrder(unique.map { $0.location })
     let positions = Dictionary(uniqueKeysWithValues: unique.enumerated().map { ($1.location, $0) })
     return keys.compactMap { key in positions[key].map { unique[$0] } }
 }
@@ -470,7 +469,7 @@ private func createShaderModuleImpl(_ deviceImpl: DeviceImpl, source: SourceText
     var checkedModule: CheckedModuleBox?
     var errors: [CompilationMessage] = []
     var warnings: [CompilationMessage] = []
-    WebGPU.Metal.runOnWGSLCompileThread {
+    runOnWGSLCompileThread {
         switch staticCheck(source, configuration: configuration) {
         case .failure(let failedCheck):
             errors = failedCheck.errors
@@ -503,4 +502,89 @@ extension DeviceReference {
     public func createShaderModule(code: Swift.String, label: Swift.String?) -> ShaderModuleReference {
         createShaderModuleImpl(self, code: code)
     }
+}
+
+// MARK: - The WGSL compile thread, hash table order and ICU (ShaderModule.mm)
+
+/// Runs `work` on a thread with the stack WGSL compilation needs, and returns once it has run: the calling thread, unless
+/// the compiler was built without optimization, which needs a larger stack than the WebGPU thread's.
+func runOnWGSLCompileThread(_ work: () -> Void) {
+    guard let stackSize = CompileThread.recommendedStackSize else {
+        work()
+        return
+    }
+    withoutActuallyEscaping(work) { work in
+        let call = WGSLCompileThreadCall(work)
+        let thread = Foundation.Thread {
+            call.run()
+        }
+        thread.name = "WGSL compile"
+        thread.stackSize = stackSize
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        call.wait()
+    }
+}
+
+/// The work of one runOnWGSLCompileThread() call on its thread.
+///
+/// Unchecked Sendable: the thread runs the work and releases it before it signals, and the calling thread waits for the
+/// signal before it goes on.
+private final class WGSLCompileThreadCall: @unchecked Sendable {
+    private var work: (() -> Void)?
+    private let done = DispatchSemaphore(value: 0)
+
+    init(_ work: @escaping () -> Void) {
+        self.work = work
+    }
+
+    func run() {
+        work.take()?()
+        done.signal()
+    }
+
+    func wait() {
+        done.wait()
+    }
+}
+
+/// `keys` (distinct) in the order a HashMap<uint32_t, T, DefaultHash<uint32_t>, UnsignedWithZeroKeyHashTraits<uint32_t>>
+/// filled with them in their current order iterates them, for walks whose first failure picks an error message. Table
+/// sizing ignores the value type, so a WTFHashSet replica of the keys iterates in the same order.
+func sortedInWTFHashTableOrder(_ keys: [UInt32]) -> [UInt32] {
+    var table = WTFHashSet<UInt32>()
+    for key in keys {
+        // The traits' empty and deleted values, which HashTable rejects.
+        precondition(key < UInt32.max - 1)
+        table.add(key)
+    }
+    precondition(table.count == keys.count)
+    var result: [UInt32] = []
+    result.reserveCapacity(keys.count)
+    table.forEachKeyInWTFOrder { result.append($0) }
+    return result
+}
+
+/// XID_Start (false) or XID_Continue (true) of the running OS's ICU, as the sorted, disjoint, half-open [start, end) scalar
+/// ranges the lexer classifies identifiers with, flattened.
+func icuIdentifierRanges(xidContinue: Bool) -> [UInt32] {
+    var status = U_ZERO_ERROR
+    // Safety: `status` outlives the call, which only writes it, and ICU's property sets live as long as the process.
+    let set = unsafe u_getBinaryPropertySet(xidContinue ? UCHAR_XID_CONTINUE : UCHAR_XID_START, &status)
+    precondition(status.rawValue <= U_ZERO_ERROR.rawValue)
+    // Safety: `set` is ICU's, as above.
+    let itemCount = unsafe uset_getItemCount(set)
+    var result: [UInt32] = []
+    result.reserveCapacity(2 * Int(itemCount))
+    for index in 0..<itemCount {
+        var start: UChar32 = 0
+        var end: UChar32 = 0
+        // Safety: `start`, `end` and `status` outlive the call, which only writes them, and a nil string of capacity 0
+        // gets no characters.
+        let stringLength = unsafe uset_getItem(set, index, &start, &end, nil, 0, &status)
+        precondition(stringLength == 0 && status.rawValue <= U_ZERO_ERROR.rawValue)
+        result.append(UInt32(bitPattern: start))
+        result.append(UInt32(bitPattern: end + 1))
+    }
+    return result
 }

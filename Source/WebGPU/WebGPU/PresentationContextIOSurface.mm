@@ -39,21 +39,6 @@
 
 namespace WebGPU::Metal {
 
-id<MTLLibrary> compileLibraryWithFastMath(id<MTLDevice> device, NSString *source)
-{
-    NSError *error = nil;
-    MTLCompileOptions* options = [MTLCompileOptions new];
-    ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    options.fastMathEnabled = YES;
-    ALLOW_DEPRECATED_DECLARATIONS_END
-    id<MTLLibrary> library = [device newLibraryWithSource:source options:options error:&error];
-    if (error) {
-        WTFLogAlways("%@", error); // NOLINT
-        return nil;
-    }
-    return library;
-}
-
 CGImageRef createImageWithTextureBytes(id<MTLTexture> texture, size_t width, size_t height, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, CGColorSpaceRef colorSpace, CGBitmapInfo bitmapInfo)
 {
     size_t imageBytesSize = bytesPerRow * height;

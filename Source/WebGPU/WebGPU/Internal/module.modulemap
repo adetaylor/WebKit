@@ -67,6 +67,11 @@ module WebGPU_Internal [system] {
         export *
     }
 
+    explicit module MetalSPI {
+        header "../MetalSPI.h"
+        export *
+    }
+
     explicit module PresentationContext {
         header "../PresentationContext.h"
         export *
@@ -89,11 +94,6 @@ module WebGPU_Internal [system] {
 
     explicit module RenderPipeline {
         header "../RenderPipeline.h"
-        export *
-    }
-
-    explicit module ShaderModule {
-        header "../ShaderModule.h"
         export *
     }
 

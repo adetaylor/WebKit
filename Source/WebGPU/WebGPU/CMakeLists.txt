@@ -88,11 +88,8 @@ set_target_properties(WebGPU PROPERTIES
 set(WebGPU_SWIFT_INTEROP_SOURCES
     HardwareCapabilities.mm
     Instance.mm
-    Pipeline.mm
     PresentationContextIOSurface.mm
     Queue.mm
-    RenderPipeline.mm
-    ShaderModule.mm
     XRProjectionLayer.mm
 )
 foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)
@@ -217,7 +214,14 @@ webkit_target_add_swift_options(WebGPU
     "-library-level spi"
     "-Werror SendableClosureCaptures"
     "-enable-experimental-feature CheckImplementationOnly"
+    "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-DWEBGPU_PSO_REPRO>"
 )
+
+# Pipeline.swift's PSO repro tooling, in the builds that had it in C++ (!NDEBUG || (ENABLE_LIBFUZZER && ASAN_ENABLED)): the
+# Debug config above, and libFuzzer builds with ASan.
+if (ENABLE_LIBFUZZER AND ENABLE_SANITIZERS MATCHES "address")
+    webkit_target_add_swift_options(WebGPU -DWEBGPU_PSO_REPRO -DWEBGPU_PSO_REPRO_ALWAYS)
+endif ()
 
 set(WebGPU_SWIFT_EMIT_CLANG_HEADER_MIN_ACCESS internal)
 
