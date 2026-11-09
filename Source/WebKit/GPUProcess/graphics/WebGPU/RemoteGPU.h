@@ -36,6 +36,7 @@
 #include "WebModelIdentifier.h"
 #include <CoreGraphics/CGImage.h>
 #include <IOSurface/IOSurfaceRef.h>
+#include <WebCore/PixelFormat.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/MachSendRight.h>
@@ -65,8 +66,17 @@ struct ImageAsset;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
+class GPUVideoFrameSource;
 class ModelObjectHeap;
 class RemoteRenderingBackend;
+
+// What copyImageBufferSurface() says of the image buffer whose IOSurface it gives.
+struct RemoteGPUImageBufferSurface {
+    WebCore::PixelFormat pixelFormat { WebCore::PixelFormat::BGRA8 };
+    uint32_t width { 0 };
+    uint32_t height { 0 };
+    bool isDisplayP3 { false };
+};
 
 // The receiver of a web process's WebGPU messages to its GPU, on its own work queue. Swift handles the WebGPU messages
 // (RemoteGPU.swift), on the registry of WebGPU objects that m_swiftState holds; C++ keeps the receiver's lifecycle, the
@@ -108,6 +118,8 @@ public:
 #endif
 
 private:
+    friend IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteGPU&, uint64_t, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
+
     RemoteGPU(WebGPUIdentifier, GPUConnectionToWebProcess&, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
 
     RemoteGPU(const RemoteGPU&) = delete;
@@ -149,6 +161,16 @@ private:
     const Ref<RemoteRenderingBackend> m_renderingBackend;
     uintptr_t m_swiftState { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The IOSurface of the rendering backend's image buffer with that identifier, read for a copy: null unless the image buffer
+// is accelerated and not empty. A function, since Swift takes what a C++ method returns as unretained.
+IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteGPU&, uint64_t imageBufferIdentifier, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
+
+#if ENABLE(VIDEO)
+// The reader of the video frames that the web process shares with the RemoteGPU's receivers. Null once the connection to
+// the web process has gone.
+GPUVideoFrameSource* WTF_NULLABLE createVideoFrameSource(RemoteGPU&) SWIFT_RETURNS_RETAINED;
+#endif
 
 } // namespace WebKit
 

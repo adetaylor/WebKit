@@ -77,6 +77,7 @@ GPUProcess/cocoa/GPUProcessCocoa.mm @nonARC
 GPUProcess/graphics/Model/MeshImpl.cpp
 GPUProcess/graphics/Model/WebKitMesh.mm
 GPUProcess/graphics/GPUProcessIOSurfaces.cpp
+GPUProcess/media/GPUVideoFrameSource.cpp
 GPUProcess/graphics/RemoteCGRendererResources.cpp
 GPUProcess/graphics/RemoteGraphicsContextGLCocoa.cpp
 GPUProcess/graphics/RemoteSnapshotPDFDrawingTask.cpp

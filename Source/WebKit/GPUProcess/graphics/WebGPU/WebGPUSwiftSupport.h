@@ -34,11 +34,8 @@
 #include "StreamServerConnection.h"
 #include "SwiftCoding.h"
 #include "WebGPUExtent3D.h"
-#include "WebGPUExternalTextureDescriptor.h"
 #include "WebGPUIdentifier.h"
-#include "WebGPUImageCopyExternalImage.h"
 #include "WebGPUImageCopyTexture.h"
-#include "WebGPUImageCopyTextureTagged.h"
 #include "WebGPUImageDataLayout.h"
 #include <WebCore/SharedMemory.h>
 #include <WebCore/WebGPUCppAPI.h>
@@ -57,21 +54,7 @@
 #include <IOSurface/IOSurfaceRef.h>
 #endif
 
-namespace WebCore {
-class ColorSpace;
-class IOSurface;
-}
-
 namespace WebKit {
-
-class SharedVideoFrameReader;
-
-#if PLATFORM(COCOA)
-// The source of a queue's CopyExternalImageToTexture message, as WebCore's WebGPU integration copies from it: the
-// IOSurface of the RemoteGPU's rendering backend's image buffer with that identifier, read from the origin.
-// std::nullopt if there's nothing to copy.
-std::optional<::WebGPU::ImageCopyExternalImage> webGPUExternalImage(RemoteGPU&, uint64_t imageBufferIdentifier, ::WebGPU::Origin2D, bool flipY, bool premultipliedAlpha);
-#endif
 
 // Keeps the messages for a WebGPU receiver written in Swift coming from the stream connection, as
 // IPC::ScopedActiveMessageReceiveQueue does for a C++ receiver, until it goes.
@@ -129,51 +112,6 @@ OptionalOwnedBytes mapSharedMemory(IPC::CxxDecodedArgument<std::optional<WebCore
 
 // Whether a write with copy is no larger than the web process sends in a message (WebGPU::maxCrossProcessResourceCopySize).
 bool isValidWebGPUWriteWithCopySize(size_t);
-
-
-
-
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-// A device receiver's reader of the video frames that the web process shares with it, and its imports of video frames
-// as external textures, which take WebCore's media types.
-class WebGPUSwiftVideoFrames final : public RefCounted<WebGPUSwiftVideoFrames> {
-public:
-    // Null if the RemoteGPU's connection to the web process has gone.
-    static WebGPUSwiftVideoFrames* WTF_NULLABLE create(RemoteGPU&) SWIFT_RETURNS_RETAINED;
-
-    ~WebGPUSwiftVideoFrames();
-
-    // Each takes a right of its own to the port that the receiver's IPCTypes.Semaphore or SharedMemoryHandle owns.
-    void setSemaphore(mach_port_t);
-    void setSharedMemory(mach_port_t, uint64_t size);
-
-    // The descriptor of a device's ImportExternalTextureFromVideoFrame message, with the pixel buffer of the video frame
-    // it names, as WebCore's WebGPU integration imports it. std::nullopt with isInvalid set if the message is invalid, and
-    // std::nullopt alone if WebGPU has gone.
-    std::optional<::WebGPU::ExternalTextureDescriptor> externalTextureDescriptor(IPC::CxxDecodedArgument<WebGPU::ExternalTextureDescriptor>&, bool& isInvalid);
-    // The frame that the media player is showing, as a descriptor whose pixel buffer an external texture's update reads.
-    // std::nullopt if the connection to the web process has gone.
-    std::optional<::WebGPU::ExternalTextureDescriptor> mediaPlayerFrame(uint64_t mediaPlayerIdentifier);
-    // The source of a queue's CopyExternalImageFromVideoFrameToTexture message, with the pixel buffer of the video frame it
-    // names, as WebCore's WebGPU integration copies from it. std::nullopt if there's nothing to copy.
-    std::optional<::WebGPU::ImageCopyExternalImage> externalImage(IPC::CxxDecodedArgument<WebGPU::ImageCopyExternalImageVideoSource>&);
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<WebGPUSwiftVideoFrames>::ref(); }
-    void deref() const { RefCounted<WebGPUSwiftVideoFrames>::deref(); }
-#endif
-
-private:
-    WebGPUSwiftVideoFrames(RemoteGPU&, std::unique_ptr<SharedVideoFrameReader>&&);
-
-    const WeakPtr<RemoteGPU> m_gpu;
-    const std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-#endif
-
-
 
 } // namespace WebKit
 

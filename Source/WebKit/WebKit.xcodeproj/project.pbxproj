@@ -9617,6 +9617,8 @@
 		CBEBC52D88494AB095B2410D /* RemoteGPUModel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGPUModel.cpp; sourceTree = "<group>"; };
 		DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUProcessIOSurfaces.cpp; sourceTree = "<group>"; };
 		F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUProcessIOSurfaces.h; sourceTree = "<group>"; };
+		A3C6D325A67448C8832E5720 /* GPUVideoFrameSource.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUVideoFrameSource.cpp; sourceTree = "<group>"; };
+		15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoFrameSource.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -10086,6 +10088,8 @@
 				1D0ECEA923FC84BB00D172F6 /* cocoa */,
 				CDA959442412C4DA00910EEF /* ios */,
 				CDD08AC3277EBCE500EA3755 /* AudioTrackPrivateRemoteConfiguration.h */,
+				A3C6D325A67448C8832E5720 /* GPUVideoFrameSource.cpp */,
+				15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */,
 				1D4FB40B2565C89A001AC2AD /* InitializationSegmentInfo.h */,
 				5C046A1B290B26CF00FF7820 /* InitializationSegmentInfo.serialization.in */,
 				5C046A19290B26CE00FF7820 /* MediaDescriptionInfo.h */,

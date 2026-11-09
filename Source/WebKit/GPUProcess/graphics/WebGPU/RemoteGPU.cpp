@@ -29,6 +29,7 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
+#include "GPUVideoFrameSource.h"
 #include "Logging.h"
 #include "ModelObjectHeap.h"
 #include "RemoteGPUMessages.h"
@@ -36,6 +37,7 @@
 #include "RemoteRenderingBackend.h"
 #include "StreamServerConnection.h"
 #include "WebGPUSwiftSupport.h"
+#include <WebCore/ColorSpace.h>
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/ImageBuffer.h>
@@ -212,6 +214,42 @@ void RemoteGPU::paintToImageBuffer(CGImageRef image, IOSurfaceRef surface, bool 
     CGImageSetCachingFlags(nativeImage->platformImage().get(), kCGImageCachingTransient);
     paintNativeImageToImageBuffer(*nativeImage, identifier);
 }
+
+IOSurfaceRef copyImageBufferSurface(RemoteGPU& gpu, uint64_t imageBufferIdentifier, RemoteGPUImageBufferSurface& description)
+{
+    // Only RemoteGPU can reach the RemoteRenderingBackend which owns the ImageBuffer.
+    RefPtr imageBuffer = gpu.imageBuffer(WebCore::RenderingResourceIdentifier { imageBufferIdentifier });
+    if (!imageBuffer)
+        return nullptr;
+
+    // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects
+    // unaccelerated sources before we get here, but the backing may have been dropped since.
+    auto* surface = imageBuffer->surface();
+    if (!surface)
+        return nullptr;
+
+    auto size = imageBuffer->truncatedLogicalSize();
+    if (!size.width() || !size.height())
+        return nullptr;
+
+    description = {
+        .pixelFormat = imageBuffer->pixelFormat(),
+        .width = static_cast<uint32_t>(size.width()),
+        .height = static_cast<uint32_t>(size.height()),
+        .isDisplayP3 = imageBuffer->colorSpace() == WebCore::ColorSpace::DisplayP3(),
+    };
+    return RetainPtr { surface->surface() }.leakRef();
+}
+
+#if ENABLE(VIDEO)
+GPUVideoFrameSource* createVideoFrameSource(RemoteGPU& gpu)
+{
+    RefPtr connection = gpu.gpuConnectionToWebProcess();
+    if (!connection)
+        return nullptr;
+    return &GPUVideoFrameSource::create(*connection).leakRef();
+}
+#endif
 
 RefPtr<WebCore::ImageBuffer> RemoteGPU::imageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier)
 {

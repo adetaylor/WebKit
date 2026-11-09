@@ -76,6 +76,7 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 #include "GPUProcessIOSurfaces.h"
+#include "GPUVideoFrameSource.h"
 #include "RemoteAdapterMessages.h"
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"

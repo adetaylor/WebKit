@@ -36,7 +36,7 @@ final class RemoteQueue {
     private let queue: QueueReference
     private let link: WebGPURegistryLink
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    private let videoFrames: WebKit.WebGPUSwiftVideoFrames?
+    private let videoFrames: WebKit.GPUVideoFrameSource?
     #endif
 
     @_expose(!Cxx)
@@ -44,7 +44,7 @@ final class RemoteQueue {
         self.queue = queue
         self.link = link
         #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-        videoFrames = link.objects.flatMap { WebKit.WebGPUSwiftVideoFrames.create($0.host) }
+        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.host) }
         #endif
     }
 
@@ -202,11 +202,24 @@ final class RemoteQueue {
         guard let objects = link.objects, let texture, let imageBufferIdentifier = source.imageBufferIdentifier else {
             return
         }
-        let origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
-        guard let image = WebKit.webGPUExternalImage(objects.host, imageBufferIdentifier.rawValue, origin, source.flipY, source.premultipliedAlpha).value else {
+        var surfaceDescription = WebKit.RemoteGPUImageBufferSurface()
+        guard let surface = WebKit.copyImageBufferSurface(objects.host, imageBufferIdentifier.rawValue, &surfaceDescription),
+            let sourceFormat = sourceTextureFormat(surfaceDescription.pixelFormat)
+        else {
             return
         }
-        queue.copyExternalImageToTexture(GPUCopyExternalImageSource(image), texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
+        var image = GPUCopyExternalImageSource()
+        image.surface = surface
+        image.sourceFormat = sourceFormat.format
+        image.sourceSize = WebGPU.Extent2D(width: surfaceDescription.width, height: surfaceDescription.height)
+        image.hasAlpha = sourceFormat.hasAlpha
+        image.colorSpace = surfaceDescription.isDisplayP3 ? .DisplayP3 : .SRGB
+        image.origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
+        image.flipY = source.flipY
+        // An ImageBitmap created with premultiplyAlpha: "none" was put into its buffer straight, so the caller has to say;
+        // a buffer a 2D context composited is premultiplied.
+        image.premultipliedAlpha = source.premultipliedAlpha
+        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
@@ -222,17 +235,43 @@ final class RemoteQueue {
         videoFrames?.setSharedMemory(storageHandle.port, storageHandle.size)
     }
 
+    // The frame is the shared one the message carries, or else the one the media player shows. A frame which could not be
+    // resolved leaves the destination texture alone, exactly as a video with nothing decoded yet did on the readback path.
     func copyExternalImageFromVideoFrameToTexture(
-        source: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureSource,
+        origin: IPCTypes.Origin2D?,
+        flipY: Bool,
+        mediaIdentifier: IPCTypes.MediaPlayerIdentifier?,
+        sharedFrame: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureSharedFrame,
         destination: IPCTypes.ImageCopyTextureTagged,
         copySize: IPCTypes.Extent3D
     ) {
         let texture = link.objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
-        guard let texture, let image = videoFrames?.externalImage(source).value else {
+        guard let texture, let videoFrames else {
             return
         }
-        queue.copyExternalImageToTexture(GPUCopyExternalImageSource(image), texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
+        var result = WebKit.GPUVideoFrameReadResult()
+        var pixelBuffer = WebKit.readSharedVideoFrame(videoFrames, sharedFrame, &result)
+        if result.isInvalid {
+            return
+        }
+        if !result.hadFrame, let mediaIdentifier {
+            pixelBuffer = WebKit.copyMediaPlayerFrame(videoFrames, mediaIdentifier.rawValue, &result)
+        }
+        guard let pixelBuffer else {
+            return
+        }
+        // A decoded frame carries its extent, its crop and its primaries, and is opaque, so its alpha is replaced with 1 the
+        // way an external texture's is. The display transform is the one thing about the frame its pixel buffer does not carry.
+        var image = GPUCopyExternalImageSource()
+        image.pixelBuffer = pixelBuffer
+        image.pixelBufferRotation = videoFrameRotation(result.rotation)
+        image.pixelBufferIsMirrored = result.isMirrored
+        image.origin = origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
+        image.flipY = flipY
+        image.hasAlpha = false
+        image.premultipliedAlpha = true
+        queue.copyExternalImageToTexture(image, texture, GPUCopyExternalImageDestination(destination), WebGPU.Extent3D(copySize))
     }
     #endif
 
@@ -241,23 +280,50 @@ final class RemoteQueue {
     }
 }
 
-extension GPUCopyExternalImageSource {
-    // The WebGPU implementation's form of the source that webGPUExternalImage() or WebGPUSwiftVideoFrames resolves.
-    fileprivate init(_ source: borrowing WebGPU.ImageCopyExternalImage) {
-        self.init()
-        surface = WebGPU.sourceSurface(source)
-        sourceFormat = Optional(fromCxx: source.sourceFormat)
-        sourceSize = source.sourceSize
-        pixelBuffer = WebGPU.sourcePixelBuffer(source)
-        pixelBufferRotation = source.pixelBufferRotation
-        pixelBufferIsMirrored = source.pixelBufferIsMirrored
-        origin = source.origin
-        flipY = source.flipY
-        hasAlpha = source.hasAlpha
-        premultipliedAlpha = source.premultipliedAlpha
-        colorSpace = source.colorSpace
+// The texture format of the IOSurface that an accelerated ImageBuffer of this pixel format is backed by, plus whether its
+// alpha channel holds meaningful data. nil for the formats GPUQueue::copyExternalImageToTexture keeps on the CPU readback
+// path.
+private func sourceTextureFormat(_ pixelFormat: WebCore.PixelFormat) -> (format: WebGPU.TextureFormat, hasAlpha: Bool)? {
+    switch pixelFormat {
+    case .RGBA8:
+        return (.Rgba8unorm, true)
+    case .BGRA8:
+        return (.Bgra8unorm, true)
+    case .BGRX8:
+        // IOSurface::Format::BGRX uses the same IOSurface pixel format as BGRA, but CoreGraphics renders into it with
+        // kCGImageAlphaNoneSkipFirst, so the alpha byte is undefined.
+        return (.Bgra8unorm, false)
+    case .RGBX8:
+        return (.Rgba8unorm, false)
+    #if ENABLE_PIXEL_FORMAT_RGBA16F
+    case .RGBA16F:
+        return (.Rgba16float, true)
+    #endif
+    #if ENABLE_PIXEL_FORMAT_RGBA16
+    case .RGBA16:
+        return (.Rgba16unorm, true)
+    #endif
+    default:
+        // Packed 10-bit surfaces have no single-plane MTLPixelFormat equivalent.
+        return nil
     }
 }
+
+#if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+// WebCore::VideoFrameRotation's degrees.
+private func videoFrameRotation(_ degrees: UInt16) -> WebGPU.VideoFrameRotation {
+    switch degrees {
+    case 90:
+        return .Right
+    case 180:
+        return .UpsideDown
+    case 270:
+        return .Left
+    default:
+        return .None
+    }
+}
+#endif
 
 extension GPUCopyExternalImageDestination {
     // ConvertFromBackingContext's conversion of the destination, apart from the texture.

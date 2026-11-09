@@ -73,7 +73,10 @@ async function run()
     const unboundTextureId = freshId();
     for (const identifier of [boundTextureId, unboundTextureId]) {
         remoteDevice.ImportExternalTextureFromVideoFrame({
-            descriptor: { label: "externalTexture", mediaIdentifier: { }, colorSpace: 0, visibleSize: { width: 0, height: 0 }, sharedFrame: { } },
+            mediaIdentifier: { },
+            colorSpace: 0,
+            visibleSize: { width: 0, height: 0 },
+            sharedFrame: { },
             identifier,
         });
     }

@@ -40,6 +40,7 @@ extension IPCTypes.CxxName {
     typealias WebKit_WebGPU_CompilationMessage = IPCTypes.CompilationMessage
     typealias WebKit_WebGPU_Extent3D = IPCTypes.Extent3D
     typealias WebKit_WebGPU_ImageDataLayout = IPCTypes.TexelCopyBufferLayout
+    typealias WebKit_WebGPU_Origin2D = IPCTypes.Origin2D
     typealias WebKit_WebGPU_QuerySetDescriptor = IPCTypes.QuerySetDescriptor
     typealias WebKit_WebGPU_RenderBundleDescriptor = IPCTypes.RenderBundleDescriptor
     typealias WebKit_WebGPU_RequestAdapterOptions = IPCTypes.RequestAdapterOptions

@@ -31,6 +31,7 @@
 #include "RemoteBufferProxy.h"
 #include "RemoteQueueMessages.h"
 #include "WebGPUConvertToBackingContext.h"
+#include "WebGPUImageCopyExternalImage.h"
 #include "WebProcess.h"
 #include <WebCore/NativeImage.h>
 #include <WebCore/WebCodecsVideoFrame.h>
@@ -194,7 +195,7 @@ void RemoteQueueProxy::copyExternalImageFromVideoFrameToTexture(
     // Sent asynchronously, unlike the ImageBuffer copy above: the frame either travels with the
     // message or is named by a media player the GPU process resolves for itself, so there is no
     // identifier on another stream whose lifetime this call has to hold open.
-    auto sendResult = send(Messages::RemoteQueue::CopyExternalImageFromVideoFrameToTexture(WTF::move(*convertedSource), *convertedDestination, copySize));
+    auto sendResult = send(Messages::RemoteQueue::CopyExternalImageFromVideoFrameToTexture(convertedSource->origin, convertedSource->flipY, convertedSource->mediaIdentifier, WTF::move(convertedSource->sharedFrame), *convertedDestination, copySize));
     UNUSED_VARIABLE(sendResult);
 }
 #endif

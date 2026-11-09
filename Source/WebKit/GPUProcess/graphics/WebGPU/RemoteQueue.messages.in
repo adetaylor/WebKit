@@ -47,7 +47,7 @@ messages -> RemoteQueue Stream {
     // stream too. Unlike that copy this one need not be synchronous: a frame is either owned by the
     // message or named by a media player the GPU process resolves itself, so there is no identifier
     // on another stream to race against.
-    void CopyExternalImageFromVideoFrameToTexture([CxxDecoded] WebKit::WebGPU::ImageCopyExternalImageVideoSource source, WebKit::WebGPU::ImageCopyTextureTagged destination, WebKit::WebGPU::Extent3D copySize) NotStreamEncodable
+    void CopyExternalImageFromVideoFrameToTexture(std::optional<WebKit::WebGPU::Origin2D> origin, bool flipY, std::optional<WebCore::MediaPlayerIdentifier> mediaIdentifier, [CxxDecoded] std::optional<WebKit::SharedVideoFrame> sharedFrame, WebKit::WebGPU::ImageCopyTextureTagged destination, WebKit::WebGPU::Extent3D copySize) NotStreamEncodable
 #endif
     void SetLabel(String label)
 }
