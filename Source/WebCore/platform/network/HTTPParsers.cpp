@@ -1103,4 +1103,61 @@ bool isRequestHeaderUnsafeToModify(const String& header, StringView value)
     return isForbiddenMethodOverrideHeader(header, value);
 }
 
+template<class HashType>
+static bool addToAccessControlAllowList(const String& string, unsigned start, unsigned end, HashSet<String, HashType>& set)
+{
+    StringImpl* stringImpl = string.impl();
+    if (!stringImpl)
+        return true;
+
+    // Skip white space from start.
+    while (start <= end && isASCIIWhitespaceWithoutFF((*stringImpl)[start]))
+        ++start;
+
+    // only white space
+    if (start > end)
+        return true;
+
+    // Skip white space from end.
+    while (end && isASCIIWhitespaceWithoutFF((*stringImpl)[end]))
+        --end;
+
+    auto token = string.substring(start, end - start + 1);
+    if (!isValidHTTPToken(token))
+        return false;
+
+    set.add(WTF::move(token));
+    return true;
+}
+
+template<class HashType>
+static std::optional<HashSet<String, HashType>> parseAccessControlAllowListWithHash(const String& string)
+{
+    HashSet<String, HashType> set;
+    unsigned start = 0;
+    size_t end;
+    while ((end = string.find(',', start)) != notFound) {
+        if (start != end) {
+            if (!addToAccessControlAllowList(string, start, end - 1, set))
+                return { };
+        }
+        start = end + 1;
+    }
+    if (start != string.length()) {
+        if (!addToAccessControlAllowList(string, start, string.length() - 1, set))
+            return { };
+    }
+    return set;
+}
+
+template<> std::optional<HashSet<String>> parseAccessControlAllowList<DefaultHash<String>>(const String& string)
+{
+    return parseAccessControlAllowListWithHash<DefaultHash<String>>(string);
+}
+
+template<> std::optional<HTTPHeaderSet> parseAccessControlAllowList<ASCIICaseInsensitiveHash>(const String& string)
+{
+    return parseAccessControlAllowListWithHash<ASCIICaseInsensitiveHash>(string);
+}
+
 }

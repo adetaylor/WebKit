@@ -80,21 +80,21 @@ enum class ClearSiteDataValue : uint8_t {
 
 enum class RangeAllowWhitespace : bool { No, Yes };
 
-NODELETE bool isValidReasonPhrase(const String&);
+NODELETE WEBCORE_EXPORT bool isValidReasonPhrase(const String&);
 NODELETE WEBCORE_EXPORT bool isValidHTTPHeaderValue(const String&);
-NODELETE bool isValidAcceptHeaderValue(const String&);
-NODELETE bool isValidLanguageHeaderValue(const String&);
+NODELETE WEBCORE_EXPORT bool isValidAcceptHeaderValue(const String&);
+NODELETE WEBCORE_EXPORT bool isValidLanguageHeaderValue(const String&);
 #if USE(GLIB)
 WEBCORE_EXPORT bool isValidUserAgentHeaderValue(const String&);
 #endif
 NODELETE WEBCORE_EXPORT bool isValidHTTPToken(const String&);
-NODELETE bool isValidHTTPToken(StringView);
-std::optional<WallTime> parseHTTPDate(const String&);
-StringView filenameFromHTTPContentDisposition(StringView value LIFETIME_BOUND);
+NODELETE WEBCORE_EXPORT bool isValidHTTPToken(StringView);
+WEBCORE_EXPORT std::optional<WallTime> parseHTTPDate(const String&);
+WEBCORE_EXPORT StringView filenameFromHTTPContentDisposition(StringView value LIFETIME_BOUND);
 WEBCORE_EXPORT String extractMIMETypeFromMediaType(const String&);
 WEBCORE_EXPORT StringView extractCharsetFromMediaType(StringView mediaType LIFETIME_BOUND);
 XSSProtectionDisposition parseXSSProtectionHeader(const String& header, String& failureReason, unsigned& failurePosition, String& reportURL);
-AtomString extractReasonPhraseFromHTTPStatusLine(const String&);
+WEBCORE_EXPORT AtomString extractReasonPhraseFromHTTPStatusLine(const String&);
 WEBCORE_EXPORT XFrameOptionsDisposition parseXFrameOptionsHeader(StringView);
 WEBCORE_EXPORT OptionSet<ClearSiteDataValue> parseClearSiteDataHeader(const ResourceResponse&);
 
@@ -105,28 +105,28 @@ struct HTTPRange {
 };
 WEBCORE_EXPORT std::optional<HTTPRange> parseRange(StringView, RangeAllowWhitespace);
 
-ContentTypeOptionsDisposition parseContentTypeOptionsHeader(StringView header);
+WEBCORE_EXPORT ContentTypeOptionsDisposition parseContentTypeOptionsHeader(StringView header);
 
 // Parsing Complete HTTP Messages.
-size_t parseHTTPHeader(std::span<const uint8_t> data, String& failureReason, StringView& nameStr, String& valueStr, bool strict = true);
+WEBCORE_EXPORT size_t parseHTTPHeader(std::span<const uint8_t> data, String& failureReason, StringView& nameStr, String& valueStr, bool strict = true);
 size_t parseHTTPRequestBody(std::span<const uint8_t> data, Vector<uint8_t>& body);
 
-std::optional<uint64_t> parseContentLength(StringView);
+WEBCORE_EXPORT std::optional<uint64_t> parseContentLength(StringView);
 
 // HTTP Header routine as per https://fetch.spec.whatwg.org/#terminology-headers
 WEBCORE_EXPORT bool isForbiddenHeader(const String& name, StringView value);
-bool isForbiddenHeaderName(const String&);
-bool isNoCORSSafelistedRequestHeaderName(const String&);
-bool isPriviledgedNoCORSRequestHeaderName(const String&);
+WEBCORE_EXPORT bool isForbiddenHeaderName(const String&);
+WEBCORE_EXPORT bool isNoCORSSafelistedRequestHeaderName(const String&);
+WEBCORE_EXPORT bool isPriviledgedNoCORSRequestHeaderName(const String&);
 WEBCORE_EXPORT bool isForbiddenResponseHeaderName(const String&);
-bool isForbiddenMethod(StringView);
-bool isSimpleHeader(const String& name, const String& value);
-bool isCrossOriginSafeHeader(HTTPHeaderName, const HTTPHeaderSet&);
-bool isCrossOriginSafeHeader(const String&, const HTTPHeaderSet&);
-bool isCrossOriginSafeRequestHeader(HTTPHeaderName, const String&);
+WEBCORE_EXPORT bool isForbiddenMethod(StringView);
+WEBCORE_EXPORT bool isSimpleHeader(const String& name, const String& value);
+WEBCORE_EXPORT bool isCrossOriginSafeHeader(HTTPHeaderName, const HTTPHeaderSet&);
+WEBCORE_EXPORT bool isCrossOriginSafeHeader(const String&, const HTTPHeaderSet&);
+WEBCORE_EXPORT bool isCrossOriginSafeRequestHeader(HTTPHeaderName, const String&);
 
-String normalizeHTTPMethod(const String&);
-bool isSafeMethod(const String&);
+WEBCORE_EXPORT String normalizeHTTPMethod(const String&);
+WEBCORE_EXPORT bool isSafeMethod(const String&);
 
 WEBCORE_EXPORT CrossOriginResourcePolicy parseCrossOriginResourcePolicyHeader(StringView);
 
@@ -136,51 +136,9 @@ WEBCORE_EXPORT std::optional<ASCIILiteral> requestHeaderAppendDelimiter(const St
 // Request headers, and header values, that an extension can't set or append to, because the network stack manages them.
 WEBCORE_EXPORT bool isRequestHeaderUnsafeToModify(const String& header, StringView value);
 
-template<class HashType>
-bool addToAccessControlAllowList(const String& string, unsigned start, unsigned end, HashSet<String, HashType>& set)
-{
-    StringImpl* stringImpl = string.impl();
-    if (!stringImpl)
-        return true;
-
-    // Skip white space from start.
-    while (start <= end && isASCIIWhitespaceWithoutFF((*stringImpl)[start]))
-        ++start;
-
-    // only white space
-    if (start > end)
-        return true;
-
-    // Skip white space from end.
-    while (end && isASCIIWhitespaceWithoutFF((*stringImpl)[end]))
-        --end;
-
-    auto token = string.substring(start, end - start + 1);
-    if (!isValidHTTPToken(token))
-        return false;
-
-    set.add(WTF::move(token));
-    return true;
-}
-
 template<class HashType = DefaultHash<String>>
-std::optional<HashSet<String, HashType>> parseAccessControlAllowList(const String& string)
-{
-    HashSet<String, HashType> set;
-    unsigned start = 0;
-    size_t end;
-    while ((end = string.find(',', start)) != notFound) {
-        if (start != end) {
-            if (!addToAccessControlAllowList(string, start, end - 1, set))
-                return { };
-        }
-        start = end + 1;
-    }
-    if (start != string.length()) {
-        if (!addToAccessControlAllowList(string, start, string.length() - 1, set))
-            return { };
-    }
-    return set;
-}
+std::optional<HashSet<String, HashType>> parseAccessControlAllowList(const String&);
+template<> WEBCORE_EXPORT std::optional<HashSet<String>> parseAccessControlAllowList<DefaultHash<String>>(const String&);
+template<> WEBCORE_EXPORT std::optional<HTTPHeaderSet> parseAccessControlAllowList<ASCIICaseInsensitiveHash>(const String&);
 
 }

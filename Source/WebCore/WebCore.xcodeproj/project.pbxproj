@@ -103,6 +103,7 @@
 		C55DD36D2CBB16A5007831A7 /* CSSPropertyParserConsumer+Filter.h in Headers */ = {isa = PBXBuildFile; fileRef = BC95FC0C2C838E9C00051FAE /* CSSPropertyParserConsumer+Filter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		88BB1C013C20C65F384E2112 /* CSSPropertyParserConsumer+LinkParameters.h in Headers */ = {isa = PBXBuildFile; fileRef = 7AB1C0332FD20004008AF649 /* CSSPropertyParserConsumer+LinkParameters.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B5E4FBE2BA8946CFAEBC7510 /* HTMLMicrosyntaxesSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 8F20F3E86F6E403183C0DAF8 /* HTMLMicrosyntaxesSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		D6B086FD06D0431295A082C1 /* ServerTimingParser.h in Headers */ = {isa = PBXBuildFile; fileRef = A52D85CB21B098300061C1EB /* ServerTimingParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		D93A5C8E2B10F46A7C05E8D3 /* ReplacedElementIntrinsicSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = E4B7A2C10F63D5948A1E2B70 /* ReplacedElementIntrinsicSizing.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E6C3442408974A03886A869E /* ImmersiveElement.h in Headers */ = {isa = PBXBuildFile; fileRef = C5C1BDC22A5707719EFC9564 /* ImmersiveElement.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		F3D7B2EBBB8E3FDE13BA0023 /* ReplacedElementSizing.h in Headers */ = {isa = PBXBuildFile; fileRef = E48A470E5FA9F189AC831CF5 /* ReplacedElementSizing.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -49691,6 +49692,7 @@
 				A75E497810752ACB00C9B896 /* SerializedScriptValueInternals.h in Headers */,
 				516F7F6D1C31E39A00F111DC /* ServerOpenDBRequest.h in Headers */,
 				08385B3635124BCBAD8F6795 /* ServerTiming.h in Headers */,
+				D6B086FD06D0431295A082C1 /* ServerTimingParser.h in Headers */,
 				2D93AEE319DF5641002A86C3 /* ServicesOverlayController.h in Headers */,
 				51F1755D1F3EBC8300C74950 /* ServiceWorker.h in Headers */,
 				A581ED131FB288CF00CED4EC /* ServiceWorkerAgent.h in Headers */,
