@@ -365,7 +365,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
 #if !targetEnvironment(simulator)
         names.append("GL_ANGLE_variable_rasterization_rate_metal")
 #endif
-#if os(visionOS)
+#if os(visionOS) || os(macOS)
         names.append("GL_WEBKIT_explicit_resolve_target")
 #endif
         names.append("GL_NV_framebuffer_blit")

@@ -89,7 +89,7 @@ SOFT_LINK_FUNCTION_FOR_SOURCE(WebCore, CompositorServices, cp_rasterization_rate
 
 namespace WebGPU::Metal {
 
-#if USE(APPLE_INTERNAL_SDK) && PLATFORM(VISION) && !PLATFORM(IOS_FAMILY_SIMULATOR)
+#if USE(APPLE_INTERNAL_SDK) && HAVE(COMPOSITOR_SERVICES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
 
 id<MTLTexture> makeXRSharedTexture(id<MTLDevice> device, mach_port_t machPort)
 {

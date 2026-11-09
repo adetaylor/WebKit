@@ -3314,11 +3314,35 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
             makeInvalid("GPURenderPassEncoder.setViewport: viewport is out of bounds")
             return
         }
+        var originX = x
+        var originY = y
+        var viewportWidth = width
+        var viewportHeight = height
+
+        if let map = rasterizationRateMap {
+            let physicalSize = map.physicalSize(layer: 0)
+            let start = map.screenCoordinates(
+                physicalCoordinates: MTLCoordinate2DMake(min(Float(physicalSize.width), x), min(Float(physicalSize.height), y)),
+                layer: 0
+            )
+            let end = map.screenCoordinates(
+                physicalCoordinates: MTLCoordinate2DMake(
+                    min(Float(physicalSize.width), x + width),
+                    min(Float(physicalSize.height), y + height)
+                ),
+                layer: 0
+            )
+            originX = start.x
+            originY = start.y
+            viewportWidth = end.x - start.x
+            viewportHeight = end.y - start.y
+        }
+
         viewport = MTLViewport(
-            originX: Double(x),
-            originY: Double(y),
-            width: Double(width),
-            height: Double(height),
+            originX: Double(originX),
+            originY: Double(originY),
+            width: Double(viewportWidth),
+            height: Double(viewportHeight),
             znear: Double(minDepth),
             zfar: Double(maxDepth)
         )

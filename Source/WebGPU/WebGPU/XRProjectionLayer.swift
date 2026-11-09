@@ -58,8 +58,8 @@ final class XRProjectionLayerImpl {
         scaleFactor = parameters.scaleFactor
     }
 
-    // Only called on visionOS, and on the Mac in an opt-in WebXR build for its simulated XR device. The mach ports are
-    // the frame's send rights, MACH_PORT_NULL when the compositor did not send that buffer.
+    // Only called on visionOS, on the Mac from macOS 27, and on the Mac in an opt-in WebXR build for its simulated XR
+    // device. The mach ports are the frame's send rights, MACH_PORT_NULL when the compositor did not send that buffer.
     func startFrame(
         _ frameIndex: UInt64,
         _ colorBuffer: UInt32,
@@ -187,8 +187,8 @@ public final class XRProjectionLayerReference {
         self.impl = impl
     }
 
-    // The frame's compositor buffers, as send rights, MACH_PORT_NULL for one the compositor didn't send. Only visionOS
-    // device builds with the internal SDK have compositor textures.
+    // The frame's compositor buffers, as send rights, MACH_PORT_NULL for one the compositor didn't send. Only internal
+    // SDK device builds with CompositorServices (visionOS, and the Mac from macOS 27) have compositor textures.
     public func startFrame(
         _ frameIndex: UInt64,
         colorBuffer: UInt32,
