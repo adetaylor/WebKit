@@ -391,10 +391,10 @@ messages -> Destination {
         senders = swift[swift.index('extension Sender {'):]
         self.assertIn('    enum DestinationMessages {\n', senders)
         self.assertIn('        static func notify(on ipcConnection: IPC.Connection, to ipcDestinationID: UInt64, value: UInt32, text: String?) {\n'
-            '            let ipcEncoder = IPC.SwiftReplyEncoder.createForMessage(ipcConnection, .Destination_Notify, ipcDestinationID)\n'
-            '            UInt32.encode(value, to: ipcEncoder)\n'
-            '            IPCCoding.WTFString.encode(text, to: ipcEncoder)\n'
-            '            ipcEncoder.send()\n', senders)
+                      '            let ipcEncoder = IPC.SwiftReplyEncoder.createForMessage(ipcConnection, .Destination_Notify, ipcDestinationID)\n'
+                      '            UInt32.encode(value, to: ipcEncoder)\n'
+                      '            IPCCoding.WTFString.encode(text, to: ipcEncoder)\n'
+                      '            ipcEncoder.send()\n', senders)
         self.assertIn('        #if WTF_PLATFORM_COCOA\n        static func takeSemaphore(on ipcConnection: IPC.Connection, to ipcDestinationID: UInt64, semaphore: consuming IPCTypes.Semaphore) {\n', senders)
         # Swift sends only messages without replies, whose arguments have Swift forms.
         self.assertNotIn('withReply', senders)
