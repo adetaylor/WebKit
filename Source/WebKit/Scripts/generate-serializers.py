@@ -2353,9 +2353,53 @@ def swift_description_form(description):
     return ('type', description.struct_or_class, description.parent_class_name, [(member.name, member.type, member.condition, member.attributes) for member in description.members])
 
 
+def strip_enclosing_parentheses(condition):
+    condition = condition.strip()
+    while condition.startswith('(') and condition.endswith(')'):
+        depth = 0
+        for index, character in enumerate(condition):
+            depth += {'(': 1, ')': -1}.get(character, 0)
+            if not depth and index < len(condition) - 1:
+                return condition
+        condition = condition[1:-1].strip()
+    return condition
+
+
+def condition_terms(condition):
+    """A condition and the conditions it is the conjunction of, as generate_condition_expression() joins them."""
+    condition = strip_enclosing_parentheses(condition)
+    terms = {condition}
+    depth = 0
+    start = 0
+    parts = []
+    for index, character in enumerate(condition):
+        depth += {'(': 1, ')': -1}.get(character, 0)
+        if not depth and condition.startswith('&&', index):
+            parts.append(condition[start:index])
+            start = index + 2
+    if parts:
+        parts.append(condition[start:])
+        for part in parts:
+            terms |= condition_terms(part)
+    return terms
+
+
+def conditions_can_hold_together(first, second):
+    """False only if one condition is a conjunction that includes the negation of a term of the other, as the
+    conditions of #if and #else are."""
+    if first is None or second is None:
+        return True
+    first_terms, second_terms = condition_terms(first), condition_terms(second)
+    for terms, other_terms in [(first_terms, second_terms), (second_terms, first_terms)]:
+        if any(f'!({term})' in other_terms or f'!{term}' in other_terms for term in terms):
+            return False
+    return True
+
+
 def check_swift_descriptions_agree(serialized_types, serialized_enums, using_statements):
     """A type marked [Swift] that is described more than once must be encoded alike by every description, since
-    Swift does not see every macro that C++ does, so could choose a different description from the one C++ encodes."""
+    Swift does not see every macro that C++ does, so could choose a different description from the one C++ encodes.
+    Each [Swift] description gives it a Swift form, so their conditions must not be able to hold together."""
     descriptions = {}
     for description in list(serialized_types) + list(serialized_enums):
         descriptions.setdefault(description.namespace_and_name().removeprefix('::'), []).append(description)
@@ -2366,11 +2410,15 @@ def check_swift_descriptions_agree(serialized_types, serialized_enums, using_sta
             continue
         descriptions.setdefault(name, []).append(using_statement)
     for cpp_name, group in descriptions.items():
-        if len(group) < 2 or not any(description.swift if isinstance(description, SerializedType) else description.is_swift() for description in group):
+        swift_descriptions = [description for description in group if (description.swift if isinstance(description, SerializedType) else description.is_swift())]
+        if len(group) < 2 or not swift_descriptions:
             continue
         form = swift_description_form(group[0])
         if any(swift_description_form(description) != form for description in group[1:]):
             raise Exception(f'{cpp_name} cannot be marked [Swift] and be described more than once in different ways, because Swift does not see every macro that C++ does, so could choose a different description from the one C++ encodes.')
+        for index, first in enumerate(swift_descriptions):
+            if any(conditions_can_hold_together(first.condition, second.condition) for second in swift_descriptions[index + 1:]):
+                raise Exception(f'{cpp_name} cannot be marked [Swift] in more than one description unless their conditions cannot hold together, because it would have more than one Swift form.')
 
 
 def swift_type_names(serialized_types, serialized_enums, using_statements):
@@ -2387,8 +2435,8 @@ def swift_type_names(serialized_types, serialized_enums, using_statements):
             raise Exception(f'{cpp_name} cannot have a Swift form, because {swift_qualified_name(swift_name)} is the generated index of Swift forms by C++ name.')
         existing = names.get(swift_name)
         if existing is not None:
-            # A type can be described more than once, alike (check_swift_descriptions_agree), and an identifier can be
-            # listed more than once.
+            # A type can be marked [Swift] in descriptions whose conditions can't hold together, which describe it alike
+            # (check_swift_descriptions_agree), and an identifier can be listed more than once.
             if existing.cpp_name == cpp_name and existing.kind == kind:
                 return
             raise Exception(f'{existing.cpp_name} and {cpp_name} would both be {swift_qualified_name(swift_name)} in Swift.')

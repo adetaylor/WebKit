@@ -105,6 +105,44 @@ class GeneratedSwiftTest(unittest.TestCase):
         self.assertIn('#if !(ENABLE_A)\n', swift)
         self.assertIn('        #if ENABLE_A\n        typealias WebKit_S = IPCTypes.S\n        #endif\n'
                       '        #if !(ENABLE_A)\n        typealias WebKit_S = IPCTypes.S\n        #endif\n', swift)
+        for first, second in [('ENABLE(A)', '!ENABLE(A)'), ('!ENABLE(A) && ENABLE(B)', '!(!ENABLE(A) && ENABLE(B))')]:
+            swift = generate_swift(f'''
+#if {first}
+[Swift] enum class WebKit::E : uint8_t {{
+    A,
+}}
+#endif
+#if {second}
+[Swift] enum class WebKit::E : uint8_t {{
+    A,
+}}
+#endif
+''')
+            self.assertEqual(swift.count('    enum E: UInt8, Sendable, Hashable {\n'), 2)
+        swift = generate_swift('''
+#if ENABLE(A)
+#if ENABLE(B)
+[Swift] enum class WebKit::E : uint8_t {
+    A,
+}
+#else
+[Swift] enum class WebKit::E : uint8_t {
+    A,
+}
+#endif
+#endif
+''')
+        self.assertIn('#if (ENABLE_A) && (ENABLE_B)\n', swift)
+        self.assertIn('#if (ENABLE_A) && (!(ENABLE_B))\n', swift)
+
+    def test_conditions_that_can_hold_together(self):
+        for first, second, expected in [(None, None, True), ('ENABLE(A)', None, True), ('ENABLE(A)', 'ENABLE(B)', True),
+                                        ('ENABLE(A)', 'ENABLE(A)', True), ('ENABLE(A)', '!(ENABLE(A))', False),
+                                        ('ENABLE(A)', '!ENABLE(A)', False), ('(ENABLE(A)) && (ENABLE(B))', '(ENABLE(A)) && (!(ENABLE(B)))', False),
+                                        ('ENABLE(A) && ENABLE(B)', '!(ENABLE(A) && ENABLE(B))', False), ('ENABLE(A) || ENABLE(B)', '!ENABLE(A)', True),
+                                        ('((ENABLE(A)) && (ENABLE(B))) && (ENABLE(C))', '!(ENABLE(C))', False)]:
+            self.assertEqual(generate_serializers.conditions_can_hold_together(first, second), expected, (first, second))
+            self.assertEqual(generate_serializers.conditions_can_hold_together(second, first), expected, (second, first))
 
     def test_cxx_names(self):
         swift = generate_swift(_identifiers + '''
@@ -551,6 +589,12 @@ struct WebKit::S {
 };
 using WebKit::E = uint8_t
 ''', r'WebKit::E cannot be marked \[Swift\] and be described more than once in different ways')
+        for first, second in [(None, None), ('ENABLE(A)', 'ENABLE(B)'), ('ENABLE(A)', None), ('ENABLE(A) || ENABLE(B)', '!ENABLE(A)')]:
+            source = ''
+            for condition in [first, second]:
+                description = '[Swift] struct WebKit::S {\n    uint32_t value;\n}\n'
+                source += f'#if {condition}\n{description}#endif\n' if condition else description
+            self.assertGenerationFails(source, r'WebKit::S cannot be marked \[Swift\] in more than one description unless their conditions cannot hold together')
         swift = generate_swift('''
 [Swift] struct WebKit::S {
     uint32_t value;
