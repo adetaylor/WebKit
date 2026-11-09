@@ -86,8 +86,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             m_isSwiftRendererLender = true;
         }
         Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_imageBuffer);
-        m_cgRenderer = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRenderer>(RemoteCGRenderer::init(resources.ptr()));
-        Ref forwarder = m_cgRenderer->getMessageReceiver();
+        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr());
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
     } else
@@ -101,7 +100,6 @@ void RemoteImageBufferGraphicsContext::stopListeningForIPC()
     streamConnection.stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     streamConnection.stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-    m_cgRenderer = nullptr;
 #endif
 }
 

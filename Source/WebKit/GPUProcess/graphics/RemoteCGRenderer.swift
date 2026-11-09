@@ -91,16 +91,16 @@ final class RemoteCGRenderer {
 
     private let resources: WebKit.RemoteCGRendererResources
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    @used
-    init(resources: WebKit.RemoteCGRendererResources) {
+    @_expose(!Cxx)
+    private init(resources: WebKit.RemoteCGRendererResources) {
         self.resources = resources
     }
 
-    // The forwarder keeps this alive, so this mustn't keep the forwarder: the C++ that registers it does.
+    // A new receiver, and the forwarder of its messages, which keeps it, as the stream connection the C++ registers the
+    // forwarder with keeps the forwarder. Only C++ calls it, so @used keeps it under -O -wmo (rdar://179098545).
     @used
-    func getMessageReceiver() -> RefRemoteCGRendererMessageForwarder {
-        WebKit.RemoteCGRendererMessageForwarder.create(target: self)
+    static func createMessageReceiver(resources: WebKit.RemoteCGRendererResources) -> RefRemoteCGRendererMessageForwarder {
+        WebKit.RemoteCGRendererMessageForwarder.create(target: RemoteCGRenderer(resources: resources))
     }
 
     func save(state: inout CGRendererCore) {

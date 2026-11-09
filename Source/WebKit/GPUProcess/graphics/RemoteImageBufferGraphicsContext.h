@@ -36,7 +36,6 @@
 namespace WebKit {
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-class RemoteCGRenderer;
 class RemoteCGRendererLineStrokes;
 class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
@@ -108,9 +107,6 @@ private:
     const Ref<WebCore::ImageBuffer> m_imageBuffer;
     const RemoteGraphicsContextIdentifier m_identifier;
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    // Takes RemoteCGRenderer's messages when the context draws with a Swift renderer, which it lends their handlers. Used
-    // only on the work queue.
-    std::unique_ptr<RemoteCGRenderer> m_cgRenderer;
     WebCore::GraphicsContextCG& cgContext() { return static_cast<WebCore::GraphicsContextCG&>(context()); }
     // Whether this counts itself as a lender of its GraphicsContextCG's renderer, while it has a Swift receiver.
     bool m_isSwiftRendererLender { false };
