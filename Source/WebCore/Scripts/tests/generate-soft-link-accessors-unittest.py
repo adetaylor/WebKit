@@ -390,6 +390,20 @@ class FileTest(unittest.TestCase):
         self.assertNotIn('AVPlayer', header)
         self.assertNotIn('MediaPlayer', header)
 
+    @unittest.skipUnless(shutil.which('xcrun') and subprocess.run(['xcrun', '--find', 'clang'], capture_output=True).returncode == 0, 'needs clang')
+    def test_types_header_names_deprecated_symbols(self):
+        with tempfile.TemporaryDirectory() as directory:
+            os.makedirs(os.path.join(directory, 'Media'))
+            with open(os.path.join(directory, 'Media', 'Media.h'), 'w') as f:
+                f.write('extern const int MediaOldKey __attribute__((deprecated));\nvoid MediaOldFunction(void) __attribute__((deprecated));\n')
+            with open(os.path.join(directory, 'PALSoftLinkTypes.h'), 'w') as f:
+                f.write(generator.types_header([('constant', 'Media', 'MediaOldKey', None), ('function', 'Media', 'MediaOldFunction', None)]))
+            source = os.path.join(directory, 'client.c')
+            with open(source, 'w') as f:
+                f.write('#include "PALSoftLinkTypes.h"\n')
+            result = subprocess.run(['xcrun', 'clang', '-fsyntax-only', '-Werror', '-Wdeprecated-declarations', '-I', directory, source], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
 
 class SynthesizerTest(unittest.TestCase):
     class FakeSynthesizer(generator.Synthesizer):

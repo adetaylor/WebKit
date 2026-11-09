@@ -730,6 +730,7 @@ def types_header(entries):
     w.append('')
     w.append('#pragma clang diagnostic push')
     w.append('#pragma clang diagnostic ignored "-Wunguarded-availability-new"')
+    w.append('#pragma clang diagnostic ignored "-Wdeprecated-declarations"')
     for kind, _, name, _ in entries:
         if kind in SYMBOL_KINDS:
             w.append(f'typedef __typeof__(&{name}) PALSoftLink_{name}_t;')
