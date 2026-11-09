@@ -314,7 +314,7 @@ public:
     bool willCompositeClipPath() const;
 
     // Convert a point in absolute coords into layer coords, taking transforms into account
-    LayoutPoint absoluteToContents(const LayoutPoint&) const;
+    LayoutPoint absoluteToContents(LayoutPoint) const;
 
     NODELETE void setNeedsPositionUpdate();
     void setSelfAndChildrenNeedPositionUpdate();
@@ -615,7 +615,7 @@ public:
     // Notification from the renderer that its content changed (e.g. current frame of image changed).
     // Allows updates of layer content without repainting.
     // Also, allows specifying the changed rectangle to limit the painting when patform supports it.
-    void contentChanged(ContentChangeType, const std::optional<FloatRect>& = std::nullopt);
+    void contentChanged(ContentChangeType, std::optional<FloatRect> = std::nullopt);
 
     bool canRender3DTransforms() const;
 
@@ -643,7 +643,7 @@ public:
     void clearClipRectsIncludingDescendants(ClipRectsType typeToClear = AllClipRectTypes);
     void clearClipRects(ClipRectsType typeToClear = AllClipRectTypes);
 
-    NODELETE void addBlockSelectionGapsBounds(const LayoutRect&);
+    NODELETE void addBlockSelectionGapsBounds(LayoutRect);
     NODELETE void clearBlockSelectionGapsBounds();
     void repaintBlockSelectionGaps();
 
@@ -729,6 +729,13 @@ public:
     // Enclosing compositing layer; if includeSelf is true, may return this.
     NODELETE RenderLayer* enclosingCompositingLayer(IncludeSelfOrNot = IncludeSelf) const;
     struct EnclosingCompositingLayerStatus {
+        EnclosingCompositingLayerStatus() = default;
+        EnclosingCompositingLayerStatus(bool fullRepaintAlreadyScheduled, RenderLayer* layer)
+            : fullRepaintAlreadyScheduled(fullRepaintAlreadyScheduled)
+            , layer(layer)
+        {
+        }
+
         bool fullRepaintAlreadyScheduled { false };
         RenderLayer* layer { nullptr };
     };
@@ -741,7 +748,7 @@ public:
     RenderLayer* enclosingPixelMovingFilterLayer(IncludeSelfOrNot = IncludeSelf) const;
     RenderLayer* enclosingFilterRepaintLayer() const;
     enum class UseFilterOutsets : bool { Add, AlreadyIncluded };
-    void setFilterBackendNeedsRepaintingInRect(const LayoutRect&, UseFilterOutsets = UseFilterOutsets::Add);
+    void setFilterBackendNeedsRepaintingInRect(LayoutRect, UseFilterOutsets = UseFilterOutsets::Add);
 
     NODELETE inline bool canUseOffsetFromAncestor() const;
     NODELETE bool canUseOffsetFromAncestor(const RenderLayer& ancestor) const;
@@ -1010,7 +1017,7 @@ public:
 
     // Returns true if background phase is painted opaque in the given rect.
     // The query rect is given in local coordinates.
-    bool backgroundIsKnownToBeOpaqueInRect(const LayoutRect&) const;
+    bool backgroundIsKnownToBeOpaqueInRect(LayoutRect) const;
 
     bool shouldPaintWithFilters(OptionSet<PaintBehavior> = { }) const;
     bool requiresFullLayerImageForFilters() const;
@@ -1411,7 +1418,7 @@ private:
     HitLayer hitTestTransformedLayerInFragments(RenderLayer* rootLayer, RenderLayer* containerLayer, const HitTestRequest&, HitTestResult&,
         const LayoutRect& hitTestRect, const HitTestLocation&, const HitTestingTransformState* = nullptr, double* zOffset = nullptr);
 
-    bool listBackgroundIsKnownToBeOpaqueInRect(const LayerList&, const LayoutRect&) const;
+    bool listBackgroundIsKnownToBeOpaqueInRect(const LayerList&, LayoutRect) const;
 
     bool shouldBeSelfPaintingLayer() const;
 
@@ -1446,6 +1453,8 @@ private:
     void setPaintingInsideReflection(bool b) { m_paintingInsideReflection = b; }
 
     void updateFiltersAfterStyleChange(Style::Difference, const Style::ComputedStyle* oldStyle);
+    void updateFiltersAfterStyleChange(Style::Difference diff, const Style::ComputedStyle& oldStyle) { updateFiltersAfterStyleChange(diff, &oldStyle); }
+    void updateFiltersAfterStyleChangeWithoutOldStyle(Style::Difference diff) { updateFiltersAfterStyleChange(diff, nullptr); }
     void updateFilterPaintingStrategy();
 
     void updateAncestorChainHasBlendingDescendants();
