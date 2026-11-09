@@ -61,9 +61,9 @@ RemoteCDMReceiverRegistration::~RemoteCDMReceiverRegistration()
         connection->messageReceiverMap().removeMessageReceiver(m_receiverName, m_identifier);
 }
 
-RemoteCDMReceiverRegistration* makeRemoteCDMReceiverRegistration(const RemoteCDMRegistry& registry, IPC::MessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
+RemoteCDMReceiverRegistration* makeRemoteCDMReceiverRegistration(const RemoteCDMFactoryProxy& factory, IPC::MessageReceiver& receiver, IPC::ReceiverName receiverName, uint64_t identifier)
 {
-    RefPtr connection = registry.gpuConnectionToWebProcess();
+    RefPtr connection = factory.gpuConnectionToWebProcess();
     if (!connection)
         return nullptr;
     return &RemoteCDMReceiverRegistration::create(*connection, receiver, receiverName, identifier).leakRef();
@@ -74,7 +74,7 @@ SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
     return &SharedBuffer::create(bytes).leakRef();
 }
 
-CDMInstance* createRemoteCDMInstance(RemoteCDMRegistry& registry, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken)
+CDMInstance* createRemoteCDMInstance(RemoteCDMFactoryProxy& factory, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken)
 {
     RefPtr instance = cdm.createInstance();
     if (!instance)
@@ -85,7 +85,7 @@ CDMInstance* createRemoteCDMInstance(RemoteCDMRegistry& registry, RemoteCDMPriva
 #else
     fairPlayInstanceToken = 0;
 #endif
-    registry.registerCxxInstance(identifier, cdm, *instance);
+    factory.registerCxxInstance(identifier, cdm, *instance);
     return instance.leakRef();
 }
 

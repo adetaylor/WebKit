@@ -1020,12 +1020,9 @@ endif ()
 if (APPLE)
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES
 
-        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
-
-        GPUProcess/media/RemoteCDMRegistry.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp

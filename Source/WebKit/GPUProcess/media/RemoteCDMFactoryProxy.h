@@ -25,17 +25,15 @@
 
 #pragma once
 
-#pragma once
-
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
-#include "RemoteCDMIdentifier.h"
+#include "MessageReceiver.h"
 #include "RemoteCDMInstanceIdentifier.h"
-#include "RemoteCDMInstanceSessionIdentifier.h"
 #include <WebCore/CDMPrivate.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/HashMap.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/UniqueRef.h>
@@ -45,7 +43,6 @@ namespace IPC {
 class Connection;
 class Decoder;
 class Encoder;
-class MessageReceiver;
 }
 
 namespace WebCore {
@@ -62,30 +59,34 @@ class RemoteCDMPrivateHandle;
 struct RemoteCDMConfiguration;
 struct SharedPreferencesForWebProcess;
 
-// Routes the EME factory messages of one web process's connection to the GPU process to the Swift
-// RemoteCDMFactoryProxy, which owns the other receivers (each registers its own messages with the connection), and gives
-// the media players the C++ CDM instances among them.
-class RemoteCDMRegistry final : public RefCounted<RemoteCDMRegistry>, public CanMakeWeakPtr<RemoteCDMRegistry>, private WebCore::CDMPrivateClient {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMRegistry);
+// Receives the EME factory messages of one web process's connection to the GPU process, and gives the media players the
+// C++ CDM instances. Its Swift state (RemoteCDMFactoryProxy.swift), which m_swiftState holds, handles the messages and
+// owns the other receivers, each of which registers its own messages with the connection.
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteCDMFactoryProxy.swift") RemoteCDMFactoryProxy final : public RefCounted<RemoteCDMFactoryProxy>, public IPC::MessageReceiver, private WebCore::CDMPrivateClient {
+    WTF_MAKE_TZONE_ALLOCATED(RemoteCDMFactoryProxy);
 public:
-    static Ref<RemoteCDMRegistry> create(GPUConnectionToWebProcess&);
-    ~RemoteCDMRegistry();
+    static Ref<RemoteCDMFactoryProxy> create(GPUConnectionToWebProcess&);
+    ~RemoteCDMFactoryProxy();
 
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    void didReceiveMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
+    void didReceiveSyncMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder) { didReceiveSyncMessage(connection, decoder, encoder); }
+
+    // Implemented in Swift. clear() is for when the web process's connection closes: the CDMs no longer reach the factory,
+    // and no receiver's messages are routed. The Swift state and the factory keep each other alive until then.
     void clear();
-
-    void didReceiveFactoryMessage(IPC::Connection&, IPC::Decoder&);
-    void didReceiveSyncFactoryMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-
-    // The C++ CDM instance of an identifier, and whether the identifier is an instance's at all: the Swift ClearKey
-    // instances have no C++ instance.
-    RefPtr<WebCore::CDMInstance> cdmInstance(const RemoteCDMInstanceIdentifier&) const;
-    bool hasInstance(const RemoteCDMInstanceIdentifier&) const;
     bool allowsExitUnderMemoryPressure() const;
+    // Whether the identifier is an instance's at all: the Swift ClearKey instances have no C++ instance.
+    bool hasInstance(uint64_t identifier) const;
+
+    RefPtr<WebCore::CDMInstance> cdmInstance(const RemoteCDMInstanceIdentifier&) const;
 
     // For the Swift receivers.
-    uint64_t generateCDMIdentifier();
-    uint64_t generateInstanceIdentifier();
-    uint64_t generateSessionIdentifier();
+    static uint64_t generateCDMIdentifier();
+    static uint64_t generateInstanceIdentifier();
+    static uint64_t generateSessionIdentifier();
     void removeInstance(uint64_t identifier);
 
     // Whether a C++ CDM factory supports a key system, and a C++ CDM for it, with its configuration.
@@ -104,28 +105,32 @@ public:
 #endif
 
 private:
-    explicit RemoteCDMRegistry(GPUConnectionToWebProcess&);
+    explicit RemoteCDMFactoryProxy(GPUConnectionToWebProcess&);
 
-    void createFactory();
+    // IPC::MessageReceiver
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
+
+    // Implemented in Swift.
+    uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    // The Swift factory receiver, which C++ holds through the generated header. Destroyed after the routes.
-    struct SwiftFactory;
-    std::unique_ptr<SwiftFactory> m_swiftFactory;
-    RefPtr<IPC::MessageReceiver> m_factory;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> m_instanceClients;
 
 #if !RELEASE_LOG_DISABLED
     mutable RefPtr<Logger> m_logger;
 #endif
-};
+    // A retained reference to the Swift state, as an address, from create() to the destructor.
+    uintptr_t m_swiftState { 0 };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // A C++ CDM, which its instances and sessions also use.
 class RemoteCDMPrivateHandle final : public RefCounted<RemoteCDMPrivateHandle>, public CanMakeWeakPtr<RemoteCDMPrivateHandle> {
     WTF_MAKE_TZONE_ALLOCATED(RemoteCDMPrivateHandle);
 public:
-    static Ref<RemoteCDMPrivateHandle> create(RemoteCDMRegistry&, UniqueRef<WebCore::CDMPrivate>&&);
+    static Ref<RemoteCDMPrivateHandle> create(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&);
     ~RemoteCDMPrivateHandle();
 
     RemoteCDMConfiguration configuration() const;
@@ -145,9 +150,9 @@ public:
 #endif
 
 private:
-    RemoteCDMPrivateHandle(RemoteCDMRegistry&, UniqueRef<WebCore::CDMPrivate>&&);
+    RemoteCDMPrivateHandle(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&);
 
-    WeakPtr<RemoteCDMRegistry> m_registry;
+    WeakPtr<RemoteCDMFactoryProxy> m_factory;
     const UniqueRef<WebCore::CDMPrivate> m_private;
 #if !RELEASE_LOG_DISABLED
     const Ref<const Logger> m_logger;

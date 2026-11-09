@@ -30,7 +30,7 @@
 #include "Decoder.h"
 #include "MessageReceiver.h"
 #include "RemoteCDMConfiguration.h"
-#include "RemoteCDMRegistry.h"
+#include "RemoteCDMFactoryProxy.h"
 #include "SwiftCoding.h"
 #include <WebCore/CDMInstance.h>
 #include <WebCore/CDMInstanceSession.h>
@@ -45,23 +45,8 @@
 
 namespace WebKit {
 
-// What the Swift EME message receivers use of RemoteCDMRegistry and of the C++ CDMs that Swift cannot reach
-// directly: Swift cannot hold a WeakPtr, call a C++ virtual function's overriders' callbacks, or construct an
-// ObjectIdentifier.
-
-class RemoteCDMRegistryWeakReference {
-public:
-    explicit RemoteCDMRegistryWeakReference(RemoteCDMRegistry& registry)
-        : m_registry(registry)
-    {
-    }
-
-    // A new reference, so that Swift keeps the registry alive for as long as it uses it.
-    RemoteCDMRegistry* WTF_NULLABLE get() const SWIFT_RETURNS_RETAINED { return RefPtr { m_registry.get() }.leakRef(); }
-
-private:
-    WeakPtr<RemoteCDMRegistry> m_registry;
-} SWIFT_SELF_CONTAINED;
+// What the Swift EME message receivers use of RemoteCDMFactoryProxy and of the C++ CDMs that Swift cannot reach
+// directly: Swift cannot call a C++ virtual function's overriders' callbacks.
 
 // Routes the web process's messages for a Swift receiver (its receiver name and identifier) to the receiver's message
 // forwarder in the connection's MessageReceiverMap, as long as it lives.
@@ -85,7 +70,7 @@ private:
     const uint64_t m_identifier;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-RemoteCDMReceiverRegistration* WTF_NULLABLE makeRemoteCDMReceiverRegistration(const RemoteCDMRegistry&, IPC::MessageReceiver&, IPC::ReceiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED;
+RemoteCDMReceiverRegistration* WTF_NULLABLE makeRemoteCDMReceiverRegistration(const RemoteCDMFactoryProxy&, IPC::MessageReceiver&, IPC::ReceiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED;
 
 template<typename> struct IsRefOfRemoteCDMMessageReceiver : std::false_type { };
 template<typename T> struct IsRefOfRemoteCDMMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, IPC::MessageReceiver>> { };
@@ -94,10 +79,10 @@ template<typename T> struct IsRefOfRemoteCDMMessageReceiver<Ref<T>> : std::bool_
 // Swift, which can't pass a forwarder as the MessageReceiver it is, can pass the Ref to it that it holds. The
 // static_assert is used because the constraint isn't enforced for Swift callers.
 template<typename ForwarderRef>
-RemoteCDMReceiverRegistration* WTF_NULLABLE registerRemoteCDMReceiver(const RemoteCDMRegistry& registry, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
+RemoteCDMReceiverRegistration* WTF_NULLABLE registerRemoteCDMReceiver(const RemoteCDMFactoryProxy& factory, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
 {
     static_assert(IsRefOfRemoteCDMMessageReceiver<ForwarderRef>::value);
-    return makeRemoteCDMReceiverRegistration(registry, forwarder.get(), receiverName, identifier);
+    return makeRemoteCDMReceiverRegistration(factory, forwarder.get(), receiverName, identifier);
 }
 
 using RemoteCDMStrings = Vector<String>;
@@ -122,9 +107,9 @@ inline RemoteCDMBytes remoteCDMBufferBytes(const WebCore::SharedBuffer& buffer)
 
 WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE) SWIFT_RETURNS_RETAINED;
 
-// A C++ CDM's instance, registered with the registry under identifier, with its key system, and the token of its Swift
+// A C++ CDM's instance, registered with the factory under identifier, with its key system, and the token of its Swift
 // FairPlay Streaming instance (FairPlayInstance.instance(forToken:)), 0 if it has none. Null if the CDM makes none.
-WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMRegistry&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken) SWIFT_RETURNS_RETAINED;
+WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMFactoryProxy&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken) SWIFT_RETURNS_RETAINED;
 
 // The CDMKeySystemConfiguration of a message, which C++ decodes for the C++ CDM that a Swift receiver hands it to.
 using RemoteCDMConfigurationArgument = IPC::CxxDecodedArgument<WebCore::CDMKeySystemConfiguration>;

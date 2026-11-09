@@ -88,8 +88,8 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "RemoteCDMFactoryProxy.h"
 #include "RemoteCDMFactoryProxyMessages.h"
-#include "RemoteCDMRegistry.h"
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -404,6 +404,11 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     m_sampleBufferDisplayLayerManager->close();
 #endif
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    // The factory's Swift state keeps the factory until it is cleared, which didClose() does unless the factory came later.
+    if (m_cdmFactoryProxy)
+        m_cdmFactoryProxy->clear();
+#endif
 
     --gObjectCountForTesting;
 }
@@ -474,8 +479,8 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     m_libWebRTCCodecsProxy = nullptr;
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (m_cdmRegistry)
-        m_cdmRegistry->clear();
+    if (m_cdmFactoryProxy)
+        m_cdmFactoryProxy->clear();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -574,7 +579,7 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
         return false;
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (auto* cdmRegistry = m_cdmRegistry.get(); cdmRegistry && !cdmRegistry->allowsExitUnderMemoryPressure())
+    if (auto* cdmFactoryProxy = m_cdmFactoryProxy.get(); cdmFactoryProxy && !cdmFactoryProxy->allowsExitUnderMemoryPressure())
         return false;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -668,12 +673,12 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
 #endif
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-RemoteCDMRegistry& GPUConnectionToWebProcess::cdmRegistry()
+RemoteCDMFactoryProxy& GPUConnectionToWebProcess::cdmFactoryProxy()
 {
-    if (!m_cdmRegistry)
-        lazyInitialize(m_cdmRegistry, RemoteCDMRegistry::create(*this));
+    if (!m_cdmFactoryProxy)
+        lazyInitialize(m_cdmFactoryProxy, RemoteCDMFactoryProxy::create(*this));
 
-    return *m_cdmRegistry;
+    return *m_cdmFactoryProxy;
 }
 #endif
 
@@ -1110,7 +1115,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveFactoryMessage(connection, decoder);
+        protect(cdmFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
         return true;
     }
 
@@ -1210,7 +1215,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmRegistry())->didReceiveSyncFactoryMessage(connection, decoder, replyEncoder);
+        protect(cdmFactoryProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
         return true;
     }
 

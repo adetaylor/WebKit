@@ -38,13 +38,13 @@ extension WebKit.RemoteCDMSupportedConfigurationCompletionHandler: @unsafe CxxCo
 final class RemoteCDMProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMProxyMessageForwarder?
-    private weak var factory: RemoteCDMFactoryProxy?
+    private weak var factory: RemoteCDMFactoryState?
     private let isClearKey: Bool
     @_expose(!Cxx)
     let cdm: WebKit.RemoteCDMPrivateHandle
 
     @_expose(!Cxx)
-    init(factory: RemoteCDMFactoryProxy, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
+    init(factory: RemoteCDMFactoryState, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
         self.factory = factory
         self.cdm = cdm
         self.isClearKey = isClearKey
@@ -61,10 +61,10 @@ final class RemoteCDMProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard let registry = factory?.registry() else {
+        guard let proxy = factory?.proxy else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
-        return registry.sharedPreferencesForWebProcess()
+        return proxy.sharedPreferencesForWebProcess()
     }
 
     // The configuration the web process's RemoteCDM reports: ClearKey's, or the C++ CDM's.
@@ -114,10 +114,10 @@ final class RemoteCDMProxy {
         connection: IPC.Connection
     ) -> (identifier: IPCTypes.RemoteCDMInstanceIdentifier?, configuration: IPCTypes.RemoteCDMInstanceConfiguration) {
         let noInstance = (IPCTypes.RemoteCDMInstanceIdentifier?.none, IPCTypes.RemoteCDMInstanceConfiguration(keySystem: nil))
-        guard let factory, let registry = factory.registry() else {
+        guard let factory, let proxy = factory.proxy else {
             return noInstance
         }
-        let identifier = registry.generateInstanceIdentifier()
+        let identifier = WebKit.RemoteCDMFactoryProxy.generateInstanceIdentifier()
         let backend: any RemoteCDMInstanceBackend
         let keySystem: String?
         if isClearKey {
@@ -126,7 +126,7 @@ final class RemoteCDMProxy {
         } else {
             var cxxKeySystem = WTF.String()
             var fairPlayInstanceToken: UInt64 = 0
-            guard let instance = WebKit.createRemoteCDMInstance(registry, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
+            guard let instance = WebKit.createRemoteCDMInstance(proxy, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
                 return noInstance
             }
             backend = FairPlayCDMInstanceBackend(instance, fairPlayInstance: FairPlayInstance.instance(forToken: fairPlayInstanceToken))
@@ -136,7 +136,7 @@ final class RemoteCDMProxy {
         factory.add(
             instance: RemoteCDMInstanceProxy(factory: factory, cdm: self, backend: backend, logIdentifier: logIdentifier),
             identifier: identifier,
-            registry: registry
+            proxy: proxy
         )
         return (IPCTypes.RemoteCDMInstanceIdentifier(rawValue: identifier), IPCTypes.RemoteCDMInstanceConfiguration(keySystem: keySystem))
     }

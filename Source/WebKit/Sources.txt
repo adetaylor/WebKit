@@ -52,7 +52,7 @@ GPUProcess/media/RemoteAudioSessionProxy.cpp
 GPUProcess/media/RemoteAudioSessionProxyManager.cpp
 GPUProcess/media/RemoteAudioTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteAudioVideoRendererProxyManager.cpp @cost:3
-GPUProcess/media/RemoteCDMRegistry.cpp
+GPUProcess/media/RemoteCDMFactoryProxy.cpp
 GPUProcess/media/RemoteCDMSwiftSupport.cpp
 GPUProcess/media/RemoteLegacyCDMFactoryProxy.cpp
 GPUProcess/media/RemoteLegacyCDMProxy.cpp @cost:3

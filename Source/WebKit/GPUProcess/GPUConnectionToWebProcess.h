@@ -104,7 +104,7 @@ class RemoteAudioHardwareListenerProxy;
 class RemoteAudioMediaStreamTrackRendererInternalUnitManager;
 class RemoteAudioSessionProxy;
 class RemoteAudioSessionProxyManager;
-class RemoteCDMRegistry;
+class RemoteCDMFactoryProxy;
 class RemoteImageDecoderAVFProxy;
 class RemoteLegacyCDMFactoryProxy;
 class RemoteMediaEngineConfigurationFactoryProxy;
@@ -226,7 +226,7 @@ public:
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    RemoteCDMRegistry& cdmRegistry();
+    RemoteCDMFactoryProxy& cdmFactoryProxy();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -442,7 +442,7 @@ private:
     RemoteGPUMap m_remoteGPUMap;
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    const RefPtr<RemoteCDMRegistry> m_cdmRegistry;
+    const RefPtr<RemoteCDMFactoryProxy> m_cdmFactoryProxy;
 #endif
 #if USE(AUDIO_SESSION)
     RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;

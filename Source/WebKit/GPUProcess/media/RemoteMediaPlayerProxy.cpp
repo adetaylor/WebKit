@@ -61,7 +61,7 @@
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include "RemoteCDMRegistry.h"
+#include "RemoteCDMFactoryProxy.h"
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -1079,7 +1079,7 @@ void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
         m_player->cdmInstanceAttached(*instance);
 #else
     UNUSED_PARAM(instanceId);
@@ -1094,7 +1094,7 @@ void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
         m_player->cdmInstanceDetached(*instance);
 #else
     UNUSED_PARAM(instanceId);
@@ -1109,7 +1109,7 @@ void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdent
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmRegistry())->cdmInstance(instanceId))
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
         m_player->attemptToDecryptWithInstance(*instance);
 #else
     UNUSED_PARAM(instanceId);
