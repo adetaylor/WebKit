@@ -349,7 +349,7 @@ public:
 
     enum LineLayoutPath { UndeterminedPath = 0, InlinePath };
     LineLayoutPath lineLayoutPath() const { return static_cast<LineLayoutPath>(renderBlockFlowLineLayoutPath()); }
-    void setLineLayoutPath(LineLayoutPath path) { setRenderBlockFlowLineLayoutPath(path); }
+    SWIFT_UNSAFE void setLineLayoutPath(LineLayoutPath path) { setRenderBlockFlowLineLayoutPath(path); }
 
     NODELETE int lineCount() const;
 
