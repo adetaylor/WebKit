@@ -30,7 +30,6 @@
 #include "CommandEncoder.h"
 #include "ComputePipeline.h"
 #include "Device.h"
-#include "Instance.h"
 #include "PresentationContext.h"
 #include "Queue.h"
 #include "RenderBundleEncoder.h"
@@ -53,10 +52,3 @@
 
 inline uint32_t roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(uint32_t a, uint32_t b) { return WTF::roundUpToMultipleOfNonPowerOfTwo<uint32_t, Checked<uint32_t>>(a, b); }
 
-namespace CxxBridging {
-
-// The types of the Instance's scheduler (Instance.swift).
-using InstanceWorkItem = Function<void()>;
-using InstanceScheduleWork = Function<void(Function<void()>&&)>;
-
-}

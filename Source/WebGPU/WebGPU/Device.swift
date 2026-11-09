@@ -26,7 +26,6 @@ import IOSurface
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Instance
 @_implementationOnly import WebGPU_Internal.Queue
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
@@ -115,7 +114,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     fileprivate init(
         metalDevice: (any MTLDevice)?,
-        capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
+        capabilities: GPUCapabilities,
         adapterImpl: AdapterImpl,
         defaultQueue: (any MTLCommandQueue)?
     ) {
@@ -143,7 +142,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         }
         backingAppleGPUFamily = computeAppleGPUFamily(metalDevice)
         backingMaxVerticesPerDrawCall = computeMaxCountForDevice(metalDevice)
-        shaderValidationEnabled = WebGPU.Metal.isShaderValidationEnabled(metalDevice)
+        shaderValidationEnabled = WebGPUSwift.isShaderValidationEnabled(metalDevice)
         encoderLimits = deviceCapabilities.validDeviceEncoderLimits
         let placeholderBuffer = makeBuffer(metalDevice, 1, .shared, .defaultCache, .default)
         DeviceImpl.setOwnerWithIdentity(placeholderBuffer, adapterImpl)
@@ -333,12 +332,6 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     func hasFeature(_ feature: WebGPU.FeatureName) -> Bool {
         capabilities.hasFeature(feature)
-    }
-
-    func copyFeatures(_ destination: inout WebGPU.Metal.FeatureNames) {
-        for feature in capabilities.features {
-            destination.append(consuming: feature)
-        }
     }
 
     var featureList: [WebGPU.FeatureName] {
@@ -927,7 +920,7 @@ private func computeAppleGPUFamily(_ metalDevice: any MTLDevice) -> UInt32 {
 func makeDevice(
     _ metalDevice: (any MTLDevice)?,
     _ label: WTF.String,
-    _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities,
+    _ capabilities: GPUCapabilities,
     _ adapterImpl: AdapterImpl
 ) -> DeviceImpl {
     guard let commandQueue = makeDefaultCommandQueue(metalDevice, label) else {
@@ -947,7 +940,7 @@ func makeDevice(
 private func makeInvalidDevice(_ adapterImpl: AdapterImpl) -> DeviceImpl {
     let device = DeviceImpl(
         metalDevice: nil,
-        capabilities: WebGPU.Metal.HardwareCapabilities(),
+        capabilities: .none,
         adapterImpl: adapterImpl,
         defaultQueue: nil
     )

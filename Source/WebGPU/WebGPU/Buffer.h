@@ -27,7 +27,6 @@
 
 #import "BindableResource.h"
 #import "Device.h"
-#import "Instance.h"
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPU.h>
 #import <WebGPU/WebGPUCpp.h>

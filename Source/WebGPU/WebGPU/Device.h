@@ -26,7 +26,6 @@
 #pragma once
 
 #import "BindableResource.h"
-#import "HardwareCapabilities.h"
 #import "Queue.h"
 #import <CoreVideo/CVMetalTextureCache.h>
 #import <CoreVideo/CoreVideo.h>

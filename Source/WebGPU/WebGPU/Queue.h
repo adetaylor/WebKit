@@ -25,7 +25,6 @@
 
 #pragma once
 
-#import "Instance.h"
 #import <CoreVideo/CVMetalTextureCache.h>
 #import <CoreVideo/CVPixelBuffer.h>
 #import <IOSurface/IOSurfaceRef.h>

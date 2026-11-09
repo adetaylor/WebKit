@@ -24,7 +24,6 @@
 import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.HardwareCapabilities
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -43,10 +42,7 @@ extension AdapterImpl {
         requiredLimits: WebGPU.Limits?,
         label: Swift.String?
     ) -> DeviceReference? {
-        var capabilities = WebGPU.Metal.HardwareCapabilities()
-        for feature in requiredFeatures {
-            capabilities.features.append(consuming: feature)
-        }
+        var capabilities = GPUCapabilities(limits: WebGPU.Limits(), features: requiredFeatures, baseCapabilities: .none)
         var invalidatesAdapter = false
         if errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits(), &capabilities, &invalidatesAdapter) != nil {
             if invalidatesAdapter {
@@ -132,12 +128,6 @@ public final class AdapterImpl: GPUObjectReference {
         features.contains(feature)
     }
 
-    func copyFeatures(_ destination: inout WebGPU.Metal.FeatureNames) {
-        for feature in features {
-            destination.append(consuming: feature)
-        }
-    }
-
     // https://gpuweb.github.io/gpuweb/#dom-gpuadapter-requestdevice
     // nil accepts the request and turns `capabilities`, which arrives holding the required features, into the
     // device's. Otherwise the request fails with the returned message, and requestDevice() invalidates the adapter if
@@ -145,7 +135,7 @@ public final class AdapterImpl: GPUObjectReference {
     func errorRequestingDevice(
         _ hasRequiredLimits: Bool,
         _ requiredLimits: WebGPU.Limits,
-        _ capabilities: inout WebGPU.Metal.HardwareCapabilities,
+        _ capabilities: inout GPUCapabilities,
         _ invalidatesAdapter: inout Bool
     ) -> NSString? {
         if deviceRequested {
@@ -168,7 +158,7 @@ public final class AdapterImpl: GPUObjectReference {
         }
 
         capabilities.limits = limits.limits
-        baseCapabilities.copy(to: &capabilities.baseCapabilities)
+        capabilities.baseCapabilities = baseCapabilities
         deviceRequested = true
         return nil
     }
@@ -210,13 +200,13 @@ public final class AdapterImpl: GPUObjectReference {
 func makeAdapterImpl(
     _ metalDevice: (any MTLDevice)?,
     _ xrCompatible: Bool,
-    _ capabilities: borrowing WebGPU.Metal.HardwareCapabilities
+    _ capabilities: GPUCapabilities
 ) -> AdapterImpl {
     AdapterImpl(
         metalDevice: metalDevice,
         xrCompatible: xrCompatible,
-        features: featureArray(capabilities.features),
+        features: capabilities.features,
         limits: capabilities.limits,
-        baseCapabilities: GPUBaseCapabilities(capabilities.baseCapabilities)
+        baseCapabilities: capabilities.baseCapabilities
     )
 }

@@ -13,7 +13,6 @@
 		07D291722EC9CECC00A32120 /* BindGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAD5273A4D700095F8D5 /* BindGroup.h */; };
 		07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */; };
 		07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD80B2716C37900A5254D /* ExportMacros.h */; };
-		07D291772EC9CEF200A32120 /* HardwareCapabilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C0F41ED280940650005886D /* HardwareCapabilities.h */; };
 		07D291792EC9CEFF00A32120 /* PresentationContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C9F7CDE29762F51006B5BE9 /* PresentationContext.h */; };
 		07D2917C2EC9CF0E00A32120 /* RenderBundleEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */; };
 		07D2917D2EC9CF1100A32120 /* RenderPassEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */; };
@@ -29,10 +28,8 @@
 		0DD5FD362C66947B004AF552 /* XRProjectionLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0DD5FD342C66947B004AF552 /* XRProjectionLayer.mm */; };
 		097CE7EFDBFF4827A8AF2284 /* XRProjectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E430DA33D346D483083E6A /* XRProjectionLayer.swift */; };
 		14C834402EBA7CBB003B591A /* StdLibExtras.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C8343F2EBA7CBB003B591A /* StdLibExtras.swift */; };
-		1C0F41EE280940650005886D /* HardwareCapabilities.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C0F41EC280940650005886D /* HardwareCapabilities.mm */; };
 		54F1DFB207524E8082E4607A /* HardwareCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A419940E3E134473BA875E78 /* HardwareCapabilities.swift */; };
 		1C2CEDEE271E8A7300EDC16F /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1C2CEDED271E8A7300EDC16F /* Metal.framework */; };
-		1C5ACA94273A41C20095F8D5 /* Instance.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACA92273A41C20095F8D5 /* Instance.mm */; };
 		DDE708C22B23400C8BD6C972 /* Instance.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF6A5AB6EBA149BB9E66C933 /* Instance.swift */; };
 		219E5D5E55A54387BF439AB3 /* RenderPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D8F55A2E234B53821682AE /* RenderPipeline.swift */; };
 		F4660E6CF3264519B8BC21E4 /* RenderPipelineTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */; };
@@ -68,7 +65,6 @@
 		664C92FD286A66090008D143 /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 664C92FC286A66090008D143 /* IOSurface.framework */; };
 		941C1EE52CA328F7004D4220 /* Queue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 941C1EE42CA328EE004D4220 /* Queue.swift */; };
 		941C1EE62CA33255004D4220 /* Queue.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9C273A426D0095F8D5 /* Queue.h */; };
-		941C1EE72CA46829004D4220 /* Instance.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA0273A426D0095F8D5 /* Instance.h */; };
 		941C64B72CAB4A0700A63214 /* Device.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9B273A426D0095F8D5 /* Device.h */; };
 		94200C4F2CADBCAD00484401 /* CommandEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */; };
 		94200C512CADBD7200484401 /* CommandEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94200C502CADBD6B00484401 /* CommandEncoder.swift */; };
@@ -266,11 +262,8 @@
 		0DD5FD342C66947B004AF552 /* XRProjectionLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = XRProjectionLayer.mm; sourceTree = "<group>"; };
 		19E430DA33D346D483083E6A /* XRProjectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XRProjectionLayer.swift; sourceTree = "<group>"; };
 		14C8343F2EBA7CBB003B591A /* StdLibExtras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdLibExtras.swift; sourceTree = "<group>"; };
-		1C0F41EC280940650005886D /* HardwareCapabilities.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = HardwareCapabilities.mm; sourceTree = "<group>"; };
 		A419940E3E134473BA875E78 /* HardwareCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareCapabilities.swift; sourceTree = "<group>"; };
-		1C0F41ED280940650005886D /* HardwareCapabilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HardwareCapabilities.h; sourceTree = "<group>"; };
 		1C2CEDED271E8A7300EDC16F /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		1C5ACA92273A41C20095F8D5 /* Instance.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = Instance.mm; sourceTree = "<group>"; };
 		AF6A5AB6EBA149BB9E66C933 /* Instance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instance.swift; sourceTree = "<group>"; };
 		13D8F55A2E234B53821682AE /* RenderPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPipeline.swift; sourceTree = "<group>"; };
 		91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPipelineTables.swift; sourceTree = "<group>"; };
@@ -280,7 +273,6 @@
 		1C5ACA9C273A426D0095F8D5 /* Queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Queue.h; sourceTree = "<group>"; };
 		1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommandEncoder.h; sourceTree = "<group>"; };
 		C859B61D2EAF4362828276FE /* QuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuerySet.swift; sourceTree = "<group>"; };
-		1C5ACAA0273A426D0095F8D5 /* Instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Instance.h; sourceTree = "<group>"; };
 		9C53A4E591654B1482CECFBD /* ComputePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePipeline.swift; sourceTree = "<group>"; };
 		5DAF065BC4E44B17BDEC4DEC /* Device.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Device.swift; sourceTree = "<group>"; };
 		B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHelpers.swift; sourceTree = "<group>"; };
@@ -550,11 +542,7 @@
 				7A0343AFCDAD4D76BF10560E /* ExternalTexture.swift */,
 				90E216ABB98C4D3D96F7A43E /* ExternalTextureImport.swift */,
 				D0D52564E59F4C4C93C58A39 /* GPUObjectReference.swift */,
-				1C0F41ED280940650005886D /* HardwareCapabilities.h */,
-				1C0F41EC280940650005886D /* HardwareCapabilities.mm */,
 				A419940E3E134473BA875E78 /* HardwareCapabilities.swift */,
-				1C5ACAA0273A426D0095F8D5 /* Instance.h */,
-				1C5ACA92273A41C20095F8D5 /* Instance.mm */,
 				AF6A5AB6EBA149BB9E66C933 /* Instance.swift */,
 				F65A7E6A31B645F793B3A208 /* LayoutConversion.swift */,
 				57616FB8DA6D451EAE2A5D71 /* MetalMemory.swift */,
@@ -831,8 +819,6 @@
 				079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */,
 				941C64B72CAB4A0700A63214 /* Device.h in Headers */,
 				07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */,
-				07D291772EC9CEF200A32120 /* HardwareCapabilities.h in Headers */,
-				941C1EE72CA46829004D4220 /* Instance.h in Headers */,
 				0D509DCD29CAB6EC00546D84 /* MetalSPI.h in Headers */,
 				07D291792EC9CEFF00A32120 /* PresentationContext.h in Headers */,
 				941C1EE62CA33255004D4220 /* Queue.h in Headers */,
@@ -1103,9 +1089,7 @@
 				DB79AAE9ABC04BE8A5BAC982 /* ExternalTexture.swift in Sources */,
 				4807B47EF8804BD9AFC59753 /* ExternalTextureImport.swift in Sources */,
 				09FC8F0AA20E4BE9B984E715 /* GPUObjectReference.swift in Sources */,
-				1C0F41EE280940650005886D /* HardwareCapabilities.mm in Sources */,
 				54F1DFB207524E8082E4607A /* HardwareCapabilities.swift in Sources */,
-				1C5ACA94273A41C20095F8D5 /* Instance.mm in Sources */,
 				DDE708C22B23400C8BD6C972 /* Instance.swift in Sources */,
 				EDE7217A927044E3997480EA /* LayoutConversion.swift in Sources */,
 				9A1C558CFD9340EBBF5CCD90 /* MetalMemory.swift in Sources */,

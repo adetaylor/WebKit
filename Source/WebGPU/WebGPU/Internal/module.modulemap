@@ -57,16 +57,6 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module HardwareCapabilities {
-        header "../HardwareCapabilities.h"
-        export *
-    }
-
-    explicit module Instance {
-        header "../Instance.h"
-        export *
-    }
-
     explicit module MetalSPI {
         header "../MetalSPI.h"
         export *

@@ -27,6 +27,7 @@
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
 @_spi(WebKitGPU) import WebGPUSwift
+internal import WebGPU_Private
 import WebKit_Internal
 
 extension IPCTypes.CxxName {
@@ -177,10 +178,9 @@ final class WebGPUImplTable {
     // Every device made: work in flight can keep a device alive after its entry is removed.
     private var devices: [DeviceWeakReference] = []
 
-    init(host: WebKit.RemoteGPU, instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
+    init(host: WebKit.RemoteGPU, instance: InstanceReference) {
         self.host = host
-        var descriptor = instanceDescriptor.take()
-        instance = InstanceReference(&descriptor)
+        self.instance = instance
     }
 
     func remove(_ identifier: UInt64) {
@@ -200,8 +200,13 @@ final class WebGPUImplTable {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: makes the adapter and its receiver, and the reply that
     // describes it. nil if there's no adapter.
-    func requestAdapter(_ options: WebGPU.RequestAdapterOptions, _ identifier: UInt64) -> IPCTypes.RemoteGPURequestAdapterResponse? {
-        guard let adapter = instance.requestAdapter(options) else {
+    func requestAdapter(
+        _ powerPreference: WebGPU.PowerPreference?,
+        _ forceFallbackAdapter: Bool,
+        _ xrCompatible: Bool,
+        _ identifier: UInt64
+    ) -> IPCTypes.RemoteGPURequestAdapterResponse? {
+        guard let adapter = instance.requestAdapter(powerPreference: powerPreference, forceFallbackAdapter: forceFallbackAdapter, xrCompatible: xrCompatible) else {
             return nil
         }
         RemoteAdapter.add(adapter, WebGPURegistryLink(self, identifier))

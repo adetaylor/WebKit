@@ -31,23 +31,16 @@ import Synchronization
 #endif
 public import WebGPU_Private.WebGPUCpp
 
-// A work item waiting for processEvents(). Sendable because the item is moved into a Mutex of its own, which the
-// region checker accepts only for a value no other code can reach (`sending`). The draining thread runs it under that
-// lock, which nothing else takes, and the item is destroyed with the PendingWork.
-private final class PendingWork: Sendable {
-    private let item: Mutex<CxxBridging.InstanceWorkItem>
+// A work item, which runs on the Instance's API thread.
+typealias InstanceWorkItem = @Sendable () -> Void
 
-    init(_ item: consuming sending CxxBridging.InstanceWorkItem) {
-        self.item = Mutex(item)
-    }
-
-    func run() {
-        item.withLock { $0() }
-    }
-}
+// The embedder's scheduleWork: runs a work item on the thread the Instance calls back on. Metal threads call it
+// concurrently with the API thread.
+@_spi(WebKitGPU)
+public typealias InstanceScheduleWork = @Sendable (@escaping @Sendable () -> Void) -> Void
 
 private struct EventQueueState {
-    var pendingWork: [PendingWork] = []
+    var pendingWork: [InstanceWorkItem] = []
 }
 
 // The work items of an Instance without an embedder scheduleWork, which wait for processEvents(). Sendable: Metal
@@ -58,10 +51,9 @@ final class InstanceEventQueue: Sendable {
     fileprivate init() {
     }
 
-    fileprivate func append(_ item: consuming sending CxxBridging.InstanceWorkItem) {
-        let work = PendingWork(item)
+    fileprivate func append(_ item: @escaping InstanceWorkItem) {
         state.withLock { state in
-            state.pendingWork.append(work)
+            state.pendingWork.append(item)
         }
     }
 
@@ -78,56 +70,45 @@ final class InstanceEventQueue: Sendable {
                 return
             }
             for work in batch {
-                work.run()
+                work()
             }
         }
     }
-}
-
-// The embedder's scheduleWork. Unchecked Sendable: Metal threads call it concurrently with the API thread; whether the
-// closure allows that is the embedder's contract, which no Swift check can see.
-private struct EmbedderScheduleWork: ~Copyable, @unchecked Sendable {
-    let function: CxxBridging.InstanceScheduleWork
 }
 
 // Where Instance::scheduleWork() sends a work item: to the embedder's scheduleWork, without taking any lock, or
 // else to the event queue. Owned by the Instance and by the asynchronous pipeline compiles in flight. Sendable: Metal
 // threads schedule work.
 final class InstanceScheduler: Sendable {
-    private let embedder: EmbedderScheduleWork?
+    private let embedder: InstanceScheduleWork?
     private let events: InstanceEventQueue
 
-    fileprivate init(embedder: consuming EmbedderScheduleWork?, events: InstanceEventQueue) {
+    fileprivate init(embedder: InstanceScheduleWork?, events: InstanceEventQueue) {
         self.embedder = embedder
         self.events = events
     }
 
-    // Takes the work item, leaving `workItem` empty.
-    func scheduleWork(_ workItem: inout sending CxxBridging.InstanceWorkItem) {
-        let item = workItem
-        workItem = CxxBridging.InstanceWorkItem()
-        switch embedder {
-        case .some(let embedder):
-            embedder.function(consuming: item)
-        case .none:
-            events.append(item)
+    func scheduleWork(_ workItem: @escaping InstanceWorkItem) {
+        if let embedder {
+            embedder(workItem)
+        } else {
+            events.append(workItem)
         }
     }
 }
 
 // What Queue and the device observer schedule their work items through from Metal and observer threads, so that no
-// such thread holds, or releases, a reference to the Instance. It holds the scheduler, which doesn't own the Instance,
-// so work is dropped only by the embedder, which drops it only once its API thread has stopped (InstanceImpl.init).
+// such thread holds, or releases, a reference to the Instance. Once the Instance is gone, work items are dropped.
 final class InstanceSchedulerHandle: Sendable {
-    let scheduler: InstanceScheduler
+    private weak let scheduler: InstanceScheduler?
 
     fileprivate init(_ scheduler: InstanceScheduler) {
         self.scheduler = scheduler
     }
 
-    // Takes the work item, leaving `workItem` empty.
-    func scheduleWork(_ workItem: inout sending CxxBridging.InstanceWorkItem) {
-        scheduler.scheduleWork(&workItem)
+    // Drops the work item once the Instance is gone.
+    func scheduleWork(_ workItem: @escaping InstanceWorkItem) {
+        scheduler?.scheduleWork(workItem)
     }
 
     func liveScheduler() -> InstanceScheduler? {
@@ -137,34 +118,21 @@ final class InstanceSchedulerHandle: Sendable {
 
 /// The part of a Metal handler that runs on the Instance's API thread, carried there from the Metal thread.
 ///
-/// Unchecked Sendable: the body and what it captures belong to the API thread, where the box is made. The Metal thread
-/// only hands the box to a work item, and the scheduler's hop orders that before the API thread runs the body, which
-/// goes as it runs. A body that never runs is released in a work item too (releaseOnAPIThread()).
+/// Unchecked Sendable: the body and what it captures belong to the API thread. The Metal thread only hands the box to a
+/// work item, and the scheduler's hop orders that before the API thread runs the body, which goes as it runs. So the
+/// body's references are released on the API thread, unless the Instance is gone and the work item is dropped.
 final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
-    private let scheduler: InstanceScheduler
     private var body: ((Argument) -> Void)?
 
-    // The caller promises that what the body captures belongs to the API thread: it is on the API thread, or only passes
-    // on a body made there.
-    @unsafe
-    init(on scheduler: InstanceSchedulerHandle, _ body: @escaping (Argument) -> Void) {
-        self.scheduler = scheduler.scheduler
+    init(_ body: @escaping (Argument) -> Void) {
         self.body = body
     }
 
-    deinit {
-        guard let body = body.take() else {
-            return
-        }
-        releaseOnAPIThread(consume body, scheduler)
-    }
-
     // On the Metal thread.
-    func schedule(_ argument: Argument) {
-        var workItem = CxxBridging.InstanceWorkItem {
+    func schedule(_ argument: Argument, on scheduler: InstanceSchedulerHandle?) {
+        scheduler?.scheduleWork {
             self.run(argument)
         }
-        scheduler.scheduleWork(&workItem)
     }
 
     private func run(_ argument: Argument) {
@@ -172,70 +140,6 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
             body(argument)
         }
     }
-}
-
-/// Releases what a box held for the API thread, which never ran there, by a work item, which the embedder runs on the API
-/// thread. The body moves into the work item's holder, so no other reference to it is left here, and the work item drops
-/// it explicitly. If the embedder drops the work item instead, which it does only once the API thread has stopped, the
-/// holder hands the body to one serial queue that drops it, whichever thread releases the holder last.
-func releaseOnAPIThread<Body>(_ body: consuming Body, _ scheduler: InstanceScheduler) {
-    let holder = APIThreadRelease(consume body)
-    var workItem = CxxBridging.InstanceWorkItem {
-        holder.drop()
-    }
-    scheduler.scheduleWork(&workItem)
-}
-
-// Releases the bodies of work items that their embedder dropped, after its API thread stopped, one at a time.
-private let droppedBodyReleaseQueue = DispatchQueue(label: "com.apple.WebKit.WebGPU.DroppedWorkRelease")
-
-// The only owner of a body on its way to be released. Unchecked Sendable: nothing reads the body, which goes only on the
-// API thread, in drop(), or on droppedBodyReleaseQueue.
-private final class APIThreadRelease<Body>: @unchecked Sendable {
-    private var body: Body?
-
-    init(_ body: consuming Body) {
-        self.body = .some(body)
-    }
-
-    // On the API thread.
-    func drop() {
-        body = nil
-    }
-
-    deinit {
-        guard let body = body.take() else {
-            return
-        }
-        let dropped = DroppedBody(consume body)
-        droppedBodyReleaseQueue.async {
-            dropped.drop()
-        }
-    }
-}
-
-// A body that droppedBodyReleaseQueue drops. Unchecked Sendable: nothing reads it, and only that queue drops it.
-private final class DroppedBody<Body>: @unchecked Sendable {
-    private var body: Body?
-
-    init(_ body: consuming Body) {
-        self.body = .some(body)
-    }
-
-    func drop() {
-        body = nil
-    }
-}
-
-// Takes the embedder's scheduleWork, leaving `scheduleWork` empty.
-func makeInstanceScheduler(_ scheduleWork: inout CxxBridging.InstanceScheduleWork, _ events: InstanceEventQueue) -> InstanceScheduler {
-    let function = scheduleWork
-    scheduleWork = CxxBridging.InstanceScheduleWork()
-    return InstanceScheduler(embedder: EmbedderScheduleWork(function: function), events: events)
-}
-
-func makeInstanceSchedulerWithoutEmbedder(_ events: InstanceEventQueue) -> InstanceScheduler {
-    InstanceScheduler(embedder: nil, events: events)
 }
 
 func makeInstanceSchedulerHandle(_ scheduler: InstanceScheduler) -> InstanceSchedulerHandle {
@@ -282,22 +186,13 @@ public final class InstanceImpl: LinkedImpl {
     private var retainedDevices: [ObjectIdentifier: RetainedDevice] = [:]
     private let events: InstanceEventQueue
 
-    // Takes the descriptor's scheduleWork and resource owner.
-    //
-    // The caller promises that every other call into the Instance and the objects it makes comes from its API thread, and
-    // that scheduleWork runs each work item later, on the API thread, one at a time, or, once nothing can call into the
-    // Instance or its objects any more, releases it without running it, on one serial queue.
-    @unsafe
-    public init(_ descriptor: inout WebGPU.InstanceDescriptor) {
+    // Without scheduleWork, the work items wait for processEvents(). The resource owner is the task that owns the
+    // resources the Instance allocates, or an empty right.
+    public init(scheduleWork: InstanceScheduleWork?, webProcessResourceOwner: WTF.MachSendRight) {
         let events = InstanceEventQueue()
-        if WebGPU.Metal.hasScheduleWork(descriptor) {
-            var scheduleWork = WebGPU.Metal.takeScheduleWork(&descriptor)
-            scheduler = makeInstanceScheduler(&scheduleWork, events)
-        } else {
-            scheduler = makeInstanceSchedulerWithoutEmbedder(events)
-        }
+        scheduler = InstanceScheduler(embedder: scheduleWork, events: events)
         schedulerHandle = makeInstanceSchedulerHandle(scheduler)
-        backingWebProcessID = WebGPU.Metal.takeWebProcessResourceOwner(&descriptor)
+        backingWebProcessID = webProcessResourceOwner
         self.events = events
     }
 
@@ -316,12 +211,14 @@ public final class InstanceImpl: LinkedImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil when no device supports WebGPU, and for a fallback
     // adapter, which there isn't.
-    public func requestAdapter(_ options: WebGPU.RequestAdapterOptions) -> AdapterReference? {
-        var capabilities = WebGPU.Metal.HardwareCapabilities()
-        guard let device = WebGPU.Metal.requestAdapterDevice(options, &capabilities) else {
+    public func requestAdapter(powerPreference: WebGPU.PowerPreference?, forceFallbackAdapter: Bool, xrCompatible: Bool) -> AdapterReference? {
+        // FIXME: Deal with options.compatibleSurface.
+        guard !forceFallbackAdapter, let device = sortedAdapterDevices(powerPreference).first,
+            let capabilities = hardwareCapabilities(device)
+        else {
             return nil
         }
-        let adapter = makeAdapterImpl(device, options.xrCompatible, capabilities)
+        let adapter = makeAdapterImpl(device, xrCompatible, capabilities)
         adapter.setInstance(self)
         return adapter
     }
@@ -331,7 +228,11 @@ public final class InstanceImpl: LinkedImpl {
     public func createPresentationContext() -> PresentationContextReference {
         let webProcessID = webProcessIdentity()
         return withExtendedLifetime(webProcessID) {
-            makePresentationContextIOSurfaceImpl(WebGPU.Metal.webProcessIdentityPort(webProcessID))
+            #if HAVE_IOSURFACE_SET_OWNERSHIP_IDENTITY && HAVE_TASK_IDENTITY_TOKEN
+            makePresentationContextIOSurfaceImpl(webProcessID.sendRight())
+            #else
+            makePresentationContextIOSurfaceImpl(mach_port_t(MACH_PORT_NULL))
+            #endif
         }
     }
     func retainDevice(_ device: DeviceImpl, _ commandBuffer: (any MTLCommandBuffer)?) {
@@ -363,4 +264,22 @@ public final class InstanceImpl: LinkedImpl {
         }
         retainedDevices = survivingDevices
     }
+}
+
+// The devices an adapter can be made of, the preferred first.
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "isLowPower still tells a Mac's integrated GPU from its discrete one")
+#endif
+private func sortedAdapterDevices(_ powerPreference: WebGPU.PowerPreference?) -> [any MTLDevice] {
+    #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
+    let devices = MTLCopyAllDevices()
+    guard let powerPreference else {
+        return devices
+    }
+    let lowPowerFirst = powerPreference == .LowPower
+    return devices.filter { $0.isLowPower == lowPowerFirst } + devices.filter { $0.isLowPower != lowPowerFirst }
+    #else
+    _ = powerPreference
+    return MTLCreateSystemDefaultDevice().map { [$0] } ?? []
+    #endif
 }

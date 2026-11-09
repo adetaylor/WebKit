@@ -121,35 +121,6 @@ WebGPUSwiftReceiverRegistration* WTF_NULLABLE registerWebGPUSwiftReceiver(Remote
     return &WebGPUSwiftReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
-// The descriptor of the instance that the registry makes, which C++ makes for it: Swift can't take the descriptor, which
-// can't be copied, as a parameter.
-class WebGPUSwiftInstanceDescriptor final : public RefCounted<WebGPUSwiftInstanceDescriptor> {
-public:
-    static Ref<WebGPUSwiftInstanceDescriptor> create(::WebGPU::InstanceDescriptor&& descriptor)
-    {
-        return adoptRef(*new WebGPUSwiftInstanceDescriptor(WTF::move(descriptor)));
-    }
-
-    // Once.
-    ::WebGPU::InstanceDescriptor take() { return std::exchange(m_descriptor, { }); }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<WebGPUSwiftInstanceDescriptor>::ref(); }
-    void deref() const { RefCounted<WebGPUSwiftInstanceDescriptor>::deref(); }
-#endif
-
-private:
-    explicit WebGPUSwiftInstanceDescriptor(::WebGPU::InstanceDescriptor&& descriptor)
-        : m_descriptor(WTF::move(descriptor))
-    {
-    }
-
-    ::WebGPU::InstanceDescriptor m_descriptor;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-
 using OptionalOwnedBytes = std::optional<::WebGPU::OwnedBytes>;
 
 // The bytes of the shared memory that a message's handle names, mapped read-only, for a write that may read them after

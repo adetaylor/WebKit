@@ -215,10 +215,9 @@ private final class CompileHop<Value: Sendable>: Sendable {
     // On Metal's completion queue.
     func deliver(_ value: Value?, _ error: (any Error)?) {
         let continuation = continuation
-        var workItem = CxxBridging.InstanceWorkItem {
+        scheduler.scheduleWork {
             continuation.resume(value, error)
         }
-        scheduler.scheduleWork(&workItem)
     }
 }
 

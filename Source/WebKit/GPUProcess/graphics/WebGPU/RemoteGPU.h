@@ -36,8 +36,6 @@
 #include "WebModelIdentifier.h"
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/CompletionHandler.h>
-#include <wtf/Deque.h>
-#include <wtf/Lock.h>
 #include <wtf/MachSendRight.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
@@ -67,7 +65,6 @@ namespace WebKit {
 class GPUConnectionToWebProcess;
 class ModelObjectHeap;
 class RemoteRenderingBackend;
-class WebGPUSwiftInstanceDescriptor;
 
 // The receiver of a web process's WebGPU messages to its GPU, on its own work queue. Swift handles the WebGPU messages
 // (RemoteGPU.swift), on the registry of WebGPU objects that m_swiftState holds; C++ keeps the receiver's lifecycle, the
@@ -114,13 +111,9 @@ private:
     RemoteGPU& operator=(const RemoteGPU&) = delete;
     RemoteGPU& operator=(RemoteGPU&&) = delete;
 
-    enum class WorkQueueState : uint8_t { Running, Stopping, Stopped };
-
     void initialize();
     void workQueueInitialize();
     void workQueueUninitialize();
-    void scheduleWork(Function<void()>&&);
-    void performWorkScheduledWhileStopping(WorkQueueState stateWhenDone);
 
     template<typename T>
     IPC::Error send(T&& message) const
@@ -133,9 +126,14 @@ private:
 
     NODELETE void createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebKit::WebModelIdentifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&&);
 
-    // Implemented in Swift (RemoteGPU.swift). The registry made from the descriptor, which m_swiftState holds, holds
-    // this receiver until swiftUninitialize() releases it; m_swiftState is 0 before workQueueInitialize() and after.
-    void swiftInitialize(WebGPUSwiftInstanceDescriptor* WTF_NONNULL);
+    // Implemented in Swift (RemoteGPU.swift), on the state that m_swiftState holds from swiftInitialize() to the
+    // destructor: the scheduler of the WebGPU instance's work on the work queue, and the registry of the WebGPU objects,
+    // which holds this receiver until swiftUninitialize() releases it. The scheduler holds work scheduled once the receiver
+    // begins stopping, which swiftRunScheduledWork() runs.
+    void swiftInitialize(MachSendRight webProcessResourceOwner);
+    static void destroySwiftState(uintptr_t);
+    void swiftBeginStopping();
+    void swiftRunScheduledWork(bool thenStopped);
     void swiftUninitialize();
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
@@ -146,10 +144,6 @@ private:
     const WebGPUIdentifier m_identifier;
     const Ref<RemoteRenderingBackend> m_renderingBackend;
     uintptr_t m_swiftState { 0 };
-    Lock m_scheduledWorkLock;
-    WorkQueueState m_workQueueState WTF_GUARDED_BY_LOCK(m_scheduledWorkLock) { WorkQueueState::Running };
-    // A stopping work queue drops the work dispatched to it, so the work scheduled meanwhile waits here to run before it stops.
-    Deque<Function<void()>> m_workScheduledWhileStopping WTF_GUARDED_BY_LOCK(m_scheduledWorkLock);
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit

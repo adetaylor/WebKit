@@ -62,12 +62,24 @@ RemoteGPU::RemoteGPU(WebGPUIdentifier identifier, GPUConnectionToWebProcess& gpu
 
 RemoteGPU::~RemoteGPU()
 {
-    ASSERT(!m_swiftState);
+    if (m_swiftState)
+        destroySwiftState(m_swiftState);
 }
 
 void RemoteGPU::initialize()
 {
     assertIsMainRunLoop();
+    // BEWARE: This is a retain cycle.
+    // this owns the registry, but the registry has a strong reference to this. The retain cycle is broken in
+    // workQueueUninitialize(). The work the instance schedules must run even if this is disowned (because the work
+    // handles resource cleanup, etc.), which the scheduler sees to without a reference to this.
+    RefPtr gpuProcessConnection = m_gpuConnectionToWebProcess.get();
+#if HAVE(TASK_IDENTITY_TOKEN)
+    swiftInitialize(gpuProcessConnection ? MachSendRight { gpuProcessConnection->webProcessIdentity().taskId() } : MachSendRight { });
+#else
+    UNUSED_VARIABLE(gpuProcessConnection);
+    swiftInitialize(MachSendRight { });
+#endif
     m_workQueue->dispatch([protectedThis = protect(*this)]() mutable {
         protectedThis->workQueueInitialize();
     });
@@ -76,55 +88,18 @@ void RemoteGPU::initialize()
 void RemoteGPU::stopListeningForIPC()
 {
     assertIsMainRunLoop();
-    {
-        Locker locker { m_scheduledWorkLock };
-        m_workQueueState = WorkQueueState::Stopping;
-    }
+    swiftBeginStopping();
     m_workQueue->dispatch([protectedThis = protect(*this)]() {
         protectedThis->workQueueUninitialize();
     });
     m_workQueue->stopAndWaitForCompletion([this] {
         assertIsCurrent(workQueue());
-        performWorkScheduledWhileStopping(WorkQueueState::Stopped);
+        swiftRunScheduledWork(true);
         // The work can create objects, such as asynchronously created pipelines. Releasing the registry also releases
         // its reference to this, if workQueueUninitialize() didn't run.
-        if (m_swiftState)
-            swiftUninitialize();
+        swiftUninitialize();
         m_modelObjectHeap->clear();
     });
-}
-
-void RemoteGPU::scheduleWork(Function<void()>&& workItem)
-{
-    Locker locker { m_scheduledWorkLock };
-    switch (m_workQueueState) {
-    case WorkQueueState::Running:
-        m_workQueue->dispatch(WTF::move(workItem));
-        return;
-    case WorkQueueState::Stopping:
-        m_workScheduledWhileStopping.append(WTF::move(workItem));
-        return;
-    case WorkQueueState::Stopped:
-        return;
-    }
-}
-
-void RemoteGPU::performWorkScheduledWhileStopping(WorkQueueState stateWhenDone)
-{
-    assertIsCurrent(workQueue());
-    while (true) {
-        Deque<Function<void()>> workItems;
-        {
-            Locker locker { m_scheduledWorkLock };
-            if (m_workScheduledWhileStopping.isEmpty()) {
-                m_workQueueState = stateWhenDone;
-                return;
-            }
-            workItems = std::exchange(m_workScheduledWhileStopping, { });
-        }
-        for (auto& workItem : workItems)
-            workItem();
-    }
 }
 
 void RemoteGPU::workQueueInitialize()
@@ -134,28 +109,6 @@ void RemoteGPU::workQueueInitialize()
     RefPtr streamConnection = m_streamConnection;
     streamConnection->open(*this, workQueue);
     streamConnection->startReceivingMessages(*this, Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
-
-    // BEWARE: This is a retain cycle.
-    // this owns the registry and its instance, but the registry, and the instance's scheduleWork, have strong references
-    // to this. The retain cycle is required because the work it schedules must run even if this is disowned
-    // (because the work handles resource cleanup, etc.).
-    // The retain cycle is broken in workQueueUninitialize().
-    RefPtr gpuProcessConnection = m_gpuConnectionToWebProcess.get();
-#if !HAVE(TASK_IDENTITY_TOKEN)
-    UNUSED_VARIABLE(gpuProcessConnection);
-#endif
-    ASSERT(!m_swiftState);
-    Ref descriptor = WebGPUSwiftInstanceDescriptor::create(::WebGPU::InstanceDescriptor {
-        .scheduleWork = [protectedThis = protect(*this)](Function<void()>&& workItem) {
-            protectedThis->scheduleWork(WTF::move(workItem));
-        },
-#if HAVE(TASK_IDENTITY_TOKEN)
-        .webProcessResourceOwner = gpuProcessConnection ? std::optional { gpuProcessConnection->webProcessIdentity().taskId() } : std::nullopt,
-#else
-        .webProcessResourceOwner = std::nullopt,
-#endif
-    });
-    swiftInitialize(descriptor.ptr());
     send(Messages::RemoteGPUProxy::WasCreated(true));
 }
 
@@ -166,11 +119,10 @@ void RemoteGPU::workQueueUninitialize()
     streamConnection->stopReceivingMessages(Messages::RemoteGPU::messageReceiverName(), m_identifier.toUInt64());
     streamConnection->invalidate();
     m_streamConnection = nullptr;
-    performWorkScheduledWhileStopping(WorkQueueState::Stopping);
+    swiftRunScheduledWork(false);
     // Once the work queue stops, nothing can run the work that would call the callbacks pending on the
     // devices' queues, so the registry destroys the devices, which calls them now.
-    if (m_swiftState)
-        swiftUninitialize();
+    swiftUninitialize();
     m_modelObjectHeap->clear();
 }
 

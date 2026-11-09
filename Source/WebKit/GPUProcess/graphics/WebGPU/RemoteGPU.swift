@@ -25,42 +25,141 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+import Synchronization
 @_spi(WebKitGPU) import WebGPUSwift
 internal import WebGPU_Private
 import WebKit_Internal
 
-// RemoteGPU's WebGPU messages (RemoteGPU.h), on its work queue, and the registry of its WebGPU objects, which
-// m_swiftState holds retained, by address, from swiftInitialize() to swiftUninitialize().
+// Runs the work the WebGPU instance schedules on RemoteGPU's work queue, from any thread. A stopping work queue drops the
+// work dispatched to it, so the work scheduled meanwhile waits here to run before it stops.
+final class RemoteGPUWorkScheduler: Sendable {
+    private enum Stage {
+        case running
+        case stopping
+        case stopped
+    }
+
+    private struct State {
+        var stage = Stage.running
+        var waitingWork: [@Sendable () -> Void] = []
+    }
+
+    private let state = Mutex(State())
+    private let workQueue: IPC.StreamConnectionWorkQueue
+
+    init(_ workQueue: IPC.StreamConnectionWorkQueue) {
+        self.workQueue = workQueue
+    }
+
+    func schedule(_ work: @escaping @Sendable () -> Void) {
+        state.withLock { state in
+            switch state.stage {
+            case .running:
+                workQueue.dispatch(consuming: IPC.StreamConnectionWorkQueue.WorkItem(work))
+            case .stopping:
+                state.waitingWork.append(work)
+            case .stopped:
+                break
+            }
+        }
+    }
+
+    func beginStopping() {
+        state.withLock { $0.stage = .stopping }
+    }
+
+    // On the work queue: runs the work scheduled while stopping, including the work it schedules, and then stops, or
+    // keeps stopping.
+    func runWaitingWork(thenStopped stopped: Bool) {
+        while true {
+            let work = state.withLock { state in
+                if state.waitingWork.isEmpty {
+                    state.stage = stopped ? .stopped : .stopping
+                }
+                let work = state.waitingWork
+                state.waitingWork = []
+                return work
+            }
+            if work.isEmpty {
+                return
+            }
+            for item in work {
+                item()
+            }
+        }
+    }
+}
+
+// What m_swiftState holds: the scheduler, and the registry of the WebGPU objects until the RemoteGPU stops.
+final class RemoteGPUState {
+    let scheduler: RemoteGPUWorkScheduler
+    var registry: WebGPUImplTable?
+
+    init(_ scheduler: RemoteGPUWorkScheduler) {
+        self.scheduler = scheduler
+    }
+}
+
+// RemoteGPU's WebGPU messages (RemoteGPU.h), on its work queue, and its Swift state, which m_swiftState holds retained,
+// by address, from swiftInitialize() to the destructor.
 extension WebKit.RemoteGPU {
     @cxx @implementation
-    func swiftInitialize(_ instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
+    func swiftInitialize(_ webProcessResourceOwner: WTF.MachSendRight) {
         precondition(m_swiftState == 0)
-        m_swiftState = UInt(bitPattern: unsafe Unmanaged.passRetained(WebGPUImplTable(host: self, instanceDescriptor: instanceDescriptor)).toOpaque())
+        let scheduler = RemoteGPUWorkScheduler(workQueue())
+        let instance = InstanceReference(
+            scheduleWork: { work in
+                scheduler.schedule(work)
+            },
+            webProcessResourceOwner: webProcessResourceOwner
+        )
+        let state = RemoteGPUState(scheduler)
+        state.registry = WebGPUImplTable(host: self, instance: instance)
+        m_swiftState = UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
+    }
+
+    // Static, so that the destructor never retains the RemoteGPU it destroys.
+    @cxx @implementation
+    static func destroySwiftState(_ swiftState: UInt) {
+        // Safety: swiftInitialize() retained the state at this address, and only the destructor releases it.
+        _ = unsafe Unmanaged<RemoteGPUState>.fromOpaque(UnsafeMutableRawPointer(bitPattern: swiftState)!).takeRetainedValue()
+    }
+
+    @cxx @implementation
+    func swiftBeginStopping() {
+        state.scheduler.beginStopping()
+    }
+
+    @cxx @implementation
+    func swiftRunScheduledWork(_ thenStopped: Bool) {
+        state.scheduler.runWaitingWork(thenStopped: thenStopped)
     }
 
     // Destroys the devices that are still alive, so that their pending callbacks are called, empties the registry, and
     // releases it, and with it the registry's reference to this.
     @cxx @implementation
     func swiftUninitialize() {
-        guard hasRegistry else {
+        let state = self.state
+        guard let registry = state.registry else {
             return
         }
-        // Safety: swiftInitialize() retained the registry at this address, and only this releases it.
-        let table = unsafe Unmanaged<WebGPUImplTable>.fromOpaque(UnsafeMutableRawPointer(bitPattern: m_swiftState)!).takeRetainedValue()
-        m_swiftState = 0
-        table.destroyDevices()
-        table.removeAll()
+        state.registry = nil
+        registry.destroyDevices()
+        registry.removeAll()
     }
 
-    private var hasRegistry: Bool {
-        m_swiftState != 0
+    private var state: RemoteGPUState {
+        precondition(m_swiftState != 0, "RemoteGPU has no Swift state")
+        // Safety: m_swiftState is a retained RemoteGPUState from swiftInitialize() to the destructor.
+        return unsafe Unmanaged<RemoteGPUState>.fromOpaque(UnsafeMutableRawPointer(bitPattern: m_swiftState)!).takeUnretainedValue()
     }
 
-    // Only reached by messages, which come between swiftInitialize() and swiftUninitialize().
+    // Only reached by messages, which come between workQueueInitialize() and swiftUninitialize().
     private var table: WebGPUImplTable {
-        precondition(hasRegistry, "RemoteGPU has no registry")
-        // Safety: m_swiftState is a retained WebGPUImplTable until swiftUninitialize(), which runs on this work queue.
-        return unsafe Unmanaged<WebGPUImplTable>.fromOpaque(UnsafeMutableRawPointer(bitPattern: m_swiftState)!).takeUnretainedValue()
+        guard let registry = state.registry else {
+            preconditionFailure("RemoteGPU has no registry")
+        }
+        return registry
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpu-requestadapter: nil if there's no adapter.
@@ -68,17 +167,12 @@ extension WebKit.RemoteGPU {
         options: IPCTypes.RequestAdapterOptions,
         identifier: IPCTypes.WebGPUIdentifier
     ) -> IPCTypes.RemoteGPURequestAdapterResponse? {
-        var adapterOptions = WebGPU.RequestAdapterOptions()
         #if arch(x86_64)
-        adapterOptions.powerPreference = .init(.HighPerformance)
+        let powerPreference: WebGPU.PowerPreference? = .HighPerformance
         #else
-        if let powerPreference = options.powerPreference {
-            adapterOptions.powerPreference = .init(powerPreference == .highPerformance ? .HighPerformance : .LowPower)
-        }
+        let powerPreference: WebGPU.PowerPreference? = options.powerPreference.map { $0 == .highPerformance ? .HighPerformance : .LowPower }
         #endif
-        adapterOptions.forceFallbackAdapter = options.forceFallbackAdapter
-        adapterOptions.xrCompatible = options.xrCompatible
-        return table.requestAdapter(adapterOptions, identifier.rawValue)
+        return table.requestAdapter(powerPreference, options.forceFallbackAdapter, options.xrCompatible, identifier.rawValue)
     }
 
     func createPresentationContext(

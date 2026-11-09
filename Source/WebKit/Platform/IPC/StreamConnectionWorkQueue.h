@@ -31,13 +31,17 @@
 #include <wtf/Deque.h>
 #include <wtf/FunctionDispatcher.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Threading.h>
 #include <wtf/Vector.h>
 
 namespace IPC {
 
-class WTF_CAPABILITY("is current") StreamConnectionWorkQueue final : public SerialFunctionDispatcher {
+// Sendable for Swift: dispatch() may be called on any thread.
+class WTF_CAPABILITY("is current") SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_UNCHECKED_SENDABLE StreamConnectionWorkQueue final : public SerialFunctionDispatcher {
 public:
+    using WorkItem = WTF::Function<void()>;
+
     static Ref<StreamConnectionWorkQueue> create(ASCIILiteral name)
     {
         return adoptRef(*new StreamConnectionWorkQueue(name));
@@ -54,6 +58,12 @@ public:
     // SerialFunctionDispatcher
     void dispatch(WTF::Function<void()>&&) final;
     bool isCurrent() const final;
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { SerialFunctionDispatcher::ref(); }
+    void deref() const { SerialFunctionDispatcher::deref(); }
+#endif
 
 private:
     void startProcessingThread() WTF_REQUIRES_LOCK(m_lock);

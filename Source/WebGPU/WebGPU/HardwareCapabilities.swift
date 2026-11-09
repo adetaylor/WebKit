@@ -23,7 +23,7 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.HardwareCapabilities
+import Synchronization
 import WebGPU_Private.WebGPUCpp
 
 // FIXME: these two limits should be 30 and 30, but they fail the tests
@@ -38,7 +38,7 @@ private let largeReasonableLimit = UInt32(UInt16.max)
 
 private let gigabyte: UInt64 = 1 << 30
 
-// Swift's HardwareCapabilities::BaseCapabilities.
+// The Metal capabilities a device is made with, beyond its limits and features.
 struct GPUBaseCapabilities: Sendable {
     var argumentBuffersTier: MTLArgumentBuffersTier
     var timestampCounterSet: (any MTLCounterSet)?
@@ -50,42 +50,27 @@ struct GPUBaseCapabilities: Sendable {
 }
 
 extension GPUBaseCapabilities {
-    init(_ base: borrowing WebGPU.Metal.HardwareCapabilities.BaseCapabilities) {
-        self.init(
-            argumentBuffersTier: base.argumentBuffersTier,
-            timestampCounterSet: base.timestampCounterSet,
-            statisticCounterSet: base.statisticCounterSet,
-            memoryBarrierLimit: base.memoryBarrierLimit,
-            supportsNonPrivateDepthStencilTextures: base.supportsNonPrivateDepthStencilTextures,
-            supportsMemorylessTextures: base.supportsMemorylessTextures,
-            canPresentRGB10A2PixelFormats: base.canPresentRGB10A2PixelFormats
-        )
-    }
-
-    func copy(to base: inout WebGPU.Metal.HardwareCapabilities.BaseCapabilities) {
-        base.argumentBuffersTier = argumentBuffersTier
-        base.timestampCounterSet = timestampCounterSet
-        base.statisticCounterSet = statisticCounterSet
-        base.memoryBarrierLimit = memoryBarrierLimit
-        base.supportsNonPrivateDepthStencilTextures = supportsNonPrivateDepthStencilTextures
-        base.supportsMemorylessTextures = supportsMemorylessTextures
-        base.canPresentRGB10A2PixelFormats = canPresentRGB10A2PixelFormats
-    }
+    // An invalid device's, and those a device request starts from.
+    static let none = GPUBaseCapabilities(
+        argumentBuffersTier: .tier1,
+        timestampCounterSet: nil,
+        statisticCounterSet: nil,
+        memoryBarrierLimit: 0,
+        supportsNonPrivateDepthStencilTextures: false,
+        supportsMemorylessTextures: false,
+        canPresentRGB10A2PixelFormats: false
+    )
 }
 
-// Swift's HardwareCapabilities, with the features sorted by raw value.
+// What a Metal device supports, which an adapter and the device it makes carry: an adapter's features are sorted by raw
+// value, and a device's are as requested.
 struct GPUCapabilities {
     var limits: WebGPU.Limits
     var features: [WebGPU.FeatureName]
     var baseCapabilities: GPUBaseCapabilities
 
-    func copy(to result: inout WebGPU.Metal.HardwareCapabilities) {
-        result.limits = limits
-        for feature in features {
-            result.features.append(consuming: feature)
-        }
-        baseCapabilities.copy(to: &result.baseCapabilities)
-    }
+    // An invalid device's.
+    static let none = GPUCapabilities(limits: WebGPU.Limits(), features: [], baseCapabilities: .none)
 }
 
 // A device's capabilities, fixed when the device is created. An invalid device's are all zero.
@@ -95,10 +80,10 @@ struct DeviceCapabilities: Sendable {
     let features: [WebGPU.FeatureName]
     let base: GPUBaseCapabilities
 
-    init(_ capabilities: borrowing WebGPU.Metal.HardwareCapabilities) {
+    init(_ capabilities: GPUCapabilities) {
         limits = capabilities.limits
-        features = featureArray(capabilities.features)
-        base = GPUBaseCapabilities(capabilities.baseCapabilities)
+        features = capabilities.features
+        base = capabilities.baseCapabilities
     }
 
     func hasFeature(_ feature: WebGPU.FeatureName) -> Bool {
@@ -175,16 +160,6 @@ struct EncoderLimits: Sendable {
         uniformAlignment: ValidatedLimits.defaults.minUniformBufferOffsetAlignment,
         storageAlignment: ValidatedLimits.defaults.minStorageBufferOffsetAlignment
     )
-}
-
-func featureArray(_ features: borrowing WebGPU.Metal.FeatureNames) -> [WebGPU.FeatureName] {
-    let entries: Span<WebGPU.FeatureName> = features.span()
-    var result: [WebGPU.FeatureName] = []
-    result.reserveCapacity(entries.count)
-    for index in entries.indices {
-        result.append(entries[index])
-    }
-    return result
 }
 
 private func multipleOf4<T: FixedWidthInteger>(_ input: T) -> T {
@@ -511,8 +486,50 @@ private func mergeBaseCapabilities(_ previous: GPUBaseCapabilities, _ next: GPUB
 // swift-format-ignore: NeverForceUnwrap
 let mac2Family = MTLGPUFamily(rawValue: 2002)!
 
+// Whether WebGPU may use the GPU: not in a virtual machine, unless the user defaults allow it, nor in the iOS simulator.
+private let physicalHardware: Bool = {
+    #if WTF_PLATFORM_IOS_FAMILY_SIMULATOR
+    return false
+    #else
+    guard sysctlUInt32("kern.hv_vmm_present") ?? 0 != 0 else {
+        return true
+    }
+    return (UserDefaults.standard.object(forKey: "WebKitAllowWebGPUOnVMs") as? NSNumber)?.boolValue ?? true
+    #endif
+}()
+
+// The value of a 32-bit sysctl, or nil if it can't be read.
+private func sysctlUInt32(_ name: String) -> UInt32? {
+    var value: UInt32 = 0
+    var size = MemoryLayout<UInt32>.size
+    // Safety: sysctlbyname() writes at most `size` bytes into `value`, and the name is a C string for the call.
+    guard unsafe sysctlbyname(name, &value, &size, nil, 0) == 0 else {
+        return nil
+    }
+    return value
+}
+
+private let shaderValidation = Mutex<Bool?>(nil)
+
+// Whether Metal validates shaders: a debug or capture Metal device retains its objects' references. Read from the first
+// device asked about, once per process (rdar://141660277).
+func isShaderValidationEnabled(_ device: any MTLDevice) -> Bool {
+    shaderValidation.withLock { result in
+        if let result {
+            return result
+        }
+        let deviceName = NSStringFromClass(type(of: device as AnyObject))
+        let enabled = deviceName.contains("Debug") || deviceName.contains("LegacySV") || deviceName.contains("CaptureMTLDevice")
+        if enabled {
+            logAlways("WebGPU: Using DEBUG Metal device: retaining references")
+        }
+        result = enabled
+        return enabled
+    }
+}
+
 private func rawHardwareCapabilities(_ device: any MTLDevice) -> GPUCapabilities? {
-    if !WebGPU.Metal.isPhysicalHardware() {
+    if !physicalHardware {
         return nil
     }
 
@@ -531,7 +548,7 @@ private func rawHardwareCapabilities(_ device: any MTLDevice) -> GPUCapabilities
 
     if device.supportsFamily(.apple4) {
         merge(
-            appleCapabilities(device, WebGPU.defaultLimits(), memoryBarrierLimit: WebGPU.Metal.isShaderValidationEnabled(device) ? 0 : .max)
+            appleCapabilities(device, WebGPU.defaultLimits(), memoryBarrierLimit: isShaderValidationEnabled(device) ? 0 : .max)
         )
     }
     if device.supportsFamily(.apple5) {
@@ -806,24 +823,18 @@ func requestedDeviceLimits(_ requested: WebGPU.Limits, adapter: WebGPU.Limits) -
     return limits
 }
 
-func includesUnsupportedFeatures(_ target: borrowing WebGPU.Metal.FeatureNames, _ reference: [WebGPU.FeatureName]) -> Bool {
+func includesUnsupportedFeatures(_ target: [WebGPU.FeatureName], _ reference: [WebGPU.FeatureName]) -> Bool {
     assert(isSorted(reference))
-    let entries: Span<WebGPU.FeatureName> = target.span()
-    for index in entries.indices where !reference.contains(entries[index]) {
-        return true
-    }
-    return false
+    return target.contains { !reference.contains($0) }
 }
 
-// Fills in `result` for hardwareCapabilities(id<MTLDevice>). False when WebGPU is unsupported.
-@_expose(Cxx)
-func computeHardwareCapabilities(_ device: (any MTLDevice)?, _ result: inout WebGPU.Metal.HardwareCapabilities) -> Bool {
-    guard let device, let capabilities = rawHardwareCapabilities(device),
+// The capabilities of an adapter of the device. nil when WebGPU is unsupported.
+func hardwareCapabilities(_ device: any MTLDevice) -> GPUCapabilities? {
+    guard let capabilities = rawHardwareCapabilities(device),
         requestedDeviceLimits(WebGPU.defaultLimits(), adapter: capabilities.limits) != nil
     else {
-        return false
+        return nil
     }
     assert(limitsFitMetalSlots(capabilities.limits))
-    capabilities.copy(to: &result)
-    return true
+    return capabilities
 }
