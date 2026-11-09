@@ -28,11 +28,12 @@
 #pragma once
 
 #include <wtf/Forward.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class LinkHeader {
+class SWIFT_PRIVATE_FILEID("WebCore/LinkHeader.swift") LinkHeader {
 public:
     template<typename CharacterType> LinkHeader(StringParsingBuffer<CharacterType>&);
 
