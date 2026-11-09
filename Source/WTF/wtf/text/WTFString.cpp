@@ -587,6 +587,26 @@ float charactersToFloat(std::span<const char16_t> data, size_t& parsedLength)
     return static_cast<float>(number);
 }
 
+String makeStringFromLatin1Characters(const uint8_t* characters NOESCAPE, size_t length)
+{
+    return StringImpl::create(byteCast<Latin1Character>(unsafeMakeSpan(characters, length)));
+}
+
+String makeStringFromUTF16Characters(const char16_t* characters NOESCAPE, size_t length)
+{
+    return StringImpl::create(unsafeMakeSpan(characters, length));
+}
+
+void assignStringFromLatin1Characters(String& destination, const uint8_t* characters NOESCAPE, size_t length)
+{
+    destination = makeStringFromLatin1Characters(characters, length);
+}
+
+void assignStringFromUTF16Characters(String& destination, const char16_t* characters NOESCAPE, size_t length)
+{
+    destination = makeStringFromUTF16Characters(characters, length);
+}
+
 const StaticString nullStringData { nullptr };
 const StaticString emptyStringData { &StringImpl::s_emptyAtomString };
 

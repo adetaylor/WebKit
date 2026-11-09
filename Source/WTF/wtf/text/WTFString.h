@@ -31,6 +31,10 @@
 #include <wtf/text/IntegerToStringConversion.h>
 #include <wtf/text/StringImpl.h>
 
+#if defined(__swift__) && __has_include(<ptrcheck.h>)
+#include <ptrcheck.h>
+#endif
+
 #ifdef __OBJC__
 #include <objc/objc.h>
 #include <wtf/RetainPtr.h>
@@ -608,6 +612,23 @@ inline String operator""_str(const char16_t* characters, size_t length)
 }
 
 } // inline StringLiterals
+
+// WTF_SWIFT_COUNTED_BY(count) tells Swift that a pointer parameter points to count elements, which with NOESCAPE gives
+// Swift an overload that takes a Span in place of the pointer and the count. It is empty for C++.
+#if defined(__swift__) && __has_include(<ptrcheck.h>)
+#define WTF_SWIFT_COUNTED_BY(count) __counted_by(count)
+#else
+#define WTF_SWIFT_COUNTED_BY(count)
+#endif
+
+// Makes a String of length characters: the empty string when length is 0, even for a null pointer.
+// Swift calls these with a Span, which may have no address when it is empty.
+WTF_EXPORT_PRIVATE String makeStringFromLatin1Characters(const uint8_t* characters NOESCAPE WTF_SWIFT_COUNTED_BY(length), size_t length);
+WTF_EXPORT_PRIVATE String makeStringFromUTF16Characters(const char16_t* characters NOESCAPE WTF_SWIFT_COUNTED_BY(length), size_t length);
+WTF_EXPORT_PRIVATE void assignStringFromLatin1Characters(String& destination, const uint8_t* characters NOESCAPE WTF_SWIFT_COUNTED_BY(length), size_t length);
+WTF_EXPORT_PRIVATE void assignStringFromUTF16Characters(String& destination, const char16_t* characters NOESCAPE WTF_SWIFT_COUNTED_BY(length), size_t length);
+
+#undef WTF_SWIFT_COUNTED_BY
 
 } // namespace WTF
 
