@@ -59,30 +59,6 @@ struct BufferParameters {
     bool mappedAtCreation { false };
 };
 
-// The slow index validation paths' read-backs, for Buffer.swift, once the GPU's writes are visible: whether the indices
-// are valid.
-bool verifyIndexBufferForSlowPath(id<MTLBuffer> _Nullable indexBuffer, uint32_t firstIndex, uint32_t indexCount, bool isUInt16, uint32_t primitiveOffset, uint32_t vertexCount);
-// For a reused indexed indirect draw of a render bundle: whether every index from indexBufferOffset on stays in bounds
-// as the clamp shader checks it, with the baseVertex of the arguments at indirectOffset of indirectBuffer, which is nil
-// when those are not the arguments the draw's slot was baked with.
-bool verifyBundleIndirectDrawIndexBufferForSlowPath(id<MTLBuffer> _Nullable indexBuffer, id<MTLBuffer> _Nullable indirectBuffer, uint64_t indirectOffset, uint64_t indexBufferOffset, bool isUInt16, uint32_t vertexCount, uint32_t primitiveOffset);
-// A copy of the contents, for the slow index validation path to write back once the command buffer that reads them
-// cleared completed (BufferImpl.restoreIndexBufferContents).
-NSMutableData* _Nullable copyBufferContents(id<MTLBuffer> _Nullable);
-// For Swift, which can't reach a buffer's contents: copies the bytes at that offset into destination, which must lie
-// within the contents, as a mapped range Swift has reserved does.
-void readBufferContents(id<MTLBuffer> _Nullable, uint64_t offset, std::span<uint8_t> destination NOESCAPE);
-// Copies data into the contents at that offset. Returns false, copying nothing, if the contents are empty or don't hold
-// it there.
-bool writeBufferContentsIfInBounds(id<MTLBuffer> _Nullable, uint64_t offset, std::span<const uint8_t> data NOESCAPE);
-
-#if !defined(__swift__)
-// The bytes of a buffer the CPU writes into: the staging and temporary buffers the queue copies through, and a render
-// bundle's dynamic-offset buffers, whose storage is shared or managed. RELEASE_ASSERTs that a non-empty buffer has
-// contents. Empty for nil.
-std::span<uint8_t> cpuVisibleContents(id<MTLBuffer>);
-#endif
-
 } // namespace WebGPU::Metal
 
 IGNORE_CLANG_WARNINGS_END

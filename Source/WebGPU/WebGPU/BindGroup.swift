@@ -23,6 +23,7 @@
 
 import Foundation
 import Metal
+import simd
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CxxBridging
@@ -32,6 +33,41 @@ import Metal
 @_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
 @_spiOnly import WebGPU_Private.WebGPUCpp
+
+// The constants an external texture binding writes into an argument buffer after its two planes, from `firstIndex`, as
+// the shader's float3x2, float4x3, float3x4 and uint2.
+private func writeExternalTextureConstants(
+    _ argumentEncoder: (any MTLArgumentEncoder)?,
+    _ firstIndex: UInt,
+    _ constants: WebGPU.Metal.ExternalTextureConstants
+) {
+    guard let argumentEncoder else {
+        return
+    }
+    let index = Int(firstIndex)
+    let uv = constants.uvRemapping
+    argumentEncoder.storeConstant(simd_float3x2(SIMD2(uv.0, uv.1), SIMD2(uv.2, uv.3), SIMD2(uv.4, uv.5)), at: index)
+    let csc = constants.colorSpaceConversion
+    argumentEncoder.storeConstant(
+        simd_float4x3(
+            SIMD3(csc.0, csc.1, csc.2),
+            SIMD3(csc.3, csc.4, csc.5),
+            SIMD3(csc.6, csc.7, csc.8),
+            SIMD3(csc.9, csc.10, csc.11)
+        ),
+        at: index + 1
+    )
+    let primaries = constants.primariesConversion
+    argumentEncoder.storeConstant(
+        simd_float3x4(
+            SIMD4(primaries.0, primaries.1, primaries.2, primaries.3),
+            SIMD4(primaries.4, primaries.5, primaries.6, primaries.7),
+            SIMD4(primaries.8, primaries.9, primaries.10, primaries.11)
+        ),
+        at: index + 2
+    )
+    argumentEncoder.storeConstant(SIMD2<UInt32>(constants.visibleWidth, constants.visibleHeight), at: index + 3)
+}
 
 /// A buffer bound with a dynamic offset; a group keeps them sorted by bindingIndex.
 struct DynamicBufferRecord {
@@ -381,7 +417,7 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
             encoder.setArgumentBuffer(buffer, offset: 0)
             encoder.setTexture(texture0, index: Int(truncatingIfNeeded: index))
             encoder.setTexture(texture1, index: Int(truncatingIfNeeded: index &+ 1))
-            WebGPU.Metal.writeExternalTextureConstants(encoder, index &+ 2, constants)
+            writeExternalTextureConstants(encoder, index &+ 2, constants)
         }
         return true
     }
@@ -475,7 +511,7 @@ private func makeBindGroupImpl(
     let (resources, mtlResources) = creation.buildResources()
     for stage in Stage.allCases {
         if let buffer = creation.argumentBuffers[stage] {
-            WebGPU.Metal.copyArgumentEncoderLabel(layoutImpl.argumentEncoder(stage), buffer)
+            buffer.label = layoutImpl.argumentEncoder(stage)?.label
         }
     }
 
@@ -929,10 +965,9 @@ private struct BindGroupCreation {
             encoders[stage]?.setBuffer(mtlBuffer, offset: Int(truncatingIfNeeded: entryOffset), index: Int(index))
             if let bufferSizeIndex = layoutEntry.bufferSizeArgumentBufferIndices[stage] {
                 argumentIndices[stage].remove(bufferSizeIndex)
-                WebGPU.Metal.writeBufferLengthConstant(
-                    encoders[stage],
-                    UInt(bufferSizeIndex),
-                    min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength))
+                encoders[stage]?.storeConstant(
+                    min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)),
+                    at: Int(bufferSizeIndex)
                 )
             }
         }
@@ -1229,7 +1264,7 @@ private struct BindGroupCreation {
                 constants.colorSpaceConversion = (1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
                 constants.visibleWidth = UInt32(truncatingIfNeeded: texture?.width ?? 0)
                 constants.visibleHeight = UInt32(truncatingIfNeeded: texture?.height ?? 0)
-                WebGPU.Metal.writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
+                writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
             }
             for plane in [texture, secondPlane] {
                 guard let plane else {
@@ -1337,7 +1372,7 @@ private struct BindGroupCreation {
             var constants = imported.constants
             constants.visibleWidth = externalTexture.visibleWidth()
             constants.visibleHeight = externalTexture.visibleHeight()
-            WebGPU.Metal.writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
+            writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
         }
         return true
     }

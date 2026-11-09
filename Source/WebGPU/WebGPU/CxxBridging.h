@@ -28,7 +28,6 @@
 #include "BindGroup.h"
 #include "Buffer.h"
 #include "CommandEncoder.h"
-#include "ComputePassEncoder.h"
 #include "ComputePipeline.h"
 #include "Device.h"
 #include "Instance.h"

@@ -68,7 +68,7 @@ final class CommandBufferCompletion: Sendable {
 /// The encoder's commit actions for the slow index validation path add them.
 enum PostCommitAction {
     /// Waits for the command buffer, then writes back the index data the slow path cleared.
-    case restoreIndexBufferContents(BufferImpl, NSMutableData)
+    case restoreIndexBufferContents(BufferImpl, [UInt8])
     case clearMustTakeSlowIndexValidationPath(DeviceImpl, BufferAndEncoderLinks)
 }
 
@@ -307,19 +307,17 @@ public final class CommandBufferImpl: GPUObjectReference, LinkedImpl {
             return
         }
         let completion = backingCompletion
-        let didComplete = deviceImpl.schedulerHandle().map { scheduler in
-            // Safety: on the API thread, which submits the command buffer.
-            unsafe APIThreadWork<GPUExecutionTimes>(on: scheduler) { [self] times in
-                commandBufferDidComplete(times.start, times.end)
-                deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
-            }
+        let scheduler = deviceImpl.schedulerHandle()
+        let didComplete = APIThreadWork<GPUExecutionTimes> { [self] times in
+            commandBufferDidComplete(times.start, times.end)
+            deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
         }
         commandBuffer.addCompletedHandler { completedCommandBuffer in
             // GPUStartTime/GPUEndTime bracket execution on the GPU; kernelStartTime/kernelEndTime only bracket the driver
             // scheduling it.
             let times = GPUExecutionTimes(start: completedCommandBuffer.gpuStartTime, end: completedCommandBuffer.gpuEndTime)
             completion.didComplete(gpuStartTime: times.start, gpuEndTime: times.end)
-            didComplete?.schedule(times)
+            didComplete.schedule(times, on: scheduler)
         }
     }
 

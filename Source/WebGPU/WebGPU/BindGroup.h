@@ -58,10 +58,4 @@ struct ExternalTextureConstants {
     uint32_t visibleHeight { 0 };
 };
 
-// For BindGroup.swift, which cannot address argument-buffer constant data without unsafe.
-void writeExternalTextureConstants(id<MTLArgumentEncoder>, NSUInteger firstIndex, const ExternalTextureConstants&);
-void writeBufferLengthConstant(id<MTLArgumentEncoder>, NSUInteger index, uint32_t length);
-// buffer.label = encoder.label, without bridging the label through a Swift String.
-void copyArgumentEncoderLabel(id<MTLArgumentEncoder>, id<MTLBuffer>);
-
 } // namespace WebGPU::Metal

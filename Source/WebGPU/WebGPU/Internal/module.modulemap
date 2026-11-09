@@ -42,11 +42,6 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module ComputePassEncoder {
-        header "../ComputePassEncoder.h"
-        export *
-    }
-
     explicit module ComputePipeline {
         header "../ComputePipeline.h"
         export *

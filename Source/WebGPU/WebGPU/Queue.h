@@ -46,8 +46,21 @@ IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebGPU::Metal {
 
-// Host mirror of the MSL `WebKitCopyExternalImageArgs` in Queue.swift. It is a hand-maintained ABI: Queue.mm pins the
-// size and every offset with static_asserts. Every field is a scalar or an array of scalars: MSL lays those out exactly
+// Host mirror of the MSL `WebKitStagedCopyArgs` declared in the kernel source in Queue.swift. It is a hand-maintained
+// ABI, and getting the field widths wrong produces silently wrong offsets rather than a compile error. MSL `ulong` is
+// 64-bit, so the static_asserts below pin size and every offset.
+struct StagedCopyArguments {
+    uint64_t sourceWordOffset;
+    uint64_t destinationWordOffset;
+    uint64_t wordCount;
+};
+static_assert(sizeof(StagedCopyArguments) == 24, "StagedCopyArguments must match MSL WebKitStagedCopyArgs (3 x ulong)");
+static_assert(!offsetof(StagedCopyArguments, sourceWordOffset), "sourceWordOffset must be at offset 0");
+static_assert(offsetof(StagedCopyArguments, destinationWordOffset) == 8, "destinationWordOffset must be at offset 8");
+static_assert(offsetof(StagedCopyArguments, wordCount) == 16, "wordCount must be at offset 16");
+
+// Host mirror of the MSL `WebKitCopyExternalImageArgs` in Queue.swift. It is a hand-maintained ABI: the static_asserts
+// below pin the size and every offset. Every field is a scalar or an array of scalars: MSL lays those out exactly
 // as C does, while its vector and matrix types carry alignment rules of their own.
 struct CopyExternalImageArguments {
     uint32_t sourceOriginX;
@@ -66,6 +79,19 @@ struct CopyExternalImageArguments {
     float uvRemapMatrix[6];
     float ycbcrMatrix[12];
 };
+static_assert(sizeof(CopyExternalImageArguments) == 144, "CopyExternalImageArguments must match MSL WebKitCopyExternalImageArgs (9 x uint + 27 x float)");
+static_assert(!offsetof(CopyExternalImageArguments, sourceOriginX), "sourceOriginX must be at offset 0");
+static_assert(offsetof(CopyExternalImageArguments, sourceOriginY) == 4, "sourceOriginY must be at offset 4");
+static_assert(offsetof(CopyExternalImageArguments, destinationOriginX) == 8, "destinationOriginX must be at offset 8");
+static_assert(offsetof(CopyExternalImageArguments, destinationOriginY) == 12, "destinationOriginY must be at offset 12");
+static_assert(offsetof(CopyExternalImageArguments, copyWidth) == 16, "copyWidth must be at offset 16");
+static_assert(offsetof(CopyExternalImageArguments, copyHeight) == 20, "copyHeight must be at offset 20");
+static_assert(offsetof(CopyExternalImageArguments, sourceMaxX) == 24, "sourceMaxX must be at offset 24");
+static_assert(offsetof(CopyExternalImageArguments, sourceMaxY) == 28, "sourceMaxY must be at offset 28");
+static_assert(offsetof(CopyExternalImageArguments, flags) == 32, "flags must be at offset 32");
+static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMatrix must be at offset 36");
+static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
+static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
 
 // The scalars of a WebGPU::ImageCopyExternalImage, handed to Swift in one value. Its IOSurface and pixel buffer
 // are passed alongside.
@@ -85,24 +111,7 @@ struct CopyExternalImageSource {
 // didSchedule once the command buffer is scheduled, didComplete once it completed, with whether to lose the device.
 // A fatal command buffer error, or no completion within 3 s, crashes the GPU process.
 void addCommitHandlers(id<MTLCommandBuffer>, void (^ NS_SWIFT_SENDABLE didSchedule)(void), void (^ NS_SWIFT_SENDABLE didComplete)(bool loseTheDevice));
-void setStagedCopyArguments(id<MTLComputeCommandEncoder>, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount);
-void setCopyExternalImageArguments(id<MTLRenderCommandEncoder>, const CopyExternalImageArguments&);
 
-// Byte-moving primitives for Queue.swift. Free functions with NOESCAPE spans, so that Swift gets overloads taking
-// Span<UInt8> (rdar://161274084).
-
-// The texel block of the format a texture write copies, from which replaceRegion() computes the bytes Metal reads.
-struct TexelBlockLayout {
-    uint32_t width { 1 };
-    uint32_t height { 1 };
-    uint32_t size { 0 };
-};
-
-void writeBufferContents(id<MTLBuffer>, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE, bool isManaged);
-void copyBytesToBuffer(id<MTLBuffer> _Nullable, uint64_t offset, std::span<const uint8_t> data NOESCAPE);
-void zeroBufferContents(id<MTLBuffer> _Nullable, uint64_t offset, uint64_t size);
-// RELEASE_ASSERTs that every byte Metal reads, from sourceOffset on, is inside `data`.
-void replaceRegion(id<MTLTexture> _Nullable, MTLRegion, uint32_t mipLevel, uint64_t slice, std::span<const uint8_t> data NOESCAPE, uint64_t sourceOffset, uint64_t bytesPerRow, uint64_t bytesPerImage, TexelBlockLayout);
 // A buffer over `length` bytes of the ByteOwner from `offset`, which keeps the ByteOwner alive for as long as it exists.
 // Null when the ByteOwner has fewer bytes.
 id<MTLBuffer> _Nullable newBufferAliasingOwner(id<MTLDevice> _Nullable, const WebGPU::ByteOwner&, uint64_t offset, uint64_t length);

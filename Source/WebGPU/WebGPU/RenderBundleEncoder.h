@@ -45,6 +45,4 @@ struct RenderBundleEncoderParameters {
     bool stencilReadOnly { false };
 };
 
-void copyDynamicOffsetsToBuffer(id<MTLBuffer>, std::span<const uint32_t> contents NOESCAPE);
-
 } // namespace WebGPU::Metal

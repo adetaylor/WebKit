@@ -43,22 +43,5 @@ struct RenderPassEncoderParameters {
     bool stencilReadOnly { false };
 };
 
-// Primitives for RenderPassEncoder.swift: byte uploads and MTLBuffer contents reads, as free functions with NOESCAPE
-// spans so that Swift gets safe Span overloads (rdar://161274084), and the Metal completion handlers of the clamps,
-// which capture C++ references to hop back to the API thread.
-void setVertexUInt32s(id<MTLRenderCommandEncoder> _Null_unspecified, std::span<const uint32_t> data NOESCAPE, uint32_t bufferIndex);
-void setFragmentUInt32s(id<MTLRenderCommandEncoder> _Null_unspecified, std::span<const uint32_t> data NOESCAPE, uint32_t bufferIndex);
-void setVertexUInt32Pair(id<MTLRenderCommandEncoder> _Null_unspecified, uint32_t, uint32_t, uint32_t bufferIndex);
-void setVertexUInt32Triple(id<MTLRenderCommandEncoder> _Null_unspecified, uint32_t, uint32_t, uint32_t, uint32_t bufferIndex);
-void setVertexIndexData(id<MTLRenderCommandEncoder> _Null_unspecified, const IndexData&, uint32_t bufferIndex);
-// Writes the arguments, with lostOrOOBRead clear, into the buffer's contents at that offset, which must hold them.
-void writeDrawIndexedIndirectArguments(id<MTLBuffer> _Nullable, uint64_t offset, uint32_t indexCount, uint32_t instanceCount, uint32_t indexStart, int32_t baseVertex, uint32_t baseInstance);
-bool drawIndirectArgumentsLostOrOOBRead(id<MTLBuffer> _Null_unspecified scratch, uint64_t offset);
-void logRenderPassSplit();
-// The out-of-bounds flag a completed index clamp wrote: into the indexed indirect arguments, or into an ICB's flag.
-// False, leaving the flag, if it can't be read.
-bool readIndexedIndirectArgumentsLostOrOOBRead(id<MTLBuffer> _Nullable indexedIndirectBuffer, uint64_t indexedIndirectBufferOffset, uint32_t& lostOrOOBRead);
-bool readOutOfBoundsReadFlag(id<MTLBuffer> _Nullable outOfBoundsReadFlag, uint32_t& outOfBoundsRead);
-
 } // namespace WebGPU::Metal
 

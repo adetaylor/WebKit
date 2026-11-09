@@ -86,17 +86,12 @@ set_target_properties(WebGPU PROPERTIES
 # These #import the generated Swift interop header, so they build in a
 # subtarget that can be ordered after it. Keep them out of the bundles.
 set(WebGPU_SWIFT_INTEROP_SOURCES
-    BindGroup.mm
-    Buffer.mm
-    ComputePassEncoder.mm
     Device.mm
     HardwareCapabilities.mm
     Instance.mm
     Pipeline.mm
     PresentationContextIOSurface.mm
     Queue.mm
-    RenderBundleEncoder.mm
-    RenderPassEncoder.mm
     RenderPipeline.mm
     ShaderModule.mm
     XRProjectionLayer.mm
@@ -186,6 +181,7 @@ target_sources(WebGPU PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/GPUObjectReference.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/Instance.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/LayoutConversion.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/MetalMemory.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/Pipeline.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/PipelineLayout.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/PipelineModel.swift

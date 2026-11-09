@@ -194,6 +194,14 @@ private func storageMode(_ resource: (any MTLResource)?) -> MTLStorageMode {
     resource?.storageMode ?? .shared
 }
 
+// isManaged: the caller has read the buffer's storage mode, MTLStorageModeManaged.
+private func writeBufferContents(_ buffer: (any MTLBuffer)?, _ bufferOffset: UInt64, _ data: Span<UInt8>, _ isManaged: Bool) {
+    copyBytes(data.bytes, toContentsOf: buffer, at: bufferOffset)
+    if isManaged, let buffer {
+        bufferDidModifyRange(buffer, bufferOffset, UInt64(data.count))
+    }
+}
+
 private func isManaged(_ storageMode: MTLStorageMode) -> Bool {
     #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
     storageMode == deprecatedManagedStorageMode
@@ -749,12 +757,7 @@ public final class QueueImpl: GPUObjectReference {
 
     // Runs `work` in a later work item on the API thread.
     private func scheduleWork(_ work: @escaping () -> Void) {
-        guard let schedulerHandle else {
-            return
-        }
-        // Safety: the work goes to the API thread at once. Callers are on the API thread, except CommandBufferImpl's
-        // deinit, which only hands on the references it owns.
-        unsafe APIThreadWork<Void>(on: schedulerHandle) { _ in work() }.schedule(())
+        APIThreadWork<Void> { _ in work() }.schedule((), on: schedulerHandle)
     }
 
     func setLabel(_ label: NSString?) {
@@ -939,30 +942,25 @@ public final class QueueImpl: GPUObjectReference {
     // reference to the queue over to its work item, so that the queue is released on the API thread, where the work
     // items run.
     private func addCommitHandlers(_ commandBuffer: any MTLCommandBuffer) {
+        let scheduler = schedulerHandle
         let completion = backingCompletion
-        let didSchedule = schedulerHandle.map { scheduler in
-            // Safety: on the API thread, which commits the command buffer.
-            unsafe APIThreadWork<Void>(on: scheduler) { _ in
-                self.didScheduleCommandBuffer()
-            }
+        let didSchedule = APIThreadWork<Void> { _ in
+            self.didScheduleCommandBuffer()
         }
-        let didComplete = schedulerHandle.map { scheduler in
-            // Safety: on the API thread, which commits the command buffer.
-            unsafe APIThreadWork<Bool>(on: scheduler) { loseTheDevice in
-                self.didCompleteCommandBuffer()
-                if loseTheDevice {
-                    self.deviceImpl?.loseTheDevice(.Unknown)
-                }
+        let didComplete = APIThreadWork<Bool> { loseTheDevice in
+            self.didCompleteCommandBuffer()
+            if loseTheDevice {
+                self.deviceImpl?.loseTheDevice(.Unknown)
             }
         }
         WebGPU.Metal.addCommitHandlers(
             commandBuffer,
             {
-                didSchedule?.schedule(())
+                didSchedule.schedule((), on: scheduler)
             },
             { loseTheDevice in
                 completion.didComplete()
-                didComplete?.schedule(loseTheDevice)
+                didComplete.schedule(loseTheDevice, on: scheduler)
             }
         )
     }
@@ -1393,7 +1391,7 @@ public final class QueueImpl: GPUObjectReference {
             let bufferStorageMode = storageMode(bufferImpl.buffer())
             switch writeStorage(bufferStorageMode) {
             case .cpu:
-                WebGPU.Metal.writeBufferContents(bufferImpl.buffer(), bufferOffset, data, isManaged(bufferStorageMode))
+                writeBufferContents(bufferImpl.buffer(), bufferOffset, data, isManaged(bufferStorageMode))
                 return true
             case .gpu:
                 break
@@ -1415,7 +1413,7 @@ public final class QueueImpl: GPUObjectReference {
     // `size` zeroed bytes in the temporary buffer, whose offset is stored into `offset`.
     func newZeroedTemporaryBytes(_ deviceImpl: DeviceImpl, _ size: Int, _ offset: inout UInt64) -> (any MTLBuffer)? {
         let priorOffset = reserveTemporaryBufferRange(deviceImpl, UInt64(size))
-        WebGPU.Metal.zeroBufferContents(backingTemporaryBuffer, priorOffset, UInt64(size))
+        zeroContents(of: backingTemporaryBuffer, at: priorOffset, count: UInt64(size))
         offset = priorOffset
         return backingTemporaryBuffer
     }
@@ -1439,14 +1437,13 @@ public final class QueueImpl: GPUObjectReference {
             guard let buffer = deviceImpl.safeCreateBuffer(UInt(data.count), true) else {
                 return nil
             }
-            WebGPU.Metal.copyBytesToBuffer(buffer, 0, data)
+            copyBytes(data.bytes, toContentsOf: buffer, at: 0)
             return buffer
         }
 
         let priorOffset = reserveTemporaryBufferRange(deviceImpl, UInt64(data.count))
-        // An empty span from C++ may have a null base address, which the Span overload's conversion back traps on.
         if !data.isEmpty {
-            WebGPU.Metal.copyBytesToBuffer(backingTemporaryBuffer, priorOffset, data)
+            copyBytes(data.bytes, toContentsOf: backingTemporaryBuffer, at: priorOffset)
         }
         offset = priorOffset
         return backingTemporaryBuffer
@@ -1557,7 +1554,12 @@ public final class QueueImpl: GPUObjectReference {
             stagedCopyEncoder.setComputePipelineState(pipelineState)
             stagedCopyEncoder.setBuffer(temporaryBuffer, offset: 0, index: 0)
             stagedCopyEncoder.setBuffer(buffer, offset: 0, index: 1)
-            WebGPU.Metal.setStagedCopyArguments(stagedCopyEncoder, temporaryBufferOffset / 4, bufferOffset / 4, wordCount)
+            let arguments = WebGPU.Metal.StagedCopyArguments(
+                sourceWordOffset: temporaryBufferOffset / 4,
+                destinationWordOffset: bufferOffset / 4,
+                wordCount: wordCount
+            )
+            withBytes(of: arguments) { stagedCopyEncoder.setBytes($0, index: 2) }
             let threadsPerThreadgroup = min(UInt64(256), UInt64(pipelineState.maxTotalThreadsPerThreadgroup))
             let threadgroups = min((wordCount &+ threadsPerThreadgroup &- 1) / threadsPerThreadgroup, 2048)
             stagedCopyEncoder.dispatchThreadgroups(
@@ -2090,7 +2092,7 @@ public final class QueueImpl: GPUObjectReference {
         let isCompressed = isCompressedFormat(textureFormat)
         let blockHeight = texelBlockHeight(textureFormat)
         let blockWidth = texelBlockWidth(textureFormat)
-        let texelBlock = WebGPU.Metal.TexelBlockLayout(width: blockWidth, height: blockHeight, size: blockSize)
+        let texelBlock = TexelBlockLayout(width: blockWidth, height: blockHeight, size: blockSize)
         if !isCompressed && (bytesPerRow % UInt(blockSize) != 0 || bytesPerRow > maxRowBytes) {
             var newSize = WebGPU.Extent3D()
             newSize.width = size.width
@@ -2337,10 +2339,10 @@ public final class QueueImpl: GPUObjectReference {
                     let destinationStart = Int(checkedNewYPlusNewZ)
                     let sourceStart = Int(checkedYPlusZPlusOffset)
                     if let staging {
-                        WebGPU.Metal.copyBytesToBuffer(
-                            staging.buffer,
-                            staging.offset &+ UInt64(destinationStart),
-                            data.extracting(sourceStart..<(sourceStart + Int(newBytesPerRow)))
+                        copyBytes(
+                            data.extracting(sourceStart..<(sourceStart + Int(newBytesPerRow))).bytes,
+                            toContentsOf: staging.buffer,
+                            at: staging.offset &+ UInt64(destinationStart)
                         )
                     } else {
                         for byte in 0..<Int(newBytesPerRow) {
@@ -2353,10 +2355,10 @@ public final class QueueImpl: GPUObjectReference {
                     return false
                 }
                 if let staging {
-                    WebGPU.Metal.zeroBufferContents(
-                        staging.buffer,
-                        staging.offset &+ UInt64(paddingOffset),
-                        UInt64(newBytesPerImage - copiedBytesPerImage)
+                    zeroContents(
+                        of: staging.buffer,
+                        at: staging.offset &+ UInt64(paddingOffset),
+                        count: UInt64(newBytesPerImage - copiedBytesPerImage)
                     )
                 }
             }
@@ -2403,16 +2405,16 @@ public final class QueueImpl: GPUObjectReference {
                         guard let destinationSlice = checkedSum(UInt.self, UInt64(destination.origin.z), UInt64(layer)) else {
                             return false
                         }
-                        WebGPU.Metal.replaceRegion(
-                            mtlTexture,
-                            region,
-                            destination.mipLevel,
-                            UInt64(destinationSlice),
-                            source,
-                            UInt64(sourceOffset),
-                            0,
-                            0,
-                            texelBlock
+                        replaceRegion(
+                            of: mtlTexture,
+                            region: region,
+                            mipmapLevel: destination.mipLevel,
+                            slice: UInt64(destinationSlice),
+                            from: source.bytes,
+                            sourceOffset: UInt64(sourceOffset),
+                            bytesPerRow: 0,
+                            bytesPerImage: 0,
+                            block: texelBlock
                         )
                     }
                 case WebGPU.TextureDimension._2d:
@@ -2439,16 +2441,16 @@ public final class QueueImpl: GPUObjectReference {
                         guard let destinationSlice = checkedSum(UInt.self, UInt64(destination.origin.z), UInt64(layer)) else {
                             return false
                         }
-                        WebGPU.Metal.replaceRegion(
-                            mtlTexture,
-                            region,
-                            destination.mipLevel,
-                            UInt64(destinationSlice),
-                            source,
-                            UInt64(sourceOffset),
-                            UInt64(bytesPerRow),
-                            0,
-                            texelBlock
+                        replaceRegion(
+                            of: mtlTexture,
+                            region: region,
+                            mipmapLevel: destination.mipLevel,
+                            slice: UInt64(destinationSlice),
+                            from: source.bytes,
+                            sourceOffset: UInt64(sourceOffset),
+                            bytesPerRow: UInt64(bytesPerRow),
+                            bytesPerImage: 0,
+                            block: texelBlock
                         )
                     }
                 case WebGPU.TextureDimension._3d:
@@ -2465,16 +2467,16 @@ public final class QueueImpl: GPUObjectReference {
                         skippedLayer = true
                         break
                     }
-                    WebGPU.Metal.replaceRegion(
-                        mtlTexture,
-                        region,
-                        destination.mipLevel,
-                        0,
-                        source,
-                        UInt64(sourceOffset),
-                        UInt64(bytesPerRow),
-                        UInt64(bytesPerImage),
-                        texelBlock
+                    replaceRegion(
+                        of: mtlTexture,
+                        region: region,
+                        mipmapLevel: destination.mipLevel,
+                        slice: 0,
+                        from: source.bytes,
+                        sourceOffset: UInt64(sourceOffset),
+                        bytesPerRow: UInt64(bytesPerRow),
+                        bytesPerImage: UInt64(bytesPerImage),
+                        block: texelBlock
                     )
                 default:
                     skippedLayer = true
@@ -2951,7 +2953,7 @@ public final class QueueImpl: GPUObjectReference {
         renderCommandEncoder.setViewport(viewport)
         renderCommandEncoder.setFragmentTexture(sourceTexture, index: 0)
         renderCommandEncoder.setFragmentTexture(sourceSecondPlaneTexture, index: 1)
-        WebGPU.Metal.setCopyExternalImageArguments(renderCommandEncoder, arguments)
+        withBytes(of: arguments) { renderCommandEncoder.setFragmentBytes($0, index: 0) }
         renderCommandEncoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 
         endEncoding(renderCommandEncoder, commandBuffer)

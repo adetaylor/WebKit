@@ -26,7 +26,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.ComputePassEncoder
 @_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
@@ -318,11 +317,7 @@ public final class ComputePassEncoderImpl: GPUObjectReference {
         }
 
         if dynamicOffsets != priorComputeDynamicOffsets {
-            WebGPU.Metal.setComputeDynamicOffsets(
-                computeCommandEncoder(),
-                dynamicOffsets.span,
-                UInt(limits.slots.computeDynamicOffsets.rawValue)
-            )
+            computeCommandEncoder()?.setBytes(dynamicOffsets.span.bytes, index: Int(limits.slots.computeDynamicOffsets.rawValue))
             // Element-wise, so that neither array shares the other's storage.
             priorComputeDynamicOffsets.removeAll(keepingCapacity: true)
             priorComputeDynamicOffsets.append(contentsOf: dynamicOffsets)

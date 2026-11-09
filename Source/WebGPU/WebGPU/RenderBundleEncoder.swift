@@ -2219,10 +2219,10 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         let vertexContents = dynamicOffsetsVertexContents
         let fragmentContents = dynamicOffsetsFragmentContents
         if let buffer = dynamicOffsetsVertexBuffer {
-            WebGPU.Metal.copyDynamicOffsetsToBuffer(buffer, vertexContents.span)
+            copyBytes(vertexContents.span.bytes, toContentsOf: buffer, at: 0)
         }
         if let buffer = dynamicOffsetsFragmentBuffer {
-            WebGPU.Metal.copyDynamicOffsetsToBuffer(buffer, fragmentContents.span)
+            copyBytes(fragmentContents.span.bytes, toContentsOf: buffer, at: 0)
         }
         dynamicOffsetsFragmentBuffer = nil
         dynamicOffsetsVertexBuffer = nil

@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */ = {isa = PBXBuildFile; fileRef = 079861932EF13A1100659042 /* CxxBridgingPublic.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07D2916D2EC9C4D200A32120 /* CxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = 07D2916C2EC9C4D200A32120 /* CxxBridging.h */; };
-		07D2916E2EC9C7A400A32120 /* ComputePassEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAAA273A426D0095F8D5 /* ComputePassEncoder.h */; };
 		07D291712EC9CEC800A32120 /* BindableResource.h in Headers */ = {isa = PBXBuildFile; fileRef = 0D4D2E80294A89CF0000A1AB /* BindableResource.h */; };
 		07D291722EC9CECC00A32120 /* BindGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAD5273A4D700095F8D5 /* BindGroup.h */; };
 		07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */; };
@@ -39,7 +38,6 @@
 		1C5ACAB6273A426D0095F8D5 /* RenderPipeline.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACA98273A426D0095F8D5 /* RenderPipeline.mm */; };
 		219E5D5E55A54387BF439AB3 /* RenderPipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D8F55A2E234B53821682AE /* RenderPipeline.swift */; };
 		F4660E6CF3264519B8BC21E4 /* RenderPipelineTables.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */; };
-		1C5ACABB273A426D0095F8D5 /* Buffer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACA9D273A426D0095F8D5 /* Buffer.mm */; };
 		EA7AF98841244F718F395E0C /* QuerySet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C859B61D2EAF4362828276FE /* QuerySet.swift */; };
 		47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C53A4E591654B1482CECFBD /* ComputePipeline.swift */; };
 		1C5ACAC1273A426D0095F8D5 /* Device.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA3273A426D0095F8D5 /* Device.mm */; };
@@ -47,13 +45,10 @@
 		92419AA717304E83930CE6D4 /* DeviceHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */; };
 		40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */; };
 		F7F16EBAB7694542B1E6CAAD /* EncoderModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107AEF60B221432FA7535326 /* EncoderModel.swift */; };
-		1C5ACAC2273A426D0095F8D5 /* RenderPassEncoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA4273A426D0095F8D5 /* RenderPassEncoder.mm */; };
 		5BED2C82A58B4F9E81044222 /* RenderPassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */; };
-		1C5ACAC6273A426D0095F8D5 /* ComputePassEncoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAA8273A426D0095F8D5 /* ComputePassEncoder.mm */; };
 		00330FD34B5348898ECBADDE /* ComputePassEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */; };
 		BE22746A4AA74071952AD50A /* Adapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 208E06EA3939456FB419C36D /* Adapter.swift */; };
 		1C5ACACB273A426E0095F8D5 /* Queue.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAAD273A426D0095F8D5 /* Queue.mm */; };
-		1C5ACACC273A426E0095F8D5 /* RenderBundleEncoder.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAAE273A426D0095F8D5 /* RenderBundleEncoder.mm */; };
 		20910A885B0E4806BC4E2570 /* RenderBundleEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */; };
 		32047F57F90645ECA7E2459C /* RenderBundleEncoderCreation.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */; };
 		1C5ACACE273A426E0095F8D5 /* ShaderModule.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACAB0273A426D0095F8D5 /* ShaderModule.mm */; };
@@ -61,7 +56,6 @@
 		EDE7217A927044E3997480EA /* LayoutConversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65A7E6A31B645F793B3A208 /* LayoutConversion.swift */; };
 		0155970EB4614CB3B0CFA2CC /* Texture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818DB62E8BEC4DFFA467F3A3 /* Texture.swift */; };
 		EABB3115B4354952800ED7DF /* TextureFormats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DBD6BDC79CD4D12A1EDDCF5 /* TextureFormats.swift */; };
-		1C5ACADF273A55AF0095F8D5 /* BindGroup.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1C5ACADE273A55AF0095F8D5 /* BindGroup.mm */; };
 		21AF14783C1346B889D27A0A /* BindGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6663116020354D3689D7368C /* BindGroup.swift */; };
 		3D6A9BCEF4294F61A68F55FA /* BindGroupLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F00DBD9E4E4CB2827EABF1 /* BindGroupLayout.swift */; };
 		4BDCCA891C204C869B4A7D8A /* CommandBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B95F17749384D1DAAD31DAB /* CommandBuffer.swift */; };
@@ -190,6 +184,7 @@
 		E5EECBCF45CF1B5EBA9DD104 /* GlobalSorting.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59CD1C5E06EA18496557BEE /* GlobalSorting.swift */; };
 		E5F83D4A223E69263F92605F /* Containers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5280A85290F037766692ECD /* Containers.swift */; };
 		E5FBED770F3D800C096688FC /* GlobalVariableRewriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C7B78E2C16D487F1355426 /* GlobalVariableRewriter.swift */; };
+		9A1C558CFD9340EBBF5CCD90 /* MetalMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57616FB8DA6D451EAE2A5D71 /* MetalMemory.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -290,7 +285,6 @@
 		1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderPassEncoder.h; sourceTree = "<group>"; };
 		1C5ACA9B273A426D0095F8D5 /* Device.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Device.h; sourceTree = "<group>"; };
 		1C5ACA9C273A426D0095F8D5 /* Queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Queue.h; sourceTree = "<group>"; };
-		1C5ACA9D273A426D0095F8D5 /* Buffer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Buffer.mm; sourceTree = "<group>"; };
 		1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommandEncoder.h; sourceTree = "<group>"; };
 		C859B61D2EAF4362828276FE /* QuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuerySet.swift; sourceTree = "<group>"; };
 		1C5ACAA0273A426D0095F8D5 /* Instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Instance.h; sourceTree = "<group>"; };
@@ -300,17 +294,13 @@
 		B9F70000B3AB4681A0B3F1A1 /* DeviceHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceHelpers.swift; sourceTree = "<group>"; };
 		37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToggles.swift; sourceTree = "<group>"; };
 		107AEF60B221432FA7535326 /* EncoderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderModel.swift; sourceTree = "<group>"; };
-		1C5ACAA4273A426D0095F8D5 /* RenderPassEncoder.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RenderPassEncoder.mm; sourceTree = "<group>"; };
 		C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPassEncoder.swift; sourceTree = "<group>"; };
 		1C5ACAA5273A426D0095F8D5 /* Buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Buffer.h; sourceTree = "<group>"; };
 		1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderBundleEncoder.h; sourceTree = "<group>"; };
 		1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePipeline.h; sourceTree = "<group>"; };
-		1C5ACAA8273A426D0095F8D5 /* ComputePassEncoder.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ComputePassEncoder.mm; sourceTree = "<group>"; };
 		04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePassEncoder.swift; sourceTree = "<group>"; };
 		208E06EA3939456FB419C36D /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
-		1C5ACAAA273A426D0095F8D5 /* ComputePassEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePassEncoder.h; sourceTree = "<group>"; };
 		1C5ACAAD273A426D0095F8D5 /* Queue.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Queue.mm; sourceTree = "<group>"; };
-		1C5ACAAE273A426D0095F8D5 /* RenderBundleEncoder.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RenderBundleEncoder.mm; sourceTree = "<group>"; };
 		F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoder.swift; sourceTree = "<group>"; };
 		DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoderCreation.swift; sourceTree = "<group>"; };
 		1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderPipeline.h; sourceTree = "<group>"; };
@@ -320,7 +310,6 @@
 		818DB62E8BEC4DFFA467F3A3 /* Texture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Texture.swift; sourceTree = "<group>"; };
 		3DBD6BDC79CD4D12A1EDDCF5 /* TextureFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureFormats.swift; sourceTree = "<group>"; };
 		1C5ACAD5273A4D700095F8D5 /* BindGroup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BindGroup.h; sourceTree = "<group>"; };
-		1C5ACADE273A55AF0095F8D5 /* BindGroup.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = BindGroup.mm; sourceTree = "<group>"; };
 		6663116020354D3689D7368C /* BindGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindGroup.swift; sourceTree = "<group>"; };
 		E8F00DBD9E4E4CB2827EABF1 /* BindGroupLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindGroupLayout.swift; sourceTree = "<group>"; };
 		7B95F17749384D1DAAD31DAB /* CommandBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBuffer.swift; sourceTree = "<group>"; };
@@ -474,6 +463,7 @@
 		E5377693A9440F15945504CC /* WGSLBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WGSLBridge.swift; sourceTree = "<group>"; };
 		E5DC6FD3527B4AD4801F5857 /* WGSLAPI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WGSLAPI.h; sourceTree = "<group>"; };
 		E5B3A25F1B0B7C0D5FE90E55 /* WebGPUSwift.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebGPUSwift.xcconfig; sourceTree = "<group>"; };
+		57616FB8DA6D451EAE2A5D71 /* MetalMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetalMemory.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -550,17 +540,13 @@
 				208E06EA3939456FB419C36D /* Adapter.swift */,
 				0D4D2E80294A89CF0000A1AB /* BindableResource.h */,
 				1C5ACAD5273A4D700095F8D5 /* BindGroup.h */,
-				1C5ACADE273A55AF0095F8D5 /* BindGroup.mm */,
 				6663116020354D3689D7368C /* BindGroup.swift */,
 				E8F00DBD9E4E4CB2827EABF1 /* BindGroupLayout.swift */,
 				1C5ACAA5273A426D0095F8D5 /* Buffer.h */,
-				1C5ACA9D273A426D0095F8D5 /* Buffer.mm */,
 				947871492C98CEC6003DB695 /* Buffer.swift */,
 				7B95F17749384D1DAAD31DAB /* CommandBuffer.swift */,
 				1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */,
 				94200C502CADBD6B00484401 /* CommandEncoder.swift */,
-				1C5ACAAA273A426D0095F8D5 /* ComputePassEncoder.h */,
-				1C5ACAA8273A426D0095F8D5 /* ComputePassEncoder.mm */,
 				04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */,
 				1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */,
 				9C53A4E591654B1482CECFBD /* ComputePipeline.swift */,
@@ -584,6 +570,7 @@
 				1C5ACA92273A41C20095F8D5 /* Instance.mm */,
 				AF6A5AB6EBA149BB9E66C933 /* Instance.swift */,
 				F65A7E6A31B645F793B3A208 /* LayoutConversion.swift */,
+				57616FB8DA6D451EAE2A5D71 /* MetalMemory.swift */,
 				0D509DCC29CAB6EC00546D84 /* MetalSPI.h */,
 				973F784529C8A78200166C66 /* Pipeline.h */,
 				973F784629C8A78200166C66 /* Pipeline.mm */,
@@ -599,11 +586,9 @@
 				941C1EE42CA328EE004D4220 /* Queue.swift */,
 				CC59D47879744629A775E6C1 /* RenderBundle.swift */,
 				1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */,
-				1C5ACAAE273A426D0095F8D5 /* RenderBundleEncoder.mm */,
 				F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */,
 				DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */,
 				1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */,
-				1C5ACAA4273A426D0095F8D5 /* RenderPassEncoder.mm */,
 				C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */,
 				1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */,
 				1C5ACA98273A426D0095F8D5 /* RenderPipeline.mm */,
@@ -859,7 +844,6 @@
 				07D291722EC9CECC00A32120 /* BindGroup.h in Headers */,
 				94E02AFC2CF03B580052068F /* Buffer.h in Headers */,
 				94200C4F2CADBCAD00484401 /* CommandEncoder.h in Headers */,
-				07D2916E2EC9C7A400A32120 /* ComputePassEncoder.h in Headers */,
 				07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */,
 				07D2916D2EC9C4D200A32120 /* CxxBridging.h in Headers */,
 				079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */,
@@ -1125,14 +1109,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				BE22746A4AA74071952AD50A /* Adapter.swift in Sources */,
-				1C5ACADF273A55AF0095F8D5 /* BindGroup.mm in Sources */,
 				21AF14783C1346B889D27A0A /* BindGroup.swift in Sources */,
 				3D6A9BCEF4294F61A68F55FA /* BindGroupLayout.swift in Sources */,
-				1C5ACABB273A426D0095F8D5 /* Buffer.mm in Sources */,
 				9478714A2C98CECB003DB695 /* Buffer.swift in Sources */,
 				4BDCCA891C204C869B4A7D8A /* CommandBuffer.swift in Sources */,
 				94200C512CADBD7200484401 /* CommandEncoder.swift in Sources */,
-				1C5ACAC6273A426D0095F8D5 /* ComputePassEncoder.mm in Sources */,
 				00330FD34B5348898ECBADDE /* ComputePassEncoder.swift in Sources */,
 				47F3F9D877EA4BA2851B037D /* ComputePipeline.swift in Sources */,
 				40D3E0C4A85C46CD84BAEDEF /* DebugToggles.swift in Sources */,
@@ -1148,6 +1129,7 @@
 				1C5ACA94273A41C20095F8D5 /* Instance.mm in Sources */,
 				DDE708C22B23400C8BD6C972 /* Instance.swift in Sources */,
 				EDE7217A927044E3997480EA /* LayoutConversion.swift in Sources */,
+				9A1C558CFD9340EBBF5CCD90 /* MetalMemory.swift in Sources */,
 				973F784829C8A78200166C66 /* Pipeline.mm in Sources */,
 				75830AE5E91643459C6FB31A /* Pipeline.swift in Sources */,
 				70583F728A5D448C9469F484 /* PipelineLayout.swift in Sources */,
@@ -1159,10 +1141,8 @@
 				941C1EE52CA328F7004D4220 /* Queue.swift in Sources */,
 				DD5697FE2DC1316A00050321 /* rdar150228472.swift in Sources */,
 				C9E70799359449259BC53950 /* RenderBundle.swift in Sources */,
-				1C5ACACC273A426E0095F8D5 /* RenderBundleEncoder.mm in Sources */,
 				20910A885B0E4806BC4E2570 /* RenderBundleEncoder.swift in Sources */,
 				32047F57F90645ECA7E2459C /* RenderBundleEncoderCreation.swift in Sources */,
-				1C5ACAC2273A426D0095F8D5 /* RenderPassEncoder.mm in Sources */,
 				5BED2C82A58B4F9E81044222 /* RenderPassEncoder.swift in Sources */,
 				1C5ACAB6273A426D0095F8D5 /* RenderPipeline.mm in Sources */,
 				219E5D5E55A54387BF439AB3 /* RenderPipeline.swift in Sources */,

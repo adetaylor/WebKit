@@ -41,6 +41,59 @@ public import WebGPU_Private.WebGPUCpp
 private let drawIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments>.size
 private let drawIndexedIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments>.size
 
+// Writes the arguments, with lostOrOOBRead clear, into the buffer's contents at that offset, which must hold them.
+private func writeDrawIndexedIndirectArguments(
+    _ buffer: (any MTLBuffer)?,
+    _ offset: UInt64,
+    _ indexCount: UInt32,
+    _ instanceCount: UInt32,
+    _ indexStart: UInt32,
+    _ baseVertex: Int32,
+    _ baseInstance: UInt32
+) {
+    var arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments()
+    arguments.args = MTLDrawIndexedPrimitivesIndirectArguments(
+        indexCount: indexCount,
+        instanceCount: instanceCount,
+        indexStart: indexStart,
+        baseVertex: baseVertex,
+        baseInstance: baseInstance
+    )
+    arguments.lostOrOOBRead = 0
+    withBytes(of: arguments) { copyBytes($0, toContentsOf: buffer, at: offset) }
+}
+
+// The lostOrOOBRead flag of the arguments of type `Arguments` at `offset`, which a completed clamp wrote. nil if they
+// can't be read.
+private func lostOrOOBRead<Arguments>(_ buffer: (any MTLBuffer)?, _ offset: UInt64, _: Arguments.Type, flagOffset: Int) -> UInt32? {
+    let (end, overflowed) = offset.addingReportingOverflow(UInt64(MemoryLayout<Arguments>.size))
+    guard let buffer, !overflowed else {
+        return nil
+    }
+    return buffer.withCPUVisibleContents { contents -> UInt32? in
+        guard end <= UInt64(contents.byteCount) else {
+            return nil
+        }
+        return contents.bytes.load(fromByteOffset: Int(offset) + flagOffset, as: UInt32.self)
+    } ?? nil
+}
+
+private func drawIndirectArgumentsLostOrOOBRead(_ scratch: any MTLBuffer, _ offset: UInt64) -> Bool {
+    typealias Arguments = WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments
+    let flag = lostOrOOBRead(scratch, offset, Arguments.self, flagOffset: MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead)!)
+    return (flag ?? 0) != 0
+}
+
+private func indexedIndirectArgumentsLostOrOOBRead(_ indexedIndirectBuffer: (any MTLBuffer)?, _ offset: UInt64) -> UInt32? {
+    typealias Arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments
+    return lostOrOOBRead(indexedIndirectBuffer, offset, Arguments.self, flagOffset: MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead)!)
+}
+
+// The out-of-bounds flag a completed index clamp wrote into an ICB's flag. nil if it can't be read.
+private func outOfBoundsReadFlagValue(_ outOfBoundsReadFlag: (any MTLBuffer)?) -> UInt32? {
+    lostOrOOBRead(outOfBoundsReadFlag, 0, UInt32.self, flagOffset: 0)
+}
+
 // A range of the device's temporary buffer for a clamp's arguments, zeroed because the clamp shaders store lostOrOOBRead
 // only on failure. Its offset is stored into `offset`.
 private func newZeroedScratch(_ deviceImpl: DeviceImpl, _ size: Int, _ offset: inout UInt64) -> (any MTLBuffer)? {
@@ -432,7 +485,7 @@ private final class IndirectDeviceLostChecks {
         defer {
             entries = []
         }
-        for entry in entries where WebGPU.Metal.drawIndirectArgumentsLostOrOOBRead(entry.scratch, entry.offset) {
+        for entry in entries where drawIndirectArgumentsLostOrOOBRead(entry.scratch, entry.offset) {
             return true
         }
         return false
@@ -1117,7 +1170,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         _ second: UInt32,
         _ slot: HelperVertexSlot
     ) {
-        WebGPU.Metal.setVertexUInt32Pair(commandEncoder, first, second, slot.rawValue)
+        let values: InlineArray<2, UInt32> = [first, second]
+        commandEncoder?.setVertexBytes(RawSpan(bytesOf: values), index: Int(slot.rawValue))
         existingVertexBuffers[slot.slot] = ExistingBufferKey()
     }
 
@@ -1128,7 +1182,8 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         _ third: UInt32,
         _ slot: HelperVertexSlot
     ) {
-        WebGPU.Metal.setVertexUInt32Triple(commandEncoder, first, second, third, slot.rawValue)
+        let values: InlineArray<3, UInt32> = [first, second, third]
+        commandEncoder?.setVertexBytes(RawSpan(bytesOf: values), index: Int(slot.rawValue))
         existingVertexBuffers[slot.slot] = ExistingBufferKey()
     }
 
@@ -1137,7 +1192,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         _ indexData: WebGPU.Metal.IndexData,
         _ slot: HelperVertexSlot
     ) {
-        WebGPU.Metal.setVertexIndexData(commandEncoder, indexData, slot.rawValue)
+        withBytes(of: indexData) { commandEncoder?.setVertexBytes($0, index: Int(slot.rawValue)) }
         existingVertexBuffers[slot.slot] = ExistingBufferKey()
     }
 
@@ -1584,7 +1639,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         if !vertexDynamicOffsets.isEmpty && priorVertexDynamicOffsets != vertexDynamicOffsets {
             let offsets = vertexDynamicOffsets
             let slot = limits.slots.vertexDynamicOffsets
-            WebGPU.Metal.setVertexUInt32s(commandEncoder, offsets.span, slot.rawValue)
+            commandEncoder?.setVertexBytes(offsets.span.bytes, index: Int(slot.rawValue))
             existingVertexBuffers.forget(slot)
             Self.assign(&priorVertexDynamicOffsets, offsets)
         }
@@ -1593,7 +1648,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         if priorFragmentDynamicOffsets != fragmentDynamicOffsets {
             let offsets = fragmentDynamicOffsets
             let slot = limits.slots.fragmentDynamicOffsets
-            WebGPU.Metal.setFragmentUInt32s(commandEncoder, offsets.span, slot.rawValue)
+            commandEncoder?.setFragmentBytes(offsets.span.bytes, index: Int(slot.rawValue))
             existingFragmentBuffers.forget(slot)
             Self.assign(&priorFragmentDynamicOffsets, offsets)
         }
@@ -1844,7 +1899,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         let renderCommandEncoder = self.renderCommandEncoder()
         var indexedIndirectBufferOffset: UInt64 = 0
         let indexedIndirectBuffer = newZeroedScratch(deviceImpl, drawIndexedIndirectScratchSize, &indexedIndirectBufferOffset)
-        WebGPU.Metal.writeDrawIndexedIndirectArguments(
+        writeDrawIndexedIndirectArguments(
             indexedIndirectBuffer,
             indexedIndirectBufferOffset,
             failedCondition ? 0 : indexCount,
@@ -1871,8 +1926,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
         let validationGeneration = indexBuffer.indexContentsGeneration()
         parentImpl.onCommandBufferCompletion { completed in
-            var lostOrOOBRead: UInt32 = 0
-            guard completed, WebGPU.Metal.readIndexedIndirectArgumentsLostOrOOBRead(indexedIndirectBuffer, indexedIndirectBufferOffset, &lostOrOOBRead)
+            guard completed, let lostOrOOBRead = indexedIndirectArgumentsLostOrOOBRead(indexedIndirectBuffer, indexedIndirectBufferOffset)
             else {
                 return
             }
@@ -2191,8 +2245,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
                     parentImpl.onCommandBufferCompletion { completed in
                         // Without the flag (its allocation failed), whether the clamp saw an out-of-bounds read is unknown:
                         // the draw is not recorded as validated.
-                        var outOfBoundsRead: UInt32 = 0
-                        guard completed, WebGPU.Metal.readOutOfBoundsReadFlag(outOfBoundsReadFlag, &outOfBoundsRead) else {
+                        guard completed, let outOfBoundsRead = outOfBoundsReadFlagValue(outOfBoundsReadFlag) else {
                             return
                         }
                         indexBuffer.recordReadOOB(icbIdentifier, outOfBoundsRead != 0)
@@ -3515,7 +3568,9 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         }
 
         memoryBarrierCount = 0
-        WebGPU.Metal.logRenderPassSplit()
+        #if ASSERT_ENABLED && arch(arm64)
+        logAlways("WebGPU: Splitting render pass on ARM64 - severe performance penalty")
+        #endif
         priorVertexDynamicOffsets.removeAll(keepingCapacity: true)
         priorFragmentDynamicOffsets.removeAll(keepingCapacity: true)
 

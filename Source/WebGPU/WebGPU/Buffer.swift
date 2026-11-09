@@ -616,7 +616,7 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
     func takeSlowIndexValidationPath(_ commandBuffer: CommandBufferImpl, _ key: DrawIndexKey, vertexCount: UInt32) {
         let isUInt16 = key.indexTypeRawValue == MTLIndexType.uint16.rawValue
         deviceImpl.defaultQueueImpl.makeGPUWritesVisible(backingBuffer)
-        let verified = WebGPU.Metal.verifyIndexBufferForSlowPath(
+        let verified = verifyIndexBufferForSlowPath(
             backingBuffer,
             key.firstIndex,
             key.indexCount,
@@ -645,7 +645,7 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
             ? indirectBuffer.buffer() : nil
         let primitiveOffset: UInt32 = draw.primitiveType == .lineStrip || draw.primitiveType == .triangleStrip ? 1 : 0
         deviceImpl.defaultQueueImpl.makeGPUWritesVisible(backingBuffer, indirectArguments)
-        let verified = WebGPU.Metal.verifyBundleIndirectDrawIndexBufferForSlowPath(
+        let verified = verifyBundleIndirectDrawIndexBufferForSlowPath(
             backingBuffer,
             indirectArguments,
             draw.indirectOffset,
@@ -667,7 +667,7 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
             return
         }
         clearedForCommandBuffer = commandBufferIdentity
-        let priorContents = WebGPU.Metal.copyBufferContents(backingBuffer)
+        let priorContents = copyBufferContents(backingBuffer)
         let queueImpl = deviceImpl.defaultQueueImpl
         queueImpl.clearBuffer(backingBuffer, 0, UInt.max)
         queueImpl.finalizeBlitCommandEncoder()
@@ -676,15 +676,12 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
             bufferDidModifyRange(backingBuffer, 0, UInt64(backingBuffer.length))
         }
         #endif
-        if let priorContents {
-            commandBuffer.addPostCommitAction(.restoreIndexBufferContents(self, priorContents))
-        }
+        commandBuffer.addPostCommitAction(.restoreIndexBufferContents(self, priorContents))
     }
 
     /// Writes back the contents clearIndexBuffer cleared, once the command buffer completed.
-    func restoreIndexBufferContents(_ priorContents: NSMutableData) {
-        let bytes = [UInt8](priorContents as Data)
-        deviceImpl.defaultQueueImpl.writeBuffer(deviceImpl, self, 0, bytes: bytes.span)
+    func restoreIndexBufferContents(_ priorContents: [UInt8]) {
+        deviceImpl.defaultQueueImpl.writeBuffer(deviceImpl, self, 0, bytes: priorContents.span)
     }
 
     /// The restore of the contents clearIndexBuffer cleared is next, once the command buffer completed.
@@ -863,21 +860,135 @@ private func bufferStorageMode(_ deviceHasUnifiedMemory: Bool, _ usage: UInt16, 
     return .private
 }
 
+// Each index of `T` in the whole Ts of the contents from `byteOffset` on; none past the end.
+private func wholeElementCount<T: FixedWidthInteger>(_ contents: RawSpan, _ byteOffset: Int, _: T.Type) -> Int {
+    byteOffset >= contents.byteCount ? 0 : (contents.byteCount - byteOffset) / MemoryLayout<T>.size
+}
+
+private func verifyIndexBufferData<T: FixedWidthInteger & UnsignedInteger & ConvertibleFromBytes>(
+    _ contents: RawSpan,
+    _: T.Type,
+    _ firstIndex: UInt32,
+    _ indexCount: UInt32,
+    _ vertexCount: UInt32,
+    _ primitiveRestart: UInt32
+) -> Bool {
+    let endIndex = Int(firstIndex) + Int(indexCount)
+    if endIndex > wholeElementCount(contents, 0, T.self) {
+        return false
+    }
+    for index in Int(firstIndex)..<endIndex {
+        let indexValue = contents.load(fromByteOffset: index * MemoryLayout<T>.size, as: T.self)
+        let vertexIndex = T(truncatingIfNeeded: primitiveRestart &+ UInt32(truncatingIfNeeded: indexValue))
+        if UInt32(truncatingIfNeeded: vertexIndex) >= vertexCount &+ primitiveRestart {
+            return false
+        }
+    }
+    return true
+}
+
+// The slow index validation path's read-back, once the GPU's writes are visible: whether the indices are valid.
+private func verifyIndexBufferForSlowPath(
+    _ indexBuffer: (any MTLBuffer)?,
+    _ firstIndex: UInt32,
+    _ indexCount: UInt32,
+    _ isUInt16: Bool,
+    _ primitiveOffset: UInt32,
+    _ vertexCount: UInt32
+) -> Bool {
+    logAlways("WARNING: Severe performance penalty due to encoding drawIndexed calls out of order with submission")
+    return withContents(of: indexBuffer) { contents in
+        if isUInt16 {
+            return verifyIndexBufferData(contents.bytes, UInt16.self, firstIndex, indexCount, vertexCount, primitiveOffset)
+        }
+        return verifyIndexBufferData(contents.bytes, UInt32.self, firstIndex, indexCount, vertexCount, primitiveOffset)
+    }
+}
+
+// Mirrors what vsUshortIndexClamp()/vsUintIndexClamp() enforce on the GPU, over every index the clamp
+// dispatch could have read: the dispatch's index count is itself clamped to the index buffer's length, and
+// each fetched index is offset by primitiveRestart and saturating-added to baseVertex before the bounds
+// comparison. Scanning the whole buffer rather than [indexStart, indexStart + indexCount) keeps this a
+// superset of what the shader reads, since the baked slot holds an already-clamped index count while the
+// indirect arguments still hold the values the page asked for.
+private func verifyClampedIndirectIndexBufferData<T: FixedWidthInteger & UnsignedInteger & ConvertibleFromBytes>(
+    _ contents: RawSpan,
+    _: T.Type,
+    _ indexBufferOffsetInBytes: UInt64,
+    _ vertexCount: UInt32,
+    _ primitiveRestart: UInt32,
+    _ baseVertex: Int32
+) -> Bool {
+    let byteOffset = Int(clamping: indexBufferOffsetInBytes)
+    let count = wholeElementCount(contents, byteOffset, T.self)
+    if count == 0 {
+        return false
+    }
+    let vertexCountBound = UInt64(vertexCount) + UInt64(primitiveRestart)
+    for index in 0..<count {
+        let indexValue = contents.load(fromByteOffset: byteOffset + index * MemoryLayout<T>.size, as: T.self)
+        let vertexIndex = primitiveRestart &+ UInt32(truncatingIfNeeded: indexValue)
+        let shiftedVertexIndex = min(UInt64(vertexIndex) + UInt64(UInt32(bitPattern: baseVertex)), UInt64(UInt32.max))
+        if shiftedVertexIndex >= vertexCountBound {
+            return false
+        }
+    }
+    return true
+}
+
+// For a reused indexed indirect draw of a render bundle: whether every index from indexBufferOffset on stays in bounds
+// as the clamp shader checks it, with the baseVertex of the arguments at indirectOffset of indirectBuffer, which is nil
+// when those are not the arguments the draw's slot was baked with.
+private func verifyBundleIndirectDrawIndexBufferForSlowPath(
+    _ indexBuffer: (any MTLBuffer)?,
+    _ indirectBuffer: (any MTLBuffer)?,
+    _ indirectOffset: UInt64,
+    _ indexBufferOffset: UInt64,
+    _ isUInt16: Bool,
+    _ vertexCount: UInt32,
+    _ primitiveOffset: UInt32
+) -> Bool {
+    logAlways(
+        "WARNING: Severe performance penalty due to writing an index buffer used by a render bundle's indirect draw out of order with submission"
+    )
+    guard let indirectBuffer else {
+        return false
+    }
+    let argumentsSize = UInt64(MemoryLayout<MTLDrawIndexedPrimitivesIndirectArguments>.size)
+    let (argumentsEnd, overflowed) = indirectOffset.addingReportingOverflow(argumentsSize)
+    if overflowed || UInt64(indirectBuffer.length) < argumentsEnd {
+        return false
+    }
+    let baseVertexOffset = MemoryLayout<MTLDrawIndexedPrimitivesIndirectArguments>.offset(of: \.baseVertex)!
+    let baseVertex = indirectBuffer.withContents { arguments in
+        arguments.bytes.load(fromByteOffset: Int(indirectOffset) + baseVertexOffset, as: Int32.self)
+    }
+    return withContents(of: indexBuffer) { contents in
+        if isUInt16 {
+            return verifyClampedIndirectIndexBufferData(contents.bytes, UInt16.self, indexBufferOffset, vertexCount, primitiveOffset, baseVertex)
+        }
+        return verifyClampedIndirectIndexBufferData(contents.bytes, UInt32.self, indexBufferOffset, vertexCount, primitiveOffset, baseVertex)
+    }
+}
+
+// A copy of the contents, for the slow index validation path to write back once the command buffer that reads them
+// cleared completed (BufferImpl.restoreIndexBufferContents).
+private func copyBufferContents(_ buffer: (any MTLBuffer)?) -> [UInt8] {
+    withContents(of: buffer) { contents in
+        var copy = [UInt8](repeating: 0, count: contents.byteCount)
+        var destination = copy.mutableSpan
+        var destinationBytes = destination.mutableBytes
+        destinationBytes.copyMemory(from: contents.bytes)
+        return copy
+    }
+}
+
 // CPU writes to a managed buffer (Intel Macs only) must be flushed before the GPU reads them.
 private func bufferNeedsDidModifyRangeAfterUnmap(_ buffer: any MTLBuffer) -> Bool {
     #if arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
     buffer.storageMode == deprecatedManagedStorageMode
     #else
     false
-    #endif
-}
-
-#if hasAttribute(diagnose)
-@diagnose(DeprecatedDeclaration, as: ignored, reason: "Managed buffers on Macs with discrete memory still need it")
-#endif
-private func bufferDidModifyRange(_ buffer: any MTLBuffer, _ offset: UInt64, _ length: UInt64) {
-    #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
-    buffer.didModifyRange(Int(truncatingIfNeeded: offset)..<Int(truncatingIfNeeded: offset &+ length))
     #endif
 }
 
@@ -910,16 +1021,30 @@ extension BufferImpl {
         guard let byteCount = Int(exactly: rangeSize), byteCount > 0 else {
             return []
         }
+        guard let start = Int(exactly: offset) else {
+            preconditionFailure("The mapped range is outside the contents")
+        }
         var bytes = [UInt8](repeating: 0, count: byteCount)
-        var destination = bytes.mutableSpan
-        WebGPU.Metal.readBufferContents(buffer(), offset, &destination)
+        withContents(of: buffer()) { contents in
+            var destination = bytes.mutableSpan
+            var destinationBytes = destination.mutableBytes
+            destinationBytes.copyMemory(from: contents.bytes.extracting(start..<(start + byteCount)))
+        }
         return bytes
     }
 
     // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
     // writing nothing, if the contents don't hold it there.
     public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
-        WebGPU.Metal.writeBufferContentsIfInBounds(buffer(), offset, data)
+        withContents(of: buffer()) { contents in
+            guard !contents.isEmpty, let start = Int(exactly: offset), start <= contents.byteCount,
+                data.count <= contents.byteCount - start
+            else {
+                return false
+            }
+            contents.copyMemory(from: data.bytes, toByteOffset: start)
+            return true
+        }
     }
 
     public func setLabel(_ label: Swift.String?) {

@@ -46,25 +46,6 @@
 
 namespace WebGPU::Metal {
 
-// Host mirror of the MSL `WebKitStagedCopyArgs` declared in the kernel source in Queue.swift. It is a hand-maintained
-// ABI, and getting the field widths wrong produces silently wrong offsets rather than a compile error. MSL `ulong` is
-// 64-bit, so the static_asserts below pin size and every offset.
-struct StagedCopyArguments {
-    uint64_t sourceWordOffset;
-    uint64_t destinationWordOffset;
-    uint64_t wordCount;
-};
-static_assert(sizeof(StagedCopyArguments) == 24, "StagedCopyArguments must match MSL WebKitStagedCopyArgs (3 x ulong)");
-static_assert(!offsetof(StagedCopyArguments, sourceWordOffset), "sourceWordOffset must be at offset 0");
-static_assert(offsetof(StagedCopyArguments, destinationWordOffset) == 8, "destinationWordOffset must be at offset 8");
-static_assert(offsetof(StagedCopyArguments, wordCount) == 16, "wordCount must be at offset 16");
-
-void setStagedCopyArguments(id<MTLComputeCommandEncoder> encoder, uint64_t sourceWordOffset, uint64_t destinationWordOffset, uint64_t wordCount)
-{
-    StagedCopyArguments arguments { sourceWordOffset, destinationWordOffset, wordCount };
-    [encoder setBytes:&arguments length:sizeof(arguments) atIndex:2];
-}
-
 template<unsigned errorCode>
 [[noreturn]] void crashGPUProcess(NSError* error, NSError* underlyingError)
 {
@@ -124,20 +105,6 @@ void addCommitHandlers(id<MTLCommandBuffer> commandBuffer, void (^didSchedule)(v
     });
 }
 
-// isManaged: the caller has read the buffer's storage mode, MTLStorageModeManaged.
-void writeBufferContents(id<MTLBuffer> buffer, uint64_t bufferOffset, std::span<const uint8_t> data NOESCAPE, bool isManaged)
-{
-    memcpySpan(cpuVisibleContents(buffer).subspan(bufferOffset, data.size()), data);
-#if PLATFORM(MAC) || PLATFORM(MACCATALYST)
-    ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    if (isManaged)
-        [buffer didModifyRange:NSMakeRange(bufferOffset, data.size())];
-    ALLOW_DEPRECATED_DECLARATIONS_END
-#else
-    UNUSED_PARAM(isManaged);
-#endif
-}
-
 id<MTLBuffer> newBufferAliasingOwner(id<MTLDevice> device, const WebGPU::ByteOwner& owner, uint64_t offset, uint64_t length)
 {
     auto bytes = owner.span();
@@ -148,64 +115,6 @@ id<MTLBuffer> newBufferAliasingOwner(id<MTLDevice> device, const WebGPU::ByteOwn
     // their owner. The buffer is only ever a copy source, so nothing writes to them.
     auto keepOwnerAlive = makeBlockPtr([protectedOwner = Ref { owner }](void*, NSUInteger) { });
     return [device newBufferWithBytesNoCopy:spanConstCast<uint8_t>(bytes).data() length:bytes.size() options:MTLResourceStorageModeShared deallocator:keepOwnerAlive.get()];
-}
-
-void copyBytesToBuffer(id<MTLBuffer> buffer, uint64_t offset, std::span<const uint8_t> data NOESCAPE)
-{
-    memcpySpan(cpuVisibleContents(buffer).subspan(offset), data);
-}
-
-void zeroBufferContents(id<MTLBuffer> buffer, uint64_t offset, uint64_t size)
-{
-    zeroSpan(cpuVisibleContents(buffer).subspan(offset, size));
-}
-
-// The bytes replaceRegion:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage: reads: each of the region's images,
-// bytesPerImage apart, has its rows of blocks, bytesPerRow apart, and the last row is only as long as the region's blocks.
-static uint64_t replaceRegionSourceSize(MTLRegion region, uint64_t bytesPerRow, uint64_t bytesPerImage, TexelBlockLayout block)
-{
-    RELEASE_ASSERT(block.width && block.height);
-    uint64_t blocksPerRow = region.size.width / block.width + (region.size.width % block.width ? 1 : 0);
-    uint64_t rows = region.size.height / block.height + (region.size.height % block.height ? 1 : 0);
-    if (!blocksPerRow || !rows || !region.size.depth)
-        return 0;
-    CheckedUint64 size = CheckedUint64(region.size.depth - 1) * bytesPerImage;
-    size += CheckedUint64(rows - 1) * bytesPerRow;
-    size += CheckedUint64(blocksPerRow) * block.size;
-    RELEASE_ASSERT(!size.hasOverflowed());
-    return size.value();
-}
-
-void replaceRegion(id<MTLTexture> texture, MTLRegion region, uint32_t mipLevel, uint64_t slice, std::span<const uint8_t> data NOESCAPE, uint64_t sourceOffset, uint64_t bytesPerRow, uint64_t bytesPerImage, TexelBlockLayout block)
-{
-    auto source = data.subspan(static_cast<size_t>(sourceOffset));
-    RELEASE_ASSERT(replaceRegionSourceSize(region, bytesPerRow, bytesPerImage, block) <= source.size());
-    [texture
-        replaceRegion:region
-        mipmapLevel:mipLevel
-        slice:static_cast<NSUInteger>(slice)
-        withBytes:byteCast<char>(source.data())
-        bytesPerRow:static_cast<NSUInteger>(bytesPerRow)
-        bytesPerImage:static_cast<NSUInteger>(bytesPerImage)];
-}
-
-static_assert(sizeof(CopyExternalImageArguments) == 144, "CopyExternalImageArguments must match MSL WebKitCopyExternalImageArgs (9 x uint + 27 x float)");
-static_assert(!offsetof(CopyExternalImageArguments, sourceOriginX), "sourceOriginX must be at offset 0");
-static_assert(offsetof(CopyExternalImageArguments, sourceOriginY) == 4, "sourceOriginY must be at offset 4");
-static_assert(offsetof(CopyExternalImageArguments, destinationOriginX) == 8, "destinationOriginX must be at offset 8");
-static_assert(offsetof(CopyExternalImageArguments, destinationOriginY) == 12, "destinationOriginY must be at offset 12");
-static_assert(offsetof(CopyExternalImageArguments, copyWidth) == 16, "copyWidth must be at offset 16");
-static_assert(offsetof(CopyExternalImageArguments, copyHeight) == 20, "copyHeight must be at offset 20");
-static_assert(offsetof(CopyExternalImageArguments, sourceMaxX) == 24, "sourceMaxX must be at offset 24");
-static_assert(offsetof(CopyExternalImageArguments, sourceMaxY) == 28, "sourceMaxY must be at offset 28");
-static_assert(offsetof(CopyExternalImageArguments, flags) == 32, "flags must be at offset 32");
-static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMatrix must be at offset 36");
-static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
-static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
-
-void setCopyExternalImageArguments(id<MTLRenderCommandEncoder> encoder, const CopyExternalImageArguments& arguments)
-{
-    [encoder setFragmentBytes:&arguments length:sizeof(arguments) atIndex:0];
 }
 
 #pragma mark External texture import (ExternalTextureImport.swift)
