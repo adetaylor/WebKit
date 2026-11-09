@@ -32,38 +32,6 @@
 
 namespace WebCore {
 
-inline bool RenderLayer::canPaintTransparencyWithSetOpacity() const { return isBitmapOnly() && !hasNonOpacityTransparency() && !hasFilter(); }
-
-inline float RenderLayer::opacityForPainting(OptionSet<PaintBehavior> paintBehavior) const
-{
-    return paintBehavior.containsAll({ PaintBehavior::FlattenCompositingLayers, PaintBehavior::Snapshotting }) ? currentOpacity() : renderer().opacity();
-}
-
-inline bool RenderLayer::paintsWithTransparency(OptionSet<PaintBehavior> paintBehavior) const
-{
-    if (opacityForPainting(paintBehavior) >= 1 && !hasNonOpacityTransparency())
-        return false;
-    return (paintBehavior & PaintBehavior::FlattenCompositingLayers) || !isComposited();
-}
-
-inline bool RenderLayer::hasNonOpacityTransparency() const
-{
-    if (renderer().hasMask())
-        return true;
-
-    if (hasBlendMode() || isolatesBlending())
-        return true;
-
-    if (!renderer().document().settings().layerBasedSVGEngineEnabled())
-        return false;
-
-    // SVG clip-paths may use clipping masks, if so, flag this layer as transparent.
-    if (CheckedPtr svgClipper = renderer().svgClipperResourceFromStyle(); svgClipper && !svgClipper->shouldApplyPathClipping())
-        return true;
-
-    return false;
-}
-
 enum class AncestorTraversal { Continue, Stop };
 
 // This is a simplified version of containing block walking that only handles absolute and fixed position.
