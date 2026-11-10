@@ -29,27 +29,40 @@
 
 #include "RemoteCGRendererPath.h"
 #include "RemoteGradientIdentifier.h"
+#include "RemoteMeshGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
 #include <WebCore/AffineTransform.h>
 #include <WebCore/Pattern.h>
 #include <WebCore/Color.h>
+#include <WebCore/ControlPart.h>
+#include <WebCore/ControlStyle.h>
+#include <WebCore/Filter.h>
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/RenderingResourceIdentifier.h>
+#include <WebCore/SharedMemory.h>
+#include <WebCore/SystemImage.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 
 namespace WebCore {
+class ControlFactory;
 class Gradient;
 class ImageBuffer;
 class NativeImage;
+}
+
+namespace IPC {
+class Semaphore;
 }
 
 namespace WebKit {
 
 class RemoteRenderingBackend;
 class SharedFont;
+class SharedVideoFrameReader;
+struct SharedVideoFrame;
 
 // What an image buffer's RemoteCGRenderer looks up by identifier, in its rendering backend's resource cache and image buffers,
 // as RemoteGraphicsContext's handlers do.
@@ -72,6 +85,13 @@ public:
     void releaseSelfCopy() const { m_selfCopy = nullptr; }
     void setSelfCopy(RefPtr<WebCore::ImageBuffer>&& selfCopy) const { m_selfCopy = WTF::move(selfCopy); }
 
+    RemoteRenderingBackend& backend() const __attribute__((availability(swift, unavailable))) { return m_backend; }
+    // The control factory of the receiver's control parts, and the reader of its video frames, made when first used.
+    WebCore::ControlFactory& controlFactory() const __attribute__((availability(swift, unavailable)));
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    SharedVideoFrameReader& sharedVideoFrameReader() const __attribute__((availability(swift, unavailable)));
+#endif
+
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
     void ref() const { RefCounted<RemoteCGRendererResources>::ref(); }
@@ -84,7 +104,31 @@ private:
     const Ref<RemoteRenderingBackend> m_backend;
     const Ref<WebCore::ImageBuffer> m_target;
     mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
+    mutable RefPtr<WebCore::ControlFactory> m_controlFactory;
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    mutable std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
+#endif
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The draws of messages that C++ makes, into the receiver's leaf context (CGRendererLeafContext), as RemoteGraphicsContext's
+// handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.
+bool drawMeshGradient(const RemoteCGRendererResources&, CGRendererLeafContext&, RemoteMeshGradientIdentifier, const WebCore::FloatRect& destination);
+bool drawFilteredImageBuffer(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&);
+void drawControlPart(const RemoteCGRendererResources&, CGRendererLeafContext&, const Ref<WebCore::ControlPart>&, const WebCore::FloatRoundedRect& borderRect, float deviceScaleFactor, const WebCore::ControlStyle&);
+void drawSystemImage(CGRendererLeafContext&, const Ref<WebCore::SystemImage>&, const WebCore::FloatRect& destinationRect);
+#if USE(SYSTEM_PREVIEW)
+bool drawBadgeSystemImage(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> imageIdentifier, const WebCore::FloatRect& destinationRect);
+#endif
+// Whether the filter's sources are there to be found, before the receiver makes a leaf context to draw it in.
+bool hasFilterSources(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&);
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+// The image of a DrawVideoFrame's frame, read as RemoteGraphicsContext reads it, with its size and whether it has alpha; null
+// for a frame that can't be read. The reader takes the semaphore and the memory of its frames.
+CGImageRef _Nullable copyVideoFrameImage(const RemoteCGRendererResources&, const SharedVideoFrame&, CGRendererImageFacts&, bool& hasAlpha) CF_RETURNS_RETAINED;
+void setSharedVideoFrameSemaphore(const RemoteCGRendererResources&, const IPC::Semaphore&);
+void setSharedVideoFrameMemory(const RemoteCGRendererResources&, const WebCore::SharedMemory::Handle&);
+#endif
 
 // The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke
 // counterparts, as RemoteGraphicsContext's handlers make it: found is false for a missing resource, and drawsIntoTarget true

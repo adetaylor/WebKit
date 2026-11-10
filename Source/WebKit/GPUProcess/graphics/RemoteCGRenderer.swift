@@ -660,6 +660,120 @@ final class RemoteCGRenderer {
         state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)
     }
 
+    // RemoteGraphicsContext's clips to a path in coordinates a transform maps it from.
+
+    func clipTransformedPath(state: inout CGRendererCore, pathTransform: WebCore.AffineTransform, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
+        state.receiveClipTransformed(cgAffineTransform(pathTransform)) { context in path.clip(context, windRule) }
+    }
+
+    func clipTransformedCachedPath(
+        state: inout CGRendererCore,
+        pathTransform: WebCore.AffineTransform,
+        identifier: WebKit.RemotePathImplIdentifier,
+        windRule: WebCore.WindRule
+    ) throws(InvalidMessage) {
+        let path = resources.cachedPath(identifier)
+        try messageCheck { path.isValid() }
+        state.receiveClipTransformed(cgAffineTransform(pathTransform)) { context in path.clip(context, windRule) }
+    }
+
+    func drawFocusRingPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, outlineWidth: Float, color: CGRendererColorValue, zoomFactor: Float) {
+        if path.isEmpty() {
+            return
+        }
+        state.receiveDrawFocusRing(WebKit.copyPlatformPath(path), color, zoomFactor)
+    }
+
+    // RemoteGraphicsContext's page handlers, for a PDF.
+
+    func beginPage(state: inout CGRendererCore, pageRect: WebCore.FloatRect) {
+        state.receiveBeginPage(cgRect(pageRect))
+    }
+
+    func endPage(state: inout CGRendererCore) {
+        state.receiveEndPage()
+    }
+
+    // RemoteGraphicsContext's draws that C++ makes, in a GraphicsContext with the renderer's state (CGRendererLeafContext). A
+    // missing resource is an invalid message.
+
+    func drawMeshGradient(state: inout CGRendererCore, identifier: WebKit.RemoteMeshGradientIdentifier, destination: WebCore.FloatRect) throws(InvalidMessage) {
+        let leaf = state.receiveLeafContext()
+        try messageCheck { WebKit.drawMeshGradient(resources, leaf, identifier, destination) }
+    }
+
+    func drawFilteredImageBuffer(
+        state: inout CGRendererCore,
+        sourceImageIdentifier: WebCore.OptionalRenderingResourceIdentifier,
+        sourceImageRect: WebCore.FloatRect,
+        filter: WebCore.RefFilter
+    ) throws(InvalidMessage) {
+        try messageCheck { WebKit.hasFilterSources(resources, sourceImageIdentifier, filter) }
+        let leaf = state.receiveLeafContext()
+        _ = WebKit.drawFilteredImageBuffer(resources, leaf, sourceImageIdentifier, sourceImageRect, filter)
+    }
+
+    func drawControlPart(
+        state: inout CGRendererCore,
+        part: WebCore.RefControlPart,
+        borderRect: WebCore.FloatRoundedRect,
+        deviceScaleFactor: Float,
+        style: WebCore.ControlStyle
+    ) {
+        let leaf = state.receiveLeafContext()
+        WebKit.drawControlPart(resources, leaf, part, borderRect, deviceScaleFactor, style)
+    }
+
+    func drawSystemImage(state: inout CGRendererCore, systemImage: WebCore.RefSystemImage, destinationRect: WebCore.FloatRect) {
+        let leaf = state.receiveLeafContext()
+        WebKit.drawSystemImage(leaf, systemImage, destinationRect)
+    }
+
+    #if USE_SYSTEM_PREVIEW
+    func drawBadgeSystemImage(
+        state: inout CGRendererCore,
+        imageIdentifier: WebCore.OptionalRenderingResourceIdentifier,
+        destinationRect: WebCore.FloatRect
+    ) throws(InvalidMessage) {
+        let leaf = state.receiveLeafContext()
+        try messageCheck { WebKit.drawBadgeSystemImage(resources, leaf, imageIdentifier, destinationRect) }
+    }
+    #endif
+
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    // GraphicsContext::drawVideoFrame(): the frame's image, oriented by the options, copied rather than drawn over where its
+    // alpha doesn't count, which is the same and cheaper.
+    func drawVideoFrame(
+        state: inout CGRendererCore,
+        frame: WebKit.SharedVideoFrame,
+        rect: WebCore.FloatRect,
+        shouldDiscardAlpha: WebCore.ShouldDiscardAlpha,
+        options: WebCore.RasterDrawingOptions
+    ) {
+        var facts = CGRendererImageFacts()
+        var hasAlpha = false
+        guard let image = WebKit.copyVideoFrameImage(resources, frame, &facts, &hasAlpha) else {
+            return
+        }
+        var imageOptions = CGRendererImageOptionsFor(options)
+        let usesWidthAsHeight = (5...8).contains(imageOptions.orientation)
+        let width = usesWidthAsHeight ? facts.height : facts.width
+        let height = usesWidthAsHeight ? facts.width : facts.height
+        if imageOptions.compositeOperator == .SourceOver && (shouldDiscardAlpha == .Yes || !hasAlpha) {
+            imageOptions.compositeOperator = .Copy
+        }
+        state.receiveDrawNativeImage(image, facts, cgRect(rect), CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)), imageOptions)
+    }
+
+    func setSharedVideoFrameSemaphore(state: inout CGRendererCore, semaphore: borrowing IPC.Semaphore) {
+        WebKit.setSharedVideoFrameSemaphore(resources, semaphore)
+    }
+
+    func setSharedVideoFrameMemory(state: inout CGRendererCore, storageHandle: borrowing WebCore.SharedMemory.Handle) {
+        WebKit.setSharedVideoFrameMemory(resources, storageHandle)
+    }
+    #endif
+
     // RemoteGraphicsContext's text decoration handlers.
 
     func drawLinesForText(

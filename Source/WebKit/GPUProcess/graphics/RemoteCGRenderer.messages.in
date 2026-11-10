@@ -26,9 +26,9 @@
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the colors
-# of document markers and other draws, which go as plain values, the line strokes and line dashes, which the GPU process
-# copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path of them,
-# and shadows and styles, which it keeps for Swift to ask of them.
+# of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
+# process copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path
+# of them, and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
@@ -127,6 +127,23 @@ messages -> RemoteCGRenderer Stream {
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched
+    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebKit::RemoteCGRendererPath path, enum:bool WebCore::WindRule windRule) StreamBatched
+    ClipTransformedCachedPath
+    DrawFocusRingPath(WebKit::RemoteCGRendererPath path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched
+    BeginPage
+    EndPage
+    DrawMeshGradient
+    DrawFilteredImageBuffer
+    DrawControlPart
+    DrawSystemImage
+#if USE(SYSTEM_PREVIEW)
+    DrawBadgeSystemImage
+#endif
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    DrawVideoFrame
+    SetSharedVideoFrameSemaphore
+    SetSharedVideoFrameMemory
+#endif
 }
 
 #endif

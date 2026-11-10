@@ -67,6 +67,8 @@ public:
     void drawPath(const RemoteCGRendererPath&);
     void clipPath(const RemoteCGRendererPath&, WebCore::WindRule);
     void clipOutToPath(const RemoteCGRendererPath&);
+    void clipTransformedPath(const WebCore::AffineTransform&, const RemoteCGRendererPath&, WebCore::WindRule);
+    void drawFocusRingPath(const RemoteCGRendererPath&, float outlineWidth, const CGRendererColorValue&, float zoomFactor);
     void setDropShadow(const RemoteCGRendererShadow&);
     void setStyle(const RemoteCGRendererStyle&);
     void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);

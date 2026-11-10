@@ -1640,6 +1640,15 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         context.ctm.concatenating(CGContextGetBaseCTM(context).inverted())
     }
 
+    // singularValue(_, Largest).
+    private func largestSingularValue(_ t: CGAffineTransform) -> CGFloat {
+        let a = t.a * t.a + t.b * t.b
+        let b = t.a * t.c + t.b * t.d
+        let d = t.c * t.c + t.d * t.d
+        let discriminant = (4 * b * b + (a - d) * (a - d)).squareRoot()
+        return (0.5 * ((a + d) + discriminant)).squareRoot()
+    }
+
     // Extreme blur values can make text drawing crash or take very long, so they are clamped.
     private func scaledBlurRadius(_ blurRadius: CGFloat, _ userToBaseCTM: CGAffineTransform) -> CGFloat {
         var radius = blurRadius
@@ -2927,6 +2936,26 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         CGRendererDrawGlyphs(run, positions, context)
     }
 
+    // MARK: Focus rings
+
+    // GraphicsContextCG::drawFocusRing(): the platform's focus ring around the path, in the color, scaled by the zoom and the
+    // CTM's scale, which respects the clip and doesn't overpaint a focus ring already there.
+    @_expose(Cxx)
+    mutating func drawFocusRing(_ path: borrowing CGPath, _ color: CGColor?, _ zoomFactor: Float) {
+        var ctmScale = largestSingularValue(userToBaseCTM)
+        if ctmScale <= 0 {
+            ctmScale = 1
+        }
+        hasDrawn = true
+        let style = CGRendererCreateFocusRingStyle(color, CGFloat(zoomFactor) * ctmScale)
+        context.saveGState()
+        CGContextSetStyle(context, style)
+        context.beginPath()
+        context.addPath(copy path)
+        context.fillPath()
+        context.restoreGState()
+    }
+
     // MARK: Device scale, headroom and PDF
 
     // GraphicsContextCG::applyDeviceScaleFactor() after GraphicsContext's scale: the base CTM too, so that CG features that
@@ -3967,6 +3996,88 @@ extension CGRendererCore {
     ) {
         let cgColor = color.isPacked ? colorCache.color(color.packedColor) : CGRendererCopyCachedCGColorForData(color.data)
         drawDotsForDocumentMarker(rect, mode, cgColor)
+    }
+
+    // GraphicsContextCG::drawFocusRing() of a path, or of the path of rects, in a color that cachedCGColor() makes.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawFocusRing(_ path: CGPath, _ color: CGRendererColorValue, _ zoomFactor: Float) {
+        if path.isEmpty {
+            return
+        }
+        let cgColor = color.isPacked ? colorCache.color(color.packedColor) : CGRendererCopyCachedCGColorForData(color.data)
+        drawFocusRing(path, cgColor, zoomFactor)
+    }
+
+    // GraphicsContextCG::clipTransformedPath(): the clip of the path in the coordinates the transform maps it from, which is in
+    // device space, so the CTM goes back after it. An empty path clips everything out.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipTransformed(_ transform: CGAffineTransform, _ clip: (CGContext) -> Void) {
+        hasDrawn = true
+        let ctm = context.ctm
+        context.concatenate(transform)
+        clip(context)
+        CGContextSetCTM(context, ctm)
+    }
+
+    // GraphicsContextCG::beginPage(): a PDF page of the rect, in which the state starts over, as GraphicsContextState's first
+    // values, which go to CG. A context that isn't a PDF's has no pages.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveBeginPage(_ pageRect: CGRect) {
+        guard beginPDFPage(pageRect) else {
+            return
+        }
+        let interpolationQuality: WebCore.InterpolationQuality
+        switch context.interpolationQuality {
+        case .none: interpolationQuality = .DoNotInterpolate
+        case .low: interpolationQuality = .Low
+        case .medium: interpolationQuality = .Medium
+        case .high: interpolationQuality = .High
+        default: interpolationQuality = .Default
+        }
+        resetState(interpolationQuality)
+        setFillPackedColor(0x0000_00FF, 0)
+        setStrokePackedColor(0x0000_00FF, 0)
+        setStrokeThickness(0)
+        cxxStaleProperties = CxxStateChange.all
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveEndPage() {
+        _ = endPDFPage()
+    }
+
+    // A GraphicsContext for the C++ that draws part of the receiver's message, over this renderer's context and with its state,
+    // which lasts until the context goes (CGRendererLeafContext).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveLeafContext() -> CGRendererLeafContext {
+        hasDrawn = true
+        var leafState = CGRendererLeafState()
+        snapshotState(&leafState.snapshot)
+        let snapshot = leafState.snapshot
+        if snapshot.fill.platformColorSlot != 0 {
+            copyPlatformColor(snapshot.fill.platformColorSlot, &leafState.fillColor)
+        }
+        if snapshot.stroke.platformColorSlot != 0 {
+            copyPlatformColor(snapshot.stroke.platformColorSlot, &leafState.strokeColor)
+        }
+        if snapshot.hasDropShadow && snapshot.dropShadow.platformColorSlot != 0 {
+            copyPlatformColor(snapshot.dropShadow.platformColorSlot, &leafState.dropShadowColor)
+        }
+        if snapshot.style == 1 && snapshot.styleDropShadow.platformColorSlot != 0 {
+            copyPlatformColor(snapshot.styleDropShadow.platformColorSlot, &leafState.styleDropShadowColor)
+        }
+        #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+        if snapshot.style == 3 {
+            copyColorMatrix(snapshot.colorMatrixSlot, &leafState.colorMatrix)
+        }
+        #endif
+        if snapshot.fill.sourceSlot != 0 {
+            copyBrushSource(snapshot.fill.sourceSlot, &leafState.fillSource)
+        }
+        if snapshot.stroke.sourceSlot != 0 {
+            copyBrushSource(snapshot.stroke.sourceSlot, &leafState.strokeSource)
+        }
+        return CGRendererCreateLeafContext(context, leafState)
     }
 
     // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.

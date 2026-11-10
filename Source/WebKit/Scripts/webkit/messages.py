@@ -1253,7 +1253,7 @@ def generate_swift_recorded_messages(receiver):
     result.append('        self.target = target\n')
     result.append('    }\n')
     for message in all_messages:
-        parameters = ['%s: %s' % (parameter.name, swift_type_name(parameter.type)) for parameter in message.parameters]
+        parameters = ['%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)) for parameter in message.parameters]
         lines = ['\n']
         lines.append('    @used\n')
         if parameters:
@@ -1478,7 +1478,17 @@ def generate_messages_header(receiver):
     return ''.join(result)
 
 
-_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector')
+_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector', 'std::optional')
+
+# C++ types that Swift imports as noncopyable, which a Swift parameter has to say it borrows.
+_SWIFT_NONCOPYABLE_TYPES = frozenset(['IPC::Semaphore', 'WebCore::SharedMemory::Handle'])
+
+
+def swift_borrowing_prefix(cpp_type):
+    return 'borrowing ' if _strip_cpp_type_decorations(cpp_type) in _SWIFT_NONCOPYABLE_TYPES else ''
+
+# The prefix of the alias Swift names a wrapper template's instantiation with: NS::OptionalT for std::optional<NS::T>.
+_SWIFT_WRAPPER_ALIAS_PREFIXES = {'std::optional': 'Optional'}
 
 # Plain C structs that a Swift bridge header declares outside any namespace.
 _SWIFT_GLOBAL_TYPES = frozenset(['CGRendererColorValue'])
@@ -1520,11 +1530,15 @@ def swift_type_name(cpp_type):
             raise UnmappableSwiftType("Cannot derive the Swift name of '%s': '%s' has no namespace to "
                                       "hang the alias off." % (cpp_type, match.group(2)))
         namespace, inner = inner_name.rsplit('.', 1)
-        return '%s.%s%s' % (namespace, match.group(1), inner)
+        return '%s.%s%s' % (namespace, _SWIFT_WRAPPER_ALIAS_PREFIXES.get(match.group(1), match.group(1)), inner)
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9]*)::([A-Za-z_][A-Za-z_0-9]*)$', cpp_type)
     if match:
         return '%s.%s' % (match.group(1), match.group(2))
+
+    # A type nested in a class, such as WebCore::SharedMemory::Handle.
+    if re.match(r'^[A-Za-z_][A-Za-z_0-9]*(::[A-Za-z_][A-Za-z_0-9]*){2,}$', cpp_type):
+        return cpp_type.replace('::', '.')
 
     # .messages.in namespaces everything except WTF, which it writes unqualified: String, URL,
     # Seconds and so on. A non-WTF unqualified typedef would produce a Swift compile error naming
@@ -1543,7 +1557,8 @@ def _cpp_type_with_qualified_templates(cpp_type):
     cpp_type = _strip_cpp_type_decorations(cpp_type)
     match = re.match(r'^(%s)<(.+)>$' % '|'.join(_SWIFT_WRAPPER_TEMPLATES), cpp_type)
     if match:
-        return 'WTF::%s<%s>' % (match.group(1), _cpp_type_with_qualified_templates(match.group(2)))
+        template = match.group(1) if '::' in match.group(1) else 'WTF::%s' % match.group(1)
+        return '%s<%s>' % (template, _cpp_type_with_qualified_templates(match.group(2)))
     return cpp_type
 
 
@@ -2926,7 +2941,7 @@ def swift_lent_state_dispatch_function(receiver, message):
     parameters = ['state: inout %s.State' % receiver.name]
     arguments = ['state: &state']
     for parameter in message.parameters:
-        parameters.append('%s: %s' % (parameter.name, swift_type_name(parameter.type)))
+        parameters.append('%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)))
         arguments.append('%s: %s' % (parameter.name, parameter.name))
     result = []
     result.append('\n')

@@ -814,6 +814,93 @@ static WebCore::Path rectWithRoundedHolePath(const WebCore::FloatRect& rect, con
     return path;
 }
 
+CGRendererLeafContext* CGRendererCreateLeafContext(CGContextRef context, const CGRendererLeafState& state)
+{
+    return &adoptRef(*new CGRendererLeafContext(context, state)).leakRef();
+}
+
+CGRendererLeafContext::CGRendererLeafContext(CGContextRef context, const CGRendererLeafState& leafState)
+    : m_cgContext(context)
+{
+    using namespace WebCore;
+    CGContextSaveGState(context);
+    m_context = makeUnique<GraphicsContextCG>(context);
+
+    auto& snapshot = leafState.snapshot;
+    auto color = [](uint32_t packedColor, uint32_t platformColorSlot, const CGRendererColorData& platformColor) {
+        if (!platformColorSlot)
+            return Color { asSRGBA(PackedColor::RGBA { packedColor }) };
+        return colorFromData(platformColor);
+    };
+    auto brush = [&](const CGRendererBrushSnapshot& values, const CGRendererColorData& platformColor, const CGRendererBrushSource& source) {
+        SourceBrush sourceBrush { color(values.packedColor, values.platformColorSlot, platformColor) };
+        if (values.sourceSlot)
+            source.applyTo(sourceBrush);
+        return sourceBrush;
+    };
+    auto dropShadow = [&](const CGRendererShadowSnapshot& shadow, const CGRendererColorData& platformColor) {
+        auto& values = shadow.values;
+        return GraphicsDropShadow {
+            { values.width, values.height }, values.radius, values.isValid ? color(values.packedColor, shadow.platformColorSlot, platformColor) : Color { },
+            values.legacyRadius ? ShadowRadiusMode::Legacy : ShadowRadiusMode::Default, values.opacity
+        };
+    };
+
+    // As RemoteGraphicsContextProxy sends a state, whose shadows take the flag that goes before them.
+    auto& graphicsContext = *m_context;
+    graphicsContext.setShadowsIgnoreTransforms(snapshot.shadowsIgnoreTransforms);
+    graphicsContext.setFillBrush(brush(snapshot.fill, leafState.fillColor, leafState.fillSource));
+    graphicsContext.setFillRule(snapshot.fillRule ? WindRule::EvenOdd : WindRule::NonZero);
+    graphicsContext.setStrokeBrush(brush(snapshot.stroke, leafState.strokeColor, leafState.strokeSource));
+    graphicsContext.setStrokeThickness(snapshot.strokeThickness);
+    graphicsContext.setStrokeStyle(static_cast<StrokeStyle>(snapshot.strokeStyle));
+    graphicsContext.setCompositeMode({ static_cast<CompositeOperator>(snapshot.compositeOperator), static_cast<BlendMode>(snapshot.blendMode) });
+    if (snapshot.hasDropShadow)
+        graphicsContext.setDropShadow(dropShadow(snapshot.dropShadow, leafState.dropShadowColor));
+    else
+        graphicsContext.clearDropShadow();
+    switch (snapshot.style) {
+    case 1:
+        graphicsContext.setStyle(GraphicsStyle { dropShadow(snapshot.styleDropShadow, leafState.styleDropShadowColor) });
+        break;
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+    case 2:
+        graphicsContext.setStyle(GraphicsStyle { GraphicsGaussianBlur { { snapshot.gaussianBlurWidth, snapshot.gaussianBlurHeight } } });
+        break;
+    case 3: {
+        GraphicsColorMatrix colorMatrix;
+        for (auto [destination, source] : zippedRange(colorMatrix.values, leafState.colorMatrix.values))
+            destination = source;
+        graphicsContext.setStyle(GraphicsStyle { colorMatrix });
+        break;
+    }
+#endif
+    default:
+        graphicsContext.setStyle(std::nullopt);
+        break;
+    }
+    graphicsContext.setAlpha(snapshot.alpha);
+    graphicsContext.setTextDrawingMode(TextDrawingModeFlags::fromRaw(snapshot.textDrawingMode));
+    graphicsContext.setImageInterpolationQuality(static_cast<InterpolationQuality>(snapshot.imageInterpolationQuality));
+    graphicsContext.setShouldAntialias(snapshot.shouldAntialias);
+    graphicsContext.setShouldSmoothFonts(snapshot.shouldSmoothFonts);
+    graphicsContext.setShouldSubpixelQuantizeFonts(snapshot.shouldSubpixelQuantizeFonts);
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    graphicsContext.setMaxEDRHeadroom(snapshot.hasMaxEDRHeadroom ? std::optional { snapshot.maxEDRHeadroom } : std::nullopt);
+#endif
+}
+
+CGRendererLeafContext::~CGRendererLeafContext()
+{
+    m_context = nullptr;
+    CGContextRestoreGState(m_cgContext.get());
+}
+
+WebCore::GraphicsContext& CGRendererLeafContext::context() const
+{
+    return *m_context;
+}
+
 CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRoundedRect roundedRect)
 {
     auto size = [](const WebCore::FloatSize& size) {
@@ -1739,6 +1826,14 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
         SWIFT_RENDERER(fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor));
     else
         SWIFT_RENDERER(fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor));
+}
+
+void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& color, float zoomFactor)
+{
+    CAPTURE(unsupported("drawFocusRing"_s));
+    if (path.isEmpty())
+        return;
+    SWIFT_RENDERER(drawFocusRing(protect(path.platformPath()).get(), cachedCGColor(color).get(), zoomFactor));
 }
 
 void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)

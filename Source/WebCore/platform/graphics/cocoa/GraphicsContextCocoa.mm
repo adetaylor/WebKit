@@ -26,6 +26,7 @@
 #import "config.h"
 #import "GraphicsContext.h"
 
+#import "CGRendererSPI.h"
 #import "DisplayListRecorder.h"
 #import "Font.h"
 #import "GraphicsContextCG.h"
@@ -71,12 +72,21 @@ namespace WebCore {
 // NSColor, NSBezierPath, and NSGraphicsContext calls do not raise exceptions
 // so we don't block exceptions.
 
-void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& color, float zoomFactor)
+void GraphicsContextCG::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
 {
     CAPTURE(unsupported("drawFocusRing"_s));
-    if (path.isEmpty())
-        return;
+    Path path;
+    for (const auto& rect : rects)
+        path.addRect(rect);
+    drawFocusRing(path, outlineWidth, color, zoomFactor);
+}
 
+#undef CAPTURE
+
+} // namespace WebCore
+
+CGStyleRef CGRendererCreateFocusRingStyle(CGColorRef color, CGFloat radiusScale)
+{
     CGFocusRingStyle focusRingStyle;
 #if USE(APPKIT)
     NSInitializeCGFocusRingStyleForTime(NSFocusRingOnly, &focusRingStyle, std::numeric_limits<double>::max());
@@ -90,38 +100,13 @@ void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& colo
     focusRingStyle.bounds = CGRectZero;
 #endif
 
-    // zoomFactor covers CSS zoom / page zoom (Cmd+/-). ctmScale covers page scale (pinch-to-zoom), canvas transforms, etc.
-    RetainPtr platformContext = this->platformContext();
-    auto ctmScale = singularValue(getUserToBaseCTM(platformContext), SingularValueSelection::Largest);
-    if (ctmScale <= 0)
-        ctmScale = 1.0f;
-    focusRingStyle.radius *= zoomFactor * ctmScale;
+    // radiusScale covers CSS zoom / page zoom (Cmd+/-), and page scale (pinch-to-zoom), canvas transforms and so on.
+    focusRingStyle.radius *= radiusScale;
 
     // We want to respect the CGContext clipping and also not overpaint any
     // existing focus ring. The way to do this is set accumulate to
     // -1. According to CoreGraphics, the reasoning for this behavior has been
     // lost in time.
     focusRingStyle.accumulate = -1;
-    auto style = adoptCF(CGStyleCreateFocusRingWithColor(&focusRingStyle, cachedCGColor(color).get()));
-
-    CGContextStateSaver stateSaver(platformContext);
-
-    CGContextSetStyle(platformContext, style.get());
-    CGContextBeginPath(platformContext);
-    CGContextAddPath(platformContext, protect(path.platformPath()));
-
-    CGContextFillPath(platformContext);
+    return CGStyleCreateFocusRingWithColor(&focusRingStyle, color);
 }
-
-void GraphicsContextCG::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
-{
-    CAPTURE(unsupported("drawFocusRing"_s));
-    Path path;
-    for (const auto& rect : rects)
-        path.addRect(rect);
-    drawFocusRing(path, outlineWidth, color, zoomFactor);
-}
-
-#undef CAPTURE
-
-} // namespace WebCore

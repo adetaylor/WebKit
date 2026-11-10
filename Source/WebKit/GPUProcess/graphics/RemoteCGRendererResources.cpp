@@ -29,14 +29,34 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
+#include "GPUConnectionToWebProcess.h"
+#include "ImageBufferShareableAllocator.h"
+#include "IPCSemaphore.h"
 #include "RemoteCGRendererGlyphs.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
+#include "RemoteSharedResourceCache.h"
 #include "SharedFont.h"
+#include "SharedPreferencesForWebProcess.h"
+#include "SharedVideoFrame.h"
+#include <WebCore/ControlFactory.h>
+#include <WebCore/FEImage.h>
+#include <WebCore/FilterResults.h>
 #include <WebCore/Gradient.h>
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/ImageBuffer.h>
+#include <WebCore/MeshGradient.h>
 #include <WebCore/NativeImage.h>
+#include <WebCore/SVGFilterRenderer.h>
+
+#if USE(SYSTEM_PREVIEW)
+#include <WebCore/ARKitBadgeSystemImage.h>
+#endif
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+#include "RemoteVideoFrameObjectHeap.h"
+#include <WebCore/VideoFrame.h>
+#endif
 
 namespace WebKit {
 using namespace WebCore;
@@ -210,6 +230,166 @@ CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, Re
     RetainPtr platformImage = image->platformImage();
     return platformImage.leakRef();
 }
+
+ControlFactory& RemoteCGRendererResources::controlFactory() const
+{
+    if (!m_controlFactory)
+        m_controlFactory = ControlFactory::create();
+    return *m_controlFactory;
+}
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() const
+{
+    if (!m_sharedVideoFrameReader) {
+        Ref gpuConnectionToWebProcess = m_backend->gpuConnectionToWebProcess();
+        m_sharedVideoFrameReader = makeUnique<SharedVideoFrameReader>(Ref { gpuConnectionToWebProcess->videoFrameObjectHeap() }, gpuConnectionToWebProcess->webProcessIdentity());
+    }
+    return *m_sharedVideoFrameReader;
+}
+#endif
+
+bool drawMeshGradient(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, RemoteMeshGradientIdentifier identifier, const FloatRect& destination)
+{
+    RefPtr gradient = resources.backend().remoteResourceCache().cachedMeshGradient(identifier);
+    if (!gradient)
+        return false;
+    leaf.context().drawMeshGradient(*gradient, destination);
+    return true;
+}
+
+static std::optional<SourceImage> sourceImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
+{
+    if (RefPtr sourceNativeImage = resources.cachedNativeImage(identifier))
+        return { { sourceNativeImage.releaseNonNull() } };
+    if (RefPtr sourceImageBuffer = resources.imageBuffer(identifier))
+        return { { sourceImageBuffer.releaseNonNull() } };
+    return std::nullopt;
+}
+
+bool hasFilterSources(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter)
+{
+    if (sourceImageIdentifier && !resources.imageBuffer(*sourceImageIdentifier))
+        return false;
+    for (auto& effect : filter->effectsOfType(FilterEffect::Type::FEImage)) {
+        Ref feImage = downcast<FEImage>(effect.get());
+        if (!sourceImage(resources, feImage->sourceImage().imageIdentifier()))
+            return false;
+    }
+    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
+    if (svgFilter && svgFilter->hasValidRenderingResourceIdentifier())
+        return is<SVGFilterRenderer>(resources.backend().remoteResourceCache().cachedFilter(filter->renderingResourceIdentifier()));
+    return true;
+}
+
+static bool useIOSurfaceWebKitBehavior(const RemoteCGRendererResources& resources)
+{
+#if USE(APPLE_INTERNAL_SDK)
+    auto preferences = resources.backend().sharedPreferencesForWebProcess();
+    return preferences && preferences->useIOSurfaceWebKitBehavior;
+#else
+    UNUSED_PARAM(resources);
+    return false;
+#endif
+}
+
+static std::unique_ptr<ImageBufferAllocator> filterResultsAllocator(const RemoteCGRendererResources& resources)
+{
+    Ref sharedResourceCache = resources.backend().sharedResourceCache();
+#if HAVE(IOSURFACE)
+    return makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner(), &sharedResourceCache->ioSurfacePool(), useIOSurfaceWebKitBehavior(resources));
+#else
+    return makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner());
+#endif
+}
+
+bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const FloatRect& sourceImageRect, const Ref<Filter>& filter)
+{
+    if (!hasFilterSources(resources, sourceImageIdentifier, filter))
+        return false;
+
+    RefPtr<ImageBuffer> sourceImageBuffer;
+    if (sourceImageIdentifier)
+        sourceImageBuffer = resources.imageBuffer(*sourceImageIdentifier);
+
+    auto draw = [&](Filter& filterToDraw, FilterResults& results) {
+        for (auto& effect : filterToDraw.effectsOfType(FilterEffect::Type::FEImage)) {
+            Ref feImage = downcast<FEImage>(effect.get());
+            feImage->setImageSource(*sourceImage(resources, feImage->sourceImage().imageIdentifier()));
+        }
+        leaf.context().drawFilteredImageBuffer(sourceImageBuffer.get(), sourceImageRect, filterToDraw, results);
+    };
+
+    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
+    if (!svgFilter || !svgFilter->hasValidRenderingResourceIdentifier()) {
+        FilterResults results(filterResultsAllocator(resources));
+        draw(filter.get(), results);
+        return true;
+    }
+
+    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(resources.backend().remoteResourceCache().cachedFilter(filter->renderingResourceIdentifier()));
+    cachedSVGFilter->mergeEffects(svgFilter->effects());
+    auto& results = cachedSVGFilter->ensureResults([&] {
+        return makeUnique<FilterResults>(filterResultsAllocator(resources));
+    });
+    draw(*cachedSVGFilter, results);
+    return true;
+}
+
+void drawControlPart(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, const Ref<ControlPart>& part, const FloatRoundedRect& borderRect, float deviceScaleFactor, const ControlStyle& style)
+{
+    part->setOverrideControlFactory(&resources.controlFactory());
+    leaf.context().drawControlPart(part, borderRect, deviceScaleFactor, style);
+    part->setOverrideControlFactory(nullptr);
+}
+
+void drawSystemImage(CGRendererLeafContext& leaf, const Ref<SystemImage>& systemImage, const FloatRect& destinationRect)
+{
+    leaf.context().drawSystemImage(systemImage, destinationRect);
+}
+
+#if USE(SYSTEM_PREVIEW)
+bool drawBadgeSystemImage(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, std::optional<RenderingResourceIdentifier> imageIdentifier, const FloatRect& destinationRect)
+{
+    RefPtr<NativeImage> nativeImage;
+    if (imageIdentifier) {
+        nativeImage = resources.cachedNativeImage(*imageIdentifier);
+        if (!nativeImage)
+            return false;
+    }
+    Ref badge = ARKitBadgeSystemImage::create(WTF::move(nativeImage));
+    leaf.context().drawSystemImage(badge, destinationRect);
+    return true;
+}
+#endif
+
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+CGImageRef copyVideoFrameImage(const RemoteCGRendererResources& resources, const SharedVideoFrame& frame, CGRendererImageFacts& facts, bool& hasAlpha)
+{
+    facts = { };
+    facts.resolutionScale = 1;
+    facts.found = true;
+    hasAlpha = false;
+    RefPtr videoFrame = resources.sharedVideoFrameReader().read(SharedVideoFrame { frame });
+    if (!videoFrame)
+        return nullptr;
+    RefPtr image = videoFrame->copyNativeImage();
+    if (!image)
+        return nullptr;
+    hasAlpha = image->hasAlpha();
+    return copyImage(*image, facts);
+}
+
+void setSharedVideoFrameSemaphore(const RemoteCGRendererResources& resources, const IPC::Semaphore& semaphore)
+{
+    resources.sharedVideoFrameReader().setSemaphore(IPC::Semaphore { semaphore.createSendRight() });
+}
+
+void setSharedVideoFrameMemory(const RemoteCGRendererResources& resources, const SharedMemory::Handle& handle)
+{
+    resources.sharedVideoFrameReader().setSharedMemory(SharedMemory::Handle { handle });
+}
+#endif
 
 } // namespace WebKit
 
