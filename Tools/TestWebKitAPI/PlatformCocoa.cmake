@@ -199,11 +199,20 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/ContentExtensions.cpp
     Tests/WebCore/HysteresisActivityTests.cpp
     Tests/WebCore/ISOBox.cpp
+    Tests/WebCore/KeyboardScrollingKeys.cpp
     Tests/WebCore/Logging.cpp
+    Tests/WebCore/MacScrollersBench.mm
     Tests/WebCore/MarkedText.cpp
     Tests/WebCore/PlatformCAAnimationKeyPath.cpp
+    Tests/WebCore/ScrollbarsControllerBench.mm
+    Tests/WebCore/ScrollingTreeDelegateBench.cpp
+    Tests/WebCore/ScrollingTreeDelegateBenchLayers.mm
+    Tests/WebCore/ScrollPhysics.cpp
+    Tests/WebCore/ScrollPhysicsBench.cpp
+    Tests/WebCore/ScrollViewBench.cpp
     Tests/WebCore/StringUtilities.mm
     Tests/WebCore/TextBoundaries.cpp
+    Tests/WebCore/TransformationMatrixBench.cpp
     Tests/WebCore/UserAgentStringParser.cpp
     Tests/WebCore/YouTubePluginReplacement.cpp
 
@@ -219,6 +228,7 @@ list(APPEND TestWebCore_SOURCES
     Tests/WebCore/cocoa/GraphicsContextCGTests.mm
     Tests/WebCore/cocoa/H264UtilitiesCocoaTests.mm
     Tests/WebCore/cocoa/HEVCUtilitiesCocoaTests.mm
+    Tests/WebCore/cocoa/ImageDecoderCGBench.mm
     Tests/WebCore/cocoa/IOSurfacePoolTests.cpp
     Tests/WebCore/cocoa/IOSurfaceTests.mm
     Tests/WebCore/cocoa/ImageRotationSessionVT.cpp
@@ -441,6 +451,8 @@ if (WEBKIT_PLATFORM_MAC)
         Tests/WebKit/WKPage/mac/DeferredViewInWindowStateChange.mm
         Tests/WebKit/WKPage/mac/WKThumbnailView.mm
 
+        Tests/WebKit/ScrollingTreeDelegateBenchMomentum.cpp
+
         Tests/WebKit/WKWebView/AdvancedPrivacyProtections.mm
         Tests/WebKit/WKWebView/AllowInlinePlaybackInDesktopClassBrowsing.mm
         Tests/WebKit/WKWebView/DictationStreamingOpacity.mm
@@ -452,6 +464,7 @@ if (WEBKIT_PLATFORM_MAC)
         Tests/WebKit/WKWebView/mac/NSRefreshControllerTests.mm
         Tests/WebKit/WKWebView/mac/PasteboardFileTypeBlocklist.mm
         Tests/WebKit/WKWebView/mac/RunningBoardManagement.mm
+        Tests/WebKit/WKWebView/mac/ScrollingTreeDelegateBenchUIProcess.mm
         Tests/WebKit/WKWebView/mac/WordBoundaryTypingAttributes.mm
     )
 else ()
@@ -550,6 +563,7 @@ list(APPEND TestWebKit_PRIVATE_INCLUDE_DIRECTORIES
     ${WEBKIT_DIR}/Shared
     ${WEBKIT_DIR}/Shared/Cocoa
     ${WEBKIT_DIR}/UIProcess
+    ${WEBKIT_DIR}/WebProcess/WebPage
     ${WebKit_DERIVED_SOURCES_DIR}
     ${WebKit_DERIVED_SOURCES_DIR}/IPC
     ${WEBKIT_DIR}/Platform/cocoa
