@@ -172,34 +172,20 @@ struct TexelBlockLayout {
     var size: UInt32 = 0
 }
 
-// The bytes replaceRegion:mipmapLevel:slice:withBytes:bytesPerRow:bytesPerImage: reads: each of the region's images,
-// bytesPerImage apart, has its rows of blocks, bytesPerRow apart, and the last row is only as long as the region's blocks.
-private func replaceRegionSourceSize(
-    _ region: MTLRegion,
-    _ bytesPerRow: UInt64,
-    _ bytesPerImage: UInt64,
-    _ block: TexelBlockLayout
-) -> UInt64 {
-    precondition(block.width != 0 && block.height != 0)
-    let blockWidth = UInt64(block.width)
-    let blockHeight = UInt64(block.height)
-    let width = UInt64(region.size.width)
-    let height = UInt64(region.size.height)
-    let blocksPerRow = width / blockWidth + (width % blockWidth != 0 ? 1 : 0)
-    let rows = height / blockHeight + (height % blockHeight != 0 ? 1 : 0)
-    if blocksPerRow == 0 || rows == 0 || region.size.depth == 0 {
-        return 0
+// The texel block of a texture's pixel format, which replaceRegion() copies by: traps for a format WebGPU doesn't make,
+// or one with both a depth and a stencil aspect, which the CPU writes never upload into.
+private func texelBlock(of texture: any MTLTexture) -> TexelBlockLayout {
+    guard let format = textureFormat(texture.pixelFormat), !containsDepthAspect(format) || !containsStencilAspect(format) else {
+        preconditionFailure("No texel block for the texture's pixel format")
     }
-    let (images, imagesOverflow) = (UInt64(region.size.depth) - 1).multipliedReportingOverflow(by: bytesPerImage)
-    let (rowBytes, rowsOverflow) = (rows - 1).multipliedReportingOverflow(by: bytesPerRow)
-    let (lastRow, lastRowOverflow) = blocksPerRow.multipliedReportingOverflow(by: UInt64(block.size))
-    let (partial, partialOverflow) = images.addingReportingOverflow(rowBytes)
-    let (size, sizeOverflow) = partial.addingReportingOverflow(lastRow)
-    precondition(!imagesOverflow && !rowsOverflow && !lastRowOverflow && !partialOverflow && !sizeOverflow)
-    return size
+    let block = TexelBlockLayout(width: texelBlockWidth(format), height: texelBlockHeight(format), size: texelBlockSize(format))
+    precondition(block.width != 0 && block.height != 0 && block.size != 0)
+    return block
 }
 
-// Uploads the bytes of `data` from `sourceOffset` into `texture`. Traps unless `data` holds every byte Metal reads.
+// Uploads the bytes of `data` from `sourceOffset` into `region` of `texture` at `mipmapLevel` and `slice`, by the texel
+// blocks of the texture's pixel format. Traps unless the region, the level and the slice are in the texture, the strides
+// are at least as long as the rows and images they step over, and `data` holds every byte Metal reads.
 func replaceRegion(
     of texture: (any MTLTexture)?,
     region: MTLRegion,
@@ -208,29 +194,92 @@ func replaceRegion(
     from data: RawSpan,
     sourceOffset: UInt64,
     bytesPerRow: UInt64,
-    bytesPerImage: UInt64,
-    block: TexelBlockLayout
+    bytesPerImage: UInt64
 ) {
     guard let offset = Int(exactly: sourceOffset), offset <= data.byteCount else {
         preconditionFailure("The source offset is outside the data")
     }
     let source = data.extracting(offset..<data.byteCount)
-    precondition(replaceRegionSourceSize(region, bytesPerRow, bytesPerImage, block) <= UInt64(source.byteCount))
     guard let texture else {
         return
+    }
+    let block = texelBlock(of: texture)
+
+    // The destination: the level's extent, rounded up to whole blocks as WebGPU's physical extent is.
+    let level = Int(mipmapLevel)
+    precondition(level < texture.mipmapLevelCount, "The level is outside the texture")
+    func levelExtent(_ size: Int, _ blockSize: UInt32) -> UInt64 {
+        let extent = UInt64(max(1, size >> level))
+        let blockSize = UInt64(blockSize)
+        return (extent + blockSize - 1) / blockSize * blockSize
+    }
+    let is3D = texture.textureType == .type3D
+    let extentWidth = levelExtent(texture.width, block.width)
+    let extentHeight = levelExtent(texture.height, block.height)
+    let extentDepth = is3D ? levelExtent(texture.depth, 1) : 1
+    func fits(_ origin: Int, _ size: Int, _ extent: UInt64) -> Bool {
+        guard let origin = UInt64(exactly: origin), let size = UInt64(exactly: size) else {
+            return false
+        }
+        let (end, overflow) = origin.addingReportingOverflow(size)
+        return !overflow && end <= extent
+    }
+    precondition(
+        fits(region.origin.x, region.size.width, extentWidth) && fits(region.origin.y, region.size.height, extentHeight)
+            && fits(region.origin.z, region.size.depth, extentDepth),
+        "The region is outside the texture"
+    )
+    let sliceCount: Int
+    switch texture.textureType {
+    case .type1DArray, .type2DArray:
+        sliceCount = texture.arrayLength
+    case .typeCube:
+        sliceCount = 6
+    case .typeCubeArray:
+        sliceCount = 6 * texture.arrayLength
+    default:
+        sliceCount = 1
+    }
+    guard let destinationSlice = Int(exactly: slice), destinationSlice < sliceCount else {
+        preconditionFailure("The slice is outside the texture")
+    }
+
+    // The source: rows of blocks, bytesPerRow apart, in images bytesPerImage apart; the last row only as long as the
+    // region's blocks.
+    let width = UInt64(region.size.width)
+    let height = UInt64(region.size.height)
+    let depth = UInt64(region.size.depth)
+    let blocksPerRow = (width + UInt64(block.width) - 1) / UInt64(block.width)
+    let rows = (height + UInt64(block.height) - 1) / UInt64(block.height)
+    if blocksPerRow == 0 || rows == 0 || depth == 0 {
+        return
+    }
+    let (rowBytes, rowBytesOverflow) = blocksPerRow.multipliedReportingOverflow(by: UInt64(block.size))
+    let (rowSpan, rowSpanOverflow) = (rows - 1).multipliedReportingOverflow(by: bytesPerRow)
+    let (imageBytes, imageBytesOverflow) = rowSpan.addingReportingOverflow(rowBytes)
+    let (imageSpan, imageSpanOverflow) = (depth - 1).multipliedReportingOverflow(by: bytesPerImage)
+    let (sourceSize, sourceSizeOverflow) = imageSpan.addingReportingOverflow(imageBytes)
+    precondition(!rowBytesOverflow && !rowSpanOverflow && !imageBytesOverflow && !imageSpanOverflow && !sourceSizeOverflow)
+    precondition(rows == 1 || bytesPerRow >= rowBytes, "The rows overlap")
+    precondition(depth == 1 || bytesPerImage >= imageBytes, "The images overlap")
+    precondition(sourceSize <= UInt64(source.byteCount), "The data doesn't hold the region")
+    guard let metalBytesPerRow = Int(exactly: bytesPerRow), let metalBytesPerImage = Int(exactly: bytesPerImage) else {
+        preconditionFailure("The strides don't fit in Int")
     }
     source.withUnsafeBytes { bytes in
         guard let baseAddress = bytes.baseAddress else {
             return
         }
-        // Safety: the precondition above bounds every byte Metal reads by `bytes`.
+        // Safety: Metal writes the region of the level and slice, which the preconditions keep in the texture, and reads
+        // `sourceSize` bytes, by the blocks of the texture's own format, with strides no shorter than what they step over,
+        // which the preconditions keep in `bytes`.
         unsafe texture.replace(
             region: region,
-            mipmapLevel: Int(mipmapLevel),
-            slice: Int(truncatingIfNeeded: slice),
+            mipmapLevel: level,
+            slice: destinationSlice,
             withBytes: baseAddress,
-            bytesPerRow: Int(truncatingIfNeeded: bytesPerRow),
-            bytesPerImage: Int(truncatingIfNeeded: bytesPerImage)
+            bytesPerRow: metalBytesPerRow,
+            bytesPerImage: metalBytesPerImage
         )
     }
 }

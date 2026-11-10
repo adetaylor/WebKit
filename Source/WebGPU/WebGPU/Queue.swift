@@ -2214,7 +2214,6 @@ public final class QueueImpl: GPUObjectReference {
         let isCompressed = isCompressedFormat(textureFormat)
         let blockHeight = texelBlockHeight(textureFormat)
         let blockWidth = texelBlockWidth(textureFormat)
-        let texelBlock = TexelBlockLayout(width: blockWidth, height: blockHeight, size: blockSize)
         if !isCompressed && (bytesPerRow % UInt(blockSize) != 0 || bytesPerRow > maxRowBytes) {
             var newSize = WebGPU.Extent3D()
             newSize.width = size.width
@@ -2535,8 +2534,7 @@ public final class QueueImpl: GPUObjectReference {
                             from: source.bytes,
                             sourceOffset: UInt64(sourceOffset),
                             bytesPerRow: 0,
-                            bytesPerImage: 0,
-                            block: texelBlock
+                            bytesPerImage: 0
                         )
                     }
                 case WebGPU.TextureDimension._2d:
@@ -2571,8 +2569,7 @@ public final class QueueImpl: GPUObjectReference {
                             from: source.bytes,
                             sourceOffset: UInt64(sourceOffset),
                             bytesPerRow: UInt64(bytesPerRow),
-                            bytesPerImage: 0,
-                            block: texelBlock
+                            bytesPerImage: 0
                         )
                     }
                 case WebGPU.TextureDimension._3d:
@@ -2597,8 +2594,7 @@ public final class QueueImpl: GPUObjectReference {
                         from: source.bytes,
                         sourceOffset: UInt64(sourceOffset),
                         bytesPerRow: UInt64(bytesPerRow),
-                        bytesPerImage: UInt64(bytesPerImage),
-                        block: texelBlock
+                        bytesPerImage: UInt64(bytesPerImage)
                     )
                 default:
                     skippedLayer = true

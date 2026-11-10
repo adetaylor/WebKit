@@ -2104,6 +2104,18 @@ func textureFormat(_ pixelFormat: MTLPixelFormat) -> WebGPU.TextureFormat? {
     switch pixelFormat {
     case .r8Unorm:
         return .R8unorm
+    case .r16Unorm:
+        return .R16unorm
+    case .r16Snorm:
+        return .R16snorm
+    case .rg16Unorm:
+        return .Rg16unorm
+    case .rg16Snorm:
+        return .Rg16snorm
+    case .rgba16Unorm:
+        return .Rgba16unorm
+    case .rgba16Snorm:
+        return .Rgba16snorm
     case .r8Snorm:
         return .R8snorm
     case .r8Uint:
