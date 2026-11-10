@@ -28,10 +28,53 @@
 
 #if ENABLE(GPU_PROCESS)
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererResources.h"
+#include "RemoteRenderingBackend.h"
+#include "WebKit-Swift.h"
+#else
 #include "RemoteGraphicsContextMessages.h"
+#endif
 
 namespace WebKit {
 using namespace WebCore;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+Ref<RemoteDisplayListRecorder> RemoteDisplayListRecorder::create(RemoteDisplayListRecorderIdentifier identifier, RemoteRenderingBackend& renderingBackend)
+{
+    Ref instance = adoptRef(*new RemoteDisplayListRecorder(identifier, renderingBackend));
+    instance->startListeningForIPC();
+    return instance;
+}
+
+RemoteDisplayListRecorder::RemoteDisplayListRecorder(RemoteDisplayListRecorderIdentifier identifier, RemoteRenderingBackend& renderingBackend)
+    : m_renderingBackend(renderingBackend)
+    , m_identifier(identifier)
+    , m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(RemoteCGRendererRecorder::create(RemoteCGRendererResources::createForRecorder(renderingBackend, nullptr).ptr(), renderingBackend.cgRendererDisplayLists())))
+{
+}
+
+RemoteDisplayListRecorder::~RemoteDisplayListRecorder() = default;
+
+void RemoteDisplayListRecorder::startListeningForIPC()
+{
+    Ref forwarder = RemoteCGRendererRecorder::createMessageReceiver(*m_recorder);
+    m_renderingBackend->streamConnection().startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+}
+
+void RemoteDisplayListRecorder::stopListeningForIPC()
+{
+    m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+}
+
+bool RemoteDisplayListRecorder::sinkIntoDisplayList(RemoteDisplayListIdentifier displayListIdentifier)
+{
+    return m_renderingBackend->cgRendererDisplayLists().add(m_recorder->takeRecording(), displayListKey(displayListIdentifier));
+}
+
+#else
 
 Ref<RemoteDisplayListRecorder> RemoteDisplayListRecorder::create(RemoteDisplayListRecorderIdentifier identifier, RemoteRenderingBackend& renderingBackend)
 {
@@ -58,6 +101,8 @@ void RemoteDisplayListRecorder::stopListeningForIPC()
 {
     m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 }
+
+#endif
 
 } // namespace WebKit
 

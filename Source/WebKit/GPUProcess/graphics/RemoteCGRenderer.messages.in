@@ -29,13 +29,17 @@
 # of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
 # process copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path
 # of them, and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
+# The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
+# with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
+# list doesn't.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     SwiftReceiver,
     SwiftReceiverStateLender=WebKit::RemoteImageBufferGraphicsContext,
-    MessagesFrom=RemoteGraphicsContext
+    MessagesFrom=RemoteGraphicsContext,
+    Recordable
 ]
 messages -> RemoteCGRenderer Stream {
     Save
@@ -123,7 +127,7 @@ messages -> RemoteCGRenderer Stream {
     FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
     DrawLinesForText(WebCore::FloatPoint point, float thickness, WebKit::RemoteCGRendererLineSegments lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched
     DrawDotsForDocumentMarker(WebCore::FloatRect rect, enum:uint8_t WebCore::DocumentMarkerLineStyleMode mode, CGRendererColorValue color) StreamBatched
-    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
+    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, [RecordedAs=WebKit::RemoteCGRendererRecordedGlyphs] WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched
@@ -140,10 +144,12 @@ messages -> RemoteCGRenderer Stream {
     DrawBadgeSystemImage
 #endif
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-    DrawVideoFrame
-    SetSharedVideoFrameSemaphore
-    SetSharedVideoFrameMemory
+    DrawVideoFrame NotRecorded
+    SetSharedVideoFrameSemaphore NotRecorded
+    SetSharedVideoFrameMemory NotRecorded
 #endif
+    DrawDisplayList(WebKit::RemoteDisplayListIdentifier identifier) StreamBatched
+    DrawSnapshotFrame(WebCore::FrameIdentifier frameIdentifier)
 }
 
 #endif

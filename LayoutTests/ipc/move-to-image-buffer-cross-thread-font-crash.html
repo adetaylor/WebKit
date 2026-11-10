@@ -11,7 +11,7 @@ if (window.testRunner) {
     if (!window.IPC)
         return window.testRunner?.notifyDone();
 
-    const { CoreIPC } = await import('./coreipc.js');
+    const { CoreIPC, drawingInterfaceName } = await import('./coreipc.js');
 
     function createRenderingBackend() {
         const id = randomIPCID();
@@ -36,7 +36,7 @@ if (window.testRunner) {
         });
         return {
             imageBuffer: renderingBackend.streamConnection.newInterface("RemoteImageBuffer", imageBufferIdentifier),
-            graphicsContext: renderingBackend.streamConnection.newInterface("RemoteGraphicsContext", contextIdentifier),
+            graphicsContext: renderingBackend.streamConnection.newInterface(drawingInterfaceName(), contextIdentifier),
             imageBufferIdentifier,
             contextIdentifier
         };
@@ -94,9 +94,11 @@ if (window.testRunner) {
     const bufferToTransfer = createDisplayListImageBuffer(backendA);
     const racingBuffer = createDisplayListImageBuffer(backendA);
 
+    const glyphs = [{ alias: { alias: 0 } }];
+    const advance = { width: 1, height: 1 };
     const drawGlyphs = {
         fontIdentifier,
-        glyphsAdvances: [[{ alias: { alias: 0 } }], [{ width: 1, height: 1 }]],
+        glyphsAdvances: drawingInterfaceName() == 'RemoteCGRenderer' ? { glyphsAdvances: [glyphs, [{ alias: { width: { alias: 1 }, height: { alias: 1 } } }]] } : [glyphs, [advance]],
         localAnchor: { x: 0, y: 0 },
         smoothingMode: 1
     };
@@ -105,7 +107,7 @@ if (window.testRunner) {
 
     const nestedRecorderIdentifier = randomIPCID();
     backendA.backend.CreateDisplayListRecorder({ identifier: nestedRecorderIdentifier });
-    backendA.streamConnection.newInterface("RemoteGraphicsContext", nestedRecorderIdentifier).DrawGlyphs(drawGlyphs);
+    backendA.streamConnection.newInterface(drawingInterfaceName(), nestedRecorderIdentifier).DrawGlyphs(drawGlyphs);
     const nestedDisplayListIdentifier = randomIPCID();
     backendA.backend.SinkDisplayListRecorderIntoDisplayList({ identifier: nestedRecorderIdentifier, displayListIdentifier: nestedDisplayListIdentifier });
     bufferToTransfer.graphicsContext.DrawDisplayList({ identifier: nestedDisplayListIdentifier });

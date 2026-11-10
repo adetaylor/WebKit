@@ -28,8 +28,13 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "RemoteSnapshotRecorderMessages.h"
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererMessages.h"
+#else
+#include "RemoteSnapshotRecorderMessages.h"
+#endif
 
 namespace WebKit {
 using namespace WebCore;
@@ -46,7 +51,11 @@ void RemoteSnapshotRecorderProxy::drawSnapshotFrame(FrameIdentifier frameIdentif
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    send(Messages::RemoteCGRenderer::DrawSnapshotFrame(frameIdentifier));
+#else
     send(Messages::RemoteSnapshotRecorder::DrawSnapshotFrame(frameIdentifier));
+#endif
 }
 
 }

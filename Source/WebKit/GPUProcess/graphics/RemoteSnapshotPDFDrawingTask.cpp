@@ -75,13 +75,25 @@ void RemoteSnapshotPDFDrawingTask::sendToPrintProcess(ProcessIdentifier printPro
 {
     RefPtr snapshot = m_snapshot;
     RefPtr connection = protect(GPUProcess::singleton())->webProcessConnection(printProcessIdentifier);
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    auto printData = connection ? snapshot->createPrintData(m_rootFrameIdentifier) : std::nullopt;
+    if (!printData) {
+        fallback();
+        return;
+    }
+    // The message refers to its arguments until it is sent.
+    auto size = snapshot->size();
+    auto message = Messages::GPUProcessConnection::DrawSnapshotPrintDataToPDF(WTF::move(*printData), size);
+#else
     auto displayListData = connection ? snapshot->createDisplayListData(m_rootFrameIdentifier) : std::nullopt;
     if (!displayListData) {
         fallback();
         return;
     }
+    auto message = Messages::GPUProcessConnection::DrawDisplayListToPDF(WTF::move(*displayListData), snapshot->size());
+#endif
 
-    protect(connection->connection())->sendWithAsyncReply(Messages::GPUProcessConnection::DrawDisplayListToPDF(WTF::move(*displayListData), snapshot->size()), [protectedThis = Ref { *this }](RefPtr<SharedBuffer>&& pdf) {
+    protect(connection->connection())->sendWithAsyncReply(WTF::move(message), [protectedThis = Ref { *this }](RefPtr<SharedBuffer>&& pdf) {
         if (pdf)
             protectedThis->complete(pdf.releaseNonNull());
         else

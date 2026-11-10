@@ -3607,6 +3607,13 @@ extension CGRendererCore {
         setCTM(transform)
     }
 
+    // The transform that a replayed recording's transforms are relative to: the context's when the replay starts, as
+    // GraphicsContext::drawDisplayList() takes it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverCTM() -> CGAffineTransform {
+        ctm(false)
+    }
+
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveConcatCTM(_ transform: borrowing WebCore.AffineTransform) {
         // The message's transform, read in place: concatCTM() takes a copy, which LLVM merges with setCTM()'s.
@@ -3813,10 +3820,11 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public func receiveGlyphContext() -> CGRendererGlyphContext {
         var context = CGRendererGlyphContext()
-        context.fillColor = colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible)
-        if let shadow = state.dropShadow {
+        // The colors are only for a simple shadow's draw.
+        if let shadow = state.dropShadow, shadow.isValid && shadow.radius == 0 {
+            context.fillColor = colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible)
             context.shadowColor = colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible)
-            context.hasSimpleShadow = shadow.isValid && shadow.radius == 0
+            context.hasSimpleShadow = true
         }
         context.hasReceiverTransparencyLayer = hasReceiverTransparencyLayer()
         return context

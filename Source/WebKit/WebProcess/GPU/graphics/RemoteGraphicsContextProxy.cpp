@@ -43,7 +43,9 @@
 #endif
 #include "RemoteImageBufferProxy.h"
 #include "RemoteRenderingBackendProxy.h"
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteSnapshotRecorderMessages.h"
+#endif
 #include "SharedVideoFrame.h"
 #include "StreamClientConnection.h"
 #include "WebProcess.h"
@@ -73,17 +75,11 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextProxy);
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, RenderingMode renderingMode, RemoteRenderingBackendProxy& renderingBackend)
     : RemoteGraphicsContextProxy({ }, initialClip, initialCTM, colorSpace, DrawGlyphsMode::Deconstruct, std::nullopt, renderingMode, RemoteGraphicsContextIdentifier::generate(), renderingBackend)
 {
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    m_drawsWithCGRendererReceiver = true;
-#endif
 }
 
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, WebCore::ContentsFormat contentsFormat, RenderingMode renderingMode, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackendProxy& renderingBackend)
     : RemoteGraphicsContextProxy({ }, initialClip, initialCTM, colorSpace, DrawGlyphsMode::Deconstruct, contentsFormat, renderingMode, identifier, renderingBackend)
 {
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    m_drawsWithCGRendererReceiver = true;
-#endif
 }
 
 RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const GraphicsContextState& state, const FloatRect& initialClip, const AffineTransform& initialCTM, const ColorSpace& colorSpace, DrawGlyphsMode drawGlyphsMode, std::optional<ContentsFormat> contentsFormat, RenderingMode renderingMode, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackendProxy& renderingBackend)
@@ -93,6 +89,9 @@ RemoteGraphicsContextProxy::RemoteGraphicsContextProxy(const GraphicsContextStat
     , m_renderingBackend(renderingBackend)
     , m_contentsFormat(contentsFormat)
 {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    m_drawsWithCGRendererReceiver = true;
+#endif
 }
 
 RemoteGraphicsContextProxy::~RemoteGraphicsContextProxy() = default;
@@ -393,7 +392,7 @@ void RemoteGraphicsContextProxy::drawDisplayList(const DisplayList::DisplayList&
         return;
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawDisplayList(*identifier));
+    SEND_RENDERER_MESSAGE(DrawDisplayList, *identifier);
 }
 
 void RemoteGraphicsContextProxy::drawImageBuffer(ImageBuffer& imageBuffer, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
@@ -1141,7 +1140,11 @@ void RemoteGraphicsContextProxy::abandon()
 }
 
 // Instantiate the send() helper for the few subclass messages here to avoid listing it in the header.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+template void RemoteGraphicsContextProxy::send<Messages::RemoteCGRenderer::DrawSnapshotFrame>(Messages::RemoteCGRenderer::DrawSnapshotFrame&&);
+#else
 template void RemoteGraphicsContextProxy::send<Messages::RemoteSnapshotRecorder::DrawSnapshotFrame>(Messages::RemoteSnapshotRecorder::DrawSnapshotFrame&&);
+#endif
 
 }
 

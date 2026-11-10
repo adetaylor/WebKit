@@ -28,6 +28,7 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "RemoteCGRendererPath.h"
+#include "RemoteDisplayListIdentifier.h"
 #include "RemoteGradientIdentifier.h"
 #include "RemoteMeshGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
@@ -38,19 +39,28 @@
 #include <WebCore/ControlStyle.h>
 #include <WebCore/Filter.h>
 #include <WebCore/FloatRoundedRect.h>
+#include <WebCore/FrameIdentifier.h>
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/SharedMemory.h>
 #include <WebCore/SystemImage.h>
+#include <wtf/Function.h>
+#include <wtf/HashMap.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
+class CGRendererCore;
 class ControlFactory;
 class Gradient;
+class GraphicsContextCG;
 class ImageBuffer;
+class MeshGradient;
 class NativeImage;
+class PathImpl;
 }
 
 namespace IPC {
@@ -59,16 +69,61 @@ class Semaphore;
 
 namespace WebKit {
 
+class DisplayListDataFonts;
+class RemoteCGRendererRecordedMessageEncoder;
 class RemoteRenderingBackend;
+class RemoteSnapshot;
 class SharedFont;
+struct RemoteSnapshotPrintData;
+struct RemoteSnapshotPrintRecording;
 class SharedVideoFrameReader;
 struct SharedVideoFrame;
 
-// What an image buffer's RemoteCGRenderer looks up by identifier, in its rendering backend's resource cache and image buffers,
-// as RemoteGraphicsContext's handlers do.
+// The resources that a recording's messages name (RemoteCGRendererRecording.swift), which it keeps from when it records them,
+// as a WebCore display list keeps what it records. Read only once recorded, on whichever thread replays the recording.
+class RemoteCGRendererRecordedResources final : public ThreadSafeRefCounted<RemoteCGRendererRecordedResources> {
+public:
+    static Ref<RemoteCGRendererRecordedResources> create();
+    ~RemoteCGRendererRecordedResources();
+
+    // The resources, for the print process (RemoteSnapshotPrintData): false where it can't have one, such as an image.
+    bool exportForPrint(RemoteSnapshotPrintRecording&, DisplayListDataFonts&) const __attribute__((availability(swift, unavailable)));
+    // The resources that the print process takes from that, with the fonts it made of the snapshot's.
+    bool importFromPrint(RemoteSnapshotPrintRecording&, std::span<const Ref<SharedFont>>) __attribute__((availability(swift, unavailable)));
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCounted<RemoteCGRendererRecordedResources>::ref(); }
+    void deref() const { ThreadSafeRefCounted<RemoteCGRendererRecordedResources>::deref(); }
+#endif
+
+private:
+    friend class RemoteCGRendererResources;
+    RemoteCGRendererRecordedResources();
+
+    HashMap<RemotePathImplIdentifier, Ref<WebCore::PathImpl>> m_paths;
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
+    HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<SharedFont>> m_fonts;
+    HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
+    // The cached SVG filters that DrawFilteredImageBuffer's filters name, with the message's effects merged in.
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// What a RemoteCGRenderer looks up by identifier, as RemoteGraphicsContext's handlers do, and what it draws into:
+// - an image buffer's receiver's: its rendering backend's resource cache and image buffers, and the buffer;
+// - a recorder's: the backend's, which it copies into its recording's resources as it records each message;
+// - a replay's into a context: only the resources of the recordings it replays;
+// - the print process's recorder's, which records a snapshot's recordings again: those that the GPU process sent with each.
+// While a recording is replayed (beginReplay()), its resources are the ones looked up.
 class RemoteCGRendererResources final : public RefCounted<RemoteCGRendererResources> {
 public:
-    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend, WebCore::ImageBuffer& target) { return adoptRef(*new RemoteCGRendererResources(backend, target)); }
+    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend, WebCore::ImageBuffer& target) { return adoptRef(*new RemoteCGRendererResources(&backend, &target, nullptr, nullptr)); }
+    // A snapshot recorder's also keeps the snapshot whose frames its DrawSnapshotFrame references.
+    static Ref<RemoteCGRendererResources> createForRecorder(RemoteRenderingBackend&, RemoteSnapshot*);
+    static Ref<RemoteCGRendererResources> createForReplay(WebCore::GraphicsContextCG& target) { return adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, &target, nullptr)); }
+    static Ref<RemoteCGRendererResources> createForRerecording();
     ~RemoteCGRendererResources();
 
     // The cached path, or one that isn't valid.
@@ -76,16 +131,49 @@ public:
 
     // The cached native image's image, which is null for an image this process can't read.
     RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
-    WebCore::ImageBuffer& target() const { return m_target; }
+    // The image buffer that the receiver draws into, if it draws into one, and the context it draws into otherwise.
+    WebCore::ImageBuffer* targetImageBuffer() const { return m_target.get(); }
+    WebCore::GraphicsContextCG& targetContext() const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
     RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
     RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
+    RefPtr<WebCore::PathImpl> cachedPathImpl(RemotePathImplIdentifier) const __attribute__((availability(swift, unavailable)));
+    RefPtr<WebCore::MeshGradient> cachedMeshGradient(RemoteMeshGradientIdentifier) const __attribute__((availability(swift, unavailable)));
+    RefPtr<WebCore::Filter> cachedFilter(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     // The copy of the target that the receiver draws an accelerated target into itself from (copyImageBufferImage()), which
     // the receiver lets go after the draw.
     void releaseSelfCopy() const { m_selfCopy = nullptr; }
     void setSelfCopy(RefPtr<WebCore::ImageBuffer>&& selfCopy) const { m_selfCopy = WTF::move(selfCopy); }
 
-    RemoteRenderingBackend& backend() const __attribute__((availability(swift, unavailable))) { return m_backend; }
+    // Makes the recording's resources the ones looked up, until the matching endReplay(). Replays nest.
+    void beginReplay(RemoteCGRendererRecordedResources&) const;
+    void endReplay() const;
+    bool isReplaying() const { return !m_replayedResources.isEmpty(); }
+
+    // The resources that a recorder's message names, copied into its recording's as RemoteGraphicsContext looks them up for a
+    // WebCore display list recorder: false where one is missing, which is an invalid message.
+    bool recordPath(RemotePathImplIdentifier) const;
+    bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
+    bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
+    bool recordGradient(RemoteGradientIdentifier) const;
+    bool recordFont(WebCore::RenderingResourceIdentifier) const;
+    bool recordMeshGradient(RemoteMeshGradientIdentifier) const;
+    // A DrawFilteredImageBuffer's source and its filter's FEImage images, and the cached SVG filter it names, into which the
+    // filter's effects are merged, as RemoteGraphicsContext merges them.
+    bool recordFilter(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&) const;
+#if USE(SYSTEM_PREVIEW)
+    bool recordBadgeImage(std::optional<WebCore::RenderingResourceIdentifier> imageIdentifier) const;
+#endif
+    // A DrawSnapshotFrame's frame, which the snapshot then waits for: false for a recorder that isn't a snapshot's.
+    bool addSnapshotFrameReference(WebCore::FrameIdentifier) const;
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    // Reads a DrawVideoFrame's frame, which a recording doesn't keep, so that the reader keeps in step with the sender.
+    void readVideoFrame(const SharedVideoFrame&) const;
+#endif
+    // The recorder's recording's resources, which it hands to its recording (takeRecordedResources()).
+    Ref<RemoteCGRendererRecordedResources> takeRecordedResources() const __attribute__((availability(swift, unavailable)));
+
+    RemoteRenderingBackend* backend() const __attribute__((availability(swift, unavailable))) { return m_backend.get(); }
     // The control factory of the receiver's control parts, and the reader of its video frames, made when first used.
     WebCore::ControlFactory& controlFactory() const __attribute__((availability(swift, unavailable)));
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -99,16 +187,66 @@ public:
 #endif
 
 private:
-    RemoteCGRendererResources(RemoteRenderingBackend&, WebCore::ImageBuffer& target);
+    RemoteCGRendererResources(RemoteRenderingBackend*, WebCore::ImageBuffer* target, WebCore::GraphicsContextCG* targetContext, RemoteSnapshot*);
 
-    const Ref<RemoteRenderingBackend> m_backend;
-    const Ref<WebCore::ImageBuffer> m_target;
+    const RefPtr<RemoteRenderingBackend> m_backend;
+    const RefPtr<WebCore::ImageBuffer> m_target;
+    // A replay's context, which outlives the replay, the only time it is used.
+    WebCore::GraphicsContextCG* const m_targetContext;
+    const RefPtr<RemoteSnapshot> m_snapshot;
+    mutable Ref<RemoteCGRendererRecordedResources> m_recordedResources;
+    mutable Vector<Ref<RemoteCGRendererRecordedResources>, 2> m_replayedResources;
     mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
     mutable RefPtr<WebCore::ControlFactory> m_controlFactory;
+    bool m_isRerecording { false };
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     mutable std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
 #endif
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// Collects a snapshot's recordings into print data, as Swift walks them (RemoteCGRendererSnapshotFrames.encode(to:)).
+class RemoteSnapshotPrintDataBuilder final : public RefCounted<RemoteSnapshotPrintDataBuilder> {
+public:
+    static Ref<RemoteSnapshotPrintDataBuilder> create(uint64_t rootFrameKey);
+    ~RemoteSnapshotPrintDataBuilder();
+
+    // A recording, with its messages encoded, and its resources: false where the print process can't have one of them.
+    bool addRecording(RemoteCGRendererRecordedMessageEncoder&, const RemoteCGRendererRecordedResources&);
+    // A display list that the recording added last draws, by key: the recording at the index.
+    void addDisplayList(uint64_t key, uint64_t index);
+    void addFrame(uint64_t key, uint64_t index);
+    void addAbandonedFrame(uint64_t key);
+    RemoteSnapshotPrintData takeData() __attribute__((availability(swift, unavailable)));
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { RefCounted<RemoteSnapshotPrintDataBuilder>::ref(); }
+    void deref() const { RefCounted<RemoteSnapshotPrintDataBuilder>::deref(); }
+#endif
+
+private:
+    explicit RemoteSnapshotPrintDataBuilder(uint64_t rootFrameKey);
+
+    const std::unique_ptr<RemoteSnapshotPrintData> m_data;
+    const std::unique_ptr<DisplayListDataFonts> m_fonts;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The recorder's recording's resources, for its recording.
+RemoteCGRendererRecordedResources* WTF_NONNULL takeRecordedResources(const RemoteCGRendererResources&) SWIFT_RETURNS_RETAINED;
+
+// Lends the context's renderer to Swift for the draw, which replays a recording into it with the resources.
+void replayIntoContext(WebCore::GraphicsContextCG&, NOESCAPE const Function<void(WebCore::CGRendererCore&, RemoteCGRendererResources&)>&) __attribute__((availability(swift, unavailable)));
+
+// The keys by which Swift finds the recording of a display list or a snapshot's frame.
+inline uint64_t displayListKey(RemoteDisplayListIdentifier identifier)
+{
+    return identifier.toUInt64();
+}
+
+inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
+{
+    return identifier.toUInt64();
+}
 
 // The draws of messages that C++ makes, into the receiver's leaf context (CGRendererLeafContext), as RemoteGraphicsContext's
 // handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.

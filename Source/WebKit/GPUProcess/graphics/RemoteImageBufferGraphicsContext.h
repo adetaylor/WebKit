@@ -105,6 +105,7 @@ private:
     void setStrokePackedColorValue(uint32_t);
     void setStrokePackedColorValueAndThickness(uint32_t, float);
     void strokeLines(const RemoteCGRendererLineStrokes&);
+    void drawRecordedDisplayList(RemoteDisplayListIdentifier);
 #endif
 
     const Ref<WebCore::ImageBuffer> m_imageBuffer;

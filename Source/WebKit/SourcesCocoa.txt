@@ -81,6 +81,7 @@ GPUProcess/media/GPUVideoFrameSource.cpp
 GPUProcess/graphics/RemoteCGRendererResources.cpp
 GPUProcess/graphics/RemoteGraphicsContextGLCocoa.cpp
 GPUProcess/graphics/RemoteSnapshotPDFDrawingTask.cpp
+GPUProcess/graphics/RemoteSnapshotPrintData.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequestCocoa.mm @nonARC @no-unify-when(bundle<=8)
 GPUProcess/ios/GPUProcessIOS.mm @nonARC
 GPUProcess/mac/GPUProcessMac.mm @nonARC

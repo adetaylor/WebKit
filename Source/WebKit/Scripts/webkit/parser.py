@@ -226,7 +226,7 @@ def parse(file):
 
             messages.append(model.Message(name, parameters, reply_parameters, attributes, combine_condition(conditions), validator, enabled_by, enabled_by_exception, enabled_by_conjunction, coalescing_key_indices))
             continue
-        if messages_from:
+        if messages_from and destination:
             match = re.fullmatch(r'([A-Za-z_0-9]+)((?:\s+[A-Za-z_0-9]+)*)', line)
             if match:
                 messages.append(MessageReference(match.group(1), parse_attributes_string(match.group(2).strip()), combine_condition(conditions)))

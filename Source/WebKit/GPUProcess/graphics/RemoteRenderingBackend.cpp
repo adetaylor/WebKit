@@ -71,6 +71,11 @@
 #include <WebCore/IOSurfacePool.h>
 #endif
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererResources.h"
+#include "WebKit-Swift.h"
+#endif
+
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 #import "DynamicContentScalingBifurcatedImageBuffer.h"
 #import "DynamicContentScalingImageBufferBackend.h"
@@ -107,6 +112,9 @@ RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuCon
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_renderingBackendIdentifier(identifier)
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    , m_cgRendererDisplayLists(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererDisplayLists>(RemoteCGRendererDisplayLists::create()))
+#endif
 {
     ASSERT(RunLoop::isMain());
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
@@ -149,6 +157,9 @@ void RemoteRenderingBackend::workQueueUninitialize()
     m_remoteSnapshotRecorders.clear();
     // Make sure we destroy the ResourceCache on the WorkQueue since it gets populated on the WorkQueue.
     m_remoteResourceCache.releaseAllResources();
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    m_cgRendererDisplayLists->removeAll();
+#endif
 
     Ref streamConnection = m_streamConnection;
     streamConnection->stopReceivingMessages(Messages::RemoteRenderingBackend::messageReceiverName(), m_renderingBackendIdentifier.toUInt64());
@@ -276,9 +287,13 @@ void RemoteRenderingBackend::sinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapsho
     assertIsCurrent(workQueue());
     RefPtr recorder = m_remoteSnapshotRecorders.take(identifier).get();
     MESSAGE_CHECK(recorder, "Recorder sunk into snapshot before being cached");
-    Ref snapshot = recorder->snapshot();
     // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    recorder->sinkIntoSnapshotFrame(frameIdentifier, workQueue());
+#else
+    Ref snapshot = recorder->snapshot();
     snapshot->setFrame(frameIdentifier, recorder->takeDisplayList(), workQueue());
+#endif
     completionHandler(true);
 }
 
@@ -639,15 +654,23 @@ void RemoteRenderingBackend::sinkDisplayListRecorderIntoDisplayList(RemoteDispla
     assertIsCurrent(workQueue());
     RefPtr recorder = m_remoteDisplayListRecorders.take(identifier).get();
     MESSAGE_CHECK(recorder, "Recorder sunk into display list before being cached");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = recorder->sinkIntoDisplayList(displayListIdentifier);
+#else
     Ref displayList = recorder->takeDisplayList();
     bool success = m_remoteResourceCache.cacheDisplayList(displayListIdentifier, WTF::move(displayList));
+#endif
     MESSAGE_CHECK(success, "Display list already created");
 }
 
 void RemoteRenderingBackend::releaseDisplayList(RemoteDisplayListIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = m_cgRendererDisplayLists->remove(displayListKey(identifier));
+#else
     bool success = m_remoteResourceCache.releaseDisplayList(identifier);
+#endif
     MESSAGE_CHECK(success, "Display list released before being cached");
 }
 
@@ -655,6 +678,9 @@ void RemoteRenderingBackend::releaseMemory()
 {
     assertIsCurrent(workQueue());
     m_remoteResourceCache.releaseMemory();
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    m_cgRendererDisplayLists->removeAll();
+#endif
 }
 
 #if USE(GRAPHICS_LAYER_WC)

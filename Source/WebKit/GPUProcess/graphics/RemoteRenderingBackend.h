@@ -88,6 +88,9 @@ struct FontCustomPlatformSerializedData;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class RemoteCGRendererDisplayLists;
+#endif
 class RemoteDisplayListRecorder;
 class RemoteImageBuffer;
 class RemoteImageBufferSet;
@@ -120,6 +123,11 @@ public:
     void dispatch(Function<void()>&&);
 
     IPC::StreamServerConnection& streamConnection() const { return m_streamConnection.get(); }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // The display lists, recorded in Swift, that its contexts' DrawDisplayList messages name.
+    RemoteCGRendererDisplayLists& cgRendererDisplayLists() const __attribute__((availability(swift, unavailable))) { return *m_cgRendererDisplayLists; }
+#endif
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -224,6 +232,9 @@ private:
     HashMap<ImageBufferSetIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteImageBufferSet>> m_remoteImageBufferSets WTF_GUARDED_BY_CAPABILITY(workQueue());
     HashMap<RemoteDisplayListRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteDisplayListRecorder>> m_remoteDisplayListRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
     HashMap<RemoteSnapshotRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteSnapshotRecorder>> m_remoteSnapshotRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    const std::unique_ptr<RemoteCGRendererDisplayLists> m_cgRendererDisplayLists;
+#endif
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 bool isSmallLayerBacking(const WebCore::ImageBufferParameters&);
