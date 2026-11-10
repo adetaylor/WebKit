@@ -36,36 +36,35 @@ import WebGPU_Private.WebGPU
 // The constants an external texture binding writes into an argument buffer after its two planes, from `firstIndex`, as
 // the shader's float3x2, float4x3, float3x4 and uint2.
 private func writeExternalTextureConstants(
-    _ argumentEncoder: (any MTLArgumentEncoder)?,
-    _ firstIndex: UInt,
+    _ writer: ArgumentConstantWriter?,
+    _ firstIndex: UInt32,
     _ constants: WebGPU.Metal.ExternalTextureConstants
 ) {
-    guard let argumentEncoder else {
+    guard let writer else {
         return
     }
-    let index = Int(firstIndex)
     let uv = constants.uvRemapping
-    argumentEncoder.storeConstant(simd_float3x2(SIMD2(uv.0, uv.1), SIMD2(uv.2, uv.3), SIMD2(uv.4, uv.5)), at: index)
+    writer.storeFloat3x2(simd_float3x2(SIMD2(uv.0, uv.1), SIMD2(uv.2, uv.3), SIMD2(uv.4, uv.5)), at: firstIndex)
     let csc = constants.colorSpaceConversion
-    argumentEncoder.storeConstant(
+    writer.storeFloat4x3(
         simd_float4x3(
             SIMD3(csc.0, csc.1, csc.2),
             SIMD3(csc.3, csc.4, csc.5),
             SIMD3(csc.6, csc.7, csc.8),
             SIMD3(csc.9, csc.10, csc.11)
         ),
-        at: index + 1
+        at: firstIndex &+ 1
     )
     let primaries = constants.primariesConversion
-    argumentEncoder.storeConstant(
+    writer.storeFloat3x4(
         simd_float3x4(
             SIMD4(primaries.0, primaries.1, primaries.2, primaries.3),
             SIMD4(primaries.4, primaries.5, primaries.6, primaries.7),
             SIMD4(primaries.8, primaries.9, primaries.10, primaries.11)
         ),
-        at: index + 2
+        at: firstIndex &+ 2
     )
-    argumentEncoder.storeConstant(SIMD2<UInt32>(constants.visibleWidth, constants.visibleHeight), at: index + 3)
+    writer.storeUInt2(SIMD2<UInt32>(constants.visibleWidth, constants.visibleHeight), at: firstIndex &+ 3)
 }
 
 /// A buffer bound with a dynamic offset; a group keeps them sorted by bindingIndex.
@@ -416,7 +415,14 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
             encoder.setArgumentBuffer(buffer, offset: 0)
             encoder.setTexture(texture0, index: Int(truncatingIfNeeded: index))
             encoder.setTexture(texture1, index: Int(truncatingIfNeeded: index &+ 1))
-            writeExternalTextureConstants(encoder, index &+ 2, constants)
+            guard let firstConstantIndex = UInt32(exactly: index &+ 2) else {
+                continue
+            }
+            writeExternalTextureConstants(
+                ArgumentConstantWriter(encoder, constantTypes: layoutImpl.argumentDataTypes[stage], buffer: buffer),
+                firstConstantIndex,
+                constants
+            )
         }
         return true
     }
@@ -694,6 +700,8 @@ private struct BindGroupCreation {
         deviceImpl.hasFeature(WebGPU.FeatureName.Float32Filterable)
     }
     var encoders: PerStage<(any MTLArgumentEncoder)?>
+    // The writers of the constants of the argument buffers, which the encoders encode into.
+    var constantWriters = PerStage<ArgumentConstantWriter?>(repeating: nil)
     var argumentBuffers = PerStage<(any MTLBuffer)?>(repeating: nil)
     var argumentIndices = PerStage<SmallIndexSet>(repeating: SmallIndexSet())
     /// Every resource's record, owner and MTLResource, in the order they were added.
@@ -740,6 +748,11 @@ private struct BindGroupCreation {
                 }
             }
             encoders[stage]?.setArgumentBuffer(argumentBuffers[stage], offset: 0)
+            constantWriters[stage] = ArgumentConstantWriter(
+                encoders[stage],
+                constantTypes: layoutImpl.argumentDataTypes[stage],
+                buffer: argumentBuffers[stage]
+            )
             argumentIndices[stage] =
                 layoutImpl.argumentIndexBits[stage].map { SmallIndexSet(bits: $0) } ?? SmallIndexSet(layoutImpl.argumentIndices[stage])
         }
@@ -964,11 +977,8 @@ private struct BindGroupCreation {
             encoders[stage]?.setBuffer(mtlBuffer, offset: Int(truncatingIfNeeded: entryOffset), index: Int(index))
             if let bufferSizeIndex = layoutEntry.bufferSizeArgumentBufferIndices[stage] {
                 argumentIndices[stage].remove(bufferSizeIndex)
-                encoders[stage]?
-                    .storeConstant(
-                        min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)),
-                        at: Int(bufferSizeIndex)
-                    )
+                constantWriters[stage]?
+                    .storeInt(min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)), at: bufferSizeIndex)
             }
         }
         if let mtlBuffer {
@@ -1264,7 +1274,7 @@ private struct BindGroupCreation {
                 constants.colorSpaceConversion = (1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
                 constants.visibleWidth = UInt32(truncatingIfNeeded: texture?.width ?? 0)
                 constants.visibleHeight = UInt32(truncatingIfNeeded: texture?.height ?? 0)
-                writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
+                writeExternalTextureConstants(constantWriters[stage], index &+ 2, constants)
             }
             for plane in [texture, secondPlane] {
                 guard let plane else {
@@ -1372,7 +1382,7 @@ private struct BindGroupCreation {
             var constants = imported.constants
             constants.visibleWidth = externalTexture.visibleWidth()
             constants.visibleHeight = externalTexture.visibleHeight()
-            writeExternalTextureConstants(encoders[stage], UInt(index) + 2, constants)
+            writeExternalTextureConstants(constantWriters[stage], index &+ 2, constants)
         }
         return true
     }

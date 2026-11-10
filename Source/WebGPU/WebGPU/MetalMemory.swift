@@ -27,6 +27,7 @@
 
 import Darwin
 import Metal
+import simd
 
 extension MTLBuffer {
     // All `length` bytes of the contents, or nil for a buffer without CPU-visible contents (private storage).
@@ -234,17 +235,67 @@ func replaceRegion(
     }
 }
 
-extension MTLArgumentEncoder {
-    // Writes `value` into the constant at `index` of the argument buffer, which the layout declared as a T. Nothing
-    // for a constant Metal has no storage for.
-    @inline(__always)
-    func storeConstant<T: BitwiseCopyable>(_ value: T, at index: Int) {
-        // Safety: as MTLBuffer.withCPUVisibleContents(_:), the round trip keeps the null check.
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: UInt(bitPattern: constantData(at: index))) else {
-            return
+/// Writes the constant arguments of an argument buffer: each store traps unless the layout declared a constant of the
+/// stored type at the index, and the buffer holds the encoder's encodedLength bytes from the offset, where Metal places
+/// every argument of the encoder.
+struct ArgumentConstantWriter {
+    private let encoder: any MTLArgumentEncoder
+    private let buffer: any MTLBuffer
+    private let offset: Int
+    private let constantTypes: [UInt32: MTLDataType]
+
+    /// nil without an encoder or a buffer, or unless the buffer has CPU-visible contents and holds the encoder's
+    /// encodedLength bytes from `offset`. `constantTypes` are the data types of the arguments the encoder was made with,
+    /// by index.
+    init?(_ encoder: (any MTLArgumentEncoder)?, constantTypes: [UInt32: MTLDataType], buffer: (any MTLBuffer)?, offset: Int = 0) {
+        guard let encoder, let buffer, buffer.storageMode != .private, offset >= 0, offset <= buffer.length,
+            buffer.length - offset >= encoder.encodedLength
+        else {
+            return nil
         }
-        // Safety: Metal sizes the constant at `index` for the type the argument encoder's layout declared for it.
-        unsafe address.storeBytes(of: value, as: T.self)
+        self.encoder = encoder
+        self.buffer = buffer
+        self.offset = offset
+        self.constantTypes = constantTypes
+    }
+
+    func storeInt(_ value: UInt32, at index: UInt32) {
+        store(value, as: .int, at: index)
+    }
+
+    func storeUInt2(_ value: SIMD2<UInt32>, at index: UInt32) {
+        store(value, as: .uint2, at: index)
+    }
+
+    func storeFloat3x2(_ value: simd_float3x2, at index: UInt32) {
+        store(value, as: .float3x2, at: index)
+    }
+
+    func storeFloat4x3(_ value: simd_float4x3, at index: UInt32) {
+        store(value, as: .float4x3, at: index)
+    }
+
+    func storeFloat3x4(_ value: simd_float3x4, at index: UInt32) {
+        store(value, as: .float3x4, at: index)
+    }
+
+    // `T` is the Swift type of a Metal argument of `dataType`: the functions above pair them.
+    private func store<T: BitwiseCopyable>(_ value: T, as dataType: MTLDataType, at index: UInt32) {
+        precondition(constantTypes[index] == dataType, "The layout has no constant of this type at the index")
+        encoder.setArgumentBuffer(buffer, offset: offset)
+        let encodedLength = UInt(encoder.encodedLength)
+        // Safety: pointers as integers, for the bounds check below.
+        let contents = unsafe UInt(bitPattern: buffer.contents())
+        let constant = unsafe UInt(bitPattern: encoder.constantData(at: Int(index)))
+        let start = contents &+ UInt(offset)
+        precondition(
+            contents != 0 && constant >= start && constant - start <= encodedLength
+                && UInt(MemoryLayout<T>.size) <= encodedLength - (constant - start),
+            "The constant is outside the argument buffer"
+        )
+        // Safety: the contents of a buffer with CPU-visible storage stay at this address for as long as the buffer, which
+        // holds the encoder's encodedLength bytes from `offset` (init), and the precondition keeps the store inside them.
+        unsafe UnsafeMutableRawPointer(bitPattern: constant)?.storeBytes(of: value, as: T.self)
     }
 }
 
