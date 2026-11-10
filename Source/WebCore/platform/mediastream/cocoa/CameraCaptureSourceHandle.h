@@ -164,7 +164,7 @@ enum class CameraCapturePhotoError : uint8_t {
 void cameraCaptureSourceDidChange(uint64_t identifier, CameraCaptureSourceEvent, bool value);
 bool cameraCaptureSourceIsMuted(uint64_t identifier);
 // On the capture queue.
-void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVPixelBufferRef, CMTime presentationTime, uint16_t rotation, bool isMirrored);
+void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVPixelBufferRef WTF_NONNULL, CMTime presentationTime, uint16_t rotation, bool isMirrored);
 // On any thread.
 void cameraCaptureSourceDidCapturePhoto(uint64_t identifier, NSData * WTF_NONNULL);
 void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, CameraCapturePhotoError);
