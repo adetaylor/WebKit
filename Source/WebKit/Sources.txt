@@ -25,7 +25,6 @@ GPUProcess/GPUProcess.cpp @cost:7
 GPUProcess/GPUConnectionToWebProcess.cpp @cost:8
 GPUProcess/GPUProcessPreferences.cpp
 GPUProcess/RemoteSharedResourceCache.cpp
-GPUProcess/graphics/DisplayListDataTester.cpp
 GPUProcess/graphics/ImageBufferShareableAllocator.cpp
 GPUProcess/graphics/RemoteDisplayListRecorder.cpp
 GPUProcess/graphics/RemoteGraphicsContext.cpp @cost:3
@@ -36,7 +35,7 @@ GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
 GPUProcess/graphics/RemoteImageBufferSet.cpp
 GPUProcess/graphics/RemoteRenderingBackend.cpp @cost:6
 GPUProcess/graphics/RemoteResourceCache.cpp
-GPUProcess/graphics/RemoteSnapshot.cpp
+GPUProcess/graphics/RemoteSnapshotSink.cpp
 GPUProcess/graphics/RemoteSnapshotRecorder.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequest.cpp
 GPUProcess/graphics/ScopedWebGLRenderingResourcesRequest.cpp
@@ -51,7 +50,7 @@ GPUProcess/media/RemoteAudioSessionProxy.cpp
 GPUProcess/media/RemoteAudioSessionProxyManager.cpp
 GPUProcess/media/RemoteAudioTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteAudioVideoRendererProxyManager.cpp @cost:3
-GPUProcess/media/RemoteCDMFactoryProxy.cpp
+GPUProcess/media/RemoteCDMPrivateFactory.cpp
 GPUProcess/media/RemoteCDMSwiftSupport.cpp
 GPUProcess/media/RemoteLegacyCDMFactoryProxy.cpp
 GPUProcess/media/RemoteLegacyCDMProxy.cpp @cost:3
@@ -62,7 +61,6 @@ GPUProcess/media/RemoteMediaPlayerProxy.cpp @cost:4
 GPUProcess/media/RemoteMediaResource.cpp @cost:3
 GPUProcess/media/RemoteMediaResourceLoader.cpp @cost:3
 GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
-GPUProcess/media/RemoteRemoteCommandListenerProxy.cpp
 GPUProcess/media/RemoteTextTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteVideoTrackProxy.cpp @cost:3
 GPUProcess/webrtc/RemoteSampleBufferDisplayLayerManager.cpp
@@ -342,6 +340,7 @@ UIProcess/BrowsingContextGroup.cpp
 UIProcess/DeviceIdHashSaltStorage.cpp
 UIProcess/DisplayLink.cpp
 UIProcess/DisplayLinkProcessProxyClient.cpp
+UIProcess/DisplayListDataTester.cpp
 UIProcess/DrawingAreaProxy.cpp
 UIProcess/EnhancedSecurityTracking.cpp
 UIProcess/FindStringCallbackAggregator.cpp @cost:3
@@ -963,6 +962,7 @@ RemoteCommandEncoderMessageReceiver.cpp @cost:6
 RemoteCompositorIntegrationMessageReceiver.cpp @cost:5
 RemoteComputePassEncoderMessageReceiver.cpp @cost:5
 RemoteComputePipelineMessageReceiver.cpp @cost:5
+RemoteGPUModelMessageReceiver.cpp
 RemoteMeshMessageReceiver.cpp
 RemoteDeviceMessageReceiver.cpp @cost:6
 RemoteExternalTextureMessageReceiver.cpp @cost:5

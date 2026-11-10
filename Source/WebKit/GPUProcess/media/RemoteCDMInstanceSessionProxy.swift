@@ -31,12 +31,12 @@ import wtf
 final class RemoteCDMInstanceSessionProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMInstanceSessionProxyMessageForwarder?
-    private weak var factory: RemoteCDMFactoryState?
+    private weak var factory: RemoteCDMFactoryProxy?
     private weak var cdm: RemoteCDMProxy?
     private let backend: any RemoteCDMSessionBackend
 
     @_expose(!Cxx)
-    init(factory: RemoteCDMFactoryState, cdm: RemoteCDMProxy, backend: any RemoteCDMSessionBackend) {
+    init(factory: RemoteCDMFactoryProxy, cdm: RemoteCDMProxy, backend: any RemoteCDMSessionBackend) {
         self.factory = factory
         self.cdm = cdm
         self.backend = backend
@@ -53,10 +53,12 @@ final class RemoteCDMInstanceSessionProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard cdm != nil, let proxy = factory?.proxy else {
+        // The receiver's messages come on the main thread, which alone changes the factory's connection.
+        MainActor.preconditionIsolated()
+        guard cdm != nil, let connection = factory?.connection else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
-        return proxy.sharedPreferencesForWebProcess()
+        return connection.sharedPreferencesForWebProcess()
     }
 
     @MainActor

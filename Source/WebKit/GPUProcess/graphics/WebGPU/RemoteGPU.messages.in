@@ -27,7 +27,9 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=WebGPUEnabled,
-    SwiftImplementation,
+    SwiftReceiver,
+    SwiftReceiverOwner,
+    SwiftSends=RemoteGPUProxy,
     SwiftTypes
 ]
 messages -> RemoteGPU Stream {
@@ -36,9 +38,6 @@ messages -> RemoteGPU Stream {
     void CreateCompositorIntegration(WebKit::WebGPUIdentifier identifier)
 
     void IsValid(WebKit::WebGPUIdentifier identifier) -> (bool isValid, bool exists) Synchronous
-#if ENABLE(GPU_PROCESS_MODEL)
-    void CreateModelBacking(unsigned width, unsigned height, struct WebModel::ImageAsset diffuseAsset, struct WebModel::ImageAsset specularAsset, WebKit::WebModelIdentifier identifier, bool standardDynamicRange) -> (Vector<MachSendRight> renderBuffers) Synchronous NotStreamEncodable NotStreamEncodableReply CxxTypes
-#endif
 }
 
 #endif

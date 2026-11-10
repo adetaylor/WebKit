@@ -31,4 +31,7 @@ messages -> TestWithStreamSwiftLentState Stream {
     Reset() StreamBatched
     SetValues(uint32_t value, float scale) StreamBatched
     Draw(WebCore::FloatRect rect, bool clip) StreamBatched SwiftMayDecline
+    SetLabel(String label, Vector<uint32_t> values) StreamBatched SwiftTypes
+    FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContext
+    SetSemaphore(IPC::Semaphore semaphore, float scale) NotStreamEncodable SwiftTypes
 }

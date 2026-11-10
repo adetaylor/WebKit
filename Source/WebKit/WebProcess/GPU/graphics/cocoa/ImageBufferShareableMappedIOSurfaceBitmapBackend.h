@@ -45,7 +45,8 @@ class ImageBufferShareableMappedIOSurfaceBitmapBackend final : public WebCore::I
 public:
     static std::unique_ptr<ImageBufferShareableMappedIOSurfaceBitmapBackend> create(const WebCore::ImageBufferParameters&, const WebCore::ImageBufferCreationContext&);
 
-    ImageBufferShareableMappedIOSurfaceBitmapBackend(const WebCore::ImageBufferParameters&, std::unique_ptr<WebCore::IOSurface>, WebCore::IOSurface::LockAndContext&&, WebCore::IOSurfacePool*);
+    // The core is one over the surface, for its volatility and its pool.
+    ImageBufferShareableMappedIOSurfaceBitmapBackend(const WebCore::ImageBufferParameters&, std::unique_ptr<WebCore::IOSurface>, WebCore::IOSurface::LockAndContext&&, WebCore::ImageBufferSurface&&);
     ~ImageBufferShareableMappedIOSurfaceBitmapBackend();
 
     WebCore::RenderingMode renderingMode() const final { return WebCore::RenderingMode::Accelerated; }
@@ -76,8 +77,6 @@ private:
 
     std::unique_ptr<WebCore::IOSurface> m_surface;
     std::optional<WebCore::IOSurface::Locker<WebCore::IOSurface::AccessMode::ReadWrite>> m_lock;
-    WebCore::VolatilityState m_volatilityState { WebCore::VolatilityState::NonVolatile };
-    const RefPtr<WebCore::IOSurfacePool> m_ioSurfacePool;
 };
 
 } // namespace WebKit

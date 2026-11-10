@@ -28,6 +28,7 @@
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "TestWithStreamSwiftMessages.h" // NOLINT
+#include <WebCore/PixelBuffer.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
@@ -40,6 +41,10 @@ void TestWithStreamSwiftMessageForwarder::didReceiveStreamMessage(IPC::StreamSer
 {
     if (decoder.messageName() == Messages::TestWithStreamSwift::SendString::name()) {
         IPC::handleMessage<Messages::TestWithStreamSwift::SendString>(connection, decoder, m_handler.get(), &TestWithStreamSwiftWeakRef::dispatchSendString);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwift::SendLentView::name()) {
+        IPC::handleMessage<Messages::TestWithStreamSwift::SendLentView>(connection, decoder, m_handler.get(), &TestWithStreamSwiftWeakRef::dispatchSendLentView);
         return;
     }
     if (decoder.messageName() == Messages::TestWithStreamSwift::SendStringSync::name()) {
@@ -99,6 +104,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithStreamSwift_SendStringSync>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwift::SendStringSync::ReplyArguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendLentView>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwift::SendLentView::Arguments>(globalObject, decoder);
 }
 
 }

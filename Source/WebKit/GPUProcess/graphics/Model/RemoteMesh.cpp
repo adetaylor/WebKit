@@ -33,7 +33,9 @@
 #include "MeshImpl.h"
 #include "ModelObjectHeap.h"
 #include "ModelTypes.h"
+#include "RemoteGPU.h"
 #include "RemoteMeshMessages.h"
+#include "StreamConnectionWorkQueue.h"
 #include "StreamServerConnection.h"
 #include <limits>
 #include <tuple>
@@ -46,13 +48,13 @@ namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteMesh);
 
-RemoteMesh::RemoteMesh(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGPU& gpu, WebKit::Mesh& mesh, ModelObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, WebModelIdentifier identifier, bool standardDynamicRange)
+RemoteMesh::RemoteMesh(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGPUModel& model, WebKit::Mesh& mesh, ModelObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, WebModelIdentifier identifier, bool standardDynamicRange)
     : m_backing(mesh)
     , m_objectHeap(objectHeap)
     , m_streamConnection(WTF::move(streamConnection))
     , m_identifier(identifier)
     , m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
-    , m_gpu(gpu)
+    , m_model(model)
     , m_standardDynamicRange(standardDynamicRange)
 {
     protect(m_streamConnection)->startReceivingMessages(*this, Messages::RemoteMesh::messageReceiverName(), m_identifier.toUInt64());
@@ -311,7 +313,7 @@ void RemoteMesh::removeModel(WebCore::NodeIdentifier nodeIdentifier)
 
 void RemoteMesh::render(uint32_t textureIndex, CompletionHandler<void(bool)>&& completionHandler)
 {
-    Ref workQueue = m_gpu->workQueue();
+    Ref workQueue = m_model->workQueue();
     m_backing->render(textureIndex, [workQueue = WTF::move(workQueue), completionHandler = WTF::move(completionHandler)] (bool result) mutable {
         protect(workQueue)->dispatch([result, completionHandler = WTF::move(completionHandler)] mutable {
             completionHandler(result);
@@ -387,7 +389,7 @@ void RemoteMesh::updateRenderBuffers(unsigned width, unsigned height, Completion
         return;
     }
 
-    auto renderBuffers = RemoteGPU::createRenderBuffers(width, height, gpuProcessConnection->webProcessIdentity(), m_standardDynamicRange);
+    auto renderBuffers = RemoteGPUModel::createRenderBuffers(width, height, gpuProcessConnection->webProcessIdentity(), m_standardDynamicRange);
     WebModel::ResizeMeshDescriptor descriptor { width, height, WTF::move(renderBuffers) };
     m_backing->updateRenderBuffers(WTF::move(descriptor));
     completionHandler(m_backing->ioSurfaceHandles());
@@ -410,7 +412,7 @@ void RemoteMesh::processRemovals(Vector<WebModel::TypedResourceId>&& meshRemoval
 void RemoteMesh::paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, uint32_t bufferIndex, CompletionHandler<void()>&& completionHandler)
 {
     if (RefPtr nativeImage { m_backing->getCurrentFrameAsNativeImage(bufferIndex) })
-        m_gpu->paintNativeImageToImageBuffer(*nativeImage, imageBufferIdentifier);
+        paintNativeImageToImageBuffer(m_model->renderingBackend(), *nativeImage, imageBufferIdentifier);
     completionHandler();
 }
 

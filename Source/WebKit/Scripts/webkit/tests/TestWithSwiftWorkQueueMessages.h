@@ -33,7 +33,6 @@
 #include "WorkQueueMessageReceiver.h"
 #include <WebCore/SharedMemory.h>
 #include <wtf/Forward.h>
-#include <wtf/Function.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/WorkQueue.h>
@@ -63,12 +62,14 @@ public:
     // Registers this for the messages to destinationID on connection, dispatched on workQueue, which it records as
     // the queue its handlers are confined to. Registering again, for another destination, must name the same queue.
     void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);
-    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.
-    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }
+    // Sets the shared preferences that dispatch checks messages against, which it keeps: before the first
+    // startReceivingMessages(), on the thread that calls it, and after it, on the work queue, after the messages
+    // already dispatched to it. Until they are set, every message is disabled.
+    void updateSharedPreferences(SharedPreferencesForWebProcess);
 private:
     TestWithSwiftWorkQueueMessageForwarder(WebKit::TestWithSwiftWorkQueueWeakRef* WTF_NONNULL);
     std::unique_ptr<WebKit::TestWithSwiftWorkQueueWeakRef> m_handler;
-    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;
+    std::optional<SharedPreferencesForWebProcess> m_sharedPreferences;
     RefPtr<WorkQueue> m_workQueue;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 

@@ -27,8 +27,6 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-#include <WebCore/CGRendererSwiftBridge.h>
-#include <WebCore/Color.h>
 #include <WebCore/FloatSegment.h>
 #include <span>
 #include <wtf/Vector.h>
@@ -48,29 +46,6 @@ public:
 
 private:
     Vector<WebCore::FloatSegment> m_segments;
-};
-
-// What GraphicsContextCG::drawLinesForText() fills for the segments, in a context of the CTM and stroke color.
-class RemoteCGRendererTextLines {
-public:
-    RemoteCGRendererTextLines(const RemoteCGRendererLineSegments& segments, CGAffineTransform ctm, const CGRendererColorValue& strokeColor, WebCore::FloatPoint origin, float thickness, bool printing, bool doubleLines, WebCore::StrokeStyle strokeStyle)
-    {
-        CGRendererRectsForLinesForText(WebCore::AffineTransform { ctm }, CGRendererColorFromValue(strokeColor), origin, thickness, segments.span(), printing, doubleLines, strokeStyle, m_rects, m_color);
-    }
-
-    bool isEmpty() const { return m_rects.isEmpty(); }
-    CGRendererRects rects() const LIFETIME_BOUND { return CGRendererRects { m_rects.span() }; }
-    // The color, as a value whose CGColor the renderer makes.
-    CGRendererColorValue color() const
-    {
-        CGRendererColorValue value;
-        CGRendererColorValueOf(m_color, value);
-        return value;
-    }
-
-private:
-    Vector<CGRect, 4> m_rects;
-    WebCore::Color m_color;
 };
 
 } // namespace WebKit

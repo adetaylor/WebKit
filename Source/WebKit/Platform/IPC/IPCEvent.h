@@ -28,6 +28,7 @@
 #include "Decoder.h"
 #include "Encoder.h"
 #include "IPCSemaphore.h"
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace IPC {
@@ -146,6 +147,12 @@ struct EventSignalPair {
     Event event;
     Signal signal;
 };
+
+#if PLATFORM(COCOA)
+// Signal::signal() of the Signal whose send right the port names, for Swift, whose IPCTypes.Signal owns the right. Unsafe:
+// it sends to any port the process has a right to.
+SWIFT_UNSAFE void signalEventPort(mach_port_t);
+#endif
 
 #if !PLATFORM(COCOA)
 inline std::optional<EventSignalPair> createEventSignalPair()

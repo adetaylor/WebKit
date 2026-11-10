@@ -39,12 +39,12 @@ class SharedBuffer;
 
 namespace WebKit {
 
-class RemoteSnapshot;
+class RemoteSnapshotSink;
 
 class RemoteSnapshotPDFDrawingTask : public RefCounted<RemoteSnapshotPDFDrawingTask> {
     WTF_MAKE_TZONE_ALLOCATED(RemoteSnapshotPDFDrawingTask);
 public:
-    static Ref<RemoteSnapshotPDFDrawingTask> create(Ref<RemoteSnapshot>&&, WebCore::FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
+    static Ref<RemoteSnapshotPDFDrawingTask> create(RemoteSnapshotSink&, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
     ~RemoteSnapshotPDFDrawingTask();
 
     void start(std::optional<WebCore::ProcessIdentifier> printProcessIdentifier);
@@ -53,16 +53,15 @@ public:
     static uint64_t drawnAfterPrintProcessFailedCountForTesting() { return s_drawnAfterPrintProcessFailedCount; }
 
 private:
-    RemoteSnapshotPDFDrawingTask(Ref<RemoteSnapshot>&&, WebCore::FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
+    RemoteSnapshotPDFDrawingTask(RemoteSnapshotSink&, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&&);
 
     void sendToPrintProcess(WebCore::ProcessIdentifier);
     void complete(Ref<WebCore::SharedBuffer>&&);
     void fallback();
     void drawLocally();
-    bool isFinished() const { return !m_snapshot; }
+    bool isFinished() const { return !m_sink; }
 
-    RefPtr<RemoteSnapshot> m_snapshot;
-    WebCore::FrameIdentifier m_rootFrameIdentifier;
+    RefPtr<RemoteSnapshotSink> m_sink;
     CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)> m_completionHandler;
 
     static uint64_t s_drawnInPrintProcessCount;

@@ -179,7 +179,7 @@ void UserMediaCaptureAudioStorage::sendStorageChanged(int64_t startTimeValue, ui
 Ref<UserMediaCaptureManagerProxy> UserMediaCaptureManagerProxy::create(UniqueRef<ConnectionProxy>&& connectionProxy)
 {
     Ref proxy = adoptRef(*new UserMediaCaptureManagerProxy(WTF::move(connectionProxy)));
-    proxy->m_swiftState = proxy->createSwiftState();
+    proxy->m_swiftState = proxy->createSwiftState(proxy->m_connectionProxy->webProcessIdentifier().toUInt64());
     return proxy;
 }
 
@@ -193,11 +193,6 @@ UserMediaCaptureManagerProxy::~UserMediaCaptureManagerProxy()
 {
     m_connectionProxy->removeMessageReceiver(Messages::UserMediaCaptureManagerProxy::messageReceiverName());
     destroySwiftState(m_swiftState);
-}
-
-bool UserMediaCaptureManagerProxy::willStartCapture(CaptureDevice::DeviceType type, uint64_t pageIdentifier) const
-{
-    return m_connectionProxy->willStartCapture(type, PageIdentifier { pageIdentifier });
 }
 
 UserMediaCaptureEnvironmentFailure UserMediaCaptureManagerProxy::applyCaptureEnvironment(CaptureDevice::DeviceType deviceType, uint64_t pageIdentifierValue)
@@ -239,14 +234,9 @@ void UserMediaCaptureManagerProxy::startProducingData(CaptureDevice::DeviceType 
     m_connectionProxy->startProducingData(deviceType, PageIdentifier { pageIdentifier });
 }
 
-void UserMediaCaptureManagerProxy::startMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID)
+IPC::Connection* userMediaCaptureUIProcessConnection(const UserMediaCaptureManagerProxy& proxy)
 {
-    m_connectionProxy->startMonitoringCaptureDeviceRotation(PageIdentifier { pageIdentifier }, persistentID);
-}
-
-void UserMediaCaptureManagerProxy::stopMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID)
-{
-    m_connectionProxy->stopMonitoringCaptureDeviceRotation(PageIdentifier { pageIdentifier }, persistentID);
+    return proxy.uiProcessConnection().leakRef();
 }
 
 UserMediaCaptureFramePublisher* UserMediaCaptureManagerProxy::framePublisher(bool usesFrameHeap)

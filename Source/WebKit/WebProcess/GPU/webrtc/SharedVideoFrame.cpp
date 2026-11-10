@@ -33,6 +33,7 @@
 #include "RemoteVideoFrameProxy.h"
 #include "SharedVideoFrameImplBridge.h"
 #include "WebKit-Swift.h"
+#include <WebCore/CMUtilities.h>
 #include <WebCore/CVUtilities.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/SharedVideoFrameInfo.h>
@@ -252,6 +253,20 @@ bool SharedVideoFrameWriter::isDisabled()
     return swiftImpl().isDisabled();
 }
 
+void attachSharedVideoFrameColorSpace(CVPixelBufferRef pixelBuffer, SharedVideoFrameColorSpace colorSpace)
+{
+    PlatformVideoColorSpace platformColorSpace;
+    if (colorSpace.hasPrimaries)
+        platformColorSpace.primaries = colorSpace.primaries;
+    if (colorSpace.hasTransfer)
+        platformColorSpace.transfer = colorSpace.transfer;
+    if (colorSpace.hasMatrix)
+        platformColorSpace.matrix = colorSpace.matrix;
+    if (colorSpace.hasChromaLocation)
+        platformColorSpace.chromaLocation = colorSpace.chromaLocation;
+    attachColorSpaceToPixelBuffer(platformColorSpace, pixelBuffer);
+}
+
 CVPixelBufferPoolRef createSharedVideoFrameBufferPool(uint32_t width, uint32_t height, OSType pixelFormat)
 {
     auto result = createIOSurfaceCVPixelBufferPool(width, height, pixelFormat);
@@ -310,10 +325,9 @@ bool SharedVideoFrameReader::setSharedMemory(SharedMemory::Handle&& handle)
     return swiftSource().setSharedMemory(sendRight.sendRight(), size);
 }
 
-RetainPtr<CVPixelBufferRef> SharedVideoFrameReader::readBuffer(SharedVideoFrame::Buffer&& buffer)
+static SharedVideoFrameBufferTag bufferTag(const SharedVideoFrame::Buffer& buffer)
 {
-    // The send right of an IOSurface stays in `buffer` until the read returns.
-    auto tag = WTF::switchOn(buffer, [](std::nullptr_t) {
+    return WTF::switchOn(buffer, [](std::nullptr_t) {
         return SharedVideoFrameBufferTag { };
     }, [](const RemoteVideoFrameReadReference& reference) {
         return SharedVideoFrameBufferTag { .kind = SharedVideoFrameBufferKind::HeapReference, .identifier = reference.identifier().toUInt64(), .version = reference.version() };
@@ -322,7 +336,17 @@ RetainPtr<CVPixelBufferRef> SharedVideoFrameReader::readBuffer(SharedVideoFrame:
     }, [](IntSize size) {
         return SharedVideoFrameBufferTag { .kind = SharedVideoFrameBufferKind::BlackFrame, .width = size.width(), .height = size.height() };
     });
-    return adoptCF(swiftSource().readBuffer(tag));
+}
+
+SharedVideoFrameBufferTag SharedVideoFrame::bufferTag() const
+{
+    return WebKit::bufferTag(buffer);
+}
+
+RetainPtr<CVPixelBufferRef> SharedVideoFrameReader::readBuffer(SharedVideoFrame::Buffer&& buffer)
+{
+    // The send right of an IOSurface stays in `buffer` until the read returns.
+    return adoptCF(swiftSource().readBuffer(bufferTag(buffer)));
 }
 
 RefPtr<VideoFrame> SharedVideoFrameReader::read(SharedVideoFrame&& sharedVideoFrame)

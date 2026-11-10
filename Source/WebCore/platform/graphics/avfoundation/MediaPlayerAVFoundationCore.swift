@@ -23,9 +23,10 @@
 
 // The AVFoundation player's core: the AVPlayerItem's status, buffering, ranges, duration, size and enabled media as
 // key-value observing reports them, the AVPlayer's rate and time control status, the requested rate and playing state,
-// the current time and its extrapolation, seeking, and the end of playback. MediaPlayerPrivateAVFoundationObjC.mm keeps
-// the C++ player that implements MediaPlayerPrivateInterface, creates the AVPlayer and AVPlayerItem, and reaches this
-// through MediaPlayerAVFoundationCore's calls; this reaches it through MediaPlayerAVFoundationHost.
+// the current time and its extrapolation, seeking, the end of playback, and the video layer's readiness for display.
+// MediaPlayerPrivateAVFoundationObjC.mm keeps the C++ player that implements MediaPlayerPrivateInterface, creates the
+// AVPlayer, AVPlayerItem and video layer, and reaches this through MediaPlayerAVFoundationCore's calls; this reaches it
+// through MediaPlayerAVFoundationHost.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their symbols come from the generated accessors. No AVFoundation class
 // is used where its class object would be needed.
@@ -34,6 +35,7 @@
 
 internal import AVFoundation
 internal import CoreMedia
+internal import Synchronization
 import WebCore_Private.Core.MediaPlayerAVFoundationHost
 
 // MediaPlayerPrivateAVFoundation::ItemStatus.
@@ -92,6 +94,9 @@ private enum PlayerChange: Sendable {
     case rate(Double)
     case timeControlStatus(Int)
     case didEnd(Double)
+    case tracks(ObjectBox?)
+    case trackEnabled(Bool)
+    case readyForDisplay(Bool)
     // A change that only logs, as the C++ observer's task did, or does nothing.
     case logOnly(Swift.String)
     case none
@@ -101,14 +106,30 @@ private struct ObjectBox: @unchecked Sendable {
     let object: NSObject
 }
 
+// The live C++ players' cores, by their table keys, so that the C++ player's Swift members can reach theirs. Any thread.
+private struct CoreTable {
+    var lastKey: UInt64 = 0
+    var cores: [UInt64: MediaPlayerAVFoundationCore] = [:]
+}
+
+private let coreTable = Mutex(CoreTable())
+
 // What MediaPlayerPrivateAVFoundationObjC.mm calls.
 @_expose(Cxx)
 final class MediaPlayerAVFoundationCore: @unchecked Sendable {
+    private let tableKey: UInt64
     private let host: WebCore.MediaPlayerAVFoundationHost
     private let listener: MediaPlayerItemListener
+    private var asset: AVAsset?
     private var player: AVPlayer?
     private var item: AVPlayerItem?
     private var periodicTimeObserver: AnyObject?
+    @_expose(!Cxx)
+    private(set) var reportedTracks: NSArray?
+    // Held strongly, so that the observers are removed from the tracks they were added to.
+    private var enabledObservedTracks: NSArray?
+    private var isDetached = false
+    private var observedVideoLayer: NSObject?
 
     private var changes: [UInt64: PlayerChange] = [:]
     private var lastChangeIdentifier: UInt64 = 0
@@ -144,9 +165,37 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     @_expose(Cxx)
     init(_ host: WebCore.MediaPlayerAVFoundationHost) {
+        tableKey = coreTable.withLock { table in
+            table.lastKey += 1
+            return table.lastKey
+        }
         self.host = host
         listener = MediaPlayerItemListener()
         listener.core = self
+        coreTable.withLock { [tableKey] table in
+            table.cores[tableKey] = self
+        }
+    }
+
+    @_expose(Cxx)
+    func registeredKey() -> UInt64 {
+        tableKey
+    }
+
+    // The C++ player is being destroyed: its Swift members can't reach this from now on.
+    @_expose(Cxx)
+    func unregister() {
+        _ = coreTable.withLock { [tableKey] table in
+            table.cores.removeValue(forKey: tableKey)
+        }
+    }
+
+    // The core of the live C++ player that holds this key.
+    @_expose(!Cxx)
+    static func registered(_ tableKey: UInt64) -> MediaPlayerAVFoundationCore {
+        coreTable.withLock { table in
+            table.cores[tableKey]!
+        }
     }
 
     // MARK: Logging
@@ -161,19 +210,16 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     // MARK: The AVPlayer and AVPlayerItem
 
-    // The AVPlayer or AVPlayerItem that the C++ player made, observed from now on.
-    @_expose(Cxx)
-    func attach(_ object: NSObject) {
-        if let player = AVFoundationClass.cast(object, to: AVFoundationClass.AVPlayer) {
-            attachPlayer(player)
-            return
-        }
-        if let item = AVFoundationClass.cast(object, to: AVFoundationClass.AVPlayerItem) {
-            attachItem(item)
-        }
+    // The asset, AVPlayer and AVPlayerItem that the C++ player has: the asset replaces the one before; the player and
+    // the item are observed from now on.
+    @_expose(!Cxx)
+    func attachAsset(_ newAsset: AVAsset?) {
+        asset = newAsset
     }
 
-    private func attachPlayer(_ newPlayer: AVPlayer) {
+    @_expose(!Cxx)
+    func attachPlayer(_ newPlayer: AVPlayer) {
+        isDetached = false
         if let _ = player {
             return
         }
@@ -204,7 +250,9 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         } as AnyObject
     }
 
-    private func attachItem(_ newItem: AVPlayerItem) {
+    @_expose(!Cxx)
+    func attachItem(_ newItem: AVPlayerItem) {
+        isDetached = false
         if let _ = item {
             return
         }
@@ -228,6 +276,10 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         periodicTimeObserver = nil
         item = nil
         player = nil
+        asset = nil
+        observeEnabled(of: nil)
+        reportedTracks = nil
+        isDetached = true
 
         pendingStatusChanges = 0
         cachedItemStatus = Int(ItemStatus.doesNotExist.rawValue)
@@ -238,9 +290,94 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         loadedRanges = []
     }
 
+    // MARK: The video layer
+
+    // Observes the readiness of this AVPlayerLayer instead of the one before, or of none.
+    @_expose(!Cxx)
+    func attachVideoLayer(_ layer: NSObject?) {
+        if layer === observedVideoLayer {
+            return
+        }
+        if let observedVideoLayer {
+            listener.stopObservingReadyForDisplay(observedVideoLayer)
+        }
+        observedVideoLayer = layer
+        if let layer {
+            listener.observeReadyForDisplay(layer)
+        }
+    }
+
+    // MARK: Tracks
+
+    @_expose(!Cxx)
+    func observeEnabled(of tracks: NSArray?) {
+        if let observed = enabledObservedTracks {
+            for case let track as NSObject in observed {
+                listener.stopObservingEnabled(track)
+            }
+        }
+        enabledObservedTracks = tracks
+        if let tracks {
+            for case let track as NSObject in tracks {
+                listener.observeEnabled(track)
+            }
+        }
+    }
+
+    // MARK: Loading the asset
+
+    // Whether the asset is playable and its tracks, which the readiness state machine waits for.
+    @_expose(!Cxx)
+    func loadPlayability(_ asset: AVAsset) {
+        let weakCore = WeakCore(self)
+        loadValues(of: asset, assetPlayabilityKeys) {
+            ensureOnWebCoreMainThread {
+                weakCore.core?.host.playabilityLoaded()
+            }
+        }
+    }
+
+    // The asset's metadata keys, then each of its tracks' keys if its tracks loaded. The tracks are those of the asset
+    // the core has when the asset's keys have loaded.
+    @_expose(!Cxx)
+    func loadMetadata() {
+        guard let asset else {
+            return
+        }
+        let group = DispatchGroup()
+        group.enter()
+        let groupBox = DispatchGroupBox(group: group)
+        let weakCore = WeakCore(self)
+        loadValues(of: asset, assetMetadataKeys) {
+            WTF.callOnMainThreadWithBlock {
+                if let asset = weakCore.core?.asset, hasLoaded(asset, "tracks") {
+                    for element in AVFoundationMember.tracks(of: asset)?.tracks ?? NSArray() {
+                        guard let track = AVFoundationClass.cast(element as AnyObject, to: AVFoundationClass.AVAssetTrack) else {
+                            continue
+                        }
+                        groupBox.group.enter()
+                        loadValues(of: track, assetTrackMetadataKeys) {
+                            groupBox.group.leave()
+                        }
+                    }
+                }
+                groupBox.group.leave()
+            }
+        }
+        group.notify(queue: .main) {
+            WTF.callOnMainThreadWithBlock {
+                weakCore.core?.host.metadataLoadingCompleted()
+            }
+        }
+    }
+
     // MARK: Changes, in the order key-value observing reported them
 
     fileprivate func enqueue(_ change: PlayerChange) {
+        // As the C++ observer's disconnect did: what reaches the main thread after the load was cancelled is dropped.
+        if isDetached {
+            return
+        }
         lastChangeIdentifier += 1
         changes[lastChangeIdentifier] = change
         host.queueChange(lastChangeIdentifier)
@@ -314,6 +451,16 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .timeControlStatus(let status):
             timeControlStatusDidChange(status)
             logChange(change)
+        case .tracks(let tracks):
+            reportedTracks = tracks?.object as? NSArray
+            host.tracksDidChange()
+            logChange(change)
+        case .trackEnabled(let enabled):
+            host.trackEnabledDidChange(enabled)
+            logChange(change)
+        case .readyForDisplay(let ready):
+            host.firstFrameAvailableDidChange(ready)
+            logChange(change)
         case .didEnd(let currentTime):
             requestedPlaying = false
             timeControlStatusAtCachedCurrentTime = timeControlStatusPaused
@@ -348,6 +495,9 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .rate(let value): description = "did change 'rate' to \(value)"
         case .timeControlStatus(let value): description = "did change 'timeControlStatus' to \(value)"
         case .logOnly(let keyPath): description = "will change '\(keyPath)'"
+        case .tracks: description = "did change 'tracks'"
+        case .trackEnabled(let value): description = "did change 'enabled' to \(value ? 1 : 0)"
+        case .readyForDisplay(let value): description = "did change 'readyForDisplay' to \(value ? 1 : 0)"
         case .loadedTimeRanges, .seekableTimeRanges, .didEnd, .none:
             return
         }
@@ -680,7 +830,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
         setShouldObserveTimeControlStatus(false)
         item?.seek(to: time, toleranceBefore: before, toleranceAfter: after) { [weak self] finished in
-            DispatchQueue.main.async { [weak self] in
+            WTF.callOnMainThreadWithBlock { [weak self] in
                 guard let self else {
                     return
                 }
@@ -734,12 +884,16 @@ private let itemKeyPaths = [
     "hasEnabledVideo",
     "canPlayFastForward",
     "canPlayFastReverse",
+    "tracks",
 ]
 private let rateKeyPath = "rate"
+private let tracksKeyPath = "tracks"
+private let enabledKeyPath = "enabled"
+private let readyForDisplayKeyPath = "readyForDisplay"
 private let timeControlStatusKeyPath = "timeControlStatus"
 
-// Observes the AVPlayerItem's and AVPlayer's keys that the core caches, and the item's end of playback, and hands what
-// they report to the core on the main thread.
+// Observes the AVPlayerItem's and AVPlayer's keys that the core caches, the item's end of playback and the video layer's
+// readiness for display, and hands what they report to the core on the main thread.
 final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
     fileprivate weak var core: MediaPlayerAVFoundationCore?
     private let backgroundQueue = DispatchQueue(label: "MediaPlayerAVFoundationCore Background Queue")
@@ -762,6 +916,22 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
         }
     }
 
+    func observeEnabled(_ track: NSObject) {
+        unsafe track.addObserver(self, forKeyPath: enabledKeyPath, options: [.new], context: nil)
+    }
+
+    func stopObservingEnabled(_ track: NSObject) {
+        track.removeObserver(self, forKeyPath: enabledKeyPath)
+    }
+
+    func observeReadyForDisplay(_ layer: NSObject) {
+        unsafe layer.addObserver(self, forKeyPath: readyForDisplayKeyPath, options: [.new], context: nil)
+    }
+
+    func stopObservingReadyForDisplay(_ layer: NSObject) {
+        layer.removeObserver(self, forKeyPath: readyForDisplayKeyPath)
+    }
+
     func observePlayer(_ player: NSObject) {
         unsafe player.addObserver(self, forKeyPath: rateKeyPath, options: [.new], context: nil)
     }
@@ -779,7 +949,7 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
     }
 
     private func enqueue(_ change: PlayerChange) {
-        onMainThread { [weak self] in
+        ensureOnWebCoreMainThread { [weak self] in
             self?.core?.enqueue(change)
         }
     }
@@ -805,6 +975,14 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
         }
         if keyPath == timeControlStatusKeyPath {
             enqueue(.timeControlStatus(intValue(newValue)))
+            return
+        }
+        if keyPath == enabledKeyPath {
+            enqueue(.trackEnabled(boolValue(newValue)))
+            return
+        }
+        if keyPath == readyForDisplayKeyPath {
+            enqueue(.readyForDisplay(boolValue(newValue)))
             return
         }
 
@@ -866,8 +1044,64 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
             enqueue(.canPlayFastForward(boolValue(newValue)))
         case "seekableTimeRanges":
             enqueue(.none)
+        case tracksKeyPath:
+            enqueue(.tracks((newValue as? NSArray).map { ObjectBox(object: $0) }))
         default:
             break
         }
     }
+}
+
+let assetPlayabilityKeys = ["playable", "tracks"]
+let assetMetadataKeys = [
+    "duration",
+    "naturalSize",
+    "preferredTransform",
+    "preferredVolume",
+    "preferredRate",
+    "playable",
+    "resolvedURL",
+    "tracks",
+    "availableMediaCharacteristicsWithMediaSelectionOptions",
+    "availableChapterLocales",
+    "variants",
+]
+private let assetTrackMetadataKeys = ["totalSampleDataLength", "mediaType", "enabled", "preferredTransform", "naturalSize", "formatDescriptions"]
+
+// WTF's ensureOnMainThread(): WebCore's main thread, which is the web thread in iOS WebKitLegacy.
+private func ensureOnWebCoreMainThread(_ body: @escaping @Sendable () -> Void) {
+    if WTF.isMainThread() {
+        body()
+        return
+    }
+    WTF.callOnMainThreadWithBlock(body)
+}
+
+// A weak reference to the core that AVFoundation's completions carry to the main thread, so that only the main thread
+// ever holds the core strongly.
+private struct WeakCore: @unchecked Sendable {
+    weak var core: MediaPlayerAVFoundationCore?
+
+    init(_ core: MediaPlayerAVFoundationCore) {
+        self.core = core
+    }
+}
+
+private struct DispatchGroupBox: @unchecked Sendable {
+    let group: DispatchGroup
+}
+
+// AVFoundation deprecates these callbacks in favour of async loading; the readiness state machine is callback driven.
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine is driven by these completions")
+#endif
+private func loadValues(of asset: AVAsset, _ keys: [Swift.String], _ completion: @escaping @Sendable () -> Void) {
+    asset.loadValuesAsynchronously(forKeys: keys, completionHandler: completion)
+}
+
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine is driven by these completions")
+#endif
+private func loadValues(of track: AVAssetTrack, _ keys: [Swift.String], _ completion: @escaping @Sendable () -> Void) {
+    track.loadValuesAsynchronously(forKeys: keys, completionHandler: completion)
 }

@@ -29,7 +29,6 @@
 #include "CommandEncoder.h"
 #include "Device.h"
 #include "Queue.h"
-#include "XRProjectionLayer.h"
 #include <QuartzCore/CAMetalLayer.h>
 #include <optional>
 #include <span>

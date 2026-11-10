@@ -226,9 +226,19 @@ auto ShareableBitmap::createReadOnlyHandle() const -> std::optional<Handle>
 ShareableBitmap::ShareableBitmap(const ShareableBitmapConfiguration& configuration, Ref<SharedMemory>&& sharedMemory)
     : m_configuration(configuration)
     , m_sharedMemory(WTF::move(sharedMemory))
+#if USE(CG)
+    , m_swiftState(createSwiftState(m_sharedMemory.get(), m_configuration.size().width(), m_configuration.size().height(), RetainPtr { m_configuration.platformColorSpace() }.get(), m_configuration.bitsPerComponent(), m_configuration.bytesPerPixel(), m_configuration.bytesPerRow(), m_configuration.bitmapInfo(), m_configuration.baseImageHeadroom(), m_configuration.sizeInBytes()))
+#endif
 {
     ASSERT(m_configuration.baseImageHeadroom() >= Headroom::None);
 }
+
+#if USE(CG)
+ShareableBitmap::~ShareableBitmap()
+{
+    destroySwiftState(m_swiftState);
+}
+#endif
 
 std::span<const uint8_t> ShareableBitmap::span() const LIFETIME_BOUND
 {

@@ -28,7 +28,7 @@
 
 #include "ImageBufferBackendHandleSharing.h"
 #include "Logging.h"
-#include "RemoteGraphicsContext.h"
+#include "RemoteGraphicsContextIdentifier.h"
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferSetMessages.h"
 #include "RemoteRenderingBackend.h"

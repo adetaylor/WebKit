@@ -26,6 +26,7 @@
 import CoreGraphics
 import Foundation
 import IOSurface
+@_spi(WebKitGPU) internal import WebCore
 import WebKit_Internal
 
 // Receives the compositor messages of a WebGPU canvas, on the RemoteGPU's work queue: the render buffers that the compositor
@@ -37,10 +38,11 @@ final class RemoteCompositorIntegration {
     private var renderBuffers: [IOSurfaceRef] = []
     // Spare render buffers kept for when the next-frame surface is still in use by the compositor.
     private var spareRenderBuffers: [SpareRenderBuffer] = []
-    // Dimensions and format of the render buffers, for creating spare buffers with the same parameters.
+    // Dimensions, format and color space of the render buffers, for creating spare buffers with the same parameters.
     private var renderBufferWidth: Int32 = 0
     private var renderBufferHeight: Int32 = 0
-    private var renderBufferSurfaceFormat: WebKit.GPUProcessIOSurfaceFormat = .Bgra
+    private var renderBufferTextureFormat = IPCTypes.TextureFormat.bgra8unorm
+    private var renderBufferColorSpace: CGColorSpace?
     private static let maxSpareRenderBuffers = 5
     // The EDR headroom last set on the render buffers.
     private var contentHeadroom: Float?
@@ -66,7 +68,7 @@ final class RemoteCompositorIntegration {
         }
         let receiver = RemoteCompositorIntegration(link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteCompositorIntegration,
             link.identifier
@@ -96,7 +98,7 @@ final class RemoteCompositorIntegration {
     func recreateRenderBuffers(
         width: Int32,
         height: Int32,
-        destinationColorSpace: CxxDecodedArguments.RemoteCompositorIntegration.RecreateRenderBuffersDestinationColorSpace,
+        destinationColorSpace: IPCTypes.ColorSpace,
         alphaMode: IPCTypes.AlphaPremultiplication,
         textureFormat: IPCTypes.TextureFormat,
         deviceIdentifier: IPCTypes.WebGPUIdentifier,
@@ -116,20 +118,25 @@ final class RemoteCompositorIntegration {
 
         // Up to three buffers, at most the largest 2D texture in size.
         let max2DTextureSize: Int32 = 16384
+        let colorSpace = destinationColorSpace.cgColorSpace
         let format = renderBufferFormat(textureFormat, premultiplied: alphaMode == .premultiplied)
         renderBufferWidth = max(1, min(max2DTextureSize, width))
         renderBufferHeight = max(1, min(max2DTextureSize, height))
-        renderBufferSurfaceFormat = format
+        renderBufferTextureFormat = textureFormat
+        renderBufferColorSpace = colorSpace
         var surfaces: [IOSurfaceRef] = []
-        WebKit.createGPUProcessIOSurfaces(
-            destinationColorSpace,
-            renderBufferWidth,
-            renderBufferHeight,
-            format,
-            .WebGPU,
-            3
-        ) { surface in
-            surfaces.append(surface)
+        for _ in 0..<3 {
+            let surface = IOSurfaceCore.create(
+                pool: nil,
+                width: renderBufferWidth,
+                height: renderBufferHeight,
+                colorSpace: colorSpace,
+                name: .WebGPU,
+                format: format
+            )
+            if let surface {
+                surfaces.append(surface.surface)
+            }
         }
         renderBuffers = surfaces
 
@@ -188,10 +195,15 @@ final class RemoteCompositorIntegration {
             replacement = spareRenderBuffers.remove(at: spareIndex).surface
         }
         // Fall back to creating a fresh surface with the same dimensions and color space.
-        if replacement == nil {
-            replacement = WebKit.createGPUProcessSpareIOSurface(
-                renderBuffers[0], renderBufferWidth, renderBufferHeight, renderBufferSurfaceFormat
-            )
+        if replacement == nil, let colorSpace = renderBufferColorSpace {
+            replacement = IOSurfaceCore.create(
+                pool: nil,
+                width: renderBufferWidth,
+                height: renderBufferHeight,
+                colorSpace: colorSpace,
+                name: .WebGPU,
+                format: renderBufferFormat(renderBufferTextureFormat, premultiplied: alphaMode == .premultiplied)
+            )?.surface
         }
         guard let replacement else {
             return false
@@ -225,7 +237,7 @@ final class RemoteCompositorIntegration {
         // A premultiplied canvas must keep its alpha channel so transparent pixels composite over the page; an opaque
         // canvas forces the alpha to be ignored. This matters for RGBA16F, whose IOSurface format cannot itself encode
         // opacity.
-        objects.host.paintToImageBuffer(textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
+        WebKit.paintToImageBuffer(objects.renderingBackend, textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
     }
 
     func destruct() {
@@ -247,16 +259,16 @@ final class RemoteCompositorIntegration {
 
 #if WTF_PLATFORM_COCOA
 // The IOSurface format of a render buffer for the texture format and the alpha mode.
-private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> WebKit.GPUProcessIOSurfaceFormat {
+private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> IOSurfaceFormat {
     switch textureFormat {
     case .rgba8unorm, .rgba8unormSRGB:
-        return premultiplied ? .Rgba : .Rgbx
+        return premultiplied ? .RGBA : .RGBX
     #if ENABLE_PIXEL_FORMAT_RGBA16F
     case .rgba16float:
-        return .Rgba16F
+        return .RGBA16F
     #endif
     default:
-        return premultiplied ? .Bgra : .Bgrx
+        return premultiplied ? .BGRA : .BGRX
     }
 }
 #endif

@@ -1,5 +1,5 @@
 <!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
-<p>This test passes if an image buffer draws the same through the GPU process's Swift CG renderer receiver (RemoteCGRenderer) as through RemoteGraphicsContext alone.</p>
+<p>This test passes if an image buffer draws the same through the GPU process's Swift CG renderer receiver (RemoteCGRenderer) directly as through a display list that RemoteCGRenderer's recorder records, which the image buffer replays.</p>
 <pre id="log"></pre>
 <script>
 testRunner?.dumpAsText();
@@ -8,80 +8,71 @@ testRunner?.waitUntilDone();
 const log = s => document.getElementById("log").textContent += s + "\n";
 const modes = [["unaccelerated", 0], ["accelerated", 1]];
 const size = 48;
-let nextID = 300000;
+let nextID = Math.floor(Math.random() * 0x1000000) + 1;
 const genID = () => nextID++;
 
 const rect = (x, y, width, height) => ({ location: { x, y }, size: { width, height } });
 const transform = (a, b, c, d, e, f) => ({ span: [a, b, c, d, e, f] });
 
-// One scene as [message, arguments] pairs. "swift" marks those RemoteCGRenderer takes; the rest only RemoteGraphicsContext
-// does, and read the C++ state the Swift ones set (DrawRect compares the fill and stroke colors) or draw what the renderer
-// declines (ellipses with a pattern).
+// One scene as [message, arguments] pairs, which leaves the transform relative to the context's, as a display list's are.
 function scene(tileImageBufferIdentifier) {
     const pattern = { repeatX: true, repeatY: true, patternSpaceTransform: transform(1, 0, 0, 1, 0, 0) };
     return [
-        ["swift", "Restore", {}],
-        ["swift", "SetFillPackedColor", 0xFF2020FF],
-        ["swift", "FillRect", { rect: rect(0, 0, size, size), requiresClipToRect: 0 }],
-        ["swift", "Save", {}],
-        ["swift", "Translate", { x: 3, y: 4 }],
-        ["swift", "Scale", { scale: { width: 1.25, height: 0.75 } }],
-        ["swift", "Clip", { rect: rect(1, 1, 30, 40) }],
-        ["swift", "SetAlpha", { alpha: 0.75 }],
-        ["swift", "SetFillPackedColor", 0x2040E0FF],
-        ["swift", "FillRect", { rect: rect(2, 2, 20, 12), requiresClipToRect: 1 }],
-        ["swift", "SetCompositeMode", { mode: { operation: 2, blendMode: 1 } }],
-        ["swift", "FillEllipse", { rect: rect(8, 10, 18, 22) }],
-        ["swift", "SetStrokePackedColorAndThickness", [0x20C040C0, 2.5]],
-        ["swift", "SetLineCap", { lineCap: 1 }],
-        ["swift", "SetLineJoin", { lineJoin: 2 }],
-        ["swift", "SetMiterLimit", { limit: 3 }],
-        ["swift", "StrokeRect", { rect: rect(4, 20, 14, 9), lineWidth: 1.5 }],
-        ["swift", "StrokeEllipse", { rect: rect(14, 4, 12, 16) }],
-        ["swift", "DrawLine", { point1: { x: 1, y: 1 }, point2: { x: 30, y: 26 } }],
-        ["cxx", "DrawRect", { rect: rect(20, 24, 10, 8), borderThickness: 1 }],
-        ["swift", "Restore", {}],
-        ["swift", "SetStrokeThickness", { thickness: 3 }],
-        ["swift", "SetStrokePackedColor", 0xF0D000FF],
-        ["swift", "Rotate", { angle: 0.2 }],
-        ["swift", "ConcatCTM", { ctm: transform(1, 0.1, 0, 1, 2, -1) }],
-        ["swift", "StrokeRect", { rect: rect(26, 6, 14, 14), lineWidth: 2 }],
-        ["swift", "SetCTM", { ctm: transform(1, 0, 0, 1, 0, 0) }],
-        ["swift", "ClipOut", { rect: rect(36, 36, 6, 6) }],
-        ["swift", "ClearRect", { rect: rect(32, 30, 14, 14) }],
-        ["swift", "ResetClip", {}],
-        ["swift", "SetShouldAntialias", { shouldAntialias: false }],
-        ["swift", "SetFillRule", { rule: 1 }],
-        ["swift", "SetFillPackedColor", 0x00A0A0FF],
-        ["swift", "FillEllipse", { rect: rect(30, 2, 15, 11) }],
-        ["swift", "SetShouldAntialias", { shouldAntialias: true }],
-        ["swift", "SetImageInterpolationQuality", { quality: 1 }],
-        ["swift", "SetStrokeStyle", { style: 1 }],
-        ["cxx", "DrawRect", { rect: rect(2, 34, 12, 10), borderThickness: 2 }],
-        ["cxx", "SetFillPatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
-        ["swift", "FillEllipse", { rect: rect(16, 34, 12, 12) }],
-        ["swift", "FillRect", { rect: rect(40, 20, 6, 8), requiresClipToRect: 0 }],
-        ["cxx", "SetStrokePatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
-        ["swift", "StrokeEllipse", { rect: rect(28, 32, 10, 12) }],
-        ["swift", "ApplyFillPattern", {}],
-        ["swift", "ApplyStrokePattern", {}],
-        ["swift", "SetShouldSmoothFonts", { shouldSmooth: false }],
-        ["swift", "SetShouldSubpixelQuantizeFonts", { shouldQuantize: false }],
+        ["Restore", {}],
+        ["SetFillPackedColor", 0xFF2020FF],
+        ["FillRect", { rect: rect(0, 0, size, size), requiresClipToRect: 0 }],
+        ["Save", {}],
+        ["Translate", { x: 3, y: 4 }],
+        ["Scale", { scale: { width: 1.25, height: 0.75 } }],
+        ["Clip", { rect: rect(1, 1, 30, 40) }],
+        ["SetAlpha", { alpha: 0.75 }],
+        ["SetFillPackedColor", 0x2040E0FF],
+        ["FillRect", { rect: rect(2, 2, 20, 12), requiresClipToRect: 1 }],
+        ["SetCompositeMode", { mode: { operation: 2, blendMode: 1 } }],
+        ["FillEllipse", { rect: rect(8, 10, 18, 22) }],
+        ["SetStrokePackedColorAndThickness", [0x20C040C0, 2.5]],
+        ["SetLineCap", { lineCap: 1 }],
+        ["SetLineJoin", { lineJoin: 2 }],
+        ["SetMiterLimit", { limit: 3 }],
+        ["StrokeRect", { rect: rect(4, 20, 14, 9), lineWidth: 1.5 }],
+        ["StrokeEllipse", { rect: rect(14, 4, 12, 16) }],
+        ["DrawLine", { point1: { x: 1, y: 1 }, point2: { x: 30, y: 26 } }],
+        ["DrawRect", { rect: rect(20, 24, 10, 8), borderThickness: 1 }],
+        ["Restore", {}],
+        ["SetStrokeThickness", { thickness: 3 }],
+        ["SetStrokePackedColor", 0xF0D000FF],
+        ["Rotate", { angle: 0.2 }],
+        ["ConcatCTM", { ctm: transform(1, 0.1, 0, 1, 2, -1) }],
+        ["StrokeRect", { rect: rect(26, 6, 14, 14), lineWidth: 2 }],
+        ["ClipOut", { rect: rect(36, 36, 6, 6) }],
+        ["ClearRect", { rect: rect(32, 30, 14, 14) }],
+        ["ResetClip", {}],
+        ["SetShouldAntialias", { shouldAntialias: false }],
+        ["SetFillRule", { rule: 1 }],
+        ["SetFillPackedColor", 0x00A0A0FF],
+        ["FillEllipse", { rect: rect(30, 2, 15, 11) }],
+        ["SetShouldAntialias", { shouldAntialias: true }],
+        ["SetImageInterpolationQuality", { quality: 1 }],
+        ["SetStrokeStyle", { style: 1 }],
+        ["DrawRect", { rect: rect(2, 34, 12, 10), borderThickness: 2 }],
+        ["SetFillPatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
+        ["FillEllipse", { rect: rect(16, 34, 12, 12) }],
+        ["FillRect", { rect: rect(40, 20, 6, 8), requiresClipToRect: 0 }],
+        ["SetStrokePatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
+        ["StrokeEllipse", { rect: rect(28, 32, 10, 12) }],
+        ["ApplyFillPattern", {}],
+        ["ApplyStrokePattern", {}],
+        ["SetShouldSmoothFonts", { shouldSmooth: false }],
+        ["SetShouldSubpixelQuantizeFonts", { shouldQuantize: false }],
     ];
 }
 
-function send(cxx, swift, swiftRoute, [kind, name, args]) {
-    if (kind == "swift" && name.endsWith("PackedColor")) {
-        if (swiftRoute)
-            return swift[name]({ color: args });
-        return cxx[name]({ color: { value: args } });
-    }
-    if (name == "SetStrokePackedColorAndThickness") {
-        if (swiftRoute)
-            return swift[name]({ color: args[0], thickness: args[1] });
-        return cxx[name]({ color: { value: args[0] }, thickness: args[1] });
-    }
-    return (kind == "swift" && swiftRoute ? swift : cxx)[name](args);
+function send(context, [name, args]) {
+    if (name.endsWith("PackedColor"))
+        return context[name]({ color: args });
+    if (name == "SetStrokePackedColorAndThickness")
+        return context[name]({ color: args[0], thickness: args[1] });
+    return context[name](args);
 }
 
 async function run() {
@@ -123,17 +114,26 @@ async function run() {
         };
 
         const tile = createBuffer(4, 4);
-        const tileContext = connection.newInterface('RemoteGraphicsContext', tile.contextIdentifier);
-        tileContext.SetFillPackedColor({ color: { value: 0x8000FFFF } });
+        const tileContext = connection.newInterface('RemoteCGRenderer', tile.contextIdentifier);
+        tileContext.SetFillPackedColor({ color: 0x8000FFFF });
         tileContext.FillRect({ rect: rect(0, 0, 2, 4), requiresClipToRect: 0 });
 
         const pixels = [];
-        for (const swiftRoute of [true, false]) {
+        for (const replaysDisplayList of [false, true]) {
             const buffer = createBuffer(size, size);
-            const cxx = connection.newInterface('RemoteGraphicsContext', buffer.contextIdentifier);
-            const swift = connection.newInterface('RemoteCGRenderer', buffer.contextIdentifier);
-            for (const step of scene(tile.identifier))
-                send(cxx, swift, swiftRoute, step);
+            const context = connection.newInterface('RemoteCGRenderer', buffer.contextIdentifier);
+            if (!replaysDisplayList) {
+                for (const step of scene(tile.identifier))
+                    send(context, step);
+            } else {
+                const recorderIdentifier = genID(), displayListIdentifier = genID();
+                backend.CreateDisplayListRecorder({ identifier: recorderIdentifier });
+                const recorder = connection.newInterface('RemoteCGRenderer', recorderIdentifier);
+                for (const step of scene(tile.identifier))
+                    send(recorder, step);
+                backend.SinkDisplayListRecorderIntoDisplayList({ identifier: recorderIdentifier, displayListIdentifier });
+                context.DrawDisplayList({ identifier: displayListIdentifier });
+            }
             pixels.push(readBack(buffer.identifier));
         }
         connection.connection.invalidate();

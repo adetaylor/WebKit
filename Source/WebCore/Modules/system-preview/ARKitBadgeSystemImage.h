@@ -44,11 +44,11 @@ class ARKitBadgeSystemImage final : public SystemImage {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(ARKitBadgeSystemImage, WEBCORE_EXPORT);
 public:
     struct BadgeMetrics {
-        static constexpr int largeDimension = 70;
-        static constexpr int largeOffset = 20;
-        static constexpr int smallDimension = 35;
-        static constexpr int smallOffset = 8;
-        static constexpr int minimumSizeForLarge = 240;
+        static inline const int largeDimension = 70;
+        static inline const int largeOffset = 20;
+        static inline const int smallDimension = 35;
+        static inline const int smallOffset = 8;
+        static inline const int minimumSizeForLarge = 240;
     };
 
     static Ref<ARKitBadgeSystemImage> createWithoutImage();
@@ -57,8 +57,6 @@ public:
     virtual ~ARKitBadgeSystemImage() = default;
 
     RefPtr<NativeImage> nativeImage() const { return m_nativeImage; }
-
-    void draw(GraphicsContext&, const FloatRect&) const final;
 
 private:
     ARKitBadgeSystemImage(RefPtr<NativeImage>&& nativeImage)

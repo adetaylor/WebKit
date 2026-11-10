@@ -29,9 +29,6 @@
 #if USE(APPKIT)
 
 #import "ColorMac.h"
-#import "FloatRect.h"
-#import "GraphicsContext.h"
-#import "LocalDefaultSystemAppearance.h"
 #import <pal/spi/mac/NSAppearanceSPI.h>
 #import <wtf/TZoneMallocInlines.h>
 
@@ -46,12 +43,6 @@ AppKitControlSystemImage::AppKitControlSystemImage(AppKitControlSystemImageType 
     NSAppearance *appearance = [NSAppearance currentDrawingAppearance];
     m_tintColor = colorFromCocoaColor(retainPtr(appearance.tintColor).get());
     m_useDarkAppearance = [appearance.name isEqualToString:NSAppearanceNameDarkAqua];
-}
-
-void AppKitControlSystemImage::draw(GraphicsContext& graphicsContext, const FloatRect& rect) const
-{
-    LocalDefaultSystemAppearance localAppearance(m_useDarkAppearance, m_tintColor);
-    drawControl(graphicsContext, rect);
 }
 
 } // namespace WebCore

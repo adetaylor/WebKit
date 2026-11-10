@@ -40,10 +40,11 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 
+#include "SwiftCoding.h"
+
 #if PLATFORM(COCOA)
 #include "Connection.h"
 #include "SharedVideoFrame.h"
-#include "SwiftCoding.h"
 #include <WebCore/ColorSpace.h>
 #include <wtf/RetainPtr.h>
 #endif
@@ -148,6 +149,7 @@ private:
     bool m_isClosed { false };
     // A retained reference to the Swift state, as an address, from the constructor to the destructor.
     const uintptr_t m_swiftState;
+    IPC::SwiftStateDispatch m_swiftStateDispatch;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // How long a read waits for the frame of a reference that isn't in the heap yet. The GPU process adds a frame under a

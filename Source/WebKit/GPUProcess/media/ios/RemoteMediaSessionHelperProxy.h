@@ -27,42 +27,31 @@
 
 #if ENABLE(GPU_PROCESS) && PLATFORM(IOS_FAMILY)
 
-#include "MessageReceiver.h"
 #include <WebCore/MediaSessionHelperIOS.h>
+#include <wtf/RefCounted.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakRef.h>
 
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-struct SharedPreferencesForWebProcess;
 
-class RemoteMediaSessionHelperProxy
-    : public WebCore::MediaSessionHelperClient
-    , public IPC::MessageReceiver {
+// Sends MediaSessionHelper's notifications to a web process. The process's monitoring of wireless routes is the
+// connection's Swift state.
+class RemoteMediaSessionHelperProxy final : public RefCounted<RemoteMediaSessionHelperProxy>, public WebCore::MediaSessionHelperClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteMediaSessionHelperProxy);
 public:
-    RemoteMediaSessionHelperProxy(GPUConnectionToWebProcess&);
-    virtual ~RemoteMediaSessionHelperProxy();
+    static Ref<RemoteMediaSessionHelperProxy> create(GPUConnectionToWebProcess& connection) { return adoptRef(*new RemoteMediaSessionHelperProxy(connection)); }
+    ~RemoteMediaSessionHelperProxy();
 
-    void didReceiveMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
-
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
-
-    // WebCore::MediaSessionHelperClient, IPC::MessageReceiver.
-    void ref() const final;
-    void deref() const final;
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
 
 private:
-    // IPC::MessageReceiver
-    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
+    explicit RemoteMediaSessionHelperProxy(GPUConnectionToWebProcess&);
 
-    // Messages
-    void startMonitoringWirelessRoutes();
-    void stopMonitoringWirelessRoutes();
+    template<typename Message> void send(Message&&);
 
-    // MediaSessionHelperClient
     void uiApplicationWillEnterForeground(SuspendedUnderLock) final;
     void uiApplicationDidEnterBackground(SuspendedUnderLock) final;
     void uiApplicationWillBecomeInactive() final;
@@ -72,7 +61,6 @@ private:
     void activeAudioRouteDidChange(ShouldPause) final;
     void activeVideoRouteDidChange(SupportsAirPlayVideo, Ref<WebCore::MediaPlaybackTarget>&&) final;
 
-    bool m_isMonitoringWirelessRoutes { false };
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnection;
 };
 

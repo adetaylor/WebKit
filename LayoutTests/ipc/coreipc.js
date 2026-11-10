@@ -260,6 +260,12 @@ export function sRGBColorSpace() {
     throw new SerializationError('sRGBColorSpace() supports only the CG and Skia serialization formats');
 }
 
+// The receiver of a context's drawing messages: RemoteCGRenderer where the GPU process draws with its Swift CG renderer,
+// which takes every context's drawing, and RemoteGraphicsContext otherwise.
+export function drawingInterfaceName() {
+    return 'RemoteCGRenderer_Save' in IPC.messages ? 'RemoteCGRenderer' : 'RemoteGraphicsContext';
+}
+
 export function resolveAlias(argumentType) {
     if (argumentType in aliases) {
         return resolveAlias(aliases[argumentType]);

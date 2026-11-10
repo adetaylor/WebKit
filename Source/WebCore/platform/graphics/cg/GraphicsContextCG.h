@@ -131,6 +131,7 @@ public:
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle) final;
 
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle) final;
+    void drawSystemImage(SystemImage&, const FloatRect&) final;
 
     void beginPage(const FloatRect& pageRect) final;
     void unwindStateStack() final;
@@ -219,7 +220,6 @@ private:
     void updateStaleState() final;
     void didUpdateStateForSwiftRenderer();
     void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
-    bool swiftDrawsShadowBlur() const;
     bool shadowColorChangesFill(const Color&) const;
     void clearCGDropShadow();
 
@@ -237,7 +237,7 @@ private:
     std::unique_ptr<GraphicsContextCGCapture> m_capture;
 #endif
     // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
-    static constexpr size_t swiftRendererSize = 392;
+    static constexpr size_t swiftRendererSize = 408;
     alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
 #if HAVE(SUPPORT_HDR_DISPLAY)

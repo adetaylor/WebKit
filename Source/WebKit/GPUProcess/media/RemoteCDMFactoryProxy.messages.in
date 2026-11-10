@@ -29,7 +29,7 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=EncryptedMediaAPIEnabled,
-    SwiftImplementation,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteCDMFactoryProxy {

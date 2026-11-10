@@ -319,20 +319,6 @@ extension WebKit.GPUProcess {
     @cxx
     @implementation
     @MainActor
-    func swiftSetCapturePreviewOrientation(_ orientation: Int32) {
-        state.capturePreview?.setOrientation(orientation)
-    }
-
-    @cxx
-    @implementation
-    @MainActor
-    func swiftCapturePreviewRotationChanged(_ persistentID: WTF.String, _ rotation: UInt16) {
-        state.capturePreview?.rotationAngleForCaptureDeviceChanged(IPCCoding.WTFString.swiftString(persistentID) ?? "", rotation)
-    }
-
-    @cxx
-    @implementation
-    @MainActor
     func capturePreviewAudioSessionIsReady(_ generation: UInt64) {
         state.capturePreview?.audioSessionIsReady(generation)
     }

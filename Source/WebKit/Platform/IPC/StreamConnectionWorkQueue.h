@@ -37,9 +37,8 @@
 
 namespace IPC {
 
-// Sendable for Swift, which can only call dispatch() and isCurrent(): both may be called on any thread. dispatch() is unsafe
-// in Swift, which takes no Sendable check on the function it runs on the queue's thread: Swift calls the wrapper that takes
-// a @Sendable closure (SwiftCoding.swift).
+// Sendable for Swift, which can only call isCurrent(), which may be called on any thread. Swift gets onto a work queue
+// through the owner of its receiver (SwiftReceiverOwner::scheduleWork()).
 class WTF_CAPABILITY("is current") SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_UNCHECKED_SENDABLE StreamConnectionWorkQueue final : public SerialFunctionDispatcher {
 public:
     using WorkItem = WTF::Function<void()>;
@@ -59,7 +58,7 @@ public:
     Semaphore& wakeUpSemaphore() LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_wakeUpSemaphore; }
 
     // SerialFunctionDispatcher
-    SWIFT_UNSAFE void dispatch(WTF::Function<void()>&&) final;
+    void dispatch(WTF::Function<void()>&&) final __attribute__((availability(swift, unavailable)));
     bool isCurrent() const final;
 
 #ifdef __swift__

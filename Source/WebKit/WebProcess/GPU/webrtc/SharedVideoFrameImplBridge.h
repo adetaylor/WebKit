@@ -29,6 +29,7 @@
 
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
 
+#include <WebCore/PlatformVideoColorSpace.h>
 #include <WebCore/SharedVideoFrameInfo.h>
 #include <mach/mach_types.h>
 #include <span>
@@ -90,6 +91,21 @@ struct SharedVideoFrameBufferTag {
     int32_t width { 0 };
     int32_t height { 0 };
 };
+
+// A WebCore::PlatformVideoColorSpace that Swift can make: each value counts only if the flag before it is set.
+struct SharedVideoFrameColorSpace {
+    bool hasPrimaries { false };
+    WebCore::PlatformVideoColorPrimaries primaries { };
+    bool hasTransfer { false };
+    WebCore::PlatformVideoTransferCharacteristics transfer { };
+    bool hasMatrix { false };
+    WebCore::PlatformVideoMatrixCoefficients matrix { };
+    bool hasChromaLocation { false };
+    WebCore::PlatformVideoChromaLocation chromaLocation { };
+};
+
+// Attaches a frame's colour space to its pixel buffer, as WebCore::VideoFrameCV::create does for the frame it makes.
+void attachSharedVideoFrameColorSpace(CVPixelBufferRef, SharedVideoFrameColorSpace);
 
 // The CVUtilities pixel buffers that SharedVideoFrameSource reads frames into.
 CVPixelBufferPoolRef createSharedVideoFrameBufferPool(uint32_t width, uint32_t height, OSType pixelFormat) CF_RETURNS_RETAINED;

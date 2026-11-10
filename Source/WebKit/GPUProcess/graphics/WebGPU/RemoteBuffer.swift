@@ -56,7 +56,7 @@ final class RemoteBuffer {
             return
         }
         let receiver = RemoteBuffer(buffer, mappedAtCreation: mappedAtCreation, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteBuffer, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.owner, receiver.getMessageReceiver(), .RemoteBuffer, link.identifier)
         objects.add(link.identifier, buffer, receiver: receiver, registration: registration)
     }
 

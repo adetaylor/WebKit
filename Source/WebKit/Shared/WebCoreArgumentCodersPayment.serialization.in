@@ -188,8 +188,11 @@ struct WebCore::ApplePayShippingMethod {
     std::optional<WebCore::ApplePayError::Domain> domain();
 }
 
-enum class WebCore::ApplePayLogoStyle : bool
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayLogoSystemImage {
+[Swift] enum class WebCore::ApplePayLogoStyle : bool {
+    White,
+    Black
+};
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayLogoSystemImage {
     WebCore::ApplePayLogoStyle applePayLogoStyle()
 }
 
@@ -341,7 +344,7 @@ struct WebCore::ApplePayCouponCodeUpdate : WebCore::ApplePayDetailsUpdateBase {
 
 #if ENABLE(APPLE_PAY)
 header: <WebCore/ApplePayButtonPart.h>
-enum class WebCore::ApplePayButtonType : uint8_t {
+[Swift] enum class WebCore::ApplePayButtonType : uint8_t {
     Plain,
     Buy,
     SetUp,
@@ -361,13 +364,13 @@ enum class WebCore::ApplePayButtonType : uint8_t {
 #endif
 }
 
-enum class WebCore::ApplePayButtonStyle : uint8_t {
+[Swift] enum class WebCore::ApplePayButtonStyle : uint8_t {
     White,
     WhiteOutline,
     Black,
 }
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayButtonPart {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayButtonPart {
     WebCore::ApplePayButtonType buttonType();
     WebCore::ApplePayButtonStyle buttonStyle();
     String locale();

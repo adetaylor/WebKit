@@ -33,6 +33,8 @@
 #include <WebCore/ImageBufferParameters.h>
 #include <WebCore/ShareableBitmap.h>
 #include <wtf/ArgumentCoder.h>
+#include <wtf/HashMap.h>
+#include <wtf/HashSet.h>
 #include <wtf/Vector.h>
 
 namespace WebKit {
@@ -119,6 +121,45 @@ using DisplayListDataItem = Variant
     , WebCore::DisplayList::EndPage
     , WebCore::DisplayList::SetURLForRect
 >;
+
+class SharedFont;
+
+// The fonts that serialized glyphs draw with, by index, with the data of their custom fonts.
+class DisplayListDataFonts {
+public:
+    uint64_t index(const WebCore::FontBase&);
+    Vector<WebCore::FontCustomPlatformSerializedData> takeCustomFonts() { return std::exchange(m_customFonts, { }); }
+    Vector<DisplayListDataFont> takeFonts() { return std::exchange(m_fonts, { }); }
+
+private:
+    Vector<WebCore::FontCustomPlatformSerializedData> m_customFonts;
+    Vector<DisplayListDataFont> m_fonts;
+    HashMap<Ref<const WebCore::FontCustomPlatformData>, uint64_t> m_customFontIndices;
+    HashMap<Ref<const WebCore::FontBase>, uint64_t> m_fontIndices;
+};
+
+// The fonts again, in the process that draws them.
+std::optional<Vector<Ref<SharedFont>>> createSharedFonts(const Vector<WebCore::FontCustomPlatformSerializedData>&, const Vector<DisplayListDataFont>&, bool shouldUseLockdownFontParser);
+
+// The native images and image buffers that serialized items draw, by their identifiers, with their pixels copied into shared
+// memory once for each identifier: false where an image's pixels can't be copied.
+class DisplayListDataImages {
+public:
+    bool add(const WebCore::NativeImage&);
+    bool add(WebCore::ImageBuffer&);
+    Vector<DisplayListDataNativeImage> takeNativeImages() { return std::exchange(m_nativeImages, { }); }
+    Vector<DisplayListDataImageBuffer> takeImageBuffers() { return std::exchange(m_imageBuffers, { }); }
+
+private:
+    Vector<DisplayListDataNativeImage> m_nativeImages;
+    Vector<DisplayListDataImageBuffer> m_imageBuffers;
+    HashSet<WebCore::RenderingResourceIdentifier> m_identifiers;
+};
+
+// The images again, in the process that draws them: null where the pixels can't be mapped, or don't have the image buffer's
+// size.
+RefPtr<WebCore::NativeImage> createDisplayListDataNativeImage(WebCore::ShareableBitmapHandle&&);
+RefPtr<WebCore::ImageBuffer> createDisplayListDataImageBuffer(DisplayListDataImageBuffer&&);
 
 // A display list only draws display lists that come before it, and the last one is the root.
 class DisplayListData {

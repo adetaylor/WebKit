@@ -50,7 +50,7 @@ public:
     {
         if (!encodeDisplayList(displayList))
             return std::nullopt;
-        return DisplayListData { WTF::move(m_customFonts), WTF::move(m_fonts), WTF::move(m_nativeImages), WTF::move(m_imageBuffers), WTF::move(m_bottomUpDisplayLists) };
+        return DisplayListData { m_fonts.takeCustomFonts(), m_fonts.takeFonts(), m_images.takeNativeImages(), m_images.takeImageBuffers(), WTF::move(m_bottomUpDisplayLists) };
     }
 
 private:
@@ -103,7 +103,7 @@ private:
             [&](const DisplayList::DrawGlyphs& item) {
                 Ref font = item.font();
                 auto glyphs = item;
-                glyphs.setFontIndex(fontIndex(font));
+                glyphs.setFontIndex(m_fonts.index(font));
                 result.append(WTF::move(glyphs));
                 return true;
             },
@@ -182,99 +182,115 @@ private:
 
     bool addImage(const NativeImage& image)
     {
-        auto identifier = image.renderingResourceIdentifier();
-        if (m_imageIdentifiers.contains(identifier))
-            return true;
-        auto handle = createHandle(image);
-        if (!handle)
-            return false;
-        m_nativeImages.append(DisplayListDataNativeImage { identifier, WTF::move(*handle) });
-        m_imageIdentifiers.add(identifier);
-        return true;
+        return m_images.add(image);
     }
 
     bool addImage(ImageBuffer& imageBuffer)
     {
-        auto identifier = imageBuffer.renderingResourceIdentifier();
-        if (m_imageIdentifiers.contains(identifier))
-            return true;
-        RefPtr image = imageBuffer.copyNativeImage();
-        if (!image)
-            return false;
-        auto handle = createHandle(*image);
-        if (!handle)
-            return false;
-        m_imageBuffers.append(DisplayListDataImageBuffer { identifier, WTF::move(*handle), imageBuffer.parameters() });
-        m_imageIdentifiers.add(identifier);
-        return true;
+        return m_images.add(imageBuffer);
     }
 
-    static std::optional<ShareableBitmapHandle> createHandle(const NativeImage& image)
-    {
-        RefPtr<ShareableBitmap> bitmap;
-#if USE(CG)
-        bitmap = ShareableBitmap::createFromImagePixels(image);
-#endif
-        if (!bitmap)
-            bitmap = image.toShareableBitmap();
-        if (!bitmap)
-            return std::nullopt;
-        return bitmap->createReadOnlyHandle();
-    }
-
-    uint64_t fontIndex(const FontBase& font)
-    {
-        return m_fontIndices.ensure(Ref { font }, [&] {
-            std::optional<uint64_t> customFontIndex;
-            if (RefPtr customFont = font.platformData().customPlatformData()) {
-                customFontIndex = m_customFontIndices.ensure(Ref { *customFont }, [&] {
-                    m_customFonts.append(customFont->serializedData());
-                    return m_customFonts.size() - 1;
-                }).iterator->value;
-            }
-            m_fonts.append(DisplayListDataFont { font.attributes(), font.platformData().attributes(), customFontIndex });
-            return m_fonts.size() - 1;
-        }).iterator->value;
-    }
-
-    Vector<FontCustomPlatformSerializedData> m_customFonts;
-    Vector<DisplayListDataFont> m_fonts;
-    Vector<DisplayListDataNativeImage> m_nativeImages;
-    Vector<DisplayListDataImageBuffer> m_imageBuffers;
+    DisplayListDataFonts m_fonts;
+    DisplayListDataImages m_images;
     Vector<Vector<DisplayListDataItem>> m_bottomUpDisplayLists;
-    HashMap<Ref<const FontCustomPlatformData>, uint64_t> m_customFontIndices;
-    HashMap<Ref<const FontBase>, uint64_t> m_fontIndices;
-    HashSet<RenderingResourceIdentifier> m_imageIdentifiers;
     HashMap<Ref<const DisplayList::DisplayList>, uint64_t> m_indices;
     HashSet<Ref<const DisplayList::DisplayList>> m_displayListsBeingEncoded;
 };
 
 } // namespace
 
-static bool cacheFonts(DisplayList::ResourceCache& resourceCache, const Vector<FontCustomPlatformSerializedData>& customFontData, const Vector<DisplayListDataFont>& fontData, bool shouldUseLockdownFontParser)
+uint64_t DisplayListDataFonts::index(const FontBase& font)
+{
+    return m_fontIndices.ensure(Ref { font }, [&] {
+        std::optional<uint64_t> customFontIndex;
+        if (RefPtr customFont = font.platformData().customPlatformData()) {
+            customFontIndex = m_customFontIndices.ensure(Ref { *customFont }, [&] {
+                m_customFonts.append(customFont->serializedData());
+                return m_customFonts.size() - 1;
+            }).iterator->value;
+        }
+        m_fonts.append(DisplayListDataFont { font.attributes(), font.platformData().attributes(), customFontIndex });
+        return m_fonts.size() - 1;
+    }).iterator->value;
+}
+
+static std::optional<ShareableBitmapHandle> createHandle(const NativeImage& image)
+{
+    RefPtr<ShareableBitmap> bitmap;
+#if USE(CG)
+    bitmap = ShareableBitmap::createFromImagePixels(image);
+#endif
+    if (!bitmap)
+        bitmap = image.toShareableBitmap();
+    if (!bitmap)
+        return std::nullopt;
+    return bitmap->createReadOnlyHandle();
+}
+
+bool DisplayListDataImages::add(const NativeImage& image)
+{
+    auto identifier = image.renderingResourceIdentifier();
+    if (m_identifiers.contains(identifier))
+        return true;
+    auto handle = createHandle(image);
+    if (!handle)
+        return false;
+    m_nativeImages.append(DisplayListDataNativeImage { identifier, WTF::move(*handle) });
+    m_identifiers.add(identifier);
+    return true;
+}
+
+bool DisplayListDataImages::add(ImageBuffer& imageBuffer)
+{
+    auto identifier = imageBuffer.renderingResourceIdentifier();
+    if (m_identifiers.contains(identifier))
+        return true;
+    RefPtr image = imageBuffer.copyNativeImage();
+    if (!image)
+        return false;
+    auto handle = createHandle(*image);
+    if (!handle)
+        return false;
+    m_imageBuffers.append(DisplayListDataImageBuffer { identifier, WTF::move(*handle), imageBuffer.parameters() });
+    m_identifiers.add(identifier);
+    return true;
+}
+
+std::optional<Vector<Ref<SharedFont>>> createSharedFonts(const Vector<FontCustomPlatformSerializedData>& customFontData, const Vector<DisplayListDataFont>& fontData, bool shouldUseLockdownFontParser)
 {
     Vector<Ref<FontCustomPlatformData>> customFonts(ReserveCapacityTag { }, customFontData.size());
     for (auto data : customFontData) {
         auto customFont = FontCustomPlatformData::tryMakeFromSerializationData(WTF::move(data), shouldUseLockdownFontParser);
         if (!customFont)
-            return false;
+            return std::nullopt;
         customFonts.append(WTF::move(*customFont));
     }
 
+    Vector<Ref<SharedFont>> fonts(ReserveCapacityTag { }, fontData.size());
     for (auto& data : borrow(fontData)) {
         RefPtr<FontCustomPlatformData> customFont;
         if (data.customFontIndex) {
             if (*data.customFontIndex >= customFonts.size())
-                return false;
+                return std::nullopt;
             customFont = customFonts[*data.customFontIndex].ptr();
         }
         auto platformData = FontPlatformData::create(data.platformData, customFont.get());
-        resourceCache.appendFont(SharedFont::create(platformData, data.attributes.origin, data.attributes.isInterstitial, data.attributes.visibility, data.attributes.isTextOrientationFallback, data.attributes.isSmallCapsFace, data.attributes.renderingResourceIdentifier));
+        fonts.append(SharedFont::create(platformData, data.attributes.origin, data.attributes.isInterstitial, data.attributes.visibility, data.attributes.isTextOrientationFallback, data.attributes.isSmallCapsFace, data.attributes.renderingResourceIdentifier));
     }
+    return fonts;
+}
+
+static bool cacheFonts(DisplayList::ResourceCache& resourceCache, const Vector<FontCustomPlatformSerializedData>& customFontData, const Vector<DisplayListDataFont>& fontData, bool shouldUseLockdownFontParser)
+{
+    auto fonts = createSharedFonts(customFontData, fontData, shouldUseLockdownFontParser);
+    if (!fonts)
+        return false;
+    for (auto& font : *fonts)
+        resourceCache.appendFont(WTF::move(font));
     return true;
 }
 
-static RefPtr<NativeImage> createNativeImage(ShareableBitmapHandle&& handle)
+RefPtr<NativeImage> createDisplayListDataNativeImage(ShareableBitmapHandle&& handle)
 {
     RefPtr bitmap = ShareableBitmap::create(WTF::move(handle), SharedMemory::Protection::ReadOnly);
     if (!bitmap)
@@ -282,10 +298,25 @@ static RefPtr<NativeImage> createNativeImage(ShareableBitmapHandle&& handle)
     return NativeImage::create(bitmap->createPlatformImage(DontCopyBackingStore, ShouldInterpolate::Yes));
 }
 
+RefPtr<ImageBuffer> createDisplayListDataImageBuffer(DisplayListDataImageBuffer&& data)
+{
+    RefPtr nativeImage = createDisplayListDataNativeImage(WTF::move(data.handle));
+    if (!nativeImage)
+        return nullptr;
+    auto& parameters = data.parameters;
+    if (nativeImage->size() != parameters.backendSize())
+        return nullptr;
+    RefPtr imageBuffer = ImageBuffer::create(parameters.logicalSize, RenderingMode::Unaccelerated, parameters.purpose, parameters.resolutionScale, parameters.colorSpace, parameters.bufferFormat);
+    if (!imageBuffer)
+        return nullptr;
+    imageBuffer->context().drawNativeImage(*nativeImage, FloatRect { { }, parameters.logicalSize }, FloatRect { { }, nativeImage->size() }, { CompositeOperator::Copy });
+    return imageBuffer;
+}
+
 static bool cacheNativeImages(DisplayList::ResourceCache& resourceCache, Vector<DisplayListDataNativeImage>&& nativeImages)
 {
     for (auto& data : borrow(nativeImages)) {
-        RefPtr nativeImage = createNativeImage(WTF::move(data.handle));
+        RefPtr nativeImage = createDisplayListDataNativeImage(WTF::move(data.handle));
         if (!nativeImage || !resourceCache.cacheNativeImage(data.identifier, nativeImage.releaseNonNull()))
             return false;
     }
@@ -295,17 +326,9 @@ static bool cacheNativeImages(DisplayList::ResourceCache& resourceCache, Vector<
 static bool cacheImageBuffers(DisplayList::ResourceCache& resourceCache, Vector<DisplayListDataImageBuffer>&& imageBuffers)
 {
     for (auto& data : borrow(imageBuffers)) {
-        RefPtr nativeImage = createNativeImage(WTF::move(data.handle));
-        if (!nativeImage)
-            return false;
-        auto& parameters = data.parameters;
-        if (nativeImage->size() != parameters.backendSize())
-            return false;
-        RefPtr imageBuffer = ImageBuffer::create(parameters.logicalSize, RenderingMode::Unaccelerated, parameters.purpose, parameters.resolutionScale, parameters.colorSpace, parameters.bufferFormat);
-        if (!imageBuffer)
-            return false;
-        imageBuffer->context().drawNativeImage(*nativeImage, FloatRect { { }, parameters.logicalSize }, FloatRect { { }, nativeImage->size() }, { CompositeOperator::Copy });
-        if (!resourceCache.cacheImageBuffer(data.identifier, imageBuffer.releaseNonNull()))
+        auto identifier = data.identifier;
+        RefPtr imageBuffer = createDisplayListDataImageBuffer(WTF::move(data));
+        if (!imageBuffer || !resourceCache.cacheImageBuffer(identifier, imageBuffer.releaseNonNull()))
             return false;
     }
     return true;

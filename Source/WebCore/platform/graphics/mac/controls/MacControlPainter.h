@@ -54,6 +54,7 @@
 #if PLATFORM(MAC)
 
 #include <CoreGraphics/CoreGraphics.h>
+#include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/StyleAppearance.h>
 #include <cstdint>
 #include <utility>
@@ -104,6 +105,14 @@ struct MacControlState {
     bool switchIsOn { false };
     float switchProgress { 0 };
 
+    // SliderTrackPart: its thumb's size and its track's bounds, which place its tick marks.
+    int sliderThumbWidth { 0 };
+    int sliderThumbHeight { 0 };
+    int sliderTrackX { 0 };
+    int sliderTrackY { 0 };
+    int sliderTrackWidth { 0 };
+    int sliderTrackHeight { 0 };
+
     // For draw(): whether cells draw without a view (only in the GPU process), and the context's clip bounds, which
     // bound the focus ring of a cell drawn in a view.
     bool drawsViewlessCells { false };
@@ -112,19 +121,8 @@ struct MacControlState {
     // For draw() of the menu list button: the context's fill rule, which its glyph fills with.
     bool fillsEvenOdd { false };
 
-    // For draw(): the drawing that makeLayer() is filling, and the layers of this drawing.
-    bool fillsLayer { false };
-    uintptr_t layers { 0 };
-};
-
-// The options of MacControlPainter::drawLayer().
-struct MacControlLayerDrawing {
-    float x { 0 };
-    float y { 0 };
-    bool setsAlpha { false };
-    float alpha { 1 };
-    bool isPlusLighter { false };
-    bool isRotatedHalfTurn { false };
+    // For draw() of a slider: its tick marks' ratios of its track, which tickRatio() reads.
+    uintptr_t tickRatios { 0 };
 };
 
 // The Mac controls' AppKit cells, one set per ControlFactoryMac, and their drawing. MacControlPainter.swift implements
@@ -142,20 +140,15 @@ public:
     void updateCellStates(CGRect bounds, MacControlState);
     CGSize sizeForBounds(CGRect bounds, MacControlState);
     CGRect rectForBounds(CGRect bounds, MacControlState);
-    // accentColor is an NSColor.
+    // accentColor is an NSColor. textColor is in the context's color space.
     void draw(CGContextRef, CGRect borderRect, float deviceScaleFactor, MacControlState, CFTypeRef accentColor, CGColorRef textColor, CGColorRef focusRingColor);
     CGSize servicesRolloverButtonCellSize();
 
-    // What draw() can't do on a CGContext: the image buffers that the context it draws into makes, and that context's
-    // GraphicsContext clips and focus ring. `layers` is MacControlState's. A layer is a nonzero index.
-
-    // Makes an image buffer with the destination's GraphicsContext, and fills it by calling draw() with its context.
-    static uint8_t makeLayer(uintptr_t layers, float width, float height, float scale);
-    // Draws a layer into the context being drawn into, and releases it.
-    static void drawLayer(uintptr_t layers, uint8_t layer, MacControlLayerDrawing);
-    static void clipToLayer(uintptr_t layers, uint8_t layer, CGRect);
-    static void clipToRoundedRect(uintptr_t layers, CGRect, float radius);
-    static void drawFocusRing(uintptr_t layers, CGRect, float zoomFactor);
+    // A slider's tick ratios: `tickRatios` must be MacControlState's, from the draw() being called.
+    SWIFT_UNSAFE static size_t tickRatioCount(uintptr_t tickRatios);
+    SWIFT_UNSAFE static double tickRatio(uintptr_t tickRatios, size_t index);
+    // NSColor's keyboard focus indicator color in the current appearance, opaque, as GraphicsContext's focus rings take it.
+    static CGRendererColorData keyboardFocusIndicatorColor();
 
 private:
     static void destroySwiftState(uintptr_t);

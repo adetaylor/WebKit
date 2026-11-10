@@ -17,8 +17,6 @@
 		0D30F93B29F1FBE40055D9F1 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D30F93A29F1FBE40055D9F1 /* CoreVideo.framework */; };
 		0D509DCD29CAB6EC00546D84 /* MetalSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 0D509DCC29CAB6EC00546D84 /* MetalSPI.h */; };
 		5437C74B7769461288C3AC11 /* XRSubImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4238932662F743A39259DC62 /* XRSubImage.swift */; };
-		0DD5FD352C66947B004AF552 /* XRProjectionLayer.h in Headers */ = {isa = PBXBuildFile; fileRef = 0DD5FD332C66947B004AF552 /* XRProjectionLayer.h */; };
-		0DD5FD362C66947B004AF552 /* XRProjectionLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0DD5FD342C66947B004AF552 /* XRProjectionLayer.mm */; };
 		097CE7EFDBFF4827A8AF2284 /* XRProjectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19E430DA33D346D483083E6A /* XRProjectionLayer.swift */; };
 		14C834402EBA7CBB003B591A /* StdLibExtras.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C8343F2EBA7CBB003B591A /* StdLibExtras.swift */; };
 		54F1DFB207524E8082E4607A /* HardwareCapabilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = A419940E3E134473BA875E78 /* HardwareCapabilities.swift */; };
@@ -249,8 +247,6 @@
 		0D4D2E80294A89CF0000A1AB /* BindableResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BindableResource.h; sourceTree = "<group>"; };
 		0D509DCC29CAB6EC00546D84 /* MetalSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MetalSPI.h; sourceTree = "<group>"; };
 		4238932662F743A39259DC62 /* XRSubImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XRSubImage.swift; sourceTree = "<group>"; };
-		0DD5FD332C66947B004AF552 /* XRProjectionLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = XRProjectionLayer.h; sourceTree = "<group>"; };
-		0DD5FD342C66947B004AF552 /* XRProjectionLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = XRProjectionLayer.mm; sourceTree = "<group>"; };
 		19E430DA33D346D483083E6A /* XRProjectionLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XRProjectionLayer.swift; sourceTree = "<group>"; };
 		14C8343F2EBA7CBB003B591A /* StdLibExtras.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StdLibExtras.swift; sourceTree = "<group>"; };
 		A419940E3E134473BA875E78 /* HardwareCapabilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HardwareCapabilities.swift; sourceTree = "<group>"; };
@@ -552,8 +548,6 @@
 				E5DC6FD3527B4AD4801F5857 /* WGSLAPI.h */,
 				E5377693A9440F15945504CC /* WGSLBridge.swift */,
 				DDE7487F2F7B4331008013AB /* WorkAround173516139.h */,
-				0DD5FD332C66947B004AF552 /* XRProjectionLayer.h */,
-				0DD5FD342C66947B004AF552 /* XRProjectionLayer.mm */,
 				19E430DA33D346D483083E6A /* XRProjectionLayer.swift */,
 				4238932662F743A39259DC62 /* XRSubImage.swift */,
 			);
@@ -794,7 +788,6 @@
 				596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */,
 				E507D492F7242205FB9C29E0 /* WGSLAPI.h in Headers */,
 				DDE748802F7B4337008013AB /* WorkAround173516139.h in Headers */,
-				0DD5FD352C66947B004AF552 /* XRProjectionLayer.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1079,7 +1072,6 @@
 				EABB3115B4354952800ED7DF /* TextureFormats.swift in Sources */,
 				79B8DBAA488349DEB3381595 /* TextureView.swift in Sources */,
 				E5AB8E4E757BC61E48F920C7 /* WGSLBridge.swift in Sources */,
-				0DD5FD362C66947B004AF552 /* XRProjectionLayer.mm in Sources */,
 				097CE7EFDBFF4827A8AF2284 /* XRProjectionLayer.swift in Sources */,
 				5437C74B7769461288C3AC11 /* XRSubImage.swift in Sources */,
 			);

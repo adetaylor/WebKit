@@ -54,8 +54,11 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('int', ('Int32', 'Int32')),
             ('Seconds', ('Double', 'Double')),
             ('WTF::Seconds', ('Double', 'Double')),
+            ('WallTime', ('Double', 'Double')),
+            ('WTF::WallTime', ('Double', 'Double')),
             ('WTFLogLevel', ('IPCTypes.WTFLogLevel', 'IPCTypes.CxxName.WTFLogLevel')),
             ('std::span<const float>', ('[Float]', 'IPCCoding.Vector<Float>')),
+            ('std::span<const double, 6>', ('[Double]', 'IPCCoding.FixedSpan<Double, IPCCoding.Extent6>')),
             ('Vector<std::pair<Ref<WebCore::SharedBuffer>, WebCore::CDMKeyStatus>>', ('[(WebCore.SharedBuffer, IPCTypes.CDMKeyStatus)]', 'IPCCoding.Vector<IPCCoding.Pair<IPCCoding.CxxDecoded.SharedBuffer, IPCTypes.CxxName.WebCore_CDMKeyStatus>>')),
             ('Ref<WebCore::SharedBuffer>', ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer')),
             ('RefPtr<WebCore::SharedBuffer>', ('WebCore.SharedBuffer?', 'IPCCoding.StdOptional<IPCCoding.CxxDecoded.SharedBuffer>')),
@@ -64,6 +67,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),
             ('WTF::MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),
             ('IPC::Semaphore', ('IPCTypes.Semaphore', 'IPCTypes.Semaphore')),
+            ('IPC::Signal', ('IPCTypes.Signal', 'IPCTypes.Signal')),
             ('WebCore::SharedMemory::Handle', ('IPCTypes.SharedMemoryHandle', 'IPCTypes.SharedMemoryHandle')),
             ('std::optional<WebCore::SharedMemoryHandle>', ('IPCTypes.SharedMemoryHandle?', 'IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>')),
             ('Vector<MachSendRight>', ('IPCTypes.MachSendRightVector', 'IPCTypes.MachSendRightVector')),
@@ -77,6 +81,11 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('std::expected<MediaTime, WebCore::PlatformMediaError>', ('Result<IPCTypes.MediaTime, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.Expected<IPCTypes.CxxName.WTF_MediaTime, IPCTypes.CxxName.WebCore_PlatformMediaError>')),
             ('std::expected<void, WebCore::PlatformMediaError>', ('Result<Void, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.ExpectedVoid<IPCTypes.CxxName.WebCore_PlatformMediaError>')),
             ('std::expected<Vector<String>, uint8_t>', ('Result<[String?], IPCUnexpected<UInt8>>', 'IPCCoding.Expected<IPCCoding.Vector<IPCCoding.WTFString>, UInt8>')),
+            ('WebCore::PathSegment::Data', ('IPCTypes.PathSegmentData', 'IPCTypes.CxxName.WebCore_PathSegment_Data')),
+            ('Vector<WebCore::PathRoundedRect::Strategy>', ('[IPCTypes.PathRoundedRectStrategy]', 'IPCCoding.Vector<IPCTypes.CxxName.WebCore_PathRoundedRect_Strategy>')),
+            ('WebCore::ColorSpace', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
+            ('const WebCore::ColorSpace&', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
+            ('std::optional<WebCore::ColorSpace>', ('IPCTypes.ColorSpace?', 'IPCCoding.StdOptional<IPCTypes.ColorSpace>')),
         ]:
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 
@@ -91,9 +100,25 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>']:
+        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'std::span<const String, 6>', 'std::span<const double, N>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
+
+    def test_swift_form_names(self):
+        self.assertEqual(swift_types.swift_form_name('WebCore::FrameIdentifier'), 'FrameIdentifier')
+        self.assertEqual(swift_types.swift_form_name('::WebCore::PathSegment::Data'), 'PathSegmentData')
+
+    def test_hand_written_types(self):
+        self.assertTrue(swift_types.is_hand_written('const WebCore::ColorSpace&'))
+        self.assertTrue(swift_types.is_hand_written('::WebCore::ColorSpace'))
+        self.assertFalse(swift_types.is_hand_written('WebCore::PlatformColorSpace'))
+        self.assertFalse(swift_types.is_owned_type('WebCore::ColorSpace'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::Color'), ('IPCTypes.WebCoreColor', 'IPCTypes.WebCoreColor'))
+
+    def test_cxx_enum_types(self):
+        self.assertTrue(swift_types.is_hand_written('WebCore::StyleAppearance'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::StyleAppearance'), ('WebCore.StyleAppearance', 'IPCCoding.CxxEnum<WebCore.StyleAppearance>'))
+        self.assertEqual(swift_types.swift_type_and_coder('std::optional<WebCore::StyleAppearance>'), ('WebCore.StyleAppearance?', 'IPCCoding.StdOptional<IPCCoding.CxxEnum<WebCore.StyleAppearance>>'))
 
     def test_cxx_name(self):
         self.assertEqual(swift_types.swift_cxx_name('WebCore::FrameIdentifier'), 'WebCore_FrameIdentifier')

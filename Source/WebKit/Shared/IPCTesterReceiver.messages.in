@@ -51,6 +51,23 @@ messages -> IPCTesterReceiver {
     TransformPayloadSyncHandlerSwift(struct WebKit::IPCTesterPayload payload) -> (struct WebKit::IPCTesterPayload reply) Synchronous SwiftTypes SwiftSyncHandler
     RecordSyncHandlerSwift(String text) SwiftTypes SwiftSyncHandler
     SwapPairsSwift(Vector<std::pair<String, uint32_t>> pairs) -> (Vector<std::pair<uint32_t, String>> swapped) SwiftTypes
+#if PLATFORM(COCOA)
+    DescribeColorSpaceSwift(WebCore::ColorSpace colorSpace) -> (String description) SwiftTypes
+    DescribeCxxDecodedColorSpaceSwift([CxxDecoded] WebCore::ColorSpace colorSpace) -> (String description) SwiftTypes
+    CompareColorSpacesSwift(WebCore::ColorSpace colorSpace, [CxxDecoded] WebCore::ColorSpace cxxDecodedColorSpace) -> (bool equal) SwiftTypes
+    DescribeControlSwift(Ref<WebCore::ControlPart> part, WebCore::ControlStyle style) -> (String description) SwiftTypes
+    DescribeCxxDecodedControlSwift([CxxDecoded] Ref<WebCore::ControlPart> part, [CxxDecoded] WebCore::ControlStyle style) -> (String description) SwiftTypes
+    DescribeSystemImageSwift(Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
+    DescribeCxxDecodedSystemImageSwift([CxxDecoded] Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
+    DescribeFilterSwift(Ref<WebCore::Filter> filter) -> (String description) SwiftTypes
+    DescribeCxxDecodedFilterSwift([CxxDecoded] Ref<WebCore::Filter> filter) -> (String description) SwiftTypes
+#endif
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    DescribeDrawingFormsSwift(enum:bool WebCore::WindRule windRule, WebCore::AffineTransform transform, CGRendererColorValue color) -> (String description) SwiftTypes
+    DescribeCxxDecodedDrawingFormsSwift([CxxDecoded] enum:bool WebCore::WindRule windRule, [CxxDecoded] WebCore::AffineTransform transform, [CxxDecoded] CGRendererColorValue color) -> (String description) SwiftTypes
+    DescribePathSwift(WebCore::Path path) -> (String description) SwiftTypes
+    DescribeCxxDecodedPathSwift([CxxDecoded] WebCore::Path path) -> (String description) SwiftTypes
+#endif
     [EnabledBy=AllowTestOnlyIPC] EnabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
     [EnabledBy=EncryptedMediaAPIEnabled] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
 }

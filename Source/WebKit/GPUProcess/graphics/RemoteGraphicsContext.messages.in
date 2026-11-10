@@ -20,7 +20,9 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE(GPU_PROCESS)
+# With the CG renderer in Swift, RemoteCGRenderer takes every context's drawing, and RemoteGraphicsContext's handlers only
+# draw RemoteCGRenderer's messages for a dynamic content scaling image buffer's context, which can't lend a renderer.
+#if ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))
 
 [
     ExceptionForEnabledBy,
@@ -143,4 +145,4 @@ messages -> RemoteGraphicsContext Stream {
 #endif
 }
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))

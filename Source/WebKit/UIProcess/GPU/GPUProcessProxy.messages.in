@@ -29,10 +29,10 @@
 ]
 messages -> GPUProcessProxy {
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
-    DidCreateContextForVisibilityPropagation(WebKit::WebPageProxyIdentifier pageProxyID, WebCore::PageIdentifier pageID, WebKit::LayerHostingContextID contextID)
+    DidCreateContextForVisibilityPropagation(WebKit::WebPageProxyIdentifier pageProxyID, WebCore::PageIdentifier pageID, WebKit::LayerHostingContextID contextID) SentFromCxx
 #endif
 
-    SetMediaCodecCapabilities(struct WebKit::GPUProcessMediaCodecCapabilities mediaCodecCapabilities)
+    SetMediaCodecCapabilities(struct WebKit::GPUProcessMediaCodecCapabilities mediaCodecCapabilities) SentFromCxx
 
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
     NowPlayingOwnerDidChange(std::optional<WebCore::QualifiedPageIdentifier> ownerPage)
@@ -52,7 +52,7 @@ messages -> GPUProcessProxy {
 #endif
 
     ProcessIsReadyToExit()
-    TerminateWebProcess(WebCore::ProcessIdentifier webProcessIdentifier, enum:uint16_t IPC::MessageName invalidMessageName)
+    TerminateWebProcess(WebCore::ProcessIdentifier webProcessIdentifier, enum:uint16_t IPC::MessageName invalidMessageName) SentFromCxx
 }
 
 #endif // ENABLE(GPU_PROCESS)

@@ -57,6 +57,7 @@ $(PROJECT_DIR)/GPUProcess/RemoteSharedResourceCache.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteBarcodeDetector.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteFaceDetector.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteTextDetector.messages.in
+$(PROJECT_DIR)/GPUProcess/graphics/Model/RemoteGPUModel.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/Model/RemoteMesh.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/PathSegment.serialization.in
 $(PROJECT_DIR)/GPUProcess/graphics/RemoteCGRenderer.messages.in
@@ -121,14 +122,12 @@ $(PROJECT_DIR)/GPUProcess/media/RemoteMediaPlayerManagerProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteMediaPlayerProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteMediaResourceLoader.messages.in
-$(PROJECT_DIR)/GPUProcess/media/RemoteRemoteCommandListenerProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteTextTrackProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteVideoFrameObjectHeap.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteVideoTrackProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/TextTrackPrivateRemoteConfiguration.serialization.in
 $(PROJECT_DIR)/GPUProcess/media/TrackPrivateRemoteConfiguration.serialization.in
 $(PROJECT_DIR)/GPUProcess/media/VideoTrackPrivateRemoteConfiguration.serialization.in
-$(PROJECT_DIR)/GPUProcess/media/ios/RemoteMediaSessionHelperProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/webrtc/LibWebRTCCodecsProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRenderer.messages.in
 $(PROJECT_DIR)/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in
@@ -221,6 +220,7 @@ $(PROJECT_DIR)/Scripts/generate-https-upgrade-database.sh
 $(PROJECT_DIR)/Scripts/generate-message-receiver.py
 $(PROJECT_DIR)/Scripts/generate-serializers.py
 $(PROJECT_DIR)/Scripts/webkit/__init__.py
+$(PROJECT_DIR)/Scripts/webkit/decode_policy.py
 $(PROJECT_DIR)/Scripts/webkit/messages.py
 $(PROJECT_DIR)/Scripts/webkit/model.py
 $(PROJECT_DIR)/Scripts/webkit/opaque_ipc_types.py

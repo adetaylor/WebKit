@@ -28,10 +28,11 @@
 #if ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "ModelTypes.h"
-#include "RemoteGPU.h"
+#include "RemoteGPUModel.h"
 #include "StreamMessageReceiver.h"
 #include "WebModelIdentifier.h"
 #include <WebCore/NodeIdentifier.h>
+#include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/HashMap.h>
 #include <wtf/Ref.h>
 #include <wtf/TZoneMalloc.h>
@@ -46,6 +47,7 @@ struct Float3;
 struct Float4x4;
 struct MeshDescriptor;
 struct TextureDescriptor;
+struct TypedResourceId;
 struct UpdateMaterialDescriptor;
 struct UpdateMeshDescriptor;
 struct UpdateTextureDescriptor;
@@ -59,26 +61,27 @@ class StreamServerConnection;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
+class Mesh;
 class ObjectHeap;
 
 class RemoteMesh final : public IPC::StreamMessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteMesh);
 public:
-    static Ref<RemoteMesh> create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGPU& gpu, WebKit::Mesh& mesh, ModelObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, WebModelIdentifier identifier, bool standardDynamicRange = false)
+    static Ref<RemoteMesh> create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGPUModel& model, WebKit::Mesh& mesh, ModelObjectHeap& objectHeap, Ref<IPC::StreamServerConnection>&& streamConnection, WebModelIdentifier identifier, bool standardDynamicRange = false)
     {
-        return adoptRef(*new RemoteMesh(gpuConnectionToWebProcess, gpu, mesh, objectHeap, WTF::move(streamConnection), identifier, standardDynamicRange));
+        return adoptRef(*new RemoteMesh(gpuConnectionToWebProcess, model, mesh, objectHeap, WTF::move(streamConnection), identifier, standardDynamicRange));
     }
 
     virtual ~RemoteMesh();
 
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_gpu->sharedPreferencesForWebProcess(); }
+    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_model->sharedPreferencesForWebProcess(); }
 
     void stopListeningForIPC();
 
 private:
     friend class ModelObjectHeap;
 
-    RemoteMesh(GPUConnectionToWebProcess&, RemoteGPU&, WebKit::Mesh&, ModelObjectHeap&, Ref<IPC::StreamServerConnection>&&, WebModelIdentifier, bool standardDynamicRange);
+    RemoteMesh(GPUConnectionToWebProcess&, RemoteGPUModel&, WebKit::Mesh&, ModelObjectHeap&, Ref<IPC::StreamServerConnection>&&, WebModelIdentifier, bool standardDynamicRange);
 
     RemoteMesh(const RemoteMesh&) = delete;
     RemoteMesh(RemoteMesh&&) = delete;
@@ -121,7 +124,7 @@ private:
     const Ref<IPC::StreamServerConnection> m_streamConnection;
     const WebModelIdentifier m_identifier;
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    WeakRef<RemoteGPU> m_gpu;
+    WeakRef<RemoteGPUModel> m_model;
     const bool m_standardDynamicRange { false };
     HashMap<int64_t, WebModel::MeshDescriptor> m_meshDescriptors;
 };

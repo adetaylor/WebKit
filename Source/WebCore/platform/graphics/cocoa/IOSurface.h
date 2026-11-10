@@ -34,6 +34,8 @@
 #include <WebCore/PixelFormat.h>
 #include <WebCore/ProcessIdentity.h>
 #include <wtf/Forward.h>
+#include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/spi/cocoa/IOSurfaceSPI.h>
 
@@ -53,7 +55,11 @@ enum class SetNonVolatileResult : uint8_t;
 using IOSurfaceSeed = uint32_t;
 using PlatformDisplayID = uint32_t;
 
-class IOSurface final {
+struct IOSurfaceSwiftDescription;
+
+// A facade over IOSurfaceCore (IOSurface.swift), which holds the surface's state and implements it, for callers in C++.
+// The facade keeps the values that never change after creation, so that its inline accessors stay inline.
+class SWIFT_PRIVATE_FILEID("WebCore/IOSurface.swift") IOSurface final {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(IOSurface, WEBCORE_EXPORT);
 public:
     enum class Name : uint8_t {
@@ -192,8 +198,8 @@ public:
     // Passed in context is the context through which the contents was drawn.
     WEBCORE_EXPORT static RetainPtr<CGImageRef> sinkIntoImage(std::unique_ptr<IOSurface>, RetainPtr<CGContextRef> = nullptr);
 
-    NODELETE WEBCORE_EXPORT static Name nameForRenderingPurpose(RenderingPurpose);
-    Name name() const { return m_name; }
+    WEBCORE_EXPORT static Name nameForRenderingPurpose(RenderingPurpose);
+    WEBCORE_EXPORT Name name() const;
 
 #ifdef __OBJC__
     id asLayerContents() const { return (__bridge id)m_surface.get(); }
@@ -240,7 +246,7 @@ public:
 
 #if HAVE(SUPPORT_HDR_DISPLAY)
     WEBCORE_EXPORT void setContentEDRHeadroom(float);
-    NODELETE WEBCORE_EXPORT std::optional<float> contentEDRHeadroom() const;
+    WEBCORE_EXPORT std::optional<float> contentEDRHeadroom() const;
     WEBCORE_EXPORT void loadContentEDRHeadroom();
 #endif
 
@@ -264,44 +270,81 @@ public:
     WEBCORE_EXPORT void setOwnershipIdentity(const ProcessIdentity&);
     WEBCORE_EXPORT static void setOwnershipIdentity(IOSurfaceRef, const ProcessIdentity&);
 
-    RetainPtr<CGContextRef> createCompatibleBitmap(unsigned width, unsigned height);
+    // For Swift's import of the class, which needs a copy or move constructor.
+    IOSurface(IOSurface&&);
+    IOSurface(const IOSurface&) = delete;
+    IOSurface& operator=(const IOSurface&) = delete;
 
 private:
-    IOSurface(IntSize, const ColorSpace&, Name, Format, UseLosslessCompression, IOSurfaceOptions, bool& success);
-    IOSurface(IOSurfaceRef, std::optional<ColorSpace>&&);
+    friend class GraphicsContextGLCocoa;
+    friend class ImageBufferSurface;
+    friend class IOSurfacePool;
 
-    void setColorSpaceProperty();
-    void ensureColorSpace();
-    std::optional<ColorSpace> surfaceColorSpace() const;
+    explicit IOSurface(uintptr_t swiftState);
+    static std::unique_ptr<IOSurface> adoptSwiftState(uintptr_t swiftState);
+    // Hands the caller the facade's reference to its IOSurfaceCore.
+    uintptr_t releaseSwiftState();
 
-    void setName(Name name) { m_name = name; }
-
-    struct BitmapConfiguration {
-        CGBitmapInfo bitmapInfo;
-        size_t bitsPerComponent;
-    };
-
-    NODELETE BitmapConfiguration bitmapConfiguration() const;
-
-    std::optional<UsedFormat> m_format;
-    std::optional<ColorSpace> m_colorSpace;
-    mutable std::optional<bool> m_knownIsVolatile;
-    IntSize m_size;
-    size_t m_totalBytes;
+    // The rest is implemented in IOSurface.swift. A swiftState is a +1 reference to an IOSurfaceCore, and a poolState to an
+    // IOSurfacePoolCore, or 0. The functions that return a Core Foundation object other than swiftStateSurface() return a
+    // +1 reference, which the caller adopts.
+    static uintptr_t createSwiftState(uintptr_t poolState, IntSize, CGColorSpaceRef, Name, Format, UseLosslessCompression, bool hasAlphaPremultiplication, AlphaPremultiplication);
+    static uintptr_t createSwiftStateFromImage(uintptr_t poolState, CGImageRef);
+    static uintptr_t createSwiftStateFromSendRight(mach_port_t, bool untrustedUncompressed);
+    static uintptr_t createSwiftStateFromSurface(IOSurfaceRef, CGColorSpaceRef);
+    static void destroySwiftState(uintptr_t swiftState);
+    static IOSurfaceSwiftDescription describeSwiftState(uintptr_t swiftState);
+    static IOSurfaceRef swiftStateSurface(uintptr_t swiftState);
+    static IntSize swiftMaximumSize();
+    static void swiftSetMaximumSize(IntSize);
+    static size_t swiftBytesPerRowAlignment();
+    static void swiftSetBytesPerRowAlignment(size_t);
+    static Name swiftNameForRenderingPurpose(RenderingPurpose);
+    static Name swiftName(uintptr_t swiftState);
+    static CFStringRef swiftNameString(uintptr_t swiftState);
+    static CGContextRef swiftCreatePlatformContext(uintptr_t swiftState, PlatformDisplayID, bool hasAlphaInfo, CGImageAlphaInfo, bool useWebKitBehavior);
+    static CGContextRef swiftCreatePlatformContextForNativeImage(uintptr_t swiftState, ShouldForceOpaque);
+    static CGContextRef swiftCreateBitmapContextWhileLocked(uintptr_t swiftState);
+    static SetNonVolatileResult swiftState(uintptr_t swiftState);
+    static bool swiftIsVolatile(uintptr_t swiftState);
+    static SetNonVolatileResult swiftSetVolatile(uintptr_t swiftState, bool);
+    static CGColorSpaceRef swiftColorSpace(uintptr_t swiftState);
 #if HAVE(SUPPORT_HDR_DISPLAY)
-    std::optional<float> m_contentEDRHeadroom;
+    static void swiftSetContentEDRHeadroom(uintptr_t swiftState, float);
+    static bool swiftHasContentEDRHeadroom(uintptr_t swiftState);
+    static float swiftContentEDRHeadroom(uintptr_t swiftState);
+    static void swiftLoadContentEDRHeadroom(uintptr_t swiftState);
 #endif
+#if HAVE(IOSURFACE_ALPHA_CHANNEL_MODE)
+    static void swiftSetContentsAlphaPremultiplication(uintptr_t swiftState, bool hasAlphaPremultiplication, AlphaPremultiplication);
+#endif
+    static void swiftSetOwnershipIdentity(uintptr_t swiftState, mach_port_t taskIdToken);
+    static void swiftSetSurfaceOwnershipIdentity(IOSurfaceRef, mach_port_t taskIdToken);
 
-    ProcessIdentity m_resourceOwner;
+    static uintptr_t createPoolSwiftState();
+    static void destroyPoolSwiftState(uintptr_t poolState);
+    static uintptr_t takePoolSurface(uintptr_t poolState, IntSize, CGColorSpaceRef, Format, UseLosslessCompression);
+    static void addPoolSurface(uintptr_t poolState, uintptr_t swiftState);
+    static void discardAllPoolSurfaces(uintptr_t poolState);
+    static void setPoolSize(uintptr_t poolState, size_t);
 
     RetainPtr<IOSurfaceRef> m_surface;
-
-    static std::optional<IntSize> s_maximumSize;
-
-    Name m_name;
-    std::optional<AlphaPremultiplication> m_contentsAlphaPremultiplication;
+    IntSize m_size;
+    size_t m_totalBytes { 0 };
+    std::optional<UsedFormat> m_format;
+    uintptr_t m_swiftState { 0 };
 
     WEBCORE_EXPORT friend WTF::TextStream& operator<<(WTF::TextStream&, const WebCore::IOSurface&);
+};
+
+// The values of an IOSurfaceCore that never change, which the facade keeps.
+struct IOSurfaceSwiftDescription {
+    int width;
+    int height;
+    size_t totalBytes;
+    bool hasFormat;
+    IOSurface::Format format;
+    UseLosslessCompression useLosslessCompression;
 };
 
 template<IOSurface::AccessMode Mode>
@@ -346,6 +389,17 @@ constexpr IOSurface::Format convertToIOSurfaceFormat(PixelFormat format)
 }
 
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, WebCore::IOSurface::Format);
+
+// The CGIOSurfaceContext functions, for IOSurface.swift. The size must be the surface's, with the bits of a format
+// Core Graphics can draw it in, and the contexts ones that ioSurfaceContextCreate() made for the surface.
+SWIFT_UNSAFE CGContextRef ioSurfaceContextCreate(IOSurfaceRef, size_t width, size_t height, size_t bitsPerComponent, size_t bitsPerPixel, CGColorSpaceRef, CGBitmapInfo, bool useWebKitBehavior, PlatformDisplayID, mach_port_t ownerTaskIdToken) CF_RETURNS_RETAINED;
+SWIFT_UNSAFE CGImageRef ioSurfaceContextCreateImage(CGContextRef) CF_RETURNS_RETAINED;
+// A transient image is one that is drawn once, which Core Graphics needn't cache.
+SWIFT_UNSAFE CGImageRef ioSurfaceContextCreateImageReference(CGContextRef, bool isTransient) CF_RETURNS_RETAINED;
+SWIFT_UNSAFE IOSurfaceRef ioSurfaceContextGetSurface(CGContextRef);
+// False if Core Graphics can't invalidate the context's cached images of its surface, or flush its queue.
+SWIFT_UNSAFE bool ioSurfaceContextInvalidateSurface(CGContextRef);
+SWIFT_UNSAFE bool ioSurfaceContextFlushQueue(CGContextRef);
 
 } // namespace WebCore
 

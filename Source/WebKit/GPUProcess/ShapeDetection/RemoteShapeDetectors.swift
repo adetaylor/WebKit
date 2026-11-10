@@ -39,13 +39,13 @@ extension WebKit.RemoteRenderingBackend {
         let detector = ShapeDetectionVision.BarcodeDetector(requestedFormats: barcodeDetectorOptions.formats.map(\.rawValue))
         let forwarder = RemoteBarcodeDetector(detector, self).messageForwarder()
         try messageCheck("a detector has the identifier") {
-            IPC.tryStartReceivingSwiftMessages(streamConnection(), forwarder, .RemoteBarcodeDetector, identifier.rawValue)
+            WebKit.tryStartReceivingSwiftMessages(self, forwarder, .RemoteBarcodeDetector, identifier.rawValue)
         }
     }
 
     func releaseBarcodeDetector(identifier: IPCTypes.ShapeDetectionIdentifier) throws(InvalidMessage) {
         try messageCheck("no detector has the identifier") {
-            streamConnection().tryStopReceivingMessages(.RemoteBarcodeDetector, identifier.rawValue)
+            tryStopReceivingMessages(.RemoteBarcodeDetector, identifier.rawValue)
         }
     }
 
@@ -60,26 +60,26 @@ extension WebKit.RemoteRenderingBackend {
         let detector = ShapeDetectionVision.FaceDetector(maxDetectedFaces: faceDetectorOptions.maxDetectedFaces)
         let forwarder = RemoteFaceDetector(detector, self).messageForwarder()
         try messageCheck("a detector has the identifier") {
-            IPC.tryStartReceivingSwiftMessages(streamConnection(), forwarder, .RemoteFaceDetector, identifier.rawValue)
+            WebKit.tryStartReceivingSwiftMessages(self, forwarder, .RemoteFaceDetector, identifier.rawValue)
         }
     }
 
     func releaseFaceDetector(identifier: IPCTypes.ShapeDetectionIdentifier) throws(InvalidMessage) {
         try messageCheck("no detector has the identifier") {
-            streamConnection().tryStopReceivingMessages(.RemoteFaceDetector, identifier.rawValue)
+            tryStopReceivingMessages(.RemoteFaceDetector, identifier.rawValue)
         }
     }
 
     func createTextDetector(identifier: IPCTypes.ShapeDetectionIdentifier) throws(InvalidMessage) {
         let forwarder = RemoteTextDetector(.init(), self).messageForwarder()
         try messageCheck("a detector has the identifier") {
-            IPC.tryStartReceivingSwiftMessages(streamConnection(), forwarder, .RemoteTextDetector, identifier.rawValue)
+            WebKit.tryStartReceivingSwiftMessages(self, forwarder, .RemoteTextDetector, identifier.rawValue)
         }
     }
 
     func releaseTextDetector(identifier: IPCTypes.ShapeDetectionIdentifier) throws(InvalidMessage) {
         try messageCheck("no detector has the identifier") {
-            streamConnection().tryStopReceivingMessages(.RemoteTextDetector, identifier.rawValue)
+            tryStopReceivingMessages(.RemoteTextDetector, identifier.rawValue)
         }
     }
 }
@@ -192,10 +192,17 @@ private func cachedImage(
     _ backend: WebKit.RemoteRenderingBackend,
     _ identifier: IPCTypes.RenderingResourceIdentifier
 ) throws(InvalidMessage) -> CGImage? {
+    #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    let cached = backend.state.resources.nativeImage(key: identifier.rawValue)
+    try messageCheck("no native image has the identifier") { cached != nil }
+    return cached?.image
+    #else
+    // The SDKs without the CG renderer in Swift cache native images in C++.
     var found = false
     let image = WebKit.copyCachedNativeImage(backend, identifier.rawValue, &found)
     try messageCheck("no native image has the identifier") { found }
     return image
+    #endif
 }
 
 private func ipcRect(_ rect: ShapeDetectionVision.Rect) -> IPCTypes.FloatRect {

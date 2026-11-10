@@ -29,6 +29,7 @@
 
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/ImageBufferBackend.h>
+#include <WebCore/ImageBufferSurface.h>
 #include <wtf/Forward.h>
 
 namespace WebCore {
@@ -39,7 +40,7 @@ public:
     NODELETE static unsigned calculateBytesPerRow(const IntSize& backendSize, PixelFormat);
 
 protected:
-    ImageBufferCGBackend(const ImageBufferParameters&, std::unique_ptr<GraphicsContextCG>&& = nullptr);
+    ImageBufferCGBackend(const ImageBufferParameters&, std::unique_ptr<GraphicsContextCG>&& = nullptr, ImageBufferSurface&& = { });
     void applyBaseTransform(GraphicsContextCG&) const;
 
     std::unique_ptr<ThreadSafeImageBufferFlusher> createFlusher() override;
@@ -47,6 +48,8 @@ protected:
     String debugDescription() const override;
 
     std::unique_ptr<GraphicsContextCG> m_context;
+    // Empty for the backends whose surface has no core.
+    ImageBufferSurface m_core;
 };
 
 } // namespace WebCore

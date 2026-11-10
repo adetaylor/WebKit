@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -880,7 +880,7 @@ def forward_declarations_and_headers(receiver):
     # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
     if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
         headers.add('"SharedPreferencesForWebProcess.h"')
-        if swift_receiver_runs_on_work_queue(receiver):
+        if receiver.has_attribute(STREAM_ATTRIBUTE):
             headers.add('<wtf/Function.h>')
 
     # For IPC::CxxDecodedArgument.
@@ -963,6 +963,11 @@ def forward_declarations_and_headers(receiver):
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', weak_ref_class))
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', class_name))
         swift_extra_types_by_namespace[handler_namespace_name].add(('class', forwarder_class))
+        if receiver.is_recordable():
+            swift_extra_types_by_namespace[handler_namespace_name].add(('class', recorder_weak_ref_class(receiver)))
+            swift_extra_types_by_namespace[handler_namespace_name].add(('class', recorder_forwarder_class(receiver)))
+            if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+                swift_extra_types_by_namespace['IPC'].add(('class', 'SwiftReplyEncoder'))
         result += '\n'.join([forward_declarations_for_namespace(namespace, types) for (namespace, types) in sorted(swift_extra_types_by_namespace.items())])
 
     if_swift_enabled(receiver, result, append_extra_swift_forward_declarations, None)
@@ -1031,6 +1036,307 @@ def message_to_complete_definition(receiver, message):
         '    (*completionHandler)(reply);',
         '}',
     ])
+
+
+# A 'Recordable' receiver's recorder, the hand-written Swift class whose record(_:) takes each message as a value, and the
+# generated classes that dispatch the messages to it.
+def recorder_class(receiver):
+    return receiver.name + 'Recorder'
+
+
+def recorder_weak_ref_class(receiver):
+    return receiver.name + 'RecorderWeakRef'
+
+
+def recorder_forwarder_class(receiver):
+    return receiver.name + 'RecorderMessageForwarder'
+
+
+def recorded_message_encoder_class(receiver):
+    return receiver.name + 'RecordedMessageEncoder'
+
+
+# The messages of a 'Recordable' receiver that a recording keeps.
+def recorded_messages(receiver):
+    return [message for message in receiver.messages if not message.is_async_reply and not message.has_attribute(NOT_RECORDED_ATTRIBUTE)]
+
+
+def recorded_message_encoder_parameters(message):
+    return ', '.join('%s %s' % (function_parameter_type(parameter.type, parameter.kind), parameter.name) for parameter in message.parameters)
+
+
+def recorder_forwarder_class_declaration(receiver, handler_namespace):
+    forwarder_class = recorder_forwarder_class(receiver)
+    weak_ref_class = recorder_weak_ref_class(receiver)
+    result = []
+    result.append('// The forwarder of a recorder of the messages: it decodes each message as the receiver\'s forwarder does, and passes its\n')
+    result.append('// arguments to the recorder rather than to a handler. It keeps the recorder.\n')
+    result.append('class ' + forwarder_class + ' final : public IPC::StreamMessageReceiver {\n')
+    result.append('public:\n')
+    result.append('    static Ref<' + forwarder_class + '> createFromWeak(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL handler)\n')
+    result.append('    {\n')
+    result.append('        return adoptRef(*new ' + forwarder_class + '(handler));\n')
+    result.append('    }\n')
+    result.append('    ~' + forwarder_class + '();\n')
+    result.append('    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;\n')
+    result.append('    // Gives the recorder the messages that another process encoded as it recorded them: false if one is invalid.\n')
+    result.append('    bool didReceiveRecordedMessages(std::span<const uint8_t>);\n')
+    result.append('    void ref() const { StreamMessageReceiver::ref(); }\n')
+    result.append('    void deref() const { StreamMessageReceiver::deref(); }\n')
+    result.append('private:\n')
+    result.append('    ' + forwarder_class + '(' + handler_namespace + '::' + weak_ref_class + '* WTF_NONNULL);\n')
+    result.append('    void dispatch(IPC::StreamServerConnection*, IPC::Decoder&);\n')
+    result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
+    result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
+    encoder_class = recorded_message_encoder_class(receiver)
+    result.append('// Encodes the messages of a recording one after another, as the stream sends them, for a recorder in another process to\n')
+    result.append('// record again (%s::didReceiveRecordedMessages()).\n' % forwarder_class)
+    result.append('class %s {\n' % encoder_class)
+    result.append('public:\n')
+    for condition, messages in itertools.groupby(recorded_messages(receiver), lambda m: m.condition):
+        if condition:
+            result.append('#if %s\n' % condition)
+        for message in messages:
+            if receiver.takes_swift_types(message):
+                # Swift encodes the arguments of a message that takes Swift types into the encoder of the message.
+                result.append('    IPC::SwiftReplyEncoder* WTF_NONNULL encoderFor%s() SWIFT_RETURNS_RETAINED;\n' % message.name)
+            else:
+                result.append('    void encode%s(%s);\n' % (message.name, recorded_message_encoder_parameters(message)))
+        if condition:
+            result.append('#endif\n')
+    if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+        result.append('    void appendEncodedMessage(IPC::SwiftReplyEncoder&);\n')
+    result.append('    Vector<uint8_t> takeEncodedMessages() { return std::exchange(m_encodedMessages, { }); }\n')
+    result.append('private:\n')
+    result.append('    Vector<uint8_t> m_encodedMessages;\n')
+    result.append('};\n\n')
+    return result
+
+
+# The recorder forwarder's methods: its dispatch of each message to the recorder's generated dispatch, which records it.
+def recorder_forwarder_methods(receiver):
+    forwarder_class = recorder_forwarder_class(receiver)
+    weak_ref_class = recorder_weak_ref_class(receiver)
+    result = []
+    result.append('void %s::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)\n' % forwarder_class)
+    result.append('{\n')
+    result.append('    dispatch(&connection, decoder);\n')
+    result.append('}\n')
+    result.append('\n')
+    result.append('bool %s::didReceiveRecordedMessages(std::span<const uint8_t> messages)\n' % forwarder_class)
+    result.append('{\n')
+    result.append('    return IPC::forEachRecordedMessage(messages, [&](IPC::Decoder& decoder) {\n')
+    result.append('        dispatch(nullptr, decoder);\n')
+    result.append('        return decoder.isValid();\n')
+    result.append('    });\n')
+    result.append('}\n')
+    result.append('\n')
+    result.append('void %s::dispatch(IPC::StreamServerConnection* connection, IPC::Decoder& decoder)\n' % forwarder_class)
+    result.append('{\n')
+    for condition, messages in itertools.groupby(receiver.messages, lambda m: m.condition):
+        if condition:
+            result.append('#if %s\n' % condition)
+        for message in messages:
+            if message.is_async_reply:
+                continue
+            result.append('    if (decoder.messageName() == Messages::%s::%s::name()) {\n' % (receiver.name, message.name))
+            function = 'handleSwiftTypesRecordedMessage' if receiver.takes_swift_types(message) else 'handleSwiftRecordedMessage'
+            result.append('        IPC::%s<Messages::%s::%s>(connection, decoder, m_handler.get(), &%s::dispatch%s);\n' % (function, receiver.name, message.name, weak_ref_class, message.name))
+            result.append('        return;\n')
+            result.append('    }\n')
+        if condition:
+            result.append('#endif\n')
+    result.append('    RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());\n')
+    result.append('    decoder.markInvalid();\n')
+    result.append('}\n')
+    result.append('\n')
+    # Workaround for rdar://163107752
+    result.append('static std::unique_ptr<%s> make%sUniquePtr(%s* WTF_NONNULL handler)\n' % (weak_ref_class, weak_ref_class, weak_ref_class))
+    result.append('{\n')
+    result.append('    auto newRef = _impl::_impl_%s::makeRetained(handler);\n' % weak_ref_class)
+    result.append('    return WTF::makeUniqueWithoutFastMallocCheck<%s>(newRef);\n' % weak_ref_class)
+    result.append('}\n')
+    result.append('\n')
+    result.append('%s::%s(%s* WTF_NONNULL target)\n' % (forwarder_class, forwarder_class, weak_ref_class))
+    result.append('    : m_handler(make%sUniquePtr(target))\n' % weak_ref_class)
+    result.append('{\n')
+    result.append('}\n')
+    result.append('\n')
+    result.append('%s::~%s()\n' % (forwarder_class, forwarder_class))
+    result.append('{\n')
+    result.append('}\n')
+    result.append('\n')
+    encoder_class = recorded_message_encoder_class(receiver)
+    for condition, messages in itertools.groupby(recorded_messages(receiver), lambda m: m.condition):
+        if condition:
+            result.append('#if %s\n' % condition)
+        for message in messages:
+            if receiver.takes_swift_types(message):
+                result.append('IPC::SwiftReplyEncoder* %s::encoderFor%s()\n' % (encoder_class, message.name))
+                result.append('{\n')
+                result.append('    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::%s::%s::name());\n' % (receiver.name, message.name))
+                result.append('}\n')
+                result.append('\n')
+                continue
+            result.append('void %s::encode%s(%s)\n' % (encoder_class, message.name, recorded_message_encoder_parameters(message)))
+            result.append('{\n')
+            result.append('    IPC::appendRecordedMessage(m_encodedMessages, Messages::%s::%s::name()%s);\n' % (receiver.name, message.name, ''.join(', %s' % parameter.name for parameter in message.parameters)))
+            result.append('}\n')
+            result.append('\n')
+        if condition:
+            result.append('#endif\n')
+            result.append('\n')
+    if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+        result.append('void %s::appendEncodedMessage(IPC::SwiftReplyEncoder& encoder)\n' % encoder_class)
+        result.append('{\n')
+        result.append('    IPC::appendSwiftEncodedRecordedMessage(m_encodedMessages, encoder);\n')
+        result.append('}\n')
+        result.append('\n')
+    return result
+
+
+# The Swift form of a message's condition, for the recorded form and the recorder's dispatch of a 'Recordable' receiver.
+def recordable_swift_condition(receiver, message):
+    try:
+        return swift_types.swift_condition(message.condition)
+    except swift_types.UnmappableSwiftCondition as error:
+        raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
+
+
+def recorded_swift_type_name(receiver, message, parameter):
+    if receiver.takes_swift_types(message):
+        return swift_types.swift_type_and_coder(parameter.type)[0]
+    return swift_type_name(parameter.recorded_as_type() or parameter.type)
+
+
+# For a 'Recordable' receiver: the messages as values, which a recording keeps, and their replay through the receiver's
+# handlers; the recorder's dispatch of each message, which C++ calls with the arguments it decoded and which gives the
+# recorder the message as a value; and the creation of the recorder's forwarder. A 'NotRecorded' message has no value: the
+# recorder's dispatch calls the recorder's own handler of it.
+def generate_swift_recorded_messages(receiver):
+    class_name = receiver.name
+    weak_ref_class = recorder_weak_ref_class(receiver)
+    all_messages = [message for message in receiver.messages if not message.is_async_reply]
+    messages = recorded_messages(receiver)
+
+    def surround_in_swift_condition(lines, message, indent):
+        if not message.condition:
+            return lines
+        return ['%s#if %s\n' % (indent, recordable_swift_condition(receiver, message))] + lines + ['%s#endif\n' % indent]
+
+    result = []
+    result.append('\n')
+    result.append('// The messages as values, which a recorder of them keeps: an argument with \'RecordedAs=\' as the type that names.\n')
+    result.append('extension %s {\n' % class_name)
+    result.append('    enum RecordedMessage {\n')
+    for message in messages:
+        if message.parameters:
+            payload = ', '.join('%s: %s' % (parameter.name, recorded_swift_type_name(receiver, message, parameter)) for parameter in message.parameters)
+            lines = ['        case %s(%s)\n' % (handler_function_name(message), payload)]
+        else:
+            lines = ['        case %s\n' % handler_function_name(message)]
+        result += surround_in_swift_condition(lines, message, '        ')
+    result.append('    }\n')
+    result.append('\n')
+    result.append('    // Calls the handler of each message in turn, as the forwarder does for a message it receives, with the state lent for\n')
+    result.append('    // the whole replay. A handler that finds a message invalid only skips it: the recorder checked each message when it\n')
+    result.append('    // recorded it.\n')
+    result.append('    static func replay(_ messages: borrowing [RecordedMessage], to target: %s, state: inout State) {\n' % class_name)
+    result.append('        for index in messages.indices {\n')
+    result.append('            switch messages[index] {\n')
+    for message in messages:
+        if message.parameters:
+            bindings = ', '.join('let %s' % parameter.name for parameter in message.parameters)
+            lines = ['            case .%s(%s):\n' % (handler_function_name(message), bindings)]
+        else:
+            lines = ['            case .%s:\n' % handler_function_name(message)]
+        arguments = ['state: &state'] + ['%s: %s' % (parameter.name, '%s.argument()' % parameter.name if parameter.recorded_as_type() else parameter.name) for parameter in message.parameters]
+        lines.append('                _ = try? mayThrowInvalidMessage(\n')
+        lines.append('                    target.%s(\n' % handler_function_name(message))
+        lines.append(',\n'.join(['                        %s' % argument for argument in arguments]))
+        lines.append('\n                    )\n')
+        lines.append('                )\n')
+        result += surround_in_swift_condition(lines, message, '            ')
+    result.append('            }\n')
+    result.append('        }\n')
+    result.append('    }\n')
+    result.append('\n')
+    result.append('    // Encodes each message in turn as the stream sends it, for a recorder in another process to record again.\n')
+    result.append('    static func encode(_ messages: borrowing [RecordedMessage], to encoder: inout WebKit.%s) {\n' % recorded_message_encoder_class(receiver))
+    result.append('        for index in messages.indices {\n')
+    result.append('            switch messages[index] {\n')
+    for message in messages:
+        if message.parameters:
+            bindings = ', '.join('let %s' % parameter.name for parameter in message.parameters)
+            lines = ['            case .%s(%s):\n' % (handler_function_name(message), bindings)]
+        else:
+            lines = ['            case .%s:\n' % handler_function_name(message)]
+        if receiver.takes_swift_types(message):
+            lines.append('                let messageEncoder = encoder.encoderFor%s()\n' % message.name)
+            for parameter in message.parameters:
+                lines.append('                %s.encode(%s, to: messageEncoder)\n' % (swift_types.swift_coder(parameter.type), parameter.name))
+            lines.append('                encoder.appendEncodedMessage(messageEncoder)\n')
+            result += surround_in_swift_condition(lines, message, '            ')
+            continue
+        arguments = ['%s.argument()' % parameter.name if parameter.recorded_as_type() else parameter.name for parameter in message.parameters]
+        lines.append('                encoder.encode%s(%s)\n' % (message.name, ', '.join(arguments)))
+        result += surround_in_swift_condition(lines, message, '            ')
+    result.append('            }\n')
+    result.append('        }\n')
+    result.append('    }\n')
+    result.append('}\n')
+    result.append('\n')
+    result.append('// The dispatch of each message to a recorder, which C++ calls on the stream connection\'s work queue with the arguments it\n')
+    result.append('// decoded. The forwarder keeps the recorder, which must not keep the forwarder.\n')
+    result.append('@_expose(Cxx)\n')
+    result.append('final class %s {\n' % weak_ref_class)
+    result.append('    private let target: %s\n' % recorder_class(receiver))
+    result.append('    init(target: %s) {\n' % recorder_class(receiver))
+    result.append('        self.target = target\n')
+    result.append('    }\n')
+    for message in all_messages:
+        takes_swift_types = receiver.takes_swift_types(message)
+        if takes_swift_types:
+            parameters = ['decoder: inout IPC.SwiftDecoder']
+        else:
+            parameters = ['%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)) for parameter in message.parameters]
+        lines = ['\n']
+        lines.append('    @used\n')
+        if parameters:
+            lines.append('    func dispatch%s(\n' % message.name)
+            lines.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
+            lines.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
+        else:
+            lines.append('    func dispatch%s() -> IPC.SwiftLentStateDispatch {\n' % message.name)
+        if takes_swift_types:
+            lines += swift_types_argument_decoding(message, '        ')
+        lines.append('        do throws(InvalidMessage) {\n')
+        if message.has_attribute(NOT_RECORDED_ATTRIBUTE):
+            arguments = ['%s: %s' % (parameter.name, parameter.name) for parameter in message.parameters]
+            lines.append('            try mayThrowInvalidMessage(\n')
+            lines.append('                target.%s(%s)\n' % (handler_function_name(message), ', '.join(arguments)))
+            lines.append('            )\n')
+        elif message.parameters:
+            values = ['%s: %s' % (parameter.name, '%s(%s)' % (recorded_swift_type_name(receiver, message, parameter), parameter.name) if parameter.recorded_as_type() else parameter.name) for parameter in message.parameters]
+            lines.append('            try target.record(\n')
+            lines.append('                .%s(\n' % handler_function_name(message))
+            lines.append(',\n'.join(['                    %s' % value for value in values]))
+            lines.append('\n                )\n')
+            lines.append('            )\n')
+        else:
+            lines.append('            try target.record(.%s)\n' % handler_function_name(message))
+        lines.append('        } catch {\n')
+        lines.append('            return .Invalid\n')
+        lines.append('        }\n')
+        lines.append('        return .Handled\n')
+        lines.append('    }\n')
+        if message.condition:
+            lines.insert(0, '\n    #if %s' % recordable_swift_condition(receiver, message))
+            lines.append('    #endif\n')
+        result += lines
+    result.append('}\n')
+    append_message_forwarder_creation(result, recorder_forwarder_class(receiver), 'Ref' + recorder_forwarder_class(receiver), recorder_class(receiver), weak_ref_class)
+    return result
 
 
 def generate_messages_header(receiver):
@@ -1112,8 +1418,10 @@ def generate_messages_header(receiver):
             result.append('    // the queue its handlers are confined to. Registering again, for another destination, must name the same queue.\n')
             result.append('    void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);\n')
             if receiver_needs_shared_preferences(receiver):
-                result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
-                result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
+                result.append('    // Sets the shared preferences that dispatch checks messages against, which it keeps: before the first\n')
+                result.append('    // startReceivingMessages(), on the thread that calls it, and after it, on the work queue, after the messages\n')
+                result.append('    // already dispatched to it. Until they are set, every message is disabled.\n')
+                result.append('    void updateSharedPreferences(SharedPreferencesForWebProcess);\n')
         else:
             result.append('    void ref() const final { RefCounted::ref(); }\n')
             result.append('    void deref() const final { RefCounted::deref(); }\n')
@@ -1122,18 +1430,24 @@ def generate_messages_header(receiver):
         if not swift_receiver_runs_on_work_queue(receiver):
             result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
-        if swift_receiver_runs_on_work_queue(receiver) and receiver_needs_shared_preferences(receiver):
+        if is_stream and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
+        if is_work_queue and receiver_needs_shared_preferences(receiver):
+            result.append('    std::optional<SharedPreferencesForWebProcess> m_sharedPreferences;\n')
         if lender:
             result.append('    RefPtr<%s> m_stateLender;\n' % lender)
         if is_work_queue:
             result.append('    RefPtr<WorkQueue> m_workQueue;\n')
         result.append('} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);\n\n')
+        if receiver.is_recordable():
+            result += recorder_forwarder_class_declaration(receiver, handler_namespace)
         if receiver_needs_shared_preferences(receiver):
             result.append('using OptionalSharedPreferencesForWebProcess = std::optional<SharedPreferencesForWebProcess>;\n\n')
         result.append('}\n')
         result.append('\n')
         result.append('using %s = Ref<WebKit::%s>;\n' % (ref_forwarder_class, forwarder_class))
+        if receiver.is_recordable():
+            result.append('using Ref%s = Ref<WebKit::%s>;\n' % (recorder_forwarder_class(receiver), recorder_forwarder_class(receiver)))
         result.append('\n')
     if_swift_enabled(receiver, result, append_message_forwarder_class_for_swift, None)
 
@@ -1200,7 +1514,7 @@ def generate_messages_header(receiver):
         else:
             if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
 
-    if receiver.is_swift_implementation():
+    if receiver.is_swift_implementation() and (swift_implementation_messages(receiver) or not receiver.swift_state):
         # Each is declared whatever the message's condition, as it takes no type the condition could remove.
         result.append('namespace %s {\nclass %s;\n}\n\n' % (receiver.namespace, receiver.name))
         result.append('// What %sMessageReceiver.swift implements, with @cxx @implementation: the dispatch of each message that\n' % receiver.name)
@@ -1216,7 +1530,17 @@ def generate_messages_header(receiver):
     return ''.join(result)
 
 
-_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector')
+_SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector', 'std::optional')
+
+# C++ types that Swift imports as noncopyable, which a Swift parameter has to say it borrows.
+_SWIFT_NONCOPYABLE_TYPES = frozenset(['IPC::Semaphore', 'WebCore::SharedMemory::Handle'])
+
+
+def swift_borrowing_prefix(cpp_type):
+    return 'borrowing ' if _strip_cpp_type_decorations(cpp_type) in _SWIFT_NONCOPYABLE_TYPES else ''
+
+# The prefix of the alias Swift names a wrapper template's instantiation with: NS::OptionalT for std::optional<NS::T>.
+_SWIFT_WRAPPER_ALIAS_PREFIXES = {'std::optional': 'Optional'}
 
 # Plain C structs that a Swift bridge header declares outside any namespace.
 _SWIFT_GLOBAL_TYPES = frozenset(['CGRendererColorValue'])
@@ -1258,11 +1582,15 @@ def swift_type_name(cpp_type):
             raise UnmappableSwiftType("Cannot derive the Swift name of '%s': '%s' has no namespace to "
                                       "hang the alias off." % (cpp_type, match.group(2)))
         namespace, inner = inner_name.rsplit('.', 1)
-        return '%s.%s%s' % (namespace, match.group(1), inner)
+        return '%s.%s%s' % (namespace, _SWIFT_WRAPPER_ALIAS_PREFIXES.get(match.group(1), match.group(1)), inner)
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9]*)::([A-Za-z_][A-Za-z_0-9]*)$', cpp_type)
     if match:
         return '%s.%s' % (match.group(1), match.group(2))
+
+    # A type nested in a class, such as WebCore::SharedMemory::Handle.
+    if re.match(r'^[A-Za-z_][A-Za-z_0-9]*(::[A-Za-z_][A-Za-z_0-9]*){2,}$', cpp_type):
+        return cpp_type.replace('::', '.')
 
     # .messages.in namespaces everything except WTF, which it writes unqualified: String, URL,
     # Seconds and so on. A non-WTF unqualified typedef would produce a Swift compile error naming
@@ -1281,7 +1609,8 @@ def _cpp_type_with_qualified_templates(cpp_type):
     cpp_type = _strip_cpp_type_decorations(cpp_type)
     match = re.match(r'^(%s)<(.+)>$' % '|'.join(_SWIFT_WRAPPER_TEMPLATES), cpp_type)
     if match:
-        return 'WTF::%s<%s>' % (match.group(1), _cpp_type_with_qualified_templates(match.group(2)))
+        template = match.group(1) if '::' in match.group(1) else 'WTF::%s' % match.group(1)
+        return '%s<%s>' % (template, _cpp_type_with_qualified_templates(match.group(2)))
     return cpp_type
 
 
@@ -1389,7 +1718,24 @@ def swift_implementation_dispatch_parameters(receiver, message):
 
 
 def swift_implementation_messages(receiver):
-    return [message for message in receiver.messages if receiver.takes_swift_types(message)]
+    return [message for message in receiver.messages if receiver.takes_swift_types(message) and not receiver.dispatches_to_swift_state(message)]
+
+
+# The Swift class to which generated Swift dispatches the messages that go to a receiver's Swift state, with 'SwiftState='.
+def swift_state_dispatch_class(receiver):
+    return '%sStateDispatch' % receiver.name
+
+
+# What a receiver with 'SwiftState=' dispatches a message that goes to its Swift state with: its swift_state_dispatch_class(),
+# which the receiver's IPC::SwiftStateDispatch keeps, and the Swift method of it that dispatches the message.
+def swift_state_dispatch_target_and_function(receiver, message):
+    dispatch_class = '%s::%s' % (receiver.namespace, swift_state_dispatch_class(receiver))
+    return '&%s(m_swiftStateDispatch, *this)' % swift_state_dispatch_function(receiver), '%s::dispatch%s' % (dispatch_class, message.name)
+
+
+# The generated C++ function that gives a receiver's swift_state_dispatch_class(), making it for the first message.
+def swift_state_dispatch_function(receiver):
+    return '%s%sStateDispatch' % (receiver.name[0].lower(), receiver.name[1:])
 
 
 def swift_implementation_receiver_class(receiver):
@@ -1446,13 +1792,20 @@ def async_message_statement(receiver, message):
         result.append(pattern % (', '.join(dispatch_function_args)))
 
     def append_lent_state_dispatch(result):
-        # The lender lends the state for the message, and handles it itself if the Swift handler declines it.
+        # The lender lends the state for the message, and handles it itself if the Swift handler declines it. A message
+        # that takes Swift types is decoded by its Swift dispatch, while the state is lent.
         arguments = ['connection', 'decoder', 'm_stateLender', 'm_handler.get()', '&%s' % swift_trampoline_function(receiver, message)]
         if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
             arguments.append('&%s::%s' % (receiver.swift_receiver_state_lender, handler_function_name(message)))
-        result.append('        IPC::handleSwiftMessageWithLentState<Messages::%s::%s>(%s);\n' % (receiver.name, message.name, ', '.join(arguments)))
+        function = 'handleSwiftTypesMessageWithLentState' if receiver.takes_swift_types(message) else 'handleSwiftMessageWithLentState'
+        result.append('        IPC::%s<Messages::%s::%s>(%s);\n' % (function, receiver.name, message.name, ', '.join(arguments)))
 
     def append_with_dispatch_function_args(receiver, result):
+        if receiver.dispatches_to_swift_state(message):
+            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            target, function = swift_state_dispatch_target_and_function(receiver, message)
+            append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, target, function)
+            return
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
             pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
             append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, 'this', swift_implementation_dispatch_function(receiver, message))
@@ -1543,7 +1896,9 @@ def sync_message_statement(receiver, message):
 
     swift_dispatch_function = swift_types_dispatch_function(message) if receiver.takes_swift_types(message) else dispatch_function
     swift_target, swift_function = swift_dispatch_target_and_function(receiver, message)
-    if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
+    if receiver.dispatches_to_swift_state(message):
+        append_call_with_target_name(result, swift_dispatch_function, *swift_state_dispatch_target_and_function(receiver, message))
+    elif receiver.is_swift_implementation() and receiver.takes_swift_types(message):
         append_call_with_target_name(result, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message))
     else:
         if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
@@ -1754,6 +2109,7 @@ def headers_for_type(type, for_implementation_file=False):
         'WebCore::DictationContext': ['<WebCore/DictationContext.h>'],
         'WebCore::DMABufBufferAttributes': ['<WebCore/DMABufBufferAttributes.h>'],
         'WebCore::DocumentMarkerLineStyle': ['<WebCore/GraphicsTypes.h>'],
+        'WebCore::DocumentMarkerLineStyleMode': ['<WebCore/GraphicsTypes.h>'],
         'WebCore::DocumentSyncSerializationData': ['<WebCore/DocumentSyncData.h>'],
         'WebCore::DOMCacheIdentifierID': ['"GeneratedSerializers.h"'],
         'WebCore::DOMCacheEngine::CacheIdentifierOrError': ['<WebCore/DOMCacheEngine.h>'],
@@ -2353,7 +2709,10 @@ def generate_target_and_enabled_by_statements(receiver, messages):
             # target here as well costs more than the dispatch itself. A gone target has no shared preferences, so a
             # receiver with EnabledBy marks the message invalid then. Asking Swift for the shared preferences costs
             # about as much, so they come from a C++ provider when the receiver's host has set one.
-            if needs_shared_preferences:
+            # A WorkQueue receiver's forwarder keeps its own copy, which only its queue reads and writes once it is receiving.
+            if needs_shared_preferences and receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
+                result.append('    auto& sharedPreferences = m_sharedPreferences;\n')
+            elif needs_shared_preferences:
                 result.append('    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();\n')
             return
         result.append('    auto target = getMessageTarget();\n')
@@ -2414,6 +2773,9 @@ def generate_message_handler(receiver):
         result.append('#include "%s.h"\n\n' % receiver.receiver_name)
     else:
         if_swift_enabled(receiver, result, lambda x: x.append('#include "%s.h" // NOLINT\n' % 'Shared/WebKit-Swift'), lambda x: x.append('#include "%s.h"\n\n' % receiver.name))
+    if receiver.swift_state:
+        # For the Swift class that dispatches the messages that go to the receiver's Swift state.
+        result.append('#include "Shared/WebKit-Swift.h" // NOLINT\n')
     result += generate_header_includes_from_conditions(header_conditions)
     result.append('\n')
 
@@ -2422,6 +2784,17 @@ def generate_message_handler(receiver):
     result.append("#endif\n\n")
 
     result.append('namespace %s {\n\n' % receiver.namespace)
+
+    if receiver.swift_state:
+        dispatch_class = swift_state_dispatch_class(receiver)
+        result.append('// The Swift dispatch of the messages that go to the receiver\'s Swift state, which keeps the state. It is made for the\n')
+        result.append('// first of them, on the queue they are dispatched on, and kept until the receiver goes.\n')
+        result.append('static %s& %s(IPC::SwiftStateDispatch& dispatch, %s& receiver)\n' % (dispatch_class, swift_state_dispatch_function(receiver), receiver.name))
+        result.append('{\n')
+        result.append('    if (!dispatch) [[unlikely]]\n')
+        result.append('        dispatch.set(%s::create(&receiver));\n' % dispatch_class)
+        result.append('    return dispatch.get<%s>();\n' % dispatch_class)
+        result.append('}\n\n')
 
     async_messages = []
     sync_messages = []
@@ -2535,6 +2908,19 @@ def generate_message_handler(receiver):
             result.append('    connection.addWorkQueueMessageReceiver(Messages::%s::messageReceiverName(), workQueue, *this, destinationID);\n' % receiver.name)
             result.append('}\n')
             result.append('\n')
+            if receiver_needs_shared_preferences(receiver):
+                result.append('void %s::updateSharedPreferences(SharedPreferencesForWebProcess sharedPreferences)\n' % forwarder_class)
+                result.append('{\n')
+                result.append('    RefPtr workQueue = m_workQueue;\n')
+                result.append('    if (!workQueue) {\n')
+                result.append('        m_sharedPreferences = WTF::move(sharedPreferences);\n')
+                result.append('        return;\n')
+                result.append('    }\n')
+                result.append('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n')
+                result.append('        protectedThis->m_sharedPreferences = WTF::move(sharedPreferences);\n')
+                result.append('    });\n')
+                result.append('}\n')
+                result.append('\n')
 
         if not swift_receiver_runs_on_work_queue(receiver):
             result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
@@ -2562,6 +2948,8 @@ def generate_message_handler(receiver):
             result.append('    m_stateLender = &lender;\n')
             result.append('}\n')
             result.append('\n')
+        if receiver.is_recordable():
+            result += recorder_forwarder_methods(receiver)
 
     if_swift_enabled(receiver, result, append_swift_message_forwarder_methods, None)
 
@@ -2662,19 +3050,52 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # itself, which would need the connection, this tells C++ what became of it. A SwiftMayDecline handler returns false to
 # decline the message, which the lender then handles. The handler is called during the dispatch, so it borrows its arguments:
 # the C++ that calls this would otherwise copy each one that isn't trivially copyable, for every message.
+# The Swift decoding of the arguments of a message that takes Swift types, by a dispatch that returns its Invalid result if
+# they are malformed.
+# With decode_context, the dispatch first asks the target, with the state, for the context to decode the arguments whose coders
+# take one ('SwiftDecodeContext=').
+def swift_types_argument_decoding(message, indent, decode_context=None):
+    result = []
+    if not message.parameters:
+        return result
+    for parameter in message.parameters:
+        result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
+    if decode_context:
+        result.append('%slet decodeContext = target.%s(state: state)\n' % (indent, decode_context))
+    # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a message with
+    # an owned argument is decoded in a block of its own.
+    decodes_each_in_own_block = any(swift_types.is_owned_type(parameter.type) for parameter in message.parameters)
+    for index, parameter in enumerate(message.parameters):
+        if index == 0 or decodes_each_in_own_block:
+            result.append('%sdo {\n' % indent)
+        context = ', context: decodeContext' if decode_context and swift_types.takes_decode_context(parameter.type) else ''
+        result.append('%s    %s = try %s.decode(from: &decoder%s)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type), context))
+        if index == len(message.parameters) - 1 or decodes_each_in_own_block:
+            result.append('%s} catch {\n' % indent)
+            result.append('%s    return .Invalid\n' % indent)
+            result.append('%s}\n' % indent)
+    return result
+
+
 def swift_lent_state_dispatch_function(receiver, message):
     may_decline = message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE)
+    takes_swift_types = receiver.takes_swift_types(message)
     parameters = ['state: inout %s.State' % receiver.name]
     arguments = ['state: &state']
     for parameter in message.parameters:
-        parameters.append('%s: %s' % (parameter.name, swift_type_name(parameter.type)))
+        if not takes_swift_types:
+            parameters.append('%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)))
         arguments.append('%s: %s' % (parameter.name, parameter.name))
+    if takes_swift_types:
+        parameters.append('decoder: inout IPC.SwiftDecoder')
     result = []
     result.append('\n')
     result.append('    @used\n')
     result.append('    func dispatch%s(\n' % message.name)
     result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
     result.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
+    if takes_swift_types:
+        result += swift_types_argument_decoding(message, '        ', message.swift_decode_context())
     result.append('        do throws(InvalidMessage) {\n')
     result.append('            %stry mayThrowInvalidMessage(\n' % ('let handled = ' if may_decline else ''))
     result.append('                target.%s(\n' % handler_function_name(message))
@@ -2724,7 +3145,9 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
-    if implementation:
+    # A receiver with 'SwiftState=' whose messages all go to its Swift state has no @cxx @implementation dispatch.
+    emits_extension = implementation and bool(swift_implementation_messages(receiver) or not receiver.swift_state)
+    if emits_extension:
         result.append('extension SwiftDispatch.%s {\n' % receiver.name)
     first_message_index = len(result)
     if not implementation and not swift_receiver_runs_on_work_queue(receiver):
@@ -2755,7 +3178,7 @@ def generate_swift_message_handler(receiver):
                 result.append('        target.%s()\n' % hook)
                 result.append('    }\n')
         if swift_receiver_runs_on_work_queue(receiver):
-            if receiver_needs_shared_preferences(receiver):
+            if receiver_needs_shared_preferences(receiver) and receiver.has_attribute(STREAM_ATTRIBUTE):
                 result.append('\n')
                 result.append('    @used\n')
                 result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
@@ -2783,9 +3206,18 @@ def generate_swift_message_handler(receiver):
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
     # failed message check on the handler's behalf, and supplies the reply if the message has one.
+    # A receiver with 'SwiftState=' dispatches the messages that go to its Swift state from a Swift class, which generated
+    # Swift declares after the receiver's @cxx @implementation dispatch functions, in state_result.
+    cxx_class_name = class_name
+    main_result = result
+    state_result = []
     for message in receiver.messages:
-        if not (receiver.takes_swift_types(message) if implementation else generates_swift_trampoline(receiver, message)):
+        dispatches_to_swift_state = receiver.dispatches_to_swift_state(message)
+        if not (receiver.takes_swift_types(message) if receiver.is_swift_implementation() else generates_swift_trampoline(receiver, message)):
             continue
+        implementation = receiver.is_swift_implementation() and not dispatches_to_swift_state
+        class_name = receiver.swift_state if dispatches_to_swift_state else cxx_class_name
+        result = state_result if dispatches_to_swift_state else main_result
 
         message_start = len(result)
         if receiver.swift_receiver_state_lender:
@@ -2829,6 +3261,9 @@ def generate_swift_message_handler(receiver):
                 decoded_parameters.append((parameter.name, swift_types.LENT_BYTES_SWIFT_TYPE, LENT_BYTES_CODER))
             elif takes_swift_types:
                 decoded_parameters.append((parameter.name,) + swift_types.swift_type_and_coder(parameter.type))
+            elif parameter.has_attribute(LENT_ATTRIBUTE):
+                # The model checked that the handler is called during dispatch, while the argument's message lasts.
+                parameters.append('%s: borrowing %s' % (parameter.name, swift_type_name(parameter.type)))
             else:
                 parameters.append('%s: sending %s' % (parameter.name, swift_type_name(parameter.type)))
             arguments.append('%s: %s' % (parameter.name, parameter.name))
@@ -3054,13 +3489,39 @@ def generate_swift_message_handler(receiver):
             result.insert(message_start, '\n    #if %s' % condition)
             result.append('    #endif\n')
 
+    implementation = receiver.is_swift_implementation()
+    class_name = cxx_class_name
+    result = main_result
+
     # No empty line opens the extension.
     if implementation and first_message_index < len(result) and result[first_message_index].startswith('\n'):
         if result[first_message_index] == '\n':
             del result[first_message_index]
         else:
             result[first_message_index] = result[first_message_index][1:]
-    result.append('}\n')
+    if emits_extension or not implementation:
+        result.append('}\n')
+
+    if receiver.swift_state:
+        dispatch_class = swift_state_dispatch_class(receiver)
+        if emits_extension:
+            result.append('\n')
+        result.append('// The dispatch of the receiver\'s messages that go to its Swift state, the target, which the receiver\'s generated C++\n')
+        result.append('// keeps until the receiver goes, and calls with each of them on the queue it dispatches them on.\n')
+        result.append('@_expose(Cxx)\n')
+        result.append('final class %s {\n' % dispatch_class)
+        result.append('    private let target: %s\n' % receiver.swift_state)
+        result.append('\n')
+        result.append('    private init(target: %s) {\n' % receiver.swift_state)
+        result.append('        self.target = target\n')
+        result.append('    }\n')
+        result.append('\n')
+        result.append('    @used\n')
+        result.append('    static func create(_ receiver: %s) -> %s {\n' % (class_name, dispatch_class))
+        result.append('        %s(target: receiver.state)\n' % dispatch_class)
+        result.append('    }\n')
+        result += state_result
+        result.append('}\n')
 
     for message, reply_value_type, encoding_statements in stream_reply_values:
         cxx_encoded_reply = message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
@@ -3104,7 +3565,9 @@ def generate_swift_message_handler(receiver):
     if not implementation:
         append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
     if receiver.has_swift_receiver_owner():
-        append_swift_receiver_owner_start(result, message_forwarder_class, class_name)
+        append_swift_receiver_owner_start(result, message_forwarder_class, class_name, receiver.swift_receiver_owner_provider)
+    if receiver.is_recordable():
+        result += generate_swift_recorded_messages(receiver)
 
     for destination in receiver.swift_sends:
         result.append(generate_swift_message_senders(class_name, destination, receiver.has_swift_receiver_owner()))
@@ -3122,13 +3585,18 @@ def generate_swift_message_handler(receiver):
 SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS = ['runScheduledWork', 'didStopReceiving', 'didStopWorkQueue']
 
 
-def append_swift_receiver_owner_start(result, message_forwarder_class, class_name):
+def append_swift_receiver_owner_start(result, message_forwarder_class, class_name, provider):
     result.append('\n')
     result.append('extension %s {\n' % class_name)
     result.append('    // Starts receiving this receiver\'s messages, through its forwarder, which the owner keeps, and so this, until its\n')
     result.append('    // work queue stops.\n')
-    result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
-    result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    if provider:
+        result.append('    // The owner is the one that provider gives.\n')
+        result.append('    func startReceiving(on provider: %s) {\n' % (provider.replace('::', '.') if '::' in provider else 'WebKit.' + provider))
+        result.append('        IPC.startSwiftReceiver(provider, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    else:
+        result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
+        result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
     result.append('    }\n')
     result.append('}\n')
 

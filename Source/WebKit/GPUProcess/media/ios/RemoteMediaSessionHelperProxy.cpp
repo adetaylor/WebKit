@@ -47,100 +47,53 @@ RemoteMediaSessionHelperProxy::RemoteMediaSessionHelperProxy(GPUConnectionToWebP
 
 RemoteMediaSessionHelperProxy::~RemoteMediaSessionHelperProxy()
 {
-    stopMonitoringWirelessRoutes();
     protect(MediaSessionHelper::sharedHelper())->removeClient(*this);
 }
 
-void RemoteMediaSessionHelperProxy::ref() const
+template<typename Message> void RemoteMediaSessionHelperProxy::send(Message&& message)
 {
-    if (RefPtr connection = m_gpuConnection.get()) {
-        connection->ref();
-        return;
-    }
-    ASSERT_NOT_REACHED("RemoteMediaSessionHelperProxy outlived its owning GPUConnectionToWebProcess");
-}
-
-void RemoteMediaSessionHelperProxy::deref() const
-{
-    if (RefPtr connection = m_gpuConnection.get()) {
-        connection->deref();
-        return;
-    }
-    ASSERT_NOT_REACHED("RemoteMediaSessionHelperProxy outlived its owning GPUConnectionToWebProcess");
-}
-
-void RemoteMediaSessionHelperProxy::startMonitoringWirelessRoutes()
-{
-    if (m_isMonitoringWirelessRoutes)
-        return;
-
-    m_isMonitoringWirelessRoutes = true;
-    protect(MediaSessionHelper::sharedHelper())->startMonitoringWirelessRoutes();
-}
-
-void RemoteMediaSessionHelperProxy::stopMonitoringWirelessRoutes()
-{
-    if (!m_isMonitoringWirelessRoutes)
-        return;
-
-    m_isMonitoringWirelessRoutes = false;
-    protect(MediaSessionHelper::sharedHelper())->stopMonitoringWirelessRoutes();
+    if (RefPtr connection = m_gpuConnection.get())
+        connection->connection().send(std::forward<Message>(message), { });
 }
 
 void RemoteMediaSessionHelperProxy::uiApplicationWillEnterForeground(SuspendedUnderLock suspendedUnderLock)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ApplicationWillEnterForeground(suspendedUnderLock), { });
+    send(Messages::RemoteMediaSessionHelper::ApplicationWillEnterForeground(suspendedUnderLock));
 }
 
 void RemoteMediaSessionHelperProxy::uiApplicationDidEnterBackground(SuspendedUnderLock suspendedUnderLock)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ApplicationDidEnterBackground(suspendedUnderLock), { });
+    send(Messages::RemoteMediaSessionHelper::ApplicationDidEnterBackground(suspendedUnderLock));
 }
 
 void RemoteMediaSessionHelperProxy::uiApplicationWillBecomeInactive()
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ApplicationWillBecomeInactive(), { });
+    send(Messages::RemoteMediaSessionHelper::ApplicationWillBecomeInactive());
 }
 
 void RemoteMediaSessionHelperProxy::uiApplicationDidBecomeActive()
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ApplicationDidBecomeActive(), { });
+    send(Messages::RemoteMediaSessionHelper::ApplicationDidBecomeActive());
 }
 
 void RemoteMediaSessionHelperProxy::externalOutputDeviceAvailableDidChange(HasAvailableTargets hasAvailableTargets)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ExternalOutputDeviceAvailableDidChange(hasAvailableTargets), { });
+    send(Messages::RemoteMediaSessionHelper::ExternalOutputDeviceAvailableDidChange(hasAvailableTargets));
 }
 
 void RemoteMediaSessionHelperProxy::isPlayingToAutomotiveHeadUnitDidChange(PlayingToAutomotiveHeadUnit playing)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::IsPlayingToAutomotiveHeadUnitDidChange(playing), { });
+    send(Messages::RemoteMediaSessionHelper::IsPlayingToAutomotiveHeadUnitDidChange(playing));
 }
 
 void RemoteMediaSessionHelperProxy::activeAudioRouteDidChange(ShouldPause shouldPause)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ActiveAudioRouteDidChange(shouldPause), { });
+    send(Messages::RemoteMediaSessionHelper::ActiveAudioRouteDidChange(shouldPause));
 }
 
 void RemoteMediaSessionHelperProxy::activeVideoRouteDidChange(SupportsAirPlayVideo supportsAirPlayVideo, Ref<WebCore::MediaPlaybackTarget>&& target)
 {
-    if (RefPtr connection = m_gpuConnection.get())
-        connection->connection().send(Messages::RemoteMediaSessionHelper::ActiveVideoRouteDidChange(supportsAirPlayVideo, MediaPlaybackTargetContextSerialized { target.get() }), { });
-}
-
-std::optional<SharedPreferencesForWebProcess> RemoteMediaSessionHelperProxy::sharedPreferencesForWebProcess() const
-{
-    if (RefPtr gpuConnectionToWebProcess = m_gpuConnection.get())
-        return gpuConnectionToWebProcess->sharedPreferencesForWebProcess();
-
-    return std::nullopt;
+    send(Messages::RemoteMediaSessionHelper::ActiveVideoRouteDidChange(supportsAirPlayVideo, MediaPlaybackTargetContextSerialized { target.get() }));
 }
 
 }

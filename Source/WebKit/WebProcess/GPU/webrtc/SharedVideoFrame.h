@@ -29,6 +29,7 @@
 
 #include "IPCSemaphore.h"
 #include "RemoteVideoFrameIdentifier.h"
+#include "SharedVideoFrameImplBridge.h"
 #include <WebCore/IntSize.h>
 #include <WebCore/PixelBufferConformerCV.h>
 #include <WebCore/PlatformVideoColorSpace.h>
@@ -74,6 +75,9 @@ struct SharedVideoFrame {
     bool shouldIgnoreAlpha { false };
     using Buffer = Variant<std::nullptr_t, RemoteVideoFrameReadReference, MachSendRight, WebCore::IntSize>;
     Buffer buffer;
+
+    // The buffer, for SharedVideoFrameSource, whose IOSurface send right stays the frame's.
+    SharedVideoFrameBufferTag bufferTag() const;
 };
 
 class SharedVideoFrameWriter {

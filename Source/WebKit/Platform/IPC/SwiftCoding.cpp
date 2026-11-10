@@ -29,6 +29,7 @@
 #if ENABLE(SWIFT_IPC_RECEIVERS)
 
 #include "GeneratedSerializers.h"
+#include <WebCore/Path.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
 
@@ -55,6 +56,11 @@ SwiftReplyEncoder* SwiftReplyEncoder::createForMessage(Connection& connection, M
     return &adoptRef(*new SwiftReplyEncoder(connection, makeUniqueRef<Encoder>(name, destinationID), nullptr)).leakRef();
 }
 
+SwiftReplyEncoder* SwiftReplyEncoder::createForRecordedMessage(MessageName name)
+{
+    return &adoptRef(*new SwiftReplyEncoder(makeUniqueRef<Encoder>(name, 0))).leakRef();
+}
+
 void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
 {
     // A reply holding a SharedBuffer is not stream encodable.
@@ -62,6 +68,33 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
     RELEASE_ASSERT(m_encoder);
     *m_encoder << buffer;
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts, bool computesFastBoundingRect)
+{
+    auto segments = decoder.borrowed().decode<Vector<WebCore::PathSegment>>();
+    if (!segments) [[unlikely]] {
+        facts = { };
+        return nullptr;
+    }
+    return CGRendererCreatePathOfSegments(segments->span(), facts, computesFastBoundingRect);
+}
+
+void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)
+{
+    WebCore::Path path;
+    if (platformPath)
+        path = CGRendererPathOfPlatformPath(platformPath);
+    else if (facts.segmentCount == 1)
+        path = WebCore::Path { CGRendererPathSegmentFromValues(facts.segment) };
+    if (m_inStream) {
+        streamEncoder() << path;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << path;
+}
+#endif
 
 void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
 {

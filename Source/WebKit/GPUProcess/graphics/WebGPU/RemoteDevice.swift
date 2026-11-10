@@ -35,7 +35,7 @@ final class RemoteDevice {
     private let device: DeviceReference
     private let link: WebGPURegistryLink
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    private let videoFrames: WebKit.GPUVideoFrameSource?
+    private let videoFrames: SharedVideoFrameSource?
     #endif
 
     @_expose(!Cxx)
@@ -43,7 +43,7 @@ final class RemoteDevice {
         self.device = device
         self.link = link
         #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.host) }
+        videoFrames = link.objects?.videoFrameSources.make()
         #endif
     }
 
@@ -407,15 +407,15 @@ final class RemoteDevice {
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
     func setSharedVideoFrameSemaphore(
-        semaphore: borrowing IPCTypes.Semaphore
+        semaphore: consuming IPCTypes.Semaphore
     ) {
-        videoFrames?.setSemaphore(semaphore.port)
+        videoFrames?.setSemaphore(semaphore)
     }
 
     func setSharedVideoFrameMemory(
-        storageHandle: borrowing IPCTypes.SharedMemoryHandle
+        storageHandle: consuming IPCTypes.SharedMemoryHandle
     ) {
-        videoFrames?.setSharedMemory(storageHandle.port, storageHandle.size)
+        videoFrames?.setSharedMemory(storageHandle)
     }
 
     // The frame is the shared one the message carries, or else the one the media player shows.
@@ -423,19 +423,21 @@ final class RemoteDevice {
         mediaIdentifier: IPCTypes.MediaPlayerIdentifier?,
         colorSpace: IPCTypes.PredefinedColorSpace,
         visibleSize: IPCTypes.IntSize,
-        sharedFrame: CxxDecodedArguments.RemoteDevice.ImportExternalTextureFromVideoFrameSharedFrame,
+        sharedFrame: borrowing IPCTypes.SharedVideoFrame?,
         identifier: IPCTypes.WebGPUIdentifier
-    ) throws(InvalidMessage) {
-        guard let videoFrames, let externalTextureLink = link.child(identifier) else {
+    ) {
+        guard let videoFrames, let objects = link.objects, let externalTextureLink = link.child(identifier) else {
             return
         }
-        var result = WebKit.GPUVideoFrameReadResult()
-        var pixelBuffer = WebKit.readSharedVideoFrame(videoFrames, sharedFrame, &result)
-        try messageCheck {
-            !result.isInvalid
-        }
-        if !result.hadFrame, let mediaIdentifier {
-            pixelBuffer = WebKit.copyMediaPlayerFrame(videoFrames, mediaIdentifier.rawValue, &result)
+        var pixelBuffer: CVBuffer?
+        switch sharedFrame {
+        case .some(let frame):
+            pixelBuffer = videoFrames.read(frame).map { cvBuffer($0.pixelBuffer) }
+        case .none:
+            if let mediaIdentifier {
+                var result = WebKit.GPUVideoFrameReadResult()
+                pixelBuffer = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result)
+            }
         }
         var descriptor = GPUExternalTextureDescriptor()
         descriptor.pixelBuffer = pixelBuffer
@@ -448,12 +450,12 @@ final class RemoteDevice {
         externalTextureIdentifier: IPCTypes.WebGPUIdentifier,
         mediaIdentifier: IPCTypes.MediaPlayerIdentifier
     ) {
-        guard let videoFrames, let externalTexture = link.objects?.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
+        guard let objects = link.objects, let externalTexture = objects.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return
         }
         externalTexture.destroy()
         var result = WebKit.GPUVideoFrameReadResult()
-        let pixelBuffer = WebKit.copyMediaPlayerFrame(videoFrames, mediaIdentifier.rawValue, &result)
+        let pixelBuffer = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result)
         guard result.hadFrame else {
             return
         }

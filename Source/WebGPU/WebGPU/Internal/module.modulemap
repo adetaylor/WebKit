@@ -57,10 +57,5 @@ module WebGPU_Internal [system] {
         export *
     }
 
-    explicit module XRProjectionLayer {
-        header "../XRProjectionLayer.h"
-        export *
-    }
-
     export *
 }

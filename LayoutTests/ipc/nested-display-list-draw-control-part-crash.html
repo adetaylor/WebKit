@@ -14,7 +14,7 @@ async function main() {
     if (!window.IPC)
         return;
 
-    const { CoreIPC, ArgumentSerializer, StreamConnection, sRGBColorSpace } = await import('./coreipc.js');
+    const { CoreIPC, ArgumentSerializer, StreamConnection, sRGBColorSpace, drawingInterfaceName } = await import('./coreipc.js');
 
     // CoreIPC.js aliases RetainPtr<CGColorSpaceRef> -> CoreIPCCGColorSpace, but the
     // generated coder wraps it in a leading `bool isEngaged`. Override the field type
@@ -79,7 +79,7 @@ async function main() {
             contextIdentifier: graphicsContextIdentifier
         });
         return {
-            remoteGraphicsContext: rb.streamConnection.newInterface("RemoteGraphicsContext", graphicsContextIdentifier),
+            remoteGraphicsContext: rb.streamConnection.newInterface(drawingInterfaceName(), graphicsContextIdentifier),
             graphicsContextIdentifier
         };
     }
@@ -88,7 +88,7 @@ async function main() {
         const recorderIdentifier = genId();
         rb.remoteRenderingBackend.CreateDisplayListRecorder({ identifier: recorderIdentifier });
         return {
-            remoteGraphicsContext: rb.streamConnection.newInterface("RemoteGraphicsContext", recorderIdentifier),
+            remoteGraphicsContext: rb.streamConnection.newInterface(drawingInterfaceName(), recorderIdentifier),
             recorderIdentifier
         };
     }
@@ -108,10 +108,12 @@ async function main() {
             part: { subclasses: { variantType: variantType, variant: variant } },
             borderRect: {
                 rect: { location: { x: 0, y: 0 }, size: { width: sizePx, height: sizePx } },
-                radiiTopLeft:     { width: 0, height: 0 },
-                radiiTopRight:    { width: 0, height: 0 },
-                radiiBottomLeft:  { width: 0, height: 0 },
-                radiiBottomRight: { width: 0, height: 0 }
+                radii: {
+                    topLeft:     { width: 0, height: 0 },
+                    topRight:    { width: 0, height: 0 },
+                    bottomLeft:  { width: 0, height: 0 },
+                    bottomRight: { width: 0, height: 0 }
+                }
             },
             deviceScaleFactor: 1,
             style: {

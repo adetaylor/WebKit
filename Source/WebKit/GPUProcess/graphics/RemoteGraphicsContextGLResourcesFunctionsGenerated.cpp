@@ -32,7 +32,7 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection);
+#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 
 namespace WebKit {
 using namespace WebCore;
@@ -67,12 +67,6 @@ void RemoteGraphicsContextGLResources::bufferSubData(uint32_t target, uint64_t o
 {
     assertIsCurrent(workQueue());
     protect(m_context)->bufferSubData(target, static_cast<GCGLintptr>(offset), data);
-}
-
-void RemoteGraphicsContextGLResources::readPixelsBufferObject(WebCore::IntRect&& arg0, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength)
-{
-    assertIsCurrent(workQueue());
-    protect(m_context)->readPixelsBufferObject(arg0, format, type, static_cast<GCGLintptr>(offset), alignment, rowLength);
 }
 
 void RemoteGraphicsContextGLResources::texImage2D0(uint32_t target, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, std::span<const uint8_t>&& pixels)

@@ -48,7 +48,7 @@ final class RemoteRenderPassEncoder {
         }
         let receiver = RemoteRenderPassEncoder(renderPassEncoder, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteRenderPassEncoder,
             link.identifier
