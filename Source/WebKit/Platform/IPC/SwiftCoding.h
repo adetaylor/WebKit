@@ -239,7 +239,7 @@ public:
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
     // deallocate it or send it on: in Swift, the IPCTypes.MachSendRight that owns it. If there is none, invalidates the
     // decoder and returns MACH_PORT_NULL, which a valid message may also carry.
-    mach_port_t takeSendRight()
+    SWIFT_UNSAFE mach_port_t takeSendRight()
     {
         auto sendRight = borrowed().template decode<MachSendRight>();
         return sendRight ? sendRight->leakSendRight() : MACH_PORT_NULL;

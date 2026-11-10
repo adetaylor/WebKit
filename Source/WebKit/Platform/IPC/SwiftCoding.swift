@@ -705,15 +705,17 @@ extension IPCTypes {
         }
 
         deinit {
-            WTF.deallocateSendRightSafely(port)
+            // Safety: the value owns the right, and only this deinit, or the encoding that leaks it, gives it up.
+            unsafe WTF.deallocateSendRightSafely(port)
         }
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
-            let port = decoder.takeSendRight()
+            // Safety: takeSendRight() gives the caller the right, which the new value then owns.
+            let right = unsafe Self(adopting: decoder.takeSendRight())
             guard decoder.isValid() else {
                 throw IPCDecodingError()
             }
-            return Self(adopting: port)
+            return right
         }
 
         static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
@@ -741,7 +743,8 @@ extension IPCTypes {
 
         deinit {
             for port in ports {
-                WTF.deallocateSendRightSafely(port)
+                // Safety: append() took each right over from the value that owned it.
+                unsafe WTF.deallocateSendRightSafely(port)
             }
         }
 
