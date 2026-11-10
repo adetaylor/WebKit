@@ -243,17 +243,14 @@ extension PropertyParser {
         var parts = WebCore.CSSImageSwiftParts()
         parts.append(radii, 0)
         parts.append(radii, second)
-        if atEnd {
+        if !consumeSlash() {
             parts.append(radii, 0)
             parts.append(radii, second)
         } else {
-            guard consumeSlash(), consumeNumeric(&radii, 2, .nonnegativeLengthPercentage) else {
+            guard consumeNumeric(&radii, 2, .nonnegativeLengthPercentage) else {
                 return nil
             }
             let verticalSecond: UInt8 = consumeNumeric(&radii, 3, .nonnegativeLengthPercentage) ? 3 : 2
-            guard atEnd else {
-                return nil
-            }
             parts.append(radii, 2)
             parts.append(radii, verticalSecond)
         }
@@ -500,6 +497,8 @@ extension PropertyParser {
 
     /// `consumeBorderRadius` for border-radius, or with the quirk of -webkit-border-radius, where `a b` is `a / b`:
     /// <length-percentage [0,∞]>{1,4} [ / <length-percentage [0,∞]>{1,4} ]?
+    /// The radius consumers stop where the tokens stop looking like radii, so that shorthands that go on past them, such
+    /// as `corner`, can use them; their callers reject what is left.
     private mutating func consumeBorderRadius(_ consumer: WebCore.CSSPropertyConsumerSwiftConsumer) -> PropertyValue? {
         var parts = WebCore.CSSImageSwiftParts()
         guard consumeBorderRadius(&parts, consumer) else {
@@ -512,10 +511,7 @@ extension PropertyParser {
     mutating func consumeBorderRadius(_ parts: inout WebCore.CSSImageSwiftParts, _ consumer: WebCore.CSSPropertyConsumerSwiftConsumer) -> Bool {
         var horizontal = WebCore.CSSColorSwiftComponents()
         var count: UInt8 = 0
-        while count < 4 && !atEnd && peekType() != PropertyTokenType.delimiter {
-            guard consumeNumeric(&horizontal, count, .nonnegativeLengthPercentage) else {
-                return false
-            }
+        while count < 4 && consumeNumeric(&horizontal, count, .nonnegativeLengthPercentage) {
             count += 1
         }
         guard count != 0 else {
@@ -523,7 +519,7 @@ extension PropertyParser {
         }
         // Absent radii complete the present ones.
         let absent = WebCore.CSSColorSwiftComponents()
-        if atEnd {
+        if !consumeSlash() {
             if consumer == .WebKitBorderRadius && count == 2 {
                 parts.append(horizontal, 0..<1)
                 parts.append(absent, 1..<4)
@@ -535,18 +531,12 @@ extension PropertyParser {
             }
             return true
         }
-        guard consumeSlash() else {
-            return false
-        }
         var vertical = WebCore.CSSColorSwiftComponents()
         var verticalCount: UInt8 = 0
-        while verticalCount < 4 && !atEnd {
-            guard consumeNumeric(&vertical, verticalCount, .nonnegativeLengthPercentage) else {
-                return false
-            }
+        while verticalCount < 4 && consumeNumeric(&vertical, verticalCount, .nonnegativeLengthPercentage) {
             verticalCount += 1
         }
-        guard verticalCount != 0, atEnd else {
+        guard verticalCount != 0 else {
             return false
         }
         parts.append(horizontal, 0..<4)
