@@ -465,6 +465,19 @@ NS_ASSUME_NONNULL_END
 
 #endif // HAVE(AVSAMPLEBUFFERVIDEOOUTPUT)
 
+#if HAVE(AVCAPTUREDEVICE)
+
+NS_ASSUME_NONNULL_BEGIN
+
+// FIXME (119325252): Remove staging code for -[AVCaptureSession initWithMediaEnvironment:]
+@interface AVCaptureSession (Staging_113653478)
+- (instancetype)initWithMediaEnvironment:(NSString *)mediaEnvironment;
+@end
+
+NS_ASSUME_NONNULL_END
+
+#endif // HAVE(AVCAPTUREDEVICE)
+
 #if USE(MEDIAPARSERD)
 @interface AVStreamDataParser (SandboxedParsing)
 @property (nonatomic) BOOL preferSandboxedParsing;

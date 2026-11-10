@@ -1447,13 +1447,14 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.h
     platform/mediastream/cocoa/BaseAudioCaptureUnit.h
     platform/mediastream/cocoa/BaseAudioMediaStreamTrackRendererUnit.h
-    platform/mediastream/cocoa/CameraCaptureCore.h
+    platform/mediastream/cocoa/CameraCaptureSourceHandle.h
     platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.h
     platform/mediastream/cocoa/CoreAudioCaptureSource.h
     platform/mediastream/cocoa/CoreAudioCaptureUnit.h
-    platform/mediastream/cocoa/DisplayCaptureCore.h
     platform/mediastream/cocoa/DisplayCaptureSourceCocoa.h
+    platform/mediastream/cocoa/DisplayCaptureSourceHandle.h
     platform/mediastream/cocoa/RealtimeIncomingVideoSourceCocoa.h
+    platform/mediastream/cocoa/RealtimeVideoUtilities.h
     platform/mediastream/cocoa/ScreenCaptureKitCaptureSource.h
     platform/mediastream/cocoa/ScreenCaptureKitSharingSessionManager.h
     platform/mediastream/cocoa/WebAudioSourceProviderCocoa.h

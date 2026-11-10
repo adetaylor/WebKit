@@ -29,115 +29,44 @@
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
 #include <WebCore/CaptureDevice.h>
-#include <WebCore/DisplayCaptureCore.h>
+#include <WebCore/DisplayCaptureSourceHandle.h>
 #include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/RealtimeMediaSourceSettings.h>
 #include <WebCore/UserActivity.h>
-#include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
-#include <wtf/Observer.h>
-#include <wtf/RefPtr.h>
-#include <wtf/RunLoop.h>
+#include <wtf/CompletionHandler.h>
+#include <wtf/RetainPtr.h>
 #include <wtf/TZoneMalloc.h>
-#include <wtf/UniqueRef.h>
-#include <wtf/text/WTFString.h>
-
-using CGImageRef = CGImage*;
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
-using IOSurfaceRef = struct __IOSurface*;
-using CMSampleBufferRef = struct opaqueCMSampleBuffer*;
-
-namespace WebCore {
-class CapturerObserver;
-}
-
-namespace WTF {
-class MediaTime;
-}
 
 namespace WebCore {
 
-class CaptureDeviceInfo;
+class FloatRect;
+class FloatSize;
 class ImageTransferSessionVT;
-class PixelBufferConformerCV;
 
-class CapturerObserver : public AbstractRefCountedAndCanMakeWeakPtr<CapturerObserver> {
-public:
-    virtual ~CapturerObserver() = default;
-
-    virtual void capturerIsRunningChanged(bool) { }
-    virtual void capturerFailed() { };
-    virtual void capturerConfigurationChanged() { };
-};
-
+// A screen or window capture for callers in C++: DisplayCaptureSource.swift captures, and this keeps the
+// RealtimeMediaSource state, settings and capabilities, and makes the video frames.
 class DisplayCaptureSourceCocoa final
     : public RealtimeMediaSource
-    , public CapturerObserver
     , public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<DisplayCaptureSourceCocoa, WTF::DestructionThread::MainRunLoop> {
     WTF_MAKE_TZONE_ALLOCATED(DisplayCaptureSourceCocoa);
 public:
-    using DisplayFrameType = Variant<RefPtr<NativeImage>, RetainPtr<IOSurfaceRef>, RetainPtr<CMSampleBufferRef>>;
-
-    class Capturer : public LoggerHelper {
-        WTF_MAKE_TZONE_ALLOCATED(Capturer);
-    public:
-
-        virtual ~Capturer() = default;
-
-        virtual bool start() = 0;
-        virtual void stop() = 0;
-        virtual void end() { stop(); }
-        virtual DisplayFrameType generateFrame() = 0;
-        virtual CaptureDevice::DeviceType deviceType() const = 0;
-        virtual DisplaySurfaceType surfaceType() const = 0;
-        virtual void commitConfiguration(const RealtimeMediaSourceSettings&) = 0;
-        virtual IntSize intrinsicSize() const = 0;
-        virtual void whenReady(CompletionHandler<void(CaptureSourceError&&)>&& callback) { callback({ }); }
-
-        virtual void setLogger(const Logger&, uint64_t);
-        const Logger* loggerPtr() const { return m_logger.get(); }
-        const Logger& logger() const final { ASSERT(m_logger); return *m_logger.get(); }
-        uint64_t logIdentifier() const final { return m_logIdentifier; }
-        WTFLogChannel& logChannel() const final;
-
-        void ref() { m_observer->ref(); }
-        void deref() { m_observer->deref(); }
-
-    protected:
-        explicit Capturer(CapturerObserver& observer)
-            : m_observer(observer)
-        {
-        }
-
-        void isRunningChanged(bool running)
-        {
-            if (RefPtr observer = m_observer.get())
-                observer->capturerIsRunningChanged(running);
-        }
-        void captureFailed()
-        {
-            if (RefPtr observer = m_observer.get())
-                observer->capturerFailed();
-        }
-        void configurationChanged()
-        {
-            if (RefPtr observer = m_observer.get())
-                observer->capturerConfigurationChanged();
-        }
-
-    private:
-        WeakPtr<CapturerObserver> m_observer;
-        RefPtr<const Logger> m_logger;
-        uint64_t m_logIdentifier { 0 };
-    };
-
     static CaptureSourceOrError create(const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
-    static CaptureSourceOrError create(NOESCAPE const std::function<UniqueRef<Capturer>(CapturerObserver&)>&, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
+    // A source for the mock display drawing with this identifier (DisplayCaptureSourceHandle.h).
+    static CaptureSourceOrError createMock(uint64_t drawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
+    // The mock display drawing with this identifier changed device.
+    static void mockDrawingConfigurationChanged(uint64_t drawingIdentifier);
 
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
     virtual ~DisplayCaptureSourceCocoa();
 
+    static RefPtr<DisplayCaptureSourceCocoa> sourceWithIdentifier(uint64_t);
+    void sourceDidChange(DisplayCaptureSourceEvent);
+    void didEmitFrame(CMSampleBufferRef, CGImageRef, double sampleTime, IntSize);
+    RetainPtr<CMSampleBufferRef> croppedFrame(CMSampleBufferRef, const FloatRect&, const FloatSize&);
+
 private:
-    DisplayCaptureSourceCocoa(NOESCAPE const std::function<UniqueRef<Capturer>(CapturerObserver&)>&, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
+    static CaptureSourceOrError create(DisplayCaptureSourceHandle, uint64_t mockDrawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
+    DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle, uint64_t mockDrawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
     // RealtimeMediaSource
     void startProducingData() final;
@@ -147,7 +76,7 @@ private:
     bool isCaptureSource() const final { return true; }
     const RealtimeMediaSourceCapabilities& capabilities() final;
     const RealtimeMediaSourceSettings& settings() final;
-    CaptureDevice::DeviceType deviceType() const { return m_capturer->deviceType(); }
+    CaptureDevice::DeviceType deviceType() const final { return m_source.isWindow() ? CaptureDevice::DeviceType::Window : CaptureDevice::DeviceType::Screen; }
     void endApplyingConstraints() final { commitConfiguration(); }
     IntSize computeResizedVideoFrameSize(IntSize desiredSize, IntSize actualSize) final;
     void setSizeFrameRateAndZoom(const VideoPresetConstraints&) final;
@@ -155,27 +84,19 @@ private:
     void whenReady(CompletionHandler<void(CaptureSourceError&&)>&&) final;
 
     ASCIILiteral logClassName() const final { return "DisplayCaptureSourceCocoa"_s; }
-    void setLogger(const Logger&, uint64_t) final;
 
-    // CapturerObserver
-    void capturerIsRunningChanged(bool isRunning) final { notifyMutedChange(!isRunning); }
-    void capturerFailed() final { captureFailed(); }
-    void capturerConfigurationChanged() final;
+    void capturerConfigurationChanged();
+    void commitConfiguration();
 
-    void commitConfiguration() { m_capturer->commitConfiguration(settings()); }
-    void emitFrame();
-
-    const UniqueRef<Capturer> m_capturer;
+    DisplayCaptureSourceHandle m_source;
+    uint64_t m_mockDrawingIdentifier { 0 };
     std::optional<RealtimeMediaSourceCapabilities> m_capabilities;
     std::optional<RealtimeMediaSourceSettings> m_currentSettings;
-    RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
-
-    DisplayCaptureSourceCore m_core;
-
-    RunLoop::Timer m_timer;
     UserActivity m_userActivity;
+    CompletionHandler<void(CaptureSourceError&&)> m_whenReadyCallback;
 
     const std::unique_ptr<ImageTransferSessionVT> m_imageTransferSession;
+    const std::unique_ptr<ImageTransferSessionVT> m_cropSession;
 };
 
 } // namespace WebCore

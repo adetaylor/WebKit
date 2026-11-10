@@ -29,65 +29,82 @@
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
 #include "ImageTransferSessionVT.h"
-#include "Logging.h"
 #include "MediaDeviceHashSalts.h"
-#include "MediaSampleAVFObjC.h"
-#include "NativeImage.h"
-#include "RealtimeMediaSource.h"
-#include "RealtimeMediaSourceCenter.h"
-#include "RealtimeMediaSourceSettings.h"
 #include "RealtimeVideoUtilities.h"
-#include "Timer.h"
 #include "VideoFrame.h"
-#include <IOSurface/IOSurfaceRef.h>
-#include <pal/avfoundation/MediaTimeAVFoundation.h>
-#include <pal/spi/cf/CoreAudioSPI.h>
-#include <pal/spi/cg/CoreGraphicsSPI.h>
-#include <sys/time.h>
+#include <wtf/HashMap.h>
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
-#include <wtf/spi/cocoa/IOSurfaceSPI.h>
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 #include "ScreenCaptureKitCaptureSource.h"
 #endif
 
-#include "CoreVideoSoftLink.h"
-#include <pal/cf/CoreMediaSoftLink.h>
-
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(DisplayCaptureSourceCocoa);
-WTF_MAKE_TZONE_ALLOCATED_IMPL(DisplayCaptureSourceCocoa::Capturer);
+
+static HashMap<uint64_t, ThreadSafeWeakPtr<DisplayCaptureSourceCocoa>>& sources()
+{
+    ASSERT(isMainThread());
+    static NeverDestroyed<HashMap<uint64_t, ThreadSafeWeakPtr<DisplayCaptureSourceCocoa>>> sources;
+    return sources.get();
+}
+
+RefPtr<DisplayCaptureSourceCocoa> DisplayCaptureSourceCocoa::sourceWithIdentifier(uint64_t identifier)
+{
+    return sources().get(identifier).get();
+}
+
+void displayCaptureSourceDidChange(uint64_t identifier, DisplayCaptureSourceEvent event)
+{
+    if (RefPtr source = DisplayCaptureSourceCocoa::sourceWithIdentifier(identifier))
+        source->sourceDidChange(event);
+}
+
+bool displayCaptureSourceIsMuted(uint64_t identifier)
+{
+    RefPtr source = DisplayCaptureSourceCocoa::sourceWithIdentifier(identifier);
+    return !source || source->muted();
+}
+
+void displayCaptureSourceDidEmitFrame(uint64_t identifier, CMSampleBufferRef sampleBuffer, CGImageRef image, double sampleTime, DisplayCaptureSize size)
+{
+    if (RefPtr source = DisplayCaptureSourceCocoa::sourceWithIdentifier(identifier))
+        source->didEmitFrame(sampleBuffer, image, sampleTime, { size.width, size.height });
+}
+
+CMSampleBufferRef displayCaptureSourceCopyCroppedFrame(uint64_t identifier, CMSampleBufferRef frame, DisplayCaptureFloatRect rect, DisplayCaptureFloatSize frameSize)
+{
+    RefPtr source = DisplayCaptureSourceCocoa::sourceWithIdentifier(identifier);
+    if (!source)
+        return nullptr;
+    return source->croppedFrame(frame, { rect.x, rect.y, rect.width, rect.height }, { frameSize.width, frameSize.height }).leakRef();
+}
 
 CaptureSourceOrError DisplayCaptureSourceCocoa::create(const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
     switch (device.type()) {
     case CaptureDevice::DeviceType::Screen:
+    case CaptureDevice::DeviceType::Window: {
 #if HAVE(SCREEN_CAPTURE_KIT)
-        [[fallthrough]];
+        if (!ScreenCaptureKitCaptureSource::isAvailable()) {
+            ASSERT_NOT_REACHED();
+            return { };
+        }
+        auto deviceID = ScreenCaptureKitCaptureSource::computeDeviceID(device);
+        if (!deviceID)
+            return CaptureSourceOrError { WTF::move(deviceID).error() };
+        return create(DisplayCaptureSourceHandle::create(device.type() == CaptureDevice::DeviceType::Window, deviceID.value()), 0, device, WTF::move(hashSalts), constraints, pageIdentifier);
 #else
         UNUSED_PARAM(hashSalts);
         UNUSED_PARAM(constraints);
         UNUSED_PARAM(pageIdentifier);
-        ASSERT_NOT_REACHED();
+        ASSERT(device.type() == CaptureDevice::DeviceType::Window);
         return { };
 #endif
-    case CaptureDevice::DeviceType::Window:
-#if HAVE(SCREEN_CAPTURE_KIT)
-        if (ScreenCaptureKitCaptureSource::isAvailable()) {
-            auto deviceID = ScreenCaptureKitCaptureSource::computeDeviceID(device);
-            if (!deviceID)
-                return CaptureSourceOrError { WTF::move(deviceID).error() };
-            return create([deviceID = deviceID.value(), &device] (auto& source) {
-                return makeUniqueRefWithoutRefCountedCheck<ScreenCaptureKitCaptureSource>(source, device, deviceID);
-            }, device, WTF::move(hashSalts), constraints, pageIdentifier);
-        }
-        ASSERT_NOT_REACHED();
-        return { };
-#endif
-        break;
+    }
     case CaptureDevice::DeviceType::SystemAudio:
     case CaptureDevice::DeviceType::Microphone:
     case CaptureDevice::DeviceType::Speaker:
@@ -101,9 +118,14 @@ CaptureSourceOrError DisplayCaptureSourceCocoa::create(const CaptureDevice& devi
     return { };
 }
 
-CaptureSourceOrError DisplayCaptureSourceCocoa::create(NOESCAPE const std::function<UniqueRef<Capturer>(CapturerObserver&)>& createCapturer, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
+CaptureSourceOrError DisplayCaptureSourceCocoa::createMock(uint64_t drawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
-    auto source = adoptRef(*new DisplayCaptureSourceCocoa(createCapturer, device, WTF::move(hashSalts), pageIdentifier));
+    return create(DisplayCaptureSourceHandle::createMock(drawingIdentifier), drawingIdentifier, device, WTF::move(hashSalts), constraints, pageIdentifier);
+}
+
+CaptureSourceOrError DisplayCaptureSourceCocoa::create(DisplayCaptureSourceHandle handle, uint64_t mockDrawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
+{
+    auto source = adoptRef(*new DisplayCaptureSourceCocoa(handle, mockDrawingIdentifier, device, WTF::move(hashSalts), pageIdentifier));
     if (constraints) {
         if (auto result = source->applyConstraints(*constraints))
             return CaptureSourceOrError(CaptureSourceError { result->invalidConstraint });
@@ -112,26 +134,46 @@ CaptureSourceOrError DisplayCaptureSourceCocoa::create(NOESCAPE const std::funct
     return CaptureSourceOrError(WTF::move(source));
 }
 
-DisplayCaptureSourceCocoa::DisplayCaptureSourceCocoa(NOESCAPE const std::function<UniqueRef<Capturer>(CapturerObserver&)>& createCapturer, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
-    : RealtimeMediaSource(device, WTF::move(hashSalts), pageIdentifier)
-    , m_capturer(createCapturer(*this))
-    , m_timer(RunLoop::currentSingleton(), "DisplayCaptureSourceCocoa::Timer"_s, this, &DisplayCaptureSourceCocoa::emitFrame)
-    , m_userActivity("App nap disabled for screen capture"_s)
+void DisplayCaptureSourceCocoa::mockDrawingConfigurationChanged(uint64_t drawingIdentifier)
 {
+    for (auto& weakSource : sources().values()) {
+        RefPtr source = weakSource.get();
+        if (source && source->m_mockDrawingIdentifier == drawingIdentifier)
+            source->capturerConfigurationChanged();
+    }
 }
 
-DisplayCaptureSourceCocoa::~DisplayCaptureSourceCocoa() = default;
+DisplayCaptureSourceCocoa::DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle handle, uint64_t mockDrawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
+    : RealtimeMediaSource(device, WTF::move(hashSalts), pageIdentifier)
+    , m_source(handle)
+    , m_mockDrawingIdentifier(mockDrawingIdentifier)
+    , m_userActivity("App nap disabled for screen capture"_s)
+{
+    sources().add(m_source.identifier(), *this);
+}
+
+DisplayCaptureSourceCocoa::~DisplayCaptureSourceCocoa()
+{
+    sources().remove(m_source.identifier());
+    m_source.destroy();
+
+    if (auto callback = std::exchange(m_whenReadyCallback, { })) {
+        callOnMainRunLoop([callback = WTF::move(callback)]() mutable {
+            callback({ "Source no longer needed"_s, MediaAccessDenialReason::InvalidAccess });
+        });
+    }
+}
 
 const RealtimeMediaSourceCapabilities& DisplayCaptureSourceCocoa::capabilities()
 {
     if (!m_capabilities) {
         RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
 
-        auto intrinsicSize = m_capturer->intrinsicSize();
-        if (intrinsicSize.width())
-            capabilities.setWidth({ 1, intrinsicSize.width() });
-        if (intrinsicSize.height())
-            capabilities.setHeight({ 1, intrinsicSize.height() });
+        auto intrinsicSize = m_source.intrinsicSize();
+        if (intrinsicSize.width)
+            capabilities.setWidth({ 1, intrinsicSize.width });
+        if (intrinsicSize.height)
+            capabilities.setHeight({ 1, intrinsicSize.height });
         capabilities.setFrameRate({ .01, 30.0 });
         capabilities.setDeviceId(hashedId());
 
@@ -152,7 +194,7 @@ const RealtimeMediaSourceSettings& DisplayCaptureSourceCocoa::settings()
         settings.setDeviceId(hashedId());
         settings.setLabel(name());
 
-        settings.setDisplaySurface(m_capturer->surfaceType());
+        settings.setDisplaySurface(m_source.isWindow() ? DisplaySurfaceType::Window : DisplaySurfaceType::Monitor);
         settings.setLogicalSurface(false);
 
         RealtimeMediaSourceSupportedConstraints supportedConstraints;
@@ -172,50 +214,45 @@ const RealtimeMediaSourceSettings& DisplayCaptureSourceCocoa::settings()
 
 void DisplayCaptureSourceCocoa::settingsDidChange(OptionSet<RealtimeMediaSourceSettings::Flag> settings)
 {
-    if (settings.contains(RealtimeMediaSourceSettings::Flag::FrameRate) && m_timer.isActive())
-        m_timer.startRepeating(1_s / frameRate());
+    if (settings.contains(RealtimeMediaSourceSettings::Flag::FrameRate))
+        m_source.setFrameRate(frameRate());
 
     m_currentSettings = { };
 }
 
-static double displayCaptureNow()
+void DisplayCaptureSourceCocoa::commitConfiguration()
 {
-    return MonotonicTime::now().secondsSinceEpoch().seconds();
+    auto& settings = this->settings();
+    m_source.commitConfiguration(settings.width(), settings.height(), settings.frameRate());
 }
 
 void DisplayCaptureSourceCocoa::startProducingData()
 {
-    m_core.startClock(displayCaptureNow());
-    m_timer.startRepeating(1_s / frameRate());
     m_userActivity.start();
-
-    commitConfiguration();
-    if (!m_capturer->start())
-        captureFailed();
+    auto& settings = this->settings();
+    m_source.startProducingData(frameRate(), settings.width(), settings.height(), settings.frameRate());
 }
 
 void DisplayCaptureSourceCocoa::stopProducingData()
 {
-    m_timer.stop();
     m_userActivity.stop();
-    m_core.stopClock(displayCaptureNow());
-
-    m_capturer->stop();
+    m_source.stopProducingData();
 }
 
 void DisplayCaptureSourceCocoa::endProducingData()
 {
-    m_capturer->end();
+    m_source.endProducingData();
 }
 
 void DisplayCaptureSourceCocoa::whenReady(CompletionHandler<void(CaptureSourceError&&)>&& callback)
 {
-    m_capturer->whenReady(WTF::move(callback));
+    m_whenReadyCallback = WTF::move(callback);
+    m_source.whenReady();
 }
 
 IntSize DisplayCaptureSourceCocoa::computeResizedVideoFrameSize(IntSize desiredSize, IntSize intrinsicSize)
 {
-    auto size = DisplayCaptureSourceCore::resizedVideoFrameSize({ desiredSize.width(), desiredSize.height() }, { intrinsicSize.width(), intrinsicSize.height() });
+    auto size = DisplayCaptureSourceHandle::resizedVideoFrameSize({ desiredSize.width(), desiredSize.height() }, { intrinsicSize.width(), intrinsicSize.height() });
     return { size.width, size.height };
 }
 
@@ -227,71 +264,34 @@ void DisplayCaptureSourceCocoa::setSizeFrameRateAndZoom(const VideoPresetConstra
         setFrameRate(*constraints.frameRate);
 }
 
-void DisplayCaptureSourceCocoa::emitFrame()
+void DisplayCaptureSourceCocoa::sourceDidChange(DisplayCaptureSourceEvent event)
 {
-    if (muted())
+    switch (event) {
+    case DisplayCaptureSourceEvent::CaptureFailed:
+        captureFailed();
         return;
-
-    if (!m_imageTransferSession)
-        lazyInitialize(m_imageTransferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
-
-    auto sampleTime = MediaTime::createWithDouble(m_core.sampleTime(displayCaptureNow()));
-
-    auto frame = m_capturer->generateFrame();
-    auto imageSize = WTF::switchOn(frame,
-        [](RetainPtr<IOSurfaceRef>& surface) -> IntSize {
-            if (!surface)
-                return { };
-
-            return IntSize(IOSurfaceGetWidth(surface.get()), IOSurfaceGetHeight(surface.get()));
-        },
-        [](RefPtr<NativeImage>& image) -> IntSize {
-            if (!image)
-                return { };
-
-            return image->size();
-        },
-        [](RetainPtr<CMSampleBufferRef>& sample) -> IntSize {
-            if (!sample)
-                return { };
-
-            RetainPtr formatDescription = PAL::CMSampleBufferGetFormatDescription(sample.get());
-            if (PAL::CMFormatDescriptionGetMediaType(formatDescription.get()) != kCMMediaType_Video)
-                return IntSize();
-
-            return IntSize(PAL::CMVideoFormatDescriptionGetPresentationDimensions(formatDescription.get(), true, true));
-        }
-    );
-
-    if (imageSize.isEmpty())
+    case DisplayCaptureSourceEvent::ConfigurationChanged:
+        capturerConfigurationChanged();
         return;
+    case DisplayCaptureSourceEvent::Ready:
+        if (auto callback = std::exchange(m_whenReadyCallback, { }))
+            callback({ });
+        return;
+    }
+}
 
+void DisplayCaptureSourceCocoa::didEmitFrame(CMSampleBufferRef sampleBuffer, CGImageRef image, double sampleTime, IntSize imageSize)
+{
     if (intrinsicSize() != imageSize || size() != imageSize) {
         setIntrinsicSize(imageSize);
         setSize(imageSize);
     }
 
-    auto videoFrame = WTF::switchOn(frame,
-        [this, sampleTime](RetainPtr<IOSurfaceRef>& surface) -> RefPtr<VideoFrame> {
-            if (!surface)
-                return nullptr;
+    if (!m_imageTransferSession)
+        lazyInitialize(m_imageTransferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
 
-            return m_imageTransferSession->createVideoFrame(surface.get(), sampleTime, size());
-        },
-        [this, sampleTime](RefPtr<NativeImage>& image) -> RefPtr<VideoFrame> {
-            if (!image)
-                return nullptr;
-
-            return m_imageTransferSession->createVideoFrame(image->platformImage().get(), sampleTime, size());
-        },
-        [this, sampleTime](RetainPtr<CMSampleBufferRef>& sample) -> RefPtr<VideoFrame> {
-            if (!sample)
-                return nullptr;
-
-            return m_imageTransferSession->createVideoFrame(sample.get(), sampleTime, size());
-        }
-    );
-
+    auto time = MediaTime::createWithDouble(sampleTime);
+    RefPtr videoFrame = sampleBuffer ? m_imageTransferSession->createVideoFrame(sampleBuffer, time, size()) : m_imageTransferSession->createVideoFrame(image, time, size());
     if (!videoFrame) {
         ASSERT_NOT_REACHED();
         return;
@@ -299,7 +299,16 @@ void DisplayCaptureSourceCocoa::emitFrame()
 
     VideoFrameTimeMetadata metadata;
     metadata.captureTime = MonotonicTime::now().secondsSinceEpoch();
-    videoFrameAvailable(*videoFrame.get(), metadata);
+    videoFrameAvailable(*videoFrame, metadata);
+}
+
+RetainPtr<CMSampleBufferRef> DisplayCaptureSourceCocoa::croppedFrame(CMSampleBufferRef frame, const FloatRect& contentRect, const FloatSize& frameSize)
+{
+    if (!m_cropSession)
+        lazyInitialize(m_cropSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
+
+    m_cropSession->setCroppingRectangle(contentRect, frameSize);
+    return m_cropSession->convertCMSampleBuffer(frame, IntSize { contentRect.size() });
 }
 
 double DisplayCaptureSourceCocoa::observedFrameRate() const
@@ -311,29 +320,13 @@ void DisplayCaptureSourceCocoa::capturerConfigurationChanged()
 {
     m_currentSettings = { };
     m_capabilities = { };
-    auto capturerIntrinsicSize = m_capturer->intrinsicSize();
-    if (this->intrinsicSize() != capturerIntrinsicSize)
-        setIntrinsicSize(capturerIntrinsicSize);
+    auto capturerIntrinsicSize = m_source.intrinsicSize();
+    IntSize intrinsicSize { capturerIntrinsicSize.width, capturerIntrinsicSize.height };
+    if (this->intrinsicSize() != intrinsicSize)
+        setIntrinsicSize(intrinsicSize);
     forEachObserver([](auto& observer) {
         observer.sourceConfigurationChanged();
     });
-}
-
-void DisplayCaptureSourceCocoa::setLogger(const Logger& logger, uint64_t identifier)
-{
-    RealtimeMediaSource::setLogger(logger, identifier);
-    m_capturer->setLogger(logger, identifier);
-}
-
-void DisplayCaptureSourceCocoa::Capturer::setLogger(const Logger& newLogger, uint64_t newLogIdentifier)
-{
-    m_logger = newLogger;
-    m_logIdentifier = newLogIdentifier;
-}
-
-WTFLogChannel& DisplayCaptureSourceCocoa::Capturer::logChannel() const
-{
-    return LogWebRTC;
 }
 
 } // namespace WebCore

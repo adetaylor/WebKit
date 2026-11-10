@@ -136,95 +136,62 @@ private:
 };
 
 #if PLATFORM(COCOA)
-class MockDisplayCapturer final
-    : public DisplayCaptureSourceCocoa::Capturer
-    , public CanMakeWeakPtr<MockDisplayCapturer> {
-public:
-    MockDisplayCapturer(CapturerObserver&, const CaptureDevice&, std::optional<PageIdentifier>);
-
-    void triggerMockCaptureConfigurationChange();
-
-private:
-    bool start() final;
-    void stop() final;
-    DisplayCaptureSourceCocoa::DisplayFrameType generateFrame() final;
-    DisplaySurfaceType surfaceType() const final { return DisplaySurfaceType::Monitor; }
-    void commitConfiguration(const RealtimeMediaSourceSettings&) final;
-    CaptureDevice::DeviceType deviceType() const final { return CaptureDevice::DeviceType::Screen; }
-    IntSize intrinsicSize() const final;
-#if !RELEASE_LOG_DISABLED
-    ASCIILiteral logClassName() const final { return "MockDisplayCapturer"_s; }
-#endif
-    void whenReady(CompletionHandler<void(CaptureSourceError&&)>&&) final;
-
-    void readyTimerFired();
-
-    Ref<MockRealtimeVideoSource> m_source;
-    RealtimeMediaSourceSettings m_settings;
-    Timer m_readyTimer;
-    bool m_isRunning { false };
-    CompletionHandler<void(CaptureSourceError&&)> m_whenReadyCallback;
-};
-
-MockDisplayCapturer::MockDisplayCapturer(CapturerObserver& observer, const CaptureDevice& device, std::optional<PageIdentifier> pageIdentifier)
-    : DisplayCaptureSourceCocoa::Capturer(observer)
-    , m_source(MockRealtimeVideoSourceMac::createForMockDisplayCapturer(String { device.persistentId() }, AtomString { device.label() }, MediaDeviceHashSalts { "persistent"_s, "ephemeral"_s }, pageIdentifier))
-    , m_readyTimer(*this, &MockDisplayCapturer::readyTimerFired)
+// The drawings of DisplayCaptureSource.swift's mock display capturer, by identifier.
+static HashMap<uint64_t, Ref<MockRealtimeVideoSource>>& mockDisplayDrawings()
 {
+    static NeverDestroyed<HashMap<uint64_t, Ref<MockRealtimeVideoSource>>> drawings;
+    return drawings.get();
 }
 
-bool MockDisplayCapturer::start()
+static Ref<MockRealtimeVideoSource> createMockDisplayDrawingSource(const String& persistentID, const String& label, std::optional<PageIdentifier> pageIdentifier)
 {
-    ASSERT(m_settings.frameRate());
-
-    ASSERT(!m_whenReadyCallback);
-    ASSERT(!m_isRunning);
-
-    m_isRunning = true;
-    protect(m_source)->start();
-    return true;
+    return MockRealtimeVideoSourceMac::createForMockDisplayCapturer(String { persistentID }, AtomString { label }, MediaDeviceHashSalts { "persistent"_s, "ephemeral"_s }, pageIdentifier);
 }
 
-void MockDisplayCapturer::stop()
+static uint64_t createMockDisplayDrawing(const CaptureDevice& device, std::optional<PageIdentifier> pageIdentifier)
 {
-    ASSERT(!m_whenReadyCallback);
-
-    m_isRunning = false;
-    protect(m_source)->stop();
+    static uint64_t lastIdentifier;
+    auto identifier = ++lastIdentifier;
+    mockDisplayDrawings().add(identifier, createMockDisplayDrawingSource(device.persistentId(), device.label(), pageIdentifier));
+    return identifier;
 }
 
-void MockDisplayCapturer::whenReady(CompletionHandler<void(CaptureSourceError&&)>&& callback)
+void mockDisplayDrawingSetRunning(uint64_t identifier, bool running)
 {
-    ASSERT(!m_isRunning);
+    RefPtr source = mockDisplayDrawings().get(identifier);
+    if (!source)
+        return;
 
-    m_whenReadyCallback = WTF::move(callback);
-    m_readyTimer.startOneShot(50_ms);
+    if (running)
+        source->start();
+    else
+        source->stop();
 }
 
-void MockDisplayCapturer::readyTimerFired()
+CGImageRef mockDisplayDrawingCopyFrame(uint64_t identifier)
 {
-    ASSERT(!m_isRunning);
+    RefPtr source = mockDisplayDrawings().get(identifier);
+    if (!source)
+        return nullptr;
 
-    configurationChanged();
-    m_whenReadyCallback({ });
+    RefPtr imageBuffer = source->imageBuffer();
+    if (!imageBuffer)
+        return nullptr;
+
+    RefPtr image = imageBuffer->copyNativeImage();
+    if (!image)
+        return nullptr;
+
+    return RetainPtr { image->platformImage() }.leakRef();
 }
 
-void MockDisplayCapturer::commitConfiguration(const RealtimeMediaSourceSettings& settings)
+DisplayCaptureSize mockDisplayDrawingIntrinsicSize(uint64_t identifier)
 {
-    // FIXME: Update m_source width, height and frameRate according settings
-    m_settings = settings;
-}
+    RefPtr source = mockDisplayDrawings().get(identifier);
+    if (!source)
+        return { };
 
-DisplayCaptureSourceCocoa::DisplayFrameType MockDisplayCapturer::generateFrame()
-{
-    if (RefPtr imageBuffer = protect(m_source)->imageBuffer())
-        return imageBuffer->copyNativeImage();
-    return { };
-}
-
-IntSize MockDisplayCapturer::intrinsicSize() const
-{
-    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(m_source->persistentID());
+    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(source->persistentID());
     ASSERT(device);
     if (!device)
         return { };
@@ -234,12 +201,21 @@ IntSize MockDisplayCapturer::intrinsicSize() const
         return { };
 
     auto& properties = std::get<MockDisplayProperties>(device->properties);
-    return properties.defaultSize;
+    return { properties.defaultSize.width(), properties.defaultSize.height() };
 }
 
-void MockDisplayCapturer::triggerMockCaptureConfigurationChange()
+void mockDisplayDrawingDestroy(uint64_t identifier)
 {
-    Ref source = m_source;
+    mockDisplayDrawings().remove(identifier);
+}
+
+static void triggerMockDisplayDrawingConfigurationChange(uint64_t identifier)
+{
+    auto iterator = mockDisplayDrawings().find(identifier);
+    if (iterator == mockDisplayDrawings().end())
+        return;
+
+    Ref source = iterator->value;
     auto deviceId = source->persistentID();
     auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(deviceId.startsWith("WINDOW"_s) ? "WINDOW-2"_s : "SCREEN-2"_s);
     ASSERT(device);
@@ -248,12 +224,12 @@ void MockDisplayCapturer::triggerMockCaptureConfigurationChange()
 
     bool isStarted = source->isProducingData();
     auto pageIdentifier = source->pageIdentifier();
-    source = MockRealtimeVideoSourceMac::createForMockDisplayCapturer(String { device->persistentId }, AtomString { device->label }, MediaDeviceHashSalts { "persistent"_s, "ephemeral"_s }, pageIdentifier);
-    m_source = source.copyRef();
+    source = createMockDisplayDrawingSource(device->persistentId, device->label, pageIdentifier);
+    iterator->value = source.copyRef();
     if (isStarted)
         source->start();
 
-    configurationChanged();
+    DisplayCaptureSourceCocoa::mockDrawingConfigurationChanged(identifier);
 }
 #endif // PLATFORM(COCOA)
 
@@ -270,11 +246,8 @@ public:
         case CaptureDevice::DeviceType::Screen:
         case CaptureDevice::DeviceType::Window: {
 #if PLATFORM(COCOA)
-            return DisplayCaptureSourceCocoa::create([this, &device, pageIdentifier] (auto& observer) {
-                auto capturer = makeUniqueRefWithoutRefCountedCheck<MockDisplayCapturer>(observer, device, pageIdentifier);
-                m_capturer = capturer.get();
-                return capturer;
-            }, device, WTF::move(hashSalts), constraints, pageIdentifier);
+            m_latestDrawing = createMockDisplayDrawing(device, pageIdentifier);
+            return DisplayCaptureSourceCocoa::createMock(m_latestDrawing, device, WTF::move(hashSalts), constraints, pageIdentifier);
 #elif USE(GSTREAMER)
             return MockDisplayCaptureSourceGStreamer::create(device, WTF::move(hashSalts), constraints, pageIdentifier);
 #else
@@ -296,13 +269,13 @@ public:
     }
 
 #if PLATFORM(COCOA)
-    NODELETE WeakPtr<MockDisplayCapturer> latestCapturer() { return m_capturer; }
+    uint64_t latestDrawing() const { return m_latestDrawing; }
 #endif
 
 private:
     DisplayCaptureManager& displayCaptureDeviceManager() final { return MockRealtimeMediaSourceCenter::singleton().displayCaptureDeviceManager(); }
 #if PLATFORM(COCOA)
-    WeakPtr<MockDisplayCapturer> m_capturer;
+    uint64_t m_latestDrawing { 0 };
 #endif
 };
 
@@ -462,8 +435,7 @@ void MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(bool f
         }
     }
     if (forDisplay) {
-        if (RefPtr capturer = MockRealtimeDisplaySourceFactory::singleton().latestCapturer())
-            capturer->triggerMockCaptureConfigurationChange();
+        triggerMockDisplayDrawingConfigurationChange(MockRealtimeDisplaySourceFactory::singleton().latestDrawing());
     }
 #elif USE(GSTREAMER)
     if (forMicrophone) {

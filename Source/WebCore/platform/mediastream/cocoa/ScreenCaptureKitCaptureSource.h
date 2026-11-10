@@ -27,115 +27,23 @@
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 
-#include <WebCore/DisplayCaptureCore.h>
-#include <WebCore/DisplayCaptureManager.h>
+#include <WebCore/CaptureDevice.h>
 #include <WebCore/DisplayCaptureSourceCocoa.h>
+#include <WebCore/RealtimeMediaSource.h>
 #include <WebCore/ScreenCaptureKitSharingSessionManager.h>
-#include <wtf/BlockPtr.h>
-#include <wtf/CheckedRef.h>
-#include <wtf/CompletionHandler.h>
 #include <wtf/Forward.h>
-#include <wtf/RetainPtr.h>
-#include <wtf/darwin/DispatchOSObject.h>
-
-OBJC_CLASS NSDictionary;
-OBJC_CLASS NSError;
-OBJC_CLASS SCDisplay;
-OBJC_CLASS SCShareableContent;
-OBJC_CLASS SCStream;
-OBJC_CLASS SCContentFilter;
-OBJC_CLASS SCStreamConfiguration;
-OBJC_CLASS SCWindow;
-OBJC_CLASS WebCoreScreenCaptureKitHelper;
-using CMSampleBufferRef = struct opaqueCMSampleBuffer*;
 
 namespace WebCore {
 
-class ImageTransferSessionVT;
-
-class ScreenCaptureKitCaptureSource final
-    : public DisplayCaptureSourceCocoa::Capturer
-    , public ScreenCaptureSessionSourceObserver
-    , public CanMakeCheckedPtr<ScreenCaptureKitCaptureSource> {
-    WTF_MAKE_TZONE_ALLOCATED(ScreenCaptureKitCaptureSource);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(ScreenCaptureKitCaptureSource);
+// ScreenCaptureKit's display capture devices. ScreenCaptureKitCapturer.swift captures them.
+class ScreenCaptureKitCaptureSource {
 public:
     static std::expected<uint32_t, CaptureSourceError> computeDeviceID(const CaptureDevice&);
-
-    ScreenCaptureKitCaptureSource(CapturerObserver&, const CaptureDevice&, uint32_t);
-    virtual ~ScreenCaptureKitCaptureSource();
 
     WEBCORE_EXPORT static bool isAvailable();
 
     static std::optional<CaptureDevice> screenCaptureDeviceWithPersistentID(const String&);
     static std::optional<CaptureDevice> windowCaptureDeviceWithPersistentID(const String&);
-
-    void streamDidOutputVideoSampleBuffer(RetainPtr<CMSampleBufferRef>);
-    void sessionFailedWithError(RetainPtr<NSError>&&, const String&);
-    void outputVideoEffectDidStartForStream() { m_isVideoEffectEnabled = true; }
-    void outputVideoEffectDidStopForStream() { m_isVideoEffectEnabled = false; }
-
-    // ScreenCaptureSessionSourceObserver.
-    uint32_t checkedPtrCount() const final { return CanMakeCheckedPtr::checkedPtrCount(); }
-    uint32_t checkedPtrCountWithoutThreadCheck() const final { return CanMakeCheckedPtr::checkedPtrCountWithoutThreadCheck(); }
-    void incrementCheckedPtrCount() const final { CanMakeCheckedPtr::incrementCheckedPtrCount(); }
-    void decrementCheckedPtrCount() const final { CanMakeCheckedPtr::decrementCheckedPtrCount(); }
-    void setDidBeginCheckedPtrDeletion() final { CanMakeCheckedPtr::setDidBeginCheckedPtrDeletion(); }
-
-#if HAVE(WINDOW_CAPTURE)
-    using Content = Variant<RetainPtr<SCWindow>, RetainPtr<SCDisplay>>;
-#endif
-
-private:
-    // DisplayCaptureSourceCocoa::Capturer
-    bool start() final;
-    void stop() final;
-    void end() final;
-    DisplayCaptureSourceCocoa::DisplayFrameType generateFrame() final;
-    CaptureDevice::DeviceType deviceType() const final;
-    DisplaySurfaceType surfaceType() const final;
-    void commitConfiguration(const RealtimeMediaSourceSettings&) final;
-    IntSize intrinsicSize() const final;
-    FloatSize contentSize() const;
-    void whenReady(CompletionHandler<void(CaptureSourceError&&)>&&) final;
-
-    // LoggerHelper
-    ASCIILiteral logClassName() const final { return "ScreenCaptureKitCaptureSource"_s; }
-
-    // ScreenCaptureKitSharingSessionManager::Observer
-    void sessionFilterDidChange(SCContentFilter*) final;
-    void sessionStreamDidEnd(SCStream*) final;
-
-    enum class IsPrewarming : bool { No, Yes };
-    void startInternal(IsPrewarming = IsPrewarming::No);
-    void startContentStream();
-    void findShareableContent();
-    RetainPtr<SCStreamConfiguration> streamConfiguration();
-    void updateStreamConfiguration();
-
-    dispatch_queue_t captureQueue();
-
-    SCStream* contentStream() const { return m_sessionSource ? m_sessionSource->stream() : nullptr; }
-    SCContentFilter* contentFilter() const { return m_sessionSource ? m_sessionSource->contentFilter() : nullptr; }
-
-    void clearSharingSession();
-
-#if HAVE(WINDOW_CAPTURE)
-    std::optional<Content> m_content;
-#endif
-    const RetainPtr<WebCoreScreenCaptureKitHelper> m_captureHelper;
-    RetainPtr<SCContentFilter> m_contentFilter;
-    RetainPtr<CMSampleBufferRef> m_currentFrame;
-    RefPtr<ScreenCaptureSessionSource> m_sessionSource;
-    RetainPtr<SCStreamConfiguration> m_streamConfiguration;
-    OSObjectPtr<dispatch_queue_t> m_captureQueue;
-    CaptureDevice m_captureDevice;
-    uint32_t m_deviceID { 0 };
-    const std::unique_ptr<ImageTransferSessionVT> m_transferSession;
-
-    mutable ScreenCaptureKitCaptureCore m_core;
-    bool m_isVideoEffectEnabled { false };
-    CompletionHandler<void(CaptureSourceError&&)> m_whenReadyCallback;
 };
 
 } // namespace WebCore

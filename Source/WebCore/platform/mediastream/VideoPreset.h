@@ -35,8 +35,6 @@
 #include <wtf/RetainPtr.h>
 #include <wtf/RunLoop.h>
 
-OBJC_CLASS AVCaptureDeviceFormat;
-
 namespace WebCore {
 
 struct FrameRateRange {
@@ -72,8 +70,9 @@ public:
     void sortFrameRateRanges();
 
 #if PLATFORM(COCOA) && USE(AVFOUNDATION)
-    void setFormat(AVCaptureDeviceFormat* format) { m_format = format; }
-    AVCaptureDeviceFormat* format() const { return m_format.get(); }
+    // The index of the camera format that the preset stands for (CameraCaptureSourceHandle::preset()).
+    void setFormatIndex(uint32_t index) { m_formatIndex = index; }
+    std::optional<uint32_t> formatIndex() const { return m_formatIndex; }
 #endif
 
     double maxFrameRate() const;
@@ -87,7 +86,7 @@ public:
 protected:
     VideoPresetData m_data;
 #if PLATFORM(COCOA) && USE(AVFOUNDATION)
-    RetainPtr<AVCaptureDeviceFormat> m_format;
+    std::optional<uint32_t> m_formatIndex;
 #endif
 };
 

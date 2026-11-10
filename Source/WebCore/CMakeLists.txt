@@ -3387,6 +3387,7 @@ if (APPLE)
         platform/graphics/PixelBufferConversion.cpp
         platform/cocoa/SharedVideoFrameInfo.mm
         platform/mediastream/MediaConstraintsEvaluation.cpp
+        platform/mediastream/cocoa/AVVideoCaptureSource.mm
 
         platform/graphics/ImageBufferBackend.cpp
         platform/graphics/ShadowBlur.cpp
@@ -3576,9 +3577,11 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/ShareableBitmapLayout.swift
         ${WEBCORE_DIR}/platform/graphics/cg/CGRenderer.swift
         ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
-        ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureCore.swift
-        ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureCore.swift
         ${WEBCORE_DIR}/platform/graphics/mac/controls/MacControlPainter.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitCapturer.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitSharingSessionManager.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift

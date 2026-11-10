@@ -28,73 +28,39 @@
 #include <wtf/Platform.h>
 #if ENABLE(MEDIA_STREAM) && HAVE(AVCAPTUREDEVICE)
 
-#include <WebCore/CameraCaptureCore.h>
+#include <WebCore/CameraCaptureSourceHandle.h>
 #include <WebCore/IntSize.h>
+#include <WebCore/OrientationNotifier.h>
 #include <WebCore/RealtimeVideoCaptureSource.h>
-#include <WebCore/Timer.h>
 #include <wtf/Lock.h>
-#include <wtf/text/StringHash.h>
 
-typedef struct opaqueCMSampleBuffer* CMSampleBufferRef;
-
-OBJC_CLASS AVCaptureConnection;
-OBJC_CLASS AVCaptureDevice;
-OBJC_CLASS AVCaptureDeviceFormat;
-OBJC_CLASS AVCaptureDeviceRotationCoordinator;
-OBJC_CLASS AVCapturePhoto;
-OBJC_CLASS AVCapturePhotoOutput;
-OBJC_CLASS AVCapturePhotoOutputReadinessCoordinator;
-OBJC_CLASS AVCapturePhotoSettings;
-OBJC_CLASS AVCaptureOutput;
-OBJC_CLASS AVCaptureResolvedPhotoSettings;
-OBJC_CLASS AVCaptureSession;
-OBJC_CLASS AVCaptureVideoDataOutput;
-OBJC_CLASS AVFrameRateRange;
-OBJC_CLASS NSError;
-OBJC_CLASS NSMutableArray;
-OBJC_CLASS NSNotification;
-OBJC_CLASS WebCoreAVVideoCaptureSourceObserver;
+OBJC_CLASS NSArray;
 
 namespace WebCore {
 
-class ImageTransferSessionVT;
-
 enum class VideoFrameRotation : uint16_t;
 
+// A camera for callers in C++, over the Swift source that CameraCaptureSource.swift implements with AVFoundation.
 class AVVideoCaptureSource : public RealtimeVideoCaptureSource {
 public:
     static CaptureSourceOrError create(const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
     static RetainPtr<NSArray> cameraCaptureDeviceTypes();
 
     WEBCORE_EXPORT static VideoCaptureFactory& factory();
-    NODELETE WEBCORE_EXPORT static void setUseAVCaptureDeviceRotationCoordinatorAPI(bool);
+    WEBCORE_EXPORT static void setUseAVCaptureDeviceRotationCoordinatorAPI(bool);
 
-    void captureSessionBeginInterruption(RetainPtr<NSNotification>);
-    void captureSessionEndInterruption(RetainPtr<NSNotification>);
-    void deviceDisconnected(RetainPtr<NSNotification>);
+    static RefPtr<AVVideoCaptureSource> sourceWithIdentifier(uint64_t);
 
-    RetainPtr<AVCaptureSession> session() const;
-
-    void captureSessionIsRunningDidChange(bool);
-    void captureSessionRuntimeError(RetainPtr<NSError>);
-    void captureOutputDidOutputSampleBufferFromConnection(AVCaptureOutput*, CMSampleBufferRef, AVCaptureConnection*);
-    void captureDeviceSuspendedDidChange();
-    void captureOutputDidFinishProcessingPhoto(RetainPtr<AVCapturePhotoOutput>, RetainPtr<AVCapturePhoto>, RetainPtr<NSError>);
-#if HAVE(AVCAPTUREPHOTOOUTPUT_READINESS_COORDINATOR)
-    void captureReadinessDidChange();
-#endif
+    void sourceDidChange(CameraCaptureSourceEvent, bool value);
+    void didCaptureFrame(CVPixelBufferRef, const MediaTime& presentationTime, VideoFrameRotation, bool isMirrored);
+    void resolvePendingPhotoRequest(Vector<uint8_t>&&, const String& mimeType);
+    void rejectPendingPhotoRequest(const String&);
 
     void configurationChanged() final;
 
 private:
-    AVVideoCaptureSource(AVCaptureDevice*, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
+    AVVideoCaptureSource(CameraCaptureSourceHandle, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
     virtual ~AVVideoCaptureSource();
-
-    void clearSession();
-
-    bool setupSession();
-    bool setupCaptureSession();
-    void shutdownCaptureSession();
 
     const RealtimeMediaSourceCapabilities& capabilities() final;
     const RealtimeMediaSourceSettings& settings() final;
@@ -112,96 +78,27 @@ private:
     CaptureDevice::DeviceType deviceType() const final { return CaptureDevice::DeviceType::Camera; }
     bool interrupted() const final;
 
-    VideoFrameRotation videoFrameRotation() const final { return static_cast<VideoFrameRotation>(m_core.videoFrameRotation()); }
+    VideoFrameRotation videoFrameRotation() const final;
     void applyFrameRateAndZoomWithPreset(double, double, std::optional<VideoPreset>&&) final;
     void generatePresets() final;
     bool canResizeVideoFrames() const final { return true; }
-
-    void setSessionSizeFrameRateAndZoom();
-    bool setPreset(NSString*);
-    void computeVideoFrameRotation();
-    RetainPtr<AVFrameRateRange> frameDurationForFrameRate(double);
-    void stopSession();
 
     // OrientationNotifier::Observer API
     void orientationChanged(IntDegrees orientation) final;
     void rotationAngleForHorizonLevelDisplayChanged(const String&, VideoFrameRotation) final;
 
-
-    bool setFrameRateConstraint(double minFrameRate, double maxFrameRate);
-    bool areSettingsMatching() const;
-
-    IntSize sizeForPreset(NSString*);
-
-    RetainPtr<AVCaptureDevice> device() const;
-
-    IntDegrees sensorOrientationFromVideoOutput();
-
 #if !RELEASE_LOG_DISABLED
     ASCIILiteral logClassName() const override { return "AVVideoCaptureSource"_s; }
 #endif
 
-    void beginConfiguration();
-    void commitConfiguration();
-    void beginConfigurationForConstraintsIfNeeded();
-    bool lockForConfiguration();
-
-    void updateVerifyCapturingTimer();
-    void verifyIsCapturing();
-#if PLATFORM(IOS_FAMILY)
-    void startupTimerFired();
-#endif
-
-    NODELETE std::optional<double> computeMinZoom() const;
-    std::optional<double> computeMaxZoom(AVCaptureDeviceFormat*) const;
-
-    void updateWhiteBalanceMode();
-    void updateTorch();
-
-    void reconfigureIfNeeded();
-
-    void rejectPendingPhotoRequest(const String&);
-    void resolvePendingPhotoRequest(Vector<uint8_t>&&, const String&);
-    RetainPtr<AVCapturePhotoSettings> photoConfiguration(const PhotoSettings&, AVCapturePhotoOutput*);
-    IntSize maxPhotoSizeForCurrentPreset(IntSize requestedSize) const;
-    AVCapturePhotoOutput* photoOutput();
-    void dispatchCaptureOnPhotoQueue(RetainPtr<AVCapturePhotoOutput>, RetainPtr<AVCapturePhotoSettings>&&);
-
-    RefPtr<VideoFrame> m_buffer;
-    RetainPtr<AVCaptureVideoDataOutput> m_videoOutput;
+    mutable CameraCaptureSourceHandle m_source;
 
     std::optional<RealtimeMediaSourceSettings> m_currentSettings WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::optional<RealtimeMediaSourceCapabilities> m_capabilities WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::optional<PhotoCapabilities> m_photoCapabilities WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    const RetainPtr<WebCoreAVVideoCaptureSourceObserver> m_objcObserver;
-    RetainPtr<AVCaptureSession> m_session WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    RetainPtr<AVCaptureDevice> m_device WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-
-    RetainPtr<AVCapturePhotoOutput> m_photoOutput WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
     std::unique_ptr<TakePhotoNativePromise::Producer> m_photoProducer WTF_GUARDED_BY_LOCK(m_photoLock);
-#if HAVE(AVCAPTUREPHOTOOUTPUT_READINESS_COORDINATOR)
-    RetainPtr<AVCapturePhotoOutputReadinessCoordinator> m_readinessCoordinator WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    RetainPtr<AVCapturePhotoSettings> m_pendingPhotoSettings WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    std::unique_ptr<Timer> m_pendingCaptureWatchdog WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    static constexpr Seconds photoCapturePipelineReadinessTimeout = 60_s;
-#endif
-
     Lock m_photoLock;
     std::optional<VideoPreset> m_currentPreset WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-    std::optional<VideoPreset> m_appliedPreset WTF_GUARDED_BY_CAPABILITY(RunLoop::mainSingleton());
-
-    CameraCaptureCore m_core;
-
-    static constexpr Seconds verifyCaptureInterval = 30_s;
-    static const uint64_t framesToDropWhenStarting = 4;
-
-#if PLATFORM(IOS_FAMILY)
-    const std::unique_ptr<Timer> m_startupTimer;
-#endif
-    const std::unique_ptr<Timer> m_verifyCapturingTimer;
-    std::atomic<uint64_t> m_framesCount { 0 };
-    int64_t m_defaultTorchMode { 0 };
-    OptionSet<RealtimeMediaSourceSettings::Flag> m_pendingSettingsChanges;
 };
 
 } // namespace WebCore
