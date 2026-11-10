@@ -3330,6 +3330,11 @@ list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES_DIR}/NodeName.cpp)
 GENERATE_DOM_NAME_ENUM(Namespace)
 list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES_DIR}/Namespace.cpp)
 
+if (SWIFT_REQUIRED AND APPLE)
+    # These include WebCoreSwift-Generated.h, so they are built in WebCore_SwiftInterop.
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)(HTTPHeaderField|LinkHeader|ServerTimingParser|ReferrerPolicy|CacheValidation|HTTPParsers|ParsedContentRange|ParsedContentType|RFC8941)\\.cpp( |$)")
+endif ()
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3414,13 +3419,38 @@ if (SWIFT_REQUIRED AND APPLE)
 
     # FIXME: Remove SwiftStub.swift once WebCore has real Swift sources.
     target_sources(WebCore PRIVATE ${WEBCORE_DIR}/SwiftStub.swift)
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/loader/HTTPHeaderField.swift
+        ${WEBCORE_DIR}/loader/LinkHeader.swift
+        ${WEBCORE_DIR}/loader/ServerTimingParser.swift
+        ${WEBCORE_DIR}/platform/ReferrerPolicy.swift
+        ${WEBCORE_DIR}/platform/network/CacheValidation.swift
+        ${WEBCORE_DIR}/platform/network/HTTPParsers.swift
+        ${WEBCORE_DIR}/platform/network/ParsedContentRange.swift
+        ${WEBCORE_DIR}/platform/network/ParsedContentType.swift
+        ${WEBCORE_DIR}/platform/network/RFC8941.swift
+    )
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
     )
 
     # C++ sources that include WebCoreSwift-Generated.h.
-    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
+    set(WebCore_SWIFT_INTEROP_SOURCES
+        SwiftStubInterop.cpp
+
+        loader/HTTPHeaderField.cpp
+        loader/LinkHeader.cpp
+        loader/ServerTimingParser.cpp
+
+        platform/ReferrerPolicy.cpp
+
+        platform/network/CacheValidation.cpp
+        platform/network/HTTPParsers.cpp
+        platform/network/ParsedContentRange.cpp
+        platform/network/ParsedContentType.cpp
+        platform/network/RFC8941.cpp
+    )
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"

@@ -72,6 +72,23 @@ TEST(WebCore, ParsedContentRangeFromString)
     // Edge cases
     ASSERT_TRUE(ParsedContentRange("bytes 9223372036854775805-9223372036854775806/9223372036854775807"_s).isValid());
     ASSERT_FALSE(ParsedContentRange("bytes 9223372036854775808-9223372036854775809/9223372036854775810"_s).isValid());
+
+    // Values of 18 and 19 digits, and leading zeros.
+    ASSERT_TRUE(ParsedContentRange("bytes 999999999999999998-999999999999999999/1000000000000000000"_s).isValid());
+    ASSERT_EQ(999999999999999998, ParsedContentRange("bytes 999999999999999998-999999999999999999/1000000000000000000"_s).firstBytePosition());
+    ASSERT_EQ(999999999999999999, ParsedContentRange("bytes 999999999999999998-999999999999999999/1000000000000000000"_s).lastBytePosition());
+    ASSERT_EQ(1000000000000000000, ParsedContentRange("bytes 999999999999999998-999999999999999999/1000000000000000000"_s).instanceLength());
+    ASSERT_TRUE(ParsedContentRange("bytes 0000000000000000000000001-0000000000000000002/*"_s).isValid());
+    ASSERT_EQ(1, ParsedContentRange("bytes 0000000000000000000000001-0000000000000000002/*"_s).firstBytePosition());
+    ASSERT_EQ(2, ParsedContentRange("bytes 0000000000000000000000001-0000000000000000002/*"_s).lastBytePosition());
+
+    // The positions parsed before a failure stay.
+    ASSERT_FALSE(ParsedContentRange("bytes 1-9223372036854775808/*"_s).isValid());
+    ASSERT_EQ(1, ParsedContentRange("bytes 1-9223372036854775808/*"_s).firstBytePosition());
+    ASSERT_EQ(0, ParsedContentRange("bytes 1-9223372036854775808/*"_s).lastBytePosition());
+    ASSERT_FALSE(ParsedContentRange("bytes 1-2/3x"_s).isValid());
+    ASSERT_EQ(1, ParsedContentRange("bytes 1-2/3x"_s).firstBytePosition());
+    ASSERT_EQ(2, ParsedContentRange("bytes 1-2/3x"_s).lastBytePosition());
 }
 
 TEST(WebCore, ParsedContentRangeFromValues)
@@ -92,6 +109,9 @@ TEST(WebCore, ParsedContentRangeToString)
 {
     ASSERT_EQ("bytes 0-1/2"_s, ParsedContentRange(0, 1, 2).headerValue());
     ASSERT_EQ("bytes 0-1/*"_s, ParsedContentRange(0, 1, ParsedContentRange::unknownLength).headerValue());
+    ASSERT_EQ("bytes 100000000000000000-9223372036854775805/9223372036854775806"_s, ParsedContentRange(100000000000000000, 9223372036854775805, 9223372036854775806).headerValue());
+    ASSERT_EQ("bytes 9223372036854775804-9223372036854775805/9223372036854775806"_s, ParsedContentRange(9223372036854775804, 9223372036854775805, 9223372036854775806).headerValue());
+    ASSERT_EQ("bytes 9223372036854775805-9223372036854775806/*"_s, ParsedContentRange(9223372036854775805, 9223372036854775806, ParsedContentRange::unknownLength).headerValue());
     ASSERT_TRUE(ParsedContentRange().headerValue().isEmpty());
 }
 

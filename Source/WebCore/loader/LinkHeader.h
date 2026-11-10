@@ -35,7 +35,13 @@ namespace WebCore {
 
 class SWIFT_PRIVATE_FILEID("WebCore/LinkHeader.swift") LinkHeader {
 public:
-    template<typename CharacterType> LinkHeader(StringParsingBuffer<CharacterType>&);
+    LinkHeader() = default;
+    LinkHeader(const LinkHeader&) = default;
+    LinkHeader(LinkHeader&&) = default;
+    LinkHeader& operator=(const LinkHeader&) = default;
+    LinkHeader& operator=(LinkHeader&&) = default;
+    // Always inlined: LinkHeaderSet destroys a moved-from LinkHeader for each link it parses.
+    ALWAYS_INLINE ~LinkHeader() = default;
 
     const String& url() const LIFETIME_BOUND { return m_url; }
     const String& rel() const LIFETIME_BOUND { return m_rel; }
@@ -51,28 +57,7 @@ public:
     bool valid() const { return m_isValid; }
     bool isViewportDependent() const { return !media().isEmpty() || !imageSrcSet().isEmpty() || !imageSizes().isEmpty(); }
 
-    enum LinkParameterName {
-        LinkParameterRel,
-        LinkParameterAnchor,
-        LinkParameterTitle,
-        LinkParameterMedia,
-        LinkParameterType,
-        LinkParameterRev,
-        LinkParameterHreflang,
-        // Beyond this point, only link-extension parameters
-        LinkParameterUnknown,
-        LinkParameterCrossOrigin,
-        LinkParameterAs,
-        LinkParameterImageSrcSet,
-        LinkParameterImageSizes,
-        LinkParameterNonce,
-        LinkParameterReferrerPolicy,
-        LinkParameterFetchPriority,
-    };
-
 private:
-    void setValue(LinkParameterName, String&& value);
-
     String m_url;
     String m_rel;
     String m_as;
