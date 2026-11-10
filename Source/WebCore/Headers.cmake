@@ -2341,6 +2341,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/ScrollAnimation.h
     platform/ScrollAnimator.h
     platform/ScrollAnimatorScrollPhysicsClient.h
+    platform/ScrollExtents.h
     platform/ScrollPhysicsTypes.h
     platform/ScrollTypes.h
     platform/ScrollView.h

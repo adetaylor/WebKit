@@ -3322,6 +3322,51 @@ foreach (_source IN LISTS _webcore_css_calc_swift_interop_sources)
 endforeach ()
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 
+# The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
+# Swift module, on every port.
+set(_webcore_swift_interop_sources_all_ports
+    html/parser/HTMLDocumentParserFastPath.cpp
+    html/parser/HTMLTokenizer.cpp
+    html/track/WebVTTTokenizer.cpp
+    xml/parser/XMLDocumentParserLibxml2.cpp
+    css/parser/CSSTokenizer.cpp
+    css/parser/CSSParserFastPaths.cpp
+    ${_webcore_css_calc_swift_interop_sources}
+    html/parser/HTMLPreloadScanner.cpp
+    html/parser/HTMLDocumentParser.cpp
+    platform/graphics/transforms/TransformationMatrix.cpp)
+# The scrolling ports' C++, which only the Apple ports build with their Swift so far.
+set(_webcore_swift_interop_sources_apple
+    page/scrolling/ScrollingTree.cpp
+    page/scrolling/ScrollingTreeLatchingController.cpp
+    page/scrolling/ScrollingTreeScrollingNode.cpp
+    page/scrolling/ThreadedScrollingTree.cpp
+    page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.cpp
+    page/scrolling/mac/ScrollerPairMac.mm
+    page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
+    platform/KeyboardScrollingAnimator.cpp
+    platform/ScrollAnimator.cpp
+    platform/ScrollView.cpp
+    platform/ScrollableArea.cpp
+    platform/ScrollingEffectsController.cpp
+    platform/graphics/cg/ImageDecoderCG.cpp
+    platform/mac/ScrollAnimatorMac.mm
+    platform/mac/ScrollbarsControllerMac.mm
+    platform/mac/ScrollingEffectsController.mm)
+set(_webcore_swift_interop_excludes ${_webcore_swift_interop_sources_all_ports})
+if (APPLE)
+    list(APPEND _webcore_swift_interop_excludes ${_webcore_swift_interop_sources_apple})
+endif ()
+foreach (_source IN LISTS _webcore_swift_interop_excludes)
+    string(REGEX REPLACE "^.*/" "" _name "${_source}")
+    string(REPLACE "+" "\\+" _name "${_name}")
+    string(REPLACE "." "\\." _name "${_name}")
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
+endforeach ()
+list(REMOVE_DUPLICATES WebCore_UNIFIED_SOURCE_EXCLUDES)
+# Some of them are also in a platform's WebCore_SOURCES, outside the unified sources.
+list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_interop_excludes})
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3393,9 +3438,58 @@ if (NOT USE_HEADER_MAPS)
     endif ()
 endif ()
 
-if (SWIFT_REQUIRED AND APPLE)
+if (APPLE)
     # FIXME: Remove SwiftStub.swift once WebCore has real Swift sources.
     target_sources(WebCore PRIVATE ${WEBCORE_DIR}/SwiftStub.swift)
+
+    # The Swift ports, as in WebCore.xcodeproj.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/SIMDHelpers.swift
+        ${WEBCORE_DIR}/SIMDHighBitMask.swift
+        ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
+        ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcEvaluation.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcNode.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcParser.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSerialization.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSimplification.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSwift.swift
+        ${WEBCORE_DIR}/css/calc/StyleCalculationSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftAlignment.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftEffects.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftFonts.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftGrid.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftShapes.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftProperties.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftSmall.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftValues.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
+        ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
+        ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
+        ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/MacScrollerImpState.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollerPairMac.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsAnimations.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsClientProtocol.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsController.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
+        ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
+        ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/ScrollableArea.swift
+        ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
+        ${WEBCORE_DIR}/platform/mac/ScrollbarsControllerMac.swift
+        ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
+    )
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
         ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
@@ -3411,15 +3505,33 @@ if (SWIFT_REQUIRED AND APPLE)
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
+        # WebCore.xcconfig's OTHER_SWIFT_FLAGS and SWIFT_TREAT_WARNINGS_AS_ERRORS, with its -O2 for the imported C++
+        # outside Debug only.
+        "-Xcc -fno-exceptions"
+        "-Xcc -fignore-exceptions"
+        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xcc -O2>"
+        "-Xllvm -enable-dfa-jump-thread"
+        "-Xllvm -sil-disable-pass=array-property-opt"
+        "-enable-experimental-feature BuiltinModule"
+        "-enable-experimental-feature AddressableParameters"
+        "-Werror DeprecatedDeclaration"
+        "-Werror SendableClosureCaptures"
+        -warnings-as-errors
     )
+    if (WTF_CPU_X86_64)
+        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
+    endif ()
+    # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
+    webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
 
     # C++ sources that include WebCoreSwift-Generated.h.
-    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
+    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp ${_webcore_swift_interop_sources_all_ports}
+        ${_webcore_swift_interop_sources_apple})
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
         "WebCoreSwift-Generated.h")
-elseif (WK_BUILD_WEBCORE_SWIFT)
+else ()
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.
     # SwiftStub.swift is left out: it imports Foundation, and these Swift sources already emit symbols.
     target_sources(WebCore PRIVATE
@@ -3449,6 +3561,10 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
         ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
+        ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
+        ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
 
@@ -3497,6 +3613,31 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
     list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftTypes.h)
     list(APPEND _webcore_swift_core_submodules css/parser/CSSParserIdioms.h)
     list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftBuilders.h)
+    # The HTML tree builder's and TransformationMatrix's Swift.
+    list(APPEND _webcore_swift_core_submodules
+        dom/Comment.h
+        dom/CustomElementRegistry.h
+        dom/DocumentFragment.h
+        dom/DocumentType.h
+        dom/ElementInlines.h
+        dom/ExceptionOr.h
+        html/HTMLDocument.h
+        html/parser/HTMLDocumentParser.h
+        html/HTMLFormElement.h
+        html/HTMLHtmlElement.h
+        html/HTMLMaybeFormAssociatedCustomElement.h
+        html/parser/HTMLParserOptions.h
+        html/HTMLScriptElement.h
+        html/HTMLTemplateElement.h
+        html/parser/HTMLTreeBuilderSwiftSupport.h
+        html/HTMLUnknownElement.h
+        bindings/js/JSCustomElementInterface.h
+        dom/ProcessingInstruction.h
+        ${WebCore_DERIVED_SOURCES_DIR}/Settings.h
+        dom/ShadowRoot.h
+        platform/graphics/transforms/TransformationMatrix.h)
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports})
+    list(REMOVE_DUPLICATES WebCore_SWIFT_INTEROP_SOURCES)
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
