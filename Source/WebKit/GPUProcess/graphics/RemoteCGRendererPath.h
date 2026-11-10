@@ -87,6 +87,18 @@ public:
         return m_segment;
     }
 
+#if HAVE(CGCONTEXT_STROKE_ARC)
+    // The arc of a pie wedge (Path::pieWedgeArc()), as an Arc segment's values; a CloseSubpath segment for any other path.
+    CGRendererPathSegment pieWedgeArcValues() const
+    {
+        if (m_kind == Kind::Impl) {
+            if (auto arc = path().pieWedgeArc())
+                return CGRendererPathSegmentValues(WebCore::PathSegment { *arc });
+        }
+        return { { }, CGRendererPathSegmentKind::CloseSubpath, false };
+    }
+#endif
+
     CGPathRef _Nonnull copyPlatformPath() const CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)))
     {
         switch (m_kind) {

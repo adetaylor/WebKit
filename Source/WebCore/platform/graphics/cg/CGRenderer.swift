@@ -642,26 +642,25 @@ extension CGRendererCore: ShadowDrawing {
     private mutating func drawShadowImage(_ image: CGImage, _ imageHeadroom: Float, _ resolutionScale: Float, _ tile: ShadowBlurTile) {
         let destination = tile.destination.floatRect
         let source = tile.source.floatRect
+        var facts = CGRendererImageFacts()
+        facts.width = Float(image.width)
+        facts.height = Float(image.height)
+        facts.headroom = imageHeadroom
+        facts.resolutionScale = resolutionScale
+        facts.found = true
+        var options = CGRendererImageOptions()
+        options.compositeOperator = .SourceOver
+        options.blendMode = .Normal
+        options.interpolationQuality = .Default
+        options.orientation = CGRendererOrientation.none
         save(false)
         clearDropShadow()
-        _ = drawNativeImage(
+        drawNativeImage(
             image,
-            Float(image.width),
-            Float(image.height),
-            destination.x(),
-            destination.y(),
-            destination.width(),
-            destination.height(),
-            source.x() * resolutionScale,
-            source.y() * resolutionScale,
-            source.width() * resolutionScale,
-            source.height() * resolutionScale,
-            .SourceOver,
-            .Normal,
-            .Default,
-            CGRendererOrientation.none,
-            imageHeadroom,
-            0
+            facts,
+            CGRect(x: CGFloat(destination.x()), y: CGFloat(destination.y()), width: CGFloat(destination.width()), height: CGFloat(destination.height())),
+            CGRect(x: CGFloat(source.x()), y: CGFloat(source.y()), width: CGFloat(source.width()), height: CGFloat(source.height())),
+            options
         )
         restore()
     }
@@ -807,6 +806,24 @@ private enum CGRendererSideTable {
     static let platformColorLimit = 8
     static let sourceLimit = 4
 }
+
+#if HAVE_SUPPORT_HDR_DISPLAY_APIS
+// A context's tone mapping info, which a draw of an image that limits its dynamic range puts back. A class, so that the draws
+// that don't keep it don't handle CGContentToneMappingInfo, whose layout CG's Swift overlay only gives at run time.
+private final class SavedToneMappingInfo {
+    private let info: CGContentToneMappingInfo
+
+    @inline(never)
+    init(_ context: CGContext) {
+        info = context.contentToneMappingInfo
+    }
+
+    @inline(never)
+    func restore(_ context: CGContext) {
+        context.contentToneMappingInfo = info
+    }
+}
+#endif
 
 // The stroke color and thickness of the line before, for receiveStrokeLinesWithColorAndThickness().
 private struct CGRendererLineStroke {
@@ -1197,6 +1214,9 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
+    // Whether CG strokes arcs with the coverage of filling their outlines here (CGIOSurfaceContextUsingWebKitBehavior()), so
+    // that a pie wedge can fill as a stroked arc, which CG batches.
+    private let strokesArcsLikeFills: Bool
     private var state: CGRendererState
     private var stack: [CGRendererSavedState]
     private var depth = 0
@@ -1245,27 +1265,19 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         _ context: borrowing CGContext,
         _ isUnaccelerated: Bool,
         _ isPDFContext: Bool,
+        _ strokesArcsLikeFills: Bool,
         _ imageInterpolationQuality: WebCore.InterpolationQuality
     ) {
         self.context = copy context
         self.isUnaccelerated = isUnaccelerated
         self.isPDFContext = isPDFContext
+        self.strokesArcsLikeFills = strokesArcsLikeFills
         self.state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
         self.stack = Array(repeating: CGRendererSavedState(state: state, purpose: .saveRestore), count: 8)
     }
 
     private var canUseShadowBlur: Bool {
         isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
-    }
-
-    // GraphicsContextCG::swiftDrawsShadowBlur(): where a receiver's draws with a shadow ShadowBlur draws (canUseShadowBlur)
-    // draw it here; elsewhere they go back to C++.
-    private var receiverDrawsShadowBlur: Bool {
-        #if HAVE_SUPPORT_HDR_DISPLAY_APIS && !WTF_PLATFORM_IOS_FAMILY
-        true
-        #else
-        false
-        #endif
     }
 
     // The Color of a drop shadow, as GraphicsContext's state has it, for ShadowBlur.
@@ -2079,24 +2091,21 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         receiveBeginTransparencyLayer(state.alpha)
     }
 
-    // Declines the end of a layer that C++ began, which C++ ends, as it counts it.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetURLForRect(_ url: CFURL, _ rect: CGRect) {
         setURLForRect(url, rect)
     }
 
+    // The end of a layer a receiver began. A layer that C++ began is C++'s to end, as GraphicsContext counts it: C++ ends a
+    // layer in the draw that begins it, so no message ends one.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveEndTransparencyLayer() -> Bool {
-        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer else {
-            return true
-        }
-        guard !stack[depth - 1].hasCxxLevel else {
-            return false
+    @_spi(WebKitGPU) public mutating func receiveEndTransparencyLayer() {
+        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer, !stack[depth - 1].hasCxxLevel else {
+            return
         }
         hasDrawn = true
         context.endTransparencyLayer()
         pop()
-        return true
     }
 
     @_expose(Cxx)
@@ -2698,6 +2707,45 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
     }
 
+    // GraphicsContextCG::fillPath() of a pie wedge (Path::pieWedgeArc()), as a butt-capped stroke of width r along the arc of
+    // radius r / 2, which covers exactly the wedge of radius r, where CG strokes it with that coverage. Only where any
+    // difference can't show, as a pixel drawn twice looks drawn once: a nonzero, opaque, source-over fill without a shadow.
+    // False where the path fills as a path.
+    @_expose(Cxx)
+    mutating func fillPieWedge(_ x: Float, _ y: Float, _ radius: Float, _ startAngle: Float, _ endAngle: Float, _ counterclockwise: Bool) -> Bool {
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        guard strokesArcsLikeFills, !state.fill.hasPatternOrGradient, radius > 0, state.fillRule == 0, fillColorIsOpaque(), state.alpha == 1,
+            state.compositeOperator == .SourceOver, state.blendMode == .Normal, !(state.dropShadow?.hasOutsets ?? false)
+        else {
+            return false
+        }
+        hasDrawn = true
+        context.saveGState()
+        context.setStrokeColor(platformColor(state.fill))
+        context.setLineWidth(CGFloat(radius))
+        context.setLineCap(.butt)
+        context.setLineDash(phase: 0, lengths: [])
+        CGContextStrokeArc(context, CGFloat(x), CGFloat(y), CGFloat(radius / 2), CGFloat(startAngle), CGFloat(endAngle), counterclockwise)
+        context.restoreGState()
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    // Color::isOpaque() of the fill color.
+    private func fillColorIsOpaque() -> Bool {
+        let fill = state.fill
+        guard fill.platformColorSlot != 0 else {
+            return fill.packedColor & 0xFF == 0xFF
+        }
+        let data = platformColors[Int(fill.platformColorSlot) - 1].data
+        if data.form == 1 {
+            return data.packedColor & 0xFF == 0xFF
+        }
+        return !data.alpha.isNaN && data.alpha >= 1
+    }
+
     @_expose(Cxx)
     mutating func strokePath(_ path: borrowing CGPath) {
         hasDrawn = true
@@ -2945,49 +2993,56 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         return true
     }
 
-    // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The headrooms are the image's and
-    // the options' (0, Headroom::FromImage, for the image's). Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing
-    // to draw.
+    // GraphicsContextCG::drawNativeImage(): the source rect of the image, scaled by its resolution scale as
+    // GraphicsContext::drawImageBuffer() scales an image buffer's, into the destination rect, with the options' composite
+    // mode, interpolation, orientation, headroom and dynamic range limit, and inverted where the facts give a color matrix
+    // to invert it with. A sub-image keeps high-quality interpolation from bleeding pixels from outside the source rect. On
+    // the iOS family, the image is aligned to device pixels and not antialiased.
     @_expose(Cxx)
     mutating func drawNativeImage(
         _ image: borrowing CGImage,
-        _ imageWidth: Float,
-        _ imageHeight: Float,
-        _ destinationX: Float,
-        _ destinationY: Float,
-        _ destinationWidth: Float,
-        _ destinationHeight: Float,
-        _ sourceX: Float,
-        _ sourceY: Float,
-        _ sourceWidth: Float,
-        _ sourceHeight: Float,
-        _ compositeOperator: WebCore.CompositeOperator,
-        _ blendMode: WebCore.BlendMode,
-        _ optionsInterpolationQuality: WebCore.InterpolationQuality,
-        _ orientation: UInt8,
-        _ imageHeadroom: Float,
-        _ optionsHeadroom: Float
-    ) -> UInt8 {
-        var headroom = optionsHeadroom == 0 ? imageHeadroom : optionsHeadroom
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ source: CGRect,
+        _ options: CGRendererImageOptions
+    ) {
+        #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+        if facts.invertsContent {
+            drawNativeImageInverted(image, facts, destination, source, options)
+            return
+        }
+        #endif
+        let scale = facts.resolutionScale
+        let sourceX = Float(source.origin.x) * scale
+        let sourceY = Float(source.origin.y) * scale
+        let sourceWidth = Float(source.size.width) * scale
+        let sourceHeight = Float(source.size.height) * scale
+        var headroom = options.headroom == 0 ? facts.headroom : options.headroom
         if let maxEDRHeadroom {
             headroom = cxxMin(headroom, maxEDRHeadroom)
         }
+        let orientation = options.orientation
         let usesWidthAsHeight = CGRendererOrientation.usesWidthAsHeight(orientation)
-        let logicalWidth = usesWidthAsHeight ? imageHeight : imageWidth
-        let logicalHeight = usesWidthAsHeight ? imageWidth : imageHeight
+        let logicalWidth = usesWidthAsHeight ? facts.height : facts.width
+        let logicalHeight = usesWidthAsHeight ? facts.width : facts.height
         let imageRect = CGRendererRect(x: 0, y: 0, width: logicalWidth, height: logicalHeight)
         let normalizedSourceRect = CGRendererRect(x: sourceX, y: sourceY, width: sourceWidth, height: sourceHeight).normalized
-        let normalizedDestinationRect = CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight)
-            .normalized
+        let normalizedDestinationRect = CGRendererRect(
+            x: Float(destination.origin.x),
+            y: Float(destination.origin.y),
+            width: Float(destination.size.width),
+            height: Float(destination.size.height)
+        ).normalized
         if !imageRect.intersects(normalizedSourceRect) {
-            return 2
+            return
         }
 
         let transform = context.ctm
         let oldInterpolationQuality = state.imageInterpolationQuality
-        let interpolationQuality = optionsInterpolationQuality == .Default ? state.imageInterpolationQuality : optionsInterpolationQuality
+        let interpolationQuality = options.interpolationQuality == .Default ? state.imageInterpolationQuality : options.interpolationQuality
 
-        var subimage: CGImage? = copy image
+        // The copy of the source rect's part of the image that the draw draws instead of the image, if any.
+        var subimage: CGImage? = nil
         var adjustedDestinationRect = normalizedDestinationRect
         var clipsToDestination = false
         if normalizedSourceRect != imageRect {
@@ -2998,6 +3053,12 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
                 // the destination (rdar://6112909).
                 let subimageRect = CGRendererIntRect(enclosing: normalizedSourceRect)
                 subimage = self.subimage(copy image, logicalWidth, logicalHeight, subimageRect.rect, orientation)
+                // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts
+                // the state back.
+                guard subimage != nil else {
+                    hasDrawn = true
+                    return
+                }
                 let paddingX = normalizedSourceRect.x - Float(subimageRect.x)
                 let paddingY = normalizedSourceRect.y - Float(subimageRect.y)
                 adjustedDestinationRect = CGRendererRect(
@@ -3018,30 +3079,42 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
             clipsToDestination = !normalizedDestinationRect.contains(adjustedDestinationRect)
         }
 
-        // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts the
-        // state back.
-        guard let subimage else {
-            hasDrawn = true
-            return 1
-        }
-
         if clipsToDestination {
             context.saveGState()
             context.clip(to: normalizedDestinationRect.cgRect)
         }
 
+        #if WTF_PLATFORM_IOS_FAMILY
+        // Antialiasing is on by default on the iPhone; it's off for images, which are aligned to device pixels.
+        let wasAntialiased = state.shouldAntialias
+        context.setShouldAntialias(false)
+        adjustedDestinationRect = roundToDevicePixels(adjustedDestinationRect)
+        #endif
+
         let oldCompositeOperator = state.compositeOperator
         let oldBlendMode = state.blendMode
-        context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
+        context.setBlendMode(cgBlendMode(options.compositeOperator, options.blendMode))
 
         if interpolationQuality != oldInterpolationQuality {
             context.interpolationQuality = cgInterpolationQuality(interpolationQuality)
         }
 
-        let oldHeadroom = CGContextGetEDRTargetHeadroom(context)
-        if imageHeadroom > headroom {
+        #if HAVE_SUPPORT_HDR_DISPLAY_APIS
+        // Only what the draw changes is put back: CGContentToneMappingInfo bridges its options on every get and set.
+        let setsHeadroom = facts.headroom > headroom
+        let oldHeadroom = setsHeadroom ? CGContextGetEDRTargetHeadroom(context) : 0
+        let oldToneMappingInfo = options.limitsDynamicRange ? SavedToneMappingInfo(context) : nil
+        if setsHeadroom {
             _ = context.setEDRTargetHeadroom(headroom)
         }
+        if options.limitsDynamicRange {
+            if let subimage {
+                CGRendererSetDynamicRangeLimitForImage(context, subimage, options.dynamicRangeLimit)
+            } else {
+                CGRendererSetDynamicRangeLimitForImage(context, image, options.dynamicRangeLimit)
+            }
+        }
+        #endif
 
         context.translateBy(x: CGFloat(adjustedDestinationRect.x), y: CGFloat(adjustedDestinationRect.y))
         var drawWidth = adjustedDestinationRect.width
@@ -3058,20 +3131,107 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         context.translateBy(x: 0, y: drawRect.height)
         context.scaleBy(x: 1, y: -1)
 
-        context.draw(subimage, in: drawRect)
+        if let subimage {
+            context.draw(subimage, in: drawRect)
+        } else {
+            context.draw(image, in: drawRect)
+        }
 
         if clipsToDestination {
             context.restoreGState()
         } else {
             CGContextSetCTM(context, transform)
+            #if WTF_PLATFORM_IOS_FAMILY
+            context.setShouldAntialias(wasAntialiased)
+            #endif
             context.setBlendMode(cgBlendMode(oldCompositeOperator, oldBlendMode))
             if interpolationQuality != oldInterpolationQuality {
                 context.interpolationQuality = cgInterpolationQuality(oldInterpolationQuality)
             }
-            _ = context.setEDRTargetHeadroom(oldHeadroom)
+            #if HAVE_SUPPORT_HDR_DISPLAY_APIS
+            oldToneMappingInfo?.restore(context)
+            if setsHeadroom {
+                _ = context.setEDRTargetHeadroom(oldHeadroom)
+            }
+            #endif
         }
         hasDrawn = true
-        return 1
+    }
+
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    // An image inverted for an accessibility color mode: in a transparency layer of the composite mode, clipped to the
+    // destination, that the color matrix style inverts.
+    @inline(never)
+    private mutating func drawNativeImageInverted(
+        _ image: borrowing CGImage,
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ source: CGRect,
+        _ options: CGRendererImageOptions
+    ) {
+        var facts = facts
+        facts.invertsContent = false
+        var layerOptions = options
+        layerOptions.compositeOperator = .SourceOver
+        layerOptions.blendMode = .Normal
+        let normalizedDestination = CGRendererRect(
+            x: Float(destination.origin.x),
+            y: Float(destination.origin.y),
+            width: Float(destination.size.width),
+            height: Float(destination.size.height)
+        ).normalized
+        save(false)
+        clip(normalizedDestination.cgRect)
+        setColorMatrixStyle(facts.invertColorMatrix)
+        setCompositeMode(options.compositeOperator, options.blendMode)
+        beginTransparencyLayerWithCurrentAlpha()
+        drawNativeImage(image, facts, destination, source, layerOptions)
+        endTransparencyLayer()
+        restore()
+    }
+    #endif
+
+    // GraphicsContextCG::roundToDevicePixels(), with the cache of whether the user to device transform is the identity.
+    private mutating func roundToDevicePixels(_ rect: CGRendererRect) -> CGRendererRect {
+        if !userToDeviceTransformKnownToBeIdentity {
+            let deviceMatrix = context.userSpaceToDeviceSpaceTransform
+            guard deviceMatrix.isIdentity else {
+                return roundToDevicePixels(deviceMatrix, rect)
+            }
+            userToDeviceTransformKnownToBeIdentity = true
+        }
+        // roundedIntRect().
+        let x = Float(clampToInt(rect.x.rounded(.toNearestOrAwayFromZero)))
+        let y = Float(clampToInt(rect.y.rounded(.toNearestOrAwayFromZero)))
+        let width = Float(clampToInt(rect.width.rounded(.toNearestOrAwayFromZero)))
+        let height = Float(clampToInt(rect.height.rounded(.toNearestOrAwayFromZero)))
+        return CGRendererRect(x: x, y: y, width: width, height: height)
+    }
+
+    // cgRoundToDevicePixelsNonIdentity(): rounded in device space by the transform's scale alone, which a rotation doesn't
+    // disturb, and not rounded to nothing unless it was nothing.
+    private func roundToDevicePixels(_ deviceMatrix: CGAffineTransform, _ rect: CGRendererRect) -> CGRendererRect {
+        let deviceScaleX = hypot(deviceMatrix.a, deviceMatrix.b)
+        let deviceScaleY = hypot(deviceMatrix.c, deviceMatrix.d)
+        var originX = CGFloat(rect.x) * deviceScaleX
+        var originY = CGFloat(rect.y) * deviceScaleY
+        var lowerRightX = CGFloat(rect.x + rect.width) * deviceScaleX
+        var lowerRightY = CGFloat(rect.y + rect.height) * deviceScaleY
+        originX = CGFloat(Float(originX).rounded(.toNearestOrAwayFromZero))
+        originY = CGFloat(Float(originY).rounded(.toNearestOrAwayFromZero))
+        lowerRightX = CGFloat(Float(lowerRightX).rounded(.toNearestOrAwayFromZero))
+        lowerRightY = CGFloat(Float(lowerRightY).rounded(.toNearestOrAwayFromZero))
+        if originY == lowerRightY && rect.height != 0 {
+            lowerRightY += 1
+        }
+        if originX == lowerRightX && rect.width != 0 {
+            lowerRightX += 1
+        }
+        let roundedOriginX = Float(originX / deviceScaleX)
+        let roundedOriginY = Float(originY / deviceScaleY)
+        let roundedLowerRightX = Float(lowerRightX / deviceScaleX)
+        let roundedLowerRightY = Float(lowerRightY / deviceScaleY)
+        return CGRendererRect(x: roundedOriginX, y: roundedOriginY, width: roundedLowerRightX - roundedOriginX, height: roundedLowerRightY - roundedOriginY)
     }
 
     // GraphicsContextCG::drawPattern(): the image's tile, repeated across the destination by the pattern transform (only its
@@ -3382,15 +3542,12 @@ extension CGRendererCore {
         save(false, hasCxxLevel: false)
     }
 
-    // Declines the restore of a level in which C++ set a gradient or pattern brush, for GraphicsContextCG::restore(), which lets
-    // GraphicsContext's copy of the brush go at once.
+    // GraphicsContextCG::restore(). GraphicsContext's copy of a gradient or pattern brush that C++ set in the level goes when
+    // GraphicsContextCG next brings it up to date, which it does at once when it restores the level itself.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveRestore() -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveRestore() {
         guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
-            return true
-        }
-        if levelHasCxxBrushSource {
-            return false
+            return
         }
         // GraphicsContext restores a level that C++ saved when it next brings its state up to date, after any C++ setter
         // that comes first has changed that level's copy: so it then takes all of the state.
@@ -3399,7 +3556,6 @@ extension CGRendererCore {
             cxxStaleProperties = CxxStateChange.all
         }
         pop()
-        return true
     }
 
     @_expose(!Cxx)
@@ -3493,17 +3649,22 @@ extension CGRendererCore {
         levelChanges |= CxxStateChange.strokeBrush
     }
 
-    // GraphicsContextCG::paintGradientInClip(): false where C++ paints the gradient, in a CGLayer for a drop shadow.
+    // GraphicsContextCG::paintGradientInClip(): the gradient across the clip of the content. With a drop shadow, the content
+    // and its shadow paint in a transparency layer that their bounds bound, or where CGStyle lacks its fix for shadow blurs, in
+    // a CGLayer of the content's bounds.
     private mutating func paintGradientInClip(
         _ source: CGRendererBrushSource,
         _ contentBounds: () -> CGRect,
         _ clip: (CGContext) -> Void
-    ) -> Bool {
-        let shadow = state.dropShadow.flatMap { $0.hasOutsets ? $0 : nil }
-        if shadow != nil && CGRendererPaintsGradientShadowsInLayer() {
-            return false
-        }
+    ) {
         hasDrawn = true
+        let shadow = state.dropShadow.flatMap { $0.hasOutsets ? $0 : nil }
+        #if !HAVE_CGSTYLE_FIXES_DROP_SHADOW_BLUR
+        if shadow != nil {
+            paintGradientInLayer(source, contentBounds(), clip)
+            return
+        }
+        #endif
         if let shadow {
             CGRendererBeginGradientShadowLayer(
                 context,
@@ -3523,8 +3684,46 @@ extension CGRendererCore {
         if shadow != nil {
             CGRendererEndGradientShadowLayer(context)
         }
-        return true
     }
+
+    #if !HAVE_CGSTYLE_FIXES_DROP_SHADOW_BLUR
+    // GraphicsContextCG::paintGradientInCGLayer(): older transparency layers are bounded by the clip, which would lose the
+    // shadow of content outside it, so the gradient paints in a CGLayer of the content's bounds, which draws with the shadow.
+    // The gradient is in its own color space here.
+    private mutating func paintGradientInLayer(_ source: CGRendererBrushSource, _ contentBounds: CGRect, _ clip: (CGContext) -> Void) {
+        let layerBounds = CGRendererIntRect(
+            enclosing: CGRendererRect(
+                x: Float(contentBounds.origin.x),
+                y: Float(contentBounds.origin.y),
+                width: Float(contentBounds.size.width),
+                height: Float(contentBounds.size.height)
+            )
+        ).rect
+        guard !layerBounds.isEmpty else {
+            return
+        }
+        // AffineTransform::mapSize() of the bounds' size by the CTM.
+        let ctm = context.ctm
+        let layerWidth = Float(Double(layerBounds.width) * hypot(Double(ctm.a), Double(ctm.b)))
+        let layerHeight = Float(Double(layerBounds.height) * hypot(Double(ctm.c), Double(ctm.d)))
+        guard let layer = CGLayer(context, size: CGSize(width: CGFloat(layerWidth), height: CGFloat(layerHeight)), auxiliaryInfo: nil),
+            let layerContext = layer.context
+        else {
+            return
+        }
+        layerContext.scaleBy(x: CGFloat(layerWidth / layerBounds.width), y: CGFloat(layerHeight / layerBounds.height))
+        layerContext.translateBy(x: CGFloat(-layerBounds.x), y: CGFloat(-layerBounds.y))
+        clip(layerContext)
+        var geometry = CGRendererGradientGeometry()
+        var spaceTransform = CGAffineTransform.identity
+        let gradient = CGRendererCopyBrushGradient(source, CGRendererGradientColorSpace(), &geometry, &spaceTransform)
+        layerContext.concatenate(spaceTransform)
+        if let gradient {
+            Self.paintGradient(layerContext, gradient, geometry)
+        }
+        context.draw(layer, in: layerBounds.cgRect)
+    }
+    #endif
 
     private func brushSource(_ brush: CGRendererBrush) -> CGRendererBrushSource? {
         guard brush.sourceSlot != 0, case .brush(let source) = sources[Int(brush.sourceSlot) - 1] else {
@@ -3533,43 +3732,36 @@ extension CGRendererCore {
         return source
     }
 
-    // GraphicsContextCG's fills and strokes with a gradient brush, in the clip of the content the receiver's C++ adds: false
-    // where C++ paints the gradient.
+    // GraphicsContextCG's fills and strokes with a gradient brush, in the clip of the content the receiver adds. A brush is
+    // only a gradient with its source, which C++ sets with it, so there is always one to paint.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillWithGradient(_ contentBounds: () -> CGRect, _ clip: (CGContext, WebCore.WindRule) -> Void) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillWithGradient(_ contentBounds: () -> CGRect, _ clip: (CGContext, WebCore.WindRule) -> Void) {
         guard let source = brushSource(state.fill) else {
-            return false
+            return
         }
         let rule: WebCore.WindRule = state.fillRule == 1 ? .EvenOdd : .NonZero
-        return paintGradientInClip(source, contentBounds) { context in clip(context, rule) }
+        paintGradientInClip(source, contentBounds) { context in clip(context, rule) }
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeWithGradient(_ contentBounds: (CGContext) -> CGRect, _ clip: (CGContext, Float) -> Void) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeWithGradient(_ contentBounds: (CGContext) -> CGRect, _ clip: (CGContext, Float) -> Void) {
         guard let source = brushSource(state.stroke) else {
-            return false
+            return
         }
         let thickness = state.strokeThickness
         let context = context
-        return paintGradientInClip(source, { contentBounds(context) }) { clipContext in clip(clipContext, thickness) }
-    }
-
-    // Whether the renderer paints a receiver's gradients, which C++ paints in a CGLayer where there is a drop shadow and CGStyle
-    // lacks its fix for shadow blurs.
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receivePaintsGradients() -> Bool {
-        !((state.dropShadow?.hasOutsets ?? false) && CGRendererPaintsGradientShadowsInLayer())
+        paintGradientInClip(source, { contentBounds(context) }) { clipContext in clip(clipContext, thickness) }
     }
 
     // GraphicsContextCG::fillRect() with a gradient: the fill brush's, or one of its own (FillRectWithGradientAndSpaceTransform),
     // in the rect's clip where it requires it or there is a drop shadow.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRectWithGradient(_ rect: CGRect, _ source: CGRendererBrushSource?, _ requiresClipToRect: Bool) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRectWithGradient(_ rect: CGRect, _ source: CGRendererBrushSource?, _ requiresClipToRect: Bool) {
         guard let source = source ?? brushSource(state.fill) else {
-            return false
+            return
         }
         let clipsToRect = requiresClipToRect || (state.dropShadow?.hasOutsets ?? false)
-        return paintGradientInClip(source, { rect }) { context in
+        paintGradientInClip(source, { rect }) { context in
             if clipsToRect {
                 context.clip(to: rect)
             }
@@ -3784,32 +3976,31 @@ extension CGRendererCore {
         hasDrawn = true
     }
 
-    // GraphicsContextCG::fillRect(_:_:) of a color, with a shadow ShadowBlur draws where the receiver draws those.
+    // GraphicsContextCG::fillRect(_:_:) of a color, with a shadow ShadowBlur draws. A color CG can't make draws nothing.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
         let changesFillColor = !fillColorEquals(color)
         if color.isPacked {
             if fillRect(rect, packedColor: color.packedColor, changesFillColor) {
-                return true
+                return
             }
-            guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
-                return false
+            guard let shadow = state.dropShadow else {
+                return
             }
-            let shadowColor = dropShadowColor(shadow)
-            fillRectWithShadowBlur(rect, packedColor: color.packedColor, changesFillColor, shadowColor, shadowColorChangesFill(shadow))
-            return true
+            fillRectWithShadowBlur(rect, packedColor: color.packedColor, changesFillColor, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            return
         }
         guard let cgColor = cgColor ?? platformColorCache.color(color.data, destinationColorSpace) else {
-            return false
+            hasDrawn = true
+            return
         }
         if fillRect(rect, platformColor: cgColor, changesFillColor) {
-            return true
+            return
         }
-        guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
-            return false
+        guard let shadow = state.dropShadow else {
+            return
         }
         fillRectWithShadowBlur(rect, platformColor: cgColor, changesFillColor, dropShadowColor(shadow), shadowColorChangesFill(shadow))
-        return true
     }
 
     // GraphicsContext::fillRect(_:_:_:_:): the fill in the composite mode, which is set back after it.
@@ -3820,26 +4011,25 @@ extension CGRendererCore {
         _ cgColor: CGColor?,
         _ compositeOperator: WebCore.CompositeOperator,
         _ blendMode: WebCore.BlendMode
-    ) -> Bool {
+    ) {
         let previousOperator = state.compositeOperator
         let previousBlendMode = state.blendMode
         let changesCompositeMode = previousOperator != compositeOperator || previousBlendMode != blendMode
         guard changesCompositeMode else {
-            return receiveFillRect(rect, color, cgColor)
+            receiveFillRect(rect, color, cgColor)
+            return
         }
         // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
         let cxxCompositeModeIsStale = cxxStaleProperties & CxxStateChange.compositeMode
         setCompositeMode(compositeOperator, blendMode)
-        let drawn = receiveFillRect(rect, color, cgColor)
+        receiveFillRect(rect, color, cgColor)
         setCompositeMode(previousOperator, previousBlendMode)
         cxxStaleProperties |= cxxCompositeModeIsStale
-        return drawn
     }
 
     // GraphicsContext::fillRoundedRect(): a rounded rect with radii as GraphicsContextCG::fillRoundedRectImpl() fills it, in
-    // the composite operator with the blend mode, and one without as a rect, with a shadow ShadowBlur draws. False where C++
-    // draws it: a shadow ShadowBlur draws where the receiver doesn't draw those or of a gradient, or a gradient C++ paints in
-    // a CGLayer.
+    // the composite operator with the blend mode, and one without as a rect, with a shadow ShadowBlur draws. A gradient fills
+    // the rounded rect's path, after any ShadowBlur shadow, as if it had its drop shadow still.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRoundedRect(
         _ rect: borrowing WebCore.FloatRoundedRect,
@@ -3847,24 +4037,16 @@ extension CGRendererCore {
         _ color: CGRendererColorValue,
         _ cgColor: CGColor?,
         _ blendMode: WebCore.BlendMode
-    ) -> Bool {
+    ) {
         let roundedRect = CGRendererRoundedRectOf(copy rect)
         guard roundedRect.hasNonZeroRadii else {
-            return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
+            receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
+            return
         }
         hasDrawn = true
         let drawsShadowBlur = canUseShadowBlur
-        if drawsShadowBlur && (!receiverDrawsShadowBlur || state.fill.hasGradient) {
-            return false
-        }
-        if state.fill.hasGradient && !receivePaintsGradients() {
-            return false
-        }
         let changesFillColor = !fillColorEquals(color)
         let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
-        if changesFillColor && fillColor == nil {
-            return false
-        }
         let previousBlendMode = state.blendMode
         let changesCompositeMode = previousBlendMode != blendMode
         // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
@@ -3883,7 +4065,7 @@ extension CGRendererCore {
         if state.fill.hasGradient {
             // fillPath() of the rounded rect's path, in its clip.
             let bounds = CGRendererRoundedRectBounds(rect)
-            _ = receiveFillWithGradient({ bounds }) { context, rule in
+            receiveFillWithGradient({ bounds }) { context, rule in
                 CGRendererRoundedRectSegment(roundedRect).clip(context, rule == .EvenOdd ? .evenOdd : .winding)
             }
         } else if !state.fill.hasPattern && roundedRect.isEllipse {
@@ -3904,29 +4086,21 @@ extension CGRendererCore {
             setCompositeMode(state.compositeOperator, previousBlendMode)
             cxxStaleProperties |= cxxCompositeModeIsStale
         }
-        return true
     }
 
     // GraphicsContextCG::fillRectWithRoundedHole(): the even-odd fill of a rect and a rounded hole in it, in the color, with
-    // the shadow inside the hole that ShadowBlur draws. False where C++ draws it: that shadow where the receiver doesn't draw
-    // those.
+    // the shadow inside the hole that ShadowBlur draws.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRectWithRoundedHole(
         _ rect: CGRect,
         _ hole: borrowing WebCore.FloatRoundedRect,
         _ color: CGRendererColorValue,
         _ cgColor: CGColor?
-    ) -> Bool {
+    ) {
         hasDrawn = true
         let drawsShadowBlur = canUseShadowBlur
-        if drawsShadowBlur && !receiverDrawsShadowBlur {
-            return false
-        }
         let changesFillColor = !fillColorEquals(color)
         let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
-        if changesFillColor && fillColor == nil {
-            return false
-        }
         let roundedHole = CGRendererRoundedRectOf(copy hole)
         let path = rectWithRoundedHolePath(rect, roundedHole)
         if let fillColor {
@@ -3944,7 +4118,6 @@ extension CGRendererCore {
         if changesFillColor {
             context.setFillColor(platformColor(state.fill))
         }
-        return true
     }
 
     // A receiver's shadow, as CGRendererShadowValuesOf() gives its values and its color's data.
@@ -4173,30 +4346,34 @@ extension CGRendererCore {
         resetClip()
     }
 
+    // GraphicsContextCG::fillRect(): a gradient brush paints in the rect, and a shadow ShadowBlur draws goes with a color or
+    // pattern brush.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ requiresClipToRect: Bool) {
         if fillRect(rect) {
-            return true
+            return
         }
-        // A shadow ShadowBlur draws, where the receiver draws those, with a color or pattern brush.
-        guard receiverDrawsShadowBlur, !state.fill.hasGradient, let shadow = state.dropShadow else {
-            return false
+        if state.fill.hasGradient {
+            receiveFillRectWithGradient(rect, nil, requiresClipToRect)
+            return
+        }
+        guard let shadow = state.dropShadow else {
+            return
         }
         fillRectWithShadowBlur(rect, dropShadowColor(shadow), shadowColorChangesFill(shadow))
-        return true
     }
 
+    // GraphicsContextCG::strokeRect(): a gradient brush paints in the clip of the stroked rect.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) {
         if strokeRect(rect, lineWidth) {
-            return true
+            return
         }
-        // GraphicsContextCG::strokeRect() of a gradient brush.
         guard let source = brushSource(state.stroke) else {
-            return false
+            return
         }
         let context = context
-        return paintGradientInClip(source, { CGRendererStrokedRectBounds(context, rect, lineWidth) }) { clipContext in
+        paintGradientInClip(source, { CGRendererStrokedRectBounds(context, rect, lineWidth) }) { clipContext in
             CGRendererClipToStrokedRect(clipContext, rect, lineWidth)
         }
     }
@@ -4212,36 +4389,41 @@ extension CGRendererCore {
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) {
         // GraphicsContext::fillEllipseAsPath() of a pattern or gradient brush.
-        fillEllipse(rect) || receiveFillPathSegment(ellipseSegment(rect))
+        if !fillEllipse(rect) {
+            receiveFillPathSegment(ellipseSegment(rect))
+        }
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) {
         // GraphicsContext::strokeEllipseAsPath() of a pattern or gradient brush.
-        strokeEllipse(rect) || receiveStrokePathSegment(ellipseSegment(rect))
+        if !strokeEllipse(rect) {
+            receiveStrokePathSegment(ellipseSegment(rect))
+        }
     }
 
     // A path of one segment, which GraphicsContextCG::fillPath() fills through its CGPath.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) {
         guard fillsWithoutGradient() else {
-            return receiveFillWithGradient({ CGRendererPathSegmentBounds(segment) }) { context, rule in
+            receiveFillWithGradient({ CGRendererPathSegmentBounds(segment) }) { context, rule in
                 CGRendererClipToPathSegment(context, segment, rule)
             }
+            return
         }
         fillPath(CGRendererCreatePath(segment))
-        return true
     }
 
     // GraphicsContextCG::strokePath() and strokeLine(), which stroke a line as a line segment.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) {
         guard strokesWithoutGradient() else {
-            return receiveStrokeWithGradient({ context in CGRendererStrokedPathSegmentBounds(context, segment) }) { context, thickness in
+            receiveStrokeWithGradient({ context in CGRendererStrokedPathSegmentBounds(context, segment) }) { context, thickness in
                 CGRendererClipToStrokedPathSegment(context, segment, thickness)
             }
+            return
         }
         if segment.kind == .DataLine {
             let v = segment.values
@@ -4249,42 +4431,57 @@ extension CGRendererCore {
         } else {
             strokePath(CGRendererCreatePath(segment))
         }
-        return true
+    }
+
+    // GraphicsContextCG::fillPath() of a pie wedge, where it fills as a stroked arc (fillPieWedge()).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillPieWedge(_ x: Float, _ y: Float, _ radius: Float, _ startAngle: Float, _ endAngle: Float, _ counterclockwise: Bool) -> Bool {
+        fillPieWedge(x, y, radius, startAngle, endAngle, counterclockwise)
+    }
+
+    // GraphicsContextCG::strokeArc(): CG's own stroke of an arc where it has one, unless the brush is a gradient.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeArc(_ segment: CGRendererPathSegment) {
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        if strokesWithoutGradient() {
+            hasDrawn = true
+            applyPattern(fill: false)
+            let v = segment.values
+            CGContextStrokeArc(context, CGFloat(v.0), CGFloat(v.1), CGFloat(v.2), CGFloat(v.3), CGFloat(v.4), segment.flag)
+            return
+        }
+        #endif
+        receiveStrokePathSegment(segment)
     }
 
     // GraphicsContextCG::drawPath(), which fills and strokes in one draw.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) {
+        hasDrawn = true
         guard fillsWithoutGradient() && strokesWithoutGradient() else {
-            // With a gradient, the fill and the stroke one after the other, unless C++ paints the gradient.
-            guard receivePaintsGradients() else {
-                return false
-            }
-            hasDrawn = true
-            // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the
-            // stroke's clip then has the CGPath rather than the segment.
+            // With a gradient, the fill and the stroke one after the other. A fill without a gradient draws the CGPath of
+            // the path, which C++ makes of the Path in place, so that the stroke's clip then has the CGPath rather than the
+            // segment.
             guard fillsWithoutGradient() else {
-                _ = receiveFillPathSegment(segment)
-                _ = receiveStrokePathSegment(segment)
-                return true
+                receiveFillPathSegment(segment)
+                receiveStrokePathSegment(segment)
+                return
             }
             let path = CGRendererCreatePath(segment)
             fillPath(path)
-            _ = receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
+            receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
                 clipToStrokedPlatformPath(context, path, thickness)
             }
-            return true
+            return
         }
-        hasDrawn = true
         if drawsPath() {
             drawPath(CGRendererCreatePath(segment))
         }
-        return true
     }
 
     // GraphicsContextCG::drawEllipse(), which draws the path of the ellipse in the rect.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) {
         receiveDrawPathSegment(ellipseSegment(rect))
     }
 
@@ -4300,8 +4497,8 @@ extension CGRendererCore {
         drawRect(rect, borderThickness, !fillAndStrokeColorsAreEqual())
     }
 
-    // A path's fill, stroke and draw, as GraphicsContextCG's: a gradient declines, for the context to paint it, before the
-    // receiver makes the path's CGPath.
+    // A path's fill, stroke and draw, as GraphicsContextCG's: the receiver paints a gradient in the clip of the path, and
+    // makes the path's CGPath otherwise.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public func receiveFillsWithoutGradient() -> Bool {
         fillsWithoutGradient()
@@ -4322,8 +4519,10 @@ extension CGRendererCore {
         strokePath(path)
     }
 
+    // The draw of a path without a gradient, in one CG draw: false for a gradient, which the receiver fills and strokes in
+    // turn.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawPath(_ path: () -> CGPath) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawPathWithoutGradient(_ path: () -> CGPath) -> Bool {
         guard fillsWithoutGradient() && strokesWithoutGradient() else {
             return false
         }
@@ -4342,8 +4541,8 @@ extension CGRendererCore {
         clip(context)
     }
 
-    // GraphicsContextCG::drawNativeImage() of the image a receiver found: false where the C++ draws it. An image buffer's image
-    // has its source rect scaled by the buffer's resolution scale, as GraphicsContext::drawImageBuffer() scales it.
+    // GraphicsContextCG::drawNativeImage() of the image a receiver found. A copy of the image buffer the receiver draws into
+    // has the receiver's draws flushed after it, while the copy is still there, as the copy's reads go with them.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawNativeImage(
         _ image: CGImage,
@@ -4351,30 +4550,11 @@ extension CGRendererCore {
         _ destination: CGRect,
         _ source: CGRect,
         _ options: CGRendererImageOptions
-    ) -> Bool {
-        guard options.rendererDraws else {
-            return false
+    ) {
+        drawNativeImage(image, facts, destination, source, options)
+        if facts.isSelfCopy {
+            context.flush()
         }
-        let scale = facts.resolutionScale
-        return drawNativeImage(
-            image,
-            facts.width,
-            facts.height,
-            Float(destination.origin.x),
-            Float(destination.origin.y),
-            Float(destination.size.width),
-            Float(destination.size.height),
-            Float(source.origin.x) * scale,
-            Float(source.origin.y) * scale,
-            Float(source.size.width) * scale,
-            Float(source.size.height) * scale,
-            options.compositeOperator,
-            options.blendMode,
-            options.interpolationQuality,
-            options.orientation,
-            facts.headroom,
-            options.headroom
-        ) != 0
     }
 
     // GraphicsContextCG::drawPattern() of the image a receiver found, whose tile rect is scaled as receiveDrawNativeImage()'s
@@ -4452,8 +4632,9 @@ extension CGRendererCore {
         applyStrokePattern()
     }
 
-    // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting());
-    // false where it declines it.
+    // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting()).
+    // False only for a gradient brush's path of several segments, whose clip needs the Path the handler has and the caller
+    // doesn't pass, for the caller to draw it.
     @_expose(Cxx)
     mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage, _ path: CGPath?, _ image: CGImage?) -> Bool {
         let v = message.values
@@ -4462,7 +4643,7 @@ extension CGRendererCore {
         let transform = CGAffineTransform(a: CGFloat(v.0), b: CGFloat(v.1), c: CGFloat(v.2), d: CGFloat(v.3), tx: CGFloat(v.4), ty: CGFloat(v.5))
         switch message.message {
         case 0: receiveSave()
-        case 1: return receiveRestore()
+        case 1: receiveRestore()
         case 2: receiveTranslate(v.0, v.1)
         case 3: receiveRotate(v.0)
         case 4: receiveScale(v.0, v.1)
@@ -4489,21 +4670,16 @@ extension CGRendererCore {
         case 23: receiveClipOut(rect)
         case 24: receiveResetClip()
         case 25: receiveDrawLine(v.0, v.1, v.2, v.3)
-        case 26:
-            // RemoteCGRenderer's FillRect, which paints a gradient brush itself.
-            if receiveFillRect(rect) {
-                return true
-            }
-            return !fillsWithoutGradient() && receiveFillRectWithGradient(rect, nil, i.0 != 0)
-        case 27: return receiveFillEllipse(rect)
-        case 28: return receiveStrokeRect(rect, v.4)
-        case 29: return receiveStrokeEllipse(rect)
+        case 26: receiveFillRect(rect, i.0 != 0)
+        case 27: receiveFillEllipse(rect)
+        case 28: receiveStrokeRect(rect, v.4)
+        case 29: receiveStrokeEllipse(rect)
         case 30: receiveClearRect(rect)
         case 31: receiveApplyStrokePattern()
         case 32: receiveApplyFillPattern()
-        case 33: return receiveFillPathSegment(message.segment)
-        case 34: return receiveStrokePathSegment(message.segment)
-        case 35: return receiveDrawPathSegment(message.segment)
+        case 33: receiveFillPathSegment(message.segment)
+        case 34: receiveStrokePathSegment(message.segment)
+        case 35: receiveDrawPathSegment(message.segment)
         case 36: receiveDrawRect(rect, v.4)
         case 37:
             // One or two lines (the segment's flag), each four values and a thickness, in the segment's values.
@@ -4527,7 +4703,7 @@ extension CGRendererCore {
             guard let path else {
                 return false
             }
-            return receiveDrawPath { path }
+            return receiveDrawPathWithoutGradient { path }
         case 41, 42:
             // An image the caller found, as RemoteCGRenderer's image handlers find one; nil draws nothing.
             guard let image else {
@@ -4537,7 +4713,8 @@ extension CGRendererCore {
             let destination = CGRect(x: CGFloat(s.0), y: CGFloat(s.1), width: CGFloat(s.2), height: CGFloat(s.3))
             let source = CGRect(x: CGFloat(s.4), y: CGFloat(s.5), width: CGFloat(s.6), height: CGFloat(s.7))
             if message.message == 41 {
-                return receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
+                receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
+                return true
             }
             receiveDrawPattern(
                 image,
@@ -4562,12 +4739,13 @@ extension CGRendererCore {
                 let radii = WebCore.CornerRadii(
                     WebCore.FloatSize(s.0, s.1), WebCore.FloatSize(s.2, s.3), WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7))
                 let rounded = WebCore.FloatRoundedRect(WebCore.FloatRect(v.0, v.1, v.2, v.3), radii)
-                return receiveFillRoundedRect(rounded, rect, color, nil, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+                receiveFillRoundedRect(rounded, rect, color, nil, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+                return true
             }
             let radii = WebCore.CornerRadii(
                 WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7), WebCore.FloatSize(s.8, s.9), WebCore.FloatSize(s.10, s.11))
             let hole = WebCore.FloatRoundedRect(WebCore.FloatRect(s.0, s.1, s.2, s.3), radii)
-            return receiveFillRectWithRoundedHole(rect, hole, color, nil)
+            receiveFillRectWithRoundedHole(rect, hole, color, nil)
         default: break
         }
         return true

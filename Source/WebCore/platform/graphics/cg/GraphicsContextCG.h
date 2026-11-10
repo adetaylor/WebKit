@@ -221,7 +221,6 @@ private:
     void updateStaleState() final;
     void didUpdateStateForSwiftRenderer();
     void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
-    bool swiftDrawsShadowBlur() const;
     bool shadowColorChangesFill(const Color&) const;
     void clearCGDropShadow();
 

@@ -71,6 +71,13 @@
 #include <WebKitAdditions/IOSurfaceAdditionsBefore.mm>
 #endif
 
+#ifndef CGIOSurfaceContextUsingWebKitBehavior
+static inline bool CGIOSurfaceContextUsingWebKitBehavior(CGContextRef)
+{
+    return false;
+}
+#endif
+
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextCG);
@@ -120,85 +127,6 @@ static InterpolationQuality coreInterpolationQuality(CGContextRef context)
         return InterpolationQuality::High;
     }
     return InterpolationQuality::Default;
-}
-
-NODELETE static CGBlendMode selectCGBlendMode(CompositeOperator compositeOperator, BlendMode blendMode)
-{
-    switch (blendMode) {
-    case BlendMode::Normal:
-        switch (compositeOperator) {
-        case CompositeOperator::Clear:
-            return kCGBlendModeClear;
-        case CompositeOperator::Copy:
-            return kCGBlendModeCopy;
-        case CompositeOperator::SourceOver:
-            return kCGBlendModeNormal;
-        case CompositeOperator::SourceIn:
-            return kCGBlendModeSourceIn;
-        case CompositeOperator::SourceOut:
-            return kCGBlendModeSourceOut;
-        case CompositeOperator::SourceAtop:
-            return kCGBlendModeSourceAtop;
-        case CompositeOperator::DestinationOver:
-            return kCGBlendModeDestinationOver;
-        case CompositeOperator::DestinationIn:
-            return kCGBlendModeDestinationIn;
-        case CompositeOperator::DestinationOut:
-            return kCGBlendModeDestinationOut;
-        case CompositeOperator::DestinationAtop:
-            return kCGBlendModeDestinationAtop;
-        case CompositeOperator::XOR:
-            return kCGBlendModeXOR;
-        case CompositeOperator::PlusDarker:
-            return kCGBlendModePlusDarker;
-        case CompositeOperator::PlusLighter:
-            return kCGBlendModePlusLighter;
-        case CompositeOperator::Difference:
-            return kCGBlendModeDifference;
-        }
-        break;
-    case BlendMode::Multiply:
-        return kCGBlendModeMultiply;
-    case BlendMode::Screen:
-        return kCGBlendModeScreen;
-    case BlendMode::Overlay:
-        return kCGBlendModeOverlay;
-    case BlendMode::Darken:
-        return kCGBlendModeDarken;
-    case BlendMode::Lighten:
-        return kCGBlendModeLighten;
-    case BlendMode::ColorDodge:
-        return kCGBlendModeColorDodge;
-    case BlendMode::ColorBurn:
-        return kCGBlendModeColorBurn;
-    case BlendMode::HardLight:
-        return kCGBlendModeHardLight;
-    case BlendMode::SoftLight:
-        return kCGBlendModeSoftLight;
-    case BlendMode::Difference:
-        return kCGBlendModeDifference;
-    case BlendMode::Exclusion:
-        return kCGBlendModeExclusion;
-    case BlendMode::Hue:
-        return kCGBlendModeHue;
-    case BlendMode::Saturation:
-        return kCGBlendModeSaturation;
-    case BlendMode::Color:
-        return kCGBlendModeColor;
-    case BlendMode::Luminosity:
-        return kCGBlendModeLuminosity;
-    case BlendMode::PlusDarker:
-        return kCGBlendModePlusDarker;
-    case BlendMode::PlusLighter:
-        return kCGBlendModePlusLighter;
-    }
-
-    return kCGBlendModeNormal;
-}
-
-static void setCGBlendMode(CGContextRef context, CompositeOperator op, BlendMode blendMode)
-{
-    CGContextSetBlendMode(context, selectCGBlendMode(op, blendMode));
 }
 
 static void setCGContextPath(CGContextRef context, const Path& path)
@@ -343,16 +271,16 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
     static_assert(sizeof(CGRendererCore) <= swiftRendererSize);
 #endif
     static_assert(alignof(CGRendererCore) <= 8);
-    auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
-        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+    auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext, bool strokesArcsLikeFills) {
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, strokesArcsLikeFills, imageInterpolationQuality()));
     };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
         RetainPtr standIn = adoptCF(CGBitmapContextCreate(nullptr, 1, 1, 8, 4, sRGBColorSpaceSingleton(), static_cast<uint32_t>(kCGImageAlphaPremultipliedFirst) | static_cast<uint32_t>(kCGBitmapByteOrder32Little)));
-        makeRenderer(standIn.get(), true, false);
+        makeRenderer(standIn.get(), true, false, false);
         return;
     }
-    makeRenderer(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF);
+    makeRenderer(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF, CGIOSurfaceContextUsingWebKitBehavior(cgContext));
 #if ASSERT_ENABLED
     m_capture = GraphicsContextCGCapture::createIfEnabled(cgContext, m_renderingMode, m_isLayerCGContext);
 #endif
@@ -544,203 +472,15 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     auto image = nativeImage.platformImage();
     if (!image)
         return;
-
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
-    if (auto rendererOptions = CGRendererImageOptionsFor(options); rendererOptions.rendererDraws) {
-        FloatSize imageSize = nativeImage.size();
-        auto result = SWIFT_RENDERER(drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), rendererOptions.compositeOperator, rendererOptions.blendMode, rendererOptions.interpolationQuality, rendererOptions.orientation, nativeImage.headroom(), rendererOptions.headroom));
-        if (result)
-            return;
-    }
-#endif
-
-#if ENABLE(AX_CUSTOM_COLOR_MODE) && HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    if (auto invertContent = options.invertContent(); invertContent == InvertContent::Yes || invertContent == InvertContent::Forced) {
-        auto colorMatrix = [&] -> std::optional<GraphicsColorMatrix> {
-            if (invertContent == InvertContent::Forced)
-                return AXCustomColorModeController::colorPreservingInvertMatrix();
-            auto sourceRect = options.orientation() == ImageOrientation::Orientation::None ? std::optional { normalizeRect(srcRect) } : std::nullopt;
-            return AXCustomColorModeController::colorMatrixForImageInversion(nativeImage.paintTimeTransformation(sourceRect));
-        }();
-        if (colorMatrix) {
-            GraphicsContextStateSaver stateSaver(*this);
-            clip(normalizeRect(destRect));
-            setStyle(*colorMatrix);
-            setCompositeOperation(options.compositeOperator(), options.blendMode());
-            beginTransparencyLayer(options.compositeOperator(), options.blendMode());
-            drawNativeImage(nativeImage, destRect, srcRect, { options, InvertContent::No, CompositeOperator::SourceOver, BlendMode::Normal });
-            endTransparencyLayer();
-            return;
-        }
-    }
-#endif
     auto imageSize = nativeImage.size();
-    if (options.orientation().usesWidthAsHeight())
-        imageSize = imageSize.transposedSize();
-    auto imageRect = FloatRect { { }, imageSize };
-    auto normalizedSrcRect = normalizeRect(srcRect);
-    auto normalizedDestRect = normalizeRect(destRect);
-    if (!imageRect.intersects(normalizedSrcRect))
-        return;
-
-#if !LOG_DISABLED
-    MonotonicTime startTime = MonotonicTime::now();
-#endif
-
-    auto shouldUseSubimage = [](InterpolationQuality interpolationQuality, const FloatRect& destRect, const FloatRect& srcRect, const AffineTransform& transform) -> bool {
-        if (interpolationQuality == InterpolationQuality::DoNotInterpolate)
-            return false;
-        if (transform.isRotateOrShear())
-            return true;
-        auto xScale = destRect.width() * transform.xScale() / srcRect.width();
-        auto yScale = destRect.height() * transform.yScale() / srcRect.height();
-        return !WTF::areEssentiallyEqual(xScale, yScale) || xScale > 1;
-    };
-
-    auto getSubimage = [](CGImageRef image, const FloatSize& imageSize, const FloatRect& subimageRect, RasterDrawingOptions options) -> RetainPtr<CGImageRef> {
-        auto physicalSubimageRect = subimageRect;
-
-        if (options.orientation() != ImageOrientation::Orientation::None) {
-            // subimageRect is in logical coordinates. getSubimage() deals with none-oriented
-            // image. We need to convert subimageRect to physical image coordinates.
-            if (auto transform = options.orientation().transformFromDefault(imageSize).inverse())
-                physicalSubimageRect = transform.value().mapRect(physicalSubimageRect);
-        }
-
-#if CACHE_SUBIMAGES
-        if (!(CGImageGetCachingFlags(image) & kCGImageCachingTransient))
-            return CGSubimageCacheWithTimer::getSubimage(image, physicalSubimageRect);
-#endif
-        return adoptCF(CGImageCreateWithImageInRect(image, physicalSubimageRect));
-    };
-
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    auto setCGDynamicRangeLimitForImage = [](CGContextRef context, CGImageRef image, float dynamicRangeLimit) {
-        float edrStrength = dynamicRangeLimit == 1.0 ? 1 : 0;
-        float cdrStrength = dynamicRangeLimit == 0.5 ? 1 : 0;
-        unsigned averageLightLevel = CGImageGetContentAverageLightLevelNits(image);
-
-        RetainPtr edrStrengthNumber = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &edrStrength));
-        RetainPtr cdrStrengthNumber = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &cdrStrength));
-        RetainPtr averageLightLevelNumber = adoptCF(CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &averageLightLevel));
-
-        CFTypeRef toneMappingKeys[] = { kCGContentEDRStrength, kCGContentAverageLightLevel, kCGConstrainedDynamicRange };
-        CFTypeRef toneMappingValues[] = { edrStrengthNumber.get(), averageLightLevelNumber.get(), cdrStrengthNumber.get() };
-
-        RetainPtr toneMappingOptions = adoptCF(CFDictionaryCreate(kCFAllocatorDefault, toneMappingKeys, toneMappingValues, sizeof(toneMappingKeys) / sizeof(toneMappingKeys[0]), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
-
-        CGContentToneMappingInfo toneMappingInfo = { kCGToneMappingReferenceWhiteBased, toneMappingOptions.get() };
-        CGContextSetContentToneMappingInfo(context, toneMappingInfo);
-    };
-#endif
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextStateSaver stateSaver(context, false);
-    auto transform = CGContextGetCTM(context);
-
-    auto oldInterpolationQuality = imageInterpolationQuality();
-    auto interpolationQuality = imageInterpolationQualityForOptions(options);
-
-    auto subImage = image;
-
-    auto adjustedDestRect = normalizedDestRect;
-
-    if (normalizedSrcRect != imageRect) {
-        auto scale = normalizedDestRect.size() / normalizedSrcRect.size();
-
-        if (shouldUseSubimage(interpolationQuality, normalizedDestRect, normalizedSrcRect, transform)) {
-            auto subimageRect = enclosingIntRect(normalizedSrcRect);
-
-            // When the image is scaled using high-quality interpolation, we create a temporary CGImage
-            // containing only the portion we want to display. We need to do this because high-quality
-            // interpolation smoothes sharp edges, causing pixels from outside the source rect to bleed
-            // into the destination rect. See <rdar://problem/6112909>.
-            subImage = getSubimage(subImage.get(), imageSize, subimageRect, options);
-
-            auto subPixelPadding = normalizedSrcRect.location() - subimageRect.location();
-            adjustedDestRect = { adjustedDestRect.location() - subPixelPadding * scale, subimageRect.size() * scale };
-        } else {
-            // If the source rect is a subportion of the image, then we compute an inflated destination rect
-            // that will hold the entire image and then set a clip to the portion that we want to display.
-            adjustedDestRect = { adjustedDestRect.location() - toFloatSize(normalizedSrcRect.location()) * scale, imageSize * scale };
-        }
-
-        if (!normalizedDestRect.contains(adjustedDestRect)) {
-            stateSaver.save();
-            CGContextClipToRect(context, normalizedDestRect);
-        }
-    }
-
-#if PLATFORM(IOS_FAMILY)
-    bool wasAntialiased = CGContextGetShouldAntialias(context);
-    // Anti-aliasing is on by default on the iPhone. Need to turn it off when drawing images.
-    CGContextSetShouldAntialias(context, false);
-
-    // Align to pixel boundaries
-    adjustedDestRect = roundToDevicePixels(adjustedDestRect);
-#endif
-
-    auto oldCompositeOperator = compositeOperation();
-    auto oldBlendMode = blendMode();
-    setCGBlendMode(context, options.compositeOperator(), options.blendMode());
-
-    if (interpolationQuality != oldInterpolationQuality)
-        CGContextSetInterpolationQuality(context, toCGInterpolationQuality(interpolationQuality));
-
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    auto oldHeadroom = CGContextGetEDRTargetHeadroom(context);
-    auto oldToneMappingInfo = CGContextGetContentToneMappingInfo(context);
-
-    auto headroom = options.headroom();
-    if (headroom == Headroom::FromImage)
-        headroom = nativeImage.headroom();
-    if (m_maxEDRHeadroom)
-        headroom = Headroom(std::min<float>(headroom, *m_maxEDRHeadroom));
-
-    if (nativeImage.headroom() > headroom) {
-        LOG_WITH_STREAM(HDR, stream << "GraphicsContextCG::drawNativeImage setEDRTargetHeadroom " << headroom << " max(" << m_maxEDRHeadroom << ")");
-        CGContextSetEDRTargetHeadroom(context, headroom);
-    }
-
-    if (options.dynamicRangeLimit() == PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == DrawsHDRContent::Yes)
-        setCGDynamicRangeLimitForImage(context, subImage.get(), options.dynamicRangeLimit().value());
-#endif
-
-    // Make the origin be at adjustedDestRect.location()
-    CGContextTranslateCTM(context, adjustedDestRect.x(), adjustedDestRect.y());
-    adjustedDestRect.setLocation(FloatPoint::zero());
-
-    if (options.orientation() != ImageOrientation::Orientation::None) {
-        CGContextConcatCTM(context, options.orientation().transformFromDefault(adjustedDestRect.size()));
-
-        // The destination rect will have its width and height already reversed for the orientation of
-        // the image, as it was needed for page layout, so we need to reverse it back here.
-        if (options.orientation().usesWidthAsHeight())
-            adjustedDestRect = adjustedDestRect.transposedRect();
-    }
-
-    // Flip the coords.
-    CGContextTranslateCTM(context, 0, adjustedDestRect.height());
-    CGContextScaleCTM(context, 1, -1);
-
-    // Draw the image.
-    CGContextDrawImage(context, adjustedDestRect, subImage.get());
-
-    if (!stateSaver.didSave()) {
-        CGContextSetCTM(context, transform);
-#if PLATFORM(IOS_FAMILY)
-        CGContextSetShouldAntialias(context, wasAntialiased);
-#endif
-        setCGBlendMode(context, oldCompositeOperator, oldBlendMode);
-        if (interpolationQuality != oldInterpolationQuality)
-            CGContextSetInterpolationQuality(context, toCGInterpolationQuality(oldInterpolationQuality));
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
-        CGContextSetContentToneMappingInfo(context, oldToneMappingInfo);
-        CGContextSetEDRTargetHeadroom(context, oldHeadroom);
-#endif
-    }
-
-    LOG_WITH_STREAM(Images, stream << "GraphicsContextCG::drawNativeImage " << image.get() << " size " << imageSize << " into " << destRect << " took " << (MonotonicTime::now() - startTime).milliseconds() << "ms");
+    CGRendererImageFacts facts { };
+    facts.width = imageSize.width();
+    facts.height = imageSize.height();
+    facts.headroom = nativeImage.headroom();
+    facts.resolutionScale = 1;
+    facts.found = true;
+    CGRendererSetInvertColorMatrix(nativeImage, srcRect, options, facts);
+    SWIFT_RENDERER(drawNativeImage(image.get(), facts, destRect, srcRect, CGRendererImageOptionsFor(options)));
 }
 
 static CGRendererColorData colorData(const Color&);
@@ -839,16 +579,44 @@ CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const
 
 CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions options)
 {
-    // The renderer's pixel alignment of images for the iOS family can't be checked against the C++ here.
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
-    bool rendererDraws = !(options.dynamicRangeLimit() == WebCore::PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == WebCore::DrawsHDRContent::Yes);
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
+    bool limitsDynamicRange = options.dynamicRangeLimit() == WebCore::PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == WebCore::DrawsHDRContent::Yes;
+#else
+    bool limitsDynamicRange = false;
+#endif
+    return { options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), options.headroom(), options.dynamicRangeLimit().value(), limitsDynamicRange };
+}
+
+void CGRendererSetInvertColorMatrix(const WebCore::NativeImage& nativeImage, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions options, CGRendererImageFacts& facts)
+{
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+    facts.invertsContent = false;
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
-    rendererDraws = rendererDraws && options.invertContent() == WebCore::InvertContent::No;
+    auto invertContent = options.invertContent();
+    if (invertContent != WebCore::InvertContent::Yes && invertContent != WebCore::InvertContent::Forced)
+        return;
+    auto colorMatrix = [&] -> std::optional<WebCore::GraphicsColorMatrix> {
+        if (invertContent == WebCore::InvertContent::Forced)
+            return WebCore::AXCustomColorModeController::colorPreservingInvertMatrix();
+        auto normalizedSourceRect = options.orientation() == WebCore::ImageOrientation::Orientation::None ? std::optional { WebCore::normalizeRect(sourceRect) } : std::nullopt;
+        return WebCore::AXCustomColorModeController::colorMatrixForImageInversion(nativeImage.paintTimeTransformation(normalizedSourceRect));
+    }();
+    if (!colorMatrix)
+        return;
+    facts.invertsContent = true;
+    for (auto [destination, source] : zippedRange(facts.invertColorMatrix.values, colorMatrix->values))
+        destination = source;
+#else
+    UNUSED_PARAM(nativeImage);
+    UNUSED_PARAM(sourceRect);
+    UNUSED_PARAM(options);
 #endif
 #else
-    bool rendererDraws = false;
+    UNUSED_PARAM(nativeImage);
+    UNUSED_PARAM(sourceRect);
+    UNUSED_PARAM(options);
+    UNUSED_PARAM(facts);
 #endif
-    return { options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), options.headroom(), rendererDraws };
 }
 
 CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
@@ -1184,16 +952,6 @@ void GraphicsContextCG::drawEllipse(const FloatRect& rect)
     drawPath(path);
 }
 
-// The renderer draws ShadowBlur's shadows itself where it draws ShadowBlur's images itself (drawNativeImage()).
-bool GraphicsContextCG::swiftDrawsShadowBlur() const
-{
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
-    return canUseShadowBlur();
-#else
-    return false;
-#endif
-}
-
 // Whether GraphicsContextState::setFillColor() of a shadow's color, as ShadowBlur sets it through a GraphicsContextView,
 // would change the fill and so CG's fill color.
 bool GraphicsContextCG::shadowColorChangesFill(const Color& shadowColor) const
@@ -1245,6 +1003,10 @@ void GraphicsContextCG::fillPath(const Path& path)
         return;
 
     if (SWIFT_RENDERER(fillsWithoutGradient())) {
+#if HAVE(CGCONTEXT_STROKE_ARC)
+        if (auto arc = path.pieWedgeArc(); arc && SWIFT_RENDERER(fillPieWedge(arc->center.x(), arc->center.y(), arc->radius, arc->startAngle, arc->endAngle, arc->direction == RotationDirection::Counterclockwise)))
+            return;
+#endif
         SWIFT_RENDERER(fillPath(protect(path.platformPath()).get()));
         return;
     }
@@ -1296,23 +1058,10 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requi
         return;
     }
 
-    // The renderer declines only gradients and blurred shadows.
+    // The renderer declines only gradients and blurred shadows, which ShadowBlur draws through it.
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
-    if (swiftDrawsShadowBlur()) {
-        SWIFT_RENDERER(fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color)));
-        return;
-    }
-
-    // Where the renderer doesn't draw images (the iOS family), ShadowBlur draws through this context.
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    if (fillPattern())
-        applyFillPattern();
-    CGContextStateSaver stateSaver(context);
-    clearCGDropShadow();
-    ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
-    contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
-    CGContextFillRect(context, rect);
+    SWIFT_RENDERER(fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color)));
 }
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect requiresClipToRect)
@@ -1341,31 +1090,13 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
             return;
     }
 
-    // The renderer declines only blurred shadows.
+    // The renderer declines only blurred shadows, which ShadowBlur draws through it.
     ASSERT(canUseShadowBlur());
     auto shadow = dropShadow();
-    if (swiftDrawsShadowBlur()) {
-        if (packedColor)
-            SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
-        else
-            SWIFT_RENDERER(fillRectWithShadowBlur(rect, platformColor.get(), changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
-        return;
-    }
-
-    // ShadowBlur draws through this context where the renderer doesn't draw images (the iOS family).
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    Color oldFillColor = fillColor();
-    if (changesFillColor)
-        setCGFillColor(context, color, colorSpace());
-    {
-        CGContextStateSaver stateSaver(context);
-        clearCGDropShadow();
-        ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
-        contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
-        CGContextFillRect(context, rect);
-    }
-    if (changesFillColor)
-        setCGFillColor(context, oldFillColor, colorSpace());
+    if (packedColor)
+        SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
+    else
+        SWIFT_RENDERER(fillRectWithShadowBlur(rect, platformColor.get(), changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
 }
 
 void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const Color& color)

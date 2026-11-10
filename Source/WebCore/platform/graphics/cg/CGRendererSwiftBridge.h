@@ -157,6 +157,7 @@ struct FloatSegment;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
+class NativeImage;
 class Path;
 class PathImpl;
 class Pattern;
@@ -358,30 +359,38 @@ WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegm
 // would make first.
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 
-// What the renderer's drawNativeImage() takes of an image draw's options, and whether the renderer draws the image at all: it
-// doesn't do the iOS family's pixel alignment of images yet, nor limit an image's dynamic range (tone mapping) or invert it
-// (AX), which GraphicsContextCG::drawNativeImage() draws in C++.
+// What the renderer's drawNativeImage() takes of an image draw's options: the dynamic range limit, which tone maps an image
+// that draws HDR content to standard range, is in limitsDynamicRange.
 struct CGRendererImageOptions {
     WebCore::CompositeOperator compositeOperator;
     WebCore::BlendMode blendMode;
     WebCore::InterpolationQuality interpolationQuality;
     uint8_t orientation;
     float headroom;
-    bool rendererDraws;
+    float dynamicRangeLimit;
+    bool limitsDynamicRange;
 };
 WEBCORE_EXPORT CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions);
 
-// The image of a Swift receiver's image draw, as its C++ finds it: whether the identifier names an image (found), whether the
-// receiver leaves the draw to C++ (declines: an image buffer drawn into itself), the image's size and headroom, and for an
-// image buffer its resolution scale, which scales the source rect.
+// The image of an image draw: for a Swift receiver's, whether the identifier names an image (found), and whether it is a
+// copy of the image buffer the receiver draws into (isSelfCopy), which the receiver flushes after the draw; the image's size
+// and headroom; for an image buffer, its resolution scale, which scales the source rect; and the color matrix that inverts
+// an image drawn for an accessibility color mode.
 struct CGRendererImageFacts {
     float width;
     float height;
     float headroom;
     float resolutionScale;
     bool found;
-    bool declines;
+    bool isSelfCopy;
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+    bool invertsContent;
+    CGRendererColorMatrix invertColorMatrix;
+#endif
 };
+// GraphicsContextCG::drawNativeImage()'s inversion of an image for an accessibility color mode: the color matrix, in the
+// facts, for options that invert the image (InvertContent::Yes or Forced) where the platform has the mode.
+WEBCORE_EXPORT void CGRendererSetInvertColorMatrix(const WebCore::NativeImage&, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) __attribute__((availability(swift, unavailable)));
 
 // A Color as the renderer takes it, as GraphicsContextCG converts its state's (didUpdateStateForSwiftRenderer()): an sRGBA8
 // color packed, any other as plain values with its CGColor, which CGRendererCopyColor() returns.
