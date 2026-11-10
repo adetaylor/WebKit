@@ -136,7 +136,7 @@ void InlineContentPainter::paintDisplayBox(const InlineDisplay::Box& box)
         if (!hasVisibleDamage)
             return;
 
-        if (CheckedPtr subtreePaintRoot = m_paintInfo.subtreePaintRoot) {
+        if (CheckedPtr subtreePaintRoot = m_paintInfo.subtreePaintRoot()) {
             CheckedPtr renderer = box.layoutBox().rendererForIntegration();
             if (renderer != subtreePaintRoot && !renderer->isDescendantOf(subtreePaintRoot))
                 return;

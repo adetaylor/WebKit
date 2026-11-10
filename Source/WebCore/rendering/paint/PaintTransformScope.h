@@ -41,11 +41,11 @@ public:
             m_context.saveTransform();
         m_context.concatCTM(m_affineTransform);
 
-        if (CheckedPtr regionContext = m_transformedPaintingInfo.regionContext)
+        if (CheckedPtr regionContext = m_transformedPaintingInfo.regionContext())
             regionContext->pushTransform(m_affineTransform);
 
         if (newRootLayer)
-            m_transformedPaintingInfo.rootLayer = newRootLayer.get();
+            m_transformedPaintingInfo.setRootLayer(newRootLayer.get());
 
         if (!m_transformedPaintingInfo.paintDirtyRect.isInfinite()) {
             // Map the dirty rect back through the inverse transform. For a 2D affine transform (the
@@ -62,7 +62,7 @@ public:
 
     ~TransformScope()
     {
-        if (auto* regionContext = m_transformedPaintingInfo.regionContext.get())
+        if (auto* regionContext = m_transformedPaintingInfo.regionContext())
             regionContext->popTransform();
 
         if (m_savedTransform) {

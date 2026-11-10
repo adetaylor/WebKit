@@ -94,7 +94,7 @@ void OutlinePainter::paintOutline(const RenderElement& renderer, const LayoutRec
         LayoutRect paintRectToUse { paintRect };
         if (CheckedPtr box = dynamicDowncast<RenderBox>(renderer))
             paintRectToUse = renderer.theme().adjustedPaintRect(*box, paintRectToUse);
-        CheckedPtr paintContainer = m_paintInfo.paintContainer;
+        CheckedPtr paintContainer = m_paintInfo.paintContainer();
         auto focusRingRects = collectFocusRingRects(renderer, paintRectToUse.location(), paintContainer.get());
 
         paintFocusRing(renderer, focusRingRects);
@@ -146,7 +146,7 @@ void OutlinePainter::paintOutline(const RenderBoxModelObject& renderer, const La
     CheckedRef styleToUse = renderer.style();
 
     if (styleToUse->outlineStyle() == OutlineStyle::Auto) {
-        CheckedPtr paintContainer = m_paintInfo.paintContainer;
+        CheckedPtr paintContainer = m_paintInfo.paintContainer();
         auto focusRingRects = collectFocusRingRects(renderer, paintOffset, paintContainer.get());
 
         paintFocusRing(renderer, focusRingRects);
@@ -733,7 +733,7 @@ void OutlinePainter::addPDFURLAnnotationForLink(const RenderElement& renderer, c
     Ref element = *renderer.element();
     ASSERT(element->isLink());
 
-    CheckedPtr paintContainer = m_paintInfo.paintContainer;
+    CheckedPtr paintContainer = m_paintInfo.paintContainer();
     auto focusRingRects = collectFocusRingRects(renderer, paintOffset, paintContainer.get());
     LayoutRect urlRect = unionRect(focusRingRects);
 

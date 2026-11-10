@@ -2301,7 +2301,7 @@ bool RenderBox::pushContentsClip(PaintInfo& paintInfo, const LayoutPoint& accumu
     paintInfo.context().clip(clipRect);
 
     if (paintInfo.phase == PaintPhase::EventRegion || paintInfo.phase == PaintPhase::Accessibility)
-        paintInfo.regionContext->pushClip(enclosingIntRect(clipRect));
+        paintInfo.regionContext()->pushClip(enclosingIntRect(clipRect));
 
     return true;
 }
@@ -2311,7 +2311,7 @@ void RenderBox::popContentsClip(PaintInfo& paintInfo, PaintPhase originalPhase, 
     ASSERT(hasControlClip() || (hasNonVisibleOverflow() && !layer()->isSelfPaintingLayer()));
 
     if (paintInfo.phase == PaintPhase::EventRegion || paintInfo.phase == PaintPhase::Accessibility)
-        paintInfo.regionContext->popClip();
+        paintInfo.regionContext()->popClip();
 
     paintInfo.context().restore();
     if (originalPhase == PaintPhase::Outline) {
