@@ -327,6 +327,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/HTMLTokenizerBench.cpp
         Tests/WebCore/HTTPHeaderField.cpp
         Tests/WebCore/HTTPHeaderMap.cpp
+        Tests/WebCore/HTTPHeaderParsersBench.cpp
         Tests/WebCore/HTTPParsers.cpp
         Tests/WebCore/IDBKeyData.cpp
         Tests/WebCore/IDBSerializationTest.cpp
