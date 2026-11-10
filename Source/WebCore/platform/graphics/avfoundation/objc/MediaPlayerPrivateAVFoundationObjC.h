@@ -70,6 +70,7 @@ class ImageRotationSessionVT;
 class InbandChapterTrackPrivateAVFObjC;
 class InbandMetadataTextTrackPrivateAVF;
 class MediaPlaybackTarget;
+class MediaPlayerAVFoundationHost;
 class MediaSelectionGroupAVFObjC;
 class PixelBufferConformerCV;
 class QueuedVideoOutput;
@@ -85,7 +86,6 @@ public:
     static void registerMediaEngine(MediaEngineRegistrar);
 
     void setAsset(RetainPtr<id>&&);
-    void didEnd(double) final;
     void metadataLoaded() final;
 
     void processCue(NSArray *, NSArray *, const MediaTime&);
@@ -100,28 +100,11 @@ public:
     void setShouldContinueAfterKeyNeeded(bool) final;
 #endif
 
-    void playerItemStatusDidChange(int);
-    NODELETE void playbackLikelyToKeepUpWillChange();
-    void playbackLikelyToKeepUpDidChange(bool);
-    NODELETE void playbackBufferEmptyWillChange();
-    void playbackBufferEmptyDidChange(bool);
-    NODELETE void playbackBufferFullWillChange();
-    void playbackBufferFullDidChange(bool);
-    void loadedTimeRangesDidChange(RetainPtr<NSArray>&&);
-    void seekableTimeRangesDidChange(RetainPtr<NSArray>&&, NSTimeInterval, NSTimeInterval);
     void tracksDidChange(const RetainPtr<NSArray>&);
-    void hasEnabledAudioDidChange(bool);
-    void hasEnabledVideoDidChange(bool);
-    void presentationSizeDidChange(FloatSize);
-    void durationDidChange(const MediaTime&);
-    void rateDidChange(double);
-    void timeControlStatusDidChange(int);
     void metadataGroupDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void metadataDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void firstFrameAvailableDidChange(bool);
     void trackEnabledDidChange(bool);
-    NODELETE void canPlayFastReverseDidChange(bool);
-    NODELETE void canPlayFastForwardDidChange(bool);
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     void playbackTargetIsWirelessDidChange();
@@ -138,6 +121,11 @@ public:
     bool isAudible() const { return m_isAudible; }
 
 private:
+    friend class MediaPlayerAVFoundationHost;
+
+    void durationDidChange(const MediaTime&);
+    void loadedTimeRangesDidChange();
+
 #if ENABLE(ENCRYPTED_MEDIA)
     void cdmInstanceAttached(CDMInstance&) final;
     void cdmInstanceDetached(CDMInstance&) final;
@@ -187,7 +175,7 @@ private:
     void setVideoFullscreenMode(MediaPlayer::VideoFullscreenMode) final;
     void videoFullscreenStandbyChanged() final;
 #endif
-    void setPlayerRate(double, std::optional<MonotonicTime>&& = std::nullopt);
+    void applyAudioTimePitchAlgorithm();
 
 #if PLATFORM(IOS_FAMILY)
     NSArray *timedMetadata() const final;
@@ -328,8 +316,8 @@ private:
     void setShouldPlayToPlaybackTarget(bool) final;
 #endif
 
-    double maxFastForwardRate() const final { return m_cachedCanPlayFastForward ? std::numeric_limits<double>::infinity() : 2.0; }
-    double minFastReverseRate() const final { return m_cachedCanPlayFastReverse ? -std::numeric_limits<double>::infinity() : 0.0; }
+    double maxFastForwardRate() const final;
+    double minFastReverseRate() const final;
 
     Vector<String> preferredAudioCharacteristics() const;
 
@@ -346,14 +334,13 @@ private:
     AVPlayer *objCAVFoundationAVPlayer() const final { return m_avPlayer.get(); }
 
     bool performTaskAtTime(Function<void(const MediaTime&)>&&, const MediaTime&) final;
-    void setShouldObserveTimeControlStatus(bool);
 
     void setPreferredDynamicRangeMode(DynamicRangeMode) final;
     void setPlatformDynamicRangeLimit(PlatformDynamicRangeLimit) final;
 
     void audioOutputDeviceChanged() final;
 
-    void currentTimeDidChange(MediaTime&&) const;
+    void currentTimeDidChange(const MediaTime&) const;
     bool setCurrentTimeDidChangeCallback(MediaPlayer::CurrentTimeDidChangeCallback&&) final;
 
     bool currentTimeIsBuffered() const;
@@ -417,6 +404,8 @@ private:
     const UniqueRef<VideoLayerManagerObjC> m_videoLayerManager;
     MediaPlayer::VideoGravity m_videoFullscreenGravity { MediaPlayer::VideoGravity::ResizeAspect };
     const RetainPtr<WebCoreAVFMovieObserver> m_objcObserver;
+    struct Core;
+    std::unique_ptr<Core> m_core;
     RetainPtr<id> m_timeObserver;
     mutable String m_languageOfPrimaryAudioTrack;
     bool m_videoFrameHasDrawn { false };
@@ -481,38 +470,19 @@ private:
 
     RetainPtr<AVPlayerItemMetadataCollector> m_metadataCollector;
     RetainPtr<AVPlayerItemMetadataOutput> m_metadataOutput;
-    RetainPtr<id> m_currentTimeObserver;
 
-    mutable RetainPtr<NSArray> m_cachedSeekableRanges;
     RetainPtr<NSArray> m_cachedTracks;
     RetainPtr<NSArray> m_currentMetaData;
-    FloatSize m_cachedPresentationSize;
     mutable MediaPlayer::CurrentTimeDidChangeCallback m_currentTimeDidChangeCallback;
+    // MediaPlayerAVFoundationCore's cached item time, converted when it changes.
     mutable MediaTime m_cachedCurrentTime { -1, 1, 0 };
-    mutable MediaTime m_lastPeriodicObserverMediaTime;
-    mutable Markable<WallTime> m_wallClockAtCachedCurrentTime;
-    mutable int m_timeControlStatusAtCachedCurrentTime { 0 };
-    mutable double m_requestedRateAtCachedCurrentTime { 0 };
     RefPtr<SharedBuffer> m_keyID;
-    double m_cachedRate { 0 };
-    bool m_requestedPlaying { false };
-    double m_requestedRate { 1.0 };
     double m_volume { 1 };
-    int m_cachedTimeControlStatus { 0 };
     mutable long long m_cachedTotalBytes { 0 };
-    unsigned m_pendingStatusChanges { 0 };
-    int m_cachedItemStatus;
     int m_runLoopNestingLevel { 0 };
     MediaPlayer::BufferingPolicy m_bufferingPolicy { MediaPlayer::BufferingPolicy::Default };
-    bool m_cachedLikelyToKeepUp { false };
-    bool m_cachedBufferEmpty { false };
-    bool m_cachedBufferFull { false };
-    bool m_cachedHasEnabledAudio { false };
-    bool m_cachedHasEnabledVideo { false };
     bool m_cachedIsReadyForDisplay { false };
     bool m_haveBeenAskedToCreateLayer { false };
-    bool m_cachedCanPlayFastForward { false };
-    bool m_cachedCanPlayFastReverse { false };
     mutable bool m_cachedAssetIsLoaded { false };
     mutable std::optional<bool> m_cachedAssetIsPlayable;
     mutable std::optional<bool> m_cachedTracksArePlayable;
@@ -520,9 +490,7 @@ private:
     bool m_volumeLocked { false };
     bool m_muted { false };
     bool m_preservesPitch { true };
-    bool m_shouldObserveTimeControlStatus { false };
     bool m_isInFullscreenOrPictureInPicture { false };
-    bool m_automaticallyWaitsToMinimizeStalling { false };
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     mutable bool m_allowsWirelessVideoPlayback { true };
     bool m_shouldPlayToPlaybackTarget { false };
@@ -535,8 +503,6 @@ private:
     bool m_isAudible { false };
     bool m_isVideoPlayer { false };
     std::optional<VideoFrameMetadata> m_videoFrameMetadata;
-    mutable std::optional<NSTimeInterval> m_cachedSeekableTimeRangesLastModifiedTime;
-    mutable std::optional<NSTimeInterval> m_cachedLiveUpdateInterval;
     RefPtr<Observer<void()>> m_currentImageChangedObserver;
     RefPtr<Observer<void()>> m_waitForVideoOutputMediaDataWillChangeObserver;
     ProcessIdentity m_resourceOwner;

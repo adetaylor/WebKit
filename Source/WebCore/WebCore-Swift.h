@@ -71,6 +71,7 @@
 #include "IntSize.h"
 #include "LightSourceParameters.h"
 #include "MediaConstraintsSwiftBridge.h"
+#include "MediaPlayerAVFoundationHost.h"
 #include "PixelBufferConversion.h"
 #include "PixelBufferSwiftBridge.h"
 #include "SVGFilterRendererView.h"

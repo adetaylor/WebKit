@@ -2201,6 +2201,8 @@
 		5110FCFC1E03641D006F8D0B /* IDBCursorRecord.h in Headers */ = {isa = PBXBuildFile; fileRef = 5110FCFB1E0362A5006F8D0B /* IDBCursorRecord.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		51123E2F276940CA00F9D41B /* NotificationData.h in Headers */ = {isa = PBXBuildFile; fileRef = 51123E2C27693C3200F9D41B /* NotificationData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5117F30E25E61020002A9F1E /* RemoteCommandListenerCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */; };
+		B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */; };
+		B4A4A0010000000000000004 /* MediaPlayerAVFoundationHost.h in Headers */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A2B0AF1C0E5B4D7A9C3E1F02 /* AudioVideoRendererAVFObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */; };
 		511AFAA62E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = 511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		511D6701286C1D70008C2AED /* WebAVPlayerLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 511D6700286C1D70008C2AED /* WebAVPlayerLayer.mm */; };
@@ -12816,6 +12818,8 @@
 		5117F30A25E6101E002A9F1E /* RemoteCommandListenerCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = RemoteCommandListenerCocoa.mm; sourceTree = "<group>"; };
 		5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteCommandListenerCocoa.h; sourceTree = "<group>"; };
 		511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioVideoRendererAVFObjC.h; sourceTree = "<group>"; };
+		B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerAVFoundationCore.swift; sourceTree = "<group>"; };
+		B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaPlayerAVFoundationHost.h; sourceTree = "<group>"; };
 		A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVideoRendererAVFObjC.swift; sourceTree = "<group>"; };
 		511AFAA52E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioVideoRendererAVFObjC.mm; sourceTree = "<group>"; };
 		511D6700286C1D70008C2AED /* WebAVPlayerLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebAVPlayerLayer.mm; sourceTree = "<group>"; };
@@ -25038,6 +25042,8 @@
 				CD318620199F1E2A0030A0F7 /* LegacyCDMPrivateAVFObjC.mm */,
 				071E496F1AD5AB5E008A50B4 /* MediaPlaybackTargetCocoa.h */,
 				071E496D1AD5AA0D008A50B4 /* MediaPlaybackTargetCocoa.mm */,
+				B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */,
+				B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */,
 				076F0D0912B8192700C26AA4 /* MediaPlayerPrivateAVFoundation.cpp */,
 				076F0D0A12B8192700C26AA4 /* MediaPlayerPrivateAVFoundation.h */,
 				CDBEAEAB19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h */,
@@ -48373,6 +48379,7 @@
 				077B64131B94F12E003E9AD5 /* MediaPlaybackTargetPickerMock.h in Headers */,
 				A15E66272EDBB930007FB56F /* MediaPlaybackTargetWirelessPlayback.h in Headers */,
 				E44613E40CD681A200FADA75 /* MediaPlayer.h in Headers */,
+				B4A4A0010000000000000004 /* MediaPlayerAVFoundationHost.h in Headers */,
 				CD51ECD12BEE06FD00632253 /* MediaPlayerClientIdentifier.h in Headers */,
 				CD5209E41B0BD8380077184E /* MediaPlayerEnums.h in Headers */,
 				CD3578AE2A28F5AA0059D97D /* MediaPlayerEnumsCocoa.h in Headers */,
@@ -52084,6 +52091,7 @@
 				9ACC079825C7267700DC6386 /* MediaKeySystemController.cpp in Sources */,
 				9ACC079625C725EE00DC6386 /* MediaKeySystemRequest.cpp in Sources */,
 				A100D9532AB254E400E00D67 /* MediaPlaybackTargetPickerMac.mm in Sources */,
+				B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */,
 				CD3578AF2A28F5AA0059D97D /* MediaPlayerEnumsCocoa.mm in Sources */,
 				41FFD2C62756573E00501BBF /* MediaPlayerPrivateAVFoundationObjC.mm in Sources */,
 				CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */,

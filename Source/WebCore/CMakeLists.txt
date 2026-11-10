@@ -3429,6 +3429,7 @@ if (APPLE)
         platform/graphics/avfoundation/FormatDescriptionUtilities.cpp
         platform/graphics/avfoundation/objc/CDMFairPlayStreamingAVFObjC.mm
         platform/graphics/avfoundation/objc/CDMInstanceFairPlayStreamingAVFObjC.mm
+        platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm
         platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.cpp
         platform/graphics/avfoundation/InbandTextTrackPrivateAVF.cpp
 
@@ -3644,6 +3645,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMInstanceFairPlayStreamingAVF.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/MediaPlayerAVFoundationCore.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift

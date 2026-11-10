@@ -100,3 +100,9 @@ function CoreMedia CMTimeCompare
 function CoreMedia CMTimeGetSeconds
 function CoreMedia CMTimebaseGetEffectiveRate
 function CoreMedia CMTimebaseGetTime
+
+# The AVFoundation player (MediaPlayerAVFoundationCore.swift).
+class AVFoundation AVPlayer
+class AVFoundation AVPlayerItem
+constant AVFoundation AVPlayerItemDidPlayToEndTimeNotification as NSNotification.Name
+function CoreMedia CMTimeRangeGetEnd
