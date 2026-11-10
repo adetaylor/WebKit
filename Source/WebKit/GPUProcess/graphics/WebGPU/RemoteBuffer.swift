@@ -35,7 +35,10 @@ final class RemoteBuffer {
     private let buffer: BufferReference
     private let link: WebGPURegistryLink
     private var isMapped: Bool
-    private var pendingMap = false
+    // The number of the map request in flight, if any; every request gets the next number, so a completion can tell
+    // whether it is for the request still pending.
+    private var pendingMapRequest: UInt64?
+    private var lastMapRequest: UInt64 = 0
     private var mapModeFlags: IPCTypes.MapMode
 
     @_expose(!Cxx)
@@ -81,19 +84,23 @@ final class RemoteBuffer {
         size: UInt64?,
         reply: consuming RemoteBufferMapAsyncReply
     ) {
-        if pendingMap {
+        if pendingMapRequest != nil {
             reply.send(false)
             return
         }
-        pendingMap = true
+        lastMapRequest &+= 1
+        let request = lastMapRequest
+        pendingMapRequest = request
 
         let pendingReply = CopyableBox(value: reply)
         buffer.mapAsync(mapModeFlags.rawValue, offset, size) { success in
-            let mapWasPending = self.pendingMap
-            self.pendingMap = false
-            if success && mapWasPending {
-                self.isMapped = true
-                self.mapModeFlags = mapModeFlags
+            // An unmap() since, or a later request after one, wins.
+            if self.pendingMapRequest == request {
+                self.pendingMapRequest = nil
+                if success {
+                    self.isMapped = true
+                    self.mapModeFlags = mapModeFlags
+                }
             }
             if let reply = pendingReply.take() {
                 reply.send(success)
@@ -102,7 +109,7 @@ final class RemoteBuffer {
     }
 
     private var canWrite: Bool {
-        !pendingMap && isMapped && mapModeFlags.contains(.write)
+        pendingMapRequest == nil && isMapped && mapModeFlags.contains(.write)
     }
 
     func copy(
@@ -126,11 +133,11 @@ final class RemoteBuffer {
     }
 
     func unmap() {
-        if isMapped || pendingMap {
+        if isMapped || pendingMapRequest != nil {
             buffer.unmap()
         }
         isMapped = false
-        pendingMap = false
+        pendingMapRequest = nil
         mapModeFlags = []
     }
 

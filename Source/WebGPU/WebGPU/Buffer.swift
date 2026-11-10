@@ -407,6 +407,18 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
         return buffer.storageMode != .private && buffer.storageMode != .memoryless && buffer.length != 0
     }
 
+    // [[mapping]] when it allows writes: a mapping at creation, or a map for writing.
+    private var writableMapping: Range<UInt64>? {
+        switch mapState {
+        case .mappedAtCreation(let range):
+            range
+        case .mapped(let request) where request.modeBits & WebGPU.MapMode.Write.rawValue != 0:
+            request.range
+        case .mapped, .unmapped, .pending, .destroyed:
+            nil
+        }
+    }
+
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-unmap
     @_spi(WebKitGPU)
     public func unmap() {
@@ -1050,7 +1062,15 @@ extension BufferImpl {
     // Writes data into the buffer's contents at that offset, as a mapped range of them is written. Returns false,
     // writing nothing, if the contents don't hold it there.
     public func writeContents(_ data: Span<UInt8>, at offset: UInt64) -> Bool {
-        withContents(of: buffer()) { contents in
+        // Only into what a mapping for writing covers, as the web process's writes into a mapped range are.
+        guard let mapping = writableMapping, let count = UInt64(exactly: data.count) else {
+            return false
+        }
+        let (end, overflowed) = offset.addingReportingOverflow(count)
+        guard !overflowed, offset >= mapping.lowerBound, end <= mapping.upperBound else {
+            return false
+        }
+        return withContents(of: buffer()) { contents in
             guard !contents.isEmpty, let start = Int(exactly: offset), start <= contents.byteCount,
                 data.count <= contents.byteCount - start
             else {

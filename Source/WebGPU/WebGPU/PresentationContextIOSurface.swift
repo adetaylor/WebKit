@@ -678,12 +678,21 @@ private func createImageWithTextureBytes(
     _ colorSpace: CGColorSpace?,
     _ bitmapInfo: CGBitmapInfo
 ) -> CGImage? {
-    let (imageBytesSize, overflow) = bytesPerRow.multipliedReportingOverflow(by: height)
-    guard !overflow, let imageBytes = NSMutableData(length: imageBytesSize) else {
+    // Metal writes rows of the texture's own format: the rows must hold them, and the region must be in the texture.
+    guard let format = textureFormat(texture.pixelFormat), width >= 0, height >= 0, width <= texture.width,
+        height <= texture.height
+    else {
         return nil
     }
-    // Safety: Metal writes `height` rows of the region, `bytesPerRow` apart, into the imageBytesSize bytes just allocated,
-    // which `imageBytes` keeps alive past the call.
+    let (rowBytes, rowBytesOverflow) = width.multipliedReportingOverflow(by: Int(texelBlockSize(format)))
+    let (imageBytesSize, overflow) = bytesPerRow.multipliedReportingOverflow(by: height)
+    guard texelBlockSize(format) != 0, !rowBytesOverflow, bytesPerRow >= rowBytes, !overflow,
+        let imageBytes = NSMutableData(length: imageBytesSize)
+    else {
+        return nil
+    }
+    // Safety: Metal writes `height` rows of `rowBytes`, `bytesPerRow` apart, from the region, which the checks above keep
+    // in the texture, into the imageBytesSize bytes just allocated, which `imageBytes` keeps alive past the call.
     unsafe texture.getBytes(imageBytes.mutableBytes, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
     guard let colorSpace, let dataProvider = CGDataProvider(data: imageBytes) else {
         return nil
