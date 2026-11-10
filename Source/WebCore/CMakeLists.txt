@@ -3334,21 +3334,21 @@ set(_webcore_swift_interop_sources_all_ports
     ${_webcore_css_calc_swift_interop_sources}
     html/parser/HTMLPreloadScanner.cpp
     html/parser/HTMLDocumentParser.cpp
-    platform/graphics/transforms/TransformationMatrix.cpp)
-# The scrolling ports' C++, which only the Apple ports build with their Swift so far.
-set(_webcore_swift_interop_sources_apple
+    platform/graphics/transforms/TransformationMatrix.cpp
     page/scrolling/ScrollingTree.cpp
     page/scrolling/ScrollingTreeLatchingController.cpp
     page/scrolling/ScrollingTreeScrollingNode.cpp
     page/scrolling/ThreadedScrollingTree.cpp
     page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.cpp
-    page/scrolling/mac/ScrollerPairMac.mm
-    page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
     platform/KeyboardScrollingAnimator.cpp
     platform/ScrollAnimator.cpp
     platform/ScrollView.cpp
     platform/ScrollableArea.cpp
-    platform/ScrollingEffectsController.cpp
+    platform/ScrollingEffectsController.cpp)
+# The C++ of the Swift ports that only the Apple ports have.
+set(_webcore_swift_interop_sources_apple
+    page/scrolling/mac/ScrollerPairMac.mm
+    page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
     platform/graphics/cg/ImageDecoderCG.cpp
     platform/mac/ScrollAnimatorMac.mm
     platform/mac/ScrollbarsControllerMac.mm
@@ -3565,6 +3565,18 @@ else ()
         ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
         ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
         ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
+        ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsAnimations.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsClientProtocol.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsController.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
+        ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
+        ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/ScrollableArea.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
 
@@ -3636,6 +3648,56 @@ else ()
         ${WebCore_DERIVED_SOURCES_DIR}/Settings.h
         dom/ShadowRoot.h
         platform/graphics/transforms/TransformationMatrix.h)
+    # The scrolling Swift's: the headers it imports one by one, and ScrollPhysicsTypes and
+    # ScrollAnimatorScrollPhysicsClient, which it imports as submodules of their own, as in WebCore_Private.modulemap.
+    list(APPEND _webcore_swift_core_submodules
+        platform/BoxExtents.h
+        platform/BoxSides.h
+        platform/graphics/CornerRadii.h
+        platform/graphics/DoublePoint.h
+        platform/graphics/FloatPoint.h
+        platform/graphics/FloatRect.h
+        platform/graphics/FloatSize.h
+        page/FrameIdentifier.h
+        platform/graphics/IntPoint.h
+        platform/graphics/IntRect.h
+        platform/graphics/IntSize.h
+        platform/KeyboardScroll.h
+        platform/graphics/LayoutPoint.h
+        platform/graphics/LayoutRect.h
+        platform/graphics/LayoutSize.h
+        platform/PlatformEvent.h
+        platform/PlatformWheelEvent.h
+        platform/ProcessQualified.h
+        platform/RectEdges.h
+        platform/RubberbandingState.h
+        platform/ScrollAlignment.h
+        platform/ScrollExtents.h
+        page/scrolling/ScrollSnapOffsetsInfo.h
+        platform/ScrollTypes.h
+        platform/ScrollView.h
+        page/scrolling/ScrollingCoordinatorTypes.h
+        platform/ScrollingEffectsClock.h
+        page/scrolling/ScrollingNodeID.h
+        page/scrolling/ScrollingStateNode.h
+        page/scrolling/ScrollingTree.h
+        page/scrolling/ScrollingTreeFrameHostingNode.h
+        page/scrolling/ScrollingTreeFrameScrollingNode.h
+        page/scrolling/ScrollingTreeNode.h
+        page/scrolling/ScrollingTreeOverflowScrollProxyNode.h
+        page/scrolling/ScrollingTreeScrollingNode.h
+        platform/animation/TimingFunction.h)
+    string(APPEND _webcore_swift_modules
+        "    explicit module ScrollPhysicsTypes {\n"
+        "        header \"${WEBCORE_DIR}/platform/ScrollPhysicsTypes.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n"
+        "    explicit module ScrollAnimatorScrollPhysicsClient {\n"
+        "        header \"${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n")
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports})
     list(REMOVE_DUPLICATES WebCore_SWIFT_INTEROP_SOURCES)
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
