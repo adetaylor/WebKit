@@ -107,7 +107,7 @@ final class RemoteCGRenderer {
         state.receiveSave()
     }
 
-    func restore(state: inout CGRendererCore) -> Bool {
+    func restore(state: inout CGRendererCore) {
         state.receiveRestore()
     }
 
@@ -208,26 +208,19 @@ final class RemoteCGRenderer {
         state.receiveDrawLine(point1.x(), point1.y(), point2.x(), point2.y())
     }
 
-    func fillRect(state: inout CGRendererCore, rect: WebCore.FloatRect, requiresClipToRect: WebCore.RequiresClipToRect) -> Bool {
-        if state.receiveFillRect(cgRect(rect)) {
-            return true
-        }
-        // A gradient brush, which GraphicsContextCG::fillRect() paints in the rect.
-        guard !state.receiveFillsWithoutGradient() else {
-            return false
-        }
-        return state.receiveFillRectWithGradient(cgRect(rect), nil, requiresClipToRect == .Yes)
+    func fillRect(state: inout CGRendererCore, rect: WebCore.FloatRect, requiresClipToRect: WebCore.RequiresClipToRect) {
+        state.receiveFillRect(cgRect(rect), requiresClipToRect == .Yes)
     }
 
-    func fillEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) -> Bool {
+    func fillEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) {
         state.receiveFillEllipse(cgRect(rect))
     }
 
-    func strokeRect(state: inout CGRendererCore, rect: WebCore.FloatRect, lineWidth: Float) -> Bool {
+    func strokeRect(state: inout CGRendererCore, rect: WebCore.FloatRect, lineWidth: Float) {
         state.receiveStrokeRect(cgRect(rect), lineWidth)
     }
 
-    func strokeEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) -> Bool {
+    func strokeEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) {
         state.receiveStrokeEllipse(cgRect(rect))
     }
 
@@ -247,35 +240,35 @@ final class RemoteCGRenderer {
         state.receiveDrawRect(cgRect(rect), borderThickness)
     }
 
-    func drawEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) -> Bool {
+    func drawEllipse(state: inout CGRendererCore, rect: WebCore.FloatRect) {
         state.receiveDrawEllipse(cgRect(rect))
     }
 
-    func fillLine(state: inout CGRendererCore, line: WebCore.PathDataLine) -> Bool {
+    func fillLine(state: inout CGRendererCore, line: WebCore.PathDataLine) {
         state.receiveFillPathSegment(lineSegment(line))
     }
 
-    func fillArc(state: inout CGRendererCore, arc: WebCore.PathArc) -> Bool {
+    func fillArc(state: inout CGRendererCore, arc: WebCore.PathArc) {
         state.receiveFillPathSegment(arcSegment(arc, .Arc))
     }
 
-    func fillClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) -> Bool {
+    func fillClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) {
         state.receiveFillPathSegment(arcSegment(closedArc.arc, .ClosedArc))
     }
 
-    func fillQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) -> Bool {
+    func fillQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) {
         state.receiveFillPathSegment(quadCurveSegment(curve))
     }
 
-    func fillBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) -> Bool {
+    func fillBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) {
         state.receiveFillPathSegment(bezierCurveSegment(curve))
     }
 
-    func fillPathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) -> Bool {
+    func fillPathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) {
         state.receiveFillPathSegment(segment.values())
     }
 
-    func strokeLine(state: inout CGRendererCore, line: WebCore.PathDataLine) -> Bool {
+    func strokeLine(state: inout CGRendererCore, line: WebCore.PathDataLine) {
         state.receiveStrokePathSegment(lineSegment(line))
     }
 
@@ -284,69 +277,59 @@ final class RemoteCGRenderer {
         state.receiveStrokeLinesWithColorAndThickness(span)
     }
 
-    func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) -> Bool {
-        #if HAVE_CGCONTEXT_STROKE_ARC
-        // GraphicsContextCG strokes it with CGContextStrokeArc(), which the renderer doesn't call yet.
-        return false
-        #else
-        return state.receiveStrokePathSegment(arcSegment(arc, .Arc))
-        #endif
+    func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) {
+        state.receiveStrokeArc(arcSegment(arc, .Arc))
     }
 
-    func strokeClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) -> Bool {
+    func strokeClosedArc(state: inout CGRendererCore, closedArc: WebCore.PathClosedArc) {
         state.receiveStrokePathSegment(arcSegment(closedArc.arc, .ClosedArc))
     }
 
-    func strokeQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) -> Bool {
+    func strokeQuadCurve(state: inout CGRendererCore, curve: WebCore.PathDataQuadCurve) {
         state.receiveStrokePathSegment(quadCurveSegment(curve))
     }
 
-    func strokeBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) -> Bool {
+    func strokeBezierCurve(state: inout CGRendererCore, curve: WebCore.PathDataBezierCurve) {
         state.receiveStrokePathSegment(bezierCurveSegment(curve))
     }
 
-    func strokePathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) -> Bool {
+    func strokePathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) {
         state.receiveStrokePathSegment(segment.values())
     }
 
     // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing.
 
-    func fillPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+    func fillPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
         fill(&state, path)
     }
 
-    func strokePath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+    func strokePath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
         if path.isEmpty() {
-            return true
+            return
         }
-        return stroke(&state, path)
+        stroke(&state, path)
     }
 
-    // GraphicsContextCG::drawPath(): with a gradient, the fill and the stroke one after the other, unless C++ paints a
-    // gradient, which it then does for both.
-    func drawPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) -> Bool {
+    // GraphicsContextCG::drawPath(): with a gradient, the fill and the stroke one after the other.
+    func drawPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
         if path.isEmpty() {
-            return true
+            return
         }
-        if state.receiveDrawPath({ WebKit.copyPlatformPath(path) }) {
-            return true
-        }
-        guard state.receivePaintsGradients() else {
-            return false
+        if state.receiveDrawPathWithoutGradient({ WebKit.copyPlatformPath(path) }) {
+            return
         }
         // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the stroke's
         // clip then has the CGPath rather than the segments.
         if state.receiveFillsWithoutGradient() {
             let platformPath = WebKit.copyPlatformPath(path)
             state.receiveFillPath(platformPath)
-            _ = state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
+            state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
                 clipToStrokedPlatformPath(context, platformPath, thickness)
             }
-            return true
+            return
         }
-        _ = fill(&state, path)
-        _ = stroke(&state, path)
-        return true
+        fill(&state, path)
+        stroke(&state, path)
     }
 
     func clipPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
@@ -357,10 +340,10 @@ final class RemoteCGRenderer {
         state.receiveClip { context in path.clipOut(context) }
     }
 
-    func fillCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier) throws(InvalidMessage) -> Bool {
+    func fillCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier) throws(InvalidMessage) {
         let path = resources.cachedPath(identifier)
         try messageCheck { path.isValid() }
-        return fill(&state, path)
+        fill(&state, path)
     }
 
     func clipCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier, windRule: WebCore.WindRule) throws(InvalidMessage) {
@@ -378,34 +361,34 @@ final class RemoteCGRenderer {
         destRect: WebCore.FloatRect,
         srcRect: WebCore.FloatRect,
         options: WebCore.RasterDrawingOptions
-    ) throws(InvalidMessage) -> Bool {
+    ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyNativeImage(resources, imageIdentifier, &facts)
+        let image = WebKit.copyNativeImage(resources, imageIdentifier, srcRect, options, &facts)
         try messageCheck { facts.found }
         guard let image else {
-            return true
+            return
         }
-        return state.receiveDrawNativeImage(image, facts, cgRect(destRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+        state.receiveDrawNativeImage(image, facts, cgRect(destRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
     }
 
-    // RemoteImageBufferGraphicsContext::drawImageBuffer(), which draws an image buffer into itself.
+    // RemoteImageBufferGraphicsContext::drawImageBuffer(): an accelerated image buffer draws into itself from a copy of itself.
     func drawImageBuffer(
         state: inout CGRendererCore,
         imageBufferIdentifier: WebCore.RenderingResourceIdentifier,
         destinationRect: WebCore.FloatRect,
         srcRect: WebCore.FloatRect,
         options: WebCore.RasterDrawingOptions
-    ) throws(InvalidMessage) -> Bool {
+    ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageBufferIdentifier, &facts)
+        let image = WebKit.copyImageBufferImage(resources, imageBufferIdentifier, srcRect, options, true, &facts)
         try messageCheck { facts.found }
-        if facts.declines {
-            return false
-        }
         guard let image else {
-            return true
+            return
         }
-        return state.receiveDrawNativeImage(image, facts, cgRect(destinationRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+        state.receiveDrawNativeImage(image, facts, cgRect(destinationRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+        if facts.isSelfCopy {
+            resources.releaseSelfCopy()
+        }
     }
 
     func drawPatternNativeImage(
@@ -419,7 +402,7 @@ final class RemoteCGRenderer {
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyNativeImage(resources, imageIdentifier, &facts)
+        let image = WebKit.copyNativeImage(resources, imageIdentifier, tileRect, options, &facts)
         try messageCheck { facts.found }
         drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
     }
@@ -434,15 +417,11 @@ final class RemoteCGRenderer {
         phase: WebCore.FloatPoint,
         spacing: WebCore.FloatSize,
         options: WebCore.RasterDrawingOptions
-    ) throws(InvalidMessage) -> Bool {
+    ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageIdentifier, &facts)
+        let image = WebKit.copyImageBufferImage(resources, imageIdentifier, tileRect, options, false, &facts)
         try messageCheck { facts.found }
-        if facts.declines {
-            return false
-        }
         drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
-        return true
     }
 
     // GraphicsContextCG::drawPattern(), which draws nothing for a transform that isn't invertible.
@@ -492,29 +471,20 @@ final class RemoteCGRenderer {
         state.receiveSetDropShadow(dropShadow.values, dropShadow.color)
     }
 
-    // Without CGStyle's blur and color matrix, GraphicsContextCG leaves those styles to its C++ state alone.
-    func setStyle(state: inout CGRendererCore, style: WebKit.RemoteCGRendererStyle) -> Bool {
+    // CGStyle has the blur and the color matrix on every platform the receiver is for.
+    func setStyle(state: inout CGRendererCore, style: WebKit.RemoteCGRendererStyle) {
         switch style.kind {
         case .None:
             state.receiveSetNoStyle()
         case .DropShadow:
             state.receiveSetDropShadowStyle(style.dropShadow.values, style.dropShadow.color)
         case .GaussianBlur:
-            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
             state.receiveSetGaussianBlurStyle(style.blurWidth, style.blurHeight)
-            #else
-            return false
-            #endif
         case .ColorMatrix:
-            #if HAVE_CGSTYLE_COLORMATRIX_BLUR
             state.receiveSetColorMatrixStyle(WebKit.colorMatrix(style))
-            #else
-            return false
-            #endif
         @unknown default:
-            return false
+            state.receiveSetNoStyle()
         }
-        return true
     }
 
     func setTextDrawingMode(state: inout CGRendererCore, mode: WebCore.TextDrawingModeFlags) {
@@ -530,7 +500,7 @@ final class RemoteCGRenderer {
         state.receiveSetLineDash(dashes, dashOffset)
     }
 
-    func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: CGRendererColorValue) -> Bool {
+    func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: CGRendererColorValue) {
         state.receiveFillRect(cgRect(rect), color, nil)
     }
 
@@ -540,12 +510,12 @@ final class RemoteCGRenderer {
         color: CGRendererColorValue,
         op: WebCore.CompositeOperator,
         blendMode: WebCore.BlendMode
-    ) -> Bool {
-        return state.receiveFillRect(cgRect(rect), color, nil, op, blendMode)
+    ) {
+        state.receiveFillRect(cgRect(rect), color, nil, op, blendMode)
     }
 
-    func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: CGRendererColorValue, blendMode: WebCore.BlendMode) -> Bool {
-        return state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), color, nil, blendMode)
+    func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: CGRendererColorValue, blendMode: WebCore.BlendMode) {
+        state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), color, nil, blendMode)
     }
 
     func fillRectWithRoundedHole(
@@ -553,16 +523,15 @@ final class RemoteCGRenderer {
         rect: WebCore.FloatRect,
         roundedHoleRect: WebCore.FloatRoundedRect,
         color: CGRendererColorValue
-    ) -> Bool {
-        return state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, color, nil)
+    ) {
+        state.receiveFillRectWithRoundedHole(cgRect(rect), roundedHoleRect, color, nil)
     }
 
     func applyDeviceScaleFactor(state: inout CGRendererCore, scaleFactor: Float) {
         state.receiveApplyDeviceScaleFactor(scaleFactor)
     }
 
-    // RemoteGraphicsContext's clip handlers. ClipToNativeImage of an image that isn't cached is declined, so that
-    // RemoteGraphicsContext rejects it.
+    // RemoteGraphicsContext's clip handlers. ClipToNativeImage of an image that isn't cached is an invalid message.
 
     func clipRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
         state.receiveClipToRoundedRect(rect)
@@ -572,12 +541,13 @@ final class RemoteCGRenderer {
         state.receiveClipOutToRoundedRect(rect)
     }
 
-    func clipToNativeImage(state: inout CGRendererCore, imageIdentifier: WebCore.RenderingResourceIdentifier, destinationRect: WebCore.FloatRect) -> Bool {
-        guard let image = WebKit.copyNativeImageForClip(resources, imageIdentifier) else {
-            return false
+    func clipToNativeImage(state: inout CGRendererCore, imageIdentifier: WebCore.RenderingResourceIdentifier, destinationRect: WebCore.FloatRect) throws(InvalidMessage) {
+        let image = WebKit.copyNativeImageForClip(resources, imageIdentifier)
+        try messageCheck { image != nil }
+        guard let image else {
+            return
         }
         state.receiveClipToNativeImage(image, cgRect(destinationRect))
-        return true
     }
 
     // RemoteGraphicsContext's transparency layer and link handlers.
@@ -590,7 +560,7 @@ final class RemoteCGRenderer {
         state.receiveBeginTransparencyLayerWithCurrentAlpha()
     }
 
-    func endTransparencyLayer(state: inout CGRendererCore) -> Bool {
+    func endTransparencyLayer(state: inout CGRendererCore) {
         state.receiveEndTransparencyLayer()
     }
 
@@ -601,33 +571,44 @@ final class RemoteCGRenderer {
         state.receiveSetURLForRect(url, cgRect(destRect))
     }
 
-    // GraphicsContextCG::fillPath(): a gradient in the clip of the path's own segments.
-    private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
+    // GraphicsContextCG::fillPath(): a gradient in the clip of the path's own segments, and a pie wedge as a stroked arc where
+    // the context strokes arcs as it fills them.
+    private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) {
         if path.isEmpty() {
-            return true
+            return
         }
         guard state.receiveFillsWithoutGradient() else {
             let path = copy path
             let bounds = cgRect(path.fastBoundingRect())
-            return state.receiveFillWithGradient({ bounds }) { context, rule in path.clip(context, rule) }
+            state.receiveFillWithGradient({ bounds }) { context, rule in path.clip(context, rule) }
+            return
         }
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        let wedge = path.pieWedgeArcValues()
+        if wedge.kind == .Arc {
+            let v = wedge.values
+            if state.receiveFillPieWedge(v.0, v.1, v.2, v.3, v.4, wedge.flag) {
+                return
+            }
+        }
+        #endif
         state.receiveFillPath(WebKit.copyPlatformPath(path))
-        return true
     }
 
     // GraphicsContextCG::strokePath(): a single line as a line segment, and a gradient in the clip of the stroked path.
-    private func stroke(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) -> Bool {
+    private func stroke(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) {
         guard state.receiveStrokesWithoutGradient() else {
             let platformPath = WebKit.copyPlatformPath(path)
-            return state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
+            state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
                 clipToStrokedPlatformPath(context, platformPath, thickness)
             }
+            return
         }
         if path.isSingleDataLine() {
-            return state.receiveStrokePathSegment(path.singleSegmentValues())
+            state.receiveStrokePathSegment(path.singleSegmentValues())
+            return
         }
         state.receiveStrokePath(WebKit.copyPlatformPath(path))
-        return true
     }
 
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
@@ -730,11 +711,11 @@ final class RemoteCGRenderer {
         identifier: WebKit.RemoteGradientIdentifier,
         transform: WebCore.AffineTransform,
         requiresClipToRect: WebCore.RequiresClipToRect
-    ) throws(InvalidMessage) -> Bool {
+    ) throws(InvalidMessage) {
         var found = false
         let source = WebKit.cachedGradientBrush(resources, identifier, transform, &found)
         try messageCheck { found }
-        return state.receiveFillRectWithGradient(cgRect(rect), source, requiresClipToRect == .Yes)
+        state.receiveFillRectWithGradient(cgRect(rect), source, requiresClipToRect == .Yes)
     }
 }
 

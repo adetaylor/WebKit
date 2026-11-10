@@ -127,32 +127,45 @@ RefPtr<ImageBuffer> RemoteCGRendererResources::imageBuffer(RenderingResourceIden
     return m_backend->imageBuffer(identifier);
 }
 
-CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, CGRendererImageFacts& facts)
+CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const FloatRect& sourceRect, RasterDrawingOptions options, CGRendererImageFacts& facts)
 {
-    facts = { 0, 0, 1, 1, false, false };
+    facts = { };
+    facts.resolutionScale = 1;
     RefPtr image = resources.cachedNativeImage(identifier);
     if (!image)
         return nullptr;
     facts.found = true;
+    CGRendererSetInvertColorMatrix(*image, sourceRect, options, facts);
     return copyImage(*image, facts);
 }
 
-CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, CGRendererImageFacts& facts)
+CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const FloatRect& sourceRect, RasterDrawingOptions options, bool clonesAcceleratedTarget, CGRendererImageFacts& facts)
 {
-    facts = { 0, 0, 1, 1, false, false };
+    facts = { };
+    facts.resolutionScale = 1;
     RefPtr imageBuffer = resources.imageBuffer(identifier);
     if (!imageBuffer)
         return nullptr;
     facts.found = true;
     Ref target = resources.target();
-    if (imageBuffer == target.ptr()) {
-        facts.declines = true;
-        return nullptr;
+    if (clonesAcceleratedTarget && imageBuffer == target.ptr() && imageBuffer->renderingMode() == RenderingMode::Accelerated) {
+        imageBuffer = imageBuffer->clone();
+        if (!imageBuffer)
+            return nullptr;
+        imageBuffer->flushDrawingContext();
+        facts.isSelfCopy = true;
+        resources.setSelfCopy(RefPtr { imageBuffer });
     }
     facts.resolutionScale = imageBuffer->resolutionScale();
     RefPtr image = static_cast<GraphicsContextCG&>(target->context()).nativeImageForSwiftReceiver(*imageBuffer);
-    if (!image)
+    if (!image) {
+        resources.releaseSelfCopy();
+        facts.isSelfCopy = false;
         return nullptr;
+    }
+    auto scaledSourceRect = sourceRect;
+    scaledSourceRect.scale(facts.resolutionScale);
+    CGRendererSetInvertColorMatrix(*image, scaledSourceRect, options, facts);
     return copyImage(*image, facts);
 }
 

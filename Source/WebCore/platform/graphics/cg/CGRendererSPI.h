@@ -59,6 +59,7 @@
 #include <WebCore/CGRendererSwiftBridge.h>
 #include <algorithm>
 #include <pal/spi/cg/CoreGraphicsSPI.h>
+#include <pal/spi/cg/ImageIOSPI.h>
 
 CF_ASSUME_NONNULL_BEGIN
 
@@ -136,6 +137,34 @@ inline void CGRendererAddUnevenCornersRoundedRect(CGMutablePathRef path, CGRect 
 {
     CGSize corners[4] { bottomLeft, bottomRight, topRight, topLeft };
     CGPathAddUnevenCornersRoundedRect(path, nullptr, rect, corners);
+}
+#endif
+
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
+// GraphicsContextCG::drawNativeImage()'s dynamic range limit for an image: its tone mapping to standard or constrained range,
+// by the image's average light level, which a dictionary passes to CG.
+inline void CGRendererSetDynamicRangeLimitForImage(CGContextRef context, CGImageRef image, float dynamicRangeLimit)
+{
+    float edrStrength = dynamicRangeLimit == 1.0 ? 1 : 0;
+    float cdrStrength = dynamicRangeLimit == 0.5 ? 1 : 0;
+    unsigned averageLightLevel = CGImageGetContentAverageLightLevelNits(image);
+
+    CFNumberRef edrStrengthNumber = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &edrStrength);
+    CFNumberRef cdrStrengthNumber = CFNumberCreate(kCFAllocatorDefault, kCFNumberFloatType, &cdrStrength);
+    CFNumberRef averageLightLevelNumber = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &averageLightLevel);
+
+    CFTypeRef toneMappingKeys[] = { kCGContentEDRStrength, kCGContentAverageLightLevel, kCGConstrainedDynamicRange };
+    CFTypeRef toneMappingValues[] = { edrStrengthNumber, averageLightLevelNumber, cdrStrengthNumber };
+
+    CFDictionaryRef toneMappingOptions = CFDictionaryCreate(kCFAllocatorDefault, toneMappingKeys, toneMappingValues, sizeof(toneMappingKeys) / sizeof(toneMappingKeys[0]), &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+
+    CGContentToneMappingInfo toneMappingInfo = { kCGToneMappingReferenceWhiteBased, toneMappingOptions };
+    CGContextSetContentToneMappingInfo(context, toneMappingInfo);
+
+    CFRelease(toneMappingOptions);
+    CFRelease(averageLightLevelNumber);
+    CFRelease(cdrStrengthNumber);
+    CFRelease(edrStrengthNumber);
 }
 #endif
 

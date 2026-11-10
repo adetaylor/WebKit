@@ -67,6 +67,10 @@ public:
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
     RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
     RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
+    // The copy of the target that the receiver draws an accelerated target into itself from (copyImageBufferImage()), which
+    // the receiver lets go after the draw.
+    void releaseSelfCopy() const { m_selfCopy = nullptr; }
+    void setSelfCopy(RefPtr<WebCore::ImageBuffer>&& selfCopy) const { m_selfCopy = WTF::move(selfCopy); }
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -79,6 +83,7 @@ private:
 
     const Ref<RemoteRenderingBackend> m_backend;
     const Ref<WebCore::ImageBuffer> m_target;
+    mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke
@@ -104,11 +109,12 @@ inline uint8_t textDrawingModeValue(WebCore::TextDrawingModeFlags mode)
     return mode.toRaw();
 }
 
-// The image of a cached native image, which is null for an image this process can't read, and of an image buffer other than
-// the target, as GraphicsContext draws one (nativeImageForDrawing()): the receiver declines the target's own. Functions, since
-// Swift takes what a C++ method returns as unretained whatever its annotation.
-CGImageRef _Nullable copyNativeImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, CGRendererImageFacts&) CF_RETURNS_RETAINED;
-CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+// The image of a cached native image, which is null for an image this process can't read, and of an image buffer, as
+// GraphicsContext draws one (nativeImageForDrawing()), with the color matrix that inverts it where the options do. An
+// accelerated target drawn into itself is drawn from a flushed copy of itself (clonesAcceleratedTarget), which the facts
+// say. Functions, since Swift takes what a C++ method returns as unretained whatever its annotation.
+CGImageRef _Nullable copyNativeImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, bool clonesAcceleratedTarget, CGRendererImageFacts&) CF_RETURNS_RETAINED;
 
 } // namespace WebKit
 
