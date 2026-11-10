@@ -249,8 +249,9 @@ extension MTLArgumentEncoder {
 }
 
 // A buffer over `length` of the owner's bytes from `offset`, which keeps the owner alive for as long as it exists. nil
-// when the owner has fewer bytes.
-func makeBuffer(_ device: (any MTLDevice)?, aliasing owner: any GPUByteOwner, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
+// when the owner has fewer bytes. Safe because only GPUByteOwner's unsafe initializer makes an owner, whose caller
+// promises that the bytes stay put for as long as the owner exists.
+func makeBuffer(_ device: (any MTLDevice)?, aliasing owner: GPUByteOwner, from offset: UInt64, length: UInt64) -> (any MTLBuffer)? {
     owner.withBytes { bytes -> (any MTLBuffer)? in
         let byteCount = UInt64(bytes.byteCount)
         guard offset <= byteCount, length <= byteCount - offset, let device else {

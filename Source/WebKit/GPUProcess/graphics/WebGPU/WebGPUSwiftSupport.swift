@@ -722,8 +722,14 @@ func mapWebGPUWriteSharedMemory(_ handle: consuming IPCTypes.SharedMemoryHandle?
     }
 }
 
-// A write keeps the mapping until it has read it.
-extension IPCTypes.ReadOnlySharedMemory: GPUByteOwner {
+extension IPCTypes.ReadOnlySharedMemory: GPUByteSource {
+}
+
+// The owner a large write keeps the mapping with until it has read it.
+func gpuByteOwner(_ memory: IPCTypes.ReadOnlySharedMemory) -> GPUByteOwner {
+    // Safety: the mapping is read-only in this process, and stays at the same address and size until the
+    // ReadOnlySharedMemory's deinit (SwiftCoding.swift), which, as for any final class with only lets, may run on any thread.
+    unsafe GPUByteOwner(memory)
 }
 
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its

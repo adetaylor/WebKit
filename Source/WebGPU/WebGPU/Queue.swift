@@ -44,7 +44,7 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import CoreVideo
+public import CoreVideo
 import Dispatch
 import Foundation
 import IOSurface
@@ -67,13 +67,29 @@ import simd
 // The writes of a GPUByteOwner's bytes may read at least this many of them in place, rather than copy them.
 private let largeBufferSize: UInt64 = 32 * 1024 * 1024
 
-/// The owner of a write's bytes, which a large write may read after it returns, keeping the owner until it has.
-///
-/// The bytes stay at the same address and size, and this process doesn't change them, for as long as the owner exists.
-/// The last reference to it may go on any thread.
+/// What holds a write's bytes in memory.
 @_spi(WebKitGPU)
-public protocol GPUByteOwner: AnyObject, Sendable {
+public protocol GPUByteSource: AnyObject, Sendable {
     func withBytes<R>(_ body: (RawSpan) -> R) -> R
+}
+
+/// The bytes of a write, which a large write may read in place after it returns, keeping their source until it has.
+///
+/// Only the unsafe initializer makes one, as only C++ could make the WebGPU::ByteOwner it replaces.
+@_spi(WebKitGPU)
+public final class GPUByteOwner: Sendable {
+    private let source: any GPUByteSource
+
+    /// The caller promises that the bytes the source gives withBytes() stay at the same address and size, and that this
+    /// process doesn't change them, for as long as the source exists, and that its last reference may go on any thread.
+    @unsafe
+    public init(_ source: any GPUByteSource) {
+        self.source = source
+    }
+
+    func withBytes<R>(_ body: (RawSpan) -> R) -> R {
+        source.withBytes(body)
+    }
 }
 
 // WTF's checkedSum<T>() and checkedProduct<T>() for unsigned operands: nil, where they report an overflow, when an
@@ -1443,7 +1459,7 @@ public final class QueueImpl: GPUObjectReference {
         _ bufferImpl: BufferImpl,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>,
-        _ aliasable: (any GPUByteOwner)?
+        _ aliasable: GPUByteOwner?
     ) {
         if writeBufferWithoutStaging(deviceImpl, bufferImpl, bufferOffset, bytes: data) {
             return
@@ -1528,7 +1544,7 @@ public final class QueueImpl: GPUObjectReference {
     private func newTemporaryBuffer(
         _ deviceImpl: DeviceImpl,
         bytes data: Span<UInt8>,
-        aliasing aliasable: (any GPUByteOwner)?,
+        aliasing aliasable: GPUByteOwner?,
         from ownerOffset: UInt64,
         _ noCopy: Bool,
         _ offset: inout UInt64
@@ -1598,7 +1614,7 @@ public final class QueueImpl: GPUObjectReference {
         _ buffer: (any MTLBuffer)?,
         _ bufferOffset: UInt64,
         bytes data: Span<UInt8>,
-        _ aliasable: (any GPUByteOwner)?
+        _ aliasable: GPUByteOwner?
     ) {
         guard let buffer, !data.isEmpty else {
             return
@@ -2064,7 +2080,7 @@ public final class QueueImpl: GPUObjectReference {
         _ textureImpl: TextureImpl,
         _ destination: TextureCopyLocation,
         bytes data: Span<UInt8>,
-        _ aliasable: (any GPUByteOwner)?,
+        _ aliasable: GPUByteOwner?,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D,
         _ skipValidation: Bool,
@@ -3122,7 +3138,7 @@ extension QueueImpl {
     }
 
     /// writeBuffer() of the owner's bytes, which it may read after returning (see largeBufferSize), keeping the owner.
-    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: any GPUByteOwner) {
+    public func writeBuffer(_ buffer: BufferReference, _ bufferOffset: UInt64, _ data: GPUByteOwner) {
         guard let deviceImpl = deviceImpl(sharedBy: buffer.deviceImpl) else {
             return
         }
@@ -3135,7 +3151,7 @@ extension QueueImpl {
     public func writeTexture(
         _ texture: TextureReference,
         _ destination: TextureCopyLocation,
-        _ data: any GPUByteOwner,
+        _ data: GPUByteOwner,
         _ dataLayout: WebGPU.TexelCopyBufferLayout,
         _ size: WebGPU.Extent3D
     ) {

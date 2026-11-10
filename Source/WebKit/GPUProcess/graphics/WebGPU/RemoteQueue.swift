@@ -149,7 +149,7 @@ final class RemoteQueue {
             reply.send(false)
             return
         }
-        queue.writeBuffer(buffer, bufferOffset, bytes)
+        queue.writeBuffer(buffer, bufferOffset, gpuByteOwner(bytes))
         reply.send(true)
     }
 
@@ -167,7 +167,13 @@ final class RemoteQueue {
             reply.send(false)
             return
         }
-        queue.writeTexture(texture, TextureCopyLocation(destination), bytes, WebGPU.TexelCopyBufferLayout(imageDataLayout), WebGPU.Extent3D(size))
+        queue.writeTexture(
+            texture,
+            TextureCopyLocation(destination),
+            gpuByteOwner(bytes),
+            WebGPU.TexelCopyBufferLayout(imageDataLayout),
+            WebGPU.Extent3D(size)
+        )
         reply.send(true)
     }
 
