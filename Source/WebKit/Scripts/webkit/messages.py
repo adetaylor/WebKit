@@ -2013,6 +2013,7 @@ def headers_for_type(type, for_implementation_file=False):
         'WebCore::DictationContext': ['<WebCore/DictationContext.h>'],
         'WebCore::DMABufBufferAttributes': ['<WebCore/DMABufBufferAttributes.h>'],
         'WebCore::DocumentMarkerLineStyle': ['<WebCore/GraphicsTypes.h>'],
+        'WebCore::DocumentMarkerLineStyleMode': ['<WebCore/GraphicsTypes.h>'],
         'WebCore::DocumentSyncSerializationData': ['<WebCore/DocumentSyncData.h>'],
         'WebCore::DOMCacheIdentifierID': ['"GeneratedSerializers.h"'],
         'WebCore::DOMCacheEngine::CacheIdentifierOrError': ['<WebCore/DOMCacheEngine.h>'],

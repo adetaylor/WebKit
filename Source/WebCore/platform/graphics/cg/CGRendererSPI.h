@@ -60,10 +60,12 @@
 #include <algorithm>
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 
+CF_ASSUME_NONNULL_BEGIN
+
 CF_IMPLICIT_BRIDGING_ENABLED
 
 // An opaque color of a pattern, whose components Swift would pass as a pointer.
-inline CGColorRef CGRendererCreatePatternColor(CGColorSpaceRef patternSpace, CGPatternRef pattern)
+inline CGColorRef _Nullable CGRendererCreatePatternColor(CGColorSpaceRef patternSpace, CGPatternRef pattern)
 {
     CGFloat alpha = 1;
     return CGColorCreateWithPattern(patternSpace, pattern, &alpha);
@@ -117,17 +119,37 @@ inline void CGRendererDrawPath(CGContextRef context, CGPathDrawingMode mode, CGP
     CGContextDrawPathDirect(context, mode, path, nullptr);
 }
 
+// PathCG's additions of rects and rounded rects to a CGPath, without a transform: Swift's overlay passes the identity, which
+// changes what CG stores for -0, infinities and NaN.
+inline void CGRendererAddRect(CGMutablePathRef path, CGRect rect)
+{
+    CGPathAddRect(path, nullptr, rect);
+}
+
+inline void CGRendererAddRoundedRect(CGMutablePathRef path, CGRect rect, CGFloat cornerWidth, CGFloat cornerHeight)
+{
+    CGPathAddRoundedRect(path, nullptr, rect, cornerWidth, cornerHeight);
+}
+
+#if HAVE(CG_PATH_UNEVEN_CORNERS_ROUNDEDRECT)
+inline void CGRendererAddUnevenCornersRoundedRect(CGMutablePathRef path, CGRect rect, CGSize bottomLeft, CGSize bottomRight, CGSize topRight, CGSize topLeft)
+{
+    CGSize corners[4] { bottomLeft, bottomRight, topRight, topLeft };
+    CGPathAddUnevenCornersRoundedRect(path, nullptr, rect, corners);
+}
+#endif
+
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
 CF_IMPLICIT_BRIDGING_ENABLED
 
 // The two styles whose creation takes a pointer, made from values.
-inline CGStyleRef CGRendererCreateGaussianBlurStyle(CGFloat radius)
+inline CGStyleRef _Nullable CGRendererCreateGaussianBlurStyle(CGFloat radius)
 {
     CGGaussianBlurStyle style = { 1, radius };
     return CGStyleCreateGaussianBlur(&style);
 }
 
-inline CGStyleRef CGRendererCreateColorMatrixStyle(CGRendererColorMatrix colorMatrix)
+inline CGStyleRef _Nullable CGRendererCreateColorMatrixStyle(CGRendererColorMatrix colorMatrix)
 {
     CGColorMatrixStyle style = { 1, { 0 } };
     for (unsigned i = 0; i < 20; ++i)
@@ -137,3 +159,5 @@ inline CGStyleRef CGRendererCreateColorMatrixStyle(CGRendererColorMatrix colorMa
 
 CF_IMPLICIT_BRIDGING_DISABLED
 #endif
+
+CF_ASSUME_NONNULL_END

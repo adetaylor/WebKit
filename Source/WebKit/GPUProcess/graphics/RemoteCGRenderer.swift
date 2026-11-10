@@ -565,15 +565,11 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext rejects it.
 
     func clipRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
-        state.receiveClip { context in CGRendererClipToRoundedRect(context, rect) }
+        state.receiveClipToRoundedRect(rect)
     }
 
     func clipOutRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
-        guard rect.hasNonZeroRadii() else {
-            state.receiveClipOut(cgRect(WebKit.rectOfRoundedRect(rect)))
-            return
-        }
-        state.receiveClip { context in CGRendererClipOutToRoundedRect(context, rect) }
+        state.receiveClipOutToRoundedRect(rect)
     }
 
     func clipToNativeImage(state: inout CGRendererCore, imageIdentifier: WebCore.RenderingResourceIdentifier, destinationRect: WebCore.FloatRect) -> Bool {
@@ -694,11 +690,8 @@ final class RemoteCGRenderer {
         doubleLines: Bool,
         strokeStyle: WebCore.StrokeStyle
     ) {
-        let lines = WebKit.RemoteCGRendererTextLines(lineSegments, state.receiveCTM(includingDeviceScale: true), state.receiveStrokeColor(), point, thickness, printing, doubleLines, strokeStyle)
-        guard !lines.isEmpty() else {
-            return
-        }
-        state.receiveFillRects(lines.rects(), lines.color(), nil)
+        let segments: Span<WebCore.FloatSegment> = lineSegments.span()
+        state.receiveDrawLinesForText(segments, point.x(), point.y(), thickness, printing, doubleLines, strokeStyle)
     }
 
     // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++.
@@ -720,8 +713,8 @@ final class RemoteCGRenderer {
         state.receiveDrawGlyphs(draw.run(), draw.positions(), draw.facts(), shadowFillColor, localAnchor.x(), localAnchor.y())
     }
 
-    func drawDotsForDocumentMarker(state: inout CGRendererCore, rect: WebCore.FloatRect, style: WebCore.DocumentMarkerLineStyle) {
-        state.receiveDraw { context in CGRendererDrawDotsForDocumentMarker(context, rect, style) }
+    func drawDotsForDocumentMarker(state: inout CGRendererCore, rect: WebCore.FloatRect, mode: WebCore.DocumentMarkerLineStyleMode, color: CGRendererColorValue) {
+        state.receiveDrawDotsForDocumentMarker(cgRect(rect), mode, color)
     }
 
     func fillRectWithCachedGradient(state: inout CGRendererCore, rect: WebCore.FloatRect, identifier: WebKit.RemoteGradientIdentifier) throws(InvalidMessage) {

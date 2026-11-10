@@ -107,10 +107,10 @@ typedef enum {
     kCGContextTypeCount
 } CGContextType;
 
-typedef enum {
+typedef CF_ENUM (int32_t, CGCompositeOperation) {
     kCGCompositeCopy = 1,
     kCGCompositeSover = 2,
-} CGCompositeOperation;
+};
 
 enum {
     kCGFontRenderingStyleAntialiasing = 1 << 0,

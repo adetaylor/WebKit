@@ -26,9 +26,10 @@
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
-# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the line
-# strokes and line dashes, which the GPU process copies out of the message, paths and their segments, which it decodes into
-# plain values or the PathImpl of a path of them, and shadows and styles, which it keeps for Swift to ask of them.
+# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the colors
+# of document markers and other draws, which go as plain values, the line strokes and line dashes, which the GPU process
+# copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path of them,
+# and shadows and styles, which it keeps for Swift to ask of them.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
@@ -122,7 +123,7 @@ messages -> RemoteCGRenderer Stream {
     SetStrokePatternImageBuffer
     FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
     DrawLinesForText(WebCore::FloatPoint point, float thickness, WebKit::RemoteCGRendererLineSegments lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched
-    DrawDotsForDocumentMarker
+    DrawDotsForDocumentMarker(WebCore::FloatRect rect, enum:uint8_t WebCore::DocumentMarkerLineStyleMode mode, CGRendererColorValue color) StreamBatched
     DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline

@@ -325,13 +325,13 @@ struct CGRendererPathSegment {
 WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
 WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment) __attribute__((availability(swift, unavailable)));
 // A Swift receiver's gradient fills and strokes of a path of one segment (GraphicsContextCG's fillPath() and strokePath() of a
-// Path of it), of a rounded rect's path, and of strokeRect()'s rect: the bounds of their content, and their clips.
+// Path of it), and of strokeRect()'s rect, and the bounds of a rounded rect's path: the bounds of their content, and their
+// clips.
 WEBCORE_EXPORT CGRect CGRendererPathSegmentBounds(CGRendererPathSegment);
 WEBCORE_EXPORT void CGRendererClipToPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, WebCore::WindRule);
 WEBCORE_EXPORT CGRect CGRendererStrokedPathSegmentBounds(CGContextRef _Nonnull, CGRendererPathSegment);
 WEBCORE_EXPORT void CGRendererClipToStrokedPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, float thickness);
 WEBCORE_EXPORT CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect&);
-WEBCORE_EXPORT void CGRendererClipToRoundedRectPath(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&, WebCore::WindRule);
 WEBCORE_EXPORT CGRect CGRendererStrokedRectBounds(CGContextRef _Nonnull, CGRect, float lineWidth);
 WEBCORE_EXPORT void CGRendererClipToStrokedRect(CGContextRef _Nonnull, CGRect, float lineWidth);
 
@@ -342,22 +342,14 @@ WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore
 WEBCORE_EXPORT void CGRendererClipToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT void CGRendererClipOutToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&) __attribute__((availability(swift, unavailable)));
 
-// GraphicsContext's clipRoundedRect() and clipOutRoundedRect() of a rounded rect with radii, which clip to and out of its
-// path as GraphicsContextCG's clipPath() and clipOut(const Path&) do.
-WEBCORE_EXPORT void CGRendererClipToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
-WEBCORE_EXPORT void CGRendererClipOutToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
-// GraphicsContextCG's rounded rect fills: the path of a rounded rect with radii (Path::addRoundedRect()), of a rect with a
-// rounded hole, which fillRectWithRoundedHole() fills even-odd, and whether fillRoundedRectImpl() fills a rounded rect as
-// the ellipse its radii make.
-WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect&) CF_RETURNS_RETAINED;
-WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRectWithRoundedHolePath(CGRect, const WebCore::FloatRoundedRect& hole) CF_RETURNS_RETAINED;
-WEBCORE_EXPORT bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect&);
-// A rounded rect's rect and radii as ShadowBlur takes them (ShadowBlur::drawRectShadow() and drawInsetShadow() of it).
-struct CGRendererShadowBlurRoundedRect {
+
+// A rounded rect's rect and radii as plain values, for CGRenderer.swift, which ShadowBlur::drawRectShadow() and
+// drawInsetShadow() take as they are.
+struct CGRendererRoundedRect {
     WebCore::ShadowBlurRect rect;
     WebCore::ShadowBlurCornerRadii radii;
 };
-WEBCORE_EXPORT CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect&);
+WEBCORE_EXPORT CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRoundedRect);
 
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
@@ -427,8 +419,9 @@ private:
     std::optional<WebCore::ColorSpace> m_colorSpace;
 };
 
-// cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space.
+// cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space, and cachedCGColor() of it.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCachedCGColorForData(const CGRendererColorData&) CF_RETURNS_RETAINED;
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 // A drop shadow's values and its color's data, as RemoteCGRenderer's messages carry them, and the same shadow back.
@@ -438,11 +431,6 @@ WEBCORE_EXPORT WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const 
 // The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()),
 // and as the renderer gives ShadowBlur a drop shadow's color.
 WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&);
-// GraphicsContext::computeRectsAndStrokeColorForLinesForText() for a context of the CTM and stroke color: the rects and the
-// color that GraphicsContextCG::drawLinesForText() fills.
-WEBCORE_EXPORT void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment>, bool isPrinting, bool doubleLines, WebCore::StrokeStyle, Vector<CGRect, 4>& rects, WebCore::Color&) __attribute__((availability(swift, unavailable)));
-// GraphicsContextCG::drawDotsForDocumentMarker()'s drawing.
-WEBCORE_EXPORT void CGRendererDrawDotsForDocumentMarker(CGContextRef _Nonnull, const WebCore::FloatRect&, const WebCore::DocumentMarkerLineStyle&);
 
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {

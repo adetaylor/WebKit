@@ -761,6 +761,11 @@ CGColorRef CGRendererCopyCGColorForData(const CGRendererColorData& data, const C
     return WebCore::cachedCGColorInDestinationStandardRange(WebCore::colorFromData(data), colorSpace.colorSpace().value_or(WebCore::ColorSpace::SRGB())).leakRef();
 }
 
+CGColorRef CGRendererCopyCachedCGColorForData(const CGRendererColorData& data)
+{
+    return WebCore::cachedCGColor(WebCore::colorFromData(data)).leakRef();
+}
+
 CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& font, std::span<const CGGlyph> glyphs, WebCore::FontSmoothingMode smoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace& colorSpace, bool isInTransparencyLayer)
 {
     using namespace WebCore;
@@ -970,13 +975,6 @@ CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect& rect)
     return path.fastBoundingRect();
 }
 
-void CGRendererClipToRoundedRectPath(CGContextRef context, const WebCore::FloatRoundedRect& rect, WebCore::WindRule rule)
-{
-    WebCore::Path path;
-    path.addRoundedRect(rect);
-    CGRendererClipToPath(context, path, rule);
-}
-
 CGRect CGRendererStrokedRectBounds(CGContextRef context, CGRect rect, float lineWidth)
 {
     return WebCore::strokedPathBoundingBox(context, [&] {
@@ -1037,20 +1035,6 @@ void CGRendererClipToPathImpl(CGContextRef context, const WebCore::PathImpl& imp
         CGContextClip(context);
 }
 
-void CGRendererClipToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
-{
-    WebCore::Path path;
-    path.addRoundedRect(rect);
-    CGRendererClipToPath(context, path, WebCore::WindRule::NonZero);
-}
-
-void CGRendererClipOutToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
-{
-    WebCore::Path path;
-    path.addRoundedRect(rect);
-    CGRendererClipOutToPath(context, path);
-}
-
 static WebCore::Path rectWithRoundedHolePath(const WebCore::FloatRect& rect, const WebCore::FloatRoundedRect& roundedHoleRect)
 {
     WebCore::Path path;
@@ -1062,36 +1046,15 @@ static WebCore::Path rectWithRoundedHolePath(const WebCore::FloatRect& rect, con
     return path;
 }
 
-CGPathRef CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect& rect)
-{
-    WebCore::Path path;
-    path.addRoundedRect(rect);
-    return RetainPtr { path.platformPath() }.leakRef();
-}
-
-CGPathRef CGRendererCopyRectWithRoundedHolePath(CGRect rect, const WebCore::FloatRoundedRect& hole)
-{
-    return RetainPtr { rectWithRoundedHolePath(WebCore::FloatRect { rect }, hole).platformPath() }.leakRef();
-}
-
-bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect& rect)
-{
-    const auto& r = rect.rect();
-    const auto& radii = rect.radii();
-    bool equalWidths = (radii.topLeft().width() == radii.topRight().width() && radii.topRight().width() == radii.bottomLeft().width() && radii.bottomLeft().width() == radii.bottomRight().width());
-    bool equalHeights = (radii.topLeft().height() == radii.bottomLeft().height() && radii.bottomLeft().height() == radii.topRight().height() && radii.topRight().height() == radii.bottomRight().height());
-    return equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height();
-}
-
-CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect& rect)
+CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRoundedRect roundedRect)
 {
     auto size = [](const WebCore::FloatSize& size) {
         return WebCore::ShadowBlurSize { size.width(), size.height() };
     };
-    const auto& bounds = rect.rect();
-    const auto& radii = rect.radii();
+    const auto& rect = roundedRect.rect();
+    const auto& radii = roundedRect.radii();
     return {
-        { bounds.x(), bounds.y(), bounds.width(), bounds.height() },
+        { rect.x(), rect.y(), rect.width(), rect.height() },
         { size(radii.topLeft()), size(radii.topRight()), size(radii.bottomLeft()), size(radii.bottomRight()) }
     };
 }
@@ -1423,7 +1386,7 @@ void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const 
     }
 
     bool hasCustomFill = fillGradient() || fillPattern();
-    if (!hasCustomFill && CGRendererRoundedRectIsEllipse(rect))
+    if (!hasCustomFill && CGRendererCore::roundedRectIsEllipse(rect))
         CGContextFillEllipseInRect(context, rect.rect());
     else {
         Path path;
@@ -2045,6 +2008,12 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
         SWIFT_RENDERER(fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor));
     else
         SWIFT_RENDERER(fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor));
+}
+
+void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
+{
+    CAPTURE(drawDotsForDocumentMarker(rect, style));
+    SWIFT_RENDERER(drawDotsForDocumentMarker(rect, style.mode, cachedCGColor(style.color).get()));
 }
 
 void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect)

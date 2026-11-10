@@ -78,6 +78,7 @@ public:
     void fillRectWithRoundedHole(const WebCore::FloatRect&, const WebCore::FloatRoundedRect&, const CGRendererColorValue&);
     void fillRectWithCachedGradient(const WebCore::FloatRect&, RemoteGradientIdentifier);
     void drawLinesForText(const WebCore::FloatPoint&, float thickness, const RemoteCGRendererLineSegments&, bool printing, bool doubleLines, WebCore::StrokeStyle);
+    void drawDotsForDocumentMarker(const WebCore::FloatRect&, WebCore::DocumentMarkerLineStyleMode, const CGRendererColorValue&);
     void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
     void fillRectWithCachedGradientAndSpaceTransform(const WebCore::FloatRect&, RemoteGradientIdentifier, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
 #endif
