@@ -34,7 +34,6 @@
 #include "ScrollExtents.h"
 #include "ScrollPhysicsControllerHolder.h"
 #include "ScrollableArea.h"
-#include <wtf/SetForScope.h>
 #include "ScrollingEffectsClock.h"
 #include <atomic>
 #include <wtf/TZoneMallocInlines.h>

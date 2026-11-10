@@ -206,6 +206,7 @@ final class ScrollPhysicsController {
     private var isRunningAnimatingCallback = false
     private var isAnimatingRubberBand = false
     private var isAnimatingScrollSnap = false
+    private var isReplacingMomentumAnimation = false
     private var isAnimatingKeyboardScrolling = false
     private var inScrollGesture = false
 
@@ -550,7 +551,11 @@ final class ScrollPhysicsController {
         _ snapInput: ScrollSnapModifierInput
     ) -> Bool {
         if currentAnimationType != nil {
+            // Replacing a running animation is a handoff, not the end of scrolling, so don't end scroll snapping.
+            let wasReplacingMomentumAnimation = isReplacingMomentumAnimation
+            isReplacingMomentumAnimation = true
             stopCurrentAnimation(&c)
+            isReplacingMomentumAnimation = wasReplacingMomentumAnimation
             if currentAnimationType != .momentum {
                 setCurrentAnimationType(nil)
             }
@@ -562,7 +567,7 @@ final class ScrollPhysicsController {
             setCurrentAnimationType(.momentum)
         }
 
-        return momentumAnimation.startAnimatedScrollWithInitialVelocity(
+        let started = momentumAnimation.startAnimatedScrollWithInitialVelocity(
             &c,
             self,
             initialOffset,
@@ -571,6 +576,12 @@ final class ScrollPhysicsController {
             scrollSnapState,
             snapInput
         )
+
+        if !started, let currentScrollSnapState = self.scrollSnapState, isAnimatingScrollSnap {
+            currentScrollSnapState.transitionToDestinationReachedState(&c, self)
+            stopScrollSnapAnimation(&c)
+        }
+        return started
     }
 
     private func setIsAnimatingScrollSnap<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ value: Bool) {
@@ -778,7 +789,7 @@ final class ScrollPhysicsController {
     }
 
     func scrollAnimationDidEnd<C: ScrollPhysicsClientProtocol & ~Copyable>(_ c: inout C, _ type: ScrollPhysicsAnimationType) {
-        if let scrollSnapState, isAnimatingScrollSnap {
+        if let scrollSnapState, isAnimatingScrollSnap, !isReplacingMomentumAnimation {
             scrollSnapState.transitionToDestinationReachedState(&c, self)
             stopScrollSnapAnimation(&c)
         }
