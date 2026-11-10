@@ -44,6 +44,8 @@
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/WebGPUCppAPI.h>
+#include <wtf/NeverDestroyed.h>
+#include <wtf/WorkQueue.h>
 #include <wtf/threads/BinarySemaphore.h>
 
 #if ENABLE(GPU_PROCESS_MODEL)
@@ -99,6 +101,13 @@ void RemoteGPU::stopListeningForIPC()
     });
 }
 
+// Releases the work scheduled once a RemoteGPU's work queue has stopped, one item at a time.
+static WorkQueue& stoppedWorkReleaseQueueSingleton()
+{
+    static NeverDestroyed<Ref<WorkQueue>> queue(WorkQueue::create("com.apple.WebKit.WebGPU.StoppedWorkRelease"_s));
+    return queue.get();
+}
+
 void RemoteGPU::scheduleWork(Function<void()>&& workItem)
 {
     Locker locker { m_scheduledWorkLock };
@@ -110,6 +119,8 @@ void RemoteGPU::scheduleWork(Function<void()>&& workItem)
         m_workScheduledWhileStopping.append(WTF::move(workItem));
         return;
     case WorkQueueState::Stopped:
+        // What the work holds for the instance's API thread goes on one serial queue, never on two threads at once.
+        stoppedWorkReleaseQueueSingleton().dispatch([workItem = WTF::move(workItem)] { });
         return;
     }
 }

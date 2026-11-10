@@ -179,7 +179,10 @@ final class WebGPUImplTable {
     init(host: WebKit.WebGPUSwiftRegistryHost, instanceDescriptor: WebKit.WebGPUSwiftInstanceDescriptor) {
         self.host = host
         var descriptor = instanceDescriptor.take()
-        instance = InstanceReference(&descriptor)
+        // Safety: RemoteGPU's work queue is the instance's API thread, which receives every message that calls into the
+        // instance and its objects; RemoteGPU::scheduleWork() runs work there later, one item at a time, and once the queue
+        // has stopped releases it on one serial queue.
+        instance = unsafe InstanceReference(&descriptor)
     }
 
     func remove(_ identifier: UInt64) {

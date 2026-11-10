@@ -116,9 +116,10 @@ final class InstanceScheduler: Sendable {
 }
 
 // What Queue and the device observer schedule their work items through from Metal and observer threads, so that no
-// such thread holds, or releases, a reference to the Instance. Once the Instance is gone, work items are dropped.
+// such thread holds, or releases, a reference to the Instance. It holds the scheduler, which doesn't own the Instance,
+// so work is dropped only by the embedder, which drops it only once its API thread has stopped (InstanceImpl.init).
 final class InstanceSchedulerHandle: Sendable {
-    private weak let scheduler: InstanceScheduler?
+    let scheduler: InstanceScheduler
 
     fileprivate init(_ scheduler: InstanceScheduler) {
         self.scheduler = scheduler
@@ -126,10 +127,6 @@ final class InstanceSchedulerHandle: Sendable {
 
     // Takes the work item, leaving `workItem` empty.
     func scheduleWork(_ workItem: inout sending CxxBridging.InstanceWorkItem) {
-        guard let scheduler else {
-            workItem = CxxBridging.InstanceWorkItem()
-            return
-        }
         scheduler.scheduleWork(&workItem)
     }
 
@@ -140,28 +137,59 @@ final class InstanceSchedulerHandle: Sendable {
 
 /// The part of a Metal handler that runs on the Instance's API thread, carried there from the Metal thread.
 ///
-/// Unchecked Sendable: the body and what it captures belong to the API thread. The Metal thread only hands the box to a
-/// work item, and the scheduler's hop orders that before the API thread runs the body, which goes as it runs. So the
-/// body's references are released on the API thread, unless the Instance is gone and the work item is dropped.
+/// Unchecked Sendable: the body and what it captures belong to the API thread, where the box is made. The Metal thread
+/// only hands the box to a work item, and the scheduler's hop orders that before the API thread runs the body, which
+/// goes as it runs. A body that never runs is released in a work item too (releaseOnAPIThread()).
 final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
+    private let scheduler: InstanceScheduler
     private var body: ((Argument) -> Void)?
 
-    init(_ body: @escaping (Argument) -> Void) {
+    // On the API thread.
+    init(on scheduler: InstanceSchedulerHandle, _ body: @escaping (Argument) -> Void) {
+        self.scheduler = scheduler.scheduler
         self.body = body
     }
 
+    deinit {
+        releaseOnAPIThread(body.take(), scheduler)
+    }
+
     // On the Metal thread.
-    func schedule(_ argument: Argument, on scheduler: InstanceSchedulerHandle?) {
+    func schedule(_ argument: Argument) {
         var workItem = CxxBridging.InstanceWorkItem {
             self.run(argument)
         }
-        scheduler?.scheduleWork(&workItem)
+        scheduler.scheduleWork(&workItem)
     }
 
     private func run(_ argument: Argument) {
         if let body = body.take() {
             body(argument)
         }
+    }
+}
+
+/// Releases what a box held for the API thread, which never ran there, in a work item: the embedder runs it on the API
+/// thread, or releases it on its serial queue once the API thread has stopped.
+func releaseOnAPIThread<Body>(_ body: Body?, _ scheduler: InstanceScheduler) {
+    guard let body else {
+        return
+    }
+    let release = APIThreadRelease(body)
+    var workItem = CxxBridging.InstanceWorkItem {
+        withExtendedLifetime(release) {
+        }
+    }
+    scheduler.scheduleWork(&workItem)
+}
+
+// A value on its way to be released. Unchecked Sendable: nothing reads the value, and the work item that holds it goes on
+// the API thread, or after it has stopped, as releaseOnAPIThread() says.
+private final class APIThreadRelease<Body>: @unchecked Sendable {
+    private let body: Body
+
+    init(_ body: Body) {
+        self.body = body
     }
 }
 
@@ -221,6 +249,11 @@ public final class InstanceImpl: LinkedImpl {
     private let events: InstanceEventQueue
 
     // Takes the descriptor's scheduleWork and resource owner.
+    //
+    // The caller promises that every other call into the Instance and the objects it makes comes from its API thread, and
+    // that scheduleWork runs each work item later, on the API thread, one at a time, or, once nothing can call into the
+    // Instance or its objects any more, releases it without running it, on one serial queue.
+    @unsafe
     public init(_ descriptor: inout WebGPU.InstanceDescriptor) {
         let events = InstanceEventQueue()
         if WebGPU.Metal.hasScheduleWork(descriptor) {

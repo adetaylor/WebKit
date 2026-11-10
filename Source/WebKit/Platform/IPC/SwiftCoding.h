@@ -236,7 +236,7 @@ public:
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
     // deallocate it or send it on: in Swift, the IPCTypes.MachSendRight that owns it. If there is none, invalidates the
     // decoder and returns MACH_PORT_NULL, which a valid message may also carry.
-    mach_port_t takeSendRight()
+    SWIFT_UNSAFE mach_port_t takeSendRight()
     {
         auto sendRight = borrowed().template decode<MachSendRight>();
         return sendRight ? sendRight->leakSendRight() : MACH_PORT_NULL;
@@ -376,10 +376,9 @@ public:
     }
 
 #ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
-    void deref() const
+    // Swift's release, which frees with fastFree() as decode() allocates. Unsafe: an extra call frees an object that Swift
+    // still uses.
+    SWIFT_UNSAFE void swiftDeref() const
     {
         if (!this->derefBase())
             return;
@@ -399,7 +398,7 @@ private:
     }
 
     std::optional<T> m_value;
-} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
@@ -448,13 +447,6 @@ public:
         if (m_encoder || m_inStream)
             cancel();
     }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::ref(); }
-    void deref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::deref(); }
-#endif
 
     void encode(bool value) { encodeValue(value); }
     void encode(uint8_t value) { encodeValue(value); }

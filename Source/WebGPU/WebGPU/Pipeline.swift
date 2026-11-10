@@ -184,10 +184,18 @@ func withErrorReporting(_ deviceImpl: DeviceImpl, suppressingErrors suppressErro
 /// Unchecked Sendable: the continuation and what it captures belong to the Instance's API thread. The Metal thread only
 /// hands the box to a work item, and the scheduler's hop orders that before the API thread resumes it.
 private final class CompileContinuation<Value>: @unchecked Sendable {
+    private let scheduler: InstanceScheduler
     private var body: ((Value?, NSError?) -> Void)?
 
-    init(_ body: @escaping (Value?, NSError?) -> Void) {
+    // On the API thread.
+    init(_ scheduler: InstanceScheduler, _ body: @escaping (Value?, NSError?) -> Void) {
+        self.scheduler = scheduler
         self.body = body
+    }
+
+    // A continuation that never resumes is released in a work item too.
+    deinit {
+        releaseOnAPIThread(body.take(), scheduler)
     }
 
     func resume(_ value: Value?, _ error: (any Error)?) {
@@ -207,7 +215,7 @@ private final class CompileHop<Value: Sendable>: Sendable {
 
     init(_ scheduler: InstanceScheduler, _ continuation: @escaping (Value?, NSError?) -> Void) {
         self.scheduler = scheduler
-        self.continuation = CompileContinuation(continuation)
+        self.continuation = CompileContinuation(scheduler, continuation)
     }
 
     // On Metal's completion queue.

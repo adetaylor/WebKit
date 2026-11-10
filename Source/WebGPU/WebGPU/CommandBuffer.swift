@@ -307,17 +307,18 @@ public final class CommandBufferImpl: GPUObjectReference, LinkedImpl {
             return
         }
         let completion = backingCompletion
-        let scheduler = deviceImpl.schedulerHandle()
-        let didComplete = APIThreadWork<GPUExecutionTimes> { [self] times in
-            commandBufferDidComplete(times.start, times.end)
-            deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
+        let didComplete = deviceImpl.schedulerHandle().map { scheduler in
+            APIThreadWork<GPUExecutionTimes>(on: scheduler) { [self] times in
+                commandBufferDidComplete(times.start, times.end)
+                deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
+            }
         }
         commandBuffer.addCompletedHandler { completedCommandBuffer in
             // GPUStartTime/GPUEndTime bracket execution on the GPU; kernelStartTime/kernelEndTime only bracket the driver
             // scheduling it.
             let times = GPUExecutionTimes(start: completedCommandBuffer.gpuStartTime, end: completedCommandBuffer.gpuEndTime)
             completion.didComplete(gpuStartTime: times.start, gpuEndTime: times.end)
-            didComplete.schedule(times, on: scheduler)
+            didComplete?.schedule(times)
         }
     }
 
