@@ -35,11 +35,13 @@ func pixelBufferIOSurface(_ pixelBuffer: CVPixelBuffer) -> IOSurfaceRef? {
     unsafe CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue()
 }
 
-// A plane's bytes into as much of the texture as both have, when the plane's rows hold `bytesPerPixel` bytes (those of
-// the texture's format; 0 if unknown) for every pixel copied. The base address must be locked.
-func copyPixelBufferPlane(_ texture: any MTLTexture, _ pixelBuffer: CVPixelBuffer, _ plane: Int, _ bytesPerPixel: Int) {
+// A plane's bytes into as much of the texture as both have, when the plane's rows hold the bytes of the texture's format
+// (copiedBytesPerPixel()) for every pixel copied. Copies nothing for a format with no known bytes per pixel, or when
+// the plane's base address can't be locked.
+func copyPixelBufferPlane(_ texture: any MTLTexture, _ pixelBuffer: CVPixelBuffer, _ plane: Int) {
     // Metal reads `height` rows of `width * bytesPerPixel` bytes, bytesPerRow apart: never more rows, or wider ones, than
     // the plane has. A plane whose rows are narrower than that is not copied, which is what Metal itself does on Apple GPUs.
+    let bytesPerPixel = copiedBytesPerPixel(texture.pixelFormat)
     let width = min(CVPixelBufferGetWidthOfPlane(pixelBuffer, plane), texture.width)
     let height = min(CVPixelBufferGetHeightOfPlane(pixelBuffer, plane), texture.height)
     if width <= 0 || height <= 0 || bytesPerPixel <= 0 {
@@ -50,12 +52,18 @@ func copyPixelBufferPlane(_ texture: any MTLTexture, _ pixelBuffer: CVPixelBuffe
     if overflow || bytesReadPerRow > bytesPerRow {
         return
     }
-    // Safety: the caller locked the base address, so the plane's bytes stay at it until this returns.
+    guard CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) == kCVReturnSuccess else {
+        return
+    }
+    defer {
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+    }
+    // Safety: the lock above keeps the plane's bytes at this address until the deferred unlock.
     guard let imageBytes = unsafe CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, plane) else {
-        preconditionFailure("a locked plane has no base address")
+        return
     }
     // Safety: Metal reads `height` rows of `bytesReadPerRow` bytes, `bytesPerRow` apart, which the checks above keep
-    // within the plane's rows.
+    // within the plane's rows, while the base address is locked.
     unsafe texture.replace(
         region: MTLRegionMake2D(0, 0, width, height),
         mipmapLevel: 0,

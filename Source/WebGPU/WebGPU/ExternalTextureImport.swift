@@ -142,10 +142,6 @@ final class ExternalTextureImporter {
             return nil
         }
 
-        if CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly) != kCVReturnSuccess {
-            return nil
-        }
-
         var firstPlaneSwizzle: MTLTextureSwizzleChannels?
         var textures: [(any MTLTexture)?] = [nil, nil]
         for plane in 0..<planeCount {
@@ -166,15 +162,12 @@ final class ExternalTextureImporter {
             descriptor.sampleCount = 1
             descriptor.storageMode = externalTexturePlaneStorageMode(hasUnifiedMemory(deviceImpl))
 
-            // FIXME: This failure leaves the base address locked.
             guard let texture = deviceImpl.device()?.makeTexture(descriptor: descriptor) else {
                 return nil
             }
-            copyPixelBufferPlane(texture, pixelBuffer, plane, copiedBytesPerPixel(descriptor.pixelFormat))
+            copyPixelBufferPlane(texture, pixelBuffer, plane)
             textures[plane] = texture
         }
-
-        CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
 
         var result = ImportedExternalTexture(texture0: textures[0], texture1: textures[1], constants: constants)
         result.constants.uvRemapping = identityUVRemapping
@@ -672,7 +665,7 @@ private func externalTexturePlaneFormat(
 
 // The bytes of a plane that replaceRegion() reads for each pixel of a texture of `format`, for every format
 // externalTexturePlaneFormat() returns; 0 for the two-plane YCbCr formats, whose plane layout this cannot bound.
-private func copiedBytesPerPixel(_ format: MTLPixelFormat) -> Int {
+func copiedBytesPerPixel(_ format: MTLPixelFormat) -> Int {
     switch format {
     case .a8Unorm, .r8Unorm:
         return 1
