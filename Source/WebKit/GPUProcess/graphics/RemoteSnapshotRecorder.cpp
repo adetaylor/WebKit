@@ -29,12 +29,62 @@
 #include "RemoteSnapshotRecorder.h"
 
 #include "Logging.h"
-#include "RemoteGraphicsContextMessages.h"
 #include "RemoteSnapshot.h"
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererMessages.h"
+#include "RemoteCGRendererResources.h"
+#include "RemoteRenderingBackend.h"
+#include "WebKit-Swift.h"
+#else
+#include "RemoteGraphicsContextMessages.h"
 #include "RemoteSnapshotRecorderMessages.h"
+#endif
 
 namespace WebKit {
 using namespace WebCore;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+Ref<RemoteSnapshotRecorder> RemoteSnapshotRecorder::create(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
+{
+    Ref instance = adoptRef(*new RemoteSnapshotRecorder(identifier, snapshot, renderingBackend));
+    instance->startListeningForIPC();
+    return instance;
+}
+
+RemoteSnapshotRecorder::RemoteSnapshotRecorder(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
+    : m_snapshot(snapshot)
+    , m_renderingBackend(renderingBackend)
+    , m_identifier(identifier)
+    , m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(RemoteCGRendererRecorder::create(RemoteCGRendererResources::createForRecorder(renderingBackend, &snapshot).ptr(), renderingBackend.cgRendererDisplayLists())))
+{
+}
+
+RemoteSnapshotRecorder::~RemoteSnapshotRecorder() = default;
+
+void RemoteSnapshotRecorder::startListeningForIPC()
+{
+    Ref forwarder = RemoteCGRendererRecorder::createMessageReceiver(*m_recorder);
+    m_renderingBackend->streamConnection().startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+}
+
+void RemoteSnapshotRecorder::stopListeningForIPC()
+{
+    m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+}
+
+Ref<RemoteSnapshot> RemoteSnapshotRecorder::snapshot() const
+{
+    return m_snapshot;
+}
+
+void RemoteSnapshotRecorder::sinkIntoSnapshotFrame(FrameIdentifier frameIdentifier, SerialFunctionDispatcher& releaseDispatcher)
+{
+    m_snapshot->setFrame(frameIdentifier, WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder->takeRecording()), releaseDispatcher);
+}
+
+#else
 
 Ref<RemoteSnapshotRecorder> RemoteSnapshotRecorder::create(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
 {
@@ -78,6 +128,8 @@ void RemoteSnapshotRecorder::drawSnapshotFrame(FrameIdentifier frameIdentifier)
         ASSERT_UNUSED(result, result); // Programming error, consistency checked with isComplete().
     });
 }
+
+#endif
 
 }
 

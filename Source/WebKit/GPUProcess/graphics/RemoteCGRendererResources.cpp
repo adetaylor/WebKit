@@ -36,6 +36,7 @@
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
 #include "RemoteSharedResourceCache.h"
+#include "RemoteSnapshot.h"
 #include "SharedFont.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SharedVideoFrame.h"
@@ -61,17 +62,64 @@
 namespace WebKit {
 using namespace WebCore;
 
-RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend& backend, ImageBuffer& target)
+Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::create()
+{
+    return adoptRef(*new RemoteCGRendererRecordedResources);
+}
+
+RemoteCGRendererRecordedResources::RemoteCGRendererRecordedResources() = default;
+
+RemoteCGRendererRecordedResources::~RemoteCGRendererRecordedResources() = default;
+
+Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRecorder(RemoteRenderingBackend& backend, RemoteSnapshot* snapshot)
+{
+    return adoptRef(*new RemoteCGRendererResources(&backend, nullptr, nullptr, snapshot));
+}
+
+RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend* backend, ImageBuffer* target, GraphicsContextCG* targetContext, RemoteSnapshot* snapshot)
     : m_backend(backend)
     , m_target(target)
+    , m_targetContext(targetContext)
+    , m_snapshot(snapshot)
+    , m_recordedResources(RemoteCGRendererRecordedResources::create())
 {
 }
 
-RemoteCGRendererResources::~RemoteCGRendererResources() = default;
+RemoteCGRendererResources::~RemoteCGRendererResources()
+{
+    ASSERT(m_replayedResources.isEmpty());
+}
+
+GraphicsContextCG& RemoteCGRendererResources::targetContext() const
+{
+    if (m_target)
+        return static_cast<GraphicsContextCG&>(m_target->context());
+    RELEASE_ASSERT(m_targetContext);
+    return *m_targetContext;
+}
+
+void RemoteCGRendererResources::beginReplay(RemoteCGRendererRecordedResources& resources) const
+{
+    m_replayedResources.append(resources);
+}
+
+void RemoteCGRendererResources::endReplay() const
+{
+    m_replayedResources.removeLast();
+}
+
+RefPtr<PathImpl> RemoteCGRendererResources::cachedPathImpl(RemotePathImplIdentifier identifier) const
+{
+    if (isReplaying())
+        return m_replayedResources.last()->m_paths.get(identifier);
+    if (!m_backend)
+        return nullptr;
+    return m_backend->remoteResourceCache().cachedPathImpl(identifier);
+}
 
 RemoteCGRendererPath RemoteCGRendererResources::cachedPath(RemotePathImplIdentifier identifier) const
 {
-    RefPtr pathImpl = m_backend->remoteResourceCache().cachedPathImpl(identifier);
+    RefPtr pathImpl = cachedPathImpl(identifier);
     if (!pathImpl)
         return { };
     return RemoteCGRendererPath { pathImpl.releaseNonNull() };
@@ -88,11 +136,19 @@ static CGImageRef copyImage(const NativeImage& image, CGRendererImageFacts& fact
 
 RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResourceIdentifier identifier) const
 {
+    if (isReplaying())
+        return m_replayedResources.last()->m_nativeImages.get(identifier);
+    if (!m_backend)
+        return nullptr;
     return m_backend->remoteResourceCache().cachedNativeImage(identifier);
 }
 
 RefPtr<SharedFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
 {
+    if (isReplaying())
+        return m_replayedResources.last()->m_fonts.get(identifier);
+    if (!m_backend)
+        return nullptr;
     return m_backend->remoteResourceCache().cachedFont(identifier);
 }
 
@@ -107,17 +163,21 @@ RemoteCGRendererGlyphPreparationResult RemoteCGRendererGlyphDraw::prepare(const 
 {
     m_preparation = std::nullopt;
     m_positions.clear();
-    m_glyphs.clear();
-    m_glyphs.append(glyphs.glyphs());
-    // At the precision of RemoteGraphicsContext's DrawGlyphs, so that the run draws as it does there.
-    m_advances.clear();
-    m_advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) {
-        return GlyphBufferAdvance { static_cast<float>(advance.width), static_cast<float>(advance.height) };
-    });
+    m_drawsRecordedRun = glyphs.isRecorded();
+    if (!m_drawsRecordedRun) {
+        m_glyphs.clear();
+        m_glyphs.append(glyphs.glyphs());
+        // At the precision of RemoteGraphicsContext's DrawGlyphs, so that the run draws as it does there.
+        m_advances.clear();
+        m_advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) {
+            return GlyphBufferAdvance { static_cast<float>(advance.width), static_cast<float>(advance.height) };
+        });
+    }
+    auto runGlyphs = m_drawsRecordedRun ? glyphs.glyphs() : m_glyphs.span();
     RefPtr font = resources.cachedFont(fontIdentifier);
     if (!font)
         return { false, false };
-    auto& context = static_cast<GraphicsContextCG&>(resources.target().context());
+    auto& context = resources.targetContext();
     // The fill color is only for the shadow's.
     std::optional<Color> simpleShadowColor;
     std::optional<Color> fillColor;
@@ -125,10 +185,10 @@ RemoteCGRendererGlyphPreparationResult RemoteCGRendererGlyphDraw::prepare(const 
         simpleShadowColor = CGRendererColorFromValue(glyphContext.shadowColor);
         fillColor = CGRendererColorFromValue(glyphContext.fillColor);
     }
-    m_preparation.emplace(*font, m_glyphs.span(), smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor ? *fillColor : Color::black, context.colorSpace(), context.isInTransparencyLayer() || glyphContext.hasReceiverTransparencyLayer);
+    m_preparation.emplace(*font, runGlyphs, smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor ? *fillColor : Color::black, context.colorSpace(), context.isInTransparencyLayer() || glyphContext.hasReceiverTransparencyLayer);
     if (!m_preparation->draws() || !m_preparation->font())
         return { true, false };
-    m_positions.grow(m_glyphs.size());
+    m_positions.grow(runGlyphs.size());
     return { true, true };
 }
 
@@ -139,12 +199,140 @@ CGColorRef copyGlyphShadowFillColor(const RemoteCGRendererGlyphDraw& draw)
 
 RefPtr<Gradient> RemoteCGRendererResources::cachedGradient(RemoteGradientIdentifier identifier) const
 {
+    if (isReplaying())
+        return m_replayedResources.last()->m_gradients.get(identifier);
+    if (!m_backend)
+        return nullptr;
     return m_backend->remoteResourceCache().cachedGradient(identifier);
 }
 
 RefPtr<ImageBuffer> RemoteCGRendererResources::imageBuffer(RenderingResourceIdentifier identifier) const
 {
+    if (isReplaying())
+        return m_replayedResources.last()->m_imageBuffers.get(identifier);
+    if (!m_backend)
+        return nullptr;
     return m_backend->imageBuffer(identifier);
+}
+
+RefPtr<MeshGradient> RemoteCGRendererResources::cachedMeshGradient(RemoteMeshGradientIdentifier identifier) const
+{
+    if (isReplaying())
+        return m_replayedResources.last()->m_meshGradients.get(identifier);
+    if (!m_backend)
+        return nullptr;
+    return m_backend->remoteResourceCache().cachedMeshGradient(identifier);
+}
+
+RefPtr<Filter> RemoteCGRendererResources::cachedFilter(RenderingResourceIdentifier identifier) const
+{
+    if (isReplaying())
+        return m_replayedResources.last()->m_filters.get(identifier);
+    if (!m_backend)
+        return nullptr;
+    return m_backend->remoteResourceCache().cachedFilter(identifier);
+}
+
+template<typename Map, typename Key, typename Value>
+static bool addRecorded(Map& map, Key key, RefPtr<Value>&& value)
+{
+    if (!value)
+        return false;
+    map.add(key, value.releaseNonNull());
+    return true;
+}
+
+bool RemoteCGRendererResources::recordPath(RemotePathImplIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_paths, identifier, cachedPathImpl(identifier));
+}
+
+bool RemoteCGRendererResources::recordNativeImage(RenderingResourceIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_nativeImages, identifier, cachedNativeImage(identifier));
+}
+
+bool RemoteCGRendererResources::recordImageBuffer(RenderingResourceIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_imageBuffers, identifier, imageBuffer(identifier));
+}
+
+bool RemoteCGRendererResources::recordGradient(RemoteGradientIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_gradients, identifier, cachedGradient(identifier));
+}
+
+bool RemoteCGRendererResources::recordFont(RenderingResourceIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_fonts, identifier, cachedFont(identifier));
+}
+
+bool RemoteCGRendererResources::recordMeshGradient(RemoteMeshGradientIdentifier identifier) const
+{
+    return addRecorded(m_recordedResources->m_meshGradients, identifier, cachedMeshGradient(identifier));
+}
+
+bool RemoteCGRendererResources::recordFilter(std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter) const
+{
+    if (sourceImageIdentifier && !recordImageBuffer(*sourceImageIdentifier))
+        return false;
+    for (auto& effect : filter->effectsOfType(FilterEffect::Type::FEImage)) {
+        auto imageIdentifier = downcast<FEImage>(effect.get()).sourceImage().imageIdentifier();
+        if (!recordNativeImage(imageIdentifier) && !recordImageBuffer(imageIdentifier))
+            return false;
+    }
+    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
+    if (!svgFilter || !svgFilter->hasValidRenderingResourceIdentifier())
+        return true;
+    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(cachedFilter(filter->renderingResourceIdentifier()));
+    if (!cachedSVGFilter)
+        return false;
+    cachedSVGFilter->mergeEffects(svgFilter->effects());
+    m_recordedResources->m_filters.set(filter->renderingResourceIdentifier(), cachedSVGFilter.releaseNonNull());
+    return true;
+}
+
+#if USE(SYSTEM_PREVIEW)
+bool RemoteCGRendererResources::recordBadgeImage(std::optional<RenderingResourceIdentifier> imageIdentifier) const
+{
+    return !imageIdentifier || recordNativeImage(*imageIdentifier);
+}
+#endif
+
+Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRerecording()
+{
+    Ref resources = adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, nullptr, nullptr));
+    resources->m_isRerecording = true;
+    return resources;
+}
+
+bool RemoteCGRendererResources::addSnapshotFrameReference(FrameIdentifier frameIdentifier) const
+{
+    if (!m_snapshot)
+        return m_isRerecording;
+    m_snapshot->addFrameReference(frameIdentifier);
+    return true;
+}
+
+Ref<RemoteCGRendererRecordedResources> RemoteCGRendererResources::takeRecordedResources() const
+{
+    return std::exchange(m_recordedResources, RemoteCGRendererRecordedResources::create());
+}
+
+RemoteCGRendererRecordedResources* takeRecordedResources(const RemoteCGRendererResources& resources)
+{
+    return &resources.takeRecordedResources().leakRef();
+}
+
+void replayIntoContext(GraphicsContextCG& context, NOESCAPE const Function<void(CGRendererCore&, RemoteCGRendererResources&)>& draw)
+{
+    context.addSwiftRendererLender();
+    {
+        Ref resources = RemoteCGRendererResources::createForReplay(context);
+        auto lend = GraphicsContextCG::lendSwiftRenderer(context);
+        draw(lend.state(), resources);
+    }
+    context.removeSwiftRendererLender();
 }
 
 CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const FloatRect& sourceRect, RasterDrawingOptions options, CGRendererImageFacts& facts)
@@ -167,8 +355,7 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
     if (!imageBuffer)
         return nullptr;
     facts.found = true;
-    Ref target = resources.target();
-    if (clonesAcceleratedTarget && imageBuffer == target.ptr() && imageBuffer->renderingMode() == RenderingMode::Accelerated) {
+    if (clonesAcceleratedTarget && imageBuffer == resources.targetImageBuffer() && imageBuffer->renderingMode() == RenderingMode::Accelerated) {
         imageBuffer = imageBuffer->clone();
         if (!imageBuffer)
             return nullptr;
@@ -177,7 +364,7 @@ CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, Rend
         resources.setSelfCopy(RefPtr { imageBuffer });
     }
     facts.resolutionScale = imageBuffer->resolutionScale();
-    RefPtr image = static_cast<GraphicsContextCG&>(target->context()).nativeImageForSwiftReceiver(*imageBuffer);
+    RefPtr image = resources.targetContext().nativeImageForSwiftReceiver(*imageBuffer);
     if (!image) {
         resources.releaseSelfCopy();
         facts.isSelfCopy = false;
@@ -211,7 +398,7 @@ CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& r
 {
     RefPtr tileImageBuffer = resources.imageBuffer(identifier);
     found = !!tileImageBuffer;
-    drawsIntoTarget = tileImageBuffer.get() == &resources.target();
+    drawsIntoTarget = tileImageBuffer && tileImageBuffer.get() == resources.targetImageBuffer();
     if (!tileImageBuffer || drawsIntoTarget)
         return { };
     return CGRendererBrushSource { WebCore::Pattern::create({ tileImageBuffer.releaseNonNull() }, parameters) };
@@ -242,6 +429,7 @@ ControlFactory& RemoteCGRendererResources::controlFactory() const
 SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() const
 {
     if (!m_sharedVideoFrameReader) {
+        RELEASE_ASSERT(m_backend);
         Ref gpuConnectionToWebProcess = m_backend->gpuConnectionToWebProcess();
         m_sharedVideoFrameReader = makeUnique<SharedVideoFrameReader>(Ref { gpuConnectionToWebProcess->videoFrameObjectHeap() }, gpuConnectionToWebProcess->webProcessIdentity());
     }
@@ -251,7 +439,7 @@ SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() cons
 
 bool drawMeshGradient(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, RemoteMeshGradientIdentifier identifier, const FloatRect& destination)
 {
-    RefPtr gradient = resources.backend().remoteResourceCache().cachedMeshGradient(identifier);
+    RefPtr gradient = resources.cachedMeshGradient(identifier);
     if (!gradient)
         return false;
     leaf.context().drawMeshGradient(*gradient, destination);
@@ -278,26 +466,26 @@ bool hasFilterSources(const RemoteCGRendererResources& resources, std::optional<
     }
     RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
     if (svgFilter && svgFilter->hasValidRenderingResourceIdentifier())
-        return is<SVGFilterRenderer>(resources.backend().remoteResourceCache().cachedFilter(filter->renderingResourceIdentifier()));
+        return is<SVGFilterRenderer>(resources.cachedFilter(filter->renderingResourceIdentifier()));
     return true;
 }
 
-static bool useIOSurfaceWebKitBehavior(const RemoteCGRendererResources& resources)
+static bool useIOSurfaceWebKitBehavior(RemoteRenderingBackend& backend)
 {
 #if USE(APPLE_INTERNAL_SDK)
-    auto preferences = resources.backend().sharedPreferencesForWebProcess();
+    auto preferences = backend.sharedPreferencesForWebProcess();
     return preferences && preferences->useIOSurfaceWebKitBehavior;
 #else
-    UNUSED_PARAM(resources);
+    UNUSED_PARAM(backend);
     return false;
 #endif
 }
 
-static std::unique_ptr<ImageBufferAllocator> filterResultsAllocator(const RemoteCGRendererResources& resources)
+static std::unique_ptr<ImageBufferAllocator> filterResultsAllocator(RemoteRenderingBackend& backend)
 {
-    Ref sharedResourceCache = resources.backend().sharedResourceCache();
+    Ref sharedResourceCache = backend.sharedResourceCache();
 #if HAVE(IOSURFACE)
-    return makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner(), &sharedResourceCache->ioSurfacePool(), useIOSurfaceWebKitBehavior(resources));
+    return makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner(), &sharedResourceCache->ioSurfacePool(), useIOSurfaceWebKitBehavior(backend));
 #else
     return makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner());
 #endif
@@ -321,16 +509,30 @@ bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRende
     };
 
     RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
-    if (!svgFilter || !svgFilter->hasValidRenderingResourceIdentifier()) {
-        FilterResults results(filterResultsAllocator(resources));
+    bool namesCachedFilter = svgFilter && svgFilter->hasValidRenderingResourceIdentifier();
+    // A recording's filter, which DisplayList's DrawFilteredImageBuffer draws with results of its own: the recorder merged
+    // the message's effects into the cached filter it named.
+    if (resources.isReplaying()) {
+        RefPtr<Filter> filterToDraw = filter.ptr();
+        if (namesCachedFilter)
+            filterToDraw = resources.cachedFilter(filter->renderingResourceIdentifier());
+        FilterResults results;
+        draw(*filterToDraw, results);
+        return true;
+    }
+
+    RefPtr backend = resources.backend();
+    RELEASE_ASSERT(backend);
+    if (!namesCachedFilter) {
+        FilterResults results(filterResultsAllocator(*backend));
         draw(filter.get(), results);
         return true;
     }
 
-    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(resources.backend().remoteResourceCache().cachedFilter(filter->renderingResourceIdentifier()));
+    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(resources.cachedFilter(filter->renderingResourceIdentifier()));
     cachedSVGFilter->mergeEffects(svgFilter->effects());
     auto& results = cachedSVGFilter->ensureResults([&] {
-        return makeUnique<FilterResults>(filterResultsAllocator(resources));
+        return makeUnique<FilterResults>(filterResultsAllocator(*backend));
     });
     draw(*cachedSVGFilter, results);
     return true;
@@ -378,6 +580,12 @@ CGImageRef copyVideoFrameImage(const RemoteCGRendererResources& resources, const
         return nullptr;
     hasAlpha = image->hasAlpha();
     return copyImage(*image, facts);
+}
+
+void RemoteCGRendererResources::readVideoFrame(const SharedVideoFrame& frame) const
+{
+    RefPtr videoFrame = sharedVideoFrameReader().read(SharedVideoFrame { frame });
+    UNUSED_VARIABLE(videoFrame);
 }
 
 void setSharedVideoFrameSemaphore(const RemoteCGRendererResources& resources, const IPC::Semaphore& semaphore)

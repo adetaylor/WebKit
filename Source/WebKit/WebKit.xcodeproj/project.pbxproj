@@ -2964,6 +2964,7 @@
 		3625771CD7ED2C7CCF7238E1 /* MockPhoneNumberPossessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34FC558120E9C9FB6C819C9C /* MockPhoneNumberPossessionManager.swift */; };
 		BDF984687F78F9AEAFFC464E /* RemoteCDMBackends.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA4250C49D586D2E9E4F44AC /* RemoteCDMBackends.swift */; };
 		D8D616A7F7F3455CA884F6FD /* RemoteCGRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */; };
+		A1C6E2B4F70D4E1C9B3A5D01 /* RemoteCGRendererRecording.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D7F3C5081E4F2DAC4B6E02 /* RemoteCGRendererRecording.swift */; };
 		55245171CEFE4BC6A61D9592 /* RemoteCGRendererMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F709CB0803B4FAABC70FEA3 /* RemoteCGRendererMessageReceiver.swift */; };
 		2E1C319591F54D82AEF6A776 /* WebCoreSwiftForWebKit.h in Headers */ = {isa = PBXBuildFile; fileRef = BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */; };
 		50749696CA9B4EB5A41421E6 /* RemoteXRBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF84F849A4AE43E387DD4623 /* RemoteXRBinding.swift */; };
@@ -9622,6 +9623,7 @@
 		EA4250C49D586D2E9E4F44AC /* RemoteCDMBackends.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMBackends.swift; sourceTree = "<group>"; };
 		11149EDF3516470F8D885252 /* RemoteCGRenderer.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteCGRenderer.messages.in; sourceTree = "<group>"; };
 		0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCGRenderer.swift; sourceTree = "<group>"; };
+		B2D7F3C5081E4F2DAC4B6E02 /* RemoteCGRendererRecording.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCGRendererRecording.swift; sourceTree = "<group>"; };
 		45302C7EC4D649C7835F5249 /* RemoteCGRendererGlyphs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererGlyphs.h; sourceTree = "<group>"; };
 		E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineDash.h; sourceTree = "<group>"; };
 		20166B90E8394C948FB307D4 /* RemoteCGRendererLineSegments.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineSegments.h; sourceTree = "<group>"; };
@@ -9629,6 +9631,8 @@
 		7FE2364DA2A340CCA51DF350 /* RemoteCGRendererPath.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererPath.h; sourceTree = "<group>"; };
 		E64B39A517BD4E74B58B8B96 /* RemoteCGRendererPathSegment.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererPathSegment.h; sourceTree = "<group>"; };
 		9E4B3867A39642CD864F598C /* RemoteCGRendererResources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCGRendererResources.cpp; sourceTree = "<group>"; };
+		C3E8A4D6192F4A3EBD5C7F03 /* RemoteSnapshotPrintData.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotPrintData.cpp; sourceTree = "<group>"; };
+		D4F9B5E72A304B4FCE6D8A04 /* RemoteSnapshotPrintData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshotPrintData.h; sourceTree = "<group>"; };
 		9F97BFABF48446B394A9EA85 /* RemoteCGRendererResources.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererResources.h; sourceTree = "<group>"; };
 		A6E9A35A7E714F59B93E62E2 /* RemoteCGRendererShadow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererShadow.h; sourceTree = "<group>"; };
 		8AB777679BF34A7C9DD980FB /* RemoteCGRendererStyle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererStyle.h; sourceTree = "<group>"; };
@@ -11710,6 +11714,8 @@
 		1C98C01C27446926002CCB78 /* WebGPU */ = {
 			isa = PBXGroup;
 			children = (
+				822EB46605F84013BA73089D /* PrepareForDisplayReply.h */,
+				0E4E3A405C2E4C4E90ABC00E /* PrepareForDisplayReply.serialization.in */,
 				1C98C0912744BD9A002CCB78 /* RemoteAdapter.messages.in */,
 				B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */,
 				1C98C0922744BD9B002CCB78 /* RemoteBindGroup.messages.in */,
@@ -11722,8 +11728,6 @@
 				C20B9871C9DBF3E49E10FFA4 /* RemoteCommandBuffer.swift */,
 				1C98C0952744BD9B002CCB78 /* RemoteCommandEncoder.messages.in */,
 				91F73EDA391A690F2183C483 /* RemoteCommandEncoder.swift */,
-				822EB46605F84013BA73089D /* PrepareForDisplayReply.h */,
-				0E4E3A405C2E4C4E90ABC00E /* PrepareForDisplayReply.serialization.in */,
 				1C4F5A1D297CB57B005BBEE9 /* RemoteCompositorIntegration.messages.in */,
 				EE26B6AADA8FADC802E50A44 /* RemoteCompositorIntegration.swift */,
 				1C98C0932744BD9B002CCB78 /* RemoteComputePassEncoder.messages.in */,
@@ -12286,8 +12290,8 @@
 				71722EB02EA919E9004218E6 /* RemoteProgressBasedTimelineRegistry.cpp */,
 				71722EAF2EA919E9004218E6 /* RemoteProgressBasedTimelineRegistry.h */,
 				0F594794187B3B6000437857 /* RemoteScrollingCoordinatorProxy.cpp */,
-				64A3CFA4D7034F308B3207B9 /* RemoteScrollingCoordinatorProxy.swift */,
 				0F594795187B3B6000437857 /* RemoteScrollingCoordinatorProxy.h */,
+				64A3CFA4D7034F308B3207B9 /* RemoteScrollingCoordinatorProxy.swift */,
 				0F594796187B3B6000437857 /* RemoteScrollingTree.cpp */,
 				0F594797187B3B6000437857 /* RemoteScrollingTree.h */,
 			);
@@ -14003,7 +14007,6 @@
 				DDCF2237C31F1BA3C820D6EB /* IPCSwiftStreamTesterMessageReceiver.swift */,
 				F342E2A80C3E34C3D1E95859 /* IPCSwiftWorkQueueTesterMessageReceiver.swift */,
 				5C448C652EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift */,
-				12464BCBBDD4E0073147E8AA /* RemoteCDMInstanceSessionProxyMessageReceiver.swift */,
 				2984F586164BA095004BC0C6 /* LegacyCustomProtocolManagerMessageReceiver.cpp */,
 				2984F587164BA095004BC0C6 /* LegacyCustomProtocolManagerMessages.h */,
 				2984F57A164B915F004BC0C6 /* LegacyCustomProtocolManagerProxyMessageReceiver.cpp */,
@@ -14084,6 +14087,7 @@
 				CD466181240105640047CA35 /* RemoteCDMInstanceSessionMessageReceiver.cpp */,
 				CD466182240105640047CA35 /* RemoteCDMInstanceSessionMessages.h */,
 				CDAC20EC23FC38380021DEE3 /* RemoteCDMInstanceSessionProxyMessageReceiver.cpp */,
+				12464BCBBDD4E0073147E8AA /* RemoteCDMInstanceSessionProxyMessageReceiver.swift */,
 				CDAC20ED23FC38380021DEE3 /* RemoteCDMInstanceSessionProxyMessages.h */,
 				CDAC20EF23FC38390021DEE3 /* RemoteCDMProxyMessageReceiver.cpp */,
 				4A1E1F5AC7DF3C6BE07B1F44 /* RemoteCDMProxyMessageReceiver.swift */,
@@ -15091,6 +15095,7 @@
 				B1372BAAE5C24A7289E58930 /* RemoteCGRendererLineStrokes.h */,
 				7FE2364DA2A340CCA51DF350 /* RemoteCGRendererPath.h */,
 				E64B39A517BD4E74B58B8B96 /* RemoteCGRendererPathSegment.h */,
+				B2D7F3C5081E4F2DAC4B6E02 /* RemoteCGRendererRecording.swift */,
 				9E4B3867A39642CD864F598C /* RemoteCGRendererResources.cpp */,
 				9F97BFABF48446B394A9EA85 /* RemoteCGRendererResources.h */,
 				A6E9A35A7E714F59B93E62E2 /* RemoteCGRendererShadow.h */,
@@ -15136,6 +15141,8 @@
 				7BDC88132E734E2F00C7A37F /* RemoteSnapshotIdentifier.h */,
 				49041213C2405A7837C0F277 /* RemoteSnapshotPDFDrawingTask.cpp */,
 				3E6A2C795914EBF83BAFCF4D /* RemoteSnapshotPDFDrawingTask.h */,
+				C3E8A4D6192F4A3EBD5C7F03 /* RemoteSnapshotPrintData.cpp */,
+				D4F9B5E72A304B4FCE6D8A04 /* RemoteSnapshotPrintData.h */,
 				7BDC880F2E72DA2100C7A37F /* RemoteSnapshotRecorder.cpp */,
 				7BDC880E2E72DA2100C7A37F /* RemoteSnapshotRecorder.h */,
 				A76EFA982E7244510022429C /* RemoteSnapshotRecorder.messages.in */,
@@ -22718,8 +22725,6 @@
 				6954CC3CDAFC5D8F4C91FDA6 /* IPCSwiftWorkQueueTester.swift in Sources */,
 				0575BEA2351F31BBF39CC6C9 /* IPCSwiftWorkQueueTesterMessageReceiver.swift in Sources */,
 				5CF250AF2EE06491006A7172 /* IPCTesterReceiver.swift in Sources */,
-				D94A0CB32963988E08E39998 /* RemoteCDMInstanceSessionProxyMessageReceiver.swift in Sources */,
-				C1F221367DC80B2D11331F6F /* RemoteCDMInstanceSessionProxy.swift in Sources */,
 				5C448C662EE06E11008931C7 /* IPCTesterReceiverMessageReceiver.swift in Sources */,
 				077F49BC3036E23900861A64 /* JavaScriptEvaluationArrayDecoder.swift in Sources */,
 				07EB34D93037F60700B217DD /* JavaScriptEvaluationCodableValue.swift in Sources */,
@@ -22746,6 +22751,7 @@
 				AD00CE0C2E1A000000000004 /* MessageCheck.swift in Sources */,
 				3625771CD7ED2C7CCF7238E1 /* MockPhoneNumberPossessionManager.swift in Sources */,
 				EBA8D3B627A5E33F00CB7900 /* MockPushServiceConnection.mm in Sources */,
+				07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */,
 				57B826452304F14000B72EB0 /* NearFieldSoftLink.mm in Sources */,
 				C1C1B30F2540F50D00D9100B /* NetworkConnectionToWebProcessMac.mm in Sources */,
 				41E242E026E0C908009A8C64 /* NetworkRTCUtilitiesCocoa.mm in Sources */,
@@ -22788,10 +22794,13 @@
 				F50B56AC6615BC9A9822B44F /* RemoteCDMFactoryProxyMessageReceiver.swift in Sources */,
 				CA678D5B4DF7D49ECD183D58 /* RemoteCDMInstanceProxy.swift in Sources */,
 				F402B3F402DFBD93CABE6F75 /* RemoteCDMInstanceProxyMessageReceiver.swift in Sources */,
+				C1F221367DC80B2D11331F6F /* RemoteCDMInstanceSessionProxy.swift in Sources */,
+				D94A0CB32963988E08E39998 /* RemoteCDMInstanceSessionProxyMessageReceiver.swift in Sources */,
 				4CE9100D75E4D8BA2750538C /* RemoteCDMProxy.swift in Sources */,
 				367C194497AF283FC69D36AD /* RemoteCDMProxyMessageReceiver.swift in Sources */,
 				D8D616A7F7F3455CA884F6FD /* RemoteCGRenderer.swift in Sources */,
 				55245171CEFE4BC6A61D9592 /* RemoteCGRendererMessageReceiver.swift in Sources */,
+				A1C6E2B4F70D4E1C9B3A5D01 /* RemoteCGRendererRecording.swift in Sources */,
 				09EC92B83A015B1046A1E4D1 /* RemoteCommandBuffer.swift in Sources */,
 				9FE00196C18CBAD266AC9430 /* RemoteCommandBufferMessageReceiver.swift in Sources */,
 				EE565FE77B9B43E660B85F5B /* RemoteCommandEncoder.swift in Sources */,
@@ -22813,6 +22822,7 @@
 				ECA02C19728F92852198F01F /* RemoteGraphicsContextGLFunctionsGenerated.swift in Sources */,
 				44BA5474555233023B0DFBE8 /* RemoteGraphicsContextGLMessageReceiver.swift in Sources */,
 				2D72A1FA212BF46E00517A20 /* RemoteLayerTreeDrawingArea.mm in Sources */,
+				D38F0AEA0C334076B96BECFA /* RemoteLayerTreeEventDispatcher.swift in Sources */,
 				2DC18FB4218A6E9E0025A88D /* RemoteLayerTreeViews.mm in Sources */,
 				0701789E23BE9CFC005F0FAA /* RemoteMediaPlayerMIMETypeCache.cpp in Sources */,
 				DB7D4E2D5DFF32569EFF777A /* RemotePipelineLayout.swift in Sources */,
@@ -22834,6 +22844,8 @@
 				341158B326284441995DA83B /* RemoteRenderPipelineMessageReceiver.swift in Sources */,
 				63CAB87C31D7746E018E693A /* RemoteSampler.swift in Sources */,
 				B63648AB4046B9937840A98A /* RemoteSamplerMessageReceiver.swift in Sources */,
+				18772EF8BB8046AF8CEA0E0B /* RemoteScrollingCoordinator.swift in Sources */,
+				15F91CB834EE4CD8B8B66EC5 /* RemoteScrollingCoordinatorProxy.swift in Sources */,
 				1AF572302D690813008266F2 /* RemoteScrollingTreeCocoa.mm in Sources */,
 				E9B359F98E993DCAE216EA11 /* RemoteShaderModule.swift in Sources */,
 				7255C2D17E57B8B386EC3848 /* RemoteShaderModuleMessageReceiver.swift in Sources */,
@@ -23223,10 +23235,6 @@
 				078074F93029A874005492F5 /* WKDOMDoubleClickGestureRecognizer.swift in Sources */,
 				637281A321ADC744009E0DE6 /* WKDownloadProgress.mm in Sources */,
 				07F0337C30107D3900B69551 /* WKFastScrollTracker.swift in Sources */,
-				07D1FE3E79C141B7B597EEBA /* MomentumEventDispatcher.swift in Sources */,
-				18772EF8BB8046AF8CEA0E0B /* RemoteScrollingCoordinator.swift in Sources */,
-				D38F0AEA0C334076B96BECFA /* RemoteLayerTreeEventDispatcher.swift in Sources */,
-				15F91CB834EE4CD8B8B66EC5 /* RemoteScrollingCoordinatorProxy.swift in Sources */,
 				5CE9120D2293C219005BEC78 /* WKMain.mm in Sources */,
 				E502E4F82D4810EA00C3D56D /* WKMaterialHostingSupport.swift in Sources */,
 				07FEBC9A2E035A8B004A6D5D /* WKMouseDeviceObserver.swift in Sources */,

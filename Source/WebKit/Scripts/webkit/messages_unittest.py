@@ -683,6 +683,26 @@ messages -> TestReceiver Stream {
         self.assertEqual([message.name for message in source.messages], ['First', 'Second', 'WithReply'])
         self.assertFalse(source.messages[1].has_attribute('SwiftMayDecline'))
 
+    def test_attribute_lines_are_not_messages(self):
+        source = self.parse(self.source)
+        taker = self.parse("""
+[
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    ExceptionForEnabledBy,
+    SwiftReceiver,
+    SwiftReceiverStateLender=WebKit::Lender,
+    MessagesFrom=SourceReceiver,
+    Recordable
+]
+messages -> TestReceiver Stream {
+    First
+}
+""")
+        parser.resolve_message_references([taker, source])
+        self.assertTrue(taker.is_recordable())
+        self.assertEqual([message.name for message in taker.messages], ['First'])
+
     def test_errors(self):
         source = self.parse(self.source)
         taker = self.parse(self.taker % (', MessagesFrom=SourceReceiver', '    Missing'))

@@ -45,6 +45,7 @@
 #include "RemoteCGRendererStyle.h"
 #include "RemoteResourceCache.h"
 #include "WebKit-Swift.h"
+#include <WebCore/DisplayListRecorderImpl.h>
 #include <WebCore/Gradient.h>
 #endif
 
@@ -86,7 +87,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             m_isSwiftRendererLender = true;
         }
         Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_imageBuffer);
-        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr());
+        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), m_renderingBackend->cgRendererDisplayLists());
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
     } else
@@ -227,9 +228,26 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(SetSharedVideoFrameSemaphore, &RemoteImageBufferGraphicsContext::setSharedVideoFrameSemaphore)
     HANDLE_CG_RENDERER_MESSAGE(SetSharedVideoFrameMemory, &RemoteImageBufferGraphicsContext::setSharedVideoFrameMemory)
 #endif
+    HANDLE_CG_RENDERER_MESSAGE(DrawDisplayList, &RemoteImageBufferGraphicsContext::drawRecordedDisplayList)
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
+}
+
+// Only an image buffer whose drawing is recorded has a context that can't lend its renderer: the display list, recorded in
+// Swift, is drawn where the buffer's drawing is drawn, into a context that lends its renderer for it.
+void RemoteImageBufferGraphicsContext::drawRecordedDisplayList(RemoteDisplayListIdentifier identifier)
+{
+    auto recording = m_renderingBackend->cgRendererDisplayLists().recording(displayListKey(identifier));
+    MESSAGE_CHECK(recording);
+    RELEASE_ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
+    static_cast<DisplayList::RecorderImpl&>(context()).drawPlaceholder([recording = recording.get()](GraphicsContext& context) mutable {
+        if (!context.canLendSwiftRenderer())
+            return;
+        replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
+            recording.draw(state, &resources);
+        });
+    });
 }
 
 void RemoteImageBufferGraphicsContext::setFillPackedColorValue(uint32_t color)

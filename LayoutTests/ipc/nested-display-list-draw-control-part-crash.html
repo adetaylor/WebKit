@@ -14,7 +14,7 @@ async function main() {
     if (!window.IPC)
         return;
 
-    const { CoreIPC, ArgumentSerializer, StreamConnection, sRGBColorSpace } = await import('./coreipc.js');
+    const { CoreIPC, ArgumentSerializer, StreamConnection, sRGBColorSpace, drawingInterfaceName } = await import('./coreipc.js');
 
     // CoreIPC.js aliases RetainPtr<CGColorSpaceRef> -> CoreIPCCGColorSpace, but the
     // generated coder wraps it in a leading `bool isEngaged`. Override the field type
@@ -79,7 +79,7 @@ async function main() {
             contextIdentifier: graphicsContextIdentifier
         });
         return {
-            remoteGraphicsContext: rb.streamConnection.newInterface("RemoteGraphicsContext", graphicsContextIdentifier),
+            remoteGraphicsContext: rb.streamConnection.newInterface(drawingInterfaceName(), graphicsContextIdentifier),
             graphicsContextIdentifier
         };
     }
@@ -88,7 +88,7 @@ async function main() {
         const recorderIdentifier = genId();
         rb.remoteRenderingBackend.CreateDisplayListRecorder({ identifier: recorderIdentifier });
         return {
-            remoteGraphicsContext: rb.streamConnection.newInterface("RemoteGraphicsContext", recorderIdentifier),
+            remoteGraphicsContext: rb.streamConnection.newInterface(drawingInterfaceName(), recorderIdentifier),
             recorderIdentifier
         };
     }

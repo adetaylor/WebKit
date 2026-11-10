@@ -83,24 +83,63 @@ private func bezierCurveSegment(_ curve: WebCore.PathDataBezierCurve) -> CGRende
 
 // Receives the RemoteCGRenderer messages of an image buffer's context, on its stream connection's work queue, and draws
 // them with the context's Swift CG renderer, as RemoteGraphicsContext and GraphicsContextCG would. The context lends each
-// handler its renderer, stored in place, as the handler's state; a draw the renderer declines goes back to the context,
-// through RemoteImageBufferGraphicsContext, once the renderer is no longer lent.
+// handler its renderer, stored in place, as the handler's state. The same handlers replay recordings of the messages
+// (RemoteCGRendererRecording), into an image buffer's context or another that lends its renderer for the replay.
 @_expose(Cxx)
 final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
     private let resources: WebKit.RemoteCGRendererResources
+    private let displayLists: RemoteCGRendererDisplayLists?
+    private let snapshotFrames: RemoteCGRendererSnapshotFrames?
+    // The recordings being replayed, innermost last, and the transforms that their SetCTMs are relative to.
+    private var replayedRecordings: [RemoteCGRendererRecording] = []
+    private var replayBaseTransforms: [CGAffineTransform] = []
+    // How many recordings replayedRecordings has, which a DrawDisplayList reads without an access to the array.
+    private var replayDepth = 0
 
     @_expose(!Cxx)
-    private init(resources: WebKit.RemoteCGRendererResources) {
+    private init(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists?, snapshotFrames: RemoteCGRendererSnapshotFrames?) {
         self.resources = resources
+        self.displayLists = displayLists
+        self.snapshotFrames = snapshotFrames
     }
 
     // A new receiver, and the forwarder of its messages, which keeps it, as the stream connection the C++ registers the
     // forwarder with keeps the forwarder. Only C++ calls it, so @used keeps it under -O -wmo (rdar://179098545).
     @used
-    static func createMessageReceiver(resources: WebKit.RemoteCGRendererResources) -> RefRemoteCGRendererMessageForwarder {
-        WebKit.RemoteCGRendererMessageForwarder.create(target: RemoteCGRenderer(resources: resources))
+    static func createMessageReceiver(
+        resources: WebKit.RemoteCGRendererResources,
+        displayLists: RemoteCGRendererDisplayLists
+    ) -> RefRemoteCGRendererMessageForwarder {
+        WebKit.RemoteCGRendererMessageForwarder.create(target: RemoteCGRenderer(resources: resources, displayLists: displayLists, snapshotFrames: nil))
+    }
+
+    // A receiver that only replays recordings, with the frames of the snapshot that it draws, if any.
+    @_expose(!Cxx)
+    static func makeReplayer(resources: WebKit.RemoteCGRendererResources, snapshotFrames: RemoteCGRendererSnapshotFrames?) -> RemoteCGRenderer {
+        RemoteCGRenderer(resources: resources, displayLists: nil, snapshotFrames: snapshotFrames)
+    }
+
+    // GraphicsContext::drawDisplayList(): the recording's messages, with its resources and display lists, and their transforms
+    // relative to the context's when the replay starts.
+    @_expose(!Cxx)
+    func replay(_ recording: RemoteCGRendererRecording, state: inout CGRendererCore) {
+        guard recording.replayNeedsContext else {
+            resources.beginReplay(recording.resources)
+            RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
+            resources.endReplay()
+            return
+        }
+        replayedRecordings.append(recording)
+        replayBaseTransforms.append(state.receiverCTM())
+        replayDepth += 1
+        resources.beginReplay(recording.resources)
+        RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
+        resources.endReplay()
+        replayDepth -= 1
+        replayBaseTransforms.removeLast()
+        replayedRecordings.removeLast()
     }
 
     func save(state: inout CGRendererCore) {
@@ -124,7 +163,11 @@ final class RemoteCGRenderer {
     }
 
     func setCTM(state: inout CGRendererCore, ctm: WebCore.AffineTransform) {
-        state.receiveSetCTM(cgAffineTransform(ctm))
+        guard let baseTransform = replayBaseTransforms.last else {
+            state.receiveSetCTM(cgAffineTransform(ctm))
+            return
+        }
+        state.receiveSetCTM(cgAffineTransform(ctm).concatenating(baseTransform))
     }
 
     func concatCTM(state: inout CGRendererCore, ctm: WebCore.AffineTransform) {
@@ -805,7 +848,34 @@ final class RemoteCGRenderer {
             return
         }
         let shadowFillColor = glyphContext.hasSimpleShadow ? WebKit.copyGlyphShadowFillColor(draw) : nil
-        state.receiveDrawGlyphs(draw.run(), draw.positions(), draw.facts(), shadowFillColor, localAnchor.x(), localAnchor.y())
+        state.receiveDrawGlyphs(draw.run(glyphsAdvances), draw.positions(), draw.facts(), shadowFillColor, localAnchor.x(), localAnchor.y())
+    }
+
+    // RemoteGraphicsContext::drawDisplayList(): a missing display list is an invalid message. A recording draws the display
+    // lists that it named when it was recorded.
+    func drawDisplayList(state: inout CGRendererCore, identifier: WebKit.RemoteDisplayListIdentifier) throws(InvalidMessage) {
+        let recording =
+            if replayDepth > 0, let replayed = replayedRecordings.last {
+                replayed.displayLists[WebKit.displayListKey(identifier)]
+            } else {
+                displayLists?.recording(key: WebKit.displayListKey(identifier))
+            }
+        guard let recording else {
+            try messageCheck { false }
+            return
+        }
+        replay(recording, state: &state)
+    }
+
+    // A snapshot's frame, where a replay of the snapshot draws it (RemoteSnapshot::applyFrame()). An image buffer's receiver has
+    // no frames to draw.
+    func drawSnapshotFrame(state: inout CGRendererCore, frameIdentifier: WebCore.FrameIdentifier) throws(InvalidMessage) {
+        guard let snapshotFrames else {
+            try messageCheck { false }
+            return
+        }
+        let isDrawn = snapshotFrames.draw(WebKit.frameKey(frameIdentifier), to: self, state: &state)
+        assert(isDrawn, "A snapshot is complete only once its frames are")
     }
 
     func drawDotsForDocumentMarker(state: inout CGRendererCore, rect: WebCore.FloatRect, mode: WebCore.DocumentMarkerLineStyleMode, color: CGRendererColorValue) {

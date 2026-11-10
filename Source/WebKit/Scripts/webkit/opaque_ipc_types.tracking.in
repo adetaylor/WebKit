@@ -132,6 +132,8 @@
 [Legacy] StructureParam WebKit::NetworkSessionCreationParameters.proxyConfigData std::optional<Vector<std::pair<Vector<uint8_t>, std::optional<WTF::UUID>>>>
 [Legacy] StructureParam WebKit::ICCData.data Vector<uint8_t>
 [Legacy] StructureParam WebKit::IndexedColorSpace.table Vector<uint8_t>
+# The RemoteCGRenderer messages of a remote snapshot's recording, which the GPU process sends the print process to record again.
+[NotSentFromWebContent] StructureParam WebKit::RemoteSnapshotPrintRecording.messages Vector<uint8_t>
 
 [UnsafeWrapper] std::optional<WebKit::CoreIPCSecTrustData::InfoType> {
     [NeedsReview] StructureParam WebKit::CoreIPCSecTrustData.info

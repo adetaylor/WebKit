@@ -28,6 +28,9 @@
 #if ENABLE(GPU_PROCESS)
 
 #include "ImageBufferBackendHandle.h"
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteSnapshotPrintData.h"
+#endif
 #include <WebCore/ColorSpace.h>
 #include <WebCore/DisplayList.h>
 #include <WebCore/FrameIdentifier.h>
@@ -47,6 +50,10 @@
 namespace WebKit {
 
 class DisplayListData;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class RemoteCGRendererRecording;
+class RemoteCGRendererSnapshotFrames;
+#endif
 
 // RemoteSnapshot represents a web page rendering. Solves the problem of generating the rendering from various different WebContent processes that
 // should not have any access to data of each other.
@@ -66,7 +73,12 @@ public:
     WebCore::FloatSize size() const;
     void setSize(const WebCore::FloatSize&);
     void addFrameReference(WebCore::FrameIdentifier);
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // A frame recorded in Swift (RemoteSnapshotRecorder), whose recording is released on the dispatcher.
+    void setFrame(WebCore::FrameIdentifier, std::unique_ptr<RemoteCGRendererRecording>&&, SerialFunctionDispatcher&);
+#else
     void setFrame(WebCore::FrameIdentifier, Ref<const WebCore::DisplayList::DisplayList>&&, SerialFunctionDispatcher&);
+#endif
     // Resolves a frame that will not be recorded, so that the snapshot does not wait for it.
     void abandonFrame(WebCore::FrameIdentifier);
     // Notes which process was asked to record a frame, so that the frame can be abandoned if that process goes away.
@@ -84,7 +96,12 @@ public:
     // Whether anything is waiting for it to complete.
     bool isAwaited() const;
     std::optional<RefPtr<WebCore::SharedBuffer>> drawToPDF(const WebCore::FloatSize&, WebCore::FrameIdentifier rootFrameIdentifier);
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // The frames' recordings, for the print process to draw, unless it can't have one of them.
+    std::optional<RemoteSnapshotPrintData> createPrintData(WebCore::FrameIdentifier rootFrameIdentifier) const;
+#else
     std::optional<DisplayListData> createDisplayListData(WebCore::FrameIdentifier rootFrameIdentifier) const;
+#endif
     std::optional<WebCore::ShareableBitmap::Handle> drawToBitmap(const WebCore::FloatSize&, WebCore::FrameIdentifier rootFrameIdentifier);
 #if HAVE(IOSURFACE)
     // Rasterizes into a shareable surface, so that a rendering assembled from several sites can be
@@ -96,29 +113,39 @@ public:
 private:
     explicit RemoteSnapshot(std::optional<WebCore::FrameIdentifier> rootFrameIdentifier);
 
-    // DisplayList isn't generally threadsafe, but should be fine to replay on a different
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    using Recording = std::unique_ptr<RemoteCGRendererRecording>;
+#else
+    using Recording = RefPtr<const WebCore::DisplayList::DisplayList>;
+#endif
+
+    // A frame's recording isn't generally threadsafe, but should be fine to replay on a different
     // thread in the GPU (where Font objects don't get mutated). Make sure we manually
     // return the refs to the originating work queue to avoid ref counting races.
-    class DisplayListAndReleaseDispatcher {
+    class RecordingAndReleaseDispatcher {
     public:
-        DisplayListAndReleaseDispatcher(Ref<const WebCore::DisplayList::DisplayList>&&, SerialFunctionDispatcher&);
-        DisplayListAndReleaseDispatcher(DisplayListAndReleaseDispatcher&&) = default;
-        DisplayListAndReleaseDispatcher& operator=(DisplayListAndReleaseDispatcher&&) = default;
-        ~DisplayListAndReleaseDispatcher();
+        RecordingAndReleaseDispatcher(Recording&&, SerialFunctionDispatcher&);
+        RecordingAndReleaseDispatcher(RecordingAndReleaseDispatcher&&) = default;
+        RecordingAndReleaseDispatcher& operator=(RecordingAndReleaseDispatcher&&) = default;
+        ~RecordingAndReleaseDispatcher();
 
-        const WebCore::DisplayList::DisplayList* displayList() const { return m_displayList.get(); }
+        const Recording& recording() const { return m_recording; }
 
     private:
-        RefPtr<const WebCore::DisplayList::DisplayList> m_displayList;
+        Recording m_recording;
         Ref<SerialFunctionDispatcher> m_dispatcher;
     };
 
     struct Frame {
-        std::optional<DisplayListAndReleaseDispatcher> displayList;
+        std::optional<RecordingAndReleaseDispatcher> recording;
         bool isAbandoned { false };
-        bool isResolved() const { return displayList || isAbandoned; }
+        bool isResolved() const { return recording || isAbandoned; }
     };
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // The frames' recordings, for Swift to replay or send.
+    RemoteCGRendererSnapshotFrames snapshotFrames() const;
+#endif
     bool isCompleteWithLockHeld() const WTF_REQUIRES_LOCK(m_lock) { return m_hasFailed || !m_unresolvedFrames; }
     bool hasFailedWithLockHeld() const WTF_REQUIRES_LOCK(m_lock);
     void resolveFrameWithLockHeld(Frame&) WTF_REQUIRES_LOCK(m_lock);

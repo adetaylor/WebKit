@@ -42,6 +42,12 @@
 #include "ImageBufferShareableMappedIOSurfaceBackend.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererResources.h"
+#include "WebKit-Swift.h"
+#include <WebCore/GraphicsContextCG.h>
+#endif
+
 namespace WebKit {
 using namespace WebCore;
 
@@ -81,14 +87,14 @@ void RemoteSnapshot::resolveFrameWithLockHeld(Frame& frame)
     dispatchCompletionHandlersIfComplete();
 }
 
-void RemoteSnapshot::setFrame(FrameIdentifier frameIdentifier, Ref<const DisplayList::DisplayList>&& displayList, SerialFunctionDispatcher& releaseDispatcher)
+void RemoteSnapshot::setFrame(FrameIdentifier frameIdentifier, Recording&& recording, SerialFunctionDispatcher& releaseDispatcher)
 {
     Locker locker(m_lock);
     auto result = m_frames.add(frameIdentifier, Frame { });
     auto& frame = result.iterator->value;
     if (result.isNewEntry) {
         // Came in before it was referenced, so it was never counted as unresolved.
-        frame.displayList = DisplayListAndReleaseDispatcher { WTF::move(displayList), releaseDispatcher };
+        frame.recording = RecordingAndReleaseDispatcher { WTF::move(recording), releaseDispatcher };
         return;
     }
     // Abandoned because the process recording it went away after recording it. Either outcome is fine.
@@ -96,16 +102,16 @@ void RemoteSnapshot::setFrame(FrameIdentifier frameIdentifier, Ref<const Display
         return;
     // It is ok to addFrameReference to win the race. A frame is only asked to record once, so another
     // recording is dropped rather than replacing the first.
-    if (frame.displayList)
+    if (frame.recording)
         return;
-    frame.displayList = DisplayListAndReleaseDispatcher { WTF::move(displayList), releaseDispatcher };
+    frame.recording = RecordingAndReleaseDispatcher { WTF::move(recording), releaseDispatcher };
     resolveFrameWithLockHeld(frame);
 }
 
 void RemoteSnapshot::abandonFrame(FrameIdentifier frameIdentifier)
 {
     Locker locker(m_lock);
-    auto result = m_frames.add(frameIdentifier, Frame { .displayList = std::nullopt, .isAbandoned = true });
+    auto result = m_frames.add(frameIdentifier, Frame { .recording = std::nullopt, .isAbandoned = true });
     if (result.isNewEntry)
         return;
     auto& frame = result.iterator->value;
@@ -218,6 +224,38 @@ void RemoteSnapshot::dispatchCompletionHandlersIfComplete()
     });
 }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+RemoteCGRendererSnapshotFrames RemoteSnapshot::snapshotFrames() const
+{
+    auto frames = RemoteCGRendererSnapshotFrames::create();
+    Locker locker(m_lock);
+    for (auto& [identifier, frame] : m_frames) {
+        if (frame.isAbandoned)
+            frames.addAbandoned(frameKey(identifier));
+        else if (frame.recording)
+            frames.add(*frame.recording->recording(), frameKey(identifier));
+    }
+    return frames;
+}
+
+// Replays the frame's recording in Swift, and those of the frames it draws, into a context that lends its renderer for it.
+bool RemoteSnapshot::applyFrame(FrameIdentifier frameIdentifier, GraphicsContext& context) const
+{
+    if (!context.canLendSwiftRenderer()) {
+        ASSERT_NOT_REACHED();
+        return false;
+    }
+    auto frames = snapshotFrames();
+    bool isDrawn = false;
+    replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
+        isDrawn = frames.draw(frameKey(frameIdentifier), state, &resources);
+    });
+    return isDrawn;
+}
+
+#else
+
 bool RemoteSnapshot::applyFrame(FrameIdentifier frameIdentifier, GraphicsContext& context) const
 {
     RefPtr<const DisplayList::DisplayList> displayList;
@@ -228,8 +266,8 @@ bool RemoteSnapshot::applyFrame(FrameIdentifier frameIdentifier, GraphicsContext
             return false;
         if (iterator->value.isAbandoned)
             return true;
-        if (iterator->value.displayList)
-            displayList = iterator->value.displayList->displayList();
+        if (iterator->value.recording)
+            displayList = iterator->value.recording->recording();
     }
     if (!displayList)
         return false;
@@ -237,16 +275,18 @@ bool RemoteSnapshot::applyFrame(FrameIdentifier frameIdentifier, GraphicsContext
     return true;
 }
 
-RemoteSnapshot::DisplayListAndReleaseDispatcher::DisplayListAndReleaseDispatcher(Ref<const WebCore::DisplayList::DisplayList>&& displayList, SerialFunctionDispatcher& dispatcher)
-    : m_displayList(WTF::move(displayList))
+#endif
+
+RemoteSnapshot::RecordingAndReleaseDispatcher::RecordingAndReleaseDispatcher(Recording&& recording, SerialFunctionDispatcher& dispatcher)
+    : m_recording(WTF::move(recording))
     , m_dispatcher(dispatcher)
 {
 }
 
-RemoteSnapshot::DisplayListAndReleaseDispatcher::~DisplayListAndReleaseDispatcher()
+RemoteSnapshot::RecordingAndReleaseDispatcher::~RecordingAndReleaseDispatcher()
 {
-    if (m_displayList)
-        m_dispatcher->dispatch([displayList = WTF::move(m_displayList)]() mutable { });
+    if (m_recording)
+        m_dispatcher->dispatch([recording = WTF::move(m_recording)]() mutable { });
 }
 
 #if PLATFORM(COCOA)
@@ -266,6 +306,16 @@ std::optional<RefPtr<SharedBuffer>> RemoteSnapshot::drawToPDF(const FloatSize& s
 
 #endif
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+std::optional<RemoteSnapshotPrintData> RemoteSnapshot::createPrintData(FrameIdentifier rootFrameIdentifier) const
+{
+    ASSERT(isComplete());
+    Ref builder = RemoteSnapshotPrintDataBuilder::create(frameKey(rootFrameIdentifier));
+    if (!snapshotFrames().encode(builder.ptr()))
+        return std::nullopt;
+    return builder->takeData();
+}
+#else
 std::optional<DisplayListData> RemoteSnapshot::createDisplayListData(FrameIdentifier rootFrameIdentifier) const
 {
     ASSERT(isComplete());
@@ -273,13 +323,14 @@ std::optional<DisplayListData> RemoteSnapshot::createDisplayListData(FrameIdenti
     {
         Locker locker(m_lock);
         auto iterator = m_frames.find(rootFrameIdentifier);
-        if (iterator != m_frames.end() && iterator->value.displayList)
-            displayList = iterator->value.displayList->displayList();
+        if (iterator != m_frames.end() && iterator->value.recording)
+            displayList = iterator->value.recording->recording();
     }
     if (!displayList)
         return std::nullopt;
     return DisplayListData::create(*displayList);
 }
+#endif
 
 std::optional<ShareableBitmap::Handle> RemoteSnapshot::drawToBitmap(const FloatSize& size, FrameIdentifier rootFrameIdentifier)
 {
