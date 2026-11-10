@@ -119,3 +119,19 @@ TEST(HTTPHeaderField, Parser)
         { "a: \"a\" (b) "_s, "a: \"a\" (b)"_s },
     });
 }
+
+// 16-bit values whose token is longer than 16 code units, and the same ended by a code unit above U+00FF whose low
+// byte is a token character.
+TEST(HTTPHeaderField, LongTokens)
+{
+    for (unsigned length : { 15u, 16u, 17u, 20u, 32u, 33u }) {
+        Vector<char16_t> letters(length, [](size_t) -> char16_t { return 'a'; });
+        String value { letters.span() };
+        auto field = WebCore::HTTPHeaderField::create("N"_s, String { value });
+        ASSERT_TRUE(field) << length;
+        EXPECT_EQ(field->value(), value) << length;
+        EXPECT_FALSE(field->value().is8Bit()) << length;
+        EXPECT_FALSE(WebCore::HTTPHeaderField::create("N"_s, makeString(value, static_cast<char16_t>(0x0161)))) << length;
+        EXPECT_FALSE(WebCore::HTTPHeaderField::create("N"_s, makeString(value, static_cast<char16_t>(0x0161), value))) << length;
+    }
+}

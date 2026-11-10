@@ -3012,6 +3012,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/network/FormData.h
     platform/network/HTTPCookieAcceptPolicy.h
     platform/network/HTTPHeaderMap.h
+    platform/network/HTTPHeaderParsersTypes.h
     platform/network/HTTPHeaderValues.h
     platform/network/HTTPParsers.h
     platform/network/HTTPSByDefaultMode.h

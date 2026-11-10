@@ -3355,7 +3355,16 @@ set(_webcore_swift_interop_sources_apple
     platform/graphics/cg/ImageDecoderCG.cpp
     platform/mac/ScrollAnimatorMac.mm
     platform/mac/ScrollbarsControllerMac.mm
-    platform/mac/ScrollingEffectsController.mm)
+    platform/mac/ScrollingEffectsController.mm
+    loader/HTTPHeaderField.cpp
+    loader/LinkHeader.cpp
+    loader/ServerTimingParser.cpp
+    platform/ReferrerPolicy.cpp
+    platform/network/CacheValidation.cpp
+    platform/network/HTTPParsers.cpp
+    platform/network/ParsedContentRange.cpp
+    platform/network/ParsedContentType.cpp
+    platform/network/RFC8941.cpp)
 set(_webcore_swift_interop_excludes ${_webcore_swift_interop_sources_all_ports})
 if (APPLE)
     list(APPEND _webcore_swift_interop_excludes ${_webcore_swift_interop_sources_apple})
@@ -3555,6 +3564,15 @@ endif ()
 
 if (APPLE)
     target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/loader/HTTPHeaderField.swift
+        ${WEBCORE_DIR}/loader/LinkHeader.swift
+        ${WEBCORE_DIR}/loader/ServerTimingParser.swift
+        ${WEBCORE_DIR}/platform/ReferrerPolicy.swift
+        ${WEBCORE_DIR}/platform/network/CacheValidation.swift
+        ${WEBCORE_DIR}/platform/network/HTTPParsers.swift
+        ${WEBCORE_DIR}/platform/network/ParsedContentRange.swift
+        ${WEBCORE_DIR}/platform/network/ParsedContentType.swift
+        ${WEBCORE_DIR}/platform/network/RFC8941.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioCaptureUnit.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioControlThread.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/AudioOutputUnit.swift

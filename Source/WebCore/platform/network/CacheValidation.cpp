@@ -32,6 +32,7 @@
 #include "ResourceRequest.h"
 #include "ResourceResponse.h"
 #include "SameSiteInfo.h"
+#include "WebCore-Swift.h"
 #include <wtf/SHA1.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/Vector.h>
@@ -190,102 +191,9 @@ bool redirectChainAllowsReuse(RedirectChainCacheStatus redirectChainCacheStatus,
     return false;
 }
 
-NODELETE inline bool isCacheHeaderSeparator(char16_t c)
-{
-    // http://tools.ietf.org/html/rfc7230#section-3.2.6
-    switch (c) {
-    case '(':
-    case ')':
-    case '<':
-    case '>':
-    case '@':
-    case ',':
-    case ';':
-    case ':':
-    case '\\':
-    case '"':
-    case '/':
-    case '[':
-    case ']':
-    case '?':
-    case '=':
-    case '{':
-    case '}':
-    case ' ':
-    case '\t':
-        return true;
-    default:
-        return false;
-    }
-}
-
 NODELETE inline bool isControlCharacterOrSpace(char16_t character)
 {
     return character <= ' ' || character == 127;
-}
-
-inline StringView trimToNextSeparator(StringView string)
-{
-    return string.left(string.find(isCacheHeaderSeparator));
-}
-
-static Vector<std::pair<StringView, StringView>> parseCacheHeader(StringView safeHeader)
-{
-    ASSERT(safeHeader.find(isControlCharacterOrSpace) == notFound);
-
-    Vector<std::pair<StringView, StringView>> result;
-
-    unsigned max = safeHeader.length();
-    unsigned pos = 0;
-    while (pos < max) {
-        size_t nextCommaPosition = safeHeader.find(',', pos);
-        size_t nextEqualSignPosition = safeHeader.find('=', pos);
-        if (nextEqualSignPosition == notFound && nextCommaPosition == notFound) {
-            // Add last directive to map with empty string as value
-            result.append({ trimToNextSeparator(safeHeader.substring(pos, max - pos)), emptyString() });
-            return result;
-        }
-        if (nextCommaPosition != notFound && (nextCommaPosition < nextEqualSignPosition || nextEqualSignPosition == notFound)) {
-            // Add directive to map with empty string as value
-            result.append({ trimToNextSeparator(safeHeader.substring(pos, nextCommaPosition - pos)), emptyString() });
-            pos += nextCommaPosition - pos + 1;
-            continue;
-        }
-        // Get directive name, parse right hand side of equal sign, then add to map
-        StringView directive = trimToNextSeparator(safeHeader.substring(pos, nextEqualSignPosition - pos));
-        pos += nextEqualSignPosition - pos + 1;
-
-        StringView value = safeHeader.substring(pos, max - pos);
-        if (value.startsWith('"')) {
-            // The value is a quoted string
-            size_t nextDoubleQuotePosition = value.find('"', 1);
-            if (nextDoubleQuotePosition == notFound) {
-                // Parse error; just use the rest as the value
-                result.append({ directive, trimToNextSeparator(value.substring(1)) });
-                return result;
-            }
-            // Store the value as a quoted string without quotes
-            result.append({ directive, value.substring(1, nextDoubleQuotePosition - 1) });
-            pos += (safeHeader.find('"', pos) - pos) + nextDoubleQuotePosition + 1;
-            // Move past next comma, if there is one
-            size_t nextCommaPosition2 = safeHeader.find(',', pos);
-            if (nextCommaPosition2 == notFound)
-                return result; // Parse error if there is anything left with no comma
-            pos += nextCommaPosition2 - pos + 1;
-            continue;
-        }
-        // The value is a token until the next comma
-        size_t nextCommaPosition2 = value.find(',');
-        if (nextCommaPosition2 == notFound) {
-            // The rest is the value; no change to value needed
-            result.append({ directive, trimToNextSeparator(value) });
-            return result;
-        }
-        // The value is delimited by the next comma
-        result.append({ directive, trimToNextSeparator(value.left(nextCommaPosition2)) });
-        pos += (safeHeader.find(',', pos) - pos) + 1;
-    }
-    return result;
 }
 
 CacheControlDirectives parseCacheControlDirectives(const HTTPHeaderMap& headers)
@@ -297,65 +205,7 @@ CacheControlDirectives parseCacheControlDirectives(const HTTPHeaderMap& headers)
         auto safeHeaderString = cacheControlValue.removeCharacters([](auto character) {
             return isControlCharacterOrSpace(character);
         });
-        auto directives = parseCacheHeader(safeHeaderString);
-
-        size_t directivesSize = directives.size();
-        for (size_t i = 0; i < directivesSize; ++i) {
-            // A no-cache directive with a value is only meaningful for proxy caches.
-            // It should be ignored by a browser level cache.
-            // http://tools.ietf.org/html/rfc7234#section-5.2.2.2
-            if (equalLettersIgnoringASCIICase(directives[i].first, "no-cache"_s) && directives[i].second.isEmpty())
-                result.noCache = true;
-            else if (equalLettersIgnoringASCIICase(directives[i].first, "no-store"_s))
-                result.noStore = true;
-            else if (equalLettersIgnoringASCIICase(directives[i].first, "public"_s))
-                result.isPublic = true;
-            else if (equalLettersIgnoringASCIICase(directives[i].first, "must-revalidate"_s))
-                result.mustRevalidate = true;
-            else if (equalLettersIgnoringASCIICase(directives[i].first, "max-age"_s)) {
-                if (result.maxAge) {
-                    // First max-age directive wins if there are multiple ones.
-                    continue;
-                }
-                bool ok;
-                double maxAge = directives[i].second.toDouble(ok);
-                if (ok)
-                    result.maxAge = Seconds { maxAge };
-            } else if (equalLettersIgnoringASCIICase(directives[i].first, "max-stale"_s)) {
-                // https://tools.ietf.org/html/rfc7234#section-5.2.1.2
-                if (result.maxStale) {
-                    // First max-stale directive wins if there are multiple ones.
-                    continue;
-                }
-                if (directives[i].second.isEmpty()) {
-                    // if no value is assigned to max-stale, then the client is willing to accept a stale response of any age.
-                    result.maxStale = Seconds::infinity();
-                    continue;
-                }
-                bool ok;
-                double maxStale = directives[i].second.toDouble(ok);
-                if (ok)
-                    result.maxStale = Seconds { maxStale };
-            } else if (equalLettersIgnoringASCIICase(directives[i].first, "min-fresh"_s)) {
-                if (result.minFresh)
-                    continue;
-                bool ok;
-                double minFresh = directives[i].second.toDouble(ok);
-                if (ok)
-                    result.minFresh = Seconds { minFresh };
-            } else if (equalLettersIgnoringASCIICase(directives[i].first, "immutable"_s)) {
-                result.immutable = true;
-            } else if (equalLettersIgnoringASCIICase(directives[i].first, "stale-while-revalidate"_s)) {
-                if (result.staleWhileRevalidate) {
-                    // First stale-while-revalidate directive wins if there are multiple ones.
-                    continue;
-                }
-                bool ok;
-                double staleWhileRevalidate = directives[i].second.toDouble(ok);
-                if (ok)
-                    result.staleWhileRevalidate = Seconds { staleWhileRevalidate };
-            }
-        }
+        result = safeHeaderString.is8Bit() ? parseCacheControlHeader8(safeHeaderString.span8()) : parseCacheControlHeader16(safeHeaderString.span16());
     }
 
     if (!result.noCache) {

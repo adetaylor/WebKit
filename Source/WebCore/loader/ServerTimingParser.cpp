@@ -26,8 +26,8 @@
 #include "config.h"
 #include "ServerTimingParser.h"
 
-#include "HeaderFieldTokenizer.h"
 #include "ServerTiming.h"
+#include "WebCore-Swift.h"
 
 #include <wtf/text/CString.h>
 
@@ -43,31 +43,11 @@ Vector<ServerTiming> parseServerTiming(const String& headerValue)
 
     ASSERT(headerValue.is8Bit());
 
-    HeaderFieldTokenizer tokenizer(headerValue);
-    while (!tokenizer.isConsumed()) {
-        String name = tokenizer.consumeToken();
-        if (name.isNull())
+    for (unsigned start = 0; start <= headerValue.length();) {
+        auto entry = headerValue.is8Bit() ? parseServerTimingEntry8(headerValue.span8(), start) : parseServerTimingEntry16(headerValue.span16(), start);
+        if (entry.name.isNull())
             break;
-
-        ServerTiming entry(WTF::move(name));
-
-        while (tokenizer.consume(';')) {
-            String parameterName = tokenizer.consumeToken();
-            if (parameterName.isNull())
-                break;
-
-            String value = emptyString();
-            if (tokenizer.consume('=')) {
-                value = tokenizer.consumeTokenOrQuotedString();
-                tokenizer.consumeBeforeAnyCharMatch({',', ';'});
-            }
-            entry.setParameter(parameterName, value);
-        }
-
         entries.append(WTF::move(entry));
-
-        if (!tokenizer.consume(','))
-            break;
     }
     return entries;
 }

@@ -2155,7 +2155,6 @@ loader/FrameLoader.cpp
 loader/FrameLoaderStateMachine.cpp
 loader/FrameMemoryMonitor.cpp
 loader/HTTPHeaderField.cpp
-loader/HeaderFieldTokenizer.cpp
 loader/HistoryController.cpp
 loader/ImageLoader.cpp
 loader/IntegrityPolicy.cpp

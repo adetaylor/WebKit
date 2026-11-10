@@ -27,6 +27,7 @@
 
 #include "Helpers/Test.h"
 #include <WebCore/ParsedContentType.h>
+#include <wtf/text/MakeString.h>
 #include <wtf/text/StringBuilder.h>
 
 using namespace WebCore;
@@ -256,6 +257,58 @@ TEST(ParsedContentType, Serialize)
     EXPECT_STREQ(serializeIfValid("text/plain;test='value"_s), "text/plain;test='value");
     EXPECT_STREQ(serializeIfValid("text/plain;test=value'"_s), "text/plain;test=value'");
     EXPECT_STREQ(serializeIfValid("text/plain;test={value}"_s), "text/plain;test=\"{value}\"");
+}
+
+static String repeatedLetters(unsigned count)
+{
+    StringBuilder builder;
+    for (unsigned i = 0; i < count; ++i)
+        builder.append('a');
+    return builder.toString();
+}
+
+static String sixteenBitString(const String& string)
+{
+    Vector<char16_t> characters;
+    for (auto character : StringView(string).codeUnits())
+        characters.append(character);
+    return String(characters.span());
+}
+
+// Quoted parameter values of 63, 64 and 65 characters with their escapes. A quoted string in a 16-bit value
+// is 8-bit when no two of its unescaped characters are adjacent and none is above U+00FF.
+TEST(ParsedContentType, QuotedValueLengths)
+{
+    auto parameterValue = [](const String& value) -> String {
+        auto parsed = ParsedContentType::create(value);
+        if (!parsed)
+            return "(invalid)"_s;
+        EXPECT_EQ(parsed->parameterValueForName("b"_s), "1"_s);
+        return parsed->parameterValueForName("a"_s);
+    };
+    for (unsigned length : { 63u, 64u, 65u }) {
+        auto escaped = makeString("text/plain;a=\"\\a"_s, repeatedLetters(length - 2), "\";b=1"_s);
+        auto value = parameterValue(escaped);
+        EXPECT_EQ(value, repeatedLetters(length - 1));
+        EXPECT_TRUE(value.is8Bit());
+
+        value = parameterValue(sixteenBitString(escaped));
+        EXPECT_EQ(value, repeatedLetters(length - 1));
+        EXPECT_FALSE(value.is8Bit());
+
+        StringBuilder escapes;
+        for (unsigned i = 0; i < length / 2; ++i)
+            escapes.append("\\a"_s);
+        if (length % 2)
+            escapes.append('a');
+        value = parameterValue(sixteenBitString(makeString("text/plain;a=\""_s, escapes.toString(), "\";b=1"_s)));
+        EXPECT_EQ(value, repeatedLetters(length / 2 + length % 2));
+        EXPECT_TRUE(value.is8Bit());
+
+        // A character that a quoted string cannot hold drops the parameter, also when it is escaped.
+        EXPECT_TRUE(parameterValue(makeString("text/plain;a=\"\\\x01"_s, repeatedLetters(length - 2), "\";b=1"_s)).isNull());
+        EXPECT_TRUE(parameterValue(makeString("text/plain;a=\"\\"_s, static_cast<char16_t>(0x0100), repeatedLetters(length - 2), "\";b=1"_s)).isNull());
+    }
 }
 
 } // namespace TestWebKitAPI

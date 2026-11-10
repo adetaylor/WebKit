@@ -36,22 +36,15 @@
 #include "CommonAtomStrings.h"
 #include "HTTPHeaderField.h"
 #include "HTTPHeaderNames.h"
-#include "ParsedContentType.h"
 #include "RFC7230.h"
 #include "ResourceResponse.h"
 #include "SecurityOrigin.h"
-#include <wtf/CheckedArithmetic.h>
-#include <wtf/DateMath.h>
-#include <wtf/NeverDestroyed.h>
+#include "WebCore-Swift.h"
 #include <wtf/OptionSet.h>
-#include <wtf/text/MakeString.h>
-#include <wtf/text/ParsingUtilities.h>
-#include <wtf/text/StringBuilder.h>
-#include <wtf/text/StringToIntegerConversion.h>
-#include <wtf/unicode/CharacterNames.h>
 
 namespace WebCore {
 
+#if USE(GLIB)
 // True if characters which satisfy the predicate are present, incrementing
 // "pos" to the next character which does not satisfy the predicate.
 // Note: might return pos == str.length().
@@ -71,131 +64,37 @@ static inline bool skipWhiteSpace(const String& str, unsigned& pos)
     skipWhile(str, pos, isTabOrSpace<char16_t>);
     return pos < str.length();
 }
-
-// Returns true if the function can match the whole token (case insensitive)
-// incrementing pos on match, otherwise leaving pos unchanged.
-// Note: Might return pos == str.length()
-NODELETE static inline bool skipToken(const String& str, unsigned& pos, ASCIILiteral token)
-{
-    if (token.length() > str.length())
-        return false;
-
-    unsigned current = pos;
-    for (auto character : token.span8()) {
-        if (toASCIILower(str[current]) != character)
-            return false;
-        ++current;
-    }
-
-    pos = current;
-    return true;
-}
-
-// True if the expected equals sign is seen and there is more to follow.
-static inline bool skipEquals(const String& str, unsigned &pos)
-{
-    return skipWhiteSpace(str, pos) && str[pos++] == '=' && skipWhiteSpace(str, pos);
-}
-
-// True if a value present, incrementing pos to next space or semicolon, if any.
-// Note: might return pos == str.length().
-NODELETE static inline bool skipValue(const String& str, unsigned& pos)
-{
-    unsigned start = pos;
-    unsigned len = str.length();
-    while (pos < len) {
-        if (isTabOrSpace(str[pos]) || str[pos] == ';')
-            break;
-        ++pos;
-    }
-    return pos != start;
-}
+#endif
 
 // See RFC 7230, Section 3.1.2.
 bool isValidReasonPhrase(const String& value)
 {
-    for (unsigned i = 0; i < value.length(); ++i) {
-        char16_t c = value[i];
-        if (c == 0x7F || !isLatin1(c) || (c < 0x20 && c != '\t'))
-            return false;
-    }
-    return true;
+    return value.is8Bit() ? isValidReasonPhrase8(value.span8()) : isValidReasonPhrase16(value.span16());
 }
 
 // See https://fetch.spec.whatwg.org/#concept-header
 bool isValidHTTPHeaderValue(const String& value)
 {
-    char16_t c = value[0];
-    if (isTabOrSpace(c))
-        return false;
-    c = value[value.length() - 1];
-    if (isTabOrSpace(c))
-        return false;
-    for (unsigned i = 0; i < value.length(); ++i) {
-        c = value[i];
-        if (c == 0x00 || c == 0x0A || c == 0x0D)
-            return false;
-    }
-    return true;
+    return value.is8Bit() ? isValidHTTPHeaderValue8(value.span8()) : isValidHTTPHeaderValue16(value.span16());
 }
 
 // See RFC 7231, Section 5.3.2.
 bool isValidAcceptHeaderValue(const String& value)
 {
-    for (unsigned i = 0; i < value.length(); ++i) {
-        char16_t c = value[i];
-
-        // First check for alphanumeric for performance reasons then allowlist four delimiter characters.
-        if (isASCIIAlphanumeric(c) || c == ',' || c == '/' || c == ';' || c == '=')
-            continue;
-
-        ASSERT(isLatin1(c));
-        if (c == 0x7F || (c < 0x20 && c != '\t'))
-            return false;
-
-        if (RFC7230::isDelimiter(c))
-            return false;
-    }
-
-    return true;
-}
-
-NODELETE static bool containsCORSUnsafeRequestHeaderBytes(const String& value)
-{
-    for (unsigned i = 0; i < value.length(); ++i) {
-        char16_t c = value[i];
-        // https://fetch.spec.whatwg.org/#cors-unsafe-request-header-byte
-        if ((c < 0x20 && c != '\t') || (c == '"' || c == '(' || c == ')' || c == ':' || c == '<' || c == '>' || c == '?'
-            || c == '@' || c == '[' || c == '\\' || c == ']' || c == 0x7B || c == '{' || c == '}' || c == 0x7F))
-            return true;
-    }
-
-    return false;
+    return value.is8Bit() ? isValidAcceptHeaderValue8(value.span8()) : isValidAcceptHeaderValue16(value.span16());
 }
 
 // See RFC 7231, Section 5.3.5 and 3.1.3.2.
 // https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 bool isValidLanguageHeaderValue(const String& value)
 {
-    for (unsigned i = 0; i < value.length(); ++i) {
-        char16_t c = value[i];
-        if (isASCIIAlphanumeric(c) || c == ' ' || c == '*' || c == ',' || c == '-' || c == '.' || c == ';' || c == '=')
-            continue;
-        return false;
-    }
-    return true;
+    return value.is8Bit() ? isValidLanguageHeaderValue8(value.span8()) : isValidLanguageHeaderValue16(value.span16());
 }
 
 // See RFC 7230, Section 3.2.6.
 bool isValidHTTPToken(StringView value)
 {
-    if (value.isEmpty())
-        return false;
-    for (char16_t c : value.codeUnits()) {
-        if (!RFC7230::isTokenCharacter(c))
-            return false;
-    }
-    return true;
+    return value.is8Bit() ? isValidHTTPToken8(value.span8()) : isValidHTTPToken16(value.span16());
 }
 
 bool isValidHTTPToken(const String& value)
@@ -312,24 +211,9 @@ bool isValidUserAgentHeaderValue(const String& value)
 }
 #endif
 
-static constexpr size_t maxInputSampleSize = 128;
-template<typename CharType>
-static String trimInputSample(std::span<const CharType> input)
-{
-    if (input.size() <= maxInputSampleSize)
-        return input;
-    return makeString(input.first(maxInputSampleSize), horizontalEllipsis);
-}
-
-static String trimInputSample(std::span<const uint8_t> input)
-{
-    return trimInputSample(byteCast<Latin1Character>(input));
-}
-
 std::optional<WallTime> parseHTTPDate(const String& value)
 {
-    // FIXME: parseDate() requires Latin1, but we're passing it UTF-8.
-    double dateInMillisecondsSinceEpoch = parseDate(byteCast<Latin1Character>(value.utf8().span()));
+    double dateInMillisecondsSinceEpoch = value.is8Bit() ? parseHTTPDate8(value.span8()) : parseHTTPDate16(value.span16());
     if (!std::isfinite(dateInMillisecondsSinceEpoch))
         return std::nullopt;
     // This assumes system_clock epoch equals Unix epoch which is true for all implementations but unspecified.
@@ -344,558 +228,131 @@ std::optional<WallTime> parseHTTPDate(const String& value)
 // in a case-sensitive manner. (There are likely other bugs as well.)
 StringView filenameFromHTTPContentDisposition(StringView value LIFETIME_BOUND)
 {
-    for (auto keyValuePair : value.split(';')) {
-        size_t valueStartPos = keyValuePair.find('=');
-        if (valueStartPos == notFound)
-            continue;
-
-        auto key = keyValuePair.left(valueStartPos).trim(isUnicodeCompatibleASCIIWhitespace<char16_t>);
-
-        if (key.isEmpty() || key != "filename"_s)
-            continue;
-
-        auto value = keyValuePair.substring(valueStartPos + 1).trim(isUnicodeCompatibleASCIIWhitespace<char16_t>);
-
-        // Remove quotes if there are any
-        if (value.length() > 1 && value[0] == '\"')
-            value = value.substring(1, value.length() - 2);
-
-        return value;
-    }
-
-    return { };
+    auto filename = value.is8Bit() ? filenameFromHTTPContentDisposition8(value.span8()) : filenameFromHTTPContentDisposition16(value.span16());
+    if (filename.isNull)
+        return { };
+    return value.substring(filename.start, filename.length);
 }
 
 String extractMIMETypeFromMediaType(const String& mediaType)
 {
-    unsigned position = 0;
-    unsigned length = mediaType.length();
-
-    for (; position < length; ++position) {
-        char16_t c = mediaType[position];
-        if (!isTabOrSpace(c))
-            break;
-    }
-
-    if (position == length)
-        return mediaType;
-
-    unsigned typeStart = position;
-
-    unsigned typeEnd = position;
-    for (; position < length; ++position) {
-        char16_t c = mediaType[position];
-
-        // While RFC 2616 does not allow it, other browsers allow multiple values in the HTTP media
-        // type header field, Content-Type. In such cases, the media type string passed here may contain
-        // the multiple values separated by commas. For now, this code ignores text after the first comma,
-        // which prevents it from simply failing to parse such types altogether. Later for better
-        // compatibility we could consider using the first or last valid MIME type instead.
-        // See https://bugs.webkit.org/show_bug.cgi?id=25352 for more discussion.
-        if (c == ',')
-            break;
-
-        if (isTabOrSpace(c) || c == ';')
-            break;
-
-        typeEnd = position + 1;
-    }
-
-    return mediaType.substring(typeStart, typeEnd - typeStart).convertToASCIILowercase();
+    auto mimeType = mediaType.is8Bit() ? extractMIMETypeFromMediaType8(mediaType.span8()) : extractMIMETypeFromMediaType16(mediaType.span16());
+    return mediaType.substring(mimeType.start, mimeType.length).convertToASCIILowercase();
 }
 
 StringView extractCharsetFromMediaType(StringView mediaType LIFETIME_BOUND)
 {
-    unsigned charsetPos = 0, charsetLen = 0;
-    size_t pos = 0;
-    unsigned length = mediaType.length();
-
-    while (pos < length) {
-        pos = mediaType.findIgnoringASCIICase("charset"_s, pos);
-        if (pos == notFound || pos == 0) {
-            charsetLen = 0;
-            break;
-        }
-
-        // is what we found a beginning of a word?
-        if (mediaType[pos - 1] > ' ' && mediaType[pos - 1] != ';') {
-            pos += 7;
-            continue;
-        }
-
-        pos += 7;
-
-        // skip whitespace
-        while (pos < length && mediaType[pos] <= ' ')
-            ++pos;
-
-        if (pos >= length)
-            break;
-
-        if (mediaType[pos++] != '=') // this "charset" substring wasn't a parameter name, but there may be others
-            continue;
-
-        while (pos < length && (mediaType[pos] <= ' ' || mediaType[pos] == '"' || mediaType[pos] == '\''))
-            ++pos;
-
-        // we don't handle spaces within quoted parameter values, because charset names cannot have any
-        unsigned endpos = pos;
-        while (endpos < length && mediaType[endpos] > ' ' && mediaType[endpos] != '"' && mediaType[endpos] != '\'' && mediaType[endpos] != ';')
-            ++endpos;
-
-        charsetPos = pos;
-        charsetLen = endpos - pos;
-        break;
-    }
-    return mediaType.substring(charsetPos, charsetLen);
-}
-
-XSSProtectionDisposition parseXSSProtectionHeader(const String& header, String& failureReason, unsigned& failurePosition, String& reportURL)
-{
-    static NeverDestroyed<String> failureReasonInvalidToggle(MAKE_STATIC_STRING_IMPL("expected 0 or 1"));
-    static NeverDestroyed<String> failureReasonInvalidSeparator(MAKE_STATIC_STRING_IMPL("expected semicolon"));
-    static NeverDestroyed<String> failureReasonInvalidEquals(MAKE_STATIC_STRING_IMPL("expected equals sign"));
-    static NeverDestroyed<String> failureReasonInvalidMode(MAKE_STATIC_STRING_IMPL("invalid mode directive"));
-    static NeverDestroyed<String> failureReasonInvalidReport(MAKE_STATIC_STRING_IMPL("invalid report directive"));
-    static NeverDestroyed<String> failureReasonDuplicateMode(MAKE_STATIC_STRING_IMPL("duplicate mode directive"));
-    static NeverDestroyed<String> failureReasonDuplicateReport(MAKE_STATIC_STRING_IMPL("duplicate report directive"));
-    static NeverDestroyed<String> failureReasonInvalidDirective(MAKE_STATIC_STRING_IMPL("unrecognized directive"));
-
-    unsigned pos = 0;
-
-    if (!skipWhiteSpace(header, pos))
-        return XSSProtectionDisposition::Enabled;
-
-    if (header[pos] == '0')
-        return XSSProtectionDisposition::Disabled;
-
-    if (header[pos++] != '1') {
-        failureReason = failureReasonInvalidToggle;
-        return XSSProtectionDisposition::Invalid;
-    }
-
-    XSSProtectionDisposition result = XSSProtectionDisposition::Enabled;
-    bool modeDirectiveSeen = false;
-    bool reportDirectiveSeen = false;
-
-    while (1) {
-        // At end of previous directive: consume whitespace, semicolon, and whitespace.
-        if (!skipWhiteSpace(header, pos))
-            return result;
-
-        if (header[pos++] != ';') {
-            failureReason = failureReasonInvalidSeparator;
-            failurePosition = pos;
-            return XSSProtectionDisposition::Invalid;
-        }
-
-        if (!skipWhiteSpace(header, pos))
-            return result;
-
-        // At start of next directive.
-        if (skipToken(header, pos, "mode"_s)) {
-            if (modeDirectiveSeen) {
-                failureReason = failureReasonDuplicateMode;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            modeDirectiveSeen = true;
-            if (!skipEquals(header, pos)) {
-                failureReason = failureReasonInvalidEquals;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            if (!skipToken(header, pos, "block"_s)) {
-                failureReason = failureReasonInvalidMode;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            result = XSSProtectionDisposition::BlockEnabled;
-        } else if (skipToken(header, pos, "report"_s)) {
-            if (reportDirectiveSeen) {
-                failureReason = failureReasonDuplicateReport;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            reportDirectiveSeen = true;
-            if (!skipEquals(header, pos)) {
-                failureReason = failureReasonInvalidEquals;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            size_t startPos = pos;
-            if (!skipValue(header, pos)) {
-                failureReason = failureReasonInvalidReport;
-                failurePosition = pos;
-                return XSSProtectionDisposition::Invalid;
-            }
-            reportURL = header.substring(startPos, pos - startPos);
-            failurePosition = startPos; // If later semantic check deems unacceptable.
-        } else {
-            failureReason = failureReasonInvalidDirective;
-            failurePosition = pos;
-            return XSSProtectionDisposition::Invalid;
-        }
-    }
+    auto charset = mediaType.is8Bit() ? extractCharsetFromMediaType8(mediaType.span8()) : extractCharsetFromMediaType16(mediaType.span16());
+    return mediaType.substring(charset.start, charset.length);
 }
 
 ContentTypeOptionsDisposition parseContentTypeOptionsHeader(StringView header)
 {
-    StringView leftToken = header.left(header.find(','));
-    if (equalLettersIgnoringASCIICase(leftToken.trim(isASCIIWhitespaceWithoutFF<char16_t>), "nosniff"_s))
-        return ContentTypeOptionsDisposition::Nosniff;
-    return ContentTypeOptionsDisposition::None;
+    return header.is8Bit() ? parseContentTypeOptionsHeader8(header.span8()) : parseContentTypeOptionsHeader16(header.span16());
 }
 
 // For example: "HTTP/1.1 200 OK" => "OK".
 // Note that HTTP/2 does not include a reason phrase, so we return the empty atom.
 AtomString extractReasonPhraseFromHTTPStatusLine(const String& statusLine)
 {
-    StringView view = statusLine;
-    size_t spacePos = view.find(' ');
-
-    // Remove status code from the status line.
-    spacePos = view.find(' ', spacePos + 1);
-    if (spacePos == notFound)
+    auto reasonPhrase = statusLine.is8Bit() ? extractReasonPhraseFromHTTPStatusLine8(statusLine.span8()) : extractReasonPhraseFromHTTPStatusLine16(statusLine.span16());
+    if (reasonPhrase.isNull)
         return emptyAtom();
-
-    return view.substring(spacePos + 1).toAtomString();
+    return StringView(statusLine).substring(reasonPhrase.start, reasonPhrase.length).toAtomString();
 }
 
 XFrameOptionsDisposition parseXFrameOptionsHeader(StringView header)
 {
-    XFrameOptionsDisposition result = XFrameOptionsDisposition::None;
-
-    if (header.isEmpty())
-        return result;
-
-    for (auto currentHeader : header.splitAllowingEmptyEntries(',')) {
-        currentHeader = currentHeader.trim(isTabOrSpace<char16_t>);
-        XFrameOptionsDisposition currentValue = XFrameOptionsDisposition::None;
-        if (equalLettersIgnoringASCIICase(currentHeader, "deny"_s))
-            currentValue = XFrameOptionsDisposition::Deny;
-        else if (equalLettersIgnoringASCIICase(currentHeader, "sameorigin"_s))
-            currentValue = XFrameOptionsDisposition::SameOrigin;
-        else if (equalLettersIgnoringASCIICase(currentHeader, "allowall"_s))
-            currentValue = XFrameOptionsDisposition::AllowAll;
-        else
-            currentValue = XFrameOptionsDisposition::Invalid;
-
-        if (result == XFrameOptionsDisposition::None)
-            result = currentValue;
-        else if (result != currentValue)
-            return XFrameOptionsDisposition::Conflict;
-    }
-    return result;
+    return header.is8Bit() ? parseXFrameOptionsHeader8(header.span8()) : parseXFrameOptionsHeader16(header.span16());
 }
 
 OptionSet<ClearSiteDataValue> parseClearSiteDataHeader(const ResourceResponse& response)
 {
-    OptionSet<ClearSiteDataValue> result;
-
     auto headerValue = response.httpHeaderField(HTTPHeaderName::ClearSiteData);
-    if (headerValue.isEmpty())
-        return result;
-
-    if (!WebCore::shouldTreatAsPotentiallyTrustworthy(response.url()))
-        return result;
-
-    for (auto value : StringView(headerValue).split(',')) {
-        auto trimmedValue = value.trim(isASCIIWhitespaceWithoutFF<char16_t>);
-        if (trimmedValue == "\"cache\""_s)
-            result.add(ClearSiteDataValue::Cache);
-        else if (trimmedValue == "\"cookies\""_s)
-            result.add(ClearSiteDataValue::Cookies);
-        else if (trimmedValue == "\"executionContexts\""_s)
-            result.add(ClearSiteDataValue::ExecutionContexts);
-        else if (trimmedValue == "\"storage\""_s)
-            result.add(ClearSiteDataValue::Storage);
-        else if (trimmedValue == "\"prefetchCache\""_s)
-            result.add(ClearSiteDataValue::PrefetchCache);
-        else if (trimmedValue == "\"*\""_s)
-            result.add({ ClearSiteDataValue::Cache, ClearSiteDataValue::Cookies, ClearSiteDataValue::ExecutionContexts, ClearSiteDataValue::Storage, ClearSiteDataValue::PrefetchCache });
-    }
-    return result;
+    if (headerValue.isEmpty() || !WebCore::shouldTreatAsPotentiallyTrustworthy(response.url()))
+        return { };
+    return OptionSet<ClearSiteDataValue>::fromRaw(headerValue.is8Bit() ? parseClearSiteDataHeader8(headerValue.span8()) : parseClearSiteDataHeader16(headerValue.span16()));
 }
 
 // Implements <https://fetch.spec.whatwg.org/#simple-range-header-value>.
 std::optional<HTTPRange> parseRange(StringView range, RangeAllowWhitespace allowWhitespace)
 {
-    static constexpr auto bytesPrefix = "bytes"_s;
-    if (!range.startsWith(bytesPrefix))
+    auto result = range.is8Bit() ? parseRange8(range.span8(), allowWhitespace == RangeAllowWhitespace::Yes) : parseRange16(range.span16(), allowWhitespace == RangeAllowWhitespace::Yes);
+    if (!result.isValid)
         return std::nullopt;
-
-    return readCharactersForParsing(range.substring(bytesPrefix.length()), [allowWhitespace](auto buffer) -> std::optional<HTTPRange> {
-        // Only 0x20 and 0x09 matter as newlines are already gone by the time we parse a header value.
-        auto skipOptionalWhitespace = [&] {
-            if (allowWhitespace == RangeAllowWhitespace::Yes)
-                WTF::skipWhile<isTabOrSpace>(buffer);
-        };
-        auto collectDigits = [&] {
-            auto digits = buffer.span();
-            WTF::skipWhile<isASCIIDigit>(buffer);
-            return digits.first(digits.size() - buffer.lengthRemaining());
-        };
-
-        skipOptionalWhitespace();
-        if (!skipExactly(buffer, '='))
-            return std::nullopt;
-        skipOptionalWhitespace();
-        auto startDigits = collectDigits();
-        skipOptionalWhitespace();
-        if (!skipExactly(buffer, '-'))
-            return std::nullopt;
-        skipOptionalWhitespace();
-        auto endDigits = collectDigits();
-        if (!buffer.atEnd())
-            return std::nullopt;
-        if (startDigits.empty() && endDigits.empty())
-            return std::nullopt;
-
-        std::optional<uint64_t> start;
-        if (!startDigits.empty()) {
-            start = parseInteger<uint64_t>(startDigits);
-            if (!start)
-                return std::nullopt;
-        }
-        std::optional<uint64_t> end;
-        if (!endDigits.empty()) {
-            end = parseInteger<uint64_t>(endDigits);
-            if (!end)
-                return std::nullopt;
-        }
-        if (start && end && *start > *end)
-            return std::nullopt;
-
-        return HTTPRange { start, end };
-    });
-}
-
-template<typename CharacterType>
-NODELETE static inline bool isValidHeaderNameCharacter(CharacterType character)
-{
-    // https://tools.ietf.org/html/rfc7230#section-3.2
-    // A header name should only contain one or more of
-    // alphanumeric or ! # $ % & ' * + - . ^ _ ` | ~
-    if (isASCIIAlphanumeric(character))
-        return true;
-    switch (character) {
-    case '!':
-    case '#':
-    case '$':
-    case '%':
-    case '&':
-    case '\'':
-    case '*':
-    case '+':
-    case '-':
-    case '.':
-    case '^':
-    case '_':
-    case '`':
-    case '|':
-    case '~':
-        return true;
-    default:
-        return false;
-    }
+    return HTTPRange { result.hasStart ? std::optional { result.start } : std::nullopt, result.hasEnd ? std::optional { result.end } : std::nullopt };
 }
 
 size_t parseHTTPHeader(std::span<const uint8_t> data, String& failureReason, StringView& nameStr, String& valueStr, bool strict)
 {
-    auto p = data;
-
-    Vector<uint8_t> name;
-    Vector<uint8_t> value;
-
-    bool foundFirstNameChar = false;
-    std::span<const uint8_t> namePtr;
-    size_t nameSize = 0;
-
     nameStr = StringView();
     valueStr = String();
-
-    for (; !p.empty(); skip(p, 1)) {
-        switch (p[0]) {
-        case '\r':
-            if (name.isEmpty()) {
-                if (p.size() > 1 && p[1] == '\n')
-                    return (reinterpret_cast<std::uintptr_t>(p.data()) + 2) - reinterpret_cast<std::uintptr_t>(data.data());
-                failureReason = makeString("CR doesn't follow LF in header name at "_s, trimInputSample(p));
-                return 0;
-            }
-            failureReason = makeString("Unexpected CR in header name at "_s, trimInputSample(name.span()));
-            return 0;
-        case '\n':
-            failureReason = makeString("Unexpected LF in header name at "_s, trimInputSample(name.span()));
-            return 0;
-        case ':':
-            break;
-        default:
-            if (!isValidHeaderNameCharacter(p[0])) {
-                if (name.size() < 1)
-                    failureReason = "Unexpected start character in header name"_s;
-                else
-                    failureReason = makeString("Unexpected character in header name at "_s, trimInputSample(name.span()));
-                return 0;
-            }
-            name.append(p[0]);
-            if (!foundFirstNameChar) {
-                namePtr = p;
-                foundFirstNameChar = true;
-            }
-            continue;
-        }
-        if (skipExactly(p, ':'))
-            break;
-    }
-
-    nameSize = name.size();
-    nameStr = byteCast<Latin1Character>(namePtr.first(nameSize));
-
-    WTF::skipWhile(p, ' ');
-
-    for (; !p.empty(); skip(p, 1)) {
-        switch (p[0]) {
-        case '\r':
-            break;
-        case '\n':
-            if (strict) {
-                failureReason = makeString("Unexpected LF in header value at "_s, trimInputSample(value.span()));
-                return 0;
-            }
-            break;
-        default:
-            value.append(p[0]);
-        }
-        if (p[0] == '\r' || (!strict && p[0] == '\n')) {
-            skip(p, 1);
-            break;
-        }
-    }
-    if (p.empty() || (strict && p[0] != '\n')) {
-        failureReason = makeString("CR doesn't follow LF after header value at "_s, trimInputSample(p));
+    auto line = parseHTTPHeaderLine(data, strict);
+    if (!line.field.name.isNull)
+        nameStr = byteCast<Latin1Character>(data.subspan(line.field.name.start, line.field.name.length));
+    if (!line.failureReason.isNull()) {
+        failureReason = WTF::move(line.failureReason);
         return 0;
     }
-    valueStr = String::fromUTF8(value.span());
+    if (line.field.value.isNull)
+        return line.length;
+    valueStr = String::fromUTF8(data.subspan(line.field.value.start, line.field.value.length));
     if (valueStr.isNull()) {
         failureReason = "Invalid UTF-8 sequence in header value"_s;
         return 0;
     }
-    return p.data() - data.data();
-}
-
-size_t parseHTTPRequestBody(std::span<const uint8_t> data, Vector<uint8_t>& body)
-{
-    body.clear();
-    body.append(data);
-
-    return data.size();
+    return line.length;
 }
 
 std::optional<uint64_t> parseContentLength(StringView contentLengthValue)
 {
-    // Based on https://www.rfc-editor.org/rfc/rfc9110#field.content-length, we allow ',' values if they are all the same.
-    std::optional<uint64_t> value;
-    for (auto token : contentLengthValue.split(',')) {
-        if (auto expectedContentLength = parseInteger<uint64_t>(token)) {
-            if (value && *value != *expectedContentLength)
-                return { };
-            value = expectedContentLength;
-        } else if (value)
-            return { };
-    }
-    return value;
+    auto length = contentLengthValue.is8Bit() ? parseContentLength8(contentLengthValue.span8()) : parseContentLength16(contentLengthValue.span16());
+    if (!length.hasValue)
+        return std::nullopt;
+    return length.value;
 }
 
 // Implements <https://fetch.spec.whatwg.org/#forbidden-header-name>.
 bool isForbiddenHeaderName(const String& name)
 {
-    HTTPHeaderName headerName;
-    if (findHTTPHeaderName(name, headerName)) {
-        switch (headerName) {
-        case HTTPHeaderName::AcceptCharset:
-        case HTTPHeaderName::AcceptEncoding:
-        case HTTPHeaderName::AccessControlRequestHeaders:
-        case HTTPHeaderName::AccessControlRequestMethod:
-        case HTTPHeaderName::Connection:
-        case HTTPHeaderName::ContentLength:
-        case HTTPHeaderName::Cookie:
-        case HTTPHeaderName::Cookie2:
-        case HTTPHeaderName::Date:
-        case HTTPHeaderName::DNT:
-        case HTTPHeaderName::Expect:
-        case HTTPHeaderName::Host:
-        case HTTPHeaderName::KeepAlive:
-        case HTTPHeaderName::Origin:
-        case HTTPHeaderName::Referer:
-        case HTTPHeaderName::SetCookie:
-        case HTTPHeaderName::TE:
-        case HTTPHeaderName::Trailer:
-        case HTTPHeaderName::TransferEncoding:
-        case HTTPHeaderName::Upgrade:
-        case HTTPHeaderName::Via:
-            return true;
-        default:
-            break;
-        }
-    }
-    return startsWithLettersIgnoringASCIICase(name, "sec-"_s) || startsWithLettersIgnoringASCIICase(name, "proxy-"_s);
-}
-
-static bool isForbiddenMethodOverrideHeader(const String& name, StringView value)
-{
-    if (!equalLettersIgnoringASCIICase(name, "x-http-method-override"_s) && !equalLettersIgnoringASCIICase(name, "x-http-method"_s) && !equalLettersIgnoringASCIICase(name, "x-method-override"_s))
-        return false;
-
-    for (auto methodValue : StringView(value).split(',')) {
-        auto method = methodValue.trim(isUnicodeCompatibleASCIIWhitespace<char16_t>);
-        if (isForbiddenMethod(method))
-            return true;
-    }
-
-    return false;
+    HTTPHeaderName headerName { };
+    bool isKnownName = findHTTPHeaderName(name, headerName);
+    return name.is8Bit() ? isForbiddenHeaderName8(name.span8(), isKnownName, headerName) : isForbiddenHeaderName16(name.span16(), isKnownName, headerName);
 }
 
 bool isForbiddenHeader(const String& name, StringView value)
 {
-    return isForbiddenHeaderName(name) || isForbiddenMethodOverrideHeader(name, value);
+    HTTPHeaderName headerName { };
+    bool isKnownName = findHTTPHeaderName(name, headerName);
+    return name.is8Bit()
+        ? (value.is8Bit() ? isForbiddenHeader8And8(name.span8(), isKnownName, headerName, value.span8()) : isForbiddenHeader8And16(name.span8(), isKnownName, headerName, value.span16()))
+        : (value.is8Bit() ? isForbiddenHeader16And8(name.span16(), isKnownName, headerName, value.span8()) : isForbiddenHeader16And16(name.span16(), isKnownName, headerName, value.span16()));
 }
 
 // Implements <https://fetch.spec.whatwg.org/#no-cors-safelisted-request-header-name>.
 bool isNoCORSSafelistedRequestHeaderName(const String& name)
 {
-    HTTPHeaderName headerName;
-    if (findHTTPHeaderName(name, headerName)) {
-        switch (headerName) {
-        case HTTPHeaderName::Accept:
-        case HTTPHeaderName::AcceptLanguage:
-        case HTTPHeaderName::ContentLanguage:
-        case HTTPHeaderName::ContentType:
-            return true;
-        default:
-            break;
-        }
-    }
-    return false;
+    HTTPHeaderName headerName { };
+    bool isKnownName = findHTTPHeaderName(name, headerName);
+    return name.is8Bit() ? isNoCORSSafelistedRequestHeaderName8(name.span8(), isKnownName, headerName) : isNoCORSSafelistedRequestHeaderName16(name.span16(), isKnownName, headerName);
 }
 
 // Implements <https://fetch.spec.whatwg.org/#privileged-no-cors-request-header-name>.
 bool isPriviledgedNoCORSRequestHeaderName(const String& name)
 {
-    return equalLettersIgnoringASCIICase(name, "range"_s);
+    return name.is8Bit() ? isPriviledgedNoCORSRequestHeaderName8(name.span8(), name.length()) : isPriviledgedNoCORSRequestHeaderName16(name.span16(), name.length());
 }
 
 // Implements <https://fetch.spec.whatwg.org/#forbidden-response-header-name>.
 bool isForbiddenResponseHeaderName(const String& name)
 {
-    return equalLettersIgnoringASCIICase(name, "set-cookie"_s) || equalLettersIgnoringASCIICase(name, "set-cookie2"_s);
+    return name.is8Bit() ? isForbiddenResponseHeaderName8(name.span8(), name.length()) : isForbiddenResponseHeaderName16(name.span16(), name.length());
 }
 
 // Implements <https://fetch.spec.whatwg.org/#forbidden-method>.
 bool isForbiddenMethod(StringView name)
 {
-    return equalLettersIgnoringASCIICase(name, "connect"_s) || equalLettersIgnoringASCIICase(name, "trace"_s) || equalLettersIgnoringASCIICase(name, "track"_s);
+    return name.is8Bit() ? isForbiddenMethod8(name.span8(), name.length()) : isForbiddenMethod16(name.span16(), name.length());
 }
 
 bool isSimpleHeader(const String& name, const String& value)
@@ -908,22 +365,8 @@ bool isSimpleHeader(const String& name, const String& value)
 
 bool isCrossOriginSafeHeader(HTTPHeaderName name, const HTTPHeaderSet& accessControlExposeHeaderSet)
 {
-    switch (name) {
-    case HTTPHeaderName::CacheControl:
-    case HTTPHeaderName::ContentLanguage:
-    case HTTPHeaderName::ContentLength:
-    case HTTPHeaderName::ContentType:
-    case HTTPHeaderName::Expires:
-    case HTTPHeaderName::LastModified:
-    case HTTPHeaderName::Pragma:
-    case HTTPHeaderName::Accept:
-        return true;
-    case HTTPHeaderName::SetCookie:
-    case HTTPHeaderName::SetCookie2:
-        return false;
-    default:
-        break;
-    }
+    if (auto safety = crossOriginHeaderSafety(name); safety != HTTPHeaderCrossOriginSafety::Exposed)
+        return safety == HTTPHeaderCrossOriginSafety::Safe;
     return accessControlExposeHeaderSet.contains<HashTranslatorASCIILiteralCaseInsensitive>(httpHeaderNameString(name));
 }
 
@@ -939,213 +382,56 @@ bool isCrossOriginSafeHeader(const String& name, const HTTPHeaderSet& accessCont
 // Implements https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 bool isCrossOriginSafeRequestHeader(HTTPHeaderName name, const String& value)
 {
-    if (value.length() > 128)
-        return false;
-
-    switch (name) {
-    case HTTPHeaderName::Accept:
-        if (!isValidAcceptHeaderValue(value))
-            return false;
-        break;
-    case HTTPHeaderName::AcceptLanguage:
-    case HTTPHeaderName::ContentLanguage:
-        if (!isValidLanguageHeaderValue(value))
-            return false;
-        break;
-    case HTTPHeaderName::ContentType: {
-        // Preflight is required for MIME types that can not be sent via form submission.
-        if (containsCORSUnsafeRequestHeaderBytes(value))
-            return false;
-        auto parsedContentType = ParsedContentType::create(value);
-        if (!parsedContentType)
-            return false;
-        String mimeType = parsedContentType->mimeType();
-        if (!(equalLettersIgnoringASCIICase(mimeType, "application/x-www-form-urlencoded"_s) || equalLettersIgnoringASCIICase(mimeType, "multipart/form-data"_s) || equalLettersIgnoringASCIICase(mimeType, "text/plain"_s)))
-            return false;
-        break;
-    }
-    case HTTPHeaderName::Range: {
-        auto range = parseRange(value, RangeAllowWhitespace::No);
-        if (!range || !range->start)
-            return false;
-        break;
-    }
-    default:
-        return false;
-    }
-    return true;
+    return value.is8Bit() ? isCrossOriginSafeRequestHeader8(name, value.span8()) : isCrossOriginSafeRequestHeader16(name, value.span16());
 }
 
 // Implements <https://fetch.spec.whatwg.org/#concept-method-normalize>.
 String normalizeHTTPMethod(const String& method)
 {
-    constexpr std::array methods { "DELETE"_s, "GET"_s, "HEAD"_s, "OPTIONS"_s, "POST"_s, "PUT"_s };
-    for (auto value : methods) {
-        if (equalIgnoringASCIICase(method, value)) {
-            // Don't bother allocating a new string if it's already all uppercase.
-            if (method == value)
-                break;
-            return value;
-        }
-    }
-    return method;
+    auto normalized = method.is8Bit() ? normalizedHTTPMethod8(method.span8()) : normalizedHTTPMethod16(method.span16());
+    return normalized.isNull() ? method : normalized;
 }
 
 // Defined by https://tools.ietf.org/html/rfc7231#section-4.2.1
 bool isSafeMethod(const String& method)
 {
-    constexpr std::array safeMethods { "GET"_s, "HEAD"_s, "OPTIONS"_s, "TRACE"_s };
-    for (auto value : safeMethods) {
-        if (equalIgnoringASCIICase(method, value))
-            return true;
-    }
-    return false;
+    return method.is8Bit() ? isSafeMethod8(method.span8()) : isSafeMethod16(method.span16());
 }
 
 CrossOriginResourcePolicy parseCrossOriginResourcePolicyHeader(StringView header)
 {
-    auto trimmedHeader = header.trim(isASCIIWhitespaceWithoutFF<char16_t>);
-
-    if (trimmedHeader.isEmpty())
-        return CrossOriginResourcePolicy::None;
-
-    if (trimmedHeader == "same-origin"_s)
-        return CrossOriginResourcePolicy::SameOrigin;
-
-    if (trimmedHeader == "same-site"_s)
-        return CrossOriginResourcePolicy::SameSite;
-
-    if (trimmedHeader == "cross-origin"_s)
-        return CrossOriginResourcePolicy::CrossOrigin;
-
-    return CrossOriginResourcePolicy::Invalid;
+    return header.is8Bit() ? parseCrossOriginResourcePolicyHeader8(header.span8()) : parseCrossOriginResourcePolicyHeader16(header.span16());
 }
 
 // Request headers that can be appended to, and the delimiter placed between values.
 std::optional<ASCIILiteral> requestHeaderAppendDelimiter(const String& header)
 {
-    static constexpr std::pair<ASCIILiteral, ASCIILiteral> appendableHeaders[] {
-        { "accept"_s, ", "_s },
-        { "accept-encoding"_s, ", "_s },
-        { "accept-language"_s, ", "_s },
-        { "access-control-request-headers"_s, ", "_s },
-        { "cache-control"_s, ", "_s },
-        { "connection"_s, ", "_s },
-        { "content-language"_s, ", "_s },
-        { "cookie"_s, "; "_s },
-        { "forwarded"_s, ", "_s },
-        { "if-match"_s, ", "_s },
-        { "if-none-match"_s, ", "_s },
-        { "keep-alive"_s, ", "_s },
-        { "range"_s, ", "_s },
-        { "te"_s, ", "_s },
-        { "trailer"_s, ""_s },
-        { "transfer-encoding"_s, ", "_s },
-        { "upgrade"_s, ", "_s },
-        { "user-agent"_s, " "_s },
-        { "via"_s, ", "_s },
-        { "want-digest"_s, ", "_s },
-        { "x-forwarded-for"_s, ", "_s }
-    };
-
-    for (auto& [name, delimiter] : appendableHeaders) {
-        if (equalIgnoringASCIICase(header, name))
-            return delimiter;
-    }
-
-    return std::nullopt;
+    // Indexed by the raw value of AppendDelimiter in HTTPParsers.swift, so in the order of its cases.
+    static constexpr std::array delimiters { ", "_s, "; "_s, ""_s, " "_s };
+    auto index = header.is8Bit() ? requestHeaderAppendDelimiterIndex8(header.span8()) : requestHeaderAppendDelimiterIndex16(header.span16());
+    if (!index)
+        return std::nullopt;
+    return delimiters[index - 1];
 }
 
 bool isRequestHeaderUnsafeToModify(const String& header, StringView value)
 {
-    static constexpr ASCIILiteral unsafeHeaders[] {
-        "available-dictionary"_s,
-        "content-length"_s,
-        "cookie2"_s,
-        "host"_s,
-        "keep-alive"_s,
-        "set-cookie"_s,
-        "te"_s,
-        "trailer"_s,
-        "transfer-encoding"_s,
-        "upgrade"_s
-    };
-
-    if (startsWithLettersIgnoringASCIICase(header, "proxy-"_s))
-        return true;
-
-    for (auto name : unsafeHeaders) {
-        if (equalIgnoringASCIICase(header, name))
-            return true;
-    }
-
-    // Shared dictionary encodings and wildcards can't be negotiated by an extension.
-    if (equalLettersIgnoringASCIICase(header, "accept-encoding"_s)) {
-        for (auto encodingValue : value.split(',')) {
-            auto encoding = encodingValue.left(encodingValue.find(';')).trim(isUnicodeCompatibleASCIIWhitespace<char16_t>);
-            if (equalLettersIgnoringASCIICase(encoding, "dcb"_s) || equalLettersIgnoringASCIICase(encoding, "dcz"_s) || encoding == "*"_s)
-                return true;
-        }
-    }
-
-    // Only the connection options that the network stack itself uses are allowed.
-    if (equalLettersIgnoringASCIICase(header, "connection"_s)) {
-        for (auto tokenValue : value.split(',')) {
-            auto token = tokenValue.trim(isUnicodeCompatibleASCIIWhitespace<char16_t>);
-            if (token.isEmpty())
-                continue;
-
-            if (!equalLettersIgnoringASCIICase(token, "close"_s) && !equalLettersIgnoringASCIICase(token, "keep-alive"_s))
-                return true;
-        }
-    }
-
-    return isForbiddenMethodOverrideHeader(header, value);
-}
-
-template<class HashType>
-static bool addToAccessControlAllowList(const String& string, unsigned start, unsigned end, HashSet<String, HashType>& set)
-{
-    StringImpl* stringImpl = string.impl();
-    if (!stringImpl)
-        return true;
-
-    // Skip white space from start.
-    while (start <= end && isASCIIWhitespaceWithoutFF((*stringImpl)[start]))
-        ++start;
-
-    // only white space
-    if (start > end)
-        return true;
-
-    // Skip white space from end.
-    while (end && isASCIIWhitespaceWithoutFF((*stringImpl)[end]))
-        --end;
-
-    auto token = string.substring(start, end - start + 1);
-    if (!isValidHTTPToken(token))
-        return false;
-
-    set.add(WTF::move(token));
-    return true;
+    return header.is8Bit()
+        ? (value.is8Bit() ? isRequestHeaderUnsafeToModify8And8(header.span8(), value.span8()) : isRequestHeaderUnsafeToModify8And16(header.span8(), value.span16()))
+        : (value.is8Bit() ? isRequestHeaderUnsafeToModify16And8(header.span16(), value.span8()) : isRequestHeaderUnsafeToModify16And16(header.span16(), value.span16()));
 }
 
 template<class HashType>
 static std::optional<HashSet<String, HashType>> parseAccessControlAllowListWithHash(const String& string)
 {
     HashSet<String, HashType> set;
-    unsigned start = 0;
-    size_t end;
-    while ((end = string.find(',', start)) != notFound) {
-        if (start != end) {
-            if (!addToAccessControlAllowList(string, start, end - 1, set))
-                return { };
-        }
-        start = end + 1;
-    }
-    if (start != string.length()) {
-        if (!addToAccessControlAllowList(string, start, string.length() - 1, set))
+    for (unsigned start = 0; start < string.length();) {
+        auto token = string.is8Bit() ? accessControlAllowListToken8(string.span8(), start) : accessControlAllowListToken16(string.span16(), start);
+        if (!token.isValid)
             return { };
+        if (!token.item.isNull)
+            set.add(string.substring(token.item.start, token.item.length));
+        start = token.next;
     }
     return set;
 }

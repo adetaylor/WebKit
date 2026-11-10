@@ -41,13 +41,6 @@ using HTTPHeaderSet = HashSet<String, ASCIICaseInsensitiveHash>;
 class ResourceResponse;
 enum class HTTPHeaderName : uint16_t;
 
-enum class XSSProtectionDisposition {
-    Invalid,
-    Disabled,
-    Enabled,
-    BlockEnabled,
-};
-
 enum class ContentTypeOptionsDisposition : bool {
     None,
     Nosniff
@@ -93,7 +86,6 @@ WEBCORE_EXPORT std::optional<WallTime> parseHTTPDate(const String&);
 WEBCORE_EXPORT StringView filenameFromHTTPContentDisposition(StringView value LIFETIME_BOUND);
 WEBCORE_EXPORT String extractMIMETypeFromMediaType(const String&);
 WEBCORE_EXPORT StringView extractCharsetFromMediaType(StringView mediaType LIFETIME_BOUND);
-XSSProtectionDisposition parseXSSProtectionHeader(const String& header, String& failureReason, unsigned& failurePosition, String& reportURL);
 WEBCORE_EXPORT AtomString extractReasonPhraseFromHTTPStatusLine(const String&);
 WEBCORE_EXPORT XFrameOptionsDisposition parseXFrameOptionsHeader(StringView);
 WEBCORE_EXPORT OptionSet<ClearSiteDataValue> parseClearSiteDataHeader(const ResourceResponse&);
@@ -109,7 +101,6 @@ WEBCORE_EXPORT ContentTypeOptionsDisposition parseContentTypeOptionsHeader(Strin
 
 // Parsing Complete HTTP Messages.
 WEBCORE_EXPORT size_t parseHTTPHeader(std::span<const uint8_t> data, String& failureReason, StringView& nameStr, String& valueStr, bool strict = true);
-size_t parseHTTPRequestBody(std::span<const uint8_t> data, Vector<uint8_t>& body);
 
 WEBCORE_EXPORT std::optional<uint64_t> parseContentLength(StringView);
 

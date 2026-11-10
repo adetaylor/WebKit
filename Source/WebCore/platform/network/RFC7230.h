@@ -34,7 +34,5 @@ NODELETE bool isTokenCharacter(char16_t);
 NODELETE bool isCommentText(char16_t);
 NODELETE bool isQuotedPairSecondOctet(char16_t);
 NODELETE bool isDelimiter(char16_t);
-NODELETE bool isValidName(StringView);
-NODELETE bool isValidValue(StringView);
 
 } // namespace RFC7230

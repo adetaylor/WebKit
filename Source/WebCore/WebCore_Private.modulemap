@@ -4,6 +4,12 @@ framework module WebCore_Private [system] {
         export *
     }
 
+    explicit module HTTPHeaderParsersTypes {
+        header "HTTPHeaderParsersTypes.h"
+        requires cplusplus
+        export *
+    }
+
     explicit module HTMLFastPathParserTypes {
         header "HTMLFastPathParserTypes.h"
         requires cplusplus
@@ -53,6 +59,10 @@ framework module WebCore_Private [system] {
 
         // WebCore's Swift imports it as WebCore_Private.ScrollbarsControllerMacTypes.
         exclude header "ScrollbarsControllerMacTypes.h"
+
+        // Its own module above, so that Swift can import it without the rest
+        // of Core.
+        exclude header "HTTPHeaderParsersTypes.h"
 
         module * {
             export *
