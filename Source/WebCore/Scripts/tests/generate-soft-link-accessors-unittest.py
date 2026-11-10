@@ -120,14 +120,14 @@ class PALParsingTest(unittest.TestCase):
 
 class ManifestTest(unittest.TestCase):
     def test_entries(self):
-        entries = generator.parse_manifest(['# comment', '', 'function Media MediaThingCopyName  # trailing', 'constant Media MediaKey as MediaKeyName', 'class Media MediaPlayer'])
-        self.assertEqual(entries, [('function', 'Media', 'MediaThingCopyName', None), ('constant', 'Media', 'MediaKey', 'MediaKeyName'), ('class', 'Media', 'MediaPlayer', None)])
+        entries = generator.parse_manifest(['# comment', '', 'function Media MediaThingCopyName  # trailing', 'constant Media MediaKey as MediaKeyName', 'class Media MediaPlayer', 'class Media MediaPlayerItem as MediaPlayer.Item'])
+        self.assertEqual(entries, [('function', 'Media', 'MediaThingCopyName', None), ('constant', 'Media', 'MediaKey', 'MediaKeyName'), ('class', 'Media', 'MediaPlayer', None), ('class', 'Media', 'MediaPlayerItem', 'MediaPlayer.Item')])
 
     def test_function_with_pointer(self):
         self.assertEqual(generator.parse_manifest(['function Media MediaRender with pointer']), [('function', 'Media', 'MediaRender', 'pointer')])
 
     def test_malformed_lines(self):
-        for line in ('method Media X', 'function Media', 'function Media X Y', 'class Media X as Y', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
+        for line in ('method Media X', 'function Media', 'function Media X Y', 'function Media X as Y', 'class Media X as', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
             with self.assertRaises(generator.GeneratorError, msg=line):
                 generator.parse_manifest([line])
 
@@ -169,7 +169,7 @@ class ManifestTest(unittest.TestCase):
         with open(os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in')) as f:
             entries = generator.parse_manifest(f.readlines())
         pal = os.path.join(WEBCORE_DIR, 'PAL', 'pal')
-        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h')])
+        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h'), os.path.join(pal, 'mac', 'ScreenCaptureKitSoftLink.h')])
         generator.validate(entries, result, sorted({framework for _, framework, _, _ in entries}))
 
 
@@ -261,7 +261,7 @@ class AccessorTest(unittest.TestCase):
         optional = generator.constant_accessor(generator.Declaration('constant', 'Media', 'MediaNewKey', True), 'NSString?', 'MediaKeyName')
         self.assertIn('    static let MediaNewKey: MediaKeyName? = {', optional)
         self.assertIn('        guard let address = unsafe softLinkSymbol(auditedName_MediaNewKey) else {', optional)
-        self.assertIn('        return MediaKeyName(rawValue: (unsafe address.load(as: PALSoftLink_MediaNewKey_t.Pointee.self))! as String)', optional)
+        self.assertIn('        return stringConstant((unsafe address.load(as: PALSoftLink_MediaNewKey_t.Pointee.self))! as String) as MediaKeyName', optional)
         value = generator.constant_accessor(generator.Declaration('constant', 'Media', 'MediaZero', False), 'MediaTime')
         self.assertIn('    static let MediaZero: MediaTime = {', value)
         with self.assertRaisesRegex(generator.GeneratorError, 'only to NSString'):
@@ -279,6 +279,9 @@ class AccessorTest(unittest.TestCase):
         self.assertNotIn('preconditionFailure', optional)
         self.assertIn('static func cast(_ object: AnyObject?, to _: Media.MediaSession.Type?) -> Media.MediaSession? {', optional)
         self.assertIn('guard let classObject = MediaSession, let object = object as? NSObject, object.isKind(of: classObject) else {', optional)
+        renamed = '\n'.join(generator.class_accessor(generator.Declaration('class', 'Media', 'MediaPlayerItem', False), 'Media', 'MediaPlayer.Item'))
+        self.assertIn('static let MediaPlayerItem: Media.MediaPlayer.Item.Type = {', renamed)
+        self.assertIn('return unsafe unsafeBitCast(object as AnyObject, to: Media.MediaPlayer.Item.self)', renamed)
 
     def test_audited_names(self):
         self.assertEqual(generator.audited_name('AB', '__TEXT,__dlsym_cstr'), '@section("__TEXT,__dlsym_cstr") @used private let auditedName_AB: (CChar, CChar, CChar) = (65, 66, 0)')
@@ -374,6 +377,11 @@ class FileTest(unittest.TestCase):
         self.assertIn('private func softLinkRequiredSymbol', content)
         self.assertIn('import Media\n', content)
         self.assertNotIn('internal import', content)
+        self.assertIn('var MediaFrameworkIsAvailable: Bool { unsafe frameworkHandleIfLoaded != nil }', content)
+        self.assertNotIn('stringConstant', content)
+        typed = generator.accessors_file('Media', [('constant', 'Media', 'MediaKey', 'MediaKeyName')], result, SignatureParsingTest.TYPEDEFS, lambda framework: [], path='/tmp/Fake/Media')
+        self.assertIn('dlopen("/tmp/Fake/Media", RTLD_NOW)', typed)
+        self.assertIn('private func stringConstant<Constant: RawRepresentable>(_ value: String) -> Constant where Constant.RawValue == String {', typed)
         private = generator.accessors_file('MediaCore', [('function', 'MediaCore', 'MediaCoreFetch', None)], result, '@unsafe public typealias PALSoftLink_MediaCoreFetch_t = @convention(c) (UnsafeMutablePointer<Unmanaged<CFData>?>) -> OSStatus', lambda framework: ['public func MediaCoreFetch(_ out: UnsafeMutablePointer<Unmanaged<CFData>?>) -> OSStatus'])
         self.assertIn('/System/Library/PrivateFrameworks/MediaCore.framework/MediaCore', private)
         self.assertNotIn('softLinkRequiredSymbol', private)
@@ -399,6 +407,10 @@ class FileTest(unittest.TestCase):
         self.assertIn('typedef __typeof__(&AVMediaTypeVideo) PALSoftLink_AVMediaTypeVideo_t;', header)
         self.assertNotIn('AVPlayer', header)
         self.assertNotIn('MediaPlayer', header)
+        result = generator.PALDeclarations()
+        generator.parse_pal_header('SOFT_LINK_CONSTANT_MAY_FAIL_FOR_HEADER(PAL, AVFoundation, AVCaptureDeviceTypeDeskViewCamera, NSString *)\n', '', result)
+        header = generator.types_header([('constant', 'AVFoundation', 'AVCaptureDeviceTypeDeskViewCamera', None)], result)
+        self.assertIn('typedef NSString * const * PALSoftLink_AVCaptureDeviceTypeDeskViewCamera_t;', header)
 
     @unittest.skipUnless(shutil.which('xcrun') and subprocess.run(['xcrun', '--find', 'clang'], capture_output=True).returncode == 0, 'needs clang')
     def test_types_header_names_deprecated_symbols(self):
@@ -451,8 +463,8 @@ class SDKTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output:
             arguments = argparse.Namespace(
                 manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
-                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h')],
-                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia', 'Vision'], stub_framework=[], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h'), os.path.join(pal, 'mac', 'ScreenCaptureKitSoftLink.h')],
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia', 'ScreenCaptureKit', 'Vision'], stub_framework=[], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
                 synthesize_interface=None, synthesize_argument=[])
             generator.generate(arguments)
             with open(os.path.join(output, 'AudioToolboxSoftLinkAccessors.swift')) as f:
@@ -477,7 +489,7 @@ class SDKTest(unittest.TestCase):
             arguments = argparse.Namespace(
                 manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
                 pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h')],
-                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia'], stub_framework=['Vision'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia'], stub_framework=['ScreenCaptureKit', 'Vision'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
                 synthesize_interface=None, synthesize_argument=[])
             generator.generate(arguments)
             with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:

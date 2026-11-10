@@ -3771,7 +3771,7 @@ if (APPLE)
     # this file keeps the list complete for direct imports; MediaToolbox and VideoToolbox come through the C++ modules,
     # CoreML through Vision's.
     set(WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS
-        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox Vision VideoToolbox)
+        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox ScreenCaptureKit Vision VideoToolbox)
     foreach (_framework IN LISTS WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
         webkit_target_add_swift_options(WebCore
             "-Xfrontend -disable-autolink-framework -Xfrontend ${_framework}"
@@ -3782,7 +3782,7 @@ if (APPLE)
     # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
     # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
     # C++ interop mode, as WebCore's Swift imports them.
-    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia Vision)
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia ScreenCaptureKit Vision)
     set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
     set(_soft_link_pal_headers
         ${PAL_DIR}/pal/cf/AudioToolboxSoftLink.h
@@ -3791,6 +3791,7 @@ if (APPLE)
         ${PAL_DIR}/pal/cocoa/AVFoundationSoftLink.h
         ${PAL_DIR}/pal/cocoa/CoreMLSoftLink.h
         ${PAL_DIR}/pal/cocoa/VisionSoftLink.h
+        ${PAL_DIR}/pal/mac/ScreenCaptureKitSoftLink.h
     )
     # The clients of WebCore's Swift module load the modules it imports, and search this directory for WebCore's.
     set(_soft_link_accessors_types
@@ -4368,7 +4369,7 @@ if (DEFINED WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             endforeach ()
         endif ()
     endforeach ()
-    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox Vision VideoToolbox)
+    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox ScreenCaptureKit Vision VideoToolbox)
         if (_framework IN_LIST _webcore_swift_imports AND NOT _framework IN_LIST WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             message(FATAL_ERROR "WebCore's Swift imports ${_framework}, which WebCore soft-links: add it to WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS, and to WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS in WebCore.xcconfig")
         endif ()

@@ -1,6 +1,7 @@
 # The symbols of soft-linked frameworks that WebCore's Swift uses, one per line:
 #     <function|constant|class> <framework> <symbol>
 #     constant <framework> <symbol> as <type>      (an NSString constant of a typed string enum)
+#     class <framework> <symbol> as <type>         (a class that the SDK renames in Swift)
 #     member <framework> <class> <selector> <declaration>
 #                                                  (an Objective-C member whose SDK declaration names a class of the
 #                                                  framework: the Swift declaration, with NSArray and NSDictionary for its

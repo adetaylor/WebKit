@@ -2916,11 +2916,17 @@ $(WEBCORE_LOG_DECLARATIONS_FILES) : $(WebCore)/platform/LogMessages.in $(WebCore
 # generated with the target's SDK from PAL's SOFT_LINK declarations, as Source/WebCore/CMakeLists.txt does.
 
 SOFT_LINK_ACCESSOR_FRAMEWORKS = AVFAudio AVFoundation AudioToolbox CoreML CoreMedia
-# Vision isn't in every SDK (HAVE(VISION)): without it, its file is an empty stub, so the project's sources stay the same.
+# Vision and ScreenCaptureKit aren't in every SDK (HAVE(VISION), HAVE(SCREEN_CAPTURE_KIT)): without one, its file is an
+# empty stub, so the project's sources stay the same.
 ifneq ($(filter HAVE_VISION,$(FEATURE_AND_PLATFORM_DEFINES)),)
     SOFT_LINK_ACCESSOR_FRAMEWORKS += Vision
 else
-    SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS = Vision
+    SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS += Vision
+endif
+ifneq ($(filter HAVE_SCREEN_CAPTURE_KIT,$(FEATURE_AND_PLATFORM_DEFINES)),)
+    SOFT_LINK_ACCESSOR_FRAMEWORKS += ScreenCaptureKit
+else
+    SOFT_LINK_ACCESSOR_STUB_FRAMEWORKS += ScreenCaptureKit
 endif
 
 SOFT_LINK_ACCESSOR_PAL_FILES = \
@@ -2936,6 +2942,8 @@ SOFT_LINK_ACCESSOR_PAL_FILES = \
     $(WebCore)/PAL/pal/cocoa/CoreMLSoftLink.mm \
     $(WebCore)/PAL/pal/cocoa/VisionSoftLink.h \
     $(WebCore)/PAL/pal/cocoa/VisionSoftLink.mm \
+    $(WebCore)/PAL/pal/mac/ScreenCaptureKitSoftLink.h \
+    $(WebCore)/PAL/pal/mac/ScreenCaptureKitSoftLink.mm \
 #
 
 SOFT_LINK_ACCESSOR_FILES = \
