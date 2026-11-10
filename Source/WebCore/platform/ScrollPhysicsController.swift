@@ -213,6 +213,10 @@ final class ScrollPhysicsController {
     private var lastMomentumScrollTimestamp: Double = 0
     private var unappliedOverscrollDelta = ScrollSize.zero
     private var stretchScrollForce = ScrollSize.zero
+    // AppKit's gesture rubber-band curve (WebCore.ScrollPhysicsClient.usesHyperbolicRubberBanding()): the coefficient
+    // for the gesture's input source, and whether the gesture began pinned to the top.
+    private var rubberbandHyperbolicCoefficient: Float = 0
+    private var gestureBeganAtTop = false
     private var momentumVelocity = ScrollSize.zero
 
     private var scrollingVelocityForScrollSnap = ScrollSize.zero
@@ -879,8 +883,16 @@ final class ScrollPhysicsController {
             lastGestureEventTime = 0
 
             let stretchAmount = c.stretchAmount()
-            stretchScrollForce.width = reboundDeltaForElasticDelta(Float(stretchAmount.width()))
-            stretchScrollForce.height = reboundDeltaForElasticDelta(Float(stretchAmount.height()))
+            if WebCore.ScrollPhysicsClient.usesHyperbolicRubberBanding() {
+                let viewportSize = ScrollPhysicsExtents(c.scrollExtents()).viewportSize
+                gestureBeganAtTop = c.isPinnedOnSide(.Top)
+                rubberbandHyperbolicCoefficient = WebCore.ScrollPhysicsClient.rubberBandHyperbolicCoefficient(wheelEvent)
+                stretchScrollForce.width = Float(hyperbolicReboundDeltaForElasticDelta(Double(stretchAmount.width()), viewportSize.width))
+                stretchScrollForce.height = Float(hyperbolicReboundDeltaForElasticDelta(Double(stretchAmount.height()), viewportSize.height))
+            } else {
+                stretchScrollForce.width = reboundDeltaForElasticDelta(Float(stretchAmount.width()))
+                stretchScrollForce.height = reboundDeltaForElasticDelta(Float(stretchAmount.height()))
+            }
             unappliedOverscrollDelta = .zero
 
             stopRubberBandAnimation(&c)
@@ -1169,6 +1181,112 @@ final class ScrollPhysicsController {
         return adjustedDelta
     }
 
+    // MARK: AppKit's gesture rubber-band curve
+
+    private func hyperbolicReboundDeltaForElasticDelta(_ delta: Double, _ viewportLength: Float) -> Double {
+        WebCore.ScrollPhysicsClient.hyperbolicReboundDeltaForElasticDelta(delta, Double(rubberbandHyperbolicCoefficient), Double(viewportLength))
+    }
+
+    private func hyperbolicElasticDeltaForReboundDelta(_ delta: Double, _ viewportLength: Float) -> Double {
+        WebCore.ScrollPhysicsClient.hyperbolicElasticDeltaForReboundDelta(delta, Double(rubberbandHyperbolicCoefficient), Double(viewportLength))
+    }
+
+    // This logic mirrors AppKit.
+    private func computeDampedStretchDelta<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
+        _ delta: ScrollSize,
+        _ horizontalDeltaOpposesStretch: Bool,
+        _ verticalDeltaOpposesStretch: Bool
+    ) -> ScrollSize {
+        let stretchAmount = c.stretchAmount()
+        let viewportSize = ScrollPhysicsExtents(c.scrollExtents()).viewportSize
+
+        // Returns (dampedDelta, newForce). When the axis opposes the current stretch we don't accumulate into force (the
+        // caller already zeroed it), and the delta passes straight through.
+        func hyperbolicDampedDeltaForAxis(
+            _ deltaForAxis: Float,
+            _ currentForce: Float,
+            _ currentStretch: Float,
+            _ viewportLength: Float,
+            _ opposesStretch: Bool
+        ) -> (Float, Float) {
+            if opposesStretch {
+                let remainingStretch = currentStretch + deltaForAxis
+                let forceForRemainingStretch = hyperbolicReboundDeltaForElasticDelta(Double(remainingStretch), viewportLength)
+                return (deltaForAxis, Float(forceForRemainingStretch))
+            }
+
+            if deltaForAxis == 0 {
+                return (0, currentForce)
+            }
+
+            let newForce = currentForce + deltaForAxis
+            let newStretch = Float(hyperbolicElasticDeltaForReboundDelta(Double(newForce), viewportLength)).rounded(.up)
+            return (newStretch - currentStretch, newForce)
+        }
+
+        let (dampedWidth, newForceWidth) = hyperbolicDampedDeltaForAxis(
+            delta.width, stretchScrollForce.width, Float(stretchAmount.width()), viewportSize.width, horizontalDeltaOpposesStretch)
+        var (dampedHeight, newForceHeight) = hyperbolicDampedDeltaForAxis(
+            delta.height, stretchScrollForce.height, Float(stretchAmount.height()), viewportSize.height, verticalDeltaOpposesStretch)
+        stretchScrollForce = ScrollSize(width: newForceWidth, height: newForceHeight)
+
+        dampedHeight = hyperbolicDeltaAdjustedForRefreshController(
+            &c, dampedHeight, delta.height, Float(stretchAmount.height()), verticalDeltaOpposesStretch)
+
+        return ScrollSize(width: dampedWidth, height: dampedHeight)
+    }
+
+    // This logic mirrors AppKit. We layer the refresh-control reveal on top of the general vertical curve.
+    private func hyperbolicDeltaAdjustedForRefreshController<C: ScrollPhysicsClientProtocol & ~Copyable>(
+        _ c: inout C,
+        _ generalDampedHeight: Float,
+        _ verticalDelta: Float,
+        _ verticalStretch: Float,
+        _ verticalDeltaOpposesStretch: Bool
+    ) -> Float {
+        if !c.hasRefreshController() || verticalDeltaOpposesStretch || verticalDelta == 0 {
+            return generalDampedHeight
+        }
+
+        if !gestureBeganAtTop || momentumScrollInProgress {
+            return generalDampedHeight
+        }
+
+        if verticalStretch > 0 || verticalDelta >= 0 {
+            return generalDampedHeight
+        }
+
+        // Vertical stretch at the top is negative. Take the absolute value and work in positive magnitudes.
+        let currentStretchMagnitude = abs(verticalStretch)
+        let verticalDeltaMagnitude = abs(verticalDelta)
+
+        let activationHeight = c.refreshControllerSnappingThreshold()
+        let viewportHeight = ScrollPhysicsExtents(c.scrollExtents()).viewportSize.height
+
+        // Split delta between the linear zone (below the control's activation height) and the hyperbolic zone (above).
+        var newStretchMagnitude: Float = 0
+        if currentStretchMagnitude + verticalDeltaMagnitude > activationHeight {
+            let stretchAlreadyInHyperbolic = stdMax(0, currentStretchMagnitude - activationHeight)
+            let deltaConsumedInLinear = stdMax(0, activationHeight - currentStretchMagnitude)
+            let deltaForHyperbolic = verticalDeltaMagnitude - deltaConsumedInLinear
+            let currentHyperbolicReboundDelta = hyperbolicReboundDeltaForElasticDelta(Double(stretchAlreadyInHyperbolic), viewportHeight)
+            let combinedHyperbolicReboundDelta = currentHyperbolicReboundDelta + Double(deltaForHyperbolic)
+
+            // The new magnitude will be layered on top of the general scroll curve. Floor it like the non-refresh-control
+            // path so that the positions remain pixel-aligned.
+            newStretchMagnitude = activationHeight + Float(hyperbolicElasticDeltaForReboundDelta(combinedHyperbolicReboundDelta, viewportHeight)).rounded(.up)
+        } else {
+            newStretchMagnitude = currentStretchMagnitude + verticalDeltaMagnitude
+        }
+
+        let signedNewStretch = -newStretchMagnitude
+        // Keep the force as if this stretch had come from the general hyperbolic curve so that any later general-path
+        // event that takes place is handled correctly.
+        stretchScrollForce.height = Float(hyperbolicReboundDeltaForElasticDelta(Double(signedNewStretch), viewportHeight))
+        return signedNewStretch - verticalStretch
+    }
+
     private func shouldAttemptRubberbandingRestoration<C: ScrollPhysicsClientProtocol & ~Copyable>(
         _ c: inout C,
         _ state: WebCore.RubberbandingState
@@ -1241,34 +1359,38 @@ final class ScrollPhysicsController {
             return canStartAnimation
         }
 
-        let stretchAmount = c.stretchAmount()
-
-        let adjustedDelta = adjustedForRefreshController(&c, delta, verticalDeltaOpposesStretch)
-        var stretchScrollForceDelta = adjustedDelta
-
-        if horizontalDeltaOpposesStretch {
-            stretchScrollForceDelta.width = 0
-        }
-        if verticalDeltaOpposesStretch {
-            stretchScrollForceDelta.height = 0
-        }
-
-        stretchScrollForce += stretchScrollForceDelta
-
         var dampedDelta = ScrollSize.zero
 
-        if horizontalDeltaOpposesStretch {
-            dampedDelta.width = adjustedDelta.width
-        } else if adjustedDelta.width != 0 {
-            let dampedWidth = elasticDeltaForReboundDelta(stretchScrollForce.width).rounded(.up)
-            dampedDelta.width = dampedWidth - Float(stretchAmount.width())
-        }
+        if WebCore.ScrollPhysicsClient.usesHyperbolicRubberBanding() {
+            dampedDelta = computeDampedStretchDelta(&c, delta, horizontalDeltaOpposesStretch, verticalDeltaOpposesStretch)
+        } else {
+            let stretchAmount = c.stretchAmount()
 
-        if verticalDeltaOpposesStretch {
-            dampedDelta.height = adjustedDelta.height
-        } else if adjustedDelta.height != 0 {
-            let dampedHeight = elasticDeltaForReboundDelta(stretchScrollForce.height).rounded(.up)
-            dampedDelta.height = dampedHeight - Float(stretchAmount.height())
+            let adjustedDelta = adjustedForRefreshController(&c, delta, verticalDeltaOpposesStretch)
+            var stretchScrollForceDelta = adjustedDelta
+
+            if horizontalDeltaOpposesStretch {
+                stretchScrollForceDelta.width = 0
+            }
+            if verticalDeltaOpposesStretch {
+                stretchScrollForceDelta.height = 0
+            }
+
+            stretchScrollForce += stretchScrollForceDelta
+
+            if horizontalDeltaOpposesStretch {
+                dampedDelta.width = adjustedDelta.width
+            } else if adjustedDelta.width != 0 {
+                let dampedWidth = elasticDeltaForReboundDelta(stretchScrollForce.width).rounded(.up)
+                dampedDelta.width = dampedWidth - Float(stretchAmount.width())
+            }
+
+            if verticalDeltaOpposesStretch {
+                dampedDelta.height = adjustedDelta.height
+            } else if adjustedDelta.height != 0 {
+                let dampedHeight = elasticDeltaForReboundDelta(stretchScrollForce.height).rounded(.up)
+                dampedDelta.height = dampedHeight - Float(stretchAmount.height())
+            }
         }
 
         clampDeltaForAllowedAxes(&c, wheelEvent, &dampedDelta)
@@ -1322,6 +1444,10 @@ final class ScrollPhysicsController {
     @_expose(Cxx)
     func isRubberBandInProgress() -> Bool {
         isRubberBanding
+    }
+
+    func rubberbandHyperbolicCoefficientForTesting() -> Float {
+        rubberbandHyperbolicCoefficient
     }
 
     @_expose(Cxx)
