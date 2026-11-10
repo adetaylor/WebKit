@@ -1394,5 +1394,5 @@ private func formatRate(_ rate: Double) -> Swift.String {
 
 private func fourCCString(_ code: FourCharCode) -> Swift.String {
     let bytes = [UInt8(truncatingIfNeeded: code >> 24), UInt8(truncatingIfNeeded: code >> 16), UInt8(truncatingIfNeeded: code >> 8), UInt8(truncatingIfNeeded: code)]
-    return Swift.String(decoding: bytes, as: UTF8.self)
+    return Swift.String(decoding: bytes, as: Unicode.UTF8.self)
 }
