@@ -23,23 +23,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+
 #pragma once
 
 #include <wtf/Platform.h>
 #if ENABLE(MEDIA_STREAM)
 
-#include <WebCore/AudioSampleDataSource.h>
-#include <WebCore/BaseAudioCaptureUnit.h>
+#include <WebCore/AudioCaptureControllerHandle.h>
 #include <WebCore/CAAudioStreamDescription.h>
-#include <WebCore/CoreAudioCaptureSource.h>
-#include <WebCore/Timer.h>
+#include <WebCore/RealtimeMediaSourceCapabilities.h>
+#include <WebCore/RealtimeMediaSourceCenter.h>
+#include <wtf/CompletionHandler.h>
+#include <wtf/Function.h>
 #include <wtf/HashSet.h>
-
-OBJC_CLASS WebCoreAudioInputMuteChangeListener;
-
-typedef UInt32 AudioUnitPropertyID;
-typedef UInt32 AudioUnitScope;
-typedef UInt32 AudioUnitElement;
+#include <wtf/Lock.h>
+#include <wtf/ThreadSafeWeakHashSet.h>
+#include <wtf/text/WTFString.h>
 
 struct AudioBufferList;
 
@@ -49,185 +48,143 @@ namespace WebCore {
 class MediaCaptureStatusBarManager;
 #endif
 
-class AudioCaptureUnitHandle;
+class AudioCaptureSink;
+class AudioSampleBufferList;
+class CaptureDevice;
+class CoreAudioCaptureSource;
 class CoreAudioSpeakerSamplesProducer;
 struct AudioCaptureTimes;
 
-class CoreAudioCaptureUnit final : public BaseAudioCaptureUnit {
+// A microphone capture unit, which AudioCaptureController.swift implements: this holds the unit's clients, its capture
+// device's persistent ID, its volume, the callbacks of C++ callers and the delivery of the microphone's samples to the
+// clients' C++ observers, and does for the controller what needs them (AudioCaptureControllerHandle.h).
+class CoreAudioCaptureUnit final : public RefCounted<CoreAudioCaptureUnit>, public RealtimeMediaSourceCenterObserver {
 public:
     // The default unit - the only one that may render audio when capturing
     WEBCORE_EXPORT static CoreAudioCaptureUnit& defaultSingleton();
     static Ref<CoreAudioCaptureUnit> createNonVPIOUnit();
     ~CoreAudioCaptureUnit();
 
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
     WEBCORE_EXPORT static void forEach(NOESCAPE const Function<void(CoreAudioCaptureUnit&)>&);
     static void forNewUnit(Function<void(CoreAudioCaptureUnit&)>&&);
 
-    // Whether the unit's next AudioUnit is a mock that needs no hardware (MockAudioCaptureUnit).
-    void setUsesMockUnit(bool usesMockUnit) { m_usesMockUnit = usesMockUnit; }
-    using GetSampleRateCallback = Function<int()>;
-    void setInternalUnitGetSampleRateCallback(GetSampleRateCallback&& callback) { m_getSampleRateCallback = WTF::move(callback); }
+#if ASSERT_ENABLED
+    WEBCORE_EXPORT static void allowStarting();
+#endif
+
+    // Whether the unit's next AudioUnit is a mock that needs no hardware (MockAudioCaptureUnit), and the sample rate the unit
+    // then takes instead of AudioSession's.
+    void setUsesMockUnit(bool);
+    void setSampleRateOverride(std::optional<int>);
+    void setSampleRateRange(LongCapabilityRange range) { m_sampleRateCapabilities = range; }
+
+    void addClient(CoreAudioCaptureSource&);
+    void removeClient(CoreAudioCaptureSource&);
+    bool hasClients() const { return !m_clients.isEmptyIgnoringNullReferences(); }
+
+    void startProducingData();
+    void stopProducingData();
+    void prepareForNewCapture();
+    void setCaptureDevice(String&&, uint32_t, bool isDefault);
+    WEBCORE_EXPORT void reconfigure();
+    void suspend();
+    void resume();
+    void delaySamples(Seconds);
+
+    double volume() const { return m_volume; }
+    void setVolume(double);
+    int sampleRate() const;
+    void setSampleRate(int);
+    bool enableEchoCancellation() const;
+#if !PLATFORM(MAC)
+    void setEnableEchoCancellation(bool);
+#endif
+    int actualSampleRate() const;
+    LongCapabilityRange sampleRateCapacities() const { return m_sampleRateCapabilities; }
+    bool isRenderingAudio() const;
+    WEBCORE_EXPORT bool isSuspended() const;
+    WEBCORE_EXPORT bool isRunning() const;
+    bool canRenderAudio() const;
+    const std::optional<CAAudioStreamDescription>& microphoneProcFormat() const LIFETIME_BOUND { return m_microphoneProcFormat; }
 
     void registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
     void unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    bool isRunning() const { return m_ioUnitStarted; }
-    void setSampleRateRange(LongCapabilityRange range) { m_sampleRateCapabilities = range; }
 
 #if PLATFORM(IOS_FAMILY)
     void setIsInBackground(bool);
     void setStatusBarWasTappedCallback(Function<void(CompletionHandler<void()>&&)>&& callback) { m_statusBarWasTappedCallback = WTF::move(callback); }
 #endif
 
-    bool canRenderAudio() const { return m_canRenderAudio; }
-
     WEBCORE_EXPORT void enableMutedSpeechActivityEventListener(Function<void()>&&);
     WEBCORE_EXPORT void disableMutedSpeechActivityEventListener();
 
 #if PLATFORM(MAC)
-    WEBCORE_EXPORT void prewarmAudioUnitCreation(CompletionHandler<void()>&&) final;
+    WEBCORE_EXPORT void prewarmAudioUnitCreation();
 #endif
 
     WEBCORE_EXPORT void setMuteStatusChangedCallback(Function<void(bool)>&&);
-    void handleMuteStatusChangedNotification(bool);
 
-    const std::optional<CAAudioStreamDescription>& microphoneProcFormat() const LIFETIME_BOUND { return m_microphoneProcFormat; }
-
-    LongCapabilityRange sampleRateCapacities() const final { return m_sampleRateCapabilities; }
-    int actualSampleRate() const final;
-
-    void delaySamples(Seconds) final;
-
-    // On the unit's microphone IO thread (deliverToCxxObservers()).
-    void deliverMicrophoneSamples(const AudioBufferList&, uint32_t frameCount, const AudioCaptureTimes&);
+    void handleNewCurrentMicrophoneDevice(const CaptureDevice&);
 
     // What the microphone does with each quantum, from the clients: the sinks of those that produce data, the volume, and
     // whether any of those has C++ observers.
     void updateMicrophoneConfiguration();
 
+    // On the unit's microphone IO thread (deliverToCxxObservers()).
+    void deliverMicrophoneSamples(const AudioBufferList&, uint32_t frameCount, const AudioCaptureTimes&);
+
+    // What the controller tells the unit (AudioCaptureControllerHandle.h).
+    void didChange(AudioCaptureControllerEvent, bool value);
+    AudioCaptureMicrophoneBufferSizes allocateMicrophoneBuffer(const AudioStreamBasicDescription&, uint64_t bufferSize);
+
 private:
-    explicit CoreAudioCaptureUnit(CanEnableEchoCancellation);
+    explicit CoreAudioCaptureUnit(bool canEnableEchoCancellation);
 
-    friend class NeverDestroyed<CoreAudioCaptureUnit>;
-    friend void audioCaptureVoiceActivityDetected();
-
-    static size_t preferredIOBufferSize();
-
-
-    bool hasAudioUnit() const final { return !!m_ioUnit; }
-    void captureDeviceChanged() final;
-    OSStatus reconfigureAudioUnit() final;
-
-    OSStatus setupAudioUnit();
-    void cleanupAudioUnit() final;
-
-    OSStatus startInternal() final;
-    void stopInternal() final;
-    bool isProducingData() const final { return m_ioUnitStarted; }
-    void isProducingMicrophoneSamplesChanged() final;
-    void volumeChanged() final { updateMicrophoneConfiguration(); }
-    void clientsChanged() final { updateMicrophoneConfiguration(); }
-    void validateOutputDevice(uint32_t deviceID) final;
+    AudioCaptureControllerState state() const;
+    void forEachClient(NOESCAPE const Function<void(CoreAudioCaptureSource&)>&) const;
+    Vector<WeakPtr<AudioCaptureSink>> clientSinks() const;
+    void clearClients();
+    void configureMock();
 #if PLATFORM(MAC)
-    bool migrateToNewDefaultDevice(const CaptureDevice&) final;
-    void storedVPIOUnitWasKept();
-    void deallocateStoredVPIOUnit();
+    bool migrateToNewDefaultDevice(const CaptureDevice&);
 #endif
-    void resetSampleRate();
+#if !LOG_DISABLED
+    void checkTimestamps(double sampleTime, double hostTime);
+#endif
 
-    void willChangeCaptureDeviceTo(const String&) final;
+    // RealtimeMediaSourceCenterObserver
+    void devicesChanged() final;
+    void deviceWillBeRemoved(const String&) final { }
 
-    OSStatus configureSpeakerProc(int sampleRate);
-    OSStatus configureMicrophoneProc(int sampleRate);
-
-    // What the AudioUnit (or its mock) did and does not need the AudioUnit for.
-    OSStatus setUnitProperty(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint32_t);
-    OSStatus defaultInputDevice(uint32_t&);
-    OSStatus defaultOutputDevice(uint32_t&);
-    bool setUnitVoiceActivityDetection(bool);
-    Seconds verifyCaptureInterval(bool isProducingSamples) const;
-    void attachSpeakerSamplesProducer();
-    // AudioOutputUnit::Event bits.
-    void handleUnitEvents(uint32_t);
-    void mockVoiceDetected();
-
-    void unduck();
-
-    void verifyIsCapturing();
-    void updateMutedStateTimerFired();
-
-    void updateVoiceActivityDetection(bool shouldDisableVoiceActivityDetection = false);
-    NODELETE bool shouldEnableVoiceActivityDetection() const;
-    RetainPtr<WebCoreAudioInputMuteChangeListener> createAudioInputMuteChangeListener();
-    void setMutedState(bool isMuted);
-
-    enum class SyncUpdate : bool { No, Yes };
-    void updateMutedState(SyncUpdate = SyncUpdate::No);
-
-    static bool isAnyUnitCapturingExceptFor(CoreAudioCaptureUnit*);
-    static bool isAnyUnitCapturing();
-
+    AudioCaptureControllerHandle m_controller;
+    double m_volume { 1 };
+    String m_persistentID;
+    uint32_t m_captureDeviceID { 0 };
+    bool m_isCapturingWithDefaultMicrophone { false };
     bool m_usesMockUnit { false };
-    GetSampleRateCallback m_getSampleRateCallback;
-    std::unique_ptr<AudioCaptureUnitHandle> m_ioUnit;
+    std::optional<int> m_sampleRateOverride;
+    LongCapabilityRange m_sampleRateCapabilities { 8000, 96000 };
+
+    ThreadSafeWeakHashSet<CoreAudioCaptureSource> m_clients;
+    Vector<ThreadSafeWeakPtr<CoreAudioCaptureSource>> m_audioThreadClients WTF_GUARDED_BY_LOCK(m_audioThreadClientsLock);
+    Lock m_audioThreadClientsLock;
     HashSet<uint64_t> m_attachedSinkIdentifiers;
 
-    // Only read/modified from the IO thread.
-    Vector<Ref<AudioSampleDataSource>> m_activeSources;
-
+    // Only modified while the unit is stopped, and read on its IO thread.
     std::optional<CAAudioStreamDescription> m_microphoneProcFormat;
     RefPtr<AudioSampleBufferList> m_microphoneSampleBuffer;
     double m_latestMicTimeStamp { 0 };
 
-    std::optional<CAAudioStreamDescription> m_speakerProcFormat;
-
-    double m_DTSConversionRatio { 0 };
-
-    bool m_ioUnitInitialized { false };
-    bool m_ioUnitStarted { false };
-
-    mutable std::unique_ptr<RealtimeMediaSourceCapabilities> m_capabilities;
-    mutable std::optional<RealtimeMediaSourceSettings> m_currentSettings;
-
-#if !LOG_DISABLED
-    void checkTimestamps(double sampleTime, double hostTime);
-
-#endif
-
-    LongCapabilityRange m_sampleRateCapabilities;
-
-    uint64_t m_microphoneProcsCalledLastTime { 0 };
-    const std::unique_ptr<Timer> m_verifyCapturingTimer;
-
-    const std::unique_ptr<Timer> m_updateMutedStateTimer;
-
-    std::optional<size_t> m_minimumMicrophoneSampleFrames;
-    bool m_isReconfiguring { false };
-    mutable Lock m_speakerSamplesProducerLock;
-    CoreAudioSpeakerSamplesProducer* m_speakerSamplesProducer WTF_GUARDED_BY_LOCK(m_speakerSamplesProducerLock) { nullptr };
-
+    CoreAudioSpeakerSamplesProducer* m_speakerSamplesProducer { nullptr };
+    Function<void()> m_voiceActivityCallback;
+    Function<void(bool)> m_muteStatusChangedCallback;
 #if PLATFORM(IOS_FAMILY)
     RefPtr<MediaCaptureStatusBarManager> m_statusBarManager;
     Function<void(CompletionHandler<void()>&&)> m_statusBarWasTappedCallback;
 #endif
-
-    bool m_shouldUseVPIO { true };
-    bool m_canRenderAudio { true };
-    bool m_voiceActivityDetectionEnabled { false };
-    // A mock AudioUnit's: whether its output is muted, whether it detects voice activity, which it then fakes, and how long
-    // it pauses its samples.
-    bool m_mockOutputMuted { false };
-    bool m_mockVoiceActivityDetectionEnabled { false };
-    std::unique_ptr<Timer> m_mockVoiceDetectionTimer;
-    std::unique_ptr<Timer> m_mockDelayTimer;
-#if PLATFORM(MAC)
-    bool m_hasStoredVPIOUnit { false };
-    Timer m_storedVPIOUnitDeallocationTimer;
-    RefPtr<GenericNonExclusivePromise> m_audioUnitCreationWarmupPromise;
-#endif
-#if HAVE(AVAUDIOAPPLICATION)
-    RetainPtr<WebCoreAudioInputMuteChangeListener> m_inputMuteChangeListener;
-#endif
-    Function<void(bool)> m_muteStatusChangedCallback;
 };
 
 } // namespace WebCore

@@ -28,7 +28,6 @@
 #import "MockAudioCaptureUnit.h"
 
 #if ENABLE(MEDIA_STREAM)
-#import "AudioOutputUnit.h"
 #import "CoreAudioCaptureSource.h"
 #import "MockRealtimeMediaSourceCenter.h"
 
@@ -49,20 +48,20 @@ static void mockAudioUnit(CoreAudioCaptureUnit& unit)
 {
     unit.setSampleRateRange({ 44100, 96000 });
     unit.setUsesMockUnit(true);
-    unit.setInternalUnitGetSampleRateCallback([] { return 44100; });
+    unit.setSampleRateOverride(44100);
 }
 
 static void unmockAudioUnit(CoreAudioCaptureUnit& unit)
 {
     unit.setSampleRateRange({ 8000, 96000 });
     unit.setUsesMockUnit(false);
-    unit.setInternalUnitGetSampleRateCallback({ });
+    unit.setSampleRateOverride(std::nullopt);
     unit.setSampleRateRange({ 44100, 96000 });
 }
 
 void MockAudioCaptureUnit::enable()
 {
-    AudioCaptureUnitHandle::setMockIncreaseBufferSize(false);
+    AudioCaptureControllerHandle::setMockIncreaseBufferSize(false);
     CoreAudioCaptureUnit::forEach([](auto& unit) {
         mockAudioUnit(unit);
     });
@@ -81,7 +80,7 @@ void MockAudioCaptureUnit::disable()
 
 void MockAudioCaptureUnit::increaseBufferSize()
 {
-    AudioCaptureUnitHandle::setMockIncreaseBufferSize(true);
+    AudioCaptureControllerHandle::setMockIncreaseBufferSize(true);
 }
 
 std::optional<double> MockAudioCaptureUnit::defaultSampleRateForDevice(uint32_t deviceID)

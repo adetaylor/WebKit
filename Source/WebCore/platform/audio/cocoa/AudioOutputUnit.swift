@@ -346,13 +346,10 @@ private func trackRendererCreationFailure(_ status: OSStatus, _ step: UInt32) ->
     return result
 }
 
-// Main thread only: the events of the output or capture unit's IO threads since the last call (AudioUnitEvent).
+// Main thread only: the events of the output unit's IO threads since the last call (AudioUnitEvent).
 @_expose(Cxx)
 func audioOutputUnitTakeEvents(_ identifier: UInt64) -> UInt32 {
-    if let events = takeCaptureUnitEvents(identifier) {
-        return events
-    }
-    return withOutputUnit(identifier, 0) { $0.takeEvents() }
+    withOutputUnit(identifier, 0) { $0.takeEvents() }
 }
 
 @_expose(Cxx)

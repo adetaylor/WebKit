@@ -137,106 +137,28 @@ private:
 };
 
 #if ENABLE(MEDIA_STREAM)
-// A capture AudioUnit that AudioCaptureUnit.swift owns, with its Swift microphone and speaker callbacks. Main thread only.
-class AudioCaptureUnitHandle {
-    WTF_MAKE_NONCOPYABLE(AudioCaptureUnitHandle);
+// The C++ that the units of a capture controller (AudioCaptureController.swift) hand each microphone quantum to
+// (deliverToCxxObservers()), which it keeps alive while the controller lives.
+void attachAudioCaptureDeliveryContext(uint64_t controllerIdentifier, void* context);
+
+// Tests only: a mock capture unit (AudioCaptureUnit.swift's MockCaptureBackend), either one whose speaker plays out a track in
+// the given format, rendered on the calling thread, or a running one with echo cancellation at 44100 Hz that feeds the given
+// sinks its samples times gain. It stops when destroyed.
+class AudioCaptureUnitForTesting {
+    WTF_MAKE_NONCOPYABLE(AudioCaptureUnitForTesting);
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(AudioCaptureUnitForTesting, WEBCORE_EXPORT);
 public:
-    enum class Kind : uint8_t {
-        VoiceProcessing,
-        Plain,
-        MockWithEchoCancellation,
-        MockWithoutEchoCancellation,
-    };
-    enum class Switch : uint8_t {
-        ProducingMicrophoneSamples,
-        Reconfiguring,
-        SpeakerStartAcknowledged,
-        FirstMicrophoneQuantumArmed,
-    };
+    WEBCORE_EXPORT static std::unique_ptr<AudioCaptureUnitForTesting> createSpeaker(const AudioTrackPlayout&, const AudioStreamBasicDescription&);
+    WEBCORE_EXPORT static std::unique_ptr<AudioCaptureUnitForTesting> startMicrophone(const AudioCaptureSink&, const AudioCaptureSink&, float gain);
+    WEBCORE_EXPORT ~AudioCaptureUnitForTesting();
 
-    // A unit, or the status of the step that failed (-1: finding the component). On macOS, a voice processing unit may be
-    // the stored one.
-    struct Creation {
-        std::unique_ptr<AudioCaptureUnitHandle> unit;
-        OSStatus status { noErr };
-        bool reusedStoredUnit { false };
-    };
-    WEBCORE_EXPORT static Creation create(Kind);
-    WEBCORE_EXPORT ~AudioCaptureUnitHandle();
-
-    // Stops and disposes of the unit or, on macOS, keeps a voice processing unit for the next capture. Returns whether it
-    // kept it.
-    bool destroy();
-
-#if PLATFORM(MAC)
-    // On any thread: makes a voice processing unit for the next capture. Returns whether one is stored.
-    static bool prewarmStoredUnit();
-    static void deallocateStoredUnit();
-    // The capture device's voice activity detection and its listener, which calls voiceActivityDetected(). Without
-    // success, failedStep is 1 for the detection, 2 for the listener.
-    static OSStatus setDeviceVoiceActivityDetection(uint32_t deviceID, bool enable, uint32_t& failedStep);
-#endif
-
-    bool isMock() const { return m_kind == Kind::MockWithEchoCancellation || m_kind == Kind::MockWithoutEchoCancellation; }
-
-    OSStatus setUInt32Property(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, uint32_t value) { return setSmallProperty(property, scope, element, value); }
-    template<typename T> OSStatus setSmallProperty(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, const T&);
-    OSStatus getUInt32Property(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint32_t&);
-
-    struct Format {
-        std::optional<AudioStreamBasicDescription> format;
-        OSStatus status { noErr };
-        uint32_t failedStep { 0 };
-    };
-    WEBCORE_EXPORT Format configureMicrophone(double sampleRate);
-    // Buffers of the sizes of the list's, which the microphone renders into in the given format.
-    WEBCORE_EXPORT void allocateMicrophoneBuffers(const AudioStreamBasicDescription&, const AudioBufferList& sizes, double sampleRate, double dtsConversionRatio);
-    WEBCORE_EXPORT Format configureSpeaker(double sampleRate, const std::optional<AudioStreamBasicDescription>& producerFormat);
-
-    WEBCORE_EXPORT OSStatus initialize();
-    OSStatus uninitialize();
-    WEBCORE_EXPORT OSStatus start();
-    WEBCORE_EXPORT OSStatus stop();
-
-    WEBCORE_EXPORT void setSwitch(Switch, bool);
-#if HAVE(VOICEACTIVITYDETECTION) && !PLATFORM(MAC)
-    OSStatus setMutedSpeechActivityListener(bool);
-#endif
-
-    // The context the microphone hands its quanta to (deliverToCxxObservers()), which stays the same for the unit's life,
-    // and the track the speaker plays out (or none), which may change while the unit runs.
-    WEBCORE_EXPORT void attach(void* deliveryContext, const AudioTrackPlayout*);
-
-    // What the microphone does with each quantum besides counting it: the sinks it feeds, the volume (if appliesGain), and
-    // whether the C++ observers get it. They may change while the unit runs.
-    WEBCORE_EXPORT void attachSink(uint64_t sinkIdentifier, bool);
-    WEBCORE_EXPORT void setMicrophoneOptions(float gain, bool appliesGain, bool deliversToCxx);
-
-    // Tests only, off the main thread, while the main thread leaves the unit alone: renders one quantum into the list by
-    // calling the unit's speaker callback directly.
-    WEBCORE_EXPORT OSStatus renderSpeakerForTesting(AudioBufferList&, uint32_t frameCount, double sampleTime, AudioUnitRenderActionFlags*);
-
-    struct Counters {
-        uint64_t microphoneProcCount { 0 };
-        std::optional<uint32_t> failedRenderFrameCount;
-    };
-    Counters counters() const;
-
-    void setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&&);
-
-    // A mock's device sample rate (0: none) and the buffer size its quanta follow; pausing and resuming its quanta.
-    WEBCORE_EXPORT void configureMock(double deviceSampleRate, size_t bufferSize);
-    void setMockPaused(bool);
-    WEBCORE_EXPORT static void setMockIncreaseBufferSize(bool);
+    // While the main thread leaves the unit alone: renders one quantum into the list by calling the speaker callback.
+    WEBCORE_EXPORT OSStatus renderSpeaker(AudioBufferList&, uint32_t frameCount, double sampleTime, AudioUnitRenderActionFlags*);
 
 private:
-    AudioCaptureUnitHandle(uint64_t identifier, Kind);
-    OSStatus setSmallPropertyBytes(AudioUnitPropertyID, AudioUnitScope, AudioUnitElement, uint64_t bytes, uint32_t size);
+    explicit AudioCaptureUnitForTesting(uint64_t identifier);
 
     const uint64_t m_identifier;
-    const Kind m_kind;
-    bool m_isDestroyed { false };
-    Function<void(OptionSet<AudioOutputUnit::Event>)> m_eventHandler;
 };
 
 // What a GPU-process consumer of a capture source takes from each microphone quantum on the capture unit's IO thread,
@@ -265,8 +187,6 @@ public:
     // their format wasn't its.
     WEBCORE_EXPORT std::optional<std::pair<int64_t, uint32_t>> startTime() const;
     WEBCORE_EXPORT uint64_t droppedQuantumCount() const;
-    // The quanta dropped since the last call.
-    uint64_t takeNewDroppedQuantumCount();
     // A peak's largest sample magnitude since the last call.
     WEBCORE_EXPORT float takePeak();
 
@@ -284,18 +204,9 @@ private:
     const AudioStreamBasicDescription m_format;
     const uint64_t m_identifier;
     bool m_hasNotifiedStart { false };
-    uint64_t m_reportedDroppedQuantumCount { 0 };
     Function<void(int64_t, uint32_t)> m_startedHandler;
     Function<void()> m_formatChangedHandler;
 };
-
-template<typename T> OSStatus AudioCaptureUnitHandle::setSmallProperty(AudioUnitPropertyID property, AudioUnitScope scope, AudioUnitElement element, const T& value)
-{
-    static_assert(sizeof(T) <= sizeof(uint64_t) && std::is_trivially_copyable_v<T>);
-    uint64_t bytes = 0;
-    memcpySpan(asMutableByteSpan(bytes).first(sizeof(T)), asByteSpan(value));
-    return setSmallPropertyBytes(property, scope, element, bytes, sizeof(T));
-}
 #endif // ENABLE(MEDIA_STREAM)
 
 } // namespace WebCore

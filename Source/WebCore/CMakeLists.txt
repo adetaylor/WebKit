@@ -3388,6 +3388,7 @@ if (APPLE)
         platform/cocoa/SharedVideoFrameInfo.mm
         platform/mediastream/MediaConstraintsEvaluation.cpp
         platform/mediastream/cocoa/AVVideoCaptureSource.mm
+        platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.cpp
 
         platform/graphics/ImageBufferBackend.cpp
         platform/graphics/ShadowBlur.cpp
@@ -3578,6 +3579,8 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/cg/CGRenderer.swift
         ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
         ${WEBCORE_DIR}/platform/graphics/mac/controls/MacControlPainter.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/AudioCaptureController.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/AudioCaptureDevices.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureSource.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureSource.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitCapturer.swift

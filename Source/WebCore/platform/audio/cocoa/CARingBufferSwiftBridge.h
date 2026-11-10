@@ -90,8 +90,7 @@ static_assert(sizeof(WebAudioBufferListSizes) == 24);
 // - a track playout: a ring, the semaphore it signals for each chunk of frameChunkSize frames of bytesPerFrame bytes it
 //   asks for;
 // - a track renderer: the track playout it plays out;
-// - a capture unit: the context it hands each microphone quantum to (deliverToCxxObservers()) and the track playout its
-//   speaker plays out;
+// - a capture controller: the context its units hand each microphone quantum to (deliverToCxxObservers());
 // - a capture producer sink: the ring it writes and the semaphore it signals for each chunk of frameChunkSize frames.
 // Whoever attaches it keeps its memory and the semaphore alive until it attaches another or destroys the unit. Without a
 // header, there is no ring.
@@ -120,36 +119,12 @@ struct AudioOutputUnitTrackRendererCreation {
 };
 static_assert(!(sizeof(AudioOutputUnitTrackRendererCreation) % 8));
 
-// What creating a capture unit did: its identifier and whether it is the stored voice processing unit, or 0 and the status
-// of the step that failed (-1: finding the component).
-struct AudioCaptureUnitCreation {
-    uint64_t identifier { 0 };
-    int32_t status { 0 };
-    bool reusedStoredUnit { false };
-};
-
-struct AudioCaptureUnitPropertyValue {
-    int32_t status { 0 };
-    uint32_t value { 0 };
-};
-
-// A format a capture unit set, or the status of the step that failed.
-struct AudioCaptureUnitFormat {
-    AudioStreamBasicDescription format { };
-    int32_t status { 0 };
-    uint32_t failedStep { 0 };
-};
-
-// The microphone buffers of a capture unit: bufferCount buffers of bytesPerBuffer bytes, as CoreAudioCaptureUnit's
-// AudioSampleBufferList has, in the microphone's format; and how the microphone times its quanta: at sampleRate, with host
-// times scaled by dtsConversionRatio.
-struct AudioCaptureMicrophoneBuffers {
-    AudioStreamBasicDescription format { };
+// The buffers a capture unit's microphone renders into, which CoreAudioCaptureUnit delivers the quanta to the C++ observers
+// in: bufferCount buffers of bytesPerBuffer bytes.
+struct AudioCaptureMicrophoneBufferSizes {
     uint32_t bufferCount { 0 };
     uint32_t channelsPerBuffer { 0 };
     uint64_t bytesPerBuffer { 0 };
-    double sampleRate { 0 };
-    double dtsConversionRatio { 0 };
 };
 
 // A capture producer sink's first stored frame's MediaTime (startTimeValue / startTimeScale), once there's one, and the
@@ -159,12 +134,6 @@ struct AudioCaptureSinkStatus {
     uint32_t startTimeScale { 0 };
     bool hasStartTime { false };
     uint64_t droppedQuantumCount { 0 };
-};
-
-struct AudioCaptureUnitCounters {
-    uint64_t microphoneProcCount { 0 };
-    uint32_t failedRenderFrameCount { 0 };
-    bool hasFailedRenderFrameCount { false };
 };
 
 // The times of a microphone quantum, as CoreAudioCaptureUnit::processMicrophoneSamples() computed them: its sample time;
@@ -181,9 +150,6 @@ struct AudioCaptureTimes {
 
 // Called on any thread once audio units have events for the main thread (AudioOutputUnit.cpp).
 void audioUnitEventsArrived();
-
-// On any thread: a capture unit heard speech while its output was muted (CoreAudioCaptureUnit.cpp).
-void audioCaptureVoiceActivityDetected();
 
 // On a capture unit's IO thread: copies a microphone quantum into the CoreAudioCaptureUnit's buffer, applies its volume and
 // delivers it to its observers (CoreAudioCaptureUnit.cpp). The context is the one the unit was attached.

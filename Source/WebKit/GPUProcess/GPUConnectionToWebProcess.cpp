@@ -1338,7 +1338,7 @@ void GPUConnectionToWebProcess::updateCaptureAccess(bool allowAudioCapture, bool
 #if PLATFORM(MAC) && ENABLE(MEDIA_STREAM)
     if (willUseEchoCancellation) {
         ASSERT(allowAudioCapture);
-        CoreAudioCaptureUnit::defaultSingleton().prewarmAudioUnitCreation([] { });
+        CoreAudioCaptureUnit::defaultSingleton().prewarmAudioUnitCreation();
     }
 #else
     UNUSED_PARAM(willUseEchoCancellation);

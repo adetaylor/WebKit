@@ -304,6 +304,9 @@
 		7B190D9D0A9F544BF209BA1E /* WebControlView.h in Headers */ = {isa = PBXBuildFile; fileRef = 72A6451F2948F25900C14BA3 /* WebControlView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E5EE565393DEC49CCF5EE57F /* CameraCaptureSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		889F75B279953818A0D73600 /* CameraCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */; };
+		EFFAC75054009859C8906A07 /* AudioCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 488C3AC37FCB319C9FA5FDB8 /* AudioCaptureController.swift */; };
+		73E14E1EBB9AAFBF11B33DC6 /* AudioCaptureDevices.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */; };
+		87AE5B4AC498485076B738CE /* AudioCaptureControllerHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		525B81E60AA9407EF00D3327 /* DisplayCaptureSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 0BF208C601941937942E9DD0 /* DisplayCaptureSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DCDC6165505D8231123FAC1A /* DisplayCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureSource.swift */; };
 		8E595335FC5917D7A9B19AC5 /* ScreenCaptureKitCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79E70DF11975D4B52ABB4495 /* ScreenCaptureKitCapturer.swift */; };
@@ -1479,7 +1482,6 @@
 		3D4E6A98F12B0C85A2C173D6 /* RenderLayerSVGAdditions.h in Headers */ = {isa = PBXBuildFile; fileRef = 2C7B5F48E0A31D9467FB8C52 /* RenderLayerSVGAdditions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3E326C97BF9F6FDF63B47CAC /* CanvasImageSource.h in Headers */ = {isa = PBXBuildFile; fileRef = DD5AAD1212AE3CBE3022D00C /* CanvasImageSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3F42B31D1881191B00278AAC /* WebVideoFullscreenControllerAVKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F42B31B1881191B00278AAC /* WebVideoFullscreenControllerAVKit.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		3F8020351E9E47BF00DEC61D /* CoreAudioCaptureDevice.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F8020321E9E381D00DEC61D /* CoreAudioCaptureDevice.h */; };
 		3F8020371E9E47C500DEC61D /* CoreAudioCaptureDeviceManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 3F8020341E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3FBC4AF3189881560046EE38 /* VideoPresentationInterfaceIOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3FBC4AF1189881560046EE38 /* VideoPresentationInterfaceIOS.mm */; };
 		3FBC4AF4189881560046EE38 /* VideoPresentationInterfaceIOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 3FBC4AF2189881560046EE38 /* VideoPresentationInterfaceIOS.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1525,7 +1527,6 @@
 		4129C9AF1F59CF5B009D7403 /* ReadableStreamToSharedBufferSink.h in Headers */ = {isa = PBXBuildFile; fileRef = 4129C9801F5861C7009D7403 /* ReadableStreamToSharedBufferSink.h */; };
 		412DE4B8219285C00075F3A7 /* RTCRtpCapabilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 412DE4B6219285BF0075F3A7 /* RTCRtpCapabilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		412DEF1D23A9186600D840F6 /* MockAudioCaptureUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 0744ECEB1E0C4AE5000D0944 /* MockAudioCaptureUnit.h */; };
-		412DEF1F23A918A300D840F6 /* BaseAudioCaptureUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 4177F51E2382545E00C04486 /* BaseAudioCaptureUnit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		412F59B6288ECFB3007BD290 /* CoreAudioCaptureUnit.h in Headers */ = {isa = PBXBuildFile; fileRef = 410AD2DE2822BBF6009C93C8 /* CoreAudioCaptureUnit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4133CB8B20F80E9900E89B11 /* MediaStreamAudioSourceCocoa.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4133CB8920F80E8600E89B11 /* MediaStreamAudioSourceCocoa.cpp */; };
 		4136C57A2398E5BE002497D3 /* InternalsMapLike.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4136C5782398E5B5002497D3 /* InternalsMapLike.cpp */; };
@@ -1635,7 +1636,6 @@
 		4188D56326C551B1004858C8 /* RTCDtlsTransportState.h in Headers */ = {isa = PBXBuildFile; fileRef = 4188D56226C551B1004858C8 /* RTCDtlsTransportState.h */; };
 		418938B22429F9B4007FDC41 /* RetrieveRecordsOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = 418938AF2429F9AB007FDC41 /* RetrieveRecordsOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		418A06D0133C04D500CD379C /* EventDispatcher.h in Headers */ = {isa = PBXBuildFile; fileRef = 418A06CE133C04D500CD379C /* EventDispatcher.h */; };
-		418BC5E02C5CBDB600152089 /* CoreAudioCaptureUnit.mm in Sources */ = {isa = PBXBuildFile; fileRef = 418BC5DF2C5CBDB600152089 /* CoreAudioCaptureUnit.mm */; };
 		418F88050FF957AF0080F045 /* JSAbstractWorker.h in Headers */ = {isa = PBXBuildFile; fileRef = 418F88030FF957AE0080F045 /* JSAbstractWorker.h */; };
 		418FCBC12706E4FB00F96ECA /* PushEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 418FCBBD2706E4F700F96ECA /* PushEvent.h */; };
 		418FCBC22706E50100F96ECA /* PushEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 418FCBBF2706E4F800F96ECA /* PushEventInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8504,6 +8504,9 @@
 		26585E49ABF5E46A21471C87 /* PlatformControlMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformControlMac.mm; sourceTree = "<group>"; };
 		508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraCaptureSourceHandle.h; sourceTree = "<group>"; };
 		07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureSource.swift; sourceTree = "<group>"; };
+		488C3AC37FCB319C9FA5FDB8 /* AudioCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureController.swift; sourceTree = "<group>"; };
+		C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureDevices.swift; sourceTree = "<group>"; };
+		248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioCaptureControllerHandle.h; sourceTree = "<group>"; };
 		0BF208C601941937942E9DD0 /* DisplayCaptureSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureSourceHandle.h; sourceTree = "<group>"; };
 		FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCaptureSource.swift; sourceTree = "<group>"; };
 		79E70DF11975D4B52ABB4495 /* ScreenCaptureKitCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureKitCapturer.swift; sourceTree = "<group>"; };
@@ -11155,8 +11158,6 @@
 		3F42B31B1881191B00278AAC /* WebVideoFullscreenControllerAVKit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebVideoFullscreenControllerAVKit.h; sourceTree = "<group>"; };
 		3F42B31C1881191B00278AAC /* WebVideoFullscreenControllerAVKit.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WebVideoFullscreenControllerAVKit.mm; sourceTree = "<group>"; };
 		3F793C53E2BC4B55A7DD92A6 /* CSSRandomKeyParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSRandomKeyParser.cpp; sourceTree = "<group>"; };
-		3F8020311E9E381D00DEC61D /* CoreAudioCaptureDevice.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CoreAudioCaptureDevice.cpp; sourceTree = "<group>"; };
-		3F8020321E9E381D00DEC61D /* CoreAudioCaptureDevice.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoreAudioCaptureDevice.h; sourceTree = "<group>"; };
 		3F8020331E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CoreAudioCaptureDeviceManager.cpp; sourceTree = "<group>"; };
 		3F8020341E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CoreAudioCaptureDeviceManager.h; sourceTree = "<group>"; };
 		3F8E1C2A6B5D4E7F9A0B1C2D /* ConcreteObjectSize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ConcreteObjectSize.h; sourceTree = "<group>"; };
@@ -11476,8 +11477,6 @@
 		4177B3DB296CC0E9009711F0 /* CryptoAlgorithmEd25519.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CryptoAlgorithmEd25519.cpp; sourceTree = "<group>"; };
 		4177B3DC296CC0E9009711F0 /* CryptoAlgorithmEd25519.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CryptoAlgorithmEd25519.h; sourceTree = "<group>"; };
 		4177B3E1296CC73F009711F0 /* CryptoAlgorithmEd25519Cocoa.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CryptoAlgorithmEd25519Cocoa.cpp; sourceTree = "<group>"; };
-		4177F51C2382544000C04486 /* BaseAudioCaptureUnit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BaseAudioCaptureUnit.cpp; sourceTree = "<group>"; };
-		4177F51E2382545E00C04486 /* BaseAudioCaptureUnit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BaseAudioCaptureUnit.h; sourceTree = "<group>"; };
 		4178EF1424125B6C00193C74 /* NowPlayingManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NowPlayingManager.h; sourceTree = "<group>"; };
 		4178EF1624125B6C00193C74 /* NowPlayingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NowPlayingManager.cpp; sourceTree = "<group>"; };
 		417DA4CE13734326007C57FB /* Internals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Internals.h; sourceTree = "<group>"; };
@@ -11549,7 +11548,6 @@
 		418B491E29A3CF81007B3135 /* BackgroundFetchEngine.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BackgroundFetchEngine.h; sourceTree = "<group>"; };
 		418B491F29A3CF81007B3135 /* BackgroundFetch.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = BackgroundFetch.cpp; sourceTree = "<group>"; };
 		418B492129A3CF82007B3135 /* BackgroundFetchStore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BackgroundFetchStore.h; sourceTree = "<group>"; };
-		418BC5DF2C5CBDB600152089 /* CoreAudioCaptureUnit.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CoreAudioCaptureUnit.mm; sourceTree = "<group>"; };
 		418C395B1C8F0A610051C8A3 /* ReadableStreamSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReadableStreamSource.h; sourceTree = "<group>"; };
 		418C395C1C8F0A610051C8A3 /* ReadableStreamSource.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ReadableStreamSource.idl; sourceTree = "<group>"; };
 		418C395D1C8F0AAB0051C8A3 /* JSReadableStreamSourceCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSReadableStreamSourceCustom.cpp; sourceTree = "<group>"; };
@@ -28293,6 +28291,9 @@
 		41C3B89A2649B18E004ED4DE /* cocoa */ = {
 			isa = PBXGroup;
 			children = (
+				488C3AC37FCB319C9FA5FDB8 /* AudioCaptureController.swift */,
+				248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */,
+				C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */,
 				41C3B89D2649B1B6004ED4DE /* AudioMediaStreamTrackRendererCocoa.cpp */,
 				41C3B89C2649B1B6004ED4DE /* AudioMediaStreamTrackRendererCocoa.h */,
 				41C3B89E2649B1B7004ED4DE /* AudioMediaStreamTrackRendererInternalUnit.cpp */,
@@ -28303,20 +28304,15 @@
 				070363DB181A1CDC00C074A5 /* AVCaptureDeviceManager.mm */,
 				070363DE181A1CDC00C074A5 /* AVVideoCaptureSource.h */,
 				070363DF181A1CDC00C074A5 /* AVVideoCaptureSource.mm */,
-				4177F51C2382544000C04486 /* BaseAudioCaptureUnit.cpp */,
-				4177F51E2382545E00C04486 /* BaseAudioCaptureUnit.h */,
 				41878FA827282055002E1EDD /* BaseAudioMediaStreamTrackRendererUnit.h */,
 				07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */,
 				508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */,
-				3F8020311E9E381D00DEC61D /* CoreAudioCaptureDevice.cpp */,
-				3F8020321E9E381D00DEC61D /* CoreAudioCaptureDevice.h */,
 				3F8020331E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.cpp */,
 				3F8020341E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.h */,
 				3F3BB5821E709EE400C701F2 /* CoreAudioCaptureSource.cpp */,
 				3F3BB5831E709EE400C701F2 /* CoreAudioCaptureSource.h */,
 				410AD2DF2822BBF6009C93C8 /* CoreAudioCaptureUnit.cpp */,
 				410AD2DE2822BBF6009C93C8 /* CoreAudioCaptureUnit.h */,
-				418BC5DF2C5CBDB600152089 /* CoreAudioCaptureUnit.mm */,
 				07A6D8481FEB700B006441DE /* DisplayCaptureManagerCocoa.cpp */,
 				07A6D8491FEB700C006441DE /* DisplayCaptureManagerCocoa.h */,
 				FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureSource.swift */,
@@ -45062,6 +45058,7 @@
 				FD315FFC12B0267600C1A359 /* AudioBufferSourceNode.h in Headers */,
 				8378878224D8A609000D4A5B /* AudioBufferSourceOptions.h in Headers */,
 				FD31607C12B026F700C1A359 /* AudioBus.h in Headers */,
+				87AE5B4AC498485076B738CE /* AudioCaptureControllerHandle.h in Headers */,
 				FD31607E12B026F700C1A359 /* AudioChannel.h in Headers */,
 				FD31600512B0267600C1A359 /* AudioContext.h in Headers */,
 				E785D96224B7F7350014DB21 /* AudioContextLatencyCategory.h in Headers */,
@@ -45245,7 +45242,6 @@
 				1C9F4C1629E529660015819E /* BarcodeDetectorOptionsInterface.h in Headers */,
 				1C9F4C1A29E529660015819E /* BarcodeFormatInterface.h in Headers */,
 				BC124EE80C2641CD009E2349 /* BarProp.h in Headers */,
-				412DEF1F23A918A300D840F6 /* BaseAudioCaptureUnit.h in Headers */,
 				83198FBF24A160DD00420B05 /* BaseAudioContext.h in Headers */,
 				41878FAD27294721002E1EDD /* BaseAudioMediaStreamTrackRendererUnit.h in Headers */,
 				379E61CA126CA5C400B63E8D /* BaseButtonInputType.h in Headers */,
@@ -45601,7 +45597,6 @@
 				7B3ED2FF2A4CDB400042B08A /* CookieStoreGetOptions.h in Headers */,
 				7BF6E7002A93E9DF0096DAF8 /* CookieStoreManager.h in Headers */,
 				72E5768B281B2B5500A75432 /* CopyImageOptions.h in Headers */,
-				3F8020351E9E47BF00DEC61D /* CoreAudioCaptureDevice.h in Headers */,
 				3F8020371E9E47C500DEC61D /* CoreAudioCaptureDeviceManager.h in Headers */,
 				41FCCC3B2746675600892AD6 /* CoreAudioCaptureSource.h in Headers */,
 				07AFF4221EFB144900B545B3 /* CoreAudioCaptureSourceIOS.h in Headers */,
@@ -51932,6 +51927,8 @@
 				7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */,
 				4614665A8FB982FD5C9CFB4D /* AnnexB.swift in Sources */,
 				031A366633FC5C13DAF5FD89 /* Arm64Truncating.swift in Sources */,
+				EFFAC75054009859C8906A07 /* AudioCaptureController.swift in Sources */,
+				73E14E1EBB9AAFBF11B33DC6 /* AudioCaptureDevices.swift in Sources */,
 				752E4FD6896824EABC5CF74E /* AudioCaptureUnit.swift in Sources */,
 				3272A4D9C454A8793AFBCC67 /* AudioControlThread.swift in Sources */,
 				21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */,
@@ -51970,7 +51967,6 @@
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
 				B240ABE6B3772366E0BDCA3C /* CMUtilitiesParsing.swift in Sources */,
 				A14090FB1AA51E1D0091191A /* ContentFilterUnblockHandlerCocoa.mm in Sources */,
-				418BC5E02C5CBDB600152089 /* CoreAudioCaptureUnit.mm in Sources */,
 				463642A729687D53003D43F2 /* CoreHapticsSoftLink.mm in Sources */,
 				46C696CC1E7205FC00597937 /* CPUMonitor.cpp in Sources */,
 				C55C00000000000000000008 /* CSSCalcEvaluation.swift in Sources */,

@@ -33,7 +33,6 @@
 #include "AudioSampleDataSource.h"
 #include "AudioSession.h"
 #include "CAAudioStreamDescription.h"
-#include "CoreAudioCaptureDevice.h"
 #include "CoreAudioCaptureDeviceManager.h"
 #include "Logging.h"
 #include <pal/cf/CoreAudioExtras.h>
@@ -112,7 +111,7 @@ void LocalAudioMediaStreamTrackRendererInternalUnit::setAudioOutputDevice(const 
 
     m_audioOutputDeviceID = deviceID;
 
-    auto audioUnitDeviceID = device ? device->deviceID() : 0;
+    auto audioUnitDeviceID = device.value_or(0);
     if (m_deviceID == audioUnitDeviceID)
         return;
 

@@ -198,6 +198,14 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         return unsafe AudioUnitSetProperty(unit, property, scope, element, &value, size)
     }
 
+    // A property whose value is a small plain struct.
+    func setValue<Value: BitwiseCopyable>(_ value: Value, for property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement)
+        -> OSStatus
+    {
+        var value = value
+        return unsafe AudioUnitSetProperty(unit, property, scope, element, &value, UInt32(MemoryLayout<Value>.size))
+    }
+
     func uint32(for property: AudioUnitPropertyID, scope: AudioUnitScope, element: AudioUnitElement) -> (OSStatus, UInt32) {
         var value: UInt32 = 0
         var size = UInt32(MemoryLayout<UInt32>.size)
@@ -266,7 +274,7 @@ import WebCore_Private.Core.CARingBufferSwiftBridge
         let listener: AUVoiceIOMutedSpeechActivityEventListener = { event in
             // kAUVoiceIOSpeechActivityHasStarted.
             if event.rawValue == 0 {
-                WebCore.audioCaptureVoiceActivityDetected()
+                audioCaptureVoiceActivityDetected()
             }
         }
         // The property's value is the block pointer, which the unit copies.
@@ -403,7 +411,7 @@ private func voiceActivityListener(
     var voiceDetected: UInt32 = 0
     var size = UInt32(MemoryLayout<UInt32>.size)
     if unsafe AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &voiceDetected) == kAudioHardwareNoError && voiceDetected == 1 {
-        WebCore.audioCaptureVoiceActivityDetected()
+        audioCaptureVoiceActivityDetected()
     }
     return 0
 }

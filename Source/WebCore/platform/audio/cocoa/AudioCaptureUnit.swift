@@ -30,13 +30,11 @@ import Foundation
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 
-// The capture AudioUnits of CoreAudioCaptureUnit: voice processing, HALOutput on macOS or RemoteIO, or a mock that needs no
-// hardware. C++ reaches them through WebCore::AudioCaptureUnitHandle, by identifier, on the main thread only. Their
-// microphone and speaker callbacks are Swift (AudioUnitIsland.swift): the microphone's renders into the unit's own buffers
-// and hands each quantum to the C++ that delivers it to the observers; the speaker's plays out a track playout, Swift to
-// Swift.
+// The capture AudioUnits of the microphone: voice processing, HALOutput on macOS or RemoteIO, or a mock that needs no
+// hardware. AudioCaptureController.swift makes and runs them on the main thread. Their microphone and speaker callbacks are
+// Swift (AudioUnitIsland.swift): the microphone's renders into the unit's own buffers, feeds the sinks and hands each quantum
+// to the C++ that delivers it to the observers; the speaker's plays out a track playout, Swift to Swift.
 
-// WebCore::AudioCaptureUnitHandle::Kind.
 enum CaptureUnitKind: UInt8 {
     case voiceProcessing
     case plain
@@ -48,7 +46,7 @@ enum CaptureUnitKind: UInt8 {
     }
 }
 
-// WebCore::AudioCaptureUnitHandle::Switch: what the main thread tells the IO threads.
+// What the main thread tells the IO threads.
 enum CaptureUnitSwitch: UInt8 {
     case producingMicrophoneSamples
     case reconfiguring
@@ -248,18 +246,24 @@ final class CaptureUnit {
         publishMicrophoneSnapshot()
     }
 
+    // The producers among the sinks it feeds.
+    func forEachProducerSink(_ body: (CaptureSink) -> Void) {
+        for (_, sink) in sinks where sink.isProducer {
+            body(sink)
+        }
+    }
+
     private func publishMicrophoneSnapshot() {
         renderState.publishMicrophoneSnapshot(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx, sinks: sinks.map { $0.sink })
     }
 }
 
-// MARK: The C++ API
-
-private func withCaptureUnit<Result>(_ identifier: UInt64, _ missing: Result, _ body: (CaptureUnit) -> Result) -> Result {
-    guard let unit = captureUnit(identifier) else {
-        return missing
-    }
-    return body(unit)
+// What configuring a unit's microphone or speaker did: the format it set, or the status of the step that failed (1: setting
+// the callback, 2: getting the format, 3: setting it).
+struct CaptureUnitFormatResult {
+    var format: AudioStreamBasicDescription?
+    var status: OSStatus = noErr
+    var failedStep: UInt32 = 0
 }
 
 private func componentSubType(_ kind: CaptureUnitKind) -> OSType {
@@ -273,91 +277,65 @@ private func componentSubType(_ kind: CaptureUnitKind) -> OSType {
 #endif
 }
 
-// A capture unit of the given kind (createAudioUnit() and CoreAudioCaptureInternalUnit::create()), on macOS the stored voice
-// processing unit if there's one, or 0 and the status of AudioComponentInstanceNew() (-1 without a component).
-@_expose(Cxx)
-func audioCaptureUnitCreate(_ kind: UInt8) -> WebCore.AudioCaptureUnitCreation {
-    precondition(WTF.isMainThread())
-    guard let kind = CaptureUnitKind(rawValue: kind) else {
-        preconditionFailure()
-    }
-    var result = WebCore.AudioCaptureUnitCreation()
-    if kind.isMock {
-        result.identifier = addCaptureUnit(CaptureUnit(mockWithEchoCancellation: kind == .mockWithEchoCancellation))
-        return result
-    }
+// The unit's AudioUnit, through which AudioCaptureController.swift configures and runs it on the main thread.
+extension CaptureUnit {
+    // A capture unit of the given kind (createAudioUnit() and CoreAudioCaptureInternalUnit::create()), on macOS the stored voice
+    // processing unit if there's one, or the status of AudioComponentInstanceNew() (-1 without a component).
+    static func create(_ kind: CaptureUnitKind) -> (unit: CaptureUnit?, status: OSStatus, reusedStoredUnit: Bool) {
+        precondition(WTF.isMainThread())
+        if kind.isMock {
+            return (CaptureUnit(mockWithEchoCancellation: kind == .mockWithEchoCancellation), noErr, false)
+        }
 #if os(macOS)
-    if kind == .voiceProcessing, let stored = AudioUnitOwner.takeStoredVoiceProcessingUnit(renderSampleCapacity: 0) {
-        result.identifier = addCaptureUnit(CaptureUnit(kind, stored))
-        result.reusedStoredUnit = true
-        return result
+        if kind == .voiceProcessing, let stored = AudioUnitOwner.takeStoredVoiceProcessingUnit(renderSampleCapacity: 0) {
+            return (CaptureUnit(kind, stored), noErr, true)
+        }
+#endif
+        switch AudioUnitOwner.make(componentSubType: componentSubType(kind), renderSampleCapacity: 0) {
+        case .made(let owner):
+            return (CaptureUnit(kind, owner), noErr, false)
+        case .noComponent:
+            return (nil, -1, false)
+        case .failed(let status):
+            return (nil, status, false)
+        }
+    }
+
+    // A mock has no properties.
+    func setUInt32Property(_ property: AudioUnitPropertyID, _ scope: AudioUnitScope, _ element: AudioUnitElement, _ value: UInt32) -> OSStatus {
+        if kind.isMock {
+            return noErr
+        }
+        return withOwner(kAudio_ParamError) { $0.setUInt32(value, for: property, scope: scope, element: element) }
+    }
+
+    func uint32Property(_ property: AudioUnitPropertyID, _ scope: AudioUnitScope, _ element: AudioUnitElement) -> (OSStatus, UInt32) {
+        if kind.isMock {
+            return (noErr, 0)
+        }
+        return withOwner((kAudio_ParamError, 0)) { $0.uint32(for: property, scope: scope, element: element) }
+    }
+
+#if HAVE_VPIO_DUCKING_LEVEL_API
+    // A voice processing unit ducks other audio as little as it can.
+    func setOtherAudioDuckingConfiguration(_ element: AudioUnitElement) -> OSStatus {
+        let configuration = AUVoiceIOOtherAudioDuckingConfiguration(mEnableAdvancedDucking: true, mDuckingLevel: .min)
+        return withOwner(kAudio_ParamError) {
+            $0.setValue(configuration, for: kAUVoiceIOProperty_OtherAudioDuckingConfiguration, scope: kAudioUnitScope_Global, element: element)
+        }
     }
 #endif
-    switch AudioUnitOwner.make(componentSubType: componentSubType(kind), renderSampleCapacity: 0) {
-    case .made(let owner):
-        result.identifier = addCaptureUnit(CaptureUnit(kind, owner))
-    case .noComponent:
-        result.status = -1
-    case .failed(let status):
-        result.status = status
-    }
-    return result
-}
 
-// Returns whether a voice processing unit was kept for the next capture (macOS), which C++ deallocates after a while.
-@_expose(Cxx)
-func audioCaptureUnitDestroy(_ identifier: UInt64) -> Bool {
-    guard let unit = removeCaptureUnit(identifier) else {
-        return false
-    }
-    return unit.destroy()
-}
-
-// A property whose value is the first size bytes of value, at most 8: a UInt32, or kAUVoiceIOProperty_OtherAudioDuckingConfiguration's
-// struct. A mock has no properties.
-@_expose(Cxx)
-func audioCaptureUnitSetProperty(_ identifier: UInt64, _ property: UInt32, _ scope: UInt32, _ element: UInt32, _ value: UInt64, _ size: UInt32)
-    -> Int32
-{
-    withCaptureUnit(identifier, kAudio_ParamError) { unit in
-        if unit.kind.isMock {
-            return noErr
-        }
-        return unit.withOwner(kAudio_ParamError) { $0.setSmallValue(value, size: size, for: property, scope: scope, element: element) }
-    }
-}
-
-@_expose(Cxx)
-func audioCaptureUnitGetUInt32Property(_ identifier: UInt64, _ property: UInt32, _ scope: UInt32, _ element: UInt32)
-    -> WebCore.AudioCaptureUnitPropertyValue
-{
-    var result = WebCore.AudioCaptureUnitPropertyValue()
-    result.status = withCaptureUnit(identifier, kAudio_ParamError) { unit in
-        if unit.kind.isMock {
-            return noErr
-        }
-        return unit.withOwner(kAudio_ParamError) { owner in
-            let (status, value) = owner.uint32(for: property, scope: scope, element: element)
-            result.value = value
-            return status
-        }
-    }
-    return result
-}
-
-// CoreAudioCaptureUnit::configureMicrophoneProc(), up to its buffer: installs the microphone callback and sets the
-// microphone's format to the unit's own at sampleRate, which it returns. Without a format, failedStep says which step
-// failed (1: setting the callback, 2: getting the format, 3: setting it).
-@_expose(Cxx)
-func audioCaptureUnitConfigureMicrophone(_ identifier: UInt64, _ sampleRate: Float64) -> WebCore.AudioCaptureUnitFormat {
-    var result = WebCore.AudioCaptureUnitFormat()
-    withCaptureUnit(identifier, ()) { unit in
-        if let mock = unit.mock {
+    // CoreAudioCaptureUnit::configureMicrophoneProc(), up to its buffer: installs the microphone callback and sets the
+    // microphone's format to the unit's own at sampleRate.
+    func configureMicrophone(_ sampleRate: Float64) -> CaptureUnitFormatResult {
+        var result = CaptureUnitFormatResult()
+        if let mock {
             mock.outputFormat.mSampleRate = sampleRate
             result.format = mock.outputFormat
-            return
+            return result
         }
-        unit.withOwner(()) { owner in
+        withOwner(()) { owner in
             result.status = owner.installRenderCallback(
                 .microphone,
                 property: kAudioOutputUnitProperty_SetInputCallback,
@@ -382,58 +360,51 @@ func audioCaptureUnitConfigureMicrophone(_ identifier: UInt64, _ sampleRate: Flo
             }
             result.format = format
         }
+        return result
     }
-    return result
-}
 
-// The microphone's buffers, the sizes of CoreAudioCaptureUnit's AudioSampleBufferList's, and how the microphone times its
-// quanta.
-@_expose(Cxx)
-func audioCaptureUnitAllocateMicrophoneBuffers(_ identifier: UInt64, _ buffers: WebCore.AudioCaptureMicrophoneBuffers) {
-    withCaptureUnit(identifier, ()) { unit in
-        precondition(!unit.isRunning)
-        unit.renderState.allocateMicrophoneBuffers(
-            bufferCount: Int(buffers.bufferCount),
-            byteCount: Int(buffers.bytesPerBuffer),
-            channelsPerBuffer: buffers.channelsPerBuffer
+    // The microphone's buffers, the sizes of CoreAudioCaptureUnit's AudioSampleBufferList's, and how the microphone times its
+    // quanta.
+    func allocateMicrophoneBuffers(
+        _ format: AudioStreamBasicDescription,
+        _ sizes: WebCore.AudioCaptureMicrophoneBufferSizes,
+        sampleRate: Float64,
+        dtsConversionRatio: Float64
+    ) {
+        precondition(!isRunning)
+        renderState.allocateMicrophoneBuffers(
+            bufferCount: Int(sizes.bufferCount),
+            byteCount: Int(sizes.bytesPerBuffer),
+            channelsPerBuffer: sizes.channelsPerBuffer
         )
-        unit.renderState.setMicrophoneFormat(buffers.format)
-        unit.renderState.setMicrophoneTiming(sampleRate: buffers.sampleRate, dtsConversionRatio: buffers.dtsConversionRatio)
-        if let mock = unit.mock {
-            mock.attachRender(unit.renderState)
+        renderState.setMicrophoneFormat(format)
+        renderState.setMicrophoneTiming(sampleRate: sampleRate, dtsConversionRatio: dtsConversionRatio)
+        if let mock {
+            mock.attachRender(renderState)
         } else {
-            unit.withOwner(()) { $0.attachCaptureRender() }
+            withOwner(()) { $0.attachCaptureRender() }
         }
     }
-}
 
-// CoreAudioCaptureUnit::configureSpeakerProc(): installs the speaker callback and sets the speaker's format to the
-// producer's, or to the unit's own, at sampleRate, which it returns. Without a format, failedStep says which step failed
-// (1: setting the callback, 2: getting the format, 3: setting it).
-@_expose(Cxx)
-func audioCaptureUnitConfigureSpeaker(
-    _ identifier: UInt64,
-    _ sampleRate: Float64,
-    _ producerFormat: AudioStreamBasicDescription,
-    _ hasProducerFormat: Bool
-) -> WebCore.AudioCaptureUnitFormat {
-    var result = WebCore.AudioCaptureUnitFormat()
-    withCaptureUnit(identifier, ()) { unit in
-        var format = producerFormat
-        if let mock = unit.mock {
-            if !hasProducerFormat {
+    // CoreAudioCaptureUnit::configureSpeakerProc(): installs the speaker callback and sets the speaker's format to the
+    // producer's, or to the unit's own, at sampleRate.
+    func configureSpeaker(_ sampleRate: Float64, _ producerFormat: AudioStreamBasicDescription?) -> CaptureUnitFormatResult {
+        var result = CaptureUnitFormatResult()
+        var format = producerFormat ?? AudioStreamBasicDescription()
+        if let mock {
+            if producerFormat == nil {
                 format = mock.inputFormat
             }
             format.mSampleRate = sampleRate
             mock.inputFormat = format
         } else {
-            unit.withOwner(()) { owner in
+            withOwner(()) { owner in
                 result.status = owner.installRenderCallback(.speaker, scope: kAudioUnitScope_Input, element: outputBus)
                 if result.status != noErr {
                     result.failedStep = 1
                     return
                 }
-                if !hasProducerFormat {
+                if producerFormat == nil {
                     result.status = owner.streamFormat(&format, scope: kAudioUnitScope_Input, element: outputBus)
                     if result.status != noErr {
                         result.failedStep = 2
@@ -447,79 +418,60 @@ func audioCaptureUnitConfigureSpeaker(
                 }
             }
             if result.status != noErr {
-                return
+                return result
             }
         }
-        unit.renderState.setSpeakerBytesPerFrame(UInt64(format.mBytesPerFrame))
+        renderState.setSpeakerBytesPerFrame(UInt64(format.mBytesPerFrame))
         result.format = format
+        return result
     }
-    return result
-}
 
-@_expose(Cxx)
-func audioCaptureUnitInitialize(_ identifier: UInt64) -> Int32 {
-    withCaptureUnit(identifier, kAudio_ParamError) { unit in
-        if let mock = unit.mock {
+    func initialize() -> OSStatus {
+        if let mock {
             return mock.initialize()
         }
-        return unit.withOwner(kAudio_ParamError) { $0.initialize() }
+        return withOwner(kAudio_ParamError) { $0.initialize() }
     }
-}
 
-@_expose(Cxx)
-func audioCaptureUnitUninitialize(_ identifier: UInt64) -> Int32 {
-    withCaptureUnit(identifier, kAudio_ParamError) { unit in
-        if unit.mock != nil {
+    func uninitialize() -> OSStatus {
+        if mock != nil {
             return noErr
         }
-        return unit.withOwner(kAudio_ParamError) { $0.uninitialize() }
+        return withOwner(kAudio_ParamError) { $0.uninitialize() }
     }
-}
 
-// Once started, the speaker callback tells the main thread to tell the speaker's producer (AudioUnitEvent.speakerStarting),
-// and plays out its track once the main thread has (CaptureUnitSwitch.speakerStartAcknowledged).
-@_expose(Cxx)
-func audioCaptureUnitStart(_ identifier: UInt64) -> Int32 {
-    withCaptureUnit(identifier, kAudio_ParamError) { $0.start() }
-}
-
-@_expose(Cxx)
-func audioCaptureUnitStop(_ identifier: UInt64) -> Int32 {
-    withCaptureUnit(identifier, kAudio_ParamError) { $0.stop() }
-}
-
-@_expose(Cxx)
-func audioCaptureUnitSetSwitch(_ identifier: UInt64, _ captureSwitch: UInt8, _ value: Bool) {
-    guard let captureSwitch = CaptureUnitSwitch(rawValue: captureSwitch) else {
-        preconditionFailure()
+#if os(iOS) || os(visionOS)
+    func setMutedSpeechActivityListener(_ enable: Bool) -> OSStatus {
+        if kind.isMock {
+            return noErr
+        }
+        return withOwner(kAudio_ParamError) { $0.setMutedSpeechActivityListener(enable) }
     }
-    withCaptureUnit(identifier, ()) { $0.setSwitch(captureSwitch, value) }
-}
+#endif
 
-// The microphone's quanta since the unit last started, and the frame count of the first quantum its buffer was too small for.
-@_expose(Cxx)
-func audioCaptureUnitCounters(_ identifier: UInt64) -> WebCore.AudioCaptureUnitCounters {
-    var counters = WebCore.AudioCaptureUnitCounters()
-    withCaptureUnit(identifier, ()) { unit in
-        counters.microphoneProcCount = unit.renderState.microphoneProcCount
-        let failedRenderFrames = unit.renderState.failedRenderFrames
-        counters.hasFailedRenderFrameCount = failedRenderFrames & failedRenderFlag != 0
-        counters.failedRenderFrameCount = UInt32(truncatingIfNeeded: failedRenderFrames)
+    // A mock's device sample rate, which its formats follow (0: none), and the AudioSession buffer size its quanta follow.
+    func configureMock(deviceSampleRate: Float64, bufferSize: Int) {
+        guard let mock else {
+            return
+        }
+        if deviceSampleRate != 0 {
+            mock.inputFormat.mSampleRate = deviceSampleRate
+            mock.outputFormat.mSampleRate = deviceSampleRate
+        }
+        mock.bufferSize.store(bufferSize, ordering: .relaxed)
     }
-    return counters
-}
 
-// What the microphone callback does with each quantum besides counting it: the volume (AudioSampleBufferList::applyGain(),
-// if appliesGain), and whether the C++ observers get it (deliverToCxxObservers()).
-@_expose(Cxx)
-func audioCaptureUnitSetMicrophoneOptions(_ identifier: UInt64, _ gain: Float, _ appliesGain: Bool, _ deliversToCxx: Bool) {
-    withCaptureUnit(identifier, ()) { $0.setMicrophoneOptions(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx) }
-}
-
-// The sinks a unit feeds, which C++ attaches again to each new unit.
-@_expose(Cxx)
-func audioCaptureUnitAttachSink(_ identifier: UInt64, _ sinkIdentifier: UInt64, _ attach: Bool) {
-    withCaptureUnit(identifier, ()) { $0.attachSink(sinkIdentifier, attach) }
+    // MockAudioCaptureInternalUnit::delaySamples(): pauses a running mock's quanta, until the main thread resumes them.
+    func setMockPaused(_ paused: Bool) {
+        guard let mock else {
+            return
+        }
+        if paused {
+            mock.stop()
+        } else if !mock.isRunning {
+            mock.start(renderState)
+        }
+    }
 }
 
 // A producer, which stores the quanta of the given format into the ring that C++ then attaches (audioUnitAttachRing()), or
@@ -558,6 +510,18 @@ func audioCaptureSinkTakePeak(_ identifier: UInt64) -> Float {
     captureSink(identifier)?.takePeak() ?? 0
 }
 
+// On any thread: a unit heard speech while its output was muted (the device's listener on macOS, the voice processing unit's
+// elsewhere).
+func audioCaptureVoiceActivityDetected() {
+#if ENABLE_MEDIA_STREAM
+    DispatchQueue.main.async {
+        MainActor.assumeIsolated {
+            audioCaptureControllerVoiceActivityDetected()
+        }
+    }
+#endif
+}
+
 func takeCaptureUnitEvents(_ identifier: UInt64) -> UInt32? {
     guard let unit = captureUnit(identifier) else {
         return nil
@@ -566,79 +530,57 @@ func takeCaptureUnitEvents(_ identifier: UInt64) -> UInt32? {
     return takeRenderStateEvents(unit.renderState)
 }
 
-#if os(iOS) || os(visionOS)
+// MARK: Tests
+
+// Tests only (WebCore::AudioCaptureUnitForTesting): a mock unit whose speaker plays out the track in the given format once
+// started, rendered by audioOutputUnitRenderForTesting() on the test's thread.
 @_expose(Cxx)
-func audioCaptureUnitSetMutedSpeechActivityListener(_ identifier: UInt64, _ enable: Bool) -> Int32 {
-    withCaptureUnit(identifier, kAudio_ParamError) { unit in
-        if unit.kind.isMock {
-            return noErr
-        }
-        return unit.withOwner(kAudio_ParamError) { $0.setMutedSpeechActivityListener(enable) }
+func audioCaptureUnitCreateMockSpeakerForTesting(_ trackPlayoutIdentifier: UInt64, _ format: AudioStreamBasicDescription) -> UInt64 {
+    guard let unit = CaptureUnit.create(.mockWithEchoCancellation).unit else {
+        return 0
     }
-}
-#endif
-
-#if os(macOS)
-// The capture device's voice activity detection, which tells WebCore when speech starts. Returns noErr, or the status of the
-// step that failed as the value (1: the detection, 2: the listener).
-@_expose(Cxx)
-func audioCaptureSetDeviceVoiceActivityDetection(_ deviceID: UInt32, _ enable: Bool) -> WebCore.AudioCaptureUnitPropertyValue {
-    precondition(WTF.isMainThread())
-    let (status, failedStep) = setDeviceVoiceActivityDetection(deviceID, enable)
-    var result = WebCore.AudioCaptureUnitPropertyValue()
-    result.status = status
-    result.value = failedStep
-    return result
+    _ = unit.configureSpeaker(format.mSampleRate, format)
+    unit.attachSpeakerTrack(trackPlayout(trackPlayoutIdentifier))
+    unit.setSwitch(.speakerStartAcknowledged, true)
+    return addCaptureUnit(unit)
 }
 
-// CoreAudioCaptureUnit::prewarmAudioUnitCreation(), on its creation queue: makes a voice processing unit for the next
-// capture. Returns whether one is stored, which C++ deallocates after a while.
+// Tests only: a running mock unit with echo cancellation at 44100 Hz that feeds the given sinks (0: none) its samples times
+// gain, and no C++ observer.
 @_expose(Cxx)
-func audioCaptureUnitPrewarmVoiceProcessingUnit() -> Bool {
-    AudioUnitOwner.prewarmVoiceProcessingUnit()
-}
-
-@_expose(Cxx)
-func audioCaptureUnitDeallocateStoredVoiceProcessingUnit() {
-    AudioUnitOwner.deallocateStoredVoiceProcessingUnit()
-}
-#endif
-
-// The mock's device sample rate, which its formats follow (0: none), and the AudioSession buffer size its quanta follow.
-@_expose(Cxx)
-func audioCaptureUnitConfigureMock(_ identifier: UInt64, _ deviceSampleRate: Float64, _ bufferSize: UInt64) {
-    withCaptureUnit(identifier, ()) { unit in
-        guard let mock = unit.mock else {
-            return
-        }
-        if deviceSampleRate != 0 {
-            mock.inputFormat.mSampleRate = deviceSampleRate
-            mock.outputFormat.mSampleRate = deviceSampleRate
-        }
-        mock.bufferSize.store(Int(truncatingIfNeeded: bufferSize), ordering: .relaxed)
+func audioCaptureUnitStartMockMicrophoneForTesting(_ gain: Float, _ firstSinkIdentifier: UInt64, _ secondSinkIdentifier: UInt64) -> UInt64 {
+    mockShouldIncreaseBufferSize.store(false, ordering: .relaxed)
+    guard let unit = CaptureUnit.create(.mockWithEchoCancellation).unit, let format = unit.configureMicrophone(44100).format else {
+        return 0
     }
-}
-
-// MockAudioCaptureInternalUnit::delaySamples(): pauses a running mock's quanta, until C++ resumes them.
-@_expose(Cxx)
-func audioCaptureUnitSetMockPaused(_ identifier: UInt64, _ paused: Bool) {
-    withCaptureUnit(identifier, ()) { unit in
-        guard let mock = unit.mock else {
-            return
-        }
-        if paused {
-            mock.stop()
-        } else if !mock.isRunning {
-            mock.start(unit.renderState)
-        }
+    var sizes = WebCore.AudioCaptureMicrophoneBufferSizes()
+    sizes.bufferCount = format.mChannelsPerFrame
+    sizes.channelsPerBuffer = 1
+    sizes.bytesPerBuffer = 8192
+    unit.allocateMicrophoneBuffers(format, sizes, sampleRate: 44100, dtsConversionRatio: 1e-9)
+    _ = unit.configureSpeaker(44100, nil)
+    guard unit.initialize() == noErr else {
+        return 0
     }
+    unit.configureMock(deviceSampleRate: 0, bufferSize: 512)
+    unit.setSwitch(.producingMicrophoneSamples, true)
+    for sinkIdentifier in [firstSinkIdentifier, secondSinkIdentifier] where sinkIdentifier != 0 {
+        unit.attachSink(sinkIdentifier, true)
+        captureSink(sinkIdentifier)?.setEnabled(true)
+    }
+    unit.setMicrophoneOptions(gain: gain, appliesGain: true, deliversToCxx: false)
+    let identifier = addCaptureUnit(unit)
+    guard unit.start() == noErr else {
+        audioCaptureUnitDestroyForTesting(identifier)
+        return 0
+    }
+    return identifier
 }
 
-// MockAudioCaptureUnit::increaseBufferSize(): the mocks' quanta fake a microphone buffer that is too small, until a buffer
-// is big enough.
+// Tests only: stops and disposes of a unit that a test made.
 @_expose(Cxx)
-func audioCaptureUnitSetMockIncreaseBufferSize(_ value: Bool) {
-    mockShouldIncreaseBufferSize.store(value, ordering: .relaxed)
+func audioCaptureUnitDestroyForTesting(_ identifier: UInt64) {
+    _ = removeCaptureUnit(identifier)?.destroy()
 }
 
 // MARK: The mock

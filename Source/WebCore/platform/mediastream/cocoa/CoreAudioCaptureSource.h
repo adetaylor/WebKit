@@ -31,7 +31,6 @@
 #include <AudioToolbox/AudioToolbox.h>
 #include <CoreAudio/CoreAudioTypes.h>
 #include <WebCore/AudioSession.h>
-#include <WebCore/BaseAudioCaptureUnit.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CaptureDevice.h>
 #include <WebCore/RealtimeMediaSource.h>
@@ -82,7 +81,6 @@ protected:
     void setCanResumeAfterInterruption(bool value) { m_canResumeAfterInterruption = value; }
 
 private:
-    friend class BaseAudioCaptureUnit;
     friend class CoreAudioCaptureUnit;
     friend class CoreAudioCaptureSourceFactory;
 

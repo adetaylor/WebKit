@@ -428,11 +428,8 @@ TEST_F(AudioOutputUnitTest, TrackRendererRendersAsTheCxxDid)
         ReferenceTrack reference { *ring, frameChunkSize, sizeof(float) };
         bool useSpeakerPath = !pick(4);
         // The capture unit's speaker plays out the track once the main thread has told the track's producer.
-        auto capture = AudioCaptureUnitHandle::create(AudioCaptureUnitHandle::Kind::MockWithEchoCancellation);
-        ASSERT_TRUE(!!capture.unit);
-        capture.unit->configureSpeaker(44100, float32Format(channels));
-        capture.unit->attach(nullptr, &track);
-        capture.unit->setSwitch(AudioCaptureUnitHandle::Switch::SpeakerStartAcknowledged, true);
+        auto capture = AudioCaptureUnitForTesting::createSpeaker(track, float32Format(channels));
+        ASSERT_TRUE(!!capture);
 
         runOffMainThread([&] {
             uint64_t writeFrame = 0;
@@ -457,7 +454,7 @@ TEST_F(AudioOutputUnitTest, TrackRendererRendersAsTheCxxDid)
                 AudioUnitRenderActionFlags expectedFlags = 0;
                 AudioUnitRenderActionFlags actualFlags = 0;
                 auto expectedStatus = reference.render(frames, expected.list(), sampleTime, expectedFlags, !useSpeakerPath);
-                auto actualStatus = useSpeakerPath ? capture.unit->renderSpeakerForTesting(actual.list(), frames, sampleTime, &actualFlags) : renderer.unit->renderForTesting(actual.list(), frames, sampleTime, false, &actualFlags);
+                auto actualStatus = useSpeakerPath ? capture->renderSpeaker(actual.list(), frames, sampleTime, &actualFlags) : renderer.unit->renderForTesting(actual.list(), frames, sampleTime, false, &actualFlags);
                 EXPECT_EQ(actualStatus, expectedStatus) << "seed " << seed << " step " << step;
                 EXPECT_EQ(actualFlags, expectedFlags) << "seed " << seed << " step " << step;
                 for (uint32_t channel = 0; channel < channels; ++channel) {
@@ -549,38 +546,22 @@ static float mockCaptureSample(uint64_t frame)
 
 TEST_F(AudioOutputUnitTest, CaptureSinksStoreAndMeasureWhatTheMockCaptures)
 {
-    AudioCaptureUnitHandle::setMockIncreaseBufferSize(false);
-    auto creation = AudioCaptureUnitHandle::create(AudioCaptureUnitHandle::Kind::MockWithEchoCancellation);
-    ASSERT_TRUE(!!creation.unit);
-    auto& unit = *creation.unit;
-    auto microphone = unit.configureMicrophone(44100);
-    ASSERT_TRUE(!!microphone.format);
-    TestBufferList sizes { { 8192, 8192 } };
-    unit.allocateMicrophoneBuffers(*microphone.format, sizes.list(), 44100, 1e-9);
-    ASSERT_TRUE(!!unit.configureSpeaker(44100, std::nullopt).format);
-    ASSERT_EQ(unit.initialize(), noErr);
-    unit.attach(nullptr, nullptr);
-    unit.configureMock(0, 512);
-    unit.setSwitch(AudioCaptureUnitHandle::Switch::ProducingMicrophoneSamples, true);
-
+    // The mock's microphone format: deinterleaved Float32 stereo.
+    auto microphoneFormat = float32Format(2);
     constexpr uint64_t frameChunkSize = 441;
     auto ring = makeRing(2, 16384);
-    auto producerSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Producer, *microphone.format);
+    auto producerSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Producer, microphoneFormat);
     auto& producer = *producerSink;
     producer.attachRing(*ring, semaphore(), frameChunkSize);
-    auto peakSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Peak, *microphone.format);
+    auto peakSink = makeUnique<AudioCaptureSink>(AudioCaptureSink::Kind::Peak, microphoneFormat);
     auto& peak = *peakSink;
-    for (auto* sink : { &producer, &peak }) {
-        unit.attachSink(sink->identifier(), true);
-        sink->setEnabled(true);
-    }
     constexpr float gain = 0.5;
-    unit.setMicrophoneOptions(gain, true, false);
 
-    ASSERT_EQ(unit.start(), noErr);
+    auto unit = AudioCaptureUnitForTesting::startMicrophone(producer, peak, gain);
+    ASSERT_TRUE(!!unit);
     for (unsigned i = 0; i < 300 && ring->getFetchTimeBounds().endFrame < 4410; ++i)
         Util::runFor(10_ms);
-    EXPECT_EQ(unit.stop(), noErr);
+    unit = nullptr;
 
     auto bounds = ring->getFetchTimeBounds();
     ASSERT_GE(bounds.endFrame, 4410u);

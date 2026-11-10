@@ -545,7 +545,6 @@ list(APPEND WebCore_SOURCES
 
     platform/mediarecorder/MediaRecorderPrivateWriter.cpp
 
-    platform/mediastream/cocoa/CoreAudioCaptureUnit.mm
     platform/mediastream/cocoa/MockRealtimeVideoSourceCocoa.mm
     platform/mediastream/cocoa/RealtimeOutgoingVideoSourceCocoa.cpp
 
@@ -1443,9 +1442,9 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/RealtimeMediaSourceIdentifier.h
 
     platform/mediastream/cocoa/AVVideoCaptureSource.h
+    platform/mediastream/cocoa/AudioCaptureControllerHandle.h
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererInternalUnit.h
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.h
-    platform/mediastream/cocoa/BaseAudioCaptureUnit.h
     platform/mediastream/cocoa/BaseAudioMediaStreamTrackRendererUnit.h
     platform/mediastream/cocoa/CameraCaptureSourceHandle.h
     platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.h

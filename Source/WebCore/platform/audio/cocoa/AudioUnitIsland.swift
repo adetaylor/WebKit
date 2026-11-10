@@ -509,6 +509,13 @@ nonisolated(unsafe) private var outputUnits: [UInt64: OutputUnit] = [:]
 
 nonisolated(unsafe) private var lastOutputUnitIdentifier: UInt64 = 0
 
+// An identifier for an output or capture unit, a sink, a track playout or a capture controller, which share them.
+func nextAudioUnitIdentifier() -> UInt64 {
+    precondition(WTF.isMainThread())
+    unsafe lastOutputUnitIdentifier &+= 1
+    return unsafe lastOutputUnitIdentifier
+}
+
 func addOutputUnit(_ unit: OutputUnit) -> UInt64 {
     precondition(WTF.isMainThread())
     unsafe lastOutputUnitIdentifier &+= 1
@@ -1013,6 +1020,7 @@ private func freeMicrophoneSnapshot(_ raw: UnsafeMutableRawPointer) {
     fileprivate let state: UnsafeMutablePointer<CaptureSinkState>
     // Whether a capture unit feeds it, after which its ring stays.
     var isAttachedToUnit = false
+    private var reportedDroppedQuantumCount: UInt64 = 0
 
     init(isProducer: Bool, format: AudioStreamBasicDescription) {
         unsafe state = UnsafeMutablePointer<CaptureSinkState>.allocate(capacity: 1)
@@ -1062,6 +1070,15 @@ private func freeMicrophoneSnapshot(_ raw: UnsafeMutableRawPointer) {
         }
         status.droppedQuantumCount = unsafe state.pointee.droppedQuantumCount.load(ordering: .relaxed)
         return status
+    }
+
+    // The quanta dropped since the last call.
+    func takeNewDroppedQuantumCount() -> UInt64 {
+        let count = unsafe state.pointee.droppedQuantumCount.load(ordering: .relaxed)
+        defer {
+            reportedDroppedQuantumCount = count
+        }
+        return count &- reportedDroppedQuantumCount
     }
 
     // The largest magnitude since the last call.
@@ -1121,8 +1138,8 @@ private func checkRingAttachment(_ attachment: WebCore.AudioOutputUnitRingAttach
 // - a track renderer's track playout, by identifier (WebCore::AudioOutputUnit::attachTrackPlayout());
 // - a track playout's ring and semaphore (WebCore::AudioTrackPlayout::attachRing());
 // - a capture producer sink's ring, which it writes, and semaphore (WebCore::AudioCaptureSink::attachRing());
-// - the C++ that a capture unit delivers its microphone's quanta to, and the track playout its speaker plays out, by
-//   identifier (WebCore::AudioCaptureUnitHandle::attach()).
+// - the C++ that a capture controller's units deliver their microphone's quanta to
+//   (WebCore::attachAudioCaptureDeliveryContext()).
 // The caller keeps their memory and the semaphore alive until it attaches others or destroys the unit. A ring without a
 // header is no ring.
 @_expose(Cxx)
@@ -1136,16 +1153,11 @@ func audioUnitAttachRing(_ identifier: UInt64, _ attachment: WebCore.AudioOutput
         unsafe sink.attachRing(attachment)
         return
     }
-    if let unit = captureUnit(identifier) {
-        if !unit.hasCxxDeliveryContext {
-            precondition(!unit.isRunning)
-            unsafe unit.renderState.setCxxDeliveryContext(attachment.cxxDeliveryContext)
-            unit.hasCxxDeliveryContext = true
-        }
-        let speakerTrack = unsafe attachment.trackPlayoutIdentifier
-        unit.attachSpeakerTrack(speakerTrack == 0 ? nil : trackPlayout(speakerTrack))
+#if ENABLE_MEDIA_STREAM
+    if setAudioCaptureControllerDeliveryContext(identifier, UInt(bitPattern: unsafe attachment.cxxDeliveryContext)) {
         return
     }
+#endif
     if unsafe attachment.trackPlayoutIdentifier != 0 {
         guard let unit = outputUnit(identifier), let track = trackPlayout(unsafe attachment.trackPlayoutIdentifier) else {
             return

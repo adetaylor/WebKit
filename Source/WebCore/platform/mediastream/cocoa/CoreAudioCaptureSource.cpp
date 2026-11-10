@@ -32,7 +32,6 @@
 #include "AudioSampleBufferList.h"
 #include "AudioSampleDataSource.h"
 #include "AudioSession.h"
-#include "CoreAudioCaptureDevice.h"
 #include "CoreAudioCaptureDeviceManager.h"
 #include "CoreAudioCaptureUnit.h"
 #include "Logging.h"
@@ -82,11 +81,11 @@ static CaptureSourceOrError initializeCoreAudioCaptureSource(Ref<CoreAudioCaptur
 CaptureSourceOrError CoreAudioCaptureSource::create(const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
 #if PLATFORM(MAC)
-    auto coreAudioDevice = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(device.persistentId());
-    if (!coreAudioDevice)
+    auto deviceID = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(device.persistentId());
+    if (!deviceID)
         return CaptureSourceOrError({ "No CoreAudioCaptureSource device"_s, MediaAccessDenialReason::PermissionDenied });
 
-    auto source = adoptRef(*new CoreAudioCaptureSource(device, coreAudioDevice->deviceID(), WTF::move(hashSalts), pageIdentifier));
+    auto source = adoptRef(*new CoreAudioCaptureSource(device, *deviceID, WTF::move(hashSalts), pageIdentifier));
 #elif PLATFORM(IOS_FAMILY)
     auto coreAudioDevice = AVAudioSessionCaptureDeviceManager::singleton().audioSessionDeviceWithUID(device.persistentId());
     if (!coreAudioDevice && !device.isDefault()) {
