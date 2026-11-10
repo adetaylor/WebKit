@@ -1090,6 +1090,11 @@ if (SWIFT_REQUIRED)
 
             UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
             WebProcess/GPU/webrtc/SharedVideoFrame.cpp
+
+            UIProcess/RemoteLayerTree/RemoteScrollingCoordinatorProxy.cpp
+            UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.mm
+            WebProcess/WebPage/MomentumEventDispatcher.cpp
+            WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.mm
         )
     endif ()
     foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
