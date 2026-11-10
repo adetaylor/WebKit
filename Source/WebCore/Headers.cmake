@@ -3233,6 +3233,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     style/StyleScope.h
     style/StyleScopeIdentifier.h
     style/StyleScopeOrdinal.h
+    style/StyleTransformsBenchmarkHooks.h
     style/StyleTreeResolver.h
     style/StyleValidity.h
     style/Styleable.h
