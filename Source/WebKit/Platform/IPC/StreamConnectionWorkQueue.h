@@ -36,20 +36,24 @@
 
 namespace IPC {
 
-class WTF_CAPABILITY("is current") StreamConnectionWorkQueue final : public SerialFunctionDispatcher {
+// Sendable for Swift, which can only call dispatch() and isCurrent(): both may be called on any thread.
+class WTF_CAPABILITY("is current") SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_UNCHECKED_SENDABLE StreamConnectionWorkQueue final : public SerialFunctionDispatcher {
 public:
-    static Ref<StreamConnectionWorkQueue> create(ASCIILiteral name)
+    using WorkItem = WTF::Function<void()>;
+
+    static Ref<StreamConnectionWorkQueue> create(ASCIILiteral name) __attribute__((availability(swift, unavailable)))
     {
         return adoptRef(*new StreamConnectionWorkQueue(name));
     }
 
-    StreamConnectionWorkQueue(ASCIILiteral);
+    StreamConnectionWorkQueue(ASCIILiteral) __attribute__((availability(swift, unavailable)));
     ~StreamConnectionWorkQueue();
-    void addStreamConnection(StreamServerConnection&);
-    void removeStreamConnection(StreamServerConnection&);
-    void stopAndWaitForCompletion(NOESCAPE WTF::Function<void()>&& cleanupFunction = nullptr);
-    void wakeUp();
-    Semaphore& wakeUpSemaphore() LIFETIME_BOUND { return m_wakeUpSemaphore; }
+    void addStreamConnection(StreamServerConnection&) __attribute__((availability(swift, unavailable)));
+    void removeStreamConnection(StreamServerConnection&) __attribute__((availability(swift, unavailable)));
+    // Neither on the processing thread, nor while another call waits.
+    void stopAndWaitForCompletion(NOESCAPE WTF::Function<void()>&& cleanupFunction = nullptr) __attribute__((availability(swift, unavailable)));
+    void wakeUp() __attribute__((availability(swift, unavailable)));
+    Semaphore& wakeUpSemaphore() LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_wakeUpSemaphore; }
 
     // SerialFunctionDispatcher
     void dispatch(WTF::Function<void()>&&) final;
@@ -66,6 +70,7 @@ private:
 
     mutable Lock m_lock;
     RefPtr<Thread> m_processingThread WTF_GUARDED_BY_LOCK(m_lock);
+    bool m_isStopping WTF_GUARDED_BY_LOCK(m_lock) { false };
     Deque<Function<void()>> m_functions WTF_GUARDED_BY_LOCK(m_lock);
     WTF::Function<void()> m_cleanupFunction WTF_GUARDED_BY_LOCK(m_lock);
     Vector<Ref<StreamServerConnection>> m_connections WTF_GUARDED_BY_LOCK(m_lock);
