@@ -549,7 +549,7 @@ private final class MacScroller: Sendable {
             style: WebCore.nsScrollerStyle(scrollerPair.scrollbarStyle()),
             controlSize: WebCore.nsControlSizeFromScrollbarWidth(scrollerPair.scrollbarWidthStyle),
             horizontal: orientation == .Horizontal,
-            replacingScrollerImp: nil
+            replacing: nil
         )
     }
 
@@ -1001,7 +1001,7 @@ private final class WebScrollerImpPairDelegateMac: NSObject, NSScrollerImpPairDe
     }
 
     @objc(contentAreaRectForScrollerImpPair:)
-    func contentAreaRect(for scrollerImpPair: NSScrollerImpPair!) -> NSRect {
+    func contentAreaRect(for scrollerImpPair: NSScrollerImpPair) -> NSRect {
         guard let (_, pair) = liveScrollerPair else {
             return .zero
         }
@@ -1011,7 +1011,7 @@ private final class WebScrollerImpPairDelegateMac: NSObject, NSScrollerImpPairDe
     }
 
     @objc(inLiveResizeForScrollerImpPair:)
-    func inLiveResize(for scrollerImpPair: NSScrollerImpPair!) -> Bool {
+    func inLiveResize(for scrollerImpPair: NSScrollerImpPair) -> Bool {
         guard let (scrollerPair, _) = liveScrollerPair else {
             return false
         }
@@ -1022,27 +1022,28 @@ private final class WebScrollerImpPairDelegateMac: NSObject, NSScrollerImpPairDe
     // This location is only used when calling mouseLocationInScrollerForScrollerImp:, which uses the converted mouse
     // position from the web process.
     @objc(mouseLocationInContentAreaForScrollerImpPair:)
-    func mouseLocationInContentArea(for scrollerImpPair: NSScrollerImpPair!) -> NSPoint {
+    func mouseLocationInContentArea(for scrollerImpPair: NSScrollerImpPair) -> NSPoint {
         .zero
     }
 
     func scrollerImpPair(
-        _ scrollerImpPair: NSScrollerImpPair!,
+        _ scrollerImpPair: NSScrollerImpPair,
         convertContentPoint pointInContentArea: NSPoint,
-        to scrollerImp: NSScrollerImp!
+        to scrollerImp: NSScrollerImp
     ) -> NSPoint {
-        guard let (scrollerPair, _) = liveScrollerPair, let scrollerImp else {
+        guard let (scrollerPair, _) = liveScrollerPair else {
             return .zero
         }
 
         return scrollerPair.lastKnownMousePositionInScrollbar(scrollerImp.isHorizontal ? .Horizontal : .Vertical)
     }
 
-    func scrollerImpPair(_ scrollerImpPair: NSScrollerImpPair!, setContentAreaNeedsDisplayIn rect: NSRect) {
+    @objc(scrollerImpPair:setContentAreaNeedsDisplayInRect:)
+    func scrollerImpPair(_ scrollerImpPair: NSScrollerImpPair, setContentAreaNeedsDisplayIn rect: NSRect) {
     }
 
     func scrollerImpPair(
-        _ scrollerImpPair: NSScrollerImpPair!,
+        _ scrollerImpPair: NSScrollerImpPair,
         updateScrollerStyleForNewRecommendedScrollerStyle newRecommendedScrollerStyle: NSScroller.Style
     ) {
         guard let (scrollerPair, pair) = liveScrollerPair else {
@@ -1121,11 +1122,11 @@ private final class WebScrollerImpDelegateMac: NSObject, NSAnimationDelegate, NS
     }
 
     @objc(layer)
-    func layer() -> CALayer! {
+    func layer() -> CALayer? {
         nil
     }
 
-    func mouseLocationInScroller(for scrollerImp: NSScrollerImp!) -> NSPoint {
+    func mouseLocationInScroller(for scrollerImp: NSScrollerImp) -> NSPoint {
         guard let scrollerPair = liveScrollerPair else {
             return .zero
         }
@@ -1139,11 +1140,11 @@ private final class WebScrollerImpDelegateMac: NSObject, NSAnimationDelegate, NS
     }
 
     @objc(shouldUseLayerPerPartForScrollerImp:)
-    func shouldUseLayerPerPart(for scrollerImp: NSScrollerImp!) -> Bool {
+    func shouldUseLayerPerPart(for scrollerImp: NSScrollerImp) -> Bool {
         true
     }
 
-    func effectiveAppearance(for scrollerImp: NSScrollerImp!) -> NSAppearance! {
+    func effectiveAppearance(for scrollerImp: NSScrollerImp) -> NSAppearance {
         guard let scrollerPair = liveScrollerPair, scrollerPair.hasPair else {
             return NSAppearance.currentDrawing()
         }
@@ -1215,7 +1216,7 @@ private final class WebScrollerImpDelegateMac: NSObject, NSAnimationDelegate, NS
         }
     }
 
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateKnobAlphaTo newKnobAlpha: CGFloat, duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateKnobAlphaTo newKnobAlpha: CGFloat, duration: TimeInterval) {
         guard let scrollerPair = liveScrollerPair else {
             return
         }
@@ -1224,7 +1225,7 @@ private final class WebScrollerImpDelegateMac: NSObject, NSAnimationDelegate, NS
         setUpAlphaAnimation(.KnobAlpha, animateAlphaTo: newKnobAlpha, duration: duration)
     }
 
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateTrackAlphaTo newTrackAlpha: CGFloat, duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateTrackAlphaTo newTrackAlpha: CGFloat, duration: TimeInterval) {
         guard liveScrollerPair != nil else {
             return
         }
@@ -1232,38 +1233,38 @@ private final class WebScrollerImpDelegateMac: NSObject, NSAnimationDelegate, NS
         setUpAlphaAnimation(.TrackAlpha, animateAlphaTo: newTrackAlpha, duration: duration)
     }
 
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateUIStateTransitionWithDuration duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateUIStateTransitionWithDuration duration: TimeInterval) {
         guard let scrollerPair = liveScrollerPair else {
             return
         }
 
-        let progress = scrollerImp?.uiStateTransitionProgress ?? 0
-        scrollerImp?.uiStateTransitionProgress = 1 - progress
+        let progress = scrollerImp.uiStateTransitionProgress
+        scrollerImp.uiStateTransitionProgress = 1 - progress
         setUpTransitionAnimation(
             scrollerPair,
             .UIStateTransition,
-            startValue: scrollerImp?.uiStateTransitionProgress ?? 0,
+            startValue: scrollerImp.uiStateTransitionProgress,
             duration: duration
         )
     }
 
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateExpansionTransitionWithDuration duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateExpansionTransitionWithDuration duration: TimeInterval) {
         guard let scrollerPair = liveScrollerPair else {
             return
         }
 
-        let progress = scrollerImp?.expansionTransitionProgress ?? 0
-        scrollerImp?.expansionTransitionProgress = 1 - progress
+        let progress = scrollerImp.expansionTransitionProgress
+        scrollerImp.expansionTransitionProgress = 1 - progress
         setUpTransitionAnimation(
             scrollerPair,
             .ExpansionTransition,
-            startValue: scrollerImp?.expansionTransitionProgress ?? 0,
+            startValue: scrollerImp.expansionTransitionProgress,
             duration: duration
         )
     }
 
     func scrollerImp(
-        _ scrollerImp: NSScrollerImp!,
+        _ scrollerImp: NSScrollerImp,
         overlayScrollerStateChangedTo newOverlayScrollerState: NSOverlayScrollerState
     ) {
     }
