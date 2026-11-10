@@ -26,374 +26,160 @@
 #include "config.h"
 #include "RFC8941.h"
 
-#include "RFC7230.h"
+#include "WebCore-Swift.h"
 #include <wtf/text/Base64.h>
-#include <wtf/text/ParsingUtilities.h>
-#include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringHash.h>
-#include <wtf/text/StringParsingBuffer.h>
 #include <wtf/text/StringView.h>
 
 namespace RFC8941 {
 
-template<typename CharacterType> NODELETE constexpr bool isEndOfToken(CharacterType character)
-{
-    return !RFC7230::isTokenCharacter(character) && character != ':' && character != '/';
-}
+using Step = WebCore::HTTPHeaderStructuredFieldStep;
+using StepKind = WebCore::HTTPHeaderStructuredFieldStepKind;
 
-template<typename CharacterType> NODELETE constexpr bool isEndOfKey(CharacterType character)
-{
-    return !isASCIILower(character) && !isASCIIDigit(character) && character != '_' && character != '-' && character != '.' && character != '*';
-}
+struct StructuredFieldSteps {
+    bool atEnd() const { return m_index == m_steps.size(); }
+    bool next(StepKind kind) const { return !atEnd() && m_steps[m_index].kind == kind; }
+    String key() { return text(m_steps[m_index++]); }
 
-// Parsing a key (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.3.3).
-template<typename CharType> NODELETE static StringView parseKey(StringParsingBuffer<CharType>& buffer LIFETIME_BOUND)
-{
-    if (buffer.atEnd() || (!isASCIILower(*buffer) && *buffer != '*'))
-        return { };
-    auto keyStart = buffer.span();
-    ++buffer;
-    skipUntil<isEndOfKey>(buffer);
-    return keyStart.first(buffer.position() - keyStart.data());
-}
-
-// Parsing a String (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.5).
-template<typename CharType> static std::optional<String> parseString(StringParsingBuffer<CharType>& buffer)
-{
-    if (!skipExactly(buffer, '"'))
-        return std::nullopt;
-
-    StringBuilder builder;
-    while (buffer.hasCharactersRemaining()) {
-        if (skipExactly(buffer, '\\')) {
-            if (buffer.atEnd())
-                return std::nullopt;
-            CharType nextChar = buffer.consume();
-            if (nextChar != '"' && nextChar != '\\')
-                return std::nullopt;
-            builder.append(nextChar);
-            continue;
+    std::optional<BareItem> bareItem()
+    {
+        auto& step = m_steps[m_index++];
+        switch (step.kind) {
+        case StepKind::Integer:
+            return BareItem { step.integer };
+        case StepKind::Decimal:
+            return BareItem { step.decimal };
+        case StepKind::String:
+            return BareItem { m_header.is8Bit() ? WebCore::structuredFieldString8(m_header.span8(), step.start, step.length, step.integer) : WebCore::structuredFieldString16(m_header.span16(), step.start, step.length, step.integer) };
+        case StepKind::Token:
+            return BareItem { Token { text(step) } };
+        case StepKind::ByteSequence:
+            if (auto decoded = base64Decode(m_header.substring(step.start, step.length)))
+                return BareItem { WTF::move(*decoded) };
+            return std::nullopt;
+        case StepKind::Boolean:
+            return BareItem { !!step.integer };
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
         }
-        if (skipExactly(buffer, '"'))
-            return builder.toString();
-        CharType c = buffer.consume();
-        if ((c >= 0x00 && c <= 0x1F) || (c >= 0x7F && c <= 0xFF))
-            return std::nullopt;
-        builder.append(c);
     }
-    return std::nullopt;
-}
 
-// Parsing an Integer or Decimal (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.4).
-template<typename CharType> NODELETE static std::optional<BareItem> parseNumber(StringParsingBuffer<CharType>& buffer)
-{
-    bool isNegative = false;
-    if (skipExactly(buffer, '-'))
-        isNegative = true;
-
-    int64_t integerValue = 0;
-    size_t integerDigits = 0;
-    constexpr size_t maxIntegerDigits = 15;
-    while (buffer.hasCharactersRemaining() && isASCIIDigit(*buffer)) {
-        if (++integerDigits > maxIntegerDigits)
+    std::optional<std::pair<BareItem, Parameters>> item()
+    {
+        auto item = bareItem();
+        auto parameters = this->parameters();
+        if (!item || !parameters)
             return std::nullopt;
-        integerValue = (integerValue * 10) + (*buffer - '0');
-        ++buffer;
+        return std::pair { WTF::move(*item), WTF::move(*parameters) };
     }
-    if (!integerDigits)
-        return std::nullopt;
-    if (!skipExactly(buffer, '.'))
-        return isNegative ? -integerValue : integerValue;
 
-    constexpr size_t maxDecimalIntegerDigits = 12;
-    if (integerDigits > maxDecimalIntegerDigits)
-        return std::nullopt;
-    double fractionalValue = 0.0;
-    size_t fractionalDigits = 0;
-    constexpr size_t maxFractionalDigits = 3;
-    double divisor = 1.0;
-    while (buffer.hasCharactersRemaining() && isASCIIDigit(*buffer)) {
-        if (++fractionalDigits > maxFractionalDigits)
-            return std::nullopt;
-        divisor *= 10.0;
-        fractionalValue = fractionalValue * 10.0 + (*buffer - '0');
-        ++buffer;
-    }
-    if (!fractionalDigits)
-        return std::nullopt;
-    double decimalValue = integerValue + (fractionalValue / divisor);
-    return isNegative ? -decimalValue : decimalValue;
-}
-
-// Parsing a Token (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.6).
-template<typename CharType> static std::optional<Token> parseToken(StringParsingBuffer<CharType>& buffer)
-{
-    if (buffer.atEnd() || (!isASCIIAlpha(*buffer) && *buffer != '*'))
-        return std::nullopt;
-    auto tokenStart = buffer.span();
-    skipUntil<isEndOfToken>(buffer);
-    return Token { String(tokenStart.first(buffer.position() - tokenStart.data())) };
-}
-
-// Parsing a Byte Sequence (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.7).
-template<typename CharType> static std::optional<Vector<uint8_t>> parseByteSequence(StringParsingBuffer<CharType>& buffer)
-{
-    if (!skipExactly(buffer, ':'))
-        return std::nullopt;
-    auto begin = buffer.span();
-    skipUntil(buffer, ':');
-    auto byteSequence = begin.first(buffer.position() - begin.data());
-    if (!skipExactly(buffer, ':'))
-        return std::nullopt;
-    if (byteSequence.empty())
-        return Vector<uint8_t>();
-
-    auto decoded = base64Decode(StringView(byteSequence));
-    if (!decoded)
-        return std::nullopt;
-    return WTF::move(*decoded);
-}
-
-// Parsing a Boolean (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.8).
-template<typename CharType> NODELETE static std::optional<bool> parseBoolean(StringParsingBuffer<CharType>& buffer)
-{
-    if (!skipExactly(buffer, '?'))
-        return std::nullopt;
-    if (skipExactly(buffer, '1'))
-        return true;
-    if (skipExactly(buffer, '0'))
-        return false;
-    return std::nullopt;
-}
-
-// Parsing a Bare Item (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.3.1).
-template<typename CharType> static std::optional<BareItem> parseBareItem(StringParsingBuffer<CharType>& buffer)
-{
-    if (buffer.atEnd())
-        return std::nullopt;
-    CharType c = *buffer;
-    if (c == ':')
-        return parseByteSequence(buffer);
-    if (c == '"')
-        return parseString(buffer);
-    if (isASCIIAlpha(c) || c == '*')
-        return parseToken(buffer);
-    if (c == '?')
-        return parseBoolean(buffer);
-    if (c == '-' || isASCIIDigit(c))
-        return parseNumber(buffer);
-    return std::nullopt;
-}
-
-// Parsing Parameters (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.3.2).
-template<typename CharType> static std::optional<Parameters> parseParameters(StringParsingBuffer<CharType>& buffer)
-{
-    HashMap<String, BareItem> parameters;
-    while (buffer.hasCharactersRemaining()) {
-        if (!skipExactly(buffer, ';'))
-            break;
-        skipWhile(buffer, ' ');
-        StringView key = parseKey(buffer);
-        if (key.isNull())
-            return std::nullopt;
-        BareItem value = true;
-        if (skipExactly(buffer, '=')) {
-            auto parsedValue = parseBareItem(buffer);
-            if (!parsedValue)
+    std::optional<std::pair<ItemOrInnerList, Parameters>> itemOrInnerList()
+    {
+        if (!next(StepKind::InnerListStart)) {
+            auto item = this->item();
+            if (!item)
                 return std::nullopt;
-            value = WTF::move(*parsedValue);
+            return std::pair { ItemOrInnerList { WTF::move(item->first) }, WTF::move(item->second) };
         }
-        parameters.set(key.toString(), WTF::move(value));
-    }
-    return Parameters { WTF::move(parameters) };
-}
-
-// Parsing an item (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.3).
-template<typename CharType> static std::optional<std::pair<BareItem, Parameters>> parseItem(StringParsingBuffer<CharType>& buffer)
-{
-    auto bareItem = parseBareItem(buffer);
-    if (!bareItem)
-        return std::nullopt;
-
-    auto parameters = parseParameters(buffer);
-    if (!parameters)
-        return std::nullopt;
-
-    return std::pair { WTF::move(*bareItem), WTF::move(*parameters) };
-}
-
-// Parsing an Inner List (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.1.2).
-template<typename CharType> static std::optional<std::pair<InnerList, Parameters>> parseInnerList(StringParsingBuffer<CharType>& buffer)
-{
-    if (buffer.atEnd())
-        return std::nullopt;
-
-    if (!skipExactly(buffer, '('))
-        return std::nullopt;
-
-    InnerList list;
-    while (buffer.hasCharactersRemaining()) {
-        skipWhile(buffer, ' ');
-        if (skipExactly(buffer, ')')) {
-            auto parameters = parseParameters(buffer);
-            if (!parameters)
+        ++m_index;
+        InnerList list;
+        while (!next(StepKind::InnerListEnd)) {
+            auto item = this->item();
+            if (!item)
                 return std::nullopt;
-            return std::pair { WTF::move(list), WTF::move(*parameters) };
+            list.append(WTF::move(*item));
         }
-        auto item = parseItem(buffer);
-        if (!item)
+        ++m_index;
+        auto parameters = this->parameters();
+        if (!parameters)
             return std::nullopt;
-        list.append(WTF::move(*item));
-        if (buffer.atEnd() || (*buffer != ')' && *buffer != ' '))
-            break;
+        return std::pair { ItemOrInnerList { WTF::move(list) }, WTF::move(*parameters) };
     }
-    return std::nullopt;
-}
 
-// Parsing an item or inner list (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.1.1).
-template<typename CharType> static std::optional<std::pair<ItemOrInnerList, Parameters>> parseItemOrInnerList(StringParsingBuffer<CharType>& buffer)
-{
-    if (buffer.hasCharactersRemaining() && *buffer == '(')
-        return parseInnerList(buffer);
-    return parseItem(buffer);
-}
-
-// Parsing a dictionary (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.2).
-template<typename CharType> static std::optional<HashMap<String, std::pair<ItemOrInnerList, Parameters>>> parseDictionary(StringParsingBuffer<CharType>& buffer)
-{
-    HashMap<String, std::pair<ItemOrInnerList, Parameters>> dictionary;
-    while (buffer.hasCharactersRemaining()) {
-        auto key = parseKey(buffer);
-        if (key.isNull())
-            return std::nullopt;
-        std::pair<ItemOrInnerList, Parameters> member;
-        if (skipExactly(buffer, '=')) {
-            auto parsedMember = parseItemOrInnerList(buffer);
-            if (!parsedMember)
+    std::optional<Parameters> parameters()
+    {
+        HashMap<String, BareItem> parameters;
+        while (next(StepKind::ParameterKey)) {
+            auto name = key();
+            auto value = bareItem();
+            if (!value)
                 return std::nullopt;
-            member = WTF::move(*parsedMember);
-        } else {
-            BareItem value = true;
-            auto parameters = parseParameters(buffer);
-            if (!parameters)
-                return std::nullopt;
-            member = std::pair { WTF::move(value), WTF::move(*parameters) };
+            parameters.set(WTF::move(name), WTF::move(*value));
         }
-        dictionary.set(key.toString(), WTF::move(member));
-        skipWhile<isTabOrSpace>(buffer);
-        if (buffer.atEnd())
-            return dictionary;
-        if (!skipExactly(buffer, ','))
-            return std::nullopt;
-        skipWhile<isTabOrSpace>(buffer);
-        if (buffer.atEnd())
-            return std::nullopt;
+        return Parameters { WTF::move(parameters) };
     }
-    ASSERT(dictionary.isEmpty());
-    return dictionary;
-}
 
-// Parsing a list (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2.1).
-template<typename CharType> static std::optional<Vector<std::pair<ItemOrInnerList, Parameters>>> parseList(StringParsingBuffer<CharType>& buffer)
+    String text(const Step& step) const { return m_header.substring(step.start, step.length).toString(); }
+
+    StringView m_header;
+    std::span<const Step> m_steps;
+    size_t m_index { 0 };
+};
+
+template<typename Result, typename Build>
+static std::optional<Result> parseStructuredField(StringView header, WebCore::HTTPHeaderStructuredFieldType type, NOESCAPE const Build& build)
 {
-    Vector<std::pair<ItemOrInnerList, Parameters>> list;
-    while (buffer.hasCharactersRemaining()) {
-        auto member = parseItemOrInnerList(buffer);
-        if (!member)
-            return std::nullopt;
-        list.append(WTF::move(*member));
-        skipWhile<isTabOrSpace>(buffer);
-        if (buffer.atEnd())
-            return list;
-        if (!skipExactly(buffer, ','))
-            return std::nullopt;
-        skipWhile<isTabOrSpace>(buffer);
-        if (buffer.atEnd())
-            return std::nullopt;
+    if (header.isEmpty())
+        return std::nullopt;
+    // parseStructuredField8() and parseStructuredField16() return the number of steps, which can be more than the
+    // buffer holds, or -1 when the value does not parse.
+    Vector<Step, 32> buffer(32);
+    auto count = header.is8Bit() ? WebCore::parseStructuredField8(header.span8(), type, buffer.mutableSpan()) : WebCore::parseStructuredField16(header.span16(), type, buffer.mutableSpan());
+    if (count > static_cast<int64_t>(buffer.size())) {
+        buffer.grow(static_cast<size_t>(count));
+        count = header.is8Bit() ? WebCore::parseStructuredField8(header.span8(), type, buffer.mutableSpan()) : WebCore::parseStructuredField16(header.span16(), type, buffer.mutableSpan());
     }
-    ASSERT(list.isEmpty());
-    return list;
+    if (count < 0)
+        return std::nullopt;
+    StructuredFieldSteps steps { header, buffer.span().first(count) };
+    return build(steps);
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8941#section-4.2 with type "item".
 std::optional<std::pair<BareItem, Parameters>> parseItemStructuredFieldValue(StringView header)
 {
-    if (header.isEmpty())
-        return std::nullopt;
-
-    return readCharactersForParsing(WTF::move(header), [](auto buffer) -> std::optional<std::pair<BareItem, Parameters>> {
-        skipWhile(buffer, ' ');
-
-        auto item = parseItem(buffer);
-        if (!item)
-            return std::nullopt;
-
-        skipWhile(buffer, ' ');
-
-        if (buffer.hasCharactersRemaining())
-            return std::nullopt;
-        return WTF::move(*item);
+    return parseStructuredField<std::pair<BareItem, Parameters>>(header, WebCore::HTTPHeaderStructuredFieldType::Item, [](auto& steps) {
+        return steps.item();
     });
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8941#section-4.2 with type "list".
 std::optional<Vector<std::pair<ItemOrInnerList, Parameters>>> parseListStructuredFieldValue(StringView header)
 {
-    if (header.isEmpty())
-        return std::nullopt;
-
-    return readCharactersForParsing(WTF::move(header), [](auto buffer) -> std::optional<Vector<std::pair<ItemOrInnerList, Parameters>>> {
-        skipWhile(buffer, ' ');
-
-        auto list = parseList(buffer);
-        if (!list)
-            return std::nullopt;
-
-        skipWhile(buffer, ' ');
-
-        if (buffer.hasCharactersRemaining())
-            return std::nullopt;
-        return WTF::move(*list);
+    return parseStructuredField<Vector<std::pair<ItemOrInnerList, Parameters>>>(header, WebCore::HTTPHeaderStructuredFieldType::List, [](auto& steps) -> std::optional<Vector<std::pair<ItemOrInnerList, Parameters>>> {
+        Vector<std::pair<ItemOrInnerList, Parameters>> list;
+        while (!steps.atEnd()) {
+            auto member = steps.itemOrInnerList();
+            if (!member)
+                return std::nullopt;
+            list.append(WTF::move(*member));
+        }
+        return list;
     });
 }
 
 // https://datatracker.ietf.org/doc/html/rfc8941#section-4.2 with type "dictionary".
 std::optional<HashMap<String, std::pair<ItemOrInnerList, Parameters>>> parseDictionaryStructuredFieldValue(StringView header)
 {
-    if (header.isEmpty())
-        return std::nullopt;
-
-    return readCharactersForParsing(WTF::move(header), [](auto buffer) -> std::optional<HashMap<String, std::pair<ItemOrInnerList, Parameters>>> {
-        skipWhile(buffer, ' ');
-
-        auto dictionary = parseDictionary(buffer);
-        if (!dictionary)
-            return std::nullopt;
-
-        skipWhile(buffer, ' ');
-
-        if (buffer.hasCharactersRemaining())
-            return std::nullopt;
-        return WTF::move(*dictionary);
+    return parseStructuredField<HashMap<String, std::pair<ItemOrInnerList, Parameters>>>(header, WebCore::HTTPHeaderStructuredFieldType::Dictionary, [](auto& steps) -> std::optional<HashMap<String, std::pair<ItemOrInnerList, Parameters>>> {
+        HashMap<String, std::pair<ItemOrInnerList, Parameters>> dictionary;
+        while (!steps.atEnd()) {
+            auto name = steps.key();
+            auto member = steps.itemOrInnerList();
+            if (!member)
+                return std::nullopt;
+            dictionary.set(WTF::move(name), WTF::move(*member));
+        }
+        return dictionary;
     });
 }
 
 std::optional<String> escapeString(StringView input)
 {
-    // https://datatracker.ietf.org/doc/html/rfc8941#section-3.3.3
-    StringBuilder builder;
-    builder.reserveCapacity(input.length());
-    for (char16_t codeUnit : input.codeUnits()) {
-        if (codeUnit < 0x20 || codeUnit > 0x7E)
-            return std::nullopt;
-        if (codeUnit == '"')
-            builder.append("\\\""_s);
-        else if (codeUnit == '\\')
-            builder.append("\\\\"_s);
-        else
-            builder.append(static_cast<Latin1Character>(codeUnit));
-    }
-    return builder.toString();
-};
+    auto escaped = input.is8Bit() ? WebCore::escapeStructuredFieldString8(input.span8()) : WebCore::escapeStructuredFieldString16(input.span16());
+    if (escaped.isNull())
+        return std::nullopt;
+    return escaped;
+}
 
 } // namespace RFC8941
