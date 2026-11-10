@@ -352,6 +352,7 @@ public:
 
     SWIFT_UNSAFE SingleThreadWeakPtr<RenderBlockFlow> pseudoElementRenderer(PseudoElementType) const;
     SWIFT_UNSAFE void setPseudoElementRenderer(PseudoElementType, RenderBlockFlow&);
+    bool hasBackdropRendererForSwift(const RenderObject&) const;
 
     ReferencedSVGResources& ensureReferencedSVGResources();
     NODELETE ReferencedSVGResources* referencedSVGResources() const;
