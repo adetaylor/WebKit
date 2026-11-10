@@ -104,6 +104,13 @@ void ThreadedScrollingTreeScrollingNodeDelegate::updateSnapScrollState()
     m_physics->delegate.updateSnapScrollState(ScrollingTreeScrollPhysicsClientState(*this).facade());
 }
 
+#if HAVE(APPKIT_GESTURES_SUPPORT)
+float ThreadedScrollingTreeScrollingNodeDelegate::rubberbandHyperbolicCoefficientForTesting() const
+{
+    return m_physics->delegate.rubberbandHyperbolicCoefficientForTesting();
+}
+#endif
+
 bool ThreadedScrollingTreeScrollingNodeDelegate::startAnimatedScrollToPosition(FloatPoint destinationPosition, ScrollAnimationCurve curve)
 {
     return m_physics->delegate.startAnimatedScrollToPosition(ScrollingTreeScrollPhysicsClientState(*this).facade(), destinationPosition, curve);
