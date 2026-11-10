@@ -103,7 +103,6 @@ messages -> GPUProcess : AuxiliaryProcess {
     UserPreferredLanguagesChanged(Vector<String> languages)
 
     WebProcessConnectionCountForTesting() -> (uint64_t count)
-    RunDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>> webFonts) -> (std::optional<Vector<String>> failures)
 #if PLATFORM(COCOA)
     PrintProcessDrawingCountsForTesting() -> (uint64_t drawnInPrintProcess, uint64_t drawnAfterPrintProcessFailed)
 #endif

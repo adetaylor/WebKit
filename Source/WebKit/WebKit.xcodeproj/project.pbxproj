@@ -15080,8 +15080,6 @@
 			children = (
 				0D078EB72E7387FA00A9B266 /* Model */,
 				1C98C01C27446926002CCB78 /* WebGPU */,
-				6741DCABDB6A2ED332C01DDD /* DisplayListDataTester.cpp */,
-				B4848398B0965F2C40442DED /* DisplayListDataTester.h */,
 				DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */,
 				F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */,
 				724DCF22284862FC0026ACF4 /* ImageBufferShareableAllocator.cpp */,
@@ -16680,6 +16678,8 @@
 				7AFA6F692A9F58300055322A /* DisplayLink.h */,
 				7AFA6F6A2A9F58300055322A /* DisplayLinkProcessProxyClient.cpp */,
 				7AFA6F6C2A9F58300055322A /* DisplayLinkProcessProxyClient.h */,
+				6741DCABDB6A2ED332C01DDD /* DisplayListDataTester.cpp */,
+				B4848398B0965F2C40442DED /* DisplayListDataTester.h */,
 				BC2652121182608100243E12 /* DrawingAreaProxy.cpp */,
 				BC2652131182608100243E12 /* DrawingAreaProxy.h */,
 				1A6422FC12DD08FE00CAAE2C /* DrawingAreaProxy.messages.in */,

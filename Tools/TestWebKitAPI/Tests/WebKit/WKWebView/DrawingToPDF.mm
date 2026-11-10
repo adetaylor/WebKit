@@ -232,7 +232,7 @@ TEST(DrawingToPDF, DisplayListData)
     ];
 
     __block bool done = false;
-    [webView _runDisplayListDataTestsInGPUProcessWithWebFonts:webFonts.get() completionHandler:^(NSArray<NSString *> *failures) {
+    [webView _runDisplayListDataTestsWithWebFonts:webFonts.get() completionHandler:^(NSArray<NSString *> *failures) {
         for (NSString *failure in failures)
             ADD_FAILURE() << failure.UTF8String;
         done = true;
