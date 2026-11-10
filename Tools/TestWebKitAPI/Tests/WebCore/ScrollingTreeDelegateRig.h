@@ -495,6 +495,7 @@ public:
         root->setFrameScaleFactor(1);
         root->setLayoutViewport(FloatRect(setup.position, setup.viewport));
         apply(0, setup);
+        setNoLayers(0);
         return 0;
     }
 
@@ -504,7 +505,16 @@ public:
         m_stateTree->insertNode(ScrollingNodeType::Overflow, id, m_nodes[parent], notFound);
         m_nodes.push_back(id);
         apply(m_nodes.size() - 1, setup);
+        setNoLayers(m_nodes.size() - 1);
         return m_nodes.size() - 1;
+    }
+
+    // Scrolling nodes without layers; a shape with a layer connector gives them layers in their place.
+    void setNoLayers(unsigned index)
+    {
+        Ref node = state(index);
+        node->setScrollContainerLayer(static_cast<ScrollingPlatformLayer*>(nullptr));
+        node->setScrolledContentsLayer(static_cast<ScrollingPlatformLayer*>(nullptr));
     }
 
     void apply(unsigned index, const NodeSetup& setup)
@@ -529,6 +539,7 @@ public:
         frame->setFrameScaleFactor(1);
         frame->setLayoutViewport(FloatRect(setup.position, setup.viewport));
         apply(m_nodes.size() - 1, setup);
+        setNoLayers(m_nodes.size() - 1);
         return m_nodes.size() - 1;
     }
 
