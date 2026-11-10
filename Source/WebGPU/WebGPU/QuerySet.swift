@@ -248,6 +248,8 @@ private let sampleSize = UInt32(MemoryLayout<UInt64>.size)
 // does not mark MTLCounterSampleBuffer Sendable, as it does MTLCounterSet.
 private struct SharedCounterSampleBuffer: @unchecked Sendable {
     let buffer: any MTLCounterSampleBuffer
+    // The registryID of the device that made the buffer, which only that device's query sets lease from.
+    let deviceRegistryID: UInt64
 }
 
 private struct CounterSampleBufferPool {
@@ -268,6 +270,10 @@ private func counterSampleBufferPoolAcquire(
     let lease: (buffer: SharedCounterSampleBuffer, offset: UInt32)? = counterSampleBufferPool.withLock { pool in
         for i in 0..<maxCounterSampleBuffers {
             if let buffer = pool.buffers[i] {
+                // A buffer belongs to the device that made it.
+                if buffer.deviceRegistryID != device.registryID {
+                    continue
+                }
                 // First fit, in ascending offset order.
                 guard let index = pool.freeRanges[i].firstIndex(where: { $0.upperBound - $0.lowerBound >= sampleCountInBytes }) else {
                     continue
@@ -290,7 +296,7 @@ private func counterSampleBufferPoolAcquire(
             guard let created = try? device.makeCounterSampleBuffer(descriptor: descriptor) else {
                 return nil
             }
-            let buffer = SharedCounterSampleBuffer(buffer: created)
+            let buffer = SharedCounterSampleBuffer(buffer: created, deviceRegistryID: device.registryID)
             pool.buffers[i] = buffer
             if sampleCountInBytes < maxSampleBufferSize {
                 insertFreeRange(sampleCountInBytes..<maxSampleBufferSize, into: &pool.freeRanges[i])
