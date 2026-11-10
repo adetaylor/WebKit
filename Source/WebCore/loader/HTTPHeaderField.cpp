@@ -26,19 +26,20 @@
 #include "config.h"
 #include "HTTPHeaderField.h"
 
-#include "RFC7230.h"
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
 std::optional<HTTPHeaderField> HTTPHeaderField::create(String&& unparsedName, String&& unparsedValue)
 {
-    auto trimmedName = StringView(unparsedName).trim(isTabOrSpace<char16_t>);
-    auto trimmedValue = StringView(unparsedValue).trim(isTabOrSpace<char16_t>);
-    if (!RFC7230::isValidName(trimmedName) || !RFC7230::isValidValue(trimmedValue))
+    auto field = unparsedName.is8Bit()
+        ? (unparsedValue.is8Bit() ? parseHTTPHeaderField8And8(unparsedName.span8(), unparsedValue.span8()) : parseHTTPHeaderField8And16(unparsedName.span8(), unparsedValue.span16()))
+        : (unparsedValue.is8Bit() ? parseHTTPHeaderField16And8(unparsedName.span16(), unparsedValue.span8()) : parseHTTPHeaderField16And16(unparsedName.span16(), unparsedValue.span16()));
+    if (field.name.isNull || field.value.isNull)
         return std::nullopt;
 
-    auto name = trimmedName.length() == unparsedName.length() ? WTF::move(unparsedName) : trimmedName.toString();
-    auto value = trimmedValue.length() == unparsedValue.length() ? WTF::move(unparsedValue) : trimmedValue.toString();
+    auto name = field.name.length == unparsedName.length() ? WTF::move(unparsedName) : unparsedName.substring(field.name.start, field.name.length);
+    auto value = field.value.length == unparsedValue.length() ? WTF::move(unparsedValue) : unparsedValue.substring(field.value.start, field.value.length);
     return {{ WTF::move(name), WTF::move(value) }};
 }
 

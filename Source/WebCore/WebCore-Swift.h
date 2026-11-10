@@ -77,4 +77,10 @@
 
 #include "ContentSecurityPolicySwift.h"
 
+#include "CacheValidation.h"
+#include "HTTPHeaderParsersTypes.h"
+#include "LinkHeader.h"
+#include "ParsedContentRange.h"
+#include "ServerTiming.h"
+
 #include "WebCoreSwift-Generated.h"
