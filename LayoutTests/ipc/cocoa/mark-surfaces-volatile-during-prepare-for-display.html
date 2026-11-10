@@ -14,7 +14,7 @@ async function runTest() {
         return;
     }
 
-    const { CoreIPC } = await import('../coreipc.js');
+    const { CoreIPC, drawingInterfaceName } = await import('../coreipc.js');
 
     const streamConnection = CoreIPC.newStreamConnection();
     const renderingBackendIdentifier = randomIPCID();
@@ -35,7 +35,7 @@ async function runTest() {
     });
 
     const remoteImageBufferSet = streamConnection.newInterface("RemoteImageBufferSet", imageBufferSetIdentifier);
-    const remoteGraphicsContext = streamConnection.newInterface("RemoteGraphicsContext", graphicsContextIdentifier);
+    const remoteGraphicsContext = streamConnection.newInterface(drawingInterfaceName(), graphicsContextIdentifier);
 
     remoteImageBufferSet.UpdateConfiguration({
         configuration: {

@@ -29,7 +29,12 @@
 #if ENABLE(GPU_PROCESS)
 
 #include "Logging.h"
+#include "RemoteRenderingBackend.h"
+#include <WebCore/ImageBuffer.h>
+
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 #include "RemoteGraphicsContextMessages.h"
+#endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
@@ -44,15 +49,82 @@
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteResourceCache.h"
+#include "StreamMessageReceiver.h"
 #include "WebKit-Swift.h"
 #include <WebCore/DisplayListRecorderImpl.h>
 #include <WebCore/Gradient.h>
+#include <wtf/Lock.h>
+#endif
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#include <WebCore/BifurcatedGraphicsContext.h>
 #endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_renderingBackend->streamConnection());
 
 namespace WebKit {
 using namespace WebCore;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+// The drawing of an image buffer whose drawing is recorded (RenderingMode::DisplayList), whose context can't lend a
+// renderer: recorded in Swift (RemoteCGRendererRecorder) while the buffer receives drawing, and drawn where the WebCore
+// display list that the buffer's context records is drawn, by the one placeholder that display list has. It receives the
+// messages for the recorder, so that a draw on another thread sees whole messages. Once the buffer no longer receives
+// drawing, it keeps the recording and lets the recorder, which keeps the rendering backend, go.
+class RemoteCGRendererRecordedDrawing final : public IPC::StreamMessageReceiver {
+public:
+    static Ref<RemoteCGRendererRecordedDrawing> create(RemoteRenderingBackend& renderingBackend)
+    {
+        Ref resources = RemoteCGRendererResources::createForRecorder(renderingBackend, nullptr);
+        return adoptRef(*new RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder::create(resources.ptr(), renderingBackend.cgRendererDisplayLists())));
+    }
+
+    void stopRecording()
+    {
+        Locker locker { m_lock };
+        if (!m_recorder)
+            return;
+        m_recording = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder->takeRecording());
+        m_forwarder = nullptr;
+        m_recorder = nullptr;
+    }
+
+    void draw(GraphicsContext& context)
+    {
+        if (!context.canLendSwiftRenderer())
+            return;
+        std::unique_ptr<RemoteCGRendererRecording> recording;
+        {
+            Locker locker { m_lock };
+            recording = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder ? m_recorder->currentRecording() : *m_recording);
+        }
+        replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
+            recording->draw(state, &resources);
+        });
+    }
+
+private:
+    explicit RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder&& recorder)
+        : m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(WTF::move(recorder)))
+        , m_forwarder(RemoteCGRendererRecorder::createMessageReceiver(*m_recorder))
+    {
+    }
+
+    void didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder) final
+    {
+        Locker locker { m_lock };
+        if (m_forwarder)
+            m_forwarder->didReceiveStreamMessage(connection, decoder);
+    }
+
+    Lock m_lock;
+    std::unique_ptr<RemoteCGRendererRecorder> m_recorder WTF_GUARDED_BY_LOCK(m_lock);
+    RefPtr<RemoteCGRendererRecorderMessageForwarder> m_forwarder WTF_GUARDED_BY_LOCK(m_lock);
+    std::unique_ptr<RemoteCGRendererRecording> m_recording WTF_GUARDED_BY_LOCK(m_lock);
+};
+
+#endif
 
 Ref<RemoteImageBufferGraphicsContext> RemoteImageBufferGraphicsContext::create(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
 {
@@ -61,12 +133,22 @@ Ref<RemoteImageBufferGraphicsContext> RemoteImageBufferGraphicsContext::create(I
     return instance;
 }
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
     : RemoteGraphicsContext(imageBuffer.context(), renderingBackend)
     , m_imageBuffer(imageBuffer)
     , m_identifier(identifier)
 {
 }
+#else
+RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
+    : m_renderingBackend(renderingBackend)
+    , m_context(imageBuffer.context())
+    , m_imageBuffer(imageBuffer)
+    , m_identifier(identifier)
+{
+}
+#endif
 
 RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext()
 {
@@ -76,35 +158,66 @@ RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext()
 #endif
 }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+GraphicsContext& RemoteImageBufferGraphicsContext::drawingContext()
+{
+    return m_discardedDrawingTarget ? m_discardedDrawingTarget->context() : imageBufferContext();
+}
+#endif
+
 void RemoteImageBufferGraphicsContext::startListeningForIPC()
 {
     auto& streamConnection = m_renderingBackend->streamConnection();
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     streamConnection.startReceivingMessages(*this, Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    if (context().canLendSwiftRenderer()) {
+#else
+#if !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+    // The context of an image buffer that failed to allocate (NullImageBufferBackend) draws nothing and can't lend a
+    // renderer: its drawing is drawn into an image buffer of its own, which nothing shows.
+    if (!imageBufferContext().canLendSwiftRenderer() && m_imageBuffer->renderingMode() != RenderingMode::DisplayList)
+        m_discardedDrawingTarget = ImageBuffer::create({ 1, 1 }, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
+#endif
+    if (drawingContext().canLendSwiftRenderer()) {
         if (!m_isSwiftRendererLender) {
             cgContext().addSwiftRendererLender();
             m_isSwiftRendererLender = true;
         }
-        Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_imageBuffer);
+        Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get());
         Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), m_renderingBackend->cgRendererDisplayLists());
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-    } else
-        streamConnection.startReceivingMessages(*this, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+        return;
+    }
+    if (m_imageBuffer->renderingMode() == RenderingMode::DisplayList) {
+        Ref recordedDrawing = RemoteCGRendererRecordedDrawing::create(m_renderingBackend);
+        static_cast<DisplayList::RecorderImpl&>(imageBufferContext()).drawPlaceholder([recordedDrawing](GraphicsContext& context) {
+            recordedDrawing->draw(context);
+        });
+        streamConnection.startReceivingMessages(recordedDrawing, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+        m_recordedDrawing = WTF::move(recordedDrawing);
+        return;
+    }
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+    streamConnection.startReceivingMessages(*this, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+#else
+    RELEASE_ASSERT_NOT_REACHED();
+#endif
 #endif
 }
 
 void RemoteImageBufferGraphicsContext::stopListeningForIPC()
 {
     auto& streamConnection = m_renderingBackend->streamConnection();
-    streamConnection.stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     streamConnection.stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
+    if (RefPtr recordedDrawing = std::exchange(m_recordedDrawing, nullptr))
+        recordedDrawing->stopRecording();
+#else
+    streamConnection.stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #endif
 }
 
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
 void RemoteImageBufferGraphicsContext::didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder)
 {
@@ -234,20 +347,20 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     decoder.markInvalid();
 }
 
-// Only an image buffer whose drawing is recorded has a context that can't lend its renderer: the display list, recorded in
-// Swift, is drawn where the buffer's drawing is drawn, into a context that lends its renderer for it.
+// A display list, recorded in Swift, which each of the two contexts that a dynamic content scaling image buffer's context
+// paints into replays, as each draws what this draws into the buffer's.
 void RemoteImageBufferGraphicsContext::drawRecordedDisplayList(RemoteDisplayListIdentifier identifier)
 {
     auto recording = m_renderingBackend->cgRendererDisplayLists().recording(displayListKey(identifier));
     MESSAGE_CHECK(recording);
-    RELEASE_ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
-    static_cast<DisplayList::RecorderImpl&>(context()).drawPlaceholder([recording = recording.get()](GraphicsContext& context) mutable {
-        if (!context.canLendSwiftRenderer())
-            return;
-        replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-            recording.draw(state, &resources);
+    auto& bifurcatedContext = static_cast<BifurcatedGraphicsContext&>(context());
+    for (auto* paintedContext : { &bifurcatedContext.primaryContext(), &bifurcatedContext.secondaryContext() }) {
+        if (!paintedContext->canLendSwiftRenderer())
+            continue;
+        replayIntoContext(static_cast<GraphicsContextCG&>(*paintedContext), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
+            recording.get().draw(state, &resources);
         });
-    });
+    }
 }
 
 void RemoteImageBufferGraphicsContext::setFillPackedColorValue(uint32_t color)
@@ -392,8 +505,9 @@ void RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransfo
     context().fillRect(rect, *gradient, transform, requiresClipToRect);
 }
 
-#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 void RemoteImageBufferGraphicsContext::drawImageBuffer(RenderingResourceIdentifier imageBufferIdentifier, const FloatRect& destinationRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
     RefPtr sourceImage = imageBuffer(imageBufferIdentifier);
@@ -408,6 +522,7 @@ void RemoteImageBufferGraphicsContext::drawImageBuffer(RenderingResourceIdentifi
     if (selfCopy)
         m_imageBuffer->flushDrawingContext();
 }
+#endif
 
 } // namespace WebKit
 

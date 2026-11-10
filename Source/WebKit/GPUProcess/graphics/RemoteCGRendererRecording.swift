@@ -126,6 +126,12 @@ final class RemoteCGRendererRecorder {
         return recording
     }
 
+    // What it recorded so far, while it records more.
+    @used
+    func currentRecording() -> RemoteCGRendererRecording {
+        RemoteCGRendererRecording(messages: messages, resources: WebKit.copyRecordedResources(resources), displayLists: recordedDisplayLists)
+    }
+
     @_expose(!Cxx)
     func record(_ message: consuming RemoteCGRenderer.RecordedMessage) throws(InvalidMessage) {
         switch copy message {

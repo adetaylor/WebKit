@@ -13,7 +13,7 @@ const genID = () => nextID++;
 // The buffer starts transparent and its brushes black, so a rejected pattern leaves a black fill or stroke, and an accepted
 // one draws the buffer's own transparent pixels.
 async function run() {
-    const { CoreIPC } = await import('./coreipc.js');
+    const { CoreIPC, drawingInterfaceName } = await import('./coreipc.js');
     CoreIPC.typeInfo['WebCore::PlatformColorSpace'] = [
         { type: 'std::optional<WebKit::CoreIPCCGColorSpace>', name: 'alias' }
     ];
@@ -34,7 +34,7 @@ async function run() {
             logicalSize: { width: 32, height: 32 }, renderingMode, renderingPurpose: 0, resolutionScale: 1.0, colorSpace: sRGB,
             bufferFormat: { pixelFormat: 3, useLosslessCompression: 0 }, identifier: imageBufferIdentifier, contextIdentifier: contextID,
         });
-        const context = connection.newInterface('RemoteGraphicsContext', contextID);
+        const context = connection.newInterface(drawingInterfaceName(), contextID);
         if (kind == 'fill') {
             context.SetFillPatternImageBuffer({ imageBufferIdentifier, pattern });
             context.FillRect({ rect, requiresClipToRect: 0 });

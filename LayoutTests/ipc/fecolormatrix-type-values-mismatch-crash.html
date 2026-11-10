@@ -8,7 +8,7 @@
             if (!window.IPC)
                 return window.testRunner?.notifyDone();
 
-            const { CoreIPC, sRGBColorSpace } = await import('./coreipc.js');
+            const { CoreIPC, sRGBColorSpace, drawingInterfaceName } = await import('./coreipc.js');
 
             const streamConnection = CoreIPC.newStreamConnection();
 
@@ -35,7 +35,7 @@
                 identifier: imageBufferIdentifier,
                 contextIdentifier: contextIdentifier
             });
-            const remoteGraphicsContext = streamConnection.newInterface("RemoteGraphicsContext", contextIdentifier);
+            const remoteGraphicsContext = streamConnection.newInterface(drawingInterfaceName(), contextIdentifier);
 
             const srgbColorSpace = sRGBColorSpace();
 
