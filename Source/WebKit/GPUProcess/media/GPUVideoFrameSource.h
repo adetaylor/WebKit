@@ -66,12 +66,6 @@ public:
     void setSemaphore(mach_port_t);
     void setSharedMemory(mach_port_t, uint64_t size);
 
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { RefCounted<GPUVideoFrameSource>::ref(); }
-    void deref() const { RefCounted<GPUVideoFrameSource>::deref(); }
-#endif
-
 private:
     friend CVBufferRef WTF_NULLABLE readSharedVideoFrame(GPUVideoFrameSource&, IPC::CxxDecodedArgument<std::optional<SharedVideoFrame>>&, GPUVideoFrameReadResult&) CF_RETURNS_RETAINED;
     friend CVBufferRef WTF_NULLABLE copyMediaPlayerFrame(GPUVideoFrameSource&, uint64_t mediaPlayerIdentifier, GPUVideoFrameReadResult&) CF_RETURNS_RETAINED;

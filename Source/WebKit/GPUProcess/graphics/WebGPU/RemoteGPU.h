@@ -111,11 +111,6 @@ public:
 
     void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
 
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { IPC::StreamMessageReceiver::ref(); }
-    void deref() const { IPC::StreamMessageReceiver::deref(); }
-#endif
 
 private:
     friend IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteGPU&, uint64_t, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
@@ -147,7 +142,8 @@ private:
     // which holds this receiver until swiftUninitialize() releases it. The scheduler holds work scheduled once the receiver
     // begins stopping, which swiftRunScheduledWork() runs.
     void swiftInitialize(MachSendRight webProcessResourceOwner);
-    static void destroySwiftState(uintptr_t);
+    // Unsafe: the state must be the one swiftInitialize() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     void swiftBeginStopping();
     void swiftRunScheduledWork(bool thenStopped);
     void swiftUninitialize();

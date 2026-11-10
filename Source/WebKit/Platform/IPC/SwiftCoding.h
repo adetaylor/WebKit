@@ -379,10 +379,9 @@ public:
     }
 
 #ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
-    void deref() const
+    // Swift's release, which frees with fastFree() as decode() allocates. Unsafe: an extra call frees an object that Swift
+    // still uses.
+    SWIFT_UNSAFE void swiftDeref() const
     {
         if (!this->derefBase())
             return;
@@ -402,7 +401,7 @@ private:
     }
 
     std::optional<T> m_value;
-} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
@@ -451,13 +450,6 @@ public:
         if (m_encoder || m_inStream)
             cancel();
     }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::ref(); }
-    void deref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::deref(); }
-#endif
 
     void encode(bool value) { encodeValue(value); }
     void encode(uint8_t value) { encodeValue(value); }
@@ -664,13 +656,6 @@ public:
     {
         m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
     }
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<SwiftStreamReceiverRegistration>::ref(); }
-    void deref() const { RefCounted<SwiftStreamReceiverRegistration>::deref(); }
-#endif
 
 private:
     SwiftStreamReceiverRegistration(StreamServerConnection& streamConnection, StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t identifier)
