@@ -476,7 +476,7 @@ NumericSign CSSParserToken::numericSign() const
 {
     // This is valid for DimensionToken and PercentageToken, but only used
     // in <an+b> parsing on NumberTokens.
-    ASSERT(m_type == NumberToken);
+    ASSERT(m_type == NumberToken || m_type == DimensionToken || m_type == PercentageToken);
     return static_cast<NumericSign>(m_numericSign);
 }
 
