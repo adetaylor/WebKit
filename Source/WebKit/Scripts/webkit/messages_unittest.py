@@ -65,6 +65,7 @@ _test_receiver_names = [
     'TestWithStreamSwiftEnabledBy',
     'TestWithStreamSwiftImplementation',
     'TestWithStreamSwiftLentState',
+    'TestWithStreamSwiftRecordable',
     'TestWithStreamSwiftReplyValues',
     'TestWithStreamSwiftTypes',
     'TestWithSuperclass',
@@ -600,6 +601,40 @@ messages -> TestReceiver Stream {
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) -> (uint32_t reply)')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'state'"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t state)')
+
+    def test_recordable_constraints(self):
+        stream_receiver = """
+[
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver Stream {
+%s
+}
+"""
+
+        def parse(attributes, messages_text):
+            return parser.parse(io.StringIO(stream_receiver % (',\n    '.join(attributes), messages_text)))
+
+        lent = ['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender']
+        receiver = parse(lent + ['Recordable'], '    Message([RecordedAs=WebKit::RecordedRun] WebKit::Run run)')
+        self.assertTrue(receiver.is_recordable())
+        self.assertEqual(receiver.messages[0].parameters[0].recorded_as_type(), 'WebKit::RecordedRun')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'Recordable', which is for Swift stream receivers with 'SwiftReceiverStateLender='"):
+            parse(['ExceptionForEnabledBy', 'SwiftReceiver', 'Recordable'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftMayDecline', which is not supported on a receiver with 'Recordable'"):
+            parse(lent + ['Recordable'], '    Message(uint32_t value) SwiftMayDecline')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Validator=ValidateFunction', which is not supported on a receiver with 'Recordable'"):
+            parse(lent + ['Recordable'], '    [Validator=ValidateFunction] Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'Recordable', which is not supported together with 'EnabledBy='"):
+            parse(['EnabledBy=SomeFeature', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'RecordedAs=' on parameter 'run', which is for receivers with 'Recordable'"):
+            parse(lent, '    Message([RecordedAs=WebKit::RecordedRun] WebKit::Run run)')
+        receiver = parse(lent + ['Recordable'], '    Message(uint32_t value) NotRecorded')
+        self.assertTrue(receiver.messages[0].has_attribute('NotRecorded'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'NotRecorded', which is for receivers with 'Recordable'"):
+            parse(lent, '    Message(uint32_t value) NotRecorded')
 
 
 class MessagesFromTest(unittest.TestCase):

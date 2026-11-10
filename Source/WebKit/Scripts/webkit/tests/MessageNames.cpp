@@ -111,6 +111,13 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamSwiftLentState_Draw"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_Reset"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_SetValues"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA)
+    MessageDescription { "TestWithStreamSwiftRecordable_Draw"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#endif
+    MessageDescription { "TestWithStreamSwiftRecordable_DrawRun"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftRecordable_Reset"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftRecordable_SetSource"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftRecordable_SetValues"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendCxxDecodedReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendCxxString"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendEmptyAsyncReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
