@@ -71,6 +71,19 @@ RemoteCGRendererRecordedResources::RemoteCGRendererRecordedResources() = default
 
 RemoteCGRendererRecordedResources::~RemoteCGRendererRecordedResources() = default;
 
+Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::copy() const
+{
+    Ref copy = create();
+    copy->m_paths = m_paths;
+    copy->m_nativeImages = m_nativeImages;
+    copy->m_imageBuffers = m_imageBuffers;
+    copy->m_gradients = m_gradients;
+    copy->m_fonts = m_fonts;
+    copy->m_meshGradients = m_meshGradients;
+    copy->m_filters = m_filters;
+    return copy;
+}
+
 Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRecorder(RemoteRenderingBackend& backend, RemoteSnapshot* snapshot)
 {
     return adoptRef(*new RemoteCGRendererResources(&backend, nullptr, nullptr, snapshot));
@@ -322,6 +335,11 @@ Ref<RemoteCGRendererRecordedResources> RemoteCGRendererResources::takeRecordedRe
 RemoteCGRendererRecordedResources* takeRecordedResources(const RemoteCGRendererResources& resources)
 {
     return &resources.takeRecordedResources().leakRef();
+}
+
+RemoteCGRendererRecordedResources* copyRecordedResources(const RemoteCGRendererResources& resources)
+{
+    return &resources.copyRecordedResources().leakRef();
 }
 
 void replayIntoContext(GraphicsContextCG& context, NOESCAPE const Function<void(CGRendererCore&, RemoteCGRendererResources&)>& draw)

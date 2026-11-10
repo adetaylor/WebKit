@@ -151,6 +151,7 @@ RefPtr<FontCustomPlatformData> RemoteResourceCache::cachedFontCustomPlatformData
     return m_fontCustomPlatformDatas.get(identifier);
 }
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 bool RemoteResourceCache::cacheDisplayList(RemoteDisplayListIdentifier identifier, Ref<const DisplayList::DisplayList> displayList)
 {
     return m_displayLists.add(identifier, displayList).isNewEntry;
@@ -165,6 +166,7 @@ bool RemoteResourceCache::releaseDisplayList(RemoteDisplayListIdentifier identif
 {
     return m_displayLists.remove(identifier);
 }
+#endif
 
 void RemoteResourceCache::releaseAllResources()
 {
@@ -181,7 +183,9 @@ void RemoteResourceCache::releaseMemory()
     m_fonts.clear();
     m_paths.clear();
     m_fontCustomPlatformDatas.clear();
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     m_displayLists.clear();
+#endif
 }
 
 } // namespace WebKit

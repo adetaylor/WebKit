@@ -36,7 +36,7 @@
 #include "Logging.h"
 #include "PrepareBackingStoreBuffersData.h"
 #include "RemoteDisplayListRecorder.h"
-#include "RemoteGraphicsContext.h"
+#include "RemoteGraphicsContextIdentifier.h"
 #include "RemoteImageBuffer.h"
 #include "RemoteImageBufferProxyMessages.h"
 #include "RemoteImageBufferSet.h"

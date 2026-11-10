@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteGraphicsContext.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))
 
 #include "GPUConnectionToWebProcess.h"
 #include "ImageBufferShareableAllocator.h"
@@ -812,4 +812,4 @@ bool RemoteGraphicsContext::useIOSurfaceWebKitBehavior() const
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))

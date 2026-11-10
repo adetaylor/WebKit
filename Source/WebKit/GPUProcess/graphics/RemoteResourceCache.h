@@ -83,9 +83,12 @@ public:
     bool releaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::FontCustomPlatformData> cachedFontCustomPlatformData(WebCore::RenderingResourceIdentifier) const;
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+    // With the CG renderer in Swift, the display lists are recorded in Swift (RemoteCGRendererDisplayLists).
     bool cacheDisplayList(RemoteDisplayListIdentifier, Ref<const WebCore::DisplayList::DisplayList>);
     RefPtr<const WebCore::DisplayList::DisplayList> cachedDisplayList(RemoteDisplayListIdentifier) const;
     bool releaseDisplayList(RemoteDisplayListIdentifier);
+#endif
 
     void releaseAllResources();
     void releaseMemory();
@@ -99,7 +102,9 @@ private:
     HashMap<WebCore::RenderingResourceIdentifier, Ref<SharedFont>> m_fonts;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::FontCustomPlatformData>> m_fontCustomPlatformDatas;
     HashMap<RemotePathImplIdentifier, Ref<WebCore::PathImpl>> m_paths;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     HashMap<RemoteDisplayListIdentifier, Ref<const WebCore::DisplayList::DisplayList>> m_displayLists;
+#endif
 };
 
 } // namespace WebKit

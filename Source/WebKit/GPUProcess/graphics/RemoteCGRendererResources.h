@@ -86,6 +86,8 @@ public:
     static Ref<RemoteCGRendererRecordedResources> create();
     ~RemoteCGRendererRecordedResources();
 
+    Ref<RemoteCGRendererRecordedResources> copy() const __attribute__((availability(swift, unavailable)));
+
     // The resources, for the print process (RemoteSnapshotPrintData): false where it can't have one, such as an image.
     bool exportForPrint(RemoteSnapshotPrintRecording&, DisplayListDataFonts&) const __attribute__((availability(swift, unavailable)));
     // The resources that the print process takes from that, with the fonts it made of the snapshot's.
@@ -172,6 +174,7 @@ public:
 #endif
     // The recorder's recording's resources, which it hands to its recording (takeRecordedResources()).
     Ref<RemoteCGRendererRecordedResources> takeRecordedResources() const __attribute__((availability(swift, unavailable)));
+    Ref<RemoteCGRendererRecordedResources> copyRecordedResources() const __attribute__((availability(swift, unavailable))) { return m_recordedResources->copy(); }
 
     RemoteRenderingBackend* backend() const __attribute__((availability(swift, unavailable))) { return m_backend.get(); }
     // The control factory of the receiver's control parts, and the reader of its video frames, made when first used.
@@ -231,8 +234,9 @@ private:
     const std::unique_ptr<DisplayListDataFonts> m_fonts;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
-// The recorder's recording's resources, for its recording.
+// The recorder's recording's resources, for its recording, and a copy of them, for a recording of what it recorded so far.
 RemoteCGRendererRecordedResources* WTF_NONNULL takeRecordedResources(const RemoteCGRendererResources&) SWIFT_RETURNS_RETAINED;
+RemoteCGRendererRecordedResources* WTF_NONNULL copyRecordedResources(const RemoteCGRendererResources&) SWIFT_RETURNS_RETAINED;
 
 // Lends the context's renderer to Swift for the draw, which replays a recording into it with the resources.
 void replayIntoContext(WebCore::GraphicsContextCG&, NOESCAPE const Function<void(WebCore::CGRendererCore&, RemoteCGRendererResources&)>&) __attribute__((availability(swift, unavailable)));
