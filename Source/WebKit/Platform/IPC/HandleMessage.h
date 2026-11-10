@@ -830,4 +830,69 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
         handleSwiftMessageWithLentStateInline<MessageType>(connection, decoder, lender, object, function, fallback...);
 }
 
+// Dispatch to the recorder of a Recordable Swift receiver's messages, whose Swift dispatch records the arguments as a value
+// and returns Invalid for a message the recorder finds invalid. Inlined unless its arguments are large, as above. Without a
+// connection, the message is one that another process recorded (forEachRecordedMessage()).
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftRecordedMessageInline(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    ASSERT(!connection || connection->isCurrentWorkQueue());
+    auto arguments = decoder.decode<typename MessageType::Arguments>();
+    if (!arguments) [[unlikely]]
+        return;
+    if (connection)
+        logMessage(*connection, MessageType::name(), object, *arguments);
+    auto result = std::apply([&](auto&&... args) {
+        return (object->*function)(std::forward<decltype(args)>(args)...);
+    }, WTF::move(*arguments));
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        decoder.markInvalid();
+}
+
+template<typename MessageType, typename T, typename U, typename MF>
+NEVER_INLINE void handleSwiftRecordedMessageOutOfLine(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    handleSwiftRecordedMessageInline<MessageType>(connection, decoder, object, function);
+}
+
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftRecordedMessage(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    if constexpr (dispatchesSwiftMessageWithLentStateOutOfLine<MessageType>)
+        handleSwiftRecordedMessageOutOfLine<MessageType>(connection, decoder, object, function);
+    else
+        handleSwiftRecordedMessageInline<MessageType>(connection, decoder, object, function);
+}
+
+// A recorded message, encoded as its sender encodes it, after the messages already encoded, each with its size first.
+template<typename... Arguments>
+void appendRecordedMessage(Vector<uint8_t>& messages, MessageName name, const Arguments&... arguments)
+{
+    Encoder encoder(name, 0);
+    (..., (encoder << arguments));
+    auto message = encoder.span();
+    uint32_t size = message.size();
+    messages.append(asByteSpan(size));
+    messages.append(message);
+}
+
+// Calls the function with a decoder of each message that appendRecordedMessage() encoded, in turn, while it returns true:
+// false if it returns false or a message can't be read.
+inline bool forEachRecordedMessage(std::span<const uint8_t> messages, NOESCAPE const Invocable<bool(Decoder&)> auto& function)
+{
+    while (!messages.empty()) {
+        uint32_t size;
+        if (messages.size() < sizeof(size))
+            return false;
+        memcpySpan(asMutableByteSpan(size), consumeSpan(messages, sizeof(size)));
+        if (messages.size() < size)
+            return false;
+        auto decoder = Decoder::create(consumeSpan(messages, size), { });
+        if (!decoder || !function(*decoder))
+            return false;
+    }
+    return true;
+}
+
 } // namespace IPC

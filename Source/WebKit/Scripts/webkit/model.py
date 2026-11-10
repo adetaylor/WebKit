@@ -61,6 +61,16 @@ WANTS_CONNECTION_ATTRIBUTE = 'WantsConnection'
 # On a message to a receiver whose state C++ lends: its Swift handler returns false to decline the message, which the
 # lender then handles in C++, once the state is no longer lent, with the same arguments.
 SWIFT_MAY_DECLINE_ATTRIBUTE = 'SwiftMayDecline'
+# On a Swift stream receiver whose state C++ lends: its messages also have a recorded form, values that a recorder, the
+# hand-written <Receiver>Recorder, keeps in place of handling them, and a replay of those values through the receiver's
+# handlers.
+RECORDABLE_ATTRIBUTE = 'Recordable'
+# On a parameter of a message to a 'Recordable' receiver whose type a recording can't keep: the type it records instead,
+# made from the argument, whose argument() gives the handler the argument back.
+RECORDED_AS_ATTRIBUTE_PREFIX = 'RecordedAs='
+# On a message to a 'Recordable' receiver that a recording leaves out: the recorder's dispatch calls the recorder's own
+# handler of it.
+NOT_RECORDED_ATTRIBUTE = 'NotRecorded'
 # On a Synchronous message to a stream receiver that takes Swift types, whose reply isn't stream-encodable: its Swift
 # handler is given the reply as a value, which it may send after it returns, as a C++ handler may call its completion
 # handler later, or drop to send the default reply.
@@ -121,6 +131,9 @@ class MessageReceiver(object):
     def has_swift_receiver_owner(self):
         return self.has_attribute(SWIFT_RECEIVER_OWNER_ATTRIBUTE)
 
+    def is_recordable(self):
+        return self.has_attribute(RECORDABLE_ATTRIBUTE)
+
     def takes_swift_types(self, message):
         """Whether the Swift receiver decodes this message's arguments, and encodes its reply, as Swift types."""
         if message.is_async_reply or not (self.is_swift_receiver() or self.is_swift_implementation()):
@@ -144,6 +157,7 @@ class MessageReceiver(object):
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
         self._enforce_lent_state_constraints()
+        self._enforce_recordable_constraints()
 
     def _enforce_swift_implementation_constraints(self):
         if not self.is_swift_implementation():
@@ -168,6 +182,32 @@ class MessageReceiver(object):
             for parameter in message.parameters:
                 if parameter.name in ('state', 'target'):
                     raise Exception("ERROR: Message %s has a parameter named '%s', which the generated dispatch of a receiver with 'SwiftReceiverStateLender=' uses itself" % (description, parameter.name))
+
+    def _enforce_recordable_constraints(self):
+        if not self.is_recordable():
+            for message in self.messages:
+                if message.has_attribute(NOT_RECORDED_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s.%s has '%s', which is for receivers with '%s'" % (self.name, message.name, NOT_RECORDED_ATTRIBUTE, RECORDABLE_ATTRIBUTE))
+                for parameter in message.parameters:
+                    if parameter.recorded_as_type():
+                        raise Exception("ERROR: Message %s.%s has '%s' on parameter '%s', which is for receivers with '%s'" % (self.name, message.name, RECORDED_AS_ATTRIBUTE_PREFIX, parameter.name, RECORDABLE_ATTRIBUTE))
+            return
+        if not self.swift_receiver_state_lender:
+            raise Exception("ERROR: Receiver %s has '%s', which is for Swift stream receivers with 'SwiftReceiverStateLender='" % (self.name, RECORDABLE_ATTRIBUTE))
+        # The recorder's dispatch asks for no shared preferences.
+        if self.receiver_enabled_by or any(message.enabled_by for message in self.messages):
+            raise Exception("ERROR: Receiver %s has '%s', which is not supported together with 'EnabledBy='" % (self.name, RECORDABLE_ATTRIBUTE))
+        for message in self.messages:
+            description = '%s.%s' % (self.name, message.name)
+            # Replay calls the handler of every message, which must handle it.
+            if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
+                raise Exception("ERROR: Message %s has '%s', which is not supported on a receiver with '%s'" % (description, SWIFT_MAY_DECLINE_ATTRIBUTE, RECORDABLE_ATTRIBUTE))
+            if message.reply_parameters is not None:
+                raise Exception("ERROR: Message %s has a reply, which is not supported on a receiver with '%s'" % (description, RECORDABLE_ATTRIBUTE))
+            if message.has_attribute(WANTS_CONNECTION_ATTRIBUTE):
+                raise Exception("ERROR: Message %s has '%s', which is not supported on a receiver with '%s'" % (description, WANTS_CONNECTION_ATTRIBUTE, RECORDABLE_ATTRIBUTE))
+            if message.validator:
+                raise Exception("ERROR: Message %s has 'Validator=%s', which is not supported on a receiver with '%s'" % (description, message.validator, RECORDABLE_ATTRIBUTE))
 
     def _enforce_swift_types_constraints_for_message(self, message):
         description = '%s.%s' % (self.name, message.name)
@@ -317,6 +357,13 @@ class Parameter(object):
 
     def has_attribute(self, attribute):
         return attribute in self.attributes
+
+    # The type that a recording of the message keeps for this argument ('RecordedAs='), or None.
+    def recorded_as_type(self):
+        for attribute in self.attributes:
+            if attribute.startswith(RECORDED_AS_ATTRIBUTE_PREFIX):
+                return attribute[len(RECORDED_AS_ATTRIBUTE_PREFIX):]
+        return None
 
 
 ipc_receiver = MessageReceiver(name="IPC", superclass=None, attributes=[BUILTIN_ATTRIBUTE], receiver_enabled_by=None, receiver_enabled_by_exception=False, receiver_enabled_by_conjunction=None, receiver_dispatched_from=None, receiver_dispatched_from_exception=None, receiver_dispatched_to=None, receiver_dispatched_to_exception=None, shared_preferences_needs_connection=False, swift_receiver=False, swift_receiver_build_enabled_by=None, receiver_name=None, messages=[
