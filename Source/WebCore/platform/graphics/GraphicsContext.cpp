@@ -626,7 +626,7 @@ FloatRect GraphicsContext::computeUnderlineBoundsForText(const FloatRect& rect, 
 }
 
 // computeLineBoundsAndAntialiasingModeForText() and computeRectsAndStrokeColorForLinesForText() of a context's CTM and
-// stroke color, which the CGRendererRectsForLinesForText() of a Swift receiver gives.
+// stroke color.
 static FloatRect lineBoundsAndAntialiasingModeForText(NOESCAPE const Invocable<AffineTransform()> auto& ctm, const FloatRect& rect, bool printing, Color& color)
 {
     FloatPoint origin = rect.location();
@@ -814,15 +814,3 @@ auto GraphicsContext::computeRectsAndStrokeColorForLinesForText(const FloatPoint
 
 } // namespace WebCore
 
-#if USE(CG)
-void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment> lineSegments, bool isPrinting, bool doubleLines, WebCore::StrokeStyle strokeStyle, Vector<CGRect, 4>& rects, WebCore::Color& color)
-{
-    auto result = WebCore::rectsAndStrokeColorForLinesForText([&] {
-        return ctm;
-    }, [&] {
-        return strokeColor;
-    }, origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
-    rects = WTF::move(result.rects);
-    color = WTF::move(result.strokeColor);
-}
-#endif

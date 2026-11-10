@@ -205,7 +205,7 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternImageBuffer, &RemoteGraphicsContext::setStrokePatternImageBuffer)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradient, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradient)
     HANDLE_CG_RENDERER_MESSAGE(DrawLinesForText, &RemoteImageBufferGraphicsContext::drawLinesForText)
-    HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteGraphicsContext::drawDotsForDocumentMarker)
+    HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteImageBufferGraphicsContext::drawDotsForDocumentMarker)
     HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform)
     HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteImageBufferGraphicsContext::fillRoundedRect)
@@ -318,6 +318,11 @@ void RemoteImageBufferGraphicsContext::fillRectWithRoundedHole(const FloatRect& 
 void RemoteImageBufferGraphicsContext::drawLinesForText(const FloatPoint& point, float thickness, const RemoteCGRendererLineSegments& lineSegments, bool printing, bool doubleLines, StrokeStyle strokeStyle)
 {
     RemoteGraphicsContext::drawLinesForText(point, thickness, lineSegments.span(), printing, doubleLines, strokeStyle);
+}
+
+void RemoteImageBufferGraphicsContext::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyleMode mode, const CGRendererColorValue& color)
+{
+    RemoteGraphicsContext::drawDotsForDocumentMarker(rect, { mode, CGRendererColorFromValue(color) });
 }
 
 void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs& glyphs, FloatPoint localAnchor, FontSmoothingMode smoothingMode)

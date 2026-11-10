@@ -128,8 +128,11 @@ import WebCore_Private.Core.AffineTransform
 import WebCore_Private.Core.CGRendererSPI
 public import WebCore_Private.Core.CGRendererSwiftBridge
 import WebCore_Private.Core.Color
+import WebCore_Private.Core.CornerRadii
 import WebCore_Private.Core.FloatPoint
 import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatRoundedRect
+import WebCore_Private.Core.FloatSegment
 import WebCore_Private.Core.FloatSize
 public import WebCore_Private.Core.GraphicsTypes
 import WebCore_Private.Core.ImageBuffer
@@ -177,6 +180,45 @@ private func cxxIntConversion(_ value: Float) -> Int32 {
         #endif
     }
     return Int32(value)
+}
+
+// truncateDoubleToInt32(), which converts as the processor does too.
+private func cxxIntConversion(_ value: Double) -> Int32 {
+    if value.isNaN || value >= 2_147_483_648 || value <= -2_147_483_649 {
+        #if arch(arm64)
+        return value.isNaN ? 0 : (value < 0 ? .min : .max)
+        #else
+        return .min
+        #endif
+    }
+    return Int32(value)
+}
+
+// std::midpoint() of two floats, which halves them separately where their sum could overflow.
+private func cxxMidpoint(_ a: Float, _ b: Float) -> Float {
+    let low = Float.leastNormalMagnitude * 2
+    let high = Float.greatestFiniteMagnitude / 2
+    if abs(a) <= high && abs(b) <= high {
+        return (a + b) / 2
+    }
+    if abs(a) < low {
+        return a + b / 2
+    }
+    if abs(b) < low {
+        return a / 2 + b
+    }
+    return a / 2 + b / 2
+}
+
+// C++'s double to unsigned conversion where it's undefined, as arm64 does it: saturated, and 0 for NaN.
+private func cxxUnsignedConversion(_ value: Double) -> UInt32 {
+    if value.isNaN || value <= -1 {
+        return 0
+    }
+    if value >= 4_294_967_296 {
+        return .max
+    }
+    return UInt32(value)
 }
 
 // WebCore's own CGColor for the color, as the C++ used: CG strokes ellipses more slowly with one CGColorCreateSRGB() makes.
@@ -346,6 +388,17 @@ private struct CGRendererTransform {
 
     private init(_ a: Double, _ b: Double, _ c: Double, _ d: Double, _ e: Double, _ f: Double) {
         (self.a, self.b, self.c, self.d, self.e, self.f) = (a, b, c, d, e, f)
+    }
+
+    init(_ t: CGAffineTransform) {
+        (a, b, c, d, e, f) = (Double(t.a), Double(t.b), Double(t.c), Double(t.d), Double(t.tx), Double(t.ty))
+    }
+
+    // AffineTransform::mapPoint() of a FloatPoint.
+    func mapPoint(_ x: Float, _ y: Float) -> (x: Float, y: Float) {
+        let px = Double(x)
+        let py = Double(y)
+        return (Float(a * px + c * py + e), Float(b * px + d * py + f))
     }
 
     var isIdentityOrTranslation: Bool { a == 1 && b == 0 && c == 0 && d == 1 }
@@ -818,6 +871,274 @@ private struct CGRendererLineStroke {
     return CGRect(
         x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
         width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+}
+
+// MARK: Rounded rects
+
+private func safeFPDivision(_ u: Float, _ v: Float) -> Float {
+    if v < 1 && u > v * Float.greatestFiniteMagnitude {
+        return Float.greatestFiniteMagnitude
+    }
+    if v > 1 && u < v * Float.leastNormalMagnitude {
+        return 0
+    }
+    return u / v
+}
+
+private func areEssentiallyEqual(_ u: Float, _ v: Float) -> Bool {
+    if u == v {
+        return true
+    }
+    let delta = abs(u - v)
+    return safeFPDivision(delta, abs(u)) <= Float.ulpOfOne && safeFPDivision(delta, abs(v)) <= Float.ulpOfOne
+}
+
+// FloatSize's members, for a rounded rect's radii.
+extension WebCore.ShadowBlurSize {
+    fileprivate var isZero: Bool { abs(width) < Float.ulpOfOne && abs(height) < Float.ulpOfOne }
+
+    fileprivate func isEssentiallyEqual(to other: WebCore.ShadowBlurSize) -> Bool {
+        areEssentiallyEqual(width, other.width) && areEssentiallyEqual(height, other.height)
+    }
+
+    fileprivate var cgSize: CGSize { CGSize(width: CGFloat(width), height: CGFloat(height)) }
+
+    // CornerRadii::scale()'s scale of a corner, which goes altogether if either radius goes.
+    fileprivate func scaled(by factor: Float) -> WebCore.ShadowBlurSize {
+        let size = WebCore.ShadowBlurSize(width: width * factor, height: height * factor)
+        return size.width == 0 || size.height == 0 ? WebCore.ShadowBlurSize() : size
+    }
+}
+
+// FloatRoundedRect's members, of the plain values CGRendererRoundedRectOf() gives.
+extension CGRendererRoundedRect {
+    fileprivate var cgRect: CGRect {
+        CGRect(x: CGFloat(rect.x), y: CGFloat(rect.y), width: CGFloat(rect.width), height: CGFloat(rect.height))
+    }
+
+    fileprivate var maxX: Float { rect.x + rect.width }
+    fileprivate var maxY: Float { rect.y + rect.height }
+    fileprivate var isEmpty: Bool { rect.width <= 0 || rect.height <= 0 }
+    fileprivate var hasNonZeroRadii: Bool {
+        !(radii.topLeft.isZero && radii.topRight.isZero && radii.bottomLeft.isZero && radii.bottomRight.isZero)
+    }
+
+    fileprivate var hasEvenCorners: Bool {
+        radii.topLeft.isEssentiallyEqual(to: radii.topRight) && radii.topLeft.isEssentiallyEqual(to: radii.bottomLeft)
+            && radii.topLeft.isEssentiallyEqual(to: radii.bottomRight)
+    }
+
+    fileprivate var isRenderable: Bool {
+        let r = radii
+        return r.topLeft.width >= 0 && r.topLeft.height >= 0 && r.bottomLeft.width >= 0 && r.bottomLeft.height >= 0
+            && r.topRight.width >= 0 && r.topRight.height >= 0 && r.bottomRight.width >= 0 && r.bottomRight.height >= 0
+            && r.topLeft.width + r.topRight.width <= rect.width && r.bottomLeft.width + r.bottomRight.width <= rect.width
+            && r.topLeft.height + r.bottomLeft.height <= rect.height && r.topRight.height + r.bottomRight.height <= rect.height
+    }
+
+    // FloatRoundedRect::adjustRadii(): the radii scaled down to fit, or gone if they add up to nothing.
+    fileprivate func withAdjustedRadii() -> CGRendererRoundedRect {
+        let r = radii
+        let maxRadiusWidth = cxxMax(r.topLeft.width + r.topRight.width, r.bottomLeft.width + r.bottomRight.width)
+        let maxRadiusHeight = cxxMax(r.topLeft.height + r.bottomLeft.height, r.topRight.height + r.bottomRight.height)
+        var factor: Float = 0
+        if maxRadiusWidth > 0 && maxRadiusHeight > 0 {
+            let widthRatio = rect.width / maxRadiusWidth
+            let heightRatio = rect.height / maxRadiusHeight
+            factor = widthRatio < heightRatio ? widthRatio : heightRatio
+        }
+        if factor == 1 {
+            return self
+        }
+        var adjusted = self
+        adjusted.radii = WebCore.ShadowBlurCornerRadii(
+            topLeft: r.topLeft.scaled(by: factor),
+            topRight: r.topRight.scaled(by: factor),
+            bottomLeft: r.bottomLeft.scaled(by: factor),
+            bottomRight: r.bottomRight.scaled(by: factor)
+        )
+        return adjusted
+    }
+
+    // Whether GraphicsContextCG::fillRoundedRectImpl() fills it as the ellipse its radii make.
+    fileprivate var isEllipse: Bool {
+        let r = radii
+        let equalWidths = r.topLeft.width == r.topRight.width && r.topRight.width == r.bottomLeft.width && r.bottomLeft.width == r.bottomRight.width
+        let equalHeights = r.topLeft.height == r.bottomLeft.height && r.bottomLeft.height == r.topRight.height && r.topRight.height == r.bottomRight.height
+        return equalWidths && equalHeights && r.topLeft.width * 2 == rect.width && r.topLeft.height * 2 == rect.height
+    }
+}
+
+// The segment that Path::addRoundedRect() adds to an empty Path: none for an empty rect, and for radii that don't fit, the
+// rounded rect with them adjusted until they do, or its rect if that leaves none.
+private enum CGRendererRoundedRectSegment {
+    case none
+    case rect(CGRect)
+    case roundedRect(CGRendererRoundedRect)
+
+    init(_ roundedRect: CGRendererRoundedRect) {
+        if roundedRect.isEmpty {
+            self = .none
+        } else if roundedRect.isRenderable {
+            self = .roundedRect(roundedRect)
+        } else {
+            let adjusted = roundedRect.withAdjustedRadii()
+            self = adjusted.hasNonZeroRadii ? .roundedRect(adjusted) : .rect(adjusted.cgRect)
+        }
+    }
+
+    // PathCG's addToCGPath() of the segment.
+    func add(to path: CGMutablePath) {
+        switch self {
+        case .none:
+            break
+        case .rect(let rect):
+            CGRendererAddRect(path, rect)
+        case .roundedRect(let roundedRect):
+            addRoundedRect(roundedRect, to: path)
+        }
+    }
+
+    // PathCG's addToCGContextPath() of the segment: a rounded rect goes in as a CGPath in device space, as CGContextAddPath()
+    // mishandles the context path's earlier move-tos otherwise (rdar://118395262).
+    func add(to context: CGContext) {
+        switch self {
+        case .none:
+            break
+        case .rect(let rect):
+            context.addRect(rect)
+        case .roundedRect(let roundedRect):
+            let path = CGMutablePath()
+            addRoundedRect(roundedRect, to: path)
+            let ctm = context.ctm
+            let transformedPath = CGMutablePath()
+            transformedPath.addPath(path, transform: ctm)
+            CGContextSetCTM(context, .identity)
+            context.addPath(transformedPath)
+            CGContextSetCTM(context, ctm)
+        }
+    }
+
+    // GraphicsContextCG::clipPath() of the Path (CGRendererClipToPath()): an empty one clips everything out.
+    func clip(_ context: CGContext, _ rule: CGPathFillRule) {
+        if case .none = self {
+            context.clip(to: .zero)
+            return
+        }
+        context.beginPath()
+        add(to: context)
+        context.clip(using: rule)
+    }
+
+    // GraphicsContextCG::clipOut(const Path&): the clip's bounds, even-odd with the Path.
+    func clipOut(_ context: CGContext) {
+        context.beginPath()
+        context.addRect(context.boundingBoxOfClipPath)
+        add(to: context)
+        context.clip(using: .evenOdd)
+    }
+}
+
+// PathCG's addToCGPath() of a PathRoundedRect that prefers CG's own rounded rects, with radii that fit.
+private func addRoundedRect(_ roundedRect: CGRendererRoundedRect, to path: CGMutablePath) {
+    let radii = roundedRect.radii
+    let rect = roundedRect.cgRect
+    if roundedRect.hasEvenCorners {
+        // Radii that CG can render, as addEvenCornersRoundedRect() makes them.
+        var radiusWidth = CGFloat(radii.topLeft.width)
+        var radiusHeight = CGFloat(radii.topLeft.height)
+        if 2 * radiusWidth > rect.width {
+            radiusWidth = rect.width / 2 - CGFloat.ulpOfOne
+        }
+        if 2 * radiusHeight > rect.height {
+            radiusHeight = rect.height / 2 - CGFloat.ulpOfOne
+        }
+        CGRendererAddRoundedRect(path, rect, radiusWidth, radiusHeight)
+        return
+    }
+    #if HAVE_CG_PATH_UNEVEN_CORNERS_ROUNDEDRECT
+    // addUnevenCornersRoundedRect(): the radii clamped after their conversion to CGFloat.
+    let topLeft = radii.topLeft.cgSize
+    var topRight = radii.topRight.cgSize
+    var bottomLeft = radii.bottomLeft.cgSize
+    var bottomRight = radii.bottomRight.cgSize
+    topRight.width = cxxMin(topRight.width, rect.width - topLeft.width)
+    bottomRight.width = cxxMin(bottomRight.width, rect.width - bottomLeft.width)
+    bottomLeft.height = cxxMin(bottomLeft.height, rect.height - topLeft.height)
+    bottomRight.height = cxxMin(bottomRight.height, rect.height - topRight.height)
+    CGRendererAddUnevenCornersRoundedRect(path, rect, bottomLeft, bottomRight, topRight, topLeft)
+    #else
+    addRoundedRectBeziers(roundedRect, to: path)
+    #endif
+}
+
+#if !HAVE_CG_PATH_UNEVEN_CORNERS_ROUNDEDRECT
+// PathImpl::beziersForRoundedRect(), added as PathCG adds their segments.
+private func addRoundedRectBeziers(_ roundedRect: CGRendererRoundedRect, to path: CGMutablePath) {
+    // PathImpl::circleControlPoint(): 1 - kappa, where kappa = 4 * (sqrt(2) - 1) / 3.
+    let control: Float = 0.447715
+    let r = roundedRect.radii
+    let x = roundedRect.rect.x
+    let y = roundedRect.rect.y
+    let maxX = roundedRect.maxX
+    let maxY = roundedRect.maxY
+    func point(_ px: Float, _ py: Float) -> CGPoint {
+        CGPoint(x: CGFloat(px), y: CGFloat(py))
+    }
+    path.move(to: point(x + r.topLeft.width, y))
+    path.addLine(to: point(maxX - r.topRight.width, y))
+    if r.topRight.width > 0 || r.topRight.height > 0 {
+        path.addCurve(
+            to: point(maxX, y + r.topRight.height),
+            control1: point(maxX - r.topRight.width * control, y),
+            control2: point(maxX, y + r.topRight.height * control)
+        )
+    }
+    path.addLine(to: point(maxX, maxY - r.bottomRight.height))
+    if r.bottomRight.width > 0 || r.bottomRight.height > 0 {
+        path.addCurve(
+            to: point(maxX - r.bottomRight.width, maxY),
+            control1: point(maxX, maxY - r.bottomRight.height * control),
+            control2: point(maxX - r.bottomRight.width * control, maxY)
+        )
+    }
+    path.addLine(to: point(x + r.bottomLeft.width, maxY))
+    if r.bottomLeft.width > 0 || r.bottomLeft.height > 0 {
+        path.addCurve(
+            to: point(x, maxY - r.bottomLeft.height),
+            control1: point(x + r.bottomLeft.width * control, maxY),
+            control2: point(x, maxY - r.bottomLeft.height * control)
+        )
+    }
+    path.addLine(to: point(x, y + r.topLeft.height))
+    if r.topLeft.width > 0 || r.topLeft.height > 0 {
+        path.addCurve(
+            to: point(x + r.topLeft.width, y),
+            control1: point(x, y + r.topLeft.height * control),
+            control2: point(x + r.topLeft.width * control, y)
+        )
+    }
+    path.closeSubpath()
+}
+#endif
+
+// The CGPath of a Path of a rounded rect (Path::platformPath() after addRoundedRect()), and of a rect with a rounded hole,
+// which GraphicsContextCG::fillRectWithRoundedHole() fills even-odd: the hole goes in as a rect if it has no radii.
+private func roundedRectPath(_ roundedRect: CGRendererRoundedRect) -> CGMutablePath {
+    let path = CGMutablePath()
+    CGRendererRoundedRectSegment(roundedRect).add(to: path)
+    return path
+}
+
+private func rectWithRoundedHolePath(_ rect: CGRect, _ hole: CGRendererRoundedRect) -> CGMutablePath {
+    let path = CGMutablePath()
+    CGRendererAddRect(path, rect)
+    if hole.hasNonZeroRadii {
+        CGRendererRoundedRectSegment(hole).add(to: path)
+    } else {
+        CGRendererAddRect(path, hole.cgRect)
+    }
+    return path
 }
 
 private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
@@ -1408,6 +1729,12 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         hasDrawn = true
         state.shadowsIgnoreTransforms = shadowsIgnoreTransforms
         levelChanges |= CxxStateChange.shadowsIgnoreTransforms
+    }
+
+    // Whether GraphicsContextCG::fillRoundedRectImpl() fills a rounded rect as the ellipse its radii make.
+    @_expose(Cxx)
+    static func roundedRectIsEllipse(_ rect: borrowing WebCore.FloatRoundedRect) -> Bool {
+        CGRendererRoundedRectOf(copy rect).isEllipse
     }
 
     @_expose(Cxx)
@@ -2261,6 +2588,59 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         hasDrawn = true
         context.strokeEllipse(in: rect)
         return true
+    }
+
+    // GraphicsContextCG::drawDotsForDocumentMarker(): as many whole dots as fit, the rect's height across and spaced as the
+    // platform spaces them, centered in the rect; with AutocorrectionEnhancements, an autocorrection replacement's pill. The
+    // color is cachedCGColor()'s of the marker's.
+    @_expose(Cxx)
+    mutating func drawDotsForDocumentMarker(_ rect: CGRect, _ mode: WebCore.DocumentMarkerLineStyleMode, _ color: CGColor?) {
+        hasDrawn = true
+        let x = Float(rect.origin.x)
+        let y = Float(rect.origin.y)
+        let width = Float(rect.size.width)
+        let height = Float(rect.size.height)
+        context.saveGState()
+        defer {
+            context.restoreGState()
+        }
+        // CG ignores a null color, which an invalid one has.
+        if let color {
+            context.setFillColor(color)
+        }
+        #if HAVE_AUTOCORRECTION_ENHANCEMENTS
+        if mode == .AutocorrectionReplacement {
+            CGContextSetCompositeOperation(context, .sover)
+            let radius = Double(height) / 2
+            let minX = Double(x)
+            let maxX = Double(x + width)
+            let minY = Double(y)
+            let maxY = Double(y + height)
+            let midY = Double(cxxMidpoint(y, y + height))
+            context.move(to: CGPoint(x: minX + radius, y: maxY))
+            context.addArc(center: CGPoint(x: minX + radius, y: midY), radius: radius, startAngle: Double.pi / 2, endAngle: 3 * Double.pi / 2, clockwise: false)
+            context.addLine(to: CGPoint(x: maxX - radius, y: minY))
+            context.addArc(center: CGPoint(x: maxX - radius, y: midY), radius: radius, startAngle: 3 * Double.pi / 2, endAngle: Double.pi / 2, clockwise: false)
+            context.closePath()
+            context.fillPath()
+            return
+        }
+        #endif
+        // The dots' diameter is the height, and a dot is to a gap as 13.247 is to 9.457.
+        let dotDiameter = height
+        let dotGap = Double(dotDiameter) * 9.457 / 13.247
+        let numberOfDots = (Double(width) + dotGap) / (Double(dotDiameter) + dotGap)
+        let numberOfWholeDots = cxxUnsignedConversion(numberOfDots)
+        let numberOfWholeGaps = numberOfWholeDots &- 1
+        let offset = (Double(width) - (Double(dotDiameter * Float(numberOfWholeDots)) + dotGap * Double(numberOfWholeGaps))) / 2
+        var index: UInt32 = 0
+        while index < numberOfWholeDots {
+            let dotX = x + Float(offset + Double(index) * (Double(dotDiameter) + dotGap))
+            context.addEllipse(in: CGRect(x: CGFloat(dotX), y: CGFloat(y), width: CGFloat(dotDiameter), height: CGFloat(dotDiameter)))
+            index += 1
+        }
+        CGContextSetCompositeOperation(context, .sover)
+        context.fillPath()
     }
 
     // The rects of drawLinesForText(), in the color GraphicsContext computed for them.
@@ -3208,19 +3588,6 @@ extension CGRendererCore {
         }
     }
 
-    // GraphicsContextCG::getCTM() and the stroke color of the state, for the receiver's C++ that works out text lines, and the
-    // rects of the lines, filled in their color (GraphicsContextCG::drawLinesForText()).
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveCTM(includingDeviceScale: Bool) -> CGAffineTransform {
-        hasDrawn = true
-        return ctm(includingDeviceScale)
-    }
-
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receiveStrokeColor() -> CGRendererColorValue {
-        colorValue(state.stroke.packedColor, state.stroke.platformColorSlot, state.stroke.isColorVisible)
-    }
-
     // The state a run of glyphs draws in, for the receiver's C++ that prepares it (GraphicsContextCG::drawGlyphsImmediate()).
     @_expose(!Cxx)
     @_spi(WebKitGPU) public func receiveGlyphContext() -> CGRendererGlyphContext {
@@ -3258,21 +3625,156 @@ extension CGRendererCore {
         return value
     }
 
+    // GraphicsContextCG::drawLinesForText(): GraphicsContext::computeRectsAndStrokeColorForLinesForText()'s rects for the
+    // segments, filled in the stroke color. Unless printing, the lines are a device pixel high at least and snapped to device
+    // pixels, away from the text, and the color's alpha drops on a context that scales them down; dotted and dashed lines are
+    // dashes the line's height and twice it.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRects(_ rects: CGRendererRects, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
+    @_spi(WebKitGPU) public mutating func receiveDrawLinesForText(
+        _ segments: Span<WebCore.FloatSegment>,
+        _ x: Float,
+        _ y: Float,
+        _ thickness: Float,
+        _ printing: Bool,
+        _ doubleLines: Bool,
+        _ strokeStyle: WebCore.StrokeStyle
+    ) {
+        hasDrawn = true
+        guard !segments.isEmpty else {
+            return
+        }
+        var color = colorValue(state.stroke.packedColor, state.stroke.platformColorSlot, state.stroke.isColorVisible)
+        var originX = x
+        var originY = y
+        let height = cxxMax(thickness, 0.5)
+        if !printing {
+            let t = ctm(true)
+            // The scale in x, which is taken to be the scale in y too.
+            let scale = Float(t.b != 0 ? hypot(t.a, t.b) : t.a)
+            if scale < 1 {
+                // A line is a device pixel high at least, which would overwhelm text at small scales.
+                let minimumUnderlineAlpha: Float = 0.4
+                color = colorValueWithAlphaMultiplied(color, by: scale > minimumUnderlineAlpha ? scale : minimumUnderlineAlpha)
+            }
+            let transform = CGRendererTransform(t)
+            let device = transform.mapPoint(x, y)
+            if let inverse = transform.inverse() {
+                let snappedDeviceY = t.d < 0 ? device.y.rounded(.down) : device.y.rounded(.up)
+                (originX, originY) = inverse.mapPoint(device.x.rounded(.toNearestOrAwayFromZero), snappedDeviceY)
+            }
+        }
+        let bounds = CGRendererRect(x: originX, y: originY, width: segments[segments.count - 1].end, height: height)
+        guard !bounds.isEmpty else {
+            return
+        }
+
+        var dashWidth: Float = 0
+        switch strokeStyle {
+        case .DottedStroke:
+            dashWidth = bounds.height
+        case .DashedStroke:
+            dashWidth = 2 * bounds.height
+        default:
+            break
+        }
+
+        rectScratch.removeAll(keepingCapacity: true)
+        for index in segments.indices {
+            let segment = segments[index]
+            let left = segment.begin
+            let width = segment.end - segment.begin
+            guard dashWidth != 0 else {
+                rectScratch.append(CGRendererRect(x: bounds.x + left, y: bounds.y, width: width, height: bounds.height).cgRect)
+                continue
+            }
+            let doubleWidth = 2 * dashWidth
+            let quotient = cxxIntConversion(Double(left / doubleWidth))
+            let startOffset = left - Float(quotient) * doubleWidth
+            let effectiveLeft = left + startOffset
+            let startParticle = cxxIntConversion(Double((effectiveLeft / doubleWidth).rounded(.down)))
+            let endParticle = cxxIntConversion(Double(((left + width) / doubleWidth).rounded(.up)))
+            var particle = startParticle
+            while particle < endParticle {
+                var actualDashWidth = dashWidth
+                var dashStart = bounds.x + Float(particle) * doubleWidth
+                if particle == startParticle && startOffset > 0 && startOffset < dashWidth {
+                    actualDashWidth -= startOffset
+                    dashStart += startOffset
+                }
+                if particle == endParticle &- 1 {
+                    let remainingWidth = left + width - Float(particle) * doubleWidth
+                    if remainingWidth < dashWidth {
+                        actualDashWidth = remainingWidth
+                    }
+                }
+                rectScratch.append(CGRendererRect(x: dashStart, y: bounds.y, width: actualDashWidth, height: bounds.height).cgRect)
+                particle += 1
+            }
+        }
+        if doubleLines {
+            // The space between double underlines is the height of the underline.
+            let secondY = bounds.y + 2 * bounds.height
+            for index in segments.indices {
+                let segment = segments[index]
+                rectScratch.append(CGRendererRect(x: bounds.x + segment.begin, y: secondY, width: segment.end - segment.begin, height: bounds.height).cgRect)
+            }
+        }
+
         let changesFillColor = !fillColorEquals(color)
-        if let cgColor = receivedCGColor(color, cgColor) {
-            fillRectsInPlatformColor(rects, cgColor, changesFillColor)
-        } else {
-            fillRectsInPackedColor(rects, color.packedColor, changesFillColor)
+        let fillColor = changesFillColor ? fillCGColor(color, nil) : nil
+        if let fillColor {
+            context.setFillColor(fillColor)
+        }
+        context.fill(rectScratch)
+        if fillColor != nil {
+            context.setFillColor(platformColor(state.fill))
         }
     }
 
-    // A draw that the receiver's C++ makes into the context (GraphicsContextCG::drawDotsForDocumentMarker()).
+    // Color::colorWithAlphaMultipliedBy() of a color value: a packed color's alpha byte, or a color's resolved alpha, clamped.
+    private func colorValueWithAlphaMultiplied(_ color: CGRendererColorValue, by amount: Float) -> CGRendererColorValue {
+        var result = color
+        if color.isPacked {
+            let alpha = amount * (Float(color.packedColor & 0xFF) / 255)
+            let alphaByte = UInt32(min(max((alpha * 255).rounded(.toNearestOrAwayFromZero), 0), 255))
+            result.packedColor = (color.packedColor & 0xFFFF_FF00) | alphaByte
+            result.isVisible = alphaByte != 0
+            return result
+        }
+        let resolvedAlpha = color.data.alpha.isNaN ? 0 : color.data.alpha
+        result.data.alpha = min(max(amount * resolvedAlpha, 0), 1)
+        result.isVisible = result.data.alpha > 0
+        return result
+    }
+
+    // GraphicsContext::clipRoundedRect(): the Path of the rounded rect, as GraphicsContextCG clips to a Path.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDraw(_ draw: (CGContext) -> Void) {
+    @_spi(WebKitGPU) public mutating func receiveClipToRoundedRect(_ rect: borrowing WebCore.FloatRoundedRect) {
         hasDrawn = true
-        draw(context)
+        CGRendererRoundedRectSegment(CGRendererRoundedRectOf(copy rect)).clip(context, .winding)
+    }
+
+    // GraphicsContext::clipOutRoundedRect(): one without radii as a rect, and one with them as its Path.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipOutToRoundedRect(_ rect: borrowing WebCore.FloatRoundedRect) {
+        let roundedRect = CGRendererRoundedRectOf(copy rect)
+        guard roundedRect.hasNonZeroRadii else {
+            clipOut(roundedRect.cgRect)
+            return
+        }
+        hasDrawn = true
+        CGRendererRoundedRectSegment(roundedRect).clipOut(context)
+    }
+
+    // A document marker in its color: the CGColor that cachedCGColor() makes of it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawDotsForDocumentMarker(
+        _ rect: CGRect,
+        _ mode: WebCore.DocumentMarkerLineStyleMode,
+        _ color: CGRendererColorValue
+    ) {
+        let cgColor = color.isPacked ? colorCache.color(color.packedColor) : CGRendererCopyCachedCGColorForData(color.data)
+        drawDotsForDocumentMarker(rect, mode, cgColor)
     }
 
     // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.
@@ -3346,7 +3848,8 @@ extension CGRendererCore {
         _ cgColor: CGColor?,
         _ blendMode: WebCore.BlendMode
     ) -> Bool {
-        guard rect.hasNonZeroRadii() else {
+        let roundedRect = CGRendererRoundedRectOf(copy rect)
+        guard roundedRect.hasNonZeroRadii else {
             return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
         }
         hasDrawn = true
@@ -3375,19 +3878,18 @@ extension CGRendererCore {
         if drawsShadowBlur, let shadow = state.dropShadow {
             context.saveGState()
             CGContextSetStyle(context, nil)
-            let radii = CGRendererShadowBlurRoundedRectOf(rect).radii
-            drawRectShadowBlur(bounds, radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            drawRectShadowBlur(bounds, roundedRect.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
         }
-        let isEllipse = CGRendererRoundedRectIsEllipse(rect)
         if state.fill.hasGradient {
             // fillPath() of the rounded rect's path, in its clip.
             let bounds = CGRendererRoundedRectBounds(rect)
-            let rounded = copy rect
-            _ = receiveFillWithGradient({ bounds }) { context, rule in CGRendererClipToRoundedRectPath(context, rounded, rule) }
-        } else if !state.fill.hasPattern && isEllipse {
+            _ = receiveFillWithGradient({ bounds }) { context, rule in
+                CGRendererRoundedRectSegment(roundedRect).clip(context, rule == .EvenOdd ? .evenOdd : .winding)
+            }
+        } else if !state.fill.hasPattern && roundedRect.isEllipse {
             context.fillEllipse(in: bounds)
         } else {
-            let path = CGRendererCopyRoundedRectPath(rect)
+            let path = roundedRectPath(roundedRect)
             if !path.isEmpty {
                 fillPath(path)
             }
@@ -3425,15 +3927,15 @@ extension CGRendererCore {
         if changesFillColor && fillColor == nil {
             return false
         }
-        let path = CGRendererCopyRectWithRoundedHolePath(rect, hole)
+        let roundedHole = CGRendererRoundedRectOf(copy hole)
+        let path = rectWithRoundedHolePath(rect, roundedHole)
         if let fillColor {
             context.setFillColor(fillColor)
         }
         if drawsShadowBlur, let shadow = state.dropShadow {
             context.saveGState()
             CGContextSetStyle(context, nil)
-            let shadowedHole = CGRendererShadowBlurRoundedRectOf(hole)
-            drawInsetShadowBlur(rect, shadowedHole.rect, shadowedHole.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            drawInsetShadowBlur(rect, roundedHole.rect, roundedHole.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
         }
         CGRendererDrawPath(context, .eoFill, path)
         if drawsShadowBlur {

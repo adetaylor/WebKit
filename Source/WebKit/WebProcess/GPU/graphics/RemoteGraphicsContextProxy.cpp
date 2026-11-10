@@ -523,7 +523,7 @@ void RemoteGraphicsContextProxy::drawDotsForDocumentMarker(const FloatRect& rect
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE(DrawDotsForDocumentMarker, rect, style);
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawDotsForDocumentMarker, (rect, style), (rect, style.mode, rendererColorValue(style.color)));
 }
 
 void RemoteGraphicsContextProxy::drawMeshGradient(MeshGradient& gradient, const FloatRect& destination)
