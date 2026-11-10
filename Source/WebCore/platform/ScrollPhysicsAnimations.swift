@@ -32,9 +32,13 @@
 // animation of the same kind in the same object. The controller's animation generation then differs
 // from the one it passed to serviceAnimation(), and the animation returns without touching its state.
 
+#if os(macOS)
 internal import AppKit
 internal import pal.spi.mac.NSScrollViewSPI
 internal import pal.spi.mac.NSScrollingMomentumCalculatorSPI
+#else
+internal import Foundation
+#endif
 internal import WebCore_Private.Core.KeyboardScroll
 internal import WebCore_Private.Core.ScrollExtents
 internal import WebCore_Private.Core.TimingFunction
@@ -802,7 +806,8 @@ final class MomentumScrollAnimation: ScrollPhysicsAnimationBase {
 }
 
 // ScrollingMomentumCalculatorMac: AppKit's _NSScrollingMomentumCalculator, or, with platform
-// prediction turned off for testing, a fixed multiple of the initial wheel delta.
+// prediction turned off for testing, a fixed multiple of the initial wheel delta. Without AppKit the
+// destination is that multiple, reached at once.
 struct MomentumScrollCalculator {
     private let initialDelta: ScrollSize
     private let initialVelocity: ScrollSize
@@ -811,7 +816,9 @@ struct MomentumScrollCalculator {
     private let scrollExtents: ScrollPhysicsExtents
 
     private var retargetedScrollOffset: ScrollPoint?
+#if os(macOS)
     private var platformMomentumCalculator: _NSScrollingMomentumCalculator?
+#endif
     private var requiresMomentumScrollingValue: Bool?
 
     init(_ scrollExtents: ScrollPhysicsExtents, _ initialOffset: ScrollPoint, _ initialDelta: ScrollSize, _ initialVelocity: ScrollSize) {
@@ -841,7 +848,11 @@ struct MomentumScrollCalculator {
             return destinationScrollOffset
         }
 
+#if os(macOS)
         return ScrollPoint(ensurePlatformMomentumCalculator()?.position(afterDuration: elapsedTime) ?? .zero)
+#else
+        return destinationScrollOffset
+#endif
     }
 
     mutating func animationDuration() -> Double {
@@ -849,23 +860,11 @@ struct MomentumScrollCalculator {
             return 0
         }
 
+#if os(macOS)
         return ensurePlatformMomentumCalculator()?.durationUntilStop ?? 0
-    }
-
-    private mutating func predictedDestinationOffset() -> ScrollPoint {
-        _ = ensurePlatformMomentumCalculator()
-
-        if !WebCore.ScrollPhysicsClient.platformMomentumScrollingPredictionEnabled() {
-            let nonPlatformPredictedOffset = deltaProjectedDestinationOffset()
-            // We need to make sure the _NSScrollingMomentumCalculator has the same idea of what offset we're shooting for.
-            if nonPlatformPredictedOffset != initialDestinationOffset {
-                setMomentumCalculatorDestinationOffset(nonPlatformPredictedOffset)
-            }
-
-            return nonPlatformPredictedOffset
-        }
-
-        return initialDestinationOffset
+#else
+        return 0
+#endif
     }
 
     // ScrollingMomentumCalculator::predictedDestinationOffset().
@@ -891,11 +890,36 @@ struct MomentumScrollCalculator {
         return ScrollPoint(x: initialOffsetX, y: initialOffsetY)
     }
 
+#if !os(macOS)
+    private func predictedDestinationOffset() -> ScrollPoint {
+        deltaProjectedDestinationOffset()
+    }
+
+    private func setMomentumCalculatorDestinationOffset(_ scrollOffset: ScrollPoint) {
+    }
+#else
+    private mutating func predictedDestinationOffset() -> ScrollPoint {
+        _ = ensurePlatformMomentumCalculator()
+
+        if !WebCore.ScrollPhysicsClient.platformMomentumScrollingPredictionEnabled() {
+            let nonPlatformPredictedOffset = deltaProjectedDestinationOffset()
+            // We need to make sure the _NSScrollingMomentumCalculator has the same idea of what offset we're shooting for.
+            if nonPlatformPredictedOffset != initialDestinationOffset {
+                setMomentumCalculatorDestinationOffset(nonPlatformPredictedOffset)
+            }
+
+            return nonPlatformPredictedOffset
+        }
+
+        return initialDestinationOffset
+    }
+
     private mutating func setMomentumCalculatorDestinationOffset(_ scrollOffset: ScrollPoint) {
         let calculator = ensurePlatformMomentumCalculator()
         calculator?.destinationOrigin = NSPoint(x: CGFloat(scrollOffset.x), y: CGFloat(scrollOffset.y))
         calculator?.calculateToReachDestination()
     }
+#endif
 
     // Computed the first time it is needed, after any retargeting.
     private mutating func requiresMomentumScrolling() -> Bool {
@@ -907,6 +931,7 @@ struct MomentumScrollCalculator {
         return value
     }
 
+#if os(macOS)
     // Making the platform calculator also replaces initialDestinationOffset with its destination.
     private mutating func ensurePlatformMomentumCalculator() -> _NSScrollingMomentumCalculator? {
         if let platformMomentumCalculator {
@@ -933,14 +958,17 @@ struct MomentumScrollCalculator {
         initialDestinationOffset = ScrollPoint(platformMomentumCalculator?.destinationOrigin ?? .zero)
         return platformMomentumCalculator
     }
+#endif
 }
 
+#if os(macOS)
 extension ScrollPoint {
     // FloatPoint(const CGPoint&).
     init(_ point: NSPoint) {
         self.init(x: Float(point.x), y: Float(point.y))
     }
 }
+#endif
 
 // FloatPoint(IntPoint(position).constrainedBetween(IntPoint(), IntPoint(extents.maximumScrollOffset))), both coordinates
 // at once: truncation toward zero, at most the truncated contentsSize - viewportSize where that is positive and 0 where
@@ -976,8 +1004,13 @@ private func roundToDevicePixelTowardZero(_ value: Float) -> Float {
     return roundTowardZero(num)
 }
 
+// Rubber-banding is macOS's (HAVE(RUBBER_BANDING)); elsewhere nothing starts the rubber band animation.
 private func elasticDeltaForTimeDelta(_ initialPosition: Float, _ initialVelocity: Float, _ elapsedTime: Double) -> Float {
+#if os(macOS)
     Float(_NSElasticDeltaForTimeDelta(CGFloat(initialPosition), CGFloat(initialVelocity), CGFloat(elapsedTime)))
+#else
+    0
+#endif
 }
 
 final class RubberBandScrollAnimation: ScrollPhysicsAnimationBase {

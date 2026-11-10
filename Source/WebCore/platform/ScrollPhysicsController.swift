@@ -39,7 +39,9 @@
 // tree's lock, for ThreadedScrollingTreeScrollingNodeDelegate.
 
 internal import Foundation
+#if os(macOS)
 internal import pal.spi.mac.NSScrollViewSPI
+#endif
 internal import WebCore_Private.Core.KeyboardScroll
 internal import WebCore_Private.Core.PlatformWheelEvent
 internal import WebCore_Private.Core.RubberbandingState
@@ -64,12 +66,21 @@ private let scrollWheelMultiplierValue: Float = {
     return multiplier <= 0 ? 1 : multiplier
 }()
 
+// AppKit's elastic curve. Rubber-banding is macOS's (HAVE(RUBBER_BANDING)); elsewhere nothing stretches.
 private func elasticDeltaForReboundDelta(_ delta: Float) -> Float {
+#if os(macOS)
     Float(_NSElasticDeltaForReboundDelta(CGFloat(delta)))
+#else
+    delta
+#endif
 }
 
 private func reboundDeltaForElasticDelta(_ delta: Float) -> Float {
+#if os(macOS)
     Float(_NSReboundDeltaForElasticDelta(CGFloat(delta)))
+#else
+    delta
+#endif
 }
 
 // ScrollableArea::targetSideForScrollDelta().

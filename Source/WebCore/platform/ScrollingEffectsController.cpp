@@ -33,6 +33,7 @@
 #include "ScrollAnimationSmooth.h"
 #include "ScrollExtents.h"
 #include "ScrollPhysicsControllerHolder.h"
+#include "ScrollPhysicsTypes.h"
 #include "ScrollableArea.h"
 #include "ScrollingEffectsClock.h"
 #include <atomic>
@@ -267,5 +268,35 @@ void ScrollingEffectsController::updateRubberBandAnimatingState()
 }
 
 #endif // PLATFORM(MAC)
+
+#if !PLATFORM(MAC)
+// The "Momentum scroll" signpost interval, and AppKit's gesture rubber-band curve, are macOS's
+// (mac/ScrollingEffectsController.mm).
+void ScrollPhysicsClient::momentumScrollBegan()
+{
+}
+
+void ScrollPhysicsClient::momentumScrollEnded()
+{
+}
+
+float ScrollPhysicsClient::rubberBandHyperbolicCoefficient(const PlatformWheelEvent&)
+{
+    ASSERT_NOT_REACHED();
+    return 0;
+}
+
+double ScrollPhysicsClient::hyperbolicReboundDeltaForElasticDelta(double, double, double)
+{
+    ASSERT_NOT_REACHED();
+    return 0;
+}
+
+double ScrollPhysicsClient::hyperbolicElasticDeltaForReboundDelta(double, double, double)
+{
+    ASSERT_NOT_REACHED();
+    return 0;
+}
+#endif
 
 } // namespace WebCore
