@@ -532,7 +532,7 @@ void CoreAudioCaptureUnit::didChange(AudioCaptureControllerEvent event, bool val
         return;
     case AudioCaptureControllerEvent::MicrophoneFormatChanged:
         for (auto& weakSink : clientSinks()) {
-            if (auto* sink = weakSink.get(); sink && !(sink->format() == m_microphoneProcFormat->streamDescription()))
+            if (auto* sink = weakSink.get(); sink && !(*m_microphoneProcFormat == sink->format()))
                 sink->notifyFormatChanged();
         }
         return;
