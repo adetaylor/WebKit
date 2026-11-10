@@ -1065,7 +1065,7 @@ struct VertexState {
     ProgrammableStage stage;
     // Borrowed for the duration of the call. std::nullopt: no vertex buffer in that slot.
     std::span<const std::optional<VertexBufferLayout>> buffers;
-} SWIFT_VIEW SWIFT_SAFE;
+} SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpublendcomponent
 struct BlendComponent {
@@ -1141,7 +1141,7 @@ struct RenderPipelineDescriptor {
     std::optional<DepthStencilState> depthStencil;
     MultisampleState multisample;
     std::optional<FragmentState> fragment;
-} SWIFT_VIEW SWIFT_SAFE;
+} SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#gpupipelineerror
 struct PipelineError {
