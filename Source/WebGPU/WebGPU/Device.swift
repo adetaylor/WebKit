@@ -161,9 +161,11 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     deinit {
         linkSlot.end()
+        #if WTF_PLATFORM_MAC
         if let backingDeviceObserver {
             WebGPU.Metal.removeDeviceObserver(backingDeviceObserver)
         }
+        #endif
         completeCallbacksForDestruction()
     }
 
