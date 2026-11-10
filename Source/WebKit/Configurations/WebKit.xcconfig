@@ -395,7 +395,7 @@ SWIFT_OBJC_INTEROP_MODE_SUPPORTS_SWIFT_OBJCXX_INTEROP_ = $(inherited);
 SWIFT_OBJC_INTERFACE_HEADER_NAME = WebKit-Swift-Generated.h;
 
 // FIXME: (rdar://149474443) Swift/Cxx interop does not respect CLANG_CXX_LANGUAGE_STANDARD = "c++2b";
-OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_$(WK_SUPPORTS_SWIFT_OBJCXX_INTEROP)) -enable-experimental-feature RequiresObjC=Foundation $(WK_SWIFT_ERROR_FLAGS) $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Werror SendableClosureCaptures $(WK_WEBCORE_WEBGL_SWIFT_FLAGS) $(WK_WEBCORE_SWIFT_EXPOSE_FLAGS) $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS);
+OTHER_SWIFT_FLAGS = $(inherited) $(OTHER_SWIFT_FLAGS_SUPPORTS_SWIFT_OBJCXX_INTEROP_$(WK_SUPPORTS_SWIFT_OBJCXX_INTEROP)) -enable-experimental-feature RequiresObjC=Foundation -enable-experimental-feature CxxImplementation $(WK_SWIFT_ASSERT_CONFIG_FLAGS) $(WK_SWIFT_ERROR_FLAGS) $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Werror SendableClosureCaptures $(WK_WEBCORE_WEBGL_SWIFT_FLAGS) $(WK_WEBCORE_SWIFT_EXPOSE_FLAGS) $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS);
 // Swift zero-initializes a C++ type with no default constructor and only warns that this is deprecated; such a
 // value can hold a null pointer the type never allows. A Sendable closure capturing C++ state is also only a warning.
 WK_SWIFT_ERROR_FLAGS = -Werror DeprecatedDeclaration -Werror SendableClosureCaptures;
