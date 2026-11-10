@@ -117,7 +117,12 @@ TEST(KeyboardScrollingKeys, TableEntries)
 
 TEST(KeyboardScrollingKeys, EventTypes)
 {
-    for (auto type : { PlatformEvent::Type::NoType, PlatformEvent::Type::KeyDown, PlatformEvent::Type::KeyUp, PlatformEvent::Type::MouseMoved, PlatformEvent::Type::Wheel }) {
+    Vector<PlatformEvent::Type> types { PlatformEvent::Type::KeyUp };
+#if !ASSERT_ENABLED
+    // KeyboardEvent asserts that its platform event has one of a keyboard event's types.
+    types.appendList({ PlatformEvent::Type::NoType, PlatformEvent::Type::KeyDown, PlatformEvent::Type::MouseMoved, PlatformEvent::Type::Wheel });
+#endif
+    for (auto type : types) {
         EXPECT_TRUE(scrollFor("Down"_s, { }, { }, type) == none);
         EXPECT_TRUE(scrollFor("U+0020"_s, " "_s, { }, type) == none);
     }
