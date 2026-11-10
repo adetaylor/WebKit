@@ -91,5 +91,5 @@ SWIFT_STRICT_CONCURRENCY = complete;
 // markers clang's optimized code generation emits, and the backend cannot select them.
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS = -Xcc -O2;
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS[config=Debug] = ;
-OTHER_SWIFT_FLAGS = $(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/JSCSwiftBoundary.modulemap -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature SafeInteropWrappers $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Xcc -O2;
+OTHER_SWIFT_FLAGS = $(inherited) -Xcc -fmodule-map-file=$(SRCROOT)/JSCSwiftBoundary.modulemap -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature SafeInteropWrappers $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) -Xcc -O2 -enable-experimental-feature CxxImplementation;
 EXCLUDED_SOURCE_FILE_NAMES[sdk=iphone*] = $(inherited) framework.sb;
