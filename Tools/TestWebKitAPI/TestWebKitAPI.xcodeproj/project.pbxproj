@@ -926,6 +926,7 @@
 				WebCore/HTMLParserIdioms.cpp,
 				WebCore/HTTPHeaderField.cpp,
 				WebCore/HTTPHeaderMap.cpp,
+				WebCore/HTTPHeaderParsersBench.cpp,
 				WebCore/HTTPParsers.cpp,
 				WebCore/HysteresisActivityTests.cpp,
 				WebCore/IDBKeyData.cpp,
