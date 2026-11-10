@@ -543,35 +543,26 @@ macro(WEBKIT_OPTION_END)
     endforeach ()
 
     # Swift/C++ interop is Clang-only: GCC builds link but crash at runtime (the
-    # Swift-emitted C++ thunks rely on Clang ABI details), so refuse to configure
-    # a Swift feature under a non-Clang compiler.
+    # Swift-emitted C++ thunks rely on Clang ABI details). JavaScriptCore and
+    # WebCore implement parts of themselves only in Swift, so every port needs it.
     if (NOT COMPILER_IS_CLANG)
-        if (ENABLE_BACK_FORWARD_LIST_SWIFT OR ENABLE_IPC_TESTING_SWIFT)
-            message(FATAL_ERROR
-                "Swift/C++ interop on the GLib ports requires Clang, but the "
-                "configured C++ compiler is ${CMAKE_CXX_COMPILER_ID}. Re-run "
-                "the configure step with CC=clang CXX=clang++, or pass "
-                "-DENABLE_BACK_FORWARD_LIST_SWIFT=OFF -DENABLE_IPC_TESTING_SWIFT=OFF.")
-        endif ()
+        message(FATAL_ERROR
+            "WebKit's Swift/C++ interop requires Clang, but the configured C++ "
+            "compiler is ${CMAKE_CXX_COMPILER_ID}. Re-run the configure step with "
+            "CC=clang CXX=clang++.")
     endif ()
 
-    option(WK_BUILD_WEBCORE_SWIFT "Build WebCore's Swift sources, as the Xcode project does" OFF)
-    set(WK_BUILD_WEBCORE_SWIFT ON)
-
-    # A Swift feature still on with a too-old toolchain was requested explicitly
-    # (the default declines to auto-enable it), so fail loudly rather than drop it
-    # silently. Apple is gated elsewhere; non-Clang is already rejected above.
-    if (NOT APPLE AND COMPILER_IS_CLANG)
+    # Every port needs a Swift toolchain with WebKit's Swift/C++ interop. Apple
+    # is gated elsewhere; non-Clang is already rejected above.
+    if (NOT APPLE)
         _WEBKIT_DETECT_SWIFT_CXX_INTEROP_SUPPORT(_swift_interop_ok)
         if (NOT _swift_interop_ok)
             message(FATAL_ERROR
-                "ENABLE_BACK_FORWARD_LIST_SWIFT or ENABLE_IPC_TESTING_SWIFT "
-                "was requested, but the Swift toolchain is too old for WebKit's "
-                "Swift/C++ interop: it lacks the -emit-clang-header-min-access "
-                "frontend flag, first shipped in Swift 6.3 (6.2 and earlier do "
-                "not have it). Detected: ${SWIFT_DETECTED_VERSION}. Install Swift "
-                "6.3 or newer from swift.org and reconfigure, or pass "
-                "-DENABLE_BACK_FORWARD_LIST_SWIFT=OFF -DENABLE_IPC_TESTING_SWIFT=OFF.")
+                "The Swift toolchain is too old for WebKit's Swift/C++ interop: "
+                "it lacks the -emit-clang-header-min-access frontend flag, first "
+                "shipped in Swift 6.3 (6.2 and earlier do not have it). Detected: "
+                "${SWIFT_DETECTED_VERSION}. Install Swift 6.3 or newer from "
+                "swift.org and reconfigure.")
         endif ()
     endif ()
 

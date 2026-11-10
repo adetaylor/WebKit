@@ -1,9 +1,8 @@
 set_property(DIRECTORY . PROPERTY FOLDER "WebKit")
 
-# SWIFT_REQUIRED is on for the whole build when any Swift feature is, including WK_BUILD_WEBCORE_SWIFT,
-# which puts Swift only in WebCore. Outside Apple, WebKit's own Swift belongs to its own features, so it
-# stays out of the build unless one of them is on. This directory's copy of the variable is the one
-# WebKit's Swift setup reads.
+# SWIFT_REQUIRED is on for the whole build, for JavaScriptCore's and WebCore's Swift. Outside Apple,
+# WebKit's own Swift belongs to its own features, so it stays out of the build unless one of them is on.
+# This directory's copy of the variable is the one WebKit's Swift setup reads.
 if (NOT APPLE AND NOT ENABLE_BACK_FORWARD_LIST_SWIFT AND NOT ENABLE_IPC_TESTING_SWIFT)
     set(SWIFT_REQUIRED OFF)
 endif ()
