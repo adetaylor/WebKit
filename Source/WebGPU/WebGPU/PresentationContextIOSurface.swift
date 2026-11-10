@@ -258,6 +258,13 @@ public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
         textureDescriptor.usage.formUnion([.renderTarget, .shaderRead])
         let needsLuminanceClampFunction =
             textureDescriptor.pixelFormat == .rgba16Float && toneMappingMode == WebGPU.CanvasToneMappingMode.Standard
+        // The surfaces were made for the format the compositor integration chose, which the configuration need not have:
+        // a texture over a surface must not need more bytes than the surface has.
+        let surfaceFormat = needsLuminanceClampFunction ? MTLPixelFormat.bgra8Unorm : textureDescriptor.pixelFormat
+        if ioSurfaces.contains(where: { !surfaceHolds($0, surfaceFormat, width: Int(width), height: Int(height)) }) {
+            generateAValidationError("The backing surfaces don't have the layout of the requested texture format \(textureFormatName(format))")
+            return
+        }
         let existingUsage = textureDescriptor.usage
         let metalDevice = deviceImpl.device()
         var apiFormat = effectiveFormat
@@ -695,4 +702,20 @@ private func createImageWithTextureBytes(
         shouldInterpolate: false,
         intent: .defaultIntent
     )
+}
+
+// Whether a texture of `pixelFormat`, `width` by `height`, fits in the bytes of the surface: one plane of elements of the
+// format's size, rows at least that wide, and room for every row.
+private func surfaceHolds(_ surface: IOSurfaceRef, _ pixelFormat: MTLPixelFormat, width: Int, height: Int) -> Bool {
+    guard let format = textureFormat(pixelFormat), IOSurfaceGetPlaneCount(surface) == 0, IOSurfaceGetElementWidth(surface) == 1,
+        IOSurfaceGetElementHeight(surface) == 1
+    else {
+        return false
+    }
+    let bytesPerPixel = Int(texelBlockSize(format))
+    let bytesPerRow = IOSurfaceGetBytesPerRow(surface)
+    let (rowBytes, rowBytesOverflow) = width.multipliedReportingOverflow(by: bytesPerPixel)
+    let (surfaceBytes, surfaceBytesOverflow) = bytesPerRow.multipliedReportingOverflow(by: height)
+    return bytesPerPixel > 0 && IOSurfaceGetBytesPerElement(surface) == bytesPerPixel && !rowBytesOverflow && !surfaceBytesOverflow
+        && bytesPerRow >= rowBytes && IOSurfaceGetAllocSize(surface) >= surfaceBytes
 }
