@@ -109,8 +109,8 @@ public:
     };
     ExistsAndValid objectExistsAndValid(WebGPUIdentifier) const;
 
-    // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties when it's cleared,
-    // with the instance that the descriptor describes.
+    // The Swift registry of the WebGPU objects whose messages Swift receives, which the heap empties and releases when
+    // it's cleared, with the instance that the descriptor describes.
     void createSwiftImplTable(RemoteGPU&, ::WebGPU::InstanceDescriptor&&);
 
     // For Swift, which can only name a specialization through an alias.
@@ -135,7 +135,8 @@ private:
     >;
 
     HashMap<WebGPUIdentifier, Object> m_objects;
-    // A retained reference to the Swift registry, as an address, from createSwiftImplTable() to the destructor; 0 before.
+    // A retained reference to the Swift registry, as an address, from createSwiftImplTable() to clear() or the destructor;
+    // 0 before and after.
     uintptr_t m_swiftState { 0 };
 };
 

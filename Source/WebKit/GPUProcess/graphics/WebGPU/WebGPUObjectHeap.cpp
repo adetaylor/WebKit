@@ -98,8 +98,12 @@ void ObjectHeap::removeObject(WebGPUIdentifier identifier)
 void ObjectHeap::clear()
 {
     m_objects.clear();
-    if (m_swiftState)
-        swiftRemoveAll();
+    if (!m_swiftState)
+        return;
+    swiftRemoveAll();
+    // The registry holds the instance, whose scheduleWork holds the RemoteGPU, which holds this heap: releasing the
+    // registry ends that cycle. A Swift receiver still running keeps its own reference to it.
+    destroySwiftState(std::exchange(m_swiftState, 0));
 }
 
 RefPtr<::WebGPU::Adapter> ObjectHeap::convertAdapterFromBacking(WebGPUIdentifier identifier)
