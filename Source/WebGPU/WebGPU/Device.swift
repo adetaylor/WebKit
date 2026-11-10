@@ -309,7 +309,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard instanceImpl != nil, let instanceSchedulerHandle else {
             return work()
         }
-        APIThreadWork<Void> { _ in work() }.schedule((), on: instanceSchedulerHandle)
+        APIThreadWork<Void>(on: instanceSchedulerHandle) { _ in work() }.schedule(())
     }
 
     // Returns the previous value.
@@ -545,15 +545,16 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
                 resolvedBuffers = NSMutableArray(object: counterDataBuffer)
                 resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
             }
-            let logAndForget = APIThreadWork<Void> { [link, weak commandBuffer] _ in
-                logEncoderTimestamps(resolvedBuffers)
-                if let commandBuffer {
-                    link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
+            let logAndForget = instanceSchedulerHandle.map { scheduler in
+                APIThreadWork<Void>(on: scheduler) { [link, weak commandBuffer] _ in
+                    logEncoderTimestamps(resolvedBuffers)
+                    if let commandBuffer {
+                        link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
+                    }
                 }
             }
-            let scheduler = instanceSchedulerHandle
             commandBuffer.addCompletedHandler { _ in
-                logAndForget.schedule((), on: scheduler)
+                logAndForget?.schedule(())
             }
         }
     }
@@ -678,15 +679,16 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard let metalDevice else {
             return
         }
-        let scheduler = instanceSchedulerHandle
-        let lose = APIThreadWork<Void> { [link] _ in
-            guard let self = link.impl, self.metalDevice != nil else {
-                return
+        let lose = instanceSchedulerHandle.map { scheduler in
+            APIThreadWork<Void>(on: scheduler) { [link] _ in
+                guard let self = link.impl, self.metalDevice != nil else {
+                    return
+                }
+                self.loseTheDevice(.Unknown)
             }
-            self.loseTheDevice(.Unknown)
         }
         backingDeviceObserver = addDeviceObserver(metalDevice) {
-            lose.schedule((), on: scheduler)
+            lose?.schedule(())
         }
         #endif
     }

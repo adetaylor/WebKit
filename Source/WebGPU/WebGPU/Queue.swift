@@ -879,7 +879,7 @@ public final class QueueImpl: GPUObjectReference {
 
     // Runs `work` in a later work item on the API thread.
     private func scheduleWork(_ work: @escaping () -> Void) {
-        APIThreadWork<Void> { _ in work() }.schedule((), on: schedulerHandle)
+        schedulerHandle.map { APIThreadWork<Void>(on: $0) { _ in work() } }?.schedule(())
     }
 
     func setLabel(_ label: NSString?) {
@@ -1064,25 +1064,28 @@ public final class QueueImpl: GPUObjectReference {
     // reference to the queue over to its work item, so that the queue is released on the API thread, where the work
     // items run.
     private func addCommitHandlers(_ commandBuffer: any MTLCommandBuffer) {
-        let scheduler = schedulerHandle
         let completion = backingCompletion
-        let didSchedule = APIThreadWork<Void> { _ in
-            self.didScheduleCommandBuffer()
+        let didSchedule = schedulerHandle.map { scheduler in
+            APIThreadWork<Void>(on: scheduler) { _ in
+                self.didScheduleCommandBuffer()
+            }
         }
-        let didComplete = APIThreadWork<Bool> { loseTheDevice in
-            self.didCompleteCommandBuffer()
-            if loseTheDevice {
-                self.deviceImpl?.loseTheDevice(.Unknown)
+        let didComplete = schedulerHandle.map { scheduler in
+            APIThreadWork<Bool>(on: scheduler) { loseTheDevice in
+                self.didCompleteCommandBuffer()
+                if loseTheDevice {
+                    self.deviceImpl?.loseTheDevice(.Unknown)
+                }
             }
         }
         addMetalCommitHandlers(
             commandBuffer,
             {
-                didSchedule.schedule((), on: scheduler)
+                didSchedule?.schedule(())
             },
             { loseTheDevice in
                 completion.didComplete()
-                didComplete.schedule(loseTheDevice, on: scheduler)
+                didComplete?.schedule(loseTheDevice)
             }
         )
     }

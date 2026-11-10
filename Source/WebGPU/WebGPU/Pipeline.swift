@@ -183,16 +183,26 @@ func withErrorReporting(_ deviceImpl: DeviceImpl, suppressingErrors suppressErro
 
 /// An asynchronous compile's continuation, carried from Metal's completion queue to the API thread.
 ///
-/// Unchecked Sendable: the continuation and what it captures belong to the Instance's API thread. The Metal thread only
-/// hands the box to a work item, and the scheduler's hop orders that before the API thread resumes it.
+/// Unchecked Sendable: the continuation and what it captures belong to the Instance's API thread. The box is made there
+/// and resumed there, which both trap anywhere else; the Metal thread only hands it to a work item. A continuation that
+/// never resumes is released on the API thread too (releaseOnAPIThread()).
 private final class CompileContinuation<Value>: @unchecked Sendable {
+    private let scheduler: InstanceScheduler
     private var body: ((Value?, NSError?) -> Void)?
 
-    init(_ body: @escaping (Value?, NSError?) -> Void) {
+    // On the API thread.
+    init(_ scheduler: InstanceScheduler, _ body: @escaping (Value?, NSError?) -> Void) {
+        precondition(scheduler.isAPIThread(), "A compile continuation made off the API thread")
+        self.scheduler = scheduler
         self.body = body
     }
 
+    deinit {
+        releaseOnAPIThread(body.take(), scheduler)
+    }
+
     func resume(_ value: Value?, _ error: (any Error)?) {
+        precondition(scheduler.isAPIThread(), "A compile continuation resumed off the API thread")
         if let body = body.take() {
             body(value, error.map { $0 as NSError })
         }
@@ -202,14 +212,15 @@ private final class CompileContinuation<Value>: @unchecked Sendable {
 /// The hop of an asynchronous compile back to the API thread.
 ///
 /// Metal's completion handler holds it, and with it the Instance's scheduler. The work item it schedules holds only the
-/// continuation, so a work item that never runs releases the continuation once Metal releases its handler.
+/// continuation.
 private final class CompileHop<Value: Sendable>: Sendable {
     private let scheduler: InstanceScheduler
     private let continuation: CompileContinuation<Value>
 
+    // On the API thread.
     init(_ scheduler: InstanceScheduler, _ continuation: @escaping (Value?, NSError?) -> Void) {
         self.scheduler = scheduler
-        self.continuation = CompileContinuation(continuation)
+        self.continuation = CompileContinuation(scheduler, continuation)
     }
 
     // On Metal's completion queue.

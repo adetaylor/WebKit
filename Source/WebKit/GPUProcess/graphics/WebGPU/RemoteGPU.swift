@@ -25,13 +25,19 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+import Dispatch
 import Synchronization
 @_spi(WebKitGPU) import WebGPUSwift
 internal import WebGPU_Private
 import WebKit_Internal
 
+// Releases the work scheduled after RemoteGPU's work queue stopped, one item at a time, so that what the items hold for the
+// API thread is never released on two threads at once.
+private let stoppedWorkReleaseQueue = DispatchQueue(label: "com.apple.WebKit.WebGPU.StoppedWorkRelease")
+
 // Runs the work the WebGPU instance schedules on RemoteGPU's work queue, from any thread. A stopping work queue drops the
-// work dispatched to it, so the work scheduled meanwhile waits here to run before it stops.
+// work dispatched to it, so the work scheduled meanwhile waits here to run before it stops; the work scheduled once it
+// has stopped is released, without running, on stoppedWorkReleaseQueue.
 final class RemoteGPUWorkScheduler: Sendable {
     private enum Stage {
         case running
@@ -59,7 +65,10 @@ final class RemoteGPUWorkScheduler: Sendable {
             case .stopping:
                 state.waitingWork.append(work)
             case .stopped:
-                break
+                stoppedWorkReleaseQueue.async {
+                    withExtendedLifetime(work) {
+                    }
+                }
             }
         }
     }
@@ -107,10 +116,17 @@ extension WebKit.RemoteGPU {
     @implementation
     func swiftInitialize(_ webProcessResourceOwner: WTF.MachSendRight) {
         precondition(m_swiftState == 0)
-        let scheduler = RemoteGPUWorkScheduler(workQueue())
-        let instance = InstanceReference(
+        let workQueue = workQueue()
+        let scheduler = RemoteGPUWorkScheduler(workQueue)
+        // Safety: the instance's API thread is the work queue's thread, which receives every message that calls into the
+        // instance and its objects; the scheduler runs work there later, one item at a time, and once the queue has stopped
+        // releases work on stoppedWorkReleaseQueue.
+        let instance = unsafe InstanceReference(
             scheduleWork: { work in
                 scheduler.schedule(work)
+            },
+            isAPIThread: {
+                workQueue.isCurrent()
             },
             webProcessResourceOwner: webProcessResourceOwner
         )

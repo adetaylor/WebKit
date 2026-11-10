@@ -3580,15 +3580,16 @@ public final class CommandEncoderImpl: GPUObjectReference, LinkedImpl {
         let deviceImpl = self.deviceImpl
         let queueImpl = deviceImpl.defaultQueueImpl
         let encoderHandle = queueImpl.retainCounterSampleBuffers(self)
-        let completion = APIThreadWork<Bool> { completed in
-            queueImpl.releaseCounterSampleBuffers(encoderHandle)
-            withExtendedLifetime(deviceImpl) {
-                body(completed)
+        let completion = deviceImpl.schedulerHandle().map { scheduler in
+            APIThreadWork<Bool>(on: scheduler) { completed in
+                queueImpl.releaseCounterSampleBuffers(encoderHandle)
+                withExtendedLifetime(deviceImpl) {
+                    body(completed)
+                }
             }
         }
-        let scheduler = deviceImpl.schedulerHandle()
         commandBuffer()?.addCompletedHandler { completedCommandBuffer in
-            completion.schedule(completedCommandBuffer.status == .completed, on: scheduler)
+            completion?.schedule(completedCommandBuffer.status == .completed)
         }
     }
 
