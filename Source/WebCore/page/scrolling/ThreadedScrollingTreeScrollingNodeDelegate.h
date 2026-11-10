@@ -49,7 +49,7 @@ public:
     void updateSnapScrollState();
 
 #if HAVE(APPKIT_GESTURES_SUPPORT)
-    float rubberbandHyperbolicCoefficientForTesting() const final { return m_scrollController.rubberbandHyperbolicCoefficientForTesting(); }
+    float rubberbandHyperbolicCoefficientForTesting() const final;
 #endif
 
 protected:

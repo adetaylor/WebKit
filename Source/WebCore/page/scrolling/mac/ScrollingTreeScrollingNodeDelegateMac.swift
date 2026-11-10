@@ -280,6 +280,11 @@ final class ScrollingTreeScrollPhysicsDelegate {
         controller.isRubberBandInProgress()
     }
 
+    @_expose(Cxx)
+    func rubberbandHyperbolicCoefficientForTesting() -> Float {
+        controller.rubberbandHyperbolicCoefficientForTesting()
+    }
+
     /// `c` is made for this call on the calling C++ member's stack; nothing else reaches it.
     @_expose(Cxx)
     func startRubberBandSnapBack(client c: inout WebCore.ScrollingTreeScrollPhysicsClient) {
