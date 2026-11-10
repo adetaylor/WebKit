@@ -65,6 +65,10 @@ CF_ASSUME_NONNULL_BEGIN
 
 CF_IMPLICIT_BRIDGING_ENABLED
 
+// The platform's focus ring style in the color, its radius scaled, accumulating so that it doesn't overpaint a focus ring
+// already drawn (GraphicsContextCG::drawFocusRing()).
+WEBCORE_EXPORT CGStyleRef _Nullable CGRendererCreateFocusRingStyle(CGColorRef _Nullable, CGFloat radiusScale);
+
 // An opaque color of a pattern, whose components Swift would pass as a pointer.
 inline CGColorRef _Nullable CGRendererCreatePatternColor(CGColorSpaceRef patternSpace, CGPatternRef pattern)
 {
@@ -181,8 +185,7 @@ inline CGStyleRef _Nullable CGRendererCreateGaussianBlurStyle(CGFloat radius)
 inline CGStyleRef _Nullable CGRendererCreateColorMatrixStyle(CGRendererColorMatrix colorMatrix)
 {
     CGColorMatrixStyle style = { 1, { 0 } };
-    for (unsigned i = 0; i < 20; ++i)
-        style.matrix[i] = colorMatrix.values[i];
+    std::ranges::copy(colorMatrix.values, style.matrix);
     return CGStyleCreateColorMatrix(&style);
 }
 

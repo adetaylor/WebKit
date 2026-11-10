@@ -320,12 +320,12 @@ void RemoteGraphicsContextProxy::clipTransformedPath(const AffineTransform& path
     updateStateForClipTransformedPath(pathTransform, path);
     if (RefPtr impl = path.asImpl(); impl && !impl->isTransient()) {
         if (auto identifier = recordResourceUse(*impl)) {
-            send(Messages::RemoteGraphicsContext::ClipTransformedCachedPath(pathTransform, *identifier, rule));
+            SEND_RENDERER_MESSAGE(ClipTransformedCachedPath, pathTransform, *identifier, rule);
             return;
         }
     }
 
-    send(Messages::RemoteGraphicsContext::ClipTransformedPath(pathTransform, path, rule));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipTransformedPath, (pathTransform, path, rule), (pathTransform, RemoteCGRendererPath { path }, rule));
 }
 
 void RemoteGraphicsContextProxy::resetClip()
@@ -362,7 +362,7 @@ void RemoteGraphicsContextProxy::drawFilteredImageBuffer(ImageBuffer* sourceImag
         identifier = sourceImage->renderingResourceIdentifier();
     }
 
-    send(Messages::RemoteGraphicsContext::DrawFilteredImageBuffer(WTF::move(identifier), sourceImageRect, filter));
+    SEND_RENDERER_MESSAGE(DrawFilteredImageBuffer, WTF::move(identifier), sourceImageRect, filter);
 }
 
 void RemoteGraphicsContextProxy::drawGlyphs(const Font& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& localAnchor, FontSmoothingMode smoothingMode)
@@ -449,11 +449,11 @@ void RemoteGraphicsContextProxy::drawSystemImage(SystemImage& systemImage, const
             renderingResourceIdentifier = nativeImage->renderingResourceIdentifier();
         }
 
-        send(Messages::RemoteGraphicsContext::DrawBadgeSystemImage(renderingResourceIdentifier, destinationRect));
+        SEND_RENDERER_MESSAGE(DrawBadgeSystemImage, renderingResourceIdentifier, destinationRect);
         return;
     }
 #endif
-    send(Messages::RemoteGraphicsContext::DrawSystemImage(systemImage, destinationRect));
+    SEND_RENDERER_MESSAGE(DrawSystemImage, systemImage, destinationRect);
 }
 
 void RemoteGraphicsContextProxy::drawPattern(const NativeImage& image, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
@@ -534,7 +534,7 @@ void RemoteGraphicsContextProxy::drawMeshGradient(MeshGradient& gradient, const 
 
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawMeshGradient(*identifier, destination));
+    SEND_RENDERER_MESSAGE(DrawMeshGradient, *identifier, destination);
 }
 
 void RemoteGraphicsContextProxy::drawEllipse(const FloatRect& rect)
@@ -555,13 +555,23 @@ void RemoteGraphicsContextProxy::drawFocusRing(const Path& path, float outlineWi
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawFocusRingPath(path, outlineWidth, color, zoomFactor));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawFocusRingPath, (path, outlineWidth, color, zoomFactor), (RemoteCGRendererPath { path }, outlineWidth, rendererColorValue(color), zoomFactor));
 }
 
 void RemoteGraphicsContextProxy::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // RemoteCGRenderer draws the focus ring of the path of the rects, as GraphicsContextCG does.
+    if (m_drawsWithCGRendererReceiver) {
+        Path path;
+        for (auto& rect : rects)
+            path.addRect(rect);
+        send(Messages::RemoteCGRenderer::DrawFocusRingPath(RemoteCGRendererPath { path }, outlineWidth, rendererColorValue(color), zoomFactor));
+        return;
+    }
+#endif
     send(Messages::RemoteGraphicsContext::DrawFocusRingRects(rects, outlineWidth, color, zoomFactor));
 }
 
@@ -689,13 +699,13 @@ void RemoteGraphicsContextProxy::drawVideoFrame(const VideoFrame& frame, const F
         m_sharedVideoFrameWriter = makeUnique<SharedVideoFrameWriter>();
 
     auto sharedVideoFrame = m_sharedVideoFrameWriter->write(frame, *gpuProcessIPCConnection, [&](auto& semaphore) {
-        send(Messages::RemoteGraphicsContext::SetSharedVideoFrameSemaphore { semaphore });
+        SEND_RENDERER_MESSAGE(SetSharedVideoFrameSemaphore, semaphore);
     }, [&](SharedMemory::Handle&& handle) {
-        send(Messages::RemoteGraphicsContext::SetSharedVideoFrameMemory { WTF::move(handle) });
+        SEND_RENDERER_MESSAGE(SetSharedVideoFrameMemory, WTF::move(handle));
     });
     if (!sharedVideoFrame)
         return;
-    send(Messages::RemoteGraphicsContext::DrawVideoFrame(WTF::move(*sharedVideoFrame), destination, shouldDiscardAlpha, options));
+    SEND_RENDERER_MESSAGE(DrawVideoFrame, WTF::move(*sharedVideoFrame), destination, shouldDiscardAlpha, options);
 #endif
 }
 #endif
@@ -830,7 +840,7 @@ void RemoteGraphicsContextProxy::drawControlPart(ControlPart& part, const FloatR
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::DrawControlPart(part, borderRect, deviceScaleFactor, style));
+    SEND_RENDERER_MESSAGE(DrawControlPart, part, borderRect, deviceScaleFactor, style);
 }
 
 #if USE(CG)
@@ -862,7 +872,7 @@ void RemoteGraphicsContextProxy::beginPage(const FloatRect& pageRect)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::BeginPage(pageRect));
+    SEND_RENDERER_MESSAGE(BeginPage, pageRect);
     updateStateForBeginPage();
 }
 
@@ -870,7 +880,7 @@ void RemoteGraphicsContextProxy::endPage()
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    send(Messages::RemoteGraphicsContext::EndPage());
+    SEND_RENDERER_MESSAGE(EndPage);
 }
 
 void RemoteGraphicsContextProxy::setURLForRect(const URL& link, const FloatRect& destRect)

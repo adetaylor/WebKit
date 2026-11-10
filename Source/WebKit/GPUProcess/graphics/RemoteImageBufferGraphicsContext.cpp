@@ -210,6 +210,23 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform)
     HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteImageBufferGraphicsContext::fillRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteImageBufferGraphicsContext::fillRectWithRoundedHole)
+    HANDLE_CG_RENDERER_MESSAGE(ClipTransformedPath, &RemoteImageBufferGraphicsContext::clipTransformedPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipTransformedCachedPath, &RemoteGraphicsContext::clipTransformedCachedPath)
+    HANDLE_CG_RENDERER_MESSAGE(DrawFocusRingPath, &RemoteImageBufferGraphicsContext::drawFocusRingPath)
+    HANDLE_CG_RENDERER_MESSAGE(BeginPage, &RemoteGraphicsContext::beginPage)
+    HANDLE_CG_RENDERER_MESSAGE(EndPage, &RemoteGraphicsContext::endPage)
+    HANDLE_CG_RENDERER_MESSAGE(DrawMeshGradient, &RemoteGraphicsContext::drawMeshGradient)
+    HANDLE_CG_RENDERER_MESSAGE(DrawFilteredImageBuffer, &RemoteGraphicsContext::drawFilteredImageBuffer)
+    HANDLE_CG_RENDERER_MESSAGE(DrawControlPart, &RemoteGraphicsContext::drawControlPart)
+    HANDLE_CG_RENDERER_MESSAGE(DrawSystemImage, &RemoteGraphicsContext::drawSystemImage)
+#if USE(SYSTEM_PREVIEW)
+    HANDLE_CG_RENDERER_MESSAGE(DrawBadgeSystemImage, &RemoteGraphicsContext::drawBadgeSystemImage)
+#endif
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    HANDLE_CG_RENDERER_MESSAGE(DrawVideoFrame, &RemoteGraphicsContext::drawVideoFrame)
+    HANDLE_CG_RENDERER_MESSAGE(SetSharedVideoFrameSemaphore, &RemoteImageBufferGraphicsContext::setSharedVideoFrameSemaphore)
+    HANDLE_CG_RENDERER_MESSAGE(SetSharedVideoFrameMemory, &RemoteImageBufferGraphicsContext::setSharedVideoFrameMemory)
+#endif
 #undef HANDLE_CG_RENDERER_MESSAGE
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
@@ -268,6 +285,16 @@ void RemoteImageBufferGraphicsContext::clipPath(const RemoteCGRendererPath& path
 void RemoteImageBufferGraphicsContext::clipOutToPath(const RemoteCGRendererPath& path)
 {
     RemoteGraphicsContext::clipOutToPath(path.path());
+}
+
+void RemoteImageBufferGraphicsContext::clipTransformedPath(const AffineTransform& pathTransform, const RemoteCGRendererPath& path, WindRule rule)
+{
+    RemoteGraphicsContext::clipTransformedPath(pathTransform, path.path(), rule);
+}
+
+void RemoteImageBufferGraphicsContext::drawFocusRingPath(const RemoteCGRendererPath& path, float outlineWidth, const CGRendererColorValue& color, float zoomFactor)
+{
+    RemoteGraphicsContext::drawFocusRingPath(path.path(), outlineWidth, CGRendererColorFromValue(color), zoomFactor);
 }
 
 void RemoteImageBufferGraphicsContext::setDropShadow(const RemoteCGRendererShadow& shadow)
