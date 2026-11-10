@@ -41,6 +41,7 @@
 #include <WebCore/ScriptWrappableInlines.h>
 #include <WebCore/Settings.h>
 #include <WebCore/Text.h>
+#include <WebCore/WebCoreJITOperations.h>
 #include <array>
 #include <cstdio>
 #include <cstdlib>
@@ -229,6 +230,7 @@ static void printResult(ASCIILiteral name, double seconds, double bytes, const C
 static void runBenchmark(ASCIILiteral name, const Input& input, unsigned iterations, uint64_t expectedChecksum)
 {
     JSC::initialize();
+    WebCore::populateJITOperations();
     ensureTestPlatformStrategiesInstalled();
     ProcessWarming::initializeNames();
 
@@ -1034,6 +1036,7 @@ static Input templatesInput()
 static void runFragmentBenchmark(ASCIILiteral name, const Vector<String>& fragments, unsigned iterations, uint64_t expectedChecksum)
 {
     JSC::initialize();
+    WebCore::populateJITOperations();
     ensureTestPlatformStrategiesInstalled();
     ProcessWarming::initializeNames();
 
