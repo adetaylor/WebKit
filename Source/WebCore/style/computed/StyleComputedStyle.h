@@ -68,6 +68,7 @@ public:
     inline bool perspectiveIsNoneForSwift() const SWIFT_NAME(perspectiveIsNone());
     inline bool hasBorderRadiusForSwift() const SWIFT_NAME(hasBorderRadius());
     inline bool hasResizeForSwift() const SWIFT_NAME(hasResize());
+    inline bool displayIsNoneForSwift() const SWIFT_NAME(displayIsNone());
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 
