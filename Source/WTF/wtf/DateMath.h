@@ -80,6 +80,10 @@ int equivalentYearForDST(int year);
 WTF_EXPORT_PRIVATE double parseES5Date(std::span<const Latin1Character> dateString, bool& isLocalTime);
 WTF_EXPORT_PRIVATE double parseDate(std::span<const Latin1Character> dateString);
 WTF_EXPORT_PRIVATE double parseDate(std::span<const Latin1Character> dateString, bool& isLocalTime);
+#if defined(__swift__)
+// For Swift: the importer makes a safe Span<UInt8> overload of this one.
+inline double parseDate(std::span<const uint8_t> dateString NOESCAPE, bool& isLocalTime) { return parseDate(byteCast<Latin1Character>(dateString), isLocalTime); }
+#endif
 // dayOfWeek: [0, 6] 0 being Monday, day: [1, 31], month: [0, 11], year: ex: 2011, hours: [0, 23], minutes: [0, 59], seconds: [0, 59], utcOffset: [-720,720]. 
 WTF_EXPORT_PRIVATE String makeRFC2822DateString(unsigned dayOfWeek, unsigned day, unsigned month, unsigned year, unsigned hours, unsigned minutes, unsigned seconds, int utcOffset);
 
