@@ -1,0 +1,120 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver decodes control parts, their styles and system images as C++ does.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, 1000, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+// Resolves with the reply, or with null if the message was not handled.
+function send(messageName, args)
+{
+    return new Promise(resolve => {
+        IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, messageName, args, result => resolve(result?.arguments ? result : null));
+    });
+}
+
+// Sends each case to the Swift and the C++ describer at once, as a round trip to the UI process is slow, and resolves
+// with their descriptions, null where a message was not handled.
+async function describeAll(swiftMessageName, cxxMessageName, cases)
+{
+    const description = result => result ? result.arguments[0].value : null;
+    const results = await Promise.all(cases.map(([, args]) => Promise.all([send(swiftMessageName, args), send(cxxMessageName, args)])));
+    takeInvalidMessageString();
+    return results.map(([swift, cxx]) => [description(swift), description(cxx)]);
+}
+
+const u8 = value => ({ type: 'uint8_t', value });
+const u32 = value => ({ type: 'uint32_t', value });
+const i32 = value => ({ type: 'int32_t', value });
+const f = value => ({ type: 'float', value });
+const d = value => ({ type: 'double', value });
+const b = value => ({ type: 'bool', value });
+const doubles = values => [{ type: 'uint64_t', value: values.length }, ...values.map(d)];
+
+// A WebCore::Color, as Color::data() encodes it: whether it is valid, then ColorDataForIPC's flags and Variant.
+const invalidColor = [b(0)];
+const packedColor = (value, semantic = 0) => [b(1), b(semantic), b(0), u8(0), u32(value)];
+const outOfLineColor = (colorSpace, c1, c2, c3, alpha) => [b(1), b(0), b(1), u8(1), u8(colorSpace), f(c1), f(c2), f(c3), f(alpha)];
+
+// A ControlStyle: its states, font size, zoom, accent and text colors, and border widths.
+const style = (states = 0, accent = invalidColor, text = packedColor(0x000000ff)) => [u32(states), f(13), f(1.5), ...accent, ...text, f(1), f(2), f(3), f(4)];
+
+// The index of each ControlPart subclass, as ControlPart's ArgumentCoder numbers them on the Mac, where Apple Pay and service
+// controls are enabled. Elsewhere the cases still compare Swift with C++, but test less.
+const part = {
+    button: 0, colorWell: 1, innerSpinButton: 2, menuListButton: 3, menuList: 4, meter: 5, progressBar: 6, searchField: 7,
+    searchFieldResults: 8, searchFieldCancelButton: 9, sliderThumb: 10, sliderTrack: 11, switchPart: 12, textArea: 13,
+    textField: 14, toggleButton: 15, applePayButton: 16, imageControlsButton: 17,
+};
+
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []).arguments[0].value;
+    takeInvalidMessageString();
+    try {
+        const cases = [];
+        // Each appearance, valid or not, for the parts that take one, and the edges of its bits.
+        for (const appearance of [...Array(46).keys(), 127, 128, 254, 255]) {
+            for (const subclass of [part.button, part.searchFieldResults, part.sliderThumb, part.textArea, part.toggleButton])
+                cases.push([`subclass ${subclass} of appearance ${appearance}`, [u8(subclass), u8(appearance), ...style()]]);
+            cases.push([`a slider track of appearance ${appearance}`, [u8(part.sliderTrack), u8(appearance), i32(21), i32(21), i32(0), i32(0), i32(129), i32(15), ...doubles([0, 0.5, 1]), d(0.25), ...style()]]);
+        }
+        for (const subclass of [part.colorWell, part.innerSpinButton, part.menuListButton, part.menuList, part.searchField, part.searchFieldCancelButton, part.textField, part.imageControlsButton])
+            cases.push([`subclass ${subclass}`, [u8(subclass), ...style()]]);
+        for (let region = 0; region < 4; ++region)
+            cases.push([`a meter in region ${region}`, [u8(part.meter), u8(region), d(0.5), d(0), d(1), ...style()]]);
+        cases.push(['a progress bar', [u8(part.progressBar), d(0.75), d(12.5), ...style()]]);
+        for (const progress of [0, 0.5, 1, -0.5, 1.5, NaN])
+            cases.push([`a switch at ${progress}`, [u8(part.switchPart), b(1), f(progress), ...style()]]);
+        for (let type = 0; type < 18; ++type) {
+            for (let buttonStyle = 0; buttonStyle < 4; ++buttonStyle)
+                cases.push([`an Apple Pay button ${type} ${buttonStyle}`, [u8(part.applePayButton), u8(type), u8(buttonStyle), { type: 'String', value: 'en-US' }, ...style()]]);
+        }
+        cases.push(['a slider track whose rect overflows', [u8(part.sliderTrack), u8(15), i32(21), i32(21), i32(2147483647), i32(0), i32(1), i32(15), ...doubles([]), d(0), ...style()]]);
+        cases.push(['an unknown subclass', [u8(18), ...style()]]);
+        // Styles.
+        for (const states of [0, 1, 0x3ffff, 0x40000, 0xffffffff])
+            cases.push([`states ${states}`, [u8(part.textField), ...style(states)]]);
+        for (let colorSpace = 0; colorSpace < 24; ++colorSpace)
+            cases.push([`an accent color in color space ${colorSpace}`, [u8(part.textField), ...style(0, outOfLineColor(colorSpace, 0.25, 0.5, 0.75, 1))]]);
+        cases.push(['a semantic text color', [u8(part.textField), ...style(0, packedColor(0xff0000ff), packedColor(0x00ff00ff, 1))]]);
+        cases.push(['an unknown color alternative', [u8(part.textField), u32(0), f(13), f(1), b(1), b(0), b(0), u8(2), u32(0), ...packedColor(0), f(0), f(0), f(0), f(0)]]);
+        cases.push(['a style cut short', [u8(part.textField), u32(0), f(13)]]);
+
+        let accepted = 0;
+        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeControlSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedControlSwift.name, cases);
+        cases.forEach(([description], i) => {
+            const [swift, cxx] = descriptions[i];
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+            if (swift !== null)
+                ++accepted;
+        });
+        assert_greater_than(accepted, 60, 'Most of the control parts are accepted');
+
+        // System images: the Apple Pay logo and an AppKit control image.
+        const images = [];
+        for (let logoStyle = 0; logoStyle < 3; ++logoStyle)
+            images.push([`an Apple Pay logo of style ${logoStyle}`, [u8(0), u8(logoStyle)]]);
+        images.push(['a scroll bar corner', [u8(1), ...packedColor(0x0000ffff), b(1)]]);
+        images.push(['a scroll bar corner without a tint', [u8(1), ...invalidColor, b(0)]]);
+        images.push(['a scroll bar corner with an out-of-line tint', [u8(1), ...outOfLineColor(1, 0.1, 0.2, 0.3, 0.5), b(0)]]);
+        images.push(['an unknown system image', [u8(2), u8(0)]]);
+        const imageDescriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeSystemImageSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedSystemImageSwift.name, images);
+        images.forEach(([description], i) => {
+            const [swift, cxx] = imageDescriptions[i];
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+        });
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+    done();
+}, "A Swift receiver decodes control parts, their styles and system images as C++ does, and rejects what C++ rejects.");
+</script>
+</body>

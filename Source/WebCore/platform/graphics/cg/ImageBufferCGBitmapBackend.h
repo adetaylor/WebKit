@@ -46,7 +46,7 @@ public:
     NODELETE GraphicsContext& context() final;
 
 private:
-    ImageBufferCGBitmapBackend(const ImageBufferParameters&, std::span<uint8_t> data, RetainPtr<CGDataProviderRef>&&, std::unique_ptr<GraphicsContextCG>&&);
+    ImageBufferCGBitmapBackend(const ImageBufferParameters&, std::span<uint8_t> data, std::unique_ptr<GraphicsContextCG>&&, ImageBufferSurface&&);
 
     unsigned bytesPerRow() const final;
 
@@ -56,8 +56,8 @@ private:
     void getPixelBuffer(const IntRect&, PixelBuffer&) final;
     void putPixelBuffer(const PixelBufferSourceView&, const IntRect& srcRect, const IntPoint& destPoint, AlphaPremultiplication destFormat) final;
 
+    // The memory of the core's data provider, which lives as long as the core.
     std::span<uint8_t> m_data;
-    const RetainPtr<CGDataProviderRef> m_dataProvider;
 };
 
 } // namespace WebCore

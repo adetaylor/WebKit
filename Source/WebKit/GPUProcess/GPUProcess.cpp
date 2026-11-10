@@ -31,7 +31,6 @@
 #include "ArgumentCoders.h"
 #include "Attachment.h"
 #include "AuxiliaryProcessMessages.h"
-#include "DisplayListDataTester.h"
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcessConnectionParameters.h"
 #include "GPUProcessCreationParameters.h"
@@ -41,8 +40,8 @@
 #include "LogInitialization.h"
 #include "Logging.h"
 #include "RemoteMediaPlayerManagerProxy.h"
-#include "RemoteSnapshot.h"
 #include "RemoteSnapshotPDFDrawingTask.h"
+#include "RemoteSnapshotSink.h"
 #include "SandboxExtension.h"
 #include "WebPageProxyMessages.h"
 #include "WebProcessPoolMessages.h"
@@ -100,18 +99,15 @@
 #include <WebCore/ScreenCaptureKitCaptureSource.h>
 #endif
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteSnapshotRecorder.h"
+#endif
+
 namespace WebKit {
 
 using namespace WebCore;
 
-// We wouldn't want the GPUProcess to repeatedly exit then relaunch when under memory pressure. In particular, we need to make sure the
-// WebProcess has a change to schedule work after the GPUProcess get launched. For this reason, we make sure that the GPUProcess never
-// idle-exits less than 5 seconds after getting launched. This amount of time should be sufficient for the WebProcess to schedule work
-// work in the GPUProcess.
-constexpr Seconds minimumLifetimeBeforeIdleExit { 5_s };
-
 GPUProcess::GPUProcess()
-    : m_idleExitTimer(*this, &GPUProcess::tryExitIfUnused)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::GPUProcess:", this);
 #if ASSERT_ENABLED && PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
@@ -142,20 +138,15 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
 
     auto newConnection = GPUConnectionToWebProcess::create(*this, identifier, sessionID, WTF::move(connectionHandle), WTF::move(parameters));
 
-#if ENABLE(MEDIA_STREAM)
-    // FIXME: We should refactor code to go from WebProcess -> GPUProcess -> UIProcess when getUserMedia is called instead of going from WebProcess -> UIProcess directly.
-    auto access = m_mediaCaptureAccessMap.take(identifier);
-    newConnection->updateCaptureAccess(access.allowAudioCapture, access.allowVideoCapture, access.allowDisplayCapture, access.willUseEchoCancellation);
-    newConnection->setOrientationForMediaCapture(m_orientation);
-#endif
-
 #if ENABLE(IPC_TESTING_API)
     if (parameters.ignoreInvalidMessageForTesting)
         newConnection->connection().setIgnoreInvalidMessageForTesting();
 #endif
 
     ASSERT(!m_webProcessConnections.contains(identifier));
-    m_webProcessConnections.add(identifier, WTF::move(newConnection));
+    Ref connection = newConnection.get();
+    if (m_webProcessConnections.add(identifier, WTF::move(newConnection)).isNewEntry)
+        connection->swiftDidAddToGPUProcess();
 }
 
 void GPUProcess::sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier identifier, SharedPreferencesForWebProcess&& sharedPreferencesForWebProcess, CompletionHandler<void()>&& completionHandler)
@@ -173,14 +164,15 @@ void GPUProcess::securityFlagsDidChange(SecurityFlags::Storage&& securityFlags)
 void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::removeGPUConnectionToWebProcess: processIdentifier=%" PRIu64, this, connection.webProcessIdentifier().toUInt64());
-    ASSERT(m_webProcessConnections.contains(connection.webProcessIdentifier()));
-    m_webProcessConnections.remove(connection.webProcessIdentifier());
+    ASSERT(m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection);
+    if (m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection)
+        m_webProcessConnections.remove(connection.webProcessIdentifier());
 
     removeTransferredImageBuffersForProcess(connection.webProcessIdentifier());
-    abandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
-    removeSnapshotsForProcess(connection.webProcessIdentifier());
+    swiftAbandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
+    swiftRemoveSnapshotsForProcess(connection.webProcessIdentifier());
 
-    recomputeNowPlayingOwner();
+    connection.swiftDidRemoveFromGPUProcess();
 
     tryExitIfUnusedAndUnderMemoryPressure();
 }
@@ -194,69 +186,29 @@ bool GPUProcess::shouldTerminate()
     return m_webProcessConnections.isEmpty();
 }
 
-bool GPUProcess::canExitUnderMemoryPressure() const
+bool GPUProcess::isUnderMemoryPressure()
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
-#if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    if (swiftHasCapturePreview())
-        return false;
-#endif
-    for (auto& webProcessConnection : m_webProcessConnections.values()) {
-        if (!webProcessConnection->allowsExitUnderMemoryPressure())
-            return false;
-    }
-    return true;
+    return MemoryPressureHandler::singleton().isUnderMemoryPressure();
 }
 
-void GPUProcess::tryExitIfUnusedAndUnderMemoryPressure()
+bool GPUProcess::isSimulatingMemoryPressure()
 {
-    ASSERT(isMainRunLoop());
-    if (!MemoryPressureHandler::singleton().isUnderMemoryPressure())
-        return;
-
-    tryExitIfUnused();
+    return MemoryPressureHandler::singleton().isSimulatingMemoryPressure();
 }
 
-void GPUProcess::tryExitIfUnused()
+void GPUProcess::releaseMemory(Critical critical, Synchronous synchronous)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
-    if (!canExitUnderMemoryPressure()) {
-        m_idleExitTimer.stop();
-        return;
-    }
-
-    // To avoid exiting the GPUProcess too aggressively while under memory pressure and make sure the WebProcess gets a
-    // change to schedule work, we don't exit if we've been running for less than |minimumLifetimeBeforeIdleExit|.
-    // In case of simulated memory pressure, we ignore this rule to avoid flakiness in our benchmarks and tests.
-    auto lifetime = MonotonicTime::now() - m_creationTime;
-    if (lifetime < minimumLifetimeBeforeIdleExit && !MemoryPressureHandler::singleton().isSimulatingMemoryPressure()) {
-        RELEASE_LOG(Process, "GPUProcess::tryExitIfUnused: GPUProcess is idle and under memory pressure but it is not exiting because it has just launched");
-        // Check again after the process have lived long enough (minimumLifetimeBeforeIdleExit) to see if the GPUProcess
-        // can idle-exit then.
-        if (!m_idleExitTimer.isActive())
-            m_idleExitTimer.startOneShot(minimumLifetimeBeforeIdleExit - lifetime);
-        return;
-    }
-    m_idleExitTimer.stop();
-
-    RELEASE_LOG(Process, "GPUProcess::tryExitIfUnused: GPUProcess is exiting because we are under memory pressure and the process is no longer useful.");
-    protect(parentProcessConnection())->send(Messages::GPUProcessProxy::ProcessIsReadyToExit(), 0);
-}
-
-void GPUProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
-{
-    RELEASE_LOG(Process, "GPUProcess::lowMemoryHandler: critical=%d, synchronous=%d", critical == Critical::Yes, synchronous == Synchronous::Yes);
-    tryExitIfUnused();
-
-    for (auto& connection : m_webProcessConnections.values())
-        connection->lowMemoryHandler(critical, synchronous);
-
     WebCore::releaseGraphicsMemory(critical, synchronous);
 
 #if PLATFORM(COCOA)
     if (critical == Critical::Yes)
         WebCore::IOSurface::releaseCGIOSurfaceContextResources();
 #endif
+}
+
+void GPUProcess::sendProcessIsReadyToExit()
+{
+    protect(parentProcessConnection())->send(Messages::GPUProcessProxy::ProcessIsReadyToExit(), 0);
 }
 
 void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters, CompletionHandler<void()>&& completionHandler)
@@ -322,7 +274,8 @@ CoreAudioCaptureUnit::defaultSingleton().setStatusBarWasTappedCallback([weakProc
         overrideUserPreferredLanguages(parameters.overrideLanguages);
 
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
-    m_nowPlayingFallbackSession = parameters.nowPlayingFallbackSession;
+    if (auto& session = parameters.nowPlayingFallbackSession)
+        swiftInitializeNowPlayingFallbackSession(session->object().toUInt64(), session->processIdentifier().toUInt64());
 #endif
 
 #if USE(OS_STATE)
@@ -404,190 +357,18 @@ GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIden
     return m_webProcessConnections.get(identifier);
 }
 
-static bool isPreferredNowPlayingCandidate(const WebCore::NowPlayingCandidateState& candidate, const WebCore::NowPlayingCandidateState& incumbent)
+void GPUProcess::nowPlayingOwnerDidChange(bool hasOwner, uint64_t pageIdentifier, uint64_t processIdentifier)
 {
-    // Mirrors the logic in PlatformMediaSessionManager::bestEligibleSessionForRemoteControls +
-    // HTMLMediaElement::selectBestMediaSession:
-    bool candidateIsAudioVideo = candidate.presentationType != WebCore::PlatformMediaSessionMediaType::WebAudio;
-    bool incumbentIsAudioVideo = incumbent.presentationType != WebCore::PlatformMediaSessionMediaType::WebAudio;
-    if (candidateIsAudioVideo != incumbentIsAudioVideo)
-        return candidateIsAudioVideo;
-
-    if (candidateIsAudioVideo) {
-        if (candidate.isLargeEnoughForMainContent != incumbent.isLargeEnoughForMainContent)
-            return candidate.isLargeEnoughForMainContent;
-        return candidate.mostRecentUserInteractionTime.value_or(WallTime { }) > incumbent.mostRecentUserInteractionTime.value_or(WallTime { });
-    }
-
-    if (candidate.isPlaying != incumbent.isPlaying)
-        return candidate.isPlaying;
-    return false;
-}
-
-namespace {
-
-enum class NowPlayingSeatRole : bool { EligibleOwner, CommandOnly };
-
-struct NowPlayingSeat {
-    WebCore::ProcessIdentifier process;
-    NowPlayingSeatRole role;
-
-    friend bool operator==(const NowPlayingSeat&, const NowPlayingSeat&) = default;
-};
-
-}
-
-void GPUProcess::recomputeNowPlayingOwner()
-{
-    RefPtr<GPUConnectionToWebProcess> winningConnection;
-    std::optional<NowPlayingCandidateState> winnerState;
-    std::optional<PageIdentifier> winnerPage;
-
-    // Seed with the current owner so that equal candidates keep the incumbent, since the candidates are stored in
-    // a HashMap whose iteration order is not stable.
-    if (m_activeNowPlayingOwner) {
-        if (RefPtr connection = webProcessConnection(m_activeNowPlayingOwner->process)) {
-            auto it = connection->nowPlayingCandidates().find(m_activeNowPlayingOwner->page);
-            if (it != connection->nowPlayingCandidates().end() && it->value->state) {
-                winningConnection = connection;
-                winnerState = *it->value->state;
-                winnerPage = m_activeNowPlayingOwner->page;
-            }
-        }
-    }
-
-    for (Ref connection : m_webProcessConnections.values()) {
-        for (auto& entry : connection->nowPlayingCandidates()) {
-            if (!entry.value->state)
-                continue;
-            if (!winnerState || isPreferredNowPlayingCandidate(*entry.value->state, *winnerState)) {
-                winningConnection = connection.ptr();
-                winnerState = *entry.value->state;
-                winnerPage = entry.key;
-            }
-        }
-    }
-
-    RefPtr<GPUConnectionToWebProcess> seatedConnection;
-    std::optional<NowPlayingOwner> eligibleOwner;
-    std::optional<QualifiedMediaSessionIdentifier> commandTarget;
-
-    if (winnerState) {
-        seatedConnection = winningConnection;
-        eligibleOwner = NowPlayingOwner { winningConnection->webProcessIdentifier(), *winnerPage, winnerState->sessionIdentifier };
-        commandTarget = QualifiedMediaSessionIdentifier { winnerState->sessionIdentifier, winningConnection->webProcessIdentifier() };
-    } else if (m_nowPlayingFallbackSession) {
-        if (RefPtr connection = webProcessConnection(m_nowPlayingFallbackSession->processIdentifier())) {
-            seatedConnection = connection;
-            commandTarget = m_nowPlayingFallbackSession;
-        }
-    }
-
-    // A single connection is the NowPlayingManager client at a time: the elected owner (which also drives the
-    // NowPlaying panel and audio session) or, when no session is eligible, a command-only fallback that receives
-    // remote commands but shows no panel. Track the seated process and role so an unrelated recompute does not
-    // churn a fallback client's remote-command listener.
-    std::optional<NowPlayingSeat> previousSeat;
-    if (m_remoteCommandTarget) {
-        auto previousRole = m_activeNowPlayingOwner ? NowPlayingSeatRole::EligibleOwner : NowPlayingSeatRole::CommandOnly;
-        previousSeat = NowPlayingSeat { m_remoteCommandTarget->processIdentifier(), previousRole };
-    }
-    std::optional<NowPlayingSeat> newSeat;
-    if (seatedConnection) {
-        auto newRole = eligibleOwner ? NowPlayingSeatRole::EligibleOwner : NowPlayingSeatRole::CommandOnly;
-        newSeat = NowPlayingSeat { seatedConnection->webProcessIdentifier(), newRole };
-    }
-
-    if (eligibleOwner) {
-        // Add the new owner as the client before resigning the previous one so the panel never blanks between
-        // owners (NowPlayingManager::removeClient no-ops once m_client has been replaced). This also refreshes the
-        // owner's NowPlayingInfo, so it runs even when the seat is unchanged.
-        seatedConnection->becomeNowPlayingOwner(eligibleOwner->page);
-        if (previousSeat && previousSeat->process != seatedConnection->webProcessIdentifier()) {
-            if (RefPtr previous = webProcessConnection(previousSeat->process))
-                previous->resignNowPlayingManagerClient();
-        }
-    } else if (newSeat != previousSeat) {
-        // No eligible session. Resign the previous client first so an owner->fallback transition drops the stale
-        // panel, then seat the UI process's current session (if any) as a command-only client. Skipped entirely
-        // when it is already the command-only client, so its remote-command listener is not destroyed and recreated.
-        if (previousSeat) {
-            if (RefPtr previous = webProcessConnection(previousSeat->process))
-                previous->resignNowPlayingManagerClient();
-        }
-        if (seatedConnection)
-            seatedConnection->becomeRemoteCommandFallbackTarget();
-    }
-
-    auto ownerPage = [&]() -> std::optional<QualifiedPageIdentifier> {
-        if (!eligibleOwner)
-            return std::nullopt;
-        return QualifiedPageIdentifier { eligibleOwner->page, eligibleOwner->process };
-    }();
-    auto previousOwnerPage = [&]() -> std::optional<QualifiedPageIdentifier> {
-        if (!m_activeNowPlayingOwner)
-            return std::nullopt;
-        return QualifiedPageIdentifier { m_activeNowPlayingOwner->page, m_activeNowPlayingOwner->process };
-    }();
-
-    m_activeNowPlayingOwner = eligibleOwner;
-    m_remoteCommandTarget = commandTarget;
-
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
-    // The UI process owns the per-page "is the NowPlaying session" state, so it hears the election result
-    // directly rather than through the content processes, none of which can see the whole picture.
-    if (ownerPage != previousOwnerPage)
-        protect(parentProcessConnection())->send(Messages::GPUProcessProxy::NowPlayingOwnerDidChange(ownerPage), 0);
+    std::optional<QualifiedPageIdentifier> ownerPage;
+    if (hasOwner)
+        ownerPage = QualifiedPageIdentifier { PageIdentifier { pageIdentifier }, ProcessIdentifier { processIdentifier } };
+    protect(singleton().parentProcessConnection())->send(Messages::GPUProcessProxy::NowPlayingOwnerDidChange(ownerPage), 0);
 #else
-    UNUSED_VARIABLE(ownerPage);
-    UNUSED_VARIABLE(previousOwnerPage);
+    UNUSED_PARAM(hasOwner);
+    UNUSED_PARAM(pageIdentifier);
+    UNUSED_PARAM(processIdentifier);
 #endif
-}
-
-void GPUProcess::setNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session)
-{
-    m_nowPlayingFallbackSession = session;
-
-    // The fallback is only consulted when the election has no eligible owner, and every change to the candidates
-    // recomputes on its own, so an owner means this cannot change the outcome.
-    if (m_activeNowPlayingOwner)
-        return;
-
-    recomputeNowPlayingOwner();
-}
-
-void GPUProcess::withdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page)
-{
-    // Sent by the UI process when a page commits a new main-frame load. The page re-enters the election on
-    // its next candidate push if it still has an eligible session.
-    if (RefPtr connection = webProcessConnection(page.processIdentifier()))
-        connection->clearNowPlayingInfoForPage(page.object());
-}
-
-void GPUProcess::nowPlayingClientDidClose(WebCore::ProcessIdentifier process)
-{
-    if (m_nowPlayingFallbackSession && m_nowPlayingFallbackSession->processIdentifier() == process)
-        m_nowPlayingFallbackSession = std::nullopt;
-    if (m_remoteCommandTarget && m_remoteCommandTarget->processIdentifier() == process)
-        m_remoteCommandTarget = std::nullopt;
-
-    recomputeNowPlayingOwner();
-}
-
-std::optional<MediaSessionIdentifier> GPUProcess::remoteCommandTargetSessionInProcess(ProcessIdentifier process) const
-{
-    if (!m_remoteCommandTarget)
-        return std::nullopt;
-
-    // The caller is the NowPlayingManager client, which is always the target's own process; the bare
-    // MediaSessionIdentifier is only meaningful there.
-    ASSERT(m_remoteCommandTarget->processIdentifier() == process);
-    if (m_remoteCommandTarget->processIdentifier() != process) {
-        RELEASE_LOG_ERROR(Media, "GPUProcess::remoteCommandTargetSessionInProcess: command target belongs to another process; delivering nothing rather than a cross-process identifier");
-        return std::nullopt;
-    }
-
-    return m_remoteCommandTarget->object();
 }
 
 void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)
@@ -646,153 +427,120 @@ void GPUProcess::removeTransferredImageBuffersForProcess(WebCore::ProcessIdentif
     });
 }
 
-// Long enough for any frame whose process is responsive. One whose process is not, or went away
-// before connecting here, draws nothing rather than holding up whoever is waiting for the snapshot.
-static constexpr Seconds snapshotDeadline = 10_s;
-
-Ref<RemoteSnapshot> GPUProcess::ensureSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, std::optional<FrameIdentifier> rootFrameIdentifier)
-{
-    RefPtr<RemoteSnapshot> snapshot;
-    bool isNewEntry = false;
-    {
-        Locker locker(m_globalResourceLocker);
-        auto result = m_snapshots.ensure(snapshotIdentifier, [&] {
-            return RemoteSnapshot::create(rootFrameIdentifier);
-        });
-        snapshot = result.iterator->value.ptr();
-        isNewEntry = result.isNewEntry;
-    }
-    // Only one frame can be the root.
-    if (snapshot->rootFrameIdentifier() != rootFrameIdentifier)
-        snapshot->fail();
-    if (isNewEntry) {
-        // Identifiers are never reused, so finding one when the deadline comes means it is this snapshot.
-        callOnMainRunLoop([snapshotIdentifier] {
-            RunLoop::mainSingleton().dispatchAfter(snapshotDeadline, [snapshotIdentifier] {
-                GPUProcess::singleton().snapshotDeadlineExpired(snapshotIdentifier);
-            });
-        });
-    }
-    return snapshot.releaseNonNull();
-}
-
-void GPUProcess::snapshotDeadlineExpired(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    RefPtr snapshot = this->snapshot(snapshotIdentifier);
-    if (!snapshot)
-        return;
-    bool isAwaited = snapshot->isAwaited();
-    snapshot->abandonUnresolvedFrames();
-    // Whoever is waiting takes it now. Anything else is not coming for it, such as a root whose
-    // process went away after the snapshot was released, or a GPU process that was relaunched under
-    // whoever asked for it.
-    if (!isAwaited || snapshot->hasFailed())
-        releaseSnapshot(snapshotIdentifier);
-}
-
 void GPUProcess::createSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier rootFrameIdentifier, const FloatSize& size, ProcessIdentifier rootProcessIdentifier)
 {
-    // May already exist, if whoever draws it asked first.
-    Ref snapshot = ensureSnapshot(snapshotIdentifier, rootFrameIdentifier);
-    snapshot->setSize(size);
-    snapshot->setFrameOwner(rootFrameIdentifier, rootProcessIdentifier);
+    swiftCreateSnapshot(snapshotKey(snapshotIdentifier), rootFrameIdentifier, size, rootProcessIdentifier);
 }
 
 void GPUProcess::failSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
 {
-    // Created failed if it does not exist yet, so that whoever asks to draw it afterwards does not
-    // wait for it.
-    ensureSnapshot(snapshotIdentifier, std::nullopt)->fail();
-}
-
-Ref<RemoteSnapshot> GPUProcess::snapshotForRecorder(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        return snapshot.releaseNonNull();
-    // Already released, so let the recorder fill a snapshot that is dropped with it.
-    return RemoteSnapshot::create(std::nullopt);
-}
-
-RefPtr<RemoteSnapshot> GPUProcess::snapshot(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    Locker locker(m_globalResourceLocker);
-    return m_snapshots.get(snapshotIdentifier);
+    swiftFailSnapshot(snapshotKey(snapshotIdentifier));
 }
 
 void GPUProcess::abandonSnapshotFrame(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameIdentifier)
 {
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        snapshot->abandonFrame(frameIdentifier);
+    swiftAbandonSnapshotFrame(snapshotKey(snapshotIdentifier), frameIdentifier);
 }
 
 void GPUProcess::snapshotFrameWillBeDrawnByProcess(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameIdentifier, ProcessIdentifier processIdentifier)
 {
-    // A process that has not connected yet may still do so to record the frame, so only its
-    // going away abandons the frame. The UI process says so if it has not connected by then.
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        snapshot->setFrameOwner(frameIdentifier, processIdentifier);
+    swiftSnapshotFrameWillBeDrawnByProcess(snapshotKey(snapshotIdentifier), frameIdentifier, processIdentifier);
 }
 
 void GPUProcess::abandonSnapshotFramesOwnedBy(ProcessIdentifier processIdentifier)
 {
-    Vector<Ref<RemoteSnapshot>> snapshots;
-    {
-        Locker locker(m_globalResourceLocker);
-        snapshots = copyToVector(m_snapshots.values());
-    }
-    for (Ref snapshot : snapshots)
-        snapshot->abandonFramesOwnedBy(processIdentifier);
+    swiftAbandonSnapshotFramesOwnedBy(processIdentifier);
 }
 
-void GPUProcess::takeSnapshotWhenComplete(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<RemoteSnapshot>&&)>&& completionHandler)
+void GPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
 {
-    // May be asked for before its root has created it, since the UI process asks as soon as it
-    // has asked for the root. Anything that went wrong since is reported as failure.
-    Ref snapshot = ensureSnapshot(identifier, rootFrameIdentifier);
-    snapshot->whenComplete([identifier, snapshot, completionHandler = WTF::move(completionHandler)](bool success) mutable {
-        {
-            Ref gpuProcess = GPUProcess::singleton();
-            Locker locker(gpuProcess->m_globalResourceLocker);
-            auto iterator = gpuProcess->m_snapshots.find(identifier);
-            if (iterator != gpuProcess->m_snapshots.end() && iterator->value.ptr() == snapshot.ptr())
-                gpuProcess->m_snapshots.remove(iterator);
-        }
-        completionHandler(success ? RefPtr { WTF::move(snapshot) } : nullptr);
-    });
+    swiftReleaseSnapshot(snapshotKey(identifier));
 }
+
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+static RemoteSnapshotIdentifier snapshotIdentifier(RemoteSnapshotKey key)
+{
+    auto uuid = WTF::UUID::tryCreate(key.high, key.low);
+    RELEASE_ASSERT(uuid);
+    return { *uuid, ProcessIdentifier(key.process) };
+}
+
+Ref<RemoteSnapshotDisplayLists> GPUProcess::snapshotDisplayLists(const RemoteSnapshotIdentifier& identifier, std::optional<uint64_t> token)
+{
+    Ref gpuProcess = singleton();
+    Locker locker(gpuProcess->m_globalResourceLocker);
+    RefPtr displayLists = gpuProcess->m_snapshotDisplayLists.get(identifier);
+    if (displayLists && (!token || displayLists->token() == *token))
+        return displayLists.releaseNonNull();
+    return RemoteSnapshotDisplayLists::create();
+}
+
+uint64_t GPUProcess::createSnapshotDisplayLists(RemoteSnapshotKey key)
+{
+    Ref gpuProcess = singleton();
+    Ref displayLists = RemoteSnapshotDisplayLists::create();
+    auto token = displayLists->token();
+    Locker locker(gpuProcess->m_globalResourceLocker);
+    gpuProcess->m_snapshotDisplayLists.set(snapshotIdentifier(key), WTF::move(displayLists));
+    return token;
+}
+
+void GPUProcess::forgetSnapshotDisplayLists(RemoteSnapshotKey key)
+{
+    RefPtr<RemoteSnapshotDisplayLists> displayLists;
+    {
+        Ref gpuProcess = singleton();
+        Locker locker(gpuProcess->m_globalResourceLocker);
+        displayLists = gpuProcess->m_snapshotDisplayLists.take(snapshotIdentifier(key));
+    }
+}
+
+void GPUProcess::abandonSnapshotDisplayList(RemoteSnapshotKey key, uint64_t frameKey)
+{
+    snapshotDisplayLists(snapshotIdentifier(key))->abandonFrame(FrameIdentifier(frameKey));
+}
+
+void GPUProcess::addSnapshotFrameReference(const RemoteSnapshotIdentifier& identifier, FrameIdentifier frameIdentifier, uint64_t displayListsToken)
+{
+    swiftAddSnapshotFrameReference(snapshotKey(identifier), frameIdentifier, displayListsToken);
+}
+
+void GPUProcess::snapshotFrameWasRecorded(const RemoteSnapshotIdentifier& identifier, FrameIdentifier frameIdentifier, uint64_t displayListsToken)
+{
+    swiftSnapshotFrameWasRecorded(snapshotKey(identifier), frameIdentifier, displayListsToken);
+}
+
+#endif
 
 #if PLATFORM(COCOA)
 
 void GPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, std::optional<ProcessIdentifier> printProcessIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [rootFrameIdentifier, printProcessIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [printProcessIdentifier, completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        if (!sink) {
             completionHandler({ });
             return;
         }
-        RemoteSnapshotPDFDrawingTask::create(snapshot.releaseNonNull(), rootFrameIdentifier, WTF::move(completionHandler))->start(printProcessIdentifier);
-    });
+        RemoteSnapshotPDFDrawingTask::create(*sink, WTF::move(completionHandler))->start(printProcessIdentifier);
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #endif
 
 void GPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [rootFrameIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
-            completionHandler({ });
-            return;
-        }
-        completionHandler(snapshot->drawToBitmap(snapshot->size(), rootFrameIdentifier));
-    });
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        completionHandler(sink ? sink->drawToBitmap() : std::nullopt);
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #if HAVE(IOSURFACE)
 
 void GPUProcess::sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier identifier, float scale, const ColorSpace& colorSpace, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<ImageBufferBackendHandle>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [identifier, scale, colorSpace, rootFrameIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [identifier, scale, colorSpace, completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        if (!sink) {
             completionHandler({ });
             return;
         }
@@ -806,72 +554,26 @@ void GPUProcess::sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier ident
 #if USE(APPLE_INTERNAL_SDK)
         useIOSurfaceWebKitBehavior = connection->sharedPreferencesForWebProcessValue().useIOSurfaceWebKitBehavior;
 #endif
-        completionHandler(snapshot->drawToIOSurface(snapshot->size(), scale, colorSpace, rootFrameIdentifier, connection->webProcessIdentity(), useIOSurfaceWebKitBehavior));
-    });
+        completionHandler(sink->drawToIOSurface(scale, colorSpace, connection->webProcessIdentity(), useIOSurfaceWebKitBehavior));
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #endif
 
-void GPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
-{
-    // Currently it's not possible to know if a snapshot exists, hence no ASSERT.
-    RefPtr<RemoteSnapshot> snapshot;
-    {
-        Locker locker(m_globalResourceLocker);
-        snapshot = m_snapshots.take(identifier);
-    }
-    // Anything still waiting for it would otherwise wait for frames that will never be asked for.
-    if (snapshot)
-        snapshot->fail();
-}
-
 void GPUProcess::waitForSnapshot(RemoteSnapshotIdentifier identifier, CompletionHandler<void()>&& completionHandler)
 {
-    // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
-    RefPtr snapshot = this->snapshot(identifier);
-    if (!snapshot) {
-        completionHandler();
-        return;
-    }
-    // After the sink waiting for it, so that its reply is sent first.
-    snapshot->whenComplete([completionHandler = WTF::move(completionHandler)](bool) mutable {
+    Ref wait = RemoteSnapshotSink::create(identifier, std::nullopt, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink*) mutable {
         completionHandler();
     });
-}
-
-void GPUProcess::removeSnapshotsForProcess(WebCore::ProcessIdentifier processIdentifier)
-{
-    // Only the minting process can ask for a snapshot to be drawn.
-    Vector<Ref<RemoteSnapshot>> snapshots;
-    {
-        Locker locker(m_globalResourceLocker);
-        m_snapshots.removeIf([&](auto& entry) {
-            if (entry.key.processIdentifier() != processIdentifier)
-                return false;
-            snapshots.append(entry.value);
-            return true;
-        });
-    }
-    for (Ref snapshot : snapshots)
-        snapshot->fail();
+    // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
+    if (!wait->swiftWaitForSnapshot())
+        wait->completeWithoutSnapshot();
 }
 
 #if ENABLE(MEDIA_STREAM)
 void GPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
 {
     WebCore::MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled(isEnabled);
-}
-
-void GPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientation)
-{
-    m_orientation = orientation;
-
-#if PLATFORM(COCOA)
-    swiftSetCapturePreviewOrientation(orientation);
-#endif
-
-    for (auto& connection : m_webProcessConnections.values())
-        connection->setOrientationForMediaCapture(orientation);
 }
 
 void GPUProcess::enableMicrophoneMuteStatusAPI()
@@ -882,15 +584,6 @@ void GPUProcess::enableMicrophoneMuteStatusAPI()
             protect(process->parentProcessConnection())->send(Messages::GPUProcessProxy::MicrophoneMuteStatusChanged(isMuting), 0);
     });
 #endif
-}
-
-void GPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
-{
-#if PLATFORM(COCOA)
-    swiftCapturePreviewRotationChanged(persistentId, static_cast<uint16_t>(rotation));
-#endif
-    for (auto& connection : m_webProcessConnections.values())
-        connection->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
 }
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
@@ -1109,28 +802,6 @@ void GPUProcess::stopCapturePreviewManager()
 }
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
-void GPUProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier processID, CompletionHandler<void()>&& completionHandler)
-{
-    RELEASE_LOG(WebRTC, "GPUProcess::updateCaptureAccess: Entering (audio=%d, video=%d, display=%d, echoCancellation=%d)", allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation);
-
-#if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    ensureAVCaptureServerConnection();
-#endif
-
-    if (RefPtr connection = webProcessConnection(processID)) {
-        connection->updateCaptureAccess(allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation);
-        return completionHandler();
-    }
-
-    auto& access = m_mediaCaptureAccessMap.add(processID, MediaCaptureAccess { allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation }).iterator->value;
-    access.allowAudioCapture |= allowAudioCapture;
-    access.allowVideoCapture |= allowVideoCapture;
-    access.allowDisplayCapture |= allowDisplayCapture;
-    access.willUseEchoCancellation = willUseEchoCancellation;
-
-    completionHandler();
-}
-
 void GPUProcess::updateCaptureOrigin(const WebCore::SecurityOriginData& originData, WebCore::ProcessIdentifier processID)
 {
     if (RefPtr connection = webProcessConnection(processID))
@@ -1285,11 +956,6 @@ WorkQueue& GPUProcess::libWebRTCCodecsQueue()
 void GPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     completionHandler(GPUConnectionToWebProcess::objectCountForTesting());
-}
-
-void GPUProcess::runDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>>&& webFonts, CompletionHandler<void(std::optional<Vector<String>>&&)>&& completionHandler)
-{
-    completionHandler(testDisplayListData(webFonts));
 }
 
 #if PLATFORM(COCOA)

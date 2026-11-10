@@ -1,0 +1,98 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver decodes paths as C++ does, into the CGPath and facts that the CG renderer takes.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, 1000, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+// Resolves with the reply, or with null if the message was not handled.
+function send(messageName, args)
+{
+    return new Promise(resolve => {
+        IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, messageName, args, result => resolve(result?.arguments ? result : null));
+    });
+}
+
+// Sends each case to the Swift and the C++ describer at once, and resolves with their descriptions, null where a message was
+// not handled.
+async function describeAll(swiftMessageName, cxxMessageName, cases)
+{
+    const description = result => result ? result.arguments[0].value : null;
+    const results = await Promise.all(cases.map(([, args]) => Promise.all([send(swiftMessageName, args), send(cxxMessageName, args)])));
+    takeInvalidMessageString();
+    return results.map(([swift, cxx]) => [description(swift), description(cxx)]);
+}
+
+const u8 = value => ({ type: 'uint8_t', value });
+const u64 = value => ({ type: 'uint64_t', value });
+const f = value => ({ type: 'float', value });
+const b = value => ({ type: 'bool', value });
+const floats = values => values.map(f);
+
+// A Path: the count of its segments, then each PathSegment, as its Variant's index and the alternative's members.
+const path = segments => [u64(segments.length), ...segments.flat()];
+const segment = (index, ...members) => [u8(index), ...members];
+
+const moveTo = (x, y) => segment(0, ...floats([x, y]));
+const lineTo = (x, y) => segment(1, ...floats([x, y]));
+const quadCurveTo = segment(2, ...floats([1, 2, 3, 4]));
+const bezierCurveTo = segment(3, ...floats([1, 2, 3, 4, 5, 6]));
+const arcTo = segment(4, ...floats([1, 2, 3, 4, 5]));
+const arc = (x, y, direction = 1) => segment(5, ...floats([x, y, 10, 0, 1.5]), b(direction));
+const closedArc = (direction = 0) => segment(6, ...floats([5, 6, 10, 0.5, 3]), b(direction));
+const ellipse = (direction = 1) => segment(7, ...floats([5, 6, 10, 20, 0.25, 0, 6]), b(direction));
+const ellipseInRect = segment(8, ...floats([1, 2, 30, 40]));
+const rect = segment(9, ...floats([1, 2, 30, 40]));
+const roundedRect = (strategy = 0) => segment(10, ...floats([1, 2, 30, 40, 1, 2, 3, 4, 5, 6, 7, 8]), u8(strategy));
+const continuousRoundedRect = segment(11, ...floats([1, 2, 30, 40, 5, 6]));
+const dataLine = segment(12, ...floats([1, 2, 3, 4]));
+const dataQuadCurve = segment(13, ...floats([1, 2, 3, 4, 5, 6]));
+const dataBezierCurve = segment(14, ...floats([1, 2, 3, 4, 5, 6, 7, 8]));
+const dataArc = segment(15, ...floats([1, 2, 3, 4, 5, 6, 7]));
+const closeSubpath = segment(16);
+
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []).arguments[0].value;
+    takeInvalidMessageString();
+    try {
+        const each = [moveTo(1, 2), lineTo(3, 4), quadCurveTo, bezierCurveTo, arcTo, arc(5, 6), arc(5, 6, 0), closedArc(), closedArc(1), ellipse(), ellipse(0),
+            ellipseInRect, rect, roundedRect(), roundedRect(1), continuousRoundedRect, dataLine, dataQuadCurve, dataBezierCurve, dataArc, closeSubpath];
+        const cases = [['an empty path', path([])]];
+        each.forEach((s, i) => cases.push([`segment ${i}`, path([s])]));
+        cases.push(['every segment', path(each)]);
+        cases.push(['a pie wedge', path([moveTo(5, 6), arc(5, 6), lineTo(5, 6)])]);
+        cases.push(['an almost pie wedge', path([moveTo(5, 6), arc(5, 6), lineTo(5, 7)])]);
+        cases.push(['a curve whose control points lie outside it, and a move to after it', path([moveTo(0, 0), segment(3, ...floats([-50, 100, 150, 100, 100, 0])), moveTo(300, 300)])]);
+        cases.push(['a leading arc, clipped out as a PathCG is', path([arc(30, 30), lineTo(50, 50)])]);
+        cases.push(['a leading curve, clipped out as a PathCG is', path([segment(3, ...floats([10, 50, 50, 50, 60, 10])), lineTo(10, 60)])]);
+        cases.push(['values that are not numbers', path([segment(0, ...floats([NaN, -0])), segment(1, ...floats([Infinity, -Infinity]))])]);
+        cases.push(['an unknown segment', path([moveTo(1, 2), segment(17, ...floats([1, 2]))])]);
+        cases.push(['a direction that is not a bool', path([segment(5, ...floats([1, 2, 3, 4, 5]), u8(2))])]);
+        cases.push(['an unknown rounded rect strategy', path([roundedRect(2)])]);
+        cases.push(['a segment cut short', path([moveTo(1, 2), segment(3, ...floats([1, 2, 3]))])]);
+        cases.push(['a count beyond the segments', [u64(3), ...moveTo(1, 2)]]);
+
+        let accepted = 0;
+        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribePathSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedPathSwift.name, cases);
+        cases.forEach(([description], i) => {
+            const [swift, cxx] = descriptions[i];
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+            if (swift !== null)
+                ++accepted;
+        });
+        assert_equals(accepted, each.length + 8, 'The valid paths are accepted');
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+    done();
+}, "A Swift receiver decodes paths as C++ does, into the CGPath and facts that the CG renderer takes, and rejects what C++ rejects.");
+</script>
+</body>

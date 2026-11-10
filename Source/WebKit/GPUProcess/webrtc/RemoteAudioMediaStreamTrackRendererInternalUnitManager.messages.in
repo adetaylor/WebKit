@@ -27,7 +27,7 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=UseGPUProcessForMediaEnabled,
-    SwiftImplementation,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteAudioMediaStreamTrackRendererInternalUnitManager {
@@ -36,8 +36,6 @@ messages -> RemoteAudioMediaStreamTrackRendererInternalUnitManager {
 
     StartUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle, IPC::Semaphore renderSemaphore) SwiftSyncHandler
     StopUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier) SwiftSyncHandler
-
-    SetLastDeviceUsed(String deviceID) CxxTypes
 }
 
 #endif

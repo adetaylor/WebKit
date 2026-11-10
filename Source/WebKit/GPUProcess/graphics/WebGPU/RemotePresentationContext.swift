@@ -49,7 +49,7 @@ final class RemotePresentationContext {
         }
         let receiver = RemotePresentationContext(presentationContext, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemotePresentationContext,
             link.identifier

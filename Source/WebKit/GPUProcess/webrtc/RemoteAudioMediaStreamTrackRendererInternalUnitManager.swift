@@ -40,7 +40,7 @@ private let renderQuantumSize: UInt64 = 128
 @MainActor
 private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
     private let identifier: UInt64
-    private weak var state: RemoteAudioTrackUnitsState?
+    private weak var manager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
     private let playout = TrackPlayout()
     private let localUnit: TrackRendererUnit
     private let canUseCaptureUnit: Bool
@@ -50,9 +50,9 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
     private var shouldRegisterAsSpeakerSamplesProducer = false
     private var canReset = true
 
-    init(identifier: UInt64, state: RemoteAudioTrackUnitsState, deviceID: String) {
+    init(identifier: UInt64, manager: RemoteAudioMediaStreamTrackRendererInternalUnitManager, deviceID: String) {
         self.identifier = identifier
-        self.state = state
+        self.manager = manager
         localUnit = TrackRendererUnit(playing: playout)
         canUseCaptureUnit = TrackRendererUnit.isDefaultDevice(deviceID)
         localUnit.setDevice(persistentID: deviceID)
@@ -76,12 +76,8 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
         playout.attach(ring: nil, semaphore: nil, frameChunkSize: 0, bytesPerFrame: 0)
     }
 
-    private var manager: WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager? {
-        state?.manager
-    }
-
     private func computeShouldRegisterAsSpeakerSamplesProducer() -> Bool {
-        canUseCaptureUnit && (manager?.isLastToCaptureAudio() ?? false) && AudioCaptureSpeaker.shouldCaptureUnitRenderAudio
+        canUseCaptureUnit && (manager?.isLastToCaptureAudio ?? false) && AudioCaptureSpeaker.shouldCaptureUnitRenderAudio
     }
 
     private func reset() {
@@ -124,9 +120,10 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
             return
         }
         // Safety: the port is the right that the message's handle carries and owns.
-        let ring = unsafe SharedMemoryMapping(port: storageHandle.memory.port, size: storageHandle.memory.size, writable: false).flatMap {
-            SharedAudioRing(memory: $0, format: format, frameCount: storageHandle.frameCount)
-        }
+        let ring = unsafe SharedMemoryMapping(port: storageHandle.memory.port, size: storageHandle.memory.size, writable: false)
+            .flatMap {
+                SharedAudioRing(memory: $0, format: format, frameCount: storageHandle.frameCount)
+            }
         guard let ring else {
             return
         }
@@ -142,7 +139,8 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
 
         if shouldRegisterAsSpeakerSamplesProducer {
             AudioCaptureSpeaker.register(self)
-            let shouldNotStartLocalUnit = AudioCaptureSpeaker.shouldCaptureUnitRenderAudio || (manager?.isAudioSessionInterrupted() ?? false)
+            let shouldNotStartLocalUnit =
+                AudioCaptureSpeaker.shouldCaptureUnitRenderAudio || WebKit.GPUConnectionToWebProcess.isAudioSessionInterrupted()
             if shouldNotStartLocalUnit {
                 return
             }
@@ -167,7 +165,9 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
         if !isPlaying {
             return
         }
-        if shouldRegisterAsSpeakerSamplesProducer && (AudioCaptureSpeaker.isCaptureUnitRunning || AudioCaptureSpeaker.isCaptureUnitSuspended) {
+        if shouldRegisterAsSpeakerSamplesProducer
+            && (AudioCaptureSpeaker.isCaptureUnitRunning || AudioCaptureSpeaker.isCaptureUnitSuspended)
+        {
             return
         }
         localUnit.start()
@@ -210,106 +210,81 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
     }
 }
 
-// The Swift state of a RemoteAudioMediaStreamTrackRendererInternalUnitManager
-// (RemoteAudioMediaStreamTrackRendererInternalUnitManager.h): its units by identifier, and, once a unit starts, the
-// manager, until the web process's connection closes: the manager and its state keep each other alive until then.
-@MainActor
-final class RemoteAudioTrackUnitsState {
-    fileprivate var manager: WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager?
-    fileprivate var units: [UInt64: RemoteAudioTrackUnit] = [:]
+// Receives the MediaStream track renderer unit messages of one web process's connection to the GPU process, which owns it
+// (GPUConnectionState), and owns the units, which play out the rings the web process writes.
+@_expose(Cxx)
+final class RemoteAudioMediaStreamTrackRendererInternalUnitManager {
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var messageForwarder: RefRemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageForwarder?
+    // The connection, until it closes: the connection's Swift state, which the connection holds, holds this.
+    private var connection: WebKit.GPUConnectionToWebProcess?
+    private var units: [UInt64: RemoteAudioTrackUnit] = [:]
+    // Whether the connection's web process is the one that most recently started capturing audio.
+    @_expose(!Cxx)
+    private(set) var isLastToCaptureAudio = false
 
-    fileprivate nonisolated init() {
+    @_expose(!Cxx)
+    init(connection: WebKit.GPUConnectionToWebProcess) {
+        self.connection = connection
+        self.messageForwarder = WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageForwarder.create(target: self)
     }
 
-    fileprivate func clear() {
-        manager = nil
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageForwarder {
+        guard let messageForwarder = self.messageForwarder else {
+            fatalError("Unreachable - guaranteed to exist")
+        }
+        return messageForwarder
     }
 
-    fileprivate func invalidate() {
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        // The connection dispatches the receiver's messages on the main thread, which alone changes `connection`.
+        MainActor.preconditionIsolated()
+        guard let connection else {
+            return WebKit.OptionalSharedPreferencesForWebProcess()
+        }
+        return connection.sharedPreferencesForWebProcess()
+    }
+
+    // Asks the web process to reset the unit, whose timeline jumped.
+    @MainActor
+    fileprivate func resetUnit(_ identifier: UInt64) {
+        connection?.resetAudioMediaStreamTrackRendererInternalUnit(identifier)
+    }
+
+    // The units stop rendering, before they go with the connection.
+    @_expose(!Cxx)
+    @MainActor
+    func invalidate() {
         for unit in units.values {
             unit.invalidate()
         }
         units.removeAll()
     }
-}
 
-extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
-    @cxx
-    @implementation
-    func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteAudioTrackUnitsState()).toOpaque())
-    }
-
-    @cxx
-    @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        let state = unsafe Unmanaged<RemoteAudioTrackUnitsState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
-        MainActor.assumeIsolated {
-            state.invalidate()
+    @_expose(!Cxx)
+    @MainActor
+    func setIsLastToCaptureAudio(_ isLastToCaptureAudio: Bool) {
+        self.isLastToCaptureAudio = isLastToCaptureAudio
+        for unit in units.values {
+            unit.updateShouldRegisterAsSpeakerSamplesProducer()
         }
     }
 
-    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("The manager has no Swift state")
-        }
-        return unsafe address
-    }
-
-    private var state: RemoteAudioTrackUnitsState {
-        // Safety: m_swiftState is a retained RemoteAudioTrackUnitsState from the constructor to the destructor, and nothing
-        // else changes it.
-        unsafe Unmanaged<RemoteAudioTrackUnitsState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
-    }
-
-    @cxx
-    @implementation
-    func clear() {
-        let state = state
-        MainActor.assumeIsolated {
-            state.clear()
+    @_expose(!Cxx)
+    @MainActor
+    func beginAudioSessionInterruption() {
+        for unit in units.values {
+            unit.beginAudioSessionInterruption()
         }
     }
 
-    @cxx
-    @implementation
-    func hasUnits() -> Bool {
-        let state = state
-        return MainActor.assumeIsolated {
-            !state.units.isEmpty
-        }
-    }
-
-    @cxx
-    @implementation
-    func notifyLastToCaptureAudioChanged() {
-        let state = state
-        MainActor.assumeIsolated {
-            for unit in state.units.values {
-                unit.updateShouldRegisterAsSpeakerSamplesProducer()
-            }
-        }
-    }
-
-    @cxx
-    @implementation
-    func swiftBeginAudioSessionInterruption() {
-        let state = state
-        MainActor.assumeIsolated {
-            for unit in state.units.values {
-                unit.beginAudioSessionInterruption()
-            }
-        }
-    }
-
-    @cxx
-    @implementation
-    func swiftEndAudioSessionInterruption() {
-        let state = state
-        MainActor.assumeIsolated {
-            for unit in state.units.values {
-                unit.endAudioSessionInterruption()
-            }
+    @_expose(!Cxx)
+    @MainActor
+    func endAudioSessionInterruption() {
+        for unit in units.values {
+            unit.endAudioSessionInterruption()
         }
     }
 
@@ -321,11 +296,10 @@ extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
         identifier: IPCTypes.AudioMediaStreamTrackRendererInternalUnitIdentifier,
         deviceID: String?
     ) -> (description: IPCTypes.CAAudioStreamDescription?, frameChunkSize: UInt64) {
-        let state = state
-        let unit = RemoteAudioTrackUnit(identifier: identifier.rawValue, state: state, deviceID: deviceID ?? "")
-        assert(state.units[identifier.rawValue] == nil)
-        if state.units[identifier.rawValue] == nil {
-            state.units[identifier.rawValue] = unit
+        let unit = RemoteAudioTrackUnit(identifier: identifier.rawValue, manager: self, deviceID: deviceID ?? "")
+        assert(units[identifier.rawValue] == nil)
+        if units[identifier.rawValue] == nil {
+            units[identifier.rawValue] = unit
         }
         guard let format = unit.format else {
             trackUnitLog.log("RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit unable to get format description")
@@ -336,13 +310,12 @@ extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
 
     @MainActor
     func deleteUnit(connection: IPC.Connection, identifier: IPCTypes.AudioMediaStreamTrackRendererInternalUnitIdentifier) {
-        let state = state
-        guard let unit = state.units.removeValue(forKey: identifier.rawValue) else {
+        guard let unit = units.removeValue(forKey: identifier.rawValue) else {
             return
         }
         unit.invalidate()
-        if state.units.isEmpty {
-            tryExitIfUnusedAndUnderMemoryPressure()
+        if units.isEmpty {
+            self.connection?.tryExitIfUnusedAndUnderMemoryPressure()
         }
     }
 
@@ -353,18 +326,27 @@ extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
         storageHandle: borrowing IPCTypes.ConsumerSharedCARingBufferHandle,
         renderSemaphore: consuming IPCTypes.Semaphore
     ) {
-        let state = state
-        guard let unit = state.units[identifier.rawValue] else {
-            return
-        }
-        // What a playing unit asks its web process's connection, and the resets it sends.
-        state.manager = self
-        unit.start(storageHandle, renderSemaphore)
+        units[identifier.rawValue]?.start(storageHandle, renderSemaphore)
     }
 
     @MainActor
     func stopUnit(connection: IPC.Connection, identifier: IPCTypes.AudioMediaStreamTrackRendererInternalUnitIdentifier) {
-        state.units[identifier.rawValue]?.stop()
+        units[identifier.rawValue]?.stop()
+    }
+}
+
+extension RemoteAudioMediaStreamTrackRendererInternalUnitManager: GPUConnectionReceiver {
+    @_expose(!Cxx)
+    @MainActor
+    var allowsExitUnderMemoryPressure: Bool {
+        units.isEmpty
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func connectionDidClose() {
+        connection = nil
+        isLastToCaptureAudio = false
     }
 }
 

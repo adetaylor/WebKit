@@ -26,6 +26,7 @@
 #import "config.h"
 #import "GraphicsContext.h"
 
+#import "CGRendererSPI.h"
 #import "DisplayListRecorder.h"
 #import "Font.h"
 #import "GraphicsContextCG.h"
@@ -71,12 +72,21 @@ namespace WebCore {
 // NSColor, NSBezierPath, and NSGraphicsContext calls do not raise exceptions
 // so we don't block exceptions.
 
-void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& color, float zoomFactor)
+void GraphicsContextCG::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
 {
     CAPTURE(unsupported("drawFocusRing"_s));
-    if (path.isEmpty())
-        return;
+    Path path;
+    for (const auto& rect : rects)
+        path.addRect(rect);
+    drawFocusRing(path, outlineWidth, color, zoomFactor);
+}
 
+#undef CAPTURE
+
+} // namespace WebCore
+
+CGStyleRef CGRendererCreateFocusRingStyle(CGColorRef color, CGFloat radiusScale)
+{
     CGFocusRingStyle focusRingStyle;
 #if USE(APPKIT)
     NSInitializeCGFocusRingStyleForTime(NSFocusRingOnly, &focusRingStyle, std::numeric_limits<double>::max());
@@ -90,110 +100,13 @@ void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& colo
     focusRingStyle.bounds = CGRectZero;
 #endif
 
-    // zoomFactor covers CSS zoom / page zoom (Cmd+/-). ctmScale covers page scale (pinch-to-zoom), canvas transforms, etc.
-    RetainPtr platformContext = this->platformContext();
-    auto ctmScale = singularValue(getUserToBaseCTM(platformContext), SingularValueSelection::Largest);
-    if (ctmScale <= 0)
-        ctmScale = 1.0f;
-    focusRingStyle.radius *= zoomFactor * ctmScale;
+    // radiusScale covers CSS zoom / page zoom (Cmd+/-), and page scale (pinch-to-zoom), canvas transforms and so on.
+    focusRingStyle.radius *= radiusScale;
 
     // We want to respect the CGContext clipping and also not overpaint any
     // existing focus ring. The way to do this is set accumulate to
     // -1. According to CoreGraphics, the reasoning for this behavior has been
     // lost in time.
     focusRingStyle.accumulate = -1;
-    auto style = adoptCF(CGStyleCreateFocusRingWithColor(&focusRingStyle, cachedCGColor(color).get()));
-
-    CGContextStateSaver stateSaver(platformContext);
-
-    CGContextSetStyle(platformContext, style.get());
-    CGContextBeginPath(platformContext);
-    CGContextAddPath(platformContext, protect(path.platformPath()));
-
-    CGContextFillPath(platformContext);
-}
-
-void GraphicsContextCG::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
-{
-    CAPTURE(unsupported("drawFocusRing"_s));
-    Path path;
-    for (const auto& rect : rects)
-        path.addRect(rect);
-    drawFocusRing(path, outlineWidth, color, zoomFactor);
-}
-
-static inline void drawDotsForDocumentMarker(CGContextRef context, const FloatRect& rect, DocumentMarkerLineStyle style)
-{
-    // We want to find the number of full dots, so we're solving the equations:
-    // dotDiameter = height
-    // dotDiameter / dotGap = 13.247 / 9.457
-    // numberOfGaps = numberOfDots - 1
-    // dotDiameter * numberOfDots + dotGap * numberOfGaps = width
-
-    auto width = rect.width();
-    auto dotDiameter = rect.height();
-    auto dotGap = dotDiameter * 9.457 / 13.247;
-    auto numberOfDots = (width + dotGap) / (dotDiameter + dotGap);
-    auto numberOfWholeDots = static_cast<unsigned>(numberOfDots);
-    auto numberOfWholeGaps = numberOfWholeDots - 1;
-
-    // Center the dots
-    auto offset = (width - (dotDiameter * numberOfWholeDots + dotGap * numberOfWholeGaps)) / 2;
-
-    CGContextStateSaver stateSaver { context };
-    CGContextSetFillColorWithColor(context, cachedCGColor(style.color).get());
-    for (unsigned i = 0; i < numberOfWholeDots; ++i) {
-        auto location = rect.location();
-        location.move(offset + i * (dotDiameter + dotGap), 0);
-        auto size = FloatSize(dotDiameter, dotDiameter);
-        CGContextAddEllipseInRect(context, FloatRect(location, size));
-    }
-    CGContextSetCompositeOperation(context, kCGCompositeSover);
-    CGContextFillPath(context);
-}
-
-#if HAVE(AUTOCORRECTION_ENHANCEMENTS)
-
-static inline void drawRoundedRectForDocumentMarker(CGContextRef context, const FloatRect& rect, DocumentMarkerLineStyle style)
-{
-    CGContextStateSaver stateSaver { context };
-    CGContextSetFillColorWithColor(context, cachedCGColor(style.color).get());
-    CGContextSetCompositeOperation(context, kCGCompositeSover);
-
-    auto radius = rect.height() / 2.0;
-    auto minX = rect.x();
-    auto maxX = rect.maxX();
-    auto minY = rect.y();
-    auto maxY = rect.maxY();
-    auto midY = std::midpoint(minY, maxY);
-
-    CGContextMoveToPoint(context, minX + radius, maxY);
-    CGContextAddArc(context, minX + radius, midY, radius, piOverTwoDouble, 3 * piOverTwoDouble, 0);
-    CGContextAddLineToPoint(context, maxX - radius, minY);
-    CGContextAddArc(context, maxX - radius, midY, radius, 3 * piOverTwoDouble, piOverTwoDouble, 0);
-    CGContextClosePath(context);
-    CGContextFillPath(context);
-}
-
-#endif
-
-void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
-{
-    CAPTURE(drawDotsForDocumentMarker(rect, style));
-    CGRendererDrawDotsForDocumentMarker(protect(this->platformContext()).get(), rect, style);
-}
-
-#undef CAPTURE
-
-} // namespace WebCore
-
-void CGRendererDrawDotsForDocumentMarker(CGContextRef context, const WebCore::FloatRect& rect, const WebCore::DocumentMarkerLineStyle& style)
-{
-#if HAVE(AUTOCORRECTION_ENHANCEMENTS)
-    if (style.mode == WebCore::DocumentMarkerLineStyleMode::AutocorrectionReplacement) {
-        WebCore::drawRoundedRectForDocumentMarker(context, rect, style);
-        return;
-    }
-#endif
-    WebCore::drawDotsForDocumentMarker(context, rect, style);
+    return CGStyleCreateFocusRingWithColor(&focusRingStyle, color);
 }

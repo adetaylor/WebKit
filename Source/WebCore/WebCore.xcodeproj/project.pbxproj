@@ -433,6 +433,9 @@
 		8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */; };
 		8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */; };
 		C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63866A9D038D86C964446936 /* VImageBridge.swift */; };
+		CC31639BAC3951C071785011 /* ShareableBitmapCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */; };
+		2F33973E80CA688DE1E8090E /* ImageBufferSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */; };
+		8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E984F4227EC94A2C317A2C1A /* IOSurface.swift */; };
 		C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */; };
 		CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */; };
 		7E38067BBE2DD5D953221F77 /* VImageBridge+Conversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */; };
@@ -2234,6 +2237,7 @@
 		B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */; };
 		B4A4B0010000000000000002 /* AVTrackPrivateAVFObjCImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */; };
 		A4C0A4C00000000000000002 /* WebCoreAVFResourceLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */; };
+		DEE095D5C54D4674A555E6F7 /* MediaPlayerPrivateAVFoundation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */; };
 		A4C0A4C00000000000000003 /* WebCoreAVFResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = CD7E05201651A84100C1201F /* WebCoreAVFResourceLoader.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B4A4A0010000000000000004 /* MediaPlayerAVFoundationHost.h in Headers */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A2B0AF1C0E5B4D7A9C3E1F02 /* AudioVideoRendererAVFObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */; };
@@ -2636,6 +2640,7 @@
 		53ED3FDF167A88E7006762E6 /* JSInternalSettingsGenerated.h in Headers */ = {isa = PBXBuildFile; fileRef = 53ED3FDD167A88E7006762E6 /* JSInternalSettingsGenerated.h */; };
 		541F1CEE88912A324F8443AB /* UnifiedSource48-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE0DF0E2DD6063156D395BC5 /* UnifiedSource48-header-RenderStyleGetters.cpp */; };
 		550640B02407587E00AAE045 /* ImageBufferCGBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BAC3AD23E1E545008D741C /* ImageBufferCGBackend.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		EDDC8D357AEEB24651766B09 /* ImageBufferSurface.h in Headers */ = {isa = PBXBuildFile; fileRef = E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		550A0BCA085F6039007353D6 /* QualifiedName.h in Headers */ = {isa = PBXBuildFile; fileRef = 550A0BC8085F6039007353D6 /* QualifiedName.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		550A0BCC085F6039007353D7 /* LocalNameWithNamespace.h in Headers */ = {isa = PBXBuildFile; fileRef = 550A0BCB085F6039007353D7 /* LocalNameWithNamespace.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5546757B1FD212A9003B10B0 /* ImageSource.h in Headers */ = {isa = PBXBuildFile; fileRef = 554675781FD1FC1A003B10B0 /* ImageSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -3365,6 +3370,7 @@
 		7BDB82542A8E037F008E54DC /* WebGLExtensionAny.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDB82532A8E0379008E54DC /* WebGLExtensionAny.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BDDA31F274FA0210038659E /* GraphicsContextGLCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BDDA34C275A01310038659E /* ProcessIdentity.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDDA349275A01300038659E /* ProcessIdentity.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A7C3E19F5B2D4E6F8A9B0C1D /* GraphicsContextGLCocoa.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */; };
 		7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */; };
 		7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7BCD42DA2705C94900EB2127 /* ANGLEUtilitiesCocoa.mm */; };
 		7BE37F7D27BB86CD007A6CD3 /* ANGLEUtilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7BCD42D8270599EF00EB2127 /* ANGLEUtilities.cpp */; };
@@ -12867,6 +12873,7 @@
 		B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerAVFoundationCore.swift; sourceTree = "<group>"; };
 		B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVTrackPrivateAVFObjCImpl.swift; sourceTree = "<group>"; };
 		A4C0A4C00000000000000001 /* WebCoreAVFResourceLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebCoreAVFResourceLoader.swift; sourceTree = "<group>"; };
+		495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerPrivateAVFoundation.swift; sourceTree = "<group>"; };
 		B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaPlayerAVFoundationHost.h; sourceTree = "<group>"; };
 		A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVideoRendererAVFObjC.swift; sourceTree = "<group>"; };
 		511AFAA52E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioVideoRendererAVFObjC.mm; sourceTree = "<group>"; };
@@ -14894,6 +14901,7 @@
 		72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferIOSurfaceBackend.h; sourceTree = "<group>"; };
 		72BAC3AC23E1E545008D741C /* ImageBufferCGBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferCGBackend.cpp; sourceTree = "<group>"; };
 		72BAC3AD23E1E545008D741C /* ImageBufferCGBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferCGBackend.h; sourceTree = "<group>"; };
+		E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageBufferSurface.h; sourceTree = "<group>"; };
 		72BB9E86295257F800842DBB /* ToggleButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ToggleButtonPart.h; sourceTree = "<group>"; };
 		72BDED0D2F8D9B1600199F64 /* ShareableCVPixelBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShareableCVPixelBuffer.h; sourceTree = "<group>"; };
 		72BDED0E2F8D9B1600199F64 /* ShareableCVPixelBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ShareableCVPixelBuffer.cpp; sourceTree = "<group>"; };
@@ -15256,6 +15264,7 @@
 		7BD9D6D32A81AB69005B1935 /* CookieChangeEventInit.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CookieChangeEventInit.idl; sourceTree = "<group>"; };
 		7BD9D6D72A81AFB3005B1935 /* CookieChangeEvent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CookieChangeEvent.cpp; sourceTree = "<group>"; };
 		7BDB82532A8E0379008E54DC /* WebGLExtensionAny.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGLExtensionAny.h; sourceTree = "<group>"; };
+		B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphicsContextGLCocoa.swift; sourceTree = "<group>"; };
 		7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphicsContextGLCocoa.mm; sourceTree = "<group>"; };
 		7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextGLCocoa.h; sourceTree = "<group>"; };
 		7BDDA349275A01300038659E /* ProcessIdentity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProcessIdentity.h; sourceTree = "<group>"; };
@@ -19407,6 +19416,9 @@
 		22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurGeometry.swift; sourceTree = "<group>"; };
 		C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurKernel.swift; sourceTree = "<group>"; };
 		63866A9D038D86C964446936 /* VImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VImageBridge.swift; sourceTree = "<group>"; };
+		845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableBitmapCG.swift; sourceTree = "<group>"; };
+		E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageBufferSurface.swift; sourceTree = "<group>"; };
+		E984F4227EC94A2C317A2C1A /* IOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSurface.swift; sourceTree = "<group>"; };
 		C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+BoxConvolve.swift"; sourceTree = "<group>"; };
 		0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+ColorMatrix.swift"; sourceTree = "<group>"; };
 		3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+Conversion.swift"; sourceTree = "<group>"; };
@@ -25125,6 +25137,7 @@
 				B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */,
 				076F0D0912B8192700C26AA4 /* MediaPlayerPrivateAVFoundation.cpp */,
 				076F0D0A12B8192700C26AA4 /* MediaPlayerPrivateAVFoundation.h */,
+				495AC11FD7674AB994016471 /* MediaPlayerPrivateAVFoundation.swift */,
 				CDBEAEAB19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h */,
 				CDBEAEAA19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.mm */,
 				41024FC823CF254F00FDF98E /* SampleBufferDisplayLayer.cpp */,
@@ -37140,6 +37153,8 @@
 				72BAC3AA23E1E544008D741C /* ImageBufferCGBitmapBackend.h */,
 				72BAC3A923E1E543008D741C /* ImageBufferIOSurfaceBackend.cpp */,
 				72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */,
+				E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */,
+				E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */,
 				555B87EA1CAAF0AB00349425 /* ImageDecoderCG.cpp */,
 				555B87EB1CAAF0AB00349425 /* ImageDecoderCG.h */,
 				F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */,
@@ -37157,6 +37172,7 @@
 				D36347EBF659AB2B00FF6C88 /* PDFDocumentBuffer.cpp */,
 				F08F41D15F611A97422E35C2 /* PDFDocumentBuffer.h */,
 				46C963C32B6C993C002F46D1 /* ShareableBitmapCG.mm */,
+				845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */,
 				B6F2010A2EAC180400BBF4AA /* ShareableSpatialImage.cpp */,
 				B6F201092EAC180400BBF4AA /* ShareableSpatialImage.h */,
 				B6D8146E2EE0C39C00397547 /* SpatialImageTypes.h */,
@@ -37792,6 +37808,7 @@
 				B277B4030B22F37C0004BEC6 /* GraphicsContextCocoa.mm */,
 				7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */,
 				7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */,
+				B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */,
 				51F084492D3E1D0700F85E0A /* H264UtilitiesCocoa.h */,
 				51F0844A2D3E1D0700F85E0A /* H264UtilitiesCocoa.mm */,
 				CDA595962146DF7800A84185 /* HEVCUtilitiesCocoa.h */,
@@ -37800,6 +37817,7 @@
 				B27535500B053814002CE64F /* IntRectCocoa.mm */,
 				2D0B4AA918DA1CCD00434DE1 /* IOSurface.h */,
 				2D0B4AAA18DA1CCD00434DE1 /* IOSurface.mm */,
+				E984F4227EC94A2C317A2C1A /* IOSurface.swift */,
 				7B66CFD22D31387D00BD6CB5 /* IOSurfaceDrawingBuffer.h */,
 				B588D918E3A23CFD5275BDE9 /* ISOBMFFPreParser.cpp */,
 				B588D917E3A23CFD5275BDE9 /* ISOBMFFPreParser.h */,
@@ -47135,6 +47153,7 @@
 				86BBA9F02987EBF300A78986 /* ImageBufferParameters.h in Headers */,
 				2D7705C7255276CD001D0C94 /* ImageBufferPlatformBackend.h in Headers */,
 				322B61152C50C26300FB5440 /* ImageBufferResourceLimits.h in Headers */,
+				EDDC8D357AEEB24651766B09 /* ImageBufferSurface.h in Headers */,
 				74D182473E2A6702BD173A73 /* ImageBufferTransferIdentifier.h in Headers */,
 				073930C32AC4E85300C1D1B1 /* ImageCapture.h in Headers */,
 				5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */,
@@ -52135,6 +52154,7 @@
 				D0E23904B8024D32A6914F54 /* CSSPropertyParserSwift.cpp in Sources */,
 				4C42D65D82E11655A2D53802 /* GraphicsContextGLANGLE.swift in Sources */,
 				7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */,
+				A7C3E19F5B2D4E6F8A9B0C1D /* GraphicsContextGLCocoa.swift in Sources */,
 				197517565C5615893EA685B3 /* H264Utilities.swift in Sources */,
 				B1416F72350D05D960F8308D /* HEVCBitstreamParser.swift in Sources */,
 				B0A964DA066DB62E57C49C40 /* HEVCCodecStrings.swift in Sources */,
@@ -52154,11 +52174,13 @@
 				0E7A8658B4F64928A9F9A1A1 /* HTTPHeaderField.swift in Sources */,
 				1AC900C31943C0FC008625B5 /* HTTPHeaderNames.cpp in Sources */,
 				B5FDB01712B14B4B9A1C5CAF /* HTTPParsers.swift in Sources */,
+				2F33973E80CA688DE1E8090E /* ImageBufferSurface.swift in Sources */,
 				CD27AE5122A9868700947FF9 /* ImageRotationSessionVT.mm in Sources */,
 				070E2D0F26F250890014AAC3 /* InbandChapterTrackPrivateAVFObjC.mm in Sources */,
 				46CA943127B8695800F4F5FF /* InbandTextTrackPrivateAVFObjC.mm in Sources */,
 				CD063F821E23FA8900812BE3 /* InitDataRegistry.cpp in Sources */,
 				164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */,
+				8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */,
 				2653C6D27D97ADA649EE4AEC /* ISOBoxes.swift in Sources */,
 				77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */,
 				71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */,
@@ -52189,6 +52211,7 @@
 				A100D9532AB254E400E00D67 /* MediaPlaybackTargetPickerMac.mm in Sources */,
 				B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */,
 				CD3578AF2A28F5AA0059D97D /* MediaPlayerEnumsCocoa.mm in Sources */,
+				DEE095D5C54D4674A555E6F7 /* MediaPlayerPrivateAVFoundation.swift in Sources */,
 				41FFD2C62756573E00501BBF /* MediaPlayerPrivateAVFoundationObjC.mm in Sources */,
 				CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */,
 				A100D94E2AB251BB00E00D67 /* MediaPlayerPrivateMediaStreamAVFObjC.mm in Sources */,
@@ -52251,6 +52274,7 @@
 				6B1B1D396B97422B8D0F43D2 /* ShapeDetectionFacade.swift in Sources */,
 				89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */,
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
+				CC31639BAC3951C071785011 /* ShareableBitmapCG.swift in Sources */,
 				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
 				91BFA2DFFE7253718EDCB168 /* SharedMemoryMapping.swift in Sources */,

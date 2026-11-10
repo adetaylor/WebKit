@@ -48,6 +48,7 @@ struct FontCustomPlatformData;
 
 namespace WebKit {
 
+class RemoteCGRendererFont;
 class SharedFont;
 
 class RemoteResourceCache {
@@ -55,9 +56,12 @@ public:
     RemoteResourceCache();
     ~RemoteResourceCache();
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // With the CG renderer in Swift, the native images are cached in Swift (RemoteRenderingBackend::cachedNativeImage()).
     bool cacheNativeImage(WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>&&);
     bool releaseNativeImage(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
+#endif
 
     bool cachePathImpl(RemotePathImplIdentifier, Ref<WebCore::PathImpl>&&);
     bool releasePathImpl(RemotePathImplIdentifier);
@@ -75,7 +79,13 @@ public:
     bool releaseFilter(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::Filter> cachedFilter(WebCore::RenderingResourceIdentifier) const;
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // A font with what the Swift renderer draws its glyphs with (RemoteCGRendererFont).
+    bool cacheFont(Ref<RemoteCGRendererFont>&&);
+    RefPtr<RemoteCGRendererFont> cachedCGRendererFont(WebCore::RenderingResourceIdentifier) const;
+#else
     bool cacheFont(Ref<SharedFont>&&);
+#endif
     bool releaseFont(WebCore::RenderingResourceIdentifier);
     RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
 
@@ -83,23 +93,34 @@ public:
     bool releaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::FontCustomPlatformData> cachedFontCustomPlatformData(WebCore::RenderingResourceIdentifier) const;
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+    // With the CG renderer in Swift, the display lists are recorded in Swift (RemoteCGRendererDisplayLists).
     bool cacheDisplayList(RemoteDisplayListIdentifier, Ref<const WebCore::DisplayList::DisplayList>);
     RefPtr<const WebCore::DisplayList::DisplayList> cachedDisplayList(RemoteDisplayListIdentifier) const;
     bool releaseDisplayList(RemoteDisplayListIdentifier);
+#endif
 
     void releaseAllResources();
     void releaseMemory();
 
 private:
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
+#endif
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>> m_fonts;
+#else
     HashMap<WebCore::RenderingResourceIdentifier, Ref<SharedFont>> m_fonts;
+#endif
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::FontCustomPlatformData>> m_fontCustomPlatformDatas;
     HashMap<RemotePathImplIdentifier, Ref<WebCore::PathImpl>> m_paths;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     HashMap<RemoteDisplayListIdentifier, Ref<const WebCore::DisplayList::DisplayList>> m_displayLists;
+#endif
 };
 
 } // namespace WebKit

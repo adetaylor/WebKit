@@ -1,0 +1,91 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver decodes a ColorSpace as C++ does.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, 1000, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+// Resolves with the reply, or with null if the message was not handled.
+function send(messageName, args)
+{
+    return new Promise(resolve => {
+        IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, messageName, args, result => resolve(result?.arguments ? result : null));
+    });
+}
+
+async function describe(messageName, args)
+{
+    const result = await send(messageName, args);
+    takeInvalidMessageString();
+    return result ? result.arguments[0].value : null;
+}
+
+const bytes = values => [{ type: 'uint64_t', value: values.length }, ...Array.from(values, value => ({ type: 'uint8_t', value }))];
+
+// An Adobe RGB (1998) ICC profile.
+const iccProfile = Uint8Array.from(atob('AAACMEFEQkUCEAAAbW50clJHQiBYWVogB9AACAALABMAMwA7YWNzcEFQUEwAAAAAbm9uZQAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1BREJFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKY3BydAAAAPwAAAAyZGVzYwAAATAAAABrd3RwdAAAAZwAAAAUYmtwdAAAAbAAAAAUclRSQwAAAcQAAAAOZ1RSQwAAAdQAAAAOYlRSQwAAAeQAAAAOclhZWgAAAfQAAAAUZ1hZWgAAAggAAAAUYlhZWgAAAhwAAAAUdGV4dAAAAABDb3B5cmlnaHQgMjAwMCBBZG9iZSBTeXN0ZW1zIEluY29ycG9yYXRlZAAAAGRlc2MAAAAAAAAAEUFkb2JlIFJHQiAoMTk5OCkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhZWiAAAAAAAADzUQABAAAAARbMWFlaIAAAAAAAAAAAAAAAAAAAAABjdXJ2AAAAAAAAAAECMwAAY3VydgAAAAAAAAABAjMAAGN1cnYAAAAAAAAAAQIzAABYWVogAAAAAAAAnBgAAE+lAAAE/FhZWiAAAAAAAAA0jQAAoCwAAA+VWFlaIAAAAAAAACYxAAAQLwAAvpw='), character => character.charCodeAt(0));
+
+// The arguments of a WebCore::ColorSpace, as the C++ encoder lays out its PlatformColorSpace: whether it is engaged, then
+// the index of its CGColorSpaceSerialization's alternative and the alternative.
+const named = name => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 0 }, { type: 'uint8_t', value: name }];
+const cgName = name => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 1 }, { type: 'bool', value: 1 }, { type: 'String', value: name }];
+const iccData = (data, derivative) => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 2 }, ...bytes(data), { type: 'uint8_t', value: derivative }];
+const indexedWithoutBase = [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 3 }, { type: 'int8_t', value: 1 }, ...bytes([0, 0, 0, 255, 255, 255]), { type: 'bool', value: 0 }];
+const indexedWithBase = (table, base) => [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 3 }, { type: 'int8_t', value: 1 }, ...bytes(table), { type: 'bool', value: 1 }, ...base.slice(1)];
+
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []).arguments[0].value;
+    takeInvalidMessageString();
+    try {
+        const cases = [];
+        for (let name = 0; name < 22; ++name)
+            cases.push([`ColorSpaceName ${name}`, named(name)]);
+        for (const name of ['kCGColorSpaceSRGB', 'kCGColorSpaceDisplayP3', 'kCGColorSpaceExtendedLinearSRGB', 'kCGColorSpaceGenericGrayGamma2_2', 'kCGColorSpaceITUR_2100_PQ', 'not a color space', ''])
+            cases.push([`the name '${name}'`, cgName(name)]);
+        for (let derivative = 0; derivative < 4; ++derivative)
+            cases.push([`ICC data with derivative ${derivative}`, iccData(iccProfile, derivative)]);
+        cases.push(['ICC data that is not a profile', iccData([1, 2, 3, 4], 0)]);
+        cases.push(['empty ICC data', iccData([], 1)]);
+        cases.push(['an indexed color space without a base', indexedWithoutBase]);
+        // Malformed.
+        cases.push(['a null color space', [{ type: 'bool', value: 0 }]]);
+        cases.push(['an unknown alternative', [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 4 }, { type: 'uint8_t', value: 0 }]]);
+        cases.push(['an unknown ColorSpaceName', named(22)]);
+        cases.push(['an unknown ICC derivative', iccData(iccProfile, 4)]);
+        cases.push(['a null name', [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 1 }, { type: 'bool', value: 0 }]]);
+        cases.push(['ICC data longer than the message', [{ type: 'bool', value: 1 }, { type: 'uint8_t', value: 2 }, { type: 'uint64_t', value: 1000 }, { type: 'uint8_t', value: 0 }]]);
+
+        let accepted = 0;
+        for (const [description, args] of cases) {
+            const swift = await describe(IPC.messages.IPCTesterReceiver_DescribeColorSpaceSwift.name, args);
+            const cxx = await describe(IPC.messages.IPCTesterReceiver_DescribeCxxDecodedColorSpaceSwift.name, args);
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+            if (swift === null)
+                continue;
+            ++accepted;
+            const compared = await send(IPC.messages.IPCTesterReceiver_CompareColorSpacesSwift.name, [...args, ...args]);
+            assert_true(compared?.arguments[0].value === true || compared?.arguments[0].value === 1, `Swift and C++ make equal color spaces of ${description}`);
+            takeInvalidMessageString();
+        }
+        assert_greater_than(accepted, 20, 'Most of the color spaces are accepted');
+
+        // Swift rejects an indexed color space, which C++ makes no color space of. Only Swift is sent these.
+        for (const base of [named(19), named(9), cgName('not a color space')]) {
+            for (const table of [iccProfile, [0, 0, 0, 255, 255, 255]])
+                assert_equals(await describe(IPC.messages.IPCTesterReceiver_DescribeColorSpaceSwift.name, indexedWithBase(table, base)), null);
+        }
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+    done();
+}, "A Swift receiver decodes a ColorSpace into a color space equal to the one C++ decodes, and rejects what C++ rejects.");
+</script>
+</body>

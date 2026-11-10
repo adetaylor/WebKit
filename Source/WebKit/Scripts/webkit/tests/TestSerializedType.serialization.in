@@ -464,9 +464,70 @@ headers: "SwiftTypes.h"
 }
 #endif
 
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftShape subclasses {
+    Namespace::SwiftCircle,
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    Namespace::SwiftSquare,
+#endif
+    Namespace::SwiftTriangle
+}
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftCircle {
+    float radius();
+}
+
+#if ENABLE(SWIFT_TYPE_CONDITION)
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftSquare {
+    float side();
+}
+#endif
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftTriangle {
+}
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftLight subclasses {
+    Namespace::SwiftCircle
+    Namespace::SwiftTriangle
+}
+
+[Swift, CustomHeader] struct Namespace::SwiftDrawing {
+    Ref<Namespace::SwiftShape> shape;
+    Vector<Ref<Namespace::SwiftShape>> shapes;
+    Namespace::SwiftLight light;
+}
+
 [Swift] using Namespace::SwiftVariant = Variant<std::monostate, uint64_t, String, Vector<String>, Namespace::SwiftInner, Ref<Namespace::SwiftNode>>
 
 [Swift] using Namespace::SwiftMultiLineVariant = Variant<
     WebCore::FrameIdentifier,
     std::optional<Namespace::SwiftEnum>
 >;
+
+[Swift] class WebCore::IntSize {
+    int width();
+    int height();
+}
+
+[Swift] class WebCore::IntPoint {
+    int x();
+    int y();
+}
+
+[Swift, CustomHeader] struct Namespace::SwiftPolicyTerm {
+    uint32_t index;
+}
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftPolicy {
+    [Check='size.width > 0 && size.height > 0'] WebCore::IntSize size();
+    [Check='offset.x >= 0 && offset.x < size.width || offset.y == 0'] WebCore::IntPoint offset();
+    [Check='size.width * size.height == count(values)'] Vector<float> values();
+    [Normalize='max(0, radius)'] float radius();
+    [Normalize='exponent >= 128 ? 128 : (exponent <= 1 ? 1 : exponent)', Check='exponent != 0.5'] float exponent();
+    [Check='kind == SwiftEnum::URL ? count(values) == 1 : kind != SwiftEnum::Default'] Namespace::SwiftEnum kind();
+    [Check='count(terms) > 0 && all(terms, term, term.index < count(values))'] Vector<Namespace::SwiftPolicyTerm> terms();
+}
+
+[CustomHeader] struct Namespace::CxxPolicy {
+    [Normalize='min(-1.5, value)'] double value;
+    [Check='value != 0 && flag'] bool flag;
+}

@@ -46,6 +46,10 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/unicode/CharacterNames.h>
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include <WebCore/CGRendererSwiftBridge.h>
+#endif
+
 #if OS(DARWIN)
 #include <wtf/MachSendRight.h>
 #endif
@@ -147,6 +151,16 @@ private:
     size_t m_offset { 0 };
     size_t m_size { 0 };
 };
+
+class SwiftDecoder;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// Decodes a WebCore::Path as C++ decodes it, a Vector of its segments, and returns the CGPath that Path makes of more than one,
+// which the caller owns, with what the CG renderer asks of the path besides: its fast bounds only if computesFastBoundingRect.
+// A free function, since Swift takes what a C++ method returns as unretained whatever its annotation. Null for a path of no
+// segment or one, and for a malformed one, which invalidates the decoder.
+CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED;
+#endif
 
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
 // generated Swift. A failed decode returns false and invalidates the decoder. Values are returned
@@ -278,6 +292,9 @@ private:
     friend class NonEscapableBorrowLender<SwiftDecoder>;
     friend class NonEscapableBorrowOwningLender<SwiftDecoder>;
     template<typename> friend class CxxDecodedArgument;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    friend CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&, bool computesFastBoundingRect);
+#endif
 
     explicit SwiftDecoder(NonEscapableBorrowLease<Decoder>& lease LIFETIME_BOUND)
         : NonEscapableBorrow(lease)
@@ -448,6 +465,10 @@ public:
     // sends it; cancelling or dropping it sends nothing.
     static SwiftReplyEncoder* WTF_NONNULL createForMessage(Connection&, MessageName, uint64_t destinationID) SWIFT_RETURNS_RETAINED;
 
+    // The encoder of a message that a recording keeps, which Swift encodes for a recorder in another process to record
+    // again (appendSwiftEncodedRecordedMessage()). It is never sent.
+    static SwiftReplyEncoder* WTF_NONNULL createForRecordedMessage(MessageName) SWIFT_RETURNS_RETAINED;
+
     ~SwiftReplyEncoder()
     {
         if (m_encoder || m_inStream)
@@ -493,6 +514,12 @@ public:
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
     void encodeVideoInfo(const WebCore::VideoInfo&);
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // Encodes the WebCore::Path that decodeCGRendererPath() decoded into the CGPath and facts, with its own ArgumentCoder: the
+    // segment of a path of one, or else the CGPath's elements, as C++ encodes a Path of a CGPath.
+    void encodeCGRendererPath(CGPathRef _Nullable, CGRendererPathFacts);
+#endif
+
 #if OS(DARWIN)
     // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up
     // only the right of an IPCTypes.MachSendRight it consumes. A reply with attachments is never in the stream.
@@ -527,6 +554,7 @@ public:
         }
         if (auto encoder = std::exchange(m_encoder, nullptr)) {
             if (!m_encodeDefaultReply) {
+                RELEASE_ASSERT(m_connection);
                 m_connection->sendMessage(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)), { });
                 return true;
             }
@@ -569,14 +597,20 @@ public:
 
 private:
     SwiftReplyEncoder(Connection& connection, UniqueRef<Encoder>&& encoder, DefaultReplyEncoder encodeDefaultReply)
-        : m_connection(connection)
+        : m_connection(&connection)
         , m_encoder(encoder.moveToUniquePtr())
         , m_encodeDefaultReply(encodeDefaultReply)
     {
     }
 
+    explicit SwiftReplyEncoder(UniqueRef<Encoder>&& encoder)
+        : m_encoder(encoder.moveToUniquePtr())
+        , m_encodeDefaultReply(nullptr)
+    {
+    }
+
     SwiftReplyEncoder(StreamServerConnection& connection, Connection::SyncRequestID syncRequestID, bool isReplyStreamEncodable, DefaultReplyEncoder encodeDefaultReply)
-        : m_connection(connection.connection())
+        : m_connection(&connection.connection())
         , m_encodeDefaultReply(encodeDefaultReply)
         , m_streamConnection(&connection)
         , m_syncRequestID(syncRequestID)
@@ -619,6 +653,7 @@ private:
 
     void sendOutOfStream(UniqueRef<Encoder>&& encoder)
     {
+        RELEASE_ASSERT(m_connection);
         if (!m_streamConnection) {
             m_connection->sendSyncReply(WTF::move(encoder));
             return;
@@ -631,7 +666,8 @@ private:
         m_connection->sendSyncReply(WTF::move(encoder));
     }
 
-    const Ref<Connection> m_connection;
+    // Null only for a recorded message's encoder, which is never sent.
+    const RefPtr<Connection> m_connection;
     std::unique_ptr<Encoder> m_encoder;
     DefaultReplyEncoder m_encodeDefaultReply;
     RefPtr<StreamServerConnection> m_streamConnection;
@@ -723,6 +759,38 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
     }
     return &SwiftStreamReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
+
+// Keeps the Swift object to which a 'SwiftImplementation' receiver with 'SwiftState=' dispatches the messages that go to
+// its Swift state. Only the receiver's generated message receiver, which includes the Swift-generated header, names its
+// class, as which it sets and gets it.
+class SwiftStateDispatch {
+    WTF_MAKE_NONCOPYABLE(SwiftStateDispatch);
+public:
+    SwiftStateDispatch() = default;
+
+    ~SwiftStateDispatch()
+    {
+        if (m_dispatch)
+            m_destroy(m_dispatch);
+    }
+
+    explicit operator bool() const { return m_dispatch; }
+
+    template<typename Dispatch> SWIFT_UNSAFE void set(Dispatch dispatch)
+    {
+        RELEASE_ASSERT(!m_dispatch);
+        m_dispatch = makeUniqueWithoutFastMallocCheck<Dispatch>(WTF::move(dispatch)).release();
+        m_destroy = [](void* dispatch) {
+            delete static_cast<Dispatch*>(dispatch);
+        };
+    }
+
+    template<typename Dispatch> SWIFT_UNSAFE Dispatch& get() const { return *static_cast<Dispatch*>(m_dispatch); }
+
+private:
+    void* m_dispatch { nullptr };
+    void (*m_destroy)(void*) { nullptr };
+};
 
 // Builds the WTF::String that generated Swift hands to C++ for a Swift String, one code unit at a time
 // as SwiftReplyEncoder encodes one.

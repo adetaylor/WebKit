@@ -45,7 +45,7 @@ public:
     {
         if (!encodeDisplayList(displayList))
             return std::nullopt;
-        return DisplayListData { WTF::move(m_customFonts), WTF::move(m_fonts), WTF::move(m_bottomUpDisplayLists) };
+        return DisplayListData { m_fonts.takeCustomFonts(), m_fonts.takeFonts(), WTF::move(m_bottomUpDisplayLists) };
     }
 
 private:
@@ -98,7 +98,7 @@ private:
             [&](const DisplayList::DrawGlyphs& item) {
                 Ref font = item.font();
                 auto glyphs = item;
-                glyphs.setFontIndex(fontIndex(font));
+                glyphs.setFontIndex(m_fonts.index(font));
                 result.append(WTF::move(glyphs));
                 return true;
             },
@@ -138,33 +138,30 @@ private:
             });
     }
 
-    uint64_t fontIndex(const FontBase& font)
-    {
-        return m_fontIndices.ensure(Ref { font }, [&] {
-            std::optional<uint64_t> customFontIndex;
-            if (RefPtr customFont = font.platformData().customPlatformData()) {
-                customFontIndex = m_customFontIndices.ensure(Ref { *customFont }, [&] {
-                    m_customFonts.append(customFont->serializedData());
-                    return m_customFonts.size() - 1;
-                }).iterator->value;
-            }
-            m_fonts.append(DisplayListDataFont { font.attributes(), font.platformData().attributes(), customFontIndex });
-            return m_fonts.size() - 1;
-        }).iterator->value;
-    }
-
-    Vector<FontCustomPlatformSerializedData> m_customFonts;
-    Vector<DisplayListDataFont> m_fonts;
+    DisplayListDataFonts m_fonts;
     Vector<Vector<DisplayListDataItem>> m_bottomUpDisplayLists;
-    HashMap<Ref<const FontCustomPlatformData>, uint64_t> m_customFontIndices;
-    HashMap<Ref<const FontBase>, uint64_t> m_fontIndices;
     HashMap<Ref<const DisplayList::DisplayList>, uint64_t> m_indices;
     HashSet<Ref<const DisplayList::DisplayList>> m_displayListsBeingEncoded;
 };
 
 } // namespace
 
-static std::optional<Vector<Ref<const FontBase>>> createFonts(const Vector<FontCustomPlatformSerializedData>& customFontData, const Vector<DisplayListDataFont>& fontData, bool shouldUseLockdownFontParser)
+uint64_t DisplayListDataFonts::index(const FontBase& font)
+{
+    return m_fontIndices.ensure(Ref { font }, [&] {
+        std::optional<uint64_t> customFontIndex;
+        if (RefPtr customFont = font.platformData().customPlatformData()) {
+            customFontIndex = m_customFontIndices.ensure(Ref { *customFont }, [&] {
+                m_customFonts.append(customFont->serializedData());
+                return m_customFonts.size() - 1;
+            }).iterator->value;
+        }
+        m_fonts.append(DisplayListDataFont { font.attributes(), font.platformData().attributes(), customFontIndex });
+        return m_fonts.size() - 1;
+    }).iterator->value;
+}
+
+std::optional<Vector<Ref<SharedFont>>> createSharedFonts(const Vector<FontCustomPlatformSerializedData>& customFontData, const Vector<DisplayListDataFont>& fontData, bool shouldUseLockdownFontParser)
 {
     Vector<Ref<FontCustomPlatformData>> customFonts(ReserveCapacityTag { }, customFontData.size());
     for (auto data : customFontData) {
@@ -174,7 +171,7 @@ static std::optional<Vector<Ref<const FontBase>>> createFonts(const Vector<FontC
         customFonts.append(WTF::move(*customFont));
     }
 
-    Vector<Ref<const FontBase>> fonts(ReserveCapacityTag { }, fontData.size());
+    Vector<Ref<SharedFont>> fonts(ReserveCapacityTag { }, fontData.size());
     for (auto& data : borrow(fontData)) {
         RefPtr<FontCustomPlatformData> customFont;
         if (data.customFontIndex) {
@@ -202,9 +199,12 @@ DisplayListData::DisplayListData(Vector<FontCustomPlatformSerializedData>&& cust
 
 RefPtr<const DisplayList::DisplayList> DisplayListData::createDisplayList(bool shouldUseLockdownFontParser) &&
 {
-    auto fonts = createFonts(m_customFonts, m_fonts, shouldUseLockdownFontParser);
-    if (!fonts)
+    auto sharedFonts = createSharedFonts(m_customFonts, m_fonts, shouldUseLockdownFontParser);
+    if (!sharedFonts)
         return nullptr;
+    auto fonts = WTF::map(*sharedFonts, [](auto& font) -> Ref<const FontBase> {
+        return font;
+    });
 
     Vector<Ref<const DisplayList::DisplayList>> displayLists(ReserveCapacityTag { }, m_bottomUpDisplayLists.size());
     for (auto& dataItems : borrow(m_bottomUpDisplayLists)) {
@@ -216,7 +216,7 @@ RefPtr<const DisplayList::DisplayList> DisplayListData::createDisplayList(bool s
                 items.constructAndAppend(WTF::InPlaceType<std::decay_t<decltype(item)>>, WTF::move(item));
             });
         }
-        RefPtr displayList = DisplayList::DisplayList::createResolvingResources(WTF::move(items), borrow(*fonts)->span(), borrow(displayLists)->span());
+        RefPtr displayList = DisplayList::DisplayList::createResolvingResources(WTF::move(items), borrow(fonts)->span(), borrow(displayLists)->span());
         if (!displayList)
             return nullptr;
         displayLists.append(displayList.releaseNonNull());

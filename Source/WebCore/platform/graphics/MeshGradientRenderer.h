@@ -29,10 +29,17 @@
 
 namespace WebCore {
 
+class AffineTransform;
+class ColorSpace;
 class FloatRect;
+class FloatSize;
 class GraphicsContext;
+class ImageBuffer;
 class IntSize;
 class MeshGradient;
+class NativeImage;
+
+enum class PixelFormat : uint8_t;
 
 struct PixelBufferConversionView;
 
@@ -41,6 +48,13 @@ public:
     virtual ~MeshGradientRenderer() = default;
 
     virtual bool render(const MeshGradient&, const PixelBufferConversionView& destination, const IntSize&, float scale) = 0;
+
+    // The size in pixels of a destination drawn with the transform, which includes the device scale, and the scale the
+    // gradient is rendered at. Nothing is drawn where it is empty.
+    WEBCORE_EXPORT static IntSize pixelSize(const AffineTransform& deviceTransform, const FloatSize& destination, float& scale);
+    // The image of the gradient at the size, in the color space it is drawn in, in a context of the color space. The image
+    // buffer it is rendered in is the context's (createImageBuffer(size, colorSpace, pixelFormat)).
+    WEBCORE_EXPORT RefPtr<NativeImage> renderedImage(const MeshGradient&, const IntSize& pixelSize, float scale, const ColorSpace& contextColorSpace, NOESCAPE const Function<RefPtr<ImageBuffer>(const IntSize&, const ColorSpace&, PixelFormat)>& createImageBuffer);
 
     // Returns false if this renderer couldn't draw the gradient, so that the caller can use another one.
     bool draw(GraphicsContext&, const MeshGradient&, const FloatRect& destination);

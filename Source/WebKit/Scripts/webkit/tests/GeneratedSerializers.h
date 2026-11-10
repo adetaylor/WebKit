@@ -86,6 +86,17 @@ class SwiftBase;
 #if ENABLE(SWIFT_TYPE_CONDITION)
 class SwiftDerived;
 #endif
+class SwiftShape;
+class SwiftCircle;
+#if ENABLE(SWIFT_TYPE_CONDITION)
+class SwiftSquare;
+#endif
+class SwiftTriangle;
+class SwiftLight;
+struct SwiftDrawing;
+struct SwiftPolicyTerm;
+class SwiftPolicy;
+struct CxxPolicy;
 }
 
 namespace Namespace::Subnamespace {
@@ -116,6 +127,8 @@ class AppKitControlSystemImage;
 #endif
 template<typename> class RectEdges;
 class OpaqueTypeObject;
+class IntSize;
+class IntPoint;
 struct Amazing;
 struct FrameIdentifierType;
 }
@@ -504,6 +517,63 @@ template<> struct ArgumentCoder<Namespace::SwiftDerived> {
     static std::optional<Namespace::SwiftDerived> decode(Decoder&);
 };
 #endif
+
+template<> struct ArgumentCoder<Namespace::SwiftShape> {
+    static void encode(Encoder&, const Namespace::SwiftShape&);
+    static std::optional<Ref<Namespace::SwiftShape>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftCircle> {
+    static void encode(Encoder&, const Namespace::SwiftCircle&);
+    static std::optional<Ref<Namespace::SwiftCircle>> decode(Decoder&);
+};
+
+#if ENABLE(SWIFT_TYPE_CONDITION)
+template<> struct ArgumentCoder<Namespace::SwiftSquare> {
+    static void encode(Encoder&, const Namespace::SwiftSquare&);
+    static std::optional<Ref<Namespace::SwiftSquare>> decode(Decoder&);
+};
+#endif
+
+template<> struct ArgumentCoder<Namespace::SwiftTriangle> {
+    static void encode(Encoder&, const Namespace::SwiftTriangle&);
+    static std::optional<Ref<Namespace::SwiftTriangle>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftLight> {
+    static void encode(Encoder&, const Namespace::SwiftLight&);
+    static std::optional<Ref<Namespace::SwiftLight>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftDrawing> {
+    static void encode(Encoder&, const Namespace::SwiftDrawing&);
+    static std::optional<Namespace::SwiftDrawing> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<WebCore::IntSize> {
+    static void encode(Encoder&, const WebCore::IntSize&);
+    static std::optional<WebCore::IntSize> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<WebCore::IntPoint> {
+    static void encode(Encoder&, const WebCore::IntPoint&);
+    static std::optional<WebCore::IntPoint> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftPolicyTerm> {
+    static void encode(Encoder&, const Namespace::SwiftPolicyTerm&);
+    static std::optional<Namespace::SwiftPolicyTerm> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftPolicy> {
+    static void encode(Encoder&, const Namespace::SwiftPolicy&);
+    static std::optional<Ref<Namespace::SwiftPolicy>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::CxxPolicy> {
+    static void encode(Encoder&, const Namespace::CxxPolicy&);
+    static std::optional<Namespace::CxxPolicy> decode(Decoder&);
+};
 
 } // namespace IPC
 

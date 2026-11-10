@@ -34,13 +34,13 @@ import wtf
 final class RemoteCDMProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMProxyMessageForwarder?
-    private weak var factory: RemoteCDMFactoryState?
+    private weak var factory: RemoteCDMFactoryProxy?
     private let isClearKey: Bool
     @_expose(!Cxx)
     let cdm: WebKit.RemoteCDMPrivateHandle
 
     @_expose(!Cxx)
-    init(factory: RemoteCDMFactoryState, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
+    init(factory: RemoteCDMFactoryProxy, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
         self.factory = factory
         self.cdm = cdm
         self.isClearKey = isClearKey
@@ -57,10 +57,12 @@ final class RemoteCDMProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard let proxy = factory?.proxy else {
+        // The receiver's messages come on the main thread, which alone changes the factory's connection.
+        MainActor.preconditionIsolated()
+        guard let connection = factory?.connection else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
-        return proxy.sharedPreferencesForWebProcess()
+        return connection.sharedPreferencesForWebProcess()
     }
 
     // The configuration the web process's RemoteCDM reports: ClearKey's, or FairPlay Streaming's.
@@ -114,10 +116,10 @@ final class RemoteCDMProxy {
         connection: IPC.Connection
     ) -> (identifier: IPCTypes.RemoteCDMInstanceIdentifier?, configuration: IPCTypes.RemoteCDMInstanceConfiguration) {
         let noInstance = (IPCTypes.RemoteCDMInstanceIdentifier?.none, IPCTypes.RemoteCDMInstanceConfiguration(keySystem: nil))
-        guard let factory, let proxy = factory.proxy else {
+        guard let factory, let gpuConnection = factory.connection else {
             return noInstance
         }
-        let identifier = WebKit.RemoteCDMFactoryProxy.generateInstanceIdentifier()
+        let identifier = WebKit.RemoteCDMPrivateFactory.generateInstanceIdentifier()
         let backend: any RemoteCDMInstanceBackend
         let keySystem: String?
         if isClearKey {
@@ -126,7 +128,7 @@ final class RemoteCDMProxy {
         } else {
             var cxxKeySystem = WTF.String()
             var fairPlayInstanceToken: UInt64 = 0
-            guard let instance = WebKit.createRemoteCDMInstance(proxy, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
+            guard let instance = WebKit.createRemoteCDMInstance(gpuConnection, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
                 return noInstance
             }
             backend = FairPlayCDMInstanceBackend(instance, fairPlayInstance: FairPlayInstance.instance(forToken: fairPlayInstanceToken))

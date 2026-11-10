@@ -45,7 +45,7 @@ final class RemoteQuerySet {
             return
         }
         let receiver = RemoteQuerySet(querySet, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQuerySet, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.owner, receiver.getMessageReceiver(), .RemoteQuerySet, link.identifier)
         objects.add(link.identifier, querySet, receiver: receiver, registration: registration)
     }
 

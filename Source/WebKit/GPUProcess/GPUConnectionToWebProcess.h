@@ -32,12 +32,11 @@
 #include "MessageReceiverMap.h"
 #include "RemoteAudioHardwareListenerIdentifier.h"
 #include "RemoteAudioSessionIdentifier.h"
-#include "RemoteGPU.h"
-#include "RemoteRemoteCommandListenerIdentifier.h"
 #include "RemoteRenderingBackendIdentifier.h"
 #include "RemoteSnapshotIdentifier.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "SharedPreferencesForWebProcess.h"
+#include "SwiftReceiverOwner.h"
 #include "WebGPUIdentifier.h"
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
@@ -55,6 +54,10 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+#include "RemoteAudioDestinationIdentifier.h"
+#endif
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 #include "SampleBufferDisplayLayerIdentifier.h"
@@ -98,21 +101,35 @@ class SecurityOriginData;
 
 namespace WebKit {
 
+// Whether the web process has a remote command listener, the commands it supports, as a mask of 1 << command type, and
+// whether it supports seeking.
+struct RemoteCommandListenerState {
+    bool hasListener { false };
+    uint32_t commands { 0 };
+    bool supportsSeeking { false };
+};
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+// The output unit of an audio destination that iOS's spatial experience is set on, 0 if there's no such destination, and
+// whether its web process preferred a spatial experience when it made it.
+struct RemoteAudioDestinationSpatialTarget {
+    uint64_t outputUnitIdentifier { 0 };
+    bool prefersSpatialAudioExperience { false };
+};
+#endif
+
 class GPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxy;
 class LocalAudioSessionRoutingArbitrator;
-class RemoteAudioDestinationManager;
 class RemoteAudioHardwareListenerProxy;
-class RemoteAudioMediaStreamTrackRendererInternalUnitManager;
 class RemoteAudioSessionProxy;
 class RemoteAudioSessionProxyManager;
-class RemoteCDMFactoryProxy;
+class RemoteCDMPrivateFactory;
 class RemoteImageDecoderAVFProxy;
 class RemoteLegacyCDMFactoryProxy;
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
-class RemoteRemoteCommandListenerProxy;
 class RemoteRenderingBackend;
 class RemoteSampleBufferDisplayLayerManager;
 class RemoteSharedResourceCache;
@@ -132,10 +149,6 @@ class RemoteAudioVideoRendererProxyManager;
 #if ENABLE(VIDEO)
 class RemoteMediaPlayerManagerProxy;
 class RemoteVideoFrameObjectHeap;
-#endif
-
-#if ENABLE(WEBGL)
-class RemoteGraphicsContextGLResources;
 #endif
 
 // m_swiftState holds the connection's Swift state (GPUConnectionToWebProcess.swift).
@@ -178,16 +191,44 @@ public:
     GPUProcess& gpuProcess() { return m_gpuProcess.get(); }
     WebCore::ProcessIdentifier webProcessIdentifier() const { return m_webProcessIdentifier; }
 
-    struct NowPlayingCandidate {
-        WTF_MAKE_STRUCT_TZONE_ALLOCATED(NowPlayingCandidate);
-        std::optional<WebCore::NowPlayingCandidateState> state;
-        std::optional<WebCore::NowPlayingInfo> info;
-    };
-    const HashMap<WebCore::PageIdentifier, UniqueRef<NowPlayingCandidate>>& nowPlayingCandidates() const LIFETIME_BOUND { return m_nowPlayingCandidates; }
-    void clearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier>);
-    void becomeNowPlayingOwner(WebCore::PageIdentifier);
+    // The Now Playing candidate states of the connection's pages and the election are Swift's
+    // (GPUConnectionToWebProcess.swift, GPUProcess.swift). For them: the Now Playing info of one page, or of all of them,
+    // goes; the NowPlayingManager's client becomes this connection, for the page that owns Now Playing or for the remote
+    // commands only, or stops being it.
+    void clearNowPlayingInfo(bool forAllPages, uint64_t pageIdentifier);
+    void becomeNowPlayingOwner(uint64_t pageIdentifier);
     void becomeRemoteCommandFallbackTarget();
     void resignNowPlayingManagerClient();
+
+    // Implemented in Swift: the GPU process added this connection, or removed it.
+    SWIFT_MAIN_ACTOR void swiftDidAddToGPUProcess();
+    SWIFT_MAIN_ACTOR void swiftDidRemoveFromGPUProcess();
+    // Implemented in Swift: whether the page owns Now Playing; the session that gets the remote commands, 0 for none;
+    // this connection's process closed while its connection was the NowPlayingManager's client.
+    SWIFT_MAIN_ACTOR bool swiftIsActiveNowPlayingPage(uint64_t pageIdentifier) const;
+    SWIFT_MAIN_ACTOR uint64_t swiftRemoteCommandTargetSession() const;
+    SWIFT_MAIN_ACTOR RemoteCommandListenerState swiftRemoteCommandListenerState() const;
+    SWIFT_MAIN_ACTOR void swiftNowPlayingClientDidClose();
+
+    // For IPC::registerSwiftReceiver(): routes the web process's messages for the receiver name and destination, 0 for
+    // all of them, to the receiver until removeSwiftReceiver(). The connection's Swift state registers the receivers it owns.
+    bool addSwiftReceiver(IPC::ReceiverName, uint64_t identifier, IPC::MessageReceiver&);
+    void removeSwiftReceiver(IPC::ReceiverName, uint64_t identifier);
+
+    // For the Swift receivers.
+    void tryExitIfUnusedAndUnderMemoryPressure();
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    // Asks the web process to reset the track renderer unit, whose timeline jumped.
+    void resetAudioMediaStreamTrackRendererInternalUnit(uint64_t identifier);
+    static bool isAudioSessionInterrupted();
+#endif
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    void audioDestinationWasDeleted(uint64_t destinationIdentifier);
+#endif
+#if PLATFORM(IOS_FAMILY)
+    static void setMonitorsWirelessRoutes(bool);
+#endif
+
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -211,17 +252,11 @@ public:
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-    void setOrientationForMediaCapture(WebCore::IntDegrees);
     void reapplyCaptureEnvironment(WebCore::PageIdentifier);
-    void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
-    void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&);
-    void stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&);
-    void updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation);
     void updateCaptureOrigin(const WebCore::SecurityOriginData&);
     NODELETE bool setCaptureAttributionString();
-    bool allowsAudioCapture() const { return m_allowsAudioCapture; }
-    bool allowsVideoCapture() const { return m_allowsVideoCapture; }
-    bool allowsDisplayCapture() const { return m_allowsDisplayCapture; }
+    // For the Swift capture access (GPUProcess.swift): a web process that will use echo cancellation can capture audio.
+    static void prewarmEchoCancellingAudioCapture();
 #endif
 #if ENABLE(VIDEO)
     NODELETE RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const;
@@ -229,12 +264,17 @@ public:
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     void startCapturingAudio();
     void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
-    bool isLastToCaptureAudio() const { return m_isLastToCaptureAudio; }
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    RemoteCDMFactoryProxy& cdmFactoryProxy();
+    RemoteCDMPrivateFactory& cdmPrivateFactory();
+    // For the Swift EME receivers, which the connection's Swift state owns: the C++ CDMs' instances.
+    void removeCDMInstance(uint64_t identifier);
+    String cdmMediaKeysStorageDirectory() const { return mediaKeysStorageDirectory(); }
+    // Implemented in Swift: whether the identifier is a CDM instance's at all, since the Swift ClearKey instances have no
+    // C++ instance.
+    SWIFT_MAIN_ACTOR bool hasCDMInstance(uint64_t identifier) const;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -258,6 +298,8 @@ public:
 
     bool allowsExitUnderMemoryPressure() const;
     void terminateWebProcess(IPC::MessageName);
+    // For the owners of stream receivers: logs a message they find invalid and terminates the web process.
+    Function<void(IPC::MessageName)> terminateWebProcessOnInvalidMessage();
 
     void lowMemoryHandler(WTF::Critical, WTF::Synchronous);
 
@@ -267,10 +309,8 @@ public:
 
     static uint64_t objectCountForTesting() { return gObjectCountForTesting; }
 
-    using RemoteRenderingBackendMap = HashMap<RemoteRenderingBackendIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteRenderingBackend>>;
-    const RemoteRenderingBackendMap& remoteRenderingBackendMap() const LIFETIME_BOUND { return m_remoteRenderingBackendMap; }
-
-    NODELETE RemoteRenderingBackend* remoteRenderingBackend(RemoteRenderingBackendIdentifier);
+    // Implemented in Swift: the number of rendering backends the connection's Swift state holds.
+    SWIFT_MAIN_ACTOR size_t swiftRenderingBackendCount();
 
 #if HAVE(AUDIT_TOKEN)
     const HashMap<WebCore::PageIdentifier, CoreIPCAuditToken>& presentingApplicationAuditTokens() const LIFETIME_BOUND { return m_presentingApplicationAuditTokens; }
@@ -311,18 +351,62 @@ private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
     // Implemented in Swift.
-    uintptr_t createSwiftState();
+    uintptr_t createSwiftState(uint64_t webProcessIdentifier, bool isLockdownModeEnabled);
     // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     // m_swiftState, for Swift, which can only read it.
     uintptr_t swiftState() const { return m_swiftState; }
 
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    RemoteAudioDestinationManager& remoteAudioDestinationManager();
+    // Implemented in Swift: the Swift state holds the rendering backends and the owners of the WebGL and WebGPU receivers until
+    // they are released or the connection closes, and stops them then.
+    SWIFT_MAIN_ACTOR bool swiftHasRenderingBackend(uint64_t identifier);
+    // Before the backend starts listening for IPC.
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
+#else
+    SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&);
 #endif
+    // Whether the state had it.
+    SWIFT_MAIN_ACTOR bool swiftReleaseRenderingBackend(uint64_t identifier);
+#if ENABLE(WEBGL)
+    SWIFT_MAIN_ACTOR bool swiftHasGraphicsContextGL(uint64_t identifier);
+    SWIFT_MAIN_ACTOR void swiftAddGraphicsContextGL(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, WebCore::GraphicsContextGLAttributes);
+    // Whether none is left.
+    SWIFT_MAIN_ACTOR bool swiftReleaseGraphicsContextGL(uint64_t identifier);
+    void createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes, uint64_t identifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
+#endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    SWIFT_MAIN_ACTOR bool swiftHasGPU(uint64_t identifier);
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
+#else
+    SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner);
+#endif
+    // Whether none is left.
+    SWIFT_MAIN_ACTOR bool swiftReleaseGPU(uint64_t identifier);
+#if ENABLE(GPU_PROCESS_MODEL)
+    void createGPUModel(RemoteRenderingBackend&, IPC::SwiftReceiverOwner&, uint64_t identifier);
+#endif
+#endif
+    SWIFT_MAIN_ACTOR void swiftCloseStreamReceivers();
+
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UserMediaCaptureManagerProxy& userMediaCaptureManagerProxy();
-    RemoteAudioMediaStreamTrackRendererInternalUnitManager& audioMediaStreamTrackRendererInternalUnitManager();
+
+    // Implemented in Swift: for the track renderer units, whether this connection's process is the one that most recently
+    // started capturing audio, and the audio session's interruptions.
+    SWIFT_MAIN_ACTOR void swiftLastToCaptureAudioChanged(bool isLastToCaptureAudio);
+    SWIFT_MAIN_ACTOR void swiftBeginAudioSessionInterruption();
+    SWIFT_MAIN_ACTOR void swiftEndAudioSessionInterruption();
+
+    void setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID);
+#endif
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    // Implemented in Swift.
+    SWIFT_MAIN_ACTOR RemoteAudioDestinationSpatialTarget swiftAudioDestinationSpatialTarget(uint64_t destinationIdentifier);
+
+    void setAudioDestinationSceneIdentifier(RemoteAudioDestinationIdentifier, String&& sceneIdentifier);
 #endif
 
     void createRenderingBackend(RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
@@ -341,10 +425,7 @@ private:
     void setNowPlayingInfoForPage(WebCore::NowPlayingInfo&&, std::optional<WebCore::PageIdentifier>);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
     void failSnapshot(RemoteSnapshotIdentifier);
-    void setNowPlayingCandidateState(WebCore::NowPlayingCandidateState&&);
     void nowPlayingClientDidClose();
-    void isActiveNowPlayingSessionForTesting(WebCore::MediaSessionIdentifier, CompletionHandler<void(bool)>&&);
-    void isRemoteCommandTargetSessionForTesting(WebCore::MediaSessionIdentifier, CompletionHandler<void(bool)>&&);
     void postNowPlayingRemoteControlCommandForTesting(WebCore::PlatformMediaSessionRemoteControlCommandType, const WebCore::PlatformMediaSessionRemoteCommandArgument&);
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     void hostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier, CompletionHandler<void(std::optional<WebCore::FloatRect>)>&&);
@@ -365,14 +446,11 @@ private:
 #endif
 
 #if PLATFORM(IOS_FAMILY)
-    RemoteMediaSessionHelperProxy& mediaSessionHelperProxy();
     void ensureMediaSessionHelper();
 #endif
 
     void createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
     void releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
-    void createRemoteCommandListener(RemoteRemoteCommandListenerIdentifier);
-    void releaseRemoteCommandListener(RemoteRemoteCommandListenerIdentifier);
     void releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier);
     void setMediaOverridesForTesting(MediaOverridesForTesting);
     void configureLoggingChannel(const String&, WTFLogChannelState, WTFLogLevel);
@@ -408,8 +486,8 @@ private:
     const Ref<GPUProcess> m_gpuProcess;
     const WebCore::ProcessIdentifier m_webProcessIdentifier;
     const WebCore::ProcessIdentity m_webProcessIdentity;
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    const std::unique_ptr<RemoteAudioDestinationManager> m_remoteAudioDestinationManager;
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    HashMap<uint64_t, String> m_audioDestinationSceneIdentifiers;
 #endif
     const RefPtr<RemoteSharedResourceCache> m_sharedResourceCache;
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -424,17 +502,14 @@ private:
     PAL::SessionID m_sessionID;
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     RefPtr<UserMediaCaptureManagerProxy> m_userMediaCaptureManagerProxy;
-    const std::unique_ptr<RemoteAudioMediaStreamTrackRendererInternalUnitManager> m_audioMediaStreamTrackRendererInternalUnitManager;
-    bool m_isLastToCaptureAudio { false };
+    class AudioSessionInterruptionForwarder;
+    const RefPtr<AudioSessionInterruptionForwarder> m_audioSessionInterruptionForwarder;
 
     const Ref<RemoteSampleBufferDisplayLayerManager> m_sampleBufferDisplayLayerManager;
 #endif
 
 #if ENABLE(MEDIA_STREAM)
     Ref<WebCore::SecurityOrigin> m_captureOrigin;
-    bool m_allowsAudioCapture { false };
-    bool m_allowsVideoCapture { false };
-    bool m_allowsDisplayCapture { false };
 #endif
 #if ENABLE(VIDEO)
     IPC::ScopedActiveMessageReceiveQueue<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
@@ -449,23 +524,14 @@ private:
     const String m_applicationBundleIdentifier;
 #endif
 
-    RemoteRenderingBackendMap m_remoteRenderingBackendMap;
-#if ENABLE(WEBGL)
-    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGLResources>>;
-    RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGPU>>;
-    RemoteGPUMap m_remoteGPUMap;
-#endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    const RefPtr<RemoteCDMFactoryProxy> m_cdmFactoryProxy;
+    const RefPtr<RemoteCDMPrivateFactory> m_cdmPrivateFactory;
 #endif
 #if USE(AUDIO_SESSION)
     RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;
 #endif
 #if PLATFORM(IOS_FAMILY)
-    const std::unique_ptr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
+    const RefPtr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     const RefPtr<RemoteLegacyCDMFactoryProxy> m_legacyCdmFactoryProxy;
@@ -488,8 +554,7 @@ private:
     RemoteWCLayerTreeHostMap m_remoteWCLayerTreeHostMap;
 #endif
 
-    RefPtr<RemoteRemoteCommandListenerProxy> m_remoteRemoteCommandListener;
-    HashMap<WebCore::PageIdentifier, UniqueRef<NowPlayingCandidate>> m_nowPlayingCandidates;
+    HashMap<WebCore::PageIdentifier, WebCore::NowPlayingInfo> m_nowPlayingInfos;
     bool m_isNowPlayingManagerClient { false };
     const bool m_isLockdownModeEnabled { false };
 

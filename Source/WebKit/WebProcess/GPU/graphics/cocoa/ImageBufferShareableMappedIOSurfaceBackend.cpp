@@ -47,19 +47,19 @@ std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> ImageBufferShareable
     if (backendSize.isEmpty())
         return nullptr;
 
-    auto surface = IOSurface::create(RefPtr { creationContext.surfacePool }.get(), backendSize, parameters.colorSpace, IOSurface::nameForRenderingPurpose(parameters.purpose), convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat), parameters.bufferFormat.useLosslessCompression);
+    RefPtr surfacePool = creationContext.surfacePool;
+    auto format = convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat);
+    auto surface = IOSurface::create(surfacePool.get(), backendSize, parameters.colorSpace, IOSurface::nameForRenderingPurpose(parameters.purpose), format, parameters.bufferFormat.useLosslessCompression);
     if (!surface)
         return nullptr;
     if (creationContext.resourceOwner)
         surface->setOwnershipIdentity(creationContext.resourceOwner);
 
-    RetainPtr<CGContextRef> cgContext = surface->createPlatformContext(0, std::nullopt, creationContext.useIOSurfaceWebKitBehavior);
-    if (!cgContext)
+    auto core = ImageBufferSurface::create(*surface, surfacePool.get(), format, parameters.bufferFormat.useLosslessCompression, 0, creationContext.useIOSurfaceWebKitBehavior, true);
+    if (!core)
         return nullptr;
 
-    CGContextClearRect(cgContext.get(), FloatRect(FloatPoint::zero(), backendSize));
-
-    return std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> { new ImageBufferShareableMappedIOSurfaceBackend { parameters, WTF::move(surface), WTF::move(cgContext), 0, protect(creationContext.surfacePool), creationContext.useIOSurfaceWebKitBehavior } };
+    return std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> { new ImageBufferShareableMappedIOSurfaceBackend { parameters, WTF::move(surface), WTF::move(core) } };
 }
 
 std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> ImageBufferShareableMappedIOSurfaceBackend::create(const WebCore::ImageBufferParameters& parameters, ImageBufferBackendHandle handle, bool useIOSurfaceWebKitBehavior)
@@ -81,11 +81,11 @@ std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> ImageBufferShareable
     if (!surface->hasFormat({ convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat), parameters.bufferFormat.useLosslessCompression }))
         return nullptr;
 
-    auto cgContext = surface->createPlatformContext(0, std::nullopt, useIOSurfaceWebKitBehavior);
-    if (!cgContext)
+    auto core = ImageBufferSurface::create(*surface, nullptr, convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat), parameters.bufferFormat.useLosslessCompression, 0, useIOSurfaceWebKitBehavior, false);
+    if (!core)
         return nullptr;
 
-    return std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> { new ImageBufferShareableMappedIOSurfaceBackend { parameters, WTF::move(surface), WTF::move(cgContext), 0, nullptr, useIOSurfaceWebKitBehavior } };
+    return std::unique_ptr<ImageBufferShareableMappedIOSurfaceBackend> { new ImageBufferShareableMappedIOSurfaceBackend { parameters, WTF::move(surface), WTF::move(core) } };
 }
 
 std::optional<ImageBufferBackendHandle> ImageBufferShareableMappedIOSurfaceBackend::createBackendHandle(SharedMemory::Protection) const

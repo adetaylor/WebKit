@@ -132,6 +132,8 @@
 [Legacy] StructureParam WebKit::NetworkSessionCreationParameters.proxyConfigData std::optional<Vector<std::pair<Vector<uint8_t>, std::optional<WTF::UUID>>>>
 [Legacy] StructureParam WebKit::ICCData.data Vector<uint8_t>
 [Legacy] StructureParam WebKit::IndexedColorSpace.table Vector<uint8_t>
+# The RemoteCGRenderer messages of a remote snapshot's recording, which the GPU process sends the print process to record again.
+[NotSentFromWebContent] StructureParam WebKit::RemoteSnapshotPrintRecording.messages Vector<uint8_t>
 
 [UnsafeWrapper] std::optional<WebKit::CoreIPCSecTrustData::InfoType> {
     [NeedsReview] StructureParam WebKit::CoreIPCSecTrustData.info
@@ -355,7 +357,7 @@
     [Legacy] StructureParam WebCore::DynamicContentScalingDisplayList.takeSurfaces()
     [DebugOnly] MessageParam IPCSwiftWorkQueueTester.CountSendRightsSwift rights
 
-    [NotSentFromWebContent] MessageParamReply RemoteGPU.CreateModelBacking renderBuffers
+    [NotSentFromWebContent] MessageParamReply RemoteGPUModel.CreateModelBacking renderBuffers
     [NotSentFromWebContent] MessageParamReply RemoteMesh.UpdateRenderBuffers renderBuffers
 }
 
@@ -479,6 +481,9 @@
     [Legacy] MessageParam WebPageProxy.SetPromisedDataForImage archiveHandle
     [Legacy] MessageParam LibWebRTCCodecsProxy.SetSharedVideoFrameMemory storageHandle
     [Legacy] MessageParam RemoteGraphicsContext.SetSharedVideoFrameMemory storageHandle
+    # The same shared video frame memory RemoteGraphicsContext.SetSharedVideoFrameMemory above carries, for an image buffer's
+    # context, whose Swift receiver takes the message.
+    [Legacy] MessageParam RemoteCGRenderer.SetSharedVideoFrameMemory storageHandle
     [Legacy] MessageParam RemoteGraphicsContextGLResources.SetSharedVideoFrameMemory storageHandle
     [Legacy] MessageParam RemoteGraphicsContextGLResources.GetBufferSubDataSharedMemory handle
     [Legacy] MessageParam RemoteGraphicsContextGLResources.ReadPixelsSharedMemory handle

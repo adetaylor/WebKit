@@ -27,6 +27,7 @@
 
 #include <limits>
 #include <memory>
+#include <utility>
 #include <wtf/Borrow.h>
 #include <wtf/FastMalloc.h>
 #include <wtf/ForbidHeapAllocation.h>
@@ -55,7 +56,8 @@ namespace WTF {
 // NonEscapableBorrowLease, whose pointer to the object a lender sets after the object's borrow begins and
 // clears before it ends. Using the view, or any copy of it, on a thread other than the one that made the
 // lender crashes, as does making, copying or destroying one there. The lease counts the views, and ending
-// the lend with a view alive crashes, so no view can point to a lease that is gone.
+// the lend with a view alive crashes, so no view can point to a lease that is gone. Moving a view hands its
+// place in the count to the new one, and leaves the moved-from view reaching nothing.
 //
 // The view is SWIFT_NONESCAPABLE, so Swift rejects most attempts to keep it beyond the lend, and the count
 // catches the rest when the lend ends.
@@ -223,7 +225,8 @@ private:
 };
 
 // SWIFT_SAFE: the lease outlives every view that points to it, since destroying it with a view alive crashes, and a
-// view is only made, copied and destroyed on the lease's thread, so the count it relies on is exact.
+// view is only made, copied and destroyed on the lease's thread, so the count it relies on is exact. A move doesn't
+// change the count: the moved-from view no longer points to the lease, and using it crashes.
 template<typename T>
 class NonEscapableBorrow {
 public:
@@ -232,14 +235,21 @@ public:
     NonEscapableBorrow(const NonEscapableBorrow& other)
         : m_lease(other.m_lease)
     {
+        RELEASE_ASSERT(m_lease);
         m_lease->addView();
+    }
+
+    NonEscapableBorrow(NonEscapableBorrow&& other)
+        : m_lease(std::exchange(other.m_lease, nullptr))
+    {
     }
 
     NonEscapableBorrow& operator=(const NonEscapableBorrow&) = delete;
 
     ~NonEscapableBorrow()
     {
-        m_lease->removeView();
+        if (m_lease)
+            m_lease->removeView();
     }
 
 protected:
@@ -252,7 +262,7 @@ protected:
     T& borrowed() const { return m_lease->get(); }
 
 private:
-    NonEscapableBorrowLease<T>* const m_lease;
+    NonEscapableBorrowLease<T>* m_lease;
 } SWIFT_NONESCAPABLE SWIFT_SAFE;
 
 } // namespace WTF

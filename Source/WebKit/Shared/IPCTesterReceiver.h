@@ -76,6 +76,23 @@ private:
     void transformPayloadSyncHandlerSwift(const IPCTesterPayload&, CompletionHandler<void(IPCTesterPayload&&)>&&);
     void recordSyncHandlerSwift(const String&);
     void swapPairsSwift(const Vector<std::pair<String, uint32_t>>&, CompletionHandler<void(Vector<std::pair<uint32_t, String>>&&)>&&);
+#if PLATFORM(COCOA)
+    void describeColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
+    void compareColorSpacesSwift(const WebCore::ColorSpace&, const WebCore::ColorSpace&, CompletionHandler<void(bool)>&&);
+    void describeControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
+    void describeSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
+#endif
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    void describeDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
+    void describePathSwift(const WebCore::Path&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedPathSwift(const WebCore::Path&, CompletionHandler<void(String&&)>&&);
+#endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
 

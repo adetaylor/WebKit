@@ -1,0 +1,134 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<p>This test passes if the GPU process's Swift CG renderer receiver (RemoteCGRenderer) draws a cached mesh gradient, in a scaled context, the same directly as through a display list that RemoteCGRenderer's recorder records, and draws the gradient's colors at its corners.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+const log = s => document.getElementById("log").textContent += s + "\n";
+const modes = [["unaccelerated", 0], ["accelerated", 1]];
+const size = 48;
+let nextID = 310000;
+const genID = () => nextID++;
+
+const rect = (x, y, width, height) => ({ location: { x, y }, size: { width, height } });
+const point = (x, y) => ({ x, y });
+const color = rgba => ({ data: { optionalValue: { isSemantic: false, usesFunctionSerialization: false, data: { variantType: 'WebCore::PackedColor::RGBA', variant: { value: rgba } } } } });
+
+// A 2x2 mesh over a 24x24 box with straight edges, red, green, blue and yellow from the top left.
+function meshGradient() {
+    const corners = [[0, 0, 0xFF0000FF], [24, 0, 0x00FF00FF], [0, 24, 0x0000FFFF], [24, 24, 0xFFFF00FF]];
+    const points = corners.map(([x, y, rgba], index) => {
+        const column = index % 2, row = Math.floor(index / 2);
+        return {
+            position: point(x, y),
+            color: color(rgba),
+            controlPoints: {
+                top: point(x, row ? y - 8 : y),
+                right: point(column ? x : x + 8, y),
+                bottom: point(x, row ? y : y + 8),
+                left: point(column ? x - 8 : x, y),
+            },
+        };
+    });
+    return {
+        colorInterpolationMethod: { colorSpace: { variantType: 'WebCore::ColorInterpolationMethod::SRGB', variant: {} }, alphaPremultiplication: 0 },
+        rows: 2, columns: 2, points, backgroundColor: { data: {} },
+    };
+}
+
+function scene(meshGradientIdentifier) {
+    return [
+        ["Translate", { x: 4, y: 2 }],
+        ["Scale", { scale: { width: 1.5, height: 1.25 } }],
+        ["DrawMeshGradient", { identifier: meshGradientIdentifier, destination: rect(0, 0, 24, 24) }],
+    ];
+}
+
+async function run() {
+    const { CoreIPC } = await import('./coreipc.js');
+    CoreIPC.typeInfo['WebCore::PlatformColorSpace'] = [
+        { type: 'std::optional<WebKit::CoreIPCCGColorSpace>', name: 'alias' }
+    ];
+    const CS = {};
+    for (const e of IPC.serializedEnumInfo['WebCore::ColorSpaceName'].valueMap)
+        CS[e.name] = e.value;
+    const sRGB = { serializableColorSpace: { alias: { optionalValue: {
+        m_cgColorSpace: { alias: { variantType: 'WebCore::ColorSpaceName', variant: CS.SRGB } } } } } };
+
+    for (const [modeName, renderingMode] of modes) {
+        const connection = CoreIPC.newStreamConnection();
+        const backendID = genID();
+        CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier: backendID, connectionHandle: connection });
+        const backend = connection.newInterface('RemoteRenderingBackend', backendID);
+        const createBuffer = (width, height) => {
+            const identifier = genID(), contextIdentifier = genID();
+            backend.CreateImageBuffer({
+                logicalSize: { width, height }, renderingMode, renderingPurpose: 0, resolutionScale: 1.0, colorSpace: sRGB,
+                bufferFormat: { pixelFormat: 3, useLosslessCompression: 0 }, identifier, contextIdentifier,
+            });
+            return { identifier, contextIdentifier };
+        };
+        const readBack = identifier => {
+            const imageBuffer = connection.newInterface('RemoteImageBuffer', identifier);
+            imageBuffer.FlushContext({});
+            const bytes = size * size * 4;
+            const memory = IPC.createSharedMemory(bytes);
+            memory.writeBytes(new Uint8Array(bytes).fill(0xAA));
+            imageBuffer.GetPixelBufferWithNewMemory({
+                handle: { protection: 'ReadWrite', handle: memory },
+                outputFormat: { alphaFormat: 0, pixelFormat: 1, colorSpace: sRGB },
+                srcPoint: { x: 0, y: 0 }, srcSize: { width: size, height: size },
+            });
+            return new Uint8Array(memory.readBytes(0, bytes));
+        };
+
+        const meshGradientIdentifier = genID();
+        backend.CacheMeshGradient({ gradient: meshGradient(), identifier: meshGradientIdentifier });
+
+        const pixels = [];
+        for (const replaysDisplayList of [false, true]) {
+            const buffer = createBuffer(size, size);
+            const context = connection.newInterface('RemoteCGRenderer', buffer.contextIdentifier);
+            if (!replaysDisplayList) {
+                for (const [name, args] of scene(meshGradientIdentifier))
+                    context[name](args);
+            } else {
+                const recorderIdentifier = genID(), displayListIdentifier = genID();
+                backend.CreateDisplayListRecorder({ identifier: recorderIdentifier });
+                const recorder = connection.newInterface('RemoteCGRenderer', recorderIdentifier);
+                for (const [name, args] of scene(meshGradientIdentifier))
+                    recorder[name](args);
+                backend.SinkDisplayListRecorderIntoDisplayList({ identifier: recorderIdentifier, displayListIdentifier });
+                context.DrawDisplayList({ identifier: displayListIdentifier });
+            }
+            pixels.push(readBack(buffer.identifier));
+        }
+        connection.connection.invalidate();
+
+        let differences = 0;
+        for (let i = 0; i < pixels[0].length; ++i)
+            differences += pixels[0][i] != pixels[1][i];
+        const pixel = (x, y) => Array.from(pixels[0].slice((y * size + x) * 4, (y * size + x) * 4 + 4));
+        // The destination maps to x 4..40 and y 2..32. Near its corners, the corner's color dominates; outside, nothing is drawn.
+        const near = (actual, [r, g, b]) => actual[3] == 255 && Math.abs(actual[0] - r) < 60 && Math.abs(actual[1] - g) < 60 && Math.abs(actual[2] - b) < 60;
+        const corners = near(pixel(5, 3), [255, 0, 0]) && near(pixel(38, 3), [0, 255, 0]) && near(pixel(5, 31), [0, 0, 255]) && near(pixel(38, 31), [255, 255, 0]);
+        const outside = pixel(2, 1)[3] == 0 && pixel(44, 40)[3] == 0;
+        log((differences || !corners || !outside ? 'FAIL' : 'PASS') + `: ${modeName} ` + (differences ? `${differences} bytes differ` : !corners ? `corners ${JSON.stringify([pixel(5, 3), pixel(38, 3), pixel(5, 31), pixel(38, 31)])}` : !outside ? 'drawn outside the destination' : 'same pixels, corner colors'));
+    }
+}
+
+window.onload = async () => {
+    if (!window.IPC) {
+        for (const [modeName] of modes)
+            log(`PASS: ${modeName} same pixels, corner colors`);
+        return testRunner?.notifyDone();
+    }
+    try {
+        await run();
+    } catch (e) {
+        log('FAIL: ' + e);
+    }
+    testRunner?.notifyDone();
+};
+</script>

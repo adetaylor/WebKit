@@ -42,6 +42,9 @@ public:
     BifurcatedGraphicsContext(GraphicsContext& primaryContext, GraphicsContext& secondaryContext);
     ~BifurcatedGraphicsContext();
 
+    GraphicsContext& primaryContext() const { return m_primaryContext; }
+    GraphicsContext& secondaryContext() const { return m_secondaryContext; }
+
     bool hasPlatformContext() const;
     PlatformGraphicsContext* platformContext() const final;
 

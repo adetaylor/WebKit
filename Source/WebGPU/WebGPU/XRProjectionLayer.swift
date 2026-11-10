@@ -1,3 +1,4 @@
+// Copyright (c) 2024 Apple Inc. All rights reserved.
 // Copyright (c) 2024-2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -25,8 +26,10 @@
 import IOSurface
 #endif
 import Metal
+#if USE_APPLE_INTERNAL_SDK && HAVE_COMPOSITOR_SERVICES && !targetEnvironment(simulator)
+@_implementationOnly import WebGPU_Internal.MetalSPI
+#endif
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.XRProjectionLayer
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The descriptor values of a projection layer.
@@ -242,17 +245,23 @@ func makeXRProjectionLayerImpl(
 // MARK: - Compositor textures, events and rasterization rate maps
 
 // What startFrame makes of a frame's send rights. Only internal SDK device builds with CompositorServices (visionOS, and
-// the Mac from macOS 27) have the compositor's; XRProjectionLayer.mm makes those. Other Mac builds, where only the
-// simulated XR device of an opt-in WebXR build starts frames, make a texture from the IOSurface that it sends.
+// the Mac from macOS 27) have the compositor's, which Metal's SPI and CompositorServices, soft-linked, make. Other Mac
+// builds, where only the simulated XR device of an opt-in WebXR build starts frames, make a texture from the IOSurface
+// that it sends.
 
 #if USE_APPLE_INTERNAL_SDK && HAVE_COMPOSITOR_SERVICES && !targetEnvironment(simulator)
 
 private func makeXRSharedTexture(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLTexture)? {
-    WebGPU.Metal.makeXRSharedTexture(device, machPort)
+    // An SPI initializer (MTLTexture_Private.h), whose handle goes straight to Metal, as it did from Objective-C.
+    device?.makeSharedTexture(handle: MTLSharedTextureHandle(machPort: machPort))
 }
 
 private func makeXRSharedEvent(_ device: (any MTLDevice)?, _ machPort: mach_port_t) -> (any MTLSharedEvent)? {
-    WebGPU.Metal.makeXRSharedEvent(device, machPort)
+    guard let device else {
+        return nil
+    }
+    // An SPI of every Metal device (MTLDeviceSPI, MTLDevice_Private.h), which MTLDevice doesn't declare.
+    return (device as AnyObject).newSharedEvent(withMachPort: machPort)
 }
 
 private func makeXRRasterizationRateMaps(
@@ -263,15 +272,70 @@ private func makeXRRasterizationRateMaps(
     _ horizontalSamplesRight: [Float],
     _ verticalSamples: [Float]
 ) -> [any MTLRasterizationRateMap]? {
-    WebGPU.Metal.makeXRRasterizationRateMaps(
-        device,
-        screenWidth,
-        screenHeight,
-        horizontalSamplesLeft.span,
-        horizontalSamplesRight.span,
-        verticalSamples.span
-    )
+    guard let device else {
+        return nil
+    }
+    let screenSize = MTLSize(width: Int(screenWidth), height: Int(screenHeight), depth: 0)
+    func makeDescriptor(_ horizontalSamples: [Float]) -> MTLRasterizationRateMapDescriptor {
+        let layer = MTLRasterizationRateLayerDescriptor(horizontal: horizontalSamples, vertical: verticalSamples)
+        let descriptor = MTLRasterizationRateMapDescriptor(screenSize: screenSize, layer: layer)
+        // SPI properties of every descriptor (MTLRasterizationRateMapDescriptorSPI, MTLRasterizationRate_Private.h).
+        descriptor.setValue(true, forKey: "skipSampleValidationAndApplySampleAtTileGranularity")
+        descriptor.setValue(MTLMutability.mutable.rawValue, forKey: "mutability")
+        descriptor.setValue(Float(0.01), forKey: "minFactor")
+        return descriptor
+    }
+    let left = makeDescriptor(horizontalSamplesLeft)
+    let right = makeDescriptor(horizontalSamplesRight)
+    let rateMap = softLink_cp_proxy_process_rasterization_rate_map_create(device, layerRendererLayoutDedicated, 2)
+    let descriptors = unsafe [Unmanaged.passUnretained(left), Unmanaged.passUnretained(right)]
+    // Safety: the function reads the two descriptors during the call, which `left` and `right` keep alive.
+    withExtendedLifetime((left, right)) {
+        descriptors.withUnsafeBufferPointer { buffer in
+            unsafe softLink_cp_rasterization_rate_map_update_from_descriptor(rateMap, buffer.baseAddress!)
+        }
+    }
+    return softLink_cp_proxy_process_rasterization_rate_map_get_metal_maps(rateMap) as? [any MTLRasterizationRateMap]
 }
+
+// cp_layer_renderer_layout_dedicated (CompositorServices/layer_renderer_layout.h).
+private let layerRendererLayoutDedicated: UInt32 = 0
+
+// The CompositorServices SPI that makes rasterization rate maps shared with the compositor, which the GPU process soft-links:
+// the framework is loaded and each symbol found at first use, as the types below declare it. A missing framework or symbol
+// traps.
+
+// cp_proxy_process_rasterization_rate_map_create(id<MTLDevice>, cp_layer_renderer_layout, size_t view_count).
+private typealias RasterizationRateMapCreate = @convention(c) (AnyObject, UInt32, Int) -> AnyObject?
+// cp_rasterization_rate_map_update_from_descriptor(map, __unsafe_unretained MTLRasterizationRateMapDescriptor *[2]).
+private typealias RasterizationRateMapUpdateFromDescriptors = @convention(c) (AnyObject?, UnsafePointer<Unmanaged<MTLRasterizationRateMapDescriptor>>) -> Void
+// cp_proxy_process_rasterization_rate_map_get_metal_maps(map) -> NSArray<id<MTLRasterizationRateMap>> *.
+private typealias RasterizationRateMapGetMetalMaps = @convention(c) (AnyObject?) -> NSArray?
+
+nonisolated(unsafe) private let compositorServicesHandle: UnsafeMutableRawPointer = {
+    guard let handle = unsafe dlopen("/System/Library/Frameworks/CompositorServices.framework/CompositorServices", RTLD_NOW) else {
+        preconditionFailure("CompositorServices failed to load")
+    }
+    return unsafe handle
+}()
+
+// Unsafe: the name must be one of the NUL-terminated names below.
+@unsafe
+private func compositorServicesSymbol<Name>(_ name: Name) -> UnsafeMutableRawPointer {
+    guard let symbol = withUnsafePointer(to: name, { unsafe dlsym(compositorServicesHandle, UnsafeRawPointer($0).assumingMemoryBound(to: CChar.self)) }) else {
+        preconditionFailure("a symbol of CompositorServices is missing")
+    }
+    return unsafe symbol
+}
+
+@section("__TEXT,__dlsym_cstr") @used private let auditedName_cp_proxy_process_rasterization_rate_map_create: (CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar) = (99, 112, 95, 112, 114, 111, 120, 121, 95, 112, 114, 111, 99, 101, 115, 115, 95, 114, 97, 115, 116, 101, 114, 105, 122, 97, 116, 105, 111, 110, 95, 114, 97, 116, 101, 95, 109, 97, 112, 95, 99, 114, 101, 97, 116, 101, 0)
+@section("__TEXT,__dlsym_cstr") @used private let auditedName_cp_rasterization_rate_map_update_from_descriptor: (CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar) = (99, 112, 95, 114, 97, 115, 116, 101, 114, 105, 122, 97, 116, 105, 111, 110, 95, 114, 97, 116, 101, 95, 109, 97, 112, 95, 117, 112, 100, 97, 116, 101, 95, 102, 114, 111, 109, 95, 100, 101, 115, 99, 114, 105, 112, 116, 111, 114, 0)
+@section("__TEXT,__dlsym_cstr") @used private let auditedName_cp_proxy_process_rasterization_rate_map_get_metal_maps: (CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar, CChar) = (99, 112, 95, 112, 114, 111, 120, 121, 95, 112, 114, 111, 99, 101, 115, 115, 95, 114, 97, 115, 116, 101, 114, 105, 122, 97, 116, 105, 111, 110, 95, 114, 97, 116, 101, 95, 109, 97, 112, 95, 103, 101, 116, 95, 109, 101, 116, 97, 108, 95, 109, 97, 112, 115, 0)
+
+// Safety: each symbol is the function of the type it is cast to, as CompositorServices declares it.
+private let softLink_cp_proxy_process_rasterization_rate_map_create = unsafe unsafeBitCast(compositorServicesSymbol(auditedName_cp_proxy_process_rasterization_rate_map_create), to: RasterizationRateMapCreate.self)
+private let softLink_cp_rasterization_rate_map_update_from_descriptor = unsafe unsafeBitCast(compositorServicesSymbol(auditedName_cp_rasterization_rate_map_update_from_descriptor), to: RasterizationRateMapUpdateFromDescriptors.self)
+private let softLink_cp_proxy_process_rasterization_rate_map_get_metal_maps = unsafe unsafeBitCast(compositorServicesSymbol(auditedName_cp_proxy_process_rasterization_rate_map_get_metal_maps), to: RasterizationRateMapGetMetalMaps.self)
 
 #else
 

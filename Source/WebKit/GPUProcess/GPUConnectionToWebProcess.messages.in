@@ -39,13 +39,13 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
     [EnabledBy=WebGPUEnabled] void CreateGPU(WebKit::WebGPUIdentifier identifier, WebKit::RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnectionHandle serverConnection) AllowedWhenWaitingForSyncReply
     [EnabledBy=WebGPUEnabled] void ReleaseGPU(WebKit::WebGPUIdentifier identifier) AllowedWhenWaitingForSyncReply
 #endif
-    void ClearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier> pageIdentifier)
+    void ClearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier> pageIdentifier) SwiftTypes
     void AbandonSnapshotFrame(WebKit::RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameIdentifier)
     void FailSnapshot(WebKit::RemoteSnapshotIdentifier snapshotIdentifier)
     void SetNowPlayingInfoForPage(struct WebCore::NowPlayingInfo nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
-    void SetNowPlayingCandidateState(struct WebCore::NowPlayingCandidateState candidate)
-    [EnabledBy=AllowTestOnlyIPC] IsActiveNowPlayingSessionForTesting(WebCore::MediaSessionIdentifier identifier) -> (bool isActive)
-    [EnabledBy=AllowTestOnlyIPC] IsRemoteCommandTargetSessionForTesting(WebCore::MediaSessionIdentifier identifier) -> (bool isTarget)
+    void SetNowPlayingCandidateState(struct WebCore::NowPlayingCandidateState candidate) SwiftTypes
+    [EnabledBy=AllowTestOnlyIPC] IsActiveNowPlayingSessionForTesting(WebCore::MediaSessionIdentifier identifier) -> (bool isActive) SwiftTypes
+    [EnabledBy=AllowTestOnlyIPC] IsRemoteCommandTargetSessionForTesting(WebCore::MediaSessionIdentifier identifier) -> (bool isTarget) SwiftTypes
     [EnabledBy=AllowTestOnlyIPC] PostNowPlayingRemoteControlCommandForTesting(enum:uint8_t WebCore::PlatformMediaSessionRemoteControlCommandType type, struct WebCore::PlatformMediaSessionRemoteCommandArgument argument)
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     [EnabledBy=AllowTestOnlyIPC] HostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier mediaElementIdentifier) -> (std::optional<WebCore::FloatRect> bounds)
@@ -55,6 +55,8 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
 #endif
 #if PLATFORM(IOS_FAMILY)
     EnsureMediaSessionHelper()
+    [EnabledBy=UseGPUProcessForMediaEnabled] StartMonitoringWirelessRoutes() SwiftTypes
+    [EnabledBy=UseGPUProcessForMediaEnabled] StopMonitoringWirelessRoutes() SwiftTypes
 #endif
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
     CreateVisibilityPropagationContextForPage(WebKit::WebPageProxyIdentifier pageProxyID, WebCore::PageIdentifier pageID, bool canShowWhileLocked);
@@ -63,8 +65,9 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
     SetMediaOverridesForTesting(struct WebKit::MediaOverridesForTesting configuration)
     CreateAudioHardwareListener(WebKit::RemoteAudioHardwareListenerIdentifier identifier)
     ReleaseAudioHardwareListener(WebKit::RemoteAudioHardwareListenerIdentifier identifier)
-    CreateRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier)
-    ReleaseRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier)
+    CreateRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier) SwiftTypes
+    ReleaseRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier) SwiftTypes
+    [EnabledBy=UseGPUProcessForMediaEnabled] SetSupportedRemoteCommands(Vector<WebCore::PlatformMediaSessionRemoteControlCommandType> commands, bool supportsSeeking) SwiftTypes
     ReleaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
     ConfigureLoggingChannel(String channelName, enum:uint8_t WTFLogChannelState state, enum:uint8_t WTFLogLevel level)
 #if USE(GRAPHICS_LAYER_WC)
@@ -77,6 +80,10 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UpdateSampleBufferDisplayLayerBoundsAndPosition(WebKit::SampleBufferDisplayLayerIdentifier identifier, WebCore::FloatRect bounds, std::optional<MachSendRightAnnotated> fence);
+    [EnabledBy=UseGPUProcessForMediaEnabled] SetLastAudioMediaStreamTrackRendererDeviceUsed(String deviceID)
+#endif
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    [EnabledBy=WebAudioEnabled] SetAudioDestinationSceneIdentifier(WebKit::RemoteAudioDestinationIdentifier identifier, String sceneIdentifier)
 #endif
 
 #if ENABLE(EXTENSION_CAPABILITIES)

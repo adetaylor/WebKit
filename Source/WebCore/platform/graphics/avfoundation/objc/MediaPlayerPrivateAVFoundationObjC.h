@@ -37,7 +37,6 @@
 #include <wtf/RobinHoodHashMap.h>
 #include <wtf/WorkQueue.h>
 
-OBJC_CLASS AVAssetImageGenerator;
 OBJC_CLASS AVAssetTrack;
 OBJC_CLASS AVAssetResourceLoadingRequest;
 OBJC_CLASS AVMediaSelectionGroup;
@@ -78,7 +77,11 @@ class VideoLayerManagerObjC;
 class VideoTrackPrivateAVFObjC;
 class WebCoreAVFResourceLoader;
 
-class WEBCORE_EXPORT MediaPlayerPrivateAVFoundationObjC final : public MediaPlayerPrivateAVFoundation {
+enum class MediaPlayerAVFoundationCachedAnswer : uint8_t { Unknown, No, Yes };
+
+// MediaPlayerPrivateAVFoundation.swift implements what the readiness state machine asks of the asset: its status,
+// whether its tracks are playable, its start date and size, and whether its media selection groups have loaded.
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/MediaPlayerPrivateAVFoundation.swift") MediaPlayerPrivateAVFoundationObjC final : public MediaPlayerPrivateAVFoundation {
 public:
     explicit MediaPlayerPrivateAVFoundationObjC(MediaPlayer&);
     virtual ~MediaPlayerPrivateAVFoundationObjC();
@@ -100,7 +103,6 @@ public:
     void setShouldContinueAfterKeyNeeded(bool) final;
 #endif
 
-    void tracksDidChange(const RetainPtr<NSArray>&);
     void metadataGroupDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void metadataDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void firstFrameAvailableDidChange(bool);
@@ -163,6 +165,7 @@ private:
     bool platformPaused() const final;
     void setVolumeLocked(bool) final;
     void setVolume(float) final;
+    // Implemented in Swift.
     void setMuted(bool) final;
     void paint(GraphicsContext&, const FloatRect&) final;
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) final;
@@ -217,7 +220,7 @@ private:
     void sizeChanged() final;
     void resolvedURLChanged() final;
 
-    bool isHLS() const final { return m_cachedAssetIsHLS.value_or(false); }
+    bool isHLS() const final { return m_cachedAssetIsHLS == MediaPlayerAVFoundationCachedAnswer::Yes; }
 
     bool hasAvailableVideoFrame() const final;
 
@@ -234,8 +237,11 @@ private:
 
     enum class ShouldAnimate : bool { No, Yes };
     void updateVideoLayerGravity() final { updateVideoLayerGravity(ShouldAnimate::No); }
-    void updateVideoLayerGravity(ShouldAnimate);
+    void updateVideoLayerGravity(ShouldAnimate shouldAnimate) { updateVideoLayerGravity(shouldAnimate == ShouldAnimate::Yes); }
+    // Implemented in Swift.
+    void updateVideoLayerGravity(bool animated);
 
+    // Implemented in Swift.
     void updateIsAudible() final;
 
     bool didPassCORSAccessCheck() const final;
@@ -251,10 +257,6 @@ private:
 #if ENABLE(WEB_AUDIO) && USE(MEDIATOOLBOX)
     AudioSourceProvider* audioSourceProvider() final;
 #endif
-
-    void createImageGenerator();
-    void destroyImageGenerator();
-    RetainPtr<CGImageRef> createImageForTimeInRect(float, const FloatRect&);
 
     using UpdateCompletion = CompletionHandler<void()>;
     void updateLastImage(NOESCAPE UpdateCompletion&&);
@@ -304,8 +306,11 @@ private:
     bool hasAudio() const final;
     bool isCurrentPlaybackTargetWireless() const final;
     String wirelessPlaybackTargetName() const final;
-    MediaPlayer::WirelessPlaybackTargetType wirelessPlaybackTargetType() const final;
+    MediaPlayerWirelessPlaybackTargetType wirelessPlaybackTargetType() const final { return static_cast<MediaPlayerWirelessPlaybackTargetType>(wirelessPlaybackTargetTypeValue()); }
+    // Implemented in Swift: a MediaPlayerWirelessPlaybackTargetType.
+    uint8_t wirelessPlaybackTargetTypeValue() const;
     bool wirelessVideoPlaybackDisabled() const final;
+    // Implemented in Swift.
     void setWirelessVideoPlaybackDisabled(bool) final;
     OptionSet<MediaPlaybackTargetType> supportedPlaybackTargetTypes() const final;
     static OptionSet<MediaPlaybackTargetType> playbackTargetTypes();
@@ -322,6 +327,7 @@ private:
 
     Vector<String> preferredAudioCharacteristics() const;
 
+    // Implemented in Swift.
     void setShouldDisableSleep(bool) final;
     void updateRotationSession();
 
@@ -359,11 +365,20 @@ private:
 
     void checkNewVideoFrameMetadata();
 
+    // Implemented in Swift.
     void setShouldDisableHDR(bool) final;
+    // Implemented in Swift: the settings createAVPlayer() gives a new AVPlayer and its layer.
+    void configureAVPlayer(bool shouldDisableHDR, bool shouldDisableSleep);
 
-    std::optional<bool> allTracksArePlayable() const;
-    bool containsDisabledTracks() const;
     bool trackIsPlayable(AVAssetTrack*) const;
+    // Implemented in Swift: the status of the asset's metadata keys, or Loaded once they have all loaded.
+    MediaPlayerPrivateAVFoundation::AssetStatus assetKeysStatus() const;
+    // Implemented in Swift: hands the asset, AVPlayer, AVPlayerItem and video layer to the Swift core once made.
+    void attachAVObjectsToCore();
+    // Implemented in Swift.
+    void tracksDidChange();
+    // Implemented in Swift: assetStatus() until the asset's caches below are all known, filling them; Loaded once they are.
+    MediaPlayerPrivateAVFoundation::AssetStatus fillAssetStatusCaches() const;
 
     std::optional<VideoPlaybackQualityMetrics> videoPlaybackQualityMetrics(AVPlayerLayer*) const;
 
@@ -393,6 +408,7 @@ private:
 
     void updateLayerAttachment();
     NODELETE bool shouldAttachLayerToPlayer();
+    bool hasVideoFullscreenLayer() const;
 
 #if PLATFORM(MAC)
     void screenReservedChanged(bool) final;
@@ -407,6 +423,8 @@ private:
     const RetainPtr<WebCoreAVFMovieObserver> m_objcObserver;
     struct Core;
     std::unique_ptr<Core> m_core;
+    // m_core's key in MediaPlayerAVFoundationCore.swift's table of cores, for MediaPlayerPrivateAVFoundation.swift.
+    uint64_t m_coreKey { 0 };
     RetainPtr<id> m_timeObserver;
     mutable String m_languageOfPrimaryAudioTrack;
     bool m_videoFrameHasDrawn { false };
@@ -421,7 +439,6 @@ private:
     RefPtr<AudioSourceProviderAVFObjC> m_provider;
 #endif
 
-    RetainPtr<AVAssetImageGenerator> m_imageGenerator;
     RefPtr<QueuedVideoOutput> m_videoOutput;
     RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
     RefPtr<NativeImage> m_lastImage;
@@ -485,9 +502,9 @@ private:
     bool m_cachedIsReadyForDisplay { false };
     bool m_haveBeenAskedToCreateLayer { false };
     mutable bool m_cachedAssetIsLoaded { false };
-    mutable std::optional<bool> m_cachedAssetIsPlayable;
-    mutable std::optional<bool> m_cachedTracksArePlayable;
-    mutable std::optional<bool> m_cachedAssetIsHLS;
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedAssetIsPlayable { MediaPlayerAVFoundationCachedAnswer::Unknown };
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedTracksArePlayable { MediaPlayerAVFoundationCachedAnswer::Unknown };
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedAssetIsHLS { MediaPlayerAVFoundationCachedAnswer::Unknown };
     bool m_volumeLocked { false };
     bool m_muted { false };
     bool m_preservesPitch { true };

@@ -49,6 +49,7 @@
 #include "RemoteMediaPlayerManager.h"
 #include "RemoteRemoteCommandListenerMessages.h"
 #include "RemoteSharedResourceCacheProxy.h"
+#include "RemoteSnapshotPrintData.h"
 #include "SampleBufferDisplayLayerManager.h"
 #include "SampleBufferDisplayLayerMessages.h"
 #include "WebPage.h"
@@ -375,7 +376,29 @@ void GPUProcessConnection::endRoutingArbitration()
 }
 #endif
 
-#if PLATFORM(COCOA)
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+void GPUProcessConnection::drawSnapshotPrintDataToPDF(RemoteSnapshotPrintData&& printData, const FloatSize& size, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
+{
+    Ref webProcess = WebProcess::singleton();
+    if (!webProcess->isPrintProcess()) {
+        ASSERT_NOT_REACHED();
+        completionHandler(nullptr);
+        return;
+    }
+
+    auto buffer = PDFDocumentBuffer::create(size);
+    if (!buffer) {
+        completionHandler(nullptr);
+        return;
+    }
+
+    if (!drawRemoteSnapshotPrintData(WTF::move(printData), buffer->context(), webProcess->isLockdownModeEnabled())) {
+        completionHandler(nullptr);
+        return;
+    }
+    completionHandler(buffer->takeData());
+}
+#elif PLATFORM(COCOA)
 void GPUProcessConnection::drawDisplayListToPDF(DisplayListData&& displayListData, const FloatSize& size, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
 {
     Ref webProcess = WebProcess::singleton();

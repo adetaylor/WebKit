@@ -77,7 +77,7 @@ _TWO_ARGUMENT_TEMPLATES = {
 _PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
 
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
-_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'WTFLogLevel'])
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'CGRendererColorData', 'CGRendererColorValue', 'WTFLogLevel'])
 
 # Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
 _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
@@ -91,6 +91,47 @@ _CXX_DECODED_TYPES = {
 }
 
 
+# Types whose Swift form SwiftCoding.swift writes by hand, because it is made of what C++ makes of the encoded value, like
+# the CGColorSpace that a WebCore::ColorSpace is decoded into. The type is its own coder.
+_HAND_WRITTEN_TYPES = {
+    'WebCore::Color': 'IPCTypes.WebCoreColor',
+    'WebCore::ColorSpace': 'IPCTypes.ColorSpace',
+    'WebCore::Path': 'IPCTypes.Path',
+}
+
+# Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
+# handler for ('SwiftDecodeContext='): what of the value the handler will use.
+_DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path'])
+
+
+def takes_decode_context(cpp_type):
+    return strip_cpp_type_decorations(cpp_type) in _DECODE_CONTEXT_TYPES
+
+
+def is_hand_written(cpp_type):
+    """Whether the Swift form of a C++ IPC type is one that SwiftCoding.swift writes by hand, like IPCTypes.ColorSpace."""
+    name = strip_cpp_type_decorations(cpp_type).removeprefix('::')
+    return name in _HAND_WRITTEN_TYPES or name in CXX_ENUM_TYPES
+
+
+# C++ enums whose Swift form is the enum that Swift imports: encoded as their underlying integer, and accepted where the value
+# is one that .serialization.in lists, under its conditions, as WTF::isValidEnum() accepts it (generate-serializers.py generates
+# the check: Swift's init?(rawValue:) of an imported enum accepts any value). For enums whose values are declared under
+# conditions in their order, which a Swift form numbering them in .serialization.in order couldn't number as C++ does.
+CXX_ENUM_TYPES = {
+    'WebCore::StyleAppearance': 'WebCore.StyleAppearance',
+    # The filter model's enums, which WebCore's Swift filter engine takes.
+    'WebCore::BlendMode': 'WebCore.BlendMode',
+    'WebCore::ChannelSelectorType': 'WebCore.ChannelSelectorType',
+    'WebCore::ColorMatrixType': 'WebCore.ColorMatrixType',
+    'WebCore::ComponentTransferType': 'WebCore.ComponentTransferType',
+    'WebCore::CompositeOperationType': 'WebCore.CompositeOperationType',
+    'WebCore::EdgeModeType': 'WebCore.EdgeModeType',
+    'WebCore::MorphologyOperatorType': 'WebCore.MorphologyOperatorType',
+    'WebCore::TurbulenceType': 'WebCore.TurbulenceType',
+}
+
+
 # Types whose Swift form owns a resource that a message carries, a send right on Darwin (SwiftCoding.swift). They are
 # ~Copyable, so exactly one Swift value owns the resource and gives it back once, when it is destroyed or encoded into
 # a reply. The type is its own coder.
@@ -98,6 +139,7 @@ _OWNED_TYPES = {
     'MachSendRight': 'IPCTypes.MachSendRight',
     'WTF::MachSendRight': 'IPCTypes.MachSendRight',
     'IPC::Semaphore': 'IPCTypes.Semaphore',
+    'IPC::Signal': 'IPCTypes.Signal',
     'WebCore::SharedMemory::Handle': 'IPCTypes.SharedMemoryHandle',
     'WebCore::SharedMemoryHandle': 'IPCTypes.SharedMemoryHandle',
 }
@@ -117,6 +159,10 @@ _OWNED_VECTOR_TYPES = {
     'IPCTypes.MachSendRight': 'IPCTypes.MachSendRightVector',
 }
 
+
+# The extents of the std::spans of const primitives of fixed extent that messages carry, each with its IPCCoding.ExtentN in
+# SwiftCoding.swift: such a span is encoded as its elements, without a count, so Swift takes a copy of exactly that many.
+_FIXED_SPAN_EXTENTS = frozenset([6])
 
 # A [Lent] std::span<const uint8_t> message argument: its bytes are lent to the Swift handler during dispatch, as
 # IPC::LentBytes (SwiftCoding.h), rather than copied into a [UInt8]. Generated Swift decodes past them, then lends them
@@ -141,6 +187,15 @@ def is_lent_bytes(cpp_type):
     return strip_cpp_type_decorations(cpp_type) in LENT_BYTES_TYPES
 
 
+# The C++ types that a [Lent] argument of a message taking C++ types may have: views into the message, which the Swift
+# handler borrows for the dispatch. Each must be SWIFT_NONESCAPABLE, so that the handler can't keep it.
+LENT_CXX_VIEW_TYPES = frozenset(['WebCore::PixelBufferSourceView'])
+
+
+def is_lent_cxx_view(cpp_type):
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in LENT_CXX_VIEW_TYPES
+
+
 def split_template_arguments(arguments):
     result = []
     depth = 0
@@ -157,6 +212,24 @@ def split_template_arguments(arguments):
         current += character
     result.append(current.strip())
     return result
+
+
+# Nested C++ types whose own names would say too little in IPCTypes, so whose Swift forms are named after the types they are
+# nested in.
+_NESTED_SWIFT_FORM_NAMES = {
+    'WebCore::PathSegment::Data': 'PathSegmentData',
+    'WebCore::PathRoundedRect::Strategy': 'PathRoundedRectStrategy',
+    'WebCore::ControlStyle::State': 'ControlStyleState',
+    'WebCore::MeterPart::GaugeRegion': 'MeterPartGaugeRegion',
+    'WebCore::FilterEffectGeometry::Flags': 'FilterEffectGeometryFlags',
+    'WebCore::SVGUnitTypes::SVGUnitType': 'SVGUnitType',
+}
+
+
+def swift_form_name(cpp_name):
+    """The name in IPCTypes of the Swift form of a qualified C++ type: its unqualified name, like FrameIdentifier."""
+    cpp_name = cpp_name.removeprefix('::')
+    return _NESTED_SWIFT_FORM_NAMES.get(cpp_name, cpp_name.rsplit('::', 1)[-1])
 
 
 def swift_cxx_name(cpp_name):
@@ -196,6 +269,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('Seconds', 'WTF::Seconds'):
         return ('Double', 'Double')
 
+    # A WallTime is encoded as its seconds since the epoch, a double, which Swift takes as them.
+    if cpp_type in ('WallTime', 'WTF::WallTime'):
+        return ('Double', 'Double')
+
     # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
     if cpp_type in ('GenericPromise::Result', 'WTF::GenericPromise::Result'):
         return ('Bool', 'Bool')
@@ -215,6 +292,14 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type.removeprefix('::') in _OWNED_TYPES:
         swift_type = _OWNED_TYPES[cpp_type.removeprefix('::')]
         return (swift_type, swift_type)
+
+    if cpp_type.removeprefix('::') in _HAND_WRITTEN_TYPES:
+        swift_type = _HAND_WRITTEN_TYPES[cpp_type.removeprefix('::')]
+        return (swift_type, swift_type)
+
+    if cpp_type.removeprefix('::') in CXX_ENUM_TYPES:
+        swift_type = CXX_ENUM_TYPES[cpp_type.removeprefix('::')]
+        return (swift_type, 'IPCCoding.CxxEnum<%s>' % swift_type)
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
     if match:
@@ -252,6 +337,11 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         if template == 'std::span' and len(arguments) == 1 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
             element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
             return ('[%s]' % element, 'IPCCoding.Vector<%s>' % element)
+        if template == 'std::span' and len(arguments) == 2 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
+            if not arguments[1].isdigit() or int(arguments[1]) not in _FIXED_SPAN_EXTENTS:
+                raise UnmappableSwiftType("'%s' has no Swift form: messages that take Swift types support a std::span of const primitives of fixed extent %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS))))
+            element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
+            return ('[%s]' % element, 'IPCCoding.FixedSpan<%s, IPCCoding.Extent%s>' % (element, arguments[1]))
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
 
     if cpp_type.removeprefix('::').removeprefix('WTF::') in _WTF_SWIFT_TYPES:
@@ -272,14 +362,14 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     qualified_type = cpp_type.removeprefix('::')
     match = re.match(r'^(?:[A-Za-z_][A-Za-z_0-9]*::)+([A-Za-z_][A-Za-z_0-9]*)$', qualified_type)
     if match and not qualified_type.startswith('WTF::') and not qualified_type.startswith('std::'):
-        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, match.group(1))
+        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, swift_form_name(qualified_type))
         if not cxx_name_coders:
             return (swift_type, swift_type)
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
+                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):

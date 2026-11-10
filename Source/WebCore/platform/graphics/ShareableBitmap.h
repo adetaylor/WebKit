@@ -36,6 +36,7 @@
 #include <wtf/DebugHeap.h>
 #include <wtf/ExportMacros.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 #if USE(SKIA)
@@ -147,9 +148,13 @@ private:
     ShareableBitmapConfiguration m_configuration;
 };
 
-class ShareableBitmap : public ThreadSafeRefCounted<ShareableBitmap> {
+// With Core Graphics, the drawing into the pixels and the images of them are ShareableBitmapCore's (ShareableBitmapCG.swift).
+class SWIFT_PRIVATE_FILEID("WebCore/ShareableBitmapCG.swift") ShareableBitmap : public ThreadSafeRefCounted<ShareableBitmap> {
 public:
     using Handle = ShareableBitmapHandle;
+#if USE(CG)
+    WEBCORE_EXPORT ~ShareableBitmap();
+#endif
 
     // Create a shareable bitmap whose backing memory can be shared with another process.
     WEBCORE_EXPORT static RefPtr<ShareableBitmap> create(const ShareableBitmapConfiguration&);
@@ -217,9 +222,6 @@ public:
 private:
     ShareableBitmap(const ShareableBitmapConfiguration&, Ref<SharedMemory>&&);
 
-#if USE(CG)
-    static void releaseBitmapContextData(void* typelessBitmap, void* typelessData);
-#endif
 
 #if USE(CAIRO)
     static void releaseSurfaceData(void* typelessBitmap);
@@ -228,8 +230,19 @@ private:
     ShareableBitmapConfiguration m_configuration;
     const Ref<SharedMemory> m_sharedMemory;
 #if USE(CG)
+    friend class ImageBufferSurface;
+
     std::optional<SharedMemoryHandle> m_ownershipHandle;
-    bool m_releaseBitmapContextDataCalled : 1 { false };
+
+    // Implemented in ShareableBitmapCG.swift. m_swiftState is a +1 reference to the ShareableBitmapCore, and the context and
+    // the image are +1 references, which the caller adopts.
+    static uintptr_t createSwiftState(SharedMemory&, int width, int height, CGColorSpaceRef, uint32_t bitsPerComponent, uint32_t bytesPerPixel, uint32_t bytesPerRow, uint32_t bitmapInfo, float headroom, uint32_t sizeInBytes);
+    static void destroySwiftState(uintptr_t);
+    static CGContextRef swiftCreateCGContext(uintptr_t);
+    static CGImageRef swiftCreateBasePlatformImage(uintptr_t, bool copyBackingStore, bool shouldInterpolate);
+    static void swiftPaint(CGImageRef, CGContextRef, float scaleFactor, CGPoint destination, CGRect source);
+
+    const uintptr_t m_swiftState;
 #endif
 };
 

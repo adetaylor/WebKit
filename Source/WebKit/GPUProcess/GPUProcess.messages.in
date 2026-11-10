@@ -46,10 +46,10 @@ messages -> GPUProcess : AuxiliaryProcess {
 
 #if ENABLE(MEDIA_STREAM)
     SetMockCaptureDevicesEnabled(bool isEnabled)
-    SetOrientationForMediaCapture(WebCore::IntDegrees orientation);
-    RotationAngleForCaptureDeviceChanged(String persistentId, enum:uint16_t WebCore::VideoFrameRotation rotation);
+    SetOrientationForMediaCapture(int32_t orientation) SwiftTypes
+    RotationAngleForCaptureDeviceChanged(String persistentId, enum:uint16_t WebCore::VideoFrameRotation rotation) SwiftTypes
 
-    UpdateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier processID) -> ()
+    UpdateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier processID) -> () SwiftTypes
     UpdateCaptureOrigin(WebCore::SecurityOriginData originData, WebCore::ProcessIdentifier processID)
     AddMockMediaDevice(struct WebCore::MockMediaDevice device)
     ClearMockMediaDevices()
@@ -103,7 +103,6 @@ messages -> GPUProcess : AuxiliaryProcess {
     UserPreferredLanguagesChanged(Vector<String> languages)
 
     WebProcessConnectionCountForTesting() -> (uint64_t count)
-    RunDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>> webFonts) -> (std::optional<Vector<String>> failures)
 #if PLATFORM(COCOA)
     PrintProcessDrawingCountsForTesting() -> (uint64_t drawnInPrintProcess, uint64_t drawnAfterPrintProcessFailed)
 #endif
@@ -132,8 +131,8 @@ messages -> GPUProcess : AuxiliaryProcess {
     RegisterFonts(Vector<WebKit::SandboxExtensionHandle> sandboxExtensions)
 #endif
 
-    SetNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session)
-    WithdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page)
+    SetNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session) SwiftTypes
+    WithdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page) SwiftTypes
 
     HandOverTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers, WebCore::ProcessIdentifier destinationProcess)
     ReleaseTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers)

@@ -34,7 +34,7 @@
 #include "LayerHostingContext.h"
 #include "Logging.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
-#include "RemoteCDMFactoryProxy.h"
+#include "RemoteCDMPrivateFactory.h"
 #include "RemoteLegacyCDMFactoryProxy.h"
 #include "RemoteLegacyCDMSessionProxy.h"
 #include "RemoteVideoFrameObjectHeap.h"
@@ -517,13 +517,13 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
         return;
     }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    Ref factory = m_gpuConnectionToWebProcess.get()->cdmFactoryProxy();
-    if (RefPtr instance = factory->cdmInstance(*instanceId)) {
+    Ref connection = m_gpuConnectionToWebProcess.get();
+    if (RefPtr instance = protect(connection->cdmPrivateFactory())->cdmInstance(*instanceId)) {
         renderer->setCDMInstance(instance.get());
         return;
     }
     // A ClearKey instance, which has no C++ instance: the renderers only decrypt with FairPlay Streaming's.
-    if (factory->hasInstance(instanceId->toUInt64())) {
+    if (connection->hasCDMInstance(instanceId->toUInt64())) {
         renderer->setCDMInstance(nullptr);
         return;
     }

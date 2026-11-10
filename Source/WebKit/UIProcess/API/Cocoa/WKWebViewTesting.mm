@@ -27,6 +27,7 @@
 #import "WKWebViewPrivateForTesting.h"
 
 #import "AudioSessionRoutingArbitratorProxy.h"
+#import "DisplayListDataTester.h"
 #import "EditingRange.h"
 #import "EndowmentStateTracker.h"
 #import "GPUProcessProxy.h"
@@ -1274,22 +1275,15 @@ static void dumpCALayer(TextStream& ts, CALayer *layer, bool traverse, _WKCALaye
     });
 }
 
-- (void)_runDisplayListDataTestsInGPUProcessWithWebFonts:(NSArray<NSData *> *)webFonts completionHandler:(void(^)(NSArray<NSString *> *))completionHandler
+- (void)_runDisplayListDataTestsWithWebFonts:(NSArray<NSData *> *)webFonts completionHandler:(void(^)(NSArray<NSString *> *))completionHandler
 {
 #if ENABLE(GPU_PROCESS)
-    Ref gpuProcess = WebKit::GPUProcessProxy::getOrCreate();
     auto fonts = makeVector(webFonts, [](NSData *data) -> std::optional<Ref<WebCore::SharedBuffer>> {
         return WebCore::SharedBuffer::create(data);
     });
-    gpuProcess->runDisplayListDataTestsForTesting(WTF::move(fonts), [completionHandler = makeBlockPtr(completionHandler)](std::optional<Vector<String>>&& failures) {
-        if (!failures) {
-            completionHandler(@[ @"The GPU process did not finish the tests" ]);
-            return;
-        }
-        completionHandler(createNSArray(*failures).get());
-    });
+    completionHandler(createNSArray(WebKit::testDisplayListData(fonts)).get());
 #else
-    completionHandler(@[ @"The GPU process is not enabled" ]);
+    completionHandler(@[ @"DisplayListData needs the GPU process" ]);
 #endif
 }
 

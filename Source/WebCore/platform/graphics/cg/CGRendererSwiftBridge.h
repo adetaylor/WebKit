@@ -92,58 +92,46 @@ CGImageRef _Nullable CGRendererCopySubimage(CGImageRef _Nonnull, CGRect) CF_RETU
 // CGPatternCreate() with callbacks that draw the image, aligned to device pixels.
 CGPatternRef _Nullable CGRendererCreateImagePattern(CGImageRef _Nullable, CGRect tileBounds, CGAffineTransform, CGFloat xStep, CGFloat yStep) CF_RETURNS_RETAINED;
 
-// What GraphicsContextCG knows about a run of glyphs' font that the renderer draws with (FontCascade::drawGlyphs()).
-struct CGRendererGlyphDrawFacts {
+// What the renderer draws a run of glyphs in a font with (FontCascade::drawGlyphs()), which is the font's alone, so that
+// whoever keeps the font can work it out once (CGRendererGlyphFontFactsOf()).
+struct CGRendererGlyphFontFacts {
     CGAffineTransform textMatrix; // computeTextMatrix().
     CGAffineTransform verticalTranslationMatrix; // The text matrix without synthetic oblique, for vertical glyph translations.
     float fontSize;
     float syntheticBoldOffset;
     float ascentDelta; // From the alphabetic to the ideographic baseline, for vertical text.
-    uint8_t smoothingMode; // FontSmoothingMode, None when the font doesn't allow antialiasing.
+    bool isVertical;
     bool isColorBitmapFont;
-    bool isInTransparencyLayer;
+    bool allowsAntialiasing;
+    bool hasComplexColorFormatTables; // Whether a glyph may have complex color, which the GPU process doesn't draw.
+    bool draws; // False for a font of no size, and for a run that the GPU process doesn't draw.
 };
 
-// A run of glyphs lent to CGRenderer.swift for one call: their font, which whoever lends the run keeps, their advances, and
-// for vertical text their translations.
+// A run of glyphs lent to CGRenderer.swift for one call: their font, which whoever lends the run keeps, and their advances.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphRun {
 public:
-    CGRendererGlyphRun(CTFontRef _Nonnull font, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND, std::span<const CGSize> translations LIFETIME_BOUND) __attribute__((availability(swift, unavailable)))
+    CGRendererGlyphRun(CTFontRef _Nonnull font, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND) __attribute__((availability(swift, unavailable)))
         : m_font(font)
-        , m_glyphs(glyphs)
-        , m_advances(advances)
-        , m_translations(translations)
+        , m_glyphs(glyphs.first(std::min(glyphs.size(), advances.size())))
+        , m_advances(advances.first(m_glyphs.size()))
     {
     }
 
-    size_t size() const { return m_glyphs.size(); }
-    CGSize advance(size_t index) const { return m_advances[index]; }
-    bool isVertical() const { return !m_translations.empty(); }
-    CGSize translation(size_t index) const { return m_translations[index]; }
     std::span<const CGGlyph> glyphs() const LIFETIME_BOUND { return m_glyphs; }
+    std::span<const CGSize> advances() const LIFETIME_BOUND { return m_advances; }
     CTFontRef _Nonnull font() const __attribute__((availability(swift, unavailable))) { return m_font; }
 
 private:
     CTFontRef _Nonnull m_font;
     std::span<const CGGlyph> m_glyphs;
     std::span<const CGSize> m_advances;
-    std::span<const CGSize> m_translations;
 };
 
-// Storage for a run's glyph positions, which CGRenderer.swift computes, lent for one call.
-class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphPositions {
-public:
-    explicit CGRendererGlyphPositions(std::span<CGPoint> positions LIFETIME_BOUND)
-        : m_positions(positions)
-    {
-    }
-
-    std::span<CGPoint> mutableSpan() LIFETIME_BOUND { return m_positions; }
-    std::span<const CGPoint> span() const LIFETIME_BOUND { return m_positions; }
-
-private:
-    std::span<CGPoint> m_positions;
-};
+// A run of glyphs that Swift keeps, in a font that it keeps.
+inline CGRendererGlyphRun CGRendererMakeGlyphRun(CTFontRef _Nonnull font LIFETIME_BOUND, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND)
+{
+    return { font, glyphs, advances };
+}
 
 namespace WebCore {
 class AffineTransform;
@@ -153,10 +141,12 @@ class FloatPoint;
 class FloatRect;
 class FontBase;
 class FloatRoundedRect;
+class GraphicsContext;
 struct FloatSegment;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
+class NativeImage;
 class Path;
 class PathImpl;
 class Pattern;
@@ -197,26 +187,8 @@ private:
     RefPtr<WebCore::Pattern> m_pattern;
 };
 
-// GraphicsContextCG::drawGlyphsImmediate()'s preparation of a run of glyphs for the renderer: FontCascade::drawGlyphs(), with
-// what the renderer can't know about the font worked out. A font of no size, or one with complex color glyphs in the GPU
-// process, draws nothing.
-class CGRendererGlyphPreparation {
-public:
-    WEBCORE_EXPORT CGRendererGlyphPreparation(const WebCore::FontBase&, std::span<const CGGlyph>, WebCore::FontSmoothingMode, const WebCore::Color* _Nullable simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace&, bool isInTransparencyLayer) __attribute__((availability(swift, unavailable)));
-
-    bool draws() const __attribute__((availability(swift, unavailable))) { return m_draws; }
-    std::span<const CGSize> translations() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_translations.span(); }
-    const CGRendererGlyphDrawFacts& facts() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_facts; }
-    CTFontRef _Nullable font() const __attribute__((availability(swift, unavailable))) { return m_font.get(); }
-    CGColorRef _Nullable shadowFillColor() const __attribute__((availability(swift, unavailable))) { return m_shadowFillColor.get(); }
-
-private:
-    bool m_draws { false };
-    Vector<CGSize, 256> m_translations;
-    CGRendererGlyphDrawFacts m_facts { };
-    RetainPtr<CTFontRef> m_font;
-    RetainPtr<CGColorRef> m_shadowFillColor;
-};
+// The facts of a font (CGRendererGlyphFontFacts), and its CTFont, which the font keeps: null for a font without one.
+WEBCORE_EXPORT CTFontRef _Nullable CGRendererGlyphFontFactsOf(const WebCore::FontBase&, CGRendererGlyphFontFacts&) __attribute__((availability(swift, unavailable)));
 
 // The color space a context paints gradients in (Gradient::paintColorSpace()), which GraphicsContextCG gives its renderer for
 // a Swift receiver's gradients.
@@ -325,13 +297,13 @@ struct CGRendererPathSegment {
 WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
 WEBCORE_EXPORT WebCore::PathSegment CGRendererPathSegmentFromValues(CGRendererPathSegment) __attribute__((availability(swift, unavailable)));
 // A Swift receiver's gradient fills and strokes of a path of one segment (GraphicsContextCG's fillPath() and strokePath() of a
-// Path of it), of a rounded rect's path, and of strokeRect()'s rect: the bounds of their content, and their clips.
+// Path of it), and of strokeRect()'s rect, and the bounds of a rounded rect's path: the bounds of their content, and their
+// clips.
 WEBCORE_EXPORT CGRect CGRendererPathSegmentBounds(CGRendererPathSegment);
 WEBCORE_EXPORT void CGRendererClipToPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, WebCore::WindRule);
 WEBCORE_EXPORT CGRect CGRendererStrokedPathSegmentBounds(CGContextRef _Nonnull, CGRendererPathSegment);
 WEBCORE_EXPORT void CGRendererClipToStrokedPathSegment(CGContextRef _Nonnull, CGRendererPathSegment, float thickness);
 WEBCORE_EXPORT CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect&);
-WEBCORE_EXPORT void CGRendererClipToRoundedRectPath(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&, WebCore::WindRule);
 WEBCORE_EXPORT CGRect CGRendererStrokedRectBounds(CGContextRef _Nonnull, CGRect, float lineWidth);
 WEBCORE_EXPORT void CGRendererClipToStrokedRect(CGContextRef _Nonnull, CGRect, float lineWidth);
 
@@ -341,55 +313,73 @@ WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore
 // The same for a Path of the PathImpl, without the Path, whose reference to it a decoded path would otherwise take.
 WEBCORE_EXPORT void CGRendererClipToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT void CGRendererClipOutToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&) __attribute__((availability(swift, unavailable)));
+// The same for a CGPath, which it adds as addToCGContextPath() adds a rounded rect's, after the clip's bounds.
+WEBCORE_EXPORT void CGRendererClipOutToPlatformPath(CGContextRef _Nonnull, CGPathRef _Nonnull);
 
-// GraphicsContext's clipRoundedRect() and clipOutRoundedRect() of a rounded rect with radii, which clip to and out of its
-// path as GraphicsContextCG's clipPath() and clipOut(const Path&) do.
-WEBCORE_EXPORT void CGRendererClipToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
-WEBCORE_EXPORT void CGRendererClipOutToRoundedRect(CGContextRef _Nonnull, const WebCore::FloatRoundedRect&);
-// GraphicsContextCG's rounded rect fills: the path of a rounded rect with radii (Path::addRoundedRect()), of a rect with a
-// rounded hole, which fillRectWithRoundedHole() fills even-odd, and whether fillRoundedRectImpl() fills a rounded rect as
-// the ellipse its radii make.
-WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect&) CF_RETURNS_RETAINED;
-WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyRectWithRoundedHolePath(CGRect, const WebCore::FloatRoundedRect& hole) CF_RETURNS_RETAINED;
-WEBCORE_EXPORT bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect&);
-// A rounded rect's rect and radii as ShadowBlur takes them (ShadowBlur::drawRectShadow() and drawInsetShadow() of it).
-struct CGRendererShadowBlurRoundedRect {
+
+// A rounded rect's rect and radii as plain values, for CGRenderer.swift, which ShadowBlur::drawRectShadow() and
+// drawInsetShadow() take as they are.
+struct CGRendererRoundedRect {
     WebCore::ShadowBlurRect rect;
     WebCore::ShadowBlurCornerRadii radii;
 };
-WEBCORE_EXPORT CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect&);
+WEBCORE_EXPORT CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRoundedRect);
 
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
 WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
+// What a Swift receiver asks of a message's path besides its CGPath: how many segments it has; its segment, if it has one,
+// which it draws without a CGPath; the arc of a pie wedge (Path::pieWedgeArc()) as an Arc segment, or a CloseSubpath segment
+// for any other path; and Path::fastBoundingRect() of a path of more than one segment, where it was asked for.
+struct CGRendererPathFacts {
+    size_t segmentCount;
+    CGRendererPathSegment segment;
+    CGRendererPathSegment pieWedgeArc;
+    CGRect fastBoundingRect;
+    bool hasFastBoundingRect;
+};
+// The CGPath that Path makes (PathCG) of a PathStream of the segments, as CGRendererCopyPlatformPath() does, and the path's
+// facts, whose bounds, if computesFastBoundingRect, are PathStream::computeFastBoundingRect()'s, in the same pass over the
+// segments. Null for a path of no segment or one.
+WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// The Path of such a CGPath, as a Path of a PathCG, which C++ encodes as the segments of the CGPath's elements.
+WEBCORE_EXPORT WebCore::Path CGRendererPathOfPlatformPath(CGPathRef _Nonnull) __attribute__((availability(swift, unavailable)));
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it
 // would make first.
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 
-// What the renderer's drawNativeImage() takes of an image draw's options, and whether the renderer draws the image at all: it
-// doesn't do the iOS family's pixel alignment of images yet, nor limit an image's dynamic range (tone mapping) or invert it
-// (AX), which GraphicsContextCG::drawNativeImage() draws in C++.
+// What the renderer's drawNativeImage() takes of an image draw's options: the dynamic range limit, which tone maps an image
+// that draws HDR content to standard range, is in limitsDynamicRange.
 struct CGRendererImageOptions {
     WebCore::CompositeOperator compositeOperator;
     WebCore::BlendMode blendMode;
     WebCore::InterpolationQuality interpolationQuality;
     uint8_t orientation;
     float headroom;
-    bool rendererDraws;
+    float dynamicRangeLimit;
+    bool limitsDynamicRange;
 };
 WEBCORE_EXPORT CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions);
 
-// The image of a Swift receiver's image draw, as its C++ finds it: whether the identifier names an image (found), whether the
-// receiver leaves the draw to C++ (declines: an image buffer drawn into itself), the image's size and headroom, and for an
-// image buffer its resolution scale, which scales the source rect.
+// The image of an image draw: for a Swift receiver's, whether the identifier names an image (found), and whether it is a
+// copy of the image buffer the receiver draws into (isSelfCopy), which the receiver flushes after the draw; the image's size
+// and headroom; for an image buffer, its resolution scale, which scales the source rect; and the color matrix that inverts
+// an image drawn for an accessibility color mode.
 struct CGRendererImageFacts {
     float width;
     float height;
     float headroom;
     float resolutionScale;
     bool found;
-    bool declines;
+    bool isSelfCopy;
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+    bool invertsContent;
+    CGRendererColorMatrix invertColorMatrix;
+#endif
 };
+// GraphicsContextCG::drawNativeImage()'s inversion of an image for an accessibility color mode: the color matrix, in the
+// facts, for options that invert the image (InvertContent::Yes or Forced) where the platform has the mode.
+WEBCORE_EXPORT void CGRendererSetInvertColorMatrix(const WebCore::NativeImage&, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) __attribute__((availability(swift, unavailable)));
 
 // A Color as the renderer takes it, as GraphicsContextCG converts its state's (didUpdateStateForSwiftRenderer()): an sRGBA8
 // color packed, any other as plain values with its CGColor, which CGRendererCopyColor() returns.
@@ -398,14 +388,6 @@ struct CGRendererColorValue {
     uint32_t packedColor;
     bool isPacked;
     bool isVisible;
-};
-// The renderer's state that a receiver's run of glyphs is prepared in (GraphicsContextCG::drawGlyphsImmediate()): the fill
-// color, the color of a drop shadow without blur, and whether a receiver's transparency layer is open.
-struct CGRendererGlyphContext {
-    CGRendererColorValue fillColor;
-    CGRendererColorValue shadowColor;
-    bool hasSimpleShadow;
-    bool hasReceiverTransparencyLayer;
 };
 // The value of a color without its CGColor, as RemoteCGRenderer's messages carry one: the renderer makes the CGColor itself
 // (CGRendererCopyCGColorForData()), and CGRendererColorFromValue() gives back the same Color.
@@ -427,8 +409,17 @@ private:
     std::optional<WebCore::ColorSpace> m_colorSpace;
 };
 
-// cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space.
+// cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space, and cachedCGColor() of it.
+#if ENABLE(APPLE_PAY)
+// ApplePayButtonCocoa's draw: PassKit's Apple Pay button of the ApplePayButtonType and ApplePayButtonStyle, in the locale, in the
+// rect of a flipped context, with the largest radius of its corners.
+WEBCORE_EXPORT void CGRendererDrawApplePayButton(CGContextRef _Nonnull, CGRect, CGFloat largestCornerRadius, uint8_t buttonType, uint8_t buttonStyle, CFStringRef _Nullable locale);
+#endif
+
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCachedCGColorForData(const CGRendererColorData&) CF_RETURNS_RETAINED;
+// The color that a drop shadow without blur draws a run of glyphs in: the shadow's, with its alpha multiplied by the fill's.
+CGColorRef _Nullable CGRendererCopyGlyphShadowColor(const CGRendererColorValue& shadowColor, const CGRendererColorValue& fillColor, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 // A drop shadow's values and its color's data, as RemoteCGRenderer's messages carry them, and the same shadow back.
@@ -438,11 +429,6 @@ WEBCORE_EXPORT WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const 
 // The Color of a value of the renderer's, as GraphicsContextCG takes the renderer's state (updateStateFromSwiftRenderer()),
 // and as the renderer gives ShadowBlur a drop shadow's color.
 WEBCORE_EXPORT WebCore::Color CGRendererColorFromValue(const CGRendererColorValue&);
-// GraphicsContext::computeRectsAndStrokeColorForLinesForText() for a context of the CTM and stroke color: the rects and the
-// color that GraphicsContextCG::drawLinesForText() fills.
-WEBCORE_EXPORT void CGRendererRectsForLinesForText(const WebCore::AffineTransform& ctm, const WebCore::Color& strokeColor, const WebCore::FloatPoint& origin, float thickness, std::span<const WebCore::FloatSegment>, bool isPrinting, bool doubleLines, WebCore::StrokeStyle, Vector<CGRect, 4>& rects, WebCore::Color&) __attribute__((availability(swift, unavailable)));
-// GraphicsContextCG::drawDotsForDocumentMarker()'s drawing.
-WEBCORE_EXPORT void CGRendererDrawDotsForDocumentMarker(CGContextRef _Nonnull, const WebCore::FloatRect&, const WebCore::DocumentMarkerLineStyle&);
 
 // Testing only: a message of RemoteCGRenderer's and its arguments (GraphicsContextCG::applyReceiverMessageForTesting()).
 struct CGRendererReceiverTestMessage {

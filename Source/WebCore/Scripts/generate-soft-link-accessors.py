@@ -220,8 +220,11 @@ def parse_manifest(lines):
         if len(words) == 5 and words[0] == 'function' and words[3:] == ['with', 'pointer']:
             entries.append(tuple(words[:3]) + ('pointer',))
             continue
+        if len(words) == 4 and words[0] == 'function' and words[3] == 'refined':
+            entries.append(tuple(words[:3]) + ('refined',))
+            continue
         if len(words) != 3 or words[0] not in KINDS:
-            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "<constant|class> <framework> <symbol> as <type>", "member <framework> <class> <selector> <declaration>", or "function <framework> <symbol> with pointer"')
+            raise GeneratorError(f'manifest line {number}: expected "<{"|".join(KINDS[:3])}> <framework> <symbol>", "<constant|class> <framework> <symbol> as <type>", "member <framework> <class> <selector> <declaration>", "function <framework> <symbol> with pointer", or "function <framework> <symbol> refined"')
         entries.append(tuple(words) + (None,))
     return entries
 
@@ -291,6 +294,23 @@ def find_declaration(interfaces, name):
         if m:
             return split_parameters(m.group(1)), (m.group(3) or 'Void').strip()
     return None
+
+
+# swift-synthesize-interface omits the functions the SDK marks CF_REFINED_FOR_SWIFT (`function <framework> <symbol>
+# refined` in the manifest). Their accessors take the pointer type's parameters, unlabeled, and its result with Unmanaged
+# dropped (the accessor then follows the Create rule). A CoreVideo buffer result is a CFTypeRef: WebKit's headers declare
+# CVPixelBufferRef and CVImageBufferRef themselves, so in a caller's file those names can be classes of their own, and a
+# call would then name a different accessor than the one generated.
+ERASED_RESULTS = ('CVBuffer', 'CVImageBuffer', 'CVPixelBuffer')
+
+
+def declaration_from_typedef(typedef):
+    pointer_parameters, pointer_result, _ = typedef
+    m = re.fullmatch(r'Unmanaged<(.*)>(\??)', pointer_result)
+    result = m.group(1) + m.group(2) if m else pointer_result
+    if m and m.group(1) in ERASED_RESULTS:
+        result = 'CFTypeRef' + m.group(2)
+    return [f'_ arg{i}: {parameter}' for i, parameter in enumerate(pointer_parameters)], result
 
 
 def find_function_typedef(text, name):
@@ -363,7 +383,7 @@ def function_accessor(declaration, typedef, imported, with_pointer=False):
     call = f'{callee}({", ".join(arguments)})'
     if declared_result == pointer_result:
         body = call
-    elif pointer_result in (f'Unmanaged<{strip_optional(declared_result)}>?', f'Unmanaged<{declared_result}>'):
+    elif pointer_result in (f'Unmanaged<{strip_optional(declared_result)}>?', f'Unmanaged<{declared_result}>') or (strip_optional(declared_result) == 'CFTypeRef' and re.fullmatch(r'Unmanaged<(?:' + '|'.join(ERASED_RESULTS) + r')>\??', pointer_result) and declared_result.endswith('?') == pointer_result.endswith('?')):
         take = 'takeRetainedValue' if follows_create_rule(name) else 'takeUnretainedValue'
         body = f'{call}{"?" if pointer_result.endswith("?") else ""}.{take}()'
         needs_unsafe = True
@@ -786,7 +806,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for, h
         declaration = declarations.symbols[name]
         if kind == 'function':
             typedef = find_function_typedef(typedefs, f'PALSoftLink_{name}_t')
-            imported = find_declaration(interfaces_for(framework), name)
+            imported = declaration_from_typedef(typedef) if typedef and swift_type == 'refined' else find_declaration(interfaces_for(framework), name)
             if not typedef or not imported:
                 raise GeneratorError(f'{name}: no typedef or imported declaration found')
             w += function_accessor(declaration, typedef, imported, swift_type == 'pointer')

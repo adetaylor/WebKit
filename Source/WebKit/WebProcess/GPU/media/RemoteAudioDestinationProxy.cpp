@@ -29,6 +29,7 @@
 #if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 
 #include "GPUConnectionToWebProcess.h"
+#include "GPUConnectionToWebProcessMessages.h"
 #include "Logging.h"
 #include "RemoteAudioDestinationManagerMessages.h"
 #include "WebProcess.h"
@@ -156,7 +157,7 @@ IPC::Connection* RemoteAudioDestinationProxy::connection()
 #endif
 
 #if PLATFORM(IOS_FAMILY)
-        gpuProcessConnection->connection().send(Messages::RemoteAudioDestinationManager::SetSceneIdentifier { *m_destinationID, m_sceneIdentifier }, 0);
+        gpuProcessConnection->connection().send(Messages::GPUConnectionToWebProcess::SetAudioDestinationSceneIdentifier { *m_destinationID, m_sceneIdentifier }, 0);
 #endif
 
         startRenderingThread();
@@ -260,7 +261,7 @@ void RemoteAudioDestinationProxy::setSceneIdentifier(const String& sceneIdentifi
     m_sceneIdentifier = sceneIdentifier;
 
     if (auto gpuProcessConnection = m_gpuProcessConnection.get(); gpuProcessConnection && m_destinationID)
-        gpuProcessConnection->connection().send(Messages::RemoteAudioDestinationManager::SetSceneIdentifier { *m_destinationID, m_sceneIdentifier }, 0);
+        gpuProcessConnection->connection().send(Messages::GPUConnectionToWebProcess::SetAudioDestinationSceneIdentifier { *m_destinationID, m_sceneIdentifier }, 0);
 }
 #endif
 

@@ -253,7 +253,6 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private let waitingForMoreMediaDataPendingValue = Atomic<Bool>(false)
     private let notifyWhenHasAvailableVideoFrameValue = Atomic<Bool>(false)
     private let gotDecodingErrorValue = Atomic<Bool>(false)
-    private let hasResourceOwnerValue = Atomic<Bool>(false)
     // Set on the main thread, read on both; it doesn't change once the decompression session is in use.
     private let preferencesValue = Atomic<UInt8>(0)
     private let totalVideoFramesValue = Atomic<UInt32>(0)
@@ -261,6 +260,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private let corruptedVideoFramesValue = Atomic<UInt32>(0)
     private let presentedVideoFramesValue = Atomic<UInt32>(0)
     private let hasDecompressionSession = Mutex<Bool>(false)
+    private let resourceOwnerValue = Mutex<TaskIdentityToken?>(nil)
     private let startupTime = Mutex<Double>(0)
 
     // Main.
@@ -412,8 +412,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         compressedSamplesCount <= sampleQueueHighWaterMark
     }
 
-    func setHasResourceOwner(_ hasResourceOwner: Bool) {
-        hasResourceOwnerValue.store(hasResourceOwner, ordering: .sequentiallyConsistent)
+    func setResourceOwner(_ resourceOwner: TaskIdentityToken?) {
+        resourceOwnerValue.withLock { $0 = resourceOwner }
     }
 
     func setNotifyWhenHasAvailableVideoFrame(_ notify: Bool) {
@@ -958,8 +958,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private func decodedFrameAvailable(_ sample: DecodedSample, _ sampleFlushId: Int32) {
         assertOnQueue()
 
-        if hasResourceOwnerValue.load(ordering: .sequentiallyConsistent) {
-            host.assignResourceOwner(sample.sampleBuffer)
+        if let resourceOwner = resourceOwnerValue.withLock({ $0 }) {
+            IOSurfaceCore.setOwnershipIdentity(ofImagesIn: sample.sampleBuffer, resourceOwner)
         }
 
         renderer?.queued.enqueue(sample.sampleBuffer)

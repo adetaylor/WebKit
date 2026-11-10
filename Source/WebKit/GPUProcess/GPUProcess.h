@@ -34,6 +34,7 @@
 #include <WebCore/ColorSpace.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
 #include "RemoteSnapshotIdentifier.h"
+#include "RemoteSnapshotSink.h"
 #include "SandboxExtension.h"
 #include "SecurityFlags.h"
 #include "WebPageProxyIdentifier.h"
@@ -95,7 +96,9 @@ namespace WebKit {
 class CapturePreviewLayer;
 class GPUConnectionToWebProcess;
 class RemoteAudioSessionProxyManager;
-class RemoteSnapshot;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class RemoteSnapshotDisplayLists;
+#endif
 struct CoreIPCAuditToken;
 struct GPUProcessConnectionParameters;
 struct GPUProcessCreationParameters;
@@ -137,16 +140,11 @@ public:
 
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
 
-    void recomputeNowPlayingOwner();
-    void setNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier>);
-    void withdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier);
-    void nowPlayingClientDidClose(WebCore::ProcessIdentifier);
-    bool isActiveNowPlayingPage(WebCore::ProcessIdentifier process, WebCore::PageIdentifier page) const { return m_activeNowPlayingOwner && m_activeNowPlayingOwner->process == process && m_activeNowPlayingOwner->page == page; }
-    bool isActiveNowPlayingSession(WebCore::ProcessIdentifier process, WebCore::MediaSessionIdentifier session) const { return m_activeNowPlayingOwner && m_activeNowPlayingOwner->process == process && m_activeNowPlayingOwner->session == session; }
-    // Unlike remoteCommandTargetSessionInProcess(), safe to ask from any process: it compares rather than assuming
-    // the caller owns the target.
-    bool isRemoteCommandTargetSession(WebCore::ProcessIdentifier process, WebCore::MediaSessionIdentifier session) const { return m_remoteCommandTarget && *m_remoteCommandTarget == WebCore::QualifiedMediaSessionIdentifier { session, process }; }
-    std::optional<WebCore::MediaSessionIdentifier> remoteCommandTargetSessionInProcess(WebCore::ProcessIdentifier) const;
+    // The Now Playing election is Swift's (GPUProcess.swift). For it: tells the UI process which page owns Now Playing,
+    // if any.
+    static void nowPlayingOwnerDidChange(bool hasOwner, uint64_t pageIdentifier, uint64_t processIdentifier);
+    // Implemented in Swift: the UI process's session that gets the remote commands while no page owns Now Playing.
+    SWIFT_MAIN_ACTOR void swiftInitializeNowPlayingFallbackSession(uint64_t sessionIdentifier, uint64_t processIdentifier);
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     WorkQueue& videoMediaStreamTrackRendererQueue();
@@ -166,12 +164,18 @@ public:
     WCSharedSceneContextHolder& sharedSceneContext() LIFETIME_BOUND { return m_sharedSceneContext; }
 #endif
 
-    void tryExitIfUnusedAndUnderMemoryPressure();
+    // Implemented in Swift (GPUProcess.swift), as the idle exit and the low memory handling are.
+    SWIFT_MAIN_ACTOR void tryExitIfUnusedAndUnderMemoryPressure();
+
+    // For the idle exit and the low memory handling in Swift.
+    static bool isUnderMemoryPressure();
+    static bool isSimulatingMemoryPressure();
+    static void releaseMemory(Critical, Synchronous);
+    void sendProcessIsReadyToExit();
 
     const String& applicationVisibleName() const LIFETIME_BOUND { return m_applicationVisibleName; }
 
     void webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&&);
-    void runDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>>&& webFonts, CompletionHandler<void(std::optional<Vector<String>>&&)>&&);
 #if PLATFORM(COCOA)
     void printProcessDrawingCountsForTesting(CompletionHandler<void(uint64_t drawnInPrintProcess, uint64_t drawnAfterPrintProcessFailed)>&&);
 #endif
@@ -192,18 +196,31 @@ public:
     void setPresentingApplicationAuditToken(WebCore::ProcessIdentifier, WebCore::PageIdentifier, std::optional<CoreIPCAuditToken>&&);
 #endif
 
+    // The snapshots are Swift's (RemoteSnapshot.swift), which these hand the messages about them to.
     // Created by the process painting its root, or by whoever asks to draw it if that comes first.
     // Neither can come after it is released. A frame recording into one that does not exist records
     // into nothing, so none can bring back a snapshot that was released.
     void createSnapshot(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, const WebCore::FloatSize&, WebCore::ProcessIdentifier rootProcessIdentifier);
     // For a root that could not be recorded.
     void failSnapshot(RemoteSnapshotIdentifier);
-    Ref<RemoteSnapshot> snapshotForRecorder(RemoteSnapshotIdentifier);
-    RefPtr<RemoteSnapshot> snapshot(RemoteSnapshotIdentifier);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // For the ports that record snapshot frames as WebCore display lists (RemoteSnapshotRecorder.h): a snapshot's display
+    // lists, or, for one that doesn't exist or whose display lists don't have the token, ones that are dropped with whoever
+    // takes them. The recorders' frames reach the snapshot only if it has the display lists they record into.
+#ifndef __swift__
+    static Ref<RemoteSnapshotDisplayLists> snapshotDisplayLists(const RemoteSnapshotIdentifier&, std::optional<uint64_t> token = std::nullopt);
+#endif
+    static void addSnapshotFrameReference(const RemoteSnapshotIdentifier&, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    static void snapshotFrameWasRecorded(const RemoteSnapshotIdentifier&, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    // For Swift, which keeps a snapshot's display lists as long as it keeps the snapshot: their token.
+    static uint64_t createSnapshotDisplayLists(RemoteSnapshotKey);
+    static void forgetSnapshotDisplayLists(RemoteSnapshotKey);
+    static void abandonSnapshotDisplayList(RemoteSnapshotKey, uint64_t frameKey);
+#endif
 
     // Hands an ImageBuffer from one web process's rendering backend to another's. Unlike
-    // m_snapshots, the identifier is minted here and unguessable, so only a process it was given
+    // a snapshot's, the identifier is minted here and unguessable, so only a process it was given
     // can claim the buffer. The depositing process owns an unclaimed buffer until the process
     // brokering delivery hands it on, which only decides whose exit discards it.
     WebCore::ImageBufferTransferIdentifier depositTransferredImageBuffer(WebCore::ProcessIdentifier owner, Ref<WebCore::ImageBuffer>&&);
@@ -238,8 +255,6 @@ public:
     SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, CapturePreviewLayer* WTF_NULLABLE);
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
-    SWIFT_MAIN_ACTOR void swiftSetCapturePreviewOrientation(int32_t);
-    SWIFT_MAIN_ACTOR void swiftCapturePreviewRotationChanged(String persistentID, uint16_t rotation);
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
 
     // For the capture preview (CapturePreviewManager.swift).
@@ -265,7 +280,7 @@ private:
     // m_swiftState, for Swift, which can only read it.
     uintptr_t swiftState() const { return m_swiftState; }
 
-    void lowMemoryHandler(Critical, Synchronous);
+    SWIFT_MAIN_ACTOR void lowMemoryHandler(Critical, Synchronous);
 
     // AuxiliaryProcess
     void initializeProcess(const AuxiliaryProcessInitializationParameters&) override;
@@ -277,8 +292,8 @@ private:
     void stopRunLoop() override;
 #endif
 
-    void tryExitIfUnused();
-    bool canExitUnderMemoryPressure() const;
+    SWIFT_MAIN_ACTOR void tryExitIfUnused();
+    SWIFT_MAIN_ACTOR bool canExitUnderMemoryPressure() const;
 
     // IPC::Connection::Client
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -301,9 +316,6 @@ private:
 #if ENABLE(MEDIA_STREAM)
     void setMockCaptureDevicesEnabled(bool);
     void enableMicrophoneMuteStatusAPI();
-    void setOrientationForMediaCapture(WebCore::IntDegrees);
-    void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
-    void updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier, CompletionHandler<void()>&&);
     void updateCaptureOrigin(const WebCore::SecurityOriginData&, WebCore::ProcessIdentifier);
 #if PLATFORM(COCOA)
     void startCapturePreview(std::optional<WebCore::CaptureDevice>&& videoDevice, std::optional<WebCore::CaptureDevice>&& audioDevice, WebCore::PageIdentifier, WebCore::IntSize previewSize, WebCore::IntDegrees orientation, Vector<SandboxExtension::Handle>&&, String&& applicationBundleIdentifier, WebCore::SecurityOriginData&&, CompletionHandler<void(WebCore::HostingContext)>&&);
@@ -336,12 +348,21 @@ private:
     void releaseSnapshot(RemoteSnapshotIdentifier);
     void snapshotFrameWillBeDrawnByProcess(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, WebCore::ProcessIdentifier);
     void waitForSnapshot(RemoteSnapshotIdentifier, CompletionHandler<void()>&&);
-    Ref<RemoteSnapshot> ensureSnapshot(RemoteSnapshotIdentifier, std::optional<WebCore::FrameIdentifier> rootFrameIdentifier);
-    void snapshotDeadlineExpired(RemoteSnapshotIdentifier);
-    // Takes the snapshot once it is complete, or passes null if it failed.
-    void takeSnapshotWhenComplete(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<RemoteSnapshot>&&)>&&);
     void abandonSnapshotFramesOwnedBy(WebCore::ProcessIdentifier);
-    void removeSnapshotsForProcess(WebCore::ProcessIdentifier);
+
+    // Implemented in Swift (RemoteSnapshot.swift), on its registry of snapshots, which the rendering backends' work queues
+    // reach too.
+    static void swiftCreateSnapshot(RemoteSnapshotKey, WebCore::FrameIdentifier rootFrameIdentifier, WebCore::FloatSize, WebCore::ProcessIdentifier rootProcessIdentifier);
+    static void swiftFailSnapshot(RemoteSnapshotKey);
+    static void swiftAbandonSnapshotFrame(RemoteSnapshotKey, WebCore::FrameIdentifier);
+    static void swiftReleaseSnapshot(RemoteSnapshotKey);
+    static void swiftSnapshotFrameWillBeDrawnByProcess(RemoteSnapshotKey, WebCore::FrameIdentifier, WebCore::ProcessIdentifier);
+    static void swiftAbandonSnapshotFramesOwnedBy(WebCore::ProcessIdentifier);
+    static void swiftRemoveSnapshotsForProcess(WebCore::ProcessIdentifier);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    static void swiftAddSnapshotFrameReference(RemoteSnapshotKey, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    static void swiftSnapshotFrameWasRecorded(RemoteSnapshotKey, WebCore::FrameIdentifier, uint64_t displayListsToken);
+#endif
 
 #if USE(OS_STATE)
     RetainPtr<NSDictionary> additionalStateForDiagnosticReport() const final;
@@ -364,18 +385,10 @@ private:
 
     // Connections to WebProcesses.
     HashMap<WebCore::ProcessIdentifier, Ref<GPUConnectionToWebProcess>> m_webProcessConnections;
-    MonotonicTime m_creationTime { MonotonicTime::now() };
 
     GPUProcessPreferences m_preferences;
 
 #if ENABLE(MEDIA_STREAM)
-    struct MediaCaptureAccess {
-        bool allowAudioCapture { false };
-        bool allowVideoCapture { false };
-        bool allowDisplayCapture { false };
-        bool willUseEchoCancellation { false };
-    };
-    HashMap<WebCore::ProcessIdentifier, MediaCaptureAccess> m_mediaCaptureAccessMap;
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     // The layer the capture preview shows its camera in, while it does.
     RefPtr<CapturePreviewLayer> m_capturePreviewLayer;
@@ -390,7 +403,6 @@ private:
     Vector<Ref<SandboxExtension>> m_capturePreviewSandboxExtensions;
     const RefPtr<WorkQueue> m_videoMediaStreamTrackRendererQueue;
 #endif
-    WebCore::IntDegrees m_orientation { 0 };
 #endif
 #if USE(LIBWEBRTC) && PLATFORM(COCOA)
     const RefPtr<WorkQueue> m_libWebRTCCodecsQueue;
@@ -404,7 +416,9 @@ private:
     // the protocols are insecure and prone to id guessing and content stuffing.
     // Do not add more globally shared resources.
     Lock m_globalResourceLocker;
-    HashMap<RemoteSnapshotIdentifier, Ref<RemoteSnapshot>> m_snapshots WTF_GUARDED_BY_LOCK(m_globalResourceLocker);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    HashMap<RemoteSnapshotIdentifier, Ref<RemoteSnapshotDisplayLists>> m_snapshotDisplayLists WTF_GUARDED_BY_LOCK(m_globalResourceLocker);
+#endif
 
     struct TransferredImageBuffer {
         Markable<WebCore::ProcessIdentifier> owner;
@@ -419,16 +433,7 @@ private:
 #endif
     };
     HashMap<PAL::SessionID, GPUSession> m_sessions;
-    WebCore::Timer m_idleExitTimer;
     const std::unique_ptr<WebCore::NowPlayingManager> m_nowPlayingManager;
-    struct NowPlayingOwner {
-        WebCore::ProcessIdentifier process;
-        WebCore::PageIdentifier page;
-        WebCore::MediaSessionIdentifier session;
-    };
-    std::optional<NowPlayingOwner> m_activeNowPlayingOwner;
-    std::optional<WebCore::QualifiedMediaSessionIdentifier> m_nowPlayingFallbackSession;
-    std::optional<WebCore::QualifiedMediaSessionIdentifier> m_remoteCommandTarget;
     String m_applicationVisibleName;
 #if PLATFORM(MAC)
     String m_uiProcessName;

@@ -117,6 +117,11 @@ MediaPlayerPrivateAVFoundation::MediaRenderingMode MediaPlayerPrivateAVFoundatio
     return MediaRenderingMode::MediaRenderingToContext;
 }
 
+bool MediaPlayerPrivateAVFoundation::hasSetUpVideoRendering() const
+{
+    return hasLayerRenderer() || hasContextRenderer();
+}
+
 void MediaPlayerPrivateAVFoundation::setUpVideoRendering()
 {
     if (!isReadyForVideoSetup())
@@ -151,6 +156,16 @@ void MediaPlayerPrivateAVFoundation::setUpVideoRendering()
         setNeedsRenderingModeChanged();
 }
 
+void MediaPlayerPrivateAVFoundation::tearDownVideoRendering()
+{
+    INFO_LOG(LOGIDENTIFIER);
+
+    destroyContextVideoRenderer();
+
+    if (platformLayer())
+        destroyVideoLayer();
+}
+
 void MediaPlayerPrivateAVFoundation::setNeedsRenderingModeChanged()
 {
     if (m_needsRenderingModeChanged)
@@ -171,21 +186,6 @@ void MediaPlayerPrivateAVFoundation::renderingModeChanged()
     m_needsRenderingModeChanged = false;
     if (RefPtr player = m_player.get())
         player->renderingModeChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::tearDownVideoRendering()
-{
-    INFO_LOG(LOGIDENTIFIER);
-
-    destroyContextVideoRenderer();
-
-    if (platformLayer())
-        destroyVideoLayer();
-}
-
-bool MediaPlayerPrivateAVFoundation::hasSetUpVideoRendering() const
-{
-    return hasLayerRenderer() || hasContextRenderer();
 }
 
 void MediaPlayerPrivateAVFoundation::load(const String& url)
@@ -218,41 +218,10 @@ void MediaPlayerPrivateAVFoundation::load(const URL&, const LoadOptions&, MediaS
 }
 #endif
 
-
-void MediaPlayerPrivateAVFoundation::playabilityKnown()
-{
-    INFO_LOG(LOGIDENTIFIER, "metadata loaded = ", assetStatus() > MediaPlayerAVAssetStatusLoading);
-
-    if (m_assetIsPlayable)
-        return;
-
-    // Nothing more to do if we already have all of the item's metadata.
-    if (assetStatus() > MediaPlayerAVAssetStatusLoading)
-        return;
-
-    // At this point we are supposed to load metadata. It is OK to ask the asset to load the same 
-    // information multiple times, because if it has already been loaded the completion handler 
-    // will just be called synchronously.
-    m_loadingMetadata = true;
-    beginLoadingMetadata();
-}
-
 void MediaPlayerPrivateAVFoundation::prepareToPlay()
 {
     ALWAYS_LOG(LOGIDENTIFIER);
     setPreload(MediaPlayer::Preload::Auto);
-}
-
-void MediaPlayerPrivateAVFoundation::play()
-{
-    ALWAYS_LOG(LOGIDENTIFIER);
-    platformPlay();
-}
-
-void MediaPlayerPrivateAVFoundation::pause()
-{
-    ALWAYS_LOG(LOGIDENTIFIER);
-    platformPause();
 }
 
 MediaTime MediaPlayerPrivateAVFoundation::duration() const
@@ -306,137 +275,6 @@ void MediaPlayerPrivateAVFoundation::seekInternal(const SeekTarget& target)
     seekToTargetInternal(adjustedTarget);
 }
 
-bool MediaPlayerPrivateAVFoundation::paused() const
-{
-    if (!metaDataAvailable())
-        return true;
-
-    return platformPaused();
-}
-
-bool MediaPlayerPrivateAVFoundation::seeking() const
-{
-    if (!metaDataAvailable())
-        return false;
-
-    return m_seeking;
-}
-
-FloatSize MediaPlayerPrivateAVFoundation::naturalSize() const
-{
-    if (!metaDataAvailable())
-        return IntSize();
-
-    // In spite of the name of this method, return the natural size transformed by the 
-    // initial movie scale because the spec says intrinsic size is:
-    //
-    //    ... the dimensions of the resource in CSS pixels after taking into account the resource's 
-    //    dimensions, aspect ratio, clean aperture, resolution, and so forth, as defined for the 
-    //    format used by the resource
-
-    return m_cachedNaturalSize;
-}
-
-void MediaPlayerPrivateAVFoundation::setNaturalSize(FloatSize size)
-{
-    FloatSize oldSize = m_cachedNaturalSize;
-    m_cachedNaturalSize = size;
-    if (oldSize != m_cachedNaturalSize) {
-        INFO_LOG(LOGIDENTIFIER, "was ", oldSize.width(), " x ", oldSize.height(), ", is ", size.width(), " x ", size.height());
-        if (RefPtr player = m_player.get())
-            player->sizeChanged();
-    }
-}
-
-void MediaPlayerPrivateAVFoundation::setHasVideo(bool b)
-{
-    if (m_cachedHasVideo == b)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, b);
-    m_cachedHasVideo = b;
-    characteristicsChanged();
-    updateIsAudible();
-}
-
-void MediaPlayerPrivateAVFoundation::setHasAudio(bool b)
-{
-    if (m_cachedHasAudio == b)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, b);
-    m_cachedHasAudio = b;
-    characteristicsChanged();
-    updateIsAudible();
-}
-
-void MediaPlayerPrivateAVFoundation::setHasClosedCaptions(bool b)
-{
-    if (m_cachedHasCaptions != b) {
-        m_cachedHasCaptions = b;
-        characteristicsChanged();
-    }
-}
-
-void MediaPlayerPrivateAVFoundation::setNetworkState(MediaPlayer::NetworkState state)
-{
-    if (state == m_networkState)
-        return;
-
-    m_networkState = state;
-    if (RefPtr player = m_player.get())
-        player->networkStateChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::setReadyState(MediaPlayer::ReadyState state)
-{
-    if (state == m_readyState)
-        return;
-
-    auto oldState = std::exchange(m_readyState, state);
-    resolveSeekPromiseIfNeeded();
-    RefPtr player = m_player.get();
-    if (player)
-        player->readyStateChanged();
-
-    updateIsAudible();
-
-    if (oldState >= MediaPlayer::ReadyState::HaveMetadata)
-        return;
-
-    // Many state methods in MediaPlayerPrivateAVFoundation will return defaults
-    // if queried before reaching HaveMetadata. Re-fire their changed events after
-    // the ready state moves beyond HaveMetadata so the correct values are reflected
-    // upwards to clients.
-    if (!m_cachedNaturalSize.isEmpty() && player)
-        player->sizeChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::characteristicsChanged()
-{
-    if (m_delayCharacteristicsChangedNotification) {
-        m_characteristicsChanged = true;
-        return;
-    }
-
-    m_characteristicsChanged = false;
-    if (RefPtr player = m_player.get())
-        player->characteristicChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::setDelayCharacteristicsChangedNotification(bool delay)
-{
-    if (delay) {
-        m_delayCharacteristicsChangedNotification++;
-        return;
-    }
-    
-    ASSERT(m_delayCharacteristicsChangedNotification);
-    m_delayCharacteristicsChangedNotification--;
-    if (!m_delayCharacteristicsChangedNotification && m_characteristicsChanged)
-        characteristicsChanged();
-}
-
 const PlatformTimeRanges& MediaPlayerPrivateAVFoundation::buffered() const
 {
     return platformBufferedTimeRanges();
@@ -486,12 +324,54 @@ bool MediaPlayerPrivateAVFoundation::didLoadingProgress() const
     return didLoadingProgress;
 }
 
+bool MediaPlayerPrivateAVFoundation::paused() const
+{
+    if (!metaDataAvailable())
+        return true;
+
+    return platformPaused();
+}
+
+bool MediaPlayerPrivateAVFoundation::seeking() const
+{
+    if (!metaDataAvailable())
+        return false;
+
+    return m_seeking;
+}
+
+FloatSize MediaPlayerPrivateAVFoundation::naturalSize() const
+{
+    if (!metaDataAvailable())
+        return IntSize();
+
+    // In spite of the name of this method, return the natural size transformed by the 
+    // initial movie scale because the spec says intrinsic size is:
+    //
+    //    ... the dimensions of the resource in CSS pixels after taking into account the resource's 
+    //    dimensions, aspect ratio, clean aperture, resolution, and so forth, as defined for the 
+    //    format used by the resource
+
+    return m_cachedNaturalSize;
+}
+
 bool MediaPlayerPrivateAVFoundation::isReadyForVideoSetup() const
 {
     // AVFoundation will not return true for firstVideoFrameAvailable until
     // an AVPlayerLayer has been added to the AVPlayerItem, so allow video setup
     // here if a video track to trigger allocation of a AVPlayerLayer.
     return (m_isAllowedToRender || m_cachedHasVideo) && m_readyState >= MediaPlayer::ReadyState::HaveMetadata && m_pageIsVisible;
+}
+
+MediaPlayerMovieLoadType MediaPlayerPrivateAVFoundation::movieLoadType() const
+{
+    if (!metaDataAvailable() || assetStatus() == MediaPlayerAVAssetStatusUnknown)
+        return MediaPlayer::MovieLoadType::Unknown;
+
+    if (isHLS())
+        return MediaPlayer::MovieLoadType::HttpLiveStream;
+
+    return MediaPlayer::MovieLoadType::Download;
 }
 
 void MediaPlayerPrivateAVFoundation::prepareForRendering()
@@ -504,6 +384,12 @@ void MediaPlayerPrivateAVFoundation::prepareForRendering()
 
     if (currentRenderingMode() == MediaRenderingMode::MediaRenderingToLayer || preferredRenderingMode() == MediaRenderingMode::MediaRenderingToLayer)
         setNeedsRenderingModeChanged();
+}
+
+void MediaPlayerPrivateAVFoundation::acceleratedRenderingStateChanged()
+{
+    // Set up or change the rendering path if necessary.
+    setUpVideoRendering();
 }
 
 bool MediaPlayerPrivateAVFoundation::supportsFullscreen() const
@@ -524,199 +410,25 @@ void MediaPlayerPrivateAVFoundation::setResolvedURL(URL&& resolvedURL)
 
 void MediaPlayerPrivateAVFoundation::updateStates()
 {
+    // MediaPlayerPrivateAVFoundation.swift's raw values.
+    static_assert(MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusDoesNotExist == 0 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusLoading == 2
+        && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusFailed == 3 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusCancelled == 4 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusNetworkError == 5
+        && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusLoaded == 6 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusPlayable == 7);
+    static_assert(MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusUnknown == 1 && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusFailed == 2
+        && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusReadyToPlay == 3 && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusPlaybackBufferEmpty == 4
+        && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusPlaybackBufferFull == 5 && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusPlaybackLikelyToKeepUp == 6);
+
     if (m_ignoreLoadStateChanges)
         return;
 
     ScriptDisallowedScope::InMainThread scriptDisallowedScope;
-
-    MediaPlayer::NetworkState newNetworkState = m_networkState;
-    MediaPlayer::ReadyState newReadyState = m_readyState;
-    bool firstVideoFrameBecomeAvailable = false;
-
-    if (m_loadingMetadata)
-        newNetworkState = MediaPlayer::NetworkState::Loading;
-    else {
-        // -loadValuesAsynchronouslyForKeys:completionHandler: has invoked its handler; test status of keys and determine state.
-        AssetStatus assetStatus = this->assetStatus();
-        ItemStatus itemStatus = playerItemStatus();
-
-        m_assetIsPlayable = (assetStatus == MediaPlayerAVAssetStatusPlayable);
-        if (m_readyState < MediaPlayer::ReadyState::HaveMetadata && assetStatus > MediaPlayerAVAssetStatusLoading) {
-            if (m_assetIsPlayable) {
-                if (assetStatus >= MediaPlayerAVAssetStatusLoaded)
-                    newReadyState = MediaPlayer::ReadyState::HaveMetadata;
-                if (itemStatus <= MediaPlayerAVPlayerItemStatusUnknown) {
-                    if (assetStatus == MediaPlayerAVAssetStatusFailed || m_preload > MediaPlayer::Preload::MetaData || isLiveStream()) {
-                        // The asset is playable but doesn't support inspection prior to playback (eg. streaming files),
-                        // or we are supposed to prepare for playback immediately, so create the player item now.
-                        newNetworkState = MediaPlayer::NetworkState::Loading;
-                        prepareToPlay();
-                    } else
-                        newNetworkState = MediaPlayer::NetworkState::Idle;
-                }
-            } else
-                newNetworkState = assetStatus == MediaPlayerAVAssetStatusNetworkError ? MediaPlayer::NetworkState::NetworkError : MediaPlayer::NetworkState::FormatError;
-        }
-
-        if (!hasAvailableVideoFrame())
-            m_haveReportedFirstVideoFrame = false;
-        else if (!m_haveReportedFirstVideoFrame && m_cachedHasVideo) {
-            m_haveReportedFirstVideoFrame = true;
-            firstVideoFrameBecomeAvailable = true;
-        }
-
-        if (assetStatus >= MediaPlayerAVAssetStatusLoaded && itemStatus > MediaPlayerAVPlayerItemStatusUnknown) {
-            switch (itemStatus) {
-            case MediaPlayerAVPlayerItemStatusDoesNotExist:
-            case MediaPlayerAVPlayerItemStatusUnknown:
-            case MediaPlayerAVPlayerItemStatusFailed:
-                break;
-
-            case MediaPlayerAVPlayerItemStatusPlaybackLikelyToKeepUp:
-            case MediaPlayerAVPlayerItemStatusPlaybackBufferFull:
-                // If the status becomes PlaybackBufferFull, loading stops and the status will not
-                // progress to LikelyToKeepUp. Set the readyState to HAVE_ENOUGH_DATA, on the
-                // presumption that if the playback buffer is full, playback will probably not stall.
-                newReadyState = MediaPlayer::ReadyState::HaveEnoughData;
-                break;
-
-            case MediaPlayerAVPlayerItemStatusReadyToPlay:
-                if (m_readyState != MediaPlayer::ReadyState::HaveEnoughData && (!m_cachedHasVideo || m_haveReportedFirstVideoFrame) && maxTimeLoaded() > currentTime())
-                    newReadyState = MediaPlayer::ReadyState::HaveFutureData;
-                break;
-
-            case MediaPlayerAVPlayerItemStatusPlaybackBufferEmpty:
-                newReadyState = MediaPlayer::ReadyState::HaveCurrentData;
-                break;
-            }
-
-            if (itemStatus == MediaPlayerAVPlayerItemStatusPlaybackBufferFull)
-                newNetworkState = MediaPlayer::NetworkState::Idle;
-            else if (itemStatus == MediaPlayerAVPlayerItemStatusFailed)
-                newNetworkState = MediaPlayer::NetworkState::DecodeError;
-            else if (itemStatus != MediaPlayerAVPlayerItemStatusPlaybackBufferFull && itemStatus >= MediaPlayerAVPlayerItemStatusReadyToPlay)
-                newNetworkState = (maxTimeLoaded() >= duration()) ? MediaPlayer::NetworkState::Loaded : MediaPlayer::NetworkState::Loading;
-        }
-    }
-
-    if (firstVideoFrameBecomeAvailable) {
-        if (m_readyState < MediaPlayer::ReadyState::HaveCurrentData)
-            newReadyState = MediaPlayer::ReadyState::HaveCurrentData;
-        if (RefPtr player = m_player.get())
-            player->firstVideoFrameAvailable();
-    }
-
-    if (m_networkState != newNetworkState)
-        ALWAYS_LOG(LOGIDENTIFIER, "entered with networkState ", m_networkState, ", exiting with ", newNetworkState);
-    if (m_readyState != newReadyState)
-        ALWAYS_LOG(LOGIDENTIFIER, "entered with readyState ", m_readyState, ", exiting with ", newReadyState);
-
-    setNetworkState(newNetworkState);
-    setReadyState(newReadyState);
-
-    if (isReadyForVideoSetup() && currentRenderingMode() != preferredRenderingMode())
-        setUpVideoRendering();
-}
-
-void MediaPlayerPrivateAVFoundation::setPageIsVisible(bool visible)
-{
-    if (m_pageIsVisible == visible)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, visible);
-
-    m_pageIsVisible = visible;
-    if (visible)
-        setUpVideoRendering();
-
-    platformPageIsVisibleChanged(visible);
-}
-
-void MediaPlayerPrivateAVFoundation::setViewportVisibility(ViewportVisibility visibility)
-{
-    if (m_viewportVisibility == visibility)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, visibility);
-    m_viewportVisibility = visibility;
-    platformViewportVisibilityChanged(visibility);
-}
-
-void MediaPlayerPrivateAVFoundation::acceleratedRenderingStateChanged()
-{
-    // Set up or change the rendering path if necessary.
-    setUpVideoRendering();
-}
-
-void MediaPlayerPrivateAVFoundation::setShouldMaintainAspectRatio(bool maintainAspectRatio)
-{
-    if (maintainAspectRatio == m_shouldMaintainAspectRatio)
-        return;
-
-    m_shouldMaintainAspectRatio = maintainAspectRatio;
-    updateVideoLayerGravity();
-}
-
-void MediaPlayerPrivateAVFoundation::metadataLoaded()
-{
-    m_loadingMetadata = false;
-    resolvedURLChanged();
-    tracksChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::rateChanged()
-{
-    if (RefPtr player = m_player.get())
-        player->rateChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::loadedTimeRangesChanged()
-{
-    m_cachedMaxTimeLoaded = MediaTime::zeroTime();
-    invalidateCachedDuration();
-    if (RefPtr player = m_player.get())
-        player->bufferedTimeRangesChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::seekableTimeRangesChanged()
-{
-    m_cachedMaxTimeSeekable = MediaTime::zeroTime();
-    m_cachedMinTimeSeekable = MediaTime::zeroTime();
-    if (RefPtr player = m_player.get())
-        player->seekableTimeRangesChanged();
+    updateReadiness();
 }
 
 void MediaPlayerPrivateAVFoundation::timeChanged(const MediaTime& time)
 {
     UNUSED_PARAM(time);
     INFO_LOG(LOGIDENTIFIER, "- ", time);
-}
-
-void MediaPlayerPrivateAVFoundation::seekCompleted(bool finished)
-{
-    UNUSED_PARAM(finished);
-    ALWAYS_LOG(LOGIDENTIFIER, "finished = ", finished);
-
-    m_seeking = false;
-
-    Function<void()> pendingSeek;
-    std::swap(pendingSeek, m_pendingSeek);
-
-    if (pendingSeek) {
-        ALWAYS_LOG(LOGIDENTIFIER, "issuing pending seek");
-        pendingSeek();
-        return;
-    }
-
-    if (!finished)
-        return;
-
-    if (RefPtr track = currentTextTrack().get())
-        track->endSeeking();
-
-    updateStates();
-
-    resolveSeekPromiseIfNeeded();
 }
 
 void MediaPlayerPrivateAVFoundation::resolveSeekPromiseIfNeeded()
@@ -727,40 +439,6 @@ void MediaPlayerPrivateAVFoundation::resolveSeekPromiseIfNeeded()
         ALWAYS_LOG(LOGIDENTIFIER, "resolving seekPromise at time: ", m_lastSeekTime);
         seekPromise->resolve(m_lastSeekTime);
     }
-}
-
-void MediaPlayerPrivateAVFoundation::didEnd(double now)
-{
-    // Hang onto the current time and use it as duration from now on since we are definitely at
-    // the end of the movie. Do this because the initial duration is sometimes an estimate.
-    // Never do this for a live stream: its duration is unbounded (positive infinity), and
-    // demoting it to a finite value here would make endedPlayback() treat reaching the live
-    // edge as the end of the media and fire a spurious 'ended' event.
-    ALWAYS_LOG(LOGIDENTIFIER, "currentTime: ", now, ", seeking: ", m_seeking, ", isLiveStream: ", isLiveStream());
-    if (now > 0 && !m_seeking && !isLiveStream()) {
-        ALWAYS_LOG(LOGIDENTIFIER, "Updating cached duration to ", now);
-        m_cachedDuration = MediaTime::createWithDouble(now);
-    }
-
-    updateStates();
-    if (RefPtr player = m_player.get())
-        player->timeChanged();
-}
-
-void MediaPlayerPrivateAVFoundation::invalidateCachedDuration()
-{
-    m_cachedDuration = MediaTime::invalidTime();
-}
-
-MediaPlayer::MovieLoadType MediaPlayerPrivateAVFoundation::movieLoadType() const
-{
-    if (!metaDataAvailable() || assetStatus() == MediaPlayerAVAssetStatusUnknown)
-        return MediaPlayer::MovieLoadType::Unknown;
-
-    if (isHLS())
-        return MediaPlayer::MovieLoadType::HttpLiveStream;
-
-    return MediaPlayer::MovieLoadType::Download;
 }
 
 void MediaPlayerPrivateAVFoundation::setPreload(MediaPlayer::Preload preload)
@@ -943,6 +621,117 @@ void MediaPlayerPrivateAVFoundation::queueTaskOnEventLoop(Function<void()>&& tas
     ASSERT_WITH_SECURITY_IMPLICATION(isMainThread());
     if (RefPtr player = m_player.get())
         player->queueTaskOnEventLoop(WTF::move(task));
+}
+
+void MediaPlayerPrivateAVFoundation::notifyMediaPlayer(MediaPlayerNotification notification) const
+{
+    RefPtr player = m_player.get();
+    if (!player)
+        return;
+    switch (notification) {
+    case MediaPlayerNotification::NetworkStateChanged:
+        player->networkStateChanged();
+        return;
+    case MediaPlayerNotification::ReadyStateChanged:
+        player->readyStateChanged();
+        return;
+    case MediaPlayerNotification::SizeChanged:
+        player->sizeChanged();
+        return;
+    case MediaPlayerNotification::CharacteristicChanged:
+        player->characteristicChanged();
+        return;
+    case MediaPlayerNotification::FirstVideoFrameAvailable:
+        player->firstVideoFrameAvailable();
+        return;
+    case MediaPlayerNotification::RateChanged:
+        player->rateChanged();
+        return;
+    case MediaPlayerNotification::BufferedTimeRangesChanged:
+        player->bufferedTimeRangesChanged();
+        return;
+    case MediaPlayerNotification::SeekableTimeRangesChanged:
+        player->seekableTimeRangesChanged();
+        return;
+    case MediaPlayerNotification::TimeChanged:
+        player->timeChanged();
+        return;
+    }
+}
+
+bool MediaPlayerPrivateAVFoundation::mediaPlayerRenderingCanBeAccelerated() const
+{
+    RefPtr player = m_player.get();
+    return player && player->renderingCanBeAccelerated();
+}
+
+bool MediaPlayerPrivateAVFoundation::runPendingSeek()
+{
+    auto pendingSeek = std::exchange(m_pendingSeek, nullptr);
+    if (!pendingSeek)
+        return false;
+    ALWAYS_LOG(LOGIDENTIFIER, "issuing pending seek");
+    pendingSeek();
+    return true;
+}
+
+void MediaPlayerPrivateAVFoundation::endSeekingCurrentTextTrack()
+{
+    if (RefPtr track = currentTextTrack().get())
+        track->endSeeking();
+}
+
+bool MediaPlayerPrivateAVFoundation::hasLoadedBeyondCurrentTime() const
+{
+    return maxTimeLoaded() > currentTime();
+}
+
+bool MediaPlayerPrivateAVFoundation::hasLoadedToDuration() const
+{
+    return maxTimeLoaded() >= duration();
+}
+
+bool MediaPlayerPrivateAVFoundation::willLogFromSwift(MediaPlayerAVFoundationLogLevel level) const
+{
+#if !RELEASE_LOG_DISABLED
+    // The logger filters again, and tells its observers.
+    switch (level) {
+    case MediaPlayerAVFoundationLogLevel::Always:
+    case MediaPlayerAVFoundationLogLevel::Error:
+        return logger().enabled();
+    case MediaPlayerAVFoundationLogLevel::Info:
+        return logger().willLog(logChannel(), WTFLogLevel::Info, { });
+    case MediaPlayerAVFoundationLogLevel::Debug:
+        return logger().willLog(logChannel(), WTFLogLevel::Debug, { });
+    }
+#else
+    UNUSED_PARAM(level);
+#endif
+    return false;
+}
+
+void MediaPlayerPrivateAVFoundation::logFromSwift(MediaPlayerAVFoundationLogLevel level, WTF::SpanUInt8 message NOESCAPE) const
+{
+#if !RELEASE_LOG_DISABLED
+    auto text = String::fromUTF8(message);
+    switch (level) {
+    case MediaPlayerAVFoundationLogLevel::Always:
+        ALWAYS_LOG(LOGIDENTIFIER, text);
+        return;
+    case MediaPlayerAVFoundationLogLevel::Error:
+        ERROR_LOG(LOGIDENTIFIER, text);
+        return;
+    case MediaPlayerAVFoundationLogLevel::Info:
+        INFO_LOG(LOGIDENTIFIER, text);
+        return;
+    case MediaPlayerAVFoundationLogLevel::Debug:
+        DEBUG_LOG(LOGIDENTIFIER, text);
+        return;
+    }
+#else
+    UNUSED_PARAM(level);
+    UNUSED_PARAM(message);
+#endif
 }
 
 #if !RELEASE_LOG_DISABLED

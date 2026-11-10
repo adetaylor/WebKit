@@ -126,6 +126,9 @@ class ManifestTest(unittest.TestCase):
     def test_function_with_pointer(self):
         self.assertEqual(generator.parse_manifest(['function Media MediaRender with pointer']), [('function', 'Media', 'MediaRender', 'pointer')])
 
+    def test_refined_function(self):
+        self.assertEqual(generator.parse_manifest(['function Media MediaGroupGetCount refined']), [('function', 'Media', 'MediaGroupGetCount', 'refined')])
+
     def test_malformed_lines(self):
         for line in ('method Media X', 'function Media', 'function Media X Y', 'function Media X as Y', 'class Media X as', 'member Media MediaPlayer play: play()', 'member Media MediaPlayer play: func play', 'function Media X with', 'class Media X with pointer'):
             with self.assertRaises(generator.GeneratorError, msg=line):
@@ -190,6 +193,17 @@ public typealias PALSoftLink_MediaMake_t = @convention(c) (Int64, Int32) -> Medi
         self.assertEqual(generator.find_declaration([self.INTERFACE], 'MediaMake'), (['value: Int64', 'timescale: Int32'], 'MediaTime'))
         self.assertEqual(generator.find_declaration([self.INTERFACE], 'MediaReset'), (['_ thing: MediaThing'], 'Void'))
         self.assertIsNone(generator.find_declaration([self.INTERFACE], 'MediaMissing'))
+
+    def test_declaration_from_typedef(self):
+        self.assertEqual(generator.declaration_from_typedef((['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)), (['_ arg0: __MediaGroup', '_ arg1: CFIndex'], 'CFTypeRef?'))
+        self.assertEqual(generator.declaration_from_typedef((['CMSampleBuffer'], 'Unmanaged<__MediaGroup>?', True)), (['_ arg0: CMSampleBuffer'], '__MediaGroup?'))
+        self.assertEqual(generator.declaration_from_typedef((['__MediaGroup'], 'CMItemCount', False)), (['_ arg0: __MediaGroup'], 'CMItemCount'))
+
+    def test_refined_function_accessor(self):
+        typedef = (['__MediaGroup', 'CFIndex'], 'Unmanaged<CVPixelBuffer>?', True)
+        declaration = generator.Declaration('function', 'Media', 'MediaGroupGetPixelBufferAtIndex', False)
+        lines = generator.function_accessor(declaration, typedef, generator.declaration_from_typedef(typedef))
+        self.assertEqual(lines[-1], 'func MediaGroupGetPixelBufferAtIndex(_ arg0: __MediaGroup, _ arg1: CFIndex) -> CFTypeRef? { unsafe softLink_MediaGroupGetPixelBufferAtIndex(arg0, arg1)?.takeUnretainedValue() }')
 
     def test_typedefs(self):
         self.assertEqual(generator.find_function_typedef(self.TYPEDEFS, 'PALSoftLink_MediaThingCopyName_t'), (['MediaThing', 'UnsafeMutablePointer<Unmanaged<CFString>?>'], 'OSStatus', True))
@@ -457,6 +471,11 @@ class FileTest(unittest.TestCase):
         self.assertIn('enum MediaMember { }', content)
         self.assertIn('@objc protocol MediaMember_MediaPlayer_playItems {', content)
         self.assertNotIn('auditedName_MediaPlayer playItems', content)
+        refined_typedef = 'public typealias PALSoftLink_MediaThingCopyName_t = @convention(c) (__MediaGroup) -> CMItemCount'
+        with self.assertRaisesRegex(generator.GeneratorError, 'MediaThingCopyName: no typedef or imported declaration found'):
+            generator.accessors_file('Media', [('function', 'Media', 'MediaThingCopyName', None)], result, refined_typedef, lambda framework: [])
+        refined = generator.accessors_file('Media', [('function', 'Media', 'MediaThingCopyName', 'refined')], result, refined_typedef, lambda framework: [])
+        self.assertIn('func MediaThingCopyName(_ arg0: __MediaGroup) -> CMItemCount { softLink_MediaThingCopyName(arg0) }', refined)
         with self.assertRaisesRegex(generator.GeneratorError, 'declare no such member'):
             generator.accessors_file('Media', generator.parse_manifest(['member Media MediaPlayer missing var missing: NSArray? { get }']), result, '', lambda framework: [], lambda framework: generator.ObjCHeaders(MemberTest.HEADERS))
 
