@@ -50,6 +50,9 @@
 // "<Name>: <ms> ms <MB/s> MB/s checksum=<hex>", with the same checksum, where MB/s counts encoded bytes. Nothing
 // asserts on time.
 
+// With CG, ImageDecoder::create makes ImageIO's decoders, whose output these checksums don't describe.
+#if !USE(CG)
+
 using namespace WebCore;
 
 namespace TestWebKitAPI {
@@ -1435,3 +1438,5 @@ TEST(ImageDecoderBench, MalformedImages)
 }
 
 } // namespace TestWebKitAPI
+
+#endif // !USE(CG)
