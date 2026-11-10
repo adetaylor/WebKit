@@ -148,11 +148,6 @@ public:
     NODELETE static FloatSize wheelDeltaBiasingTowardsVertical(const FloatSize&);
     NODELETE static bool isScrollDeltaOpposingStretch(IntSize stretch, ScrollEventAxis, float delta);
 
-#if HAVE(APPKIT_GESTURES_SUPPORT)
-
-    float rubberbandHyperbolicCoefficientForTesting() const { return m_rubberbandHyperbolicCoefficient; }
-#else
-#endif
 #endif
 
 private:
@@ -175,11 +170,6 @@ private:
 
 #if PLATFORM(MAC)
 
-#if HAVE(APPKIT_GESTURES_SUPPORT)
-    float m_rubberbandHyperbolicCoefficient { 0 };
-    bool m_gestureBeganAtTop { false };
-#elif HAVE(NSREFRESHCONTROLLER)
-#endif
 
 #if HAVE(RUBBER_BANDING)
 #endif

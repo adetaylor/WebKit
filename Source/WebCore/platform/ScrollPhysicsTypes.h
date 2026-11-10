@@ -122,6 +122,19 @@ public:
     static MonotonicTime monotonicTime(double seconds) { return MonotonicTime::fromRawSeconds(seconds); }
     static FloatSize scrollingVelocity(const PlatformWheelEvent& event) { return event.scrollingVelocity(); }
 
+    // AppKit's gesture rubber-band curve, which the Swift scroll physics uses where this is true.
+    static bool usesHyperbolicRubberBanding()
+    {
+#if HAVE(APPKIT_GESTURES_SUPPORT)
+        return true;
+#else
+        return false;
+#endif
+    }
+    static float rubberBandHyperbolicCoefficient(const PlatformWheelEvent&);
+    static double hyperbolicReboundDeltaForElasticDelta(double delta, double coefficient, double viewportLength);
+    static double hyperbolicElasticDeltaForReboundDelta(double delta, double coefficient, double viewportLength);
+
 };
 
 } // namespace WebCore

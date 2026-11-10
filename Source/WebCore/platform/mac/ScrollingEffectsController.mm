@@ -71,17 +71,6 @@ NODELETE static FloatSize deltaAlignedToDominantAxis(FloatSize delta)
     return deltaAlignedToAxis(delta, dominantAxis);
 }
 
-#if HAVE(APPKIT_GESTURES_SUPPORT)
-#endif
-
-#if HAVE(APPKIT_GESTURES_SUPPORT)
-#else
-#endif
-
-#if HAVE(APPKIT_GESTURES_SUPPORT)
-
-#endif
-
 FloatSize ScrollingEffectsController::wheelDeltaBiasingTowardsVertical(const FloatSize& wheelDelta)
 {
     return deltaAlignedToDominantAxis(wheelDelta);
@@ -111,6 +100,43 @@ void ScrollPhysicsClient::momentumScrollEnded()
 #endif
 }
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
+
+float ScrollPhysicsClient::rubberBandHyperbolicCoefficient(const PlatformWheelEvent& wheelEvent)
+{
+#if HAVE(APPKIT_GESTURES_SUPPORT)
+    return WebCore::rubberBandHyperbolicCoefficient(wheelEvent);
+#else
+    UNUSED_PARAM(wheelEvent);
+    ASSERT_NOT_REACHED();
+    return 0;
+#endif
+}
+
+double ScrollPhysicsClient::hyperbolicReboundDeltaForElasticDelta(double delta, double coefficient, double viewportLength)
+{
+#if HAVE(APPKIT_GESTURES_SUPPORT)
+    return _NSHyperbolicReboundDeltaForElasticDelta(delta, coefficient, viewportLength);
+#else
+    UNUSED_PARAM(delta);
+    UNUSED_PARAM(coefficient);
+    UNUSED_PARAM(viewportLength);
+    ASSERT_NOT_REACHED();
+    return 0;
+#endif
+}
+
+double ScrollPhysicsClient::hyperbolicElasticDeltaForReboundDelta(double delta, double coefficient, double viewportLength)
+{
+#if HAVE(APPKIT_GESTURES_SUPPORT)
+    return _NSHyperbolicElasticDeltaForReboundDelta(delta, coefficient, viewportLength);
+#else
+    UNUSED_PARAM(delta);
+    UNUSED_PARAM(coefficient);
+    UNUSED_PARAM(viewportLength);
+    ASSERT_NOT_REACHED();
+    return 0;
+#endif
+}
 
 } // namespace WebCore
 
