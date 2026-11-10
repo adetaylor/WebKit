@@ -26,21 +26,20 @@
 #include "config.h"
 #include "ScrollingMomentumCalculator.h"
 
-#include "FloatPoint.h"
-#include "FloatSize.h"
-#include <wtf/TZoneMallocInlines.h>
+#include "ScrollPhysicsTypes.h"
 
 namespace WebCore {
 
 #if !PLATFORM(MAC)
 
-std::unique_ptr<ScrollingMomentumCalculator> ScrollingMomentumCalculator::create(const ScrollExtents& scrollExtents, const FloatPoint& initialOffset, const FloatSize& initialDelta, const FloatSize& initialVelocity)
-{
-    return makeUnique<BasicScrollingMomentumCalculator>(scrollExtents, initialOffset, initialDelta, initialVelocity);
-}
-
 void ScrollingMomentumCalculator::setPlatformMomentumScrollingPredictionEnabled(bool)
 {
+}
+
+// Only AppKit predicts where momentum ends.
+bool ScrollPhysicsClient::platformMomentumScrollingPredictionEnabled()
+{
+    return false;
 }
 
 #endif
