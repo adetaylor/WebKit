@@ -23,6 +23,7 @@ function extractResult(results, path) {
 }
 
 async function main() {
+    const drawingReceiver = 'RemoteCGRenderer_Save' in IPC.messages ? 'RemoteCGRenderer' : 'RemoteGraphicsContext';
     const executor = new Executor();
     const instance = executor.createInstance();
     const res_0 = encodeInitIdentifierValues(instance.getInitIdentifierValues());
@@ -34,7 +35,7 @@ async function main() {
                 // Reference
                 ...ref_105553176631200
             ][0].value,
-            IPC.messages.RemoteGraphicsContext_DrawControlPart.name,
+            IPC.messages[`${drawingReceiver}_DrawControlPart`].name,
             [
                 ...[
                     // WebCore_ControlPart
@@ -327,7 +328,7 @@ async function main() {
                 // Reference
                 ...ref_105553176631440
             ][0].value,
-            IPC.messages.RemoteGraphicsContext_StrokeArc.name,
+            IPC.messages[`${drawingReceiver}_StrokeArc`].name,
             [
                 ...[
                     // WebCore_PathArc
@@ -364,7 +365,7 @@ async function main() {
                 // Reference
                 ...ref_105553176631584
             ][0].value,
-            IPC.messages.RemoteGraphicsContext_ClipPath.name,
+            IPC.messages[`${drawingReceiver}_ClipPath`].name,
             [
                 ...[
                     // WebCore_Path

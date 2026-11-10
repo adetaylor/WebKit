@@ -32,11 +32,6 @@ final class TestWithSwiftWorkQueueWeakRef {
     }
 
     @used
-    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        target.sharedPreferencesForWebProcess()
-    }
-
-    @used
     func dispatchSendString(
         connection: IPC.Connection,
         decoder: inout IPC.SwiftDecoder

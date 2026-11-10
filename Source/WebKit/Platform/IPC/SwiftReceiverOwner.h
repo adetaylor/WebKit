@@ -55,8 +55,22 @@ public:
     virtual void runScheduledWork() = 0;
     // The receiver's stream connection has been invalidated, so no message comes after this.
     virtual void didStopReceiving() = 0;
-    // The work queue has stopped, so nothing else runs on it. The last call, after which the owner lets go of the receiver.
+    // The work queue has stopped, so nothing else runs on it, or, for an owner on a shared work queue, the owner runs
+    // nothing more of the receiver's on it. The last call, after which the owner lets go of the receiver.
     virtual void didStopWorkQueue() = 0;
+};
+
+// A C++ receiver on the owner's stream connection that works with the owner's Swift receiver, which the owner keeps from
+// setCompanion() until the stream connection stops, and tells, on the work queue, what the stream connection's client is told.
+class SwiftReceiverOwnerCompanion : public StreamMessageReceiver {
+protected:
+    friend class SwiftReceiverOwner;
+    // Whether to be told didRunOutOfMessages(), which the owner asks once, in setCompanion(): it comes after every batch.
+    virtual bool wantsDidRunOutOfMessages() const { return false; }
+    // The stream connection has dispatched the messages it had.
+    virtual void didRunOutOfMessages() { }
+    // The stream connection has been invalidated, so no message comes after this. Before the receiver's didStopReceiving().
+    virtual void didStopReceiving() = 0;
 };
 
 // Owns a top-level receiver written in Swift for the C++ that creates it: the stream connection its messages come on, the
@@ -71,12 +85,17 @@ public:
     // The receiver of the messages to identifier, with those shared preferences. A message the stream connection finds
     // invalid goes to didReceiveInvalidMessage, on the work queue.
     static Ref<SwiftReceiverOwner> create(Ref<StreamServerConnection>&&, ASCIILiteral workQueueName, ReceiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess>, Function<void(MessageName)>&& didReceiveInvalidMessage) __attribute__((availability(swift, unavailable)));
+    // The same, on a work queue that other receivers share and that outlives the owner, which stopping doesn't stop. Its
+    // stream connection opens as soon as it is made, so that sends on it go before its receiver starts, which it may
+    // never do; it starts on the work queue.
+    static Ref<SwiftReceiverOwner> create(Ref<StreamServerConnection>&&, StreamConnectionWorkQueue& sharedWorkQueue, ReceiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess>, Function<void(MessageName)>&& didReceiveInvalidMessage) __attribute__((availability(swift, unavailable)));
 
     ~SwiftReceiverOwner();
 
     // Stops the receiver's messages, and then the work queue, and lets go of the receiver. For
-    // ScopedActiveMessageReceiveQueue, on the thread that created this.
-    void stopListeningForIPC() __attribute__((availability(swift, unavailable)));
+    // ScopedActiveMessageReceiveQueue, or the Swift state that holds the owner, on the main thread, which created this. An
+    // owner on a shared work queue does the same on that queue, later, and leaves the queue running.
+    SWIFT_MAIN_ACTOR void stopListeningForIPC();
 
     // The shared preferences are those of the receiver's creation, which registerSwiftStreamReceiver() keeps a copy of.
     static constexpr bool hasFixedSharedPreferencesForWebProcess = true;
@@ -97,19 +116,24 @@ public:
 
     // For startSwiftReceiver().
     void start(StreamMessageReceiver&, SwiftReceiverOwnerClient&) __attribute__((availability(swift, unavailable)));
+    // On the work queue, until the stream connection stops.
+    void setCompanion(SwiftReceiverOwnerCompanion&) __attribute__((availability(swift, unavailable)));
 
 private:
-    SwiftReceiverOwner(Ref<StreamServerConnection>&&, ASCIILiteral workQueueName, ReceiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess>, Function<void(MessageName)>&&);
+    SwiftReceiverOwner(Ref<StreamServerConnection>&&, Ref<StreamConnectionWorkQueue>&&, bool ownsWorkQueue, ReceiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess>, Function<void(MessageName)>&&);
 
     void workQueueInitialize();
     void workQueueUninitialize();
+    void releaseReceiver();
 
     // StreamServerConnection::Client.
     void didReceiveStreamMessage(StreamServerConnection&, Decoder&) final;
     void didReceiveInvalidMessage(StreamServerConnection&, MessageName, const Vector<uint32_t>&) final;
+    void didRunOutOfMessages() final;
 
     const Ref<Connection> m_connection;
     const Ref<StreamConnectionWorkQueue> m_workQueue;
+    const bool m_ownsWorkQueue;
     RefPtr<StreamServerConnection> m_streamConnection;
     const ReceiverName m_receiverName;
     const uint64_t m_identifier;
@@ -117,22 +141,39 @@ private:
     const Function<void(MessageName)> m_didReceiveInvalidMessage;
     // From start() to didStopWorkQueue(). The receiver is the client, which scheduleWork() reads on the work queue.
     RefPtr<StreamMessageReceiver> m_receiver;
+    // On the work queue.
+    RefPtr<SwiftReceiverOwnerCompanion> m_companion;
+    bool m_companionWantsDidRunOutOfMessages { false };
     std::atomic<SwiftReceiverOwnerClient*> m_client { nullptr };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 template<typename> struct IsRefOfSwiftReceiverOwnerClient : std::false_type { };
 template<typename T> struct IsRefOfSwiftReceiverOwnerClient<Ref<T>> : std::bool_constant<std::derived_from<T, StreamMessageReceiver> && std::derived_from<T, SwiftReceiverOwnerClient>> { };
 
+// A C++ object that gives the owner of a Swift receiver it works with, for the receiver to start on.
+template<typename Provider>
+concept SwiftReceiverOwnerProvider = requires(Provider& provider) {
+    { provider.swiftReceiverOwner() } -> std::same_as<SwiftReceiverOwner&>;
+};
+
 // Starts the owner's receiver, whose forwarder this registers for the owner's messages, with the owner's shared
-// preferences, and keeps until the work queue stops. For generated Swift, which passes the owner, a foreign reference
-// type, as a pointer to it, and which can't pass a forwarder as the StreamMessageReceiver it is, but can pass the Ref to
-// it that it holds. The static_asserts are there because the constraints aren't enforced for Swift callers.
+// preferences, and keeps until the work queue stops. For generated Swift, which passes the owner, or the C++ object that
+// provides it, a foreign reference type, as a pointer to it, and which can't pass a forwarder as the
+// StreamMessageReceiver it is, but can pass the Ref to it that it holds. The static_asserts are there because the
+// constraints aren't enforced for Swift callers.
 template<typename OwnerPointer, typename ForwarderRef>
 void startSwiftReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder)
 {
-    static_assert(std::is_same_v<OwnerPointer, SwiftReceiverOwner*>);
+    static_assert(std::is_pointer_v<OwnerPointer>);
+    using Owner = std::remove_pointer_t<OwnerPointer>;
+    static_assert(std::is_same_v<Owner, SwiftReceiverOwner> || SwiftReceiverOwnerProvider<Owner>);
     static_assert(IsRefOfSwiftReceiverOwnerClient<ForwarderRef>::value);
-    auto& owner = *ownerPointer;
+    auto& owner = [&] -> SwiftReceiverOwner& {
+        if constexpr (std::is_same_v<Owner, SwiftReceiverOwner>)
+            return *ownerPointer;
+        else
+            return ownerPointer->swiftReceiverOwner();
+    }();
     if constexpr (requires { forwarder->setSharedPreferencesProvider(nullptr); }) {
         forwarder->setSharedPreferencesProvider([sharedPreferences = owner.sharedPreferencesForWebProcess()] {
             return sharedPreferences;

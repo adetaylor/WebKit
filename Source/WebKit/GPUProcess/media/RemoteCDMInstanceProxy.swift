@@ -31,13 +31,13 @@ import wtf
 final class RemoteCDMInstanceProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
     private var messageForwarder: RefRemoteCDMInstanceProxyMessageForwarder?
-    private weak var factory: RemoteCDMFactoryState?
+    private weak var factory: RemoteCDMFactoryProxy?
     private weak var cdm: RemoteCDMProxy?
     private let backend: any RemoteCDMInstanceBackend
     private let logIdentifier: UInt64
 
     @_expose(!Cxx)
-    init(factory: RemoteCDMFactoryState, cdm: RemoteCDMProxy, backend: any RemoteCDMInstanceBackend, logIdentifier: UInt64) {
+    init(factory: RemoteCDMFactoryProxy, cdm: RemoteCDMProxy, backend: any RemoteCDMInstanceBackend, logIdentifier: UInt64) {
         self.factory = factory
         self.cdm = cdm
         self.backend = backend
@@ -55,18 +55,20 @@ final class RemoteCDMInstanceProxy {
 
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        guard cdm != nil, let proxy = factory?.proxy else {
+        // The receiver's messages come on the main thread, which alone changes the factory's connection.
+        MainActor.preconditionIsolated()
+        guard cdm != nil, let connection = factory?.connection else {
             return WebKit.OptionalSharedPreferencesForWebProcess()
         }
-        return proxy.sharedPreferencesForWebProcess()
+        return connection.sharedPreferencesForWebProcess()
     }
 
     @MainActor
     func createSession(connection: IPC.Connection, logIdentifier: UInt64) -> IPCTypes.RemoteCDMInstanceSessionIdentifier? {
-        guard let cdm, let factory, factory.proxy != nil else {
+        guard let cdm, let factory, factory.connection != nil else {
             return nil
         }
-        let identifier = WebKit.RemoteCDMFactoryProxy.generateSessionIdentifier()
+        let identifier = WebKit.RemoteCDMPrivateFactory.generateSessionIdentifier()
         guard let session = backend.makeSession(identifier: identifier, cdm: cdm, connection: connection, logIdentifier: self.logIdentifier)
         else {
             return nil
@@ -100,10 +102,10 @@ final class RemoteCDMInstanceProxy {
 
     @MainActor
     func setStorageDirectory(connection: IPC.Connection, directory: String?) {
-        guard backend.usesStorageDirectory, cdm != nil, let proxy = factory?.proxy else {
+        guard backend.usesStorageDirectory, cdm != nil, let gpuConnection = factory?.connection else {
             return
         }
-        let mediaKeysStorageDirectory = IPCCoding.WTFString.swiftString(proxy.mediaKeysStorageDirectory()) ?? ""
+        let mediaKeysStorageDirectory = IPCCoding.WTFString.swiftString(gpuConnection.cdmMediaKeysStorageDirectory()) ?? ""
         // Compared by code point, which for Swift strings is what WTF::String::startsWith's comparison of code
         // units gives, rather than by Character.
         guard !mediaKeysStorageDirectory.isEmpty, let directory, directory.utf8.starts(with: mediaKeysStorageDirectory.utf8) else {

@@ -24,11 +24,16 @@
 
 #include "config.h"
 #include "Shared/WebKit-Swift.h" // NOLINT
+#include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
+#include "IPCSemaphore.h" // NOLINT
 #include "TestWithStreamSwiftLentStateLender.h" // NOLINT
 #include "TestWithStreamSwiftLentStateMessages.h" // NOLINT
 #include <WebCore/FloatRect.h> // NOLINT
+#include <WebCore/Path.h> // NOLINT
+#include <wtf/Vector.h> // NOLINT
+#include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
 #include "JSIPCBinding.h"
@@ -48,6 +53,18 @@ void TestWithStreamSwiftLentStateMessageForwarder::didReceiveStreamMessage(IPC::
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::Draw::name()) {
         IPC::handleSwiftMessageWithLentState<Messages::TestWithStreamSwiftLentState::Draw>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchDraw, &WebKit::TestWithStreamSwiftLentStateLender::draw);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::SetLabel::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftLentState::SetLabel>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchSetLabel);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::FillPath::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftLentState::FillPath>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchFillPath);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::SetSemaphore::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftLentState::SetSemaphore>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchSetSemaphore);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -92,6 +109,18 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Draw>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::Draw::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetLabel>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::SetLabel::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_FillPath>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::FillPath::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetSemaphore>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::SetSemaphore::Arguments>(globalObject, decoder);
 }
 
 }

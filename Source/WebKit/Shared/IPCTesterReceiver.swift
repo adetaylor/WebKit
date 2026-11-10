@@ -25,6 +25,9 @@
 
 import WebKit_Internal
 import wtf
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 // Proxy interface to test IPC activities related to receiving messages in Swift.
 @_expose(Cxx)
@@ -195,6 +198,363 @@ final class IPCTesterReceiver {
     ) -> (roundTripped: WebCore.SharedBuffer?, size: UInt64) {
         (buffer, UInt64(buffer?.size() ?? 0))
     }
+
+    #if WTF_PLATFORM_COCOA
+    // A ColorSpace decoded in Swift and in C++ must make alike color spaces of the same bytes.
+
+    @MainActor
+    func describeColorSpaceSwift(connection: IPC.Connection, colorSpace: IPCTypes.ColorSpace) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterDescription(colorSpace.cgColorSpace))
+    }
+
+    @MainActor
+    func describeCxxDecodedColorSpaceSwift(
+        connection: IPC.Connection,
+        colorSpace: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedColorSpaceSwiftColorSpace
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterDescription(WebKit.ipcTesterCxxDecodedColorSpace(colorSpace)))
+    }
+
+    @MainActor
+    func compareColorSpacesSwift(
+        connection: IPC.Connection,
+        colorSpace: IPCTypes.ColorSpace,
+        cxxDecodedColorSpace: CxxDecodedArguments.IPCTesterReceiver.CompareColorSpacesSwiftCxxDecodedColorSpace
+    ) -> Bool {
+        colorSpace.cgColorSpace == WebKit.ipcTesterCxxDecodedColorSpace(cxxDecodedColorSpace)
+    }
+
+    // A control part and style, and a system image, decoded in Swift and in C++ must be described alike: as
+    // ipcTesterDescription() describes them (IPCTesterPayload.h).
+
+    @MainActor
+    func describeControlSwift(connection: IPC.Connection, part: IPCTypes.ControlPart, style: IPCTypes.ControlStyle) -> String? {
+        Self.description(part) + Self.description(style)
+    }
+
+    @MainActor
+    func describeCxxDecodedControlSwift(
+        connection: IPC.Connection,
+        part: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftPart,
+        style: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftStyle
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedControlDescription(part, style))
+    }
+
+    @MainActor
+    func describeSystemImageSwift(connection: IPC.Connection, image: IPCTypes.SystemImage) -> String? {
+        switch image {
+        #if ENABLE_APPLE_PAY
+        case .applePayLogoSystemImage(let logo):
+            return "applePayLogo=\(logo.applePayLogoStyle.rawValue)"
+        #endif
+        #if USE_APPKIT
+        case .appKitControlSystemImage(let controlImage):
+            return "appKitControl=0 tint=\(Self.description(controlImage.tintColor)) dark=\(controlImage.useDarkAppearance ? 1 : 0)"
+        #endif
+        }
+    }
+
+    @MainActor
+    func describeCxxDecodedSystemImageSwift(
+        connection: IPC.Connection,
+        image: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedSystemImageSwiftImage
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedSystemImageDescription(image))
+    }
+
+    // A filter decoded in Swift and in C++ must be described alike: as ipcTesterDescription() describes it
+    // (IPCTesterPayload.h).
+
+    @MainActor
+    func describeFilterSwift(connection: IPC.Connection, filter: IPCTypes.Filter) -> String? {
+        switch filter {
+        case .cssFilterRenderer(let cssFilter):
+            return "css(functions=\(cssFilter.functions.count)" + cssFilter.functions.map { " " + Self.description($0) }.joined()
+                + Self.description(cssFilter.geometry, cssFilter.filterRenderingModes, cssFilter.renderingOptions) + ")"
+        case .svgFilterRenderer(let svgFilter):
+            return Self.description(svgFilter)
+        }
+    }
+
+    @MainActor
+    func describeCxxDecodedFilterSwift(
+        connection: IPC.Connection,
+        filter: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedFilterSwiftFilter
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedFilterDescription(filter))
+    }
+
+    private static func description(_ values: Float...) -> String {
+        values.map { "\($0.bitPattern)" }.joined(separator: ",")
+    }
+
+    private static func description(_ values: [Float]) -> String {
+        "\(values.count)" + values.map { ":\($0.bitPattern)" }.joined()
+    }
+
+    private static func description(_ rect: IPCTypes.FloatRect) -> String {
+        description(rect.location.x, rect.location.y, rect.size.width, rect.size.height)
+    }
+
+    private static func description(_ function: IPCTypes.ComponentTransferFunction) -> String {
+        "\(function.type.rawValue),"
+            + description(function.slope, function.intercept, function.amplitude, function.exponent, function.offset) + ","
+            + description(function.tableValues)
+    }
+
+    private static func description(_ lightSource: IPCTypes.LightSource) -> String {
+        switch lightSource {
+        case .distantLightSource(let distant):
+            return "distant:" + description(distant.azimuth, distant.elevation)
+        case .pointLightSource(let point):
+            return "point:" + description(point.position.x, point.position.y, point.position.z)
+        case .spotLightSource(let spot):
+            return "spot:"
+                + description(spot.position.x, spot.position.y, spot.position.z, spot.direction.x, spot.direction.y, spot.direction.z,
+                    spot.specularExponent, spot.limitingConeAngle)
+        }
+    }
+
+    private static func description(
+        _ geometry: IPCTypes.FilterGeometry,
+        _ modes: IPCTypes.FilterRenderingMode,
+        _ options: IPCTypes.FilterRenderingOption
+    ) -> String {
+        " referenceBox=" + description(geometry.referenceBox) + " filterRegion=" + description(geometry.filterRegion) + " scale="
+            + description(geometry.scale.width, geometry.scale.height) + " modes=\(modes.rawValue) options=\(options.rawValue)"
+    }
+
+    private static func description(_ svgFilter: IPCTypes.SVGFilterRenderer) -> String {
+        var result = "svg(units=\(svgFilter.primitiveUnits.rawValue) expression=\(svgFilter.expression.count)"
+        for term in svgFilter.expression {
+            result += ":\(term.index),\(term.level)"
+            if let geometry = term.geometry {
+                let flags: [IPCTypes.FilterEffectGeometryFlags] = [.hasX, .hasY, .hasWidth, .hasHeight]
+                let values = [geometry.boundaries.location.x, geometry.boundaries.location.y, geometry.boundaries.size.width, geometry.boundaries.size.height]
+                for (flag, value) in zip(flags, values) {
+                    result += geometry.flags.contains(flag) ? ",\(value.bitPattern)" : ",-"
+                }
+            }
+        }
+        result += " effects=\(svgFilter.effects.count)" + svgFilter.effects.map { " " + description(FunctionOrEffect.effect($0)) }.joined()
+        result += description(svgFilter.geometry, svgFilter.filterRenderingModes, svgFilter.renderingOptions)
+        result += " identifier=" + (svgFilter.renderingResourceIdentifierIfExists.map { "\($0.rawValue)" } ?? "none") + ")"
+        return result
+    }
+
+    private enum FunctionOrEffect {
+        case function(IPCTypes.FilterFunction)
+        case effect(IPCTypes.FilterEffect)
+    }
+
+    private static func description(_ function: IPCTypes.FilterFunction) -> String {
+        description(FunctionOrEffect.function(function))
+    }
+
+    private static func colorSpaceName(_ colorSpace: IPCTypes.ColorSpace) -> String {
+        colorSpace.cgColorSpace.name.map { String($0) } ?? "none"
+    }
+
+    // The effects of a filter function, and of an SVG filter's effects, which are the same types in two enums.
+    private static func description(_ item: FunctionOrEffect) -> String {
+        let fields: String
+        let colorSpace: IPCTypes.ColorSpace
+        switch item {
+        case .function(.svgFilterRenderer(let svgFilter)):
+            return description(svgFilter)
+        case .function(.feBlend(let blend)), .effect(.feBlend(let blend)):
+            fields = "blend(\(blend.blendMode.rawValue)"
+            colorSpace = blend.operatingColorSpace
+        case .function(.feColorMatrix(let colorMatrix)), .effect(.feColorMatrix(let colorMatrix)):
+            fields = "colorMatrix(\(colorMatrix.type.rawValue)," + description(colorMatrix.values)
+            colorSpace = colorMatrix.operatingColorSpace
+        case .function(.feComponentTransfer(let transfer)), .effect(.feComponentTransfer(let transfer)):
+            fields = "componentTransfer(" + [transfer.redFunction, transfer.greenFunction, transfer.blueFunction, transfer.alphaFunction].map {
+                description($0) + ";"
+            }.joined()
+            colorSpace = transfer.operatingColorSpace
+        case .function(.feComposite(let composite)), .effect(.feComposite(let composite)):
+            fields = "composite(\(composite.operation.rawValue)," + description(composite.k1, composite.k2, composite.k3, composite.k4)
+            colorSpace = composite.operatingColorSpace
+        case .function(.feConvolveMatrix(let convolve)), .effect(.feConvolveMatrix(let convolve)):
+            fields = "convolveMatrix(\(convolve.kernelSize.width)x\(convolve.kernelSize.height)," + description(convolve.divisor, convolve.bias)
+                + ",\(convolve.targetOffset.x),\(convolve.targetOffset.y),\(convolve.edgeMode.rawValue),"
+                + description(convolve.kernelUnitLength.x, convolve.kernelUnitLength.y) + ",\(convolve.preserveAlpha ? 1 : 0),"
+                + description(convolve.kernel)
+            colorSpace = convolve.operatingColorSpace
+        case .function(.feDiffuseLighting(let lighting)), .effect(.feDiffuseLighting(let lighting)):
+            fields = "diffuseLighting(" + description(lighting.lightingColor) + ","
+                + description(lighting.surfaceScale, lighting.diffuseConstant, lighting.kernelUnitLengthX, lighting.kernelUnitLengthY) + ","
+                + description(lighting.lightSource)
+            colorSpace = lighting.operatingColorSpace
+        case .function(.feDisplacementMap(let displacement)), .effect(.feDisplacementMap(let displacement)):
+            fields = "displacementMap(\(displacement.xChannelSelector.rawValue),\(displacement.yChannelSelector.rawValue),"
+                + description(displacement.scale) + ",\(displacement.in2IsTainted ? 1 : 0)"
+            colorSpace = displacement.operatingColorSpace
+        case .function(.feDropShadow(let shadow)), .effect(.feDropShadow(let shadow)):
+            fields = "dropShadow(" + description(shadow.stdDeviationX, shadow.stdDeviationY, shadow.dx, shadow.dy) + ","
+                + description(shadow.shadowColor) + "," + description(shadow.shadowOpacity)
+            colorSpace = shadow.operatingColorSpace
+        case .function(.feFlood(let flood)), .effect(.feFlood(let flood)):
+            fields = "flood(" + description(flood.floodColor) + "," + description(flood.floodOpacity)
+            colorSpace = flood.operatingColorSpace
+        case .function(.feGaussianBlur(let blur)), .effect(.feGaussianBlur(let blur)):
+            fields = "gaussianBlur(" + description(blur.stdDeviationX, blur.stdDeviationY) + ",\(blur.edgeMode.rawValue)"
+            colorSpace = blur.operatingColorSpace
+        case .function(.feImage(let image)), .effect(.feImage(let image)):
+            return "image(\(image.sourceImage.imageIdentifier.rawValue)," + description(image.sourceImageRect) + ")"
+        case .function(.feMerge(let merge)), .effect(.feMerge(let merge)):
+            fields = "merge(\(merge.numberOfEffectInputs)"
+            colorSpace = merge.operatingColorSpace
+        case .function(.feMorphology(let morphology)), .effect(.feMorphology(let morphology)):
+            fields = "morphology(\(morphology.morphologyOperator.rawValue)," + description(morphology.radiusX, morphology.radiusY)
+            colorSpace = morphology.operatingColorSpace
+        case .function(.feOffset(let offset)), .effect(.feOffset(let offset)):
+            fields = "offset(" + description(offset.dx, offset.dy)
+            colorSpace = offset.operatingColorSpace
+        case .function(.feSpecularLighting(let lighting)), .effect(.feSpecularLighting(let lighting)):
+            fields = "specularLighting(" + description(lighting.lightingColor) + ","
+                + description(lighting.surfaceScale, lighting.specularConstant, lighting.specularExponent, lighting.kernelUnitLengthX,
+                    lighting.kernelUnitLengthY) + "," + description(lighting.lightSource)
+            colorSpace = lighting.operatingColorSpace
+        case .function(.feTile(let tile)), .effect(.feTile(let tile)):
+            fields = "tile("
+            colorSpace = tile.operatingColorSpace
+        case .function(.feTurbulence(let turbulence)), .effect(.feTurbulence(let turbulence)):
+            fields = "turbulence(\(turbulence.type.rawValue)," + description(turbulence.baseFrequencyX, turbulence.baseFrequencyY)
+                + ",\(turbulence.numOctaves)," + description(turbulence.seed) + ",\(turbulence.stitchTiles ? 1 : 0)"
+            colorSpace = turbulence.operatingColorSpace
+        case .function(.sourceAlpha(let sourceAlpha)), .effect(.sourceAlpha(let sourceAlpha)):
+            fields = "sourceAlpha("
+            colorSpace = sourceAlpha.operatingColorSpace
+        case .function(.sourceGraphic(let sourceGraphic)), .effect(.sourceGraphic(let sourceGraphic)):
+            fields = "sourceGraphic("
+            colorSpace = sourceGraphic.operatingColorSpace
+        }
+        return fields + " colorSpace=" + colorSpaceName(colorSpace) + ")"
+    }
+
+    #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    // A fill rule, a transform and a color as the CG renderer takes it, decoded in Swift and in C++, must be described alike:
+    // as ipcTesterDescription() describes them (IPCTesterPayload.h).
+
+    @MainActor
+    func describeDrawingFormsSwift(
+        connection: IPC.Connection,
+        windRule: IPCTypes.WindRule,
+        transform: IPCTypes.AffineTransform,
+        color: IPCTypes.CGRendererColorValue
+    ) -> String? {
+        let values = transform.span.map { String($0.bitPattern) }.joined(separator: ",")
+        let data = color.data
+        let dataValues = [
+            String(data.c1.bitPattern), String(data.c2.bitPattern), String(data.c3.bitPattern), String(data.alpha.bitPattern), String(data.packedColor),
+            String(data.colorSpace), String(data.form), data.isSemantic ? "1" : "0", data.usesFunctionSerialization ? "1" : "0",
+        ]
+        return "rule=\(windRule.rawValue) transform=\(values) color=\(color.packedColor),\(color.isPacked ? 1 : 0),\(color.isVisible ? 1 : 0) data="
+            + dataValues.joined(separator: ",")
+    }
+
+    @MainActor
+    func describeCxxDecodedDrawingFormsSwift(
+        connection: IPC.Connection,
+        windRule: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftWindRule,
+        transform: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftTransform,
+        color: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftColor
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedDrawingFormsDescription(windRule, transform, color))
+    }
+
+    // A path decoded in Swift and in C++ must give the CG renderer alike CGPaths and facts.
+
+    @MainActor
+    func describePathSwift(connection: IPC.Connection, path: IPCTypes.Path) -> String? {
+        IPCCoding.WTFString.swiftString(path.testingDescription)
+    }
+
+    @MainActor
+    func describeCxxDecodedPathSwift(connection: IPC.Connection, path: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedPathSwiftPath) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedPathDescription(path))
+    }
+    #endif
+
+    private static func description(_ color: IPCTypes.WebCoreColor) -> String {
+        guard let data = color.data else {
+            return "invalid"
+        }
+        let flags = "\(data.isSemantic ? 1 : 0),\(data.usesFunctionSerialization ? 1 : 0),"
+        switch data.components {
+        case .packed(let value):
+            return flags + "packed:\(value)"
+        case .outOfLine(let colorSpace, let c1, let c2, let c3, let alpha):
+            return flags + "\(colorSpace.rawValue):\(c1.bitPattern),\(c2.bitPattern),\(c3.bitPattern),\(alpha.bitPattern)"
+        }
+    }
+
+    private static func description(_ part: IPCTypes.ControlPart) -> String {
+        var appearance: UInt8 = 0
+        var details = ""
+        switch part {
+        case .buttonPart(let button):
+            appearance = button.type.rawValue
+        case .colorWellPart:
+            appearance = WebCore.StyleAppearance.ColorWell.rawValue
+        case .innerSpinButtonPart:
+            appearance = WebCore.StyleAppearance.InnerSpinButton.rawValue
+        case .menuListButtonPart:
+            appearance = WebCore.StyleAppearance.MenulistButton.rawValue
+        case .menuListPart:
+            appearance = WebCore.StyleAppearance.Menulist.rawValue
+        case .meterPart(let meter):
+            appearance = WebCore.StyleAppearance.Meter.rawValue
+            details = " meter=\(meter.gaugeRegion.rawValue),\(meter.value.bitPattern),\(meter.minimum.bitPattern),\(meter.maximum.bitPattern)"
+        case .progressBarPart(let progressBar):
+            appearance = WebCore.StyleAppearance.ProgressBar.rawValue
+            details = " progress=\(progressBar.position.bitPattern),\(progressBar.animationStartTime.bitPattern)"
+        case .searchFieldPart:
+            appearance = WebCore.StyleAppearance.SearchField.rawValue
+        case .searchFieldResultsPart(let results):
+            appearance = results.type.rawValue
+        case .searchFieldCancelButtonPart:
+            appearance = WebCore.StyleAppearance.SearchFieldCancelButton.rawValue
+        case .sliderThumbPart(let thumb):
+            appearance = thumb.type.rawValue
+        case .sliderTrackPart(let track):
+            appearance = track.type.rawValue
+            let thumb = track.thumbSize
+            let bounds = track.trackBounds
+            details = " slider=\(thumb.width)x\(thumb.height),\(bounds.location.x),\(bounds.location.y),\(bounds.size.width)x\(bounds.size.height),"
+                + "\(track.thumbPosition.bitPattern),ticks:\(track.tickRatios.count)" + track.tickRatios.map { ":\($0.bitPattern)" }.joined()
+        case .switchPart(let switchPart):
+            appearance = WebCore.StyleAppearance.Switch.rawValue
+            details = " switch=\(switchPart.isOn ? 1 : 0),\(switchPart.progress.bitPattern)"
+        case .textAreaPart(let textArea):
+            appearance = textArea.type.rawValue
+        case .textFieldPart:
+            appearance = WebCore.StyleAppearance.TextField.rawValue
+        case .toggleButtonPart(let toggleButton):
+            appearance = toggleButton.type.rawValue
+        #if ENABLE_APPLE_PAY
+        case .applePayButtonPart(let button):
+            appearance = WebCore.StyleAppearance.ApplePayButton.rawValue
+            details = " applePay=\(button.buttonType.rawValue),\(button.buttonStyle.rawValue),\(button.locale ?? "null")"
+        #endif
+        #if ENABLE_SERVICE_CONTROLS
+        case .imageControlsButtonPart:
+            appearance = WebCore.StyleAppearance.ImageControlsButton.rawValue
+        #endif
+        }
+        return "appearance=\(appearance)" + details
+    }
+
+    private static func description(_ style: IPCTypes.ControlStyle) -> String {
+        let border = style.borderWidth
+        return " states=\(style.states.rawValue) fontSize=\(style.fontSize.bitPattern) zoom=\(style.zoomFactor.bitPattern)"
+            + " accent=\(description(style.accentColor)) text=\(description(style.textColor))"
+            + " border=\(border.top.bitPattern),\(border.right.bitPattern),\(border.bottom.bitPattern),\(border.left.bitPattern)"
+    }
+    #endif
 
     @MainActor
     func halveEvenNumberSyncHandlerSwift(connection: IPC.Connection, value: UInt32) throws(InvalidMessage) -> UInt32 {

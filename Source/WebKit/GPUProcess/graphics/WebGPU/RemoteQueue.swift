@@ -36,7 +36,7 @@ final class RemoteQueue {
     private let queue: QueueReference
     private let link: WebGPURegistryLink
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    private let videoFrames: WebKit.GPUVideoFrameSource?
+    private let videoFrames: SharedVideoFrameSource?
     #endif
 
     @_expose(!Cxx)
@@ -44,7 +44,7 @@ final class RemoteQueue {
         self.queue = queue
         self.link = link
         #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.host) }
+        videoFrames = link.objects?.videoFrameSources.make()
         #endif
     }
 
@@ -55,7 +55,7 @@ final class RemoteQueue {
             return
         }
         let receiver = RemoteQueue(queue, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.owner, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
         objects.add(link.identifier, queue, receiver: receiver, registration: registration)
     }
 
@@ -209,7 +209,7 @@ final class RemoteQueue {
             return
         }
         var surfaceDescription = WebKit.RemoteGPUImageBufferSurface()
-        guard let surface = WebKit.copyImageBufferSurface(objects.host, imageBufferIdentifier.rawValue, &surfaceDescription),
+        guard let surface = WebKit.copyImageBufferSurface(objects.renderingBackend, imageBufferIdentifier.rawValue, &surfaceDescription),
             let sourceFormat = sourceTextureFormat(surfaceDescription.pixelFormat)
         else {
             return
@@ -230,15 +230,15 @@ final class RemoteQueue {
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
     func setSharedVideoFrameSemaphore(
-        semaphore: borrowing IPCTypes.Semaphore
+        semaphore: consuming IPCTypes.Semaphore
     ) {
-        videoFrames?.setSemaphore(semaphore.port)
+        videoFrames?.setSemaphore(semaphore)
     }
 
     func setSharedVideoFrameMemory(
-        storageHandle: borrowing IPCTypes.SharedMemoryHandle
+        storageHandle: consuming IPCTypes.SharedMemoryHandle
     ) {
-        videoFrames?.setSharedMemory(storageHandle.port, storageHandle.size)
+        videoFrames?.setSharedMemory(storageHandle)
     }
 
     // The frame is the shared one the message carries, or else the one the media player shows. A frame which could not be
@@ -248,37 +248,42 @@ final class RemoteQueue {
         flipY: Bool,
         mediaIdentifier: IPCTypes.MediaPlayerIdentifier?,
         sourceSize: IPCTypes.IntSize,
-        sharedFrame: CxxDecodedArguments.RemoteQueue.CopyExternalImageFromVideoFrameToTextureSharedFrame,
+        sharedFrame: borrowing IPCTypes.SharedVideoFrame?,
         destination: IPCTypes.ImageCopyTextureTagged,
         copySize: IPCTypes.Extent3D
     ) {
-        let texture = link.objects?.object(destination.texture, as: TextureReference.self)
+        let objects = link.objects
+        let texture = objects?.object(destination.texture, as: TextureReference.self)
         assert(texture != nil)
-        guard let texture, let videoFrames else {
+        guard let objects, let texture, let videoFrames else {
             return
         }
-        var result = WebKit.GPUVideoFrameReadResult()
-        var pixelBuffer = WebKit.readSharedVideoFrame(videoFrames, sharedFrame, &result)
-        if result.isInvalid {
-            return
+        var frame: (pixelBuffer: CVBuffer, rotation: UInt16, isMirrored: Bool, naturalWidth: UInt32, naturalHeight: UInt32)?
+        switch sharedFrame {
+        case .some(let sharedFrame):
+            frame = videoFrames.read(sharedFrame).map { (cvBuffer($0.pixelBuffer), $0.rotation, $0.isMirrored, 0, 0) }
+        case .none:
+            if let mediaIdentifier {
+                var result = WebKit.GPUVideoFrameReadResult()
+                frame = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result).map {
+                    ($0, result.rotation, result.isMirrored, result.naturalWidth, result.naturalHeight)
+                }
+            }
         }
-        if !result.hadFrame, let mediaIdentifier {
-            pixelBuffer = WebKit.copyMediaPlayerFrame(videoFrames, mediaIdentifier.rawValue, &result)
-        }
-        guard let pixelBuffer else {
+        guard let frame else {
             return
         }
         // A decoded frame carries its extent, its crop and its primaries, and is opaque, so its alpha is replaced with 1 the
         // way an external texture's is. The display transform is the one thing about the frame its pixel buffer does not carry.
         var image = GPUCopyExternalImageSource()
-        image.pixelBuffer = pixelBuffer
+        image.pixelBuffer = frame.pixelBuffer
         // The natural size (presented size after display scaling) overrides the clean aperture when non-zero, to handle
         // anamorphic video whose presented width differs from its coded width.
-        image.pixelBufferRotation = videoFrameRotation(result.rotation)
-        image.pixelBufferIsMirrored = result.isMirrored
+        image.pixelBufferRotation = videoFrameRotation(frame.rotation)
+        image.pixelBufferIsMirrored = frame.isMirrored
         // The size the web process gave, else the player's natural size.
-        image.sourceSize = WebGPU.Extent2D(width: sourceSize.width > 0 ? UInt32(sourceSize.width) : result.naturalWidth,
-                                           height: sourceSize.height > 0 ? UInt32(sourceSize.height) : result.naturalHeight)
+        image.sourceSize = WebGPU.Extent2D(width: sourceSize.width > 0 ? UInt32(sourceSize.width) : frame.naturalWidth,
+                                           height: sourceSize.height > 0 ? UInt32(sourceSize.height) : frame.naturalHeight)
         image.origin = origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D(x: 0, y: 0)
         image.flipY = flipY
         image.hasAlpha = false

@@ -33,10 +33,14 @@
 #include "GPUProcess.h"
 #include "GPUProcessConnectionMessages.h"
 #include "Logging.h"
-#include "RemoteSnapshot.h"
+#include "RemoteSnapshotSink.h"
 #include <WebCore/SharedBuffer.h>
 #include <wtf/RunLoop.h>
 #include <wtf/TZoneMallocInlines.h>
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteSnapshotPrintData.h"
+#endif
 
 namespace WebKit {
 using namespace WebCore;
@@ -48,14 +52,13 @@ static constexpr Seconds printProcessReplyTimeout = 500_ms;
 uint64_t RemoteSnapshotPDFDrawingTask::s_drawnInPrintProcessCount { 0 };
 uint64_t RemoteSnapshotPDFDrawingTask::s_drawnAfterPrintProcessFailedCount { 0 };
 
-Ref<RemoteSnapshotPDFDrawingTask> RemoteSnapshotPDFDrawingTask::create(Ref<RemoteSnapshot>&& snapshot, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
+Ref<RemoteSnapshotPDFDrawingTask> RemoteSnapshotPDFDrawingTask::create(RemoteSnapshotSink& sink, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
 {
-    return adoptRef(*new RemoteSnapshotPDFDrawingTask(WTF::move(snapshot), rootFrameIdentifier, WTF::move(completionHandler)));
+    return adoptRef(*new RemoteSnapshotPDFDrawingTask(sink, WTF::move(completionHandler)));
 }
 
-RemoteSnapshotPDFDrawingTask::RemoteSnapshotPDFDrawingTask(Ref<RemoteSnapshot>&& snapshot, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
-    : m_snapshot(WTF::move(snapshot))
-    , m_rootFrameIdentifier(rootFrameIdentifier)
+RemoteSnapshotPDFDrawingTask::RemoteSnapshotPDFDrawingTask(RemoteSnapshotSink& sink, CompletionHandler<void(RefPtr<SharedBuffer>&&)>&& completionHandler)
+    : m_sink(&sink)
     , m_completionHandler(WTF::move(completionHandler))
 {
 }
@@ -73,16 +76,28 @@ void RemoteSnapshotPDFDrawingTask::start(std::optional<ProcessIdentifier> printP
 
 void RemoteSnapshotPDFDrawingTask::sendToPrintProcess(ProcessIdentifier printProcessIdentifier)
 {
-    RefPtr snapshot = m_snapshot;
+    RefPtr sink = m_sink;
     RefPtr connection = protect(GPUProcess::singleton())->webProcessConnection(printProcessIdentifier);
-    auto displayListData = connection ? snapshot->createDisplayListData(m_rootFrameIdentifier) : std::nullopt;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    auto printData = connection ? sink->createPrintData() : std::nullopt;
+    if (!printData) {
+        fallback();
+        return;
+    }
+    // The message refers to its arguments until it is sent.
+    auto size = sink->size();
+    auto message = Messages::GPUProcessConnection::DrawSnapshotPrintDataToPDF(WTF::move(*printData), size);
+#else
+    auto displayListData = connection ? sink->createDisplayListData() : std::nullopt;
     if (!displayListData) {
         fallback();
         return;
     }
     displayListData->setOwnershipOfMemory(connection->webProcessIdentity());
+    auto message = Messages::GPUProcessConnection::DrawDisplayListToPDF(WTF::move(*displayListData), sink->size());
+#endif
 
-    protect(connection->connection())->sendWithAsyncReply(Messages::GPUProcessConnection::DrawDisplayListToPDF(WTF::move(*displayListData), snapshot->size()), [protectedThis = Ref { *this }](RefPtr<SharedBuffer>&& pdf) {
+    protect(connection->connection())->sendWithAsyncReply(WTF::move(message), [protectedThis = Ref { *this }](RefPtr<SharedBuffer>&& pdf) {
         if (pdf)
             protectedThis->complete(pdf.releaseNonNull());
         else
@@ -99,7 +114,7 @@ void RemoteSnapshotPDFDrawingTask::complete(Ref<SharedBuffer>&& pdf)
         return;
 
     ++s_drawnInPrintProcessCount;
-    m_snapshot = nullptr;
+    m_sink = nullptr;
     m_completionHandler(WTF::move(pdf));
 }
 
@@ -115,8 +130,8 @@ void RemoteSnapshotPDFDrawingTask::fallback()
 
 void RemoteSnapshotPDFDrawingTask::drawLocally()
 {
-    RefPtr snapshot = std::exchange(m_snapshot, nullptr);
-    auto result = snapshot->drawToPDF(snapshot->size(), m_rootFrameIdentifier);
+    RefPtr sink = std::exchange(m_sink, nullptr);
+    auto result = sink->drawToPDF();
     if (!result) {
         ASSERT_NOT_REACHED();
         m_completionHandler({ });

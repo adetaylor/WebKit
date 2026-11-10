@@ -551,6 +551,48 @@ enum class WebKit::E : uint8_t {
                       '    }\n', swift)
         self.assertIn('        typealias WebKit_RemoteVideoFrameReference = IPCTypes.RemoteVideoFrameReference\n', swift)
 
+    def test_vector_using_statements(self):
+        swift = generate_swift('''
+[Swift] struct WebKit::Term {
+    uint32_t index;
+};
+using WebKit::Expression = Vector<WebKit::Term>;
+[Swift] struct WebKit::Program {
+    WebKit::Expression expression;
+};
+''')
+        self.assertIn('        var expression: [IPCTypes.Term]\n', swift)
+
+    def test_cxx_enum_validation(self):
+        swift = generate_swift('''
+enum class WebCore::StyleAppearance : uint8_t {
+    None,
+    Auto,
+#if ENABLE(APPLE_PAY)
+    ApplePayButton,
+#endif
+    Switch
+}
+''')
+        self.assertIn('''extension WebCore.StyleAppearance: IPCCxxEnum {
+    static func isDeclaredValue(_ value: Self) -> Bool {
+        switch value {
+        case .None:
+            return true
+        case .Auto:
+            return true
+        #if ENABLE_APPLE_PAY
+        case .ApplePayButton:
+            return true
+        #endif
+        case .Switch:
+            return true
+        default:
+            return false
+        }
+    }
+}''', swift)
+
     def test_unsupported_types(self):
         self.assertGenerationFails('''
 [Swift, CustomEncoder] struct WebKit::S {
@@ -561,7 +603,19 @@ enum class WebKit::E : uint8_t {
 [Swift, RefCounted] class WebCore::TimingFunction subclasses {
     WebCore::LinearTimingFunction,
 }
-''', r'types serialized as their subclasses cannot be marked \[Swift\]')
+''', r'subclass WebCore::LinearTimingFunction: WebCore::LinearTimingFunction has no Swift form')
+        self.assertGenerationFails('''
+[Swift, RefCounted] class WebCore::TimingFunction subclasses {
+    WebCore::LinearTimingFunction,
+}
+[Swift, RefCounted] class WebCore::LinearTimingFunction {
+    float value();
+}
+[Swift, RefCounted] class WebCore::Shape subclasses {
+    WebCore::LinearTimingFunction,
+    WebCore::LinearTimingFunction,
+}
+''', r'more than one of its subclasses would be named linearTimingFunction in Swift')
         self.assertGenerationFails('''
 [Swift] CFFooRef wrapped by WebKit::FooWrapper {
 }

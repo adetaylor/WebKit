@@ -34,6 +34,13 @@ import os
 #if canImport(IOSurface)
 import IOSurface
 #endif
+#if canImport(CoreGraphics)
+import CoreGraphics
+import Foundation
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+@_spi(WebKitGPU) internal import WebCore
+#endif
+#endif
 
 /// A malformed message argument, which makes C++ mark the message invalid.
 struct IPCDecodingError: Error {}
@@ -179,6 +186,11 @@ extension Double: IPCBlockPrimitive {
 
 /// Swift types generated from .serialization.in types marked [Swift].
 enum IPCTypes {}
+
+/// The extent of a std::span of fixed extent (IPCCoding.FixedSpan): one IPCCoding.ExtentN for each that swift_types.py lists.
+protocol IPCSpanExtent {
+    static var count: Int { get }
+}
 
 extension Bool: IPCCoder {
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Bool {
@@ -514,6 +526,24 @@ enum IPCCoding {
                 Element.encode(element, to: encoder)
             }
         }
+    }
+
+    /// std::span<const T, N>: its N elements, with no count before them, which Swift takes a copy of. Extent gives N.
+    enum FixedSpan<Element: IPCCoder, Extent: IPCSpanExtent>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Element.Value] {
+            try Element.decodeArray(count: Extent.count, from: &decoder)
+        }
+
+        static func encode(_ value: [Element.Value], to encoder: IPC.SwiftReplyEncoder) {
+            precondition(value.count == Extent.count, "A span of fixed extent has exactly that many elements")
+            for element in value {
+                Element.encode(element, to: encoder)
+            }
+        }
+    }
+
+    enum Extent6: IPCSpanExtent {
+        static var count: Int { 6 }
     }
 
     /// WTF::String, whose null string is nil.
@@ -877,6 +907,24 @@ extension IPCTypes {
         }
     }
 
+    /// The signal of an IPC::Event in another process, as IPC::Signal: a send right to the event's port.
+    struct Signal: ~Copyable, IPCOwnedCoder {
+        private let sendRight: MachSendRight
+
+        func signal() {
+            // Safety: the port names the send right this value owns, to the event that another process waits on.
+            unsafe IPC.signalEventPort(sendRight.port)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            Self(sendRight: try MachSendRight.decode(from: &decoder))
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            MachSendRight.encode(value.sendRight, to: encoder)
+        }
+    }
+
     /// A handle to memory that another process shares, as WebCore::SharedMemory::Handle: a send right to a memory entry,
     /// and the memory's size.
     struct SharedMemoryHandle: ~Copyable, IPCOwnedCoder {
@@ -1034,12 +1082,316 @@ extension IPCCoding.Vector where Element == UInt8 {
     }
 }
 
-extension IPC.StreamConnectionWorkQueue {
-    /// Runs `work` on the queue's thread, from any thread.
-    func dispatch(_ work: @escaping @Sendable () -> Void) {
-        // Safety: the work is Sendable, so running it on the queue's thread can't race with what it captures.
-        unsafe dispatch(consuming: WorkItem(work))
+/// A C++ enum as Swift imports it, which generated Swift (GeneratedSerializers.swift) tells the values of that C++ declares:
+/// Swift's init?(rawValue:) of an imported enum accepts any value.
+protocol IPCCxxEnum: RawRepresentable {
+    static func isDeclaredValue(_ value: Self) -> Bool
+}
+
+extension IPCCoding {
+    /// A C++ enum as Swift imports it (swift_types.py's CXX_ENUM_TYPES), encoded as its underlying integer: accepted where
+    /// the value is one that C++ declares.
+    enum CxxEnum<Value: IPCCxxEnum & Sendable>: IPCCoder where Value.RawValue: IPCCoder, Value.RawValue.Value == Value.RawValue {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Value {
+            guard let value = Value(rawValue: try Value.RawValue.decode(from: &decoder)), Value.isDeclaredValue(value) else {
+                throw IPCDecodingError()
+            }
+            return value
+        }
+
+        static func encode(_ value: Value, to encoder: IPC.SwiftReplyEncoder) {
+            Value.RawValue.encode(value.rawValue, to: encoder)
+        }
     }
 }
+
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+extension IPCTypes {
+    /// WebCore::Path, which C++ decodes as it does, as a Vector of its segments, so that Swift accepts exactly what C++ does,
+    /// into the CGPath that Path makes of more than one segment and what the CG renderer asks of the path besides
+    /// (IPC.decodeCGRendererPath()). It is encoded as C++ encodes a Path: of its segment, or of its CGPath's elements. Only this
+    /// type reaches the CGPath, to encode it; the renderer draws it as a CGRendererPlatformPath.
+    struct Path: IPCCoder, Sendable {
+        private let facts: CGRendererPathFacts
+        /// Of a path of more than one segment, and only of one.
+        private let platformPath: CGPath?
+
+        /// The path that Path makes of the segments: none, one, or a PathStream of them.
+        var rendererPath: CGRendererPath {
+            if let platformPath {
+                return .segments(CGRendererPlatformPath(platformPath), facts)
+            }
+            if facts.segmentCount == 1 {
+                return .segment(facts.segment)
+            }
+            return .empty
+        }
+
+        #if ENABLE_IPC_TESTING_API
+        /// What the renderer takes of the path, for a test that compares it with a path that C++ decoded.
+        var testingDescription: WTF.String {
+            WebKit.ipcTesterPathDescription(platformPath, facts)
+        }
+        #endif
+
+        /// What a handler uses of the path besides its CGPath, which a lent-state dispatch asks it for ('SwiftDecodeContext=').
+        struct DecodeContext {
+            /// Path::fastBoundingRect(), which only a gradient fill uses.
+            let needsFastBoundingRect: Bool
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Path {
+            try decode(from: &decoder, context: DecodeContext(needsFastBoundingRect: true))
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context: DecodeContext) throws(IPCDecodingError) -> Path {
+            var facts = CGRendererPathFacts()
+            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect)
+            guard decoder.isValid() else {
+                throw IPCDecodingError()
+            }
+            return Path(facts: facts, platformPath: platformPath)
+        }
+
+        static func encode(_ value: Path, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeCGRendererPath(value.platformPath, value.facts)
+        }
+    }
+}
+#endif
+
+extension IPCTypes {
+    /// WebCore::Color, as C++ encodes it: Color::data(), a std::optional of a WebCore::ColorDataForIPC, whose Variant holds
+    /// the PackedColor::RGBA of an inline color or the color space and components of an out-of-line one. Accepted where
+    /// ArgumentCoder<WebCore::Color> accepts it. (IPCTypes.Color is WebGPU::Color's form.)
+    struct WebCoreColor: IPCCoder, Sendable, Equatable {
+        enum Components: Sendable, Equatable {
+            case packed(UInt32)
+            case outOfLine(colorSpace: IPCTypes.ColorSpaceName, c1: Float, c2: Float, c3: Float, alpha: Float)
+        }
+
+        struct Data: Sendable, Equatable {
+            var isSemantic: Bool
+            var usesFunctionSerialization: Bool
+            var components: Components
+        }
+
+        /// Nil for an invalid color.
+        var data: Data?
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCoreColor {
+            guard try Bool.decode(from: &decoder) else {
+                return WebCoreColor(data: nil)
+            }
+            let isSemantic = try Bool.decode(from: &decoder)
+            let usesFunctionSerialization = try Bool.decode(from: &decoder)
+            let components: Components
+            switch try UInt8.decode(from: &decoder) {
+            case 0:
+                components = .packed(try UInt32.decode(from: &decoder))
+            case 1:
+                let colorSpace = try IPCTypes.ColorSpaceName.decode(from: &decoder)
+                let c1 = try Float.decode(from: &decoder)
+                let c2 = try Float.decode(from: &decoder)
+                let c3 = try Float.decode(from: &decoder)
+                let alpha = try Float.decode(from: &decoder)
+                components = .outOfLine(colorSpace: colorSpace, c1: c1, c2: c2, c3: c3, alpha: alpha)
+            default:
+                throw IPCDecodingError()
+            }
+            return WebCoreColor(data: Data(isSemantic: isSemantic, usesFunctionSerialization: usesFunctionSerialization, components: components))
+        }
+
+        static func encode(_ value: WebCoreColor, to encoder: IPC.SwiftReplyEncoder) {
+            guard let data = value.data else {
+                encoder.encode(false)
+                return
+            }
+            encoder.encode(true)
+            encoder.encode(data.isSemantic)
+            encoder.encode(data.usesFunctionSerialization)
+            switch data.components {
+            case .packed(let value):
+                encoder.encode(UInt8(0))
+                encoder.encode(value)
+            case .outOfLine(let colorSpace, let c1, let c2, let c3, let alpha):
+                encoder.encode(UInt8(1))
+                IPCTypes.ColorSpaceName.encode(colorSpace, to: encoder)
+                encoder.encode(c1)
+                encoder.encode(c2)
+                encoder.encode(c3)
+                encoder.encode(alpha)
+            }
+        }
+    }
+}
+
+#if canImport(CoreGraphics)
+extension IPCTypes {
+    /// WebCore::ColorSpace where CoreGraphics draws: its CGColorSpace, made of the CGColorSpaceSerialization that C++
+    /// encodes as CoreIPCCGColorSpace::toCF() makes it, and accepted where ArgumentCoder<WebCore::ColorSpace> accepts it:
+    /// where CoreGraphics makes a color space of it.
+    struct ColorSpace: IPCCoder, Sendable, Equatable {
+        let cgColorSpace: CGColorSpace
+        private let serialization: Serialization
+
+        // WebKit::CGColorSpaceSerialization: a Variant of a WebCore::ColorSpaceName, the name of a CoreGraphics color space,
+        // WebKit::ICCData, and WebKit::IndexedColorSpace, which C++ makes no color space of (CoreIPCCGColorSpace::toCF()
+        // gives CoreGraphics the color space of its table where it takes the table's data), so which is rejected.
+        fileprivate enum Serialization: Sendable, Equatable {
+            case named(UInt8)
+            case name(String?)
+            case iccData([UInt8], ExtendedRangeDerivative)
+
+            // WebKit::ExtendedRangeDerivative.
+            enum ExtendedRangeDerivative: UInt8, Sendable {
+                case none
+                case extendedRange
+                case extendedRangeDisplayReferredDerivative
+                case extendedRangeSceneReferredDerivative
+            }
+
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Serialization {
+                switch try UInt8.decode(from: &decoder) {
+                case 0:
+                    let name = try UInt8.decode(from: &decoder)
+                    guard name < namedColorSpaceCount else {
+                        throw IPCDecodingError()
+                    }
+                    return .named(name)
+                case 1:
+                    guard try Bool.decode(from: &decoder) else {
+                        return .name(nil)
+                    }
+                    return .name(try IPCCoding.WTFString.decode(from: &decoder))
+                case 2:
+                    let data = try IPCCoding.Vector<UInt8>.decode(from: &decoder)
+                    guard let derivative = ExtendedRangeDerivative(rawValue: try UInt8.decode(from: &decoder)) else {
+                        throw IPCDecodingError()
+                    }
+                    return .iccData(data, derivative)
+                default:
+                    throw IPCDecodingError()
+                }
+            }
+
+            func encode(to encoder: IPC.SwiftReplyEncoder) {
+                switch self {
+                case .named(let name):
+                    encoder.encode(UInt8(0))
+                    encoder.encode(name)
+                case .name(let name):
+                    encoder.encode(UInt8(1))
+                    encoder.encode(true)
+                    IPCCoding.WTFString.encode(name, to: encoder)
+                case .iccData(let data, let derivative):
+                    encoder.encode(UInt8(2))
+                    IPCCoding.Vector<UInt8>.encode(data, to: encoder)
+                    encoder.encode(derivative.rawValue)
+                }
+            }
+
+            // CoreIPCCGColorSpace::toCF(), which is nil where C++ makes a null color space.
+            func makeCGColorSpace() -> CGColorSpace? {
+                switch self {
+                case .named(let name):
+                    return namedColorSpace(name)
+                case .name(let name):
+                    guard let name else {
+                        return nil
+                    }
+                    return CGColorSpace(name: name as CFString)
+                case .iccData(let data, let derivative):
+                    let iccData = Data(data) as CFData
+                    guard derivative != .none else {
+                        return CGColorSpace(propertyListPlist: iccData)
+                    }
+                    var propertyList: [String: Any] = [
+                        "kCGColorSpaceICCData": iccData,
+                        kCGColorSpaceExtendedRange as String: true,
+                    ]
+                    switch derivative {
+                    case .extendedRangeDisplayReferredDerivative:
+                        propertyList["kCGColorSpaceDisplayReferredDerivative"] = true
+                    case .extendedRangeSceneReferredDerivative:
+                        propertyList["kCGColorSpaceSceneReferredDerivative"] = true
+                    case .none, .extendedRange:
+                        break
+                    }
+                    return CGColorSpace(propertyListPlist: propertyList as CFDictionary)
+                }
+            }
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> ColorSpace {
+            // A null PlatformColorSpace, which ArgumentCoder<WebCore::ColorSpace> rejects.
+            guard try Bool.decode(from: &decoder) else {
+                throw IPCDecodingError()
+            }
+            let serialization = try Serialization.decode(from: &decoder)
+            guard let cgColorSpace = serialization.makeCGColorSpace() else {
+                throw IPCDecodingError()
+            }
+            return ColorSpace(cgColorSpace: cgColorSpace, serialization: serialization)
+        }
+
+        static func encode(_ value: ColorSpace, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encode(true)
+            value.serialization.encode(to: encoder)
+        }
+
+        static func == (lhs: ColorSpace, rhs: ColorSpace) -> Bool {
+            lhs.cgColorSpace == rhs.cgColorSpace
+        }
+    }
+}
+
+// The number of WebCore::ColorSpaceName values.
+private let namedColorSpaceCount: UInt8 = 22
+
+// cachedNullableCGColorSpaceSingleton(), by WebCore::ColorSpaceName value (ColorSpaceCG.cpp): nil for the color spaces
+// that CoreGraphics has none of.
+private func namedColorSpace(_ name: UInt8) -> CGColorSpace? {
+    switch name {
+    case 0: namedColorSpaces.a98RGB
+    case 1: namedColorSpaces.displayP3
+    case 2: namedColorSpaces.extendedA98RGB
+    case 3: namedColorSpaces.extendedDisplayP3
+    case 4: namedColorSpaces.extendedLinearDisplayP3
+    case 5: namedColorSpaces.extendedLinearSRGB
+    case 6: namedColorSpaces.extendedProPhotoRGB
+    case 7: namedColorSpaces.extendedRec2020
+    case 8: namedColorSpaces.extendedSRGB
+    case 13: namedColorSpaces.linearDisplayP3
+    case 14: namedColorSpaces.linearSRGB
+    case 17: namedColorSpaces.proPhotoRGB
+    case 18: namedColorSpaces.rec2020
+    case 19: namedColorSpaces.sRGB
+    case 20: namedColorSpaces.xyzD50
+    // HSL, HWB, LCH, Lab, OKLCH, OKLab and XYZ_D65.
+    default: nil
+    }
+}
+
+private struct NamedColorSpaces: Sendable {
+    let a98RGB = CGColorSpace(name: CGColorSpace.adobeRGB1998)
+    let displayP3 = CGColorSpace(name: CGColorSpace.displayP3)
+    let extendedA98RGB = CGColorSpace(name: CGColorSpace.adobeRGB1998).flatMap { CGColorSpaceCreateExtended($0) }
+    let extendedDisplayP3 = CGColorSpace(name: CGColorSpace.extendedDisplayP3)
+    let extendedLinearDisplayP3 = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
+    let extendedLinearSRGB = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)
+    let extendedProPhotoRGB = CGColorSpace(name: CGColorSpace.rommrgb).flatMap { CGColorSpaceCreateExtended($0) }
+    let extendedRec2020 = CGColorSpace(name: CGColorSpace.extendedITUR_2020)
+    let extendedSRGB = CGColorSpace(name: CGColorSpace.extendedSRGB)
+    let linearDisplayP3 = CGColorSpace(name: CGColorSpace.linearDisplayP3)
+    let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB)
+    let proPhotoRGB = CGColorSpace(name: CGColorSpace.rommrgb)
+    let rec2020 = CGColorSpace(name: CGColorSpace.itur_2020)
+    let sRGB = CGColorSpace(name: CGColorSpace.sRGB)
+    let xyzD50 = CGColorSpace(name: CGColorSpace.genericXYZ)
+}
+
+private let namedColorSpaces = NamedColorSpaces()
+#endif
 
 #endif // ENABLE_SWIFT_IPC_RECEIVERS

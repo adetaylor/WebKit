@@ -37,13 +37,13 @@ namespace WebKit {
 
 class RemoteGraphicsContextGLGBM final : public RemoteGraphicsContextGLResources {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGraphicsContextGLGBM);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGraphicsContextGLGBM);
 
 public:
-    RemoteGraphicsContextGLGBM(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
+    RemoteGraphicsContextGLGBM(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
 
 private:
     void platformWorkQueueInitialize(WebCore::GraphicsContextGLAttributes&&) final;
+    bool wantsDidRunOutOfMessages() const final { return true; }
     void didRunOutOfMessages() final;
     void prepareForDisplay(Vector<uint64_t>&&, CompletionHandler<void(uint64_t, std::optional<WebCore::DMABufBuffer::Attributes>&&, UnixFileDescriptor&&, Vector<uint64_t>&&)>&&) final;
 
@@ -52,8 +52,8 @@ private:
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextGLGBM);
 
-RemoteGraphicsContextGLGBM::RemoteGraphicsContextGLGBM(GPUConnectionToWebProcess& connection, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
-    : RemoteGraphicsContextGLResources(connection, identifier, renderingBackend, WTF::move(streamConnection))
+RemoteGraphicsContextGLGBM::RemoteGraphicsContextGLGBM(GPUConnectionToWebProcess& connection, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
+    : RemoteGraphicsContextGLResources(connection, identifier, renderingBackend, owner)
 { }
 
 void RemoteGraphicsContextGLGBM::didRunOutOfMessages()
@@ -96,9 +96,9 @@ void RemoteGraphicsContextGLGBM::prepareForDisplay(Vector<uint64_t>&& inUseBuffe
     completionHandler(dmabuf->id(), dmabuf->takeAttributes(), WTF::move(fenceFD), m_context->drawingBufferIDs());
 }
 
-Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& connection, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& connection, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
-    auto instance = adoptRef(*new RemoteGraphicsContextGLGBM(connection, identifier, renderingBackend, WTF::move(streamConnection)));
+    auto instance = adoptRef(*new RemoteGraphicsContextGLGBM(connection, identifier, renderingBackend, owner));
     instance->initialize(WTF::move(attributes));
     return instance;
 }

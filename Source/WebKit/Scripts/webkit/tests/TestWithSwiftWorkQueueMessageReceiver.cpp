@@ -43,7 +43,7 @@ namespace WebKit {
 void TestWithSwiftWorkQueueMessageForwarder::didReceiveMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
     ASSERT(m_workQueue && m_workQueue->isCurrent());
-    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();
+    auto& sharedPreferences = m_sharedPreferences;
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
         RELEASE_LOG_ERROR(IPC, "Message %s received by a disabled message receiver TestWithSwiftWorkQueue", IPC::description(decoder.messageName()).characters());
@@ -86,7 +86,7 @@ void TestWithSwiftWorkQueueMessageForwarder::didReceiveMessage(IPC::Connection& 
 void TestWithSwiftWorkQueueMessageForwarder::didReceiveSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)
 {
     ASSERT(m_workQueue && m_workQueue->isCurrent());
-    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();
+    auto& sharedPreferences = m_sharedPreferences;
     UNUSED_VARIABLE(sharedPreferences);
     if (!sharedPreferences || !sharedPreferences->someFeature) {
         RELEASE_LOG_ERROR(IPC, "Message %s received by a disabled message receiver TestWithSwiftWorkQueue", IPC::description(decoder.messageName()).characters());
@@ -128,6 +128,18 @@ void TestWithSwiftWorkQueueMessageForwarder::startReceivingMessages(IPC::Connect
         m_workQueue = &workQueue;
     RELEASE_ASSERT(m_workQueue.get() == &workQueue);
     connection.addWorkQueueMessageReceiver(Messages::TestWithSwiftWorkQueue::messageReceiverName(), workQueue, *this, destinationID);
+}
+
+void TestWithSwiftWorkQueueMessageForwarder::updateSharedPreferences(SharedPreferencesForWebProcess sharedPreferences)
+{
+    RefPtr workQueue = m_workQueue;
+    if (!workQueue) {
+        m_sharedPreferences = WTF::move(sharedPreferences);
+        return;
+    }
+    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {
+        protectedThis->m_sharedPreferences = WTF::move(sharedPreferences);
+    });
 }
 
 TestWithSwiftWorkQueueMessageForwarder::~TestWithSwiftWorkQueueMessageForwarder()

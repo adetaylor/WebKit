@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))
 
 #include "ArrayReferenceTuple.h"
 #include "RemoteDisplayListIdentifier.h"
@@ -176,6 +176,7 @@ protected:
     void drawFilteredImageBufferInternal(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, WebCore::Filter&, WebCore::FilterResults&);
 
     NODELETE RemoteResourceCache& resourceCache() const;
+    RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
     WebCore::GraphicsContext& context() LIFETIME_BOUND { return m_context; }
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
     std::optional<WebCore::SourceImage> sourceImage(WebCore::RenderingResourceIdentifier) const;
@@ -201,4 +202,4 @@ protected:
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))

@@ -25,7 +25,8 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+// With the CG renderer in Swift, an image buffer's receiver is RemoteImageBuffer.swift.
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "IPCEvent.h"
 #include "IPCSemaphore.h"
@@ -100,4 +101,4 @@ private:
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

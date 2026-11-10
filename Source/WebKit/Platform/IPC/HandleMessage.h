@@ -656,11 +656,33 @@ void encodeDefaultSwiftReply(Encoder& encoder)
     });
 }
 
+// Calls a Swift dispatch function with the lender's view of the decoder: by reference for a Swift receiver's dispatch,
+// which takes it inout, or moved into the argument of a 'SwiftImplementation' receiver's, which takes it by value, so that
+// the argument isn't a second view, counted on the lease.
+template<bool movesDecoder, typename Argument>
+ALWAYS_INLINE decltype(auto) passSwiftDispatchArgument(Argument&& argument)
+{
+    if constexpr (movesDecoder && std::is_same_v<std::remove_cvref_t<Argument>, SwiftDecoder>)
+        return WTF::move(argument);
+    else
+        return std::forward<Argument>(argument);
+}
+
+template<typename Argument>
+using SwiftDispatchArgumentIfDecoderIsMoved = std::conditional_t<std::is_same_v<std::remove_cvref_t<Argument>, SwiftDecoder>, SwiftDecoder&&, Argument>;
+
+template<typename F, typename... Arguments>
+ALWAYS_INLINE bool invokeSwiftDispatch(F function, Arguments&&... arguments)
+{
+    constexpr bool movesDecoder = std::is_invocable_v<F, SwiftDispatchArgumentIfDecoderIsMoved<Arguments>...>;
+    SUPPRESS_UNCOUNTED_ARG return std::invoke(function, passSwiftDispatchArgument<movesDecoder>(std::forward<Arguments>(arguments))...);
+}
+
 template<typename MessageType, typename T, typename F>
 void handleSwiftMessage(Connection& connection, Decoder& decoder, T* object, F function)
 {
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view()))
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view()))
         markSwiftArgumentsInvalid(decoder);
 }
 
@@ -671,9 +693,9 @@ bool dispatchSwiftStreamMessage(StreamServerConnection& connection, T* object, F
 {
     ASSERT(connection.isCurrentWorkQueue());
     if constexpr (std::is_invocable_v<F, T*, StreamServerConnection*, Arguments...>)
-        SUPPRESS_UNCOUNTED_ARG return std::invoke(function, object, &connection, std::forward<Arguments>(arguments)...);
+        SUPPRESS_UNCOUNTED_ARG return invokeSwiftDispatch(function, object, &connection, std::forward<Arguments>(arguments)...);
     else
-        return std::invoke(function, object, std::forward<Arguments>(arguments)...);
+        return invokeSwiftDispatch(function, object, std::forward<Arguments>(arguments)...);
 }
 
 template<typename MessageType, typename T, typename F>
@@ -689,7 +711,7 @@ void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object
 {
     Ref replyEncoder = SwiftReplyEncoder::create(connection, makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
         replyEncoder->discard();
         markSwiftArgumentsInvalid(decoder);
         return;
@@ -743,7 +765,7 @@ void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, Uni
 {
     Ref swiftReplyEncoder = SwiftReplyEncoder::create(connection, WTF::move(replyEncoder), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
         replyEncoder = makeUniqueRefFromNonNullUniquePtr(swiftReplyEncoder->discard());
         markSwiftArgumentsInvalid(decoder);
     }
@@ -828,6 +850,124 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
         handleSwiftMessageWithLentStateOutOfLine<MessageType>(connection, decoder, lender, object, function, fallback...);
     else
         handleSwiftMessageWithLentStateInline<MessageType>(connection, decoder, lender, object, function, fallback...);
+}
+
+// For a message that takes Swift types: its Swift dispatch decodes the arguments while the state is lent, and returns
+// Invalid if they are malformed. As above, a message that finds no state to lend is decoded, by C++, and dropped, so that
+// the stream moves past its arguments.
+template<typename MessageType, typename L, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftTypesMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
+{
+    ASSERT(connection.isCurrentWorkQueue());
+    UNUSED_PARAM(connection);
+    ASSERT(lender);
+    if (!lender) [[unlikely]] {
+        UNUSED_VARIABLE(decoder.decode<typename MessageType::Arguments>());
+        return;
+    }
+    SwiftLentStateDispatch result;
+    {
+        auto lend = lender->lendSwiftReceiverState();
+        if (!lend) [[unlikely]] {
+            UNUSED_VARIABLE(decoder.decode<typename MessageType::Arguments>());
+            return;
+        }
+        NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+        result = (object->*function)(lend.state(), swiftDecoderLender.view());
+    }
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        markSwiftArgumentsInvalid(decoder);
+}
+
+// Dispatch to the recorder of a Recordable Swift receiver's messages, whose Swift dispatch records the arguments as a value
+// and returns Invalid for a message the recorder finds invalid. Inlined unless its arguments are large, as above. Without a
+// connection, the message is one that another process recorded (forEachRecordedMessage()).
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftRecordedMessageInline(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    ASSERT(!connection || connection->isCurrentWorkQueue());
+    auto arguments = decoder.decode<typename MessageType::Arguments>();
+    if (!arguments) [[unlikely]]
+        return;
+    if (connection)
+        logMessage(*connection, MessageType::name(), object, *arguments);
+    auto result = std::apply([&](auto&&... args) {
+        return (object->*function)(std::forward<decltype(args)>(args)...);
+    }, WTF::move(*arguments));
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        decoder.markInvalid();
+}
+
+template<typename MessageType, typename T, typename U, typename MF>
+NEVER_INLINE void handleSwiftRecordedMessageOutOfLine(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    handleSwiftRecordedMessageInline<MessageType>(connection, decoder, object, function);
+}
+
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftRecordedMessage(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    if constexpr (dispatchesSwiftMessageWithLentStateOutOfLine<MessageType>)
+        handleSwiftRecordedMessageOutOfLine<MessageType>(connection, decoder, object, function);
+    else
+        handleSwiftRecordedMessageInline<MessageType>(connection, decoder, object, function);
+}
+
+// For a message that takes Swift types, whose Swift dispatch decodes the arguments and records them.
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftTypesRecordedMessage(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    ASSERT(!connection || connection->isCurrentWorkQueue());
+    UNUSED_PARAM(connection);
+    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+    auto result = (object->*function)(swiftDecoderLender.view());
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        markSwiftArgumentsInvalid(decoder);
+}
+
+// A recorded message, encoded as its sender encodes it, after the messages already encoded, each with its size first.
+template<typename... Arguments>
+void appendRecordedMessage(Vector<uint8_t>& messages, MessageName name, const Arguments&... arguments)
+{
+    Encoder encoder(name, 0);
+    (..., (encoder << arguments));
+    auto message = encoder.span();
+    uint32_t size = message.size();
+    messages.append(asByteSpan(size));
+    messages.append(message);
+}
+
+// A recorded message whose arguments Swift encoded (SwiftReplyEncoder::createForRecordedMessage()), appended as
+// appendRecordedMessage() appends one.
+inline void appendSwiftEncodedRecordedMessage(Vector<uint8_t>& messages, SwiftReplyEncoder& swiftEncoder)
+{
+    auto encoder = swiftEncoder.discard();
+    RELEASE_ASSERT(encoder);
+    auto message = encoder->span();
+    uint32_t size = message.size();
+    messages.append(asByteSpan(size));
+    messages.append(message);
+}
+
+// Calls the function with a decoder of each message that appendRecordedMessage() encoded, in turn, while it returns true:
+// false if it returns false or a message can't be read.
+inline bool forEachRecordedMessage(std::span<const uint8_t> messages, NOESCAPE const Invocable<bool(Decoder&)> auto& function)
+{
+    while (!messages.empty()) {
+        uint32_t size;
+        if (messages.size() < sizeof(size))
+            return false;
+        memcpySpan(asMutableByteSpan(size), consumeSpan(messages, sizeof(size)));
+        if (messages.size() < size)
+            return false;
+        auto decoder = Decoder::create(consumeSpan(messages, size), { });
+        if (!decoder || !function(*decoder))
+            return false;
+    }
+    return true;
 }
 
 } // namespace IPC

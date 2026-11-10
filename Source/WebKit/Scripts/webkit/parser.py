@@ -56,9 +56,12 @@ def parse(file):
     swift_receiver = False
     swift_receiver_build_enabled_by = None
     swift_receiver_state_lender = None
+    swift_state = None
     swift_types = False
     swift_implementation = False
     swift_receiver_owner = False
+    swift_receiver_owner_provider = None
+    recordable = False
     messages_from = None
     swift_sends = None
     destination = None
@@ -90,6 +93,9 @@ def parse(file):
                 if match.group('name') == 'SwiftReceiverStateLender':
                     swift_receiver_state_lender = match.group('value')
                     continue
+                if match.group('name') == model.SWIFT_STATE_ATTRIBUTE:
+                    swift_state = match.group('value')
+                    continue
                 if match.group('name') == 'ReceiverName':
                     receiver_name = match.group('value')
                     continue
@@ -98,6 +104,10 @@ def parse(file):
                     continue
                 if match.group('name') == 'SwiftSends':
                     swift_sends = match.group('value').split()
+                    continue
+                if match.group('name') == model.SWIFT_RECEIVER_OWNER_ATTRIBUTE:
+                    swift_receiver_owner = True
+                    swift_receiver_owner_provider = match.group('value')
                     continue
                 raise Exception("ERROR: Unknown extended attribute  '%s'" % attribute)
             elif attribute == 'SharedPreferencesNeedsConnection':
@@ -123,6 +133,9 @@ def parse(file):
                 continue
             elif attribute == model.SWIFT_RECEIVER_OWNER_ATTRIBUTE:
                 swift_receiver_owner = True
+                continue
+            elif attribute == model.RECORDABLE_ATTRIBUTE:
+                recordable = True
                 continue
             raise Exception("ERROR: Unknown extended attribute: '%s'" % attribute)
     if receiver_enabled_by and receiver_enabled_by_exception:
@@ -222,7 +235,7 @@ def parse(file):
 
             messages.append(model.Message(name, parameters, reply_parameters, attributes, combine_condition(conditions), validator, enabled_by, enabled_by_exception, enabled_by_conjunction, coalescing_key_indices))
             continue
-        if messages_from:
+        if messages_from and destination:
             match = re.fullmatch(r'([A-Za-z_0-9]+)((?:\s+[A-Za-z_0-9]+)*)', line)
             if match:
                 messages.append(MessageReference(match.group(1), parse_attributes_string(match.group(2).strip()), combine_condition(conditions)))
@@ -236,7 +249,9 @@ def parse(file):
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_IMPLEMENTATION_ATTRIBUTE]
     if swift_receiver_owner:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_RECEIVER_OWNER_ATTRIBUTE]
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends)
+    if recordable:
+        receiver_attributes = (receiver_attributes or []) + [model.RECORDABLE_ATTRIBUTE]
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state)
     if not messages_from:
         receiver.enforce_swift_types_constraints()
     return receiver

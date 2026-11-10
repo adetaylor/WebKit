@@ -196,6 +196,8 @@ private struct DecodingFlags: OptionSet {
     static let nonDisplaying = DecodingFlags(rawValue: 1 << 0)
     static let realTime = DecodingFlags(rawValue: 1 << 1)
     static let enableStereo = DecodingFlags(rawValue: 1 << 2)
+    // Fail instead of decoding in software formats the content process can decode.
+    static let hardwareOnly = DecodingFlags(rawValue: 1 << 3)
 }
 
 // WebCore::VideoRendererPreference.
@@ -205,6 +207,7 @@ private struct RendererPreferences: OptionSet {
     static let protectedFallbackDisabled = RendererPreferences(rawValue: 1 << 1)
     static let useDecompressionSessionForProtectedContent = RendererPreferences(rawValue: 1 << 2)
     static let useStereoDecoding = RendererPreferences(rawValue: 1 << 3)
+    static let requiresHardwareDecoder = RendererPreferences(rawValue: 1 << 5)
 }
 
 private func presentationTimeOfDecodedFrame(_ sampleBuffer: CMSampleBuffer) -> RendererTime {
@@ -219,8 +222,9 @@ private func presentationTimeOfDecodedFrame(_ sampleBuffer: CMSampleBuffer) -> R
 protocol VideoMediaSampleRendererClient: AnyObject, Sendable {
     func videoRendererFirstFrameAvailable(_ presentationTime: RendererTime, _ displayTime: Double)
     func videoRendererHasAvailableVideoFrame(_ presentationTime: RendererTime, _ displayTime: Double)
-    // An error; with the output-obscured state when it is the renderer's external protection that changed.
-    func videoRendererErrorOccurred(hdcpObscured: Bool?)
+    // An error, with its code: the decoding status or the renderer's NSError code, or 0. With the output-obscured state
+    // instead when it is the renderer's external protection that changed.
+    func videoRendererErrorOccurred(code: Int, hdcpObscured: Bool?)
     func videoRendererRequiresFlushToResume()
     func videoRendererReadyForMoreMediaData()
 }
@@ -253,7 +257,6 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private let waitingForMoreMediaDataPendingValue = Atomic<Bool>(false)
     private let notifyWhenHasAvailableVideoFrameValue = Atomic<Bool>(false)
     private let gotDecodingErrorValue = Atomic<Bool>(false)
-    private let hasResourceOwnerValue = Atomic<Bool>(false)
     // Set on the main thread, read on both; it doesn't change once the decompression session is in use.
     private let preferencesValue = Atomic<UInt8>(0)
     private let totalVideoFramesValue = Atomic<UInt32>(0)
@@ -261,6 +264,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private let corruptedVideoFramesValue = Atomic<UInt32>(0)
     private let presentedVideoFramesValue = Atomic<UInt32>(0)
     private let hasDecompressionSession = Mutex<Bool>(false)
+    private let resourceOwnerValue = Mutex<TaskIdentityToken?>(nil)
     private let startupTime = Mutex<Double>(0)
 
     // Main.
@@ -395,6 +399,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private var useDecompressionSessionForProtectedContent: Bool { preferences.contains(.useDecompressionSessionForProtectedContent) }
     private var useDecompressionSessionForProtectedFallback: Bool { useDecompressionSessionForProtectedContent || preferences.contains(.protectedFallbackDisabled) }
     private var useStereoDecoding: Bool { preferences.contains(.useStereoDecoding) }
+    private var requiresHardwareDecoder: Bool { preferences.contains(.requiresHardwareDecoder) }
 
     func isUsingDecompressionSession() -> Bool {
         isUsingDecompressionSessionValue.load(ordering: .sequentiallyConsistent)
@@ -412,8 +417,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
         compressedSamplesCount <= sampleQueueHighWaterMark
     }
 
-    func setHasResourceOwner(_ hasResourceOwner: Bool) {
-        hasResourceOwnerValue.store(hasResourceOwner, ordering: .sequentiallyConsistent)
+    func setResourceOwner(_ resourceOwner: TaskIdentityToken?) {
+        resourceOwnerValue.withLock { $0 = resourceOwner }
     }
 
     func setNotifyWhenHasAvailableVideoFrame(_ notify: Bool) {
@@ -850,6 +855,9 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
             if useStereoDecoding {
                 decodingFlags.insert(.enableStereo)
             }
+            if requiresHardwareDecoder {
+                decodingFlags.insert(.hardwareOnly)
+            }
             // Mirror AVF's RealTime policy. On iOS-family the flag is set
             // whenever we're in normal 1x playback and the sample is displaying.
             // On macOS it is additionally suppressed during the
@@ -905,7 +913,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
             increment(corruptedVideoFramesValue)
 
             DispatchQueue.main.async { [weak self] in
-                self?.notifyErrorHasOccurred(hdcpObscured: nil)
+                self?.notifyErrorHasOccurred(code: Int(status), hdcpObscured: nil)
             }
             return
         }
@@ -958,8 +966,8 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     private func decodedFrameAvailable(_ sample: DecodedSample, _ sampleFlushId: Int32) {
         assertOnQueue()
 
-        if hasResourceOwnerValue.load(ordering: .sequentiallyConsistent) {
-            host.assignResourceOwner(sample.sampleBuffer)
+        if let resourceOwner = resourceOwnerValue.withLock({ $0 }) {
+            IOSurfaceCore.setOwnershipIdentity(ofImagesIn: sample.sampleBuffer, resourceOwner)
         }
 
         renderer?.queued.enqueue(sample.sampleBuffer)
@@ -1265,10 +1273,10 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
 
     // MARK: Errors and the renderer's state (main thread)
 
-    private func notifyErrorHasOccurred(hdcpObscured: Bool?) {
+    private func notifyErrorHasOccurred(code: Int, hdcpObscured: Bool?) {
         log(.Always, "VideoMediaSampleRenderer::notifyErrorHasOccurred")
         assertOnMain()
-        client?.videoRendererErrorOccurred(hdcpObscured: hdcpObscured)
+        client?.videoRendererErrorOccurred(code: code, hdcpObscured: hdcpObscured)
     }
 
     private func notifyVideoRendererRequiresFlushToResumeDecoding() {
@@ -1294,7 +1302,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
             log(.Always, "VideoMediaSampleRenderer::videoRendererDidReceiveError status: \(status) domain: \(error.domain) errorCode: \(error.code)")
         }
 #endif
-        notifyErrorHasOccurred(hdcpObscured: nil)
+        notifyErrorHasOccurred(code: error?.code ?? 0, hdcpObscured: nil)
     }
 
     func videoRendererRequiresFlushToResumeDecodingChanged(_ renderer: NSObject, _ requiresFlush: Bool) {
@@ -1318,7 +1326,7 @@ final class VideoMediaSampleRendererCore: @unchecked Sendable, WebAVSampleBuffer
     }
 
     func outputObscuredDueToInsufficientExternalProtectionChanged(_ obscured: Bool) {
-        notifyErrorHasOccurred(hdcpObscured: obscured)
+        notifyErrorHasOccurred(code: 0, hdcpObscured: obscured)
     }
 
     func audioRendererDidReceiveError(_ renderer: NSObject, _ error: NSError?) {

@@ -28,11 +28,16 @@ import WebCoreEME
 import WebKit_Internal
 import wtf
 
-// The Swift state of a RemoteCDMFactoryProxy (RemoteCDMFactoryProxy.h): the GPU process's CDMs, CDM instances and
-// sessions, whose messages their registrations route to them.
-final class RemoteCDMFactoryState {
-    // The factory, until the web process's connection closes: the factory and its state keep each other alive until then.
-    private(set) var proxy: WebKit.RemoteCDMFactoryProxy?
+// Receives the EME factory messages of one web process's connection to the GPU process, which owns it (GPUConnectionState),
+// and owns the GPU process's CDMs, CDM instances and sessions, whose messages their registrations route to them. The C++
+// CDMs and their instances, which the media players use, are the connection's RemoteCDMPrivateFactory.
+@_expose(Cxx)
+final class RemoteCDMFactoryProxy {
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var messageForwarder: RefRemoteCDMFactoryProxyMessageForwarder?
+    // The connection, until it closes: the connection's Swift state, which the connection holds, holds this.
+    @_expose(!Cxx)
+    private(set) var connection: WebKit.GPUConnectionToWebProcess?
     // By identifier, which ObjectIdentifier makes unique across the three kinds: removed before the receiver, so that its
     // messages stop before its forwarder goes. Declared first, so that it goes first.
     private var registrations: [UInt64: IPC.SwiftReceiverRegistration] = [:]
@@ -40,47 +45,60 @@ final class RemoteCDMFactoryState {
     private var instances: [UInt64: RemoteCDMInstanceProxy] = [:]
     private var sessions: [UInt64: RemoteCDMInstanceSessionProxy] = [:]
 
-    fileprivate init(proxy: WebKit.RemoteCDMFactoryProxy) {
-        self.proxy = proxy
+    @_expose(!Cxx)
+    init(connection: WebKit.GPUConnectionToWebProcess) {
+        self.connection = connection
+        self.messageForwarder = WebKit.RemoteCDMFactoryProxyMessageForwarder.create(target: self)
     }
 
-    // So that the CDMs don't reach the factory and no receiver's messages are routed once the connection's gone.
-    fileprivate func clear() {
-        registrations.removeAll()
-        cdms.removeAll()
-        proxy = nil
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteCDMFactoryProxyMessageForwarder {
+        guard let messageForwarder = self.messageForwarder else {
+            fatalError("Unreachable - guaranteed to exist")
+        }
+        return messageForwarder
     }
 
-    fileprivate func hasInstance(_ identifier: UInt64) -> Bool {
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        // The connection dispatches the receiver's messages on the main thread, which alone changes `connection`.
+        MainActor.preconditionIsolated()
+        guard let connection else {
+            return WebKit.OptionalSharedPreferencesForWebProcess()
+        }
+        return connection.sharedPreferencesForWebProcess()
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func hasInstance(_ identifier: UInt64) -> Bool {
         instances[identifier] != nil
     }
 
-    fileprivate var allowsExitUnderMemoryPressure: Bool {
-        instances.isEmpty
-    }
-
-    fileprivate func add(cdm: RemoteCDMProxy, identifier: UInt64) {
-        guard let proxy else {
+    private func add(cdm: RemoteCDMProxy, identifier: UInt64) {
+        guard let connection else {
             return
         }
-        registrations[identifier] = IPC.registerSwiftReceiver(proxy, cdm.getMessageReceiver(), .RemoteCDMProxy, identifier)
+        registrations[identifier] = IPC.registerSwiftReceiver(connection, cdm.getMessageReceiver(), .RemoteCDMProxy, identifier)
         cdms[identifier] = cdm
     }
 
+    @_expose(!Cxx)
     func add(instance: RemoteCDMInstanceProxy, identifier: UInt64) {
-        guard let proxy else {
+        guard let connection else {
             return
         }
-        registrations[identifier] = IPC.registerSwiftReceiver(proxy, instance.getMessageReceiver(), .RemoteCDMInstanceProxy, identifier)
+        registrations[identifier] = IPC.registerSwiftReceiver(connection, instance.getMessageReceiver(), .RemoteCDMInstanceProxy, identifier)
         instances[identifier] = instance
     }
 
+    @_expose(!Cxx)
     func add(session: RemoteCDMInstanceSessionProxy, identifier: UInt64) {
-        guard let proxy else {
+        guard let connection else {
             return
         }
         registrations[identifier] = IPC.registerSwiftReceiver(
-            proxy,
+            connection,
             session.getMessageReceiver(),
             .RemoteCDMInstanceSessionProxy,
             identifier
@@ -88,62 +106,7 @@ final class RemoteCDMFactoryState {
         sessions[identifier] = session
     }
 
-    fileprivate func removeInstance(_ identifier: UInt64) {
-        registrations.removeValue(forKey: identifier)
-        instances.removeValue(forKey: identifier)
-    }
-
-    fileprivate func removeSession(_ identifier: UInt64) {
-        registrations.removeValue(forKey: identifier)
-        sessions.removeValue(forKey: identifier)
-    }
-}
-
-// The members of the C++ factory that reach its Swift state, which m_swiftState holds retained, by address, from the
-// factory's create() to its destructor, and the handlers of its messages.
-extension WebKit.RemoteCDMFactoryProxy {
-    @cxx
-    @implementation
-    func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteCDMFactoryState(proxy: self)).toOpaque())
-    }
-
-    @cxx
-    @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<RemoteCDMFactoryState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
-    }
-
-    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("The factory has no Swift state")
-        }
-        return unsafe address
-    }
-
-    private var state: RemoteCDMFactoryState {
-        // Safety: m_swiftState is a retained RemoteCDMFactoryState from create() to the destructor, and nothing else
-        // changes it.
-        unsafe Unmanaged<RemoteCDMFactoryState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
-    }
-
-    @cxx
-    @implementation
-    func clear() {
-        state.clear()
-    }
-
-    @cxx
-    @implementation
-    func allowsExitUnderMemoryPressure() -> Bool {
-        state.allowsExitUnderMemoryPressure
-    }
-
-    @cxx
-    @implementation
-    func hasInstance(_ identifier: UInt64) -> Bool {
-        state.hasInstance(identifier)
-    }
+    // MARK: Messages
 
     @MainActor
     func createCDM(
@@ -158,13 +121,14 @@ extension WebKit.RemoteCDMFactoryProxy {
             supportsSessions: false,
             logIdentifier: 0
         )
-        guard let handle = createCDM(IPCCoding.WTFString.cxxString(keySystem), IPCCoding.WTFString.cxxString(mediaKeysHashSalt)) else {
+        guard let gpuConnection = self.connection,
+            let handle = WebKit.createRemoteCDM(gpuConnection, IPCCoding.WTFString.cxxString(keySystem), IPCCoding.WTFString.cxxString(mediaKeysHashSalt))
+        else {
             return (nil, noCDM)
         }
-        let state = state
-        let cdm = RemoteCDMProxy(factory: state, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
-        let identifier = Self.generateCDMIdentifier()
-        state.add(cdm: cdm, identifier: identifier)
+        let cdm = RemoteCDMProxy(factory: self, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
+        let identifier = WebKit.RemoteCDMPrivateFactory.generateCDMIdentifier()
+        add(cdm: cdm, identifier: identifier)
         return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), cdm.configuration)
     }
 
@@ -175,14 +139,45 @@ extension WebKit.RemoteCDMFactoryProxy {
 
     @MainActor
     func removeInstance(connection: IPC.Connection, identifier: IPCTypes.RemoteCDMInstanceIdentifier) {
-        // Before the C++ instance, whose removal then checks whether the GPU process may exit.
-        state.removeInstance(identifier.rawValue)
-        removeInstance(identifier.rawValue)
+        guard instances[identifier.rawValue] != nil else {
+            return
+        }
+        registrations.removeValue(forKey: identifier.rawValue)
+        instances.removeValue(forKey: identifier.rawValue)
+        guard let gpuConnection = self.connection else {
+            return
+        }
+        // Before the GPU process checks whether it may exit, which it may once this was the last instance.
+        gpuConnection.removeCDMInstance(identifier.rawValue)
+        if allowsExitUnderMemoryPressure {
+            gpuConnection.tryExitIfUnusedAndUnderMemoryPressure()
+        }
     }
 
     @MainActor
     func removeSession(connection: IPC.Connection, identifier: IPCTypes.RemoteCDMInstanceSessionIdentifier) {
-        state.removeSession(identifier.rawValue)
+        guard sessions[identifier.rawValue] != nil else {
+            return
+        }
+        registrations.removeValue(forKey: identifier.rawValue)
+        sessions.removeValue(forKey: identifier.rawValue)
+    }
+}
+
+extension RemoteCDMFactoryProxy: GPUConnectionReceiver {
+    @_expose(!Cxx)
+    @MainActor
+    var allowsExitUnderMemoryPressure: Bool {
+        instances.isEmpty
+    }
+
+    // The CDMs no longer reach the connection, and no receiver's messages are routed.
+    @_expose(!Cxx)
+    @MainActor
+    func connectionDidClose() {
+        registrations.removeAll()
+        cdms.removeAll()
+        connection = nil
     }
 }
 

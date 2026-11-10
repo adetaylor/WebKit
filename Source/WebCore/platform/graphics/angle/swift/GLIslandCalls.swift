@@ -26,7 +26,6 @@
 internal import WebCoreANGLE
 #if WTF_PLATFORM_COCOA
 internal import CoreVideo
-internal import IOSurface
 #endif
 
 // What a C++ shell, GraphicsContextGLANGLE, keeps of the island: its context, and, for a Cocoa shell, the platform the
@@ -39,6 +38,26 @@ public final class GLShell {
 
     init() {
     }
+
+#if WTF_PLATFORM_COCOA
+    // Makes the Cocoa platform, which the shell's createCocoaContext() then makes the context on. Returns false if the
+    // platform is not valid.
+    public func createCocoaPlatform(contextID: UInt64, isWebGL2: Bool, alpha: Bool, powerPreference: UInt8, windowGPUID: UInt64, xrCompatible: Bool, ownershipIdentity: UInt32, maximumSurfaceWidth: Int32, maximumSurfaceHeight: Int32, surfaceFactory: any CocoaGLSurfaceFactory) -> Bool {
+        precondition(cocoaPlatform == nil)
+        let platform = CocoaGLPlatform(contextID: contextID, isWebGL2: isWebGL2, alpha: alpha, powerPreference: powerPreference, windowGPUID: windowGPUID, xrCompatible: xrCompatible, ownershipIdentity: ownershipIdentity, maximumSurfaceWidth: maximumSurfaceWidth, maximumSurfaceHeight: maximumSurfaceHeight, surfaceFactory: surfaceFactory)
+        cocoaPlatform = platform
+        return platform.isValid()
+    }
+
+    public var cocoaSurfaceFactory: (any CocoaGLSurfaceFactory)? {
+        cocoaPlatform?.surfaceFactory
+    }
+
+    // The surface of the Cocoa platform's display buffer, or nil.
+    public func cocoaDisplayBufferSurface() -> IOSurfaceRef? {
+        cocoaPlatform?.displayBufferSurface()
+    }
+#endif
 
     // The shell of a reference that GLIslandCalls.createShell() made and destroyShell() has not yet released. The C++
     // shell keeps its reference for its whole life, so its Swift and the GPU process's receiver, which it hands the
@@ -90,14 +109,6 @@ extension WebCore.GLIslandCalls {
     }
 
 #if WTF_PLATFORM_COCOA
-    @cxx
-    @implementation
-    public func createCocoaPlatform(_ contextID: UInt64, _ isWebGL2: Bool, _ alpha: Bool, _ powerPreference: UInt8, _ windowGPUID: UInt64, _ xrCompatible: Bool, _ ownershipIdentity: UInt32, _ maximumSurfaceWidth: Int32, _ maximumSurfaceHeight: Int32) -> Bool {
-        let platform = CocoaGLPlatform(contextID: contextID, isWebGL2: isWebGL2, alpha: alpha, powerPreference: powerPreference, windowGPUID: windowGPUID, xrCompatible: xrCompatible, ownershipIdentity: ownershipIdentity, maximumSurfaceWidth: maximumSurfaceWidth, maximumSurfaceHeight: maximumSurfaceHeight)
-        islandShell.cocoaPlatform = platform
-        return platform.isValid()
-    }
-
     @cxx
     @implementation
     public func createCocoaContext(_ contextID: UInt64, _ supportsWebGLDraftExtensions: Bool) {
@@ -840,12 +851,6 @@ extension WebCore.GLIslandCalls {
 
     @cxx
     @implementation
-    public func displayBufferSurface() -> Unmanaged<IOSurfaceRef>? {
-        unsafe cocoaPlatform.displayBufferSurface().map { unsafe Unmanaged.passRetained($0) }
-    }
-
-    @cxx
-    @implementation
     public func hasSpareDrawingBuffersInUse() -> Bool {
         cocoaPlatform.hasSpareDrawingBuffersInUse()
     }
@@ -900,20 +905,8 @@ extension WebCore.GLIslandCalls {
 
     @cxx
     @implementation
-    public func copySurfaceBuffer(_ bufferType: UInt8) -> Unmanaged<IOSurfaceRef>? {
-        unsafe context.copySurfaceBuffer(bufferType).map { unsafe Unmanaged.passRetained($0) }
-    }
-
-    @cxx
-    @implementation
     public func didPrepareForDisplay() {
         context.didPrepareForDisplay()
-    }
-
-    @cxx
-    @implementation
-    public func drawingBufferColorSpaceDidChange() {
-        context.drawingBufferColorSpaceDidChange()
     }
 
     @cxx

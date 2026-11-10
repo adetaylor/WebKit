@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteGraphicsContext.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))
 
 #include "GPUConnectionToWebProcess.h"
 #include "ImageBufferShareableAllocator.h"
@@ -83,6 +83,15 @@ RemoteResourceCache& RemoteGraphicsContext::resourceCache() const
     return m_renderingBackend->remoteResourceCache();
 }
 
+RefPtr<NativeImage> RemoteGraphicsContext::cachedNativeImage(RenderingResourceIdentifier identifier) const
+{
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    return m_renderingBackend->cachedNativeImage(identifier);
+#else
+    return resourceCache().cachedNativeImage(identifier);
+#endif
+}
+
 RefPtr<ImageBuffer> RemoteGraphicsContext::imageBuffer(RenderingResourceIdentifier identifier) const
 {
     return m_renderingBackend->imageBuffer(identifier);
@@ -90,7 +99,7 @@ RefPtr<ImageBuffer> RemoteGraphicsContext::imageBuffer(RenderingResourceIdentifi
 
 std::optional<SourceImage> RemoteGraphicsContext::sourceImage(RenderingResourceIdentifier identifier) const
 {
-    if (auto sourceNativeImage = resourceCache().cachedNativeImage(identifier))
+    if (auto sourceNativeImage = cachedNativeImage(identifier))
         return { { *sourceNativeImage } };
 
     if (auto sourceImageBuffer = imageBuffer(identifier))
@@ -175,7 +184,7 @@ void RemoteGraphicsContext::setFillGradient(Ref<const Gradient>&& gradient, cons
 
 void RemoteGraphicsContext::setFillPatternNativeImage(RenderingResourceIdentifier identifier, const PatternParameters& parameters)
 {
-    RefPtr tileImage = resourceCache().cachedNativeImage(identifier);
+    RefPtr tileImage = cachedNativeImage(identifier);
     MESSAGE_CHECK(tileImage);
     context().setFillPattern(WebCore::Pattern::create({ tileImage.releaseNonNull() }, parameters));
 }
@@ -217,7 +226,7 @@ void RemoteGraphicsContext::setStrokeGradient(Ref<const Gradient>&& gradient, co
 
 void RemoteGraphicsContext::setStrokePatternNativeImage(RenderingResourceIdentifier identifier, const PatternParameters& parameters)
 {
-    RefPtr tileImage = resourceCache().cachedNativeImage(identifier);
+    RefPtr tileImage = cachedNativeImage(identifier);
     MESSAGE_CHECK(tileImage);
     context().setStrokePattern(WebCore::Pattern::create({ tileImage.releaseNonNull() }, parameters));
 }
@@ -341,7 +350,7 @@ void RemoteGraphicsContext::clipOutRoundedRect(const FloatRoundedRect& rect)
 
 void RemoteGraphicsContext::clipToNativeImage(RenderingResourceIdentifier imageIdentifier, const FloatRect& destinationRect)
 {
-    RefPtr image = resourceCache().cachedNativeImage(imageIdentifier);
+    RefPtr image = cachedNativeImage(imageIdentifier);
     MESSAGE_CHECK(image);
     context().clipToNativeImage(*image, destinationRect);
 }
@@ -462,7 +471,7 @@ void RemoteGraphicsContext::drawDisplayList(RemoteDisplayListIdentifier identifi
 
 void RemoteGraphicsContext::drawNativeImage(RenderingResourceIdentifier imageIdentifier, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
-    RefPtr image = resourceCache().cachedNativeImage(imageIdentifier);
+    RefPtr image = cachedNativeImage(imageIdentifier);
     MESSAGE_CHECK(image);
     context().drawNativeImage(*image, destRect, srcRect, options);
 }
@@ -473,7 +482,7 @@ void RemoteGraphicsContext::drawBadgeSystemImage(std::optional<RenderingResource
     RefPtr<NativeImage> nativeImage;
 
     if (imageIdentifier) {
-        nativeImage = resourceCache().cachedNativeImage(*imageIdentifier);
+        nativeImage = cachedNativeImage(*imageIdentifier);
         MESSAGE_CHECK(nativeImage);
     }
 
@@ -489,7 +498,7 @@ void RemoteGraphicsContext::drawSystemImage(Ref<SystemImage>&& systemImage, cons
 
 void RemoteGraphicsContext::drawPatternNativeImage(RenderingResourceIdentifier imageIdentifier, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& transform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
-    RefPtr image = resourceCache().cachedNativeImage(imageIdentifier);
+    RefPtr image = cachedNativeImage(imageIdentifier);
     MESSAGE_CHECK(image);
     context().drawPattern(*image, destRect, tileRect, transform, phase, spacing, options);
 }
@@ -815,4 +824,4 @@ bool RemoteGraphicsContext::useIOSurfaceWebKitBehavior() const
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))

@@ -39,12 +39,22 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(SwiftReceiverOwner);
 
 Ref<SwiftReceiverOwner> SwiftReceiverOwner::create(Ref<StreamServerConnection>&& streamConnection, ASCIILiteral workQueueName, ReceiverName receiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess> sharedPreferences, Function<void(MessageName)>&& didReceiveInvalidMessage)
 {
-    return adoptRef(*new SwiftReceiverOwner(WTF::move(streamConnection), workQueueName, receiverName, identifier, WTF::move(sharedPreferences), WTF::move(didReceiveInvalidMessage)));
+    return adoptRef(*new SwiftReceiverOwner(WTF::move(streamConnection), StreamConnectionWorkQueue::create(workQueueName), true, receiverName, identifier, WTF::move(sharedPreferences), WTF::move(didReceiveInvalidMessage)));
 }
 
-SwiftReceiverOwner::SwiftReceiverOwner(Ref<StreamServerConnection>&& streamConnection, ASCIILiteral workQueueName, ReceiverName receiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess> sharedPreferences, Function<void(MessageName)>&& didReceiveInvalidMessage)
+Ref<SwiftReceiverOwner> SwiftReceiverOwner::create(Ref<StreamServerConnection>&& streamConnection, StreamConnectionWorkQueue& sharedWorkQueue, ReceiverName receiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess> sharedPreferences, Function<void(MessageName)>&& didReceiveInvalidMessage)
+{
+    Ref owner = adoptRef(*new SwiftReceiverOwner(WTF::move(streamConnection), Ref { sharedWorkQueue }, false, receiverName, identifier, WTF::move(sharedPreferences), WTF::move(didReceiveInvalidMessage)));
+    sharedWorkQueue.dispatch([owner] {
+        owner->workQueueInitialize();
+    });
+    return owner;
+}
+
+SwiftReceiverOwner::SwiftReceiverOwner(Ref<StreamServerConnection>&& streamConnection, Ref<StreamConnectionWorkQueue>&& workQueue, bool ownsWorkQueue, ReceiverName receiverName, uint64_t identifier, std::optional<WebKit::SharedPreferencesForWebProcess> sharedPreferences, Function<void(MessageName)>&& didReceiveInvalidMessage)
     : m_connection(streamConnection->connection())
-    , m_workQueue(StreamConnectionWorkQueue::create(workQueueName))
+    , m_workQueue(WTF::move(workQueue))
+    , m_ownsWorkQueue(ownsWorkQueue)
     , m_streamConnection(WTF::move(streamConnection))
     , m_receiverName(receiverName)
     , m_identifier(identifier)
@@ -57,14 +67,25 @@ SwiftReceiverOwner::~SwiftReceiverOwner() = default;
 
 void SwiftReceiverOwner::start(StreamMessageReceiver& receiver, SwiftReceiverOwnerClient& client)
 {
+    RELEASE_ASSERT(m_ownsWorkQueue || m_workQueue->isCurrent());
     RELEASE_ASSERT(!m_receiver && m_streamConnection);
     m_receiver = &receiver;
     m_client.store(&client, std::memory_order_release);
     RefPtr streamConnection = m_streamConnection;
     streamConnection->startReceivingMessages(receiver, m_receiverName, m_identifier);
+    if (!m_ownsWorkQueue)
+        return;
     m_workQueue->dispatch([protectedThis = Ref { *this }] {
         protectedThis->workQueueInitialize();
     });
+}
+
+void SwiftReceiverOwner::setCompanion(SwiftReceiverOwnerCompanion& companion)
+{
+    assertIsCurrent(workQueue());
+    RELEASE_ASSERT(!m_companion && m_streamConnection);
+    m_companion = &companion;
+    m_companionWantsDidRunOutOfMessages = companion.wantsDidRunOutOfMessages();
 }
 
 void SwiftReceiverOwner::workQueueInitialize()
@@ -84,15 +105,27 @@ void SwiftReceiverOwner::scheduleWork()
 
 void SwiftReceiverOwner::stopListeningForIPC()
 {
+    if (!m_ownsWorkQueue) {
+        m_workQueue->dispatch([protectedThis = Ref { *this }] {
+            protectedThis->workQueueUninitialize();
+            protectedThis->releaseReceiver();
+        });
+        return;
+    }
     m_workQueue->dispatch([protectedThis = Ref { *this }] {
         protectedThis->workQueueUninitialize();
     });
     m_workQueue->stopAndWaitForCompletion([this] {
-        assertIsCurrent(workQueue());
-        if (auto* client = m_client.exchange(nullptr, std::memory_order_acq_rel))
-            client->didStopWorkQueue();
-        m_receiver = nullptr;
+        releaseReceiver();
     });
+}
+
+void SwiftReceiverOwner::releaseReceiver()
+{
+    assertIsCurrent(workQueue());
+    if (auto* client = m_client.exchange(nullptr, std::memory_order_acq_rel))
+        client->didStopWorkQueue();
+    m_receiver = nullptr;
 }
 
 void SwiftReceiverOwner::workQueueUninitialize()
@@ -104,6 +137,8 @@ void SwiftReceiverOwner::workQueueUninitialize()
     if (m_receiver)
         streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
     streamConnection->invalidate();
+    if (RefPtr companion = std::exchange(m_companion, nullptr))
+        companion->didStopReceiving();
     if (auto* client = m_client.load(std::memory_order_acquire))
         client->didStopReceiving();
 }
@@ -118,6 +153,15 @@ void SwiftReceiverOwner::didReceiveStreamMessage(StreamServerConnection&, Decode
 void SwiftReceiverOwner::didReceiveInvalidMessage(StreamServerConnection&, MessageName messageName, const Vector<uint32_t>&)
 {
     m_didReceiveInvalidMessage(messageName);
+}
+
+void SwiftReceiverOwner::didRunOutOfMessages()
+{
+    assertIsCurrent(workQueue());
+    if (!m_companionWantsDidRunOutOfMessages)
+        return;
+    if (RefPtr companion = m_companion)
+        companion->didRunOutOfMessages();
 }
 
 } // namespace IPC

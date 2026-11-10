@@ -27,47 +27,18 @@
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
-#include "RemoteGPURequestAdapterResponse.h"
-#include "SharedPreferencesForWebProcess.h"
-#include "StreamConnectionWorkQueue.h"
-#include "StreamMessageReceiver.h"
-#include "StreamServerConnection.h"
-#include "WebGPUIdentifier.h"
-#include "WebModelIdentifier.h"
 #include <CoreGraphics/CGImage.h>
 #include <IOSurface/IOSurfaceRef.h>
 #include <WebCore/PixelFormat.h>
 #include <WebCore/RenderingResourceIdentifier.h>
-#include <wtf/CompletionHandler.h>
-#include <wtf/MachSendRight.h>
-#include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
-#include <wtf/TZoneMalloc.h>
-#include <wtf/ThreadAssertions.h>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/UniqueRef.h>
-#include <wtf/WeakPtr.h>
-
-namespace IPC {
-class Connection;
-}
 
 namespace WebCore {
-class IOSurface;
-class ImageBuffer;
 class NativeImage;
-class ProcessIdentity;
-}
-
-namespace WebModel {
-struct ImageAsset;
 }
 
 namespace WebKit {
 
-class GPUConnectionToWebProcess;
-class GPUVideoFrameSource;
-class ModelObjectHeap;
 class RemoteRenderingBackend;
 
 // What copyImageBufferSurface() says of the image buffer whose IOSurface it gives.
@@ -78,100 +49,15 @@ struct RemoteGPUImageBufferSurface {
     bool isDisplayP3 { false };
 };
 
-// The receiver of a web process's WebGPU messages to its GPU, on its own work queue. Swift handles the WebGPU messages
-// (RemoteGPU.swift), on the registry of WebGPU objects that m_swiftState holds; C++ keeps the receiver's lifecycle, the
-// rendering backend's image buffers, and the Model process's meshes.
-class SWIFT_PRIVATE_FILEID("WebKit/RemoteGPU.swift") RemoteGPU final : public CanMakeWeakPtr<RemoteGPU>, public IPC::StreamServerConnection::Client {
-    WTF_MAKE_TZONE_ALLOCATED(RemoteGPU);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGPU);
-public:
-    static Ref<RemoteGPU> create(WebGPUIdentifier identifier, GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& serverConnection)
-    {
-        auto result = adoptRef(*new RemoteGPU(identifier, gpuConnectionToWebProcess, renderingBackend, WTF::move(serverConnection)));
-        result->initialize();
-        return result;
-    }
-
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_sharedPreferencesForWebProcess; }
-
-    virtual ~RemoteGPU();
-
-    void stopListeningForIPC();
-
-    void paintNativeImageToImageBuffer(WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
-    // Paints the image, or else the IOSurface's image, into the rendering backend's image buffer with that identifier.
-    void paintToImageBuffer(CGImageRef WTF_NULLABLE, IOSurfaceRef WTF_NULLABLE, bool forceOpaque, uint64_t imageBufferIdentifier);
-    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
-    RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
-    // Null once the receiver stops listening.
-    RefPtr<IPC::StreamServerConnection> streamConnection() const { return m_streamConnection; }
-
-    static Vector<UniqueRef<WebCore::IOSurface>> createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity&, bool standardDynamicRange = false);
-    IPC::StreamConnectionWorkQueue& workQueue() const { return m_workQueue; }
-
-    void didReceiveStreamMessage(IPC::StreamServerConnection&, IPC::Decoder&) final;
-
-
-private:
-    friend IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteGPU&, uint64_t, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
-
-    RemoteGPU(WebGPUIdentifier, GPUConnectionToWebProcess&, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
-
-    RemoteGPU(const RemoteGPU&) = delete;
-    RemoteGPU(RemoteGPU&&) = delete;
-    RemoteGPU& operator=(const RemoteGPU&) = delete;
-    RemoteGPU& operator=(RemoteGPU&&) = delete;
-
-    void initialize();
-    void workQueueInitialize();
-    void workQueueUninitialize();
-
-    template<typename T>
-    IPC::Error send(T&& message) const
-    {
-        return protect(*m_streamConnection)->send(std::forward<T>(message), m_identifier);
-    }
-
-    // IPC::StreamServerConnection::Client overrides.
-    void didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName, const Vector<uint32_t>&) final;
-
-    NODELETE void createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebKit::WebModelIdentifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&&);
-
-    // Implemented in Swift (RemoteGPU.swift), on the state that m_swiftState holds from swiftInitialize() to the
-    // destructor: the scheduler of the WebGPU instance's work on the work queue, and the registry of the WebGPU objects,
-    // which holds this receiver until swiftUninitialize() releases it. The scheduler holds work scheduled once the receiver
-    // begins stopping, which swiftRunScheduledWork() runs.
-    void swiftInitialize(MachSendRight webProcessResourceOwner);
-    // Unsafe: the state must be the one swiftInitialize() made, which only the destructor releases.
-    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
-    void swiftBeginStopping();
-    void swiftRunScheduledWork(bool thenStopped);
-    void swiftUninitialize();
-
-    // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained RemoteGPUState
-    // that nothing else releases.
-    uintptr_t swiftState() const { return m_swiftState; }
-    SWIFT_UNSAFE void setSwiftState(uintptr_t state) { m_swiftState = state; }
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-    SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-    const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
-    RefPtr<IPC::StreamServerConnection> m_streamConnection;
-    const Ref<ModelObjectHeap> m_modelObjectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
-    const WebGPUIdentifier m_identifier;
-    const Ref<RemoteRenderingBackend> m_renderingBackend;
-    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+// The rendering backend's image buffers, for the WebGPU receivers, from their work queue.
+void paintNativeImageToImageBuffer(RemoteRenderingBackend&, WebCore::NativeImage&, WebCore::RenderingResourceIdentifier);
+// Paints the image, or else the IOSurface's image, into the rendering backend's image buffer with that identifier.
+void paintToImageBuffer(RemoteRenderingBackend&, CGImageRef WTF_NULLABLE, IOSurfaceRef WTF_NULLABLE, bool forceOpaque, uint64_t imageBufferIdentifier);
 
 // The IOSurface of the rendering backend's image buffer with that identifier, read for a copy: null unless the image buffer
 // is accelerated and not empty. A function, since Swift takes what a C++ method returns as unretained.
-IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteGPU&, uint64_t imageBufferIdentifier, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
+IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteRenderingBackend&, uint64_t imageBufferIdentifier, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
 
-#if ENABLE(VIDEO)
-// The reader of the video frames that the web process shares with the RemoteGPU's receivers. Null once the connection to
-// the web process has gone.
-GPUVideoFrameSource* WTF_NULLABLE createVideoFrameSource(RemoteGPU&) SWIFT_RETURNS_RETAINED;
-#endif
 
 } // namespace WebKit
 

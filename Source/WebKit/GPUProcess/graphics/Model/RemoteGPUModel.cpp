@@ -24,29 +24,61 @@
  */
 
 #include "config.h"
-#include "RemoteGPU.h"
+#include "RemoteGPUModel.h"
 
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#if ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
+#include "Logging.h"
 #include "MeshImpl.h"
 #include "ModelObjectHeap.h"
-#include "RemoteMesh.h"
-#include "StreamServerConnection.h"
-#include <WebCore/ProcessIdentity.h>
-
-#if ENABLE(GPU_PROCESS_MODEL)
 #include "ModelTypes.h"
+#include "RemoteGPUModelMessages.h"
+#include "RemoteMesh.h"
+#include "RemoteRenderingBackend.h"
+#include "StreamServerConnection.h"
+#include "SwiftReceiverOwner.h"
 #include "WebKitMesh.h"
 #include <WebCore/IOSurface.h>
-#endif
+#include <WebCore/ProcessIdentity.h>
+#include <wtf/TZoneMallocInlines.h>
 
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_streamConnection)
+#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_owner->streamConnection())
 
 namespace WebKit {
 
-#if ENABLE(GPU_PROCESS_MODEL)
-Vector<UniqueRef<WebCore::IOSurface>> RemoteGPU::createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity& processIdentity, bool standardDynamicRange)
+WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGPUModel);
+
+Ref<RemoteGPUModel> RemoteGPUModel::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, WebGPUIdentifier identifier)
+{
+    return adoptRef(*new RemoteGPUModel(gpuConnectionToWebProcess, renderingBackend, owner, identifier));
+}
+
+RemoteGPUModel::RemoteGPUModel(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, WebGPUIdentifier identifier)
+    : m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
+    , m_renderingBackend(renderingBackend)
+    , m_owner(owner)
+    , m_modelObjectHeap(ModelObjectHeap::create())
+    , m_identifier(identifier)
+{
+    weakPtrFactory().prepareForUseOnlyOnNonMainThread();
+    // The stream connection lets go of this when the owner invalidates it, as its receiver stops, and the meshes go with it.
+    owner.streamConnection()->startReceivingMessages(*this, Messages::RemoteGPUModel::messageReceiverName(), identifier.toUInt64());
+}
+
+RemoteGPUModel::~RemoteGPUModel() = default;
+
+std::optional<SharedPreferencesForWebProcess> RemoteGPUModel::sharedPreferencesForWebProcess() const
+{
+    return m_owner->sharedPreferencesForWebProcess();
+}
+
+IPC::StreamConnectionWorkQueue& RemoteGPUModel::workQueue() const
+{
+    return m_owner->workQueue();
+}
+
+Vector<UniqueRef<WebCore::IOSurface>> RemoteGPUModel::createRenderBuffers(unsigned width, unsigned height, const WebCore::ProcessIdentity& processIdentity, bool standardDynamicRange)
 {
 #if ENABLE(PIXEL_FORMAT_RGBA16F)
     const auto colorFormat = standardDynamicRange ? WebCore::IOSurface::Format::BGRA : WebCore::IOSurface::Format::RGBA16F;
@@ -67,12 +99,10 @@ Vector<UniqueRef<WebCore::IOSurface>> RemoteGPU::createRenderBuffers(unsigned wi
 
     return ioSurfaces;
 }
-#endif
 
-#if ENABLE(GPU_PROCESS_MODEL)
 static RefPtr<WebKit::Mesh> createModelBackingInternal(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, const WebCore::ProcessIdentity& processIdentity, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
 {
-    auto ioSurfaceVector = RemoteGPU::createRenderBuffers(width, height, processIdentity, standardDynamicRange);
+    auto ioSurfaceVector = RemoteGPUModel::createRenderBuffers(width, height, processIdentity, standardDynamicRange);
     Vector<RetainPtr<IOSurfaceRef>> ioSurfaces;
     for (auto& ioSurface : ioSurfaceVector)
         ioSurfaces.append(ioSurface->surface());
@@ -91,11 +121,9 @@ static RefPtr<WebKit::Mesh> createModelBackingInternal(unsigned width, unsigned 
     callback(mesh->ioSurfaceHandles());
     return mesh;
 }
-#endif
 
-void RemoteGPU::createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebModelIdentifier identifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
+void RemoteGPUModel::createModelBacking(unsigned width, unsigned height, WebModel::ImageAsset&& diffuseTexture, WebModel::ImageAsset&& specularTexture, WebModelIdentifier identifier, bool standardDynamicRange, CompletionHandler<void(Vector<MachSendRight>&&)>&& callback)
 {
-#if ENABLE(GPU_PROCESS_MODEL)
     assertIsCurrent(workQueue());
 
     MESSAGE_CHECK(width <= WKBridgeMaximumTextureDimension && height <= WKBridgeMaximumTextureDimension);
@@ -126,21 +154,14 @@ void RemoteGPU::createModelBacking(unsigned width, unsigned height, WebModel::Im
     MESSAGE_CHECK(gpuProcessConnection);
 
     auto mesh = createModelBackingInternal(width, height, WTF::move(diffuseTexture), WTF::move(specularTexture), gpuProcessConnection->webProcessIdentity(), standardDynamicRange, WTF::move(callback));
-    auto remoteMesh = RemoteMesh::create(*m_gpuConnectionToWebProcess.get(), *this, *mesh, objectHeap, protect(*m_streamConnection), identifier, standardDynamicRange);
+    RefPtr streamConnection = m_owner->streamConnection();
+    MESSAGE_CHECK(streamConnection);
+    auto remoteMesh = RemoteMesh::create(*gpuProcessConnection, *this, *mesh, objectHeap, streamConnection.releaseNonNull(), identifier, standardDynamicRange);
     objectHeap->addObject(identifier, remoteMesh);
-#else
-    UNUSED_PARAM(width);
-    UNUSED_PARAM(height);
-    UNUSED_PARAM(diffuseTexture);
-    UNUSED_PARAM(specularTexture);
-    UNUSED_PARAM(identifier);
-    UNUSED_PARAM(standardDynamicRange);
-    UNUSED_PARAM(callback);
-#endif
 }
 
 } // namespace WebKit
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#endif // ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

@@ -7,6 +7,7 @@
 #                                                  framework: the Swift declaration, with NSArray and NSDictionary for its
 #                                                  typed collections, and `[T] counted by <property>` for a `const T *`)
 #     function <framework> <symbol> with pointer    (also the function's pointer, for real-time code to copy on the main thread)
+#     function <framework> <symbol> refined         (a function the SDK marks CF_REFINED_FOR_SWIFT, which Swift doesn't import)
 # PAL must soft-link each one (pal/cf/AudioToolboxSoftLink.h, pal/cocoa/AVFoundationSoftLink.h, ...).
 # Scripts/generate-soft-link-accessors.py generates the accessors, <framework>SoftLinkAccessors.swift, from this list.
 # List only what Swift calls, so that the accessors stay small enough to review.
@@ -100,6 +101,9 @@ function CoreMedia CMSampleBufferGetFormatDescription
 function CoreMedia CMSampleBufferGetNumSamples
 function CoreMedia CMSampleBufferGetOutputPresentationTimeStamp
 function CoreMedia CMSampleBufferGetPresentationTimeStamp
+function CoreMedia CMSampleBufferGetTaggedBufferGroup refined
+function CoreMedia CMTaggedBufferGroupGetCVPixelBufferAtIndex refined
+function CoreMedia CMTaggedBufferGroupGetCount refined
 function CoreMedia CMTimeAdd
 function CoreMedia CMTimeCompare
 function CoreMedia CMTimeConvertScale
@@ -133,6 +137,18 @@ member AVFoundation AVMediaSelectionOption commonMetadata var commonMetadata: NS
 member AVFoundation AVPlayerItemTrack assetTrack var assetTrack: AVAssetTrack? { get }
 member AVFoundation AVMetadataItem +metadataItemsFromArray:withKey:keySpace: func metadataItemsWithKey(from metadataItems: NSArray, withKey key: AnyObject?, keySpace: NSString?) -> NSArray
 member AVFoundation AVMetadataItem +metadataItemsFromArray:filteredAndSortedAccordingToPreferredLanguages: func metadataItemsForPreferredLanguages(from metadataItems: NSArray, filteredAndSortedAccordingToPreferredLanguages preferredLanguages: NSArray) -> NSArray
+
+# The AVFoundation player's asset status (MediaPlayerPrivateAVFoundation.swift).
+class AVFoundation AVAssetTrack
+class AVFoundation AVPlayerItemTrack
+member AVFoundation AVPlayerItem tracks var tracks: NSArray { get }
+member AVFoundation AVURLAsset variants var variants: NSArray { get }
+constant AVFoundation AVMediaCharacteristicAudible as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicVisual as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicLegible as AVMediaCharacteristic
+constant AVFoundation AVLayerVideoGravityResize as AVLayerVideoGravity
+constant AVFoundation AVLayerVideoGravityResizeAspect as AVLayerVideoGravity
+constant AVFoundation AVLayerVideoGravityResizeAspectFill as AVLayerVideoGravity
 
 # The camera (CameraCaptureSource.swift).
 class AVFoundation AVCaptureDevice
@@ -171,9 +187,11 @@ function CoreMedia CMVideoFormatDescriptionGetDimensions
 
 # Screen and window capture (ScreenCaptureKitCapturer.swift, ScreenCaptureKitSharingSessionManager.swift,
 # DisplayCaptureSource.swift).
+class ScreenCaptureKit SCContentFilter
 class ScreenCaptureKit SCContentSharingPicker
 class ScreenCaptureKit SCContentSharingPickerConfiguration as __SCContentSharingPickerConfiguration<AnyObject>
 class ScreenCaptureKit SCDisplay
+class ScreenCaptureKit SCShareableContent
 class ScreenCaptureKit SCStream
 class ScreenCaptureKit SCStreamConfiguration
 class ScreenCaptureKit SCWindow
@@ -184,6 +202,7 @@ constant ScreenCaptureKit SCStreamFrameInfoStatus as SCStreamFrameInfo
 constant ScreenCaptureKit SCStreamFrameInfoPresenterOverlayContentRect as SCStreamFrameInfo
 member ScreenCaptureKit SCContentFilter includedDisplays var includedDisplays: NSArray { get }
 member ScreenCaptureKit SCContentFilter includedWindows var includedWindows: NSArray { get }
+member ScreenCaptureKit SCShareableContent windows var windows: NSArray { get }
 function CoreMedia CMFormatDescriptionGetMediaType
 function CoreMedia CMSampleBufferGetSampleAttachmentsArray
 function CoreMedia CMTimeMakeWithSeconds

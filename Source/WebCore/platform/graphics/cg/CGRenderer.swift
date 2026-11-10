@@ -116,20 +116,77 @@
 // the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 // Boston, MA 02110-1301, USA.
 
+// Copyright (C) 2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+// Copyright (C) 2022-2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
-// The safe MutableSpan overload Swift synthesizes for CGRendererGlyphPositions's span accessor comes from Cxx. Xcode builds
-// don't find it unless this file imports Cxx.
+// The safe Span overloads Swift synthesizes for CGRendererGlyphRun's span accessors come from Cxx. Xcode builds don't find
+// them unless this file imports Cxx.
 private import Cxx
 // CGRendererCore's members for a Swift receiver use these.
 public import CoreGraphics
 import CoreText
+#if USE_SYSTEM_PREVIEW
+import CoreImage
+import WebCore_Private.Core.ARKitBadgeSystemImage
+import wtf.Core.RuntimeApplicationChecks
+#endif
+#if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
+import Foundation
+#endif
 import WebCore_Private.Core.AffineTransform
 import WebCore_Private.Core.CGRendererSPI
 public import WebCore_Private.Core.CGRendererSwiftBridge
 import WebCore_Private.Core.Color
+import WebCore_Private.Core.CornerRadii
 import WebCore_Private.Core.FloatPoint
 import WebCore_Private.Core.FloatRect
+import WebCore_Private.Core.FloatRoundedRect
+import WebCore_Private.Core.FloatSegment
 import WebCore_Private.Core.FloatSize
 public import WebCore_Private.Core.GraphicsTypes
 import WebCore_Private.Core.ImageBuffer
@@ -177,6 +234,45 @@ private func cxxIntConversion(_ value: Float) -> Int32 {
         #endif
     }
     return Int32(value)
+}
+
+// truncateDoubleToInt32(), which converts as the processor does too.
+private func cxxIntConversion(_ value: Double) -> Int32 {
+    if value.isNaN || value >= 2_147_483_648 || value <= -2_147_483_649 {
+        #if arch(arm64)
+        return value.isNaN ? 0 : (value < 0 ? .min : .max)
+        #else
+        return .min
+        #endif
+    }
+    return Int32(value)
+}
+
+// std::midpoint() of two floats, which halves them separately where their sum could overflow.
+private func cxxMidpoint(_ a: Float, _ b: Float) -> Float {
+    let low = Float.leastNormalMagnitude * 2
+    let high = Float.greatestFiniteMagnitude / 2
+    if abs(a) <= high && abs(b) <= high {
+        return (a + b) / 2
+    }
+    if abs(a) < low {
+        return a + b / 2
+    }
+    if abs(b) < low {
+        return a / 2 + b
+    }
+    return a / 2 + b / 2
+}
+
+// C++'s double to unsigned conversion where it's undefined, as arm64 does it: saturated, and 0 for NaN.
+private func cxxUnsignedConversion(_ value: Double) -> UInt32 {
+    if value.isNaN || value <= -1 {
+        return 0
+    }
+    if value >= 4_294_967_296 {
+        return .max
+    }
+    return UInt32(value)
 }
 
 // WebCore's own CGColor for the color, as the C++ used: CG strokes ellipses more slowly with one CGColorCreateSRGB() makes.
@@ -346,6 +442,17 @@ private struct CGRendererTransform {
 
     private init(_ a: Double, _ b: Double, _ c: Double, _ d: Double, _ e: Double, _ f: Double) {
         (self.a, self.b, self.c, self.d, self.e, self.f) = (a, b, c, d, e, f)
+    }
+
+    init(_ t: CGAffineTransform) {
+        (a, b, c, d, e, f) = (Double(t.a), Double(t.b), Double(t.c), Double(t.d), Double(t.tx), Double(t.ty))
+    }
+
+    // AffineTransform::mapPoint() of a FloatPoint.
+    func mapPoint(_ x: Float, _ y: Float) -> (x: Float, y: Float) {
+        let px = Double(x)
+        let py = Double(y)
+        return (Float(a * px + c * py + e), Float(b * px + d * py + f))
     }
 
     var isIdentityOrTranslation: Bool { a == 1 && b == 0 && c == 0 && d == 1 }
@@ -589,26 +696,25 @@ extension CGRendererCore: ShadowDrawing {
     private mutating func drawShadowImage(_ image: CGImage, _ imageHeadroom: Float, _ resolutionScale: Float, _ tile: ShadowBlurTile) {
         let destination = tile.destination.floatRect
         let source = tile.source.floatRect
+        var facts = CGRendererImageFacts()
+        facts.width = Float(image.width)
+        facts.height = Float(image.height)
+        facts.headroom = imageHeadroom
+        facts.resolutionScale = resolutionScale
+        facts.found = true
+        var options = CGRendererImageOptions()
+        options.compositeOperator = .SourceOver
+        options.blendMode = .Normal
+        options.interpolationQuality = .Default
+        options.orientation = CGRendererOrientation.none
         save(false)
         clearDropShadow()
-        _ = drawNativeImage(
+        drawNativeImage(
             image,
-            Float(image.width),
-            Float(image.height),
-            destination.x(),
-            destination.y(),
-            destination.width(),
-            destination.height(),
-            source.x() * resolutionScale,
-            source.y() * resolutionScale,
-            source.width() * resolutionScale,
-            source.height() * resolutionScale,
-            .SourceOver,
-            .Normal,
-            .Default,
-            CGRendererOrientation.none,
-            imageHeadroom,
-            0
+            facts,
+            CGRect(x: CGFloat(destination.x()), y: CGFloat(destination.y()), width: CGFloat(destination.width()), height: CGFloat(destination.height())),
+            CGRect(x: CGFloat(source.x()), y: CGFloat(source.y()), width: CGFloat(source.width()), height: CGFloat(source.height())),
+            options
         )
         restore()
     }
@@ -755,6 +861,24 @@ private enum CGRendererSideTable {
     static let sourceLimit = 4
 }
 
+#if HAVE_SUPPORT_HDR_DISPLAY_APIS
+// A context's tone mapping info, which a draw of an image that limits its dynamic range puts back. A class, so that the draws
+// that don't keep it don't handle CGContentToneMappingInfo, whose layout CG's Swift overlay only gives at run time.
+private final class SavedToneMappingInfo {
+    private let info: CGContentToneMappingInfo
+
+    @inline(never)
+    init(_ context: CGContext) {
+        info = context.contentToneMappingInfo
+    }
+
+    @inline(never)
+    func restore(_ context: CGContext) {
+        context.contentToneMappingInfo = info
+    }
+}
+#endif
+
 // The stroke color and thickness of the line before, for receiveStrokeLinesWithColorAndThickness().
 private struct CGRendererLineStroke {
     var color: UInt32? = nil
@@ -820,6 +944,417 @@ private struct CGRendererLineStroke {
         width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
 }
 
+// The CGPath of a path that a receiver draws, which others may share: a cached path's is the cache's and its recordings', and a
+// message's is its recording's. Only this type reaches the CGPath, to draw, add and measure it, so no Swift can cast it to a
+// CGMutablePath and change what another draw reads.
+@_spi(WebKitGPU) @frozen public struct CGRendererPlatformPath {
+    private let path: CGPath
+
+    @_spi(WebKitGPU) public init(_ path: CGPath) {
+        self.path = path
+    }
+
+    @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
+        state.receiveFillPath(path)
+    }
+
+    @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
+        state.receiveStrokePath(path)
+    }
+
+    // GraphicsContextCG::strokePath() with a gradient: the gradient in the clip of the stroked path.
+    @_spi(WebKitGPU) public func strokeWithGradient(_ state: inout CGRendererCore) {
+        let path = path
+        state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
+            clipToStrokedPlatformPath(context, path, thickness)
+        }
+    }
+
+    // GraphicsContextCG::drawPath() without a gradient, of the path that makePath() makes only if the context draws it.
+    @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
+        state.receiveDrawPathWithoutGradient { makePath().path }
+    }
+
+    @_spi(WebKitGPU) public func drawFocusRing(_ state: inout CGRendererCore, _ color: CGRendererColorValue, _ zoomFactor: Float) {
+        state.receiveDrawFocusRing(path, color, zoomFactor)
+    }
+
+    // GraphicsContextCG::clipPath() of a PathCG, which adds its CGPath to the context's path.
+    func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+        context.beginPath()
+        context.addPath(path)
+        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
+    }
+
+    func clipOut(_ context: CGContext) {
+        CGRendererClipOutToPlatformPath(context, path)
+    }
+
+    // PathCG::fastBoundingRect(), as a FloatRect.
+    var fastBoundingRect: CGRect {
+        let bounds = path.boundingBox
+        if bounds.isNull {
+            return .zero
+        }
+        return CGRect(
+            x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
+            width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+    }
+}
+
+// A path that a receiver fills, strokes, draws or clips to, as GraphicsContextCG does a Path: of no segment, of one, which a
+// Path keeps as the segment, of more, as the CGPath that PathCG makes of them with what the receiver asks of the path besides
+// (CGRendererCreatePathOfSegments()), or of a cached path's CGPath, which is all a PathCG has. A clip to a path of more segments
+// adds its CGPath to the context's path, as GraphicsContextCG adds a PathCG's, rather than the segments themselves, and a clip
+// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()).
+@_spi(WebKitGPU) @frozen public enum CGRendererPath {
+    case empty
+    case segment(CGRendererPathSegment)
+    case segments(CGRendererPlatformPath, CGRendererPathFacts)
+    case platformPath(CGRendererPlatformPath)
+
+    @_spi(WebKitGPU) public var isEmpty: Bool {
+        if case .empty = self {
+            return true
+        }
+        return false
+    }
+
+    // Path::singleDataLine(), whose stroke GraphicsContextCG::strokePath() draws as a line.
+    @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
+        if case .segment(let segment) = self, segment.kind == .DataLine {
+            return segment
+        }
+        return nil
+    }
+
+    // Path::pieWedgeArc(): the arc of a move to its center, the arc and a line back to its center.
+    @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
+        if case .segments(_, let facts) = self, facts.pieWedgeArc.kind == .Arc {
+            return facts.pieWedgeArc
+        }
+        return nil
+    }
+
+    // Path::platformPath().
+    @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
+        switch self {
+        case .empty:
+            CGRendererPlatformPath(CGMutablePath())
+        case .segment(let segment):
+            CGRendererPlatformPath(CGRendererCreatePath(segment))
+        case .segments(let path, _), .platformPath(let path):
+            path
+        }
+    }
+
+    // Path::fastBoundingRect(), as a FloatRect.
+    @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
+        switch self {
+        case .empty:
+            .zero
+        case .segment(let segment):
+            CGRendererPathSegmentBounds(segment)
+        case .segments(let path, let facts):
+            // A decode for a handler that said it wouldn't ask has no PathStream bounds, so the CGPath's stand in for them.
+            facts.hasFastBoundingRect ? facts.fastBoundingRect : path.fastBoundingRect
+        case .platformPath(let path):
+            path.fastBoundingRect
+        }
+    }
+
+    // GraphicsContextCG::clipPath(): an empty path clips everything out.
+    @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+        switch self {
+        case .empty:
+            context.clip(to: .zero)
+        case .segment(let segment):
+            CGRendererClipToPathSegment(context, segment, rule)
+        case .segments(let path, _), .platformPath(let path):
+            path.clip(context, rule)
+        }
+    }
+
+    // GraphicsContextCG::clipOut(const Path&): the clip's bounds, even-odd with the path.
+    @_spi(WebKitGPU) public func clipOut(_ context: CGContext) {
+        if isEmpty {
+            context.beginPath()
+            context.addRect(context.boundingBoxOfClipPath)
+            context.clip(using: .evenOdd)
+            return
+        }
+        platformPath().clipOut(context)
+    }
+}
+
+// MARK: Rounded rects
+
+private func safeFPDivision(_ u: Float, _ v: Float) -> Float {
+    if v < 1 && u > v * Float.greatestFiniteMagnitude {
+        return Float.greatestFiniteMagnitude
+    }
+    if v > 1 && u < v * Float.leastNormalMagnitude {
+        return 0
+    }
+    return u / v
+}
+
+private func areEssentiallyEqual(_ u: Float, _ v: Float) -> Bool {
+    if u == v {
+        return true
+    }
+    let delta = abs(u - v)
+    return safeFPDivision(delta, abs(u)) <= Float.ulpOfOne && safeFPDivision(delta, abs(v)) <= Float.ulpOfOne
+}
+
+// FloatSize's members, for a rounded rect's radii.
+extension WebCore.ShadowBlurSize {
+    fileprivate var isZero: Bool { abs(width) < Float.ulpOfOne && abs(height) < Float.ulpOfOne }
+
+    fileprivate func isEssentiallyEqual(to other: WebCore.ShadowBlurSize) -> Bool {
+        areEssentiallyEqual(width, other.width) && areEssentiallyEqual(height, other.height)
+    }
+
+    fileprivate var cgSize: CGSize { CGSize(width: CGFloat(width), height: CGFloat(height)) }
+
+    // CornerRadii::scale()'s scale of a corner, which goes altogether if either radius goes.
+    fileprivate func scaled(by factor: Float) -> WebCore.ShadowBlurSize {
+        let size = WebCore.ShadowBlurSize(width: width * factor, height: height * factor)
+        return size.width == 0 || size.height == 0 ? WebCore.ShadowBlurSize() : size
+    }
+}
+
+// FloatRoundedRect's members, of the plain values CGRendererRoundedRectOf() gives.
+extension CGRendererRoundedRect {
+    fileprivate var cgRect: CGRect {
+        CGRect(x: CGFloat(rect.x), y: CGFloat(rect.y), width: CGFloat(rect.width), height: CGFloat(rect.height))
+    }
+
+    fileprivate var maxX: Float { rect.x + rect.width }
+    fileprivate var maxY: Float { rect.y + rect.height }
+    fileprivate var isEmpty: Bool { rect.width <= 0 || rect.height <= 0 }
+    fileprivate var hasNonZeroRadii: Bool {
+        !(radii.topLeft.isZero && radii.topRight.isZero && radii.bottomLeft.isZero && radii.bottomRight.isZero)
+    }
+
+    fileprivate var hasEvenCorners: Bool {
+        radii.topLeft.isEssentiallyEqual(to: radii.topRight) && radii.topLeft.isEssentiallyEqual(to: radii.bottomLeft)
+            && radii.topLeft.isEssentiallyEqual(to: radii.bottomRight)
+    }
+
+    fileprivate var isRenderable: Bool {
+        let r = radii
+        return r.topLeft.width >= 0 && r.topLeft.height >= 0 && r.bottomLeft.width >= 0 && r.bottomLeft.height >= 0
+            && r.topRight.width >= 0 && r.topRight.height >= 0 && r.bottomRight.width >= 0 && r.bottomRight.height >= 0
+            && r.topLeft.width + r.topRight.width <= rect.width && r.bottomLeft.width + r.bottomRight.width <= rect.width
+            && r.topLeft.height + r.bottomLeft.height <= rect.height && r.topRight.height + r.bottomRight.height <= rect.height
+    }
+
+    // FloatRoundedRect::adjustRadii(): the radii scaled down to fit, or gone if they add up to nothing.
+    fileprivate func withAdjustedRadii() -> CGRendererRoundedRect {
+        let r = radii
+        let maxRadiusWidth = cxxMax(r.topLeft.width + r.topRight.width, r.bottomLeft.width + r.bottomRight.width)
+        let maxRadiusHeight = cxxMax(r.topLeft.height + r.bottomLeft.height, r.topRight.height + r.bottomRight.height)
+        var factor: Float = 0
+        if maxRadiusWidth > 0 && maxRadiusHeight > 0 {
+            let widthRatio = rect.width / maxRadiusWidth
+            let heightRatio = rect.height / maxRadiusHeight
+            factor = widthRatio < heightRatio ? widthRatio : heightRatio
+        }
+        if factor == 1 {
+            return self
+        }
+        var adjusted = self
+        adjusted.radii = WebCore.ShadowBlurCornerRadii(
+            topLeft: r.topLeft.scaled(by: factor),
+            topRight: r.topRight.scaled(by: factor),
+            bottomLeft: r.bottomLeft.scaled(by: factor),
+            bottomRight: r.bottomRight.scaled(by: factor)
+        )
+        return adjusted
+    }
+
+    // Whether GraphicsContextCG::fillRoundedRectImpl() fills it as the ellipse its radii make.
+    fileprivate var isEllipse: Bool {
+        let r = radii
+        let equalWidths = r.topLeft.width == r.topRight.width && r.topRight.width == r.bottomLeft.width && r.bottomLeft.width == r.bottomRight.width
+        let equalHeights = r.topLeft.height == r.bottomLeft.height && r.bottomLeft.height == r.topRight.height && r.topRight.height == r.bottomRight.height
+        return equalWidths && equalHeights && r.topLeft.width * 2 == rect.width && r.topLeft.height * 2 == rect.height
+    }
+}
+
+// The segment that Path::addRoundedRect() adds to an empty Path: none for an empty rect, and for radii that don't fit, the
+// rounded rect with them adjusted until they do, or its rect if that leaves none.
+private enum CGRendererRoundedRectSegment {
+    case none
+    case rect(CGRect)
+    case roundedRect(CGRendererRoundedRect)
+
+    init(_ roundedRect: CGRendererRoundedRect) {
+        if roundedRect.isEmpty {
+            self = .none
+        } else if roundedRect.isRenderable {
+            self = .roundedRect(roundedRect)
+        } else {
+            let adjusted = roundedRect.withAdjustedRadii()
+            self = adjusted.hasNonZeroRadii ? .roundedRect(adjusted) : .rect(adjusted.cgRect)
+        }
+    }
+
+    // PathCG's addToCGPath() of the segment.
+    func add(to path: CGMutablePath) {
+        switch self {
+        case .none:
+            break
+        case .rect(let rect):
+            CGRendererAddRect(path, rect)
+        case .roundedRect(let roundedRect):
+            addRoundedRect(roundedRect, to: path)
+        }
+    }
+
+    // PathCG's addToCGContextPath() of the segment: a rounded rect goes in as a CGPath in device space, as CGContextAddPath()
+    // mishandles the context path's earlier move-tos otherwise (rdar://118395262).
+    func add(to context: CGContext) {
+        switch self {
+        case .none:
+            break
+        case .rect(let rect):
+            context.addRect(rect)
+        case .roundedRect(let roundedRect):
+            let path = CGMutablePath()
+            addRoundedRect(roundedRect, to: path)
+            let ctm = context.ctm
+            let transformedPath = CGMutablePath()
+            transformedPath.addPath(path, transform: ctm)
+            CGContextSetCTM(context, .identity)
+            context.addPath(transformedPath)
+            CGContextSetCTM(context, ctm)
+        }
+    }
+
+    // GraphicsContextCG::clipPath() of the Path (CGRendererClipToPath()): an empty one clips everything out.
+    func clip(_ context: CGContext, _ rule: CGPathFillRule) {
+        if case .none = self {
+            context.clip(to: .zero)
+            return
+        }
+        context.beginPath()
+        add(to: context)
+        context.clip(using: rule)
+    }
+
+    // GraphicsContextCG::clipOut(const Path&): the clip's bounds, even-odd with the Path.
+    func clipOut(_ context: CGContext) {
+        context.beginPath()
+        context.addRect(context.boundingBoxOfClipPath)
+        add(to: context)
+        context.clip(using: .evenOdd)
+    }
+}
+
+// PathCG's addToCGPath() of a PathRoundedRect that prefers CG's own rounded rects, with radii that fit.
+private func addRoundedRect(_ roundedRect: CGRendererRoundedRect, to path: CGMutablePath) {
+    let radii = roundedRect.radii
+    let rect = roundedRect.cgRect
+    if roundedRect.hasEvenCorners {
+        // Radii that CG can render, as addEvenCornersRoundedRect() makes them.
+        var radiusWidth = CGFloat(radii.topLeft.width)
+        var radiusHeight = CGFloat(radii.topLeft.height)
+        if 2 * radiusWidth > rect.width {
+            radiusWidth = rect.width / 2 - CGFloat.ulpOfOne
+        }
+        if 2 * radiusHeight > rect.height {
+            radiusHeight = rect.height / 2 - CGFloat.ulpOfOne
+        }
+        CGRendererAddRoundedRect(path, rect, radiusWidth, radiusHeight)
+        return
+    }
+    #if HAVE_CG_PATH_UNEVEN_CORNERS_ROUNDEDRECT
+    // addUnevenCornersRoundedRect(): the radii clamped after their conversion to CGFloat.
+    let topLeft = radii.topLeft.cgSize
+    var topRight = radii.topRight.cgSize
+    var bottomLeft = radii.bottomLeft.cgSize
+    var bottomRight = radii.bottomRight.cgSize
+    topRight.width = cxxMin(topRight.width, rect.width - topLeft.width)
+    bottomRight.width = cxxMin(bottomRight.width, rect.width - bottomLeft.width)
+    bottomLeft.height = cxxMin(bottomLeft.height, rect.height - topLeft.height)
+    bottomRight.height = cxxMin(bottomRight.height, rect.height - topRight.height)
+    CGRendererAddUnevenCornersRoundedRect(path, rect, bottomLeft, bottomRight, topRight, topLeft)
+    #else
+    addRoundedRectBeziers(roundedRect, to: path)
+    #endif
+}
+
+#if !HAVE_CG_PATH_UNEVEN_CORNERS_ROUNDEDRECT
+// PathImpl::beziersForRoundedRect(), added as PathCG adds their segments.
+private func addRoundedRectBeziers(_ roundedRect: CGRendererRoundedRect, to path: CGMutablePath) {
+    // PathImpl::circleControlPoint(): 1 - kappa, where kappa = 4 * (sqrt(2) - 1) / 3.
+    let control: Float = 0.447715
+    let r = roundedRect.radii
+    let x = roundedRect.rect.x
+    let y = roundedRect.rect.y
+    let maxX = roundedRect.maxX
+    let maxY = roundedRect.maxY
+    func point(_ px: Float, _ py: Float) -> CGPoint {
+        CGPoint(x: CGFloat(px), y: CGFloat(py))
+    }
+    path.move(to: point(x + r.topLeft.width, y))
+    path.addLine(to: point(maxX - r.topRight.width, y))
+    if r.topRight.width > 0 || r.topRight.height > 0 {
+        path.addCurve(
+            to: point(maxX, y + r.topRight.height),
+            control1: point(maxX - r.topRight.width * control, y),
+            control2: point(maxX, y + r.topRight.height * control)
+        )
+    }
+    path.addLine(to: point(maxX, maxY - r.bottomRight.height))
+    if r.bottomRight.width > 0 || r.bottomRight.height > 0 {
+        path.addCurve(
+            to: point(maxX - r.bottomRight.width, maxY),
+            control1: point(maxX, maxY - r.bottomRight.height * control),
+            control2: point(maxX - r.bottomRight.width * control, maxY)
+        )
+    }
+    path.addLine(to: point(x + r.bottomLeft.width, maxY))
+    if r.bottomLeft.width > 0 || r.bottomLeft.height > 0 {
+        path.addCurve(
+            to: point(x, maxY - r.bottomLeft.height),
+            control1: point(x + r.bottomLeft.width * control, maxY),
+            control2: point(x, maxY - r.bottomLeft.height * control)
+        )
+    }
+    path.addLine(to: point(x, y + r.topLeft.height))
+    if r.topLeft.width > 0 || r.topLeft.height > 0 {
+        path.addCurve(
+            to: point(x + r.topLeft.width, y),
+            control1: point(x, y + r.topLeft.height * control),
+            control2: point(x + r.topLeft.width * control, y)
+        )
+    }
+    path.closeSubpath()
+}
+#endif
+
+// The CGPath of a Path of a rounded rect (Path::platformPath() after addRoundedRect()), and of a rect with a rounded hole,
+// which GraphicsContextCG::fillRectWithRoundedHole() fills even-odd: the hole goes in as a rect if it has no radii.
+private func roundedRectPath(_ roundedRect: CGRendererRoundedRect) -> CGMutablePath {
+    let path = CGMutablePath()
+    CGRendererRoundedRectSegment(roundedRect).add(to: path)
+    return path
+}
+
+private func rectWithRoundedHolePath(_ rect: CGRect, _ hole: CGRendererRoundedRect) -> CGMutablePath {
+    let path = CGMutablePath()
+    CGRendererAddRect(path, rect)
+    if hole.hasNonZeroRadii {
+        CGRendererRoundedRectSegment(hole).add(to: path)
+    } else {
+        CGRendererAddRect(path, hole.cgRect)
+    }
+    return path
+}
+
 private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorData) -> Bool {
     a.c1 == b.c1 && a.c2 == b.c2 && a.c3 == b.c3 && a.alpha == b.alpha && a.packedColor == b.packedColor
         && a.colorSpace == b.colorSpace && a.form == b.form && a.isSemantic == b.isSemantic
@@ -876,6 +1411,9 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     private let context: CGContext
     private let isUnaccelerated: Bool
     private let isPDFContext: Bool
+    // Whether CG strokes arcs with the coverage of filling their outlines here (CGIOSurfaceContextUsingWebKitBehavior()), so
+    // that a pie wedge can fill as a stroked arc, which CG batches.
+    private let strokesArcsLikeFills: Bool
     private var state: CGRendererState
     private var stack: [CGRendererSavedState]
     private var depth = 0
@@ -888,6 +1426,9 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     private var dashLengths: [CGFloat] = []
     private var lineDash: [CGFloat] = []
     private var lineSegment: [CGPoint] = []
+    // ContiguousArray, whose spans, unlike Array's, the deployment targets have.
+    private var glyphPositions: ContiguousArray<CGPoint> = []
+    private var glyphTranslations: ContiguousArray<CGSize> = []
     private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
     // GraphicsContextCG::setMaxEDRHeadroom(): a context's, not a state's.
     private var maxEDRHeadroom: Float? = nil
@@ -924,27 +1465,19 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         _ context: borrowing CGContext,
         _ isUnaccelerated: Bool,
         _ isPDFContext: Bool,
+        _ strokesArcsLikeFills: Bool,
         _ imageInterpolationQuality: WebCore.InterpolationQuality
     ) {
         self.context = copy context
         self.isUnaccelerated = isUnaccelerated
         self.isPDFContext = isPDFContext
+        self.strokesArcsLikeFills = strokesArcsLikeFills
         self.state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
         self.stack = Array(repeating: CGRendererSavedState(state: state, purpose: .saveRestore), count: 8)
     }
 
     private var canUseShadowBlur: Bool {
         isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
-    }
-
-    // GraphicsContextCG::swiftDrawsShadowBlur(): where a receiver's draws with a shadow ShadowBlur draws (canUseShadowBlur)
-    // draw it here; elsewhere they go back to C++.
-    private var receiverDrawsShadowBlur: Bool {
-        #if HAVE_SUPPORT_HDR_DISPLAY_APIS && !WTF_PLATFORM_IOS_FAMILY
-        true
-        #else
-        false
-        #endif
     }
 
     // The Color of a drop shadow, as GraphicsContext's state has it, for ShadowBlur.
@@ -1307,6 +1840,15 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         context.ctm.concatenating(CGContextGetBaseCTM(context).inverted())
     }
 
+    // singularValue(_, Largest).
+    private func largestSingularValue(_ t: CGAffineTransform) -> CGFloat {
+        let a = t.a * t.a + t.b * t.b
+        let b = t.a * t.c + t.b * t.d
+        let d = t.c * t.c + t.d * t.d
+        let discriminant = (4 * b * b + (a - d) * (a - d)).squareRoot()
+        return (0.5 * ((a + d) + discriminant)).squareRoot()
+    }
+
     // Extreme blur values can make text drawing crash or take very long, so they are clamped.
     private func scaledBlurRadius(_ blurRadius: CGFloat, _ userToBaseCTM: CGAffineTransform) -> CGFloat {
         var radius = blurRadius
@@ -1408,6 +1950,12 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         hasDrawn = true
         state.shadowsIgnoreTransforms = shadowsIgnoreTransforms
         levelChanges |= CxxStateChange.shadowsIgnoreTransforms
+    }
+
+    // Whether GraphicsContextCG::fillRoundedRectImpl() fills a rounded rect as the ellipse its radii make.
+    @_expose(Cxx)
+    static func roundedRectIsEllipse(_ rect: borrowing WebCore.FloatRoundedRect) -> Bool {
+        CGRendererRoundedRectOf(copy rect).isEllipse
     }
 
     @_expose(Cxx)
@@ -1752,24 +2300,21 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         receiveBeginTransparencyLayer(state.alpha)
     }
 
-    // Declines the end of a layer that C++ began, which C++ ends, as it counts it.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetURLForRect(_ url: CFURL, _ rect: CGRect) {
         setURLForRect(url, rect)
     }
 
+    // The end of a layer a receiver began. A layer that C++ began is C++'s to end, as GraphicsContext counts it: C++ ends a
+    // layer in the draw that begins it, so no message ends one.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveEndTransparencyLayer() -> Bool {
-        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer else {
-            return true
-        }
-        guard !stack[depth - 1].hasCxxLevel else {
-            return false
+    @_spi(WebKitGPU) public mutating func receiveEndTransparencyLayer() {
+        guard depth > 0, stack[depth - 1].purpose == .transparencyLayer, !stack[depth - 1].hasCxxLevel else {
+            return
         }
         hasDrawn = true
         context.endTransparencyLayer()
         pop()
-        return true
     }
 
     @_expose(Cxx)
@@ -2263,6 +2808,59 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         return true
     }
 
+    // GraphicsContextCG::drawDotsForDocumentMarker(): as many whole dots as fit, the rect's height across and spaced as the
+    // platform spaces them, centered in the rect; with AutocorrectionEnhancements, an autocorrection replacement's pill. The
+    // color is cachedCGColor()'s of the marker's.
+    @_expose(Cxx)
+    mutating func drawDotsForDocumentMarker(_ rect: CGRect, _ mode: WebCore.DocumentMarkerLineStyleMode, _ color: CGColor?) {
+        hasDrawn = true
+        let x = Float(rect.origin.x)
+        let y = Float(rect.origin.y)
+        let width = Float(rect.size.width)
+        let height = Float(rect.size.height)
+        context.saveGState()
+        defer {
+            context.restoreGState()
+        }
+        // CG ignores a null color, which an invalid one has.
+        if let color {
+            context.setFillColor(color)
+        }
+        #if HAVE_AUTOCORRECTION_ENHANCEMENTS
+        if mode == .AutocorrectionReplacement {
+            CGContextSetCompositeOperation(context, .sover)
+            let radius = Double(height) / 2
+            let minX = Double(x)
+            let maxX = Double(x + width)
+            let minY = Double(y)
+            let maxY = Double(y + height)
+            let midY = Double(cxxMidpoint(y, y + height))
+            context.move(to: CGPoint(x: minX + radius, y: maxY))
+            context.addArc(center: CGPoint(x: minX + radius, y: midY), radius: radius, startAngle: Double.pi / 2, endAngle: 3 * Double.pi / 2, clockwise: false)
+            context.addLine(to: CGPoint(x: maxX - radius, y: minY))
+            context.addArc(center: CGPoint(x: maxX - radius, y: midY), radius: radius, startAngle: 3 * Double.pi / 2, endAngle: Double.pi / 2, clockwise: false)
+            context.closePath()
+            context.fillPath()
+            return
+        }
+        #endif
+        // The dots' diameter is the height, and a dot is to a gap as 13.247 is to 9.457.
+        let dotDiameter = height
+        let dotGap = Double(dotDiameter) * 9.457 / 13.247
+        let numberOfDots = (Double(width) + dotGap) / (Double(dotDiameter) + dotGap)
+        let numberOfWholeDots = cxxUnsignedConversion(numberOfDots)
+        let numberOfWholeGaps = numberOfWholeDots &- 1
+        let offset = (Double(width) - (Double(dotDiameter * Float(numberOfWholeDots)) + dotGap * Double(numberOfWholeGaps))) / 2
+        var index: UInt32 = 0
+        while index < numberOfWholeDots {
+            let dotX = x + Float(offset + Double(index) * (Double(dotDiameter) + dotGap))
+            context.addEllipse(in: CGRect(x: CGFloat(dotX), y: CGFloat(y), width: CGFloat(dotDiameter), height: CGFloat(dotDiameter)))
+            index += 1
+        }
+        CGContextSetCompositeOperation(context, .sover)
+        context.fillPath()
+    }
+
     // The rects of drawLinesForText(), in the color GraphicsContext computed for them.
     @_expose(Cxx)
     mutating func fillRectsInPackedColor(_ rects: CGRendererRects, _ packedColor: UInt32, _ changesFillColor: Bool) {
@@ -2318,6 +2916,45 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         CGRendererDrawPath(context, state.fillRule == 1 ? .eoFill : .fill, copy path)
     }
 
+    // GraphicsContextCG::fillPath() of a pie wedge (Path::pieWedgeArc()), as a butt-capped stroke of width r along the arc of
+    // radius r / 2, which covers exactly the wedge of radius r, where CG strokes it with that coverage. Only where any
+    // difference can't show, as a pixel drawn twice looks drawn once: a nonzero, opaque, source-over fill without a shadow.
+    // False where the path fills as a path.
+    @_expose(Cxx)
+    mutating func fillPieWedge(_ x: Float, _ y: Float, _ radius: Float, _ startAngle: Float, _ endAngle: Float, _ counterclockwise: Bool) -> Bool {
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        guard strokesArcsLikeFills, !state.fill.hasPatternOrGradient, radius > 0, state.fillRule == 0, fillColorIsOpaque(), state.alpha == 1,
+            state.compositeOperator == .SourceOver, state.blendMode == .Normal, !(state.dropShadow?.hasOutsets ?? false)
+        else {
+            return false
+        }
+        hasDrawn = true
+        context.saveGState()
+        context.setStrokeColor(platformColor(state.fill))
+        context.setLineWidth(CGFloat(radius))
+        context.setLineCap(.butt)
+        context.setLineDash(phase: 0, lengths: [])
+        CGContextStrokeArc(context, CGFloat(x), CGFloat(y), CGFloat(radius / 2), CGFloat(startAngle), CGFloat(endAngle), counterclockwise)
+        context.restoreGState()
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    // Color::isOpaque() of the fill color.
+    private func fillColorIsOpaque() -> Bool {
+        let fill = state.fill
+        guard fill.platformColorSlot != 0 else {
+            return fill.packedColor & 0xFF == 0xFF
+        }
+        let data = platformColors[Int(fill.platformColorSlot) - 1].data
+        if data.form == 1 {
+            return data.packedColor & 0xFF == 0xFF
+        }
+        return !data.alpha.isNaN && data.alpha >= 1
+    }
+
     @_expose(Cxx)
     mutating func strokePath(_ path: borrowing CGPath) {
         hasDrawn = true
@@ -2361,20 +2998,53 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         CGRendererDrawPath(context, mode, copy path)
     }
 
-    // FontCascade::drawGlyphs(): a run of glyphs in a font, from an anchor point, with the font smoothing it asks for, a shadow
-    // with no blur drawn as glyphs in the shadow color, and synthetic bold as a second, offset run. The state it changes for
-    // the glyphs goes back afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
+    // FontCascade::drawGlyphs() of GraphicsContextCG::drawGlyphsImmediate()'s run: the glyphs in the font, whose facts it
+    // worked out, from an anchor point, with the font smoothing it asks for.
     @_expose(Cxx)
     mutating func drawGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
+        _ facts: CGRendererGlyphFontFacts,
+        _ smoothingMode: UInt8,
+        _ isInTransparencyLayer: Bool,
         _ shadowFillColor: CGColor?,
         _ x: Float,
         _ y: Float
     ) {
+        drawGlyphRun(run, facts, smoothingMode, isInTransparencyLayer, shadowFillColor, false, x, y)
+    }
+
+    // FontCascade::drawGlyphs(): a run of glyphs in a font, from an anchor point, with the font smoothing it asks for unless the
+    // font doesn't allow antialiasing, a shadow with no blur drawn as glyphs in the shadow color (the given color, or one made
+    // from the receiver's state), and synthetic bold as a second, offset run. The state it changes for the glyphs goes back
+    // afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
+    private mutating func drawGlyphRun(
+        _ run: CGRendererGlyphRun,
+        _ facts: CGRendererGlyphFontFacts,
+        _ requestedSmoothingMode: UInt8,
+        _ isInTransparencyLayer: Bool,
+        _ shadowFillColor: CGColor?,
+        _ computesReceiverShadowColor: Bool,
+        _ x: Float,
+        _ y: Float
+    ) {
+        if !facts.draws {
+            return
+        }
+        let glyphs: Span<CGGlyph> = run.glyphs()
+        let advances: Span<CGSize> = run.advances()
+        let count = glyphs.count
+        let smoothingMode = facts.allowsAntialiasing ? requestedSmoothingMode : CGRendererFontSmoothing.none
         hasDrawn = true
-        var positions = positions
+        if glyphPositions.count < count {
+            glyphPositions = ContiguousArray(repeating: CGPoint.zero, count: count)
+        }
+        if facts.isVertical && count > 0 {
+            if glyphTranslations.count < count {
+                glyphTranslations = ContiguousArray(repeating: CGSize.zero, count: count)
+            }
+            var translations = glyphTranslations.mutableSpan
+            CGRendererGetVerticalTranslations(run, &translations)
+        }
         let ctm = context.ctm
         var syntheticBoldOffset = facts.syntheticBoldOffset
         if syntheticBoldOffset != 0 && !isIdentityOrTranslationOrFlipped(ctm) {
@@ -2389,21 +3059,21 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 
         var hasSimpleShadow = false
         if let shadow = state.dropShadow, state.textDrawingMode == CGRendererTextDrawingMode.fill, shadow.isValid, shadow.radius == 0,
-            !facts.isColorBitmapFont, !state.shadowsIgnoreTransforms || isIdentityOrTranslationOrFlipped(ctm), !facts.isInTransparencyLayer
+            !facts.isColorBitmapFont, !state.shadowsIgnoreTransforms || isIdentityOrTranslationOrFlipped(ctm), !isInTransparencyLayer
         {
             hasSimpleShadow = true
         }
 
         var restoresSmoothing = false
         #if !WTF_PLATFORM_IOS_FAMILY
-        let shouldSmoothFonts = facts.smoothingMode != CGRendererFontSmoothing.antialiased && facts.smoothingMode != CGRendererFontSmoothing.none
+        let shouldSmoothFonts = smoothingMode != CGRendererFontSmoothing.antialiased && smoothingMode != CGRendererFontSmoothing.none
         if shouldSmoothFonts != state.shouldSmoothFonts {
             restoresSmoothing = true
             context.setShouldSmoothFonts(shouldSmoothFonts)
         }
         #endif
         var restoresAntialiasing = false
-        let shouldAntialias = facts.smoothingMode != CGRendererFontSmoothing.none
+        let shouldAntialias = smoothingMode != CGRendererFontSmoothing.none
         if shouldAntialias != state.shouldAntialias {
             restoresAntialiasing = true
             context.setShouldAntialias(shouldAntialias)
@@ -2418,25 +3088,27 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         let isRotated = (ctm.b != 0 || ctm.c != 0) && (ctm.a != 0 || ctm.d != 0)
         context.setShouldSubpixelQuantizeFonts(isTranslationOrIntegralScale || (!isRotated && state.shouldSubpixelQuantizeFonts))
 
-        if hasSimpleShadow, let shadow = state.dropShadow, let shadowFillColor {
+        if hasSimpleShadow, let shadow = state.dropShadow,
+            let shadowFillColor = computesReceiverShadowColor ? receiverGlyphShadowColor() : shadowFillColor
+        {
             // Simple shadows are drawn here rather than by CG, which would lose subpixel antialiasing.
             let shadowX = x + shadow.width
             let shadowY = y + (state.shadowsIgnoreTransforms ? -shadow.height : shadow.height)
             let originalFillColor = CGContextGetFillColorAsColor(context)
             CGContextSetStyle(context, nil)
             context.setFillColor(shadowFillColor)
-            showGlyphs(run, &positions, facts, shadowX, shadowY)
+            showGlyphs(run, glyphs, advances, facts, shadowX, shadowY)
             if syntheticBoldOffset != 0 {
-                showGlyphs(run, &positions, facts, shadowX + syntheticBoldOffset, shadowY)
+                showGlyphs(run, glyphs, advances, facts, shadowX + syntheticBoldOffset, shadowY)
             }
             if let originalFillColor {
                 context.setFillColor(originalFillColor)
             }
         }
 
-        showGlyphs(run, &positions, facts, x, y)
+        showGlyphs(run, glyphs, advances, facts, x, y)
         if syntheticBoldOffset != 0 {
-            showGlyphs(run, &positions, facts, x + syntheticBoldOffset, y)
+            showGlyphs(run, glyphs, advances, facts, x + syntheticBoldOffset, y)
         }
 
         // Platform drawing may assume an identity text matrix.
@@ -2456,14 +3128,15 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 
     // RepeatedDrawGlyphs::showGlyphsWithAdvances(): the glyphs' positions in text space, from the anchor and the advances
     // (and, for vertical text, each glyph's translation), then CTFontDrawGlyphs().
-    private func showGlyphs(
+    private mutating func showGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: inout CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
+        _ glyphs: Span<CGGlyph>,
+        _ advances: Span<CGSize>,
+        _ facts: CGRendererGlyphFontFacts,
         _ x: Float,
         _ y: Float
     ) {
-        let count = run.size()
+        let count = glyphs.count
         if count == 0 {
             return
         }
@@ -2476,27 +3149,68 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
             CGSize(width: t.a * size.width + t.c * size.height, height: t.b * size.width + t.d * size.height)
         }
         do {
-            var output: MutableSpan<CGPoint> = positions.mutableSpan()
-            if run.isVertical() {
+            var output = glyphPositions.mutableSpan
+            if facts.isVertical {
+                let translations = glyphTranslations.span
                 var positionX = CGFloat(x)
                 var positionY = CGFloat(y + facts.ascentDelta)
                 for index in 0..<count {
-                    let translation = applyToSize(facts.verticalTranslationMatrix, run.translation(index))
+                    let translation = applyToSize(facts.verticalTranslationMatrix, translations[index])
                     output[index] = apply(matrix, positionX + translation.width, positionY + translation.height)
-                    let advance = run.advance(index)
+                    let advance = advances[index]
                     positionX += advance.width
                     positionY += advance.height
                 }
             } else {
                 output[0] = apply(matrix, CGFloat(x), CGFloat(y))
                 for index in 1..<count {
-                    let advance = applyToSize(matrix, run.advance(index - 1))
+                    let advance = applyToSize(matrix, advances[index - 1])
                     let previous = output[index - 1]
                     output[index] = CGPoint(x: previous.x + advance.width, y: previous.y + advance.height)
                 }
             }
         }
-        CGRendererDrawGlyphs(run, positions, context)
+        CGRendererDrawGlyphs(run, glyphPositions.span, context)
+    }
+
+    // Whether a transparency layer is open, whoever began it: GraphicsContext's isInTransparencyLayer() or a Swift receiver's.
+    private func isInAnyTransparencyLayer() -> Bool {
+        for level in 0..<depth where stack[level].purpose == .transparencyLayer {
+            return true
+        }
+        return false
+    }
+
+    // The color a Swift receiver's drop shadow without blur draws glyphs in, from the receiver's state.
+    private func receiverGlyphShadowColor() -> CGColor? {
+        guard let shadow = state.dropShadow else {
+            return nil
+        }
+        return CGRendererCopyGlyphShadowColor(
+            colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible),
+            colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible),
+            destinationColorSpace
+        )
+    }
+
+    // MARK: Focus rings
+
+    // GraphicsContextCG::drawFocusRing(): the platform's focus ring around the path, in the color, scaled by the zoom and the
+    // CTM's scale, which respects the clip and doesn't overpaint a focus ring already there.
+    @_expose(Cxx)
+    mutating func drawFocusRing(_ path: borrowing CGPath, _ color: CGColor?, _ zoomFactor: Float) {
+        var ctmScale = largestSingularValue(userToBaseCTM)
+        if ctmScale <= 0 {
+            ctmScale = 1
+        }
+        hasDrawn = true
+        let style = CGRendererCreateFocusRingStyle(color, CGFloat(zoomFactor) * ctmScale)
+        context.saveGState()
+        CGContextSetStyle(context, style)
+        context.beginPath()
+        context.addPath(copy path)
+        context.fillPath()
+        context.restoreGState()
     }
 
     // MARK: Device scale, headroom and PDF
@@ -2565,49 +3279,56 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         return true
     }
 
-    // GraphicsContextCG::drawNativeImage() but for a dynamic range limit, which the C++ draws. The headrooms are the image's and
-    // the options' (0, Headroom::FromImage, for the image's). Returns 0 if it didn't draw, 1 if it drew, 2 if there was nothing
-    // to draw.
+    // GraphicsContextCG::drawNativeImage(): the source rect of the image, scaled by its resolution scale as
+    // GraphicsContext::drawImageBuffer() scales an image buffer's, into the destination rect, with the options' composite
+    // mode, interpolation, orientation, headroom and dynamic range limit, and inverted where the facts give a color matrix
+    // to invert it with. A sub-image keeps high-quality interpolation from bleeding pixels from outside the source rect. On
+    // the iOS family, the image is aligned to device pixels and not antialiased.
     @_expose(Cxx)
     mutating func drawNativeImage(
         _ image: borrowing CGImage,
-        _ imageWidth: Float,
-        _ imageHeight: Float,
-        _ destinationX: Float,
-        _ destinationY: Float,
-        _ destinationWidth: Float,
-        _ destinationHeight: Float,
-        _ sourceX: Float,
-        _ sourceY: Float,
-        _ sourceWidth: Float,
-        _ sourceHeight: Float,
-        _ compositeOperator: WebCore.CompositeOperator,
-        _ blendMode: WebCore.BlendMode,
-        _ optionsInterpolationQuality: WebCore.InterpolationQuality,
-        _ orientation: UInt8,
-        _ imageHeadroom: Float,
-        _ optionsHeadroom: Float
-    ) -> UInt8 {
-        var headroom = optionsHeadroom == 0 ? imageHeadroom : optionsHeadroom
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ source: CGRect,
+        _ options: CGRendererImageOptions
+    ) {
+        #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+        if facts.invertsContent {
+            drawNativeImageInverted(image, facts, destination, source, options)
+            return
+        }
+        #endif
+        let scale = facts.resolutionScale
+        let sourceX = Float(source.origin.x) * scale
+        let sourceY = Float(source.origin.y) * scale
+        let sourceWidth = Float(source.size.width) * scale
+        let sourceHeight = Float(source.size.height) * scale
+        var headroom = options.headroom == 0 ? facts.headroom : options.headroom
         if let maxEDRHeadroom {
             headroom = cxxMin(headroom, maxEDRHeadroom)
         }
+        let orientation = options.orientation
         let usesWidthAsHeight = CGRendererOrientation.usesWidthAsHeight(orientation)
-        let logicalWidth = usesWidthAsHeight ? imageHeight : imageWidth
-        let logicalHeight = usesWidthAsHeight ? imageWidth : imageHeight
+        let logicalWidth = usesWidthAsHeight ? facts.height : facts.width
+        let logicalHeight = usesWidthAsHeight ? facts.width : facts.height
         let imageRect = CGRendererRect(x: 0, y: 0, width: logicalWidth, height: logicalHeight)
         let normalizedSourceRect = CGRendererRect(x: sourceX, y: sourceY, width: sourceWidth, height: sourceHeight).normalized
-        let normalizedDestinationRect = CGRendererRect(x: destinationX, y: destinationY, width: destinationWidth, height: destinationHeight)
-            .normalized
+        let normalizedDestinationRect = CGRendererRect(
+            x: Float(destination.origin.x),
+            y: Float(destination.origin.y),
+            width: Float(destination.size.width),
+            height: Float(destination.size.height)
+        ).normalized
         if !imageRect.intersects(normalizedSourceRect) {
-            return 2
+            return
         }
 
         let transform = context.ctm
         let oldInterpolationQuality = state.imageInterpolationQuality
-        let interpolationQuality = optionsInterpolationQuality == .Default ? state.imageInterpolationQuality : optionsInterpolationQuality
+        let interpolationQuality = options.interpolationQuality == .Default ? state.imageInterpolationQuality : options.interpolationQuality
 
-        var subimage: CGImage? = copy image
+        // The copy of the source rect's part of the image that the draw draws instead of the image, if any.
+        var subimage: CGImage? = nil
         var adjustedDestinationRect = normalizedDestinationRect
         var clipsToDestination = false
         if normalizedSourceRect != imageRect {
@@ -2618,6 +3339,12 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
                 // the destination (rdar://6112909).
                 let subimageRect = CGRendererIntRect(enclosing: normalizedSourceRect)
                 subimage = self.subimage(copy image, logicalWidth, logicalHeight, subimageRect.rect, orientation)
+                // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts
+                // the state back.
+                guard subimage != nil else {
+                    hasDrawn = true
+                    return
+                }
                 let paddingX = normalizedSourceRect.x - Float(subimageRect.x)
                 let paddingY = normalizedSourceRect.y - Float(subimageRect.y)
                 adjustedDestinationRect = CGRendererRect(
@@ -2638,30 +3365,42 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
             clipsToDestination = !normalizedDestinationRect.contains(adjustedDestinationRect)
         }
 
-        // CGImageCreateWithImageInRect() found no image there: the C++ draws a null image, which CG ignores, and puts the
-        // state back.
-        guard let subimage else {
-            hasDrawn = true
-            return 1
-        }
-
         if clipsToDestination {
             context.saveGState()
             context.clip(to: normalizedDestinationRect.cgRect)
         }
 
+        #if WTF_PLATFORM_IOS_FAMILY
+        // Antialiasing is on by default on the iPhone; it's off for images, which are aligned to device pixels.
+        let wasAntialiased = state.shouldAntialias
+        context.setShouldAntialias(false)
+        adjustedDestinationRect = roundToDevicePixels(adjustedDestinationRect)
+        #endif
+
         let oldCompositeOperator = state.compositeOperator
         let oldBlendMode = state.blendMode
-        context.setBlendMode(cgBlendMode(compositeOperator, blendMode))
+        context.setBlendMode(cgBlendMode(options.compositeOperator, options.blendMode))
 
         if interpolationQuality != oldInterpolationQuality {
             context.interpolationQuality = cgInterpolationQuality(interpolationQuality)
         }
 
-        let oldHeadroom = CGContextGetEDRTargetHeadroom(context)
-        if imageHeadroom > headroom {
+        #if HAVE_SUPPORT_HDR_DISPLAY_APIS
+        // Only what the draw changes is put back: CGContentToneMappingInfo bridges its options on every get and set.
+        let setsHeadroom = facts.headroom > headroom
+        let oldHeadroom = setsHeadroom ? CGContextGetEDRTargetHeadroom(context) : 0
+        let oldToneMappingInfo = options.limitsDynamicRange ? SavedToneMappingInfo(context) : nil
+        if setsHeadroom {
             _ = context.setEDRTargetHeadroom(headroom)
         }
+        if options.limitsDynamicRange {
+            if let subimage {
+                CGRendererSetDynamicRangeLimitForImage(context, subimage, options.dynamicRangeLimit)
+            } else {
+                CGRendererSetDynamicRangeLimitForImage(context, image, options.dynamicRangeLimit)
+            }
+        }
+        #endif
 
         context.translateBy(x: CGFloat(adjustedDestinationRect.x), y: CGFloat(adjustedDestinationRect.y))
         var drawWidth = adjustedDestinationRect.width
@@ -2678,20 +3417,107 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         context.translateBy(x: 0, y: drawRect.height)
         context.scaleBy(x: 1, y: -1)
 
-        context.draw(subimage, in: drawRect)
+        if let subimage {
+            context.draw(subimage, in: drawRect)
+        } else {
+            context.draw(image, in: drawRect)
+        }
 
         if clipsToDestination {
             context.restoreGState()
         } else {
             CGContextSetCTM(context, transform)
+            #if WTF_PLATFORM_IOS_FAMILY
+            context.setShouldAntialias(wasAntialiased)
+            #endif
             context.setBlendMode(cgBlendMode(oldCompositeOperator, oldBlendMode))
             if interpolationQuality != oldInterpolationQuality {
                 context.interpolationQuality = cgInterpolationQuality(oldInterpolationQuality)
             }
-            _ = context.setEDRTargetHeadroom(oldHeadroom)
+            #if HAVE_SUPPORT_HDR_DISPLAY_APIS
+            oldToneMappingInfo?.restore(context)
+            if setsHeadroom {
+                _ = context.setEDRTargetHeadroom(oldHeadroom)
+            }
+            #endif
         }
         hasDrawn = true
-        return 1
+    }
+
+    #if HAVE_CGSTYLE_COLORMATRIX_BLUR
+    // An image inverted for an accessibility color mode: in a transparency layer of the composite mode, clipped to the
+    // destination, that the color matrix style inverts.
+    @inline(never)
+    private mutating func drawNativeImageInverted(
+        _ image: borrowing CGImage,
+        _ facts: CGRendererImageFacts,
+        _ destination: CGRect,
+        _ source: CGRect,
+        _ options: CGRendererImageOptions
+    ) {
+        var facts = facts
+        facts.invertsContent = false
+        var layerOptions = options
+        layerOptions.compositeOperator = .SourceOver
+        layerOptions.blendMode = .Normal
+        let normalizedDestination = CGRendererRect(
+            x: Float(destination.origin.x),
+            y: Float(destination.origin.y),
+            width: Float(destination.size.width),
+            height: Float(destination.size.height)
+        ).normalized
+        save(false)
+        clip(normalizedDestination.cgRect)
+        setColorMatrixStyle(facts.invertColorMatrix)
+        setCompositeMode(options.compositeOperator, options.blendMode)
+        beginTransparencyLayerWithCurrentAlpha()
+        drawNativeImage(image, facts, destination, source, layerOptions)
+        endTransparencyLayer()
+        restore()
+    }
+    #endif
+
+    // GraphicsContextCG::roundToDevicePixels(), with the cache of whether the user to device transform is the identity.
+    private mutating func roundToDevicePixels(_ rect: CGRendererRect) -> CGRendererRect {
+        if !userToDeviceTransformKnownToBeIdentity {
+            let deviceMatrix = context.userSpaceToDeviceSpaceTransform
+            guard deviceMatrix.isIdentity else {
+                return roundToDevicePixels(deviceMatrix, rect)
+            }
+            userToDeviceTransformKnownToBeIdentity = true
+        }
+        // roundedIntRect().
+        let x = Float(clampToInt(rect.x.rounded(.toNearestOrAwayFromZero)))
+        let y = Float(clampToInt(rect.y.rounded(.toNearestOrAwayFromZero)))
+        let width = Float(clampToInt(rect.width.rounded(.toNearestOrAwayFromZero)))
+        let height = Float(clampToInt(rect.height.rounded(.toNearestOrAwayFromZero)))
+        return CGRendererRect(x: x, y: y, width: width, height: height)
+    }
+
+    // cgRoundToDevicePixelsNonIdentity(): rounded in device space by the transform's scale alone, which a rotation doesn't
+    // disturb, and not rounded to nothing unless it was nothing.
+    private func roundToDevicePixels(_ deviceMatrix: CGAffineTransform, _ rect: CGRendererRect) -> CGRendererRect {
+        let deviceScaleX = hypot(deviceMatrix.a, deviceMatrix.b)
+        let deviceScaleY = hypot(deviceMatrix.c, deviceMatrix.d)
+        var originX = CGFloat(rect.x) * deviceScaleX
+        var originY = CGFloat(rect.y) * deviceScaleY
+        var lowerRightX = CGFloat(rect.x + rect.width) * deviceScaleX
+        var lowerRightY = CGFloat(rect.y + rect.height) * deviceScaleY
+        originX = CGFloat(Float(originX).rounded(.toNearestOrAwayFromZero))
+        originY = CGFloat(Float(originY).rounded(.toNearestOrAwayFromZero))
+        lowerRightX = CGFloat(Float(lowerRightX).rounded(.toNearestOrAwayFromZero))
+        lowerRightY = CGFloat(Float(lowerRightY).rounded(.toNearestOrAwayFromZero))
+        if originY == lowerRightY && rect.height != 0 {
+            lowerRightY += 1
+        }
+        if originX == lowerRightX && rect.width != 0 {
+            lowerRightX += 1
+        }
+        let roundedOriginX = Float(originX / deviceScaleX)
+        let roundedOriginY = Float(originY / deviceScaleY)
+        let roundedLowerRightX = Float(lowerRightX / deviceScaleX)
+        let roundedLowerRightY = Float(lowerRightY / deviceScaleY)
+        return CGRendererRect(x: roundedOriginX, y: roundedOriginY, width: roundedLowerRightX - roundedOriginX, height: roundedLowerRightY - roundedOriginY)
     }
 
     // GraphicsContextCG::drawPattern(): the image's tile, repeated across the destination by the pattern transform (only its
@@ -3002,15 +3828,12 @@ extension CGRendererCore {
         save(false, hasCxxLevel: false)
     }
 
-    // Declines the restore of a level in which C++ set a gradient or pattern brush, for GraphicsContextCG::restore(), which lets
-    // GraphicsContext's copy of the brush go at once.
+    // GraphicsContextCG::restore(). GraphicsContext's copy of a gradient or pattern brush that C++ set in the level goes when
+    // GraphicsContextCG next brings it up to date, which it does at once when it restores the level itself.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveRestore() -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveRestore() {
         guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
-            return true
-        }
-        if levelHasCxxBrushSource {
-            return false
+            return
         }
         // GraphicsContext restores a level that C++ saved when it next brings its state up to date, after any C++ setter
         // that comes first has changed that level's copy: so it then takes all of the state.
@@ -3019,7 +3842,6 @@ extension CGRendererCore {
             cxxStaleProperties = CxxStateChange.all
         }
         pop()
-        return true
     }
 
     @_expose(!Cxx)
@@ -3040,6 +3862,25 @@ extension CGRendererCore {
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveSetCTM(_ transform: CGAffineTransform) {
         setCTM(transform)
+    }
+
+    // The transform that a replayed recording's transforms are relative to: the context's when the replay starts, as
+    // GraphicsContext::drawDisplayList() takes it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverCTM() -> CGAffineTransform {
+        ctm(false)
+    }
+
+    // GraphicsContextCG::getCTM(DefinitelyIncludeDeviceScale) and GraphicsContextCG::colorSpace(), for a draw that C++ renders
+    // an image for.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverDeviceCTM() -> CGAffineTransform {
+        ctm(true)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverDestinationColorSpace() -> CGRendererDestinationColorSpace {
+        destinationColorSpace
     }
 
     @_expose(!Cxx)
@@ -3113,17 +3954,22 @@ extension CGRendererCore {
         levelChanges |= CxxStateChange.strokeBrush
     }
 
-    // GraphicsContextCG::paintGradientInClip(): false where C++ paints the gradient, in a CGLayer for a drop shadow.
+    // GraphicsContextCG::paintGradientInClip(): the gradient across the clip of the content. With a drop shadow, the content
+    // and its shadow paint in a transparency layer that their bounds bound, or where CGStyle lacks its fix for shadow blurs, in
+    // a CGLayer of the content's bounds.
     private mutating func paintGradientInClip(
         _ source: CGRendererBrushSource,
         _ contentBounds: () -> CGRect,
         _ clip: (CGContext) -> Void
-    ) -> Bool {
-        let shadow = state.dropShadow.flatMap { $0.hasOutsets ? $0 : nil }
-        if shadow != nil && CGRendererPaintsGradientShadowsInLayer() {
-            return false
-        }
+    ) {
         hasDrawn = true
+        let shadow = state.dropShadow.flatMap { $0.hasOutsets ? $0 : nil }
+        #if !HAVE_CGSTYLE_FIXES_DROP_SHADOW_BLUR
+        if shadow != nil {
+            paintGradientInLayer(source, contentBounds(), clip)
+            return
+        }
+        #endif
         if let shadow {
             CGRendererBeginGradientShadowLayer(
                 context,
@@ -3143,8 +3989,46 @@ extension CGRendererCore {
         if shadow != nil {
             CGRendererEndGradientShadowLayer(context)
         }
-        return true
     }
+
+    #if !HAVE_CGSTYLE_FIXES_DROP_SHADOW_BLUR
+    // GraphicsContextCG::paintGradientInCGLayer(): older transparency layers are bounded by the clip, which would lose the
+    // shadow of content outside it, so the gradient paints in a CGLayer of the content's bounds, which draws with the shadow.
+    // The gradient is in its own color space here.
+    private mutating func paintGradientInLayer(_ source: CGRendererBrushSource, _ contentBounds: CGRect, _ clip: (CGContext) -> Void) {
+        let layerBounds = CGRendererIntRect(
+            enclosing: CGRendererRect(
+                x: Float(contentBounds.origin.x),
+                y: Float(contentBounds.origin.y),
+                width: Float(contentBounds.size.width),
+                height: Float(contentBounds.size.height)
+            )
+        ).rect
+        guard !layerBounds.isEmpty else {
+            return
+        }
+        // AffineTransform::mapSize() of the bounds' size by the CTM.
+        let ctm = context.ctm
+        let layerWidth = Float(Double(layerBounds.width) * hypot(Double(ctm.a), Double(ctm.b)))
+        let layerHeight = Float(Double(layerBounds.height) * hypot(Double(ctm.c), Double(ctm.d)))
+        guard let layer = CGLayer(context, size: CGSize(width: CGFloat(layerWidth), height: CGFloat(layerHeight)), auxiliaryInfo: nil),
+            let layerContext = layer.context
+        else {
+            return
+        }
+        layerContext.scaleBy(x: CGFloat(layerWidth / layerBounds.width), y: CGFloat(layerHeight / layerBounds.height))
+        layerContext.translateBy(x: CGFloat(-layerBounds.x), y: CGFloat(-layerBounds.y))
+        clip(layerContext)
+        var geometry = CGRendererGradientGeometry()
+        var spaceTransform = CGAffineTransform.identity
+        let gradient = CGRendererCopyBrushGradient(source, CGRendererGradientColorSpace(), &geometry, &spaceTransform)
+        layerContext.concatenate(spaceTransform)
+        if let gradient {
+            Self.paintGradient(layerContext, gradient, geometry)
+        }
+        context.draw(layer, in: layerBounds.cgRect)
+    }
+    #endif
 
     private func brushSource(_ brush: CGRendererBrush) -> CGRendererBrushSource? {
         guard brush.sourceSlot != 0, case .brush(let source) = sources[Int(brush.sourceSlot) - 1] else {
@@ -3153,43 +4037,36 @@ extension CGRendererCore {
         return source
     }
 
-    // GraphicsContextCG's fills and strokes with a gradient brush, in the clip of the content the receiver's C++ adds: false
-    // where C++ paints the gradient.
+    // GraphicsContextCG's fills and strokes with a gradient brush, in the clip of the content the receiver adds. A brush is
+    // only a gradient with its source, which C++ sets with it, so there is always one to paint.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillWithGradient(_ contentBounds: () -> CGRect, _ clip: (CGContext, WebCore.WindRule) -> Void) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillWithGradient(_ contentBounds: () -> CGRect, _ clip: (CGContext, WebCore.WindRule) -> Void) {
         guard let source = brushSource(state.fill) else {
-            return false
+            return
         }
         let rule: WebCore.WindRule = state.fillRule == 1 ? .EvenOdd : .NonZero
-        return paintGradientInClip(source, contentBounds) { context in clip(context, rule) }
+        paintGradientInClip(source, contentBounds) { context in clip(context, rule) }
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeWithGradient(_ contentBounds: (CGContext) -> CGRect, _ clip: (CGContext, Float) -> Void) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeWithGradient(_ contentBounds: (CGContext) -> CGRect, _ clip: (CGContext, Float) -> Void) {
         guard let source = brushSource(state.stroke) else {
-            return false
+            return
         }
         let thickness = state.strokeThickness
         let context = context
-        return paintGradientInClip(source, { contentBounds(context) }) { clipContext in clip(clipContext, thickness) }
-    }
-
-    // Whether the renderer paints a receiver's gradients, which C++ paints in a CGLayer where there is a drop shadow and CGStyle
-    // lacks its fix for shadow blurs.
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receivePaintsGradients() -> Bool {
-        !((state.dropShadow?.hasOutsets ?? false) && CGRendererPaintsGradientShadowsInLayer())
+        paintGradientInClip(source, { contentBounds(context) }) { clipContext in clip(clipContext, thickness) }
     }
 
     // GraphicsContextCG::fillRect() with a gradient: the fill brush's, or one of its own (FillRectWithGradientAndSpaceTransform),
     // in the rect's clip where it requires it or there is a drop shadow.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRectWithGradient(_ rect: CGRect, _ source: CGRendererBrushSource?, _ requiresClipToRect: Bool) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRectWithGradient(_ rect: CGRect, _ source: CGRendererBrushSource?, _ requiresClipToRect: Bool) {
         guard let source = source ?? brushSource(state.fill) else {
-            return false
+            return
         }
         let clipsToRect = requiresClipToRect || (state.dropShadow?.hasOutsets ?? false)
-        return paintGradientInClip(source, { rect }) { context in
+        paintGradientInClip(source, { rect }) { context in
             if clipsToRect {
                 context.clip(to: rect)
             }
@@ -3208,42 +4085,17 @@ extension CGRendererCore {
         }
     }
 
-    // GraphicsContextCG::getCTM() and the stroke color of the state, for the receiver's C++ that works out text lines, and the
-    // rects of the lines, filled in their color (GraphicsContextCG::drawLinesForText()).
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveCTM(includingDeviceScale: Bool) -> CGAffineTransform {
-        hasDrawn = true
-        return ctm(includingDeviceScale)
-    }
-
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receiveStrokeColor() -> CGRendererColorValue {
-        colorValue(state.stroke.packedColor, state.stroke.platformColorSlot, state.stroke.isColorVisible)
-    }
-
-    // The state a run of glyphs draws in, for the receiver's C++ that prepares it (GraphicsContextCG::drawGlyphsImmediate()).
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receiveGlyphContext() -> CGRendererGlyphContext {
-        var context = CGRendererGlyphContext()
-        context.fillColor = colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible)
-        if let shadow = state.dropShadow {
-            context.shadowColor = colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible)
-            context.hasSimpleShadow = shadow.isValid && shadow.radius == 0
-        }
-        context.hasReceiverTransparencyLayer = hasReceiverTransparencyLayer()
-        return context
-    }
-
+    // A Swift receiver's run of glyphs, in a font whose facts its cache worked out, from the anchor point
+    // (GraphicsContextCG::drawGlyphsImmediate()).
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
-        _ shadowFillColor: CGColor?,
+        _ facts: CGRendererGlyphFontFacts,
+        _ smoothingMode: UInt8,
         _ x: Float,
         _ y: Float
     ) {
-        drawGlyphs(run, positions, facts, shadowFillColor, x, y)
+        drawGlyphRun(run, facts, smoothingMode, isInAnyTransparencyLayer(), nil, true, x, y)
     }
 
     private func colorValue(_ packedColor: UInt32, _ platformColorSlot: UInt32, _ isVisible: Bool) -> CGRendererColorValue {
@@ -3258,21 +4110,204 @@ extension CGRendererCore {
         return value
     }
 
+    // GraphicsContextCG::drawLinesForText(): GraphicsContext::computeRectsAndStrokeColorForLinesForText()'s rects for the
+    // segments, filled in the stroke color. Unless printing, the lines are a device pixel high at least and snapped to device
+    // pixels, away from the text, and the color's alpha drops on a context that scales them down; dotted and dashed lines are
+    // dashes the line's height and twice it.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRects(_ rects: CGRendererRects, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
+    @_spi(WebKitGPU) public mutating func receiveDrawLinesForText(
+        _ segments: Span<WebCore.FloatSegment>,
+        _ x: Float,
+        _ y: Float,
+        _ thickness: Float,
+        _ printing: Bool,
+        _ doubleLines: Bool,
+        _ strokeStyle: WebCore.StrokeStyle
+    ) {
+        hasDrawn = true
+        guard !segments.isEmpty else {
+            return
+        }
+        var color = colorValue(state.stroke.packedColor, state.stroke.platformColorSlot, state.stroke.isColorVisible)
+        var originX = x
+        var originY = y
+        let height = cxxMax(thickness, 0.5)
+        if !printing {
+            let t = ctm(true)
+            // The scale in x, which is taken to be the scale in y too.
+            let scale = Float(t.b != 0 ? hypot(t.a, t.b) : t.a)
+            if scale < 1 {
+                // A line is a device pixel high at least, which would overwhelm text at small scales.
+                let minimumUnderlineAlpha: Float = 0.4
+                color = colorValueWithAlphaMultiplied(color, by: scale > minimumUnderlineAlpha ? scale : minimumUnderlineAlpha)
+            }
+            let transform = CGRendererTransform(t)
+            let device = transform.mapPoint(x, y)
+            if let inverse = transform.inverse() {
+                let snappedDeviceY = t.d < 0 ? device.y.rounded(.down) : device.y.rounded(.up)
+                (originX, originY) = inverse.mapPoint(device.x.rounded(.toNearestOrAwayFromZero), snappedDeviceY)
+            }
+        }
+        let bounds = CGRendererRect(x: originX, y: originY, width: segments[segments.count - 1].end, height: height)
+        guard !bounds.isEmpty else {
+            return
+        }
+
+        var dashWidth: Float = 0
+        switch strokeStyle {
+        case .DottedStroke:
+            dashWidth = bounds.height
+        case .DashedStroke:
+            dashWidth = 2 * bounds.height
+        default:
+            break
+        }
+
+        rectScratch.removeAll(keepingCapacity: true)
+        for index in segments.indices {
+            let segment = segments[index]
+            let left = segment.begin
+            let width = segment.end - segment.begin
+            guard dashWidth != 0 else {
+                rectScratch.append(CGRendererRect(x: bounds.x + left, y: bounds.y, width: width, height: bounds.height).cgRect)
+                continue
+            }
+            let doubleWidth = 2 * dashWidth
+            let quotient = cxxIntConversion(Double(left / doubleWidth))
+            let startOffset = left - Float(quotient) * doubleWidth
+            let effectiveLeft = left + startOffset
+            let startParticle = cxxIntConversion(Double((effectiveLeft / doubleWidth).rounded(.down)))
+            let endParticle = cxxIntConversion(Double(((left + width) / doubleWidth).rounded(.up)))
+            var particle = startParticle
+            while particle < endParticle {
+                var actualDashWidth = dashWidth
+                var dashStart = bounds.x + Float(particle) * doubleWidth
+                if particle == startParticle && startOffset > 0 && startOffset < dashWidth {
+                    actualDashWidth -= startOffset
+                    dashStart += startOffset
+                }
+                if particle == endParticle &- 1 {
+                    let remainingWidth = left + width - Float(particle) * doubleWidth
+                    if remainingWidth < dashWidth {
+                        actualDashWidth = remainingWidth
+                    }
+                }
+                rectScratch.append(CGRendererRect(x: dashStart, y: bounds.y, width: actualDashWidth, height: bounds.height).cgRect)
+                particle += 1
+            }
+        }
+        if doubleLines {
+            // The space between double underlines is the height of the underline.
+            let secondY = bounds.y + 2 * bounds.height
+            for index in segments.indices {
+                let segment = segments[index]
+                rectScratch.append(CGRendererRect(x: bounds.x + segment.begin, y: secondY, width: segment.end - segment.begin, height: bounds.height).cgRect)
+            }
+        }
+
         let changesFillColor = !fillColorEquals(color)
-        if let cgColor = receivedCGColor(color, cgColor) {
-            fillRectsInPlatformColor(rects, cgColor, changesFillColor)
-        } else {
-            fillRectsInPackedColor(rects, color.packedColor, changesFillColor)
+        let fillColor = changesFillColor ? fillCGColor(color, nil) : nil
+        if let fillColor {
+            context.setFillColor(fillColor)
+        }
+        context.fill(rectScratch)
+        if fillColor != nil {
+            context.setFillColor(platformColor(state.fill))
         }
     }
 
-    // A draw that the receiver's C++ makes into the context (GraphicsContextCG::drawDotsForDocumentMarker()).
+    // Color::colorWithAlphaMultipliedBy() of a color value: a packed color's alpha byte, or a color's resolved alpha, clamped.
+    private func colorValueWithAlphaMultiplied(_ color: CGRendererColorValue, by amount: Float) -> CGRendererColorValue {
+        var result = color
+        if color.isPacked {
+            let alpha = amount * (Float(color.packedColor & 0xFF) / 255)
+            let alphaByte = UInt32(min(max((alpha * 255).rounded(.toNearestOrAwayFromZero), 0), 255))
+            result.packedColor = (color.packedColor & 0xFFFF_FF00) | alphaByte
+            result.isVisible = alphaByte != 0
+            return result
+        }
+        let resolvedAlpha = color.data.alpha.isNaN ? 0 : color.data.alpha
+        result.data.alpha = min(max(amount * resolvedAlpha, 0), 1)
+        result.isVisible = result.data.alpha > 0
+        return result
+    }
+
+    // GraphicsContext::clipRoundedRect(): the Path of the rounded rect, as GraphicsContextCG clips to a Path.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDraw(_ draw: (CGContext) -> Void) {
+    @_spi(WebKitGPU) public mutating func receiveClipToRoundedRect(_ rect: borrowing WebCore.FloatRoundedRect) {
         hasDrawn = true
-        draw(context)
+        CGRendererRoundedRectSegment(CGRendererRoundedRectOf(copy rect)).clip(context, .winding)
+    }
+
+    // GraphicsContext::clipOutRoundedRect(): one without radii as a rect, and one with them as its Path.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipOutToRoundedRect(_ rect: borrowing WebCore.FloatRoundedRect) {
+        let roundedRect = CGRendererRoundedRectOf(copy rect)
+        guard roundedRect.hasNonZeroRadii else {
+            clipOut(roundedRect.cgRect)
+            return
+        }
+        hasDrawn = true
+        CGRendererRoundedRectSegment(roundedRect).clipOut(context)
+    }
+
+    // A document marker in its color: the CGColor that cachedCGColor() makes of it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawDotsForDocumentMarker(
+        _ rect: CGRect,
+        _ mode: WebCore.DocumentMarkerLineStyleMode,
+        _ color: CGRendererColorValue
+    ) {
+        let cgColor = color.isPacked ? colorCache.color(color.packedColor) : CGRendererCopyCachedCGColorForData(color.data)
+        drawDotsForDocumentMarker(rect, mode, cgColor)
+    }
+
+    // GraphicsContextCG::drawFocusRing() of a path, or of the path of rects, in a color that cachedCGColor() makes.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawFocusRing(_ path: CGPath, _ color: CGRendererColorValue, _ zoomFactor: Float) {
+        if path.isEmpty {
+            return
+        }
+        let cgColor = color.isPacked ? colorCache.color(color.packedColor) : CGRendererCopyCachedCGColorForData(color.data)
+        drawFocusRing(path, cgColor, zoomFactor)
+    }
+
+    // GraphicsContextCG::clipTransformedPath(): the clip of the path in the coordinates the transform maps it from, which is in
+    // device space, so the CTM goes back after it. An empty path clips everything out.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipTransformed(_ transform: CGAffineTransform, _ clip: (CGContext) -> Void) {
+        hasDrawn = true
+        let ctm = context.ctm
+        context.concatenate(transform)
+        clip(context)
+        CGContextSetCTM(context, ctm)
+    }
+
+    // GraphicsContextCG::beginPage(): a PDF page of the rect, in which the state starts over, as GraphicsContextState's first
+    // values, which go to CG. A context that isn't a PDF's has no pages.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveBeginPage(_ pageRect: CGRect) {
+        guard beginPDFPage(pageRect) else {
+            return
+        }
+        let interpolationQuality: WebCore.InterpolationQuality
+        switch context.interpolationQuality {
+        case .none: interpolationQuality = .DoNotInterpolate
+        case .low: interpolationQuality = .Low
+        case .medium: interpolationQuality = .Medium
+        case .high: interpolationQuality = .High
+        default: interpolationQuality = .Default
+        }
+        resetState(interpolationQuality)
+        setFillPackedColor(0x0000_00FF, 0)
+        setStrokePackedColor(0x0000_00FF, 0)
+        setStrokeThickness(0)
+        cxxStaleProperties = CxxStateChange.all
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveEndPage() {
+        _ = endPDFPage()
     }
 
     // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.
@@ -3282,32 +4317,31 @@ extension CGRendererCore {
         hasDrawn = true
     }
 
-    // GraphicsContextCG::fillRect(_:_:) of a color, with a shadow ShadowBlur draws where the receiver draws those.
+    // GraphicsContextCG::fillRect(_:_:) of a color, with a shadow ShadowBlur draws. A color CG can't make draws nothing.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ color: CGRendererColorValue, _ cgColor: CGColor?) {
         let changesFillColor = !fillColorEquals(color)
         if color.isPacked {
             if fillRect(rect, packedColor: color.packedColor, changesFillColor) {
-                return true
+                return
             }
-            guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
-                return false
+            guard let shadow = state.dropShadow else {
+                return
             }
-            let shadowColor = dropShadowColor(shadow)
-            fillRectWithShadowBlur(rect, packedColor: color.packedColor, changesFillColor, shadowColor, shadowColorChangesFill(shadow))
-            return true
+            fillRectWithShadowBlur(rect, packedColor: color.packedColor, changesFillColor, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            return
         }
         guard let cgColor = cgColor ?? platformColorCache.color(color.data, destinationColorSpace) else {
-            return false
+            hasDrawn = true
+            return
         }
         if fillRect(rect, platformColor: cgColor, changesFillColor) {
-            return true
+            return
         }
-        guard receiverDrawsShadowBlur, let shadow = state.dropShadow else {
-            return false
+        guard let shadow = state.dropShadow else {
+            return
         }
         fillRectWithShadowBlur(rect, platformColor: cgColor, changesFillColor, dropShadowColor(shadow), shadowColorChangesFill(shadow))
-        return true
     }
 
     // GraphicsContext::fillRect(_:_:_:_:): the fill in the composite mode, which is set back after it.
@@ -3318,26 +4352,25 @@ extension CGRendererCore {
         _ cgColor: CGColor?,
         _ compositeOperator: WebCore.CompositeOperator,
         _ blendMode: WebCore.BlendMode
-    ) -> Bool {
+    ) {
         let previousOperator = state.compositeOperator
         let previousBlendMode = state.blendMode
         let changesCompositeMode = previousOperator != compositeOperator || previousBlendMode != blendMode
         guard changesCompositeMode else {
-            return receiveFillRect(rect, color, cgColor)
+            receiveFillRect(rect, color, cgColor)
+            return
         }
         // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
         let cxxCompositeModeIsStale = cxxStaleProperties & CxxStateChange.compositeMode
         setCompositeMode(compositeOperator, blendMode)
-        let drawn = receiveFillRect(rect, color, cgColor)
+        receiveFillRect(rect, color, cgColor)
         setCompositeMode(previousOperator, previousBlendMode)
         cxxStaleProperties |= cxxCompositeModeIsStale
-        return drawn
     }
 
     // GraphicsContext::fillRoundedRect(): a rounded rect with radii as GraphicsContextCG::fillRoundedRectImpl() fills it, in
-    // the composite operator with the blend mode, and one without as a rect, with a shadow ShadowBlur draws. False where C++
-    // draws it: a shadow ShadowBlur draws where the receiver doesn't draw those or of a gradient, or a gradient C++ paints in
-    // a CGLayer.
+    // the composite operator with the blend mode, and one without as a rect, with a shadow ShadowBlur draws. A gradient fills
+    // the rounded rect's path, after any ShadowBlur shadow, as if it had its drop shadow still.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRoundedRect(
         _ rect: borrowing WebCore.FloatRoundedRect,
@@ -3345,23 +4378,16 @@ extension CGRendererCore {
         _ color: CGRendererColorValue,
         _ cgColor: CGColor?,
         _ blendMode: WebCore.BlendMode
-    ) -> Bool {
-        guard rect.hasNonZeroRadii() else {
-            return receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
+    ) {
+        let roundedRect = CGRendererRoundedRectOf(copy rect)
+        guard roundedRect.hasNonZeroRadii else {
+            receiveFillRect(bounds, color, cgColor, state.compositeOperator, blendMode)
+            return
         }
         hasDrawn = true
         let drawsShadowBlur = canUseShadowBlur
-        if drawsShadowBlur && (!receiverDrawsShadowBlur || state.fill.hasGradient) {
-            return false
-        }
-        if state.fill.hasGradient && !receivePaintsGradients() {
-            return false
-        }
         let changesFillColor = !fillColorEquals(color)
         let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
-        if changesFillColor && fillColor == nil {
-            return false
-        }
         let previousBlendMode = state.blendMode
         let changesCompositeMode = previousBlendMode != blendMode
         // The composite mode is as it was after the fill, so C++'s copy of it is as current as it was.
@@ -3375,19 +4401,18 @@ extension CGRendererCore {
         if drawsShadowBlur, let shadow = state.dropShadow {
             context.saveGState()
             CGContextSetStyle(context, nil)
-            let radii = CGRendererShadowBlurRoundedRectOf(rect).radii
-            drawRectShadowBlur(bounds, radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            drawRectShadowBlur(bounds, roundedRect.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
         }
-        let isEllipse = CGRendererRoundedRectIsEllipse(rect)
         if state.fill.hasGradient {
             // fillPath() of the rounded rect's path, in its clip.
             let bounds = CGRendererRoundedRectBounds(rect)
-            let rounded = copy rect
-            _ = receiveFillWithGradient({ bounds }) { context, rule in CGRendererClipToRoundedRectPath(context, rounded, rule) }
-        } else if !state.fill.hasPattern && isEllipse {
+            receiveFillWithGradient({ bounds }) { context, rule in
+                CGRendererRoundedRectSegment(roundedRect).clip(context, rule == .EvenOdd ? .evenOdd : .winding)
+            }
+        } else if !state.fill.hasPattern && roundedRect.isEllipse {
             context.fillEllipse(in: bounds)
         } else {
-            let path = CGRendererCopyRoundedRectPath(rect)
+            let path = roundedRectPath(roundedRect)
             if !path.isEmpty {
                 fillPath(path)
             }
@@ -3402,38 +4427,30 @@ extension CGRendererCore {
             setCompositeMode(state.compositeOperator, previousBlendMode)
             cxxStaleProperties |= cxxCompositeModeIsStale
         }
-        return true
     }
 
     // GraphicsContextCG::fillRectWithRoundedHole(): the even-odd fill of a rect and a rounded hole in it, in the color, with
-    // the shadow inside the hole that ShadowBlur draws. False where C++ draws it: that shadow where the receiver doesn't draw
-    // those.
+    // the shadow inside the hole that ShadowBlur draws.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveFillRectWithRoundedHole(
         _ rect: CGRect,
         _ hole: borrowing WebCore.FloatRoundedRect,
         _ color: CGRendererColorValue,
         _ cgColor: CGColor?
-    ) -> Bool {
+    ) {
         hasDrawn = true
         let drawsShadowBlur = canUseShadowBlur
-        if drawsShadowBlur && !receiverDrawsShadowBlur {
-            return false
-        }
         let changesFillColor = !fillColorEquals(color)
         let fillColor = changesFillColor ? fillCGColor(color, cgColor) : nil
-        if changesFillColor && fillColor == nil {
-            return false
-        }
-        let path = CGRendererCopyRectWithRoundedHolePath(rect, hole)
+        let roundedHole = CGRendererRoundedRectOf(copy hole)
+        let path = rectWithRoundedHolePath(rect, roundedHole)
         if let fillColor {
             context.setFillColor(fillColor)
         }
         if drawsShadowBlur, let shadow = state.dropShadow {
             context.saveGState()
             CGContextSetStyle(context, nil)
-            let shadowedHole = CGRendererShadowBlurRoundedRectOf(hole)
-            drawInsetShadowBlur(rect, shadowedHole.rect, shadowedHole.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
+            drawInsetShadowBlur(rect, roundedHole.rect, roundedHole.radii, dropShadowColor(shadow), shadowColorChangesFill(shadow))
         }
         CGRendererDrawPath(context, .eoFill, path)
         if drawsShadowBlur {
@@ -3442,7 +4459,6 @@ extension CGRendererCore {
         if changesFillColor {
             context.setFillColor(platformColor(state.fill))
         }
-        return true
     }
 
     // A receiver's shadow, as CGRendererShadowValuesOf() gives its values and its color's data.
@@ -3671,30 +4687,34 @@ extension CGRendererCore {
         resetClip()
     }
 
+    // GraphicsContextCG::fillRect(): a gradient brush paints in the rect, and a shadow ShadowBlur draws goes with a color or
+    // pattern brush.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillRect(_ rect: CGRect, _ requiresClipToRect: Bool) {
         if fillRect(rect) {
-            return true
+            return
         }
-        // A shadow ShadowBlur draws, where the receiver draws those, with a color or pattern brush.
-        guard receiverDrawsShadowBlur, !state.fill.hasGradient, let shadow = state.dropShadow else {
-            return false
+        if state.fill.hasGradient {
+            receiveFillRectWithGradient(rect, nil, requiresClipToRect)
+            return
+        }
+        guard let shadow = state.dropShadow else {
+            return
         }
         fillRectWithShadowBlur(rect, dropShadowColor(shadow), shadowColorChangesFill(shadow))
-        return true
     }
 
+    // GraphicsContextCG::strokeRect(): a gradient brush paints in the clip of the stroked rect.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeRect(_ rect: CGRect, _ lineWidth: Float) {
         if strokeRect(rect, lineWidth) {
-            return true
+            return
         }
-        // GraphicsContextCG::strokeRect() of a gradient brush.
         guard let source = brushSource(state.stroke) else {
-            return false
+            return
         }
         let context = context
-        return paintGradientInClip(source, { CGRendererStrokedRectBounds(context, rect, lineWidth) }) { clipContext in
+        paintGradientInClip(source, { CGRendererStrokedRectBounds(context, rect, lineWidth) }) { clipContext in
             CGRendererClipToStrokedRect(clipContext, rect, lineWidth)
         }
     }
@@ -3710,36 +4730,41 @@ extension CGRendererCore {
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillEllipse(_ rect: CGRect) {
         // GraphicsContext::fillEllipseAsPath() of a pattern or gradient brush.
-        fillEllipse(rect) || receiveFillPathSegment(ellipseSegment(rect))
+        if !fillEllipse(rect) {
+            receiveFillPathSegment(ellipseSegment(rect))
+        }
     }
 
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokeEllipse(_ rect: CGRect) {
         // GraphicsContext::strokeEllipseAsPath() of a pattern or gradient brush.
-        strokeEllipse(rect) || receiveStrokePathSegment(ellipseSegment(rect))
+        if !strokeEllipse(rect) {
+            receiveStrokePathSegment(ellipseSegment(rect))
+        }
     }
 
     // A path of one segment, which GraphicsContextCG::fillPath() fills through its CGPath.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveFillPathSegment(_ segment: CGRendererPathSegment) {
         guard fillsWithoutGradient() else {
-            return receiveFillWithGradient({ CGRendererPathSegmentBounds(segment) }) { context, rule in
+            receiveFillWithGradient({ CGRendererPathSegmentBounds(segment) }) { context, rule in
                 CGRendererClipToPathSegment(context, segment, rule)
             }
+            return
         }
         fillPath(CGRendererCreatePath(segment))
-        return true
     }
 
     // GraphicsContextCG::strokePath() and strokeLine(), which stroke a line as a line segment.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveStrokePathSegment(_ segment: CGRendererPathSegment) {
         guard strokesWithoutGradient() else {
-            return receiveStrokeWithGradient({ context in CGRendererStrokedPathSegmentBounds(context, segment) }) { context, thickness in
+            receiveStrokeWithGradient({ context in CGRendererStrokedPathSegmentBounds(context, segment) }) { context, thickness in
                 CGRendererClipToStrokedPathSegment(context, segment, thickness)
             }
+            return
         }
         if segment.kind == .DataLine {
             let v = segment.values
@@ -3747,42 +4772,57 @@ extension CGRendererCore {
         } else {
             strokePath(CGRendererCreatePath(segment))
         }
-        return true
+    }
+
+    // GraphicsContextCG::fillPath() of a pie wedge, where it fills as a stroked arc (fillPieWedge()).
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveFillPieWedge(_ x: Float, _ y: Float, _ radius: Float, _ startAngle: Float, _ endAngle: Float, _ counterclockwise: Bool) -> Bool {
+        fillPieWedge(x, y, radius, startAngle, endAngle, counterclockwise)
+    }
+
+    // GraphicsContextCG::strokeArc(): CG's own stroke of an arc where it has one, unless the brush is a gradient.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveStrokeArc(_ segment: CGRendererPathSegment) {
+        #if HAVE_CGCONTEXT_STROKE_ARC
+        if strokesWithoutGradient() {
+            hasDrawn = true
+            applyPattern(fill: false)
+            let v = segment.values
+            CGContextStrokeArc(context, CGFloat(v.0), CGFloat(v.1), CGFloat(v.2), CGFloat(v.3), CGFloat(v.4), segment.flag)
+            return
+        }
+        #endif
+        receiveStrokePathSegment(segment)
     }
 
     // GraphicsContextCG::drawPath(), which fills and strokes in one draw.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawPathSegment(_ segment: CGRendererPathSegment) {
+        hasDrawn = true
         guard fillsWithoutGradient() && strokesWithoutGradient() else {
-            // With a gradient, the fill and the stroke one after the other, unless C++ paints the gradient.
-            guard receivePaintsGradients() else {
-                return false
-            }
-            hasDrawn = true
-            // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the
-            // stroke's clip then has the CGPath rather than the segment.
+            // With a gradient, the fill and the stroke one after the other. A fill without a gradient draws the CGPath of
+            // the path, which C++ makes of the Path in place, so that the stroke's clip then has the CGPath rather than the
+            // segment.
             guard fillsWithoutGradient() else {
-                _ = receiveFillPathSegment(segment)
-                _ = receiveStrokePathSegment(segment)
-                return true
+                receiveFillPathSegment(segment)
+                receiveStrokePathSegment(segment)
+                return
             }
             let path = CGRendererCreatePath(segment)
             fillPath(path)
-            _ = receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
+            receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
                 clipToStrokedPlatformPath(context, path, thickness)
             }
-            return true
+            return
         }
-        hasDrawn = true
         if drawsPath() {
             drawPath(CGRendererCreatePath(segment))
         }
-        return true
     }
 
     // GraphicsContextCG::drawEllipse(), which draws the path of the ellipse in the rect.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawEllipse(_ rect: CGRect) {
         receiveDrawPathSegment(ellipseSegment(rect))
     }
 
@@ -3798,8 +4838,8 @@ extension CGRendererCore {
         drawRect(rect, borderThickness, !fillAndStrokeColorsAreEqual())
     }
 
-    // A path's fill, stroke and draw, as GraphicsContextCG's: a gradient declines, for the context to paint it, before the
-    // receiver makes the path's CGPath.
+    // A path's fill, stroke and draw, as GraphicsContextCG's: the receiver paints a gradient in the clip of the path, and
+    // makes the path's CGPath otherwise.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public func receiveFillsWithoutGradient() -> Bool {
         fillsWithoutGradient()
@@ -3820,8 +4860,10 @@ extension CGRendererCore {
         strokePath(path)
     }
 
+    // The draw of a path without a gradient, in one CG draw: false for a gradient, which the receiver fills and strokes in
+    // turn.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveDrawPath(_ path: () -> CGPath) -> Bool {
+    @_spi(WebKitGPU) public mutating func receiveDrawPathWithoutGradient(_ path: () -> CGPath) -> Bool {
         guard fillsWithoutGradient() && strokesWithoutGradient() else {
             return false
         }
@@ -3840,8 +4882,8 @@ extension CGRendererCore {
         clip(context)
     }
 
-    // GraphicsContextCG::drawNativeImage() of the image a receiver found: false where the C++ draws it. An image buffer's image
-    // has its source rect scaled by the buffer's resolution scale, as GraphicsContext::drawImageBuffer() scales it.
+    // GraphicsContextCG::drawNativeImage() of the image a receiver found. A copy of the image buffer the receiver draws into
+    // has the receiver's draws flushed after it, while the copy is still there, as the copy's reads go with them.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawNativeImage(
         _ image: CGImage,
@@ -3849,30 +4891,11 @@ extension CGRendererCore {
         _ destination: CGRect,
         _ source: CGRect,
         _ options: CGRendererImageOptions
-    ) -> Bool {
-        guard options.rendererDraws else {
-            return false
+    ) {
+        drawNativeImage(image, facts, destination, source, options)
+        if facts.isSelfCopy {
+            context.flush()
         }
-        let scale = facts.resolutionScale
-        return drawNativeImage(
-            image,
-            facts.width,
-            facts.height,
-            Float(destination.origin.x),
-            Float(destination.origin.y),
-            Float(destination.size.width),
-            Float(destination.size.height),
-            Float(source.origin.x) * scale,
-            Float(source.origin.y) * scale,
-            Float(source.size.width) * scale,
-            Float(source.size.height) * scale,
-            options.compositeOperator,
-            options.blendMode,
-            options.interpolationQuality,
-            options.orientation,
-            facts.headroom,
-            options.headroom
-        ) != 0
     }
 
     // GraphicsContextCG::drawPattern() of the image a receiver found, whose tile rect is scaled as receiveDrawNativeImage()'s
@@ -3950,8 +4973,9 @@ extension CGRendererCore {
         applyStrokePattern()
     }
 
-    // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting());
-    // false where it declines it.
+    // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting()).
+    // False only for a gradient brush's path of several segments, whose clip needs the Path the handler has and the caller
+    // doesn't pass, for the caller to draw it.
     @_expose(Cxx)
     mutating func applyReceiverMessageForTesting(_ message: CGRendererReceiverTestMessage, _ path: CGPath?, _ image: CGImage?) -> Bool {
         let v = message.values
@@ -3960,7 +4984,7 @@ extension CGRendererCore {
         let transform = CGAffineTransform(a: CGFloat(v.0), b: CGFloat(v.1), c: CGFloat(v.2), d: CGFloat(v.3), tx: CGFloat(v.4), ty: CGFloat(v.5))
         switch message.message {
         case 0: receiveSave()
-        case 1: return receiveRestore()
+        case 1: receiveRestore()
         case 2: receiveTranslate(v.0, v.1)
         case 3: receiveRotate(v.0)
         case 4: receiveScale(v.0, v.1)
@@ -3987,21 +5011,16 @@ extension CGRendererCore {
         case 23: receiveClipOut(rect)
         case 24: receiveResetClip()
         case 25: receiveDrawLine(v.0, v.1, v.2, v.3)
-        case 26:
-            // RemoteCGRenderer's FillRect, which paints a gradient brush itself.
-            if receiveFillRect(rect) {
-                return true
-            }
-            return !fillsWithoutGradient() && receiveFillRectWithGradient(rect, nil, i.0 != 0)
-        case 27: return receiveFillEllipse(rect)
-        case 28: return receiveStrokeRect(rect, v.4)
-        case 29: return receiveStrokeEllipse(rect)
+        case 26: receiveFillRect(rect, i.0 != 0)
+        case 27: receiveFillEllipse(rect)
+        case 28: receiveStrokeRect(rect, v.4)
+        case 29: receiveStrokeEllipse(rect)
         case 30: receiveClearRect(rect)
         case 31: receiveApplyStrokePattern()
         case 32: receiveApplyFillPattern()
-        case 33: return receiveFillPathSegment(message.segment)
-        case 34: return receiveStrokePathSegment(message.segment)
-        case 35: return receiveDrawPathSegment(message.segment)
+        case 33: receiveFillPathSegment(message.segment)
+        case 34: receiveStrokePathSegment(message.segment)
+        case 35: receiveDrawPathSegment(message.segment)
         case 36: receiveDrawRect(rect, v.4)
         case 37:
             // One or two lines (the segment's flag), each four values and a thickness, in the segment's values.
@@ -4025,7 +5044,7 @@ extension CGRendererCore {
             guard let path else {
                 return false
             }
-            return receiveDrawPath { path }
+            return receiveDrawPathWithoutGradient { path }
         case 41, 42:
             // An image the caller found, as RemoteCGRenderer's image handlers find one; nil draws nothing.
             guard let image else {
@@ -4035,7 +5054,8 @@ extension CGRendererCore {
             let destination = CGRect(x: CGFloat(s.0), y: CGFloat(s.1), width: CGFloat(s.2), height: CGFloat(s.3))
             let source = CGRect(x: CGFloat(s.4), y: CGFloat(s.5), width: CGFloat(s.6), height: CGFloat(s.7))
             if message.message == 41 {
-                return receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
+                receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
+                return true
             }
             receiveDrawPattern(
                 image,
@@ -4060,16 +5080,399 @@ extension CGRendererCore {
                 let radii = WebCore.CornerRadii(
                     WebCore.FloatSize(s.0, s.1), WebCore.FloatSize(s.2, s.3), WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7))
                 let rounded = WebCore.FloatRoundedRect(WebCore.FloatRect(v.0, v.1, v.2, v.3), radii)
-                return receiveFillRoundedRect(rounded, rect, color, nil, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+                receiveFillRoundedRect(rounded, rect, color, nil, WebCore.BlendMode(rawValue: UInt8(i.1)) ?? .Normal)
+                return true
             }
             let radii = WebCore.CornerRadii(
                 WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7), WebCore.FloatSize(s.8, s.9), WebCore.FloatSize(s.10, s.11))
             let hole = WebCore.FloatRoundedRect(WebCore.FloatRect(s.0, s.1, s.2, s.3), radii)
-            return receiveFillRectWithRoundedHole(rect, hole, color, nil)
+            receiveFillRectWithRoundedHole(rect, hole, color, nil)
         default: break
         }
         return true
     }
+}
+
+
+// MARK: Drawing into a context of its own
+
+// What a GraphicsContextCG of a context of its own draws, for the Mac controls' layers (MacControlPainter.swift), which draw
+// into the context they draw into and into bitmaps of their own with no GraphicsContext.
+extension CGRendererCore {
+    // A fresh GraphicsContextCG's renderer for the context, which only draws.
+    private static func drawing(_ context: CGContext) -> CGRendererCore {
+        CGRendererCore(context, true, false, false, .Default)
+    }
+
+    // GraphicsContext::drawConsumingImageBuffer() of an image buffer's image at its pixel size into the rect, with the
+    // options, in a save, so that the context's state stays its own.
+    @_expose(!Cxx)
+    static func drawImage(_ context: CGContext, _ image: CGImage, _ destination: CGRect, _ options: CGRendererImageOptions) {
+        var facts = CGRendererImageFacts()
+        facts.width = Float(image.width)
+        facts.height = Float(image.height)
+        facts.resolutionScale = 1
+        facts.headroom = 1
+        facts.found = true
+        var renderer = drawing(context)
+        context.saveGState()
+        renderer.drawNativeImage(image, facts, destination, CGRect(x: 0, y: 0, width: image.width, height: image.height), options)
+        context.restoreGState()
+    }
+
+    // GraphicsContextCG::clipToNativeImage().
+    @_expose(!Cxx)
+    static func clipToImage(_ context: CGContext, _ image: CGImage, _ rect: CGRect) {
+        drawing(context).clipToImage(image, CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.width), height: Float(rect.height)))
+    }
+
+    // GraphicsContext::clipRoundedRect() of the rect with each corner's radius the radius.
+    @_expose(!Cxx)
+    static func clipToRoundedRect(_ context: CGContext, _ rect: CGRect, _ radius: Float) {
+        let corner = WebCore.ShadowBlurSize(width: radius, height: radius)
+        let roundedRect = CGRendererRoundedRect(
+            rect: WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.width), height: Float(rect.height)),
+            radii: WebCore.ShadowBlurCornerRadii(topLeft: corner, topRight: corner, bottomLeft: corner, bottomRight: corner)
+        )
+        CGRendererRoundedRectSegment(roundedRect).clip(context, .winding)
+    }
+
+    // GraphicsContextCG::drawFocusRing() of the Path of the rect.
+    @_expose(!Cxx)
+    static func drawFocusRing(_ context: CGContext, _ rect: CGRect, _ color: CGColor?, _ zoomFactor: Float) {
+        var renderer = drawing(context)
+        let segment = CGRendererPathSegment(
+            values: (Float(rect.origin.x), Float(rect.origin.y), Float(rect.width), Float(rect.height), 0, 0, 0, 0, 0, 0, 0, 0),
+            kind: .Rect,
+            flag: false
+        )
+        renderer.drawFocusRing(CGRendererCreatePath(segment), color, zoomFactor)
+    }
+}
+
+// MARK: System images
+
+#if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
+// A system framework's PDF image, as ApplePayLogoSystemImage.mm and ARKitBadgeSystemImage.mm load it: its bytes, which a draw
+// makes a document of, since CoreGraphics's PDF documents aren't Sendable.
+private struct SystemImagePDF: Sendable {
+    private let data: Data?
+
+    init(_ bundle: Bundle?, _ name: Swift.String) {
+        data = bundle?.url(forResource: name, withExtension: "pdf").flatMap { try? Data(contentsOf: $0, options: .mappedIfSafe) }
+    }
+
+    func firstPage() -> CGPDFPage? {
+        guard let data, let provider = CGDataProvider(data: data as CFData), let document = CGPDFDocument(provider) else {
+            return nil
+        }
+        guard document.numberOfPages > 0 else {
+            return nil
+        }
+        return document.page(at: 1)
+    }
+}
+#endif
+
+#if ENABLE_APPLE_PAY
+// FileSystem::systemDirectoryPath()'s PassKit.framework.
+private func passKitBundle() -> Bundle? {
+    var systemDirectoryPath = "/System/"
+    #if targetEnvironment(simulator)
+    if let simulatorRoot = ProcessInfo.processInfo.environment["SIMULATOR_ROOT"] as Swift.String? {
+        systemDirectoryPath = simulatorRoot + "/System/"
+    }
+    #endif
+    return Bundle(url: URL(fileURLWithPath: systemDirectoryPath + "Library/Frameworks/PassKit.framework", isDirectory: true))
+}
+
+private struct ApplePayLogos: Sendable {
+    let white: SystemImagePDF
+    let black: SystemImagePDF
+
+    init() {
+        let bundle = passKitBundle()
+        white = SystemImagePDF(bundle, "PayButtonLogoWhite")
+        black = SystemImagePDF(bundle, "PayButtonLogoBlack")
+    }
+}
+
+private let applePayLogos = ApplePayLogos()
+
+// largestRectWithAspectRatioInsideRect(), in its float arithmetic.
+private func largestRectWithAspectRatio(_ aspectRatio: Float, inside rect: CGRect) -> (x: Float, y: Float, width: Float, height: Float) {
+    var x = Float(rect.origin.x)
+    var y = Float(rect.origin.y)
+    var width = Float(rect.size.width)
+    var height = Float(rect.size.height)
+    if aspectRatio > width / height {
+        let dy = (width / aspectRatio - height) / 2
+        y -= dy
+        height = height + dy + dy
+    } else {
+        let dx = (height * aspectRatio - width) / 2
+        x -= dx
+        width = width + dx + dx
+    }
+    return (x, y, width, height)
+}
+#endif
+
+#if USE_SYSTEM_PREVIEW
+private typealias ARKitBadgeMetrics = WebCore.ARKitBadgeSystemImage.BadgeMetrics
+
+private func arKitBadgeLogo() -> SystemImagePDF {
+    #if targetEnvironment(simulator)
+    _ = Bundle(path: "/System/Library/PrivateFrameworks/AssetViewer.framework")?.load()
+    let bundle = NSClassFromString("ASVThumbnailView").map { Bundle(for: $0) }
+    #else
+    let bundle = Bundle(url: URL(fileURLWithPath: "/System/Library/PrivateFrameworks/AssetViewer.framework"))
+    #endif
+    return SystemImagePDF(bundle, "ARKitBadge")
+}
+
+private let arKitBadgeLogoPDF = arKitBadgeLogo()
+
+// The blurred, saturated and tinted backdrop that ARKitBadgeSystemImage::draw() puts behind the badge, cropped to it: rendered
+// into an IOSurface in the GPU process, as Core Image renders there.
+private func arKitBadgeBackdrop(_ image: CGImage, _ rect: CGRect, _ insetBadgeRect: CGRect, _ badgeDimension: Int, _ rendersIntoIOSurface: Bool) -> CGImage? {
+    let inputImage = CIImage(cgImage: image)
+    let transform = CGAffineTransform(
+        scaleX: CGFloat(Float(rect.width) / Float(image.width)),
+        y: CGFloat(Float(rect.height) / Float(image.height))
+    )
+    let scaledImage = inputImage.transformed(by: transform)
+    // Core Image coordinates are y-up, so the badge rectangle is flipped within the image frame.
+    let flippedInsetBadgeRect = CGRect(
+        x: insetBadgeRect.origin.x,
+        y: rect.height - insetBadgeRect.origin.y - insetBadgeRect.size.height,
+        width: CGFloat(badgeDimension),
+        height: CGFloat(badgeDimension)
+    )
+    let blurredImage = scaledImage.clamped(to: flippedInsetBadgeRect).applyingGaussianBlur(sigma: 10)
+    guard let saturationFilter = CIFilter(name: "CIColorControls"), let tintFilter = CIFilter(name: "CIConstantColorGenerator"),
+        let sourceOverFilter = CIFilter(name: "CISourceOverCompositing")
+    else {
+        return nil
+    }
+    saturationFilter.setValue(blurredImage, forKey: kCIInputImageKey)
+    saturationFilter.setValue(1.8, forKey: kCIInputSaturationKey)
+    tintFilter.setValue(CIColor(red: 1, green: 1, blue: 1, alpha: 0.18), forKey: kCIInputColorKey)
+    sourceOverFilter.setValue(tintFilter.outputImage, forKey: kCIInputImageKey)
+    sourceOverFilter.setValue(saturationFilter.outputImage, forKey: kCIInputBackgroundImageKey)
+    guard let outputImage = sourceOverFilter.outputImage else {
+        return nil
+    }
+    let ciContext = CIContext()
+    #if HAVE_IOSURFACE_COREIMAGE_SUPPORT
+    if rendersIntoIOSurface {
+        let translatedImage = outputImage.cropped(to: flippedInsetBadgeRect)
+            .transformed(by: CGAffineTransform(translationX: -flippedInsetBadgeRect.origin.x, y: -flippedInsetBadgeRect.origin.y))
+        guard let sRGB = CGColorSpace(name: CGColorSpace.sRGB),
+            let badgeSurface = IOSurfaceCore.create(pool: nil, width: Int32(badgeDimension), height: Int32(badgeDimension), colorSpace: sRGB)
+        else {
+            return nil
+        }
+        ciContext.render(
+            translatedImage,
+            to: badgeSurface.surface,
+            bounds: CGRect(x: 0, y: 0, width: badgeDimension, height: badgeDimension),
+            colorSpace: sRGB
+        )
+        guard let surfaceContext = badgeSurface.createPlatformContext() else {
+            return nil
+        }
+        return badgeSurface.createImage(surfaceContext)
+    }
+    #endif
+    return ciContext.createCGImage(outputImage, from: flippedInsetBadgeRect)
+}
+#endif
+
+extension CGRendererCore {
+    #if ENABLE_APPLE_PAY
+    // ApplePayLogoSystemImage::draw(): PassKit's logo, the largest that keeps its aspect ratio in the rect.
+    @_expose(Cxx)
+    mutating func drawApplePayLogo(_ isBlack: Bool, _ rect: CGRect) {
+        guard let page = (isBlack ? applePayLogos.black : applePayLogos.white).firstPage() else {
+            return
+        }
+        hasDrawn = true
+        context.saveGState()
+        let pdfSize = page.getBoxRect(.mediaBox).size
+        let largestRect = largestRectWithAspectRatio(Float(pdfSize.width / pdfSize.height), inside: rect)
+        context.translateBy(x: CGFloat(largestRect.x), y: CGFloat(largestRect.y))
+        let scale = CGFloat(largestRect.width) / pdfSize.width
+        context.scaleBy(x: scale, y: scale)
+        context.translateBy(x: 0, y: pdfSize.height)
+        context.scaleBy(x: 1, y: -1)
+        context.drawPDFPage(page)
+        context.restoreGState()
+    }
+    #endif
+
+    #if USE_SYSTEM_PREVIEW
+    // ARKitBadgeSystemImage::draw(): AR Quick Look's badge in the rect's top right corner, over a blurred backdrop of the
+    // image if there is one, with a drop shadow, where the rect is large enough for it. `rendersIntoIOSurface`: in the GPU
+    // process, where Core Image renders the backdrop into an IOSurface.
+    @_expose(Cxx)
+    mutating func drawARKitBadge(_ image: CGImage?, _ rect: CGRect, _ rendersIntoIOSurface: Bool) {
+        guard let page = arKitBadgeLogoPDF.firstPage() else {
+            return
+        }
+        let minimumSizeForLarge = CGFloat(ARKitBadgeMetrics.minimumSizeForLarge)
+        let useSmallBadge = rect.width < minimumSizeForLarge || rect.height < minimumSizeForLarge
+        let badgeOffset = Int(useSmallBadge ? ARKitBadgeMetrics.smallOffset : ARKitBadgeMetrics.largeOffset)
+        let badgeDimension = Int(useSmallBadge ? ARKitBadgeMetrics.smallDimension : ARKitBadgeMetrics.largeDimension)
+        let minimumDimension = CGFloat(badgeDimension + 2 * badgeOffset)
+        if rect.width < minimumDimension || rect.height < minimumDimension {
+            return
+        }
+        let dimension = CGFloat(badgeDimension)
+        // In FloatRect's float arithmetic, as ARKitBadgeSystemImage::draw() places them.
+        let x = Float(rect.origin.x)
+        let y = Float(rect.origin.y)
+        let width = Float(rect.width)
+        let absoluteBadgeRect = CGRect(
+            x: CGFloat(x + width - Float(badgeDimension) - Float(badgeOffset)),
+            y: CGFloat(y + Float(badgeOffset)),
+            width: dimension,
+            height: dimension
+        )
+        let insetBadgeRect = CGRect(x: CGFloat(width - Float(badgeDimension) - Float(badgeOffset)), y: CGFloat(badgeOffset), width: dimension, height: dimension)
+        let badgeRect = CGRect(x: 0, y: 0, width: dimension, height: dimension)
+        // The circle that clips the badge, and casts its drop shadow, its radius in whole points.
+        let radius = CGFloat(badgeDimension / 2)
+        let circle = CGMutablePath()
+        circle.addRoundedRect(in: absoluteBadgeRect, cornerWidth: radius, cornerHeight: radius)
+        hasDrawn = true
+
+        context.saveGState()
+        context.saveGState()
+        // A drop shadow around the circle, its blur radius in user space, as GraphicsContext sets it. The circle's opaque
+        // black only casts the shadow, which the clip below keeps out of the circle.
+        let shadowColor: UInt32 = 26
+        applyShadow(makeShadow(
+            CGRendererShadowValues(width: 0, height: 0, radius: 16, opacity: 1, packedColor: shadowColor, isValid: true, isVisible: true, legacyRadius: false),
+            platformColorSlot: 0
+        ))
+        context.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+        context.beginPath()
+        context.addRect(rect)
+        context.addPath(circle)
+        context.closePath()
+        context.clip(using: .evenOdd)
+        // A slightly smaller circle casts the shadow, so that the solid circle leaves no fringe around the clipped badge.
+        context.beginPath()
+        let slightlySmallerAbsoluteBadgeRect = CGRect(
+            x: absoluteBadgeRect.origin.x + 0.5,
+            y: absoluteBadgeRect.origin.y + 0.5,
+            width: dimension - 1,
+            height: dimension - 1
+        )
+        let slightlySmallerCircle = CGMutablePath()
+        slightlySmallerCircle.addRoundedRect(
+            in: slightlySmallerAbsoluteBadgeRect,
+            cornerWidth: slightlySmallerAbsoluteBadgeRect.width / 2,
+            cornerHeight: slightlySmallerAbsoluteBadgeRect.height / 2
+        )
+        context.addPath(slightlySmallerCircle)
+        context.closePath()
+        context.fillPath()
+        context.restoreGState()
+
+        let backdrop = image.flatMap { arKitBadgeBackdrop($0, rect, insetBadgeRect, badgeDimension, rendersIntoIOSurface) }
+
+        // The badge, clipped to the circle.
+        context.saveGState()
+        context.beginPath()
+        context.addPath(circle)
+        context.closePath()
+        context.clip()
+        context.translateBy(x: absoluteBadgeRect.origin.x, y: absoluteBadgeRect.origin.y)
+        context.translateBy(x: 0, y: dimension)
+        context.scaleBy(x: 1, y: -1)
+        if let backdrop {
+            context.draw(backdrop, in: badgeRect)
+        } else {
+            // Without a backdrop image, a translucent neutral fill, so that the logo has a backdrop to be read on.
+            context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.6))
+            context.fill(badgeRect)
+        }
+        let pdfSize = page.getBoxRect(.mediaBox).size
+        context.scaleBy(x: dimension / pdfSize.width, y: dimension / pdfSize.height)
+        context.drawPDFPage(page)
+        context.flush()
+        context.restoreGState()
+        context.restoreGState()
+    }
+    #endif
+
+    #if ENABLE_APPLE_PAY
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawApplePayLogo(_ isBlack: Bool, _ rect: CGRect) {
+        drawApplePayLogo(isBlack, rect)
+    }
+    #endif
+
+    #if ENABLE_APPLE_PAY
+    // ApplePayButtonCocoa's draw of an Apple Pay button part: `buttonType` and `buttonStyle` are ApplePayButtonType's and
+    // ApplePayButtonStyle's values.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawApplePayButton(
+        _ rect: CGRect,
+        _ largestCornerRadius: Float,
+        _ buttonType: UInt8,
+        _ buttonStyle: UInt8,
+        _ locale: Swift.String
+    ) {
+        hasDrawn = true
+        CGRendererDrawApplePayButton(context, rect, CGFloat(largestCornerRadius), buttonType, buttonStyle, locale as CFString)
+    }
+    #endif
+
+    #if USE_SYSTEM_PREVIEW
+    // A Swift receiver's badge, in the GPU process or in the process that replays a recording of it to print it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawARKitBadge(_ image: CGImage?, _ rect: CGRect) {
+        drawARKitBadge(image, rect, WTF.isInGPUProcess())
+    }
+    #endif
+
+    #if WTF_PLATFORM_MAC
+    // GraphicsContext::drawControlPart() of a Mac control part (PlatformControlMac): `state` is PlatformControlMac::state()'s.
+    // The text color is made in the context's color space, as PlatformControlMac::draw() makes it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawMacControlPart(
+        _ cells: MacControlPainterCells,
+        _ borderRect: CGRect,
+        _ deviceScaleFactor: Float,
+        _ state: WebCore.MacControlState,
+        _ accentColor: CGRendererColorData,
+        _ textColor: CGRendererColorData,
+        _ tickRatios: [Double]
+    ) {
+        hasDrawn = true
+        let accent = accentColor.form != 0 ? CGRendererCopyCachedCGColorForData(accentColor) : nil
+        let isSlider = state.appearance == .SliderHorizontal || state.appearance == .SliderVertical
+        let text = state.appearance == .MenulistButton || isSlider ? CGRendererCopyCGColorForData(textColor, destinationColorSpace) : nil
+        let fillsEvenOdd = self.state.fillRule == 1
+        drawMacControlPart(cells, context, borderRect, deviceScaleFactor, state, accent, text, fillsEvenOdd, tickRatios)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawScrollbarTrackCorner(_ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGRendererColorData) {
+        drawScrollbarTrackCorner(rect, usesDarkAppearance, tintColor)
+    }
+
+    // AppKitControlSystemImage::draw() of a ScrollbarTrackCornerSystemImageMac: AppKit's scroll bar track corner, in the
+    // appearance the image was made in.
+    @_expose(Cxx)
+    mutating func drawScrollbarTrackCorner(_ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGRendererColorData) {
+        hasDrawn = true
+        drawAppKitScrollbarTrackCorner(context, rect, usesDarkAppearance, tintColor.form != 0 ? CGRendererCopyCachedCGColorForData(tintColor) : nil)
+    }
+    #endif
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && USE_CG

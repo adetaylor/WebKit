@@ -65,7 +65,9 @@ _test_receiver_names = [
     'TestWithStreamSwiftEnabledBy',
     'TestWithStreamSwiftImplementation',
     'TestWithStreamSwiftLentState',
+    'TestWithStreamSwiftRecordable',
     'TestWithStreamSwiftReplyValues',
+    'TestWithStreamSwiftState',
     'TestWithStreamSwiftTypes',
     'TestWithSuperclass',
     'TestWithSuperclassAndWantsAsyncDispatch',
@@ -84,6 +86,7 @@ _test_receiver_names = [
     'TestWithWantsDispatch',
     'TestWithWantsDispatchNoSyncMessages',
     'TestWithWorkQueueSwiftImplementation',
+    'TestWithWorkQueueSwiftState',
 ]
 
 
@@ -280,6 +283,23 @@ messages -> TestReceiver %s {
         self.assertIn('    ASSERT(m_workQueue && m_workQueue->isCurrent());\n', implementation)
         self.assertIn('    RELEASE_ASSERT(m_workQueue.get() == &workQueue);\n', implementation)
 
+        # With EnabledBy, the forwarder checks its own copy of the shared preferences, which it is given, rather than
+        # asking Swift for them.
+        receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, SwiftReceiver, SwiftTypes, EnabledBy=SomeFeature]
+messages -> TestReceiver WorkQueue {
+    Message(uint32_t value)
+}
+"""))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('    void updateSharedPreferences(SharedPreferencesForWebProcess);\n', header)
+        self.assertIn('    std::optional<SharedPreferencesForWebProcess> m_sharedPreferences;\n', header)
+        self.assertNotIn('m_sharedPreferencesProvider', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('    auto& sharedPreferences = m_sharedPreferences;\n', implementation)
+        self.assertIn('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n', implementation)
+        self.assertNotIn('sharedPreferencesForWebProcess', messages.generate_swift_message_handler(receiver))
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
             parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver cannot have both 'WorkQueue' and 'Stream'"):
@@ -375,6 +395,61 @@ messages -> TestReceiver%s {
         self.assertIn('extension SwiftDispatch.TestReceiver {\n    #if HAVE_FEATURE\n', swift)
         self.assertEqual(swift.count('    #if HAVE_FEATURE\n'), 2)
         self.assertNotIn('CxxMessage', swift)
+
+    def test_swift_state(self):
+        def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver %s {
+%s
+}
+""" % (',\n    '.join(attributes), receiver_attributes, messages_text)))
+
+        receiver = parse("""
+    StateMessage(uint32_t value)
+    ReceiverMessage(uint32_t value) WantsReceiver
+    CxxMessage(uint32_t value) CxxTypes
+""")
+        self.assertTrue(receiver.dispatches_to_swift_state(receiver.messages[0]))
+        self.assertFalse(receiver.dispatches_to_swift_state(receiver.messages[1]))
+        self.assertFalse(receiver.dispatches_to_swift_state(receiver.messages[2]))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('bool dispatchReceiverMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);', header)
+        self.assertNotIn('dispatchStateMessage', header)
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('#include "Shared/WebKit-Swift.h"', handler)
+        self.assertIn('static TestReceiverStateDispatch& testReceiverStateDispatch(IPC::SwiftStateDispatch& dispatch, TestReceiver& receiver)\n', handler)
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::StateMessage>(connection, decoder, &testReceiverStateDispatch(m_swiftStateDispatch, *this), &WebKit::TestReceiverStateDispatch::dispatchStateMessage);', handler)
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::ReceiverMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchReceiverMessage);', handler)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('extension SwiftDispatch.TestReceiver {\n    @cxx\n    @implementation\n    static func dispatchReceiverMessage(\n', swift)
+        self.assertIn('@_expose(Cxx)\nfinal class TestReceiverStateDispatch {\n    private let target: TestState\n', swift)
+        self.assertIn('        TestReceiverStateDispatch(target: receiver.state)\n', swift)
+        state_dispatch = re.search(r'func dispatchStateMessage\((.|\n)*?\n    \}\n', swift).group(0)
+        self.assertIn('        decoder: inout IPC.SwiftDecoder\n', state_dispatch)
+        self.assertNotIn('var decoder = decoder', state_dispatch)
+        self.assertIn('target.stateMessage(', state_dispatch)
+
+        # With every message going to the state, there is no @cxx @implementation dispatch.
+        receiver = parse('    StateMessage(uint32_t value)', receiver_attributes='Stream')
+        self.assertNotIn('SwiftDispatch', messages.generate_messages_header(receiver))
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertNotIn('extension SwiftDispatch', swift)
+        self.assertIn('    func dispatchStateMessage(\n        decoder: inout IPC.SwiftDecoder\n    ) -> Bool {\n', swift)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftState=', which is for stream and WorkQueue receivers with 'SwiftImplementation'"):
+            parse('    StateMessage(uint32_t value)', receiver_attributes='')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftState=', which is for stream and WorkQueue receivers with 'SwiftImplementation'"):
+            parse('    StateMessage(uint32_t value)', attributes=('SwiftReceiver', 'SwiftTypes', 'SwiftState=TestState'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'WantsReceiver', which is for messages that take Swift types to receivers with 'SwiftState='"):
+            parse('    Message(uint32_t value) WantsReceiver', attributes=('SwiftImplementation', 'SwiftTypes'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'WantsReceiver', which is for messages that take Swift types to receivers with 'SwiftState='"):
+            parse('    Message(uint32_t value) WantsReceiver CxxTypes')
 
     def test_swift_types_and_wants_dispatch_message(self):
         def parse(attributes, receiver_attributes):
@@ -497,6 +572,13 @@ messages -> Destination {
                       '            notify(on: owner.connection(), to: ipcDestinationID, value: value)\n'
                       '        }\n', swift)
 
+        provided = parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes, SwiftReceiverOwner=OwnedResources]\nmessages -> Owned Stream {\n    Message(uint32_t value)\n}\n'))
+        self.assertTrue(provided.has_swift_receiver_owner())
+        self.assertIn('class OwnedMessageForwarder final : public IPC::StreamMessageReceiver, public IPC::SwiftReceiverOwnerClient {\n', messages.generate_messages_header(provided))
+        self.assertIn('    func startReceiving(on provider: WebKit.OwnedResources) {\n'
+                      '        IPC.startSwiftReceiver(provider, WebKit.OwnedMessageForwarder.create(target: self))\n'
+                      '    }\n', messages.generate_swift_message_handler(provided))
+
         for attributes, kind in ((['SwiftReceiver', 'SwiftReceiverOwner'], ''), (['SwiftImplementation', 'SwiftTypes', 'SwiftReceiverOwner'], ' Stream'), (['SwiftReceiver', 'SwiftReceiverOwner'], ' WorkQueue')):
             with self.assertRaisesRegex(Exception, r"ERROR: Receiver Owned has 'SwiftReceiverOwner', which is for Swift stream receivers without a state lender"):
                 parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> Owned%s {\n    Message(uint32_t value)\n}\n' % (', '.join(attributes), kind)))
@@ -563,6 +645,34 @@ messages -> TestReceiver Stream {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on reply parameter 'reply': Lent"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message() -> ([Lent] std::span<const uint8_t> reply) SwiftSyncHandler')
 
+    def test_lent_cxx_typed_arguments(self):
+        def parse_stream_receiver(messages_text):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    SwiftReceiver
+]
+messages -> TestReceiver Stream {
+%s
+}
+""" % messages_text))
+
+        # A C++-typed argument that refers into the message is borrowed by a handler called during dispatch.
+        receiver = parse_stream_receiver('    Message([Lent] WebCore::PixelBufferSourceView view, WebKit::TestStruct value)')
+        dispatch = re.search(r'func dispatchMessage\((.|\n)*?\n    \}\n', messages.generate_swift_message_handler(receiver)).group(0)
+        self.assertIn('view: borrowing WebCore.PixelBufferSourceView,', dispatch)
+        self.assertIn('value: sending WebKit.TestStruct', dispatch)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'view', which is only for messages that take Swift types"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([Lent] WebCore::PixelBufferSourceView view)')
+        # Only a listed non-escapable view can be lent: Swift could keep any other type.
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'view', whose type 'WebKit::TestView' isn't one of the non-escapable views in swift_types.LENT_CXX_VIEW_TYPES"):
+            parse_stream_receiver('    Message([Lent] WebKit::TestView view)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'bytes', whose type 'std::span<const uint8_t>' isn't one of the non-escapable views in swift_types.LENT_CXX_VIEW_TYPES"):
+            parse_stream_receiver('    Message([Lent] std::span<const uint8_t> bytes)')
+
     def test_cxx_typed_replies(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes
@@ -594,12 +704,66 @@ messages -> TestReceiver Stream {
             parse(['SwiftReceiver'], '    Message(uint32_t value) SwiftMayDecline')
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftReceiverStateLender=WebKit::Lender', which is for Swift stream receivers"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value)')
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
-            parse(['SwiftReceiver', 'SwiftTypes', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value)')
+        receiver = parse(['SwiftReceiver', 'SwiftTypes', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value)')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, so cannot have 'SwiftMayDecline'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) SwiftMayDecline SwiftTypes')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on parameter 'buffer' on a receiver with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message([CxxDecoded] Ref<WebCore::SharedBuffer> buffer) SwiftTypes')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(MachSendRight right) SwiftTypes')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, and the Swift form of 'right' owns what the message carries, so a recording can't keep it: it must be 'NotRecorded'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(MachSendRight right) SwiftTypes')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(MachSendRight right) NotRecorded SwiftTypes')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) -> (uint32_t reply)')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'state'"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t state)')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(WebCore::Path path) SwiftTypes SwiftDecodeContext=pathDecodeContext')
+        self.assertEqual(receiver.messages[0].swift_decode_context(), 'pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', but none of its parameters has a Swift coder that takes a decoding context"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) SwiftTypes SwiftDecodeContext=valueDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', which is for messages that take Swift types"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(WebCore::Path path) SwiftDecodeContext=pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', which is for receivers with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver', 'SwiftTypes'], '    Message(WebCore::Path path) SwiftDecodeContext=pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, so cannot have a parameter named 'decodeContext'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t decodeContext) SwiftTypes')
+
+    def test_recordable_constraints(self):
+        stream_receiver = """
+[
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver Stream {
+%s
+}
+"""
+
+        def parse(attributes, messages_text):
+            return parser.parse(io.StringIO(stream_receiver % (',\n    '.join(attributes), messages_text)))
+
+        lent = ['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender']
+        receiver = parse(lent + ['Recordable'], '    Message([RecordedAs=WebKit::RecordedRun] WebKit::Run run)')
+        self.assertTrue(receiver.is_recordable())
+        self.assertEqual(receiver.messages[0].parameters[0].recorded_as_type(), 'WebKit::RecordedRun')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'Recordable', which is for Swift stream receivers with 'SwiftReceiverStateLender='"):
+            parse(['ExceptionForEnabledBy', 'SwiftReceiver', 'Recordable'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftMayDecline', which is not supported on a receiver with 'Recordable'"):
+            parse(lent + ['Recordable'], '    Message(uint32_t value) SwiftMayDecline')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Validator=ValidateFunction', which is not supported on a receiver with 'Recordable'"):
+            parse(lent + ['Recordable'], '    [Validator=ValidateFunction] Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'Recordable', which is not supported together with 'EnabledBy='"):
+            parse(['EnabledBy=SomeFeature', 'SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'RecordedAs=' on parameter 'run', which is for receivers with 'Recordable'"):
+            parse(lent, '    Message([RecordedAs=WebKit::RecordedRun] WebKit::Run run)')
+        receiver = parse(lent + ['Recordable'], '    Message(uint32_t value) NotRecorded')
+        self.assertTrue(receiver.messages[0].has_attribute('NotRecorded'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'NotRecorded', which is for receivers with 'Recordable'"):
+            parse(lent, '    Message(uint32_t value) NotRecorded')
 
 
 class MessagesFromTest(unittest.TestCase):
@@ -647,6 +811,26 @@ messages -> TestReceiver Stream {
             self.assertEqual(generate(taker), generate(written))
         self.assertEqual([message.name for message in source.messages], ['First', 'Second', 'WithReply'])
         self.assertFalse(source.messages[1].has_attribute('SwiftMayDecline'))
+
+    def test_attribute_lines_are_not_messages(self):
+        source = self.parse(self.source)
+        taker = self.parse("""
+[
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    ExceptionForEnabledBy,
+    SwiftReceiver,
+    SwiftReceiverStateLender=WebKit::Lender,
+    MessagesFrom=SourceReceiver,
+    Recordable
+]
+messages -> TestReceiver Stream {
+    First
+}
+""")
+        parser.resolve_message_references([taker, source])
+        self.assertTrue(taker.is_recordable())
+        self.assertEqual([message.name for message in taker.messages], ['First'])
 
     def test_errors(self):
         source = self.parse(self.source)

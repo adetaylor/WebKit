@@ -47,7 +47,7 @@ final class RemoteComputePipeline {
         }
         let receiver = RemoteComputePipeline(computePipeline, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteComputePipeline,
             link.identifier

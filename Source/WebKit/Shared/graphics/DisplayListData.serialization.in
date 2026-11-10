@@ -492,4 +492,29 @@ using WebKit::DisplayListDataItem = Variant<
     Vector<Vector<WebKit::DisplayListDataItem>> m_bottomUpDisplayLists;
 }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+header: "RemoteSnapshotPrintData.h"
+[CustomHeader] struct WebKit::RemoteSnapshotPrintRecording {
+    Vector<uint8_t> messages;
+    Vector<std::pair<WebCore::RenderingResourceIdentifier, uint64_t>> fonts;
+    Vector<std::pair<WebKit::RemoteGradientIdentifier, Ref<const WebCore::Gradient>>> gradients;
+    Vector<std::pair<WebKit::RemotePathImplIdentifier, Ref<WebCore::PathImpl>>> paths;
+    Vector<std::pair<WebKit::RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>>> meshGradients;
+    Vector<std::pair<WebCore::RenderingResourceIdentifier, WebCore::RenderingResourceIdentifier>> nativeImages;
+    Vector<std::pair<WebCore::RenderingResourceIdentifier, WebCore::RenderingResourceIdentifier>> imageBuffers;
+    Vector<std::pair<uint64_t, uint64_t>> displayLists;
+}
+
+header: "RemoteSnapshotPrintData.h"
+[CustomHeader, RValue] struct WebKit::RemoteSnapshotPrintData {
+    Vector<WebCore::FontCustomPlatformSerializedData> customFonts;
+    Vector<WebKit::DisplayListDataFont> fonts;
+    Vector<WebKit::DisplayListDataNativeImage> nativeImages;
+    Vector<WebKit::DisplayListDataImageBuffer> imageBuffers;
+    Vector<WebKit::RemoteSnapshotPrintRecording> recordings;
+    Vector<std::pair<uint64_t, std::optional<uint64_t>>> frames;
+    uint64_t rootFrameKey;
+}
+#endif
+
 #endif

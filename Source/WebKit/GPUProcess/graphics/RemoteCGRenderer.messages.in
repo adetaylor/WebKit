@@ -25,21 +25,26 @@
 # The RemoteGraphicsContext messages that an image buffer's context takes in Swift, drawing with its Swift CG renderer
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
-# The renderer declines some draws, which go back to RemoteImageBufferGraphicsContext.
-# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the line
-# strokes and line dashes, which the GPU process copies out of the message, paths and their segments, which it decodes into
-# plain values or the PathImpl of a path of them, and shadows and styles, which it keeps for Swift to ask of them.
+# They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the colors
+# of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
+# process copies out of the message, the segments of FillPathSegment and StrokePathSegment, which it decodes into plain values,
+# and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
+# Paths, a system image, a control part, and the semaphore and memory of the video frames are decoded in Swift (SwiftTypes).
+# The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
+# with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
+# list doesn't.
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     SwiftReceiver,
     SwiftReceiverStateLender=WebKit::RemoteImageBufferGraphicsContext,
-    MessagesFrom=RemoteGraphicsContext
+    MessagesFrom=RemoteGraphicsContext,
+    Recordable
 ]
 messages -> RemoteCGRenderer Stream {
     Save
-    Restore SwiftMayDecline
+    Restore
     Translate
     Rotate
     Scale
@@ -64,55 +69,55 @@ messages -> RemoteCGRenderer Stream {
     ClipOut
     ResetClip
     DrawLine
-    FillRect SwiftMayDecline
-    FillEllipse SwiftMayDecline
-    StrokeRect SwiftMayDecline
-    StrokeEllipse SwiftMayDecline
+    FillRect
+    FillEllipse
+    StrokeRect
+    StrokeEllipse
     ClearRect
     ApplyStrokePattern
     ApplyFillPattern
     DrawRect
-    DrawEllipse SwiftMayDecline
-    FillLine SwiftMayDecline
-    FillArc SwiftMayDecline
-    FillClosedArc SwiftMayDecline
-    FillQuadCurve SwiftMayDecline
-    FillBezierCurve SwiftMayDecline
-    FillPathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched SwiftMayDecline
-    StrokeLine SwiftMayDecline
+    DrawEllipse
+    FillLine
+    FillArc
+    FillClosedArc
+    FillQuadCurve
+    FillBezierCurve
+    FillPathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
+    StrokeLine
     StrokeLinesWithColorAndThickness(WebKit::RemoteCGRendererLineStrokes lines) StreamBatched
-    StrokeArc SwiftMayDecline
-    StrokeClosedArc SwiftMayDecline
-    StrokeQuadCurve SwiftMayDecline
-    StrokeBezierCurve SwiftMayDecline
-    StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched SwiftMayDecline
-    FillPath(WebKit::RemoteCGRendererPath path) StreamBatched SwiftMayDecline
-    StrokePath(WebKit::RemoteCGRendererPath path) StreamBatched SwiftMayDecline
-    DrawPath(WebKit::RemoteCGRendererPath path) StreamBatched SwiftMayDecline
-    ClipPath(WebKit::RemoteCGRendererPath path, enum:bool WebCore::WindRule windRule) StreamBatched
-    ClipOutToPath(WebKit::RemoteCGRendererPath path) StreamBatched
-    FillCachedPath SwiftMayDecline
+    StrokeArc
+    StrokeClosedArc
+    StrokeQuadCurve
+    StrokeBezierCurve
+    StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
+    FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
+    StrokePath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    DrawPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
+    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    FillCachedPath
     ClipCachedPath
-    DrawNativeImage SwiftMayDecline
-    DrawImageBuffer SwiftMayDecline
+    DrawNativeImage
+    DrawImageBuffer
     DrawPatternNativeImage
-    DrawPatternImageBuffer SwiftMayDecline
+    DrawPatternImageBuffer
     SetFillColor(CGRendererColorValue color) StreamBatched
     SetStrokeColor(CGRendererColorValue color) StreamBatched
     SetDropShadow(struct WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
-    SetStyle(struct WebKit::RemoteCGRendererStyle style) StreamBatched SwiftMayDecline
+    SetStyle(struct WebKit::RemoteCGRendererStyle style) StreamBatched
     SetTextDrawingMode
     SetShadowsIgnoreTransforms
     SetLineDash(WebKit::RemoteCGRendererLineDash dashArray, float dashOffset) StreamBatched
-    FillRectWithColor(WebCore::FloatRect rect, CGRendererColorValue color) StreamBatched SwiftMayDecline
-    FillCompositedRect(WebCore::FloatRect rect, CGRendererColorValue color, enum:uint8_t WebCore::CompositeOperator op, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline
+    FillRectWithColor(WebCore::FloatRect rect, CGRendererColorValue color) StreamBatched
+    FillCompositedRect(WebCore::FloatRect rect, CGRendererColorValue color, enum:uint8_t WebCore::CompositeOperator op, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     ApplyDeviceScaleFactor
     ClipRoundedRect
     ClipOutRoundedRect
-    ClipToNativeImage SwiftMayDecline
+    ClipToNativeImage
     BeginTransparencyLayer
     BeginTransparencyLayerWithCompositeMode
-    EndTransparencyLayer SwiftMayDecline
+    EndTransparencyLayer
     SetURLForRect
     SetFillCachedGradient
     SetFillPatternNativeImage
@@ -122,11 +127,30 @@ messages -> RemoteCGRenderer Stream {
     SetStrokePatternImageBuffer
     FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
     DrawLinesForText(WebCore::FloatPoint point, float thickness, WebKit::RemoteCGRendererLineSegments lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched
-    DrawDotsForDocumentMarker
-    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
-    FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched SwiftMayDecline
-    FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched SwiftMayDecline
-    FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched SwiftMayDecline
+    DrawDotsForDocumentMarker(WebCore::FloatRect rect, enum:uint8_t WebCore::DocumentMarkerLineStyleMode mode, CGRendererColorValue color) StreamBatched
+    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, [RecordedAs=WebKit::RemoteCGRendererRecordedGlyphs] WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
+    FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
+    FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
+    FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched
+    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    ClipTransformedCachedPath
+    DrawFocusRingPath(WebCore::Path path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    BeginPage
+    EndPage
+    DrawMeshGradient
+    DrawFilteredImageBuffer(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, WebCore::FloatRect sourceImageRect, Ref<WebCore::Filter> filter) StreamBatched SwiftTypes
+    DrawControlPart(Ref<WebCore::ControlPart> part, WebCore::FloatRoundedRect borderRect, float deviceScaleFactor, WebCore::ControlStyle style) StreamBatched SwiftTypes
+    DrawSystemImage(Ref<WebCore::SystemImage> systemImage, WebCore::FloatRect destinationRect) StreamBatched SwiftTypes
+#if USE(SYSTEM_PREVIEW)
+    DrawBadgeSystemImage
+#endif
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    DrawVideoFrame NotRecorded
+    SetSharedVideoFrameSemaphore NotRecorded SwiftTypes
+    SetSharedVideoFrameMemory NotRecorded SwiftTypes
+#endif
+    DrawDisplayList(WebKit::RemoteDisplayListIdentifier identifier) StreamBatched
+    DrawSnapshotFrame(WebCore::FrameIdentifier frameIdentifier)
 }
 
 #endif

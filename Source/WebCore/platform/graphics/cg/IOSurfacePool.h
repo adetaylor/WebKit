@@ -44,10 +44,13 @@ namespace WebCore {
 
 class ColorSpace;
 
-class IOSurfacePool : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<IOSurfacePool> {
+// A facade over IOSurfacePoolCore (IOSurface.swift), which holds the pool and implements it, for callers in C++.
+class SWIFT_PRIVATE_FILEID("WebCore/IOSurface.swift") IOSurfacePool : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<IOSurfacePool> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(IOSurfacePool, WEBCORE_EXPORT);
     WTF_MAKE_NONCOPYABLE(IOSurfacePool);
     friend class LazyNeverDestroyed<IOSurfacePool>;
+    friend class IOSurface;
+    friend class ImageBufferSurface;
 
 public:
     WEBCORE_EXPORT static IOSurfacePool& sharedPoolSingleton();
@@ -65,58 +68,8 @@ public:
 private:
     IOSurfacePool();
 
-    using CachedSurfaceQueue = Deque<std::unique_ptr<IOSurface>>;
-    using CachedSurfaceMap = HashMap<IntSize, CachedSurfaceQueue>;
-
-    // Pooled surfaces are marked volatile on insertion, so pool bytes are not charged to the owning
-    // process's ledger. That makes a large pool cheap and a high hit rate valuable: every miss mints
-    // a fresh non-volatile (charged) surface, while a hit just borrows uncharged bytes back. Measured
-    // on apple.com/iphone-duo: 64 MB -> 84% hit rate, owned-unmapped p90/p95 518/587 MB; 256 MB ->
-    // 93% and 455/483 MB, despite holding ~166 MB more surfaces.
-    static constexpr size_t defaultMaximumBytesCached { 256 * MB };
-    // in-use surfaces can't be immediately recycled but may be available soon. We should
-    // limit caching in use surfaces so that we don't end up with a pool of surfaces we
-    // can't readily recycle.
-#if PLATFORM(MAC)
-    static constexpr size_t maximumInUseBytes = 0.5 * defaultMaximumBytesCached;
-#else
-    // 32 MB is chosen for iOS as it is approximately the size of a set of front and back buffer
-    // for 4 page tiles of dimensions 1024x1024. This should provide a good trade off of soon to be
-    // available surfaces without contributing too much non-volatile footprint during memory pressure situations.
-    static constexpr size_t maximumInUseBytes { 32 * MB };
-#endif
-
-    NODELETE bool shouldCacheSurface(const IOSurface&) const WTF_REQUIRES_LOCK(m_lock);
-
-    void willAddSurface(IOSurface&, bool inUse) WTF_REQUIRES_LOCK(m_lock);
-    NODELETE void didRemoveSurface(IOSurface&, bool inUse) WTF_REQUIRES_LOCK(m_lock);
-    void didUseSurfaceOfSize(IntSize) WTF_REQUIRES_LOCK(m_lock);
-
-    void insertSurfaceIntoPool(std::unique_ptr<IOSurface>) WTF_REQUIRES_LOCK(m_lock);
-
-    void evict(size_t additionalSize) WTF_REQUIRES_LOCK(m_lock);
-    void tryEvictInUseSurface() WTF_REQUIRES_LOCK(m_lock);
-    void tryEvictOldestCachedSurface() WTF_REQUIRES_LOCK(m_lock);
-
-    void scheduleCollection() WTF_REQUIRES_LOCK(m_lock);
-    void performCollection(uint64_t token);
-    void collectInUseSurfaces() WTF_REQUIRES_LOCK(m_lock);
-
-    void discardAllSurfacesInternal() WTF_REQUIRES_LOCK(m_lock);
-
-    NODELETE String poolStatistics() const WTF_REQUIRES_LOCK(m_lock);
-
-    Lock m_lock;
-    // The collection runs as a delayed task on a shared work queue. It holds only a weak reference, so the pool can be destroyed on any thread.
-    // Identifies the pending task, or 0 if there is none. A task whose token no longer matches was cancelled.
-    uint64_t m_collectionToken WTF_GUARDED_BY_LOCK(m_lock) { 0 };
-    CachedSurfaceMap m_cachedSurfaces WTF_GUARDED_BY_LOCK(m_lock);
-    CachedSurfaceQueue m_inUseSurfaces WTF_GUARDED_BY_LOCK(m_lock);
-    Vector<IntSize> m_sizesInPruneOrder WTF_GUARDED_BY_LOCK(m_lock);
-
-    size_t m_bytesCached WTF_GUARDED_BY_LOCK(m_lock) { 0 };
-    size_t m_inUseBytesCached WTF_GUARDED_BY_LOCK(m_lock) { 0 };
-    size_t m_maximumBytesCached WTF_GUARDED_BY_LOCK(m_lock) { defaultMaximumBytesCached };
+    // A +1 reference to the IOSurfacePoolCore.
+    const uintptr_t m_swiftState;
 };
 
 }

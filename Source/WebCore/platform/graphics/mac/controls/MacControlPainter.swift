@@ -43,6 +43,29 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Copyright (C) 2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
 #if ENABLE_WEBCORE_SWIFT && WTF_PLATFORM_MAC
 
 import AppKit
@@ -61,6 +84,7 @@ import pal.spi.mac.NSSearchFieldCellSPI
 import pal.spi.mac.NSServicesRolloverButtonCellSPI
 #endif
 import pal.spi.mac.NSViewSPI
+import wtf.Core.RuntimeApplicationChecks
 
 // MARK: Entering the drawing
 
@@ -298,8 +322,108 @@ private struct MacControlDrawing {
     let accentColor: NSColor?
     let textColor: CGColor?
     let focusRingColor: CGColor?
+    // SliderTrackPart's tick marks, as ratios of its track.
+    let tickRatios: [Double]
+    let layers: MacControlLayers
+}
 
-    var layers: UInt { state.layers }
+// MARK: Layers
+
+// The image buffers of one draw(), made as GraphicsContext::createImageBuffer() makes them for the context drawn into, as
+// bitmaps, and the contexts being drawn into: the context of the draw, then those of the layers being filled, innermost last.
+// A layer is a nonzero index.
+@MainActor
+private final class MacControlLayers {
+    private struct Layer {
+        let context: CGContext
+        let width: Float
+        let height: Float
+    }
+
+    private var contexts: [CGContext]
+    private var layers: [Layer?] = []
+
+    init(_ context: CGContext) {
+        contexts = [context]
+    }
+
+    private var current: CGContext { contexts[contexts.count - 1] }
+
+    // An sRGB BGRA8 bitmap of the size scaled by the scale, rounded up, as ImageBuffer::create() makes one, with the base
+    // transform that ImageBufferCGBackend::applyBaseTransform() gives it, filled by drawing into it: 0 if it can't be made.
+    func makeLayer(_ width: Float, _ height: Float, _ scale: Float, _ content: (CGContext) -> Void) -> UInt8 {
+        // calculateImageBufferBackendSize().
+        let backendWidth = (scale * width).rounded(.up)
+        let backendHeight = (scale * height).rounded(.up)
+        guard layers.count < Int(UInt8.max), backendWidth >= 1, backendHeight >= 1, backendWidth <= Float(Int32.max), backendHeight <= Float(Int32.max),
+            let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+            // Without data, CoreGraphics allocates the bitmap.
+            let context = unsafe CGContext(
+                data: nil,
+                width: Int(backendWidth),
+                height: Int(backendHeight),
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue
+            )
+        else {
+            return 0
+        }
+        CGContextSetBaseCTM(context, CGContextGetBaseCTM(context).scaledBy(x: CGFloat(scale), y: CGFloat(scale)))
+        CGContextSetCTM(context, CGAffineTransform(a: CGFloat(scale), b: 0, c: 0, d: -CGFloat(scale), tx: 0, ty: CGFloat(backendHeight)))
+        contexts.append(context)
+        content(context)
+        contexts.removeLast()
+        layers.append(Layer(context: context, width: width, height: height))
+        return UInt8(layers.count)
+    }
+
+    private func image(_ layer: UInt8) -> (image: CGImage, width: Float, height: Float)? {
+        guard layer > 0, Int(layer) <= layers.count, let found = layers[Int(layer) - 1], let image = found.context.makeImage() else {
+            return nil
+        }
+        return (image, found.width, found.height)
+    }
+
+    // GraphicsContext::drawConsumingImageBuffer() of the layer at the location, in the current context, which then has the
+    // alpha if one is given.
+    func drawLayer(_ layer: UInt8, _ x: Float, _ y: Float, alpha: Float?, isPlusLighter: Bool, isRotatedHalfTurn: Bool) {
+        guard let found = image(layer) else {
+            return
+        }
+        layers[Int(layer) - 1] = nil
+        let context = current
+        if let alpha {
+            context.setAlpha(CGFloat(alpha))
+        }
+        var options = CGRendererImageOptions()
+        options.compositeOperator = isPlusLighter ? .PlusLighter : .SourceOver
+        options.blendMode = .Normal
+        options.interpolationQuality = .Default
+        // ImageOrientation::Orientation::OriginBottomRight, or the default one.
+        options.orientation = isRotatedHalfTurn ? 3 : 1
+        options.headroom = 0
+        CGRendererCore.drawImage(context, found.image, CGRect(x: CGFloat(x), y: CGFloat(y), width: CGFloat(found.width), height: CGFloat(found.height)), options)
+    }
+
+    // A clip of the current context to the layer, which isn't drawn into once made.
+    func clipToLayer(_ layer: UInt8, _ rect: CGRect) {
+        guard let found = image(layer) else {
+            return
+        }
+        CGRendererCore.clipToImage(current, found.image, rect)
+    }
+
+    func clipToRoundedRect(_ rect: CGRect, _ radius: Float) {
+        CGRendererCore.clipToRoundedRect(current, rect, radius)
+    }
+
+    // The platform's focus ring around the rect, in the keyboard focus indicator color, opaque.
+    func drawFocusRing(_ rect: CGRect, _ zoomFactor: Float) {
+        let color = CGRendererCopyCachedCGColorForData(WebCore.MacControlPainter.keyboardFocusIndicatorColor())
+        CGRendererCore.drawFocusRing(current, rect, color, zoomFactor)
+    }
 }
 
 // The NSServicesRolloverButtonCell copies are made under one lock: -[NSButtonCell copyWithZone:] changes the process's
@@ -323,9 +447,6 @@ private final class MacControlCells {
     private var searchMenuTemplateStorage: NSMenu?
     private var sliderCellStorage: NSSliderCell?
     private var textFieldCellStorage: NSTextFieldCell?
-
-    // What the layers that MacControlPainter::makeLayer() is filling draw, innermost last.
-    private var layerContents: [(CGContext) -> Void] = []
 
     // MARK: Cells
 
@@ -499,15 +620,7 @@ private final class MacControlCells {
     // MARK: Layers
 
     func makeLayer(_ drawing: MacControlDrawing, _ size: MacFloatSize, _ scale: Float, _ content: (CGContext) -> Void) -> UInt8 {
-        withoutActuallyEscaping(content) { content in
-            layerContents.append(content)
-            defer { layerContents.removeLast() }
-            return WebCore.MacControlPainter.makeLayer(drawing.layers, size.width, size.height, scale)
-        }
-    }
-
-    func fillLayer(_ context: CGContext) {
-        layerContents.last?(context)
+        drawing.layers.makeLayer(size.width, size.height, scale, content)
     }
 
     private func drawLayer(
@@ -518,16 +631,7 @@ private final class MacControlCells {
         isPlusLighter: Bool = false,
         isRotatedHalfTurn: Bool = false
     ) {
-        var options = WebCore.MacControlLayerDrawing()
-        options.x = location.x
-        options.y = location.y
-        if let alpha {
-            options.setsAlpha = true
-            options.alpha = alpha
-        }
-        options.isPlusLighter = isPlusLighter
-        options.isRotatedHalfTurn = isRotatedHalfTurn
-        WebCore.MacControlPainter.drawLayer(drawing.layers, layer, options)
+        drawing.layers.drawLayer(layer, location.x, location.y, alpha: alpha, isPlusLighter: isPlusLighter, isRotatedHalfTurn: isRotatedHalfTurn)
     }
 
     // MARK: AppKit's current context and appearance
@@ -1027,6 +1131,7 @@ private final class MacControlCells {
                 self.drawCell(drawing, drawing.context, logicalRect, state.withoutFocus, self.sliderCell)
             }
         case .SliderHorizontal, .SliderVertical:
+            drawSliderTicks(drawing)
             drawSliderTrack(drawing)
         case .Switch:
             drawSwitchTrack(drawing)
@@ -1035,6 +1140,54 @@ private final class MacControlCells {
             drawTextField(drawing)
         default:
             break
+        }
+    }
+
+    // SliderTrackPart::drawTicks(): a tick mark for each ratio, below the track, in the text color, in float arithmetic as
+    // the C++'s.
+    private func drawSliderTicks(_ drawing: MacControlDrawing) {
+        if drawing.tickRatios.isEmpty {
+            return
+        }
+        let state = drawing.state
+        let rect = drawing.borderRect
+        let sliderTickOffsetFromTrackCenter: Float = -9
+        let isHorizontal = state.appearance == .SliderHorizontal
+        // IntRect::moveBy(IntPoint(rect.location())), which truncates the location.
+        let trackX = state.sliderTrackX &+ truncatedInt32(rect.x)
+        let trackY = state.sliderTrackY &+ truncatedInt32(rect.y)
+        let tickWidth = (isHorizontal ? 1 : 3) * state.zoomFactor
+        let tickHeight = (isHorizontal ? 3 : 1) * state.zoomFactor
+        let offsetFromTrackCenter = sliderTickOffsetFromTrackCenter * state.zoomFactor
+        var tickX: Float = 0
+        var tickY: Float = 0
+        let tickRegionMargin: Float
+        let tickRegionWidth: Float
+        if isHorizontal {
+            tickY = rect.center.y + offsetFromTrackCenter
+            tickRegionMargin = Float(Double(trackX) + Double(Float(state.sliderThumbWidth) - tickWidth) / 2.0)
+            tickRegionWidth = Float(state.sliderTrackWidth &- state.sliderThumbWidth)
+        } else {
+            tickX = rect.center.x + offsetFromTrackCenter
+            tickRegionMargin = Float(Double(trackY) + Double(Float(state.sliderThumbHeight) - tickHeight) / 2.0)
+            tickRegionWidth = Float(state.sliderTrackHeight &- state.sliderThumbHeight)
+        }
+        let context = drawing.context
+        context.saveGState()
+        defer { context.restoreGState() }
+        if let textColor = drawing.textColor {
+            context.setFillColor(textColor)
+        }
+        let isInlineFlipped = (!isHorizontal && !state.isVertical) || state.isInlineFlipped
+        for tickRatio in drawing.tickRatios {
+            let value = isInlineFlipped ? 1.0 - tickRatio : tickRatio
+            let tickPosition = Float((Double(tickRegionMargin) + Double(tickRegionWidth) * value).rounded(.toNearestOrAwayFromZero))
+            if isHorizontal {
+                tickX = tickPosition
+            } else {
+                tickY = tickPosition
+            }
+            context.fill(CGRect(x: CGFloat(tickX), y: CGFloat(tickY), width: CGFloat(tickWidth), height: CGFloat(tickHeight)))
         }
     }
 
@@ -1252,11 +1405,7 @@ private final class MacControlCells {
         let comboBoxButtonLayer = makeLayer(drawing, desiredComboBoxButtonSize, drawing.deviceScaleFactor) { comboBoxButtonContext in
             let scale = desiredComboBoxButtonSize.width / comboBoxButtonSize.width
             comboBoxButtonContext.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
-            WebCore.MacControlPainter.clipToRoundedRect(
-                drawing.layers,
-                MacFloatRect(MacFloatPoint(x: 0, y: 0), comboBoxButtonSize).cgRect,
-                comboBoxButtonCornerRadii
-            )
+            drawing.layers.clipToRoundedRect(MacFloatRect(MacFloatPoint(x: 0, y: 0), comboBoxButtonSize).cgRect, comboBoxButtonCornerRadii)
             comboBoxButtonContext.translateBy(x: CGFloat(-comboBoxButtonInset.x), y: CGFloat(-comboBoxButtonInset.y))
             self.drawLayer(drawing, comboBoxLayer, MacFloatPoint(x: 0, y: 0), isRotatedHalfTurn: true)
         }
@@ -1743,7 +1892,7 @@ private final class MacControlCells {
             )
         }
 
-        WebCore.MacControlPainter.clipToRoundedRect(drawing.layers, logicalRect.cgRect, sliderTrackRadius)
+        drawing.layers.clipToRoundedRect(logicalRect.cgRect, sliderTrackRadius)
         if let shading {
             context.drawShading(shading)
         }
@@ -1868,7 +2017,7 @@ private final class MacControlCells {
                 trackContext.saveGState()
 
                 // FIXME: clipping in context() might not always be accurate for context().platformContext().
-                WebCore.MacControlPainter.clipToLayer(drawing.layers, maskLayer, drawingTrackRect.cgRect)
+                drawing.layers.clipToLayer(maskLayer, drawingTrackRect.cgRect)
 
                 self.drawCoreUI(
                     drawingTrackRect.cgRect,
@@ -2014,7 +2163,7 @@ private final class MacControlCells {
         context.restoreGState()
 
         if state.isFocused {
-            WebCore.MacControlPainter.drawFocusRing(drawing.layers, trackRect.cgRect, state.zoomFactor)
+            drawing.layers.drawFocusRing(trackRect.cgRect, state.zoomFactor)
         }
     }
 
@@ -2076,8 +2225,7 @@ private final class MacControlCells {
             let thumbLayer = self.makeLayer(drawing, inflatedTrackRect.size, drawing.deviceScaleFactor) { thumbContext in
                 thumbContext.saveGState()
                 // FIXME: clipping in context() might not always be accurate for context().platformContext().
-                WebCore.MacControlPainter.clipToLayer(
-                    drawing.layers,
+                drawing.layers.clipToLayer(
                     maskLayer,
                     CGRect(x: 0, y: 0, width: CGFloat(inflatedTrackRect.width), height: CGFloat(inflatedTrackRect.height))
                 )
@@ -2167,6 +2315,96 @@ private final class MacControlCells {
     }
 }
 
+// MARK: Drawing
+
+// PlatformControlMac::draw()'s drawing of the control into the context, with the cells.
+private func drawMacControl(
+    _ cells: MacControlCells,
+    _ context: CGContext,
+    _ borderRect: MacFloatRect,
+    _ deviceScaleFactor: Float,
+    _ state: WebCore.MacControlState,
+    _ accentColor: NSColor?,
+    _ textColor: CGColor?,
+    _ focusRingColor: CGColor?,
+    _ tickRatios: [Double]
+) {
+    enterControlDrawing((cells, context, borderRect, deviceScaleFactor, state, accentColor, textColor, focusRingColor, tickRatios)) { arguments in
+        let drawing = MacControlDrawing(
+            context: arguments.1,
+            borderRect: arguments.2,
+            deviceScaleFactor: arguments.3,
+            state: arguments.4,
+            accentColor: arguments.5,
+            textColor: arguments.6,
+            focusRingColor: arguments.7,
+            tickRatios: arguments.8,
+            layers: MacControlLayers(arguments.1)
+        )
+        arguments.0.draw(drawing)
+    }
+}
+
+// A Swift receiver's cells, which it draws Mac controls with as a ControlFactoryMac's: used only on the thread that made them,
+// as enterControlDrawing() requires.
+@_spi(WebKitGPU) public struct MacControlPainterCells {
+    fileprivate let cells: MacControlCells
+
+    @_spi(WebKitGPU) public init() {
+        cells = enterControlDrawing(()) { _ in MacControlCells() }
+    }
+}
+
+@available(*, unavailable)
+extension MacControlPainterCells: Sendable {}
+
+// Whether a Swift receiver draws cells without a view, as PlatformControlMac does: only in the GPU process, not when a
+// recording is replayed in the process printing it.
+private let receiverDrawsViewlessCells = WTF.isInGPUProcess() && NSCell.instancesRespond(to: Selector(("_setFallbackBackingScaleFactor:")))
+
+// ControlPart::draw() of a Mac control part that a Swift receiver draws: the cells' states updated for its rect, then the
+// control drawn as PlatformControlMac::draw() draws it, with what the context it draws into gives it. `state` is
+// PlatformControlMac::state()'s; `textColor` is in the context's color space.
+func drawMacControlPart(
+    _ cells: MacControlPainterCells,
+    _ context: CGContext,
+    _ borderRect: CGRect,
+    _ deviceScaleFactor: Float,
+    _ state: WebCore.MacControlState,
+    _ accentColor: CGColor?,
+    _ textColor: CGColor?,
+    _ fillsEvenOdd: Bool,
+    _ tickRatios: [Double]
+) {
+    let rect = MacFloatRect(borderRect)
+    enterControlDrawing((cells.cells, rect, state)) { arguments in
+        let controlCells: MacControlCells = arguments.0
+        controlCells.updateCellStates(arguments.1, arguments.2)
+    }
+    var drawState = state
+    if state.appearance == .ProgressBar {
+        drawState.progressAnimationTime = WTF.MonotonicTime.now().secondsSinceEpoch().value()
+    }
+    drawState.drawsViewlessCells = receiverDrawsViewlessCells
+    drawState.focusRingClipRect = context.boundingBoxOfClipPath
+    if state.appearance == .MenulistButton {
+        drawState.fillsEvenOdd = fillsEvenOdd
+    }
+    let accent = accentColor.flatMap { NSColor(cgColor: $0) }
+    var focusRingColor: CGColor? = nil
+    if state.isFocused {
+        let usesDarkAppearance = state.usesDarkAppearance
+        focusRingColor = enterControlDrawing((usesDarkAppearance, accent)) { arguments in
+            var color: CGColor? = nil
+            withLocalDefaultSystemAppearance(arguments.0, arguments.1) {
+                color = CGRendererCopyCachedCGColorForData(WebCore.MacControlPainter.keyboardFocusIndicatorColor())
+            }
+            return color
+        }
+    }
+    drawMacControl(cells.cells, context, rect, deviceScaleFactor, drawState, accent, textColor, focusRingColor, tickRatios)
+}
+
 // MARK: MacControlPainter
 
 extension WebCore.MacControlPainter {
@@ -2226,25 +2464,26 @@ extension WebCore.MacControlPainter {
         guard let context else {
             return
         }
-        let cells = controlCells()
-        if state.fillsLayer {
-            enterControlDrawing((cells, context)) { arguments in
-                arguments.0.fillLayer(arguments.1)
+        var tickRatios: [Double] = []
+        if state.tickRatios != 0 {
+            // Safety: PlatformControlMac::draw() set state.tickRatios to its tick ratios, which last until this draw returns.
+            let count = unsafe WebCore.MacControlPainter.tickRatioCount(state.tickRatios)
+            tickRatios.reserveCapacity(count)
+            for index in 0..<count {
+                unsafe tickRatios.append(WebCore.MacControlPainter.tickRatio(state.tickRatios, index))
             }
-            return
         }
-        let drawing = MacControlDrawing(
-            context: context,
-            borderRect: MacFloatRect(borderRect),
-            deviceScaleFactor: deviceScaleFactor,
-            state: state,
-            accentColor: accentColor as? NSColor,
-            textColor: textColor,
-            focusRingColor: focusRingColor
+        drawMacControl(
+            controlCells(),
+            context,
+            MacFloatRect(borderRect),
+            deviceScaleFactor,
+            state,
+            accentColor as? NSColor,
+            textColor,
+            focusRingColor,
+            tickRatios
         )
-        enterControlDrawing((cells, drawing)) { arguments in
-            arguments.0.draw(arguments.1)
-        }
     }
 
     @cxx
@@ -2258,6 +2497,49 @@ extension WebCore.MacControlPainter {
         .zero
         #endif
     }
+}
+
+
+// MARK: AppKit control system images
+
+// ScrollbarTrackCornerSystemImageMac::drawControl() in the appearance that AppKitControlSystemImage::draw() sets: the dark or
+// light appearance, tinted with the image's tint color if it has one, drawn with the context as AppKit's current one.
+func drawAppKitScrollbarTrackCorner(_ context: CGContext, _ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGColor?) {
+    enterControlDrawing((context, rect, usesDarkAppearance, tintColor)) { arguments in
+        let (context, rect, usesDarkAppearance, tintColor) = arguments
+        withLocalDefaultSystemAppearance(usesDarkAppearance, tintColor.flatMap { NSColor(cgColor: $0) }) {
+            context.saveGState()
+            let savedContext = NSGraphicsContext.current
+            let setsContext = savedContext?.cgContext !== context
+            if setsContext {
+                NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
+            }
+            let options: [CFString: CFTypeRef] = [kCUIWidgetKey: kCUIWidgetScrollBarTrackCorner, kCUIIsFlippedKey: kCFBooleanTrue]
+            NSAppearance.currentDrawing()._draw(in: rect, context: context, options: options)
+            if setsContext {
+                NSGraphicsContext.current = savedContext
+            }
+            context.restoreGState()
+        }
+    }
+}
+
+// LocalDefaultSystemAppearance: the dark or light appearance, tinted with the color if there is one.
+@MainActor
+private func withLocalDefaultSystemAppearance(_ usesDarkAppearance: Bool, _ tintColor: NSColor?, _ body: @MainActor () -> Void) {
+    guard var appearance = NSAppearance(named: usesDarkAppearance ? .darkAqua : .aqua) else {
+        body()
+        return
+    }
+    if let tint = tintColor {
+        // The internal SDK's declaration returns an optional.
+        guard let tintedAppearance = appearance.applyingTintColor(tint) as NSAppearance? else {
+            body()
+            return
+        }
+        appearance = tintedAppearance
+    }
+    withDrawingAppearance(appearance, body)
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && WTF_PLATFORM_MAC

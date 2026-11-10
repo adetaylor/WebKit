@@ -237,7 +237,7 @@ WK_CLASS_AVAILABLE(macos(WK_MAC_TBA), ios(WK_IOS_TBA))
 
 - (void)_createMediaSessionCoordinatorForTesting:(id <_WKMediaSessionCoordinator>)privateCoordinator completionHandler:(void(^)(BOOL))completionHandler;
 - (void)_gpuToWebProcessConnectionCountForTesting:(void(^)(NSUInteger))completionHandler WK_API_AVAILABLE(macos(13.0), ios(16.0));
-- (void)_runDisplayListDataTestsInGPUProcessWithWebFonts:(NSArray<NSData *> *)webFonts completionHandler:(void(^)(NSArray<NSString *> *failures))completionHandler WK_API_AVAILABLE(macos(WK_MAC_TBA), ios(WK_IOS_TBA));
+- (void)_runDisplayListDataTestsWithWebFonts:(NSArray<NSData *> *)webFonts completionHandler:(void(^)(NSArray<NSString *> *failures))completionHandler WK_API_AVAILABLE(macos(WK_MAC_TBA), ios(WK_IOS_TBA));
 
 - (void)_isLayerTreeFrozenForTesting:(void (^)(BOOL frozen))completionHandler WK_API_AVAILABLE(macos(13.0), ios(16.0));
 - (void)_isLayerTreeFrozenForFrame:(_WKFrameHandle *)frameHandle completionHandler:(void (^)(BOOL frozen))completionHandler WK_API_AVAILABLE(macos(WK_MAC_TBA), ios(WK_IOS_TBA), visionos(WK_XROS_TBA));

@@ -216,7 +216,6 @@ private:
     void decodeSample(CMSampleBufferRef, uint8_t decodingFlags, uint64_t rendererIdentifier, int32_t flushId);
     void invalidateDecompressionSession(std::optional<uint64_t> rendererIdentifier);
     double updateFrameRateMonitor();
-    void assignResourceOwner(CMSampleBufferRef);
     uint32_t rendererDroppedVideoFrames(AudioVideoRendererObject) const;
     void expectMinimumUpcomingPresentationTime(AudioVideoRendererObject, CMTime);
     void removeBlockedSamples(AudioVideoRendererBlockedSamples, uint64_t trackIdentifier);

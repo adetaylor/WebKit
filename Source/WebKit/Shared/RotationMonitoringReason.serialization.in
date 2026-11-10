@@ -22,7 +22,7 @@
 
 header: "RotationMonitoringReason.h"
 
-enum class WebKit::RotationMonitoringReason : uint8_t {
+[Swift] enum class WebKit::RotationMonitoringReason : uint8_t {
     Capture,
     CapturePreview
 };

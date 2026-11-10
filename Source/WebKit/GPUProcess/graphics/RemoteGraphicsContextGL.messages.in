@@ -29,7 +29,8 @@
     DispatchedTo=GPU,
     EnabledBy=WebGLEnabled,
     SwiftReceiver,
-    SwiftTypes
+    SwiftTypes,
+    SwiftReceiverOwner=RemoteGraphicsContextGLResources
 ]
 messages -> RemoteGraphicsContextGL Stream {
     void EnsureExtensionEnabled(uint8_t glExtension) StreamBatched
@@ -39,6 +40,12 @@ messages -> RemoteGraphicsContextGL Stream {
     void InvalidateFramebuffer(uint32_t glTarget, std::span<const uint32_t> attachments)
     void InvalidateSubFramebuffer(uint32_t glTarget, std::span<const uint32_t> attachments, int32_t x, int32_t y, int32_t width, int32_t height)
     void UniformMatrixOne(uint8_t columns, uint8_t rows, int32_t location, bool transpose, float m0, float m1, float m2, float m3, float m4, float m5, float m6, float m7, float m8, float m9, float m10, float m11, float m12, float m13, float m14, float m15) StreamBatched
+    void MultiDrawArraysANGLE(uint32_t mode, std::span<const int32_t> firsts, std::span<const int32_t> counts)
+    void MultiDrawArraysInstancedANGLE(uint32_t mode, std::span<const int32_t> firsts, std::span<const int32_t> counts, std::span<const int32_t> instanceCounts)
+    void MultiDrawElementsANGLE(uint32_t mode, std::span<const int32_t> counts, std::span<const int32_t> offsets, uint32_t type)
+    void MultiDrawElementsInstancedANGLE(uint32_t mode, std::span<const int32_t> counts, std::span<const int32_t> offsets, std::span<const int32_t> instanceCounts, uint32_t type)
+    void MultiDrawArraysInstancedBaseInstanceANGLE(uint32_t mode, std::span<const int32_t> firsts, std::span<const int32_t> counts, std::span<const int32_t> instanceCounts, std::span<const uint32_t> baseInstances)
+    void MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(uint32_t mode, std::span<const int32_t> counts, std::span<const int32_t> offsets, std::span<const int32_t> instanceCounts, std::span<const int32_t> baseVertices, std::span<const uint32_t> baseInstances, uint32_t type)
     void ActiveTexture(uint32_t texture) StreamBatched
     void AttachShader(uint32_t program, uint32_t shader) StreamBatched
     void BindAttribLocation(uint32_t arg0, uint32_t index, UTF8CString name) StreamBatched
@@ -166,6 +173,7 @@ messages -> RemoteGraphicsContextGL Stream {
     void VertexAttribPointer(uint32_t index, int32_t size, uint32_t type, bool normalized, int32_t stride, uint64_t offset) StreamBatched
     void Viewport(int32_t x, int32_t y, int32_t width, int32_t height) StreamBatched
     void BufferData0(uint32_t glTarget, uint64_t arg1, uint32_t usage)
+    void ReadPixelsBufferObject(int32_t rectX, int32_t rectY, int32_t rectWidth, int32_t rectHeight, uint32_t format, uint32_t type, uint64_t offset, int32_t alignment, int32_t rowLength)
     void TexImage2D1(uint32_t glTarget, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, uint32_t format, uint32_t type, uint64_t offset)
     void TexSubImage2D1(uint32_t glTarget, int32_t level, int32_t xoffset, int32_t yoffset, int32_t width, int32_t height, uint32_t format, uint32_t type, uint64_t offset)
     void CompressedTexImage2D1(uint32_t glTarget, int32_t level, uint32_t internalformat, int32_t width, int32_t height, int32_t border, int32_t imageSize, uint64_t offset)

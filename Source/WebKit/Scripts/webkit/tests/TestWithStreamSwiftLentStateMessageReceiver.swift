@@ -86,6 +86,89 @@ final class TestWithStreamSwiftLentStateWeakRef {
             return .Invalid
         }
     }
+
+    @used
+    func dispatchSetLabel(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let label: String?
+        let values: [UInt32]
+        do {
+            label = try IPCCoding.WTFString.decode(from: &decoder)
+            values = try IPCCoding.Vector<UInt32>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setLabel(
+                    state: &state,
+                    label: label,
+                    values: values
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchFillPath(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let path: IPCTypes.Path
+        let decodeContext = target.pathDecodeContext(state: state)
+        do {
+            path = try IPCTypes.Path.decode(from: &decoder, context: decodeContext)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.fillPath(
+                    state: &state,
+                    path: path
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetSemaphore(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let semaphore: IPCTypes.Semaphore
+        let scale: Float
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do {
+            scale = try Float.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setSemaphore(
+                    state: &state,
+                    semaphore: semaphore,
+                    scale: scale
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftLentStateMessageForwarder {

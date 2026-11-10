@@ -297,6 +297,7 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/ShapeDetection/RemoteBarcodeDetector \
 	GPUProcess/ShapeDetection/RemoteFaceDetector \
 	GPUProcess/ShapeDetection/RemoteTextDetector \
+	GPUProcess/graphics/Model/RemoteGPUModel \
 	GPUProcess/graphics/Model/RemoteMesh \
 	GPUProcess/graphics/RemoteCGRenderer \
 	GPUProcess/graphics/RemoteGraphicsContext \
@@ -347,7 +348,6 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/media/RemoteAudioVideoRendererProxyManager \
 	GPUProcess/media/RemoteCDMInstanceSessionProxy \
 	GPUProcess/media/RemoteCDMProxy \
-	GPUProcess/media/ios/RemoteMediaSessionHelperProxy \
 	GPUProcess/media/RemoteAudioDestinationManager \
 	GPUProcess/media/RemoteCDMFactoryProxy \
 	GPUProcess/media/RemoteCDMInstanceProxy \
@@ -357,7 +357,6 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/media/RemoteMediaPlayerProxy \
 	GPUProcess/media/RemoteMediaResourceLoader \
 	GPUProcess/media/RemoteVideoFrameObjectHeap \
-	GPUProcess/media/RemoteRemoteCommandListenerProxy \
 	ModelProcess/ModelConnectionToWebProcess \
 	ModelProcess/ModelProcess \
 	ModelProcess/ModelProcessModelPlayerManagerProxy \
@@ -1089,7 +1088,7 @@ GENERATED_SERIALIZERS_OUTPUT_PATTERNS = $(call to-pattern, $(GENERATED_SERIALIZE
 SERIALIZATION_ADDITIONS_FILES := $(foreach I,$(WEBKITADDITIONS_SERIALIZATION_IN_FILES),$(call find-webkitadditions-file,$I))
 OPAQUE_IPC_TYPES_ADDITIONS_FILES := $(call find-webkitadditions-file,OpaqueIPCTypesAdditions.tracking.in)
 
-$(GENERATED_SERIALIZERS_OUTPUT_PATTERNS) : $(WebKit2)/Scripts/generate-serializers.py $(SERIALIZATION_DESCRIPTION_FILES) $(SERIALIZATION_ADDITIONS_FILES) $(OPAQUE_IPC_TYPES_ADDITIONS_FILES) $(WebKit2)/DerivedSources.make $(WEBCORE_SERIALIZATION_DESCRIPTION_FILES_FULLPATH) $(WebKit2)/Scripts/webkit/opaque_ipc_types.py $(WebKit2)/Scripts/webkit/opaque_ipc_types.tracking.in $(WebKit2)/Scripts/webkit/swift_types.py
+$(GENERATED_SERIALIZERS_OUTPUT_PATTERNS) : $(WebKit2)/Scripts/generate-serializers.py $(SERIALIZATION_DESCRIPTION_FILES) $(SERIALIZATION_ADDITIONS_FILES) $(OPAQUE_IPC_TYPES_ADDITIONS_FILES) $(WebKit2)/DerivedSources.make $(WEBCORE_SERIALIZATION_DESCRIPTION_FILES_FULLPATH) $(WebKit2)/Scripts/webkit/opaque_ipc_types.py $(WebKit2)/Scripts/webkit/opaque_ipc_types.tracking.in $(WebKit2)/Scripts/webkit/swift_types.py $(WebKit2)/Scripts/webkit/decode_policy.py
 	$(PYTHON) $(WebKit2)/Scripts/generate-serializers.py mm --split-by-directory --output-dir=IPC $(addprefix --opaque-ipc-types-tracking-file=,$(OPAQUE_IPC_TYPES_ADDITIONS_FILES)) $(filter %.serialization.in,$^)
 
 EXTENSIONS_DIR = $(WebKit2)/WebProcess/Extensions

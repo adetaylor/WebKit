@@ -47,7 +47,8 @@ std::unique_ptr<ImageBufferShareableMappedIOSurfaceBitmapBackend> ImageBufferSha
     if (backendSize.isEmpty())
         return nullptr;
 
-    auto surface = IOSurface::create(RefPtr { creationContext.surfacePool }.get(), backendSize, parameters.colorSpace, IOSurface::Name::ImageBuffer, convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat), UseLosslessCompression::No);
+    RefPtr surfacePool = creationContext.surfacePool;
+    auto surface = IOSurface::create(surfacePool.get(), backendSize, parameters.colorSpace, IOSurface::Name::ImageBuffer, convertToIOSurfaceFormat(parameters.bufferFormat.pixelFormat), UseLosslessCompression::No);
     if (!surface)
         return nullptr;
     if (creationContext.resourceOwner)
@@ -56,15 +57,16 @@ std::unique_ptr<ImageBufferShareableMappedIOSurfaceBitmapBackend> ImageBufferSha
     if (!lockAndContext)
         return nullptr;
     CGContextClearRect(lockAndContext->context.get(), FloatRect(FloatPoint::zero(), backendSize));
-    return makeUnique<ImageBufferShareableMappedIOSurfaceBitmapBackend>(parameters, WTF::move(surface), WTF::move(*lockAndContext), creationContext.surfacePool.get());
+    auto core = ImageBufferSurface::createForMappedBitmap(*surface, surfacePool.get());
+    return makeUnique<ImageBufferShareableMappedIOSurfaceBitmapBackend>(parameters, WTF::move(surface), WTF::move(*lockAndContext), WTF::move(core));
 }
 
-ImageBufferShareableMappedIOSurfaceBitmapBackend::ImageBufferShareableMappedIOSurfaceBitmapBackend(const WebCore::ImageBufferParameters& parameters, std::unique_ptr<IOSurface> surface, IOSurface::LockAndContext&& lockAndContext, IOSurfacePool* ioSurfacePool)
-    : ImageBufferCGBackend(parameters)
+ImageBufferShareableMappedIOSurfaceBitmapBackend::ImageBufferShareableMappedIOSurfaceBitmapBackend(const WebCore::ImageBufferParameters& parameters, std::unique_ptr<IOSurface> surface, IOSurface::LockAndContext&& lockAndContext, ImageBufferSurface&& core)
+    : ImageBufferCGBackend(parameters, nullptr, WTF::move(core))
     , m_surface(WTF::move(surface))
     , m_lock(WTF::move(lockAndContext.lock))
-    , m_ioSurfacePool(ioSurfacePool)
 {
+    ASSERT(m_core);
     m_context = makeUnique<GraphicsContextCG>(lockAndContext.context.get());
     applyBaseTransform(*m_context);
 }
@@ -72,7 +74,8 @@ ImageBufferShareableMappedIOSurfaceBitmapBackend::ImageBufferShareableMappedIOSu
 ImageBufferShareableMappedIOSurfaceBitmapBackend::~ImageBufferShareableMappedIOSurfaceBitmapBackend()
 {
     releaseGraphicsContext();
-    IOSurface::moveToPool(WTF::move(m_surface), m_ioSurfacePool.get());
+    m_surface = nullptr;
+    m_core.moveSurfaceToPool();
 }
 
 bool ImageBufferShareableMappedIOSurfaceBitmapBackend::canMapBackingStore() const
@@ -157,28 +160,22 @@ void ImageBufferShareableMappedIOSurfaceBitmapBackend::releaseGraphicsContext()
 
 bool ImageBufferShareableMappedIOSurfaceBitmapBackend::setVolatile()
 {
-    if (m_surface->isInUse())
-        return false;
-
-    setVolatilityState(VolatilityState::Volatile);
-    m_surface->setVolatile(true);
-    return true;
+    return m_core.setVolatile();
 }
 
 SetNonVolatileResult ImageBufferShareableMappedIOSurfaceBitmapBackend::setNonVolatile()
 {
-    setVolatilityState(VolatilityState::NonVolatile);
-    return m_surface->setVolatile(false);
+    return m_core.setNonVolatile();
 }
 
 VolatilityState ImageBufferShareableMappedIOSurfaceBitmapBackend::volatilityState() const
 {
-    return m_volatilityState;
+    return m_core.volatilityState();
 }
 
 void ImageBufferShareableMappedIOSurfaceBitmapBackend::setVolatilityState(VolatilityState volatilityState)
 {
-    m_volatilityState = volatilityState;
+    m_core.setVolatilityState(volatilityState);
 }
 
 void ImageBufferShareableMappedIOSurfaceBitmapBackend::transferToNewContext(const ImageBufferCreationContext&)

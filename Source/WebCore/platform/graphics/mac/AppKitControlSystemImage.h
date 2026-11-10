@@ -48,10 +48,6 @@ class WEBCORE_EXPORT AppKitControlSystemImage : public SystemImage {
 public:
     virtual ~AppKitControlSystemImage() = default;
 
-    void draw(GraphicsContext&, const FloatRect&) const final;
-
-    virtual void drawControl(GraphicsContext&, const FloatRect&) const { }
-
     AppKitControlSystemImageType controlType() const { return m_controlType; }
 
     Color tintColor() const { return m_tintColor; }

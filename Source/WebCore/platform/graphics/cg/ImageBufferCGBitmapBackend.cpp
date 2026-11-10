@@ -99,17 +99,21 @@ std::unique_ptr<ImageBufferCGBitmapBackend> ImageBufferCGBitmapBackend::create(c
     RetainPtr dataProvider = adoptCF(CGDataProviderCreateWithData(nullptr, data.mutableSpan().data(), numBytes, [] (void*, const void* data, size_t) {
         fastFree(const_cast<void*>(data));
     }));
+    auto dataSpan = data.leakSpan();
 
-    return std::unique_ptr<ImageBufferCGBitmapBackend>(new ImageBufferCGBitmapBackend(parameters, data.leakSpan(), WTF::move(dataProvider), WTF::move(context)));
+    auto core = ImageBufferSurface::create(cgContext.get(), dataProvider.get(), protect(parameters.colorSpace.platformColorSpace()).get(), backendSize, PixelBuffer::bytesPerPixelComponent(pixelFormat) * 8, PixelBuffer::bytesPerPixel(pixelFormat) * 8, bytesPerRow, bitmapInfoForPixelFormat(pixelFormat));
+    if (!core)
+        return nullptr;
+
+    return std::unique_ptr<ImageBufferCGBitmapBackend>(new ImageBufferCGBitmapBackend(parameters, dataSpan, WTF::move(context), WTF::move(core)));
 }
 
-ImageBufferCGBitmapBackend::ImageBufferCGBitmapBackend(const ImageBufferParameters& parameters, std::span<uint8_t> data, RetainPtr<CGDataProviderRef>&& dataProvider, std::unique_ptr<GraphicsContextCG>&& context)
-    : ImageBufferCGBackend(parameters, WTF::move(context))
+ImageBufferCGBitmapBackend::ImageBufferCGBitmapBackend(const ImageBufferParameters& parameters, std::span<uint8_t> data, std::unique_ptr<GraphicsContextCG>&& context, ImageBufferSurface&& core)
+    : ImageBufferCGBackend(parameters, WTF::move(context), WTF::move(core))
     , m_data(data)
-    , m_dataProvider(WTF::move(dataProvider))
 {
     ASSERT(m_data.data());
-    ASSERT(m_dataProvider);
+    ASSERT(m_core);
     ASSERT(m_context);
     applyBaseTransform(*m_context);
 }
@@ -133,17 +137,12 @@ bool ImageBufferCGBitmapBackend::canMapBackingStore() const
 
 RefPtr<NativeImage> ImageBufferCGBitmapBackend::copyNativeImage()
 {
-    return NativeImage::create(adoptCF(CGBitmapContextCreateImage(protect(context().platformContext()))));
+    return NativeImage::create(m_core.createImage());
 }
 
 RefPtr<NativeImage> ImageBufferCGBitmapBackend::createNativeImageReference()
 {
-    auto backendSize = size();
-    auto pixelFormat = this->pixelFormat();
-    return NativeImage::create(adoptCF(CGImageCreate(
-        backendSize.width(), backendSize.height(), PixelBuffer::bytesPerPixelComponent(pixelFormat) * 8, PixelBuffer::bytesPerPixel(pixelFormat) * 8, bytesPerRow(),
-        protect(colorSpace().platformColorSpace()), bitmapInfoForPixelFormat(pixelFormat), m_dataProvider.get(),
-        0, true, kCGRenderingIntentDefault)));
+    return NativeImage::create(m_core.createImageReference());
 }
 
 void ImageBufferCGBitmapBackend::getPixelBuffer(const IntRect& srcRect, PixelBuffer& destination)

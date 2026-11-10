@@ -75,11 +75,11 @@ where Target.RawValue: FixedWidthInteger, Source.RawValue: FixedWidthInteger {
     return target
 }
 
-// The registry of the WebGPU objects of a RemoteGPU whose messages Swift receives, by identifier: each object's
-// reference, its receiver, and the registration that keeps its messages coming, which the receiver removes when the
-// web process destructs the object. It has the RemoteGPU's instance, which makes the adapters and canvas contexts. Used
-// only on the RemoteGPU's work queue. The RemoteGPU owns the registry (RemoteGPU.swift), which holds it in turn until the
-// RemoteGPU empties and releases the registry, when it stops.
+// The registry of the WebGPU objects of a RemoteGPU, by identifier: each object's reference, its receiver, and the
+// registration that keeps its messages coming on the RemoteGPU owner's stream connection, which the receiver removes when
+// the web process destructs the object. It has the RemoteGPU's instance, which makes the adapters and canvas contexts, and
+// its rendering backend, whose image buffers the canvases draw to and read. Used only on the RemoteGPU's work queue. The
+// RemoteGPU owns the registry (RemoteGPU.swift), and empties and releases it when it stops.
 final class WebGPUImplTable {
     private final class Entry {
         let object: AnyObject
@@ -172,15 +172,24 @@ final class WebGPUImplTable {
         }
     }
 
-    let host: WebKit.RemoteGPU
+    let owner: IPC.SwiftReceiverOwner
+    let renderingBackend: WebKit.RemoteRenderingBackend
+    let videoFrameSources: GPUVideoFrameSources
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
     private var stores = Stores()
     // Every device made: work in flight can keep a device alive after its entry is removed.
     private var devices: [DeviceWeakReference] = []
 
-    init(host: WebKit.RemoteGPU, instance: InstanceReference) {
-        self.host = host
+    init(
+        owner: IPC.SwiftReceiverOwner,
+        renderingBackend: WebKit.RemoteRenderingBackend,
+        videoFrameSources: GPUVideoFrameSources,
+        instance: InstanceReference
+    ) {
+        self.owner = owner
+        self.renderingBackend = renderingBackend
+        self.videoFrameSources = videoFrameSources
         self.instance = instance
     }
 
@@ -236,7 +245,7 @@ final class WebGPUImplTable {
             identifier,
             device,
             receiver: receiver,
-            registration: IPC.registerSwiftStreamReceiver(host, receiver.getMessageReceiver(), .RemoteDevice, identifier)
+            registration: IPC.registerSwiftStreamReceiver(owner, receiver.getMessageReceiver(), .RemoteDevice, identifier)
         )
         RemoteQueue.add(device.queue, WebGPURegistryLink(self, queueIdentifier))
     }
@@ -733,6 +742,13 @@ func gpuByteOwner(_ memory: IPCTypes.ReadOnlySharedMemory) -> GPUByteOwner {
     unsafe GPUByteOwner(memory)
 }
 
+#if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+// CoreVideo's CVPixelBuffer is CVBuffer itself in some builds and a class of its own in others.
+func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
+    pixelBuffer as! CVBuffer
+}
+#endif
+
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its
 // object, and the objects its messages name, which most messages look up. Strong, because a weak reference costs as much
 // to load as the lookup itself. The cycle through the registry's entries ends when the RemoteGPU empties the registry, as
@@ -757,7 +773,7 @@ struct WebGPURegistryLink {
     }
 
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
-        objects?.host.sharedPreferencesForWebProcess() ?? .init()
+        objects?.owner.sharedPreferencesForWebProcess() ?? .init()
     }
 }
 

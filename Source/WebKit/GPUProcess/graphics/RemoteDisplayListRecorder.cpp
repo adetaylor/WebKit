@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteDisplayListRecorder.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "RemoteGraphicsContextMessages.h"
 
@@ -61,4 +61,4 @@ void RemoteDisplayListRecorder::stopListeningForIPC()
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

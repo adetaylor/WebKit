@@ -129,6 +129,75 @@ void IPCTesterReceiver::roundTripBufferSwift(RefPtr<WebCore::SharedBuffer>&& buf
     completionHandler(WTF::move(buffer), size);
 }
 
+#if PLATFORM(COCOA)
+void IPCTesterReceiver::describeColorSpaceSwift(const WebCore::ColorSpace& colorSpace, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(colorSpace.platformColorSpace()));
+}
+
+void IPCTesterReceiver::describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace& colorSpace, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(colorSpace.platformColorSpace()));
+}
+
+void IPCTesterReceiver::compareColorSpacesSwift(const WebCore::ColorSpace& colorSpace, const WebCore::ColorSpace& cxxDecodedColorSpace, CompletionHandler<void(bool)>&& completionHandler)
+{
+    completionHandler(CFEqual(colorSpace.platformColorSpace(), cxxDecodedColorSpace.platformColorSpace()));
+}
+
+void IPCTesterReceiver::describeControlSwift(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(part, style));
+}
+
+void IPCTesterReceiver::describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(part, style));
+}
+
+void IPCTesterReceiver::describeSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(image));
+}
+
+void IPCTesterReceiver::describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(image));
+}
+
+void IPCTesterReceiver::describeFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(filter));
+}
+
+void IPCTesterReceiver::describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(filter));
+}
+#endif
+
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+void IPCTesterReceiver::describeDrawingFormsSwift(WebCore::WindRule rule, const WebCore::AffineTransform& transform, const CGRendererColorValue& color, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(rule, transform, color));
+}
+
+void IPCTesterReceiver::describeCxxDecodedDrawingFormsSwift(WebCore::WindRule rule, const WebCore::AffineTransform& transform, const CGRendererColorValue& color, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(rule, transform, color));
+}
+
+void IPCTesterReceiver::describePathSwift(const WebCore::Path& path, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(path));
+}
+
+void IPCTesterReceiver::describeCxxDecodedPathSwift(const WebCore::Path& path, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(path));
+}
+#endif
+
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     halveEvenNumberSwift(connection, value, WTF::move(completionHandler));

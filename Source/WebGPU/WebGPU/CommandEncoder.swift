@@ -49,7 +49,6 @@ import Metal
 import Synchronization
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.WebGPU
 
 typealias String = Swift.String

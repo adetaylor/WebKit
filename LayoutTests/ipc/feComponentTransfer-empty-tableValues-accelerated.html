@@ -19,7 +19,7 @@ setTimeout(async () => {
     if (!window.IPC)
         return done('PASS');
     try {
-        const { CoreIPC } = await import('./coreipc.js');
+        const { CoreIPC, drawingInterfaceName } = await import('./coreipc.js');
 
         // std::optional<CoreIPCCGColorSpace> needs its bool discriminator exposed.
         CoreIPC.typeInfo['WebCore::PlatformColorSpace'] = [
@@ -51,11 +51,10 @@ setTimeout(async () => {
         // Source buffer, filled opaque white.
         const SRC = genID(), SRCCTX = genID();
         createImageBuffer(SRC, SRCCTX);
-        sc.newInterface('RemoteGraphicsContext', SRCCTX).FillRectWithColor({
-            rect: { location: { x: 0, y: 0 }, size: { width: 32, height: 32 } },
-            color: { data: { optionalValue: { isSemantic: false, usesFunctionSerialization: false,
-                data: { variantType: 'WebCore::PackedColor::RGBA', variant: { value: 0xFFFFFFFF } } } } }
-        });
+        const drawing = drawingInterfaceName();
+        const sourceContext = sc.newInterface(drawing, SRCCTX);
+        sourceContext.SetFillPackedColor({ color: drawing == 'RemoteCGRenderer' ? 0xFFFFFFFF : { value: 0xFFFFFFFF } });
+        sourceContext.FillRect({ rect: { location: { x: 0, y: 0 }, size: { width: 32, height: 32 } }, requiresClipToRect: 0 });
         sc.newInterface('RemoteImageBuffer', SRC).FlushContext({});
 
         function ctf(type, table) {
@@ -71,7 +70,7 @@ setTimeout(async () => {
         // leaking the adjacent (red) table entry into green.
         const DST = genID(), DSTCTX = genID();
         createImageBuffer(DST, DSTCTX);
-        sc.newInterface('RemoteGraphicsContext', DSTCTX).DrawFilteredImageBuffer({
+        sc.newInterface(drawing, DSTCTX).DrawFilteredImageBuffer({
             sourceImageIdentifier: { optionalValue: SRC },
             sourceImageRect: { location: { x: 0, y: 0 }, size: { width: 32, height: 32 } },
             filter: { subclasses: { variantType: 'WebCore::SVGFilterRenderer', variant: {

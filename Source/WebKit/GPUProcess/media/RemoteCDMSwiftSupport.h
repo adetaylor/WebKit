@@ -28,7 +28,7 @@
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "MessageReceiver.h"
-#include "RemoteCDMFactoryProxy.h"
+#include "RemoteCDMPrivateFactory.h"
 #include "SwiftReceiverRegistration.h"
 #include <WebCore/CDMInstance.h>
 #include <WebCore/CDMInstanceSession.h>
@@ -39,8 +39,10 @@
 
 namespace WebKit {
 
-// What the Swift EME message receivers use of RemoteCDMFactoryProxy and of the C++ CDMs that Swift cannot reach
-// directly: Swift cannot call a C++ virtual function's overriders' callbacks.
+class GPUConnectionToWebProcess;
+
+// What the Swift EME message receivers use of the C++ CDMs that Swift cannot reach directly: Swift cannot call a C++ virtual
+// function's overriders' callbacks.
 
 // The bytes of a buffer from IPC, and a buffer for a reply.
 using RemoteCDMBytes = Vector<uint8_t>;
@@ -52,9 +54,14 @@ inline RemoteCDMBytes remoteCDMBufferBytes(const WebCore::SharedBuffer& buffer)
 
 WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE) SWIFT_RETURNS_RETAINED;
 
-// A C++ CDM's instance, registered with the factory under identifier, with its key system, and the token of its Swift
-// FairPlay Streaming instance (FairPlayInstance.instance(forToken:)), 0 if it has none. Null if the CDM makes none.
-WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMFactoryProxy&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken) SWIFT_RETURNS_RETAINED;
+// A C++ CDM for a key system, made by the connection's RemoteCDMPrivateFactory, for the configuration algorithm and the
+// instances that the players use. Null if no C++ CDM supports the key system.
+RemoteCDMPrivateHandle* WTF_NULLABLE createRemoteCDM(GPUConnectionToWebProcess&, const String& keySystem, const String& mediaKeysHashSalt) SWIFT_RETURNS_RETAINED;
+
+// A C++ CDM's instance, registered with the connection's RemoteCDMPrivateFactory under identifier, with its key system,
+// and the token of its Swift FairPlay Streaming instance (FairPlayInstance.instance(forToken:)), 0 if it has none. Null if
+// the CDM makes none.
+WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(GPUConnectionToWebProcess&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken) SWIFT_RETURNS_RETAINED;
 
 } // namespace WebKit
 

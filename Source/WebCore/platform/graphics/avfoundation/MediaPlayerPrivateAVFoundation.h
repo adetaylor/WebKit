@@ -28,6 +28,7 @@
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
 #include <WebCore/FloatSize.h>
+#include <WebCore/MediaPlayerAVFoundationHost.h>
 #include <WebCore/MediaPlayerPrivate.h>
 #include <WebCore/Timer.h>
 #include <wtf/Deque.h>
@@ -36,6 +37,7 @@
 #include <wtf/LoggerHelper.h>
 #include <wtf/NativePromise.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
 namespace WebCore {
@@ -44,7 +46,9 @@ class InbandMetadataTextTrackPrivateAVF;
 class InbandTextTrackPrivateAVF;
 
 // Use eager initialization for the WeakPtrFactory since we construct WeakPtrs on another thread.
-class MediaPlayerPrivateAVFoundation
+// MediaPlayerPrivateAVFoundation.swift implements the readiness state machine: the network and ready states, page and
+// viewport visibility, the seeks' state, the media's characteristics and size, and the step from metadata to playback.
+class SWIFT_PRIVATE_FILEID("WebCore/MediaPlayerPrivateAVFoundation.swift") MediaPlayerPrivateAVFoundation
     : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<MediaPlayerPrivateAVFoundation, WTF::DestructionThread::Main>
     , public MediaPlayerPrivateInterface
 #if !RELEASE_LOG_DISABLED
@@ -163,6 +167,36 @@ public:
         MediaRenderingToLayer
     };
 
+    enum ItemStatus : uint8_t {
+        MediaPlayerAVPlayerItemStatusDoesNotExist,
+        MediaPlayerAVPlayerItemStatusUnknown,
+        MediaPlayerAVPlayerItemStatusFailed,
+        MediaPlayerAVPlayerItemStatusReadyToPlay,
+        MediaPlayerAVPlayerItemStatusPlaybackBufferEmpty,
+        MediaPlayerAVPlayerItemStatusPlaybackBufferFull,
+        MediaPlayerAVPlayerItemStatusPlaybackLikelyToKeepUp,
+    };
+
+    enum AssetStatus : uint8_t {
+        MediaPlayerAVAssetStatusDoesNotExist,
+        MediaPlayerAVAssetStatusUnknown,
+        MediaPlayerAVAssetStatusLoading,
+        MediaPlayerAVAssetStatusFailed,
+        MediaPlayerAVAssetStatusCancelled,
+        MediaPlayerAVAssetStatusNetworkError,
+        MediaPlayerAVAssetStatusLoaded,
+        MediaPlayerAVAssetStatusPlayable,
+    };
+
+    bool metaDataAvailable() const { return m_readyState >= MediaPlayer::ReadyState::HaveMetadata; }
+    bool loadingMetadata() const { return m_loadingMetadata; }
+    void updateStates();
+    bool shouldMaintainAspectRatio() const { return m_shouldMaintainAspectRatio; }
+
+    // For the Swift parts of the player, which log through the player's logger.
+    bool willLogFromSwift(MediaPlayerAVFoundationLogLevel) const;
+    void logFromSwift(MediaPlayerAVFoundationLogLevel, WTF::SpanUInt8 message NOESCAPE) const;
+
 protected:
     explicit MediaPlayerPrivateAVFoundation(MediaPlayer&);
 
@@ -209,11 +243,10 @@ protected:
     PlatformLayer* platformLayer() override { return 0; }
     bool supportsAcceleratedRendering() const override = 0;
     void acceleratedRenderingStateChanged() override;
-    bool shouldMaintainAspectRatio() const { return m_shouldMaintainAspectRatio; }
     void setShouldMaintainAspectRatio(bool) override;
     bool canSaveMediaData() const override;
 
-    MediaPlayer::MovieLoadType movieLoadType() const override;
+    MediaPlayerMovieLoadType movieLoadType() const override;
     void prepareForRendering() override;
 
     bool supportsPictureInPicture() const override { return true; }
@@ -227,27 +260,8 @@ protected:
     virtual void createAVPlayer() = 0;
     virtual void createAVPlayerItem() = 0;
 
-    enum ItemStatus {
-        MediaPlayerAVPlayerItemStatusDoesNotExist,
-        MediaPlayerAVPlayerItemStatusUnknown,
-        MediaPlayerAVPlayerItemStatusFailed,
-        MediaPlayerAVPlayerItemStatusReadyToPlay,
-        MediaPlayerAVPlayerItemStatusPlaybackBufferEmpty,
-        MediaPlayerAVPlayerItemStatusPlaybackBufferFull,
-        MediaPlayerAVPlayerItemStatusPlaybackLikelyToKeepUp,
-    };
     virtual ItemStatus playerItemStatus() const = 0;
 
-    enum AssetStatus {
-        MediaPlayerAVAssetStatusDoesNotExist,
-        MediaPlayerAVAssetStatusUnknown,
-        MediaPlayerAVAssetStatusLoading,
-        MediaPlayerAVAssetStatusFailed,
-        MediaPlayerAVAssetStatusCancelled,
-        MediaPlayerAVAssetStatusNetworkError,
-        MediaPlayerAVAssetStatusLoaded,
-        MediaPlayerAVAssetStatusPlayable,
-    };
     virtual AssetStatus assetStatus() const = 0;
     virtual long assetErrorCode() const = 0;
 
@@ -283,10 +297,10 @@ protected:
     virtual void resolvedURLChanged() = 0;
 
     virtual void updateIsAudible() = 0;
+    void tracksChanged() override = 0;
+    void syncTextTrackBounds() override = 0;
 
     virtual bool isHLS() const { return false; }
-
-    void updateStates();
 
     void setHasVideo(bool);
     void setHasAudio(bool);
@@ -296,17 +310,16 @@ protected:
     void setIgnoreLoadStateChanges(bool delay) { m_ignoreLoadStateChanges = delay; }
     void setNaturalSize(FloatSize);
     bool isLiveStream() const { return duration().isPositiveInfinite(); }
-    void setNetworkState(MediaPlayer::NetworkState);
-    void setReadyState(MediaPlayer::ReadyState);
+    void setNetworkState(MediaPlayerNetworkState);
+    void setReadyState(MediaPlayerReadyState);
 
     MediaRenderingMode currentRenderingMode() const;
     MediaRenderingMode preferredRenderingMode() const;
 
-    bool metaDataAvailable() const { return m_readyState >= MediaPlayer::ReadyState::HaveMetadata; }
     MediaTime maxTimeLoaded() const;
     NODELETE bool isReadyForVideoSetup() const;
-    virtual void setUpVideoRendering();
-    virtual void tearDownVideoRendering();
+    void setUpVideoRendering();
+    void tearDownVideoRendering();
     virtual bool haveBeenAskedToPaint() const { return false; }
     bool hasSetUpVideoRendering() const;
 
@@ -333,9 +346,28 @@ protected:
     void setNeedsRenderingModeChanged();
     void renderingModeChanged();
 
-    bool loadingMetadata() const { return m_loadingMetadata; }
-
     bool shouldEnableInheritURIQueryComponent() const;
+
+    // What MediaPlayerPrivateAVFoundation.swift reaches of the media player, the seek promise, the text track and the
+    // logger.
+    enum class MediaPlayerNotification : uint8_t {
+        NetworkStateChanged,
+        ReadyStateChanged,
+        SizeChanged,
+        CharacteristicChanged,
+        FirstVideoFrameAvailable,
+        RateChanged,
+        BufferedTimeRangesChanged,
+        SeekableTimeRangesChanged,
+        TimeChanged,
+    };
+    void notifyMediaPlayer(MediaPlayerNotification) const;
+    bool mediaPlayerRenderingCanBeAccelerated() const;
+    // Runs the seek that seekToTarget() saved while another was in flight, if there is one.
+    bool runPendingSeek();
+    void endSeekingCurrentTextTrack();
+    bool hasLoadedBeyondCurrentTime() const;
+    bool hasLoadedToDuration() const;
 
 protected:
     ThreadSafeWeakPtr<MediaPlayer> m_player;
@@ -387,6 +419,8 @@ protected:
 private:
     void seekInternal(const SeekTarget&);
     void resolveSeekPromiseIfNeeded();
+    // updateStates() once it has checked m_ignoreLoadStateChanges and disallowed script.
+    void updateReadiness();
 };
 
 String convertEnumerationToString(MediaPlayerPrivateAVFoundation::MediaRenderingMode);

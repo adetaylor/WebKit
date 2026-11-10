@@ -21,32 +21,32 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 header: <WebCore/PathSegmentData.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathMoveTo {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathMoveTo {
     WebCore::FloatPoint point;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathLineTo {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathLineTo {
     WebCore::FloatPoint point;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathQuadCurveTo {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathQuadCurveTo {
     WebCore::FloatPoint controlPoint;
     WebCore::FloatPoint endPoint;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathBezierCurveTo {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathBezierCurveTo {
     WebCore::FloatPoint controlPoint1;
     WebCore::FloatPoint controlPoint2;
     WebCore::FloatPoint endPoint;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathArcTo {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathArcTo {
     WebCore::FloatPoint controlPoint1;
     WebCore::FloatPoint controlPoint2;
     float radius;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathArc {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathArc {
     WebCore::FloatPoint center;
     float radius;
     float startAngle;
@@ -64,11 +64,11 @@ header: <WebCore/PathSegmentData.h>
     uint32_t isClockwise;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathClosedArc {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathClosedArc {
     WebCore::PathArc arc;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathEllipse {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathEllipse {
     WebCore::FloatPoint center;
     float radiusX;
     float radiusY;
@@ -78,32 +78,33 @@ header: <WebCore/PathSegmentData.h>
     WebCore::RotationDirection direction;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathEllipseInRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathEllipseInRect {
     WebCore::FloatRect rect;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathRect {
     WebCore::FloatRect rect;
 };
 
-[Nested] enum class WebCore::PathRoundedRect::Strategy : uint8_t {
+[Nested, Swift] enum class WebCore::PathRoundedRect::Strategy : uint8_t {
     PreferNative,
     PreferBezier
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathRoundedRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathRoundedRect {
     WebCore::FloatRoundedRect roundedRect;
     WebCore::PathRoundedRect::Strategy strategy;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathContinuousRoundedRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathContinuousRoundedRect {
     WebCore::FloatRect rect;
     float cornerWidth;
     float cornerHeight;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataLine {
-    std::span<const float, 4> span();
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataLine {
+    WebCore::FloatPoint start();
+    WebCore::FloatPoint end();
 };
 
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataLineColorThickness {
@@ -112,20 +113,20 @@ header: <WebCore/PathSegmentData.h>
     float thickness;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataQuadCurve {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataQuadCurve {
     WebCore::FloatPoint start;
     WebCore::FloatPoint controlPoint;
     WebCore::FloatPoint endPoint;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataBezierCurve {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataBezierCurve {
     WebCore::FloatPoint start;
     WebCore::FloatPoint controlPoint1;
     WebCore::FloatPoint controlPoint2;
     WebCore::FloatPoint endPoint;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataArc {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathDataArc {
     WebCore::FloatPoint start;
     WebCore::FloatPoint controlPoint1;
     WebCore::FloatPoint controlPoint2;
@@ -133,14 +134,14 @@ header: <WebCore/PathSegmentData.h>
 };
 
 header: <WebCore/PathSegment.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathCloseSubpath {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebCore::PathCloseSubpath {
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebCore::PathSegment {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebCore::PathSegment {
     WebCore::PathSegment::Data data();
 };
 
-using WebCore::PathSegment::Data = Variant<WebCore::PathMoveTo, WebCore::PathLineTo, WebCore::PathQuadCurveTo, WebCore::PathBezierCurveTo, WebCore::PathArcTo, WebCore::PathArc, WebCore::PathClosedArc, WebCore::PathEllipse, WebCore::PathEllipseInRect, WebCore::PathRect, WebCore::PathRoundedRect, WebCore::PathContinuousRoundedRect, WebCore::PathDataLine, WebCore::PathDataQuadCurve, WebCore::PathDataBezierCurve, WebCore::PathDataArc, WebCore::PathCloseSubpath>;
+[Swift] using WebCore::PathSegment::Data = Variant<WebCore::PathMoveTo, WebCore::PathLineTo, WebCore::PathQuadCurveTo, WebCore::PathBezierCurveTo, WebCore::PathArcTo, WebCore::PathArc, WebCore::PathClosedArc, WebCore::PathEllipse, WebCore::PathEllipseInRect, WebCore::PathRect, WebCore::PathRoundedRect, WebCore::PathContinuousRoundedRect, WebCore::PathDataLine, WebCore::PathDataQuadCurve, WebCore::PathDataBezierCurve, WebCore::PathDataArc, WebCore::PathCloseSubpath>;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 header: "RemoteCGRendererLineStrokes.h"
@@ -151,11 +152,6 @@ header: "RemoteCGRendererLineStrokes.h"
 header: "RemoteCGRendererPathSegment.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPathSegment {
     WebCore::PathSegment segment();
-};
-
-header: "RemoteCGRendererPath.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPath {
-    Vector<WebCore::PathSegment> segments();
 };
 
 header: "RemoteCGRendererShadow.h"
@@ -198,14 +194,14 @@ header: "RemoteCGRendererLineDash.h"
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorData {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorData {
     float c1;
     float c2;
     float c3;
     float alpha;
     uint32_t packedColor;
-    [Validator='WTF::isValidEnum<WebCore::ColorSpaceName>(*colorSpace)'] uint8_t colorSpace;
-    [Validator='*form <= 2'] uint8_t form;
+    [Validator='WTF::isValidEnum<WebCore::ColorSpaceName>(*colorSpace)', SwiftValidator='IPCTypes.ColorSpaceName(rawValue: colorSpace) != nil'] uint8_t colorSpace;
+    [Validator='*form <= 2', SwiftValidator='form <= 2'] uint8_t form;
     bool isSemantic;
     bool usesFunctionSerialization;
 };
@@ -223,7 +219,7 @@ header: <WebCore/CGRendererSwiftBridge.h>
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorValue {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorValue {
     CGRendererColorData data;
     uint32_t packedColor;
     bool isPacked;

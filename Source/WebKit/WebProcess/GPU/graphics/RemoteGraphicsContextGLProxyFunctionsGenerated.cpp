@@ -1609,11 +1609,11 @@ void RemoteGraphicsContextGLProxy::bufferSubData(GCGLenum target, GCGLintptr off
     }
 }
 
-void RemoteGraphicsContextGLProxy::readPixelsBufferObject(WebCore::IntRect arg0, GCGLenum format, GCGLenum type, GCGLintptr offset, GCGLint alignment, GCGLint rowLength)
+void RemoteGraphicsContextGLProxy::readPixelsBufferObject(WebCore::IntRect rect, GCGLenum format, GCGLenum type, GCGLintptr offset, GCGLint alignment, GCGLint rowLength)
 {
     if (isContextLost())
         return;
-    auto sendResult = send(Messages::RemoteGraphicsContextGLResources::ReadPixelsBufferObject(arg0, format, type, static_cast<uint64_t>(offset), alignment, rowLength));
+    auto sendResult = send(Messages::RemoteGraphicsContextGL::ReadPixelsBufferObject(rect.x(), rect.y(), rect.width(), rect.height(), format, type, static_cast<uint64_t>(offset), alignment, rowLength));
     if (sendResult != IPC::Error::NoError) {
         markContextLost();
         return;

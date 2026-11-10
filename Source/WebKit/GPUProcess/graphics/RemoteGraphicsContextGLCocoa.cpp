@@ -30,7 +30,6 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "IPCUtilities.h"
-#include "RemoteSharedResourceCache.h"
 #include "StreamConnectionWorkQueue.h"
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
@@ -84,10 +83,9 @@ namespace {
 
 class RemoteGraphicsContextGLCocoa final : public RemoteGraphicsContextGLResources {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGraphicsContextGLCocoa);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGraphicsContextGLCocoa);
 
 public:
-    RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
+    RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
     ~RemoteGraphicsContextGLCocoa() final = default;
 
     // RemoteGraphicsContextGLResources overrides.
@@ -105,22 +103,22 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextGLCocoa);
 
 }
 
-Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
-    auto instance = adoptRef(*new RemoteGraphicsContextGLCocoa(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection)));
+    auto instance = adoptRef(*new RemoteGraphicsContextGLCocoa(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, owner));
     instance->initialize(WTF::move(attributes));
     return instance;
 }
 
-RemoteGraphicsContextGLCocoa::RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
-    : RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection))
+RemoteGraphicsContextGLCocoa::RemoteGraphicsContextGLCocoa(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
+    : RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, owner)
 {
 }
 
 void RemoteGraphicsContextGLCocoa::platformWorkQueueInitialize(WebCore::GraphicsContextGLAttributes&& attributes)
 {
     assertIsCurrent(workQueue());
-    m_context = WebCore::GraphicsContextGLCocoa::create(WTF::move(attributes), WebCore::ProcessIdentity { m_sharedResourceCache->resourceOwner() });
+    m_context = WebCore::GraphicsContextGLCocoa::create(WTF::move(attributes), WebCore::ProcessIdentity { m_webProcessIdentity });
 }
 
 void RemoteGraphicsContextGLCocoa::prepareForDisplay(IPC::Semaphore&& finishedSemaphore, CompletionHandler<void(WTF::MachSendRight&&)>&& completionHandler)

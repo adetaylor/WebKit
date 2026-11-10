@@ -38,10 +38,9 @@ namespace WebKit {
 
 class RemoteGraphicsContextGLWC final : public RemoteGraphicsContextGLResources {
     WTF_MAKE_TZONE_ALLOCATED(RemoteGraphicsContextGLWC);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(RemoteGraphicsContextGLWC);
 
 public:
-    RemoteGraphicsContextGLWC(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, Ref<IPC::StreamServerConnection>&&);
+    RemoteGraphicsContextGLWC(GPUConnectionToWebProcess&, RemoteGraphicsContextGLIdentifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
     ~RemoteGraphicsContextGLWC() final = default;
 
     // RemoteGraphicsContextGLResources overrides.
@@ -53,15 +52,15 @@ private:
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteGraphicsContextGLWC);
 
-Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, WebCore::GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
-    auto instance = adoptRef(*new RemoteGraphicsContextGLWC(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection)));
+    auto instance = adoptRef(*new RemoteGraphicsContextGLWC(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, owner));
     instance->initialize(WTF::move(attributes));
     return instance;
 }
 
-RemoteGraphicsContextGLWC::RemoteGraphicsContextGLWC(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
-    : RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection))
+RemoteGraphicsContextGLWC::RemoteGraphicsContextGLWC(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
+    : RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, owner)
     , m_webProcessIdentifier(gpuConnectionToWebProcess.webProcessIdentifier())
 {
 }

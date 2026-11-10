@@ -164,6 +164,14 @@ final class SharedVideoFrameSource {
         shouldUseIOSurfaceBufferPool = useIOSurfaceBufferPool
     }
 
+    // For the GPU process's receivers written in Swift, which read with an IOSurface buffer pool.
+    @_expose(!Cxx)
+    init(heap: WebKit.RemoteVideoFrameObjectHeap, resourceOwner: WebCore.ProcessIdentity?) {
+        self.heap = heap
+        self.resourceOwner = resourceOwner
+        shouldUseIOSurfaceBufferPool = true
+    }
+
     // Each takes a right of its own to the port that the caller's IPC::Semaphore or SharedMemory::Handle owns.
     @_expose(Cxx)
     func setSemaphore(_ port: mach_port_t) {
@@ -174,6 +182,26 @@ final class SharedVideoFrameSource {
     func setSharedMemory(_ port: mach_port_t, _ size: UInt64) -> Bool {
         storage = IPCTypes.SharedMemoryHandle(copying: port, size: size).mapReadOnly()
         return storage != nil
+    }
+
+    @_expose(!Cxx)
+    func setSemaphore(_ semaphore: consuming IPCTypes.Semaphore) {
+        self.semaphore = consume semaphore
+    }
+
+    @_expose(!Cxx)
+    func setSharedMemory(_ handle: consuming IPCTypes.SharedMemoryHandle) {
+        storage = handle.mapReadOnly()
+    }
+
+    // The pixel buffer of the frame and its display transform, if it can be read.
+    @_expose(!Cxx)
+    func read(_ frame: borrowing IPCTypes.SharedVideoFrame) -> (pixelBuffer: CVPixelBuffer, rotation: UInt16, isMirrored: Bool)? {
+        guard let pixelBuffer = readBuffer(frame.buffer) else {
+            return nil
+        }
+        WebKit.attachSharedVideoFrameColorSpace(pixelBuffer, frame.colorSpace.sharedVideoFrameColorSpace)
+        return (pixelBuffer, frame.rotation.rawValue, frame.mirrored)
     }
 
     // Returned +1.
@@ -285,6 +313,29 @@ final class SharedVideoFrameSource {
         if let resourceOwner {
             WebCore.setOwnershipIdentityForCVPixelBuffer(pixelBuffer, resourceOwner)
         }
+    }
+}
+
+extension IPCTypes.PlatformVideoColorSpace {
+    fileprivate var sharedVideoFrameColorSpace: WebKit.SharedVideoFrameColorSpace {
+        var colorSpace = WebKit.SharedVideoFrameColorSpace()
+        if let primaries, let value = WebCore.PlatformVideoColorPrimaries(rawValue: primaries.rawValue) {
+            colorSpace.hasPrimaries = true
+            colorSpace.primaries = value
+        }
+        if let transfer, let value = WebCore.PlatformVideoTransferCharacteristics(rawValue: transfer.rawValue) {
+            colorSpace.hasTransfer = true
+            colorSpace.transfer = value
+        }
+        if let matrix, let value = WebCore.PlatformVideoMatrixCoefficients(rawValue: matrix.rawValue) {
+            colorSpace.hasMatrix = true
+            colorSpace.matrix = value
+        }
+        if let chromaLocation, let value = WebCore.PlatformVideoChromaLocation(rawValue: chromaLocation.rawValue) {
+            colorSpace.hasChromaLocation = true
+            colorSpace.chromaLocation = value
+        }
+        return colorSpace
     }
 }
 

@@ -64,6 +64,8 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcess.h"
 #include "GPUProcessMessages.h"
+#include "RemoteSnapshotSink.h"
+#include "SwiftReceiverRegistration.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
@@ -89,7 +91,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-#include "RemoteAudioDestinationManager.h"
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
@@ -105,7 +106,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-#include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
 #endif
 
@@ -126,12 +126,14 @@
 #include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
-#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteImageBufferGraphicsContext.h"
+#include "RemoteImageBufferMessages.h"
+#include "RemoteRenderingBackend.h"
 #include <WebCore/CGRendererSwiftBridge.h>
 #endif
 

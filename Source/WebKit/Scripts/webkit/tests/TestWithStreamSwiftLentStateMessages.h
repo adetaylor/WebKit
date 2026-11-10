@@ -26,6 +26,7 @@
 
 #include "ArgumentCoders.h"
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "StreamMessageReceiver.h"
 #include "SwiftCoding.h"
@@ -33,9 +34,12 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/Vector.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 class FloatRect;
+class Path;
 }
 namespace WebKit {
 class TestWithStreamSwiftLentState;
@@ -162,6 +166,93 @@ public:
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const WebCore::FloatRect& m_rect;
     bool m_clip;
+};
+
+class SetLabel {
+public:
+    using Arguments = std::tuple<String, Vector<uint32_t>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_SetLabel; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    SetLabel(const String& label, const Vector<uint32_t>& values)
+        : m_label(label)
+        , m_values(values)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_label;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_values;
+    }
+
+private:
+    const String& m_label;
+    SUPPRESS_FORWARD_DECL_MEMBER const Vector<uint32_t>& m_values;
+};
+
+class FillPath {
+public:
+    using Arguments = std::tuple<WebCore::Path>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_FillPath; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    explicit FillPath(const WebCore::Path& path)
+        : m_path(path)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_path;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::Path& m_path;
+};
+
+class SetSemaphore {
+public:
+    using Arguments = std::tuple<IPC::Semaphore, float>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_SetSemaphore; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isStreamBatched = false;
+
+    SetSemaphore(const IPC::Semaphore& semaphore, float scale)
+        : m_semaphore(semaphore)
+        , m_scale(scale)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_semaphore;
+        encoder << m_scale;
+    }
+
+private:
+    const IPC::Semaphore& m_semaphore;
+    float m_scale;
 };
 
 } // namespace TestWithStreamSwiftLentState

@@ -125,7 +125,11 @@ std::unique_ptr<ImageBufferShareableBitmapBackend> ImageBufferShareableBitmapBac
 }
 
 ImageBufferShareableBitmapBackend::ImageBufferShareableBitmapBackend(const WebCore::ImageBufferParameters& parameters, Ref<ShareableBitmap>&& bitmap, std::unique_ptr<GraphicsContext>&& context)
+#if USE(CG)
+    : ImageBufferShareableBitmapBackendBase(parameters, nullptr, ImageBufferSurface::create(bitmap.get()))
+#else
     : ImageBufferShareableBitmapBackendBase(parameters)
+#endif
     , m_bitmap(WTF::move(bitmap))
     , m_context(WTF::move(context))
 {
@@ -170,11 +174,19 @@ RefPtr<cairo_surface_t> ImageBufferShareableBitmapBackend::createCairoSurface()
 
 RefPtr<NativeImage> ImageBufferShareableBitmapBackend::copyNativeImage()
 {
+#if USE(CG)
+    if (m_core)
+        return NativeImage::create(m_core.createImage());
+#endif
     return NativeImage::create(m_bitmap->createPlatformImage(CopyBackingStore));
 }
 
 RefPtr<NativeImage> ImageBufferShareableBitmapBackend::createNativeImageReference()
 {
+#if USE(CG)
+    if (m_core)
+        return NativeImage::create(m_core.createImageReference());
+#endif
     return NativeImage::create(m_bitmap->createPlatformImage(DontCopyBackingStore));
 }
 
