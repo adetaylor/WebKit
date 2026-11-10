@@ -40,8 +40,10 @@ StreamConnectionWorkQueue::StreamConnectionWorkQueue(ASCIILiteral name)
 
 StreamConnectionWorkQueue::~StreamConnectionWorkQueue()
 {
-    // `StreamConnectionWorkQueue::stopAndWaitForCompletion()` should be called if anything has been dispatched or listened to.
-    ASSERT(!m_processingThread);
+    // `StreamConnectionWorkQueue::stopAndWaitForCompletion()` should be called if anything has been dispatched or listened to:
+    // the processing thread uses this.
+    Locker locker { m_lock };
+    RELEASE_ASSERT(!m_processingThread);
 }
 
 void StreamConnectionWorkQueue::dispatch(WTF::Function<void()>&& function)
@@ -67,7 +69,7 @@ void StreamConnectionWorkQueue::addStreamConnection(StreamServerConnection& conn
 {
     {
         Locker locker { m_lock };
-        ASSERT(m_connections.findIf([&connection](StreamServerConnection& other) { return &other == &connection; }) == notFound); // NOLINT
+        RELEASE_ASSERT(m_connections.findIf([&connection](StreamServerConnection& other) { return &other == &connection; }) == notFound); // NOLINT
         m_connections.append(connection);
         if (!m_shouldQuit && !m_processingThread) {
             startProcessingThread();
@@ -94,13 +96,19 @@ void StreamConnectionWorkQueue::stopAndWaitForCompletion(NOESCAPE WTF::Function<
     RefPtr<Thread> processingThread;
     {
         Locker locker { m_lock };
-        m_cleanupFunction = WTF::move(cleanupFunction);
         processingThread = m_processingThread;
+        if (processingThread) {
+            // The processing thread can't wait for itself, and a second stop at the same time would replace the cleanup
+            // of the first, which returns before the thread ends.
+            RELEASE_ASSERT(Thread::currentSingleton().uid() != processingThread->uid());
+            RELEASE_ASSERT(!m_isStopping);
+            m_isStopping = true;
+        }
+        m_cleanupFunction = WTF::move(cleanupFunction);
         m_shouldQuit = true;
     }
     if (!processingThread)
         return;
-    ASSERT(Thread::currentSingleton().uid() != processingThread->uid());
     wakeUp();
     processingThread->waitForCompletion();
     {
