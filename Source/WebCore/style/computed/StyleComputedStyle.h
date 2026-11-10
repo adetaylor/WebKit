@@ -67,6 +67,7 @@ public:
     inline bool viewTransitionNameIsNoneForSwift() const SWIFT_NAME(viewTransitionNameIsNone());
     inline bool perspectiveIsNoneForSwift() const SWIFT_NAME(perspectiveIsNone());
     inline bool hasBorderRadiusForSwift() const SWIFT_NAME(hasBorderRadius());
+    inline bool hasResizeForSwift() const SWIFT_NAME(hasResize());
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 

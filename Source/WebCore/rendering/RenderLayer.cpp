@@ -4162,8 +4162,8 @@ void RenderLayer::paintLayerContents(GraphicsContext& context, const LayerPainti
         if (localPaintingInfo.subtreePaintRoot && !renderer().isDescendantOf(localPaintingInfo.subtreePaintRoot))
             subtreePaintRootForRenderer = localPaintingInfo.subtreePaintRoot;
 
-        if (localPaintingInfo.overlapTestRequests && isSelfPaintingLayer)
-            performOverlapTests(*localPaintingInfo.overlapTestRequests, localPaintingInfo.rootLayer, this);
+        if (localPaintingInfo.overlapTestRequests() && isSelfPaintingLayer)
+            performOverlapTests(*localPaintingInfo.overlapTestRequests(), localPaintingInfo.rootLayer, this);
 
         LayoutRect paintDirtyRect = localPaintingInfo.paintDirtyRect;
         bool needsFragments = shouldPaintContent || shouldPaintOutline || isPaintingOverlayScrollbars || isCollectingEventRegion || isCollectingAccessibilityRegion;
@@ -4667,7 +4667,7 @@ void RenderLayer::paintForegroundForFragmentsWithPhase(PaintPhase phase, const L
 
         PaintInfo paintInfo(context, fragment.dirtyForegroundRect().rect(), phase, paintBehavior, subtreePaintRootForRenderer, nullptr, nullptr, &localPaintingInfo.rootLayer->renderer(), this, localPaintingInfo.requireSecurityOriginAccessForWidgets);
         if (phase == PaintPhase::Foreground)
-            paintInfo.overlapTestRequests = localPaintingInfo.overlapTestRequests;
+            paintInfo.overlapTestRequests = localPaintingInfo.overlapTestRequests();
         paintContentForRenderer(paintInfo, paintOffsetForRenderer(fragment, localPaintingInfo));
     }
 }
