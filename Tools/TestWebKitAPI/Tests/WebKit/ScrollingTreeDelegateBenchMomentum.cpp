@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <optional>
 #include <wtf/MonotonicTime.h>
+#include <wtf/TZoneMallocInlines.h>
 
 // The momentum dispatcher's synthesized momentum phase, the one RemoteLayerTreeEventDispatcher (UI process) and
 // EventDispatcher (web process) put in place of the platform's: trackpad gestures as WebWheelEvents with raw
@@ -116,6 +117,8 @@ static MonotonicTime readClock() { return MonotonicTime::fromRawSeconds(clockSec
 static constexpr PlatformDisplayID display = 1;
 
 class DigestingClient final : public MomentumEventDispatcher::Client {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(DigestingClient);
+    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(DigestingClient);
 public:
     explicit DigestingClient(Digest& digest)
         : m_digest(digest)
@@ -166,8 +169,8 @@ static PageIdentifier page(uint64_t number) { return PageIdentifier(ObjectIdenti
 class Pass {
 public:
     Pass()
-        : m_client(m_digest)
-        , m_dispatcher(MomentumEventDispatcher::create(m_client))
+        : m_client(makeUnique<DigestingClient>(m_digest))
+        , m_dispatcher(MomentumEventDispatcher::create(*m_client))
     {
         clockSeconds() = 5000;
         WebCore::setScrollingEffectsClockForTesting(readClock);
@@ -236,7 +239,7 @@ public:
     // other frame, until the synthesized phase ends or after limit frames.
     void refreshFor(uint64_t pageNumber, unsigned limit, FloatSize platformDelta)
     {
-        for (unsigned frame = 0; frame < limit && m_client.displayRunning(); ++frame) {
+        for (unsigned frame = 0; frame < limit && m_client->displayRunning(); ++frame) {
             refresh();
             if (frame % 2) {
                 platformDelta = platformDelta.scaled(0.95f);
@@ -287,7 +290,7 @@ public:
             // Whatever is still running ends on the table.
             refreshFor(1, 2000, { });
         }
-        m_digest.add(static_cast<uint64_t>(m_client.synthesized()));
+        m_digest.add(static_cast<uint64_t>(m_client->synthesized()));
     }
 
     uint64_t checksum() const { return m_digest.value(); }
@@ -295,7 +298,8 @@ public:
 
 private:
     Digest m_digest;
-    DigestingClient m_client;
+    // On the heap, as a CheckedPtr client must be. The dispatcher, made after it, goes first.
+    std::unique_ptr<DigestingClient> m_client;
     std::unique_ptr<MomentumEventDispatcher> m_dispatcher;
     uint64_t m_entries { 0 };
 };
