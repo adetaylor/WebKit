@@ -193,7 +193,7 @@ public:
     AtomString customPropertyName() const;
 
     NODELETE bool isCurrentPropertyInvalidAtComputedValueTime() const;
-    NODELETE void setCurrentPropertyInvalidAtComputedValueTime();
+    NODELETE WEBCORE_EXPORT void setCurrentPropertyInvalidAtComputedValueTime();
 
     NODELETE void setUsesViewportUnits();
     NODELETE void setIsContainerDependent();
