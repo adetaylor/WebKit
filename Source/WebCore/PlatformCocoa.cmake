@@ -417,6 +417,7 @@ list(APPEND WebCore_SOURCES
     platform/cocoa/WebAVPlayerLayer.mm
     platform/cocoa/WebCoreNSErrorExtras.mm
     platform/cocoa/WebCoreNSURLExtras.mm
+    platform/cocoa/WebCoreObjCExceptionCatching.m
     platform/cocoa/WebCoreObjCExtras.mm
     platform/cocoa/WebNSAttributedStringExtras.mm
 
@@ -1282,6 +1283,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/cocoa/WebAVPlayerLayer.h
     platform/cocoa/WebAVPlayerLayerView.h
     platform/cocoa/WebCoreNSURLExtras.h
+    platform/cocoa/WebCoreObjCExceptionCatching.h
     platform/cocoa/WebCoreObjCExtras.h
     platform/cocoa/WebKitAvailability.h
     platform/cocoa/WebNSAttributedStringExtras.h

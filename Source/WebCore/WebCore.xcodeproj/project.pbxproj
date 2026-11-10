@@ -6483,6 +6483,8 @@
 		DBAAA5A17A33454D339D8E56 /* FlowMode.h in Headers */ = {isa = PBXBuildFile; fileRef = BBF58114651D5C792A7CFBD4 /* FlowMode.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DCA7EDF52C655235000F16C7 /* BoxSides.h in Headers */ = {isa = PBXBuildFile; fileRef = DCA7EDF42C655235000F16C7 /* BoxSides.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD05637D29B6B88100A98258 /* InlineDisplayContent.h in Headers */ = {isa = PBXBuildFile; fileRef = DD05637C29B6B88100A98258 /* InlineDisplayContent.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		1527A4F4EE1DFF639B22572E /* WebCoreObjCExceptionCatching.h in Headers */ = {isa = PBXBuildFile; fileRef = 0A4BB8C47333F4E8897AF8A4 /* WebCoreObjCExceptionCatching.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		4FB67D2F109D3DEF4888C977 /* WebCoreObjCExceptionCatching.m in Sources */ = {isa = PBXBuildFile; fileRef = 6F520B2B258AA72A56752636 /* WebCoreObjCExceptionCatching.m */; };
 		DD05FE0D0B8BA3C6009ACDFE /* WebCoreObjCExtras.h in Headers */ = {isa = PBXBuildFile; fileRef = DD05FE0B0B8BA3C6009ACDFE /* WebCoreObjCExtras.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DD14265D2F81000000C1D6A8 /* InspectorNativeFunctionParameters.json in Headers */ = {isa = PBXBuildFile; fileRef = DD14265E2F81000000C1D6A8 /* InspectorNativeFunctionParameters.json */; settings = {ATTRIBUTES = (Private, ); }; };
 		DF0A1001314F000000000001 /* InspectorFontData.h in Headers */ = {isa = PBXBuildFile; fileRef = DF0A1003314F000000000001 /* InspectorFontData.h */; };
@@ -22248,6 +22250,8 @@
 		DCA7EDF42C655235000F16C7 /* BoxSides.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BoxSides.h; sourceTree = "<group>"; };
 		DCD61E9000DE48A88138DCA4 /* StyleObjectViewBox.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StyleObjectViewBox.cpp; sourceTree = "<group>"; };
 		DD05637C29B6B88100A98258 /* InlineDisplayContent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InlineDisplayContent.h; sourceTree = "<group>"; };
+		0A4BB8C47333F4E8897AF8A4 /* WebCoreObjCExceptionCatching.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreObjCExceptionCatching.h; sourceTree = "<group>"; };
+		6F520B2B258AA72A56752636 /* WebCoreObjCExceptionCatching.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WebCoreObjCExceptionCatching.m; sourceTree = "<group>"; };
 		DD05FE0B0B8BA3C6009ACDFE /* WebCoreObjCExtras.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = WebCoreObjCExtras.h; sourceTree = "<group>"; };
 		DD089D74978D52F3A208C61F /* CSSTypeSpecifier.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSTypeSpecifier.cpp; sourceTree = "<group>"; };
 		DD14265E2F81000000C1D6A8 /* InspectorNativeFunctionParameters.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = InspectorNativeFunctionParameters.json; sourceTree = "<group>"; };
@@ -35251,6 +35255,8 @@
 				CDC979F21C498C0900DB50D4 /* WebCoreNSErrorExtras.mm */,
 				C5B4C24B1509236C00A6EF37 /* WebCoreNSURLExtras.h */,
 				C5B4C24C1509236C00A6EF37 /* WebCoreNSURLExtras.mm */,
+				0A4BB8C47333F4E8897AF8A4 /* WebCoreObjCExceptionCatching.h */,
+				6F520B2B258AA72A56752636 /* WebCoreObjCExceptionCatching.m */,
 				DD05FE0B0B8BA3C6009ACDFE /* WebCoreObjCExtras.h */,
 				B50F5B800E96CD9900AD71A6 /* WebCoreObjCExtras.mm */,
 				5DFEBAB618592B6D00C75BEB /* WebKitAvailability.h */,
@@ -50975,6 +50981,7 @@
 				F4E57EE1213F434A004EA98E /* WebCoreNSFontManagerExtras.h in Headers */,
 				C5B4C24D1509236C00A6EF37 /* WebCoreNSURLExtras.h in Headers */,
 				CD225C0C1C46FBF400140761 /* WebCoreNSURLSession.h in Headers */,
+				1527A4F4EE1DFF639B22572E /* WebCoreObjCExceptionCatching.h in Headers */,
 				DD05FE0D0B8BA3C6009ACDFE /* WebCoreObjCExtras.h in Headers */,
 				46037DD528400F3600D464FC /* WebCoreOpaqueRoot.h in Headers */,
 				CDA00F552998D4AB00A6829A /* WebCoreOpaqueRootInlines.h in Headers */,
@@ -52896,6 +52903,7 @@
 				51F6CA3E2B4D14D400F273C8 /* WebAVSampleBufferListener.swift in Sources */,
 				A180AD5B219F81B000DC039A /* WebCoreAdditions.mm in Sources */,
 				CD225C0B1C46FBF400140761 /* WebCoreNSURLSession.mm in Sources */,
+				4FB67D2F109D3DEF4888C977 /* WebCoreObjCExceptionCatching.m in Sources */,
 				1CCD81502231F83E0065FC2B /* WebCoreResourceHandleAsOperationQueueDelegate.mm in Sources */,
 				93F19B0708245E59001E9ABC /* WebCoreView.mm in Sources */,
 				CECDC93D21F2973200976BD1 /* WebEvent.mm in Sources */,
