@@ -74,7 +74,7 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
     /// AppKit calls this on the main thread.
     @objc(contentAreaRectForScrollerImpPair:)
     @inline(always)
-    func contentAreaRect(for scrollerImpPair: NSScrollerImpPair!) -> NSRect {
+    func contentAreaRect(for scrollerImpPair: NSScrollerImpPair) -> NSRect {
         guard !isInvalidated, area.isLive() else {
             return .zero
         }
@@ -86,7 +86,7 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
     /// AppKit calls this on the main thread.
     @objc(inLiveResizeForScrollerImpPair:)
     @inline(always)
-    func inLiveResize(for scrollerImpPair: NSScrollerImpPair!) -> Bool {
+    func inLiveResize(for scrollerImpPair: NSScrollerImpPair) -> Bool {
         guard !isInvalidated else {
             return false
         }
@@ -97,7 +97,7 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
     /// AppKit calls this on the main thread.
     @objc(mouseLocationInContentAreaForScrollerImpPair:)
     @inline(always)
-    func mouseLocationInContentArea(for scrollerImpPair: NSScrollerImpPair!) -> NSPoint {
+    func mouseLocationInContentArea(for scrollerImpPair: NSScrollerImpPair) -> NSPoint {
         guard !isInvalidated, area.isLive() else {
             return .zero
         }
@@ -110,11 +110,11 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
     /// AppKit calls this on the main thread.
     @inline(always)
     func scrollerImpPair(
-        _ scrollerImpPair: NSScrollerImpPair!,
+        _ scrollerImpPair: NSScrollerImpPair,
         convertContentPoint pointInContentArea: NSPoint,
-        to scrollerImp: NSScrollerImp!
+        to scrollerImp: NSScrollerImp
     ) -> NSPoint {
-        guard !isInvalidated, area.isLive(), let scrollerImp else {
+        guard !isInvalidated, area.isLive() else {
             return .zero
         }
 
@@ -129,12 +129,13 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
     }
 
     /// AppKit calls this on the main thread.
-    func scrollerImpPair(_ scrollerImpPair: NSScrollerImpPair!, setContentAreaNeedsDisplayIn rect: NSRect) {
+    @objc(scrollerImpPair:setContentAreaNeedsDisplayInRect:)
+    func scrollerImpPair(_ scrollerImpPair: NSScrollerImpPair, setContentAreaNeedsDisplayIn rect: NSRect) {
         guard !isInvalidated, area.isLive() else {
             return
         }
 
-        if scrollerImpPair?.overlayScrollerStateIsLocked() == true {
+        if scrollerImpPair.overlayScrollerStateIsLocked() {
             return
         }
 
@@ -143,17 +144,25 @@ final class WebScrollerImpPairDelegate: NSObject, NSScrollerImpPairDelegate {
 
     /// AppKit calls this on the main thread.
     func scrollerImpPair(
-        _ scrollerImpPair: NSScrollerImpPair!,
+        _ scrollerImpPair: NSScrollerImpPair,
         updateScrollerStyleForNewRecommendedScrollerStyle newRecommendedScrollerStyle: NSScroller.Style
     ) {
         guard !isInvalidated, area.isLive() else {
             return
         }
 
-        scrollerImpPair?.scrollerStyle = newRecommendedScrollerStyle
+        scrollerImpPair.scrollerStyle = newRecommendedScrollerStyle
         controller?.updateScrollerStyle()
     }
 }
+
+// Calls -contentAreaWillDraw, which the internal SDK marks deprecated, without a deprecation warning, as the C++
+// did with ALLOW_DEPRECATED_DECLARATIONS.
+private protocol ContentAreaDrawing {
+    func contentAreaWillDraw()
+}
+
+extension NSScrollerImpPair: ContentAreaDrawing {}
 
 /// The part of an NSScrollerImp a WebScrollbarPartAnimation animates.
 private enum FeatureToAnimate {
@@ -318,7 +327,7 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
 
     /// AppKit calls this on the main thread.
     @objc(layer)
-    func layer() -> CALayer! {
+    func layer() -> CALayer? {
         guard scrollbar?.isLive() == true else {
             return nil
         }
@@ -328,7 +337,7 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
     }
 
     /// AppKit calls this on the main thread.
-    func mouseLocationInScroller(for scrollerImp: NSScrollerImp!) -> NSPoint {
+    func mouseLocationInScroller(for scrollerImp: NSScrollerImp) -> NSPoint {
         guard scrollbar?.isLive() == true else {
             return .zero
         }
@@ -345,12 +354,12 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
 
     /// AppKit calls this on the main thread.
     @objc(shouldUseLayerPerPartForScrollerImp:)
-    func shouldUseLayerPerPart(for scrollerImp: NSScrollerImp!) -> Bool {
+    func shouldUseLayerPerPart(for scrollerImp: NSScrollerImp) -> Bool {
         scrollbar?.supportsUpdateOnSecondaryThread() ?? false
     }
 
     /// AppKit calls this on the main thread.
-    func effectiveAppearance(for scrollerImp: NSScrollerImp!) -> NSAppearance! {
+    func effectiveAppearance(for scrollerImp: NSScrollerImp) -> NSAppearance {
         guard scrollbar?.isLive() == true else {
             return NSAppearance.currentDrawing()
         }
@@ -433,13 +442,13 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
     }
 
     /// AppKit calls this on the main thread.
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateKnobAlphaTo newKnobAlpha: CGFloat, duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateKnobAlphaTo newKnobAlpha: CGFloat, duration: TimeInterval) {
         guard let scrollbar, scrollbar.isLive() else {
             return
         }
 
         if pairDelegate.controller?.scrollbarsCanBeActive() != true {
-            scrollerImp?.knobAlpha = 0
+            scrollerImp.knobAlpha = 0
             scrollbar.invalidate()
             return
         }
@@ -448,7 +457,7 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
         // be moving it around on the scrolling thread. Setting usePresentationValue to false
         // will pass that information on to the NSScrollerImp API.
         if newKnobAlpha == 0 && scrollbar.supportsUpdateOnSecondaryThread() {
-            scrollerImp?.shouldUsePresentationValue = false
+            scrollerImp.shouldUsePresentationValue = false
         }
 
         setUpAlphaAnimation(
@@ -461,7 +470,7 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
     }
 
     /// AppKit calls this on the main thread.
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateTrackAlphaTo newTrackAlpha: CGFloat, duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateTrackAlphaTo newTrackAlpha: CGFloat, duration: TimeInterval) {
         guard let scrollbar, scrollbar.isLive() else {
             return
         }
@@ -476,20 +485,20 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
     }
 
     /// AppKit calls this on the main thread.
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateUIStateTransitionWithDuration duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateUIStateTransitionWithDuration duration: TimeInterval) {
         guard let scrollbar, scrollbar.isLive() else {
             return
         }
 
         // UIStateTransition always animates to 1. In case an animation is in progress this avoids a hard transition.
-        scrollerImp?.uiStateTransitionProgress = 1 - (scrollerImp?.uiStateTransitionProgress ?? 0)
+        scrollerImp.uiStateTransitionProgress = 1 - scrollerImp.uiStateTransitionProgress
 
         // If the UI state transition is happening, then we are no longer moving the scrollbar on the scrolling thread.
         if scrollbar.supportsUpdateOnSecondaryThread() {
-            scrollerImp?.shouldUsePresentationValue = false
+            scrollerImp.shouldUsePresentationValue = false
         }
 
-        let startValue = scrollerImp?.uiStateTransitionProgress ?? 0
+        let startValue = scrollerImp.uiStateTransitionProgress
         if let uiStateTransitionAnimation {
             // If we don't need to initialize the animation, just reset the values in case they have changed.
             uiStateTransitionAnimation.startValue = startValue
@@ -508,15 +517,15 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
     }
 
     /// AppKit calls this on the main thread.
-    func scrollerImp(_ scrollerImp: NSScrollerImp!, animateExpansionTransitionWithDuration duration: TimeInterval) {
+    func scrollerImp(_ scrollerImp: NSScrollerImp, animateExpansionTransitionWithDuration duration: TimeInterval) {
         guard let scrollbar, scrollbar.isLive() else {
             return
         }
 
         // ExpansionTransition always animates to 1. In case an animation is in progress this avoids a hard transition.
-        scrollerImp?.expansionTransitionProgress = 1 - (scrollerImp?.expansionTransitionProgress ?? 0)
+        scrollerImp.expansionTransitionProgress = 1 - scrollerImp.expansionTransitionProgress
 
-        let startValue = scrollerImp?.expansionTransitionProgress ?? 0
+        let startValue = scrollerImp.expansionTransitionProgress
         if let expansionTransitionAnimation {
             // If we don't need to initialize the animation, just reset the values in case they have changed.
             expansionTransitionAnimation.startValue = startValue
@@ -536,7 +545,7 @@ final class WebScrollerImpDelegate: NSObject, NSAnimationDelegate, NSScrollerImp
 
     /// AppKit calls this on the main thread.
     func scrollerImp(
-        _ scrollerImp: NSScrollerImp!,
+        _ scrollerImp: NSScrollerImp,
         overlayScrollerStateChangedTo newOverlayScrollerState: NSOverlayScrollerState
     ) {
     }
@@ -662,7 +671,7 @@ final class MacScrollbarsController {
             return
         }
 
-        scrollerImpPair.contentAreaWillDraw()
+        (scrollerImpPair as any ContentAreaDrawing).contentAreaWillDraw()
     }
 
     /// Called on the main thread by ScrollableArea.
@@ -790,7 +799,7 @@ final class MacScrollbarsController {
     @_expose(Cxx)
     func lockOverlayScrollbarStateToHidden(_ shouldLockState: Bool) {
         if shouldLockState {
-            scrollerImpPair.lockOverlayScrollerState(NSOverlayScrollerState(NSOverlayScrollerStateHidden))
+            scrollerImpPair.lock(.hidden)
         } else {
             scrollerImpPair.unlockOverlayScrollerState()
 

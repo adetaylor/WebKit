@@ -48,18 +48,17 @@ DECLARE_SYSTEM_HEADER
 
 #else
 
-enum {
+typedef NS_ENUM(NSUInteger, NSOverlayScrollerState) {
     NSOverlayScrollerStateHidden = 0,
     NSOverlayScrollerStateThumbShown = 1,
     NSOverlayScrollerStateAllShown = 2,
     NSOverlayScrollerStatePulseThumb = 3,
 };
-typedef NSUInteger NSOverlayScrollerState;
 
 @protocol NSScrollerImpDelegate;
 
 @interface NSScrollerImp : NSObject
-+ (NSScrollerImp *)scrollerImpWithStyle:(NSScrollerStyle)newScrollerStyle controlSize:(NSControlSize)newControlSize horizontal:(BOOL)horizontal replacingScrollerImp:(id)previous;
++ (NSScrollerImp *)scrollerImpWithStyle:(NSScrollerStyle)newScrollerStyle controlSize:(NSControlSize)newControlSize horizontal:(BOOL)horizontal replacingScrollerImp:(nullable NSScrollerImp *)previous;
 @property (retain) CALayer *layer;
 - (void)setNeedsDisplay:(BOOL)flag;
 @property NSScrollerKnobStyle knobStyle;
@@ -102,11 +101,13 @@ typedef NSUInteger NSOverlayScrollerState;
 @property (getter=isTracking) BOOL tracking;
 @end
 
+NS_ASSUME_NONNULL_BEGIN
+
 @protocol NSScrollerImpDelegate
 @required
 - (NSRect)convertRectToBacking:(NSRect)aRect;
 - (NSRect)convertRectFromBacking:(NSRect)aRect;
-- (CALayer *)layer;
+- (nullable CALayer *)layer;
 - (void)scrollerImp:(NSScrollerImp *)scrollerImp animateKnobAlphaTo:(CGFloat)newKnobAlpha duration:(NSTimeInterval)duration;
 - (void)scrollerImp:(NSScrollerImp *)scrollerImp animateTrackAlphaTo:(CGFloat)newTrackAlpha duration:(NSTimeInterval)duration;
 - (void)scrollerImp:(NSScrollerImp *)scrollerImp overlayScrollerStateChangedTo:(NSOverlayScrollerState)newOverlayScrollerState;
@@ -118,6 +119,8 @@ typedef NSUInteger NSOverlayScrollerState;
 - (BOOL)shouldUseLayerPerPartForScrollerImp:(NSScrollerImp *)scrollerImp;
 - (NSAppearance *)effectiveAppearanceForScrollerImp:(NSScrollerImp *)scrollerImp;
 @end
+
+NS_ASSUME_NONNULL_END
 
 @protocol NSScrollerImpPairDelegate;
 
