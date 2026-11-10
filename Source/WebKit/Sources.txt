@@ -25,7 +25,6 @@ GPUProcess/GPUProcess.cpp @cost:7
 GPUProcess/GPUConnectionToWebProcess.cpp @cost:8
 GPUProcess/GPUProcessPreferences.cpp
 GPUProcess/RemoteSharedResourceCache.cpp
-GPUProcess/graphics/DisplayListDataTester.cpp
 GPUProcess/graphics/ImageBufferShareableAllocator.cpp
 GPUProcess/graphics/RemoteDisplayListRecorder.cpp
 GPUProcess/graphics/RemoteGraphicsContext.cpp @cost:3
@@ -342,6 +341,7 @@ UIProcess/BrowsingContextGroup.cpp
 UIProcess/DeviceIdHashSaltStorage.cpp
 UIProcess/DisplayLink.cpp
 UIProcess/DisplayLinkProcessProxyClient.cpp
+UIProcess/DisplayListDataTester.cpp
 UIProcess/DrawingAreaProxy.cpp
 UIProcess/EnhancedSecurityTracking.cpp
 UIProcess/FindStringCallbackAggregator.cpp @cost:3

@@ -31,7 +31,6 @@
 #include "ArgumentCoders.h"
 #include "Attachment.h"
 #include "AuxiliaryProcessMessages.h"
-#include "DisplayListDataTester.h"
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcessConnectionParameters.h"
 #include "GPUProcessCreationParameters.h"
@@ -1285,11 +1284,6 @@ WorkQueue& GPUProcess::libWebRTCCodecsQueue()
 void GPUProcess::webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&& completionHandler)
 {
     completionHandler(GPUConnectionToWebProcess::objectCountForTesting());
-}
-
-void GPUProcess::runDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>>&& webFonts, CompletionHandler<void(std::optional<Vector<String>>&&)>&& completionHandler)
-{
-    completionHandler(testDisplayListData(webFonts));
 }
 
 #if PLATFORM(COCOA)

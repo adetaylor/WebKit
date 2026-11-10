@@ -171,7 +171,6 @@ public:
     const String& applicationVisibleName() const LIFETIME_BOUND { return m_applicationVisibleName; }
 
     void webProcessConnectionCountForTesting(CompletionHandler<void(uint64_t)>&&);
-    void runDisplayListDataTestsForTesting(Vector<Ref<WebCore::SharedBuffer>>&& webFonts, CompletionHandler<void(std::optional<Vector<String>>&&)>&&);
 #if PLATFORM(COCOA)
     void printProcessDrawingCountsForTesting(CompletionHandler<void(uint64_t drawnInPrintProcess, uint64_t drawnAfterPrintProcessFailed)>&&);
 #endif
