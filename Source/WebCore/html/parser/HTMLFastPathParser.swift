@@ -1056,15 +1056,9 @@ private struct HTMLFastPathParser<CodeUnit: HTMLFastPathCodeUnit>: ~Copyable, ~E
     @inline(always)
     func append(_ child: WebCore.Node, to parent: WebCore.HTMLElement?) {
         if let parent {
-            if !parent.isConnected() {
-                parent.parserAppendChildIntoIsolatedTree(child)
-            } else {
-                parent.parserAppendChild(child)
-            }
-        } else if !destinationParent.isConnected() {
-            destinationParent.parserAppendChildIntoIsolatedTree(child)
+            parent.parserAppendChildIntoIsolatedTree(child)
         } else {
-            destinationParent.parserAppendChild(child)
+            destinationParent.parserAppendChildIntoIsolatedTree(child)
         }
     }
 
