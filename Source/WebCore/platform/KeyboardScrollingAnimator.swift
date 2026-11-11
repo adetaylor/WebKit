@@ -196,7 +196,7 @@ private func keyboardScrollingKey(
         let units: Span<WTF.Latin1Character> = keyIdentifier.span8()
         packedIdentifier = packedKeyIdentifier(units)
     } else {
-        let units: Span<UInt16> = keyIdentifier.span16()
+        let units: Span<UInt16> = keyIdentifier.checkedSpan16()
         packedIdentifier = packedKeyIdentifier(units)
     }
     if let packedIdentifier {
@@ -211,7 +211,7 @@ private func keyboardScrollingKey(
         let units: Span<WTF.Latin1Character> = text.span8()
         firstCodeUnit = units.isEmpty ? nil : UInt16(units[0].value)
     } else {
-        let units: Span<UInt16> = text.span16()
+        let units: Span<UInt16> = text.checkedSpan16()
         firstCodeUnit = units.isEmpty ? nil : units[0]
     }
     if firstCodeUnit == 0x20 {
