@@ -37,8 +37,11 @@ namespace WTF {
 //     ------------------------
 //     [ RefCountedStorage<T> ] <-- underlying storage
 
+template<typename> class RefCountedWithInlineWeakPtr;
+
 class RefCountHeader {
-public:
+    // Strong references are taken and released only through the object's own ref() and deref().
+    template<typename> friend class RefCountedWithInlineWeakPtr;
     void ref() const
     {
         m_refCountDebugger.willRef(m_strongCount);
@@ -46,6 +49,8 @@ public:
     }
 
     template<typename T> void deref(T* object) const;
+
+public:
     template<typename T> void weakDeref(T* object) const;
 
     bool hasOneRef() const { return m_strongCount == 1; }
@@ -161,9 +166,9 @@ template<typename T> class RefCountedWithInlineWeakPtr {
 public:
     using RefCountedType = T;
 
-    void ref() const { header().ref(); }
+    SWIFT_UNSAFE void ref() const { header().ref(); }
     // object() is this object, kept alive by the caller's reference.
-    void deref() const { SUPPRESS_UNCOUNTED_ARG SUPPRESS_UNCHECKED_ARG header().deref(object()); }
+    SWIFT_UNSAFE void deref() const { SUPPRESS_UNCOUNTED_ARG SUPPRESS_UNCHECKED_ARG header().deref(object()); }
     bool hasOneRef() const { return header().hasOneRef(); }
     unsigned refCount() const { return header().refCount(); }
     RefCountDebugger& refCountDebugger() const { return header().refCountDebugger(); }
