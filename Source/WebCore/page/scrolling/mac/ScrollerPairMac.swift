@@ -955,7 +955,7 @@ private struct ScrollbarStateTextArray<CodeUnit: ScrollbarStateCharacter>: Scrol
                 characters.append(.fromCodeUnit(UInt16(source[index].value)))
             }
         } else {
-            let source: Span<UInt16> = string.span16()
+            let source: Span<UInt16> = string.checkedSpan16()
             for index in source.indices {
                 characters.append(.fromCodeUnit(source[index]))
             }
