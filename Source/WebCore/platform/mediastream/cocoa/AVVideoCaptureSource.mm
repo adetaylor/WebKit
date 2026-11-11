@@ -96,7 +96,7 @@ bool cameraCaptureSourceIsMuted(uint64_t identifier)
     return source && source->muted();
 }
 
-void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVPixelBufferRef pixelBuffer, CMTime presentationTime, uint16_t rotation, bool isMirrored)
+void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVBufferRef pixelBuffer, CMTime presentationTime, uint16_t rotation, bool isMirrored)
 {
     if (RefPtr source = AVVideoCaptureSource::sourceWithIdentifier(identifier))
         source->didCaptureFrame(pixelBuffer, PAL::toMediaTime(presentationTime), static_cast<VideoFrameRotation>(rotation), isMirrored);

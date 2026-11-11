@@ -163,8 +163,9 @@ enum class CameraCapturePhotoError : uint8_t {
 
 void cameraCaptureSourceDidChange(uint64_t identifier, CameraCaptureSourceEvent, bool value);
 bool cameraCaptureSourceIsMuted(uint64_t identifier);
-// On the capture queue.
-void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVPixelBufferRef WTF_NONNULL, CMTime presentationTime, uint16_t rotation, bool isMirrored);
+// On the capture queue. A CVBufferRef, the pixel buffer's CoreVideo type: a WebKit header's own CVPixelBufferRef typedef
+// can make Swift see CVPixelBufferRef as a class of its own.
+void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVBufferRef WTF_NONNULL, CMTime presentationTime, uint16_t rotation, bool isMirrored);
 // On any thread.
 void cameraCaptureSourceDidCapturePhoto(uint64_t identifier, NSData * WTF_NONNULL);
 void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, CameraCapturePhotoError);
