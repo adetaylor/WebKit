@@ -70,13 +70,13 @@ namespace WebCore {
 // A style with a 16px font, so that em resolves to a fixed size, built against a document without a frame: no
 // viewport, no root element and no container, as for a value that depends on none of them. Its font cascade is
 // updated once the document exists (Values), so the units that read font metrics resolve against its primary font.
-static Style::ComputedStyle benchmarkStyle(float usedZoom)
+static UniqueRef<Style::ComputedStyle> benchmarkStyle(float usedZoom)
 {
     auto style = Style::ComputedStyle::create();
     FontCascadeDescription description;
     description.setComputedSize(16);
-    style.setFontDescriptionWithoutUpdate(WTF::move(description));
-    style.setUsedZoom(usedZoom);
+    style->setFontDescriptionWithoutUpdate(WTF::move(description));
+    style->setUsedZoom(usedZoom);
     return style;
 }
 
@@ -85,7 +85,8 @@ struct StyleTransformsBenchmarkHooks::Values final : Style::Interpolation::Clien
 
     Values(Ref<Document>&& newDocument, float usedZoom)
         : benchmarkDocument(WTF::move(newDocument))
-        , style(benchmarkStyle(usedZoom))
+        , styleStorage(benchmarkStyle(usedZoom))
+        , style(styleStorage.get())
         , builderState(Style::BuilderState::create(style, Style::BuilderContext { benchmarkDocument.get() }))
         , parserContext(benchmarkDocument.get())
     {
@@ -135,7 +136,8 @@ struct StyleTransformsBenchmarkHooks::Values final : Style::Interpolation::Clien
     }
 
     const Ref<Document> benchmarkDocument;
-    Style::ComputedStyle style;
+    UniqueRef<Style::ComputedStyle> styleStorage;
+    Style::ComputedStyle& style;
     const UniqueRef<Style::BuilderState> builderState;
     const CSSParserContext parserContext;
 
@@ -580,6 +582,38 @@ size_t StyleTransformsBenchmarkHooks::blendValues(Property property, size_t from
     });
     m_values->prefix = std::nullopt;
     return index;
+}
+
+uint64_t StyleTransformsBenchmarkHooks::valueSizeDependencies(Property property, size_t index) const
+{
+    Style::TransformFunctionSizeDependencies dependencies;
+    if (property == Property::Translate)
+        dependencies = m_values->translates.values[index].computeSizeDependencies();
+    else if (property == Property::Transform)
+        dependencies = m_values->transforms[index].computeSizeDependencies();
+    return static_cast<uint64_t>(dependencies.isWidthDependent) | static_cast<uint64_t>(dependencies.isHeightDependent) << 1;
+}
+
+size_t StyleTransformsBenchmarkHooks::blendTransformsAsCustomProperty(size_t from, size_t to, const BlendInputs& inputs)
+{
+    AtomString customPropertyName { "--transform"_s };
+    m_values->prefix = inputs.transformFunctionListPrefix;
+    Style::Interpolation::Context context { customPropertyName, inputs.progress, inputs.isDiscrete, inputs.compositeOperation, inputs.iterationCompositeOperation, inputs.currentIteration, *m_values };
+    auto blended = Style::blend(m_values->transforms[from], m_values->transforms[to], context);
+    m_values->prefix = std::nullopt;
+    m_values->transforms.append(WTF::move(blended));
+    m_values->transformValues.append(m_values->transformValues[from]);
+    return m_values->transforms.size() - 1;
+}
+
+size_t StyleTransformsBenchmarkHooks::blendTransformFunctions(size_t from, size_t fromFunction, size_t to, size_t toFunction, const BlendInputs& inputs)
+{
+    auto& fromTransform = m_values->transforms[from];
+    auto& toTransform = m_values->transforms[to];
+    auto blended = Style::blend(fromTransform[fromFunction], toTransform[toFunction], m_values->interpolationContext(CSSPropertyID::Transform, inputs));
+    m_values->transforms.append(Style::Transform { WTF::move(blended) });
+    m_values->transformValues.append(m_values->transformValues[from]);
+    return m_values->transforms.size() - 1;
 }
 
 } // namespace WebCore
