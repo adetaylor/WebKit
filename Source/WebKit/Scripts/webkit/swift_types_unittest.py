@@ -64,6 +64,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),
             ('WTF::MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),
             ('IPC::Semaphore', ('IPCTypes.Semaphore', 'IPCTypes.Semaphore')),
+            ('IPC::Signal', ('IPCTypes.Signal', 'IPCTypes.Signal')),
             ('WebCore::SharedMemory::Handle', ('IPCTypes.SharedMemoryHandle', 'IPCTypes.SharedMemoryHandle')),
             ('std::optional<WebCore::SharedMemoryHandle>', ('IPCTypes.SharedMemoryHandle?', 'IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>')),
             ('Vector<MachSendRight>', ('IPCTypes.MachSendRightVector', 'IPCTypes.MachSendRightVector')),

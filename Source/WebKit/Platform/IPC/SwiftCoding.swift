@@ -877,6 +877,24 @@ extension IPCTypes {
         }
     }
 
+    /// The signal of an IPC::Event in another process, as IPC::Signal: a send right to the event's port.
+    struct Signal: ~Copyable, IPCOwnedCoder {
+        private let sendRight: MachSendRight
+
+        func signal() {
+            // Safety: the port names the send right this value owns, to the event that another process waits on.
+            unsafe IPC.signalEventPort(sendRight.port)
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Self {
+            Self(sendRight: try MachSendRight.decode(from: &decoder))
+        }
+
+        static func encode(_ value: consuming Self, to encoder: IPC.SwiftReplyEncoder) {
+            MachSendRight.encode(value.sendRight, to: encoder)
+        }
+    }
+
     /// A handle to memory that another process shares, as WebCore::SharedMemory::Handle: a send right to a memory entry,
     /// and the memory's size.
     struct SharedMemoryHandle: ~Copyable, IPCOwnedCoder {

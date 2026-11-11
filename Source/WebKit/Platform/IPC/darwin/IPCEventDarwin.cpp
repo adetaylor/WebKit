@@ -63,9 +63,14 @@ static void clearNoSenderNotifications(mach_port_t port)
 
 void Signal::signal()
 {
+    signalEventPort(m_sendRight.sendRight());
+}
+
+void signalEventPort(mach_port_t port)
+{
     mach_msg_header_t message;
     zeroBytes(message);
-    message.msgh_remote_port = m_sendRight.sendRight();
+    message.msgh_remote_port = port;
     message.msgh_local_port = MACH_PORT_NULL;
     message.msgh_bits = MACH_MSGH_BITS(MACH_MSG_TYPE_COPY_SEND, 0);
     message.msgh_id = inlineBodyMessageID;
