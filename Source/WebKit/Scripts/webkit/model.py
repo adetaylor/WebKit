@@ -25,7 +25,7 @@ import re
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
-from .swift_types import UnmappableSwiftType, is_lent_bytes, is_owned_type, strip_cpp_type_decorations, swift_type_and_coder
+from .swift_types import UnmappableSwiftType, is_lent_bytes, is_lent_cxx_view, is_owned_type, strip_cpp_type_decorations, swift_type_and_coder
 from .untrusted_origins import conveys_untrusted_value, is_privileged_receiver, unwrap_if_untrusted, unwrap_untrusted
 
 BUILTIN_ATTRIBUTE = "Builtin"
@@ -159,6 +159,11 @@ class MessageReceiver(object):
         self._enforce_lent_state_constraints()
         self._enforce_recordable_constraints()
 
+    def _lends_cxx_arguments(self):
+        """Whether a Swift receiver's handlers are called during the dispatch of the messages that take C++ types, so that
+        they can borrow arguments that refer into the message ('Lent')."""
+        return self.is_swift_receiver() and not self.swift_receiver_state_lender and (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE))
+
     def _enforce_swift_implementation_constraints(self):
         if not self.is_swift_implementation():
             return
@@ -228,6 +233,12 @@ class MessageReceiver(object):
             raise Exception("ERROR: Message %s has '%s', which is for messages that take Swift types on a stream" % (description, WANTS_CONNECTION_ATTRIBUTE))
         if not self.takes_swift_types(message):
             for parameter in message.parameters:
+                if parameter.has_attribute(LENT_ATTRIBUTE) and self._lends_cxx_arguments():
+                    # A C++ view into the message, which the handler borrows during dispatch: its C++ type is one of the
+                    # SWIFT_NONESCAPABLE types in swift_types.LENT_CXX_VIEW_TYPES, so that the handler can't keep it.
+                    if not is_lent_cxx_view(parameter.type):
+                        raise Exception("ERROR: Message %s has '%s' on parameter '%s', whose type '%s' isn't one of the non-escapable views in swift_types.LENT_CXX_VIEW_TYPES" % (description, LENT_ATTRIBUTE, parameter.name, parameter.type))
+                    continue
                 for attribute in (CXX_DECODED_ATTRIBUTE, LENT_ATTRIBUTE):
                     if parameter.has_attribute(attribute):
                         raise Exception("ERROR: Message %s has '%s' on parameter '%s', which is only for messages that take Swift types" % (description, attribute, parameter.name))

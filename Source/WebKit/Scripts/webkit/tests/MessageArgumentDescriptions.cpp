@@ -297,6 +297,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendString>(globalObject, decoder);
     case MessageName::TestWithStreamSwift_SendStringSync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithStreamSwift_SendLentView:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwift_SendLentView>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftEnabledBy_SendString>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftImplementation_SendString:
@@ -1478,6 +1480,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithStreamSwift_SendStringSync:
         return Vector<ArgumentDescription> {
             { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithStreamSwift_SendLentView:
+        return Vector<ArgumentDescription> {
+            { "view"_s, "WebCore::PixelBufferSourceView"_s },
         };
     case MessageName::TestWithStreamSwiftEnabledBy_SendString:
         return Vector<ArgumentDescription> {

@@ -189,6 +189,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftTypes_SendStringAsyncReply,
     TestWithStreamSwiftTypes_SendValues,
     TestWithStreamSwiftTypes_SendValuesAsyncReply,
+    TestWithStreamSwift_SendLentView,
     TestWithStreamSwift_SendString,
     TestWithStream_CallWithIdentifierReply,
 #if PLATFORM(COCOA)

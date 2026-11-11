@@ -3109,6 +3109,9 @@ def generate_swift_message_handler(receiver):
                 decoded_parameters.append((parameter.name, swift_types.LENT_BYTES_SWIFT_TYPE, LENT_BYTES_CODER))
             elif takes_swift_types:
                 decoded_parameters.append((parameter.name,) + swift_types.swift_type_and_coder(parameter.type))
+            elif parameter.has_attribute(LENT_ATTRIBUTE):
+                # The model checked that the handler is called during dispatch, while the argument's message lasts.
+                parameters.append('%s: borrowing %s' % (parameter.name, swift_type_name(parameter.type)))
             else:
                 parameters.append('%s: sending %s' % (parameter.name, swift_type_name(parameter.type)))
             arguments.append('%s: %s' % (parameter.name, parameter.name))
