@@ -44,7 +44,9 @@ internal import pal.spi.mac.NSScrollViewSPI
 #endif
 internal import WebCore_Private.Core.KeyboardScroll
 internal import WebCore_Private.Core.PlatformWheelEvent
+#if HAVE_RUBBER_BANDING
 internal import WebCore_Private.Core.RubberbandingState
+#endif
 internal import WebCore_Private.Core.ScrollExtents
 internal import WebCore_Private.Core.ScrollSnapOffsetsInfo
 internal import WebCore_Private.Core.ScrollingEffectsClock
@@ -1298,6 +1300,7 @@ final class ScrollPhysicsController {
         return signedNewStretch - verticalStretch
     }
 
+#if HAVE_RUBBER_BANDING
     private func shouldAttemptRubberbandingRestoration<C: ScrollPhysicsClientProtocol & ~Copyable>(
         _ c: inout C,
         _ state: WebCore.RubberbandingState
@@ -1306,6 +1309,7 @@ final class ScrollPhysicsController {
         let isValidState = !ScrollSize(state.initialOverscroll).isZero || !ScrollSize(state.initialVelocity).isZero
         return c.hasRefreshController() && isTopStretched && isValidState
     }
+#endif
 
     private func applyScrollDeltaWithStretching<C: ScrollPhysicsClientProtocol & ~Copyable>(
         _ c: inout C,
@@ -1851,6 +1855,7 @@ final class ScrollPhysicsController {
         updateRubberBandingState(&c)
     }
 
+#if HAVE_RUBBER_BANDING
     // MARK: Rubber banding state across a swap of scrolling trees
 
     func captureRubberbandingState<C: ScrollPhysicsClientProtocol & ~Copyable>(
@@ -1915,6 +1920,7 @@ final class ScrollPhysicsController {
 
         return started
     }
+#endif
 
     // ScrollAnimator's, ScrollAnimatorMac's and KeyboardScrollingAnimator's members on macOS, declared in the class
     // because C++ sees only those; what they call is in ScrollAnimator.swift and KeyboardScrollingAnimator.swift. Each
