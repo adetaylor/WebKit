@@ -26,7 +26,7 @@
 private import Cxx
 import Accelerate
 public import AudioToolbox
-public import Darwin
+import Darwin
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
 import os

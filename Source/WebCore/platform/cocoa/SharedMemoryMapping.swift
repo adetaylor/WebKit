@@ -25,6 +25,7 @@
 
 public import Darwin
 import os
+import wtf.SPI.cocoa.MachVMSPI
 
 private let logger = Logger(subsystem: "com.apple.WebKit", category: "VirtualMemory")
 

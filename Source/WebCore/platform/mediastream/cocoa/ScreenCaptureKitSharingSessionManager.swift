@@ -125,6 +125,8 @@ private final class PickerObserver: NSObject, SCContentSharingPickerObserver, Se
     }
 }
 
+// Not exposed: its stub in WebCoreSwift-Generated.h would redefine the C++ WebCore::ScreenCaptureKitSharingSessionManager.
+@_expose(!Cxx)
 @MainActor
 final class ScreenCaptureKitSharingSessionManager {
     static let shared = ScreenCaptureKitSharingSessionManager()
