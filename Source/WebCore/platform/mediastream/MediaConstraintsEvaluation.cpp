@@ -187,7 +187,7 @@ static uint8_t modeBits(const Vector<Mode>& modes)
     return bits;
 }
 
-static MediaConstraintsCapabilities capabilityValues(const RealtimeMediaSourceCapabilities& capabilities)
+MediaConstraintsCapabilities mediaConstraintsCapabilities(const RealtimeMediaSourceCapabilities& capabilities)
 {
     return {
         { capabilities.width().min(), capabilities.width().max() },
@@ -233,7 +233,7 @@ MediaConstraintsEvaluation evaluateMediaConstraints(const MediaConstraints& cons
         discreteSampleValues.appendVector(*source.discreteSampleSizes);
 
     MediaConstraintsSourceState state;
-    state.capabilities = capabilityValues(source.capabilities);
+    state.capabilities = source.capabilities;
     state.mandatory = constraintSetValues(constraints.mandatoryConstraints, source.hashedId, source.groupId);
     state.frameRate = source.frameRate;
     state.zoom = source.zoom;
@@ -261,6 +261,26 @@ MediaConstraintsEvaluation evaluateMediaConstraints(const MediaConstraints& cons
     }
 
     return mediaConstraintsEvaluate(MediaConstraintsEngineView { advancedSets.span(), presets.presets, presets.frameRateRanges, discreteSampleValues.span(), presets.standardVideoSizes }, state);
+}
+
+MediaConstraintsSourceNeeds mediaConstraintsSourceNeeds(const MediaConstraints& constraints)
+{
+    MediaConstraintsSourceNeeds needs;
+    needs.evaluates = constraints.isConstraintSet([](auto& set) {
+        return set.width() || set.height() || set.frameRate() || set.zoom() || !set.isEmpty();
+    });
+    if (!needs.evaluates)
+        return needs;
+    needs.presets = constraints.isConstraintSet([](auto& set) {
+        return set.width() || set.height() || set.frameRate() || set.zoom();
+    });
+    needs.groupId = constraints.isConstraintSet([](auto& set) {
+        return set.groupId() && !set.groupId()->isEmpty();
+    });
+    needs.facingMode = constraints.isConstraintSet([](auto& set) {
+        return set.facingMode() && !set.facingMode()->isEmpty();
+    });
+    return needs;
 }
 
 MediaVideoPresetMatch bestVideoPresetMatch(const MediaVideoPresetTable& table, const MediaVideoPresetSearch& search)

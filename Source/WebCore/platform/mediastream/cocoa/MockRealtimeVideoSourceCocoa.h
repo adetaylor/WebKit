@@ -33,33 +33,33 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include "MockRealtimeVideoSource.h"
-#include "PixelBufferConformerCV.h"
-#include <wtf/WorkQueue.h>
 
-typedef struct __CVBuffer *CVBufferRef;
-typedef CVBufferRef CVImageBufferRef;
-typedef CVImageBufferRef CVPixelBufferRef;
-typedef struct __CVPixelBufferPool *CVPixelBufferPoolRef;
+typedef struct CGImage *CGImageRef;
 
 namespace WebCore {
 
 class ImageTransferSessionVT;
 
+// The mock camera, whose frames MockVideoSource.swift draws.
 class MockRealtimeVideoSourceMac final : public MockRealtimeVideoSource {
 public:
-    NODELETE static Ref<MockRealtimeVideoSource> createForMockDisplayCapturer(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
-    static Ref<MockRealtimeVideoSource> create(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&& salt, std::optional<PageIdentifier> pageIdentifier) { return adoptRef(*new MockRealtimeVideoSourceMac(WTF::move(deviceID), WTF::move(name), WTF::move(salt), WTF::move(pageIdentifier))); }
+    static Ref<MockRealtimeVideoSourceMac> create(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
     ~MockRealtimeVideoSourceMac();
+
+    static RefPtr<MockRealtimeVideoSourceMac> sourceWithGeneratorIdentifier(uint64_t);
+
+    // On the generator's queue.
+    void didGenerateFrame(CGImageRef, double presentationTime);
+    using MockRealtimeVideoSource::didTakePhoto;
 
 private:
     MockRealtimeVideoSourceMac(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
-    PlatformLayer* platformLayer() const;
-    void updateSampleBuffer() final;
     bool canResizeVideoFrames() const final { return true; }
 
-    const std::unique_ptr<ImageTransferSessionVT> m_imageTransferSession;
+    // Used on the generator's queue only.
+    std::unique_ptr<ImageTransferSessionVT> m_imageTransferSession;
     size_t m_pixelGenerationFailureCount { 0 };
 };
 

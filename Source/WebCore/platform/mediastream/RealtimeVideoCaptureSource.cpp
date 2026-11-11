@@ -28,6 +28,7 @@
 
 #if ENABLE(MEDIA_STREAM)
 #include "CaptureDevice.h"
+#include "CaptureSourceDecisions.h"
 #include "Logging.h"
 #include "RealtimeMediaSourceCenter.h"
 #include "RealtimeMediaSourceSettings.h"
@@ -117,57 +118,25 @@ SUPPRESS_NODELETE std::span<const IntSize> RealtimeVideoCaptureSource::standardV
     return sizes;
 }
 
-template <typename ValueType>
-NODELETE static void updateMinMax(ValueType& min, ValueType& max, ValueType value)
-{
-    min = std::min<ValueType>(min, value);
-    max = std::max<ValueType>(max, value);
-}
-
 void RealtimeVideoCaptureSource::updateCapabilities(RealtimeMediaSourceCapabilities& capabilities)
 {
     ASSERT(!presets().isEmpty());
 
-    int minimumWidth = std::numeric_limits<int>::max();
-    int maximumWidth = 0;
-    int minimumHeight = std::numeric_limits<int>::max();
-    int maximumHeight = 0;
-    double minimumAspectRatio = std::numeric_limits<double>::max();
-    double maximumAspectRatio = 0;
-    double minimumFrameRate = 1;
-    double maximumFrameRate = 0;
-    double minimumZoom = std::numeric_limits<double>::max();
-    double maximumZoom = 1;
-    for (const auto& preset : presets()) {
-        const auto& size = preset.size();
-        updateMinMax(minimumWidth, maximumWidth, size.width());
-        updateMinMax(minimumHeight, maximumHeight, size.height());
-        updateMinMax(minimumAspectRatio, maximumAspectRatio, static_cast<double>(size.width()) / size.height());
+    CaptureVideoCapabilityRanges ranges;
+    for (const auto& preset : presets())
+        ranges.addPreset(preset.size().width(), preset.size().height(), preset.minZoom(), preset.maxZoom(), preset.maxFrameRate());
 
-        minimumZoom = std::min(minimumZoom, preset.minZoom());
-        maximumZoom = std::max(maximumZoom, preset.maxZoom());
-
-        for (const auto& rate : preset.frameRateRanges())
-            maximumFrameRate = std::max(maximumFrameRate, rate.maximum);
-    }
-
-    if (!maximumWidth || !maximumHeight || !maximumFrameRate) {
+    auto values = ranges.ranges(canResizeVideoFrames());
+    if (!values.widthMax) {
         RELEASE_LOG_ERROR(WebRTC, "RealtimeVideoCaptureSource::updateCapabilities max width, max height or max frame rate is 0");
         return;
     }
 
-    if (canResizeVideoFrames()) {
-        minimumWidth = 1;
-        minimumHeight = 1;
-        minimumAspectRatio = 1.0 / maximumHeight;
-        maximumAspectRatio = maximumWidth;
-    }
-
-    capabilities.setWidth({ minimumWidth, maximumWidth });
-    capabilities.setHeight({ minimumHeight, maximumHeight });
-    capabilities.setAspectRatio({ minimumAspectRatio, maximumAspectRatio });
-    capabilities.setFrameRate({ minimumFrameRate, maximumFrameRate });
-    capabilities.setZoom({ minimumZoom, maximumZoom });
+    capabilities.setWidth({ values.widthMin, values.widthMax });
+    capabilities.setHeight({ values.heightMin, values.heightMax });
+    capabilities.setAspectRatio({ values.aspectRatioMin, values.aspectRatioMax });
+    capabilities.setFrameRate({ values.frameRateMin, values.frameRateMax });
+    capabilities.setZoom({ values.zoomMin, values.zoomMax });
 }
 
 std::optional<MediaVideoPresetTable> RealtimeVideoCaptureSource::videoPresetTable()
@@ -270,20 +239,10 @@ auto RealtimeVideoCaptureSource::takePhoto(PhotoSettings&& photoSettings) -> Ref
         return TakePhotoNativePromise::createAndResolve();
 
     if ((photoSettings.imageHeight && !photoSettings.imageWidth) || (!photoSettings.imageHeight && photoSettings.imageWidth)) {
-        IntSize sanitizedSize;
-        if (photoSettings.imageHeight)
-            sanitizedSize.setHeight(*photoSettings.imageHeight);
-        if (photoSettings.imageWidth)
-            sanitizedSize.setWidth(*photoSettings.imageWidth);
-
         auto intrinsicSize = this->intrinsicSize();
-        if (!sanitizedSize.height())
-            sanitizedSize.setHeight(sanitizedSize.width() * (intrinsicSize.height() / static_cast<double>(intrinsicSize.width())));
-        else if (!sanitizedSize.width())
-            sanitizedSize.setWidth(sanitizedSize.height() * (intrinsicSize.width() / static_cast<double>(intrinsicSize.height())));
-
-        photoSettings.imageHeight = sanitizedSize.height();
-        photoSettings.imageWidth = sanitizedSize.width();
+        auto sanitizedSize = CaptureSourceDecisions::photoSize(photoSettings.imageWidth.value_or(0), photoSettings.imageHeight.value_or(0), { intrinsicSize.width(), intrinsicSize.height() });
+        photoSettings.imageHeight = sanitizedSize.height;
+        photoSettings.imageWidth = sanitizedSize.width;
     }
 
     auto producer = makeUniqueRef<TakePhotoNativePromise::Producer>();

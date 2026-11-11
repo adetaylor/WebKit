@@ -300,6 +300,7 @@
 		078E093717D16B2C00420AA1 /* MediaStreamPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093A17D16E1C00420AA1 /* MediaConstraints.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221B9917CF0AD400848E51 /* MediaConstraints.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		B9EA84F177147E948C9A7EBE /* MediaConstraintsEvaluation.h in Headers */ = {isa = PBXBuildFile; fileRef = FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		B1731F451CE61175C3D39369 /* CaptureSourceDecisions.h in Headers */ = {isa = PBXBuildFile; fileRef = BD0030F64ADF16E36A002B78 /* CaptureSourceDecisions.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BDD6F1CF970D62BC5CDBABF7 /* MacControlPainter.h in Headers */ = {isa = PBXBuildFile; fileRef = 94ECF0E537016231C42D3609 /* MacControlPainter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7777FCE0AEFF93FA6147EC1C /* MacControlPainter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD68869E5A11B99B6BED27 /* MacControlPainter.swift */; };
 		7B190D9D0A9F544BF209BA1E /* WebControlView.h in Headers */ = {isa = PBXBuildFile; fileRef = 72A6451F2948F25900C14BA3 /* WebControlView.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -309,11 +310,15 @@
 		73E14E1EBB9AAFBF11B33DC6 /* AudioCaptureDevices.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */; };
 		87AE5B4AC498485076B738CE /* AudioCaptureControllerHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		525B81E60AA9407EF00D3327 /* DisplayCaptureSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 0BF208C601941937942E9DD0 /* DisplayCaptureSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		4B27CFBA4F59D4E8F39EF905 /* MockVideoSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 47EA194875FC99F2567F543A /* MockVideoSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		DCDC6165505D8231123FAC1A /* DisplayCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureSource.swift */; };
+		5350D11F65B33205EAEBE466 /* MockVideoSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 670EC3FEF04B6E975506B5BD /* MockVideoSettings.swift */; };
+		2594D87D3B7E43D7B2BA1850 /* MockVideoSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = E800A572C93BA84D0B242ABF /* MockVideoSource.swift */; };
 		8E595335FC5917D7A9B19AC5 /* ScreenCaptureKitCapturer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79E70DF11975D4B52ABB4495 /* ScreenCaptureKitCapturer.swift */; };
 		70991B368F1028C4B1AF758B /* ScreenCaptureKitSharingSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2877589F5EACD1A7F3B2B7BF /* ScreenCaptureKitSharingSessionManager.swift */; };
 		6DFAB8A24E209E5BE10CDE2C /* MediaConstraintsSwiftBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = 13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9126A31163C808E1B978733B /* MediaConstraintsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */; };
+		0018965870624AA6306272D7 /* CaptureSourceDecisions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E998BF7C1B258BE6CEF83E0 /* CaptureSourceDecisions.swift */; };
 		078E093C17D16E1C00420AA1 /* RTCDataChannelHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA217CF0AD400848E51 /* RTCDataChannelHandler.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E093D17D16E1C00420AA1 /* RTCDataChannelHandlerClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA317CF0AD400848E51 /* RTCDataChannelHandlerClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		078E094017D16E1C00420AA1 /* RTCIceCandidateDescriptor.h in Headers */ = {isa = PBXBuildFile; fileRef = 07221BA717CF0AD400848E51 /* RTCIceCandidateDescriptor.h */; };
@@ -514,6 +519,7 @@
 		07E9E12E18F5E2760011A3A4 /* InbandMetadataTextTrackPrivateAVF.h in Headers */ = {isa = PBXBuildFile; fileRef = 07E9E12D18F5E2760011A3A4 /* InbandMetadataTextTrackPrivateAVF.h */; };
 		07ED19382762769400AF1EC5 /* DisplayCaptureManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 07ED19372762769400AF1EC5 /* DisplayCaptureManager.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07EE76EC1BE96DB000F89133 /* MockRealtimeVideoSource.h in Headers */ = {isa = PBXBuildFile; fileRef = 07EE76EA1BE96DB000F89133 /* MockRealtimeVideoSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		96C2E62836E98DDD9F546616 /* MockVideoSettings.h in Headers */ = {isa = PBXBuildFile; fileRef = 55FAA38464BC7102FAFC1BD2 /* MockVideoSettings.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07EE76EF1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 07EE76ED1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h */; };
 		07F4E93320B3587F002E3803 /* AVAssetMIMETypeCache.h in Headers */ = {isa = PBXBuildFile; fileRef = 07C8AD121D073D630087C5CE /* AVAssetMIMETypeCache.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07F5CFF52582A51D00662EF5 /* WebMAudioUtilitiesCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 07F5CFF42582A4F800662EF5 /* WebMAudioUtilitiesCocoa.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8302,8 +8308,10 @@
 		07221B9117CEC32700848E51 /* UserMediaRequest.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UserMediaRequest.h; sourceTree = "<group>"; };
 		07221B9917CF0AD400848E51 /* MediaConstraints.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MediaConstraints.h; sourceTree = "<group>"; };
 		FCA3402B720A30AB09860FDE /* MediaConstraintsEvaluation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaConstraintsEvaluation.h; sourceTree = "<group>"; };
+		BD0030F64ADF16E36A002B78 /* CaptureSourceDecisions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CaptureSourceDecisions.h; sourceTree = "<group>"; };
 		13E9E6B64A1F7042103BDE61 /* MediaConstraintsSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaConstraintsSwiftBridge.h; sourceTree = "<group>"; };
 		09E595915FE1780C0AD024C3 /* MediaConstraintsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaConstraintsEngine.swift; sourceTree = "<group>"; };
+		6E998BF7C1B258BE6CEF83E0 /* CaptureSourceDecisions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSourceDecisions.swift; sourceTree = "<group>"; };
 		F925DE068AF31A5558542797 /* MediaConstraintsEvaluation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaConstraintsEvaluation.cpp; sourceTree = "<group>"; };
 		07221B9D17CF0AD400848E51 /* MediaStreamPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MediaStreamPrivate.h; sourceTree = "<group>"; };
 		07221BA217CF0AD400848E51 /* RTCDataChannelHandler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCDataChannelHandler.h; sourceTree = "<group>"; };
@@ -8529,7 +8537,10 @@
 		C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureDevices.swift; sourceTree = "<group>"; };
 		248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioCaptureControllerHandle.h; sourceTree = "<group>"; };
 		0BF208C601941937942E9DD0 /* DisplayCaptureSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureSourceHandle.h; sourceTree = "<group>"; };
+		47EA194875FC99F2567F543A /* MockVideoSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MockVideoSourceHandle.h; sourceTree = "<group>"; };
 		FD9EC5EA9CEEC9AEB824CE39 /* DisplayCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayCaptureSource.swift; sourceTree = "<group>"; };
+		670EC3FEF04B6E975506B5BD /* MockVideoSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MockVideoSettings.swift; path = ../../mock/MockVideoSettings.swift; sourceTree = "<group>"; };
+		E800A572C93BA84D0B242ABF /* MockVideoSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockVideoSource.swift; sourceTree = "<group>"; };
 		79E70DF11975D4B52ABB4495 /* ScreenCaptureKitCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureKitCapturer.swift; sourceTree = "<group>"; };
 		2877589F5EACD1A7F3B2B7BF /* ScreenCaptureKitSharingSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureKitSharingSessionManager.swift; sourceTree = "<group>"; };
 		07BB1E6E27176CCA001DF289 /* DisplayCaptureSourceCocoa.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DisplayCaptureSourceCocoa.cpp; sourceTree = "<group>"; };
@@ -8584,6 +8595,7 @@
 		07ED19372762769400AF1EC5 /* DisplayCaptureManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DisplayCaptureManager.h; sourceTree = "<group>"; };
 		07EE76E91BE96DB000F89133 /* MockRealtimeVideoSource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MockRealtimeVideoSource.cpp; sourceTree = "<group>"; };
 		07EE76EA1BE96DB000F89133 /* MockRealtimeVideoSource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MockRealtimeVideoSource.h; sourceTree = "<group>"; };
+		55FAA38464BC7102FAFC1BD2 /* MockVideoSettings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MockVideoSettings.h; sourceTree = "<group>"; };
 		07EE76ED1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MockRealtimeVideoSourceCocoa.h; sourceTree = "<group>"; };
 		07EE76EE1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MockRealtimeVideoSourceCocoa.mm; sourceTree = "<group>"; };
 		07F5CFF22582A4F800662EF5 /* WebMAudioUtilitiesCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WebMAudioUtilitiesCocoa.mm; sourceTree = "<group>"; };
@@ -24955,6 +24967,8 @@
 				07B7116B1D899E63009F0FFB /* CaptureDeviceManager.cpp */,
 				07B7116C1D899E63009F0FFB /* CaptureDeviceManager.h */,
 				416F429129C0BB8D00C080DC /* CaptureDeviceWithCapabilities.h */,
+				BD0030F64ADF16E36A002B78 /* CaptureSourceDecisions.h */,
+				6E998BF7C1B258BE6CEF83E0 /* CaptureSourceDecisions.swift */,
 				07ED19372762769400AF1EC5 /* DisplayCaptureManager.h */,
 				07C6778529ACF4780083C923 /* DisplayCapturePromptType.h */,
 				073930D72AC6445C00C1D1B1 /* FillLightMode.h */,
@@ -28366,6 +28380,9 @@
 				0744ECEC1E0C4AE5000D0944 /* MockAudioCaptureUnit.mm */,
 				07EE76ED1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h */,
 				07EE76EE1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.mm */,
+				670EC3FEF04B6E975506B5BD /* MockVideoSettings.swift */,
+				E800A572C93BA84D0B242ABF /* MockVideoSource.swift */,
+				47EA194875FC99F2567F543A /* MockVideoSourceHandle.h */,
 				41103AAA1E39790A00769F14 /* RealtimeIncomingAudioSourceCocoa.cpp */,
 				41103AA91E39790A00769F14 /* RealtimeIncomingAudioSourceCocoa.h */,
 				41CB840025CAB7B00010E2B1 /* RealtimeIncomingVideoSourceCocoa.h */,
@@ -30778,6 +30795,7 @@
 				4A0FFA9C1AAF5E6C0062803B /* MockRealtimeMediaSourceCenter.h */,
 				07EE76E91BE96DB000F89133 /* MockRealtimeVideoSource.cpp */,
 				07EE76EA1BE96DB000F89133 /* MockRealtimeVideoSource.h */,
+				55FAA38464BC7102FAFC1BD2 /* MockVideoSettings.h */,
 				BCD8FA422F28007100B42872 /* PlatformMediaEngineConfigurationFactoryMock.cpp */,
 				BCD8FA412F28007100B42872 /* PlatformMediaEngineConfigurationFactoryMock.h */,
 				AAE27B7416CBFC0D00623043 /* PlatformSpeechSynthesizerMock.cpp */,
@@ -45440,6 +45458,7 @@
 				07B7116D1D899E63009F0FFB /* CaptureDevice.h in Headers */,
 				07B7116F1D899E63009F0FFB /* CaptureDeviceManager.h in Headers */,
 				416F429229C0BB8E00C080DC /* CaptureDeviceWithCapabilities.h in Headers */,
+				B1731F451CE61175C3D39369 /* CaptureSourceDecisions.h in Headers */,
 				0742C4FD2926C73C00D26990 /* CaretAnimator.h in Headers */,
 				44A678412CAE887B003757E5 /* CaretPosition.h in Headers */,
 				444DCC662CB69E9E0012022D /* CaretPositionFromPointOptions.h in Headers */,
@@ -48601,6 +48620,8 @@
 				07EE76EF1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h in Headers */,
 				CDF2B0171820540700F2B424 /* MockSourceBufferPrivate.h in Headers */,
 				CDF2B0191820540700F2B424 /* MockTracks.h in Headers */,
+				96C2E62836E98DDD9F546616 /* MockVideoSettings.h in Headers */,
+				4B27CFBA4F59D4E8F39EF905 /* MockVideoSourceHandle.h in Headers */,
 				5715610C234C1CA1008FC7AB /* MockWebAuthenticationConfiguration.h in Headers */,
 				F49328832769041B003E20F8 /* ModalContainerTypes.h in Headers */,
 				2DC8D39825F2FE9700CFCBAB /* Model.h in Headers */,
@@ -52014,6 +52035,7 @@
 				4A01C0BFDB37FC20485E98D8 /* CAAudioStreamDescription.swift in Sources */,
 				32F3E81AEAF3467D8F698B2E /* CacheValidation.swift in Sources */,
 				889F75B279953818A0D73600 /* CameraCaptureSource.swift in Sources */,
+				0018965870624AA6306272D7 /* CaptureSourceDecisions.swift in Sources */,
 				589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */,
 				0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */,
 				3F8D1F1FEDB47370162C9C14 /* CARingBufferPlayout.swift in Sources */,
@@ -52190,6 +52212,8 @@
 				E3952FEE27C6DF140086F5D9 /* MockContentFilterManager.cpp in Sources */,
 				E3952FF027C7CDAC0086F5D9 /* MockContentFilterSettings.cpp in Sources */,
 				E169FDA82F85C319005AD4C7 /* MockParentalControlsURLFilter.mm in Sources */,
+				5350D11F65B33205EAEBE466 /* MockVideoSettings.swift in Sources */,
+				2594D87D3B7E43D7B2BA1850 /* MockVideoSource.swift in Sources */,
 				1B2A99B925F22C6752D0BB3B /* MutableSpanCopy.swift in Sources */,
 				329C0C2428BD96DE00F187D2 /* Namespace.cpp in Sources */,
 				2D9BF7421DBFDC27007A7D99 /* NavigatorEME.cpp in Sources */,

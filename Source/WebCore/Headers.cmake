@@ -2931,6 +2931,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/MDNSRegisterError.h
     platform/mediastream/MediaConstraintType.h
     platform/mediastream/MediaConstraints.h
+    platform/mediastream/CaptureSourceDecisions.h
     platform/mediastream/MediaConstraintsEvaluation.h
     platform/mediastream/MediaConstraintsSwiftBridge.h
     platform/mediastream/MediaSettingsRange.h
@@ -2984,6 +2985,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mock/MockRealtimeAudioSource.h
     platform/mock/MockRealtimeMediaSourceCenter.h
     platform/mock/MockRealtimeVideoSource.h
+    platform/mock/MockVideoSettings.h
     platform/mock/ScrollbarsControllerMock.h
 
     platform/mock/mediasource/MockMediaSourcePrivate.h

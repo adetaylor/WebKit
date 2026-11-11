@@ -2882,6 +2882,7 @@ platform/mediarecorder/MediaRecorderPrivateMock.cpp
 platform/mediastream/AudioMediaStreamTrackRenderer.cpp
 platform/mediastream/AudioTrackPrivateMediaStream.cpp
 platform/mediastream/CaptureDeviceManager.cpp
+platform/mediastream/CaptureSourceDecisions.cpp
 platform/mediastream/MediaConstraintType.cpp
 platform/mediastream/MediaConstraints.cpp
 platform/mediastream/MediaConstraintsEvaluation.cpp

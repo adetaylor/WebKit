@@ -51,10 +51,8 @@ class DisplayCaptureSourceCocoa final
     WTF_MAKE_TZONE_ALLOCATED(DisplayCaptureSourceCocoa);
 public:
     static CaptureSourceOrError create(const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
-    // A source for the mock display drawing with this identifier (DisplayCaptureSourceHandle.h).
-    static CaptureSourceOrError createMock(uint64_t drawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
-    // The mock display drawing with this identifier changed device.
-    static void mockDrawingConfigurationChanged(uint64_t drawingIdentifier);
+    // A source for the mock display (DisplayCaptureSourceHandle.h).
+    static CaptureSourceOrError createMock(const MockDisplayDescription&, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
 
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
     virtual ~DisplayCaptureSourceCocoa();
@@ -65,8 +63,8 @@ public:
     RetainPtr<CMSampleBufferRef> croppedFrame(CMSampleBufferRef, const FloatRect&, const FloatSize&);
 
 private:
-    static CaptureSourceOrError create(DisplayCaptureSourceHandle, uint64_t mockDrawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
-    DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle, uint64_t mockDrawingIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
+    static CaptureSourceOrError create(DisplayCaptureSourceHandle, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, std::optional<PageIdentifier>);
+    DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle, const CaptureDevice&, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
     // RealtimeMediaSource
     void startProducingData() final;
@@ -89,7 +87,6 @@ private:
     void commitConfiguration();
 
     DisplayCaptureSourceHandle m_source;
-    uint64_t m_mockDrawingIdentifier { 0 };
     std::optional<RealtimeMediaSourceCapabilities> m_capabilities;
     std::optional<RealtimeMediaSourceSettings> m_currentSettings;
     UserActivity m_userActivity;

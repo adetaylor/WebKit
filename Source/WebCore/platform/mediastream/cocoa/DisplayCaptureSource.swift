@@ -38,6 +38,7 @@ import CoreMedia
 import Dispatch
 import Foundation
 import WebCore_Private.Core.DisplayCaptureSourceHandle
+import WebCore_Private.Core.MockVideoSourceHandle
 
 // A capturer's current frame.
 enum DisplayFrame {
@@ -224,22 +225,39 @@ final class DisplaySource {
 
 // MARK: Mock capturer
 
-// The mock display capturer, over the mock display's drawing that MockRealtimeMediaSourceCenter.cpp keeps.
+@MainActor
+private weak var latestMockDisplayCapturer: MockDisplayCapturer?
+
+// The mock display capturer, over a mock video generator (MockVideoSource.swift) drawing the display's frames at its
+// size and 30 frames a second.
 @MainActor
 private final class MockDisplayCapturer: DisplayCapturer {
     weak var source: DisplaySource?
-    private let drawingIdentifier: UInt64
+    private var display: WebCore.MockDisplayDescription
+    private var generator: MockVideoGenerator
     private var frameRate: Float = 0
     private var isRunning = false
     private var isWaitingForReady = false
     private var readyTimer: DispatchWorkItem?
 
-    init(drawingIdentifier: UInt64) {
-        self.drawingIdentifier = drawingIdentifier
+    init(display: WebCore.MockDisplayDescription) {
+        self.display = display
+        generator = Self.makeGenerator(display)
+    }
+
+    private static func makeGenerator(_ display: WebCore.MockDisplayDescription) -> MockVideoGenerator {
+        var state = WebCore.MockVideoSourceState()
+        state.captureWidth = display.width
+        state.captureHeight = display.height
+        state.width = display.width
+        state.height = display.height
+        return MockVideoGenerator(state: MockVideoFrameState(display.video, state)) { _, _ in
+            30
+        }
     }
 
     var currentFrame: DisplayFrame? {
-        WebCore.mockDisplayDrawingCopyFrame(drawingIdentifier).map { DisplayFrame.image($0) }
+        generator.latestImage.map { DisplayFrame.image($0) }
     }
 
     var isWindow: Bool {
@@ -252,7 +270,7 @@ private final class MockDisplayCapturer: DisplayCapturer {
         assert(!isRunning)
 
         isRunning = true
-        WebCore.mockDisplayDrawingSetRunning(drawingIdentifier, true)
+        generator.startProducingData(frameRate: 30)
         return true
     }
 
@@ -260,7 +278,7 @@ private final class MockDisplayCapturer: DisplayCapturer {
         assert(!isWaitingForReady)
 
         isRunning = false
-        WebCore.mockDisplayDrawingSetRunning(drawingIdentifier, false)
+        generator.stopProducingData()
     }
 
     func end() {
@@ -272,7 +290,7 @@ private final class MockDisplayCapturer: DisplayCapturer {
     }
 
     func intrinsicSize() -> WebCore.DisplayCaptureSize {
-        WebCore.mockDisplayDrawingIntrinsicSize(drawingIdentifier)
+        WebCore.DisplayCaptureSize(width: display.width, height: display.height)
     }
 
     func whenReady() {
@@ -298,10 +316,21 @@ private final class MockDisplayCapturer: DisplayCapturer {
         source?.capturerIsReady()
     }
 
+    // The display changed to the other mock display of its kind.
+    func configurationChanged(screen: WebCore.MockDisplayDescription, window: WebCore.MockDisplayDescription) {
+        display = display.video.kind == .Window ? window : screen
+        generator.invalidate()
+        generator = Self.makeGenerator(display)
+        if isRunning {
+            generator.startProducingData(frameRate: 30)
+        }
+        source?.capturerConfigurationChanged()
+    }
+
     func invalidate() {
         readyTimer?.cancel()
         readyTimer = nil
-        WebCore.mockDisplayDrawingDestroy(drawingIdentifier)
+        generator.invalidate()
     }
 }
 
@@ -337,14 +366,24 @@ extension WebCore.DisplayCaptureSourceHandle {
 
     @cxx
     @implementation
-    static func createMock(_ drawingIdentifier: UInt64) -> WebCore.DisplayCaptureSourceHandle {
+    static func createMock(_ display: WebCore.MockDisplayDescription) -> WebCore.DisplayCaptureSourceHandle {
         var handle = WebCore.DisplayCaptureSourceHandle()
         handle.m_identifier = MainActor.assumeIsolated {
             makeDisplayCaptureSource { _ in
-                MockDisplayCapturer(drawingIdentifier: drawingIdentifier)
+                let capturer = MockDisplayCapturer(display: display)
+                latestMockDisplayCapturer = capturer
+                return capturer
             }
         }
         return handle
+    }
+
+    @cxx
+    @implementation
+    static func triggerMockConfigurationChange(_ screen: WebCore.MockDisplayDescription, _ window: WebCore.MockDisplayDescription) {
+        MainActor.assumeIsolated {
+            latestMockDisplayCapturer?.configurationChanged(screen: screen, window: window)
+        }
     }
 
     @cxx
@@ -455,6 +494,7 @@ extension WebCore.DisplayCaptureSourceHandle {
             source?.isWindow ?? false
         }
     }
+
 }
 
 #endif

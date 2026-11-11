@@ -32,15 +32,22 @@
 
 #if ENABLE(MEDIA_STREAM)
 
-#include <WebCore/DashArray.h>
-#include <WebCore/FontCascade.h>
-#include <WebCore/ImageBuffer.h>
 #include <WebCore/MockMediaDevice.h>
+#include <WebCore/MockVideoSettings.h>
 #include <WebCore/RealtimeMediaSourceFactory.h>
 #include <WebCore/RealtimeVideoCaptureSource.h>
 #include <atomic>
+#include <wtf/HashMap.h>
 #include <wtf/Lock.h>
+
+#if PLATFORM(COCOA)
+#include <WebCore/MockVideoSourceHandle.h>
+#else
+#include <WebCore/DashArray.h>
+#include <WebCore/FontCascade.h>
+#include <WebCore/ImageBuffer.h>
 #include <wtf/RunLoop.h>
+#endif
 
 namespace WebCore {
 
@@ -57,21 +64,29 @@ public:
     static void setIsInterrupted(bool);
     static void triggerCameraConfigurationChange();
 
+#if !PLATFORM(COCOA)
     ImageBuffer* imageBuffer();
+#endif
 
 protected:
     MockRealtimeVideoSource(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&&, std::optional<PageIdentifier>);
 
+#if PLATFORM(COCOA)
+    // The photo that MockVideoSource.swift took, as PNG data, or the error.
+    void didTakePhoto(uint64_t requestIdentifier, Vector<uint8_t>&&, String&& errorMessage);
+    const MockVideoSourceHandle& generator() const LIFETIME_BOUND { return m_generator; }
+#else
     virtual void updateSampleBuffer() = 0;
 
     Seconds elapsedTime();
+    ImageBuffer* imageBufferInternal();
+#endif
+
     void settingsDidChange(OptionSet<RealtimeMediaSourceSettings::Flag>) override;
     VideoFrameRotation videoFrameRotation() const final;
     void generatePresets() override;
 
     IntSize captureSize() const;
-
-    ImageBuffer* imageBufferInternal();
 
 private:
     friend class MockDisplayCaptureSourceGStreamer;
@@ -98,16 +113,21 @@ private:
     void rotationAngleForHorizonLevelDisplayChanged(const String&, VideoFrameRotation) final;
     void monitorOrientation(OrientationNotifier&) final;
 
+#if PLATFORM(COCOA)
+    MockVideoSourceState generatorState();
+    void updateGeneratorState();
+#else
     void drawAnimation(GraphicsContext&);
     void drawText(GraphicsContext&);
     void drawBoxes(GraphicsContext&);
 
     void generateFrame();
     RefPtr<ImageBuffer> generateFrameInternal();
+    RefPtr<ImageBuffer> generatePhoto();
+#endif
     void startCaptureTimer();
     void startCaptureTimer(double frameRate);
     void stopCaptureTimer();
-    RefPtr<ImageBuffer> generatePhoto();
 
     void delaySamples(Seconds) final;
 
@@ -116,10 +136,12 @@ private:
     bool mockScreen() const { return mockDisplayType(CaptureDevice::DeviceType::Screen); }
     bool mockWindow() const { return mockDisplayType(CaptureDevice::DeviceType::Window); }
     bool mockDisplayType(CaptureDevice::DeviceType) const;
+    MockVideoKind mockVideoKind() const;
 
     void startApplyingConstraints() final;
     void endApplyingConstraints() final;
 
+#if !PLATFORM(COCOA)
     class DrawingState {
     public:
         explicit DrawingState(float baseFontSize)
@@ -167,11 +189,13 @@ private:
     unsigned m_frameNumber { 0 };
     const Ref<RunLoop> m_runLoop;
     std::unique_ptr<RunLoop::Timer> m_emitFrameTimer;
+    Color m_fillColorWithZoom { Color::red };
+#endif
+
     std::optional<RealtimeMediaSourceCapabilities> m_capabilities;
     std::optional<RealtimeMediaSourceSettings> m_currentSettings;
     RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
     Color m_fillColor { Color::black };
-    Color m_fillColorWithZoom { Color::red };
     MockMediaDevice m_device;
     std::optional<VideoPreset> m_preset WTF_GUARDED_BY_LOCK(m_frameGenerationLock);
     // Read on both the caller's thread by settings() and m_runLoop's thread by
@@ -183,9 +207,15 @@ private:
     std::optional<PhotoSettings> m_photoSettings;
     bool m_beingConfigured { false };
     bool m_isUsingRotationAngleForHorizonLevelDisplayChanged { false };
+#if PLATFORM(COCOA)
+    MockVideoSourceHandle m_generator;
+    HashMap<uint64_t, std::unique_ptr<TakePhotoNativePromise::Producer>> m_photoProducers;
+    uint64_t m_lastPhotoRequestIdentifier { 0 };
+#else
     // Set on the caller's thread by takePhotoInternal() and cleared on m_runLoop's thread, like m_captureWasInterrupted.
     std::atomic<bool> m_isTakingPhoto { false };
     std::atomic<bool> m_captureWasInterrupted { false };
+#endif
 };
 
 } // namespace WebCore

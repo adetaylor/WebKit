@@ -96,7 +96,7 @@ CaptureSourceOrError DisplayCaptureSourceCocoa::create(const CaptureDevice& devi
         auto deviceID = ScreenCaptureKitCaptureSource::computeDeviceID(device);
         if (!deviceID)
             return CaptureSourceOrError { WTF::move(deviceID).error() };
-        return create(DisplayCaptureSourceHandle::create(device.type() == CaptureDevice::DeviceType::Window, deviceID.value()), 0, device, WTF::move(hashSalts), constraints, pageIdentifier);
+        return create(DisplayCaptureSourceHandle::create(device.type() == CaptureDevice::DeviceType::Window, deviceID.value()), device, WTF::move(hashSalts), constraints, pageIdentifier);
 #else
         UNUSED_PARAM(hashSalts);
         UNUSED_PARAM(constraints);
@@ -118,14 +118,14 @@ CaptureSourceOrError DisplayCaptureSourceCocoa::create(const CaptureDevice& devi
     return { };
 }
 
-CaptureSourceOrError DisplayCaptureSourceCocoa::createMock(uint64_t drawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
+CaptureSourceOrError DisplayCaptureSourceCocoa::createMock(const MockDisplayDescription& display, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
-    return create(DisplayCaptureSourceHandle::createMock(drawingIdentifier), drawingIdentifier, device, WTF::move(hashSalts), constraints, pageIdentifier);
+    return create(DisplayCaptureSourceHandle::createMock(display), device, WTF::move(hashSalts), constraints, pageIdentifier);
 }
 
-CaptureSourceOrError DisplayCaptureSourceCocoa::create(DisplayCaptureSourceHandle handle, uint64_t mockDrawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
+CaptureSourceOrError DisplayCaptureSourceCocoa::create(DisplayCaptureSourceHandle handle, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
-    auto source = adoptRef(*new DisplayCaptureSourceCocoa(handle, mockDrawingIdentifier, device, WTF::move(hashSalts), pageIdentifier));
+    auto source = adoptRef(*new DisplayCaptureSourceCocoa(handle, device, WTF::move(hashSalts), pageIdentifier));
     if (constraints) {
         if (auto result = source->applyConstraints(*constraints))
             return CaptureSourceOrError(CaptureSourceError { result->invalidConstraint });
@@ -134,19 +134,9 @@ CaptureSourceOrError DisplayCaptureSourceCocoa::create(DisplayCaptureSourceHandl
     return CaptureSourceOrError(WTF::move(source));
 }
 
-void DisplayCaptureSourceCocoa::mockDrawingConfigurationChanged(uint64_t drawingIdentifier)
-{
-    for (auto& weakSource : sources().values()) {
-        RefPtr source = weakSource.get();
-        if (source && source->m_mockDrawingIdentifier == drawingIdentifier)
-            source->capturerConfigurationChanged();
-    }
-}
-
-DisplayCaptureSourceCocoa::DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle handle, uint64_t mockDrawingIdentifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
+DisplayCaptureSourceCocoa::DisplayCaptureSourceCocoa(DisplayCaptureSourceHandle handle, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
     : RealtimeMediaSource(device, WTF::move(hashSalts), pageIdentifier)
     , m_source(handle)
-    , m_mockDrawingIdentifier(mockDrawingIdentifier)
     , m_userActivity("App nap disabled for screen capture"_s)
 {
     sources().add(m_source.identifier(), *this);

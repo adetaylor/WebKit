@@ -36,6 +36,7 @@
 #if ENABLE(MEDIA_STREAM)
 #include "RealtimeMediaSource.h"
 
+#include "CaptureSourceDecisions.h"
 #include "JSMeteringMode.h"
 #include "Logging.h"
 #include "MediaConstraints.h"
@@ -328,11 +329,8 @@ static RefPtr<VideoFrame> adaptVideoFrame(VideoFrameAdaptor& adaptor, VideoFrame
 IntSize RealtimeMediaSource::computeResizedVideoFrameSize(IntSize desiredSize, IntSize actualSize)
 {
     ASSERT(!actualSize.isZero());
-    if (desiredSize.width() && !desiredSize.height())
-        return { desiredSize.width(), desiredSize.width() * actualSize.height() / actualSize.width() };
-    if (desiredSize.height() && !desiredSize.width())
-        return { desiredSize.height() * actualSize.width() / actualSize.height(), desiredSize.height() };
-    return desiredSize;
+    auto size = CaptureSourceDecisions::resizedVideoFrameSize({ desiredSize.width(), desiredSize.height() }, { actualSize.width(), actualSize.height() });
+    return { size.width, size.height };
 }
 
 void RealtimeMediaSource::videoFrameAvailable(VideoFrame& videoFrame, VideoFrameTimeMetadata metadata)
@@ -385,9 +383,7 @@ void RealtimeMediaSource::videoFrameAvailable(VideoFrame& videoFrame, VideoFrame
                 if (adaptor->frameDecimation > 1 && ++adaptor->frameDecimationCounter % adaptor->frameDecimation)
                     continue;
 
-                adaptor->frameDecimation = adaptor->frameRate ? static_cast<size_t>(observedFrameRate() / adaptor->frameRate) : 1;
-                if (!adaptor->frameDecimation)
-                    adaptor->frameDecimation = 1;
+                adaptor->frameDecimation = CaptureSourceDecisions::frameDecimation(observedFrameRate(), adaptor->frameRate);
 
                 if (!adaptor->size.isZero()) {
                     auto actualSize = expandedIntSize(frame->presentationSize());
@@ -568,26 +564,14 @@ static RealtimeMediaSource::VideoPresetConstraints videoPresetConstraints(const 
 MediaConstraintsEvaluation RealtimeMediaSource::evaluateConstraints(const MediaConstraints& constraints, MediaConstraintsEvaluationPurpose purpose)
 {
     // Constraints with nothing the engine reads leave the source alone: its capabilities and settings aren't read.
-    auto hasConstraintToEvaluate = constraints.isConstraintSet([](auto& set) {
-        return set.width() || set.height() || set.frameRate() || set.zoom() || !set.isEmpty();
-    });
-    if (!hasConstraintToEvaluate)
+    auto needs = mediaConstraintsSourceNeeds(constraints);
+    if (!needs.evaluates)
         return { };
 
-    auto hasPresetConstraint = constraints.isConstraintSet([](auto& set) {
-        return set.width() || set.height() || set.frameRate() || set.zoom();
-    });
-    auto hasGroupIdConstraint = constraints.isConstraintSet([](auto& set) {
-        return set.groupId() && !set.groupId()->isEmpty();
-    });
-    auto hasFacingModeConstraint = constraints.isConstraintSet([](auto& set) {
-        return set.facingMode() && !set.facingMode()->isEmpty();
-    });
-
     return evaluateMediaConstraints(constraints, {
-        capabilities(),
+        mediaConstraintsCapabilities(capabilities()),
         isEphemeral() ? m_ephemeralHashedID : m_hashedID,
-        hasGroupIdConstraint ? settings().groupId() : emptyString(),
+        needs.groupId ? settings().groupId() : emptyString(),
         size(),
         frameRate(),
         zoom(),
@@ -596,9 +580,9 @@ MediaConstraintsEvaluation RealtimeMediaSource::evaluateConstraints(const MediaC
         sampleSize(),
         discreteSampleRates(),
         discreteSampleSizes(),
-        hasFacingModeConstraint ? facingModeFitnessScoreAdjustment() : 0,
+        needs.facingMode ? facingModeFitnessScoreAdjustment() : 0,
         deviceType() == CaptureDevice::DeviceType::Camera,
-        hasPresetConstraint ? videoPresetTable() : std::nullopt,
+        needs.presets ? videoPresetTable() : std::nullopt,
     }, purpose);
 }
 
@@ -692,18 +676,8 @@ void RealtimeMediaSource::setSize(const IntSize& size)
 
 const IntSize RealtimeMediaSource::size() const
 {
-    auto size = m_size;
-
-    if (size.isEmpty() && !m_intrinsicSize.isEmpty()) {
-        if (size.isZero())
-            size = m_intrinsicSize;
-        else if (size.width())
-            size.setHeight(size.width() * (m_intrinsicSize.height() / static_cast<double>(m_intrinsicSize.width())));
-        else if (size.height())
-            size.setWidth(size.height() * (m_intrinsicSize.width() / static_cast<double>(m_intrinsicSize.height())));
-    }
-
-    return size;
+    auto size = CaptureSourceDecisions::resolvedSize({ m_size.width(), m_size.height() }, { m_intrinsicSize.width(), m_intrinsicSize.height() });
+    return { size.width, size.height };
 }
 
 void RealtimeMediaSource::setIntrinsicSize(const IntSize& intrinsicSize, bool notifyObservers)

@@ -31,8 +31,10 @@
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
 #include <WebCore/DisplayCapturePromptType.h>
+#include <WebCore/MockVideoSourceHandle.h>
 #include <cstdint>
 #include <wtf/SwiftBridging.h>
+#include <wtf/text/WTFString.h>
 
 typedef struct CGImage *CGImageRef;
 typedef struct opaqueCMSampleBuffer *CMSampleBufferRef;
@@ -62,6 +64,21 @@ struct DisplayCaptureFloatRect {
     float height { 0 };
 };
 
+// A mock display: what it draws and its size.
+struct MockDisplayDescription {
+    MockVideoSourceDescription video;
+    int32_t width { 0 };
+    int32_t height { 0 };
+};
+
+// The mock display with a persistent ID of MockRealtimeMediaSourceCenter's devices, if there is one (implemented by
+// MockRealtimeMediaSourceCenter.cpp).
+struct MockDisplayLookup {
+    MockDisplayDescription display;
+    bool found { false };
+};
+MockDisplayLookup mockDisplayWithPersistentID(const String& persistentID);
+
 enum class DisplayCaptureSourceEvent : uint8_t {
     CaptureFailed,
     ConfigurationChanged,
@@ -78,8 +95,10 @@ public:
     // prompt picked.
     static DisplayCaptureSourceHandle create(bool isWindow, uint32_t deviceID);
 #endif
-    // A source for the mock display drawing with this identifier (the mockDisplayDrawing functions below).
-    static DisplayCaptureSourceHandle createMock(uint64_t drawingIdentifier);
+    // A source for the mock display.
+    static DisplayCaptureSourceHandle createMock(MockDisplayDescription);
+    // The latest mock display source changes to the screen or window description, of its kind.
+    static void triggerMockConfigurationChange(MockDisplayDescription screen, MockDisplayDescription window);
     // A frame size for `desired` that keeps the aspect ratio of `intrinsic`, since getDisplayMedia allows max
     // constraints only.
     static DisplayCaptureSize resizedVideoFrameSize(DisplayCaptureSize desired, DisplayCaptureSize intrinsic);
@@ -98,6 +117,7 @@ public:
     DisplayCaptureSize intrinsicSize() const;
     // Whether the capturer captures a window, not a display.
     bool isWindow() const;
+
 
 private:
     uint64_t m_identifier { 0 };
@@ -131,12 +151,6 @@ CMSampleBufferRef WTF_NULLABLE displayCaptureSourceCopyCroppedFrame(uint64_t ide
 // this ID and title, or a display with this ID.
 void screenCaptureKitPromptDidComplete(bool hasDevice, bool isWindow, uint32_t deviceID, NSString * WTF_NULLABLE title);
 #endif
-
-// Implemented by MockRealtimeMediaSourceCenter.cpp: the mock display's drawing, which it keeps by identifier.
-void mockDisplayDrawingSetRunning(uint64_t drawingIdentifier, bool);
-CGImageRef WTF_NULLABLE mockDisplayDrawingCopyFrame(uint64_t drawingIdentifier) CF_RETURNS_RETAINED;
-DisplayCaptureSize mockDisplayDrawingIntrinsicSize(uint64_t drawingIdentifier);
-void mockDisplayDrawingDestroy(uint64_t drawingIdentifier);
 
 } // namespace WebCore
 

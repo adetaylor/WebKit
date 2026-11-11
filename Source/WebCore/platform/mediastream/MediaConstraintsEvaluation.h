@@ -50,7 +50,7 @@ struct MediaVideoPresetTable {
 // What evaluating constraints reads of a RealtimeMediaSource. A source with presets checks sizes, frame rates and zooms
 // against them.
 struct MediaConstraintsSourceDescription {
-    const RealtimeMediaSourceCapabilities& capabilities;
+    MediaConstraintsCapabilities capabilities;
     String hashedId;
     String groupId;
     IntSize size;
@@ -66,6 +66,17 @@ struct MediaConstraintsSourceDescription {
     std::optional<MediaVideoPresetTable> presets;
 };
 
+// What the constraints read of a source: nothing (then it isn't described), its presets, its group ID or its facing mode
+// fitness.
+struct MediaConstraintsSourceNeeds {
+    bool evaluates { false };
+    bool presets { false };
+    bool groupId { false };
+    bool facingMode { false };
+};
+
+WEBCORE_EXPORT MediaConstraintsSourceNeeds mediaConstraintsSourceNeeds(const MediaConstraints&);
+WEBCORE_EXPORT MediaConstraintsCapabilities mediaConstraintsCapabilities(const RealtimeMediaSourceCapabilities&);
 WEBCORE_EXPORT MediaConstraintsEvaluation evaluateMediaConstraints(const MediaConstraints&, const MediaConstraintsSourceDescription&, MediaConstraintsEvaluationPurpose);
 WEBCORE_EXPORT MediaVideoPresetMatch bestVideoPresetMatch(const MediaVideoPresetTable&, const MediaVideoPresetSearch&);
 

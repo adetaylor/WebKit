@@ -45,7 +45,7 @@ static std::optional<int> widthForCapabilityRange(WebCore::IntConstraint&& const
     constraints.mandatoryConstraints.set(WebCore::MediaConstraintType::Width, WTF::move(constraint));
     constraints.isValid = true;
 
-    auto evaluation = WebCore::evaluateMediaConstraints(constraints, { capabilities, { }, { }, { current, 0 } }, WebCore::MediaConstraintsEvaluationPurpose::VideoPresetConstraints);
+    auto evaluation = WebCore::evaluateMediaConstraints(constraints, { WebCore::mediaConstraintsCapabilities(capabilities), { }, { }, { current, 0 } }, WebCore::MediaConstraintsEvaluationPurpose::VideoPresetConstraints);
     if (evaluation.hasInvalidConstraint || !evaluation.videoPresetConstraints.hasWidth)
         return std::nullopt;
     return evaluation.videoPresetConstraints.width;
