@@ -43,7 +43,7 @@ public struct GPUExternalTextureDescriptor {
     /// The size the source presents the frame at, which the pixel buffer does not carry.
     ///
     /// Zero when the source could not say, and then the decoded size of the frame stands in for it.
-    public var visibleSize = WebGPU.Extent2D()
+    public var visibleSize = WebGPU.Extent2D(width: 0, height: 0)
 
     /// A descriptor with no frame.
     public init() {

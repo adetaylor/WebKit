@@ -46,17 +46,20 @@
 
 private import CxxStdlib
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
-@_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.CxxBridgingPublic
 @_spiOnly import WebGPU_Private.WebGPUCpp
+
+// Create-time values of a buffer.
+struct BufferParameters {
+    var size: UInt64 = 0
+    // OptionSet<WebGPU::BufferUsage>::toRaw()
+    var usage: UInt16 = 0
+    var mappedAtCreation = false
+}
 
 struct DrawIndexValidationEntry {
     let vertexCount: UInt32
@@ -771,7 +774,7 @@ public struct GPUBufferDescriptor {
 }
 
 func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferImpl {
-    var parameters = WebGPU.Metal.BufferParameters()
+    var parameters = BufferParameters()
     parameters.size = descriptor.size
     parameters.usage = descriptor.usage
     parameters.mappedAtCreation = descriptor.mappedAtCreation
@@ -781,7 +784,7 @@ func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescripto
 // Device::createBuffer. https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
 func createBufferImpl(
     _ deviceImpl: DeviceImpl,
-    _ parameters: WebGPU.Metal.BufferParameters,
+    _ parameters: BufferParameters,
     _ label: Swift.String?
 ) -> BufferImpl {
     if !deviceImpl.isValid() {
@@ -820,7 +823,7 @@ private func hasBufferUsage(_ usageBits: UInt16, _ usage: WebGPU.BufferUsage) ->
 }
 
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpubufferdescriptor, and createBuffer's own checks.
-private func isValidBufferDescriptor(_ parameters: WebGPU.Metal.BufferParameters, _ deviceImpl: DeviceImpl, _ maxBufferSize: UInt64) -> Bool
+private func isValidBufferDescriptor(_ parameters: BufferParameters, _ deviceImpl: DeviceImpl, _ maxBufferSize: UInt64) -> Bool
 {
     let usage = parameters.usage
     if deviceImpl.isLost() {

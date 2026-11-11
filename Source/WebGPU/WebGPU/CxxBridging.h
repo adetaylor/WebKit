@@ -25,16 +25,10 @@
 
 #pragma once
 
-#include "BindGroup.h"
-#include "Buffer.h"
+#include "BindableResource.h"
 #include "CommandEncoder.h"
-#include "ComputePipeline.h"
 #include "Device.h"
 #include "Queue.h"
-#include "RenderBundleEncoder.h"
-#include "RenderPassEncoder.h"
-#include "RenderPipeline.h"
-#include "Texture.h"
 #include "XRProjectionLayer.h"
 #include <QuartzCore/CAMetalLayer.h>
 #include <optional>

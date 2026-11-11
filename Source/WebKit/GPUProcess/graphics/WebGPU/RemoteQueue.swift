@@ -220,7 +220,7 @@ final class RemoteQueue {
         image.sourceSize = WebGPU.Extent2D(width: surfaceDescription.width, height: surfaceDescription.height)
         image.hasAlpha = sourceFormat.hasAlpha
         image.colorSpace = surfaceDescription.isDisplayP3 ? .DisplayP3 : .SRGB
-        image.origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
+        image.origin = source.origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D(x: 0, y: 0)
         image.flipY = source.flipY
         // An ImageBitmap created with premultiplyAlpha: "none" was put into its buffer straight, so the caller has to say;
         // a buffer a 2D context composited is premultiplied.
@@ -273,7 +273,7 @@ final class RemoteQueue {
         image.pixelBuffer = pixelBuffer
         image.pixelBufferRotation = videoFrameRotation(result.rotation)
         image.pixelBufferIsMirrored = result.isMirrored
-        image.origin = origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D()
+        image.origin = origin.map { WebGPU.Origin2D($0) } ?? WebGPU.Origin2D(x: 0, y: 0)
         image.flipY = flipY
         image.hasAlpha = false
         image.premultipliedAlpha = true
@@ -336,7 +336,7 @@ extension GPUCopyExternalImageDestination {
     fileprivate init(_ destination: IPCTypes.ImageCopyTextureTagged) {
         self.init()
         mipLevel = destination.mipLevel
-        origin = destination.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D()
+        origin = destination.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D(x: 0, y: 0, z: 0)
         aspect = sameNumbering(destination.aspect)
         colorSpace = sameNumbering(destination.colorSpace)
         premultipliedAlpha = destination.premultipliedAlpha
@@ -345,9 +345,10 @@ extension GPUCopyExternalImageDestination {
 
 extension WebGPU.Origin2D {
     fileprivate init(_ origin: IPCTypes.Origin2D) {
-        self.init()
-        x = origin.x
-        y = origin.y
+        self.init(
+            x: origin.x,
+            y: origin.y
+        )
     }
 }
 

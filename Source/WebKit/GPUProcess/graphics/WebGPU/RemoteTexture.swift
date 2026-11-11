@@ -103,11 +103,12 @@ extension GPUTextureViewDescriptor {
 
 extension WebGPU.TextureComponentSwizzle {
     fileprivate init(_ swizzle: IPCTypes.TextureComponentSwizzle) {
-        self.init()
-        r = sameNumbering(swizzle.r)
-        g = sameNumbering(swizzle.g)
-        b = sameNumbering(swizzle.b)
-        a = sameNumbering(swizzle.a)
+        self.init(
+            r: sameNumbering(swizzle.r),
+            g: sameNumbering(swizzle.g),
+            b: sameNumbering(swizzle.b),
+            a: sameNumbering(swizzle.a)
+        )
     }
 }
 

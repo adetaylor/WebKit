@@ -47,13 +47,8 @@
 private import CxxStdlib
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_implementationOnly import WebGPU_Internal.RenderPipeline
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.WebGPU
 
@@ -266,7 +261,7 @@ extension DeviceReference {
 // https://gpuweb.github.io/gpuweb/#dictdef-gputexelcopybufferinfo without its buffer, which a copy takes as its Impl.
 @_spi(WebKitGPU)
 public struct BufferCopyLocation {
-    public var layout = WebGPU.TexelCopyBufferLayout()
+    public var layout = WebGPU.TexelCopyBufferLayout(offset: 0, bytesPerRow: .init(), rowsPerImage: .init())
 
     public init() {
     }
@@ -276,7 +271,7 @@ public struct BufferCopyLocation {
 @_spi(WebKitGPU)
 public struct TextureCopyLocation {
     public var mipLevel: UInt32 = 0
-    public var origin = WebGPU.Origin3D()
+    public var origin = WebGPU.Origin3D(x: 0, y: 0, z: 0)
     public var aspect = WebGPU.TextureAspect.All
 
     public init() {
@@ -1528,7 +1523,7 @@ extension CommandEncoderImpl {
         _ maxDrawCount: UInt64,
         _ mtlDescriptor: MTLRenderPassDescriptor
     ) -> RenderPassEncoderImpl {
-        var parameters = WebGPU.Metal.RenderPassEncoderParameters()
+        var parameters = RenderPassEncoderParameters()
         parameters.visibilityResultBufferSize = visibilityResultBufferSize
         parameters.maxDrawCount = maxDrawCount
         parameters.depthReadOnly = depthReadOnly
@@ -1788,8 +1783,7 @@ extension CommandEncoderImpl {
                     }
                     // The rows are copied one at a time, so the layout has no strides.
                     var newDestination = destination
-                    newDestination.layout = WebGPU.TexelCopyBufferLayout()
-                    newDestination.layout.offset = tripleSum
+                    newDestination.layout = WebGPU.TexelCopyBufferLayout(offset: tripleSum, bytesPerRow: .init(), rowsPerImage: .init())
                     self.copyTextureToBuffer(
                         source: newSource,
                         sourceTexture: sourceTexture,
@@ -2137,8 +2131,7 @@ extension CommandEncoderImpl {
                     }
                     // The rows are copied one at a time, so the layout has no strides.
                     var newSource = source
-                    newSource.layout = WebGPU.TexelCopyBufferLayout()
-                    newSource.layout.offset = tripleSum
+                    newSource.layout = WebGPU.TexelCopyBufferLayout(offset: tripleSum, bytesPerRow: .init(), rowsPerImage: .init())
                     var destinationOriginPlusY = y
                     (destinationOriginPlusY, didOverflow) = destinationOriginPlusY.addingReportingOverflow(destination.origin.y)
                     guard !didOverflow else {

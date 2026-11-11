@@ -24,7 +24,6 @@
 import Foundation
 import Metal
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -115,7 +114,7 @@ func createRenderBundleEncoderImpl(
     icbDescriptor.inheritPipelineState = false
     icbDescriptor.maxFragmentBufferBindCount = 1
 
-    var parameters = WebGPU.Metal.RenderBundleEncoderParameters()
+    var parameters = RenderBundleEncoderParameters()
     parameters.sampleCount = descriptor.sampleCount
     parameters.depthStencilFormat = depthStencilFormat ?? .R8unorm
     parameters.hasDepthStencilFormat = depthStencilFormat != nil

@@ -24,10 +24,17 @@
 import Foundation
 import Metal
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
+
+// The pipeline's unique id and workgroup size.
+struct ComputePipelineParameters {
+    var uniqueId: UInt64 = 0
+    var threadsPerThreadgroupWidth: UInt = 0
+    var threadsPerThreadgroupHeight: UInt = 0
+    var threadsPerThreadgroupDepth: UInt = 0
+}
 
 // One per GPUComputePipeline, held by its Swift callers and the passes that set it. The compute pass reads it
 // directly.
@@ -38,7 +45,7 @@ public final class ComputePipelineImpl: GPUObjectReference {
     // An invalid pipeline carries an invalid-state layout.
     let pipelineLayoutImpl: PipelineLayoutImpl
     // All zero for an invalid pipeline.
-    let parameters: WebGPU.Metal.ComputePipelineParameters
+    let parameters: ComputePipelineParameters
     let minimumBufferSizes: MinimumBufferSizes
     // Declared last, so that the device outlives the rest of the pipeline.
     let deviceImpl: DeviceImpl
@@ -47,7 +54,7 @@ public final class ComputePipelineImpl: GPUObjectReference {
         computePipelineState: (any MTLComputePipelineState)?,
         pipelineLayoutImpl: PipelineLayoutImpl,
         deviceImpl: DeviceImpl,
-        parameters: WebGPU.Metal.ComputePipelineParameters,
+        parameters: ComputePipelineParameters,
         minimumBufferSizes: MinimumBufferSizes
     ) {
         self.backingComputePipelineState = computePipelineState
@@ -136,7 +143,7 @@ func makeInvalidComputePipelineImpl(
         computePipelineState: nil,
         pipelineLayoutImpl: pipelineLayoutImpl,
         deviceImpl: deviceImpl,
-        parameters: WebGPU.Metal.ComputePipelineParameters(),
+        parameters: ComputePipelineParameters(),
         minimumBufferSizes: MinimumBufferSizes()
     )
 }
@@ -376,7 +383,7 @@ private func prepareComputePipeline(
     }
 
     // Claimed up front, so that pipelines compiling concurrently cannot be handed the same one.
-    var parameters = WebGPU.Metal.ComputePipelineParameters()
+    var parameters = ComputePipelineParameters()
     parameters.uniqueId = deviceImpl.takePipelineId()
     parameters.threadsPerThreadgroupWidth = UInt(width)
     parameters.threadsPerThreadgroupHeight = UInt(height)
@@ -418,7 +425,7 @@ private final class PreparedComputePipeline {
     let layoutImpl: PipelineLayoutImpl
     let deviceImpl: DeviceImpl
     let minimumBufferSizes: MinimumBufferSizes
-    let parameters: WebGPU.Metal.ComputePipelineParameters
+    let parameters: ComputePipelineParameters
 
     init(
         library: PreparedLibrary,
@@ -426,7 +433,7 @@ private final class PreparedComputePipeline {
         layoutImpl: PipelineLayoutImpl,
         deviceImpl: DeviceImpl,
         minimumBufferSizes: MinimumBufferSizes,
-        parameters: WebGPU.Metal.ComputePipelineParameters
+        parameters: ComputePipelineParameters
     ) {
         self.library = library
         self.label = label

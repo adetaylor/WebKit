@@ -24,14 +24,42 @@
 private import CxxStdlib
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Texture
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
 public import WebGPU_Private.WebGPUCpp
+
+// A texture descriptor without its label and view formats. The usage OptionSet travels as its raw bits.
+struct TextureParameters {
+    var width: UInt32 = 0
+    var height: UInt32 = 0
+    var depthOrArrayLayers: UInt32 = 0
+    var mipLevelCount: UInt32 = 0
+    var sampleCount: UInt32 = 0
+    var dimension = WebGPU.TextureDimension._2d
+    var format = WebGPU.TextureFormat.Rgba8unorm
+    var usage: UInt8 = 0
+}
+
+// A texture view descriptor without its label. Each missing member is a cleared has* flag, and the usage OptionSet
+// travels as its raw bits.
+struct TextureViewDescriptorParameters {
+    var format = WebGPU.TextureFormat.Rgba8unorm
+    var hasFormat = false
+    var dimension = WebGPU.TextureViewDimension._2d
+    var hasDimension = false
+    var baseMipLevel: UInt32 = 0
+    var mipLevelCount: UInt32 = 0
+    var hasMipLevelCount = false
+    var baseArrayLayer: UInt32 = 0
+    var arrayLayerCount: UInt32 = 0
+    var hasArrayLayerCount = false
+    var aspect = WebGPU.TextureAspect.All
+    var usage: UInt8 = 0
+    var swizzle = WebGPU.TextureComponentSwizzle(r: .R, g: .G, b: .B, a: .A)
+}
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gputextureviewdescriptor, without its label. The nil members take their
 // values from the texture.
@@ -46,13 +74,13 @@ public struct GPUTextureViewDescriptor {
     public var aspect = WebGPU.TextureAspect.All
     // The bits of OptionSet<WebGPU::TextureUsage>; none for the usage of the texture.
     public var usage: UInt8 = 0
-    public var swizzle = WebGPU.TextureComponentSwizzle()
+    public var swizzle = WebGPU.TextureComponentSwizzle(r: .R, g: .G, b: .B, a: .A)
 
     public init() {
     }
 
-    var parameters: WebGPU.Metal.TextureViewDescriptorParameters {
-        var parameters = WebGPU.Metal.TextureViewDescriptorParameters()
+    var parameters: TextureViewDescriptorParameters {
+        var parameters = TextureViewDescriptorParameters()
         parameters.format = format ?? .Rgba8unorm
         parameters.hasFormat = format != nil
         parameters.dimension = dimension ?? ._2d
@@ -248,7 +276,7 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
 
     fileprivate init(
         texture: (any MTLTexture)?,
-        parameters: WebGPU.Metal.TextureParameters?,
+        parameters: TextureParameters?,
         viewFormats: [WebGPU.TextureFormat],
         deviceImpl: DeviceImpl
     ) {
@@ -628,7 +656,7 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
 
     // Every view holds this texture. Returns an invalid view (no descriptor) on failure; the texture records only the
     // views that have one. A view's device is its texture's.
-    func createView(_ descriptor: WebGPU.Metal.TextureViewDescriptorParameters, _ label: Swift.String?) -> TextureViewImpl {
+    func createView(_ descriptor: TextureViewDescriptorParameters, _ label: Swift.String?) -> TextureViewImpl {
         if destroyed {
             return invalidView()
         }
@@ -746,7 +774,7 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
     }
 
     private func resolveTextureViewDescriptorDefaults(
-        _ descriptor: WebGPU.Metal.TextureViewDescriptorParameters,
+        _ descriptor: TextureViewDescriptorParameters,
         _ mtlTexture: any MTLTexture
     ) -> ResolvedTextureViewDescriptor? {
         // https://gpuweb.github.io/gpuweb/#abstract-opdef-resolving-gputextureviewdescriptor-defaults
@@ -1092,7 +1120,7 @@ private let managedTextureStorageMode = MTLStorageMode.managed
 
 private func textureCreationError(
     _ deviceImpl: DeviceImpl,
-    _ descriptor: WebGPU.Metal.TextureParameters,
+    _ descriptor: TextureParameters,
     _ viewFormats: [WebGPU.TextureFormat]
 ) -> String? {
     if !deviceImpl.isValid() {
@@ -1301,7 +1329,7 @@ public struct GPUTextureDescriptor {
     // The bits of OptionSet<WebGPU::TextureUsage>.
     public var usage: UInt8 = 0
     public var dimension = WebGPU.TextureDimension._2d
-    public var size = WebGPU.Extent3D()
+    public var size = WebGPU.Extent3D(width: 0, height: 1, depthOrArrayLayers: 1)
     public var format = WebGPU.TextureFormat.R8unorm
     public var mipLevelCount: UInt32 = 1
     public var sampleCount: UInt32 = 1
@@ -1310,8 +1338,8 @@ public struct GPUTextureDescriptor {
     public init() {
     }
 
-    var parameters: WebGPU.Metal.TextureParameters {
-        var parameters = WebGPU.Metal.TextureParameters()
+    var parameters: TextureParameters {
+        var parameters = TextureParameters()
         parameters.width = size.width
         parameters.height = size.height
         parameters.depthOrArrayLayers = size.depthOrArrayLayers
@@ -1338,7 +1366,7 @@ func createTextureImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescrip
 
 private func createTextureImpl(
     _ deviceImpl: DeviceImpl,
-    _ descriptor: WebGPU.Metal.TextureParameters,
+    _ descriptor: TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
     _ label: Swift.String?,
     _ hasUnifiedMemory: Bool,
@@ -1436,7 +1464,7 @@ private func createTextureImpl(
 /// A texture made elsewhere (the canvas render buffers, XR), which allows views in `viewFormats`.
 func makeTexture(
     _ texture: (any MTLTexture)?,
-    _ parameters: WebGPU.Metal.TextureParameters,
+    _ parameters: TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
     _ deviceImpl: DeviceImpl
 ) -> TextureImpl {
@@ -1451,8 +1479,8 @@ func twoDimensionalTextureParameters(
     height: UInt32,
     depthOrArrayLayers: UInt32 = 1,
     sampleCount: UInt32 = 1
-) -> WebGPU.Metal.TextureParameters {
-    var parameters = WebGPU.Metal.TextureParameters()
+) -> TextureParameters {
+    var parameters = TextureParameters()
     parameters.width = width
     parameters.height = height
     parameters.depthOrArrayLayers = depthOrArrayLayers
@@ -1467,7 +1495,7 @@ func twoDimensionalTextureParameters(
 /// Device::errorValidatingTextureCreation() for Swift callers.
 func errorValidatingTextureCreation(
     _ deviceImpl: DeviceImpl,
-    _ parameters: WebGPU.Metal.TextureParameters,
+    _ parameters: TextureParameters,
     viewFormats: [WebGPU.TextureFormat]
 ) -> String? {
     textureCreationError(deviceImpl, parameters, viewFormats)

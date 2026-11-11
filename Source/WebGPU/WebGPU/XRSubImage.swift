@@ -24,7 +24,6 @@
 private import CxxStdlib
 import Metal
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Texture
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
@@ -115,7 +114,7 @@ public final class XRBindingReference {
         textureUsage: UInt8,
         scaleFactor: Double
     ) -> XRProjectionLayerReference {
-        var parameters = WebGPU.Metal.XRProjectionLayerParameters()
+        var parameters = XRProjectionLayerParameters()
         parameters.colorFormat = colorFormat
         parameters.hasDepthStencilFormat = depthStencilFormat != nil
         parameters.depthStencilFormat = depthStencilFormat ?? .Bgra8unorm

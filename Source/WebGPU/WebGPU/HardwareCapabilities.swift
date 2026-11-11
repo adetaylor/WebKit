@@ -62,6 +62,50 @@ extension GPUBaseCapabilities {
     )
 }
 
+@_spi(WebKitGPU)
+extension WebGPU.Limits {
+    // Every limit 0: an invalid device's, and what a failed device request replies.
+    public static var zero: WebGPU.Limits {
+        WebGPU.Limits(
+            maxTextureDimension1D: 0,
+            maxTextureDimension2D: 0,
+            maxTextureDimension3D: 0,
+            maxTextureArrayLayers: 0,
+            maxBindGroups: 0,
+            maxBindGroupsPlusVertexBuffers: 0,
+            maxBindingsPerBindGroup: 0,
+            maxDynamicUniformBuffersPerPipelineLayout: 0,
+            maxDynamicStorageBuffersPerPipelineLayout: 0,
+            maxSampledTexturesPerShaderStage: 0,
+            maxSamplersPerShaderStage: 0,
+            maxStorageBuffersPerShaderStage: 0,
+            maxStorageTexturesPerShaderStage: 0,
+            maxUniformBuffersPerShaderStage: 0,
+            maxUniformBufferBindingSize: 0,
+            maxStorageBufferBindingSize: 0,
+            minUniformBufferOffsetAlignment: 0,
+            minStorageBufferOffsetAlignment: 0,
+            maxVertexBuffers: 0,
+            maxBufferSize: 0,
+            maxVertexAttributes: 0,
+            maxVertexBufferArrayStride: 0,
+            maxInterStageShaderVariables: 0,
+            maxColorAttachments: 0,
+            maxColorAttachmentBytesPerSample: 0,
+            maxComputeWorkgroupStorageSize: 0,
+            maxComputeInvocationsPerWorkgroup: 0,
+            maxComputeWorkgroupSizeX: 0,
+            maxComputeWorkgroupSizeY: 0,
+            maxComputeWorkgroupSizeZ: 0,
+            maxComputeWorkgroupsPerDimension: 0,
+            maxStorageBuffersInFragmentStage: 0,
+            maxStorageTexturesInFragmentStage: 0,
+            maxStorageBuffersInVertexStage: 0,
+            maxStorageTexturesInVertexStage: 0
+        )
+    }
+}
+
 // What a Metal device supports, which an adapter and the device it makes carry: an adapter's features are sorted by raw
 // value, and a device's are as requested.
 struct GPUCapabilities {
@@ -70,7 +114,7 @@ struct GPUCapabilities {
     var baseCapabilities: GPUBaseCapabilities
 
     // An invalid device's.
-    static let none = GPUCapabilities(limits: WebGPU.Limits(), features: [], baseCapabilities: .none)
+    static let none = GPUCapabilities(limits: .zero, features: [], baseCapabilities: .none)
 }
 
 // A device's capabilities, fixed when the device is created. An invalid device's are all zero.

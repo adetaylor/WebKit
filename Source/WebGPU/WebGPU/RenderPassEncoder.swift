@@ -23,18 +23,20 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
+@_implementationOnly import WebGPU_Internal.BindableResource
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_implementationOnly import WebGPU_Internal.RenderPassEncoder
-@_implementationOnly import WebGPU_Internal.RenderPipeline
-@_implementationOnly import WebGPU_Internal.Texture
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
 public import WebGPU_Private.WebGPUCpp
+
+struct RenderPassEncoderParameters {
+    var visibilityResultBufferSize: UInt = 0
+    var maxDrawCount: UInt64 = 0
+    var depthReadOnly = false
+    var stencilReadOnly = false
+}
 
 // MARK: Indirect draws: the only arguments Metal's indirect draws take are clamped ones
 
@@ -51,15 +53,16 @@ private func writeDrawIndexedIndirectArguments(
     _ baseVertex: Int32,
     _ baseInstance: UInt32
 ) {
-    var arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments()
-    arguments.args = MTLDrawIndexedPrimitivesIndirectArguments(
-        indexCount: indexCount,
-        instanceCount: instanceCount,
-        indexStart: indexStart,
-        baseVertex: baseVertex,
-        baseInstance: baseInstance
+    let arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments(
+        args: MTLDrawIndexedPrimitivesIndirectArguments(
+            indexCount: indexCount,
+            instanceCount: instanceCount,
+            indexStart: indexStart,
+            baseVertex: baseVertex,
+            baseInstance: baseInstance
+        ),
+        lostOrOOBRead: 0
     )
-    arguments.lostOrOOBRead = 0
     withBytes(of: arguments) { copyBytes($0, toContentsOf: buffer, at: offset) }
 }
 
@@ -630,7 +633,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
         metalDescriptor: MTLRenderPassDescriptor?,
         rasterizationRateMap: (any MTLRasterizationRateMap)?,
         visibilityResultBuffer: (any MTLBuffer)?,
-        parameters: WebGPU.Metal.RenderPassEncoderParameters,
+        parameters: RenderPassEncoderParameters,
         parentImpl: CommandEncoderImpl,
         lastErrorString: String?
     ) {
@@ -3662,7 +3665,7 @@ func makeRenderPassEncoderImpl(
     _ metalDescriptor: MTLRenderPassDescriptor?,
     _ rasterizationRateMap: (any MTLRasterizationRateMap)?,
     _ visibilityResultBuffer: (any MTLBuffer)?,
-    _ parameters: WebGPU.Metal.RenderPassEncoderParameters,
+    _ parameters: RenderPassEncoderParameters,
     _ parentImpl: CommandEncoderImpl
 ) -> RenderPassEncoderImpl {
     let impl = RenderPassEncoderImpl(
@@ -3687,7 +3690,7 @@ func makeInvalidRenderPassEncoderImpl(
         metalDescriptor: nil,
         rasterizationRateMap: nil,
         visibilityResultBuffer: nil,
-        parameters: WebGPU.Metal.RenderPassEncoderParameters(),
+        parameters: RenderPassEncoderParameters(),
         parentImpl: parentImpl,
         lastErrorString: errorString as String?
     )

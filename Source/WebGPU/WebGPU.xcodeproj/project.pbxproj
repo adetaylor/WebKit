@@ -10,13 +10,7 @@
 		079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */ = {isa = PBXBuildFile; fileRef = 079861932EF13A1100659042 /* CxxBridgingPublic.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		07D2916D2EC9C4D200A32120 /* CxxBridging.h in Headers */ = {isa = PBXBuildFile; fileRef = 07D2916C2EC9C4D200A32120 /* CxxBridging.h */; };
 		07D291712EC9CEC800A32120 /* BindableResource.h in Headers */ = {isa = PBXBuildFile; fileRef = 0D4D2E80294A89CF0000A1AB /* BindableResource.h */; };
-		07D291722EC9CECC00A32120 /* BindGroup.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAD5273A4D700095F8D5 /* BindGroup.h */; };
-		07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */; };
 		07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 1CEBD80B2716C37900A5254D /* ExportMacros.h */; };
-		07D2917C2EC9CF0E00A32120 /* RenderBundleEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */; };
-		07D2917D2EC9CF1100A32120 /* RenderPassEncoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */; };
-		07D2917E2EC9CF1500A32120 /* RenderPipeline.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */; };
-		07D291812EC9CF2200A32120 /* Texture.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACA99273A426D0095F8D5 /* Texture.h */; };
 		0D212A652BC26336001160BF /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0D212A642BC26336001160BF /* CoreGraphics.framework */; };
 		DB79AAE9ABC04BE8A5BAC982 /* ExternalTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A0343AFCDAD4D76BF10560E /* ExternalTexture.swift */; };
 		4807B47EF8804BD9AFC59753 /* ExternalTextureImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E216ABB98C4D3D96F7A43E /* ExternalTextureImport.swift */; };
@@ -68,7 +62,6 @@
 		94200C512CADBD7200484401 /* CommandEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94200C502CADBD6B00484401 /* CommandEncoder.swift */; };
 		9478714A2C98CECB003DB695 /* Buffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 947871492C98CEC6003DB695 /* Buffer.swift */; };
 		D85E202793BB4CBE953E5941 /* Sampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E92BEF7E33D4CD29B80C056 /* Sampler.swift */; };
-		94E02AFC2CF03B580052068F /* Buffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C5ACAA5273A426D0095F8D5 /* Buffer.h */; };
 		9728B3702BB5B53D00A8DA23 /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD8302716CB3800A5254D /* libicucore.tbd */; };
 		75830AE5E91643459C6FB31A /* Pipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9F9EB9D37864283BA2BF4E7 /* Pipeline.swift */; };
 		97FA1AA729C0DA890052D650 /* libwgsl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CEBD7F22716B2CC00A5254D /* libwgsl.a */; };
@@ -265,8 +258,6 @@
 		AF6A5AB6EBA149BB9E66C933 /* Instance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Instance.swift; sourceTree = "<group>"; };
 		13D8F55A2E234B53821682AE /* RenderPipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPipeline.swift; sourceTree = "<group>"; };
 		91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPipelineTables.swift; sourceTree = "<group>"; };
-		1C5ACA99273A426D0095F8D5 /* Texture.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Texture.h; sourceTree = "<group>"; };
-		1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderPassEncoder.h; sourceTree = "<group>"; };
 		1C5ACA9B273A426D0095F8D5 /* Device.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Device.h; sourceTree = "<group>"; };
 		1C5ACA9C273A426D0095F8D5 /* Queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Queue.h; sourceTree = "<group>"; };
 		1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommandEncoder.h; sourceTree = "<group>"; };
@@ -278,19 +269,14 @@
 		37FF9861C9DD4EBBA7A462D9 /* DebugToggles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugToggles.swift; sourceTree = "<group>"; };
 		107AEF60B221432FA7535326 /* EncoderModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderModel.swift; sourceTree = "<group>"; };
 		C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderPassEncoder.swift; sourceTree = "<group>"; };
-		1C5ACAA5273A426D0095F8D5 /* Buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Buffer.h; sourceTree = "<group>"; };
-		1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderBundleEncoder.h; sourceTree = "<group>"; };
-		1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ComputePipeline.h; sourceTree = "<group>"; };
 		04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComputePassEncoder.swift; sourceTree = "<group>"; };
 		208E06EA3939456FB419C36D /* Adapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Adapter.swift; sourceTree = "<group>"; };
 		F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoder.swift; sourceTree = "<group>"; };
 		DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderBundleEncoderCreation.swift; sourceTree = "<group>"; };
-		1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderPipeline.h; sourceTree = "<group>"; };
 		F196A7F2DBC64687BA86009A /* ShaderModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShaderModule.swift; sourceTree = "<group>"; };
 		F65A7E6A31B645F793B3A208 /* LayoutConversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutConversion.swift; sourceTree = "<group>"; };
 		818DB62E8BEC4DFFA467F3A3 /* Texture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Texture.swift; sourceTree = "<group>"; };
 		3DBD6BDC79CD4D12A1EDDCF5 /* TextureFormats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureFormats.swift; sourceTree = "<group>"; };
-		1C5ACAD5273A4D700095F8D5 /* BindGroup.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BindGroup.h; sourceTree = "<group>"; };
 		6663116020354D3689D7368C /* BindGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindGroup.swift; sourceTree = "<group>"; };
 		E8F00DBD9E4E4CB2827EABF1 /* BindGroupLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindGroupLayout.swift; sourceTree = "<group>"; };
 		7B95F17749384D1DAAD31DAB /* CommandBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandBuffer.swift; sourceTree = "<group>"; };
@@ -515,16 +501,13 @@
 				DD8EE22E2CE6B490004DD6F8 /* Internal */,
 				208E06EA3939456FB419C36D /* Adapter.swift */,
 				0D4D2E80294A89CF0000A1AB /* BindableResource.h */,
-				1C5ACAD5273A4D700095F8D5 /* BindGroup.h */,
 				6663116020354D3689D7368C /* BindGroup.swift */,
 				E8F00DBD9E4E4CB2827EABF1 /* BindGroupLayout.swift */,
-				1C5ACAA5273A426D0095F8D5 /* Buffer.h */,
 				947871492C98CEC6003DB695 /* Buffer.swift */,
 				7B95F17749384D1DAAD31DAB /* CommandBuffer.swift */,
 				1C5ACA9E273A426D0095F8D5 /* CommandEncoder.h */,
 				94200C502CADBD6B00484401 /* CommandEncoder.swift */,
 				04166926A20C4300ACFDD139 /* ComputePassEncoder.swift */,
-				1C5ACAA7273A426D0095F8D5 /* ComputePipeline.h */,
 				9C53A4E591654B1482CECFBD /* ComputePipeline.swift */,
 				1CEBD80A2716C36C00A5254D /* config.h */,
 				E5C0A1D24B8F4E6D9A3B7C11 /* CoreVideoInterop.swift */,
@@ -552,18 +535,14 @@
 				1C5ACA9C273A426D0095F8D5 /* Queue.h */,
 				941C1EE42CA328EE004D4220 /* Queue.swift */,
 				CC59D47879744629A775E6C1 /* RenderBundle.swift */,
-				1C5ACAA6273A426D0095F8D5 /* RenderBundleEncoder.h */,
 				F28FBEE669274C9696E386FD /* RenderBundleEncoder.swift */,
 				DA47397DEFFB4E1DA4B25030 /* RenderBundleEncoderCreation.swift */,
-				1C5ACA9A273A426D0095F8D5 /* RenderPassEncoder.h */,
 				C219D6D447D54CBFB451D47E /* RenderPassEncoder.swift */,
-				1C5ACAAF273A426D0095F8D5 /* RenderPipeline.h */,
 				13D8F55A2E234B53821682AE /* RenderPipeline.swift */,
 				91E6847C5B084DC39CCF4610 /* RenderPipelineTables.swift */,
 				7E92BEF7E33D4CD29B80C056 /* Sampler.swift */,
 				F196A7F2DBC64687BA86009A /* ShaderModule.swift */,
 				14C8343F2EBA7CBB003B591A /* StdLibExtras.swift */,
-				1C5ACA99273A426D0095F8D5 /* Texture.h */,
 				818DB62E8BEC4DFFA467F3A3 /* Texture.swift */,
 				3DBD6BDC79CD4D12A1EDDCF5 /* TextureFormats.swift */,
 				4F95E09DD3B44127AD597E89 /* TextureView.swift */,
@@ -805,20 +784,13 @@
 			files = (
 				1CEBD7E72716AFBA00A5254D /* WebGPU.h in Headers */,
 				07D291712EC9CEC800A32120 /* BindableResource.h in Headers */,
-				07D291722EC9CECC00A32120 /* BindGroup.h in Headers */,
-				94E02AFC2CF03B580052068F /* Buffer.h in Headers */,
 				94200C4F2CADBCAD00484401 /* CommandEncoder.h in Headers */,
-				07D291752EC9CEDF00A32120 /* ComputePipeline.h in Headers */,
 				07D2916D2EC9C4D200A32120 /* CxxBridging.h in Headers */,
 				079861942EF13A1100659042 /* CxxBridgingPublic.h in Headers */,
 				941C64B72CAB4A0700A63214 /* Device.h in Headers */,
 				07D291762EC9CEED00A32120 /* ExportMacros.h in Headers */,
 				0D509DCD29CAB6EC00546D84 /* MetalSPI.h in Headers */,
 				941C1EE62CA33255004D4220 /* Queue.h in Headers */,
-				07D2917C2EC9CF0E00A32120 /* RenderBundleEncoder.h in Headers */,
-				07D2917D2EC9CF1100A32120 /* RenderPassEncoder.h in Headers */,
-				07D2917E2EC9CF1500A32120 /* RenderPipeline.h in Headers */,
-				07D291812EC9CF2200A32120 /* Texture.h in Headers */,
 				596E957DAF12D022D09D9ED4 /* WebGPUCpp.h in Headers */,
 				E507D492F7242205FB9C29E0 /* WGSLAPI.h in Headers */,
 				DDE748802F7B4337008013AB /* WorkAround173516139.h in Headers */,

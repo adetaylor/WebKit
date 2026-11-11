@@ -77,7 +77,7 @@ final class RemoteAdapter {
             label: deviceDescriptor.label
         )
         guard let device, let objects = link.objects else {
-            return ([], IPCTypes.Limits(WebGPU.Limits()))
+            return ([], IPCTypes.Limits(WebGPU.Limits.zero))
         }
         objects.addDevice(device, identifier.rawValue, queueIdentifier.rawValue)
         return (device.features.map { sameNumbering($0) }, IPCTypes.Limits(device.limits))

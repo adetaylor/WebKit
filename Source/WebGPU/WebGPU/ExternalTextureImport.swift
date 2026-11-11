@@ -25,7 +25,6 @@ import CoreVideo
 import Foundation
 import IOSurface
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
@@ -38,7 +37,7 @@ struct ImportedExternalTexture {
     var texture0: (any MTLTexture)?
     var texture1: (any MTLTexture)?
     /// Every field but the visible size, which is the external texture's.
-    var constants: WebGPU.Metal.ExternalTextureConstants
+    var constants: ExternalTextureConstants
 }
 
 private let premultiplyAlphaShaderSource = """
@@ -89,10 +88,10 @@ final class ExternalTextureImporter {
         _ colorSpace: WebGPU.PredefinedColorSpace,
         premultiplyAlpha: Bool
     ) -> ImportedExternalTexture {
-        let failure = ImportedExternalTexture(texture0: nil, texture1: nil, constants: WebGPU.Metal.ExternalTextureConstants())
+        let failure = ImportedExternalTexture(texture0: nil, texture1: nil, constants: ExternalTextureConstants())
         // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: Queue.h checks that the two agree.
         #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
-        var constants = WebGPU.Metal.ExternalTextureConstants()
+        var constants = ExternalTextureConstants()
         // The conversion is row-major, and Metal indexes a float3x4 by column. All zero, which no real conversion can be,
         // when the frame's primaries already are the destination's. The first column's w is the frame's transfer function.
         var primaries: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
@@ -132,7 +131,7 @@ final class ExternalTextureImporter {
     private func importByCopying(
         _ deviceImpl: DeviceImpl,
         _ pixelBuffer: CVPixelBuffer,
-        _ constants: WebGPU.Metal.ExternalTextureConstants,
+        _ constants: ExternalTextureConstants,
         _ premultiplyParameters: PremultiplyParameters,
         _ supportsExtendedFormats: Bool
     ) -> ImportedExternalTexture? {
@@ -194,7 +193,7 @@ final class ExternalTextureImporter {
     private func importThroughTextureCache(
         _ deviceImpl: DeviceImpl,
         _ pixelBuffer: CVPixelBuffer,
-        _ constants: WebGPU.Metal.ExternalTextureConstants,
+        _ constants: ExternalTextureConstants,
         _ premultiplyParameters: PremultiplyParameters,
         _ supportsExtendedFormats: Bool
     ) -> ImportedExternalTexture? {

@@ -25,7 +25,6 @@ import Dispatch
 import Foundation
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue

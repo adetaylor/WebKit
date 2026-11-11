@@ -22,28 +22,13 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 module WebGPU_Internal [system] {
-    explicit module BindGroup {
-        header "../BindGroup.h"
-        export *
-    }
-
     explicit module BindableResource {
         header "../BindableResource.h"
         export *
     }
 
-    explicit module Buffer {
-        header "../Buffer.h"
-        export *
-    }
-
     explicit module CommandEncoder {
         header "../CommandEncoder.h"
-        export *
-    }
-
-    explicit module ComputePipeline {
-        header "../ComputePipeline.h"
         export *
     }
 
@@ -64,26 +49,6 @@ module WebGPU_Internal [system] {
 
     explicit module Queue {
         header "../Queue.h"
-        export *
-    }
-
-    explicit module RenderBundleEncoder {
-        header "../RenderBundleEncoder.h"
-        export *
-    }
-
-    explicit module RenderPassEncoder {
-        header "../RenderPassEncoder.h"
-        export *
-    }
-
-    explicit module RenderPipeline {
-        header "../RenderPipeline.h"
-        export *
-    }
-
-    explicit module Texture {
-        header "../Texture.h"
         export *
     }
 

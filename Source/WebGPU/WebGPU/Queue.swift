@@ -50,13 +50,10 @@ import Foundation
 import IOSurface
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
@@ -2225,23 +2222,21 @@ public final class QueueImpl: GPUObjectReference {
         let blockHeight = texelBlockHeight(textureFormat)
         let blockWidth = texelBlockWidth(textureFormat)
         if !isCompressed && (bytesPerRow % UInt(blockSize) != 0 || bytesPerRow > maxRowBytes) {
-            var newSize = WebGPU.Extent3D()
-            newSize.width = size.width
-            newSize.height = isCompressed ? blockSize : blockHeight
-            newSize.depthOrArrayLayers = 1
+            var newSize = WebGPU.Extent3D(width: size.width, height: isCompressed ? blockSize : blockHeight, depthOrArrayLayers: 1)
 
             if textureDimension != WebGPU.TextureDimension._1d
                 && (heightForMetal > newSize.height || depthForMetal > newSize.depthOrArrayLayers)
             {
-                var newDataLayout = WebGPU.TexelCopyBufferLayout()
-                newDataLayout.offset = 0
-                newDataLayout.bytesPerRow = .init(
-                    min(
-                        UInt32(truncatingIfNeeded: maxRowBytes),
-                        Optional(fromCxx: dataLayout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED)
-                    )
+                let newDataLayout = WebGPU.TexelCopyBufferLayout(
+                    offset: 0,
+                    bytesPerRow: .init(
+                        min(
+                            UInt32(truncatingIfNeeded: maxRowBytes),
+                            Optional(fromCxx: dataLayout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED)
+                        )
+                    ),
+                    rowsPerImage: .init(newSize.height)
                 )
-                newDataLayout.rowsPerImage = .init(newSize.height)
 
                 let blockWidth = texelBlockWidth(textureFormat)
                 let widthInBlocks = blockWidth != 0 ? (widthForMetal / blockWidth) : 0
@@ -3052,19 +3047,20 @@ public final class QueueImpl: GPUObjectReference {
         }
         setEncoderForBuffer(commandBuffer, renderCommandEncoder)
 
-        var arguments = WebGPU.Metal.CopyExternalImageArguments()
-        arguments.sourceOriginX = source.origin.x
-        arguments.sourceOriginY = source.origin.y
-        arguments.destinationOriginX = destination.origin.x
-        arguments.destinationOriginY = destination.origin.y
-        arguments.copyWidth = widthForMetal
-        arguments.copyHeight = heightForMetal
-        arguments.sourceMaxX = sourceWidth &- 1
-        arguments.sourceMaxY = sourceHeight &- 1
-        arguments.flags = flags
-        arguments.colorMatrix = tuple9(colorMatrix)
-        arguments.uvRemapMatrix = tuple6(uvRemapMatrix)
-        arguments.ycbcrMatrix = tuple12(ycbcrMatrix)
+        let arguments = WebGPU.Metal.CopyExternalImageArguments(
+            sourceOriginX: source.origin.x,
+            sourceOriginY: source.origin.y,
+            destinationOriginX: destination.origin.x,
+            destinationOriginY: destination.origin.y,
+            copyWidth: widthForMetal,
+            copyHeight: heightForMetal,
+            sourceMaxX: sourceWidth &- 1,
+            sourceMaxY: sourceHeight &- 1,
+            flags: flags,
+            colorMatrix: tuple9(colorMatrix),
+            uvRemapMatrix: tuple6(uvRemapMatrix),
+            ycbcrMatrix: tuple12(ycbcrMatrix)
+        )
 
         // The viewport is what confines the full-NDC quad to the destination rectangle, and it is also
         // what makes [[position]] in the fragment shader land on the destination texel being written.
@@ -3192,7 +3188,7 @@ extension QueueImpl {
 @_spi(WebKitGPU)
 public struct GPUCopyExternalImageDestination {
     public var mipLevel: UInt32 = 0
-    public var origin = WebGPU.Origin3D()
+    public var origin = WebGPU.Origin3D(x: 0, y: 0, z: 0)
     public var aspect = WebGPU.TextureAspect.All
     public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
     public var premultipliedAlpha = false
@@ -3212,7 +3208,7 @@ public struct GPUCopyExternalImageSource {
     /// The format of the single plane of the IOSurface, which can back an accelerated 2D canvas.
     public var sourceFormat: WebGPU.TextureFormat?
     /// The logical extent of the IOSurface, which may be larger.
-    public var sourceSize = WebGPU.Extent2D()
+    public var sourceSize = WebGPU.Extent2D(width: 0, height: 0)
     /// A video frame, which carries its own extent, crop and primaries, and is treated as opaque.
     public var pixelBuffer: CVPixelBuffer?
     /// The display transform of the frame: a horizontal mirror, then a clockwise rotation.
@@ -3220,7 +3216,7 @@ public struct GPUCopyExternalImageSource {
     /// Whether the display transform mirrors the frame.
     public var pixelBufferIsMirrored = false
     /// The origin of the copy in the source.
-    public var origin = WebGPU.Origin2D()
+    public var origin = WebGPU.Origin2D(x: 0, y: 0)
     /// Whether the copy flips the source vertically.
     public var flipY = false
     /// False when the alpha channel of the source carries no data, as for an opaque canvas.

@@ -29,6 +29,15 @@ import Metal
 @_implementationOnly import WebGPU_Internal.XRProjectionLayer
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
+// The descriptor values of a projection layer.
+struct XRProjectionLayerParameters {
+    var colorFormat = WebGPU.TextureFormat.Bgra8unorm
+    var hasDepthStencilFormat = false
+    var depthStencilFormat = WebGPU.TextureFormat.Bgra8unorm
+    var textureUsage: UInt8 = 0
+    var scaleFactor: Double = 1
+}
+
 // The descriptor values and per-frame state of an XRProjectionLayer: the compositor textures cached per reusable
 // texture index, the current color and depth textures, the completion event and the rasterization rate maps. Used only
 // on its Instance's API thread.
@@ -53,7 +62,7 @@ final class XRProjectionLayerImpl {
     // Declared last, so that the device outlives the rest of the layer.
     private let deviceImpl: DeviceImpl
 
-    fileprivate init(parameters: WebGPU.Metal.XRProjectionLayerParameters, deviceImpl: DeviceImpl) {
+    fileprivate init(parameters: XRProjectionLayerParameters, deviceImpl: DeviceImpl) {
         self.deviceImpl = deviceImpl
         colorFormat = parameters.colorFormat
         depthStencilFormat = parameters.hasDepthStencilFormat ? parameters.depthStencilFormat : nil
@@ -224,7 +233,7 @@ public final class XRProjectionLayerReference {
 }
 
 func makeXRProjectionLayerImpl(
-    _ parameters: WebGPU.Metal.XRProjectionLayerParameters,
+    _ parameters: XRProjectionLayerParameters,
     _ deviceImpl: DeviceImpl
 ) -> XRProjectionLayerImpl {
     XRProjectionLayerImpl(parameters: parameters, deviceImpl: deviceImpl)

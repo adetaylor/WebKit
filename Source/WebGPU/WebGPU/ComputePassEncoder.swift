@@ -23,10 +23,7 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.ComputePipeline
 @_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 

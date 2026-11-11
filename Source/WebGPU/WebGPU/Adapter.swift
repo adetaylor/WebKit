@@ -42,9 +42,9 @@ extension AdapterImpl {
         requiredLimits: WebGPU.Limits?,
         label: Swift.String?
     ) -> DeviceReference? {
-        var capabilities = GPUCapabilities(limits: WebGPU.Limits(), features: requiredFeatures, baseCapabilities: .none)
+        var capabilities = GPUCapabilities(limits: WebGPU.Limits.zero, features: requiredFeatures, baseCapabilities: .none)
         var invalidatesAdapter = false
-        if errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits(), &capabilities, &invalidatesAdapter) != nil {
+        if errorRequestingDevice(requiredLimits != nil, requiredLimits ?? WebGPU.Limits.zero, &capabilities, &invalidatesAdapter) != nil {
             if invalidatesAdapter {
                 makeInvalid()
             }

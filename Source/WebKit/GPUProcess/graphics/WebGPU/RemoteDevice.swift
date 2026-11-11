@@ -542,80 +542,87 @@ extension IPCTypes.Error {
 
 extension WebGPU.BufferBindingLayout {
     fileprivate init(_ layout: IPCTypes.BufferBindingLayout) {
-        self.init()
-        type = sameNumbering(layout.type)
-        hasDynamicOffset = layout.hasDynamicOffset
-        minBindingSize = layout.minBindingSize
+        self.init(
+            type: sameNumbering(layout.type),
+            hasDynamicOffset: layout.hasDynamicOffset,
+            minBindingSize: layout.minBindingSize
+        )
     }
 }
 
 extension WebGPU.SamplerBindingLayout {
     fileprivate init(_ layout: IPCTypes.SamplerBindingLayout) {
-        self.init()
-        type = sameNumbering(layout.type)
+        self.init(type: sameNumbering(layout.type))
     }
 }
 
 extension WebGPU.TextureBindingLayout {
     fileprivate init(_ layout: IPCTypes.TextureBindingLayout) {
-        self.init()
-        sampleType = sameNumbering(layout.sampleType)
-        viewDimension = sameNumbering(layout.viewDimension)
-        multisampled = layout.multisampled
+        self.init(
+            sampleType: sameNumbering(layout.sampleType),
+            viewDimension: sameNumbering(layout.viewDimension),
+            multisampled: layout.multisampled
+        )
     }
 }
 
 extension WebGPU.StorageTextureBindingLayout {
     fileprivate init(_ layout: IPCTypes.StorageTextureBindingLayout) {
-        self.init()
-        access = sameNumbering(layout.access)
-        format = sameNumbering(layout.format)
-        viewDimension = sameNumbering(layout.viewDimension)
+        self.init(
+            access: sameNumbering(layout.access),
+            format: sameNumbering(layout.format),
+            viewDimension: sameNumbering(layout.viewDimension)
+        )
     }
 }
 
 extension WebGPU.VertexAttribute {
     fileprivate init(_ attribute: IPCTypes.VertexAttribute) {
-        self.init()
-        format = sameNumbering(attribute.format)
-        offset = attribute.offset
-        shaderLocation = attribute.shaderLocation
+        self.init(
+            format: sameNumbering(attribute.format),
+            offset: attribute.offset,
+            shaderLocation: attribute.shaderLocation
+        )
     }
 }
 
 extension WebGPU.BlendComponent {
     fileprivate init(_ component: IPCTypes.BlendComponent) {
-        self.init()
-        operation = sameNumbering(component.operation)
-        srcFactor = sameNumbering(component.srcFactor)
-        dstFactor = sameNumbering(component.dstFactor)
+        self.init(
+            operation: sameNumbering(component.operation),
+            srcFactor: sameNumbering(component.srcFactor),
+            dstFactor: sameNumbering(component.dstFactor)
+        )
     }
 }
 
 extension WebGPU.BlendState {
     fileprivate init(_ state: IPCTypes.BlendState) {
-        self.init()
-        color = WebGPU.BlendComponent(state.color)
-        alpha = WebGPU.BlendComponent(state.alpha)
+        self.init(
+            color: WebGPU.BlendComponent(state.color),
+            alpha: WebGPU.BlendComponent(state.alpha)
+        )
     }
 }
 
 extension WebGPU.StencilFaceState {
     fileprivate init(_ state: IPCTypes.StencilFaceState) {
-        self.init()
-        compare = sameNumbering(state.compare)
-        failOp = sameNumbering(state.failOp)
-        depthFailOp = sameNumbering(state.depthFailOp)
-        passOp = sameNumbering(state.passOp)
+        self.init(
+            compare: sameNumbering(state.compare),
+            failOp: sameNumbering(state.failOp),
+            depthFailOp: sameNumbering(state.depthFailOp),
+            passOp: sameNumbering(state.passOp)
+        )
     }
 }
 
 extension WebGPU.MultisampleState {
     fileprivate init(_ state: IPCTypes.MultisampleState) {
-        self.init()
-        count = state.count
-        mask = state.mask
-        alphaToCoverageEnabled = state.alphaToCoverageEnabled
+        self.init(
+            count: state.count,
+            mask: state.mask,
+            alphaToCoverageEnabled: state.alphaToCoverageEnabled
+        )
     }
 }
 

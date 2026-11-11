@@ -23,19 +23,22 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindGroup
 @_implementationOnly import WebGPU_Internal.BindableResource
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CommandEncoder
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.RenderBundleEncoder
-@_implementationOnly import WebGPU_Internal.RenderPassEncoder
-@_implementationOnly import WebGPU_Internal.RenderPipeline
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
 public import WebGPU_Private.WebGPUCpp
+
+struct RenderBundleEncoderParameters {
+    var sampleCount: UInt32 = 0
+    var depthStencilFormat = WebGPU.TextureFormat.R8unorm
+    var hasDepthStencilFormat = false
+    var depthReadOnly = false
+    var stencilReadOnly = false
+}
 
 private let maxCommandCount: UInt64 = 0x4000
 private let defaultSampleMask = UInt32.max
@@ -341,7 +344,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
         deviceImpl: DeviceImpl,
         icbDescriptor: MTLIndirectCommandBufferDescriptor?,
         requiresCommandReplay: Bool,
-        parameters: WebGPU.Metal.RenderBundleEncoderParameters,
+        parameters: RenderBundleEncoderParameters,
         lastErrorString: String?
     ) {
         self.deviceImpl = deviceImpl
@@ -893,18 +896,19 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
 
         let bounds = currentMinimumVertexInstanceCount()
         let commandIndex = currentCommandIndex
-        var indexData = WebGPU.Metal.IndexData()
-        indexData.renderCommand = commandIndex
-        indexData.minVertexCount = bounds.vertices.shaderValue
-        indexData.minInstanceCount = bounds.instances.shaderValue
-        indexData.bufferGpuAddress = mtlIndexBuffer.gpuAddress
-        indexData.indexBufferElementCountMinusOne = UInt32(truncatingIfNeeded: elementCount - 1)
-        indexData.indexCount = indexCount
-        indexData.instanceCount = instanceCount
-        indexData.firstIndex = firstIndex
-        indexData.baseVertex = baseVertex
-        indexData.firstInstance = firstInstance
-        indexData.primitiveType = UInt32(truncatingIfNeeded: primitiveType.rawValue)
+        let indexData = WebGPU.Metal.IndexData(
+            renderCommand: commandIndex,
+            minVertexCount: bounds.vertices.shaderValue,
+            minInstanceCount: bounds.instances.shaderValue,
+            bufferGpuAddress: mtlIndexBuffer.gpuAddress,
+            indexBufferElementCountMinusOne: UInt32(truncatingIfNeeded: elementCount - 1),
+            indexCount: indexCount,
+            instanceCount: instanceCount,
+            firstIndex: firstIndex,
+            baseVertex: baseVertex,
+            firstInstance: firstInstance,
+            primitiveType: UInt32(truncatingIfNeeded: primitiveType.rawValue)
+        )
         let validation = BundleIndexValidation(
             indexBufferImpl: indexBufferImpl,
             indexType: indexType,
@@ -2473,7 +2477,7 @@ func makeRenderBundleEncoderImpl(
     _ deviceImpl: DeviceImpl,
     _ icbDescriptor: MTLIndirectCommandBufferDescriptor?,
     _ requiresCommandReplay: Bool,
-    _ parameters: WebGPU.Metal.RenderBundleEncoderParameters
+    _ parameters: RenderBundleEncoderParameters
 ) -> RenderBundleEncoderImpl {
     RenderBundleEncoderImpl(
         deviceImpl: deviceImpl,
@@ -2492,7 +2496,7 @@ func makeInvalidRenderBundleEncoderImpl(
         deviceImpl: deviceImpl,
         icbDescriptor: nil,
         requiresCommandReplay: false,
-        parameters: WebGPU.Metal.RenderBundleEncoderParameters(),
+        parameters: RenderBundleEncoderParameters(),
         lastErrorString: errorString as String?
     )
 }

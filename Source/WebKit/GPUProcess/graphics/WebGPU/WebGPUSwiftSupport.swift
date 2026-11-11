@@ -661,26 +661,27 @@ func messageChecked<Object>(
 
 extension WebGPU.Extent3D {
     init(_ extent: IPCTypes.Extent3D) {
-        self.init()
-        width = extent.width
-        height = extent.height
-        depthOrArrayLayers = extent.depthOrArrayLayers
+        self.init(
+            width: extent.width,
+            height: extent.height,
+            depthOrArrayLayers: extent.depthOrArrayLayers
+        )
     }
 }
 
 extension WebGPU.Origin3D {
     init(_ origin: IPCTypes.Origin3D) {
-        self.init()
-        x = origin.x
-        y = origin.y
-        z = origin.z
+        self.init(
+            x: origin.x,
+            y: origin.y,
+            z: origin.z
+        )
     }
 }
 
 extension WebGPU.TexelCopyBufferLayout {
     init(_ layout: IPCTypes.TexelCopyBufferLayout) {
-        self.init()
-        offset = layout.offset
+        self.init(offset: layout.offset, bytesPerRow: .init(), rowsPerImage: .init())
         if let bytesPerRow = layout.bytesPerRow {
             self.bytesPerRow = .init(bytesPerRow)
         }
@@ -695,7 +696,7 @@ extension TextureCopyLocation {
     init(_ location: IPCTypes.ImageCopyTexture) {
         self.init()
         mipLevel = location.mipLevel
-        origin = location.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D()
+        origin = location.origin.map { WebGPU.Origin3D($0) } ?? WebGPU.Origin3D(x: 0, y: 0, z: 0)
         aspect = sameNumbering(location.aspect)
     }
 }

@@ -24,21 +24,41 @@
 import Foundation
 import Metal
 import simd
-@_implementationOnly import WebGPU_Internal.BindGroup
-@_implementationOnly import WebGPU_Internal.Buffer
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.Texture
 import WebGPU_Private.WebGPU
 @_spiOnly import WebGPU_Private.WebGPUCpp
+
+// Where an external texture binding's planes and constants go, for one stage.
+struct ExternalTextureIndices {
+    var containerIndex = UInt(NSNotFound)
+    var resourceIndex = UInt(NSNotFound)
+    var argumentBufferIndex = UInt(NSNotFound)
+}
+
+// The constants an external texture binding writes into an argument buffer after its two planes. The matrices are
+// column-major, as the shader's float3x2, float4x3 and float3x3 lay them out.
+struct ExternalTextureConstants {
+    var uvRemapping: (Float, Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0, 0)
+    var colorSpaceConversion: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    )
+    // Three columns of four: the xyz of each convert the frame's primaries, all zero to keep them, and the first column's
+    // w is its HDRTransferFunction.
+    var primariesConversion: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    )
+    var visibleWidth: UInt32 = 0
+    var visibleHeight: UInt32 = 0
+}
 
 // The constants an external texture binding writes into an argument buffer after its two planes, from `firstIndex`, as
 // the shader's float3x2, float4x3, float3x4 and uint2.
 private func writeExternalTextureConstants(
     _ writer: ArgumentConstantWriter?,
     _ firstIndex: UInt32,
-    _ constants: WebGPU.Metal.ExternalTextureConstants
+    _ constants: ExternalTextureConstants
 ) {
     guard let writer else {
         return
@@ -100,7 +120,7 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
     /// In first-use order.
     let samplerBindings: [SamplerBinding]
     let dynamicBuffers: [DynamicBufferRecord]
-    private let externalTextureIndices: PerStage<WebGPU.Metal.ExternalTextureIndices>
+    private let externalTextureIndices: PerStage<ExternalTextureIndices>
     let uniqueId: UInt32
     // Pipelines this group already validated against, keyed by (group index, pipeline). A group is usually used with a
     // handful of pipelines, so a short array beats hashing on every draw; the rest spill over.
@@ -119,7 +139,7 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
         mtlResources: consuming ResourceLists,
         samplerBindings: consuming [SamplerBinding],
         dynamicBuffers: consuming [DynamicBufferRecord],
-        externalTextureIndices: PerStage<WebGPU.Metal.ExternalTextureIndices>,
+        externalTextureIndices: PerStage<ExternalTextureIndices>,
         uniqueId: UInt32
     ) {
         self.layoutImpl = layoutImpl
@@ -438,9 +458,9 @@ extension BindGroupLayoutImpl {
 private func importBoundExternalTexture(
     _ deviceImpl: DeviceImpl,
     _ externalTexture: ExternalTextureImpl
-) -> (texture0: (any MTLTexture)?, texture1: (any MTLTexture)?, constants: WebGPU.Metal.ExternalTextureConstants) {
+) -> (texture0: (any MTLTexture)?, texture1: (any MTLTexture)?, constants: ExternalTextureConstants) {
     guard let pixelBuffer = externalTexture.pixelBuffer() else {
-        return (nil, nil, WebGPU.Metal.ExternalTextureConstants())
+        return (nil, nil, ExternalTextureConstants())
     }
     let colorSpace = WebGPU.PredefinedColorSpace(rawValue: externalTexture.colorSpaceRawValue()) ?? .SRGB
     let imported = deviceImpl.externalTextureImporter.importPixelBuffer(deviceImpl, pixelBuffer, colorSpace, premultiplyAlpha: true)
@@ -649,14 +669,8 @@ private func renderStagesRawValue(forSlot slot: Int) -> UInt {
 }
 
 /// Every stage's ExternalTextureIndices, all NSNotFound.
-private var noExternalTextureIndices: PerStage<WebGPU.Metal.ExternalTextureIndices> {
-    PerStage(
-        repeating: WebGPU.Metal.ExternalTextureIndices(
-            containerIndex: UInt(NSNotFound),
-            resourceIndex: UInt(NSNotFound),
-            argumentBufferIndex: UInt(NSNotFound)
-        )
-    )
+private var noExternalTextureIndices: PerStage<ExternalTextureIndices> {
+    PerStage(repeating: ExternalTextureIndices())
 }
 
 /// Resources are bucketed by MTLResourceUsage (Read, Write, ReadWrite), at index usage - 1.
@@ -1261,7 +1275,7 @@ private struct BindGroupCreation {
                 removeArgumentIndices(stage, from: index, count: 6)
                 encoders[stage]?.setTexture(texture, index: Int(index))
                 encoders[stage]?.setTexture(secondPlane, index: Int(index) + 1)
-                var constants = WebGPU.Metal.ExternalTextureConstants()
+                var constants = ExternalTextureConstants()
                 constants.uvRemapping = (1, 0, 0, 1, 0, 0)
                 constants.colorSpaceConversion = (1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
                 constants.visibleWidth = UInt32(truncatingIfNeeded: texture?.width ?? 0)

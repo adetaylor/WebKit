@@ -26,11 +26,28 @@ import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.MetalSPI
-@_implementationOnly import WebGPU_Internal.RenderPipeline
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
 public import WebGPU_Private.WebGPUCpp
+
+// The scalar pipeline state, which the render encoders read as one value.
+struct RenderPipelineParameters {
+    var primitiveType = MTLPrimitiveType.point
+    var frontFace = MTLWinding.clockwise
+    var cullMode = MTLCullMode.none
+    var depthClipMode = MTLDepthClipMode.clip
+    var depthBias: Float = 0
+    var depthBiasSlopeScale: Float = 0
+    var depthBiasClamp: Float = 0
+    var sampleMask = UInt32.max
+    var colorAttachmentCount: UInt32 = 0
+    var sampleCount: UInt32 = 0
+    var vertexShaderBindingCount: UInt32 = 0
+    var uniqueId: UInt64 = 0
+    var hasFragment = false
+    var writesStencil = false
+}
 
 private let defaultRenderPipelineSampleMask = UInt32.max
 
@@ -58,7 +75,7 @@ public final class RenderPipelineImpl: GPUObjectReference {
     private let backingDepthStencilState: (any MTLDepthStencilState)?
     // An invalid pipeline carries an invalid-state layout.
     let pipelineLayoutImpl: PipelineLayoutImpl
-    let parameters: WebGPU.Metal.RenderPipelineParameters
+    let parameters: RenderPipelineParameters
 
     // The MTLIndexType of the strip index format.
     let indexType: MTLIndexType?
@@ -83,7 +100,7 @@ public final class RenderPipelineImpl: GPUObjectReference {
         metalDevice: (any MTLDevice)?,
         pipelineLayoutImpl: PipelineLayoutImpl,
         deviceImpl: DeviceImpl,
-        parameters: WebGPU.Metal.RenderPipelineParameters,
+        parameters: RenderPipelineParameters,
         indexType: MTLIndexType?,
         requiredVertexBuffers: [RequiredVertexBuffer],
         primitiveTopology: WebGPU.PrimitiveTopology,
@@ -362,7 +379,7 @@ func makeInvalidRenderPipelineImpl(
     _ deviceImpl: DeviceImpl,
     _ pipelineLayoutImpl: PipelineLayoutImpl
 ) -> RenderPipelineImpl {
-    var parameters = WebGPU.Metal.RenderPipelineParameters()
+    var parameters = RenderPipelineParameters()
     parameters.sampleMask = UInt32.max
     return RenderPipelineImpl(
         renderPipelineDescriptor: nil,
@@ -432,8 +449,8 @@ public struct GPUDepthStencilState {
     public var format = WebGPU.TextureFormat.Depth24plus
     public var depthWriteEnabled: Bool?
     public var depthCompare: WebGPU.CompareFunction?
-    public var stencilFront = WebGPU.StencilFaceState()
-    public var stencilBack = WebGPU.StencilFaceState()
+    public var stencilFront = WebGPU.StencilFaceState(compare: .Always, failOp: .Keep, depthFailOp: .Keep, passOp: .Keep)
+    public var stencilBack = WebGPU.StencilFaceState(compare: .Always, failOp: .Keep, depthFailOp: .Keep, passOp: .Keep)
     public var stencilReadMask: UInt32 = 0xFFFF_FFFF
     public var stencilWriteMask: UInt32 = 0xFFFF_FFFF
     public var depthBias: Int32 = 0
@@ -496,7 +513,7 @@ public struct GPURenderPipelineDescriptor {
     public var vertex: GPUVertexState
     public var primitive = GPUPrimitiveState()
     public var depthStencil: GPUDepthStencilState?
-    public var multisample = WebGPU.MultisampleState()
+    public var multisample = WebGPU.MultisampleState(count: 1, mask: 0xFFFF_FFFF, alphaToCoverageEnabled: false)
     public var fragment: GPUFragmentState?
 
     public init(layout: PipelineLayoutReference?, vertex: GPUVertexState) {
@@ -1013,7 +1030,7 @@ final class RenderPipelineBuilder {
             colorTargetFormats.append(colorTargets[i]?.format)
         }
 
-        var parameters = WebGPU.Metal.RenderPipelineParameters()
+        var parameters = RenderPipelineParameters()
         parameters.primitiveType = mtlPrimitiveType(primitiveTopology)
         parameters.frontFace = mtlWinding(descriptor.primitive.frontFace)
         parameters.cullMode = mtlCullMode(descriptor.primitive.cullMode)

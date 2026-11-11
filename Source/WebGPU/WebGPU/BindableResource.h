@@ -44,17 +44,17 @@ namespace WebGPU::Metal {
 
 // The layout the indirect-command-buffer clamp shader declares for its index data.
 struct IndexData {
-    uint64_t renderCommand { 0 };
-    uint32_t minVertexCount { UINT32_MAX };
-    uint32_t minInstanceCount { UINT32_MAX };
-    uint64_t bufferGpuAddress { 0 };
-    uint32_t indexBufferElementCountMinusOne { 0 };
-    uint32_t indexCount { 0 };
-    uint32_t instanceCount { 0 };
-    uint32_t firstIndex { 0 };
-    int32_t baseVertex { 0 };
-    uint32_t firstInstance { 0 };
-    uint32_t primitiveType { MTLPrimitiveTypeTriangle };
+    uint64_t renderCommand;
+    uint32_t minVertexCount;
+    uint32_t minInstanceCount;
+    uint64_t bufferGpuAddress;
+    uint32_t indexBufferElementCountMinusOne;
+    uint32_t indexCount;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    int32_t baseVertex;
+    uint32_t firstInstance;
+    uint32_t primitiveType;
 };
 // The clamp shader's IndexDataUshort/IndexDataUint (DeviceHelpers.swift) assert the same offsets, which Swift reads
 // from this struct.

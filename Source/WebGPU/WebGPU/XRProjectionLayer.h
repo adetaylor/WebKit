@@ -39,15 +39,6 @@ namespace WebGPU::Metal {
 
 class Device;
 
-// The descriptor values, handed to Swift in one value: std::optional and OptionSet stay on this side.
-struct XRProjectionLayerParameters {
-    WebGPU::TextureFormat colorFormat { WebGPU::TextureFormat::Bgra8unorm };
-    bool hasDepthStencilFormat { false };
-    WebGPU::TextureFormat depthStencilFormat { WebGPU::TextureFormat::Bgra8unorm };
-    uint8_t textureUsage { 0 };
-    double scaleFactor { 1 };
-};
-
 #if USE(APPLE_INTERNAL_SDK) && HAVE(COMPOSITOR_SERVICES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
 // The SPI and soft-linked CompositorServices calls XRProjectionLayerImpl.startFrame makes in internal SDK device builds
 // with CompositorServices (visionOS, and the Mac from macOS 27). XRProjectionLayer.swift makes the other builds' textures.
