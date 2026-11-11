@@ -30,7 +30,9 @@
 #include "LayoutSize.h"
 #include "RenderObject.h"
 #include "TransformationMatrix.h"
+#include <bit>
 #include <memory>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
@@ -130,6 +132,25 @@ private:
     bool m_accumulatedOffsetMightBeSaturated { false };
 #endif
 };
+
+// A RenderGeometryMap that a C++ caller lends to Swift for the duration of one call.
+class RenderGeometryMapView {
+public:
+    RenderGeometryMapView(RenderGeometryMap& map LIFETIME_BOUND)
+        : m_map(std::bit_cast<uintptr_t>(&map))
+    {
+    }
+
+    void pushMappingsToAncestor(const RenderLayer* layer, const RenderLayer* ancestorLayer, bool respectTransforms) const { map().pushMappingsToAncestor(layer, ancestorLayer, respectTransforms); }
+    void popMappingsToAncestor(const RenderLayer* ancestorLayer) const { map().popMappingsToAncestor(ancestorLayer); }
+    FloatRect absoluteRect(FloatRect rect) const { return map().absoluteRect(rect); }
+
+private:
+    RenderGeometryMap& map() const { return *std::bit_cast<RenderGeometryMap*>(m_map); }
+
+    // An integer, as in PaintInfoView: Swift does not import a pointer to a view type.
+    uintptr_t m_map;
+} SWIFT_VIEW;
 
 } // namespace WebCore
 

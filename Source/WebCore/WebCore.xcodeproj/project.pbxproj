@@ -671,7 +671,7 @@
 		0F1A2B3C4D5E6F7080910A01 /* FrameProcessIndicators.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F1A2B3C4D5E6F7080910A02 /* FrameProcessIndicators.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F37F0852202BF9800A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F37F0842202ACB700A89C0B /* ScrollingTreeScrollingNodeDelegateMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F3DD45012F5EA1B000D9190 /* ShadowBlur.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3DD44E12F5EA1B000D9190 /* ShadowBlur.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0F3F0E5A157030C3006DA57F /* RenderGeometryMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3F0E58157030C3006DA57F /* RenderGeometryMap.h */; };
+		0F3F0E5A157030C3006DA57F /* RenderGeometryMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F3F0E58157030C3006DA57F /* RenderGeometryMap.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710AF1DB56AFC002DCEC3 /* DOMRect.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710A91DB56AFC002DCEC3 /* DOMRect.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710B11DB56AFC002DCEC3 /* DOMRectInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710AB1DB56AFC002DCEC3 /* DOMRectInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0F4710B31DB56AFC002DCEC3 /* DOMRectReadOnly.h in Headers */ = {isa = PBXBuildFile; fileRef = 0F4710AD1DB56AFC002DCEC3 /* DOMRectReadOnly.h */; settings = {ATTRIBUTES = (Private, ); }; };

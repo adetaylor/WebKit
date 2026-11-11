@@ -3190,6 +3190,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     rendering/RenderFlexibleBox.h
     rendering/RenderFrame.h
     rendering/RenderFrameBase.h
+    rendering/RenderGeometryMap.h
     rendering/RenderHighlight.h
     rendering/RenderIFrame.h
     rendering/RenderImage.h
