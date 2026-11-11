@@ -66,6 +66,13 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('WebCore::SharedMemory::Handle', ('IPCTypes.SharedMemoryHandle', 'IPCTypes.SharedMemoryHandle')),
             ('std::optional<WebCore::SharedMemoryHandle>', ('IPCTypes.SharedMemoryHandle?', 'IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>')),
             ('Vector<MachSendRight>', ('IPCTypes.MachSendRightVector', 'IPCTypes.MachSendRightVector')),
+            ('MediaTime', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),
+            ('const WTF::MediaTime&', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),
+            ('std::optional<MediaTime>', ('IPCTypes.MediaTime?', 'IPCCoding.StdOptional<IPCTypes.CxxName.WTF_MediaTime>')),
+            ('GenericPromise::Result', ('Bool', 'Bool')),
+            ('std::expected<MediaTime, WebCore::PlatformMediaError>', ('Result<IPCTypes.MediaTime, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.Expected<IPCTypes.CxxName.WTF_MediaTime, IPCTypes.CxxName.WebCore_PlatformMediaError>')),
+            ('std::expected<void, WebCore::PlatformMediaError>', ('Result<Void, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.ExpectedVoid<IPCTypes.CxxName.WebCore_PlatformMediaError>')),
+            ('std::expected<Vector<String>, uint8_t>', ('Result<[String?], IPCUnexpected<UInt8>>', 'IPCCoding.Expected<IPCCoding.Vector<IPCCoding.WTFString>, UInt8>')),
         ]:
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 

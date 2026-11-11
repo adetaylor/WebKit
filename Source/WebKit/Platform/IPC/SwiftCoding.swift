@@ -38,6 +38,15 @@ import IOSurface
 /// A malformed message argument, which makes C++ mark the message invalid.
 struct IPCDecodingError: Error {}
 
+/// The error of a std::expected, as a Swift Result's failure.
+struct IPCUnexpected<Failure: Sendable>: Error {
+    let error: Failure
+
+    init(_ error: Failure) {
+        self.error = error
+    }
+}
+
 /// The Swift counterpart of the C++ IPC::ArgumentCoder of a type.
 ///
 /// A coder is separate from the type it decodes because one Swift type can stand for C++ types with
@@ -397,6 +406,47 @@ enum IPCCoding {
         static func encode(_ value: (First.Value, Second.Value), to encoder: IPC.SwiftReplyEncoder) {
             First.encode(value.0, to: encoder)
             Second.encode(value.1, to: encoder)
+        }
+    }
+
+    /// std::expected<Value, Error>: whether it has a value, then the value or the error.
+    enum Expected<Value: IPCCoder, Failure: IPCCoder>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Result<Value.Value, IPCUnexpected<Failure.Value>> {
+            if try Bool.decode(from: &decoder) {
+                return .success(try Value.decode(from: &decoder))
+            }
+            return .failure(IPCUnexpected(try Failure.decode(from: &decoder)))
+        }
+
+        static func encode(_ value: Result<Value.Value, IPCUnexpected<Failure.Value>>, to encoder: IPC.SwiftReplyEncoder) {
+            switch value {
+            case .success(let value):
+                encoder.encode(true)
+                Value.encode(value, to: encoder)
+            case .failure(let unexpected):
+                encoder.encode(false)
+                Failure.encode(unexpected.error, to: encoder)
+            }
+        }
+    }
+
+    /// std::expected<void, Error>: whether it has a value, then the error if it hasn't.
+    enum ExpectedVoid<Failure: IPCCoder>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Result<Void, IPCUnexpected<Failure.Value>> {
+            if try Bool.decode(from: &decoder) {
+                return .success(())
+            }
+            return .failure(IPCUnexpected(try Failure.decode(from: &decoder)))
+        }
+
+        static func encode(_ value: Result<Void, IPCUnexpected<Failure.Value>>, to encoder: IPC.SwiftReplyEncoder) {
+            switch value {
+            case .success:
+                encoder.encode(true)
+            case .failure(let unexpected):
+                encoder.encode(false)
+                Failure.encode(unexpected.error, to: encoder)
+            }
         }
     }
 

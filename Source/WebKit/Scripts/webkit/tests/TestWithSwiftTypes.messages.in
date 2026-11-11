@@ -42,6 +42,7 @@ messages -> TestWithSwiftTypes {
     SyncHandlerMessageWithoutReply(uint64_t value) SwiftSyncHandler
     SyncHandlerMessageWithCxxTypes(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes SwiftSyncHandler
     MessageWithBuffersAndPairs(RefPtr<WebCore::SharedBuffer> buffer, Vector<std::pair<String, uint32_t>> pairs) -> (std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>> reply)
+    MessageWithTimesAndExpected(MediaTime time, std::optional<MediaTime> upcomingTime) -> (std::expected<MediaTime, WebKit::TestSwiftEnum> result, std::expected<void, WebKit::TestSwiftEnum> settled, GenericPromise::Result promiseResult)
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     ConditionalMessage(AtomString name) -> (uint32_t reply)
 #endif

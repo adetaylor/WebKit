@@ -38,9 +38,12 @@
 #include "TestWithSwiftTypesMessages.h" // NOLINT
 #include <WebCore/FrameIdentifier.h> // NOLINT
 #include <WebCore/SharedBuffer.h> // NOLINT
+#include <expected> // NOLINT
 #include <optional> // NOLINT
 #include <utility> // NOLINT
 #include <wtf/Markable.h> // NOLINT
+#include <wtf/MediaTime.h> // NOLINT
+#include <wtf/NativePromise.h> // NOLINT
 #include <wtf/OptionSet.h> // NOLINT
 #include <wtf/Ref.h> // NOLINT
 #include <wtf/RefCounted.h> // NOLINT
@@ -103,6 +106,10 @@ void TestWithSwiftTypesMessageForwarder::didReceiveMessage(IPC::Connection& conn
     }
     if (decoder.messageName() == Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs::name()) {
         IPC::handleSwiftMessageAsync<Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchMessageWithBuffersAndPairs);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::MessageWithTimesAndExpected::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftTypes::MessageWithTimesAndExpected>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchMessageWithTimesAndExpected);
         return;
     }
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
@@ -297,6 +304,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithBuffersAndPairs::ReplyArguments>(globalObject, decoder);
 }
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithTimesAndExpected::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithTimesAndExpected::ReplyArguments>(globalObject, decoder);
+}
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessage>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
@@ -348,6 +363,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithBuffersAndPairsReply::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithTimesAndExpectedReply::Arguments>(globalObject, decoder);
 }
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessageReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
