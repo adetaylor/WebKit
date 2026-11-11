@@ -509,6 +509,19 @@ enum class WebKit::E : uint8_t {
 }
 ''', r'\[Swift\] WebKit::S: more than one of its members would be named value in Swift')
 
+    def test_aliases(self):
+        swift = generate_swift('''
+[Swift, Alias=class IPC::ObjectIdentifierReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] alias WebKit::RemoteVideoFrameReference {
+    uint64_t identifier();
+    uint64_t version();
+};
+''')
+        self.assertIn('    struct RemoteVideoFrameReference: Sendable, Equatable {\n'
+                      '        var identifier: UInt64\n'
+                      '        var version: UInt64\n'
+                      '    }\n', swift)
+        self.assertIn('        typealias WebKit_RemoteVideoFrameReference = IPCTypes.RemoteVideoFrameReference\n', swift)
+
     def test_unsupported_types(self):
         self.assertGenerationFails('''
 [Swift, CustomEncoder] struct WebKit::S {
@@ -520,11 +533,6 @@ enum class WebKit::E : uint8_t {
     WebCore::LinearTimingFunction,
 }
 ''', r'types serialized as their subclasses cannot be marked \[Swift\]')
-        self.assertGenerationFails('''
-[Swift, Alias=class Pair<float,double>] alias WebCore::FloatPair {
-    float first()
-}
-''', r'types marked \[Swift\] do not support the attribute Alias')
         self.assertGenerationFails('''
 [Swift] CFFooRef wrapped by WebKit::FooWrapper {
 }
