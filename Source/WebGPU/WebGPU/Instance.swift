@@ -105,7 +105,10 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     }
 
     deinit {
-        releaseOnAPIThread(body.take(), scheduler)
+        guard let body = body.take() else {
+            return
+        }
+        releaseOnAPIThread(consume body, scheduler)
     }
 
     // On any thread, as often as wanted: only the first run calls the body.
@@ -123,26 +126,58 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     }
 }
 
-/// Releases what a box held for the API thread, which never ran there: at once on the API thread; anywhere else, in a
-/// work item, which the embedder runs on the API thread, or releases on its serial queue once the API thread has stopped.
-func releaseOnAPIThread<Body>(_ body: Body?, _ scheduler: InstanceScheduler) {
-    guard let body, !scheduler.isAPIThread() else {
+/// Releases what a box held for the API thread, which never ran there: at once on the API thread; anywhere else, by a
+/// work item, which the embedder runs on the API thread. The body moves into the work item's holder, so no other
+/// reference to it is left here, and the work item drops it explicitly. If the embedder drops the work item instead,
+/// which it does only once the API thread has stopped, the holder hands the body to one serial queue that drops it.
+func releaseOnAPIThread<Body>(_ body: consuming Body, _ scheduler: InstanceScheduler) {
+    if scheduler.isAPIThread() {
         return
     }
-    let release = APIThreadRelease(body)
+    let holder = APIThreadRelease(consume body)
     scheduler.scheduleWork {
-        withExtendedLifetime(release) {
+        holder.drop()
+    }
+}
+
+// Releases the bodies of work items that their embedder dropped, after its API thread stopped, one at a time.
+private let droppedBodyReleaseQueue = DispatchQueue(label: "com.apple.WebKit.WebGPU.DroppedWorkRelease")
+
+// The only owner of a body on its way to be released. Unchecked Sendable: nothing reads the body, which goes only on the
+// API thread, in drop(), or on droppedBodyReleaseQueue.
+private final class APIThreadRelease<Body>: @unchecked Sendable {
+    private var body: Body?
+
+    init(_ body: consuming Body) {
+        self.body = .some(body)
+    }
+
+    // On the API thread.
+    func drop() {
+        body = nil
+    }
+
+    deinit {
+        guard let body = body.take() else {
+            return
+        }
+        let dropped = DroppedBody(consume body)
+        droppedBodyReleaseQueue.async {
+            dropped.drop()
         }
     }
 }
 
-// A value on its way to be released. Unchecked Sendable: nothing reads the value, and the work item that holds it goes on
-// the API thread, or after it has stopped, as releaseOnAPIThread() says.
-private final class APIThreadRelease<Body>: @unchecked Sendable {
-    private let body: Body
+// A body that droppedBodyReleaseQueue drops. Unchecked Sendable: nothing reads it, and only that queue drops it.
+private final class DroppedBody<Body>: @unchecked Sendable {
+    private var body: Body?
 
-    init(_ body: Body) {
-        self.body = body
+    init(_ body: consuming Body) {
+        self.body = .some(body)
+    }
+
+    func drop() {
+        body = nil
     }
 }
 
@@ -195,7 +230,8 @@ public final class InstanceImpl: LinkedImpl {
     /// - every other call into the Instance and the objects it makes comes from the API thread;
     /// - isAPIThread returns true on the API thread, and only there;
     /// - scheduleWork runs each work item later, on the API thread, one at a time, or, once nothing can call into the
-    ///   Instance or its objects any more, releases it without running it, on one serial queue.
+    ///   Instance or its objects any more, drops it without running it, on any thread: what a work item holds for the
+    ///   API thread then goes to one serial queue (releaseOnAPIThread()).
     ///
     /// The resource owner is the task that owns the resources the Instance allocates, or an empty right.
     @unsafe

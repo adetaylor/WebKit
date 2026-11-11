@@ -198,7 +198,10 @@ private final class CompileContinuation<Value>: @unchecked Sendable {
     }
 
     deinit {
-        releaseOnAPIThread(body.take(), scheduler)
+        guard let body = body.take() else {
+            return
+        }
+        releaseOnAPIThread(consume body, scheduler)
     }
 
     func resume(_ value: Value?, _ error: (any Error)?) {

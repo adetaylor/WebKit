@@ -97,11 +97,13 @@ void RemoteGPU::stopListeningForIPC()
     });
     m_workQueue->stopAndWaitForCompletion([this] {
         assertIsCurrent(workQueue());
-        swiftRunScheduledWork(true);
+        swiftRunScheduledWork(false);
         // The work can create objects, such as asynchronously created pipelines. Releasing the registry also releases
         // its reference to this, if workQueueUninitialize() didn't run.
         swiftUninitialize();
         m_modelObjectHeap->clear();
+        // Only now, after the objects are gone from this thread, may the scheduler drop work elsewhere.
+        swiftRunScheduledWork(true);
     });
 }
 
