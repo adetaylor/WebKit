@@ -59,7 +59,7 @@ private func containsOnlyASCIIWhitespace(_ string: WTF.String) -> Bool {
         }
         return true
     }
-    let characters: Span<UInt16> = string.span16()
+    let characters: Span<UInt16> = string.checkedSpan16()
     for index in characters.indices where !isASCIIWhitespace(characters[index]) {
         return false
     }
@@ -88,7 +88,7 @@ private struct ExternalCharacterTokenBuffer {
             let characters: Span<WTF.Latin1Character> = text.span8()
             return UInt16(characters[Int(index)].value)
         }
-        let characters: Span<UInt16> = text.span16()
+        let characters: Span<UInt16> = text.checkedSpan16()
         return characters[Int(index)]
     }
 
@@ -209,7 +209,7 @@ private struct PendingTableCharacters {
                     characters.append(UInt16(span[index].value))
                 }
             } else {
-                let span: Span<UInt16> = part.span16()
+                let span: Span<UInt16> = part.checkedSpan16()
                 for index in span.indices {
                     characters.append(span[index])
                 }
@@ -223,7 +223,7 @@ private struct PendingTableCharacters {
             let characters: Span<WTF.Latin1Character> = string.span8()
             return UInt16(characters[0].value)
         }
-        let characters: Span<UInt16> = string.span16()
+        let characters: Span<UInt16> = string.checkedSpan16()
         return characters[0]
     }
 }
