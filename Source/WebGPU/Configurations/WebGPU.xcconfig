@@ -135,7 +135,7 @@ SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(WEBGPU_PSO_REPRO_CONDITIONS
 
 // Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
 WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes;
-OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -Werror SendableClosureCaptures -enable-experimental-feature CheckImplementationOnly;
+OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -Xcc -DU_DISABLE_RENAMING=1 -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -Werror SendableClosureCaptures -enable-experimental-feature CheckImplementationOnly;
 
 // Without Swift there is no WebGPU: only Instance.mm is built, for the createInstance() WebCore links against.
 EXCLUDED_SOURCE_FILE_NAMES = $(EXCLUDED_SOURCE_FILE_NAMES_$(ENABLE_WEBGPU_SWIFT));
