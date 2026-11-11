@@ -205,7 +205,7 @@ public:
     friend class LayerListMutationDetector;
     friend void ::outputLayerPositionTreeRecursive(TextStream&, const WebCore::RenderLayer&, unsigned, const WebCore::RenderLayer*);
 
-    static UniquelyOwnedPtr<RenderLayer> create(RenderLayerModelObject& modelObject)
+    SWIFT_UNSAFE static UniquelyOwnedPtr<RenderLayer> create(RenderLayerModelObject& modelObject)
     {
         return makeUniquelyOwned<RenderLayer>(modelObject);
     }
@@ -335,6 +335,19 @@ private:
 
 private:
     explicit RenderLayer(RenderLayerModelObject&);
+    // A new layer for Swift's layer store, which adopts the returned reference as the layer's owner and then claims the layer.
+    static RenderLayer& createForOwner(RenderLayerModelObject& renderer) SWIFT_RETURNS_RETAINED
+    {
+        return *WTF::RefCountedWithInlineWeakPtr<RenderLayer>::create<RenderLayer>(renderer);
+    }
+    // True the first time it is called on a layer, false every later time.
+    bool claimSwiftOwner()
+    {
+        if (m_hasSwiftOwner)
+            return false;
+        m_hasSwiftOwner = true;
+        return true;
+    }
     void destroy();
 
     bool hasVisibleContentForPainting() const
@@ -1648,6 +1661,7 @@ private:
 
     bool m_wasOmittedFromZOrderTree : 1 { false };
     bool m_suppressAncestorClippingInsideFilter : 1 { false };
+    bool m_hasSwiftOwner : 1 { false };
 
     const CheckedRef<RenderLayerModelObject> m_renderer;
 
