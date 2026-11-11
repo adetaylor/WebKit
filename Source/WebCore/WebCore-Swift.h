@@ -121,7 +121,14 @@
 #include "ScrollPhysicsTypes.h"
 #include "ScrollbarsControllerMacTypes.h"
 #include "ScrollerPairMacTypes.h"
+// ScrollingTree.swift's and ScrollingTreeLatchingController.swift's types, which ScrollingTreeScrollPhysicsClient.h
+// includes only with the scrolling thread.
+#include "ScrollingCoordinatorTypes.h"
+#include "ScrollingStateNode.h"
+#include "ScrollingTree.h"
+#include "ScrollingTreeFrameHostingNode.h"
 #include "ScrollingTreeScrollPhysicsClient.h"
+#include "ScrollingTreeScrollingNode.h"
 
 #include "AV1CodecConfigurationRecord.h"
 #include "AnnexBUtilities.h"

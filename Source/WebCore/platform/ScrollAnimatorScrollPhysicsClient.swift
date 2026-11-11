@@ -34,7 +34,11 @@ internal import WebCore_Private.Core.ScrollTypes
 extension WebCore.ScrollAnimatorScrollPhysicsClient: ScrollPhysicsClientProtocol {
     // As ScrollAnimatorMac::isScrollDeltaOpposingStretch().
     mutating func isScrollDeltaOpposingStretch(_ axis: WebCore.ScrollEventAxis, _ delta: Float) -> Bool {
+#if WTF_PLATFORM_MAC
         WebCore.ScrollingEffectsController.isScrollDeltaOpposingStretch(stretchAmount(), axis, delta)
+#else
+        false
+#endif
     }
 
     mutating func shouldRubberBandOnSide(_ side: WebCore.BoxSide, _ delta: WebCore.FloatSize) -> Bool {

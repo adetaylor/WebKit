@@ -212,6 +212,7 @@ private func updateScrollingTreeFromStateNode(
     }
 }
 
+#if ENABLE_SCROLLING_THREAD
 /// ThreadedScrollingTree::propagateSynchronousScrollingReasons() for one node with synchronous scrolling reasons:
 /// unless `node` is a frame scrolling node, marks the scrolling nodes that enclose it, up to and including the
 /// enclosing frame scrolling node, as having descendant scrollers with synchronous scrolling. An overflow scroll
@@ -249,6 +250,7 @@ nonisolated func propagateSynchronousScrollingReasonsToAncestors(
         currentNode = unsafe current.parent().get() // U5(m_treeLock): held by commitTreeState()'s Locker, which calls in; locked is in scope
     }
 }
+#endif
 
 /// ScrollingTree::mainFrameViewportChangedViaDelegatedScrolling() once it holds the tree's lock: the root node takes
 /// the page scale and is scrolled to `scrollPosition` with `layoutViewport`, and its scrolling layers are repositioned
