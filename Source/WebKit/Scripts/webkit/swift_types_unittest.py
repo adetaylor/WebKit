@@ -67,6 +67,8 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('WebCore::SharedMemory::Handle', ('IPCTypes.SharedMemoryHandle', 'IPCTypes.SharedMemoryHandle')),
             ('std::optional<WebCore::SharedMemoryHandle>', ('IPCTypes.SharedMemoryHandle?', 'IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>')),
             ('Vector<MachSendRight>', ('IPCTypes.MachSendRightVector', 'IPCTypes.MachSendRightVector')),
+            ('UInt32', ('UInt32', 'UInt32')),
+            ('AudioStreamBasicDescription', ('IPCTypes.AudioStreamBasicDescription', 'IPCTypes.CxxName.AudioStreamBasicDescription')),
             ('RetainPtr<CVPixelBufferRef>', ('IPCTypes.MachSendRight?', 'IPCCoding.OwnedOptional<IPCTypes.MachSendRight>')),
             ('MediaTime', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),
             ('const WTF::MediaTime&', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),

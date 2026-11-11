@@ -41,6 +41,8 @@ _PRIMITIVE_TYPES = {
     'uint8_t': 'UInt8',
     'uint16_t': 'UInt16',
     'uint32_t': 'UInt32',
+    # The Apple spelling, as in AudioStreamBasicDescription.
+    'UInt32': 'UInt32',
     'uint64_t': 'UInt64',
     # unsigned is 32 bits on every platform WebKit supports, and is encoded as uint32_t.
     'unsigned': 'UInt32',
@@ -75,7 +77,7 @@ _TWO_ARGUMENT_TEMPLATES = {
 _PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
 
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
-_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['WTFLogLevel'])
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'WTFLogLevel'])
 
 # Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
 _WTF_SWIFT_TYPES = frozenset(['MediaTime'])

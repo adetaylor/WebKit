@@ -2079,7 +2079,7 @@ header: <WebCore/NotificationResources.h>
 }
 
 #if PLATFORM(COCOA)
-struct AudioStreamBasicDescription {
+[Swift] struct AudioStreamBasicDescription {
     double mSampleRate;
     UInt32 mFormatID;
     UInt32 mFormatFlags;
