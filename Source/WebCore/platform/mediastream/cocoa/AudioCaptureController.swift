@@ -189,6 +189,8 @@ final class AudioCaptureController {
     private var ioUnitInitialized = false
     private var ioUnitStarted = false
     private var microphoneProcsCalledLastTime: UInt64 = 0
+    // What the units released since the capture started counted: reconfiguring replaces the unit, whose count starts at 0.
+    private var microphoneProcsCalledByReleasedUnits: UInt64 = 0
     private var verifyCapturingTimer: MainThreadTimer?
     private var updateMutedStateTimer: MainThreadTimer?
     private var minimumMicrophoneSampleFrames: Int?
@@ -972,6 +974,7 @@ final class AudioCaptureController {
         updateMutedState()
 
         if let unit = unit.take() {
+            microphoneProcsCalledByReleasedUnits &+= unit.renderState.microphoneProcCount
             _ = removeCaptureUnit(unitIdentifier)
 #if os(macOS)
             if unit.destroy() {
@@ -1080,6 +1083,7 @@ final class AudioCaptureController {
 
         ioUnitStarted = true
 
+        microphoneProcsCalledByReleasedUnits = 0
         microphoneProcsCalledLastTime = 0
         startVerifyCapturingTimer()
 
@@ -1133,7 +1137,7 @@ final class AudioCaptureController {
             }
         }
 
-        let microphoneProcsCalled = unit?.renderState.microphoneProcCount ?? 0
+        let microphoneProcsCalled = microphoneProcsCalledByReleasedUnits &+ (unit?.renderState.microphoneProcCount ?? 0)
         if microphoneProcsCalledLastTime != microphoneProcsCalled {
             microphoneProcsCalledLastTime = microphoneProcsCalled
             return
