@@ -26,6 +26,7 @@
 
 #include "ArgumentCoders.h"
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "SessionState.h"
 #include <utility>
@@ -541,6 +542,41 @@ private:
 };
 #endif
 
+#if PLATFORM(COCOA)
+class SyncHandlerMessageWithOwnedTypes {
+public:
+    using Arguments = std::tuple<IPC::Semaphore, uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<uint32_t>;
+    using Reply = CompletionHandler<void(uint32_t)>;
+    using Promise = WTF::NativePromise<uint32_t, IPC::Error>;
+    SyncHandlerMessageWithOwnedTypes(const IPC::Semaphore& semaphore, uint32_t value)
+        : m_semaphore(semaphore)
+        , m_value(value)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_semaphore;
+        encoder << m_value;
+    }
+
+private:
+    const IPC::Semaphore& m_semaphore;
+    uint32_t m_value;
+};
+#endif
+
 class MessageWithReplyReply {
 public:
     using Arguments = std::tuple<WebKit::TestSwiftStruct>;
@@ -756,6 +792,33 @@ public:
     static constexpr bool deferSendingIfSuspended = false;
 
     explicit ConditionalMessageReply(uint32_t reply)
+        : m_reply(reply)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_reply;
+    }
+
+private:
+    uint32_t m_reply;
+};
+#endif
+
+#if PLATFORM(COCOA)
+class SyncHandlerMessageWithOwnedTypesReply {
+public:
+    using Arguments = std::tuple<uint32_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    explicit SyncHandlerMessageWithOwnedTypesReply(uint32_t reply)
         : m_reply(reply)
     {
     }

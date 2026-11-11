@@ -493,6 +493,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessage>(globalObject, decoder);
 #endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes>(globalObject, decoder);
+#endif
     case MessageName::TestWithSwiftTypes_MessageWithReplyReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithReplyReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithMultipleRepliesReply:
@@ -512,6 +516,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessageReply>(globalObject, decoder);
+#endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply>(globalObject, decoder);
 #endif
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedMessage:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypesOptIn_CxxTypedMessage>(globalObject, decoder);
@@ -761,6 +769,10 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_ConditionalMessage>(globalObject, decoder);
+#endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes>(globalObject, decoder);
 #endif
     case MessageName::TestWithSwiftTypesOptIn_CxxTypedMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypesOptIn_CxxTypedMessage>(globalObject, decoder);
@@ -1808,6 +1820,13 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "name"_s, "AtomString"_s },
         };
 #endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes:
+        return Vector<ArgumentDescription> {
+            { "semaphore"_s, "IPC::Semaphore"_s },
+            { "value"_s, "uint32_t"_s },
+        };
+#endif
     case MessageName::TestWithSwiftTypes_MessageWithReplyReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "WebKit::TestSwiftStruct"_s },
@@ -1842,6 +1861,12 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         };
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessageReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint32_t"_s },
+        };
+#endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint32_t"_s },
         };
@@ -2297,6 +2322,12 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
         };
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint32_t"_s },
+        };
+#endif
+#if PLATFORM(COCOA)
+    case MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes:
         return Vector<ArgumentDescription> {
             { "reply"_s, "uint32_t"_s },
         };
