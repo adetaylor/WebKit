@@ -264,7 +264,8 @@ extension WebKit.LibWebRTCCodecsProxy {
             return
         }
         let description = sliceForCxx(description)
-        decoder.platform.setFormat(description.span, videoInfo, width, height)
+        decoder.platform.setVideoInfo(videoInfo)
+        decoder.platform.setFormat(description.span, width, height)
     }
 
     func setDecoderColorSpaceOverride(
@@ -287,7 +288,8 @@ extension WebKit.LibWebRTCCodecsProxy {
             return
         }
         let data = sliceForCxx(data)
-        guard decoder.platform.decodeFrame(timeStamp, data.span, videoInfo) else {
+        decoder.platform.setVideoInfo(videoInfo)
+        guard decoder.platform.decodeFrame(timeStamp, data.span) else {
             reply.send(false)
             return
         }

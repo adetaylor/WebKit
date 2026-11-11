@@ -145,10 +145,12 @@ public:
     ~LibWebRTCCodecsProxyDecoder();
 
     void flush();
-    void setFormat(std::span<const uint8_t> description NOESCAPE, VideoInfoArgument&, uint16_t width, uint16_t height);
+    // Sets the video info of the next setFormat() or decodeFrame(), which takes it.
+    void setVideoInfo(VideoInfoArgument&);
+    void setFormat(std::span<const uint8_t> description NOESCAPE, uint16_t width, uint16_t height);
     void setColorSpaceOverride(ColorSpaceOverrideArgument&);
     // Returns false, having told the web process, if the decoder failed to take the frame.
-    [[nodiscard]] bool decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE, VideoInfoArgument&);
+    [[nodiscard]] bool decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE);
     void setFrameSize(uint16_t width, uint16_t height);
 
 private:
@@ -158,6 +160,7 @@ private:
     const VideoDecoderIdentifier m_identifier;
     const std::unique_ptr<WebCore::GPUVideoDecoder> m_decoder;
     const std::unique_ptr<WebCore::FrameRateMonitor> m_frameRateMonitor;
+    std::optional<RefPtr<WebCore::VideoInfo>> m_videoInfo;
 };
 
 // An encoder of LibWebRTCCodecsProxy.swift. What it encodes goes to the web process, and each result goes to the callback

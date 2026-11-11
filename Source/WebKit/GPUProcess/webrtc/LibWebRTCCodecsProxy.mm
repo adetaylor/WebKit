@@ -269,9 +269,14 @@ void LibWebRTCCodecsProxyDecoder::flush()
     m_decoder->flush();
 }
 
-void LibWebRTCCodecsProxyDecoder::setFormat(std::span<const uint8_t> description NOESCAPE, VideoInfoArgument& videoInfo, uint16_t width, uint16_t height)
+void LibWebRTCCodecsProxyDecoder::setVideoInfo(VideoInfoArgument& videoInfo)
 {
-    if (auto info = videoInfo.take())
+    m_videoInfo = videoInfo.take();
+}
+
+void LibWebRTCCodecsProxyDecoder::setFormat(std::span<const uint8_t> description NOESCAPE, uint16_t width, uint16_t height)
+{
+    if (auto info = std::exchange(m_videoInfo, std::nullopt))
         m_decoder->setFormat(description, width, height, WTF::move(*info));
 }
 
@@ -281,11 +286,11 @@ void LibWebRTCCodecsProxyDecoder::setColorSpaceOverride(ColorSpaceOverrideArgume
         m_decoder->setColorSpaceOverride(WTF::move(*value));
 }
 
-bool LibWebRTCCodecsProxyDecoder::decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE, VideoInfoArgument& videoInfo)
+bool LibWebRTCCodecsProxyDecoder::decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE)
 {
     if (m_frameRateMonitor)
         m_frameRateMonitor->update();
-    auto info = videoInfo.take();
+    auto info = std::exchange(m_videoInfo, std::nullopt);
     if (!info || m_decoder->decodeFrame(timeStamp, data, WTF::move(*info))) {
         m_connection->send(Messages::LibWebRTCCodecs::FailedDecoding { m_identifier }, 0);
         return false;
