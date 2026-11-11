@@ -444,6 +444,7 @@
 		8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */; };
 		8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */; };
 		C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63866A9D038D86C964446936 /* VImageBridge.swift */; };
+		CC31639BAC3951C071785011 /* ShareableBitmapCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */; };
 		8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E984F4227EC94A2C317A2C1A /* IOSurface.swift */; };
 		C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */; };
 		CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */; };
@@ -19422,6 +19423,7 @@
 		22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurGeometry.swift; sourceTree = "<group>"; };
 		C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurKernel.swift; sourceTree = "<group>"; };
 		63866A9D038D86C964446936 /* VImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VImageBridge.swift; sourceTree = "<group>"; };
+		845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableBitmapCG.swift; sourceTree = "<group>"; };
 		E984F4227EC94A2C317A2C1A /* IOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSurface.swift; sourceTree = "<group>"; };
 		C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+BoxConvolve.swift"; sourceTree = "<group>"; };
 		0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+ColorMatrix.swift"; sourceTree = "<group>"; };
@@ -37174,6 +37176,7 @@
 				D36347EBF659AB2B00FF6C88 /* PDFDocumentBuffer.cpp */,
 				F08F41D15F611A97422E35C2 /* PDFDocumentBuffer.h */,
 				46C963C32B6C993C002F46D1 /* ShareableBitmapCG.mm */,
+				845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */,
 				B6F2010A2EAC180400BBF4AA /* ShareableSpatialImage.cpp */,
 				B6F201092EAC180400BBF4AA /* ShareableSpatialImage.h */,
 				B6D8146E2EE0C39C00397547 /* SpatialImageTypes.h */,
@@ -52336,6 +52339,7 @@
 				6B1B1D396B97422B8D0F43D2 /* ShapeDetectionFacade.swift in Sources */,
 				89951BE58FFC41E788910653 /* ShapeDetectionVision.swift in Sources */,
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
+				CC31639BAC3951C071785011 /* ShareableBitmapCG.swift in Sources */,
 				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
 				91BFA2DFFE7253718EDCB168 /* SharedMemoryMapping.swift in Sources */,
