@@ -108,7 +108,7 @@ extension WebKit.RemoteGPU {
     @cxx
     @implementation
     func swiftInitialize(_ webProcessResourceOwner: WTF.MachSendRight) {
-        precondition(m_swiftState == 0)
+        precondition(swiftState() == 0)
         let workQueue = workQueue()
         let scheduler = RemoteGPUWorkScheduler(workQueue)
         // Safety: the instance's API thread is the work queue's thread, which receives every message that calls into the
@@ -125,7 +125,8 @@ extension WebKit.RemoteGPU {
         )
         let state = RemoteGPUState(scheduler)
         state.registry = WebGPUImplTable(host: self, instance: instance)
-        m_swiftState = UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
+        // Safety: the state is new, and retained once, which only destroySwiftState() releases.
+        unsafe setSwiftState(UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque()))
     }
 
     // Static, so that the destructor never retains the RemoteGPU it destroys.
@@ -165,10 +166,11 @@ extension WebKit.RemoteGPU {
     }
 
     private var state: RemoteGPUState {
-        precondition(m_swiftState != 0, "RemoteGPU has no Swift state")
+        let swiftState = swiftState()
+        precondition(swiftState != 0, "RemoteGPU has no Swift state")
         // Safety: m_swiftState is a retained RemoteGPUState from swiftInitialize() to the destructor.
         return unsafe Unmanaged<RemoteGPUState>
-            .fromOpaque(UnsafeRawPointer(bitPattern: m_swiftState) ?? noSwiftState())
+            .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
             .takeUnretainedValue()
     }
 

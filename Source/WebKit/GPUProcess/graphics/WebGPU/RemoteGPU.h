@@ -148,6 +148,11 @@ private:
     void swiftRunScheduledWork(bool thenStopped);
     void swiftUninitialize();
 
+    // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained RemoteGPUState
+    // that nothing else releases.
+    uintptr_t swiftState() const { return m_swiftState; }
+    SWIFT_UNSAFE void setSwiftState(uintptr_t state) { m_swiftState = state; }
+
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
@@ -155,7 +160,7 @@ private:
     const Ref<ModelObjectHeap> m_modelObjectHeap WTF_GUARDED_BY_CAPABILITY(workQueue());
     const WebGPUIdentifier m_identifier;
     const Ref<RemoteRenderingBackend> m_renderingBackend;
-    uintptr_t m_swiftState { 0 };
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // The IOSurface of the rendering backend's image buffer with that identifier, read for a copy: null unless the image buffer
