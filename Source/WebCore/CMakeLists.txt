@@ -3313,6 +3313,7 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
     "(^|/)WebVTTTokenizer\\.cpp( |$)"
     "(^|/)XMLDocumentParserLibxml2\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)TransformationMatrix\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSParserFastPaths\\.cpp( |$)")
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSPropertyParserSwift\\.cpp( |$)")
@@ -3661,6 +3662,7 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
         ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
 
@@ -3700,6 +3702,10 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
     list(APPEND _webcore_swift_core_submodules
         html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
         html/HTMLImageElement.h loader/LinkLoader.h)
+
+    # TransformationMatrix.cpp calls TransformationMatrix.swift's entry points through WebCore-Swift.h.
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/graphics/transforms/TransformationMatrix.cpp)
+    list(APPEND _webcore_swift_core_submodules platform/graphics/transforms/TransformationMatrix.h)
 
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/platform/image-decoders/ImageFrameBuffer.swift

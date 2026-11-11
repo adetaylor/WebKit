@@ -33,7 +33,7 @@ internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 #endif
 internal import wtf.Core.Stopwatch
-#if arch(arm64)
+#if arch(arm64) && canImport(simd)
 internal import func simd.fma
 #endif
 
@@ -210,15 +210,24 @@ private func multiplyRows(
 
 #if arch(arm64)
 
-// sum + a * b and sum - a * b, each a single fused vector operation.
+// sum + a * b and sum - a * b, each a single fused vector operation. Where the simd module does not exist (Linux),
+// the standard library's lane-wise fused multiply-add rounds the same way.
 @inline(always)
 private func fusedMultiplyAdd(_ sum: SIMD2<Double>, _ a: SIMD2<Double>, _ b: Double) -> SIMD2<Double> {
+    #if canImport(simd)
     simd.fma(a, SIMD2(repeating: b), sum)
+    #else
+    sum.addingProduct(a, SIMD2(repeating: b))
+    #endif
 }
 
 @inline(always)
 private func fusedMultiplySubtract(_ sum: SIMD2<Double>, _ a: SIMD2<Double>, _ b: Double) -> SIMD2<Double> {
+    #if canImport(simd)
     simd.fma(a, SIMD2(repeating: -b), sum)
+    #else
+    sum.addingProduct(a, SIMD2(repeating: -b))
+    #endif
 }
 
 // Two rows of the inverse, from the 2x2 minors of the column pair d and the other column pair l. Each vector holds two
