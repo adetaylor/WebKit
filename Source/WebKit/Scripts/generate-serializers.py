@@ -2262,7 +2262,7 @@ _SWIFT_KEYWORDS = frozenset([
 
 # Attributes that do not change how a type is encoded, so can be used on types marked [Swift].
 _SWIFT_COMPATIBLE_TYPE_ATTRIBUTES = frozenset([
-    'AdditionalEncoder', 'ConstructSubclass', 'CustomHeader', 'DebugDecodingFailure', 'DisableMissingMemberCheck',
+    'AdditionalEncoder', 'Alias', 'ConstructSubclass', 'CustomHeader', 'DebugDecodingFailure', 'DisableMissingMemberCheck',
     'LegacyPopulateFromEmptyConstructor', 'Nested', 'RValue', 'RefCounted', 'Swift', 'WebKitPlatform', 'Wrapper',
 ])
 _SWIFT_COMPATIBLE_ENUM_ATTRIBUTES = frozenset(['AdditionalEncoder', 'CustomHeader', 'Nested', 'OptionSet', 'Swift', 'WebKitPlatform'])
@@ -2513,8 +2513,8 @@ def check_swift_type_attributes(type, context):
         raise Exception(f'{context}: wrapped CF types cannot be marked [Swift].')
     if type.is_webkit_secure_coding_type():
         raise Exception(f'{context}: webkit_secure_coding types cannot be marked [Swift].')
-    if type.struct_or_class == 'alias' or type.alias is not None:
-        raise Exception(f'{context}: aliases cannot be marked [Swift].')
+    if (type.struct_or_class == 'alias') != (type.alias is not None):
+        raise Exception(f'{context}: an alias marked [Swift] must name the type it is an alias of, with Alias=.')
     if type.members_are_subclasses:
         raise Exception(f'{context}: types serialized as their subclasses cannot be marked [Swift].')
     if type.templates or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', type.name):
