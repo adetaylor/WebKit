@@ -219,6 +219,9 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_MessageWithoutReply,
     TestWithSwiftTypes_SyncHandlerMessageReply,
     TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply,
+#if PLATFORM(COCOA)
+    TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply,
+#endif
     TestWithSwiftTypes_SyncHandlerMessageWithoutReply,
     TestWithSwiftWorkQueue_SendCxxDecodedReply,
     TestWithSwiftWorkQueue_SendCxxString,
@@ -342,6 +345,9 @@ enum class MessageName : uint16_t {
     TestWithSwiftTypes_MessageWithReply,
     TestWithSwiftTypes_SyncHandlerMessage,
     TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes,
+#if PLATFORM(COCOA)
+    TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes,
+#endif
     TestWithSwiftWorkQueue_SendCxxDecoded,
     TestWithSwiftWorkQueue_SendCxxStringAsync,
     TestWithSwiftWorkQueue_SendEmptyAsync,
