@@ -285,7 +285,7 @@ private func hasPrefixWithLettersIgnoringASCIICase(_ string: WTF.String, _ lower
         }
         return true
     }
-    let characters: Span<UInt16> = string.span16()
+    let characters: Span<UInt16> = string.checkedSpan16()
     var index = 0
     for letter in lowercaseLetters.utf8 {
         if characters[index] | 0x20 != UInt16(letter) {
