@@ -426,6 +426,7 @@
 		8856FDD854DD284B35701E61 /* ShadowBlurGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */; };
 		8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */; };
 		C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63866A9D038D86C964446936 /* VImageBridge.swift */; };
+		8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E984F4227EC94A2C317A2C1A /* IOSurface.swift */; };
 		C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */; };
 		CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */; };
 		7E38067BBE2DD5D953221F77 /* VImageBridge+Conversion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */; };
@@ -19395,6 +19396,7 @@
 		22257F3C64F0CCF4837AD34F /* ShadowBlurGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurGeometry.swift; sourceTree = "<group>"; };
 		C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurKernel.swift; sourceTree = "<group>"; };
 		63866A9D038D86C964446936 /* VImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VImageBridge.swift; sourceTree = "<group>"; };
+		E984F4227EC94A2C317A2C1A /* IOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSurface.swift; sourceTree = "<group>"; };
 		C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+BoxConvolve.swift"; sourceTree = "<group>"; };
 		0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+ColorMatrix.swift"; sourceTree = "<group>"; };
 		3505F5F351141D3E115BAF01 /* VImageBridge+Conversion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+Conversion.swift"; sourceTree = "<group>"; };
@@ -37779,6 +37781,7 @@
 				B27535500B053814002CE64F /* IntRectCocoa.mm */,
 				2D0B4AA918DA1CCD00434DE1 /* IOSurface.h */,
 				2D0B4AAA18DA1CCD00434DE1 /* IOSurface.mm */,
+				E984F4227EC94A2C317A2C1A /* IOSurface.swift */,
 				7B66CFD22D31387D00BD6CB5 /* IOSurfaceDrawingBuffer.h */,
 				B588D918E3A23CFD5275BDE9 /* ISOBMFFPreParser.cpp */,
 				B588D917E3A23CFD5275BDE9 /* ISOBMFFPreParser.h */,
@@ -52173,6 +52176,7 @@
 				46CA943127B8695800F4F5FF /* InbandTextTrackPrivateAVFObjC.mm in Sources */,
 				CD063F821E23FA8900812BE3 /* InitDataRegistry.cpp in Sources */,
 				164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */,
+				8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */,
 				2653C6D27D97ADA649EE4AEC /* ISOBoxes.swift in Sources */,
 				77D8E7F6A75292D03DD77910 /* ISOFairPlayStreamingPssh.swift in Sources */,
 				71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */,
