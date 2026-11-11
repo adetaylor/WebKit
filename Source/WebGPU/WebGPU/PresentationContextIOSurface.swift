@@ -678,8 +678,10 @@ private func createImageWithTextureBytes(
     _ colorSpace: CGColorSpace?,
     _ bitmapInfo: CGBitmapInfo
 ) -> CGImage? {
-    // Metal writes rows of the texture's own format: the rows must hold them, and the region must be in the texture.
-    guard let format = textureFormat(texture.pixelFormat), width >= 0, height >= 0, width <= texture.width,
+    // Metal writes rows of the texture's own format: the rows must hold them, the region must be in the texture, and
+    // the CPU must be able to read the texture.
+    guard texture.storageMode != .private, texture.storageMode != .memoryless,
+        let format = textureFormat(texture.pixelFormat), width >= 0, height >= 0, width <= texture.width,
         height <= texture.height
     else {
         return nil
