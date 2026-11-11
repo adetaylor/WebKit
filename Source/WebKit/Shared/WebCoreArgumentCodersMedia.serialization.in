@@ -279,11 +279,11 @@ header: <WebCore/MediaPlayer.h>
 
 #if ENABLE(VIDEO)
 header: <WebCore/VideoFrame.h>
-enum class WebCore::VideoFrameRotation : uint16_t {
-    None,
-    UpsideDown,
-    Right,
-    Left,
+[Swift] enum class WebCore::VideoFrameRotation : uint16_t {
+    None = 0,
+    UpsideDown = 180,
+    Right = 90,
+    Left = 270,
 };
 #endif
 
@@ -435,7 +435,7 @@ header: <WebCore/InbandGenericCue.h>
     String
 };
 
-enum class WebCore::MediaConstraintType : uint8_t {
+[Swift] enum class WebCore::MediaConstraintType : uint8_t {
     Unknown,
     Width,
     Height,
@@ -450,10 +450,10 @@ enum class WebCore::MediaConstraintType : uint8_t {
     GroupId,
     DisplaySurface,
     LogicalSurface,
+    FocusDistance,
     WhiteBalanceMode,
     Zoom,
     Torch,
-    FocusDistance,
     BackgroundBlur,
     PowerEfficient,
 };
@@ -501,7 +501,7 @@ header: <WebCore/VideoPreset.h>
     bool isEfficient;
 };
 
-class WebCore::RealtimeMediaSourceSupportedConstraints {
+[Swift] class WebCore::RealtimeMediaSourceSupportedConstraints {
     bool supportsWidth();
     bool supportsHeight();
     bool supportsAspectRatio();
@@ -525,7 +525,7 @@ class WebCore::RealtimeMediaSourceSupportedConstraints {
 
 [Nested] enum class WebCore::RealtimeMediaSource::Type : bool;
 
-enum class WebCore::VideoFacingMode : uint8_t {
+[Swift] enum class WebCore::VideoFacingMode : uint8_t {
     Unknown,
     User,
     Environment,
@@ -533,7 +533,7 @@ enum class WebCore::VideoFacingMode : uint8_t {
     Right
 };
 
-enum class WebCore::DisplaySurfaceType : uint8_t {
+[Swift] enum class WebCore::DisplaySurfaceType : uint8_t {
     Monitor,
     Window,
     Application,
@@ -542,14 +542,14 @@ enum class WebCore::DisplaySurfaceType : uint8_t {
 };
 
 header: <WebCore/MeteringMode.h>
-[CustomHeader] enum class WebCore::MeteringMode : uint8_t {
+[CustomHeader, Swift] enum class WebCore::MeteringMode : uint8_t {
     None,
     Manual,
     SingleShot,
     Continuous,
 };
 
-class WebCore::RealtimeMediaSourceSettings {
+[Swift] class WebCore::RealtimeMediaSourceSettings {
     uint32_t width();
     uint32_t height();
     float frameRate();
@@ -571,18 +571,18 @@ class WebCore::RealtimeMediaSourceSettings {
     WebCore::RealtimeMediaSourceSupportedConstraints supportedConstraints();
 };
 
-[Nested] enum class WebCore::CaptureDevice::DeviceType : uint8_t {
-    Unknown,
-    Microphone,
-    Speaker,
-    Camera,
-    Screen,
-    Window,
-    SystemAudio
-    Canvas
+[Nested, Swift] enum class WebCore::CaptureDevice::DeviceType : uint8_t {
+    Unknown = 1,
+    Microphone = 2,
+    Speaker = 4,
+    Camera = 8,
+    Screen = 16,
+    Window = 32,
+    SystemAudio = 64,
+    Canvas = 128,
 };
 
-class WebCore::CaptureDevice {
+[Swift] class WebCore::CaptureDevice {
     String persistentId();
     WebCore::CaptureDevice::DeviceType type();
     String label();
@@ -598,31 +598,31 @@ struct WebCore::CaptureDeviceWithCapabilities {
     WebCore::RealtimeMediaSourceCapabilities capabilities;
 };
 
-[Nested] enum class WebCore::RealtimeMediaSourceCapabilities::EchoCancellation : uint8_t {
+[Nested, Swift] enum class WebCore::RealtimeMediaSourceCapabilities::EchoCancellation : uint8_t {
     Off,
     On,
     OnOrOff
 }
 
-[Nested] enum class WebCore::RealtimeMediaSourceCapabilities::BackgroundBlur : uint8_t {
+[Nested, Swift] enum class WebCore::RealtimeMediaSourceCapabilities::BackgroundBlur : uint8_t {
     Off,
     On,
     OnOff
 }
 
 header: <WebCore/RealtimeMediaSourceCapabilities.h>
-[CustomHeader] class WebCore::DoubleCapabilityRange {
+[CustomHeader, Swift] class WebCore::DoubleCapabilityRange {
     double min();
-    [Validator='min <= max'] double max();
+    [Validator='min <= max', SwiftValidator='min <= max'] double max();
 };
 
 header: <WebCore/RealtimeMediaSourceCapabilities.h>
-[CustomHeader] class WebCore::LongCapabilityRange {
+[CustomHeader, Swift] class WebCore::LongCapabilityRange {
     int min();
-    [Validator='min <= max'] int max();
+    [Validator='min <= max', SwiftValidator='min <= max'] int max();
 };
 
-class WebCore::RealtimeMediaSourceCapabilities {
+[Swift] class WebCore::RealtimeMediaSourceCapabilities {
     WebCore::LongCapabilityRange width();
     WebCore::LongCapabilityRange height();
     WebCore::DoubleCapabilityRange aspectRatio();
@@ -830,7 +830,7 @@ header: <WebCore/MockMediaDevice.h>
 #endif // ENABLE(MEDIA_STREAM)
 
 #if ENABLE(MEDIA_STREAM)
-enum class WebCore::MediaAccessDenialReason : uint8_t {
+[Swift] enum class WebCore::MediaAccessDenialReason : uint8_t {
     NoReason,
     NoConstraints,
     UserMediaDisabled,
@@ -843,35 +843,35 @@ enum class WebCore::MediaAccessDenialReason : uint8_t {
 };
 
 header: <WebCore/RealtimeMediaSource.h>
-[CustomHeader] struct WebCore::CaptureSourceError {
+[CustomHeader, Swift] struct WebCore::CaptureSourceError {
     String errorMessage;
     WebCore::MediaAccessDenialReason denialReason;
     WebCore::MediaConstraintType invalidConstraint;
 };
 
 header: <WebCore/FillLightMode.h>
-enum class WebCore::FillLightMode : uint8_t {
+[Swift] enum class WebCore::FillLightMode : uint8_t {
     Auto,
     Off,
     Flash,
 };
 
 header: <WebCore/RedEyeReduction.h>
-enum class WebCore::RedEyeReduction : uint8_t {
+[Swift] enum class WebCore::RedEyeReduction : uint8_t {
     Never,
     Always,
     Controllable,
 };
 
 header: <WebCore/MediaSettingsRange.h>
-[CustomHeader] struct WebCore::MediaSettingsRange {
+[CustomHeader, Swift] struct WebCore::MediaSettingsRange {
     std::optional<double> max;
     std::optional<double> min;
     std::optional<double> step;
 };
 
 header: <WebCore/PhotoCapabilities.h>
-[CustomHeader] struct WebCore::PhotoCapabilities {
+[CustomHeader, Swift] struct WebCore::PhotoCapabilities {
     std::optional<WebCore::RedEyeReduction> redEyeReduction;
     std::optional<WebCore::MediaSettingsRange> imageHeight;
     std::optional<WebCore::MediaSettingsRange> imageWidth;
@@ -879,7 +879,7 @@ header: <WebCore/PhotoCapabilities.h>
 };
 
 header: <WebCore/PhotoSettings.h>
-[CustomHeader] struct WebCore::PhotoSettings {
+[CustomHeader, Swift] struct WebCore::PhotoSettings {
     std::optional<WebCore::FillLightMode> fillLightMode;
     std::optional<double> imageHeight;
     std::optional<double> imageWidth;

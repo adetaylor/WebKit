@@ -31,7 +31,7 @@ additional_forward_declaration: namespace WebKit { using RemoteSerializedImageBu
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
 header: "RemoteVideoFrameIdentifier.h"
-[Alias=class IPC::ObjectIdentifierReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] alias WebKit::RemoteVideoFrameReference {
+[Alias=class IPC::ObjectIdentifierReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] alias WebKit::RemoteVideoFrameReference {
     WebKit::RemoteVideoFrameIdentifier identifier();
     uint64_t version();
 };

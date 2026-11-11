@@ -2091,7 +2091,7 @@ header: <WebCore/NotificationResources.h>
     UInt32 mReserved;
 };
 
-class WebCore::CAAudioStreamDescription {
+[Swift] class WebCore::CAAudioStreamDescription {
     AudioStreamBasicDescription streamDescription();
 }
 #endif
@@ -3280,7 +3280,7 @@ struct WebCore::AppHighlight {
 };
 #endif // ENABLE(APP_HIGHLIGHTS)
 
-struct WebCore::MediaDeviceHashSalts {
+[Swift] struct WebCore::MediaDeviceHashSalts {
     String persistentDeviceSalt;
     String ephemeralDeviceSalt;
 };
@@ -3961,7 +3961,7 @@ header: <WebCore/SecurityPolicyViolationEvent.h>
     std::optional<uint16_t> port;
 };
 
-enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
+[Swift] enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
     Bt709,
     Bt470bg,
     Smpte170m,
@@ -3976,7 +3976,7 @@ enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
     Unspecified,
 };
 
-enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
+[Swift] enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
     Bt709,
     Smpte170m,
     Iec6196621,
@@ -3996,7 +3996,7 @@ enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
     Unspecified
 };
 
-enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
+[Swift] enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
     Rgb,
     Bt709,
     Bt470bg,
@@ -4009,7 +4009,7 @@ enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
     Unspecified,
 };
 
-enum class WebCore::PlatformVideoChromaLocation : uint8_t {
+[Swift] enum class WebCore::PlatformVideoChromaLocation : uint8_t {
     Left,
     Center,
     TopLeft,
@@ -4020,7 +4020,7 @@ enum class WebCore::PlatformVideoChromaLocation : uint8_t {
     Unspecified,
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] struct WebCore::PlatformVideoColorSpace {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebCore::PlatformVideoColorSpace {
     std::optional<WebCore::PlatformVideoColorPrimaries> primaries;
     std::optional<WebCore::PlatformVideoTransferCharacteristics> transfer;
     std::optional<WebCore::PlatformVideoMatrixCoefficients> matrix;
@@ -4263,7 +4263,7 @@ struct WebCore::CSSValueKey {
     bool useElevatedUserInterfaceLevel;
 };
 
-struct WebCore::VideoFrameTimeMetadata {
+[Swift] struct WebCore::VideoFrameTimeMetadata {
     std::optional<double> processingDuration;
     std::optional<Seconds> captureTime;
     std::optional<Seconds> receiveTime;
