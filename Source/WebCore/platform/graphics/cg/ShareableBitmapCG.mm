@@ -118,28 +118,9 @@ RefPtr<ShareableBitmap> ShareableBitmap::createFromImagePixels(const NativeImage
 
 std::unique_ptr<GraphicsContext> ShareableBitmap::createGraphicsContext()
 {
-    unsigned bitsPerComponent = m_configuration.bitsPerComponent();
-    unsigned bytesPerRow = m_configuration.bytesPerRow();
-
-    ref(); // Balanced by deref in releaseBitmapContextData.
-
-    m_releaseBitmapContextDataCalled = false;
-    RetainPtr<CGContextRef> bitmapContext = adoptCF(CGBitmapContextCreateWithData(mutableSpan().data(), size().width(), size().height(), bitsPerComponent, bytesPerRow, protect(m_configuration.platformColorSpace()).get(), m_configuration.bitmapInfo(), releaseBitmapContextData, this));
-    if (!bitmapContext) {
-        // When CGBitmapContextCreateWithData fails and returns null, it will only
-        // call the release callback in some circumstances <rdar://82228446>. We
-        // work around this by recording whether it was called, and calling it
-        // ourselves if needed.
-        if (!m_releaseBitmapContextDataCalled)
-            releaseBitmapContextData(this, this->mutableSpan().data());
+    RetainPtr bitmapContext = adoptCF(swiftCreateCGContext(m_swiftState));
+    if (!bitmapContext)
         return nullptr;
-    }
-    ASSERT(!m_releaseBitmapContextDataCalled);
-
-    // We want the origin to be in the top left corner so we flip the backing store context.
-    CGContextTranslateCTM(bitmapContext.get(), 0, size().height());
-    CGContextScaleCTM(bitmapContext.get(), 1, -1);
-
     return makeUnique<GraphicsContextCG>(bitmapContext.get());
 }
 
@@ -150,54 +131,13 @@ void ShareableBitmap::paint(GraphicsContext& context, const IntPoint& destinatio
 
 void ShareableBitmap::paint(GraphicsContext& context, float scaleFactor, const IntPoint& destination, const IntRect& source)
 {
-    RetainPtr cgContext = context.platformContext();
-    CGContextSaveGState(cgContext.get());
-
-    CGContextClipToRect(cgContext.get(), CGRectMake(destination.x(), destination.y(), source.width(), source.height()));
-    CGContextScaleCTM(cgContext.get(), 1, -1);
-
     RetainPtr image = createPlatformImage();
-    CGFloat imageHeight = CGImageGetHeight(image.get()) / scaleFactor;
-    CGFloat imageWidth = CGImageGetWidth(image.get()) / scaleFactor;
-
-    CGFloat destX = destination.x() - source.x();
-    CGFloat destY = -imageHeight - destination.y() + source.y();
-
-    CGContextDrawImage(cgContext.get(), CGRectMake(destX, destY, imageWidth, imageHeight), image.get());
-
-    CGContextRestoreGState(cgContext.get());
+    swiftPaint(image.get(), protect(context.platformContext()).get(), scaleFactor, CGPointMake(destination.x(), destination.y()), CGRectMake(source.x(), source.y(), source.width(), source.height()));
 }
 
 PlatformImagePtr ShareableBitmap::createBasePlatformImage(BackingStoreCopy copyBehavior, ShouldInterpolate shouldInterpolate)
 {
-    verifyImageBufferIsBigEnough(span());
-
-    RetainPtr<CGDataProvider> dataProvider;
-    if (copyBehavior == CopyBackingStore) {
-        auto data = span();
-        dataProvider = adoptCF(CGDataProviderCreateWithCopyOfData(data.data(), data.size()));
-        if (!dataProvider)
-            return nullptr;
-    } else {
-        dataProvider = adoptCF(CGDataProviderCreateWithData(this, mutableSpan().data(), sizeInBytes(), [](void* typelessBitmap, const void* typelessData, size_t) {
-            auto* bitmap = static_cast<ShareableBitmap*>(typelessBitmap);
-            ASSERT_UNUSED(typelessData, bitmap->span().data() == typelessData);
-            bitmap->deref();
-        }));
-        if (!dataProvider)
-            return nullptr;
-        ref(); // Balanced by deref above.
-    }
-
-    unsigned bitsPerComponent = m_configuration.bitsPerComponent();
-    unsigned bitsPerPixel = m_configuration.bytesPerPixel() * 8;
-    unsigned bytesPerRow = m_configuration.bytesPerRow();
-
-#if HAVE(SUPPORT_HDR_DISPLAY_APIS)
-    if (m_configuration.baseImageHeadroom() > Headroom::None)
-        return adoptCF(CGImageCreateWithContentHeadroom(m_configuration.baseImageHeadroom(), size().width(), size().height(), bitsPerComponent, bitsPerPixel, bytesPerRow, protect(m_configuration.platformColorSpace()).get(), m_configuration.bitmapInfo(), dataProvider.get(), 0, shouldInterpolate == ShouldInterpolate::Yes, kCGRenderingIntentDefault));
-#endif
-    return adoptCF(CGImageCreate(size().width(), size().height(), bitsPerComponent, bitsPerPixel, bytesPerRow, protect(m_configuration.platformColorSpace()).get(), m_configuration.bitmapInfo(), dataProvider.get(), 0, shouldInterpolate == ShouldInterpolate::Yes, kCGRenderingIntentDefault));
+    return adoptCF(swiftCreateBasePlatformImage(m_swiftState, copyBehavior == CopyBackingStore, shouldInterpolate == ShouldInterpolate::Yes));
 }
 
 PlatformImagePtr ShareableBitmap::createPlatformImage(BackingStoreCopy copyBehavior, ShouldInterpolate shouldInterpolate)
@@ -220,14 +160,6 @@ PlatformImagePtr ShareableBitmap::createPlatformImage(BackingStoreCopy copyBehav
 #endif
 
     return outputPlatformImage;
-}
-
-void ShareableBitmap::releaseBitmapContextData(void* typelessBitmap, void* typelessData)
-{
-    ShareableBitmap* bitmap = static_cast<ShareableBitmap*>(typelessBitmap);
-    ASSERT_UNUSED(typelessData, bitmap->span().data() == typelessData);
-    bitmap->m_releaseBitmapContextDataCalled = true;
-    bitmap->deref(); // Balanced by ref in createGraphicsContext.
 }
 
 RefPtr<NativeImage> ShareableBitmap::createNativeImage()
