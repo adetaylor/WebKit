@@ -124,7 +124,7 @@ extension WebKit.RemoteCDMFactoryProxy {
     private var state: RemoteCDMFactoryState {
         // Safety: m_swiftState is a retained RemoteCDMFactoryState from create() to the destructor, and nothing else
         // changes it.
-        unsafe Unmanaged<RemoteCDMFactoryState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
+        unsafe Unmanaged<RemoteCDMFactoryState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
     }
 
     @cxx

@@ -118,6 +118,9 @@ private:
     uintptr_t createSwiftState();
     static void destroySwiftState(uintptr_t);
 
+    // m_swiftState, for Swift, which can only read it.
+    uintptr_t swiftState() const { return m_swiftState; }
+
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
     HashMap<RemoteCDMInstanceIdentifier, Ref<WebCore::CDMInstance>> m_cdmInstances;
     HashMap<RemoteCDMInstanceIdentifier, Ref<RemoteCDMInstanceClient>> m_instanceClients;
@@ -126,7 +129,7 @@ private:
     mutable RefPtr<Logger> m_logger;
 #endif
     // A retained reference to the Swift state, as an address, from create() to the destructor.
-    uintptr_t m_swiftState { 0 };
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // A C++ CDM, which its instances and sessions also use.
