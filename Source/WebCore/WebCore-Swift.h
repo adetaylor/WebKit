@@ -87,6 +87,12 @@
 #include "ScrollPhysicsTypes.h"
 #include "ScrollbarsControllerMacTypes.h"
 #include "ScrollerPairMacTypes.h"
+// ScrollingTree.swift's and ScrollingTreeLatchingController.swift's types, which ScrollingTreeScrollPhysicsClient.h
+// includes only with the scrolling thread.
+#include "ScrollingCoordinatorTypes.h"
+#include "ScrollingStateNode.h"
+#include "ScrollingTree.h"
+#include "ScrollingTreeFrameHostingNode.h"
 #include "ScrollingTreeScrollPhysicsClient.h"
 #include "AffineTransform.h"
 #include "AudioCaptureControllerHandle.h"
@@ -148,5 +154,6 @@
 #include "StyleTransformFunction.h"
 #include "StyleTransformList.h"
 #include "StyleTransformSwiftTypes.h"
+#include "ScrollingTreeScrollingNode.h"
 
 #include "WebCoreSwift-Generated.h"
