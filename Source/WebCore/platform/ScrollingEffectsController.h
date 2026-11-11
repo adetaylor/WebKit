@@ -155,19 +155,6 @@ private:
 #if PLATFORM(MAC)
 #endif
 
-#if ENABLE(KINETIC_SCROLLING) && !PLATFORM(MAC)
-    // Returns true if handled.
-    bool processWheelEventForKineticScrolling(const PlatformWheelEvent&);
-
-    Deque<PlatformWheelEvent> m_scrollHistory;
-
-    struct {
-        MonotonicTime startTime;
-        FloatPoint initialOffset;
-        FloatSize initialVelocity;
-    } m_previousKineticAnimationInfo;
-#endif
-
 #if PLATFORM(MAC)
 
 
