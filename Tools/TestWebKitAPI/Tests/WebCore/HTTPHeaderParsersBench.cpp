@@ -72,7 +72,7 @@ static void runShape(ASCIILiteral shape, const Inputs& inputs, uint64_t bytesPer
 TEST(HTTPHeaderParsersBench, MIMETypes)
 {
     auto inputs = HTTPHeaderParsersBench::makeMIMETypeInputs();
-    HTTPHeaderParsersBench::runShape("MIMETypes"_s, inputs, inputs.bytes, 1000, 0x48F53185034B3CC7ULL, [](auto& shapeInputs, auto& sink) {
+    HTTPHeaderParsersBench::runShape("MIMETypes"_s, inputs, inputs.bytes, 1000, 0xF631247756452E47ULL, [](auto& shapeInputs, auto& sink) {
         HTTPHeaderParsersBench::runMIMETypesPass(shapeInputs, sink);
     });
 }
