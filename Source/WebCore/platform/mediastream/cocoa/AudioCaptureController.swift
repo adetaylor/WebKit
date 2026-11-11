@@ -1568,6 +1568,31 @@ extension WebCore.AudioCaptureControllerHandle {
 
     @cxx
     @implementation
+    static func microphoneSettings(_ volume: Double, _ sampleRate: Int32, _ echoCancellation: Bool) -> WebCore.CaptureSettingsValues {
+        var settings = WebCore.CaptureSettingsValues()
+        settings.volume = volume
+        settings.sampleRate = UInt32(truncatingIfNeeded: sampleRate)
+        settings.echoCancellation = echoCancellation
+        // RealtimeMediaSourceSupportedConstraints's device ID, group ID, echo cancellation, volume and sample rate.
+        settings.supportedConstraints = (1 << 9) | (1 << 10) | (1 << 8) | (1 << 5) | (1 << 6)
+        return settings
+    }
+
+    @cxx
+    @implementation
+    static func microphoneCapabilities(_ settingsSupportedConstraints: UInt32, _ echoCancellation: UInt8, _ sampleRateMin: Int32, _ sampleRateMax: Int32) -> WebCore.CaptureCapabilityValues {
+        var capabilities = WebCore.CaptureCapabilityValues()
+        capabilities.supportedConstraints = settingsSupportedConstraints
+        capabilities.echoCancellation = echoCancellation
+        capabilities.volumeMin = 0
+        capabilities.volumeMax = 1
+        capabilities.sampleRateMin = sampleRateMin
+        capabilities.sampleRateMax = sampleRateMax
+        return capabilities
+    }
+
+    @cxx
+    @implementation
     static func create(_ canEnableEchoCancellation: Bool) -> UInt64 {
         MainActor.assumeIsolated {
             let identifier = nextAudioUnitIdentifier()

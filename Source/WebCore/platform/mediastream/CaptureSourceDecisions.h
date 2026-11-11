@@ -161,6 +161,8 @@ class RealtimeMediaSourceSettings;
 class RealtimeMediaSourceSupportedConstraints;
 
 uint32_t captureSupportedConstraintBits(const RealtimeMediaSourceSupportedConstraints&);
+WEBCORE_EXPORT CaptureSettingsValues captureSettingsValues(const RealtimeMediaSourceSettings&);
+WEBCORE_EXPORT CaptureCapabilityValues captureCapabilityValues(const RealtimeMediaSourceCapabilities&);
 
 // The settings and capabilities of the values that CaptureSource.swift's models make, with the strings of the facade.
 RealtimeMediaSourceSettings captureSettings(const CaptureSettingsValues&, const String& label, const String& deviceId, const String& groupId);

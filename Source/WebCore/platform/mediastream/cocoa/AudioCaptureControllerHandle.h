@@ -30,6 +30,7 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include <CoreAudio/CoreAudioTypes.h>
+#include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/CARingBufferSwiftBridge.h>
 #include <cstdint>
 #include <wtf/SwiftBridging.h>
@@ -106,6 +107,11 @@ public:
     // with the volume applied, and through the C++ observers.
     void attachSink(uint64_t sinkIdentifier, bool) const;
     void setMicrophoneOptions(float gain, bool appliesGain, bool deliversToCxx, bool armFirstQuantum) const;
+
+    // CoreAudioCaptureSource's settings, and its capabilities with this echo cancellation (a
+    // RealtimeMediaSourceCapabilities::EchoCancellation) and sample rate range.
+    static CaptureSettingsValues microphoneSettings(double volume, int32_t sampleRate, bool echoCancellation);
+    static CaptureCapabilityValues microphoneCapabilities(uint32_t settingsSupportedConstraints, uint8_t echoCancellation, int32_t sampleRateMin, int32_t sampleRateMax);
 
 private:
     uint64_t m_identifier { 0 };

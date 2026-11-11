@@ -29,34 +29,113 @@
 
 #include "Connection.h"
 #include "MessageReceiver.h"
-#include "RemoteVideoFrameObjectHeap.h"
-#include "UserMediaCaptureManager.h"
+#include "SharedPreferencesForWebProcess.h"
 #include <WebCore/CaptureDevice.h>
+#include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/IntDegrees.h>
-#include <WebCore/OrientationNotifier.h>
+#include <WebCore/PageIdentifier.h>
 #include <WebCore/ProcessIdentity.h>
-#include <WebCore/RealtimeMediaSource.h>
-#include <WebCore/RealtimeMediaSourceIdentifier.h>
-#include <pal/spi/cocoa/TCCSPI.h>
+#include <WebCore/VideoFrame.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
 
-namespace WebKit {
-class UserMediaCaptureManagerProxy;
+typedef struct __IOSurface *IOSurfaceRef;
+
+namespace IPC {
+template<typename> class CxxDecodedArgument;
 }
 
 namespace WebCore {
-class PlatformMediaSessionManager;
-class SharedMemory;
-struct VideoPresetData;
+class CaptureConstraints;
+struct MediaConstraints;
+struct MediaDeviceHashSalts;
 }
 
 namespace WebKit {
 
-class WebProcessProxy;
-class UserMediaCaptureManagerProxySourceProxy;
+class RemoteVideoFrameObjectHeap;
+class UserMediaCaptureMicrophones;
 
-class UserMediaCaptureManagerProxy : public IPC::MessageReceiver, public RefCounted<UserMediaCaptureManagerProxy> {
+// A frame published to the web process: its reference in the frame heap, or, without a heap, nothing, since the frame's
+// pixel buffer is sent instead (userMediaCaptureFrameSurface()); and RemoteVideoFrameProxy::properties().
+struct UserMediaCapturePublishedFrame {
+    uint64_t identifier { 0 };
+    uint64_t version { 0 };
+    int64_t timeValue { 0 };
+    uint32_t timeScale { 0 };
+    uint8_t timeFlags { 0 };
+    uint16_t rotation { 0 };
+    int32_t width { 0 };
+    int32_t height { 0 };
+    uint32_t pixelFormat { 0 };
+    uint8_t primaries { 0 };
+    uint8_t transfer { 0 };
+    uint8_t matrix { 0 };
+    uint8_t chromaLocation { 0 };
+    bool hasReference { false };
+    bool isMirrored { false };
+    bool hasPrimaries { false };
+    bool hasTransfer { false };
+    bool hasMatrix { false };
+    bool hasFullRange { false };
+    bool fullRange { false };
+    bool hasChromaLocation { false };
+    bool shouldIgnoreAlpha { false };
+};
+
+// Publishes a source's frames, on the thread the source produces them on.
+class UserMediaCaptureFramePublisher final : public ThreadSafeRefCounted<UserMediaCaptureFramePublisher> {
+public:
+    static Ref<UserMediaCaptureFramePublisher> create(RefPtr<RemoteVideoFrameObjectHeap>&&, WebCore::ProcessIdentity&&);
+    ~UserMediaCaptureFramePublisher();
+
+    // Tags the frame with the web process's identity, and adds it to the frame heap if there is one.
+    UserMediaCapturePublishedFrame publish(WebCore::VideoFrame&);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCounted<UserMediaCaptureFramePublisher>::ref(); }
+    void deref() const { ThreadSafeRefCounted<UserMediaCaptureFramePublisher>::deref(); }
+#endif
+
+private:
+    UserMediaCaptureFramePublisher(RefPtr<RemoteVideoFrameObjectHeap>&&, WebCore::ProcessIdentity&&);
+
+    const RefPtr<RemoteVideoFrameObjectHeap> m_heap;
+    const WebCore::ProcessIdentity m_resourceOwner;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// The IOSurface of a frame's pixel buffer, which the frame keeps alive, for a frame sent without a frame heap.
+IOSurfaceRef WTF_NULLABLE userMediaCaptureFrameSurface(WebCore::VideoFrame&) CF_RETURNS_NOT_RETAINED;
+
+// What applyCaptureEnvironment() found missing.
+enum class UserMediaCaptureEnvironmentFailure : uint8_t {
+    None,
+    NoAttribution,
+    NoMediaEnvironment,
+};
+
+// A microphone that the GPU process captures for the web process, which UserMediaCaptureMicrophones holds until the
+// microphone's unit is Swift: the result of creating it.
+struct UserMediaCaptureMicrophoneResult {
+    String errorMessage;
+    String label;
+    String deviceId;
+    String groupId;
+    String capabilityDeviceId;
+    String capabilityGroupId;
+    WebCore::CaptureSettingsValues settings;
+    WebCore::CaptureCapabilityValues capabilities;
+    uint8_t denialReason { 0 };
+    uint8_t invalidConstraint { 0 };
+};
+
+// Receives one web process's capture messages. Its Swift state (UserMediaCaptureManagerProxy.swift), which m_swiftState
+// holds, handles the messages and owns the sources; this does what the GPU process's C++ runtime does for them.
+class SWIFT_PRIVATE_FILEID("WebKit/UserMediaCaptureManagerProxy.swift") UserMediaCaptureManagerProxy : public IPC::MessageReceiver, public RefCounted<UserMediaCaptureManagerProxy> {
     WTF_MAKE_TZONE_ALLOCATED(UserMediaCaptureManagerProxy);
 public:
     class ConnectionProxy {
@@ -91,19 +170,43 @@ public:
     void ref() const final { RefCounted::ref(); }
     void deref() const final { RefCounted::deref(); }
 
+    // Implemented in Swift.
     void close();
     void clear();
-
     void setOrientation(WebCore::IntDegrees);
-    void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
+    void swiftRotationAngleForCaptureDeviceChanged(String persistentID, uint16_t rotation);
+    bool hasSourceProxies() const;
+    void swiftReapplyCaptureEnvironment(uint64_t pageIdentifier);
+
+    void rotationAngleForCaptureDeviceChanged(const String& persistentID, WebCore::VideoFrameRotation rotation) { swiftRotationAngleForCaptureDeviceChanged(persistentID, static_cast<uint16_t>(rotation)); }
+    void reapplyCaptureEnvironment(WebCore::PageIdentifier pageIdentifier) { swiftReapplyCaptureEnvironment(pageIdentifier.toUInt64()); }
 
     void didReceiveMessageFromGPUProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
-    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
-
-    NODELETE bool hasSourceProxies() const;
-    void reapplyCaptureEnvironment(WebCore::PageIdentifier);
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
+
+    // For the Swift state: what the GPU process's runtime does for capture.
+    bool willStartCapture(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier) const;
+    UserMediaCaptureEnvironmentFailure applyCaptureEnvironment(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
+    void reapplyCaptureEnvironmentForSource(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
+    void startProducingData(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
+    void startMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID);
+    void stopMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID);
+    UserMediaCaptureFramePublisher* WTF_NONNULL framePublisher(bool usesFrameHeap) SWIFT_RETURNS_RETAINED;
+    static WebCore::CaptureConstraints* WTF_NULLABLE takeConstraints(IPC::CxxDecodedArgument<WebCore::MediaConstraints>&) SWIFT_RETURNS_RETAINED;
+
+    // For the Swift state: the microphones (UserMediaCaptureMicrophones), by source identifier.
+    UserMediaCaptureMicrophoneResult createMicrophone(uint64_t identifier, const String& persistentID, WebCore::CaptureDevice::DeviceType, const String& label, const String& groupId, bool isDefault, bool isEphemeral, const String& persistentDeviceSalt, const String& ephemeralDeviceSalt, IPC::CxxDecodedArgument<WebCore::MediaConstraints>&, uint64_t pageIdentifier);
+    void microphoneStart(uint64_t identifier, uint64_t pageIdentifier);
+    void microphoneStop(uint64_t identifier);
+    void microphoneEnd(uint64_t identifier);
+    void microphoneRemove(uint64_t identifier);
+    void microphoneClone(uint64_t identifier, uint64_t cloneIdentifier, uint64_t pageIdentifier);
+    void microphoneApplyConstraints(uint64_t identifier, IPC::CxxDecodedArgument<WebCore::MediaConstraints>&);
+    void microphoneSetIsInBackground(uint64_t identifier, bool);
+    void microphoneReapplyCaptureEnvironment(uint64_t pageIdentifier);
+    void microphoneClear();
 
 private:
     explicit UserMediaCaptureManagerProxy(UniqueRef<ConnectionProxy>&&);
@@ -111,50 +214,15 @@ private:
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
 
-    using CreateSourceCallback = CompletionHandler<void(const WebCore::CaptureSourceError&, const WebCore::RealtimeMediaSourceSettings&, const WebCore::RealtimeMediaSourceCapabilities&)>;
-    void createMediaSourceForCaptureDeviceWithConstraints(WebCore::RealtimeMediaSourceIdentifier, const WebCore::CaptureDevice& deviceID, WebCore::MediaDeviceHashSalts&&, WebCore::MediaConstraints&&, bool shouldUseGPUProcessRemoteFrames, WebCore::PageIdentifier, CreateSourceCallback&&);
-    void startProducingData(WebCore::RealtimeMediaSourceIdentifier, WebCore::PageIdentifier);
-    enum class CaptureEnvironmentFailure : bool { NoAttribution, NoMediaEnvironment };
-    std::optional<CaptureEnvironmentFailure> applyCaptureEnvironment(WebCore::CaptureDevice::DeviceType, WebCore::PageIdentifier);
-    void stopProducingData(WebCore::RealtimeMediaSourceIdentifier);
-    void removeSource(WebCore::RealtimeMediaSourceIdentifier);
-    void capabilities(WebCore::RealtimeMediaSourceIdentifier, CompletionHandler<void(WebCore::RealtimeMediaSourceCapabilities&&)>&&);
-    void applyConstraints(WebCore::RealtimeMediaSourceIdentifier, WebCore::MediaConstraints&&);
-    void clone(WebCore::RealtimeMediaSourceIdentifier clonedID, WebCore::RealtimeMediaSourceIdentifier cloneID, WebCore::PageIdentifier);
-    void endProducingData(WebCore::RealtimeMediaSourceIdentifier);
-    void setShouldApplyRotation(WebCore::RealtimeMediaSourceIdentifier);
-    void setIsInBackground(WebCore::RealtimeMediaSourceIdentifier, bool);
-    void isPowerEfficient(WebCore::RealtimeMediaSourceIdentifier, CompletionHandler<void(bool)>&&);
+    // Implemented in Swift.
+    SWIFT_MAIN_ACTOR uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
 
-    using TakePhotoCallback = CompletionHandler<void(std::expected<std::pair<Vector<uint8_t>, String>, String>&&)>;
-    void takePhoto(WebCore::RealtimeMediaSourceIdentifier, WebCore::PhotoSettings&&, TakePhotoCallback&&);
-
-    using GetPhotoCapabilitiesCallback = CompletionHandler<void(std::expected<WebCore::PhotoCapabilities, String>&&)>;
-    void getPhotoCapabilities(WebCore::RealtimeMediaSourceIdentifier, GetPhotoCapabilitiesCallback&&);
-
-    using GetPhotoSettingsCallback = CompletionHandler<void(std::expected<WebCore::PhotoSettings, String>&&)>;
-    void getPhotoSettings(WebCore::RealtimeMediaSourceIdentifier, GetPhotoSettingsCallback&&);
-
-    WebCore::CaptureSourceOrError createMicrophoneSource(const WebCore::CaptureDevice&, WebCore::MediaDeviceHashSalts&&, const WebCore::MediaConstraints*, WebCore::PageIdentifier);
-    WebCore::CaptureSourceOrError createCameraSource(const WebCore::CaptureDevice&, WebCore::MediaDeviceHashSalts&&, WebCore::PageIdentifier);
-
-    using SerialAction = Function<Ref<GenericPromise>()>;
-    void queueAndProcessSerialAction(SerialAction&&);
-
-    friend class UserMediaCaptureManagerProxySourceProxy;
-    HashMap<WebCore::RealtimeMediaSourceIdentifier, Ref<UserMediaCaptureManagerProxySourceProxy>> m_proxies;
     const UniqueRef<ConnectionProxy> m_connectionProxy;
-    WebCore::OrientationNotifier m_orientationNotifier { 0 };
-    const Ref<GenericPromise> m_pendingAction { GenericPromise::createAndResolve() };
-
-    struct PageSources {
-#if PLATFORM(IOS_FAMILY)
-        ThreadSafeWeakPtr<WebCore::RealtimeMediaSource> microphoneSource;
-#endif
-        ThreadSafeWeakHashSet<WebCore::RealtimeMediaSource> cameraSources;
-    };
-    HashMap<WebCore::PageIdentifier, PageSources> m_pageSources;
-};
+    const std::unique_ptr<UserMediaCaptureMicrophones> m_microphones;
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    uintptr_t m_swiftState { 0 };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 }
 

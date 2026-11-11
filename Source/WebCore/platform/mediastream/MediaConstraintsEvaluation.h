@@ -31,6 +31,8 @@
 #include <WebCore/MediaConstraintsSwiftBridge.h>
 #include <optional>
 #include <span>
+#include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
@@ -79,6 +81,39 @@ WEBCORE_EXPORT MediaConstraintsSourceNeeds mediaConstraintsSourceNeeds(const Med
 WEBCORE_EXPORT MediaConstraintsCapabilities mediaConstraintsCapabilities(const RealtimeMediaSourceCapabilities&);
 WEBCORE_EXPORT MediaConstraintsEvaluation evaluateMediaConstraints(const MediaConstraints&, const MediaConstraintsSourceDescription&, MediaConstraintsEvaluationPurpose);
 WEBCORE_EXPORT MediaVideoPresetMatch bestVideoPresetMatch(const MediaVideoPresetTable&, const MediaVideoPresetSearch&);
+
+// The constraints that a web process sends for a capture source of the GPU process (CaptureSource.swift), which Swift
+// holds and hands back to the C++ that evaluates them.
+class CaptureConstraints final : public ThreadSafeRefCounted<CaptureConstraints> {
+public:
+    WEBCORE_EXPORT static CaptureConstraints* WTF_NONNULL create(MediaConstraints&&) SWIFT_RETURNS_RETAINED;
+    WEBCORE_EXPORT ~CaptureConstraints();
+
+    const MediaConstraints& constraints() const { return *m_constraints; }
+
+    // Whether there are any (MediaConstraints::isValid).
+    WEBCORE_EXPORT bool isValid() const;
+    // Whether the mandatory and advanced constraint sets are each well formed, as a web process must send them.
+    WEBCORE_EXPORT bool isWellFormed() const;
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCounted<CaptureConstraints>::ref(); }
+    void deref() const { ThreadSafeRefCounted<CaptureConstraints>::deref(); }
+#endif
+
+private:
+    explicit CaptureConstraints(MediaConstraints&&);
+
+    const std::unique_ptr<MediaConstraints> m_constraints;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// Whether the mandatory and advanced constraint sets are each well formed, as a web process must send them.
+WEBCORE_EXPORT bool areCaptureConstraintsWellFormed(const MediaConstraints&);
+
+// evaluateMediaConstraints(), for a capture source of the GPU process, which describes itself with plain values.
+WEBCORE_EXPORT MediaConstraintsEvaluation evaluateCaptureConstraints(const CaptureConstraints&, const String& hashedId, const String& groupId, const CaptureConstraintsSourceValues&, NOESCAPE std::span<const MediaVideoPresetValues>, NOESCAPE std::span<const MediaFrameRateRangeValues>, MediaConstraintsEvaluationPurpose);
+WEBCORE_EXPORT MediaVideoPresetMatch bestCaptureVideoPreset(NOESCAPE std::span<const MediaVideoPresetValues>, NOESCAPE std::span<const MediaFrameRateRangeValues>, const MediaVideoPresetSearch&);
 
 } // namespace WebCore
 

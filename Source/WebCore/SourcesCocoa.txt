@@ -629,6 +629,7 @@ platform/mediastream/cocoa/AVVideoCaptureSource.mm @nonARC @no-unify-when(bundle
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererCocoa.cpp
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererInternalUnit.cpp
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.cpp
+platform/mediastream/cocoa/CaptureSourceSupport.mm @nonARC
 platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.cpp
 platform/mediastream/cocoa/CoreAudioCaptureSource.cpp
 platform/mediastream/cocoa/CoreAudioCaptureUnit.cpp

@@ -96,6 +96,68 @@ static Vector<Mode> modes(uint8_t bits)
     return result;
 }
 
+template<typename Mode>
+static uint8_t modeBits(const Vector<Mode>& modes)
+{
+    uint8_t bits = 0;
+    for (auto mode : modes)
+        bits |= 1 << static_cast<uint8_t>(mode);
+    return bits;
+}
+
+CaptureSettingsValues captureSettingsValues(const RealtimeMediaSourceSettings& settings)
+{
+    CaptureSettingsValues values;
+    values.volume = settings.volume();
+    values.zoom = settings.zoom();
+    values.frameRate = settings.frameRate();
+    values.width = settings.width();
+    values.height = settings.height();
+    values.sampleRate = settings.sampleRate();
+    values.sampleSize = settings.sampleSize();
+    values.supportedConstraints = captureSupportedConstraintBits(settings.supportedConstraints());
+    values.facingMode = static_cast<uint8_t>(settings.facingMode());
+    values.displaySurface = static_cast<uint8_t>(settings.displaySurface());
+    values.whiteBalanceMode = static_cast<uint8_t>(settings.whiteBalanceMode());
+    values.echoCancellation = settings.echoCancellation();
+    values.logicalSurface = settings.logicalSurface();
+    values.torch = settings.torch();
+    values.backgroundBlur = settings.backgroundBlur();
+    values.powerEfficient = settings.powerEfficient();
+    return values;
+}
+
+CaptureCapabilityValues captureCapabilityValues(const RealtimeMediaSourceCapabilities& capabilities)
+{
+    CaptureCapabilityValues values;
+    values.aspectRatioMin = capabilities.aspectRatio().min();
+    values.aspectRatioMax = capabilities.aspectRatio().max();
+    values.frameRateMin = capabilities.frameRate().min();
+    values.frameRateMax = capabilities.frameRate().max();
+    values.volumeMin = capabilities.volume().min();
+    values.volumeMax = capabilities.volume().max();
+    values.focusDistanceMin = capabilities.focusDistance().min();
+    values.focusDistanceMax = capabilities.focusDistance().max();
+    values.zoomMin = capabilities.zoom().min();
+    values.zoomMax = capabilities.zoom().max();
+    values.widthMin = capabilities.width().min();
+    values.widthMax = capabilities.width().max();
+    values.heightMin = capabilities.height().min();
+    values.heightMax = capabilities.height().max();
+    values.sampleRateMin = capabilities.sampleRate().min();
+    values.sampleRateMax = capabilities.sampleRate().max();
+    values.sampleSizeMin = capabilities.sampleSize().min();
+    values.sampleSizeMax = capabilities.sampleSize().max();
+    values.supportedConstraints = captureSupportedConstraintBits(capabilities.supportedConstraints());
+    values.facingModes = modeBits(capabilities.facingMode());
+    values.whiteBalanceModes = modeBits(capabilities.whiteBalanceModes());
+    values.echoCancellation = static_cast<uint8_t>(capabilities.echoCancellation());
+    values.backgroundBlur = static_cast<uint8_t>(capabilities.backgroundBlur());
+    values.torch = capabilities.torch();
+    values.powerEfficient = capabilities.powerEfficient();
+    return values;
+}
+
 RealtimeMediaSourceSettings captureSettings(const CaptureSettingsValues& values, const String& label, const String& deviceId, const String& groupId)
 {
     return {

@@ -40,6 +40,9 @@ import Dispatch
 import Foundation
 import ImageIO
 import Synchronization
+import WebCore_Private.Core.CaptureSourceDecisions
+import WebCore_Private.Core.CaptureSourceSupport
+import WebCore_Private.Core.MockVideoSettings
 import WebCore_Private.Core.MockVideoSourceHandle
 
 // MARK: Drawing
@@ -671,5 +674,353 @@ extension WebCore.MockVideoSourceHandle {
     }
 }
 
+// MARK: Swift capture source
+
+// VideoFrameRotation's values, and MockRealtimeVideoSource::orientationChanged()'s rotation for an orientation.
+private let mockRotationNone: UInt16 = 0
+private let mockRotationUpsideDown: UInt16 = 180
+private let mockRotationRight: UInt16 = 90
+private let mockRotationLeft: UInt16 = 270
+
+private func mockRotation(forOrientation orientation: Int32) -> UInt16? {
+    switch orientation {
+    case 0:
+        return mockRotationNone
+    case 90:
+        return mockRotationRight
+    case -90, 270:
+        return mockRotationLeft
+    case 180:
+        return mockRotationUpsideDown
+    default:
+        return nil
+    }
+}
+
+@MainActor
+private var mockCameraBackends: [ObjectIdentifier: () -> MockCameraBackend?] = [:]
+
+// What a mock camera's generator queue makes its frames with: a session, and the source's size and the frames' rotation,
+// as MockRealtimeVideoSourceMac::updateSampleBuffer() reads them.
+private final class MockCameraFrameMaker: Sendable {
+    private struct State: ~Copyable {
+        var session: WebCore.CaptureVideoFrameSession?
+        var width: Int32 = 0
+        var height: Int32 = 0
+        var rotation: UInt16 = 0
+    }
+
+    private let state = Mutex(State())
+
+    func setParameters(width: Int32, height: Int32, rotation: UInt16) {
+        state.withLock {
+            $0.width = width
+            $0.height = height
+            $0.rotation = rotation
+        }
+    }
+
+    func frame(_ image: CGImage, presentationTime: Double) -> CaptureFrame? {
+        state.withLock { state in
+            if state.session == nil {
+                state.session = WebCore.CaptureVideoFrameSession.create(true)
+            }
+            return state.session?.frameFromImage(image, presentationTime, WebCore.CaptureSourceSize(width: state.width, height: state.height), state.rotation).map { CaptureFrame($0) }
+        }
+    }
+}
+
+// A mock camera that a Swift capture source of the GPU process owns: what MockRealtimeVideoSource does for a camera.
+@MainActor
+final class MockCameraBackend: CaptureSourceBackend {
+    weak var source: CaptureSource? {
+        didSet {
+            frameTarget.set(source)
+            updateGeneratorState()
+        }
+    }
+
+    private let persistentID: Swift.String
+    private let device: WebCore.MockCameraDeviceValues
+    private let generator: MockVideoGenerator
+    private let frameTarget: CaptureSourceFrameTarget
+    private let frameMaker: MockCameraFrameMaker
+    private var preset: CapturePreset?
+    private var deviceOrientation = mockRotationNone
+    private var isUsingRotationAngleForHorizonLevelDisplayChanged = false
+    // Whether the source follows the device's orientation: a camera without a facing mode doesn't.
+    private var isMonitoringOrientation = false
+    private var hasBackgroundBlur: Bool
+
+    // The mock camera with this persistent ID, or the failure.
+    static func create(persistentID: Swift.String) -> Result<MockCameraBackend, CaptureSourceFailure> {
+        let device = WebCore.mockCameraDeviceValues(captureWTFString(persistentID))
+        guard device.found else {
+            return .failure(CaptureSourceFailure(message: "Unable to find mock camera device with given persistentID", denialReason: CaptureSourceFailure.permissionDenied))
+        }
+        guard !device.isInvalid else {
+            return .failure(CaptureSourceFailure(message: "Invalid mock camera device", denialReason: CaptureSourceFailure.permissionDenied))
+        }
+        return .success(MockCameraBackend(persistentID: persistentID, device: device))
+    }
+
+    private init(persistentID: Swift.String, device: WebCore.MockCameraDeviceValues) {
+        self.persistentID = persistentID
+        self.device = device
+        hasBackgroundBlur = device.hasBackgroundBlur
+        let frameTarget = CaptureSourceFrameTarget()
+        let frameMaker = MockCameraFrameMaker()
+        self.frameTarget = frameTarget
+        self.frameMaker = frameMaker
+        generator = MockVideoGenerator(state: MockVideoFrameState(device.description, WebCore.MockVideoSourceState())) { image, presentationTime in
+            guard let source = frameTarget.source else {
+                return 0
+            }
+            if let frame = frameMaker.frame(image, presentationTime: presentationTime) {
+                // MonotonicTime::now(), as MockRealtimeVideoSourceMac has it.
+                source.videoFrameAvailable(frame, captureTime: Double(DispatchTime.now().uptimeNanoseconds) / 1_000_000_000)
+            }
+            return source.frames.observedFrameRate
+        }
+        mockCameraBackends[ObjectIdentifier(self)] = { [weak self] in self }
+    }
+
+    isolated deinit {
+        mockCameraBackends.removeValue(forKey: ObjectIdentifier(self))
+        generator.invalidate()
+    }
+
+    // The source's starting frame rate and facing mode.
+    func initialize(_ source: CaptureSource) {
+        source.initialize(frameRate: device.defaultFrameRate, facingMode: CaptureFacingMode(rawValue: device.facingMode) ?? .unknown)
+        updateGeneratorState()
+    }
+
+    private var captureSize: WebCore.CaptureSourceSize {
+        if let preset {
+            return WebCore.CaptureSourceSize(width: preset.width, height: preset.height)
+        }
+        return source?.size ?? WebCore.CaptureSourceSize()
+    }
+
+    private func updateGeneratorState() {
+        guard let source else {
+            return
+        }
+        var state = WebCore.MockVideoSourceState()
+        state.facingMode = source.facingMode.rawValue
+        state.drawsContent = !source.muted || source.mutedForPhotoCapture
+        let captureSize = self.captureSize
+        state.captureWidth = captureSize.width
+        state.captureHeight = captureSize.height
+        let size = source.size
+        state.width = size.width
+        state.height = size.height
+        state.frameRate = source.frameRate
+        state.zoom = source.zoom
+        generator.updateFrameState {
+            $0.apply(state)
+        }
+        frameMaker.setParameters(width: size.width, height: size.height, rotation: deviceOrientation)
+    }
+
+    // MARK: CaptureSourceBackend
+
+    func startProducingData() {
+        updateGeneratorState()
+        generator.startProducingData(frameRate: source?.frameRate ?? 30)
+    }
+
+    func stopProducingData() {
+        generator.stopProducingData()
+        updateGeneratorState()
+    }
+
+    func settingsDidChange(_ flags: CaptureSettingsFlags) {
+        updateGeneratorState()
+    }
+
+    func settings() -> CaptureSettings {
+        guard let source else {
+            return CaptureSettings()
+        }
+        var inputs = WebCore.MockVideoSettingsInputs()
+        inputs.kind = .Camera
+        inputs.frameRate = source.frameRate
+        inputs.zoom = source.zoom
+        let size = source.size
+        inputs.width = size.width
+        inputs.height = size.height
+        inputs.deviceOrientation = deviceOrientation
+        inputs.facingMode = source.facingMode.rawValue
+        inputs.whiteBalanceMode = source.whiteBalanceMode.rawValue
+        inputs.torch = source.torch
+        inputs.isZoomSupported = source.presets().contains(where: \.isZoomSupported)
+        inputs.canBePowerEfficient = source.canBePowerEfficient
+        inputs.presetIsEfficient = inputs.canBePowerEfficient && (preset?.isEfficient ?? false)
+        inputs.hasWhiteBalanceModes = device.whiteBalanceModes != 0
+        inputs.hasTorch = device.hasTorch
+        inputs.hasBackgroundBlur = hasBackgroundBlur
+        return CaptureSettings(WebCore.MockVideoSettings.settings(inputs), label: source.name, deviceId: source.hashedID, groupId: source.hashedGroupID)
+    }
+
+    func capabilities() -> CaptureCapabilities {
+        guard let source else {
+            return CaptureCapabilities()
+        }
+        var inputs = WebCore.MockVideoCapabilityInputs()
+        inputs.kind = .Camera
+        inputs.settingsSupportedConstraints = settings().supportedConstraints.rawValue
+        source.updateVideoCapabilities(&inputs.ranges)
+        inputs.facingMode = device.facingMode
+        inputs.whiteBalanceModes = device.whiteBalanceModes
+        inputs.hasTorch = device.hasTorch
+        inputs.hasBackgroundBlur = hasBackgroundBlur
+        inputs.canBePowerEfficient = source.canBePowerEfficient
+        return CaptureCapabilities(WebCore.MockVideoSettings.capabilities(inputs), deviceId: source.hashedID, groupId: source.hashedGroupID)
+    }
+
+    func presets() -> [CapturePreset] {
+        let id = captureWTFString(persistentID)
+        return (0..<device.presetCount).map { index in
+            let values = WebCore.mockCameraPreset(id, index)
+            let ranges = (0..<values.frameRateRangeCount).map { rangeIndex in
+                let range = WebCore.mockCameraPresetFrameRateRange(id, index, rangeIndex)
+                return (minimum: range.minimum, maximum: range.maximum)
+            }
+            return CapturePreset(width: values.width, height: values.height, frameRateRanges: ranges, minZoom: values.minZoom, maxZoom: values.maxZoom, isEfficient: values.isEfficient, formatIndex: nil)
+        }
+    }
+
+    // MockRealtimeVideoSource::applyFrameRateAndZoomWithPreset().
+    func applyFrameRateAndZoom(frameRate: Double, zoom: Double, preset: CapturePreset?) -> Bool {
+        self.preset = preset
+        updateGeneratorState()
+        if source?.isProducingData ?? false {
+            generator.startTimer(frameRate: frameRate)
+        }
+        return true
+    }
+
+    func startApplyingConstraints() {
+        generator.configurationWillChange()
+    }
+
+    var videoFrameRotation: UInt16 {
+        deviceOrientation
+    }
+
+    var isPowerEfficient: Bool {
+        preset?.isEfficient ?? false
+    }
+
+    var canResizeVideoFrames: Bool {
+        true
+    }
+
+    func takePhoto(_ settings: CapturePhotoSettings, completion: @escaping @MainActor (Result<(Data, Swift.String), CaptureSourceFailure>) -> Void) {
+        let drawsContent = !(source?.muted ?? false) || (source?.mutedForPhotoCapture ?? false)
+        generator.takePhoto(drawsContent: drawsContent) { result in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    if case .png(let data) = result {
+                        completion(.success((data, "image/png")))
+                        return
+                    }
+                    completion(.failure(CaptureSourceFailure(message: result.errorMessage ?? "", denialReason: 0)))
+                }
+            }
+        }
+    }
+
+    func photoCapabilities() -> CapturePhotoCapabilities? {
+        let capabilities = self.capabilities()
+        var photoCapabilities = CapturePhotoCapabilities()
+        photoCapabilities.imageHeight = CaptureSettingsRange(max: Double(capabilities.height.max), min: Double(capabilities.height.min), step: 1)
+        photoCapabilities.imageWidth = CaptureSettingsRange(max: Double(capabilities.width.max), min: Double(capabilities.width.min), step: 1)
+        return photoCapabilities
+    }
+
+    func photoSettings() -> CapturePhotoSettings? {
+        let settings = self.settings()
+        let fillLightMode: CaptureFillLightMode? = device.hasTorch ? ((source?.torch ?? false) ? .flash : .off) : nil
+        return CapturePhotoSettings(fillLightMode: fillLightMode, imageHeight: Double(settings.height), imageWidth: Double(settings.width))
+    }
+
+    func monitorOrientation(_ orientation: Int32) {
+        guard device.facingMode != 0 else {
+            return
+        }
+        isMonitoringOrientation = true
+        orientationChanged(orientation)
+    }
+
+    func orientationChanged(_ orientation: Int32) {
+        if !isMonitoringOrientation || isUsingRotationAngleForHorizonLevelDisplayChanged {
+            return
+        }
+        guard let rotation = mockRotation(forOrientation: orientation), rotation != deviceOrientation else {
+            return
+        }
+        deviceOrientation = rotation
+        source?.notifySettingsDidChange([.width, .height])
+    }
+
+    func rotationAngleForHorizonLevelDisplayChanged(_ rotation: UInt16) {
+        isUsingRotationAngleForHorizonLevelDisplayChanged = true
+        if rotation == deviceOrientation {
+            return
+        }
+        deviceOrientation = rotation
+        source?.notifySettingsDidChange([.width, .height])
+    }
+
+    func delaySamples(_ seconds: Double) {
+        generator.delaySamples(seconds)
+    }
+
+    // MockRealtimeVideoSource::setIsInterrupted() and triggerCameraConfigurationChange().
+    fileprivate func setIsInterrupted(_ isInterrupted: Bool) {
+        guard let source, source.isProducingData else {
+            return
+        }
+        if isInterrupted {
+            generator.stopTimer()
+        } else {
+            generator.startTimer(frameRate: source.frameRate)
+        }
+        source.notifyMutedChange(isInterrupted)
+    }
+
+    fileprivate func triggerConfigurationChange() {
+        guard let source, source.isProducingData else {
+            return
+        }
+        hasBackgroundBlur.toggle()
+        source.configurationChanged()
+    }
+}
+
+extension WebCore.MockVideoSourceHandle {
+    @cxx
+    @implementation
+    static func setSwiftCamerasInterrupted(_ isInterrupted: Bool) {
+        MainActor.assumeIsolated {
+            for backend in mockCameraBackends.values.compactMap({ $0() }) {
+                backend.setIsInterrupted(isInterrupted)
+            }
+        }
+    }
+
+    @cxx
+    @implementation
+    static func triggerSwiftCameraConfigurationChange() {
+        MainActor.assumeIsolated {
+            for backend in mockCameraBackends.values.compactMap({ $0() }) {
+                backend.triggerConfigurationChange()
+            }
+        }
+    }
+}
 
 #endif

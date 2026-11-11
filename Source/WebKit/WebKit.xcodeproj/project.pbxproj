@@ -1733,7 +1733,9 @@
 		6557892C92BD46381365332E /* IPCSwiftStreamTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4617A992E8E49048237BAE2 /* IPCSwiftStreamTester.swift */; };
 		6954CC3CDAFC5D8F4C91FDA6 /* IPCSwiftWorkQueueTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27AE835B40CFBD421FD23B91 /* IPCSwiftWorkQueueTester.swift */; };
 		6C6AB760A6A0434568E19A43 /* LibWebRTCCodecsProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F454CC0B491A15CFDA886EB5 /* LibWebRTCCodecsProxyMessageReceiver.swift */; };
+		E21428E57A860D8DF772F617 /* UserMediaCaptureManagerProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6007A51DA034597E9D2E8D79 /* UserMediaCaptureManagerProxyMessageReceiver.swift */; };
 		5B856A272CB95206F80EC369 /* LibWebRTCCodecsProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8007191CE11D81698746D2C /* LibWebRTCCodecsProxy.swift */; };
+		0CC73B038D1A7177B6F22E0C /* UserMediaCaptureManagerProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D48D1B39324BC730E46B271 /* UserMediaCaptureManagerProxy.swift */; };
 		879D93787D70BB63AECE0390 /* RemoteVideoFrameObjectHeapMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3E65A131B6CC469FCD18D8 /* RemoteVideoFrameObjectHeapMessageReceiver.swift */; };
 		8333770672D9F3C1E3284F29 /* RemoteVideoFrameObjectHeap.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1453F34FC36BB6C7B6147A57 /* RemoteVideoFrameObjectHeap.swift */; };
 		5CF62B9628D4436A00C0EAE0 /* DaemonCoders.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CF62B9428D4436A00C0EAE0 /* DaemonCoders.h */; };
@@ -3543,6 +3545,7 @@
 		F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioDestinationManagerMessageReceiver.swift; sourceTree = "<group>"; };
 		B6D31E65568A0684046A40D0 /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioVideoRendererProxyManagerMessageReceiver.swift; sourceTree = "<group>"; };
 		F454CC0B491A15CFDA886EB5 /* LibWebRTCCodecsProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxyMessageReceiver.swift; sourceTree = "<group>"; };
+		6007A51DA034597E9D2E8D79 /* UserMediaCaptureManagerProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserMediaCaptureManagerProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		7C3E65A131B6CC469FCD18D8 /* RemoteVideoFrameObjectHeapMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteVideoFrameObjectHeapMessageReceiver.swift; sourceTree = "<group>"; };
 		B654E1DD41047ABBBB2A21C2 /* RemoteCDMSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMSwiftSupport.h; sourceTree = "<group>"; };
 		E9538C0D21E85A5BE9B865B9 /* RemoteCDMFactoryProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMFactoryProxy.swift; sourceTree = "<group>"; };
@@ -5926,6 +5929,7 @@
 		41E0A7C623B6397800561060 /* LibWebRTCCodecsProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LibWebRTCCodecsProxy.h; sourceTree = "<group>"; };
 		41E0A7C723B6397900561060 /* LibWebRTCCodecsProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = LibWebRTCCodecsProxy.messages.in; sourceTree = "<group>"; };
 		F8007191CE11D81698746D2C /* LibWebRTCCodecsProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxy.swift; sourceTree = "<group>"; };
+		0D48D1B39324BC730E46B271 /* UserMediaCaptureManagerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserMediaCaptureManagerProxy.swift; sourceTree = "<group>"; };
 		41E0A7C823B6397900561060 /* LibWebRTCCodecsProxy.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LibWebRTCCodecsProxy.mm; sourceTree = "<group>"; };
 		41E242DE26E0C8D6009A8C64 /* NetworkRTCUtilitiesCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkRTCUtilitiesCocoa.h; sourceTree = "<group>"; };
 		41E242DF26E0C904009A8C64 /* NetworkRTCUtilitiesCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NetworkRTCUtilitiesCocoa.mm; sourceTree = "<group>"; };
@@ -14194,6 +14198,7 @@
 				CD491B0B1E732E4D00009066 /* UserMediaCaptureManagerMessageReceiver.cpp */,
 				CD491B0C1E732E4D00009066 /* UserMediaCaptureManagerMessages.h */,
 				CD491B151E73525500009066 /* UserMediaCaptureManagerProxyMessageReceiver.cpp */,
+				6007A51DA034597E9D2E8D79 /* UserMediaCaptureManagerProxyMessageReceiver.swift */,
 				CD491B161E73525500009066 /* UserMediaCaptureManagerProxyMessages.h */,
 				3F418EF51887BD97002795FD /* VideoPresentationManagerMessageReceiver.cpp */,
 				3F418EF61887BD97002795FD /* VideoPresentationManagerMessages.h */,
@@ -14451,6 +14456,7 @@
 				41409FEC2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.cpp */,
 				41409FEB2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.h */,
 				41409FED2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.messages.in */,
+				0D48D1B39324BC730E46B271 /* UserMediaCaptureManagerProxy.swift */,
 			);
 			path = webrtc;
 			sourceTree = "<group>";
@@ -23104,6 +23110,8 @@
 				FA580B4D2DA64B5F005E4965 /* UnifiedSource179.cpp in Sources */,
 				FA580B3B2DA64B5F005E4965 /* UnifiedSource180.cpp in Sources */,
 				078B04442CF1149200B453A6 /* URLSchemeHandler.swift in Sources */,
+				0CC73B038D1A7177B6F22E0C /* UserMediaCaptureManagerProxy.swift in Sources */,
+				E21428E57A860D8DF772F617 /* UserMediaCaptureManagerProxyMessageReceiver.swift in Sources */,
 				A1B849392F3D9F02004256A1 /* VideoPresentationInterfaceAVKit.mm in Sources */,
 				52CDC5C62731DA0D00A3E3EB /* VirtualAuthenticatorManager.cpp in Sources */,
 				52F4B46A27E1197700FFD129 /* VirtualAuthenticatorUtils.mm in Sources */,

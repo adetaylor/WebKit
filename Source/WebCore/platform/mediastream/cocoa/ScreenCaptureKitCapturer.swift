@@ -619,7 +619,7 @@ final class ScreenCaptureKitCapturer: DisplayCapturer, ScreenCaptureSessionSourc
         }
 
         var frameSize = presentationSize(of: frame)
-        if shouldCropFrame(contentRect, frameSize), let croppedFrame = WebCore.displayCaptureSourceCopyCroppedFrame(identifier, frame, contentRect, frameSize) {
+        if shouldCropFrame(contentRect, frameSize), let croppedFrame = displayCroppedFrame(identifier, frame, contentRect, frameSize) {
             frame = croppedFrame
             self.frame = frame
             frameSize = presentationSize(of: frame)

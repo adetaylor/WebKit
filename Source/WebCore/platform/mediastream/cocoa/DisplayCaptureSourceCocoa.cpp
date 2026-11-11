@@ -156,48 +156,16 @@ DisplayCaptureSourceCocoa::~DisplayCaptureSourceCocoa()
 
 const RealtimeMediaSourceCapabilities& DisplayCaptureSourceCocoa::capabilities()
 {
-    if (!m_capabilities) {
-        RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
-
-        auto intrinsicSize = m_source.intrinsicSize();
-        if (intrinsicSize.width)
-            capabilities.setWidth({ 1, intrinsicSize.width });
-        if (intrinsicSize.height)
-            capabilities.setHeight({ 1, intrinsicSize.height });
-        capabilities.setFrameRate({ .01, 30.0 });
-        capabilities.setDeviceId(hashedId());
-
-        m_capabilities = WTF::move(capabilities);
-    }
+    if (!m_capabilities)
+        m_capabilities = captureCapabilities(m_source.capabilities(captureSupportedConstraintBits(settings().supportedConstraints())), hashedId(), { });
     return m_capabilities.value();
 }
 
 const RealtimeMediaSourceSettings& DisplayCaptureSourceCocoa::settings()
 {
     if (!m_currentSettings) {
-        RealtimeMediaSourceSettings settings;
-        settings.setFrameRate(frameRate());
-
         auto size = this->size();
-        settings.setWidth(size.width());
-        settings.setHeight(size.height());
-        settings.setDeviceId(hashedId());
-        settings.setLabel(name());
-
-        settings.setDisplaySurface(m_source.isWindow() ? DisplaySurfaceType::Window : DisplaySurfaceType::Monitor);
-        settings.setLogicalSurface(false);
-
-        RealtimeMediaSourceSupportedConstraints supportedConstraints;
-        supportedConstraints.setSupportsFrameRate(true);
-        supportedConstraints.setSupportsWidth(true);
-        supportedConstraints.setSupportsHeight(true);
-        supportedConstraints.setSupportsDeviceId(true);
-        supportedConstraints.setSupportsDisplaySurface(true);
-        supportedConstraints.setSupportsLogicalSurface(true);
-
-        settings.setSupportedConstraints(supportedConstraints);
-
-        m_currentSettings = WTF::move(settings);
+        m_currentSettings = captureSettings(m_source.settings(frameRate(), size.width(), size.height()), name(), hashedId(), { });
     }
     return m_currentSettings.value();
 }

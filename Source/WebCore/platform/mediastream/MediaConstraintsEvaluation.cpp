@@ -40,6 +40,7 @@
 #include "MediaConstraints.h"
 #include "RealtimeMediaSourceCapabilities.h"
 #include "RealtimeMediaSourceSettings.h"
+#include "RealtimeVideoCaptureSource.h"
 #include "WebCore-Swift.h"
 
 namespace WebCore {
@@ -281,6 +282,71 @@ MediaConstraintsSourceNeeds mediaConstraintsSourceNeeds(const MediaConstraints& 
         return set.facingMode() && !set.facingMode()->isEmpty();
     });
     return needs;
+}
+
+CaptureConstraints* CaptureConstraints::create(MediaConstraints&& constraints)
+{
+    return &adoptRef(*new CaptureConstraints(WTF::move(constraints))).leakRef();
+}
+
+CaptureConstraints::CaptureConstraints(MediaConstraints&& constraints)
+    : m_constraints(makeUniqueWithoutFastMallocCheck<MediaConstraints>(WTF::move(constraints)))
+{
+}
+
+CaptureConstraints::~CaptureConstraints() = default;
+
+bool CaptureConstraints::isValid() const
+{
+    return m_constraints->isValid;
+}
+
+bool CaptureConstraints::isWellFormed() const
+{
+    return areCaptureConstraintsWellFormed(*m_constraints);
+}
+
+bool areCaptureConstraintsWellFormed(const MediaConstraints& constraints)
+{
+    if (!constraints.mandatoryConstraints.isValid())
+        return false;
+    return std::ranges::all_of(constraints.advancedConstraints, [](auto& constraint) {
+        return constraint.isValid();
+    });
+}
+
+MediaConstraintsEvaluation evaluateCaptureConstraints(const CaptureConstraints& captureConstraints, const String& hashedId, const String& groupId, const CaptureConstraintsSourceValues& values, NOESCAPE std::span<const MediaVideoPresetValues> presets, NOESCAPE std::span<const MediaFrameRateRangeValues> frameRateRanges, MediaConstraintsEvaluationPurpose purpose)
+{
+    auto& constraints = captureConstraints.constraints();
+    auto needs = mediaConstraintsSourceNeeds(constraints);
+    if (!needs.evaluates)
+        return { };
+
+    std::optional<MediaVideoPresetTable> table;
+    if (needs.presets && values.usesPresets)
+        table = MediaVideoPresetTable { presets, frameRateRanges, RealtimeVideoCaptureSource::standardVideoSizes(), values.canResizeVideoFrames };
+
+    return evaluateMediaConstraints(constraints, {
+        values.capabilities,
+        hashedId,
+        needs.groupId ? groupId : emptyString(),
+        { values.width, values.height },
+        values.frameRate,
+        values.zoom,
+        values.volume,
+        values.sampleRate,
+        values.sampleSize,
+        std::nullopt,
+        std::nullopt,
+        needs.facingMode ? values.facingModeFitnessScoreAdjustment : 0,
+        values.isCamera,
+        table,
+    }, purpose);
+}
+
+MediaVideoPresetMatch bestCaptureVideoPreset(NOESCAPE std::span<const MediaVideoPresetValues> presets, NOESCAPE std::span<const MediaFrameRateRangeValues> frameRateRanges, const MediaVideoPresetSearch& search)
+{
+    return bestVideoPresetMatch({ presets, frameRateRanges, RealtimeVideoCaptureSource::standardVideoSizes(), search.canResizeVideoFrames }, search);
 }
 
 MediaVideoPresetMatch bestVideoPresetMatch(const MediaVideoPresetTable& table, const MediaVideoPresetSearch& search)

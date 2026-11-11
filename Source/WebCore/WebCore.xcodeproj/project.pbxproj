@@ -305,7 +305,9 @@
 		7777FCE0AEFF93FA6147EC1C /* MacControlPainter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDBD68869E5A11B99B6BED27 /* MacControlPainter.swift */; };
 		7B190D9D0A9F544BF209BA1E /* WebControlView.h in Headers */ = {isa = PBXBuildFile; fileRef = 72A6451F2948F25900C14BA3 /* WebControlView.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E5EE565393DEC49CCF5EE57F /* CameraCaptureSourceHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		CB0A4BC15CA8369C99FD0C5A /* CaptureSourceSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = E51AC860E15DD5748BE1F99D /* CaptureSourceSupport.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		889F75B279953818A0D73600 /* CameraCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */; };
+		3922E9C8B2BA4F111457CC32 /* CaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A48096F4917181343F869450 /* CaptureSource.swift */; };
 		EFFAC75054009859C8906A07 /* AudioCaptureController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 488C3AC37FCB319C9FA5FDB8 /* AudioCaptureController.swift */; };
 		73E14E1EBB9AAFBF11B33DC6 /* AudioCaptureDevices.swift in Sources */ = {isa = PBXBuildFile; fileRef = C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */; };
 		87AE5B4AC498485076B738CE /* AudioCaptureControllerHandle.h in Headers */ = {isa = PBXBuildFile; fileRef = 248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -8535,7 +8537,9 @@
 		51F94DB50E36F6B5A95BDC6D /* PlatformControlMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PlatformControlMac.h; sourceTree = "<group>"; };
 		26585E49ABF5E46A21471C87 /* PlatformControlMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = PlatformControlMac.mm; sourceTree = "<group>"; };
 		508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CameraCaptureSourceHandle.h; sourceTree = "<group>"; };
+		E51AC860E15DD5748BE1F99D /* CaptureSourceSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CaptureSourceSupport.h; sourceTree = "<group>"; };
 		07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureSource.swift; sourceTree = "<group>"; };
+		A48096F4917181343F869450 /* CaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSource.swift; sourceTree = "<group>"; };
 		488C3AC37FCB319C9FA5FDB8 /* AudioCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureController.swift; sourceTree = "<group>"; };
 		C341BDC42B1D39787CB2CFCE /* AudioCaptureDevices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCaptureDevices.swift; sourceTree = "<group>"; };
 		248E3CE6798A4F369728E357 /* AudioCaptureControllerHandle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioCaptureControllerHandle.h; sourceTree = "<group>"; };
@@ -28366,6 +28370,8 @@
 				41878FA827282055002E1EDD /* BaseAudioMediaStreamTrackRendererUnit.h */,
 				07CB46734E28654C089A5EA2 /* CameraCaptureSource.swift */,
 				508211BEB76659F0555106E9 /* CameraCaptureSourceHandle.h */,
+				A48096F4917181343F869450 /* CaptureSource.swift */,
+				E51AC860E15DD5748BE1F99D /* CaptureSourceSupport.h */,
 				3F8020331E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.cpp */,
 				3F8020341E9E381D00DEC61D /* CoreAudioCaptureDeviceManager.h */,
 				3F3BB5821E709EE400C701F2 /* CoreAudioCaptureSource.cpp */,
@@ -45466,6 +45472,7 @@
 				07B7116F1D899E63009F0FFB /* CaptureDeviceManager.h in Headers */,
 				416F429229C0BB8E00C080DC /* CaptureDeviceWithCapabilities.h in Headers */,
 				B1731F451CE61175C3D39369 /* CaptureSourceDecisions.h in Headers */,
+				CB0A4BC15CA8369C99FD0C5A /* CaptureSourceSupport.h in Headers */,
 				0742C4FD2926C73C00D26990 /* CaretAnimator.h in Headers */,
 				44A678412CAE887B003757E5 /* CaretPosition.h in Headers */,
 				444DCC662CB69E9E0012022D /* CaretPositionFromPointOptions.h in Headers */,
@@ -52042,6 +52049,7 @@
 				4A01C0BFDB37FC20485E98D8 /* CAAudioStreamDescription.swift in Sources */,
 				32F3E81AEAF3467D8F698B2E /* CacheValidation.swift in Sources */,
 				889F75B279953818A0D73600 /* CameraCaptureSource.swift in Sources */,
+				3922E9C8B2BA4F111457CC32 /* CaptureSource.swift in Sources */,
 				0018965870624AA6306272D7 /* CaptureSourceDecisions.swift in Sources */,
 				589A09BBFD51CB6D4E3152F5 /* CARingBuffer.swift in Sources */,
 				0C61C10E24FB833C7279F056 /* CARingBufferMix.swift in Sources */,

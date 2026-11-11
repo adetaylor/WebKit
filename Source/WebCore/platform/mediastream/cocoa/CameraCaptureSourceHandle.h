@@ -31,6 +31,7 @@
 
 #include <CoreMedia/CMTime.h>
 #include <CoreVideo/CVPixelBuffer.h>
+#include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/MeteringMode.h>
 #include <cstdint>
 #include <wtf/SwiftBridging.h>
@@ -92,6 +93,20 @@ struct CameraCapturePhotoRequest {
     bool redEyeReduction { false };
 };
 
+// What the source's state says about its settings: its frame rate, size, zoom, white balance mode and torch as
+// RealtimeMediaSource holds them, and whether its presets support zoom and power efficiency.
+struct CameraCaptureSettingsInputs {
+    double frameRate { 0 };
+    double zoom { 1 };
+    int32_t width { 0 };
+    int32_t height { 0 };
+    MeteringMode whiteBalanceMode { MeteringMode::None };
+    bool torch { false };
+    bool isZoomSupported { false };
+    bool canBePowerEfficient { false };
+    bool presetIsEfficient { false };
+};
+
 // The torch mode of the device, as a FillLightMode, if it has a torch.
 struct CameraCaptureFillLightMode {
     uint8_t mode { 0 };
@@ -131,6 +146,9 @@ public:
     bool isInterrupted() const;
     double facingModeFitnessScoreAdjustment() const;
     CameraCaptureDeviceValues deviceValues() const;
+    // The source's settings, and its capabilities with its presets' ranges (CaptureVideoCapabilityRanges).
+    CaptureSettingsValues settings(CameraCaptureSettingsInputs) const;
+    CaptureCapabilityValues capabilities(uint32_t settingsSupportedConstraints, CaptureCapabilityValues ranges, bool canBePowerEfficient) const;
     CameraCaptureFillLightMode fillLightMode() const;
     uint32_t presetCount() const;
     CameraCapturePresetValues preset(uint32_t index) const;
@@ -168,7 +186,8 @@ bool cameraCaptureSourceIsMuted(uint64_t identifier);
 void cameraCaptureSourceDidCaptureFrame(uint64_t identifier, CVBufferRef WTF_NONNULL, CMTime presentationTime, uint16_t rotation, bool isMirrored);
 // On any thread.
 void cameraCaptureSourceDidCapturePhoto(uint64_t identifier, NSData * WTF_NONNULL);
-void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, CameraCapturePhotoError);
+// The error message (CameraCaptureSource.swift has them).
+void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, NSString * WTF_NONNULL);
 #if PLATFORM(IOS) || PLATFORM(VISION)
 void cameraCaptureSessionAuthorizeMultipleForegroundAppLayout(AVCaptureSession * WTF_NONNULL);
 #endif

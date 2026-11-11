@@ -158,6 +158,54 @@ static std::optional<MockDisplayDescription> mockDisplayDescription(const String
     return lookup.display;
 }
 
+MockCameraDeviceValues mockCameraDeviceValues(const String& persistentID)
+{
+    MockCameraDeviceValues values;
+    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(persistentID);
+    if (!device || !device->isCamera())
+        return values;
+
+    auto& camera = std::get<MockCameraProperties>(device->properties);
+    values.found = true;
+    values.isInvalid = device->flags.contains(MockMediaDevice::Flag::Invalid);
+    values.defaultFrameRate = camera.defaultFrameRate;
+    values.presetCount = camera.presets.size();
+    values.facingMode = static_cast<uint8_t>(camera.facingMode);
+    for (auto mode : camera.whiteBalanceMode)
+        values.whiteBalanceModes |= 1 << static_cast<uint8_t>(mode);
+    auto [red, green, blue, alpha] = camera.fillColor.toColorTypeLossy<SRGBA<uint8_t>>().resolved();
+    values.description = { MockVideoSourceKind::Camera, red, green, blue, alpha };
+    values.hasTorch = camera.hasTorch;
+    values.hasBackgroundBlur = camera.hasBackgroundBlur;
+    return values;
+}
+
+static std::optional<VideoPresetData> mockCameraPresetData(const String& persistentID, uint32_t presetIndex)
+{
+    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(persistentID);
+    if (!device || !device->isCamera())
+        return std::nullopt;
+    auto& presets = std::get<MockCameraProperties>(device->properties).presets;
+    if (presetIndex >= presets.size())
+        return std::nullopt;
+    return presets[presetIndex];
+}
+
+MockCameraPresetValues mockCameraPreset(const String& persistentID, uint32_t presetIndex)
+{
+    auto preset = mockCameraPresetData(persistentID, presetIndex);
+    if (!preset)
+        return { };
+    return { preset->minZoom, preset->maxZoom, preset->size.width(), preset->size.height(), static_cast<uint32_t>(preset->frameRateRanges.size()), preset->isEfficient };
+}
+
+MockCameraFrameRateRange mockCameraPresetFrameRateRange(const String& persistentID, uint32_t presetIndex, uint32_t rangeIndex)
+{
+    auto preset = mockCameraPresetData(persistentID, presetIndex);
+    if (!preset || rangeIndex >= preset->frameRateRanges.size())
+        return { };
+    return { preset->frameRateRanges[rangeIndex].minimum, preset->frameRateRanges[rangeIndex].maximum };
+}
 #endif // PLATFORM(COCOA)
 
 class MockRealtimeDisplaySourceFactory : public DisplayCaptureFactory {
@@ -338,13 +386,20 @@ void MockRealtimeMediaSourceCenter::resetDevices()
 void MockRealtimeMediaSourceCenter::setMockCaptureDevicesInterrupted(bool isCameraInterrupted, bool isMicrophoneInterrupted)
 {
     MockRealtimeVideoSource::setIsInterrupted(isCameraInterrupted);
+#if PLATFORM(COCOA)
+    MockVideoSourceHandle::setSwiftCamerasInterrupted(isCameraInterrupted);
+#endif
     MockRealtimeAudioSource::setIsInterrupted(isMicrophoneInterrupted);
 }
 
 void MockRealtimeMediaSourceCenter::triggerMockCaptureConfigurationChange(bool forCamera, bool forMicrophone, bool forDisplay)
 {
-    if (forCamera)
+    if (forCamera) {
         MockRealtimeVideoSource::triggerCameraConfigurationChange();
+#if PLATFORM(COCOA)
+        MockVideoSourceHandle::triggerSwiftCameraConfigurationChange();
+#endif
+    }
 
 #if PLATFORM(COCOA)
     if (forMicrophone) {

@@ -60,30 +60,6 @@ RefPtr<AVVideoCaptureSource> AVVideoCaptureSource::sourceWithIdentifier(uint64_t
     return sources().get(identifier).get();
 }
 
-static ASCIILiteral photoErrorMessage(CameraCapturePhotoError error)
-{
-    switch (error) {
-    case CameraCapturePhotoError::InternalError:
-        return "Internal error"_s;
-    case CameraCapturePhotoError::SetMaxPhotoDimensionsFailed:
-        return "setMaxPhotoDimensions failed"_s;
-    case CameraCapturePhotoError::PipelineReadinessTimeout:
-        return "Photo capture timed out waiting for pipeline readiness"_s;
-    case CameraCapturePhotoError::SessionNotRunning:
-        return "Session not running"_s;
-    case CameraCapturePhotoError::SessionCleared:
-        return "Session cleared"_s;
-    case CameraCapturePhotoError::TrackStopped:
-        return "Track stopped"_s;
-    case CameraCapturePhotoError::CapturePhotoFailed:
-        return "capturePhotoWithSettings failed"_s;
-    case CameraCapturePhotoError::PhotoOutputFailed:
-        return "AVCapturePhotoOutput failed"_s;
-    }
-    ASSERT_NOT_REACHED();
-    return "Internal error"_s;
-}
-
 void cameraCaptureSourceDidChange(uint64_t identifier, CameraCaptureSourceEvent event, bool value)
 {
     if (RefPtr source = AVVideoCaptureSource::sourceWithIdentifier(identifier))
@@ -108,10 +84,10 @@ void cameraCaptureSourceDidCapturePhoto(uint64_t identifier, NSData *data)
         source->resolvePendingPhotoRequest(makeVector(data), "image/jpeg"_s);
 }
 
-void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, CameraCapturePhotoError error)
+void cameraCaptureSourceDidFailToCapturePhoto(uint64_t identifier, NSString *message)
 {
     if (RefPtr source = AVVideoCaptureSource::sourceWithIdentifier(identifier))
-        source->rejectPendingPhotoRequest(photoErrorMessage(error));
+        source->rejectPendingPhotoRequest(message);
 }
 
 #if PLATFORM(IOS) || PLATFORM(VISION)
@@ -267,83 +243,27 @@ static bool isZoomSupported(const Vector<VideoPreset>& presets)
     });
 }
 
-static Vector<MeteringMode> whiteBalanceModes(const CameraCaptureDeviceValues& device)
-{
-    Vector<MeteringMode> modes(ReserveCapacityTag { }, 3);
-    for (auto mode : { MeteringMode::Manual, MeteringMode::SingleShot, MeteringMode::Continuous }) {
-        if (device.whiteBalanceModes & (1 << static_cast<uint8_t>(mode)))
-            modes.append(mode);
-    }
-    return modes;
-}
-
 const RealtimeMediaSourceSettings& AVVideoCaptureSource::settings()
 {
     assertIsCurrent(RunLoop::mainSingleton());
     if (m_currentSettings)
         return *m_currentSettings;
 
-    auto device = m_source.deviceValues();
-
-    RealtimeMediaSourceSettings settings;
-    switch (device.position) {
-    case CameraCapturePosition::Front:
-        settings.setFacingMode(VideoFacingMode::User);
-        break;
-    case CameraCapturePosition::Back:
-        settings.setFacingMode(VideoFacingMode::Environment);
-        break;
-    case CameraCapturePosition::Unspecified:
-        settings.setFacingMode(VideoFacingMode::Unknown);
-        break;
-    }
-
-    settings.setLabel(name());
-    settings.setFrameRate(frameRate());
-
+    CameraCaptureSettingsInputs inputs;
+    inputs.frameRate = frameRate();
+    inputs.zoom = zoom();
     auto size = this->size();
-    if (is90DegreeRotation(videoFrameRotation()))
-        size = size.transposedSize();
-
-    settings.setWidth(size.width());
-    settings.setHeight(size.height());
-    settings.setDeviceId(hashedId());
-    settings.setGroupId(hashedGroupId());
-    settings.setBackgroundBlur(device.isPortraitEffectActive);
-
-    RealtimeMediaSourceSupportedConstraints supportedConstraints;
-    supportedConstraints.setSupportsDeviceId(true);
-    supportedConstraints.setSupportsGroupId(true);
-    supportedConstraints.setSupportsFacingMode(device.position != CameraCapturePosition::Unspecified);
-    supportedConstraints.setSupportsWidth(true);
-    supportedConstraints.setSupportsHeight(true);
-    supportedConstraints.setSupportsAspectRatio(true);
-    supportedConstraints.setSupportsFrameRate(true);
-    supportedConstraints.setSupportsBackgroundBlur(true);
-
-    if (isZoomSupported(presets())) {
-        supportedConstraints.setSupportsZoom(true);
-        settings.setZoom(zoom());
-    }
-
-    if (device.whiteBalanceModes) {
-        supportedConstraints.setSupportsWhiteBalanceMode(true);
-        settings.setWhiteBalanceMode(device.isWhiteBalanceModeChangePending ? whiteBalanceMode() : device.whiteBalanceMode);
-    }
-
-    if (device.hasTorch) {
-        supportedConstraints.setSupportsTorch(true);
-        settings.setTorch(device.isTorchChangePending ? torch() : device.isTorchOn);
-    }
-
+    inputs.width = size.width();
+    inputs.height = size.height();
+    inputs.whiteBalanceMode = whiteBalanceMode();
+    inputs.torch = torch();
+    inputs.isZoomSupported = isZoomSupported(presets());
 #if PLATFORM(IOS_FAMILY)
-    supportedConstraints.setSupportsPowerEfficient(true);
-    if (canBePowerEfficient())
-        settings.setPowerEfficient(m_currentPreset ? m_currentPreset->isEfficient() : false);
+    inputs.canBePowerEfficient = canBePowerEfficient();
+    inputs.presetIsEfficient = m_currentPreset ? m_currentPreset->isEfficient() : false;
 #endif
-    settings.setSupportedConstraints(supportedConstraints);
 
-    m_currentSettings = WTF::move(settings);
+    m_currentSettings = captureSettings(m_source.settings(inputs), name(), hashedId(), hashedGroupId());
 
     return *m_currentSettings;
 }
@@ -354,47 +274,16 @@ const RealtimeMediaSourceCapabilities& AVVideoCaptureSource::capabilities()
     if (m_capabilities)
         return *m_capabilities;
 
-    RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
-    capabilities.setDeviceId(hashedId());
-    capabilities.setGroupId(hashedGroupId());
+    CaptureVideoCapabilityRanges ranges;
+    for (const auto& preset : presets())
+        ranges.addPreset(preset.size().width(), preset.size().height(), preset.minZoom(), preset.maxZoom(), preset.maxFrameRate());
+    auto rangeValues = ranges.ranges(canResizeVideoFrames());
 
-    auto device = m_source.deviceValues();
-    if (device.position == CameraCapturePosition::Front)
-        capabilities.addFacingMode(VideoFacingMode::User);
-    if (device.position == CameraCapturePosition::Back)
-        capabilities.addFacingMode(VideoFacingMode::Environment);
-
-    auto supportedConstraints = settings().supportedConstraints();
-
-#if HAVE(AVCAPTUREDEVICE_MINFOCUSLENGTH)
-    if (device.hasMinimumFocusDistance) {
-        supportedConstraints.setSupportsFocusDistance(true);
-        capabilities.setFocusDistance({ device.minimumFocusDistance / 1000, std::numeric_limits<double>::max() });
-    }
-#endif // HAVE(AVCAPTUREDEVICE_MINFOCUSLENGTH)
-
-    auto modes = whiteBalanceModes(device);
-    if (!modes.isEmpty()) {
-        supportedConstraints.setSupportsWhiteBalanceMode(true);
-        capabilities.setWhiteBalanceModes(WTF::move(modes));
-    }
-
-    if (device.hasTorch) {
-        supportedConstraints.setSupportsTorch(true);
-        capabilities.setTorch(true);
-    }
-
-    capabilities.setBackgroundBlur(device.isPortraitEffectActive ? RealtimeMediaSourceCapabilities::BackgroundBlur::On : RealtimeMediaSourceCapabilities::BackgroundBlur::Off);
-
+    bool canBePowerEfficient = false;
 #if PLATFORM(IOS_FAMILY)
-    supportedConstraints.setSupportsPowerEfficient(true);
-    capabilities.setPowerEfficient(canBePowerEfficient());
+    canBePowerEfficient = this->canBePowerEfficient();
 #endif
-
-    capabilities.setSupportedConstraints(supportedConstraints);
-    updateCapabilities(capabilities);
-
-    m_capabilities = WTF::move(capabilities);
+    m_capabilities = captureCapabilities(m_source.capabilities(captureSupportedConstraintBits(settings().supportedConstraints()), rangeValues, canBePowerEfficient), hashedId(), hashedGroupId());
 
     return *m_capabilities;
 }

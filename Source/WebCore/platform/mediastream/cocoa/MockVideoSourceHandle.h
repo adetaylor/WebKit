@@ -36,6 +36,7 @@
 
 #include <cstdint>
 #include <wtf/SwiftBridging.h>
+#include <wtf/text/WTFString.h>
 
 typedef struct CGImage *CGImageRef;
 OBJC_CLASS NSData;
@@ -100,9 +101,47 @@ public:
     // The source starts applying constraints: a photo being taken fails.
     void configurationWillChange() const;
 
+    // The GPU process's Swift mock cameras (MockRealtimeVideoSource::setIsInterrupted() and
+    // triggerCameraConfigurationChange() for the C++ ones).
+    static void setSwiftCamerasInterrupted(bool);
+    static void triggerSwiftCameraConfigurationChange();
+
 private:
     uint64_t m_identifier { 0 };
 };
+
+// A mock camera of MockRealtimeMediaSourceCenter's devices, by persistent ID, for the GPU process's Swift mock camera
+// (implemented by MockRealtimeMediaSourceCenter.cpp). whiteBalanceModes has bit i set for MeteringMode i.
+struct MockCameraDeviceValues {
+    double defaultFrameRate { 30 };
+    uint32_t presetCount { 0 };
+    // A VideoFacingMode.
+    uint8_t facingMode { 0 };
+    uint8_t whiteBalanceModes { 0 };
+    MockVideoSourceDescription description;
+    bool found { false };
+    bool isInvalid { false };
+    bool hasTorch { false };
+    bool hasBackgroundBlur { false };
+};
+
+struct MockCameraPresetValues {
+    double minZoom { 1 };
+    double maxZoom { 1 };
+    int32_t width { 0 };
+    int32_t height { 0 };
+    uint32_t frameRateRangeCount { 0 };
+    bool isEfficient { false };
+};
+
+struct MockCameraFrameRateRange {
+    double minimum { 0 };
+    double maximum { 0 };
+};
+
+MockCameraDeviceValues mockCameraDeviceValues(const String& persistentID);
+MockCameraPresetValues mockCameraPreset(const String& persistentID, uint32_t presetIndex);
+MockCameraFrameRateRange mockCameraPresetFrameRateRange(const String& persistentID, uint32_t presetIndex, uint32_t rangeIndex);
 
 // Implemented by MockRealtimeVideoSourceCocoa.mm, on the generator's queue. Returns the frame rate the source's observers
 // see.

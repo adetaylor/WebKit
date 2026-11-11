@@ -191,6 +191,23 @@ struct MediaConstraintsSourceState {
     bool canResizeVideoFrames { false };
 };
 
+// What a capture source of the GPU process (CaptureSource.swift) tells the engine about itself besides its hashed IDs and
+// presets. usesPresets is whether it has any.
+struct CaptureConstraintsSourceValues {
+    MediaConstraintsCapabilities capabilities;
+    double frameRate { 0 };
+    double zoom { 0 };
+    double volume { 0 };
+    double facingModeFitnessScoreAdjustment { 0 };
+    int32_t width { 0 };
+    int32_t height { 0 };
+    int32_t sampleRate { 0 };
+    int32_t sampleSize { 0 };
+    bool isCamera { false };
+    bool usesPresets { false };
+    bool canResizeVideoFrames { false };
+};
+
 // RealtimeMediaSource::VideoPresetConstraints.
 struct MediaVideoPresetConstraints {
     double frameRate { 0 };

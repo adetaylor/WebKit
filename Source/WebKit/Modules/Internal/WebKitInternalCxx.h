@@ -49,6 +49,11 @@
 #include "LibWebRTCCodecsProxyMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "UserMediaCaptureManagerProxy.h"
+#include "UserMediaCaptureManagerProxyMessages.h"
+#endif
+
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMInstanceProxyMessages.h"

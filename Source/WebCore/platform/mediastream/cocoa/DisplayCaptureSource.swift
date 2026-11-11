@@ -37,6 +37,7 @@ import CoreGraphics
 import CoreMedia
 import Dispatch
 import Foundation
+import WebCore_Private.Core.CaptureSourceDecisions
 import WebCore_Private.Core.DisplayCaptureSourceHandle
 import WebCore_Private.Core.MockVideoSourceHandle
 
@@ -89,6 +90,75 @@ private func presentationSize(of sampleBuffer: CMSampleBuffer) -> WebCore.Displa
     return WebCore.DisplayCaptureSize(width: Int32(arm64Truncating: size.width), height: Int32(arm64Truncating: size.height))
 }
 
+// MARK: Owner
+
+// Who a display source tells about its events and frames: DisplayCaptureSourceCocoa, the C++ facade, through
+// DisplayCaptureSourceHandle.h's functions, unless a Swift capture source (CaptureSource.swift) owns it.
+@MainActor
+protocol DisplayCaptureSourceOwner: AnyObject {
+    func displayDidChange(_ event: WebCore.DisplayCaptureSourceEvent)
+    var displayIsMuted: Bool { get }
+    func displayDidEmitFrame(_ frame: DisplayFrame, sampleTime: Double, size: WebCore.DisplayCaptureSize)
+    func displayCroppedFrame(_ frame: CMSampleBuffer, _ rect: WebCore.DisplayCaptureFloatRect, _ frameSize: WebCore.DisplayCaptureFloatSize) -> CMSampleBuffer?
+}
+
+@MainActor
+private var displayCaptureSourceOwners: [UInt64: () -> (any DisplayCaptureSourceOwner)?] = [:]
+
+@MainActor
+func setDisplayCaptureSourceOwner(_ identifier: UInt64, _ owner: (any DisplayCaptureSourceOwner)?) {
+    if let owner {
+        displayCaptureSourceOwners[identifier] = { [weak owner] in owner }
+    } else {
+        displayCaptureSourceOwners.removeValue(forKey: identifier)
+    }
+}
+
+@MainActor
+private func displayOwner(_ identifier: UInt64) -> (any DisplayCaptureSourceOwner)? {
+    displayCaptureSourceOwners[identifier]?()
+}
+
+@MainActor
+private func displayDidChange(_ identifier: UInt64, _ event: WebCore.DisplayCaptureSourceEvent) {
+    if let owner = displayOwner(identifier) {
+        owner.displayDidChange(event)
+        return
+    }
+    WebCore.displayCaptureSourceDidChange(identifier, event)
+}
+
+@MainActor
+private func displayIsMuted(_ identifier: UInt64) -> Bool {
+    if let owner = displayOwner(identifier) {
+        return owner.displayIsMuted
+    }
+    return WebCore.displayCaptureSourceIsMuted(identifier)
+}
+
+@MainActor
+private func displayDidEmitFrame(_ identifier: UInt64, _ frame: DisplayFrame, _ sampleTime: Double, _ size: WebCore.DisplayCaptureSize) {
+    if let owner = displayOwner(identifier) {
+        owner.displayDidEmitFrame(frame, sampleTime: sampleTime, size: size)
+        return
+    }
+    switch frame {
+    case .sampleBuffer(let sampleBuffer):
+        WebCore.displayCaptureSourceDidEmitFrame(identifier, sampleBuffer, nil, sampleTime, size)
+    case .image(let image):
+        WebCore.displayCaptureSourceDidEmitFrame(identifier, nil, image, sampleTime, size)
+    }
+}
+
+// The frame cropped, for ScreenCaptureKitCapturer.swift.
+@MainActor
+func displayCroppedFrame(_ identifier: UInt64, _ frame: CMSampleBuffer, _ rect: WebCore.DisplayCaptureFloatRect, _ frameSize: WebCore.DisplayCaptureFloatSize) -> CMSampleBuffer? {
+    if let owner = displayOwner(identifier) {
+        return owner.displayCroppedFrame(frame, rect, frameSize)
+    }
+    return WebCore.displayCaptureSourceCopyCroppedFrame(identifier, frame, rect, frameSize)
+}
+
 // MARK: Source
 
 @MainActor
@@ -125,6 +195,38 @@ final class DisplaySource {
         capturer.intrinsicSize()
     }
 
+    // DisplayCaptureSourceCocoa's settings and capabilities, which it gets from here.
+    func settings(frameRate: Double, width: Int32, height: Int32) -> WebCore.CaptureSettingsValues {
+        var settings = WebCore.CaptureSettingsValues()
+        settings.frameRate = Float(frameRate)
+        settings.width = UInt32(truncatingIfNeeded: width)
+        settings.height = UInt32(truncatingIfNeeded: height)
+        // DisplaySurfaceType::Window and Monitor.
+        settings.displaySurface = capturer.isWindow ? 1 : 0
+        settings.logicalSurface = false
+        // RealtimeMediaSourceSupportedConstraints's width, height, frame rate, device ID, display surface and logical
+        // surface.
+        settings.supportedConstraints = (1 << 0) | (1 << 1) | (1 << 3) | (1 << 9) | (1 << 11) | (1 << 12)
+        return settings
+    }
+
+    func capabilities(settingsSupportedConstraints: UInt32) -> WebCore.CaptureCapabilityValues {
+        var capabilities = WebCore.CaptureCapabilityValues()
+        capabilities.supportedConstraints = settingsSupportedConstraints
+        let intrinsicSize = capturer.intrinsicSize()
+        if intrinsicSize.width != 0 {
+            capabilities.widthMin = 1
+            capabilities.widthMax = intrinsicSize.width
+        }
+        if intrinsicSize.height != 0 {
+            capabilities.heightMin = 1
+            capabilities.heightMax = intrinsicSize.height
+        }
+        capabilities.frameRateMin = 0.01
+        capabilities.frameRateMax = 30
+        return capabilities
+    }
+
     func commitConfiguration(width: UInt32, height: UInt32, frameRate: Float) {
         capturer.commitConfiguration(width: width, height: height, frameRate: frameRate)
     }
@@ -136,15 +238,15 @@ final class DisplaySource {
     // MARK: Capturer events
 
     func capturerFailed() {
-        WebCore.displayCaptureSourceDidChange(identifier, .CaptureFailed)
+        displayDidChange(identifier, .CaptureFailed)
     }
 
     func capturerConfigurationChanged() {
-        WebCore.displayCaptureSourceDidChange(identifier, .ConfigurationChanged)
+        displayDidChange(identifier, .ConfigurationChanged)
     }
 
     func capturerIsReady() {
-        WebCore.displayCaptureSourceDidChange(identifier, .Ready)
+        displayDidChange(identifier, .Ready)
     }
 
     // MARK: Producing data
@@ -196,7 +298,7 @@ final class DisplaySource {
     }
 
     private func emitFrame() {
-        if WebCore.displayCaptureSourceIsMuted(identifier) {
+        if displayIsMuted(identifier) {
             return
         }
 
@@ -212,13 +314,13 @@ final class DisplaySource {
             if size.width <= 0 || size.height <= 0 {
                 return
             }
-            WebCore.displayCaptureSourceDidEmitFrame(identifier, sampleBuffer, nil, sampleTime, size)
+            displayDidEmitFrame(identifier, frame, sampleTime, size)
         case .image(let image):
             let size = WebCore.DisplayCaptureSize(width: Int32(truncatingIfNeeded: image.width), height: Int32(truncatingIfNeeded: image.height))
             if size.width <= 0 || size.height <= 0 {
                 return
             }
-            WebCore.displayCaptureSourceDidEmitFrame(identifier, nil, image, sampleTime, size)
+            displayDidEmitFrame(identifier, frame, sampleTime, size)
         }
     }
 }
@@ -331,6 +433,183 @@ private final class MockDisplayCapturer: DisplayCapturer {
         readyTimer?.cancel()
         readyTimer = nil
         generator.invalidate()
+    }
+}
+
+// MARK: Swift capture source
+
+// A display capture that a Swift capture source of the GPU process owns: what DisplayCaptureSourceCocoa does.
+@MainActor
+final class DisplayCaptureBackend: CaptureSourceBackend, DisplayCaptureSourceOwner {
+    weak var source: CaptureSource?
+    private let identifier: UInt64
+    private let userActivity = WebCore.CaptureUserActivity.create()
+    private var frameSession: WebCore.CaptureVideoFrameSession?
+    private var cropSession: WebCore.CaptureVideoFrameSession?
+    private var whenReadyCompletion: (@MainActor (CaptureSourceFailure?) -> Void)?
+
+#if HAVE_SCREEN_CAPTURE_KIT
+    // A capture of the display, or the window if isWindow, with this ID.
+    static func create(isWindow: Bool, deviceID: UInt32) -> DisplayCaptureBackend {
+        DisplayCaptureBackend(identifier: makeDisplayCaptureSource { identifier in
+            ScreenCaptureKitCapturer(identifier: identifier, isWindow: isWindow, deviceID: deviceID)
+        })
+    }
+#endif
+
+    static func createMock(_ display: WebCore.MockDisplayDescription) -> DisplayCaptureBackend {
+        DisplayCaptureBackend(identifier: makeDisplayCaptureSource { _ in
+            let capturer = MockDisplayCapturer(display: display)
+            latestMockDisplayCapturer = capturer
+            return capturer
+        })
+    }
+
+    private init(identifier: UInt64) {
+        self.identifier = identifier
+        setDisplayCaptureSourceOwner(identifier, self)
+    }
+
+    isolated deinit {
+        setDisplayCaptureSourceOwner(identifier, nil)
+        displayCaptureSources.removeValue(forKey: identifier)?.invalidate()
+        if let completion = whenReadyCompletion {
+            whenReadyCompletion = nil
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    completion(CaptureSourceFailure(message: "Source no longer needed", denialReason: CaptureSourceFailure.invalidAccess))
+                }
+            }
+        }
+    }
+
+    private var display: DisplaySource? {
+        displayCaptureSources[identifier]
+    }
+
+    var isWindow: Bool {
+        display?.isWindow ?? false
+    }
+
+    // MARK: CaptureSourceBackend
+
+    var isDisplay: Bool {
+        true
+    }
+
+    func startProducingData() {
+        guard let source else {
+            return
+        }
+        userActivity.start()
+        let settings = settings()
+        display?.startProducingData(frameRate: source.frameRate, width: settings.width, height: settings.height, settingsFrameRate: settings.frameRate)
+    }
+
+    func stopProducingData() {
+        userActivity.stop()
+        display?.stopProducingData()
+    }
+
+    func endProducingData() {
+        display?.endProducingData()
+    }
+
+    func settingsDidChange(_ flags: CaptureSettingsFlags) {
+        if flags.contains(.frameRate), let source {
+            display?.setFrameRate(source.frameRate)
+        }
+    }
+
+    func endApplyingConstraints() {
+        let settings = settings()
+        display?.commitConfiguration(width: settings.width, height: settings.height, frameRate: settings.frameRate)
+    }
+
+    func settings() -> CaptureSettings {
+        guard let source, let display else {
+            return CaptureSettings()
+        }
+        let size = source.size
+        return CaptureSettings(display.settings(frameRate: source.frameRate, width: size.width, height: size.height), label: source.name, deviceId: source.hashedID)
+    }
+
+    func capabilities() -> CaptureCapabilities {
+        guard let source, let display else {
+            return CaptureCapabilities()
+        }
+        return CaptureCapabilities(display.capabilities(settingsSupportedConstraints: settings().supportedConstraints.rawValue), deviceId: source.hashedID)
+    }
+
+    func whenReady(_ completion: @escaping @MainActor (CaptureSourceFailure?) -> Void) {
+        whenReadyCompletion = completion
+        display?.whenReady()
+    }
+
+    // MARK: DisplayCaptureSourceOwner
+
+    func displayDidChange(_ event: WebCore.DisplayCaptureSourceEvent) {
+        switch event {
+        case .CaptureFailed:
+            source?.captureFailed()
+        case .ConfigurationChanged:
+            capturerConfigurationChanged()
+        case .Ready:
+            whenReadyCompletion.take()?(nil)
+        @unknown default:
+            break
+        }
+    }
+
+    var displayIsMuted: Bool {
+        source?.muted ?? true
+    }
+
+    // DisplayCaptureSourceCocoa::didEmitFrame().
+    func displayDidEmitFrame(_ frame: DisplayFrame, sampleTime: Double, size: WebCore.DisplayCaptureSize) {
+        guard let source else {
+            return
+        }
+        let imageSize = WebCore.CaptureSourceSize(width: size.width, height: size.height)
+        if source.intrinsicSize.width != imageSize.width || source.intrinsicSize.height != imageSize.height || source.size.width != imageSize.width || source.size.height != imageSize.height {
+            source.setIntrinsicSize(imageSize)
+            source.setSize(imageSize)
+        }
+        if frameSession == nil {
+            frameSession = WebCore.CaptureVideoFrameSession.create(true)
+        }
+        let videoFrame: WebCore.VideoFrame?
+        switch frame {
+        case .sampleBuffer(let sampleBuffer):
+            videoFrame = frameSession?.frameFromSampleBuffer(sampleBuffer, sampleTime, source.size)
+        case .image(let image):
+            videoFrame = frameSession?.frameFromImage(image, sampleTime, source.size, 0)
+        }
+        guard let videoFrame else {
+            assertionFailure("DisplayCaptureBackend couldn't make a video frame")
+            return
+        }
+        // MonotonicTime::now(), as DisplayCaptureSourceCocoa has it.
+        source.videoFrameAvailable(CaptureFrame(videoFrame), captureTime: Double(DispatchTime.now().uptimeNanoseconds) / 1_000_000_000)
+    }
+
+    func displayCroppedFrame(_ frame: CMSampleBuffer, _ rect: WebCore.DisplayCaptureFloatRect, _ frameSize: WebCore.DisplayCaptureFloatSize) -> CMSampleBuffer? {
+        let session = cropSession ?? WebCore.CaptureVideoFrameSession.create(true)
+        cropSession = session
+        return WebCore.captureCroppedSampleBuffer(session, frame, rect.x, rect.y, rect.width, rect.height, frameSize.width, frameSize.height)
+    }
+
+    // DisplayCaptureSourceCocoa::capturerConfigurationChanged().
+    private func capturerConfigurationChanged() {
+        guard let source, let display else {
+            return
+        }
+        let intrinsicSize = display.intrinsicSize()
+        let size = WebCore.CaptureSourceSize(width: intrinsicSize.width, height: intrinsicSize.height)
+        if source.intrinsicSize.width != size.width || source.intrinsicSize.height != size.height {
+            source.setIntrinsicSize(size)
+        }
+        source.configurationChanged()
     }
 }
 
@@ -495,6 +774,21 @@ extension WebCore.DisplayCaptureSourceHandle {
         }
     }
 
+    @cxx
+    @implementation
+    func settings(_ frameRate: Double, _ width: Int32, _ height: Int32) -> WebCore.CaptureSettingsValues {
+        MainActor.assumeIsolated {
+            source?.settings(frameRate: frameRate, width: width, height: height) ?? WebCore.CaptureSettingsValues()
+        }
+    }
+
+    @cxx
+    @implementation
+    func capabilities(_ settingsSupportedConstraints: UInt32) -> WebCore.CaptureCapabilityValues {
+        MainActor.assumeIsolated {
+            source?.capabilities(settingsSupportedConstraints: settingsSupportedConstraints) ?? WebCore.CaptureCapabilityValues()
+        }
+    }
 }
 
 #endif

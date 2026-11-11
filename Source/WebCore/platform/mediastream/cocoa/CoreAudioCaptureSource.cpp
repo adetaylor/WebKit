@@ -26,6 +26,8 @@
 #include "config.h"
 #include "CoreAudioCaptureSource.h"
 
+#include "AudioCaptureControllerHandle.h"
+
 #if ENABLE(MEDIA_STREAM)
 
 #include "AudioOutputUnit.h"
@@ -284,13 +286,10 @@ void CoreAudioCaptureSource::endProducingData()
 const RealtimeMediaSourceCapabilities& CoreAudioCaptureSource::capabilities()
 {
     if (!m_capabilities) {
-        RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
-        capabilities.setDeviceId(hashedId());
-        capabilities.setGroupId(hashedGroupId());
-        capabilities.setEchoCancellation(m_echoCancellationCapability ? (*m_echoCancellationCapability ? RealtimeMediaSourceCapabilities::EchoCancellation::On : RealtimeMediaSourceCapabilities::EchoCancellation::Off) : RealtimeMediaSourceCapabilities::EchoCancellation::OnOrOff);
-        capabilities.setVolume({ 0.0, 1.0 });
-        capabilities.setSampleRate(protect(m_unit)->sampleRateCapacities());
-        m_capabilities = WTF::move(capabilities);
+        auto echoCancellation = m_echoCancellationCapability ? (*m_echoCancellationCapability ? RealtimeMediaSourceCapabilities::EchoCancellation::On : RealtimeMediaSourceCapabilities::EchoCancellation::Off) : RealtimeMediaSourceCapabilities::EchoCancellation::OnOrOff;
+        auto sampleRates = protect(m_unit)->sampleRateCapacities();
+        auto values = AudioCaptureControllerHandle::microphoneCapabilities(captureSupportedConstraintBits(settings().supportedConstraints()), static_cast<uint8_t>(echoCancellation), sampleRates.min(), sampleRates.max());
+        m_capabilities = captureCapabilities(values, hashedId(), hashedGroupId());
     }
     return m_capabilities.value();
 }
@@ -299,24 +298,8 @@ const RealtimeMediaSourceSettings& CoreAudioCaptureSource::settings()
 {
     if (!m_currentSettings) {
         Ref unit = m_unit.get();
-
-        RealtimeMediaSourceSettings settings;
-        settings.setVolume(volume());
-        settings.setSampleRate(unit->isRenderingAudio() ? unit->actualSampleRate() : sampleRate());
-        settings.setDeviceId(hashedId());
-        settings.setGroupId(hashedGroupId());
-        settings.setLabel(name());
-        settings.setEchoCancellation(echoCancellation());
-
-        RealtimeMediaSourceSupportedConstraints supportedConstraints;
-        supportedConstraints.setSupportsDeviceId(true);
-        supportedConstraints.setSupportsGroupId(true);
-        supportedConstraints.setSupportsEchoCancellation(true);
-        supportedConstraints.setSupportsVolume(true);
-        supportedConstraints.setSupportsSampleRate(true);
-        settings.setSupportedConstraints(supportedConstraints);
-
-        m_currentSettings = WTF::move(settings);
+        auto values = AudioCaptureControllerHandle::microphoneSettings(volume(), unit->isRenderingAudio() ? unit->actualSampleRate() : sampleRate(), echoCancellation());
+        m_currentSettings = captureSettings(values, name(), hashedId(), hashedGroupId());
     }
     return m_currentSettings.value();
 }

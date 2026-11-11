@@ -39,6 +39,7 @@ import Dispatch
 import Foundation
 import Synchronization
 import WebCore_Private.Core.CameraCaptureSourceHandle
+import WebCore_Private.Core.CaptureSourceDecisions
 import WebCore_Private.Core.RealtimeVideoUtilities
 import WebCore_Private.Core.WebCoreObjCExceptionCatching
 import os
@@ -434,6 +435,78 @@ private func maxPhotoSize(for format: AVCaptureDevice.Format, requested: (width:
 // and the target of the source's key-value observations and notifications. Frames are delivered on the capture queue,
 // with no hop to the main thread, as AVVideoCaptureSource did; everything else hops to the main thread. The source is
 // reached weakly, and only on the main thread.
+// MARK: Owner
+
+// Who a camera tells about its events, frames and photos: AVVideoCaptureSource, the C++ facade, through
+// CameraCaptureSourceHandle.h's functions, unless a Swift capture source (CaptureSource.swift) owns the camera.
+protocol CameraCaptureSourceOwner: AnyObject, Sendable {
+    @MainActor func cameraDidChange(_ event: WebCore.CameraCaptureSourceEvent, _ value: Bool)
+    @MainActor var cameraIsMuted: Bool { get }
+    // On the capture queue.
+    func cameraDidCaptureFrame(_ pixelBuffer: CVBuffer, _ presentationTime: CMTime, _ rotation: UInt16, _ isMirrored: Bool)
+    // On any thread.
+    func cameraDidCapturePhoto(_ data: Data)
+    func cameraDidFailToCapturePhoto(_ error: WebCore.CameraCapturePhotoError)
+}
+
+// The owners, held weakly: an owner removes itself as it goes.
+private let cameraCaptureSourceOwners = Mutex<[UInt64: @Sendable () -> (any CameraCaptureSourceOwner)?]>([:])
+
+func setCameraCaptureSourceOwner(_ identifier: UInt64, _ owner: (any CameraCaptureSourceOwner)?) {
+    cameraCaptureSourceOwners.withLock {
+        guard let owner else {
+            $0[identifier] = nil
+            return
+        }
+        $0[identifier] = { [weak owner] in owner }
+    }
+}
+
+private func cameraOwner(_ identifier: UInt64) -> (any CameraCaptureSourceOwner)? {
+    cameraCaptureSourceOwners.withLock { $0[identifier] }?()
+}
+
+private func cameraDidCaptureFrame(_ identifier: UInt64, _ pixelBuffer: CVBuffer, _ presentationTime: CMTime, _ rotation: UInt16, _ isMirrored: Bool) {
+    if let owner = cameraOwner(identifier) {
+        owner.cameraDidCaptureFrame(pixelBuffer, presentationTime, rotation, isMirrored)
+        return
+    }
+    WebCore.cameraCaptureSourceDidCaptureFrame(identifier, pixelBuffer, presentationTime, rotation, isMirrored)
+}
+
+private func cameraDidCapturePhoto(_ identifier: UInt64, _ data: Data) {
+    if let owner = cameraOwner(identifier) {
+        owner.cameraDidCapturePhoto(data)
+        return
+    }
+    WebCore.cameraCaptureSourceDidCapturePhoto(identifier, data)
+}
+
+private func cameraDidFailToCapturePhoto(_ identifier: UInt64, _ error: WebCore.CameraCapturePhotoError) {
+    if let owner = cameraOwner(identifier) {
+        owner.cameraDidFailToCapturePhoto(error)
+        return
+    }
+    WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, cameraPhotoErrorMessage(error))
+}
+
+@MainActor
+private func cameraDidChange(_ identifier: UInt64, _ event: WebCore.CameraCaptureSourceEvent, _ value: Bool) {
+    if let owner = cameraOwner(identifier) {
+        owner.cameraDidChange(event, value)
+        return
+    }
+    WebCore.cameraCaptureSourceDidChange(identifier, event, value)
+}
+
+@MainActor
+private func cameraIsMuted(_ identifier: UInt64) -> Bool {
+    if let owner = cameraOwner(identifier) {
+        return owner.cameraIsMuted
+    }
+    return WebCore.cameraCaptureSourceIsMuted(identifier)
+}
+
 private final class CameraCaptureDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCapturePhotoCaptureDelegate, Sendable {
     let identifier: UInt64
     let framesCount = Atomic<UInt64>(0)
@@ -475,12 +548,12 @@ private final class CameraCaptureDelegate: NSObject, AVCaptureVideoDataOutputSam
         if !presentationTime.flags.contains(.valid) {
             presentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         }
-        WebCore.cameraCaptureSourceDidCaptureFrame(identifier, pixelBuffer, presentationTime, videoFrameRotation.load(ordering: .relaxed), connection.isVideoMirrored)
+        cameraDidCaptureFrame(identifier, pixelBuffer, presentationTime, videoFrameRotation.load(ordering: .relaxed), connection.isVideoMirrored)
     }
 
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: (any Error)?) {
         if let error {
-            WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .PhotoOutputFailed)
+            cameraDidFailToCapturePhoto(identifier, .PhotoOutputFailed)
             let code = (error as NSError).code
             let description = error.localizedDescription
             DispatchQueue.main.async {
@@ -490,7 +563,7 @@ private final class CameraCaptureDelegate: NSObject, AVCaptureVideoDataOutputSam
         }
 
         let data = photo.fileDataRepresentation() ?? Data()
-        WebCore.cameraCaptureSourceDidCapturePhoto(identifier, data)
+        cameraDidCapturePhoto(identifier, data)
     }
 
     override func observeValue(forKeyPath keyPath: Swift.String?, of object: Any?, change: [NSKeyValueChangeKey: Any]?, context: UnsafeMutableRawPointer?) {
@@ -652,7 +725,7 @@ private final class CameraCaptureSource {
     static let photoQueue = DispatchQueue(label: "WebKit::AVPhotoCapture Queue")
 
     private func event(_ event: WebCore.CameraCaptureSourceEvent, _ value: Bool = false) {
-        WebCore.cameraCaptureSourceDidChange(identifier, event, value)
+        cameraDidChange(identifier, event, value)
     }
 
     private func setVideoFrameRotation() {
@@ -726,7 +799,7 @@ private final class CameraCaptureSource {
             pendingPhotoSettings = nil
             pendingCaptureWatchdog?.cancel()
             pendingCaptureWatchdog = nil
-            WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .SessionCleared)
+            cameraDidFailToCapturePhoto(identifier, .SessionCleared)
         }
 #endif
     }
@@ -800,7 +873,7 @@ private final class CameraCaptureSource {
             logger.error("AVVideoCaptureSource error calling -stopRunning \(exception.name.rawValue, privacy: .public), reason : \(exception.reason ?? "", privacy: .public)")
         }
 
-        WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .TrackStopped)
+        cameraDidFailToCapturePhoto(identifier, .TrackStopped)
     }
 
     func startApplyingConstraints() {
@@ -1310,7 +1383,7 @@ private final class CameraCaptureSource {
         DispatchQueue.main.async { [self] in
             MainActor.assumeIsolated {
                 logger.log("AVVideoCaptureSource::captureSessionIsRunningDidChange \(running)")
-                let isMuted = WebCore.cameraCaptureSourceIsMuted(identifier)
+                let isMuted = cameraIsMuted(identifier)
                 if !state.runningDidChange(running, isMuted: isMuted) {
                     return
                 }
@@ -1340,7 +1413,7 @@ private final class CameraCaptureSource {
 
                 updateVerifyCapturingTimer()
 
-                if state.interrupted != WebCore.cameraCaptureSourceIsMuted(identifier) {
+                if state.interrupted != cameraIsMuted(identifier) {
                     event(.MutedChanged, state.interrupted)
                 }
             }
@@ -1423,6 +1496,89 @@ private final class CameraCaptureSource {
         values.isTorchChangePending = isTorchChangePending
         values.isWhiteBalanceModeChangePending = isWhiteBalanceModeChangePending
         return values
+    }
+
+    // AVVideoCaptureSource's settings and capabilities, which it gets from here.
+    func settings(_ inputs: WebCore.CameraCaptureSettingsInputs) -> WebCore.CaptureSettingsValues {
+        let device = deviceValues()
+        var settings = WebCore.CaptureSettingsValues()
+        switch device.position {
+        case .Front:
+            settings.facingMode = cameraFacingModeUser
+        case .Back:
+            settings.facingMode = cameraFacingModeEnvironment
+        default:
+            settings.facingMode = cameraFacingModeUnknown
+        }
+        settings.frameRate = Float(inputs.frameRate)
+        var width = inputs.width
+        var height = inputs.height
+        if videoFrameRotation == rotationLeft || videoFrameRotation == rotationRight {
+            swap(&width, &height)
+        }
+        settings.width = UInt32(truncatingIfNeeded: width)
+        settings.height = UInt32(truncatingIfNeeded: height)
+        settings.backgroundBlur = device.isPortraitEffectActive
+
+        var supported = cameraSupports.deviceId | cameraSupports.groupId | cameraSupports.width | cameraSupports.height | cameraSupports.aspectRatio | cameraSupports.frameRate | cameraSupports.backgroundBlur
+        if device.position != .Unspecified {
+            supported |= cameraSupports.facingMode
+        }
+        if inputs.isZoomSupported {
+            supported |= cameraSupports.zoom
+            settings.zoom = inputs.zoom
+        }
+        if device.whiteBalanceModes != 0 {
+            supported |= cameraSupports.whiteBalanceMode
+            settings.whiteBalanceMode = (device.isWhiteBalanceModeChangePending ? inputs.whiteBalanceMode : device.whiteBalanceMode).rawValue
+        }
+        if device.hasTorch {
+            supported |= cameraSupports.torch
+            settings.torch = device.isTorchChangePending ? inputs.torch : device.isTorchOn
+        }
+#if os(iOS) || os(visionOS) || os(tvOS)
+        supported |= cameraSupports.powerEfficient
+        if inputs.canBePowerEfficient {
+            settings.powerEfficient = inputs.presetIsEfficient
+        }
+#endif
+        settings.supportedConstraints = supported
+        return settings
+    }
+
+    func capabilities(settingsSupportedConstraints: UInt32, ranges: WebCore.CaptureCapabilityValues, canBePowerEfficient: Bool) -> WebCore.CaptureCapabilityValues {
+        let device = deviceValues()
+        var capabilities = ranges
+        if device.position == .Front {
+            capabilities.facingModes |= 1 << cameraFacingModeUser
+        }
+        if device.position == .Back {
+            capabilities.facingModes |= 1 << cameraFacingModeEnvironment
+        }
+        var supported = settingsSupportedConstraints
+#if HAVE_AVCAPTUREDEVICE_MINFOCUSLENGTH
+        if device.hasMinimumFocusDistance {
+            supported |= cameraSupports.focusDistance
+            capabilities.focusDistanceMin = device.minimumFocusDistance / 1000
+            capabilities.focusDistanceMax = .greatestFiniteMagnitude
+        }
+#endif
+        let whiteBalanceModes = device.whiteBalanceModes & ((1 << WebCore.MeteringMode.Manual.rawValue) | (1 << WebCore.MeteringMode.SingleShot.rawValue) | (1 << WebCore.MeteringMode.Continuous.rawValue))
+        if whiteBalanceModes != 0 {
+            supported |= cameraSupports.whiteBalanceMode
+            capabilities.whiteBalanceModes = whiteBalanceModes
+        }
+        if device.hasTorch {
+            supported |= cameraSupports.torch
+            capabilities.torch = true
+        }
+        capabilities.backgroundBlur = device.isPortraitEffectActive ? 1 : 0
+#if os(iOS) || os(visionOS) || os(tvOS)
+        supported |= cameraSupports.powerEfficient
+        capabilities.powerEfficient = canBePowerEfficient
+#endif
+        capabilities.supportedConstraints = supported
+        return capabilities
     }
 
     func fillLightMode() -> WebCore.CameraCaptureFillLightMode {
@@ -1611,13 +1767,13 @@ private final class CameraCaptureSource {
 
     func takePhoto(_ request: WebCore.CameraCapturePhotoRequest) {
         guard let photoOutput = makePhotoOutput() else {
-            WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .InternalError)
+            cameraDidFailToCapturePhoto(identifier, .InternalError)
             return
         }
 
         guard let photoSettings = photoConfiguration(request, photoOutput: photoOutput) else {
             logger.error("AVVideoCaptureSource photoConfiguration() failed")
-            WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .InternalError)
+            cameraDidFailToCapturePhoto(identifier, .InternalError)
             return
         }
 
@@ -1628,7 +1784,7 @@ private final class CameraCaptureSource {
                 if requested.width > current.width || requested.height > current.height {
                     if let exception = WebCoreCatchingObjCException({ photoOutput.maxPhotoDimensions = requested }) {
                         logger.error("AVVideoCaptureSource error calling setMaxPhotoDimensions: \(exception.name.rawValue, privacy: .public), reason: \(exception.reason ?? "", privacy: .public)")
-                        WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .SetMaxPhotoDimensionsFailed)
+                        cameraDidFailToCapturePhoto(identifier, .SetMaxPhotoDimensionsFailed)
                         return
                     }
                 }
@@ -1661,7 +1817,7 @@ private final class CameraCaptureSource {
 
         logger.error("AVVideoCaptureSource photo pipeline readiness timeout")
         pendingPhotoSettings = nil
-        WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .PipelineReadinessTimeout)
+        cameraDidFailToCapturePhoto(identifier, .PipelineReadinessTimeout)
     }
 #endif
 
@@ -1674,7 +1830,7 @@ private final class CameraCaptureSource {
                 let reason = exception.reason ?? ""
                 DispatchQueue.main.async {
                     logger.error("AVVideoCaptureSource error taking photo \(name, privacy: .public), reason: \(reason, privacy: .public)")
-                    WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .CapturePhotoFailed)
+                    cameraDidFailToCapturePhoto(identifier, .CapturePhotoFailed)
                 }
             }
         }
@@ -1691,7 +1847,7 @@ private final class CameraCaptureSource {
             self.pendingPhotoSettings = nil
             pendingCaptureWatchdog?.cancel()
             pendingCaptureWatchdog = nil
-            WebCore.cameraCaptureSourceDidFailToCapturePhoto(identifier, .SessionNotRunning)
+            cameraDidFailToCapturePhoto(identifier, .SessionNotRunning)
             return
         }
         if readiness != .ready {
@@ -1714,6 +1870,311 @@ private struct PhotoCaptureRequest: @unchecked Sendable {
     let photoOutput: AVCapturePhotoOutput
     let photoSettings: AVCapturePhotoSettings
     let delegate: CameraCaptureDelegate
+}
+
+// MARK: Swift capture source
+
+// The messages of AVVideoCaptureSource's photo errors.
+func cameraPhotoErrorMessage(_ error: WebCore.CameraCapturePhotoError) -> Swift.String {
+    switch error {
+    case .InternalError:
+        return "Internal error"
+    case .SetMaxPhotoDimensionsFailed:
+        return "setMaxPhotoDimensions failed"
+    case .PipelineReadinessTimeout:
+        return "Photo capture timed out waiting for pipeline readiness"
+    case .SessionNotRunning:
+        return "Session not running"
+    case .SessionCleared:
+        return "Session cleared"
+    case .TrackStopped:
+        return "Track stopped"
+    case .CapturePhotoFailed:
+        return "capturePhotoWithSettings failed"
+    case .PhotoOutputFailed:
+        return "AVCapturePhotoOutput failed"
+    @unknown default:
+        return "Internal error"
+    }
+}
+
+// The capture source a backend delivers frames to, from any thread.
+final class CaptureSourceFrameTarget: Sendable {
+    private struct Target {
+        weak var source: CaptureSource?
+    }
+
+    private let target = Mutex(Target())
+
+    func set(_ source: CaptureSource?) {
+        target.withLock {
+            $0.source = source
+        }
+    }
+
+    var source: CaptureSource? {
+        target.withLock { $0.source }
+    }
+}
+
+// A camera that a Swift capture source of the GPU process owns: what AVVideoCaptureSource does for its camera.
+@MainActor
+final class CameraCaptureBackend: CaptureSourceBackend, CameraCaptureSourceOwner {
+    weak var source: CaptureSource? {
+        didSet {
+            frameTarget.set(source)
+        }
+    }
+
+    private let identifier: UInt64
+    private let frameTarget = CaptureSourceFrameTarget()
+    private let lastFrameSize = Mutex<(width: Int32, height: Int32)>((0, 0))
+    private var pendingPhoto: (@MainActor (Result<(Data, Swift.String), CaptureSourceFailure>) -> Void)?
+
+    // A backend for the camera with this unique ID, or none.
+    static func create(uniqueID: Swift.String) -> CameraCaptureBackend? {
+        guard let device = AVFoundationClass.AVCaptureDevice.init(uniqueID: uniqueID) else {
+            return nil
+        }
+        lastCameraCaptureSourceIdentifier &+= 1
+        let identifier = lastCameraCaptureSourceIdentifier
+        cameraCaptureSources[identifier] = CameraCaptureSource(identifier: identifier, device: device)
+        let backend = CameraCaptureBackend(identifier: identifier)
+        setCameraCaptureSourceOwner(identifier, backend)
+        return backend
+    }
+
+    private init(identifier: UInt64) {
+        self.identifier = identifier
+    }
+
+    isolated deinit {
+        setCameraCaptureSourceOwner(identifier, nil)
+        cameraCaptureSources.removeValue(forKey: identifier)?.invalidate()
+    }
+
+    private var camera: CameraCaptureSource? {
+        cameraCaptureSources[identifier]
+    }
+
+    // MARK: CaptureSourceBackend
+
+    func startProducingData() {
+        guard let camera else {
+            return
+        }
+#if ENABLE_EXTENSION_CAPABILITIES
+        camera.mediaEnvironment = Swift.String(WebCore.RealtimeMediaSourceCenter.singleton().currentMediaEnvironment())
+#endif
+        camera.startProducingData()
+    }
+
+    func stopProducingData() {
+        camera?.stopProducingData()
+    }
+
+    func settingsDidChange(_ flags: CaptureSettingsFlags) {
+        guard let camera, let source else {
+            return
+        }
+        camera.setTorchAndWhiteBalanceMode(torch: source.torch, whiteBalanceMode: WebCore.MeteringMode(rawValue: source.whiteBalanceMode.rawValue) ?? .None)
+        camera.settingsDidChange(whiteBalanceModeChanged: flags.contains(.whiteBalanceMode), torchChanged: flags.contains(.torch))
+    }
+
+    func settings() -> CaptureSettings {
+        guard let camera, let source else {
+            return CaptureSettings()
+        }
+        var inputs = WebCore.CameraCaptureSettingsInputs()
+        inputs.frameRate = source.frameRate
+        inputs.zoom = source.zoom
+        let size = source.size
+        inputs.width = size.width
+        inputs.height = size.height
+        inputs.whiteBalanceMode = WebCore.MeteringMode(rawValue: source.whiteBalanceMode.rawValue) ?? .None
+        inputs.torch = source.torch
+        inputs.isZoomSupported = source.presets().contains(where: \.isZoomSupported)
+#if os(iOS) || os(visionOS) || os(tvOS)
+        inputs.canBePowerEfficient = source.canBePowerEfficient
+        inputs.presetIsEfficient = source.currentPresetIsEfficient
+#endif
+        return CaptureSettings(camera.settings(inputs), label: source.name, deviceId: source.hashedID, groupId: source.hashedGroupID)
+    }
+
+    func capabilities() -> CaptureCapabilities {
+        guard let camera, let source else {
+            return CaptureCapabilities()
+        }
+        var ranges = WebCore.CaptureCapabilityValues()
+        source.updateVideoCapabilities(&ranges)
+        var canBePowerEfficient = false
+#if os(iOS) || os(visionOS) || os(tvOS)
+        canBePowerEfficient = source.canBePowerEfficient
+#endif
+        let values = camera.capabilities(settingsSupportedConstraints: settings().supportedConstraints.rawValue, ranges: ranges, canBePowerEfficient: canBePowerEfficient)
+        return CaptureCapabilities(values, deviceId: source.hashedID, groupId: source.hashedGroupID)
+    }
+
+    func presets() -> [CapturePreset] {
+        guard let camera else {
+            return []
+        }
+        let count = camera.generatePresets()
+        return (0..<count).map { index in
+            let values = camera.preset(index)
+            let ranges = (0..<values.frameRateRangeCount).map { rangeIndex in
+                let range = camera.presetFrameRateRange(index, rangeIndex)
+                return (minimum: range.minimum, maximum: range.maximum)
+            }
+            return CapturePreset(width: values.width, height: values.height, frameRateRanges: ranges, minZoom: values.hasMinZoom ? values.minZoom : 1, maxZoom: values.hasMaxZoom ? values.maxZoom : 1, isEfficient: values.isEfficient, formatIndex: Int32(index))
+        }
+    }
+
+    func applyFrameRateAndZoom(frameRate: Double, zoom: Double, preset: CapturePreset?) -> Bool {
+        camera?.applyFrameRateAndZoom(frameRate: frameRate, zoom: zoom, presetIndex: preset?.formatIndex ?? -1) ?? false
+    }
+
+    func startApplyingConstraints() {
+        camera?.startApplyingConstraints()
+    }
+
+    func endApplyingConstraints() {
+        camera?.endApplyingConstraints()
+    }
+
+    var videoFrameRotation: UInt16 {
+        camera?.videoFrameRotation ?? 0
+    }
+
+    var isInterrupted: Bool {
+        camera?.isInterrupted ?? false
+    }
+
+    var isPowerEfficient: Bool {
+        source?.currentPresetIsEfficient ?? false
+    }
+
+    var facingModeFitnessScoreAdjustment: Double {
+        camera?.facingModeFitnessScoreAdjustment() ?? 0
+    }
+
+    func takePhoto(_ settings: CapturePhotoSettings, completion: @escaping @MainActor (Result<(Data, Swift.String), CaptureSourceFailure>) -> Void) {
+        guard let camera, pendingPhoto == nil else {
+            completion(.failure(CaptureSourceFailure(message: "Internal error", denialReason: 0)))
+            return
+        }
+        pendingPhoto = completion
+        var request = WebCore.CameraCapturePhotoRequest()
+        if let fillLightMode = settings.fillLightMode {
+            request.hasFillLightMode = true
+            request.fillLightMode = fillLightMode.rawValue
+        }
+        if let width = settings.imageWidth, let height = settings.imageHeight {
+            request.hasImageSize = true
+            request.imageWidth = width
+            request.imageHeight = height
+        }
+        if let redEyeReduction = settings.redEyeReduction {
+            request.hasRedEyeReduction = true
+            request.redEyeReduction = redEyeReduction
+        }
+        camera.takePhoto(request)
+    }
+
+    func photoCapabilities() -> CapturePhotoCapabilities? {
+        let capabilities = self.capabilities()
+        var photoCapabilities = CapturePhotoCapabilities()
+        photoCapabilities.imageHeight = CaptureSettingsRange(max: Double(capabilities.height.max), min: Double(capabilities.height.min), step: 1)
+        photoCapabilities.imageWidth = CaptureSettingsRange(max: Double(capabilities.width.max), min: Double(capabilities.width.min), step: 1)
+        return photoCapabilities
+    }
+
+    func photoSettings() -> CapturePhotoSettings? {
+        guard let camera else {
+            return nil
+        }
+        let torchMode = camera.fillLightMode()
+        let settings = self.settings()
+        return CapturePhotoSettings(fillLightMode: torchMode.hasTorch ? CaptureFillLightMode(rawValue: torchMode.mode) : nil, imageHeight: Double(settings.height), imageWidth: Double(settings.width))
+    }
+
+    func orientationChanged(_ orientation: Int32) {
+        camera?.orientationChanged(orientation)
+    }
+
+    func rotationAngleForHorizonLevelDisplayChanged(_ rotation: UInt16) {
+        camera?.rotationAngleForHorizonLevelDisplayChanged(rotation)
+    }
+
+    func monitorOrientation(_ orientation: Int32) {
+        camera?.monitorOrientation(orientation)
+    }
+
+    // MARK: CameraCaptureSourceOwner
+
+    func cameraDidChange(_ event: WebCore.CameraCaptureSourceEvent, _ value: Bool) {
+        guard let source else {
+            return
+        }
+        switch event {
+        case .CaptureFailed:
+            source.captureFailed()
+        case .MutedChanged:
+            source.notifyMutedChange(value)
+        case .ConfigurationChanged:
+            source.presetsDidChange()
+            source.configurationChanged()
+        case .VideoFrameRotationChanged:
+            source.notifySettingsDidChange([.width, .height])
+        case .SettingsChanged:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+    var cameraIsMuted: Bool {
+        source?.muted ?? false
+    }
+
+    nonisolated func cameraDidCaptureFrame(_ pixelBuffer: CVBuffer, _ presentationTime: CMTime, _ rotation: UInt16, _ isMirrored: Bool) {
+        guard let source = frameTarget.source else {
+            return
+        }
+        let frame = CaptureFrame(WebCore.CaptureVideoFrameSession.frameFromPixelBuffer(pixelBuffer, presentationTime.value, presentationTime.timescale, rotation, isMirrored))
+        let size = frame.frame.presentationSize()
+        let frameSize = (width: size.width(), height: size.height())
+        let changed = lastFrameSize.withLock {
+            let changed = $0 != frameSize
+            $0 = frameSize
+            return changed
+        }
+        if changed {
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    source.setIntrinsicSize(WebCore.CaptureSourceSize(width: frameSize.width, height: frameSize.height))
+                }
+            }
+        }
+        // MonotonicTime::now(), as AVVideoCaptureSource has it.
+        source.videoFrameAvailable(frame, captureTime: Double(DispatchTime.now().uptimeNanoseconds) / 1_000_000_000)
+    }
+
+    nonisolated func cameraDidCapturePhoto(_ data: Data) {
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                self?.pendingPhoto.take()?(.success((data, "image/jpeg")))
+            }
+        }
+    }
+
+    nonisolated func cameraDidFailToCapturePhoto(_ error: WebCore.CameraCapturePhotoError) {
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated {
+                self?.pendingPhoto.take()?(.failure(CaptureSourceFailure(message: cameraPhotoErrorMessage(error), denialReason: 0)))
+            }
+        }
+    }
 }
 
 // MARK: Entry points
@@ -1774,6 +2235,27 @@ func cameraCaptureSourceSetAssumedIdentity(_ identifier: UInt64, _ identity: bor
     }
 }
 #endif
+
+// The bits of RealtimeMediaSourceSupportedConstraints (CaptureSettingsValues), and VideoFacingMode's values.
+private enum cameraSupports {
+    static let width: UInt32 = 1 << 0
+    static let height: UInt32 = 1 << 1
+    static let aspectRatio: UInt32 = 1 << 2
+    static let frameRate: UInt32 = 1 << 3
+    static let facingMode: UInt32 = 1 << 4
+    static let deviceId: UInt32 = 1 << 9
+    static let groupId: UInt32 = 1 << 10
+    static let focusDistance: UInt32 = 1 << 13
+    static let whiteBalanceMode: UInt32 = 1 << 14
+    static let zoom: UInt32 = 1 << 15
+    static let torch: UInt32 = 1 << 16
+    static let backgroundBlur: UInt32 = 1 << 17
+    static let powerEfficient: UInt32 = 1 << 18
+}
+
+private let cameraFacingModeUnknown: UInt8 = 0
+private let cameraFacingModeUser: UInt8 = 1
+private let cameraFacingModeEnvironment: UInt8 = 2
 
 // MARK: Handle
 
@@ -1919,6 +2401,22 @@ extension WebCore.CameraCaptureSourceHandle {
     func deviceValues() -> WebCore.CameraCaptureDeviceValues {
         MainActor.assumeIsolated {
             source?.deviceValues() ?? WebCore.CameraCaptureDeviceValues()
+        }
+    }
+
+    @cxx
+    @implementation
+    func settings(_ inputs: WebCore.CameraCaptureSettingsInputs) -> WebCore.CaptureSettingsValues {
+        MainActor.assumeIsolated {
+            source?.settings(inputs) ?? WebCore.CaptureSettingsValues()
+        }
+    }
+
+    @cxx
+    @implementation
+    func capabilities(_ settingsSupportedConstraints: UInt32, _ ranges: WebCore.CaptureCapabilityValues, _ canBePowerEfficient: Bool) -> WebCore.CaptureCapabilityValues {
+        MainActor.assumeIsolated {
+            source?.capabilities(settingsSupportedConstraints: settingsSupportedConstraints, ranges: ranges, canBePowerEfficient: canBePowerEfficient) ?? ranges
         }
     }
 

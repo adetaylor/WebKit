@@ -30,6 +30,7 @@
 #include <wtf/Platform.h>
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 
+#include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/DisplayCapturePromptType.h>
 #include <WebCore/MockVideoSourceHandle.h>
 #include <cstdint>
@@ -117,7 +118,9 @@ public:
     DisplayCaptureSize intrinsicSize() const;
     // Whether the capturer captures a window, not a display.
     bool isWindow() const;
-
+    // DisplayCaptureSourceCocoa's settings at this frame rate and size, and its capabilities.
+    CaptureSettingsValues settings(double frameRate, int32_t width, int32_t height) const;
+    CaptureCapabilityValues capabilities(uint32_t settingsSupportedConstraints) const;
 
 private:
     uint64_t m_identifier { 0 };

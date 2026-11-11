@@ -1707,6 +1707,17 @@ if (SWIFT_REQUIRED AND APPLE)
     )
 endif ()
 
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and ENABLE_MEDIA_STREAM are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/UserMediaCaptureManagerProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/webrtc/UserMediaCaptureManagerProxy.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/UserMediaCaptureManagerProxyMessageReceiver.swift
+    )
+endif ()
+
 # Each compiles to nothing unless ENABLE_GPU_PROCESS_CDM_SWIFT is set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
