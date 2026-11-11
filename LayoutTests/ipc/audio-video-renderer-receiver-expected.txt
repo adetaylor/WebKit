@@ -1,0 +1,95 @@
+send CreateManager
+  received StateUpdate ["01"]
+  CreateManager replied ["01000000000000002800000000000000"]
+send AddTrack
+  AddTrack replied ["0100000000000000<audioTrack>"]
+send AddTrack
+  AddTrack replied ["0100000000000000<videoTrack>"]
+send SetHasProtectedVideoContent
+send RequestMediaDataWhenReady
+  received LayerHostingContextChanged
+  received RenderingModeChanged ["01"]
+  received ReadyForMoreMediaData <audioTrack>
+send RequestMediaDataWhenReady
+  received ReadyForMoreMediaData <videoTrack>
+send NotifyTimeReachedAndStall
+send CancelTimeReachedAction
+  NotifyTimeReachedAndStall replied ["0007"]
+send NotifyTimeReachedAndStall
+  NotifyTimeReachedAndStall replied ["010000000000000000000000000000000100000001"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["010000000000000000000000000000000100000011"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["010000000000000000000000000000000100000011"]
+send FinishSeek
+send Flush
+  received StateUpdate ["01"]
+  FinishSeek replied ["00"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["010000000000000000000000000000000100000011"]
+send FinishSeek
+send FinishSeek
+  received StateUpdate ["01"]
+  FinishSeek replied ["00"]
+  received StateUpdate ["01"]
+  FinishSeek replied ["00"]
+send Flush
+send PerformTaskAtTime
+send Stall
+send ApplicationWillResignActive
+send ExpectMinimumUpcomingPresentationTime
+send NotifyWhenHasAvailableVideoFrame
+send NotifyWhenHasAvailableVideoFrame
+send SetVideoPlaybackMetricsUpdateInterval
+  received UpdatePlaybackQualityMetrics ["00000000000000000000000000000000000000000000000001000000"]
+send RenderingCanBeAcceleratedChanged
+  received RenderingModeChanged ["01"]
+send SetVideoPlaybackMetricsUpdateInterval
+  received UpdatePlaybackQualityMetrics ["00000000000000000000000000000000000000000000000002000000"]
+send FlushTrack
+  FlushTrack replied [{"type":"bool","value":true}]
+send FlushTrack
+  FlushTrack replied [{"type":"bool","value":true}]
+send RemoveTrack
+send FlushTrack
+  FlushTrack replied [{"type":"bool","value":false}]
+send RequestMediaDataWhenReady
+send NotifyTimeReachedAndStall
+send Shutdown
+  NotifyTimeReachedAndStall replied ["0007"]
+send NotifyTimeReachedAndStall
+  NotifyTimeReachedAndStall replied ["0011"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["0011"]
+send FinishSeek
+  received StateUpdate ["01"]
+  FinishSeek replied ["00"]
+send FlushTrack
+  FlushTrack replied [{"type":"bool","value":false}]
+send Destroy
+send CreateManager
+  received StateUpdate ["01"]
+  CreateManager replied ["01000000000000002800000000000000"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["010000000000000000000000000000000100000011"]
+send FinishSeek
+  received StateUpdate ["01"]
+  FinishSeek replied ["01"]
+send PrepareToSeek
+  received StateUpdate ["01"]
+  PrepareToSeek replied ["010000000000000000000000000000000100000011"]
+send NotifyTimeReachedAndStall
+  NotifyTimeReachedAndStall replied ["010000000000000001000000000000000100000001"]
+send Destroy
+send CreateManager
+  received StateUpdate ["01"]
+  CreateManager replied ["01000000000000002800000000000000"]
+send Destroy
+
+PASS Test the replies and notifications of the GPU process's audio and video renderer receiver.
+

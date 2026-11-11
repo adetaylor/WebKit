@@ -1,0 +1,237 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test the replies and notifications of the GPU process's audio and video renderer receiver.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<pre id="log"></pre>
+<script>
+const uint8 = value => ({ type: 'uint8_t', value });
+const uint64 = value => ({ type: 'uint64_t', value });
+const bool = value => ({ type: 'bool', value: value ? 1 : 0 });
+const double = value => ({ type: 'double', value });
+// A MediaTime: its value, time scale and flags (1 = valid).
+const mediaTime = (value, scale) => [{ type: 'int64_t', value }, { type: 'uint32_t', value: scale }, uint8(1)];
+
+const transcript = [];
+const tracks = new Map();
+function log(line)
+{
+    transcript.push(line);
+}
+
+// Track identifiers' encodings, as the hex of their 8 bytes, and how the transcript names them.
+const trackBytes = new Map();
+function hex(buffer)
+{
+    let text = Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join('');
+    for (const [bytes, name] of trackBytes)
+        text = text.replaceAll(bytes, `<${name}>`);
+    return text;
+}
+
+function plain(value)
+{
+    if (value instanceof ArrayBuffer)
+        return hex(value);
+    if (typeof value === 'bigint')
+        return tracks.get(value) ?? value.toString();
+    if (typeof value === 'number')
+        return tracks.get(BigInt(value)) ?? value;
+    if (Array.isArray(value))
+        return value.map(plain);
+    if (value && typeof value === 'object') {
+        const result = {};
+        for (const key of Object.getOwnPropertyNames(value))
+            result[key] = plain(value[key]);
+        return result;
+    }
+    return value;
+}
+
+function describe(value)
+{
+    return JSON.stringify(plain(value));
+}
+
+function messageName(name)
+{
+    return IPC.messages[`RemoteAudioVideoRendererProxyManager_${name}`].name;
+}
+
+function send(name, args)
+{
+    log(`send ${name}`);
+    IPC.sendMessage('GPU', 0, messageName(name), args);
+}
+
+function sendWithReply(name, args)
+{
+    log(`send ${name}`);
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => { log(`  ${name}: no reply`); resolve(null); }, 3000);
+        IPC.connectionForProcessTarget('GPU').sendWithAsyncReply(0, messageName(name), args, result => {
+            clearTimeout(timeout);
+            log(`  ${name} replied ${describe(result?.arguments)}`);
+            resolve(result?.arguments);
+        });
+    });
+}
+
+// The reply is logged by the caller, once the track identifier in it, which depends on what else the GPU process did, has a
+// name.
+function sendSync(name, args)
+{
+    log(`send ${name}`);
+    const result = IPC.sendSyncMessage('GPU', 0, messageName(name), 1000, args);
+    return result?.arguments;
+}
+
+async function settle()
+{
+    await new Promise(resolve => setTimeout(resolve, 300));
+}
+
+promise_test(async t => {
+    try {
+        await runTest();
+    } finally {
+        document.getElementById('log').textContent = transcript.join('\n');
+    }
+}, document.title);
+
+async function runTest()
+{
+    if (!window.IPC || !IPC.messages.RemoteAudioVideoRendererProxyManager_CreateManager)
+        return;
+
+    const prefix = 'AudioVideoRendererRemoteMessageReceiver_';
+    const rendererMessages = new Map();
+    for (const key of Object.keys(IPC.messages)) {
+        if (key.startsWith(prefix))
+            rendererMessages.set(IPC.messages[key].name, key);
+    }
+    IPC.addIncomingMessageListener('GPU', message => {
+        const name = rendererMessages.get(message.name);
+        if (!name)
+            return;
+        if (name == `${prefix}LayerHostingContextChanged`) {
+            log(`  received ${name.substring(prefix.length)}`);
+            return;
+        }
+        // Its track identifier, which JavaScript numbers can't hold, from the message's last 8 bytes.
+        if (name == `${prefix}ReadyForMoreMediaData`) {
+            log(`  received ReadyForMoreMediaData ${hex(message.buffer.slice(message.buffer.byteLength - 8))}`);
+            return;
+        }
+        log(`  received ${name.substring(prefix.length)} ${describe(message.arguments)}`);
+    });
+
+    const identifier = 9000 + Math.floor(Math.random() * 1000000) * 2;
+    const created = await sendWithReply('CreateManager', [uint64(identifier), uint64(identifier + 1), uint64(identifier + 2)]);
+    await settle();
+
+    const audio = sendSync('AddTrack', [uint64(identifier), uint8(1)]);
+    const audioIdentifier = trackIdentifier(audio, 'audioTrack');
+    log(`  AddTrack replied ${describe(audio)}`);
+    const video = sendSync('AddTrack', [uint64(identifier), uint8(2)]);
+    const videoIdentifier = trackIdentifier(video, 'videoTrack');
+    log(`  AddTrack replied ${describe(video)}`);
+
+    // An AddTrack reply is a std::expected whose value is the track's identifier, in its last 8 bytes.
+    function trackIdentifier(reply, name)
+    {
+        const buffer = reply?.[0];
+        if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 9)
+            return 0n;
+        const bytes = buffer.slice(buffer.byteLength - 8);
+        trackBytes.set(Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join(''), name);
+        const identifier = new DataView(bytes).getBigUint64(0, true);
+        tracks.set(identifier, name);
+        return identifier;
+    }
+
+    send('SetHasProtectedVideoContent', [uint64(identifier), bool(false)]);
+    send('RequestMediaDataWhenReady', [uint64(identifier), uint64(audioIdentifier)]);
+    await settle();
+    send('RequestMediaDataWhenReady', [uint64(identifier), uint64(videoIdentifier)]);
+    await settle();
+
+    // Stalling at a time ahead, then cancelling; then at a time already reached.
+    const stalled = sendWithReply('NotifyTimeReachedAndStall', [uint64(identifier), ...mediaTime(5000, 1000)]);
+    await settle();
+    send('CancelTimeReachedAction', [uint64(identifier)]);
+    await stalled;
+    await sendWithReply('NotifyTimeReachedAndStall', [uint64(identifier), ...mediaTime(0, 1)]);
+    await settle();
+
+    // A seek the renderer completes at once and one that waits for a frame, then a flush.
+    await sendWithReply('PrepareToSeek', [uint64(identifier), ...mediaTime(0, 1)]);
+    await settle();
+    await sendWithReply('PrepareToSeek', [uint64(identifier), ...mediaTime(2000, 1000)]);
+    await settle();
+    const finished = sendWithReply('FinishSeek', [uint64(identifier), ...mediaTime(2000, 1000)]);
+    await settle();
+    send('Flush', [uint64(identifier)]);
+    await finished;
+    await settle();
+
+    // Seeking again, then a new FinishSeek replaces the one pending.
+    await sendWithReply('PrepareToSeek', [uint64(identifier), ...mediaTime(3000, 1000)]);
+    const first = sendWithReply('FinishSeek', [uint64(identifier), ...mediaTime(3000, 1000)]);
+    await settle();
+    const second = sendWithReply('FinishSeek', [uint64(identifier), ...mediaTime(3000, 1000)]);
+    await first;
+    await settle();
+    send('Flush', [uint64(identifier)]);
+    await second;
+    await settle();
+
+    send('PerformTaskAtTime', [uint64(identifier), ...mediaTime(10, 1)]);
+    send('Stall', [uint64(identifier)]);
+    send('ApplicationWillResignActive', [uint64(identifier)]);
+    send('ExpectMinimumUpcomingPresentationTime', [uint64(identifier), ...mediaTime(1, 1)]);
+    send('NotifyWhenHasAvailableVideoFrame', [uint64(identifier), bool(true)]);
+    send('NotifyWhenHasAvailableVideoFrame', [uint64(identifier), bool(false)]);
+    send('SetVideoPlaybackMetricsUpdateInterval', [uint64(identifier), double(1)]);
+    await settle();
+    send('RenderingCanBeAcceleratedChanged', [uint64(identifier), bool(true)]);
+    await settle();
+    send('SetVideoPlaybackMetricsUpdateInterval', [uint64(identifier), double(0)]);
+    await settle();
+
+    await sendWithReply('FlushTrack', [uint64(identifier), uint64(audioIdentifier)]);
+    await sendWithReply('FlushTrack', [uint64(identifier), uint64(videoIdentifier)]);
+    send('RemoveTrack', [uint64(identifier), uint64(audioIdentifier)]);
+    await sendWithReply('FlushTrack', [uint64(identifier), uint64(audioIdentifier)]);
+    send('RequestMediaDataWhenReady', [uint64(identifier), uint64(audioIdentifier)]);
+    await settle();
+
+    // After a shutdown, the renderer refuses what it can't do.
+    const pending = sendWithReply('NotifyTimeReachedAndStall', [uint64(identifier), ...mediaTime(7000, 1000)]);
+    await settle();
+    send('Shutdown', [uint64(identifier)]);
+    await pending;
+    await sendWithReply('NotifyTimeReachedAndStall', [uint64(identifier), ...mediaTime(8000, 1000)]);
+    await sendWithReply('PrepareToSeek', [uint64(identifier), ...mediaTime(1000, 1000)]);
+    await sendWithReply('FinishSeek', [uint64(identifier), ...mediaTime(1000, 1000)]);
+    await sendWithReply('FlushTrack', [uint64(identifier), uint64(videoIdentifier)]);
+    send('Destroy', [uint64(identifier)]);
+    await settle();
+
+    // A renderer without tracks has all the samples it needs, so its seeks complete once its synchronizer has moved.
+    const seeker = identifier + 4;
+    await sendWithReply('CreateManager', [uint64(seeker), uint64(identifier + 5), uint64(identifier + 6)]);
+    await sendWithReply('PrepareToSeek', [uint64(seeker), ...mediaTime(5000, 1000)]);
+    await settle();
+    await sendWithReply('FinishSeek', [uint64(seeker), ...mediaTime(5000, 1000)]);
+    await sendWithReply('PrepareToSeek', [uint64(seeker), ...mediaTime(5000, 1000)]);
+    await sendWithReply('NotifyTimeReachedAndStall', [uint64(seeker), ...mediaTime(1, 1)]);
+    send('Destroy', [uint64(seeker)]);
+    await settle();
+
+    // The GPU process still replies.
+    const another = await sendWithReply('CreateManager', [uint64(identifier + 8), uint64(identifier + 9), uint64(identifier + 10)]);
+    send('Destroy', [uint64(identifier + 8)]);
+    await settle();
+}
+</script>

@@ -8558,6 +8558,7 @@ webkit.org/b/327137 imported/w3c/web-platform-tests/resource-timing/resource-tim
 [ Release ] http/tests/ipc/provisional-page-forged-provisional-url-message-check.html [ Skip ]
 [ Release ] ipc/cdm-proxy-messages-malformed.html [ Skip ]
 [ Release ] ipc/cdm-proxy-messages.html [ Skip ]
+[ Release ] ipc/audio-video-renderer-receiver.html [ Skip ]
 
 # BackgroundFetchAPI is not stable yet
 imported/w3c/web-platform-tests/background-fetch/abort.https.window.html [ Skip ]
