@@ -179,7 +179,11 @@
 		B63648AB4046B9937840A98A /* RemoteSamplerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C37AB84BE169F66C05E3637 /* RemoteSamplerMessageReceiver.swift */; };
 		63CAB87C31D7746E018E693A /* RemoteSampler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D6DF9B7DCCEA71B88471B81 /* RemoteSampler.swift */; };
 		F50B56AC6615BC9A9822B44F /* RemoteCDMFactoryProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E58EFC64C6F792B961BDD8 /* RemoteCDMFactoryProxyMessageReceiver.swift */; };
+		F2AE9377B94C04300EB32091 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BCBEDB813BB6DE8A17BBA25 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift */; };
+		E35DB5B58EE56E795DC83725 /* RemoteAudioDestinationManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */; };
 		6C90A0A1D672DE5E289862A3 /* RemoteCDMFactoryProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9538C0D21E85A5BE9B865B9 /* RemoteCDMFactoryProxy.swift */; };
+		A25F4E66CB48F7E263FD5498 /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9A7173313F5691BC414AFF /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift */; };
+		3592DEBDFAC2733BD1784AED /* RemoteAudioDestinationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C67A04F7A09E99C20F74D929 /* RemoteAudioDestinationManager.swift */; };
 		005D158F18E4C4EB00734619 /* _WKFindDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 005D158E18E4C4EB00734619 /* _WKFindDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		00B9661618E24CBA00CE1F88 /* APIFindClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 00B9661518E24CBA00CE1F88 /* APIFindClient.h */; };
 		00B9661A18E25AE100CE1F88 /* FindClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 00B9661818E25AE100CE1F88 /* FindClient.h */; };
@@ -3530,10 +3534,14 @@
 		A5462344BF22395DA5D97A06 /* RemoteCDMSwiftSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCDMSwiftSupport.cpp; sourceTree = "<group>"; };
 		AD63B7D416097CBEA80CB2A4 /* RemoteCDMProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMProxy.swift; sourceTree = "<group>"; };
 		82E58EFC64C6F792B961BDD8 /* RemoteCDMFactoryProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMFactoryProxyMessageReceiver.swift; sourceTree = "<group>"; };
+		1BCBEDB813BB6DE8A17BBA25 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift; sourceTree = "<group>"; };
+		F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioDestinationManagerMessageReceiver.swift; sourceTree = "<group>"; };
 		F454CC0B491A15CFDA886EB5 /* LibWebRTCCodecsProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		7C3E65A131B6CC469FCD18D8 /* RemoteVideoFrameObjectHeapMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteVideoFrameObjectHeapMessageReceiver.swift; sourceTree = "<group>"; };
 		B654E1DD41047ABBBB2A21C2 /* RemoteCDMSwiftSupport.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCDMSwiftSupport.h; sourceTree = "<group>"; };
 		E9538C0D21E85A5BE9B865B9 /* RemoteCDMFactoryProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteCDMFactoryProxy.swift; sourceTree = "<group>"; };
+		9D9A7173313F5691BC414AFF /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift; sourceTree = "<group>"; };
+		C67A04F7A09E99C20F74D929 /* RemoteAudioDestinationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioDestinationManager.swift; sourceTree = "<group>"; };
 		005D158E18E4C4EB00734619 /* _WKFindDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKFindDelegate.h; sourceTree = "<group>"; };
 		00B9661518E24CBA00CE1F88 /* APIFindClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = APIFindClient.h; sourceTree = "<group>"; };
 		00B9661718E25AE100CE1F88 /* FindClient.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FindClient.mm; sourceTree = "<group>"; };
@@ -10095,6 +10103,7 @@
 				9B1229CC23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp */,
 				9B1229CB23FF25F2008CA751 /* RemoteAudioDestinationManager.h */,
 				9B1229CF23FF2814008CA751 /* RemoteAudioDestinationManager.messages.in */,
+				C67A04F7A09E99C20F74D929 /* RemoteAudioDestinationManager.swift */,
 				CD20CE7525CC999F0069B542 /* RemoteAudioHardwareListenerProxy.cpp */,
 				CD20CE7425CC999F0069B542 /* RemoteAudioHardwareListenerProxy.h */,
 				CDBB49F7240D8C950017C292 /* RemoteAudioSessionProxy.cpp */,
@@ -13986,8 +13995,10 @@
 				593A9E6110336761C1F18D9E /* RemoteAdapterMessageReceiver.swift */,
 				1C55A5B1275457CD00EB7E95 /* RemoteAdapterMessages.h */,
 				CDFE82BA2F7DE9C300547599 /* RemoteAudioDestinationManagerMessageReceiver.cpp */,
+				F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */,
 				CD20CE7725CD2B9D0069B542 /* RemoteAudioHardwareListenerMessageReceiver.cpp */,
 				CD20CE7925CD2B9E0069B542 /* RemoteAudioHardwareListenerMessages.h */,
+				1BCBEDB813BB6DE8A17BBA25 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift */,
 				CDD53576240DDE0700F7B8C4 /* RemoteAudioSessionMessageReceiver.cpp */,
 				CDD53575240DDE0700F7B8C4 /* RemoteAudioSessionMessages.h */,
 				CDD53571240DDE0600F7B8C4 /* RemoteAudioSessionProxyMessageReceiver.cpp */,
@@ -14411,6 +14422,7 @@
 				41C3B89126493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.cpp */,
 				41C3B89026493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.h */,
 				41C3B89426493B7C004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in */,
+				9D9A7173313F5691BC414AFF /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift */,
 				41FCD6B423CDCAC200C62567 /* RemoteSampleBufferDisplayLayer.h */,
 				41FCD6B623CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.messages.in */,
 				41FCD6B523CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.mm */,
@@ -22688,6 +22700,10 @@
 				6DAE1F965DD7CAE4D530D40E /* RemoteAdapter.swift in Sources */,
 				F22096AAC6CB39F166D57453 /* RemoteAdapterMessageReceiver.swift in Sources */,
 				9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */,
+				3592DEBDFAC2733BD1784AED /* RemoteAudioDestinationManager.swift in Sources */,
+				E35DB5B58EE56E795DC83725 /* RemoteAudioDestinationManagerMessageReceiver.swift in Sources */,
+				A25F4E66CB48F7E263FD5498 /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift in Sources */,
+				F2AE9377B94C04300EB32091 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift in Sources */,
 				F9F13D992BA842BD94A2450A /* RemoteBarcodeDetectorMessageReceiver.swift in Sources */,
 				1D81557F1BA06B31D988096A /* RemoteBindGroup.swift in Sources */,
 				65BEDE451252218AE2900A92 /* RemoteBindGroupLayout.swift in Sources */,

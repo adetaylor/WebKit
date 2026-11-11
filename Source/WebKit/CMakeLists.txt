@@ -1725,6 +1725,21 @@ if (SWIFT_REQUIRED AND APPLE)
     )
 endif ()
 
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and, for the destinations, ENABLE_WEB_AUDIO, and for the track
+# renderer units, ENABLE_MEDIA_STREAM, are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioDestinationManagerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioDestinationManager.swift
+        ${WEBKIT_DIR}/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioDestinationManagerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift
+    )
+endif ()
+
 # Each compiles to nothing unless ENABLE_GPU_PROCESS and HAVE_SHAPE_DETECTION_API_IMPLEMENTATION are set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(

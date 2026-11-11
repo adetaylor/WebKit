@@ -151,6 +151,10 @@ struct AudioCaptureTimes {
 // Called on any thread once audio units have events for the main thread (AudioOutputUnit.cpp).
 void audioUnitEventsArrived();
 
+// On the main thread, once an audio destination's output unit is made: on iOS, the audio session's preferred IO buffer size
+// for it (AudioOutputUnit.cpp).
+void preferAudioSessionBufferSizeForOutputUnit();
+
 // On a capture unit's IO thread: copies a microphone quantum into the CoreAudioCaptureUnit's buffer, applies its volume and
 // delivers it to its observers (CoreAudioCaptureUnit.cpp). The context is the one the unit was attached.
 void deliverToCxxObservers(void* context, const AudioBufferList*, uint32_t frameCount, const AudioCaptureTimes&);

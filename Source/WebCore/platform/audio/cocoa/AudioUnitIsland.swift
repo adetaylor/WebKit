@@ -25,10 +25,11 @@
 
 private import Cxx
 import Accelerate
-import AudioToolbox
-import Darwin
+public import AudioToolbox
+public import Darwin
 import Synchronization
 import WebCore_Private.Core.CARingBufferSwiftBridge
+import os
 
 // The audited `unsafe` of WebCore's CoreAudio glue: memory that C++ or CoreAudio hands over as pointers, and the atomics
 // shared with other threads and processes. Apart from AudioUnitOwner.swift's AudioUnit calls, the rest of the glue is safe
@@ -634,14 +635,33 @@ func audioOutputUnitSetObjectProperty(_ identifier: UInt64, _ property: UInt32, 
     var bytesPerFrame: UInt64 = 0
 }
 
-// A track playout on the main thread. Its state lives until the last of its owner (the table, until
-// audioTrackPlayoutDestroy()), the track renderer units that render from it and the capture snapshots that hold it lets go.
-@safe final class TrackPlayout {
+// A track playout on the main thread. Its state lives until the last of its owners (the GPU process's track renderer
+// unit, or the table until audioTrackPlayoutDestroy()), the track renderer units that render from it and the capture
+// snapshots that hold it lets go.
+@_spi(WebKitGPU)
+@safe public final class TrackPlayout {
     fileprivate let state: UnsafeMutablePointer<TrackPlayoutState>
+    // What keeps the ring and the semaphore that attach() attached alive, until another attach().
+    private var ringOwner: SharedAudioRing?
+    private var semaphoreOwner: AudioSemaphoreRight?
 
-    init() {
+    public init() {
         unsafe state = UnsafeMutablePointer<TrackPlayoutState>.allocate(capacity: 1)
         unsafe state.initialize(to: TrackPlayoutState())
+    }
+
+    // The ring the web process writes (or none), read from its start in chunks of frameChunkSize frames of bytesPerFrame
+    // bytes, and the semaphore signalled for each chunk (or none). Once this returns, no render callback reads the previous
+    // ring or signals the previous semaphore.
+    public func attach(ring: SharedAudioRing?, semaphore: AudioSemaphoreRight?, frameChunkSize: UInt64, bytesPerFrame: UInt64) {
+        var attachment = unsafe ring?.attachment ?? WebCore.AudioOutputUnitRingAttachment()
+        unsafe attachment.semaphore = semaphore?.port ?? 0
+        unsafe attachment.frameChunkSize = frameChunkSize
+        unsafe attachment.bytesPerFrame = bytesPerFrame
+        unsafe checkRingAttachment(attachment)
+        unsafe attachRing(attachment)
+        ringOwner = ring
+        semaphoreOwner = semaphore
     }
 
     deinit {
@@ -667,6 +687,123 @@ func audioOutputUnitSetObjectProperty(_ identifier: UInt64, _ property: UInt32, 
 }
 
 nonisolated(unsafe) private var trackPlayouts: [UInt64: TrackPlayout] = [:]
+
+// MARK: Rings and semaphores that Swift owns
+
+// A send right of this process's own to a semaphore that another process waits on, which a unit's IO thread signals for as
+// long as the unit holds this.
+@_spi(WebKitGPU)
+public final class AudioSemaphoreRight: Sendable {
+    let port: mach_port_t
+
+    // A right of its own to the semaphore that port names, to which the caller holds a send right. nil if it holds none.
+    public init?(port: mach_port_t) {
+        // Safety: mach_task_self_ is set before any Swift code runs, and never changes.
+        guard port != mach_port_t(MACH_PORT_NULL), unsafe mach_port_mod_refs(mach_task_self_, port, MACH_PORT_RIGHT_SEND, 1) == KERN_SUCCESS
+        else {
+            return nil
+        }
+        self.port = port
+    }
+
+    deinit {
+        // Safety: as in init. The right is this object's own, which only this deinit gives up.
+        _ = unsafe mach_port_deallocate(mach_task_self_, port)
+    }
+}
+
+// A ring that the web process writes and units' IO threads read, in memory mapped read-only (ConsumerSharedCARingBuffer):
+// its bounds' 32 bytes, then its channels. The IO threads read it through the attachment of a unit that holds this.
+@_spi(WebKitGPU)
+public final class SharedAudioRing: Sendable {
+    private let memory: SharedMemoryMapping
+    private let bytesPerFrame: UInt64
+    private let capacityBytes: UInt64
+    private let channelCount: UInt32
+    private let frameCount: UInt32
+
+    // ConsumerSharedCARingBuffer::map(): nil unless the memory holds a ring of at least frameCount frames of
+    // channelStreamCount channels of bytesPerFrame bytes, as the values of a handle from another process must be checked.
+    public init?(memory: SharedMemoryMapping, bytesPerFrame: UInt32, channelStreamCount: UInt32, frameCount: UInt64) {
+        let storage = caRingBufferMappedStorageSize(bytesPerFrame, frameCount, channelStreamCount, UInt64(ringHeaderByteCount))
+        guard storage.isValid else {
+            sharedRingLogger.fault("ConsumerSharedCARingBuffer::map: Invalid frame count, or overflowed when trying to compute the storage size")
+            return nil
+        }
+        guard memory.size >= storage.byteCount, storage.byteCount <= UInt64(Int.max) else {
+            sharedRingLogger.fault("ConsumerSharedCARingBuffer::map: Storage size is insufficient for format and frameCount")
+            return nil
+        }
+        // The bounds are accessed atomically, 8 bytes at a time.
+        guard memory.address & 7 == 0 else {
+            sharedRingLogger.fault("ConsumerSharedCARingBuffer::map: The storage is misaligned")
+            return nil
+        }
+        let geometry = caRingBufferMakeGeometry(UInt64(bytesPerFrame), storage.frameCount, channelStreamCount)
+        self.memory = memory
+        self.bytesPerFrame = geometry.bytesPerFrame
+        capacityBytes = geometry.capacityBytes
+        channelCount = geometry.channelCount
+        self.frameCount = geometry.frameCount
+    }
+
+    // The ring of a stream of the given format: its frames' bytes, and one channel, or one per channel if not interleaved.
+    public convenience init?(memory: SharedMemoryMapping, format: AudioStreamBasicDescription, frameCount: UInt64) {
+        let channelStreamCount = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved != 0 ? format.mChannelsPerFrame : 1
+        self.init(memory: memory, bytesPerFrame: format.mBytesPerFrame, channelStreamCount: channelStreamCount, frameCount: frameCount)
+    }
+
+    // The ring, for a unit that holds this for as long as its IO thread may read it. init checked that the mapping covers
+    // the header and the channels.
+    fileprivate var attachment: WebCore.AudioOutputUnitRingAttachment {
+        var geometry = WebCore.CARingBufferGeometry()
+        geometry.bytesPerFrame = bytesPerFrame
+        geometry.capacityBytes = capacityBytes
+        geometry.channelCount = channelCount
+        geometry.frameCount = frameCount
+        var attachment = unsafe WebCore.AudioOutputUnitRingAttachment()
+        unsafe attachment.geometry = geometry
+        // Safety: the mapping's address isn't 0 (SharedMemoryMapping), and the header and the channels are inside it.
+        let base = unsafe UnsafeRawPointer(bitPattern: UInt(memory.address))
+        unsafe attachment.header = base.map { unsafe $0.assumingMemoryBound(to: WebCore.CARingBufferBoundsStorage.self) }
+        unsafe attachment.channels = base.map { unsafe $0.advanced(by: ringHeaderByteCount).assumingMemoryBound(to: UInt8.self) }
+        unsafe attachment.channelsByteCount = capacityBytes &* UInt64(channelCount)
+        return unsafe attachment
+    }
+}
+
+private let sharedRingLogger = Logger(subsystem: "com.apple.WebKit", category: "Media")
+
+// A remote destination's frame counter: the first 4 bytes of memory mapped read-write, to which its IO thread adds each
+// quantum's frames, as an atomic. None unless the mapping is writable, 4-byte aligned and holds them.
+private func frameCounterAttachment(_ memory: SharedMemoryMapping?) -> (UnsafeMutablePointer<UInt32>?, UInt64) {
+    guard let memory, memory.isWritable, memory.size >= 4, memory.address & 3 == 0 else {
+        return (nil, 0)
+    }
+    // Safety: the mapping's address isn't 0, and its first 4 bytes are writable.
+    let counter = unsafe UnsafeMutableRawPointer(bitPattern: UInt(memory.address))?.assumingMemoryBound(to: UInt32.self)
+    return unsafe (counter, 4)
+}
+
+extension OutputUnit {
+    // While stopped: the ring a remote destination plays out (or none), the shared counter it adds each quantum's frames
+    // to (or none) and the semaphore it signals after each quantum (or none), which the unit keeps until the next attach.
+    func attachRemoteDestinationRing(_ ring: SharedAudioRing?, _ frameCounter: SharedMemoryMapping?, _ semaphore: AudioSemaphoreRight?) {
+        precondition((kind == .remoteDestination || kind == .genericOutputForTesting) && !isRunning)
+        var attachment = unsafe ring?.attachment ?? WebCore.AudioOutputUnitRingAttachment()
+        let (counter, counterByteCount) = unsafe frameCounterAttachment(frameCounter)
+        unsafe attachment.frameCounter = counter
+        unsafe attachment.frameCounterByteCount = counterByteCount
+        unsafe attachment.semaphore = semaphore?.port ?? 0
+        unsafe checkRingAttachment(attachment)
+        withStoppedRenderState { reference in
+            unsafe reference.state.pointee.ring = attachment
+        }
+        ringOwner = ring
+        frameCounterOwner = frameCounter
+        semaphoreOwner = semaphore
+    }
+}
 
 func trackPlayout(_ identifier: UInt64) -> TrackPlayout? {
     precondition(WTF.isMainThread())
@@ -1187,12 +1324,17 @@ func setTrackRenderSource(
     unsafe reference.state.pointee.cxxRefCon = cxxRefCon
 }
 
-// An in-process destination's or track renderer's C++ render callback (WebCore::AudioOutputUnit::attachRenderCallback()),
-// before the unit first starts. A destination's unit calls it on its IO thread with refCon, so no Swift runs there; a track
+// An in-process destination's, track renderer's or track renderer unit's C++ render callback
+// (WebCore::AudioOutputUnit::attachRenderCallback(), WebCore::AudioTrackRendererUnit), before the unit first starts. A destination's unit calls it on its IO thread with refCon, so no Swift runs there; a track
 // renderer's checks its timeline, calls it and clips. callback is an AURenderCallback.
 @_expose(Cxx)
 func audioOutputUnitAttachCxxRenderCallback(_ identifier: UInt64, _ callback: UnsafeRawPointer, _ refCon: UnsafeMutableRawPointer?) {
     let renderCallback = unsafe unsafeBitCast(callback, to: AURenderCallback.self)
+#if ENABLE_MEDIA_STREAM
+    if unsafe setTrackRendererUnitCxxRenderCallback(identifier, renderCallback, refCon) {
+        return
+    }
+#endif
     guard let unit = outputUnit(identifier) else {
         return
     }

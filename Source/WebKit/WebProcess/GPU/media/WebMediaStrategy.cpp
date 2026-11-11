@@ -62,7 +62,7 @@ WebMediaStrategy::~WebMediaStrategy() = default;
 Ref<WebCore::AudioDestination> WebMediaStrategy::createAudioDestination(const WebCore::AudioDestinationCreationOptions& options)
 {
     ASSERT(isMainRunLoop());
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
     if (m_useGPUProcess)
         return WebCore::SharedAudioDestination::create(options, [] (auto& options) {
             return RemoteAudioDestinationProxy::create(options);

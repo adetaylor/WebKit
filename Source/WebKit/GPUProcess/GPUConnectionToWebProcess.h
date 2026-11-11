@@ -304,7 +304,7 @@ public:
 private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     RemoteAudioDestinationManager& remoteAudioDestinationManager();
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
@@ -395,7 +395,7 @@ private:
     const Ref<GPUProcess> m_gpuProcess;
     const WebCore::ProcessIdentifier m_webProcessIdentifier;
     const WebCore::ProcessIdentity m_webProcessIdentity;
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     const std::unique_ptr<RemoteAudioDestinationManager> m_remoteAudioDestinationManager;
 #endif
     const RefPtr<RemoteSharedResourceCache> m_sharedResourceCache;

@@ -102,7 +102,7 @@
 #include "UserMediaCaptureManagerProxyMessages.h"
 #endif
 
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 #include "RemoteAudioDestinationManager.h"
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
@@ -449,6 +449,9 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     if (RefPtr userMediaCaptureManagerProxy = std::exchange(m_userMediaCaptureManagerProxy, nullptr))
         userMediaCaptureManagerProxy->close();
+    // Its Swift state keeps it until then.
+    if (m_audioMediaStreamTrackRendererInternalUnitManager)
+        m_audioMediaStreamTrackRendererInternalUnitManager->clear();
 #endif
 #if ENABLE(VIDEO)
     protect(videoFrameObjectHeap())->close();
@@ -560,7 +563,7 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
         return false;
 #endif
 
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     RefPtr remoteAudioDestinationManager = m_remoteAudioDestinationManager.get();
     if (remoteAudioDestinationManager && !remoteAudioDestinationManager->allowsExitUnderMemoryPressure())
         return false;
@@ -622,7 +625,7 @@ void GPUConnectionToWebProcess::lowMemoryHandler(Critical critical, Synchronous 
 #endif
 }
 
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 RemoteAudioDestinationManager& GPUConnectionToWebProcess::remoteAudioDestinationManager()
 {
     if (!m_remoteAudioDestinationManager)
@@ -1085,7 +1088,7 @@ void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTes
 
 bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     if (decoder.messageReceiverName() == Messages::RemoteAudioDestinationManager::messageReceiverName()) {
         protect(remoteAudioDestinationManager())->didReceiveMessageFromWebProcess(connection, decoder);
         return true;

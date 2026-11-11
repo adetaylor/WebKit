@@ -34,7 +34,6 @@
 namespace WebCore {
 
 class AudioMediaStreamTrackRendererUnit;
-class AudioTrackPlayout;
 class CAAudioStreamDescription;
 
 class AudioMediaStreamTrackRendererInternalUnit {
@@ -61,10 +60,11 @@ public:
     virtual void retrieveFormatDescription(CompletionHandler<void(std::optional<CAAudioStreamDescription>)>&&) = 0;
     virtual void setLastDeviceUsed(const String&) { }
     virtual void deleteUnitForTesting() { }
-    // A GPU-process unit plays out the track instead of calling its client's render(). The caller keeps the track alive
-    // until the unit has made its AudioUnit, which then keeps it alive.
-    virtual void setTrackPlayout(const AudioTrackPlayout&) { }
 };
+
+// macOS: the output device of a track renderer for an audio output device's persistent ID; 0, the default device, for the
+// default ID, an empty ID or an ID that matches no device. 0 elsewhere.
+WEBCORE_EXPORT uint32_t audioOutputDeviceForTrackRenderer(const String& deviceID);
 
 }
 

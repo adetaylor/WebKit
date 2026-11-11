@@ -50,6 +50,16 @@
 #include "RemoteCDMSwiftSupport.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
+#include "RemoteAudioDestinationManager.h"
+#include "RemoteAudioDestinationManagerMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
+#include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
 #include "RemoteBarcodeDetectorMessages.h"
 #include "RemoteFaceDetectorMessages.h"

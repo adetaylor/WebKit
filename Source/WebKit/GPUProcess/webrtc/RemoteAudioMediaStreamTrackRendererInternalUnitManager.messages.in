@@ -26,16 +26,18 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=UseGPUProcessForMediaEnabled
+    EnabledBy=UseGPUProcessForMediaEnabled,
+    SwiftImplementation,
+    SwiftTypes
 ]
 messages -> RemoteAudioMediaStreamTrackRendererInternalUnitManager {
-    CreateUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, String deviceID) -> (std::optional<WebCore::CAAudioStreamDescription> description, uint64_t frameChunkSize)
-    DeleteUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier)
+    CreateUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, String deviceID) -> (std::optional<WebCore::CAAudioStreamDescription> description, uint64_t frameChunkSize) CxxTypes
+    DeleteUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier) SwiftSyncHandler
 
-    StartUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle, IPC::Semaphore renderSemaphore)
-    StopUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier)
+    StartUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle, IPC::Semaphore renderSemaphore) SwiftSyncHandler
+    StopUnit(WebKit::AudioMediaStreamTrackRendererInternalUnitIdentifier identifier) SwiftSyncHandler
 
-    SetLastDeviceUsed(String deviceID)
+    SetLastDeviceUsed(String deviceID) CxxTypes
 }
 
 #endif

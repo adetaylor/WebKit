@@ -225,11 +225,6 @@ bool CoreAudioCaptureUnit::isRunning() const
     return state().isRunning;
 }
 
-bool CoreAudioCaptureUnit::canRenderAudio() const
-{
-    return state().canRenderAudio;
-}
-
 void CoreAudioCaptureUnit::configureMock()
 {
     m_controller.configureMock(m_usesMockUnit, m_sampleRateOverride.value_or(0));
@@ -551,18 +546,6 @@ void CoreAudioCaptureUnit::didChange(AudioCaptureControllerEvent event, bool val
     case AudioCaptureControllerEvent::AudioUnitReleased:
         m_microphoneSampleBuffer = nullptr;
         return;
-    case AudioCaptureControllerEvent::SpeakerStarting:
-        if (m_speakerSamplesProducer)
-            m_speakerSamplesProducer->captureUnitIsStarting();
-        return;
-    case AudioCaptureControllerEvent::SpeakerStopped:
-        if (m_speakerSamplesProducer)
-            m_speakerSamplesProducer->captureUnitHasStopped();
-        return;
-    case AudioCaptureControllerEvent::CanRenderAudioChanged:
-        if (m_speakerSamplesProducer)
-            m_speakerSamplesProducer->canRenderAudioChanged();
-        return;
     case AudioCaptureControllerEvent::UnitStopped:
 #if PLATFORM(IOS_FAMILY)
         setIsInBackground(false);
@@ -629,28 +612,6 @@ void CoreAudioCaptureUnit::deliverMicrophoneSamples(const AudioBufferList& list,
         if (client->isProducingData())
             client->audioSamplesAvailable(time, data, description, frameCount);
     }
-}
-
-void CoreAudioCaptureUnit::registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    ASSERT(isMainThread());
-
-    auto* oldProducer = std::exchange(m_speakerSamplesProducer, &producer);
-    if (oldProducer && oldProducer != &producer)
-        oldProducer->captureUnitHasStopped();
-
-    m_controller.setSpeakerSamplesProducer(producer.speakerTrackPlayout().identifier(), producer.format().streamDescription());
-}
-
-void CoreAudioCaptureUnit::unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    ASSERT(isMainThread());
-
-    if (m_speakerSamplesProducer != &producer)
-        return;
-    m_speakerSamplesProducer = nullptr;
-
-    m_controller.setSpeakerSamplesProducer(0, { });
 }
 
 void CoreAudioCaptureUnit::enableMutedSpeechActivityEventListener(Function<void()>&& callback)

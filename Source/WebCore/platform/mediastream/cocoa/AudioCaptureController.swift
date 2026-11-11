@@ -28,7 +28,7 @@
 #if HAVE_AVAUDIOAPPLICATION
 import AVFAudio
 #endif
-import AudioToolbox
+public import AudioToolbox
 #if os(macOS)
 import CoreAudio
 #endif
@@ -195,7 +195,8 @@ final class AudioCaptureController {
     private var updateMutedStateTimer: MainThreadTimer?
     private var minimumMicrophoneSampleFrames: Int?
     private var isReconfiguring = false
-    private var speakerTrackPlayoutIdentifier: UInt64 = 0
+    // The track the speaker plays out, and its format, while a producer is registered (the default unit only).
+    private var speakerTrack: TrackPlayout?
     private var speakerProducerFormat: AudioStreamBasicDescription?
     private var shouldUseVPIO = true
     private var canRenderAudio = true
@@ -655,7 +656,7 @@ final class AudioCaptureController {
     }
 
     private var actualSampleRate: Int {
-        if speakerTrackPlayoutIdentifier != 0, let format = speakerProducerFormat {
+        if speakerTrack != nil, let format = speakerProducerFormat {
             return integerSampleRate(format.mSampleRate)
         }
         return sampleRate
@@ -717,7 +718,7 @@ final class AudioCaptureController {
         let canRenderAudio = !newUnit.kind.isMock && shouldUseVPIO
         if self.canRenderAudio != canRenderAudio {
             self.canRenderAudio = canRenderAudio
-            notify(.CanRenderAudioChanged)
+            notifySpeakerSamplesProducer { $0.canRenderAudioChanged() }
         }
 
         if isEchoCancellationChanging {
@@ -882,7 +883,7 @@ final class AudioCaptureController {
         guard let unit else {
             preconditionFailure()
         }
-        let producerFormat = speakerTrackPlayoutIdentifier != 0 ? speakerProducerFormat : nil
+        let producerFormat = speakerTrack != nil ? speakerProducerFormat : nil
         assert(producerFormat.map { $0.mSampleRate == Float64(sampleRate) } ?? true)
         let result = unit.configureSpeaker(Float64(sampleRate), producerFormat)
         guard let format = result.format else {
@@ -915,7 +916,7 @@ final class AudioCaptureController {
 
     private func handleUnitEvents(_ events: UInt32) {
         if events & AudioUnitEvent.speakerStarting != 0 {
-            notify(.SpeakerStarting)
+            notifySpeakerSamplesProducer { $0.captureUnitIsStarting() }
             unit?.setSwitch(.speakerStartAcknowledged, true)
         }
         if events & AudioUnitEvent.firstMicrophoneQuantum != 0 {
@@ -953,7 +954,7 @@ final class AudioCaptureController {
             unsafe unit.renderState.setCxxDeliveryContext(UnsafeMutableRawPointer(bitPattern: cxxDeliveryContext))
             unit.hasCxxDeliveryContext = true
         }
-        unit.attachSpeakerTrack(speakerTrackPlayoutIdentifier == 0 ? nil : trackPlayout(speakerTrackPlayoutIdentifier))
+        unit.attachSpeakerTrack(speakerTrack)
     }
 
     private func cleanupAudioUnit() {
@@ -1074,7 +1075,7 @@ final class AudioCaptureController {
 
         let error = unit.start()
         if error != noErr {
-            notify(.SpeakerStopped)
+            notifySpeakerSamplesProducer { $0.captureUnitHasStopped() }
             logger.error("CoreAudioCaptureUnit::start(\(self.identifier)) AudioOutputUnitStart failed with error \(error) (\(fourCharacters(error), privacy: .public))")
             cleanupAudioUnit()
             assert(self.unit == nil)
@@ -1160,7 +1161,7 @@ final class AudioCaptureController {
             logger.error("CoreAudioCaptureUnit::stop(\(self.identifier)) AudioOutputUnitStop failed with error \(error) (\(fourCharacters(error), privacy: .public))")
             return
         }
-        notify(.SpeakerStopped)
+        notifySpeakerSamplesProducer { $0.captureUnitHasStopped() }
 
         ioUnitStarted = false
 #if !os(macOS)
@@ -1170,17 +1171,25 @@ final class AudioCaptureController {
         updateMutedState()
     }
 
-    // The speaker's producer, registered (a track) or not (0).
-    func setSpeakerSamplesProducer(_ trackPlayoutIdentifier: UInt64, _ format: AudioStreamBasicDescription) {
-        if trackPlayoutIdentifier == 0 {
-            speakerTrackPlayoutIdentifier = 0
+    // What the default unit's registered producer, if any, is told (CoreAudioCaptureUnit's C++ told it the same).
+    private func notifySpeakerSamplesProducer(_ body: (any AudioSpeakerSamplesProducer) -> Void) {
+        guard self === defaultAudioCaptureController, let producer = registeredSpeakerSamplesProducer.producer else {
+            return
+        }
+        body(producer)
+    }
+
+    // The speaker's producer's track and format, registered or not (nil).
+    fileprivate func setSpeakerSamplesProducer(_ track: TrackPlayout?, _ format: AudioStreamBasicDescription) {
+        guard let track else {
+            speakerTrack = nil
             speakerProducerFormat = nil
             attachSpeakerSamplesProducer()
             setIsRenderingAudio(false)
             return
         }
         setIsRenderingAudio(true)
-        speakerTrackPlayoutIdentifier = trackPlayoutIdentifier
+        speakerTrack = track
         speakerProducerFormat = format
         attachSpeakerSamplesProducer()
         if unit != nil && !(speakerProcFormat.map { sameFormat($0, format) } ?? false) {
@@ -1351,9 +1360,8 @@ func audioCaptureControllerVoiceActivityDetected() {
     defaultAudioCaptureController?.voiceActivityDetected()
 }
 
-// The unit's IO threads' events, with the output units' (WebCore::AudioOutputUnit::dispatchEvents()).
-@_expose(Cxx)
-func audioCaptureControllersDispatchUnitEvents() {
+// The unit's IO threads' events, with the output units' (audioUnitsDispatchSwiftEvents()).
+func dispatchAudioCaptureControllerUnitEvents() {
     MainActor.assumeIsolated {
         for identifier in audioCaptureControllers.keys.sorted() {
             audioCaptureControllers[identifier]?.dispatchUnitEvents()
@@ -1482,6 +1490,74 @@ private func setMutedState(_ isMuted: Bool) {
 #endif
 }
 
+// MARK: The speaker's producer
+
+// A GPU-process MediaStream track renderer whose track the default capture unit's speaker plays out instead of its own output
+// unit while it is registered (RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift), and which the default unit tells
+// when that changes.
+@_spi(WebKitGPU)
+@MainActor
+public protocol AudioSpeakerSamplesProducer: AnyObject {
+    var speakerTrackPlayout: TrackPlayout { get }
+    var speakerFormat: AudioStreamBasicDescription { get }
+    // The capture unit is starting, so its speaker plays out the track.
+    func captureUnitIsStarting()
+    // The capture unit stopped, or another producer replaced this one, so the speaker no longer plays out the track.
+    func captureUnitHasStopped()
+    func canRenderAudioChanged()
+}
+
+@MainActor
+private final class RegisteredSpeakerSamplesProducer {
+    weak var producer: (any AudioSpeakerSamplesProducer)?
+}
+
+@MainActor
+private let registeredSpeakerSamplesProducer = RegisteredSpeakerSamplesProducer()
+
+// What CoreAudioCaptureSourceFactory's C++ told and asked of the default capture unit about the speaker. Main thread only.
+@_spi(WebKitGPU)
+@MainActor
+public enum AudioCaptureSpeaker {
+    // The default unit's speaker plays out the producer's track from now on; a producer it replaces is told it stopped.
+    public static func register(_ producer: any AudioSpeakerSamplesProducer) {
+        let previous = registeredSpeakerSamplesProducer.producer
+        registeredSpeakerSamplesProducer.producer = producer
+        if let previous, previous !== producer {
+            previous.captureUnitHasStopped()
+        }
+        defaultAudioCaptureController?.setSpeakerSamplesProducer(producer.speakerTrackPlayout, producer.speakerFormat)
+    }
+
+    public static func unregister(_ producer: any AudioSpeakerSamplesProducer) {
+        guard registeredSpeakerSamplesProducer.producer === producer else {
+            return
+        }
+        registeredSpeakerSamplesProducer.producer = nil
+        defaultAudioCaptureController?.setSpeakerSamplesProducer(nil, AudioStreamBasicDescription())
+    }
+
+    // Whether the default unit renders the speaker's audio: it is running and, on macOS, can render audio.
+    public static var shouldCaptureUnitRenderAudio: Bool {
+        guard let state = defaultAudioCaptureController?.state else {
+            return false
+        }
+#if os(macOS)
+        return state.isRunning && state.canRenderAudio
+#else
+        return state.isRunning
+#endif
+    }
+
+    public static var isCaptureUnitRunning: Bool {
+        defaultAudioCaptureController?.state.isRunning ?? false
+    }
+
+    public static var isCaptureUnitSuspended: Bool {
+        defaultAudioCaptureController?.state.isSuspended ?? false
+    }
+}
+
 // MARK: The C++ API
 
 extension WebCore.AudioCaptureControllerHandle {
@@ -1500,6 +1576,9 @@ extension WebCore.AudioCaptureControllerHandle {
             if canEnableEchoCancellation {
                 precondition(defaultAudioCaptureController == nil)
                 defaultAudioCaptureController = controller
+                if let producer = registeredSpeakerSamplesProducer.producer {
+                    controller.setSpeakerSamplesProducer(producer.speakerTrackPlayout, producer.speakerFormat)
+                }
             }
             return identifier
         }
@@ -1638,14 +1717,6 @@ extension WebCore.AudioCaptureControllerHandle {
     func captureFailed() {
         MainActor.assumeIsolated {
             controller?.captureFailed()
-        }
-    }
-
-    @cxx
-    @implementation
-    func setSpeakerSamplesProducer(_ trackPlayoutIdentifier: UInt64, _ format: AudioStreamBasicDescription) {
-        MainActor.assumeIsolated {
-            controller?.setSpeakerSamplesProducer(trackPlayoutIdentifier, format)
         }
     }
 

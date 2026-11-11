@@ -52,7 +52,6 @@ class AudioCaptureSink;
 class AudioSampleBufferList;
 class CaptureDevice;
 class CoreAudioCaptureSource;
-class CoreAudioSpeakerSamplesProducer;
 struct AudioCaptureTimes;
 
 // A microphone capture unit, which AudioCaptureController.swift implements: this holds the unit's clients, its capture
@@ -107,11 +106,8 @@ public:
     bool isRenderingAudio() const;
     WEBCORE_EXPORT bool isSuspended() const;
     WEBCORE_EXPORT bool isRunning() const;
-    bool canRenderAudio() const;
     const std::optional<CAAudioStreamDescription>& microphoneProcFormat() const LIFETIME_BOUND { return m_microphoneProcFormat; }
 
-    void registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    void unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
 
 #if PLATFORM(IOS_FAMILY)
     void setIsInBackground(bool);
@@ -178,7 +174,6 @@ private:
     RefPtr<AudioSampleBufferList> m_microphoneSampleBuffer;
     double m_latestMicTimeStamp { 0 };
 
-    CoreAudioSpeakerSamplesProducer* m_speakerSamplesProducer { nullptr };
     Function<void()> m_voiceActivityCallback;
     Function<void(bool)> m_muteStatusChangedCallback;
 #if PLATFORM(IOS_FAMILY)

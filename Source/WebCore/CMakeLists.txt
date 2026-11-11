@@ -3588,6 +3588,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBuffer.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferMix.swift
         ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferPlayout.swift
+        ${WEBCORE_DIR}/platform/cocoa/SharedMemoryMapping.swift
         ${WEBCORE_DIR}/platform/graphics/PixelBufferConversion.swift
         ${WEBCORE_DIR}/platform/graphics/Arm64Truncating.swift
         ${WEBCORE_DIR}/platform/graphics/CheckedMath.swift

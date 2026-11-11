@@ -52,8 +52,9 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import AudioToolbox
+public import AudioToolbox
 import WebCore_Private.Core.CARingBufferSwiftBridge
+import os
 
 // The output AudioUnits of WebCore and the GPU process: the default output unit (RemoteIO on iOS), owned here and
 // configured as WebCore's C++ configured it. C++ reaches them through WebCore::AudioOutputUnit, by identifier, on the main
@@ -176,6 +177,12 @@ final class OutputUnit {
     var rendersPlayout = false
     var trackPlayout: TrackPlayout?
 
+    // What a remote destination renders from, when Swift attached it (attachRemoteDestinationRing()), which it keeps alive
+    // for as long as it can render from it.
+    var ringOwner: SharedAudioRing?
+    var frameCounterOwner: SharedMemoryMapping?
+    var semaphoreOwner: AudioSemaphoreRight?
+
     func takeEvents() -> UInt32 {
         guard let renderState else {
             return 0
@@ -198,6 +205,14 @@ private func setFloat32StreamFormat(_ format: inout AudioStreamBasicDescription,
 
 // Like the C++ it replaces, this goes on when a property can't be set; a unit that can't be made at all fails to start.
 private func makeOutputUnit(_ kind: OutputUnitKind, _ sampleRate: Float, _ channelCount: UInt32) -> OutputUnit {
+    let unit = makeOutputUnitWithoutSession(kind, sampleRate, channelCount)
+    if kind == .remoteDestination || kind == .inProcessDestination {
+        WebCore.preferAudioSessionBufferSizeForOutputUnit()
+    }
+    return unit
+}
+
+private func makeOutputUnitWithoutSession(_ kind: OutputUnitKind, _ sampleRate: Float, _ channelCount: UInt32) -> OutputUnit {
     let sampleCapacity = kind == .inProcessDestination ? 0 : Int(channelCount)
     if kind == .genericOutputForTesting {
         let scope = kAudioUnitScope_Input
@@ -257,17 +272,19 @@ func withStoppedOutputUnitRenderState(_ identifier: UInt64, _ body: (RenderState
     withOutputUnit(identifier, ()) { $0.withStoppedRenderState(body) }
 }
 
+// What making a track renderer's unit did: the unit and its stream format, or the status of the step that failed
+// (WebCore::AudioOutputUnitTrackRendererCreation's failedStep).
+enum TrackRendererMaking {
+    case made(OutputUnit, AudioStreamBasicDescription)
+    case failed(OSStatus, UInt32)
+}
+
 // LocalAudioMediaStreamTrackRendererInternalUnit::createAudioUnitIfNeeded(): the default output unit (RemoteIO on iOS) on
 // the given device (0: the default one, or iOS), in the given stream format or, if there's none, the unit's own at
 // sampleRate. Its render callback plays out a track (rendersPlayout) or calls a C++ one.
-@_expose(Cxx)
-func audioOutputUnitCreateTrackRenderer(
-    _ deviceID: UInt32,
-    _ sampleRate: Float64,
-    _ format: AudioStreamBasicDescription,
-    _ hasFormat: Bool,
-    _ rendersPlayout: Bool
-) -> WebCore.AudioOutputUnitTrackRendererCreation {
+func makeTrackRenderer(_ deviceID: UInt32, _ sampleRate: Float64, _ format: AudioStreamBasicDescription?, _ rendersPlayout: Bool)
+    -> TrackRendererMaking
+{
     precondition(WTF.isMainThread())
 #if os(macOS)
     let subType = kAudioUnitSubType_DefaultOutput
@@ -279,49 +296,49 @@ func audioOutputUnitCreateTrackRenderer(
     case .made(let made):
         owner = made
     case .noComponent:
-        return trackRendererCreationFailure(noErr, 1)
+        return .failed(noErr, 1)
     case .failed(let status):
-        return trackRendererCreationFailure(status, 2)
+        return .failed(status, 2)
     }
 #if os(macOS)
     if deviceID != 0 {
         let status = owner.setUInt32(deviceID, for: kAudioOutputUnitProperty_CurrentDevice, scope: kAudioUnitScope_Global)
         if status != noErr {
             owner.dispose()
-            return trackRendererCreationFailure(status, 4)
+            return .failed(status, 4)
         }
     }
 #else
     let enableStatus = owner.setUInt32(1, for: kAudioOutputUnitProperty_EnableIO, scope: kAudioUnitScope_Output)
     if enableStatus != noErr {
         owner.dispose()
-        return trackRendererCreationFailure(enableStatus, 3)
+        return .failed(enableStatus, 3)
     }
 #endif
     let callback: SwiftRenderCallback = rendersPlayout ? .trackPlayout : .inProcessTrack
     let callbackStatus = owner.installRenderCallback(callback, scope: kAudioUnitScope_Global)
     if callbackStatus != noErr {
         owner.dispose()
-        return trackRendererCreationFailure(callbackStatus, 5)
+        return .failed(callbackStatus, 5)
     }
-    var streamFormat = format
-    if !hasFormat {
+    var streamFormat = format ?? AudioStreamBasicDescription()
+    if format == nil {
         let status = owner.streamFormat(&streamFormat, scope: kAudioUnitScope_Input)
         if status != noErr {
             owner.dispose()
-            return trackRendererCreationFailure(status, 6)
+            return .failed(status, 6)
         }
         streamFormat.mSampleRate = sampleRate
     }
     let formatStatus = owner.setStreamFormat(streamFormat, scope: kAudioUnitScope_Input)
     if formatStatus != noErr {
         owner.dispose()
-        return trackRendererCreationFailure(formatStatus, 7)
+        return .failed(formatStatus, 7)
     }
     let initializeStatus = owner.initialize()
     if initializeStatus != noErr {
         owner.dispose()
-        return trackRendererCreationFailure(initializeStatus, 8)
+        return .failed(initializeStatus, 8)
     }
     switch AudioStreamPCMFormat(rawValue: caAudioStreamDescriptionFormat(streamFormat)) {
     case .float32:
@@ -333,10 +350,27 @@ func audioOutputUnitCreateTrackRenderer(
     }
     let unit = OutputUnit(.trackRenderer, kAudioUnitScope_Global, callback, owner)
     unit.rendersPlayout = rendersPlayout
-    var result = WebCore.AudioOutputUnitTrackRendererCreation()
-    result.format = streamFormat
-    result.identifier = addOutputUnit(unit)
-    return result
+    return .made(unit, streamFormat)
+}
+
+// A track renderer's unit for C++ (WebCore::AudioOutputUnit::createTrackRenderer()), by identifier.
+@_expose(Cxx)
+func audioOutputUnitCreateTrackRenderer(
+    _ deviceID: UInt32,
+    _ sampleRate: Float64,
+    _ format: AudioStreamBasicDescription,
+    _ hasFormat: Bool,
+    _ rendersPlayout: Bool
+) -> WebCore.AudioOutputUnitTrackRendererCreation {
+    switch makeTrackRenderer(deviceID, sampleRate, hasFormat ? format : nil, rendersPlayout) {
+    case .made(let unit, let streamFormat):
+        var result = WebCore.AudioOutputUnitTrackRendererCreation()
+        result.format = streamFormat
+        result.identifier = addOutputUnit(unit)
+        return result
+    case .failed(let status, let step):
+        return trackRendererCreationFailure(status, step)
+    }
 }
 
 private func trackRendererCreationFailure(_ status: OSStatus, _ step: UInt32) -> WebCore.AudioOutputUnitTrackRendererCreation {
@@ -346,10 +380,25 @@ private func trackRendererCreationFailure(_ status: OSStatus, _ step: UInt32) ->
     return result
 }
 
-// Main thread only: the events of the output unit's IO threads since the last call (AudioUnitEvent).
+// Main thread only: the events of the output unit's IO threads since the last call (AudioUnitEvent), or those of the
+// current unit of a track renderer unit.
 @_expose(Cxx)
 func audioOutputUnitTakeEvents(_ identifier: UInt64) -> UInt32 {
-    withOutputUnit(identifier, 0) { $0.takeEvents() }
+#if ENABLE_MEDIA_STREAM
+    if let unit = trackRendererUnit(identifier) {
+        return unit.takeEvents()
+    }
+#endif
+    return withOutputUnit(identifier, 0) { $0.takeEvents() }
+}
+
+// The IO threads' events of the units whose owners are in Swift, after the C++ ones' (WebCore::AudioOutputUnit::dispatchEvents()).
+@_expose(Cxx)
+func audioUnitsDispatchSwiftEvents() {
+#if ENABLE_MEDIA_STREAM
+    dispatchTrackRendererUnitEvents()
+    dispatchAudioCaptureControllerUnitEvents()
+#endif
 }
 
 @_expose(Cxx)
@@ -361,25 +410,329 @@ func audioOutputUnitCreate(_ kind: UInt8, _ sampleRate: Float, _ channelCount: U
     return addOutputUnit(makeOutputUnit(kind, sampleRate, channelCount))
 }
 
-// Stops the unit if it is running, then disposes of it.
+// Stops the unit if it is running, then disposes of it. Also for C++'s track renderer units.
 @_expose(Cxx)
 func audioOutputUnitDestroy(_ identifier: UInt64) {
+#if ENABLE_MEDIA_STREAM
+    if destroyCxxTrackRendererUnit(identifier) {
+        return
+    }
+#endif
     _ = removeOutputUnit(identifier)
 }
 
+// Also for track renderer units, which start their unit if they can make it.
 @_expose(Cxx)
 func audioOutputUnitStart(_ identifier: UInt64) -> Int32 {
-    withOutputUnit(identifier, kAudio_ParamError) { $0.start() }
+#if ENABLE_MEDIA_STREAM
+    if let unit = trackRendererUnit(identifier) {
+        unit.start()
+        return noErr
+    }
+#endif
+    return withOutputUnit(identifier, kAudio_ParamError) { $0.start() }
 }
 
+// Also for track renderer units, which dispose of their unit.
 @_expose(Cxx)
 func audioOutputUnitStop(_ identifier: UInt64) -> Int32 {
-    withOutputUnit(identifier, kAudio_ParamError) { $0.stop() }
+#if ENABLE_MEDIA_STREAM
+    if let unit = trackRendererUnit(identifier) {
+        unit.stop()
+        return noErr
+    }
+#endif
+    return withOutputUnit(identifier, kAudio_ParamError) { $0.stop() }
 }
 
 @_expose(Cxx)
 func audioOutputUnitLatency(_ identifier: UInt64) -> UInt64 {
     withOutputUnit(identifier, 0) { $0.latency() }
 }
+
+// MARK: The GPU process's units
+
+// A GPU-process audio destination's output unit (RemoteAudioDestination), which plays out the ring the web process writes.
+// Main thread only: each member traps elsewhere.
+@_spi(WebKitGPU)
+public final class RemoteDestinationOutputUnit {
+    private let unit: OutputUnit
+    // The unit's identifier in the table, by which C++ sets its spatial experience (audioOutputUnitSetObjectProperty()).
+    public let identifier: UInt64
+
+    public init(sampleRate: Float, channelCount: UInt32) {
+        precondition(WTF.isMainThread())
+        unit = makeOutputUnit(.remoteDestination, sampleRate, channelCount)
+        identifier = addOutputUnit(unit)
+    }
+
+    deinit {
+        _ = removeOutputUnit(identifier)
+    }
+
+    public func start() -> OSStatus {
+        precondition(WTF.isMainThread())
+        return unit.start()
+    }
+
+    public func stop() -> OSStatus {
+        precondition(WTF.isMainThread())
+        return unit.stop()
+    }
+
+    public var latency: UInt64 {
+        precondition(WTF.isMainThread())
+        return unit.latency()
+    }
+
+    // While stopped: the ring it plays out (or none), the shared counter it adds each quantum's frames to (or none) and the
+    // semaphore it signals after each quantum (or none). The unit keeps them until the next attach().
+    public func attach(ring: SharedAudioRing?, frameCounter: SharedMemoryMapping?, semaphore: AudioSemaphoreRight?) {
+        precondition(WTF.isMainThread())
+        unit.attachRemoteDestinationRing(ring, frameCounter, semaphore)
+    }
+}
+
+#if ENABLE_MEDIA_STREAM
+private let trackRendererLogger = Logger(subsystem: "com.apple.WebKit", category: "WebRTC")
+
+// LocalAudioMediaStreamTrackRendererInternalUnit's unit: a track renderer on a device, made when it first starts or its
+// format is first asked for, and disposed of whenever it stops. A GPU-process one plays out a track playout; an in-process
+// one renders from the C++ callback of WebCore::LocalAudioMediaStreamTrackRendererInternalUnit. WebCore's main thread only
+// (the web thread on iOS's WebKit1, so not the main actor): each member traps elsewhere.
+@_spi(WebKitGPU)
+public final class TrackRendererUnit {
+    // An in-process unit's C++ callback is only stored here; calling it is unsafe (OutputUnit.setCxxRenderCallback()).
+    @safe private enum Source {
+        case playout(TrackPlayout)
+        case cxx(AURenderCallback, UInt)
+    }
+
+    // What it renders from: set when it's made, or, in process, by the C++ before it first starts.
+    private var source: Source?
+    let identifier: UInt64
+    private var deviceID: UInt32 = 0
+    private var outputFormat: AudioStreamBasicDescription?
+    private var unit: OutputUnit?
+    private var isStarted = false
+    // Called on the main thread when the unit's IO thread saw its timeline jump.
+    public var timelineDiscontinuityHandler: (() -> Void)? {
+        get {
+            precondition(WTF.isMainThread())
+            return storedTimelineDiscontinuityHandler
+        }
+        set {
+            precondition(WTF.isMainThread())
+            storedTimelineDiscontinuityHandler = newValue
+        }
+    }
+    private var storedTimelineDiscontinuityHandler: (() -> Void)?
+
+    public convenience init(playing track: TrackPlayout) {
+        self.init(.playout(track))
+    }
+
+    // An in-process unit, without a source until it has its C++ callback (setCxxRenderCallback()).
+    fileprivate convenience init() {
+        self.init(nil)
+    }
+
+    private init(_ source: Source?) {
+        self.source = source
+        identifier = nextAudioUnitIdentifier()
+        unsafe trackRendererUnits[identifier] = WeakTrackRendererUnit(self)
+    }
+
+    deinit {
+        precondition(WTF.isMainThread())
+        stop()
+        _ = unsafe trackRendererUnits.removeValue(forKey: identifier)
+    }
+
+    // The unit's stream format, once it's made: the device's own at the audio session's sample rate. nil if it can't be
+    // made.
+    public var format: AudioStreamBasicDescription? {
+        precondition(WTF.isMainThread())
+        makeUnitIfNeeded()
+        return outputFormat
+    }
+
+    // macOS: the device (0: the default one), which restarts a running unit.
+    public func setDevice(_ deviceID: UInt32) {
+        precondition(WTF.isMainThread())
+        if self.deviceID == deviceID {
+            return
+        }
+        let shouldRestart = isStarted
+        if isStarted {
+            stop()
+        }
+        self.deviceID = deviceID
+        if shouldRestart {
+            start()
+        }
+    }
+
+    public func start() {
+        precondition(WTF.isMainThread())
+        trackRendererLogger.info("LocalAudioMediaStreamTrackRendererInternalUnit::start")
+        if isStarted {
+            return
+        }
+        makeUnitIfNeeded()
+        guard let unit else {
+            return
+        }
+        let error = unit.start()
+        if error != noErr {
+            trackRendererLogger.error("AudioMediaStreamTrackRendererInternalUnit::start AudioOutputUnitStart failed, error = \(error)")
+            self.unit = nil
+            return
+        }
+        isStarted = true
+        trackRendererLogger.log("AudioMediaStreamTrackRendererInternalUnit is started")
+    }
+
+    public func stop() {
+        precondition(WTF.isMainThread())
+        trackRendererLogger.info("LocalAudioMediaStreamTrackRendererInternalUnit::stop")
+        guard let unit else {
+            return
+        }
+        if isStarted {
+            _ = unit.stop()
+            isStarted = false
+        }
+        self.unit = nil
+    }
+
+    // Before an in-process unit first starts: the C++ callback that renders each quantum, with its refCon, as an address.
+    // The caller keeps what refCon points to alive until the unit goes.
+    @unsafe
+    fileprivate func setCxxRenderCallback(_ render: AURenderCallback, _ refCon: UInt) {
+        precondition(WTF.isMainThread() && source == nil)
+        source = unsafe .cxx(render, refCon)
+    }
+
+    private func makeUnitIfNeeded() {
+        if unit != nil {
+            return
+        }
+        let playsOutTrack: Bool
+        switch source {
+        case .playout:
+            playsOutTrack = true
+        case .cxx:
+            playsOutTrack = false
+        case nil:
+            return
+        }
+        switch makeTrackRenderer(deviceID, WebCore.audioCaptureSessionSampleRate(), outputFormat, playsOutTrack) {
+        case .failed(let status, let step):
+            let steps = [
+                "", "unable to find remote IO unit component", "unable to open vpio unit", "unable to enable vpio unit output",
+                "unable to set unit device ID", "unable to set vpio unit speaker proc", "unable to get input stream format",
+                "unable to set input stream format", "AudioUnitInitialize() failed",
+            ]
+            let description = steps[min(Int(step), steps.count - 1)]
+            trackRendererLogger.error(
+                "AudioMediaStreamTrackRendererInternalUnit::createAudioUnit \(description, privacy: .public), error = \(status)"
+            )
+        case .made(let made, let streamFormat):
+            if outputFormat == nil {
+                outputFormat = streamFormat
+            }
+            switch source {
+            case .playout(let track):
+                made.attachTrackPlayout(track)
+            case .cxx(let render, let refCon):
+                unsafe made.setCxxRenderCallback(render, UnsafeMutableRawPointer(bitPattern: refCon))
+            case nil:
+                preconditionFailure()
+            }
+            unit = made
+        }
+    }
+
+    func takeEvents() -> UInt32 {
+        precondition(WTF.isMainThread())
+        return unit?.takeEvents() ?? 0
+    }
+
+    fileprivate func dispatchEvents() {
+        guard let timelineDiscontinuityHandler = storedTimelineDiscontinuityHandler else {
+            return
+        }
+        if takeEvents() & AudioUnitEvent.timelineDiscontinuity != 0 {
+            timelineDiscontinuityHandler()
+        }
+    }
+}
+
+private final class WeakTrackRendererUnit {
+    weak var unit: TrackRendererUnit?
+
+    init(_ unit: TrackRendererUnit) {
+        self.unit = unit
+    }
+}
+
+// The track renderer units, on WebCore's main thread only, as the output units' table.
+nonisolated(unsafe) private var trackRendererUnits: [UInt64: WeakTrackRendererUnit] = [:]
+
+// The in-process ones, which C++ owns by identifier.
+nonisolated(unsafe) private var cxxTrackRendererUnits: [UInt64: TrackRendererUnit] = [:]
+
+private func trackRendererUnit(_ identifier: UInt64) -> TrackRendererUnit? {
+    precondition(WTF.isMainThread())
+    return unsafe trackRendererUnits[identifier]?.unit
+}
+
+// The Swift owners' units' events; the C++ owners take theirs by identifier (audioOutputUnitTakeEvents()).
+private func dispatchTrackRendererUnitEvents() {
+    precondition(WTF.isMainThread())
+    for identifier in unsafe trackRendererUnits.keys.sorted() {
+        trackRendererUnit(identifier)?.dispatchEvents()
+    }
+}
+
+// WebCore::AudioTrackRendererUnit's unit, which C++ owns by identifier until audioOutputUnitDestroy(), and whose C++ render
+// callback it attaches (audioOutputUnitAttachCxxRenderCallback()) before it first starts.
+@_expose(Cxx)
+func audioTrackRendererUnitCreate() -> UInt64 {
+    precondition(WTF.isMainThread())
+    let unit = TrackRendererUnit()
+    unsafe cxxTrackRendererUnits[unit.identifier] = unit
+    return unit.identifier
+}
+
+private func destroyCxxTrackRendererUnit(_ identifier: UInt64) -> Bool {
+    precondition(WTF.isMainThread())
+    return unsafe cxxTrackRendererUnits.removeValue(forKey: identifier) != nil
+}
+
+// An in-process track renderer unit's C++ render callback (audioOutputUnitAttachCxxRenderCallback()). False if the identifier
+// isn't one's.
+@unsafe
+func setTrackRendererUnitCxxRenderCallback(_ identifier: UInt64, _ render: AURenderCallback, _ refCon: UnsafeMutableRawPointer?) -> Bool {
+    precondition(WTF.isMainThread())
+    guard let unit = unsafe cxxTrackRendererUnits[identifier] else {
+        return false
+    }
+    unsafe unit.setCxxRenderCallback(render, UInt(bitPattern: refCon))
+    return true
+}
+
+@_expose(Cxx)
+func audioTrackRendererUnitSetDevice(_ identifier: UInt64, _ deviceID: UInt32) {
+    trackRendererUnit(identifier)?.setDevice(deviceID)
+}
+
+// The unit's stream format, made if needed; a format whose mFormatID is 0 if it can't be made.
+@_expose(Cxx)
+func audioTrackRendererUnitFormat(_ identifier: UInt64) -> AudioStreamBasicDescription {
+    trackRendererUnit(identifier)?.format ?? AudioStreamBasicDescription()
+}
+#endif // ENABLE_MEDIA_STREAM
 
 #endif // ENABLE_WEBCORE_SWIFT

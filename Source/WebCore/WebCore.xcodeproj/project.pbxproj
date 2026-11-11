@@ -6320,6 +6320,7 @@
 		F829CFD3C7FA9FA96C68A2B0 /* AudioUnitOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6682717444D224A2211C145 /* AudioUnitOwner.swift */; };
 		21A98D15F974449D96E4F159 /* AudioOutputUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */; };
 		4DF387C47E44390AF87FA221 /* AudioUnitIsland.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */; };
+		91BFA2DFFE7253718EDCB168 /* SharedMemoryMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45B66FAB0B2328AC7FA9D253 /* SharedMemoryMapping.swift */; };
 		CDC7470424BE2FC700C1868B /* PowerSourceNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC7470024BE267900C1868B /* PowerSourceNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC8B5A2180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CDC8B5A0180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.mm */; };
 		CDC8B5A3180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CDC8B5A1180463470016E685 /* MediaPlayerPrivateMediaSourceAVFObjC.h */; };
@@ -21883,6 +21884,7 @@
 		C6682717444D224A2211C145 /* AudioUnitOwner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitOwner.swift; sourceTree = "<group>"; };
 		83E4F2D1DFCD7B6317938525 /* AudioOutputUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioOutputUnit.swift; sourceTree = "<group>"; };
 		60E2A667FE90190D9E975B53 /* AudioUnitIsland.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioUnitIsland.swift; sourceTree = "<group>"; };
+		45B66FAB0B2328AC7FA9D253 /* SharedMemoryMapping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedMemoryMapping.swift; sourceTree = "<group>"; };
 		23C11178A44EF240B0FC3F05 /* CARingBufferSwiftBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CARingBufferSwiftBridge.h; sourceTree = "<group>"; };
 		12E4398BC7BEBE46F0A45731 /* AudioOutputUnit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioOutputUnit.h; sourceTree = "<group>"; };
 		CDC7470024BE267900C1868B /* PowerSourceNotifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PowerSourceNotifier.h; sourceTree = "<group>"; };
@@ -35287,6 +35289,7 @@
 				5CFC9C822B71ABF200F8D289 /* SerializedPlatformDataCueValue.mm */,
 				1A4A95510B4EDCFF002D8C3C /* SharedBufferCocoa.mm */,
 				4688C4B42B6B0697003533C9 /* SharedMemoryCocoa.mm */,
+				45B66FAB0B2328AC7FA9D253 /* SharedMemoryMapping.swift */,
 				41DC04FB27A83C92008CF968 /* SharedVideoFrameInfo.h */,
 				41DC04FD27A83C93008CF968 /* SharedVideoFrameInfo.mm */,
 				082B40FB2E94DC14D4A82F54 /* SharedVideoFrameLayout.swift */,
@@ -52278,6 +52281,7 @@
 				46C963C82B6CA1BC002F46D1 /* ShareableBitmapCG.mm in Sources */,
 				A4354737BE6DE24C98E1D7DF /* ShareableBitmapLayout.swift in Sources */,
 				B6F201102EAC22B200BBF4AA /* ShareableSpatialImage.cpp in Sources */,
+				91BFA2DFFE7253718EDCB168 /* SharedMemoryMapping.swift in Sources */,
 				41DF2D5E27A9452A00F25A21 /* SharedVideoFrameInfo.mm in Sources */,
 				697E4E5B022F8F10F20979C5 /* SharedVideoFrameLayout.swift in Sources */,
 				5A1E00000000000000000002 /* SIMDHelpers.swift in Sources */,

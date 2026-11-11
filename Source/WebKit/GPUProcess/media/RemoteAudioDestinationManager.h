@@ -25,37 +25,32 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 
-#include "Connection.h"
-#include "IPCSemaphore.h"
+#include "MessageReceiver.h"
 #include "RemoteAudioDestinationIdentifier.h"
-#include <WebCore/SharedMemory.h>
-#include <memory>
-#include <wtf/CompletionHandler.h>
 #include <wtf/HashMap.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakRef.h>
-
-#if PLATFORM(COCOA)
-#include "SharedCARingBuffer.h"
-#endif
-
-namespace WebCore {
-#if PLATFORM(COCOA)
-class CAAudioStreamDescription;
-#endif
-class SharedMemoryHandle;
-}
+#include <wtf/text/WTFString.h>
 
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-class RemoteAudioDestination;
 struct SharedPreferencesForWebProcess;
 
-class RemoteAudioDestinationManager : private IPC::MessageReceiver {
+// The output unit of a destination that iOS's spatial experience is set on, 0 if there's no such destination, and whether
+// its web process preferred a spatial experience when it made it.
+struct RemoteAudioDestinationSpatialTarget {
+    uint64_t outputUnitIdentifier { 0 };
+    bool prefersSpatialAudioExperience { false };
+};
+
+// Receives the audio destination messages of one web process's connection to the GPU process. Its Swift state
+// (RemoteAudioDestinationManager.swift), which m_swiftState holds, owns the destinations, which play out the rings the web
+// process writes, and handles the messages, apart from iOS's scene identifier, whose spatial experience only C++ can make.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteAudioDestinationManager.swift") RemoteAudioDestinationManager : private IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteAudioDestinationManager);
     WTF_MAKE_NONCOPYABLE(RemoteAudioDestinationManager);
 public:
@@ -67,27 +62,40 @@ public:
 
     void didReceiveMessageFromWebProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
 
-    NODELETE bool allowsExitUnderMemoryPressure() const;
+    // Implemented in Swift: whether no destination is playing.
+    bool allowsExitUnderMemoryPressure() const;
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
+
+    // For the Swift state.
+    bool isLockdownModeEnabled() const;
+    bool prefersSpatialAudioExperience() const;
+    void tryExitIfUnusedAndUnderMemoryPressure();
+    void destinationWasDeleted(uint64_t destinationIdentifier);
 
 private:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&);
 
-    void createAudioDestination(RemoteAudioDestinationIdentifier, const String& inputDeviceId, uint32_t numberOfInputChannels, uint32_t numberOfOutputChannels, float sampleRate, float hardwareSampleRate, IPC::Semaphore&& renderSemaphore, WebCore::SharedMemoryHandle&&, CompletionHandler<void(uint64_t)>&&);
-    void deleteAudioDestination(RemoteAudioDestinationIdentifier);
-    void startAudioDestination(RemoteAudioDestinationIdentifier, CompletionHandler<void(bool, uint64_t)>&&);
-    void stopAudioDestination(RemoteAudioDestinationIdentifier, CompletionHandler<void(bool)>&&);
-#if PLATFORM(COCOA)
-    void audioSamplesStorageChanged(RemoteAudioDestinationIdentifier, ConsumerSharedCARingBuffer::Handle&&);
-#endif
 #if PLATFORM(IOS_FAMILY)
     void setSceneIdentifier(RemoteAudioDestinationIdentifier, String&&);
 #endif
+    // Implemented in Swift.
+    RemoteAudioDestinationSpatialTarget spatialTarget(uint64_t destinationIdentifier) const;
 
-    HashMap<RemoteAudioDestinationIdentifier, UniqueRef<RemoteAudioDestination>> m_audioDestinations;
+    // Implemented in Swift.
+    uintptr_t createSwiftState();
+    // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
+    // m_swiftState, for Swift, which can only read it.
+    uintptr_t swiftState() const { return m_swiftState; }
+
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
+#if PLATFORM(IOS_FAMILY)
+    HashMap<uint64_t, String> m_sceneIdentifiers;
+#endif
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
 };
 
 } // namespace WebKit;
 
-#endif // ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO)
+#endif // ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)

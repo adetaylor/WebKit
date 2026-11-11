@@ -67,9 +67,7 @@ void AudioOutputUnit::dispatchEvents()
         if (auto events = audioOutputUnitTakeEvents(identifier))
             (*handler)(OptionSet<Event>::fromRaw(events));
     }
-#if ENABLE(MEDIA_STREAM)
-    audioCaptureControllersDispatchUnitEvents();
-#endif
+    audioUnitsDispatchSwiftEvents();
 }
 
 void AudioOutputUnit::setEventHandler(uint64_t identifier, Function<void(OptionSet<Event>)>* handler)
@@ -110,11 +108,13 @@ void AudioOutputUnit::setEventHandler(Function<void(OptionSet<Event>)>&& handler
 AudioOutputUnit::AudioOutputUnit(Kind kind, float hardwareSampleRate, unsigned numberOfOutputChannels)
     : m_identifier(audioOutputUnitCreate(static_cast<uint8_t>(kind), hardwareSampleRate, numberOfOutputChannels))
 {
+}
+
+void preferAudioSessionBufferSizeForOutputUnit()
+{
 #if PLATFORM(IOS_FAMILY)
-    if (kind != Kind::GenericOutputForTesting) {
-        constexpr size_t preferredBufferSize = 256;
-        AudioSession::singleton().setPreferredBufferSize(preferredBufferSize);
-    }
+    constexpr size_t preferredBufferSize = 256;
+    AudioSession::singleton().setPreferredBufferSize(preferredBufferSize);
 #endif
 }
 
@@ -145,7 +145,12 @@ size_t AudioOutputUnit::outputLatency() const
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
 void AudioOutputUnit::setSpatialAudioExperience(CASpatialAudioExperience *experience)
 {
-    OSStatus result = audioOutputUnitSetObjectProperty(m_identifier, kAudioOutputUnitProperty_IntendedSpatialExperience, (void *)experience);
+    setSpatialAudioExperience(m_identifier, experience);
+}
+
+void AudioOutputUnit::setSpatialAudioExperience(uint64_t unitIdentifier, CASpatialAudioExperience *experience)
+{
+    OSStatus result = audioOutputUnitSetObjectProperty(unitIdentifier, kAudioOutputUnitProperty_IntendedSpatialExperience, (void *)experience);
     if (result != noErr)
         RELEASE_LOG(Media, "ERROR: Failed to set kAudioOutputUnitProperty_IntendedSpatialExperience with error: %ld", static_cast<long>(result));
 }
@@ -206,6 +211,49 @@ void AudioTrackPlayout::attachRing(const CARingBuffer* ring, uint32_t semaphore,
 }
 
 #if ENABLE(MEDIA_STREAM)
+WTF_MAKE_TZONE_ALLOCATED_IMPL(AudioTrackRendererUnit);
+
+AudioTrackRendererUnit::AudioTrackRendererUnit(AURenderCallback callback, void* refCon)
+    : m_identifier(audioTrackRendererUnitCreate())
+{
+    audioOutputUnitAttachCxxRenderCallback(m_identifier, reinterpret_cast<const void*>(callback), refCon);
+}
+
+AudioTrackRendererUnit::~AudioTrackRendererUnit()
+{
+    AudioOutputUnit::setEventHandler(m_identifier, nullptr);
+    audioOutputUnitDestroy(m_identifier);
+}
+
+void AudioTrackRendererUnit::setDevice(uint32_t deviceID)
+{
+    audioTrackRendererUnitSetDevice(m_identifier, deviceID);
+}
+
+void AudioTrackRendererUnit::start()
+{
+    UNUSED_VARIABLE(audioOutputUnitStart(m_identifier));
+}
+
+void AudioTrackRendererUnit::stop()
+{
+    UNUSED_VARIABLE(audioOutputUnitStop(m_identifier));
+}
+
+std::optional<AudioStreamBasicDescription> AudioTrackRendererUnit::format()
+{
+    auto format = audioTrackRendererUnitFormat(m_identifier);
+    if (!format.mFormatID)
+        return std::nullopt;
+    return format;
+}
+
+void AudioTrackRendererUnit::setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&& handler)
+{
+    m_eventHandler = WTF::move(handler);
+    AudioOutputUnit::setEventHandler(m_identifier, &m_eventHandler);
+}
+
 void attachAudioCaptureDeliveryContext(uint64_t controllerIdentifier, void* context)
 {
     AudioOutputUnitRingAttachment attachment;

@@ -179,24 +179,6 @@ void CoreAudioCaptureSourceFactory::disableMutedSpeechActivityEventListener()
     CoreAudioCaptureUnit::defaultSingleton().disableMutedSpeechActivityEventListener();
 }
 
-void CoreAudioCaptureSourceFactory::registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    CoreAudioCaptureUnit::defaultSingleton().registerSpeakerSamplesProducer(producer);
-}
-
-void CoreAudioCaptureSourceFactory::unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    CoreAudioCaptureUnit::defaultSingleton().unregisterSpeakerSamplesProducer(producer);
-}
-
-bool CoreAudioCaptureSourceFactory::shouldAudioCaptureUnitRenderAudio()
-{
-#if PLATFORM(IOS_FAMILY)
-    return CoreAudioCaptureUnit::defaultSingleton().isRunning();
-#else
-    return CoreAudioCaptureUnit::defaultSingleton().isRunning() && CoreAudioCaptureUnit::defaultSingleton().canRenderAudio();
-#endif // PLATFORM(IOS_FAMILY)
-}
 
 CoreAudioCaptureSource::CoreAudioCaptureSource(const CaptureDevice& device, uint32_t captureDeviceID, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
     : RealtimeMediaSource(device, WTF::move(hashSalts), pageIdentifier)

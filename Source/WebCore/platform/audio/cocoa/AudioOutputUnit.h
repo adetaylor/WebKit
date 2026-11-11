@@ -46,17 +46,17 @@ class AudioCaptureSink;
 class AudioTrackPlayout;
 class CARingBuffer;
 
-// An output AudioUnit, the default output unit (RemoteIO on iOS), that AudioOutputUnit.swift owns. Use it on the main
-// thread only.
+// An output AudioUnit, the default output unit (RemoteIO on iOS), that AudioOutputUnit.swift owns, for C++: WebAudio's
+// in-process destinations and track renderers, and tests. (The GPU process's units are in Swift.) Use it on the main thread
+// only.
 class AudioOutputUnit {
     WTF_MAKE_NONCOPYABLE(AudioOutputUnit);
 public:
     enum class Kind : uint8_t {
-        // An audio destination of the GPU process, which plays out a ring the web process writes (attachRing()).
-        RemoteDestination,
         // An in-process audio destination, which renders from a C++ callback (attachRenderCallback()).
-        InProcessDestination,
-        // A remote destination on a generic output unit, which needs no hardware (renderForTesting()).
+        InProcessDestination = 1,
+        // A GPU-process audio destination's unit on a generic output unit, which needs no hardware, and which plays out a
+        // ring (attachRing(), renderForTesting()).
         GenericOutputForTesting,
     };
 
@@ -93,11 +93,14 @@ public:
 
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
     WEBCORE_EXPORT void setSpatialAudioExperience(CASpatialAudioExperience *);
+    // The spatial experience of a unit, by its identifier: the GPU process's audio destinations (AudioOutputUnit.swift's
+    // RemoteDestinationOutputUnit).
+    WEBCORE_EXPORT static void setSpatialAudioExperience(uint64_t unitIdentifier, CASpatialAudioExperience *);
 #endif
 
-    // While stopped: the ring a remote destination plays out (or none), the shared counter it adds each quantum's frames
-    // to, and the semaphore it signals after each quantum. The caller keeps them alive until it attaches others or
-    // destroys the unit.
+    // Tests only, while stopped: the ring a GenericOutputForTesting unit plays out (or none), the shared counter it adds
+    // each quantum's frames to, and the semaphore it signals after each quantum. The caller keeps them alive until it
+    // attaches others or destroys the unit.
     WEBCORE_EXPORT void attachRing(const CARingBuffer*, std::span<uint8_t> frameCounter, uint32_t semaphore);
 
     // Before an in-process destination first starts: the callback that renders each quantum on the unit's IO thread.
@@ -117,9 +120,9 @@ private:
     Function<void(OptionSet<Event>)> m_eventHandler;
 };
 
-// What a GPU-process track renderer and the capture unit's speaker play out (AudioUnitIsland.swift's TrackPlayout): the ring
-// the web process writes and the semaphore it signals for each chunk of frames it asks for. The units that play it out
-// keep it alive. Main thread only.
+// Tests only: what a track renderer and the capture unit's speaker play out (AudioUnitIsland.swift's TrackPlayout, which
+// the GPU process uses directly): a ring and the semaphore signalled for each chunk of frames asked for. The units that
+// play it out keep it alive. Main thread only.
 class AudioTrackPlayout {
     WTF_MAKE_NONCOPYABLE(AudioTrackPlayout);
 public:
@@ -137,6 +140,32 @@ private:
 };
 
 #if ENABLE(MEDIA_STREAM)
+// An in-process MediaStream track renderer's unit (AudioOutputUnit.swift's TrackRendererUnit, which the GPU process uses
+// directly): the default output unit (RemoteIO on iOS) on a device, made when it first starts or its format is first asked
+// for, and disposed of whenever it stops, which renders from a C++ callback. Main thread only.
+class AudioTrackRendererUnit {
+    WTF_MAKE_NONCOPYABLE(AudioTrackRendererUnit);
+    WTF_MAKE_TZONE_ALLOCATED(AudioTrackRendererUnit);
+public:
+    // The callback renders each quantum on the unit's IO thread, with refCon, which the caller keeps alive until it destroys
+    // the unit.
+    AudioTrackRendererUnit(AURenderCallback, void* refCon);
+    ~AudioTrackRendererUnit();
+
+    // macOS: the device (0: the default one). A running unit restarts on the new device.
+    void setDevice(uint32_t deviceID);
+    void start();
+    void stop();
+    // The unit's stream format, once it's made: the device's own at the audio session's sample rate. None if it can't be
+    // made.
+    std::optional<AudioStreamBasicDescription> format();
+    void setEventHandler(Function<void(OptionSet<AudioOutputUnit::Event>)>&&);
+
+private:
+    const uint64_t m_identifier;
+    Function<void(OptionSet<AudioOutputUnit::Event>)> m_eventHandler;
+};
+
 // The C++ that the units of a capture controller (AudioCaptureController.swift) hand each microphone quantum to
 // (deliverToCxxObservers()), which it keeps alive while the controller lives.
 void attachAudioCaptureDeliveryContext(uint64_t controllerIdentifier, void* context);

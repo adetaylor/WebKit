@@ -98,8 +98,6 @@ public:
     void validateOutputDevice() const;
     void captureFailed() const;
 
-    // The track the speaker plays out and its format, while a producer is registered (0: none).
-    void setSpeakerSamplesProducer(uint64_t trackPlayoutIdentifier, AudioStreamBasicDescription) const;
     void setHasVoiceActivityListener(bool) const;
     static void setHasMuteStatusListener(bool);
     void prewarmAudioUnitCreation() const;
@@ -126,9 +124,6 @@ enum class AudioCaptureControllerEvent : uint8_t {
     FirstMicrophoneQuantum,
     SinkStarted,
     AudioUnitReleased,
-    SpeakerStarting,
-    SpeakerStopped,
-    CanRenderAudioChanged,
     UnitStopped,
     VoiceActivityDetected,
     // value: whether the microphone is muted.

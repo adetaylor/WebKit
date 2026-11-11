@@ -48,7 +48,6 @@ namespace WebCore {
 
 class AudioSampleBufferList;
 class AudioSampleDataSource;
-class AudioTrackPlayout;
 class CoreAudioCaptureUnit;
 class CaptureDeviceInfo;
 class WebAudioSourceProviderAVFObjC;
@@ -134,18 +133,6 @@ private:
     Vector<WeakPtr<AudioCaptureSink>> m_audioCaptureSinks;
 };
 
-class CoreAudioSpeakerSamplesProducer {
-public:
-    virtual ~CoreAudioSpeakerSamplesProducer() = default;
-    // Main thread
-    virtual const CAAudioStreamDescription& format() = 0;
-    virtual void captureUnitIsStarting() = 0;
-    virtual void captureUnitHasStopped() = 0;
-    virtual void canRenderAudioChanged() = 0;
-    // What the capture unit's speaker plays out, which it keeps alive while it does.
-    virtual const AudioTrackPlayout& speakerTrackPlayout() = 0;
-};
-
 class CoreAudioCaptureSourceFactory : public AudioCaptureFactory, public AudioSessionInterruptionObserver, public RefCounted<CoreAudioCaptureSourceFactory> {
 public:
     WEBCORE_EXPORT static CoreAudioCaptureSourceFactory& singleton();
@@ -156,10 +143,6 @@ public:
     void deref() const final { RefCounted::deref(); }
 
     void scheduleReconfiguration();
-
-    WEBCORE_EXPORT void registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    WEBCORE_EXPORT void unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    WEBCORE_EXPORT bool shouldAudioCaptureUnitRenderAudio();
 
 protected:
     CoreAudioCaptureSourceFactory();

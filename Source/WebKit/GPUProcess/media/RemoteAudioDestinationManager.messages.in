@@ -21,24 +21,24 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 # THE POSSIBILITY OF SUCH DAMAGE.
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebAudioEnabled
+    EnabledBy=WebAudioEnabled,
+    SwiftImplementation,
+    SwiftTypes
 ]
 messages -> RemoteAudioDestinationManager {
-    CreateAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier, String inputDeviceId, uint32_t numberOfInputChannels, uint32_t numberOfOutputChannels, float sampleRate, float hardwareSampleRate, IPC::Semaphore renderSemaphore, WebCore::SharedMemory::Handle frameCount) -> (uint64_t audioUnitLatency)
-    DeleteAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier)
+    CreateAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier, String inputDeviceId, uint32_t numberOfInputChannels, uint32_t numberOfOutputChannels, float sampleRate, float hardwareSampleRate, IPC::Semaphore renderSemaphore, WebCore::SharedMemory::Handle frameCount) -> (uint64_t audioUnitLatency) SwiftSyncHandler
+    DeleteAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) SwiftSyncHandler
 
-    StartAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying, uint64_t audioUnitLatency)
-    StopAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying)
-#if PLATFORM(COCOA)
-    AudioSamplesStorageChanged(WebKit::RemoteAudioDestinationIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle)
-#endif
+    StartAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying, uint64_t audioUnitLatency) SwiftSyncHandler
+    StopAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying) SwiftSyncHandler
+    AudioSamplesStorageChanged(WebKit::RemoteAudioDestinationIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle) SwiftSyncHandler
 #if PLATFORM(IOS_FAMILY)
-    SetSceneIdentifier(WebKit::RemoteAudioDestinationIdentifier identifier, String sceneIdentifier);
+    SetSceneIdentifier(WebKit::RemoteAudioDestinationIdentifier identifier, String sceneIdentifier) CxxTypes
 #endif
 }
 
