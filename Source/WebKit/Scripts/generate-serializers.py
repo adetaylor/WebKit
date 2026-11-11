@@ -127,7 +127,7 @@ def matches_bundle(item, bundle_filter):
 # LegacyPopulateFromEmptyConstructor - instead of calling a constructor with the members, call the empty constructor then insert the members one at a time.
 # OptionSet - for enum classes, instead of only allowing deserialization of the exact values, allow deserialization of any bit combination of the values.
 # RValue - serializer takes an rvalue reference, instead of an lvalue.
-# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), which the generated C++ checks. A bool enum class must list its two values. Not supported together with CreateUsing, whose function may check values that Swift would not.
+# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. Not supported together with CreateUsing, whose function may check values that Swift would not.
 # WebKitPlatform - put serializer into a file built as part of WebKitPlatform
 # CustomEncoder - Only generate the decoder, not the encoder.
 # WebKitSecureCodingClass - For webkit_secure_coding declarations that need a custom way of establishing the Obj-C class to instantiate (e.g. softlinked frameworks)
@@ -537,7 +537,11 @@ class MemberVariable(object):
 
 class EnumMember(object):
     def __init__(self, name, condition):
-        self.name = name
+        # A value of an enum marked [Swift] may give its number, as Name = 180, for an enum whose values aren't numbered
+        # in declaration order.
+        match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9]*)\s*=\s*(\d+)', name)
+        self.name = match.group(1) if match else name
+        self.value = int(match.group(2)) if match else None
         self.condition = condition
 
 
@@ -1769,6 +1773,8 @@ def parse_serialized_types(file):
             continue
         if line.startswith('}'):
             if underlying_type is not None:
+                if any(member.value is not None for member in members) and 'Swift' not in attribute_list(attributes):
+                    raise Exception(f'{namespace}::{name}: only enums marked [Swift] give the numbers of their values.')
                 serialized_enums.append(SerializedEnum(namespace, name, underlying_type, members, type_condition, attributes))
             else:
                 type = SerializedType(struct_or_class, cf_type, namespace, name, parent_class_name, members, dictionary_members, type_condition, attributes, templates, metadata)
@@ -2347,7 +2353,7 @@ def swift_identifiers(serialized_types, serialized_enums, using_statements):
 def swift_description_form(description):
     """What a description of a type says about how it is encoded."""
     if isinstance(description, SerializedEnum):
-        return ('enum', description.underlying_type, [(value.name, value.condition) for value in description.valid_values])
+        return ('enum', description.underlying_type, [(value.name, value.value, value.condition) for value in description.valid_values])
     if isinstance(description, UsingStatement):
         return ('using', [line.strip() for line in description.alias_lines])
     return ('type', description.struct_or_class, description.parent_class_name, [(member.name, member.type, member.condition, member.attributes) for member in description.members])
@@ -2690,7 +2696,8 @@ def generate_swift_enum(enum):
     check_swift_names_are_unique(case_names, context, 'values')
     if 'rawValue' in case_names:
         raise Exception(f'{context}: a value would be named rawValue in Swift.')
-    cases = [SwiftMember(swift_identifier(case_name), None, None, index) for index, case_name in enumerate(case_names)]
+    numbers = swift_enum_numbers(enum, context)
+    cases = [SwiftMember(swift_identifier(case_name), None, None, number) for case_name, number in zip(case_names, numbers)]
 
     name = enum.name
     qualified_name = swift_qualified_name(name)
@@ -2728,6 +2735,24 @@ def generate_swift_enum(enum):
     result.append('')
     result.extend(swift_coder_conformance(name, decode_lines, encode_lines))
     return swift_guarded(swift_condition(enum.condition, context), result)
+
+
+def swift_enum_numbers(enum, context):
+    """The number of each value of an enum marked [Swift]: its declaration order, or the numbers that all its values give."""
+    values = enum.valid_values
+    given = [value.value for value in values]
+    if all(number is None for number in given):
+        return list(range(len(values)))
+    if any(number is None for number in given):
+        raise Exception(f'{context}: either every value of an enum marked [Swift] gives its number, or none does.')
+    if enum.is_option_set() or enum.underlying_type == 'bool':
+        raise Exception(f'{context}: the values of an OptionSet or a bool enum marked [Swift] cannot give their numbers.')
+    if len(set(given)) != len(given):
+        raise Exception(f'{context}: more than one of its values has the same number.')
+    bits = int(re.search(r'\d+', swift_types.swift_type_and_coder(enum.underlying_type)[0]).group(0))
+    if any(number >= (1 << bits) for number in given):
+        raise Exception(f'{context}: the number of one of its values does not fit in {enum.underlying_type}.')
+    return given
 
 
 def swift_variant_case_name(cpp_type):
@@ -2902,11 +2927,14 @@ def swift_enum_value_assertions(enum):
         if valid_value.condition is not None:
             result.append(f'#if {valid_value.condition}')
         value = f'static_cast<{enum.underlying_type}>({enum.namespace_and_name()}::{valid_value.name})'
-        if enum.is_option_set():
-            assertion = f'{value} == (1ull << {index})'
+        if valid_value.value is not None:
+            result.append(f'static_assert({value} == {valid_value.value}, "{swift_qualified_name(enum.name)} in GeneratedSerializers.swift numbers values as .serialization.in does");')
         else:
-            assertion = f'!{value}' if not index else f'{value} == {index}'
-        result.append(f'static_assert({assertion}, "{swift_qualified_name(enum.name)} in GeneratedSerializers.swift numbers values in .serialization.in order");')
+            if enum.is_option_set():
+                assertion = f'{value} == (1ull << {index})'
+            else:
+                assertion = f'!{value}' if not index else f'{value} == {index}'
+            result.append(f'static_assert({assertion}, "{swift_qualified_name(enum.name)} in GeneratedSerializers.swift numbers values in .serialization.in order");')
         if valid_value.condition is not None:
             result.append('#endif')
     return result
