@@ -28,7 +28,7 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 
 #include "SwiftCoding.h"
-#include <IOSurface/IOSurfaceRef.h>
+#include <CoreGraphics/CoreGraphics.h>
 #include <wtf/Compiler.h>
 
 namespace WebCore {
@@ -37,22 +37,8 @@ class ColorSpace;
 
 namespace WebKit {
 
-// The WebCore::IOSurface formats and names that the GPU process's Swift allocates.
-enum class GPUProcessIOSurfaceFormat : uint8_t {
-    Bgra,
-    Bgrx,
-    Rgba,
-    Rgbx,
-    Rgba16F,
-};
-
-enum class GPUProcessIOSurfaceName : uint8_t {
-    WebGPU,
-};
-
-// Makes up to `count` IOSurfaces with WebCore::IOSurface::create(), with the color space the argument holds, and gives
-// each to `addSurface`, for Swift, which keeps only the IOSurfaceRefs. A surface that can't be made is left out.
-void createGPUProcessIOSurfaces(IPC::CxxDecodedArgument<WebCore::ColorSpace>&, int32_t width, int32_t height, GPUProcessIOSurfaceFormat, GPUProcessIOSurfaceName, uint32_t count, NOESCAPE void (^addSurface)(IOSurfaceRef WTF_NONNULL));
+// The colour space of the GPU process's IOSurfaces, which a C++-decoded argument holds, for Swift.
+CGColorSpaceRef WTF_NONNULL copyGPUProcessIOSurfaceColorSpace(IPC::CxxDecodedArgument<WebCore::ColorSpace>&) CF_RETURNS_RETAINED;
 
 } // namespace WebKit
 

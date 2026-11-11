@@ -26,6 +26,7 @@
 import CoreGraphics
 import Foundation
 import IOSurface
+@_spi(WebKitGPU) internal import WebCore
 import WebKit_Internal
 
 // Receives the compositor messages of a WebGPU canvas, on the RemoteGPU's work queue: the render buffers that the compositor
@@ -105,16 +106,21 @@ final class RemoteCompositorIntegration {
 
         // Up to three buffers, at most the largest 2D texture in size.
         let max2DTextureSize: Int32 = 16384
+        let colorSpace = WebKit.copyGPUProcessIOSurfaceColorSpace(destinationColorSpace)
+        let format = renderBufferFormat(textureFormat, premultiplied: alphaMode == .premultiplied)
         var surfaces: [IOSurfaceRef] = []
-        WebKit.createGPUProcessIOSurfaces(
-            destinationColorSpace,
-            max(1, min(max2DTextureSize, width)),
-            max(1, min(max2DTextureSize, height)),
-            renderBufferFormat(textureFormat, premultiplied: alphaMode == .premultiplied),
-            .WebGPU,
-            min(3, bufferCount)
-        ) { surface in
-            surfaces.append(surface)
+        for _ in 0..<min(3, bufferCount) {
+            let surface = IOSurfaceCore.create(
+                pool: nil,
+                width: max(1, min(max2DTextureSize, width)),
+                height: max(1, min(max2DTextureSize, height)),
+                colorSpace: colorSpace,
+                name: .WebGPU,
+                format: format
+            )
+            if let surface {
+                surfaces.append(surface.surface)
+            }
         }
         renderBuffers = surfaces
 
@@ -177,16 +183,16 @@ final class RemoteCompositorIntegration {
 
 #if WTF_PLATFORM_COCOA
 // The IOSurface format of a render buffer for the texture format and the alpha mode.
-private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> WebKit.GPUProcessIOSurfaceFormat {
+private func renderBufferFormat(_ textureFormat: IPCTypes.TextureFormat, premultiplied: Bool) -> IOSurfaceFormat {
     switch textureFormat {
     case .rgba8unorm, .rgba8unormSRGB:
-        return premultiplied ? .Rgba : .Rgbx
+        return premultiplied ? .RGBA : .RGBX
     #if ENABLE_PIXEL_FORMAT_RGBA16F
     case .rgba16float:
-        return .Rgba16F
+        return .RGBA16F
     #endif
     default:
-        return premultiplied ? .Bgra : .Bgrx
+        return premultiplied ? .BGRA : .BGRX
     }
 }
 #endif

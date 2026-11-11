@@ -29,50 +29,14 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 
 #include <WebCore/ColorSpace.h>
-#include <WebCore/IOSurface.h>
 
 namespace WebKit {
 
-static WebCore::IOSurface::Format webCoreFormat(GPUProcessIOSurfaceFormat format)
-{
-    switch (format) {
-    case GPUProcessIOSurfaceFormat::Bgra:
-        return WebCore::IOSurface::Format::BGRA;
-    case GPUProcessIOSurfaceFormat::Bgrx:
-        return WebCore::IOSurface::Format::BGRX;
-    case GPUProcessIOSurfaceFormat::Rgba:
-        return WebCore::IOSurface::Format::RGBA;
-    case GPUProcessIOSurfaceFormat::Rgbx:
-        return WebCore::IOSurface::Format::RGBX;
-    case GPUProcessIOSurfaceFormat::Rgba16F:
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-        return WebCore::IOSurface::Format::RGBA16F;
-#else
-        return WebCore::IOSurface::Format::BGRA;
-#endif
-    }
-    ASSERT_NOT_REACHED();
-    return WebCore::IOSurface::Format::BGRA;
-}
-
-static WebCore::IOSurface::Name webCoreName(GPUProcessIOSurfaceName name)
-{
-    switch (name) {
-    case GPUProcessIOSurfaceName::WebGPU:
-        return WebCore::IOSurface::Name::WebGPU;
-    }
-    ASSERT_NOT_REACHED();
-    return WebCore::IOSurface::Name::Default;
-}
-
-void createGPUProcessIOSurfaces(IPC::CxxDecodedArgument<WebCore::ColorSpace>& colorSpaceArgument, int32_t width, int32_t height, GPUProcessIOSurfaceFormat format, GPUProcessIOSurfaceName name, uint32_t count, NOESCAPE void (^addSurface)(IOSurfaceRef))
+CGColorSpaceRef copyGPUProcessIOSurfaceColorSpace(IPC::CxxDecodedArgument<WebCore::ColorSpace>& colorSpaceArgument)
 {
     auto colorSpace = colorSpaceArgument.take();
     RELEASE_ASSERT(colorSpace);
-    for (uint32_t index = 0; index < count; ++index) {
-        if (auto surface = WebCore::IOSurface::create(nullptr, WebCore::IntSize(width, height), *colorSpace, webCoreName(name), webCoreFormat(format)))
-            addSurface(surface->surface());
-    }
+    return RetainPtr { colorSpace->platformColorSpace() }.leakRef();
 }
 
 } // namespace WebKit
