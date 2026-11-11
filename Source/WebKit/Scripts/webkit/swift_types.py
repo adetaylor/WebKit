@@ -98,6 +98,7 @@ _OWNED_TYPES = {
     'MachSendRight': 'IPCTypes.MachSendRight',
     'WTF::MachSendRight': 'IPCTypes.MachSendRight',
     'IPC::Semaphore': 'IPCTypes.Semaphore',
+    'IPC::Signal': 'IPCTypes.Signal',
     'WebCore::SharedMemory::Handle': 'IPCTypes.SharedMemoryHandle',
     'WebCore::SharedMemoryHandle': 'IPCTypes.SharedMemoryHandle',
 }
