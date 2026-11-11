@@ -67,6 +67,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('WebCore::SharedMemory::Handle', ('IPCTypes.SharedMemoryHandle', 'IPCTypes.SharedMemoryHandle')),
             ('std::optional<WebCore::SharedMemoryHandle>', ('IPCTypes.SharedMemoryHandle?', 'IPCCoding.OwnedOptional<IPCTypes.SharedMemoryHandle>')),
             ('Vector<MachSendRight>', ('IPCTypes.MachSendRightVector', 'IPCTypes.MachSendRightVector')),
+            ('RetainPtr<CVPixelBufferRef>', ('IPCTypes.MachSendRight?', 'IPCCoding.OwnedOptional<IPCTypes.MachSendRight>')),
             ('MediaTime', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),
             ('const WTF::MediaTime&', ('IPCTypes.MediaTime', 'IPCTypes.CxxName.WTF_MediaTime')),
             ('std::optional<MediaTime>', ('IPCTypes.MediaTime?', 'IPCCoding.StdOptional<IPCTypes.CxxName.WTF_MediaTime>')),
@@ -78,7 +79,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 
     def test_owned_types(self):
-        for cpp_type in ['MachSendRight', 'IPC::Semaphore', 'const WebCore::SharedMemory::Handle&', 'std::optional<IPC::Semaphore>', 'Vector<WTF::MachSendRight>']:
+        for cpp_type in ['MachSendRight', 'IPC::Semaphore', 'const WebCore::SharedMemory::Handle&', 'std::optional<IPC::Semaphore>', 'Vector<WTF::MachSendRight>', 'RetainPtr<CVPixelBufferRef>']:
             self.assertTrue(swift_types.is_owned_type(cpp_type), cpp_type)
         for cpp_type in ['uint32_t', 'String', 'Vector<uint8_t>', 'std::optional<WebCore::FrameIdentifier>', 'RefPtr<WebCore::SharedBuffer>']:
             self.assertFalse(swift_types.is_owned_type(cpp_type), cpp_type)
@@ -88,7 +89,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>']:
+        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 

@@ -71,6 +71,9 @@ _TWO_ARGUMENT_TEMPLATES = {
     'std::pair': ('(%s, %s)', 'IPCCoding.Pair<%s, %s>'),
 }
 
+# A pixel buffer, whose Swift form is the optional right to its IOSurface.
+_PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
+
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
 _GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['WTFLogLevel'])
 
@@ -164,7 +167,7 @@ def is_owned_primitive(cpp_type):
 def is_owned_type(cpp_type):
     """Whether the Swift form of a C++ IPC type is ~Copyable: an owned type, or an optional or Vector of one."""
     cpp_type = strip_cpp_type_decorations(cpp_type)
-    if is_owned_primitive(cpp_type) or cpp_type.removeprefix('::') in OWNED_SERIALIZED_TYPES:
+    if is_owned_primitive(cpp_type) or cpp_type.removeprefix('::') in OWNED_SERIALIZED_TYPES or cpp_type == _PIXEL_BUFFER_TYPE:
         return True
     match = re.match(r'^(?:WTF::)?(?:Vector|std::optional)<(.+)>$', cpp_type)
     return bool(match) and is_owned_type(match.group(1))
@@ -191,6 +194,11 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
     if cpp_type in ('GenericPromise::Result', 'WTF::GenericPromise::Result'):
         return ('Bool', 'Bool')
+
+    # A RetainPtr<CVPixelBufferRef> is encoded as whether there is one, then a right to its IOSurface, which Swift takes as
+    # the right, leaving the pixel buffer to C++.
+    if cpp_type == _PIXEL_BUFFER_TYPE:
+        return ('IPCTypes.MachSendRight?', 'IPCCoding.OwnedOptional<IPCTypes.MachSendRight>')
 
     # A UTF8CString is encoded as the span of its bytes, which Swift takes a copy of, as of a Vector of them.
     if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
@@ -265,7 +273,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, "
+                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
                               "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
 
 
