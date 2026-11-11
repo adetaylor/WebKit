@@ -29,14 +29,14 @@ import Metal
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 private struct Message {
-    let text: WTF.String
+    let text: Swift.String
     let lineNumber: UInt32
     let lineOffset: UInt32
     let offset: UInt32
     let length: UInt32
 
     init(_ message: CompilationMessage) {
-        text = wtfString(utf16: message.utf16)
+        text = Swift.String(decoding: message.utf16, as: Swift.UTF16.self)
         lineNumber = message.span.line
         lineOffset = message.span.lineOffset
         offset = message.span.offset
@@ -173,7 +173,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
         messages.indices.map { index in
             let message = messages[index]
             return GPUShaderCompilationMessage(
-                message: stringNilIfEmpty(message.text) ?? "",
+                message: message.text,
                 isError: index < errorCount,
                 lineNumber: UInt64(message.lineNumber),
                 linePosition: UInt64(message.lineOffset) + 1,
@@ -188,8 +188,7 @@ public final class ShaderModuleImpl: GPUObjectReference {
     fileprivate func compilationErrorMessage() -> Swift.String {
         var result = "\(errorCount) error\(errorCount != 1 ? "s" : "") generated while compiling the shader:"
         for message in messages.prefix(errorCount) {
-            let text = stringNilIfEmpty(message.text) ?? ""
-            result += "\n\(message.lineNumber):\(message.lineOffset): \(text.prefix { $0 != "\0" })"
+            result += "\n\(message.lineNumber):\(message.lineOffset): \(message.text.prefix { $0 != "\0" })"
         }
         return result
     }

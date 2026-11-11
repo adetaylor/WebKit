@@ -25,36 +25,9 @@
 
 #pragma once
 
-#include <optional>
-#include <span>
 #include <unicode/uchar.h>
 #include <unicode/uset.h>
-#include <wtf/OptionSet.h>
-#include <wtf/PrintStream.h>
-#include <wtf/StdLibExtras.h>
-#include <wtf/SwiftBridging.h>
-#include <wtf/Variant.h>
-#include <wtf/Vector.h>
-#include <wtf/text/WTFString.h>
 
-// The string helpers WGSLBridge.swift copies through between WTF and the Swift WGSL compiler, and the ICU sets that
-// ShaderModule.swift reads the identifier character classes from.
+// The ICU sets that ShaderModule.swift reads the identifier character classes from.
 
 // Never test HAVE_WGSL_COMPILER in this or any other header Swift imports: CMake does not pass it to Swift's clang importer, so Swift and Objective-C++ would disagree on layouts.
-
-namespace WGSL {
-
-namespace Interop {
-
-// Copy a String's code units into storage Swift lends as a MutableSpan of exactly length() elements.
-inline void copyLatin1CodeUnits(const String& string, std::span<uint8_t> destination NOESCAPE) { memcpySpan(destination, byteCast<uint8_t>(string.span8())); }
-inline void copyUTF16CodeUnits(const String& string, std::span<char16_t> destination NOESCAPE) { memcpySpan(destination, string.span16()); }
-
-// Swift lends these spans from ContiguousArray storage (ContiguousArray.span back-deploys; Array.span
-// needs macOS 26). Each is one copy; ASCII UTF-8 becomes an 8-bit String.
-inline String makeStringFromUTF8(std::span<const uint8_t> utf8 NOESCAPE) { return String::fromUTF8(byteCast<char8_t>(utf8)); }
-inline String makeStringFromUTF16(std::span<const char16_t> utf16 NOESCAPE) { return String(utf16); }
-
-} // namespace Interop
-
-} // namespace WGSL

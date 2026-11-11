@@ -402,10 +402,6 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
         canvasBacking = true
     }
 
-    func setLabel(_ label: WTF.String) {
-        backingTexture?.label = stringNilIfEmpty(label)
-    }
-
     // Texture::destroy, and Device::destroy for each texture it made. A canvas backing keeps its Metal texture, so its
     // views, bind groups, render bundles and encoders are left as they are.
     func destroyAndReleaseHolders() {
@@ -630,14 +626,9 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
         return slice != 0 ? state.rightRasterizationMap : state.leftRasterizationMap
     }
 
-    // createView, for a Swift caller.
-    func createView(_ descriptor: GPUTextureViewDescriptor, label: WTF.String) -> TextureViewImpl {
-        createView(descriptor.parameters, label)
-    }
-
     // Every view holds this texture. Returns an invalid view (no descriptor) on failure; the texture records only the
     // views that have one. A view's device is its texture's.
-    func createView(_ descriptor: WebGPU.Metal.TextureViewDescriptorParameters, _ label: WTF.String) -> TextureViewImpl {
+    func createView(_ descriptor: WebGPU.Metal.TextureViewDescriptorParameters, _ label: Swift.String?) -> TextureViewImpl {
         if destroyed {
             return invalidView()
         }
@@ -711,7 +702,7 @@ public final class TextureImpl: GPUObjectReference, LinkedImpl {
             return invalidView()
         }
 
-        view.label = stringNilIfEmpty(label) ?? ""
+        view.label = nonEmptyLabel(label) ?? ""
         if view.label?.isEmpty ?? true {
             view.label = mtlTexture.label
         }
@@ -1300,7 +1291,7 @@ extension TextureImpl {
     }
 
     public func setLabel(_ label: Swift.String?) {
-        setLabel(WTF.String(label ?? ""))
+        backingTexture?.label = nonEmptyLabel(label)
     }
 }
 
@@ -1333,7 +1324,7 @@ public struct GPUTextureDescriptor {
     }
 }
 
-func createTextureImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescriptor, label: WTF.String) -> TextureImpl {
+func createTextureImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureImpl {
     createTextureImpl(
         deviceImpl,
         descriptor.parameters,
@@ -1349,7 +1340,7 @@ private func createTextureImpl(
     _ deviceImpl: DeviceImpl,
     _ descriptor: WebGPU.Metal.TextureParameters,
     viewFormats: [WebGPU.TextureFormat],
-    _ label: WTF.String,
+    _ label: Swift.String?,
     _ hasUnifiedMemory: Bool,
     _ supportsNonPrivateDepthStencilTextures: Bool,
     _ supportsMemorylessTextures: Bool
@@ -1435,7 +1426,7 @@ private func createTextureImpl(
     }
 
     deviceImpl.setOwnerWithIdentity(texture)
-    texture.label = stringNilIfEmpty(label) ?? ""
+    texture.label = nonEmptyLabel(label) ?? ""
 
     let impl = TextureImpl(texture: texture, parameters: descriptor, viewFormats: viewFormats, deviceImpl: deviceImpl)
     deviceImpl.textures.add(impl)
@@ -1572,7 +1563,7 @@ func errorValidatingTextureCopyRange(
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture: an invalid texture on failure.
     public func createTexture(_ descriptor: GPUTextureDescriptor, label: Swift.String?) -> TextureReference {
-        createTextureImpl(self, descriptor, label: WTF.String(label ?? ""))
+        createTextureImpl(self, descriptor, label: label)
     }
 }
 
@@ -1580,6 +1571,6 @@ extension DeviceReference {
 extension TextureImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gputexture-createview. A view's device is its texture's.
     public func createView(_ descriptor: GPUTextureViewDescriptor?, label: Swift.String?) -> TextureViewReference {
-        createView(descriptor ?? GPUTextureViewDescriptor(), label: WTF.String(label ?? ""))
+        createView((descriptor ?? GPUTextureViewDescriptor()).parameters, label)
     }
 }

@@ -21,14 +21,10 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-// Strings, identifier tables and pipeline constants between WebKit and the Swift WGSL compiler, whose types the rest of
-// the WebGPU Swift code uses directly. In this file `WGSL.X` is the C++ namespace from WGSLAPI.h (an imported declaration
-// shadows the module name); the Swift module's declarations are used unqualified.
+// What the rest of the WebGPU Swift code takes from the Swift WGSL compiler without importing it, and the labels of Metal
+// objects.
 
-private import CxxStdlib
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.WGSLAPI
-import WebGPU_Private.WebGPUCpp
 
 // MARK: - Metal buffer slots
 
@@ -51,44 +47,12 @@ let icuIdentifierCharacterClasses = IdentifierCharacterClasses(
     xidContinueRanges: icuIdentifierRanges(xidContinue: true)
 )
 
-// MARK: - Strings
+// MARK: - Labels
 
-func wtfString(_ name: Name) -> WTF.String {
-    wtfString(utf16: name.utf16)
-}
-
-func wtfString(utf16 codeUnits: ContiguousArray<UInt16>) -> WTF.String {
-    WGSL.Interop.makeStringFromUTF16(codeUnits.span)
-}
-
-// The MSL path: one copy, no Swift-side scan, no intermediate Swift.String.
-func wtfString(utf8 bytes: ContiguousArray<UInt8>) -> WTF.String {
-    WGSL.Interop.makeStringFromUTF8(bytes.span)
-}
-
-func wtfString(_ string: Swift.String) -> WTF.String {
-    wtfString(utf8: ContiguousArray(string.utf8))
-}
-
-// nsStringNilIfEmpty() for Swift. The labels and Metal sources it converts are never read back through the API; a lone
-// surrogate becomes U+FFFD, where the NSString kept it.
-func stringNilIfEmpty(_ string: borrowing WTF.String) -> Swift.String? {
-    let length = Int(string.length())
-    if length == 0 {
+// The label a Metal object takes: none for a missing or empty one.
+func nonEmptyLabel(_ label: Swift.String?) -> Swift.String? {
+    guard let label, !label.isEmpty else {
         return nil
     }
-    if string.is8Bit() {
-        var latin1 = ContiguousArray<UInt8>(repeating: 0, count: length)
-        var destination = latin1.mutableSpan
-        WGSL.Interop.copyLatin1CodeUnits(string, &destination)
-        if latin1.allSatisfy({ $0 < 0x80 }) {
-            return Swift.String(decoding: latin1, as: UTF8.self)
-        }
-        return Swift.String(Swift.String.UnicodeScalarView(latin1.lazy.map { Unicode.Scalar($0) }))
-    }
-    var utf16 = ContiguousArray<UInt16>(repeating: 0, count: length)
-    var destination = utf16.mutableSpan
-    WGSL.Interop.copyUTF16CodeUnits(string, &destination)
-    return Swift.String(decoding: utf16, as: UTF16.self)
+    return label
 }
-

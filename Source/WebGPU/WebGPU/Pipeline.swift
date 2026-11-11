@@ -61,12 +61,12 @@ public struct GPUProgrammableStage {
 final class PreparedLibrary {
     let entryPoint: EntryPointInformation
     let resolvedOverrides: ResolvedOverrides
-    let metalSource: WTF.String
+    let metalSource: Swift.String
     let label: NSString?
     let appleGPUFamily: UInt32
     let usesInvariant: Bool
 
-    init(entryPoint: EntryPointInformation, resolvedOverrides: ResolvedOverrides, msl: WTF.String, label: NSString?, deviceImpl: DeviceImpl)
+    init(entryPoint: EntryPointInformation, resolvedOverrides: ResolvedOverrides, msl: Swift.String, label: NSString?, deviceImpl: DeviceImpl)
     {
         self.entryPoint = entryPoint
         self.resolvedOverrides = resolvedOverrides
@@ -139,7 +139,7 @@ func prepareLibrary(
         PreparedLibrary(
             entryPoint: information,
             resolvedOverrides: library.resolvedOverrides,
-            msl: wtfString(utf8: library.msl.utf8),
+            msl: library.msl.string,
             label: label,
             deviceImpl: deviceImpl
         )
@@ -324,7 +324,7 @@ func compileLibrary(
     _ completion: @escaping ((any MTLLibrary)?, NSError?) -> Void
 ) {
     let metalDevice = deviceImpl.device()
-    let source = stringNilIfEmpty(library.metalSource) ?? ""
+    let source = library.metalSource
     let label = (library.label ?? "") as Swift.String
 
     if let scheduler = asynchronousCompileScheduler(compilation, deviceImpl) {
@@ -363,7 +363,7 @@ private func reportPipelineStateError(_ error: NSError?) {
 /// `completion` gets the pipeline state, nil when it failed (logged), on the API thread as compileLibrary's does.
 func createComputePipelineState(
     _ descriptor: MTLComputePipelineDescriptor,
-    _ shaderSource: WTF.String,
+    _ shaderSource: Swift.String,
     _ deviceImpl: DeviceImpl,
     _ compilation: LibraryCompilation,
     _ completion: @escaping ((any MTLComputePipelineState)?) -> Void
@@ -385,7 +385,7 @@ func createComputePipelineState(
     }
 
     #if WEBGPU_PSO_REPRO
-    dumpMetalReproCaseComputePSO(stringNilIfEmpty(shaderSource) ?? "", descriptor.computeFunction?.name ?? "")
+    dumpMetalReproCaseComputePSO(shaderSource, descriptor.computeFunction?.name ?? "")
     #endif
     let (computePipelineState, stateError) = newComputePipelineStateKeepingWarnings(deviceImpl.device(), descriptor)
     #if WEBGPU_PSO_REPRO
@@ -444,14 +444,14 @@ func reproduceRenderPipelineState(
     _ device: (any MTLDevice)?,
     _ maxVertexBuffers: UInt32,
     _ renderPipelineDescriptor: MTLRenderPipelineDescriptor,
-    _ vertexShaderSource: borrowing WTF.String,
-    _ fragmentShaderSource: borrowing WTF.String,
+    _ vertexShaderSource: Swift.String,
+    _ fragmentShaderSource: Swift.String,
     _ shaderLocations: [UInt32]
 ) -> String? {
     let dumped = dumpMetalReproCaseRenderPSO(
-        stringNilIfEmpty(vertexShaderSource) ?? "",
+        vertexShaderSource,
         renderPipelineDescriptor.vertexFunction?.name ?? "",
-        stringNilIfEmpty(fragmentShaderSource) ?? "",
+        fragmentShaderSource,
         renderPipelineDescriptor.fragmentFunction?.name ?? "",
         renderPipelineDescriptor,
         sortedInWTFHashTableOrder(shaderLocations),

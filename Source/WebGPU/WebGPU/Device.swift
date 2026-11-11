@@ -42,7 +42,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
     private struct ErrorScope {
         let filter: WebGPU.ErrorFilter
         // The first error the scope caught; later ones are dropped.
-        var error: (type: WebGPU.ErrorType, message: WTF.String)?
+        var error: (type: WebGPU.ErrorType, message: Swift.String)?
     }
 
     private var linkSlot = ImplLinkSlot<DeviceImpl>()
@@ -248,7 +248,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-an-error
     // Reported to the current error scope (https://gpuweb.github.io/gpuweb/#abstract-opdef-current-error-scope), or
     // as uncaptured when reporting is not paused and no scope with a matching filter is open.
-    func generateAnError(_ filter: WebGPU.ErrorFilter, _ type: WebGPU.ErrorType, _ message: WTF.String) {
+    func generateAnError(_ filter: WebGPU.ErrorFilter, _ type: WebGPU.ErrorType, _ message: Swift.String) {
         if errorReportingPaused {
             return
         }
@@ -265,7 +265,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-a-validation-error
     func generateAValidationError(_ message: Swift.String) {
-        generateAnError(.Validation, .Validation, WTF.String(message))
+        generateAnError(.Validation, .Validation, message)
     }
 
     func generateAValidationError(_ message: NSString) {
@@ -274,7 +274,7 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
 
     // https://gpuweb.github.io/gpuweb/#abstract-opdef-generate-an-out-of-memory-error
     func generateAnOutOfMemoryError(_ message: Swift.String) {
-        generateAnError(.OutOfMemory, .OutOfMemory, WTF.String(message))
+        generateAnError(.OutOfMemory, .OutOfMemory, message)
     }
 
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
@@ -746,7 +746,7 @@ private func removeDeviceObserver(_ deviceObserver: any NSObjectProtocol) {
 #endif
 
 // An error that an error scope caught, or an uncaptured one.
-typealias CaughtError = (type: WebGPU.ErrorType, message: WTF.String)
+typealias CaughtError = (type: WebGPU.ErrorType, message: Swift.String)
 
 // https://gpuweb.github.io/gpuweb/#gpuerror
 @_spi(WebKitGPU)
@@ -798,14 +798,14 @@ extension DeviceImpl {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope: whether the scope was popped, and its error.
     public func popErrorScope(_ completion: @escaping (Bool, GPUError?) -> Void) {
         popErrorScopeCaughtError { success, error in
-            completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
+            completion(success, error.map { GPUError(type: $0.type, message: $0.message) })
         }
     }
 
     // The next uncaptured error, or false without one when another callback replaces this one or the device goes.
     public func resolveUncapturedErrorEvent(_ completion: @escaping (Bool, GPUError?) -> Void) {
         setUncapturedErrorCallback { success, error in
-            completion(success, error.map { GPUError(type: $0.type, message: stringNilIfEmpty($0.message) ?? "") })
+            completion(success, error.map { GPUError(type: $0.type, message: $0.message) })
         }
     }
 
@@ -926,7 +926,7 @@ private func computeAppleGPUFamily(_ metalDevice: any MTLDevice) -> UInt32 {
 // device when Metal gives it no queue.
 func makeDevice(
     _ metalDevice: (any MTLDevice)?,
-    _ label: WTF.String,
+    _ label: Swift.String?,
     _ capabilities: GPUCapabilities,
     _ adapterImpl: AdapterImpl
 ) -> DeviceImpl {

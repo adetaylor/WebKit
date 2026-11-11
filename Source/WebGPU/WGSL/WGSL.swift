@@ -814,7 +814,7 @@ public struct ResolvedOverrides: Hashable, Sendable {
 public struct MetalSource: Sendable {
     /// ASCII in practice; UTF-8 in general.
     ///
-    /// A ContiguousArray so that WebGPU's bridge can lend it to C++ as a Span on every deployment target (Array.span needs macOS 26).
+    /// A ContiguousArray, which lends a Span on every deployment target (Array.span needs macOS 26).
     public let utf8: ContiguousArray<UInt8>
 
     /// Wraps UTF-8 bytes.

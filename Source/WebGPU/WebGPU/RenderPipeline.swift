@@ -638,7 +638,7 @@ final class RenderPipelineBuilder {
                         deviceImpl.deviceLimits().maxVertexBuffers,
                         renderPipelineDescriptor,
                         vertexLibrary.metalSource,
-                        fragmentLibrary?.metalSource ?? WTF.String(),
+                        fragmentLibrary?.metalSource ?? "",
                         pending.shaderLocations
                     )
                     if let error {

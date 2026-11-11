@@ -83,10 +83,6 @@ public final class TextureViewImpl: GPUObjectReference, LinkedImpl {
         descriptor?.format ?? .Rgba8unorm
     }
 
-    func setLabel(_ label: WTF.String) {
-        setLabel(stringNilIfEmpty(label))
-    }
-
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         backingTexture?.label = label?.isEmpty == false ? label : nil

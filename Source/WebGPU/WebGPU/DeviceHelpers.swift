@@ -612,11 +612,11 @@ extension DeviceImpl {
 
 // nil when Metal cannot make one, which makes the device invalid. The label goes on the queue, not on the MTLDevice,
 // which every context in the process shares (see Device::setLabel).
-func makeDefaultCommandQueue(_ metalDevice: (any MTLDevice)?, _ deviceLabel: WTF.String) -> (any MTLCommandQueue)? {
+func makeDefaultCommandQueue(_ metalDevice: (any MTLDevice)?, _ deviceLabel: Swift.String?) -> (any MTLCommandQueue)? {
     guard let commandQueue = metalDevice?.makeCommandQueue(maxCommandBufferCount: 4096) else {
         return nil
     }
-    if let label = stringNilIfEmpty(deviceLabel) {
+    if let label = nonEmptyLabel(deviceLabel) {
         commandQueue.label = "Default queue for device \(label)"
     } else {
         commandQueue.label = "Default queue"

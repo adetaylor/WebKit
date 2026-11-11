@@ -42,19 +42,19 @@ public final class SamplerImpl: GPUObjectReference {
 
     // nil for an invalid sampler.
     private let configuration: Configuration?
-    private var label: WTF.String
+    private var label: Swift.String?
     private weak var cachedState: (any MTLSamplerState)?
     // Declared last, so that the device outlives the rest of the sampler.
     let deviceImpl: DeviceImpl
 
-    fileprivate init(deviceImpl: DeviceImpl, configuration: Configuration?, label: WTF.String) {
+    fileprivate init(deviceImpl: DeviceImpl, configuration: Configuration?, label: Swift.String?) {
         self.configuration = configuration
         self.label = label
         self.deviceImpl = deviceImpl
         _ = tryCacheSamplerState()
     }
 
-    fileprivate convenience init(deviceImpl: DeviceImpl, descriptor: GPUSamplerDescriptor, label: WTF.String) {
+    fileprivate convenience init(deviceImpl: DeviceImpl, descriptor: GPUSamplerDescriptor, label: Swift.String?) {
         let metal = MetalSamplerConfiguration(descriptor)
         assert(
             SamplerCacheKey(metal) == SamplerCacheKey(metal.makeDescriptor()),
@@ -81,13 +81,9 @@ public final class SamplerImpl: GPUObjectReference {
         configuration != nil
     }
 
-    func setLabel(_ newLabel: WTF.String) {
-        label = newLabel
-    }
-
     @_spi(WebKitGPU)
     public func setLabel(_ newLabel: Swift.String?) {
-        label = WTF.String(newLabel ?? "")
+        label = newLabel
     }
 
     func isComparison() -> Bool {
@@ -137,7 +133,7 @@ public struct GPUSamplerDescriptor {
     }
 }
 
-func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: WTF.String) -> SamplerImpl {
+func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerImpl {
     guard deviceImpl.isValid() else {
         return makeInvalidSamplerImpl(deviceImpl)
     }
@@ -149,7 +145,7 @@ func createSamplerImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUSamplerDescrip
 }
 
 func makeInvalidSamplerImpl(_ deviceImpl: DeviceImpl) -> SamplerImpl {
-    SamplerImpl(deviceImpl: deviceImpl, configuration: nil, label: WTF.String())
+    SamplerImpl(deviceImpl: deviceImpl, configuration: nil, label: nil)
 }
 
 // https://gpuweb.github.io/gpuweb/#abstract-opdef-validating-gpusamplerdescriptor
@@ -481,6 +477,6 @@ private func samplerCacheRelease(_ key: SamplerCacheKey, _ samplerState: any MTL
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
     public func createSampler(_ descriptor: GPUSamplerDescriptor, label: Swift.String?) -> SamplerImpl {
-        createSamplerImpl(self, descriptor, label: WTF.String(label ?? ""))
+        createSamplerImpl(self, descriptor, label: label)
     }
 }

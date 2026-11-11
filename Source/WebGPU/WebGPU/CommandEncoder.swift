@@ -251,7 +251,7 @@ extension CommandEncoderImpl {
 
     // https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
     public func finish(label: Swift.String?) -> CommandBufferReference {
-        finish(label: WTF.String(label ?? ""))
+        finishEncoding(label: label)
     }
 }
 
@@ -394,7 +394,7 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    fileprivate func finish(label: WTF.String) -> CommandBufferImpl {
+    fileprivate func finishEncoding(label: Swift.String?) -> CommandBufferImpl {
         if !isValid() || (existingCommandEncoder != nil && existingCommandEncoder !== backingBlitCommandEncoder) {
             setEncoderStateEnded()
             discardCommandBuffer()
@@ -416,7 +416,7 @@ extension CommandEncoderImpl {
 
         let commandBuffer = takeCommandBufferForFinish()
 
-        commandBuffer?.label = stringNilIfEmpty(label)
+        commandBuffer?.label = nonEmptyLabel(label)
 
         #if arch(x86_64) && (WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST)
         if (backingManagedBuffers?.count ?? 0) != 0 || (backingManagedTextures?.count ?? 0) != 0 {

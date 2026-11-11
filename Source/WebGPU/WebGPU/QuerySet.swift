@@ -118,10 +118,6 @@ public final class QuerySetImpl: GPUObjectReference {
         }
     }
 
-    func setLabel(_ label: WTF.String) {
-        setLabel(stringNilIfEmpty(label))
-    }
-
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         // MTLCounterSampleBuffer's label property is read-only.
@@ -178,7 +174,7 @@ public struct GPUQuerySetDescriptor {
 func createQuerySetImpl(
     _ deviceImpl: DeviceImpl,
     _ descriptor: GPUQuerySetDescriptor,
-    label: WTF.String,
+    label: Swift.String?,
     _ timestampCounterSet: (any MTLCounterSet)?
 ) -> QuerySetImpl {
     let count = descriptor.count
@@ -203,7 +199,7 @@ func createQuerySetImpl(
         )
     case WebGPU.QueryType.Occlusion:
         let buffer = deviceImpl.safeCreateBuffer(UInt(MemoryLayout<UInt64>.size) * UInt(count), .private)
-        buffer?.label = stringNilIfEmpty(label)
+        buffer?.label = nonEmptyLabel(label)
         return QuerySetImpl(
             visibilityBuffer: buffer,
             counterSampleBuffer: nil,
@@ -354,6 +350,6 @@ private func insertFreeRange(_ range: Range<UInt32>, into ranges: inout [Range<U
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createqueryset
     public func createQuerySet(_ descriptor: GPUQuerySetDescriptor, label: Swift.String?) -> QuerySetImpl {
-        createQuerySetImpl(self, descriptor, label: WTF.String(label ?? ""), timestampCounterSet())
+        createQuerySetImpl(self, descriptor, label: label, timestampCounterSet())
     }
 }

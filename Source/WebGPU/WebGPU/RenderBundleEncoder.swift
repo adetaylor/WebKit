@@ -1644,8 +1644,8 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
     func finish(_ label: NSString) -> RenderBundleImpl {
         let bundle = finishedBundle()
         if !bundle.isValid() {
-            // Without a last error the message is a null string.
-            deviceImpl.generateAnError(.Validation, .Validation, lastErrorString.map { WTF.String($0) } ?? WTF.String())
+            // Without a last error the message is empty.
+            deviceImpl.generateAnError(.Validation, .Validation, lastErrorString ?? "")
         }
         bundle.setLabel(label)
         return bundle

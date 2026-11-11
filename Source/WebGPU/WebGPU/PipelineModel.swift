@@ -23,8 +23,7 @@
 
 // Value types shared by the layout, shader module and pipeline Impls.
 //
-// WGSL module types are used unqualified: the C++ namespace WGSL shadows the module name wherever WGSLAPI.h
-// is imported. No type here reuses a WGSL module type name.
+// WGSL module types are used unqualified. No type here reuses a WGSL module type name.
 
 import Metal
 @_implementationOnly import WGSL

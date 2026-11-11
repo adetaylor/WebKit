@@ -51,7 +51,7 @@ extension AdapterImpl {
             return nil
         }
 
-        return makeDevice(device(), WTF.String(label ?? ""), capabilities, self)
+        return makeDevice(device(), label, capabilities, self)
     }
 
     // https://gpuweb.github.io/gpuweb/#gpuadapterinfo: a Metal device is never a fallback adapter.

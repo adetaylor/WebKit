@@ -234,10 +234,6 @@ public final class BufferImpl: GPUObjectReference, LinkedImpl {
         return false
     }
 
-    func setLabel(_ label: WTF.String) {
-        backingBuffer?.label = stringNilIfEmpty(label)
-    }
-
     // https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
     @_spi(WebKitGPU)
     public func destroy() {
@@ -774,7 +770,7 @@ public struct GPUBufferDescriptor {
     }
 }
 
-func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: WTF.String) -> BufferImpl {
+func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferImpl {
     var parameters = WebGPU.Metal.BufferParameters()
     parameters.size = descriptor.size
     parameters.usage = descriptor.usage
@@ -786,7 +782,7 @@ func createBufferImpl(_ deviceImpl: DeviceImpl, _ descriptor: GPUBufferDescripto
 func createBufferImpl(
     _ deviceImpl: DeviceImpl,
     _ parameters: WebGPU.Metal.BufferParameters,
-    _ label: WTF.String
+    _ label: Swift.String?
 ) -> BufferImpl {
     if !deviceImpl.isValid() {
         return makeInvalidBufferImpl(deviceImpl)
@@ -805,7 +801,7 @@ func createBufferImpl(
         return makeInvalidBufferImpl(deviceImpl)
     }
 
-    buffer.label = stringNilIfEmpty(label) ?? ""
+    buffer.label = nonEmptyLabel(label) ?? ""
     return BufferImpl(
         buffer: buffer,
         size: parameters.size,
@@ -1022,7 +1018,7 @@ private func bufferNeedsDidModifyRangeAfterUnmap(_ buffer: any MTLBuffer) -> Boo
 extension DeviceReference {
     // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer: an invalid buffer on failure.
     public func createBuffer(_ descriptor: GPUBufferDescriptor, label: Swift.String?) -> BufferReference {
-        createBufferImpl(self, descriptor, label: WTF.String(label ?? ""))
+        createBufferImpl(self, descriptor, label: label)
     }
 }
 
@@ -1082,7 +1078,7 @@ extension BufferImpl {
     }
 
     public func setLabel(_ label: Swift.String?) {
-        setLabel(WTF.String(label ?? ""))
+        backingBuffer?.label = nonEmptyLabel(label)
     }
 
     // Buffer::generateAValidationError.

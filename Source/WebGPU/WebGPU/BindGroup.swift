@@ -178,10 +178,6 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
         layoutImpl != nil
     }
 
-    func setLabel(_ label: WTF.String) {
-        setLabel(stringNilIfEmpty(label))
-    }
-
     @_spi(WebKitGPU)
     public func setLabel(_ label: Swift.String?) {
         let metalLabel = label?.isEmpty == false ? label : nil
