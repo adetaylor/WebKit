@@ -452,7 +452,7 @@ struct WebKit::NotSwift {
 ''', r'WebKit::E must be held in an OptionSet if, and only if, it is marked \[OptionSet\]')
 
     def test_unsupported_member_attributes(self):
-        for attribute in ["Validator='value > 1'", "Precondition='isAvailable()'", 'EncodeRequestBody', 'OptionalTupleBits']:
+        for attribute in ["Precondition='isAvailable()'", 'EncodeRequestBody', 'OptionalTupleBits']:
             self.assertGenerationFails(f'''
 [Swift] struct WebKit::S {{
     [{attribute}] uint32_t value;
@@ -492,6 +492,30 @@ enum class WebKit::E : uint8_t {
     A = 1,
 }
 ''', r'only enums marked \[Swift\] give the numbers of their values')
+
+    def test_validators(self):
+        swift = generate_swift('''
+[Swift] struct WebKit::S {
+    int32_t minimum;
+    [Validator='*maximum >= *minimum', SwiftValidator='maximum >= minimum'] int32_t maximum;
+}
+''')
+        self.assertIn('        self.minimum = try Int32.decode(from: &decoder)\n'
+                      '        self.maximum = try Int32.decode(from: &decoder)\n'
+                      '        guard maximum >= minimum else {\n'
+                      '            throw IPCDecodingError()\n'
+                      '        }\n'
+                      '    }\n', swift)
+        self.assertGenerationFails('''
+[Swift] struct WebKit::S {
+    [Validator='value > 1'] uint32_t value;
+}
+''', r'member value: in a type marked \[Swift\], a member with a Validator needs a SwiftValidator')
+        self.assertGenerationFails('''
+[Swift] struct WebKit::S {
+    [SwiftValidator='value > 1'] uint32_t value;
+}
+''', r'member value: in a type marked \[Swift\], a member with a Validator needs a SwiftValidator, the same check in Swift, and a SwiftValidator needs a Validator')
 
     def test_unsupported_member_names(self):
         for name in ['functionCall().member', 'member.value', 'functionCall(argument)']:
@@ -574,7 +598,7 @@ class WebKit::Base {
 [Swift] class WebKit::Derived : WebKit::Base {
     uint32_t otherValue;
 }
-''', r'\[Swift\] WebKit::Derived: member value: types marked \[Swift\] do not support the member attribute Validator')
+''', r'\[Swift\] WebKit::Derived: member value: in a type marked \[Swift\], a member with a Validator needs a SwiftValidator')
 
     def test_conditions(self):
         self.assertGenerationFails('''

@@ -138,6 +138,7 @@ def matches_bundle(item, bundle_filter):
 # BitField - work around the need for http://wg21.link/P0572 and don't check that the serialization order matches the memory layout.
 # EncodeRequestBody - Include the body of the WebCore::ResourceRequest when encoding (by default, it is omitted).
 # Validator - additional C++ to validate the value when decoding
+# SwiftValidator - the same check as Validator, as a Swift expression of the members decoded so far, for a type marked [Swift], which needs one for each Validator
 # NotSerialized - member is present in structure but intentionally not serialized.
 # OptionalTupleBits - This member stores bits of whether each following member is serialized. Attribute must be immediately before members with OptionalTupleBit.
 # OptionalTupleBit - The name of the bit indicating whether this member is serialized.
@@ -1123,6 +1124,8 @@ def decode_type(type, serialized_types):
                 result.append('        addedDecodingFailureIndex = true;')
                 result.append('    }')
         for attribute in member.attributes:
+            if attribute.startswith('SwiftValidator='):
+                continue
             match = re.search(r'Validator=\'(.*)\'', attribute)
             if match:
                 validator, = match.groups()
@@ -1929,11 +1932,12 @@ def parse_serialized_types(file):
         if match:
             member_attributes_s, member_type, member_name = match.groups()
             member_attributes = []
-            match = re.search(r"((, |^)+(Validator='.*?'))(, |$)?", member_attributes_s)
-            if match:
-                complete, _, validator, _ = match.groups()
-                member_attributes.append(validator)
-                member_attributes_s = member_attributes_s.replace(complete, "")
+            for validator_name in ['SwiftValidator', 'Validator']:
+                match = re.search(r"((, |^)+(" + validator_name + r"='.*?'))(, |$)?", member_attributes_s)
+                if match:
+                    complete, _, validator, _ = match.groups()
+                    member_attributes.append(validator)
+                    member_attributes_s = member_attributes_s.replace(complete, "")
             member_attributes += [member_attribute.strip() for member_attribute in member_attributes_s.split(",")]
             if struct_or_class == 'webkit_secure_coding':
                 dictionary_members.append(MemberVariable(member_type, member_name, member_condition, member_attributes))
@@ -2266,7 +2270,7 @@ _SWIFT_COMPATIBLE_TYPE_ATTRIBUTES = frozenset([
     'LegacyPopulateFromEmptyConstructor', 'Nested', 'RValue', 'RefCounted', 'Swift', 'WebKitPlatform', 'Wrapper',
 ])
 _SWIFT_COMPATIBLE_ENUM_ATTRIBUTES = frozenset(['AdditionalEncoder', 'CustomHeader', 'Nested', 'OptionSet', 'Swift', 'WebKitPlatform'])
-_SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES = frozenset(['BitField', 'NotSerialized'])
+_SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES = frozenset(['BitField', 'NotSerialized', 'SwiftValidator', 'Validator'])
 
 # Types that generated Swift names without qualification, so must not be shadowed by a type in IPCTypes.
 _SWIFT_RESERVED_TYPE_NAMES = frozenset([
@@ -2300,6 +2304,8 @@ class SwiftMember(object):
         self.index = index
         # Whether its Swift form is ~Copyable (swift_types.is_owned_type).
         self.owned = False
+        # The member's SwiftValidator: a Swift expression that must be true once it is decoded.
+        self.validator = None
 
 
 def swift_identifier(name):
@@ -2538,6 +2544,8 @@ def swift_members(type, context, swift_names):
         for attribute in attributes:
             if attribute not in _SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES:
                 raise Exception(f'{member_context}: types marked [Swift] do not support the member attribute {attribute}.')
+        if ('Validator' in attributes) != ('SwiftValidator' in attributes):
+            raise Exception(f'{member_context}: in a type marked [Swift], a member with a Validator needs a SwiftValidator, the same check in Swift, and a SwiftValidator needs a Validator.')
         if member.condition is not None:
             raise Exception(f'{member_context}: types marked [Swift] cannot have conditional members, because Swift does not see every macro that C++ does, so could decode different members from the ones C++ encodes.')
         match = re.fullmatch(r'(?:m_(?=[A-Za-z_]))?([A-Za-z_][A-Za-z0-9_]*)(?:\(\))?', member.name)
@@ -2548,6 +2556,10 @@ def swift_members(type, context, swift_names):
         swift_type, swift_coder = swift_type_and_coder(member.type, member_context, swift_names)
         swift_member = SwiftMember(match.group(1), swift_type, swift_coder)
         swift_member.owned = swift_types.is_owned_type(member.type)
+        for attribute in member.attributes:
+            validator = re.fullmatch(r"SwiftValidator='(.*)'", attribute)
+            if validator:
+                swift_member.validator = validator.group(1)
         members.append(swift_member)
     return members
 
@@ -2647,13 +2659,22 @@ def generate_swift_struct(type, swift_names):
     result.append('    }')
     result.append('}')
     result.append('')
+    def validation_lines(member):
+        if member.validator is None:
+            return []
+        return [f'        guard {member.validator} else {{', '            throw IPCDecodingError()', '        }']
+
     decoding_initializer = ['    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {']
     if owned:
         # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any.
-        decoding_initializer.extend(f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)' for member in members)
+        for member in members:
+            decoding_initializer.append(f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
+            decoding_initializer.extend(validation_lines(member))
         decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}' for member in members)
     else:
-        decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)' for member in members)
+        for member in members:
+            decoding_initializer.append(f'        self.{swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
+            decoding_initializer.extend(validation_lines(member))
     decoding_initializer.append('    }')
     result.extend((swift_owned_coder_conformance if owned else swift_coder_conformance)(
         name,
