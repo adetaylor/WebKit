@@ -250,8 +250,8 @@ def resolve_swift_sends(receivers):
     for receiver in receivers:
         if not receiver.swift_sends_names:
             continue
-        if not (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by):
-            raise Exception("ERROR: Receiver %s has 'SwiftSends=', which is for Swift receivers" % receiver.name)
+        if not (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by or receiver.is_swift_implementation()):
+            raise Exception("ERROR: Receiver %s has 'SwiftSends=', which is for Swift receivers and receivers implemented in Swift" % receiver.name)
         receiver.swift_sends = []
         for name in receiver.swift_sends_names:
             destination = receivers_by_name.get(name)

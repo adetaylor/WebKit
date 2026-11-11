@@ -29,9 +29,12 @@
 #include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "SessionState.h"
+#include <expected>
 #include <utility>
 #include <wtf/Forward.h>
 #include <wtf/Markable.h>
+#include <wtf/MediaTime.h>
+#include <wtf/NativePromise.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
@@ -510,6 +513,39 @@ private:
     SUPPRESS_FORWARD_DECL_MEMBER const Vector<std::pair<String, uint32_t>>& m_pairs;
 };
 
+class MessageWithTimesAndExpected {
+public:
+    using Arguments = std::tuple<MediaTime, std::optional<MediaTime>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    static IPC::MessageName asyncMessageReplyName() { return IPC::MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply; }
+    static constexpr auto callbackThread = WTF::CompletionHandlerCallThread::ConstructionThread;
+    using ReplyArguments = std::tuple<std::expected<MediaTime, WebKit::TestSwiftEnum>, std::expected<void, WebKit::TestSwiftEnum>, GenericPromise::Result>;
+    using Reply = CompletionHandler<void(std::expected<MediaTime, WebKit::TestSwiftEnum>&&, std::expected<void, WebKit::TestSwiftEnum>&&, GenericPromise::Result&&)>;
+    using Promise = WTF::NativePromise<std::tuple<std::expected<MediaTime, WebKit::TestSwiftEnum>, std::expected<void, WebKit::TestSwiftEnum>, GenericPromise::Result>, IPC::Error>;
+    MessageWithTimesAndExpected(const MediaTime& time, const std::optional<MediaTime>& upcomingTime)
+        : m_time(time)
+        , m_upcomingTime(upcomingTime)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_time;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_upcomingTime;
+    }
+
+private:
+    const MediaTime& m_time;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::optional<MediaTime>& m_upcomingTime;
+};
+
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
 class ConditionalMessage {
 public:
@@ -778,6 +814,37 @@ public:
 
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>& m_reply;
+};
+
+class MessageWithTimesAndExpectedReply {
+public:
+    using Arguments = std::tuple<std::expected<MediaTime, WebKit::TestSwiftEnum>, std::expected<void, WebKit::TestSwiftEnum>, GenericPromise::Result>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+
+    MessageWithTimesAndExpectedReply(const std::expected<MediaTime, WebKit::TestSwiftEnum>& result, const std::expected<void, WebKit::TestSwiftEnum>& settled, const GenericPromise::Result& promiseResult)
+        : m_result(result)
+        , m_settled(settled)
+        , m_promiseResult(promiseResult)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_result;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_settled;
+        encoder << m_promiseResult;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const std::expected<MediaTime, WebKit::TestSwiftEnum>& m_result;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::expected<void, WebKit::TestSwiftEnum>& m_settled;
+    const GenericPromise::Result& m_promiseResult;
 };
 
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
