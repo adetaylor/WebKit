@@ -111,15 +111,21 @@ RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuCon
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_renderingBackendIdentifier(identifier)
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    , m_cgRendererDisplayLists(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererDisplayLists>(RemoteCGRendererDisplayLists::create()))
-#endif
 {
     ASSERT(RunLoop::isMain());
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    swiftInitialize();
+#endif
 }
 
-RemoteRenderingBackend::~RemoteRenderingBackend() = default;
+RemoteRenderingBackend::~RemoteRenderingBackend()
+{
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (auto swiftState = std::exchange(m_swiftState, 0))
+        destroySwiftState(swiftState);
+#endif
+}
 
 void RemoteRenderingBackend::startListeningForIPC()
 {
@@ -150,15 +156,16 @@ void RemoteRenderingBackend::workQueueInitialize()
 void RemoteRenderingBackend::workQueueUninitialize()
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    swiftUninitialize();
+#else
     m_remoteImageBuffers.clear();
-    m_remoteImageBufferSets.clear();
     m_remoteDisplayListRecorders.clear();
+#endif
+    m_remoteImageBufferSets.clear();
     m_remoteSnapshotRecorders.clear();
     // Make sure we destroy the ResourceCache on the WorkQueue since it gets populated on the WorkQueue.
     m_remoteResourceCache.releaseAllResources();
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    m_cgRendererDisplayLists->removeAll();
-#endif
 
     Ref streamConnection = m_streamConnection;
     streamConnection->stopReceivingMessages(Messages::RemoteRenderingBackend::messageReceiverName(), m_renderingBackendIdentifier.toUInt64());
@@ -182,13 +189,12 @@ void RemoteRenderingBackend::moveToSerializedBuffer(RenderingResourceIdentifier 
 {
     assertIsCurrent(workQueue());
     // This transfers ownership of the RemoteImageBuffer contents to the transfer heap.
-    RefPtr remoteImageBuffer = m_remoteImageBuffers.take(identifier).get();
-    MESSAGE_CHECK(remoteImageBuffer, "Missing ImageBuffer");
-    Ref imageBuffer = RemoteImageBuffer::sinkIntoImageBuffer(remoteImageBuffer.releaseNonNull());
+    RefPtr imageBuffer = takeImageBuffer(identifier);
+    MESSAGE_CHECK(imageBuffer, "Missing ImageBuffer");
     MESSAGE_CHECK(imageBuffer->hasOneRef(), "ImageBuffer in use");
     // Avoid leaking cross-RemoteRenderingBackend state through context by releasing the context.
     imageBuffer->releaseGraphicsContext();
-    bool success = m_sharedResourceCache->addSerializedImageBuffer(serializedIdentifier, WTF::move(imageBuffer));
+    bool success = m_sharedResourceCache->addSerializedImageBuffer(serializedIdentifier, imageBuffer.releaseNonNull());
     MESSAGE_CHECK(success, "Duplicate SerializedImageBuffer");
 }
 
@@ -209,8 +215,8 @@ void RemoteRenderingBackend::moveToImageBuffer(RemoteSerializedImageBufferIdenti
     ImageBufferCreationContext creationContext;
     adjustImageBufferCreationContext(m_sharedResourceCache, creationContext);
     imageBuffer->transferToNewContext(creationContext);
-    auto result = m_remoteImageBuffers.add(imageBufferIdentifier, RemoteImageBuffer::create(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier, *this));
-    MESSAGE_CHECK(result.isNewEntry, "Duplicate ImageBuffer");
+    bool success = addImageBuffer(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier);
+    MESSAGE_CHECK(success, "Duplicate ImageBuffer");
 }
 
 void RemoteRenderingBackend::moveSerializedBufferToTransferHeap(RemoteSerializedImageBufferIdentifier serializedIdentifier, CompletionHandler<void(std::optional<WebCore::ImageBufferTransferIdentifier>)>&& completionHandler)
@@ -249,8 +255,8 @@ void RemoteRenderingBackend::takeTransferredBuffer(const ImageBufferTransferHand
         imageBuffer = ImageBuffer::create<NullImageBufferBackend>({ 0, 0 }, 1, ColorSpace::SRGB(), { PixelFormat::BGRA8 }, RenderingPurpose::Unspecified, { });
         RELEASE_ASSERT(imageBuffer);
         streamConnection().send(Messages::RemoteImageBufferProxy::DidFailToCreateBackend(), imageBufferIdentifier);
-        auto result = m_remoteImageBuffers.add(imageBufferIdentifier, RemoteImageBuffer::create(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier, *this));
-        MESSAGE_CHECK(result.isNewEntry, "Duplicate ImageBuffer");
+        bool success = addImageBuffer(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier);
+        MESSAGE_CHECK(success, "Duplicate ImageBuffer");
         return;
     }
 
@@ -262,8 +268,8 @@ void RemoteRenderingBackend::takeTransferredBuffer(const ImageBufferTransferHand
     creationContext.surfacePool = nullptr;
 #endif
     imageBuffer->transferToNewContext(creationContext);
-    auto result = m_remoteImageBuffers.add(imageBufferIdentifier, RemoteImageBuffer::create(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier, *this));
-    MESSAGE_CHECK(result.isNewEntry, "Duplicate ImageBuffer");
+    bool success = addImageBuffer(imageBuffer.releaseNonNull(), imageBufferIdentifier, contextIdentifier);
+    MESSAGE_CHECK(success, "Duplicate ImageBuffer");
 }
 
 void RemoteRenderingBackend::createSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier rootFrameIdentifier, const FloatSize& size, CompletionHandler<void()>&& completionHandler)
@@ -410,24 +416,50 @@ void RemoteRenderingBackend::createImageBufferWithBackingStore(const FloatSize& 
         RELEASE_ASSERT(imageBuffer);
         streamConnection().send(Messages::RemoteImageBufferProxy::DidFailToCreateBackend(), identifier);
     }
-    auto result = m_remoteImageBuffers.add(identifier, RemoteImageBuffer::create(imageBuffer.releaseNonNull(), identifier, contextIdentifier, *this));
-    MESSAGE_CHECK(result.isNewEntry, "Duplicate ImageBuffers");
+    bool success = addImageBuffer(imageBuffer.releaseNonNull(), identifier, contextIdentifier);
+    MESSAGE_CHECK(success, "Duplicate ImageBuffers");
 }
 
 void RemoteRenderingBackend::releaseImageBuffer(RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseImageBuffer(identifier);
+#else
     bool success = m_remoteImageBuffers.take(identifier).get();
+#endif
     MESSAGE_CHECK(success, "Missing ImageBuffer");
+}
+
+bool RemoteRenderingBackend::addImageBuffer(Ref<ImageBuffer>&& imageBuffer, RenderingResourceIdentifier identifier, RemoteGraphicsContextIdentifier contextIdentifier)
+{
+    assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    return swiftAddImageBuffer(imageBuffer.get(), identifier, contextIdentifier);
+#else
+    return m_remoteImageBuffers.add(identifier, RemoteImageBuffer::create(WTF::move(imageBuffer), identifier, contextIdentifier, *this)).isNewEntry;
+#endif
+}
+
+RefPtr<ImageBuffer> RemoteRenderingBackend::takeImageBuffer(RenderingResourceIdentifier identifier)
+{
+    assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    return swiftTakeImageBuffer(identifier);
+#else
+    RefPtr remoteImageBuffer = m_remoteImageBuffers.take(identifier).get(); // NOLINT
+    if (!remoteImageBuffer)
+        return nullptr;
+    return RemoteImageBuffer::sinkIntoImageBuffer(remoteImageBuffer.releaseNonNull());
+#endif
 }
 
 void RemoteRenderingBackend::sinkImageBufferIntoNativeImage(RenderingResourceIdentifier identifier, RenderingResourceIdentifier imageIdentifier)
 {
     assertIsCurrent(workQueue());
     // Like releaseImageBuffer(), the buffer is gone after this. The web process does not release it again.
-    RefPtr remoteImageBuffer = m_remoteImageBuffers.take(identifier).get(); // NOLINT
-    MESSAGE_CHECK(remoteImageBuffer, "Missing ImageBuffer");
-    Ref imageBuffer = RemoteImageBuffer::sinkIntoImageBuffer(remoteImageBuffer.releaseNonNull());
+    RefPtr imageBuffer = takeImageBuffer(identifier);
+    MESSAGE_CHECK(imageBuffer, "Missing ImageBuffer");
     MESSAGE_CHECK(imageBuffer->hasOneRef(), "ImageBuffer in use");
     RefPtr image = ImageBuffer::sinkIntoNativeImage(WTF::move(imageBuffer));
     // The buffer may have failed to allocate.
@@ -635,29 +667,34 @@ void RemoteRenderingBackend::releaseFilter(RenderingResourceIdentifier identifie
 void RemoteRenderingBackend::createDisplayListRecorder(RemoteDisplayListRecorderIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    auto result = m_remoteDisplayListRecorders.add(identifier, RemoteDisplayListRecorder::create(identifier, *this));
-    MESSAGE_CHECK(result.isNewEntry, "Recorder already created");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftCreateDisplayListRecorder(identifier);
+#else
+    bool success = m_remoteDisplayListRecorders.add(identifier, RemoteDisplayListRecorder::create(identifier, *this)).isNewEntry;
+#endif
+    MESSAGE_CHECK(success, "Recorder already created");
 }
 
 void RemoteRenderingBackend::sinkDisplayListRecorderIntoDisplayList(RemoteDisplayListRecorderIdentifier identifier, RemoteDisplayListIdentifier displayListIdentifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftSinkDisplayListRecorderIntoDisplayList(identifier, displayListIdentifier);
+    MESSAGE_CHECK(success, "Recorder sunk into display list before being cached, or display list already created");
+#else
     RefPtr recorder = m_remoteDisplayListRecorders.take(identifier).get();
     MESSAGE_CHECK(recorder, "Recorder sunk into display list before being cached");
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    bool success = recorder->sinkIntoDisplayList(displayListIdentifier);
-#else
     Ref displayList = recorder->takeDisplayList();
     bool success = m_remoteResourceCache.cacheDisplayList(displayListIdentifier, WTF::move(displayList));
-#endif
     MESSAGE_CHECK(success, "Display list already created");
+#endif
 }
 
 void RemoteRenderingBackend::releaseDisplayList(RemoteDisplayListIdentifier identifier)
 {
     assertIsCurrent(workQueue());
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    bool success = m_cgRendererDisplayLists->remove(displayListKey(identifier));
+    bool success = swiftReleaseDisplayList(identifier);
 #else
     bool success = m_remoteResourceCache.releaseDisplayList(identifier);
 #endif
@@ -669,7 +706,7 @@ void RemoteRenderingBackend::releaseMemory()
     assertIsCurrent(workQueue());
     m_remoteResourceCache.releaseMemory();
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    m_cgRendererDisplayLists->removeAll();
+    swiftReleaseDisplayLists();
 #endif
 }
 
@@ -756,6 +793,7 @@ void RemoteRenderingBackend::finalizeRenderingUpdate(RenderingUpdateID rendering
     send(Messages::RemoteRenderingBackendProxy::DidFinalizeRenderingUpdate(renderingUpdateID));
 }
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 RefPtr<ImageBuffer> RemoteRenderingBackend::imageBuffer(RenderingResourceIdentifier renderingResourceIdentifier)
 {
     assertIsCurrent(workQueue());
@@ -764,6 +802,7 @@ RefPtr<ImageBuffer> RemoteRenderingBackend::imageBuffer(RenderingResourceIdentif
         return nullptr;
     return remoteImageBuffer->imageBuffer();
 }
+#endif
 
 #if PLATFORM(COCOA)
 bool RemoteRenderingBackend::shouldUseLockdownFontParser() const

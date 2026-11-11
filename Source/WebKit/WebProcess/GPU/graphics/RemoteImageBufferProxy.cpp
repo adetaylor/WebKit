@@ -40,6 +40,7 @@
 #include "WebPage.h"
 #include "WebWorkerClient.h"
 #include <WebCore/Document.h>
+#include <WebCore/PixelBuffer.h>
 #include <WebCore/WorkerGlobalScope.h>
 #include <wtf/SystemTracing.h>
 #include <wtf/TZoneMallocInlines.h>

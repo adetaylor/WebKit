@@ -34,12 +34,25 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "ScopedRenderingResourcesRequest.h"
+#include <WebCore/AlphaPremultiplication.h>
 #include <WebCore/GraphicsContextCG.h>
+#include <WebCore/IntPoint.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #endif
 
+namespace IPC {
+template<typename> class CxxDecodedArgument;
+class SwiftReplyEncoder;
+}
+
 namespace WebCore {
+class GraphicsLayerContentsDisplayDelegate;
+class PlatformCALayerDelegatedContentsFence;
 class ImageBuffer;
+class PixelBufferSourceView;
+class SharedMemoryHandle;
+struct PixelBufferFormat;
 }
 
 namespace WebKit {
@@ -47,6 +60,14 @@ namespace WebKit {
 class RemoteRenderingBackend;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// What RemoteImageBufferGraphicsContext::getPixelBuffer() did, so that Swift can check the message.
+enum class RemoteImageBufferPixelsResult : uint8_t {
+    Copied,
+    NoSharedMemory,
+    UnsupportedFormat,
+    SharedMemoryTooSmall,
+};
+
 class RemoteCGRendererLineStrokes;
 class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
@@ -58,21 +79,57 @@ struct RemoteCGRendererShadow;
 struct RemoteCGRendererStyle;
 #endif
 
+class RemoteImageBufferGraphicsContext;
+
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
 // Used to create renderings to the ImageBuffer. With the CG renderer in Swift, it takes RemoteCGRenderer's messages for a
 // context that can't lend its renderer, a dynamic content scaling image buffer's.
-class RemoteImageBufferGraphicsContext final : public RemoteGraphicsContext {
+using RemoteImageBufferGraphicsContextBase = RemoteGraphicsContext;
 #else
 // The receiver of an image buffer's drawing, in Swift: RemoteCGRenderer, to which the buffer's context lends its renderer
 // for each message, or, for a buffer whose drawing is recorded, a recorder (RemoteCGRendererRecorder), whose recording is
 // drawn where the buffer is.
-class RemoteImageBufferGraphicsContext final : public ThreadSafeRefCounted<RemoteImageBufferGraphicsContext> {
+using RemoteImageBufferGraphicsContextBase = ThreadSafeRefCounted<RemoteImageBufferGraphicsContext>;
 #endif
+
+class RemoteImageBufferGraphicsContext final : public RemoteImageBufferGraphicsContextBase {
 public:
     static Ref<RemoteImageBufferGraphicsContext> create(WebCore::ImageBuffer&, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
     ~RemoteImageBufferGraphicsContext();
     void stopListeningForIPC();
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // The context of the image buffer that an image buffer's Swift receiver (RemoteImageBuffer.swift) receives the messages
+    // of, from the buffer's creation until the receiver releases it with stopListeningForIPC() and releaseImageBuffer(). It
+    // counts the buffer in the shared resource cache, and keeps the GPU process's rendering resources, until then. The
+    // other members are the receiver's handlers' work on WebCore types that Swift has no form of.
+    static RemoteImageBufferGraphicsContext* WTF_NONNULL createForImageBufferReceiver(WebCore::ImageBuffer&, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&) SWIFT_RETURNS_RETAINED;
+    // Stops counting the buffer, and unwinds its context's state stack, whose restores may never come, as the web process may
+    // have gone.
+    void releaseImageBuffer();
+
+    // Copies the pixels of the rect into the shared memory that the rendering backend keeps for them, as the buffer's
+    // getPixelBuffer() gives them in the format, or zeroes the memory if it gives none.
+    RemoteImageBufferPixelsResult getPixelBuffer(IPC::CxxDecodedArgument<WebCore::PixelBufferFormat>&, int x, int y, int width, int height);
+    // Maps the memory of the handle as the shared memory that the rendering backend keeps for pixels: false if it can't be
+    // mapped, in which case the backend keeps none.
+    bool setPixelBufferSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemoryHandle>&);
+    void putPixelBuffer(const WebCore::PixelBufferSourceView&, WebCore::IntPoint srcPoint, WebCore::IntSize srcSize, WebCore::IntPoint destPoint, WebCore::AlphaPremultiplication destFormat);
+    // Caches a copy of the buffer's image, or a placeholder if there is none, as the native image with the identifier: false
+    // if one already has it.
+    bool copyNativeImage(uint64_t imageIdentifier);
+    void encodeBackendHandle(IPC::SwiftReplyEncoder&);
+#if PLATFORM(COCOA)
+    // Prepares the buffer for display, and encodes the send right of the surface to display, or none. The display may still
+    // be drawing it: waitForDisplayBuffer() waits until it is done, or until a timeout.
+    void encodeDisplayBuffer(IPC::SwiftReplyEncoder&);
+    void waitForDisplayBuffer();
+#endif
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+    void encodeDynamicContentScalingDisplayList(IPC::SwiftReplyEncoder&);
+#endif
+#endif
 
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     void drawImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, const WebCore::FloatRect& destinationRect, const WebCore::FloatRect& srcRect, WebCore::RasterDrawingOptions) final;
@@ -146,6 +203,13 @@ private:
     RefPtr<RemoteCGRendererRecordedDrawing> m_recordedDrawing;
     // What the drawing of an image buffer that failed to allocate is drawn into.
     RefPtr<WebCore::ImageBuffer> m_discardedDrawingTarget;
+    // For an image buffer's Swift receiver: whether the buffer is still counted, and what it keeps.
+    bool m_countsImageBuffer { false };
+    ScopedRenderingResourcesRequest m_renderingResourcesRequest;
+#if PLATFORM(COCOA)
+    RefPtr<WebCore::GraphicsLayerContentsDisplayDelegate> m_displayDelegate;
+    RefPtr<WebCore::PlatformCALayerDelegatedContentsFence> m_displayBufferFence;
+#endif
 #endif
 };
 

@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <optional>
+
 namespace WTF {
 class TextStream;
 }
@@ -50,6 +52,9 @@ enum class RenderingMode : uint8_t {
 };
 
 enum class RenderingMethod : bool { Local };
+
+// For Swift, which names a std::optional only through an alias.
+using OptionalRenderingMode = std::optional<RenderingMode>;
 
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, RenderingPurpose);
 WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, RenderingMode);

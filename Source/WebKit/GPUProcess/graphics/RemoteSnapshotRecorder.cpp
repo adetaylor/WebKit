@@ -57,7 +57,7 @@ RemoteSnapshotRecorder::RemoteSnapshotRecorder(RemoteSnapshotRecorderIdentifier 
     : m_snapshot(snapshot)
     , m_renderingBackend(renderingBackend)
     , m_identifier(identifier)
-    , m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(RemoteCGRendererRecorder::create(RemoteCGRendererResources::createForRecorder(renderingBackend, &snapshot).ptr(), renderingBackend.cgRendererDisplayLists())))
+    , m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(RemoteCGRendererRecorder::create(RemoteCGRendererResources::createForRecorder(renderingBackend, &snapshot).ptr(), RemoteCGRendererDisplayLists::forBackend(&renderingBackend))))
 {
 }
 

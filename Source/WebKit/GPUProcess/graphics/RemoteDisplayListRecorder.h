@@ -25,45 +25,15 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+// With the CG renderer in Swift, a display list recorder is a RemoteCGRendererRecorder (RemoteRenderingBackend.swift).
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "RemoteDisplayListIdentifier.h"
 #include "RemoteDisplayListRecorderIdentifier.h"
-
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include <wtf/ThreadSafeRefCounted.h>
-#else
 #include "RemoteGraphicsContext.h"
 #include <WebCore/DisplayListRecorderImpl.h>
-#endif
 
 namespace WebKit {
-
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-
-class RemoteCGRendererRecorder;
-class RemoteRenderingBackend;
-
-// Records the RemoteCGRenderer messages to it in Swift (RemoteCGRendererRecorder), into a display list.
-class RemoteDisplayListRecorder final : public ThreadSafeRefCounted<RemoteDisplayListRecorder> {
-public:
-    static Ref<RemoteDisplayListRecorder> create(RemoteDisplayListRecorderIdentifier, RemoteRenderingBackend&);
-    ~RemoteDisplayListRecorder();
-    void stopListeningForIPC();
-
-    // Makes what it recorded the display list that the identifier names: false if the identifier already names one.
-    bool sinkIntoDisplayList(RemoteDisplayListIdentifier);
-
-private:
-    RemoteDisplayListRecorder(RemoteDisplayListRecorderIdentifier, RemoteRenderingBackend&);
-    void startListeningForIPC();
-
-    const Ref<RemoteRenderingBackend> m_renderingBackend;
-    const RemoteDisplayListRecorderIdentifier m_identifier;
-    const std::unique_ptr<RemoteCGRendererRecorder> m_recorder;
-};
-
-#else
 
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a DisplayList::Recorder.
 // Used to create DisplayList instances.
@@ -83,8 +53,6 @@ private:
     const RemoteDisplayListRecorderIdentifier m_identifier;
 };
 
-#endif
-
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

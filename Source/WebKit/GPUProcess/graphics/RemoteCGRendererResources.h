@@ -238,6 +238,12 @@ private:
 RemoteCGRendererRecordedResources* WTF_NONNULL takeRecordedResources(const RemoteCGRendererResources&) SWIFT_RETURNS_RETAINED;
 RemoteCGRendererRecordedResources* WTF_NONNULL copyRecordedResources(const RemoteCGRendererResources&) SWIFT_RETURNS_RETAINED;
 
+// A display list recorder's resources (createForRecorder()), for Swift.
+inline RemoteCGRendererResources* WTF_NONNULL createDisplayListRecorderResources(RemoteRenderingBackend& backend) SWIFT_RETURNS_RETAINED
+{
+    return &RemoteCGRendererResources::createForRecorder(backend, nullptr).leakRef();
+}
+
 // Lends the context's renderer to Swift for the draw, which replays a recording into it with the resources.
 void replayIntoContext(WebCore::GraphicsContextCG&, NOESCAPE const Function<void(WebCore::CGRendererCore&, RemoteCGRendererResources&)>&) __attribute__((availability(swift, unavailable)));
 

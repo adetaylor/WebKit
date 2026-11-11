@@ -110,6 +110,9 @@
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteImageBufferGraphicsContext.h"
+#include "RemoteImageBufferMessages.h"
+#include "RemoteRenderingBackend.h"
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
