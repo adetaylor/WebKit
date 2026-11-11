@@ -1190,7 +1190,7 @@ extension CommandEncoderImpl {
                 textureHeight = texture.height
                 sampleCount = texture.sampleCount
                 let textureFormat = texture.format
-                bytesPerSample = roundUpToMultipleOfNonPowerOfTwoUInt32UInt32(
+                bytesPerSample = roundUpToMultipleOfNonPowerOfTwo(
                     renderTargetPixelByteAlignment(textureFormat),
                     bytesPerSample
                 )
