@@ -220,6 +220,13 @@ final class RemoteCGRendererDisplayLists {
         RemoteCGRendererDisplayLists()
     }
 
+    // The display lists of a rendering backend (RemoteRenderingBackend.swift), for its C++ that records into them or draws
+    // them.
+    @used
+    static func forBackend(_ backend: WebKit.RemoteRenderingBackend) -> RemoteCGRendererDisplayLists {
+        backend.state.displayLists
+    }
+
     // False for a key that already names a display list, which is an invalid message.
     @used
     func add(_ recording: RemoteCGRendererRecording, key: UInt64) -> Bool {
@@ -230,12 +237,12 @@ final class RemoteCGRendererDisplayLists {
         return true
     }
 
-    @used
+    @_expose(!Cxx)
     func remove(key: UInt64) -> Bool {
         recordings.removeValue(forKey: key) != nil
     }
 
-    @used
+    @_expose(!Cxx)
     func removeAll() {
         var removed: [UInt64: RemoteCGRendererRecording] = [:]
         swap(&recordings, &removed)

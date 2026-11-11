@@ -131,6 +131,9 @@
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteCGRendererMessages.h"
+#include "RemoteImageBufferGraphicsContext.h"
+#include "RemoteImageBufferMessages.h"
+#include "RemoteRenderingBackend.h"
 #include <WebCore/CGRendererSwiftBridge.h>
 #endif
 

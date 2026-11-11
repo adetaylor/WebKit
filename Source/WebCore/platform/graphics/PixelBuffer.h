@@ -29,6 +29,7 @@
 #include <WebCore/PixelBufferFormat.h>
 #include <optional>
 #include <span>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 namespace WTF {
@@ -90,10 +91,11 @@ private:
 };
 
 // Type to use for functions that use the PixelBuffer data as source during the call, but do not store a reference to the object or modify the data.
+// Non-escapable in Swift, which can then only borrow one for a call.
 class PixelBufferSourceView {
 public:
     PixelBufferSourceView() = delete;
-    PixelBufferSourceView(const PixelBuffer& pixelBuffer)
+    PixelBufferSourceView(const PixelBuffer& pixelBuffer LIFETIME_BOUND)
         : PixelBufferSourceView(pixelBuffer.format(), pixelBuffer.size(), pixelBuffer.bytes())
     {
     }
@@ -123,7 +125,7 @@ private:
     const PixelBufferFormat m_format;
     const IntSize m_size;
     const std::span<const uint8_t> m_bytes;
-};
+} SWIFT_NONESCAPABLE SWIFT_SAFE;
 
 constexpr uint32_t PixelBuffer::bytesPerPixelComponent(PixelFormat pixelFormat)
 {

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteImageBuffer.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "IPCSemaphore.h"
 #include "ImageBufferBackendHandleSharing.h"
@@ -244,4 +244,4 @@ IPC::StreamConnectionWorkQueue& RemoteImageBuffer::workQueue() const
 
 #undef MESSAGE_CHECK
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

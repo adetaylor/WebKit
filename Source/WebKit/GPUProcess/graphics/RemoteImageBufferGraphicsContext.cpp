@@ -38,6 +38,9 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
+#include "ImageBufferBackendHandleSharing.h"
+#include "RemoteSharedResourceCache.h"
+#include "SwiftCoding.h"
 #include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineSegments.h"
@@ -53,7 +56,15 @@
 #include "WebKit-Swift.h"
 #include <WebCore/DisplayListRecorderImpl.h>
 #include <WebCore/Gradient.h>
+#include <WebCore/PixelBuffer.h>
 #include <wtf/Lock.h>
+#if PLATFORM(COCOA)
+#include <WebCore/GraphicsLayerContentsDisplayDelegate.h>
+#include <WebCore/PlatformCALayerDelegatedContents.h>
+#endif
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#include <WebCore/DynamicContentScalingDisplayList.h>
+#endif
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
@@ -77,7 +88,7 @@ public:
     static Ref<RemoteCGRendererRecordedDrawing> create(RemoteRenderingBackend& renderingBackend)
     {
         Ref resources = RemoteCGRendererResources::createForRecorder(renderingBackend, nullptr);
-        return adoptRef(*new RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder::create(resources.ptr(), renderingBackend.cgRendererDisplayLists())));
+        return adoptRef(*new RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder::create(resources.ptr(), RemoteCGRendererDisplayLists::forBackend(&renderingBackend))));
     }
 
     void stopRecording()
@@ -153,17 +164,132 @@ RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& 
 RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext()
 {
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    releaseImageBuffer();
     if (m_isSwiftRendererLender)
         cgContext().removeSwiftRendererLender();
 #endif
 }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+RemoteImageBufferGraphicsContext* RemoteImageBufferGraphicsContext::createForImageBufferReceiver(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
+{
+    Ref instance = create(imageBuffer, identifier, renderingBackend);
+    instance->m_countsImageBuffer = true;
+    instance->m_renderingResourcesRequest = ScopedRenderingResourcesRequest::acquire();
+    renderingBackend.sharedResourceCache().didCreateImageBuffer(imageBuffer.renderingPurpose(), imageBuffer.renderingMode());
+    return &instance.leakRef();
+}
+
+void RemoteImageBufferGraphicsContext::releaseImageBuffer()
+{
+    if (!std::exchange(m_countsImageBuffer, false))
+        return;
+    m_renderingBackend->sharedResourceCache().didReleaseImageBuffer(m_imageBuffer->renderingPurpose(), m_imageBuffer->renderingMode());
+    m_renderingResourcesRequest = { };
+    // Volatile image buffers do not have contexts.
+    if (m_imageBuffer->volatilityState() == VolatilityState::Volatile)
+        return;
+    if (!m_imageBuffer->hasBackend())
+        return;
+    m_imageBuffer->context().unwindStateStack();
+}
+
+RemoteImageBufferPixelsResult RemoteImageBufferGraphicsContext::getPixelBuffer(IPC::CxxDecodedArgument<PixelBufferFormat>& outputFormat, int x, int y, int width, int height)
+{
+    RefPtr memory = m_renderingBackend->sharedMemoryForGetPixelBuffer();
+    if (!memory)
+        return RemoteImageBufferPixelsResult::NoSharedMemory;
+    auto destinationFormat = outputFormat.take();
+    RELEASE_ASSERT(destinationFormat);
+    if (!ImageBuffer::supportedPixelBufferFormats(destinationFormat->pixelFormat))
+        return RemoteImageBufferPixelsResult::UnsupportedFormat;
+    IntRect srcRect { { x, y }, { width, height } };
+    if (RefPtr pixelBuffer = m_imageBuffer->getPixelBuffer(*destinationFormat, srcRect)) {
+        if (pixelBuffer->bytes().size() > memory->size())
+            return RemoteImageBufferPixelsResult::SharedMemoryTooSmall;
+        memcpySpan(memory->mutableSpan(), pixelBuffer->bytes());
+    } else
+        zeroSpan(memory->mutableSpan());
+    return RemoteImageBufferPixelsResult::Copied;
+}
+
+bool RemoteImageBufferGraphicsContext::setPixelBufferSharedMemory(IPC::CxxDecodedArgument<SharedMemory::Handle>& handle)
+{
+    m_renderingBackend->setSharedMemoryForGetPixelBuffer(nullptr);
+    auto memoryHandle = handle.take();
+    RELEASE_ASSERT(memoryHandle);
+    RefPtr sharedMemory = SharedMemory::map(WTF::move(*memoryHandle), SharedMemory::Protection::ReadWrite);
+    if (!sharedMemory)
+        return false;
+    m_renderingBackend->setSharedMemoryForGetPixelBuffer(WTF::move(sharedMemory));
+    return true;
+}
+
+void RemoteImageBufferGraphicsContext::putPixelBuffer(const PixelBufferSourceView& pixelBuffer, IntPoint srcPoint, IntSize srcSize, IntPoint destPoint, AlphaPremultiplication destFormat)
+{
+    m_imageBuffer->putPixelBuffer(pixelBuffer, { srcPoint, srcSize }, destPoint, destFormat);
+}
+
+bool RemoteImageBufferGraphicsContext::copyNativeImage(uint64_t imageIdentifier)
+{
+    RefPtr image = m_imageBuffer->copyNativeImage();
+    // The buffer may have failed to allocate, or the copy may fail.
+    if (!image)
+        image = RemoteRenderingBackend::createPlaceholderNativeImage();
+    if (!image)
+        return false;
+    return m_renderingBackend->remoteResourceCache().cacheNativeImage(RenderingResourceIdentifier { imageIdentifier }, image.releaseNonNull());
+}
+
+void RemoteImageBufferGraphicsContext::encodeBackendHandle(IPC::SwiftReplyEncoder& encoder)
+{
+    std::optional<ImageBufferBackendHandle> handle;
+    if (auto* sharing = m_imageBuffer->toBackendSharing())
+        handle = downcast<ImageBufferBackendHandleSharing>(*sharing).createBackendHandle();
+    encoder.encodeWithArgumentCoder(WTF::move(handle));
+}
+
+#if PLATFORM(COCOA)
+void RemoteImageBufferGraphicsContext::encodeDisplayBuffer(IPC::SwiftReplyEncoder& encoder)
+{
+    RefPtr displayDelegate = m_displayDelegate;
+    if (!displayDelegate) {
+        displayDelegate = m_imageBuffer->layerContentsDisplayDelegate();
+        m_displayDelegate = displayDelegate;
+    } else
+        m_imageBuffer->prepareForDisplay();
+    auto contents = displayDelegate ? displayDelegate->delegatedContents() : std::nullopt;
+    if (!contents) {
+        m_displayBufferFence = nullptr;
+        encoder.encodeWithArgumentCoder(MachSendRight { });
+        return;
+    }
+    m_displayBufferFence = WTF::move(contents->finishedFence);
+    encoder.encodeWithArgumentCoder(WTF::move(contents->surface));
+}
+
+void RemoteImageBufferGraphicsContext::waitForDisplayBuffer()
+{
+    if (RefPtr fence = std::exchange(m_displayBufferFence, nullptr))
+        fence->waitFor(WebCore::delegatedContentsFinishedTimeout);
+}
+#endif
+
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+void RemoteImageBufferGraphicsContext::encodeDynamicContentScalingDisplayList(IPC::SwiftReplyEncoder& encoder)
+{
+    std::optional<DynamicContentScalingDisplayList> displayList { m_imageBuffer->dynamicContentScalingDisplayList() };
+    encoder.encodeWithArgumentCoder(WTF::move(displayList));
+}
+#endif
+
 GraphicsContext& RemoteImageBufferGraphicsContext::drawingContext()
 {
     return m_discardedDrawingTarget ? m_discardedDrawingTarget->context() : imageBufferContext();
 }
-#endif
+
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 void RemoteImageBufferGraphicsContext::startListeningForIPC()
 {
@@ -183,7 +309,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             m_isSwiftRendererLender = true;
         }
         Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get());
-        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), m_renderingBackend->cgRendererDisplayLists());
+        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), RemoteCGRendererDisplayLists::forBackend(m_renderingBackend.ptr()));
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
         return;
@@ -351,7 +477,7 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
 // paints into replays, as each draws what this draws into the buffer's.
 void RemoteImageBufferGraphicsContext::drawRecordedDisplayList(RemoteDisplayListIdentifier identifier)
 {
-    auto recording = m_renderingBackend->cgRendererDisplayLists().recording(displayListKey(identifier));
+    auto recording = RemoteCGRendererDisplayLists::forBackend(m_renderingBackend.ptr()).recording(displayListKey(identifier));
     MESSAGE_CHECK(recording);
     auto& bifurcatedContext = static_cast<BifurcatedGraphicsContext&>(context());
     for (auto* paintedContext : { &bifurcatedContext.primaryContext(), &bifurcatedContext.secondaryContext() }) {
