@@ -259,6 +259,32 @@ enum class WebKit::E : uint8_t {
 }
 '''), [])
 
+    def test_enum_numbers(self):
+        swift = generate_swift('''
+[Swift] enum class WebKit::Rotation : uint16_t {
+    None = 0,
+    UpsideDown = 180,
+    Right = 90,
+    Left = 270,
+}
+''')
+        self.assertIn('    enum Rotation: UInt16, Sendable, Hashable {\n'
+                      '        case none = 0\n'
+                      '        case upsideDown = 180\n'
+                      '        case right = 90\n'
+                      '        case left = 270\n'
+                      '    }\n', swift)
+        self.assertEqual(enum_value_assertions('''
+[Swift] enum class WebKit::E : uint8_t {
+    A = 4,
+    B = 1,
+}
+'''), [
+            'static_assert(sizeof(std::underlying_type_t<WebKit::E>) == sizeof(uint8_t), "IPCTypes.E in GeneratedSerializers.swift has the size of the underlying type in .serialization.in");',
+            'static_assert(static_cast<uint8_t>(WebKit::E::A) == 4, "IPCTypes.E in GeneratedSerializers.swift numbers values as .serialization.in does");',
+            'static_assert(static_cast<uint8_t>(WebKit::E::B) == 1, "IPCTypes.E in GeneratedSerializers.swift numbers values as .serialization.in does");',
+        ])
+
     def test_ref_counted_type_without_members(self):
         swift = generate_swift('[Swift, RefCounted] class WebKit::Empty {\n}\n')
         self.assertIn('    struct Empty: Sendable, Equatable {\n    }\n', swift)
@@ -437,6 +463,35 @@ struct WebKit::NotSwift {
     [OptionalTupleBit=WebKit::Change::Value] uint32_t value;
 }
 ''', 'do not support the member attribute OptionalTupleBit')
+
+    def test_enum_number_errors(self):
+        self.assertGenerationFails('''
+[Swift] enum class WebKit::E : uint8_t {
+    A = 1,
+    B,
+}
+''', r'either every value of an enum marked \[Swift\] gives its number, or none does')
+        self.assertGenerationFails('''
+[Swift] enum class WebKit::E : uint8_t {
+    A = 1,
+    B = 1,
+}
+''', r'more than one of its values has the same number')
+        self.assertGenerationFails('''
+[Swift] enum class WebKit::E : uint8_t {
+    A = 256,
+}
+''', r'the number of one of its values does not fit in uint8_t')
+        self.assertGenerationFails('''
+[Swift, OptionSet] enum class WebKit::E : uint8_t {
+    A = 1,
+}
+''', r'the values of an OptionSet or a bool enum marked \[Swift\] cannot give their numbers')
+        self.assertGenerationFails('''
+enum class WebKit::E : uint8_t {
+    A = 1,
+}
+''', r'only enums marked \[Swift\] give the numbers of their values')
 
     def test_unsupported_member_names(self):
         for name in ['functionCall().member', 'member.value', 'functionCall(argument)']:
