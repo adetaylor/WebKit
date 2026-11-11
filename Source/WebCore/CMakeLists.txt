@@ -3667,6 +3667,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/mock/MockVideoSettings.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitCapturer.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitSharingSessionManager.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/IOSurface.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift
