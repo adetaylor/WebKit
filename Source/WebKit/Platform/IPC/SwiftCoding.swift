@@ -924,4 +924,12 @@ private func mappingAtAddressZero<T>() -> T {
 }
 #endif
 
+extension IPC.StreamConnectionWorkQueue {
+    /// Runs `work` on the queue's thread, from any thread.
+    func dispatch(_ work: @escaping @Sendable () -> Void) {
+        // Safety: the work is Sendable, so running it on the queue's thread can't race with what it captures.
+        unsafe dispatch(consuming: WorkItem(work))
+    }
+}
+
 #endif // ENABLE_SWIFT_IPC_RECEIVERS

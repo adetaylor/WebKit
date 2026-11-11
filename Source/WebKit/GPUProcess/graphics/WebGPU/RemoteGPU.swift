@@ -57,7 +57,7 @@ final class RemoteGPUWorkScheduler: Sendable {
         state.withLock { state in
             switch state.stage {
             case .running:
-                workQueue.dispatch(consuming: IPC.StreamConnectionWorkQueue.WorkItem(work))
+                workQueue.dispatch(work)
             case .stopping:
                 state.waitingWork.append(work)
             case .stopped:
