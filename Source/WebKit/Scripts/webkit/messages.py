@@ -2946,6 +2946,11 @@ def generate_swift_message_handler(receiver):
         if runs_on_work_queue:
             append_handler_call('        ', '', True)
         elif sync_handler:
+            # The main actor's closure can't consume the ~Copyable arguments it captures, so each moves into an Optional
+            # that the closure takes it out of.
+            for name in owned_parameter_names:
+                result.append('        var %sOwned = Optional(%s)\n' % (name, name))
+                arguments[arguments.index('%s: %s' % (name, name))] = '%s: %sOwned.take()!' % (name, name)
             result.append('        MainActor.assumeIsolated {\n')
             if not implementation:
                 result.append('            guard let target else {\n')

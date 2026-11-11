@@ -899,6 +899,49 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
         }
     }
     #endif
+
+    #if WTF_PLATFORM_COCOA
+    @used
+    func dispatchSyncHandlerMessageWithOwnedTypes(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let semaphore: IPCTypes.Semaphore
+        let value: UInt32
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        do {
+            value = try UInt32.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        var semaphoreOwned = Optional(semaphore)
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            do throws(InvalidMessage) {
+                let reply = try mayThrowInvalidMessage(
+                    target.syncHandlerMessageWithOwnedTypes(
+                        connection: connection,
+                        semaphore: semaphoreOwned.take()!,
+                        value: value
+                    )
+                )
+                UInt32.encode(reply, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+        return true
+    }
+    #endif
 }
 
 extension WebKit.TestWithSwiftTypesMessageForwarder {

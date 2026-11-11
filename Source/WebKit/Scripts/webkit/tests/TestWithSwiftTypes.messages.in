@@ -45,4 +45,7 @@ messages -> TestWithSwiftTypes {
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     ConditionalMessage(AtomString name) -> (uint32_t reply)
 #endif
+#if PLATFORM(COCOA)
+    SyncHandlerMessageWithOwnedTypes(IPC::Semaphore semaphore, uint32_t value) -> (uint32_t reply) SwiftSyncHandler
+#endif
 }

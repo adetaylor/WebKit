@@ -27,6 +27,9 @@
 #include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
+#if PLATFORM(COCOA)
+#include "IPCSemaphore.h" // NOLINT
+#endif
 #include "SessionState.h" // NOLINT
 #include "TestSwiftEnum.h" // NOLINT
 #include "TestSwiftOptionSet.h" // NOLINT
@@ -108,7 +111,15 @@ void TestWithSwiftTypesMessageForwarder::didReceiveMessage(IPC::Connection& conn
         return;
     }
 #endif
+#if PLATFORM(COCOA)
+    if (decoder.messageName() == Messages::TestWithSwiftTypes::SyncHandlerMessageWithOwnedTypes::name()) {
+        IPC::handleSwiftMessageAsync<Messages::TestWithSwiftTypes::SyncHandlerMessageWithOwnedTypes>(connection, decoder, m_handler.get(), &TestWithSwiftTypesWeakRef::dispatchSyncHandlerMessageWithOwnedTypes);
+        return;
+    }
+#endif
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
+#endif
+#if PLATFORM(COCOA)
 #endif
     UNUSED_PARAM(connection);
     RELEASE_LOG_ERROR(IPC, "Unhandled message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -296,6 +307,16 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::ConditionalMessage::ReplyArguments>(globalObject, decoder);
 }
 #endif
+#if PLATFORM(COCOA)
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithOwnedTypes::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithOwnedTypes::ReplyArguments>(globalObject, decoder);
+}
+#endif
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithReplyReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::MessageWithReplyReply::Arguments>(globalObject, decoder);
@@ -332,6 +353,12 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessageReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::ConditionalMessageReply::Arguments>(globalObject, decoder);
+}
+#endif
+#if PLATFORM(COCOA)
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithSwiftTypes::SyncHandlerMessageWithOwnedTypesReply::Arguments>(globalObject, decoder);
 }
 #endif
 

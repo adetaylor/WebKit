@@ -160,6 +160,9 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypes_MessageWithoutReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA)
+    MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+#endif
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithoutReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxDecodedReply"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxString"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -281,6 +284,9 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypes_MessageWithReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessage"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#if PLATFORM(COCOA)
+    MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithOwnedTypes"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+#endif
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxDecoded"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendCxxStringAsync"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftWorkQueue_SendEmptyAsync"_s, ReceiverName::TestWithSwiftWorkQueue, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
