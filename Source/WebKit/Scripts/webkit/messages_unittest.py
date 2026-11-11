@@ -564,6 +564,34 @@ messages -> TestReceiver Stream {
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on reply parameter 'reply': Lent"):
             parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], '    Message() -> ([Lent] std::span<const uint8_t> reply) SwiftSyncHandler')
 
+    def test_lent_cxx_typed_arguments(self):
+        def parse_stream_receiver(messages_text):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    SwiftReceiver
+]
+messages -> TestReceiver Stream {
+%s
+}
+""" % messages_text))
+
+        # A C++-typed argument that refers into the message is borrowed by a handler called during dispatch.
+        receiver = parse_stream_receiver('    Message([Lent] WebCore::PixelBufferSourceView view, WebKit::TestStruct value)')
+        dispatch = re.search(r'func dispatchMessage\((.|\n)*?\n    \}\n', messages.generate_swift_message_handler(receiver)).group(0)
+        self.assertIn('view: borrowing WebCore.PixelBufferSourceView,', dispatch)
+        self.assertIn('value: sending WebKit.TestStruct', dispatch)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'view', which is only for messages that take Swift types"):
+            parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], '    Message([Lent] WebCore::PixelBufferSourceView view)')
+        # Only a listed non-escapable view can be lent: Swift could keep any other type.
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'view', whose type 'WebKit::TestView' isn't one of the non-escapable views in swift_types.LENT_CXX_VIEW_TYPES"):
+            parse_stream_receiver('    Message([Lent] WebKit::TestView view)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'Lent' on parameter 'bytes', whose type 'std::span<const uint8_t>' isn't one of the non-escapable views in swift_types.LENT_CXX_VIEW_TYPES"):
+            parse_stream_receiver('    Message([Lent] std::span<const uint8_t> bytes)')
+
     def test_cxx_typed_replies(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
     PrimitiveReply(Ref<WebKit::FrameState> frameState) -> (uint8_t reply) CxxTypes

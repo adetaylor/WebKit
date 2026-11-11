@@ -140,6 +140,15 @@ def is_lent_bytes(cpp_type):
     return strip_cpp_type_decorations(cpp_type) in LENT_BYTES_TYPES
 
 
+# The C++ types that a [Lent] argument of a message taking C++ types may have: views into the message, which the Swift
+# handler borrows for the dispatch. Each must be SWIFT_NONESCAPABLE, so that the handler can't keep it.
+LENT_CXX_VIEW_TYPES = frozenset(['WebCore::PixelBufferSourceView'])
+
+
+def is_lent_cxx_view(cpp_type):
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in LENT_CXX_VIEW_TYPES
+
+
 def split_template_arguments(arguments):
     result = []
     depth = 0

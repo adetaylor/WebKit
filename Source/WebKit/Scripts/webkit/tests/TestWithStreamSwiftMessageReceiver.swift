@@ -69,6 +69,24 @@ final class TestWithStreamSwiftWeakRef {
             CompletionHandlers.TestWithStreamSwift.completeWithDefaultReply(completionHandler)
         }
     }
+
+    @used
+    func dispatchSendLentView(
+        connection: IPC.StreamServerConnection,
+        view: borrowing WebCore.PixelBufferSourceView
+    ) {
+        assert(connection.isCurrentWorkQueue())
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.sendLentView(
+                    connection: connection,
+                    view: view
+                )
+            )
+        } catch {
+            markMessageInvalid(error, on: connection)
+        }
+    }
 }
 
 extension WebKit.TestWithStreamSwiftMessageForwarder {

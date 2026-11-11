@@ -33,6 +33,9 @@
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/text/WTFString.h>
 
+namespace WebCore {
+class PixelBufferSourceView;
+}
 namespace WebKit {
 class TestWithStreamSwift;
 class TestWithStreamSwiftMessageForwarder;
@@ -124,6 +127,33 @@ public:
 
 private:
     const String& m_url;
+};
+
+class SendLentView {
+public:
+    using Arguments = std::tuple<WebCore::PixelBufferSourceView>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwift_SendLentView; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    explicit SendLentView(const WebCore::PixelBufferSourceView& view)
+        : m_view(view)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_view;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::PixelBufferSourceView& m_view;
 };
 
 } // namespace TestWithStreamSwift

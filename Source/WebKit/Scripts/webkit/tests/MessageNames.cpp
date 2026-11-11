@@ -127,6 +127,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamSwiftTypes_SendStringAsyncReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendValues"_s, ReceiverName::TestWithStreamSwiftTypes, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftTypes_SendValuesAsyncReply"_s, ReceiverName::TestWithStreamSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwift_SendLentView"_s, ReceiverName::TestWithStreamSwift, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwift_SendString"_s, ReceiverName::TestWithStreamSwift, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStream_CallWithIdentifierReply"_s, ReceiverName::TestWithStream, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
 #if PLATFORM(COCOA)
