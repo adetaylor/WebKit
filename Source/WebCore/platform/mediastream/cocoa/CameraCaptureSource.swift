@@ -1758,13 +1758,18 @@ func cameraCaptureSourceSetMediaEnvironment(_ identifier: UInt64, _ mediaEnviron
 #endif
 
 #if ENABLE_APP_PRIVACY_REPORT
-// RealtimeMediaSourceCenter's identity, for the session that the source makes.
+// RealtimeMediaSourceCenter's identity, for the session that the source makes. Unsafe: `identity` must be nil or a
+// tcc_identity_t, as RealtimeMediaSourceCenter::identity(), which AVVideoCaptureSource passes, is.
+@unsafe
 @_expose(Cxx)
 func cameraCaptureSourceSetAssumedIdentity(_ identifier: UInt64, _ identity: borrowing NSObject?) {
-    let box = ObjectBox(copy identity)
+    let identity = copy identity
+    // Checked by the class's name: an as? cast needs TCC's class, which WebCore doesn't link.
+    if let identity {
+        precondition(NSClassFromString("OS_tcc_identity").map { identity.isKind(of: $0) } ?? false)
+    }
+    let box = ObjectBox(identity)
     MainActor.assumeIsolated {
-        // AVVideoCaptureSource passes RealtimeMediaSourceCenter's tcc_identity_t. Not cast with as?, which needs TCC's class,
-        // which WebCore doesn't link.
         cameraCaptureSources[identifier]?.assumedIdentity = unsafe unsafeBitCast(box.object, to: tcc_identity_t?.self)
     }
 }
