@@ -879,7 +879,14 @@ public final class QueueImpl: GPUObjectReference {
 
     // Runs `work` in a later work item on the API thread.
     private func scheduleWork(_ work: @escaping () -> Void) {
-        schedulerHandle.map { APIThreadWork<Void>(on: $0) { _ in work() } }?.schedule(())
+        guard let schedulerHandle else {
+            return
+        }
+        // Off the API thread, as in a deinit after the embedder stopped, the work can't run: it is only released.
+        guard schedulerHandle.isAPIThread() else {
+            return releaseOnAPIThread(work, schedulerHandle.scheduler)
+        }
+        APIThreadWork<Void>(on: schedulerHandle) { _ in work() }.schedule(())
     }
 
     func setLabel(_ label: NSString?) {

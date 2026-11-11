@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body>
+<pre id="result"></pre>
+<script>
+if (window.testRunner) { testRunner.waitUntilDone(); testRunner.dumpAsText(); }
+
+// Each iframe has its own GPU. It submits compute work that keeps the GPU busy, then goes away at once, and garbage
+// collection lets the GPU process stop the iframe's GPU while that work is still in flight. The GPU process must
+// survive the work completing afterwards.
+const iframeCount = 4;
+
+function log(message)
+{
+    document.getElementById('result').textContent += message + '\n';
+}
+
+async function submitAndLeave()
+{
+    const iframe = document.createElement('iframe');
+    document.body.appendChild(iframe);
+    const gpu = iframe.contentWindow.navigator.gpu;
+    const adapter = await gpu.requestAdapter();
+    const device = await adapter.requestDevice();
+    const module = device.createShaderModule({ code: `
+        @group(0) @binding(0) var<storage, read_write> values: array<u32>;
+        @compute @workgroup_size(64) fn main(@builtin(global_invocation_id) id: vec3u) {
+            var value = id.x;
+            for (var i = 0u; i < 20000u; i++) {
+                value = value * 1664525u + 1013904223u;
+            }
+            values[id.x] = value;
+        }` });
+    const pipeline = device.createComputePipeline({ layout: 'auto', compute: { module } });
+    const buffer = device.createBuffer({ size: 4 * 64 * 256, usage: GPUBufferUsage.STORAGE });
+    const group = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer } }] });
+    for (let i = 0; i < 8; ++i) {
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, group);
+        pass.dispatchWorkgroups(256);
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+    }
+    iframe.remove();
+}
+
+async function run()
+{
+    log('Tests that the GPU process survives a page that goes away with GPU work in flight.\n');
+    for (let i = 0; i < iframeCount; ++i) {
+        await submitAndLeave();
+        if (window.GCController)
+            GCController.collect();
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // The GPU process still works.
+    const adapter = await navigator.gpu.requestAdapter();
+    const device = await adapter.requestDevice();
+    const buffer = device.createBuffer({ size: 4, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    device.queue.writeBuffer(buffer, 0, new Uint32Array([42]));
+    await buffer.mapAsync(GPUMapMode.READ);
+    const value = new Uint32Array(buffer.getMappedRange())[0];
+    log(value == 42 ? 'PASS the GPU process still works' : `FAIL read ${value}`);
+}
+
+run().catch(error => log('FAIL ' + error)).finally(() => { if (window.testRunner) testRunner.notifyDone(); });
+</script>
+</body>
+</html>

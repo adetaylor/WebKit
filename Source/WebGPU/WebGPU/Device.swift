@@ -309,6 +309,10 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard instanceImpl != nil, let instanceSchedulerHandle else {
             return work()
         }
+        // Off the API thread, as in a deinit after the embedder stopped, the work can't run: it is only released.
+        guard instanceSchedulerHandle.isAPIThread() else {
+            return releaseOnAPIThread(work, instanceSchedulerHandle.scheduler)
+        }
         APIThreadWork<Void>(on: instanceSchedulerHandle) { _ in work() }.schedule(())
     }
 
