@@ -833,6 +833,80 @@ final class TestWithSwiftTypesWeakRef: @unchecked Sendable {
         }
     }
 
+    @used
+    func dispatchMessageWithTimesAndExpected(
+        connection: sending IPC.Connection,
+        decoder: inout IPC.SwiftDecoder,
+        replyEncoder: sending IPC.SwiftReplyEncoder
+    ) -> Bool {
+        let time: IPCTypes.MediaTime
+        let upcomingTime: IPCTypes.MediaTime?
+        do {
+            time = try IPCTypes.CxxName.WTF_MediaTime.decode(from: &decoder)
+            upcomingTime = try IPCCoding.StdOptional<IPCTypes.CxxName.WTF_MediaTime>.decode(from: &decoder)
+        } catch {
+            return false
+        }
+        MainActor.assumeIsolated {
+            guard let target else {
+                return
+            }
+            Task.immediateOnMainActor {
+                await MessageWithTimesAndExpectedInvocation(
+                    target: target,
+                    connection: connection,
+                    time: time,
+                    upcomingTime: upcomingTime,
+                    replyEncoder: replyEncoder
+                )
+                .run()
+            }
+        }
+        return true
+    }
+
+    private final class MessageWithTimesAndExpectedInvocation {
+        private let target: TestWithSwiftTypes
+        private let connection: IPC.Connection
+        private let time: IPCTypes.MediaTime
+        private let upcomingTime: IPCTypes.MediaTime?
+        private let replyEncoder: IPC.SwiftReplyEncoder
+
+        init(
+            target: TestWithSwiftTypes,
+            connection: IPC.Connection,
+            time: IPCTypes.MediaTime,
+            upcomingTime: IPCTypes.MediaTime?,
+            replyEncoder: IPC.SwiftReplyEncoder
+        ) {
+            self.target = target
+            self.connection = connection
+            self.time = time
+            self.upcomingTime = upcomingTime
+            self.replyEncoder = replyEncoder
+        }
+
+        @MainActor
+        func run() async {
+            do {
+                let reply = try await mayThrowInvalidMessage(
+                    target.messageWithTimesAndExpected(
+                        connection: connection,
+                        time: time,
+                        upcomingTime: upcomingTime
+                    )
+                )
+                IPCCoding.Expected<IPCTypes.CxxName.WTF_MediaTime, IPCTypes.CxxName.WebKit_TestSwiftEnum>.encode(reply.0, to: replyEncoder)
+                IPCCoding.ExpectedVoid<IPCTypes.CxxName.WebKit_TestSwiftEnum>.encode(reply.1, to: replyEncoder)
+                Bool.encode(reply.2, to: replyEncoder)
+                replyEncoder.send()
+            } catch {
+                markMessageInvalid(error, on: connection)
+                replyEncoder.cancel()
+            }
+        }
+    }
+
     #if WTF_PLATFORM_COCOA && ENABLE_SWIFT_TEST_FEATURE
     @used
     func dispatchConditionalMessage(

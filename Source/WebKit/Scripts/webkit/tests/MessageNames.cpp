@@ -156,6 +156,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypes_MessageWithMultipleRepliesReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithRefsReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithReplyReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithSwiftTypes_MessageWithTimesAndExpectedReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithoutParameters"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithoutReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageReply"_s, ReceiverName::TestWithSwiftTypes, false, false, true, ProcessName::Unknown, ProcessName::Unknown },
@@ -282,6 +283,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithSwiftTypes_MessageWithMultipleReplies"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithRefs"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_MessageWithReply"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithSwiftTypes_MessageWithTimesAndExpected"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessage"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes"_s, ReceiverName::TestWithSwiftTypes, false, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #if PLATFORM(COCOA)

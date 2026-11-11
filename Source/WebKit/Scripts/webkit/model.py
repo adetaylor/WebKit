@@ -45,6 +45,9 @@ SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 # class. Its other messages are C++ messages to C++ handlers, which may call members of the class that Swift implements.
 SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
+# On a message that only C++ sends, so that a receiver's 'SwiftSends=' makes no Swift sender for it: for a message whose
+# arguments name types that have no Swift forms, which Swift senders would otherwise spell as types in IPCTypes.
+SENT_FROM_CXX_ATTRIBUTE = 'SentFromCxx'
 # On a parameter of a message that takes Swift types, for a type that has no Swift form yet: its C++ ArgumentCoder decodes
 # it into an IPC::CxxDecodedArgument, which the Swift handler passes on to C++.
 CXX_DECODED_ATTRIBUTE = 'CxxDecoded'

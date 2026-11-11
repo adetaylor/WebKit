@@ -408,6 +408,7 @@ messages -> Destination {
 #endif
     WithReply(uint32_t value) -> (bool done)
     Unmappable(URL url)
+    WithoutSwiftForm(WebKit::NoSwiftForm value) SentFromCxx
 }
 """))
         parser.resolve_swift_sends([sender, destination])
@@ -423,10 +424,22 @@ messages -> Destination {
         # Swift sends only messages without replies, whose arguments have Swift forms.
         self.assertNotIn('withReply', senders)
         self.assertNotIn('unmappable', senders)
+        self.assertNotIn('withoutSwiftForm', senders)
 
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=Missing', which is not one of the receivers generated with it"):
             parser.resolve_swift_sends([parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftSends=Missing]\nmessages -> Sender WorkQueue {\n    Message(uint32_t value)\n}\n'))])
-        with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=', which is for Swift receivers"):
+        implementation = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftImplementation, SwiftTypes, SwiftSends=Destination]
+messages -> Implemented {
+    Message(uint32_t value)
+}
+"""))
+        parser.resolve_swift_sends([implementation, destination])
+        swift = messages.generate_swift_message_handler(implementation)
+        senders = swift[swift.index('extension WebKit.Implemented {\n    // The Destination messages'):]
+        self.assertIn('        static func notify(on ipcConnection: IPC.Connection, to ipcDestinationID: UInt64, value: UInt32, text: String?) {\n', senders)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=', which is for Swift receivers and receivers implemented in Swift"):
             parser.resolve_swift_sends([parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftSends=Destination]\nmessages -> Sender {\n    Message(uint32_t value)\n}\n')), destination])
 
     def test_owned_types(self):

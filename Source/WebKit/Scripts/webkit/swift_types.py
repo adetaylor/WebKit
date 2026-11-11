@@ -74,6 +74,9 @@ _TWO_ARGUMENT_TEMPLATES = {
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
 _GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['WTFLogLevel'])
 
+# Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
+_WTF_SWIFT_TYPES = frozenset(['MediaTime'])
+
 # C++-decoded values: types whose Swift form is the C++ object itself. Their C++ ArgumentCoder decodes and encodes
 # them, through the helpers each coder in IPCCoding.CxxDecoded calls, so Swift accepts exactly what C++ does and
 # copies nothing. Ref<T> and RefPtr<T> of them map to T and T?.
@@ -184,6 +187,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('Seconds', 'WTF::Seconds'):
         return ('Double', 'Double')
 
+    # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
+    if cpp_type in ('GenericPromise::Result', 'WTF::GenericPromise::Result'):
+        return ('Bool', 'Bool')
+
     # A UTF8CString is encoded as the span of its bytes, which Swift takes a copy of, as of a Vector of them.
     if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
         return ('[UInt8]', 'IPCCoding.Vector<UInt8>')
@@ -208,6 +215,14 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             if template == 'Vector' and owned_type in _OWNED_VECTOR_TYPES:
                 return (_OWNED_VECTOR_TYPES[owned_type], _OWNED_VECTOR_TYPES[owned_type])
             raise UnmappableSwiftType("'%s' has no Swift form: of the types whose Swift form owns a resource, messages that take Swift types support each one, a std::optional of one, and %s." % (cpp_type, ', '.join('Vector<%s>' % name for name in sorted(_OWNED_VECTOR_TYPES))))
+        # A std::expected is whether it has a value, then the value or the error. Swift takes it as a Result whose
+        # failure wraps the error, and std::expected<void, E> as a Result whose success is ().
+        if template == 'std::expected' and len(arguments) == 2:
+            error_type, error_coder = swift_type_and_coder(arguments[1], cxx_name_coders)
+            if strip_cpp_type_decorations(arguments[0]) == 'void':
+                return ('Result<Void, IPCUnexpected<%s>>' % error_type, 'IPCCoding.ExpectedVoid<%s>' % error_coder)
+            value_type, value_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
+            return ('Result<%s, IPCUnexpected<%s>>' % (value_type, error_type), 'IPCCoding.Expected<%s, %s>' % (value_coder, error_coder))
         if template in _TWO_ARGUMENT_TEMPLATES and len(arguments) == 2:
             value_format, coder_format = _TWO_ARGUMENT_TEMPLATES[template]
             first_type, first_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
@@ -224,6 +239,13 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
             return ('[%s]' % element, 'IPCCoding.Vector<%s>' % element)
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
+
+    if cpp_type.removeprefix('::').removeprefix('WTF::') in _WTF_SWIFT_TYPES:
+        name = cpp_type.removeprefix('::').removeprefix('WTF::')
+        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, name)
+        if not cxx_name_coders:
+            return (swift_type, swift_type)
+        return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name('WTF::' + name)))
 
     if cpp_type.removeprefix('::') in _GLOBAL_NAMESPACE_SWIFT_TYPES:
         swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, cpp_type.removeprefix('::'))
@@ -242,7 +264,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, String, AtomString, Vector, std::span of const primitives, std::optional, std::pair, Markable, Ref, RefPtr, OptionSet, "
+                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, "
                               "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
 
 

@@ -428,8 +428,8 @@ class SwiftTypesTest(unittest.TestCase):
             parse_swift_receiver(['Message(HashMap<String, uint32_t> values)'])
 
     def test_error_unmappable_reply(self):
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, but cannot take reply parameter 'result': 'std::expected<uint32_t, WebKit::Error>' has no Swift form"):
-            parse_swift_receiver(['Message(uint32_t value) -> (std::expected<uint32_t, WebKit::Error> result)'])
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, but cannot take reply parameter 'result': 'HashMap<String, uint32_t>' has no Swift form"):
+            parse_swift_receiver(['Message(uint32_t value) -> (std::expected<uint32_t, HashMap<String, uint32_t>> result)'])
 
     def test_error_call_with_reply_id(self):
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported together with 'CallWithReplyID'"):

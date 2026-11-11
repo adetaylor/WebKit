@@ -31,7 +31,7 @@ header: <wtf/text/CString.h>
    std::span<const char8_t> span()
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WTF::MediaTime {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WTF::MediaTime {
     int64_t timeValue()
     uint32_t timeScale()
     uint8_t timeFlags()

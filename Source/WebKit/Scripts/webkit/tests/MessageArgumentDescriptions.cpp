@@ -489,6 +489,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessage>(globalObject, decoder);
@@ -513,6 +515,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypesReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessageReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_ConditionalMessageReply>(globalObject, decoder);
@@ -766,6 +770,8 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_SyncHandlerMessageWithCxxTypes>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs>(globalObject, decoder);
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected>(globalObject, decoder);
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_ConditionalMessage>(globalObject, decoder);
@@ -1814,6 +1820,11 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "buffer"_s, "RefPtr<WebCore::SharedBuffer>"_s },
             { "pairs"_s, "Vector<std::pair<String, uint32_t>>"_s },
         };
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected:
+        return Vector<ArgumentDescription> {
+            { "time"_s, "MediaTime"_s },
+            { "upcomingTime"_s, "std::optional<MediaTime>"_s },
+        };
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
         return Vector<ArgumentDescription> {
@@ -1858,6 +1869,12 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairsReply:
         return Vector<ArgumentDescription> {
             { "reply"_s, "std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>"_s },
+        };
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpectedReply:
+        return Vector<ArgumentDescription> {
+            { "result"_s, "std::expected<MediaTime, WebKit::TestSwiftEnum>"_s },
+            { "settled"_s, "std::expected<void, WebKit::TestSwiftEnum>"_s },
+            { "promiseResult"_s, "GenericPromise::Result"_s },
         };
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessageReply:
@@ -2319,6 +2336,12 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftTypes_MessageWithBuffersAndPairs:
         return Vector<ArgumentDescription> {
             { "reply"_s, "std::optional<std::pair<uint8_t, Ref<WebCore::SharedBuffer>>>"_s },
+        };
+    case MessageName::TestWithSwiftTypes_MessageWithTimesAndExpected:
+        return Vector<ArgumentDescription> {
+            { "result"_s, "std::expected<MediaTime, WebKit::TestSwiftEnum>"_s },
+            { "settled"_s, "std::expected<void, WebKit::TestSwiftEnum>"_s },
+            { "promiseResult"_s, "GenericPromise::Result"_s },
         };
 #if PLATFORM(COCOA) && ENABLE(SWIFT_TEST_FEATURE)
     case MessageName::TestWithSwiftTypes_ConditionalMessage:
