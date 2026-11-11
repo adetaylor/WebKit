@@ -144,14 +144,19 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     private let scheduler: InstanceScheduler
     private var body: ((Argument) -> Void)?
 
-    // On the API thread.
+    // The caller promises that what the body captures belongs to the API thread: it is on the API thread, or only passes
+    // on a body made there.
+    @unsafe
     init(on scheduler: InstanceSchedulerHandle, _ body: @escaping (Argument) -> Void) {
         self.scheduler = scheduler.scheduler
         self.body = body
     }
 
     deinit {
-        releaseOnAPIThread(body.take(), scheduler)
+        guard let body = body.take() else {
+            return
+        }
+        releaseOnAPIThread(consume body, scheduler)
     }
 
     // On the Metal thread.
@@ -169,27 +174,56 @@ final class APIThreadWork<Argument: Sendable>: @unchecked Sendable {
     }
 }
 
-/// Releases what a box held for the API thread, which never ran there, in a work item: the embedder runs it on the API
-/// thread, or releases it on its serial queue once the API thread has stopped.
-func releaseOnAPIThread<Body>(_ body: Body?, _ scheduler: InstanceScheduler) {
-    guard let body else {
-        return
-    }
-    let release = APIThreadRelease(body)
+/// Releases what a box held for the API thread, which never ran there, by a work item, which the embedder runs on the API
+/// thread. The body moves into the work item's holder, so no other reference to it is left here, and the work item drops
+/// it explicitly. If the embedder drops the work item instead, which it does only once the API thread has stopped, the
+/// holder hands the body to one serial queue that drops it, whichever thread releases the holder last.
+func releaseOnAPIThread<Body>(_ body: consuming Body, _ scheduler: InstanceScheduler) {
+    let holder = APIThreadRelease(consume body)
     var workItem = CxxBridging.InstanceWorkItem {
-        withExtendedLifetime(release) {
-        }
+        holder.drop()
     }
     scheduler.scheduleWork(&workItem)
 }
 
-// A value on its way to be released. Unchecked Sendable: nothing reads the value, and the work item that holds it goes on
-// the API thread, or after it has stopped, as releaseOnAPIThread() says.
-private final class APIThreadRelease<Body>: @unchecked Sendable {
-    private let body: Body
+// Releases the bodies of work items that their embedder dropped, after its API thread stopped, one at a time.
+private let droppedBodyReleaseQueue = DispatchQueue(label: "com.apple.WebKit.WebGPU.DroppedWorkRelease")
 
-    init(_ body: Body) {
-        self.body = body
+// The only owner of a body on its way to be released. Unchecked Sendable: nothing reads the body, which goes only on the
+// API thread, in drop(), or on droppedBodyReleaseQueue.
+private final class APIThreadRelease<Body>: @unchecked Sendable {
+    private var body: Body?
+
+    init(_ body: consuming Body) {
+        self.body = .some(body)
+    }
+
+    // On the API thread.
+    func drop() {
+        body = nil
+    }
+
+    deinit {
+        guard let body = body.take() else {
+            return
+        }
+        let dropped = DroppedBody(consume body)
+        droppedBodyReleaseQueue.async {
+            dropped.drop()
+        }
+    }
+}
+
+// A body that droppedBodyReleaseQueue drops. Unchecked Sendable: nothing reads it, and only that queue drops it.
+private final class DroppedBody<Body>: @unchecked Sendable {
+    private var body: Body?
+
+    init(_ body: consuming Body) {
+        self.body = .some(body)
+    }
+
+    func drop() {
+        body = nil
     }
 }
 

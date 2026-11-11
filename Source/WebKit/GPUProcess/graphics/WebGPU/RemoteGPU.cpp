@@ -94,10 +94,12 @@ void RemoteGPU::stopListeningForIPC()
     });
     m_workQueue->stopAndWaitForCompletion([this] {
         assertIsCurrent(workQueue());
-        performWorkScheduledWhileStopping(WorkQueueState::Stopped);
+        performWorkScheduledWhileStopping(WorkQueueState::Stopping);
         // The work can create objects, such as asynchronously created pipelines.
         m_objectHeap->clear();
         m_modelObjectHeap->clear();
+        // Only now, after the objects are gone from this thread, may scheduleWork() release work elsewhere.
+        performWorkScheduledWhileStopping(WorkQueueState::Stopped);
     });
 }
 

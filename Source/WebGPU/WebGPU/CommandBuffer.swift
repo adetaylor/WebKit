@@ -308,7 +308,8 @@ public final class CommandBufferImpl: GPUObjectReference, LinkedImpl {
         }
         let completion = backingCompletion
         let didComplete = deviceImpl.schedulerHandle().map { scheduler in
-            APIThreadWork<GPUExecutionTimes>(on: scheduler) { [self] times in
+            // Safety: on the API thread, which submits the command buffer.
+            unsafe APIThreadWork<GPUExecutionTimes>(on: scheduler) { [self] times in
                 commandBufferDidComplete(times.start, times.end)
                 deviceImpl.instanceImpl?.releaseCompletedCommandBuffers()
             }

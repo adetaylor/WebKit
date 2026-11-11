@@ -3583,7 +3583,8 @@ public final class CommandEncoderImpl: GPUObjectReference, LinkedImpl {
         let queueImpl = deviceImpl.defaultQueueImpl
         let encoderHandle = queueImpl.retainCounterSampleBuffers(self)
         let completion = deviceImpl.schedulerHandle().map { scheduler in
-            APIThreadWork<Bool>(on: scheduler) { completed in
+            // Safety: on the API thread.
+            unsafe APIThreadWork<Bool>(on: scheduler) { completed in
                 queueImpl.releaseCounterSampleBuffers(encoderHandle)
                 withExtendedLifetime(deviceImpl) {
                     body(completed)

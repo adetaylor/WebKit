@@ -311,7 +311,9 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
         guard instanceImpl != nil, let instanceSchedulerHandle else {
             return work()
         }
-        APIThreadWork<Void>(on: instanceSchedulerHandle) { _ in work() }.schedule(())
+        // Safety: the work goes to the API thread at once. Callers are on the API thread, except CommandBufferImpl's
+        // deinit, which only hands on the references it owns.
+        unsafe APIThreadWork<Void>(on: instanceSchedulerHandle) { _ in work() }.schedule(())
     }
 
     // Returns the previous value.
@@ -554,7 +556,8 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
                 resolvedSampleCounterBuffers.setObject(resolvedBuffers, forKey: commandBuffer)
             }
             let forget = instanceSchedulerHandle.map { scheduler in
-                APIThreadWork<Void>(on: scheduler) { [link, weak commandBuffer] _ in
+                // Safety: on the API thread.
+                unsafe APIThreadWork<Void>(on: scheduler) { [link, weak commandBuffer] _ in
                     if let commandBuffer {
                         link.impl?.resolvedSampleCounterBuffers.removeObject(forKey: commandBuffer)
                     }
@@ -687,7 +690,8 @@ public final class DeviceImpl: GPUObjectReference, LinkedImpl {
             return
         }
         let lose = instanceSchedulerHandle.map { scheduler in
-            APIThreadWork<Void>(on: scheduler) { [link] _ in
+            // Safety: on the API thread.
+            unsafe APIThreadWork<Void>(on: scheduler) { [link] _ in
                 guard let self = link.impl, self.metalDevice != nil else {
                     return
                 }

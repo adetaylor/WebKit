@@ -749,7 +749,12 @@ public final class QueueImpl: GPUObjectReference {
 
     // Runs `work` in a later work item on the API thread.
     private func scheduleWork(_ work: @escaping () -> Void) {
-        schedulerHandle.map { APIThreadWork<Void>(on: $0) { _ in work() } }?.schedule(())
+        guard let schedulerHandle else {
+            return
+        }
+        // Safety: the work goes to the API thread at once. Callers are on the API thread, except CommandBufferImpl's
+        // deinit, which only hands on the references it owns.
+        unsafe APIThreadWork<Void>(on: schedulerHandle) { _ in work() }.schedule(())
     }
 
     func setLabel(_ label: NSString?) {
@@ -936,12 +941,14 @@ public final class QueueImpl: GPUObjectReference {
     private func addCommitHandlers(_ commandBuffer: any MTLCommandBuffer) {
         let completion = backingCompletion
         let didSchedule = schedulerHandle.map { scheduler in
-            APIThreadWork<Void>(on: scheduler) { _ in
+            // Safety: on the API thread, which commits the command buffer.
+            unsafe APIThreadWork<Void>(on: scheduler) { _ in
                 self.didScheduleCommandBuffer()
             }
         }
         let didComplete = schedulerHandle.map { scheduler in
-            APIThreadWork<Bool>(on: scheduler) { loseTheDevice in
+            // Safety: on the API thread, which commits the command buffer.
+            unsafe APIThreadWork<Bool>(on: scheduler) { loseTheDevice in
                 self.didCompleteCommandBuffer()
                 if loseTheDevice {
                     self.deviceImpl?.loseTheDevice(.Unknown)

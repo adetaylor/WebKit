@@ -187,7 +187,8 @@ private final class CompileContinuation<Value>: @unchecked Sendable {
     private let scheduler: InstanceScheduler
     private var body: ((Value?, NSError?) -> Void)?
 
-    // On the API thread.
+    // The caller promises that it is on the API thread.
+    @unsafe
     init(_ scheduler: InstanceScheduler, _ body: @escaping (Value?, NSError?) -> Void) {
         self.scheduler = scheduler
         self.body = body
@@ -195,7 +196,10 @@ private final class CompileContinuation<Value>: @unchecked Sendable {
 
     // A continuation that never resumes is released in a work item too.
     deinit {
-        releaseOnAPIThread(body.take(), scheduler)
+        guard let body = body.take() else {
+            return
+        }
+        releaseOnAPIThread(consume body, scheduler)
     }
 
     func resume(_ value: Value?, _ error: (any Error)?) {
@@ -215,7 +219,8 @@ private final class CompileHop<Value: Sendable>: Sendable {
 
     init(_ scheduler: InstanceScheduler, _ continuation: @escaping (Value?, NSError?) -> Void) {
         self.scheduler = scheduler
-        self.continuation = CompileContinuation(scheduler, continuation)
+        // Safety: on the API thread, where the compile functions below, the only ones to make a hop, run.
+        self.continuation = unsafe CompileContinuation(scheduler, continuation)
     }
 
     // On Metal's completion queue.
