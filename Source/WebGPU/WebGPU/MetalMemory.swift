@@ -203,6 +203,7 @@ func replaceRegion(
     guard let texture else {
         return
     }
+    precondition(texture.storageMode != .private && texture.storageMode != .memoryless, "The texture has no CPU-visible storage")
     let block = texelBlock(of: texture)
 
     // The destination: the level's extent, rounded up to whole blocks as WebGPU's physical extent is.
@@ -284,6 +285,34 @@ func replaceRegion(
     }
 }
 
+/// An argument encoder with the data types of the arguments it was made from, by index: made together from the same
+/// descriptors, so that they can't disagree.
+struct TypedArgumentEncoder {
+    let encoder: any MTLArgumentEncoder
+    let dataTypes: [UInt32: MTLDataType]
+
+    /// nil if Metal makes no encoder for the descriptors.
+    init?(_ device: (any MTLDevice)?, _ descriptors: [MTLArgumentDescriptor]) {
+        guard let encoder = device?.makeArgumentEncoder(arguments: descriptors) else {
+            return nil
+        }
+        self.encoder = encoder
+        var dataTypes: [UInt32: MTLDataType] = [:]
+        for descriptor in descriptors {
+            guard let index = UInt32(exactly: descriptor.index) else {
+                continue
+            }
+            // Two arguments at one index of different types match no store.
+            if let existing = dataTypes[index], existing != descriptor.dataType {
+                dataTypes[index] = MTLDataType.none
+            } else {
+                dataTypes[index] = descriptor.dataType
+            }
+        }
+        self.dataTypes = dataTypes
+    }
+}
+
 /// Writes the constant arguments of an argument buffer: each store traps unless the layout declared a constant of the
 /// stored type at the index, and the buffer holds the encoder's encodedLength bytes from the offset, where Metal places
 /// every argument of the encoder.
@@ -294,18 +323,17 @@ struct ArgumentConstantWriter {
     private let constantTypes: [UInt32: MTLDataType]
 
     /// nil without an encoder or a buffer, or unless the buffer has CPU-visible contents and holds the encoder's
-    /// encodedLength bytes from `offset`. `constantTypes` are the data types of the arguments the encoder was made with,
-    /// by index.
-    init?(_ encoder: (any MTLArgumentEncoder)?, constantTypes: [UInt32: MTLDataType], buffer: (any MTLBuffer)?, offset: Int = 0) {
-        guard let encoder, let buffer, buffer.storageMode != .private, offset >= 0, offset <= buffer.length,
-            buffer.length - offset >= encoder.encodedLength
+    /// encodedLength bytes from `offset`.
+    init?(_ typedEncoder: TypedArgumentEncoder?, buffer: (any MTLBuffer)?, offset: Int = 0) {
+        guard let typedEncoder, let buffer, buffer.storageMode != .private, buffer.storageMode != .memoryless, offset >= 0,
+            offset <= buffer.length, buffer.length - offset >= typedEncoder.encoder.encodedLength
         else {
             return nil
         }
-        self.encoder = encoder
+        encoder = typedEncoder.encoder
         self.buffer = buffer
         self.offset = offset
-        self.constantTypes = constantTypes
+        constantTypes = typedEncoder.dataTypes
     }
 
     func storeInt(_ value: UInt32, at index: UInt32) {

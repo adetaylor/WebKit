@@ -41,6 +41,9 @@ func pixelBufferIOSurface(_ pixelBuffer: CVPixelBuffer) -> IOSurfaceRef? {
 func copyPixelBufferPlane(_ texture: any MTLTexture, _ pixelBuffer: CVPixelBuffer, _ plane: Int) {
     // Metal reads `height` rows of `width * bytesPerPixel` bytes, bytesPerRow apart: never more rows, or wider ones, than
     // the plane has. A plane whose rows are narrower than that is not copied, which is what Metal itself does on Apple GPUs.
+    if texture.storageMode == .private || texture.storageMode == .memoryless {
+        return
+    }
     let bytesPerPixel = copiedBytesPerPixel(texture.pixelFormat)
     let width = min(CVPixelBufferGetWidthOfPlane(pixelBuffer, plane), texture.width)
     let height = min(CVPixelBufferGetHeightOfPlane(pixelBuffer, plane), texture.height)

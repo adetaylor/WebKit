@@ -419,7 +419,7 @@ public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
                 continue
             }
             writeExternalTextureConstants(
-                ArgumentConstantWriter(encoder, constantTypes: layoutImpl.argumentDataTypes[stage], buffer: buffer),
+                ArgumentConstantWriter(layoutImpl.typedArgumentEncoder(stage), buffer: buffer),
                 firstConstantIndex,
                 constants
             )
@@ -748,11 +748,7 @@ private struct BindGroupCreation {
                 }
             }
             encoders[stage]?.setArgumentBuffer(argumentBuffers[stage], offset: 0)
-            constantWriters[stage] = ArgumentConstantWriter(
-                encoders[stage],
-                constantTypes: layoutImpl.argumentDataTypes[stage],
-                buffer: argumentBuffers[stage]
-            )
+            constantWriters[stage] = ArgumentConstantWriter(layoutImpl.typedArgumentEncoder(stage), buffer: argumentBuffers[stage])
             argumentIndices[stage] =
                 layoutImpl.argumentIndexBits[stage].map { SmallIndexSet(bits: $0) } ?? SmallIndexSet(layoutImpl.argumentIndices[stage])
         }
