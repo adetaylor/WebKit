@@ -712,6 +712,7 @@ public:
     // Returns true if this layer has visible content (ignoring any child layers).
     bool isVisuallyNonEmpty(PaintedContentRequest* = nullptr) const;
     bool isVisuallyNonEmptyForSwift() const { return isVisuallyNonEmpty(); }
+    bool isVisuallyNonEmptyForSwift(PaintedContentRequest& request) const { return isVisuallyNonEmpty(&request); }
     // True if this layer container renderers that paint.
     void determineNonLayerDescendantsPaintedContent(PaintedContentRequest&) const;
 #if HAVE(SUPPORT_HDR_DISPLAY)

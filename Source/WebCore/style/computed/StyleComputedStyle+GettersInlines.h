@@ -487,6 +487,56 @@ inline bool ComputedStyle::scrollbarWidthIsNoneForSwift() const
     return scrollbarWidth() == Style::ScrollbarWidth::None;
 }
 
+inline bool ComputedStyle::borderHasVisibleBorderForSwift() const
+{
+    return border().hasVisibleBorder();
+}
+
+inline bool ComputedStyle::borderHasNonRoundCornerShapeForSwift() const
+{
+    return border().hasNonRoundCornerShape();
+}
+
+inline bool ComputedStyle::borderHasCornerShapeOutsideRoundedRectForSwift() const
+{
+    return border().hasCornerShapeOutsideRoundedRect();
+}
+
+inline bool ComputedStyle::hasImageInAnyBackgroundLayerForSwift() const
+{
+    return Style::hasImageInAnyLayer(backgroundLayers());
+}
+
+inline unsigned ComputedStyle::backgroundLayersUsedLengthForSwift() const
+{
+    return backgroundLayers().usedLength();
+}
+
+inline FillBox ComputedStyle::backgroundFirstLayerClipForSwift() const
+{
+    return backgroundLayers().usedFirst().clip();
+}
+
+inline bool ComputedStyle::boxShadowIsNoneForSwift() const
+{
+    return boxShadow().isNone();
+}
+
+inline bool ComputedStyle::backdropFilterHasReferenceFilterForSwift() const
+{
+    return backdropFilter().hasReferenceFilter();
+}
+
+inline bool ComputedStyle::objectViewBoxIsNoneForSwift() const
+{
+    return objectViewBox().isNone();
+}
+
+inline bool ComputedStyle::clipPathIsNoneForSwift() const
+{
+    return clipPath().isNone();
+}
+
 // MARK: - Logical getters
 
 // MARK: logical inset value aliases

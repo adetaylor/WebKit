@@ -72,6 +72,16 @@ public:
     inline bool hasResizeForSwift() const SWIFT_NAME(hasResize());
     inline bool displayIsNoneForSwift() const SWIFT_NAME(displayIsNone());
     inline bool scrollbarWidthIsNoneForSwift() const SWIFT_NAME(scrollbarWidthIsNone());
+    inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
+    inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
+    inline bool borderHasCornerShapeOutsideRoundedRectForSwift() const SWIFT_NAME(borderHasCornerShapeOutsideRoundedRect());
+    inline bool hasImageInAnyBackgroundLayerForSwift() const SWIFT_NAME(hasImageInAnyBackgroundLayer());
+    inline unsigned backgroundLayersUsedLengthForSwift() const SWIFT_NAME(backgroundLayersUsedLength());
+    inline FillBox backgroundFirstLayerClipForSwift() const SWIFT_NAME(backgroundFirstLayerClip());
+    inline bool boxShadowIsNoneForSwift() const SWIFT_NAME(boxShadowIsNone());
+    inline bool backdropFilterHasReferenceFilterForSwift() const SWIFT_NAME(backdropFilterHasReferenceFilter());
+    inline bool objectViewBoxIsNoneForSwift() const SWIFT_NAME(objectViewBoxIsNone());
+    inline bool clipPathIsNoneForSwift() const SWIFT_NAME(clipPathIsNone());
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 
