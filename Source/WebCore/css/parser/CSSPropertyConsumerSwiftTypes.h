@@ -218,11 +218,12 @@ inline StringView consumerSwiftTokenText(const CSSParserToken& token)
     return { };
 }
 
-// A property value's tokens, read one at a time by index, and what receives the value consumed from them
-// (CSSCalcSwiftTypes.h describes the facades). Past the last token, a read is that of an EOF token, as
+// A parse's tokens, read one at a time by index, by each facade derived from it; State is the state behind the derived
+// facade, whose `tokens` are the tokens. Past the last token, a read is that of an EOF token, as
 // CSSParserTokenRange::peek's is. Its members are const; they change only what the state refers to.
-struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftValue : CSSCalcSwiftFacade {
-    inline size_t count() const;
+template<typename State>
+struct __attribute__((swift_attr("~Sendable"))) CSSParserSwiftTokenReader : CSSCalcSwiftFacade {
+    size_t count() const { return static_cast<const State&>(*this).tokens.size(); }
     uint8_t type(size_t index) const { return index < count() ? token(index).type() : EOFToken; } // CSSParserTokenType.
     uint8_t blockType(size_t index) const { return index < count() ? token(index).getBlockType() : CSSParserToken::NotBlock; }
     uint8_t unitType(size_t index) const { return index < count() ? std::to_underlying(token(index).unitType()) : 0; }
@@ -245,13 +246,16 @@ struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftValue : 
     // dashes.
     bool isIntegerNumber(size_t index) const { return type(index) == NumberToken && token(index).numericValueType() == IntegerValueType; }
     bool isDashedIdent(size_t index) const { return type(index) == IdentToken && token(index).value().startsWith("--"_s); }
-    // The CSSCustomIdentValue of an ident token, or the CSSStringValue of a string token.
-    Ref<CSSValue> tokenValue(size_t index) const;
-    void setResult(CSSValue&) const;
-    // The options of a CSSPropertyConsumerSwiftConsumer.
-    inline uint8_t consumerOptions() const;
     // The text of a hash or ident token's value or of a dimension token's unit, for hex colors.
-    inline CSSColorSwiftText hexColorText(size_t index) const;
+    CSSColorSwiftText hexColorText(size_t index) const
+    {
+        auto type = this->type(index);
+        auto text = type == HashToken || type == IdentToken ? token(index).value() : type == DimensionToken ? token(index).unitString() : StringView { };
+        uint64_t characters = 0;
+        for (unsigned i = 0; i < std::min(text.length(), 8u); ++i)
+            characters |= static_cast<uint64_t>(isASCII(text[i]) ? text[i] : 0) << (8 * i);
+        return { characters, text.length() };
+    }
     // Whether a number or dimension token's value is an integer.
     bool isIntegerNumeric(size_t index) const { return (type(index) == NumberToken || type(index) == DimensionToken) && token(index).numericValueType() == IntegerValueType; }
     // The length of an ident or string token's value or of a number or dimension token's original text, or UINT32_MAX
@@ -267,6 +271,23 @@ struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftValue : 
         auto text = index < count() ? consumerSwiftTokenText(token(index)) : StringView { };
         return offset < text.length() ? text[offset] : 0;
     }
+    // Whether a token is an ident token whose value is `ident`, compared case-sensitively.
+    bool identEquals(size_t index, const AtomString& ident) const { return type(index) == IdentToken && token(index).value() == ident; }
+protected:
+    CSSParserSwiftTokenReader() = default;
+    const CSSParserToken& token(size_t index) const { return static_cast<const State&>(*this).tokens[index]; }
+};
+
+class CSSPropertyConsumerSwiftValueState;
+
+// A property value's tokens (CSSParserSwiftTokenReader), and what receives the value consumed from them
+// (CSSCalcSwiftTypes.h describes the facades). Its members are const; they change only what the state refers to.
+struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftValue : CSSParserSwiftTokenReader<CSSPropertyConsumerSwiftValueState> {
+    // The CSSCustomIdentValue of an ident token, or the CSSStringValue of a string token.
+    Ref<CSSValue> tokenValue(size_t index) const;
+    void setResult(CSSValue&) const;
+    // The options of a CSSPropertyConsumerSwiftConsumer.
+    inline uint8_t consumerOptions() const;
     // The calc() value of the math function `function` whose arguments are the tokens [argumentsStart, argumentsEnd),
     // which cssConsumePropertyCalc parses with calc() states of this call's own, or null if they do not parse.
     RefPtr<CSSPrimitiveValue> parseCalc(uint32_t argumentsStart, uint32_t argumentsEnd, uint16_t function, uint8_t category, uint32_t flags, double rangeMin, double rangeMax) const;
@@ -276,12 +297,8 @@ struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftValue : 
     // of the rule being parsed (parseDescriptorForSwift), on the tokens [start, end); `consumed` is the number of tokens
     // it consumed, with or without a value.
     RefPtr<CSSValue> parseWithCxx(uint16_t consumer, bool descriptor, uint32_t start, uint32_t end, uint32_t& consumed) const;
-    // Whether a token is an ident token whose value is `ident`, compared case-sensitively.
-    bool identEquals(size_t index, const AtomString& ident) const { return type(index) == IdentToken && token(index).value() == ident; }
 protected:
     CSSPropertyConsumerSwiftValue() = default;
-private:
-    inline const CSSParserToken& token(size_t index) const;
 };
 
 // The state behind CSSPropertyConsumerSwiftValue: the value's tokens, the property parser's state, and where the consumed
@@ -355,19 +372,7 @@ public:
 
 inline const CSSPropertyConsumerSwiftShorthandSinkState& CSSPropertyConsumerSwiftShorthandSink::state() const { return static_cast<const CSSPropertyConsumerSwiftShorthandSinkState&>(*this); }
 
-inline size_t CSSPropertyConsumerSwiftValue::count() const { return static_cast<const CSSPropertyConsumerSwiftValueState&>(*this).tokens.size(); }
 inline uint8_t CSSPropertyConsumerSwiftValue::consumerOptions() const { return static_cast<const CSSPropertyConsumerSwiftValueState&>(*this).options; }
-
-inline CSSColorSwiftText CSSPropertyConsumerSwiftValue::hexColorText(size_t index) const
-{
-    auto type = this->type(index);
-    auto text = type == HashToken || type == IdentToken ? token(index).value() : type == DimensionToken ? token(index).unitString() : StringView { };
-    uint64_t characters = 0;
-    for (unsigned i = 0; i < std::min(text.length(), 8u); ++i)
-        characters |= static_cast<uint64_t>(isASCII(text[i]) ? text[i] : 0) << (8 * i);
-    return { characters, text.length() };
-}
-inline const CSSParserToken& CSSPropertyConsumerSwiftValue::token(size_t index) const { return static_cast<const CSSPropertyConsumerSwiftValueState&>(*this).tokens[index]; }
 
 // The tokens of a unicode-range, read as CSSPropertyConsumerSwiftValue reads them, with no property parser's state:
 // FontFace can consume one on a worker thread.
