@@ -6047,7 +6047,10 @@
 		BCFE79AF2BE308A200114272 /* CSSParserToken.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E5C2BE2A8FB00AE645C /* CSSParserToken.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFE79B02BE308AD00114272 /* CSSParserIdioms.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E542BE2A8FB00AE645C /* CSSParserIdioms.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFE79B12BE308B900114272 /* CSSParserTokenRange.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E5E2BE2A8FB00AE645C /* CSSParserTokenRange.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		BCFE79B22BE308C400114272 /* CSSSelectorParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E872BE2A8FB00AE645C /* CSSSelectorParser.h */; };
+		BCFE79B22BE308C400114272 /* CSSSelectorParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E872BE2A8FB00AE645C /* CSSSelectorParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		F6A77C9596D2E8EC17867716 /* CSSParserObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E582BE2A8FB00AE645C /* CSSParserObserver.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A25E75D3D4E1E68CD477B1A6 /* CSSSupportsParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E8B2BE2A8FB00AE645C /* CSSSupportsParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		EF8CB8BF4AE3017B55CB5B3C /* CSSSubstitutionParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E912BE2A8FB00AE645C /* CSSSubstitutionParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFE79B32BE308D000114272 /* CSSParserEnum.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E502BE2A8FB00AE645C /* CSSParserEnum.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFEE3292DC6AC6800EC3901 /* StyleExtractorGenerated.h in Headers */ = {isa = PBXBuildFile; fileRef = BCFEE3282DC6AC6800EC3901 /* StyleExtractorGenerated.h */; };
 		BCFEE32B2DC6ACE000EC3901 /* StyleExtractorState.h in Headers */ = {isa = PBXBuildFile; fileRef = BCFEE32A2DC6ACE000EC3901 /* StyleExtractorState.h */; };
@@ -46241,6 +46244,7 @@
 				C55D00000000000000000012 /* CSSPropertyConsumerSwiftComponents.h in Headers */,
 				BCFE79B02BE308AD00114272 /* CSSParserIdioms.h in Headers */,
 				BCFE79AC2BE3081700114272 /* CSSParserMode.h in Headers */,
+				F6A77C9596D2E8EC17867716 /* CSSParserObserver.h in Headers */,
 				BCFE79AF2BE308A200114272 /* CSSParserToken.h in Headers */,
 				BCFE79B12BE308B900114272 /* CSSParserTokenRange.h in Headers */,
 				BCB2721C2CC1F21B00265123 /* CSSPathFunction.h in Headers */,
@@ -46318,7 +46322,9 @@
 				A8EA80070A19516E00A8EF5F /* CSSStyleSheet.h in Headers */,
 				460C710128E6634D005F4D74 /* CSSStyleSheetObservableArray.h in Headers */,
 				4BAFD0D62192146B00C0AB64 /* CSSStyleValue.h in Headers */,
+				EF8CB8BF4AE3017B55CB5B3C /* CSSSubstitutionParser.h in Headers */,
 				9444CBEA1D8861CA0073A074 /* CSSSubstitutionValue.h in Headers */,
+				A25E75D3D4E1E68CD477B1A6 /* CSSSupportsParser.h in Headers */,
 				FC54D05716A7673100575E4D /* CSSSupportsRule.h in Headers */,
 				BC05ACCE2CEE610300750CB1 /* CSSSymbol.h in Headers */,
 				BC3CC2282DE79F6D0032971C /* CSSTextShadow.h in Headers */,

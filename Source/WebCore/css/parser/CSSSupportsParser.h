@@ -52,7 +52,7 @@ public:
     };
 
     static SupportsResult supportsCondition(CSSParserTokenRange, CSSParser&, ParsingMode);
-    static SupportsResult supportsCondition(StringView, const CSSParserContext&, ParsingMode);
+    WEBCORE_EXPORT static SupportsResult supportsCondition(StringView, const CSSParserContext&, ParsingMode);
 
     static bool isMarginTrimInlineValue(StringView);
 

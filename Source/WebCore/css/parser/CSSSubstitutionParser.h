@@ -46,9 +46,9 @@ class CustomProperty;
 
 class CSSSubstitutionParser {
 public:
-    static bool containsSubstitutionFunctions(CSSParserTokenRange, const CSSParserContext&);
+    WEBCORE_EXPORT static bool containsSubstitutionFunctions(CSSParserTokenRange, const CSSParserContext&);
 
-    static RefPtr<CSSCustomPropertyValue> parseDeclarationValue(const AtomString&, CSSParserTokenRange, const CSSParserContext&, const CSSNamespacePrefixMap& = { });
+    WEBCORE_EXPORT static RefPtr<CSSCustomPropertyValue> parseDeclarationValue(const AtomString&, CSSParserTokenRange, const CSSParserContext&, const CSSNamespacePrefixMap& = { });
     static RefPtr<const Style::CustomProperty> parseInitialValueForUniversalSyntax(const AtomString&, CSSParserTokenRange);
 
     NODELETE static bool isValidCustomPropertyName(const CSSParserToken&);

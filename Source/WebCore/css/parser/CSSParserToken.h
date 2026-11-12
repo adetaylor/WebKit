@@ -108,7 +108,7 @@ public:
 
     CSSParserToken(HashTokenType, StringView);
 
-    NODELETE static CSSUnitType stringToUnitType(StringView);
+    NODELETE WEBCORE_EXPORT static CSSUnitType stringToUnitType(StringView);
 
     WEBCORE_EXPORT bool operator==(const CSSParserToken& other) const;
 

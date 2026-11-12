@@ -78,7 +78,7 @@ struct __attribute__((swift_attr("~Sendable"))) CSSCustomPropertySyntax {
 
     bool isUniversal() const { return definition.isEmpty(); }
 
-    static std::optional<CSSCustomPropertySyntax> parse(StringView);
+    WEBCORE_EXPORT static std::optional<CSSCustomPropertySyntax> parse(StringView);
     static std::optional<CSSCustomPropertySyntax> consumeType(CSSParserTokenRange&);
 
     static CSSCustomPropertySyntax universal() { return { }; }
