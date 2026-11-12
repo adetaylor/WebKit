@@ -357,7 +357,7 @@
     [Legacy] StructureParam WebCore::DynamicContentScalingDisplayList.takeSurfaces()
     [DebugOnly] MessageParam IPCSwiftWorkQueueTester.CountSendRightsSwift rights
 
-    [NotSentFromWebContent] MessageParamReply RemoteGPU.CreateModelBacking renderBuffers
+    [NotSentFromWebContent] MessageParamReply RemoteGPUModel.CreateModelBacking renderBuffers
     [NotSentFromWebContent] MessageParamReply RemoteMesh.UpdateRenderBuffers renderBuffers
 }
 

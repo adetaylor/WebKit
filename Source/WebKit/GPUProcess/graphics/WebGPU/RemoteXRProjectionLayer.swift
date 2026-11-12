@@ -48,7 +48,7 @@ final class RemoteXRProjectionLayer {
         }
         let receiver = RemoteXRProjectionLayer(layer, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteXRProjectionLayer,
             link.identifier

@@ -297,6 +297,7 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/ShapeDetection/RemoteBarcodeDetector \
 	GPUProcess/ShapeDetection/RemoteFaceDetector \
 	GPUProcess/ShapeDetection/RemoteTextDetector \
+	GPUProcess/graphics/Model/RemoteGPUModel \
 	GPUProcess/graphics/Model/RemoteMesh \
 	GPUProcess/graphics/RemoteCGRenderer \
 	GPUProcess/graphics/RemoteGraphicsContext \

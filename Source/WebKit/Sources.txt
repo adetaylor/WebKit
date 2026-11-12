@@ -963,6 +963,7 @@ RemoteCommandEncoderMessageReceiver.cpp @cost:6
 RemoteCompositorIntegrationMessageReceiver.cpp @cost:5
 RemoteComputePassEncoderMessageReceiver.cpp @cost:5
 RemoteComputePipelineMessageReceiver.cpp @cost:5
+RemoteGPUModelMessageReceiver.cpp
 RemoteMeshMessageReceiver.cpp
 RemoteDeviceMessageReceiver.cpp @cost:6
 RemoteExternalTextureMessageReceiver.cpp @cost:5

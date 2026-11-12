@@ -47,7 +47,7 @@ final class RemoteCommandBuffer {
         }
         let receiver = RemoteCommandBuffer(commandBuffer, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteCommandBuffer,
             link.identifier

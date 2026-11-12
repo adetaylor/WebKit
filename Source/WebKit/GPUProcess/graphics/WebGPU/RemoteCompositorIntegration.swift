@@ -68,7 +68,7 @@ final class RemoteCompositorIntegration {
         }
         let receiver = RemoteCompositorIntegration(link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteCompositorIntegration,
             link.identifier
@@ -237,7 +237,7 @@ final class RemoteCompositorIntegration {
         // A premultiplied canvas must keep its alpha channel so transparent pixels composite over the page; an opaque
         // canvas forces the alpha to be ignored. This matters for RGBA16F, whose IOSurface format cannot itself encode
         // opacity.
-        objects.host.paintToImageBuffer(textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
+        WebKit.paintToImageBuffer(objects.renderingBackend, textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
     }
 
     func destruct() {

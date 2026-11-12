@@ -32,12 +32,12 @@
 #include "MessageReceiverMap.h"
 #include "RemoteAudioHardwareListenerIdentifier.h"
 #include "RemoteAudioSessionIdentifier.h"
-#include "RemoteGPU.h"
 #include "RemoteRemoteCommandListenerIdentifier.h"
 #include "RemoteRenderingBackendIdentifier.h"
 #include "RemoteSnapshotIdentifier.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "SharedPreferencesForWebProcess.h"
+#include "SwiftReceiverOwner.h"
 #include "WebGPUIdentifier.h"
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
@@ -455,7 +455,7 @@ private:
     RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
 #endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGPU>>;
+    using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<IPC::SwiftReceiverOwner>>;
     RemoteGPUMap m_remoteGPUMap;
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)

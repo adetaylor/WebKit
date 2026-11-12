@@ -48,7 +48,7 @@ final class RemoteShaderModule {
         }
         let receiver = RemoteShaderModule(shaderModule, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteShaderModule,
             link.identifier

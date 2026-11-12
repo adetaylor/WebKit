@@ -47,7 +47,7 @@ final class RemoteRenderBundle {
         }
         let receiver = RemoteRenderBundle(renderBundle, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteRenderBundle,
             link.identifier
