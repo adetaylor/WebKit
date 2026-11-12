@@ -9663,8 +9663,6 @@
 		2E75B780AC2843BF82E220D1 /* RemoteGPU.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteGPU.swift; sourceTree = "<group>"; };
 		5352BC963EAD4935A4834B0D /* RemoteGPUMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteGPUMessageReceiver.swift; sourceTree = "<group>"; };
 		CBEBC52D88494AB095B2410D /* RemoteGPUModel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGPUModel.cpp; sourceTree = "<group>"; };
-		DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUProcessIOSurfaces.cpp; sourceTree = "<group>"; };
-		F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUProcessIOSurfaces.h; sourceTree = "<group>"; };
 		A3C6D325A67448C8832E5720 /* GPUVideoFrameSource.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUVideoFrameSource.cpp; sourceTree = "<group>"; };
 		15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoFrameSource.h; sourceTree = "<group>"; };
 		69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcess.swift; sourceTree = "<group>"; };
@@ -15091,8 +15089,6 @@
 			children = (
 				0D078EB72E7387FA00A9B266 /* Model */,
 				1C98C01C27446926002CCB78 /* WebGPU */,
-				DDFDA8178ADA46DAB7EB544A /* GPUProcessIOSurfaces.cpp */,
-				F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */,
 				724DCF22284862FC0026ACF4 /* ImageBufferShareableAllocator.cpp */,
 				724DCF21284862FC0026ACF4 /* ImageBufferShareableAllocator.h */,
 				723C90A22A377AB400038126 /* PathSegment.serialization.in */,

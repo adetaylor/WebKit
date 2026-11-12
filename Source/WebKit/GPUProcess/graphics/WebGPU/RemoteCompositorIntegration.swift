@@ -98,7 +98,7 @@ final class RemoteCompositorIntegration {
     func recreateRenderBuffers(
         width: Int32,
         height: Int32,
-        destinationColorSpace: CxxDecodedArguments.RemoteCompositorIntegration.RecreateRenderBuffersDestinationColorSpace,
+        destinationColorSpace: IPCTypes.ColorSpace,
         alphaMode: IPCTypes.AlphaPremultiplication,
         textureFormat: IPCTypes.TextureFormat,
         deviceIdentifier: IPCTypes.WebGPUIdentifier,
@@ -118,7 +118,7 @@ final class RemoteCompositorIntegration {
 
         // Up to three buffers, at most the largest 2D texture in size.
         let max2DTextureSize: Int32 = 16384
-        let colorSpace = WebKit.copyGPUProcessIOSurfaceColorSpace(destinationColorSpace)
+        let colorSpace = destinationColorSpace.cgColorSpace
         let format = renderBufferFormat(textureFormat, premultiplied: alphaMode == .premultiplied)
         renderBufferWidth = max(1, min(max2DTextureSize, width))
         renderBufferHeight = max(1, min(max2DTextureSize, height))
