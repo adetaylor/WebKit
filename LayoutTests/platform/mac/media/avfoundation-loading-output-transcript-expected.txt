@@ -1,0 +1,63 @@
+
+pure-color-green.mp4
+metadata: duration=4.00 size=640x480
+can play through: buffered=[0.0-4.0] seekable=[0.0-4.0]
+seeked to 0.4: currentTime=0.4 frame=030 030 030 030
+seeked to 2.0: currentTime=2.0 frame=030 030 030 030
+seeked to 3.6: currentTime=3.6 frame=030 030 030 030
+no video frame callback
+pure-color-green.mp4 through a blob URL
+metadata: duration=4.00 size=640x480
+can play through: buffered=[0.0-4.0] seekable=[0.0-4.0]
+seeked to 0.4: currentTime=0.4 frame=030 030 030 030
+seeked to 2.0: currentTime=2.0 frame=030 030 030 030
+seeked to 3.6: currentTime=3.6 frame=030 030 030 030
+no video frame callback
+
+test-par-16-9.mp4
+metadata: duration=6.04 size=426x240
+can play through: buffered=[0.0-6.0] seekable=[0.0-6.0]
+seeked to 0.6: currentTime=0.6 frame=000 000 000 000
+seeked to 3.0: currentTime=3.0 frame=000 000 000 000
+seeked to 5.4: currentTime=5.4 frame=000 000 000 000
+first video frame callback: 320x240 presented=true
+test-par-16-9.mp4 through a blob URL
+metadata: duration=6.04 size=426x240
+can play through: buffered=[0.0-6.0] seekable=[0.0-6.0]
+seeked to 0.6: currentTime=0.6 frame=000 000 000 000
+seeked to 3.0: currentTime=3.0 frame=000 000 000 000
+seeked to 5.4: currentTime=5.4 frame=000 000 000 000
+first video frame callback: 320x240 presented=true
+
+rotation-90.mp4
+metadata: duration=1.00 size=288x352
+can play through: buffered=[0.0-1.0] seekable=[0.0-1.0]
+seeked to 0.1: currentTime=0.1 frame=000 000 000 000
+seeked to 0.5: currentTime=0.5 frame=000 000 000 000
+seeked to 0.9: currentTime=0.9 frame=000 000 000 000
+first video frame callback: 352x288 presented=true
+rotation-90.mp4 through a blob URL
+metadata: duration=1.00 size=288x352
+can play through: buffered=[0.0-1.0] seekable=[0.0-1.0]
+seeked to 0.1: currentTime=0.1 frame=000 000 000 000
+seeked to 0.5: currentTime=0.5 frame=000 000 000 000
+seeked to 0.9: currentTime=0.9 frame=000 000 000 000
+first video frame callback: 352x288 presented=true
+
+counting.mp4
+metadata: duration=9.83 size=352x288
+can play through: buffered=[0.0-9.8] seekable=[0.0-9.8]
+seeked to 1.0: currentTime=1.0 frame=333 333 000 333
+seeked to 4.9: currentTime=4.9 frame=003 333 000 333
+seeked to 8.8: currentTime=8.8 frame=333 333 012 333
+first video frame callback: 352x288 presented=true
+counting.mp4 through a blob URL
+metadata: duration=9.83 size=352x288
+can play through: buffered=[0.0-9.8] seekable=[0.0-9.8]
+seeked to 1.0: currentTime=1.0 frame=333 333 000 333
+seeked to 4.9: currentTime=4.9 frame=003 333 000 333
+seeked to 8.8: currentTime=8.8 frame=333 333 012 333
+first video frame callback: 352x288 presented=true
+
+END OF TEST
+
