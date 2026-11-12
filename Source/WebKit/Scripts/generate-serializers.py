@@ -2770,8 +2770,10 @@ def swift_enum_numbers(enum, context):
         raise Exception(f'{context}: the values of an OptionSet or a bool enum marked [Swift] cannot give their numbers.')
     if len(set(given)) != len(given):
         raise Exception(f'{context}: more than one of its values has the same number.')
-    bits = int(re.search(r'\d+', swift_types.swift_type_and_coder(enum.underlying_type)[0]).group(0))
-    if any(number >= (1 << bits) for number in given):
+    swift_type = swift_types.swift_type_and_coder(enum.underlying_type)[0]
+    bits = int(re.search(r'\d+', swift_type).group(0))
+    limit = 1 << (bits - 1 if swift_type.startswith('Int') else bits)
+    if any(number >= limit for number in given):
         raise Exception(f'{context}: the number of one of its values does not fit in {enum.underlying_type}.')
     return given
 
