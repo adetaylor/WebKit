@@ -466,6 +466,41 @@ messages -> Implemented {
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver Sender has 'SwiftSends=', which is for Swift receivers and receivers implemented in Swift"):
             parser.resolve_swift_sends([parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftSends=Destination]\nmessages -> Sender {\n    Message(uint32_t value)\n}\n')), destination])
 
+    def test_swift_receiver_owner(self):
+        receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes, SwiftReceiverOwner, SwiftSends=Destination]
+messages -> Owned Stream {
+    Message(uint32_t value)
+}
+"""))
+        destination = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy]
+messages -> Destination {
+    Notify(uint32_t value)
+}
+"""))
+        parser.resolve_swift_sends([receiver, destination])
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('#include "SwiftReceiverOwner.h"\n', header)
+        self.assertIn('class OwnedMessageForwarder final : public IPC::StreamMessageReceiver, public IPC::SwiftReceiverOwnerClient {\n', header)
+        self.assertIn('    void runScheduledWork() final;\n    void didStopReceiving() final;\n    void didStopWorkQueue() final;\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('void OwnedMessageForwarder::runScheduledWork()\n{\n    m_handler->runScheduledWork();\n}\n', implementation)
+        self.assertIn('void OwnedMessageForwarder::didStopWorkQueue()\n{\n    m_handler->didStopWorkQueue();\n}\n', implementation)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('    @used\n    func didStopReceiving() {\n        target.didStopReceiving()\n    }\n', swift)
+        self.assertIn('extension Owned {\n', swift)
+        self.assertIn('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n'
+                      '        IPC.startSwiftReceiver(owner, WebKit.OwnedMessageForwarder.create(target: self))\n'
+                      '    }\n', swift)
+        self.assertIn('        static func notify(on owner: IPC.SwiftReceiverOwner, to ipcDestinationID: UInt64, value: UInt32) {\n'
+                      '            notify(on: owner.connection(), to: ipcDestinationID, value: value)\n'
+                      '        }\n', swift)
+
+        for attributes, kind in ((['SwiftReceiver', 'SwiftReceiverOwner'], ''), (['SwiftImplementation', 'SwiftTypes', 'SwiftReceiverOwner'], ' Stream'), (['SwiftReceiver', 'SwiftReceiverOwner'], ' WorkQueue')):
+            with self.assertRaisesRegex(Exception, r"ERROR: Receiver Owned has 'SwiftReceiverOwner', which is for Swift stream receivers without a state lender"):
+                parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> Owned%s {\n    Message(uint32_t value)\n}\n' % (', '.join(attributes), kind)))
+
     def test_owned_types(self):
         stream_receiver = parser.parse(io.StringIO("""
 [ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes]

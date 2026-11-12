@@ -9635,6 +9635,8 @@
 		219C838F24364575BC265172 /* GPUProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcess.swift; sourceTree = "<group>"; };
 		DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcessMessageReceiver.swift; sourceTree = "<group>"; };
 		86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcessMessageReceiver.swift; sourceTree = "<group>"; };
+		F825370C1EFBF5EE263DB203 /* SwiftReceiverOwner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SwiftReceiverOwner.cpp; sourceTree = "<group>"; };
+		4779BCDFA4891C5C8807645D /* SwiftReceiverOwner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftReceiverOwner.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -11456,6 +11458,8 @@
 				7BE5134A29768F0E00814F18 /* StreamServerConnectionBuffer.h */,
 				C8E3B43BCEE7D74B03CB891B /* SwiftCoding.h */,
 				9AC1A9B66F5A162913E0254E /* SwiftCoding.swift */,
+				F825370C1EFBF5EE263DB203 /* SwiftReceiverOwner.cpp */,
+				4779BCDFA4891C5C8807645D /* SwiftReceiverOwner.h */,
 				872B613F461445249AF71B43 /* SwiftReceiverRegistration.h */,
 				7B2E73472CA2C611002C1A84 /* SyncRequestID.h */,
 				7BE37F6F27B1475F007A6CD3 /* ThreadSafeObjectHeap.h */,

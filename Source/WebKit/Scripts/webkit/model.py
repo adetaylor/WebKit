@@ -44,6 +44,9 @@ SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 # dispatch function for each, with @cxx @implementation, that calls the receiver's handler, a Swift method of the C++
 # class. Its other messages are C++ messages to C++ handlers, which may call members of the class that Swift implements.
 SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
+# A top-level Swift stream receiver, which an IPC::SwiftReceiverOwner owns: its forwarder is the owner's
+# IPC::SwiftReceiverOwnerClient, generated Swift starts it with startReceiving(on:), and its Swift sends can go on the owner.
+SWIFT_RECEIVER_OWNER_ATTRIBUTE = 'SwiftReceiverOwner'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 # On a message that only C++ sends, so that a receiver's 'SwiftSends=' makes no Swift sender for it: for a message whose
 # arguments name types that have no Swift forms, which Swift senders would otherwise spell as types in IPCTypes.
@@ -115,6 +118,9 @@ class MessageReceiver(object):
     def is_swift_implementation(self):
         return self.has_attribute(SWIFT_IMPLEMENTATION_ATTRIBUTE)
 
+    def has_swift_receiver_owner(self):
+        return self.has_attribute(SWIFT_RECEIVER_OWNER_ATTRIBUTE)
+
     def takes_swift_types(self, message):
         """Whether the Swift receiver decodes this message's arguments, and encodes its reply, as Swift types."""
         if message.is_async_reply or not (self.is_swift_receiver() or self.is_swift_implementation()):
@@ -127,6 +133,8 @@ class MessageReceiver(object):
 
     def enforce_swift_types_constraints(self):
         self._enforce_swift_implementation_constraints()
+        if self.has_swift_receiver_owner() and (not self.is_swift_receiver() or not self.has_attribute(STREAM_ATTRIBUTE) or self.swift_receiver_state_lender):
+            raise Exception("ERROR: Receiver %s has '%s', which is for Swift stream receivers without a state lender" % (self.name, SWIFT_RECEIVER_OWNER_ATTRIBUTE))
         if self.swift_types and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Receiver %s has 'SwiftTypes' but is not a Swift receiver: it also needs 'SwiftReceiver' or 'SwiftReceiverBuildEnabledBy='" % self.name)
         if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):

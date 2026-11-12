@@ -860,6 +860,8 @@ def forward_declarations_and_headers(receiver):
 
     if (receiver.swift_receiver or receiver.swift_receiver_build_enabled_by) and receiver.has_attribute(STREAM_ATTRIBUTE):
         headers.add('"StreamMessageReceiver.h"')
+    if receiver.has_swift_receiver_owner():
+        headers.add('"SwiftReceiverOwner.h"')
     if receiver.is_swift_receiver() and receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
         headers.add('"WorkQueueMessageReceiver.h"')
         headers.add('<wtf/WorkQueue.h>')
@@ -1054,7 +1056,10 @@ def generate_messages_header(receiver):
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
         is_work_queue = receiver.has_attribute(WORK_QUEUE_ATTRIBUTE)
         work_queue_receiver = 'IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>'
-        if is_stream:
+        if is_stream and receiver.has_swift_receiver_owner():
+            result.append('// The owner\'s client: it keeps this from its start until its work queue stops.\n')
+            result.append('class ' + forwarder_class + ' final : public IPC::StreamMessageReceiver, public IPC::SwiftReceiverOwnerClient {\n')
+        elif is_stream:
             result.append('class ' + forwarder_class + ' final : public IPC::StreamMessageReceiver {\n')
         elif is_work_queue:
             result.append('// Registered with startReceivingMessages() on one serial queue, which the handlers are confined to.\n')
@@ -1074,6 +1079,9 @@ def generate_messages_header(receiver):
             result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;\n')
         else:
             result.append('    void didReceiveMessage(IPC::Connection&, IPC::Decoder&);\n')
+        if receiver.has_swift_receiver_owner():
+            for hook in SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS:
+                result.append('    void %s() final;\n' % hook)
         if not is_stream and (sync_messages or receiver.has_attribute(WANTS_DISPATCH_MESSAGE_ATTRIBUTE)):
             result.append('    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&)%s;\n' % (' final' if is_work_queue else ''))
         if is_stream:
@@ -2524,6 +2532,13 @@ def generate_message_handler(receiver):
         result.append('{\n')
         result.append('}\n')
         result.append('\n')
+        if receiver.has_swift_receiver_owner():
+            for hook in SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS:
+                result.append('void %s::%s()\n' % (forwarder_class, hook))
+                result.append('{\n')
+                result.append('    m_handler->%s();\n' % hook)
+                result.append('}\n')
+                result.append('\n')
         if receiver.swift_receiver_state_lender:
             result.append('void %s::setStateLender(%s& lender)\n' % (forwarder_class, receiver.swift_receiver_state_lender))
             result.append('{\n')
@@ -2715,6 +2730,13 @@ def generate_swift_message_handler(receiver):
         result.append('        self.target = target\n')
         result.append('    }\n')
         # @used ensures these are retained even with -O -wmo: rdar://179098545
+        if receiver.has_swift_receiver_owner():
+            for hook in SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS:
+                result.append('\n')
+                result.append('    @used\n')
+                result.append('    func %s() {\n' % hook)
+                result.append('        target.%s()\n' % hook)
+                result.append('    }\n')
         if swift_receiver_runs_on_work_queue(receiver):
             if receiver_needs_shared_preferences(receiver):
                 result.append('\n')
@@ -3064,9 +3086,11 @@ def generate_swift_message_handler(receiver):
 
     if not implementation:
         append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
+    if receiver.has_swift_receiver_owner():
+        append_swift_receiver_owner_start(result, message_forwarder_class, class_name)
 
     for destination in receiver.swift_sends:
-        result.append(generate_swift_message_senders(class_name, destination))
+        result.append(generate_swift_message_senders(class_name, destination, receiver.has_swift_receiver_owner()))
 
     if receiver.condition:
         result.append('#endif\n')
@@ -3074,6 +3098,22 @@ def generate_swift_message_handler(receiver):
         result.append('#endif\n')
 
     return ''.join(result)
+
+
+# The IPC::SwiftReceiverOwnerClient functions that the forwarder of a receiver with 'SwiftReceiverOwner' implements by
+# calling the receiver's Swift methods of the same names.
+SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS = ['runScheduledWork', 'didStopReceiving', 'didStopWorkQueue']
+
+
+def append_swift_receiver_owner_start(result, message_forwarder_class, class_name):
+    result.append('\n')
+    result.append('extension %s {\n' % class_name)
+    result.append('    // Starts receiving this receiver\'s messages, through its forwarder, which the owner keeps, and so this, until its\n')
+    result.append('    // work queue stops.\n')
+    result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
+    result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    result.append('    }\n')
+    result.append('}\n')
 
 
 def append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class):
@@ -3113,7 +3153,7 @@ def swift_sendable_messages(destination):
 
 # For a Swift receiver with 'SwiftSends=', a function for each message of the destination that Swift can send, in a
 # namespace nested in the receiver, which encodes the arguments as C++ would and sends the message on the connection.
-def generate_swift_message_senders(class_name, destination):
+def generate_swift_message_senders(class_name, destination, on_owner=False):
     result = []
     result.append('\n')
     if destination.condition:
@@ -3134,6 +3174,13 @@ def generate_swift_message_senders(class_name, destination):
             result.append('            %s.encode(%s, to: ipcEncoder)\n' % (coder, parameter.name))
         result.append('            ipcEncoder.send()\n')
         result.append('        }\n')
+        if on_owner:
+            # The same, on the connection of the receiver's owner (IPC::SwiftReceiverOwner).
+            owner_parameters = ['on owner: IPC.SwiftReceiverOwner'] + parameters[1:]
+            arguments = ['on: owner.connection()', 'to: ipcDestinationID'] + ['%s: %s' % (parameter.name, parameter.name) for parameter in message.parameters]
+            result.append('        static func %s(%s) {\n' % (handler_function_name(message), ', '.join(owner_parameters)))
+            result.append('            %s(%s)\n' % (handler_function_name(message), ', '.join(arguments)))
+            result.append('        }\n')
         if message.condition:
             result.append('        #endif\n')
     result.append('    }\n')

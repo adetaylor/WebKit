@@ -691,6 +691,9 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
     static_assert(std::is_pointer_v<OwnerPointer>);
     static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
     auto& owner = *ownerPointer;
+    // An owner whose stream connection goes on its work queue is only read there.
+    if constexpr (requires { owner.isWorkQueueCurrent(); })
+        RELEASE_ASSERT(owner.isWorkQueueCurrent());
     RefPtr streamConnection = owner.streamConnection();
     if (!streamConnection)
         return nullptr;
