@@ -26,7 +26,8 @@
 // video sample renderer (VideoMediaSampleRenderer.swift). AudioVideoRendererAVFObjC.mm keeps the C++ renderer that
 // implements AudioVideoRenderer: the clients' callbacks and promises, the shared timebase, the synchronizer, display
 // layer and audio renderers it makes and configures, the layer manager, content keys, and the decompression session,
-// which this reaches through AudioVideoRendererHost.
+// which this reaches through AudioVideoRendererHost. In the GPU process, the renderer receiver
+// (RemoteAudioVideoRendererProxyManager.swift) is the core's client instead of the C++ renderer's callbacks and promises.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their symbols come from the generated accessors. No AVFoundation class
 // is used where its class object would be needed.
@@ -102,10 +103,203 @@ private func utf8(_ string: Swift.String) -> ContiguousArray<UInt8> {
     ContiguousArray(string.utf8)
 }
 
-// What AudioVideoRendererAVFObjC.mm calls.
+// A WTF::MediaTime's value, time scale and flags: how the GPU process's renderer receiver gets and replies with times.
+@_spi(WebKitGPU)
+public struct AudioVideoRendererTime: Sendable, Equatable {
+    public var value: Int64
+    public var scale: UInt32
+    public var flags: UInt8
+
+    // MediaTime's flags.
+    private static let valid: UInt8 = 1 << 0
+    private static let hasBeenRounded: UInt8 = 1 << 1
+    private static let positiveInfinite: UInt8 = 1 << 2
+    private static let negativeInfinite: UInt8 = 1 << 3
+    private static let indefinite: UInt8 = 1 << 4
+    private static let doubleValue: UInt8 = 1 << 5
+
+    public static let indefiniteTime = AudioVideoRendererTime(value: 0, scale: 1, flags: valid | indefinite)
+
+    // As MediaTime(value, scale, flags), which makes a valid time without a scale infinite.
+    public init(value: Int64, scale: UInt32, flags: UInt8) {
+        if scale != 0 || flags & Self.valid == 0 {
+            self.value = value
+            self.scale = scale
+            self.flags = flags
+            return
+        }
+        self.value = value < 0 ? -1 : 0
+        self.scale = 1
+        self.flags = (value < 0 ? Self.negativeInfinite : Self.positiveInfinite) | Self.valid
+    }
+
+    // PAL::toMediaTime().
+    init(_ time: CMTime) {
+        func has(_ required: CMTimeFlags) -> Bool {
+            time.flags.intersection(required) == required
+        }
+        var flags: UInt8 = 0
+        if has(.valid) {
+            flags |= Self.valid
+        }
+        if has([.valid, .hasBeenRounded]) {
+            flags |= Self.hasBeenRounded
+        }
+        if has([.valid, .positiveInfinity]) {
+            flags |= Self.positiveInfinite
+        }
+        if has([.valid, .negativeInfinity]) {
+            flags |= Self.negativeInfinite
+        }
+        if has([.valid, .indefinite]) {
+            flags |= Self.indefinite
+        }
+        self.init(value: time.value, scale: UInt32(bitPattern: time.timescale), flags: flags)
+    }
+
+    // PAL::toCMTime().
+    var time: CMTime {
+        var time: CMTime
+        if flags & Self.doubleValue != 0 {
+            time = CMTimeMakeWithSeconds(Double(bitPattern: UInt64(bitPattern: value)), preferredTimescale: Int32(truncatingIfNeeded: scale))
+        } else {
+            time = CMTimeMake(value: value, timescale: Int32(truncatingIfNeeded: scale))
+        }
+        if flags & Self.valid != 0 {
+            time.flags.insert(.valid)
+        } else {
+            time.flags.remove(.valid)
+        }
+        if flags & Self.hasBeenRounded != 0 {
+            time.flags.insert(.hasBeenRounded)
+        }
+        if flags & Self.positiveInfinite != 0 {
+            time.flags.insert(.positiveInfinity)
+        }
+        if flags & Self.negativeInfinite != 0 {
+            time.flags.insert(.negativeInfinity)
+        }
+        return time
+    }
+}
+
+// What the renderer's client hears, on the main thread: the C++ renderer through AudioVideoRendererHost, unless the GPU
+// process's renderer receiver set itself as the client (setClient(_:)).
+protocol AudioVideoRendererEventSink: AnyObject, Sendable {
+    func notifyError(_ error: UInt8)
+    func firstFrameAvailable()
+    func hasAvailableVideoFrame(_ presentationTime: CMTime, _ displayTime: Double)
+    func requiresFlushToResume()
+    func renderingModeChanged()
+    func sizeChanged(_ time: CMTime, _ width: Float, _ height: Float)
+    func effectiveRateChanged(_ rate: Double)
+    func mediaDataRequestSettled(_ isVideo: Bool, _ trackId: UInt64, _ resolved: Bool)
+    func seekSettled(_ resolved: Bool)
+    func timeReached(_ boundary: CMTime)
+    func performTask(_ now: CMTime)
+    func timeObserverFired(_ time: CMTime)
+    func audioRendererWasFlushed(_ trackId: UInt64, _ time: CMTime)
+}
+
+private final class HostEventSink: AudioVideoRendererEventSink, @unchecked Sendable {
+    private let host: WebCore.AudioVideoRendererHost
+
+    init(_ host: WebCore.AudioVideoRendererHost) {
+        self.host = host
+    }
+
+    func notifyError(_ error: UInt8) { host.notifyError(error) }
+    func firstFrameAvailable() { host.firstFrameAvailable() }
+    func hasAvailableVideoFrame(_ presentationTime: CMTime, _ displayTime: Double) { host.hasAvailableVideoFrame(presentationTime, displayTime) }
+    func requiresFlushToResume() { host.requiresFlushToResume() }
+    func renderingModeChanged() { host.renderingModeChanged() }
+    func sizeChanged(_ time: CMTime, _ width: Float, _ height: Float) { host.sizeChanged(time, width, height) }
+    func effectiveRateChanged(_ rate: Double) { host.effectiveRateChanged(rate) }
+    func mediaDataRequestSettled(_ isVideo: Bool, _ trackId: UInt64, _ resolved: Bool) { host.mediaDataRequestSettled(isVideo, trackId, resolved) }
+    func seekSettled(_ resolved: Bool) { host.seekSettled(resolved) }
+    func timeReached(_ boundary: CMTime) { host.timeReached(boundary) }
+    func performTask(_ now: CMTime) { host.performTask(now) }
+    func timeObserverFired(_ time: CMTime) { host.timeObserverFired(time) }
+    func audioRendererWasFlushed(_ trackId: UInt64, _ time: CMTime) { host.audioRendererWasFlushed(trackId, time) }
+}
+
+// The GPU process's renderer receiver, as the renderer's client. Each call is on the main thread. The C++ renderer's own
+// callbacks still hear when the first frame is available and when the rendering mode changes, which the layers and their
+// hosting depend on.
+@_spi(WebKitGPU)
+public protocol AudioVideoRendererClient: AnyObject, Sendable {
+    // A PlatformMediaError.
+    func rendererErrorOccurred(_ error: UInt8)
+    func rendererHasAvailableVideoFrame(_ presentationTime: AudioVideoRendererTime, _ displayTime: Double)
+    func rendererRequiresFlushToResume()
+    func rendererSizeChanged(_ time: AudioVideoRendererTime, width: Float, height: Float)
+    func rendererEffectiveRateChanged(_ rate: Double)
+    // After requestMediaDataWhenReady(_:) returned .later.
+    func rendererMediaDataRequestSettled(trackId: UInt64, resolved: Bool)
+    // After finishSeek(_:) returned true.
+    func rendererSeekSettled(_ resolved: Bool)
+    // After notifyTimeReachedAndStall(_:) returned false.
+    func rendererTimeReached()
+    // After performTaskAtTime(_:).
+    func rendererPerformTask()
+    // After setTimeObserver(interval:).
+    func rendererTimeObserverFired()
+    func rendererAudioRendererWasFlushed(trackId: UInt64, time: AudioVideoRendererTime)
+}
+
+private final class ClientEventSink: AudioVideoRendererEventSink, @unchecked Sendable {
+    private weak var client: (any AudioVideoRendererClient)?
+    private let host: HostEventSink
+
+    init(_ client: any AudioVideoRendererClient, host: HostEventSink) {
+        self.client = client
+        self.host = host
+    }
+
+    func notifyError(_ error: UInt8) { client?.rendererErrorOccurred(error) }
+    func firstFrameAvailable() { host.firstFrameAvailable() }
+    func hasAvailableVideoFrame(_ presentationTime: CMTime, _ displayTime: Double) { client?.rendererHasAvailableVideoFrame(AudioVideoRendererTime(presentationTime), displayTime) }
+    func requiresFlushToResume() { client?.rendererRequiresFlushToResume() }
+    func renderingModeChanged() { host.renderingModeChanged() }
+    func sizeChanged(_ time: CMTime, _ width: Float, _ height: Float) { client?.rendererSizeChanged(AudioVideoRendererTime(time), width: width, height: height) }
+    func effectiveRateChanged(_ rate: Double) { client?.rendererEffectiveRateChanged(rate) }
+    func mediaDataRequestSettled(_ isVideo: Bool, _ trackId: UInt64, _ resolved: Bool) { client?.rendererMediaDataRequestSettled(trackId: trackId, resolved: resolved) }
+    func seekSettled(_ resolved: Bool) { client?.rendererSeekSettled(resolved) }
+    func timeReached(_ boundary: CMTime) { client?.rendererTimeReached() }
+    func performTask(_ now: CMTime) { client?.rendererPerformTask() }
+    func timeObserverFired(_ time: CMTime) { client?.rendererTimeObserverFired() }
+    func audioRendererWasFlushed(_ trackId: UInt64, _ time: CMTime) { client?.rendererAudioRendererWasFlushed(trackId: trackId, time: AudioVideoRendererTime(time)) }
+}
+
+// VideoPlaybackQualityMetrics.
+@_spi(WebKitGPU)
+public struct AudioVideoRendererPlaybackQuality: Sendable {
+    public var totalVideoFrames: UInt32
+    public var droppedVideoFrames: UInt32
+    public var corruptedVideoFrames: UInt32
+    public var totalFrameDelay: Double
+    public var displayCompositedVideoFrames: UInt32
+}
+
+private struct WeakAudioVideoRendererCore {
+    weak var core: AudioVideoRendererCore?
+}
+
+// The cores by token, which the C++ renderer that owns each hands out (AudioVideoRendererAVFObjC::swiftToken()).
+private struct AudioVideoRendererTokens {
+    var lastToken: UInt64 = 0
+    var cores: [UInt64: WeakAudioVideoRendererCore] = [:]
+}
+
+private let audioVideoRendererTokens = Mutex(AudioVideoRendererTokens())
+
+// What AudioVideoRendererAVFObjC.mm calls, and what AudioVideoRendererMainActorCore lets the GPU process's renderer
+// receiver call.
 @_expose(Cxx)
 final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendererClient, WebAVSampleBufferListenerClient {
     private let host: WebCore.AudioVideoRendererHost
+    private let tokenValue: UInt64
+    private var events: any AudioVideoRendererEventSink
     private let synchronizer: AVSampleBufferRenderSynchronizer
     private let configuration: WebCore.AudioVideoRendererConfiguration
     private var listener: WebAVSampleBufferListener?
@@ -163,6 +357,11 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     @_expose(Cxx)
     init(_ host: WebCore.AudioVideoRendererHost, _ synchronizer: borrowing NSObject?, _ configuration: WebCore.AudioVideoRendererConfiguration) {
         self.host = host
+        events = HostEventSink(host)
+        tokenValue = audioVideoRendererTokens.withLock { tokens in
+            tokens.lastToken += 1
+            return tokens.lastToken
+        }
         guard let synchronizer = AVFoundationClass.cast(copy synchronizer, to: AVFoundationClass.AVSampleBufferRenderSynchronizer) else {
             preconditionFailure("AudioVideoRendererCore needs an AVSampleBufferRenderSynchronizer")
         }
@@ -181,6 +380,65 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             self.isSynchronizerSeeking = false
             self.maybeCompleteSeek()
         } as AnyObject
+        let token = tokenValue
+        let entry = WeakAudioVideoRendererCore(core: self)
+        audioVideoRendererTokens.withLock { tokens in
+            tokens.cores[token] = entry
+        }
+    }
+
+    deinit {
+        let token = tokenValue
+        // The entry goes after the lock is released, so that nothing is released while it is held.
+        let entry = audioVideoRendererTokens.withLock { tokens in
+            tokens.cores.removeValue(forKey: token)
+        }
+        _ = entry
+    }
+
+    // MARK: Token and client
+
+    @_expose(Cxx)
+    func token() -> UInt64 {
+        tokenValue
+    }
+
+    @_expose(!Cxx)
+    static func renderer(forToken token: UInt64) -> AudioVideoRendererCore? {
+        // The weak reference is loaded after the lock is released, so that the core can't go away while it is held.
+        let entry = audioVideoRendererTokens.withLock { $0.cores[token] }
+        return entry?.core
+    }
+
+    // From then on, the client hears what the C++ renderer's callbacks and promises did, apart from what
+    // AudioVideoRendererClient says the C++ renderer still hears, and the video target's and the output protection's
+    // changes, which only the C++ renderer acts on.
+    @_expose(!Cxx)
+    func setClient(_ client: any AudioVideoRendererClient) {
+        assertOnMain()
+        events = ClientEventSink(client, host: HostEventSink(host))
+    }
+
+    // The C++ renderer's videoPlaybackQualityMetrics(), if it has any.
+    @_expose(!Cxx)
+    func videoPlaybackQualityMetrics() -> AudioVideoRendererPlaybackQuality? {
+        let metrics = host.videoPlaybackQualityMetrics()
+        guard metrics.hasMetrics else {
+            return nil
+        }
+        return AudioVideoRendererPlaybackQuality(
+            totalVideoFrames: metrics.totalVideoFrames,
+            droppedVideoFrames: metrics.droppedVideoFrames,
+            corruptedVideoFrames: metrics.corruptedVideoFrames,
+            totalFrameDelay: metrics.totalFrameDelay,
+            displayCompositedVideoFrames: metrics.displayCompositedVideoFrames
+        )
+    }
+
+    // An error the C++ renderer ran into, which the client hears as the core's own.
+    @_expose(Cxx)
+    func reportError(_ error: UInt8) {
+        events.notifyError(error)
     }
 
     // MARK: Logging
@@ -200,7 +458,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     private func notifyError(_ error: PlatformMediaError) {
-        host.notifyError(error.rawValue)
+        events.notifyError(error.rawValue)
     }
 
     // MARK: Lifetime
@@ -338,7 +596,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
                     let hadSize = cachedSize != nil
                     cachedSize = size
                     if !hadSize {
-                        host.sizeChanged(info.presentationTime, size.width, size.height)
+                        events.sizeChanged(info.presentationTime, size.width, size.height)
                     } else {
                         sizeWillChangeAtTime(RendererTime(time: info.presentationTime), size)
                     }
@@ -388,7 +646,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    // 0: ready now; 1: the C++ renderer hears mediaDataRequestSettled() later; 2: no such renderer.
+    // 0: ready now; 1: its client hears mediaDataRequestSettled() later; 2: no such renderer.
     @_expose(Cxx)
     func requestMediaDataWhenReady(_ trackId: UInt64) -> UInt8 {
         guard let type = trackTypes[trackId] else {
@@ -417,7 +675,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             }
             if audioTracks[trackId]?.requestPending == true {
                 audioTracks[trackId]?.requestPending = false
-                host.mediaDataRequestSettled(false, trackId, false)
+                events.mediaDataRequestSettled(false, trackId, false)
             }
             if isReadyForMoreSamples(trackId) {
                 return 0
@@ -445,7 +703,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             return
         }
         videoRequestTrackId = nil
-        host.mediaDataRequestSettled(true, trackId, false)
+        events.mediaDataRequestSettled(true, trackId, false)
     }
 
     private func cancelVideoDataRequest() {
@@ -474,7 +732,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             }
             if track.requestPending {
                 self.audioTracks[trackId]?.requestPending = false
-                self.host.mediaDataRequestSettled(false, trackId, true)
+                self.events.mediaDataRequestSettled(false, trackId, true)
             }
         }
     }
@@ -487,7 +745,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         if isReadyForMoreSamples(trackId) {
             videoRequestTrackId = nil
             _ = requestTrackId
-            host.mediaDataRequestSettled(true, trackId, true)
+            events.mediaDataRequestSettled(true, trackId, true)
         } else {
             requestVideoDataWhenReady()
         }
@@ -503,7 +761,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
         if isReadyForMoreSamples(trackId) {
             audioTracks[trackId]?.requestPending = false
-            host.mediaDataRequestSettled(false, trackId, true)
+            events.mediaDataRequestSettled(false, trackId, true)
         } else {
             requestAudioDataWhenReady(trackId)
         }
@@ -687,7 +945,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         setSynchronizerRate(0, nil)
     }
 
-    // Whether the boundary is already behind, and the renderer stalled; otherwise the C++ renderer hears timeReached().
+    // Whether the boundary is already behind, and the renderer stalled; otherwise its client hears timeReached().
     @_expose(Cxx)
     func notifyTimeReachedAndStall(_ boundary: CMTime, _ roundedBoundary: CMTime) -> Bool {
         let timeBoundary = RendererTime(time: boundary)
@@ -715,7 +973,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             self.lastSetSyncRate = 0
 
             self.updateSharedTimebase()
-            self.host.timeReached(boundary)
+            self.events.timeReached(boundary)
         } as AnyObject
         return false
     }
@@ -729,7 +987,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    // Then the C++ renderer hears performTask() and runs its task.
+    // Then its client hears performTask().
     @_expose(Cxx)
     func performTaskAtTime(_ time: CMTime) {
         cancelPerformTaskAtTimeObserverIfNeeded()
@@ -741,7 +999,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             let now = self.currentTime()
             self.log(.Always, "AudioVideoRendererAVFObjC::performTaskAtTime boundary time observer called, now: \(RendererTime(time: now).logDescription)")
             self.updateSharedTimebase()
-            self.host.performTask(now)
+            self.events.performTask(now)
             self.cancelPerformTaskAtTimeObserverIfNeeded()
         } as AnyObject
     }
@@ -765,7 +1023,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             }
             let clampedTime = isNumeric(time) ? self.clampTimeToLastSeekTime(RendererTime(time: time)) : RendererTime.zero
             self.updateSharedTimebase()
-            self.host.timeObserverFired(clampedTime.time)
+            self.events.timeObserverFired(clampedTime.time)
         } as AnyObject
     }
 
@@ -777,10 +1035,13 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
     }
 
-    // Whether the seek completed at once; isFarFromSynchronizerTime is whether the synchronizer's time is more than
-    // 1ms away from the seek time.
+    // Whether the seek completed at once.
     @_expose(Cxx)
-    func prepareToSeek(_ seekTime: CMTime, _ isFarFromSynchronizerTime: Bool) -> Bool {
+    func prepareToSeek(_ seekTime: CMTime) -> Bool {
+        // Whether the synchronizer's time is more than 1ms away from the seek time, as MediaTime's toMicroseconds()
+        // truncates.
+        let difference = CMTimeConvertScale(CMTimeSubtract(synchronizer.currentTime(), seekTime), timescale: 1_000_000, method: .roundTowardZero)
+        let isFarFromSynchronizerTime = difference.flags.contains(.valid) && (difference.flags.contains(.positiveInfinity) || difference.flags.contains(.negativeInfinity) || difference.value.magnitude > 1000)
         log(.Always, "AudioVideoRendererAVFObjC::prepareToSeek state: \(seekState.name)")
 
         cancelSeekingPromiseIfNeeded()
@@ -822,7 +1083,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         return false
     }
 
-    // Whether the renderer is seeking; then the C++ renderer hears seekSettled().
+    // Whether the renderer is seeking; then its client hears seekSettled().
     @_expose(Cxx)
     func finishSeek(_ seekTime: CMTime) -> Bool {
         log(.Always, "AudioVideoRendererAVFObjC::finishSeek \(RendererTime(time: seekTime).logDescription) state: \(seekState.name) m_isSynchronizerSeeking: \(isSynchronizerSeeking) hasAvailableVideoFrame: \(videoRenderer != nil && allRenderersHaveAvailableSamples)")
@@ -860,7 +1121,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             cancelStartupGateObserver()
             lastForwardedEffectiveRate = rate
             updateSharedTimebase()
-            host.effectiveRateChanged(rate)
+            events.effectiveRateChanged(rate)
             return
         }
 
@@ -891,7 +1152,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         lastForwardedEffectiveRate = liveRate
         // The gate just lifted: effectiveRate() now returns the live rate; publish before notifying.
         updateSharedTimebase()
-        host.effectiveRateChanged(liveRate)
+        events.effectiveRateChanged(liveRate)
     }
 
     private func cancelStartupGateObserver() {
@@ -946,7 +1207,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
         if seekPending {
             seekPending = false
-            host.seekSettled(true)
+            events.seekSettled(true)
         }
         log(.Always, "AudioVideoRendererAVFObjC::maybeCompleteSeek seek completed")
     }
@@ -954,7 +1215,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private func cancelSeekingPromiseIfNeeded() {
         if seekPending {
             seekPending = false
-            host.seekSettled(false)
+            events.seekSettled(false)
         }
     }
 
@@ -1044,7 +1305,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         }
         hasAvailableVideoFrame = flag
         if flag {
-            host.firstFrameAvailable()
+            events.firstFrameAvailable()
             host.setNeedsPlaceholderImage(false)
         }
         updateAllRenderersHaveAvailableSamples()
@@ -1299,7 +1560,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         setVideoRenderer(object, completion)
 
         if needsRenderingModeChanged {
-            host.renderingModeChanged()
+            events.renderingModeChanged()
         }
     }
 
@@ -1418,7 +1679,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
                 guard let self, self.hasAvailableVideoFrameCallback else {
                     return
                 }
-                self.host.hasAvailableVideoFrame(currentTime, ProcessInfo.processInfo.systemUptime - startupTime)
+                self.events.hasAvailableVideoFrame(currentTime, ProcessInfo.processInfo.systemUptime - startupTime)
             }
         } as AnyObject
     }
@@ -1525,7 +1786,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         log(.Always, "AudioVideoRendererAVFObjC::notifyRequiresFlushToResume")
         clearReadyToRequestVideoData()
         host.setNeedsPlaceholderImage(true)
-        host.requiresFlushToResume()
+        events.requiresFlushToResume()
     }
 
     private func flushVideo() {
@@ -1556,14 +1817,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
                 self.synchronizer.removeTimeObserver(observer)
             }
             if self.hasSizeChangedCallback {
-                self.host.sizeChanged(time.time, size.width, size.height)
+                self.events.sizeChanged(time.time, size.width, size.height)
             }
         } as AnyObject
         sizeChangeObservers.append(observer)
 
         let now = RendererTime(time: currentTime())
         if now >= time && hasSizeChangedCallback {
-            host.sizeChanged(now.time, size.width, size.height)
+            events.sizeChanged(now.time, size.width, size.height)
         }
     }
 
@@ -1584,6 +1845,44 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         return "[\(kind)\(trackId)]"
     }
 
+    // MARK: The GPU process's renderer receiver
+
+    // Whether the boundary is already behind, and the renderer stalled; otherwise the client hears rendererTimeReached().
+    @_expose(!Cxx)
+    func notifyTimeReachedAndStall(_ boundary: AudioVideoRendererTime) -> Bool {
+        let time = boundary.time
+        return notifyTimeReachedAndStall(time, CMTimeConvertScale(time, timescale: 1000, method: .roundTowardNegativeInfinity))
+    }
+
+    // Then the client hears rendererPerformTask().
+    @_expose(!Cxx)
+    func performTaskAtTime(_ time: AudioVideoRendererTime) {
+        performTaskAtTime(time.time)
+    }
+
+    // Whether the seek completed at once.
+    @_expose(!Cxx)
+    func prepareToSeek(_ seekTime: AudioVideoRendererTime) -> Bool {
+        prepareToSeek(seekTime.time)
+    }
+
+    // Whether the renderer is seeking; then the client hears rendererSeekSettled(_:).
+    @_expose(!Cxx)
+    func finishSeek(_ seekTime: AudioVideoRendererTime) -> Bool {
+        finishSeek(seekTime.time)
+    }
+
+    @_expose(!Cxx)
+    func expectMinimumUpcomingPresentationTime(_ presentationTime: AudioVideoRendererTime) {
+        expectMinimumUpcomingPresentationTime(presentationTime.time)
+    }
+
+    // Then the client hears rendererTimeObserverFired() every interval seconds, until it is set again.
+    @_expose(!Cxx)
+    func setTimeObserver(interval: Double, enabled: Bool) {
+        setTimeObserver(CMTimeMakeWithSeconds(interval, preferredTimescale: 10_000_000), enabled)
+    }
+
     // MARK: VideoMediaSampleRendererClient
 
     @_expose(!Cxx)
@@ -1594,7 +1893,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     @_expose(!Cxx)
     func videoRendererHasAvailableVideoFrame(_ presentationTime: RendererTime, _ displayTime: Double) {
         if hasAvailableVideoFrameCallback {
-            host.hasAvailableVideoFrame(presentationTime.time, displayTime)
+            events.hasAvailableVideoFrame(presentationTime.time, displayTime)
         }
     }
 
@@ -1624,7 +1923,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
                 return
             }
             self.videoRequestTrackId = nil
-            self.host.mediaDataRequestSettled(true, trackId, true)
+            self.events.mediaDataRequestSettled(true, trackId, true)
         }
     }
 
@@ -1657,8 +1956,52 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             log(.Error, "AudioVideoRendererAVFObjC::audioRendererWasAutomaticallyFlushed Couldn't find track attached to Audio Renderer.")
             return
         }
-        host.audioRendererWasFlushed(trackId, flushTime)
+        events.audioRendererWasFlushed(trackId, flushTime)
     }
+}
+
+// The core, as the GPU process's renderer receiver reaches it: only on the main actor, where the core's state lives.
+@_spi(WebKitGPU)
+@MainActor
+public struct AudioVideoRendererMainActorCore {
+    private let core: AudioVideoRendererCore
+
+    private init(_ core: AudioVideoRendererCore) {
+        self.core = core
+    }
+
+    // The core of the C++ renderer whose AudioVideoRendererAVFObjC::swiftToken() the token is.
+    public static func renderer(forToken token: UInt64) -> AudioVideoRendererMainActorCore? {
+        AudioVideoRendererCore.renderer(forToken: token).map(AudioVideoRendererMainActorCore.init)
+    }
+
+    public func setClient(_ client: any AudioVideoRendererClient) { core.setClient(client) }
+    public func setHasProtectedVideoContent(_ protectedContent: Bool) { core.setHasProtectedVideoContent(protectedContent) }
+    public func removeTrack(_ trackId: UInt64) { core.removeTrack(trackId) }
+    public func isReadyForMoreSamples(_ trackId: UInt64) -> Bool { core.isReadyForMoreSamples(trackId) }
+    // 0: ready now; 1: the client hears rendererMediaDataRequestSettled(trackId:resolved:) later; 2: no such renderer.
+    public func requestMediaDataWhenReady(_ trackId: UInt64) -> UInt8 { core.requestMediaDataWhenReady(trackId) }
+    public func flush() { core.flush() }
+    public func flushTrack(_ trackId: UInt64) { core.flushTrack(trackId) }
+    public func applicationWillResignActive() { core.applicationWillResignActive() }
+    public func paused() -> Bool { core.paused() }
+    public func stall() { core.stall() }
+    // Whether the boundary is already behind, and the renderer stalled; otherwise the client hears rendererTimeReached().
+    public func notifyTimeReachedAndStall(_ boundary: AudioVideoRendererTime) -> Bool { core.notifyTimeReachedAndStall(boundary) }
+    public func cancelTimeReachedAction() { core.cancelTimeReachedAction() }
+    // Then the client hears rendererPerformTask().
+    public func performTaskAtTime(_ time: AudioVideoRendererTime) { core.performTaskAtTime(time) }
+    // Whether the seek completed at once.
+    public func prepareToSeek(_ seekTime: AudioVideoRendererTime) -> Bool { core.prepareToSeek(seekTime) }
+    // Whether the renderer is seeking; then the client hears rendererSeekSettled(_:).
+    public func finishSeek(_ seekTime: AudioVideoRendererTime) -> Bool { core.finishSeek(seekTime) }
+    public func renderingCanBeAcceleratedChanged(_ isAccelerated: Bool) { core.renderingCanBeAcceleratedChanged(isAccelerated) }
+    public func setHasAvailableVideoFrameCallback(_ hasCallback: Bool) { core.setHasAvailableVideoFrameCallback(hasCallback) }
+    public func expectMinimumUpcomingPresentationTime(_ presentationTime: AudioVideoRendererTime) { core.expectMinimumUpcomingPresentationTime(presentationTime) }
+    // Then the client hears rendererTimeObserverFired() every interval seconds, until it is set again.
+    public func setTimeObserver(interval: Double, enabled: Bool) { core.setTimeObserver(interval: interval, enabled: enabled) }
+    // The C++ renderer's videoPlaybackQualityMetrics(), if it has any.
+    public func videoPlaybackQualityMetrics() -> AudioVideoRendererPlaybackQuality? { core.videoPlaybackQualityMetrics() }
 }
 
 private struct ObjectToExpire: @unchecked Sendable {

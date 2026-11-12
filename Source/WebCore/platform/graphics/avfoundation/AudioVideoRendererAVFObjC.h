@@ -87,6 +87,10 @@ public:
 
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
 
+    // The token that finds the Swift core (AudioVideoRendererCore.renderer(forToken:)), for the GPU process's renderer
+    // receiver, which becomes its client.
+    WEBCORE_EXPORT uint64_t swiftToken() const;
+
     void shutdown() final;
 
     WEBCORE_EXPORT void setPreferences(VideoRendererPreferences) final;
@@ -175,7 +179,9 @@ private:
 
     WEBCORE_EXPORT AudioVideoRendererAVFObjC(const Logger&, uint64_t, std::unique_ptr<SharedTimebase>&&);
 
+    // What the client hears: notifyError() from the core, reportError() for the C++ renderer's own errors.
     void notifyError(PlatformMediaError);
+    void reportError(PlatformMediaError);
     String toString(TrackIdentifier) const;
     std::optional<TrackType> typeOf(TrackIdentifier) const;
     void periodicSharedTimerFired() final;

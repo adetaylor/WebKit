@@ -109,6 +109,16 @@ struct AudioVideoRendererVideoMetrics {
     bool decompressionSessionBlocked;
 };
 
+// The C++ renderer's VideoPlaybackQualityMetrics, if it has any.
+struct AudioVideoRendererPlaybackQualityMetrics {
+    uint32_t totalVideoFrames;
+    uint32_t droppedVideoFrames;
+    uint32_t corruptedVideoFrames;
+    double totalFrameDelay;
+    uint32_t displayCompositedVideoFrames;
+    bool hasMetrics;
+};
+
 class AudioVideoRendererHost final : public ThreadSafeRefCounted<AudioVideoRendererHost> {
 public:
     static Ref<AudioVideoRendererHost> create(AudioVideoRendererAVFObjC&);
@@ -152,6 +162,7 @@ public:
     void setSharedTimerActive(bool) const;
     void removeBlockedSamples(AudioVideoRendererBlockedSamples, uint64_t trackIdentifier) const;
     uint32_t rendererDroppedVideoFrames(AudioVideoRendererObject) const;
+    AudioVideoRendererPlaybackQualityMetrics videoPlaybackQualityMetrics() const;
 
     // The main thread: what the clients hear.
     void notifyError(uint8_t platformMediaError) const;

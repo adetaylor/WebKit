@@ -98,7 +98,9 @@ function CoreMedia CMSampleBufferGetOutputPresentationTimeStamp
 function CoreMedia CMSampleBufferGetPresentationTimeStamp
 function CoreMedia CMTimeAdd
 function CoreMedia CMTimeCompare
+function CoreMedia CMTimeConvertScale
 function CoreMedia CMTimeGetSeconds
+function CoreMedia CMTimeSubtract
 function CoreMedia CMTimebaseGetEffectiveRate
 function CoreMedia CMTimebaseGetTime
 

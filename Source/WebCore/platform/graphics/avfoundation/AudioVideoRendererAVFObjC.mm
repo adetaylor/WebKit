@@ -460,6 +460,16 @@ void AudioVideoRendererAVFObjC::notifyError(PlatformMediaError error)
         m_errorCallback(error);
 }
 
+void AudioVideoRendererAVFObjC::reportError(PlatformMediaError error)
+{
+    m_core->swift.reportError(static_cast<uint8_t>(error));
+}
+
+uint64_t AudioVideoRendererAVFObjC::swiftToken() const
+{
+    return m_core->swift.token();
+}
+
 // Synchronizer interface
 void AudioVideoRendererAVFObjC::play(std::optional<MonotonicTime> hostTime)
 {
@@ -615,10 +625,8 @@ Ref<MediaTimePromise> AudioVideoRendererAVFObjC::prepareToSeek(const MediaTime& 
     if (m_isShutdown)
         return MediaTimePromise::createAndReject(PlatformMediaError::Shutdown);
 
-    MediaTime synchronizerTime = PAL::toMediaTime([m_synchronizer currentTime]);
-    bool isFarFromSynchronizerTime = std::abs((synchronizerTime - seekTime).toMicroseconds()) > 1000;
     m_lastSeekTargetTime = seekTime;
-    if (m_core->swift.prepareToSeek(PAL::toCMTime(seekTime), isFarFromSynchronizerTime))
+    if (m_core->swift.prepareToSeek(PAL::toCMTime(seekTime)))
         return MediaTimePromise::createAndResolve(seekTime);
     return MediaTimePromise::createAndResolve(MediaTime::indefiniteTime());
 }
@@ -1101,7 +1109,7 @@ bool AudioVideoRendererAVFObjC::createRenderingObject(AudioVideoRendererObject o
         if (!m_sampleBufferDisplayLayer) {
             ERROR_LOG(LOGIDENTIFIER, "-[AVSampleBufferDisplayLayer init] returned nil! bailing!");
             ASSERT_NOT_REACHED();
-            notifyError(PlatformMediaError::VideoDecodingError);
+            reportError(PlatformMediaError::VideoDecodingError);
             return false;
         }
         [m_sampleBufferDisplayLayer setName:@"AudioVideoRendererAVFObjC AVSampleBufferDisplayLayer"];
@@ -1126,7 +1134,7 @@ bool AudioVideoRendererAVFObjC::createRenderingObject(AudioVideoRendererObject o
         if (!m_sampleBufferVideoRenderer) {
             ERROR_LOG(LOGIDENTIFIER, "-[VSampleBufferVideoRenderer init] returned nil! bailing!");
             ASSERT_NOT_REACHED();
-            notifyError(PlatformMediaError::VideoDecodingError);
+            reportError(PlatformMediaError::VideoDecodingError);
             return false;
         }
 
@@ -1148,7 +1156,7 @@ bool AudioVideoRendererAVFObjC::createRenderingObject(AudioVideoRendererObject o
             ERROR_LOG(LOGIDENTIFIER, "-[AVSampleBufferAudioRenderer init] returned nil! bailing!");
             ASSERT_NOT_REACHED();
 
-            notifyError(PlatformMediaError::AudioDecodingError);
+            reportError(PlatformMediaError::AudioDecodingError);
             return false;
         }
 
@@ -1167,7 +1175,7 @@ bool AudioVideoRendererAVFObjC::createRenderingObject(AudioVideoRendererObject o
             ERROR_LOG(LOGIDENTIFIER, "-[AVSampleBufferRenderSynchronizer addRenderer:] threw an exception: ", exception.name, ", reason : ", exception.reason);
             ASSERT_NOT_REACHED();
 
-            notifyError(PlatformMediaError::AudioDecodingError);
+            reportError(PlatformMediaError::AudioDecodingError);
             return false;
         }
 
@@ -1221,7 +1229,7 @@ bool AudioVideoRendererAVFObjC::addToSynchronizer(AudioVideoRendererObject objec
         ERROR_LOG(LOGIDENTIFIER, "-[AVSampleBufferRenderSynchronizer addRenderer:] threw an exception: ", exception.name, ", reason : ", exception.reason);
         ASSERT_NOT_REACHED();
 
-        notifyError(PlatformMediaError::DecoderCreationError);
+        reportError(PlatformMediaError::DecoderCreationError);
         return false;
     }
     return true;
@@ -1291,7 +1299,7 @@ void AudioVideoRendererAVFObjC::hdcpStatusChanged(bool obscured)
         cdmInstance->setHDCPStatus(obscured ? CDMInstance::HDCPStatus::OutputRestricted : CDMInstance::HDCPStatus::Valid);
 #else
     UNUSED_PARAM(obscured);
-    notifyError(PlatformMediaError::VideoDecodingError);
+    reportError(PlatformMediaError::VideoDecodingError);
 #endif
 }
 
@@ -1993,6 +2001,17 @@ uint32_t AudioVideoRendererHost::rendererDroppedVideoFrames(AudioVideoRendererOb
 {
     RefPtr renderer = m_renderer.get();
     return renderer ? renderer->rendererDroppedVideoFrames(object) : 0;
+}
+
+AudioVideoRendererPlaybackQualityMetrics AudioVideoRendererHost::videoPlaybackQualityMetrics() const
+{
+    RefPtr renderer = m_renderer.get();
+    if (!renderer)
+        return { };
+    auto metrics = renderer->videoPlaybackQualityMetrics();
+    if (!metrics)
+        return { };
+    return { metrics->totalVideoFrames, metrics->droppedVideoFrames, metrics->corruptedVideoFrames, metrics->totalFrameDelay, metrics->displayCompositedVideoFrames, true };
 }
 
 void AudioVideoRendererHost::notifyError(uint8_t error) const
