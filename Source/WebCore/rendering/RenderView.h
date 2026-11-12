@@ -73,7 +73,7 @@ public:
     LayoutUnit clientLogicalHeightForFixedPosition() const;
 
 
-    NODELETE inline LocalFrameView& frameView() const LIFETIME_BOUND; // Defined in LocalFrameViewInlines.h.
+    NODELETE inline LocalFrameView& frameView() const; // Defined in LocalFrameViewInlines.h.
 
     Layout::InitialContainingBlock& initialContainingBlock() { return m_initialContainingBlock.get(); }
     const Layout::InitialContainingBlock& initialContainingBlock() const { return m_initialContainingBlock.get(); }

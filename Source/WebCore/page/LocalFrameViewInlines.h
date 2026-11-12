@@ -59,7 +59,7 @@ inline bool LocalFrameView::hasEnoughContentForVisualMilestones() const
     return isVisuallyNonEmpty() && hasContentfulDescendants() && (!m_frame->page()->requestedLayoutMilestones().contains(LayoutMilestone::DidRenderSignificantAmountOfText) || m_renderedSignificantAmountOfText);
 }
 
-inline LocalFrameView& RenderView::frameView() const LIFETIME_BOUND
+inline LocalFrameView& RenderView::frameView() const
 {
     return m_frameView.get();
 }

@@ -234,6 +234,13 @@ public:
 
     // Size available for view contents, including content inset areas. Not affected by zooming.
     WEBCORE_EXPORT IntSize sizeForVisibleContent(VisibleContentRectIncludesScrollbars = VisibleContentRectIncludesScrollbars::No) const;
+
+    // ScrollableArea's members that Swift does not see through a ScrollView.
+    bool hasOverlayScrollbarsForSwift() const { return hasOverlayScrollbars(); }
+    void invalidateScrollbarForSwift(Scrollbar& scrollbar, IntRect rect) { invalidateScrollbar(scrollbar, rect); }
+    void invalidateScrollCornerForSwift(IntRect rect) { invalidateScrollCorner(rect); }
+    float obscuredContentInsetTopForSwift() const { return obscuredContentInsets().top(); }
+    float obscuredContentInsetLeftForSwift() const { return obscuredContentInsets().left(); }
     // FIXME: remove this. It's only used for the incorrectly behaving ScrollView::unobscuredContentRectInternal().
     virtual float visibleContentScaleFactor() const { return 1; }
 

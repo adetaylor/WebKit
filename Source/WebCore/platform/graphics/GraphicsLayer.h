@@ -168,6 +168,10 @@ public:
     WEBCORE_EXPORT virtual void addChildAtIndex(Ref<GraphicsLayer>&&, int index);
     WEBCORE_EXPORT virtual void addChildAbove(Ref<GraphicsLayer>&&, GraphicsLayer* sibling);
     WEBCORE_EXPORT virtual void addChildBelow(Ref<GraphicsLayer>&&, GraphicsLayer* sibling);
+    // The child insertions for Swift, which cannot pass a Ref.
+    void addChildForSwift(GraphicsLayer& child) { addChild(child); }
+    void addChildAboveForSwift(GraphicsLayer& child, GraphicsLayer* sibling) { addChildAbove(child, sibling); }
+    void addChildBelowForSwift(GraphicsLayer& child, GraphicsLayer* sibling) { addChildBelow(child, sibling); }
     WEBCORE_EXPORT virtual bool replaceChild(GraphicsLayer* oldChild, Ref<GraphicsLayer>&& newChild);
 
     WEBCORE_EXPORT void removeAllChildren();
@@ -208,6 +212,7 @@ public:
 
     // The position of the layer (the location of its top-left corner in its parent)
     const FloatPoint& position() const LIFETIME_BOUND { return m_position; }
+    FloatPoint positionForSwift() const { return m_position; }
     virtual void setPosition(const FloatPoint& p) { m_approximatePosition = std::nullopt; m_position = p; }
 
     // approximatePosition, if set, overrides position() and is used during coverage rect computation.
@@ -224,6 +229,7 @@ public:
 
     // The size of the layer.
     const FloatSize& size() const LIFETIME_BOUND { return m_size; }
+    FloatSize sizeForSwift() const { return m_size; }
     WEBCORE_EXPORT virtual void setSize(const FloatSize&);
 
     // The boundOrigin affects the offset at which content is rendered, and sublayers are positioned.
