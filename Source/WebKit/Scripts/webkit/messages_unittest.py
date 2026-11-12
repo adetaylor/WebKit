@@ -74,6 +74,8 @@ _test_receiver_names = [
     'TestWithSwiftConditionally',
     'TestWithSwiftConditionallyAndEnabledBy',
     'TestWithSwiftImplementation',
+    'TestWithSwiftImplementationAndSuperclass',
+    'TestWithSwiftImplementationAndWantsDispatch',
     'TestWithSwiftTypes',
     'TestWithSwiftTypesOptIn',
     'TestWithSwiftWorkQueue',
@@ -349,6 +351,28 @@ messages -> TestReceiver%s {
 
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftImplementation', which is for a C\+\+ receiver, so it cannot be a Swift receiver too"):
             parse_swift_implementation('    SwiftMessage(uint32_t value)', attributes=('SwiftImplementation', 'SwiftReceiver', 'SwiftTypes'))
+
+    def test_swift_types_and_wants_dispatch_message(self):
+        def parse(attributes, receiver_attributes):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver %s {
+    SwiftMessage(uint32_t value) SwiftTypes
+}
+""" % (',\n    '.join(attributes), receiver_attributes)))
+
+        # A C++ receiver that Swift implements handles the messages that take Swift types before it dispatches the rest.
+        handler = messages.generate_message_handler(parse(['SwiftImplementation'], 'WantsDispatchMessage'))
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n        return;\n    }\n    if (dispatchMessage(connection, decoder))\n', handler)
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage takes Swift types, which is not supported on a receiver with 'WantsDispatchMessage'"):
+            parse(['SwiftReceiver'], 'WantsDispatchMessage')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.SwiftMessage takes Swift types, which is not supported on a receiver with 'WantsAsyncDispatchMessage'"):
+            parse(['SwiftImplementation'], 'WantsAsyncDispatchMessage')
 
     def test_cxx_decoded_arguments(self):
         receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver', 'SwiftTypes'], """
