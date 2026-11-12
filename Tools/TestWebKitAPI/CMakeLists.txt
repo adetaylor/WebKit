@@ -237,6 +237,7 @@ if (ENABLE_JAVASCRIPTCORE)
         Tests/JavaScriptCore/PropertySlot.cpp
         Tests/JavaScriptCore/RegularExpression.cpp
         Tests/JavaScriptCore/StrongBlock.cpp
+        Tests/JavaScriptCore/TemporalBench.cpp
         Tests/JavaScriptCore/WeakSet.cpp
     )
 
