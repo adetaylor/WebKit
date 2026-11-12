@@ -1157,6 +1157,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     runtime/CyclicModuleRecord.h
     runtime/DOMAnnotation.h
     runtime/DataView.h
+    runtime/DateConstructor.h
     runtime/DateInstance.h
     runtime/DeferredWorkTimer.h
     runtime/DeferTermination.h
@@ -1832,10 +1833,10 @@ endif ()
 WEBKIT_FRAMEWORK_DECLARE(JavaScriptCore)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
-# libJavaScriptCore's Swift (JSBigInt's digit arithmetic) and the JSON parser have no C++ implementation, so every
-# port compiles their Swift. One command compiles each whole-module into an object JavaScriptCore links, and writes the
-# header its C++ includes, with libJavaScriptCore.xcconfig's, JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift
-# settings.
+# libJavaScriptCore's Swift (JSBigInt's digit arithmetic, Temporal's ISO 8601 parsers, formatting and ISO arithmetic) and
+# the JSON parser have no C++ implementation, so every port compiles their Swift. One command compiles each whole-module
+# into an object JavaScriptCore links, and writes the header its C++ includes, with libJavaScriptCore.xcconfig's,
+# JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift settings.
 set(WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS "" CACHE STRING "Extra swiftc flags for libJavaScriptCore's Swift (JSCSwift)")
 set(_jsc_swift_platform_flags -O -g)
 if (WIN32)
@@ -1880,6 +1881,16 @@ set(_jsc_swift_sources
     runtime/JSBigIntDigitsFFT.swift
     runtime/JSBigIntDigitsMultiply.swift
     runtime/JSBigIntDigitsPrimitives.swift
+    runtime/ISO8601.swift
+    runtime/ISO8601Parser.swift
+    runtime/TemporalSupport.swift
+    runtime/temporal/core/CalendarFields.swift
+    runtime/temporal/core/DurationArithmetic.swift
+    runtime/temporal/core/ISOArithmetic.swift
+    runtime/temporal/core/InstantCore.swift
+    runtime/temporal/core/PlainDateTimeCore.swift
+    runtime/temporal/core/Rounding.swift
+    runtime/temporal/core/ZonedDateTimeCore.swift
 )
 list(TRANSFORM _jsc_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
 set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
@@ -1967,7 +1978,7 @@ if (TARGET JavaScriptCore_CopyModules)
 endif ()
 list(APPEND JavaScriptCore_SOURCES "${_jsc_swift_obj}")
 set_source_files_properties("${_jsc_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-# JSBigInt.cpp, in a unified source, includes the generated header.
+# JSBigInt.cpp and Temporal's C++, in unified sources, include the generated header.
 list(APPEND JavaScriptCore_DEPENDENCIES JSCSwift)
 
 set(_jsc_json_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/LiteralParserSwift")
