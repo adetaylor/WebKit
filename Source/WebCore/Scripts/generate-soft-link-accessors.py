@@ -160,13 +160,17 @@ def parse_pal(paths):
 # of the soft-linked framework (a typed collection), which would link it: `member <framework> <class> <selector>
 # <declaration>`, where the declaration is the Swift one with NSArray and NSDictionary for the SDK's typed collections, as
 # `func name(labels: Types) [throws] [-> Type]` or `var name: Type { get }`. `[T] counted by property` stands for a
-# `const T *` the object owns, which the generated adapter copies, so the pointer never leaves the generated file.
+# `const T *` the object owns, which the generated adapter copies, so the pointer never leaves the generated file. A
+# selector that starts with `+` is a class method, which Swift calls on the class object that a `class` entry soft-links.
 class Member:
     def __init__(self, cls, selector, declaration):
         self.cls = cls
-        self.selector = selector
+        self.is_class_member = selector.startswith('+')
+        self.selector = selector[1:] if self.is_class_member else selector
         self.declaration = declaration
         m = re.fullmatch(r'var (\w+): (.+?) \{ get \}', declaration)
+        if m and self.is_class_member:
+            raise GeneratorError(f'{cls} {selector}: a class method is declared as a func')
         if m:
             self.name, self.is_property, self.parameters, self.throws, self.result, self.counted_by = m.group(1), True, [], False, m.group(2), None
             return
@@ -181,10 +185,12 @@ class Member:
             self.parameters.append((words[0], words[-1], parameter_type.strip()))
         if self.counted_by and not re.fullmatch(r'\[\w+\]', self.result):
             raise GeneratorError(f'{cls} {selector}: "counted by" needs an array result, not {self.result}')
+        if self.counted_by and self.is_class_member:
+            raise GeneratorError(f'{cls} {selector}: a class method can\'t be "counted by" a property')
 
     @property
     def key(self):
-        return f'{self.cls} {self.selector}'
+        return f'{self.cls} {"+" if self.is_class_member else ""}{self.selector}'
 
     @property
     def protocol(self):
@@ -460,9 +466,21 @@ class ObjCHeaders:
     def __init__(self, texts):
         self.superclasses = {}
         self.members = {}
+        self.class_members = {}
+        self.nullable_results = {}
         self.string_typedefs = set()
         for text in texts:
             self.parse(strip_comments(text))
+
+    # Whether a declaration may give nil: annotated nullable or null_unspecified, or not annotated outside
+    # NS_ASSUME_NONNULL_BEGIN/END.
+    @staticmethod
+    def may_be_nil(annotations, assumes_nonnull):
+        if re.search(r'\b(nullable|null_unspecified|_Nullable|_Null_unspecified|__nullable)\b', annotations):
+            return True
+        if re.search(r'\b(nonnull|_Nonnull|__nonnull)\b', annotations):
+            return False
+        return not assumes_nonnull
 
     @staticmethod
     def normalize_type(text):
@@ -494,19 +512,40 @@ class ObjCHeaders:
     def parse(self, text):
         for m in re.finditer(r'typedef\s+NSString\s*\*\s*(\w+)', text):
             self.string_typedefs.add(m.group(1))
+        nonnull_regions = []
+        for m in re.finditer(r'\bNS_ASSUME_NONNULL_(BEGIN|END)\b', text):
+            if m.group(1) == 'BEGIN':
+                nonnull_regions.append([m.end(), len(text)])
+            elif nonnull_regions:
+                nonnull_regions[-1][1] = m.start()
         for m in re.finditer(r'@interface\s+(\w+)\s*(?::\s*(\w+))?[^\n]*?\n(.*?)@end', text, re.S):
             name, superclass, body = m.group(1), m.group(2), m.group(3)
+            assumes_nonnull = any(start <= m.start(3) < end for start, end in nonnull_regions)
             if superclass:
                 self.superclasses[name] = superclass
-            members = self.members.setdefault(name, {})
+            instance_members = self.members.setdefault(name, {})
+            class_members = self.class_members.setdefault(name, {})
             body = re.sub(r'\{[^{}]*\}', ';', body, count=1) if body.lstrip().startswith('{') else body
+            body = re.sub(r'^\s*#.*$', '', body, flags=re.M)
             for statement in body.split(';'):
                 statement = ' '.join(statement.split())
                 if statement.startswith('@property'):
+                    attributes = re.match(r'^@property\s*(\(([^)]*)\))?', statement).group(2) or ''
                     declaration = self.strip_trailing_macros(re.sub(r'^@property\s*(\([^)]*\))?', '', statement))
                     p = re.fullmatch(r'(.*?)\s*\b(\w+)', declaration)
-                    if p:
-                        members[p.group(2)] = (self.normalize_type(p.group(1)), [])
+                    if not p:
+                        continue
+                    is_class = bool(re.search(r'\bclass\b', attributes))
+                    members = class_members if is_class else instance_members
+                    property_type = self.normalize_type(p.group(1))
+                    getter = re.search(r'\bgetter\s*=\s*(\w+)', attributes)
+                    getter = getter.group(1) if getter else p.group(2)
+                    members[getter] = (property_type, [])
+                    self.nullable_results[(name, is_class, getter)] = self.may_be_nil(attributes + ' ' + p.group(1), assumes_nonnull)
+                    if not re.search(r'\breadonly\b', attributes):
+                        setter = re.search(r'\bsetter\s*=\s*(\w+:)', attributes)
+                        setter = setter.group(1) if setter else f'set{p.group(2)[0].upper()}{p.group(2)[1:]}:'
+                        members[setter] = ('void', [property_type])
                 elif statement[:1] in '-+' and '(' in statement:
                     return_type, end = self.balanced(statement, statement.index('('))
                     rest = self.strip_trailing_macros(statement[end:])
@@ -521,15 +560,24 @@ class ObjCHeaders:
                         rest = re.sub(r'^\s*\w+', '', rest[end:], count=1)
                     selector = ''.join(f'{piece}:' for piece in pieces) if pieces else rest.strip()
                     if selector:
-                        members[selector] = (self.normalize_type(return_type), parameters)
+                        is_class = statement[0] == '+'
+                        (class_members if is_class else instance_members)[selector] = (self.normalize_type(return_type), parameters)
+                        self.nullable_results[(name, is_class, selector)] = self.may_be_nil(return_type, assumes_nonnull)
 
-    def find(self, cls, selector):
+    def find(self, cls, selector, is_class_member=False):
         while cls:
-            member = self.members.get(cls, {}).get(selector)
+            member = (self.class_members if is_class_member else self.members).get(cls, {}).get(selector)
             if member:
                 return member
             cls = self.superclasses.get(cls)
         return None
+
+    def result_may_be_nil(self, cls, selector, is_class_member=False):
+        while cls:
+            if (self.class_members if is_class_member else self.members).get(cls, {}).get(selector):
+                return self.nullable_results.get((cls, is_class_member, selector), True)
+            cls = self.superclasses.get(cls)
+        return True
 
     # The Swift type that may stand for an Objective-C type in a member's re-declaration: the plain type, with NSArray and
     # NSDictionary for typed collections and AnyObject for protocol-typed objects, which would otherwise name the
@@ -556,9 +604,9 @@ class ObjCHeaders:
         return set()
 
     def check(self, member):
-        found = self.find(member.cls, member.selector)
+        found = self.find(member.cls, member.selector, member.is_class_member)
         if not found:
-            raise GeneratorError(f'{member.key}: the SDK\'s headers declare no such member of {member.cls} or its superclasses')
+            raise GeneratorError(f'{member.key}: the SDK\'s headers declare no such {"class " if member.is_class_member else ""}member of {member.cls} or its superclasses')
         return_type, parameters = found
         swift_parameters = [parameter_type for _, _, parameter_type in member.parameters]
         throws = bool(parameters) and parameters[-1] == 'NSError**'
@@ -575,6 +623,12 @@ class ObjCHeaders:
         for objc_type, swift_type in zip(parameters, swift_parameters):
             if strip(swift_type) not in self.erased_types(objc_type):
                 raise GeneratorError(f'{member.key}: a parameter is {objc_type} in the SDK, which {swift_type} cannot stand for')
+        # A parameter that stands for a typed collection or a class lets Swift pass objects of other classes, so calling
+        # the re-declaration is unsafe.
+        member.erases_parameters = any(strip(swift_type) in ('NSArray', 'NSDictionary', 'AnyObject') and objc_type not in ('NSArray*', 'NSDictionary*', 'id')
+            for objc_type, swift_type in zip(parameters, swift_parameters))
+        if not throws and not member.counted_by and not member.result.endswith('?') and self.erased_types(return_type) & {'NSArray', 'NSDictionary', 'AnyObject', 'NSString'} and self.result_may_be_nil(member.cls, member.selector, member.is_class_member):
+            raise GeneratorError(f'{member.key}: the SDK\'s result may be nil, so "{member.result}" needs to be optional')
         result = strip(member.result)
         if member.counted_by:
             result += ' counted'
@@ -589,8 +643,9 @@ class ObjCHeaders:
 def member_accessor(framework, member, swift_names=None):
     protocol = f'{framework}{member.protocol}'
     qualified = f'{framework}.{(swift_names or {}).get(member.cls, member.cls)}'
-    lines = [f'// -[{member.cls} {member.selector}], with NSArray and NSDictionary for the SDK\'s typed collections.']
+    lines = [f'// {"+" if member.is_class_member else "-"}[{member.cls} {member.selector}], with NSArray and NSDictionary for the SDK\'s typed collections.']
     lines.append(f'@objc protocol {protocol} {{')
+    unsafe = '@unsafe ' if getattr(member, 'erases_parameters', False) else ''
     if member.is_property:
         lines.append(f'    @objc({member.selector}) var {member.name}: {member.result} {{ get }}')
     else:
@@ -600,11 +655,22 @@ def member_accessor(framework, member, swift_names=None):
             result = f' -> UnsafePointer<{element}>?'
         else:
             result = '' if member.result == 'Void' else f' -> {member.result}'
-        lines.append(f'    @objc({member.selector}) func {member.name}({parameters}){" throws" if member.throws else ""}{result}')
+        lines.append(f'    {unsafe}@objc({member.selector}) func {member.name}({parameters}){" throws" if member.throws else ""}{result}')
     lines.append('}')
     lines.append('')
     lines.append(f'extension {framework}Member {{')
-    if member.counted_by:
+    if member.is_class_member:
+        lines += [
+            '    // The class object, seen through the re-declaration, or nil if it doesn\'t answer the selector.',
+            f'    static func {member.name}(of classObject: {qualified}.Type) -> (any {protocol})? {{',
+            '        let object: AnyObject = classObject',
+            f'        guard object.responds(to: NSSelectorFromString("{member.selector}")) else {{',
+            '            return nil',
+            '        }',
+            f'        return unsafe unsafeBitCast(object, to: (any {protocol}).self)',
+            '    }',
+        ]
+    elif member.counted_by:
         signature = ''.join(f', {label} {local}: {parameter_type}' if label != local else f', {label}: {parameter_type}' for label, local, parameter_type in member.parameters)
         arguments = ', '.join(local if label == '_' else f'{label}: {local}' for label, local, _ in member.parameters)
         lines += [
