@@ -29,7 +29,6 @@
 #import "GraphicsContextGLCocoa.h"
 
 #import "ANGLEHeaders.h"
-#import "GraphicsContextGLANGLEIsland.h"
 #import "ANGLEUtilities.h"
 #import "ANGLEUtilitiesCocoa.h"
 #import "CVUtilities.h"
@@ -37,6 +36,7 @@
 #import "Logging.h"
 #import "PixelBuffer.h"
 #import "ProcessIdentity.h"
+#import "WebCoreWebGL.h"
 #import <CoreGraphics/CGBitmapContext.h>
 #import <Metal/Metal.h>
 #import <pal/spi/cg/CoreGraphicsSPI.h>
@@ -70,23 +70,6 @@ static_assert(std::to_underlying(GraphicsContextGL::SurfaceBuffer::DisplayBuffer
 static_assert(std::to_underlying(GraphicsContextGLPowerPreference::Default) == 0 && std::to_underlying(GraphicsContextGLPowerPreference::LowPower) == 1 && std::to_underlying(GraphicsContextGLPowerPreference::HighPerformance) == 2, "ANGLECocoa::getMetalDisplay");
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLCocoa);
-
-struct GraphicsContextGLCocoa::CocoaPlatform {
-    WTF_MAKE_NONCOPYABLE(CocoaPlatform);
-    WTF_MAKE_TZONE_ALLOCATED(CocoaPlatform);
-public:
-    explicit CocoaPlatform(WebCoreWebGL::CocoaGLPlatform&& platform)
-        : platform(WTF::move(platform))
-    {
-    }
-
-    WebCoreWebGL::CocoaGLPlatform platform;
-    // The IOSurfaces of the last display buffers, so that one isn't made for every frame.
-    std::array<std::unique_ptr<IOSurface>, maxReusedDrawingBuffers> displayBufferSurfaces;
-    size_t nextDisplayBufferSurface { 0 };
-};
-
-WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextGLCocoa::CocoaPlatform);
 
 #if ENABLE(VIDEO)
 CVPixelBufferRef GLContextCallbacks::convertPixelBufferTo420f(CVPixelBufferRef pixelBuffer)
@@ -122,25 +105,27 @@ GraphicsContextGLCocoa::GraphicsContextGLCocoa(GraphicsContextGLAttributes&& cre
 
 GraphicsContextGLCocoa::~GraphicsContextGLCocoa()
 {
-    if (auto* island = this->island())
-        island->context.willDestroyPlatform();
-    else if (m_cocoaPlatform)
-        m_cocoaPlatform->platform.destroyWithoutContext();
+    auto island = islandCalls();
+    if (island.hasContext())
+        island.willDestroyPlatform();
+    else if (island.hasPlatform())
+        island.destroyPlatformWithoutContext();
 }
 
 IOSurface* GraphicsContextGLCocoa::displayBufferSurface()
 {
-    if (!m_cocoaPlatform)
+    auto island = islandCalls();
+    if (!island.hasPlatform())
         return nullptr;
-    auto surface = adoptCF(m_cocoaPlatform->platform.displayBufferSurface());
+    auto surface = adoptCF(island.displayBufferSurface());
     if (!surface)
         return nullptr;
-    auto& surfaces = m_cocoaPlatform->displayBufferSurfaces;
+    auto& surfaces = m_displayBufferSurfaces;
     for (auto& displayBufferSurface : surfaces) {
         if (displayBufferSurface && displayBufferSurface->surface() == surface.get())
             return displayBufferSurface.get();
     }
-    auto& displayBufferSurface = surfaces[m_cocoaPlatform->nextDisplayBufferSurface++ % surfaces.size()];
+    auto& displayBufferSurface = surfaces[m_nextDisplayBufferSurface++ % surfaces.size()];
     displayBufferSurface = IOSurface::createFromSurface(surface.get(), std::nullopt);
     return displayBufferSurface.get();
 }
@@ -165,15 +150,14 @@ bool GraphicsContextGLCocoa::platformInitializeContext()
     uint32_t ownershipIdentity = 0;
 #endif
     auto maximumSurfaceSize = IOSurface::maximumSize();
-    m_cocoaPlatform = makeUnique<CocoaPlatform>(WebCoreWebGL::CocoaGLPlatform::init(contextID(), attributes.isWebGL2, attributes.alpha, std::to_underlying(attributes.powerPreference), windowGPUID, xrCompatible, ownershipIdentity, maximumSurfaceSize.width(), maximumSurfaceSize.height()));
-    auto& platform = m_cocoaPlatform->platform;
-    if (!platform.isValid()) {
+    auto island = islandCalls();
+    if (!island.createCocoaPlatform(contextID(), attributes.isWebGL2, attributes.alpha, std::to_underlying(attributes.powerPreference), windowGPUID, xrCompatible, ownershipIdentity, maximumSurfaceSize.width(), maximumSurfaceSize.height())) {
         LOG(WebGL, "EGLContext Initialization failed.");
         return false;
     }
-    m_displayObj = ANGLEHandles::unwrap(platform.platformDisplay());
-    m_configObj = ANGLEHandles::unwrap(platform.platformConfig());
-    m_contextObj = ANGLEHandles::unwrap(platform.platformContext());
+    m_displayObj = ANGLEHandles::unwrap(island.platformDisplay());
+    m_configObj = ANGLEHandles::unwrap(island.platformConfig());
+    m_contextObj = ANGLEHandles::unwrap(island.platformContext());
     lazyInitialize(m_finishedMetalSharedEventListener, adoptNS([[MTLSharedEventListener alloc] init]));
     if (!m_finishedMetalSharedEventListener) {
         ASSERT_NOT_REACHED();
@@ -187,21 +171,14 @@ bool GraphicsContextGLCocoa::platformInitializeContext()
     return true;
 }
 
-std::unique_ptr<GraphicsContextGLANGLE::Island> GraphicsContextGLCocoa::createIsland()
+void GraphicsContextGLCocoa::createIslandContext()
 {
-    return makeUnique<Island>(*this, WebCoreWebGL::GLContext::init(contextID(), m_cocoaPlatform->platform, contextAttributes().supportWebGLDraftExtensions));
-}
-
-GraphicsContextGLANGLE::~GraphicsContextGLANGLE()
-{
-    if (m_island)
-        m_island->context.destroy();
-    ASSERT(!m_island || !m_island->context.isCurrent());
+    islandCalls().createCocoaContext(contextID(), contextAttributes().supportWebGLDraftExtensions);
 }
 
 bool GraphicsContextGLCocoa::isDisplayInitializedForTesting(GCGLDisplay display)
 {
-    return WebCoreWebGL::CocoaGLPlatform::isDisplayInitializedForTesting(ANGLEHandles::wrap<ANGLEDisplayTag>(display));
+    return GLIslandCalls::isDisplayInitializedForTesting(ANGLEHandles::wrap<ANGLEDisplayTag>(display));
 }
 
 bool GraphicsContextGLCocoa::reshapeDrawingBuffer()
@@ -213,7 +190,7 @@ bool GraphicsContextGLCocoa::reshapeDrawingBuffer()
 
 RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::copySurfaceBuffer(SurfaceBuffer bufferType)
 {
-    return adoptCF(island()->context.copySurfaceBuffer(std::to_underlying(bufferType)));
+    return adoptCF(islandCalls().copySurfaceBuffer(std::to_underlying(bufferType)));
 }
 
 void GraphicsContextGLCocoa::setDrawingBufferColorSpace(const ColorSpace& colorSpace)
@@ -223,7 +200,7 @@ void GraphicsContextGLCocoa::setDrawingBufferColorSpace(const ColorSpace& colorS
     if (m_drawingBufferColorSpace == colorSpace)
         return;
     m_drawingBufferColorSpace = colorSpace;
-    island()->context.drawingBufferColorSpaceDidChange();
+    islandCalls().drawingBufferColorSpaceDidChange();
 }
 
 RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::createDrawingBufferSurface(IntSize size)
@@ -243,22 +220,22 @@ RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::createDrawingBufferSurface(IntSi
 
 bool GraphicsContextGLCocoa::hasSpareDrawingBuffersInUse() const
 {
-    return m_cocoaPlatform->platform.hasSpareDrawingBuffersInUse();
+    return islandCalls().hasSpareDrawingBuffersInUse();
 }
 
 void GraphicsContextGLCocoa::releaseIdleSpareDrawingBuffers()
 {
-    m_cocoaPlatform->platform.releaseIdleSpareDrawingBuffers();
+    islandCalls().releaseIdleSpareDrawingBuffers();
 }
 
 size_t GraphicsContextGLCocoa::spareDrawingBufferCountForTesting() const
 {
-    return m_cocoaPlatform->platform.spareDrawingBufferCountForTesting();
+    return islandCalls().spareDrawingBufferCountForTesting();
 }
 
 size_t GraphicsContextGLCocoa::volatileSpareDrawingBufferCountForTesting() const
 {
-    return m_cocoaPlatform->platform.volatileSpareDrawingBufferCountForTesting();
+    return islandCalls().volatileSpareDrawingBufferCountForTesting();
 }
 
 void* GraphicsContextGLCocoa::createPbufferAndAttachIOSurface(GCGLenum target, PbufferAttachmentUsage usage, GCGLenum internalFormat, GCGLsizei width, GCGLsizei height, GCGLenum type, IOSurfaceRef surface, GCGLuint plane)
@@ -350,7 +327,7 @@ GCGLExternalImage GraphicsContextGLCocoa::createExternalImage(ExternalImageSourc
 
 void GraphicsContextGLCocoa::bindExternalImage(GCGLenum target, GCGLExternalImage image)
 {
-    island()->context.bindExternalImage(target, image);
+    islandCalls().bindExternalImage(target, image);
 }
 
 bool GraphicsContextGLCocoa::addFoveation(IntSize physicalSizeLeft, IntSize physicalSizeRight, IntSize screenSize, std::span<const GCGLfloat> horizontalSamplesLeft, std::span<const GCGLfloat> verticalSamplesLeft, std::span<const GCGLfloat> horizontalSamplesRight)
@@ -415,7 +392,7 @@ GCGLExternalSync GraphicsContextGLCocoa::createExternalSync(ExternalSyncSource&&
 
 bool GraphicsContextGLCocoa::enableRequiredWebXRExtensions()
 {
-    return island()->context.enableRequiredWebXRExtensions();
+    return islandCalls().enableRequiredWebXRExtensions();
 }
 
 #endif
@@ -439,7 +416,7 @@ void* GraphicsContextGLCocoa::createMetalSharedEventEGLSync(id sharedEvent, uint
 
 void GraphicsContextGLCocoa::waitUntilWorkScheduled()
 {
-    m_cocoaPlatform->platform.waitUntilWorkScheduled();
+    islandCalls().waitUntilWorkScheduled();
 }
 
 void GraphicsContextGLCocoa::prepareForDisplay()
@@ -449,7 +426,7 @@ void GraphicsContextGLCocoa::prepareForDisplay()
 
 void GraphicsContextGLCocoa::prepareForDisplayWithFinishedSignal(Function<void()> finishedSignal)
 {
-    auto& context = island()->context;
+    auto context = islandCalls();
     if (!context.willPrepareForDisplay()) {
         finishedSignal();
         return;
@@ -484,7 +461,7 @@ RefPtr<PixelBuffer> GraphicsContextGLCocoa::readCompositedResults()
     auto pixelBuffer = createPixelBufferForPaintResults();
     if (!pixelBuffer)
         return nullptr;
-    if (!island()->context.readCompositedResults(GLLender<uint8_t> { pixelBuffer->bytes() }.view(), pixelBuffer->size().width(), pixelBuffer->size().height()))
+    if (!islandCalls().readCompositedResults(GLLender<uint8_t> { pixelBuffer->bytes() }.view(), pixelBuffer->size().width(), pixelBuffer->size().height()))
         return nullptr;
     return pixelBuffer;
 }
@@ -560,12 +537,12 @@ bool GraphicsContextGLCocoa::copyTextureFromVideoFrame(VideoFrame& videoFrame, P
         recordVideoUploadForTesting(VideoUploadOutcome::Unsupported, 0);
         return false;
     }
-    auto* island = this->island();
-    if (!island) {
+    auto island = islandCalls();
+    if (!island.hasContext()) {
         recordVideoUploadForTesting(VideoUploadOutcome::ContextLost, videoFrameCV->pixelFormat());
         return false;
     }
-    auto outcome = static_cast<VideoUploadOutcome>(island->context.copyVideoFrameToTexture(videoFrameCV->pixelBuffer(), std::to_underlying(videoFrameCV->orientation().orientation()), texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha));
+    auto outcome = static_cast<VideoUploadOutcome>(island.copyVideoFrameToTexture(videoFrameCV->pixelBuffer(), std::to_underlying(videoFrameCV->orientation().orientation()), texture, target, level, internalFormat, type, unpackFlipY, unpackPremultiplyAlpha));
     recordVideoUploadForTesting(outcome, videoFrameCV->pixelFormat());
     return isSuccessfulVideoUpload(outcome);
 }

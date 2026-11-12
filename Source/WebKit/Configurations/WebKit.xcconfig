@@ -97,12 +97,11 @@ SWIFT_INCLUDE_PATHS_ = $(SRCROOT)/Platform/spi/visionos $(SRCROOT)/Platform/spi/
 // would read the framework's module maps from there too.
 WK_WEBGPU_SWIFT_MODULE_DIR = $(OBJROOT)/WebGPU.build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/WebGPU.build/Objects-normal/$(CURRENT_ARCH);
 
-// The WebGL island's Swift module, WebCoreWebGL, which the GPU process's Swift receiver of WebGL calls calls, where
-// WebCore's build writes it, and the module maps of its underlying clang module, which needs ANGLE's headers. WebKit's
-// generated header includes Shared/WebCoreWebGLForWebKit.h, which has what it needs of the island's.
+// The WebGL island's Swift module, WebCoreWebGL, which the GPU process's Swift receiver of WebGL calls, where WebCore's
+// build writes it, and the module maps of its underlying clang module, which needs ANGLE's headers.
 WK_WEBCORE_WEBGL_SWIFT_MODULE_DIR = $(OBJROOT)/WebCore.build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)/WebCoreWebGL.build/Objects-normal/$(CURRENT_ARCH);
 WK_WEBCORE_WEBGL_MODULE_MAP_DIR = $(SRCROOT)/../WebCore/platform/graphics/angle/swift;
-WK_WEBCORE_WEBGL_SWIFT_FLAGS = -Xcc -I$(BUILT_PRODUCTS_DIR)$(WK_LIBRARY_HEADERS_FOLDER_PATH) -Xfrontend -clang-header-expose-module -Xfrontend WebCoreWebGL=WebCoreWebGLForWebKit.h;
+WK_WEBCORE_WEBGL_SWIFT_FLAGS = -Xcc -I$(BUILT_PRODUCTS_DIR)$(WK_LIBRARY_HEADERS_FOLDER_PATH);
 
 // WebKit's Swift can expose to C++ declarations that name WebCore's Swift CGRendererCore, as the GPU process's Swift
 // receiver of image buffer drawing does. WebKit's generated header then includes Shared/WebCoreSwiftForWebKit.h, which has

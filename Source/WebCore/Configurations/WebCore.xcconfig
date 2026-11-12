@@ -304,13 +304,13 @@ WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attr
 // ShapeDetectionVision.swift imports Vision, which WebCore soft-links: keep Vision, and the Swift overlays that only its
 // import brings, out of WebCore's load commands.
 
-// The WebGL island (WebCoreWebGL.xcconfig): WebCore force-loads it, and its C++ includes the island's generated header
-// and the headers beside its module maps. WebKit's Swift calls its Swift, so that is exported; GraphicsContextGLANGLE's
-// Island is WebCore's only.
+// The WebGL island (WebCoreWebGL.xcconfig): WebCore force-loads it, its C++ includes the headers beside its module maps,
+// and its Swift (GraphicsContextGLANGLE.swift) imports its Swift module. WebKit's Swift calls its Swift, so that is
+// exported; GLIslandCalls, which the island implements for GraphicsContextGLANGLE, is WebCore's only.
 WK_WEBGL_ISLAND_LDFLAGS = -force_load $(BUILT_PRODUCTS_DIR)/libWebCoreWebGL.a $(WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS);
-WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS = -Wl,-unexported_symbol,__ZN7WebCore22GraphicsContextGLANGLE6Island*;
+WK_WEBGL_ISLAND_UNEXPORT_LDFLAGS = -Wl,-unexported_symbol,__ZN*7WebCore13GLIslandCalls*;
 WK_WEBGL_ISLAND_HEADER_SEARCH_PATHS = $(SRCROOT)/platform/graphics/angle/swift $(CONFIGURATION_TEMP_DIR)/WebCoreWebGL.build/DerivedSources;
-WK_WEBGL_ISLAND_SWIFT_FLAGS = ;
+WK_WEBGL_ISLAND_SWIFT_FLAGS = -I $(CONFIGURATION_TEMP_DIR)/WebCoreWebGL.build/Objects-normal/$(CURRENT_ARCH);
 // Swift that holds C++ state must not let it reach another thread. Several of the diagnostics that catch that
 // are warnings in Swift 6 mode outside any diagnostic group, so warnings are errors too.
 SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;

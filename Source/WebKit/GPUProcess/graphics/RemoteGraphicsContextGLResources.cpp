@@ -166,7 +166,7 @@ void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsCont
             initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
         }
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }));
-        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandHandoff()));
+        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandShell()));
         Ref glForwarder = m_glReceiver->getMessageReceiver();
         glForwarder->setSharedPreferencesProvider([sharedPreferences = m_sharedPreferencesForWebProcess] {
             return std::optional { sharedPreferences };

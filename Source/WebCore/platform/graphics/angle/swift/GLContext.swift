@@ -33,25 +33,19 @@ typealias GLContextCallbacks = WebCore.GLContextCallbacks
 
 // The GL logic of a WebGL context over ANGLE, for every process and port: what GraphicsContextGLANGLE was. It is
 // confined to the thread that made it. Its client and platform are reached through the context's identifier.
-@_expose(Cxx)
 public final class GLContext {
     // The identifier of the context whose EGL context is current on this thread, as far as the island knows.
     private static let currentContextID = Atomic<UInt64>(0)
 
-    @_expose(!Cxx)
     let contextID: UInt64
     private let platform: any GLContextPlatform
 #if WTF_PLATFORM_COCOA
     // The platform again, for its Cocoa entry points.
     private let cocoaPlatform: CocoaGLPlatform?
 #endif
-    @_expose(!Cxx)
     let display: ANGLEDisplay
-    @_expose(!Cxx)
     let eglContext: ANGLEContext
-    @_expose(!Cxx)
     let isForWebGL2: Bool
-    @_expose(!Cxx)
     let supportsWebGLDraftExtensions: Bool
 
     var state = GLState()
@@ -71,19 +65,16 @@ public final class GLContext {
         set { errorsStorage.store(newValue.rawValue, ordering: .relaxed) }
     }
 
-    @_expose(!Cxx)
     var contextLost: Bool {
         get { contextLostStorage.load(ordering: .relaxed) }
         set { contextLostStorage.store(newValue, ordering: .relaxed) }
     }
 
-    @_expose(!Cxx)
     var boundReadFBO: GLuint {
         get { boundReadFBOStorage.load(ordering: .relaxed) }
         set { boundReadFBOStorage.store(newValue, ordering: .relaxed) }
     }
 
-    @_expose(!Cxx)
     var boundDrawFBO: GLuint {
         get { boundDrawFBOStorage.load(ordering: .relaxed) }
         set { boundDrawFBOStorage.store(newValue, ordering: .relaxed) }
@@ -96,13 +87,10 @@ public final class GLContext {
             maxInternalFramebufferHeight.store(newValue.height, ordering: .relaxed)
         }
     }
-    @_expose(!Cxx)
     private(set) var texture: GLuint = 0
-    @_expose(!Cxx)
     private(set) var fbo: GLuint = 0
 
     // A context whose platform is C++, which made its EGL context.
-    @_expose(Cxx)
     public init(contextID: UInt64, display: ANGLEDisplay, context: ANGLEContext, isWebGL2: Bool, supportsWebGLDraftExtensions: Bool) {
         self.contextID = contextID
         self.platform = CxxGLContextPlatform(contextID: contextID, display: display, eglContext: context)
@@ -116,7 +104,6 @@ public final class GLContext {
     }
 
 #if WTF_PLATFORM_COCOA
-    @_expose(Cxx)
     public init(contextID: UInt64, cocoaPlatform: borrowing CocoaGLPlatform, supportsWebGLDraftExtensions: Bool) {
         let platform = copy cocoaPlatform
         self.contextID = contextID
@@ -144,36 +131,30 @@ public final class GLContext {
         return true
     }
 
-    @_expose(Cxx)
     public func makeCurrentForPlatform() -> Bool {
         makeContextCurrent()
     }
 
     // For the C++ that makes another EGL context current, or none.
-    @_expose(Cxx)
     public static func forgetCurrentContext() {
         currentContextID.store(0, ordering: .relaxed)
     }
 
-    @_expose(Cxx)
     public static func makeCurrent(_ display: ANGLEDisplay, _ context: ANGLEContext) -> Bool {
         forgetCurrentContext()
         return ANGLE.makeCurrent(display, context)
     }
 
-    @_expose(!Cxx)
     public static func releaseCurrentContext(_ display: ANGLEDisplay) -> Bool {
         forgetCurrentContext()
         return ANGLE.releaseCurrentContext(display)
     }
 
-    @_expose(Cxx)
     public func isCurrent() -> Bool {
         Self.currentContextID.load(ordering: .relaxed) == contextID
     }
 
     // Initializes the context after the platform made its EGL context. Returns false if it should not be used.
-    @_expose(Cxx)
     public func initialize() -> Bool {
         extensions.setSupported(ANGLE.getString(GLenum(GL_EXTENSIONS)), requestable: ANGLE.getString(GLenum(GL_REQUESTABLE_EXTENSIONS_ANGLE)))
 
@@ -245,7 +226,6 @@ public final class GLContext {
 
     // Frees what the platform made for the context, with the context current. Called before the platform's C++
     // client is destroyed.
-    @_expose(Cxx)
     public func willDestroyPlatform() {
         if makeContextCurrent() {
             platform.willDestroy(self)
@@ -253,7 +233,6 @@ public final class GLContext {
     }
 
     // Destroys the context's GL objects, then its platform's EGL objects.
-    @_expose(Cxx)
     public func destroy() {
         let didReset = willDestroy()
         platform.destroy(self, didReset: didReset)
@@ -264,28 +243,23 @@ public final class GLContext {
 
     // Whether the current frame can be displayed. If it can, the caller inserts the frame's finished fence, then
     // calls didPrepareForDisplay().
-    @_expose(Cxx)
     public func willPrepareForDisplay() -> Bool {
         cocoaPlatform?.willPrepareForDisplay(self) ?? false
     }
 
-    @_expose(Cxx)
     public func didPrepareForDisplay() {
         cocoaPlatform?.didPrepareForDisplay(self)
     }
 
     // A copy of the drawing (0) or display (1) buffer, flipped to image orientation, or nil. The copy is retained.
-    @_expose(Cxx)
     public func copySurfaceBuffer(_ bufferType: UInt8) -> IOSurfaceRef? {
         cocoaPlatform?.copySurfaceBuffer(self, bufferType)
     }
 
-    @_expose(Cxx)
     public func readCompositedResults(_ pixels: WebCore.GLLentMutableBytes, _ width: Int32, _ height: Int32) -> Bool {
         cocoaPlatform?.readCompositedResults(self, pixels, width, height) ?? false
     }
 
-    @_expose(Cxx)
     public func drawingBufferColorSpaceDidChange() {
         cocoaPlatform?.drawingBufferColorSpaceDidChange(self)
     }
@@ -293,7 +267,6 @@ public final class GLContext {
 #if ENABLE_VIDEO
     // Like glCopyTextureCHROMIUM with the frame, whose orientation is an ImageOrientation::Orientation, as the source
     // texture. A failed copy leaves the texture unchanged. Returns the GraphicsContextGLVideoUploadOutcome.
-    @_expose(Cxx)
     public func copyVideoFrameToTexture(_ frame: CVPixelBuffer, _ orientation: UInt8, _ texture: GLuint, _ target: GLenum, _ level: GLint, _ internalFormat: GLenum, _ type: GLenum, _ unpackFlipY: Bool, _ unpackPremultiplyAlpha: Bool) -> UInt8 {
         guard let cocoaPlatform else {
             return GLVideoUploadOutcome.unsupported.rawValue
@@ -303,7 +276,6 @@ public final class GLContext {
 #endif
 
 #if ENABLE_WEBXR
-    @_expose(Cxx)
     public func enableRequiredWebXRExtensions() -> Bool {
         guard let cocoaPlatform, makeContextCurrent() else {
             return false
@@ -315,7 +287,6 @@ public final class GLContext {
 
     // Deletes the context's own GL objects before the platform destroys its EGL context, and reports whether the
     // context had noticed a GPU reset.
-    @_expose(!Cxx)
     public func willDestroy() -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -333,12 +304,10 @@ public final class GLContext {
 
     // Debug messages from ANGLE, before they go to the client. The context loss is reported with
     // forceContextLost(), not as the errors of the calls after the loss.
-    @_expose(Cxx)
     public static func reportsDebugMessage(_ type: GLenum, _ id: GLuint) -> Bool {
         !(type == GLenum(GL_DEBUG_TYPE_ERROR_KHR) && id == GLuint(GL_CONTEXT_LOST))
     }
 
-    @_expose(Cxx)
     public func estimatedMemoryCost() -> Int64 {
         var usage: UInt64 = 0
         guard ANGLE.queryContextMemoryUsage(display, eglContext, &usage) else {
@@ -353,7 +322,6 @@ public final class GLContext {
         errors.formUnion(error)
     }
 
-    @_expose(!Cxx)
     func forceContextLost() {
         contextLost = true
         GLContextCallbacks.forceContextLost(contextID)
@@ -375,7 +343,6 @@ public final class GLContext {
 
     // Invalidates the known content of the texture bound to the binding point of target in the active texture unit.
     // With the context current. Only a Cocoa platform knows texture content.
-    @_expose(!Cxx)
     func invalidateKnownTextureContent(forTarget target: GLenum) {
 #if WTF_PLATFORM_COCOA
         cocoaPlatform?.invalidateKnownTextureContent(forTarget: target)
@@ -383,7 +350,6 @@ public final class GLContext {
     }
 
     // Did the most recent drawing operation leave the GPU in an acceptable state?
-    @_expose(!Cxx)
     func checkGPUStatus() {
         if contextLost {
             return
@@ -396,66 +362,54 @@ public final class GLContext {
         _ = Self.releaseCurrentContext(display)
     }
 
-    @_expose(Cxx)
     public func checkGPUStatusForPlatform() {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func isContextLost() -> Bool {
         contextLost
     }
 
-    @_expose(Cxx)
     public func didForceContextLost() {
         contextLost = true
     }
 
-    @_expose(Cxx)
     public func takeFailNextDrawingBufferAllocation() -> Bool {
         let fail = state.failNextDrawingBufferAllocation
         state.failNextDrawingBufferAllocation = false
         return fail
     }
 
-    @_expose(Cxx)
     public func failsNextDrawingBufferAllocation() -> Bool {
         state.failNextDrawingBufferAllocation
     }
 
-    @_expose(Cxx)
     public func clampMaxInternalFramebufferSize(_ width: Int32, _ height: Int32) {
         maxInternalFramebufferSize.clampToMaximumSize(GLSize(width: width, height: height))
     }
 
-    @_expose(Cxx)
     public func drawingBufferTexture() -> GLuint {
         texture
     }
 
-    @_expose(Cxx)
     public func boundReadFramebuffer() -> GLuint {
         boundReadFBO
     }
 
-    @_expose(Cxx)
     public func boundDrawFramebuffer() -> GLuint {
         boundDrawFBO
     }
 
-    @_expose(Cxx)
     public func knownActiveExtensions() -> UInt64 {
         extensions.knownActive
     }
 
-    @_expose(Cxx)
     public func requestableExtensions() -> UInt64 {
         extensions.requestable
     }
 
     // Enables the extensions named by NUL-terminated strings, for the platform, only if all are supported. Returns
     // false, and enables nothing, otherwise.
-    @_expose(Cxx)
     public func enableExtensionsForPlatform(_ names: WebCore.GLLentCStrings) -> Bool {
         var strings: [Swift.String] = []
         for index in 0..<names.size() {
@@ -465,7 +419,6 @@ public final class GLContext {
     }
 
     // Enables extensions only if all are supported. Returns true if all are supported; changes nothing otherwise.
-    @_expose(!Cxx)
     func enableExtensions(_ names: [Swift.String]) -> Bool {
         guard let requests = extensions.requestsToEnable(names) else {
             return false
@@ -477,7 +430,6 @@ public final class GLContext {
         return true
     }
 
-    @_expose(Cxx)
     public func enableExtension(_ extension: UInt8) -> Bool {
         if extensions.knownActive & (1 << UInt64(`extension`)) != 0 {
             return true
@@ -501,7 +453,6 @@ public final class GLContext {
     // Errors.
 
     @discardableResult
-    @_expose(!Cxx)
     func updateErrors() -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -520,7 +471,6 @@ public final class GLContext {
         return movedAnError
     }
 
-    @_expose(Cxx)
     public func getErrors() -> UInt8 {
         guard makeContextCurrent() else {
             return GLErrorCodes.invalidOperation.rawValue
@@ -531,14 +481,12 @@ public final class GLContext {
         return errors.rawValue
     }
 
-    @_expose(Cxx)
     public func addErrors(_ errors: UInt8) {
         addError(GLErrorCodes(rawValue: errors))
     }
 
     // Drawing buffer.
 
-    @_expose(Cxx)
     public func reshape(_ width: Int32, _ height: Int32) {
         if width == state.currentWidth && height == state.currentHeight {
             return
@@ -593,7 +541,6 @@ public final class GLContext {
     }
 
     // Reads the drawing buffer at its size, tightly packed RGBA, into pixels. Returns false if the read failed.
-    @_expose(Cxx)
     public func readPixelsForPaintResults(_ pixels: WebCore.GLLentMutableBytes, _ width: Int32, _ height: Int32) -> Bool {
         withPixelPackBufferUnbound {
             setPackParameters(1, 0, GLboolean(GL_FALSE))
@@ -607,7 +554,6 @@ public final class GLContext {
     // As readPixelsForPaintResults, from the drawing buffer texture through a scratch framebuffer: when the context
     // is neither multisampled nor preserving the drawing buffer, fbo is the application visible default framebuffer,
     // and so its read buffer is application state which might be NONE.
-    @_expose(Cxx)
     public func readRenderingResults(_ pixels: WebCore.GLLentMutableBytes, _ width: Int32, _ height: Int32) -> Bool {
         withScratchReadFramebuffer(attaching: texture) {
             readPixelsForPaintResults(pixels, width, height)
@@ -618,7 +564,6 @@ public final class GLContext {
         GLSize(width: state.currentWidth, height: state.currentHeight)
     }
 
-    @_expose(Cxx)
     public func maxDrawingBufferSize() -> ANGLEInt2 {
         let size = maxInternalFramebufferSize
         return ANGLEInt2(x: size.width, y: size.height)
@@ -626,7 +571,6 @@ public final class GLContext {
 
     // Limits.
 
-    @_expose(Cxx)
     public func getInteger(_ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -634,7 +578,6 @@ public final class GLContext {
         return ANGLE.getInteger(pname)
     }
 
-    @_expose(Cxx)
     public func maxViewportDims() -> ANGLEInt2 {
         guard makeContextCurrent() else {
             return ANGLEInt2()
@@ -644,7 +587,6 @@ public final class GLContext {
 
     // Textures.
 
-    @_expose(Cxx)
     public func activeTexture(_ texture: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -653,7 +595,6 @@ public final class GLContext {
         GL_ActiveTexture(texture)
     }
 
-    @_expose(Cxx)
     public func bindTexture(_ target: GLenum, _ texture: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -662,7 +603,6 @@ public final class GLContext {
         GL_BindTexture(target, texture)
     }
 
-    @_expose(Cxx)
     public func createTexture() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -672,7 +612,6 @@ public final class GLContext {
         return name
     }
 
-    @_expose(Cxx)
     public func deleteTexture(_ texture: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -683,7 +622,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texStorage2D(_ target: GLenum, _ levels: GLsizei, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -693,7 +631,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texStorage3D(_ target: GLenum, _ levels: GLsizei, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -703,7 +640,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texImage2D(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ border: GLint, _ format: GLenum, _ type: GLenum, _ pixels: WebCore.GLLentBytes) {
         let internalformat = isForWebGL2 ? internalformat : adjustWebGL1TextureInternalFormat(internalformat, format, type)
         guard makeContextCurrent() else {
@@ -714,7 +650,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texImage2DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ border: GLint, _ format: GLenum, _ type: GLenum, _ offset: GLintptr) {
         let internalformat = isForWebGL2 ? internalformat : adjustWebGL1TextureInternalFormat(internalformat, format, type)
         guard makeContextCurrent() else {
@@ -728,7 +663,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texSubImage2D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ type: GLenum, _ pixels: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -738,7 +672,6 @@ public final class GLContext {
         invalidateKnownTextureContent(forTarget: target)
     }
 
-    @_expose(Cxx)
     public func texSubImage2DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ type: GLenum, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -751,7 +684,6 @@ public final class GLContext {
         invalidateKnownTextureContent(forTarget: target)
     }
 
-    @_expose(Cxx)
     public func compressedTexImage2D(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ border: GLint, _ data: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -761,7 +693,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func compressedTexImage2DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ border: GLint, _ imageSize: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -774,7 +705,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func compressedTexSubImage2D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ data: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -783,7 +713,6 @@ public final class GLContext {
         invalidateKnownTextureContent(forTarget: target)
     }
 
-    @_expose(Cxx)
     public func compressedTexSubImage2DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ imageSize: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -795,7 +724,6 @@ public final class GLContext {
         invalidateKnownTextureContent(forTarget: target)
     }
 
-    @_expose(Cxx)
     public func texImage3D(_ target: GLenum, _ level: GLint, _ internalformat: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ border: GLint, _ format: GLenum, _ type: GLenum, _ pixels: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -804,7 +732,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texImage3DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ internalformat: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ border: GLint, _ format: GLenum, _ type: GLenum, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -816,7 +743,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func texSubImage3D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ zoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ format: GLenum, _ type: GLenum, _ pixels: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -824,7 +750,6 @@ public final class GLContext {
         ANGLE.texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels)
     }
 
-    @_expose(Cxx)
     public func texSubImage3DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ zoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ format: GLenum, _ type: GLenum, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -835,7 +760,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func compressedTexImage3D(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ border: GLint, _ data: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -844,7 +768,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func compressedTexImage3DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ border: GLint, _ imageSize: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -856,7 +779,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func compressedTexSubImage3D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ zoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ format: GLenum, _ data: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -864,7 +786,6 @@ public final class GLContext {
         ANGLE.compressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, data)
     }
 
-    @_expose(Cxx)
     public func compressedTexSubImage3DFromUnpackBuffer(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ zoffset: GLint, _ width: GLsizei, _ height: GLsizei, _ depth: GLsizei, _ format: GLenum, _ imageSize: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -875,7 +796,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func framebufferTexture2D(_ target: GLenum, _ attachment: GLenum, _ textarget: GLenum, _ texture: GLuint, _ level: GLint) {
         guard makeContextCurrent() else {
             return
@@ -886,7 +806,6 @@ public final class GLContext {
 
     // Read pixels.
 
-    @_expose(Cxx)
     public func readPixels(_ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ type: GLenum, _ data: WebCore.GLLentMutableBytes, _ alignment: GLint, _ rowLength: GLint, _ reverseRowOrder: GLboolean) {
         guard makeContextCurrent() else {
             return
@@ -898,7 +817,6 @@ public final class GLContext {
     }
 
     // Reads pixels from positive pixel coordinates with tight packing.
-    @_expose(Cxx)
     public func readPixelsWithStatus(_ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ type: GLenum, _ reverseRowOrder: GLboolean, _ data: WebCore.GLLentMutableBytes) -> ANGLEReadPixelsStatus {
         guard makeContextCurrent() else {
             return ANGLEReadPixelsStatus()
@@ -910,7 +828,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func readPixelsBufferObject(_ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei, _ format: GLenum, _ type: GLenum, _ offset: GLintptr, _ alignment: GLint, _ rowLength: GLint) {
         guard makeContextCurrent() else {
             return
@@ -940,7 +857,6 @@ public final class GLContext {
         return ANGLEReadPixelsStatus(width: result.columns, height: result.rows, succeeded: true)
     }
 
-    @_expose(!Cxx)
     func setPackParameters(_ alignment: GLint, _ rowLength: GLint, _ reverseRowOrder: GLboolean) {
         if state.packAlignment != alignment {
             GL_PixelStorei(GLenum(GL_PACK_ALIGNMENT), alignment)
@@ -958,7 +874,6 @@ public final class GLContext {
 
     // Buffers.
 
-    @_expose(Cxx)
     public func bufferDataUninitialized(_ target: GLenum, _ size: GLsizeiptr, _ usage: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -967,7 +882,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func bufferData(_ target: GLenum, _ data: WebCore.GLLentBytes, _ usage: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -976,7 +890,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func bufferSubData(_ target: GLenum, _ offset: GLintptr, _ data: WebCore.GLLentBytes) {
         guard makeContextCurrent() else {
             return
@@ -985,7 +898,6 @@ public final class GLContext {
     }
 
     // Returns whether the data was read.
-    @_expose(Cxx)
     public func getBufferSubData(_ target: GLenum, _ offset: GLintptr, _ data: WebCore.GLLentMutableBytes) -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -1003,7 +915,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func createBuffer() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -1011,7 +922,6 @@ public final class GLContext {
         return ANGLE.genBuffer()
     }
 
-    @_expose(Cxx)
     public func deleteBuffer(_ buffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1022,7 +932,6 @@ public final class GLContext {
 
     // Framebuffers and renderbuffers.
 
-    @_expose(Cxx)
     public func bindFramebuffer(_ target: GLenum, _ buffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1039,7 +948,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func createFramebuffer() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -1047,7 +955,6 @@ public final class GLContext {
         return ANGLE.genFramebuffer()
     }
 
-    @_expose(Cxx)
     public func deleteFramebuffer(_ framebuffer: GLuint) {
         if framebuffer == 0 {
             // FBO 0 represents the default framebuffer (fbo via the bindFramebuffer(0) substitution); deleting it
@@ -1072,7 +979,6 @@ public final class GLContext {
         ANGLE.deleteFramebuffer(framebuffer)
     }
 
-    @_expose(Cxx)
     public func createRenderbuffer() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -1080,7 +986,6 @@ public final class GLContext {
         return ANGLE.genRenderbuffer()
     }
 
-    @_expose(Cxx)
     public func deleteRenderbuffer(_ renderbuffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1089,7 +994,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func renderbufferStorage(_ target: GLenum, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1102,7 +1006,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func renderbufferStorageMultisample(_ target: GLenum, _ samples: GLsizei, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1115,7 +1018,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func renderbufferStorageMultisampleANGLE(_ target: GLenum, _ samples: GLsizei, _ internalformat: GLenum, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1134,7 +1036,6 @@ public final class GLContext {
         return fail
     }
 
-    @_expose(Cxx)
     public func blitFramebuffer(_ srcX0: GLint, _ srcY0: GLint, _ srcX1: GLint, _ srcY1: GLint, _ dstX0: GLint, _ dstY0: GLint, _ dstX1: GLint, _ dstY1: GLint, _ mask: GLbitfield, _ filter: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -1149,7 +1050,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func invalidateFramebuffer(_ target: GLenum, _ attachments: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1157,7 +1057,6 @@ public final class GLContext {
         ANGLE.invalidateFramebuffer(target, attachments)
     }
 
-    @_expose(Cxx)
     public func invalidateSubFramebuffer(_ target: GLenum, _ attachments: WebCore.GLLentUnsignedInts, _ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1165,7 +1064,6 @@ public final class GLContext {
         ANGLE.invalidateSubFramebuffer(target, attachments, x, y, width, height)
     }
 
-    @_expose(Cxx)
     public func framebufferDiscard(_ target: GLenum, _ attachments: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1173,7 +1071,6 @@ public final class GLContext {
         ANGLE.discardFramebufferEXT(target, attachments)
     }
 
-    @_expose(Cxx)
     public func drawBuffers(_ buffers: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1181,7 +1078,6 @@ public final class GLContext {
         ANGLE.drawBuffers(buffers)
     }
 
-    @_expose(Cxx)
     public func drawBuffersEXT(_ buffers: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1191,7 +1087,6 @@ public final class GLContext {
 
     // Clears and draws.
 
-    @_expose(Cxx)
     public func clearBufferiv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: WebCore.GLLentInts) {
         guard makeContextCurrent() else {
             return
@@ -1203,7 +1098,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func clearBufferuiv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1215,7 +1109,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func clearBufferfv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: WebCore.GLLentFloats) {
         guard makeContextCurrent() else {
             return
@@ -1229,7 +1122,6 @@ public final class GLContext {
 
     // ClearBuffer*v are missing ANGLE Robust* entry points. Make the call act similar way as other calls that validate
     // buffer sizes by validating it here.
-    @_expose(!Cxx)
     func validateClearBufferv(_ buffer: GLenum, _ valuesSize: Int) -> Bool {
         switch buffer {
         case GLenum(GL_COLOR):
@@ -1247,7 +1139,6 @@ public final class GLContext {
         return false
     }
 
-    @_expose(Cxx)
     public func drawElements(_ mode: GLenum, _ count: GLsizei, _ type: GLenum, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -1256,7 +1147,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func drawArraysInstanced(_ mode: GLenum, _ first: GLint, _ count: GLsizei, _ primcount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1269,7 +1159,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func drawElementsInstanced(_ mode: GLenum, _ count: GLsizei, _ type: GLenum, _ offset: GLintptr, _ primcount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1282,7 +1171,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func drawRangeElements(_ mode: GLenum, _ start: GLuint, _ end: GLuint, _ count: GLsizei, _ type: GLenum, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -1291,7 +1179,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func drawElementsInstancedBaseVertexBaseInstanceANGLE(_ mode: GLenum, _ count: GLsizei, _ type: GLenum, _ offset: GLintptr, _ instanceCount: GLsizei, _ baseVertex: GLint, _ baseInstance: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1300,7 +1187,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawArraysANGLE(_ mode: GLenum, _ firsts: WebCore.GLLentInts, _ counts: WebCore.GLLentInts, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1309,7 +1195,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawArraysInstancedANGLE(_ mode: GLenum, _ firsts: WebCore.GLLentInts, _ counts: WebCore.GLLentInts, _ instanceCounts: WebCore.GLLentInts, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1318,7 +1203,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawElementsANGLE(_ mode: GLenum, _ counts: WebCore.GLLentInts, _ offsets: WebCore.GLLentInts, _ type: GLenum, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1327,7 +1211,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawElementsInstancedANGLE(_ mode: GLenum, _ counts: WebCore.GLLentInts, _ offsets: WebCore.GLLentInts, _ instanceCounts: WebCore.GLLentInts, _ type: GLenum, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1336,7 +1219,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawArraysInstancedBaseInstanceANGLE(_ mode: GLenum, _ firsts: WebCore.GLLentInts, _ counts: WebCore.GLLentInts, _ instanceCounts: WebCore.GLLentInts, _ baseInstances: WebCore.GLLentUnsignedInts, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1345,7 +1227,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(_ mode: GLenum, _ counts: WebCore.GLLentInts, _ offsets: WebCore.GLLentInts, _ instanceCounts: WebCore.GLLentInts, _ baseVertices: WebCore.GLLentInts, _ baseInstances: WebCore.GLLentUnsignedInts, _ type: GLenum, _ drawCount: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -1356,7 +1237,6 @@ public final class GLContext {
 
     // Capabilities and pixel storage.
 
-    @_expose(Cxx)
     public func enable(_ cap: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -1370,7 +1250,6 @@ public final class GLContext {
         GL_Enable(cap)
     }
 
-    @_expose(Cxx)
     public func disable(_ cap: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -1384,7 +1263,6 @@ public final class GLContext {
         GL_Disable(cap)
     }
 
-    @_expose(Cxx)
     public func pixelStorei(_ pname: GLenum, _ param: GLint) {
         guard makeContextCurrent() else {
             return
@@ -1402,7 +1280,6 @@ public final class GLContext {
 
     // Shaders and programs.
 
-    @_expose(Cxx)
     public func compileShader(_ shader: GLuint) {
         assert(shader != 0)
         guard makeContextCurrent() else {
@@ -1419,7 +1296,6 @@ public final class GLContext {
 #endif
     }
 
-    @_expose(Cxx)
     public func createShader(_ type: GLenum) -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -1428,7 +1304,6 @@ public final class GLContext {
     }
 
     // The source, with its NUL terminator.
-    @_expose(Cxx)
     public func shaderSource(_ shader: GLuint, _ source: WebCore.GLLentBytes) {
         assert(shader != 0)
         guard makeContextCurrent() else {
@@ -1437,7 +1312,6 @@ public final class GLContext {
         ANGLE.shaderSource(shader, source)
     }
 
-    @_expose(Cxx)
     public func bindAttribLocation(_ program: GLuint, _ index: GLuint, _ name: WebCore.GLLentBytes) {
         assert(program != 0)
         guard makeContextCurrent() else {
@@ -1446,7 +1320,6 @@ public final class GLContext {
         ANGLE.bindAttribLocation(program, index, name)
     }
 
-    @_expose(Cxx)
     public func getFragDataLocation(_ program: GLuint, _ name: WebCore.GLLentBytes) -> GLint {
         guard makeContextCurrent() else {
             return -1
@@ -1454,7 +1327,6 @@ public final class GLContext {
         return ANGLE.getFragDataLocation(program, name)
     }
 
-    @_expose(Cxx)
     public func getUniformBlockIndex(_ program: GLuint, _ uniformBlockName: WebCore.GLLentBytes) -> GLuint {
         assert(program != 0)
         guard makeContextCurrent() else {
@@ -1463,7 +1335,6 @@ public final class GLContext {
         return ANGLE.getUniformBlockIndex(program, uniformBlockName)
     }
 
-    @_expose(Cxx)
     public func transformFeedbackVaryings(_ program: GLuint, _ varyings: WebCore.GLLentCStrings, _ bufferMode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -1471,7 +1342,6 @@ public final class GLContext {
         ANGLE.transformFeedbackVaryings(program, varyings, bufferMode)
     }
 
-    @_expose(Cxx)
     public func getProgrami(_ program: GLuint, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -1479,7 +1349,6 @@ public final class GLContext {
         return ANGLE.getProgrami(program, pname)
     }
 
-    @_expose(Cxx)
     public func getShaderi(_ shader: GLuint, _ pname: GLenum) -> GLint {
         assert(shader != 0)
         guard makeContextCurrent() else {
@@ -1489,7 +1358,6 @@ public final class GLContext {
     }
 
     // The length a program's info log needs, including its NUL terminator, or -1 if the context isn't current.
-    @_expose(Cxx)
     public func programInfoLogLength(_ program: GLuint) -> GLint {
         guard makeContextCurrent() else {
             return -1
@@ -1497,14 +1365,12 @@ public final class GLContext {
         return ANGLE.getProgrami(program, GLenum(GL_INFO_LOG_LENGTH))
     }
 
-    @_expose(Cxx)
     public func getProgramInfoLog(_ program: GLuint, _ log: WebCore.GLLentMutableBytes) -> GLsizei {
         let length = ANGLE.getProgramInfoLog(program, log)
         assert(length == GLsizei(log.size()) - 1)
         return length
     }
 
-    @_expose(Cxx)
     public func shaderInfoLogLength(_ shader: GLuint) -> GLint {
         guard makeContextCurrent() else {
             return -1
@@ -1512,14 +1378,12 @@ public final class GLContext {
         return ANGLE.getShaderi(shader, GLenum(GL_INFO_LOG_LENGTH))
     }
 
-    @_expose(Cxx)
     public func getShaderInfoLog(_ shader: GLuint, _ log: WebCore.GLLentMutableBytes) -> GLsizei {
         let length = ANGLE.getShaderInfoLog(shader, log)
         assert(length == GLsizei(log.size()) - 1)
         return length
     }
 
-    @_expose(Cxx)
     public func translatedShaderSourceLength(_ shader: GLuint) -> GLint {
         guard makeContextCurrent() else {
             return -1
@@ -1527,14 +1391,12 @@ public final class GLContext {
         return ANGLE.getShaderi(shader, GLenum(GL_TRANSLATED_SHADER_SOURCE_LENGTH_ANGLE))
     }
 
-    @_expose(Cxx)
     public func getTranslatedShaderSourceANGLE(_ shader: GLuint, _ source: WebCore.GLLentMutableBytes) -> GLsizei {
         let length = ANGLE.getTranslatedShaderSource(shader, source)
         assert(length == GLsizei(source.size()) - 1)
         return length
     }
 
-    @_expose(Cxx)
     public func activeUniformBlockNameLength(_ program: GLuint) -> GLint {
         assert(program != 0)
         guard makeContextCurrent() else {
@@ -1544,12 +1406,10 @@ public final class GLContext {
         return ANGLE.getProgrami(program, GLenum(GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH))
     }
 
-    @_expose(Cxx)
     public func getActiveUniformBlockName(_ program: GLuint, _ uniformBlockIndex: GLuint, _ name: WebCore.GLLentMutableBytes) -> GLsizei {
         ANGLE.getActiveUniformBlockName(program, uniformBlockIndex, name)
     }
 
-    @_expose(Cxx)
     public func getActiveUniformBlockiv(_ program: GLuint, _ uniformBlockIndex: GLuint, _ pname: GLenum, _ params: WebCore.GLLentMutableInts) {
         guard makeContextCurrent() else {
             return
@@ -1559,7 +1419,6 @@ public final class GLContext {
 
     // The transform feedback varying's type and size, and its name into the lent bytes, as the length of the name.
     // nameLength is 0 if there is no such varying.
-    @_expose(Cxx)
     public func getTransformFeedbackVarying(_ program: GLuint, _ index: GLuint) -> ANGLEActiveVariableInfo {
         guard makeContextCurrent() else {
             return ANGLEActiveVariableInfo()
@@ -1575,10 +1434,8 @@ public final class GLContext {
     }
 
     // The name of the variable that getTransformFeedbackVarying() last returned.
-    @_expose(!Cxx)
     private(set) var lastVariableName = std.string()
 
-    @_expose(Cxx)
     public func copyLastVariableName(_ name: WebCore.GLLentMutableBytes) -> Int {
         ANGLE.copyString(lastVariableName, name)
     }
@@ -1588,13 +1445,11 @@ public final class GLContext {
 
     // The number of active attributes and the length their names need, with the terminator; 0 and 0 if there are none
     // or the context isn't current.
-    @_expose(Cxx)
     public func activeAttribCount(_ program: GLuint) -> ANGLEActiveVariableCount {
         activeVariableCount(program, GLenum(GL_ACTIVE_ATTRIBUTE_MAX_LENGTH), GLenum(GL_ACTIVE_ATTRIBUTES))
     }
 
     // An active attribute's type and location, and its name into the lent bytes. nameLength is 0 if it isn't one.
-    @_expose(Cxx)
     public func activeAttrib(_ program: GLuint, _ index: GLuint, _ name: WebCore.GLLentMutableBytes) -> ANGLEActiveAttribInfo {
         guard makeContextCurrent() else {
             return ANGLEActiveAttribInfo()
@@ -1607,14 +1462,12 @@ public final class GLContext {
         return ANGLEActiveAttribInfo(type: variable.type, location: ANGLE.getAttribLocation(program, name), nameLength: variable.length)
     }
 
-    @_expose(Cxx)
     public func activeUniformCount(_ program: GLuint) -> ANGLEActiveVariableCount {
         activeVariableCount(program, GLenum(GL_ACTIVE_UNIFORM_MAX_LENGTH), GLenum(GL_ACTIVE_UNIFORMS))
     }
 
     // An active uniform's type, size, block layout and how many locations it has, which activeUniformLocations() then
     // finds, and its name into the lent bytes. nameLength is 0 if it isn't one.
-    @_expose(Cxx)
     public func activeUniform(_ program: GLuint, _ index: GLuint, _ name: WebCore.GLLentMutableBytes) -> ANGLEActiveUniformInfo {
         guard makeContextCurrent() else {
             return ANGLEActiveUniformInfo()
@@ -1629,7 +1482,6 @@ public final class GLContext {
 
     // The locations of the uniform activeUniform() returned, whose name of nameLength the lent bytes hold, into the lent
     // ints, which hold its locationCount. False if they couldn't be found.
-    @_expose(Cxx)
     public func activeUniformLocations(_ program: GLuint, _ name: WebCore.GLLentBytes, _ nameLength: GLint, _ locations: WebCore.GLLentMutableInts) -> Bool {
         guard makeContextCurrent() else {
             return false
@@ -1640,7 +1492,6 @@ public final class GLContext {
     }
 
     // An active uniform's block layout, and its location count: one per element if it isn't in a block.
-    @_expose(!Cxx)
     func activeUniformInfo(_ program: GLuint, _ index: GLuint, _ type: GLenum, _ size: GLint, _ nameLength: GLint) -> ANGLEActiveUniformInfo {
         var info = ANGLEActiveUniformInfo(type: type, size: size, blockIndex: -1, offset: -1, arrayStride: -1, matrixStride: -1, isRowMajor: -1, nameLength: nameLength, locationCount: 0)
         if isForWebGL2 {
@@ -1656,7 +1507,6 @@ public final class GLContext {
         return info
     }
 
-    @_expose(Cxx)
     public func clearActiveVariables() {
         lastVariableName = std.string()
     }
@@ -1675,7 +1525,6 @@ public final class GLContext {
     // Strings.
 
     // The length of a GL string, or -1 if it is null or the context isn't current.
-    @_expose(!Cxx)
     public func stringLength(_ name: GLenum) -> Int {
         guard makeContextCurrent() else {
             return -1
@@ -1685,7 +1534,6 @@ public final class GLContext {
 
     // Copies as much of a GL string as fits into destination. Returns its whole length, or -1 if it is null or the
     // context isn't current.
-    @_expose(Cxx)
     public func copyString(_ name: GLenum, _ destination: WebCore.GLLentMutableBytes) -> Int {
         guard makeContextCurrent() else {
             return -1
@@ -1695,7 +1543,6 @@ public final class GLContext {
 
     // Uniforms.
 
-    @_expose(Cxx)
     public func uniform1fv(_ location: GLint, _ values: WebCore.GLLentFloats) {
         guard makeContextCurrent() else {
             return
@@ -1703,7 +1550,6 @@ public final class GLContext {
         ANGLE.uniform1fv(location, GLsizei(truncatingIfNeeded: values.size()), values)
     }
 
-    @_expose(Cxx)
     public func uniform2fv(_ location: GLint, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 2 == 0)
         guard makeContextCurrent() else {
@@ -1712,7 +1558,6 @@ public final class GLContext {
         ANGLE.uniform2fv(location, GLsizei(truncatingIfNeeded: values.size() / 2), values)
     }
 
-    @_expose(Cxx)
     public func uniform3fv(_ location: GLint, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 3 == 0)
         guard makeContextCurrent() else {
@@ -1721,7 +1566,6 @@ public final class GLContext {
         ANGLE.uniform3fv(location, GLsizei(truncatingIfNeeded: values.size() / 3), values)
     }
 
-    @_expose(Cxx)
     public func uniform4fv(_ location: GLint, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 4 == 0)
         guard makeContextCurrent() else {
@@ -1730,7 +1574,6 @@ public final class GLContext {
         ANGLE.uniform4fv(location, GLsizei(truncatingIfNeeded: values.size() / 4), values)
     }
 
-    @_expose(Cxx)
     public func uniform1iv(_ location: GLint, _ values: WebCore.GLLentInts) {
         guard makeContextCurrent() else {
             return
@@ -1738,7 +1581,6 @@ public final class GLContext {
         ANGLE.uniform1iv(location, GLsizei(truncatingIfNeeded: values.size()), values)
     }
 
-    @_expose(Cxx)
     public func uniform2iv(_ location: GLint, _ values: WebCore.GLLentInts) {
         assert(values.size() % 2 == 0)
         guard makeContextCurrent() else {
@@ -1747,7 +1589,6 @@ public final class GLContext {
         ANGLE.uniform2iv(location, GLsizei(truncatingIfNeeded: values.size() / 2), values)
     }
 
-    @_expose(Cxx)
     public func uniform3iv(_ location: GLint, _ values: WebCore.GLLentInts) {
         assert(values.size() % 3 == 0)
         guard makeContextCurrent() else {
@@ -1756,7 +1597,6 @@ public final class GLContext {
         ANGLE.uniform3iv(location, GLsizei(truncatingIfNeeded: values.size() / 3), values)
     }
 
-    @_expose(Cxx)
     public func uniform4iv(_ location: GLint, _ values: WebCore.GLLentInts) {
         assert(values.size() % 4 == 0)
         guard makeContextCurrent() else {
@@ -1765,7 +1605,6 @@ public final class GLContext {
         ANGLE.uniform4iv(location, GLsizei(truncatingIfNeeded: values.size() / 4), values)
     }
 
-    @_expose(Cxx)
     public func uniform1uiv(_ location: GLint, _ values: WebCore.GLLentUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1773,7 +1612,6 @@ public final class GLContext {
         ANGLE.uniform1uiv(location, GLsizei(truncatingIfNeeded: values.size()), values)
     }
 
-    @_expose(Cxx)
     public func uniform2uiv(_ location: GLint, _ values: WebCore.GLLentUnsignedInts) {
         assert(values.size() % 2 == 0)
         guard makeContextCurrent() else {
@@ -1782,7 +1620,6 @@ public final class GLContext {
         ANGLE.uniform2uiv(location, GLsizei(truncatingIfNeeded: values.size() / 2), values)
     }
 
-    @_expose(Cxx)
     public func uniform3uiv(_ location: GLint, _ values: WebCore.GLLentUnsignedInts) {
         assert(values.size() % 3 == 0)
         guard makeContextCurrent() else {
@@ -1791,7 +1628,6 @@ public final class GLContext {
         ANGLE.uniform3uiv(location, GLsizei(truncatingIfNeeded: values.size() / 3), values)
     }
 
-    @_expose(Cxx)
     public func uniform4uiv(_ location: GLint, _ values: WebCore.GLLentUnsignedInts) {
         assert(values.size() % 4 == 0)
         guard makeContextCurrent() else {
@@ -1800,7 +1636,6 @@ public final class GLContext {
         ANGLE.uniform4uiv(location, GLsizei(truncatingIfNeeded: values.size() / 4), values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix2fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         guard makeContextCurrent() else {
             return
@@ -1808,7 +1643,6 @@ public final class GLContext {
         ANGLE.uniformMatrix2fv(location, GLsizei(truncatingIfNeeded: values.size() / 4), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix3fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 9 == 0)
         guard makeContextCurrent() else {
@@ -1817,7 +1651,6 @@ public final class GLContext {
         ANGLE.uniformMatrix3fv(location, GLsizei(truncatingIfNeeded: values.size() / 9), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix4fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 16 == 0)
         guard makeContextCurrent() else {
@@ -1826,7 +1659,6 @@ public final class GLContext {
         ANGLE.uniformMatrix4fv(location, GLsizei(truncatingIfNeeded: values.size() / 16), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix2x3fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 6 == 0)
         guard makeContextCurrent() else {
@@ -1835,7 +1667,6 @@ public final class GLContext {
         ANGLE.uniformMatrix2x3fv(location, GLsizei(truncatingIfNeeded: values.size() / 6), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix3x2fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 6 == 0)
         guard makeContextCurrent() else {
@@ -1844,7 +1675,6 @@ public final class GLContext {
         ANGLE.uniformMatrix3x2fv(location, GLsizei(truncatingIfNeeded: values.size() / 6), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix2x4fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 8 == 0)
         guard makeContextCurrent() else {
@@ -1853,7 +1683,6 @@ public final class GLContext {
         ANGLE.uniformMatrix2x4fv(location, GLsizei(truncatingIfNeeded: values.size() / 8), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix4x2fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 8 == 0)
         guard makeContextCurrent() else {
@@ -1862,7 +1691,6 @@ public final class GLContext {
         ANGLE.uniformMatrix4x2fv(location, GLsizei(truncatingIfNeeded: values.size() / 8), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix3x4fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 12 == 0)
         guard makeContextCurrent() else {
@@ -1871,7 +1699,6 @@ public final class GLContext {
         ANGLE.uniformMatrix3x4fv(location, GLsizei(truncatingIfNeeded: values.size() / 12), transpose, values)
     }
 
-    @_expose(Cxx)
     public func uniformMatrix4x3fv(_ location: GLint, _ transpose: GLboolean, _ values: WebCore.GLLentFloats) {
         assert(values.size() % 12 == 0)
         guard makeContextCurrent() else {
@@ -1880,7 +1707,6 @@ public final class GLContext {
         ANGLE.uniformMatrix4x3fv(location, GLsizei(truncatingIfNeeded: values.size() / 12), transpose, values)
     }
 
-    @_expose(Cxx)
     public func getUniformfv(_ program: GLuint, _ location: GLint, _ value: WebCore.GLLentMutableFloats) {
         guard makeContextCurrent() else {
             return
@@ -1889,7 +1715,6 @@ public final class GLContext {
         ANGLE.getUniformfv(program, location, value)
     }
 
-    @_expose(Cxx)
     public func getUniformiv(_ program: GLuint, _ location: GLint, _ value: WebCore.GLLentMutableInts) {
         guard makeContextCurrent() else {
             return
@@ -1898,7 +1723,6 @@ public final class GLContext {
         ANGLE.getUniformiv(program, location, value)
     }
 
-    @_expose(Cxx)
     public func getUniformuiv(_ program: GLuint, _ location: GLint, _ value: WebCore.GLLentMutableUnsignedInts) {
         guard makeContextCurrent() else {
             return
@@ -1909,7 +1733,6 @@ public final class GLContext {
 
     // Vertex attributes.
 
-    @_expose(Cxx)
     public func vertexAttrib1fv(_ index: GLuint, _ x: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -1917,7 +1740,6 @@ public final class GLContext {
         ANGLE.vertexAttrib1fv(index, ANGLEFloat4(values: (x, 0, 0, 0)))
     }
 
-    @_expose(Cxx)
     public func vertexAttrib2fv(_ index: GLuint, _ x: GLfloat, _ y: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -1925,7 +1747,6 @@ public final class GLContext {
         ANGLE.vertexAttrib2fv(index, ANGLEFloat4(values: (x, y, 0, 0)))
     }
 
-    @_expose(Cxx)
     public func vertexAttrib3fv(_ index: GLuint, _ x: GLfloat, _ y: GLfloat, _ z: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -1933,7 +1754,6 @@ public final class GLContext {
         ANGLE.vertexAttrib3fv(index, ANGLEFloat4(values: (x, y, z, 0)))
     }
 
-    @_expose(Cxx)
     public func vertexAttrib4fv(_ index: GLuint, _ x: GLfloat, _ y: GLfloat, _ z: GLfloat, _ w: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -1941,7 +1761,6 @@ public final class GLContext {
         ANGLE.vertexAttrib4fv(index, ANGLEFloat4(values: (x, y, z, w)))
     }
 
-    @_expose(Cxx)
     public func vertexAttribI4iv(_ index: GLuint, _ x: GLint, _ y: GLint, _ z: GLint, _ w: GLint) {
         guard makeContextCurrent() else {
             return
@@ -1949,7 +1768,6 @@ public final class GLContext {
         ANGLE.vertexAttribI4iv(index, ANGLEInt4(values: (x, y, z, w)))
     }
 
-    @_expose(Cxx)
     public func vertexAttribI4uiv(_ index: GLuint, _ x: GLuint, _ y: GLuint, _ z: GLuint, _ w: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1957,7 +1775,6 @@ public final class GLContext {
         ANGLE.vertexAttribI4uiv(index, ANGLEUnsignedInt4(values: (x, y, z, w)))
     }
 
-    @_expose(Cxx)
     public func vertexAttribPointer(_ index: GLuint, _ size: GLint, _ type: GLenum, _ normalized: GLboolean, _ stride: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -1965,7 +1782,6 @@ public final class GLContext {
         ANGLE.vertexAttribPointer(index, size, type, normalized, stride, offset)
     }
 
-    @_expose(Cxx)
     public func vertexAttribIPointer(_ index: GLuint, _ size: GLint, _ type: GLenum, _ stride: GLsizei, _ offset: GLintptr) {
         guard makeContextCurrent() else {
             return
@@ -1973,7 +1789,6 @@ public final class GLContext {
         ANGLE.vertexAttribIPointer(index, size, type, stride, offset)
     }
 
-    @_expose(Cxx)
     public func vertexAttribDivisor(_ index: GLuint, _ divisor: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -1985,7 +1800,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func getVertexAttribOffset(_ index: GLuint, _ pname: GLenum) -> GLsizeiptr {
         guard makeContextCurrent() else {
             return 0
@@ -1995,7 +1809,6 @@ public final class GLContext {
 
     // Vertex arrays.
 
-    @_expose(Cxx)
     public func createVertexArray() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2003,7 +1816,6 @@ public final class GLContext {
         return isForWebGL2 ? ANGLE.genVertexArray() : ANGLE.genVertexArrayOES()
     }
 
-    @_expose(Cxx)
     public func deleteVertexArray(_ array: GLuint) {
         if array == 0 {
             return
@@ -2018,7 +1830,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func isVertexArray(_ array: GLuint) -> GLboolean {
         if array == 0 {
             return GLboolean(GL_FALSE)
@@ -2029,7 +1840,6 @@ public final class GLContext {
         return isForWebGL2 ? GL_IsVertexArray(array) : GL_IsVertexArrayOES(array)
     }
 
-    @_expose(Cxx)
     public func bindVertexArray(_ array: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2043,7 +1853,6 @@ public final class GLContext {
 
     // State queries.
 
-    @_expose(Cxx)
     public func getBooleanv(_ pname: GLenum, _ value: WebCore.GLLentMutableBytes) {
         guard makeContextCurrent() else {
             return
@@ -2051,7 +1860,6 @@ public final class GLContext {
         ANGLE.getBooleanv(pname, value)
     }
 
-    @_expose(Cxx)
     public func getFloatv(_ pname: GLenum, _ value: WebCore.GLLentMutableFloats) {
         guard makeContextCurrent() else {
             return
@@ -2059,7 +1867,6 @@ public final class GLContext {
         ANGLE.getFloatv(pname, value)
     }
 
-    @_expose(Cxx)
     public func getIntegerv(_ pname: GLenum, _ value: WebCore.GLLentMutableInts) {
         guard makeContextCurrent() else {
             return
@@ -2067,7 +1874,6 @@ public final class GLContext {
         ANGLE.getIntegerv(pname, value)
     }
 
-    @_expose(Cxx)
     public func getIntegeri_v(_ pname: GLenum, _ index: GLuint, _ value: WebCore.GLLentMutableInts) {
         guard makeContextCurrent() else {
             return
@@ -2075,7 +1881,6 @@ public final class GLContext {
         ANGLE.getIntegeri_v(pname, index, value)
     }
 
-    @_expose(Cxx)
     public func getInteger64(_ pname: GLenum) -> GLint64 {
         guard makeContextCurrent() else {
             return 0
@@ -2083,7 +1888,6 @@ public final class GLContext {
         return ANGLE.getInteger64(pname)
     }
 
-    @_expose(Cxx)
     public func getInteger64i(_ pname: GLenum, _ index: GLuint) -> GLint64 {
         guard makeContextCurrent() else {
             return 0
@@ -2091,7 +1895,6 @@ public final class GLContext {
         return ANGLE.getInteger64i(pname, index)
     }
 
-    @_expose(Cxx)
     public func getInteger64EXT(_ pname: GLenum) -> GLint64 {
         guard makeContextCurrent() else {
             return 0
@@ -2099,7 +1902,6 @@ public final class GLContext {
         return ANGLE.getInteger64(pname)
     }
 
-    @_expose(Cxx)
     public func getInternalformativ(_ target: GLenum, _ internalformat: GLenum, _ pname: GLenum, _ data: WebCore.GLLentMutableInts) {
         guard makeContextCurrent() else {
             return
@@ -2107,7 +1909,6 @@ public final class GLContext {
         ANGLE.getInternalformativ(target, internalformat, pname, data)
     }
 
-    @_expose(Cxx)
     public func getBufferParameteri(_ target: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2115,7 +1916,6 @@ public final class GLContext {
         return ANGLE.getBufferParameteri(target, pname)
     }
 
-    @_expose(Cxx)
     public func getFramebufferAttachmentParameteri(_ target: GLenum, _ attachment: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2125,7 +1925,6 @@ public final class GLContext {
         return ANGLE.getFramebufferAttachmentParameteri(target, attachment, pname)
     }
 
-    @_expose(Cxx)
     public func getRenderbufferParameteri(_ target: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2133,7 +1932,6 @@ public final class GLContext {
         return ANGLE.getRenderbufferParameteri(target, pname)
     }
 
-    @_expose(Cxx)
     public func getTexParameterf(_ target: GLenum, _ pname: GLenum) -> GLfloat {
         guard makeContextCurrent() else {
             return 0
@@ -2141,7 +1939,6 @@ public final class GLContext {
         return ANGLE.getTexParameterf(target, pname)
     }
 
-    @_expose(Cxx)
     public func getTexParameteri(_ target: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2149,7 +1946,6 @@ public final class GLContext {
         return ANGLE.getTexParameteri(target, pname)
     }
 
-    @_expose(Cxx)
     public func getShaderPrecisionFormat(_ shaderType: GLenum, _ precisionType: GLenum) -> ANGLEShaderPrecisionFormat {
         guard makeContextCurrent() else {
             return ANGLEShaderPrecisionFormat()
@@ -2159,7 +1955,6 @@ public final class GLContext {
 
     // Queries.
 
-    @_expose(Cxx)
     public func createQuery() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2167,7 +1962,6 @@ public final class GLContext {
         return ANGLE.genQuery()
     }
 
-    @_expose(Cxx)
     public func deleteQuery(_ query: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2175,7 +1969,6 @@ public final class GLContext {
         ANGLE.deleteQuery(query)
     }
 
-    @_expose(Cxx)
     public func getQuery(_ target: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2183,7 +1976,6 @@ public final class GLContext {
         return ANGLE.getQueryi(target, pname)
     }
 
-    @_expose(Cxx)
     public func getQueryObjectui(_ query: GLuint, _ pname: GLenum) -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2191,7 +1983,6 @@ public final class GLContext {
         return ANGLE.getQueryObjectui(query, pname)
     }
 
-    @_expose(Cxx)
     public func createQueryEXT() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2199,7 +1990,6 @@ public final class GLContext {
         return ANGLE.genQueryEXT()
     }
 
-    @_expose(Cxx)
     public func deleteQueryEXT(_ query: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2207,7 +1997,6 @@ public final class GLContext {
         ANGLE.deleteQueryEXT(query)
     }
 
-    @_expose(Cxx)
     public func getQueryiEXT(_ target: GLenum, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2215,7 +2004,6 @@ public final class GLContext {
         return ANGLE.getQueryi(target, pname)
     }
 
-    @_expose(Cxx)
     public func getQueryObjectiEXT(_ query: GLuint, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2223,7 +2011,6 @@ public final class GLContext {
         return ANGLE.getQueryObjecti(query, pname)
     }
 
-    @_expose(Cxx)
     public func getQueryObjectui64EXT(_ query: GLuint, _ pname: GLenum) -> GLuint64 {
         guard makeContextCurrent() else {
             return 0
@@ -2233,7 +2020,6 @@ public final class GLContext {
 
     // Samplers.
 
-    @_expose(Cxx)
     public func createSampler() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2241,7 +2027,6 @@ public final class GLContext {
         return ANGLE.genSampler()
     }
 
-    @_expose(Cxx)
     public func deleteSampler(_ sampler: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2249,7 +2034,6 @@ public final class GLContext {
         ANGLE.deleteSampler(sampler)
     }
 
-    @_expose(Cxx)
     public func getSamplerParameterf(_ sampler: GLuint, _ pname: GLenum) -> GLfloat {
         guard makeContextCurrent() else {
             return 0
@@ -2257,7 +2041,6 @@ public final class GLContext {
         return ANGLE.getSamplerParameterf(sampler, pname)
     }
 
-    @_expose(Cxx)
     public func getSamplerParameteri(_ sampler: GLuint, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2267,7 +2050,6 @@ public final class GLContext {
 
     // Syncs.
 
-    @_expose(Cxx)
     public func fenceSync(_ condition: GLenum, _ flags: GLbitfield) -> UInt64 {
         guard makeContextCurrent() else {
             return 0
@@ -2275,7 +2057,6 @@ public final class GLContext {
         return ANGLE.fenceSync(condition, flags)
     }
 
-    @_expose(Cxx)
     public func isSync(_ sync: UInt64) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -2283,7 +2064,6 @@ public final class GLContext {
         return ANGLE.isSync(sync)
     }
 
-    @_expose(Cxx)
     public func deleteSync(_ sync: UInt64) {
         guard makeContextCurrent() else {
             return
@@ -2291,7 +2071,6 @@ public final class GLContext {
         ANGLE.deleteSync(sync)
     }
 
-    @_expose(Cxx)
     public func clientWaitSync(_ sync: UInt64, _ flags: GLbitfield, _ timeout: GLuint64) -> GLenum {
         guard makeContextCurrent() else {
             return GLenum(GL_WAIT_FAILED)
@@ -2299,7 +2078,6 @@ public final class GLContext {
         return ANGLE.clientWaitSync(sync, flags, timeout)
     }
 
-    @_expose(Cxx)
     public func waitSync(_ sync: UInt64, _ flags: GLbitfield, _ timeout: GLint64) {
         guard makeContextCurrent() else {
             return
@@ -2307,7 +2085,6 @@ public final class GLContext {
         ANGLE.waitSync(sync, flags, GLuint64(bitPattern: timeout))
     }
 
-    @_expose(Cxx)
     public func getSynci(_ sync: UInt64, _ pname: GLenum) -> GLint {
         guard makeContextCurrent() else {
             return 0
@@ -2317,7 +2094,6 @@ public final class GLContext {
 
     // Transform feedback.
 
-    @_expose(Cxx)
     public func createTransformFeedback() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -2325,7 +2101,6 @@ public final class GLContext {
         return ANGLE.genTransformFeedback()
     }
 
-    @_expose(Cxx)
     public func deleteTransformFeedback(_ transformFeedback: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2340,21 +2115,18 @@ public final class GLContext {
     private var nextExternalImageName: UInt32 = 0
     private var nextExternalSyncName: UInt32 = 0
 
-    @_expose(Cxx)
     public func addExternalImage(_ image: ANGLEImage) -> UInt32 {
         nextExternalImageName &+= 1
         externalImages[nextExternalImageName] = image
         return nextExternalImageName
     }
 
-    @_expose(Cxx)
     public func addExternalSync(_ sync: ANGLEEGLSync) -> UInt32 {
         nextExternalSyncName &+= 1
         externalSyncs[nextExternalSyncName] = sync
         return nextExternalSyncName
     }
 
-    @_expose(Cxx)
     public func deleteExternalImage(_ image: UInt32) {
         if image == 0 {
             return
@@ -2370,7 +2142,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func deleteExternalSync(_ sync: UInt32) {
         if sync == 0 {
             return
@@ -2386,7 +2157,6 @@ public final class GLContext {
         }
     }
 
-    @_expose(Cxx)
     public func bindExternalImage(_ target: GLenum, _ image: UInt32) {
         guard makeContextCurrent() else {
             return
@@ -2408,7 +2178,6 @@ public final class GLContext {
     }
 
     // Destroys the external images and syncs left, before the platform destroys the EGL context.
-    @_expose(!Cxx)
     public func destroyExternalImagesAndSyncs() {
         for image in externalImages.values {
             let result = ANGLE.destroyImage(display, image)
@@ -2424,7 +2193,6 @@ public final class GLContext {
 
     // Testing.
 
-    @_expose(Cxx)
     public func simulateEventForTesting(_ event: UInt8) {
         switch event {
         case GLContextSimulatedEvent.gpuStatusFailure:
@@ -2472,7 +2240,6 @@ public final class GLContext {
 
     // Pass-throughs.
 
-    @_expose(Cxx)
     public func depthRange(_ zNear: GLfloat, _ zFar: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2480,7 +2247,6 @@ public final class GLContext {
         GL_DepthRangef(zNear, zFar)
     }
 
-    @_expose(Cxx)
     public func clearDepth(_ depth: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2488,7 +2254,6 @@ public final class GLContext {
         GL_ClearDepthf(depth)
     }
 
-    @_expose(Cxx)
     public func attachShader(_ program: GLuint, _ shader: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2496,7 +2261,6 @@ public final class GLContext {
         GL_AttachShader(program, shader)
     }
 
-    @_expose(Cxx)
     public func bindBuffer(_ target: GLenum, _ buffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2504,7 +2268,6 @@ public final class GLContext {
         GL_BindBuffer(target, buffer)
     }
 
-    @_expose(Cxx)
     public func bindRenderbuffer(_ target: GLenum, _ renderbuffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2512,7 +2275,6 @@ public final class GLContext {
         GL_BindRenderbuffer(target, renderbuffer)
     }
 
-    @_expose(Cxx)
     public func blendColor(_ red: GLfloat, _ green: GLfloat, _ blue: GLfloat, _ alpha: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2520,7 +2282,6 @@ public final class GLContext {
         GL_BlendColor(red, green, blue, alpha)
     }
 
-    @_expose(Cxx)
     public func blendEquation(_ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2528,7 +2289,6 @@ public final class GLContext {
         GL_BlendEquation(mode)
     }
 
-    @_expose(Cxx)
     public func blendEquationSeparate(_ modeRGB: GLenum, _ modeAlpha: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2536,7 +2296,6 @@ public final class GLContext {
         GL_BlendEquationSeparate(modeRGB, modeAlpha)
     }
 
-    @_expose(Cxx)
     public func blendFunc(_ sfactor: GLenum, _ dfactor: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2544,7 +2303,6 @@ public final class GLContext {
         GL_BlendFunc(sfactor, dfactor)
     }
 
-    @_expose(Cxx)
     public func blendFuncSeparate(_ srcRGB: GLenum, _ dstRGB: GLenum, _ srcAlpha: GLenum, _ dstAlpha: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2552,7 +2310,6 @@ public final class GLContext {
         GL_BlendFuncSeparate(srcRGB, dstRGB, srcAlpha, dstAlpha)
     }
 
-    @_expose(Cxx)
     public func copyBufferSubData(_ readTarget: GLenum, _ writeTarget: GLenum, _ readOffset: GLintptr, _ writeOffset: GLintptr, _ size: GLsizeiptr) {
         guard makeContextCurrent() else {
             return
@@ -2560,7 +2317,6 @@ public final class GLContext {
         GL_CopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size)
     }
 
-    @_expose(Cxx)
     public func checkFramebufferStatus(_ target: GLenum) -> GLenum {
         guard makeContextCurrent() else {
             return GLenum(GL_INVALID_OPERATION)
@@ -2568,7 +2324,6 @@ public final class GLContext {
         return GL_CheckFramebufferStatus(target)
     }
 
-    @_expose(Cxx)
     public func clearColor(_ r: GLfloat, _ g: GLfloat, _ b: GLfloat, _ a: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2576,7 +2331,6 @@ public final class GLContext {
         GL_ClearColor(r, g, b, a)
     }
 
-    @_expose(Cxx)
     public func clear(_ mask: GLbitfield) {
         guard makeContextCurrent() else {
             return
@@ -2585,7 +2339,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func clearStencil(_ s: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2593,7 +2346,6 @@ public final class GLContext {
         GL_ClearStencil(s)
     }
 
-    @_expose(Cxx)
     public func colorMask(_ red: GLboolean, _ green: GLboolean, _ blue: GLboolean, _ alpha: GLboolean) {
         guard makeContextCurrent() else {
             return
@@ -2601,7 +2353,6 @@ public final class GLContext {
         GL_ColorMask(red, green, blue, alpha)
     }
 
-    @_expose(Cxx)
     public func copyTexImage2D(_ target: GLenum, _ level: GLint, _ internalformat: GLenum, _ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei, _ border: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2611,7 +2362,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func copyTexSubImage2D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -2620,7 +2370,6 @@ public final class GLContext {
         invalidateKnownTextureContent(forTarget: target)
     }
 
-    @_expose(Cxx)
     public func cullFace(_ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2628,7 +2377,6 @@ public final class GLContext {
         GL_CullFace(mode)
     }
 
-    @_expose(Cxx)
     public func depthFunc(_ function: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2636,7 +2384,6 @@ public final class GLContext {
         GL_DepthFunc(function)
     }
 
-    @_expose(Cxx)
     public func depthMask(_ flag: GLboolean) {
         guard makeContextCurrent() else {
             return
@@ -2644,7 +2391,6 @@ public final class GLContext {
         GL_DepthMask(flag)
     }
 
-    @_expose(Cxx)
     public func detachShader(_ program: GLuint, _ shader: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2652,7 +2398,6 @@ public final class GLContext {
         GL_DetachShader(program, shader)
     }
 
-    @_expose(Cxx)
     public func disableVertexAttribArray(_ index: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2660,7 +2405,6 @@ public final class GLContext {
         GL_DisableVertexAttribArray(index)
     }
 
-    @_expose(Cxx)
     public func drawArrays(_ mode: GLenum, _ first: GLint, _ count: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -2669,7 +2413,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func enableVertexAttribArray(_ index: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2677,7 +2420,6 @@ public final class GLContext {
         GL_EnableVertexAttribArray(index)
     }
 
-    @_expose(Cxx)
     public func finish() {
         guard makeContextCurrent() else {
             return
@@ -2685,7 +2427,6 @@ public final class GLContext {
         GL_Finish()
     }
 
-    @_expose(Cxx)
     public func flush() {
         guard makeContextCurrent() else {
             return
@@ -2693,7 +2434,6 @@ public final class GLContext {
         GL_Flush()
     }
 
-    @_expose(Cxx)
     public func framebufferRenderbuffer(_ target: GLenum, _ attachment: GLenum, _ renderbuffertarget: GLenum, _ buffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2701,7 +2441,6 @@ public final class GLContext {
         GL_FramebufferRenderbuffer(target, attachment, renderbuffertarget, buffer)
     }
 
-    @_expose(Cxx)
     public func frontFace(_ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2709,7 +2448,6 @@ public final class GLContext {
         GL_FrontFace(mode)
     }
 
-    @_expose(Cxx)
     public func generateMipmap(_ target: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2719,7 +2457,6 @@ public final class GLContext {
         didChangeMemoryCost()
     }
 
-    @_expose(Cxx)
     public func hint(_ target: GLenum, _ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2727,7 +2464,6 @@ public final class GLContext {
         GL_Hint(target, mode)
     }
 
-    @_expose(Cxx)
     public func isBuffer(_ buffer: GLuint) -> GLboolean {
         if buffer == 0 {
             return GLboolean(GL_FALSE)
@@ -2738,7 +2474,6 @@ public final class GLContext {
         return GL_IsBuffer(buffer)
     }
 
-    @_expose(Cxx)
     public func isEnabled(_ cap: GLenum) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -2746,7 +2481,6 @@ public final class GLContext {
         return GL_IsEnabled(cap)
     }
 
-    @_expose(Cxx)
     public func isFramebuffer(_ framebuffer: GLuint) -> GLboolean {
         if framebuffer == 0 {
             return GLboolean(GL_FALSE)
@@ -2757,7 +2491,6 @@ public final class GLContext {
         return GL_IsFramebuffer(framebuffer)
     }
 
-    @_expose(Cxx)
     public func isProgram(_ program: GLuint) -> GLboolean {
         if program == 0 {
             return GLboolean(GL_FALSE)
@@ -2768,7 +2501,6 @@ public final class GLContext {
         return GL_IsProgram(program)
     }
 
-    @_expose(Cxx)
     public func isRenderbuffer(_ renderbuffer: GLuint) -> GLboolean {
         if renderbuffer == 0 {
             return GLboolean(GL_FALSE)
@@ -2779,7 +2511,6 @@ public final class GLContext {
         return GL_IsRenderbuffer(renderbuffer)
     }
 
-    @_expose(Cxx)
     public func isShader(_ shader: GLuint) -> GLboolean {
         if shader == 0 {
             return GLboolean(GL_FALSE)
@@ -2790,7 +2521,6 @@ public final class GLContext {
         return GL_IsShader(shader)
     }
 
-    @_expose(Cxx)
     public func isTexture(_ texture: GLuint) -> GLboolean {
         if texture == 0 {
             return GLboolean(GL_FALSE)
@@ -2801,7 +2531,6 @@ public final class GLContext {
         return GL_IsTexture(texture)
     }
 
-    @_expose(Cxx)
     public func lineWidth(_ width: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2809,7 +2538,6 @@ public final class GLContext {
         GL_LineWidth(width)
     }
 
-    @_expose(Cxx)
     public func linkProgram(_ program: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2817,7 +2545,6 @@ public final class GLContext {
         GL_LinkProgram(program)
     }
 
-    @_expose(Cxx)
     public func polygonOffset(_ factor: GLfloat, _ units: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2825,7 +2552,6 @@ public final class GLContext {
         GL_PolygonOffset(factor, units)
     }
 
-    @_expose(Cxx)
     public func sampleCoverage(_ value: GLfloat, _ invert: GLboolean) {
         guard makeContextCurrent() else {
             return
@@ -2833,7 +2559,6 @@ public final class GLContext {
         GL_SampleCoverage(value, invert)
     }
 
-    @_expose(Cxx)
     public func scissor(_ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -2841,7 +2566,6 @@ public final class GLContext {
         GL_Scissor(x, y, width, height)
     }
 
-    @_expose(Cxx)
     public func stencilFunc(_ function: GLenum, _ ref: GLint, _ mask: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2849,7 +2573,6 @@ public final class GLContext {
         GL_StencilFunc(function, ref, mask)
     }
 
-    @_expose(Cxx)
     public func stencilFuncSeparate(_ face: GLenum, _ function: GLenum, _ ref: GLint, _ mask: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2857,7 +2580,6 @@ public final class GLContext {
         GL_StencilFuncSeparate(face, function, ref, mask)
     }
 
-    @_expose(Cxx)
     public func stencilMask(_ mask: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2865,7 +2587,6 @@ public final class GLContext {
         GL_StencilMask(mask)
     }
 
-    @_expose(Cxx)
     public func stencilMaskSeparate(_ face: GLenum, _ mask: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2873,7 +2594,6 @@ public final class GLContext {
         GL_StencilMaskSeparate(face, mask)
     }
 
-    @_expose(Cxx)
     public func stencilOp(_ fail: GLenum, _ zfail: GLenum, _ zpass: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2881,7 +2601,6 @@ public final class GLContext {
         GL_StencilOp(fail, zfail, zpass)
     }
 
-    @_expose(Cxx)
     public func stencilOpSeparate(_ face: GLenum, _ fail: GLenum, _ zfail: GLenum, _ zpass: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -2889,7 +2608,6 @@ public final class GLContext {
         GL_StencilOpSeparate(face, fail, zfail, zpass)
     }
 
-    @_expose(Cxx)
     public func texParameterf(_ target: GLenum, _ pname: GLenum, _ value: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2897,7 +2615,6 @@ public final class GLContext {
         GL_TexParameterf(target, pname, value)
     }
 
-    @_expose(Cxx)
     public func texParameteri(_ target: GLenum, _ pname: GLenum, _ value: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2905,7 +2622,6 @@ public final class GLContext {
         GL_TexParameteri(target, pname, value)
     }
 
-    @_expose(Cxx)
     public func uniform1f(_ location: GLint, _ v0: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2913,7 +2629,6 @@ public final class GLContext {
         GL_Uniform1f(location, v0)
     }
 
-    @_expose(Cxx)
     public func uniform2f(_ location: GLint, _ v0: GLfloat, _ v1: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2921,7 +2636,6 @@ public final class GLContext {
         GL_Uniform2f(location, v0, v1)
     }
 
-    @_expose(Cxx)
     public func uniform3f(_ location: GLint, _ v0: GLfloat, _ v1: GLfloat, _ v2: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2929,7 +2643,6 @@ public final class GLContext {
         GL_Uniform3f(location, v0, v1, v2)
     }
 
-    @_expose(Cxx)
     public func uniform4f(_ location: GLint, _ v0: GLfloat, _ v1: GLfloat, _ v2: GLfloat, _ v3: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2937,7 +2650,6 @@ public final class GLContext {
         GL_Uniform4f(location, v0, v1, v2, v3)
     }
 
-    @_expose(Cxx)
     public func uniform1i(_ location: GLint, _ v0: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2945,7 +2657,6 @@ public final class GLContext {
         GL_Uniform1i(location, v0)
     }
 
-    @_expose(Cxx)
     public func uniform2i(_ location: GLint, _ v0: GLint, _ v1: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2953,7 +2664,6 @@ public final class GLContext {
         GL_Uniform2i(location, v0, v1)
     }
 
-    @_expose(Cxx)
     public func uniform3i(_ location: GLint, _ v0: GLint, _ v1: GLint, _ v2: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2961,7 +2671,6 @@ public final class GLContext {
         GL_Uniform3i(location, v0, v1, v2)
     }
 
-    @_expose(Cxx)
     public func uniform4i(_ location: GLint, _ v0: GLint, _ v1: GLint, _ v2: GLint, _ v3: GLint) {
         guard makeContextCurrent() else {
             return
@@ -2969,7 +2678,6 @@ public final class GLContext {
         GL_Uniform4i(location, v0, v1, v2, v3)
     }
 
-    @_expose(Cxx)
     public func useProgram(_ program: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2977,7 +2685,6 @@ public final class GLContext {
         GL_UseProgram(program)
     }
 
-    @_expose(Cxx)
     public func validateProgram(_ program: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -2985,7 +2692,6 @@ public final class GLContext {
         GL_ValidateProgram(program)
     }
 
-    @_expose(Cxx)
     public func vertexAttrib1f(_ index: GLuint, _ v0: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -2993,7 +2699,6 @@ public final class GLContext {
         GL_VertexAttrib1f(index, v0)
     }
 
-    @_expose(Cxx)
     public func vertexAttrib2f(_ index: GLuint, _ v0: GLfloat, _ v1: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -3001,7 +2706,6 @@ public final class GLContext {
         GL_VertexAttrib2f(index, v0, v1)
     }
 
-    @_expose(Cxx)
     public func vertexAttrib3f(_ index: GLuint, _ v0: GLfloat, _ v1: GLfloat, _ v2: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -3009,7 +2713,6 @@ public final class GLContext {
         GL_VertexAttrib3f(index, v0, v1, v2)
     }
 
-    @_expose(Cxx)
     public func vertexAttrib4f(_ index: GLuint, _ v0: GLfloat, _ v1: GLfloat, _ v2: GLfloat, _ v3: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -3017,7 +2720,6 @@ public final class GLContext {
         GL_VertexAttrib4f(index, v0, v1, v2, v3)
     }
 
-    @_expose(Cxx)
     public func viewport(_ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -3025,7 +2727,6 @@ public final class GLContext {
         GL_Viewport(x, y, width, height)
     }
 
-    @_expose(Cxx)
     public func createProgram() -> GLuint {
         guard makeContextCurrent() else {
             return 0
@@ -3033,7 +2734,6 @@ public final class GLContext {
         return GL_CreateProgram()
     }
 
-    @_expose(Cxx)
     public func deleteProgram(_ program: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3041,7 +2741,6 @@ public final class GLContext {
         GL_DeleteProgram(program)
     }
 
-    @_expose(Cxx)
     public func deleteShader(_ shader: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3049,7 +2748,6 @@ public final class GLContext {
         GL_DeleteShader(shader)
     }
 
-    @_expose(Cxx)
     public func uniformBlockBinding(_ program: GLuint, _ uniformBlockIndex: GLuint, _ uniformBlockBinding: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3057,7 +2755,6 @@ public final class GLContext {
         GL_UniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding)
     }
 
-    @_expose(Cxx)
     public func beginQuery(_ target: GLenum, _ query: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3065,7 +2762,6 @@ public final class GLContext {
         GL_BeginQuery(target, query)
     }
 
-    @_expose(Cxx)
     public func endQuery(_ target: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3073,7 +2769,6 @@ public final class GLContext {
         GL_EndQuery(target)
     }
 
-    @_expose(Cxx)
     public func isTransformFeedback(_ transformFeedback: GLuint) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -3081,7 +2776,6 @@ public final class GLContext {
         return GL_IsTransformFeedback(transformFeedback)
     }
 
-    @_expose(Cxx)
     public func bindTransformFeedback(_ target: GLenum, _ transformFeedback: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3089,7 +2783,6 @@ public final class GLContext {
         GL_BindTransformFeedback(target, transformFeedback)
     }
 
-    @_expose(Cxx)
     public func beginTransformFeedback(_ primitiveMode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3097,7 +2790,6 @@ public final class GLContext {
         GL_BeginTransformFeedback(primitiveMode)
     }
 
-    @_expose(Cxx)
     public func endTransformFeedback() {
         guard makeContextCurrent() else {
             return
@@ -3105,7 +2797,6 @@ public final class GLContext {
         GL_EndTransformFeedback()
     }
 
-    @_expose(Cxx)
     public func bindBufferBase(_ target: GLenum, _ index: GLuint, _ buffer: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3113,7 +2804,6 @@ public final class GLContext {
         GL_BindBufferBase(target, index, buffer)
     }
 
-    @_expose(Cxx)
     public func framebufferTextureLayer(_ target: GLenum, _ attachment: GLenum, _ texture: GLuint, _ level: GLint, _ layer: GLint) {
         guard makeContextCurrent() else {
             return
@@ -3121,7 +2811,6 @@ public final class GLContext {
         GL_FramebufferTextureLayer(target, attachment, texture, level, layer)
     }
 
-    @_expose(Cxx)
     public func readBuffer(_ src: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3129,7 +2818,6 @@ public final class GLContext {
         GL_ReadBuffer(src)
     }
 
-    @_expose(Cxx)
     public func copyTexSubImage3D(_ target: GLenum, _ level: GLint, _ xoffset: GLint, _ yoffset: GLint, _ zoffset: GLint, _ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -3137,7 +2825,6 @@ public final class GLContext {
         GL_CopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height)
     }
 
-    @_expose(Cxx)
     public func uniform1ui(_ location: GLint, _ v0: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3145,7 +2832,6 @@ public final class GLContext {
         GL_Uniform1ui(location, v0)
     }
 
-    @_expose(Cxx)
     public func uniform2ui(_ location: GLint, _ v0: GLuint, _ v1: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3153,7 +2839,6 @@ public final class GLContext {
         GL_Uniform2ui(location, v0, v1)
     }
 
-    @_expose(Cxx)
     public func uniform3ui(_ location: GLint, _ v0: GLuint, _ v1: GLuint, _ v2: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3161,7 +2846,6 @@ public final class GLContext {
         GL_Uniform3ui(location, v0, v1, v2)
     }
 
-    @_expose(Cxx)
     public func uniform4ui(_ location: GLint, _ v0: GLuint, _ v1: GLuint, _ v2: GLuint, _ v3: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3169,7 +2853,6 @@ public final class GLContext {
         GL_Uniform4ui(location, v0, v1, v2, v3)
     }
 
-    @_expose(Cxx)
     public func vertexAttribI4i(_ index: GLuint, _ x: GLint, _ y: GLint, _ z: GLint, _ w: GLint) {
         guard makeContextCurrent() else {
             return
@@ -3177,7 +2860,6 @@ public final class GLContext {
         GL_VertexAttribI4i(index, x, y, z, w)
     }
 
-    @_expose(Cxx)
     public func vertexAttribI4ui(_ index: GLuint, _ x: GLuint, _ y: GLuint, _ z: GLuint, _ w: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3185,7 +2867,6 @@ public final class GLContext {
         GL_VertexAttribI4ui(index, x, y, z, w)
     }
 
-    @_expose(Cxx)
     public func clearBufferfi(_ buffer: GLenum, _ drawbuffer: GLint, _ depth: GLfloat, _ stencil: GLint) {
         guard makeContextCurrent() else {
             return
@@ -3194,7 +2875,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func isQuery(_ query: GLuint) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -3202,7 +2882,6 @@ public final class GLContext {
         return GL_IsQuery(query)
     }
 
-    @_expose(Cxx)
     public func isSampler(_ sampler: GLuint) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -3210,7 +2889,6 @@ public final class GLContext {
         return GL_IsSampler(sampler)
     }
 
-    @_expose(Cxx)
     public func bindSampler(_ unit: GLuint, _ sampler: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3218,7 +2896,6 @@ public final class GLContext {
         GL_BindSampler(unit, sampler)
     }
 
-    @_expose(Cxx)
     public func samplerParameteri(_ sampler: GLuint, _ pname: GLenum, _ param: GLint) {
         guard makeContextCurrent() else {
             return
@@ -3226,7 +2903,6 @@ public final class GLContext {
         GL_SamplerParameteri(sampler, pname, param)
     }
 
-    @_expose(Cxx)
     public func samplerParameterf(_ sampler: GLuint, _ pname: GLenum, _ param: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -3234,7 +2910,6 @@ public final class GLContext {
         GL_SamplerParameterf(sampler, pname, param)
     }
 
-    @_expose(Cxx)
     public func pauseTransformFeedback() {
         guard makeContextCurrent() else {
             return
@@ -3242,7 +2917,6 @@ public final class GLContext {
         GL_PauseTransformFeedback()
     }
 
-    @_expose(Cxx)
     public func resumeTransformFeedback() {
         guard makeContextCurrent() else {
             return
@@ -3250,7 +2924,6 @@ public final class GLContext {
         GL_ResumeTransformFeedback()
     }
 
-    @_expose(Cxx)
     public func bindBufferRange(_ target: GLenum, _ index: GLuint, _ buffer: GLuint, _ offset: GLintptr, _ size: GLsizeiptr) {
         guard makeContextCurrent() else {
             return
@@ -3258,7 +2931,6 @@ public final class GLContext {
         GL_BindBufferRange(target, index, buffer, offset, size)
     }
 
-    @_expose(Cxx)
     public func isQueryEXT(_ query: GLuint) -> GLboolean {
         guard makeContextCurrent() else {
             return GLboolean(GL_FALSE)
@@ -3266,7 +2938,6 @@ public final class GLContext {
         return GL_IsQueryEXT(query)
     }
 
-    @_expose(Cxx)
     public func beginQueryEXT(_ target: GLenum, _ query: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3274,7 +2945,6 @@ public final class GLContext {
         GL_BeginQueryEXT(target, query)
     }
 
-    @_expose(Cxx)
     public func endQueryEXT(_ target: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3282,7 +2952,6 @@ public final class GLContext {
         GL_EndQueryEXT(target)
     }
 
-    @_expose(Cxx)
     public func queryCounterEXT(_ query: GLuint, _ target: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3290,7 +2959,6 @@ public final class GLContext {
         GL_QueryCounterEXT(query, target)
     }
 
-    @_expose(Cxx)
     public func enableiOES(_ target: GLenum, _ index: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3298,7 +2966,6 @@ public final class GLContext {
         GL_EnableiOES(target, index)
     }
 
-    @_expose(Cxx)
     public func disableiOES(_ target: GLenum, _ index: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3306,7 +2973,6 @@ public final class GLContext {
         GL_DisableiOES(target, index)
     }
 
-    @_expose(Cxx)
     public func blendEquationiOES(_ buf: GLuint, _ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3314,7 +2980,6 @@ public final class GLContext {
         GL_BlendEquationiOES(buf, mode)
     }
 
-    @_expose(Cxx)
     public func blendEquationSeparateiOES(_ buf: GLuint, _ modeRGB: GLenum, _ modeAlpha: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3322,7 +2987,6 @@ public final class GLContext {
         GL_BlendEquationSeparateiOES(buf, modeRGB, modeAlpha)
     }
 
-    @_expose(Cxx)
     public func blendFunciOES(_ buf: GLuint, _ src: GLenum, _ dst: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3330,7 +2994,6 @@ public final class GLContext {
         GL_BlendFunciOES(buf, src, dst)
     }
 
-    @_expose(Cxx)
     public func blendFuncSeparateiOES(_ buf: GLuint, _ srcRGB: GLenum, _ dstRGB: GLenum, _ srcAlpha: GLenum, _ dstAlpha: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3338,7 +3001,6 @@ public final class GLContext {
         GL_BlendFuncSeparateiOES(buf, srcRGB, dstRGB, srcAlpha, dstAlpha)
     }
 
-    @_expose(Cxx)
     public func colorMaskiOES(_ buf: GLuint, _ red: GLboolean, _ green: GLboolean, _ blue: GLboolean, _ alpha: GLboolean) {
         guard makeContextCurrent() else {
             return
@@ -3346,7 +3008,6 @@ public final class GLContext {
         GL_ColorMaskiOES(buf, red, green, blue, alpha)
     }
 
-    @_expose(Cxx)
     public func drawArraysInstancedBaseInstanceANGLE(_ mode: GLenum, _ first: GLint, _ count: GLsizei, _ instanceCount: GLsizei, _ baseInstance: GLuint) {
         guard makeContextCurrent() else {
             return
@@ -3355,7 +3016,6 @@ public final class GLContext {
         checkGPUStatus()
     }
 
-    @_expose(Cxx)
     public func clipControlEXT(_ origin: GLenum, _ depth: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3363,7 +3023,6 @@ public final class GLContext {
         GL_ClipControlEXT(origin, depth)
     }
 
-    @_expose(Cxx)
     public func provokingVertexANGLE(_ provokeMode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3371,7 +3030,6 @@ public final class GLContext {
         GL_ProvokingVertexANGLE(provokeMode)
     }
 
-    @_expose(Cxx)
     public func polygonModeANGLE(_ face: GLenum, _ mode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -3379,7 +3037,6 @@ public final class GLContext {
         GL_PolygonModeANGLE(face, mode)
     }
 
-    @_expose(Cxx)
     public func polygonOffsetClampEXT(_ factor: GLfloat, _ units: GLfloat, _ clamp: GLfloat) {
         guard makeContextCurrent() else {
             return
@@ -3394,17 +3051,4 @@ enum GLContextSimulatedEvent {
     static let timeout: UInt8 = 1
     static let displayBufferAllocationFailure: UInt8 = 2
     static let renderbufferAllocationFailure: UInt8 = 3
-}
-
-
-// A context for the GPU process's Swift receiver, which C++ hands it by the address of this struct's storage.
-@_expose(Cxx)
-public struct GLContextHandoff {
-    @_expose(!Cxx)
-    public let context: GLContext
-
-    @_expose(Cxx)
-    public init(context: GLContext) {
-        self.context = context
-    }
 }

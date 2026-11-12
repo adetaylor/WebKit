@@ -3459,7 +3459,7 @@ if (APPLE)
         platform/graphics/iso/ISOVTTCue.cpp
     )
     if (ENABLE_WEBGL)
-        # The C++ that calls the WebGL island's Swift, through its generated header, WebCoreWebGLSwift-Generated.h.
+        # The C++ that calls the WebGL island's Swift, through the headers beside its module maps.
         list(APPEND WebCore_SWIFT_INTEROP_SOURCES
             platform/graphics/angle/GLLentMemory.cpp
             platform/graphics/angle/GraphicsContextGLANGLE.cpp
@@ -3933,6 +3933,12 @@ if (APPLE)
         add_subdirectory(platform/graphics/angle/swift)
         target_link_libraries(WebCore PRIVATE WebCoreWebGL)
         target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreWebGL>")
+        # GraphicsContextGLANGLE's members that only call the island.
+        target_sources(WebCore PRIVATE ${WEBCORE_DIR}/platform/graphics/angle/GraphicsContextGLANGLE.swift)
+        webkit_target_add_swift_options(WebCore
+            "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
+            "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}")
+        add_dependencies(WebCore_SwiftGeneratedDeps WebCoreWebGL)
     endif ()
 else ()
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.

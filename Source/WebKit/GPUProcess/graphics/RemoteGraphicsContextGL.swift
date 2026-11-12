@@ -142,9 +142,11 @@ final class RemoteGraphicsContextGL {
     }
 
     // @used ensures these are retained even under -O -wmo: rdar://179098545
+    // The shell must be the islandShell() of a GraphicsContextGLANGLE the caller keeps alive for the call.
     @used
-    static func create(handoff: inout GLContextHandoff) -> RemoteGraphicsContextGL {
-        RemoteGraphicsContextGL(island: handoff.context)
+    @unsafe
+    static func create(shell: UInt) -> RemoteGraphicsContextGL {
+        RemoteGraphicsContextGL(island: unsafe GLShell.fromReference(shell).context!)
     }
 
     // The forwarder keeps this alive, so this mustn't keep the forwarder: RemoteGraphicsContextGLResources does.

@@ -2977,6 +2977,7 @@
 		6E4ABCD5138EA0B70071D291 /* JSHTMLUnknownElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 6E4ABCD3138EA0B70071D291 /* JSHTMLUnknownElement.h */; };
 		6E4E91AF10F7FB3100A2779C /* WebGLContextAttributes.h in Headers */ = {isa = PBXBuildFile; fileRef = 6E4E91AA10F7FB3100A2779C /* WebGLContextAttributes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		6E72F54E229DCD1000B3E151 /* GraphicsContextGLANGLE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6E27F2422298CE4B00F1F632 /* GraphicsContextGLANGLE.cpp */; };
+		4C42D65D82E11655A2D53802 /* GraphicsContextGLANGLE.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2B6C88B10A96F10388A1164 /* GraphicsContextGLANGLE.swift */; };
 		6E84E9E117668BF100815B68 /* RasterLayoutShape.h in Headers */ = {isa = PBXBuildFile; fileRef = 6E84E9DF17668BAD00815B68 /* RasterLayoutShape.h */; };
 		6E8ACDED23345CBC0024AAF5 /* WebGLCompressedTextureETC.h in Headers */ = {isa = PBXBuildFile; fileRef = 6E8ACDEB23345CAF0024AAF5 /* WebGLCompressedTextureETC.h */; };
 		6EBF0E4912A8926100DB1709 /* OESTextureFloat.h in Headers */ = {isa = PBXBuildFile; fileRef = 6EBF0E4612A8926100DB1709 /* OESTextureFloat.h */; };
@@ -7815,11 +7816,11 @@
 		2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */; };
 		EAC64F3E977A4190822BF2F0 /* GLLentMemory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */; };
 		8D375ACFE3484823971E2318 /* ANGLECocoaShims.mm in Sources */ = {isa = PBXBuildFile; fileRef = 6A66C2EDA854401CB7F63077 /* ANGLECocoaShims.mm */; };
-		F4110CD310E14A8EA5EEE826 /* GraphicsContextGLANGLEIsland.h in Headers */ = {isa = PBXBuildFile; fileRef = D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */; };
 		DE412C1C31BA4AD995BBD95D /* GLContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BF648996261406AA5BDD357 /* GLContext.swift */; };
 		3CC8300BDF744BC59490B6A7 /* GLContextArrays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C36B159654471486AB7592 /* GLContextArrays.swift */; };
 		35537DDC1E1042E7B6F45B4C /* GLContextPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF5359751BA64C31A381063F /* GLContextPlatform.swift */; };
 		BEF55A376AEF4F6180F50446 /* GLExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 728A277A55614F369E475237 /* GLExtensions.swift */; };
+		DA95567826DC66DC306012E6 /* GLIslandCalls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2307DAE261DBAE3D5D6F5DD6 /* GLIslandCalls.swift */; };
 		427612BB1A944BEF8A1E5E94 /* GLLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B704B0DF60349518A38ECF2 /* GLLog.swift */; };
 		DAC6B606EC074D0FAFA2EB19 /* GLScopes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */; };
 		0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD1677C9FE1B48D7A1449F82 /* GLState.swift */; };
@@ -14283,6 +14284,7 @@
 		6E242B29233593D7002CADD4 /* JSWebGLCompressedTextureETC1.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = JSWebGLCompressedTextureETC1.cpp; sourceTree = "<group>"; };
 		6E242B2A233593D8002CADD4 /* JSWebGLCompressedTextureETC1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = JSWebGLCompressedTextureETC1.h; sourceTree = "<group>"; };
 		6E27F2422298CE4B00F1F632 /* GraphicsContextGLANGLE.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GraphicsContextGLANGLE.cpp; sourceTree = "<group>"; };
+		E2B6C88B10A96F10388A1164 /* GraphicsContextGLANGLE.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphicsContextGLANGLE.swift; sourceTree = "<group>"; };
 		6E27FA0B62374E9BA36143C5 /* FallbackPopupMenu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FallbackPopupMenu.h; sourceTree = "<group>"; };
 		6E3FAD3614733F4000E42306 /* JSWebGLCompressedTextureS3TC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSWebGLCompressedTextureS3TC.cpp; sourceTree = "<group>"; };
 		6E3FAD3614733F4000E42307 /* JSWebGLDepthTexture.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSWebGLDepthTexture.cpp; sourceTree = "<group>"; };
@@ -24589,11 +24591,11 @@
 		125C1F9C7F0740E3A835F9B7 /* WebCoreSwiftSupport.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreSwiftSupport.xcconfig; sourceTree = "<group>"; };
 		A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GLLentMemory.cpp; sourceTree = "<group>"; };
 		6A66C2EDA854401CB7F63077 /* ANGLECocoaShims.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ANGLECocoaShims.mm; sourceTree = "<group>"; };
-		D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextGLANGLEIsland.h; sourceTree = "<group>"; };
 		1BF648996261406AA5BDD357 /* GLContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContext.swift; sourceTree = "<group>"; };
 		14C36B159654471486AB7592 /* GLContextArrays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContextArrays.swift; sourceTree = "<group>"; };
 		AF5359751BA64C31A381063F /* GLContextPlatform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLContextPlatform.swift; sourceTree = "<group>"; };
 		728A277A55614F369E475237 /* GLExtensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLExtensions.swift; sourceTree = "<group>"; };
+		2307DAE261DBAE3D5D6F5DD6 /* GLIslandCalls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLIslandCalls.swift; sourceTree = "<group>"; };
 		3B704B0DF60349518A38ECF2 /* GLLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLLog.swift; sourceTree = "<group>"; };
 		F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLScopes.swift; sourceTree = "<group>"; };
 		CD1677C9FE1B48D7A1449F82 /* GLState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GLState.swift; sourceTree = "<group>"; };
@@ -24605,7 +24607,6 @@
 		7478FE862B0C4A8A86007735 /* WebCoreANGLEBeforeOS26.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLEBeforeOS26.h; sourceTree = "<group>"; };
 		5AD0EF5BDC5147C3BC73A671 /* GLLentMemory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GLLentMemory.h; sourceTree = "<group>"; };
 		1907572DE7C54ECAB15B56A8 /* WebCoreWebGL.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreWebGL.h; sourceTree = "<group>"; };
-		729B00C4BA9F44B3A912901F /* WebCoreWebGL-Swift.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "WebCoreWebGL-Swift.h"; sourceTree = "<group>"; };
 		C004536D0EFF4AE7A20533B4 /* WebCoreANGLECocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreANGLECocoa.h; sourceTree = "<group>"; };
 		091484CC41E64CC89E547D6C /* WebCoreWebGL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebCoreWebGL.xcconfig; sourceTree = "<group>"; };
 		425D04E4C6D6450DBED83554 /* libWebCoreWebGL.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreWebGL.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -32152,7 +32153,7 @@
 				A5FEDA275AD149B3A7E85D91 /* GLLentMemory.cpp */,
 				6E27F2422298CE4B00F1F632 /* GraphicsContextGLANGLE.cpp */,
 				7B95CFEC2754FF7C000060CE /* GraphicsContextGLANGLE.h */,
-				D183D10775CB45AB9053B159 /* GraphicsContextGLANGLEIsland.h */,
+				E2B6C88B10A96F10388A1164 /* GraphicsContextGLANGLE.swift */,
 			);
 			path = angle;
 			sourceTree = "<group>";
@@ -44845,6 +44846,7 @@
 				14C36B159654471486AB7592 /* GLContextArrays.swift */,
 				AF5359751BA64C31A381063F /* GLContextPlatform.swift */,
 				728A277A55614F369E475237 /* GLExtensions.swift */,
+				2307DAE261DBAE3D5D6F5DD6 /* GLIslandCalls.swift */,
 				5AD0EF5BDC5147C3BC73A671 /* GLLentMemory.h */,
 				3B704B0DF60349518A38ECF2 /* GLLog.swift */,
 				F7C4F51DE8FC4A088963FD92 /* GLScopes.swift */,
@@ -44853,7 +44855,6 @@
 				3F82ABC980894E83BF4A51E9 /* WebCoreANGLE.apinotes */,
 				0C44AE42874A440583C462F0 /* WebCoreANGLE.h */,
 				7478FE862B0C4A8A86007735 /* WebCoreANGLEBeforeOS26.h */,
-				729B00C4BA9F44B3A912901F /* WebCoreWebGL-Swift.h */,
 				1907572DE7C54ECAB15B56A8 /* WebCoreWebGL.h */,
 			);
 			path = swift;
@@ -46805,7 +46806,6 @@
 				313DE87023A96973008FC47B /* GraphicsContextGL.h in Headers */,
 				3ABD156C297A340100AF9D76 /* GraphicsContextGLActiveInfo.h in Headers */,
 				7B95CFED2754FF7C000060CE /* GraphicsContextGLANGLE.h in Headers */,
-				F4110CD310E14A8EA5EEE826 /* GraphicsContextGLANGLEIsland.h in Headers */,
 				7C330A021DF8FAC600D3395C /* GraphicsContextGLAttributes.h in Headers */,
 				7BDDA31F274FA0210038659E /* GraphicsContextGLCocoa.h in Headers */,
 				3ABD156A297A289300AF9D76 /* GraphicsContextGLEnums.h in Headers */,
@@ -52143,6 +52143,7 @@
 				837964CF1F8DB69D00218EA0 /* GeolocationPositionDataCocoa.mm in Sources */,
 				EAC64F3E977A4190822BF2F0 /* GLLentMemory.cpp in Sources */,
 				6E72F54E229DCD1000B3E151 /* GraphicsContextGLANGLE.cpp in Sources */,
+				4C42D65D82E11655A2D53802 /* GraphicsContextGLANGLE.swift in Sources */,
 				7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */,
 				197517565C5615893EA685B3 /* H264Utilities.swift in Sources */,
 				B1416F72350D05D960F8308D /* HEVCBitstreamParser.swift in Sources */,
@@ -53067,6 +53068,7 @@
 				3CC8300BDF744BC59490B6A7 /* GLContextArrays.swift in Sources */,
 				35537DDC1E1042E7B6F45B4C /* GLContextPlatform.swift in Sources */,
 				BEF55A376AEF4F6180F50446 /* GLExtensions.swift in Sources */,
+				DA95567826DC66DC306012E6 /* GLIslandCalls.swift in Sources */,
 				427612BB1A944BEF8A1E5E94 /* GLLog.swift in Sources */,
 				DAC6B606EC074D0FAFA2EB19 /* GLScopes.swift in Sources */,
 				0D9C24366BC54FA38FB6FBE0 /* GLState.swift in Sources */,

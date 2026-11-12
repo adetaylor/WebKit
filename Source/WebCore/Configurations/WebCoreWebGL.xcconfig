@@ -50,7 +50,7 @@ WK_WEBGL_ISLAND_SOURCE_DIR = $(SRCROOT)/platform/graphics/angle/swift;
 SWIFT_INCLUDE_PATHS = $(inherited) $(WK_WEBGL_ISLAND_SOURCE_DIR);
 WK_WEBGL_ISLAND_SWIFT_FLAGS = -import-underlying-module -Xfrontend -disable-cross-import-overlays -Xcc -I$(WK_WEBGL_ISLAND_SOURCE_DIR) -Xcc -DWEBCORE_EXPORT=;
 
-// WebCore's C++ calls it through its generated header, and WebKit's Swift through its .swiftmodule.
+// WebCore's C++ calls it through GLIslandCalls, and WebCore's and WebKit's Swift through its .swiftmodule.
 BUILD_LIBRARY_FOR_DISTRIBUTION = NO;
 SWIFT_LIBRARY_LEVEL = ;
 SWIFT_OBJC_INTERFACE_HEADER_NAME = WebCoreWebGLSwift-Generated.h;

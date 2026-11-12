@@ -6,6 +6,7 @@ add_library(WebCoreWebGL STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/GLContextArrays.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLContextPlatform.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLExtensions.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GLIslandCalls.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLLog.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLScopes.swift
     ${CMAKE_CURRENT_SOURCE_DIR}/GLState.swift
@@ -38,6 +39,7 @@ webkit_target_add_swift_options(WebCoreWebGL
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xcc -O2>"
     "-Werror DeprecatedDeclaration"
     "-Werror SendableClosureCaptures"
+    "-enable-experimental-feature CxxImplementation"
     -warnings-as-errors
 )
 WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCoreWebGL)

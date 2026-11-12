@@ -53,7 +53,6 @@ internal import WebCoreANGLE.BeforeOS26
 // arrays reach ANGLE as Spans. Before, each else-branch is the old path, which copies the array into a std::vector for
 // WebCoreANGLEBeforeOS26.h's shims. The old path goes when WebKit's deployment target reaches OS 26.
 extension GLContext {
-    @_expose(!Cxx)
     public func uniform1fv(_ location: GLint, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -67,7 +66,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform1iv(_ location: GLint, _ values: [GLint]) {
         guard makeContextCurrent() else {
             return
@@ -81,7 +79,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform1uiv(_ location: GLint, _ values: [GLuint]) {
         guard makeContextCurrent() else {
             return
@@ -95,7 +92,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform2fv(_ location: GLint, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -109,7 +105,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform2iv(_ location: GLint, _ values: [GLint]) {
         guard makeContextCurrent() else {
             return
@@ -123,7 +118,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform2uiv(_ location: GLint, _ values: [GLuint]) {
         guard makeContextCurrent() else {
             return
@@ -137,7 +131,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform3fv(_ location: GLint, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -151,7 +144,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform3iv(_ location: GLint, _ values: [GLint]) {
         guard makeContextCurrent() else {
             return
@@ -165,7 +157,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform3uiv(_ location: GLint, _ values: [GLuint]) {
         guard makeContextCurrent() else {
             return
@@ -179,7 +170,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform4fv(_ location: GLint, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -193,7 +183,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform4iv(_ location: GLint, _ values: [GLint]) {
         guard makeContextCurrent() else {
             return
@@ -207,7 +196,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniform4uiv(_ location: GLint, _ values: [GLuint]) {
         guard makeContextCurrent() else {
             return
@@ -221,7 +209,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix2fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -235,7 +222,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix3fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -250,7 +236,6 @@ extension GLContext {
     }
 
     // One matrix of columns x rows, the first columns x rows of the values. false for another shape.
-    @_expose(!Cxx)
     public func uniformMatrix(columns: GLint, rows: GLint, _ location: GLint, _ transpose: GLboolean, _ values: ANGLEFloat16) -> Bool {
         guard makeContextCurrent() else {
             return true
@@ -258,7 +243,6 @@ extension GLContext {
         return ANGLE.uniformMatrix(columns, rows, location, transpose, values)
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix4fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -272,7 +256,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix2x3fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -286,7 +269,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix3x2fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -300,7 +282,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix2x4fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -314,7 +295,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix4x2fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -328,7 +308,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix3x4fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -342,7 +321,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func uniformMatrix4x3fv(_ location: GLint, _ transpose: GLboolean, _ values: [GLfloat]) {
         guard makeContextCurrent() else {
             return
@@ -356,7 +334,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func drawBuffers(_ buffers: [GLenum]) {
         guard makeContextCurrent() else {
             return
@@ -369,7 +346,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func drawBuffersEXT(_ buffers: [GLenum]) {
         guard makeContextCurrent() else {
             return
@@ -382,7 +358,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func invalidateFramebuffer(_ target: GLenum, _ attachments: [GLenum]) {
         guard makeContextCurrent() else {
             return
@@ -395,7 +370,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func invalidateSubFramebuffer(_ target: GLenum, _ attachments: [GLenum], _ x: GLint, _ y: GLint, _ width: GLsizei, _ height: GLsizei) {
         guard makeContextCurrent() else {
             return
@@ -408,7 +382,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func framebufferDiscard(_ target: GLenum, _ attachments: [GLenum]) {
         guard makeContextCurrent() else {
             return
@@ -421,7 +394,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func multiDrawArraysANGLE(_ mode: GLenum, _ firsts: [GLint], _ counts: [GLsizei]) {
         guard makeContextCurrent() else {
             return
@@ -435,7 +407,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func multiDrawArraysInstancedANGLE(_ mode: GLenum, _ firsts: [GLint], _ counts: [GLsizei], _ instanceCounts: [GLsizei]) {
         guard makeContextCurrent() else {
             return
@@ -449,7 +420,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func multiDrawArraysInstancedBaseInstanceANGLE(_ mode: GLenum, _ firsts: [GLint], _ counts: [GLsizei], _ instanceCounts: [GLsizei], _ baseInstances: [GLuint]) {
         guard makeContextCurrent() else {
             return
@@ -463,7 +433,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func multiDrawElementsANGLE(_ mode: GLenum, _ counts: [GLsizei], _ offsets: [GLint], _ type: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -477,7 +446,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func multiDrawElementsInstancedANGLE(_ mode: GLenum, _ counts: [GLsizei], _ offsets: [GLint], _ instanceCounts: [GLsizei], _ type: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -491,7 +459,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(_ mode: GLenum, _ counts: [GLsizei], _ offsets: [GLint], _ instanceCounts: [GLsizei], _ baseVertices: [GLint], _ baseInstances: [GLuint], _ type: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -506,7 +473,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getBooleanv(_ pname: GLenum, count: Int) -> [GLboolean] {
         var values = [GLboolean](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -523,7 +489,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getFloatv(_ pname: GLenum, count: Int) -> [GLfloat] {
         var values = [GLfloat](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -540,7 +505,6 @@ extension GLContext {
     }
 
     // Zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getIntegeri_v(_ pname: GLenum, _ index: GLuint) -> ANGLEInt4 {
         guard makeContextCurrent() else {
             return ANGLEInt4()
@@ -549,7 +513,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getIntegerv(_ pname: GLenum, count: Int) -> [GLint] {
         var values = [GLint](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -566,7 +529,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getInternalformativ(_ target: GLenum, _ internalformat: GLenum, _ pname: GLenum, count: Int) -> [GLint] {
         var values = [GLint](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -583,7 +545,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getActiveUniformBlockiv(_ program: GLuint, _ uniformBlockIndex: GLuint, _ pname: GLenum, count: Int) -> [GLint] {
         var values = [GLint](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -600,7 +561,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getUniformfv(_ program: GLuint, _ location: GLint, count: Int) -> [GLfloat] {
         var values = [GLfloat](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -617,7 +577,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getUniformiv(_ program: GLuint, _ location: GLint, count: Int) -> [GLint] {
         var values = [GLint](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -634,7 +593,6 @@ extension GLContext {
     }
 
     // count values, zero if the context can't be made current.
-    @_expose(!Cxx)
     public func getUniformuiv(_ program: GLuint, _ location: GLint, count: Int) -> [GLuint] {
         var values = [GLuint](repeating: 0, count: count)
         guard makeContextCurrent() else {
@@ -652,7 +610,6 @@ extension GLContext {
 
     // Strings in: the bytes of a UTF8CString, without a terminator.
 
-    @_expose(!Cxx)
     public func shaderSource(_ shader: GLuint, _ source: [UInt8]) {
         assert(shader != 0)
         guard makeContextCurrent() else {
@@ -666,7 +623,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func bindAttribLocation(_ program: GLuint, _ index: GLuint, _ name: [UInt8]) {
         assert(program != 0)
         guard makeContextCurrent() else {
@@ -680,7 +636,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func getFragDataLocation(_ program: GLuint, _ name: [UInt8]) -> GLint {
         guard makeContextCurrent() else {
             return -1
@@ -693,7 +648,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func getUniformBlockIndex(_ program: GLuint, _ uniformBlockName: [UInt8]) -> GLuint {
         assert(program != 0)
         guard makeContextCurrent() else {
@@ -707,7 +661,6 @@ extension GLContext {
         }
     }
 
-    @_expose(!Cxx)
     public func transformFeedbackVaryings(_ program: GLuint, _ varyings: [[UInt8]], _ bufferMode: GLenum) {
         guard makeContextCurrent() else {
             return
@@ -728,32 +681,27 @@ extension GLContext {
     // Strings out: the bytes, without a terminator, or nil where the C++ API returns a null string (the context isn't
     // current).
 
-    @_expose(!Cxx)
     public func getProgramInfoLog(_ program: GLuint) -> [UInt8]? {
         let maxLength = programInfoLogLength(program)
         return readString(maxLength) { span in ANGLE.getProgramInfoLog(program, &span) } beforeOS26: { ANGLEBeforeOS26.getProgramInfoLog(program, Int(maxLength)) }
     }
 
-    @_expose(!Cxx)
     public func getShaderInfoLog(_ shader: GLuint) -> [UInt8]? {
         let maxLength = shaderInfoLogLength(shader)
         return readString(maxLength) { span in ANGLE.getShaderInfoLog(shader, &span) } beforeOS26: { ANGLEBeforeOS26.getShaderInfoLog(shader, Int(maxLength)) }
     }
 
-    @_expose(!Cxx)
     public func getTranslatedShaderSourceANGLE(_ shader: GLuint) -> [UInt8]? {
         let maxLength = translatedShaderSourceLength(shader)
         return readString(maxLength) { span in ANGLE.getTranslatedShaderSource(shader, &span) } beforeOS26: { ANGLEBeforeOS26.getTranslatedShaderSource(shader, Int(maxLength)) }
     }
 
-    @_expose(!Cxx)
     public func getActiveUniformBlockName(_ program: GLuint, _ uniformBlockIndex: GLuint) -> [UInt8]? {
         let maxLength = activeUniformBlockNameLength(program)
         // ANGLE is asked even for an empty name, so that it checks the index.
         return readString(maxLength, readsEmpty: true) { span in ANGLE.getActiveUniformBlockName(program, uniformBlockIndex, &span) } beforeOS26: { ANGLEBeforeOS26.getActiveUniformBlockName(program, uniformBlockIndex, Int(maxLength)) }
     }
 
-    @_expose(!Cxx)
     public func getString(_ name: GLenum) -> [UInt8]? {
         if stringLength(name) < 0 {
             return nil
@@ -764,7 +712,6 @@ extension GLContext {
     // Active variables, with their names as bytes, after activeAttribCount() and activeUniformCount(). nil if the index
     // isn't one, as for the C++ callers.
 
-    @_expose(!Cxx)
     public func activeAttrib(_ program: GLuint, _ index: GLuint, maxLength: GLint) -> (info: ANGLEActiveAttribInfo, name: [UInt8])? {
         guard makeContextCurrent() else {
             return nil
@@ -778,7 +725,6 @@ extension GLContext {
         return (info, bytes(of: variable.name))
     }
 
-    @_expose(!Cxx)
     public func activeUniform(_ program: GLuint, _ index: GLuint, maxLength: GLint) -> (info: ANGLEActiveUniformInfo, name: [UInt8], locations: [GLint])? {
         guard makeContextCurrent() else {
             return nil
@@ -806,14 +752,12 @@ extension GLContext {
         return (info, bytes(of: variable.name), locations)
     }
 
-    @_expose(!Cxx)
     public func lastTransformFeedbackVaryingName() -> [UInt8] {
         bytes(of: lastVariableName)
     }
 
     // Clear values: 4 for a color buffer, 1 for depth or stencil, as the C++ API checks.
 
-    @_expose(!Cxx)
     public func clearBufferiv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: [GLint]) {
         guard makeContextCurrent(), validateClearBufferv(buffer, values.count) else {
             return
@@ -822,7 +766,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func clearBufferuiv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: [GLuint]) {
         guard makeContextCurrent(), validateClearBufferv(buffer, values.count) else {
             return
@@ -831,7 +774,6 @@ extension GLContext {
         checkGPUStatus()
     }
 
-    @_expose(!Cxx)
     public func clearBufferfv(_ buffer: GLenum, _ drawbuffer: GLint, _ values: [GLfloat]) {
         guard makeContextCurrent(), validateClearBufferv(buffer, values.count) else {
             return

@@ -75,24 +75,16 @@ struct CocoaGLSpareBuffer {
 
 // The Cocoa platform of a WebGL context: ANGLE's Metal display and the context's EGL context, the IOSurface drawing
 // buffers it renders to and displays.
-@_expose(Cxx)
 public final class CocoaGLPlatform: GLContextPlatform {
-    @_expose(!Cxx)
     static let maxReusedDrawingBuffers = 3
     // On iOS CoreAnimation keeps a displayed buffer for about 4 frames; one more for headroom.
-    @_expose(!Cxx)
     static let maxSpareDrawingBuffers = 5
 
-    @_expose(!Cxx)
     let contextID: UInt64
     let attributes: CocoaGLContextAttributes
-    @_expose(!Cxx)
     private(set) var display = ANGLEDisplay()
-    @_expose(!Cxx)
     private(set) var displayKey = 0
-    @_expose(!Cxx)
     private(set) var config = ANGLEConfig()
-    @_expose(!Cxx)
     private(set) var eglContext = ANGLEContext()
     private var isInitialized = false
 
@@ -105,29 +97,24 @@ public final class CocoaGLPlatform: GLContextPlatform {
     private var spareDrawingBuffers: [CocoaGLSpareBuffer] = []
 
     // Makes the display and the context, and the context current. isValid() is false if it couldn't.
-    @_expose(Cxx)
     public init(contextID: UInt64, isWebGL2: Bool, alpha: Bool, powerPreference: UInt8, windowGPUID: UInt64, xrCompatible: Bool, ownershipIdentity: UInt32, maximumSurfaceWidth: Int32, maximumSurfaceHeight: Int32) {
         self.contextID = contextID
         self.attributes = CocoaGLContextAttributes(isWebGL2: isWebGL2, alpha: alpha, powerPreference: powerPreference, windowGPUID: windowGPUID, xrCompatible: xrCompatible, ownershipIdentity: ownershipIdentity, maximumSurfaceWidth: maximumSurfaceWidth, maximumSurfaceHeight: maximumSurfaceHeight)
         initializeContext()
     }
 
-    @_expose(Cxx)
     public func isValid() -> Bool {
         isInitialized
     }
 
-    @_expose(Cxx)
     public func platformDisplay() -> ANGLEDisplay {
         display
     }
 
-    @_expose(Cxx)
     public func platformConfig() -> ANGLEConfig {
         config
     }
 
-    @_expose(Cxx)
     public func platformContext() -> ANGLEContext {
         eglContext
     }
@@ -229,7 +216,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     // The other contexts of the display may notice the reset later, so the key is incremented only once.
-    @_expose(!Cxx)
     static func didLoseDisplay(_ displayKey: Int) {
         cocoaGLDisplays.withLock { displays in
             if displayKey == displays.currentKey {
@@ -238,7 +224,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
     }
 
-    @_expose(!Cxx)
     static func releaseDisplay(_ display: ANGLEDisplay, _ displayKey: Int) {
         let identity = display.identity()
         let terminates = cocoaGLDisplays.withLock { displays -> Bool in
@@ -258,14 +243,12 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
     }
 
-    @_expose(Cxx)
     public static func isDisplayInitializedForTesting(_ display: ANGLEDisplay) -> Bool {
         !ANGLECocoa.queryString(display, EGL_VENDOR).empty()
     }
 
     // GLContextPlatform.
 
-    @_expose(!Cxx)
     func initializeExtensions(_ context: GLContext) -> Bool {
 #if os(macOS)
         // For creating the EGL surface from an IOSurface.
@@ -285,14 +268,12 @@ public final class CocoaGLPlatform: GLContextPlatform {
         return true
     }
 
-    @_expose(!Cxx)
     func initialize(_ context: GLContext) -> Bool {
         // Compute platform-specific max internal framebuffer size.
         context.clampMaxInternalFramebufferSize(attributes.maximumSurfaceWidth, attributes.maximumSurfaceHeight)
         return true
     }
 
-    @_expose(!Cxx)
     func reshapeDrawingBuffer(_ context: GLContext) -> Bool {
         assert(!context.internalFramebufferSize.isEmpty)
         freeDrawingBuffers()
@@ -306,26 +287,22 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     // With the context current.
-    @_expose(!Cxx)
     func invalidateKnownTextureContent(forTarget target: GLenum) {
 #if ENABLE_VIDEO
         videoUpload.invalidateKnownTextureContent(forTarget: target)
 #endif
     }
 
-    @_expose(!Cxx)
     func didLoseDisplay() {
         GLLog.webGL("GPU has reset (context \(contextID)). Lose the context.")
         Self.didLoseDisplay(displayKey)
     }
 
     // With the context current.
-    @_expose(!Cxx)
     func willDestroy(_ context: GLContext) {
         freeDrawingBuffers()
     }
 
-    @_expose(!Cxx)
     func destroy(_ context: GLContext, didReset: Bool) {
         // A context that is destroyed before it noticed a GPU reset must not leave the lost display to the new contexts.
         if didReset {
@@ -338,7 +315,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     // For a platform that no GLContext was made with.
-    @_expose(Cxx)
     public func destroyWithoutContext() {
         destroyContextAndReleaseDisplay()
     }
@@ -356,7 +332,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
 #if ENABLE_WEBXR
-    @_expose(!Cxx)
     func enableRequiredWebXRExtensions(_ context: GLContext) -> Bool {
         if !attributes.isWebGL2 && !context.enableExtensions(["GL_EXT_sRGB"]) {
             return false
@@ -398,7 +373,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
     }
 
     // The display buffer's surface, retained, or nil.
-    @_expose(Cxx)
     public func displayBufferSurface() -> IOSurfaceRef? {
         drawingBuffers[displayBufferIndex]?.surface
     }
@@ -514,24 +488,20 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
     }
 
-    @_expose(Cxx)
     public func hasSpareDrawingBuffersInUse() -> Bool {
         spareDrawingBuffers.contains { !$0.isAvailable }
     }
 
-    @_expose(Cxx)
     public func releaseIdleSpareDrawingBuffers() {
         updateSpareDrawingBuffers()
         spareDrawingBuffers.removeAll { !$0.isAvailable }
     }
 
-    @_expose(Cxx)
     public func spareDrawingBufferCountForTesting() -> Int {
         spareDrawingBuffers.count
     }
 
     // As the kernel has it.
-    @_expose(Cxx)
     public func volatileSpareDrawingBufferCountForTesting() -> Int {
         spareDrawingBuffers.count(where: { ANGLECocoa.isVolatile($0.surface) })
     }
@@ -540,7 +510,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
 
     // Whether the current frame can be displayed. If it can, the caller inserts the frame's finished fence, then
     // calls didPrepareForDisplay().
-    @_expose(!Cxx)
     func willPrepareForDisplay(_ context: GLContext) -> Bool {
         guard context.makeContextCurrent() else {
             return false
@@ -550,7 +519,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
         return !context.isContextLost() && drawingBuffers[drawingBufferIndex] != nil
     }
 
-    @_expose(!Cxx)
     func didPrepareForDisplay(_ context: GLContext) {
         let success = bindNextDrawingBuffer(context)
         waitUntilWorkScheduled()
@@ -559,13 +527,11 @@ public final class CocoaGLPlatform: GLContextPlatform {
         }
     }
 
-    @_expose(Cxx)
     public func waitUntilWorkScheduled() {
         ANGLECocoa.waitUntilWorkScheduled(display)
     }
 
     // A copy of the drawing or display buffer, flipped to image orientation, or nil. The copy is retained.
-    @_expose(!Cxx)
     func copySurfaceBuffer(_ context: GLContext, _ bufferType: UInt8) -> IOSurfaceRef? {
         let size = context.internalFramebufferSize
         guard let source = drawingBuffers[surfaceBufferIndex(bufferType)], source.size == size else {
@@ -667,7 +633,6 @@ public final class CocoaGLPlatform: GLContextPlatform {
     // image data ends up being drawn to an ImageBuffer, but at the time there's no functions to construct a NativeImage
     // out of an IOSurface in such a way that drawing the NativeImage would be guaranteed leave the IOSurface be
     // unreferenced after the draw call finishes.
-    @_expose(!Cxx)
     func readCompositedResults(_ context: GLContext, _ pixels: WebCore.GLLentMutableBytes, _ width: Int32, _ height: Int32) -> Bool {
         guard let buffer = drawingBuffers[displayBufferIndex], buffer.size == context.internalFramebufferSize else {
             return false
@@ -703,14 +668,12 @@ public final class CocoaGLPlatform: GLContextPlatform {
 
     // Like glCopyTextureCHROMIUM with the frame, whose orientation is an ImageOrientation::Orientation, as the source
     // texture. A failed copy leaves the texture unchanged.
-    @_expose(!Cxx)
     func copyVideoFrameToTexture(_ context: GLContext, _ frame: CVPixelBuffer, orientation: UInt8, texture: GLuint, target: GLenum, level: GLint, internalFormat: GLenum, type: GLenum, unpackFlipY: Bool, unpackPremultiplyAlpha: Bool) -> GLVideoUploadOutcome {
         videoUpload.copyVideoFrameToTexture(context, display, config, frame, orientation: orientation, texture: texture, target: target, level: level, internalFormat: internalFormat, type: type, unpackFlipY: unpackFlipY, unpackPremultiplyAlpha: unpackPremultiplyAlpha)
     }
 #endif
 
     // The colour space of the drawing buffers changed: reallocates them, or loses the context if it can't.
-    @_expose(!Cxx)
     func drawingBufferColorSpaceDidChange(_ context: GLContext) {
         if context.internalFramebufferSize.isEmpty {
             return

@@ -2953,7 +2953,6 @@
 		D8D616A7F7F3455CA884F6FD /* RemoteCGRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0530AB87FCBF496589856485 /* RemoteCGRenderer.swift */; };
 		55245171CEFE4BC6A61D9592 /* RemoteCGRendererMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F709CB0803B4FAABC70FEA3 /* RemoteCGRendererMessageReceiver.swift */; };
 		2E1C319591F54D82AEF6A776 /* WebCoreSwiftForWebKit.h in Headers */ = {isa = PBXBuildFile; fileRef = BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */; };
-		AD5631D79F9B4B98A5E72B8A /* WebCoreWebGLForWebKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 8452781AD6F8C6FFA26261B0 /* WebCoreWebGLForWebKit.h */; };
 		50749696CA9B4EB5A41421E6 /* RemoteXRBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF84F849A4AE43E387DD4623 /* RemoteXRBinding.swift */; };
 		C7449424B87745819FFDF8F4 /* RemoteXRProjectionLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2AC636F24A4AD4B57FAB2C /* RemoteXRProjectionLayer.swift */; };
 		8ACAA5B13F8B4B1286A06B1C /* RemoteXRSubImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66A3E733D1E646C4B179A67C /* RemoteXRSubImage.swift */; };
@@ -7556,7 +7555,6 @@
 		8623B1272ACE1B66002BA9EA /* WebPageNetworkParameters.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebPageNetworkParameters.serialization.in; sourceTree = "<group>"; };
 		8623B1282ACE1DE4002BA9EA /* ResourceLoadInfo.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = ResourceLoadInfo.serialization.in; sourceTree = "<group>"; };
 		862C44DE2E856922000DB57E /* WebCoreFont.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = WebCoreFont.serialization.in; sourceTree = "<group>"; };
-		8452781AD6F8C6FFA26261B0 /* WebCoreWebGLForWebKit.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebCoreWebGLForWebKit.h; sourceTree = "<group>"; };
 		863551D229647AB400C2BE98 /* NetworkResourceLoadParameters.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = NetworkResourceLoadParameters.serialization.in; sourceTree = "<group>"; };
 		8644890A27B47020007A1C66 /* _WKSystemPreferences.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKSystemPreferences.h; sourceTree = "<group>"; };
 		8644890C27B47045007A1C66 /* _WKSystemPreferences.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = _WKSystemPreferences.mm; sourceTree = "<group>"; };
@@ -10952,7 +10950,6 @@
 				5C426B5A28BEC8D200C695CF /* WebCoreArgumentCoders.serialization.in */,
 				862C44DE2E856922000DB57E /* WebCoreFont.serialization.in */,
 				BA9A7B5DEEAF4718BAF4FADB /* WebCoreSwiftForWebKit.h */,
-				8452781AD6F8C6FFA26261B0 /* WebCoreWebGLForWebKit.h */,
 				7AF2361E1E79A3B400438A05 /* WebErrors.cpp */,
 				7AF2361F1E79A3D800438A05 /* WebErrors.h */,
 				C0337DAD127A24FE008FF4F4 /* WebEvent.cpp */,
@@ -18390,7 +18387,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2E1C319591F54D82AEF6A776 /* WebCoreSwiftForWebKit.h in Headers */,
-				AD5631D79F9B4B98A5E72B8A /* WebCoreWebGLForWebKit.h in Headers */,
 				1A6280C51919949F006AD9F9 /* WebKit.h in Headers */,
 				1A6280C71919950C006AD9F9 /* WebKitPrivate.h in Headers */,
 				37A5E01418BBF93F000A081E /* _WKActivatedElementInfo.h in Headers */,

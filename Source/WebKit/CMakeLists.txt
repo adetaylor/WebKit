@@ -1104,14 +1104,12 @@ if (TARGET WebCoreEME)
 endif ()
 
 # The GPU process's WebGL receiver imports WebCore.framework's WebGL island Swift module, whose underlying clang module
-# needs ANGLE's headers. WebKit's generated header includes Shared/WebCoreWebGLForWebKit.h, which has what it needs of
-# the island's.
+# needs ANGLE's headers.
 if (TARGET WebCoreWebGL)
     webkit_target_add_swift_options(WebKit
         "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
         "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}"
-        "-Xcc -I${ANGLE_FRAMEWORK_HEADERS_DIR}"
-        "-Xfrontend -clang-header-expose-module -Xfrontend WebCoreWebGL=WebCoreWebGLForWebKit.h")
+        "-Xcc -I${ANGLE_FRAMEWORK_HEADERS_DIR}")
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreWebGL)
 endif ()
 

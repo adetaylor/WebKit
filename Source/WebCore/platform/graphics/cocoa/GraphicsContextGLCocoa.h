@@ -30,6 +30,7 @@
 #include <WebCore/GraphicsContextGLANGLE.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/ProcessIdentity.h>
+#include <array>
 #include <memory>
 #include <wtf/CheckedPtr.h>
 
@@ -106,7 +107,7 @@ protected:
 
     // GraphicsContextGLANGLE overrides.
     bool platformInitializeContext() final;
-    std::unique_ptr<Island> createIsland() final;
+    void createIslandContext() final;
     bool reshapeDrawingBuffer() final;
 
     // Inserts new fence that will invoke `signal` from a background thread when completed.
@@ -138,9 +139,10 @@ private:
     // A drawing buffer surface of the context's colour space and alpha, owned by the context's process, retained.
     RetainPtr<IOSurfaceRef> createDrawingBufferSurface(IntSize);
 
-    // The Cocoa platform of the island, which has the display, the EGL context and the drawing buffers.
-    struct CocoaPlatform;
-    std::unique_ptr<CocoaPlatform> m_cocoaPlatform;
+    // The IOSurfaces of the island's last display buffers, so that one isn't made for every frame. The island's Cocoa
+    // platform has the display, the EGL context and the drawing buffers.
+    std::array<std::unique_ptr<IOSurface>, maxReusedDrawingBuffers> m_displayBufferSurfaces;
+    size_t m_nextDisplayBufferSurface { 0 };
 };
 
 }

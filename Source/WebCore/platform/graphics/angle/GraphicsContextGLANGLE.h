@@ -33,23 +33,22 @@
 #include <WebCore/GraphicsContextGL.h>
 #include <memory>
 #include <wtf/Function.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
-
-namespace WebCoreWebGL {
-class GLContextHandoff;
-}
 
 namespace WebCore {
 
-// Base class for GraphicsContextGL contexts that use ANGLE.
-class WEBCORE_EXPORT GraphicsContextGLANGLE : public GraphicsContextGL {
+class GLIslandCalls;
+
+// Base class for GraphicsContextGL contexts that use ANGLE. Its GL logic is the WebGL island's (WebCoreWebGL); the members
+// that only call it are in GraphicsContextGLANGLE.swift.
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/GraphicsContextGLANGLE.swift") GraphicsContextGLANGLE : public GraphicsContextGL {
     WTF_FORBID_HEAP_ALLOCATION_FOR_ABSTRACT_CLASS(GraphicsContextGLANGLE);
 public:
     ~GraphicsContextGLANGLE();
 
-    // The island's context, for the GPU process's Swift receiver, which takes it by the address of its storage. Only after
-    // initialize() made the island.
-    WebCoreWebGL::GLContextHandoff& islandHandoff();
+    // The reference to the island's GLShell the context owns, for the island's Swift and the GPU process's Swift receiver.
+    uintptr_t islandShell() const { return m_islandShell; }
 
     GCGLDisplay platformDisplay() const;
     GCGLConfig platformConfig() const;
@@ -430,11 +429,11 @@ protected:
     GCGLExternalSync addExternalSync(void* eglSync);
 #endif
 
-    struct Island;
-    // Null until initialize() made it, after platformInitializeContext().
-    Island* island() const { return m_island.get(); }
-    // Called by initialize(). Makes the island for the EGL context of platformInitializeContext().
-    virtual std::unique_ptr<Island> createIsland();
+    // The calls into the island, for the length of a call. Its context exists once initialize() made it, after
+    // platformInitializeContext().
+    SWIFT_UNSAFE GLIslandCalls islandCalls() const;
+    // Called by initialize(). Makes the island's context for the EGL context of platformInitializeContext().
+    virtual void createIslandContext();
     uint64_t contextID() const { return m_contextID; }
 
     bool m_isForWebGL2 { false };
@@ -454,7 +453,7 @@ private:
     static GraphicsContextGLANGLE* contextForCallback(uint64_t contextID);
 
     const uint64_t m_contextID;
-    std::unique_ptr<Island> m_island;
+    const uintptr_t m_islandShell;
 };
 
 
