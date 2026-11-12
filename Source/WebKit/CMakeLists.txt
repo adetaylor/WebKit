@@ -1723,6 +1723,17 @@ if (SWIFT_REQUIRED AND APPLE)
     )
 endif ()
 
+# Compiles to nothing unless ENABLE_GPU_PROCESS and ENABLE_VIDEO are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioVideoRendererProxyManagerMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioVideoRendererProxyManager.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioVideoRendererProxyManagerMessageReceiver.swift
+    )
+endif ()
+
 # Each compiles to nothing unless ENABLE_GPU_PROCESS and, for the destinations, ENABLE_WEB_AUDIO, and for the track
 # renderer units, ENABLE_MEDIA_STREAM, are set.
 if (SWIFT_REQUIRED AND APPLE)

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "AudioVideoRendererRemote.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 
 #include "AudioVideoRendererRemoteMessageReceiverMessages.h"
 #include "Logging.h"

@@ -125,8 +125,10 @@ struct RemoteAudioSessionConfiguration;
 class RemoteWCLayerTreeHost;
 #endif
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
 class RemoteAudioVideoRendererProxyManager;
+#endif
+#if ENABLE(VIDEO)
 class RemoteMediaPlayerManagerProxy;
 class RemoteVideoFrameObjectHeap;
 #endif
@@ -186,8 +188,10 @@ public:
     void resignNowPlayingManagerClient();
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     RemoteAudioVideoRendererProxyManager& remoteAudioVideoRendererProxyManager();
+#endif
+#if ENABLE(VIDEO)
     void canDecodeExtendedType(WebCore::PlatformMediaDecodingType, WebCore::ContentType, CompletionHandler<void(bool)>&&) const;
 #endif
 
@@ -399,8 +403,10 @@ private:
     const std::unique_ptr<RemoteAudioDestinationManager> m_remoteAudioDestinationManager;
 #endif
     const RefPtr<RemoteSharedResourceCache> m_sharedResourceCache;
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     const RefPtr<RemoteAudioVideoRendererProxyManager> m_remoteAudioVideoRendererProxyManager;
+#endif
+#if ENABLE(VIDEO)
     const Ref<RemoteMediaPlayerManagerProxy> m_remoteMediaPlayerManagerProxy;
 #endif
 #if ENABLE(LINEAR_MEDIA_PLAYER)

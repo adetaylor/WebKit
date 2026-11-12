@@ -85,6 +85,11 @@
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
+#include "RemoteAudioVideoRendererProxyManager.h"
+#include "RemoteAudioVideoRendererProxyManagerMessages.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"

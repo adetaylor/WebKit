@@ -75,7 +75,7 @@
 #include <WebCore/MediaSessionManagerCocoa.h>
 #include <WebCore/MediaSessionManagerIOS.h>
 #endif
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
 #include "RemoteAudioVideoRendererProxyManager.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
 #endif
@@ -488,7 +488,7 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
 #endif
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     if (m_remoteAudioVideoRendererProxyManager)
         m_remoteAudioVideoRendererProxyManager->connectionToWebProcessClosed();
 #endif
@@ -652,7 +652,7 @@ RemoteAudioMediaStreamTrackRendererInternalUnitManager& GPUConnectionToWebProces
 }
 #endif
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
 RemoteAudioVideoRendererProxyManager& GPUConnectionToWebProcess::remoteAudioVideoRendererProxyManager()
 {
     if (!m_remoteAudioVideoRendererProxyManager)
@@ -660,7 +660,9 @@ RemoteAudioVideoRendererProxyManager& GPUConnectionToWebProcess::remoteAudioVide
 
     return *m_remoteAudioVideoRendererProxyManager;
 }
+#endif
 
+#if ENABLE(VIDEO)
 void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType platformType, ContentType contentType, CompletionHandler<void(bool)>&& completionHandler) const
 {
     MediaEngineSupportParameters parameters {
@@ -1134,7 +1136,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     if (decoder.messageReceiverName() == Messages::RemoteAudioVideoRendererProxyManager::messageReceiverName()) {
         protect(remoteAudioVideoRendererProxyManager())->didReceiveMessage(connection, decoder);
         return true;
@@ -1232,7 +1234,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     }
 #endif
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     if (decoder.messageReceiverName() == Messages::RemoteAudioVideoRendererProxyManager::messageReceiverName()) {
         protect(remoteAudioVideoRendererProxyManager())->didReceiveSyncMessage(connection, decoder, replyEncoder);
         return true;
