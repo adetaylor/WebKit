@@ -9663,6 +9663,8 @@
 		F825370C1EFBF5EE263DB203 /* SwiftReceiverOwner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SwiftReceiverOwner.cpp; sourceTree = "<group>"; };
 		4779BCDFA4891C5C8807645D /* SwiftReceiverOwner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftReceiverOwner.h; sourceTree = "<group>"; };
 		7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewManager.swift; sourceTree = "<group>"; };
+		2F56EA6D97954A0B029DE1A2 /* RemoteGPUModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGPUModel.h; sourceTree = "<group>"; };
+		3B4318C11E0470D464D7CFD1 /* RemoteGPUModel.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGPUModel.messages.in; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -10352,6 +10354,8 @@
 				0D653B382F3453C40022454D /* ModelTypes.h */,
 				0D653B392F3453C40022454D /* ModelUtils.swift */,
 				CBEBC52D88494AB095B2410D /* RemoteGPUModel.cpp */,
+				2F56EA6D97954A0B029DE1A2 /* RemoteGPUModel.h */,
+				3B4318C11E0470D464D7CFD1 /* RemoteGPUModel.messages.in */,
 				0D078EB52E7387FA00A9B266 /* RemoteMesh.cpp */,
 				0D078EB42E7387FA00A9B266 /* RemoteMesh.h */,
 				0D078EB62E7387FA00A9B266 /* RemoteMesh.messages.in */,

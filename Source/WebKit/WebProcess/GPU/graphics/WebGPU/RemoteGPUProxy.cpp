@@ -34,8 +34,9 @@
 #include "RemoteAdapterProxy.h"
 #include "RemoteCompositorIntegrationProxy.h"
 #include "RemoteDeviceProxy.h"
-#include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
+#include "RemoteGPUModelMessages.h"
+#include "RemoteGPURequestAdapterResponse.h"
 #include "RemoteGPUProxyMessages.h"
 #include "RemoteMeshProxy.h"
 #include "RemotePresentationContextProxy.h"
@@ -188,7 +189,7 @@ RefPtr<WebKit::Mesh> RemoteGPUProxy::createModelBacking(unsigned width, unsigned
 #if ENABLE(GPU_PROCESS_MODEL)
     auto identifier = WebModelIdentifier::generate();
 
-    auto sendResult = sendSync(Messages::RemoteGPU::CreateModelBacking(width, height, WTF::move(diffuseTexture), WTF::move(specularTexture), identifier, standardDynamicRange));
+    auto sendResult = sendSync(Messages::RemoteGPUModel::CreateModelBacking(width, height, WTF::move(diffuseTexture), WTF::move(specularTexture), identifier, standardDynamicRange));
     if (!sendResult.succeeded()) {
         callback({ });
         return nullptr;

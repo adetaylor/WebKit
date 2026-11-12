@@ -45,6 +45,11 @@
 #include "RemoteAudioHardwareListenerProxy.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
+#include "RemoteGPU.h"
+#include "RemoteGPUMessages.h"
+#if ENABLE(GPU_PROCESS_MODEL)
+#include "RemoteGPUModel.h"
+#endif
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
@@ -840,7 +845,25 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
     MESSAGE_CHECK(streamConnection);
 
     auto addResult = m_remoteGPUMap.ensure(identifier, [&] {
-        return IPC::ScopedActiveMessageReceiveQueue { RemoteGPU::create(identifier, *this, *renderingBackend, streamConnection.releaseNonNull()) };
+        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), [weakThis = ThreadSafeWeakPtr { *this }, webProcessIdentifier = webProcessIdentifier()](IPC::MessageName messageName) {
+            RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), webProcessIdentifier.toUInt64());
+            callOnMainRunLoop([weakThis, messageName] {
+                if (RefPtr protectedThis = weakThis.get())
+                    protectedThis->terminateWebProcess(messageName);
+            });
+        });
+#if HAVE(TASK_IDENTITY_TOKEN)
+        MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
+#else
+        MachSendRight webProcessResourceOwner;
+#endif
+#if ENABLE(GPU_PROCESS_MODEL)
+        // The owner's stream connection keeps it until the owner stops. It receives messages from the start, as RemoteGPU
+        // does once it has started.
+        RemoteGPUModel::create(*this, *renderingBackend, owner, identifier);
+#endif
+        createRemoteGPU(owner, *renderingBackend, identifier.toUInt64(), WTF::move(webProcessResourceOwner));
+        return IPC::ScopedActiveMessageReceiveQueue { WTF::move(owner) };
     });
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }

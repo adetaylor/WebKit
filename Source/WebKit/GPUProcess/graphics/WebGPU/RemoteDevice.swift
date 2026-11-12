@@ -43,7 +43,7 @@ final class RemoteDevice {
         self.device = device
         self.link = link
         #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.host) }
+        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.renderingBackend) }
         #endif
     }
 

@@ -44,7 +44,7 @@ final class RemoteQueue {
         self.queue = queue
         self.link = link
         #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.host) }
+        videoFrames = link.objects.flatMap { WebKit.createVideoFrameSource($0.renderingBackend) }
         #endif
     }
 
@@ -55,7 +55,7 @@ final class RemoteQueue {
             return
         }
         let receiver = RemoteQueue(queue, link)
-        let registration = IPC.registerSwiftStreamReceiver(objects.host, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
+        let registration = IPC.registerSwiftStreamReceiver(objects.owner, receiver.getMessageReceiver(), .RemoteQueue, link.identifier)
         objects.add(link.identifier, queue, receiver: receiver, registration: registration)
     }
 
@@ -209,7 +209,7 @@ final class RemoteQueue {
             return
         }
         var surfaceDescription = WebKit.RemoteGPUImageBufferSurface()
-        guard let surface = WebKit.copyImageBufferSurface(objects.host, imageBufferIdentifier.rawValue, &surfaceDescription),
+        guard let surface = WebKit.copyImageBufferSurface(objects.renderingBackend, imageBufferIdentifier.rawValue, &surfaceDescription),
             let sourceFormat = sourceTextureFormat(surfaceDescription.pixelFormat)
         else {
             return

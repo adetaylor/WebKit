@@ -48,7 +48,7 @@ final class RemoteExternalTexture {
         }
         let receiver = RemoteExternalTexture(externalTexture, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteExternalTexture,
             link.identifier

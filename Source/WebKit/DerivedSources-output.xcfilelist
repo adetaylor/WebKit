@@ -255,6 +255,8 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteFaceDetectorMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUMessages.h
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUModelMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUModelMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGPUProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteGraphicsContextGLMessageReceiver.cpp

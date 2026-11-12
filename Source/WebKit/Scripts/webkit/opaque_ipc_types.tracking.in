@@ -356,7 +356,7 @@
     [DebugOnly] MessageParam IPCSwiftWorkQueueTester.CountSendRightsSwift rights
 
     [NotSentFromWebContent] MessageParamReply RemoteCompositorIntegration.RecreateRenderBuffers renderBuffers
-    [NotSentFromWebContent] MessageParamReply RemoteGPU.CreateModelBacking renderBuffers
+    [NotSentFromWebContent] MessageParamReply RemoteGPUModel.CreateModelBacking renderBuffers
     [NotSentFromWebContent] MessageParamReply RemoteMesh.UpdateRenderBuffers renderBuffers
 }
 

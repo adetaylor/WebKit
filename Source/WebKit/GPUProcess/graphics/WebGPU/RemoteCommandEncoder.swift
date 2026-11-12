@@ -49,7 +49,7 @@ final class RemoteCommandEncoder {
         }
         let receiver = RemoteCommandEncoder(encoder, link)
         let registration = IPC.registerSwiftStreamReceiver(
-            objects.host,
+            objects.owner,
             receiver.getMessageReceiver(),
             .RemoteCommandEncoder,
             link.identifier
