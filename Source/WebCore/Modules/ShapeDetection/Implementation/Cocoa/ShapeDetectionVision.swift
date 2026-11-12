@@ -212,14 +212,15 @@ private func configureRequestToUseCPUOrGPU(_ request: VNRequest) {
             continue
         }
         var set = false
+        // The devices are Vision's own compute devices for the stage, which the re-declaration's AnyObject parameter erases.
         for device in devices where isGPUComputeDevice(device) {
-            VisionMember.setComputeDevice(of: request)?.setComputeDevice(device as AnyObject, forComputeStage: computeStage)
+            unsafe VisionMember.setComputeDevice(of: request)?.setComputeDevice(device as AnyObject, forComputeStage: computeStage)
             set = true
             break
         }
         if !set {
             for device in devices where isGPUComputeDevice(device) {
-                VisionMember.setComputeDevice(of: request)?.setComputeDevice(device as AnyObject, forComputeStage: computeStage)
+                unsafe VisionMember.setComputeDevice(of: request)?.setComputeDevice(device as AnyObject, forComputeStage: computeStage)
                 break
             }
         }
@@ -269,7 +270,8 @@ private func performVisionRequest(_ image: CGImage, _ request: VNRequest) -> Boo
         return false
     }
     do {
-        try performer.performRequests(NSArray(object: request as AnyObject))
+        // An array of one VNRequest, which the re-declaration's NSArray parameter erases.
+        try unsafe performer.performRequests(NSArray(object: request as AnyObject))
     } catch {
         return false
     }

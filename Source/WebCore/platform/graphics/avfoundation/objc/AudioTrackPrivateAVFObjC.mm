@@ -65,15 +65,17 @@ AudioTrackPrivateAVFObjC::~AudioTrackPrivateAVFObjC() = default;
 
 void AudioTrackPrivateAVFObjC::resetPropertiesFromTrack()
 {
+    auto properties = m_impl->properties();
+
     // Don't call this->setEnabled() because it also sets the enabled state of the
     // AVPlayerItemTrack
-    AudioTrackPrivateAVF::setEnabled(m_impl->enabled());
+    AudioTrackPrivateAVF::setEnabled(properties.enabled);
 
-    setTrackIndex(m_impl->index());
-    setKind(m_impl->audioKind());
-    setId(m_impl->id());
-    setLabel(m_impl->label());
-    setLanguage(m_impl->language());
+    setTrackIndex(properties.index);
+    setKind(properties.audioKind);
+    setId(properties.id);
+    setLabel(properties.label);
+    setLanguage(properties.language);
 
     // Occasionally, when tearing down an AVAssetTrack in a HLS stream, the track
     // will go from having a formatDescription (and therefore having valid values
@@ -81,7 +83,7 @@ void AudioTrackPrivateAVFObjC::resetPropertiesFromTrack()
     // sampleRate()) to not having a format description. AVAssetTrack is ostensibly an
     // invariant, and properties like formatDescription should never move from
     // non-null to null. When this happens, ignore the configuration change.
-    auto newConfiguration = m_impl->audioTrackConfiguration();
+    auto newConfiguration = properties.audioTrackConfiguration();
     if (!configuration().codec.isEmpty() && newConfiguration.codec.isEmpty())
         return;
 
@@ -90,7 +92,7 @@ void AudioTrackPrivateAVFObjC::resetPropertiesFromTrack()
 
 void AudioTrackPrivateAVFObjC::audioTrackConfigurationChanged()
 {
-    setConfiguration(m_impl->audioTrackConfiguration());
+    setConfiguration(m_impl->properties().audioTrackConfiguration());
 }
 
 AVPlayerItemTrack* AudioTrackPrivateAVFObjC::playerItemTrack()

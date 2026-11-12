@@ -113,6 +113,26 @@ class AVFoundation AVPlayerItem
 constant AVFoundation AVPlayerItemDidPlayToEndTimeNotification as NSNotification.Name
 function CoreMedia CMTimeRangeGetEnd
 
+# The AVFoundation players' tracks (AVTrackPrivateAVFObjCImpl.swift).
+class AVFoundation AVMetadataItem
+constant AVFoundation AVMediaCharacteristicContainsOnlyForcedSubtitles as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicDescribesMusicAndSoundForAccessibility as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicDescribesVideoForAccessibility as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicIsAuxiliaryContent as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicIsMainProgramContent as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicTranscribesSpokenDialogForAccessibility as AVMediaCharacteristic
+constant AVFoundation AVMediaTypeClosedCaption as AVMediaType
+constant AVFoundation AVMediaTypeSubtitle as AVMediaType
+constant AVFoundation AVMetadataCommonKeyTitle as AVMetadataKey
+constant AVFoundation AVMetadataKeySpaceCommon as AVMetadataKeySpace
+function CoreMedia CMFormatDescriptionGetTypeID
+member AVFoundation AVAsset tracks var tracks: NSArray { get }
+member AVFoundation AVAssetTrack commonMetadata var commonMetadata: NSArray { get }
+member AVFoundation AVMediaSelectionOption commonMetadata var commonMetadata: NSArray { get }
+member AVFoundation AVPlayerItemTrack assetTrack var assetTrack: AVAssetTrack? { get }
+member AVFoundation AVMetadataItem +metadataItemsFromArray:withKey:keySpace: func metadataItemsWithKey(from metadataItems: NSArray, withKey key: AnyObject?, keySpace: NSString?) -> NSArray
+member AVFoundation AVMetadataItem +metadataItemsFromArray:filteredAndSortedAccordingToPreferredLanguages: func metadataItemsForPreferredLanguages(from metadataItems: NSArray, filteredAndSortedAccordingToPreferredLanguages preferredLanguages: NSArray) -> NSArray
+
 # The camera (CameraCaptureSource.swift).
 class AVFoundation AVCaptureDevice
 class AVFoundation AVCaptureDeviceFormat as AVCaptureDevice.Format

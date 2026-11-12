@@ -28,31 +28,20 @@
 
 #if ENABLE(VIDEO)
 
-#import "AVAssetTrackUtilities.h"
 #import "FormatDescriptionUtilities.h"
-#import "FourCC.h"
-#import "ImmersiveVideoMetadata.h"
 #import "MediaSelectionGroupAVFObjC.h"
 #import "PlatformAudioTrackConfiguration.h"
 #import "PlatformVideoTrackConfiguration.h"
-#import "SharedBuffer.h"
+#import "FourCC.h"
 #import <AVFoundation/AVAssetTrack.h>
 #import <AVFoundation/AVMediaSelectionGroup.h>
-#import <AVFoundation/AVMetadataItem.h>
-#import <AVFoundation/AVPlayerItem.h>
 #import <AVFoundation/AVPlayerItemTrack.h>
-#import <objc/runtime.h>
+#import <wtf/MainThread.h>
 #import <wtf/NeverDestroyed.h>
-#import <wtf/RunLoop.h>
 #import <wtf/TZoneMallocInlines.h>
 
 #import <pal/cf/CoreMediaSoftLink.h>
 #import <pal/cocoa/AVFoundationSoftLink.h>
-
-@class AVMediaSelectionOption;
-@interface AVMediaSelectionOption (WebKitInternal)
-- (id)optionID;
-@end
 
 namespace WebCore {
 
@@ -62,17 +51,6 @@ static NSArray* assetTrackConfigurationKeyNamesSingleton()
 {
     static NeverDestroyed<RetainPtr<NSArray>> keys = adoptNS([[NSArray alloc] initWithObjects:@"formatDescriptions", @"estimatedDataRate", @"nominalFrameRate", nil]);
     return keys.get();
-}
-
-static AVAssetTrack* assetTrackFor(const AVTrackPrivateAVFObjCImpl& impl)
-{
-    if (RetainPtr playerItemTrack = impl.playerItemTrack(); playerItemTrack && [playerItemTrack assetTrack])
-        return [playerItemTrack assetTrack];
-    if (impl.assetTrack())
-        return impl.assetTrack();
-    if (RefPtr mediaSelectionOption = impl.mediaSelectionOption())
-        return mediaSelectionOption->assetTrack();
-    return nil;
 }
 
 AVTrackPrivateAVFObjCImpl::AVTrackPrivateAVFObjCImpl(AVPlayerItemTrack* track)
@@ -90,6 +68,7 @@ AVTrackPrivateAVFObjCImpl::AVTrackPrivateAVFObjCImpl(AVAssetTrack* track)
 
 AVTrackPrivateAVFObjCImpl::AVTrackPrivateAVFObjCImpl(MediaSelectionOptionAVFObjC& option)
     : m_mediaSelectionOption(&option)
+    , m_avMediaSelectionOption(option.avMediaSelectionOption())
     , m_assetTrack(option.assetTrack())
 {
     initializeAssetTrack();
@@ -120,90 +99,24 @@ void AVTrackPrivateAVFObjCImpl::initializationCompleted()
         (*observer)();
 }
 
-bool AVTrackPrivateAVFObjCImpl::enabled() const
+AVTrackProperties AVTrackPrivateAVFObjCImpl::properties() const
 {
-    if (m_playerItemTrack)
-        return [m_playerItemTrack isEnabled];
-    if (RefPtr mediaSelectionOption = m_mediaSelectionOption)
-        return mediaSelectionOption->selected();
-    ASSERT_NOT_REACHED();
-    return false;
-}
+    AVTrackProperties properties { readProperties() };
+    properties.formatDescription = adoptCF(reinterpret_cast<CMFormatDescriptionRef>(std::exchange(properties.retainedFormatDescription, 0)));
 
-void AVTrackPrivateAVFObjCImpl::setEnabled(bool enabled)
-{
-    if (m_playerItemTrack)
-        [m_playerItemTrack setEnabled:enabled];
-    else if (RefPtr mediaSelectionOption = m_mediaSelectionOption)
-        mediaSelectionOption->setSelected(enabled);
-    else
-        ASSERT_NOT_REACHED();
-}
+    if (m_assetTrack)
+        properties.textKind = textKindForAVAssetTrack(m_assetTrack.get());
+    else if (m_mediaSelectionOption)
+        properties.textKind = textKindForAVMediaSelectionOption(m_avMediaSelectionOption.get());
 
-AudioTrackPrivate::Kind AVTrackPrivateAVFObjCImpl::audioKind() const
-{
-    if (m_assetTrack) {
-        // Check if accessibility characteristics are missing from AVAssetTrack but might be preserved in MediaSelectionOption
-        bool hasDescribes = [m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicDescribesVideoForAccessibility];
-        if (!hasDescribes && m_mediaSelectionOption) {
-            RetainPtr option = m_mediaSelectionOption->avMediaSelectionOption();
-            if ([option hasMediaCharacteristic:AVMediaCharacteristicDescribesVideoForAccessibility])
-                return AudioTrackPrivate::Kind::Description;
-        }
+    if (m_assetTrack)
+        properties.language = languageForAVAssetTrack(m_assetTrack.get());
+    if (properties.language.isEmpty() && m_mediaSelectionOption)
+        properties.language = languageForAVMediaSelectionOption(m_avMediaSelectionOption.get());
+    if (properties.language.isEmpty())
+        properties.language = emptyString();
 
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicIsAuxiliaryContent])
-            return AudioTrackPrivate::Kind::Alternative;
-        if (hasDescribes)
-            return AudioTrackPrivate::Kind::Description;
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicIsMainProgramContent])
-            return AudioTrackPrivate::Kind::Main;
-        return AudioTrackPrivate::Kind::None;
-    }
-
-    if (m_mediaSelectionOption) {
-        RetainPtr option = m_mediaSelectionOption->avMediaSelectionOption();
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicIsAuxiliaryContent])
-            return AudioTrackPrivate::Kind::Alternative;
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicDescribesVideoForAccessibility])
-            return AudioTrackPrivate::Kind::Description;
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicIsMainProgramContent])
-            return AudioTrackPrivate::Kind::Main;
-        return AudioTrackPrivate::Kind::None;
-    }
-
-    ASSERT_NOT_REACHED();
-    return AudioTrackPrivate::Kind::None;
-}
-
-VideoTrackPrivate::Kind AVTrackPrivateAVFObjCImpl::videoKind() const
-{
-    if (m_assetTrack) {
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicDescribesVideoForAccessibility])
-            return VideoTrackPrivate::Kind::Sign;
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicTranscribesSpokenDialogForAccessibility])
-            return VideoTrackPrivate::Kind::Captions;
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicIsAuxiliaryContent])
-            return VideoTrackPrivate::Kind::Alternative;
-        if ([m_assetTrack hasMediaCharacteristic:AVMediaCharacteristicIsMainProgramContent])
-            return VideoTrackPrivate::Kind::Main;
-        return VideoTrackPrivate::Kind::None;
-    }
-
-    if (m_mediaSelectionOption) {
-        RetainPtr option = m_mediaSelectionOption->avMediaSelectionOption();
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicDescribesVideoForAccessibility])
-            return VideoTrackPrivate::Kind::Sign;
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicTranscribesSpokenDialogForAccessibility])
-            return VideoTrackPrivate::Kind::Captions;
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicIsAuxiliaryContent])
-            return VideoTrackPrivate::Kind::Alternative;
-        if ([option hasMediaCharacteristic:AVMediaCharacteristicIsMainProgramContent])
-            return VideoTrackPrivate::Kind::Main;
-        return VideoTrackPrivate::Kind::None;
-    }
-
-    ASSERT_NOT_REACHED();
-    return VideoTrackPrivate::Kind::None;
+    return properties;
 }
 
 InbandTextTrackPrivate::Kind AVTrackPrivateAVFObjCImpl::textKindForAVAssetTrack(const AVAssetTrack *track)
@@ -259,75 +172,6 @@ InbandTextTrackPrivate::Kind AVTrackPrivateAVFObjCImpl::textKindForAVMediaSelect
     return InbandTextTrackPrivate::Kind::Captions;
 }
 
-InbandTextTrackPrivate::Kind AVTrackPrivateAVFObjCImpl::textKind() const
-{
-    if (m_assetTrack)
-        return textKindForAVAssetTrack(m_assetTrack.get());
-
-    if (m_mediaSelectionOption)
-        return textKindForAVMediaSelectionOption(m_mediaSelectionOption->avMediaSelectionOption().get());
-
-    return InbandTextTrackPrivate::Kind::None;
-}
-
-int AVTrackPrivateAVFObjCImpl::index() const
-{
-    if (m_assetTrack)
-        return [[[m_assetTrack asset] tracks] indexOfObject:m_assetTrack.get()];
-    if (RefPtr mediaSelectionOption = m_mediaSelectionOption)
-        return mediaSelectionOption->index();
-    ASSERT_NOT_REACHED();
-    return 0;
-}
-
-TrackID AVTrackPrivateAVFObjCImpl::id() const
-{
-    if (m_assetTrack)
-        return [m_assetTrack trackID];
-    if (m_mediaSelectionOption)
-        return [[m_mediaSelectionOption->avMediaSelectionOption() optionID] unsignedLongLongValue];
-    ASSERT_NOT_REACHED();
-    return 0;
-}
-
-String AVTrackPrivateAVFObjCImpl::label() const
-{
-    ASSERT(m_assetTrack || m_mediaSelectionOption);
-
-    RetainPtr<NSArray> commonMetadata = nil;
-    if (m_assetTrack)
-        commonMetadata = [m_assetTrack commonMetadata];
-    if (![commonMetadata count] && m_mediaSelectionOption)
-        commonMetadata = [m_mediaSelectionOption->avMediaSelectionOption() commonMetadata];
-
-    RetainPtr titles = [PAL::getAVMetadataItemClassSingleton() metadataItemsFromArray:commonMetadata.get() withKey:AVMetadataCommonKeyTitle keySpace:AVMetadataKeySpaceCommon];
-    if (![titles count])
-        return emptyString();
-
-    // If possible, return a title in one of the user's preferred languages.
-    RetainPtr titlesForPreferredLanguages = [PAL::getAVMetadataItemClassSingleton() metadataItemsFromArray:titles.get() filteredAndSortedAccordingToPreferredLanguages:[NSLocale preferredLanguages]];
-    if ([titlesForPreferredLanguages count])
-        return [[titlesForPreferredLanguages objectAtIndex:0] stringValue];
-    return [[titles objectAtIndex:0] stringValue];
-}
-
-String AVTrackPrivateAVFObjCImpl::language() const
-{
-    if (m_assetTrack) {
-        auto language = languageForAVAssetTrack(m_assetTrack.get());
-        if (!language.isEmpty())
-            return language;
-    }
-
-    if (m_mediaSelectionOption) {
-        auto language = languageForAVMediaSelectionOption(m_mediaSelectionOption->avMediaSelectionOption().get());
-        if (!language.isEmpty())
-            return language;
-    }
-
-    return emptyString();
-}
-
 String AVTrackPrivateAVFObjCImpl::languageForAVAssetTrack(const AVAssetTrack *track)
 {
     RetainPtr language = [track extendedLanguageTag];
@@ -362,28 +206,37 @@ String AVTrackPrivateAVFObjCImpl::languageForAVMediaSelectionOption(const AVMedi
     return language.get();
 }
 
-PlatformVideoTrackConfiguration AVTrackPrivateAVFObjCImpl::videoTrackConfiguration() const
+
+PlatformVideoTrackConfiguration AVTrackProperties::videoTrackConfiguration() const
 {
     return {
-        { codec() },
-        width(),
-        height(),
-        colorSpace(),
-        framerate(),
-        bitrate(),
-        immersiveVideoMetadata(),
-        isProtected(),
+        { codecFromFormatDescription(formatDescription.get()) },
+        width,
+        height,
+        colorSpaceFromFormatDescription(formatDescription.get()).value_or(PlatformVideoColorSpace { }),
+        framerate,
+        bitrate,
+        immersiveVideoMetadataFromFormatDescription(formatDescription.get()),
+        formatDescriptionIsProtected(formatDescription.get()),
     };
 }
 
-PlatformAudioTrackConfiguration AVTrackPrivateAVFObjCImpl::audioTrackConfiguration() const
+static uint32_t sampleRateFrom(const AudioStreamBasicDescription* streamDescription)
 {
+    if (!streamDescription || !std::isfinite(streamDescription->mSampleRate) || streamDescription->mSampleRate < 0 || streamDescription->mSampleRate > std::numeric_limits<uint32_t>::max())
+        return 0;
+    return streamDescription->mSampleRate;
+}
+
+PlatformAudioTrackConfiguration AVTrackProperties::audioTrackConfiguration() const
+{
+    const AudioStreamBasicDescription* streamDescription = formatDescription ? PAL::CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription.get()) : nullptr;
     return {
-        { codec() },
-        sampleRate(),
-        numberOfChannels(),
-        bitrate(),
-        isProtected(),
+        { codecFromFormatDescription(formatDescription.get()) },
+        sampleRateFrom(streamDescription),
+        streamDescription ? streamDescription->mChannelsPerFrame : 0,
+        bitrate,
+        formatDescriptionIsProtected(formatDescription.get()),
     };
 }
 
@@ -399,101 +252,6 @@ void AVTrackPrivateAVFObjCImpl::setAudioTrackConfigurationObserver(AudioTrackCon
     assertIsMainThread();
 
     m_audioTrackConfigurationObserver = observer;
-}
-
-static RetainPtr<CMFormatDescriptionRef> formatDescriptionFor(const AVTrackPrivateAVFObjCImpl& impl)
-{
-    RetainPtr assetTrack = assetTrackFor(impl);
-    if (!assetTrack || [assetTrack.get() statusOfValueForKey:@"formatDescriptions" error:nil] != AVKeyValueStatusLoaded)
-        return nullptr;
-
-    return static_cast<CMFormatDescriptionRef>(assetTrack.get().formatDescriptions.firstObject);
-}
-
-String AVTrackPrivateAVFObjCImpl::codec() const
-{
-    return codecFromFormatDescription(formatDescriptionFor(*this).get());
-}
-
-uint32_t AVTrackPrivateAVFObjCImpl::width() const
-{
-    if (RetainPtr assetTrack = assetTrackFor(*this))
-        return assetTrack.get().naturalSize.width;
-    ASSERT_NOT_REACHED();
-    return 0;
-}
-
-uint32_t AVTrackPrivateAVFObjCImpl::height() const
-{
-    if (RetainPtr assetTrack = assetTrackFor(*this))
-        return assetTrack.get().naturalSize.height;
-    ASSERT_NOT_REACHED();
-    return 0;
-}
-
-PlatformVideoColorSpace AVTrackPrivateAVFObjCImpl::colorSpace() const
-{
-    if (auto colorSpace = colorSpaceFromFormatDescription(formatDescriptionFor(*this).get()))
-        return *colorSpace;
-    return { };
-}
-
-double AVTrackPrivateAVFObjCImpl::framerate() const
-{
-    RetainPtr assetTrack = assetTrackFor(*this);
-    if (!assetTrack)
-        return 0;
-    if ([assetTrack.get() statusOfValueForKey:@"nominalFrameRate" error:nil] != AVKeyValueStatusLoaded)
-        return 0;
-    return assetTrack.get().nominalFrameRate;
-}
-
-uint32_t AVTrackPrivateAVFObjCImpl::sampleRate() const
-{
-    auto formatDescription = formatDescriptionFor(*this);
-    if (!formatDescription)
-        return 0;
-
-    const AudioStreamBasicDescription* const asbd = PAL::CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription.get());
-    if (!asbd)
-        return 0;
-
-    return asbd->mSampleRate;
-}
-
-uint32_t AVTrackPrivateAVFObjCImpl::numberOfChannels() const
-{
-    auto formatDescription = formatDescriptionFor(*this);
-    if (!formatDescription)
-        return 0;
-
-    const AudioStreamBasicDescription* const asbd = PAL::CMAudioFormatDescriptionGetStreamBasicDescription(formatDescription.get());
-    if (!asbd)
-        return 0;
-
-    return asbd->mChannelsPerFrame;
-}
-
-uint64_t AVTrackPrivateAVFObjCImpl::bitrate() const
-{
-    RetainPtr assetTrack = assetTrackFor(*this);
-    if (!assetTrack)
-        return 0;
-    if ([assetTrack.get() statusOfValueForKey:@"estimatedDataRate" error:nil] != AVKeyValueStatusLoaded)
-        return 0;
-    if (!std::isfinite(assetTrack.get().estimatedDataRate))
-        return 0;
-    return assetTrack.get().estimatedDataRate;
-}
-
-bool AVTrackPrivateAVFObjCImpl::isProtected() const
-{
-    return formatDescriptionIsProtected(formatDescriptionFor(*this).get());
-}
-
-std::optional<ImmersiveVideoMetadata> AVTrackPrivateAVFObjCImpl::immersiveVideoMetadata() const
-{
-    return immersiveVideoMetadataFromFormatDescription(formatDescriptionFor(*this).get());
 }
 
 }

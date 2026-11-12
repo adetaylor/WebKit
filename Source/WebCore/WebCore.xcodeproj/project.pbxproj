@@ -2220,6 +2220,7 @@
 		51123E2F276940CA00F9D41B /* NotificationData.h in Headers */ = {isa = PBXBuildFile; fileRef = 51123E2C27693C3200F9D41B /* NotificationData.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5117F30E25E61020002A9F1E /* RemoteCommandListenerCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */; };
 		B4A4A0010000000000000002 /* MediaPlayerAVFoundationCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */; };
+		B4A4B0010000000000000002 /* AVTrackPrivateAVFObjCImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */; };
 		B4A4A0010000000000000004 /* MediaPlayerAVFoundationHost.h in Headers */ = {isa = PBXBuildFile; fileRef = B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A2B0AF1C0E5B4D7A9C3E1F02 /* AudioVideoRendererAVFObjC.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */; };
 		511AFAA62E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = 511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6159,7 +6160,7 @@
 		CD3184152E89FBFA00606263 /* DocumentPage.h in Headers */ = {isa = PBXBuildFile; fileRef = CD3184142E89F7B300606263 /* DocumentPage.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD318623199F1E2A0030A0F7 /* LegacyCDMPrivateAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CD318621199F1E2A0030A0F7 /* LegacyCDMPrivateAVFObjC.h */; };
 		CD336F6117F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm in Sources */ = {isa = PBXBuildFile; fileRef = CD336F5F17F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm */; };
-		CD336F6217F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = CD336F6017F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.h */; };
+		CD336F6217F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.h in Headers */ = {isa = PBXBuildFile; fileRef = CD336F6017F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CD336F6417FA0A4D00DDDCD0 /* VideoTrackPrivateAVF.h in Headers */ = {isa = PBXBuildFile; fileRef = CD336F6317FA0A4D00DDDCD0 /* VideoTrackPrivateAVF.h */; };
 		CD336F6817FA0AC600DDDCD0 /* VideoTrackPrivateAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CD336F6617FA0AC600DDDCD0 /* VideoTrackPrivateAVFObjC.h */; };
 		CD3570F12EC5B3390054E843 /* CaptionDisplaySettingsOptions.h in Headers */ = {isa = PBXBuildFile; fileRef = CD3570F02EC5B3380054E843 /* CaptionDisplaySettingsOptions.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -6292,7 +6293,7 @@
 		CDB7045B1F7465A1003923DF /* CDMFairPlayStreaming.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */; };
 		CDBA1F362F8D9FEA00D30314 /* YouTubeCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F352F8D9EB300D30314 /* YouTubeCaptionQuirk.js */; };
 		CDBA1F382F8D9FEA00D30314 /* CNNCaptionQuirk.js in Product Dependencies */ = {isa = PBXBuildFile; fileRef = CDBA1F372F8D9EB300D30314 /* CNNCaptionQuirk.js */; };
-		CDBEAEAD19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CDBEAEAB19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h */; };
+		CDBEAEAD19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h in Headers */ = {isa = PBXBuildFile; fileRef = CDBEAEAB19D92B6C00BEBA88 /* MediaSelectionGroupAVFObjC.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDBEEF9A2ECF843200963F77 /* CDMKeyID.h in Headers */ = {isa = PBXBuildFile; fileRef = CDBEEF992ECF843200963F77 /* CDMKeyID.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDBEEF9C2ECF966900963F77 /* CDMTypesForward.h in Headers */ = {isa = PBXBuildFile; fileRef = CDBEEF9B2ECF966900963F77 /* CDMTypesForward.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */ = {isa = PBXBuildFile; fileRef = CD78A2EC1F75648600DE371B /* CDMInstanceFairPlayStreamingAVFObjC.mm */; };
@@ -12859,6 +12860,7 @@
 		5117F30C25E6101F002A9F1E /* RemoteCommandListenerCocoa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteCommandListenerCocoa.h; sourceTree = "<group>"; };
 		511AFAA42E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioVideoRendererAVFObjC.h; sourceTree = "<group>"; };
 		B4A4A0010000000000000001 /* MediaPlayerAVFoundationCore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPlayerAVFoundationCore.swift; sourceTree = "<group>"; };
+		B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVTrackPrivateAVFObjCImpl.swift; sourceTree = "<group>"; };
 		B4A4A0010000000000000003 /* MediaPlayerAVFoundationHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaPlayerAVFoundationHost.h; sourceTree = "<group>"; };
 		A2B0AF1C0E5B4D7A9C3E1F01 /* AudioVideoRendererAVFObjC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVideoRendererAVFObjC.swift; sourceTree = "<group>"; };
 		511AFAA52E56DA0B009B4F0E /* AudioVideoRendererAVFObjC.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AudioVideoRendererAVFObjC.mm; sourceTree = "<group>"; };
@@ -25085,6 +25087,7 @@
 				F048B81CA3254C5D979F644C /* AudioVideoRendererHost.h */,
 				CD336F6017F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.h */,
 				CD336F5F17F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm */,
+				B4A4B0010000000000000001 /* AVTrackPrivateAVFObjCImpl.swift */,
 				CDB704591F7465A1003923DF /* CDMFairPlayStreaming.cpp */,
 				CDB704581F7465A1003923DF /* CDMFairPlayStreaming.h */,
 				8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */,
@@ -52032,6 +52035,7 @@
 				DB51863CE0109E78B0C3ED83 /* AVCaptureDeviceManager.mm in Sources */,
 				0738E5EC2499839000DA101C /* AVOutputDeviceMenuControllerTargetPicker.mm in Sources */,
 				CD336F6117F9F64700DDDCD0 /* AVTrackPrivateAVFObjCImpl.mm in Sources */,
+				B4A4B0010000000000000002 /* AVTrackPrivateAVFObjCImpl.swift in Sources */,
 				4996C0F627177488002C125D /* AVVideoCaptureSource.mm in Sources */,
 				08473BF78C412A3FCB42B366 /* BitReader.swift in Sources */,
 				CA38D08B34C7904DF472CD2E /* ByteCursor.swift in Sources */,

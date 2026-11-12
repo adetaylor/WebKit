@@ -299,13 +299,28 @@ typedef NSString *MediaStage NS_STRING_ENUM;
 - (void) setDevice:(nullable id<MediaDevice>)device forStage:(MediaStage)stage API_AVAILABLE(macos(14.0));
 @end
 ''', '''
+NS_ASSUME_NONNULL_BEGIN
 @interface MediaPlayer : MediaBase
 - (BOOL)playItems:(NSArray<MediaItem *> *)items error:(NSError **)error;
 - (NSArray<MediaText*>*) topTexts:(NSUInteger)count;
+- (nullable NSArray<MediaText*>*) bottomTexts:(NSUInteger)count;
+@property (nonatomic, assign, getter=isMuted) BOOL muted
+#if MEDIA_DEPLOYING_LATER
+NS_SWIFT_NONISOLATED
+#endif
+;
+@property (class, readonly) MediaPlayer *sharedPlayer;
 @end
 @interface MediaRegion : NSObject
 @property (readonly) NSUInteger pointCount;
 - (const CGPoint*) pointsAtScale:(CGFloat)scale NS_RETURNS_INNER_POINTER;
+@end
+@interface MediaItem (MediaItemFiltering)
++ (NSArray<MediaItem *> *)itemsFromArray:(NSArray<MediaItem *> *)items withKey:(nullable id)key;
+@end
+NS_ASSUME_NONNULL_END
+@interface MediaLegacy : NSObject
+- (NSArray *)legacyItems;
 @end
 ''']
 
@@ -319,6 +334,19 @@ typedef NSString *MediaStage NS_STRING_ENUM;
         self.assertEqual(headers.find('MediaBase', 'setDevice:forStage:'), ('void', ['id<MediaDevice>', 'MediaStage']))
         self.assertEqual(headers.find('MediaRegion', 'pointsAtScale:'), ('const CGPoint*', ['CGFloat']))
         self.assertIsNone(headers.find('MediaCommentedOut', 'ignored'))
+        self.assertEqual(headers.find('MediaItem', 'itemsFromArray:withKey:', is_class_member=True), ('NSArray<MediaItem*>*', ['NSArray<MediaItem*>*', 'id']))
+        self.assertIsNone(headers.find('MediaItem', 'itemsFromArray:withKey:'))
+        self.assertIsNone(headers.find('MediaPlayer', 'topTexts:', is_class_member=True))
+        self.assertEqual(headers.find('MediaPlayer', 'isMuted'), ('BOOL', []))
+        self.assertEqual(headers.find('MediaPlayer', 'setMuted:'), ('void', ['BOOL']))
+        self.assertIsNone(headers.find('MediaPlayer', 'muted'))
+        self.assertEqual(headers.find('MediaPlayer', 'sharedPlayer', is_class_member=True), ('MediaPlayer*', []))
+        self.assertIsNone(headers.find('MediaPlayer', 'sharedPlayer'))
+        self.assertIsNone(headers.find('MediaPlayer', 'setSharedPlayer:', is_class_member=True))
+        self.assertFalse(headers.result_may_be_nil('MediaPlayer', 'topTexts:'))
+        self.assertTrue(headers.result_may_be_nil('MediaPlayer', 'bottomTexts:'))
+        self.assertTrue(headers.result_may_be_nil('MediaPlayer', 'items'))
+        self.assertTrue(headers.result_may_be_nil('MediaLegacy', 'legacyItems'))
         self.assertIn('MediaStage', headers.string_typedefs)
 
     def test_checks(self):
@@ -330,6 +358,7 @@ typedef NSString *MediaStage NS_STRING_ENUM;
             'member Media MediaPlayer setDevice:forStage: func setDevice(_ device: AnyObject?, forStage stage: NSString)',
             'member Media MediaPlayer topTexts: func topTexts(_ count: Int) -> NSArray',
             'member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint] counted by pointCount',
+            'member Media MediaItem +itemsFromArray:withKey: func items(from items: NSArray, withKey key: AnyObject?) -> NSArray',
         ):
             headers.check(self.member(line))
         cases = [
@@ -341,10 +370,28 @@ typedef NSString *MediaStage NS_STRING_ENUM;
             ('member Media MediaPlayer items var items: NSDictionary? { get }', 'cannot stand for'),
             ('member Media MediaPlayer setDevice:forStage: func setDevice(_ device: AnyObject?, forStage stage: Int)', 'cannot stand for'),
             ('member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint]', 'cannot stand for'),
+            ('member Media MediaPlayer bottomTexts: func bottomTexts(_ count: Int) -> NSArray', 'may be nil'),
+            ('member Media MediaPlayer items var items: NSArray { get }', 'may be nil'),
+            ('member Media MediaLegacy legacyItems func legacyItems() -> NSArray', 'may be nil'),
         ]
         for line, message in cases:
             with self.assertRaisesRegex(generator.GeneratorError, message, msg=line):
                 headers.check(self.member(line))
+
+    def test_erased_parameters(self):
+        headers = generator.ObjCHeaders(self.HEADERS)
+        erased = self.member('member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws')
+        headers.check(erased)
+        self.assertTrue(erased.erases_parameters)
+        self.assertIn('    @unsafe @objc(playItems:error:) func playItems(_ items: NSArray) throws', generator.member_accessor('Media', erased))
+        exact = self.member('member Media MediaPlayer topTexts: func topTexts(_ count: Int) -> NSArray')
+        headers.check(exact)
+        self.assertFalse(exact.erases_parameters)
+        self.assertIn('    @objc(topTexts:) func topTexts(_ count: Int) -> NSArray', generator.member_accessor('Media', exact))
+        muted = self.member('member Media MediaPlayer isMuted var isMuted: Bool { get }')
+        headers.check(muted)
+        self.assertIn('    @objc(isMuted) var isMuted: Bool { get }', generator.member_accessor('Media', muted))
+        headers.check(self.member('member Media MediaPlayer setMuted: func setMuted(_ muted: Bool)'))
 
     def test_views(self):
         lines = generator.member_accessor('Media', self.member('member Media MediaPlayer playItems:error: func playItems(_ items: NSArray) throws'))
@@ -355,6 +402,25 @@ typedef NSString *MediaStage NS_STRING_ENUM;
         self.assertIn('        return unsafe unsafeBitCast(object, to: (any MediaMember_MediaPlayer_playItems).self)', lines)
         lines = generator.member_accessor('Media', self.member('member Media MediaPlayer items var items: NSArray? { get }'))
         self.assertIn('    @objc(items) var items: NSArray? { get }', lines)
+
+    def test_class_members(self):
+        member = self.member('member Media MediaItem +itemsFromArray:withKey: func items(from items: NSArray, withKey key: AnyObject?) -> NSArray')
+        self.assertEqual(member.key, 'MediaItem +itemsFromArray:withKey:')
+        headers = generator.ObjCHeaders(self.HEADERS)
+        with self.assertRaisesRegex(generator.GeneratorError, 'no such class member'):
+            headers.check(self.member('member Media MediaPlayer +topTexts: func topTexts(_ count: Int) -> NSArray'))
+        with self.assertRaisesRegex(generator.GeneratorError, 'no such member'):
+            headers.check(self.member('member Media MediaItem itemsFromArray:withKey: func items(from items: NSArray, withKey key: AnyObject?) -> NSArray'))
+        with self.assertRaisesRegex(generator.GeneratorError, 'declared as a func'):
+            self.member('member Media MediaPlayer +items var items: NSArray? { get }')
+        headers.check(member)
+        lines = generator.member_accessor('Media', member)
+        self.assertIn('// +[MediaItem itemsFromArray:withKey:], with NSArray and NSDictionary for the SDK\'s typed collections.', lines)
+        self.assertIn('    @unsafe @objc(itemsFromArray:withKey:) func items(from items: NSArray, withKey key: AnyObject?) -> NSArray', lines)
+        self.assertIn('    static func items(of classObject: Media.MediaItem.Type) -> (any MediaMember_MediaItem_items)? {', lines)
+        self.assertIn('        let object: AnyObject = classObject', lines)
+        self.assertIn('        guard object.responds(to: NSSelectorFromString("itemsFromArray:withKey:")) else {', lines)
+        self.assertIn('        return unsafe unsafeBitCast(object, to: (any MediaMember_MediaItem_items).self)', lines)
 
     def test_counted_adapter(self):
         lines = generator.member_accessor('Media', self.member('member Media MediaRegion pointsAtScale: func points(atScale scale: CGFloat) -> [CGPoint] counted by pointCount'))

@@ -47,12 +47,13 @@ VideoTrackPrivateMediaSourceAVFObjC::~VideoTrackPrivateMediaSourceAVFObjC() = de
 
 void VideoTrackPrivateMediaSourceAVFObjC::resetPropertiesFromTrack()
 {
-    setTrackIndex(m_impl->index());
-    setKind(m_impl->videoKind());
-    setId(m_impl->id());
-    setLabel(m_impl->label().isolatedCopy());
-    setLanguage(m_impl->language().isolatedCopy());
-    setConfiguration(m_impl->videoTrackConfiguration());
+    auto properties = m_impl->properties();
+    setTrackIndex(properties.index);
+    setKind(properties.videoKind);
+    setId(properties.id);
+    setLabel(properties.label.isolatedCopy());
+    setLanguage(properties.language.isolatedCopy());
+    setConfiguration(properties.videoTrackConfiguration());
 }
 
 AVAssetTrack* VideoTrackPrivateMediaSourceAVFObjC::assetTrack() const

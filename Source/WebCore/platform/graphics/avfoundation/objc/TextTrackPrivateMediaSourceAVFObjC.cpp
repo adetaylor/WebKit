@@ -47,10 +47,11 @@ TextTrackPrivateMediaSourceAVFObjC::~TextTrackPrivateMediaSourceAVFObjC() = defa
 
 void TextTrackPrivateMediaSourceAVFObjC::resetPropertiesFromTrack()
 {
-    setKind(m_impl->textKind());
-    setId(m_impl->id());
-    setLabel(m_impl->label());
-    setLanguage(m_impl->language());
+    auto properties = m_impl->properties();
+    setKind(properties.textKind);
+    setId(properties.id);
+    setLabel(properties.label);
+    setLanguage(properties.language);
 }
 
 }

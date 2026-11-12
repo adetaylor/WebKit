@@ -29,13 +29,13 @@
 #if ENABLE(VIDEO)
 
 #include "AudioTrackPrivate.h"
-#include "ImmersiveVideoMetadata.h"
 #include "InbandTextTrackPrivate.h"
-#include "PlatformVideoColorSpace.h"
+#include "MediaSelectionGroupAVFObjC.h"
 #include "VideoTrackPrivate.h"
 #include <wtf/Observer.h>
 #include <wtf/Ref.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -49,13 +49,40 @@ typedef const struct opaqueCMFormatDescription* CMFormatDescriptionRef;
 
 namespace WebCore {
 
-class MediaSelectionOptionAVFObjC;
-
 struct PlatformVideoTrackConfiguration;
 struct PlatformAudioTrackConfiguration;
-struct VideoProjectionMetadata;
 
-class AVTrackPrivateAVFObjCImpl final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AVTrackPrivateAVFObjCImpl, WTF::DestructionThread::Main> {
+// What AVTrackPrivateAVFObjCImpl.swift reads of a track from AVFoundation in one go.
+struct AVTrackSwiftProperties {
+    bool enabled { false };
+    int index { 0 };
+    TrackID id { 0 };
+    AudioTrackPrivate::Kind audioKind { AudioTrackPrivate::Kind::None };
+    VideoTrackPrivate::Kind videoKind { VideoTrackPrivate::Kind::None };
+    String label;
+
+    // The asset track's format: zero until AVFoundation has loaded it.
+    uint32_t width { 0 };
+    uint32_t height { 0 };
+    double framerate { 0 };
+    uint64_t bitrate { 0 };
+    // The asset track's first format description once loaded, as the address of a +1 reference that
+    // AVTrackPrivateAVFObjCImpl::properties() adopts.
+    uintptr_t retainedFormatDescription { 0 };
+};
+
+// A track's properties, for the track privates to cache.
+struct AVTrackProperties : AVTrackSwiftProperties {
+    InbandTextTrackPrivate::Kind textKind { InbandTextTrackPrivate::Kind::None };
+    String language;
+    RetainPtr<CMFormatDescriptionRef> formatDescription;
+
+    PlatformVideoTrackConfiguration videoTrackConfiguration() const;
+    PlatformAudioTrackConfiguration audioTrackConfiguration() const;
+};
+
+// The AVFoundation side of a track private. AVTrackPrivateAVFObjCImpl.swift implements the members this doesn't define.
+class SWIFT_PRIVATE_FILEID("WebCore/AVTrackPrivateAVFObjCImpl.swift") AVTrackPrivateAVFObjCImpl final : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<AVTrackPrivateAVFObjCImpl, WTF::DestructionThread::Main> {
     WTF_MAKE_TZONE_ALLOCATED(AVTrackPrivateAVFObjCImpl);
 public:
     static Ref<AVTrackPrivateAVFObjCImpl> create(AVPlayerItemTrack* track) { return adoptRef(*new AVTrackPrivateAVFObjCImpl(track)); }
@@ -67,29 +94,18 @@ public:
     AVAssetTrack* assetTrack() const { return m_assetTrack.get(); }
     MediaSelectionOptionAVFObjC* mediaSelectionOption() const { return m_mediaSelectionOption.get(); }
 
-    bool enabled() const;
+    AVTrackProperties properties() const;
     void setEnabled(bool);
-
-    AudioTrackPrivate::Kind audioKind() const;
-    VideoTrackPrivate::Kind videoKind() const;
-    InbandTextTrackPrivate::Kind textKind() const;
 
     static InbandTextTrackPrivate::Kind textKindForAVAssetTrack(const AVAssetTrack *);
     static InbandTextTrackPrivate::Kind textKindForAVMediaSelectionOption(const AVMediaSelectionOption *);
 
-    int index() const;
-    TrackID id() const;
-    String label() const;
-    String language() const;
-
     static String languageForAVAssetTrack(const AVAssetTrack *);
     static String languageForAVMediaSelectionOption(const AVMediaSelectionOption *);
 
-    PlatformVideoTrackConfiguration videoTrackConfiguration() const;
     using VideoTrackConfigurationObserver = Observer<void()>;
     NODELETE void setVideoTrackConfigurationObserver(VideoTrackConfigurationObserver&);
 
-    PlatformAudioTrackConfiguration audioTrackConfiguration() const;
     using AudioTrackConfigurationObserver = Observer<void()>;
     NODELETE void setAudioTrackConfigurationObserver(AudioTrackConfigurationObserver&);
 
@@ -101,19 +117,11 @@ private:
     void initializeAssetTrack();
     void initializationCompleted();
 
-    String codec() const;
-    uint32_t width() const;
-    uint32_t height() const;
-    PlatformVideoColorSpace colorSpace() const;
-    double framerate() const;
-    uint64_t bitrate() const;
-    std::optional<ImmersiveVideoMetadata> immersiveVideoMetadata() const;
-    uint32_t sampleRate() const;
-    uint32_t numberOfChannels() const;
-    bool isProtected() const;
+    AVTrackSwiftProperties readProperties() const;
 
     const RetainPtr<AVPlayerItemTrack> m_playerItemTrack;
     const RefPtr<MediaSelectionOptionAVFObjC> m_mediaSelectionOption;
+    const RetainPtr<AVMediaSelectionOption> m_avMediaSelectionOption;
     const RetainPtr<AVAssetTrack> m_assetTrack;
     WeakPtr<VideoTrackConfigurationObserver> m_videoTrackConfigurationObserver;
     WeakPtr<AudioTrackConfigurationObserver> m_audioTrackConfigurationObserver;
