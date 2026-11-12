@@ -438,12 +438,62 @@ private final class MockDisplayCapturer: DisplayCapturer {
 
 // MARK: Swift capture source
 
+// Keeps the process out of app nap while a display is captured, and for 5 seconds after, as WebCore::UserActivity does.
+@MainActor
+private final class DisplayCaptureProcessActivity {
+    private static let hysteresisSeconds = 5.0
+
+    private var activity: (any NSObjectProtocol)?
+    private var isActive = false
+    private var stopGeneration = 0
+
+    func start() {
+        if isActive {
+            return
+        }
+        isActive = true
+        stopGeneration &+= 1
+        if activity == nil {
+            let options = ProcessInfo.ActivityOptions([.userInitiatedAllowingIdleSystemSleep, .latencyCritical])
+                .subtracting([.suddenTerminationDisabled, .automaticTerminationDisabled])
+            activity = ProcessInfo.processInfo.beginActivity(options: options, reason: "App nap disabled for screen capture")
+        }
+    }
+
+    func stop() {
+        if !isActive {
+            return
+        }
+        isActive = false
+        stopGeneration &+= 1
+        let generation = stopGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.hysteresisSeconds) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.stopGeneration == generation else {
+                    return
+                }
+                self.end()
+            }
+        }
+    }
+
+    private func end() {
+        if let activity = activity.take() {
+            ProcessInfo.processInfo.endActivity(activity)
+        }
+    }
+
+    isolated deinit {
+        end()
+    }
+}
+
 // A display capture that a Swift capture source of the GPU process owns: what DisplayCaptureSourceCocoa does.
 @MainActor
 final class DisplayCaptureBackend: CaptureSourceBackend, DisplayCaptureSourceOwner {
     weak var source: CaptureSource?
     private let identifier: UInt64
-    private let userActivity = WebCore.CaptureUserActivity.create()
+    private let processActivity = DisplayCaptureProcessActivity()
     private var frameSession: WebCore.CaptureVideoFrameSession?
     private var cropSession: WebCore.CaptureVideoFrameSession?
     private var whenReadyCompletion: (@MainActor (CaptureSourceFailure?) -> Void)?
@@ -501,13 +551,13 @@ final class DisplayCaptureBackend: CaptureSourceBackend, DisplayCaptureSourceOwn
         guard let source else {
             return
         }
-        userActivity.start()
+        processActivity.start()
         let settings = settings()
         display?.startProducingData(frameRate: source.frameRate, width: settings.width, height: settings.height, settingsFrameRate: settings.frameRate)
     }
 
     func stopProducingData() {
-        userActivity.stop()
+        processActivity.stop()
         display?.stopProducingData()
     }
 

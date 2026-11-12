@@ -53,7 +53,6 @@ namespace WebCore {
 
 class ImageRotationSessionVT;
 class ImageTransferSessionVT;
-class UserActivity;
 class VideoFrame;
 
 // The C++ that the Swift capture sources make and adapt video frames with: VideoFrameCV, ImageTransferSessionVT and
@@ -88,27 +87,6 @@ private:
     std::unique_ptr<ImageTransferSessionVT> m_transferSession;
     std::unique_ptr<ImageRotationSessionVT> m_rotationSession;
     bool m_shouldUseIOSurface { true };
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-// The UserActivity that keeps a display capture from app nap, as DisplayCaptureSourceCocoa has.
-class CaptureUserActivity final : public ThreadSafeRefCounted<CaptureUserActivity, WTF::DestructionThread::Main> {
-public:
-    static CaptureUserActivity* WTF_NONNULL create() SWIFT_RETURNS_RETAINED;
-    ~CaptureUserActivity();
-
-    void start();
-    void stop();
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { ThreadSafeRefCounted<CaptureUserActivity, WTF::DestructionThread::Main>::ref(); }
-    void deref() const { ThreadSafeRefCounted<CaptureUserActivity, WTF::DestructionThread::Main>::deref(); }
-#endif
-
-private:
-    CaptureUserActivity();
-
-    std::unique_ptr<UserActivity> m_activity;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // A sample buffer cropped by the session to the rectangle of a frame of the given size. A free function, since Swift

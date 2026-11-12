@@ -38,7 +38,6 @@
 #import "ImageTransferSessionVT.h"
 #import "RealtimeMediaSourceCenter.h"
 #import "RealtimeVideoUtilities.h"
-#import "UserActivity.h"
 #import "VideoFrameCV.h"
 #import <wtf/MediaTime.h>
 
@@ -108,28 +107,6 @@ VideoFrame* CaptureVideoFrameSession::rotate(VideoFrame& frame)
     if (!m_rotationSession)
         m_rotationSession = makeUnique<ImageRotationSessionVT>(m_shouldUseIOSurface ? ImageRotationSessionVT::ShouldUseIOSurface::Yes : ImageRotationSessionVT::ShouldUseIOSurface::No);
     return m_rotationSession->applyRotation(frame).leakRef();
-}
-
-CaptureUserActivity* CaptureUserActivity::create()
-{
-    return &adoptRef(*new CaptureUserActivity).leakRef();
-}
-
-CaptureUserActivity::CaptureUserActivity()
-    : m_activity(makeUnique<UserActivity>("App nap disabled for screen capture"_s))
-{
-}
-
-CaptureUserActivity::~CaptureUserActivity() = default;
-
-void CaptureUserActivity::start()
-{
-    m_activity->start();
-}
-
-void CaptureUserActivity::stop()
-{
-    m_activity->stop();
 }
 
 CMSampleBufferRef captureCroppedSampleBuffer(CaptureVideoFrameSession& session, CMSampleBufferRef sampleBuffer, float x, float y, float width, float height, float frameWidth, float frameHeight)
