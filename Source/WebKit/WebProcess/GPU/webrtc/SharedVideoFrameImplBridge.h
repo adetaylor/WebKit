@@ -30,6 +30,7 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
 
 #include <WebCore/SharedVideoFrameInfo.h>
+#include <mach/mach_types.h>
 #include <span>
 #include <wtf/Compiler.h>
 #include <wtf/Function.h>
@@ -45,7 +46,6 @@ class SharedMemoryHandle;
 
 namespace WebKit {
 
-class SharedVideoFrameReader;
 class SharedVideoFrameWriter;
 
 // What SharedVideoFrameWriterImpl can do with its SharedVideoFrameWriter's semaphore, storage, pixel buffer conformer and
@@ -73,24 +73,29 @@ private:
     const Function<void(WebCore::SharedMemoryHandle&&)>& m_newMemoryCallback;
 };
 
-// What SharedVideoFrameReaderImpl can do with its SharedVideoFrameReader's semaphore, storage and resource owner, for the
-// duration of one call.
-class SWIFT_VIEW SWIFT_SAFE SharedVideoFrameReaderContext {
-public:
-    explicit SharedVideoFrameReaderContext(SharedVideoFrameReader& reader LIFETIME_BOUND);
-
-    bool hasStorage() const;
-    std::span<const uint8_t> storageBytes() const LIFETIME_BOUND;
-    void signalSemaphore() const;
-    void setOwnershipIdentity(CVPixelBufferRef) const;
-
-private:
-    SharedVideoFrameReader& m_reader;
+enum class SharedVideoFrameBufferKind : uint8_t {
+    SharedMemory,
+    HeapReference,
+    IOSurface,
+    BlackFrame,
 };
 
-// SharedVideoFrameInfo's RetainPtr results, which Swift can't take over.
-CVPixelBufferPoolRef createSharedVideoFrameBufferPool(const WebCore::SharedVideoFrameInfo&) CF_RETURNS_RETAINED;
-CVPixelBufferRef createSharedVideoFramePixelBuffer(WebCore::SharedVideoFrameInfo&, NOESCAPE std::span<const uint8_t> planes, CVPixelBufferPoolRef) CF_RETURNS_RETAINED;
+// A SharedVideoFrame::Buffer, for SharedVideoFrameSource: the identifier and version of a heap reference, the port of an
+// IOSurface send right that the caller keeps until the read returns, or the size of a black frame.
+struct SharedVideoFrameBufferTag {
+    SharedVideoFrameBufferKind kind { SharedVideoFrameBufferKind::SharedMemory };
+    uint64_t identifier { 0 };
+    uint64_t version { 0 };
+    mach_port_t port { MACH_PORT_NULL };
+    int32_t width { 0 };
+    int32_t height { 0 };
+};
+
+// The CVUtilities pixel buffers that SharedVideoFrameSource reads frames into.
+CVPixelBufferPoolRef createSharedVideoFrameBufferPool(uint32_t width, uint32_t height, OSType pixelFormat) CF_RETURNS_RETAINED;
+// The pixel buffer of the IOSurface that `port` names.
+CVPixelBufferRef createSharedVideoFramePixelBuffer(mach_port_t) CF_RETURNS_RETAINED;
+CVPixelBufferRef createSharedVideoFrameBlackPixelBuffer(int32_t width, int32_t height, bool shouldUseIOSurface) CF_RETURNS_RETAINED;
 
 } // namespace WebKit
 

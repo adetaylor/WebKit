@@ -44,6 +44,7 @@
 #include <WebCore/ImageRotationSessionVT.h>
 #include <WebCore/PixelBufferConformerCV.h>
 #include <WebCore/VideoFrameCV.h>
+#include "WebKit-Swift.h"
 #include <pal/cf/CoreMediaSoftLink.h>
 #include <WebCore/CoreVideoSoftLink.h>
 #endif
@@ -105,16 +106,26 @@ RemoteVideoFrameReference RemoteVideoFrameObjectHeap::add(Ref<VideoFrame>&& fram
 
 void RemoteVideoFrameObjectHeap::add(RemoteVideoFrameReference reference, Ref<VideoFrame>&& frame)
 {
+#if PLATFORM(COCOA)
+    swiftAdd(reference.identifier().toUInt64(), frame->pixelBuffer(), static_cast<uint16_t>(frame->rotation()), frame->isMirrored());
+#else
 #if ASSERT_ENABLED
     frame->markAsPublished();
 #endif
     swiftAdd(reference.identifier().toUInt64(), frame.ptr());
+#endif
 }
 
-RefPtr<VideoFrame> RemoteVideoFrameObjectHeap::get(RemoteVideoFrameReadReference&& read)
+#if PLATFORM(COCOA)
+auto RemoteVideoFrameObjectHeap::get(RemoteVideoFrameReadReference&& read) -> std::optional<LentFrame>
 {
-    return swiftRead(read.identifier().toUInt64(), read.version());
+    RemoteVideoFrameTransform transform;
+    RetainPtr pixelBuffer = adoptCF(readRemoteVideoFrame(this, read.identifier().toUInt64(), read.version(), transform));
+    if (!pixelBuffer)
+        return std::nullopt;
+    return LentFrame { WTF::move(pixelBuffer), static_cast<VideoFrameRotation>(transform.rotation), transform.isMirrored };
 }
+#endif
 
 void RemoteVideoFrameObjectHeap::releaseVideoFrame(RemoteVideoFrameWriteReference&& write)
 {
@@ -125,13 +136,13 @@ void RemoteVideoFrameObjectHeap::releaseVideoFrame(RemoteVideoFrameWriteReferenc
 void RemoteVideoFrameObjectHeap::getVideoFrameBuffer(RemoteVideoFrameReadReference&& read)
 {
     auto identifier = read.identifier();
-    RefPtr videoFrame = get(WTF::move(read));
+    auto videoFrame = get(WTF::move(read));
 
     std::optional<SharedVideoFrame::Buffer> buffer;
     Ref connection = m_connection;
 
     if (videoFrame) {
-        buffer = m_sharedVideoFrameWriter.writeBuffer(protect(videoFrame->pixelBuffer()).get(),
+        buffer = m_sharedVideoFrameWriter.writeBuffer(videoFrame->pixelBuffer.get(),
             [&](auto& semaphore) { connection->send(Messages::RemoteVideoFrameObjectHeapProxyProcessor::SetSharedVideoFrameSemaphore { semaphore }, 0); },
             [&](SharedMemory::Handle&& handle) { connection->send(Messages::RemoteVideoFrameObjectHeapProxyProcessor::SetSharedVideoFrameMemory { WTF::move(handle) }, 0); },
             false);
@@ -142,22 +153,23 @@ void RemoteVideoFrameObjectHeap::getVideoFrameBuffer(RemoteVideoFrameReadReferen
 
 void RemoteVideoFrameObjectHeap::convertFrameBuffer(SharedVideoFrame&& sharedVideoFrame, bool shouldApplyRotation, CompletionHandler<void(WebCore::ColorSpace)>&& completionHandler)
 {
-    RefPtr<VideoFrame> frameFromHeap;
+    std::optional<LentFrame> frameFromHeap;
     if (auto* reference = std::get_if<RemoteVideoFrameReadReference>(&sharedVideoFrame.buffer))
         frameFromHeap = get(RemoteVideoFrameReadReference { *reference });
-    completionHandler(sendConvertedFrameBuffer(WTF::move(sharedVideoFrame), frameFromHeap.get(), shouldApplyRotation));
+    completionHandler(sendConvertedFrameBuffer(WTF::move(sharedVideoFrame), WTF::move(frameFromHeap), shouldApplyRotation));
 }
 
-WebCore::ColorSpace RemoteVideoFrameObjectHeap::sendConvertedFrameBuffer(SharedVideoFrame&& sharedVideoFrame, VideoFrame* frameFromHeap, bool shouldApplyRotation)
+WebCore::ColorSpace RemoteVideoFrameObjectHeap::sendConvertedFrameBuffer(SharedVideoFrame&& sharedVideoFrame, std::optional<LentFrame>&& frameFromHeap, bool shouldApplyRotation)
 {
     ColorSpace destinationColorSpace { ColorSpace::SRGB().platformColorSpace() };
 
     RefPtr<VideoFrame> frame;
     Ref connection = m_connection;
 
-    if (std::holds_alternative<RemoteVideoFrameReadReference>(sharedVideoFrame.buffer))
-        frame = frameFromHeap;
-    else
+    if (std::holds_alternative<RemoteVideoFrameReadReference>(sharedVideoFrame.buffer)) {
+        if (frameFromHeap)
+            frame = VideoFrameCV::create(sharedVideoFrame.time, frameFromHeap->isMirrored, frameFromHeap->rotation, WTF::move(frameFromHeap->pixelBuffer));
+    } else
         frame = m_sharedVideoFrameReader.read(WTF::move(sharedVideoFrame));
 
     if (!frame) {

@@ -60,11 +60,18 @@ class PixelBufferConformerCV;
 
 namespace WebKit {
 
-using RefPtrVideoFrame = RefPtr<WebCore::VideoFrame>;
+#if PLATFORM(COCOA)
+// The display transform of a frame that the heap lends, which the frame's pixel buffer doesn't carry.
+struct RemoteVideoFrameTransform {
+    uint16_t rotation { 0 };
+    bool isMirrored { false };
+};
+#endif
 
 // Holds the VideoFrames that the GPU process lends to the web process, which refers to them with RemoteVideoFrameReferences,
 // for any thread, and receives the web process's messages about them on its work queue. The frames are in the Swift state
-// that m_swiftState holds (RemoteVideoFrameObjectHeap.swift), which also handles the messages that take Swift types.
+// that m_swiftState holds (RemoteVideoFrameObjectHeap.swift), which also handles the messages that take Swift types. On
+// Cocoa platforms, it holds what its readers use of a frame, its pixel buffer and display transform, rather than the frame.
 class SWIFT_PRIVATE_FILEID("WebKit/RemoteVideoFrameObjectHeap.swift") RemoteVideoFrameObjectHeap final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
     WTF_MAKE_TZONE_ALLOCATED(RemoteVideoFrameObjectHeap);
 public:
@@ -80,9 +87,17 @@ public:
     void close();
     // Adds `frame` under a newly generated reference.
     RemoteVideoFrameReference add(Ref<WebCore::VideoFrame>&&);
-    // Adds `frame` under `reference`.
+    // Adds `frame` under `reference`. On Cocoa platforms, it takes the frame's pixel buffer then; a frame without one
+    // can't be read.
     void add(RemoteVideoFrameReference, Ref<WebCore::VideoFrame>&&);
-    RefPtr<WebCore::VideoFrame> get(RemoteVideoFrameReadReference&&);
+#if PLATFORM(COCOA)
+    struct LentFrame {
+        RetainPtr<CVPixelBufferRef> pixelBuffer;
+        WebCore::VideoFrameRotation rotation { WebCore::VideoFrameRotation::None };
+        bool isMirrored { false };
+    };
+    std::optional<LentFrame> get(RemoteVideoFrameReadReference&&);
+#endif
 
     void stopListeningForIPC(Ref<RemoteVideoFrameObjectHeap>&&) { close(); }
     void lowMemoryHandler();
@@ -106,15 +121,18 @@ private:
     void convertFrameBuffer(SharedVideoFrame&&, bool shouldApplyRotation, CompletionHandler<void(WebCore::ColorSpace)>&&);
     // Takes frameFromHeap if the SharedVideoFrame refers to a heap frame, and otherwise reads the frame it carries, and
     // sends it back as 32-bit BGRA.
-    WebCore::ColorSpace sendConvertedFrameBuffer(SharedVideoFrame&&, WebCore::VideoFrame* WTF_NULLABLE frameFromHeap, bool shouldApplyRotation);
+    WebCore::ColorSpace sendConvertedFrameBuffer(SharedVideoFrame&&, std::optional<LentFrame>&& frameFromHeap, bool shouldApplyRotation);
 #endif
 
     // Implemented in Swift, in RemoteVideoFrameObjectHeap.swift, on the state that m_swiftState holds. Each is safe on
     // any thread.
     static uintptr_t createSwiftState();
     static void destroySwiftState(uintptr_t);
+#if PLATFORM(COCOA)
+    void swiftAdd(uint64_t identifier, CVPixelBufferRef WTF_NULLABLE, uint16_t rotation, bool isMirrored);
+#else
     void swiftAdd(uint64_t identifier, WebCore::VideoFrame* WTF_NONNULL);
-    RefPtrVideoFrame swiftRead(uint64_t identifier, uint64_t version);
+#endif
     void swiftRelease(uint64_t identifier, uint64_t version, uint64_t pendingReads);
     void swiftRemoveAll();
 

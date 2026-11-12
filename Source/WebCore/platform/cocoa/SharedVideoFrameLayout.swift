@@ -23,7 +23,7 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-import CoreVideo
+public import CoreVideo
 // The safe Span overloads Swift synthesizes for the views' span accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
@@ -118,17 +118,10 @@ func sharedVideoFrameEncode(_ layout: WebCore.SharedVideoFrameLayout, _ destinat
     encode(layout, into: &bytes)
 }
 
-// False for fewer than 32 bytes or a layout whose storage size overflows.
-@_expose(Cxx)
-func sharedVideoFrameDecode(
-    _ source: borrowing WebCore.PixelBytes,
-    headerSize: UInt,
-    _ layout: inout WebCore.SharedVideoFrameLayout
-) -> Bool {
-    let span: Span<UInt8> = source.span()
-    let bytes = span.bytes
+// Nil for fewer than 32 bytes or a layout whose storage size overflows.
+private func decodeLayout(_ bytes: RawSpan, headerSize: UInt) -> WebCore.SharedVideoFrameLayout? {
     guard bytes.byteCount >= encodedLayoutByteCount else {
-        return false
+        return nil
     }
     var decoded = WebCore.SharedVideoFrameLayout()
     decoded.bufferType = bytes.load(fromByteOffset: 0, as: UInt32.self)
@@ -140,6 +133,20 @@ func sharedVideoFrameDecode(
     decoded.bytesPerRowPlaneB = bytes.load(fromByteOffset: 24, as: UInt32.self)
     decoded.bytesPerRowPlaneAlpha = bytes.load(fromByteOffset: 28, as: UInt32.self)
     guard sharedVideoFrameStorageSize(decoded, headerSize: headerSize) != 0 else {
+        return nil
+    }
+    return decoded
+}
+
+// False for fewer than 32 bytes or a layout whose storage size overflows.
+@_expose(Cxx)
+func sharedVideoFrameDecode(
+    _ source: borrowing WebCore.PixelBytes,
+    headerSize: UInt,
+    _ layout: inout WebCore.SharedVideoFrameLayout
+) -> Bool {
+    let span: Span<UInt8> = source.span()
+    guard let decoded = decodeLayout(span.bytes, headerSize: headerSize) else {
         return false
     }
     layout = decoded
@@ -376,15 +383,9 @@ private func encodedPlanesFillFrame(_ layout: WebCore.SharedVideoFrameLayout, by
     return total <= byteCount
 }
 
-// A new pixel buffer, from `pool` when there is one, holding the planes `source` holds. Returned +1. Nil, without
-// creating a buffer, when `source` can't fill every pixel of it.
-@_expose(Cxx)
-func sharedVideoFrameCreatePixelBuffer(
-    _ layout: WebCore.SharedVideoFrameLayout,
-    _ source: borrowing WebCore.PixelBytes,
-    _ pool: CVPixelBufferPool?
-) -> SharedVideoFramePixelBuffer? {
-    let bytes: Span<UInt8> = source.span()
+// A new pixel buffer, from `pool` when there is one, holding the planes `bytes` holds. Nil, without creating a buffer,
+// when `bytes` can't fill every pixel of it.
+private func makePixelBuffer(_ layout: WebCore.SharedVideoFrameLayout, from bytes: Span<UInt8>, pool: CVPixelBufferPool?) -> CVPixelBuffer? {
     guard encodedPlanesFillFrame(layout, byteCount: bytes.count) else {
         return nil
     }
@@ -418,6 +419,73 @@ func sharedVideoFrameCreatePixelBuffer(
         CVPixelBufferUnlockBaseAddress(pixelBuffer, 0)
     }
     return copyPlanes(layout, from: bytes, to: pixelBuffer) ? pixelBuffer : nil
+}
+
+// A new pixel buffer, from `pool` when there is one, holding the planes `source` holds. Returned +1. Nil, without
+// creating a buffer, when `source` can't fill every pixel of it.
+@_expose(Cxx)
+func sharedVideoFrameCreatePixelBuffer(
+    _ layout: WebCore.SharedVideoFrameLayout,
+    _ source: borrowing WebCore.PixelBytes,
+    _ pool: CVPixelBufferPool?
+) -> SharedVideoFramePixelBuffer? {
+    let bytes: Span<UInt8> = source.span()
+    return makePixelBuffer(layout, from: bytes, pool: pool)
+}
+
+/// The header of a frame that a SharedVideoFrameWriter wrote into shared memory, before its planes, for WebKit's readers.
+@_spi(WebKitGPU) public struct SharedVideoFrameHeader {
+    let layout: WebCore.SharedVideoFrameLayout
+
+    /// The header at the start of `storage`, whose planes start `headerSize` bytes in. Nil for fewer than 32 bytes, or a
+    /// header whose storage size overflows.
+    public init?(decoding storage: RawSpan, headerSize: Int) {
+        guard let headerSize = UInt(exactly: headerSize), let layout = decodeLayout(storage, headerSize: headerSize) else {
+            return nil
+        }
+        self.layout = layout
+    }
+
+    public var pixelFormat: OSType {
+        layout.bufferType
+    }
+
+    public var width: UInt32 {
+        layout.width
+    }
+
+    public var height: UInt32 {
+        layout.height
+    }
+
+    public var isReadWriteSupported: Bool {
+        sharedVideoFrameIsReadWriteSupported(layout)
+    }
+
+    /// The bytes of the header and every plane; 0 on overflow.
+    public func storageSize(headerSize: Int) -> UInt {
+        guard let headerSize = UInt(exactly: headerSize) else {
+            return 0
+        }
+        return sharedVideoFrameStorageSize(layout, headerSize: headerSize)
+    }
+
+    /// A new pixel buffer, from `pool` when there is one, holding the planes that follow the header in `storage`. Nil,
+    /// without creating a buffer, when they can't fill every pixel of it. A CVBuffer, which every module takes as
+    /// CoreVideo's type.
+    public func createPixelBuffer(_ storage: RawSpan, headerSize: Int, pool: CVPixelBufferPool?) -> CVBuffer? {
+        guard headerSize >= 0 else {
+            return nil
+        }
+        // Safety: UInt8 has no alignment, and every bit pattern is a UInt8.
+        let bytes = unsafe Span<UInt8>(_bytes: storage)
+        return makePixelBuffer(layout, from: bytes.extracting(droppingFirst: headerSize), pool: pool).map(cvBuffer)
+    }
+}
+
+// A CVPixelBuffer is a CVBuffer, which some builds import as a class of its own.
+private func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
+    pixelBuffer as! CVBuffer
 }
 
 private enum PlaneAppend {

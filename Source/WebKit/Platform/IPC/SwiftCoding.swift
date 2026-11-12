@@ -757,6 +757,12 @@ extension IPCTypes {
             self.init(adopting: mach_port_t(MACH_PORT_NULL))
         }
 
+        /// A right of its own to the port of another owner's send right, as WTF::MachSendRight::create().
+        init(copying port: mach_port_t) {
+            var right = WTF.MachSendRight.create(port)
+            self.init(adopting: right.leakSendRight())
+        }
+
         var isNull: Bool {
             port == mach_port_t(MACH_PORT_NULL)
         }
@@ -837,6 +843,15 @@ extension IPCTypes {
     struct Semaphore: ~Copyable, IPCOwnedCoder {
         private let sendRight: MachSendRight
 
+        /// A right of its own to the semaphore of another owner's send right.
+        init(copying port: mach_port_t) {
+            sendRight = MachSendRight(copying: port)
+        }
+
+        private init(sendRight: consuming MachSendRight) {
+            self.sendRight = sendRight
+        }
+
         /// The name of the semaphore's port, for C++ that takes a right of its own to it (MachSendRight::create()).
         var port: mach_port_t {
             sendRight.port
@@ -860,6 +875,16 @@ extension IPCTypes {
     struct SharedMemoryHandle: ~Copyable, IPCOwnedCoder {
         private let sendRight: MachSendRight
         let size: UInt64
+
+        /// A right of its own to the memory entry of another owner's send right, for `size` bytes.
+        init(copying port: mach_port_t, size: UInt64) {
+            self.init(sendRight: MachSendRight(copying: port), size: size)
+        }
+
+        private init(sendRight: consuming MachSendRight, size: UInt64) {
+            self.sendRight = sendRight
+            self.size = size
+        }
 
         /// The name of the memory entry's port, for C++ that takes a right of its own to it (MachSendRight::create()).
         var port: mach_port_t {

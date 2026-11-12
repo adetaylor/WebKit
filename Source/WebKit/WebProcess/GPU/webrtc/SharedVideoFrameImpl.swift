@@ -24,6 +24,7 @@
 #if ENABLE_GPU_PROCESS && WTF_PLATFORM_COCOA && ENABLE_VIDEO
 
 import CoreVideo
+@_spi(WebKitGPU) internal import WebCore
 // The safe Span overloads Swift synthesizes for the span accessors call Cxx's Span(_unsafeCxxSpan:).
 // Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
@@ -136,77 +137,139 @@ final class SharedVideoFrameWriterImpl {
     }
 }
 
-// Reads the frames a SharedVideoFrameWriter put in shared memory, keeping a pixel buffer pool for the last frame format.
+// Reads the frames that a SharedVideoFrameWriter shares: from the shared memory it writes them into, keeping a pixel buffer
+// pool for the last frame format; from the GPU process's video frame heap; from an IOSurface; or as a black frame.
 @_expose(Cxx)
-final class SharedVideoFrameReaderImpl {
+final class SharedVideoFrameSource {
+    private let heap: WebKit.RemoteVideoFrameObjectHeap?
+    // The process that the pixel buffers read out of shared memory are attributed to, if it isn't this one.
+    private let resourceOwner: WebCore.ProcessIdentity?
     private let shouldUseIOSurfaceBufferPool: Bool
+    private var semaphore: IPCTypes.Semaphore?
+    private var storage: IPCTypes.ReadOnlySharedMemory?
     private var bufferPool: CVPixelBufferPool?
-    private var bufferPoolType: OSType = 0
-    private var bufferPoolWidth: UInt32 = 0
-    private var bufferPoolHeight: UInt32 = 0
+    private var bufferPoolFormat: (pixelFormat: OSType, width: UInt32, height: UInt32) = (0, 0, 0)
+    private var blackFrame: CVPixelBuffer?
+    private var blackFrameSize: (width: Int32, height: Int32) = (0, 0)
 
     @_expose(Cxx)
-    init(useIOSurfaceBufferPool: Bool) {
+    init(
+        heap: borrowing WebKit.RemoteVideoFrameObjectHeap?,
+        resourceOwner: borrowing WebCore.ProcessIdentity,
+        hasResourceOwner: Bool,
+        useIOSurfaceBufferPool: Bool
+    ) {
+        self.heap = copy heap
+        self.resourceOwner = hasResourceOwner ? copy resourceOwner : nil
         shouldUseIOSurfaceBufferPool = useIOSurfaceBufferPool
     }
 
+    // Each takes a right of its own to the port that the caller's IPC::Semaphore or SharedMemory::Handle owns.
     @_expose(Cxx)
-    func usesIOSurfaceBufferPool() -> Bool {
-        shouldUseIOSurfaceBufferPool
+    func setSemaphore(_ port: mach_port_t) {
+        semaphore = IPCTypes.Semaphore(copying: port)
     }
 
     @_expose(Cxx)
-    func readBufferFromSharedMemory(_ context: borrowing WebKit.SharedVideoFrameReaderContext) -> CVPixelBuffer? {
-        guard context.hasStorage() else {
+    func setSharedMemory(_ port: mach_port_t, _ size: UInt64) -> Bool {
+        storage = IPCTypes.SharedMemoryHandle(copying: port, size: size).mapReadOnly()
+        return storage != nil
+    }
+
+    // Returned +1.
+    @_expose(Cxx)
+    func readBuffer(_ buffer: WebKit.SharedVideoFrameBufferTag) -> CVPixelBuffer? {
+        switch buffer.kind {
+        case .SharedMemory:
+            return readBufferFromSharedMemory()
+        case .HeapReference:
+            return readBufferFromHeap(identifier: buffer.identifier, version: buffer.version)
+        case .IOSurface:
+            return WebKit.createSharedVideoFramePixelBuffer(buffer.port)
+        case .BlackFrame:
+            return blackPixelBuffer(width: buffer.width, height: buffer.height)
+        @unknown default:
+            return nil
+        }
+    }
+
+    private func readBufferFromHeap(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
+        guard let heap else {
+            assertionFailure()
+            releaseLog.error("SharedVideoFrameReader::readBuffer no object heap")
+            return nil
+        }
+        guard let pixelBuffer = heap.readPixelBuffer(identifier: identifier, version: version) else {
+            releaseLog.error("SharedVideoFrameReader::readBuffer no sample")
+            return nil
+        }
+        return pixelBuffer
+    }
+
+    private func readBufferFromSharedMemory() -> CVPixelBuffer? {
+        guard let storage else {
             releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory no storage")
             return nil
         }
 
         defer {
-            context.signalSemaphore()
+            semaphore?.signal()
         }
 
-        let data: Span<UInt8> = context.storageBytes()
-        guard var info = WebCore.SharedVideoFrameInfo.decode(data).value else {
-            releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory decoding failed")
-            return nil
-        }
+        let headerSize = WebCore.SharedVideoFrameInfoEncodingLength
+        return storage.withBytes { bytes -> CVPixelBuffer? in
+            guard let header = SharedVideoFrameHeader(decoding: bytes, headerSize: headerSize) else {
+                releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory decoding failed")
+                return nil
+            }
 
-        guard info.isReadWriteSupported() else {
-            releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory not supported")
-            return nil
-        }
+            guard header.isReadWriteSupported else {
+                releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory not supported")
+                return nil
+            }
 
-        // The header is the web process's: its storage size can exceed Int.max, so compare unsigned, as C++ does.
-        guard UInt(data.count) >= UInt(bitPattern: info.storageSize()) else {
-            releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory storage size mismatch")
-            return nil
-        }
+            // The header is the web process's: its storage size can exceed Int.max, so compare unsigned, as C++ does.
+            guard UInt(bytes.byteCount) >= header.storageSize(headerSize: headerSize) else {
+                releaseLog.error("SharedVideoFrameReader::readBufferFromSharedMemory storage size mismatch")
+                return nil
+            }
 
-        let pool = pixelBufferPool(info)
-        let planes = data.extracting(droppingFirst: WebCore.SharedVideoFrameInfoEncodingLength)
-        let result = WebKit.createSharedVideoFramePixelBuffer(&info, planes, pool)
-        if let result, shouldUseIOSurfaceBufferPool {
-            context.setOwnershipIdentity(result)
+            let result = header.createPixelBuffer(bytes, headerSize: headerSize, pool: pixelBufferPool(header))
+            if let result, shouldUseIOSurfaceBufferPool {
+                setOwnershipIdentity(result)
+            }
+            return result
         }
-        return result
     }
 
-    private func pixelBufferPool(_ info: borrowing WebCore.SharedVideoFrameInfo) -> CVPixelBufferPool? {
+    private func pixelBufferPool(_ header: SharedVideoFrameHeader) -> CVPixelBufferPool? {
         guard shouldUseIOSurfaceBufferPool else {
             return nil
         }
 
-        let type = info.bufferType()
-        let width = info.width()
-        let height = info.height()
-        if bufferPool == nil || bufferPoolType != type || bufferPoolWidth != width || bufferPoolHeight != height {
-            bufferPoolType = type
-            bufferPoolWidth = width
-            bufferPoolHeight = height
-            bufferPool = WebKit.createSharedVideoFrameBufferPool(info)
+        let format = (pixelFormat: header.pixelFormat, width: header.width, height: header.height)
+        if bufferPool == nil || bufferPoolFormat != format {
+            bufferPoolFormat = format
+            bufferPool = WebKit.createSharedVideoFrameBufferPool(format.width, format.height, format.pixelFormat)
         }
         return bufferPool
+    }
+
+    private func blackPixelBuffer(width: Int32, height: Int32) -> CVPixelBuffer? {
+        if blackFrameSize != (width, height) {
+            blackFrameSize = (width, height)
+            blackFrame = WebKit.createSharedVideoFrameBlackPixelBuffer(width, height, shouldUseIOSurfaceBufferPool)
+            if let blackFrame, shouldUseIOSurfaceBufferPool {
+                setOwnershipIdentity(blackFrame)
+            }
+        }
+        return blackFrame
+    }
+
+    private func setOwnershipIdentity(_ pixelBuffer: CVPixelBuffer) {
+        if let resourceOwner {
+            WebCore.setOwnershipIdentityForCVPixelBuffer(pixelBuffer, resourceOwner)
+        }
     }
 }
 

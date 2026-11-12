@@ -62,7 +62,7 @@ namespace WebKit {
 
 class RemoteVideoFrameObjectHeap;
 #if !defined(__swift__)
-class SharedVideoFrameReaderImpl;
+class SharedVideoFrameSource;
 class SharedVideoFrameWriterImpl;
 #endif
 
@@ -120,6 +120,7 @@ private:
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
 
+// The C++ face of SharedVideoFrameSource (SharedVideoFrameImpl.swift), for the readers written in C++.
 class SharedVideoFrameReader {
     WTF_MAKE_TZONE_ALLOCATED(SharedVideoFrameReader);
     WTF_MAKE_NONCOPYABLE(SharedVideoFrameReader);
@@ -130,26 +131,18 @@ public:
     explicit SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeap>&&, const WebCore::ProcessIdentity& = { }, UseIOSurfaceBufferPool = UseIOSurfaceBufferPool::Yes);
     SharedVideoFrameReader();
 
-    void setSemaphore(IPC::Semaphore&& semaphore) { m_semaphore = WTF::move(semaphore); }
+    void setSemaphore(IPC::Semaphore&&);
     bool setSharedMemory(WebCore::SharedMemory::Handle&&);
 
     RefPtr<WebCore::VideoFrame> read(SharedVideoFrame&&);
     RetainPtr<CVPixelBufferRef> readBuffer(SharedVideoFrame::Buffer&&);
 
 private:
-    friend class SharedVideoFrameReaderContext;
-
 #if !defined(__swift__)
-    SharedVideoFrameReaderImpl& swiftImpl() LIFETIME_BOUND;
+    SharedVideoFrameSource& swiftSource() LIFETIME_BOUND;
 #endif
 
-    const RefPtr<RemoteVideoFrameObjectHeap> m_objectHeap;
-    WebCore::ProcessIdentity m_resourceOwner;
-    std::optional<IPC::Semaphore> m_semaphore;
-    RefPtr<WebCore::SharedMemory> m_storage;
-    WebCore::IntSize m_blackFrameSize;
-    RetainPtr<CVPixelBufferRef> m_blackFrame;
-    // Storage for the Swift SharedVideoFrameReaderImpl (one strong reference), built in place in SharedVideoFrame.cpp, where
+    // Storage for the Swift SharedVideoFrameSource (one strong reference), built in place in SharedVideoFrame.cpp, where
     // the generated header is visible.
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };

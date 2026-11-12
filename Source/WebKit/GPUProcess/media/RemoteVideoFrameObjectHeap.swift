@@ -23,18 +23,32 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_VIDEO
 
+#if WTF_PLATFORM_COCOA
+import CoreVideo
+#endif
 private import Cxx
 import Dispatch
 import Synchronization
 import WebCore_Private
 import WebKit_Internal
 
+#if WTF_PLATFORM_COCOA
+// What the heap's readers use of a frame: its pixel buffer, and the display transform that the pixel buffer doesn't
+// carry. @unchecked Sendable: the heap only stores and hands out the pixel buffer, never its pixels, and its reference
+// count is atomic.
+private struct HeapFrame: @unchecked Sendable {
+    let pixelBuffer: CVPixelBuffer?
+    let rotation: UInt16
+    let isMirrored: Bool
+}
+#else
 // @unchecked Sendable: the heap only stores and hands out the reference, never using the frame, and the reference count
 // is atomic. The threads it hands the frame to share it in C++ as they did before; VideoFrame's in-place updates are
 // unsafe in Swift, and assert in Debug builds that the frame isn't published.
 private struct HeapFrame: @unchecked Sendable {
     let frame: WebCore.VideoFrame
 }
+#endif
 
 private struct VideoFrameReference: Hashable {
     let identifier: UInt64
@@ -142,10 +156,10 @@ private final class RemoteVideoFrameObjectHeapState {
 
     // Waits for a frame that isn't in the heap yet only if the web process allocated its reference
     // (remoteVideoFrameReadTimeoutSeconds()).
-    func read(_ reference: VideoFrameReference) -> WebCore.VideoFrame? {
+    func read(_ reference: VideoFrameReference) -> HeapFrame? {
         let timeout = WebKit.remoteVideoFrameReadTimeoutSeconds(reference.identifier)
         guard timeout > 0 else {
-            return frames.withLock { $0.read(reference) }?.frame
+            return frames.withLock { $0.read(reference) }
         }
         let deadline = DispatchTime.now() + timeout
         while true {
@@ -158,14 +172,13 @@ private final class RemoteVideoFrameObjectHeapState {
                 return .none
             }
             if let frame {
-                return frame?.frame
+                return frame
             }
             if waiter.wait(timeout: deadline) == .timedOut {
                 return frames.withLock { table in
                     table.removeWaiter(waiter)
                     return table.read(reference)
-                }?
-                .frame
+                }
             }
         }
     }
@@ -198,23 +211,31 @@ extension WebKit.RemoteVideoFrameObjectHeap {
         return unsafe address
     }
 
-    private var state: RemoteVideoFrameObjectHeapState {
+    fileprivate var state: RemoteVideoFrameObjectHeapState {
         // Safety: m_swiftState is a retained RemoteVideoFrameObjectHeapState from the constructor to the destructor, and
         // nothing changes it.
         unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
     }
 
+    #if WTF_PLATFORM_COCOA
+    @cxx
+    @implementation
+    func swiftAdd(_ identifier: UInt64, _ pixelBuffer: CVPixelBuffer?, _ rotation: UInt16, _ isMirrored: Bool) {
+        let frame = HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored)
+        state.add(VideoFrameReference(identifier: identifier, version: 0), frame)
+    }
+
+    // The pixel buffer of the frame of a read reference, for the Swift readers of shared video frames.
+    func readPixelBuffer(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
+        state.read(VideoFrameReference(identifier: identifier, version: version))?.pixelBuffer
+    }
+    #else
     @cxx
     @implementation
     func swiftAdd(_ identifier: UInt64, _ frame: WebCore.VideoFrame) {
         state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(frame: frame))
     }
-
-    @cxx
-    @implementation
-    func swiftRead(_ identifier: UInt64, _ version: UInt64) -> WebKit.RefPtrVideoFrame {
-        WebKit.RefPtrVideoFrame(state.read(VideoFrameReference(identifier: identifier, version: version)))
-    }
+    #endif
 
     @cxx
     @implementation
@@ -244,5 +265,24 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     }
     #endif
 }
+
+#if WTF_PLATFORM_COCOA
+// The frame of a read reference, for C++ (RemoteVideoFrameObjectHeap::get()): its pixel buffer, returned +1, and its
+// display transform.
+@_expose(Cxx)
+func readRemoteVideoFrame(
+    _ heap: WebKit.RemoteVideoFrameObjectHeap,
+    _ identifier: UInt64,
+    _ version: UInt64,
+    _ transform: inout WebKit.RemoteVideoFrameTransform
+) -> CVPixelBuffer? {
+    guard let frame = heap.state.read(VideoFrameReference(identifier: identifier, version: version)) else {
+        return nil
+    }
+    transform.rotation = frame.rotation
+    transform.isMirrored = frame.isMirrored
+    return frame.pixelBuffer
+}
+#endif
 
 #endif
