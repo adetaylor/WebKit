@@ -31,12 +31,10 @@
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
 #include "RemoteGraphicsContextGLInitializationState.h"
-#include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
 #include "RemoteGraphicsContextGLProxyMessages.h"
 #include "RemoteSharedResourceCache.h"
 #include "StreamConnectionWorkQueue.h"
-#include "WebKit-Swift.h"
 #include <WebCore/GraphicsContext.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/NotImplemented.h>
@@ -111,6 +109,8 @@ IGNORE_GCC_WARNINGS_BEGIN("free-nonheap-object")
 RemoteGraphicsContextGLResources::~RemoteGraphicsContextGLResources()
 {
     ASSERT(!m_context);
+    if (m_swiftState)
+        destroySwiftState(std::exchange(m_swiftState, 0));
 }
 IGNORE_GCC_WARNINGS_END
 
@@ -166,35 +166,10 @@ void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsCont
             initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
         }
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }));
-        m_glReceiver = makeUniqueWithoutFastMallocCheck<RemoteGraphicsContextGL>(RemoteGraphicsContextGL::create(context->islandShell()));
-        Ref glForwarder = m_glReceiver->getMessageReceiver();
-        glForwarder->setSharedPreferencesProvider([sharedPreferences = m_sharedPreferencesForWebProcess] {
-            return std::optional { sharedPreferences };
-        });
-        m_connection->startReceivingMessages(glForwarder, Messages::RemoteGraphicsContextGL::messageReceiverName(), m_identifier.toUInt64());
+        m_swiftState = createSwiftState(context->islandShell(), m_identifier.toUInt64());
         m_connection->startReceivingMessages(*this, Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
     } else
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated(std::nullopt));
-}
-
-bool RemoteGraphicsContextGLResources::isValidObjectName(uint32_t name) const
-{
-    return m_glReceiver->isValidObjectName(name);
-}
-
-uint32_t RemoteGraphicsContextGLResources::objectName(uint32_t name) const
-{
-    return m_glReceiver->objectName(name);
-}
-
-uint32_t RemoteGraphicsContextGLResources::takeObjectName(uint32_t name)
-{
-    return m_glReceiver->takeObjectName(name);
-}
-
-void RemoteGraphicsContextGLResources::addObjectName(uint32_t name, uint32_t object)
-{
-    m_glReceiver->addObjectName(name, object);
 }
 
 void RemoteGraphicsContextGLResources::workQueueUninitialize()
@@ -204,8 +179,8 @@ void RemoteGraphicsContextGLResources::workQueueUninitialize()
         m_context->setClient(nullptr);
         m_context = nullptr;
         m_connection->stopReceivingMessages(Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
-        m_connection->stopReceivingMessages(Messages::RemoteGraphicsContextGL::messageReceiverName(), m_identifier.toUInt64());
-        m_glReceiver = nullptr;
+        // Its registration stops the Swift receiver's messages.
+        destroySwiftState(std::exchange(m_swiftState, 0));
     }
     m_connection->invalidate();
     m_renderingResourcesRequest = { };

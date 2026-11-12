@@ -1031,7 +1031,6 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp
-        GPUProcess/graphics/RemoteGraphicsContextGLResources.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteAdapterMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupLayoutMessageReceiver.cpp

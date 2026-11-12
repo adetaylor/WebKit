@@ -137,49 +137,21 @@ final class RemoteGraphicsContextGL {
     let island: GLContext
     var names = RemoteGraphicsContextGLObjectNames()
 
-    private init(island: GLContext) {
+    fileprivate init(island: GLContext) {
         self.island = island
     }
 
-    // @used ensures these are retained even under -O -wmo: rdar://179098545
-    // The shell must be the islandShell() of a GraphicsContextGLANGLE the caller keeps alive for the call.
-    @used
-    @unsafe
-    static func create(shell: UInt) -> RemoteGraphicsContextGL {
-        RemoteGraphicsContextGL(island: unsafe GLShell.fromReference(shell).context!)
-    }
-
-    // The forwarder keeps this alive, so this mustn't keep the forwarder: RemoteGraphicsContextGLResources does.
-    @used
+    // The forwarder keeps this alive, so this mustn't keep the forwarder: its registration, in the Swift state of the
+    // RemoteGraphicsContextGLResources, does.
+    @_expose(!Cxx)
     func getMessageReceiver() -> RefRemoteGraphicsContextGLMessageForwarder {
         WebKit.RemoteGraphicsContextGLMessageForwarder.create(target: self)
     }
 
-    // RemoteGraphicsContextGLResources gives the forwarder the shared preferences.
+    // The registration gives the forwarder the shared preferences.
+    @_expose(!Cxx)
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
         WebKit.OptionalSharedPreferencesForWebProcess()
-    }
-
-    // The names, for RemoteGraphicsContextGLResources's messages that take them.
-
-    @used
-    func isValidObjectName(_ name: UInt32) -> Bool {
-        names.isValidKey(name)
-    }
-
-    @used
-    func objectName(_ name: UInt32) -> UInt32 {
-        names.get(name)
-    }
-
-    @used
-    func takeObjectName(_ name: UInt32) -> UInt32 {
-        names.take(name)
-    }
-
-    @used
-    func addObjectName(_ name: UInt32, _ object: UInt32) {
-        names.add(name, object)
     }
 
     // Messages to be received, besides the generated ones.
@@ -217,6 +189,81 @@ final class RemoteGraphicsContextGL {
         try messageCheck {
             known
         }
+    }
+}
+
+// What a RemoteGraphicsContextGLResources's m_swiftState holds while its receivers receive messages: the receiver of the
+// GL calls, and the registration that keeps them coming to it.
+private final class RemoteGraphicsContextGLState {
+    let receiver: RemoteGraphicsContextGL
+    let registration: IPC.SwiftStreamReceiverRegistration?
+
+    init(receiver: RemoteGraphicsContextGL, registration: IPC.SwiftStreamReceiverRegistration?) {
+        self.receiver = receiver
+        self.registration = registration
+    }
+}
+
+// The members of RemoteGraphicsContextGLResources (RemoteGraphicsContextGLResources.h) that make and reach its Swift state,
+// on its work queue.
+extension WebKit.RemoteGraphicsContextGLResources {
+    @cxx
+    @implementation
+    @unsafe
+    func createSwiftState(_ islandShell: UInt, _ identifier: UInt64) -> UInt {
+        // Safety: the caller keeps alive the context whose islandShell() this is, and so its shell.
+        let receiver = RemoteGraphicsContextGL(island: unsafe GLShell.fromReference(islandShell).context!)
+        let registration = IPC.registerSwiftStreamReceiver(self, receiver.getMessageReceiver(), .RemoteGraphicsContextGL, identifier)
+        let state = RemoteGraphicsContextGLState(receiver: receiver, registration: registration)
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
+    }
+
+    @cxx
+    @implementation
+    @unsafe
+    static func destroySwiftState(_ swiftState: UInt) {
+        // Safety: createSwiftState() retained the state at this address, and only this releases it.
+        _ = unsafe Unmanaged<RemoteGraphicsContextGLState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+    }
+
+    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
+            preconditionFailure("RemoteGraphicsContextGLResources has no Swift state")
+        }
+        return unsafe address
+    }
+
+    // Only reached while the receivers receive messages, between createSwiftState() and destroySwiftState().
+    private var receiver: RemoteGraphicsContextGL {
+        // Safety: m_swiftState is 0 or a retained RemoteGraphicsContextGLState that only destroySwiftState() releases, once
+        // the receivers no longer receive messages.
+        unsafe Unmanaged<RemoteGraphicsContextGLState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue().receiver
+    }
+
+    // The names, for the messages that C++ handles.
+
+    @cxx
+    @implementation
+    func isValidObjectName(_ name: UInt32) -> Bool {
+        receiver.names.isValidKey(name)
+    }
+
+    @cxx
+    @implementation
+    func objectName(_ name: UInt32) -> UInt32 {
+        receiver.names.get(name)
+    }
+
+    @cxx
+    @implementation
+    func takeObjectName(_ name: UInt32) -> UInt32 {
+        receiver.names.take(name)
+    }
+
+    @cxx
+    @implementation
+    func addObjectName(_ name: UInt32, _ object: UInt32) {
+        receiver.names.add(name, object)
     }
 }
 
