@@ -237,16 +237,16 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     }
     #endif
 
-    @cxx
-    @implementation
-    func swiftRelease(_ identifier: UInt64, _ version: UInt64, _ pendingReads: UInt64) {
-        state.release(VideoFrameReference(identifier: identifier, version: version), pendingReads: pendingReads)
-    }
 
     @cxx
     @implementation
     func swiftRemoveAll() {
         state.removeAll()
+    }
+
+    func releaseVideoFrame(connection: IPC.Connection, write: IPCTypes.RemoteVideoFrameWriteReference) {
+        let reference = VideoFrameReference(identifier: write.reference.identifier.rawValue, version: write.reference.version)
+        state.release(reference, pendingReads: write.pendingReads)
     }
 
     #if WTF_PLATFORM_COCOA

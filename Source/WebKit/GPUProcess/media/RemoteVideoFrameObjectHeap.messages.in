@@ -35,6 +35,6 @@ messages -> RemoteVideoFrameObjectHeap WorkQueue {
     SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) SwiftTypes
     ConvertFrameBuffer(struct WebKit::SharedVideoFrame frame, bool shouldApplyRotation) -> (WebCore::ColorSpace space) Synchronous
 #endif
-    ReleaseVideoFrame(WebKit::RemoteVideoFrameWriteReference write) AllowedWhenWaitingForSyncReply
+    ReleaseVideoFrame(WebKit::RemoteVideoFrameWriteReference write) AllowedWhenWaitingForSyncReply SwiftTypes
 }
 #endif

@@ -127,11 +127,6 @@ auto RemoteVideoFrameObjectHeap::get(RemoteVideoFrameReadReference&& read) -> st
 }
 #endif
 
-void RemoteVideoFrameObjectHeap::releaseVideoFrame(RemoteVideoFrameWriteReference&& write)
-{
-    swiftRelease(write.identifier().toUInt64(), write.version(), write.pendingReads());
-}
-
 #if PLATFORM(COCOA)
 void RemoteVideoFrameObjectHeap::getVideoFrameBuffer(RemoteVideoFrameReadReference&& read)
 {

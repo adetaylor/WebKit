@@ -115,7 +115,6 @@ private:
     explicit RemoteVideoFrameObjectHeap(Ref<IPC::Connection>&&);
 
     // Messages that take C++ types.
-    void releaseVideoFrame(RemoteVideoFrameWriteReference&&);
 #if PLATFORM(COCOA)
     void getVideoFrameBuffer(RemoteVideoFrameReadReference&&);
     void convertFrameBuffer(SharedVideoFrame&&, bool shouldApplyRotation, CompletionHandler<void(WebCore::ColorSpace)>&&);
@@ -133,7 +132,6 @@ private:
 #else
     void swiftAdd(uint64_t identifier, WebCore::VideoFrame* WTF_NONNULL);
 #endif
-    void swiftRelease(uint64_t identifier, uint64_t version, uint64_t pendingReads);
     void swiftRemoveAll();
 
     const Ref<IPC::Connection> m_connection;
