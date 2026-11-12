@@ -771,6 +771,14 @@ using WebKit::E = uint8_t
 [Swift] using WebKit::V = Variant<uint8_t, long>
 ''', r"alternative long: 'long' has no Swift form")
 
+    def test_null_alternative(self):
+        swift = generate_swift('''
+[Swift] using WebKit::V = Variant<std::nullptr_t, uint32_t>
+''')
+        self.assertIn('    enum V: Sendable, Equatable {\n        case null\n        case uint32(UInt32)\n', swift)
+        self.assertIn('        case 0:\n            return .null\n', swift)
+        self.assertIn('        case .null:\n            UInt8.encode(0, to: encoder)\n', swift)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -2813,6 +2813,9 @@ def generate_swift_variant(using_statement, swift_names):
         if alternative == 'std::monostate':
             cases.append(SwiftMember('empty', None, None))
             continue
+        if alternative == 'std::nullptr_t':
+            cases.append(SwiftMember('null', None, None))
+            continue
         swift_type, swift_coder = swift_type_and_coder(alternative, f'{context}: alternative {alternative}', swift_names)
         case = SwiftMember(swift_variant_case_name(alternative), swift_type, swift_coder)
         case.owned = swift_types.is_owned_type(alternative)
