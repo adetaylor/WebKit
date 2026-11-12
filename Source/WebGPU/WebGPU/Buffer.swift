@@ -49,7 +49,6 @@ import Metal
 @_implementationOnly import WebGPU_Internal.CxxBridging
 @_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.Queue
-@_implementationOnly import WebGPU_Internal.XRProjectionLayer
 import WebGPU_Private.CxxBridgingPublic
 @_spiOnly import WebGPU_Private.WebGPUCpp
 

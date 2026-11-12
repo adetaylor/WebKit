@@ -1556,7 +1556,10 @@ function(_webkit_setup_swift_header_deps _target _stamp _header _resp)
         endif ()
     endif ()
 
-    add_dependencies(${_target}_SwiftInterop ${_target}_SwiftCxxHeader)
+    # The C++ that includes the interop header builds in ${_target}_SwiftInterop, if the target has any.
+    if (TARGET ${_target}_SwiftInterop)
+        add_dependencies(${_target}_SwiftInterop ${_target}_SwiftCxxHeader)
+    endif ()
 endfunction()
 
 function(WEBKIT_QUERY_SWIFT_TARGET_INFO _result _swift_compiler)
