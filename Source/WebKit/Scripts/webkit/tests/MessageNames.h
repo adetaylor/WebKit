@@ -72,18 +72,20 @@ enum class ReceiverName : uint8_t {
     , TestWithSwiftConditionally = 28
     , TestWithSwiftConditionallyAndEnabledBy = 29
     , TestWithSwiftImplementation = 30
-    , TestWithSwiftTypes = 31
-    , TestWithSwiftTypesOptIn = 32
-    , TestWithSwiftWorkQueue = 33
-    , TestWithValidator = 34
-    , TestWithWantsAsyncDispatch = 35
-    , TestWithWantsDispatch = 36
-    , TestWithWantsDispatchNoSyncMessages = 37
-    , TestWithWorkQueueSwiftImplementation = 38
-    , TestWithoutAttributes = 39
-    , TestWithoutUsingIPCConnection = 40
-    , IPC = 41
-    , Invalid = 42
+    , TestWithSwiftImplementationAndSuperclass = 31
+    , TestWithSwiftImplementationAndWantsDispatch = 32
+    , TestWithSwiftTypes = 33
+    , TestWithSwiftTypesOptIn = 34
+    , TestWithSwiftWorkQueue = 35
+    , TestWithValidator = 36
+    , TestWithWantsAsyncDispatch = 37
+    , TestWithWantsDispatch = 38
+    , TestWithWantsDispatchNoSyncMessages = 39
+    , TestWithWorkQueueSwiftImplementation = 40
+    , TestWithoutAttributes = 41
+    , TestWithoutUsingIPCConnection = 42
+    , IPC = 43
+    , Invalid = 44
 };
 
 enum class MessageName : uint16_t {
@@ -199,6 +201,11 @@ enum class MessageName : uint16_t {
     TestWithSuperclass_TestMessageWithMessageName,
     TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessageReply,
     TestWithSwiftConditionally_TestAsyncMessageReply,
+    TestWithSwiftImplementationAndSuperclass_LoadURL,
+    TestWithSwiftImplementationAndSuperclass_SendString,
+    TestWithSwiftImplementationAndSuperclass_SendStringAsyncReply,
+    TestWithSwiftImplementationAndWantsDispatch_LoadURL,
+    TestWithSwiftImplementationAndWantsDispatch_SendString,
     TestWithSwiftImplementation_SendCxxString,
     TestWithSwiftImplementation_SendDirect,
     TestWithSwiftImplementation_SendString,
@@ -332,6 +339,7 @@ enum class MessageName : uint16_t {
 #endif
     TestWithSwiftConditionallyAndEnabledBy_TestAsyncMessage,
     TestWithSwiftConditionally_TestAsyncMessage,
+    TestWithSwiftImplementationAndSuperclass_SendStringAsync,
     TestWithSwiftImplementation_SendStringAsync,
     TestWithSwiftTypesOptIn_CxxTypedMessage,
     TestWithSwiftTypesOptIn_SwiftTypedMessage,
@@ -392,6 +400,9 @@ enum class MessageName : uint16_t {
     TestWithSuperclass_TestSynchronousMessage,
     TestWithSwiftConditionallyAndEnabledBy_TestSyncMessage,
     TestWithSwiftConditionally_TestSyncMessage,
+    TestWithSwiftImplementationAndSuperclass_TestSyncMessage,
+    TestWithSwiftImplementationAndWantsDispatch_SendStringSync,
+    TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage,
     TestWithSwiftImplementation_SendStringSync,
     TestWithSwiftTypesOptIn_CxxTypedSynchronousMessage,
     TestWithSwiftTypesOptIn_SwiftTypedSynchronousMessage,
