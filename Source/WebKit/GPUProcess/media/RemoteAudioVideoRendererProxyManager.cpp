@@ -293,39 +293,10 @@ void RemoteAudioVideoRendererProxyManager::pause(RemoteAudioVideoRendererIdentif
     context.renderer->pause(hostTime);
 }
 
-void RemoteAudioVideoRendererProxyManager::setRate(RemoteAudioVideoRendererIdentifier identifier, double rate)
-{
-    auto iterator = m_renderers.find(identifier);
-    MESSAGE_CHECK(iterator != m_renderers.end());
-    if (iterator == m_renderers.end())
-        return;
-    auto& context = iterator->value;
-
-    context.renderer->setRate(rate);
-}
-
 void RemoteAudioVideoRendererProxyManager::setScreenReserved(RemoteAudioVideoRendererIdentifier identifier, bool reserved)
 {
     if (RefPtr renderer = rendererFor(identifier))
         renderer->setScreenReserved(reserved);
-}
-
-void RemoteAudioVideoRendererProxyManager::setVolume(RemoteAudioVideoRendererIdentifier identifier, float volume)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setVolume(volume);
-}
-
-void RemoteAudioVideoRendererProxyManager::setMuted(RemoteAudioVideoRendererIdentifier identifier, bool muted)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setMuted(muted);
-}
-
-void RemoteAudioVideoRendererProxyManager::setPreservesPitchAndCorrectionAlgorithm(RemoteAudioVideoRendererIdentifier identifier, bool preservesPitch, std::optional<WebCore::MediaPlayerPitchCorrectionAlgorithm> algorithm)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setPreservesPitchAndCorrectionAlgorithm(preservesPitch, algorithm);
 }
 
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)

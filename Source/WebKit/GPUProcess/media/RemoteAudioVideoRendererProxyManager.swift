@@ -434,6 +434,43 @@ extension WebKit.RemoteAudioVideoRendererProxyManager {
     }
 
     @MainActor
+    func setRate(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, rate: Double) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if !renderer.isShutdown {
+            renderer.core.setRate(rate)
+        }
+    }
+
+    @MainActor
+    func setVolume(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, volume: Float) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if !renderer.isShutdown {
+            renderer.core.setVolume(volume)
+        }
+    }
+
+    @MainActor
+    func setMuted(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, muted: Bool) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if !renderer.isShutdown {
+            renderer.core.setMuted(muted)
+        }
+    }
+
+    @MainActor
+    func setPreservesPitchAndCorrectionAlgorithm(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        preservePitch: Bool,
+        pitchAlgorithm: IPCTypes.MediaPlayerPitchCorrectionAlgorithm?
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if !renderer.isShutdown {
+            renderer.core.setPreservesPitchAndCorrectionAlgorithm(preservePitch, pitchAlgorithm?.rawValue)
+        }
+    }
+
+    @MainActor
     func prepareToSeek(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, seekTime: IPCTypes.MediaTime) throws(InvalidMessage) -> RemoteAudioVideoRendererTimeResult {
         let renderer = try renderer(identifier)
         let result: RemoteAudioVideoRendererTimeResult

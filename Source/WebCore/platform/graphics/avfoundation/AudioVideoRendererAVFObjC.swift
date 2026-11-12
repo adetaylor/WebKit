@@ -352,6 +352,12 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private var videoFrameMetadataGatheringObserver: AnyObject?
     private var lastForwardedEffectiveRate: Double = 0
     private var registeredWithSharedTimer = false
+    // The audio renderers' settings, which each audio renderer gets when it's made.
+    private var volume: Float = 1
+    private var muted = false
+    private var preservesPitch = true
+    // A MediaPlayerPitchCorrectionAlgorithm.
+    private var pitchCorrectionAlgorithm: UInt8?
 
     // The synchronizer is the C++ renderer's; it is borrowed.
     @_expose(Cxx)
@@ -875,6 +881,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
             return false
         }
         rate = newRate
+        applyAudioTimePitchAlgorithm()
         if shouldBePlaying() {
             synchronizer.rate = Float(rate)
             lastSetSyncRate = Float(rate)
@@ -1313,6 +1320,49 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
 
     // MARK: Audio renderers
 
+    @_expose(Cxx)
+    func setVolume(_ newVolume: Float) {
+        volume = newVolume
+        for track in audioTracks.values {
+            track.renderer?.renderer.volume = newVolume
+        }
+    }
+
+    @_expose(Cxx)
+    func setMuted(_ newMuted: Bool) {
+        muted = newMuted
+        for track in audioTracks.values {
+            track.renderer?.renderer.isMuted = newMuted
+        }
+    }
+
+    // algorithm is a MediaPlayerPitchCorrectionAlgorithm, if hasAlgorithm.
+    @_expose(Cxx)
+    func setPreservesPitchAndCorrectionAlgorithm(_ newPreservesPitch: Bool, _ hasAlgorithm: Bool, _ algorithm: UInt8) {
+        preservesPitch = newPreservesPitch
+        pitchCorrectionAlgorithm = hasAlgorithm ? algorithm : nil
+        applyAudioTimePitchAlgorithm()
+    }
+
+    // MediaSessionManagerCocoa::audioTimePitchAlgorithmForMediaPlayerPitchCorrectionAlgorithm().
+    private var audioTimePitchAlgorithm: AVAudioTimePitchAlgorithm {
+        if !preservesPitch || rate == 0 || rate == 1 {
+            return AVFoundationSoftLink.AVAudioTimePitchAlgorithmVarispeed
+        }
+        // BestForSpeech; BestAllAround, the default, and BestForMusic are spectral.
+        if pitchCorrectionAlgorithm == 2 {
+            return AVFoundationSoftLink.AVAudioTimePitchAlgorithmTimeDomain
+        }
+        return AVFoundationSoftLink.AVAudioTimePitchAlgorithmSpectral
+    }
+
+    private func applyAudioTimePitchAlgorithm() {
+        let algorithm = audioTimePitchAlgorithm
+        for track in audioTracks.values {
+            track.renderer?.renderer.audioTimePitchAlgorithm = algorithm
+        }
+    }
+
     private func addAudioRenderer(_ trackId: UInt64) {
         if audioTracks[trackId] != nil {
             return
@@ -1323,6 +1373,9 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         guard host.createRenderingObject(.AudioRenderer, trackId), let renderer = AVFoundationClass.cast(host.renderingObject(.AudioRenderer, trackId), to: AVFoundationClass.AVSampleBufferAudioRenderer) else {
             return
         }
+        renderer.isMuted = muted
+        renderer.volume = volume
+        renderer.audioTimePitchAlgorithm = audioTimePitchAlgorithm
         audioTracks[trackId]?.renderer = AudioRendererHandle(renderer: renderer)
         listener?.beginObservingAudioRenderer(renderer)
     }
@@ -1986,6 +2039,13 @@ public struct AudioVideoRendererMainActorCore {
     public func applicationWillResignActive() { core.applicationWillResignActive() }
     public func paused() -> Bool { core.paused() }
     public func stall() { core.stall() }
+    public func setRate(_ rate: Double) { _ = core.setRate(rate) }
+    public func setVolume(_ volume: Float) { core.setVolume(volume) }
+    public func setMuted(_ muted: Bool) { core.setMuted(muted) }
+    // algorithm is a MediaPlayerPitchCorrectionAlgorithm.
+    public func setPreservesPitchAndCorrectionAlgorithm(_ preservesPitch: Bool, _ algorithm: UInt8?) {
+        core.setPreservesPitchAndCorrectionAlgorithm(preservesPitch, algorithm != nil, algorithm ?? 0)
+    }
     // Whether the boundary is already behind, and the renderer stalled; otherwise the client hears rendererTimeReached().
     public func notifyTimeReachedAndStall(_ boundary: AudioVideoRendererTime) -> Bool { core.notifyTimeReachedAndStall(boundary) }
     public func cancelTimeReachedAction() { core.cancelTimeReachedAction() }

@@ -185,7 +185,6 @@ private:
     String toString(TrackIdentifier) const;
     std::optional<TrackType> typeOf(TrackIdentifier) const;
     void periodicSharedTimerFired() final;
-    void applyAudioTimePitchAlgorithm(AVSampleBufferAudioRenderer *) const;
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
 #endif
@@ -291,11 +290,6 @@ private:
     std::optional<GenericPromise::AutoRejectProducer> m_videoTargetPromise;
 #endif
 
-    double m_rate { 1 };
-    float m_volume { 1 };
-    bool m_muted { false };
-    bool m_preservesPitch { true };
-    std::optional<PitchCorrectionAlgorithm> m_pitchCorrectionAlgorithm;
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     String m_audioOutputDeviceId;
 #endif

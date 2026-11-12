@@ -3234,7 +3234,7 @@ enum class WebCore::MediaPlayerWirelessPlaybackTargetType : uint8_t {
     TargetTypeTVOut
 };
 
-enum class WebCore::MediaPlayerPitchCorrectionAlgorithm : uint8_t {
+[Swift] enum class WebCore::MediaPlayerPitchCorrectionAlgorithm : uint8_t {
     BestAllAround,
     BestForMusic,
     BestForSpeech,

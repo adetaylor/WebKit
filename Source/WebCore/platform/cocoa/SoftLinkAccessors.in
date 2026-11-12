@@ -78,6 +78,9 @@ member Vision VNRecognizedTextObservation topCandidates: func topCandidates(_ ma
 member Vision VNFaceLandmarkRegion2D pointsInImageOfSize: func pointsInImage(imageSize: CGSize) -> [CGPoint] counted by pointCount
 
 # The audio and video renderer (AudioVideoRendererAVFObjC.swift, VideoMediaSampleRenderer.swift, WebAVSampleBufferListener.swift).
+constant AVFoundation AVAudioTimePitchAlgorithmSpectral as AVAudioTimePitchAlgorithm
+constant AVFoundation AVAudioTimePitchAlgorithmTimeDomain as AVAudioTimePitchAlgorithm
+constant AVFoundation AVAudioTimePitchAlgorithmVarispeed as AVAudioTimePitchAlgorithm
 class AVFoundation AVSampleBufferAudioRenderer
 class AVFoundation AVSampleBufferDisplayLayer
 class AVFoundation AVSampleBufferRenderSynchronizer

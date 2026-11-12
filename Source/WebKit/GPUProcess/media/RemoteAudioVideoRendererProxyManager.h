@@ -118,13 +118,9 @@ private:
     // SynchronizerInterface
     void play(RemoteAudioVideoRendererIdentifier, std::optional<MonotonicTime>);
     void pause(RemoteAudioVideoRendererIdentifier, std::optional<MonotonicTime>);
-    void setRate(RemoteAudioVideoRendererIdentifier, double);
     void setScreenReserved(RemoteAudioVideoRendererIdentifier, bool);
 
     // AudioInterface
-    void setVolume(RemoteAudioVideoRendererIdentifier, float);
-    void setMuted(RemoteAudioVideoRendererIdentifier, bool);
-    void setPreservesPitchAndCorrectionAlgorithm(RemoteAudioVideoRendererIdentifier, bool, std::optional<WebCore::MediaPlayerPitchCorrectionAlgorithm>);
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     void setOutputDeviceId(RemoteAudioVideoRendererIdentifier, const String&);
 #endif

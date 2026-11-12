@@ -190,6 +190,12 @@ async function runTest()
     send('Stall', [uint64(identifier)]);
     send('ApplicationWillResignActive', [uint64(identifier)]);
     send('ExpectMinimumUpcomingPresentationTime', [uint64(identifier), ...mediaTime(1, 1)]);
+    send('SetRate', [uint64(identifier), double(2)]);
+    send('SetVolume', [uint64(identifier), { type: 'float', value: 0.5 }]);
+    send('SetMuted', [uint64(identifier), bool(true)]);
+    send('SetPreservesPitchAndCorrectionAlgorithm', [uint64(identifier), bool(true), bool(true), uint8(2)]);
+    send('SetPreservesPitchAndCorrectionAlgorithm', [uint64(identifier), bool(false), bool(false)]);
+    send('SetRate', [uint64(identifier), double(1)]);
     send('NotifyWhenHasAvailableVideoFrame', [uint64(identifier), bool(true)]);
     send('NotifyWhenHasAvailableVideoFrame', [uint64(identifier), bool(false)]);
     send('SetVideoPlaybackMetricsUpdateInterval', [uint64(identifier), double(1)]);

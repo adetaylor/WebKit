@@ -41,6 +41,12 @@ send PerformTaskAtTime
 send Stall
 send ApplicationWillResignActive
 send ExpectMinimumUpcomingPresentationTime
+send SetRate
+send SetVolume
+send SetMuted
+send SetPreservesPitchAndCorrectionAlgorithm
+send SetPreservesPitchAndCorrectionAlgorithm
+send SetRate
 send NotifyWhenHasAvailableVideoFrame
 send NotifyWhenHasAvailableVideoFrame
 send SetVideoPlaybackMetricsUpdateInterval

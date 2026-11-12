@@ -60,15 +60,15 @@ messages -> RemoteAudioVideoRendererProxyManager {
 
     Play(WebKit::RemoteAudioVideoRendererIdentifier identifier, std::optional<MonotonicTime> hostTime) CxxTypes
     Pause(WebKit::RemoteAudioVideoRendererIdentifier identifier, std::optional<MonotonicTime> hostTime) CxxTypes
-    SetRate(WebKit::RemoteAudioVideoRendererIdentifier identifier, double rate) CxxTypes
+    SetRate(WebKit::RemoteAudioVideoRendererIdentifier identifier, double rate)
     Stall(WebKit::RemoteAudioVideoRendererIdentifier identifier)
     PrepareToSeek(WebKit::RemoteAudioVideoRendererIdentifier identifier, MediaTime seekTime) -> (std::expected<MediaTime, WebCore::PlatformMediaError> result)
     FinishSeek(WebKit::RemoteAudioVideoRendererIdentifier identifier, MediaTime seekTime) -> (GenericPromise::Result result)
     SetScreenReserved(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool reserved) CxxTypes
 
-    SetVolume(WebKit::RemoteAudioVideoRendererIdentifier identifier, float volume) CxxTypes
-    SetMuted(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool muted) CxxTypes
-    SetPreservesPitchAndCorrectionAlgorithm(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool preservePitch, std::optional<WebCore::MediaPlayerPitchCorrectionAlgorithm> pitchAlgorithm) CxxTypes
+    SetVolume(WebKit::RemoteAudioVideoRendererIdentifier identifier, float volume)
+    SetMuted(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool muted)
+    SetPreservesPitchAndCorrectionAlgorithm(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool preservePitch, std::optional<WebCore::MediaPlayerPitchCorrectionAlgorithm> pitchAlgorithm)
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     SetOutputDeviceId(WebKit::RemoteAudioVideoRendererIdentifier identifier, String deviceId) CxxTypes
 #endif

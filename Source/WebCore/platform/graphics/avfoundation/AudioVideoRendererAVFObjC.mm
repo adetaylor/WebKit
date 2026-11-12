@@ -42,7 +42,6 @@
 #import "Logging.h"
 #import "MediaPlayerPrivate.h"
 #import "MediaSampleAVFObjC.h"
-#import "MediaSessionManagerCocoa.h"
 #import "NativeImage.h"
 #import "PeriodicSharedTimer.h"
 #import "PixelBufferConformerCV.h"
@@ -127,6 +126,8 @@ static_assert(static_cast<uint8_t>(PlatformMediaError::VideoDecodingError) == 14
 // And its TrackInfoTrackType values.
 static_assert(static_cast<uint8_t>(TrackInfoTrackType::Audio) == 1);
 static_assert(static_cast<uint8_t>(TrackInfoTrackType::Video) == 2);
+// And its MediaPlayerPitchCorrectionAlgorithm values.
+static_assert(static_cast<uint8_t>(MediaPlayerPitchCorrectionAlgorithm::BestForSpeech) == 2);
 
 static PeriodicSharedTimer& sharedTimebaseTimer()
 {
@@ -507,11 +508,6 @@ void AudioVideoRendererAVFObjC::setRate(double rate)
 {
     if (m_isShutdown)
         return;
-    if (m_rate != rate) {
-        m_rate = rate;
-        for (auto& renderer : m_audioRenderers.values())
-            applyAudioTimePitchAlgorithm(renderer.get());
-    }
     m_core->swift.setRate(rate);
 }
 
@@ -683,34 +679,21 @@ void AudioVideoRendererAVFObjC::setVolume(float volume)
 {
     if (m_isShutdown)
         return;
-    m_volume = volume;
-    for (auto& renderer : m_audioRenderers.values())
-        [renderer setVolume:volume];
+    m_core->swift.setVolume(volume);
 }
 
 void AudioVideoRendererAVFObjC::setMuted(bool muted)
 {
     if (m_isShutdown)
         return;
-    m_muted = muted;
-    for (auto& renderer : m_audioRenderers.values())
-        [renderer setMuted:muted];
+    m_core->swift.setMuted(muted);
 }
 
 void AudioVideoRendererAVFObjC::setPreservesPitchAndCorrectionAlgorithm(bool preservesPitch, std::optional<PitchCorrectionAlgorithm> pitchCorrectionAlgorithm)
 {
     if (m_isShutdown)
         return;
-    m_preservesPitch = preservesPitch;
-    m_pitchCorrectionAlgorithm = pitchCorrectionAlgorithm;
-    for (auto& renderer : m_audioRenderers.values())
-        applyAudioTimePitchAlgorithm(renderer.get());
-}
-
-void AudioVideoRendererAVFObjC::applyAudioTimePitchAlgorithm(AVSampleBufferAudioRenderer *audioRenderer) const
-{
-    RetainPtr algorithm = MediaSessionManagerCocoa::audioTimePitchAlgorithmForMediaPlayerPitchCorrectionAlgorithm(m_pitchCorrectionAlgorithm.value_or(PitchCorrectionAlgorithm::BestAllAround), m_preservesPitch, m_rate).createNSString();
-    [audioRenderer setAudioTimePitchAlgorithm:algorithm.get()];
+    m_core->swift.setPreservesPitchAndCorrectionAlgorithm(preservesPitch, !!pitchCorrectionAlgorithm, static_cast<uint8_t>(pitchCorrectionAlgorithm.value_or(PitchCorrectionAlgorithm::BestAllAround)));
 }
 
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
@@ -1160,9 +1143,7 @@ bool AudioVideoRendererAVFObjC::createRenderingObject(AudioVideoRendererObject o
             return false;
         }
 
-        [renderer setMuted:m_muted];
-        [renderer setVolume:m_volume];
-        applyAudioTimePitchAlgorithm(renderer.get());
+        // The core sets its volume, muting and time pitch algorithm.
 
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
         if (!!m_audioOutputDeviceId)
