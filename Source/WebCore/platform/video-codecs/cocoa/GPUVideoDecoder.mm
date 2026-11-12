@@ -30,14 +30,7 @@
 
 #import "GPUVideoDecoderVTB.h"
 #import <WebCore/CMUtilities.h>
-#import <WebCore/LibWebRTCMacros.h>
 #include <wtf/TZoneMallocInlines.h>
-
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
-
-#include <webrtc/webkit_sdk/WebKit/WebKitDecoder.h>
-
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
 
 namespace WebCore {
 

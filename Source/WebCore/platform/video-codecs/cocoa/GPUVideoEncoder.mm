@@ -32,13 +32,6 @@
 #import <wtf/StdLibExtras.h>
 #import <wtf/TZoneMallocInlines.h>
 
-#if USE(LIBWEBRTC)
-#include "LibWebRTCMacros.h"
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
-#include <webrtc/webkit_sdk/WebKit/WebKitEncoder.h>
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
-#endif
-
 namespace WebCore {
 
 RefPtr<GPUVideoEncoder> GPUVideoEncoder::create(CreationInfo&& creationInfo, const Vector<std::pair<String, String>>& parameters, GPUVideoEncoderCallback&& callback, GPUVideoEncoderDescriptionCallback&& descriptionCallback, GPUVideoEncoderErrorCallback&& errorCallback)

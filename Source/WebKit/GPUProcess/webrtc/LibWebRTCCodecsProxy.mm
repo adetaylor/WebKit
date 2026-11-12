@@ -51,12 +51,6 @@
 #import <wtf/Scope.h>
 #import <wtf/TZoneMallocInlines.h>
 
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_BEGIN
-
-#include <webrtc/webkit_sdk/WebKit/WebKitDecoder.h>
-
-WTF_IGNORE_WARNINGS_IN_THIRD_PARTY_CODE_END
-
 #import <pal/cf/CoreMediaSoftLink.h>
 #import <WebCore/CoreVideoSoftLink.h>
 

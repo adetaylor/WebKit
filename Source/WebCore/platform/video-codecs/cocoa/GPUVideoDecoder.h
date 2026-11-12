@@ -35,10 +35,6 @@
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 using GPUVideoDecoderCallback = void (^)(CVPixelBufferRef, int64_t timeStamp, int64_t timeStampNs, bool isReordered);
 
-namespace webrtc {
-using LocalDecoder = void*;
-}
-
 namespace WebCore {
 
 class VideoInfo;
