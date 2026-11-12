@@ -537,6 +537,16 @@ inline bool ComputedStyle::clipPathIsNoneForSwift() const
     return clipPath().isNone();
 }
 
+inline ObjectFit ComputedStyle::objectFitForSwift() const
+{
+    return objectFit();
+}
+
+inline ImageRendering ComputedStyle::imageRenderingForSwift() const
+{
+    return imageRendering();
+}
+
 // MARK: - Logical getters
 
 // MARK: logical inset value aliases

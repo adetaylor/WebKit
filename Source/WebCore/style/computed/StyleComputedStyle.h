@@ -82,6 +82,8 @@ public:
     inline bool backdropFilterHasReferenceFilterForSwift() const SWIFT_NAME(backdropFilterHasReferenceFilter());
     inline bool objectViewBoxIsNoneForSwift() const SWIFT_NAME(objectViewBoxIsNone());
     inline bool clipPathIsNoneForSwift() const SWIFT_NAME(clipPathIsNone());
+    inline ObjectFit objectFitForSwift() const SWIFT_NAME(objectFit());
+    inline ImageRendering imageRenderingForSwift() const SWIFT_NAME(imageRendering());
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 
