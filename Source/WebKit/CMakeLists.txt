@@ -1767,6 +1767,18 @@ if (SWIFT_REQUIRED AND APPLE)
     )
 endif ()
 
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and USE_AUDIO_SESSION are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioSessionProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioSessionProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioSessionProxyManager.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteAudioSessionProxyMessageReceiver.swift
+    )
+endif ()
+
 # Each compiles to nothing unless ENABLE_GPU_PROCESS and HAVE_SHAPE_DETECTION_API_IMPLEMENTATION are set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(

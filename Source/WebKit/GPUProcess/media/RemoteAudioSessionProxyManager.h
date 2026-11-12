@@ -30,6 +30,7 @@
 #include <WebCore/AudioSession.h>
 #include <WebCore/ProcessIdentifier.h>
 #include <wtf/CompletionHandler.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakHashSet.h>
 #include <wtf/WeakRef.h>
@@ -39,7 +40,17 @@ namespace WebKit {
 class GPUProcess;
 class RemoteAudioSessionProxy;
 
-class RemoteAudioSessionProxyManager
+// What a proxy's request to make the audio session active or inactive does to the session.
+enum class RemoteAudioSessionActivation : uint8_t {
+    None,
+    Activate,
+    Deactivate,
+};
+
+// Applies what every web process asked of the audio session to the GPU process's AudioSession. Swift
+// (RemoteAudioSessionProxyManager.swift) holds the proxies' states and decides; C++ holds the proxies, observes the session
+// and changes it.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteAudioSessionProxyManager.swift") RemoteAudioSessionProxyManager
     : public RefCounted<RemoteAudioSessionProxyManager>
     , public WebCore::AudioSessionInterruptionObserver
     , private WebCore::AudioSessionConfigurationChangeObserver {
@@ -59,8 +70,7 @@ public:
     void addProxy(RemoteAudioSessionProxy&, std::optional<audit_token_t>);
     void removeProxy(RemoteAudioSessionProxy&);
 
-    void updateCategory();
-    void updatePreferredBufferSizeForProcess();
+    // Implemented in Swift.
     void updateSpatialExperience();
 
 #if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
@@ -80,6 +90,15 @@ public:
 
     USING_CAN_MAKE_WEAKPTR(WebCore::AudioSessionInterruptionObserver);
 
+    // For Swift: what it decided, applied to the session, and the interruptions it tells the proxies with these identifiers.
+    static void setSessionCategory(WebCore::AudioSessionCategory, WebCore::AudioSessionMode, WebCore::RouteSharingPolicy);
+    static void setSessionPreferredBufferSize(uint64_t);
+    static void setSessionIsPlayingToBluetoothOverride(bool hasValue, bool value);
+    // The scene identifier of the proxy (none for 0) and the sound stage size.
+    static void setSessionSpatialExperience(uint64_t proxyIdentifier, WebCore::AudioSessionSoundStageSize);
+    static void beginProxyInterruption(uint64_t proxyIdentifier);
+    static void endProxyInterruption(uint64_t proxyIdentifier, bool mayResume);
+
 private:
     RemoteAudioSessionProxyManager(GPUProcess&);
 
@@ -91,25 +110,23 @@ private:
     void sampleRateDidChange(const WebCore::AudioSession&) final;
     void configurationDidChange(const WebCore::AudioSession&);
 
-    bool hasOtherActiveProxyThan(RemoteAudioSessionProxy& proxyToExclude);
-    bool hasActiveNotInterruptedProxy();
-#if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
-    bool hasActiveProxy();
-#endif
+    RefPtr<RemoteAudioSessionProxy> proxy(uint64_t identifier);
 
-    bool isCapturePreviewActive() const
-    {
+    // Implemented in Swift.
+    void addSwiftProxy(uint64_t identifier, uint64_t processIdentifier);
+    void removeSwiftProxy(uint64_t identifier);
+    RemoteAudioSessionActivation swiftActivation(uint64_t identifier, bool active);
+    void swiftBeginAudioSessionInterruption();
+    void swiftEndAudioSessionInterruption(bool mayResume);
 #if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
-        return m_capturePreviewActive;
-#else
-        return false;
+    bool isCapturePreviewActive() const;
+    void setCapturePreviewActive(bool);
+    bool hasActiveProxy() const;
 #endif
-    }
 
     WeakRef<GPUProcess> m_gpuProcess;
     WeakHashSet<RemoteAudioSessionProxy> m_proxies;
 #if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
-    bool m_capturePreviewActive { false };
     Vector<CompletionHandler<void()>> m_capturePreviewActivationHandlers;
     unsigned m_capturePreviewActivationCount { 0 };
 #endif

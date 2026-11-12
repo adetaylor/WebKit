@@ -47,8 +47,15 @@ using namespace WebCore;
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteAudioSessionProxy);
 
+static uint64_t nextRemoteAudioSessionProxyIdentifier()
+{
+    static uint64_t identifier;
+    return ++identifier;
+}
+
 RemoteAudioSessionProxy::RemoteAudioSessionProxy(GPUConnectionToWebProcess& gpuConnection)
     : m_gpuConnection(gpuConnection)
+    , m_identifier(nextRemoteAudioSessionProxyIdentifier())
 {
 }
 
@@ -82,28 +89,10 @@ RemoteAudioSessionConfiguration RemoteAudioSessionProxy::configuration()
         session->outputLatency(),
         session->isMuted(),
         m_sceneIdentifier,
-        m_soundStageSize,
+        soundStageSize(),
         session->categoryOverride(),
-        m_active,
+        isActive(),
     };
-}
-
-void RemoteAudioSessionProxy::setCategory(AudioSession::CategoryType category, AudioSession::Mode mode, RouteSharingPolicy policy)
-{
-    if (m_category == category && m_mode == mode && m_routeSharingPolicy == policy && !m_isPlayingToBluetoothOverrideChanged)
-        return;
-
-    m_category = category;
-    m_mode = mode;
-    m_routeSharingPolicy = policy;
-    m_isPlayingToBluetoothOverrideChanged = false;
-    protect(audioSessionManager())->updateCategory();
-}
-
-void RemoteAudioSessionProxy::setPreferredBufferSize(uint64_t size)
-{
-    m_preferredBufferSize = size;
-    protect(audioSessionManager())->updatePreferredBufferSizeForProcess();
 }
 
 void RemoteAudioSessionProxy::tryToSetActive(bool active, SetActiveCompletion&& completion)
@@ -113,16 +102,11 @@ void RemoteAudioSessionProxy::tryToSetActive(bool active, SetActiveCompletion&& 
         RunLoop::mainSingleton(),
         [this, protectedThis = Ref { *this }, manager = WTF::move(manager), active, completion = WTF::move(completion)](auto&& result) mutable {
             bool success = result.has_value();
-            bool hasActiveChanged = success && m_active != active;
-            if (success) {
-                m_active = active;
-                if (m_active)
-                    m_isInterrupted = false;
+            bool hasActiveChanged = success && didSetActive(active);
 #if ENABLE(MEDIA_STREAM) && PLATFORM(IOS_FAMILY)
-                if (m_active)
-                    AVAudioSessionCaptureDeviceManager::singleton().setPreferredSpeakerID(m_speakerID);
+            if (success && active)
+                AVAudioSessionCaptureDeviceManager::singleton().setPreferredSpeakerID(m_speakerID);
 #endif
-            }
             completion(success);
             if (hasActiveChanged && m_gpuConnection.get())
                 configurationChanged();
@@ -136,12 +120,6 @@ void RemoteAudioSessionProxy::tryToSetActiveSync(bool active, SetActiveCompletio
     tryToSetActive(active, WTF::move(completion));
 }
 
-void RemoteAudioSessionProxy::setIsPlayingToBluetoothOverride(std::optional<bool>&& value)
-{
-    m_isPlayingToBluetoothOverrideChanged = true;
-    protect(protect(audioSessionManager())->session())->setIsPlayingToBluetoothOverride(WTF::move(value));
-}
-
 void RemoteAudioSessionProxy::configurationChanged()
 {
     protect(connection())->send(Messages::RemoteAudioSession::ConfigurationChanged(configuration()), { });
@@ -149,13 +127,11 @@ void RemoteAudioSessionProxy::configurationChanged()
 
 void RemoteAudioSessionProxy::beginInterruption()
 {
-    m_isInterrupted = true;
     protect(connection())->send(Messages::RemoteAudioSession::BeginInterruptionRemote(), { });
 }
 
 void RemoteAudioSessionProxy::endInterruption(AudioSession::MayResume mayResume)
 {
-    m_isInterrupted = false;
     protect(connection())->send(Messages::RemoteAudioSession::EndInterruptionRemote(mayResume), { });
 }
 
@@ -172,12 +148,6 @@ void RemoteAudioSessionProxy::endInterruptionRemote(AudioSession::MayResume mayR
 void RemoteAudioSessionProxy::setSceneIdentifier(const String& sceneIdentifier)
 {
     m_sceneIdentifier = sceneIdentifier;
-    protect(audioSessionManager())->updateSpatialExperience();
-}
-
-void RemoteAudioSessionProxy::setSoundStageSize(AudioSession::SoundStageSize size)
-{
-    m_soundStageSize = size;
     protect(audioSessionManager())->updateSpatialExperience();
 }
 
@@ -224,7 +194,7 @@ void RemoteAudioSessionProxy::setPreferredSpeakerID(const String& speakerID)
         return;
     
     m_speakerID = speakerID;
-    if (!m_active)
+    if (!isActive())
         return;
 
 #if ENABLE(MEDIA_STREAM)

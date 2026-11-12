@@ -36,7 +36,6 @@
 #include <WebCore/AudioSession.h>
 #include <WebCore/CoreAudioCaptureSource.h>
 #include <WebCore/PlatformMediaSessionManager.h>
-#include <wtf/HashCountedSet.h>
 #include <wtf/RunLoop.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -47,11 +46,6 @@
 namespace WebKit {
 
 using namespace WebCore;
-
-NODELETE static bool categoryCanMixWithOthers(AudioSession::CategoryType category)
-{
-    return category == AudioSession::CategoryType::AmbientSound;
-}
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteAudioSessionProxyManager);
 
@@ -72,7 +66,7 @@ void RemoteAudioSessionProxyManager::addProxy(RemoteAudioSessionProxy& proxy, st
 {
     ASSERT(!m_proxies.contains(proxy));
     m_proxies.add(proxy);
-    updateCategory();
+    addSwiftProxy(proxy.identifier(), proxy.processIdentifier().toUInt64());
 
     if (auditToken)
         AudioSession::singleton().setHostProcessAttribution(*auditToken);
@@ -82,121 +76,52 @@ void RemoteAudioSessionProxyManager::removeProxy(RemoteAudioSessionProxy& proxy)
 {
     ASSERT(m_proxies.contains(proxy));
     m_proxies.remove(proxy);
-    updateCategory();
+    removeSwiftProxy(proxy.identifier());
 }
 
-void RemoteAudioSessionProxyManager::updateCategory()
+RefPtr<RemoteAudioSessionProxy> RemoteAudioSessionProxyManager::proxy(uint64_t identifier)
 {
-    HashCountedSet<AudioSession::CategoryType, WTF::IntHash<AudioSession::CategoryType>, WTF::StrongEnumHashTraits<AudioSession::CategoryType>> categoryCounts;
-    HashCountedSet<AudioSession::Mode, WTF::IntHash<AudioSession::Mode>, WTF::StrongEnumHashTraits<AudioSession::Mode>> modeCounts;
-    HashCountedSet<RouteSharingPolicy, WTF::IntHash<RouteSharingPolicy>, WTF::StrongEnumHashTraits<RouteSharingPolicy>> policyCounts;
-
-    // A preview has no web process proxy, so count it here. Without it the session
-    // stays in playback and on iOS BaseAudioCaptureUnit won't start.
-    if (isCapturePreviewActive()) {
-        categoryCounts.add(AudioSession::CategoryType::PlayAndRecord);
-        modeCounts.add(AudioSession::Mode::VideoChat);
+    for (Ref proxy : m_proxies) {
+        if (proxy->identifier() == identifier)
+            return proxy;
     }
+    return nullptr;
+}
 
-    for (Ref otherProxy : m_proxies) {
-        categoryCounts.add(otherProxy->category());
-        modeCounts.add(otherProxy->mode());
-        policyCounts.add(otherProxy->routeSharingPolicy());
-    }
-
-    AudioSession::CategoryType category = AudioSession::CategoryType::None;
-    if (categoryCounts.contains(AudioSession::CategoryType::PlayAndRecord))
-        category = AudioSession::CategoryType::PlayAndRecord;
-    else if (categoryCounts.contains(AudioSession::CategoryType::RecordAudio))
-        category = AudioSession::CategoryType::RecordAudio;
-    else if (categoryCounts.contains(AudioSession::CategoryType::MediaPlayback))
-        category = AudioSession::CategoryType::MediaPlayback;
-    else if (categoryCounts.contains(AudioSession::CategoryType::SoloAmbientSound))
-        category = AudioSession::CategoryType::SoloAmbientSound;
-    else if (categoryCounts.contains(AudioSession::CategoryType::AmbientSound))
-        category = AudioSession::CategoryType::AmbientSound;
-    else if (categoryCounts.contains(AudioSession::CategoryType::AudioProcessing))
-        category = AudioSession::CategoryType::AudioProcessing;
-
-    AudioSession::Mode mode = AudioSession::Mode::Default;
-    if (modeCounts.contains(AudioSession::Mode::MoviePlayback))
-        mode = AudioSession::Mode::MoviePlayback;
-    else if (modeCounts.contains(AudioSession::Mode::VideoChat))
-        mode = AudioSession::Mode::VideoChat;
-
-    RouteSharingPolicy policy = RouteSharingPolicy::Default;
-    if (policyCounts.contains(RouteSharingPolicy::LongFormVideo))
-        policy = RouteSharingPolicy::LongFormVideo;
-    else if (policyCounts.contains(RouteSharingPolicy::LongFormAudio))
-        policy = RouteSharingPolicy::LongFormAudio;
-    else if (policyCounts.contains(RouteSharingPolicy::Independent))
-        ASSERT_NOT_REACHED();
-
-#if !HAVE(AVSYSTEMROUTING_FRAMEWORK)
-    if (isCapturePreviewActive())
-        policy = RouteSharingPolicy::Default;
-#endif
-
+void RemoteAudioSessionProxyManager::setSessionCategory(AudioSessionCategory category, AudioSessionMode mode, RouteSharingPolicy policy)
+{
     AudioSession::singleton().setCategory(category, mode, policy);
 }
 
-void RemoteAudioSessionProxyManager::updatePreferredBufferSizeForProcess()
+void RemoteAudioSessionProxyManager::setSessionPreferredBufferSize(uint64_t preferredBufferSize)
 {
-    size_t preferredBufferSize = std::numeric_limits<size_t>::max();
-    for (auto& proxy : m_proxies) {
-        if (proxy.preferredBufferSize() && proxy.preferredBufferSize() < preferredBufferSize)
-            preferredBufferSize = proxy.preferredBufferSize();
-    }
-
-    if (preferredBufferSize != std::numeric_limits<size_t>::max())
-        AudioSession::singleton().setPreferredBufferSize(preferredBufferSize);
+    AudioSession::singleton().setPreferredBufferSize(preferredBufferSize);
 }
 
-void RemoteAudioSessionProxyManager::updateSpatialExperience()
+void RemoteAudioSessionProxyManager::setSessionIsPlayingToBluetoothOverride(bool hasValue, bool value)
+{
+    AudioSession::singleton().setIsPlayingToBluetoothOverride(hasValue ? std::optional<bool> { value } : std::nullopt);
+}
+
+void RemoteAudioSessionProxyManager::setSessionSpatialExperience(uint64_t proxyIdentifier, AudioSessionSoundStageSize soundStageSize)
 {
     String sceneIdentifier;
-    std::optional<AudioSession::SoundStageSize> maxSize;
-    for (Ref proxy : m_proxies) {
-        if (!proxy->isActive())
-            continue;
-
-        if (!maxSize || proxy->soundStageSize() > *maxSize) {
-            maxSize = proxy->soundStageSize();
-            sceneIdentifier = proxy->sceneIdentifier();
-        }
-    }
-
+    if (RefPtr proxy = proxyIdentifier ? protect(GPUProcess::singleton().audioSessionManager())->proxy(proxyIdentifier) : nullptr)
+        sceneIdentifier = proxy->sceneIdentifier();
     AudioSession::singleton().setSceneIdentifier(sceneIdentifier);
-    AudioSession::singleton().setSoundStageSize(maxSize.value_or(AudioSession::SoundStageSize::Automatic));
+    AudioSession::singleton().setSoundStageSize(soundStageSize);
 }
 
-bool RemoteAudioSessionProxyManager::hasOtherActiveProxyThan(RemoteAudioSessionProxy& proxyToExclude)
+void RemoteAudioSessionProxyManager::beginProxyInterruption(uint64_t proxyIdentifier)
 {
-    for (auto& proxy : m_proxies) {
-        if (proxy.isActive() && &proxy != &proxyToExclude)
-            return true;
-    }
-    return false;
+    if (RefPtr proxy = protect(GPUProcess::singleton().audioSessionManager())->proxy(proxyIdentifier))
+        proxy->beginInterruption();
 }
 
-#if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
-bool RemoteAudioSessionProxyManager::hasActiveProxy()
+void RemoteAudioSessionProxyManager::endProxyInterruption(uint64_t proxyIdentifier, bool mayResume)
 {
-    for (auto& proxy : m_proxies) {
-        if (proxy.isActive())
-            return true;
-    }
-    return false;
-}
-#endif
-
-bool RemoteAudioSessionProxyManager::hasActiveNotInterruptedProxy()
-{
-    for (auto& proxy : m_proxies) {
-        if (proxy.isActive() && !proxy.isInterrupted())
-            return true;
-    }
-    return false;
+    if (RefPtr proxy = protect(GPUProcess::singleton().audioSessionManager())->proxy(proxyIdentifier))
+        proxy->endInterruption(mayResume ? AudioSession::MayResume::Yes : AudioSession::MayResume::No);
 }
 
 #if PLATFORM(IOS_FAMILY)
@@ -235,59 +160,27 @@ Ref<AudioSession::SetActivePromise> RemoteAudioSessionProxyManager::tryToSetActi
 {
     ASSERT(m_proxies.contains(proxy));
 
-    if (!active) {
-        if (isCapturePreviewActive() || hasOtherActiveProxyThan(proxy)) {
-            // This proxy wants to de-activate, but other proxies or a capture preview
-            // are still active. No-op, and return deactivation was successful.
-            return AudioSession::SetActivePromise::createAndResolve();
-        }
+#if PLATFORM(IOS_FAMILY)
+    if (active)
+        providePresentingApplicationPID(proxy);
+#endif
 
-        // This proxy wants to de-activate, and is the last remaining active
-        // proxy. Deactivate the session, and return whether that deactivation
-        // was sucessful.
+    switch (swiftActivation(proxy.identifier(), active)) {
+    case RemoteAudioSessionActivation::None:
+        return AudioSession::SetActivePromise::createAndResolve();
+    case RemoteAudioSessionActivation::Activate:
+        return AudioSession::singleton().tryToSetActive(true);
+    case RemoteAudioSessionActivation::Deactivate:
         return AudioSession::singleton().tryToSetActive(false);
     }
-
-#if PLATFORM(IOS_FAMILY)
-    providePresentingApplicationPID(proxy);
-#endif
-
-    if (!hasActiveNotInterruptedProxy()) {
-        // This proxy and only this proxy wants to become active. Activate
-        // the session, and return whether that activation was successful.
-        return AudioSession::singleton().tryToSetActive(active);
-    }
-
-    // If this proxy is Ambient, and the session is already active, this
-    // proxy will mix with the active proxies. No-op, and return activation
-    // was sucessful.
-    if (categoryCanMixWithOthers(proxy.category()))
-        return AudioSession::SetActivePromise::createAndResolve();
-
-#if PLATFORM(IOS_FAMILY)
-    // Otherwise, this proxy wants to become active, but there are other
-    // proxies who are already active. Walk over the proxies, and interrupt
-    // those proxies whose categories indicate they cannot mix with others.
-    for (Ref otherProxy : m_proxies) {
-        if (otherProxy->processIdentifier() == proxy.processIdentifier())
-            continue;
-
-        if (!otherProxy->isActive())
-            continue;
-
-        if (categoryCanMixWithOthers(otherProxy->category()))
-            continue;
-
-        otherProxy->beginInterruption();
-    }
-#endif
+    ASSERT_NOT_REACHED();
     return AudioSession::SetActivePromise::createAndResolve();
 }
 
 #if PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)
 void RemoteAudioSessionProxyManager::beginCapturePreview(CompletionHandler<void()>&& completionHandler)
 {
-    if (m_capturePreviewActive) {
+    if (isCapturePreviewActive()) {
         if (!m_capturePreviewActivationHandlers.isEmpty()) {
             m_capturePreviewActivationHandlers.append(WTF::move(completionHandler));
             return;
@@ -295,8 +188,7 @@ void RemoteAudioSessionProxyManager::beginCapturePreview(CompletionHandler<void(
         return completionHandler();
     }
 
-    m_capturePreviewActive = true;
-    updateCategory();
+    setCapturePreviewActive(true);
 
     m_capturePreviewActivationHandlers.append(WTF::move(completionHandler));
     unsigned activation = ++m_capturePreviewActivationCount;
@@ -314,16 +206,14 @@ void RemoteAudioSessionProxyManager::beginCapturePreview(CompletionHandler<void(
 
 void RemoteAudioSessionProxyManager::endCapturePreview()
 {
-    if (!m_capturePreviewActive)
+    if (!isCapturePreviewActive())
         return;
-
-    m_capturePreviewActive = false;
 
     // An activation still in flight must not run these later, so run them now.
     ++m_capturePreviewActivationCount;
     auto activationHandlers = std::exchange(m_capturePreviewActivationHandlers, { });
 
-    updateCategory();
+    setCapturePreviewActive(false);
 
     if (!hasActiveProxy())
         AudioSession::singleton().tryToSetActive(false)->whenSettled(RunLoop::mainSingleton(), [](auto&&) { });
@@ -383,18 +273,12 @@ void RemoteAudioSessionProxyManager::endInterruptionRemote(AudioSession::MayResu
 
 void RemoteAudioSessionProxyManager::beginAudioSessionInterruption()
 {
-    m_proxies.forEach([](auto& proxy) {
-        if (proxy.isActive())
-            proxy.beginInterruption();
-    });
+    swiftBeginAudioSessionInterruption();
 }
 
 void RemoteAudioSessionProxyManager::endAudioSessionInterruption(AudioSession::MayResume mayResume)
 {
-    m_proxies.forEach([mayResume](auto& proxy) {
-        if (proxy.isActive())
-            proxy.endInterruption(mayResume);
-    });
+    swiftEndAudioSessionInterruption(mayResume == AudioSession::MayResume::Yes);
 }
 
 void RemoteAudioSessionProxyManager::hardwareMutedStateDidChange(const AudioSession& session)

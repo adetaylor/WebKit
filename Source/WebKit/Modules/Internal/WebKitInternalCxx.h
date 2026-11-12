@@ -71,6 +71,12 @@
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
+#include "RemoteAudioSessionProxy.h"
+#include "RemoteAudioSessionProxyManager.h"
+#include "RemoteAudioSessionProxyMessages.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 #include "RemoteAudioVideoRendererProxyManager.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
