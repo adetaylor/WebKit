@@ -1885,7 +1885,7 @@ String channelLayoutDescription(UInt32 channelLayoutTag)
     SUPPRESS_RETAINPTR_CTOR_ADOPT return adoptCF(channelLayoutName).get(); // The caller is responsible for releasing the returned string.
 }
 
-RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer, CMVideoFormatDescriptionRef videoFormat)
+RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer NOESCAPE, CMVideoFormatDescriptionRef videoFormat)
 {
     // This is an out-parameter which is immediately adopted below.
     SUPPRESS_UNRETAINED_LOCAL CMBlockBufferRef newVlockBuffer;

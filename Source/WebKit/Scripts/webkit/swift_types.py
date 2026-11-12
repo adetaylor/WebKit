@@ -82,6 +82,7 @@ _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
 # copies nothing. Ref<T> and RefPtr<T> of them map to T and T?.
 _CXX_DECODED_TYPES = {
     'WebCore::SharedBuffer': ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer'),
+    'WebCore::VideoInfo': ('WebCore.VideoInfo', 'IPCCoding.CxxDecoded.VideoInfo'),
 }
 
 

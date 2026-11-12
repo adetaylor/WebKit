@@ -466,6 +466,20 @@ enum IPCCoding {
                 encoder.encodeSharedBuffer(value)
             }
         }
+
+        /// WebCore::VideoInfo.
+        enum VideoInfo: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCore.VideoInfo {
+                guard let info = decoder.decodeVideoInfo() else {
+                    throw IPCDecodingError()
+                }
+                return info
+            }
+
+            static func encode(_ value: WebCore.VideoInfo, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeVideoInfo(value)
+            }
+        }
     }
 
     /// Markable<T>, whose flag is set when the value is absent.

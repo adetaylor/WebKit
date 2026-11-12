@@ -255,17 +255,15 @@ extension WebKit.LibWebRTCCodecsProxy {
     func setDecoderFormatDescription(
         connection: IPC.Connection,
         id: IPCTypes.VideoDecoderIdentifier,
-        description: [UInt8],
-        videoInfo: CxxDecodedArguments.LibWebRTCCodecsProxy.SetDecoderFormatDescriptionVideoInfo,
+        description: IPC.LentBytes,
+        videoInfo: WebCore.VideoInfo?,
         width: UInt16,
         height: UInt16
     ) {
         guard let decoder = state.decoders[id] else {
             return
         }
-        let description = sliceForCxx(description)
-        decoder.platform.setVideoInfo(videoInfo)
-        decoder.platform.setFormat(description.span, width, height)
+        decoder.platform.setFormat(description, width, height, videoInfo)
     }
 
     func setDecoderColorSpaceOverride(
@@ -280,16 +278,14 @@ extension WebKit.LibWebRTCCodecsProxy {
         connection: IPC.Connection,
         id: IPCTypes.VideoDecoderIdentifier,
         timeStamp: Int64,
-        data: [UInt8],
-        videoInfo: CxxDecodedArguments.LibWebRTCCodecsProxy.DecodeFrameVideoInfo,
+        data: IPC.LentBytes,
+        videoInfo: WebCore.VideoInfo?,
         reply: consuming LibWebRTCCodecsProxyDecodeFrameReply
     ) {
         guard let decoder = state.decoders[id] else {
             return
         }
-        let data = sliceForCxx(data)
-        decoder.platform.setVideoInfo(videoInfo)
-        guard decoder.platform.decodeFrame(timeStamp, data.span) else {
+        guard decoder.platform.decodeFrame(timeStamp, data, videoInfo) else {
             reply.send(false)
             return
         }
@@ -443,13 +439,6 @@ extension WebKit.LibWebRTCCodecsProxy {
     func setRTCLoggingLevel(connection: IPC.Connection, level: IPCTypes.WTFLogLevel) {
         WebKit.LibWebRTCCodecsProxy.setRTCLoggingLevel(level.rawValue)
     }
-}
-
-// A Span with a null base traps on its way to C++, so an empty one is a slice of this.
-private let emptyBytes: [UInt8] = [0]
-
-private func sliceForCxx(_ bytes: [UInt8]) -> ArraySlice<UInt8> {
-    bytes.isEmpty ? emptyBytes[0..<0] : bytes[...]
 }
 
 #endif

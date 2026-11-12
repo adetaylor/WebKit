@@ -78,7 +78,6 @@ using ColorSpaceOverrideArgument = IPC::CxxDecodedArgument<std::optional<WebCore
 using EncoderParametersArgument = IPC::CxxDecodedArgument<Vector<std::pair<String, String>>>;
 using SharedVideoFrameArgument = IPC::CxxDecodedArgument<SharedVideoFrame>;
 using VideoFrameRotationArgument = IPC::CxxDecodedArgument<WebCore::VideoFrameRotation>;
-using VideoInfoArgument = IPC::CxxDecodedArgument<RefPtr<WebCore::VideoInfo>>;
 
 // The receiver of the web process's video decoder and encoder messages, which run on the codecs queue. Swift handles
 // them (LibWebRTCCodecsProxy.swift), keeping the decoders and encoders in the Swift state that m_swiftState holds; this
@@ -145,12 +144,10 @@ public:
     ~LibWebRTCCodecsProxyDecoder();
 
     void flush();
-    // Sets the video info of the next setFormat() or decodeFrame(), which takes it.
-    void setVideoInfo(VideoInfoArgument&);
-    void setFormat(std::span<const uint8_t> description NOESCAPE, uint16_t width, uint16_t height);
+    void setFormat(const IPC::LentBytes& description NOESCAPE, uint16_t width, uint16_t height, WebCore::VideoInfo* WTF_NULLABLE);
     void setColorSpaceOverride(ColorSpaceOverrideArgument&);
     // Returns false, having told the web process, if the decoder failed to take the frame.
-    [[nodiscard]] bool decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE);
+    [[nodiscard]] bool decodeFrame(int64_t timeStamp, const IPC::LentBytes& data NOESCAPE, WebCore::VideoInfo* WTF_NULLABLE);
     void setFrameSize(uint16_t width, uint16_t height);
 
 private:
@@ -160,7 +157,6 @@ private:
     const VideoDecoderIdentifier m_identifier;
     const std::unique_ptr<WebCore::GPUVideoDecoder> m_decoder;
     const std::unique_ptr<WebCore::FrameRateMonitor> m_frameRateMonitor;
-    std::optional<RefPtr<WebCore::VideoInfo>> m_videoInfo;
 };
 
 // An encoder of LibWebRTCCodecsProxy.swift. What it encodes goes to the web process, and each result goes to the callback

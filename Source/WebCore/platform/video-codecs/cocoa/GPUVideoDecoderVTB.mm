@@ -148,7 +148,7 @@ static VideoDecoderVTBSession::CallbackMultiImage createMultiImageCallback(GPUVi
     });
 }
 
-int32_t GPUVideoDecoderVTB::decodeFrameInternal(int64_t timeStamp, std::span<const uint8_t> data)
+int32_t GPUVideoDecoderVTB::decodeFrameInternal(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE)
 {
     assertIsCurrent(queue());
 
@@ -218,7 +218,7 @@ void GPUVideoDecoderVTB::flush()
         queue->flush(m_callback.get());
 }
 
-void GPUVideoDecoderVTB::setFormat(std::span<const uint8_t>, uint16_t width, uint16_t height, RefPtr<VideoInfo>&& videoInfo)
+void GPUVideoDecoderVTB::setFormat(NOESCAPE std::span<const uint8_t>, uint16_t width, uint16_t height, RefPtr<VideoInfo>&& videoInfo)
 {
     assertIsCurrent(queue());
 
@@ -228,7 +228,7 @@ void GPUVideoDecoderVTB::setFormat(std::span<const uint8_t>, uint16_t width, uin
         setVideoInfo(videoInfo.releaseNonNull());
 }
 
-int32_t GPUVideoDecoderVTB::decodeFrame(int64_t timeStamp, std::span<const uint8_t> data, RefPtr<VideoInfo>&& videoInfo)
+int32_t GPUVideoDecoderVTB::decodeFrame(int64_t timeStamp, std::span<const uint8_t> data NOESCAPE, RefPtr<VideoInfo>&& videoInfo)
 {
     assertIsCurrent(queue());
 

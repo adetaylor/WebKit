@@ -31,6 +31,7 @@
 #include "StreamConnectionEncoder.h"
 #include "StreamServerConnection.h"
 #include <WebCore/SharedBuffer.h>
+#include <WebCore/TrackInfo.h>
 #include <concepts>
 #include <type_traits>
 #include <wtf/EscapableByteSpan.h>
@@ -234,6 +235,7 @@ public:
     // Decodes a C++-decoded value (IPCCoding.CxxDecoded in Swift) with its own ArgumentCoder. Returns null if
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
+    WebCore::VideoInfo* WTF_NULLABLE decodeVideoInfo() SWIFT_RETURNS_RETAINED;
 
 #if OS(DARWIN)
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
@@ -477,6 +479,7 @@ public:
 
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
+    void encodeVideoInfo(const WebCore::VideoInfo&);
 
 #if OS(DARWIN)
     // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up

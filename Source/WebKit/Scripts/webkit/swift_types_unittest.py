@@ -59,6 +59,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('Vector<std::pair<Ref<WebCore::SharedBuffer>, WebCore::CDMKeyStatus>>', ('[(WebCore.SharedBuffer, IPCTypes.CDMKeyStatus)]', 'IPCCoding.Vector<IPCCoding.Pair<IPCCoding.CxxDecoded.SharedBuffer, IPCTypes.CxxName.WebCore_CDMKeyStatus>>')),
             ('Ref<WebCore::SharedBuffer>', ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer')),
             ('RefPtr<WebCore::SharedBuffer>', ('WebCore.SharedBuffer?', 'IPCCoding.StdOptional<IPCCoding.CxxDecoded.SharedBuffer>')),
+            ('RefPtr<WebCore::VideoInfo>', ('WebCore.VideoInfo?', 'IPCCoding.StdOptional<IPCCoding.CxxDecoded.VideoInfo>')),
             ('std::optional<std::pair<WebCore::CDMMessageType, Ref<WebCore::SharedBuffer>>>', ('(IPCTypes.CDMMessageType, WebCore.SharedBuffer)?', 'IPCCoding.StdOptional<IPCCoding.Pair<IPCTypes.CxxName.WebCore_CDMMessageType, IPCCoding.CxxDecoded.SharedBuffer>>')),
             ('MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),
             ('WTF::MachSendRight', ('IPCTypes.MachSendRight', 'IPCTypes.MachSendRight')),

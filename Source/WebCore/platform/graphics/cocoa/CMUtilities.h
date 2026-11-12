@@ -128,7 +128,7 @@ Vector<AudioStreamPacketDescription> getPacketDescriptions(CMSampleBufferRef);
 // empty Vector on failure or if the buffer carries no timing entries.
 Vector<CMSampleTimingInfo> getSampleTimingInfoArray(CMSampleBufferRef);
 
-RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t>, CMVideoFormatDescriptionRef);
+RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer NOESCAPE, CMVideoFormatDescriptionRef);
 
 // Iterate over each sub-sample contained in a CMSampleBufferRef.
 // Transparently handles the kCMSampleBufferError_BufferHasNoSampleSizes shape
