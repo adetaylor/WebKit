@@ -41,6 +41,17 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/WTFString.h>
 
+#if PLATFORM(COCOA)
+#include <CoreGraphics/CoreGraphics.h>
+#include <WebCore/ColorSpace.h>
+#include <wtf/RetainPtr.h>
+#include <wtf/cf/VectorCF.h>
+#include <wtf/text/StringHash.h>
+#if ENABLE(IPC_TESTING_SWIFT)
+#include "SwiftCoding.h"
+#endif
+#endif
+
 namespace WebKit {
 
 // Types that IPCTester sends to IPCTesterReceiver to check that its Swift receiver decodes and
@@ -226,6 +237,31 @@ inline String ipcTesterDescription(IPCTesterColor color, OptionSet<IPCTesterFlag
     builder.append(" flag="_s, flag ? "true"_s : "false"_s);
     return builder.toString();
 }
+
+#if PLATFORM(COCOA)
+// What CoreGraphics knows of a color space, which IPCTesterReceiver replies for a ColorSpace decoded in C++ and in Swift, so
+// that a test can check that both make alike color spaces of the same bytes, and reject the same bytes.
+inline String ipcTesterDescription(CGColorSpaceRef WTF_NONNULL colorSpace)
+{
+    RetainPtr<CFStringRef> name = CGColorSpaceGetName(colorSpace);
+    auto iccData = adoptCF(CGColorSpaceCopyICCData(colorSpace));
+    auto iccBytes = iccData ? span(iccData.get()) : std::span<const uint8_t> { };
+    return makeString("model="_s, static_cast<int>(CGColorSpaceGetModel(colorSpace)), " components="_s, CGColorSpaceGetNumberOfComponents(colorSpace),
+        " name="_s, name ? String(name.get()) : "none"_s, " icc="_s, iccData ? static_cast<int64_t>(iccBytes.size()) : -1,
+        " iccHash="_s, StringHasher::computeHashAndMaskTop8Bits(iccBytes), " extended="_s, CGColorSpaceUsesExtendedRange(colorSpace),
+        " wideGamut="_s, CGColorSpaceIsWideGamutRGB(colorSpace));
+}
+
+#if ENABLE(IPC_TESTING_SWIFT)
+// The CGColorSpace of a ColorSpace that C++ decoded for IPCTesterReceiver's Swift receiver.
+inline CGColorSpaceRef WTF_NONNULL ipcTesterCxxDecodedColorSpace(IPC::CxxDecodedArgument<WebCore::ColorSpace>& colorSpaceArgument) CF_RETURNS_RETAINED
+{
+    auto colorSpace = colorSpaceArgument.take();
+    RELEASE_ASSERT(colorSpace);
+    return RetainPtr { colorSpace->platformColorSpace() }.leakRef();
+}
+#endif
+#endif
 
 } // namespace WebKit
 

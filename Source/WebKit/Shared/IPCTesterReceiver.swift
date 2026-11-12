@@ -25,6 +25,9 @@
 
 import WebKit_Internal
 import wtf
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 // Proxy interface to test IPC activities related to receiving messages in Swift.
 @_expose(Cxx)
@@ -195,6 +198,32 @@ final class IPCTesterReceiver {
     ) -> (roundTripped: WebCore.SharedBuffer?, size: UInt64) {
         (buffer, UInt64(buffer?.size() ?? 0))
     }
+
+    #if WTF_PLATFORM_COCOA
+    // A ColorSpace decoded in Swift and in C++ must make alike color spaces of the same bytes.
+
+    @MainActor
+    func describeColorSpaceSwift(connection: IPC.Connection, colorSpace: IPCTypes.ColorSpace) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterDescription(colorSpace.cgColorSpace))
+    }
+
+    @MainActor
+    func describeCxxDecodedColorSpaceSwift(
+        connection: IPC.Connection,
+        colorSpace: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedColorSpaceSwiftColorSpace
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterDescription(WebKit.ipcTesterCxxDecodedColorSpace(colorSpace)))
+    }
+
+    @MainActor
+    func compareColorSpacesSwift(
+        connection: IPC.Connection,
+        colorSpace: IPCTypes.ColorSpace,
+        cxxDecodedColorSpace: CxxDecodedArguments.IPCTesterReceiver.CompareColorSpacesSwiftCxxDecodedColorSpace
+    ) -> Bool {
+        colorSpace.cgColorSpace == WebKit.ipcTesterCxxDecodedColorSpace(cxxDecodedColorSpace)
+    }
+    #endif
 
     @MainActor
     func halveEvenNumberSyncHandlerSwift(connection: IPC.Connection, value: UInt32) throws(InvalidMessage) -> UInt32 {

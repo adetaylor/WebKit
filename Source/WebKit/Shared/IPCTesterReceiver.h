@@ -76,6 +76,11 @@ private:
     void transformPayloadSyncHandlerSwift(const IPCTesterPayload&, CompletionHandler<void(IPCTesterPayload&&)>&&);
     void recordSyncHandlerSwift(const String&);
     void swapPairsSwift(const Vector<std::pair<String, uint32_t>>&, CompletionHandler<void(Vector<std::pair<uint32_t, String>>&&)>&&);
+#if PLATFORM(COCOA)
+    void describeColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
+    void compareColorSpacesSwift(const WebCore::ColorSpace&, const WebCore::ColorSpace&, CompletionHandler<void(bool)>&&);
+#endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
 

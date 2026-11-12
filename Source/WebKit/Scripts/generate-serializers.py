@@ -2473,13 +2473,13 @@ def swift_type_names(serialized_types, serialized_enums, using_statements):
         add(swift_identifier_name, cpp_identifier, 'identifier')
     for enum in serialized_enums:
         if enum.is_swift():
-            add(enum.name, enum.namespace_and_name(), 'option_set' if enum.is_option_set() else 'enum')
+            add(swift_types.swift_form_name(enum.namespace_and_name()), enum.namespace_and_name(), 'option_set' if enum.is_option_set() else 'enum')
     for type in serialized_types:
         if type.swift:
-            add(type.name, type.namespace_and_name(), 'ref_counted' if type.return_ref else 'struct')
+            add(swift_types.swift_form_name(type.namespace_and_name()), type.namespace_and_name(), 'ref_counted' if type.return_ref else 'struct')
     for using_statement in using_statements:
         if using_statement.is_swift():
-            add(using_statement.name.split('::')[-1], using_statement.name, 'variant')
+            add(swift_types.swift_form_name(using_statement.name), using_statement.name, 'variant')
     return names
 
 
@@ -2488,7 +2488,7 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
     is the C++ type that has that Swift form, and is held as C++ holds it."""
     cpp_type = swift_types.strip_cpp_type_decorations(cpp_type)
     # SwiftCoding.swift defines these, not a .serialization.in file.
-    if swift_types.is_owned_primitive(cpp_type):
+    if swift_types.is_owned_primitive(cpp_type) or swift_types.is_hand_written(cpp_type):
         return
     match = re.fullmatch(r'([A-Za-z_][A-Za-z_0-9:]*)<(.+)>', cpp_type)
     if match:
@@ -2503,7 +2503,7 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
     cpp_name = cpp_type.removeprefix('::')
     if '::' not in cpp_name or cpp_name.startswith(('WTF::', 'std::')):
         return
-    swift_name = cpp_name.rsplit('::', 1)[1]
+    swift_name = swift_types.swift_form_name(cpp_name)
     referenced = swift_names.get(swift_name)
     if referenced is None:
         raise Exception(f'{context}: {cpp_name} has no Swift form. It must be marked [Swift] in a .serialization.in file, or be an ObjectIdentifier whose tag type is a template: of WTF::ObjectIdentifier or WTF::AtomicObjectIdentifier.')
@@ -2662,7 +2662,7 @@ def generate_swift_struct(type, swift_names):
     check_swift_type_attributes(type, context)
     members = swift_members(type, context, swift_names)
     check_swift_names_are_unique([member.name for member in members], context, 'members')
-    name = type.name
+    name = swift_types.swift_form_name(type.namespace_and_name())
     qualified_name = swift_qualified_name(name)
     owned = any(member.owned for member in members)
     check_swift_owned_form(type.namespace_and_name(), owned, context)
@@ -2735,7 +2735,7 @@ def generate_swift_enum(enum):
     numbers = swift_enum_numbers(enum, context)
     cases = [SwiftMember(swift_identifier(case_name), None, None, number) for case_name, number in zip(case_names, numbers)]
 
-    name = enum.name
+    name = swift_types.swift_form_name(enum.namespace_and_name())
     qualified_name = swift_qualified_name(name)
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
@@ -2841,7 +2841,7 @@ def generate_swift_variant(using_statement, swift_names):
     owned = any(case.owned for case in cases)
     check_swift_owned_form(using_statement.name, owned, context)
 
-    name = using_statement.name.split('::')[-1]
+    name = swift_types.swift_form_name(using_statement.name)
     result = []
     result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
     result.append(f'    enum {name}: ' + ('~Copyable, Sendable {' if owned else 'Sendable, Equatable {'))
@@ -2892,9 +2892,9 @@ def generate_swift_cxx_names(identifiers, serialized_types, serialized_enums, us
     """IPCTypes.CxxName, which names the Swift form of each C++ type by the C++ type's qualified name. The message
     generator spells coders this way, so a message naming a C++ type without a Swift form does not compile."""
     types = [(cpp_identifier, swift_identifier_name, None) for swift_identifier_name, cpp_identifier in identifiers]
-    types += [(enum.namespace_and_name(), enum.name, enum.condition) for enum in serialized_enums if enum.is_swift()]
-    types += [(type.namespace_and_name(), type.name, type.condition) for type in serialized_types if type.swift]
-    types += [(using_statement.name, using_statement.name.split('::')[-1], using_statement.condition) for using_statement in using_statements if using_statement.is_swift()]
+    types += [(enum.namespace_and_name(), swift_types.swift_form_name(enum.namespace_and_name()), enum.condition) for enum in serialized_enums if enum.is_swift()]
+    types += [(type.namespace_and_name(), swift_types.swift_form_name(type.namespace_and_name()), type.condition) for type in serialized_types if type.swift]
+    types += [(using_statement.name, swift_types.swift_form_name(using_statement.name), using_statement.condition) for using_statement in using_statements if using_statement.is_swift()]
     if not types:
         return []
 
@@ -2963,7 +2963,7 @@ def swift_enum_value_assertions(enum):
     if not enum.is_swift():
         return []
     result = []
-    result.append(f'static_assert(sizeof(std::underlying_type_t<{enum.namespace_and_name()}>) == sizeof({enum.underlying_type}), "{swift_qualified_name(enum.name)} in GeneratedSerializers.swift has the size of the underlying type in .serialization.in");')
+    result.append(f'static_assert(sizeof(std::underlying_type_t<{enum.namespace_and_name()}>) == sizeof({enum.underlying_type}), "{swift_qualified_name(swift_types.swift_form_name(enum.namespace_and_name()))} in GeneratedSerializers.swift has the size of the underlying type in .serialization.in");')
     for index, valid_value in enumerate(enum.valid_values):
         if valid_value.condition is not None:
             result.append(f'#if {valid_value.condition}')
@@ -2975,7 +2975,7 @@ def swift_enum_value_assertions(enum):
                 assertion = f'{value} == (1ull << {index})'
             else:
                 assertion = f'!{value}' if not index else f'{value} == {index}'
-            result.append(f'static_assert({assertion}, "{swift_qualified_name(enum.name)} in GeneratedSerializers.swift numbers values in .serialization.in order");')
+            result.append(f'static_assert({assertion}, "{swift_qualified_name(swift_types.swift_form_name(enum.namespace_and_name()))} in GeneratedSerializers.swift numbers values in .serialization.in order");')
         if valid_value.condition is not None:
             result.append('#endif')
     return result

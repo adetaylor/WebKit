@@ -80,6 +80,11 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('std::expected<MediaTime, WebCore::PlatformMediaError>', ('Result<IPCTypes.MediaTime, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.Expected<IPCTypes.CxxName.WTF_MediaTime, IPCTypes.CxxName.WebCore_PlatformMediaError>')),
             ('std::expected<void, WebCore::PlatformMediaError>', ('Result<Void, IPCUnexpected<IPCTypes.PlatformMediaError>>', 'IPCCoding.ExpectedVoid<IPCTypes.CxxName.WebCore_PlatformMediaError>')),
             ('std::expected<Vector<String>, uint8_t>', ('Result<[String?], IPCUnexpected<UInt8>>', 'IPCCoding.Expected<IPCCoding.Vector<IPCCoding.WTFString>, UInt8>')),
+            ('WebCore::PathSegment::Data', ('IPCTypes.PathSegmentData', 'IPCTypes.CxxName.WebCore_PathSegment_Data')),
+            ('Vector<WebCore::PathRoundedRect::Strategy>', ('[IPCTypes.PathRoundedRectStrategy]', 'IPCCoding.Vector<IPCTypes.CxxName.WebCore_PathRoundedRect_Strategy>')),
+            ('WebCore::ColorSpace', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
+            ('const WebCore::ColorSpace&', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
+            ('std::optional<WebCore::ColorSpace>', ('IPCTypes.ColorSpace?', 'IPCCoding.StdOptional<IPCTypes.ColorSpace>')),
         ]:
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 
@@ -97,6 +102,16 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
+
+    def test_swift_form_names(self):
+        self.assertEqual(swift_types.swift_form_name('WebCore::FrameIdentifier'), 'FrameIdentifier')
+        self.assertEqual(swift_types.swift_form_name('::WebCore::PathSegment::Data'), 'PathSegmentData')
+
+    def test_hand_written_types(self):
+        self.assertTrue(swift_types.is_hand_written('const WebCore::ColorSpace&'))
+        self.assertTrue(swift_types.is_hand_written('::WebCore::ColorSpace'))
+        self.assertFalse(swift_types.is_hand_written('WebCore::PlatformColorSpace'))
+        self.assertFalse(swift_types.is_owned_type('WebCore::ColorSpace'))
 
     def test_cxx_name(self):
         self.assertEqual(swift_types.swift_cxx_name('WebCore::FrameIdentifier'), 'WebCore_FrameIdentifier')
