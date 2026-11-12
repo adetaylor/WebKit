@@ -839,6 +839,7 @@
 				JavaScriptCore/PropertySlot.cpp,
 				JavaScriptCore/RegularExpression.cpp,
 				JavaScriptCore/StrongBlock.cpp,
+				JavaScriptCore/TemporalBench.cpp,
 				JavaScriptCore/WeakSet.cpp,
 				Misc/TestRunnerTests.cpp,
 				TestRunnerShared/TestFeaturesTests.cpp,
