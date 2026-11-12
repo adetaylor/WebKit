@@ -1,0 +1,116 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver takes and replies with the video frame types as Swift values.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<script src="../resources/ipc.js"></script>
+<body>
+<script>
+const defaultTimeout = 1000;
+
+function addTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_AddSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function removeTester(processTarget, identifier)
+{
+    IPC.sendSyncMessage(processTarget, 0, IPC.messages.IPCTester_RemoveSwiftWorkQueueTester.name, defaultTimeout, [{ type: 'uint64_t', value: identifier }]);
+}
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, defaultTimeout, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+const message = name => IPC.messages[`IPCSwiftWorkQueueTester_${name}`].name;
+
+const mediaTime = [{ type: 'int64_t', value: 1234 }, { type: 'uint32_t', value: 600 }, { type: 'uint8_t', value: 1 }];
+
+// Primaries Bt2020 (6), no transfer, matrix Bt709 (1), full range, chroma location TopLeft (2).
+const colorSpace = [
+    { type: 'bool', value: 1 }, { type: 'uint8_t', value: 6 },
+    { type: 'bool', value: 0 },
+    { type: 'bool', value: 1 }, { type: 'uint8_t', value: 1 },
+    { type: 'bool', value: 1 }, { type: 'bool', value: 1 },
+    { type: 'bool', value: 1 }, { type: 'uint8_t', value: 2 },
+];
+const describedColorSpace = 0x06FF0102;
+
+// Mirrored, rotated right (90), alpha not ignored.
+function sharedVideoFrame(buffer)
+{
+    return [...mediaTime, { type: 'bool', value: 1 }, { type: 'uint16_t', value: 90 }, ...colorSpace, { type: 'bool', value: 0 }, ...buffer];
+}
+
+const buffers = [
+    { name: 'shared memory', arguments: [{ type: 'uint8_t', value: 0 }], kind: 0, value: 0 },
+    { name: 'heap reference', arguments: [{ type: 'uint8_t', value: 1 }, { type: 'uint64_t', value: 77 }, { type: 'uint64_t', value: 3 }], kind: 1, value: 77 + 3 * 2 ** 48 },
+    { name: 'IOSurface', arguments: () => [{ type: 'uint8_t', value: 2 }, { type: 'Semaphore', value: IPC.createSemaphore() }], kind: 2, value: 1 },
+    { name: 'black frame', arguments: [{ type: 'uint8_t', value: 3 }, { type: 'int32_t', value: 640 }, { type: 'int32_t', value: 480 }], kind: 3, value: 640 * 2 ** 32 + 480 },
+];
+
+promise_test(async t => {
+    // The messages only exist where WebKit's IPC testing code is built with Swift, on Cocoa, with the GPU process.
+    if (!window.IPC || !IPC.messages.IPCSwiftWorkQueueTester_DescribeSharedVideoFrameSwift)
+        return;
+
+    let identifier = 6170;
+    for (const processTarget of IPC.processTargets) {
+        ++identifier;
+        addTester(processTarget, identifier);
+        try {
+            for (const buffer of buffers) {
+                const bufferArguments = () => typeof buffer.arguments === 'function' ? buffer.arguments() : buffer.arguments;
+                const described = IPC.sendSyncMessage(processTarget, identifier, message('DescribeSharedVideoFrameSwift'), defaultTimeout, sharedVideoFrame(bufferArguments()));
+                const context = `${buffer.name} frame in ${processTarget}`;
+                assert_equals(described.arguments[0].value, 1234, `time value of a ${context}`);
+                assert_equals(described.arguments[1].value, 600, `time scale of a ${context}`);
+                assert_equals(described.arguments[2].value, 1 | 4 | 8 | 1 << 8, `flags of a ${context}`);
+                assert_equals(described.arguments[3].value, 90, `rotation of a ${context}`);
+                assert_equals(described.arguments[4].value, describedColorSpace, `color space of a ${context}`);
+                assert_equals(described.arguments[5].value, buffer.kind, `buffer kind of a ${context}`);
+                assert_equals(described.arguments[6].value, buffer.value, `buffer of a ${context}`);
+
+                // C++ decodes the frame that Swift encodes. A Swift reply of more than one value can't hold an owned type.
+                const echoed = await IPC.sendWithPromisedReply(processTarget, identifier, message('EchoSharedVideoFrameSwift'), sharedVideoFrame(bufferArguments()));
+                assert_true(echoed.arguments[0] instanceof ArrayBuffer && echoed.arguments[0].byteLength > 0, `echoed ${context}`);
+            }
+
+            const properties = [...mediaTime, { type: 'bool', value: 0 }, { type: 'uint16_t', value: 270 }, { type: 'int32_t', value: 320 }, { type: 'int32_t', value: 240 }, { type: 'uint32_t', value: 875704422 }, ...colorSpace, { type: 'bool', value: 1 }];
+            const described = IPC.sendSyncMessage(processTarget, identifier, message('DescribeVideoFramePropertiesSwift'), defaultTimeout, properties);
+            assert_equals(described.arguments[0].value, 1234, `presentation time of the properties in ${processTarget}`);
+            assert_equals(described.arguments[1].value, 2 | 4 | 8, `flags of the properties in ${processTarget}`);
+            assert_equals(described.arguments[2].value, 270, `rotation of the properties in ${processTarget}`);
+            assert_equals(described.arguments[3].value, 320, `width of the properties in ${processTarget}`);
+            assert_equals(described.arguments[4].value, 240, `height of the properties in ${processTarget}`);
+            assert_equals(described.arguments[5].value, 875704422, `pixel format of the properties in ${processTarget}`);
+            assert_equals(described.arguments[6].value, describedColorSpace, `color space of the properties in ${processTarget}`);
+            const echoed = await IPC.sendWithPromisedReply(processTarget, identifier, message('EchoVideoFramePropertiesSwift'), [...properties, { type: 'uint64_t', value: 4343 }]);
+            assert_true(echoed.arguments[0] instanceof ArrayBuffer && echoed.arguments[0].byteLength > 0, `echoed properties in ${processTarget}`);
+            assert_equals(echoed.arguments[1].value, 4343, `argument after the echoed properties in ${processTarget}`);
+
+            const write = IPC.sendSyncMessage(processTarget, identifier, message('DescribeVideoFrameWriteReferenceSwift'), defaultTimeout, [{ type: 'uint64_t', value: 88 }, { type: 'uint64_t', value: 5 }, { type: 'uint64_t', value: 2 }]);
+            assert_equals(write.arguments[0].value, 88, `write reference identifier in ${processTarget}`);
+            assert_equals(write.arguments[1].value, 5, `write reference version in ${processTarget}`);
+            assert_equals(write.arguments[2].value, 2, `write reference pending reads in ${processTarget}`);
+        } finally {
+            removeTester(processTarget, identifier);
+        }
+    }
+
+    // The UI process, unlike the others, survives invalid messages when the IPC testing API is enabled. Rotations are
+    // their degrees, not their order.
+    ++identifier;
+    addTester('UI', identifier);
+    takeInvalidMessageString();
+    try {
+        assert_throws_js(TypeError, () => IPC.sendSyncMessage('UI', identifier, message('DescribeSharedVideoFrameSwift'), defaultTimeout, [...mediaTime, { type: 'bool', value: 0 }, { type: 'uint16_t', value: 1 }, ...colorSpace, { type: 'bool', value: 0 }, { type: 'uint8_t', value: 0 }]), 'A rotation of 1 is not decoded');
+        assert_not_equals(takeInvalidMessageString(), '', 'A rotation of 1 is marked invalid');
+    } finally {
+        removeTester('UI', identifier);
+    }
+    done();
+}, "A Swift receiver takes and replies with the video frame types as Swift values, in every process.");
+</script>
+</body>

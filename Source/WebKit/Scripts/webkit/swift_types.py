@@ -106,6 +106,8 @@ _OWNED_TYPES = {
 # generate-serializers.py checks that this lists exactly those.
 OWNED_SERIALIZED_TYPES = frozenset([
     'WebKit::ConsumerSharedCARingBufferHandle',
+    'WebKit::SharedVideoFrame',
+    'WebKit::SharedVideoFrame::Buffer',
 ])
 
 # Swift Arrays can't hold ~Copyable elements, so the Vectors of owned types that messages carry have their own ~Copyable

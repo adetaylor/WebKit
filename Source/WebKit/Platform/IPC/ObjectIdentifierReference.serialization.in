@@ -37,13 +37,13 @@ header: "RemoteVideoFrameIdentifier.h"
 };
 
 header: "RemoteVideoFrameIdentifier.h"
-[Alias=class IPC::ObjectIdentifierWriteReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] alias WebKit::RemoteVideoFrameWriteReference {
+[Alias=class IPC::ObjectIdentifierWriteReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] alias WebKit::RemoteVideoFrameWriteReference {
     WebKit::RemoteVideoFrameReference reference();
     uint64_t pendingReads();
 };
 
 header: "RemoteVideoFrameIdentifier.h"
-[Alias=class IPC::ObjectIdentifierReadReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] alias WebKit::RemoteVideoFrameReadReference {
+[Alias=class IPC::ObjectIdentifierReadReference<WebKit::RemoteVideoFrameIdentifier>, AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] alias WebKit::RemoteVideoFrameReadReference {
     WebKit::RemoteVideoFrameReference reference();
 };
 

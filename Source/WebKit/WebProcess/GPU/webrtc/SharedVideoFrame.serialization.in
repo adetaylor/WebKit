@@ -22,9 +22,9 @@
 
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
 
-using WebKit::SharedVideoFrame::Buffer = Variant<std::nullptr_t, WebKit::RemoteVideoFrameReadReference, MachSendRight, WebCore::IntSize>
+[Swift] using WebKit::SharedVideoFrame::Buffer = Variant<std::nullptr_t, WebKit::RemoteVideoFrameReadReference, MachSendRight, WebCore::IntSize>
 
-[RValue] struct WebKit::SharedVideoFrame {
+[RValue, Swift] struct WebKit::SharedVideoFrame {
     MediaTime time;
     bool mirrored;
     WebCore::VideoFrameRotation rotation;
