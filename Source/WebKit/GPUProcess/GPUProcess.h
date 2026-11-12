@@ -54,6 +54,7 @@
 #include <wtf/MemoryPressureHandler.h>
 #include <wtf/MonotonicTime.h>
 #include <wtf/NativePromise.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
 
 #if PLATFORM(MAC)
@@ -101,7 +102,8 @@ struct GPUProcessCreationParameters;
 struct GPUProcessSessionParameters;
 struct SharedPreferencesForWebProcess;
 
-class GPUProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<GPUProcess> {
+// m_swiftState holds the process's Swift state (GPUProcess.swift).
+class SWIFT_PRIVATE_FILEID("WebKit/GPUProcess.swift") GPUProcess final : public AuxiliaryProcess, public ThreadSafeRefCounted<GPUProcess> {
     WTF_MAKE_NONCOPYABLE(GPUProcess);
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(GPUProcess);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(GPUProcess);
@@ -237,6 +239,13 @@ private:
 #endif
 
     GPUProcess();
+
+    // Implemented in Swift.
+    uintptr_t createSwiftState();
+    // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
+    // m_swiftState, for Swift, which can only read it.
+    uintptr_t swiftState() const { return m_swiftState; }
 
     void lowMemoryHandler(Critical, Synchronous);
 
@@ -409,7 +418,9 @@ private:
     bool m_haveEnabledVP9Decoder { false };
     bool m_haveEnabledSWVP9Decoder { false };
 #endif
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

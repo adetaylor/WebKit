@@ -113,9 +113,13 @@ GPUProcess::GPUProcess()
 #if ASSERT_ENABLED && PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     CoreAudioCaptureUnit::allowStarting();
 #endif
+    m_swiftState = createSwiftState();
 }
 
-GPUProcess::~GPUProcess() = default;
+GPUProcess::~GPUProcess()
+{
+    destroySwiftState(std::exchange(m_swiftState, 0));
+}
 
 GPUProcess& GPUProcess::singleton()
 {

@@ -51,6 +51,7 @@
 #include <pal/SessionID.h>
 #include <wtf/Logger.h>
 #include <wtf/MachSendRight.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -137,7 +138,8 @@ class RemoteVideoFrameObjectHeap;
 class RemoteGraphicsContextGLResources;
 #endif
 
-class GPUConnectionToWebProcess
+// m_swiftState holds the connection's Swift state (GPUConnectionToWebProcess.swift).
+class SWIFT_PRIVATE_FILEID("WebKit/GPUConnectionToWebProcess.swift") GPUConnectionToWebProcess
     : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<GPUConnectionToWebProcess, WTF::DestructionThread::Main>
     , public WebCore::NowPlayingManagerClient
     , public IPC::Connection::Client {
@@ -307,6 +309,13 @@ public:
 
 private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
+
+    // Implemented in Swift.
+    uintptr_t createSwiftState();
+    // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
+    // m_swiftState, for Swift, which can only read it.
+    uintptr_t swiftState() const { return m_swiftState; }
 
 #if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     RemoteAudioDestinationManager& remoteAudioDestinationManager();
@@ -496,7 +505,9 @@ private:
     const Ref<IPCTester> m_ipcTester;
 #endif
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

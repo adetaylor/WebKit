@@ -1642,10 +1642,16 @@ list(APPEND WebKit_SOURCES
 )
 
 set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
     PROPERTIES GENERATED TRUE)
 list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/GPUProcess/GPUConnectionToWebProcess.swift
+    ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift

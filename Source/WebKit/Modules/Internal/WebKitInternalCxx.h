@@ -32,6 +32,13 @@
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
 
+#if ENABLE(GPU_PROCESS)
+#include "GPUConnectionToWebProcess.h"
+#include "GPUConnectionToWebProcessMessages.h"
+#include "GPUProcess.h"
+#include "GPUProcessMessages.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeap.h"
 #include "RemoteVideoFrameObjectHeapMessages.h"

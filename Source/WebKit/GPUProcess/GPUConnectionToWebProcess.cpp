@@ -354,6 +354,8 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
 {
     RELEASE_ASSERT(RunLoop::isMain());
 
+    m_swiftState = createSwiftState();
+
     // This must be called before any media playback function is invoked.
     enableMediaPlaybackIfNecessary();
 
@@ -408,6 +410,8 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
     if (m_cdmFactoryProxy)
         m_cdmFactoryProxy->clear();
 #endif
+
+    destroySwiftState(std::exchange(m_swiftState, 0));
 
     --gObjectCountForTesting;
 }

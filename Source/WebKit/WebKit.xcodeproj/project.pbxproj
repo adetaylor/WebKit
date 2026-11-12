@@ -2970,6 +2970,10 @@
 		4DA1AC01D71C47279D83AD97 /* RemoteTextDetectorMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1957C39F74A442097927E79 /* RemoteTextDetectorMessageReceiver.swift */; };
 		7FDE9360F9FB484D854BE3F9 /* RemoteGPU.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E75B780AC2843BF82E220D1 /* RemoteGPU.swift */; };
 		958DB16BF77E484586CBFE6C /* RemoteGPUMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5352BC963EAD4935A4834B0D /* RemoteGPUMessageReceiver.swift */; };
+		96537FFD60364C8189A1BE62 /* GPUConnectionToWebProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */; };
+		D8DBCDC2185A43C0AB73A16F /* GPUProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219C838F24364575BC265172 /* GPUProcess.swift */; };
+		52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */; };
+		CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -9627,6 +9631,10 @@
 		F173385807744571B1A5A553 /* GPUProcessIOSurfaces.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUProcessIOSurfaces.h; sourceTree = "<group>"; };
 		A3C6D325A67448C8832E5720 /* GPUVideoFrameSource.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GPUVideoFrameSource.cpp; sourceTree = "<group>"; };
 		15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoFrameSource.h; sourceTree = "<group>"; };
+		69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcess.swift; sourceTree = "<group>"; };
+		219C838F24364575BC265172 /* GPUProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcess.swift; sourceTree = "<group>"; };
+		DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcessMessageReceiver.swift; sourceTree = "<group>"; };
+		86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcessMessageReceiver.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -12767,9 +12775,11 @@
 				2D9FB20C2375209D0049F936 /* GPUConnectionToWebProcess.cpp */,
 				2D9FB2002375209D0049F936 /* GPUConnectionToWebProcess.h */,
 				2D9FB2092375209D0049F936 /* GPUConnectionToWebProcess.messages.in */,
+				69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */,
 				2D9FB2012375209D0049F936 /* GPUProcess.cpp */,
 				2D9FB2152375209D0049F936 /* GPUProcess.h */,
 				2D9FB2022375209D0049F936 /* GPUProcess.messages.in */,
+				219C838F24364575BC265172 /* GPUProcess.swift */,
 				2D9FB2032375209D0049F936 /* GPUProcessCreationParameters.h */,
 				FAC59A3D2AF9A6BB00FA7AB6 /* GPUProcessCreationParameters.serialization.in */,
 				5ABF2BEC2862353F000DCE74 /* GPUProcessPreferences.cpp */,
@@ -13943,10 +13953,12 @@
 				51AD56812B1A8CF5001A0ECB /* GeneratedWebKitSecureCoding.h */,
 				51AD56832B1AA324001A0ECB /* GeneratedWebKitSecureCoding.mm */,
 				0F5562E627EE28D200953585 /* GPUConnectionToWebProcessMessageReceiver.cpp */,
+				DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */,
 				0F5562E527EE28D200953585 /* GPUConnectionToWebProcessMessages.h */,
 				0F5562E327EE28D100953585 /* GPUProcessConnectionMessageReceiver.cpp */,
 				0F5562EA27EE28D200953585 /* GPUProcessConnectionMessages.h */,
 				0F5562E027EE28D100953585 /* GPUProcessMessageReceiver.cpp */,
+				86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */,
 				0F5562DE27EE28D000953585 /* GPUProcessMessages.h */,
 				0F5562E827EE28D200953585 /* GPUProcessProxyMessageReceiver.cpp */,
 				0F5562E427EE28D100953585 /* GPUProcessProxyMessages.h */,
@@ -22645,6 +22657,10 @@
 				7EB6760501701FB501FB7E05 /* GeneratedSerializersSharedWebGPU.mm in Sources */,
 				ABCC0C21BBF7F90D362ECEB4 /* GeneratedSerializersUIProcess.mm in Sources */,
 				B0447A843DDAFA1CEF0B3F50 /* GeneratedSerializersWebProcess.mm in Sources */,
+				96537FFD60364C8189A1BE62 /* GPUConnectionToWebProcess.swift in Sources */,
+				52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */,
+				D8DBCDC2185A43C0AB73A16F /* GPUProcess.swift in Sources */,
+				CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */,
 				522F792A28D50EC60069B45B /* HidConnection.mm in Sources */,
 				522F792928D50EBB0069B45B /* HidService.mm in Sources */,
 				2749F6442146561B008380BF /* InjectedBundleNodeHandle.cpp in Sources */,

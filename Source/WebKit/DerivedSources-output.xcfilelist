@@ -36,10 +36,12 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/EditableImageControllerMessages.
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/EventDispatcherMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/EventDispatcherMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUConnectionToWebProcessMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUConnectionToWebProcessMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUConnectionToWebProcessMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessConnectionMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessConnectionMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/GPUProcessProxyMessages.h
