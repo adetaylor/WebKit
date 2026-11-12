@@ -1529,7 +1529,7 @@ private func constraintCapabilities(_ capabilities: CaptureCapabilities) -> WebC
     }
 
     private static func createMockDisplay(_ device: CaptureDeviceDescription, _ pageIdentifier: UInt64) -> Result<CaptureSource, CaptureSourceFailure> {
-        let lookup = WebCore.mockDisplayWithPersistentID(captureWTFString(device.persistentID))
+        let lookup = WebCore.mockDisplay(WebCore.mockDeviceHandle(captureWTFString(device.persistentID)))
         guard lookup.found else {
             return .failure(CaptureSourceFailure(message: "Unable to find mock display device with given persistentID", denialReason: CaptureSourceFailure.permissionDenied))
         }

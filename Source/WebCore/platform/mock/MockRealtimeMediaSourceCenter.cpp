@@ -135,11 +135,10 @@ private:
 };
 
 #if PLATFORM(COCOA)
-MockDisplayLookup mockDisplayWithPersistentID(const String& persistentID)
+static const MockMediaDevice* mockDeviceForHandle(uint64_t);
+
+static MockDisplayLookup mockDisplayLookup(const MockMediaDevice* device)
 {
-    if (persistentID.isEmpty())
-        return { };
-    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(persistentID);
     if (!device || !device->isDisplay())
         return { };
 
@@ -149,19 +148,24 @@ MockDisplayLookup mockDisplayWithPersistentID(const String& persistentID)
     return { { { kind, red, green, blue, alpha }, properties.defaultSize.width(), properties.defaultSize.height() }, true };
 }
 
+MockDisplayLookup mockDisplay(uint64_t handle)
+{
+    return mockDisplayLookup(mockDeviceForHandle(handle));
+}
+
 static std::optional<MockDisplayDescription> mockDisplayDescription(const String& persistentID)
 {
-    auto lookup = mockDisplayWithPersistentID(persistentID);
+    auto lookup = mockDisplay(mockDeviceHandle(persistentID));
     ASSERT(lookup.found);
     if (!lookup.found)
         return std::nullopt;
     return lookup.display;
 }
 
-MockCameraDeviceValues mockCameraDeviceValues(const String& persistentID)
+MockCameraDeviceValues mockCameraDeviceValues(uint64_t handle)
 {
     MockCameraDeviceValues values;
-    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(persistentID);
+    auto* device = mockDeviceForHandle(handle);
     if (!device || !device->isCamera())
         return values;
 
@@ -180,28 +184,28 @@ MockCameraDeviceValues mockCameraDeviceValues(const String& persistentID)
     return values;
 }
 
-static std::optional<VideoPresetData> mockCameraPresetData(const String& persistentID, uint32_t presetIndex)
+static const VideoPresetData* mockCameraPresetData(uint64_t handle, uint32_t presetIndex)
 {
-    auto device = MockRealtimeMediaSourceCenter::mockDeviceWithPersistentID(persistentID);
+    auto* device = mockDeviceForHandle(handle);
     if (!device || !device->isCamera())
-        return std::nullopt;
+        return nullptr;
     auto& presets = std::get<MockCameraProperties>(device->properties).presets;
     if (presetIndex >= presets.size())
-        return std::nullopt;
-    return presets[presetIndex];
+        return nullptr;
+    return &presets[presetIndex];
 }
 
-MockCameraPresetValues mockCameraPreset(const String& persistentID, uint32_t presetIndex)
+MockCameraPresetValues mockCameraPreset(uint64_t handle, uint32_t presetIndex)
 {
-    auto preset = mockCameraPresetData(persistentID, presetIndex);
+    auto* preset = mockCameraPresetData(handle, presetIndex);
     if (!preset)
         return { };
     return { preset->minZoom, preset->maxZoom, preset->size.width(), preset->size.height(), static_cast<uint32_t>(preset->frameRateRanges.size()), preset->isEfficient };
 }
 
-MockCameraFrameRateRange mockCameraPresetFrameRateRange(const String& persistentID, uint32_t presetIndex, uint32_t rangeIndex)
+MockCameraFrameRateRange mockCameraPresetFrameRateRange(uint64_t handle, uint32_t presetIndex, uint32_t rangeIndex)
 {
-    auto preset = mockCameraPresetData(persistentID, presetIndex);
+    auto* preset = mockCameraPresetData(handle, presetIndex);
     if (!preset || rangeIndex >= preset->frameRateRanges.size())
         return { };
     return { preset->frameRateRanges[rangeIndex].minimum, preset->frameRateRanges[rangeIndex].maximum };
@@ -288,6 +292,45 @@ static Vector<MockMediaDevice>& devices()
     static NeverDestroyed devices = defaultDevices();
     return devices;
 }
+
+// Changes whenever the devices do, so that a handle from mockDeviceHandle() finds nothing once they have changed.
+static uint32_t& devicesGeneration()
+{
+    static uint32_t generation { 1 };
+    return generation;
+}
+
+static void devicesDidChange()
+{
+    ++devicesGeneration();
+    if (!devicesGeneration())
+        devicesGeneration() = 1;
+}
+
+#if PLATFORM(COCOA)
+uint64_t mockDeviceHandle(const String& persistentID)
+{
+    ASSERT(isMainThread());
+    auto& list = devices();
+    for (size_t index = 0; index < list.size(); ++index) {
+        if (list[index].persistentId == persistentID)
+            return (static_cast<uint64_t>(devicesGeneration()) << 32) | static_cast<uint32_t>(index + 1);
+    }
+    return 0;
+}
+
+static const MockMediaDevice* mockDeviceForHandle(uint64_t handle)
+{
+    ASSERT(isMainThread());
+    if (static_cast<uint32_t>(handle >> 32) != devicesGeneration())
+        return nullptr;
+    auto index = static_cast<uint32_t>(handle);
+    auto& list = devices();
+    if (!index || index > list.size())
+        return nullptr;
+    return &list[index - 1];
+}
+#endif
 
 static HashMap<String, MockMediaDevice>& deviceMap()
 {
@@ -446,6 +489,7 @@ void MockRealtimeMediaSourceCenter::setDevices(Vector<MockMediaDevice>&& newMock
             RealtimeMediaSourceCenter::singleton().captureDeviceWillBeRemoved(persistentId);
     }
     mockDevices = WTF::move(newMockDevices);
+    devicesDidChange();
 
     auto& map = deviceMap();
     map.clear();
@@ -476,6 +520,7 @@ void MockRealtimeMediaSourceCenter::addDevice(const MockMediaDevice& newDevice)
         devices().insert(0, device);
     else
         devices().append(device);
+    devicesDidChange();
     deviceMap().set(device.persistentId, device);
     createMockDevice(device, isDefault);
     RealtimeMediaSourceCenter::singleton().captureDevicesChanged();
@@ -492,6 +537,7 @@ void MockRealtimeMediaSourceCenter::removeDevice(const String& persistentId)
     devices().removeFirstMatching([&persistentId](const auto& device) {
         return device.persistentId == persistentId;
     });
+    devicesDidChange();
 
     deviceListForDevice(iterator->value).removeFirstMatching([&persistentId](const auto& device) {
         return device.persistentId() == persistentId;

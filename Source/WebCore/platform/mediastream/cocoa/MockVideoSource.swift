@@ -742,6 +742,8 @@ final class MockCameraBackend: CaptureSourceBackend {
 
     private let persistentID: Swift.String
     private let device: WebCore.MockCameraDeviceValues
+    // The device's presets when the camera was made, as MockRealtimeVideoSource keeps its device.
+    private let devicePresets: [CapturePreset]
     private let generator: MockVideoGenerator
     private let frameTarget: CaptureSourceFrameTarget
     private let frameMaker: MockCameraFrameMaker
@@ -754,19 +756,29 @@ final class MockCameraBackend: CaptureSourceBackend {
 
     // The mock camera with this persistent ID, or the failure.
     static func create(persistentID: Swift.String) -> Result<MockCameraBackend, CaptureSourceFailure> {
-        let device = WebCore.mockCameraDeviceValues(captureWTFString(persistentID))
+        let handle = WebCore.mockDeviceHandle(captureWTFString(persistentID))
+        let device = WebCore.mockCameraDeviceValues(handle)
         guard device.found else {
             return .failure(CaptureSourceFailure(message: "Unable to find mock camera device with given persistentID", denialReason: CaptureSourceFailure.permissionDenied))
         }
         guard !device.isInvalid else {
             return .failure(CaptureSourceFailure(message: "Invalid mock camera device", denialReason: CaptureSourceFailure.permissionDenied))
         }
-        return .success(MockCameraBackend(persistentID: persistentID, device: device))
+        let presets = (0..<device.presetCount).map { index in
+            let values = WebCore.mockCameraPreset(handle, index)
+            let ranges = (0..<values.frameRateRangeCount).map { rangeIndex in
+                let range = WebCore.mockCameraPresetFrameRateRange(handle, index, rangeIndex)
+                return (minimum: range.minimum, maximum: range.maximum)
+            }
+            return CapturePreset(width: values.width, height: values.height, frameRateRanges: ranges, minZoom: values.minZoom, maxZoom: values.maxZoom, isEfficient: values.isEfficient, formatIndex: nil)
+        }
+        return .success(MockCameraBackend(persistentID: persistentID, device: device, presets: presets))
     }
 
-    private init(persistentID: Swift.String, device: WebCore.MockCameraDeviceValues) {
+    private init(persistentID: Swift.String, device: WebCore.MockCameraDeviceValues, presets: [CapturePreset]) {
         self.persistentID = persistentID
         self.device = device
+        devicePresets = presets
         hasBackgroundBlur = device.hasBackgroundBlur
         let frameTarget = CaptureSourceFrameTarget()
         let frameMaker = MockCameraFrameMaker()
@@ -881,15 +893,7 @@ final class MockCameraBackend: CaptureSourceBackend {
     }
 
     func presets() -> [CapturePreset] {
-        let id = captureWTFString(persistentID)
-        return (0..<device.presetCount).map { index in
-            let values = WebCore.mockCameraPreset(id, index)
-            let ranges = (0..<values.frameRateRangeCount).map { rangeIndex in
-                let range = WebCore.mockCameraPresetFrameRateRange(id, index, rangeIndex)
-                return (minimum: range.minimum, maximum: range.maximum)
-            }
-            return CapturePreset(width: values.width, height: values.height, frameRateRanges: ranges, minZoom: values.minZoom, maxZoom: values.maxZoom, isEfficient: values.isEfficient, formatIndex: nil)
-        }
+        devicePresets
     }
 
     // MockRealtimeVideoSource::applyFrameRateAndZoomWithPreset().

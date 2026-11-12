@@ -72,13 +72,13 @@ struct MockDisplayDescription {
     int32_t height { 0 };
 };
 
-// The mock display with a persistent ID of MockRealtimeMediaSourceCenter's devices, if there is one (implemented by
+// The mock display of a handle from mockDeviceHandle() (MockVideoSourceHandle.h), if it is one (implemented by
 // MockRealtimeMediaSourceCenter.cpp).
 struct MockDisplayLookup {
     MockDisplayDescription display;
     bool found { false };
 };
-MockDisplayLookup mockDisplayWithPersistentID(const String& persistentID);
+MockDisplayLookup mockDisplay(uint64_t deviceHandle);
 
 enum class DisplayCaptureSourceEvent : uint8_t {
     CaptureFailed,
