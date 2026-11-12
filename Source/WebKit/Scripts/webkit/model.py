@@ -189,6 +189,8 @@ class MessageReceiver(object):
             return Exception("ERROR: Message %s takes Swift types, which is not supported %s" % (description, what))
 
         for attribute in (NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE):
+            if attribute == WANTS_DISPATCH_MESSAGE_ATTRIBUTE and self.is_swift_implementation():
+                continue
             if self.has_attribute(attribute):
                 raise unsupported("on a receiver with '%s'" % attribute)
         if message.has_attribute(CALL_WITH_REPLY_ID_ATTRIBUTE):

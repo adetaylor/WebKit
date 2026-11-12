@@ -461,6 +461,24 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendCxxString>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_SendStringAsyncReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementation_SendStringAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_SendString>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_LoadURL:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_LoadURL>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsyncReply:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsyncReply>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendString:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndWantsDispatch_SendString>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_LoadURL:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndWantsDispatch_LoadURL>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage:
+        return jsValueForDecodedMessage<MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithoutReply:
         return jsValueForDecodedMessage<MessageName::TestWithSwiftTypes_MessageWithoutReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithoutParameters:
@@ -748,6 +766,14 @@ std::optional<JSC::JSValue> jsValueForReplyArguments(JSC::JSGlobalObject* global
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SendStringAsync>(globalObject, decoder);
     case MessageName::TestWithSwiftImplementation_SendStringSync:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementation_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync>(globalObject, decoder);
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage:
+        return jsValueForDecodedMessageReply<MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithReply:
         return jsValueForDecodedMessageReply<MessageName::TestWithSwiftTypes_MessageWithReply>(globalObject, decoder);
     case MessageName::TestWithSwiftTypes_MessageWithMultipleReplies:
@@ -1759,6 +1785,42 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "reply"_s, "String"_s },
         };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_LoadURL:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage:
+        return Vector<ArgumentDescription> {
+            { "param"_s, "uint32_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsyncReply:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendString:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_LoadURL:
+        return Vector<ArgumentDescription> {
+            { "url"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage:
+        return Vector<ArgumentDescription> {
+            { "param"_s, "uint32_t"_s },
+        };
     case MessageName::TestWithSwiftTypes_MessageWithoutReply:
         return Vector<ArgumentDescription> {
             { "value"_s, "uint32_t"_s },
@@ -2291,6 +2353,22 @@ std::optional<Vector<ArgumentDescription>> messageReplyArgumentDescriptions(Mess
     case MessageName::TestWithSwiftImplementation_SendStringSync:
         return Vector<ArgumentDescription> {
             { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_SendStringAsync:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "String"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndSuperclass_TestSyncMessage:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_SendStringSync:
+        return Vector<ArgumentDescription> {
+            { "length"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithSwiftImplementationAndWantsDispatch_TestSyncMessage:
+        return Vector<ArgumentDescription> {
+            { "reply"_s, "uint8_t"_s },
         };
     case MessageName::TestWithSwiftTypes_MessageWithReply:
         return Vector<ArgumentDescription> {
