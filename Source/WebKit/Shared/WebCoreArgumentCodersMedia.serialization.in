@@ -288,14 +288,14 @@ header: <WebCore/VideoFrame.h>
 #endif
 
 header: <WebCore/PlatformMediaSessionTypes.h>
-[CustomHeader] enum class WebCore::RouteSharingPolicy : uint8_t {
+[Swift, CustomHeader] enum class WebCore::RouteSharingPolicy : uint8_t {
     Default,
     LongFormAudio,
     Independent,
     LongFormVideo
 };
 
-enum class WebCore::AudioSessionCategory : uint8_t {
+[Swift] enum class WebCore::AudioSessionCategory : uint8_t {
     None,
     AmbientSound,
     SoloAmbientSound,
@@ -305,7 +305,7 @@ enum class WebCore::AudioSessionCategory : uint8_t {
     AudioProcessing,
 };
 
-enum class WebCore::AudioSessionMode : uint8_t {
+[Swift] enum class WebCore::AudioSessionMode : uint8_t {
     Default,
     VideoChat,
     MoviePlayback,
@@ -313,7 +313,7 @@ enum class WebCore::AudioSessionMode : uint8_t {
 
 #if USE(AUDIO_SESSION)
 header: <WebCore/AudioSession.h>
-enum class WebCore::AudioSessionSoundStageSize : uint8_t {
+[Swift] enum class WebCore::AudioSessionSoundStageSize : uint8_t {
     Automatic,
     Small,
     Medium,
