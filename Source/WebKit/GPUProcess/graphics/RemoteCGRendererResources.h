@@ -282,7 +282,7 @@ void setSharedVideoFrameMemory(const RemoteCGRendererResources&, const WebCore::
 // for a pattern of the image buffer the receiver draws into.
 CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources&, RemoteGradientIdentifier, const WebCore::AffineTransform& spaceTransform, bool& found);
 CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found);
-CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found, bool& drawsIntoTarget);
+CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, WebCore::ImageBuffer* _Nullable tileImageBuffer, const WebCore::PatternParameters&, bool& found, bool& drawsIntoTarget);
 
 // The image of a DrawMeshGradient, which MeshGradientRenderer renders for the context's device transform and color space at the
 // destination's size in pixels, which the facts give, and the options GraphicsContext draws it with: found is false for a
@@ -305,12 +305,13 @@ inline uint8_t textDrawingModeValue(WebCore::TextDrawingModeFlags mode)
     return mode.toRaw();
 }
 
-// The image of a cached native image, which is null for an image this process can't read, and of an image buffer, as
-// GraphicsContext draws one (nativeImageForDrawing()), with the color matrix that inverts it where the options do. An
+// The image of a cached native image, which is null for an image this process can't read, and of an image buffer, which
+// the receiver looks up, as GraphicsContext draws one (nativeImageForDrawing()), with the color matrix that inverts it where
+// the options do; a null image buffer isn't found. An
 // accelerated target drawn into itself is drawn from a flushed copy of itself (clonesAcceleratedTarget), which the facts
 // say. Functions, since Swift takes what a C++ method returns as unretained whatever its annotation.
 CGImageRef _Nullable copyNativeImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) CF_RETURNS_RETAINED;
-CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, bool clonesAcceleratedTarget, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::ImageBuffer* _Nullable, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, bool clonesAcceleratedTarget, CGRendererImageFacts&) CF_RETURNS_RETAINED;
 
 } // namespace WebKit
 

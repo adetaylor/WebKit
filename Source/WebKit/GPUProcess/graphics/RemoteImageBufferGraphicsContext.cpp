@@ -309,7 +309,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             m_isSwiftRendererLender = true;
         }
         Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get());
-        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), RemoteCGRendererDisplayLists::forBackend(m_renderingBackend.ptr()));
+        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), m_renderingBackend.ptr());
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
         return;
