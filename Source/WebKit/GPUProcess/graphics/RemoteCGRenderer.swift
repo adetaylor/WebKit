@@ -90,6 +90,8 @@ final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
     private let resources: WebKit.RemoteCGRendererResources
+    // The rendering backend's Swift state, where an image buffer's receiver looks up the image buffers its draws name.
+    private let backendState: RemoteRenderingBackendState?
     private let displayLists: RemoteCGRendererDisplayLists?
     private let snapshotFrames: RemoteCGRendererSnapshotFrames?
     // The recordings being replayed, innermost last, and the transforms that their SetCTMs are relative to.
@@ -97,10 +99,18 @@ final class RemoteCGRenderer {
     private var replayBaseTransforms: [CGAffineTransform] = []
     // How many recordings replayedRecordings has, which a DrawDisplayList reads without an access to the array.
     private var replayDepth = 0
+    // How many recordings are being replayed, including those that replayedRecordings leaves out.
+    private var replayLevel = 0
 
     @_expose(!Cxx)
-    private init(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists?, snapshotFrames: RemoteCGRendererSnapshotFrames?) {
+    private init(
+        resources: WebKit.RemoteCGRendererResources,
+        backendState: RemoteRenderingBackendState?,
+        displayLists: RemoteCGRendererDisplayLists?,
+        snapshotFrames: RemoteCGRendererSnapshotFrames?
+    ) {
         self.resources = resources
+        self.backendState = backendState
         self.displayLists = displayLists
         self.snapshotFrames = snapshotFrames
     }
@@ -110,15 +120,18 @@ final class RemoteCGRenderer {
     @used
     static func createMessageReceiver(
         resources: WebKit.RemoteCGRendererResources,
-        displayLists: RemoteCGRendererDisplayLists
+        backend: WebKit.RemoteRenderingBackend
     ) -> RefRemoteCGRendererMessageForwarder {
-        WebKit.RemoteCGRendererMessageForwarder.create(target: RemoteCGRenderer(resources: resources, displayLists: displayLists, snapshotFrames: nil))
+        let state = backend.state
+        return WebKit.RemoteCGRendererMessageForwarder.create(
+            target: RemoteCGRenderer(resources: resources, backendState: state, displayLists: state.displayLists, snapshotFrames: nil)
+        )
     }
 
     // A receiver that only replays recordings, with the frames of the snapshot that it draws, if any.
     @_expose(!Cxx)
     static func makeReplayer(resources: WebKit.RemoteCGRendererResources, snapshotFrames: RemoteCGRendererSnapshotFrames?) -> RemoteCGRenderer {
-        RemoteCGRenderer(resources: resources, displayLists: nil, snapshotFrames: snapshotFrames)
+        RemoteCGRenderer(resources: resources, backendState: nil, displayLists: nil, snapshotFrames: snapshotFrames)
     }
 
     // GraphicsContext::drawDisplayList(): the recording's messages, with its resources and display lists, and their transforms
@@ -127,19 +140,31 @@ final class RemoteCGRenderer {
     func replay(_ recording: RemoteCGRendererRecording, state: inout CGRendererCore) {
         guard recording.replayNeedsContext else {
             resources.beginReplay(recording.resources)
+            replayLevel += 1
             RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
+            replayLevel -= 1
             resources.endReplay()
             return
         }
         replayedRecordings.append(recording)
         replayBaseTransforms.append(state.receiverCTM())
         replayDepth += 1
+        replayLevel += 1
         resources.beginReplay(recording.resources)
         RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
         resources.endReplay()
+        replayLevel -= 1
         replayDepth -= 1
         replayBaseTransforms.removeLast()
         replayedRecordings.removeLast()
+    }
+
+    // The image buffer that a draw names: one of the backend's, or, in a replay, one that the recording kept.
+    private func imageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) -> WebCore.ImageBuffer? {
+        if replayLevel == 0, let backendState {
+            return backendState.imageBuffer(key: identifier.toUInt64())
+        }
+        return resources.imageBuffer(identifier).get()
     }
 
     func save(state: inout CGRendererCore) {
@@ -423,7 +448,7 @@ final class RemoteCGRenderer {
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageBufferIdentifier, srcRect, options, true, &facts)
+        let image = WebKit.copyImageBufferImage(resources, imageBuffer(imageBufferIdentifier), srcRect, options, true, &facts)
         try messageCheck { facts.found }
         guard let image else {
             return
@@ -462,7 +487,7 @@ final class RemoteCGRenderer {
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageIdentifier, tileRect, options, false, &facts)
+        let image = WebKit.copyImageBufferImage(resources, imageBuffer(imageIdentifier), tileRect, options, false, &facts)
         try messageCheck { facts.found }
         drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
     }
@@ -688,7 +713,7 @@ final class RemoteCGRenderer {
     func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
         var found = false
         var drawsIntoTarget = false
-        let source = WebKit.imageBufferPatternBrush(resources, imageBufferIdentifier, pattern, &found, &drawsIntoTarget)
+        let source = WebKit.imageBufferPatternBrush(resources, imageBuffer(imageBufferIdentifier), pattern, &found, &drawsIntoTarget)
         try messageCheck { found }
         try messageCheck { !drawsIntoTarget }
         state.receiveSetFillSource(source, RemoteCGRendererBrushKind.pattern)
@@ -697,7 +722,7 @@ final class RemoteCGRenderer {
     func setStrokePatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
         var found = false
         var drawsIntoTarget = false
-        let source = WebKit.imageBufferPatternBrush(resources, imageBufferIdentifier, pattern, &found, &drawsIntoTarget)
+        let source = WebKit.imageBufferPatternBrush(resources, imageBuffer(imageBufferIdentifier), pattern, &found, &drawsIntoTarget)
         try messageCheck { found }
         try messageCheck { !drawsIntoTarget }
         state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)

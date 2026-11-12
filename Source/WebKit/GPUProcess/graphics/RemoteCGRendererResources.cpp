@@ -366,11 +366,11 @@ CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, Rendering
     return copyImage(*image, facts);
 }
 
-CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const FloatRect& sourceRect, RasterDrawingOptions options, bool clonesAcceleratedTarget, CGRendererImageFacts& facts)
+CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, ImageBuffer* foundImageBuffer, const FloatRect& sourceRect, RasterDrawingOptions options, bool clonesAcceleratedTarget, CGRendererImageFacts& facts)
 {
     facts = { };
     facts.resolutionScale = 1;
-    RefPtr imageBuffer = resources.imageBuffer(identifier);
+    RefPtr imageBuffer = foundImageBuffer;
     if (!imageBuffer)
         return nullptr;
     facts.found = true;
@@ -413,9 +413,9 @@ CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources& r
     return CGRendererBrushSource { WebCore::Pattern::create({ tileImage.releaseNonNull() }, parameters) };
 }
 
-CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const PatternParameters& parameters, bool& found, bool& drawsIntoTarget)
+CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& resources, ImageBuffer* foundTileImageBuffer, const PatternParameters& parameters, bool& found, bool& drawsIntoTarget)
 {
-    RefPtr tileImageBuffer = resources.imageBuffer(identifier);
+    RefPtr tileImageBuffer = foundTileImageBuffer;
     found = !!tileImageBuffer;
     drawsIntoTarget = tileImageBuffer && tileImageBuffer.get() == resources.targetImageBuffer();
     if (!tileImageBuffer || drawsIntoTarget)
