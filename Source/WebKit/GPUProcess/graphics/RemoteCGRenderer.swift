@@ -740,9 +740,25 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's draws that C++ makes, in a GraphicsContext with the renderer's state (CGRendererLeafContext). A
     // missing resource is an invalid message.
 
+    // GraphicsContext::drawMeshGradient(): the image that C++ renders of the gradient, drawn as a native image.
     func drawMeshGradient(state: inout CGRendererCore, identifier: WebKit.RemoteMeshGradientIdentifier, destination: WebCore.FloatRect) throws(InvalidMessage) {
-        let leaf = state.receiveLeafContext()
-        try messageCheck { WebKit.drawMeshGradient(resources, leaf, identifier, destination) }
+        var facts = CGRendererImageFacts()
+        var options = CGRendererImageOptions()
+        let destinationSize = CGSize(width: CGFloat(destination.width()), height: CGFloat(destination.height()))
+        let image = WebKit.copyMeshGradientImage(
+            resources,
+            identifier,
+            state.receiverDeviceCTM(),
+            state.receiverDestinationColorSpace(),
+            destinationSize,
+            &facts,
+            &options
+        )
+        try messageCheck { facts.found }
+        guard let image else {
+            return
+        }
+        state.receiveDrawNativeImage(image, facts, cgRect(destination), CGRect(x: 0, y: 0, width: CGFloat(facts.width), height: CGFloat(facts.height)), options)
     }
 
     func drawFilteredImageBuffer(

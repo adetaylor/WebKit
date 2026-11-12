@@ -70,52 +70,66 @@ static const ColorSpace& imageColorSpace(const ColorSpace& contextColorSpace)
 #endif
 }
 
+IntSize MeshGradientRenderer::pixelSize(const AffineTransform& deviceTransform, const FloatSize& destination, float& scale)
+{
+    scale = std::max(std::abs(deviceTransform.xScale()), std::abs(deviceTransform.yScale()));
+    return expandedIntSize(destination.scaled(scale));
+}
+
+RefPtr<NativeImage> MeshGradientRenderer::renderedImage(const MeshGradient& gradient, const IntSize& pixelSize, float scale, const ColorSpace& contextColorSpace, NOESCAPE const Function<RefPtr<ImageBuffer>(const IntSize&, const ColorSpace&, PixelFormat)>& createImageBuffer)
+{
+    auto& colorSpace = imageColorSpace(contextColorSpace);
+
+    if (RefPtr image = gradient.renderedImage(pixelSize, scale, colorSpace))
+        return image;
+
+    auto format = renderingFormat(colorSpace);
+    auto bufferSize = PixelBuffer::computeBufferSize(format.pixelFormat, pixelSize);
+    if (bufferSize.hasOverflowed())
+        return nullptr;
+
+    Vector<uint8_t> pixels;
+    if (!pixels.tryGrow(bufferSize.value()))
+        return nullptr;
+
+    if (!render(gradient, { format, PixelBuffer::bytesPerPixel(format.pixelFormat) * pixelSize.width(), pixels.mutableSpan() }, pixelSize, scale))
+        return nullptr;
+
+    auto source = PixelBufferSourceView::create(format, pixelSize, pixels.span());
+    if (!source)
+        return nullptr;
+
+    RefPtr imageBuffer = createImageBuffer(pixelSize, colorSpace, imageBufferPixelFormat(colorSpace));
+    if (!imageBuffer)
+        return nullptr;
+
+    imageBuffer->putPixelBuffer(*source, { { }, pixelSize });
+
+    RefPtr image = ImageBuffer::sinkIntoNativeImage(WTF::move(imageBuffer));
+    if (!image)
+        return nullptr;
+
+    gradient.setRenderedImage(pixelSize, scale, *image);
+    return image;
+}
+
 void MeshGradientRenderer::draw(GraphicsContext& context, const MeshGradient& gradient, const FloatRect& destination)
 {
     if (context.paintingDisabled())
         return;
 
-    auto transform = context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale);
-    float scale = std::max(std::abs(transform.xScale()), std::abs(transform.yScale()));
-
-    auto pixelSize = expandedIntSize(destination.size().scaled(scale));
-    if (pixelSize.isEmpty())
+    float scale;
+    auto size = pixelSize(context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale), destination.size(), scale);
+    if (size.isEmpty())
         return;
 
-    auto& colorSpace = imageColorSpace(context.colorSpace());
+    RefPtr image = renderedImage(gradient, size, scale, context.colorSpace(), [&](const IntSize& imageSize, const ColorSpace& colorSpace, PixelFormat pixelFormat) {
+        return context.createImageBuffer(imageSize, 1, colorSpace, RenderingMode::Unaccelerated, std::nullopt, { pixelFormat });
+    });
+    if (!image)
+        return;
 
-    RefPtr image = gradient.renderedImage(pixelSize, scale, colorSpace);
-    if (!image) {
-        auto format = renderingFormat(colorSpace);
-        auto bufferSize = PixelBuffer::computeBufferSize(format.pixelFormat, pixelSize);
-        if (bufferSize.hasOverflowed())
-            return;
-
-        Vector<uint8_t> pixels;
-        if (!pixels.tryGrow(bufferSize.value()))
-            return;
-
-        if (!render(gradient, { format, PixelBuffer::bytesPerPixel(format.pixelFormat) * pixelSize.width(), pixels.mutableSpan() }, pixelSize, scale))
-            return;
-
-        auto source = PixelBufferSourceView::create(format, pixelSize, pixels.span());
-        if (!source)
-            return;
-
-        RefPtr imageBuffer = context.createImageBuffer(pixelSize, 1, colorSpace, RenderingMode::Unaccelerated, std::nullopt, { imageBufferPixelFormat(colorSpace) });
-        if (!imageBuffer)
-            return;
-
-        imageBuffer->putPixelBuffer(*source, { { }, pixelSize });
-
-        image = ImageBuffer::sinkIntoNativeImage(WTF::move(imageBuffer));
-        if (!image)
-            return;
-
-        gradient.setRenderedImage(pixelSize, scale, *image);
-    }
-
-    context.drawNativeImage(*image, destination, FloatRect { { }, pixelSize });
+    context.drawNativeImage(*image, destination, FloatRect { { }, size });
 }
 
 } // namespace WebCore

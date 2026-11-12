@@ -47,6 +47,7 @@
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/MeshGradient.h>
+#include <WebCore/MeshGradientRendererCPU.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/SVGFilterRenderer.h>
 
@@ -455,13 +456,26 @@ SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() cons
 }
 #endif
 
-bool drawMeshGradient(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, RemoteMeshGradientIdentifier identifier, const FloatRect& destination)
+CGImageRef copyMeshGradientImage(const RemoteCGRendererResources& resources, RemoteMeshGradientIdentifier identifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace& destinationColorSpace, CGSize destinationSize, CGRendererImageFacts& facts, CGRendererImageOptions& options)
 {
+    facts = { };
+    facts.resolutionScale = 1;
+    options = CGRendererImageOptionsFor({ });
     RefPtr gradient = resources.cachedMeshGradient(identifier);
     if (!gradient)
-        return false;
-    leaf.context().drawMeshGradient(*gradient, destination);
-    return true;
+        return nullptr;
+    facts.found = true;
+    float scale;
+    auto pixelSize = MeshGradientRenderer::pixelSize(AffineTransform { deviceTransform }, FloatSize { destinationSize }, scale);
+    if (pixelSize.isEmpty())
+        return nullptr;
+    auto& contextColorSpace = destinationColorSpace.colorSpace() ? *destinationColorSpace.colorSpace() : ColorSpace::SRGB();
+    RefPtr image = MeshGradientRendererCPU { }.renderedImage(*gradient, pixelSize, scale, contextColorSpace, [](const IntSize& size, const ColorSpace& colorSpace, PixelFormat pixelFormat) {
+        return ImageBuffer::create(size, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, colorSpace, ImageBufferFormat { pixelFormat });
+    });
+    if (!image)
+        return nullptr;
+    return copyImage(*image, facts);
 }
 
 static std::optional<SourceImage> sourceImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
