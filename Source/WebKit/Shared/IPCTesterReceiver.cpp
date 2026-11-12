@@ -129,6 +129,23 @@ void IPCTesterReceiver::roundTripBufferSwift(RefPtr<WebCore::SharedBuffer>&& buf
     completionHandler(WTF::move(buffer), size);
 }
 
+#if PLATFORM(COCOA)
+void IPCTesterReceiver::describeColorSpaceSwift(const WebCore::ColorSpace& colorSpace, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(colorSpace.platformColorSpace()));
+}
+
+void IPCTesterReceiver::describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace& colorSpace, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(colorSpace.platformColorSpace()));
+}
+
+void IPCTesterReceiver::compareColorSpacesSwift(const WebCore::ColorSpace& colorSpace, const WebCore::ColorSpace& cxxDecodedColorSpace, CompletionHandler<void(bool)>&& completionHandler)
+{
+    completionHandler(CFEqual(colorSpace.platformColorSpace(), cxxDecodedColorSpace.platformColorSpace()));
+}
+#endif
+
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     halveEvenNumberSwift(connection, value, WTF::move(completionHandler));

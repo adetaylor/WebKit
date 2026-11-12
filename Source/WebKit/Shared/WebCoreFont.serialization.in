@@ -21,14 +21,29 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 header: <WebCore/Font.h>
-[Nested] enum class WebCore::FontOrigin : bool;
-[Nested] enum class WebCore::FontIsInterstitial : bool;
-[Nested] enum class WebCore::FontVisibility : bool;
-[Nested] enum class WebCore::FontIsOrientationFallback : bool;
-[Nested] enum class WebCore::FontIsSmallCapsFace : bool;
+[Nested, Swift] enum class WebCore::FontOrigin : bool {
+    Remote,
+    Local
+};
+[Nested, Swift] enum class WebCore::FontIsInterstitial : bool {
+    No,
+    Yes
+};
+[Nested, Swift] enum class WebCore::FontVisibility : bool {
+    Visible,
+    Invisible
+};
+[Nested, Swift] enum class WebCore::FontIsOrientationFallback : bool {
+    No,
+    Yes
+};
+[Nested, Swift] enum class WebCore::FontIsSmallCapsFace : bool {
+    No,
+    Yes
+};
 
 header: <WebCore/Font.h>
-[CustomHeader] struct WebCore::FontInternalAttributes {
+[Swift, CustomHeader] struct WebCore::FontInternalAttributes {
     std::optional<WebCore::RenderingResourceIdentifier> renderingResourceIdentifier;
     [BitField] WebCore::FontOrigin origin;
     [BitField] WebCore::FontIsInterstitial isInterstitial;

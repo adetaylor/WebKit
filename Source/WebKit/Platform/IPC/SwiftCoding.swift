@@ -34,6 +34,10 @@ import os
 #if canImport(IOSurface)
 import IOSurface
 #endif
+#if canImport(CoreGraphics)
+import CoreGraphics
+import Foundation
+#endif
 
 /// A malformed message argument, which makes C++ mark the message invalid.
 struct IPCDecodingError: Error {}
@@ -1051,5 +1055,173 @@ extension IPCCoding.Vector where Element == UInt8 {
         encoder.encodeUInt8s(value.span)
     }
 }
+
+#if canImport(CoreGraphics)
+extension IPCTypes {
+    /// WebCore::ColorSpace where CoreGraphics draws: its CGColorSpace, made of the CGColorSpaceSerialization that C++
+    /// encodes as CoreIPCCGColorSpace::toCF() makes it, and accepted where ArgumentCoder<WebCore::ColorSpace> accepts it:
+    /// where CoreGraphics makes a color space of it.
+    struct ColorSpace: IPCCoder, Sendable, Equatable {
+        let cgColorSpace: CGColorSpace
+        private let serialization: Serialization
+
+        // WebKit::CGColorSpaceSerialization: a Variant of a WebCore::ColorSpaceName, the name of a CoreGraphics color space,
+        // WebKit::ICCData, and WebKit::IndexedColorSpace, which C++ makes no color space of (CoreIPCCGColorSpace::toCF()
+        // gives CoreGraphics the color space of its table where it takes the table's data), so which is rejected.
+        fileprivate enum Serialization: Sendable, Equatable {
+            case named(UInt8)
+            case name(String?)
+            case iccData([UInt8], ExtendedRangeDerivative)
+
+            // WebKit::ExtendedRangeDerivative.
+            enum ExtendedRangeDerivative: UInt8, Sendable {
+                case none
+                case extendedRange
+                case extendedRangeDisplayReferredDerivative
+                case extendedRangeSceneReferredDerivative
+            }
+
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Serialization {
+                switch try UInt8.decode(from: &decoder) {
+                case 0:
+                    let name = try UInt8.decode(from: &decoder)
+                    guard name < namedColorSpaceCount else {
+                        throw IPCDecodingError()
+                    }
+                    return .named(name)
+                case 1:
+                    guard try Bool.decode(from: &decoder) else {
+                        return .name(nil)
+                    }
+                    return .name(try IPCCoding.WTFString.decode(from: &decoder))
+                case 2:
+                    let data = try IPCCoding.Vector<UInt8>.decode(from: &decoder)
+                    guard let derivative = ExtendedRangeDerivative(rawValue: try UInt8.decode(from: &decoder)) else {
+                        throw IPCDecodingError()
+                    }
+                    return .iccData(data, derivative)
+                default:
+                    throw IPCDecodingError()
+                }
+            }
+
+            func encode(to encoder: IPC.SwiftReplyEncoder) {
+                switch self {
+                case .named(let name):
+                    encoder.encode(UInt8(0))
+                    encoder.encode(name)
+                case .name(let name):
+                    encoder.encode(UInt8(1))
+                    encoder.encode(true)
+                    IPCCoding.WTFString.encode(name, to: encoder)
+                case .iccData(let data, let derivative):
+                    encoder.encode(UInt8(2))
+                    IPCCoding.Vector<UInt8>.encode(data, to: encoder)
+                    encoder.encode(derivative.rawValue)
+                }
+            }
+
+            // CoreIPCCGColorSpace::toCF(), which is nil where C++ makes a null color space.
+            func makeCGColorSpace() -> CGColorSpace? {
+                switch self {
+                case .named(let name):
+                    return namedColorSpace(name)
+                case .name(let name):
+                    guard let name else {
+                        return nil
+                    }
+                    return CGColorSpace(name: name as CFString)
+                case .iccData(let data, let derivative):
+                    let iccData = Data(data) as CFData
+                    guard derivative != .none else {
+                        return CGColorSpace(propertyListPlist: iccData)
+                    }
+                    var propertyList: [String: Any] = [
+                        "kCGColorSpaceICCData": iccData,
+                        kCGColorSpaceExtendedRange as String: true,
+                    ]
+                    switch derivative {
+                    case .extendedRangeDisplayReferredDerivative:
+                        propertyList["kCGColorSpaceDisplayReferredDerivative"] = true
+                    case .extendedRangeSceneReferredDerivative:
+                        propertyList["kCGColorSpaceSceneReferredDerivative"] = true
+                    case .none, .extendedRange:
+                        break
+                    }
+                    return CGColorSpace(propertyListPlist: propertyList as CFDictionary)
+                }
+            }
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> ColorSpace {
+            // A null PlatformColorSpace, which ArgumentCoder<WebCore::ColorSpace> rejects.
+            guard try Bool.decode(from: &decoder) else {
+                throw IPCDecodingError()
+            }
+            let serialization = try Serialization.decode(from: &decoder)
+            guard let cgColorSpace = serialization.makeCGColorSpace() else {
+                throw IPCDecodingError()
+            }
+            return ColorSpace(cgColorSpace: cgColorSpace, serialization: serialization)
+        }
+
+        static func encode(_ value: ColorSpace, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encode(true)
+            value.serialization.encode(to: encoder)
+        }
+
+        static func == (lhs: ColorSpace, rhs: ColorSpace) -> Bool {
+            lhs.cgColorSpace == rhs.cgColorSpace
+        }
+    }
+}
+
+// The number of WebCore::ColorSpaceName values.
+private let namedColorSpaceCount: UInt8 = 22
+
+// cachedNullableCGColorSpaceSingleton(), by WebCore::ColorSpaceName value (ColorSpaceCG.cpp): nil for the color spaces
+// that CoreGraphics has none of.
+private func namedColorSpace(_ name: UInt8) -> CGColorSpace? {
+    switch name {
+    case 0: namedColorSpaces.a98RGB
+    case 1: namedColorSpaces.displayP3
+    case 2: namedColorSpaces.extendedA98RGB
+    case 3: namedColorSpaces.extendedDisplayP3
+    case 4: namedColorSpaces.extendedLinearDisplayP3
+    case 5: namedColorSpaces.extendedLinearSRGB
+    case 6: namedColorSpaces.extendedProPhotoRGB
+    case 7: namedColorSpaces.extendedRec2020
+    case 8: namedColorSpaces.extendedSRGB
+    case 13: namedColorSpaces.linearDisplayP3
+    case 14: namedColorSpaces.linearSRGB
+    case 17: namedColorSpaces.proPhotoRGB
+    case 18: namedColorSpaces.rec2020
+    case 19: namedColorSpaces.sRGB
+    case 20: namedColorSpaces.xyzD50
+    // HSL, HWB, LCH, Lab, OKLCH, OKLab and XYZ_D65.
+    default: nil
+    }
+}
+
+private struct NamedColorSpaces: Sendable {
+    let a98RGB = CGColorSpace(name: CGColorSpace.adobeRGB1998)
+    let displayP3 = CGColorSpace(name: CGColorSpace.displayP3)
+    let extendedA98RGB = CGColorSpace(name: CGColorSpace.adobeRGB1998).flatMap { CGColorSpaceCreateExtended($0) }
+    let extendedDisplayP3 = CGColorSpace(name: CGColorSpace.extendedDisplayP3)
+    let extendedLinearDisplayP3 = CGColorSpace(name: CGColorSpace.extendedLinearDisplayP3)
+    let extendedLinearSRGB = CGColorSpace(name: CGColorSpace.extendedLinearSRGB)
+    let extendedProPhotoRGB = CGColorSpace(name: CGColorSpace.rommrgb).flatMap { CGColorSpaceCreateExtended($0) }
+    let extendedRec2020 = CGColorSpace(name: CGColorSpace.extendedITUR_2020)
+    let extendedSRGB = CGColorSpace(name: CGColorSpace.extendedSRGB)
+    let linearDisplayP3 = CGColorSpace(name: CGColorSpace.linearDisplayP3)
+    let linearSRGB = CGColorSpace(name: CGColorSpace.linearSRGB)
+    let proPhotoRGB = CGColorSpace(name: CGColorSpace.rommrgb)
+    let rec2020 = CGColorSpace(name: CGColorSpace.itur_2020)
+    let sRGB = CGColorSpace(name: CGColorSpace.sRGB)
+    let xyzD50 = CGColorSpace(name: CGColorSpace.genericXYZ)
+}
+
+private let namedColorSpaces = NamedColorSpaces()
+#endif
 
 #endif // ENABLE_SWIFT_IPC_RECEIVERS

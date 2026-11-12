@@ -544,15 +544,12 @@ header: <WebCore/RenderStyleConstants.h>
     RefPtr<WebCore::SharedBuffer> fileData;
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRoundedRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRoundedRect {
     WebCore::FloatRect rect();
-    WebCore::FloatSize radii().topLeft();
-    WebCore::FloatSize radii().topRight();
-    WebCore::FloatSize radii().bottomLeft();
-    WebCore::FloatSize radii().bottomRight();
+    WebCore::CornerRadii radii();
 }
 
-class WebCore::CornerRadii {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::CornerRadii {
     WebCore::FloatSize topLeft();
     WebCore::FloatSize topRight();
     WebCore::FloatSize bottomLeft();
@@ -940,7 +937,10 @@ header: <WebCore/PlatformDynamicRangeLimit.h>
     float m_value;
 };
 
-enum class WebCore::RotationDirection : bool
+[Swift] enum class WebCore::RotationDirection : bool {
+    Counterclockwise,
+    Clockwise
+};
 
 #if ENABLE(CONTENT_FILTERING)
 [LegacyPopulateFromEmptyConstructor] class WebCore::MockContentFilterSettings {
@@ -1112,7 +1112,7 @@ header: <WebCore/RectCorners.h>
     WebCore::RubberBandingBehavior left();
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::Path {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::Path {
     Vector<WebCore::PathSegment> segments();
 }
 

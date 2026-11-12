@@ -91,6 +91,18 @@ _CXX_DECODED_TYPES = {
 }
 
 
+# Types whose Swift form SwiftCoding.swift writes by hand, because it is made of what C++ makes of the encoded value, like
+# the CGColorSpace that a WebCore::ColorSpace is decoded into. The type is its own coder.
+_HAND_WRITTEN_TYPES = {
+    'WebCore::ColorSpace': 'IPCTypes.ColorSpace',
+}
+
+
+def is_hand_written(cpp_type):
+    """Whether the Swift form of a C++ IPC type is one that SwiftCoding.swift writes by hand, like IPCTypes.ColorSpace."""
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _HAND_WRITTEN_TYPES
+
+
 # Types whose Swift form owns a resource that a message carries, a send right on Darwin (SwiftCoding.swift). They are
 # ~Copyable, so exactly one Swift value owns the resource and gives it back once, when it is destroyed or encoded into
 # a reply. The type is its own coder.
@@ -168,6 +180,20 @@ def split_template_arguments(arguments):
     return result
 
 
+# Nested C++ types whose own names would say too little in IPCTypes, so whose Swift forms are named after the types they are
+# nested in.
+_NESTED_SWIFT_FORM_NAMES = {
+    'WebCore::PathSegment::Data': 'PathSegmentData',
+    'WebCore::PathRoundedRect::Strategy': 'PathRoundedRectStrategy',
+}
+
+
+def swift_form_name(cpp_name):
+    """The name in IPCTypes of the Swift form of a qualified C++ type: its unqualified name, like FrameIdentifier."""
+    cpp_name = cpp_name.removeprefix('::')
+    return _NESTED_SWIFT_FORM_NAMES.get(cpp_name, cpp_name.rsplit('::', 1)[-1])
+
+
 def swift_cxx_name(cpp_name):
     """The name in IPCTypes.CxxName of the Swift form of a qualified C++ type, like WebCore_FrameIdentifier."""
     return cpp_name.removeprefix('::').replace('::', '_')
@@ -229,6 +255,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         swift_type = _OWNED_TYPES[cpp_type.removeprefix('::')]
         return (swift_type, swift_type)
 
+    if cpp_type.removeprefix('::') in _HAND_WRITTEN_TYPES:
+        swift_type = _HAND_WRITTEN_TYPES[cpp_type.removeprefix('::')]
+        return (swift_type, swift_type)
+
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
     if match:
         template, arguments = match.group(1), split_template_arguments(match.group(2))
@@ -285,14 +315,14 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     qualified_type = cpp_type.removeprefix('::')
     match = re.match(r'^(?:[A-Za-z_][A-Za-z_0-9]*::)+([A-Za-z_][A-Za-z_0-9]*)$', qualified_type)
     if match and not qualified_type.startswith('WTF::') and not qualified_type.startswith('std::'):
-        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, match.group(1))
+        swift_type = '%s.%s' % (SWIFT_TYPES_NAMESPACE, swift_form_name(qualified_type))
         if not cxx_name_coders:
             return (swift_type, swift_type)
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
                               "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):
