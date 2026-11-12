@@ -78,7 +78,7 @@ struct MockDisplayLookup {
     MockDisplayDescription display;
     bool found { false };
 };
-MockDisplayLookup mockDisplay(uint64_t deviceHandle);
+SWIFT_MAIN_ACTOR MockDisplayLookup mockDisplay(uint64_t deviceHandle);
 
 enum class DisplayCaptureSourceEvent : uint8_t {
     CaptureFailed,

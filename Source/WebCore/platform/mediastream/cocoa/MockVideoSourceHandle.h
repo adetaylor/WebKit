@@ -112,7 +112,16 @@ private:
 
 // A handle on the mock device of MockRealtimeMediaSourceCenter's devices with this persistent ID, or 0, for the lookups
 // below, which find nothing once the devices change. Main thread only (implemented by MockRealtimeMediaSourceCenter.cpp).
-uint64_t mockDeviceHandle(const String& persistentID);
+SWIFT_MAIN_ACTOR uint64_t mockDeviceHandle(const String& persistentID);
+
+// A mock microphone, for the GPU process's Swift microphone source.
+struct MockMicrophoneValues {
+    uint32_t deviceID { 0 };
+    bool found { false };
+    bool hasEchoCancellation { false };
+    bool echoCancellation { false };
+};
+SWIFT_MAIN_ACTOR MockMicrophoneValues mockMicrophone(uint64_t deviceHandle);
 
 // A mock camera, for the GPU process's Swift mock camera. whiteBalanceModes has bit i set for MeteringMode i.
 struct MockCameraDeviceValues {
@@ -142,9 +151,9 @@ struct MockCameraFrameRateRange {
     double maximum { 0 };
 };
 
-MockCameraDeviceValues mockCameraDeviceValues(uint64_t deviceHandle);
-MockCameraPresetValues mockCameraPreset(uint64_t deviceHandle, uint32_t presetIndex);
-MockCameraFrameRateRange mockCameraPresetFrameRateRange(uint64_t deviceHandle, uint32_t presetIndex, uint32_t rangeIndex);
+SWIFT_MAIN_ACTOR MockCameraDeviceValues mockCameraDeviceValues(uint64_t deviceHandle);
+SWIFT_MAIN_ACTOR MockCameraPresetValues mockCameraPreset(uint64_t deviceHandle, uint32_t presetIndex);
+SWIFT_MAIN_ACTOR MockCameraFrameRateRange mockCameraPresetFrameRateRange(uint64_t deviceHandle, uint32_t presetIndex, uint32_t rangeIndex);
 
 // Implemented by MockRealtimeVideoSourceCocoa.mm, on the generator's queue. Returns the frame rate the source's observers
 // see.

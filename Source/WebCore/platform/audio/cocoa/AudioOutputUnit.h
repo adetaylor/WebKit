@@ -207,6 +207,8 @@ public:
     // A producer, before a source has it: the ring it writes from frame 0, and the semaphore it signals for each chunk of
     // frameChunkSize frames. The caller keeps them alive until it destroys the sink.
     WEBCORE_EXPORT void attachRing(CARingBuffer&, uint32_t semaphore, uint64_t frameChunkSize);
+    // The same, for a producer that Swift made (MicrophoneSink), by identifier.
+    WEBCORE_EXPORT static void attachRing(uint64_t sinkIdentifier, CARingBuffer&, uint32_t semaphore, uint64_t frameChunkSize);
 
     Kind kind() const { return m_kind; }
     const AudioStreamBasicDescription& format() const LIFETIME_BOUND { return m_format; }

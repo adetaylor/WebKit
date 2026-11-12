@@ -162,6 +162,15 @@ static std::optional<MockDisplayDescription> mockDisplayDescription(const String
     return lookup.display;
 }
 
+MockMicrophoneValues mockMicrophone(uint64_t handle)
+{
+    auto* device = mockDeviceForHandle(handle);
+    if (!device || !device->isMicrophone())
+        return { };
+    auto& microphone = std::get<MockMicrophoneProperties>(device->properties);
+    return { microphone.deviceID, true, !!microphone.echoCancellation, microphone.echoCancellation.value_or(false) };
+}
+
 MockCameraDeviceValues mockCameraDeviceValues(uint64_t handle)
 {
     MockCameraDeviceValues values;

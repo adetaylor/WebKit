@@ -315,6 +315,11 @@ AudioCaptureSink::~AudioCaptureSink()
 void AudioCaptureSink::attachRing(CARingBuffer& ring, uint32_t semaphore, uint64_t frameChunkSize)
 {
     ASSERT(m_kind == Kind::Producer);
+    attachRing(m_identifier, ring, semaphore, frameChunkSize);
+}
+
+void AudioCaptureSink::attachRing(uint64_t sinkIdentifier, CARingBuffer& ring, uint32_t semaphore, uint64_t frameChunkSize)
+{
     AudioOutputUnitRingAttachment attachment;
     attachment.geometry = ring.geometry();
     attachment.header = &ring.boundsStorage();
@@ -322,7 +327,7 @@ void AudioCaptureSink::attachRing(CARingBuffer& ring, uint32_t semaphore, uint64
     attachment.channelsByteCount = ring.channelData().size();
     attachment.semaphore = semaphore;
     attachment.frameChunkSize = frameChunkSize;
-    audioUnitAttachRing(m_identifier, attachment);
+    audioUnitAttachRing(sinkIdentifier, attachment);
 }
 
 std::optional<std::pair<int64_t, uint32_t>> AudioCaptureSink::startTime() const

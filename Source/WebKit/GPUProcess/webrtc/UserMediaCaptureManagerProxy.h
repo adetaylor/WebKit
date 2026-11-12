@@ -30,6 +30,7 @@
 #include "Connection.h"
 #include "MessageReceiver.h"
 #include "SharedPreferencesForWebProcess.h"
+#include <CoreAudio/CoreAudioTypes.h>
 #include <WebCore/CaptureDevice.h>
 #include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/IntDegrees.h>
@@ -45,6 +46,7 @@
 typedef struct __IOSurface *IOSurfaceRef;
 
 namespace IPC {
+class Semaphore;
 template<typename> class CxxDecodedArgument;
 }
 
@@ -56,8 +58,9 @@ struct MediaDeviceHashSalts;
 
 namespace WebKit {
 
+class ProducerSharedCARingBuffer;
 class RemoteVideoFrameObjectHeap;
-class UserMediaCaptureMicrophones;
+struct ConsumerSharedCARingBufferHandle;
 
 // A frame published to the web process: its reference in the frame heap, or, without a heap, nothing, since the frame's
 // pixel buffer is sent instead (userMediaCaptureFrameSurface()); and RemoteVideoFrameProxy::properties().
@@ -111,26 +114,43 @@ private:
 // The IOSurface of a frame's pixel buffer, which the frame keeps alive, for a frame sent without a frame heap.
 IOSurfaceRef WTF_NULLABLE userMediaCaptureFrameSurface(WebCore::VideoFrame&) CF_RETURNS_NOT_RETAINED;
 
+// The ring and semaphore that a microphone's producer sink (Swift's CaptureSourceProxy) stores the microphone's quanta into
+// for the web process, and the message that hands them over, as UserMediaCaptureManagerProxySourceProxy had them.
+class UserMediaCaptureAudioStorage final : public ThreadSafeRefCounted<UserMediaCaptureAudioStorage> {
+public:
+    // A ring of 2 seconds of the format, or null.
+    static UserMediaCaptureAudioStorage* WTF_NULLABLE create(IPC::Connection&, uint64_t sourceIdentifier, const AudioStreamBasicDescription&) SWIFT_RETURNS_RETAINED;
+    ~UserMediaCaptureAudioStorage();
+
+    // Unsafe: the sink stores into the ring and signals the semaphore until it is invalidated, which its owner must do
+    // before letting this go; the identifier must be a capture sink's.
+    SWIFT_UNSAFE void attachToSink(uint64_t sinkIdentifier);
+    // Sends the ring to the web process, once, with the time of its first frame.
+    void sendStorageChanged(int64_t startTimeValue, uint32_t startTimeScale);
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCounted<UserMediaCaptureAudioStorage>::ref(); }
+    void deref() const { ThreadSafeRefCounted<UserMediaCaptureAudioStorage>::deref(); }
+#endif
+
+private:
+    UserMediaCaptureAudioStorage(Ref<IPC::Connection>&&, uint64_t sourceIdentifier, const AudioStreamBasicDescription&, std::unique_ptr<ProducerSharedCARingBuffer>&&, ConsumerSharedCARingBufferHandle&&);
+
+    const Ref<IPC::Connection> m_connection;
+    const uint64_t m_sourceIdentifier;
+    const AudioStreamBasicDescription m_format;
+    const std::unique_ptr<ProducerSharedCARingBuffer> m_ringBuffer;
+    const std::unique_ptr<IPC::Semaphore> m_semaphore;
+    std::unique_ptr<ConsumerSharedCARingBufferHandle> m_handle;
+    const uint64_t m_frameChunkSize;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
 // What applyCaptureEnvironment() found missing.
 enum class UserMediaCaptureEnvironmentFailure : uint8_t {
     None,
     NoAttribution,
     NoMediaEnvironment,
-};
-
-// A microphone that the GPU process captures for the web process, which UserMediaCaptureMicrophones holds until the
-// microphone's unit is Swift: the result of creating it.
-struct UserMediaCaptureMicrophoneResult {
-    String errorMessage;
-    String label;
-    String deviceId;
-    String groupId;
-    String capabilityDeviceId;
-    String capabilityGroupId;
-    WebCore::CaptureSettingsValues settings;
-    WebCore::CaptureCapabilityValues capabilities;
-    uint8_t denialReason { 0 };
-    uint8_t invalidConstraint { 0 };
 };
 
 // Receives one web process's capture messages. Its Swift state (UserMediaCaptureManagerProxy.swift), which m_swiftState
@@ -196,17 +216,8 @@ public:
     UserMediaCaptureFramePublisher* WTF_NONNULL framePublisher(bool usesFrameHeap) SWIFT_RETURNS_RETAINED;
     static WebCore::CaptureConstraints* WTF_NULLABLE takeConstraints(IPC::CxxDecodedArgument<WebCore::MediaConstraints>&) SWIFT_RETURNS_RETAINED;
 
-    // For the Swift state: the microphones (UserMediaCaptureMicrophones), by source identifier.
-    UserMediaCaptureMicrophoneResult createMicrophone(uint64_t identifier, const String& persistentID, WebCore::CaptureDevice::DeviceType, const String& label, const String& groupId, bool isDefault, bool isEphemeral, const String& persistentDeviceSalt, const String& ephemeralDeviceSalt, IPC::CxxDecodedArgument<WebCore::MediaConstraints>&, uint64_t pageIdentifier);
-    void microphoneStart(uint64_t identifier, uint64_t pageIdentifier);
-    void microphoneStop(uint64_t identifier);
-    void microphoneEnd(uint64_t identifier);
-    void microphoneRemove(uint64_t identifier);
-    void microphoneClone(uint64_t identifier, uint64_t cloneIdentifier, uint64_t pageIdentifier);
-    void microphoneApplyConstraints(uint64_t identifier, IPC::CxxDecodedArgument<WebCore::MediaConstraints>&);
-    void microphoneSetIsInBackground(uint64_t identifier, bool);
-    void microphoneReapplyCaptureEnvironment(uint64_t pageIdentifier);
-    void microphoneClear();
+    // For the Swift state: a microphone's unit is starting, which needs the audio session for capture.
+    void microphoneUnitWillStart(uint64_t pageIdentifier);
 
 private:
     explicit UserMediaCaptureManagerProxy(UniqueRef<ConnectionProxy>&&);
@@ -219,7 +230,6 @@ private:
     static void destroySwiftState(uintptr_t);
 
     const UniqueRef<ConnectionProxy> m_connectionProxy;
-    const std::unique_ptr<UserMediaCaptureMicrophones> m_microphones;
     // A retained reference to the Swift state, as an address, from the constructor to the destructor.
     uintptr_t m_swiftState { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);

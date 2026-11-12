@@ -24,9 +24,7 @@
 #if ENABLE_GPU_PROCESS && ENABLE_MEDIA_STREAM
 
 // The capture receiver of one web process's connection to the GPU process: the sources it creates for the web process's
-// tracks, their settings, constraints, photos and frames. The sources are Swift (WebCore's CaptureSource.swift); the
-// microphones still go through UserMediaCaptureMicrophoneProxy, the C++ that the microphone's unit needs until it is
-// Swift.
+// tracks, their settings, constraints, photos, frames and audio. The sources are Swift (WebCore's CaptureSource.swift).
 
 import Dispatch
 import Foundation
@@ -214,6 +212,9 @@ final class CaptureSourceProxy: CaptureSourceObserver {
     private var videoConstraints: WebCore.CaptureConstraints?
     private var pendingActions: [() -> Void] = []
     private var isApplyingConstraints = false
+    private var microphoneDelivery: MicrophoneDelivery?
+    // A microphone's unit is starting (UserMediaCaptureManagerProxy::microphoneUnitWillStart()).
+    var audioUnitWillStart: (@MainActor () -> Void)?
 
     init(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: WebKit.UserMediaCaptureFramePublisher) {
         self.identifier = identifier
@@ -232,11 +233,19 @@ final class CaptureSourceProxy: CaptureSourceObserver {
         source
     }
 
+    private var isMicrophone: Bool {
+        source.device.kind == .microphone
+    }
+
     func unobserveMedia() {
         guard isObservingMedia else {
             return
         }
         isObservingMedia = false
+        if isMicrophone {
+            removeMicrophoneDelivery()
+            return
+        }
         source.removeVideoFrameObserver(frameSender)
     }
 
@@ -245,6 +254,14 @@ final class CaptureSourceProxy: CaptureSourceObserver {
             return
         }
         isObservingMedia = true
+        if isMicrophone {
+            if let microphoneDelivery {
+                source.addMicrophoneSink(microphoneDelivery.sink)
+            } else {
+                prepareMicrophoneDelivery()
+            }
+            return
+        }
         if widthConstraint != 0 || heightConstraint != 0 || frameRateConstraint != 0 {
             source.addVideoFrameObserver(frameSender, width: widthConstraint, height: heightConstraint, frameRate: frameRateConstraint)
         } else {
@@ -274,7 +291,36 @@ final class CaptureSourceProxy: CaptureSourceObserver {
             return
         }
         source.start()
+        if isMicrophone {
+            prepareMicrophoneDelivery()
+        }
         observeMedia()
+    }
+
+    // UserMediaCaptureManagerProxySourceProxy::prepareAudioSink(): a sink of the microphone's format, with a ring for the
+    // web process, or, without a format yet, a sink that waits for the unit's. The old sink goes first, as invalidating it
+    // waits for the IO thread to finish with the old ring and semaphore.
+    private func prepareMicrophoneDelivery() {
+        removeMicrophoneDelivery()
+        let delivery = MicrophoneDelivery(connection: connection, identifier: identifier, format: source.microphoneFormat)
+        delivery.sink.formatChangedHandler = { [weak self] in
+            guard let self, self.microphoneDelivery != nil else {
+                return
+            }
+            self.prepareMicrophoneDelivery()
+        }
+        microphoneDelivery = delivery
+        if isObservingMedia {
+            source.addMicrophoneSink(delivery.sink)
+        }
+    }
+
+    private func removeMicrophoneDelivery() {
+        guard let delivery = microphoneDelivery.take() else {
+            return
+        }
+        source.removeMicrophoneSink(delivery.sink)
+        delivery.sink.invalidate()
     }
 
     func stop() {
@@ -442,10 +488,37 @@ final class CaptureSourceProxy: CaptureSourceObserver {
     }
 
     func captureSourceAudioUnitWillStart() {
+        audioUnitWillStart?()
     }
 
     func captureSourcePreventsEnding() -> Bool {
         !isEnded
+    }
+}
+
+// A microphone source proxy's producer sink, and the ring it stores into, which the web process reads once the first quantum
+// is stored. The ring outlives the sink's use of it: the sink's handler keeps it, and invalidating the sink waits for the
+// IO thread to finish with it.
+@MainActor
+private final class MicrophoneDelivery {
+    let sink: MicrophoneSink
+    private let storage: WebKit.UserMediaCaptureAudioStorage?
+
+    init(connection: IPC.Connection, identifier: IPCTypes.RealtimeMediaSourceIdentifier, format: AudioStreamBasicDescription?) {
+        sink = MicrophoneSink(format: format ?? AudioStreamBasicDescription())
+        storage = format.flatMap { WebKit.UserMediaCaptureAudioStorage.create(connection, identifier.rawValue, $0) }
+        guard let storage else {
+            return
+        }
+        // Safety: the sink is a capture sink, and this keeps the storage until its deinit has invalidated the sink.
+        unsafe storage.attachToSink(sink.identifier)
+        sink.startedHandler = { [weak self] timeValue, timeScale in
+            self?.storage?.sendStorageChanged(timeValue, timeScale)
+        }
+    }
+
+    isolated deinit {
+        sink.invalidate()
     }
 }
 
@@ -504,8 +577,10 @@ final class UserMediaCaptureManagerProxyState {
     // The C++ receiver, which owns this state: they keep each other alive until the connection closes (close()).
     private var receiver: WebKit.UserMediaCaptureManagerProxy?
     private var proxies: [IPCTypes.RealtimeMediaSourceIdentifier: CaptureSourceProxy] = [:]
-    fileprivate var microphones: Set<IPCTypes.RealtimeMediaSourceIdentifier> = []
     private var pageCameraSources: [UInt64: [() -> CaptureSource?]] = [:]
+#if os(iOS) || os(visionOS) || os(tvOS)
+    private var pageMicrophones: [UInt64: () -> CaptureSource?] = [:]
+#endif
     fileprivate var orientation: Int32 = 0
 
     init(proxy: WebKit.UserMediaCaptureManagerProxy) {
@@ -521,7 +596,7 @@ final class UserMediaCaptureManagerProxyState {
     }
 
     var hasSourceProxies: Bool {
-        !proxies.isEmpty || !microphones.isEmpty
+        !proxies.isEmpty
     }
 
     func close() {
@@ -530,18 +605,11 @@ final class UserMediaCaptureManagerProxyState {
         for proxy in proxies.values {
             proxy.stop()
         }
-        for identifier in microphones {
-            receiver?.microphoneStop(identifier.rawValue)
-        }
-        microphones = []
-        receiver?.microphoneClear()
         receiver = nil
     }
 
     func clear() {
         proxies = [:]
-        microphones = []
-        proxy.microphoneClear()
     }
 
     func setOrientation(_ orientation: Int32) {
@@ -595,7 +663,6 @@ final class UserMediaCaptureManagerProxyState {
         device: IPCTypes.CaptureDevice,
         hashSalts: IPCTypes.MediaDeviceHashSalts,
         constraints: WebCore.CaptureConstraints?,
-        constraintsHolder: CxxDecodedArguments.UserMediaCaptureManagerProxy.CreateMediaSourceForCaptureDeviceWithConstraintsConstraints,
         shouldUseGPUProcessRemoteFrames: Bool,
         pageIdentifier: IPCTypes.PageIdentifier
     ) async throws(InvalidMessage) -> (error: IPCTypes.CaptureSourceError, settings: IPCTypes.RealtimeMediaSourceSettings, capabilities: IPCTypes.RealtimeMediaSourceCapabilities) {
@@ -605,15 +672,7 @@ final class UserMediaCaptureManagerProxyState {
         guard proxy.willStartCapture(cxxDeviceType(kind), pageIdentifier.rawValue) else {
             return (IPCTypes.CaptureSourceError(errorMessage: "Request is not allowed", denialReason: .permissionDenied, invalidConstraint: unknownConstraint), emptySettings, emptyCapabilities)
         }
-        try messageCheck { proxies[identifier] == nil && !microphones.contains(identifier) }
-
-        if kind == .microphone {
-            let reply = createMicrophone(identifier, device, hashSalts, constraintsHolder, pageIdentifier)
-            if reply.error.denialReason == noDenialReason {
-                microphones.insert(identifier)
-            }
-            return reply
-        }
+        try messageCheck { proxies[identifier] == nil }
 
         let description = CaptureDeviceDescription(
             persistentID: device.persistentId ?? "",
@@ -633,8 +692,11 @@ final class UserMediaCaptureManagerProxyState {
         case .failure(let failure):
             return (captureSourceError(failure), emptySettings, emptyCapabilities)
         }
+        if kind == .microphone {
+            addMicrophoneSource(source, pageIdentifier.rawValue)
+        }
 
-        let sourceProxy = CaptureSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: proxy.framePublisher(shouldUseGPUProcessRemoteFrames))
+        let sourceProxy = makeSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: proxy.framePublisher(shouldUseGPUProcessRemoteFrames))
         proxies[identifier] = sourceProxy
 
         guard let constraints, constraints.isValid() else {
@@ -653,39 +715,29 @@ final class UserMediaCaptureManagerProxyState {
         return await sourceProxy.whenReady()
     }
 
-    private func createMicrophone(
-        _ identifier: IPCTypes.RealtimeMediaSourceIdentifier,
-        _ device: IPCTypes.CaptureDevice,
-        _ hashSalts: IPCTypes.MediaDeviceHashSalts,
-        _ constraints: CxxDecodedArguments.UserMediaCaptureManagerProxy.CreateMediaSourceForCaptureDeviceWithConstraintsConstraints,
-        _ pageIdentifier: IPCTypes.PageIdentifier
-    ) -> (error: IPCTypes.CaptureSourceError, settings: IPCTypes.RealtimeMediaSourceSettings, capabilities: IPCTypes.RealtimeMediaSourceCapabilities) {
-        let result = proxy.createMicrophone(
-            identifier.rawValue,
-            IPCCoding.WTFString.cxxString(device.persistentId),
-            cxxDeviceType(.microphone),
-            IPCCoding.WTFString.cxxString(device.label),
-            IPCCoding.WTFString.cxxString(device.groupId),
-            device.isDefault,
-            device.isEphemeral,
-            IPCCoding.WTFString.cxxString(hashSalts.persistentDeviceSalt),
-            IPCCoding.WTFString.cxxString(hashSalts.ephemeralDeviceSalt),
-            constraints,
-            pageIdentifier.rawValue
-        )
-        if result.denialReason != noDenialReason.rawValue {
-            return (IPCTypes.CaptureSourceError(errorMessage: swiftString(result.errorMessage), denialReason: IPCTypes.MediaAccessDenialReason(rawValue: result.denialReason) ?? .otherFailure, invalidConstraint: IPCTypes.MediaConstraintType(rawValue: result.invalidConstraint) ?? unknownConstraint), emptySettings, emptyCapabilities)
+    private func makeSourceProxy(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: WebKit.UserMediaCaptureFramePublisher) -> CaptureSourceProxy {
+        let sourceProxy = CaptureSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: framePublisher)
+        if source.device.kind == .microphone {
+            let pageIdentifier = source.pageIdentifier
+            sourceProxy.audioUnitWillStart = { [weak self] in
+                self?.receiver?.microphoneUnitWillStart(pageIdentifier)
+            }
         }
-        let settings = CaptureSettings(result.settings, label: swiftString(result.label), deviceId: swiftString(result.deviceId), groupId: swiftString(result.groupId))
-        let capabilities = CaptureCapabilities(result.capabilities, deviceId: swiftString(result.capabilityDeviceId), groupId: swiftString(result.capabilityGroupId))
-        return (noCaptureSourceError, wireSettings(settings), wireCapabilities(capabilities))
+        return sourceProxy
+    }
+
+    // UserMediaCaptureMicrophones::create(): on iOS, a page captures from one microphone at a time.
+    private func addMicrophoneSource(_ source: CaptureSource, _ pageIdentifier: UInt64) {
+#if os(iOS) || os(visionOS) || os(tvOS)
+        // FIXME: Support multiple microphones simultaneously.
+        if let microphone = pageMicrophones[pageIdentifier]?(), microphone !== source, microphone.persistentID != source.persistentID, !microphone.isEnded {
+            microphone.endImmediately()
+        }
+        pageMicrophones[pageIdentifier] = { [weak source] in source }
+#endif
     }
 
     func startProducingData(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier, _ pageIdentifier: IPCTypes.PageIdentifier) {
-        if microphones.contains(identifier) {
-            proxy.microphoneStart(identifier.rawValue, pageIdentifier.rawValue)
-            return
-        }
         guard let sourceProxy = proxies[identifier] else {
             return
         }
@@ -712,22 +764,13 @@ final class UserMediaCaptureManagerProxyState {
             proxy.reapplyCaptureEnvironmentForSource(cxxDeviceType(source.device.kind), pageIdentifier)
             return
         }
-        proxy.microphoneReapplyCaptureEnvironment(pageIdentifier)
     }
 
     func stopProducingData(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier) {
-        if microphones.contains(identifier) {
-            proxy.microphoneStop(identifier.rawValue)
-            return
-        }
         proxies[identifier]?.stop()
     }
 
     func removeSource(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier) {
-        if microphones.remove(identifier) != nil {
-            proxy.microphoneRemove(identifier.rawValue)
-            return
-        }
         guard let sourceProxy = proxies.removeValue(forKey: identifier) else {
             return
         }
@@ -735,6 +778,11 @@ final class UserMediaCaptureManagerProxyState {
         if proxies.values.contains(where: { $0.source === source }) {
             return
         }
+#if os(iOS) || os(visionOS) || os(tvOS)
+        if source.device.kind == .microphone, let microphone = pageMicrophones[source.pageIdentifier]?(), microphone === source {
+            pageMicrophones[source.pageIdentifier] = nil
+        }
+#endif
         guard source.device.kind == .camera else {
             return
         }
@@ -746,11 +794,7 @@ final class UserMediaCaptureManagerProxyState {
         }
     }
 
-    func applyConstraints(connection: IPC.Connection, _ identifier: IPCTypes.RealtimeMediaSourceIdentifier, _ constraints: WebCore.CaptureConstraints?, _ holder: CxxDecodedArguments.UserMediaCaptureManagerProxy.ApplyConstraintsConstraints) throws(InvalidMessage) {
-        if microphones.contains(identifier) {
-            proxy.microphoneApplyConstraints(identifier.rawValue, holder)
-            return
-        }
+    func applyConstraints(connection: IPC.Connection, _ identifier: IPCTypes.RealtimeMediaSourceIdentifier, _ constraints: WebCore.CaptureConstraints?) throws(InvalidMessage) {
         guard let sourceProxy = proxies[identifier] else {
             WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsFailed(on: connection, to: 0, id: identifier, invalidConstraint: unknownConstraint, message: "Unknown source")
             return
@@ -772,13 +816,8 @@ final class UserMediaCaptureManagerProxyState {
     }
 
     func clone(connection: IPC.Connection, _ clonedID: IPCTypes.RealtimeMediaSourceIdentifier, _ cloneID: IPCTypes.RealtimeMediaSourceIdentifier, _ pageIdentifier: IPCTypes.PageIdentifier) throws(InvalidMessage) {
-        try messageCheck { proxies[clonedID] != nil || microphones.contains(clonedID) }
-        try messageCheck { proxies[cloneID] == nil && !microphones.contains(cloneID) }
-        if microphones.contains(clonedID) {
-            microphones.insert(cloneID)
-            proxy.microphoneClone(clonedID.rawValue, cloneID.rawValue, pageIdentifier.rawValue)
-            return
-        }
+        try messageCheck { proxies[clonedID] != nil }
+        try messageCheck { proxies[cloneID] == nil }
         guard let proxyToClone = proxies[clonedID] else {
             return
         }
@@ -786,7 +825,7 @@ final class UserMediaCaptureManagerProxyState {
         if source.device.kind == .camera {
             addCameraSource(source, pageIdentifier.rawValue)
         }
-        let cloneProxy = CaptureSourceProxy(identifier: cloneID, connection: connection, source: source, framePublisher: proxy.framePublisher(true))
+        let cloneProxy = makeSourceProxy(identifier: cloneID, connection: connection, source: source, framePublisher: proxy.framePublisher(true))
         cloneProxy.copySettings(from: proxyToClone)
         if proxyToClone.observesMedia {
             cloneProxy.observeMedia()
@@ -827,10 +866,6 @@ final class UserMediaCaptureManagerProxyState {
     }
 
     func endProducingData(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier) {
-        if microphones.contains(identifier) {
-            proxy.microphoneEnd(identifier.rawValue)
-            return
-        }
         proxies[identifier]?.end()
     }
 
@@ -839,10 +874,6 @@ final class UserMediaCaptureManagerProxyState {
     }
 
     func setIsInBackground(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier, _ isInBackground: Bool) {
-        if microphones.contains(identifier) {
-            proxy.microphoneSetIsInBackground(identifier.rawValue, isInBackground)
-            return
-        }
         proxies[identifier]?.source.setIsInBackground(isInBackground)
     }
 
@@ -955,8 +986,7 @@ extension WebKit.UserMediaCaptureManagerProxy {
         shouldUseGPUProcessRemoteFrames: Bool,
         pageIdentifier: IPCTypes.PageIdentifier
     ) async throws(InvalidMessage) -> (error: IPCTypes.CaptureSourceError, settings: IPCTypes.RealtimeMediaSourceSettings, capabilities: IPCTypes.RealtimeMediaSourceCapabilities) {
-        let mediaConstraints = device.type == .microphone ? nil : Self.takeConstraints(constraints)
-        return try await state.createMediaSource(connection: connection, identifier: id, device: device, hashSalts: hashSalts, constraints: mediaConstraints, constraintsHolder: constraints, shouldUseGPUProcessRemoteFrames: shouldUseGPUProcessRemoteFrames, pageIdentifier: pageIdentifier)
+        return try await state.createMediaSource(connection: connection, identifier: id, device: device, hashSalts: hashSalts, constraints: Self.takeConstraints(constraints), shouldUseGPUProcessRemoteFrames: shouldUseGPUProcessRemoteFrames, pageIdentifier: pageIdentifier)
     }
 
     @MainActor
@@ -976,8 +1006,7 @@ extension WebKit.UserMediaCaptureManagerProxy {
 
     @MainActor
     func applyConstraints(connection: IPC.Connection, id: IPCTypes.RealtimeMediaSourceIdentifier, constraints: CxxDecodedArguments.UserMediaCaptureManagerProxy.ApplyConstraintsConstraints) throws(InvalidMessage) {
-        let isMicrophone = state.isMicrophone(id)
-        try state.applyConstraints(connection: connection, id, isMicrophone ? nil : Self.takeConstraints(constraints), constraints)
+        try state.applyConstraints(connection: connection, id, Self.takeConstraints(constraints))
     }
 
     @MainActor
@@ -1018,12 +1047,6 @@ extension WebKit.UserMediaCaptureManagerProxy {
     @MainActor
     func isPowerEfficient(connection: IPC.Connection, sourceID: IPCTypes.RealtimeMediaSourceIdentifier) -> Bool {
         state.isPowerEfficient(sourceID)
-    }
-}
-
-extension UserMediaCaptureManagerProxyState {
-    func isMicrophone(_ identifier: IPCTypes.RealtimeMediaSourceIdentifier) -> Bool {
-        microphones.contains(identifier)
     }
 }
 

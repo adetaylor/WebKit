@@ -54,9 +54,10 @@ class CaptureDevice;
 class CoreAudioCaptureSource;
 struct AudioCaptureTimes;
 
-// A microphone capture unit, which AudioCaptureController.swift implements: this holds the unit's clients, its capture
-// device's persistent ID, its volume, the callbacks of C++ callers and the delivery of the microphone's samples to the
-// clients' C++ observers, and does for the controller what needs them (AudioCaptureControllerHandle.h).
+// A microphone capture unit, which AudioCaptureController.swift implements: this holds the unit's C++ clients, its capture
+// device's persistent ID, the callbacks of C++ callers and the delivery of the microphone's samples to the clients' C++
+// observers, and does for the controller what needs them (AudioCaptureControllerHandle.h). The controller has Swift
+// clients of its own.
 class CoreAudioCaptureUnit final : public RefCounted<CoreAudioCaptureUnit>, public RealtimeMediaSourceCenterObserver {
 public:
     // The default unit - the only one that may render audio when capturing
@@ -93,7 +94,7 @@ public:
     void resume();
     void delaySamples(Seconds);
 
-    double volume() const { return m_volume; }
+    double volume() const;
     void setVolume(double);
     int sampleRate() const;
     void setSampleRate(int);
@@ -107,6 +108,7 @@ public:
     WEBCORE_EXPORT bool isSuspended() const;
     WEBCORE_EXPORT bool isRunning() const;
     const std::optional<CAAudioStreamDescription>& microphoneProcFormat() const LIFETIME_BOUND { return m_microphoneProcFormat; }
+    uint64_t controllerIdentifier() const { return m_controller.identifier(); }
 
 
 #if PLATFORM(IOS_FAMILY)
@@ -125,8 +127,8 @@ public:
 
     void handleNewCurrentMicrophoneDevice(const CaptureDevice&);
 
-    // What the microphone does with each quantum, from the clients: the sinks of those that produce data, the volume, and
-    // whether any of those has C++ observers.
+    // What the microphone does with each quantum, from the C++ clients: the sinks of those that produce data, and whether
+    // any of those has C++ observers.
     void updateMicrophoneConfiguration();
 
     // On the unit's microphone IO thread (deliverToCxxObservers()).
@@ -156,7 +158,6 @@ private:
     void deviceWillBeRemoved(const String&) final { }
 
     AudioCaptureControllerHandle m_controller;
-    double m_volume { 1 };
     String m_persistentID;
     uint32_t m_captureDeviceID { 0 };
     bool m_isCapturingWithDefaultMicrophone { false };

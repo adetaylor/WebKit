@@ -35,6 +35,7 @@
 // (WebKit/GPUProcess/webrtc/UserMediaCaptureManagerProxy.swift) holds these; callers in other processes keep the C++
 // RealtimeMediaSource facades, which make the same decisions (CaptureSourceDecisions.swift) and get the same settings.
 
+public import CoreAudio
 import CoreVideo
 import Dispatch
 public import Foundation
@@ -575,6 +576,10 @@ protocol CaptureSourceBackend: AnyObject {
     func orientationChanged(_ orientation: Int32)
     func rotationAngleForHorizonLevelDisplayChanged(_ rotation: UInt16)
     func delaySamples(_ seconds: Double)
+    // A microphone's: the format of its quanta, once it has one, and the sinks it feeds while it produces data.
+    var microphoneFormat: AudioStreamBasicDescription? { get }
+    func addMicrophoneSink(_ sink: MicrophoneSink)
+    func removeMicrophoneSink(_ sink: MicrophoneSink)
     // How the source becomes ready: a display waits for its first frame (DisplayCaptureSourceCocoa::whenReady()).
     func whenReady(_ completion: @escaping @MainActor (CaptureSourceFailure?) -> Void)
 }
@@ -650,6 +655,16 @@ extension CaptureSourceBackend {
     }
 
     func delaySamples(_ seconds: Double) {
+    }
+
+    var microphoneFormat: AudioStreamBasicDescription? {
+        nil
+    }
+
+    func addMicrophoneSink(_ sink: MicrophoneSink) {
+    }
+
+    func removeMicrophoneSink(_ sink: MicrophoneSink) {
     }
 
     func whenReady(_ completion: @escaping @MainActor (CaptureSourceFailure?) -> Void) {
@@ -930,6 +945,18 @@ private let unknownConstraint: UInt8 = 0
 
     public func delaySamples(_ seconds: Double) {
         backend.delaySamples(seconds)
+    }
+
+    public var microphoneFormat: AudioStreamBasicDescription? {
+        backend.microphoneFormat
+    }
+
+    public func addMicrophoneSink(_ sink: MicrophoneSink) {
+        backend.addMicrophoneSink(sink)
+    }
+
+    public func removeMicrophoneSink(_ sink: MicrophoneSink) {
+        backend.removeMicrophoneSink(sink)
     }
 
     // MARK: Settings
@@ -1485,8 +1512,8 @@ private func constraintCapabilities(_ capabilities: CaptureCapabilities) -> WebC
 // MARK: Factory
 
 // The sources RealtimeMediaSourceCenter's factories make for the GPU process: the mocks while
-// MockRealtimeMediaSourceCenter is enabled, otherwise AVFoundation's cameras and ScreenCaptureKit's displays.
-// Microphones aren't made here yet (UserMediaCaptureMicrophones in WebKit).
+// MockRealtimeMediaSourceCenter is enabled, otherwise AVFoundation's cameras, ScreenCaptureKit's displays and CoreAudio's
+// microphones.
 @_spi(WebKitGPU) @MainActor public enum CaptureSourceFactory {
     public static func create(device: CaptureDeviceDescription, pageIdentifier: UInt64) -> Result<CaptureSource, CaptureSourceFailure> {
         let usesMocks = WebCore.MockRealtimeMediaSourceCenter.mockRealtimeMediaSourceCenterEnabled()
@@ -1496,7 +1523,18 @@ private func constraintCapabilities(_ capabilities: CaptureCapabilities) -> WebC
         case .screen, .window:
             return usesMocks ? createMockDisplay(device, pageIdentifier) : createDisplay(device, pageIdentifier)
         case .microphone:
-            return .failure(CaptureSourceFailure(message: "No microphone source", denialReason: CaptureSourceFailure.permissionDenied))
+            return createMicrophone(device, pageIdentifier, usesMocks: usesMocks)
+        }
+    }
+
+    private static func createMicrophone(_ device: CaptureDeviceDescription, _ pageIdentifier: UInt64, usesMocks: Bool) -> Result<CaptureSource, CaptureSourceFailure> {
+        switch MicrophoneCaptureBackend.create(device, usesMocks: usesMocks) {
+        case .success(let backend):
+            let source = CaptureSource(device: device, pageIdentifier: pageIdentifier, backend: backend)
+            backend.initialize(source)
+            return .success(source)
+        case .failure(let failure):
+            return .failure(failure)
         }
     }
 

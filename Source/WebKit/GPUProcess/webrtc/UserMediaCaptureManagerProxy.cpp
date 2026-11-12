@@ -29,6 +29,7 @@
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "Logging.h"
 #include "RemoteCaptureSampleManagerMessages.h"
 #include "RemoteVideoFrameObjectHeap.h"
@@ -62,295 +63,6 @@
 
 namespace WebKit {
 using namespace WebCore;
-
-// A microphone's end of a web process's track, until the microphone's unit is Swift.
-class UserMediaCaptureManagerProxySourceProxy final
-    : public RefCounted<UserMediaCaptureManagerProxySourceProxy>
-    , public RealtimeMediaSourceObserver
-    , private RealtimeMediaSource::AudioSampleObserver
-    , public CanMakeCheckedPtr<UserMediaCaptureManagerProxySourceProxy> {
-    WTF_MAKE_TZONE_ALLOCATED_INLINE(UserMediaCaptureManagerProxySourceProxy);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(UserMediaCaptureManagerProxySourceProxy);
-public:
-    static Ref<UserMediaCaptureManagerProxySourceProxy> create(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, Ref<RealtimeMediaSource>&& source) { return adoptRef(*new UserMediaCaptureManagerProxySourceProxy(id, WTF::move(connection), WTF::move(source))); }
-    ~UserMediaCaptureManagerProxySourceProxy()
-    {
-        unobserveMedia();
-        m_source->removeObserver(*this);
-    }
-
-    void unobserveMedia()
-    {
-        if (!m_isObservingMedia)
-            return;
-        m_isObservingMedia = false;
-
-        if (m_usesAudioSink)
-            removeAudioSink();
-        else
-            m_source->removeAudioSampleObserver(*this);
-    }
-
-    void observeMedia()
-    {
-        if (m_isObservingMedia)
-            return;
-        m_isObservingMedia = true;
-
-        if (m_usesAudioSink) {
-            if (!m_audioSink)
-                prepareAudioSink(m_source->audioStreamDescription());
-            else
-                m_source->addAudioCaptureSink(*m_audioSink);
-        } else
-            m_source->addAudioSampleObserver(*this);
-    }
-
-    NODELETE bool isObservingMedia() const { return m_isObservingMedia; }
-
-    NODELETE bool isUsingSource(const RealtimeMediaSource& source) const { return m_source.ptr() == &source; }
-    NODELETE RealtimeMediaSource& source() { return m_source; }
-
-    void audioUnitWillStart() final
-    {
-#if PLATFORM(IOS_FAMILY)
-        m_providePresentingApplicationPIDFunction();
-#endif
-        // FIXME: We should ensure that WebProcess sets up the AudioSession properly before starting to capture microphone.
-        Ref session = AudioSession::singleton();
-        RELEASE_LOG_ERROR_IF(!session->isActive() || session->category() != AudioSession::CategoryType::PlayAndRecord, WebRTC, "Audio session should be active (%d) and category should be play and record (%d)", session->isActive(), session->category() != AudioSession::CategoryType::PlayAndRecord);
-
-        session->setCategory(AudioSession::CategoryType::PlayAndRecord, AudioSession::Mode::VideoChat, RouteSharingPolicy::Default);
-        session->tryToSetActive(true)->whenSettled(RunLoop::mainSingleton(), [](auto&&) { });
-    }
-
-    void start()
-    {
-        // A compromised WebContent process may send StartProducingData repeatedly. Once we are
-        // observing, prepareAudioDescription() would race the capture thread's audioSamplesAvailable().
-        if (m_isObservingMedia)
-            return;
-
-        m_shouldReset = true;
-        m_isStopped = false;
-        m_source->start();
-
-        if (m_usesAudioSink)
-            prepareAudioSink(m_source->audioStreamDescription());
-        else if (auto* description = m_source->audioStreamDescription())
-            prepareAudioDescription(*description);
-
-        observeMedia();
-    }
-
-    void stop()
-    {
-        m_isStopped = true;
-        m_source->stop();
-
-        unobserveMedia();
-    }
-
-    void end()
-    {
-        m_isStopped = true;
-        m_isEnded = true;
-        m_source->requestToEnd(*this);
-    }
-
-    void setIsInBackground(bool value) { m_source->setIsInBackground(value); }
-
-    void queueAndProcessSerialAction(Function<Ref<GenericPromise>()>&& action)
-    {
-        ASSERT(isMainRunLoop());
-
-        Ref pendingAction = WTF::move(m_pendingAction);
-        m_pendingAction = pendingAction->isResolved() ? action() : pendingAction->whenSettled(RunLoop::mainSingleton(), WTF::move(action));
-    }
-
-    void applyConstraints(WebCore::MediaConstraints&& constraints, CompletionHandler<void(std::optional<RealtimeMediaSource::ApplyConstraintsError>&&)> callback)
-    {
-        queueAndProcessSerialAction([weakThis = WeakPtr { *this }, constraints = WTF::move(constraints), callback = WTF::move(callback)]() mutable {
-            RefPtr protectedThis = weakThis.get();
-            if (!protectedThis) {
-                callback(RealtimeMediaSource::ApplyConstraintsError { { }, { } });
-                return GenericPromise::createAndResolve();
-            }
-
-            protect(protectedThis->m_source)->applyConstraints(constraints, WTF::move(callback));
-            return GenericPromise::createAndResolve();
-        });
-    }
-
-    const WebCore::RealtimeMediaSourceSettings& settings() { return m_source->settings(); }
-
-#if PLATFORM(IOS_FAMILY)
-    void setProvidePresentingApplicationPIDFunction(Function<void()>&& providePresentingApplicationPIDFunction)
-    {
-        m_providePresentingApplicationPIDFunction = WTF::move(providePresentingApplicationPIDFunction);
-    }
-#endif
-
-private:
-    UserMediaCaptureManagerProxySourceProxy(RealtimeMediaSourceIdentifier id, Ref<IPC::Connection>&& connection, Ref<RealtimeMediaSource>&& source)
-        : m_id(id)
-        , m_connection(WTF::move(connection))
-        , m_source(WTF::move(source))
-    {
-        m_source->addObserver(*this);
-        m_usesAudioSink = m_source->canHaveAudioCaptureSinks();
-    }
-
-    // CheckedPtr interface
-    uint32_t checkedPtrCount() const final { return CanMakeCheckedPtr::checkedPtrCount(); }
-    uint32_t checkedPtrCountWithoutThreadCheck() const final { return CanMakeCheckedPtr::checkedPtrCountWithoutThreadCheck(); }
-    void incrementCheckedPtrCount() const final { CanMakeCheckedPtr::incrementCheckedPtrCount(); }
-    void decrementCheckedPtrCount() const final { CanMakeCheckedPtr::decrementCheckedPtrCount(); }
-    void setDidBeginCheckedPtrDeletion() final { CanMakeCheckedPtr::setDidBeginCheckedPtrDeletion(); }
-
-    void sourceStopped() final
-    {
-        m_connection->send(Messages::UserMediaCaptureManager::SourceStopped(m_id, m_source->captureDidFail()), 0);
-    }
-
-    void sourceMutedChanged() final
-    {
-        m_connection->send(Messages::UserMediaCaptureManager::SourceMutedChanged(m_id, m_source->muted(), m_source->interrupted()), 0);
-    }
-
-    void sourceSettingsChanged() final
-    {
-        m_connection->send(Messages::UserMediaCaptureManager::SourceSettingsChanged(m_id, settings()), 0);
-    }
-
-    void sourceConfigurationChanged() final
-    {
-        Ref source = m_source;
-        m_connection->send(Messages::UserMediaCaptureManager::SourceConfigurationChanged(m_id, source->persistentID(), settings(), source->capabilities()), 0);
-    }
-
-    void prepareAudioDescription(const AudioStreamDescription& description)
-    {
-        m_captureSemaphore = makeUnique<IPC::Semaphore>();
-        ASSERT(description.platformDescription().type == PlatformDescription::CAAudioStreamBasicType);
-        m_description = *std::get<const AudioStreamBasicDescription*>(description.platformDescription().description);
-
-        // Allocate a ring buffer large enough to contain 2 seconds of audio.
-        auto result = ProducerSharedCARingBuffer::allocate(*m_description, m_description->sampleRate() * 2);
-        RELEASE_ASSERT(result); // FIXME(https://bugs.webkit.org/show_bug.cgi?id=262690): Handle allocation failure.
-        auto [ringBuffer, audioHandle] = WTF::move(*result);
-        m_ringBuffer = WTF::move(ringBuffer);
-        m_audioHandle = WTF::move(audioHandle);
-    }
-
-    // The sink the capture unit stores into the ring with on its IO thread, instead of audioSamplesAvailable() (DEV-CAP-1:
-    // the ring and the semaphore are made here, on the main thread). Without a format yet, the sink waits for the unit's.
-    // The old sink goes first, as its removal waits for the IO thread to finish with the old ring and semaphore.
-    void prepareAudioSink(const AudioStreamDescription* description)
-    {
-        ASSERT(isMainRunLoop());
-        removeAudioSink();
-        std::optional<AudioStreamBasicDescription> format;
-        if (description) {
-            prepareAudioDescription(*description);
-            m_frameChunkSize = std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize());
-            format = m_description->streamDescription();
-        }
-        m_audioSink = makeUnique<WebCore::AudioCaptureSink>(WebCore::AudioCaptureSink::Kind::Producer, format.value_or(AudioStreamBasicDescription { }));
-        if (format)
-            m_audioSink->attachRing(*m_ringBuffer, m_captureSemaphore->machSemaphore(), m_frameChunkSize);
-        m_audioSink->setStartedHandler([weakThis = WeakPtr { *this }](int64_t value, uint32_t scale) {
-            if (RefPtr protectedThis = weakThis.get())
-                protectedThis->audioSinkStarted(MediaTime { value, scale });
-        });
-        m_audioSink->setFormatChangedHandler([weakThis = WeakPtr { *this }] {
-            if (RefPtr protectedThis = weakThis.get(); protectedThis && protectedThis->m_audioSink)
-                protectedThis->prepareAudioSink(protectedThis->m_source->audioStreamDescription());
-        });
-        if (m_isObservingMedia)
-            m_source->addAudioCaptureSink(*m_audioSink);
-    }
-
-    void removeAudioSink()
-    {
-        if (!m_audioSink)
-            return;
-        m_source->removeAudioCaptureSink(*m_audioSink);
-        m_audioSink = nullptr;
-    }
-
-    // The first quantum the sink stored: the ring's start time, as audioSamplesAvailable() reset the storage.
-    void audioSinkStarted(const MediaTime& time)
-    {
-        if (!m_audioHandle)
-            return;
-        m_startTime = time;
-        m_connection->send(Messages::RemoteCaptureSampleManager::AudioStorageChanged(m_id, WTF::move(*m_audioHandle), *m_description, *m_captureSemaphore, m_startTime, m_frameChunkSize), 0);
-        m_audioHandle = { };
-    }
-
-    // May get called on a background thread.
-    void audioSamplesAvailable(const MediaTime& time, const PlatformAudioData& audioData, const AudioStreamDescription& description, size_t numberOfFrames) final
-    {
-        bool descriptionChanged = m_description != description;
-        if (descriptionChanged || m_shouldReset) {
-            m_shouldReset = false;
-            m_writeOffset = 0;
-            m_remainingFrameCount = 0;
-            m_startTime = time;
-            m_frameChunkSize = std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize());
-
-            ASSERT(descriptionChanged || m_audioHandle);
-
-            DisableMallocRestrictionsForCurrentThreadScope scope;
-            if (descriptionChanged)
-                prepareAudioDescription(description);
-
-            m_connection->send(Messages::RemoteCaptureSampleManager::AudioStorageChanged(m_id, WTF::move(*m_audioHandle), *m_description, *m_captureSemaphore, m_startTime, m_frameChunkSize), 0);
-            m_audioHandle = { };
-        }
-
-        m_ringBuffer->store(downcast<WebAudioBufferList>(audioData).list(), numberOfFrames, m_writeOffset);
-        m_writeOffset += numberOfFrames;
-
-        size_t framesToSend = numberOfFrames + m_remainingFrameCount;
-        size_t signalCount = framesToSend / m_frameChunkSize;
-        m_remainingFrameCount = framesToSend - (signalCount * m_frameChunkSize);
-        for (unsigned i = 0; i < signalCount; ++i)
-            m_captureSemaphore->signal();
-    }
-
-    bool preventSourceFromEnding()
-    {
-        // Do not allow the source to end if we are still using it.
-        return !m_isEnded;
-    }
-
-    bool m_isObservingMedia { false };
-    bool m_isStopped { false };
-    bool m_isEnded { false };
-    std::atomic<bool> m_shouldReset { false };
-    // A microphone of the GPU process stores into the ring on its IO thread (WebCore::AudioCaptureSink).
-    bool m_usesAudioSink { false };
-    std::unique_ptr<WebCore::AudioCaptureSink> m_audioSink;
-
-    RealtimeMediaSourceIdentifier m_id;
-    const Ref<IPC::Connection> m_connection;
-    const Ref<RealtimeMediaSource> m_source;
-    std::unique_ptr<ProducerSharedCARingBuffer> m_ringBuffer;
-    std::optional<CAAudioStreamDescription> m_description;
-    std::unique_ptr<IPC::Semaphore> m_captureSemaphore;
-    std::optional<ConsumerSharedCARingBufferHandle> m_audioHandle;
-    int64_t m_writeOffset { 0 };
-    int64_t m_remainingFrameCount { 0 };
-    size_t m_frameChunkSize { 0 };
-    MediaTime m_startTime;
-#if PLATFORM(IOS_FAMILY)
-    Function<void()> m_providePresentingApplicationPIDFunction;
-#endif
-
-    Ref<GenericPromise> m_pendingAction { GenericPromise::createAndResolve() };
-};
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(UserMediaCaptureManagerProxy);
 
@@ -424,117 +136,42 @@ UserMediaCapturePublishedFrame UserMediaCaptureFramePublisher::publish(VideoFram
 
 // MARK: Microphones
 
-class UserMediaCaptureMicrophones {
-    WTF_MAKE_TZONE_ALLOCATED_INLINE(UserMediaCaptureMicrophones);
-public:
-    explicit UserMediaCaptureMicrophones(UserMediaCaptureManagerProxy::ConnectionProxy& connectionProxy)
-        : m_connectionProxy(connectionProxy)
-    {
-    }
-
-    UserMediaCaptureMicrophoneResult create(RealtimeMediaSourceIdentifier, const CaptureDevice&, MediaDeviceHashSalts&&, const MediaConstraints*, PageIdentifier);
-    RefPtr<UserMediaCaptureManagerProxySourceProxy> get(uint64_t identifier) const { return m_proxies.get(identifier); }
-    void remove(uint64_t identifier);
-    void clone(uint64_t identifier, uint64_t cloneIdentifier, PageIdentifier);
-    void clear() { m_proxies.clear(); }
-    void forEach(NOESCAPE const Function<void(UserMediaCaptureManagerProxySourceProxy&)>& function)
-    {
-        for (Ref proxy : m_proxies.values())
-            function(proxy);
-    }
-
-private:
-    UserMediaCaptureManagerProxy::ConnectionProxy& m_connectionProxy;
-    HashMap<uint64_t, Ref<UserMediaCaptureManagerProxySourceProxy>> m_proxies;
-#if PLATFORM(IOS_FAMILY)
-    HashMap<PageIdentifier, ThreadSafeWeakPtr<RealtimeMediaSource>> m_pageMicrophones;
-#endif
-};
-
-UserMediaCaptureMicrophoneResult UserMediaCaptureMicrophones::create(RealtimeMediaSourceIdentifier identifier, const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, PageIdentifier pageIdentifier)
+UserMediaCaptureAudioStorage* UserMediaCaptureAudioStorage::create(IPC::Connection& connection, uint64_t sourceIdentifier, const AudioStreamBasicDescription& format)
 {
-    UserMediaCaptureMicrophoneResult result;
-    auto sourceOrError = RealtimeMediaSourceCenter::singleton().audioCaptureFactory().createAudioCaptureSource(device, WTF::move(hashSalts), constraints, pageIdentifier);
-    if (!sourceOrError) {
-        result.errorMessage = WTF::move(sourceOrError.error.errorMessage);
-        result.denialReason = static_cast<uint8_t>(sourceOrError.error.denialReason);
-        result.invalidConstraint = static_cast<uint8_t>(sourceOrError.error.invalidConstraint);
-        return result;
+    // Allocate a ring buffer large enough to contain 2 seconds of audio.
+    auto result = ProducerSharedCARingBuffer::allocate(format, format.mSampleRate * 2);
+    if (!result) {
+        RELEASE_LOG_ERROR(WebRTC, "UserMediaCaptureAudioStorage: unable to allocate the ring");
+        return nullptr;
     }
-
-    Ref source = sourceOrError.source();
-#if PLATFORM(IOS_FAMILY)
-    // FIXME: Support multiple microphones simultaneously.
-    if (RefPtr microphoneSource = m_pageMicrophones.get(pageIdentifier).get()) {
-        if (microphoneSource->persistentID() != device.persistentId() && !microphoneSource->isEnded()) {
-            RELEASE_LOG_ERROR(WebRTC, "Ending microphone source as new source is using a different device.");
-            microphoneSource->endImmediatly();
-        }
-    }
-    m_pageMicrophones.set(pageIdentifier, ThreadSafeWeakPtr { source.get() });
-#endif
-
-#if !RELEASE_LOG_DISABLED
-    source->setLogger(protect(m_connectionProxy.logger()), LoggerHelper::uniqueLogIdentifier());
-#endif
-
-    auto proxy = UserMediaCaptureManagerProxySourceProxy::create(identifier, protect(m_connectionProxy.connection()), source.copyRef());
-#if PLATFORM(IOS_FAMILY)
-    proxy->setProvidePresentingApplicationPIDFunction([&connectionProxy = m_connectionProxy, pageIdentifier] {
-        connectionProxy.providePresentingApplicationPID(pageIdentifier);
-    });
-#endif
-
-    // A microphone is ready once it exists (RealtimeMediaSource::whenReady()).
-    auto& settings = proxy->settings();
-    auto& capabilities = source->capabilities();
-    result.label = settings.label();
-    result.deviceId = settings.deviceId();
-    result.groupId = settings.groupId();
-    result.settings = captureSettingsValues(settings);
-    result.capabilityDeviceId = capabilities.deviceId();
-    result.capabilityGroupId = capabilities.groupId();
-    result.capabilities = captureCapabilityValues(capabilities);
-    m_proxies.add(identifier.toUInt64(), WTF::move(proxy));
-    return result;
+    auto [ringBuffer, handle] = WTF::move(*result);
+    return &adoptRef(*new UserMediaCaptureAudioStorage(connection, sourceIdentifier, format, WTF::move(ringBuffer), WTF::move(handle))).leakRef();
 }
 
-void UserMediaCaptureMicrophones::remove(uint64_t identifier)
+UserMediaCaptureAudioStorage::UserMediaCaptureAudioStorage(Ref<IPC::Connection>&& connection, uint64_t sourceIdentifier, const AudioStreamBasicDescription& format, std::unique_ptr<ProducerSharedCARingBuffer>&& ringBuffer, ConsumerSharedCARingBufferHandle&& handle)
+    : m_connection(WTF::move(connection))
+    , m_sourceIdentifier(sourceIdentifier)
+    , m_format(format)
+    , m_ringBuffer(WTF::move(ringBuffer))
+    , m_semaphore(makeUnique<IPC::Semaphore>())
+    , m_handle(makeUniqueWithoutFastMallocCheck<ConsumerSharedCARingBufferHandle>(WTF::move(handle)))
+    , m_frameChunkSize(std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize()))
 {
-    RefPtr proxy = m_proxies.take(identifier);
-#if PLATFORM(IOS_FAMILY)
-    if (!proxy)
-        return;
-    Ref source = proxy->source();
-    for (auto& other : m_proxies.values()) {
-        if (other->isUsingSource(source))
-            return;
-    }
-    if (auto pageIdentifier = source->pageIdentifier()) {
-        if (source.ptr() == m_pageMicrophones.get(*pageIdentifier).get().get())
-            m_pageMicrophones.remove(*pageIdentifier);
-    }
-#else
-    UNUSED_VARIABLE(proxy);
-#endif
 }
 
-void UserMediaCaptureMicrophones::clone(uint64_t identifier, uint64_t cloneIdentifier, PageIdentifier pageIdentifier)
+UserMediaCaptureAudioStorage::~UserMediaCaptureAudioStorage() = default;
+
+void UserMediaCaptureAudioStorage::attachToSink(uint64_t sinkIdentifier)
 {
-    RefPtr proxy = m_proxies.get(identifier);
-    if (!proxy)
+    AudioCaptureSink::attachRing(sinkIdentifier, *m_ringBuffer, m_semaphore->machSemaphore(), m_frameChunkSize);
+}
+
+void UserMediaCaptureAudioStorage::sendStorageChanged(int64_t startTimeValue, uint32_t startTimeScale)
+{
+    if (!m_handle)
         return;
-    auto cloneProxy = UserMediaCaptureManagerProxySourceProxy::create(RealtimeMediaSourceIdentifier { cloneIdentifier }, protect(m_connectionProxy.connection()), proxy->source().clone());
-#if PLATFORM(IOS_FAMILY)
-    cloneProxy->setProvidePresentingApplicationPIDFunction([&connectionProxy = m_connectionProxy, pageIdentifier] {
-        connectionProxy.providePresentingApplicationPID(pageIdentifier);
-    });
-#else
-    UNUSED_PARAM(pageIdentifier);
-#endif
-    if (proxy->isObservingMedia())
-        cloneProxy->observeMedia();
-    m_proxies.add(cloneIdentifier, WTF::move(cloneProxy));
+    auto handle = std::exchange(m_handle, nullptr);
+    m_connection->send(Messages::RemoteCaptureSampleManager::AudioStorageChanged(RealtimeMediaSourceIdentifier { m_sourceIdentifier }, WTF::move(*handle), m_format, *m_semaphore, MediaTime { startTimeValue, startTimeScale }, m_frameChunkSize), 0);
 }
 
 // MARK: Receiver
@@ -548,7 +185,6 @@ Ref<UserMediaCaptureManagerProxy> UserMediaCaptureManagerProxy::create(UniqueRef
 
 UserMediaCaptureManagerProxy::UserMediaCaptureManagerProxy(UniqueRef<ConnectionProxy>&& connectionProxy)
     : m_connectionProxy(WTF::move(connectionProxy))
-    , m_microphones(makeUnique<UserMediaCaptureMicrophones>(m_connectionProxy.get()))
 {
     m_connectionProxy->addMessageReceiver(Messages::UserMediaCaptureManagerProxy::messageReceiverName(), *this);
 }
@@ -627,101 +263,19 @@ CaptureConstraints* UserMediaCaptureManagerProxy::takeConstraints(IPC::CxxDecode
     return CaptureConstraints::create(WTF::move(*value));
 }
 
-UserMediaCaptureMicrophoneResult UserMediaCaptureManagerProxy::createMicrophone(uint64_t identifier, const String& persistentID, CaptureDevice::DeviceType type, const String& label, const String& groupId, bool isDefault, bool isEphemeral, const String& persistentDeviceSalt, const String& ephemeralDeviceSalt, IPC::CxxDecodedArgument<MediaConstraints>& constraintsArgument, uint64_t pageIdentifier)
+void UserMediaCaptureManagerProxy::microphoneUnitWillStart(uint64_t pageIdentifier)
 {
-    CaptureDevice device { persistentID, type, label, groupId };
-    device.setIsDefault(isDefault);
-    device.setIsEphemeral(isEphemeral);
-    auto constraints = constraintsArgument.take();
-    const MediaConstraints* validConstraints = constraints && constraints->isValid ? &*constraints : nullptr;
-    return m_microphones->create(RealtimeMediaSourceIdentifier { identifier }, device, { persistentDeviceSalt, ephemeralDeviceSalt }, validConstraints, PageIdentifier { pageIdentifier });
-}
+#if PLATFORM(IOS_FAMILY)
+    m_connectionProxy->providePresentingApplicationPID(PageIdentifier { pageIdentifier });
+#else
+    UNUSED_PARAM(pageIdentifier);
+#endif
+    // FIXME: We should ensure that WebProcess sets up the AudioSession properly before starting to capture microphone.
+    Ref session = AudioSession::singleton();
+    RELEASE_LOG_ERROR_IF(!session->isActive() || session->category() != AudioSession::CategoryType::PlayAndRecord, WebRTC, "Audio session should be active (%d) and category should be play and record (%d)", session->isActive(), session->category() != AudioSession::CategoryType::PlayAndRecord);
 
-void UserMediaCaptureManagerProxy::microphoneStart(uint64_t identifier, uint64_t pageIdentifier)
-{
-    RefPtr proxy = m_microphones->get(identifier);
-    if (!proxy)
-        return;
-
-    Ref source = proxy->source();
-    if (auto failure = applyCaptureEnvironment(source->deviceType(), pageIdentifier); failure != UserMediaCaptureEnvironmentFailure::None) {
-        if (failure == UserMediaCaptureEnvironmentFailure::NoMediaEnvironment)
-            source->captureFailed();
-        return;
-    }
-
-    startProducingData(source->deviceType(), pageIdentifier);
-    proxy->start();
-}
-
-void UserMediaCaptureManagerProxy::microphoneStop(uint64_t identifier)
-{
-    if (RefPtr proxy = m_microphones->get(identifier))
-        proxy->stop();
-}
-
-void UserMediaCaptureManagerProxy::microphoneEnd(uint64_t identifier)
-{
-    if (RefPtr proxy = m_microphones->get(identifier))
-        proxy->end();
-}
-
-void UserMediaCaptureManagerProxy::microphoneRemove(uint64_t identifier)
-{
-    m_microphones->remove(identifier);
-}
-
-void UserMediaCaptureManagerProxy::microphoneClone(uint64_t identifier, uint64_t cloneIdentifier, uint64_t pageIdentifier)
-{
-    m_microphones->clone(identifier, cloneIdentifier, PageIdentifier { pageIdentifier });
-}
-
-void UserMediaCaptureManagerProxy::microphoneApplyConstraints(uint64_t identifier, IPC::CxxDecodedArgument<MediaConstraints>& constraintsArgument)
-{
-    auto sourceIdentifier = RealtimeMediaSourceIdentifier { identifier };
-    RefPtr proxy = m_microphones->get(identifier);
-    auto constraints = constraintsArgument.take();
-    if (!proxy || !constraints) {
-        protect(m_connectionProxy->connection())->send(Messages::UserMediaCaptureManager::ApplyConstraintsFailed(sourceIdentifier, { }, "Unknown source"_s), 0);
-        return;
-    }
-
-    MESSAGE_CHECK(areCaptureConstraintsWellFormed(*constraints));
-
-    proxy->applyConstraints(WTF::move(*constraints), [sourceIdentifier, proxy, connection = protect(m_connectionProxy->connection())](auto&& result) {
-        if (result) {
-            connection->send(Messages::UserMediaCaptureManager::ApplyConstraintsFailed(sourceIdentifier, result->invalidConstraint, result->message), 0);
-            return;
-        }
-
-        connection->send(Messages::UserMediaCaptureManager::ApplyConstraintsSucceeded(sourceIdentifier, proxy->settings()), 0);
-    });
-}
-
-void UserMediaCaptureManagerProxy::microphoneSetIsInBackground(uint64_t identifier, bool isInBackground)
-{
-    if (RefPtr proxy = m_microphones->get(identifier))
-        proxy->setIsInBackground(isInBackground);
-}
-
-void UserMediaCaptureManagerProxy::microphoneReapplyCaptureEnvironment(uint64_t pageIdentifier)
-{
-    bool reapplied = false;
-    m_microphones->forEach([&](auto& proxy) {
-        if (reapplied)
-            return;
-        Ref source = proxy.source();
-        auto sourcePageIdentifier = source->pageIdentifier();
-        if (!sourcePageIdentifier || sourcePageIdentifier->toUInt64() != pageIdentifier || !source->isProducingData())
-            return;
-        reapplyCaptureEnvironmentForSource(source->deviceType(), pageIdentifier);
-        reapplied = true;
-    });
-}
-
-void UserMediaCaptureManagerProxy::microphoneClear()
-{
-    m_microphones->clear();
+    session->setCategory(AudioSession::CategoryType::PlayAndRecord, AudioSession::Mode::VideoChat, RouteSharingPolicy::Default);
+    session->tryToSetActive(true)->whenSettled(RunLoop::mainSingleton(), [](auto&&) { });
 }
 
 std::optional<SharedPreferencesForWebProcess> UserMediaCaptureManagerProxy::sharedPreferencesForWebProcess() const

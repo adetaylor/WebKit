@@ -452,6 +452,11 @@ private final class AudioCaptureDevices: @unchecked Sendable {
 
 private let audioCaptureDevices = AudioCaptureDevices()
 
+// The HAL ID of the enabled microphone or speaker with the given persistent ID, for a GPU-process microphone source.
+func audioCaptureMicrophoneDeviceID(_ persistentID: Swift.String) -> UInt32? {
+    audioCaptureDevices.deviceID(withUID: persistentID as CFString)
+}
+
 // MARK: The C++ API
 
 // The list's version, which changes when the list does, after reading it a first time if initialize.

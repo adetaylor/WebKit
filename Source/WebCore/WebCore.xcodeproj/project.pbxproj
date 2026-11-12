@@ -7839,6 +7839,7 @@
 		E370C46D22201E9389D08DCB /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F66CADD74C12B9189FA604 /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift */; };
 		F936C9750E104D8DB4F60324 /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */; };
 		46D5945ECAF04BF6891069A6 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */; };
+		35328990440148048DB3641E /* MicrophoneCaptureSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25E5507B370B4CBCA8AA007E /* MicrophoneCaptureSource.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -24627,6 +24628,7 @@
 		C9F66CADD74C12B9189FA604 /* SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/ScreenCaptureKitSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		5A67A2B224A84089824FE3BB /* SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/CoreMediaSoftLinkAccessors.swift; sourceTree = "<group>"; };
 		2C5159E5BBB742B490E2E389 /* SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftLinkAccessors/AudioToolboxSoftLinkAccessors.swift; sourceTree = "<group>"; };
+		25E5507B370B4CBCA8AA007E /* MicrophoneCaptureSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneCaptureSource.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -28388,6 +28390,7 @@
 				41878FAA27282057002E1EDD /* IncomingAudioMediaStreamTrackRendererUnit.h */,
 				4174E9202535DCDD00FE4202 /* MediaStreamTrackAudioSourceProviderCocoa.cpp */,
 				4174E91E2535DCD600FE4202 /* MediaStreamTrackAudioSourceProviderCocoa.h */,
+				25E5507B370B4CBCA8AA007E /* MicrophoneCaptureSource.swift */,
 				0744ECEB1E0C4AE5000D0944 /* MockAudioCaptureUnit.h */,
 				0744ECEC1E0C4AE5000D0944 /* MockAudioCaptureUnit.mm */,
 				07EE76ED1BEA619800F89133 /* MockRealtimeVideoSourceCocoa.h */,
@@ -52224,6 +52227,7 @@
 				CDA9593524123CB800910EEF /* MediaSessionHelperIOS.mm in Sources */,
 				07638A9A1884487200E15A1B /* MediaSessionManagerIOS.mm in Sources */,
 				4133CB8B20F80E9900E89B11 /* MediaStreamAudioSourceCocoa.cpp in Sources */,
+				35328990440148048DB3641E /* MicrophoneCaptureSource.swift in Sources */,
 				E3952FF327C7CFDD0086F5D9 /* MockContentFilter.cpp in Sources */,
 				E3952FEE27C6DF140086F5D9 /* MockContentFilterManager.cpp in Sources */,
 				E3952FF027C7CDAC0086F5D9 /* MockContentFilterSettings.cpp in Sources */,

@@ -105,6 +105,68 @@ AudioCaptureMicrophoneBufferSizes coreAudioCaptureUnitAllocateMicrophoneBuffer(u
     return unit->allocateMicrophoneBuffer(format, bufferSize);
 }
 
+uint64_t coreAudioCaptureDefaultController()
+{
+    return CoreAudioCaptureUnit::defaultSingleton().controllerIdentifier();
+}
+
+#if PLATFORM(MAC)
+// The units without echo cancellation that Swift clients capture with, until they release them.
+NODELETE static HashMap<uint64_t, Ref<CoreAudioCaptureUnit>>& unitsOfSwiftClients()
+{
+    ASSERT(isMainThread());
+
+    static NeverDestroyed<HashMap<uint64_t, Ref<CoreAudioCaptureUnit>>> units;
+    return units;
+}
+
+uint64_t coreAudioCaptureCreateControllerWithoutEchoCancellation()
+{
+    Ref unit = CoreAudioCaptureUnit::createNonVPIOUnit();
+    auto identifier = unit->controllerIdentifier();
+    unitsOfSwiftClients().add(identifier, WTF::move(unit));
+    return identifier;
+}
+
+void coreAudioCaptureReleaseController(uint64_t controller)
+{
+    unitsOfSwiftClients().remove(controller);
+}
+#endif
+
+AudioCaptureSampleRateRange coreAudioCaptureUnitSampleRateRange(uint64_t controller)
+{
+    RefPtr unit = unitForController(controller);
+    if (!unit)
+        return { };
+    auto range = unit->sampleRateCapacities();
+    return { range.min(), range.max() };
+}
+
+#if PLATFORM(IOS_FAMILY)
+bool audioCaptureSessionHasMicrophone(const String& persistentID, bool isDefault)
+{
+    if (AVAudioSessionCaptureDeviceManager::singleton().audioSessionDeviceWithUID(persistentID) || isDefault)
+        return true;
+    AVAudioSessionCaptureDeviceManager::singleton().scheduleUpdateCaptureDevices();
+    return false;
+}
+#endif
+
+void coreAudioCaptureUnitSetCaptureDevice(uint64_t controller, const String& persistentID, uint32_t deviceID, bool isDefault)
+{
+    if (RefPtr unit = unitForController(controller))
+        unit->setCaptureDevice(String { persistentID }, deviceID, isDefault);
+}
+
+#if PLATFORM(IOS_FAMILY)
+void coreAudioCaptureUnitSetIsInBackground(uint64_t controller, bool isInBackground)
+{
+    if (RefPtr unit = unitForController(controller))
+        unit->setIsInBackground(isInBackground);
+}
+#endif
+
 double audioCaptureSessionSampleRate()
 {
     return AudioSession::singleton().sampleRate();
@@ -198,6 +260,11 @@ AudioCaptureControllerState CoreAudioCaptureUnit::state() const
 int CoreAudioCaptureUnit::sampleRate() const
 {
     return state().sampleRate;
+}
+
+double CoreAudioCaptureUnit::volume() const
+{
+    return state().volume;
 }
 
 bool CoreAudioCaptureUnit::enableEchoCancellation() const
@@ -303,8 +370,6 @@ void CoreAudioCaptureUnit::stopProducingData()
 
 void CoreAudioCaptureUnit::prepareForNewCapture()
 {
-    m_volume = 1;
-    updateMicrophoneConfiguration();
     m_controller.prepareForNewCapture();
 }
 
@@ -317,6 +382,7 @@ void CoreAudioCaptureUnit::setCaptureDevice(String&& persistentID, uint32_t capt
             forEachClient([&persistentID](auto& client) {
                 client.vpioUnitWillChangeCaptureDeviceTo(persistentID);
             });
+            m_controller.captureDeviceDidChange(AudioCaptureDeviceEvent::VPIOUnitWillChangeCaptureDevice, persistentID.createCFString().get(), CFSTR(""));
         }
 #endif
         m_controller.changeCaptureDevice(AudioCaptureDeviceChange::WillChange, captureDeviceID);
@@ -361,8 +427,7 @@ void CoreAudioCaptureUnit::delaySamples(Seconds seconds)
 
 void CoreAudioCaptureUnit::setVolume(double volume)
 {
-    m_volume = volume;
-    updateMicrophoneConfiguration();
+    m_controller.setVolume(volume);
 }
 
 void CoreAudioCaptureUnit::setSampleRate(int sampleRate)
@@ -430,6 +495,7 @@ void CoreAudioCaptureUnit::handleNewCurrentMicrophoneDevice(const CaptureDevice&
     forEachClient([&device](auto& client) {
         client.handleNewCurrentMicrophoneDevice(device);
     });
+    m_controller.captureDeviceDidChange(AudioCaptureDeviceEvent::NewCurrentMicrophoneDevice, device.persistentId().createCFString().get(), device.label().createCFString().get());
 }
 
 void CoreAudioCaptureUnit::updateMicrophoneConfiguration()
@@ -463,8 +529,7 @@ void CoreAudioCaptureUnit::updateMicrophoneConfiguration()
     }
     m_attachedSinkIdentifiers = WTF::move(sinkIdentifiers);
 
-    // Delivering the first sample tells the source's observers it started producing data.
-    m_controller.setMicrophoneOptions(m_volume, m_volume != 1.0, deliversToCxx, needsFirstQuantum && !deliversToCxx);
+    m_controller.setCxxMicrophoneOptions(deliversToCxx, needsFirstQuantum);
 }
 
 AudioCaptureMicrophoneBufferSizes CoreAudioCaptureUnit::allocateMicrophoneBuffer(const AudioStreamBasicDescription& format, uint64_t bufferSize)

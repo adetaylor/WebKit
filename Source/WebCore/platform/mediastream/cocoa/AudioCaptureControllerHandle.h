@@ -30,10 +30,12 @@
 #if ENABLE(MEDIA_STREAM)
 
 #include <CoreAudio/CoreAudioTypes.h>
+#include <CoreFoundation/CFString.h>
 #include <WebCore/CaptureSourceDecisions.h>
 #include <WebCore/CARingBufferSwiftBridge.h>
 #include <cstdint>
 #include <wtf/SwiftBridging.h>
+#include <wtf/text/WTFString.h>
 
 // A microphone capture unit, as AudioCaptureController.swift implements it: CoreAudioCaptureUnit holds one by identifier,
 // calls it with plain values, and does what only C++ can do, for its clients and the callbacks C++ gave it, through the
@@ -42,6 +44,7 @@
 namespace WebCore {
 
 struct AudioCaptureControllerState {
+    double volume { 1 };
     int32_t sampleRate { 0 };
     // The speaker's producer's sample rate while one is registered, otherwise sampleRate.
     int32_t actualSampleRate { 0 };
@@ -53,6 +56,14 @@ struct AudioCaptureControllerState {
     bool canRenderAudio { false };
     bool isRenderingAudio { false };
     bool hasAudioUnit { false };
+};
+
+// What CoreAudioCaptureUnit tells the controller's Swift clients about capture devices.
+enum class AudioCaptureDeviceEvent : uint8_t {
+    // The voice processing unit is about to capture from the device with this persistent ID.
+    VPIOUnitWillChangeCaptureDevice,
+    // The default microphone that the unit captures from is now this one.
+    NewCurrentMicrophoneDevice,
 };
 
 enum class AudioCaptureDeviceChange : uint8_t {
@@ -103,10 +114,15 @@ public:
     static void setHasMuteStatusListener(bool);
     void prewarmAudioUnitCreation() const;
 
-    // What the microphone does with each quantum: the sinks of the clients, and whether the producing ones get the samples
-    // with the volume applied, and through the C++ observers.
+    // What the microphone does with each quantum for the C++ clients: their sinks, whether they get the samples through
+    // their C++ observers, and whether one is waiting for its first quantum. The controller's Swift clients have theirs too.
     void attachSink(uint64_t sinkIdentifier, bool) const;
-    void setMicrophoneOptions(float gain, bool appliesGain, bool deliversToCxx, bool armFirstQuantum) const;
+    void setCxxMicrophoneOptions(bool deliversToCxx, bool needsFirstQuantum) const;
+    // The volume, which the microphone's samples are multiplied by, for every client.
+    void setVolume(double) const;
+
+    // For the controller's Swift clients.
+    void captureDeviceDidChange(AudioCaptureDeviceEvent, CFStringRef WTF_NONNULL persistentID, CFStringRef WTF_NONNULL label) const;
 
     // CoreAudioCaptureSource's settings, and its capabilities with this echo cancellation (a
     // RealtimeMediaSourceCapabilities::EchoCancellation) and sample rate range.
@@ -137,9 +153,33 @@ enum class AudioCaptureControllerEvent : uint8_t {
 };
 
 void coreAudioCaptureUnitDidChange(uint64_t controller, AudioCaptureControllerEvent, bool value);
+// The C++ clients only.
 bool coreAudioCaptureUnitHasClients(uint64_t controller);
 // The buffers for the microphone's new format, of bufferSize bytes.
 AudioCaptureMicrophoneBufferSizes coreAudioCaptureUnitAllocateMicrophoneBuffer(uint64_t controller, AudioStreamBasicDescription, uint64_t bufferSize);
+
+// The units of the controllers that Swift clients capture with (implemented by CoreAudioCaptureUnit.cpp). The default unit
+// lives as long as the process; a unit without echo cancellation, until it is released.
+SWIFT_MAIN_ACTOR uint64_t coreAudioCaptureDefaultController();
+#if PLATFORM(MAC)
+SWIFT_MAIN_ACTOR uint64_t coreAudioCaptureCreateControllerWithoutEchoCancellation();
+SWIFT_MAIN_ACTOR void coreAudioCaptureReleaseController(uint64_t controller);
+#endif
+struct AudioCaptureSampleRateRange {
+    int32_t minimum { 0 };
+    int32_t maximum { 0 };
+};
+// The sample rates the unit's clients can ask for.
+SWIFT_MAIN_ACTOR AudioCaptureSampleRateRange coreAudioCaptureUnitSampleRateRange(uint64_t controller);
+#if PLATFORM(IOS_FAMILY)
+// Whether AVAudioSession has the microphone, or it is the default one (CoreAudioCaptureSource::create()).
+SWIFT_MAIN_ACTOR bool audioCaptureSessionHasMicrophone(const String& persistentID, bool isDefault);
+#endif
+// CoreAudioCaptureUnit::setCaptureDevice(), for a Swift client.
+SWIFT_MAIN_ACTOR void coreAudioCaptureUnitSetCaptureDevice(uint64_t controller, const String& persistentID, uint32_t deviceID, bool isDefault);
+#if PLATFORM(IOS_FAMILY)
+SWIFT_MAIN_ACTOR void coreAudioCaptureUnitSetIsInBackground(uint64_t controller, bool);
+#endif
 
 double audioCaptureSessionSampleRate();
 uint64_t audioCaptureSessionBufferSize();

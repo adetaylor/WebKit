@@ -145,6 +145,12 @@ private var audioCaptureControllers: [UInt64: AudioCaptureController] = [:]
 @MainActor
 private var defaultAudioCaptureController: AudioCaptureController?
 
+// The controller of a unit that CoreAudioCaptureUnit made, for its Swift clients.
+@MainActor
+func audioCaptureController(_ identifier: UInt64) -> AudioCaptureController? {
+    audioCaptureControllers[identifier]
+}
+
 @MainActor
 private func defaultController() -> AudioCaptureController {
     guard let controller = defaultAudioCaptureController else {
@@ -162,6 +168,23 @@ private enum AudioUnitCreationWarmup {
 }
 #endif
 
+// A Swift client of a capture unit, a microphone source of the GPU process (MicrophoneCaptureBackend): what
+// CoreAudioCaptureUnit does for its C++ clients, the controller does for these.
+@MainActor
+protocol AudioCaptureControllerClient: AnyObject {
+    var isProducingMicrophoneData: Bool { get }
+    // Whether it produces data and waits for its first quantum, which tells its observers it started producing data.
+    var needsFirstMicrophoneQuantum: Bool { get }
+    // The sinks the microphone feeds while it produces data.
+    var microphoneSinks: [MicrophoneSink] { get }
+    func audioCaptureControllerDidChange(_ event: WebCore.AudioCaptureControllerEvent)
+    func audioCaptureDeviceDidChange(_ event: WebCore.AudioCaptureDeviceEvent, persistentID: Swift.String, label: Swift.String)
+}
+
+private struct WeakAudioCaptureControllerClient {
+    weak var client: (any AudioCaptureControllerClient)?
+}
+
 @MainActor
 final class AudioCaptureController {
     let identifier: UInt64
@@ -176,6 +199,15 @@ final class AudioCaptureController {
     private var captureDeviceID: UInt32 = 0
     private var isProducingMicrophoneSamples = true
     private var hasVoiceActivityListener = false
+    private(set) var volume: Double = 1
+    // The format of the microphone's quanta, once the unit has one.
+    private(set) var microphoneFormat: AudioStreamBasicDescription?
+    private var swiftClients: [ObjectIdentifier: WeakAudioCaptureControllerClient] = [:]
+    private var swiftClientOrder: [ObjectIdentifier] = []
+    private var swiftAttachedSinkIdentifiers: Set<UInt64> = []
+    private var swiftClientsNeedFirstQuantum = false
+    private var cxxClientsDeliverToCxx = false
+    private var cxxClientsNeedFirstQuantum = false
     private var voiceActivityThrottleTimer: MainThreadTimer?
 
     private var usesMockUnit = false
@@ -238,11 +270,119 @@ final class AudioCaptureController {
     }
 
     private func notify(_ event: WebCore.AudioCaptureControllerEvent, _ value: Bool = false) {
+        notifySwiftClients(event)
         WebCore.coreAudioCaptureUnitDidChange(identifier, event, value)
     }
 
     private var hasClients: Bool {
-        WebCore.coreAudioCaptureUnitHasClients(identifier)
+        !liveSwiftClients.isEmpty || WebCore.coreAudioCaptureUnitHasClients(identifier)
+    }
+
+    // MARK: Swift clients
+
+    private var liveSwiftClients: [any AudioCaptureControllerClient] {
+        swiftClientOrder.compactMap { swiftClients[$0]?.client }
+    }
+
+    func addClient(_ client: any AudioCaptureControllerClient) {
+        let key = ObjectIdentifier(client)
+        if swiftClients[key] == nil {
+            swiftClientOrder.append(key)
+        }
+        swiftClients[key] = WeakAudioCaptureControllerClient(client: client)
+        updateSwiftMicrophoneConfiguration()
+    }
+
+    func removeClient(_ client: any AudioCaptureControllerClient) {
+        let key = ObjectIdentifier(client)
+        guard swiftClients.removeValue(forKey: key) != nil else {
+            return
+        }
+        swiftClientOrder.removeAll { $0 == key }
+        updateSwiftMicrophoneConfiguration()
+        clientWasRemoved()
+    }
+
+    private func removeAllSwiftClients() {
+        swiftClients = [:]
+        swiftClientOrder = []
+    }
+
+    // CoreAudioCaptureUnit::didChange(), for the Swift clients.
+    private func notifySwiftClients(_ event: WebCore.AudioCaptureControllerEvent) {
+        switch event {
+        case .MicrophoneConfigurationNeeded:
+            swiftAttachedSinkIdentifiers = []
+            updateSwiftMicrophoneConfiguration()
+            return
+        case .UnitWillStart, .CaptureFailed, .Suspended, .Resumed, .EchoCancellationChanged, .MicrophoneFormatChanged, .FirstMicrophoneQuantum, .SinkStarted:
+            break
+        default:
+            return
+        }
+        let clients = liveSwiftClients
+        if event == .CaptureFailed {
+            removeAllSwiftClients()
+        }
+        for client in clients {
+            client.audioCaptureControllerDidChange(event)
+        }
+    }
+
+    func captureDeviceDidChange(_ event: WebCore.AudioCaptureDeviceEvent, persistentID: Swift.String, label: Swift.String) {
+        for client in liveSwiftClients {
+            client.audioCaptureDeviceDidChange(event, persistentID: persistentID, label: label)
+        }
+    }
+
+    // CoreAudioCaptureUnit::updateMicrophoneConfiguration(), for the Swift clients.
+    func updateSwiftMicrophoneConfiguration() {
+        guard let unit else {
+            return
+        }
+        var needsFirstQuantum = false
+        var sinkIdentifiers: Set<UInt64> = []
+        for client in liveSwiftClients {
+            let isProducing = client.isProducingMicrophoneData
+            if client.needsFirstMicrophoneQuantum {
+                needsFirstQuantum = true
+            }
+            for sink in client.microphoneSinks {
+                sink.setEnabled(isProducing)
+                sinkIdentifiers.insert(sink.identifier)
+                if !swiftAttachedSinkIdentifiers.contains(sink.identifier) {
+                    unit.attachSink(sink.identifier, true)
+                }
+            }
+        }
+        for identifier in swiftAttachedSinkIdentifiers where !sinkIdentifiers.contains(identifier) {
+            unit.attachSink(identifier, false)
+        }
+        swiftAttachedSinkIdentifiers = sinkIdentifiers
+        swiftClientsNeedFirstQuantum = needsFirstQuantum
+        applyMicrophoneOptions()
+    }
+
+    func setVolume(_ value: Double) {
+        volume = value
+        applyMicrophoneOptions()
+    }
+
+    func setCxxMicrophoneOptions(deliversToCxx: Bool, needsFirstQuantum: Bool) {
+        cxxClientsDeliverToCxx = deliversToCxx
+        cxxClientsNeedFirstQuantum = needsFirstQuantum
+        applyMicrophoneOptions()
+    }
+
+    private func applyMicrophoneOptions() {
+        guard let unit else {
+            return
+        }
+        unit.setMicrophoneOptions(gain: Float(volume), appliesGain: volume != 1, deliversToCxx: cxxClientsDeliverToCxx)
+        // Delivering the first sample tells the source's observers it started producing data.
+        if (cxxClientsNeedFirstQuantum || swiftClientsNeedFirstQuantum) && !cxxClientsDeliverToCxx {
+            unit.setSwitch(.firstMicrophoneQuantumArmed, true)
+        }
     }
 
     private var preferredIOBufferSize: Int {
@@ -251,6 +391,7 @@ final class AudioCaptureController {
 
     var state: WebCore.AudioCaptureControllerState {
         var state = WebCore.AudioCaptureControllerState()
+        state.volume = volume
         state.sampleRate = Int32(clamping: sampleRate)
         state.actualSampleRate = Int32(clamping: actualSampleRate)
         state.enableEchoCancellation = enableEchoCancellation
@@ -336,6 +477,7 @@ final class AudioCaptureController {
     }
 
     func prepareForNewCapture() {
+        setVolume(1)
         resetSampleRate()
         if !isSuspended {
             return
@@ -874,6 +1016,7 @@ final class AudioCaptureController {
         }
         let sizes = WebCore.coreAudioCaptureUnitAllocateMicrophoneBuffer(identifier, format, UInt64(clamping: bufferSize &* 2))
         unit.allocateMicrophoneBuffers(format, sizes, sampleRate: format.mSampleRate, dtsConversionRatio: dtsConversionRatio)
+        microphoneFormat = format
         // Sinks of another format would drop the quanta: their owners give them rings in this one, before the unit starts.
         notify(.MicrophoneFormatChanged)
         return noErr
@@ -1219,17 +1362,6 @@ final class AudioCaptureController {
 
     func attachSink(_ sinkIdentifier: UInt64, _ attach: Bool) {
         unit?.attachSink(sinkIdentifier, attach)
-    }
-
-    func setMicrophoneOptions(gain: Float, appliesGain: Bool, deliversToCxx: Bool, armFirstQuantum: Bool) {
-        guard let unit else {
-            return
-        }
-        unit.setMicrophoneOptions(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx)
-        // Delivering the first sample tells the source's observers it started producing data.
-        if armFirstQuantum {
-            unit.setSwitch(.firstMicrophoneQuantumArmed, true)
-        }
     }
 
     // MARK: The stored voice processing unit
@@ -1788,9 +1920,27 @@ extension WebCore.AudioCaptureControllerHandle {
 
     @cxx
     @implementation
-    func setMicrophoneOptions(_ gain: Float, _ appliesGain: Bool, _ deliversToCxx: Bool, _ armFirstQuantum: Bool) {
+    func setCxxMicrophoneOptions(_ deliversToCxx: Bool, _ needsFirstQuantum: Bool) {
         MainActor.assumeIsolated {
-            controller?.setMicrophoneOptions(gain: gain, appliesGain: appliesGain, deliversToCxx: deliversToCxx, armFirstQuantum: armFirstQuantum)
+            controller?.setCxxMicrophoneOptions(deliversToCxx: deliversToCxx, needsFirstQuantum: needsFirstQuantum)
+        }
+    }
+
+    @cxx
+    @implementation
+    func setVolume(_ value: Double) {
+        MainActor.assumeIsolated {
+            controller?.setVolume(value)
+        }
+    }
+
+    @cxx
+    @implementation
+    func captureDeviceDidChange(_ event: WebCore.AudioCaptureDeviceEvent, _ persistentID: CFString, _ label: CFString) {
+        let persistentID = persistentID as Swift.String
+        let label = label as Swift.String
+        MainActor.assumeIsolated {
+            controller?.captureDeviceDidChange(event, persistentID: persistentID, label: label)
         }
     }
 

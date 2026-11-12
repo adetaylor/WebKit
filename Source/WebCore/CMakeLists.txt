@@ -3609,6 +3609,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureSource.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/CaptureSource.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/MicrophoneCaptureSource.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/MockVideoSource.swift
         ${WEBCORE_DIR}/platform/mock/MockVideoSettings.swift
         ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitCapturer.swift
