@@ -38,9 +38,9 @@ import WebCore_Private.Core.MockVideoSourceHandle
 
 // MARK: Sinks
 
-// A producer sink of a GPU-process microphone (WebCore::AudioCaptureSink, for Swift): it stores the microphone's quanta of
+// A sink of a GPU-process microphone (WebCore::AudioCaptureSink, for Swift). A producer stores the microphone's quanta of
 // its format into the ring that its owner attaches by identifier, until it is invalidated, which waits for the IO thread
-// to finish with the ring. Its owner keeps the ring until then.
+// to finish with the ring; its owner keeps the ring until then. A peak keeps the largest sample magnitude.
 @_spi(WebKitGPU) @MainActor public final class MicrophoneSink {
     public let identifier: UInt64
     public let format: AudioStreamBasicDescription
@@ -51,9 +51,22 @@ import WebCore_Private.Core.MockVideoSourceHandle
     private var hasNotifiedStart = false
     private var isValid = true
 
-    public init(format: AudioStreamBasicDescription) {
+    private init(isProducer: Bool, format: AudioStreamBasicDescription) {
         self.format = format
-        identifier = addCaptureSink(CaptureSink(isProducer: true, format: format))
+        identifier = addCaptureSink(CaptureSink(isProducer: isProducer, format: format))
+    }
+
+    public convenience init(format: AudioStreamBasicDescription) {
+        self.init(isProducer: true, format: format)
+    }
+
+    public static func peak() -> MicrophoneSink {
+        MicrophoneSink(isProducer: false, format: AudioStreamBasicDescription())
+    }
+
+    // A peak's largest sample magnitude since the last call.
+    public func takePeak() -> Float {
+        captureSink(identifier)?.takePeak() ?? 0
     }
 
     isolated deinit {

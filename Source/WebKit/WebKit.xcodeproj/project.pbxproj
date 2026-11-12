@@ -2976,6 +2976,7 @@
 		D8DBCDC2185A43C0AB73A16F /* GPUProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219C838F24364575BC265172 /* GPUProcess.swift */; };
 		52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */; };
 		CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */; };
+		B394E805E7C74311B20EACF1 /* CapturePreviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -5891,8 +5892,8 @@
 		41AC86811E042E5300303074 /* WebRTCResolver.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; name = WebRTCResolver.messages.in; path = Network/webrtc/WebRTCResolver.messages.in; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = "<none>"; };
 		41B28B081F83AD3E00FB52AC /* RTCPacketOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCPacketOptions.h; sourceTree = "<group>"; };
 		41B28B091F83AD3E00FB52AC /* RTCPacketOptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RTCPacketOptions.cpp; sourceTree = "<group>"; };
-		41B7E9A02E7B41C700D5A1F2 /* CapturePreviewManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CapturePreviewManager.h; sourceTree = "<group>"; };
-		41B7E9A12E7B41C700D5A1F2 /* CapturePreviewManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CapturePreviewManager.mm; sourceTree = "<group>"; };
+		41B7E9A02E7B41C700D5A1F2 /* CapturePreviewLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CapturePreviewLayer.h; sourceTree = "<group>"; };
+		41B7E9A12E7B41C700D5A1F2 /* CapturePreviewLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CapturePreviewLayer.mm; sourceTree = "<group>"; };
 		41B7ED6C20681DCE0087D853 /* WebMDNSRegister.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebMDNSRegister.h; path = Network/webrtc/WebMDNSRegister.h; sourceTree = "<group>"; };
 		41B7ED6E20681DCF0087D853 /* WebMDNSRegister.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebMDNSRegister.cpp; path = Network/webrtc/WebMDNSRegister.cpp; sourceTree = "<group>"; };
 		41B7ED6F206965900087D853 /* NetworkMDNSRegister.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NetworkMDNSRegister.cpp; sourceTree = "<group>"; };
@@ -9641,6 +9642,7 @@
 		86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcessMessageReceiver.swift; sourceTree = "<group>"; };
 		F825370C1EFBF5EE263DB203 /* SwiftReceiverOwner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SwiftReceiverOwner.cpp; sourceTree = "<group>"; };
 		4779BCDFA4891C5C8807645D /* SwiftReceiverOwner.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SwiftReceiverOwner.h; sourceTree = "<group>"; };
+		7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -14437,8 +14439,9 @@
 		4172198E23B633CA00AE5686 /* webrtc */ = {
 			isa = PBXGroup;
 			children = (
-				41B7E9A02E7B41C700D5A1F2 /* CapturePreviewManager.h */,
-				41B7E9A12E7B41C700D5A1F2 /* CapturePreviewManager.mm */,
+				41B7E9A02E7B41C700D5A1F2 /* CapturePreviewLayer.h */,
+				41B7E9A12E7B41C700D5A1F2 /* CapturePreviewLayer.mm */,
+				7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */,
 				41E0A7C623B6397800561060 /* LibWebRTCCodecsProxy.h */,
 				41E0A7C723B6397900561060 /* LibWebRTCCodecsProxy.messages.in */,
 				41E0A7C823B6397900561060 /* LibWebRTCCodecsProxy.mm */,
@@ -22638,6 +22641,7 @@
 				5EEC724C2DC1B30700D012DD /* BidiStorageAgent.cpp in Sources */,
 				F3A94F012DB6F3310023CE9D /* BidiUserContext.cpp in Sources */,
 				B6DC00362F892F0300FD75E1 /* CALayer+CoreRE.swift in Sources */,
+				B394E805E7C74311B20EACF1 /* CapturePreviewManager.swift in Sources */,
 				AD00CE0C2E1A000000000006 /* Concurrency+Extras.swift in Sources */,
 				49DC1DE127E5129100C1CB36 /* CSPExtensionUtilities.mm in Sources */,
 				522F792C28D531970069B45B /* CtapAuthenticator.cpp in Sources */,

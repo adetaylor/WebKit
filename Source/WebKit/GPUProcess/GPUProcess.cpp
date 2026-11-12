@@ -76,11 +76,15 @@
 #endif
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-#include "CapturePreviewManager.h"
+#include "CapturePreviewLayer.h"
+#include "RotationMonitoringReason.h"
 #include <WebCore/RealtimeMediaSourceCenter.h>
 #include <wtf/cocoa/Entitlements.h>
 #if PLATFORM(IOS_FAMILY)
 #include <WebCore/MediaSessionHelperIOS.h>
+#endif
+#if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
+#include <WebCore/AVAudioSessionCaptureDeviceManager.h>
 #endif
 #endif
 
@@ -194,7 +198,7 @@ bool GPUProcess::canExitUnderMemoryPressure() const
 {
     ASSERT(isMainRunLoop());
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    if (m_capturePreviewManager)
+    if (swiftHasCapturePreview())
         return false;
 #endif
     for (auto& webProcessConnection : m_webProcessConnections.values()) {
@@ -863,8 +867,7 @@ void GPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientation)
     m_orientation = orientation;
 
 #if PLATFORM(COCOA)
-    if (RefPtr manager = m_capturePreviewManager)
-        manager->setOrientation(orientation);
+    swiftSetCapturePreviewOrientation(orientation);
 #endif
 
     for (auto& connection : m_webProcessConnections.values())
@@ -884,8 +887,7 @@ void GPUProcess::enableMicrophoneMuteStatusAPI()
 void GPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
 {
 #if PLATFORM(COCOA)
-    if (RefPtr manager = m_capturePreviewManager)
-        manager->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
+    swiftCapturePreviewRotationChanged(persistentId, static_cast<uint16_t>(rotation));
 #endif
     for (auto& connection : m_webProcessConnections.values())
         connection->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
@@ -930,20 +932,82 @@ void GPUProcess::startCapturePreview(std::optional<WebCore::CaptureDevice>&& vid
         return completionHandler({ });
     }
 
-    if (!m_capturePreviewManager) {
-        m_capturePreviewManager = CapturePreviewManager::create(pageIdentifier, [pageIdentifier](float level) {
-            if (RefPtr connection = GPUProcess::singleton().parentProcessConnection())
-                connection->send(Messages::GPUProcessProxy::CapturePreviewAudioLevelChanged(pageIdentifier, level), 0);
-        });
-    }
+    // CapturePreviewStart (CapturePreviewManager.swift).
+    constexpr uint8_t capturePreviewStarted = 1;
+    constexpr uint8_t capturePreviewUnchanged = 2;
 
-    RefPtr manager = m_capturePreviewManager;
-    manager->setOrientation(orientation);
-    manager->start(WTF::move(videoDevice), WTF::move(audioDevice), previewSize, WTF::move(completionHandler));
+    RefPtr layer = videoDevice ? CapturePreviewLayer::create(previewSize) : nullptr;
+    auto result = swiftStartCapturePreview(pageIdentifier.toUInt64(),
+        videoDevice ? videoDevice->persistentId() : String { }, videoDevice ? videoDevice->label() : String { }, videoDevice && videoDevice->isDefault(),
+        audioDevice ? audioDevice->persistentId() : String { }, audioDevice ? audioDevice->label() : String { }, audioDevice && audioDevice->isDefault(),
+        previewSize.width(), previewSize.height(), orientation, layer.get());
+    if (result == capturePreviewStarted)
+        m_capturePreviewLayer = WTF::move(layer);
+    else if (result != capturePreviewUnchanged)
+        m_capturePreviewLayer = nullptr;
+    if (!swiftHasCapturePreview())
+        m_capturePreviewLayer = nullptr;
+    if (result != capturePreviewUnchanged)
+        setCapturePreviewVideoDevice(m_capturePreviewLayer ? videoDevice->persistentId() : String { }, pageIdentifier);
 
-    // Nothing could be started, so don't keep the manager, and the process, around for it.
-    if (!manager->isRunning())
-        stopCapturePreviewManager();
+    completionHandler(m_capturePreviewLayer ? m_capturePreviewLayer->hostingContext() : WebCore::HostingContext { });
+}
+
+void GPUProcess::setCapturePreviewVideoDevice(const String& persistentID, std::optional<WebCore::PageIdentifier> pageIdentifier)
+{
+    RefPtr connection = parentProcessConnection();
+    if (connection && !m_capturePreviewVideoDeviceID.isEmpty() && m_capturePreviewVideoPage)
+        connection->send(Messages::GPUProcessProxy::StopMonitoringCaptureDeviceRotation(*m_capturePreviewVideoPage, m_capturePreviewVideoDeviceID, RotationMonitoringReason::CapturePreview), 0);
+    m_capturePreviewVideoDeviceID = pageIdentifier ? persistentID : String { };
+    m_capturePreviewVideoPage = pageIdentifier;
+    if (connection && !m_capturePreviewVideoDeviceID.isEmpty() && m_capturePreviewVideoPage)
+        connection->send(Messages::GPUProcessProxy::StartMonitoringCaptureDeviceRotation(*m_capturePreviewVideoPage, m_capturePreviewVideoDeviceID, RotationMonitoringReason::CapturePreview), 0);
+}
+
+bool GPUProcess::capturePreviewNeedsAudioSession()
+{
+#if (PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)) && USE(AUDIO_SESSION)
+    return true;
+#else
+    return false;
+#endif
+}
+
+void GPUProcess::beginCapturePreviewAudioSession(uint64_t generation)
+{
+#if (PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)) && USE(AUDIO_SESSION)
+    Ref process = singleton();
+#if PLATFORM(IOS_FAMILY)
+    if (!process->m_savedPreferredMicrophoneID)
+        process->m_savedPreferredMicrophoneID = WebCore::AVAudioSessionCaptureDeviceManager::singleton().preferredMicrophoneID();
+#endif
+    protect(process->audioSessionManager())->beginCapturePreview([generation] {
+        singleton().capturePreviewAudioSessionIsReady(generation);
+    });
+#else
+    UNUSED_PARAM(generation);
+#endif
+}
+
+void GPUProcess::endCapturePreviewAudioSession()
+{
+#if (PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)) && USE(AUDIO_SESSION)
+    Ref process = singleton();
+#if PLATFORM(IOS_FAMILY)
+    auto savedPreferredMicrophoneID = std::exchange(process->m_savedPreferredMicrophoneID, std::nullopt);
+    if (!savedPreferredMicrophoneID)
+        return;
+
+    WebCore::AVAudioSessionCaptureDeviceManager::singleton().setPreferredMicrophoneID(*savedPreferredMicrophoneID);
+#endif
+    protect(process->audioSessionManager())->endCapturePreview();
+#endif
+}
+
+void GPUProcess::capturePreviewAudioLevelChanged(uint64_t pageIdentifier, float level)
+{
+    if (RefPtr connection = singleton().parentProcessConnection())
+        connection->send(Messages::GPUProcessProxy::CapturePreviewAudioLevelChanged(WebCore::PageIdentifier { pageIdentifier }, level), 0);
 }
 
 bool GPUProcess::setUpCapturePreviewEnvironment(WebCore::PageIdentifier pageIdentifier, const WebCore::SecurityOriginData& origin, bool hasCamera)
@@ -1039,8 +1103,9 @@ void GPUProcess::didApplyCaptureEnvironment(WebCore::ProcessIdentifier processId
 
 void GPUProcess::stopCapturePreviewManager()
 {
-    if (RefPtr capturePreviewManager = WTF::move(m_capturePreviewManager))
-        capturePreviewManager->stop();
+    swiftStopCapturePreview();
+    m_capturePreviewLayer = nullptr;
+    setCapturePreviewVideoDevice({ }, std::nullopt);
 }
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 

@@ -28,6 +28,11 @@ import WebKit_Internal
 // The Swift state of the GPU process (GPUProcess.h), which GPUProcess::m_swiftState holds.
 @MainActor
 final class GPUProcessState {
+#if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
+    // The capture preview of a getUserMedia prompt, while there is one (CapturePreviewManager.swift).
+    var capturePreview: CapturePreviewManager?
+#endif
+
     fileprivate nonisolated init() {
     }
 }

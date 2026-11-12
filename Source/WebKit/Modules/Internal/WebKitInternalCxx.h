@@ -32,6 +32,10 @@
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
 
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "CapturePreviewLayer.h"
+#endif
+
 #if ENABLE(GPU_PROCESS)
 #include "GPUConnectionToWebProcess.h"
 #include "GPUConnectionToWebProcessMessages.h"

@@ -92,7 +92,7 @@ enum class VideoFrameRotation : uint16_t;
 
 namespace WebKit {
 
-class CapturePreviewManager;
+class CapturePreviewLayer;
 class GPUConnectionToWebProcess;
 class RemoteAudioSessionProxyManager;
 class RemoteSnapshot;
@@ -232,10 +232,28 @@ public:
     // For buffers the UI process was relaying and will not deliver.
     void releaseTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier>&&);
 
+#if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+    // Implemented in Swift (CapturePreviewManager.swift): the capture preview of a getUserMedia prompt. The layer is the
+    // one this made for the camera, if there is one; the result is a CapturePreviewStart.
+    SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, CapturePreviewLayer* WTF_NULLABLE);
+    SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
+    SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
+    SWIFT_MAIN_ACTOR void swiftSetCapturePreviewOrientation(int32_t);
+    SWIFT_MAIN_ACTOR void swiftCapturePreviewRotationChanged(String persistentID, uint16_t rotation);
+    SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
+
+    // For the capture preview (CapturePreviewManager.swift).
+    static bool capturePreviewNeedsAudioSession();
+    SWIFT_MAIN_ACTOR static void beginCapturePreviewAudioSession(uint64_t generation);
+    SWIFT_MAIN_ACTOR static void endCapturePreviewAudioSession();
+    SWIFT_MAIN_ACTOR static void capturePreviewAudioLevelChanged(uint64_t pageIdentifier, float level);
+#endif
+
 private:
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     bool setUpCapturePreviewEnvironment(WebCore::PageIdentifier, const WebCore::SecurityOriginData&, bool hasCamera);
     void stopCapturePreviewManager();
+    void setCapturePreviewVideoDevice(const String& persistentID, std::optional<WebCore::PageIdentifier>);
 #endif
 
     GPUProcess();
@@ -359,7 +377,14 @@ private:
     };
     HashMap<WebCore::ProcessIdentifier, MediaCaptureAccess> m_mediaCaptureAccessMap;
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    RefPtr<CapturePreviewManager> m_capturePreviewManager;
+    // The layer the capture preview shows its camera in, while it does.
+    RefPtr<CapturePreviewLayer> m_capturePreviewLayer;
+    // The camera whose rotation the UI process monitors for the preview, and its page.
+    String m_capturePreviewVideoDeviceID;
+    Markable<WebCore::PageIdentifier> m_capturePreviewVideoPage;
+#if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
+    std::optional<String> m_savedPreferredMicrophoneID;
+#endif
     Markable<WebCore::PageIdentifier> m_capturePreviewPage;
     std::optional<std::pair<WebCore::ProcessIdentifier, WebCore::PageIdentifier>> m_lastCaptureEnvironment;
     Vector<Ref<SandboxExtension>> m_capturePreviewSandboxExtensions;

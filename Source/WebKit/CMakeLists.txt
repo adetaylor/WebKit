@@ -1714,6 +1714,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/UserMediaCaptureManagerProxyMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/webrtc/CapturePreviewManager.swift
         ${WEBKIT_DIR}/GPUProcess/webrtc/UserMediaCaptureManagerProxy.swift
         ${WebKit_DERIVED_SOURCES_DIR}/UserMediaCaptureManagerProxyMessageReceiver.swift
     )
