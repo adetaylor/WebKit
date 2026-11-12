@@ -947,6 +947,7 @@ extension WebCore.GraphicsContextGLANGLE {
         island.uniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding)
     }
 
+#if ENABLE_WEBXR
     @cxx
     @implementation
     public override func deleteExternalImage(_ image: GCGLExternalImage) {
@@ -958,6 +959,7 @@ extension WebCore.GraphicsContextGLANGLE {
     public override func deleteExternalSync(_ sync: GCGLExternalSync) {
         island.deleteExternalSync(sync)
     }
+#endif
 
     @cxx
     @implementation
