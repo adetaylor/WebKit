@@ -40,6 +40,7 @@ import Foundation
 import Synchronization
 import WebCore_Private.Core.CameraCaptureSourceHandle
 import WebCore_Private.Core.CaptureSourceDecisions
+import WebCore_Private.Core.CaptureSourceSupport
 import WebCore_Private.Core.RealtimeVideoUtilities
 import WebCore_Private.Core.WebCoreObjCExceptionCatching
 import os
@@ -1964,7 +1965,7 @@ final class CameraCaptureBackend: CaptureSourceBackend, CameraCaptureSourceOwner
             return
         }
 #if ENABLE_EXTENSION_CAPABILITIES
-        camera.mediaEnvironment = Swift.String(WebCore.RealtimeMediaSourceCenter.singleton().currentMediaEnvironment())
+        camera.mediaEnvironment = Swift.String(WebCore.captureMediaEnvironment())
 #endif
         camera.startProducingData()
     }

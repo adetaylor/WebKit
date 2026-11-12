@@ -109,6 +109,13 @@ VideoFrame* CaptureVideoFrameSession::rotate(VideoFrame& frame)
     return m_rotationSession->applyRotation(frame).leakRef();
 }
 
+#if ENABLE(EXTENSION_CAPABILITIES)
+String captureMediaEnvironment()
+{
+    return RealtimeMediaSourceCenter::singleton().currentMediaEnvironment();
+}
+#endif
+
 CMSampleBufferRef captureCroppedSampleBuffer(CaptureVideoFrameSession& session, CMSampleBufferRef sampleBuffer, float x, float y, float width, float height, float frameWidth, float frameHeight)
 {
     return session.croppedSampleBuffer(sampleBuffer, x, y, width, height, frameWidth, frameHeight);

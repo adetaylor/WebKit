@@ -93,6 +93,11 @@ private:
 // ignores CF_RETURNS_RETAINED on a method.
 CMSampleBufferRef WTF_NULLABLE captureCroppedSampleBuffer(CaptureVideoFrameSession&, CMSampleBufferRef WTF_NONNULL, float x, float y, float width, float height, float frameWidth, float frameHeight) CF_RETURNS_RETAINED;
 
+#if ENABLE(EXTENSION_CAPABILITIES)
+// RealtimeMediaSourceCenter's current media environment, which a camera's capture session is made with.
+String captureMediaEnvironment();
+#endif
+
 // RealtimeMediaSourceCenter::hashStringWithSalt(), which hashes the IDs of a device.
 NSString * WTF_NONNULL captureHashStringWithSalt(NSString * WTF_NONNULL, NSString * WTF_NONNULL);
 
