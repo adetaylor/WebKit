@@ -95,7 +95,7 @@ CMSampleBufferRef WTF_NULLABLE captureCroppedSampleBuffer(CaptureVideoFrameSessi
 
 #if ENABLE(EXTENSION_CAPABILITIES)
 // RealtimeMediaSourceCenter's current media environment, which a camera's capture session is made with.
-String captureMediaEnvironment();
+NSString * WTF_NONNULL captureMediaEnvironment();
 #endif
 
 // RealtimeMediaSourceCenter::hashStringWithSalt(), which hashes the IDs of a device.

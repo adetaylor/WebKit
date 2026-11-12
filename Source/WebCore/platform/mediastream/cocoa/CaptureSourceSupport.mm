@@ -110,9 +110,9 @@ VideoFrame* CaptureVideoFrameSession::rotate(VideoFrame& frame)
 }
 
 #if ENABLE(EXTENSION_CAPABILITIES)
-String captureMediaEnvironment()
+NSString *captureMediaEnvironment()
 {
-    return RealtimeMediaSourceCenter::singleton().currentMediaEnvironment();
+    return RealtimeMediaSourceCenter::singleton().currentMediaEnvironment().createNSString().autorelease();
 }
 #endif
 

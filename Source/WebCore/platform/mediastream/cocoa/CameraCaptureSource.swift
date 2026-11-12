@@ -1965,7 +1965,7 @@ final class CameraCaptureBackend: CaptureSourceBackend, CameraCaptureSourceOwner
             return
         }
 #if ENABLE_EXTENSION_CAPABILITIES
-        camera.mediaEnvironment = Swift.String(WebCore.captureMediaEnvironment())
+        camera.mediaEnvironment = WebCore.captureMediaEnvironment()
 #endif
         camera.startProducingData()
     }
