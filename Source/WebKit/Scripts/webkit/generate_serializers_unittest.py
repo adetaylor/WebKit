@@ -483,6 +483,11 @@ struct WebKit::NotSwift {
 }
 ''', r'the number of one of its values does not fit in uint8_t')
         self.assertGenerationFails('''
+[Swift] enum class WebKit::E : int8_t {
+    A = 128,
+}
+''', r'the number of one of its values does not fit in int8_t')
+        self.assertGenerationFails('''
 [Swift, OptionSet] enum class WebKit::E : uint8_t {
     A = 1,
 }
