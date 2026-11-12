@@ -43,6 +43,7 @@
 #include <WebCore/IOSurface.h>
 #include <WebCore/PlatformCALayerDelegatedContents.h>
 #endif
+#include <WebCore/PixelBuffer.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <wtf/StdLibExtras.h>
 
