@@ -180,6 +180,7 @@ public:
     // The parent() of a maskLayer is set to the layer being masked.
     GraphicsLayer* maskLayer() const { return m_maskLayer.get(); }
     WEBCORE_EXPORT virtual void setMaskLayer(RefPtr<GraphicsLayer>&&);
+    void setMaskLayerForSwift(GraphicsLayer* layer) { setMaskLayer(RefPtr { layer }); }
 
     void setIsMaskLayer(bool isMask) { m_isMaskLayer = isMask; }
     bool isMaskLayer() const { return m_isMaskLayer; }
@@ -189,6 +190,7 @@ public:
 
     // The given layer will replicate this layer and its children; the replica renders behind this layer.
     WEBCORE_EXPORT virtual void setReplicatedByLayer(RefPtr<GraphicsLayer>&&);
+    void setReplicatedByLayerForSwift(GraphicsLayer* layer) { setReplicatedByLayer(RefPtr { layer }); }
     // Whether this layer is being replicated by another layer.
     bool isReplicated() const { return m_replicaLayer; }
     // The layer that replicates this layer (if any).
@@ -225,6 +227,7 @@ public:
     // Anchor point: (0, 0) is top left, (1, 1) is bottom right. The anchor point
     // affects the origin of the transforms.
     const FloatPoint3D& anchorPoint() const LIFETIME_BOUND { return m_anchorPoint; }
+    FloatPoint3D anchorPointForSwift() const { return m_anchorPoint; }
     virtual void setAnchorPoint(const FloatPoint3D& p) { m_anchorPoint = p; }
 
     // The size of the layer.
@@ -234,6 +237,7 @@ public:
 
     // The boundOrigin affects the offset at which content is rendered, and sublayers are positioned.
     const FloatPoint& boundsOrigin() const LIFETIME_BOUND { return m_boundsOrigin; }
+    FloatPoint boundsOriginForSwift() const { return m_boundsOrigin; }
     virtual void setBoundsOrigin(const FloatPoint& origin) { m_boundsOrigin = origin; }
 
     // For platforms that move underlying platform layers on a different thread for scrolling; just update the GraphicsLayer state.
@@ -302,6 +306,7 @@ public:
     // Note that this covers the entire layer. Use setContentsToSolidColor() if the color should
     // only cover the contentsRect.
     const Color& backgroundColor() const LIFETIME_BOUND { return m_backgroundColor; }
+    Color backgroundColorForSwift() const { return m_backgroundColor; }
     WEBCORE_EXPORT virtual void setBackgroundColor(const Color&);
 
     // opaque means that we know the layer contents have no alpha

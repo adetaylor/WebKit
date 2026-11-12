@@ -104,8 +104,8 @@ public:
         }
     };
 
-    Vector<ClippingStackEntry>& stack() LIFETIME_BOUND { return m_stack; }
-    const Vector<ClippingStackEntry>& stack() const LIFETIME_BOUND { return m_stack; }
+    SWIFT_UNAVAILABLE_IN_SWIFT Vector<ClippingStackEntry>& stack() LIFETIME_BOUND { return m_stack; }
+    SWIFT_UNAVAILABLE_IN_SWIFT const Vector<ClippingStackEntry>& stack() const LIFETIME_BOUND { return m_stack; }
 
 private:
     // Order is ancestors to descendants.

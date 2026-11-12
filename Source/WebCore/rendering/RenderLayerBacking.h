@@ -57,6 +57,8 @@ class AcceleratedEffectStack;
 class AcceleratedTimeline;
 #endif
 
+using ScrollCoordinationRoles = OptionSet<ScrollCoordinationRole>;
+
 enum CompositingLayerType {
     NormalCompositingLayer, // non-tiled layer with backing store
     TiledCompositingLayer, // tiled layer (always has backing store)
@@ -183,6 +185,37 @@ public:
 
     void setScrollingNodeIDForRole(ScrollingNodeID, ScrollCoordinationRole);
 
+    // Called only by the constructor and the destructor; public so that their Swift definitions are kept.
+    void createPrimaryGraphicsLayer();
+    void destroyGraphicsLayers();
+
+    // The features a build can override that the backing's Swift tests.
+#if ENABLE(VIDEO)
+    static constexpr bool videoEnabledForSwift() { return true; }
+#else
+    static constexpr bool videoEnabledForSwift() { return false; }
+#endif
+#if ENABLE(MODEL_ELEMENT)
+    static constexpr bool modelElementEnabledForSwift() { return true; }
+#else
+    static constexpr bool modelElementEnabledForSwift() { return false; }
+#endif
+#if ENABLE(MODEL_PROCESS)
+    static constexpr bool modelProcessEnabledForSwift() { return true; }
+#else
+    static constexpr bool modelProcessEnabledForSwift() { return false; }
+#endif
+#if USE(CA)
+    static constexpr bool usesCAForSwift() { return true; }
+#else
+    static constexpr bool usesCAForSwift() { return false; }
+#endif
+#if ENABLE(WEBGL) || ENABLE(OFFSCREEN_CANVAS)
+    static constexpr bool webGLOrOffscreenCanvasEnabledForSwift() { return true; }
+#else
+    static constexpr bool webGLOrOffscreenCanvasEnabledForSwift() { return false; }
+#endif
+
     bool hasMaskLayer() const { return m_maskLayer; }
 
     NODELETE WEBCORE_EXPORT GraphicsLayer* parentForSublayers() const;
@@ -205,7 +238,7 @@ public:
 
     void setContentsNeedDisplay(GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
     // r is in the coordinate space of the layer's render object
-    void setContentsNeedDisplayInRect(const LayoutRect&, GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
+    void setContentsNeedDisplayInRect(LayoutRect, GraphicsLayerShouldClipToLayer = GraphicsLayerShouldClipToLayer::Clip);
 
     // Notification from the renderer that its content changed.
     void contentChanged(ContentChangeType, const std::optional<FloatRect>&);
@@ -225,7 +258,7 @@ public:
 
     NODELETE WEBCORE_EXPORT LayoutRect compositedBounds() const;
     // Returns true if changed.
-    NODELETE bool setCompositedBounds(const LayoutRect&);
+    NODELETE bool setCompositedBounds(LayoutRect);
     // Returns true if changed.
     bool updateCompositedBounds();
     
@@ -359,8 +392,6 @@ private:
 
     FloatRect backgroundBoxForSimpleContainerPainting() const;
 
-    void createPrimaryGraphicsLayer();
-    void destroyGraphicsLayers();
 
     void updateAppliesPageScale();
     
@@ -368,7 +399,11 @@ private:
 
     LayoutRect compositedBoundsIncludingMargin() const;
     
-    Ref<GraphicsLayer> createGraphicsLayer(const String&, GraphicsLayerType = GraphicsLayerType::Normal);
+    SWIFT_UNAVAILABLE_IN_SWIFT Ref<GraphicsLayer> createGraphicsLayer(const String&, GraphicsLayerType = GraphicsLayerType::Normal);
+
+    GraphicsLayer* maskLayer() const { return m_maskLayer.get(); }
+    GraphicsLayer* transformFlatteningLayer() const { return m_transformFlatteningLayer.get(); }
+    GraphicsLayer* childContainmentLayer() const { return m_childContainmentLayer.get(); }
 
     RenderLayerModelObject& renderer() const { return m_owningLayer.renderer(); }
     RenderBox* renderBox() const { return m_owningLayer.renderBox(); }
@@ -525,12 +560,12 @@ private:
     // A list other layers that paint into this backing store, later than m_owningLayer in paint order.
     InlineWeakKeyListHashSet<RenderLayer> m_backingSharingLayers;
 
-    std::unique_ptr<LayerAncestorClippingStack> m_ancestorClippingStack; // Only used if we are clipped by an ancestor which is not a stacking context.
-    std::unique_ptr<LayerAncestorClippingStack> m_overflowControlsHostLayerAncestorClippingStack; // Used when we have an overflow controls host layer which was reparented, and needs clipping by ancestors.
+    SWIFT_UNSAFE std::unique_ptr<LayerAncestorClippingStack> m_ancestorClippingStack; // Only used if we are clipped by an ancestor which is not a stacking context.
+    SWIFT_UNSAFE std::unique_ptr<LayerAncestorClippingStack> m_overflowControlsHostLayerAncestorClippingStack; // Used when we have an overflow controls host layer which was reparented, and needs clipping by ancestors.
 
-    RefPtr<GraphicsLayer> m_contentsContainmentLayer; // Only used if we have a background layer; takes the transform.
-    RefPtr<GraphicsLayer> m_graphicsLayer;
-    RefPtr<GraphicsLayer> m_foregroundLayer; // Only used in cases where we need to draw the foreground separately.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_contentsContainmentLayer; // Only used if we have a background layer; takes the transform.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_graphicsLayer;
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_foregroundLayer; // Only used in cases where we need to draw the foreground separately.
 
     // A composited SVG child splits its container's DOM-order paint list (childrenInDOMOrderForSVG) at its
     // index. Non-composited content painting after a composited child goes into a single overlay
@@ -546,25 +581,25 @@ private:
         // coordinate space. Set in updateGeometry, empty if not cropped. Scopes the overlay's invalidation.
         FloatRect segmentBoundsInLayerSpace;
     };
-    Vector<SVGPaintOrderSegment> m_svgPaintOrderSegments; // Only used for SVG container layers; empty unless a composited child splits the paint list.
-    RefPtr<GraphicsLayer> m_backgroundLayer; // Only used in cases where we need to draw the background separately.
-    RefPtr<GraphicsLayer> m_childContainmentLayer; // Only used if we have clipping on a stacking context with compositing children, or if the layer has a tile cache.
-    RefPtr<GraphicsLayer> m_viewportClippingLayer; // Only used on fixed/sticky elements. Contains the viewport anchor layer.
-    RefPtr<GraphicsLayer> m_viewportAnchorLayer; // Only used on fixed/sticky elements.
-    RefPtr<GraphicsLayer> m_maskLayer; // Only used if we have a mask and/or clip-path.
-    RefPtr<GraphicsLayer> m_transformFlatteningLayer;
+    SWIFT_UNSAFE Vector<SVGPaintOrderSegment> m_svgPaintOrderSegments; // Only used for SVG container layers; empty unless a composited child splits the paint list.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_backgroundLayer; // Only used in cases where we need to draw the background separately.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_childContainmentLayer; // Only used if we have clipping on a stacking context with compositing children, or if the layer has a tile cache.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_viewportClippingLayer; // Only used on fixed/sticky elements. Contains the viewport anchor layer.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_viewportAnchorLayer; // Only used on fixed/sticky elements.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_maskLayer; // Only used if we have a mask and/or clip-path.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_transformFlatteningLayer;
 #if USE(SYSTEM_PREVIEW) && ENABLE(MODEL_PROCESS)
-    RefPtr<GraphicsLayer> m_systemPreviewWrapperLayer; // Outer wrapper above m_contentsContainmentLayer, parents the model subtree and the badge layer as siblings.
-    RefPtr<GraphicsLayer> m_systemPreviewBadgeLayer; // Sibling of m_contentsContainmentLayer; lifts the AR badge in front of the model's separated portal on visionOS.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_systemPreviewWrapperLayer; // Outer wrapper above m_contentsContainmentLayer, parents the model subtree and the badge layer as siblings.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_systemPreviewBadgeLayer; // Sibling of m_contentsContainmentLayer; lifts the AR badge in front of the model's separated portal on visionOS.
 #endif
 
-    RefPtr<GraphicsLayer> m_layerForHorizontalScrollbar;
-    RefPtr<GraphicsLayer> m_layerForVerticalScrollbar;
-    RefPtr<GraphicsLayer> m_layerForScrollCorner;
-    RefPtr<GraphicsLayer> m_overflowControlsContainer;
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_layerForHorizontalScrollbar;
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_layerForVerticalScrollbar;
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_layerForScrollCorner;
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_overflowControlsContainer;
 
-    RefPtr<GraphicsLayer> m_scrollContainerLayer; // Only used if the layer is using composited scrolling.
-    RefPtr<GraphicsLayer> m_scrolledContentsLayer; // Only used if the layer is using composited scrolling.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_scrollContainerLayer; // Only used if the layer is using composited scrolling.
+    SWIFT_UNSAFE RefPtr<GraphicsLayer> m_scrolledContentsLayer; // Only used if the layer is using composited scrolling.
 
     LayoutRect m_compositedBounds;
     LayoutSize m_subpixelOffsetFromRenderer; // This is the subpixel distance between the primary graphics layer and the associated renderer's bounds.
@@ -596,7 +631,7 @@ private:
     bool m_needsEventRegionUpdate { true };
 #endif
     bool m_shouldPaintUsingCompositeCopy { false };
-} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/RenderLayerBacking.swift");
 
 enum CanvasCompositingStrategy {
     CanvasPaintedToEnclosingLayer,

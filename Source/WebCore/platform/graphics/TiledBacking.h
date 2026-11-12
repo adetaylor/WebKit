@@ -198,6 +198,6 @@ public:
     virtual void clearObscuredInsetsAdjustments() = 0;
     virtual void obscuredInsetsWillChange(FloatBoxExtent&&) = 0;
     virtual FloatRect adjustedTileClipRectForObscuredInsets(const FloatRect&) const = 0;
-};
+} SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 } // namespace WebCore
