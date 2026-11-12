@@ -34,6 +34,7 @@
 #include <wtf/Noncopyable.h>
 #include <wtf/OptionSet.h>
 #include <wtf/CheckedPtr.h>
+#include <wtf/Forward.h>
 #include <wtf/StdLibExtras.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
@@ -152,8 +153,10 @@ public:
     AudioTrackRendererUnit(AURenderCallback, void* refCon);
     ~AudioTrackRendererUnit();
 
-    // macOS: the device (0: the default one). A running unit restarts on the new device.
-    void setDevice(uint32_t deviceID);
+    // macOS: the device for an audio output device's persistent ID; the default one for
+    // AudioMediaStreamTrackRenderer::defaultDeviceID() or an ID that matches no device. A running unit restarts on the new
+    // device.
+    void setDevice(const String& persistentID);
     void start();
     void stop();
     // The unit's stream format, once it's made: the device's own at the audio session's sample rate. None if it can't be

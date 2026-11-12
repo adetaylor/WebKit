@@ -50,12 +50,12 @@ private final class RemoteAudioTrackUnit: AudioSpeakerSamplesProducer {
     private var shouldRegisterAsSpeakerSamplesProducer = false
     private var canReset = true
 
-    init(identifier: UInt64, state: RemoteAudioTrackUnitsState, outputDevice: UInt32, isDefaultDevice: Bool) {
+    init(identifier: UInt64, state: RemoteAudioTrackUnitsState, deviceID: String) {
         self.identifier = identifier
         self.state = state
         localUnit = TrackRendererUnit(playing: playout)
-        canUseCaptureUnit = isDefaultDevice
-        localUnit.setDevice(outputDevice)
+        canUseCaptureUnit = TrackRendererUnit.isDefaultDevice(deviceID)
+        localUnit.setDevice(persistentID: deviceID)
         localUnit.timelineDiscontinuityHandler = { [weak self] in
             MainActor.assumeIsolated {
                 self?.reset()
@@ -313,24 +313,25 @@ extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
         }
     }
 
-    @cxx
-    @implementation
-    func createSwiftUnit(_ identifier: UInt64, _ outputDevice: UInt32, _ isDefaultDevice: Bool) -> WebKit.RemoteAudioTrackUnitCreation {
+    // The unit for the identifier, on the device; the default capture unit's speaker may play out a unit for the default
+    // device instead.
+    @MainActor
+    func createUnit(
+        connection: IPC.Connection,
+        identifier: IPCTypes.AudioMediaStreamTrackRendererInternalUnitIdentifier,
+        deviceID: String?
+    ) -> (description: IPCTypes.CAAudioStreamDescription?, frameChunkSize: UInt64) {
         let state = state
-        return MainActor.assumeIsolated {
-            let unit = RemoteAudioTrackUnit(identifier: identifier, state: state, outputDevice: outputDevice, isDefaultDevice: isDefaultDevice)
-            assert(state.units[identifier] == nil)
-            if state.units[identifier] == nil {
-                state.units[identifier] = unit
-            }
-            var creation = WebKit.RemoteAudioTrackUnitCreation()
-            if let format = unit.format {
-                creation.format = format
-                creation.frameChunkSize = unit.frameChunkSize
-                creation.hasFormat = true
-            }
-            return creation
+        let unit = RemoteAudioTrackUnit(identifier: identifier.rawValue, state: state, deviceID: deviceID ?? "")
+        assert(state.units[identifier.rawValue] == nil)
+        if state.units[identifier.rawValue] == nil {
+            state.units[identifier.rawValue] = unit
         }
+        guard let format = unit.format else {
+            trackUnitLog.log("RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit unable to get format description")
+            return (nil, 0)
+        }
+        return (IPCTypes.CAAudioStreamDescription(streamDescription: IPCTypes.AudioStreamBasicDescription(format)), unit.frameChunkSize)
     }
 
     @MainActor
@@ -364,6 +365,22 @@ extension WebKit.RemoteAudioMediaStreamTrackRendererInternalUnitManager {
     @MainActor
     func stopUnit(connection: IPC.Connection, identifier: IPCTypes.AudioMediaStreamTrackRendererInternalUnitIdentifier) {
         state.units[identifier.rawValue]?.stop()
+    }
+}
+
+extension IPCTypes.AudioStreamBasicDescription {
+    fileprivate init(_ format: AudioStreamBasicDescription) {
+        self.init(
+            mSampleRate: format.mSampleRate,
+            mFormatID: format.mFormatID,
+            mFormatFlags: format.mFormatFlags,
+            mBytesPerPacket: format.mBytesPerPacket,
+            mFramesPerPacket: format.mFramesPerPacket,
+            mBytesPerFrame: format.mBytesPerFrame,
+            mChannelsPerFrame: format.mChannelsPerFrame,
+            mBitsPerChannel: format.mBitsPerChannel,
+            mReserved: format.mReserved
+        )
     }
 }
 

@@ -36,6 +36,7 @@
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
+#include <wtf/text/WTFString.h>
 
 #if PLATFORM(IOS_FAMILY)
 #include "AudioSession.h"
@@ -225,9 +226,9 @@ AudioTrackRendererUnit::~AudioTrackRendererUnit()
     audioOutputUnitDestroy(m_identifier);
 }
 
-void AudioTrackRendererUnit::setDevice(uint32_t deviceID)
+void AudioTrackRendererUnit::setDevice(const String& persistentID)
 {
-    audioTrackRendererUnitSetDevice(m_identifier, deviceID);
+    audioTrackRendererUnitSetDevice(m_identifier, persistentID.createCFString().get());
 }
 
 void AudioTrackRendererUnit::start()

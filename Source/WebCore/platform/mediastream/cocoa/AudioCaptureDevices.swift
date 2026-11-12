@@ -457,6 +457,25 @@ func audioCaptureMicrophoneDeviceID(_ persistentID: Swift.String) -> UInt32? {
     audioCaptureDevices.deviceID(withUID: persistentID as CFString)
 }
 
+// The device of a track renderer for an audio output device's persistent ID: 0, the default device, for
+// AudioMediaStreamTrackRenderer::defaultDeviceID() or an ID that matches no device.
+func audioTrackRendererOutputDevice(_ persistentID: Swift.String) -> UInt32 {
+    if persistentID == audioTrackRendererDefaultDeviceID {
+        return 0
+    }
+    guard let deviceID = audioCaptureDevices.deviceID(withUID: persistentID as CFString) else {
+        if !persistentID.isEmpty {
+            logger.log("AudioMediaStreamTrackRendererInternalUnit::setAudioOutputDeviceId - did not find device")
+        }
+        return 0
+    }
+    return deviceID
+}
+
+func audioTrackRendererOutputDevice(_ persistentID: CFString?) -> UInt32 {
+    audioTrackRendererOutputDevice(persistentID.map { $0 as Swift.String } ?? "")
+}
+
 // MARK: The C++ API
 
 // The list's version, which changes when the list does, after reading it a first time if initialize.

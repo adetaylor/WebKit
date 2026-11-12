@@ -31,13 +31,10 @@
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
 #include "GPUProcessConnectionMessages.h"
-#include "Logging.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
 #include "RemoteAudioSessionProxy.h"
 #include "SharedPreferencesForWebProcess.h"
 #include <WebCore/AudioMediaStreamTrackRenderer.h>
-#include <WebCore/AudioMediaStreamTrackRendererInternalUnit.h>
-#include <WebCore/CAAudioStreamDescription.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
@@ -66,17 +63,6 @@ void RemoteAudioMediaStreamTrackRendererInternalUnitManager::ref() const
 void RemoteAudioMediaStreamTrackRendererInternalUnitManager::deref() const
 {
     m_gpuConnectionToWebProcess.get()->deref();
-}
-
-void RemoteAudioMediaStreamTrackRendererInternalUnitManager::createUnit(AudioMediaStreamTrackRendererInternalUnitIdentifier identifier, const String& deviceID, CompletionHandler<void(std::optional<WebCore::CAAudioStreamDescription>, uint64_t)>&& callback)
-{
-    auto creation = createSwiftUnit(identifier.toUInt64(), WebCore::audioOutputDeviceForTrackRenderer(deviceID), deviceID == WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID());
-    if (!creation.hasFormat) {
-        RELEASE_LOG(WebRTC, "RemoteAudioMediaStreamTrackRendererInternalUnitManagerUnit unable to get format description");
-        callback(std::nullopt, 0);
-        return;
-    }
-    callback(WebCore::CAAudioStreamDescription { creation.format }, creation.frameChunkSize);
 }
 
 void RemoteAudioMediaStreamTrackRendererInternalUnitManager::setLastDeviceUsed(const String& deviceID)

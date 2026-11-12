@@ -33,7 +33,6 @@
 #include "AudioSampleDataSource.h"
 #include "AudioSession.h"
 #include "CAAudioStreamDescription.h"
-#include "CoreAudioCaptureDeviceManager.h"
 #include "Logging.h"
 #include <pal/cf/CoreAudioExtras.h>
 #include <pal/spi/cocoa/AudioToolboxSPI.h>
@@ -100,27 +99,7 @@ void LocalAudioMediaStreamTrackRendererInternalUnit::retrieveFormatDescription(C
 
 void LocalAudioMediaStreamTrackRendererInternalUnit::setAudioOutputDevice(const String& deviceID)
 {
-    m_unit.setDevice(audioOutputDeviceForTrackRenderer(deviceID));
-}
-
-uint32_t audioOutputDeviceForTrackRenderer(const String& deviceID)
-{
-#if PLATFORM(MAC)
-    if (deviceID == AudioMediaStreamTrackRenderer::defaultDeviceID())
-        return 0;
-
-    auto device = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(deviceID);
-
-    if (!device && !deviceID.isEmpty()) {
-        RELEASE_LOG(WebRTC, "AudioMediaStreamTrackRendererInternalUnit::setAudioOutputDeviceId - did not find device");
-        return 0;
-    }
-
-    return device.value_or(0);
-#else
-    UNUSED_PARAM(deviceID);
-    return 0;
-#endif
+    m_unit.setDevice(deviceID);
 }
 
 OSStatus LocalAudioMediaStreamTrackRendererInternalUnit::renderClient(void* processor, AudioUnitRenderActionFlags* actionFlags, const AudioTimeStamp* timeStamp, UInt32, UInt32 sampleCount, AudioBufferList* ioData)

@@ -496,6 +496,9 @@ public final class RemoteDestinationOutputUnit {
 #if ENABLE_MEDIA_STREAM
 private let trackRendererLogger = Logger(subsystem: "com.apple.WebKit", category: "WebRTC")
 
+// AudioMediaStreamTrackRenderer::defaultDeviceID().
+let audioTrackRendererDefaultDeviceID = "default"
+
 // LocalAudioMediaStreamTrackRendererInternalUnit's unit: a track renderer on a device, made when it first starts or its
 // format is first asked for, and disposed of whenever it stops. A GPU-process one plays out a track playout; an in-process
 // one renders from the C++ callback of WebCore::LocalAudioMediaStreamTrackRendererInternalUnit. WebCore's main thread only
@@ -571,6 +574,20 @@ public final class TrackRendererUnit {
         if shouldRestart {
             start()
         }
+    }
+
+    // macOS: the device for an audio output device's persistent ID; the default one for
+    // AudioMediaStreamTrackRenderer::defaultDeviceID() or an ID that matches no device.
+    public func setDevice(persistentID: Swift.String) {
+#if os(macOS)
+        setDevice(audioTrackRendererOutputDevice(persistentID))
+#else
+        setDevice(0)
+#endif
+    }
+
+    public static func isDefaultDevice(_ persistentID: Swift.String) -> Bool {
+        persistentID == audioTrackRendererDefaultDeviceID
     }
 
     public func start() {
@@ -723,9 +740,14 @@ func setTrackRendererUnitCxxRenderCallback(_ identifier: UInt64, _ render: AURen
     return true
 }
 
+// The device for an audio output device's persistent ID (TrackRendererUnit.setDevice(persistentID:)).
 @_expose(Cxx)
-func audioTrackRendererUnitSetDevice(_ identifier: UInt64, _ deviceID: UInt32) {
-    trackRendererUnit(identifier)?.setDevice(deviceID)
+func audioTrackRendererUnitSetDevice(_ identifier: UInt64, _ persistentID: borrowing CFString?) {
+#if os(macOS)
+    trackRendererUnit(identifier)?.setDevice(audioTrackRendererOutputDevice(copy persistentID))
+#else
+    trackRendererUnit(identifier)?.setDevice(0)
+#endif
 }
 
 // The unit's stream format, made if needed; a format whose mFormatID is 0 if it can't be made.

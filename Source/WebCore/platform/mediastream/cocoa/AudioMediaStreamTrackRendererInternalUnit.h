@@ -62,10 +62,6 @@ public:
     virtual void deleteUnitForTesting() { }
 };
 
-// macOS: the output device of a track renderer for an audio output device's persistent ID; 0, the default device, for the
-// default ID, an empty ID or an ID that matches no device. 0 elsewhere.
-WEBCORE_EXPORT uint32_t audioOutputDeviceForTrackRenderer(const String& deviceID);
-
 }
 
 #endif // ENABLE(MEDIA_STREAM)
