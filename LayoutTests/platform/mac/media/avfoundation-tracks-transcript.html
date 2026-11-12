@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A transcript of the tracks, selections and in-band cues that AVFoundation's media player exposes.</title>
+<script src="../../../media/video-test.js"></script>
+<script>
+// For each file: the audio, video and text tracks once it can play through; what changes when an audio track is enabled
+// or disabled and a text track is shown; the chapter cues, which come with the file's metadata; and the first in-band
+// caption cue, which playback delivers.
+
+function describeTracks()
+{
+    const lines = [];
+    for (const track of video.audioTracks)
+        lines.push(`  audio id=${track.id} kind=${track.kind} label="${track.label}" language="${track.language}" enabled=${track.enabled}`);
+    for (const track of video.videoTracks)
+        lines.push(`  video id=${track.id} kind=${track.kind} label="${track.label}" language="${track.language}" selected=${track.selected}`);
+    for (const track of video.textTracks) {
+        // Which forced subtitle track the media element shows automatically, if any, races with its learning the
+        // primary audio track's language, so a forced track's mode and cues aren't part of the transcript.
+        const forced = track.kind == 'forced';
+        const cues = forced ? '-' : (track.cues ? track.cues.length : 'none');
+        const mode = forced ? '-' : track.mode;
+        lines.push(`  text kind=${track.kind} label="${track.label}" language="${track.language}" mode=${mode} dispatchType="${track.inBandMetadataTrackDispatchType}" cues=${cues}`);
+    }
+    return lines;
+}
+
+function writeTracks()
+{
+    for (const line of describeTracks())
+        consoleWrite(line);
+}
+
+function waitFor(predicate, timeout = 8000)
+{
+    return new Promise(resolve => {
+        const start = performance.now();
+        const poll = () => {
+            if (predicate() || performance.now() - start > timeout) {
+                resolve(predicate());
+                return;
+            }
+            setTimeout(poll, 50);
+        };
+        poll();
+    });
+}
+
+// Waits at least `minimum` ms, then until the tracks' description hasn't changed for 400 ms (at most 8 s more): track
+// lists and modes settle asynchronously, later under load.
+async function settle(minimum)
+{
+    await new Promise(resolve => setTimeout(resolve, minimum));
+    let last = describeTracks().join('\n');
+    let unchanged = 0;
+    const start = performance.now();
+    while (unchanged < 8 && performance.now() - start < 8000) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const current = describeTracks().join('\n');
+        unchanged = current == last ? unchanged + 1 : 0;
+        last = current;
+    }
+}
+
+async function load(name)
+{
+    consoleWrite(`<b>${name}</b>`);
+    video.src = `../../../media/content/${name}`;
+    await waitFor(() => video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA);
+    // Track lists can still be growing as the asset's media selection options load.
+    await settle(500);
+    writeTracks();
+}
+
+async function toggleAudio()
+{
+    if (video.audioTracks.length < 2)
+        return;
+    video.audioTracks[1].enabled = true;
+    await settle(300);
+    consoleWrite('after enabling the second audio track:');
+    writeTracks();
+    video.audioTracks[1].enabled = false;
+    await settle(300);
+    consoleWrite('after disabling it:');
+    writeTracks();
+}
+
+async function chapters()
+{
+    const track = [...video.textTracks].find(track => track.kind == 'chapters');
+    if (!track)
+        return;
+    track.mode = 'hidden';
+    await waitFor(() => track.cues && track.cues.length);
+    const cues = track.cues ? [...track.cues].map(cue => `${cue.startTime.toFixed(2)}-${cue.endTime.toFixed(2)} "${cue.text}"`) : [];
+    consoleWrite(`chapters (${track.language}): ${cues.join(', ')}`);
+}
+
+async function firstCaption()
+{
+    const track = [...video.textTracks].find(track => track.kind == 'captions' || track.kind == 'subtitles');
+    if (!track)
+        return;
+    track.mode = 'showing';
+    video.muted = true;
+    video.play();
+    const arrived = await waitFor(() => track.cues && track.cues.length);
+    video.pause();
+    if (!arrived) {
+        consoleWrite('no caption cue arrived');
+        return;
+    }
+    const cue = track.cues[0];
+    consoleWrite(`first ${track.kind} cue (${track.language}): ${cue.startTime.toFixed(2)} "${cue.text ?? cue.getCueAsHTML().textContent}"`);
+    track.mode = 'disabled';
+}
+
+window.addEventListener('load', async () => {
+    findMediaElement();
+    for (const name of ['audio-tracks.mp4', 'audio-tracks-alternate-group-with-fallback.mp4', 'CC+Subtitles.mov', 'test-inband-captions.mp4', 'multi-language-chapters.mp4']) {
+        await load(name);
+        await toggleAudio();
+        await chapters();
+        await firstCaption();
+        consoleWrite('');
+    }
+    endTest();
+});
+</script>
+</head>
+<body>
+<video controls></video>
+</body>
+</html>

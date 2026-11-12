@@ -1,0 +1,99 @@
+
+audio-tracks.mp4
+audio id=2 kind=main label="English Sound" language="en" enabled=true
+audio id=3 kind=main label="French Sound" language="fr" enabled=false
+audio id=4 kind=main label="Spanish Sound" language="es" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+after enabling the second audio track:
+audio id=2 kind=main label="English Sound" language="en" enabled=true
+audio id=3 kind=main label="French Sound" language="fr" enabled=true
+audio id=4 kind=main label="Spanish Sound" language="es" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+after disabling it:
+audio id=2 kind=main label="English Sound" language="en" enabled=true
+audio id=3 kind=main label="French Sound" language="fr" enabled=false
+audio id=4 kind=main label="Spanish Sound" language="es" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+
+audio-tracks-alternate-group-with-fallback.mp4
+audio id=3 kind=main label="" language="eng" enabled=true
+audio id=5 kind=main label="" language="fra" enabled=false
+audio id=7 kind=main label="" language="spa" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+after enabling the second audio track:
+audio id=3 kind=main label="" language="eng" enabled=true
+audio id=5 kind=main label="" language="fra" enabled=true
+audio id=7 kind=main label="" language="spa" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+after disabling it:
+audio id=3 kind=main label="" language="eng" enabled=true
+audio id=5 kind=main label="" language="fra" enabled=false
+audio id=7 kind=main label="" language="spa" enabled=false
+video id=1 kind=main label="" language="eng" selected=true
+
+CC+Subtitles.mov
+audio id=18 kind=main label="English Sound" language="eng" enabled=true
+audio id=19 kind=main label="French Sound" language="fra" enabled=false
+audio id=20 kind=main label="Spanish Sound" language="spa" enabled=false
+video id=21 kind=main label="Bip Box" language="eng" selected=true
+text kind=subtitles label="English Subtitles" language="en" mode=disabled dispatchType="" cues=none
+text kind=forced label="English Subtitles" language="en" mode=- dispatchType="" cues=-
+text kind=subtitles label="French Subtitles" language="fr" mode=disabled dispatchType="" cues=none
+text kind=forced label="French Subtitles" language="fr" mode=- dispatchType="" cues=-
+text kind=subtitles label="Spanish Subtitles" language="es" mode=disabled dispatchType="" cues=none
+text kind=forced label="Spanish Subtitles" language="es" mode=- dispatchType="" cues=-
+text kind=subtitles label="German Subtitles" language="de" mode=disabled dispatchType="" cues=none
+text kind=forced label="German Subtitles" language="de" mode=- dispatchType="" cues=-
+text kind=captions label="English Closed Captions" language="en" mode=disabled dispatchType="" cues=none
+text kind=chapters label="" language="es" mode=hidden dispatchType="com.apple.chapters" cues=3
+text kind=chapters label="" language="en" mode=hidden dispatchType="com.apple.chapters" cues=3
+after enabling the second audio track:
+audio id=18 kind=main label="English Sound" language="eng" enabled=true
+audio id=19 kind=main label="French Sound" language="fra" enabled=true
+audio id=20 kind=main label="Spanish Sound" language="spa" enabled=false
+video id=21 kind=main label="Bip Box" language="eng" selected=true
+text kind=subtitles label="English Subtitles" language="en" mode=disabled dispatchType="" cues=none
+text kind=forced label="English Subtitles" language="en" mode=- dispatchType="" cues=-
+text kind=subtitles label="French Subtitles" language="fr" mode=disabled dispatchType="" cues=none
+text kind=forced label="French Subtitles" language="fr" mode=- dispatchType="" cues=-
+text kind=subtitles label="Spanish Subtitles" language="es" mode=disabled dispatchType="" cues=none
+text kind=forced label="Spanish Subtitles" language="es" mode=- dispatchType="" cues=-
+text kind=subtitles label="German Subtitles" language="de" mode=disabled dispatchType="" cues=none
+text kind=forced label="German Subtitles" language="de" mode=- dispatchType="" cues=-
+text kind=captions label="English Closed Captions" language="en" mode=disabled dispatchType="" cues=none
+text kind=chapters label="" language="es" mode=hidden dispatchType="com.apple.chapters" cues=3
+text kind=chapters label="" language="en" mode=hidden dispatchType="com.apple.chapters" cues=3
+after disabling it:
+audio id=18 kind=main label="English Sound" language="eng" enabled=true
+audio id=19 kind=main label="French Sound" language="fra" enabled=false
+audio id=20 kind=main label="Spanish Sound" language="spa" enabled=false
+video id=21 kind=main label="Bip Box" language="eng" selected=true
+text kind=subtitles label="English Subtitles" language="en" mode=disabled dispatchType="" cues=none
+text kind=forced label="English Subtitles" language="en" mode=- dispatchType="" cues=-
+text kind=subtitles label="French Subtitles" language="fr" mode=disabled dispatchType="" cues=none
+text kind=forced label="French Subtitles" language="fr" mode=- dispatchType="" cues=-
+text kind=subtitles label="Spanish Subtitles" language="es" mode=disabled dispatchType="" cues=none
+text kind=forced label="Spanish Subtitles" language="es" mode=- dispatchType="" cues=-
+text kind=subtitles label="German Subtitles" language="de" mode=disabled dispatchType="" cues=none
+text kind=forced label="German Subtitles" language="de" mode=- dispatchType="" cues=-
+text kind=captions label="English Closed Captions" language="en" mode=disabled dispatchType="" cues=none
+text kind=chapters label="" language="es" mode=hidden dispatchType="com.apple.chapters" cues=3
+text kind=chapters label="" language="en" mode=hidden dispatchType="com.apple.chapters" cues=3
+chapters (es): 0.00-5.00 "Spanish Chapter 1", 5.00-10.00 "Spanish Chapter 2", 10.00-30.00 "Spanish Chapter 3"
+first subtitles cue (en): 1.00 "English 1 "
+
+test-inband-captions.mp4
+audio id=1 kind=main label="" language="en" enabled=true
+video id=2 kind=main label="" language="" selected=true
+text kind=captions label="" language="en" mode=disabled dispatchType="" cues=none
+first captions cue (en): 1.00 "Align Top Left"
+
+multi-language-chapters.mp4
+video id=1 kind=main label="" language="eng" selected=true
+text kind=chapters label="" language="es" mode=hidden dispatchType="com.apple.chapters" cues=6
+text kind=chapters label="" language="fr" mode=hidden dispatchType="com.apple.chapters" cues=6
+text kind=chapters label="" language="en" mode=hidden dispatchType="com.apple.chapters" cues=6
+chapters (es): 0.00-5.00 "Spanish Chapter 1", 5.00-10.00 "Spanish Chapter 2", 10.00-15.00 "Spanish Chapter 3", 15.00-20.00 "Spanish Chapter 4", 20.00-25.00 "Spanish Chapter 5", 25.00-30.04 "Spanish Chapter 6"
+
+END OF TEST
+
