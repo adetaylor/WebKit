@@ -60,6 +60,8 @@
 #include <wtf/MathExtras.h>
 
 #include "JSBigIntSwiftDigits.h"
+// JSCSwift-Swift.h declares the whole module's Swift, Temporal's too, so it needs every header the module imports.
+#include "TemporalSwiftBoundary.h"
 #include "JSCSwift-Swift.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
