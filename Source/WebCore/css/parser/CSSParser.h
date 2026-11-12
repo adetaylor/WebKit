@@ -109,7 +109,7 @@ public:
     WEBCORE_EXPORT static bool parseDeclarationList(MutableStyleProperties&, StringView, const CSSParserContext&);
 
     static Ref<ImmutableStyleProperties> parseInlineStyleDeclaration(StringView, const Element&);
-    static RefPtr<StyleRuleBase> parseRule(StringView, const CSSParserContext&, StyleSheetContents*, AllowedRules, CSSParserEnum::NestedContext = { });
+    WEBCORE_EXPORT static RefPtr<StyleRuleBase> parseRule(StringView, const CSSParserContext&, StyleSheetContents*, AllowedRules, CSSParserEnum::NestedContext = { });
     static RefPtr<StyleRuleKeyframe> parseKeyframeRule(StringView, const CSSParserContext&);
     static RefPtr<StyleRuleNestedDeclarations> parseNestedDeclarations(StringView, const CSSParserContext&);
 
@@ -121,8 +121,8 @@ public:
     // This function updates the range it's given.
     RefPtr<StyleRuleBase> consumeAtRule(CSSParserTokenRange&, AllowedRules);
 
-    static void parseDeclarationListForInspector(StringView, const CSSParserContext&, CSSParserObserver&);
-    static void parseStyleSheetForInspector(StringView, const CSSParserContext&, StyleSheetContents&, CSSParserObserver&);
+    WEBCORE_EXPORT static void parseDeclarationListForInspector(StringView, const CSSParserContext&, CSSParserObserver&);
+    WEBCORE_EXPORT static void parseStyleSheetForInspector(StringView, const CSSParserContext&, StyleSheetContents&, CSSParserObserver&);
 
     static IsImportant consumeTrailingImportantAndWhitespace(CSSParserTokenRange&);
 

@@ -50,7 +50,7 @@ struct CSSSelectorParserContext {
     bool isHashTableDeletedValue : 1 { false };
 
     CSSSelectorParserContext() = default;
-    NODELETE CSSSelectorParserContext(const CSSParserContext&);
+    NODELETE WEBCORE_EXPORT CSSSelectorParserContext(const CSSParserContext&);
     NODELETE explicit CSSSelectorParserContext(const Document&);
 
     friend bool operator==(const CSSSelectorParserContext&, const CSSSelectorParserContext&) = default;
