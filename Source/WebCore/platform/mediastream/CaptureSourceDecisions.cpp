@@ -96,15 +96,6 @@ static Vector<Mode> modes(uint8_t bits)
     return result;
 }
 
-template<typename Mode>
-static uint8_t modeBits(const Vector<Mode>& modes)
-{
-    uint8_t bits = 0;
-    for (auto mode : modes)
-        bits |= 1 << static_cast<uint8_t>(mode);
-    return bits;
-}
-
 CaptureSettingsValues captureSettingsValues(const RealtimeMediaSourceSettings& settings)
 {
     CaptureSettingsValues values;
@@ -149,8 +140,8 @@ CaptureCapabilityValues captureCapabilityValues(const RealtimeMediaSourceCapabil
     values.sampleSizeMin = capabilities.sampleSize().min();
     values.sampleSizeMax = capabilities.sampleSize().max();
     values.supportedConstraints = captureSupportedConstraintBits(capabilities.supportedConstraints());
-    values.facingModes = modeBits(capabilities.facingMode());
-    values.whiteBalanceModes = modeBits(capabilities.whiteBalanceModes());
+    values.facingModes = capabilityModeBits(capabilities.facingMode());
+    values.whiteBalanceModes = capabilityModeBits(capabilities.whiteBalanceModes());
     values.echoCancellation = static_cast<uint8_t>(capabilities.echoCancellation());
     values.backgroundBlur = static_cast<uint8_t>(capabilities.backgroundBlur());
     values.torch = capabilities.torch();

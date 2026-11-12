@@ -179,15 +179,6 @@ static MediaConstraintSetValues constraintSetValues(const MediaTrackConstraintSe
     };
 }
 
-template<typename Mode>
-static uint8_t modeBits(const Vector<Mode>& modes)
-{
-    uint8_t bits = 0;
-    for (auto mode : modes)
-        bits |= static_cast<uint8_t>(1 << static_cast<uint8_t>(mode));
-    return bits;
-}
-
 MediaConstraintsCapabilities mediaConstraintsCapabilities(const RealtimeMediaSourceCapabilities& capabilities)
 {
     return {
@@ -199,8 +190,8 @@ MediaConstraintsCapabilities mediaConstraintsCapabilities(const RealtimeMediaSou
         { capabilities.frameRate().min(), capabilities.frameRate().max() },
         { capabilities.volume().min(), capabilities.volume().max() },
         { capabilities.zoom().min(), capabilities.zoom().max() },
-        modeBits(capabilities.facingMode()),
-        modeBits(capabilities.whiteBalanceModes()),
+        capabilityModeBits(capabilities.facingMode()),
+        capabilityModeBits(capabilities.whiteBalanceModes()),
         static_cast<uint8_t>(capabilities.echoCancellation()),
         capabilities.torch(),
         capabilities.supportsWidth(),
