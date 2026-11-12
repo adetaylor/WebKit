@@ -5602,7 +5602,7 @@
 		BC5EB69F0E81DAEB00B25965 /* StyleMaskLayer.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB69D0E81DAEB00B25965 /* StyleMaskLayer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5EB9510E82056B00B25965 /* CounterDirectives.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB94F0E82056B00B25965 /* CounterDirectives.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5EB9810E82072500B25965 /* StyleContent.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EB97F0E82072500B25965 /* StyleContent.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		BC5EBA110E823E4700B25965 /* BlendingKeyframes.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EBA0F0E823E4700B25965 /* BlendingKeyframes.h */; };
+		BC5EBA110E823E4700B25965 /* BlendingKeyframes.h in Headers */ = {isa = PBXBuildFile; fileRef = BC5EBA0F0E823E4700B25965 /* BlendingKeyframes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC5F9F49FAF7EA4036EF874C /* CSSBorderImageSource.h in Headers */ = {isa = PBXBuildFile; fileRef = BC0D732D2FB6503000952D29 /* CSSBorderImageSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BC6049CC0DB560C200204739 /* CSSCanvasValue.h in Headers */ = {isa = PBXBuildFile; fileRef = BC6049CB0DB560C200204739 /* CSSCanvasValue.h */; };
 		BC60D6E90D28D83400B9918F /* DOMException.h in Headers */ = {isa = PBXBuildFile; fileRef = BC60D6E80D28D83400B9918F /* DOMException.h */; settings = {ATTRIBUTES = (Private, ); }; };

@@ -30,6 +30,7 @@
 #include "StyleSingleAnimationRangeName.h"
 #include "StylePrimitiveNumericTypes.h"
 #include "WebAnimationTypes.h"
+#include <bit>
 #include <wtf/Vector.h>
 #include <wtf/HashSet.h>
 #include <wtf/text/AtomString.h>
@@ -208,6 +209,24 @@ private:
     bool m_hasPropertiesWithRevertRuleOrLayer : 1 { false };
     bool m_animatesOffsetDistanceToPercentOrCalculated : 1 { false };
 };
+
+// A keyframe list that Swift reads during a call. Swift does not import BlendingKeyframes, which it can neither copy
+// nor move.
+class BlendingKeyframesView {
+public:
+    BlendingKeyframesView(const BlendingKeyframes& keyframes LIFETIME_BOUND)
+        : m_keyframes(std::bit_cast<uintptr_t>(&keyframes))
+    {
+    }
+
+    const BlendingKeyframes& operator*() const LIFETIME_BOUND { return *std::bit_cast<const BlendingKeyframes*>(m_keyframes); }
+
+    bool containsProperty(CSSPropertyID property) const { return (**this).containsProperty(property); }
+
+private:
+    // An integer, as in PaintInfoView: Swift does not import a pointer to a view type.
+    uintptr_t m_keyframes;
+} SWIFT_VIEW;
 
 } // namespace WebCore
 

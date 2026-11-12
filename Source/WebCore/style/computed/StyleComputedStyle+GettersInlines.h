@@ -547,6 +547,26 @@ inline ImageRendering ComputedStyle::imageRenderingForSwift() const
     return imageRendering();
 }
 
+inline void ComputedStyle::applyTranslateForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    translate().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyScaleForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    scale().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyRotateForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    rotate().apply(matrix, boxSize, usedZoomForLength());
+}
+
+inline void ComputedStyle::applyTransformForSwift(TransformationMatrix& matrix, const FloatSize& boxSize) const
+{
+    transform().apply(matrix, boxSize, usedZoomForLength());
+}
+
 // MARK: - Logical getters
 
 // MARK: logical inset value aliases

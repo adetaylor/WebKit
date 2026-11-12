@@ -84,6 +84,10 @@ public:
     inline bool clipPathIsNoneForSwift() const SWIFT_NAME(clipPathIsNone());
     inline ObjectFit objectFitForSwift() const SWIFT_NAME(objectFit());
     inline ImageRendering imageRenderingForSwift() const SWIFT_NAME(imageRendering());
+    inline void applyTranslateForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyTranslate(_:_:));
+    inline void applyScaleForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyScale(_:_:));
+    inline void applyRotateForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyRotate(_:_:));
+    inline void applyTransformForSwift(TransformationMatrix&, const FloatSize&) const SWIFT_NAME(applyTransform(_:_:));
 
     NODELETE static ComputedStyle& defaultStyleSingleton();
 

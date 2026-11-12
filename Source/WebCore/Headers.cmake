@@ -793,6 +793,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     animation/AnimationTimeline.h
     animation/AnimationTimelinesController.h
     animation/BasicEffectTiming.h
+    animation/BlendingKeyframes.h
     animation/CSSAnimation.h
     animation/CompositeOperation.h
     animation/CompositeOperationOrAuto.h
