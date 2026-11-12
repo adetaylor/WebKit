@@ -32,6 +32,7 @@
 #include <WebCore/IntSize.h>
 #include <WebCore/MeshGradient.h>
 #include <WebCore/MeshGradientRendererCPU.h>
+#include <WebCore/NativeImage.h>
 #include <WebCore/PixelBuffer.h>
 #include <WebCore/PixelBufferConversion.h>
 #include <algorithm>
@@ -704,5 +705,40 @@ TEST(MeshGradientRenderer, MetalDrawsToColorSpaceTheShaderCannotConvertTo)
 #endif // ENABLE(PIXEL_FORMAT_RGBA16F) && ENABLE(DESTINATION_COLOR_SPACE_EXTENDED_SRGB)
 
 #endif // USE(METAL)
+
+// What draw() draws is the image renderedImage() renders at pixelSize(), as the GPU process's Swift renderer draws it.
+TEST(MeshGradientRenderer, RenderedImageIsWhatDrawDraws)
+{
+    IntSize size { 24, 16 };
+    FloatRect destination { FloatPoint { 3, 2 }, FloatSize { 9.5, 6.25 } };
+    auto makeGradient = [&] {
+        return makeMeshGradient(srgb, size, 3, 3, { Color::red, Color::green, Color::blue, Color::yellow, Color::cyan, Color::magenta, Color::black, Color::white, Color::gray });
+    };
+
+    auto pixels = [&](NOESCAPE const Function<void(GraphicsContext&)>& paint) {
+        RefPtr imageBuffer = ImageBuffer::create(size, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
+        imageBuffer->context().scale(2);
+        paint(imageBuffer->context());
+        RefPtr pixelBuffer = imageBuffer->getPixelBuffer({ AlphaPremultiplication::Premultiplied, PixelFormat::RGBA8, ColorSpace::SRGB() }, { { }, size });
+        auto bytes = pixelBuffer->bytes();
+        return Vector<uint8_t> { bytes };
+    };
+
+    auto drawn = pixels([&](GraphicsContext& context) {
+        MeshGradientRendererCPU { }.draw(context, makeGradient(), destination);
+    });
+    auto rendered = pixels([&](GraphicsContext& context) {
+        float scale;
+        auto pixelSize = MeshGradientRenderer::pixelSize(context.getCTM(GraphicsContext::DefinitelyIncludeDeviceScale), destination.size(), scale);
+        EXPECT_EQ(pixelSize, IntSize(19, 13));
+        RefPtr image = MeshGradientRendererCPU { }.renderedImage(makeGradient(), pixelSize, scale, context.colorSpace(), [](const IntSize& imageSize, const ColorSpace& colorSpace, PixelFormat pixelFormat) {
+            return ImageBuffer::create(imageSize, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, colorSpace, ImageBufferFormat { pixelFormat });
+        });
+        ASSERT_TRUE(image);
+        context.drawNativeImage(*image, destination, FloatRect { { }, pixelSize });
+    });
+    EXPECT_EQ(drawn, rendered);
+    EXPECT_TRUE(std::ranges::any_of(drawn, [](uint8_t byte) { return byte; }));
+}
 
 } // namespace TestWebKitAPI

@@ -3614,6 +3614,18 @@ extension CGRendererCore {
         ctm(false)
     }
 
+    // GraphicsContextCG::getCTM(DefinitelyIncludeDeviceScale) and GraphicsContextCG::colorSpace(), for a draw that C++ renders
+    // an image for.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverDeviceCTM() -> CGAffineTransform {
+        ctm(true)
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiverDestinationColorSpace() -> CGRendererDestinationColorSpace {
+        destinationColorSpace
+    }
+
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveConcatCTM(_ transform: borrowing WebCore.AffineTransform) {
         // The message's transform, read in place: concatCTM() takes a copy, which LLVM merges with setCTM()'s.

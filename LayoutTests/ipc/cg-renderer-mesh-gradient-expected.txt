@@ -1,0 +1,5 @@
+This test passes if the GPU process's Swift CG renderer receiver (RemoteCGRenderer) draws a cached mesh gradient, in a scaled context, the same directly as through a display list that RemoteCGRenderer's recorder records, and draws the gradient's colors at its corners.
+
+PASS: unaccelerated same pixels, corner colors
+PASS: accelerated same pixels, corner colors
+

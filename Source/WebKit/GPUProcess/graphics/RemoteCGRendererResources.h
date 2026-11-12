@@ -260,7 +260,6 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
 
 // The draws of messages that C++ makes, into the receiver's leaf context (CGRendererLeafContext), as RemoteGraphicsContext's
 // handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.
-bool drawMeshGradient(const RemoteCGRendererResources&, CGRendererLeafContext&, RemoteMeshGradientIdentifier, const WebCore::FloatRect& destination);
 bool drawFilteredImageBuffer(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&);
 void drawControlPart(const RemoteCGRendererResources&, CGRendererLeafContext&, const Ref<WebCore::ControlPart>&, const WebCore::FloatRoundedRect& borderRect, float deviceScaleFactor, const WebCore::ControlStyle&);
 void drawSystemImage(CGRendererLeafContext&, const Ref<WebCore::SystemImage>&, const WebCore::FloatRect& destinationRect);
@@ -284,6 +283,11 @@ void setSharedVideoFrameMemory(const RemoteCGRendererResources&, const WebCore::
 CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources&, RemoteGradientIdentifier, const WebCore::AffineTransform& spaceTransform, bool& found);
 CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found);
 CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found, bool& drawsIntoTarget);
+
+// The image of a DrawMeshGradient, which MeshGradientRenderer renders for the context's device transform and color space at the
+// destination's size in pixels, which the facts give, and the options GraphicsContext draws it with: found is false for a
+// missing gradient, and the image is null where nothing is drawn.
+CGImageRef _Nullable copyMeshGradientImage(const RemoteCGRendererResources&, RemoteMeshGradientIdentifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace&, CGSize destinationSize, CGRendererImageFacts&, CGRendererImageOptions&) CF_RETURNS_RETAINED;
 
 // The image of a ClipToNativeImage.
 CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier) CF_RETURNS_RETAINED;
