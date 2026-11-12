@@ -58,6 +58,7 @@ def parse(file):
     swift_receiver_state_lender = None
     swift_types = False
     swift_implementation = False
+    swift_receiver_owner = False
     messages_from = None
     swift_sends = None
     destination = None
@@ -119,6 +120,9 @@ def parse(file):
                 continue
             elif attribute == model.SWIFT_IMPLEMENTATION_ATTRIBUTE:
                 swift_implementation = True
+                continue
+            elif attribute == model.SWIFT_RECEIVER_OWNER_ATTRIBUTE:
+                swift_receiver_owner = True
                 continue
             raise Exception("ERROR: Unknown extended attribute: '%s'" % attribute)
     if receiver_enabled_by and receiver_enabled_by_exception:
@@ -230,6 +234,8 @@ def parse(file):
 
     if swift_implementation:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_IMPLEMENTATION_ATTRIBUTE]
+    if swift_receiver_owner:
+        receiver_attributes = (receiver_attributes or []) + [model.SWIFT_RECEIVER_OWNER_ATTRIBUTE]
     receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends)
     if not messages_from:
         receiver.enforce_swift_types_constraints()

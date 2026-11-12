@@ -220,6 +220,7 @@ NetworkProcess/webtransport/NetworkTransportStream.cpp
 Platform/IPC/DaemonCoders.cpp
 Platform/IPC/FormDataReference.cpp
 Platform/IPC/SwiftCoding.cpp
+Platform/IPC/SwiftReceiverOwner.cpp
 
 Shared/ActivityAssertion.cpp
 Shared/AuxiliaryProcess.cpp
