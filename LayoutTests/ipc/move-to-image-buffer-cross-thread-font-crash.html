@@ -1,5 +1,5 @@
 <!-- webkit-test-runner [ IPCTestingAPIEnabled=true RemoteSnapshottingEnabled=true ] -->
-<p>This test passes if WebKit does not crash.</p>
+<p>This test passes if a DisplayList image buffer is not moved to another rendering backend, and WebKit does not crash.</p>
 <script src="../resources/ipc.js"></script>
 <script>
 if (window.testRunner) {
@@ -112,6 +112,8 @@ if (window.testRunner) {
     backendA.backend.SinkDisplayListRecorderIntoDisplayList({ identifier: nestedRecorderIdentifier, displayListIdentifier: nestedDisplayListIdentifier });
     bufferToTransfer.graphicsContext.DrawDisplayList({ identifier: nestedDisplayListIdentifier });
 
+    // A DisplayList image buffer's drawing is recorded with backend A's resources, so moving it to backend B is an invalid
+    // message: B never replays A's recording on its own work queue.
     const serializedIdentifier = randomIPCID();
     backendA.backend.MoveToSerializedBuffer({ identifier: bufferToTransfer.imageBufferIdentifier, serializedIdentifier });
 
@@ -119,19 +121,18 @@ if (window.testRunner) {
     const transferredContextIdentifier = randomIPCID();
     backendB.backend.MoveToImageBuffer({ identifier: serializedIdentifier, imageBufferIdentifier: transferredImageBufferIdentifier, contextIdentifier: transferredContextIdentifier });
     const transferredBuffer = backendB.streamConnection.newInterface("RemoteImageBuffer", transferredImageBufferIdentifier);
+    let transferred = false;
+    try {
+        transferredBuffer.FlushContextSync({}, () => { transferred = true; });
+    } catch { }
 
-    for (let iteration = 0; iteration < 0x1000; ++iteration) {
-        transferredBuffer.CopyNativeImage({ image: randomIPCID() });
-        racingBuffer.graphicsContext.DrawGlyphs(drawGlyphs);
-    }
+    const backendC = createRenderingBackend();
+    const result = [];
+    result.push(!transferred ? 'PASS: a DisplayList image buffer is not moved to another backend.' : 'FAIL: a DisplayList image buffer was moved to another backend.');
+    result.push(isAlive(backendC) ? 'PASS: the GPU process is alive.' : 'FAIL: GPU process crashed.');
+    document.querySelector('p').textContent = result.join(' ');
 
-    backendA.backend.ReleaseImageBuffer({ identifier: racingBuffer.imageBufferIdentifier });
-
-    if (!isAlive(backendA) || !isAlive(backendB))
-        document.querySelector('p').textContent = 'FAIL: GPU process crashed.';
-
-    backendA.streamConnection.connection.invalidate();
-    backendB.streamConnection.connection.invalidate();
+    backendC.streamConnection.connection.invalidate();
     window.testRunner?.notifyDone();
 })();
 </script>

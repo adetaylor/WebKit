@@ -193,6 +193,8 @@ void RemoteRenderingBackend::moveToSerializedBuffer(RenderingResourceIdentifier 
     RefPtr imageBuffer = takeImageBuffer(identifier);
     MESSAGE_CHECK(imageBuffer, "Missing ImageBuffer");
     MESSAGE_CHECK(imageBuffer->hasOneRef(), "ImageBuffer in use");
+    // A DisplayList image buffer's drawing is recorded with this backend's resources, so it stays on this backend.
+    MESSAGE_CHECK(imageBuffer->renderingMode() != RenderingMode::DisplayList, "DisplayList ImageBuffer");
     // Avoid leaking cross-RemoteRenderingBackend state through context by releasing the context.
     imageBuffer->releaseGraphicsContext();
     bool success = m_sharedResourceCache->addSerializedImageBuffer(serializedIdentifier, imageBuffer.releaseNonNull());
