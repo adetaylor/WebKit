@@ -674,9 +674,13 @@ private:
 template<typename> struct IsRefOfStreamMessageReceiver : std::false_type { };
 template<typename T> struct IsRefOfStreamMessageReceiver<Ref<T>> : std::bool_constant<std::derived_from<T, StreamMessageReceiver>> { };
 
+// An owner whose shared preferences never change says so with a static constexpr hasFixedSharedPreferencesForWebProcess.
+template<typename Owner>
+concept HasFixedSharedPreferencesForWebProcess = Owner::hasFixedSharedPreferencesForWebProcess;
+
 // Registers a Swift receiver's message forwarder for those messages on the stream connection of the receiver that owns
-// it, whose shared preferences the forwarder then reads, through a weak pointer. Null if the owner's stream connection
-// has gone. For Swift, which passes the owner, a foreign reference type, as a pointer to it, and which can't pass a
+// it, whose shared preferences the forwarder then reads, through a weak pointer, or keeps a copy of if they never change.
+// Null if the owner's stream connection has gone. For Swift, which passes the owner, a foreign reference type, as a pointer to it, and which can't pass a
 // forwarder as the StreamMessageReceiver it is, but can pass the Ref to it that it holds. The static_asserts are there
 // because the constraints aren't enforced for Swift callers.
 template<typename OwnerPointer, typename ForwarderRef>
@@ -688,11 +692,17 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
     if (!streamConnection)
         return nullptr;
     using SharedPreferences = decltype(owner.sharedPreferencesForWebProcess());
-    forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }] -> SharedPreferences {
-        if (RefPtr protectedOwner = weakOwner.get())
-            return protectedOwner->sharedPreferencesForWebProcess();
-        return std::nullopt;
-    });
+    if constexpr (HasFixedSharedPreferencesForWebProcess<std::remove_cvref_t<decltype(owner)>>) {
+        forwarder->setSharedPreferencesProvider([sharedPreferences = owner.sharedPreferencesForWebProcess()] -> SharedPreferences {
+            return sharedPreferences;
+        });
+    } else {
+        forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }] -> SharedPreferences {
+            if (RefPtr protectedOwner = weakOwner.get())
+                return protectedOwner->sharedPreferencesForWebProcess();
+            return std::nullopt;
+        });
+    }
     return &SwiftStreamReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
