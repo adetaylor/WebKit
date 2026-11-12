@@ -1214,7 +1214,6 @@ TestWebKitAPI.MarkedText
 TestWebKitAPI.MediaCaptureDisabledTest
 TestWebKitAPI.MediaCapturePermissionPrompt
 TestWebKitAPI.MediaDocument
-TestWebKitAPI.MediaReorderQueue
 TestWebKitAPI.MediaSamplesBlock.CMSampleBufferRoundTripKeepsTrims
 TestWebKitAPI.MediaSamplesDecoder
 TestWebKitAPI.MediaSessionCoordinatorTest

@@ -41,7 +41,6 @@
 
 typedef struct AudioFormatVorbisModeInfo AudioFormatVorbisModeInfo;
 typedef const struct opaqueCMFormatDescription* CMFormatDescriptionRef;
-typedef const struct opaqueCMFormatDescription* CMVideoFormatDescriptionRef;
 typedef struct opaqueCMSampleBuffer* CMSampleBufferRef;
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 typedef struct OpaqueCMBlockBuffer* CMBlockBufferRef;
@@ -76,7 +75,7 @@ CFStringRef convertToCMColorPrimaries(PlatformVideoColorPrimaries);
 CFStringRef convertToCMTransferFunction(PlatformVideoTransferCharacteristics);
 CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
 
-PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
+WEBCORE_EXPORT PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
 
 #if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
 WEBCORE_EXPORT Vector<Ref<SharedBuffer>> getKeyIDs(CMFormatDescriptionRef);

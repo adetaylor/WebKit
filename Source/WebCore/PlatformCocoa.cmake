@@ -1487,7 +1487,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/network/ios/LegacyPreviewLoaderClient.h
     platform/network/ios/WebCoreURLResponseIOS.h
 
-    platform/video-codecs/cocoa/GPUVideoDecoder.h
     platform/video-codecs/cocoa/GPUVideoEncoder.h
 
     platform/xr/cocoa/PlatformXRPose.h

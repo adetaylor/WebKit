@@ -117,6 +117,11 @@ void RemoteVideoFrameObjectHeap::add(RemoteVideoFrameReference reference, Ref<Vi
 }
 
 #if PLATFORM(COCOA)
+uint64_t RemoteVideoFrameObjectHeap::generateFrameIdentifier()
+{
+    return RemoteVideoFrameIdentifier::generate().toUInt64();
+}
+
 auto RemoteVideoFrameObjectHeap::get(RemoteVideoFrameReadReference&& read) -> std::optional<LentFrame>
 {
     RemoteVideoFrameTransform transform;

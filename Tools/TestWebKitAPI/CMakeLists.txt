@@ -349,7 +349,6 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/MIMETypeRegistry.cpp
         Tests/WebCore/MediaConstraintsTests.cpp
         Tests/WebCore/MediaQueryListCapacity.cpp
-        Tests/WebCore/MediaReorderQueue.cpp
         Tests/WebCore/MeshGradientRendererTests.cpp
         Tests/WebCore/MixedContentChecker.cpp
         Tests/WebCore/MonospaceFontTests.cpp

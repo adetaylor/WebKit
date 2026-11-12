@@ -1704,7 +1704,6 @@
 		41CB840225CAB81E0010E2B1 /* RealtimeIncomingVideoSource.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CDD833A1E4324BB00621E92 /* RealtimeIncomingVideoSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41CDC67028F73A0B00603E59 /* WebCodecsAlphaOption.h in Headers */ = {isa = PBXBuildFile; fileRef = 41CDC66F28F739D300603E59 /* WebCodecsAlphaOption.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41D015CA0F4B5C71004A662F /* ContentType.h in Headers */ = {isa = PBXBuildFile; fileRef = 41D015C80F4B5C71004A662F /* ContentType.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		41D125FE2B6D012E003EB7AA /* GPUVideoDecoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 41E476512B6CF8A700C30B11 /* GPUVideoDecoder.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41D126022B6D0BD6003EB7AA /* AV1UtilitiesCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1A225B2B075A6D0038923E /* AV1UtilitiesCocoa.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41D126092B6D111D003EB7AA /* AV1Utilities.h in Headers */ = {isa = PBXBuildFile; fileRef = CD1A22582B0759AD0038923E /* AV1Utilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41D129CE1F3D0EF600D15E47 /* WindowOrWorkerGlobalScopeCaches.h in Headers */ = {isa = PBXBuildFile; fileRef = 41FB278D1F34C28200795487 /* WindowOrWorkerGlobalScopeCaches.h */; };
@@ -2358,7 +2357,6 @@
 		518864E11BBAF57400E540C9 /* UniqueIDBDatabase.h in Headers */ = {isa = PBXBuildFile; fileRef = 518864DF1BBAF30F00E540C9 /* UniqueIDBDatabase.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		51895F8A2D123D0900E8D471 /* DocumentClasses.h in Headers */ = {isa = PBXBuildFile; fileRef = 51895F892D123D0900E8D471 /* DocumentClasses.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5189F01E10B37BD900F3C739 /* JSPopStateEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 5189F01C10B37BD900F3C739 /* JSPopStateEvent.h */; };
-		518C1C502E213A8200083695 /* MediaReorderQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = 518C1C4C2E212AF700083695 /* MediaReorderQueue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		518F4FF6194CA4E60081BAAE /* GamepadButton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 518F4FED194CA4E60081BAAE /* GamepadButton.cpp */; };
 		518F5002194CAC3A0081BAAE /* JSGamepad.h in Headers */ = {isa = PBXBuildFile; fileRef = 518F4FFE194CAC3A0081BAAE /* JSGamepad.h */; };
 		518F5004194CAC3A0081BAAE /* JSGamepadButton.h in Headers */ = {isa = PBXBuildFile; fileRef = 518F5000194CAC3A0081BAAE /* JSGamepadButton.h */; };
@@ -11846,8 +11844,6 @@
 		41E408381DCB747900EFCE19 /* PeerConnectionBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PeerConnectionBackend.cpp; sourceTree = "<group>"; };
 		41E4764E2B6CF88E00C30B11 /* BitReader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BitReader.cpp; sourceTree = "<group>"; };
 		41E4764F2B6CF88E00C30B11 /* BitReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BitReader.h; sourceTree = "<group>"; };
-		41E476512B6CF8A700C30B11 /* GPUVideoDecoder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoDecoder.h; sourceTree = "<group>"; };
-		41E476532B6CF8A800C30B11 /* GPUVideoDecoder.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUVideoDecoder.mm; sourceTree = "<group>"; };
 		41E593FD214865A900D3CB61 /* RTCPriorityType.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = RTCPriorityType.idl; sourceTree = "<group>"; };
 		41E593FF214865AA00D3CB61 /* RTCRtpEncodingParameters.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = RTCRtpEncodingParameters.idl; sourceTree = "<group>"; };
 		41E59400214865AA00D3CB61 /* RTCRtpHeaderExtensionParameters.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = RTCRtpHeaderExtensionParameters.idl; sourceTree = "<group>"; };
@@ -11908,8 +11904,6 @@
 		41FB278F1F34C28200795487 /* WindowOrWorkerGlobalScopeCaches.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WindowOrWorkerGlobalScopeCaches.cpp; sourceTree = "<group>"; };
 		41FB27991F34CE9C00795487 /* CacheQueryOptions.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CacheQueryOptions.idl; sourceTree = "<group>"; };
 		41FB279B1F34CEF000795487 /* CacheQueryOptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CacheQueryOptions.h; sourceTree = "<group>"; };
-		41FBB09D2F57272B0071B5E3 /* GPUVideoDecoderVTB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoDecoderVTB.h; sourceTree = "<group>"; };
-		41FBB09E2F57272B0071B5E3 /* GPUVideoDecoderVTB.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GPUVideoDecoderVTB.mm; sourceTree = "<group>"; };
 		41FCA5F724EAAF15005E1BA6 /* TransformStream.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = TransformStream.idl; sourceTree = "<group>"; };
 		41FCA5FA24EAAF16005E1BA6 /* TransformStreamDefaultController.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = TransformStreamDefaultController.idl; sourceTree = "<group>"; };
 		41FCA5FB24EAAF16005E1BA6 /* TransformStreamDefaultController.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = TransformStreamDefaultController.js; sourceTree = "<group>"; };
@@ -13128,7 +13122,6 @@
 		5189F01B10B37BD900F3C739 /* JSPopStateEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSPopStateEvent.cpp; sourceTree = "<group>"; };
 		5189F01C10B37BD900F3C739 /* JSPopStateEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSPopStateEvent.h; sourceTree = "<group>"; };
 		5189F0DD10B46B0E00F3C739 /* PopStateEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PopStateEvent.cpp; sourceTree = "<group>"; };
-		518C1C4C2E212AF700083695 /* MediaReorderQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MediaReorderQueue.h; sourceTree = "<group>"; };
 		518F4FED194CA4E60081BAAE /* GamepadButton.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GamepadButton.cpp; sourceTree = "<group>"; };
 		518F4FEE194CA4E60081BAAE /* GamepadButton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GamepadButton.h; sourceTree = "<group>"; };
 		518F4FEF194CA4E60081BAAE /* GamepadButton.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GamepadButton.idl; sourceTree = "<group>"; };
@@ -27895,10 +27888,6 @@
 		41763D0C2ACAFA4A00283035 /* cocoa */ = {
 			isa = PBXGroup;
 			children = (
-				41E476512B6CF8A700C30B11 /* GPUVideoDecoder.h */,
-				41E476532B6CF8A800C30B11 /* GPUVideoDecoder.mm */,
-				41FBB09D2F57272B0071B5E3 /* GPUVideoDecoderVTB.h */,
-				41FBB09E2F57272B0071B5E3 /* GPUVideoDecoderVTB.mm */,
 				977EC3421309091E4646C65B /* GPUVideoEncoder.h */,
 				1E4F9E98BC7FE88417A74C61 /* GPUVideoEncoder.mm */,
 				41B6319F305BF77400276A69 /* GPUVideoEncoderVTB.h */,
@@ -37495,7 +37484,6 @@
 				079F5E4B0F3BEBEA005E0782 /* MediaPlayerPrivate.h */,
 				A14806392EBD276B0034CE8D /* MediaPlayerPrivateWirelessPlayback.cpp */,
 				A14806382EBD276B0034CE8D /* MediaPlayerPrivateWirelessPlayback.h */,
-				518C1C4C2E212AF700083695 /* MediaReorderQueue.h */,
 				512F29252BA2BD6500F1C326 /* MediaResourceSniffer.cpp */,
 				512F29242BA2BD6500F1C326 /* MediaResourceSniffer.h */,
 				51CF3EA52EEFAA3E00EEAFDD /* MediaSampleConverter.cpp */,
@@ -46811,7 +46799,6 @@
 				0DA042522E417B4800683D92 /* GPUIntegralTypes.h in Headers */,
 				0DA042502E417B1500683D92 /* GPUTextureFormat.h in Headers */,
 				0DA042512E417B3500683D92 /* GPUTextureUsage.h in Headers */,
-				41D125FE2B6D012E003EB7AA /* GPUVideoDecoder.h in Headers */,
 				4119C191305A8F3500C31DB7 /* GPUVideoEncoder.h in Headers */,
 				BC53C5F50DA56B920021EB5D /* Gradient.h in Headers */,
 				B22279640D00BF220071B782 /* GradientAttributes.h in Headers */,
@@ -48521,7 +48508,6 @@
 				51210AC92CC4E3740069E030 /* MediaRecorderPrivateWriter.h in Headers */,
 				4D73F94E218C4A87003A3ED6 /* MediaRecorderPrivateWriterAVFObjC.h in Headers */,
 				CD8ACA8F1D23971900ECC59E /* MediaRemoteSoftLink.h in Headers */,
-				518C1C502E213A8200083695 /* MediaReorderQueue.h in Headers */,
 				CEEFCD7A19DB31F7003876D7 /* MediaResourceLoader.h in Headers */,
 				512F29262BA2BD7000F1C326 /* MediaResourceSniffer.h in Headers */,
 				1BF9DB3C1D3973AD0026AEB7 /* MediaSample.h in Headers */,

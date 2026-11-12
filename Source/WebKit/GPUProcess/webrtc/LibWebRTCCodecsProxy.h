@@ -33,6 +33,7 @@
 #include "VideoDecoderIdentifier.h"
 #include "VideoEncoderIdentifier.h"
 #include "WorkQueueMessageReceiver.h"
+#include <CoreMedia/CMFormatDescription.h>
 #include <WebCore/PlatformVideoColorSpace.h>
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
@@ -58,12 +59,9 @@ class Semaphore;
 }
 
 namespace WebCore {
-class FrameRateMonitor;
-class GPUVideoDecoder;
 class GPUVideoEncoder;
 class PixelBufferConformerCV;
 class VideoInfo;
-enum class VideoFrameRotation : uint16_t;
 }
 
 namespace WebKit {
@@ -74,10 +72,29 @@ class RemoteVideoFrameObjectHeap;
 // Swift doesn't give a function that takes a class template's reference type the overloads that take a Span, unless
 // the type is spelled through an alias.
 using CodecStringArgument = IPC::CxxDecodedArgument<String>;
-using ColorSpaceOverrideArgument = IPC::CxxDecodedArgument<std::optional<WebCore::PlatformVideoColorSpace>>;
 using EncoderParametersArgument = IPC::CxxDecodedArgument<Vector<std::pair<String, String>>>;
 using SharedVideoFrameArgument = IPC::CxxDecodedArgument<SharedVideoFrame>;
-using VideoFrameRotationArgument = IPC::CxxDecodedArgument<WebCore::VideoFrameRotation>;
+
+// A WebCore::PlatformVideoColorSpace that Swift can make and read: each value counts only if the flag before it is set.
+struct LibWebRTCCodecsColorSpace {
+    bool hasPrimaries { false };
+    WebCore::PlatformVideoColorPrimaries primaries { };
+    bool hasTransfer { false };
+    WebCore::PlatformVideoTransferCharacteristics transfer { };
+    bool hasMatrix { false };
+    WebCore::PlatformVideoMatrixCoefficients matrix { };
+    bool hasFullRange { false };
+    bool fullRange { false };
+    bool hasChromaLocation { false };
+    WebCore::PlatformVideoChromaLocation chromaLocation { };
+};
+
+// What LibWebRTCCodecsProxy.swift's decoders leave to WebCore: the check of a codec string, which a null String passes;
+// the format description of a video info, with the values that the override sets replacing the video info's, returned
+// +1; and the colour space of a decoded frame, as WebCore::VideoFrameCV computes it.
+bool isValidDecoderCodecString(WebCore::VideoCodecType, CodecStringArgument&);
+CMFormatDescriptionRef WTF_NULLABLE createDecoderFormatDescription(const WebCore::VideoInfo&, LibWebRTCCodecsColorSpace colorSpaceOverride) CF_RETURNS_RETAINED;
+LibWebRTCCodecsColorSpace colorSpaceOfPixelBuffer(CVPixelBufferRef WTF_NONNULL);
 
 // The receiver of the web process's video decoder and encoder messages, which run on the codecs queue. Swift handles
 // them (LibWebRTCCodecsProxy.swift), keeping the decoders and encoders in the Swift state that m_swiftState holds; this
@@ -102,9 +119,6 @@ public:
     RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const LIFETIME_BOUND { return m_videoFrameObjectHeap; }
     const WebCore::ProcessIdentity& resourceOwner() const LIFETIME_BOUND { return m_resourceOwner; }
 
-    // Runs the block on the codecs queue, after what is already queued there.
-    void dispatch(void (^WTF_NONNULL)());
-
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
     void updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess);
 
@@ -121,7 +135,7 @@ private:
     LibWebRTCCodecsProxy(Ref<IPC::Connection>&&, Ref<WorkQueue>&&, Ref<RemoteVideoFrameObjectHeap>&&, const WebCore::ProcessIdentity&, const SharedPreferencesForWebProcess&);
 
     // Implemented in Swift, in LibWebRTCCodecsProxy.swift, on the state that m_swiftState holds.
-    static uintptr_t createSwiftState();
+    static uintptr_t createSwiftState(RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity resourceOwner, bool hasResourceOwner, void* WTF_NONNULL codecsQueue);
     static void destroySwiftState(uintptr_t);
     void failPendingReplies();
 
@@ -134,30 +148,6 @@ private:
     // A retained reference to the Swift state, as an address, from the constructor to the destructor.
     const uintptr_t m_swiftState;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-// A decoder of LibWebRTCCodecsProxy.swift. What it decodes goes to the web process, with the frames lent through the
-// video frame heap when the web process asked for remote frames, and each result goes to the callback on the codecs queue.
-class LibWebRTCCodecsProxyDecoder final : public ThreadSafeRefCounted<LibWebRTCCodecsProxyDecoder> {
-public:
-    // Null if the codec string isn't valid for the codec, or there is no decoder for it.
-    static RefPtr<LibWebRTCCodecsProxyDecoder> create(LibWebRTCCodecsProxy&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, bool useRemoteFrames, bool enableAdditionalLogging, ColorSpaceOverrideArgument&, VideoFrameRotationArgument&, bool isMirrored, void (^WTF_NONNULL resultCallback)(bool));
-    ~LibWebRTCCodecsProxyDecoder();
-
-    void flush();
-    void setFormat(const IPC::LentBytes& description NOESCAPE, uint16_t width, uint16_t height, WebCore::VideoInfo* WTF_NULLABLE);
-    void setColorSpaceOverride(ColorSpaceOverrideArgument&);
-    // Returns false, having told the web process, if the decoder failed to take the frame.
-    [[nodiscard]] bool decodeFrame(int64_t timeStamp, const IPC::LentBytes& data NOESCAPE, WebCore::VideoInfo* WTF_NULLABLE);
-    void setFrameSize(uint16_t width, uint16_t height);
-
-private:
-    LibWebRTCCodecsProxyDecoder(Ref<IPC::Connection>&&, VideoDecoderIdentifier, std::unique_ptr<WebCore::GPUVideoDecoder>&&, std::unique_ptr<WebCore::FrameRateMonitor>&&);
-
-    const Ref<IPC::Connection> m_connection;
-    const VideoDecoderIdentifier m_identifier;
-    const std::unique_ptr<WebCore::GPUVideoDecoder> m_decoder;
-    const std::unique_ptr<WebCore::FrameRateMonitor> m_frameRateMonitor;
-};
 
 // An encoder of LibWebRTCCodecsProxy.swift. What it encodes goes to the web process, and each result goes to the callback
 // on the codecs queue.

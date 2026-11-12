@@ -71,7 +71,7 @@ struct WebKit::RTCSocketCreationFlags {
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA)
 header: <WebCore/GPUVideoEncoder.h>
-[CustomHeader] struct WebCore::GPUVideoEncoderFrameInfo {
+[CustomHeader, Swift] struct WebCore::GPUVideoEncoderFrameInfo {
     uint32_t width;
     uint32_t height;
     int64_t timeStamp;

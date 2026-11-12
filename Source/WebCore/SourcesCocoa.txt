@@ -693,8 +693,6 @@ platform/video-codecs/cocoa/GPUVideoEncoderVTBH264.mm @nonARC
 platform/video-codecs/cocoa/GPUVideoEncoderVTBH265.mm @nonARC
 platform/video-codecs/cocoa/VideoDecoderVTBSession.mm @nonARC
 platform/video-codecs/cocoa/VideoEncoderVTBSession.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoDecoder.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoDecoderVTB.mm @nonARC
 platform/xr/cocoa/PlatformXRPose.cpp
 rendering/AttachmentLayout.mm @nonARC
 rendering/cocoa/RenderThemeCocoa.mm @nonARC

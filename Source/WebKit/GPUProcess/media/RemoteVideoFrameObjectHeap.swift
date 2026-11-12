@@ -225,6 +225,13 @@ extension WebKit.RemoteVideoFrameObjectHeap {
         state.add(VideoFrameReference(identifier: identifier, version: 0), frame)
     }
 
+    // Adds a frame under a newly generated reference, whose identifier this returns, with version 0.
+    func lend(_ pixelBuffer: CVPixelBuffer, rotation: UInt16, isMirrored: Bool) -> UInt64 {
+        let identifier = Self.generateFrameIdentifier()
+        state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored))
+        return identifier
+    }
+
     // The pixel buffer of the frame of a read reference, for the Swift readers of shared video frames.
     func readPixelBuffer(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
         state.read(VideoFrameReference(identifier: identifier, version: version))?.pixelBuffer

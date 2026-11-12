@@ -940,7 +940,6 @@
 				WebCore/MarkedText.cpp,
 				WebCore/MediaConstraintsTests.cpp,
 				WebCore/MediaQueryListCapacity.cpp,
-				WebCore/MediaReorderQueue.cpp,
 				WebCore/MeshGradientRendererTests.cpp,
 				WebCore/MIMESniffer.cpp,
 				WebCore/MIMETypeRegistry.cpp,

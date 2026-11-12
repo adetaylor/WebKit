@@ -27,6 +27,7 @@
 
 #if USE(AVFOUNDATION)
 
+#include <CoreMedia/CMFormatDescription.h>
 #include <CoreMedia/CMTime.h>
 #include <wtf/BlockPtr.h>
 #include <wtf/RetainPtr.h>
@@ -38,7 +39,6 @@ typedef CVPixelBufferRef CVImageBufferRef;
 typedef struct OpaqueCMTaggedBufferGroup *CMTaggedBufferGroupRef;
 typedef UInt32 VTDecodeInfoFlags;
 typedef struct OpaqueVTDecompressionSession*  VTDecompressionSessionRef;
-typedef const struct opaqueCMFormatDescription* CMVideoFormatDescriptionRef;
 
 namespace WebCore {
 

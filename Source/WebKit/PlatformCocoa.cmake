@@ -756,6 +756,16 @@ elseif (WEBKIT_SDK_IS_IOS_FAMILY)
     )
 endif ()
 
+# LibWebRTCCodecsProxy's Swift codecs call CoreMedia and VideoToolbox. A Mac may lack them, so macOS links them weakly,
+# and the codecs check for them before they start.
+if (USE_LIBWEBRTC)
+    if (WEBKIT_PLATFORM_MAC)
+        target_link_options(WebKit PRIVATE "LINKER:-weak_framework,CoreMedia" "LINKER:-weak_framework,VideoToolbox")
+    else ()
+        target_link_options(WebKit PRIVATE "LINKER:-framework,CoreMedia" "LINKER:-framework,VideoToolbox")
+    endif ()
+endif ()
+
 set(WebKit_FORWARDING_HEADERS_DIRECTORIES
     Platform
     Shared

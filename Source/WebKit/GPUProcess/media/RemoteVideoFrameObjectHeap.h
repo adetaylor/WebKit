@@ -91,6 +91,9 @@ public:
     // can't be read.
     void add(RemoteVideoFrameReference, Ref<WebCore::VideoFrame>&&);
 #if PLATFORM(COCOA)
+    // An identifier for a frame that Swift adds (RemoteVideoFrameObjectHeap.swift's lend()).
+    static uint64_t generateFrameIdentifier();
+
     struct LentFrame {
         RetainPtr<CVPixelBufferRef> pixelBuffer;
         WebCore::VideoFrameRotation rotation { WebCore::VideoFrameRotation::None };

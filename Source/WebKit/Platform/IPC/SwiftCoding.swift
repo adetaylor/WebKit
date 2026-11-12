@@ -728,6 +728,13 @@ extension IPC.LentBytes {
         var destination = storage.mutableSpan
         copyTo(&destination)
     }
+
+    /// Copies the bytes into `destination`, which must be exactly as large, for a handler that keeps them in memory that
+    /// isn't an Array.
+    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+    func copyBytes(into destination: inout MutableSpan<UInt8>) {
+        copyTo(&destination)
+    }
 }
 
 #if canImport(Darwin)
