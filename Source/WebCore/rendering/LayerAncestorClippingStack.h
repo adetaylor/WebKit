@@ -68,7 +68,7 @@ class LayerAncestorClippingStack {
     WTF_MAKE_TZONE_ALLOCATED(LayerAncestorClippingStack);
 public:
     LayerAncestorClippingStack(Vector<CompositedClipData>&&);
-    ~LayerAncestorClippingStack() = default;
+    ~LayerAncestorClippingStack();
 
     NODELETE bool hasAnyScrollingLayers() const;
     

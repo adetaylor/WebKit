@@ -43,6 +43,16 @@ LayerAncestorClippingStack::LayerAncestorClippingStack(Vector<CompositedClipData
 {
 }
 
+// The layers' client is the backing that owns this stack, and a layer can outlive it.
+LayerAncestorClippingStack::~LayerAncestorClippingStack()
+{
+    for (auto& entry : m_stack) {
+        GraphicsLayer::clear(entry.clippingLayer);
+        GraphicsLayer::clear(entry.scrollingLayer);
+        GraphicsLayer::clear(entry.shapeMaskLayer);
+    }
+}
+
 bool LayerAncestorClippingStack::equalToClipData(const Vector<CompositedClipData>& clipDataStack) const
 {
     if (m_stack.size() != clipDataStack.size())
@@ -76,6 +86,7 @@ void LayerAncestorClippingStack::clear(RenderLayerCompositor& compositor)
 
         GraphicsLayer::unparentAndClear(entry.clippingLayer);
         GraphicsLayer::unparentAndClear(entry.scrollingLayer);
+        GraphicsLayer::clear(entry.shapeMaskLayer);
     }
 }
 
@@ -154,6 +165,8 @@ bool LayerAncestorClippingStack::updateWithClipData(RenderLayerCompositor& compo
             if (entry.overflowScrollProxyNodeID)
                 compositor.unparentChildrenAndDestroyScrollingNode(*entry.overflowScrollProxyNodeID);
             GraphicsLayer::unparentAndClear(entry.clippingLayer);
+            GraphicsLayer::clear(entry.scrollingLayer);
+            GraphicsLayer::clear(entry.shapeMaskLayer);
         }
 
         m_stack.shrink(clipEntryCount);
