@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteCommandEncoderProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteCommandBufferProxy.h"
 #include "RemoteCommandEncoderMessages.h"
@@ -230,4 +230,4 @@ bool RemoteCommandEncoderProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

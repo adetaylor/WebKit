@@ -83,7 +83,7 @@ RefPtr<WebCore::ModelPlayer> WebModelPlayerProvider::createModelPlayer(WebCore::
 #if ENABLE(MODEL_PROCESS)
     if (page->corePage() && page->corePage()->settings().modelProcessEnabled())
         return WebProcess::singleton().modelProcessModelPlayerManager().createModelProcessModelPlayer(page, client);
-#elif ENABLE(GPU_PROCESS_MODEL)
+#elif ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     if (page->corePage() && page->corePage()->settings().modelElementEnabled())
         return WebModelPlayer::create(*page->corePage(), client);
 #else
@@ -100,7 +100,7 @@ void WebModelPlayerProvider::deleteModelPlayer(WebCore::ModelPlayer& modelPlayer
     Ref page = m_page.get();
     if (page->corePage() && page->corePage()->settings().modelProcessEnabled())
         WebProcess::singleton().modelProcessModelPlayerManager().deleteModelProcessModelPlayer(modelPlayer);
-#elif ENABLE(GPU_PROCESS_MODEL)
+#elif ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     if (RefPtr webModelPlayer = dynamicDowncast<WebModelPlayer>(modelPlayer))
         webModelPlayer->releaseModelResources();
 #else

@@ -45,8 +45,6 @@ private:
     std::optional<CaptureDevice> captureDeviceWithPersistentID(CaptureDevice::DeviceType, const String&) final;
     std::optional<CaptureDevice> screenCaptureDeviceWithPersistentID(const String&);
     std::optional<CaptureDevice> windowCaptureDeviceWithPersistentID(const String&);
-
-    Vector<CaptureDevice> m_devices;
 };
 
 } // namespace WebCore

@@ -36,17 +36,6 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <IOSurface/IOSurfaceRef.h>
 
-OBJC_CLASS CIContext;
-
-#if !defined(__swift__)
-namespace WebCore {
-
-// Replaces the Core Image contexts that render filter results (FilterImageCoreImage.swift), or restores them with nil.
-WEBCORE_EXPORT void setFilterResultCIContextsForTesting(CIContext *linearSRGB, CIContext *sRGB);
-
-} // namespace WebCore
-#endif
-
 // What FilterImageCoreImage.swift needs from C++ to render a Core Image filter result.
 namespace WebCore::FilterCoreImageSwiftBridge {
 

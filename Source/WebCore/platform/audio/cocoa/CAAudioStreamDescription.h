@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@ public:
 
     const PlatformDescription& platformDescription() const LIFETIME_BOUND final;
 
-    PCMFormat format() const final;
+    PCMFormat format() const final { return m_format; }
 
     double sampleRate() const final;
     bool isPCM() const final;
@@ -68,12 +68,11 @@ public:
     bool operator==(const AudioStreamDescription&) const;
 
     NODELETE const AudioStreamBasicDescription& streamDescription() const LIFETIME_BOUND;
-    NODELETE AudioStreamBasicDescription& streamDescription() LIFETIME_BOUND;
 
 private:
     AudioStreamBasicDescription m_streamDescription;
     mutable PlatformDescription m_platformDescription;
-    mutable PCMFormat m_format { None };
+    PCMFormat m_format { None };
 };
 
 inline CAAudioStreamDescription toCAAudioStreamDescription(const AudioStreamDescription& description)

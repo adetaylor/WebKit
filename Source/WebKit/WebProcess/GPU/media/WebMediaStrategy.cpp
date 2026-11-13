@@ -47,7 +47,7 @@
 #if ENABLE(MEDIA_SOURCE)
 #include <WebCore/DeprecatedGlobalSettings.h>
 #endif
-#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS)
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 #include "AudioVideoRendererRemote.h"
 #endif
 
@@ -62,7 +62,7 @@ WebMediaStrategy::~WebMediaStrategy() = default;
 Ref<WebCore::AudioDestination> WebMediaStrategy::createAudioDestination(const WebCore::AudioDestinationCreationOptions& options)
 {
     ASSERT(isMainRunLoop());
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
     if (m_useGPUProcess)
         return WebCore::SharedAudioDestination::create(options, [] (auto& options) {
             return RemoteAudioDestinationProxy::create(options);
@@ -72,11 +72,14 @@ Ref<WebCore::AudioDestination> WebMediaStrategy::createAudioDestination(const We
 }
 #endif
 
-#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS)
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 RefPtr<AudioVideoRenderer> WebMediaStrategy::createAudioVideoRenderer(LoggerHelper* loggerHelper, WebCore::HTMLMediaElementIdentifier mediaElementIdentifier, WebCore::MediaPlayerIdentifier playerIdentifier) const
 {
     return AudioVideoRendererRemote::create(loggerHelper, mediaElementIdentifier, playerIdentifier, protect(WebProcess::singleton().ensureGPUProcessConnection()));
 }
+#endif
+
+#if ENABLE(VIDEO) && ENABLE(GPU_PROCESS)
 
 static WorkQueue& webMediaStrategyQueueSingleton()
 {

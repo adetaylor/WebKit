@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>A transcript of what AVFoundation's media player loads and outputs: sizes, ranges, seeks and painted frames.</title>
+<script src="../../../media/video-test.js"></script>
+<script>
+// For a few files, loaded from their URL and again through a blob URL (which AVFoundation reads through WebKit's
+// resource loader): the metadata, the buffered and seekable ranges once the file can play through, the time and a coarse
+// colour signature of the frame painted into a canvas after each of three seeks, and the first video frame callback.
+
+function once(target, name)
+{
+    return new Promise(resolve => target.addEventListener(name, resolve, { once: true }));
+}
+
+function waitFor(predicate, timeout = 8000)
+{
+    return new Promise(resolve => {
+        const start = performance.now();
+        const poll = () => {
+            if (predicate() || performance.now() - start > timeout) {
+                resolve(predicate());
+                return;
+            }
+            setTimeout(poll, 50);
+        };
+        poll();
+    });
+}
+
+function ranges(timeRanges)
+{
+    const parts = [];
+    for (let i = 0; i < timeRanges.length; ++i)
+        parts.push(`${timeRanges.start(i).toFixed(1)}-${timeRanges.end(i).toFixed(1)}`);
+    return `[${parts.join(', ')}]`;
+}
+
+// The painted frame, scaled to 2x2 pixels, each channel quantized to 4 levels.
+function frameSignature()
+{
+    const canvas = document.createElement('canvas');
+    canvas.width = 2;
+    canvas.height = 2;
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, 2, 2);
+    const data = context.getImageData(0, 0, 2, 2).data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4)
+        pixels.push(`${data[i] >> 6}${data[i + 1] >> 6}${data[i + 2] >> 6}`);
+    return pixels.join(' ');
+}
+
+async function play(label, src)
+{
+    consoleWrite(`<b>${label}</b>`);
+    const metadata = once(video, 'loadedmetadata');
+    video.src = src;
+    await metadata;
+    consoleWrite(`metadata: duration=${video.duration.toFixed(2)} size=${video.videoWidth}x${video.videoHeight}`);
+    await waitFor(() => video.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA);
+    consoleWrite(`can play through: buffered=${ranges(video.buffered)} seekable=${ranges(video.seekable)}`);
+    for (const fraction of [0.1, 0.5, 0.9]) {
+        const time = Number((video.duration * fraction).toFixed(1));
+        const seeked = once(video, 'seeked');
+        video.currentTime = time;
+        await seeked;
+        await waitFor(() => video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA);
+        consoleWrite(`seeked to ${time.toFixed(1)}: currentTime=${video.currentTime.toFixed(1)} frame=${frameSignature()}`);
+    }
+    video.currentTime = 0;
+    await once(video, 'seeked');
+    video.muted = true;
+    const frame = new Promise(resolve => video.requestVideoFrameCallback((now, metadata) => resolve(metadata)));
+    video.play();
+    const callback = await Promise.race([frame, new Promise(resolve => setTimeout(() => resolve(null), 5000))]);
+    video.pause();
+    if (!callback)
+        consoleWrite('no video frame callback');
+    else
+        consoleWrite(`first video frame callback: ${callback.width}x${callback.height} presented=${callback.presentedFrames > 0}`);
+}
+
+window.addEventListener('load', async () => {
+    findMediaElement();
+    for (const name of ['pure-color-green.mp4', 'test-par-16-9.mp4', 'rotation-90.mp4', 'counting.mp4']) {
+        const url = `../../../media/content/${name}`;
+        await play(name, url);
+        const blob = await (await fetch(url)).blob();
+        const blobURL = URL.createObjectURL(new Blob([blob], { type: 'video/mp4' }));
+        await play(`${name} through a blob URL`, blobURL);
+        URL.revokeObjectURL(blobURL);
+        consoleWrite('');
+    }
+    endTest();
+});
+</script>
+</head>
+<body>
+<video></video>
+</body>
+</html>

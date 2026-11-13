@@ -68,11 +68,6 @@ RefPtr<VideoInfo> createVideoInfoFromAVCC(std::span<const uint8_t> avcc)
     return createVideoInfoFromFormatDescription(description, findAVCCMaxNumReorderFrames(avcc));
 }
 
-Vector<uint8_t> convertAVCCMSampleBufferToAnnexB(CMSampleBufferRef avccSampleBuffer, bool isKeyframe)
-{
-    return convertParameterSetsCMSampleBufferToAnnexB(avccSampleBuffer, isKeyframe, PAL::CMVideoFormatDescriptionGetH264ParameterSetAtIndex);
-}
-
 RefPtr<VideoInfo> createVideoInfoFromAVCAnnexBStream(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices)
 {
     ParameterSetRange sps;

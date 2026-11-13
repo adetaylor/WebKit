@@ -60,7 +60,7 @@
 #include <wtf/MemoryFootprint.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMFactoryProxy.h"
 #endif
 
@@ -1075,35 +1075,47 @@ void RemoteMediaPlayerProxy::keyAdded()
 #if ENABLE(ENCRYPTED_MEDIA)
 void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->cdmInstanceAttached(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
+        m_player->cdmInstanceAttached(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 
 void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->cdmInstanceDetached(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
+        m_player->cdmInstanceDetached(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 
 void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdentifier&& instanceId)
 {
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RefPtr manager = m_manager.get();
     ASSERT(manager && manager->gpuConnectionToWebProcess());
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instanceProxy = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->getInstance(instanceId))
-        m_player->attemptToDecryptWithInstance(instanceProxy->instance());
+    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmFactoryProxy())->cdmInstance(instanceId))
+        m_player->attemptToDecryptWithInstance(*instance);
+#else
+    UNUSED_PARAM(instanceId);
+#endif
 }
 #endif
 

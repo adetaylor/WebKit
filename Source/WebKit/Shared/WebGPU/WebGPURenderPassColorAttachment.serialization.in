@@ -21,12 +21,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::RenderPassColorAttachment {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::RenderPassColorAttachment {
     WebKit::WebGPUIdentifier view
     std::optional<uint32_t> depthSlice
     std::optional<WebKit::WebGPUIdentifier> resolveTarget
 
-    std::optional<WebKit::WebGPU::Color> clearValue
+    std::optional<::WebGPU::Color> clearValue
     ::WebGPU::LoadOp loadOp
     ::WebGPU::StoreOp storeOp
 }

@@ -59,6 +59,7 @@ VideoFrame::VideoFrame(MediaTime presentationTime, bool isMirrored, Rotation rot
 
 void VideoFrame::initializeCharacteristics(MediaTime presentationTime, bool isMirrored, Rotation rotation)
 {
+    ASSERT(!m_isPublished);
     const_cast<MediaTime&>(m_presentationTime) = presentationTime;
     const_cast<bool&>(m_isMirrored) = isMirrored;
     const_cast<Rotation&>(m_rotation) = rotation;
@@ -69,6 +70,7 @@ Ref<VideoFrame> VideoFrame::updateTimestamp(MediaTime mediaTime, ShouldClone sho
     if (m_presentationTime == mediaTime)
         return *this;
 
+    ASSERT(shouldCloneIfUpdating == ShouldClone::Yes || !m_isPublished);
     Ref updatedVideoFrame = shouldCloneIfUpdating == ShouldClone::Yes ? clone() : Ref { *this };
     const_cast<MediaTime&>(updatedVideoFrame->m_presentationTime) = mediaTime;
     return updatedVideoFrame;
@@ -79,6 +81,7 @@ Ref<VideoFrame> VideoFrame::updateOrientation(Rotation rotation, bool isMirrored
     if (m_rotation == rotation && m_isMirrored == isMirrored)
         return *this;
 
+    ASSERT(shouldCloneIfUpdating == ShouldClone::Yes || !m_isPublished);
     Ref updatedVideoFrame = shouldCloneIfUpdating == ShouldClone::Yes ? clone() : Ref { *this };
     const_cast<Rotation&>(updatedVideoFrame->m_rotation) = rotation;
     const_cast<bool&>(updatedVideoFrame->m_isMirrored) = isMirrored;
@@ -123,6 +126,7 @@ Ref<VideoFrame> VideoFrame::updateShouldIgnoreAlpha(bool shouldIgnore, ShouldClo
     if (shouldIgnoreAlpha() == shouldIgnore)
         return *this;
 
+    ASSERT(shouldCloneIfUpdating == ShouldClone::Yes || !m_isPublished);
     Ref updatedVideoFrame = shouldCloneIfUpdating == ShouldClone::Yes ? clone() : Ref { *this };
     updatedVideoFrame->setShouldIgnoreAlpha(shouldIgnore);
     return updatedVideoFrame;

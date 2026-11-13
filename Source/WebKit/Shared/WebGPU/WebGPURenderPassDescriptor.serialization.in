@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::RenderPassDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::RenderPassDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
     Vector<std::optional<WebKit::WebGPU::RenderPassColorAttachment>> colorAttachments;
     std::optional<WebKit::WebGPU::RenderPassDepthStencilAttachment> depthStencilAttachment;
     std::optional<WebKit::WebGPUIdentifier> occlusionQuerySet;

@@ -38,7 +38,12 @@
 #include <WebCore/VideoPixelFormat.h>
 #include <wtf/CompletionHandler.h>
 #include <wtf/MediaTime.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
+
+#if ASSERT_ENABLED
+#include <atomic>
+#endif
 
 #if PLATFORM(COCOA)
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer *CVPixelBufferRef;
@@ -124,9 +129,15 @@ public:
 
     enum class ShouldClone : bool { No, Yes };
     // updateTimestamp, updateOrientation and updateShouldIgnoreAlpha should be called before being used by VideoFrame consumers.
-    Ref<VideoFrame> updateTimestamp(MediaTime, ShouldClone);
-    WEBCORE_EXPORT Ref<VideoFrame> updateOrientation(Rotation, bool isMirrored, ShouldClone);
-    Ref<VideoFrame> updateShouldIgnoreAlpha(bool, ShouldClone);
+    // With ShouldClone::No they update the frame in place, so they must not be called once other threads can see it.
+    SWIFT_UNSAFE Ref<VideoFrame> updateTimestamp(MediaTime, ShouldClone);
+    SWIFT_UNSAFE WEBCORE_EXPORT Ref<VideoFrame> updateOrientation(Rotation, bool isMirrored, ShouldClone);
+    SWIFT_UNSAFE Ref<VideoFrame> updateShouldIgnoreAlpha(bool, ShouldClone);
+
+#if ASSERT_ENABLED
+    // Called when the frame is handed to other threads, after which it must not be updated in place.
+    void markAsPublished() { m_isPublished = true; }
+#endif
 
     using CopyCallback = CompletionHandler<void(std::optional<Vector<PlaneLayout>>&&)>;
     void copyTo(std::span<uint8_t>, VideoPixelFormat, ColorSpace, Vector<ComputedPlaneLayout>&&, CopyCallback&&);
@@ -152,7 +163,7 @@ public:
 #endif
     WEBCORE_EXPORT virtual void setOwnershipIdentity(const ProcessIdentity&) { }
 
-    NODELETE void initializeCharacteristics(MediaTime presentationTime, bool isMirrored, Rotation);
+    NODELETE SWIFT_UNSAFE void initializeCharacteristics(MediaTime presentationTime, bool isMirrored, Rotation);
 
     RefPtr<NativeImage> copyNativeImage() const;
     const PlatformVideoColorSpace& colorSpace() const LIFETIME_BOUND { return m_colorSpace; }
@@ -184,6 +195,9 @@ private:
     const bool m_isMirrored;
     const Rotation m_rotation;
     const PlatformVideoColorSpace m_colorSpace;
+#if ASSERT_ENABLED
+    std::atomic<bool> m_isPublished { false };
+#endif
 };
 
 }

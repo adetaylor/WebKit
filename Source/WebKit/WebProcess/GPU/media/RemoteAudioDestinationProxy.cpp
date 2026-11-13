@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteAudioDestinationProxy.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
@@ -276,4 +276,4 @@ void RemoteAudioDestinationProxy::gpuProcessConnectionDidClose(GPUProcessConnect
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO)
+#endif // ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)

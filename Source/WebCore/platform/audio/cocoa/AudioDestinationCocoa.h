@@ -29,7 +29,7 @@
 #if ENABLE(WEB_AUDIO)
 
 #include "AudioDestinationResampler.h"
-#include "AudioOutputUnitAdaptor.h"
+#include "AudioOutputUnit.h"
 #include <AudioUnit/AudioUnit.h>
 #include <wtf/Lock.h>
 #include <wtf/RefPtr.h>
@@ -44,7 +44,7 @@ class PushPullFIFO;
 using CreateAudioDestinationCocoaOverride = Ref<AudioDestination>(*)(const AudioDestinationCreationOptions&);
 
 // An AudioDestination using CoreAudio's default output AudioUnit
-class AudioDestinationCocoa : public AudioDestinationResampler, public AudioUnitRenderer, public ThreadSafeRefCounted<AudioDestinationCocoa, WTF::DestructionThread::Main> {
+class AudioDestinationCocoa : public AudioDestinationResampler, public ThreadSafeRefCounted<AudioDestinationCocoa, WTF::DestructionThread::Main> {
 public:
     WEBCORE_EXPORT AudioDestinationCocoa(const CreationOptions&);
     WEBCORE_EXPORT virtual ~AudioDestinationCocoa();
@@ -54,7 +54,7 @@ public:
     WEBCORE_EXPORT static CreateAudioDestinationCocoaOverride createOverride;
 
 protected:
-    WEBCORE_EXPORT OSStatus render(double sampleTime, uint64_t hostTime, UInt32 numberOfFrames, AudioBufferList* ioData) final;
+    WEBCORE_EXPORT OSStatus render(double sampleTime, uint64_t hostTime, UInt32 numberOfFrames, AudioBufferList* ioData);
 
 private:
     friend Ref<AudioDestination> AudioDestination::create(const CreationOptions&);
@@ -67,7 +67,9 @@ private:
     void stopRendering(CompletionHandler<void(bool)>&&) override;
     MediaTime outputLatency() const final;
 
-    AudioOutputUnitAdaptor m_audioOutputUnitAdaptor;
+    static OSStatus renderCallback(void* userData, AudioUnitRenderActionFlags*, const AudioTimeStamp*, UInt32 busNumber, UInt32 numberOfFrames, AudioBufferList* ioData);
+
+    AudioOutputUnit m_audioOutputUnit;
 
 #if PLATFORM(IOS_FAMILY)
     String m_sceneIdentifier;

@@ -1,0 +1,111 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a GPU-process audio destination plays out its ring, survives rings it can't use, and stops, starts and goes away in any order.</title>
+<script src="../resources/testharness.js"></script>
+<script src="../resources/testharnessreport.js"></script>
+<body>
+<script>
+const string = value => ({ type: 'String', value });
+const uint32 = value => ({ type: 'uint32_t', value });
+const uint64 = value => ({ type: 'uint64_t', value });
+const float = value => ({ type: 'float', value });
+
+function send(name, args)
+{
+    IPC.sendMessage('GPU', 0, IPC.messages[`RemoteAudioDestinationManager_${name}`].name, args);
+}
+
+function sendWithReply(name, args)
+{
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => resolve(null), 5000);
+        IPC.connectionForProcessTarget('GPU').sendWithAsyncReply(0, IPC.messages[`RemoteAudioDestinationManager_${name}`].name, args, result => {
+            clearTimeout(timeout);
+            resolve(result?.arguments ? result : null);
+        });
+    });
+}
+
+// A ring of 2 Float32 channels: a 32-byte header (a sequence count, then the bounds' start, end and write-ahead
+// frames), then each channel's frames.
+function makeRing(frameCount)
+{
+    const memory = IPC.createSharedMemory(32 + 2 * frameCount * 4);
+    const bytes = new Uint8Array(32 + 2 * frameCount * 4);
+    const view = new DataView(bytes.buffer);
+    for (let i = 0; i < 2 * frameCount; ++i)
+        view.setFloat32(32 + i * 4, Math.sin(i / 10) / 4, true);
+    memory.writeBytes(bytes);
+    return memory;
+}
+
+function writeHeader(memory, sequence, startFrame, endFrame)
+{
+    const bytes = new Uint8Array(32);
+    const view = new DataView(bytes.buffer);
+    view.setBigUint64(0, sequence, true);
+    view.setBigUint64(8, startFrame, true);
+    view.setBigUint64(16, endFrame, true);
+    memory.writeBytes(bytes, 0);
+}
+
+function drain(semaphore)
+{
+    while (semaphore.waitFor(1)) { }
+}
+
+promise_test(async t => {
+    if (!window.IPC || !IPC.messages.RemoteAudioDestinationManager_CreateAudioDestination)
+        return;
+
+    // Identifiers the page's earlier runs didn't use.
+    const identifier = 7000 + Math.floor(Math.random() * 1000000) * 2;
+    const semaphore = IPC.createSemaphore();
+    const counter = IPC.createSharedMemory(4);
+    const created = await sendWithReply('CreateAudioDestination', [uint64(identifier), string(''), uint32(0), uint32(2), float(48000), float(48000), { type: 'Semaphore', value: semaphore }, { type: 'SharedMemory', value: counter, protection: 'ReadWrite' }]);
+    assert_not_equals(created, null, 'CreateAudioDestination replies');
+
+    let started = await sendWithReply('StartAudioDestination', [uint64(identifier)]);
+    assert_not_equals(started, null, 'StartAudioDestination replies');
+    if (!started.arguments[0].value)
+        return; // No audio output device to play on.
+    assert_false(semaphore.waitFor(300), 'A destination without a ring renders nothing');
+
+    const frameCount = 16384;
+    const ring = makeRing(frameCount);
+    writeHeader(ring, 2n, 0n, BigInt(frameCount));
+    send('AudioSamplesStorageChanged', [uint64(identifier), { type: 'SharedMemory', value: ring, protection: 'ReadOnly' }, uint64(frameCount)]);
+    assert_true(semaphore.waitFor(3000), 'The destination renders once it has a ring');
+    const frames = new DataView(new Uint8Array(counter.readBytes(0, 4)).buffer).getUint32(0, true);
+    assert_greater_than(frames, 0, 'The destination counts the frames it rendered');
+
+    // A writer that never finishes a write, with bounds far out: the destination keeps rendering.
+    writeHeader(ring, 1n, 1n << 60n, 1n << 62n);
+    drain(semaphore);
+    assert_true(semaphore.waitFor(3000), 'The destination keeps rendering while a write never finishes');
+
+    // A ring that can't hold its frames: the destination has no ring, and stays stopped.
+    send('AudioSamplesStorageChanged', [uint64(identifier), { type: 'SharedMemory', value: IPC.createSharedMemory(8), protection: 'ReadOnly' }, uint64(frameCount)]);
+    const stopped = await sendWithReply('StopAudioDestination', [uint64(identifier)]);
+    assert_not_equals(stopped, null, 'StopAudioDestination replies');
+    drain(semaphore);
+    assert_false(semaphore.waitFor(300), 'A destination whose ring went away renders nothing');
+
+    // Starts and stops in any order, then going away while playing.
+    await sendWithReply('StartAudioDestination', [uint64(identifier)]);
+    await sendWithReply('StartAudioDestination', [uint64(identifier)]);
+    await sendWithReply('StopAudioDestination', [uint64(identifier)]);
+    await sendWithReply('StopAudioDestination', [uint64(identifier)]);
+    send('AudioSamplesStorageChanged', [uint64(identifier), { type: 'SharedMemory', value: ring, protection: 'ReadOnly' }, uint64(frameCount)]);
+    writeHeader(ring, 4n, 0n, BigInt(frameCount));
+    started = await sendWithReply('StartAudioDestination', [uint64(identifier)]);
+    assert_true(!!started.arguments[0].value, 'The destination starts again');
+    drain(semaphore);
+    assert_true(semaphore.waitFor(3000), 'The destination renders again');
+    send('DeleteAudioDestination', [uint64(identifier)]);
+
+    // The GPU process is still there.
+    const another = await sendWithReply('CreateAudioDestination', [uint64(identifier + 1), string(''), uint32(0), uint32(1), float(48000), float(48000), { type: 'Semaphore', value: IPC.createSemaphore() }, { type: 'SharedMemory', value: IPC.createSharedMemory(4), protection: 'ReadWrite' }]);
+    assert_not_equals(another, null, 'The GPU process still replies');
+    send('DeleteAudioDestination', [uint64(identifier + 1)]);
+}, document.title);
+</script>

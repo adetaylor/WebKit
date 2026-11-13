@@ -21,7 +21,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::RenderPassLayout : WebKit::WebGPU::ObjectDescriptorBase {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::RenderPassLayout : WebKit::WebGPU::ObjectDescriptorBase {
     Vector<std::optional<::WebGPU::TextureFormat>> colorFormats;
     std::optional<::WebGPU::TextureFormat> depthStencilFormat;
     uint32_t sampleCount;

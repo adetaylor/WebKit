@@ -1,0 +1,28 @@
+A camera track: live
+CreateMediaSourceForCaptureDeviceWithConstraints: error message none
+StartProducingData of the new source: invalid message none
+CreateMediaSourceForCaptureDeviceWithConstraints with the same identifier: replied
+A second source with the same identifier: invalid message marked
+Unknown source identifiers: invalid message none
+IsPowerEfficient of an unknown source: false
+TakePhoto of an unknown source: replied
+GetPhotoCapabilities of an unknown source: replied
+GetPhotoSettings of an unknown source: replied
+Clone of an unknown source: invalid message marked
+Clone onto the cloned source: invalid message marked
+Clone onto a new identifier: invalid message none
+A second clone onto the same identifier: invalid message marked
+Using and removing the clone twice: invalid message none
+ApplyConstraints with truncated constraints: invalid message "Failed to decode the arguments of a message that takes Swift types"
+ApplyConstraints with a validity flag that is not a bool: invalid message "Failed to decode the arguments of a message that takes Swift types"
+SetIsInBackground with a flag that is not a bool: invalid message "Failed to decode the arguments of a message that takes Swift types"
+TakePhoto with a fill light mode out of range: no reply
+TakePhoto with a fill light mode out of range: invalid message "Failed to decode the arguments of a message that takes Swift types"
+TakePhoto with a photo width that is not a double: no reply
+TakePhoto with a truncated photo width: invalid message "Failed to decode the arguments of a message that takes Swift types"
+StartProducingData without a page: invalid message "Failed to decode the arguments of a message that takes Swift types"
+IsPowerEfficient of the camera: true
+GetPhotoSettings of the camera: replied
+The camera track: live
+After stopping the track: invalid message none
+

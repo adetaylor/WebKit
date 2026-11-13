@@ -1,0 +1,144 @@
+<!DOCTYPE html><!-- webkit-test-runner [ WebXRWebGPUBindingsEnabled=true WebXRLayersAPIEnabled=true ] -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+  // ALL_FEATURES is the upstream list and does not name 'webgpu', which a WebGPU-backed session requires. The frames
+  // need the color buffer that a compositor sends, which only the simulated device of the Mac's opt-in WebXR build
+  // sends (LayoutTests/platform/mac-webxr/TestExpectations).
+  const WEBGPU_IMMERSIVE_DEVICE = {
+    ...TRACKED_IMMERSIVE_DEVICE,
+    supportedFeatures: [...ALL_FEATURES, 'webgpu']
+  };
+
+  async function requestWebGPUSession(t) {
+    await navigator.xr.test.simulateDeviceConnection(WEBGPU_IMMERSIVE_DEVICE);
+    const session = await new Promise((resolve, reject) => {
+      navigator.xr.test.simulateUserActivation(() => {
+        navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['layers', 'webgpu'] })
+          .then(resolve, reject);
+      });
+    });
+    t.add_cleanup(async () => { await session.end().catch(() => {}); });
+    return session;
+  }
+
+  async function requestDevice() {
+    const adapter = await navigator.gpu.requestAdapter({ xrCompatible: true });
+    assert_true(!!adapter, 'An xrCompatible GPUAdapter is required.');
+    return adapter.requestDevice();
+  }
+
+  function runFrames(session, count, onFrame) {
+    return new Promise((resolve, reject) => {
+      let frames = 0;
+      function callback(time, frame) {
+        try {
+          if (onFrame(frame))
+            frames++;
+          if (frames < count)
+            session.requestAnimationFrame(callback);
+          else
+            resolve();
+        } catch (e) {
+          reject(e);
+        }
+      }
+      session.requestAnimationFrame(callback);
+    });
+  }
+
+  xr_promise_test("A projection layer's frames give view sub-images whose color texture a render pass can clear", async (t) => {
+    const session = await requestWebGPUSession(t);
+    const device = await requestDevice();
+    const binding = new XRGPUBinding(session, device);
+    const layer = binding.createProjectionLayer({ colorFormat: binding.getPreferredColorFormat() });
+    assert_true(layer.ignoreDepthValues);
+    session.updateRenderState({ layers: [layer] });
+    const space = await session.requestReferenceSpace('local');
+
+    device.pushErrorScope('validation');
+    let subImages = 0;
+    await runFrames(session, 3, (frame) => {
+      const pose = frame.getViewerPose(space);
+      if (!pose)
+        return false;
+      for (const view of pose.views) {
+        const subImage = binding.getViewSubImage(layer, view);
+        subImages++;
+        if (view.eye == 'right')
+          continue;
+        const texture = subImage.colorTexture;
+        assert_true(!!texture, 'colorTexture');
+        assert_equals(subImage.depthStencilTexture, null, 'a layer without a depthStencilFormat has no depth texture');
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginRenderPass({ colorAttachments: [{
+          view: texture.createView(), loadOp: 'clear', storeOp: 'store', clearValue: [0, 1, 0, 1] }] });
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+      }
+      return true;
+    });
+    await device.queue.onSubmittedWorkDone();
+    const error = await device.popErrorScope();
+    assert_true(subImages >= 3, 'got sub-images');
+    assert_equals(error, null, error ? error.message : '');
+  });
+
+  xr_promise_test("A projection layer with a depthStencilFormat gives a depth texture", async (t) => {
+    const session = await requestWebGPUSession(t);
+    const device = await requestDevice();
+    const binding = new XRGPUBinding(session, device);
+    const layer = binding.createProjectionLayer({ colorFormat: binding.getPreferredColorFormat(), depthStencilFormat: 'depth24plus' });
+    assert_false(layer.ignoreDepthValues);
+    session.updateRenderState({ layers: [layer] });
+    const space = await session.requestReferenceSpace('local');
+
+    let depthTextures = 0;
+    await runFrames(session, 2, (frame) => {
+      const pose = frame.getViewerPose(space);
+      if (!pose)
+        return false;
+      const subImage = binding.getViewSubImage(layer, pose.views[0]);
+      if (subImage.depthStencilTexture)
+        depthTextures++;
+      return true;
+    });
+    assert_equals(depthTextures, 2);
+  });
+
+  xr_promise_test("Destroying a layer, and dropping the binding, layers and sub-images, releases them", async (t) => {
+    const session = await requestWebGPUSession(t);
+    const device = await requestDevice();
+    await (async () => {
+      const binding = new XRGPUBinding(session, device);
+      const colorFormat = binding.getPreferredColorFormat();
+      const space = await session.requestReferenceSpace('local');
+      const colorTextureOf = (layer) => (frame) => {
+        const pose = frame.getViewerPose(space);
+        if (!pose)
+          return false;
+        assert_true(!!binding.getViewSubImage(layer, pose.views[0]).colorTexture, 'colorTexture');
+        return true;
+      };
+
+      const layer = binding.createProjectionLayer({ colorFormat });
+      session.updateRenderState({ layers: [layer] });
+      await runFrames(session, 1, colorTextureOf(layer));
+
+      // A frame with a new layer leaves nothing holding the destroyed one. The device sent its color buffer with the
+      // session's first frame only, so the new layer has no texture to give yet.
+      layer.destroy();
+      session.updateRenderState({ layers: [binding.createProjectionLayer({ colorFormat })] });
+      await runFrames(session, 1, () => true);
+    })();
+    await session.end();
+    for (let i = 0; i < 5; ++i) {
+      GCController.collect();
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    await device.queue.onSubmittedWorkDone();
+  });
+</script>

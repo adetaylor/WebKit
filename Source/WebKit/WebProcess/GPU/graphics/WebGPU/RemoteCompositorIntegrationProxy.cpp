@@ -26,8 +26,9 @@
 #include "config.h"
 #include "RemoteCompositorIntegrationProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
+#include "PrepareForDisplayReply.h"
 #include "RemoteCompositorIntegrationMessages.h"
 #include "RemoteDeviceProxy.h"
 #include "RemoteGPUProxy.h"
@@ -65,11 +66,10 @@ uint32_t RemoteCompositorIntegrationProxy::recreateRenderBuffers(int width, int 
 void RemoteCompositorIntegrationProxy::prepareForDisplay(uint32_t frameIndex, CompletionHandler<void(MachSendRight&&, std::optional<uint32_t>)>&& completionHandler)
 {
     auto sendResult = sendSync(Messages::RemoteCompositorIntegration::PrepareForDisplay(frameIndex));
-    auto [gpuFrameCost, presentStall, displayBuffer, replacedRenderBufferIndex] = sendResult.takeReplyOr(Seconds { 0 }, Seconds { 0 }, MachSendRight { }, std::nullopt);
-    m_lastFrameGPUCost = gpuFrameCost;
-    m_lastFramePresentStall = presentStall;
-
-    completionHandler(WTF::move(displayBuffer), replacedRenderBufferIndex);
+    auto [result] = sendResult.takeReplyOr(WebKit::PrepareForDisplayReply { });
+    m_lastFrameGPUCost = result.gpuFrameCost;
+    m_lastFramePresentStall = result.presentStall;
+    completionHandler(WTF::move(result.displayBuffer), result.replacedRenderBufferIndex);
 }
 #endif
 
@@ -93,4 +93,4 @@ void RemoteCompositorIntegrationProxy::updateContentsHeadroom(float headroom)
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

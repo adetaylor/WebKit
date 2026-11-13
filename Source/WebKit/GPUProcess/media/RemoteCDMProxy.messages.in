@@ -23,18 +23,20 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=EncryptedMediaAPIEnabled
+    EnabledBy=EncryptedMediaAPIEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteCDMProxy {
     GetSupportedConfiguration(struct WebCore::CDMKeySystemConfiguration candidateConfiguration, enum:bool WebCore::CDMPrivateLocalStorageAccess access) -> (struct std::optional<WebCore::CDMKeySystemConfiguration> accumulatedConfiguration)
-    CreateInstance() -> (std::optional<WebKit::RemoteCDMInstanceIdentifier> identifier, struct WebKit::RemoteCDMInstanceConfiguration configuration) Synchronous
-    LoadAndInitialize()
-    SetLogIdentifier(uint64_t logIdentifier)
+    CreateInstance() -> (std::optional<WebKit::RemoteCDMInstanceIdentifier> identifier, struct WebKit::RemoteCDMInstanceConfiguration configuration) Synchronous SwiftSyncHandler
+    LoadAndInitialize() SwiftSyncHandler
+    SetLogIdentifier(uint64_t logIdentifier) SwiftSyncHandler
 }
 
 #endif

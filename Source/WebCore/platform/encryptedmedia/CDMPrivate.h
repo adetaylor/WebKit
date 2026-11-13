@@ -30,8 +30,12 @@
 #include <WebCore/CDMInstance.h>
 #include <WebCore/CDMRequirement.h>
 #include <WebCore/CDMSessionType.h>
+#include <WebCore/CDMKeySystemConfiguration.h>
 #include <wtf/CheckedPtr.h>
+#include <wtf/CheckedRef.h>
 #include <wtf/Forward.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 
@@ -43,7 +47,6 @@ class Logger;
 
 namespace WebCore {
 
-struct CDMKeySystemConfiguration;
 struct CDMMediaCapability;
 struct CDMRestrictions;
 class SharedBuffer;
@@ -95,32 +98,86 @@ public:
 
 protected:
     WEBCORE_EXPORT CDMPrivate();
-    NODELETE static bool isPersistentType(CDMSessionType);
-
-    enum class ConfigurationStatus {
-        Supported,
-        NotSupported,
-        ConsentDenied,
-    };
-
-    enum class ConsentStatus {
-        ConsentDenied,
-        InformUser,
-        Allowed,
-    };
-
-    enum class AudioVideoType {
-        Audio,
-        Video,
-    };
-
-    void doSupportedConfigurationStep(CDMKeySystemConfiguration&& candidateConfiguration, CDMRestrictions&&, LocalStorageAccess, SupportedConfigurationCallback&&);
-    std::optional<CDMKeySystemConfiguration> getSupportedConfiguration(const CDMKeySystemConfiguration& candidateConfiguration, CDMRestrictions&, LocalStorageAccess);
-    std::optional<Vector<CDMMediaCapability>> getSupportedCapabilitiesForAudioVideoType(AudioVideoType, const Vector<CDMMediaCapability>& requestedCapabilities, const CDMKeySystemConfiguration& partialConfiguration, CDMRestrictions&);
-
-    using ConsentStatusCallback = Function<void(ConsentStatus, CDMKeySystemConfiguration&&, CDMRestrictions&&)>;
-    void getConsentStatus(CDMKeySystemConfiguration&& accumulatedConfiguration, CDMRestrictions&&, LocalStorageAccess, ConsentStatusCallback&&);
 };
+
+// The lists of a configuration that the configuration algorithm (EMEConfiguration.swift) reads and makes.
+enum class CDMConfigurationList : uint8_t {
+    InitDataTypes,
+    AudioCapabilities,
+    VideoCapabilities,
+    SessionTypes,
+};
+
+// What the configuration algorithm asks of an entry of a candidate configuration.
+enum class CDMConfigurationFact : uint8_t {
+    InitDataTypeIsEmpty,
+    InitDataTypeIsSupported,
+    ContentTypeIsEmpty,
+    ContentTypeIsSupported,
+    RobustnessIsEmpty,
+    RobustnessIsSupported,
+};
+
+// What the configuration algorithm asks a CDM of a configuration.
+enum class CDMConfigurationQuestion : uint8_t {
+    SupportsConfiguration,
+    SupportsConfigurationWithRestrictions,
+    SupportsSessionType,
+    DistinctiveIdentifiersAreUniquePerOriginAndClearable,
+};
+
+enum class CDMConfigurationRequirementQuestion : uint8_t {
+    DistinctiveIdentifiers,
+    PersistentState,
+};
+
+// Whether a content type is a valid MIME type whose only parameter, if any, is "codecs", whose container is strictly
+// audio or video (or an HLS playlist), and which MediaPlayer may support, from a URL or Media Source.
+WEBCORE_EXPORT bool cdmSupportsContentType(const String& contentType, bool isVideo);
+
+// What CDMPrivate::getSupportedConfiguration() hands the configuration algorithm (EMEConfiguration.swift): its CDM's
+// answers about a candidate configuration's entries and about the configurations it makes of them, named by their
+// indices, and the configuration it supports.
+class CDMSupportedConfigurationQuery : public RefCounted<CDMSupportedConfigurationQuery> {
+    WTF_MAKE_TZONE_ALLOCATED(CDMSupportedConfigurationQuery);
+public:
+    static Ref<CDMSupportedConfigurationQuery> create(const CDMPrivate&, CDMKeySystemConfiguration&& candidate);
+
+    size_t count(CDMConfigurationList) const;
+    bool fact(CDMConfigurationFact, bool isVideo, size_t index) const;
+    CDMSessionType sessionType(size_t index) const;
+    CDMRequirement distinctiveIdentifier() const { return m_candidate.distinctiveIdentifier; }
+    CDMRequirement persistentState() const { return m_candidate.persistentState; }
+
+    // The configuration that the questions are about, or that is supported.
+    void startConfiguration(CDMRequirement distinctiveIdentifier, CDMRequirement persistentState);
+    void addEntry(CDMConfigurationList, size_t index);
+    void addSessionType(CDMSessionType);
+
+    bool answer(CDMConfigurationQuestion, CDMSessionType, bool distinctiveIdentifierDenied, bool persistentStateDenied) const;
+    CDMRequirement requirement(CDMConfigurationRequirementQuestion, bool distinctiveIdentifierDenied, bool persistentStateDenied) const;
+
+    void setSupported() { m_supported = true; }
+    std::optional<CDMKeySystemConfiguration> takeSupportedConfiguration();
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { RefCounted<CDMSupportedConfigurationQuery>::ref(); }
+    void deref() const { RefCounted<CDMSupportedConfigurationQuery>::deref(); }
+#endif
+
+private:
+    CDMSupportedConfigurationQuery(const CDMPrivate&, CDMKeySystemConfiguration&&);
+
+    const Vector<CDMMediaCapability>& capabilities(bool isVideo) const LIFETIME_BOUND;
+
+    const CheckedRef<const CDMPrivate> m_cdm;
+    const CDMKeySystemConfiguration m_candidate;
+    const Vector<String> m_supportedInitDataTypes;
+    const Vector<String> m_supportedRobustnesses;
+    CDMKeySystemConfiguration m_configuration;
+    bool m_supported { false };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 }
 

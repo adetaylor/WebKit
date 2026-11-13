@@ -46,6 +46,7 @@ _SWIFTUI_MODULES = ('SwiftUI', '_WebKit_SwiftUI')
 # The folders holding Swift tests and their helpers, with the Xcode target a new source
 # there normally belongs to and where it belongs in PlatformCocoa.cmake.
 _DESTINATIONS = (
+    ('Tests/WGSL/', 'TestWGSL', 'the list(APPEND TestWGSL_SOURCES ...) block'),
     ('Tests/WTF/', 'TestWTF', 'the list(APPEND TestWTF_SOURCES ...) block'),
     ('Tests/WebKit/', 'TestWebKitAPI', 'the list(APPEND TestWebKit_SOURCES ...) block'),
     ('Helpers/', 'TestWebKitAPILibrary', 'the add_library(TestWebKitAPILibrary OBJECT ...) source list'),

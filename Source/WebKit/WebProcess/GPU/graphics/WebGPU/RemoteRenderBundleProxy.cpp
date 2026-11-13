@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteRenderBundleProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteRenderBundleMessages.h"
 #include "WebGPUConvertToBackingContext.h"
@@ -63,4 +63,4 @@ bool RemoteRenderBundleProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

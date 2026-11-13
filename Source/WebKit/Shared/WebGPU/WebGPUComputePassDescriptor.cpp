@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 
@@ -39,13 +38,6 @@ std::optional<ComputePassDescriptor> ConvertToBackingContext::convertToBacking(c
     auto timestampWrites = computePassDescriptor.timestampWrites ? convertToBacking(*computePassDescriptor.timestampWrites) : std::nullopt;
 
     return { { { computePassDescriptor.label }, timestampWrites } };
-}
-
-std::optional<::WebGPU::ComputePassDescriptor> ConvertFromBackingContext::convertFromBacking(const ComputePassDescriptor& computePassDescriptor)
-{
-    auto timestampWrites = computePassDescriptor.timestampWrites ? convertFromBacking(*computePassDescriptor.timestampWrites) : std::nullopt;
-
-    return ::WebGPU::ComputePassDescriptor { .label = computePassDescriptor.label, .timestampWrites = WTF::move(timestampWrites) };
 }
 
 } // namespace WebKit

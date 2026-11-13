@@ -412,7 +412,7 @@ WebProcess::WebProcess()
     addSupplementWithoutRefCountedCheck<UserMediaCaptureManager>();
 #endif
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     addSupplementWithoutRefCountedCheck<RemoteCDMFactory>();
 #endif
 
@@ -2694,9 +2694,11 @@ void WebProcess::setUseGPUProcessForMedia(bool useGPUProcessForMedia)
 #if ENABLE(ENCRYPTED_MEDIA)
     auto& cdmFactories = CDMFactory::registeredFactories();
     cdmFactories.clear();
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (useGPUProcessForMedia)
         protect(cdmFactory())->registerFactory(cdmFactories);
     else
+#endif
         CDMFactory::platformRegisterFactories(cdmFactories);
 #endif
 
@@ -2821,7 +2823,7 @@ RemoteLegacyCDMFactory& WebProcess::legacyCDMFactory()
 }
 #endif
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 RemoteCDMFactory& WebProcess::cdmFactory()
 {
     return *supplement<RemoteCDMFactory>();

@@ -71,10 +71,10 @@ actor SwiftTestsController: TestRunner {
         }
 
         switch eventRecord.kind {
-        case .testEnded where events.contains { $0.kind == .issueRecorded }:
+        case .testEnded where events.contains { $0.recordsFailure }:
             let failureDescriptions = events
                 .lazy
-                .filter { $0.kind == .issueRecorded }
+                .filter { $0.recordsFailure }
                 .flatMap(\.messages)
                 .map { message in
                     "\(message.symbol.canonicalizedRepresentation) \(message.text)"
@@ -130,6 +130,19 @@ actor SwiftTestsController: TestRunner {
 
         let didRunAnyTest = storage.withLock { !$0.tests.isEmpty }
         return (status, didRunAnyTest)
+    }
+}
+
+extension SwiftTestingABI.EncodedEvent {
+    /// Whether the event records an issue that fails its test: known issues (`withKnownIssue`) and warnings do not.
+    fileprivate var recordsFailure: Bool {
+        guard kind == .issueRecorded else {
+            return false
+        }
+        guard let issue else {
+            return true
+        }
+        return !issue.isKnown && issue.isFailure != false
     }
 }
 

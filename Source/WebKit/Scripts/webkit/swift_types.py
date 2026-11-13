@@ -41,6 +41,8 @@ _PRIMITIVE_TYPES = {
     'uint8_t': 'UInt8',
     'uint16_t': 'UInt16',
     'uint32_t': 'UInt32',
+    # The Apple spelling, as in AudioStreamBasicDescription.
+    'UInt32': 'UInt32',
     'uint64_t': 'UInt64',
     # unsigned is 32 bits on every platform WebKit supports, and is encoded as uint32_t.
     'unsigned': 'UInt32',
@@ -71,8 +73,11 @@ _TWO_ARGUMENT_TEMPLATES = {
     'std::pair': ('(%s, %s)', 'IPCCoding.Pair<%s, %s>'),
 }
 
+# A pixel buffer, whose Swift form is the optional right to its IOSurface.
+_PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
+
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
-_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['WTFLogLevel'])
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'WTFLogLevel'])
 
 # Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
 _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
@@ -82,6 +87,7 @@ _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
 # copies nothing. Ref<T> and RefPtr<T> of them map to T and T?.
 _CXX_DECODED_TYPES = {
     'WebCore::SharedBuffer': ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer'),
+    'WebCore::VideoInfo': ('WebCore.VideoInfo', 'IPCCoding.CxxDecoded.VideoInfo'),
 }
 
 
@@ -100,6 +106,9 @@ _OWNED_TYPES = {
 # generate-serializers.py checks that this lists exactly those.
 OWNED_SERIALIZED_TYPES = frozenset([
     'WebKit::ConsumerSharedCARingBufferHandle',
+    'WebKit::PrepareForDisplayReply',
+    'WebKit::SharedVideoFrame',
+    'WebKit::SharedVideoFrame::Buffer',
 ])
 
 # Swift Arrays can't hold ~Copyable elements, so the Vectors of owned types that messages carry have their own ~Copyable
@@ -163,7 +172,7 @@ def is_owned_primitive(cpp_type):
 def is_owned_type(cpp_type):
     """Whether the Swift form of a C++ IPC type is ~Copyable: an owned type, or an optional or Vector of one."""
     cpp_type = strip_cpp_type_decorations(cpp_type)
-    if is_owned_primitive(cpp_type) or cpp_type.removeprefix('::') in OWNED_SERIALIZED_TYPES:
+    if is_owned_primitive(cpp_type) or cpp_type.removeprefix('::') in OWNED_SERIALIZED_TYPES or cpp_type == _PIXEL_BUFFER_TYPE:
         return True
     match = re.match(r'^(?:WTF::)?(?:Vector|std::optional)<(.+)>$', cpp_type)
     return bool(match) and is_owned_type(match.group(1))
@@ -190,6 +199,11 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
     if cpp_type in ('GenericPromise::Result', 'WTF::GenericPromise::Result'):
         return ('Bool', 'Bool')
+
+    # A RetainPtr<CVPixelBufferRef> is encoded as whether there is one, then a right to its IOSurface, which Swift takes as
+    # the right, leaving the pixel buffer to C++.
+    if cpp_type == _PIXEL_BUFFER_TYPE:
+        return ('IPCTypes.MachSendRight?', 'IPCCoding.OwnedOptional<IPCTypes.MachSendRight>')
 
     # A UTF8CString is encoded as the span of its bytes, which Swift takes a copy of, as of a Vector of them.
     if cpp_type in ('UTF8CString', 'WTF::UTF8CString'):
@@ -264,7 +278,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, "
+                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
                               "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
 
 

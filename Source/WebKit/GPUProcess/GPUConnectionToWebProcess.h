@@ -42,6 +42,7 @@
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
 #include <WebCore/IntDegrees.h>
+#include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/NowPlayingManager.h>
 #include <WebCore/PageIdentifier.h>
 #include <WebCore/ProcessIdentifier.h>
@@ -50,6 +51,7 @@
 #include <pal/SessionID.h>
 #include <wtf/Logger.h>
 #include <wtf/MachSendRight.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
@@ -89,6 +91,7 @@ enum class Synchronous : bool;
 }
 
 namespace WebCore {
+class MediaPlayer;
 class SecurityOrigin;
 class SecurityOriginData;
 }
@@ -123,17 +126,20 @@ struct RemoteAudioSessionConfiguration;
 class RemoteWCLayerTreeHost;
 #endif
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
 class RemoteAudioVideoRendererProxyManager;
+#endif
+#if ENABLE(VIDEO)
 class RemoteMediaPlayerManagerProxy;
 class RemoteVideoFrameObjectHeap;
 #endif
 
 #if ENABLE(WEBGL)
-class RemoteGraphicsContextGL;
+class RemoteGraphicsContextGLResources;
 #endif
 
-class GPUConnectionToWebProcess
+// m_swiftState holds the connection's Swift state (GPUConnectionToWebProcess.swift).
+class SWIFT_PRIVATE_FILEID("WebKit/GPUConnectionToWebProcess.swift") GPUConnectionToWebProcess
     : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<GPUConnectionToWebProcess, WTF::DestructionThread::Main>
     , public WebCore::NowPlayingManagerClient
     , public IPC::Connection::Client {
@@ -184,8 +190,10 @@ public:
     void resignNowPlayingManagerClient();
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     RemoteAudioVideoRendererProxyManager& remoteAudioVideoRendererProxyManager();
+#endif
+#if ENABLE(VIDEO)
     void canDecodeExtendedType(WebCore::PlatformMediaDecodingType, WebCore::ContentType, CompletionHandler<void(bool)>&&) const;
 #endif
 
@@ -225,7 +233,7 @@ public:
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RemoteCDMFactoryProxy& cdmFactoryProxy();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -302,7 +310,14 @@ public:
 private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
-#if ENABLE(WEB_AUDIO)
+    // Implemented in Swift.
+    uintptr_t createSwiftState();
+    // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
+    SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
+    // m_swiftState, for Swift, which can only read it.
+    uintptr_t swiftState() const { return m_swiftState; }
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     RemoteAudioDestinationManager& remoteAudioDestinationManager();
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
@@ -318,8 +333,10 @@ private:
     void releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier);
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseGPU(WebGPUIdentifier);
+#endif
 
     void setNowPlayingInfoForPage(WebCore::NowPlayingInfo&&, std::optional<WebCore::PageIdentifier>);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
@@ -391,12 +408,14 @@ private:
     const Ref<GPUProcess> m_gpuProcess;
     const WebCore::ProcessIdentifier m_webProcessIdentifier;
     const WebCore::ProcessIdentity m_webProcessIdentity;
-#if ENABLE(WEB_AUDIO)
+#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
     const std::unique_ptr<RemoteAudioDestinationManager> m_remoteAudioDestinationManager;
 #endif
     const RefPtr<RemoteSharedResourceCache> m_sharedResourceCache;
-#if ENABLE(VIDEO)
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
     const RefPtr<RemoteAudioVideoRendererProxyManager> m_remoteAudioVideoRendererProxyManager;
+#endif
+#if ENABLE(VIDEO)
     const Ref<RemoteMediaPlayerManagerProxy> m_remoteMediaPlayerManagerProxy;
 #endif
 #if ENABLE(LINEAR_MEDIA_PLAYER)
@@ -432,12 +451,14 @@ private:
 
     RemoteRenderingBackendMap m_remoteRenderingBackendMap;
 #if ENABLE(WEBGL)
-    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGL>>;
+    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGLResources>>;
     RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGPU>>;
     RemoteGPUMap m_remoteGPUMap;
-#if ENABLE(ENCRYPTED_MEDIA)
+#endif
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     const RefPtr<RemoteCDMFactoryProxy> m_cdmFactoryProxy;
 #endif
 #if USE(AUDIO_SESSION)
@@ -484,7 +505,9 @@ private:
     const Ref<IPCTester> m_ipcTester;
 #endif
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

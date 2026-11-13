@@ -26,14 +26,17 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    ExceptionForEnabledBy
+    ExceptionForEnabledBy,
+    SwiftImplementation,
+    SwiftTypes,
+    SwiftSends=UserMediaCaptureManager RemoteCaptureSampleManager
 ]
 messages -> UserMediaCaptureManagerProxy {
-    CreateMediaSourceForCaptureDeviceWithConstraints(WebCore::RealtimeMediaSourceIdentifier id, WebCore::CaptureDevice device, struct WebCore::MediaDeviceHashSalts hashSalts, struct WebCore::MediaConstraints constraints, bool shouldUseGPUProcessRemoteFrames, WebCore::PageIdentifier pageIdentifier) -> (struct WebCore::CaptureSourceError error, WebCore::RealtimeMediaSourceSettings settings, WebCore::RealtimeMediaSourceCapabilities capabilities) Async
+    CreateMediaSourceForCaptureDeviceWithConstraints(WebCore::RealtimeMediaSourceIdentifier id, WebCore::CaptureDevice device, struct WebCore::MediaDeviceHashSalts hashSalts, [CxxDecoded] struct WebCore::MediaConstraints constraints, bool shouldUseGPUProcessRemoteFrames, WebCore::PageIdentifier pageIdentifier) -> (struct WebCore::CaptureSourceError error, WebCore::RealtimeMediaSourceSettings settings, WebCore::RealtimeMediaSourceCapabilities capabilities) Async
     StartProducingData(WebCore::RealtimeMediaSourceIdentifier id, WebCore::PageIdentifier pageIdentifier)
     StopProducingData(WebCore::RealtimeMediaSourceIdentifier id)
     RemoveSource(WebCore::RealtimeMediaSourceIdentifier id)
-    ApplyConstraints(WebCore::RealtimeMediaSourceIdentifier id, struct WebCore::MediaConstraints constraints)
+    ApplyConstraints(WebCore::RealtimeMediaSourceIdentifier id, [CxxDecoded] struct WebCore::MediaConstraints constraints)
     TakePhoto(WebCore::RealtimeMediaSourceIdentifier sourceID, struct WebCore::PhotoSettings settings) -> (std::expected<std::pair<Vector<uint8_t>, String>, String> result);
     GetPhotoCapabilities(WebCore::RealtimeMediaSourceIdentifier sourceID) -> (std::expected<WebCore::PhotoCapabilities, String> result) Async
     GetPhotoSettings(WebCore::RealtimeMediaSourceIdentifier sourceID) -> (std::expected<WebCore::PhotoSettings, String> result) Async

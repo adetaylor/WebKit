@@ -215,13 +215,6 @@ func isValidWebMInitDataImpl(_ size: UInt) -> Bool {
 }
 
 #if HAVE_FAIRPLAYSTREAMING_CENC_INITDATA
-// Whether valid 'cenc' init data has a FairPlay Streaming pssh box.
-@_expose(Cxx)
-func cencHasFairPlayPsshImpl(_ cenc: borrowing WebCore.MediaParserBytes) -> Bool {
-    let bytes: Span<UInt8> = cenc.span()
-    return InitDataParsing.parseCenc(bytes)?.hasFairPlayPssh ?? false
-}
-
 // True when 'cenc' init data has a FairPlay Streaming pssh box, whose bytes in cenc are then put in range. False leaves
 // range alone.
 @_expose(Cxx)

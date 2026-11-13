@@ -47,7 +47,8 @@ DisplayCaptureManagerCocoa& DisplayCaptureManagerCocoa::singleton()
 
 const Vector<CaptureDevice>& DisplayCaptureManagerCocoa::captureDevices()
 {
-    return m_devices;
+    static NeverDestroyed<Vector<CaptureDevice>> devices;
+    return devices.get();
 }
 
 std::optional<CaptureDevice> DisplayCaptureManagerCocoa::screenCaptureDeviceWithPersistentID(const String& deviceID)

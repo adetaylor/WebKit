@@ -60,6 +60,7 @@ RemoteBarcodeDetectorProxy::~RemoteBarcodeDetectorProxy()
 
 void RemoteBarcodeDetectorProxy::detect(const WebCore::NativeImage& image, CompletionHandler<void(Vector<WebCore::ShapeDetection::DetectedBarcode>&&)>&& completionHandler)
 {
+#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
     RefPtr renderingBackend = m_renderingBackend.get();
     RefPtr connection = renderingBackend ? renderingBackend->connection() : nullptr;
     if (!connection) [[unlikely]] {
@@ -71,6 +72,10 @@ void RemoteBarcodeDetectorProxy::detect(const WebCore::NativeImage& image, Compl
         return;
     }
     connection->sendWithAsyncReply(Messages::RemoteBarcodeDetector::Detect(image.renderingResourceIdentifier()), WTF::move(completionHandler), identifier());
+#else
+    UNUSED_PARAM(image);
+    completionHandler({ });
+#endif
 }
 
 } // namespace WebKit::WebGPU

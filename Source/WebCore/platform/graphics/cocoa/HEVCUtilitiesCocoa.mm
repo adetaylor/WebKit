@@ -211,11 +211,6 @@ std::optional<PlatformMediaCapabilitiesInfo> validateDoViParameters(const DoViPa
     return { { true, true, isHardwareAccelerated } };
 }
 
-Vector<uint8_t> convertHEVCCMSampleBufferToAnnexB(CMSampleBufferRef hvccSampleBuffer, bool isKeyframe)
-{
-    return convertParameterSetsCMSampleBufferToAnnexB(hvccSampleBuffer, isKeyframe, PAL::CMVideoFormatDescriptionGetHEVCParameterSetAtIndex);
-}
-
 static RetainPtr<CMFormatDescriptionRef> createHEVCFormatDescriptionFromParameterSets(std::span<const uint8_t* const> paramSetPointers, std::span<const size_t> paramSetSizes, size_t nalUnitHeaderLength)
 {
     CMFormatDescriptionRef rawDescription = nullptr;

@@ -21,8 +21,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::DeviceDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::DeviceDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
     Vector<::WebGPU::FeatureName> requiredFeatures;
-    std::optional<WebKit::WebGPU::SupportedLimits> requiredLimits;
+    std::optional<::WebGPU::Limits> requiredLimits;
 };
 #endif

@@ -61,13 +61,24 @@ void Gradient::fill(GraphicsContext& context, const FloatRect& rect) const
 
 void Gradient::paint(GraphicsContext& context) const
 {
-    paint(protect(context.platformContext()), nonLinearColorSpace(context.colorSpace()));
+    paint(protect(context.platformContext()), paintColorSpace(context));
+}
+
+std::optional<ColorSpace> Gradient::paintColorSpace(const GraphicsContext& context)
+{
+    return nonLinearColorSpace(context.colorSpace());
+}
+
+CGGradientRef Gradient::platformGradient(std::optional<ColorSpace> colorSpace) const
+{
+    if (!m_platformRenderer || m_platformRenderer->colorSpace() != colorSpace)
+        m_platformRenderer = GradientRendererCG { m_colorInterpolationMethod, m_stops, colorSpace };
+    return m_platformRenderer->platformGradient();
 }
 
 void Gradient::paint(CGContextRef platformContext, std::optional<ColorSpace> colorSpace) const
 {
-    if (!m_platformRenderer || m_platformRenderer->colorSpace() != colorSpace)
-        m_platformRenderer = GradientRendererCG { m_colorInterpolationMethod, m_stops, colorSpace };
+    platformGradient(colorSpace);
 
     WTF::switchOn(m_data,
         [&] (const LinearData& data) {

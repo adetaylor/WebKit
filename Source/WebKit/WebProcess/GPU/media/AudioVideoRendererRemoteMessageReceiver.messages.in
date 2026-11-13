@@ -23,7 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 
 [
     DispatchedFrom=GPU,
@@ -43,9 +43,7 @@ messages -> AudioVideoRendererRemoteMessageReceiver {
     StateUpdate(struct WebKit::RemoteAudioVideoRendererState state)
     UpdatePlaybackQualityMetrics(struct WebCore::VideoPlaybackQualityMetrics metrics)
 
-#if PLATFORM(COCOA)
-    LayerHostingContextChanged(struct WebKit::RemoteAudioVideoRendererState state, struct WebCore::HostingContext hostingContext, WebCore::FloatSize presentationSize);
-#endif
+    LayerHostingContextChanged(struct WebKit::RemoteAudioVideoRendererState state, struct WebCore::HostingContext hostingContext, WebCore::FloatSize presentationSize) SentFromCxx
 }
 
 #endif

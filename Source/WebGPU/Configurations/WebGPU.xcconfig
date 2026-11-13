@@ -31,7 +31,7 @@ FRAMEWORK_SEARCH_PATHS[sdk=macosx*] = $(WK_QUOTED_OVERRIDE_FRAMEWORKS_DIR);
 
 SYSTEM_FRAMEWORK_SEARCH_PATHS = $(inherited) $(WK_PRIVATE_SDK_DIR)$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks $(SDKROOT)$(SYSTEM_LIBRARY_DIR)/Frameworks;
 
-SWIFT_INCLUDE_PATHS = $(SRCROOT)/WebGPU/Internal;
+SWIFT_INCLUDE_PATHS = $(SRCROOT)/WebGPU/Internal $(SRCROOT)/WebGPU/SwiftUnderlyingModule;
 
 INFOPLIST_FILE = Info.plist;
 
@@ -58,7 +58,7 @@ WEBGPU_FRAMEWORKS_DIR_USE_ALTERNATE_FRAMEWORKS_DIR_NO = $(NORMAL_WEBGPU_FRAMEWOR
 WEBGPU_FRAMEWORKS_DIR_USE_ALTERNATE_FRAMEWORKS_DIR_YES = $(WK_ALTERNATE_FRAMEWORKS_DIR)/$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks;
 
 GCC_PREPROCESSOR_DEFINITIONS = WGPU_SHARED_LIBRARY WGPU_IMPLEMENTATION $(inherited) $(GCC_PREPROCESSOR_DEFINITIONS_$(ENABLE_WEBGPU_SWIFT));
-GCC_PREPROCESSOR_DEFINITIONS_ENABLE_WEBGPU_SWIFT = ENABLE_WEBGPU_SWIFT;
+GCC_PREPROCESSOR_DEFINITIONS_ENABLE_WEBGPU_SWIFT = ENABLE_WEBGPU_SWIFT HAVE_WGSL_COMPILER=1;
 
 DEFINES_MODULE = YES;
 MODULEMAP_FILE = WebGPU/WebGPU.modulemap;
@@ -112,15 +112,10 @@ OTHER_LDFLAGS_SHARED_CACHE_NO = -Wl,-not_for_dyld_shared_cache;
 OTHER_LDFLAGS_THIN_LTO_IMPORT = $(OTHER_LDFLAGS_THIN_LTO_IMPORT_$(LLVM_LTO));
 OTHER_LDFLAGS_THIN_LTO_IMPORT_YES_THIN = -Wl,-mllvm,-import-instr-limit=0;
 
-OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec $(OTHER_LDFLAGS_THIN_LTO_IMPORT);
+OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec $(OTHER_LDFLAGS_THIN_LTO_IMPORT) $(WGSL_LDFLAGS) $(OBJC_PROTOCOL_REFERENCES_LDFLAGS);
 
-ENABLE_WEBGPU_SWIFT = ;
 
-ENABLE_WEBGPU_SWIFT[sdk=macosx*] = ENABLE_WEBGPU_SWIFT;
 
-ENABLE_WEBGPU_SWIFT[sdk=iphone*] = ENABLE_WEBGPU_SWIFT;
-ENABLE_WEBGPU_SWIFT[sdk=iphone*26.2*] = ;
-ENABLE_WEBGPU_SWIFT[sdk=iphone*26.3*] = ;
 
 // WebGPU has a problem on iOS simulator on older SDKs
 // (https://bugs.webkit.org/show_bug.cgi?id=300146).
@@ -136,17 +131,45 @@ ENABLE_WEBGPU_SWIFT[sdk=appletv*26*] = ;
 
 ENABLE_WEBGPU_SWIFT[sdk=watch*] = ;
 
+// The WGSL compiler is linked whole (a Swift archive member holding only types and conformances is
+// otherwise dropped) and its Swift symbols stay internal to WebGPU. libwgsl.a exists even without
+// Swift (WGSLStub.c).
+WGSL_LDFLAGS = -Wl,-force_load,$(BUILT_PRODUCTS_DIR)/libwgsl.a -Wl,-unexported_symbol,_$s*4WGSL*;
+// Outside the dyld shared cache, the Objective-C runtime rewrites an image's @protocol references when it loads it. The
+// Swift code references Metal's protocols, so keep those references in __DATA, on the page the selector references
+// already dirty, rather than dirtying a page of __DATA_CONST in every process that maps WebGPU.
+OBJC_PROTOCOL_REFERENCES_LDFLAGS = -Wl,-rename_section,__DATA_CONST,__objc_protorefs,__DATA,__objc_protorefs;
+// The Swift module has its own name, since WebGPU names the C++ namespace that Swift sees.
+SWIFT_MODULE_NAME = WebGPUSwift;
 SWIFT_OBJC_INTERFACE_HEADER_NAME = WebGPUSwift-Generated.h;
 SWIFT_INSTALL_OBJC_HEADER = NO;
 SWIFT_OBJC_INTEROP_MODE = $(WK_SWIFT_OBJC_INTEROP_MODE_$(ENABLE_WEBGPU_SWIFT))
 WK_SWIFT_OBJC_INTEROP_MODE_ENABLE_WEBGPU_SWIFT = objcxx;
 SWIFT_LIBRARY_LEVEL = spi;
+SWIFT_COMPILATION_MODE = wholemodule;
+SWIFT_COMPILATION_MODE[config=Debug] = singlefile;
 
-OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal;
+OTHER_SWIFT_FLAGS = $(inherited) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebGPU/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -Xcc -std=c++2b -Xcc -DUCHAR_TYPE=char16_t -Xcc -DU_DISABLE_RENAMING=1 -enable-experimental-feature LifetimeDependence -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -Werror SendableClosureCaptures -enable-experimental-feature CheckImplementationOnly $(WK_WEBGPU_SWIFT_INTERFACE_VERIFICATION_FLAGS);
+// Pipeline.swift's PSO repro tooling, in the builds that had it in C++: !NDEBUG || (ENABLE_LIBFUZZER && ASAN_ENABLED).
+WEBGPU_PSO_REPRO_CONDITIONS = $(WEBGPU_PSO_REPRO_CONDITIONS_$(ENABLE_LIBFUZZER)_$(ENABLE_ADDRESS_SANITIZER));
+WEBGPU_PSO_REPRO_CONDITIONS[config=Debug] = WEBGPU_PSO_REPRO $(WEBGPU_PSO_REPRO_CONDITIONS_$(ENABLE_LIBFUZZER)_$(ENABLE_ADDRESS_SANITIZER));
+WEBGPU_PSO_REPRO_CONDITIONS_YES_YES = WEBGPU_PSO_REPRO WEBGPU_PSO_REPRO_ALWAYS;
+SWIFT_ACTIVE_COMPILATION_CONDITIONS = $(inherited) $(WEBGPU_PSO_REPRO_CONDITIONS);
 
+// Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
+WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS = -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes;
+
+// The module is SPI-level, so its public interface holds the SPI declarations too, but not their @_spiOnly imports of
+// the C++ API, and fails to verify. Only the binary module is used (by WebKit), so the interfaces are not verified.
+WK_WEBGPU_SWIFT_INTERFACE_VERIFICATION_FLAGS = -no-verify-emitted-module-interface;
+// Swift's importer reads C++ headers' bounds attributes, as in the CMake build (WebKitSwiftFlags.cmake).
+
+// Without Swift there is no WebGPU: only Instance.mm is built, for the createInstance() WebCore links against.
 EXCLUDED_SOURCE_FILE_NAMES = $(EXCLUDED_SOURCE_FILE_NAMES_$(ENABLE_WEBGPU_SWIFT));
 EXCLUDED_SOURCE_FILE_NAMES_ENABLE_WEBGPU_SWIFT =;
-EXCLUDED_SOURCE_FILE_NAMES_ = *.swift;
+EXCLUDED_SOURCE_FILE_NAMES_ = *.swift *.mm;
+INCLUDED_SOURCE_FILE_NAMES = $(INCLUDED_SOURCE_FILE_NAMES_$(ENABLE_WEBGPU_SWIFT));
+INCLUDED_SOURCE_FILE_NAMES_ = Instance.mm;
 
 BUILD_LIBRARY_FOR_DISTRIBUTION = YES; // This is required for all frameworks in the OS.
 RUN_SWIFT_ABI_CHECKER_TOOL = NO;

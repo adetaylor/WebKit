@@ -220,6 +220,15 @@ private:
     RealtimeMediaSourceSupportedConstraints m_supportedConstraints;
 };
 
+template<typename Mode>
+inline uint8_t capabilityModeBits(const Vector<Mode>& modes)
+{
+    uint8_t bits = 0;
+    for (auto mode : modes)
+        bits |= static_cast<uint8_t>(1 << static_cast<uint8_t>(mode));
+    return bits;
+}
+
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
