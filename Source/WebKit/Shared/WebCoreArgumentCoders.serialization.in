@@ -5838,7 +5838,7 @@ struct WebCore::NowPlayingInfo {
 }
 
 header: <WebCore/NowPlayingInfo.h>
-[CustomHeader] struct WebCore::NowPlayingCandidateState {
+[CustomHeader, Swift] struct WebCore::NowPlayingCandidateState {
     std::optional<WebCore::PageIdentifier> pageIdentifier;
     std::optional<WallTime> mostRecentUserInteractionTime;
     WebCore::MediaSessionIdentifier sessionIdentifier;
