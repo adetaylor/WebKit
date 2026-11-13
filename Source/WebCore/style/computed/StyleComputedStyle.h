@@ -81,6 +81,8 @@ public:
     inline float usedZoomForSwift() const SWIFT_NAME(usedZoom());
     inline BoxSizing boxSizingForSwift() const SWIFT_NAME(boxSizing());
     inline Resize resizeForSwift() const SWIFT_NAME(resize());
+    LayoutUnit evaluatedMinWidthForSwift(LayoutUnit referenceLength) const SWIFT_NAME(evaluatedMinWidth(_:));
+    LayoutUnit evaluatedMinHeightForSwift(LayoutUnit referenceLength) const SWIFT_NAME(evaluatedMinHeight(_:));
     inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
     inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
     inline bool borderHasCornerShapeOutsideRoundedRectForSwift() const SWIFT_NAME(borderHasCornerShapeOutsideRoundedRect());

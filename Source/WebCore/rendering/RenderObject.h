@@ -851,6 +851,10 @@ public:
     // The renderer of the document's fullscreen element, when it has a layer model renderer.
     RenderLayerModelObject* fullscreenElementRendererForSwift() const;
     bool documentHasActiveViewTransitionForSwift() const;
+    // Whether this is a RenderWidget whose content frame is a remote frame.
+    bool hasRemoteContentFrameForSwift() const;
+    // The render view of this RenderWidget's content document, if it has one.
+    RenderView* contentRenderViewForSwift() const;
     // Swift compares renderers here: it has no identity comparison of its own for them.
     static bool isSameRenderer(const RenderObject* a, const RenderObject* b) { return a == b; }
     static RenderBlock* containingBlockForPositionType(PositionType, const RenderObject&);

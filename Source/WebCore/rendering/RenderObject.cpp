@@ -57,6 +57,7 @@
 #include "PlatformRenderTheme.h"
 #include "PseudoElement.h"
 #include "ReferencedSVGResources.h"
+#include "RemoteFrame.h"
 #include "RenderChildIterator.h"
 #include "RenderCounter.h"
 #include "RenderElementInlines.h"
@@ -90,6 +91,7 @@
 #include "RenderView.h"
 #include "RenderViewTransitionCapture.h"
 #include "RenderWidget.h"
+#include "RenderWidgetInlines.h"
 #include "RenderedPosition.h"
 #include "SVGRenderSupport.h"
 #include "ScrollAnchoringController.h"
@@ -840,6 +842,24 @@ const RenderReplica* RenderObject::asRenderReplica() const
 const RenderBlock* RenderObject::asRenderBlock() const
 {
     return dynamicDowncast<RenderBlock>(*this);
+}
+
+bool RenderObject::hasRemoteContentFrameForSwift() const
+{
+    auto* renderWidget = dynamicDowncast<RenderWidget>(*this);
+    if (!renderWidget)
+        return false;
+    RefPtr frame = renderWidget->frameOwnerElement().contentFrame();
+    return frame && is<RemoteFrame>(frame);
+}
+
+RenderView* RenderObject::contentRenderViewForSwift() const
+{
+    auto* renderWidget = dynamicDowncast<RenderWidget>(*this);
+    if (!renderWidget)
+        return nullptr;
+    RefPtr contentDocument = renderWidget->frameOwnerElement().contentDocument();
+    return contentDocument ? contentDocument->renderView() : nullptr;
 }
 
 bool RenderObject::frameIsMainFrameForSwift() const
