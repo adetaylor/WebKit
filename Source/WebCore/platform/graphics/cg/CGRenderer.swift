@@ -4984,6 +4984,62 @@ extension CGRendererCore {
 }
 
 
+// MARK: Drawing into a context of its own
+
+// What a GraphicsContextCG of a context of its own draws, for the Mac controls' layers (MacControlPainter.swift), which draw
+// into the context they draw into and into bitmaps of their own with no GraphicsContext.
+extension CGRendererCore {
+    // A fresh GraphicsContextCG's renderer for the context, which only draws.
+    private static func drawing(_ context: CGContext) -> CGRendererCore {
+        CGRendererCore(context, true, false, false, .Default)
+    }
+
+    // GraphicsContext::drawConsumingImageBuffer() of an image buffer's image at its pixel size into the rect, with the
+    // options, in a save, so that the context's state stays its own.
+    @_expose(!Cxx)
+    static func drawImage(_ context: CGContext, _ image: CGImage, _ destination: CGRect, _ options: CGRendererImageOptions) {
+        var facts = CGRendererImageFacts()
+        facts.width = Float(image.width)
+        facts.height = Float(image.height)
+        facts.resolutionScale = 1
+        facts.headroom = 1
+        facts.found = true
+        var renderer = drawing(context)
+        context.saveGState()
+        renderer.drawNativeImage(image, facts, destination, CGRect(x: 0, y: 0, width: image.width, height: image.height), options)
+        context.restoreGState()
+    }
+
+    // GraphicsContextCG::clipToNativeImage().
+    @_expose(!Cxx)
+    static func clipToImage(_ context: CGContext, _ image: CGImage, _ rect: CGRect) {
+        drawing(context).clipToImage(image, CGRendererRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.width), height: Float(rect.height)))
+    }
+
+    // GraphicsContext::clipRoundedRect() of the rect with each corner's radius the radius.
+    @_expose(!Cxx)
+    static func clipToRoundedRect(_ context: CGContext, _ rect: CGRect, _ radius: Float) {
+        let corner = WebCore.ShadowBlurSize(width: radius, height: radius)
+        let roundedRect = CGRendererRoundedRect(
+            rect: WebCore.ShadowBlurRect(x: Float(rect.origin.x), y: Float(rect.origin.y), width: Float(rect.width), height: Float(rect.height)),
+            radii: WebCore.ShadowBlurCornerRadii(topLeft: corner, topRight: corner, bottomLeft: corner, bottomRight: corner)
+        )
+        CGRendererRoundedRectSegment(roundedRect).clip(context, .winding)
+    }
+
+    // GraphicsContextCG::drawFocusRing() of the Path of the rect.
+    @_expose(!Cxx)
+    static func drawFocusRing(_ context: CGContext, _ rect: CGRect, _ color: CGColor?, _ zoomFactor: Float) {
+        var renderer = drawing(context)
+        let segment = CGRendererPathSegment(
+            values: (Float(rect.origin.x), Float(rect.origin.y), Float(rect.width), Float(rect.height), 0, 0, 0, 0, 0, 0, 0, 0),
+            kind: .Rect,
+            flag: false
+        )
+        renderer.drawFocusRing(CGRendererCreatePath(segment), color, zoomFactor)
+    }
+}
+
 // MARK: System images
 
 #if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
@@ -5177,7 +5233,8 @@ extension CGRendererCore {
         let badgeRect = CGRect(x: 0, y: 0, width: dimension, height: dimension)
         // The circle that clips the badge, and casts its drop shadow, its radius in whole points.
         let radius = CGFloat(badgeDimension / 2)
-        let circle = CGPath(roundedRect: absoluteBadgeRect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+        let circle = CGMutablePath()
+        circle.addRoundedRect(in: absoluteBadgeRect, cornerWidth: radius, cornerHeight: radius)
         hasDrawn = true
 
         context.saveGState()
@@ -5203,12 +5260,13 @@ extension CGRendererCore {
             width: dimension - 1,
             height: dimension - 1
         )
-        context.addPath(CGPath(
-            roundedRect: slightlySmallerAbsoluteBadgeRect,
+        let slightlySmallerCircle = CGMutablePath()
+        slightlySmallerCircle.addRoundedRect(
+            in: slightlySmallerAbsoluteBadgeRect,
             cornerWidth: slightlySmallerAbsoluteBadgeRect.width / 2,
-            cornerHeight: slightlySmallerAbsoluteBadgeRect.height / 2,
-            transform: nil
-        ))
+            cornerHeight: slightlySmallerAbsoluteBadgeRect.height / 2
+        )
+        context.addPath(slightlySmallerCircle)
         context.closePath()
         context.fillPath()
         context.restoreGState()
@@ -5247,6 +5305,22 @@ extension CGRendererCore {
     }
     #endif
 
+    #if ENABLE_APPLE_PAY
+    // ApplePayButtonCocoa's draw of an Apple Pay button part: `buttonType` and `buttonStyle` are ApplePayButtonType's and
+    // ApplePayButtonStyle's values.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawApplePayButton(
+        _ rect: CGRect,
+        _ largestCornerRadius: Float,
+        _ buttonType: UInt8,
+        _ buttonStyle: UInt8,
+        _ locale: Swift.String
+    ) {
+        hasDrawn = true
+        CGRendererDrawApplePayButton(context, rect, CGFloat(largestCornerRadius), buttonType, buttonStyle, locale as CFString)
+    }
+    #endif
+
     #if USE_SYSTEM_PREVIEW
     // A Swift receiver's badge, which it draws in the GPU process.
     @_expose(!Cxx)
@@ -5256,6 +5330,26 @@ extension CGRendererCore {
     #endif
 
     #if WTF_PLATFORM_MAC
+    // GraphicsContext::drawControlPart() of a Mac control part (PlatformControlMac): `state` is PlatformControlMac::state()'s.
+    // The text color is made in the context's color space, as PlatformControlMac::draw() makes it.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawMacControlPart(
+        _ cells: MacControlPainterCells,
+        _ borderRect: CGRect,
+        _ deviceScaleFactor: Float,
+        _ state: WebCore.MacControlState,
+        _ accentColor: CGRendererColorData,
+        _ textColor: CGRendererColorData,
+        _ tickRatios: [Double]
+    ) {
+        hasDrawn = true
+        let accent = accentColor.form != 0 ? CGRendererCopyCachedCGColorForData(accentColor) : nil
+        let isSlider = state.appearance == .SliderHorizontal || state.appearance == .SliderVertical
+        let text = state.appearance == .MenulistButton || isSlider ? CGRendererCopyCGColorForData(textColor, destinationColorSpace) : nil
+        let fillsEvenOdd = self.state.fillRule == 1
+        drawMacControlPart(cells, context, borderRect, deviceScaleFactor, state, accent, text, fillsEvenOdd, tickRatios)
+    }
+
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawScrollbarTrackCorner(_ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGRendererColorData) {
         drawScrollbarTrackCorner(rect, usesDarkAppearance, tintColor)

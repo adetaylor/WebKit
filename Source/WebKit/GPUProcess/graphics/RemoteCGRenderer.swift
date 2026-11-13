@@ -61,6 +61,96 @@ extension IPCTypes.WebCoreColor {
     }
 }
 
+#if WTF_PLATFORM_MAC
+// PlatformControlMac::state() of the part, with its style, and the part's tick marks: nil for a part that ControlFactoryMac
+// makes no PlatformControlMac of.
+private func macControlState(_ part: IPCTypes.ControlPart, _ style: IPCTypes.ControlStyle) -> (WebCore.MacControlState, [Double])? {
+    var state = WebCore.MacControlState()
+    var tickRatios: [Double] = []
+    switch part {
+    case .buttonPart(let button):
+        state.appearance = button.type
+    case .colorWellPart:
+        state.appearance = .ColorWell
+    case .innerSpinButtonPart:
+        state.appearance = .InnerSpinButton
+    case .menuListButtonPart:
+        state.appearance = .MenulistButton
+    case .menuListPart:
+        state.appearance = .Menulist
+    case .meterPart(let meter):
+        state.appearance = .Meter
+        state.meterValue = meter.value
+        state.meterMinimum = meter.minimum
+        state.meterMaximum = meter.maximum
+        state.meterGaugeRegion = meter.gaugeRegion.rawValue
+    case .progressBarPart(let progressBar):
+        state.appearance = .ProgressBar
+        state.progressPosition = progressBar.position
+        state.progressAnimationStartTime = progressBar.animationStartTime
+    case .searchFieldPart:
+        state.appearance = .SearchField
+    case .searchFieldResultsPart(let results):
+        state.appearance = results.type
+    case .searchFieldCancelButtonPart:
+        state.appearance = .SearchFieldCancelButton
+    case .sliderThumbPart(let thumb):
+        state.appearance = thumb.type
+    case .sliderTrackPart(let track):
+        state.appearance = track.type
+        state.sliderThumbWidth = track.thumbSize.width
+        state.sliderThumbHeight = track.thumbSize.height
+        state.sliderTrackX = track.trackBounds.location.x
+        state.sliderTrackY = track.trackBounds.location.y
+        state.sliderTrackWidth = track.trackBounds.size.width
+        state.sliderTrackHeight = track.trackBounds.size.height
+        tickRatios = track.tickRatios
+    case .switchPart(let switchPart):
+        state.appearance = .Switch
+        state.switchIsOn = switchPart.isOn
+        state.switchProgress = switchPart.progress
+    case .textAreaPart(let textArea):
+        state.appearance = textArea.type
+    case .textFieldPart:
+        state.appearance = .TextField
+    case .toggleButtonPart(let toggleButton):
+        state.appearance = toggleButton.type
+    #if ENABLE_APPLE_PAY
+    case .applePayButtonPart:
+        return nil
+    #endif
+    #if ENABLE_SERVICE_CONTROLS
+    case .imageControlsButtonPart:
+        state.appearance = .ImageControlsButton
+    #endif
+    }
+    let states = style.states
+    state.isPressed = states.contains(.pressed)
+    state.isFocused = states.contains(.focused)
+    state.isEnabled = states.contains(.enabled)
+    state.isChecked = states.contains(.checked)
+    state.isWindowActive = states.contains(.windowActive)
+    state.isIndeterminate = states.contains(.indeterminate)
+    state.isSpinUp = states.contains(.spinUp)
+    state.isPresenting = states.contains(.presenting)
+    state.isInFormSemanticContext = states.contains(.formSemanticContext)
+    state.usesDarkAppearance = states.contains(.darkAppearance)
+    state.isInlineFlipped = states.contains(.inlineFlippedWritingMode)
+    state.usesLargeControls = states.contains(.largeControls)
+    state.isReadOnly = states.contains(.readOnly)
+    state.hasListButton = states.contains(.listButton)
+    state.isListButtonPressed = states.contains(.listButtonPressed)
+    state.isVertical = states.contains(.verticalWritingMode)
+    state.fontSize = style.fontSize
+    state.zoomFactor = style.zoomFactor
+    state.borderTop = style.borderWidth.top
+    state.borderRight = style.borderWidth.right
+    state.borderBottom = style.borderWidth.bottom
+    state.borderLeft = style.borderWidth.left
+    return (state, tickRatios)
+}
+#endif
+
 private func cgAffineTransform(_ transform: WebCore.AffineTransform) -> CGAffineTransform {
     CGAffineTransform(a: transform.a(), b: transform.b(), c: transform.c(), d: transform.d(), tx: transform.e(), ty: transform.f())
 }
@@ -133,6 +223,10 @@ final class RemoteCGRenderer {
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
     private var liveGlyphs: ContiguousArray<CGGlyph> = []
     private var liveAdvances: ContiguousArray<CGSize> = []
+    #if WTF_PLATFORM_MAC
+    // The cells it draws Mac control parts with, as a control factory's, made when first used.
+    private var macControlCells: MacControlPainterCells?
+    #endif
 
     @_expose(!Cxx)
     private init(
@@ -831,15 +925,56 @@ final class RemoteCGRenderer {
         _ = WebKit.drawFilteredImageBuffer(resources, leaf, sourceImageIdentifier, sourceImageRect, filter)
     }
 
+    // GraphicsContext::drawControlPart(): the part's platform control's draw, which only Apple Pay buttons and, on the Mac, the
+    // Mac controls have.
     func drawControlPart(
         state: inout CGRendererCore,
-        part: WebCore.RefControlPart,
-        borderRect: WebCore.FloatRoundedRect,
+        part: IPCTypes.ControlPart,
+        borderRect: IPCTypes.FloatRoundedRect,
         deviceScaleFactor: Float,
-        style: WebCore.ControlStyle
+        style: IPCTypes.ControlStyle
     ) {
-        let leaf = state.receiveLeafContext()
-        WebKit.drawControlPart(resources, leaf, part, borderRect, deviceScaleFactor, style)
+        #if ENABLE_APPLE_PAY
+        if case .applePayButtonPart(let button) = part {
+            // std::max() of the corners' FloatSize::maxDimension(): the first largest.
+            let radii = borderRect.radii
+            let maxDimensions = [radii.topLeft, radii.topRight, radii.bottomLeft, radii.bottomRight].map { corner in
+                corner.width < corner.height ? corner.height : corner.width
+            }
+            var largestCornerRadius = maxDimensions[0]
+            for maxDimension in maxDimensions.dropFirst() where largestCornerRadius < maxDimension {
+                largestCornerRadius = maxDimension
+            }
+            state.receiveDrawApplePayButton(
+                cgRect(borderRect.rect),
+                largestCornerRadius,
+                button.buttonType.rawValue,
+                button.buttonStyle.rawValue,
+                button.locale ?? ""
+            )
+            return
+        }
+        #endif
+        #if WTF_PLATFORM_MAC
+        guard let (controlState, tickRatios) = macControlState(part, style) else {
+            return
+        }
+        if macControlCells == nil {
+            macControlCells = MacControlPainterCells()
+        }
+        guard let cells = macControlCells else {
+            return
+        }
+        state.receiveDrawMacControlPart(
+            cells,
+            cgRect(borderRect.rect),
+            deviceScaleFactor,
+            controlState,
+            style.accentColor.cgRendererColorData,
+            style.textColor.cgRendererColorData,
+            tickRatios
+        )
+        #endif
     }
 
     // GraphicsContext::drawSystemImage(), as GraphicsContextCG draws each kind.

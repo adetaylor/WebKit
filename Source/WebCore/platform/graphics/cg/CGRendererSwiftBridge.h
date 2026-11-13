@@ -434,6 +434,12 @@ private:
 };
 
 // cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space, and cachedCGColor() of it.
+#if ENABLE(APPLE_PAY)
+// ApplePayButtonCocoa's draw: PassKit's Apple Pay button of the ApplePayButtonType and ApplePayButtonStyle, in the locale, in the
+// rect of a flipped context, with the largest radius of its corners.
+WEBCORE_EXPORT void CGRendererDrawApplePayButton(CGContextRef _Nonnull, CGRect, CGFloat largestCornerRadius, uint8_t buttonType, uint8_t buttonStyle, CFStringRef _Nullable locale);
+#endif
+
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCachedCGColorForData(const CGRendererColorData&) CF_RETURNS_RETAINED;
 // The color that a drop shadow without blur draws a run of glyphs in: the shadow's, with its alpha multiplied by the fill's.
