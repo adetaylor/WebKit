@@ -44,6 +44,20 @@
 #if PLATFORM(COCOA)
 #include <CoreGraphics/CoreGraphics.h>
 #include <WebCore/ColorSpace.h>
+#include <WebCore/ControlPart.h>
+#include <WebCore/ControlStyle.h>
+#include <WebCore/MeterPart.h>
+#include <WebCore/ProgressBarPart.h>
+#include <WebCore/SliderTrackPart.h>
+#include <WebCore/SwitchPart.h>
+#include <WebCore/SystemImage.h>
+#if ENABLE(APPLE_PAY)
+#include <WebCore/ApplePayButtonPart.h>
+#include <WebCore/ApplePayLogoSystemImage.h>
+#endif
+#if USE(APPKIT)
+#include <WebCore/AppKitControlSystemImage.h>
+#endif
 #include <wtf/RetainPtr.h>
 #include <wtf/cf/VectorCF.h>
 #include <wtf/text/StringHash.h>
@@ -251,6 +265,96 @@ inline String ipcTesterDescription(CGColorSpaceRef WTF_NONNULL colorSpace)
         " iccHash="_s, StringHasher::computeHashAndMaskTop8Bits(iccBytes), " extended="_s, CGColorSpaceUsesExtendedRange(colorSpace),
         " wideGamut="_s, CGColorSpaceIsWideGamutRGB(colorSpace));
 }
+
+// What a control part and its style, and a system image, are made of, which IPCTesterReceiver replies for those decoded in C++
+// and in Swift (IPCTesterReceiver.swift describes the Swift forms alike), so that a test can check that both decode the same
+// bytes alike, and reject the same bytes. Floats are described by their bits.
+inline void ipcTesterAppendColorDescription(StringBuilder& builder, const WebCore::Color& color)
+{
+    auto data = color.data();
+    if (!data) {
+        builder.append("invalid"_s);
+        return;
+    }
+    builder.append(data->isSemantic ? 1 : 0, ',', data->usesFunctionSerialization ? 1 : 0, ',');
+    WTF::switchOn(data->data, [&](WebCore::PackedColor::RGBA packed) {
+        builder.append("packed:"_s, packed.value);
+    }, [&](const WebCore::OutOfLineColorDataForIPC& components) {
+        builder.append(static_cast<unsigned>(components.colorSpace), ':', std::bit_cast<uint32_t>(components.c1), ',', std::bit_cast<uint32_t>(components.c2), ',',
+            std::bit_cast<uint32_t>(components.c3), ',', std::bit_cast<uint32_t>(components.alpha));
+    });
+}
+
+inline String ipcTesterDescription(const WebCore::ControlPart& part, const WebCore::ControlStyle& style)
+{
+    StringBuilder builder;
+    builder.append("appearance="_s, static_cast<unsigned>(part.type()));
+    if (auto* meter = dynamicDowncast<WebCore::MeterPart>(part)) {
+        builder.append(" meter="_s, static_cast<unsigned>(meter->gaugeRegion()), ',', std::bit_cast<uint64_t>(meter->value()), ',', std::bit_cast<uint64_t>(meter->minimum()), ',',
+            std::bit_cast<uint64_t>(meter->maximum()));
+    } else if (auto* progressBar = dynamicDowncast<WebCore::ProgressBarPart>(part))
+        builder.append(" progress="_s, std::bit_cast<uint64_t>(progressBar->position()), ',', std::bit_cast<uint64_t>(progressBar->animationStartTime().seconds()));
+    else if (auto* sliderTrack = dynamicDowncast<WebCore::SliderTrackPart>(part)) {
+        auto thumb = sliderTrack->thumbSize();
+        auto track = sliderTrack->trackBounds();
+        builder.append(" slider="_s, thumb.width(), 'x', thumb.height(), ',', track.x(), ',', track.y(), ',', track.width(), 'x', track.height(), ',',
+            std::bit_cast<uint64_t>(sliderTrack->thumbPosition()), ",ticks:"_s, sliderTrack->tickRatios().size());
+        for (auto ratio : sliderTrack->tickRatios())
+            builder.append(':', std::bit_cast<uint64_t>(ratio));
+    } else if (auto* switchPart = dynamicDowncast<WebCore::SwitchPart>(part))
+        builder.append(" switch="_s, switchPart->isOn() ? 1 : 0, ',', std::bit_cast<uint32_t>(switchPart->progress()));
+#if ENABLE(APPLE_PAY)
+    else if (auto* applePayButton = dynamicDowncast<WebCore::ApplePayButtonPart>(part)) {
+        builder.append(" applePay="_s, static_cast<unsigned>(applePayButton->buttonType()), ',', static_cast<unsigned>(applePayButton->buttonStyle()), ',',
+            applePayButton->locale().isNull() ? "null"_s : applePayButton->locale());
+    }
+#endif
+    builder.append(" states="_s, style.states.toRaw(), " fontSize="_s, std::bit_cast<uint32_t>(style.fontSize), " zoom="_s, std::bit_cast<uint32_t>(style.zoomFactor), " accent="_s);
+    ipcTesterAppendColorDescription(builder, style.accentColor);
+    builder.append(" text="_s);
+    ipcTesterAppendColorDescription(builder, style.textColor);
+    builder.append(" border="_s, std::bit_cast<uint32_t>(style.borderWidth.top()), ',', std::bit_cast<uint32_t>(style.borderWidth.right()), ',',
+        std::bit_cast<uint32_t>(style.borderWidth.bottom()), ',', std::bit_cast<uint32_t>(style.borderWidth.left()));
+    return builder.toString();
+}
+
+inline String ipcTesterDescription(const WebCore::SystemImage& image)
+{
+    StringBuilder builder;
+#if ENABLE(APPLE_PAY)
+    if (auto* logo = dynamicDowncast<WebCore::ApplePayLogoSystemImage>(image)) {
+        builder.append("applePayLogo="_s, static_cast<unsigned>(logo->applePayLogoStyle()));
+        return builder.toString();
+    }
+#endif
+#if USE(APPKIT)
+    if (auto* controlImage = dynamicDowncast<WebCore::AppKitControlSystemImage>(image)) {
+        builder.append("appKitControl="_s, static_cast<unsigned>(controlImage->controlType()), " tint="_s);
+        ipcTesterAppendColorDescription(builder, controlImage->tintColor());
+        builder.append(" dark="_s, controlImage->useDarkAppearance() ? 1 : 0);
+        return builder.toString();
+    }
+#endif
+    UNUSED_PARAM(image);
+    return "unknown"_s;
+}
+
+#if ENABLE(IPC_TESTING_SWIFT)
+inline String ipcTesterCxxDecodedControlDescription(IPC::CxxDecodedArgument<Ref<WebCore::ControlPart>>& partArgument, IPC::CxxDecodedArgument<WebCore::ControlStyle>& styleArgument)
+{
+    auto part = partArgument.take();
+    auto style = styleArgument.take();
+    RELEASE_ASSERT(part && style);
+    return ipcTesterDescription(part->get(), *style);
+}
+
+inline String ipcTesterCxxDecodedSystemImageDescription(IPC::CxxDecodedArgument<Ref<WebCore::SystemImage>>& imageArgument)
+{
+    auto image = imageArgument.take();
+    RELEASE_ASSERT(image);
+    return ipcTesterDescription(image->get());
+}
+#endif
 
 #if ENABLE(IPC_TESTING_SWIFT)
 // The CGColorSpace of a ColorSpace that C++ decoded for IPCTesterReceiver's Swift receiver.

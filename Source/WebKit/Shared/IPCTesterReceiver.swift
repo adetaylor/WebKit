@@ -223,6 +223,121 @@ final class IPCTesterReceiver {
     ) -> Bool {
         colorSpace.cgColorSpace == WebKit.ipcTesterCxxDecodedColorSpace(cxxDecodedColorSpace)
     }
+
+    // A control part and style, and a system image, decoded in Swift and in C++ must be described alike: as
+    // ipcTesterDescription() describes them (IPCTesterPayload.h).
+
+    @MainActor
+    func describeControlSwift(connection: IPC.Connection, part: IPCTypes.ControlPart, style: IPCTypes.ControlStyle) -> String? {
+        Self.description(part) + Self.description(style)
+    }
+
+    @MainActor
+    func describeCxxDecodedControlSwift(
+        connection: IPC.Connection,
+        part: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftPart,
+        style: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftStyle
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedControlDescription(part, style))
+    }
+
+    @MainActor
+    func describeSystemImageSwift(connection: IPC.Connection, image: IPCTypes.SystemImage) -> String? {
+        switch image {
+        #if ENABLE_APPLE_PAY
+        case .applePayLogoSystemImage(let logo):
+            return "applePayLogo=\(logo.applePayLogoStyle.rawValue)"
+        #endif
+        #if USE_APPKIT
+        case .appKitControlSystemImage(let controlImage):
+            return "appKitControl=0 tint=\(Self.description(controlImage.tintColor)) dark=\(controlImage.useDarkAppearance ? 1 : 0)"
+        #endif
+        }
+    }
+
+    @MainActor
+    func describeCxxDecodedSystemImageSwift(
+        connection: IPC.Connection,
+        image: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedSystemImageSwiftImage
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedSystemImageDescription(image))
+    }
+
+    private static func description(_ color: IPCTypes.WebCoreColor) -> String {
+        guard let data = color.data else {
+            return "invalid"
+        }
+        let flags = "\(data.isSemantic ? 1 : 0),\(data.usesFunctionSerialization ? 1 : 0),"
+        switch data.components {
+        case .packed(let value):
+            return flags + "packed:\(value)"
+        case .outOfLine(let colorSpace, let c1, let c2, let c3, let alpha):
+            return flags + "\(colorSpace.rawValue):\(c1.bitPattern),\(c2.bitPattern),\(c3.bitPattern),\(alpha.bitPattern)"
+        }
+    }
+
+    private static func description(_ part: IPCTypes.ControlPart) -> String {
+        var appearance: UInt8 = 0
+        var details = ""
+        switch part {
+        case .buttonPart(let button):
+            appearance = button.type.rawValue
+        case .colorWellPart:
+            appearance = WebCore.StyleAppearance.ColorWell.rawValue
+        case .innerSpinButtonPart:
+            appearance = WebCore.StyleAppearance.InnerSpinButton.rawValue
+        case .menuListButtonPart:
+            appearance = WebCore.StyleAppearance.MenulistButton.rawValue
+        case .menuListPart:
+            appearance = WebCore.StyleAppearance.Menulist.rawValue
+        case .meterPart(let meter):
+            appearance = WebCore.StyleAppearance.Meter.rawValue
+            details = " meter=\(meter.gaugeRegion.rawValue),\(meter.value.bitPattern),\(meter.minimum.bitPattern),\(meter.maximum.bitPattern)"
+        case .progressBarPart(let progressBar):
+            appearance = WebCore.StyleAppearance.ProgressBar.rawValue
+            details = " progress=\(progressBar.position.bitPattern),\(progressBar.animationStartTime.bitPattern)"
+        case .searchFieldPart:
+            appearance = WebCore.StyleAppearance.SearchField.rawValue
+        case .searchFieldResultsPart(let results):
+            appearance = results.type.rawValue
+        case .searchFieldCancelButtonPart:
+            appearance = WebCore.StyleAppearance.SearchFieldCancelButton.rawValue
+        case .sliderThumbPart(let thumb):
+            appearance = thumb.type.rawValue
+        case .sliderTrackPart(let track):
+            appearance = track.type.rawValue
+            let thumb = track.thumbSize
+            let bounds = track.trackBounds
+            details = " slider=\(thumb.width)x\(thumb.height),\(bounds.location.x),\(bounds.location.y),\(bounds.size.width)x\(bounds.size.height),"
+                + "\(track.thumbPosition.bitPattern),ticks:\(track.tickRatios.count)" + track.tickRatios.map { ":\($0.bitPattern)" }.joined()
+        case .switchPart(let switchPart):
+            appearance = WebCore.StyleAppearance.Switch.rawValue
+            details = " switch=\(switchPart.isOn ? 1 : 0),\(switchPart.progress.bitPattern)"
+        case .textAreaPart(let textArea):
+            appearance = textArea.type.rawValue
+        case .textFieldPart:
+            appearance = WebCore.StyleAppearance.TextField.rawValue
+        case .toggleButtonPart(let toggleButton):
+            appearance = toggleButton.type.rawValue
+        #if ENABLE_APPLE_PAY
+        case .applePayButtonPart(let button):
+            appearance = WebCore.StyleAppearance.ApplePayButton.rawValue
+            details = " applePay=\(button.buttonType.rawValue),\(button.buttonStyle.rawValue),\(button.locale ?? "null")"
+        #endif
+        #if ENABLE_SERVICE_CONTROLS
+        case .imageControlsButtonPart:
+            appearance = WebCore.StyleAppearance.ImageControlsButton.rawValue
+        #endif
+        }
+        return "appearance=\(appearance)" + details
+    }
+
+    private static func description(_ style: IPCTypes.ControlStyle) -> String {
+        let border = style.borderWidth
+        return " states=\(style.states.rawValue) fontSize=\(style.fontSize.bitPattern) zoom=\(style.zoomFactor.bitPattern)"
+            + " accent=\(description(style.accentColor)) text=\(description(style.textColor))"
+            + " border=\(border.top.bitPattern),\(border.right.bitPattern),\(border.bottom.bitPattern),\(border.left.bitPattern)"
+    }
     #endif
 
     @MainActor

@@ -80,6 +80,10 @@ private:
     void describeColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
     void describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
     void compareColorSpacesSwift(const WebCore::ColorSpace&, const WebCore::ColorSpace&, CompletionHandler<void(bool)>&&);
+    void describeControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
+    void describeSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
 #endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
