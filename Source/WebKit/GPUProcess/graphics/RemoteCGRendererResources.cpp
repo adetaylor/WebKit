@@ -40,7 +40,6 @@
 #include "SharedFont.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SharedVideoFrame.h"
-#include <WebCore/ControlFactory.h>
 #include <WebCore/FEImage.h>
 #include <WebCore/FilterResults.h>
 #include <WebCore/Gradient.h>
@@ -445,13 +444,6 @@ CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, Re
     return platformImage.leakRef();
 }
 
-ControlFactory& RemoteCGRendererResources::controlFactory() const
-{
-    if (!m_controlFactory)
-        m_controlFactory = ControlFactory::create();
-    return *m_controlFactory;
-}
-
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() const
 {
@@ -576,13 +568,6 @@ bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRende
     });
     draw(*cachedSVGFilter, results);
     return true;
-}
-
-void drawControlPart(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, const Ref<ControlPart>& part, const FloatRoundedRect& borderRect, float deviceScaleFactor, const ControlStyle& style)
-{
-    part->setOverrideControlFactory(&resources.controlFactory());
-    leaf.context().drawControlPart(part, borderRect, deviceScaleFactor, style);
-    part->setOverrideControlFactory(nullptr);
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)

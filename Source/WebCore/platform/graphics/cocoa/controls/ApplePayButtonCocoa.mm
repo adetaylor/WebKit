@@ -29,6 +29,7 @@
 #if ENABLE(APPLE_PAY)
 
 #import "ApplePayButtonPart.h"
+#import "CGRendererSwiftBridge.h"
 #import "FloatRoundedRect.h"
 #import "GraphicsContextCG.h"
 #import <wtf/TZoneMallocInlines.h>
@@ -93,6 +94,30 @@ NODELETE static PKPaymentButtonStyle toPKPaymentButtonStyle(ApplePayButtonStyle 
     }
 }
 
+} // namespace WebCore
+
+void CGRendererDrawApplePayButton(CGContextRef context, CGRect rect, CGFloat largestCornerRadius, uint8_t buttonType, uint8_t buttonStyle, CFStringRef locale)
+{
+    using namespace WebCore;
+    CGContextSaveGState(context);
+    CGContextSetShouldSmoothFonts(context, true);
+    CGContextScaleCTM(context, 1, -1);
+    // Currently requires the identity matrix <rdar://187966773>.
+    CGContextSetTextMatrix(context, CGAffineTransformIdentity);
+    PKDrawApplePayButtonWithCornerRadius(
+        context,
+        CGRectMake(rect.origin.x, -CGRectGetMaxY(rect), rect.size.width, rect.size.height),
+        1.0,
+        largestCornerRadius,
+        toPKPaymentButtonType(static_cast<ApplePayButtonType>(buttonType)),
+        toPKPaymentButtonStyle(static_cast<ApplePayButtonStyle>(buttonStyle)),
+        (__bridge NSString *)locale
+    );
+    CGContextRestoreGState(context);
+}
+
+namespace WebCore {
+
 void ApplePayButtonCocoa::draw(GraphicsContext& context, const FloatRoundedRect& borderRect, float, const ControlStyle&)
 {
     auto largestCornerRadius = std::max({
@@ -101,28 +126,8 @@ void ApplePayButtonCocoa::draw(GraphicsContext& context, const FloatRoundedRect&
         borderRect.radii().bottomLeft().maxDimension(),
         borderRect.radii().bottomRight().maxDimension()
     });
-
-    GraphicsContextStateSaver stateSaver(context);
-
-    context.setShouldSmoothFonts(true);
-    context.scale(FloatSize(1, -1));
-
-    auto logicalRect = borderRect.rect();
     Ref applePayButtonPart = owningApplePayButtonPart();
-
-    RetainPtr cgContext = context.platformContext();
-
-    // Currently requires the identity matrix <rdar://187966773>.
-    CGContextSetTextMatrix(cgContext.get(), CGAffineTransformIdentity);
-    PKDrawApplePayButtonWithCornerRadius(
-        cgContext.get(),
-        CGRectMake(logicalRect.x(), -logicalRect.maxY(), logicalRect.width(), logicalRect.height()),
-        1.0,
-        largestCornerRadius,
-        toPKPaymentButtonType(applePayButtonPart->buttonType()),
-        toPKPaymentButtonStyle(applePayButtonPart->buttonStyle()),
-        applePayButtonPart->locale().createNSString().get()
-    );
+    CGRendererDrawApplePayButton(context.platformContext(), borderRect.rect(), largestCornerRadius, static_cast<uint8_t>(applePayButtonPart->buttonType()), static_cast<uint8_t>(applePayButtonPart->buttonStyle()), (__bridge CFStringRef)applePayButtonPart->locale().createNSString().get());
 }
 
 } // namespace WebCore

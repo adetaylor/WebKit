@@ -56,11 +56,9 @@
 #import "ControlFactoryMac.h"
 #import "FloatRoundedRect.h"
 #import "GraphicsContext.h"
-#import "ImageBuffer.h"
 #import "LocalDefaultSystemAppearance.h"
 #import "MacControlPainter.h"
 #import "MeterPart.h"
-#import "NativeImage.h"
 #import "ProgressBarPart.h"
 #import "SliderTrackPart.h"
 #import "SwitchPart.h"
@@ -73,26 +71,6 @@
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(PlatformControlMac);
-
-// The contexts and image buffers of one PlatformControlMac::draw(), which MacControlState::layers points to.
-struct MacControlLayers {
-    MacControlPainter& painter;
-    float deviceScaleFactor;
-    Vector<GraphicsContext*, 4> contexts;
-    Vector<RefPtr<ImageBuffer>, 8> imageBuffers;
-
-    GraphicsContext& destination() const { return *contexts.first(); }
-    GraphicsContext& current() const { return *contexts.last(); }
-
-    static MacControlLayers& from(uintptr_t layers) { return *reinterpret_cast<MacControlLayers*>(layers); }
-
-    RefPtr<ImageBuffer> imageBuffer(uint8_t layer) const
-    {
-        if (!layer || layer > imageBuffers.size())
-            return nullptr;
-        return imageBuffers[layer - 1];
-    }
-};
 
 static bool drawsViewlessCells()
 {
@@ -157,6 +135,13 @@ MacControlState PlatformControlMac::state(const ControlStyle& style) const
     } else if (RefPtr switchPart = dynamicDowncast<SwitchPart>(part)) {
         state.switchIsOn = switchPart->isOn();
         state.switchProgress = switchPart->progress();
+    } else if (RefPtr sliderTrack = dynamicDowncast<SliderTrackPart>(part)) {
+        state.sliderThumbWidth = sliderTrack->thumbSize().width();
+        state.sliderThumbHeight = sliderTrack->thumbSize().height();
+        state.sliderTrackX = sliderTrack->trackBounds().x();
+        state.sliderTrackY = sliderTrack->trackBounds().y();
+        state.sliderTrackWidth = sliderTrack->trackBounds().width();
+        state.sliderTrackHeight = sliderTrack->trackBounds().height();
     }
     return state;
 }
@@ -184,9 +169,12 @@ FloatRect PlatformControlMac::rectForBounds(const FloatRect& bounds, const Contr
 void PlatformControlMac::draw(GraphicsContext& context, const FloatRoundedRect& borderRect, float deviceScaleFactor, const ControlStyle& style)
 {
     auto state = this->state(style);
-    if (state.appearance == StyleAppearance::SliderHorizontal || state.appearance == StyleAppearance::SliderVertical) {
+    bool isSlider = state.appearance == StyleAppearance::SliderHorizontal || state.appearance == StyleAppearance::SliderVertical;
+    Vector<double> tickRatios;
+    if (isSlider) {
         auto part = m_owningPart.get();
-        downcast<SliderTrackPart>(part).drawTicks(context, borderRect.rect(), style);
+        tickRatios = downcast<SliderTrackPart>(part).tickRatios();
+        state.tickRatios = reinterpret_cast<uintptr_t>(&tickRatios);
     }
     if (state.appearance == StyleAppearance::ProgressBar)
         state.progressAnimationTime = MonotonicTime::now().secondsSinceEpoch().seconds();
@@ -198,10 +186,10 @@ void PlatformControlMac::draw(GraphicsContext& context, const FloatRoundedRect& 
         accentColor = cocoaColor(style.accentColor);
 
     RetainPtr<CGColorRef> textColor;
-    if (state.appearance == StyleAppearance::MenulistButton) {
+    if (state.appearance == StyleAppearance::MenulistButton || isSlider)
         textColor = cachedCGColorInDestinationStandardRange(style.textColor, context.colorSpace());
+    if (state.appearance == StyleAppearance::MenulistButton)
         state.fillsEvenOdd = context.fillRule() == WindRule::EvenOdd;
-    }
 
     // The color of a cell's focus ring, in the appearance the cell draws in.
     RetainPtr<CGColorRef> focusRingColor;
@@ -210,10 +198,7 @@ void PlatformControlMac::draw(GraphicsContext& context, const FloatRoundedRect& 
         focusRingColor = cachedCGColor(colorFromCocoaColor([NSColor keyboardFocusIndicatorColor]).opaqueColor());
     }
 
-    auto& painter = m_controlFactory->painter();
-    MacControlLayers layers { painter, deviceScaleFactor, { &context }, { } };
-    state.layers = reinterpret_cast<uintptr_t>(&layers);
-    painter.draw(context.platformContext(), borderRect.rect(), deviceScaleFactor, state, (__bridge CFTypeRef)accentColor.get(), textColor.get(), focusRingColor.get());
+    m_controlFactory->painter().draw(context.platformContext(), borderRect.rect(), deviceScaleFactor, state, (__bridge CFTypeRef)accentColor.get(), textColor.get(), focusRingColor.get());
 }
 
 MacControlPainter::~MacControlPainter()
@@ -222,68 +207,21 @@ MacControlPainter::~MacControlPainter()
         destroySwiftState(m_swiftState);
 }
 
-uint8_t MacControlPainter::makeLayer(uintptr_t layersPointer, float width, float height, float scale)
+size_t MacControlPainter::tickRatioCount(uintptr_t tickRatios)
 {
-    auto& layers = MacControlLayers::from(layersPointer);
-    RefPtr imageBuffer = layers.destination().createImageBuffer(FloatSize { width, height }, scale);
-    if (!imageBuffer || layers.imageBuffers.size() >= std::numeric_limits<uint8_t>::max())
-        return 0;
-
-    auto& context = imageBuffer->context();
-    layers.contexts.append(&context);
-    MacControlState state;
-    state.fillsLayer = true;
-    state.layers = layersPointer;
-    layers.painter.draw(context.platformContext(), { }, layers.deviceScaleFactor, state, nullptr, nullptr, nullptr);
-    layers.contexts.removeLast();
-
-    layers.imageBuffers.append(WTF::move(imageBuffer));
-    return layers.imageBuffers.size();
+    return reinterpret_cast<const Vector<double>*>(tickRatios)->size();
 }
 
-void MacControlPainter::drawLayer(uintptr_t layersPointer, uint8_t layer, MacControlLayerDrawing drawing)
+double MacControlPainter::tickRatio(uintptr_t tickRatios, size_t index)
 {
-    auto& layers = MacControlLayers::from(layersPointer);
-    RefPtr imageBuffer = layers.imageBuffer(layer);
-    if (!imageBuffer)
-        return;
-    layers.imageBuffers[layer - 1] = nullptr;
-
-    auto& context = layers.current();
-    if (drawing.setsAlpha)
-        context.setAlpha(drawing.alpha);
-
-    auto destination = FloatPoint { drawing.x, drawing.y };
-    if (drawing.isPlusLighter)
-        context.drawConsumingImageBuffer(WTF::move(imageBuffer), destination, RasterDrawingOptions { CompositeOperator::PlusLighter });
-    else if (drawing.isRotatedHalfTurn)
-        context.drawConsumingImageBuffer(WTF::move(imageBuffer), destination, RasterDrawingOptions { ImageOrientation::Orientation::OriginBottomRight });
-    else if (drawing.setsAlpha)
-        context.drawConsumingImageBuffer(WTF::move(imageBuffer), destination, RasterDrawingOptions { CompositeOperator::SourceOver });
-    else
-        context.drawConsumingImageBuffer(WTF::move(imageBuffer), destination);
+    return reinterpret_cast<const Vector<double>*>(tickRatios)->at(index);
 }
 
-void MacControlPainter::clipToLayer(uintptr_t layersPointer, uint8_t layer, CGRect rect)
+CGRendererColorData MacControlPainter::keyboardFocusIndicatorColor()
 {
-    auto& layers = MacControlLayers::from(layersPointer);
-    RefPtr imageBuffer = layers.imageBuffer(layer);
-    if (!imageBuffer)
-        return;
-    // The layer is not drawn to after it is made.
-    if (RefPtr image = imageBuffer->createNativeImageReference())
-        layers.current().clipToNativeImage(*image, rect);
-}
-
-void MacControlPainter::clipToRoundedRect(uintptr_t layersPointer, CGRect rect, float radius)
-{
-    MacControlLayers::from(layersPointer).current().clipRoundedRect(FloatRoundedRect(rect, CornerRadii(radius)));
-}
-
-void MacControlPainter::drawFocusRing(uintptr_t layersPointer, CGRect rect, float zoomFactor)
-{
-    auto color = colorFromCocoaColor([NSColor keyboardFocusIndicatorColor]).opaqueColor();
-    MacControlLayers::from(layersPointer).current().drawFocusRing(Vector { FloatRect { rect } }, 0, color, zoomFactor);
+    CGRendererColorValue value;
+    CGRendererColorValueOf(colorFromCocoaColor([NSColor keyboardFocusIndicatorColor]).opaqueColor(), value);
+    return value.data;
 }
 
 } // namespace WebCore

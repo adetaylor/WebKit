@@ -35,8 +35,6 @@
 #include <WebCore/AffineTransform.h>
 #include <WebCore/Pattern.h>
 #include <WebCore/Color.h>
-#include <WebCore/ControlPart.h>
-#include <WebCore/ControlStyle.h>
 #include <WebCore/Filter.h>
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/FrameIdentifier.h>
@@ -53,7 +51,6 @@
 
 namespace WebCore {
 class CGRendererCore;
-class ControlFactory;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
@@ -179,8 +176,7 @@ public:
     Ref<RemoteCGRendererRecordedResources> copyRecordedResources() const __attribute__((availability(swift, unavailable))) { return m_recordedResources->copy(); }
 
     RemoteRenderingBackend* backend() const __attribute__((availability(swift, unavailable))) { return m_backend.get(); }
-    // The control factory of the receiver's control parts, and the reader of its video frames, made when first used.
-    WebCore::ControlFactory& controlFactory() const __attribute__((availability(swift, unavailable)));
+    // The reader of the receiver's video frames, made when first used.
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     SharedVideoFrameReader& sharedVideoFrameReader() const __attribute__((availability(swift, unavailable)));
 #endif
@@ -202,7 +198,6 @@ private:
     mutable Ref<RemoteCGRendererRecordedResources> m_recordedResources;
     mutable Vector<Ref<RemoteCGRendererRecordedResources>, 2> m_replayedResources;
     mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
-    mutable RefPtr<WebCore::ControlFactory> m_controlFactory;
     bool m_isRerecording { false };
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     mutable std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
@@ -263,7 +258,6 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
 // The draws of messages that C++ makes, into the receiver's leaf context (CGRendererLeafContext), as RemoteGraphicsContext's
 // handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.
 bool drawFilteredImageBuffer(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&);
-void drawControlPart(const RemoteCGRendererResources&, CGRendererLeafContext&, const Ref<WebCore::ControlPart>&, const WebCore::FloatRoundedRect& borderRect, float deviceScaleFactor, const WebCore::ControlStyle&);
 // Whether the filter's sources are there to be found, before the receiver makes a leaf context to draw it in.
 bool hasFilterSources(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&);
 
