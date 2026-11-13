@@ -915,7 +915,7 @@ set(WebKit_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY TRUE)
 # WebBackForwardList.swift names directly (the rest of the WebCore:: types it uses
 # are reachable transitively via WebKit_Internal headers) and put it on the
 # importer's search path below.
-if (ENABLE_BACK_FORWARD_LIST_SWIFT AND NOT USE_FRAMEWORK_BUNDLES)
+if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_Private_SWIFT_MODULEMAP_DIR "${CMAKE_BINARY_DIR}/WebKit/SwiftModules/WebCorePrivate")
     file(MAKE_DIRECTORY "${WebCore_Private_SWIFT_MODULEMAP_DIR}")
     file(CONFIGURE OUTPUT "${WebCore_Private_SWIFT_MODULEMAP_DIR}/module.modulemap" CONTENT
@@ -960,12 +960,10 @@ if (NOT USE_FRAMEWORK_BUNDLES)
         ${JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS_DIR}
         ${WebKit_PRIVATE_INCLUDE_DIRECTORIES}
     )
-    if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-        list(APPEND WebKit_SWIFT_CLANG_INCLUDE_DIRS ${WebCore_Private_SWIFT_MODULEMAP_DIR})
-    endif ()
+    list(APPEND WebKit_SWIFT_CLANG_INCLUDE_DIRS ${WebCore_Private_SWIFT_MODULEMAP_DIR})
 endif ()
 
-if (NOT APPLE AND SWIFT_REQUIRED)
+if (NOT APPLE)
     # Export-macro stubs, NODELETE=, WK_SUPPORTS_SWIFT_OBJCXX_INTEROP and the
     # full ENABLE/HAVE/USE config-var set now come from
     # _WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS in WebKitMacros.cmake. Only
@@ -1084,11 +1082,11 @@ if (SWIFT_REQUIRED)
             UIProcess/API/ios/WKWebViewIOS.mm
             UIProcess/API/mac/WKWebViewMac.mm
 
-            UIProcess/PhoneNumberPossession/Cocoa/WebPhoneNumberPossessionCoordinatorProxyCocoa.mm
+        UIProcess/ios/ViewGestureControllerIOS.mm
+        UIProcess/mac/ViewGestureControllerMac.mm
+        UIProcess/mac/WebViewImpl.mm
 
-            UIProcess/ios/ViewGestureControllerIOS.mm
-            UIProcess/mac/ViewGestureControllerMac.mm
-            UIProcess/mac/WebViewImpl.mm
+        UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
 
             UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
             WebProcess/GPU/webrtc/SharedVideoFrame.cpp
@@ -1099,6 +1097,10 @@ if (SWIFT_REQUIRED)
         list(APPEND WebKit_UNIFIED_SOURCE_EXCLUDES "(^|[/\\\\])${_fn}( |$)")
     endforeach ()
 endif ()
+foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
+    cmake_path(GET _f FILENAME _fn)
+    list(APPEND WebKit_UNIFIED_SOURCE_EXCLUDES "(^|[/\\\\])${_fn}( |$)")
+endforeach ()
 
 WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebKit WebKit
     "${WebKit_SWIFT_INTEROP_MODULE_PATH}"
@@ -1701,16 +1703,14 @@ list(APPEND WebKit_SOURCES
 )
 
 # These compile to nothing unless ENABLE_SWIFT_IPC_RECEIVERS is set.
-if (SWIFT_REQUIRED)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WEBKIT_DIR}/Platform/IPC/MessageCheck.swift
-        ${WEBKIT_DIR}/Platform/IPC/SwiftCoding.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
-    )
-endif ()
+set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
+    PROPERTIES GENERATED TRUE)
+list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/Platform/IPC/MessageCheck.swift
+    ${WEBKIT_DIR}/Platform/IPC/SwiftCoding.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/GeneratedSerializers.swift
+)
 
 if (ENABLE_IPC_TESTING_SWIFT)
     list(APPEND WebKit_SOURCES
