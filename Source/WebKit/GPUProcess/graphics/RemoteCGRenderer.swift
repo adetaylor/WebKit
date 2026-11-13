@@ -141,25 +141,27 @@ final class RemoteCGRenderer {
     // relative to the context's when the replay starts.
     @_expose(!Cxx)
     func replay(_ recording: RemoteCGRendererRecording, state: inout CGRendererCore) {
-        guard recording.replayNeedsContext else {
+        // Only a recording whose messages look up resources needs its resources to be the ones looked up.
+        let needsResources = recording.replayNeedsResources
+        if needsResources {
             resources.beginReplay(recording.resources)
-            replayLevel += 1
-            RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
-            replayLevel -= 1
-            resources.endReplay()
-            return
         }
-        replayedRecordings.append(recording)
-        replayBaseTransforms.append(state.receiverCTM())
-        replayDepth += 1
         replayLevel += 1
-        resources.beginReplay(recording.resources)
-        RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
-        resources.endReplay()
+        if recording.replayNeedsContext {
+            replayedRecordings.append(recording)
+            replayBaseTransforms.append(state.receiverCTM())
+            replayDepth += 1
+            RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
+            replayDepth -= 1
+            replayBaseTransforms.removeLast()
+            replayedRecordings.removeLast()
+        } else {
+            RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
+        }
         replayLevel -= 1
-        replayDepth -= 1
-        replayBaseTransforms.removeLast()
-        replayedRecordings.removeLast()
+        if needsResources {
+            resources.endReplay()
+        }
     }
 
     // The image buffer that a draw names: one of the backend's, or, in a replay, one that the recording kept.
@@ -921,7 +923,7 @@ final class RemoteCGRenderer {
     func drawDisplayList(state: inout CGRendererCore, identifier: WebKit.RemoteDisplayListIdentifier) throws(InvalidMessage) {
         let recording =
             if replayDepth > 0, let replayed = replayedRecordings.last {
-                replayed.displayLists[WebKit.displayListKey(identifier)]
+                replayed.displayLists[RemoteIdentifierKey(value: WebKit.displayListKey(identifier))]
             } else {
                 displayLists?.recording(key: WebKit.displayListKey(identifier))
             }
