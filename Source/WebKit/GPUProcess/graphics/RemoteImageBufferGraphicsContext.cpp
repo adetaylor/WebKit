@@ -239,7 +239,7 @@ bool RemoteImageBufferGraphicsContext::copyNativeImage(uint64_t imageIdentifier)
         image = RemoteRenderingBackend::createPlaceholderNativeImage();
     if (!image)
         return false;
-    return m_renderingBackend->remoteResourceCache().cacheNativeImage(RenderingResourceIdentifier { imageIdentifier }, image.releaseNonNull());
+    return m_renderingBackend->addCachedNativeImage(image.releaseNonNull(), RenderingResourceIdentifier { imageIdentifier });
 }
 
 void RemoteImageBufferGraphicsContext::encodeBackendHandle(IPC::SwiftReplyEncoder& encoder)

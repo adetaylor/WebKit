@@ -99,6 +99,7 @@ enum class SwapBuffersDisplayRequirement : uint8_t;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 using RefPtrImageBuffer = RefPtr<WebCore::ImageBuffer>;
+using RefPtrNativeImage = RefPtr<WebCore::NativeImage>;
 #endif
 
 class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderingBackend : public CanMakeWeakPtr<RemoteRenderingBackend>, public IPC::StreamServerConnection::Client {
@@ -141,6 +142,10 @@ public:
     // With the CG renderer in Swift, implemented in Swift (RemoteRenderingBackend.swift), on its registry of image buffers.
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     RefPtrImageBuffer imageBuffer(WebCore::RenderingResourceIdentifier);
+    // And on its cache of native images, which Swift draws: for the C++ that looks one up.
+    RefPtrNativeImage cachedNativeImage(WebCore::RenderingResourceIdentifier);
+    // Caches the image for Swift's draws, with its platform image, made once: false if one already has the identifier.
+    bool addCachedNativeImage(Ref<WebCore::NativeImage>&&, WebCore::RenderingResourceIdentifier);
 #else
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier);
 #endif
@@ -237,6 +242,11 @@ private:
     bool swiftSinkDisplayListRecorderIntoDisplayList(RemoteDisplayListRecorderIdentifier, RemoteDisplayListIdentifier);
     bool swiftReleaseDisplayList(RemoteDisplayListIdentifier);
     void swiftReleaseDisplayLists();
+    // Puts a native image, with its platform image (null for one this process can't read), its size and its headroom, in
+    // the cache, replacing the one it has under the identifier where replaces is true: false if it already has one, or if it
+    // has none to replace.
+    bool swiftCacheNativeImage(WebCore::NativeImage&, CGImageRef WTF_NULLABLE, float width, float height, float headroom, WebCore::RenderingResourceIdentifier, bool replaces);
+    bool swiftReleaseNativeImage(WebCore::RenderingResourceIdentifier);
 
     // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained
     // RemoteRenderingBackendState that nothing else releases.
@@ -272,10 +282,10 @@ private:
 
 bool isSmallLayerBacking(const WebCore::ImageBufferParameters&);
 
-#if USE(CG)
+#if USE(CG) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 // The image of the native image the backend has cached under the identifier, for Swift, which takes what a C++ method
 // returns as unretained whatever its annotation: found is false if it has none, and the image is null if the native image
-// has no platform image.
+// has no platform image. With the CG renderer in Swift, Swift caches them.
 CGImageRef WTF_NULLABLE copyCachedNativeImage(RemoteRenderingBackend&, uint64_t renderingResourceIdentifier, bool& found) CF_RETURNS_RETAINED;
 #endif
 

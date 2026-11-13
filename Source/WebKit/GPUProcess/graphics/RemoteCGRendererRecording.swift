@@ -49,20 +49,38 @@ struct RemoteIdentifierKey: Hashable {
     }
 }
 
+// The native images and image buffers that a recording's draws name, by identifier, as the recording found them.
+final class RemoteCGRendererRecordedImages {
+    fileprivate(set) var nativeImages: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]
+    fileprivate(set) var imageBuffers: [RemoteIdentifierKey: WebCore.ImageBuffer] = [:]
+
+    fileprivate init() {
+    }
+
+    fileprivate init(copying other: RemoteCGRendererRecordedImages) {
+        nativeImages = other.nativeImages
+        imageBuffers = other.imageBuffers
+    }
+}
+
 // A recording of RemoteCGRenderer's messages, which a display list or a snapshot's frame is: the messages, the resources they
-// name, kept from when they were recorded, and the display lists they draw, by key (WebKit.displayListKey()).
+// name, kept from when they were recorded, and the display lists they draw, by key (WebKit.displayListKey()). The native
+// images and image buffers that its draws name are kept in Swift, the other resources in C++.
 @_expose(Cxx)
 final class RemoteCGRendererRecording {
     @_expose(!Cxx)
     let messages: [RemoteCGRenderer.RecordedMessage]
     @_expose(!Cxx)
     let resources: WebKit.RemoteCGRendererRecordedResources
+    // Nil for a recording whose draws name none, which most don't.
+    @_expose(!Cxx)
+    let images: RemoteCGRendererRecordedImages?
     @_expose(!Cxx)
     let displayLists: [RemoteIdentifierKey: RemoteCGRendererRecording]
     // Whether a replay looks up the recording or the transform it started at: only SetCTM and DrawDisplayList do.
     @_expose(!Cxx)
     let replayNeedsContext: Bool
-    // Whether a replay looks up any of the resources: a run of glyphs keeps its font itself.
+    // Whether a replay looks up any of the resources that C++ keeps: a run of glyphs keeps its font itself.
     @_expose(!Cxx)
     let replayNeedsResources: Bool
 
@@ -70,12 +88,14 @@ final class RemoteCGRendererRecording {
     fileprivate init(
         messages: [RemoteCGRenderer.RecordedMessage],
         resources: WebKit.RemoteCGRendererRecordedResources,
+        images: RemoteCGRendererRecordedImages?,
         displayLists: [RemoteIdentifierKey: RemoteCGRendererRecording],
         needsContext: Bool,
         namesResources: Bool
     ) {
         self.messages = messages
         self.resources = resources
+        self.images = images
         self.displayLists = displayLists
         self.replayNeedsContext = needsContext
         self.replayNeedsResources = namesResources
@@ -89,9 +109,12 @@ final class RemoteCGRendererRecording {
     }
 
     // The messages as the stream sends them, for the print process: none if one draws what DisplayListData can't send there,
-    // such as an ARKit badge.
+    // such as an image or an ARKit badge.
     @_expose(!Cxx)
     func encodedMessages() -> WebKit.RemoteCGRendererRecordedMessageEncoder? {
+        if images != nil {
+            return nil
+        }
         #if USE_SYSTEM_PREVIEW
         for message in messages {
             if case .drawBadgeSystemImage = message {
@@ -113,6 +136,7 @@ final class RemoteCGRendererRecorder {
     private let resources: WebKit.RemoteCGRendererResources
     private let displayLists: RemoteCGRendererDisplayLists
     private var messages: [RemoteCGRenderer.RecordedMessage] = []
+    private var images: RemoteCGRendererRecordedImages?
     private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
     private var needsContext = false
     private var namesResources = false
@@ -145,11 +169,13 @@ final class RemoteCGRendererRecorder {
         let recording = RemoteCGRendererRecording(
             messages: messages,
             resources: WebKit.takeRecordedResources(resources),
+            images: images,
             displayLists: recordedDisplayLists,
             needsContext: needsContext,
             namesResources: namesResources
         )
         messages = []
+        images = nil
         if !recordedDisplayLists.isEmpty {
             recordedDisplayLists = [:]
         }
@@ -164,6 +190,7 @@ final class RemoteCGRendererRecorder {
         RemoteCGRendererRecording(
             messages: messages,
             resources: WebKit.copyRecordedResources(resources),
+            images: images.map { RemoteCGRendererRecordedImages(copying: $0) },
             displayLists: recordedDisplayLists,
             needsContext: needsContext,
             namesResources: namesResources
@@ -179,15 +206,16 @@ final class RemoteCGRendererRecorder {
         case .drawNativeImage(let identifier, _, _, _),
             .drawPatternNativeImage(let identifier, _, _, _, _, _, _),
             .setFillPatternNativeImage(let identifier, _),
-            .setStrokePatternNativeImage(let identifier, _):
-            try messageCheck { resources.recordNativeImage(identifier) }
+            .setStrokePatternNativeImage(let identifier, _),
+            .clipToNativeImage(let identifier, _):
+            namesResource = false
+            try recordNativeImage(identifier)
         case .drawImageBuffer(let identifier, _, _, _),
             .drawPatternImageBuffer(let identifier, _, _, _, _, _, _),
             .setFillPatternImageBuffer(let identifier, _),
             .setStrokePatternImageBuffer(let identifier, _):
-            try messageCheck { resources.recordImageBuffer(identifier) }
-        case .clipToNativeImage(let identifier, _):
-            try messageCheck { resources.recordNativeImage(identifier) }
+            namesResource = false
+            try recordImageBuffer(identifier)
         case .setFillCachedGradient(let identifier, _),
             .setStrokeCachedGradient(let identifier, _),
             .fillRectWithCachedGradient(_, let identifier),
@@ -202,7 +230,10 @@ final class RemoteCGRendererRecorder {
             try messageCheck { resources.recordFilter(sourceImageIdentifier, filter) }
         #if USE_SYSTEM_PREVIEW
         case .drawBadgeSystemImage(let imageIdentifier, _):
-            try messageCheck { resources.recordBadgeImage(imageIdentifier) }
+            namesResource = false
+            if let identifier = imageIdentifier.value {
+                try recordNativeImage(identifier)
+            }
         #endif
         case .setCTM:
             namesResource = false
@@ -224,6 +255,39 @@ final class RemoteCGRendererRecorder {
         }
         namesResources = namesResources || namesResource
         messages.append(message)
+    }
+
+    // The backend's native image or image buffer that a message names, which the recording keeps: a missing one is an invalid
+    // message.
+    private func recordNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) throws(InvalidMessage) {
+        let key = identifier.toUInt64()
+        let image = displayLists.backendResources?.nativeImage(key: key)
+        try messageCheck { image != nil }
+        // As the C++ keeps a recording's other resources, the first one an identifier names.
+        let images = recordedImages()
+        if let image, images.nativeImages.index(forKey: RemoteIdentifierKey(value: key)) == nil {
+            images.nativeImages[RemoteIdentifierKey(value: key)] = image
+        }
+    }
+
+    private func recordImageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) throws(InvalidMessage) {
+        let key = identifier.toUInt64()
+        let imageBuffer = displayLists.backendResources?.imageBuffer(key: key)
+        try messageCheck { imageBuffer != nil }
+        let images = recordedImages()
+        if let imageBuffer, images.imageBuffers.index(forKey: RemoteIdentifierKey(value: key)) == nil {
+            images.imageBuffers[RemoteIdentifierKey(value: key)] = imageBuffer
+        }
+    }
+
+    // The recording's images, made when it first names one. A recording that currentRecording() made has its own copy.
+    private func recordedImages() -> RemoteCGRendererRecordedImages {
+        if let images {
+            return images
+        }
+        let images = RemoteCGRendererRecordedImages()
+        self.images = images
+        return images
     }
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
@@ -260,14 +324,19 @@ final class RemoteCGRendererDisplayLists {
     // Changed only by changes that release what they replace or remove after they end, so that no access to it can overlap
     // another, and the lookups need no dynamic exclusivity check.
     private var recordings: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
+    // The backend's resources, which the recorders that record into these display lists look up: none for the print
+    // process's, whose recordings name no native images or image buffers.
+    @_expose(!Cxx)
+    let backendResources: RemoteRenderingBackendResources?
 
     @_expose(!Cxx)
-    private init() {
+    init(backendResources: RemoteRenderingBackendResources?) {
+        self.backendResources = backendResources
     }
 
     @used
     static func create() -> RemoteCGRendererDisplayLists {
-        RemoteCGRendererDisplayLists()
+        RemoteCGRendererDisplayLists(backendResources: nil)
     }
 
     // The display lists of a rendering backend (RemoteRenderingBackend.swift), for its C++ that records into them or draws

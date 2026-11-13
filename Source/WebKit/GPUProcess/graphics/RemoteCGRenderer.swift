@@ -209,8 +209,9 @@ final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
     private let resources: WebKit.RemoteCGRendererResources
-    // The rendering backend's Swift state, where an image buffer's receiver looks up the image buffers its draws name.
-    private let backendState: RemoteRenderingBackendState?
+    // The rendering backend's Swift resources, where an image buffer's receiver looks up the image buffers and native images
+    // its draws name.
+    private let backendResources: RemoteRenderingBackendResources?
     private let displayLists: RemoteCGRendererDisplayLists?
     private let snapshotFrames: RemoteCGRendererSnapshotFrames?
     // The recordings being replayed, innermost last, and the transforms that their SetCTMs are relative to.
@@ -220,6 +221,9 @@ final class RemoteCGRenderer {
     private var replayDepth = 0
     // How many recordings are being replayed, including those that replayedRecordings leaves out.
     private var replayLevel = 0
+    // The images of the recordings being replayed that keep native images or image buffers, innermost last, where a replay
+    // looks them up.
+    private var imageReplays: [RemoteCGRendererRecordedImages] = []
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
     private var liveGlyphs: ContiguousArray<CGGlyph> = []
     private var liveAdvances: ContiguousArray<CGSize> = []
@@ -236,7 +240,7 @@ final class RemoteCGRenderer {
         snapshotFrames: RemoteCGRendererSnapshotFrames?
     ) {
         self.resources = resources
-        self.backendState = backendState
+        self.backendResources = backendState?.resources
         self.displayLists = displayLists
         self.snapshotFrames = snapshotFrames
     }
@@ -270,6 +274,10 @@ final class RemoteCGRenderer {
             resources.beginReplay(recording.resources)
         }
         replayLevel += 1
+        let images = recording.images
+        if let images {
+            imageReplays.append(images)
+        }
         if recording.replayNeedsContext {
             replayedRecordings.append(recording)
             replayBaseTransforms.append(state.receiverCTM())
@@ -281,18 +289,46 @@ final class RemoteCGRenderer {
         } else {
             RemoteCGRenderer.replay(recording.messages, to: self, state: &state)
         }
+        if images != nil {
+            imageReplays.removeLast()
+        }
         replayLevel -= 1
         if needsResources {
             resources.endReplay()
         }
     }
 
-    // The image buffer that a draw names: one of the backend's, or, in a replay, one that the recording kept.
+    // The image buffer or native image that a draw names: one of the backend's, or, in a replay, one that the recording kept.
     private func imageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) -> WebCore.ImageBuffer? {
-        if replayLevel == 0, let backendState {
-            return backendState.imageBuffer(key: identifier.toUInt64())
+        if replayLevel == 0 {
+            return backendResources?.imageBuffer(key: identifier.toUInt64())
         }
-        return resources.imageBuffer(identifier).get()
+        return imageReplays.last?.imageBuffers[RemoteIdentifierKey(value: identifier.toUInt64())]
+    }
+
+    private func nativeImage(_ identifier: WebCore.RenderingResourceIdentifier) -> RemoteCGRendererImage? {
+        if replayLevel == 0 {
+            return backendResources?.nativeImage(key: identifier.toUInt64())
+        }
+        return imageReplays.last?.nativeImages[RemoteIdentifierKey(value: identifier.toUInt64())]
+    }
+
+    // GraphicsContextCG::drawNativeImage()'s facts of the image, with the color matrix that inverts it where the options do.
+    @inline(__always)
+    private func facts(_ image: RemoteCGRendererImage, _ sourceRect: WebCore.FloatRect, _ options: WebCore.RasterDrawingOptions) -> CGRendererImageFacts {
+        var facts = CGRendererImageFacts()
+        facts.width = image.width
+        facts.height = image.height
+        facts.headroom = image.headroom
+        facts.resolutionScale = 1
+        facts.found = true
+        #if ENABLE_AX_CUSTOM_COLOR_MODE
+        let invertContent = options.invertContent()
+        if invertContent == .Yes || invertContent == .Forced {
+            WebKit.setInvertColorMatrix(image.nativeImage, sourceRect, options, &facts)
+        }
+        #endif
+        return facts
     }
 
     func save(state: inout CGRendererCore) {
@@ -558,13 +594,12 @@ final class RemoteCGRenderer {
         srcRect: WebCore.FloatRect,
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
-        var facts = CGRendererImageFacts()
-        let image = WebKit.copyNativeImage(resources, imageIdentifier, srcRect, options, &facts)
-        try messageCheck { facts.found }
-        guard let image else {
+        let cached = nativeImage(imageIdentifier)
+        try messageCheck { cached != nil }
+        guard let cached, let image = cached.image else {
             return
         }
-        state.receiveDrawNativeImage(image, facts, cgRect(destRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
+        state.receiveDrawNativeImage(image, facts(cached, srcRect, options), cgRect(destRect), cgRect(srcRect), CGRendererImageOptionsFor(options))
     }
 
     // RemoteImageBufferGraphicsContext::drawImageBuffer(): an accelerated image buffer draws into itself from a copy of itself.
@@ -597,10 +632,12 @@ final class RemoteCGRenderer {
         spacing: WebCore.FloatSize,
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
-        var facts = CGRendererImageFacts()
-        let image = WebKit.copyNativeImage(resources, imageIdentifier, tileRect, options, &facts)
-        try messageCheck { facts.found }
-        drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
+        let cached = nativeImage(imageIdentifier)
+        try messageCheck { cached != nil }
+        guard let cached, let image = cached.image else {
+            return
+        }
+        drawPattern(&state, image, facts(cached, tileRect, options), destRect, tileRect, transform, phase, spacing, options)
     }
 
     // RemoteGraphicsContext's handler, which draws an image buffer's pattern into the buffer itself.
@@ -727,7 +764,8 @@ final class RemoteCGRenderer {
         state.receiveApplyDeviceScaleFactor(scaleFactor)
     }
 
-    // RemoteGraphicsContext's clip handlers. ClipToNativeImage of an image that isn't cached is an invalid message.
+    // RemoteGraphicsContext's clip handlers. ClipToNativeImage of an image that isn't cached is an invalid message, and of an
+    // image this process can't read clips to the destination only, as GraphicsContextCG::clipToNativeImage() does.
 
     func clipRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect) {
         state.receiveClipToRoundedRect(rect)
@@ -738,9 +776,10 @@ final class RemoteCGRenderer {
     }
 
     func clipToNativeImage(state: inout CGRendererCore, imageIdentifier: WebCore.RenderingResourceIdentifier, destinationRect: WebCore.FloatRect) throws(InvalidMessage) {
-        let image = WebKit.copyNativeImageForClip(resources, imageIdentifier)
-        try messageCheck { image != nil }
-        guard let image else {
+        let cached = nativeImage(imageIdentifier)
+        try messageCheck { cached != nil }
+        guard let image = cached?.image else {
+            state.receiveClip(cgRect(destinationRect))
             return
         }
         state.receiveClipToNativeImage(image, cgRect(destinationRect))
@@ -825,17 +864,21 @@ final class RemoteCGRenderer {
     }
 
     func setFillPatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.nativeImagePatternBrush(resources, nativeImageIdentifier, pattern, &found)
-        try messageCheck { found }
-        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.pattern)
+        let tileImage = nativeImage(nativeImageIdentifier)
+        try messageCheck { tileImage != nil }
+        guard let tileImage else {
+            return
+        }
+        state.receiveSetFillSource(WebKit.nativeImagePatternBrush(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
     func setStrokePatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.nativeImagePatternBrush(resources, nativeImageIdentifier, pattern, &found)
-        try messageCheck { found }
-        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)
+        let tileImage = nativeImage(nativeImageIdentifier)
+        try messageCheck { tileImage != nil }
+        guard let tileImage else {
+            return
+        }
+        state.receiveSetStrokeSource(WebKit.nativeImagePatternBrush(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
     func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
@@ -1010,8 +1053,9 @@ final class RemoteCGRenderer {
     ) throws(InvalidMessage) {
         var image: CGImage? = nil
         if let identifier = imageIdentifier.value {
-            image = WebKit.copyNativeImageForClip(resources, identifier)
-            try messageCheck { image != nil }
+            let cached = nativeImage(identifier)
+            try messageCheck { cached != nil }
+            image = cached?.image
         }
         state.receiveDrawARKitBadge(image, cgRect(destinationRect))
     }
