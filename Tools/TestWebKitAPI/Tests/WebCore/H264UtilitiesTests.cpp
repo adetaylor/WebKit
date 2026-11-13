@@ -25,7 +25,9 @@
 
 #include "config.h"
 
+#include <WebCore/AnnexBUtilities.h>
 #include <WebCore/H264Utilities.h>
+#include <array>
 #include <utility>
 #include <wtf/Vector.h>
 
@@ -296,6 +298,99 @@ TEST(H264Utilities, FindAVCCMaxNumReorderFramesRejectsTruncatedSps)
     avcc[6] = 0xff;
     avcc[7] = 0xff;
     EXPECT_FALSE(findAVCCMaxNumReorderFrames(avcc.span()).has_value());
+}
+
+static constexpr uint8_t emptyInputStorage[1] { };
+
+// Null, empty-Vector and non-null zero-length spans.
+static std::array<std::span<const uint8_t>, 3> emptyInputs(const Vector<uint8_t>& emptyVector)
+{
+    return { std::span<const uint8_t> { }, emptyVector.span(), std::span { emptyInputStorage }.first(0) };
+}
+
+TEST(H264Utilities, EmptyInput)
+{
+    Vector<uint8_t> emptyVector;
+    for (auto input : emptyInputs(emptyVector)) {
+        EXPECT_FALSE(findAVCCMaxNumReorderFrames(input).has_value());
+        EXPECT_FALSE(H264BitstreamParser::parseSpsMaxNumReorderFrames(input).has_value());
+        EXPECT_FALSE(findH264AnnexBMaxNumReorderFrames(input, { }).has_value());
+
+        H264BitstreamParser parser;
+        parser.parseBitstream(input);
+        EXPECT_FALSE(parser.lastSliceQP().has_value());
+    }
+
+    constexpr uint8_t spsHeaderOnly[] = { 0x67 };
+    EXPECT_FALSE(H264BitstreamParser::parseSpsMaxNumReorderFrames(std::span { spsHeaderOnly }).has_value());
+}
+
+TEST(H264BitstreamParser, KeepsQpAcrossParameterSetsAndEmptyInput)
+{
+    H264BitstreamParser parser;
+    parser.parseBitstream(std::span { kH264BitstreamChunk });
+    parser.parseBitstream({ });
+    parser.parseBitstream(std::span { kH264SpsPps });
+    auto qp = parser.lastSliceQP();
+    ASSERT_TRUE(qp.has_value());
+    EXPECT_EQ(*qp, 35);
+}
+
+TEST(H264BitstreamParser, ReportsNoQpAfterSliceWithUnsupportedNaluType)
+{
+    H264BitstreamParser parser;
+    parser.parseBitstream(std::span { kH264BitstreamChunk });
+    ASSERT_TRUE(parser.lastSliceQP().has_value());
+
+    // kH264BitstreamChunk with its IDR slice turned into a coded slice extension (nal_unit_type 20).
+    Vector<uint8_t> chunk { std::span { kH264BitstreamChunk } };
+    ASSERT_EQ(chunk[29], 0x65);
+    chunk[29] = 0x74;
+    parser.parseBitstream(chunk.span());
+    EXPECT_FALSE(parser.lastSliceQP().has_value());
+}
+
+TEST(H264BitstreamParser, ComputesMaxNumReorderFramesOfSpsWithEmulationPreventionBytes)
+{
+    // kH264BitstreamWeightedPred's SPS (High profile, with VUI timing info) has two emulation prevention bytes.
+    auto sps = std::span { kH264BitstreamWeightedPred }.subspan(4, 34);
+    auto maxNumReorderFrames = H264BitstreamParser::parseSpsMaxNumReorderFrames(sps);
+    ASSERT_TRUE(maxNumReorderFrames.has_value());
+    EXPECT_EQ(*maxNumReorderFrames, 0u);
+}
+
+TEST(H264Utilities, FindH264AnnexBMaxNumReorderFrames)
+{
+    auto sps = makeSpsWithMaxNumReorderFrames(3);
+    Vector<uint8_t> stream { 0, 0, 0, 1 };
+    stream.append(sps.span());
+    stream.appendList({ 0, 0, 1 });
+    stream.append(std::span { kH264SpsPps }.subspan(21));
+    auto indices = findNaluIndices(stream.span());
+    ASSERT_EQ(indices.size(), 2u);
+    EXPECT_EQ(findH264AnnexBMaxNumReorderFrames(stream.span(), indices), std::optional<uint8_t> { 3 });
+
+    // The first SPS is used, even when it has no payload.
+    Vector<NaluIndex> emptySpsFirst { NaluIndex { 0, 4, 0 }, indices[0] };
+    EXPECT_FALSE(findH264AnnexBMaxNumReorderFrames(stream.span(), emptySpsFirst).has_value());
+
+    // The SPS needn't come first.
+    Vector<NaluIndex> ppsFirst { indices[1], indices[0] };
+    EXPECT_EQ(findH264AnnexBMaxNumReorderFrames(stream.span(), ppsFirst), std::optional<uint8_t> { 3 });
+}
+
+// Indices that don't lie within the data are not found.
+TEST(H264Utilities, OutOfRangeNaluIndicesAreNotFound)
+{
+    auto sps = std::span { kH264SpsPps }.subspan(4, 13);
+    Vector<NaluIndex> pastTheEnd { NaluIndex { 0, sps.size(), 1 } };
+    EXPECT_FALSE(findH264AnnexBMaxNumReorderFrames(sps, pastTheEnd).has_value());
+    Vector<NaluIndex> overrunning { NaluIndex { 0, 0, sps.size() + 1 } };
+    EXPECT_FALSE(findH264AnnexBMaxNumReorderFrames(sps, overrunning).has_value());
+
+    Vector<uint8_t> emptyVector;
+    for (auto input : emptyInputs(emptyVector))
+        EXPECT_FALSE(findH264AnnexBMaxNumReorderFrames(input, { NaluIndex { } }).has_value());
 }
 
 }

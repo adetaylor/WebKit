@@ -30,6 +30,8 @@
 #if PLATFORM(COCOA)
 
 #include <WebCore/HEVCUtilities.h>
+#include <WebCore/VideoCodecType.h>
+#include <WebCore/VideoEncoderScalabilityMode.h>
 #include <wtf/Forward.h>
 #include <wtf/Vector.h>
 
@@ -48,6 +50,10 @@ WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromHEVCAnnexBStream(std::span<c
 
 WEBCORE_EXPORT Vector<uint8_t> convertHEVCAnnexBToLengthPrefixed(std::span<const uint8_t>, const Vector<NaluIndex>&);
 WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromHVCC(const HVCCParameterSets&);
+
+// Whether the GPU process's LibWebRTC decoders and encoders take a codec string, and an encoder its configuration.
+WEBCORE_EXPORT bool isValidWebRTCDecoderCodecString(VideoCodecType, StringView codecString);
+WEBCORE_EXPORT bool isValidWebRTCEncoderConfiguration(VideoCodecType, StringView codecString, bool useLowLatency, VideoEncoderScalabilityMode);
 
 }
 

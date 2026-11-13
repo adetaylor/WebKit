@@ -29,37 +29,13 @@
 #include <span>
 #include <wtf/Forward.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
 
-class BitReader;
 struct NaluIndex;
 
-// See section 7.4.1 of the H.264 spec.
-enum class H264NaluType : uint8_t {
-    Slice = 1,
-    Idr = 5,
-    Sei = 6,
-    Sps = 7,
-    Pps = 8,
-    Aud = 9,
-    EndOfSequence = 10,
-    EndOfStream = 11,
-    Filler = 12,
-    Prefix = 14,
-    StapA = 24,
-    FuA = 28
-};
-
-// See table 7-6 of the H.264 spec.
-enum class H264SliceType : uint8_t { P = 0, B = 1, I = 2, Sp = 3, Si = 4 };
-
-constexpr size_t h264NaluHeaderSize = 1;
-
-NODELETE WEBCORE_EXPORT H264NaluType h264NaluType(uint8_t);
-
-WEBCORE_EXPORT size_t findH264AnnexBSpsIndex(std::span<const uint8_t>, const Vector<NaluIndex>&);
 WEBCORE_EXPORT std::optional<uint8_t> findH264AnnexBMaxNumReorderFrames(std::span<const uint8_t>, const Vector<NaluIndex>&);
 WEBCORE_EXPORT std::optional<uint8_t> findAVCCMaxNumReorderFrames(std::span<const uint8_t>);
 
@@ -67,7 +43,8 @@ WEBCORE_EXPORT std::optional<uint8_t> findAVCCMaxNumReorderFrames(std::span<cons
 class WEBCORE_EXPORT H264BitstreamParser {
     WTF_MAKE_TZONE_ALLOCATED(H264BitstreamParser);
 public:
-    H264BitstreamParser() = default;
+    H264BitstreamParser();
+    ~H264BitstreamParser();
 
     void parseBitstream(std::span<const uint8_t>);
     std::optional<int> lastSliceQP() const;
@@ -75,42 +52,8 @@ public:
     static std::optional<uint8_t> parseSpsMaxNumReorderFrames(std::span<const uint8_t>);
 
 private:
-    struct SpsState {
-        bool deltaPicOrderAlwaysZeroFlag { false };
-        uint32_t chromaFormatIDC { 1 };
-        bool separateColourPlaneFlag { false };
-        bool frameMbsOnlyFlag { false };
-        uint32_t log2MaxFrameNum { 4 };
-        uint32_t log2MaxPicOrderCntLsb { 4 };
-        uint32_t picOrderCntType { 0 };
-        uint32_t maxNumRefFrames { 0 };
-        uint32_t id { 0 };
-    };
-
-    struct PpsState {
-        bool bottomFieldPicOrderInFramePresentFlag { false };
-        bool weightedPredFlag { false };
-        bool entropyCodingModeFlag { false };
-        uint32_t numRefIdxL0DefaultActiveMinus1 { 0 };
-        uint32_t numRefIdxL1DefaultActiveMinus1 { 0 };
-        uint32_t weightedBipredIDC { 0 };
-        bool redundantPicCntPresentFlag { false };
-        int picInitQPMinus26 { 0 };
-        uint32_t id { 0 };
-        uint32_t spsId { 0 };
-    };
-
-    enum class ParseResult { Ok, InvalidStream, UnsupportedStream };
-
-    static std::optional<SpsState> parseSps(std::span<const uint8_t>);
-    static std::optional<PpsState> parsePps(std::span<const uint8_t>);
-
-    void parseSlice(std::span<const uint8_t>);
-    ParseResult parseNonParameterSetNalu(std::span<const uint8_t>, uint8_t naluType);
-
-    std::optional<SpsState> m_sps;
-    std::optional<PpsState> m_pps;
-    std::optional<int32_t> m_lastSliceQPDelta;
+    struct Impl;
+    const UniqueRef<Impl> m_impl;
 };
 
 }

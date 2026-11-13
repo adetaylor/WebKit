@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,12 +26,11 @@
 #include "config.h"
 #include "InitDataRegistry.h"
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(ENCRYPTED_MEDIA) && ENABLE(WEBCORE_SWIFT)
 
 #include "CDMKeyID.h"
-#include "ISOProtectionSystemSpecificHeaderBox.h"
-#include "NotImplemented.h"
 #include "SharedBuffer.h"
+#include "WebCore-Swift.h"
 #include <wtf/JSONValues.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/text/Base64.h>
@@ -45,23 +44,21 @@
 #include <wtf/Scope.h>
 #endif
 
-#if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
+#if USE(AVFOUNDATION)
 #include "CDMFairPlayStreaming.h"
-#include "ISOFairPlayStreamingPsshBox.h"
 #endif
-
 
 namespace WebCore {
 
+// The type names, 'cenc' and 'webm' are parsed in InitDataRegistry.swift. The JSON of 'keyids' stays here.
+
 namespace {
-    const uint32_t kCencMaxBoxSize = 64 * KB;
-    // ContentEncKeyID has this EBML code [47][E2] in WebM,
-    // as per spec the size of the ContentEncKeyID is encoded on 16 bits.
-    // https://matroska.org/technical/specs/index.html#ContentEncKeyID/
-    const uint32_t kWebMMaxContentEncKeyIDSize = 64 * KB; // 2^16
     const uint32_t kKeyIdsMinKeyIdSizeInBytes = 1;
     const uint32_t kKeyIdsMaxKeyIdSizeInBytes = 512;
 }
+
+// The key IDs of 'cenc' init data are those of pssh boxes and of FairPlay Streaming key requests.
+static constexpr size_t cencKeyIDSize = 16;
 
 static std::optional<CDMKeyIDs> extractKeyIDsKeyids(const SharedBuffer& buffer)
 {
@@ -119,100 +116,26 @@ static RefPtr<SharedBuffer> sanitizeKeyids(const SharedBuffer& buffer)
     return SharedBuffer::create(object->toJSONString().utf8().span());
 }
 
-std::optional<Vector<std::unique_ptr<ISOProtectionSystemSpecificHeaderBox>>> InitDataRegistry::extractPsshBoxesFromCenc(const SharedBuffer& buffer)
-{
-    // 4. Common SystemID and PSSH Box Format
-    // https://w3c.github.io/encrypted-media/format-registry/initdata/cenc.html#common-system
-    if (buffer.size() >= kCencMaxBoxSize)
-        return std::nullopt;
-
-    unsigned offset = 0;
-    Vector<std::unique_ptr<ISOProtectionSystemSpecificHeaderBox>> psshBoxes;
-
-    auto view = buffer.span();
-    while (auto optionalBoxType = ISOBox::peekBox(view, offset)) {
-        auto& boxTypeName = optionalBoxType.value().first;
-        auto& boxSize = optionalBoxType.value().second;
-
-        if (boxTypeName != ISOProtectionSystemSpecificHeaderBox::boxTypeName() || boxSize > buffer.size())
-            return std::nullopt;
-
-        auto systemID = ISOProtectionSystemSpecificHeaderBox::peekSystemID(view, offset);
-#if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
-        if (systemID == ISOFairPlayStreamingPsshBox::fairPlaySystemID()) {
-            auto fpsPssh = makeUnique<ISOFairPlayStreamingPsshBox>();
-            if (!fpsPssh->read(view, offset))
-                return std::nullopt;
-            psshBoxes.append(WTF::move(fpsPssh));
-            continue;
-        }
-#else
-        UNUSED_PARAM(systemID);
-#endif
-        auto psshBox = makeUnique<ISOProtectionSystemSpecificHeaderBox>();
-        if (!psshBox->read(view, offset))
-            return std::nullopt;
-
-        psshBoxes.append(WTF::move(psshBox));
-    }
-
-    return psshBoxes;
-}
-
 #if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
 RefPtr<SharedBuffer> InitDataRegistry::extractFairPlayPsshFromCenc(const SharedBuffer& buffer)
 {
-    if (buffer.size() >= kCencMaxBoxSize)
+    ISOByteRange range;
+    if (!fairPlayPsshRangeImpl({ buffer.span() }, range))
         return nullptr;
 
-    auto view = buffer.span();
-    unsigned offset = 0;
-    while (auto optionalBoxType = ISOBox::peekBox(view, offset)) {
-        auto& [boxTypeName, boxSize] = optionalBoxType.value();
-        if (boxTypeName != ISOProtectionSystemSpecificHeaderBox::boxTypeName())
-            return nullptr;
-        if (boxSize > buffer.size() - offset)
-            return nullptr;
-
-        auto systemID = ISOProtectionSystemSpecificHeaderBox::peekSystemID(view, offset);
-        if (systemID == ISOFairPlayStreamingPsshBox::fairPlaySystemID())
-            return SharedBuffer::create(buffer.makeContiguous()->span().subspan(offset, static_cast<size_t>(boxSize)));
-
-        offset += static_cast<unsigned>(boxSize);
-    }
-
-    return nullptr;
+    return SharedBuffer::create(buffer.span().subspan(range.offset, range.size));
 }
 #endif
 
 std::optional<CDMKeyIDs> InitDataRegistry::extractKeyIDsCenc(const SharedBuffer& buffer)
 {
-    CDMKeyIDs keyIDs;
-
-    auto psshBoxes = extractPsshBoxesFromCenc(buffer);
-    if (!psshBoxes)
+    Vector<uint8_t> keyIDBytes;
+    if (!extractKeyIDsCencImpl({ buffer.span() }, keyIDBytes))
         return std::nullopt;
 
-    for (auto& psshBox : psshBoxes.value()) {
-        ASSERT(psshBox);
-        if (!psshBox)
-            return std::nullopt;
-
-#if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
-        if (auto* fpsPssh = dynamicDowncast<ISOFairPlayStreamingPsshBox>(*psshBox)) {
-            FourCC scheme = fpsPssh->initDataBox().info().scheme();
-            if (CDMPrivateFairPlayStreaming::validFairPlayStreamingSchemes().contains(scheme)) {
-                for (const auto& request : fpsPssh->initDataBox().requests()) {
-                    auto& keyID = request.requestInfo().keyID();
-                    keyIDs.append(SharedBuffer::create(keyID.span()));
-                }
-            }
-        }
-#endif
-
-        for (auto& value : psshBox->keyIDs())
-            keyIDs.append(SharedBuffer::create(Vector<uint8_t> { value }));
-    }
+    CDMKeyIDs keyIDs;
+    for (auto bytes = keyIDBytes.span(); !bytes.empty(); bytes = bytes.subspan(cencKeyIDSize))
+        keyIDs.append(SharedBuffer::create(bytes.first(cencKeyIDSize)));
 
     return keyIDs;
 }
@@ -283,7 +206,7 @@ RefPtr<SharedBuffer> InitDataRegistry::sanitizeCenc(const SharedBuffer& buffer)
 {
     // 4. Common SystemID and PSSH Box Format
     // https://w3c.github.io/encrypted-media/format-registry/initdata/cenc.html#common-system
-    if (!extractKeyIDsCenc(buffer)) {
+    if (!isValidCencInitDataImpl({ buffer.span() })) {
 #if USE(GSTREAMER)
         if (!isPlayReadySanitizedInitializationData(buffer))
 #endif
@@ -296,8 +219,7 @@ RefPtr<SharedBuffer> InitDataRegistry::sanitizeCenc(const SharedBuffer& buffer)
 static RefPtr<SharedBuffer> sanitizeWebM(const SharedBuffer& buffer)
 {
     // Check if the buffer is a valid WebM initData.
-    // The WebM initData is the ContentEncKeyID, so should be less than kWebMMaxContentEncKeyIDSize.
-    if (buffer.isEmpty() || buffer.size() > kWebMMaxContentEncKeyIDSize)
+    if (!isValidWebMInitDataImpl(buffer.size()))
         return nullptr;
 
     return buffer.makeContiguous();
@@ -316,41 +238,66 @@ static std::optional<CDMKeyIDs> extractKeyIDsWebM(const SharedBuffer& buffer)
     return keyIDs;
 }
 
+static InitDataKind initDataKind(const String& initDataType)
+{
+    return initDataKindImpl(mediaParserShortName(initDataType));
+}
+
 InitDataRegistry& InitDataRegistry::singleton()
 {
     static NeverDestroyed<InitDataRegistry> registry;
     return registry.get();
 }
 
-InitDataRegistry::InitDataRegistry()
-{
-    registerInitDataType("keyids"_s, { sanitizeKeyids, extractKeyIDsKeyids });
-    registerInitDataType("cenc"_s, { sanitizeCenc, extractKeyIDsCenc });
-    registerInitDataType("webm"_s, { sanitizeWebM, extractKeyIDsWebM });
-}
-
+InitDataRegistry::InitDataRegistry() = default;
 InitDataRegistry::~InitDataRegistry() = default;
 
 RefPtr<SharedBuffer> InitDataRegistry::sanitizeInitData(const String& initDataType, const SharedBuffer& buffer)
 {
-    auto iter = m_types.find(initDataType);
-    if (iter == m_types.end() || !iter->value.sanitizeInitData)
+    switch (initDataKind(initDataType)) {
+    case InitDataKind::KeyIDs:
+        return sanitizeKeyids(buffer);
+    case InitDataKind::Cenc:
+        return sanitizeCenc(buffer);
+    case InitDataKind::WebM:
+        return sanitizeWebM(buffer);
+#if USE(AVFOUNDATION)
+    case InitDataKind::Sinf:
+        return CDMPrivateFairPlayStreaming::sanitizeSinf(buffer);
+    case InitDataKind::Skd:
+        return CDMPrivateFairPlayStreaming::sanitizeSkd(buffer);
+#if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
+    case InitDataKind::Mpts:
+        return CDMPrivateFairPlayStreaming::sanitizeMpts(buffer);
+#endif
+#endif
+    default:
         return nullptr;
-    return iter->value.sanitizeInitData(buffer);
+    }
 }
 
 std::optional<CDMKeyIDs> InitDataRegistry::extractKeyIDs(const String& initDataType, const SharedBuffer& buffer)
 {
-    auto iter = m_types.find(initDataType);
-    if (iter == m_types.end() || !iter->value.sanitizeInitData)
+    switch (initDataKind(initDataType)) {
+    case InitDataKind::KeyIDs:
+        return extractKeyIDsKeyids(buffer);
+    case InitDataKind::Cenc:
+        return extractKeyIDsCenc(buffer);
+    case InitDataKind::WebM:
+        return extractKeyIDsWebM(buffer);
+#if USE(AVFOUNDATION)
+    case InitDataKind::Sinf:
+        return CDMPrivateFairPlayStreaming::extractKeyIDsSinf(buffer);
+    case InitDataKind::Skd:
+        return CDMPrivateFairPlayStreaming::extractKeyIDsSkd(buffer);
+#if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
+    case InitDataKind::Mpts:
+        return CDMPrivateFairPlayStreaming::extractKeyIDsMpts(buffer);
+#endif
+#endif
+    default:
         return std::nullopt;
-    return iter->value.extractKeyIDs(buffer);
-}
-
-void InitDataRegistry::registerInitDataType(const String& initDataType, InitDataTypeCallbacks&& callbacks)
-{
-    ASSERT(!m_types.contains(initDataType));
-    m_types.set(initDataType, WTF::move(callbacks));
+    }
 }
 
 const String& InitDataRegistry::cencName()
@@ -373,4 +320,4 @@ const String& InitDataRegistry::webmName()
 
 }
 
-#endif // ENABLE(ENCRYPTED_MEDIA)
+#endif // ENABLE(ENCRYPTED_MEDIA) && ENABLE(WEBCORE_SWIFT)

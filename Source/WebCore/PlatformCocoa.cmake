@@ -1305,6 +1305,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     platform/graphics/avfoundation/AudioSourceProviderAVFObjC.h
     platform/graphics/avfoundation/AudioVideoRendererAVFObjC.h
+    platform/graphics/avfoundation/CDMFairPlayStreaming.h
     platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.h
     platform/graphics/avfoundation/ImageDecoderFactoryAVF.h
     platform/graphics/avfoundation/InbandTextTrackPrivateAVF.h
@@ -1492,6 +1493,8 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     testing/MockWebAuthenticationConfiguration.h
 
     testing/cocoa/WebViewVisualIdentificationOverlay.h
+
+    platform/graphics/cocoa/CMParsingTypes.h
 )
 
 list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS

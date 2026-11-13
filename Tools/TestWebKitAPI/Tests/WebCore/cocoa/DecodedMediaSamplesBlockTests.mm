@@ -410,6 +410,32 @@ TEST(DecodedMediaSamplesBlock, VideoRejectsInvalidData)
     EXPECT_FALSE(!!toCMSampleBuffer(MediaSamplesBlock { unsupported.ptr(), WTF::move(items) }));
 }
 
+TEST(DecodedMediaSamplesBlock, VideoRejectsEmptyData)
+{
+    Ref info = makeDecodedVideoInfo(FloatSize(1, 1));
+    MediaSamplesBlock::SamplesVector items;
+    items.append({
+        .presentationTime = MediaTime::zeroTime(),
+        .duration = MediaTime(1, 30),
+        .data = SharedBuffer::create(),
+        .flags = MediaSample::IsSync
+    });
+    EXPECT_FALSE(!!toCMSampleBuffer(MediaSamplesBlock { info.ptr(), WTF::move(items) }));
+}
+
+// The size comes from IPC: one that int can't represent is invalid.
+TEST(DecodedMediaSamplesBlock, VideoRejectsUnrepresentableSize)
+{
+    for (float width : { std::numeric_limits<float>::quiet_NaN(), std::numeric_limits<float>::infinity(), 3e9f }) {
+        Ref info = makeDecodedVideoInfo(FloatSize(width, 16));
+        MediaSamplesBlock::SamplesVector items;
+        items.append(makeI420Item(MediaTime::zeroTime(), 16, 16, 0, 0, 0));
+        auto result = toCMSampleBuffer(MediaSamplesBlock { info.ptr(), WTF::move(items) });
+        ASSERT_FALSE(!!result) << width;
+        EXPECT_EQ(result.error(), "Invalid decoded video size"_s);
+    }
+}
+
 TEST(DecodedMediaSamplesBlock, VideoFormatDescriptionFromTrackInfo)
 {
     Ref info = makeDecodedVideoInfo(FloatSize(64, 48));
