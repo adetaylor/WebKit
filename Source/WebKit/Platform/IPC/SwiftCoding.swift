@@ -1056,10 +1056,27 @@ extension IPCCoding.Vector where Element == UInt8 {
     }
 }
 
+extension IPCCoding {
+    /// A C++ enum as Swift imports it (swift_types.py's _CXX_ENUM_TYPES), encoded as its underlying integer: accepted where
+    /// the import has a case of that value, which are the values that C++ declares.
+    enum CxxEnum<Value: RawRepresentable & Sendable>: IPCCoder where Value.RawValue: IPCCoder, Value.RawValue.Value == Value.RawValue {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Value {
+            guard let value = Value(rawValue: try Value.RawValue.decode(from: &decoder)) else {
+                throw IPCDecodingError()
+            }
+            return value
+        }
+
+        static func encode(_ value: Value, to encoder: IPC.SwiftReplyEncoder) {
+            Value.RawValue.encode(value.rawValue, to: encoder)
+        }
+    }
+}
+
 extension IPCTypes {
-    /// WebCore::Color (IPCTypes.Color is WebGPU::Color's form), as C++ encodes it: Color::data(), a std::optional of a WebCore::ColorDataForIPC, whose Variant holds the
-    /// PackedColor::RGBA of an inline color or the color space and components of an out-of-line one. Accepted where
-    /// ArgumentCoder<WebCore::Color> accepts it.
+    /// WebCore::Color, as C++ encodes it: Color::data(), a std::optional of a WebCore::ColorDataForIPC, whose Variant holds
+    /// the PackedColor::RGBA of an inline color or the color space and components of an out-of-line one. Accepted where
+    /// ArgumentCoder<WebCore::Color> accepts it. (IPCTypes.Color is WebGPU::Color's form.)
     struct WebCoreColor: IPCCoder, Sendable, Equatable {
         enum Components: Sendable, Equatable {
             case packed(UInt32)
