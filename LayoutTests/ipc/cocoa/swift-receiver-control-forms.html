@@ -42,7 +42,8 @@ const outOfLineColor = (colorSpace, c1, c2, c3, alpha) => [b(1), b(0), b(1), u8(
 // A ControlStyle: its states, font size, zoom, accent and text colors, and border widths.
 const style = (states = 0, accent = invalidColor, text = packedColor(0x000000ff)) => [u32(states), f(13), f(1.5), ...accent, ...text, f(1), f(2), f(3), f(4)];
 
-// The index of each ControlPart subclass, as ControlPart's ArgumentCoder numbers them on the Mac.
+// The index of each ControlPart subclass, as ControlPart's ArgumentCoder numbers them on the Mac, where Apple Pay and service
+// controls are enabled. Elsewhere the cases still compare Swift with C++, but test less.
 const part = {
     button: 0, colorWell: 1, innerSpinButton: 2, menuListButton: 3, menuList: 4, meter: 5, progressBar: 6, searchField: 7,
     searchFieldResults: 8, searchFieldCancelButton: 9, sliderThumb: 10, sliderTrack: 11, switchPart: 12, textArea: 13,
@@ -56,8 +57,8 @@ promise_test(async t => {
     takeInvalidMessageString();
     try {
         const cases = [];
-        // Each appearance, valid or not, for the parts that take one.
-        for (let appearance = 0; appearance < 45; ++appearance) {
+        // Each appearance, valid or not, for the parts that take one, and the edges of its bits.
+        for (const appearance of [...Array(46).keys(), 127, 128, 254, 255]) {
             for (const subclass of [part.button, part.searchFieldResults, part.sliderThumb, part.textArea, part.toggleButton])
                 cases.push([`subclass ${subclass} of appearance ${appearance}`, [u8(subclass), u8(appearance), ...style()]]);
             cases.push([`a slider track of appearance ${appearance}`, [u8(part.sliderTrack), u8(appearance), i32(21), i32(21), i32(0), i32(0), i32(129), i32(15), ...doubles([0, 0.5, 1]), d(0.25), ...style()]]);

@@ -925,10 +925,13 @@ final class RemoteCGRenderer {
         guard let image else {
             return
         }
-        // GraphicsContext::drawFilteredImageBuffer(): the result's image at its absolute rect, in the space of the filter's scale.
-        state.receiveScale(1 / filtered.scaleX, 1 / filtered.scaleY)
-        state.receiveDrawNativeImage(image, filtered.facts, filtered.destination, filtered.source, filtered.options)
-        state.receiveScale(filtered.scaleX, filtered.scaleY)
+        // GraphicsContext::drawFilteredImageBuffer(): the result's image at its absolute rect, in the space of the filter's scale,
+        // while the result lasts.
+        withExtendedLifetime(filtered) {
+            state.receiveScale(1 / filtered.scaleX, 1 / filtered.scaleY)
+            state.receiveDrawNativeImage(image, filtered.facts, filtered.destination, filtered.source, filtered.options)
+            state.receiveScale(filtered.scaleX, filtered.scaleY)
+        }
     }
 
     // GraphicsContext::drawControlPart(): the part's platform control's draw, which only Apple Pay buttons and, on the Mac, the

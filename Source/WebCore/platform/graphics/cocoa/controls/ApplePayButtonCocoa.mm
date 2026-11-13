@@ -94,11 +94,50 @@ NODELETE static PKPaymentButtonStyle toPKPaymentButtonStyle(ApplePayButtonStyle 
     }
 }
 
+// Each value the enums have, without a default, so that a new value has to be added.
+static bool isApplePayButtonType(uint8_t value)
+{
+    switch (static_cast<ApplePayButtonType>(value)) {
+    case ApplePayButtonType::Plain:
+    case ApplePayButtonType::Buy:
+    case ApplePayButtonType::SetUp:
+    case ApplePayButtonType::Donate:
+    case ApplePayButtonType::CheckOut:
+    case ApplePayButtonType::Book:
+    case ApplePayButtonType::Subscribe:
+#if ENABLE(APPLE_PAY_NEW_BUTTON_TYPES)
+    case ApplePayButtonType::Reload:
+    case ApplePayButtonType::AddMoney:
+    case ApplePayButtonType::TopUp:
+    case ApplePayButtonType::Order:
+    case ApplePayButtonType::Rent:
+    case ApplePayButtonType::Support:
+    case ApplePayButtonType::Contribute:
+    case ApplePayButtonType::Tip:
+#endif
+        return true;
+    }
+    return false;
+}
+
+static bool isApplePayButtonStyle(uint8_t value)
+{
+    switch (static_cast<ApplePayButtonStyle>(value)) {
+    case ApplePayButtonStyle::White:
+    case ApplePayButtonStyle::WhiteOutline:
+    case ApplePayButtonStyle::Black:
+        return true;
+    }
+    return false;
+}
+
 } // namespace WebCore
 
 void CGRendererDrawApplePayButton(CGContextRef context, CGRect rect, CGFloat largestCornerRadius, uint8_t buttonType, uint8_t buttonStyle, CFStringRef locale)
 {
     using namespace WebCore;
+    if (!isApplePayButtonType(buttonType) || !isApplePayButtonStyle(buttonStyle))
+        return;
     CGContextSaveGState(context);
     CGContextSetShouldSmoothFonts(context, true);
     CGContextScaleCTM(context, 1, -1);
