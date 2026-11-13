@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,31 +26,17 @@
 #include "config.h"
 #include "ISOOriginalFormatBox.h"
 
+#if ENABLE(WEBCORE_SWIFT)
+
+#include "WebCore-Swift.h"
+
 namespace WebCore {
 
-// FIXME: Remove SUPPRESS_NODELETE once NoDeleteChecker stops requiring the default constructors of the members of base classes to be trivial (rdar://192380708).
-// ISOBox constructs m_extendedType, and the default constructor of its std::optional is only seen to be trivial where it is instantiated, as in ISOBox.cpp.
-SUPPRESS_NODELETE ISOOriginalFormatBox::ISOOriginalFormatBox()
-    : ISOBox(boxTypeName())
+bool ISOOriginalFormatBox::parseFields(const ByteView& view, unsigned& offset, ISOBoxParseMode mode, ISOOriginalFormatBoxFields& fields)
 {
-}
-
-ISOOriginalFormatBox::~ISOOriginalFormatBox() = default;
-
-bool ISOOriginalFormatBox::parse(const ByteView& view, unsigned& offset)
-{
-    if (!ISOBox::parse(view, offset))
-        return false;
-
-    return checkedRead<uint32_t>(m_dataFormat.value, view, offset, BigEndian);
-}
-
-bool ISOOriginalFormatBox::pack(MutableByteView& view, unsigned& offset) const
-{
-    if (!ISOBox::pack(view, offset))
-        return false;
-
-    return checkedWrite<uint32_t>(m_dataFormat.value, view, offset, BigEndian);
+    return parseISOOriginalFormatBoxImpl({ view }, offset, mode, fields);
 }
 
 }
+
+#endif // ENABLE(WEBCORE_SWIFT)

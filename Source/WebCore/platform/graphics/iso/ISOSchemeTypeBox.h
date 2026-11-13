@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,52 @@ namespace WebCore {
 
 class ISOSchemeTypeBox final : public ISOFullBox {
 public:
-    WEBCORE_EXPORT ISOSchemeTypeBox();
-    NODELETE WEBCORE_EXPORT virtual ~ISOSchemeTypeBox();
+    ISOSchemeTypeBox()
+        : ISOFullBox(boxTypeName(), 0, 0)
+    {
+    }
 
     static FourCC boxTypeName() { return std::span { "schm" }; }
 
     FourCC schemeType() const { return m_schemeType; }
     uint32_t schemeVersion() const { return m_schemeVersion; }
 
-    WEBCORE_EXPORT bool parse(const ByteView&, unsigned& offset) final;
-    WEBCORE_EXPORT bool pack(MutableByteView&, unsigned& offset) const final;
+    using ISOBox::parse;
+
+    bool pack(MutableByteView& view, unsigned& offset) const final
+    {
+        if (!ISOFullBox::pack(view, offset))
+            return false;
+
+        if (!checkedWrite<uint32_t>(m_schemeType.value, view, offset, BigEndian))
+            return false;
+
+        return checkedWrite<uint32_t>(m_schemeVersion, view, offset, BigEndian);
+    }
 
 private:
+    friend class ISOProtectionSchemeInfoBox;
+
     uint64_t partialSize() const final { return ISOFullBox::partialSize() + 8; }
+
+    bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode) final
+    {
+        auto fields = this->fields();
+        bool result = parseFields(view, offset, mode, fields);
+        setFields(fields);
+        return result;
+    }
+
+    ISOSchemeTypeBoxFields fields() const { return { fullBoxFields(), m_schemeType.value, m_schemeVersion }; }
+
+    void setFields(const ISOSchemeTypeBoxFields& fields)
+    {
+        setFullBoxFields(fields.fullBox);
+        m_schemeType = fields.schemeType;
+        m_schemeVersion = fields.schemeVersion;
+    }
+
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOSchemeTypeBoxFields&);
 
     FourCC m_schemeType;
     uint32_t m_schemeVersion { 0 };

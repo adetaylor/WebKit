@@ -268,6 +268,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/AV1UtilitiesTests.cpp
         Tests/WebCore/AffineTransform.cpp
         Tests/WebCore/AnimationFrameRate.cpp
+        Tests/WebCore/AnnexBUtilitiesTests.cpp
         Tests/WebCore/ApduTest.cpp
         Tests/WebCore/ApplicationManifestParser.cpp
         Tests/WebCore/AudioSampleFormat.cpp
@@ -276,6 +277,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/CBORReaderTest.cpp
         Tests/WebCore/CBORValueTest.cpp
         Tests/WebCore/CBORWriterTest.cpp
+        Tests/WebCore/CDMClearKeyTests.cpp
         Tests/WebCore/CSSParser.cpp
         Tests/WebCore/CSSParserFastPaths.cpp
         Tests/WebCore/CSSTokenizerTests.cpp
@@ -312,6 +314,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/GradientColorStopsTests.cpp
         Tests/WebCore/GridPosition.cpp
         Tests/WebCore/H264UtilitiesTests.cpp
+        Tests/WebCore/HEVCCodecStringsTests.cpp
         Tests/WebCore/HEVCUtilitiesTests.cpp
         Tests/WebCore/HTMLParserIdioms.cpp
         Tests/WebCore/HTTPHeaderField.cpp
@@ -323,6 +326,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/IPAddressTests.cpp
         Tests/WebCore/ImageBackingStoreTests.cpp
         Tests/WebCore/ImageBufferTests.cpp
+        Tests/WebCore/InitDataRegistryTests.cpp
         Tests/WebCore/IntPointTests.cpp
         Tests/WebCore/IntRectTests.cpp
         Tests/WebCore/IntSizeTests.cpp
@@ -384,6 +388,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/U2fCommandConstructorTest.cpp
         Tests/WebCore/URLParserTextEncoding.cpp
         Tests/WebCore/URLPatternTests.cpp
+        Tests/WebCore/VP9UtilitiesTests.cpp
         Tests/WebCore/WebCodecsBufferTransfer.cpp
         Tests/WebCore/WebGPUFramePacer.cpp
         Tests/WebCore/WebTransportHeaderValidation.cpp

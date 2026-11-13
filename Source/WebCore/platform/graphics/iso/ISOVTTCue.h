@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,7 +25,8 @@
 
 #pragma once
 
-#include <WebCore/ISOBox.h>
+#include <WebCore/ISOParseResults.h>
+#include <span>
 #include <wtf/MediaTime.h>
 #include <wtf/text/WTFString.h>
 
@@ -39,16 +40,17 @@ namespace WebCore {
 // N bytes : CueSettingsBox : box : optional
 // N bytes : CuePayloadBox : box : required
 
-class ISOWebVTTCue final : public ISOBox {
+// ISOVTTCue.swift reads the boxes.
+class ISOWebVTTCue final {
 public:
     ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration);
+    // Takes the strings from the ranges' bytes of source.
+    ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration, std::span<const uint8_t> source, const ISOWebVTTCueRanges&);
     WEBCORE_EXPORT ISOWebVTTCue(const MediaTime& presentationTime, const MediaTime& duration, String&& cueID, String&& cueText, String&& settings = { }, String&& sourceID = { }, String&& originalStartTime = { });
     ISOWebVTTCue(const ISOWebVTTCue&) = default;
     WEBCORE_EXPORT ISOWebVTTCue();
     WEBCORE_EXPORT ISOWebVTTCue(ISOWebVTTCue&&);
     WEBCORE_EXPORT ~ISOWebVTTCue();
-
-    static FourCC boxTypeName() { return std::span { "vttc" }; }
 
     const MediaTime& presentationTime() const LIFETIME_BOUND { return m_presentationTime; }
     const MediaTime& duration() const LIFETIME_BOUND { return m_duration; }
@@ -61,12 +63,17 @@ public:
 
     String toJSONString() const;
 
-    WEBCORE_EXPORT bool parse(const ByteView&, unsigned& offset) override;
+    // The cue at the start of the view. The fields its string boxes give are set even when this returns false.
+    WEBCORE_EXPORT bool read(std::span<const uint8_t>);
+    // The cue at offset, which moves past what was read.
+    WEBCORE_EXPORT bool parse(std::span<const uint8_t>, unsigned& offset);
 
     ISOWebVTTCue isolatedCopy() const &;
     ISOWebVTTCue isolatedCopy() &&;
 
 private:
+    void setStrings(std::span<const uint8_t> source, const ISOWebVTTCueRanges&);
+
     MediaTime m_presentationTime;
     MediaTime m_duration;
 

@@ -26,82 +26,36 @@
 #include "config.h"
 #include "AnnexBUtilities.h"
 
-#include <wtf/FlipBytes.h>
-#include <wtf/StdLibExtras.h>
+#if ENABLE(WEBCORE_SWIFT)
+
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
+// The scanning, unescaping and length prefixing are in AnnexB.swift.
+
 Vector<NaluIndex> findNaluIndices(std::span<const uint8_t> buffer)
 {
-    // This is sorta like Boyer-Moore, but with only the first optimization step: given a 3-byte
-    // sequence we're looking at, if the 3rd byte isn't 1 or 0, skip ahead to the next 3-byte
-    // sequence. 0s and 1s are relatively rare, so this will skip the majority of reads/checks.
-    constexpr size_t naluShortStartSequenceSize = 3;
-    Vector<NaluIndex> indices;
-    if (buffer.size() < naluShortStartSequenceSize)
-        return indices;
-
-    size_t end = buffer.size() - naluShortStartSequenceSize;
-    for (size_t i = 0; i < end;) {
-        if (buffer[i + 2] > 1) {
-            i += 3;
-            continue;
-        }
-        if (buffer[i + 2] == 1) {
-            if (!buffer[i + 1] && !buffer[i]) {
-                NaluIndex index { i, i + 3, 0 };
-                if (index.startOffset > 0 && !buffer[index.startOffset - 1])
-                    --index.startOffset;
-
-                if (!indices.isEmpty())
-                    indices.last().payloadSize = index.startOffset - indices.last().payloadStartOffset;
-
-                indices.append(index);
-            }
-            i += 3;
-        } else
-            ++i;
-    }
-
-    if (!indices.isEmpty())
-        indices.last().payloadSize = buffer.size() - indices.last().payloadStartOffset;
-
+    NaluIndexVector indices;
+    findNaluIndicesImpl({ buffer }, indices);
     return indices;
 }
 
 Vector<uint8_t> parseRbsp(std::span<const uint8_t> data)
 {
-    Vector<uint8_t> out(ReserveCapacityTag { }, data.size());
-    for (size_t i = 0; i < data.size();) {
-        if (data.size() - i >= 3 && !data[i] && !data[i + 1] && data[i + 2] == 3) {
-            out.append(data[i++]);
-            out.append(data[i++]);
-            // Skip the emulation prevention byte.
-            i++;
-        } else
-            out.append(data[i++]);
-    }
+    Vector<uint8_t> out;
+    out.reserveInitialCapacity(data.size());
+    parseRbspImpl({ data }, out);
     return out;
 }
 
 Vector<uint8_t> annexBToLengthPrefixed(std::span<const uint8_t> data, std::span<const NaluIndex> naluIndices)
 {
-    size_t totalSize = 0;
-    for (auto& index : naluIndices) {
-        if (index.payloadSize)
-            totalSize += sizeof(uint32_t) + index.payloadSize;
-    }
-
-    Vector<uint8_t> result(ReserveCapacityTag { }, totalSize);
-    for (auto& index : naluIndices) {
-        if (!index.payloadSize)
-            continue;
-        uint32_t length = flipBytes(static_cast<uint32_t>(index.payloadSize));
-        result.append(asByteSpan(length));
-        result.append(data.subspan(index.payloadStartOffset, index.payloadSize));
-    }
-
+    Vector<uint8_t> result;
+    annexBToLengthPrefixedImpl({ data }, { naluIndices }, result);
     return result;
 }
 
 }
+
+#endif // ENABLE(WEBCORE_SWIFT)
