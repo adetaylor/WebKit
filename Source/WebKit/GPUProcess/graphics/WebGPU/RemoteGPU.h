@@ -40,17 +40,22 @@ class SwiftReceiverOwner;
 
 namespace WebCore {
 class NativeImage;
+class ProcessIdentity;
 }
 
 namespace WebKit {
 
-class GPUVideoFrameSource;
 class RemoteRenderingBackend;
+class RemoteVideoFrameObjectHeap;
 
 // Creates the receiver of a web process's WebGPU messages to its GPU with that identifier, RemoteGPU, which Swift implements
 // (RemoteGPU.swift): it starts receiving them on the owner, which keeps it until it stops, and draws to and reads the
-// rendering backend's image buffers.
+// rendering backend's image buffers, and reads the video frames the web process shares.
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+void createRemoteGPU(IPC::SwiftReceiverOwner&, RemoteRenderingBackend&, uint64_t identifier, MachSendRight webProcessResourceOwner, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
+#else
 void createRemoteGPU(IPC::SwiftReceiverOwner&, RemoteRenderingBackend&, uint64_t identifier, MachSendRight webProcessResourceOwner);
+#endif
 
 // What copyImageBufferSurface() says of the image buffer whose IOSurface it gives.
 struct RemoteGPUImageBufferSurface {
@@ -69,10 +74,6 @@ void paintToImageBuffer(RemoteRenderingBackend&, CGImageRef WTF_NULLABLE, IOSurf
 // is accelerated and not empty. A function, since Swift takes what a C++ method returns as unretained.
 IOSurfaceRef WTF_NULLABLE copyImageBufferSurface(RemoteRenderingBackend&, uint64_t imageBufferIdentifier, RemoteGPUImageBufferSurface&) CF_RETURNS_RETAINED;
 
-#if ENABLE(VIDEO)
-// The reader of the video frames that the web process of the rendering backend shares with the WebGPU receivers.
-GPUVideoFrameSource* WTF_NONNULL createVideoFrameSource(RemoteRenderingBackend&) SWIFT_RETURNS_RETAINED;
-#endif
 
 } // namespace WebKit
 

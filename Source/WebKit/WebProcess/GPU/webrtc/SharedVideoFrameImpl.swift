@@ -164,6 +164,14 @@ final class SharedVideoFrameSource {
         shouldUseIOSurfaceBufferPool = useIOSurfaceBufferPool
     }
 
+    // For the GPU process's receivers written in Swift, which read with an IOSurface buffer pool.
+    @_expose(!Cxx)
+    init(heap: WebKit.RemoteVideoFrameObjectHeap, resourceOwner: WebCore.ProcessIdentity?) {
+        self.heap = heap
+        self.resourceOwner = resourceOwner
+        shouldUseIOSurfaceBufferPool = true
+    }
+
     // Each takes a right of its own to the port that the caller's IPC::Semaphore or SharedMemory::Handle owns.
     @_expose(Cxx)
     func setSemaphore(_ port: mach_port_t) {
@@ -174,6 +182,22 @@ final class SharedVideoFrameSource {
     func setSharedMemory(_ port: mach_port_t, _ size: UInt64) -> Bool {
         storage = IPCTypes.SharedMemoryHandle(copying: port, size: size).mapReadOnly()
         return storage != nil
+    }
+
+    @_expose(!Cxx)
+    func setSemaphore(_ semaphore: consuming IPCTypes.Semaphore) {
+        self.semaphore = consume semaphore
+    }
+
+    @_expose(!Cxx)
+    func setSharedMemory(_ handle: consuming IPCTypes.SharedMemoryHandle) {
+        storage = handle.mapReadOnly()
+    }
+
+    // The pixel buffer of the frame and its display transform, if it can be read.
+    @_expose(!Cxx)
+    func read(_ frame: borrowing IPCTypes.SharedVideoFrame) -> (pixelBuffer: CVPixelBuffer, rotation: UInt16, isMirrored: Bool)? {
+        readBuffer(frame.buffer).map { ($0, frame.rotation.rawValue, frame.mirrored) }
     }
 
     // Returned +1.

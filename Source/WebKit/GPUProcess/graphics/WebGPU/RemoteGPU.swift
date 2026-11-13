@@ -90,6 +90,22 @@ final class RemoteGPUWorkScheduler: Sendable {
 
 // Implemented here, for GPUConnectionToWebProcess (RemoteGPU.h).
 extension WebKit {
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    @cxx
+    @implementation
+    static func createRemoteGPU(
+        _ owner: IPC.SwiftReceiverOwner,
+        _ renderingBackend: WebKit.RemoteRenderingBackend,
+        _ identifier: UInt64,
+        _ webProcessResourceOwner: WTF.MachSendRight,
+        _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
+        _ webProcessIdentity: WebCore.ProcessIdentity,
+        _ hasWebProcessIdentity: Bool
+    ) {
+        let videoFrameSources = WebGPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: hasWebProcessIdentity ? webProcessIdentity : nil)
+        RemoteGPU.start(owner, renderingBackend, videoFrameSources, identifier, webProcessResourceOwner)
+    }
+    #else
     @cxx
     @implementation
     static func createRemoteGPU(
@@ -98,8 +114,9 @@ extension WebKit {
         _ identifier: UInt64,
         _ webProcessResourceOwner: WTF.MachSendRight
     ) {
-        RemoteGPU.start(owner, renderingBackend, identifier, webProcessResourceOwner)
+        RemoteGPU.start(owner, renderingBackend, WebGPUVideoFrameSources(), identifier, webProcessResourceOwner)
     }
+    #endif
 }
 
 // The receiver of a web process's WebGPU messages to its GPU, on its owner's work queue, and the owner of the registry of
@@ -124,6 +141,7 @@ final class RemoteGPU {
     fileprivate static func start(
         _ owner: IPC.SwiftReceiverOwner,
         _ renderingBackend: WebKit.RemoteRenderingBackend,
+        _ videoFrameSources: WebGPUVideoFrameSources,
         _ identifier: UInt64,
         _ webProcessResourceOwner: consuming WTF.MachSendRight
     ) {
@@ -141,7 +159,7 @@ final class RemoteGPU {
             webProcessResourceOwner: webProcessResourceOwner
         )
         let gpu = RemoteGPU(owner, identifier, scheduler)
-        gpu.registry = WebGPUImplTable(owner: owner, renderingBackend: renderingBackend, instance: instance)
+        gpu.registry = WebGPUImplTable(owner: owner, renderingBackend: renderingBackend, videoFrameSources: videoFrameSources, instance: instance)
         gpu.startReceiving(on: owner)
         scheduler.schedule { [owner] in
             RemoteGPUProxyMessages.wasCreated(on: owner, to: identifier, didSucceed: true)

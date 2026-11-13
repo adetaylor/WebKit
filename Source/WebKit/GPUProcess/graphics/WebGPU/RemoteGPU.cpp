@@ -29,7 +29,6 @@
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
-#include "GPUVideoFrameSource.h"
 #include "RemoteRenderingBackend.h"
 #include <WebCore/ColorSpace.h>
 #include <WebCore/GraphicsContext.h>
@@ -150,13 +149,6 @@ IOSurfaceRef copyImageBufferSurface(RemoteRenderingBackend& renderingBackend, ui
     };
     return RetainPtr { surface->surface() }.leakRef();
 }
-
-#if ENABLE(VIDEO)
-GPUVideoFrameSource* createVideoFrameSource(RemoteRenderingBackend& renderingBackend)
-{
-    return &GPUVideoFrameSource::create(renderingBackend.gpuConnectionToWebProcess()).leakRef();
-}
-#endif
 
 } // namespace WebKit
 
