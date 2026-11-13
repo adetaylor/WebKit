@@ -135,12 +135,13 @@ public:
     // The cached path, or one that isn't valid.
     RemoteCGRendererPath cachedPath(RemotePathImplIdentifier) const;
 
-    // The cached native image's image, which is null for an image this process can't read.
-    RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
+    // The native image that a filter's FEImage names: the backend's, or, in a replay, the one the recording kept for the filter.
+    RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     // The image buffer that the receiver draws into, if it draws into one, and the context it draws into otherwise.
     WebCore::ImageBuffer* targetImageBuffer() const { return m_target.get(); }
     WebCore::GraphicsContextCG& targetContext() const __attribute__((availability(swift, unavailable)));
-    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
+    // The image buffer that a filter names: the backend's, or, in a replay, the one the recording kept for the filter.
+    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
     RefPtr<RemoteCGRendererFont> cachedFont(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::PathImpl> cachedPathImpl(RemotePathImplIdentifier) const __attribute__((availability(swift, unavailable)));
@@ -157,10 +158,9 @@ public:
     bool isReplaying() const { return !m_replayedResources.isEmpty(); }
 
     // The resources that a recorder's message names, copied into its recording's as RemoteGraphicsContext looks them up for a
-    // WebCore display list recorder: false where one is missing, which is an invalid message.
+    // WebCore display list recorder: false where one is missing, which is an invalid message. The recording keeps the native
+    // images and image buffers that its draws name in Swift (RemoteCGRendererRecording), and these those its filters name.
     bool recordPath(RemotePathImplIdentifier) const;
-    bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
-    bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
     bool recordGradient(RemoteGradientIdentifier) const;
     // A DrawGlyphs's font, which the recorded run keeps, with its facts for the run.
     bool recordGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererRecordedGlyphs&) const;
@@ -168,9 +168,6 @@ public:
     // A DrawFilteredImageBuffer's source and its filter's FEImage images, and the cached SVG filter it names, into which the
     // filter's effects are merged, as RemoteGraphicsContext merges them.
     bool recordFilter(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&) const;
-#if USE(SYSTEM_PREVIEW)
-    bool recordBadgeImage(std::optional<WebCore::RenderingResourceIdentifier> imageIdentifier) const;
-#endif
     // A DrawSnapshotFrame's frame, which the snapshot then waits for: false for a recorder that isn't a snapshot's.
     bool addSnapshotFrameReference(WebCore::FrameIdentifier) const;
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -195,6 +192,9 @@ public:
 
 private:
     RemoteCGRendererResources(RemoteRenderingBackend*, WebCore::ImageBuffer* target, WebCore::GraphicsContextCG* targetContext, RemoteSnapshot*);
+
+    bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
+    bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
 
     const RefPtr<RemoteRenderingBackend> m_backend;
     const RefPtr<WebCore::ImageBuffer> m_target;
@@ -290,18 +290,15 @@ void setSharedVideoFrameMemory(const RemoteCGRendererResources&, const WebCore::
 
 // The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke
 // counterparts, as RemoteGraphicsContext's handlers make it: found is false for a missing resource, and drawsIntoTarget true
-// for a pattern of the image buffer the receiver draws into.
+// for a pattern of the image buffer the receiver draws into. Swift finds the native image.
 CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources&, RemoteGradientIdentifier, const WebCore::AffineTransform& spaceTransform, bool& found);
-CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::PatternParameters&, bool& found);
+CGRendererBrushSource nativeImagePatternBrush(WebCore::NativeImage&, const WebCore::PatternParameters&);
 CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, WebCore::ImageBuffer* _Nullable tileImageBuffer, const WebCore::PatternParameters&, bool& found, bool& drawsIntoTarget);
 
 // The image of a DrawMeshGradient, which MeshGradientRenderer renders for the context's device transform and color space at the
 // destination's size in pixels, which the facts give, and the options GraphicsContext draws it with: found is false for a
 // missing gradient, and the image is null where nothing is drawn.
 CGImageRef _Nullable copyMeshGradientImage(const RemoteCGRendererResources&, RemoteMeshGradientIdentifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace&, CGSize destinationSize, CGRendererImageFacts&, CGRendererImageOptions&) CF_RETURNS_RETAINED;
-
-// The image of a ClipToNativeImage.
-CGImageRef _Nullable copyNativeImageForClip(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier) CF_RETURNS_RETAINED;
 
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;
@@ -316,12 +313,17 @@ inline uint8_t textDrawingModeValue(WebCore::TextDrawingModeFlags mode)
     return mode.toRaw();
 }
 
-// The image of a cached native image, which is null for an image this process can't read, and of an image buffer, which
-// the receiver looks up, as GraphicsContext draws one (nativeImageForDrawing()), with the color matrix that inverts it where
-// the options do; a null image buffer isn't found. An
-// accelerated target drawn into itself is drawn from a flushed copy of itself (clonesAcceleratedTarget), which the facts
-// say. Functions, since Swift takes what a C++ method returns as unretained whatever its annotation.
-CGImageRef _Nullable copyNativeImage(const RemoteCGRendererResources&, WebCore::RenderingResourceIdentifier, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+// GraphicsContextCG::drawNativeImage()'s color matrix for a draw that inverts a native image for an accessibility color mode,
+// in the facts, which Swift asks for only for draws whose options invert their image.
+inline void setInvertColorMatrix(const WebCore::NativeImage& image, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions options, CGRendererImageFacts& facts)
+{
+    CGRendererSetInvertColorMatrix(image, sourceRect, options, facts);
+}
+
+// The image of an image buffer, which the receiver looks up, as GraphicsContext draws one (nativeImageForDrawing()), with the
+// color matrix that inverts it where the options do; a null image buffer isn't found. An accelerated target drawn into
+// itself is drawn from a flushed copy of itself (clonesAcceleratedTarget), which the facts say. A function, since Swift takes
+// what a C++ method returns as unretained whatever its annotation.
 CGImageRef _Nullable copyImageBufferImage(const RemoteCGRendererResources&, WebCore::ImageBuffer* _Nullable, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, bool clonesAcceleratedTarget, CGRendererImageFacts&) CF_RETURNS_RETAINED;
 
 } // namespace WebKit

@@ -179,7 +179,7 @@ RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResour
         return m_replayedResources.last()->m_nativeImages.get(identifier);
     if (!m_backend)
         return nullptr;
-    return m_backend->remoteResourceCache().cachedNativeImage(identifier);
+    return m_backend->cachedNativeImage(identifier);
 }
 
 RefPtr<RemoteCGRendererFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
@@ -342,13 +342,6 @@ bool RemoteCGRendererResources::recordFilter(std::optional<RenderingResourceIden
     return true;
 }
 
-#if USE(SYSTEM_PREVIEW)
-bool RemoteCGRendererResources::recordBadgeImage(std::optional<RenderingResourceIdentifier> imageIdentifier) const
-{
-    return !imageIdentifier || recordNativeImage(*imageIdentifier);
-}
-#endif
-
 Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRerecording()
 {
     Ref resources = adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, nullptr, nullptr));
@@ -390,18 +383,6 @@ void replayIntoContext(GraphicsContextCG& context, NOESCAPE const Function<void(
     context.removeSwiftRendererLender();
 }
 
-CGImageRef copyNativeImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const FloatRect& sourceRect, RasterDrawingOptions options, CGRendererImageFacts& facts)
-{
-    facts = { };
-    facts.resolutionScale = 1;
-    RefPtr image = resources.cachedNativeImage(identifier);
-    if (!image)
-        return nullptr;
-    facts.found = true;
-    CGRendererSetInvertColorMatrix(*image, sourceRect, options, facts);
-    return copyImage(*image, facts);
-}
-
 CGImageRef copyImageBufferImage(const RemoteCGRendererResources& resources, ImageBuffer* foundImageBuffer, const FloatRect& sourceRect, RasterDrawingOptions options, bool clonesAcceleratedTarget, CGRendererImageFacts& facts)
 {
     facts = { };
@@ -440,13 +421,9 @@ CGRendererBrushSource cachedGradientBrush(const RemoteCGRendererResources& resou
     return { gradient.releaseNonNull(), spaceTransform };
 }
 
-CGRendererBrushSource nativeImagePatternBrush(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier, const PatternParameters& parameters, bool& found)
+CGRendererBrushSource nativeImagePatternBrush(NativeImage& tileImage, const PatternParameters& parameters)
 {
-    RefPtr tileImage = resources.cachedNativeImage(identifier);
-    found = !!tileImage;
-    if (!tileImage)
-        return { };
-    return CGRendererBrushSource { WebCore::Pattern::create({ tileImage.releaseNonNull() }, parameters) };
+    return CGRendererBrushSource { WebCore::Pattern::create({ Ref { tileImage } }, parameters) };
 }
 
 CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& resources, ImageBuffer* foundTileImageBuffer, const PatternParameters& parameters, bool& found, bool& drawsIntoTarget)
@@ -462,15 +439,6 @@ CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& r
 CFURLRef copyURL(const URL& link)
 {
     return link.createCFURL().leakRef();
-}
-
-CGImageRef copyNativeImageForClip(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
-{
-    RefPtr image = resources.cachedNativeImage(identifier);
-    if (!image)
-        return nullptr;
-    RetainPtr platformImage = image->platformImage();
-    return platformImage.leakRef();
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)

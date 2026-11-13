@@ -56,9 +56,12 @@ public:
     RemoteResourceCache();
     ~RemoteResourceCache();
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // With the CG renderer in Swift, the native images are cached in Swift (RemoteRenderingBackend::cachedNativeImage()).
     bool cacheNativeImage(WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>&&);
     bool releaseNativeImage(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const;
+#endif
 
     bool cachePathImpl(RemotePathImplIdentifier, Ref<WebCore::PathImpl>&&);
     bool releasePathImpl(RemotePathImplIdentifier);
@@ -102,7 +105,9 @@ public:
 
 private:
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
+#endif
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;

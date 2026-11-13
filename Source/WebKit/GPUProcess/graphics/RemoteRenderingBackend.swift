@@ -28,20 +28,33 @@
 import WebCore_Private
 import WebKit_Internal
 
-// The rendering backend's state in Swift, on its work queue: the receivers of its image buffers' messages and its display
-// list recorders, by identifier, and the display lists that its contexts' DrawDisplayList messages name.
-final class RemoteRenderingBackendState {
+// A native image as RemoteCGRenderer draws it: the image, for the C++ that draws its pattern or reads it, and its platform
+// image, which is nil for an image this process can't read, its size and its headroom, read once when it is cached. A
+// recording keeps it as it was when the recording named it. A class, so that a lookup retains one object.
+final class RemoteCGRendererImage {
+    let nativeImage: WebCore.NativeImage
+    let image: CGImage?
+    let width: Float
+    let height: Float
+    let headroom: Float
+
+    init(nativeImage: WebCore.NativeImage, image: CGImage?, width: Float, height: Float, headroom: Float) {
+        self.nativeImage = nativeImage
+        self.image = image
+        self.width = width
+        self.height = height
+        self.headroom = headroom
+    }
+}
+
+// The rendering backend's resources that its image buffers' receivers and its recorders look up, on its work queue: the
+// receivers of its image buffers' messages, by identifier, and its cached native images.
+final class RemoteRenderingBackendResources {
     private(set) var imageBuffers: [UInt64: RemoteImageBuffer] = [:]
     // The image buffer that the last lookup found, which the draws of one image buffer after another find without the
     // dictionary. Only while the receiver is in imageBuffers, so that it keeps the buffer no longer than the receiver does.
     private var lastFoundImageBuffer: (key: UInt64, imageBuffer: WebCore.ImageBuffer)?
-    var displayListRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
-    // Recorders whose recordings became display lists, for the next recorders to reuse: a page makes many short display
-    // lists, such as one for each run of text it caches, in each rendering update.
-    var idleDisplayListRecorders: [DisplayListRecorder] = []
-    // False once the backend is uninitialized, after which an idle recorder would keep the backend that its resources keep.
-    var reusesDisplayListRecorders = true
-    let displayLists = RemoteCGRendererDisplayLists.create()
+    private var nativeImages: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]
 
     // False if a receiver already has the key.
     func addImageBuffer(_ receiver: RemoteImageBuffer, key: UInt64) -> Bool {
@@ -73,6 +86,69 @@ final class RemoteRenderingBackendState {
         }
         lastFoundImageBuffer = (key, imageBuffer)
         return imageBuffer
+    }
+
+    // False if an image already has the key, or, where it replaces one, if none has. What it replaces or releases is
+    // released after the change, so that no access to the dictionary can overlap another.
+    func cacheNativeImage(_ image: RemoteCGRendererImage, key: UInt64, replaces: Bool) -> Bool {
+        let key = RemoteIdentifierKey(value: key)
+        guard (nativeImages.index(forKey: key) != nil) == replaces else {
+            return false
+        }
+        let replaced = nativeImages.updateValue(image, forKey: key)
+        withExtendedLifetime(replaced) {}
+        return true
+    }
+
+    func releaseNativeImage(key: UInt64) -> Bool {
+        let released = nativeImages.removeValue(forKey: RemoteIdentifierKey(value: key))
+        return released != nil
+    }
+
+    func nativeImage(key: UInt64) -> RemoteCGRendererImage? {
+        nativeImages[RemoteIdentifierKey(value: key)]
+    }
+
+    func removeAllNativeImages() {
+        var removed: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]
+        swap(&nativeImages, &removed)
+    }
+}
+
+// The rendering backend's state in Swift, on its work queue: its resources, its display list recorders, by identifier, and
+// the display lists that its contexts' DrawDisplayList messages name.
+final class RemoteRenderingBackendState {
+    let resources = RemoteRenderingBackendResources()
+    var displayListRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
+    // Recorders whose recordings became display lists, for the next recorders to reuse: a page makes many short display
+    // lists, such as one for each run of text it caches, in each rendering update.
+    var idleDisplayListRecorders: [DisplayListRecorder] = []
+    // False once the backend is uninitialized, after which an idle recorder would keep the backend that its resources keep.
+    var reusesDisplayListRecorders = true
+    let displayLists: RemoteCGRendererDisplayLists
+
+    init() {
+        displayLists = RemoteCGRendererDisplayLists(backendResources: resources)
+    }
+
+    var imageBuffers: [UInt64: RemoteImageBuffer] {
+        resources.imageBuffers
+    }
+
+    func addImageBuffer(_ receiver: RemoteImageBuffer, key: UInt64) -> Bool {
+        resources.addImageBuffer(receiver, key: key)
+    }
+
+    func removeImageBuffer(key: UInt64) -> RemoteImageBuffer? {
+        resources.removeImageBuffer(key: key)
+    }
+
+    func removeAllImageBuffers() -> [UInt64: RemoteImageBuffer] {
+        resources.removeAllImageBuffers()
+    }
+
+    func imageBuffer(key: UInt64) -> WebCore.ImageBuffer? {
+        resources.imageBuffer(key: key)
     }
 }
 
@@ -120,6 +196,7 @@ extension WebKit.RemoteRenderingBackend {
             _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         state.displayLists.removeAll()
+        state.resources.removeAllNativeImages()
     }
 
     @cxx
@@ -173,6 +250,33 @@ extension WebKit.RemoteRenderingBackend {
         return unsafe Unmanaged<RemoteRenderingBackendState>
             .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
             ._withUnsafeGuaranteedRef { state in WebKit.RefPtrImageBuffer(state.imageBuffer(key: key)) }
+    }
+
+    @cxx
+    @implementation
+    func cachedNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) -> WebKit.RefPtrNativeImage {
+        WebKit.RefPtrNativeImage(state.resources.nativeImage(key: identifier.toUInt64())?.nativeImage)
+    }
+
+    @cxx
+    @implementation
+    func swiftCacheNativeImage(
+        _ nativeImage: WebCore.NativeImage,
+        _ image: CGImage?,
+        _ width: Float,
+        _ height: Float,
+        _ headroom: Float,
+        _ identifier: WebCore.RenderingResourceIdentifier,
+        _ replaces: Bool
+    ) -> Bool {
+        let cached = RemoteCGRendererImage(nativeImage: nativeImage, image: image, width: width, height: height, headroom: headroom)
+        return state.resources.cacheNativeImage(cached, key: identifier.toUInt64(), replaces: replaces)
+    }
+
+    @cxx
+    @implementation
+    func swiftReleaseNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) -> Bool {
+        state.resources.releaseNativeImage(key: identifier.toUInt64())
     }
 
     // A recorder of the RemoteCGRenderer messages to it, as RemoteGraphicsContext records them into a WebCore display list

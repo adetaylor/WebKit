@@ -467,9 +467,21 @@ void RemoteRenderingBackend::sinkImageBufferIntoNativeImage(RenderingResourceIde
     if (!image)
         image = createPlaceholderNativeImage();
     MESSAGE_CHECK(image, "NativeImage could not be created");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = addCachedNativeImage(image.releaseNonNull(), imageIdentifier);
+#else
     bool success = m_remoteResourceCache.cacheNativeImage(imageIdentifier, image.releaseNonNull());
+#endif
     MESSAGE_CHECK(success, "NativeImage already exists");
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+bool RemoteRenderingBackend::addCachedNativeImage(Ref<NativeImage>&& image, RenderingResourceIdentifier identifier)
+{
+    auto size = image->size();
+    return swiftCacheNativeImage(image.get(), image->platformImage().get(), size.width(), size.height(), image->headroom(), identifier, false);
+}
+#endif
 
 RefPtr<NativeImage> RemoteRenderingBackend::createPlaceholderNativeImage()
 {
@@ -499,7 +511,11 @@ void RemoteRenderingBackend::nativeImageBitmap(RenderingResourceIdentifier image
 {
     std::optional<ShareableBitmap::Handle> result;
     [&] {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+        RefPtr image = cachedNativeImage(imageIdentifier);
+#else
         RefPtr image = m_remoteResourceCache.cachedNativeImage(imageIdentifier);
+#endif
         MESSAGE_CHECK(image, "NativeImage not cached.");
         RefPtr<ShareableBitmap> bitmap;
 #if USE(CG)
@@ -520,6 +536,12 @@ void RemoteRenderingBackend::nativeImageBitmap(RenderingResourceIdentifier image
             return;
         }
         image->replacePlatformImage(WTF::move(platformImage));
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+        // Swift draws the image that replaced it from now on.
+        auto size = image->size();
+        bool replaced = swiftCacheNativeImage(*image, image->platformImage().get(), size.width(), size.height(), image->headroom(), imageIdentifier, true);
+        ASSERT_UNUSED(replaced, replaced);
+#endif
         result = WTF::move(handle);
     }();
     ASSERT(result);
@@ -538,7 +560,11 @@ void RemoteRenderingBackend::cacheNativeImage(ShareableBitmap::Handle&& handle, 
     if (!image)
         return;
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = addCachedNativeImage(image.releaseNonNull(), imageIdentifier);
+#else
     bool success = m_remoteResourceCache.cacheNativeImage(imageIdentifier, image.releaseNonNull());
+#endif
     MESSAGE_CHECK(success, "NativeImage already cached.");
 }
 
@@ -553,14 +579,22 @@ void RemoteRenderingBackend::cacheNativeImageFromSharedNativeImage(RemoteNativeI
         return;
     }
     MESSAGE_CHECK(*image, "Shared NativeImage not found.");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = addCachedNativeImage(image->releaseNonNull(), identifier);
+#else
     bool success = m_remoteResourceCache.cacheNativeImage(identifier, image->releaseNonNull());
+#endif
     MESSAGE_CHECK(success, "NativeImage already cached.");
 }
 
 void RemoteRenderingBackend::releaseNativeImage(RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseNativeImage(identifier);
+#else
     bool success = m_remoteResourceCache.releaseNativeImage(identifier);
+#endif
     MESSAGE_CHECK(success, "NativeImage released before being cached.");
 }
 
@@ -830,7 +864,7 @@ void RemoteRenderingBackend::getImageBufferResourceLimitsForTesting(CompletionHa
     callback(m_sharedResourceCache->getResourceLimitsForTesting(m_sharedPreferencesForWebProcess.acceleratedImageBufferLimit));
 }
 
-#if USE(CG)
+#if USE(CG) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 CGImageRef copyCachedNativeImage(RemoteRenderingBackend& backend, uint64_t renderingResourceIdentifier, bool& found)
 {
     RefPtr image = backend.remoteResourceCache().cachedNativeImage(RenderingResourceIdentifier { renderingResourceIdentifier });
