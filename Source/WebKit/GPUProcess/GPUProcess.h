@@ -161,7 +161,14 @@ public:
     WCSharedSceneContextHolder& sharedSceneContext() LIFETIME_BOUND { return m_sharedSceneContext; }
 #endif
 
-    void tryExitIfUnusedAndUnderMemoryPressure();
+    // Implemented in Swift (GPUProcess.swift), as the idle exit and the low memory handling are.
+    SWIFT_MAIN_ACTOR void tryExitIfUnusedAndUnderMemoryPressure();
+
+    // For the idle exit and the low memory handling in Swift.
+    static bool isUnderMemoryPressure();
+    static bool isSimulatingMemoryPressure();
+    static void releaseMemory(Critical, Synchronous);
+    void sendProcessIsReadyToExit();
 
     const String& applicationVisibleName() const LIFETIME_BOUND { return m_applicationVisibleName; }
 
@@ -259,7 +266,7 @@ private:
     // m_swiftState, for Swift, which can only read it.
     uintptr_t swiftState() const { return m_swiftState; }
 
-    void lowMemoryHandler(Critical, Synchronous);
+    SWIFT_MAIN_ACTOR void lowMemoryHandler(Critical, Synchronous);
 
     // AuxiliaryProcess
     void initializeProcess(const AuxiliaryProcessInitializationParameters&) override;
@@ -271,8 +278,8 @@ private:
     void stopRunLoop() override;
 #endif
 
-    void tryExitIfUnused();
-    bool canExitUnderMemoryPressure() const;
+    SWIFT_MAIN_ACTOR void tryExitIfUnused();
+    SWIFT_MAIN_ACTOR bool canExitUnderMemoryPressure() const;
 
     // IPC::Connection::Client
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
@@ -358,7 +365,6 @@ private:
 
     // Connections to WebProcesses.
     HashMap<WebCore::ProcessIdentifier, Ref<GPUConnectionToWebProcess>> m_webProcessConnections;
-    MonotonicTime m_creationTime { MonotonicTime::now() };
 
     GPUProcessPreferences m_preferences;
 
@@ -413,7 +419,6 @@ private:
 #endif
     };
     HashMap<PAL::SessionID, GPUSession> m_sessions;
-    WebCore::Timer m_idleExitTimer;
     const std::unique_ptr<WebCore::NowPlayingManager> m_nowPlayingManager;
     String m_applicationVisibleName;
 #if PLATFORM(MAC)
