@@ -174,15 +174,22 @@ final class WebGPUImplTable {
 
     let owner: IPC.SwiftReceiverOwner
     let renderingBackend: WebKit.RemoteRenderingBackend
+    let videoFrameSources: WebGPUVideoFrameSources
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
     private var stores = Stores()
     // Every device made: work in flight can keep a device alive after its entry is removed.
     private var devices: [DeviceWeakReference] = []
 
-    init(owner: IPC.SwiftReceiverOwner, renderingBackend: WebKit.RemoteRenderingBackend, instance: InstanceReference) {
+    init(
+        owner: IPC.SwiftReceiverOwner,
+        renderingBackend: WebKit.RemoteRenderingBackend,
+        videoFrameSources: WebGPUVideoFrameSources,
+        instance: InstanceReference
+    ) {
         self.owner = owner
         self.renderingBackend = renderingBackend
+        self.videoFrameSources = videoFrameSources
         self.instance = instance
     }
 
@@ -733,6 +740,26 @@ func gpuByteOwner(_ memory: IPCTypes.ReadOnlySharedMemory) -> GPUByteOwner {
     // Safety: the mapping is read-only in this process, and stays at the same address and size until the
     // ReadOnlySharedMemory's deinit (SwiftCoding.swift), which, as for any final class with only lets, may run on any thread.
     unsafe GPUByteOwner(memory)
+}
+
+#if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+// CoreVideo's CVPixelBuffer is CVBuffer itself in some builds and a class of its own in others.
+func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
+    pixelBuffer as! CVBuffer
+}
+#endif
+
+// What a WebGPU receiver makes the reader of the video frames its web process shares with: the connection's video frame
+// heap, and the web process's identity, if it has one, which the buffers read out of shared memory are attributed to.
+struct WebGPUVideoFrameSources {
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    let heap: WebKit.RemoteVideoFrameObjectHeap
+    let webProcessIdentity: WebCore.ProcessIdentity?
+
+    func make() -> SharedVideoFrameSource {
+        SharedVideoFrameSource(heap: heap, resourceOwner: webProcessIdentity)
+    }
+    #endif
 }
 
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its

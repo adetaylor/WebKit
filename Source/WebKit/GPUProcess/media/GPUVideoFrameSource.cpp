@@ -29,76 +29,26 @@
 #if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
 
 #include "GPUConnectionToWebProcess.h"
-#include "IPCSemaphore.h"
-#include "RemoteVideoFrameObjectHeap.h"
-#include "SharedVideoFrame.h"
+#include "RemoteRenderingBackend.h"
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/VideoFrame.h>
 
 namespace WebKit {
 
-Ref<GPUVideoFrameSource> GPUVideoFrameSource::create(GPUConnectionToWebProcess& connection)
+CVBufferRef copyMediaPlayerFrame(RemoteRenderingBackend& renderingBackend, uint64_t mediaPlayerIdentifier, GPUVideoFrameReadResult& result)
 {
-    // A frame shared across is usually a reference into the video frame object heap, and the web process's identity
-    // attributes any buffer read out of shared memory.
-    auto reader = makeUnique<SharedVideoFrameReader>(RefPtr<RemoteVideoFrameObjectHeap> { &connection.videoFrameObjectHeap() }, connection.webProcessIdentity());
-    return adoptRef(*new GPUVideoFrameSource(connection, WTF::move(reader)));
-}
-
-GPUVideoFrameSource::GPUVideoFrameSource(GPUConnectionToWebProcess& connection, std::unique_ptr<SharedVideoFrameReader>&& reader)
-    : m_connection(connection)
-    , m_reader(WTF::move(reader))
-{
-}
-
-GPUVideoFrameSource::~GPUVideoFrameSource() = default;
-
-void GPUVideoFrameSource::setSemaphore(mach_port_t semaphore)
-{
-    m_reader->setSemaphore(IPC::Semaphore { MachSendRight::create(semaphore) });
-}
-
-void GPUVideoFrameSource::setSharedMemory(mach_port_t memory, uint64_t size)
-{
-    m_reader->setSharedMemory({ MachSendRight::create(memory), size });
-}
-
-static CVBufferRef takeFrame(RefPtr<WebCore::VideoFrame>&& videoFrame, GPUVideoFrameReadResult& result)
-{
-    if (!videoFrame)
-        return nullptr;
-    result.rotation = static_cast<uint16_t>(videoFrame->rotation());
-    result.isMirrored = videoFrame->isMirrored();
-    return RetainPtr { videoFrame->pixelBuffer() }.leakRef();
-}
-
-CVBufferRef readSharedVideoFrame(GPUVideoFrameSource& source, IPC::CxxDecodedArgument<std::optional<SharedVideoFrame>>& argument, GPUVideoFrameReadResult& result)
-{
-    result = { };
-    auto sharedFrame = argument.take();
-    if (!sharedFrame) {
-        result.isInvalid = true;
-        return nullptr;
-    }
-    if (!*sharedFrame)
-        return nullptr;
-    result.hadFrame = true;
-    return takeFrame(source.m_reader->read(WTF::move(**sharedFrame)), result);
-}
-
-CVBufferRef copyMediaPlayerFrame(GPUVideoFrameSource& source, uint64_t mediaPlayerIdentifier, GPUVideoFrameReadResult& result)
-{
-    result = { };
-    RefPtr connection = source.m_connection.get();
-    if (!connection)
-        return nullptr;
-    result.hadFrame = true;
+    result = { .hadFrame = true };
     CVBufferRef pixelBuffer = nullptr;
-    connection->performWithMediaPlayerOnMainThread(WebCore::MediaPlayerIdentifier { mediaPlayerIdentifier }, [&](auto& player) mutable {
-        pixelBuffer = takeFrame(player.videoFrameForCurrentTime(), result);
+    protect(renderingBackend.gpuConnectionToWebProcess())->performWithMediaPlayerOnMainThread(WebCore::MediaPlayerIdentifier { mediaPlayerIdentifier }, [&](auto& player) mutable {
         auto naturalSize = player.naturalSize();
         result.naturalWidth = static_cast<uint32_t>(std::max(0.0f, naturalSize.width()));
         result.naturalHeight = static_cast<uint32_t>(std::max(0.0f, naturalSize.height()));
+        RefPtr videoFrame = player.videoFrameForCurrentTime();
+        if (!videoFrame)
+            return;
+        result.rotation = static_cast<uint16_t>(videoFrame->rotation());
+        result.isMirrored = videoFrame->isMirrored();
+        pixelBuffer = RetainPtr { videoFrame->pixelBuffer() }.leakRef();
     });
     return pixelBuffer;
 }

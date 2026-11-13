@@ -861,7 +861,11 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
         // does once it has started.
         RemoteGPUModel::create(*this, *renderingBackend, owner, identifier);
 #endif
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+        createRemoteGPU(owner, *renderingBackend, identifier.toUInt64(), WTF::move(webProcessResourceOwner), videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
+#else
         createRemoteGPU(owner, *renderingBackend, identifier.toUInt64(), WTF::move(webProcessResourceOwner));
+#endif
         return IPC::ScopedActiveMessageReceiveQueue { WTF::move(owner) };
     });
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
