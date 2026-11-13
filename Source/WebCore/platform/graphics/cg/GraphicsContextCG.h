@@ -133,6 +133,7 @@ public:
     void drawLinesForText(const FloatPoint&, float thickness, std::span<const FloatSegment>, bool isPrinting, bool doubleLines, StrokeStyle) final;
 
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle) final;
+    void drawSystemImage(SystemImage&, const FloatRect&) final;
 
     void beginPage(const FloatRect& pageRect) final;
     void unwindStateStack() final;

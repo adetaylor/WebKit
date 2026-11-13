@@ -28,11 +28,6 @@
 
 #if USE(APPKIT)
 
-#import "FloatRect.h"
-#import "GraphicsContext.h"
-#import "LocalCurrentGraphicsContext.h"
-#import <pal/spi/mac/CoreUISPI.h>
-#import <pal/spi/mac/NSAppearanceSPI.h>
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
@@ -55,15 +50,6 @@ Ref<ScrollbarTrackCornerSystemImageMac> ScrollbarTrackCornerSystemImageMac::crea
 ScrollbarTrackCornerSystemImageMac::ScrollbarTrackCornerSystemImageMac()
     : AppKitControlSystemImage(AppKitControlSystemImageType::ScrollbarTrackCorner)
 {
-}
-
-void ScrollbarTrackCornerSystemImageMac::drawControl(GraphicsContext& graphicsContext, const FloatRect& rect) const
-{
-    LocalCurrentGraphicsContext localContext(graphicsContext);
-
-    auto cornerDrawingOptions = @{ (__bridge NSString *)kCUIWidgetKey: (__bridge NSString *)kCUIWidgetScrollBarTrackCorner,
-        (__bridge NSString *)kCUIIsFlippedKey: (__bridge NSNumber *)kCFBooleanTrue };
-    [[NSAppearance currentDrawingAppearance] _drawInRect:rect context:protect(localContext.cgContext()) options:cornerDrawingOptions];
 }
 
 } // namespace WebCore
