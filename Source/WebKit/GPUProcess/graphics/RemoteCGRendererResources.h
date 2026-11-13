@@ -39,6 +39,7 @@
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/GraphicsTypes.h>
+#include <WebCore/ImageBuffer.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/SharedMemory.h>
 #include <wtf/Function.h>
@@ -256,15 +257,17 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
 }
 
 // How GraphicsContext::drawFilteredImageBuffer() draws a filter's result: its image, at the result's absolute rect, with the
-// context scaled down by the filter's scale. valid is false where a resource is missing, which is an invalid message.
+// context scaled down by the filter's scale. valid is false where a resource is missing, which is an invalid message. The
+// result's image buffer, whose image is a reference to it, must last until the image is drawn.
 struct RemoteCGRendererFilteredImage {
-    CGRendererImageFacts facts;
-    CGRendererImageOptions options;
-    CGRect destination;
-    CGRect source;
-    float scaleX;
-    float scaleY;
-    bool valid;
+    CGRendererImageFacts facts { };
+    CGRendererImageOptions options { };
+    CGRect destination { };
+    CGRect source { };
+    float scaleX { 1 };
+    float scaleY { 1 };
+    bool valid { false };
+    RefPtr<WebCore::ImageBuffer> imageBuffer;
 };
 
 // The image of a DrawFilteredImageBuffer's filter applied to its source, as RemoteGraphicsContext's handler applies it: the

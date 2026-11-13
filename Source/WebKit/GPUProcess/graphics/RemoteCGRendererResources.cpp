@@ -557,6 +557,7 @@ CGImageRef copyFilteredImage(const RemoteCGRendererResources& resources, std::op
         filtered.options = CGRendererImageOptionsFor({ });
         source.scale(filtered.facts.resolutionScale);
         CGRendererSetInvertColorMatrix(*image, source, { }, filtered.facts);
+        filtered.imageBuffer = WTF::move(imageBuffer);
         return copyImage(*image, filtered.facts);
     };
 

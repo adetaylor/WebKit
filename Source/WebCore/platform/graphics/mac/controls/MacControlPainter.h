@@ -144,9 +144,9 @@ public:
     void draw(CGContextRef, CGRect borderRect, float deviceScaleFactor, MacControlState, CFTypeRef accentColor, CGColorRef textColor, CGColorRef focusRingColor);
     CGSize servicesRolloverButtonCellSize();
 
-    // A slider's tick ratios: `tickRatios` is MacControlState's.
-    static size_t tickRatioCount(uintptr_t tickRatios);
-    static double tickRatio(uintptr_t tickRatios, size_t index);
+    // A slider's tick ratios: `tickRatios` must be MacControlState's, from the draw() being called.
+    SWIFT_UNSAFE static size_t tickRatioCount(uintptr_t tickRatios);
+    SWIFT_UNSAFE static double tickRatio(uintptr_t tickRatios, size_t index);
     // NSColor's keyboard focus indicator color in the current appearance, opaque, as GraphicsContext's focus rings take it.
     static CGRendererColorData keyboardFocusIndicatorColor();
 

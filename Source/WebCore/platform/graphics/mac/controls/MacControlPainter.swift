@@ -2344,7 +2344,8 @@ private func drawMacControl(
     }
 }
 
-// A Swift receiver's cells, which it draws Mac controls with as a ControlFactoryMac's: used on one thread.
+// A Swift receiver's cells, which it draws Mac controls with as a ControlFactoryMac's: used only on the thread that made them,
+// as enterControlDrawing() requires.
 @_spi(WebKitGPU) public struct MacControlPainterCells {
     fileprivate let cells: MacControlCells
 
@@ -2352,6 +2353,9 @@ private func drawMacControl(
         cells = enterControlDrawing(()) { _ in MacControlCells() }
     }
 }
+
+@available(*, unavailable)
+extension MacControlPainterCells: Sendable {}
 
 // Whether a Swift receiver draws cells without a view, as PlatformControlMac does in the GPU process.
 private let receiverDrawsViewlessCells = NSCell.instancesRespond(to: Selector(("_setFallbackBackingScaleFactor:")))
@@ -2460,10 +2464,11 @@ extension WebCore.MacControlPainter {
         }
         var tickRatios: [Double] = []
         if state.tickRatios != 0 {
-            let count = WebCore.MacControlPainter.tickRatioCount(state.tickRatios)
+            // Safety: PlatformControlMac::draw() set state.tickRatios to its tick ratios, which last until this draw returns.
+            let count = unsafe WebCore.MacControlPainter.tickRatioCount(state.tickRatios)
             tickRatios.reserveCapacity(count)
             for index in 0..<count {
-                tickRatios.append(WebCore.MacControlPainter.tickRatio(state.tickRatios, index))
+                unsafe tickRatios.append(WebCore.MacControlPainter.tickRatio(state.tickRatios, index))
             }
         }
         drawMacControl(
