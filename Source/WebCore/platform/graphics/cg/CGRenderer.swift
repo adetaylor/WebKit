@@ -4166,40 +4166,6 @@ extension CGRendererCore {
         _ = endPDFPage()
     }
 
-    // A GraphicsContext for the C++ that draws part of the receiver's message, over this renderer's context and with its state,
-    // which lasts until the context goes (CGRendererLeafContext).
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveLeafContext() -> CGRendererLeafContext {
-        hasDrawn = true
-        var leafState = CGRendererLeafState()
-        snapshotState(&leafState.snapshot)
-        let snapshot = leafState.snapshot
-        if snapshot.fill.platformColorSlot != 0 {
-            copyPlatformColor(snapshot.fill.platformColorSlot, &leafState.fillColor)
-        }
-        if snapshot.stroke.platformColorSlot != 0 {
-            copyPlatformColor(snapshot.stroke.platformColorSlot, &leafState.strokeColor)
-        }
-        if snapshot.hasDropShadow && snapshot.dropShadow.platformColorSlot != 0 {
-            copyPlatformColor(snapshot.dropShadow.platformColorSlot, &leafState.dropShadowColor)
-        }
-        if snapshot.style == 1 && snapshot.styleDropShadow.platformColorSlot != 0 {
-            copyPlatformColor(snapshot.styleDropShadow.platformColorSlot, &leafState.styleDropShadowColor)
-        }
-        #if HAVE_CGSTYLE_COLORMATRIX_BLUR
-        if snapshot.style == 3 {
-            copyColorMatrix(snapshot.colorMatrixSlot, &leafState.colorMatrix)
-        }
-        #endif
-        if snapshot.fill.sourceSlot != 0 {
-            copyBrushSource(snapshot.fill.sourceSlot, &leafState.fillSource)
-        }
-        if snapshot.stroke.sourceSlot != 0 {
-            copyBrushSource(snapshot.stroke.sourceSlot, &leafState.strokeSource)
-        }
-        return CGRendererCreateLeafContext(context, leafState)
-    }
-
     // GraphicsContextCG::clipToNativeImage() of an image that the receiver found.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveClipToNativeImage(_ image: CGImage, _ rect: CGRect) {
