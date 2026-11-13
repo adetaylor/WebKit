@@ -465,6 +465,17 @@ public:
     void encode(float value) { encodeValue(value); }
     void encode(double value) { encodeValue(value); }
 
+    // Encodes bytes as the encoders of Vector<uint8_t> and std::span<const uint8_t> encode their contents.
+    void encodeUInt8s(WTF::SpanUInt8 values NOESCAPE)
+    {
+        if (m_inStream) {
+            streamEncoder().encodeSpan(values);
+            return;
+        }
+        RELEASE_ASSERT(m_encoder);
+        m_encoder->encodeSpan(values);
+    }
+
     // Encodes the characters of an ASCII string as String's encoder encodes an 8-bit string's.
     void encodeASCIICharacters(WTF::SpanUInt8 characters NOESCAPE)
     {

@@ -1013,6 +1013,20 @@ private func mappingAtAddressZero<T>() -> T {
 }
 #endif
 
+extension IPCCoding.Vector where Element == UInt8 {
+    /// The bytes in one block, as C++ encodes a Vector<uint8_t> or a std::span<const uint8_t>.
+    static func encode(_ value: [UInt8], to encoder: IPC.SwiftReplyEncoder) {
+        encoder.encode(UInt64(value.count))
+        guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else {
+            for element in value {
+                UInt8.encode(element, to: encoder)
+            }
+            return
+        }
+        encoder.encodeUInt8s(value.span)
+    }
+}
+
 extension IPC.StreamConnectionWorkQueue {
     /// Runs `work` on the queue's thread, from any thread.
     func dispatch(_ work: @escaping @Sendable () -> Void) {
