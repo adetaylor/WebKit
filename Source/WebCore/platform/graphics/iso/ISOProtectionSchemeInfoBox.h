@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,16 +26,17 @@
 #pragma once
 
 #include <WebCore/ISOOriginalFormatBox.h>
+#include <WebCore/ISOSchemeInformationBox.h>
+#include <WebCore/ISOSchemeTypeBox.h>
 
 namespace WebCore {
 
-class ISOSchemeTypeBox;
-class ISOSchemeInformationBox;
-
-class WEBCORE_EXPORT ISOProtectionSchemeInfoBox final : public ISOBox {
+class ISOProtectionSchemeInfoBox final : public ISOBox {
 public:
-    ISOProtectionSchemeInfoBox();
-    ~ISOProtectionSchemeInfoBox();
+    ISOProtectionSchemeInfoBox()
+        : ISOBox(boxTypeName())
+    {
+    }
 
     static FourCC boxTypeName() { return std::span { "sinf" }; }
 
@@ -43,13 +44,74 @@ public:
     const ISOSchemeTypeBox* schemeTypeBox() const LIFETIME_BOUND { return m_schemeTypeBox.get(); }
     const ISOSchemeInformationBox* schemeInformationBox() const LIFETIME_BOUND { return m_schemeInformationBox.get(); }
 
-    bool parse(const ByteView&, unsigned& offset) final;
-    bool pack(MutableByteView&, unsigned& offset) const final;
+    using ISOBox::parse;
 
-    void updateSize() final;
-    uint64_t partialSize() const final;
+    bool pack(MutableByteView& view, unsigned& offset) const final
+    {
+        if (!ISOBox::pack(view, offset))
+            return false;
+
+        if (!m_originalFormatBox.write(view, offset))
+            return false;
+
+        if (m_schemeTypeBox && !m_schemeTypeBox->write(view, offset))
+            return false;
+
+        if (m_schemeInformationBox && !m_schemeInformationBox->write(view, offset))
+            return false;
+
+        return true;
+    }
+
+    void updateSize() final
+    {
+        m_originalFormatBox.updateSize();
+        if (m_schemeTypeBox)
+            m_schemeTypeBox->updateSize();
+        if (m_schemeInformationBox)
+            m_schemeInformationBox->updateSize();
+        ISOBox::updateSize();
+    }
+
+    uint64_t partialSize() const final
+    {
+        auto size = ISOBox::partialSize();
+        size += m_originalFormatBox.requiredSize();
+        if (m_schemeTypeBox)
+            size += m_schemeTypeBox->requiredSize();
+        if (m_schemeInformationBox)
+            size += m_schemeInformationBox->requiredSize();
+        return size;
+    }
 
 private:
+    bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode) final
+    {
+        ISOProtectionSchemeInfoBoxFields fields;
+        fields.box = boxFields();
+        fields.originalFormat = m_originalFormatBox.fields();
+        bool result = parseFields(view, offset, mode, fields);
+        setFields(fields, view);
+        return result;
+    }
+
+    // A schm or schi the parse found replaces the box's own, even if it then fails to read.
+    void setFields(const ISOProtectionSchemeInfoBoxFields& fields, const ByteView& view)
+    {
+        setBoxFields(fields.box);
+        m_originalFormatBox.setFields(fields.originalFormat);
+        if (fields.schemeTypeWasRead) {
+            m_schemeTypeBox = makeUnique<ISOSchemeTypeBox>();
+            m_schemeTypeBox->setFields(fields.schemeType);
+        }
+        if (fields.schemeInformationWasRead) {
+            m_schemeInformationBox = makeUnique<ISOSchemeInformationBox>();
+            m_schemeInformationBox->setFields(fields.schemeInformation, view);
+        }
+    }
+
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOProtectionSchemeInfoBoxFields&);
+
     ISOOriginalFormatBox m_originalFormatBox;
     std::unique_ptr<ISOSchemeTypeBox> m_schemeTypeBox;
     std::unique_ptr<ISOSchemeInformationBox> m_schemeInformationBox;

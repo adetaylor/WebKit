@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,37 +26,17 @@
 #include "config.h"
 #include "ISOSchemeTypeBox.h"
 
+#if ENABLE(WEBCORE_SWIFT)
+
+#include "WebCore-Swift.h"
+
 namespace WebCore {
 
-ISOSchemeTypeBox::ISOSchemeTypeBox()
-    : ISOFullBox(boxTypeName(), 0, 0)
+bool ISOSchemeTypeBox::parseFields(const ByteView& view, unsigned& offset, ISOBoxParseMode mode, ISOSchemeTypeBoxFields& fields)
 {
-}
-ISOSchemeTypeBox::~ISOSchemeTypeBox() = default;
-
-bool ISOSchemeTypeBox::parse(const ByteView& view, unsigned& offset)
-{
-    if (!ISOFullBox::parse(view, offset))
-        return false;
-
-    if (!checkedRead<uint32_t>(m_schemeType, view, offset, BigEndian))
-        return false;
-
-    if (!checkedRead<uint32_t>(m_schemeVersion, view, offset, BigEndian))
-        return false;
-
-    return true;
-}
-
-bool ISOSchemeTypeBox::pack(MutableByteView& view, unsigned& offset) const
-{
-    if (!ISOFullBox::pack(view, offset))
-        return false;
-
-    if (!checkedWrite<uint32_t>(m_schemeType.value, view, offset, BigEndian))
-        return false;
-
-    return checkedWrite<uint32_t>(m_schemeVersion, view, offset, BigEndian);
+    return parseISOSchemeTypeBoxImpl({ view }, offset, mode, fields);
 }
 
 }
+
+#endif // ENABLE(WEBCORE_SWIFT)

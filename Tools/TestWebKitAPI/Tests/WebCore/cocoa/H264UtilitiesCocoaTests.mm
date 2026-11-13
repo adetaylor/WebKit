@@ -33,6 +33,7 @@
 #import <WebCore/TrackInfo.h>
 #import <wtf/RetainPtr.h>
 #import <wtf/Vector.h>
+#import <wtf/cocoa/SpanCocoa.h>
 
 #import <pal/cf/CoreMediaSoftLink.h>
 
@@ -302,6 +303,52 @@ TEST(H264UtilitiesCocoa, ConvertsAnnexBToLengthPrefixedKeepsSpsWhenPpsMissing)
     EXPECT_EQ(lengthPrefixed[4], 0x67);
     EXPECT_EQ(lengthPrefixed[4 + spsSize + 3], sliceSize);
     EXPECT_EQ(lengthPrefixed[4 + spsSize + 4], 0x65);
+}
+
+TEST(H264UtilitiesCocoa, CreatesVideoInfoFromAVCC)
+{
+    // kH264AnnexBChunk's SPS and PPS. createVideoInfoFromAVCC() clears the SPS's high bit and sets the PPS's nal_ref_idc to 3.
+    Vector<uint8_t> sps { std::span { kH264AnnexBChunk }.subspan(4, 13) };
+    sps[0] |= 0x80;
+    Vector<uint8_t> pps { std::span { kH264AnnexBChunk }.subspan(21, 4) };
+    pps[0] &= ~0x60;
+    RetainPtr avcC = makeAVCCData(sps.span(), pps.span());
+
+    auto videoInfo = createVideoInfoFromAVCC(span(avcC.get()));
+    ASSERT_TRUE(!!videoInfo);
+    EXPECT_EQ(videoInfo->size().width(), 1280.f);
+    EXPECT_EQ(videoInfo->size().height(), 720.f);
+    EXPECT_EQ(videoInfo->reorderQueueMaxSize(), std::optional<uint8_t> { 0 });
+}
+
+static constexpr uint8_t emptyInputStorage[1] { };
+
+TEST(H264UtilitiesCocoa, EmptyInput)
+{
+    Vector<uint8_t> emptyVector;
+    std::array<std::span<const uint8_t>, 3> inputs { std::span<const uint8_t> { }, emptyVector.span(), std::span { emptyInputStorage }.first(0) };
+    for (auto input : inputs) {
+        EXPECT_FALSE(!!createVideoInfoFromAVCC(input));
+        EXPECT_FALSE(!!createVideoInfoFromAVCAnnexBStream(input, { }));
+        EXPECT_TRUE(convertAVCAnnexBToLengthPrefixed(input, { }).isEmpty());
+    }
+
+    // Parameter sets that are only a NAL unit header.
+    constexpr auto avcc = WTF::toArray<uint8_t>({ 0x01, 0x42, 0x00, 0x1e, 0xff, 0xe1, 0x00, 0x01, 0x07, 0x01, 0x00, 0x01, 0x08 });
+    EXPECT_FALSE(!!createVideoInfoFromAVCC(avcc));
+}
+
+// Indices that don't lie within the data are not found.
+TEST(H264UtilitiesCocoa, OutOfRangeNaluIndicesAreNotFound)
+{
+    auto naluIndices = findNaluIndices(std::span { kH264AnnexBChunk });
+    ASSERT_EQ(naluIndices.size(), 3u);
+    naluIndices[1].payloadSize = sizeof(kH264AnnexBChunk);
+    EXPECT_FALSE(!!createVideoInfoFromAVCAnnexBStream(std::span { kH264AnnexBChunk }, naluIndices));
+
+    Vector<uint8_t> emptyVector;
+    for (auto input : { std::span<const uint8_t> { }, emptyVector.span(), std::span { emptyInputStorage }.first(0) })
+        EXPECT_FALSE(!!createVideoInfoFromAVCAnnexBStream(input, { NaluIndex { } }));
 }
 
 } // namespace TestWebKitAPI

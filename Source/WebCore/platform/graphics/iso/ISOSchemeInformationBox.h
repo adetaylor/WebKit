@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,26 +25,79 @@
 
 #pragma once
 
-#include <WebCore/ISOBox.h>
+#include <WebCore/ISOTrackEncryptionBox.h>
 
 namespace WebCore {
 
-class WEBCORE_EXPORT ISOSchemeInformationBox final : public ISOBox {
+class ISOSchemeInformationBox final : public ISOBox {
 public:
-    ISOSchemeInformationBox();
-    ~ISOSchemeInformationBox();
+    ISOSchemeInformationBox()
+        : ISOBox(boxTypeName())
+    {
+    }
 
     static FourCC boxTypeName() { return std::span { "schi" }; }
 
     const ISOBox* schemeSpecificData() const LIFETIME_BOUND { return m_schemeSpecificData.get(); }
 
-    bool parse(const ByteView&, unsigned& offset) final;
-    bool pack(MutableByteView&, unsigned& offset) const final;
+    using ISOBox::parse;
 
-    void updateSize() final;
-    uint64_t partialSize() const final;
+    bool pack(MutableByteView& view, unsigned& offset) const final
+    {
+        if (!ISOBox::pack(view, offset))
+            return false;
+
+        if (m_schemeSpecificData)
+            return m_schemeSpecificData->write(view, offset);
+
+        return true;
+    }
+
+    void updateSize() final
+    {
+        if (m_schemeSpecificData)
+            m_schemeSpecificData->updateSize();
+        ISOBox::updateSize();
+    }
+
+    uint64_t partialSize() const final
+    {
+        auto size = ISOBox::partialSize();
+        if (m_schemeSpecificData)
+            size += m_schemeSpecificData->requiredSize();
+        return size;
+    }
 
 private:
+    friend class ISOProtectionSchemeInfoBox;
+
+    bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode) final
+    {
+        auto fields = this->fields();
+        bool result = parseFields(view, offset, mode, fields);
+        setFields(fields, view);
+        return result;
+    }
+
+    ISOSchemeInformationBoxFields fields() const
+    {
+        ISOSchemeInformationBoxFields fields;
+        fields.box = boxFields();
+        return fields;
+    }
+
+    void setFields(const ISOSchemeInformationBoxFields& fields, const ByteView& view)
+    {
+        setBoxFields(fields.box);
+        if (fields.trackEncryptionWasRead) {
+            auto trackEncryptionBox = makeUnique<ISOTrackEncryptionBox>();
+            trackEncryptionBox->setFields(fields.trackEncryption, view);
+            m_schemeSpecificData = WTF::move(trackEncryptionBox);
+        }
+    }
+
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOSchemeInformationBoxFields&);
+
     std::unique_ptr<ISOBox> m_schemeSpecificData;
 };
 

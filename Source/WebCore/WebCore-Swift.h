@@ -121,4 +121,17 @@
 #include "SharedVideoFrameSwiftBridge.h"
 #include "SourceGraphicParameters.h"
 
+#include "AV1CodecConfigurationRecord.h"
+#include "AnnexBUtilities.h"
+#include "CDMEncryptionScheme.h"
+#include "CDMKeyStatus.h"
+#include "CDMRequirement.h"
+#include "CDMSessionType.h"
+#include "CMParsingTypes.h"
+#include "EMEParseResults.h"
+#include "ISOParseResults.h"
+#include "MediaParsersCxxBridging.h"
+#include "VPCodecConfigurationRecord.h"
+#include "VideoCodecParameterTypes.h"
+
 #include "WebCoreSwift-Generated.h"

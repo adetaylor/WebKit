@@ -28,6 +28,7 @@
 #include <optional>
 #include <span>
 #include <wtf/Forward.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Vector.h>
 
 namespace WebCore {
@@ -36,6 +37,18 @@ struct NaluIndex {
     size_t startOffset { 0 };
     size_t payloadStartOffset { 0 };
     size_t payloadSize { 0 };
+};
+
+// Swift can only name Vector<NaluIndex> through this typedef.
+using NaluIndexVector = Vector<NaluIndex>;
+
+inline constexpr NaluIndex mediaParserEmptyNaluIndices[1] { };
+
+// Borrowed for one call from C++ into Swift, like the views in MediaParsersCxxBridging.h; an empty one lends a
+// zero-length span of mediaParserEmptyNaluIndices, so Swift never sees a null base.
+struct SWIFT_VIEW MediaParserNaluIndices {
+    std::span<const NaluIndex> indices;
+    ALWAYS_INLINE std::span<const NaluIndex> span() const LIFETIME_BOUND { return indices.empty() ? std::span { mediaParserEmptyNaluIndices }.first<0>() : indices; }
 };
 
 WEBCORE_EXPORT Vector<NaluIndex> findNaluIndices(std::span<const uint8_t>);

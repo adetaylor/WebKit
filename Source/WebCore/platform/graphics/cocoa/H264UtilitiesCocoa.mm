@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Apple Inc. All rights reserved.
+ * Copyright (C) 2025-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,87 +26,40 @@
 #import "config.h"
 #import "H264UtilitiesCocoa.h"
 
+#if ENABLE(WEBCORE_SWIFT)
+
 #import "AnnexBUtilities.h"
-#import "BitReader.h"
 #import "CMUtilities.h"
 #import "FormatDescriptionUtilities.h"
 #import "H264Utilities.h"
 #import "Logging.h"
 #import "TrackInfo.h"
-#import <wtf/cf/TypeCastsCF.h>
+#import "WebCore-Swift.h"
 
 #import <pal/cf/CoreMediaSoftLink.h>
 
 namespace WebCore {
 
+// The avcC walk and the Annex B parameter set search are in H264Utilities.swift.
+
 RefPtr<VideoInfo> createVideoInfoFromAVCC(std::span<const uint8_t> avcc)
 {
-    if (avcc.size() < 7)
+    MediaParserByteVector parameterSets;
+    MediaParserUInt32Vector parameterSetSizes;
+    size_t lengthSize = createVideoInfoFromAVCCImpl({ avcc }, parameterSets, parameterSetSizes);
+    if (!lengthSize)
         return nullptr;
 
-    BitReader reader { avcc };
-
-    // configurationVersion
-    reader.read(8);
-    // AVCProfileIndication;
-    reader.read(8);
-    // profile_compatibility;
-    reader.read(8);
-    // AVCLevelIndication;
-    reader.read(8);
-    // bit(6) reserved = '111111'b;
-    // unsigned int(2) lengthSizeMinusOne;
-    size_t lengthSize = (*reader.read<uint8_t>() & 0x3) + 1;
-    // bit(3) reserved = '111'b;
-    // unsigned int(5) numOfSequenceParameterSets;
-    size_t numOfSequenceParameterSets = 0x1f & *reader.read<uint8_t>();
-    if (!numOfSequenceParameterSets)
-        return nullptr;
-
-    constexpr size_t kNALTypeSize = 1;
-    constexpr uint8_t kSPSNAL = 7;
-    constexpr uint8_t kPPSNAL = 8;
-    constexpr uint8_t kNAL_REF_IDC_SEQ_PARAM_SET = 0x80;
-    constexpr uint8_t kNAL_REF_IDC_PIC_PARAM_SET = 0x60;
-
-    Vector<Vector<uint8_t>> paramSets(ReserveCapacityTag { }, numOfSequenceParameterSets + 1); // typical number of picture parameter set is 1.
-
-    for (size_t index = 0; index < numOfSequenceParameterSets; index++) {
-        auto size = reader.read<uint16_t>();
-        if (!size || *size < kNALTypeSize)
-            return nullptr;
-        auto nalType = reader.read<uint8_t>();
-        if (!nalType || (*nalType & 0x1f) != kSPSNAL)
-            return nullptr;
-        if (!reader.skipBytes(*size - kNALTypeSize))
-            return nullptr;
-        paramSets.append({ avcc.subspan(reader.byteOffset() - *size, *size) });
-        paramSets.last()[0] &= ~kNAL_REF_IDC_SEQ_PARAM_SET;
+    Vector<const uint8_t*> paramSetPtrs;
+    Vector<size_t> paramSetSizes;
+    paramSetPtrs.reserveInitialCapacity(parameterSetSizes.size());
+    paramSetSizes.reserveInitialCapacity(parameterSetSizes.size());
+    auto remainingParameterSets = parameterSets.span();
+    for (size_t size : parameterSetSizes) {
+        paramSetPtrs.append(remainingParameterSets.data());
+        paramSetSizes.append(size);
+        remainingParameterSets = remainingParameterSets.subspan(size);
     }
-
-    // unsigned int(8) numOfPictureParameterSets;
-    auto numOfPictureParameterSets = reader.read<uint8_t>();
-    if (!numOfPictureParameterSets || !*numOfPictureParameterSets)
-        return nullptr;
-    for (size_t index = 0; index < *numOfPictureParameterSets; index++) {
-        auto size = reader.read<uint16_t>();
-        if (!size || *size < kNALTypeSize)
-            return nullptr;
-        auto nalType = reader.read<uint8_t>();
-        if (!nalType || (*nalType & 0x1f) != kPPSNAL)
-            return nullptr;
-        if (!reader.skipBytes(*size - kNALTypeSize))
-            return nullptr;
-        paramSets.append({ avcc.subspan(reader.byteOffset() - *size, *size) });
-        paramSets.last()[0] |= kNAL_REF_IDC_PIC_PARAM_SET;
-    }
-
-    Vector<const uint8_t*> paramSetPtrs { paramSets.size(), [&paramSets](auto index) {
-        return paramSets[index].span().data();
-    } };
-    Vector<size_t> paramSetSizes { paramSets.size(), [&paramSets](auto index) {
-        return paramSets[index].size();
-    } };
 
     CMFormatDescriptionRef rawDescription = nullptr;
     if (PAL::CMVideoFormatDescriptionCreateFromH264ParameterSets(kCFAllocatorDefault, paramSetPtrs.size(), paramSetPtrs.span().data(), paramSetSizes.span().data(), lengthSize, &rawDescription))
@@ -120,30 +73,17 @@ Vector<uint8_t> convertAVCCMSampleBufferToAnnexB(CMSampleBufferRef avccSampleBuf
     return convertParameterSetsCMSampleBufferToAnnexB(avccSampleBuffer, isKeyframe, PAL::CMVideoFormatDescriptionGetH264ParameterSetAtIndex);
 }
 
-NODELETE static bool h264AnnexBSpsIsFollowedByPps(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices, size_t spsIndex)
-{
-    if (spsIndex + 1 >= naluIndices.size())
-        return false;
-
-    auto& ppsIndex = naluIndices[spsIndex + 1];
-    return ppsIndex.payloadSize && h264NaluType(data[ppsIndex.payloadStartOffset]) == H264NaluType::Pps;
-}
-
 RefPtr<VideoInfo> createVideoInfoFromAVCAnnexBStream(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices)
 {
-    auto spsIndex = findH264AnnexBSpsIndex(data, naluIndices);
-    if (spsIndex == notFound)
-        return nullptr;
-
-    if (!h264AnnexBSpsIsFollowedByPps(data, naluIndices, spsIndex)) {
-        RELEASE_LOG_ERROR(WebRTC, "createVideoInfoFromAVCAnnexBStream NAL unit following SPS is not PPS");
+    ParameterSetRange sps;
+    ParameterSetRange pps;
+    if (!createVideoInfoFromAVCAnnexBStreamImpl({ data }, { naluIndices.span() }, sps, pps)) {
+        if (sps.type)
+            RELEASE_LOG_ERROR(WebRTC, "createVideoInfoFromAVCAnnexBStream NAL unit following SPS is not PPS");
         return nullptr;
     }
 
-    std::array<std::span<const uint8_t>, 2> paramSets {
-        data.subspan(naluIndices[spsIndex].payloadStartOffset, naluIndices[spsIndex].payloadSize),
-        data.subspan(naluIndices[spsIndex + 1].payloadStartOffset, naluIndices[spsIndex + 1].payloadSize)
-    };
+    std::array<std::span<const uint8_t>, 2> paramSets { data.subspan(sps.offset, sps.size), data.subspan(pps.offset, pps.size) };
     std::array<const uint8_t*, 2> paramSetPointers { paramSets[0].data(), paramSets[1].data() };
     std::array<size_t, 2> paramSetSizes { paramSets[0].size(), paramSets[1].size() };
 
@@ -156,20 +96,12 @@ RefPtr<VideoInfo> createVideoInfoFromAVCAnnexBStream(std::span<const uint8_t> da
 
 Vector<uint8_t> convertAVCAnnexBToLengthPrefixed(std::span<const uint8_t> data, const Vector<NaluIndex>& naluIndices)
 {
-    // FIXME: We basically assume that SPS is first and PPS is second. But there may be nalus between them, and SPS/PPS order is not guaranteed.
-    // We also need to validate what to do for a frame with only one SPS or only one PPS.
-    // For now, we skip all NAL units up to and including the SPS/PPS pair, if present, as parameter sets belong in the format description, not in the per-sample data.
-    size_t startIndex = 0;
-    auto spsIndex = findH264AnnexBSpsIndex(data, naluIndices);
-    if (spsIndex != notFound) {
-        if (h264AnnexBSpsIsFollowedByPps(data, naluIndices, spsIndex))
-            startIndex = spsIndex + 2;
-        else
-            RELEASE_LOG_ERROR(WebRTC, "convertAVCAnnexBToLengthPrefixed NAL unit following SPS is not PPS");
-    }
-
-    return annexBToLengthPrefixed(data, naluIndices.subspan(startIndex));
+    Vector<uint8_t> result;
+    if (!convertAVCAnnexBToLengthPrefixedImpl({ data }, { naluIndices.span() }, result))
+        RELEASE_LOG_ERROR(WebRTC, "convertAVCAnnexBToLengthPrefixed NAL unit following SPS is not PPS");
+    return result;
 }
 
 } // namespace WebCore
 
+#endif // ENABLE(WEBCORE_SWIFT)

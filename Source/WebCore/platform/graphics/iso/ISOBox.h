@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,6 +26,10 @@
 #pragma once
 
 #include <WebCore/FourCC.h>
+#include <WebCore/ISOParseResults.h>
+#include <WebCore/SharedBuffer.h>
+#include <algorithm>
+#include <wtf/CheckedArithmetic.h>
 #include <wtf/FlipBytes.h>
 #include <wtf/Forward.h>
 #include <wtf/StdIntExtras.h>
@@ -35,16 +39,21 @@
 
 namespace WebCore {
 
-class SharedBuffer;
-
+// The ISO box classes are shells over the Swift parsers (ISOBoxes.swift, ISOFairPlayStreamingPssh.swift), kept for the
+// code that still uses them, such as the API tests. Each parse goes to Swift through the class's exported
+// parseFields(), which hands back the fields as the parse left them, also when it fails. Everything else is inline, so
+// WebCore only has the parseFields() functions.
 class ISOBox {
-    WTF_MAKE_TZONE_ALLOCATED(ISOBox);
+    WTF_MAKE_TZONE_ALLOCATED_EXPORT(ISOBox, WEBCORE_EXPORT);
 public:
-    NODELETE WEBCORE_EXPORT ISOBox();
-    NODELETE WEBCORE_EXPORT ISOBox(FourCC boxType);
-    NODELETE WEBCORE_EXPORT ISOBox(const ISOBox&);
-    NODELETE WEBCORE_EXPORT ISOBox(ISOBox&&);
-    WEBCORE_EXPORT virtual ~ISOBox();
+    ISOBox() = default;
+    ISOBox(FourCC boxType)
+        : m_boxType { boxType }
+    {
+    }
+    ISOBox(const ISOBox&) = default;
+    ISOBox(ISOBox&&) = default;
+    virtual ~ISOBox() = default;
 
     ISOBox& operator=(const ISOBox&) = default;
     ISOBox& operator=(ISOBox&&) = default;
@@ -52,57 +61,103 @@ public:
     using ByteView = std::span<const uint8_t>;
     using MutableByteView = std::span<uint8_t>;
 
-    using PeekResult = std::optional<std::pair<FourCC, uint64_t>>;
-    NODELETE static PeekResult peekBox(const ByteView&, unsigned offset);
-    static constexpr size_t minimumBoxSize() { return 2 * sizeof(uint32_t); }
+    bool read(const ByteView& view)
+    {
+        unsigned offset = 0;
+        return parseUsingSwift(view, offset, ISOBoxParseMode::ReadWhole);
+    }
 
-    WEBCORE_EXPORT bool read(const ByteView&);
-    bool read(const ByteView&, unsigned& offset);
-    bool write(MutableByteView&, unsigned& offset) const;
+    bool write(MutableByteView& view, unsigned& offset) const
+    {
+        if (!isInBounds<unsigned>(view.size()))
+            return false;
 
-    WEBCORE_EXPORT Ref<SharedBuffer> serialize() const;
+        unsigned localOffset = offset;
+        if (!pack(view, localOffset))
+            return false;
+
+        unsigned consumed;
+        if (!WTF::safeSub(localOffset, offset, consumed) || consumed > m_size)
+            return false;
+
+        offset += m_size;
+        return true;
+    }
+
+    Ref<SharedBuffer> serialize() const
+    {
+        auto buffer = Vector<uint8_t>(m_size);
+        MutableByteView view = buffer.mutableSpan();
+        unsigned offset = 0;
+        if (!write(view, offset))
+            return SharedBuffer::create();
+
+        return SharedBuffer::create(WTF::move(buffer));
+    }
 
     uint64_t size() const { return m_size; }
     FourCC boxType() const { return m_boxType; }
     using ExtendedType = std::array<uint8_t, 16>;
     const std::optional<ExtendedType>& extendedType() const LIFETIME_BOUND { return m_extendedType; }
 
-    WEBCORE_EXPORT virtual void updateSize();
-    virtual uint64_t partialSize() const;
-    WEBCORE_EXPORT virtual uint64_t requiredSize() const;
+    virtual void updateSize() { m_size = requiredSize(); }
+
+    virtual uint64_t partialSize() const
+    {
+        uint64_t size = 8;
+        if (m_boxType == std::span { "uuid" })
+            size += 16;
+        return size;
+    }
+
+    virtual uint64_t requiredSize() const
+    {
+        auto partialSize = this->partialSize();
+        if (partialSize > std::numeric_limits<uint32_t>::max())
+            partialSize += 4;
+        return partialSize;
+    }
 
 protected:
-    virtual bool parse(const ByteView&, unsigned& offset);
-    virtual bool pack(MutableByteView&, unsigned& offset) const;
+    bool parse(const ByteView& view, unsigned& offset) { return parseUsingSwift(view, offset, ISOBoxParseMode::Parse); }
 
-    enum Endianness { BigEndian, LittleEndian };
-
-    template<typename T, typename R>
-    static bool checkedRead(R& returnValue, const ByteView& view, unsigned& offset, Endianness endianness)
+    // A box of any type, of which only the header is read.
+    virtual bool parseUsingSwift(const ByteView& view, unsigned& offset, ISOBoxParseMode mode)
     {
-        if (offset + sizeof(T) > view.size())
+        auto fields = boxFields();
+        bool result = parseFields(view, offset, mode, fields);
+        setBoxFields(fields);
+        return result;
+    }
+
+    virtual bool pack(MutableByteView& view, unsigned& offset) const
+    {
+        uint32_t firstSize = 1u;
+        if (m_size <= std::numeric_limits<uint32_t>::max())
+            firstSize = m_size;
+
+        if (!checkedWrite<uint32_t>(firstSize, view, offset, BigEndian))
             return false;
 
-        T value;
-        memcpySpan(asMutableByteSpan(value), view.subspan(offset, sizeof(T)));
-        returnValue = flipBytesIfLittleEndian(value, endianness == LittleEndian);
-        offset += sizeof(T);
-        RELEASE_ASSERT(isInBounds<uint32_t>(offset));
+        if (!checkedWrite<uint32_t>(m_boxType.value, view, offset, BigEndian))
+            return false;
 
-        return true;
-    }
+        if (firstSize == 1 && !checkedWrite<uint64_t>(m_size, view, offset, BigEndian))
+            return false;
 
-    template<typename T, typename S>
-    static bool checkedReadSequence(S& returnValue, const ByteView& view, unsigned& offset, Endianness endianness)
-    {
-        unsigned actualOffset = offset;
-        for (auto& value : returnValue) {
-            if (!checkedRead<T>(value, view, actualOffset, endianness))
+        if (m_boxType == std::span { "uuid" }) {
+            ASSERT(m_extendedType);
+            if (!m_extendedType)
+                return false;
+
+            if (!checkedWriteSequence<uint8_t>(*m_extendedType, view, offset, BigEndian))
                 return false;
         }
-        offset = actualOffset;
+
         return true;
     }
+
+    enum Endianness { BigEndian, LittleEndian };
 
     template<typename T, typename R>
     static bool checkedWrite(const R& value, MutableByteView& view, unsigned& offset, Endianness endianness)
@@ -129,29 +184,89 @@ protected:
         return true;
     }
 
+    // The Swift parsers keep 16-byte values in two big-endian words.
+    static InlineBytes16 inlineBytes16(std::span<const uint8_t, 16> bytes)
+    {
+        InlineBytes16 result;
+        for (size_t index = 0; index < 8; ++index) {
+            result.high = result.high << 8 | bytes[index];
+            result.low = result.low << 8 | bytes[index + 8];
+        }
+        return result;
+    }
+
+    // The bytes of a range Swift returned, which is always within the view it parsed.
+    static Vector<uint8_t> bytes(const ByteView& view, const ISOByteRange& range) { return view.subspan(range.offset, range.size); }
+
+    // The class keeps the uuid extended type byte-reversed, as one big-endian 16-byte value; Swift's fields hold it in
+    // box order.
+    ISOBoxFields boxFields() const
+    {
+        ISOBoxFields fields { m_size, m_boxType.value, !!m_extendedType, { } };
+        if (m_extendedType) {
+            auto extendedType = *m_extendedType;
+            std::ranges::reverse(extendedType);
+            fields.extendedType = inlineBytes16(extendedType);
+        }
+        return fields;
+    }
+
+    void setBoxFields(const ISOBoxFields& fields)
+    {
+        m_size = fields.size;
+        m_boxType = fields.type;
+        if (fields.hasExtendedType) {
+            auto extendedType = fields.extendedType.bytes();
+            std::ranges::reverse(extendedType);
+            m_extendedType = extendedType;
+        }
+    }
+
     uint64_t m_size { 0 };
     FourCC m_boxType;
     std::optional<ExtendedType> m_extendedType;
+
+private:
+    WEBCORE_EXPORT static bool parseFields(const ByteView&, unsigned& offset, ISOBoxParseMode, ISOBoxFields&);
 };
 
 class ISOFullBox : public ISOBox {
 public:
-    NODELETE WEBCORE_EXPORT ISOFullBox();
-    NODELETE WEBCORE_EXPORT ISOFullBox(FourCC boxType, uint8_t version, uint32_t flags);
-    NODELETE WEBCORE_EXPORT ISOFullBox(const ISOFullBox&);
-    NODELETE WEBCORE_EXPORT ISOFullBox(ISOFullBox&&);
-
     uint8_t version() const { return m_version; }
-    void setVersion(uint8_t version) { m_version = version; }
-
     uint32_t flags() const { return m_flags; }
-    void setFlags(uint32_t flags) { m_flags = flags; }
 
 protected:
+    ISOFullBox(FourCC boxType, uint8_t version, uint32_t flags)
+        : ISOBox(boxType)
+        , m_version { version }
+        , m_flags { flags }
+    {
+    }
+    ISOFullBox(const ISOFullBox&) = default;
+    ISOFullBox(ISOFullBox&&) = default;
+
     uint64_t partialSize() const override { return ISOBox::partialSize() + 4; }
-    bool parse(const ByteView&, unsigned& offset) override;
-    NODELETE bool parseVersionAndFlags(const ByteView&, unsigned& offset);
-    bool pack(MutableByteView&, unsigned& offset) const override;
+
+    bool pack(MutableByteView& view, unsigned& offset) const override
+    {
+        if (!ISOBox::pack(view, offset))
+            return false;
+
+        uint32_t versionAndFlags = (m_version << 24) + m_flags;
+        if (!checkedWrite<uint32_t>(versionAndFlags, view, offset, BigEndian))
+            return false;
+
+        return true;
+    }
+
+    ISOFullBoxFields fullBoxFields() const { return { boxFields(), m_version, m_flags }; }
+
+    void setFullBoxFields(const ISOFullBoxFields& fields)
+    {
+        setBoxFields(fields.box);
+        m_version = fields.version;
+        m_flags = fields.flags;
+    }
 
     uint8_t m_version { 0 };
     uint32_t m_flags { 0 };
