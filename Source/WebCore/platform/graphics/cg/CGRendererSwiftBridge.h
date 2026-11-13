@@ -179,7 +179,6 @@ private:
     friend CGPatternRef _Nullable CGRendererCreateBrushPattern(const CGRendererBrushSource&, CGContextRef _Nonnull);
     friend CGGradientRef _Nullable CGRendererCopyBrushGradient(const CGRendererBrushSource&, const CGRendererGradientColorSpace&, CGRendererGradientGeometry&, CGAffineTransform&);
     friend class WebCore::GraphicsContextCG;
-    friend class CGRendererLeafContext;
 
     void applyTo(WebCore::SourceBrush&) const;
 
@@ -293,47 +292,6 @@ struct CGRendererPathSegment {
     CGRendererPathSegmentKind kind;
     bool flag;
 };
-
-// A Swift receiver's renderer state, for the C++ that draws part of a message with a CGRendererLeafContext: the snapshot,
-// and what its slots name in the renderer's side tables.
-struct CGRendererLeafState {
-    CGRendererStateSnapshot snapshot;
-    CGRendererColorData fillColor;
-    CGRendererColorData strokeColor;
-    CGRendererColorData dropShadowColor;
-    CGRendererColorData styleDropShadowColor;
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    CGRendererColorMatrix colorMatrix;
-#endif
-    CGRendererBrushSource fillSource;
-    CGRendererBrushSource strokeSource;
-};
-
-// The GraphicsContext that C++ draws part of a Swift receiver's message with while the receiver has the renderer of the context
-// it draws into lent (GraphicsContextCG::lendSwiftRenderer()): a GraphicsContextCG over the same CGContext, in a save of its
-// gstate that ends with it, with the lent renderer's state (CGRendererCore's receiveLeafContext()). What it draws goes into
-// the context, and its state changes go with it.
-class CGRendererLeafContext : public RefCounted<CGRendererLeafContext> {
-    WTF_MAKE_NONCOPYABLE(CGRendererLeafContext);
-public:
-    WEBCORE_EXPORT ~CGRendererLeafContext();
-    WEBCORE_EXPORT WebCore::GraphicsContext& context() const __attribute__((availability(swift, unavailable)));
-
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
-    void ref() const { RefCounted<CGRendererLeafContext>::ref(); }
-    void deref() const { RefCounted<CGRendererLeafContext>::deref(); }
-#endif
-
-private:
-    friend CGRendererLeafContext* _Nonnull CGRendererCreateLeafContext(CGContextRef _Nonnull, const CGRendererLeafState&);
-    CGRendererLeafContext(CGContextRef _Nonnull, const CGRendererLeafState&);
-
-    const RetainPtr<CGContextRef> m_cgContext;
-    std::unique_ptr<WebCore::GraphicsContextCG> m_context;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-WEBCORE_EXPORT CGRendererLeafContext* _Nonnull CGRendererCreateLeafContext(CGContextRef _Nonnull, const CGRendererLeafState&) SWIFT_RETURNS_RETAINED;
 
 // The plain values of a message's PathSegment, for a Swift receiver, and the PathSegment of them.
 WEBCORE_EXPORT CGRendererPathSegment CGRendererPathSegmentValues(WebCore::PathSegment);
