@@ -35,7 +35,7 @@ final class RemoteRenderingBackendState {
     // The image buffer that the last lookup found, which the draws of one image buffer after another find without the
     // dictionary. Only while the receiver is in imageBuffers, so that it keeps the buffer no longer than the receiver does.
     private var lastFoundImageBuffer: (key: UInt64, imageBuffer: WebCore.ImageBuffer)?
-    var displayListRecorders: [UInt64: RemoteCGRendererRecorder] = [:]
+    var displayListRecorders: [RemoteIdentifierKey: RemoteCGRendererRecorder] = [:]
     let displayLists = RemoteCGRendererDisplayLists.create()
 
     // False if a receiver already has the key.
@@ -102,7 +102,7 @@ extension WebKit.RemoteRenderingBackend {
         let recorders = state.displayListRecorders
         state.displayListRecorders = [:]
         for identifier in recorders.keys {
-            _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier)
+            _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         state.displayLists.removeAll()
     }
@@ -167,7 +167,7 @@ extension WebKit.RemoteRenderingBackend {
     func swiftCreateDisplayListRecorder(_ identifier: WebKit.RemoteDisplayListRecorderIdentifier) -> Bool {
         let state = self.state
         let key = identifier.toUInt64()
-        guard state.displayListRecorders[key] == nil else {
+        guard state.displayListRecorders[RemoteIdentifierKey(value: key)] == nil else {
             return false
         }
         let recorder = RemoteCGRendererRecorder.create(
@@ -178,7 +178,7 @@ extension WebKit.RemoteRenderingBackend {
         guard IPC.tryStartReceivingSwiftMessages(streamConnection(), forwarder, .RemoteCGRenderer, key) else {
             return false
         }
-        state.displayListRecorders[key] = recorder
+        state.displayListRecorders[RemoteIdentifierKey(value: key)] = recorder
         return true
     }
 
@@ -192,7 +192,7 @@ extension WebKit.RemoteRenderingBackend {
     ) -> Bool {
         let state = self.state
         let key = identifier.toUInt64()
-        guard let recorder = state.displayListRecorders.removeValue(forKey: key) else {
+        guard let recorder = state.displayListRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
             return false
         }
         _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)

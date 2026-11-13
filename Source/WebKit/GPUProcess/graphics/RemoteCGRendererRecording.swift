@@ -28,6 +28,27 @@
 import WebCore_Private
 import WebKit_Internal
 
+// An identifier that the web process names a display list or a recorder by, as the key of a dictionary that messages look up,
+// which hashes it as a C++ HashMap hashes an integer rather than with Hasher.
+struct RemoteIdentifierKey: Hashable {
+    let value: UInt64
+
+    func hash(into hasher: inout Swift.Hasher) {
+        hasher.combine(value)
+    }
+
+    func _rawHashValue(seed: Int) -> Int {
+        var bits = value
+        bits ^= bits >> 33
+        bits &*= 0xff51_afd7_ed55_8ccd
+        bits ^= UInt64(UInt(bitPattern: seed))
+        bits ^= bits >> 33
+        bits &*= 0xc4ce_b9fe_1a85_ec53
+        bits ^= bits >> 33
+        return Int(truncatingIfNeeded: bits)
+    }
+}
+
 // A recording of RemoteCGRenderer's messages, which a display list or a snapshot's frame is: the messages, the resources they
 // name, kept from when they were recorded, and the display lists they draw, by key (WebKit.displayListKey()).
 @_expose(Cxx)
@@ -37,28 +58,27 @@ final class RemoteCGRendererRecording {
     @_expose(!Cxx)
     let resources: WebKit.RemoteCGRendererRecordedResources
     @_expose(!Cxx)
-    let displayLists: [UInt64: RemoteCGRendererRecording]
+    let displayLists: [RemoteIdentifierKey: RemoteCGRendererRecording]
     // Whether a replay looks up the recording or the transform it started at: only SetCTM and DrawDisplayList do.
     @_expose(!Cxx)
     let replayNeedsContext: Bool
+    // Whether a replay looks up any of the resources: a run of glyphs keeps its font itself.
+    @_expose(!Cxx)
+    let replayNeedsResources: Bool
 
     @_expose(!Cxx)
     fileprivate init(
         messages: [RemoteCGRenderer.RecordedMessage],
         resources: WebKit.RemoteCGRendererRecordedResources,
-        displayLists: [UInt64: RemoteCGRendererRecording]
+        displayLists: [RemoteIdentifierKey: RemoteCGRendererRecording],
+        needsContext: Bool,
+        namesResources: Bool
     ) {
         self.messages = messages
         self.resources = resources
         self.displayLists = displayLists
-        self.replayNeedsContext = messages.contains { message in
-            switch message {
-            case .setCTM, .drawDisplayList:
-                true
-            default:
-                false
-            }
-        }
+        self.replayNeedsContext = needsContext
+        self.replayNeedsResources = namesResources
     }
 
     // Draws the messages into a context's renderer, lent for the draw, with resources for a replay into the context, as
@@ -93,7 +113,9 @@ final class RemoteCGRendererRecorder {
     private let resources: WebKit.RemoteCGRendererResources
     private let displayLists: RemoteCGRendererDisplayLists
     private var messages: [RemoteCGRenderer.RecordedMessage] = []
-    private var recordedDisplayLists: [UInt64: RemoteCGRendererRecording] = [:]
+    private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
+    private var needsContext = false
+    private var namesResources = false
 
     @_expose(!Cxx)
     private init(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists) {
@@ -119,21 +141,32 @@ final class RemoteCGRendererRecorder {
         let recording = RemoteCGRendererRecording(
             messages: messages,
             resources: WebKit.takeRecordedResources(resources),
-            displayLists: recordedDisplayLists
+            displayLists: recordedDisplayLists,
+            needsContext: needsContext,
+            namesResources: namesResources
         )
         messages = []
         recordedDisplayLists = [:]
+        needsContext = false
+        namesResources = false
         return recording
     }
 
     // What it recorded so far, while it records more.
     @used
     func currentRecording() -> RemoteCGRendererRecording {
-        RemoteCGRendererRecording(messages: messages, resources: WebKit.copyRecordedResources(resources), displayLists: recordedDisplayLists)
+        RemoteCGRendererRecording(
+            messages: messages,
+            resources: WebKit.copyRecordedResources(resources),
+            displayLists: recordedDisplayLists,
+            needsContext: needsContext,
+            namesResources: namesResources
+        )
     }
 
     @_expose(!Cxx)
     func record(_ message: consuming RemoteCGRenderer.RecordedMessage) throws(InvalidMessage) {
+        var namesResource = true
         switch copy message {
         case .fillCachedPath(let identifier), .clipCachedPath(let identifier, _), .clipTransformedCachedPath(_, let identifier, _):
             try messageCheck { resources.recordPath(identifier) }
@@ -155,6 +188,7 @@ final class RemoteCGRendererRecorder {
             .fillRectWithCachedGradientAndSpaceTransform(_, let identifier, _, _):
             try messageCheck { resources.recordGradient(identifier) }
         case .drawGlyphs(let fontIdentifier, let glyphs, _, _):
+            namesResource = false
             try messageCheck { resources.recordGlyphs(fontIdentifier, glyphs) }
         case .drawMeshGradient(let identifier, _):
             try messageCheck { resources.recordMeshGradient(identifier) }
@@ -164,18 +198,25 @@ final class RemoteCGRendererRecorder {
         case .drawBadgeSystemImage(let imageIdentifier, _):
             try messageCheck { resources.recordBadgeImage(imageIdentifier) }
         #endif
+        case .setCTM:
+            namesResource = false
+            needsContext = true
         case .drawDisplayList(let identifier):
+            namesResource = false
+            needsContext = true
             let key = WebKit.displayListKey(identifier)
             guard let recording = displayLists.recording(key: key) else {
                 try messageCheck { false }
                 return
             }
-            recordedDisplayLists[key] = recording
+            recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
         case .drawSnapshotFrame(let frameIdentifier):
+            namesResource = false
             try messageCheck { resources.addSnapshotFrameReference(frameIdentifier) }
         default:
-            break
+            namesResource = false
         }
+        namesResources = namesResources || namesResource
         messages.append(message)
     }
 
@@ -209,7 +250,7 @@ final class RemoteCGRendererRecorder {
 final class RemoteCGRendererDisplayLists {
     // Changed only by changes that release what they replace or remove after they end, so that no access to it can overlap
     // another, and the lookups need no dynamic exclusivity check.
-    private var recordings: [UInt64: RemoteCGRendererRecording] = [:]
+    private var recordings: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
 
     @_expose(!Cxx)
     private init() {
@@ -230,6 +271,7 @@ final class RemoteCGRendererDisplayLists {
     // False for a key that already names a display list, which is an invalid message.
     @used
     func add(_ recording: RemoteCGRendererRecording, key: UInt64) -> Bool {
+        let key = RemoteIdentifierKey(value: key)
         guard recordings[key] == nil else {
             return false
         }
@@ -239,17 +281,17 @@ final class RemoteCGRendererDisplayLists {
 
     @_expose(!Cxx)
     func remove(key: UInt64) -> Bool {
-        recordings.removeValue(forKey: key) != nil
+        recordings.removeValue(forKey: RemoteIdentifierKey(value: key)) != nil
     }
 
     @_expose(!Cxx)
     func removeAll() {
-        var removed: [UInt64: RemoteCGRendererRecording] = [:]
+        var removed: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
         swap(&recordings, &removed)
     }
 
     func recording(key: UInt64) -> RemoteCGRendererRecording? {
-        recordings[key]
+        recordings[RemoteIdentifierKey(value: key)]
     }
 }
 
@@ -303,7 +345,7 @@ final class RemoteCGRendererSnapshotFrames {
                 guard let index = add(displayList) else {
                     return nil
                 }
-                displayLists.append((key, index))
+                displayLists.append((key.value, index))
             }
             guard var encoder = recording.encodedMessages(), builder.addRecording(&encoder, recording.resources) else {
                 return nil
