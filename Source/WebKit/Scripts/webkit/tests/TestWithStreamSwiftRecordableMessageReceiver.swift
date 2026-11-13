@@ -126,6 +126,57 @@ final class TestWithStreamSwiftRecordableWeakRef {
         return .Handled
     }
     #endif
+
+    @used
+    func dispatchSetLabel(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let label: String?
+        let tag: UInt64?
+        do {
+            label = try IPCCoding.WTFString.decode(from: &decoder)
+            tag = try IPCCoding.StdOptional<UInt64>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setLabel(
+                    state: &state,
+                    label: label,
+                    tag: tag
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetLabelSource(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let source: UInt64
+        do {
+            source = try UInt64.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setLabelSource(
+                    state: &state,
+                    source: source
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftRecordableMessageForwarder {
@@ -151,6 +202,7 @@ extension TestWithStreamSwiftRecordable {
         #if WTF_PLATFORM_COCOA
         case draw(rect: WebCore.FloatRect, clip: Bool)
         #endif
+        case setLabel(label: String?, tag: UInt64?)
     }
 
     // Calls the handler of each message in turn, as the forwarder does for a message it receives, with the state lent for
@@ -191,6 +243,14 @@ extension TestWithStreamSwiftRecordable {
                     )
                 )
             #endif
+            case .setLabel(let label, let tag):
+                _ = try? mayThrowInvalidMessage(
+                    target.setLabel(
+                        state: &state,
+                        label: label,
+                        tag: tag
+                    )
+                )
             }
         }
     }
@@ -209,6 +269,11 @@ extension TestWithStreamSwiftRecordable {
             case .draw(let rect, let clip):
                 encoder.encodeDraw(rect, clip)
             #endif
+            case .setLabel(let label, let tag):
+                let messageEncoder = encoder.encoderForSetLabel()
+                IPCCoding.WTFString.encode(label, to: messageEncoder)
+                IPCCoding.StdOptional<UInt64>.encode(tag, to: messageEncoder)
+                encoder.appendEncodedMessage(messageEncoder)
             }
         }
     }
@@ -302,6 +367,51 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
         return .Handled
     }
     #endif
+
+    @used
+    func dispatchSetLabel(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let label: String?
+        let tag: UInt64?
+        do {
+            label = try IPCCoding.WTFString.decode(from: &decoder)
+            tag = try IPCCoding.StdOptional<UInt64>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try target.record(
+                .setLabel(
+                    label: label,
+                    tag: tag
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetLabelSource(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let source: UInt64
+        do {
+            source = try UInt64.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setLabelSource(source: source)
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftRecordableRecorderMessageForwarder {

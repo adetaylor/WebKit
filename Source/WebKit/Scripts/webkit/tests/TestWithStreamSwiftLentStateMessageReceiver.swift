@@ -86,6 +86,33 @@ final class TestWithStreamSwiftLentStateWeakRef {
             return .Invalid
         }
     }
+
+    @used
+    func dispatchSetLabel(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let label: String?
+        let values: [UInt32]
+        do {
+            label = try IPCCoding.WTFString.decode(from: &decoder)
+            values = try IPCCoding.Vector<UInt32>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setLabel(
+                    state: &state,
+                    label: label,
+                    values: values
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftLentStateMessageForwarder {

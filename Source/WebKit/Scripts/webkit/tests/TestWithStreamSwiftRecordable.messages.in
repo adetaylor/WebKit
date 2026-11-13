@@ -36,4 +36,6 @@ messages -> TestWithStreamSwiftRecordable Stream {
 #if PLATFORM(COCOA)
     Draw(WebCore::FloatRect rect, bool clip) StreamBatched
 #endif
+    SetLabel(String label, std::optional<uint64_t> tag) StreamBatched SwiftTypes
+    SetLabelSource(uint64_t source) NotRecorded SwiftTypes
 }

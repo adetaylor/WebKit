@@ -180,8 +180,13 @@ class MessageReceiver(object):
             raise Exception("ERROR: Receiver %s has 'SwiftReceiverStateLender=%s', which is for Swift stream receivers" % (self.name, self.swift_receiver_state_lender))
         for message in self.messages:
             description = '%s.%s' % (self.name, message.name)
+            # A message that takes Swift types is decoded by its Swift dispatch, while the state is lent.
             if self.takes_swift_types(message):
-                raise Exception("ERROR: Message %s takes Swift types, which is not supported on a receiver with 'SwiftReceiverStateLender='" % description)
+                if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
+                    raise Exception("ERROR: Message %s takes Swift types, so cannot have '%s', since C++ would handle it without its arguments" % (description, SWIFT_MAY_DECLINE_ATTRIBUTE))
+                for parameter in message.parameters:
+                    if parameter.attributes:
+                        raise Exception("ERROR: Message %s takes Swift types, which is not supported with attributes on parameter '%s' on a receiver with 'SwiftReceiverStateLender='" % (description, parameter.name))
             if message.reply_parameters is not None:
                 raise Exception("ERROR: Message %s has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='" % description)
             for parameter in message.parameters:

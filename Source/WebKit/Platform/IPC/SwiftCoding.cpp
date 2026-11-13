@@ -55,6 +55,11 @@ SwiftReplyEncoder* SwiftReplyEncoder::createForMessage(Connection& connection, M
     return &adoptRef(*new SwiftReplyEncoder(connection, makeUniqueRef<Encoder>(name, destinationID), nullptr)).leakRef();
 }
 
+SwiftReplyEncoder* SwiftReplyEncoder::createForRecordedMessage(MessageName name)
+{
+    return &adoptRef(*new SwiftReplyEncoder(makeUniqueRef<Encoder>(name, 0))).leakRef();
+}
+
 void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
 {
     // A reply holding a SharedBuffer is not stream encodable.

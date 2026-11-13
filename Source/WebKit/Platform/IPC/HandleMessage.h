@@ -830,6 +830,29 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
         handleSwiftMessageWithLentStateInline<MessageType>(connection, decoder, lender, object, function, fallback...);
 }
 
+// For a message that takes Swift types: its Swift dispatch decodes the arguments while the state is lent, and returns
+// Invalid if they are malformed. As above, a message that finds no state to lend is dropped.
+template<typename MessageType, typename L, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftTypesMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
+{
+    ASSERT(connection.isCurrentWorkQueue());
+    UNUSED_PARAM(connection);
+    ASSERT(lender);
+    if (!lender) [[unlikely]]
+        return;
+    SwiftLentStateDispatch result;
+    {
+        auto lend = lender->lendSwiftReceiverState();
+        if (!lend) [[unlikely]]
+            return;
+        NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+        result = (object->*function)(lend.state(), swiftDecoderLender.view());
+    }
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        markSwiftArgumentsInvalid(decoder);
+}
+
 // Dispatch to the recorder of a Recordable Swift receiver's messages, whose Swift dispatch records the arguments as a value
 // and returns Invalid for a message the recorder finds invalid. Inlined unless its arguments are large, as above. Without a
 // connection, the message is one that another process recorded (forEachRecordedMessage()).
@@ -865,6 +888,19 @@ ALWAYS_INLINE void handleSwiftRecordedMessage(StreamServerConnection* connection
         handleSwiftRecordedMessageInline<MessageType>(connection, decoder, object, function);
 }
 
+// For a message that takes Swift types, whose Swift dispatch decodes the arguments and records them.
+template<typename MessageType, typename T, typename U, typename MF>
+ALWAYS_INLINE void handleSwiftTypesRecordedMessage(StreamServerConnection* connection, Decoder& decoder, T* object, MF U::* function)
+{
+    ASSERT(!connection || connection->isCurrentWorkQueue());
+    UNUSED_PARAM(connection);
+    NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
+    auto result = (object->*function)(swiftDecoderLender.view());
+    ASSERT(result != SwiftLentStateDispatch::Declined);
+    if (result == SwiftLentStateDispatch::Invalid) [[unlikely]]
+        markSwiftArgumentsInvalid(decoder);
+}
+
 // A recorded message, encoded as its sender encodes it, after the messages already encoded, each with its size first.
 template<typename... Arguments>
 void appendRecordedMessage(Vector<uint8_t>& messages, MessageName name, const Arguments&... arguments)
@@ -872,6 +908,18 @@ void appendRecordedMessage(Vector<uint8_t>& messages, MessageName name, const Ar
     Encoder encoder(name, 0);
     (..., (encoder << arguments));
     auto message = encoder.span();
+    uint32_t size = message.size();
+    messages.append(asByteSpan(size));
+    messages.append(message);
+}
+
+// A recorded message whose arguments Swift encoded (SwiftReplyEncoder::createForRecordedMessage()), appended as
+// appendRecordedMessage() appends one.
+inline void appendSwiftEncodedRecordedMessage(Vector<uint8_t>& messages, SwiftReplyEncoder& swiftEncoder)
+{
+    auto encoder = swiftEncoder.discard();
+    RELEASE_ASSERT(encoder);
+    auto message = encoder->span();
     uint32_t size = message.size();
     messages.append(asByteSpan(size));
     messages.append(message);

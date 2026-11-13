@@ -961,6 +961,8 @@ def forward_declarations_and_headers(receiver):
         if receiver.is_recordable():
             swift_extra_types_by_namespace[handler_namespace_name].add(('class', recorder_weak_ref_class(receiver)))
             swift_extra_types_by_namespace[handler_namespace_name].add(('class', recorder_forwarder_class(receiver)))
+            if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+                swift_extra_types_by_namespace['IPC'].add(('class', 'SwiftReplyEncoder'))
         result += '\n'.join([forward_declarations_for_namespace(namespace, types) for (namespace, types) in sorted(swift_extra_types_by_namespace.items())])
 
     if_swift_enabled(receiver, result, append_extra_swift_forward_declarations, None)
@@ -1090,9 +1092,15 @@ def recorder_forwarder_class_declaration(receiver, handler_namespace):
         if condition:
             result.append('#if %s\n' % condition)
         for message in messages:
-            result.append('    void encode%s(%s);\n' % (message.name, recorded_message_encoder_parameters(message)))
+            if receiver.takes_swift_types(message):
+                # Swift encodes the arguments of a message that takes Swift types into the encoder of the message.
+                result.append('    IPC::SwiftReplyEncoder* WTF_NONNULL encoderFor%s() SWIFT_RETURNS_RETAINED;\n' % message.name)
+            else:
+                result.append('    void encode%s(%s);\n' % (message.name, recorded_message_encoder_parameters(message)))
         if condition:
             result.append('#endif\n')
+    if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+        result.append('    void appendEncodedMessage(IPC::SwiftReplyEncoder&);\n')
     result.append('    Vector<uint8_t> takeEncodedMessages() { return std::exchange(m_encodedMessages, { }); }\n')
     result.append('private:\n')
     result.append('    Vector<uint8_t> m_encodedMessages;\n')
@@ -1127,7 +1135,8 @@ def recorder_forwarder_methods(receiver):
             if message.is_async_reply:
                 continue
             result.append('    if (decoder.messageName() == Messages::%s::%s::name()) {\n' % (receiver.name, message.name))
-            result.append('        IPC::handleSwiftRecordedMessage<Messages::%s::%s>(connection, decoder, m_handler.get(), &%s::dispatch%s);\n' % (receiver.name, message.name, weak_ref_class, message.name))
+            function = 'handleSwiftTypesRecordedMessage' if receiver.takes_swift_types(message) else 'handleSwiftRecordedMessage'
+            result.append('        IPC::%s<Messages::%s::%s>(connection, decoder, m_handler.get(), &%s::dispatch%s);\n' % (function, receiver.name, message.name, weak_ref_class, message.name))
             result.append('        return;\n')
             result.append('    }\n')
         if condition:
@@ -1157,6 +1166,13 @@ def recorder_forwarder_methods(receiver):
         if condition:
             result.append('#if %s\n' % condition)
         for message in messages:
+            if receiver.takes_swift_types(message):
+                result.append('IPC::SwiftReplyEncoder* %s::encoderFor%s()\n' % (encoder_class, message.name))
+                result.append('{\n')
+                result.append('    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::%s::%s::name());\n' % (receiver.name, message.name))
+                result.append('}\n')
+                result.append('\n')
+                continue
             result.append('void %s::encode%s(%s)\n' % (encoder_class, message.name, recorded_message_encoder_parameters(message)))
             result.append('{\n')
             result.append('    IPC::appendRecordedMessage(m_encodedMessages, Messages::%s::%s::name()%s);\n' % (receiver.name, message.name, ''.join(', %s' % parameter.name for parameter in message.parameters)))
@@ -1165,6 +1181,12 @@ def recorder_forwarder_methods(receiver):
         if condition:
             result.append('#endif\n')
             result.append('\n')
+    if any(receiver.takes_swift_types(message) for message in recorded_messages(receiver)):
+        result.append('void %s::appendEncodedMessage(IPC::SwiftReplyEncoder& encoder)\n' % encoder_class)
+        result.append('{\n')
+        result.append('    IPC::appendSwiftEncodedRecordedMessage(m_encodedMessages, encoder);\n')
+        result.append('}\n')
+        result.append('\n')
     return result
 
 
@@ -1176,7 +1198,9 @@ def recordable_swift_condition(receiver, message):
         raise Exception('ERROR: Message %s.%s is under a condition Swift cannot evaluate: %s' % (receiver.name, message.name, error))
 
 
-def recorded_swift_type_name(parameter):
+def recorded_swift_type_name(receiver, message, parameter):
+    if receiver.takes_swift_types(message):
+        return swift_types.swift_type_and_coder(parameter.type)[0]
     return swift_type_name(parameter.recorded_as_type() or parameter.type)
 
 
@@ -1202,7 +1226,7 @@ def generate_swift_recorded_messages(receiver):
     result.append('    enum RecordedMessage {\n')
     for message in messages:
         if message.parameters:
-            payload = ', '.join('%s: %s' % (parameter.name, recorded_swift_type_name(parameter)) for parameter in message.parameters)
+            payload = ', '.join('%s: %s' % (parameter.name, recorded_swift_type_name(receiver, message, parameter)) for parameter in message.parameters)
             lines = ['        case %s(%s)\n' % (handler_function_name(message), payload)]
         else:
             lines = ['        case %s\n' % handler_function_name(message)]
@@ -1242,6 +1266,13 @@ def generate_swift_recorded_messages(receiver):
             lines = ['            case .%s(%s):\n' % (handler_function_name(message), bindings)]
         else:
             lines = ['            case .%s:\n' % handler_function_name(message)]
+        if receiver.takes_swift_types(message):
+            lines.append('                let messageEncoder = encoder.encoderFor%s()\n' % message.name)
+            for parameter in message.parameters:
+                lines.append('                %s.encode(%s, to: messageEncoder)\n' % (swift_types.swift_coder(parameter.type), parameter.name))
+            lines.append('                encoder.appendEncodedMessage(messageEncoder)\n')
+            result += surround_in_swift_condition(lines, message, '            ')
+            continue
         arguments = ['%s.argument()' % parameter.name if parameter.recorded_as_type() else parameter.name for parameter in message.parameters]
         lines.append('                encoder.encode%s(%s)\n' % (message.name, ', '.join(arguments)))
         result += surround_in_swift_condition(lines, message, '            ')
@@ -1259,7 +1290,11 @@ def generate_swift_recorded_messages(receiver):
     result.append('        self.target = target\n')
     result.append('    }\n')
     for message in all_messages:
-        parameters = ['%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)) for parameter in message.parameters]
+        takes_swift_types = receiver.takes_swift_types(message)
+        if takes_swift_types:
+            parameters = ['decoder: inout IPC.SwiftDecoder']
+        else:
+            parameters = ['%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)) for parameter in message.parameters]
         lines = ['\n']
         lines.append('    @used\n')
         if parameters:
@@ -1268,6 +1303,8 @@ def generate_swift_recorded_messages(receiver):
             lines.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
         else:
             lines.append('    func dispatch%s() -> IPC.SwiftLentStateDispatch {\n' % message.name)
+        if takes_swift_types:
+            lines += swift_types_argument_decoding(message, '        ')
         lines.append('        do throws(InvalidMessage) {\n')
         if message.has_attribute(NOT_RECORDED_ATTRIBUTE):
             arguments = ['%s: %s' % (parameter.name, parameter.name) for parameter in message.parameters]
@@ -1275,7 +1312,7 @@ def generate_swift_recorded_messages(receiver):
             lines.append('                target.%s(%s)\n' % (handler_function_name(message), ', '.join(arguments)))
             lines.append('            )\n')
         elif message.parameters:
-            values = ['%s: %s' % (parameter.name, '%s(%s)' % (recorded_swift_type_name(parameter), parameter.name) if parameter.recorded_as_type() else parameter.name) for parameter in message.parameters]
+            values = ['%s: %s' % (parameter.name, '%s(%s)' % (recorded_swift_type_name(receiver, message, parameter), parameter.name) if parameter.recorded_as_type() else parameter.name) for parameter in message.parameters]
             lines.append('            try target.record(\n')
             lines.append('                .%s(\n' % handler_function_name(message))
             lines.append(',\n'.join(['                    %s' % value for value in values]))
@@ -1729,11 +1766,13 @@ def async_message_statement(receiver, message):
         result.append(pattern % (', '.join(dispatch_function_args)))
 
     def append_lent_state_dispatch(result):
-        # The lender lends the state for the message, and handles it itself if the Swift handler declines it.
+        # The lender lends the state for the message, and handles it itself if the Swift handler declines it. A message
+        # that takes Swift types is decoded by its Swift dispatch, while the state is lent.
         arguments = ['connection', 'decoder', 'm_stateLender', 'm_handler.get()', '&%s' % swift_trampoline_function(receiver, message)]
         if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
             arguments.append('&%s::%s' % (receiver.swift_receiver_state_lender, handler_function_name(message)))
-        result.append('        IPC::handleSwiftMessageWithLentState<Messages::%s::%s>(%s);\n' % (receiver.name, message.name, ', '.join(arguments)))
+        function = 'handleSwiftTypesMessageWithLentState' if receiver.takes_swift_types(message) else 'handleSwiftMessageWithLentState'
+        result.append('        IPC::%s<Messages::%s::%s>(%s);\n' % (function, receiver.name, message.name, ', '.join(arguments)))
 
     def append_with_dispatch_function_args(receiver, result):
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
@@ -2942,19 +2981,42 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # itself, which would need the connection, this tells C++ what became of it. A SwiftMayDecline handler returns false to
 # decline the message, which the lender then handles. The handler is called during the dispatch, so it borrows its arguments:
 # the C++ that calls this would otherwise copy each one that isn't trivially copyable, for every message.
+# The Swift decoding of the arguments of a message that takes Swift types, by a dispatch that returns its Invalid result if
+# they are malformed.
+def swift_types_argument_decoding(message, indent):
+    result = []
+    if not message.parameters:
+        return result
+    for parameter in message.parameters:
+        result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
+    result.append('%sdo {\n' % indent)
+    for parameter in message.parameters:
+        result.append('%s    %s = try %s.decode(from: &decoder)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type)))
+    result.append('%s} catch {\n' % indent)
+    result.append('%s    return .Invalid\n' % indent)
+    result.append('%s}\n' % indent)
+    return result
+
+
 def swift_lent_state_dispatch_function(receiver, message):
     may_decline = message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE)
+    takes_swift_types = receiver.takes_swift_types(message)
     parameters = ['state: inout %s.State' % receiver.name]
     arguments = ['state: &state']
     for parameter in message.parameters:
-        parameters.append('%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)))
+        if not takes_swift_types:
+            parameters.append('%s: %s%s' % (parameter.name, swift_borrowing_prefix(parameter.type), swift_type_name(parameter.type)))
         arguments.append('%s: %s' % (parameter.name, parameter.name))
+    if takes_swift_types:
+        parameters.append('decoder: inout IPC.SwiftDecoder')
     result = []
     result.append('\n')
     result.append('    @used\n')
     result.append('    func dispatch%s(\n' % message.name)
     result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
     result.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
+    if takes_swift_types:
+        result += swift_types_argument_decoding(message, '        ')
     result.append('        do throws(InvalidMessage) {\n')
     result.append('            %stry mayThrowInvalidMessage(\n' % ('let handled = ' if may_decline else ''))
     result.append('                target.%s(\n' % handler_function_name(message))
