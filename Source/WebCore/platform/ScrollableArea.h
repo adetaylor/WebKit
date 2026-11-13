@@ -319,7 +319,7 @@ public:
     RectEdges<bool> scrolledDirections() const { return m_scrolledDirections; }
 
     // This reflects animated scrolls triggered by CSS OM View "smooth" scrolls.
-    ScrollAnimationStatus scrollAnimationStatus() { return m_scrollAnimationStatus; }
+    ScrollAnimationStatus scrollAnimationStatus() const { return m_scrollAnimationStatus; }
     void setScrollAnimationStatus(ScrollAnimationStatus status) { m_scrollAnimationStatus = status; }
     virtual void animatedScrollDidEnd() { };
 

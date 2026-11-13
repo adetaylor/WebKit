@@ -1072,6 +1072,11 @@ static void requestCanvasPaintEventIfNeeded(const RenderObject& renderer, const 
         canvasRenderer->requestPaintEventIfNeeded(*renderElement);
 }
 
+void RenderObject::repaintUsingContainerForSwift(const RenderLayerModelObject* repaintContainer, LayoutRect rect) const
+{
+    repaintUsingContainer(repaintContainer, rect);
+}
+
 void RenderObject::repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerModelObject>&& repaintContainer, const LayoutRect& r, ClipRepaintToLayer clipRepaintToLayer, RepaintRectIsPartial rectIsPartial) const
 {
     if (r.isEmpty())

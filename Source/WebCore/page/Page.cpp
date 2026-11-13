@@ -941,6 +941,11 @@ bool Page::isClosing() const
     return m_topDocumentSyncData->isClosing;
 }
 
+bool Page::focusControllerIsActiveForSwift() const
+{
+    return focusController().isActive();
+}
+
 #if ENABLE(DOM_AUDIO_SESSION)
 void Page::setAudioSessionType(DOMAudioSessionType audioSessionType)
 {

@@ -132,6 +132,7 @@ public:
 
     NODELETE const LocalFrameViewLayoutContext& layoutContext() const { return m_layoutContext; }
     NODELETE LocalFrameViewLayoutContext& layoutContext() { return m_layoutContext; }
+    bool isInRenderTreeLayoutForSwift() const { return m_layoutContext->isInRenderTreeLayout(); }
 
     NODELETE WEBCORE_EXPORT bool didFirstLayout() const;
 

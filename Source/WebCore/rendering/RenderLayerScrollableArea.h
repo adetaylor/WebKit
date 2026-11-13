@@ -73,6 +73,13 @@ public:
 
     void clear();
 
+    // The calls that pass this area as a ScrollableArea, for Swift, which cannot convert to the base class.
+    bool addToFrameViewScrollableAreas();
+    bool removeFromFrameViewScrollableAreas();
+    void addToFrameViewAnimatedScrollAreas();
+    void removeFromFrameViewAnimatedScrollAreas();
+    void paintScrollCornerWithTheme(NOESCAPE LentGraphicsContext context, IntRect rect) { ScrollbarTheme::theme().paintScrollCorner(*this, *context, rect); }
+
     RenderMarquee* marquee() const { return m_marquee.get(); }
     void updateMarqueePosition();
     void createOrDestroyMarquee();

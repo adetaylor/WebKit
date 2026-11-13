@@ -72,6 +72,9 @@ public:
     inline bool hasResizeForSwift() const SWIFT_NAME(hasResize());
     inline bool displayIsNoneForSwift() const SWIFT_NAME(displayIsNone());
     inline bool scrollbarWidthIsNoneForSwift() const SWIFT_NAME(scrollbarWidthIsNone());
+    inline StyleAppearance usedAppearanceForSwift() const SWIFT_NAME(usedAppearance());
+    inline OverscrollBehavior overscrollBehaviorXForSwift() const SWIFT_NAME(overscrollBehaviorX());
+    inline OverscrollBehavior overscrollBehaviorYForSwift() const SWIFT_NAME(overscrollBehaviorY());
     inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
     inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
     inline bool borderHasCornerShapeOutsideRoundedRectForSwift() const SWIFT_NAME(borderHasCornerShapeOutsideRoundedRect());

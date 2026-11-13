@@ -242,6 +242,7 @@ public:
     inline float opacity() const; // Defined in RenderElementStyleInlines.h.
 
     inline bool visibleToHitTesting(const std::optional<HitTestRequest>& = std::nullopt) const; // Defined in RenderElementStyleInlines.h.
+    inline bool visibleToHitTestingForSwift() const SWIFT_NAME(visibleToHitTesting()); // Defined in RenderElementStyleInlines.h.
 
     inline bool hasBackground() const; // Defined in RenderElementStyleInlines.h.
     inline bool hasMask() const; // Defined in RenderElementStyleInlines.h.

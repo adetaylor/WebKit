@@ -108,6 +108,26 @@ RenderLayerScrollableArea::RenderLayerScrollableArea(RenderLayer& layer)
 
 RenderLayerScrollableArea::~RenderLayerScrollableArea() = default;
 
+bool RenderLayerScrollableArea::addToFrameViewScrollableAreas()
+{
+    return protect(m_layer.renderer().view().frameView())->addScrollableArea(this);
+}
+
+bool RenderLayerScrollableArea::removeFromFrameViewScrollableAreas()
+{
+    return protect(m_layer.renderer().view().frameView())->removeScrollableArea(this);
+}
+
+void RenderLayerScrollableArea::addToFrameViewAnimatedScrollAreas()
+{
+    protect(m_layer.renderer().view().frameView())->addScrollableAreaForAnimatedScroll(this);
+}
+
+void RenderLayerScrollableArea::removeFromFrameViewAnimatedScrollAreas()
+{
+    protect(m_layer.renderer().view().frameView())->removeScrollableAreaForAnimatedScroll(this);
+}
+
 void RenderLayerScrollableArea::clear()
 {
     auto& renderer = m_layer.renderer();

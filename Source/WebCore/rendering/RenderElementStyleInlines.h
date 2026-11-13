@@ -204,6 +204,11 @@ inline bool RenderElement::visibleToHitTesting(const std::optional<HitTestReques
         && ((request && request->ignoreCSSPointerEventsProperty()) || usedPointerEvents() != PointerEvents::None);
 }
 
+inline bool RenderElement::visibleToHitTestingForSwift() const
+{
+    return visibleToHitTesting();
+}
+
 inline bool RenderElement::isViewTransitionContainer() const
 {
     return style().pseudoElementType() == PseudoElementType::ViewTransition

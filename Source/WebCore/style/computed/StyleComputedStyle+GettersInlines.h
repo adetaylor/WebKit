@@ -487,6 +487,21 @@ inline bool ComputedStyle::scrollbarWidthIsNoneForSwift() const
     return scrollbarWidth() == Style::ScrollbarWidth::None;
 }
 
+inline StyleAppearance ComputedStyle::usedAppearanceForSwift() const
+{
+    return usedAppearance();
+}
+
+inline OverscrollBehavior ComputedStyle::overscrollBehaviorXForSwift() const
+{
+    return overscrollBehaviorX();
+}
+
+inline OverscrollBehavior ComputedStyle::overscrollBehaviorYForSwift() const
+{
+    return overscrollBehaviorY();
+}
+
 inline bool ComputedStyle::borderHasVisibleBorderForSwift() const
 {
     return border().hasVisibleBorder();

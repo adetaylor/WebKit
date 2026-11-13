@@ -473,6 +473,7 @@ public:
 
     bool paintingDisabled() const { return (**this).paintingDisabled(); }
     bool performingPaintInvalidation() const { return (**this).performingPaintInvalidation(); }
+    bool invalidatingControlTints() const { return (**this).invalidatingControlTints(); }
     bool detectingContentfulPaint() const { return (**this).detectingContentfulPaint(); }
     bool contentfulPaintDetected() const { return (**this).contentfulPaintDetected(); }
     bool shouldSubpixelQuantizeFonts() const { return (**this).shouldSubpixelQuantizeFonts(); }

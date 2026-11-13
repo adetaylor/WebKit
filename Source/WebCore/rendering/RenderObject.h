@@ -942,6 +942,7 @@ public:
     enum class ClipRepaintToLayer : bool { No, Yes };
     enum class RepaintRectIsPartial : bool { No, Yes };
     void repaintUsingContainer(SingleThreadWeakPtr<const RenderLayerModelObject>&& repaintContainer, const LayoutRect&, ClipRepaintToLayer = ClipRepaintToLayer::Yes, RepaintRectIsPartial = RepaintRectIsPartial::No) const;
+    void repaintUsingContainerForSwift(const RenderLayerModelObject* repaintContainer, LayoutRect) const;
 
     // Repaint the entire object.  Called when, e.g., the color of a border changes, or when a border
     // style changes.
