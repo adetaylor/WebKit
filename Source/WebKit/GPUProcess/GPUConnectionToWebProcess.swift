@@ -29,15 +29,20 @@ import WebKit_Internal
 // GPUConnectionToWebProcess::m_swiftState holds.
 @MainActor
 final class GPUConnectionState {
-    fileprivate nonisolated init() {
+    let processIdentifier: UInt64
+    // The Now Playing candidate states of the connection's pages, by page identifier, which the election reads.
+    var nowPlayingCandidates: [UInt64: IPCTypes.NowPlayingCandidateState] = [:]
+
+    fileprivate nonisolated init(processIdentifier: UInt64) {
+        self.processIdentifier = processIdentifier
     }
 }
 
 extension WebKit.GPUConnectionToWebProcess {
     @cxx
     @implementation
-    func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(GPUConnectionState()).toOpaque())
+    func createSwiftState(_ webProcessIdentifier: UInt64) -> UInt {
+        UInt(bitPattern: unsafe Unmanaged.passRetained(GPUConnectionState(processIdentifier: webProcessIdentifier)).toOpaque())
     }
 
     @cxx
@@ -57,6 +62,82 @@ extension WebKit.GPUConnectionToWebProcess {
         // Safety: m_swiftState is a retained GPUConnectionState from the constructor to the destructor, and nothing else
         // changes it.
         unsafe Unmanaged<GPUConnectionState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
+    }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func swiftDidAddToGPUProcess() {
+        nowPlayingArbiter.add(self, process: state.processIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftDidRemoveFromGPUProcess() {
+        nowPlayingArbiter.remove(process: state.processIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftIsActiveNowPlayingPage(_ pageIdentifier: UInt64) -> Bool {
+        nowPlayingArbiter.isActive(process: state.processIdentifier, page: pageIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftRemoteCommandTargetSession() -> UInt64 {
+        nowPlayingArbiter.remoteCommandTargetSession(in: state.processIdentifier) ?? 0
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftNowPlayingClientDidClose() {
+        state.nowPlayingCandidates.removeAll()
+        nowPlayingArbiter.clientDidClose(process: state.processIdentifier)
+    }
+
+    // The candidate state and the Now Playing info of the page, or of all of the connection's pages, go.
+    @MainActor
+    func clearNowPlayingCandidates(page: UInt64?) {
+        if let page {
+            state.nowPlayingCandidates[page] = nil
+        } else {
+            state.nowPlayingCandidates.removeAll()
+        }
+        clearNowPlayingInfo(page == nil, page ?? 0)
+        nowPlayingArbiter.recompute()
+    }
+
+    @MainActor
+    func clearNowPlayingInfoForPage(connection: IPC.Connection, pageIdentifier: IPCTypes.PageIdentifier?) {
+        clearNowPlayingCandidates(page: pageIdentifier?.rawValue)
+    }
+
+    @MainActor
+    func setNowPlayingCandidateState(connection: IPC.Connection, candidate: IPCTypes.NowPlayingCandidateState) {
+        guard let page = candidate.pageIdentifier else {
+            return
+        }
+        state.nowPlayingCandidates[page.rawValue] = candidate
+        nowPlayingArbiter.recompute()
+    }
+
+    @MainActor
+    func isActiveNowPlayingSessionForTesting(connection: IPC.Connection, identifier: IPCTypes.MediaSessionIdentifier) -> Bool {
+        nowPlayingArbiter.isActive(process: state.processIdentifier, session: identifier.rawValue)
+    }
+
+    // Unlike the remote command target session, safe to ask from any process: it compares rather than assuming the
+    // caller owns the target.
+    @MainActor
+    func isRemoteCommandTargetSessionForTesting(connection: IPC.Connection, identifier: IPCTypes.MediaSessionIdentifier) -> Bool {
+        nowPlayingArbiter.isRemoteCommandTarget(process: state.processIdentifier, session: identifier.rawValue)
     }
 }
 

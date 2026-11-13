@@ -137,16 +137,11 @@ public:
 
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
 
-    void recomputeNowPlayingOwner();
-    void setNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier>);
-    void withdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier);
-    void nowPlayingClientDidClose(WebCore::ProcessIdentifier);
-    bool isActiveNowPlayingPage(WebCore::ProcessIdentifier process, WebCore::PageIdentifier page) const { return m_activeNowPlayingOwner && m_activeNowPlayingOwner->process == process && m_activeNowPlayingOwner->page == page; }
-    bool isActiveNowPlayingSession(WebCore::ProcessIdentifier process, WebCore::MediaSessionIdentifier session) const { return m_activeNowPlayingOwner && m_activeNowPlayingOwner->process == process && m_activeNowPlayingOwner->session == session; }
-    // Unlike remoteCommandTargetSessionInProcess(), safe to ask from any process: it compares rather than assuming
-    // the caller owns the target.
-    bool isRemoteCommandTargetSession(WebCore::ProcessIdentifier process, WebCore::MediaSessionIdentifier session) const { return m_remoteCommandTarget && *m_remoteCommandTarget == WebCore::QualifiedMediaSessionIdentifier { session, process }; }
-    std::optional<WebCore::MediaSessionIdentifier> remoteCommandTargetSessionInProcess(WebCore::ProcessIdentifier) const;
+    // The Now Playing election is Swift's (GPUProcess.swift). For it: tells the UI process which page owns Now Playing,
+    // if any.
+    static void nowPlayingOwnerDidChange(bool hasOwner, uint64_t pageIdentifier, uint64_t processIdentifier);
+    // Implemented in Swift: the UI process's session that gets the remote commands while no page owns Now Playing.
+    SWIFT_MAIN_ACTOR void swiftInitializeNowPlayingFallbackSession(uint64_t sessionIdentifier, uint64_t processIdentifier);
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     WorkQueue& videoMediaStreamTrackRendererQueue();
@@ -420,14 +415,6 @@ private:
     HashMap<PAL::SessionID, GPUSession> m_sessions;
     WebCore::Timer m_idleExitTimer;
     const std::unique_ptr<WebCore::NowPlayingManager> m_nowPlayingManager;
-    struct NowPlayingOwner {
-        WebCore::ProcessIdentifier process;
-        WebCore::PageIdentifier page;
-        WebCore::MediaSessionIdentifier session;
-    };
-    std::optional<NowPlayingOwner> m_activeNowPlayingOwner;
-    std::optional<WebCore::QualifiedMediaSessionIdentifier> m_nowPlayingFallbackSession;
-    std::optional<WebCore::QualifiedMediaSessionIdentifier> m_remoteCommandTarget;
     String m_applicationVisibleName;
 #if PLATFORM(MAC)
     String m_uiProcessName;

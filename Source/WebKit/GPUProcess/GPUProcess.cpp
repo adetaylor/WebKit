@@ -154,7 +154,9 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
 #endif
 
     ASSERT(!m_webProcessConnections.contains(identifier));
-    m_webProcessConnections.add(identifier, WTF::move(newConnection));
+    Ref connection = newConnection.get();
+    if (m_webProcessConnections.add(identifier, WTF::move(newConnection)).isNewEntry)
+        connection->swiftDidAddToGPUProcess();
 }
 
 void GPUProcess::sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier identifier, SharedPreferencesForWebProcess&& sharedPreferencesForWebProcess, CompletionHandler<void()>&& completionHandler)
@@ -179,7 +181,7 @@ void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& conn
     abandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
     removeSnapshotsForProcess(connection.webProcessIdentifier());
 
-    recomputeNowPlayingOwner();
+    connection.swiftDidRemoveFromGPUProcess();
 
     tryExitIfUnusedAndUnderMemoryPressure();
 }
@@ -321,7 +323,8 @@ CoreAudioCaptureUnit::defaultSingleton().setStatusBarWasTappedCallback([weakProc
         overrideUserPreferredLanguages(parameters.overrideLanguages);
 
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
-    m_nowPlayingFallbackSession = parameters.nowPlayingFallbackSession;
+    if (auto& session = parameters.nowPlayingFallbackSession)
+        swiftInitializeNowPlayingFallbackSession(session->object().toUInt64(), session->processIdentifier().toUInt64());
 #endif
 
 #if USE(OS_STATE)
@@ -403,190 +406,18 @@ GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIden
     return m_webProcessConnections.get(identifier);
 }
 
-static bool isPreferredNowPlayingCandidate(const WebCore::NowPlayingCandidateState& candidate, const WebCore::NowPlayingCandidateState& incumbent)
+void GPUProcess::nowPlayingOwnerDidChange(bool hasOwner, uint64_t pageIdentifier, uint64_t processIdentifier)
 {
-    // Mirrors the logic in PlatformMediaSessionManager::bestEligibleSessionForRemoteControls +
-    // HTMLMediaElement::selectBestMediaSession:
-    bool candidateIsAudioVideo = candidate.presentationType != WebCore::PlatformMediaSessionMediaType::WebAudio;
-    bool incumbentIsAudioVideo = incumbent.presentationType != WebCore::PlatformMediaSessionMediaType::WebAudio;
-    if (candidateIsAudioVideo != incumbentIsAudioVideo)
-        return candidateIsAudioVideo;
-
-    if (candidateIsAudioVideo) {
-        if (candidate.isLargeEnoughForMainContent != incumbent.isLargeEnoughForMainContent)
-            return candidate.isLargeEnoughForMainContent;
-        return candidate.mostRecentUserInteractionTime.value_or(WallTime { }) > incumbent.mostRecentUserInteractionTime.value_or(WallTime { });
-    }
-
-    if (candidate.isPlaying != incumbent.isPlaying)
-        return candidate.isPlaying;
-    return false;
-}
-
-namespace {
-
-enum class NowPlayingSeatRole : bool { EligibleOwner, CommandOnly };
-
-struct NowPlayingSeat {
-    WebCore::ProcessIdentifier process;
-    NowPlayingSeatRole role;
-
-    friend bool operator==(const NowPlayingSeat&, const NowPlayingSeat&) = default;
-};
-
-}
-
-void GPUProcess::recomputeNowPlayingOwner()
-{
-    RefPtr<GPUConnectionToWebProcess> winningConnection;
-    std::optional<NowPlayingCandidateState> winnerState;
-    std::optional<PageIdentifier> winnerPage;
-
-    // Seed with the current owner so that equal candidates keep the incumbent, since the candidates are stored in
-    // a HashMap whose iteration order is not stable.
-    if (m_activeNowPlayingOwner) {
-        if (RefPtr connection = webProcessConnection(m_activeNowPlayingOwner->process)) {
-            auto it = connection->nowPlayingCandidates().find(m_activeNowPlayingOwner->page);
-            if (it != connection->nowPlayingCandidates().end() && it->value->state) {
-                winningConnection = connection;
-                winnerState = *it->value->state;
-                winnerPage = m_activeNowPlayingOwner->page;
-            }
-        }
-    }
-
-    for (Ref connection : m_webProcessConnections.values()) {
-        for (auto& entry : connection->nowPlayingCandidates()) {
-            if (!entry.value->state)
-                continue;
-            if (!winnerState || isPreferredNowPlayingCandidate(*entry.value->state, *winnerState)) {
-                winningConnection = connection.ptr();
-                winnerState = *entry.value->state;
-                winnerPage = entry.key;
-            }
-        }
-    }
-
-    RefPtr<GPUConnectionToWebProcess> seatedConnection;
-    std::optional<NowPlayingOwner> eligibleOwner;
-    std::optional<QualifiedMediaSessionIdentifier> commandTarget;
-
-    if (winnerState) {
-        seatedConnection = winningConnection;
-        eligibleOwner = NowPlayingOwner { winningConnection->webProcessIdentifier(), *winnerPage, winnerState->sessionIdentifier };
-        commandTarget = QualifiedMediaSessionIdentifier { winnerState->sessionIdentifier, winningConnection->webProcessIdentifier() };
-    } else if (m_nowPlayingFallbackSession) {
-        if (RefPtr connection = webProcessConnection(m_nowPlayingFallbackSession->processIdentifier())) {
-            seatedConnection = connection;
-            commandTarget = m_nowPlayingFallbackSession;
-        }
-    }
-
-    // A single connection is the NowPlayingManager client at a time: the elected owner (which also drives the
-    // NowPlaying panel and audio session) or, when no session is eligible, a command-only fallback that receives
-    // remote commands but shows no panel. Track the seated process and role so an unrelated recompute does not
-    // churn a fallback client's remote-command listener.
-    std::optional<NowPlayingSeat> previousSeat;
-    if (m_remoteCommandTarget) {
-        auto previousRole = m_activeNowPlayingOwner ? NowPlayingSeatRole::EligibleOwner : NowPlayingSeatRole::CommandOnly;
-        previousSeat = NowPlayingSeat { m_remoteCommandTarget->processIdentifier(), previousRole };
-    }
-    std::optional<NowPlayingSeat> newSeat;
-    if (seatedConnection) {
-        auto newRole = eligibleOwner ? NowPlayingSeatRole::EligibleOwner : NowPlayingSeatRole::CommandOnly;
-        newSeat = NowPlayingSeat { seatedConnection->webProcessIdentifier(), newRole };
-    }
-
-    if (eligibleOwner) {
-        // Add the new owner as the client before resigning the previous one so the panel never blanks between
-        // owners (NowPlayingManager::removeClient no-ops once m_client has been replaced). This also refreshes the
-        // owner's NowPlayingInfo, so it runs even when the seat is unchanged.
-        seatedConnection->becomeNowPlayingOwner(eligibleOwner->page);
-        if (previousSeat && previousSeat->process != seatedConnection->webProcessIdentifier()) {
-            if (RefPtr previous = webProcessConnection(previousSeat->process))
-                previous->resignNowPlayingManagerClient();
-        }
-    } else if (newSeat != previousSeat) {
-        // No eligible session. Resign the previous client first so an owner->fallback transition drops the stale
-        // panel, then seat the UI process's current session (if any) as a command-only client. Skipped entirely
-        // when it is already the command-only client, so its remote-command listener is not destroyed and recreated.
-        if (previousSeat) {
-            if (RefPtr previous = webProcessConnection(previousSeat->process))
-                previous->resignNowPlayingManagerClient();
-        }
-        if (seatedConnection)
-            seatedConnection->becomeRemoteCommandFallbackTarget();
-    }
-
-    auto ownerPage = [&]() -> std::optional<QualifiedPageIdentifier> {
-        if (!eligibleOwner)
-            return std::nullopt;
-        return QualifiedPageIdentifier { eligibleOwner->page, eligibleOwner->process };
-    }();
-    auto previousOwnerPage = [&]() -> std::optional<QualifiedPageIdentifier> {
-        if (!m_activeNowPlayingOwner)
-            return std::nullopt;
-        return QualifiedPageIdentifier { m_activeNowPlayingOwner->page, m_activeNowPlayingOwner->process };
-    }();
-
-    m_activeNowPlayingOwner = eligibleOwner;
-    m_remoteCommandTarget = commandTarget;
-
 #if ENABLE(VIDEO) || ENABLE(WEB_AUDIO)
-    // The UI process owns the per-page "is the NowPlaying session" state, so it hears the election result
-    // directly rather than through the content processes, none of which can see the whole picture.
-    if (ownerPage != previousOwnerPage)
-        protect(parentProcessConnection())->send(Messages::GPUProcessProxy::NowPlayingOwnerDidChange(ownerPage), 0);
+    std::optional<QualifiedPageIdentifier> ownerPage;
+    if (hasOwner)
+        ownerPage = QualifiedPageIdentifier { PageIdentifier { pageIdentifier }, ProcessIdentifier { processIdentifier } };
+    protect(singleton().parentProcessConnection())->send(Messages::GPUProcessProxy::NowPlayingOwnerDidChange(ownerPage), 0);
 #else
-    UNUSED_VARIABLE(ownerPage);
-    UNUSED_VARIABLE(previousOwnerPage);
+    UNUSED_PARAM(hasOwner);
+    UNUSED_PARAM(pageIdentifier);
+    UNUSED_PARAM(processIdentifier);
 #endif
-}
-
-void GPUProcess::setNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session)
-{
-    m_nowPlayingFallbackSession = session;
-
-    // The fallback is only consulted when the election has no eligible owner, and every change to the candidates
-    // recomputes on its own, so an owner means this cannot change the outcome.
-    if (m_activeNowPlayingOwner)
-        return;
-
-    recomputeNowPlayingOwner();
-}
-
-void GPUProcess::withdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page)
-{
-    // Sent by the UI process when a page commits a new main-frame load. The page re-enters the election on
-    // its next candidate push if it still has an eligible session.
-    if (RefPtr connection = webProcessConnection(page.processIdentifier()))
-        connection->clearNowPlayingInfoForPage(page.object());
-}
-
-void GPUProcess::nowPlayingClientDidClose(WebCore::ProcessIdentifier process)
-{
-    if (m_nowPlayingFallbackSession && m_nowPlayingFallbackSession->processIdentifier() == process)
-        m_nowPlayingFallbackSession = std::nullopt;
-    if (m_remoteCommandTarget && m_remoteCommandTarget->processIdentifier() == process)
-        m_remoteCommandTarget = std::nullopt;
-
-    recomputeNowPlayingOwner();
-}
-
-std::optional<MediaSessionIdentifier> GPUProcess::remoteCommandTargetSessionInProcess(ProcessIdentifier process) const
-{
-    if (!m_remoteCommandTarget)
-        return std::nullopt;
-
-    // The caller is the NowPlayingManager client, which is always the target's own process; the bare
-    // MediaSessionIdentifier is only meaningful there.
-    ASSERT(m_remoteCommandTarget->processIdentifier() == process);
-    if (m_remoteCommandTarget->processIdentifier() != process) {
-        RELEASE_LOG_ERROR(Media, "GPUProcess::remoteCommandTargetSessionInProcess: command target belongs to another process; delivering nothing rather than a cross-process identifier");
-        return std::nullopt;
-    }
-
-    return m_remoteCommandTarget->object();
 }
 
 void GPUProcess::updateSandboxAccess(const Vector<SandboxExtension::Handle>& extensions)

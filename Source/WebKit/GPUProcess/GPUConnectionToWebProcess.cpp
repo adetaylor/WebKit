@@ -191,7 +191,6 @@
 namespace WebKit {
 using namespace WebCore;
 
-WTF_MAKE_STRUCT_TZONE_ALLOCATED_IMPL(GPUConnectionToWebProcess::NowPlayingCandidate);
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
@@ -359,7 +358,7 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
 {
     RELEASE_ASSERT(RunLoop::isMain());
 
-    m_swiftState = createSwiftState();
+    m_swiftState = createSwiftState(m_webProcessIdentifier.toUInt64());
 
     // This must be called before any media playback function is invoked.
     enableMediaPlaybackIfNecessary();
@@ -880,27 +879,12 @@ void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
 }
 #endif
 
-void GPUConnectionToWebProcess::clearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier> pageIdentifier)
+void GPUConnectionToWebProcess::clearNowPlayingInfo(bool forAllPages, uint64_t pageIdentifier)
 {
-    if (pageIdentifier)
-        m_nowPlayingCandidates.remove(*pageIdentifier);
-    else
-        m_nowPlayingCandidates.clear();
-    gpuProcess().recomputeNowPlayingOwner();
-}
-
-void GPUConnectionToWebProcess::setNowPlayingCandidateState(NowPlayingCandidateState&& candidateState)
-{
-    if (!candidateState.pageIdentifier)
-        return;
-
-    auto pageIdentifier = *candidateState.pageIdentifier;
-    auto& candidate = m_nowPlayingCandidates.ensure(pageIdentifier, [] {
-        return makeUniqueRef<NowPlayingCandidate>();
-    }).iterator->value.get();
-    candidate.state = WTF::move(candidateState);
-
-    gpuProcess().recomputeNowPlayingOwner();
+    if (forAllPages)
+        m_nowPlayingInfos.clear();
+    else if (PageIdentifier::isValidIdentifier(pageIdentifier))
+        m_nowPlayingInfos.remove(PageIdentifier { pageIdentifier });
 }
 
 void GPUConnectionToWebProcess::abandonSnapshotFrame(RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameIdentifier)
@@ -919,34 +903,31 @@ void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPla
     if (!pageIdentifier)
         return;
 
-    auto& candidate = m_nowPlayingCandidates.ensure(*pageIdentifier, [] {
-        return makeUniqueRef<NowPlayingCandidate>();
-    }).iterator->value.get();
-
     // Content strips the artwork image from repeat pushes assuming the receiver cached it, so attach it here.
-    if (nowPlayingInfo.metadata.artwork && !nowPlayingInfo.metadata.artwork->image && candidate.info && candidate.info->metadata.artwork && candidate.info->metadata.artwork->src == nowPlayingInfo.metadata.artwork->src)
-        nowPlayingInfo.metadata.artwork->image = candidate.info->metadata.artwork->image;
-    candidate.info = WTF::move(nowPlayingInfo);
+    if (auto it = m_nowPlayingInfos.find(*pageIdentifier); it != m_nowPlayingInfos.end()) {
+        auto& previousArtwork = it->value.metadata.artwork;
+        if (nowPlayingInfo.metadata.artwork && !nowPlayingInfo.metadata.artwork->image && previousArtwork && previousArtwork->src == nowPlayingInfo.metadata.artwork->src)
+            nowPlayingInfo.metadata.artwork->image = previousArtwork->image;
+    }
+    auto& info = m_nowPlayingInfos.set(*pageIdentifier, WTF::move(nowPlayingInfo)).iterator->value;
 
-    Ref gpuProcess = this->gpuProcess();
-    if (gpuProcess->isActiveNowPlayingPage(webProcessIdentifier(), *pageIdentifier)) {
+    if (swiftIsActiveNowPlayingPage(pageIdentifier->toUInt64())) {
+        Ref gpuProcess = this->gpuProcess();
         gpuProcess->nowPlayingManager().addClient(*this);
-        gpuProcess->nowPlayingManager().setNowPlayingInfo(*candidate.info);
+        gpuProcess->nowPlayingManager().setNowPlayingInfo(info);
         updateSupportedRemoteCommands();
     }
 }
 
-void GPUConnectionToWebProcess::becomeNowPlayingOwner(WebCore::PageIdentifier pageIdentifier)
+void GPUConnectionToWebProcess::becomeNowPlayingOwner(uint64_t pageIdentifier)
 {
-    auto it = m_nowPlayingCandidates.find(pageIdentifier);
-    if (it == m_nowPlayingCandidates.end())
-        return;
-
     m_isNowPlayingManagerClient = true;
     Ref gpuProcess = this->gpuProcess();
     gpuProcess->nowPlayingManager().addClient(*this);
-    if (it->value->info)
-        gpuProcess->nowPlayingManager().setNowPlayingInfo(*it->value->info);
+    if (PageIdentifier::isValidIdentifier(pageIdentifier)) {
+        if (auto it = m_nowPlayingInfos.find(PageIdentifier { pageIdentifier }); it != m_nowPlayingInfos.end())
+            gpuProcess->nowPlayingManager().setNowPlayingInfo(it->value);
+    }
     updateSupportedRemoteCommands();
 }
 
@@ -967,25 +948,15 @@ void GPUConnectionToWebProcess::nowPlayingClientDidClose()
 {
     ASSERT(m_isNowPlayingManagerClient);
 
-    m_nowPlayingCandidates.clear();
+    m_nowPlayingInfos.clear();
 
-    // Resign here rather than leaving it to GPUProcess::recomputeNowPlayingOwner. This connection is still in the
-    // GPU process's connection map right now, but it is gone by the time the recompute from
-    // removeGPUConnectionToWebProcess runs, so a resign that looks the connection up by process identifier would
-    // silently do nothing and leave a dead NowPlayingManager client holding the system command listener.
+    // Resign here rather than leaving it to the election. This connection is still in the GPU process's connections
+    // right now, but it is gone by the time the election from removeGPUConnectionToWebProcess runs, so a resign that
+    // looks the connection up by process identifier would silently do nothing and leave a dead NowPlayingManager client
+    // holding the system command listener.
     resignNowPlayingManagerClient();
 
-    gpuProcess().nowPlayingClientDidClose(webProcessIdentifier());
-}
-
-void GPUConnectionToWebProcess::isActiveNowPlayingSessionForTesting(WebCore::MediaSessionIdentifier identifier, CompletionHandler<void(bool)>&& completion)
-{
-    completion(gpuProcess().isActiveNowPlayingSession(webProcessIdentifier(), identifier));
-}
-
-void GPUConnectionToWebProcess::isRemoteCommandTargetSessionForTesting(WebCore::MediaSessionIdentifier identifier, CompletionHandler<void(bool)>&& completion)
-{
-    completion(gpuProcess().isRemoteCommandTargetSession(webProcessIdentifier(), identifier));
+    swiftNowPlayingClientDidClose();
 }
 
 void GPUConnectionToWebProcess::postNowPlayingRemoteControlCommandForTesting(WebCore::PlatformMediaSessionRemoteControlCommandType type, const WebCore::PlatformMediaSessionRemoteCommandArgument& argument)
@@ -1022,7 +993,8 @@ void GPUConnectionToWebProcess::updateSupportedRemoteCommands()
 
 void GPUConnectionToWebProcess::didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType type, const PlatformMediaSession::RemoteCommandArgument& argument)
 {
-    m_connection->send(Messages::GPUProcessConnection::DidReceiveRemoteCommand(type, argument, gpuProcess().remoteCommandTargetSessionInProcess(webProcessIdentifier())), 0);
+    auto session = swiftRemoteCommandTargetSession();
+    m_connection->send(Messages::GPUProcessConnection::DidReceiveRemoteCommand(type, argument, MediaSessionIdentifier::isValidIdentifier(session) ? std::optional { MediaSessionIdentifier { session } } : std::nullopt), 0);
 }
 
 #if USE(AUDIO_SESSION)

@@ -178,16 +178,24 @@ public:
     GPUProcess& gpuProcess() { return m_gpuProcess.get(); }
     WebCore::ProcessIdentifier webProcessIdentifier() const { return m_webProcessIdentifier; }
 
-    struct NowPlayingCandidate {
-        WTF_MAKE_STRUCT_TZONE_ALLOCATED(NowPlayingCandidate);
-        std::optional<WebCore::NowPlayingCandidateState> state;
-        std::optional<WebCore::NowPlayingInfo> info;
-    };
-    const HashMap<WebCore::PageIdentifier, UniqueRef<NowPlayingCandidate>>& nowPlayingCandidates() const LIFETIME_BOUND { return m_nowPlayingCandidates; }
-    void clearNowPlayingInfoForPage(std::optional<WebCore::PageIdentifier>);
-    void becomeNowPlayingOwner(WebCore::PageIdentifier);
+    // The Now Playing candidate states of the connection's pages and the election are Swift's
+    // (GPUConnectionToWebProcess.swift, GPUProcess.swift). For them: the Now Playing info of one page, or of all of them,
+    // goes; the NowPlayingManager's client becomes this connection, for the page that owns Now Playing or for the remote
+    // commands only, or stops being it.
+    void clearNowPlayingInfo(bool forAllPages, uint64_t pageIdentifier);
+    void becomeNowPlayingOwner(uint64_t pageIdentifier);
     void becomeRemoteCommandFallbackTarget();
     void resignNowPlayingManagerClient();
+
+    // Implemented in Swift: the GPU process added this connection, or removed it.
+    SWIFT_MAIN_ACTOR void swiftDidAddToGPUProcess();
+    SWIFT_MAIN_ACTOR void swiftDidRemoveFromGPUProcess();
+    // Implemented in Swift: whether the page owns Now Playing; the session that gets the remote commands, 0 for none;
+    // this connection's process closed while its connection was the NowPlayingManager's client.
+    SWIFT_MAIN_ACTOR bool swiftIsActiveNowPlayingPage(uint64_t pageIdentifier) const;
+    SWIFT_MAIN_ACTOR uint64_t swiftRemoteCommandTargetSession() const;
+    SWIFT_MAIN_ACTOR void swiftNowPlayingClientDidClose();
+
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -311,7 +319,7 @@ private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
     // Implemented in Swift.
-    uintptr_t createSwiftState();
+    uintptr_t createSwiftState(uint64_t webProcessIdentifier);
     // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     // m_swiftState, for Swift, which can only read it.
@@ -341,10 +349,7 @@ private:
     void setNowPlayingInfoForPage(WebCore::NowPlayingInfo&&, std::optional<WebCore::PageIdentifier>);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
     void failSnapshot(RemoteSnapshotIdentifier);
-    void setNowPlayingCandidateState(WebCore::NowPlayingCandidateState&&);
     void nowPlayingClientDidClose();
-    void isActiveNowPlayingSessionForTesting(WebCore::MediaSessionIdentifier, CompletionHandler<void(bool)>&&);
-    void isRemoteCommandTargetSessionForTesting(WebCore::MediaSessionIdentifier, CompletionHandler<void(bool)>&&);
     void postNowPlayingRemoteControlCommandForTesting(WebCore::PlatformMediaSessionRemoteControlCommandType, const WebCore::PlatformMediaSessionRemoteCommandArgument&);
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     void hostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier, CompletionHandler<void(std::optional<WebCore::FloatRect>)>&&);
@@ -489,7 +494,7 @@ private:
 #endif
 
     RefPtr<RemoteRemoteCommandListenerProxy> m_remoteRemoteCommandListener;
-    HashMap<WebCore::PageIdentifier, UniqueRef<NowPlayingCandidate>> m_nowPlayingCandidates;
+    HashMap<WebCore::PageIdentifier, WebCore::NowPlayingInfo> m_nowPlayingInfos;
     bool m_isNowPlayingManagerClient { false };
     const bool m_isLockdownModeEnabled { false };
 

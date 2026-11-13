@@ -131,8 +131,8 @@ messages -> GPUProcess : AuxiliaryProcess {
     RegisterFonts(Vector<WebKit::SandboxExtensionHandle> sandboxExtensions)
 #endif
 
-    SetNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session)
-    WithdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page)
+    SetNowPlayingFallbackSession(std::optional<WebCore::QualifiedMediaSessionIdentifier> session) SwiftTypes
+    WithdrawNowPlayingCandidate(WebCore::QualifiedPageIdentifier page) SwiftTypes
 
     HandOverTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers, WebCore::ProcessIdentifier destinationProcess)
     ReleaseTransferredImageBuffers(Vector<WebCore::ImageBufferTransferIdentifier> transferIdentifiers)
