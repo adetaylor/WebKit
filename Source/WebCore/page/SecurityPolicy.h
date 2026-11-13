@@ -53,7 +53,7 @@ public:
     // referrer header should be omitted.
     WEBCORE_EXPORT static String generateReferrerHeader(ReferrerPolicy, const URL&, const URL& referrer, const OriginAccessPatterns&);
 
-    static String generateOriginHeader(ReferrerPolicy, const URL&, const SecurityOrigin&, const OriginAccessPatterns&);
+    WEBCORE_EXPORT static String generateOriginHeader(ReferrerPolicy, const URL&, const SecurityOrigin&, const OriginAccessPatterns&);
 
     WEBCORE_EXPORT static bool shouldInheritSecurityOriginFromOwner(const URL&);
 

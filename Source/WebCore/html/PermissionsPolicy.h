@@ -90,7 +90,7 @@ public:
 
     // https://w3c.github.io/webappsec-permissions-policy/#policy-directives
     using PolicyDirective = HashMap<Feature, Allowlist, IntHash<Feature>, WTF::StrongEnumHashTraits<Feature>>;
-    static PolicyDirective processPermissionsPolicyAttribute(const HTMLIFrameElement&);
+    WEBCORE_EXPORT static PolicyDirective processPermissionsPolicyAttribute(const HTMLIFrameElement&);
 
 private:
     bool computeInheritedPolicyValueInContainer(Feature, const std::optional<OwnerPermissionsPolicyData>&, const SecurityOriginData&) const;

@@ -42,21 +42,21 @@ class FetchHeaders : public RefCounted<FetchHeaders> {
 public:
     using Guard = FetchHeadersGuard;
     using Init = Variant<Vector<Vector<String>>, Vector<KeyValuePair<String, String>>>;
-    static ExceptionOr<Ref<FetchHeaders>> create(std::optional<Init>&&);
+    WEBCORE_EXPORT static ExceptionOr<Ref<FetchHeaders>> create(std::optional<Init>&&);
 
     static Ref<FetchHeaders> create(Guard guard = Guard::None, HTTPHeaderMap&& headers = { }, Vector<String>&& setCookieValues = { }) { return adoptRef(*new FetchHeaders { guard, WTF::move(headers), WTF::move(setCookieValues) }); }
     static Ref<FetchHeaders> create(const FetchHeaders& headers) { return adoptRef(*new FetchHeaders { headers }); }
 
-    ExceptionOr<void> append(const String& name, const String& value);
-    ExceptionOr<void> remove(const String&);
-    ExceptionOr<String> get(const String&) const;
-    NODELETE const Vector<String>& getSetCookie() const;
-    ExceptionOr<bool> has(const String&) const;
-    ExceptionOr<void> set(const String& name, const String& value);
+    WEBCORE_EXPORT ExceptionOr<void> append(const String& name, const String& value);
+    WEBCORE_EXPORT ExceptionOr<void> remove(const String&);
+    WEBCORE_EXPORT ExceptionOr<String> get(const String&) const;
+    NODELETE WEBCORE_EXPORT const Vector<String>& getSetCookie() const;
+    WEBCORE_EXPORT ExceptionOr<bool> has(const String&) const;
+    WEBCORE_EXPORT ExceptionOr<void> set(const String& name, const String& value);
 
-    ExceptionOr<void> fill(const Init&);
-    ExceptionOr<void> fill(const FetchHeaders&);
-    void filterAndFill(const HTTPHeaderMap&, Guard);
+    WEBCORE_EXPORT ExceptionOr<void> fill(const Init&);
+    WEBCORE_EXPORT ExceptionOr<void> fill(const FetchHeaders&);
+    WEBCORE_EXPORT void filterAndFill(const HTTPHeaderMap&, Guard);
 
     String fastGet(HTTPHeaderName) const;
     bool fastHas(HTTPHeaderName) const;
@@ -64,8 +64,8 @@ public:
 
     class Iterator {
     public:
-        explicit Iterator(FetchHeaders&);
-        std::optional<KeyValuePair<String, String>> next();
+        WEBCORE_EXPORT explicit Iterator(FetchHeaders&);
+        WEBCORE_EXPORT std::optional<KeyValuePair<String, String>> next();
 
     private:
         const Ref<FetchHeaders> m_headers;

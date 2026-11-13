@@ -71,7 +71,7 @@ struct CrossOriginEmbedderPolicy {
 
     friend bool operator==(const CrossOriginEmbedderPolicy&, const CrossOriginEmbedderPolicy&) = default;
 
-    void addPolicyHeadersTo(ResourceResponse&) const;
+    WEBCORE_EXPORT void addPolicyHeadersTo(ResourceResponse&) const;
 };
 
 enum class COEPDisposition : bool { Reporting , Enforce };
@@ -80,8 +80,8 @@ enum class CredentiallessSupport : bool { No, Yes };
 NODELETE WEBCORE_EXPORT CredentiallessSupport credentiallessSupport(bool crossOriginEmbedderPolicyCredentiallessEnabled);
 NODELETE CredentiallessSupport credentiallessSupport(const SettingsValues&);
 
-bool isRecognizedCrossOriginEmbedderPolicyToken(StringView, CredentiallessSupport);
-bool isUnsupportedCrossOriginEmbedderPolicyToken(StringView, CredentiallessSupport);
+WEBCORE_EXPORT bool isRecognizedCrossOriginEmbedderPolicyToken(StringView, CredentiallessSupport);
+WEBCORE_EXPORT bool isUnsupportedCrossOriginEmbedderPolicyToken(StringView, CredentiallessSupport);
 
 WEBCORE_EXPORT CrossOriginEmbedderPolicy obtainCrossOriginEmbedderPolicy(const ResourceResponse&, IsSecureContext, CredentiallessSupport, const ScriptExecutionContext*);
 WEBCORE_EXPORT void sendCOEPInheritenceViolation(ReportingClient&, const URL& embedderURL, const String& endpoint, COEPDisposition, const String& type, const URL& blockedURL);
