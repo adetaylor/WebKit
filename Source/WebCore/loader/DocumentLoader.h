@@ -505,8 +505,8 @@ public:
     void setUnpartitionedStorageSite(std::optional<RegistrableDomain>&& site) { m_unpartitionedStorageSite = WTF::move(site); }
     OptionSet<ClearSiteDataValue> responseClearSiteDataValues() const { return m_responseClearSiteDataValues; }
 
-    std::unique_ptr<IntegrityPolicy> integrityPolicy();
-    std::unique_ptr<IntegrityPolicy> integrityPolicyReportOnly();
+    SWIFT_UNSAFE std::unique_ptr<IntegrityPolicy> integrityPolicy();
+    SWIFT_UNSAFE std::unique_ptr<IntegrityPolicy> integrityPolicyReportOnly();
 
     bool isContinuingLoadAfterProvisionalLoadStarted() const { return m_isContinuingLoad == ShouldTreatAsContinuingLoad::YesAfterProvisionalLoadStarted; }
     bool isContinuingLoadAfterNavigationPolicyDecision() const { return m_isContinuingLoad == ShouldTreatAsContinuingLoad::YesAfterNavigationPolicyDecision; }

@@ -51,9 +51,9 @@ public:
 };
 
 // https://w3c.github.io/webappsec-subresource-integrity/#processing-an-integrity-policy
-std::unique_ptr<IntegrityPolicy> processIntegrityPolicy(const ResourceResponse&, HTTPHeaderName);
+SWIFT_UNSAFE WEBCORE_EXPORT std::unique_ptr<IntegrityPolicy> processIntegrityPolicy(const ResourceResponse&, HTTPHeaderName);
 // https://w3c.github.io/webappsec-subresource-integrity/#should-request-be-blocked-by-integrity-policy-section
-bool shouldRequestBeBlockedByIntegrityPolicy(ScriptExecutionContext&, const ResourceLoaderOptions&, const URL&);
+WEBCORE_EXPORT bool shouldRequestBeBlockedByIntegrityPolicy(ScriptExecutionContext&, const ResourceLoaderOptions&, const URL&);
 
 } // namespace WebCore
 

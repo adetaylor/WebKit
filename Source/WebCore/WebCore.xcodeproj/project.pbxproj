@@ -1070,6 +1070,7 @@
 		2473729C9C40145602B6EED3 /* UnifiedSource15-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01FA511EE07ED821FC38C8C0 /* UnifiedSource15-header-RenderStyleGetters.cpp */; };
 		247E90B270CFDDBA3A6D2512 /* UnifiedSource31-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CA6FA18AEA1958D18A49C88 /* UnifiedSource31-header-RenderStyleGetters.cpp */; };
 		2542F4DB1166C25A00E89A86 /* UserGestureIndicator.h in Headers */ = {isa = PBXBuildFile; fileRef = 2542F4D91166C25A00E89A86 /* UserGestureIndicator.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		254D7CC3DB7E4C2591E99E69 /* SubresourceIntegrity.h in Headers */ = {isa = PBXBuildFile; fileRef = 7CF1589A1EBBCDC700D4BFB7 /* SubresourceIntegrity.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		25571903E0F329E69F62E5C4 /* invalid-placard@1x.png in Copy Modern Media Controls Images */ = {isa = PBXBuildFile; fileRef = 714F5B061DEE5F8A0075BD17 /* invalid-placard@1x.png */; platformFilters = (ios, maccatalyst, tvos, xros, ); };
 		25844670F1A4A11B90492C9C /* UnifiedSource12-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1818859115E2479836298884 /* UnifiedSource12-header-RenderStyleGetters.cpp */; };
 		261CA627EA2BAE7CFD76CAD9 /* SkipBack10.svg in Copy Modern Media Controls Images */ = {isa = PBXBuildFile; fileRef = 8406E9C2A59B1E775A71B2ED /* SkipBack10.svg */; platformFilters = (ios, maccatalyst, tvos, xros, ); };
@@ -1523,6 +1524,7 @@
 		3FBC4AF3189881560046EE38 /* VideoPresentationInterfaceIOS.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3FBC4AF1189881560046EE38 /* VideoPresentationInterfaceIOS.mm */; };
 		3FBC4AF4189881560046EE38 /* VideoPresentationInterfaceIOS.h in Headers */ = {isa = PBXBuildFile; fileRef = 3FBC4AF2189881560046EE38 /* VideoPresentationInterfaceIOS.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3FF813A71DBA8640009BF001 /* PointerLockController.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CFC434F192406A900A0D3B5 /* PointerLockController.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		40B28A037C464E17B639FAB7 /* IntegrityPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = BA79DEEF2DDDF89D000DB04C /* IntegrityPolicy.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		410398A72B593B7100C9E03D /* MediaStreamTrackDataHolder.h in Headers */ = {isa = PBXBuildFile; fileRef = 410398A52B593B7000C9E03D /* MediaStreamTrackDataHolder.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4105A0672D537FE800EA2D19 /* FileSystemWritableFileStreamIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 4105A0662D537FE800EA2D19 /* FileSystemWritableFileStreamIdentifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4107908C1FC3F0330061B27A /* ClientOrigin.h in Headers */ = {isa = PBXBuildFile; fileRef = 4107908A1FC3E4F20061B27A /* ClientOrigin.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -47525,6 +47527,7 @@
 				411945A92D3E3D4F00C40F6B /* InstallEvent.h in Headers */,
 				F3ABFE0C130E9DA000E7F7D1 /* InstrumentingAgents.h in Headers */,
 				2D550A1429C30F3F00BD0C1F /* IntDegrees.h in Headers */,
+				40B28A037C464E17B639FAB7 /* IntegrityPolicy.h in Headers */,
 				077FD1B32CC82C5D00C5D9E0 /* IntelligenceTextEffectsSupport.h in Headers */,
 				2DC05CA827D80956004ED403 /* InteractionRegion.h in Headers */,
 				3CC9203C865C482C84C3052E /* InteractiveModelElementHitTestResult.h in Headers */,
@@ -50689,6 +50692,7 @@
 				D000ED2811C1B9CD00C47726 /* SubframeLoader.h in Headers */,
 				46D0004026A0FEB300D1BF1E /* SubmitEvent.h in Headers */,
 				F55B3DD41251F12D003EF269 /* SubmitInputType.h in Headers */,
+				254D7CC3DB7E4C2591E99E69 /* SubresourceIntegrity.h in Headers */,
 				656D37480ADBA5DE00A4554D /* SubresourceLoader.h in Headers */,
 				659A7D130B6DB4D9001155B3 /* SubstituteData.h in Headers */,
 				1A8F6B020DB53006001DB794 /* SubstituteResource.h in Headers */,

@@ -106,8 +106,8 @@ public:
 
     WEBCORE_EXPORT SecurityOrigin* securityOrigin() const;
 
-    static SandboxFlags parseSandboxPolicy(StringView policy, String& invalidTokensErrorMessage);
-    static bool isSupportedSandboxPolicy(StringView);
+    WEBCORE_EXPORT static SandboxFlags parseSandboxPolicy(StringView policy, String& invalidTokensErrorMessage);
+    WEBCORE_EXPORT static bool isSupportedSandboxPolicy(StringView);
 
     bool usedLegacyTLS() const { return m_usedLegacyTLS; }
     void setUsedLegacyTLS(bool used) { m_usedLegacyTLS = used; }

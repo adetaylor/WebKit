@@ -1886,6 +1886,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     loader/HTTPHeaderField.h
     loader/HistoryController.h
     loader/ImageLoader.h
+    loader/IntegrityPolicy.h
     loader/LinkHeader.h
     loader/LinkLoader.h
     loader/LinkLoaderClient.h
@@ -1932,6 +1933,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     loader/ShouldTreatAsContinuingLoad.h
     loader/SpeculationRules.h
     loader/SubframeLoader.h
+    loader/SubresourceIntegrity.h
     loader/SubresourceLoader.h
     loader/SubstituteData.h
     loader/SubstituteResource.h

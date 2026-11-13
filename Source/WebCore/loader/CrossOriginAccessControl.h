@@ -81,7 +81,7 @@ enum class HTTPHeadersToKeepFromCleaning : uint8_t {
     Pragma = 1 << 6
 };
 
-OptionSet<HTTPHeadersToKeepFromCleaning> httpHeadersToKeepFromCleaning(const HTTPHeaderMap&);
+WEBCORE_EXPORT OptionSet<HTTPHeadersToKeepFromCleaning> httpHeadersToKeepFromCleaning(const HTTPHeaderMap&);
 WEBCORE_EXPORT void cleanHTTPRequestHeadersForAccessControl(ResourceRequest&, OptionSet<HTTPHeadersToKeepFromCleaning>);
 
 class WEBCORE_EXPORT CrossOriginAccessControlCheckDisabler {
