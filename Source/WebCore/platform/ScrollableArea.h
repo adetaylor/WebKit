@@ -479,9 +479,12 @@ public:
     virtual void scrollDidEnd() { }
     virtual void scrollOriginDidChange() { }
 
+    WEBCORE_EXPORT virtual ~ScrollableArea();
+    // Declared so that Swift imports the class; never defined, so a move fails to link.
+    SWIFT_UNAVAILABLE_IN_SWIFT ScrollableArea(ScrollableArea&&);
+
 protected:
     WEBCORE_EXPORT ScrollableArea();
-    WEBCORE_EXPORT virtual ~ScrollableArea();
 
     void setScrollOrigin(const IntPoint&);
     void resetScrollOriginChanged() { m_scrollOriginChanged = false; }
