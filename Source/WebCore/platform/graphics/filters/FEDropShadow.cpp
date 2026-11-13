@@ -1,6 +1,6 @@
 /*
  * Copyright (C) Research In Motion Limited 2011. All rights reserved.
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -21,18 +21,13 @@
 #include "config.h"
 #include "FEDropShadow.h"
 
-#include "FEDropShadowSoftwareApplier.h"
 #include "FEGaussianBlur.h"
 #include "Filter.h"
 #include "GraphicsContext.h"
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEDropShadowCoreImageApplier.h"
-#endif
-
-#if USE(SKIA)
-#include "FEDropShadowSkiaApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -44,100 +39,67 @@ Ref<FEDropShadow> FEDropShadow::create(float stdX, float stdY, float dx, float d
 
 FEDropShadow::FEDropShadow(float stdX, float stdY, float dx, float dy, const Color& shadowColor, float shadowOpacity, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEDropShadow, colorSpace)
-    , m_stdX(stdX)
-    , m_stdY(stdY)
-    , m_dx(dx)
-    , m_dy(dy)
-    , m_shadowColor(shadowColor)
-    , m_shadowOpacity(shadowOpacity)
+    , m_parameters { stdX, stdY, dx, dy, shadowColor, shadowOpacity }
 {
 }
 
 bool FEDropShadow::operator==(const FEDropShadow& other) const
 {
     return FilterEffect::operator==(other)
-        && m_stdX == other.m_stdX
-        && m_stdY == other.m_stdY
-        && m_dx == other.m_dx
-        && m_dy == other.m_dy
-        && m_shadowColor == other.m_shadowColor
-        && m_shadowOpacity == other.m_shadowOpacity;
+        && m_parameters == other.m_parameters;
 }
 
 bool FEDropShadow::setStdDeviationX(float stdX)
 {
-    if (m_stdX == stdX)
+    if (m_parameters.stdDeviationX == stdX)
         return false;
-    m_stdX = stdX;
+    m_parameters.stdDeviationX = stdX;
     return true;
 }
 
 bool FEDropShadow::setStdDeviationY(float stdY)
 {
-    if (m_stdY == stdY)
+    if (m_parameters.stdDeviationY == stdY)
         return false;
-    m_stdY = stdY;
+    m_parameters.stdDeviationY = stdY;
     return true;
 }
 
 bool FEDropShadow::setDx(float dx)
 {
-    if (m_dx == dx)
+    if (m_parameters.dx == dx)
         return false;
-    m_dx = dx;
+    m_parameters.dx = dx;
     return true;
 }
 
 bool FEDropShadow::setDy(float dy)
 {
-    if (m_dy == dy)
+    if (m_parameters.dy == dy)
         return false;
-    m_dy = dy;
+    m_parameters.dy = dy;
     return true;
 }
 
 bool FEDropShadow::setShadowColor(const Color& shadowColor)
 {
-    if (m_shadowColor == shadowColor)
+    if (m_parameters.shadowColor == shadowColor)
         return false;
-    m_shadowColor = shadowColor;
+    m_parameters.shadowColor = shadowColor;
     return true;
 }
 
 bool FEDropShadow::setShadowOpacity(float shadowOpacity)
 {
-    if (m_shadowOpacity == shadowOpacity)
+    if (m_parameters.shadowOpacity == shadowOpacity)
         return false;
-    m_shadowOpacity = shadowOpacity;
+    m_parameters.shadowOpacity = shadowOpacity;
     return true;
-}
-
-FloatRect FEDropShadow::calculateImageRect(const Filter& filter, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const
-{
-    auto imageRect = inputImageRects[0];
-    auto imageRectWithOffset(imageRect);
-    imageRectWithOffset.move(filter.resolvedSize({ m_dx, m_dy }));
-    imageRect.unite(imageRectWithOffset);
-
-    auto kernelSize = FEGaussianBlur::calculateUnscaledKernelSize(filter.resolvedSize({ m_stdX, m_stdY }));
-
-    // We take the half kernel size and multiply it with three, because we run box blur three times.
-    imageRect.inflateX(3 * kernelSize.width() * 0.5f);
-    imageRect.inflateY(3 * kernelSize.height() * 0.5f);
-
-    return filter.clipToMaxEffectRect(imageRect, primitiveSubregion);
 }
 
 IntOutsets FEDropShadow::calculateOutsets(const FloatSize& offset, const FloatSize& stdDeviation)
 {
-    IntSize outsetSize = FEGaussianBlur::calculateOutsetSize(stdDeviation);
-
-    int top = std::max<int>(0, outsetSize.height() - offset.height());
-    int right = std::max<int>(0, outsetSize.width() + offset.width());
-    int bottom = std::max<int>(0, outsetSize.height() + offset.height());
-    int left = std::max<int>(0, outsetSize.width() - offset.width());
-
-    return { top, right, bottom, left };
+    return feDropShadowOutsets(offset, stdDeviation).intOutsets();
 }
 
 OptionSet<FilterRenderingMode> FEDropShadow::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -147,7 +109,7 @@ OptionSet<FilterRenderingMode> FEDropShadow::supportedFilterRenderingModes(Optio
     modes.add(FilterRenderingMode::Accelerated);
 #endif
 #if USE(CG) && HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
-    if (m_stdX == m_stdY)
+    if (m_parameters.stdDeviationX == m_parameters.stdDeviationY)
         modes.add(FilterRenderingMode::GraphicsContext);
 #endif
     return modes & preferredFilterRenderingModes;
@@ -155,32 +117,12 @@ OptionSet<FilterRenderingMode> FEDropShadow::supportedFilterRenderingModes(Optio
 
 std::optional<GraphicsStyle> FEDropShadow::createGraphicsStyle(GraphicsContext& context, const Filter& filter) const
 {
-    ASSERT(m_stdX == m_stdY);
+    ASSERT(m_parameters.stdDeviationX == m_parameters.stdDeviationY);
 
-    auto offset = filter.resolvedSize(context.platformShadowOffset({ m_dx, m_dy }));
-    auto radius = FEGaussianBlur::calculateUnscaledKernelSize(filter.resolvedSize({ m_stdX, m_stdY }));
+    auto offset = filter.resolvedSize(context.platformShadowOffset({ m_parameters.dx, m_parameters.dy }));
+    auto radius = FEGaussianBlur::calculateUnscaledKernelSize(filter.resolvedSize({ m_parameters.stdDeviationX, m_parameters.stdDeviationY }));
 
-    return GraphicsDropShadow { offset, static_cast<float>(radius.width()), m_shadowColor, ShadowRadiusMode::Default, m_shadowOpacity };
-}
-
-std::unique_ptr<FilterEffectApplier> FEDropShadow::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEDropShadowCoreImageApplier>(*this);
-#elif USE(SKIA)
-    return FilterEffectApplier::create<FEDropShadowSkiaApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEDropShadow::createSoftwareApplier() const
-{
-#if USE(SKIA)
-    return FilterEffectApplier::create<FEDropShadowSkiaApplier>(*this);
-#else
-    return FilterEffectApplier::create<FEDropShadowSoftwareApplier>(*this);
-#endif
+    return GraphicsDropShadow { offset, static_cast<float>(radius.width()), m_parameters.shadowColor, ShadowRadiusMode::Default, m_parameters.shadowOpacity };
 }
 
 TextStream& FEDropShadow::externalRepresentation(TextStream& ts, FilterRepresentation representation) const
@@ -188,13 +130,13 @@ TextStream& FEDropShadow::externalRepresentation(TextStream& ts, FilterRepresent
     ts << indent << "[feDropShadow"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " stdDeviation=\""_s << m_stdX << ", "_s << m_stdY << '"';
-    ts << " dx=\""_s << m_dx << "\" dy=\"" << m_dy << '"';
-    ts << " flood-color=\""_s << m_shadowColor << '"';
-    ts << " flood-opacity=\""_s << m_shadowOpacity << '"';
+    ts << " stdDeviation=\""_s << m_parameters.stdDeviationX << ", "_s << m_parameters.stdDeviationY << '"';
+    ts << " dx=\""_s << m_parameters.dx << "\" dy=\"" << m_parameters.dy << '"';
+    ts << " flood-color=\""_s << m_parameters.shadowColor << '"';
+    ts << " flood-opacity=\""_s << m_parameters.shadowOpacity << '"';
 
     ts << "]\n"_s;
     return ts;
 }
-    
+
 } // namespace WebCore

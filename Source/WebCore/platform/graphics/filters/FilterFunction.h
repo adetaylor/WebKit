@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,8 +26,6 @@
 #pragma once
 
 #include <WebCore/FilterEffectGeometry.h>
-#include <WebCore/FilterImage.h>
-#include <WebCore/FilterImageVector.h>
 #include <WebCore/FilterRenderingMode.h>
 #include <WebCore/FilterStyle.h>
 #include <WebCore/FloatRect.h>
@@ -41,7 +39,6 @@ class TextStream;
 namespace WebCore {
 
 class Filter;
-class FilterResults;
 class GraphicsContext;
 
 enum class FilterRepresentation : uint8_t {
@@ -93,7 +90,6 @@ public:
     AtomString filterName() const { return filterName(m_filterType); }
 
     virtual OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode>) const { return FilterRenderingMode::Software; }
-    virtual RefPtr<FilterImage> apply(const Filter&, FilterImage&, FilterResults&) { return nullptr; }
     virtual FilterStyleVector createFilterStyles(GraphicsContext&, const Filter&, const FilterStyle&) const { return { }; }
 
     virtual WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation = FilterRepresentation::TestOutput) const = 0;

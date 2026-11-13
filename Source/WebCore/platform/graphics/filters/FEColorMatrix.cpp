@@ -3,7 +3,7 @@
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -25,16 +25,11 @@
 #include "FEColorMatrix.h"
 
 #include "ColorMatrix.h"
-#include "FEColorMatrixSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEColorMatrixCoreImageApplier.h"
-#endif
-
-#if USE(SKIA)
-#include "FEColorMatrixSkiaApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -52,31 +47,28 @@ Ref<FEColorMatrix> FEColorMatrix::create(ColorMatrixType type, const ColorMatrix
 
 FEColorMatrix::FEColorMatrix(ColorMatrixType type, Vector<float>&& values, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEColorMatrix, colorSpace)
-    , m_type(type)
-    , m_values(WTF::move(values))
+    , m_parameters { type, WTF::move(values) }
 {
 }
 
 bool FEColorMatrix::operator==(const FEColorMatrix& other) const
 {
-    return FilterEffect::operator==(other)
-        && m_type == other.m_type
-        && m_values == other.m_values;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 bool FEColorMatrix::setType(ColorMatrixType type)
 {
-    if (m_type == type)
+    if (m_parameters.type == type)
         return false;
-    m_type = type;
+    m_parameters.type = type;
     return true;
 }
 
 bool FEColorMatrix::setValues(const Vector<float>& values)
 {
-    if (m_values == values)
+    if (m_parameters.values == values)
         return false;
-    m_values = values;
+    m_parameters.values = values;
     return true;
 }
 
@@ -98,103 +90,40 @@ bool FEColorMatrix::areValuesValidForType(ColorMatrixType type, const Vector<flo
     return false;
 }
 
-void FEColorMatrix::calculateSaturateComponents(std::span<float, 9> components, float value)
-{
-    auto saturationMatrix = saturationColorMatrix(value);
-
-    components[0] = saturationMatrix.at(0, 0);
-    components[1] = saturationMatrix.at(0, 1);
-    components[2] = saturationMatrix.at(0, 2);
-
-    components[3] = saturationMatrix.at(1, 0);
-    components[4] = saturationMatrix.at(1, 1);
-    components[5] = saturationMatrix.at(1, 2);
-
-    components[6] = saturationMatrix.at(2, 0);
-    components[7] = saturationMatrix.at(2, 1);
-    components[8] = saturationMatrix.at(2, 2);
-}
-
-void FEColorMatrix::calculateHueRotateComponents(std::span<float, 9> components, float angleInDegrees)
-{
-    auto hueRotateMatrix = hueRotateColorMatrix(angleInDegrees);
-
-    components[0] = hueRotateMatrix.at(0, 0);
-    components[1] = hueRotateMatrix.at(0, 1);
-    components[2] = hueRotateMatrix.at(0, 2);
-
-    components[3] = hueRotateMatrix.at(1, 0);
-    components[4] = hueRotateMatrix.at(1, 1);
-    components[5] = hueRotateMatrix.at(1, 2);
-
-    components[6] = hueRotateMatrix.at(2, 0);
-    components[7] = hueRotateMatrix.at(2, 1);
-    components[8] = hueRotateMatrix.at(2, 2);
-}
-
-Vector<float> FEColorMatrix::normalizedFloats(const Vector<float>& values)
-{
-    return values.map([](float value) { return normalizedFloat(value); });
-}
-
-bool FEColorMatrix::resultIsAlphaImage(std::span<const Ref<FilterImage>>) const
-{
-    return m_type == ColorMatrixType::FECOLORMATRIX_TYPE_LUMINANCETOALPHA;
-}
-
 OptionSet<FilterRenderingMode> FEColorMatrix::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
 {
     OptionSet<FilterRenderingMode> modes = FilterRenderingMode::Software;
 #if USE(CORE_IMAGE)
-    if (FEColorMatrixCoreImageApplier::supportsCoreImageRendering(*this))
+    if (feColorMatrixSupportsCoreImage(FEColorMatrixParametersView { m_parameters }))
         modes.add(FilterRenderingMode::Accelerated);
 #endif
 #if USE(SKIA)
     modes.add(FilterRenderingMode::Accelerated);
 #endif
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    if (m_type == ColorMatrixType::FECOLORMATRIX_TYPE_MATRIX
-        || m_type == ColorMatrixType::FECOLORMATRIX_TYPE_SATURATE
-        || m_type == ColorMatrixType::FECOLORMATRIX_TYPE_HUEROTATE)
+    if (m_parameters.type == ColorMatrixType::FECOLORMATRIX_TYPE_MATRIX
+        || m_parameters.type == ColorMatrixType::FECOLORMATRIX_TYPE_SATURATE
+        || m_parameters.type == ColorMatrixType::FECOLORMATRIX_TYPE_HUEROTATE)
         modes.add(FilterRenderingMode::GraphicsContext);
 #endif
     return modes & preferredFilterRenderingModes;
 }
 
-std::unique_ptr<FilterEffectApplier> FEColorMatrix::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEColorMatrixCoreImageApplier>(*this);
-#elif USE(SKIA)
-    return FilterEffectApplier::create<FEColorMatrixSkiaApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEColorMatrix::createSoftwareApplier() const
-{
-#if USE(SKIA)
-    return FilterEffectApplier::create<FEColorMatrixSkiaApplier>(*this);
-#else
-    return FilterEffectApplier::create<FEColorMatrixSoftwareApplier>(*this);
-#endif
-}
-
 std::optional<GraphicsStyle> FEColorMatrix::createGraphicsStyle(GraphicsContext&, const Filter&) const
 {
-    switch (m_type) {
+    auto& values = m_parameters.values;
+    switch (m_parameters.type) {
     case ColorMatrixType::FECOLORMATRIX_TYPE_MATRIX: {
-        RELEASE_ASSERT(m_values.size() == 20);
+        RELEASE_ASSERT(values.size() == 20);
         GraphicsColorMatrix result;
-        std::copy_n(m_values.begin(), std::min<size_t>(m_values.size(), 20), result.values.begin());
+        std::copy_n(values.begin(), std::min<size_t>(values.size(), 20), result.values.begin());
         return result;
     }
     case ColorMatrixType::FECOLORMATRIX_TYPE_SATURATE:
-        return GraphicsColorMatrix { ColorMatrix<5, 4>(saturationColorMatrix(m_values[0])).data() };
+        return GraphicsColorMatrix { ColorMatrix<5, 4>(saturationColorMatrix(values[0])).data() };
 
     case ColorMatrixType::FECOLORMATRIX_TYPE_HUEROTATE:
-        return GraphicsColorMatrix { ColorMatrix<5, 4>(hueRotateColorMatrix(m_values[0])).data() };
+        return GraphicsColorMatrix { ColorMatrix<5, 4>(hueRotateColorMatrix(values[0])).data() };
 
     default:
         ASSERT_NOT_REACHED();
@@ -231,11 +160,11 @@ TextStream& FEColorMatrix::externalRepresentation(TextStream& ts, FilterRepresen
     ts << indent << "[feColorMatrix"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " type=\"" << m_type << '"';
-    if (!m_values.isEmpty()) {
+    ts << " type=\"" << m_parameters.type << '"';
+    if (!m_parameters.values.isEmpty()) {
         ts << " values=\""_s;
         bool isFirst = true;
-        for (auto value : m_values) {
+        for (auto value : m_parameters.values) {
             if (isFirst)
                 isFirst = false;
             else

@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2008 Alex Mathews <possessedpenguinbob@gmail.com>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -39,8 +39,6 @@ private:
     unsigned numberOfEffectInputs() const override { return 0; }
 
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 };

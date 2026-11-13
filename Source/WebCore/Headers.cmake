@@ -2727,6 +2727,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/RenderingResourceIdentifier.h
     platform/graphics/RotationDirection.h
     platform/graphics/ScreenDataOverrides.h
+    platform/graphics/ShadowBlur.h
     platform/graphics/ShareableBitmap.h
     platform/graphics/ShareableBitmapHandle.h
 
@@ -2834,12 +2835,10 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/filters/FETurbulence.h
     platform/graphics/filters/Filter.h
     platform/graphics/filters/FilterEffect.h
-    platform/graphics/filters/FilterEffectApplier.h
     platform/graphics/filters/FilterEffectGeometry.h
+    platform/graphics/filters/FilterEffectView.h
     platform/graphics/filters/FilterEffectVector.h
     platform/graphics/filters/FilterFunction.h
-    platform/graphics/filters/FilterImage.h
-    platform/graphics/filters/FilterImageVector.h
     platform/graphics/filters/FilterOperation.h
     platform/graphics/filters/FilterOperations.h
     platform/graphics/filters/FilterRenderingMode.h
@@ -2850,6 +2849,34 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/filters/SourceAlpha.h
     platform/graphics/filters/SourceGraphic.h
     platform/graphics/filters/SpotLightSource.h
+
+    platform/graphics/PixelBufferSwiftBridge.h
+    platform/graphics/ShadowBlurSwiftBridge.h
+    platform/graphics/ShareableBitmapSwiftBridge.h
+
+    platform/graphics/filters/FilterGraphicsBridge.h
+    platform/graphics/filters/FilterSwiftBridge.h
+    platform/graphics/GraphicsContextSwiftBridge.h
+    platform/graphics/coreimage/FilterCoreImageSwiftBridge.h
+    platform/graphics/filters/ParallelRowsDispatch.h
+    platform/graphics/filters/skia/FilterSkiaBridge.h
+
+    platform/graphics/filters/parameters/FEBlendParameters.h
+    platform/graphics/filters/parameters/FEColorMatrixParameters.h
+    platform/graphics/filters/parameters/FEComponentTransferParameters.h
+    platform/graphics/filters/parameters/FECompositeParameters.h
+    platform/graphics/filters/parameters/FEConvolveMatrixParameters.h
+    platform/graphics/filters/parameters/FEDisplacementMapParameters.h
+    platform/graphics/filters/parameters/FEDropShadowParameters.h
+    platform/graphics/filters/parameters/FEFloodParameters.h
+    platform/graphics/filters/parameters/FEGaussianBlurParameters.h
+    platform/graphics/filters/parameters/FEImageParameters.h
+    platform/graphics/filters/parameters/FELightingParameters.h
+    platform/graphics/filters/parameters/FEMorphologyParameters.h
+    platform/graphics/filters/parameters/FEOffsetParameters.h
+    platform/graphics/filters/parameters/FETurbulenceParameters.h
+    platform/graphics/filters/parameters/LightSourceParameters.h
+    platform/graphics/filters/parameters/SourceGraphicParameters.h
 
     platform/graphics/iso/ISOBox.h
     platform/graphics/iso/ISOOriginalFormatBox.h
@@ -3066,6 +3093,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     rendering/BaselineAlignment.h
     rendering/BreakablePositions.h
     rendering/CSSFilterRenderer.h
+    rendering/CSSFilterRendererView.h
     rendering/CSSValueKey.h
     rendering/CaretRectComputation.h
     rendering/ClipRect.h
@@ -3663,6 +3691,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     svg/graphics/filters/SVGFilterExpression.h
     svg/graphics/filters/SVGFilterRenderer.h
+    svg/graphics/filters/SVGFilterRendererView.h
 
     svg/properties/SVGList.h
     svg/properties/SVGPrimitiveList.h

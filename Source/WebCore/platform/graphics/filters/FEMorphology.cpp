@@ -4,7 +4,7 @@
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) Research In Motion Limited 2010. All rights reserved.
- * Copyright (C) 2017-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2015 Google Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
@@ -27,12 +27,7 @@
 #include "FEMorphology.h"
 
 #include "Filter.h"
-#include "FEMorphologySoftwareApplier.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FEMorphologyCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -43,51 +38,40 @@ Ref<FEMorphology> FEMorphology::create(MorphologyOperatorType type, float radius
 
 FEMorphology::FEMorphology(MorphologyOperatorType type, float radiusX, float radiusY, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEMorphology, colorSpace)
-    , m_type(type)
-    , m_radiusX(std::max(0.0f, radiusX))
-    , m_radiusY(std::max(0.0f, radiusY))
+    , m_parameters { type, std::max(0.0f, radiusX), std::max(0.0f, radiusY) }
 {
 }
 
 bool FEMorphology::operator==(const FEMorphology& other) const
 {
     return FilterEffect::operator==(other)
-        && m_type == other.m_type
-        && m_radiusX == other.m_radiusX
-        && m_radiusY == other.m_radiusY;
+        && m_parameters == other.m_parameters;
 }
 
 bool FEMorphology::setMorphologyOperator(MorphologyOperatorType type)
 {
-    if (m_type == type)
+    if (m_parameters.type == type)
         return false;
-    m_type = type;
+    m_parameters.type = type;
     return true;
 }
 
 bool FEMorphology::setRadiusX(float radiusX)
 {
     radiusX = std::max(0.0f, radiusX);
-    if (m_radiusX == radiusX)
+    if (m_parameters.radiusX == radiusX)
         return false;
-    m_radiusX = radiusX;
+    m_parameters.radiusX = radiusX;
     return true;
 }
 
 bool FEMorphology::setRadiusY(float radiusY)
 {
     radiusY = std::max(0.0f, radiusY);
-    if (m_radiusY == radiusY)
+    if (m_parameters.radiusY == radiusY)
         return false;
-    m_radiusY = radiusY;
+    m_parameters.radiusY = radiusY;
     return true;
-}
-
-FloatRect FEMorphology::calculateImageRect(const Filter& filter, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const
-{
-    auto imageRect = inputImageRects[0];
-    imageRect.inflate(filter.resolvedSize({ m_radiusX, m_radiusY }));
-    return filter.clipToMaxEffectRect(imageRect, primitiveSubregion);
 }
 
 OptionSet<FilterRenderingMode> FEMorphology::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -97,25 +81,6 @@ OptionSet<FilterRenderingMode> FEMorphology::supportedFilterRenderingModes(Optio
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEMorphology::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEMorphologyCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-bool FEMorphology::resultIsAlphaImage(std::span<const Ref<FilterImage>> inputs) const
-{
-    return inputs[0]->isAlphaImage();
-}
-
-std::unique_ptr<FilterEffectApplier> FEMorphology::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEMorphologySoftwareApplier>(*this);
 }
 
 static TextStream& operator<<(TextStream& ts, const MorphologyOperatorType& type)
