@@ -33,7 +33,7 @@ class SharedBufferDataView;
 
 class CachedRawResource final : public CachedResource {
 public:
-    CachedRawResource(CachedResourceRequest&&, Type, PAL::SessionID, const CookieJar*);
+    WEBCORE_EXPORT CachedRawResource(CachedResourceRequest&&, Type, PAL::SessionID, const CookieJar*);
 
     void setDefersLoading(bool);
 

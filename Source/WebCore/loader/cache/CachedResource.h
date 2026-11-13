@@ -130,7 +130,7 @@ public:
     virtual const TextResourceDecoder* textResourceDecoder() const { return nullptr; }
     virtual void updateBuffer(const FragmentedSharedBuffer&);
     virtual void updateData(const SharedBuffer&);
-    virtual void finishLoading(const FragmentedSharedBuffer*, const NetworkLoadMetrics&);
+    WEBCORE_EXPORT virtual void finishLoading(const FragmentedSharedBuffer*, const NetworkLoadMetrics&);
     virtual void error(CachedResource::Status);
 
     void setResourceError(const ResourceError& error) { mutableResponseData().m_error = error; }
@@ -233,7 +233,7 @@ public:
     virtual void redirectReceived(ResourceRequest&&, const ResourceResponse&, CompletionHandler<void(ResourceRequest&&)>&&);
     virtual void responseReceived(ResourceResponse&&);
     virtual bool shouldCacheResponse(const ResourceResponse&) { return true; }
-    void setResponse(ResourceResponse&&);
+    WEBCORE_EXPORT void setResponse(ResourceResponse&&);
     WEBCORE_EXPORT const ResourceResponse& response() const;
     Box<NetworkLoadMetrics> takeNetworkLoadMetrics() { return mutableResponse().takeNetworkLoadMetrics(); }
 

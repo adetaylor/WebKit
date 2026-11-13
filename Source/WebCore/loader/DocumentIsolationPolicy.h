@@ -58,7 +58,7 @@ struct DocumentIsolationPolicy {
 
     friend bool operator==(const DocumentIsolationPolicy&, const DocumentIsolationPolicy&) = default;
 
-    void addPolicyHeadersTo(ResourceResponse&) const;
+    WEBCORE_EXPORT void addPolicyHeadersTo(ResourceResponse&) const;
 };
 
 // https://wicg.github.io/document-isolation-policy/#obtain-dip

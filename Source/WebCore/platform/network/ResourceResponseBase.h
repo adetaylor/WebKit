@@ -55,7 +55,7 @@ struct Result;
 class ResourceResponse;
 struct ResourceResponseData;
 
-bool isScriptAllowedByNosniff(const ResourceResponse&);
+WEBCORE_EXPORT bool isScriptAllowedByNosniff(const ResourceResponse&);
 
 enum class UsedLegacyTLS : bool { No, Yes };
 static constexpr unsigned bitWidthOfUsedLegacyTLS = 1;
@@ -145,7 +145,7 @@ public:
     WEBCORE_EXPORT String suggestedFilename() const;
     WEBCORE_EXPORT static String sanitizeSuggestedFilename(const String&);
 
-    bool isNosniff() const;
+    WEBCORE_EXPORT bool isNosniff() const;
 
     WEBCORE_EXPORT void includeCertificateInfo(std::span<const std::byte> = { }) const;
     void setCertificateInfo(CertificateInfo&& info) { m_certificateInfo = WTF::move(info); }
@@ -173,7 +173,7 @@ public:
     WEBCORE_EXPORT std::optional<Seconds> age() const;
     WEBCORE_EXPORT std::optional<WallTime> expires() const;
     WEBCORE_EXPORT std::optional<WallTime> lastModified() const;
-    const ParsedContentRange& contentRange() const LIFETIME_BOUND;
+    WEBCORE_EXPORT const ParsedContentRange& contentRange() const LIFETIME_BOUND;
 
     static_assert(static_cast<unsigned>(Source::InspectorOverride) <= ((1U << bitWidthOfSource) - 1));
 
@@ -219,7 +219,7 @@ public:
     Tainting tainting() const { return m_tainting; }
 
     enum class PerformExposeAllHeadersCheck : bool { No, Yes };
-    static ResourceResponse filter(const ResourceResponse&, PerformExposeAllHeadersCheck);
+    WEBCORE_EXPORT static ResourceResponse filter(const ResourceResponse&, PerformExposeAllHeadersCheck);
 
     WEBCORE_EXPORT static ResourceResponse syntheticRedirectResponse(const URL& fromURL, const URL& toURL);
 

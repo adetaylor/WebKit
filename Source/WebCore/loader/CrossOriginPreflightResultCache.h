@@ -44,12 +44,12 @@ class ResourceResponse;
 class CrossOriginPreflightResultCacheItem {
     WTF_MAKE_NONCOPYABLE(CrossOriginPreflightResultCacheItem); WTF_DEPRECATED_MAKE_FAST_ALLOCATED_WITH_HEAP_IDENTIFIER(CrossOriginPreflightResultCacheItem, Loader);
 public:
-    static std::expected<UniqueRef<CrossOriginPreflightResultCacheItem>, String> create(StoredCredentialsPolicy, const ResourceResponse&);
+    WEBCORE_EXPORT static std::expected<UniqueRef<CrossOriginPreflightResultCacheItem>, String> create(StoredCredentialsPolicy, const ResourceResponse&);
 
     CrossOriginPreflightResultCacheItem(MonotonicTime, StoredCredentialsPolicy, HashSet<String>&&, HashSet<String, ASCIICaseInsensitiveHash>&&);
 
-    std::optional<String> validateMethodAndHeaders(const String& method, const HTTPHeaderMap&) const;
-    bool allowsRequest(StoredCredentialsPolicy, const String& method, const HTTPHeaderMap&) const;
+    WEBCORE_EXPORT std::optional<String> validateMethodAndHeaders(const String& method, const HTTPHeaderMap&) const;
+    WEBCORE_EXPORT bool allowsRequest(StoredCredentialsPolicy, const String& method, const HTTPHeaderMap&) const;
 
 private:
     bool allowsCrossOriginMethod(const String&, StoredCredentialsPolicy) const;

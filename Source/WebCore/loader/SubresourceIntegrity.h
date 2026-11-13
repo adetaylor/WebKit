@@ -42,7 +42,7 @@ enum class ResourceResponseBaseTainting : uint8_t;
 // The algorithms below do not depend on CachedResource, so that any loader can use them.
 
 // https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata-section
-Vector<EncodedResourceCryptographicDigest> parseIntegrityMetadata(const String& metadata);
+WEBCORE_EXPORT Vector<EncodedResourceCryptographicDigest> parseIntegrityMetadata(const String& metadata);
 
 // https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist
 // `digestForAlgorithm` lets callers that already hold digests of the bytes (e.g. CachedResource) avoid hashing them again.
@@ -60,7 +60,7 @@ bool isIntegrityMismatchError(const ResourceError&);
 
 // CachedResource conveniences, for consumers that check a resource that may have come from the memory cache.
 bool matchIntegrityMetadata(const CachedResource&, const String& integrityMetadata);
-bool matchIntegrityMetadataWithoutReportingHashes(const CachedResource&, const String& integrityMetadata);
+WEBCORE_EXPORT bool matchIntegrityMetadataWithoutReportingHashes(const CachedResource&, const String& integrityMetadata);
 void reportHashesIfNeeded(const CachedResource&);
 String integrityMismatchDescription(const CachedResource&, const String& integrityMetadata);
 
