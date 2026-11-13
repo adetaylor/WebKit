@@ -101,7 +101,16 @@ _HAND_WRITTEN_TYPES = {
 
 def is_hand_written(cpp_type):
     """Whether the Swift form of a C++ IPC type is one that SwiftCoding.swift writes by hand, like IPCTypes.ColorSpace."""
-    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _HAND_WRITTEN_TYPES
+    name = strip_cpp_type_decorations(cpp_type).removeprefix('::')
+    return name in _HAND_WRITTEN_TYPES or name in _CXX_ENUM_TYPES
+
+
+# C++ enums whose Swift form is the enum that Swift imports: encoded as their underlying integer, and accepted where Swift's
+# import of the enum has a case of that value, which are the values C++ declares. For enums whose values are declared under
+# conditions in their order, which a Swift form numbering them in .serialization.in order couldn't number as C++ does.
+_CXX_ENUM_TYPES = {
+    'WebCore::StyleAppearance': 'WebCore.StyleAppearance',
+}
 
 
 # Types whose Swift form owns a resource that a message carries, a send right on Darwin (SwiftCoding.swift). They are
@@ -186,6 +195,8 @@ def split_template_arguments(arguments):
 _NESTED_SWIFT_FORM_NAMES = {
     'WebCore::PathSegment::Data': 'PathSegmentData',
     'WebCore::PathRoundedRect::Strategy': 'PathRoundedRectStrategy',
+    'WebCore::ControlStyle::State': 'ControlStyleState',
+    'WebCore::MeterPart::GaugeRegion': 'MeterPartGaugeRegion',
 }
 
 
@@ -259,6 +270,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type.removeprefix('::') in _HAND_WRITTEN_TYPES:
         swift_type = _HAND_WRITTEN_TYPES[cpp_type.removeprefix('::')]
         return (swift_type, swift_type)
+
+    if cpp_type.removeprefix('::') in _CXX_ENUM_TYPES:
+        swift_type = _CXX_ENUM_TYPES[cpp_type.removeprefix('::')]
+        return (swift_type, 'IPCCoding.CxxEnum<%s>' % swift_type)
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
     if match:

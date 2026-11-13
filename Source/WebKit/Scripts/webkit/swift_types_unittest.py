@@ -112,6 +112,12 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertTrue(swift_types.is_hand_written('::WebCore::ColorSpace'))
         self.assertFalse(swift_types.is_hand_written('WebCore::PlatformColorSpace'))
         self.assertFalse(swift_types.is_owned_type('WebCore::ColorSpace'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::Color'), ('IPCTypes.WebCoreColor', 'IPCTypes.WebCoreColor'))
+
+    def test_cxx_enum_types(self):
+        self.assertTrue(swift_types.is_hand_written('WebCore::StyleAppearance'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::StyleAppearance'), ('WebCore.StyleAppearance', 'IPCCoding.CxxEnum<WebCore.StyleAppearance>'))
+        self.assertEqual(swift_types.swift_type_and_coder('std::optional<WebCore::StyleAppearance>'), ('WebCore.StyleAppearance?', 'IPCCoding.StdOptional<IPCCoding.CxxEnum<WebCore.StyleAppearance>>'))
 
     def test_cxx_name(self):
         self.assertEqual(swift_types.swift_cxx_name('WebCore::FrameIdentifier'), 'WebCore_FrameIdentifier')
