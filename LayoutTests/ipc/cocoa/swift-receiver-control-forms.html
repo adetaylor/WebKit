@@ -19,11 +19,14 @@ function send(messageName, args)
     });
 }
 
-async function describe(messageName, args)
+// Sends each case to the Swift and the C++ describer at once, as a round trip to the UI process is slow, and resolves
+// with their descriptions, null where a message was not handled.
+async function describeAll(swiftMessageName, cxxMessageName, cases)
 {
-    const result = await send(messageName, args);
+    const description = result => result ? result.arguments[0].value : null;
+    const results = await Promise.all(cases.map(([, args]) => Promise.all([send(swiftMessageName, args), send(cxxMessageName, args)])));
     takeInvalidMessageString();
-    return result ? result.arguments[0].value : null;
+    return results.map(([swift, cxx]) => [description(swift), description(cxx)]);
 }
 
 const u8 = value => ({ type: 'uint8_t', value });
@@ -86,13 +89,13 @@ promise_test(async t => {
         cases.push(['a style cut short', [u8(part.textField), u32(0), f(13)]]);
 
         let accepted = 0;
-        for (const [description, args] of cases) {
-            const swift = await describe(IPC.messages.IPCTesterReceiver_DescribeControlSwift.name, args);
-            const cxx = await describe(IPC.messages.IPCTesterReceiver_DescribeCxxDecodedControlSwift.name, args);
+        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeControlSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedControlSwift.name, cases);
+        cases.forEach(([description], i) => {
+            const [swift, cxx] = descriptions[i];
             assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
             if (swift !== null)
                 ++accepted;
-        }
+        });
         assert_greater_than(accepted, 60, 'Most of the control parts are accepted');
 
         // System images: the Apple Pay logo and an AppKit control image.
@@ -103,11 +106,11 @@ promise_test(async t => {
         images.push(['a scroll bar corner without a tint', [u8(1), ...invalidColor, b(0)]]);
         images.push(['a scroll bar corner with an out-of-line tint', [u8(1), ...outOfLineColor(1, 0.1, 0.2, 0.3, 0.5), b(0)]]);
         images.push(['an unknown system image', [u8(2), u8(0)]]);
-        for (const [description, args] of images) {
-            const swift = await describe(IPC.messages.IPCTesterReceiver_DescribeSystemImageSwift.name, args);
-            const cxx = await describe(IPC.messages.IPCTesterReceiver_DescribeCxxDecodedSystemImageSwift.name, args);
+        const imageDescriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeSystemImageSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedSystemImageSwift.name, images);
+        images.forEach(([description], i) => {
+            const [swift, cxx] = imageDescriptions[i];
             assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
-        }
+        });
     } finally {
         IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
     }
