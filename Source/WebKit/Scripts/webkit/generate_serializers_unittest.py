@@ -551,6 +551,36 @@ enum class WebKit::E : uint8_t {
                       '    }\n', swift)
         self.assertIn('        typealias WebKit_RemoteVideoFrameReference = IPCTypes.RemoteVideoFrameReference\n', swift)
 
+    def test_cxx_enum_validation(self):
+        swift = generate_swift('''
+enum class WebCore::StyleAppearance : uint8_t {
+    None,
+    Auto,
+#if ENABLE(APPLE_PAY)
+    ApplePayButton,
+#endif
+    Switch
+}
+''')
+        self.assertIn('''extension WebCore.StyleAppearance: IPCCxxEnum {
+    static func isDeclaredValue(_ value: Self) -> Bool {
+        switch value {
+        case .None:
+            return true
+        case .Auto:
+            return true
+        #if ENABLE_APPLE_PAY
+        case .ApplePayButton:
+            return true
+        #endif
+        case .Switch:
+            return true
+        default:
+            return false
+        }
+    }
+}''', swift)
+
     def test_unsupported_types(self):
         self.assertGenerationFails('''
 [Swift, CustomEncoder] struct WebKit::S {
