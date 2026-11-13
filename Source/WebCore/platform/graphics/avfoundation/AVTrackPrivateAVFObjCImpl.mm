@@ -101,7 +101,7 @@ void AVTrackPrivateAVFObjCImpl::initializationCompleted()
 
 AVTrackProperties AVTrackPrivateAVFObjCImpl::properties() const
 {
-    AVTrackProperties properties { readProperties() };
+    AVTrackProperties properties { readProperties(), InbandTextTrackPrivate::Kind::None, { }, { } };
     properties.formatDescription = adoptCF(reinterpret_cast<CMFormatDescriptionRef>(std::exchange(properties.retainedFormatDescription, 0)));
 
     if (m_assetTrack)
