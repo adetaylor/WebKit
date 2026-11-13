@@ -24,6 +24,9 @@
 #if ENABLE_GPU_PROCESS
 
 import WebKit_Internal
+#if canImport(os)
+import os
+#endif
 
 // The Swift state of the GPU process (GPUProcess.h), which GPUProcess::m_swiftState holds.
 @MainActor
@@ -32,6 +35,11 @@ final class GPUProcessState {
     // The capture preview of a getUserMedia prompt, while there is one (CapturePreviewManager.swift).
     var capturePreview: CapturePreviewManager?
 #endif
+
+    // When the process started, on the clock that stops while the system sleeps, as MonotonicTime.
+    let creationTime = SuspendingClock.now
+    // The check again for an idle exit, once the process has lived long enough.
+    var idleExitCheck: Task<Void, Never>?
 
     fileprivate nonisolated init() {
     }
@@ -63,6 +71,29 @@ extension WebKit.GPUProcess {
         unsafe Unmanaged<GPUProcessState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
     }
 }
+
+// The GPU process's connections to the web processes, as GPUProcess::m_webProcessConnections, by process identifier.
+@MainActor
+final class WebProcessConnections {
+    private(set) var all: [UInt64: WebKit.GPUConnectionToWebProcess] = [:]
+
+    fileprivate nonisolated init() {
+    }
+
+    subscript(process: UInt64) -> WebKit.GPUConnectionToWebProcess? {
+        all[process]
+    }
+
+    func add(_ connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
+        all[process] = connection
+    }
+
+    func remove(process: UInt64) {
+        all[process] = nil
+    }
+}
+
+let webProcessConnections = WebProcessConnections()
 
 // The Now Playing election across the pages of every web process: the page whose candidate session is preferred owns the
 // Now Playing panel and gets the remote commands; without one, the UI process's fallback session, if its process has a
@@ -99,23 +130,8 @@ final class NowPlayingArbiter {
     private(set) var activeOwner: Owner?
     var fallbackSession: QualifiedSession?
     private(set) var remoteCommandTarget: QualifiedSession?
-    // The connections to the web processes, as GPUProcess::m_webProcessConnections, by process identifier.
-    private var connections: [UInt64: WebKit.GPUConnectionToWebProcess] = [:]
 
     fileprivate nonisolated init() {
-    }
-
-    func add(_ connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
-        connections[process] = connection
-    }
-
-    func remove(process: UInt64) {
-        connections[process] = nil
-        recompute()
-    }
-
-    func connection(_ process: UInt64) -> WebKit.GPUConnectionToWebProcess? {
-        connections[process]
     }
 
     func isActive(process: UInt64, page: UInt64) -> Bool {
@@ -168,11 +184,11 @@ final class NowPlayingArbiter {
 
         // Seed with the current owner so that equal candidates keep the incumbent, since the candidates are in
         // dictionaries whose iteration order is not stable.
-        if let activeOwner, let connection = connections[activeOwner.process], let state = connection.state.nowPlayingCandidates[activeOwner.page] {
+        if let activeOwner, let connection = webProcessConnections[activeOwner.process], let state = connection.state.nowPlayingCandidates[activeOwner.page] {
             winner = (connection, activeOwner.process, activeOwner.page, state)
         }
 
-        for (process, connection) in connections {
+        for (process, connection) in webProcessConnections.all {
             for (page, state) in connection.state.nowPlayingCandidates {
                 if let current = winner, !isPreferred(state, over: current.state) {
                     continue
@@ -188,7 +204,7 @@ final class NowPlayingArbiter {
             seated = (winner.connection, winner.process)
             eligibleOwner = Owner(process: winner.process, page: winner.page, session: winner.state.sessionIdentifier.rawValue)
             commandTarget = QualifiedSession(session: winner.state.sessionIdentifier.rawValue, process: winner.process)
-        } else if let fallbackSession, let connection = connections[fallbackSession.process] {
+        } else if let fallbackSession, let connection = webProcessConnections[fallbackSession.process] {
             seated = (connection, fallbackSession.process)
             commandTarget = fallbackSession
         }
@@ -206,14 +222,14 @@ final class NowPlayingArbiter {
             // owner's NowPlayingInfo, so it runs even when the seat is unchanged.
             seated.connection.becomeNowPlayingOwner(eligibleOwner.page)
             if let previousSeat, previousSeat.process != seated.process {
-                connections[previousSeat.process]?.resignNowPlayingManagerClient()
+                webProcessConnections[previousSeat.process]?.resignNowPlayingManagerClient()
             }
         } else if newSeat != previousSeat {
             // No eligible session. Resign the previous client first so an owner->fallback transition drops the stale
             // panel, then seat the UI process's current session (if any) as a command-only client. Skipped entirely
             // when it is already the command-only client, so its remote-command listener is not destroyed and recreated.
             if let previousSeat {
-                connections[previousSeat.process]?.resignNowPlayingManagerClient()
+                webProcessConnections[previousSeat.process]?.resignNowPlayingManagerClient()
             }
             seated?.connection.becomeRemoteCommandFallbackTarget()
         }
@@ -268,7 +284,91 @@ extension WebKit.GPUProcess {
     // candidate push if it still has an eligible session.
     @MainActor
     func withdrawNowPlayingCandidate(connection: IPC.Connection, page: IPCTypes.QualifiedPageIdentifier) {
-        nowPlayingArbiter.connection(page.processIdentifier.rawValue)?.clearNowPlayingCandidates(page: page.object.rawValue)
+        webProcessConnections[page.processIdentifier.rawValue]?.clearNowPlayingCandidates(page: page.object.rawValue)
+    }
+}
+
+// We wouldn't want the GPUProcess to repeatedly exit then relaunch when under memory pressure. In particular, we need to make sure the
+// WebProcess has a change to schedule work after the GPUProcess get launched. For this reason, we make sure that the GPUProcess never
+// idle-exits less than 5 seconds after getting launched. This amount of time should be sufficient for the WebProcess to schedule work
+// work in the GPUProcess.
+private let minimumLifetimeBeforeIdleExit: Duration = .seconds(5)
+
+extension WebKit.GPUProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func canExitUnderMemoryPressure() -> Bool {
+        MainActor.preconditionIsolated()
+        #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
+        if state.capturePreview != nil {
+            return false
+        }
+        #endif
+        return webProcessConnections.all.values.allSatisfy { $0.allowsExitUnderMemoryPressure() }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func tryExitIfUnusedAndUnderMemoryPressure() {
+        MainActor.assertIsolated()
+        if Self.isUnderMemoryPressure() {
+            tryExitIfUnused()
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func tryExitIfUnused() {
+        MainActor.preconditionIsolated()
+        let state = state
+        guard canExitUnderMemoryPressure() else {
+            state.idleExitCheck?.cancel()
+            state.idleExitCheck = nil
+            return
+        }
+
+        // To avoid exiting the GPUProcess too aggressively while under memory pressure and make sure the WebProcess gets a
+        // change to schedule work, we don't exit if we've been running for less than |minimumLifetimeBeforeIdleExit|.
+        // In case of simulated memory pressure, we ignore this rule to avoid flakiness in our benchmarks and tests.
+        let lifetime = state.creationTime.duration(to: .now)
+        if lifetime < minimumLifetimeBeforeIdleExit && !Self.isSimulatingMemoryPressure() {
+            WebKit.LogChannel.Process().releaseLog.log("GPUProcess::tryExitIfUnused: GPUProcess is idle and under memory pressure but it is not exiting because it has just launched")
+            // Check again after the process have lived long enough (minimumLifetimeBeforeIdleExit) to see if the GPUProcess
+            // can idle-exit then.
+            if state.idleExitCheck == nil {
+                state.idleExitCheck = Task { @MainActor [self] in
+                    try? await Task.sleep(for: minimumLifetimeBeforeIdleExit - lifetime, clock: .suspending)
+                    guard !Task.isCancelled else {
+                        return
+                    }
+                    self.state.idleExitCheck = nil
+                    self.tryExitIfUnused()
+                }
+            }
+            return
+        }
+        state.idleExitCheck?.cancel()
+        state.idleExitCheck = nil
+
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::tryExitIfUnused: GPUProcess is exiting because we are under memory pressure and the process is no longer useful.")
+        sendProcessIsReadyToExit()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func lowMemoryHandler(_ critical: WTF.Critical, _ synchronous: WTF.Synchronous) {
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::lowMemoryHandler: critical=\(critical == .Yes ? 1 : 0), synchronous=\(synchronous == .Yes ? 1 : 0)")
+        tryExitIfUnused()
+
+        for connection in webProcessConnections.all.values {
+            connection.lowMemoryHandler(critical, synchronous)
+        }
+
+        Self.releaseMemory(critical, synchronous)
     }
 }
 

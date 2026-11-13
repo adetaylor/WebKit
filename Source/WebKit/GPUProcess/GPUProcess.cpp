@@ -103,14 +103,7 @@ namespace WebKit {
 
 using namespace WebCore;
 
-// We wouldn't want the GPUProcess to repeatedly exit then relaunch when under memory pressure. In particular, we need to make sure the
-// WebProcess has a change to schedule work after the GPUProcess get launched. For this reason, we make sure that the GPUProcess never
-// idle-exits less than 5 seconds after getting launched. This amount of time should be sufficient for the WebProcess to schedule work
-// work in the GPUProcess.
-constexpr Seconds minimumLifetimeBeforeIdleExit { 5_s };
-
 GPUProcess::GPUProcess()
-    : m_idleExitTimer(*this, &GPUProcess::tryExitIfUnused)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::GPUProcess:", this);
 #if ASSERT_ENABLED && PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
@@ -195,69 +188,29 @@ bool GPUProcess::shouldTerminate()
     return m_webProcessConnections.isEmpty();
 }
 
-bool GPUProcess::canExitUnderMemoryPressure() const
+bool GPUProcess::isUnderMemoryPressure()
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
-#if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    if (swiftHasCapturePreview())
-        return false;
-#endif
-    for (auto& webProcessConnection : m_webProcessConnections.values()) {
-        if (!webProcessConnection->allowsExitUnderMemoryPressure())
-            return false;
-    }
-    return true;
+    return MemoryPressureHandler::singleton().isUnderMemoryPressure();
 }
 
-void GPUProcess::tryExitIfUnusedAndUnderMemoryPressure()
+bool GPUProcess::isSimulatingMemoryPressure()
 {
-    ASSERT(isMainRunLoop());
-    if (!MemoryPressureHandler::singleton().isUnderMemoryPressure())
-        return;
-
-    tryExitIfUnused();
+    return MemoryPressureHandler::singleton().isSimulatingMemoryPressure();
 }
 
-void GPUProcess::tryExitIfUnused()
+void GPUProcess::releaseMemory(Critical critical, Synchronous synchronous)
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(isMainRunLoop());
-    if (!canExitUnderMemoryPressure()) {
-        m_idleExitTimer.stop();
-        return;
-    }
-
-    // To avoid exiting the GPUProcess too aggressively while under memory pressure and make sure the WebProcess gets a
-    // change to schedule work, we don't exit if we've been running for less than |minimumLifetimeBeforeIdleExit|.
-    // In case of simulated memory pressure, we ignore this rule to avoid flakiness in our benchmarks and tests.
-    auto lifetime = MonotonicTime::now() - m_creationTime;
-    if (lifetime < minimumLifetimeBeforeIdleExit && !MemoryPressureHandler::singleton().isSimulatingMemoryPressure()) {
-        RELEASE_LOG(Process, "GPUProcess::tryExitIfUnused: GPUProcess is idle and under memory pressure but it is not exiting because it has just launched");
-        // Check again after the process have lived long enough (minimumLifetimeBeforeIdleExit) to see if the GPUProcess
-        // can idle-exit then.
-        if (!m_idleExitTimer.isActive())
-            m_idleExitTimer.startOneShot(minimumLifetimeBeforeIdleExit - lifetime);
-        return;
-    }
-    m_idleExitTimer.stop();
-
-    RELEASE_LOG(Process, "GPUProcess::tryExitIfUnused: GPUProcess is exiting because we are under memory pressure and the process is no longer useful.");
-    protect(parentProcessConnection())->send(Messages::GPUProcessProxy::ProcessIsReadyToExit(), 0);
-}
-
-void GPUProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
-{
-    RELEASE_LOG(Process, "GPUProcess::lowMemoryHandler: critical=%d, synchronous=%d", critical == Critical::Yes, synchronous == Synchronous::Yes);
-    tryExitIfUnused();
-
-    for (auto& connection : m_webProcessConnections.values())
-        connection->lowMemoryHandler(critical, synchronous);
-
     WebCore::releaseGraphicsMemory(critical, synchronous);
 
 #if PLATFORM(COCOA)
     if (critical == Critical::Yes)
         WebCore::IOSurface::releaseCGIOSurfaceContextResources();
 #endif
+}
+
+void GPUProcess::sendProcessIsReadyToExit()
+{
+    protect(parentProcessConnection())->send(Messages::GPUProcessProxy::ProcessIsReadyToExit(), 0);
 }
 
 void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters, CompletionHandler<void()>&& completionHandler)

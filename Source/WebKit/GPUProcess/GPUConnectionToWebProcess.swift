@@ -70,14 +70,15 @@ extension WebKit.GPUConnectionToWebProcess {
     @implementation
     @MainActor
     func swiftDidAddToGPUProcess() {
-        nowPlayingArbiter.add(self, process: state.processIdentifier)
+        webProcessConnections.add(self, process: state.processIdentifier)
     }
 
     @cxx
     @implementation
     @MainActor
     func swiftDidRemoveFromGPUProcess() {
-        nowPlayingArbiter.remove(process: state.processIdentifier)
+        webProcessConnections.remove(process: state.processIdentifier)
+        nowPlayingArbiter.recompute()
     }
 
     @cxx
