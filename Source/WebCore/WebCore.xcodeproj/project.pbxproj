@@ -7799,6 +7799,7 @@
 		71837F278D1F314AED51ADEF /* ISOVTTCue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */; };
 		164E2985AC07D03F56C95977 /* InitDataRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */; };
 		9145528A7E6202985AAE1C4B /* CDMClearKeyBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */; };
+		7E4ED3CA7732B72E6F8E734E /* CDMSupportedConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 116D152E1CB7B95FB26EF85D /* CDMSupportedConfiguration.swift */; };
 		003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */; };
 		5A4A9F52E16643198CC57B8E /* CDMInstanceFairPlayStreamingAVF.swift in Sources */ = {isa = PBXBuildFile; fileRef = D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */; };
 		97A301997B9D490FB832F399 /* VideoMediaSampleRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5482EB99DF8E4365B6C79234 /* VideoMediaSampleRenderer.swift */; };
@@ -7814,6 +7815,7 @@
 		C7E3DF2D22DAF71E5E025979 /* CMParsingTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 151B943875D447C254665961 /* CMParsingTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		49C1635FCC3E3B7CC587E3D0 /* MediaParsersShellSupport.h in Headers */ = {isa = PBXBuildFile; fileRef = AAAB94B92BC9B2EB0915B92B /* MediaParsersShellSupport.h */; };
 		775E7BAFBD32A53BA638B389 /* ClearKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = F018E46D469610AC3EB99C13 /* ClearKey.swift */; };
+		44F5C16AB4360FA153D6D72F /* EMEConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35FC649DCF4C12A8C81D5DA9 /* EMEConfiguration.swift */; };
 		2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AA0CA104B921C41005D089 /* EMEJSON.swift */; };
 		56759EF7876846CA9E8DBF9A /* InlineCodeUnits.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1E3D62A0ADD43069218D98F /* InlineCodeUnits.swift */; };
 		2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */; };
@@ -24573,6 +24575,7 @@
 		0E81478238DCCACF9250A3EA /* ISOVTTCue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISOVTTCue.swift; sourceTree = "<group>"; };
 		4CB7E52CFF3ABC2D95E849EC /* InitDataRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InitDataRegistry.swift; sourceTree = "<group>"; };
 		5E2B821A9C3F4145C1069A19 /* CDMClearKeyBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMClearKeyBridge.swift; sourceTree = "<group>"; };
+		116D152E1CB7B95FB26EF85D /* CDMSupportedConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMSupportedConfiguration.swift; sourceTree = "<group>"; };
 		8DABD1C12112BE4B20034FCA /* CDMFairPlayStreamingParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMFairPlayStreamingParsing.swift; sourceTree = "<group>"; };
 		D55D89318EB24555A0FAA4DD /* CDMInstanceFairPlayStreamingAVF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CDMInstanceFairPlayStreamingAVF.swift; sourceTree = "<group>"; };
 		ADFB8399BBB5289A733CD3BF /* CMUtilitiesParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CMUtilitiesParsing.swift; sourceTree = "<group>"; };
@@ -24589,6 +24592,7 @@
 		C1A6538B3A431B6167D4AD0D /* HEVCBitstreamParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = HEVCBitstreamParser.cpp; sourceTree = "<group>"; };
 		F796FB33E6A1B5857103996B /* MediaParsersShellSupport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MediaParsersShellSupport.cpp; sourceTree = "<group>"; };
 		F018E46D469610AC3EB99C13 /* ClearKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearKey.swift; sourceTree = "<group>"; };
+		35FC649DCF4C12A8C81D5DA9 /* EMEConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EMEConfiguration.swift; sourceTree = "<group>"; };
 		F0AA0CA104B921C41005D089 /* EMEJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EMEJSON.swift; sourceTree = "<group>"; };
 		C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FairPlayJSON.swift; sourceTree = "<group>"; };
 		4F4A48944E9FAF0D83AF02E5 /* libWebCoreEME.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libWebCoreEME.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -40924,6 +40928,7 @@
 				CD94A5CC1F71CB6900F525C5 /* CDMRequirement.h */,
 				CD94A5D01F71CB6B00F525C5 /* CDMRestrictions.h */,
 				CD94A5D51F71CB6D00F525C5 /* CDMSessionType.h */,
+				116D152E1CB7B95FB26EF85D /* CDMSupportedConfiguration.swift */,
 				CDBEEF9B2ECF966900963F77 /* CDMTypesForward.h */,
 				CDE3AE1324B4936F00128E7E /* CDMUtilities.cpp */,
 				CDE3AE1024B4916900128E7E /* CDMUtilities.h */,
@@ -44843,6 +44848,7 @@
 			isa = PBXGroup;
 			children = (
 				F018E46D469610AC3EB99C13 /* ClearKey.swift */,
+				35FC649DCF4C12A8C81D5DA9 /* EMEConfiguration.swift */,
 				F0AA0CA104B921C41005D089 /* EMEJSON.swift */,
 				C4889F0AD39348BEE46025B8 /* FairPlayJSON.swift */,
 				012AF69D6E5D314D5CA99F41 /* WTFBase64.swift */,
@@ -52063,6 +52069,7 @@
 				003DCD8B025B13FA41385C7F /* CDMFairPlayStreamingParsing.swift in Sources */,
 				5A4A9F52E16643198CC57B8E /* CDMInstanceFairPlayStreamingAVF.swift in Sources */,
 				CDC224281F756966005F077B /* CDMInstanceFairPlayStreamingAVFObjC.mm in Sources */,
+				7E4ED3CA7732B72E6F8E734E /* CDMSupportedConfiguration.swift in Sources */,
 				61C029A6BD383110885018DE /* CGRenderer.swift in Sources */,
 				23B6FEB7BC8E6912CC678555 /* CheckedMath.swift in Sources */,
 				5150B5DF27CDF499004FC81E /* CMUtilities.mm in Sources */,
@@ -53061,6 +53068,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				775E7BAFBD32A53BA638B389 /* ClearKey.swift in Sources */,
+				44F5C16AB4360FA153D6D72F /* EMEConfiguration.swift in Sources */,
 				2850C0A1CFA003BA772EB328 /* EMEJSON.swift in Sources */,
 				2864471973C91B99A8CA75F2 /* FairPlayJSON.swift in Sources */,
 				58F08132C7971973C8F2FA25 /* WTFBase64.swift in Sources */,

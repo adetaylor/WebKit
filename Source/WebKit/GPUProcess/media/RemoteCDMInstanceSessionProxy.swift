@@ -72,10 +72,10 @@ final class RemoteCDMInstanceSessionProxy {
         initDataType: String?,
         initData: WebCore.SharedBuffer?
     ) async -> RemoteCDMLicense {
-        guard let initData, let cdm else {
+        guard let initData, cdm != nil else {
             return remoteCDMNoLicense
         }
-        return await backend.requestLicense(type, keyGroupingStrategy, initDataType, initData, cdm: cdm.cdm)
+        return await backend.requestLicense(type, keyGroupingStrategy, initDataType, initData)
     }
 
     @MainActor

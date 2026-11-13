@@ -33,14 +33,12 @@
 #import "CDMKeyGroupingStrategy.h"
 #import "CDMKeySystemConfiguration.h"
 #import "CDMLogging.h"
-#import "CDMMediaCapability.h"
 #import "Logging.h"
 #import "MediaParsersCxxBridging.h"
 #import "MediaSampleAVFObjC.h"
 #import "SharedBuffer.h"
 #import "WebCore-Swift.h"
 #import <AVFoundation/AVContentKeySession.h>
-#import <wtf/FileSystem.h>
 #import <wtf/LoggerHelper.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/text/CString.h>
@@ -305,40 +303,14 @@ Ref<CDMInstanceFairPlayStreamingAVFObjC> CDMInstanceFairPlayStreamingAVFObjC::cr
 CDMInstanceFairPlayStreamingAVFObjC::CDMInstanceFairPlayStreamingAVFObjC(const CDMPrivateFairPlayStreaming& cdmPrivate)
 #if !RELEASE_LOG_DISABLED
     : m_logger { cdmPrivate.logger() }
-    , m_swift { makeUnique<SwiftInstance>(FairPlayInstanceBridge::init(FairPlayInstanceHost::create(*this).ptr(), mediaParserText(cdmPrivate.mediaKeysHashSalt()), supportsPersistableState(), supportsPersistentKeys())) }
+    , m_swift { makeUnique<SwiftInstance>(FairPlayInstanceBridge::init(FairPlayInstanceHost::create(*this).ptr(), mediaParserText(cdmPrivate.mediaKeysHashSalt()))) }
 #else
-    : m_swift { makeUnique<SwiftInstance>(FairPlayInstanceBridge::init(FairPlayInstanceHost::create(*this).ptr(), mediaParserText(cdmPrivate.mediaKeysHashSalt()), supportsPersistableState(), supportsPersistentKeys())) }
+    : m_swift { makeUnique<SwiftInstance>(FairPlayInstanceBridge::init(FairPlayInstanceHost::create(*this).ptr(), mediaParserText(cdmPrivate.mediaKeysHashSalt()))) }
 #endif
 {
 }
 
 CDMInstanceFairPlayStreamingAVFObjC::~CDMInstanceFairPlayStreamingAVFObjC() = default;
-
-bool CDMInstanceFairPlayStreamingAVFObjC::supportsPersistableState()
-{
-    return [PAL::getAVContentKeySessionClassSingleton() respondsToSelector:@selector(pendingExpiredSessionReportsWithAppIdentifier:storageDirectoryAtURL:)];
-}
-
-SUPPRESS_NODELETE bool CDMInstanceFairPlayStreamingAVFObjC::supportsPersistentKeys()
-{
-#if PLATFORM(IOS_FAMILY)
-    return PAL::getAVPersistableContentKeyRequestClassSingleton();
-#else
-    return false;
-#endif
-}
-
-bool CDMInstanceFairPlayStreamingAVFObjC::supportsMediaCapability(const CDMMediaCapability& capability)
-{
-    if (![PAL::getAVURLAssetClassSingleton() isPlayableExtendedMIMEType:capability.contentType.createNSString().get()])
-        return false;
-
-    // FairPlay only supports 'cbcs' encryption:
-    if (capability.encryptionScheme && capability.encryptionScheme.value() != CDMEncryptionScheme::cbcs)
-        return false;
-
-    return true;
-}
 
 void CDMInstanceFairPlayStreamingAVFObjC::initializeWithConfiguration(const CDMKeySystemConfiguration& configuration, AllowDistinctiveIdentifiers, AllowPersistentState persistentState, SuccessCallback&& callback)
 {
@@ -362,31 +334,7 @@ void CDMInstanceFairPlayStreamingAVFObjC::setServerCertificate(Ref<SharedBuffer>
 void CDMInstanceFairPlayStreamingAVFObjC::setStorageDirectory(const String& storageDirectory)
 {
     INFO_LOG(LOGIDENTIFIER);
-    if (storageDirectory.isEmpty()) {
-        m_swift->bridge.setStoragePath(mediaParserText(emptyString()));
-        return;
-    }
-
-    auto storagePath = FileSystem::pathByAppendingComponent(storageDirectory, "SecureStop.plist"_s);
-
-    auto fileType = FileSystem::fileTypeFollowingSymlinks(storageDirectory);
-    if (!fileType) {
-        if (!FileSystem::makeAllDirectories(storageDirectory))
-            return;
-    } else if (*fileType != FileSystem::FileType::Directory) {
-        String tempDirectory = FileSystem::createTemporaryDirectory(@"MediaKeys");
-        if (tempDirectory.isNull())
-            return;
-
-        auto tempStoragePath = FileSystem::pathByAppendingComponent(tempDirectory, FileSystem::pathFileName(storagePath));
-        if (!FileSystem::moveFile(storageDirectory, tempStoragePath))
-            return;
-
-        if (!FileSystem::moveFile(tempDirectory, storageDirectory))
-            return;
-    }
-
-    m_swift->bridge.setStoragePath(mediaParserText(storagePath));
+    m_swift->bridge.setStorageDirectory(mediaParserText(storageDirectory));
 }
 
 RefPtr<CDMInstanceSession> CDMInstanceFairPlayStreamingAVFObjC::createSession()

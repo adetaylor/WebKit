@@ -43,7 +43,7 @@ import WebCore_Private.Core.CDMKeyStatus
 public import WebCore_Private.Core.CDMMessageType
 public import WebCore_Private.Core.CDMSessionType
 import WebCore_Private.Core.MediaParsersCxxBridging
-import WebCoreEME
+public import WebCoreEME
 import wtf
 
 private let contentKeyReportGroupKey = "ContentKeyReportGroup"
@@ -67,7 +67,7 @@ private func sameName(_ a: Swift.String, _ b: Swift.String) -> Bool {
     a.utf16.elementsEqual(b.utf16)
 }
 
-private func fairPlayString(_ text: borrowing WebCore.MediaParserText) -> Swift.String {
+func fairPlayString(_ text: borrowing WebCore.MediaParserText) -> Swift.String {
     if text.is8Bit {
         let characters: Span<UInt8> = text.span8()
         var string = ""
@@ -103,6 +103,35 @@ private func fairPlayBytes(_ data: Data?) -> ContiguousArray<UInt8> {
 
 private func utf8(_ string: Swift.String) -> ContiguousArray<UInt8> {
     ContiguousArray(string.utf8)
+}
+
+// MARK: AVFoundation's answers
+
+// What AVFoundation supports of FairPlay Streaming, for the CDM's answers to the configuration algorithm and its
+// instances.
+enum FairPlayAVFoundation {
+    static var supportsPersistableState: Bool {
+        guard let sessionClass = AVFoundationClass.AVContentKeySession else {
+            return false
+        }
+        return (sessionClass as AnyObject).responds(to: NSSelectorFromString("pendingExpiredSessionReportsWithAppIdentifier:storageDirectoryAtURL:"))
+    }
+
+    static var supportsPersistentKeys: Bool {
+        #if WTF_PLATFORM_IOS_FAMILY
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    // FairPlay Streaming only supports 'cbcs' encryption.
+    static func supportsMediaCapability(contentType: Swift.String, encryptionScheme: EMEEncryptionScheme?) -> Bool {
+        guard AVFoundationClass.AVURLAsset.isPlayableExtendedMIMEType(contentType) else {
+            return false
+        }
+        return encryptionScheme == nil || encryptionScheme == .cbcs
+    }
 }
 
 // Whether key IDs from C++, back to back with their sizes, include keyID. The players ask with a sample's key IDs.
@@ -630,13 +659,13 @@ public final class FairPlayInstance: FairPlayContentKeySessionClient {
     private var sessions: [FairPlayWeakSession] = []
     private var unexpectedKeyRequests: [FairPlayKeyRequest] = []
 
-    init(host: sending WebCore.FairPlayInstanceHost, mediaKeysHashSalt: Swift.String, supportsPersistableState: Bool, supportsPersistentKeys: Bool) {
+    init(host: sending WebCore.FairPlayInstanceHost, mediaKeysHashSalt: Swift.String) {
         Self.lastToken += 1
         token = Self.lastToken
         self.host = host
         self.mediaKeysHashSalt = mediaKeysHashSalt
-        self.supportsPersistableState = supportsPersistableState
-        self.supportsPersistentKeys = supportsPersistentKeys
+        supportsPersistableState = FairPlayAVFoundation.supportsPersistableState
+        supportsPersistentKeys = FairPlayAVFoundation.supportsPersistentKeys
         Self.instancesByToken = Self.instancesByToken.filter { $0.value.instance != nil }
         Self.instancesByToken[token] = FairPlayWeakInstance(instance: self)
     }
@@ -647,6 +676,18 @@ public final class FairPlayInstance: FairPlayContentKeySessionClient {
 
     private var liveSessions: [FairPlaySession] {
         sessions.compactMap(\.session)
+    }
+
+    /// CDMInstance::initializeWithConfiguration() for a configuration.
+    @_spi(WebKitGPU) public func initialize(_ configuration: EMEKeySystemConfiguration, allowsPersistentState: Bool) -> Bool {
+        let sessionTypesIncludePersistentLicense = configuration.sessionTypes.contains(.persistentLicense)
+        return initialize(
+            distinctiveIdentifierRequired: configuration.distinctiveIdentifier == .required,
+            persistentStateRequired: configuration.persistentState == .required,
+            sessionTypesIncludePersistentState: configuration.sessionTypes.contains(.persistentUsageRecord) || sessionTypesIncludePersistentLicense,
+            sessionTypesIncludePersistentLicense: sessionTypesIncludePersistentLicense,
+            allowsPersistentState: allowsPersistentState
+        )
     }
 
     func initialize(
@@ -682,6 +723,40 @@ public final class FairPlayInstance: FairPlayContentKeySessionClient {
 
     func setStoragePath(_ path: Swift.String) {
         storageURL = path.isEmpty ? nil : Foundation.URL(fileURLWithPath: path, isDirectory: false)
+    }
+
+    /// CDMInstance::setStorageDirectory(): the instance stores in SecureStop.plist in the directory, which is made if
+    /// there is none, and replaces a file at its path, which becomes its SecureStop.plist. An empty directory means no
+    /// storage.
+    @_spi(WebKitGPU) public func setStorageDirectory(_ directory: Swift.String) {
+        if directory.isEmpty {
+            setStoragePath("")
+            return
+        }
+
+        let fileManager = FileManager.default
+        let storagePath = (directory as NSString).appendingPathComponent("SecureStop.plist")
+        var isDirectory: ObjCBool = false
+        if unsafe !fileManager.fileExists(atPath: directory, isDirectory: &isDirectory) {
+            guard (try? fileManager.createDirectory(atPath: directory, withIntermediateDirectories: true)) != nil else {
+                return
+            }
+        } else if !isDirectory.boolValue {
+            let temporaryDirectory = (NSTemporaryDirectory() as NSString).appendingPathComponent("MediaKeys-\(UUID().uuidString)")
+            let attributes: [FileAttributeKey: Any] = [.posixPermissions: 0o700]
+            guard (try? fileManager.createDirectory(atPath: temporaryDirectory, withIntermediateDirectories: false, attributes: attributes)) != nil else {
+                return
+            }
+            let temporaryStoragePath = (temporaryDirectory as NSString).appendingPathComponent("SecureStop.plist")
+            guard (try? fileManager.moveItem(atPath: directory, toPath: temporaryStoragePath)) != nil else {
+                return
+            }
+            guard (try? fileManager.moveItem(atPath: temporaryDirectory, toPath: directory)) != nil else {
+                return
+            }
+        }
+
+        setStoragePath(storagePath)
     }
 
     func contentKeySession() -> AVContentKeySession? {
@@ -2009,20 +2084,10 @@ final class FairPlayInstanceBridge: Sendable {
     fileprivate let instance: FairPlayInstance
 
     @_expose(Cxx)
-    init(
-        _ host: sending WebCore.FairPlayInstanceHost,
-        _ mediaKeysHashSalt: borrowing WebCore.MediaParserText,
-        _ supportsPersistableState: Bool,
-        _ supportsPersistentKeys: Bool
-    ) {
+    init(_ host: sending WebCore.FairPlayInstanceHost, _ mediaKeysHashSalt: borrowing WebCore.MediaParserText) {
         let hashSalt = fairPlayString(mediaKeysHashSalt)
         instance = MainActor.assumeIsolated {
-            FairPlayInstance(
-                host: host,
-                mediaKeysHashSalt: hashSalt,
-                supportsPersistableState: supportsPersistableState,
-                supportsPersistentKeys: supportsPersistentKeys
-            )
+            FairPlayInstance(host: host, mediaKeysHashSalt: hashSalt)
         }
     }
 
@@ -2054,12 +2119,11 @@ final class FairPlayInstanceBridge: Sendable {
         }
     }
 
-    // An empty path means no storage.
     @_expose(Cxx)
-    func setStoragePath(_ path: borrowing WebCore.MediaParserText) {
-        let storagePath = fairPlayString(path)
+    func setStorageDirectory(_ directory: borrowing WebCore.MediaParserText) {
+        let storageDirectory = fairPlayString(directory)
         MainActor.assumeIsolated {
-            instance.setStoragePath(storagePath)
+            instance.setStorageDirectory(storageDirectory)
         }
     }
 

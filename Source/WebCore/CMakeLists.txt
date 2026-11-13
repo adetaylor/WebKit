@@ -3426,6 +3426,7 @@ if (APPLE)
 
         Modules/encryptedmedia/InitDataRegistry.cpp
 
+        platform/encryptedmedia/CDMPrivate.cpp
         platform/encryptedmedia/clearkey/CDMClearKey.cpp
 
         platform/graphics/AV1Utilities.cpp
@@ -3669,6 +3670,7 @@ if (APPLE)
         ${WEBCORE_DIR}/svg/graphics/filters/SVGFilterRenderer.swift
 
         ${WEBCORE_DIR}/Modules/encryptedmedia/InitDataRegistry.swift
+        ${WEBCORE_DIR}/platform/encryptedmedia/CDMSupportedConfiguration.swift
         ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyBridge.swift
         ${WEBCORE_DIR}/platform/graphics/AV1Utilities.swift
         ${WEBCORE_DIR}/platform/graphics/H264Utilities.swift

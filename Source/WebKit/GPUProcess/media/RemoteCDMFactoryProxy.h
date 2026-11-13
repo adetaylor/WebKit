@@ -139,11 +139,9 @@ public:
     static Ref<RemoteCDMPrivateHandle> create(RemoteCDMFactoryProxy&, UniqueRef<WebCore::CDMPrivate>&&);
     ~RemoteCDMPrivateHandle();
 
-    void getSupportedConfiguration(WebCore::CDMKeySystemConfiguration&&, WebCore::CDMPrivate::LocalStorageAccess, CompletionHandler<void(std::optional<WebCore::CDMKeySystemConfiguration>)>&&);
     RefPtr<WebCore::CDMInstance> createInstance();
     void loadAndInitialize();
     void setLogIdentifier(uint64_t);
-    bool supportsInitData(const String&, const WebCore::SharedBuffer&) const;
 
 #if !RELEASE_LOG_DISABLED
     const Logger& logger() const { return m_logger; }

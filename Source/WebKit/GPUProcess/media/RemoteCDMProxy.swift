@@ -28,10 +28,6 @@ import WebCoreEME
 import WebKit_Internal
 import wtf
 
-extension WebKit.RemoteCDMSupportedConfigurationCompletionHandler: @unsafe CxxConsumingCompletionHandler {
-    typealias Argument = WebKit.RemoteCDMEncodedConfiguration
-}
-
 // Receives the messages of one of the web process's RemoteCDMs. ClearKey's instances are WebCoreEME's; its C++
 // CDMPrivate answers only the configuration algorithm's questions. The other CDM is FairPlay Streaming's.
 @_expose(Cxx)
@@ -91,22 +87,26 @@ final class RemoteCDMProxy {
     @MainActor
     func getSupportedConfiguration(
         connection: IPC.Connection,
-        candidateConfiguration: CxxDecodedArguments.RemoteCDMProxy.GetSupportedConfigurationCandidateConfiguration,
+        candidateConfiguration: IPCTypes.CDMKeySystemConfiguration,
         access: IPCTypes.CDMPrivateLocalStorageAccess
     ) async -> IPCTypes.CDMKeySystemConfiguration? {
-        await withCheckedContinuation { continuation in
-            WebKit.getSupportedRemoteCDMConfiguration(
-                cdm,
-                candidateConfiguration,
-                access == .allowed,
-                consuming: .init { (encodedConfiguration: consuming WebKit.RemoteCDMEncodedConfiguration) in
-                    var decoder = WebKit.swiftDecoder(encodedConfiguration)
-                    let configuration = try? IPCCoding.StdOptional<IPCTypes.CxxName.WebCore_CDMKeySystemConfiguration>
-                        .decode(from: &decoder)
-                    continuation.resume(returning: configuration ?? nil)
-                }
-            )
-        }
+        let candidate = EMEKeySystemConfiguration(candidateConfiguration)
+        let localStorageAccessAllowed = access == .allowed
+        let configuration =
+            if isClearKey {
+                CDMSupportedConfiguration.supportedConfiguration(
+                    candidate,
+                    localStorageAccessAllowed: localStorageAccessAllowed,
+                    answers: ClearKey.ConfigurationAnswers()
+                )
+            } else {
+                CDMSupportedConfiguration.supportedConfiguration(
+                    candidate,
+                    localStorageAccessAllowed: localStorageAccessAllowed,
+                    answers: FairPlayCDM.ConfigurationAnswers()
+                )
+            }
+        return configuration.map { IPCTypes.CDMKeySystemConfiguration($0) }
     }
 
     @MainActor
@@ -151,6 +151,106 @@ final class RemoteCDMProxy {
     func setLogIdentifier(connection: IPC.Connection, logIdentifier: UInt64) {
         if !isClearKey {
             cdm.setLogIdentifier(logIdentifier)
+        }
+    }
+}
+
+extension EMEKeySystemConfiguration {
+    init(_ configuration: IPCTypes.CDMKeySystemConfiguration) {
+        self.init(
+            label: configuration.label,
+            initDataTypes: configuration.initDataTypes,
+            audioCapabilities: configuration.audioCapabilities.map(EMEMediaCapability.init),
+            videoCapabilities: configuration.videoCapabilities.map(EMEMediaCapability.init),
+            distinctiveIdentifier: EMERequirement(configuration.distinctiveIdentifier),
+            persistentState: EMERequirement(configuration.persistentState),
+            sessionTypes: configuration.sessionTypes.map(EMESessionType.init)
+        )
+    }
+}
+
+extension IPCTypes.CDMKeySystemConfiguration {
+    fileprivate init(_ configuration: EMEKeySystemConfiguration) {
+        self.init(
+            label: configuration.label,
+            initDataTypes: configuration.initDataTypes,
+            audioCapabilities: configuration.audioCapabilities.map(IPCTypes.CDMMediaCapability.init),
+            videoCapabilities: configuration.videoCapabilities.map(IPCTypes.CDMMediaCapability.init),
+            distinctiveIdentifier: IPCTypes.CDMRequirement(configuration.distinctiveIdentifier),
+            persistentState: IPCTypes.CDMRequirement(configuration.persistentState),
+            sessionTypes: configuration.sessionTypes.map(IPCTypes.CDMSessionType.init)
+        )
+    }
+}
+
+extension EMEMediaCapability {
+    fileprivate init(_ capability: IPCTypes.CDMMediaCapability) {
+        self.init(
+            contentType: capability.contentType,
+            robustness: capability.robustness,
+            encryptionScheme: capability.encryptionScheme.map { $0 == .cbcs ? .cbcs : .cenc }
+        )
+    }
+}
+
+extension IPCTypes.CDMMediaCapability {
+    fileprivate init(_ capability: EMEMediaCapability) {
+        self.init(
+            contentType: capability.contentType,
+            robustness: capability.robustness,
+            encryptionScheme: capability.encryptionScheme.map { $0 == .cbcs ? .cbcs : .cenc }
+        )
+    }
+}
+
+extension EMERequirement {
+    fileprivate init(_ requirement: IPCTypes.CDMRequirement) {
+        switch requirement {
+        case .required:
+            self = .required
+        case .optional:
+            self = .optional
+        case .notAllowed:
+            self = .notAllowed
+        }
+    }
+}
+
+extension IPCTypes.CDMRequirement {
+    fileprivate init(_ requirement: EMERequirement) {
+        switch requirement {
+        case .required:
+            self = .required
+        case .optional:
+            self = .optional
+        case .notAllowed:
+            self = .notAllowed
+        }
+    }
+}
+
+extension EMESessionType {
+    fileprivate init(_ sessionType: IPCTypes.CDMSessionType) {
+        switch sessionType {
+        case .temporary:
+            self = .temporary
+        case .persistentUsageRecord:
+            self = .persistentUsageRecord
+        case .persistentLicense:
+            self = .persistentLicense
+        }
+    }
+}
+
+extension IPCTypes.CDMSessionType {
+    fileprivate init(_ sessionType: EMESessionType) {
+        switch sessionType {
+        case .temporary:
+            self = .temporary
+        case .persistentUsageRecord:
+            self = .persistentUsageRecord
+        case .persistentLicense:
+            self = .persistentLicense
         }
     }
 }

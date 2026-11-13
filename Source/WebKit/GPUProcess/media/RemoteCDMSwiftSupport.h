@@ -27,21 +27,15 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
-#include "Decoder.h"
 #include "MessageReceiver.h"
 #include "RemoteCDMFactoryProxy.h"
-#include "SwiftCoding.h"
 #include "SwiftReceiverRegistration.h"
 #include <WebCore/CDMInstance.h>
 #include <WebCore/CDMInstanceSession.h>
-#include <WebCore/CDMKeySystemConfiguration.h>
-#include <WebCore/CDMMediaCapability.h>
 #include <WebCore/SharedBuffer.h>
-#include <wtf/CompletionHandler.h>
 #include <wtf/EscapableByteSpan.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
-#include <wtf/text/AtomString.h>
 
 namespace WebKit {
 
@@ -61,41 +55,6 @@ WebCore::SharedBuffer* WTF_NONNULL makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOES
 // A C++ CDM's instance, registered with the factory under identifier, with its key system, and the token of its Swift
 // FairPlay Streaming instance (FairPlayInstance.instance(forToken:)), 0 if it has none. Null if the CDM makes none.
 WebCore::CDMInstance* WTF_NULLABLE createRemoteCDMInstance(RemoteCDMFactoryProxy&, RemoteCDMPrivateHandle&, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken) SWIFT_RETURNS_RETAINED;
-
-// The CDMKeySystemConfiguration of a message, which C++ decodes for the C++ CDM that a Swift receiver hands it to.
-using RemoteCDMConfigurationArgument = IPC::CxxDecodedArgument<WebCore::CDMKeySystemConfiguration>;
-
-// A CDMKeySystemConfiguration from C++, encoded as IPC encodes it so that Swift can decode it with the
-// coders of its messages.
-class RemoteCDMEncodedConfiguration {
-    WTF_MAKE_NONCOPYABLE(RemoteCDMEncodedConfiguration);
-public:
-    explicit RemoteCDMEncodedConfiguration(const std::optional<WebCore::CDMKeySystemConfiguration>&);
-    RemoteCDMEncodedConfiguration(RemoteCDMEncodedConfiguration&&);
-    ~RemoteCDMEncodedConfiguration();
-
-    IPC::SwiftDecoder swiftDecoder() const LIFETIME_BOUND { return m_decoder.swiftDecoder(); }
-
-private:
-    IPC::SwiftOwnedDecoder m_decoder;
-} SWIFT_SELF_CONTAINED;
-
-inline IPC::SwiftDecoder swiftDecoder(const RemoteCDMEncodedConfiguration& configuration LIFETIME_BOUND)
-{
-    return configuration.swiftDecoder();
-}
-
-using RemoteCDMSupportedConfigurationCompletionHandler = CompletionHandler<void(RemoteCDMEncodedConfiguration&&)>;
-
-void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle&, RemoteCDMConfigurationArgument&, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&&);
-
-using RemoteCDMInstanceSuccessCompletionHandler = CompletionHandler<void(WebCore::CDMInstanceSuccessValue)>;
-
-void initializeRemoteCDMInstance(WebCore::CDMInstance&, RemoteCDMConfigurationArgument&, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&&);
-void setRemoteCDMInstanceStorageDirectory(WebCore::CDMInstance&, const String&);
-
-// The CDMPrivate check of a license request.
-bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle&, const String& initDataType, const WebCore::SharedBuffer& initData);
 
 } // namespace WebKit
 

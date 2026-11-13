@@ -227,12 +227,11 @@ static FairPlayConfiguration fairPlayConfiguration(const CDMKeySystemConfigurati
         .hasAudioCapabilities = !configuration.audioCapabilities.isEmpty(),
         .hasVideoCapabilities = !configuration.videoCapabilities.isEmpty(),
     };
-#if HAVE(AVCONTENTKEYSESSION)
-    result.hasSupportedAudioCapability = std::ranges::any_of(configuration.audioCapabilities, CDMInstanceFairPlayStreamingAVFObjC::supportsMediaCapability);
-    result.hasSupportedVideoCapability = std::ranges::any_of(configuration.videoCapabilities, CDMInstanceFairPlayStreamingAVFObjC::supportsMediaCapability);
-    result.supportsPersistableState = CDMInstanceFairPlayStreamingAVFObjC::supportsPersistableState();
-    result.supportsPersistentKeys = CDMInstanceFairPlayStreamingAVFObjC::supportsPersistentKeys();
-#endif
+    auto supportsMediaCapability = [](const CDMMediaCapability& capability) {
+        return fairPlaySupportsMediaCapabilityImpl(mediaParserText(capability.contentType), !!capability.encryptionScheme, capability.encryptionScheme.value_or(CDMEncryptionScheme::cenc));
+    };
+    result.hasSupportedAudioCapability = std::ranges::any_of(configuration.audioCapabilities, supportsMediaCapability);
+    result.hasSupportedVideoCapability = std::ranges::any_of(configuration.videoCapabilities, supportsMediaCapability);
     return result;
 }
 
@@ -331,26 +330,7 @@ bool CDMPrivateFairPlayStreaming::supportsSessions() const
 
 bool CDMPrivateFairPlayStreaming::supportsInitData(const String& initDataType, const SharedBuffer& initData) const
 {
-    switch (initDataTypeFromName(initDataType)) {
-    case FairPlayInitDataType::Other:
-        return false;
-    case FairPlayInitDataType::Sinf: {
-        auto keyIDs = sinfKeyIDs(initData);
-        return keyIDs && !keyIDs->isEmpty();
-    }
-    case FairPlayInitDataType::Cenc: {
-#if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
-        return cencHasFairPlayPsshImpl({ initData.span() });
-#else
-        return false;
-#endif
-    }
-    case FairPlayInitDataType::Skd:
-    case FairPlayInitDataType::Mpts:
-        return true;
-    }
-    ASSERT_NOT_REACHED();
-    return false;
+    return fairPlaySupportsInitDataImpl(mediaParserShortName(initDataType), { initData.span() });
 }
 
 RefPtr<SharedBuffer> CDMPrivateFairPlayStreaming::sanitizeResponse(const SharedBuffer& response) const

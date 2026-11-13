@@ -28,8 +28,6 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
-#include "GeneratedSerializers.h"
-#include "RemoteCDMProxyMessages.h"
 #include <WebCore/CDMInstance.h>
 #if HAVE(AVCONTENTKEYSESSION)
 #include <WebCore/CDMInstanceFairPlayStreamingHost.h>
@@ -59,51 +57,6 @@ CDMInstance* createRemoteCDMInstance(RemoteCDMFactoryProxy& factory, RemoteCDMPr
 #endif
     factory.registerCxxInstance(identifier, cdm, *instance);
     return instance.leakRef();
-}
-
-void initializeRemoteCDMInstance(CDMInstance& instance, RemoteCDMConfigurationArgument& configuration, bool distinctiveIdentifiersAllowed, bool persistentStateAllowed, RemoteCDMInstanceSuccessCompletionHandler&& completionHandler)
-{
-    auto allowDistinctiveIdentifiers = distinctiveIdentifiersAllowed ? CDMInstance::AllowDistinctiveIdentifiers::Yes : CDMInstance::AllowDistinctiveIdentifiers::No;
-    auto allowPersistentState = persistentStateAllowed ? CDMInstance::AllowPersistentState::Yes : CDMInstance::AllowPersistentState::No;
-    auto value = configuration.take();
-    RELEASE_ASSERT(value);
-    instance.initializeWithConfiguration(WTF::move(*value), allowDistinctiveIdentifiers, allowPersistentState, WTF::move(completionHandler));
-}
-
-void setRemoteCDMInstanceStorageDirectory(CDMInstance& instance, const String& directory)
-{
-    instance.setStorageDirectory(directory);
-}
-
-bool remoteCDMSupportsInitData(RemoteCDMPrivateHandle& cdm, const String& initDataType, const SharedBuffer& initData)
-{
-    return cdm.supportsInitData(initDataType, initData);
-}
-
-static std::unique_ptr<IPC::Decoder> decoderForConfiguration(const std::optional<CDMKeySystemConfiguration>& configuration)
-{
-    IPC::Encoder encoder(Messages::RemoteCDMProxy::GetSupportedConfiguration::asyncMessageReplyName(), 0);
-    encoder << configuration;
-    return IPC::Decoder::create(encoder.span(), { });
-}
-
-RemoteCDMEncodedConfiguration::RemoteCDMEncodedConfiguration(const std::optional<CDMKeySystemConfiguration>& configuration)
-    : m_decoder(decoderForConfiguration(configuration))
-{
-}
-
-RemoteCDMEncodedConfiguration::RemoteCDMEncodedConfiguration(RemoteCDMEncodedConfiguration&&) = default;
-
-RemoteCDMEncodedConfiguration::~RemoteCDMEncodedConfiguration() = default;
-
-void getSupportedRemoteCDMConfiguration(RemoteCDMPrivateHandle& cdm, RemoteCDMConfigurationArgument& candidateConfiguration, bool localStorageAccessAllowed, RemoteCDMSupportedConfigurationCompletionHandler&& completionHandler)
-{
-    auto access = localStorageAccessAllowed ? CDMPrivate::LocalStorageAccess::Allowed : CDMPrivate::LocalStorageAccess::NotAllowed;
-    auto value = candidateConfiguration.take();
-    RELEASE_ASSERT(value);
-    cdm.getSupportedConfiguration(WTF::move(*value), access, [completionHandler = WTF::move(completionHandler)](std::optional<CDMKeySystemConfiguration> configuration) mutable {
-        completionHandler(RemoteCDMEncodedConfiguration { configuration });
-    });
 }
 
 } // namespace WebKit

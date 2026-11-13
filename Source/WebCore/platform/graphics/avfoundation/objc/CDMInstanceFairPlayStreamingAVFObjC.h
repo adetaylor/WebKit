@@ -47,7 +47,6 @@ namespace WebCore {
 
 class CDMPrivateFairPlayStreaming;
 class MediaSampleAVFObjC;
-struct CDMMediaCapability;
 
 // The FairPlay Streaming CDM's instance and sessions. Their state and their AVContentKeySessions are Swift's
 // (CDMInstanceFairPlayStreamingAVF.swift); these keep what the players, the CDM interfaces and the clients reach.
@@ -56,10 +55,6 @@ class CDMInstanceFairPlayStreamingAVFObjC final : public CDMInstance, public Can
 public:
     static Ref<CDMInstanceFairPlayStreamingAVFObjC> create(const CDMPrivateFairPlayStreaming&);
     virtual ~CDMInstanceFairPlayStreamingAVFObjC();
-
-    static bool supportsPersistableState();
-    NODELETE static bool supportsPersistentKeys();
-    static bool supportsMediaCapability(const CDMMediaCapability&);
 
     ImplementationType implementationType() const final { return ImplementationType::FairPlayStreaming; }
 

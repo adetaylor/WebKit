@@ -538,4 +538,54 @@ public final class ClearKeySession {
     }
 }
 
+extension ClearKey {
+    /// CDMPrivateClearKey's answers for the configuration algorithm.
+    public struct ConfigurationAnswers: EMECDMConfigurationAnswers {
+        public init() {
+        }
+
+        public var supportedInitDataTypes: [String] {
+            ClearKey.supportedInitDataTypes
+        }
+
+        public var supportedRobustnesses: [String] {
+            ClearKey.supportedRobustnesses
+        }
+
+        private func clearKeyConfiguration(_ configuration: EMEKeySystemConfiguration, _ restrictions: EMERestrictions) -> ClearKeyConfiguration {
+            ClearKeyConfiguration(
+                distinctiveIdentifier: configuration.distinctiveIdentifier,
+                persistentState: configuration.persistentState,
+                sessionTypesIncludePersistentLicense: configuration.sessionTypes.contains(.persistentLicense),
+                distinctiveIdentifierDenied: restrictions.distinctiveIdentifierDenied,
+                persistentStateDenied: restrictions.persistentStateDenied
+            )
+        }
+
+        public func supportsConfiguration(_ configuration: EMEKeySystemConfiguration) -> Bool {
+            ClearKey.supportsConfiguration(clearKeyConfiguration(configuration, EMERestrictions()))
+        }
+
+        public func supportsConfiguration(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> Bool {
+            ClearKey.supportsConfiguration(clearKeyConfiguration(configuration, restrictions))
+        }
+
+        public func supportsSessionType(_ sessionType: EMESessionType, configuration: EMEKeySystemConfiguration) -> Bool {
+            ClearKey.supportsSessionType(sessionType) && supportsConfiguration(configuration)
+        }
+
+        public func distinctiveIdentifiersRequirement(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> EMERequirement {
+            ClearKey.requirement(denied: restrictions.distinctiveIdentifierDenied)
+        }
+
+        public func persistentStateRequirement(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> EMERequirement {
+            ClearKey.requirement(denied: restrictions.persistentStateDenied)
+        }
+
+        public func distinctiveIdentifiersAreUniquePerOriginAndClearable(_ configuration: EMEKeySystemConfiguration) -> Bool {
+            false
+        }
+    }
+}
+
 #endif // ENABLE_ENCRYPTED_MEDIA

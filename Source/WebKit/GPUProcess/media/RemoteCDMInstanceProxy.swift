@@ -81,7 +81,7 @@ final class RemoteCDMInstanceProxy {
     @MainActor
     func initializeWithConfiguration(
         connection: IPC.Connection,
-        configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
+        configuration: IPCTypes.CDMKeySystemConfiguration,
         distinctiveIdentifiersAllowed: IPCTypes.CDMInstanceAllowDistinctiveIdentifiers,
         persistentStateAllowed: IPCTypes.CDMInstanceAllowPersistentState
     ) async -> IPCTypes.CDMInstanceSuccessValue {

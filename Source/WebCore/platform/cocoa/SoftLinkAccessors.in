@@ -18,6 +18,7 @@ constant AVFoundation AVContentKeyRequestRandomDeviceIdentifierSeedKey
 class AVFoundation AVContentKeyRequest
 class AVFoundation AVContentKeyResponse
 class AVFoundation AVContentKeySession
+class AVFoundation AVURLAsset
 
 # The IO audio units: the output units and the capture unit.
 function AudioToolbox AudioComponentFindNext

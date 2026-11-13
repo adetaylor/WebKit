@@ -45,6 +45,7 @@
 #include "AudioVideoRendererHost.h"
 #include "CARingBufferSwiftBridge.h"
 #include "CDMInstanceFairPlayStreamingHost.h"
+#include "CDMPrivate.h"
 #include "CGRendererSwiftBridge.h"
 #include "CaptureDevice.h"
 #include "CSSFilterRendererView.h"

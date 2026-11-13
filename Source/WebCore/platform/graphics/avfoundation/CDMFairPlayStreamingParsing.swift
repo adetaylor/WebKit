@@ -26,12 +26,13 @@
 // The safe Span overloads Swift synthesizes for the views' span() call a Span initializer from Cxx, which Xcode
 // builds don't find unless this file imports Cxx.
 private import Cxx
+import WebCore_Private.Core.CDMEncryptionScheme
 import WebCore_Private.Core.CDMRequirement
 import WebCore_Private.Core.CDMSessionType
 import WebCore_Private.Core.EMEParseResults
 import WebCore_Private.Core.ISOParseResults
 import WebCore_Private.Core.MediaParsersCxxBridging
-import WebCoreEME
+public import WebCoreEME
 import wtf
 
 // The names this file compares with, packed for MediaParserName comparisons.
@@ -138,6 +139,16 @@ enum FairPlayStreamingParsing {
         return true
     }
 
+    // configurationSupport() with AVFoundation's answers that don't depend on the configuration.
+    static func platformConfigurationSupport(_ configuration: WebCore.FairPlayConfiguration) -> WebCore.FairPlayConfigurationSupport {
+        var configuration = configuration
+        #if HAVE_AVCONTENTKEYSESSION
+        configuration.supportsPersistableState = FairPlayAVFoundation.supportsPersistableState
+        configuration.supportsPersistentKeys = FairPlayAVFoundation.supportsPersistentKeys
+        #endif
+        return configurationSupport(configuration)
+    }
+
     static func configurationSupport(_ configuration: WebCore.FairPlayConfiguration) -> WebCore.FairPlayConfigurationSupport {
         if !configuration.hasSupportedInitDataType {
             return .NoSupportedInitDataType
@@ -186,6 +197,57 @@ enum FairPlayStreamingParsing {
             && (!sessionTypes.persistentUsageRecord || deniedSessionTypes.persistentUsageRecord)
             && (!sessionTypes.persistentLicense || deniedSessionTypes.persistentLicense)
         return !allSessionTypesDenied
+    }
+
+    // The type of an init data type name, as mediaParserShortName() packs a WTF::String's code units.
+    static func initDataType(_ name: Swift.String?) -> WebCore.FairPlayInitDataType {
+        var shortName = WebCore.MediaParserShortName()
+        let units = Array((name ?? "").utf16)
+        if units.count <= 16 {
+            for (index, unit) in units.enumerated() {
+                let byte = UInt64(unit <= 0xFF ? unit : 0xFF) << UInt64(8 * (index & 7))
+                if index < 8 {
+                    shortName.words.0 |= byte.littleEndian
+                } else {
+                    shortName.words.1 |= byte.littleEndian
+                }
+            }
+            shortName.length = UInt8(units.count)
+        }
+        return initDataType(shortName)
+    }
+
+    // Whether some entry of 'sinf' init data has a valid scheme and a key ID.
+    static func sinfHasKeyID(_ initData: Span<UInt8>) -> Bool {
+        guard let payloads = FairPlayJSON.sinfPayloads(initData) else {
+            return false
+        }
+        return payloads.contains { payload in
+            guard let payload, let result = schemeAndKeyID(sinfPayload: payload.span) else {
+                return false
+            }
+            return isValidScheme(result.scheme)
+        }
+    }
+
+    // CDMPrivate::supportsInitData().
+    static func supportsInitData(_ type: WebCore.FairPlayInitDataType, _ initData: Span<UInt8>) -> Bool {
+        switch type {
+        case .Sinf:
+            return sinfHasKeyID(initData)
+        case .Cenc:
+            #if HAVE_FAIRPLAYSTREAMING_CENC_INITDATA
+            return InitDataParsing.parseCenc(initData)?.hasFairPlayPssh ?? false
+            #else
+            return false
+            #endif
+        case .Skd, .Mpts:
+            return true
+        case .Other:
+            return false
+        @unknown default:
+            return false
+        }
     }
 
     // A temporary session can't have required persistent state, and the other session types need persistent state.
@@ -242,6 +304,83 @@ public enum FairPlayCDM {
         return length == nameLength || prefix[nameLength] == CodeUnit(UInt8(ascii: "."))
     }
 
+    /// CDMPrivate::supportsInitData().
+    @_spi(WebKitGPU)
+    public static func supportsInitData(_ initDataType: Swift.String?, _ initData: Span<UInt8>) -> Bool {
+        FairPlayStreamingParsing.supportsInitData(FairPlayStreamingParsing.initDataType(initDataType), initData)
+    }
+
+    /// CDMPrivateFairPlayStreaming's answers for the configuration algorithm.
+    @_spi(WebKitGPU)
+    public struct ConfigurationAnswers: EMECDMConfigurationAnswers {
+        @_spi(WebKitGPU)
+        public init() {
+        }
+
+        public var supportedInitDataTypes: [Swift.String] {
+            FairPlayCDM.supportedInitDataTypes
+        }
+
+        public var supportedRobustnesses: [Swift.String] {
+            FairPlayCDM.supportedRobustnesses
+        }
+
+        private func fairPlayConfiguration(_ configuration: EMEKeySystemConfiguration) -> WebCore.FairPlayConfiguration {
+            var result = WebCore.FairPlayConfiguration()
+            result.hasSupportedInitDataType = configuration.initDataTypes.contains {
+                FairPlayStreamingParsing.initDataType($0) != .Other
+            }
+            result.distinctiveIdentifier = cdmRequirement(configuration.distinctiveIdentifier)
+            result.persistentState = cdmRequirement(configuration.persistentState)
+            result.sessionTypes = fairPlaySessionTypes(configuration.sessionTypes)
+            result.hasAudioCapabilities = !configuration.audioCapabilities.isEmpty
+            result.hasVideoCapabilities = !configuration.videoCapabilities.isEmpty
+            #if HAVE_AVCONTENTKEYSESSION
+            result.hasSupportedAudioCapability = configuration.audioCapabilities.contains(where: supportsMediaCapability)
+            result.hasSupportedVideoCapability = configuration.videoCapabilities.contains(where: supportsMediaCapability)
+            #endif
+            return result
+        }
+
+        #if HAVE_AVCONTENTKEYSESSION
+        private func supportsMediaCapability(_ capability: EMEMediaCapability) -> Bool {
+            FairPlayAVFoundation.supportsMediaCapability(contentType: capability.contentType ?? "", encryptionScheme: capability.encryptionScheme)
+        }
+        #endif
+
+        public func supportsConfiguration(_ configuration: EMEKeySystemConfiguration) -> Bool {
+            FairPlayStreamingParsing.platformConfigurationSupport(fairPlayConfiguration(configuration)) == .Supported
+        }
+
+        public func supportsConfiguration(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> Bool {
+            let allowed = FairPlayStreamingParsing.allowsRestrictions(
+                persistentState: cdmRequirement(configuration.persistentState),
+                sessionTypes: fairPlaySessionTypes(configuration.sessionTypes),
+                persistentStateDenied: restrictions.persistentStateDenied,
+                deniedSessionTypes: WebCore.FairPlaySessionTypes()
+            )
+            return allowed && supportsConfiguration(configuration)
+        }
+
+        public func supportsSessionType(_ sessionType: EMESessionType, configuration: EMEKeySystemConfiguration) -> Bool {
+            FairPlayStreamingParsing.supportsSessionType(cdmSessionType(sessionType), persistentState: cdmRequirement(configuration.persistentState))
+                && supportsConfiguration(configuration)
+        }
+
+        // FIXME: verify that FairPlayStreaming does not (and cannot) expose a distinctive identifier to the client
+        public func distinctiveIdentifiersRequirement(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> EMERequirement {
+            .notAllowed
+        }
+
+        public func persistentStateRequirement(_ configuration: EMEKeySystemConfiguration, restrictions: EMERestrictions) -> EMERequirement {
+            .optional
+        }
+
+        public func distinctiveIdentifiersAreUniquePerOriginAndClearable(_ configuration: EMEKeySystemConfiguration) -> Bool {
+            true
+        }
+    }
+
     /// supportsKeySystem() of a Swift string, whose UTF-16 code units are a WTF::String's.
     @_spi(WebKitGPU)
     public static func supportsKeySystem(_ keySystem: Swift.String?) -> Bool {
@@ -289,7 +428,27 @@ func fairPlayInitDataTypeImpl(_ name: WebCore.MediaParserShortName) -> WebCore.F
 
 @_expose(Cxx)
 func fairPlayConfigurationSupportImpl(_ configuration: WebCore.FairPlayConfiguration) -> WebCore.FairPlayConfigurationSupport {
-    FairPlayStreamingParsing.configurationSupport(configuration)
+    FairPlayStreamingParsing.platformConfigurationSupport(configuration)
+}
+
+@_expose(Cxx)
+func fairPlaySupportsMediaCapabilityImpl(
+    _ contentType: borrowing WebCore.MediaParserText,
+    _ hasEncryptionScheme: Bool,
+    _ encryptionScheme: WebCore.CDMEncryptionScheme
+) -> Bool {
+    #if HAVE_AVCONTENTKEYSESSION
+    let scheme: EMEEncryptionScheme? = hasEncryptionScheme ? (encryptionScheme == .cbcs ? .cbcs : .cenc) : nil
+    return FairPlayAVFoundation.supportsMediaCapability(contentType: fairPlayString(contentType), encryptionScheme: scheme)
+    #else
+    return false
+    #endif
+}
+
+@_expose(Cxx)
+func fairPlaySupportsInitDataImpl(_ type: WebCore.MediaParserShortName, _ initData: borrowing WebCore.MediaParserBytes) -> Bool {
+    let bytes: Span<UInt8> = initData.span()
+    return FairPlayStreamingParsing.supportsInitData(FairPlayStreamingParsing.initDataType(type), bytes)
 }
 
 @_expose(Cxx)
@@ -310,6 +469,37 @@ func fairPlayAllowsRestrictionsImpl(
 @_expose(Cxx)
 func fairPlaySupportsSessionTypeImpl(_ sessionType: WebCore.CDMSessionType, _ persistentState: WebCore.CDMRequirement) -> Bool {
     FairPlayStreamingParsing.supportsSessionType(sessionType, persistentState: persistentState)
+}
+
+
+private func cdmRequirement(_ requirement: EMERequirement) -> WebCore.CDMRequirement {
+    switch requirement {
+    case .required:
+        .Required
+    case .optional:
+        .Optional
+    case .notAllowed:
+        .NotAllowed
+    }
+}
+
+private func cdmSessionType(_ sessionType: EMESessionType) -> WebCore.CDMSessionType {
+    switch sessionType {
+    case .temporary:
+        .Temporary
+    case .persistentUsageRecord:
+        .PersistentUsageRecord
+    case .persistentLicense:
+        .PersistentLicense
+    }
+}
+
+private func fairPlaySessionTypes(_ sessionTypes: [EMESessionType]) -> WebCore.FairPlaySessionTypes {
+    var result = WebCore.FairPlaySessionTypes()
+    result.temporary = sessionTypes.contains(.temporary)
+    result.persistentUsageRecord = sessionTypes.contains(.persistentUsageRecord)
+    result.persistentLicense = sessionTypes.contains(.persistentLicense)
+    return result
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && ENABLE_ENCRYPTED_MEDIA

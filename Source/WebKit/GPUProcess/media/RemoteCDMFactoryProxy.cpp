@@ -253,11 +253,6 @@ RemoteCDMPrivateHandle::RemoteCDMPrivateHandle(RemoteCDMFactoryProxy& factory, U
 
 RemoteCDMPrivateHandle::~RemoteCDMPrivateHandle() = default;
 
-void RemoteCDMPrivateHandle::getSupportedConfiguration(CDMKeySystemConfiguration&& configuration, CDMPrivate::LocalStorageAccess access, CompletionHandler<void(std::optional<CDMKeySystemConfiguration>)>&& callback)
-{
-    m_private->getSupportedConfiguration(WTF::move(configuration), access, WTF::move(callback));
-}
-
 RefPtr<CDMInstance> RemoteCDMPrivateHandle::createInstance()
 {
     return m_private->createInstance();
@@ -277,11 +272,6 @@ void RemoteCDMPrivateHandle::setLogIdentifier(uint64_t logIdentifier)
 #else
     UNUSED_PARAM(logIdentifier);
 #endif
-}
-
-bool RemoteCDMPrivateHandle::supportsInitData(const String& type, const SharedBuffer& data) const
-{
-    return m_private->supportsInitData(type, data);
 }
 
 } // namespace WebKit

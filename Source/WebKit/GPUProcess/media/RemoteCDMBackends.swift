@@ -48,7 +48,7 @@ typealias RemoteCDMRemovedSessionData = (changedKeys: RemoteCDMKeyStatuses, mess
 @MainActor
 protocol RemoteCDMInstanceBackend: AnyObject {
     func initialize(
-        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
+        _ configuration: IPCTypes.CDMKeySystemConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool
@@ -73,8 +73,7 @@ protocol RemoteCDMSessionBackend: AnyObject {
         _ type: IPCTypes.CDMSessionType,
         _ keyGroupingStrategy: IPCTypes.CDMKeyGroupingStrategy,
         _ initDataType: String?,
-        _ initData: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ initData: WebCore.SharedBuffer
     ) async -> RemoteCDMLicense
     func updateLicense(
         _ sessionId: String?,
@@ -97,7 +96,7 @@ final class ClearKeyInstanceBackend: RemoteCDMInstanceBackend {
     private let instance = ClearKeyInstance()
 
     func initialize(
-        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
+        _ configuration: IPCTypes.CDMKeySystemConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool {
@@ -142,8 +141,7 @@ final class ClearKeySessionBackend: RemoteCDMSessionBackend {
         _ type: IPCTypes.CDMSessionType,
         _ keyGroupingStrategy: IPCTypes.CDMKeyGroupingStrategy,
         _ initDataType: String?,
-        _ initData: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ initData: WebCore.SharedBuffer
     ) async -> RemoteCDMLicense {
         let initDataBytes = remoteCDMBytes(initData)
         let bytes: Span<UInt8> = initDataBytes.span()
@@ -194,10 +192,6 @@ final class ClearKeySessionBackend: RemoteCDMSessionBackend {
 
 // MARK: FairPlay Streaming
 
-extension WebKit.RemoteCDMInstanceSuccessCompletionHandler: @unsafe CxxCompletionHandler {
-    typealias Argument = WebCore.CDMInstanceSuccessValue
-}
-
 // FairPlay Streaming's instance. The C++ CDM makes it, a CDMInstance, through which AVFoundation's players attach its
 // keys to their samples, and which configures it and its storage; the certificate and the sessions are its Swift
 // FairPlayInstance's. On Cocoa, FairPlay Streaming's CDM is the GPU process's only C++ one: ClearKey's is Swift.
@@ -212,20 +206,14 @@ final class FairPlayCDMInstanceBackend: RemoteCDMInstanceBackend {
     }
 
     func initialize(
-        _ configuration: CxxDecodedArguments.RemoteCDMInstanceProxy.InitializeWithConfigurationConfiguration,
+        _ configuration: IPCTypes.CDMKeySystemConfiguration,
         distinctiveIdentifiersAllowed: Bool,
         persistentStateAllowed: Bool
     ) async -> Bool {
-        let success = await withCheckedContinuation { continuation in
-            WebKit.initializeRemoteCDMInstance(
-                instance,
-                configuration,
-                distinctiveIdentifiersAllowed,
-                persistentStateAllowed,
-                consuming: .init(continuation)
-            )
+        guard let fairPlayInstance else {
+            return false
         }
-        return success == .Succeeded
+        return fairPlayInstance.initialize(EMEKeySystemConfiguration(configuration), allowsPersistentState: persistentStateAllowed)
     }
 
     func setServerCertificate(_ certificate: WebCore.SharedBuffer) async -> Bool {
@@ -242,7 +230,7 @@ final class FairPlayCDMInstanceBackend: RemoteCDMInstanceBackend {
     }
 
     func setStorageDirectory(_ directory: String) {
-        WebKit.setRemoteCDMInstanceStorageDirectory(instance, IPCCoding.WTFString.cxxString(directory))
+        fairPlayInstance?.setStorageDirectory(directory)
     }
 
     func makeSession(
@@ -428,14 +416,13 @@ final class FairPlayCDMSessionBackend: RemoteCDMSessionBackend {
         _ type: IPCTypes.CDMSessionType,
         _ keyGroupingStrategy: IPCTypes.CDMKeyGroupingStrategy,
         _ initDataType: String?,
-        _ initData: WebCore.SharedBuffer,
-        cdm: WebKit.RemoteCDMPrivateHandle
+        _ initData: WebCore.SharedBuffer
     ) async -> RemoteCDMLicense {
+        let bytes = remoteCDMBytes(initData)
         // The check CDMPrivate::supportsInitData() makes.
-        guard WebKit.remoteCDMSupportsInitData(cdm, IPCCoding.WTFString.cxxString(initDataType), initData) else {
+        guard FairPlayCDM.supportsInitData(initDataType, bytes.span()) else {
             return remoteCDMNoLicense
         }
-        let bytes = remoteCDMBytes(initData)
         let initDataBytes = contiguousBytes(bytes.span())
         return await withCheckedContinuation { continuation in
             session.requestLicense(
