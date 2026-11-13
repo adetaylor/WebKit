@@ -890,8 +890,7 @@ final class RemoteCGRenderer {
         state.receiveEndPage()
     }
 
-    // RemoteGraphicsContext's draws that C++ makes, in a GraphicsContext with the renderer's state (CGRendererLeafContext). A
-    // missing resource is an invalid message.
+    // RemoteGraphicsContext's draws of what C++ renders: a missing resource is an invalid message.
 
     // GraphicsContext::drawMeshGradient(): the image that C++ renders of the gradient, drawn as a native image.
     func drawMeshGradient(state: inout CGRendererCore, identifier: WebKit.RemoteMeshGradientIdentifier, destination: WebCore.FloatRect) throws(InvalidMessage) {
@@ -920,9 +919,16 @@ final class RemoteCGRenderer {
         sourceImageRect: WebCore.FloatRect,
         filter: WebCore.RefFilter
     ) throws(InvalidMessage) {
-        try messageCheck { WebKit.hasFilterSources(resources, sourceImageIdentifier, filter) }
-        let leaf = state.receiveLeafContext()
-        _ = WebKit.drawFilteredImageBuffer(resources, leaf, sourceImageIdentifier, sourceImageRect, filter)
+        var filtered = WebKit.RemoteCGRendererFilteredImage()
+        let image = WebKit.copyFilteredImage(resources, sourceImageIdentifier, sourceImageRect, filter, &filtered)
+        try messageCheck { filtered.valid }
+        guard let image else {
+            return
+        }
+        // GraphicsContext::drawFilteredImageBuffer(): the result's image at its absolute rect, in the space of the filter's scale.
+        state.receiveScale(1 / filtered.scaleX, 1 / filtered.scaleY)
+        state.receiveDrawNativeImage(image, filtered.facts, filtered.destination, filtered.source, filtered.options)
+        state.receiveScale(filtered.scaleX, filtered.scaleY)
     }
 
     // GraphicsContext::drawControlPart(): the part's platform control's draw, which only Apple Pay buttons and, on the Mac, the

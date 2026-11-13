@@ -255,11 +255,22 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
     return identifier.toUInt64();
 }
 
-// The draws of messages that C++ makes, into the receiver's leaf context (CGRendererLeafContext), as RemoteGraphicsContext's
-// handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.
-bool drawFilteredImageBuffer(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&);
-// Whether the filter's sources are there to be found, before the receiver makes a leaf context to draw it in.
-bool hasFilterSources(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&);
+// How GraphicsContext::drawFilteredImageBuffer() draws a filter's result: its image, at the result's absolute rect, with the
+// context scaled down by the filter's scale. valid is false where a resource is missing, which is an invalid message.
+struct RemoteCGRendererFilteredImage {
+    CGRendererImageFacts facts;
+    CGRendererImageOptions options;
+    CGRect destination;
+    CGRect source;
+    float scaleX;
+    float scaleY;
+    bool valid;
+};
+
+// The image of a DrawFilteredImageBuffer's filter applied to its source, as RemoteGraphicsContext's handler applies it: the
+// filter, or the cached SVG filter it names with its effects merged in, with its FEImage images looked up. Null where
+// nothing is drawn.
+CGImageRef _Nullable copyFilteredImage(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&, RemoteCGRendererFilteredImage&) CF_RETURNS_RETAINED;
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // The image of a DrawVideoFrame's frame, read as RemoteGraphicsContext reads it, with its size and whether it has alpha; null

@@ -487,7 +487,7 @@ static std::optional<SourceImage> sourceImage(const RemoteCGRendererResources& r
     return std::nullopt;
 }
 
-bool hasFilterSources(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter)
+static bool hasFilterSources(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter)
 {
     if (sourceImageIdentifier && !resources.imageBuffer(*sourceImageIdentifier))
         return false;
@@ -523,21 +523,41 @@ static std::unique_ptr<ImageBufferAllocator> filterResultsAllocator(RemoteRender
 #endif
 }
 
-bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const FloatRect& sourceImageRect, const Ref<Filter>& filter)
+CGImageRef copyFilteredImage(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const FloatRect& sourceImageRect, const Ref<Filter>& filter, RemoteCGRendererFilteredImage& filtered)
 {
+    filtered = { };
     if (!hasFilterSources(resources, sourceImageIdentifier, filter))
-        return false;
+        return nullptr;
+    filtered.valid = true;
 
     RefPtr<ImageBuffer> sourceImageBuffer;
     if (sourceImageIdentifier)
         sourceImageBuffer = resources.imageBuffer(*sourceImageIdentifier);
 
-    auto draw = [&](Filter& filterToDraw, FilterResults& results) {
+    // GraphicsContext::drawFilteredImageBuffer()'s result, drawn as GraphicsContext::drawImageBuffer() draws one.
+    auto apply = [&](Filter& filterToDraw, FilterResults& results) -> CGImageRef {
         for (auto& effect : filterToDraw.effectsOfType(FilterEffect::Type::FEImage)) {
             Ref feImage = downcast<FEImage>(effect.get());
             feImage->setImageSource(*sourceImage(resources, feImage->sourceImage().imageIdentifier()));
         }
-        leaf.context().drawFilteredImageBuffer(sourceImageBuffer.get(), sourceImageRect, filterToDraw, results);
+        auto result = filterToDraw.apply(sourceImageBuffer.get(), sourceImageRect, results, FilterResultBuffer::Rendered);
+        if (!result)
+            return nullptr;
+        Ref imageBuffer = result->imageBuffer;
+        RefPtr image = resources.targetContext().nativeImageForSwiftReceiver(imageBuffer.get());
+        if (!image)
+            return nullptr;
+        filtered.scaleX = filterToDraw.filterScale().width();
+        filtered.scaleY = filterToDraw.filterScale().height();
+        filtered.facts.resolutionScale = imageBuffer->resolutionScale();
+        filtered.facts.found = true;
+        filtered.destination = FloatRect { result->absoluteImageRect };
+        FloatRect source { { }, imageBuffer->logicalSize() };
+        filtered.source = source;
+        filtered.options = CGRendererImageOptionsFor({ });
+        source.scale(filtered.facts.resolutionScale);
+        CGRendererSetInvertColorMatrix(*image, source, { }, filtered.facts);
+        return copyImage(*image, filtered.facts);
     };
 
     RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
@@ -549,16 +569,14 @@ bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRende
         if (namesCachedFilter)
             filterToDraw = resources.cachedFilter(filter->renderingResourceIdentifier());
         FilterResults results;
-        draw(*filterToDraw, results);
-        return true;
+        return apply(*filterToDraw, results);
     }
 
     RefPtr backend = resources.backend();
     RELEASE_ASSERT(backend);
     if (!namesCachedFilter) {
         FilterResults results(filterResultsAllocator(*backend));
-        draw(filter.get(), results);
-        return true;
+        return apply(filter.get(), results);
     }
 
     RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(resources.cachedFilter(filter->renderingResourceIdentifier()));
@@ -566,8 +584,7 @@ bool drawFilteredImageBuffer(const RemoteCGRendererResources& resources, CGRende
     auto& results = cachedSVGFilter->ensureResults([&] {
         return makeUnique<FilterResults>(filterResultsAllocator(*backend));
     });
-    draw(*cachedSVGFilter, results);
-    return true;
+    return apply(*cachedSVGFilter, results);
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
