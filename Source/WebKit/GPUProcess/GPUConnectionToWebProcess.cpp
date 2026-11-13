@@ -410,6 +410,10 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
     if (m_cdmFactoryProxy)
         m_cdmFactoryProxy->clear();
 #endif
+#if USE(AUDIO_SESSION)
+    if (RefPtr audioSessionProxy = std::exchange(m_audioSessionProxy, nullptr))
+        protect(m_gpuProcess->audioSessionManager())->removeProxy(*audioSessionProxy);
+#endif
 
     destroySwiftState(std::exchange(m_swiftState, 0));
 
