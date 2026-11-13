@@ -75,6 +75,12 @@ public:
     inline StyleAppearance usedAppearanceForSwift() const SWIFT_NAME(usedAppearance());
     inline OverscrollBehavior overscrollBehaviorXForSwift() const SWIFT_NAME(overscrollBehaviorX());
     inline OverscrollBehavior overscrollBehaviorYForSwift() const SWIFT_NAME(overscrollBehaviorY());
+    inline Overflow overflowXForSwift() const SWIFT_NAME(overflowX());
+    inline Overflow overflowYForSwift() const SWIFT_NAME(overflowY());
+    inline bool hasLegacyLineClampForSwift() const SWIFT_NAME(hasLegacyLineClamp());
+    inline float usedZoomForSwift() const SWIFT_NAME(usedZoom());
+    inline BoxSizing boxSizingForSwift() const SWIFT_NAME(boxSizing());
+    inline Resize resizeForSwift() const SWIFT_NAME(resize());
     inline bool borderHasVisibleBorderForSwift() const SWIFT_NAME(borderHasVisibleBorder());
     inline bool borderHasNonRoundCornerShapeForSwift() const SWIFT_NAME(borderHasNonRoundCornerShape());
     inline bool borderHasCornerShapeOutsideRoundedRectForSwift() const SWIFT_NAME(borderHasCornerShapeOutsideRoundedRect());

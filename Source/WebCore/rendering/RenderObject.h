@@ -872,6 +872,7 @@ public:
     inline FloatQuad localToAbsoluteQuad(const FloatQuad&, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms, bool* wasFixed = nullptr) const; // Defined in RenderObjectInlines.h
     // Convert an absolute quad to local coordinates.
     FloatQuad absoluteToLocalQuad(const FloatQuad&, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms) const;
+    inline FloatQuad absoluteToLocalQuadForSwift(FloatQuad) const; // Defined in RenderObjectInlines.h
 
     // Convert a local quad into the coordinate system of container, taking transforms into account.
     WEBCORE_EXPORT FloatQuad localToContainerQuad(const FloatQuad&, const RenderLayerModelObject* container, OptionSet<MapCoordinatesMode> = MapCoordinatesMode::UseTransforms, bool* wasFixed = nullptr) const;

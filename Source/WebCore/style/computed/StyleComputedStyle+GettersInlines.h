@@ -502,6 +502,36 @@ inline OverscrollBehavior ComputedStyle::overscrollBehaviorYForSwift() const
     return overscrollBehaviorY();
 }
 
+inline Overflow ComputedStyle::overflowXForSwift() const
+{
+    return overflowX();
+}
+
+inline Overflow ComputedStyle::overflowYForSwift() const
+{
+    return overflowY();
+}
+
+inline bool ComputedStyle::hasLegacyLineClampForSwift() const
+{
+    return hasLegacyLineClamp();
+}
+
+inline float ComputedStyle::usedZoomForSwift() const
+{
+    return usedZoom();
+}
+
+inline BoxSizing ComputedStyle::boxSizingForSwift() const
+{
+    return boxSizing();
+}
+
+inline Resize ComputedStyle::resizeForSwift() const
+{
+    return resize();
+}
+
 inline bool ComputedStyle::borderHasVisibleBorderForSwift() const
 {
     return border().hasVisibleBorder();

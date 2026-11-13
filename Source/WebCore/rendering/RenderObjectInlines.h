@@ -79,6 +79,11 @@ inline Page& RenderObject::page() const
     return *frame().page();
 }
 
+inline FloatQuad RenderObject::absoluteToLocalQuadForSwift(FloatQuad quad) const
+{
+    return absoluteToLocalQuad(quad);
+}
+
 inline FloatQuad RenderObject::localToAbsoluteQuad(const FloatQuad& quad, OptionSet<MapCoordinatesMode> mode, bool* wasFixed) const
 {
     return localToContainerQuad(quad, nullptr, mode, wasFixed);
