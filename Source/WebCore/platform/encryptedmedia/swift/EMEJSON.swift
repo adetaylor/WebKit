@@ -83,7 +83,7 @@ public struct EMEJSONString: Hashable, Sendable {
 }
 
 /// A JSON::Value as JSON::Value::parseJSON() makes one.
-public enum EMEJSONValue: Sendable {
+@frozen public enum EMEJSONValue: Sendable {
     /// `null`.
     case null
     /// `true` or `false`.

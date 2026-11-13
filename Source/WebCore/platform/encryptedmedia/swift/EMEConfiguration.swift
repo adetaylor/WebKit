@@ -24,7 +24,7 @@
 #if ENABLE_ENCRYPTED_MEDIA
 
 /// CDMEncryptionScheme.
-public enum EMEEncryptionScheme: Sendable {
+@frozen public enum EMEEncryptionScheme: Sendable {
     case cenc
     case cbcs
 }
@@ -43,7 +43,7 @@ public struct EMEMediaCapability: Sendable, Equatable {
 }
 
 /// Audio or video, for the capabilities of a configuration.
-public enum EMEMediaType: Sendable {
+@frozen public enum EMEMediaType: Sendable {
     case audio
     case video
 }

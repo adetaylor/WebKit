@@ -55,7 +55,7 @@ public enum FairPlayJSON {
     /// How far an element of a 'cenc' license response parses.
     ///
     /// The session finds the element's request by its key ID before it looks at the rest.
-    public enum CencResponseEntry: Sendable, Equatable {
+    @frozen public enum CencResponseEntry: Sendable, Equatable {
         case noKeyID
         case keyIDOnly(keyID: ContiguousArray<UInt8>)
         case payload(keyID: ContiguousArray<UInt8>, payload: ContiguousArray<UInt8>)

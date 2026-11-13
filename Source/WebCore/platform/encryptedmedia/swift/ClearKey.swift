@@ -30,21 +30,21 @@
 #if ENABLE_ENCRYPTED_MEDIA
 
 /// CDMRequirement.
-public enum EMERequirement: Sendable {
+@frozen public enum EMERequirement: Sendable {
     case required
     case optional
     case notAllowed
 }
 
 /// CDMSessionType.
-public enum EMESessionType: Sendable {
+@frozen public enum EMESessionType: Sendable {
     case temporary
     case persistentUsageRecord
     case persistentLicense
 }
 
 /// CDMKeyStatus, as far as ClearKey uses it.
-public enum EMEKeyStatus: Sendable {
+@frozen public enum EMEKeyStatus: Sendable {
     case usable
     case released
 }
@@ -105,7 +105,7 @@ public enum ClearKey {
     private static let keyIDSize: UInt32 = 16
 
     /// The init data types ClearKey knows.
-    public enum InitDataType: Sendable {
+    @frozen public enum InitDataType: Sendable {
         case keyids
         case cenc
         case webm
@@ -224,7 +224,7 @@ public enum ClearKey {
     }
 
     /// A session's license request message.
-    public enum LicenseRequest: Sendable {
+    @frozen public enum LicenseRequest: Sendable {
         // The init data itself.
         case initData
         case message(ContiguousArray<UInt8>)

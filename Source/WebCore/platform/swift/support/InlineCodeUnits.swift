@@ -26,14 +26,14 @@
 ///
 /// The representation is canonical, so equal values are stored alike, and the synthesized Hashable is correct. The hot
 /// members are inlinable, so that clients in other modules don't call across the module for each code unit.
-public struct InlineCodeUnits: Hashable, Sendable, RandomAccessCollection {
+@frozen public struct InlineCodeUnits: Hashable, Sendable, RandomAccessCollection {
     /// The most Latin-1 code units stored without allocating.
     public static var inlineCapacity: Int {
         24
     }
 
     // Latin-1 code units in memory order, eight to a word; the bytes past count are 0.
-    @usableFromInline
+    @frozen @usableFromInline
     struct Inline: Hashable, Sendable {
         @usableFromInline
         var count: UInt8
@@ -81,7 +81,7 @@ public struct InlineCodeUnits: Hashable, Sendable, RandomAccessCollection {
         }
     }
 
-    @usableFromInline
+    @frozen @usableFromInline
     enum Storage: Hashable, Sendable {
         case inline(Inline)
         case heap(ContiguousArray<UInt16>)
