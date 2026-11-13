@@ -4,7 +4,7 @@
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2010 Renata Hodovan <reni@inf.u-szeged.hu>
- * Copyright (C) 2017-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2017-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -25,15 +25,10 @@
 #pragma once
 
 #include <WebCore/ColorComponents.h>
+#include <WebCore/FETurbulenceParameters.h>
 #include <WebCore/FilterEffect.h>
 
 namespace WebCore {
-
-enum class TurbulenceType : uint8_t {
-    Unknown,
-    FractalNoise,
-    Turbulence
-};
 
 class FETurbulence final : public FilterEffect {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(FETurbulence);
@@ -43,23 +38,25 @@ public:
 
     bool operator==(const FETurbulence&) const;
 
-    TurbulenceType type() const { return m_type; }
+    TurbulenceType type() const { return m_parameters.type; }
     NODELETE bool setType(TurbulenceType);
 
-    float baseFrequencyX() const { return m_baseFrequencyX; }
+    float baseFrequencyX() const { return m_parameters.baseFrequencyX; }
     NODELETE bool setBaseFrequencyX(float);
 
-    float baseFrequencyY() const { return m_baseFrequencyY; }
+    float baseFrequencyY() const { return m_parameters.baseFrequencyY; }
     NODELETE bool setBaseFrequencyY(float);
 
-    float seed() const { return m_seed; }
+    float seed() const { return m_parameters.seed; }
     NODELETE bool setSeed(float);
 
-    int numOctaves() const { return m_numOctaves; }
+    int numOctaves() const { return m_parameters.numOctaves; }
     NODELETE bool setNumOctaves(int);
 
-    bool stitchTiles() const { return m_stitchTiles; }
+    bool stitchTiles() const { return m_parameters.stitchTiles; }
     NODELETE bool setStitchTiles(bool);
+
+    const FETurbulenceParameters& parameters() const LIFETIME_BOUND { return m_parameters; }
 
 private:
     FETurbulence(TurbulenceType, float baseFrequencyX, float baseFrequencyY, int numOctaves, float seed, bool stitchTiles, ColorSpace);
@@ -68,20 +65,11 @@ private:
 
     unsigned numberOfEffectInputs() const override { return 0; }
 
-    FloatRect calculateImageRect(const Filter&, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const override;
-
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode>) const override;
-    std::unique_ptr<FilterEffectApplier> createAcceleratedApplier() const override;
-    std::unique_ptr<FilterEffectApplier> createSoftwareApplier() const override;
 
     WTF::TextStream& externalRepresentation(WTF::TextStream&, FilterRepresentation) const override;
 
-    TurbulenceType m_type;
-    float m_baseFrequencyX;
-    float m_baseFrequencyY;
-    int m_numOctaves;
-    float m_seed;
-    bool m_stitchTiles;
+    FETurbulenceParameters m_parameters;
 };
 
 } // namespace WebCore

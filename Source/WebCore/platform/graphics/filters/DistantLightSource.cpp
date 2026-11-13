@@ -5,6 +5,7 @@
  * Copyright (C) 2010 Zoltan Herczeg <zherczeg@webkit.org>
  * Copyright (C) 2011 University of Szeged
  * Copyright (C) 2011 Renata Hodovan <reni@webkit.org>
+ * Copyright (C) 2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,7 +42,7 @@ Ref<DistantLightSource> DistantLightSource::create(float azimuth, float elevatio
 }
 
 DistantLightSource::DistantLightSource(float azimuth, float elevation)
-    : LightSource(LightType::LS_DISTANT)
+    : LightSource(LightType::Distant)
     , m_azimuth(azimuth)
     , m_elevation(elevation)
 {
@@ -52,23 +53,6 @@ bool DistantLightSource::operator==(const DistantLightSource& other) const
     return LightSource::operator==(other)
         && m_azimuth == other.m_azimuth
         && m_elevation == other.m_elevation;
-}
-
-void DistantLightSource::initPaintingData(const Filter&, const FilterImage&, PaintingData& paintingData) const
-{
-    float azimuth = deg2rad(m_azimuth);
-    float elevation = deg2rad(m_elevation);
-    paintingData.initialLightingData.lightVector = {
-        std::cos(azimuth) * std::cos(elevation),
-        std::sin(azimuth) * std::cos(elevation),
-        std::sin(elevation)
-    };
-    paintingData.initialLightingData.lightVectorLength = 1;
-}
-
-LightSource::ComputedLightingData DistantLightSource::computePixelLightingData(const PaintingData& paintingData, int, int, float) const
-{
-    return paintingData.initialLightingData;
 }
 
 bool DistantLightSource::setAzimuth(float azimuth)

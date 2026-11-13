@@ -5,7 +5,7 @@
  * Copyright (C) 2010 Zoltan Herczeg <zherczeg@webkit.org>
  * Copyright (C) 2011 University of Szeged
  * Copyright (C) 2011 Renata Hodovan <reni@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,8 +32,6 @@
 #include "config.h"
 #include "PointLightSource.h"
 
-#include "Filter.h"
-#include "FilterImage.h"
 #include <wtf/text/TextStream.h>
 
 namespace WebCore {
@@ -44,7 +42,7 @@ Ref<PointLightSource> PointLightSource::create(const FloatPoint3D& position)
 }
 
 PointLightSource::PointLightSource(const FloatPoint3D& position)
-    : LightSource(LightType::LS_POINT)
+    : LightSource(LightType::Point)
     , m_position(position)
 {
 }
@@ -52,28 +50,6 @@ PointLightSource::PointLightSource(const FloatPoint3D& position)
 bool PointLightSource::operator==(const PointLightSource& other) const
 {
     return LightSource::operator==(other) && m_position == other.m_position;
-}
-
-void PointLightSource::initPaintingData(const Filter& filter, const FilterImage& result, PaintingData&) const
-{
-    auto position = filter.resolvedPoint3D(m_position);
-    auto absolutePosition = filter.scaledByFilterScale(position.xy());
-    m_bufferPosition.setXY(result.mappedAbsolutePoint(absolutePosition));
-
-    // To scale Z, map a point offset from position in the x direction by z.
-    auto absoluteMappedZ = filter.scaledByFilterScale(FloatPoint { position.x() + position.z(), position.y() });
-    m_bufferPosition.setZ(result.mappedAbsolutePoint(absoluteMappedZ).x() - m_bufferPosition.x());
-}
-
-LightSource::ComputedLightingData PointLightSource::computePixelLightingData(const PaintingData& paintingData, int x, int y, float z) const
-{
-    FloatPoint3D lightVector = {
-        m_bufferPosition.x() - x,
-        m_bufferPosition.y() - y,
-        m_bufferPosition.z() - z
-    };
-
-    return { lightVector, paintingData.initialLightingData.colorVector, lightVector.length() };
 }
 
 bool PointLightSource::setX(float x)

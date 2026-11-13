@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -22,16 +22,7 @@
 #include "SourceGraphic.h"
 
 #include "Filter.h"
-#include "SourceGraphicSoftwareApplier.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "SourceGraphicCoreImageApplier.h"
-#endif
-
-#if USE(SKIA)
-#include "SourceGraphicSkiaApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -55,26 +46,6 @@ OptionSet<FilterRenderingMode> SourceGraphic::supportedFilterRenderingModes(Opti
     modes.add(FilterRenderingMode::GraphicsContext);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> SourceGraphic::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<SourceGraphicCoreImageApplier>(*this);
-#elif USE(SKIA)
-    return FilterEffectApplier::create<SourceGraphicSkiaApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> SourceGraphic::createSoftwareApplier() const
-{
-#if USE(SKIA)
-    return FilterEffectApplier::create<SourceGraphicSkiaApplier>(*this);
-#else
-    return FilterEffectApplier::create<SourceGraphicSoftwareApplier>(*this);
-#endif
 }
 
 TextStream& SourceGraphic::externalRepresentation(TextStream& ts, FilterRepresentation) const

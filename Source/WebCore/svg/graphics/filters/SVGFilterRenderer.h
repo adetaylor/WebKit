@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2013 Google Inc. All rights reserved.
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -31,7 +31,6 @@
 
 namespace WebCore {
 
-class FilterImage;
 class GraphicsContext;
 class SVGElement;
 class SVGFilterElement;
@@ -55,7 +54,7 @@ public:
     void clearEffectResult(FilterEffect&);
     WEBCORE_EXPORT void mergeEffects(const FilterEffectVector&);
 
-    RefPtr<FilterImage> apply(FilterImage* sourceImage, FilterResults&) final;
+    std::optional<FilterResult> apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults&, FilterResultBuffer) final;
     FilterStyleVector createFilterStyles(GraphicsContext&, const FilterStyle& sourceStyle) const final;
 
     NODELETE static FloatSize calculateResolvedSize(const FloatSize&, const FloatRect& targetBoundingBox, SVGUnitTypes::SVGUnitType primitiveUnits);
@@ -72,11 +71,10 @@ private:
     void setEffects(FilterEffectVector&& effects) { m_effects = WTF::move(effects); }
 
     FloatSize resolvedSize(const FloatSize&) const final;
-    FloatPoint3D resolvedPoint3D(const FloatPoint3D&) const final;
+    bool primitiveUnitsAreObjectBoundingBox() const final { return m_primitiveUnits == SVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX; }
 
     OptionSet<FilterRenderingMode> supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const final;
 
-    RefPtr<FilterImage> apply(const Filter&, FilterImage& sourceImage, FilterResults&) final;
     FilterStyleVector createFilterStyles(GraphicsContext&, const Filter&, const FilterStyle& sourceStyle) const final;
 
     SVGUnitTypes::SVGUnitType m_primitiveUnits;

@@ -1272,6 +1272,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/cocoa/SearchPopupMenuCocoa.h
     platform/cocoa/SerializedPlatformDataCueCocoa.h
     platform/cocoa/SharedVideoFrameInfo.h
+    platform/cocoa/SharedVideoFrameSwiftBridge.h
     platform/cocoa/StringUtilities.h
     platform/cocoa/SystemBattery.h
     platform/cocoa/SystemVersion.h

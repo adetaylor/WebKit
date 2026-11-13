@@ -3,7 +3,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -39,6 +39,11 @@ public:
     float specularExponent() const { return m_specularExponent; }
     float limitingConeAngle() const { return m_limitingConeAngle; }
 
+    LightSourceParameters parameters() const override
+    {
+        return { .type = LightType::Spot, .position = m_position, .pointsAt = m_pointsAt, .specularExponent = m_specularExponent, .limitingConeAngle = m_limitingConeAngle };
+    }
+
     bool setX(float) override;
     bool setY(float) override;
     bool setZ(float) override;
@@ -49,9 +54,6 @@ public:
     bool setSpecularExponent(float) override;
     bool setLimitingConeAngle(float) override;
 
-    void initPaintingData(const Filter&, const FilterImage& result, PaintingData&) const override;
-    NODELETE ComputedLightingData computePixelLightingData(const PaintingData&, int x, int y, float z) const final;
-
     WTF::TextStream& externalRepresentation(WTF::TextStream&) const override;
 
 private:
@@ -61,13 +63,10 @@ private:
 
     FloatPoint3D m_position;
     FloatPoint3D m_pointsAt;
-
-    mutable FloatPoint3D m_bufferPosition;
-
     float m_specularExponent;
     float m_limitingConeAngle;
 };
 
 } // namespace WebCore
 
-SPECIALIZE_TYPE_TRAITS_LIGHTSOURCE(SpotLightSource, LightType::LS_SPOT)
+SPECIALIZE_TYPE_TRAITS_LIGHTSOURCE(SpotLightSource, LightType::Spot)

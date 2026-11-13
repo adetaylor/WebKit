@@ -27,7 +27,6 @@
 #include "ShareableBitmap.h"
 
 #include "GraphicsContextCG.h"
-#include "IOSurface.h"
 #include "ImageUtilities.h"
 #include "Logging.h"
 #include "NativeImage.h"
@@ -37,6 +36,10 @@
 #include <wtf/StdLibExtras.h>
 #include <wtf/cf/VectorCF.h>
 #include <wtf/spi/cocoa/IOSurfaceSPI.h>
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -58,79 +61,6 @@ ColorSpace ShareableBitmapConfiguration::validateColorSpace(const ColorSpace& co
         return *colorSpaceAsRGB;
 
     return ColorSpace::ExtendedSRGB();
-}
-
-CheckedUint32 ShareableBitmapConfiguration::calculateBitsPerComponent(PixelFormat pixelFormat, const ColorSpace& colorSpace)
-{
-    return (calculateBytesPerPixel(pixelFormat, colorSpace) / 4) * 8;
-}
-
-CheckedUint32 ShareableBitmapConfiguration::calculateBytesPerPixel(PixelFormat pixelFormat, const ColorSpace&)
-{
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    if (pixelFormat == PixelFormat::RGBA16F)
-        return sizeof(Float16) * 4;
-#endif
-#if ENABLE(PIXEL_FORMAT_RGBA16)
-    if (pixelFormat == PixelFormat::RGBA16)
-        return sizeof(uint16_t) * 4;
-#endif
-#if !ENABLE(PIXEL_FORMAT_RGBA16F) && !ENABLE(PIXEL_FORMAT_RGBA16)
-    UNUSED_PARAM(pixelFormat);
-#endif
-    return 4;
-}
-
-CheckedUint32 ShareableBitmapConfiguration::calculateBytesPerRow(const IntSize& size, PixelFormat pixelFormat, const ColorSpace& colorSpace)
-{
-    CheckedUint32 bytesPerRow = calculateBytesPerPixel(pixelFormat, colorSpace) * size.width();
-#if HAVE(IOSURFACE)
-    if (bytesPerRow.hasOverflowed())
-        return bytesPerRow;
-    size_t alignmentMask = IOSurface::bytesPerRowAlignment() - 1;
-    return (bytesPerRow + alignmentMask) & ~alignmentMask;
-#else
-    return bytesPerRow;
-#endif
-}
-
-CGBitmapInfo ShareableBitmapConfiguration::calculateBitmapInfo(PixelFormat pixelFormat, bool isOpaque)
-{
-    CGBitmapInfo info = 0;
-#if ENABLE(PIXEL_FORMAT_RGBA16F)
-    if (pixelFormat == PixelFormat::RGBA16F) {
-        info |= kCGBitmapFloatComponents | static_cast<CGBitmapInfo>(kCGBitmapByteOrder16Host);
-
-        if (isOpaque)
-            info |= kCGImageAlphaNoneSkipLast;
-        else
-            info |= kCGImageAlphaPremultipliedLast;
-        return info;
-    }
-#endif
-#if ENABLE(PIXEL_FORMAT_RGBA16)
-    if (pixelFormat == PixelFormat::RGBA16) {
-        info |= static_cast<CGBitmapInfo>(kCGBitmapByteOrder16Little);
-
-        if (isOpaque)
-            info |= kCGImageAlphaNoneSkipLast;
-        else
-            info |= kCGImageAlphaPremultipliedLast;
-        return info;
-    }
-#endif
-#if !ENABLE(PIXEL_FORMAT_RGBA16F) && !ENABLE(PIXEL_FORMAT_RGBA16)
-    UNUSED_PARAM(pixelFormat);
-#endif
-
-    info |= static_cast<CGBitmapInfo>(kCGBitmapByteOrder32Host);
-
-    if (isOpaque)
-        info |= kCGImageAlphaNoneSkipFirst;
-    else
-        info |= kCGImageAlphaPremultipliedFirst;
-
-    return info;
 }
 
 RefPtr<ShareableBitmap> ShareableBitmap::createFromImagePixels(const NativeImage& image)
@@ -161,10 +91,12 @@ RefPtr<ShareableBitmap> ShareableBitmap::createFromImagePixels(const NativeImage
         return nullptr;
 
     auto bytes = WTF::span(pixels.get());
-    if (bytes.empty() || CheckedUint32(bytes.size()).hasOverflowed())
+    switch (shareableBitmapCheckImagePixels(configuration.layoutGeometry(), bytes.size())) {
+    case ShareableBitmapImagePixels::Copyable:
+        break;
+    case ShareableBitmapImagePixels::Unusable:
         return nullptr;
-
-    if (configuration.sizeInBytes() != bytes.size()) {
+    case ShareableBitmapImagePixels::SizeMismatch:
         LOG_WITH_STREAM(Images, stream
             << "ShareableBitmap::createFromImagePixels() " << image.platformImage().get()
             << " CGImage size: " << configuration.size()
@@ -179,7 +111,8 @@ RefPtr<ShareableBitmap> ShareableBitmap::createFromImagePixels(const NativeImage
     if (!sharedMemory)
         return nullptr;
 
-    memcpySpan(sharedMemory->mutableSpan(), bytes);
+    MutablePixelBytes destination { sharedMemory->mutableSpan() };
+    shareableBitmapCopyImagePixels(PixelBytes { bytes }, destination);
     return adoptRef(new ShareableBitmap(configuration, sharedMemory.releaseNonNull()));
 }
 

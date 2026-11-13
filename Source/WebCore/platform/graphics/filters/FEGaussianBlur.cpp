@@ -5,7 +5,7 @@
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) 2010 Igalia, S.L.
  * Copyright (C) Research In Motion Limited 2010. All rights reserved.
- * Copyright (C) 2015-2022 Apple, Inc. All rights reserved.
+ * Copyright (C) 2015-2026 Apple, Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -26,18 +26,12 @@
 #include "config.h"
 #include "FEGaussianBlur.h"
 
-#include "FEGaussianBlurSoftwareApplier.h"
 #include "Filter.h"
 #include "GraphicsContext.h"
-#include <numbers>
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEGaussianBlurCoreImageApplier.h"
-#endif
-
-#if USE(SKIA)
-#include "FEGaussianBlurSkiaApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -49,121 +43,58 @@ Ref<FEGaussianBlur> FEGaussianBlur::create(float x, float y, EdgeModeType edgeMo
 
 FEGaussianBlur::FEGaussianBlur(float x, float y, EdgeModeType edgeMode, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEGaussianBlur, colorSpace)
-    , m_stdX(x)
-    , m_stdY(y)
-    , m_edgeMode(edgeMode)
+    , m_parameters { x, y, edgeMode }
 {
 }
 
 bool FEGaussianBlur::operator==(const FEGaussianBlur& other) const
 {
     return FilterEffect::operator==(other)
-        && m_stdX == other.m_stdX
-        && m_stdY == other.m_stdY
-        && m_edgeMode == other.m_edgeMode;
+        && m_parameters == other.m_parameters;
 }
 
 bool FEGaussianBlur::setStdDeviationX(float stdX)
 {
-    if (m_stdX == stdX)
+    if (m_parameters.stdDeviationX == stdX)
         return false;
-    m_stdX = stdX;
+    m_parameters.stdDeviationX = stdX;
     return true;
 }
 
 bool FEGaussianBlur::setStdDeviationY(float stdY)
 {
-    if (m_stdY == stdY)
+    if (m_parameters.stdDeviationY == stdY)
         return false;
-    m_stdY = stdY;
+    m_parameters.stdDeviationY = stdY;
     return true;
 }
 
 bool FEGaussianBlur::setEdgeMode(EdgeModeType edgeMode)
 {
-    if (m_edgeMode == edgeMode)
+    if (m_parameters.edgeMode == edgeMode)
         return false;
-    m_edgeMode = edgeMode;
+    m_parameters.edgeMode = edgeMode;
     return true;
 }
 
 FloatSize FEGaussianBlur::effectiveStdDeviation(OptionSet<FilterRenderingOption> renderingOptions) const
 {
-    if (renderingOptions.contains(FilterRenderingOption::FastAndLowQuality))
-        return { std::min(m_stdX, 20.0f), std::min(m_stdY, 20.0f) };
-    return { m_stdX, m_stdY };
+    return feGaussianBlurEffectiveStdDeviation(m_parameters, renderingOptions.contains(FilterRenderingOption::FastAndLowQuality));
 }
 
-static inline float gaussianKernelFactor()
-{
-    return 3 / 4.f * sqrtf(2 * std::numbers::pi_v<float>);
-}
-
-static int clampedToKernelSize(float value)
-{
-    static constexpr unsigned maxKernelSize = 500;
-
-    // Limit the kernel size to 500. A bigger radius won't make a big difference for the result image but
-    // inflates the absolute paint rect too much. This is compatible with Firefox' behavior.
-    unsigned size = std::max<unsigned>(2, static_cast<unsigned>(floorf(value * gaussianKernelFactor() + 0.5f)));
-    return clampTo<int>(std::min(size, maxKernelSize));
-}
-    
 IntSize FEGaussianBlur::calculateUnscaledKernelSize(FloatSize stdDeviation)
 {
-    ASSERT(stdDeviation.width() >= 0 && stdDeviation.height() >= 0);
-    IntSize kernelSize;
-
-    if (stdDeviation.width())
-        kernelSize.setWidth(clampedToKernelSize(stdDeviation.width()));
-
-    if (stdDeviation.height())
-        kernelSize.setHeight(clampedToKernelSize(stdDeviation.height()));
-
-    return kernelSize;
-}
-
-IntSize FEGaussianBlur::calculateKernelSize(const Filter& filter, FloatSize stdDeviation)
-{
-    stdDeviation = filter.resolvedSize(stdDeviation);
-    return calculateUnscaledKernelSize(filter.scaledByFilterScale(stdDeviation));
+    return feGaussianBlurUnscaledKernelSize(stdDeviation);
 }
 
 IntSize FEGaussianBlur::calculateOutsetSize(FloatSize stdDeviation)
 {
-    auto kernelSize = calculateUnscaledKernelSize(stdDeviation);
-
-    // We take the half kernel size and multiply it with three, because we run box blur three times.
-    return { 3 * kernelSize.width() / 2, 3 * kernelSize.height() / 2 };
-}
-
-FloatRect FEGaussianBlur::calculateImageRect(const Filter& filter, std::span<const FloatRect> inputImageRects, const FloatRect& primitiveSubregion) const
-{
-    auto imageRect = inputImageRects[0];
-
-    // Edge modes other than 'none' do not inflate the affected paint rect.
-    if (m_edgeMode != EdgeModeType::None)
-        return enclosingIntRect(imageRect);
-
-    auto stdDeviation = effectiveStdDeviation(filter.renderingOptions());
-    auto kernelSize = calculateUnscaledKernelSize(filter.resolvedSize(stdDeviation));
-
-    // We take the half kernel size and multiply it with three, because we run box blur three times.
-    imageRect.inflateX(3 * kernelSize.width() * 0.5f);
-    imageRect.inflateY(3 * kernelSize.height() * 0.5f);
-
-    return filter.clipToMaxEffectRect(imageRect, primitiveSubregion);
+    return feGaussianBlurOutsetSize(stdDeviation);
 }
 
 IntOutsets FEGaussianBlur::calculateOutsets(const FloatSize& stdDeviation)
 {
-    IntSize outsetSize = calculateOutsetSize(stdDeviation);
-    return { outsetSize.height(), outsetSize.width(), outsetSize.height(), outsetSize.width() };
-}
-
-bool FEGaussianBlur::resultIsAlphaImage(std::span<const Ref<FilterImage>> inputs) const
-{
-    return inputs[0]->isAlphaImage();
+    return feGaussianBlurOutsets(stdDeviation).intOutsets();
 }
 
 OptionSet<FilterRenderingMode> FEGaussianBlur::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -172,34 +103,14 @@ OptionSet<FilterRenderingMode> FEGaussianBlur::supportedFilterRenderingModes(Opt
 #if USE(CORE_IMAGE)
     modes.add(FilterRenderingMode::Accelerated);
 #elif USE(SKIA)
-    if (m_edgeMode == EdgeModeType::None)
+    if (m_parameters.edgeMode == EdgeModeType::None)
         modes.add(FilterRenderingMode::Accelerated);
 #endif
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR) && HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
-    if (m_stdX == m_stdY)
+    if (m_parameters.stdDeviationX == m_parameters.stdDeviationY)
         modes.add(FilterRenderingMode::GraphicsContext);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEGaussianBlur::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEGaussianBlurCoreImageApplier>(*this);
-#elif USE(SKIA)
-    return FilterEffectApplier::create<FEGaussianBlurSkiaApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEGaussianBlur::createSoftwareApplier() const
-{
-#if USE(SKIA)
-    if (m_edgeMode == EdgeModeType::None)
-        return FilterEffectApplier::create<FEGaussianBlurSkiaApplier>(*this);
-#endif
-    return FilterEffectApplier::create<FEGaussianBlurSoftwareApplier>(*this);
 }
 
 std::optional<GraphicsStyle> FEGaussianBlur::createGraphicsStyle(GraphicsContext&, const Filter& filter) const
@@ -214,7 +125,7 @@ TextStream& FEGaussianBlur::externalRepresentation(TextStream& ts, FilterReprese
     ts << indent << "[feGaussianBlur"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " stdDeviation=\""_s << m_stdX << ", "_s << m_stdY << '"';
+    ts << " stdDeviation=\""_s << m_parameters.stdDeviationX << ", "_s << m_parameters.stdDeviationY << '"';
 
     ts << "]\n"_s;
     return ts;

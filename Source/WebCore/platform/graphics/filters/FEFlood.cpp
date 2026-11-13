@@ -3,7 +3,7 @@
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,13 +24,8 @@
 #include "config.h"
 #include "FEFlood.h"
 
-#include "FEFloodSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FEFloodCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -46,37 +41,29 @@ Ref<FEFlood> FEFlood::create(const Color& floodColor, float floodOpacity, ColorS
 
 FEFlood::FEFlood(const Color& floodColor, float floodOpacity, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEFlood, colorSpace)
-    , m_floodColor(floodColor)
-    , m_floodOpacity(floodOpacity)
+    , m_parameters { floodColor, floodOpacity }
 {
 }
 
 bool FEFlood::operator==(const FEFlood& other) const
 {
-    return FilterEffect::operator==(other)
-        && m_floodColor == other.m_floodColor
-        && m_floodOpacity == other.m_floodOpacity;
+    return FilterEffect::operator==(other) && m_parameters == other.m_parameters;
 }
 
 bool FEFlood::setFloodColor(const Color& color)
 {
-    if (m_floodColor == color)
+    if (m_parameters.floodColor == color)
         return false;
-    m_floodColor = color;
+    m_parameters.floodColor = color;
     return true;
 }
 
 bool FEFlood::setFloodOpacity(float floodOpacity)
 {
-    if (m_floodOpacity == floodOpacity)
+    if (m_parameters.floodOpacity == floodOpacity)
         return false;
-    m_floodOpacity = floodOpacity;
+    m_parameters.floodOpacity = floodOpacity;
     return true;
-}
-
-FloatRect FEFlood::calculateImageRect(const Filter& filter, std::span<const FloatRect>, const FloatRect& primitiveSubregion) const
-{
-    return filter.maxEffectRect(primitiveSubregion);
 }
 
 OptionSet<FilterRenderingMode> FEFlood::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -86,20 +73,6 @@ OptionSet<FilterRenderingMode> FEFlood::supportedFilterRenderingModes(OptionSet<
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEFlood::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEFloodCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEFlood::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEFloodSoftwareApplier>(*this);
 }
 
 TextStream& FEFlood::externalRepresentation(TextStream& ts, FilterRepresentation representation) const
