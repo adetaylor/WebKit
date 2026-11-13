@@ -48,6 +48,7 @@ struct FontCustomPlatformData;
 
 namespace WebKit {
 
+class RemoteCGRendererFont;
 class SharedFont;
 
 class RemoteResourceCache {
@@ -75,7 +76,13 @@ public:
     bool releaseFilter(WebCore::RenderingResourceIdentifier);
     RefPtr<WebCore::Filter> cachedFilter(WebCore::RenderingResourceIdentifier) const;
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // A font with what the Swift renderer draws its glyphs with (RemoteCGRendererFont).
+    bool cacheFont(Ref<RemoteCGRendererFont>&&);
+    RefPtr<RemoteCGRendererFont> cachedCGRendererFont(WebCore::RenderingResourceIdentifier) const;
+#else
     bool cacheFont(Ref<SharedFont>&&);
+#endif
     bool releaseFont(WebCore::RenderingResourceIdentifier);
     RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
 
@@ -99,7 +106,11 @@ private:
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>> m_fonts;
+#else
     HashMap<WebCore::RenderingResourceIdentifier, Ref<SharedFont>> m_fonts;
+#endif
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::FontCustomPlatformData>> m_fontCustomPlatformDatas;
     HashMap<RemotePathImplIdentifier, Ref<WebCore::PathImpl>> m_paths;
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)

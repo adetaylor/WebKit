@@ -28,6 +28,7 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
+#include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererResources.h"
 #include "SharedFont.h"
@@ -45,7 +46,7 @@ bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecord
     if (!m_nativeImages.isEmpty() || !m_imageBuffers.isEmpty() || !m_meshGradients.isEmpty())
         return false;
     for (auto& [identifier, font] : m_fonts)
-        recording.fonts.append({ identifier, fonts.index(font) });
+        recording.fonts.append({ identifier, fonts.index(font->sharedFont()) });
     for (auto& [identifier, gradient] : m_gradients)
         recording.gradients.append({ identifier, gradient });
     for (auto& [identifier, pathImpl] : m_paths)
@@ -55,7 +56,7 @@ bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecord
     return true;
 }
 
-bool RemoteCGRendererRecordedResources::importFromPrint(RemoteSnapshotPrintRecording& recording, std::span<const Ref<SharedFont>> fonts)
+bool RemoteCGRendererRecordedResources::importFromPrint(RemoteSnapshotPrintRecording& recording, std::span<const Ref<RemoteCGRendererFont>> fonts)
 {
     for (auto& [identifier, index] : recording.fonts) {
         if (index >= fonts.size())
@@ -123,15 +124,18 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
 {
     if (!context.canLendSwiftRenderer())
         return false;
-    auto fonts = createSharedFonts(data.customFonts, data.fonts, shouldUseLockdownFontParser);
-    if (!fonts)
+    auto sharedFonts = createSharedFonts(data.customFonts, data.fonts, shouldUseLockdownFontParser);
+    if (!sharedFonts)
         return false;
+    auto fonts = WTF::map(WTF::move(*sharedFonts), [](auto&& font) {
+        return RemoteCGRendererFont::create(WTF::move(font));
+    });
 
     Vector<RemoteCGRendererRecording> recordings;
     recordings.reserveInitialCapacity(data.recordings.size());
     for (auto& printRecording : data.recordings) {
         Ref recordedResources = RemoteCGRendererRecordedResources::create();
-        if (!recordedResources->importFromPrint(printRecording, fonts->span()))
+        if (!recordedResources->importFromPrint(printRecording, fonts.span()))
             return false;
         auto displayLists = RemoteCGRendererDisplayLists::create();
         for (auto [key, index] : printRecording.displayLists) {

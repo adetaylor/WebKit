@@ -29,6 +29,9 @@
 #if ENABLE(GPU_PROCESS)
 
 #include "SharedFont.h"
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererGlyphs.h"
+#endif
 #include <WebCore/Filter.h>
 #include <WebCore/FontCustomPlatformData.h>
 #include <WebCore/Gradient.h>
@@ -119,11 +122,24 @@ RefPtr<Filter> RemoteResourceCache::cachedFilter(RenderingResourceIdentifier ide
     return m_filters.get(identifier);
 }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+bool RemoteResourceCache::cacheFont(Ref<RemoteCGRendererFont>&& font)
+{
+    auto identifier = font->sharedFont().renderingResourceIdentifier();
+    return m_fonts.add(identifier, WTF::move(font)).isNewEntry;
+}
+
+RefPtr<RemoteCGRendererFont> RemoteResourceCache::cachedCGRendererFont(RenderingResourceIdentifier identifier) const
+{
+    return m_fonts.get(identifier);
+}
+#else
 bool RemoteResourceCache::cacheFont(Ref<SharedFont>&& font)
 {
     auto identifier = font->renderingResourceIdentifier();
     return m_fonts.add(identifier, WTF::move(font)).isNewEntry;
 }
+#endif
 
 bool RemoteResourceCache::releaseFont(RenderingResourceIdentifier identifier)
 {
@@ -132,7 +148,13 @@ bool RemoteResourceCache::releaseFont(RenderingResourceIdentifier identifier)
 
 RefPtr<SharedFont> RemoteResourceCache::cachedFont(RenderingResourceIdentifier identifier) const
 {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (RefPtr font = m_fonts.get(identifier))
+        return &font->sharedFont();
+    return nullptr;
+#else
     return m_fonts.get(identifier);
+#endif
 }
 
 bool RemoteResourceCache::cacheFontCustomPlatformData(Ref<FontCustomPlatformData>&& customPlatformData)

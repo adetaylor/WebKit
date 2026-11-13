@@ -510,37 +510,29 @@ CGColorRef CGRendererCopyCachedCGColorForData(const CGRendererColorData& data)
     return WebCore::cachedCGColor(WebCore::colorFromData(data)).leakRef();
 }
 
-CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& font, std::span<const CGGlyph> glyphs, WebCore::FontSmoothingMode smoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace& colorSpace, bool isInTransparencyLayer)
+CTFontRef CGRendererGlyphFontFactsOf(const WebCore::FontBase& font, CGRendererGlyphFontFacts& facts)
 {
     using namespace WebCore;
+    facts = { };
     const auto& platformData = font.platformData();
-    if (!platformData.size())
-        return;
-    if (isInGPUProcess() && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
-        ASSERT_NOT_REACHED();
-        return;
-    }
-    if (!font.allowsAntialiasing())
-        smoothingMode = FontSmoothingMode::None;
-
-    float ascentDelta = 0;
-    m_font = platformData.ctFont();
-    if (platformData.orientation() == FontOrientation::Vertical && !glyphs.empty()) {
-        m_translations.resize(glyphs.size());
-        CTFontGetVerticalTranslationsForGlyphs(m_font.get(), glyphs.data(), m_translations.mutableSpan().data(), glyphs.size());
-        ascentDelta = font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent();
-    }
-
-    // The shadow's glyphs are in its color, whose alpha is multiplied by the fill color's.
-    if (simpleShadowColor)
-        m_shadowFillColor = cachedCGColorInDestinationStandardRange(simpleShadowColor->colorWithAlphaMultipliedBy(fillColor.alphaAsFloat()), colorSpace);
-
+    CTFontRef ctFont = platformData.ctFont();
+    if (!ctFont)
+        return nullptr;
     static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
-    m_facts = {
-        computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
-        static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer
+    bool isVertical = platformData.orientation() == FontOrientation::Vertical;
+    facts = {
+        computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(),
+        isVertical ? font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent() : 0,
+        isVertical, platformData.isColorBitmapFont(), font.allowsAntialiasing(), isInGPUProcess() && font.hasComplexColorFormatGlyphTables(),
+        platformData.size() != 0
     };
-    m_draws = true;
+    return ctFont;
+}
+
+CGColorRef CGRendererCopyGlyphShadowColor(const CGRendererColorValue& shadowColor, const CGRendererColorValue& fillColor, const CGRendererDestinationColorSpace& colorSpace)
+{
+    auto color = CGRendererColorFromValue(shadowColor).colorWithAlphaMultipliedBy(CGRendererColorFromValue(fillColor).alphaAsFloat());
+    return WebCore::cachedCGColorInDestinationStandardRange(color, colorSpace.colorSpace().value_or(WebCore::ColorSpace::SRGB())).leakRef();
 }
 
 WebCore::Color CGRendererColorFromValue(const CGRendererColorValue& value)
@@ -1021,15 +1013,20 @@ void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& poi
 void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
 {
     CAPTURE(drawGlyphs(font, glyphs, advances, point, smoothingMode));
-    // A shadow with no blur may be drawn as glyphs in its color.
-    std::optional<Color> simpleShadowColor;
-    if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
-        simpleShadowColor = shadow->color;
-    CGRendererGlyphPreparation preparation { font, glyphs, smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor(), colorSpace(), isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer()) };
-    if (!preparation.draws() || !preparation.font())
+    CGRendererGlyphFontFacts facts;
+    CTFontRef ctFont = CGRendererGlyphFontFactsOf(font, facts);
+    if (!ctFont || !facts.draws)
         return;
-    Vector<CGPoint, 256> positions(glyphs.size());
-    SWIFT_RENDERER(drawGlyphs(CGRendererGlyphRun { preparation.font(), glyphs, advances, preparation.translations() }, CGRendererGlyphPositions { positions.mutableSpan() }, preparation.facts(), preparation.shadowFillColor(), point.x(), point.y()));
+    if (isInGPUProcess() && facts.hasComplexColorFormatTables && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+    // A shadow with no blur may be drawn as glyphs in its color, whose alpha is multiplied by the fill color's.
+    RetainPtr<CGColorRef> shadowFillColor;
+    if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
+        shadowFillColor = cachedCGColorInDestinationStandardRange(shadow->color.colorWithAlphaMultipliedBy(fillColor().alphaAsFloat()), colorSpace());
+    bool isInAnyTransparencyLayer = isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer());
+    SWIFT_RENDERER(drawGlyphs(CGRendererGlyphRun { ctFont, glyphs, advances }, facts, static_cast<uint8_t>(smoothingMode), isInAnyTransparencyLayer, shadowFillColor.get(), point.x(), point.y()));
 }
 
 void GraphicsContextCG::drawEllipse(const FloatRect& rect)

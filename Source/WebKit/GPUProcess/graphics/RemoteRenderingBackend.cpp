@@ -71,6 +71,7 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererResources.h"
 #include "WebKit-Swift.h"
 #endif
@@ -577,7 +578,11 @@ void RemoteRenderingBackend::cacheFont(const Font::Attributes& fontAttributes, F
 
     Ref font = SharedFont::create(platform, fontAttributes.origin, fontAttributes.isInterstitial, fontAttributes.visibility, fontAttributes.isTextOrientationFallback, fontAttributes.isSmallCapsFace, fontAttributes.renderingResourceIdentifier);
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = m_remoteResourceCache.cacheFont(RemoteCGRendererFont::create(WTF::move(font)));
+#else
     bool success = m_remoteResourceCache.cacheFont(WTF::move(font));
+#endif
     MESSAGE_CHECK(success, "Font already cached.");
 }
 

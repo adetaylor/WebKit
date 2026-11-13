@@ -92,58 +92,46 @@ CGImageRef _Nullable CGRendererCopySubimage(CGImageRef _Nonnull, CGRect) CF_RETU
 // CGPatternCreate() with callbacks that draw the image, aligned to device pixels.
 CGPatternRef _Nullable CGRendererCreateImagePattern(CGImageRef _Nullable, CGRect tileBounds, CGAffineTransform, CGFloat xStep, CGFloat yStep) CF_RETURNS_RETAINED;
 
-// What GraphicsContextCG knows about a run of glyphs' font that the renderer draws with (FontCascade::drawGlyphs()).
-struct CGRendererGlyphDrawFacts {
+// What the renderer draws a run of glyphs in a font with (FontCascade::drawGlyphs()), which is the font's alone, so that
+// whoever keeps the font can work it out once (CGRendererGlyphFontFactsOf()).
+struct CGRendererGlyphFontFacts {
     CGAffineTransform textMatrix; // computeTextMatrix().
     CGAffineTransform verticalTranslationMatrix; // The text matrix without synthetic oblique, for vertical glyph translations.
     float fontSize;
     float syntheticBoldOffset;
     float ascentDelta; // From the alphabetic to the ideographic baseline, for vertical text.
-    uint8_t smoothingMode; // FontSmoothingMode, None when the font doesn't allow antialiasing.
+    bool isVertical;
     bool isColorBitmapFont;
-    bool isInTransparencyLayer;
+    bool allowsAntialiasing;
+    bool hasComplexColorFormatTables; // Whether a glyph may have complex color, which the GPU process doesn't draw.
+    bool draws; // False for a font of no size, and for a run that the GPU process doesn't draw.
 };
 
-// A run of glyphs lent to CGRenderer.swift for one call: their font, which whoever lends the run keeps, their advances, and
-// for vertical text their translations.
+// A run of glyphs lent to CGRenderer.swift for one call: their font, which whoever lends the run keeps, and their advances.
 class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphRun {
 public:
-    CGRendererGlyphRun(CTFontRef _Nonnull font, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND, std::span<const CGSize> translations LIFETIME_BOUND) __attribute__((availability(swift, unavailable)))
+    CGRendererGlyphRun(CTFontRef _Nonnull font, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND) __attribute__((availability(swift, unavailable)))
         : m_font(font)
-        , m_glyphs(glyphs)
-        , m_advances(advances)
-        , m_translations(translations)
+        , m_glyphs(glyphs.first(std::min(glyphs.size(), advances.size())))
+        , m_advances(advances.first(m_glyphs.size()))
     {
     }
 
-    size_t size() const { return m_glyphs.size(); }
-    CGSize advance(size_t index) const { return m_advances[index]; }
-    bool isVertical() const { return !m_translations.empty(); }
-    CGSize translation(size_t index) const { return m_translations[index]; }
     std::span<const CGGlyph> glyphs() const LIFETIME_BOUND { return m_glyphs; }
+    std::span<const CGSize> advances() const LIFETIME_BOUND { return m_advances; }
     CTFontRef _Nonnull font() const __attribute__((availability(swift, unavailable))) { return m_font; }
 
 private:
     CTFontRef _Nonnull m_font;
     std::span<const CGGlyph> m_glyphs;
     std::span<const CGSize> m_advances;
-    std::span<const CGSize> m_translations;
 };
 
-// Storage for a run's glyph positions, which CGRenderer.swift computes, lent for one call.
-class SWIFT_NONESCAPABLE SWIFT_SAFE CGRendererGlyphPositions {
-public:
-    explicit CGRendererGlyphPositions(std::span<CGPoint> positions LIFETIME_BOUND)
-        : m_positions(positions)
-    {
-    }
-
-    std::span<CGPoint> mutableSpan() LIFETIME_BOUND { return m_positions; }
-    std::span<const CGPoint> span() const LIFETIME_BOUND { return m_positions; }
-
-private:
-    std::span<CGPoint> m_positions;
-};
+// A run of glyphs that Swift keeps, in a font that it keeps.
+inline CGRendererGlyphRun CGRendererMakeGlyphRun(CTFontRef _Nonnull font LIFETIME_BOUND, std::span<const CGGlyph> glyphs LIFETIME_BOUND, std::span<const CGSize> advances LIFETIME_BOUND)
+{
+    return { font, glyphs, advances };
+}
 
 namespace WebCore {
 class AffineTransform;
@@ -200,26 +188,8 @@ private:
     RefPtr<WebCore::Pattern> m_pattern;
 };
 
-// GraphicsContextCG::drawGlyphsImmediate()'s preparation of a run of glyphs for the renderer: FontCascade::drawGlyphs(), with
-// what the renderer can't know about the font worked out. A font of no size, or one with complex color glyphs in the GPU
-// process, draws nothing.
-class CGRendererGlyphPreparation {
-public:
-    WEBCORE_EXPORT CGRendererGlyphPreparation(const WebCore::FontBase&, std::span<const CGGlyph>, WebCore::FontSmoothingMode, const WebCore::Color* _Nullable simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace&, bool isInTransparencyLayer) __attribute__((availability(swift, unavailable)));
-
-    bool draws() const __attribute__((availability(swift, unavailable))) { return m_draws; }
-    std::span<const CGSize> translations() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_translations.span(); }
-    const CGRendererGlyphDrawFacts& facts() const LIFETIME_BOUND __attribute__((availability(swift, unavailable))) { return m_facts; }
-    CTFontRef _Nullable font() const __attribute__((availability(swift, unavailable))) { return m_font.get(); }
-    CGColorRef _Nullable shadowFillColor() const __attribute__((availability(swift, unavailable))) { return m_shadowFillColor.get(); }
-
-private:
-    bool m_draws { false };
-    Vector<CGSize, 256> m_translations;
-    CGRendererGlyphDrawFacts m_facts { };
-    RetainPtr<CTFontRef> m_font;
-    RetainPtr<CGColorRef> m_shadowFillColor;
-};
+// The facts of a font (CGRendererGlyphFontFacts), and its CTFont, which the font keeps: null for a font without one.
+WEBCORE_EXPORT CTFontRef _Nullable CGRendererGlyphFontFactsOf(const WebCore::FontBase&, CGRendererGlyphFontFacts&) __attribute__((availability(swift, unavailable)));
 
 // The color space a context paints gradients in (Gradient::paintColorSpace()), which GraphicsContextCG gives its renderer for
 // a Swift receiver's gradients.
@@ -443,14 +413,6 @@ struct CGRendererColorValue {
     bool isPacked;
     bool isVisible;
 };
-// The renderer's state that a receiver's run of glyphs is prepared in (GraphicsContextCG::drawGlyphsImmediate()): the fill
-// color, the color of a drop shadow without blur, and whether a receiver's transparency layer is open.
-struct CGRendererGlyphContext {
-    CGRendererColorValue fillColor;
-    CGRendererColorValue shadowColor;
-    bool hasSimpleShadow;
-    bool hasReceiverTransparencyLayer;
-};
 // The value of a color without its CGColor, as RemoteCGRenderer's messages carry one: the renderer makes the CGColor itself
 // (CGRendererCopyCGColorForData()), and CGRendererColorFromValue() gives back the same Color.
 WEBCORE_EXPORT void CGRendererColorValueOf(const WebCore::Color&, CGRendererColorValue&) __attribute__((availability(swift, unavailable)));
@@ -474,6 +436,8 @@ private:
 // cachedCGColorInDestinationStandardRange() of a color's data, in sRGB without a color space, and cachedCGColor() of it.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCGColorForData(const CGRendererColorData&, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyCachedCGColorForData(const CGRendererColorData&) CF_RETURNS_RETAINED;
+// The color that a drop shadow without blur draws a run of glyphs in: the shadow's, with its alpha multiplied by the fill's.
+CGColorRef _Nullable CGRendererCopyGlyphShadowColor(const CGRendererColorValue& shadowColor, const CGRendererColorValue& fillColor, const CGRendererDestinationColorSpace&) CF_RETURNS_RETAINED;
 // A drop shadow as the renderer takes it (setDropShadow()), with the CGColor of a valid color that isn't sRGBA8.
 WEBCORE_EXPORT CGColorRef _Nullable CGRendererCopyShadow(const WebCore::GraphicsContextCG&, const WebCore::GraphicsDropShadow&, CGRendererShadowValues&, CGRendererColorData&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 // A drop shadow's values and its color's data, as RemoteCGRenderer's messages carry them, and the same shadow back.
