@@ -234,7 +234,7 @@ final class SharedVideoFrameSource {
                 return nil
             }
 
-            let result = header.createPixelBuffer(bytes, headerSize: headerSize, pool: pixelBufferPool(header))
+            let result = header.createPixelBuffer(bytes, headerSize: headerSize, pool: pixelBufferPool(header)).map(cvPixelBuffer)
             if let result, shouldUseIOSurfaceBufferPool {
                 setOwnershipIdentity(result)
             }
@@ -271,6 +271,10 @@ final class SharedVideoFrameSource {
             WebCore.setOwnershipIdentityForCVPixelBuffer(pixelBuffer, resourceOwner)
         }
     }
+}
+
+private func cvPixelBuffer<Buffer: AnyObject>(_ buffer: Buffer) -> CVPixelBuffer {
+    buffer as! CVPixelBuffer
 }
 
 #endif // ENABLE_GPU_PROCESS && WTF_PLATFORM_COCOA && ENABLE_VIDEO
