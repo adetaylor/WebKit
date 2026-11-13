@@ -236,7 +236,7 @@ enum class WebCore::AppKitControlSystemImageType : uint8_t {
 };
 
 header: <WebCore/ScrollbarTrackCornerSystemImageMac.h>
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted, ConstructSubclass=ScrollbarTrackCornerSystemImageMac] class WebCore::AppKitControlSystemImage {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted, ConstructSubclass=ScrollbarTrackCornerSystemImageMac] class WebCore::AppKitControlSystemImage {
     [NotSerialized] WebCore::AppKitControlSystemImageType m_controlType;
     WebCore::Color m_tintColor;
     bool m_useDarkAppearance;
@@ -1419,7 +1419,7 @@ class WebCore::BlobPart {
     Variant<Vector<uint8_t>, Ref<WebCore::SharedBuffer>, URL> m_dataOrURL;
 };
 
-[WebKitPlatform] enum class WebCore::ColorSpaceName : uint8_t {
+[Swift, WebKitPlatform] enum class WebCore::ColorSpaceName : uint8_t {
     A98RGB,
     DisplayP3,
     ExtendedA98RGB,
@@ -6123,7 +6123,7 @@ enum class WebCore::InspectorBackendClientDeveloperPreference : uint8_t {
 };
 
 header: <WebCore/ApplePayLogoSystemImage.h>
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::SystemImage subclasses {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::SystemImage subclasses {
 #if ENABLE(APPLE_PAY)
     WebCore::ApplePayLogoSystemImage
 #endif

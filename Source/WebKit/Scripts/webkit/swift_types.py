@@ -94,6 +94,7 @@ _CXX_DECODED_TYPES = {
 # Types whose Swift form SwiftCoding.swift writes by hand, because it is made of what C++ makes of the encoded value, like
 # the CGColorSpace that a WebCore::ColorSpace is decoded into. The type is its own coder.
 _HAND_WRITTEN_TYPES = {
+    'WebCore::Color': 'IPCTypes.WebCoreColor',
     'WebCore::ColorSpace': 'IPCTypes.ColorSpace',
 }
 
