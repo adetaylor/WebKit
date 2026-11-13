@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2022-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,31 +25,37 @@
 
 #pragma once
 
-#if PLATFORM(MAC) && ENABLE(SERVICE_CONTROLS)
+#if PLATFORM(MAC)
 
-#import "ControlMac.h"
+#import "PlatformControl.h"
+#import <wtf/CheckedRef.h>
 #import <wtf/TZoneMalloc.h>
-
-OBJC_CLASS NSServicesRolloverButtonCell;
 
 namespace WebCore {
 
-class ImageControlsButtonPart;
+class ControlFactoryMac;
+struct MacControlState;
 
-class ImageControlsButtonMac final : public ControlMac {
-    WTF_MAKE_TZONE_ALLOCATED(ImageControlsButtonMac);
+// Every Mac control. Its factory's MacControlPainter (MacControlPainter.swift) keeps the AppKit cells and draws.
+class PlatformControlMac final : public PlatformControl {
+    WTF_MAKE_TZONE_ALLOCATED(PlatformControlMac);
 public:
-    ImageControlsButtonMac(ImageControlsButtonPart&, ControlFactoryMac&, NSServicesRolloverButtonCell *);
-    ~ImageControlsButtonMac();
-
-    static IntSize servicesRolloverButtonCellSize();
+    PlatformControlMac(ControlPart&, ControlFactoryMac&);
+    ~PlatformControlMac();
 
 private:
-    void draw(GraphicsContext&, const FloatRoundedRect& borderRect, float deviceScaleFactor, const ControlStyle&) override;
+    MacControlState state(const ControlStyle&) const;
 
-    const RetainPtr<NSServicesRolloverButtonCell> m_servicesRolloverButtonCell;
+    void setFocusRingClipRect(const FloatRect&) final;
+    void updateCellStates(const FloatRect&, const ControlStyle&) final;
+    FloatSize sizeForBounds(const FloatRect&, const ControlStyle&) const final;
+    FloatRect rectForBounds(const FloatRect&, const ControlStyle&) const final;
+    void draw(GraphicsContext&, const FloatRoundedRect&, float deviceScaleFactor, const ControlStyle&) final;
+
+    const CheckedRef<ControlFactoryMac> m_controlFactory;
+    FloatRect m_focusRingClipRect;
 };
 
 } // namespace WebCore
 
-#endif // PLATFORM(MAC) && ENABLE(SERVICE_CONTROLS)
+#endif // PLATFORM(MAC)
