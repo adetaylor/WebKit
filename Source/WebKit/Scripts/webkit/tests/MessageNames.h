@@ -172,12 +172,15 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftImplementation_SendWithConnection,
     TestWithStreamSwiftLentState_Draw,
     TestWithStreamSwiftLentState_Reset,
+    TestWithStreamSwiftLentState_SetLabel,
     TestWithStreamSwiftLentState_SetValues,
 #if PLATFORM(COCOA)
     TestWithStreamSwiftRecordable_Draw,
 #endif
     TestWithStreamSwiftRecordable_DrawRun,
     TestWithStreamSwiftRecordable_Reset,
+    TestWithStreamSwiftRecordable_SetLabel,
+    TestWithStreamSwiftRecordable_SetLabelSource,
     TestWithStreamSwiftRecordable_SetSource,
     TestWithStreamSwiftRecordable_SetValues,
     TestWithStreamSwiftTypes_SendCxxDecodedReply,

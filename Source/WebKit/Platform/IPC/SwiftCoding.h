@@ -447,6 +447,10 @@ public:
     // sends it; cancelling or dropping it sends nothing.
     static SwiftReplyEncoder* WTF_NONNULL createForMessage(Connection&, MessageName, uint64_t destinationID) SWIFT_RETURNS_RETAINED;
 
+    // The encoder of a message that a recording keeps, which Swift encodes for a recorder in another process to record
+    // again (appendSwiftEncodedRecordedMessage()). It is never sent.
+    static SwiftReplyEncoder* WTF_NONNULL createForRecordedMessage(MessageName) SWIFT_RETURNS_RETAINED;
+
     ~SwiftReplyEncoder()
     {
         if (m_encoder || m_inStream)
@@ -526,6 +530,7 @@ public:
         }
         if (auto encoder = std::exchange(m_encoder, nullptr)) {
             if (!m_encodeDefaultReply) {
+                RELEASE_ASSERT(m_connection);
                 m_connection->sendMessage(makeUniqueRefFromNonNullUniquePtr(WTF::move(encoder)), { });
                 return true;
             }
@@ -568,14 +573,20 @@ public:
 
 private:
     SwiftReplyEncoder(Connection& connection, UniqueRef<Encoder>&& encoder, DefaultReplyEncoder encodeDefaultReply)
-        : m_connection(connection)
+        : m_connection(&connection)
         , m_encoder(encoder.moveToUniquePtr())
         , m_encodeDefaultReply(encodeDefaultReply)
     {
     }
 
+    explicit SwiftReplyEncoder(UniqueRef<Encoder>&& encoder)
+        : m_encoder(encoder.moveToUniquePtr())
+        , m_encodeDefaultReply(nullptr)
+    {
+    }
+
     SwiftReplyEncoder(StreamServerConnection& connection, Connection::SyncRequestID syncRequestID, bool isReplyStreamEncodable, DefaultReplyEncoder encodeDefaultReply)
-        : m_connection(connection.connection())
+        : m_connection(&connection.connection())
         , m_encodeDefaultReply(encodeDefaultReply)
         , m_streamConnection(&connection)
         , m_syncRequestID(syncRequestID)
@@ -618,6 +629,7 @@ private:
 
     void sendOutOfStream(UniqueRef<Encoder>&& encoder)
     {
+        RELEASE_ASSERT(m_connection);
         if (!m_streamConnection) {
             m_connection->sendSyncReply(WTF::move(encoder));
             return;
@@ -630,7 +642,8 @@ private:
         m_connection->sendSyncReply(WTF::move(encoder));
     }
 
-    const Ref<Connection> m_connection;
+    // Null only for a recorded message's encoder, which is never sent.
+    const RefPtr<Connection> m_connection;
     std::unique_ptr<Encoder> m_encoder;
     DefaultReplyEncoder m_encodeDefaultReply;
     RefPtr<StreamServerConnection> m_streamConnection;

@@ -33,6 +33,8 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/Vector.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 class FloatRect;
@@ -162,6 +164,36 @@ public:
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const WebCore::FloatRect& m_rect;
     bool m_clip;
+};
+
+class SetLabel {
+public:
+    using Arguments = std::tuple<String, Vector<uint32_t>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_SetLabel; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    SetLabel(const String& label, const Vector<uint32_t>& values)
+        : m_label(label)
+        , m_values(values)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_label;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_values;
+    }
+
+private:
+    const String& m_label;
+    SUPPRESS_FORWARD_DECL_MEMBER const Vector<uint32_t>& m_values;
 };
 
 } // namespace TestWithStreamSwiftLentState

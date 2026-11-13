@@ -24,6 +24,7 @@
 
 #include "config.h"
 #include "Shared/WebKit-Swift.h" // NOLINT
+#include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "TestWithStreamSwiftRecordableLender.h" // NOLINT
@@ -33,6 +34,8 @@
 #if PLATFORM(COCOA)
 #include <WebCore/FloatRect.h> // NOLINT
 #endif
+#include <optional> // NOLINT
+#include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
 #include "JSIPCBinding.h"
@@ -64,6 +67,14 @@ void TestWithStreamSwiftRecordableMessageForwarder::didReceiveStreamMessage(IPC:
         return;
     }
 #endif
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetLabel::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetLabel>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetLabel);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetLabelSource::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetLabelSource>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetLabelSource);
+        return;
+    }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
 }
@@ -125,6 +136,14 @@ void TestWithStreamSwiftRecordableRecorderMessageForwarder::dispatch(IPC::Stream
         return;
     }
 #endif
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetLabel::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetLabel>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetLabel);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetLabelSource::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetLabelSource>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetLabelSource);
+        return;
+    }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
 }
@@ -167,6 +186,16 @@ void TestWithStreamSwiftRecordableRecordedMessageEncoder::encodeDraw(const WebCo
 
 #endif
 
+IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::encoderForSetLabel()
+{
+    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::SetLabel::name());
+}
+
+void TestWithStreamSwiftRecordableRecordedMessageEncoder::appendEncodedMessage(IPC::SwiftReplyEncoder& encoder)
+{
+    IPC::appendSwiftEncodedRecordedMessage(m_encodedMessages, encoder);
+}
+
 
 } // namespace WebKit
 
@@ -196,6 +225,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::Draw::Arguments>(globalObject, decoder);
 }
 #endif
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetLabel>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetLabel::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetLabelSource>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetLabelSource::Arguments>(globalObject, decoder);
+}
 
 }
 

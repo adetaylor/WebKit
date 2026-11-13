@@ -33,6 +33,7 @@
 #include <wtf/RefPtr.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 class FloatPoint;
@@ -42,6 +43,10 @@ class FloatRect;
 namespace WebKit {
 class TestWithStreamSwiftRecordableRun;
 }
+namespace IPC {
+class SwiftReplyEncoder;
+}
+
 namespace WebKit {
 class TestWithStreamSwiftRecordable;
 class TestWithStreamSwiftRecordableMessageForwarder;
@@ -105,6 +110,8 @@ public:
 #if PLATFORM(COCOA)
     void encodeDraw(const WebCore::FloatRect& rect, bool clip);
 #endif
+    IPC::SwiftReplyEncoder* WTF_NONNULL encoderForSetLabel() SWIFT_RETURNS_RETAINED;
+    void appendEncodedMessage(IPC::SwiftReplyEncoder&);
     Vector<uint8_t> takeEncodedMessages() { return std::exchange(m_encodedMessages, { }); }
 private:
     Vector<uint8_t> m_encodedMessages;
@@ -265,6 +272,63 @@ private:
     bool m_clip;
 };
 #endif
+
+class SetLabel {
+public:
+    using Arguments = std::tuple<String, std::optional<uint64_t>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_SetLabel; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    SetLabel(const String& label, const std::optional<uint64_t>& tag)
+        : m_label(label)
+        , m_tag(tag)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_label;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_tag;
+    }
+
+private:
+    const String& m_label;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::optional<uint64_t>& m_tag;
+};
+
+class SetLabelSource {
+public:
+    using Arguments = std::tuple<uint64_t>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_SetLabelSource; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = false;
+
+    explicit SetLabelSource(uint64_t source)
+        : m_source(source)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_source;
+    }
+
+private:
+    uint64_t m_source;
+};
 
 } // namespace TestWithStreamSwiftRecordable
 } // namespace Messages
