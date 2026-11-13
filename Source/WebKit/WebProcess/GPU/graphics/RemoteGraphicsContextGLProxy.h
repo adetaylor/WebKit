@@ -256,7 +256,7 @@ public:
     void bufferData(GCGLenum target, GCGLsizeiptr arg1, GCGLenum usage) final;
     void bufferData(GCGLenum target, std::span<const uint8_t> data, GCGLenum usage) final;
     void bufferSubData(GCGLenum target, GCGLintptr offset, std::span<const uint8_t> data) final;
-    void readPixelsBufferObject(WebCore::IntRect, GCGLenum format, GCGLenum type, GCGLintptr offset, GCGLint alignment, GCGLint rowLength) final;
+    void readPixelsBufferObject(WebCore::IntRect rect, GCGLenum format, GCGLenum type, GCGLintptr offset, GCGLint alignment, GCGLint rowLength) final;
     void texImage2D(GCGLenum target, GCGLint level, GCGLenum internalformat, GCGLsizei width, GCGLsizei height, GCGLint border, GCGLenum format, GCGLenum type, std::span<const uint8_t> pixels) final;
     void texImage2D(GCGLenum target, GCGLint level, GCGLenum internalformat, GCGLsizei width, GCGLsizei height, GCGLint border, GCGLenum format, GCGLenum type, GCGLintptr offset) final;
     void texSubImage2D(GCGLenum target, GCGLint level, GCGLint xoffset, GCGLint yoffset, GCGLsizei width, GCGLsizei height, GCGLenum format, GCGLenum type, std::span<const uint8_t> pixels) final;

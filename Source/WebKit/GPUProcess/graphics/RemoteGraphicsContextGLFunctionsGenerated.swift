@@ -580,6 +580,10 @@ extension RemoteGraphicsContextGL {
         island.bufferDataUninitialized(glTarget, Int(truncatingIfNeeded: arg1), usage)
     }
 
+    func readPixelsBufferObject(rectX: Int32, rectY: Int32, rectWidth: Int32, rectHeight: Int32, format: UInt32, type: UInt32, offset: UInt64, alignment: Int32, rowLength: Int32) {
+        island.readPixelsBufferObject(rectX, rectY, rectWidth, rectHeight, format, type, Int(truncatingIfNeeded: offset), alignment, rowLength)
+    }
+
     func texImage2D1(glTarget: UInt32, level: Int32, internalformat: UInt32, width: Int32, height: Int32, border: Int32, format: UInt32, type: UInt32, offset: UInt64) {
         island.texImage2DFromUnpackBuffer(glTarget, level, internalformat, width, height, border, format, type, Int(truncatingIfNeeded: offset))
     }

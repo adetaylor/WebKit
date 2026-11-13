@@ -183,6 +183,50 @@ final class RemoteGraphicsContextGL {
         island.invalidateSubFramebuffer(glTarget, attachments, x, y, width, height)
     }
 
+    // Each draw's values, one array per kind, all of the same length.
+
+    func multiDrawArraysANGLE(mode: UInt32, firsts: [Int32], counts: [Int32]) throws(InvalidMessage) {
+        try messageCheck {
+            firsts.count == counts.count
+        }
+        island.multiDrawArraysANGLE(mode, firsts, counts)
+    }
+
+    func multiDrawArraysInstancedANGLE(mode: UInt32, firsts: [Int32], counts: [Int32], instanceCounts: [Int32]) throws(InvalidMessage) {
+        try messageCheck {
+            firsts.count == counts.count && firsts.count == instanceCounts.count
+        }
+        island.multiDrawArraysInstancedANGLE(mode, firsts, counts, instanceCounts)
+    }
+
+    func multiDrawElementsANGLE(mode: UInt32, counts: [Int32], offsets: [Int32], type: UInt32) throws(InvalidMessage) {
+        try messageCheck {
+            counts.count == offsets.count
+        }
+        island.multiDrawElementsANGLE(mode, counts, offsets, type)
+    }
+
+    func multiDrawElementsInstancedANGLE(mode: UInt32, counts: [Int32], offsets: [Int32], instanceCounts: [Int32], type: UInt32) throws(InvalidMessage) {
+        try messageCheck {
+            counts.count == offsets.count && counts.count == instanceCounts.count
+        }
+        island.multiDrawElementsInstancedANGLE(mode, counts, offsets, instanceCounts, type)
+    }
+
+    func multiDrawArraysInstancedBaseInstanceANGLE(mode: UInt32, firsts: [Int32], counts: [Int32], instanceCounts: [Int32], baseInstances: [UInt32]) throws(InvalidMessage) {
+        try messageCheck {
+            firsts.count == counts.count && firsts.count == instanceCounts.count && firsts.count == baseInstances.count
+        }
+        island.multiDrawArraysInstancedBaseInstanceANGLE(mode, firsts, counts, instanceCounts, baseInstances)
+    }
+
+    func multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(mode: UInt32, counts: [Int32], offsets: [Int32], instanceCounts: [Int32], baseVertices: [Int32], baseInstances: [UInt32], type: UInt32) throws(InvalidMessage) {
+        try messageCheck {
+            counts.count == offsets.count && counts.count == instanceCounts.count && counts.count == baseVertices.count && counts.count == baseInstances.count
+        }
+        island.multiDrawElementsInstancedBaseVertexBaseInstanceANGLE(mode, counts, offsets, instanceCounts, baseVertices, baseInstances, type)
+    }
+
     // One matrix, of which the first columns x rows values are the matrix's, as UniformMatrix*fv of one sends it.
     func uniformMatrixOne(columns: UInt8, rows: UInt8, location: Int32, transpose: Bool, m0: Float, m1: Float, m2: Float, m3: Float, m4: Float, m5: Float, m6: Float, m7: Float, m8: Float, m9: Float, m10: Float, m11: Float, m12: Float, m13: Float, m14: Float, m15: Float) throws(InvalidMessage) {
         let known = island.uniformMatrix(columns: GLint(columns), rows: GLint(rows), location, transpose ? 1 : 0, ANGLEFloat16(values: (m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15)))
