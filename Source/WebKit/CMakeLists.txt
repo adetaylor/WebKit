@@ -1705,6 +1705,7 @@ if (SWIFT_REQUIRED AND APPLE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxy.swift
         ${WEBKIT_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyDecoder.swift
+        ${WEBKIT_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyEncoder.swift
         ${WebKit_DERIVED_SOURCES_DIR}/LibWebRTCCodecsProxyMessageReceiver.swift
     )
 endif ()

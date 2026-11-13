@@ -632,7 +632,6 @@ platform/network/cf/FormDataStreamCFNet.mm
 platform/network/cocoa/WebCoreNSURLSession.mm
 platform/sql/SQLiteDatabase.cpp
 platform/text/TextFlags.cpp
-platform/video-codecs/cocoa/GPUVideoEncoderVTBH264.mm
 plugins/PluginData.cpp
 [ macOS ] rendering/AttachmentLayout.mm
 rendering/AutoTableLayout.cpp

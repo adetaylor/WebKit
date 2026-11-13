@@ -58,10 +58,6 @@ WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromFormatDescription(CMFormatDe
 WEBCORE_EXPORT Ref<SharedBuffer> sharedBufferFromCMBlockBuffer(CMBlockBufferRef);
 WEBCORE_EXPORT RetainPtr<CMBlockBufferRef> ensureContiguousBlockBuffer(CMBlockBufferRef);
 
-// Converts a CMSampleBuffer whose data buffer holds length-prefixed (avcC/hvcC-style) NAL units into Annex B format.
-using CMVideoFormatDescriptionGetParameterSetAtIndexFunction = OSStatus (*)(CMFormatDescriptionRef, size_t, const uint8_t**, size_t*, size_t*, int*);
-WEBCORE_EXPORT Vector<uint8_t> convertParameterSetsCMSampleBufferToAnnexB(CMSampleBufferRef, bool isKeyframe, CMVideoFormatDescriptionGetParameterSetAtIndexFunction);
-
 // Convert MediaSamplesBlock to the equivalent CMSampleBufferRef. If CMFormatDescriptionRef
 // is set it will be used, otherwise it will be created from the MediaSamplesBlock's TrackInfo.
 WEBCORE_EXPORT std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> toCMSampleBuffer(const MediaSamplesBlock&, CMFormatDescriptionRef = nullptr);
@@ -71,9 +67,9 @@ WEBCORE_EXPORT UniqueRef<MediaSamplesBlock> samplesBlockFromCMSampleBuffer(CMSam
 
 WEBCORE_EXPORT void attachColorSpaceToPixelBuffer(const PlatformVideoColorSpace&, CVPixelBufferRef);
 
-CFStringRef convertToCMColorPrimaries(PlatformVideoColorPrimaries);
-CFStringRef convertToCMTransferFunction(PlatformVideoTransferCharacteristics);
-CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
+WEBCORE_EXPORT CFStringRef convertToCMColorPrimaries(PlatformVideoColorPrimaries);
+WEBCORE_EXPORT CFStringRef convertToCMTransferFunction(PlatformVideoTransferCharacteristics);
+WEBCORE_EXPORT CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
 
 WEBCORE_EXPORT PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
 

@@ -28,7 +28,6 @@
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 
 #include "SharedPreferencesForWebProcess.h"
-#include "SharedVideoFrame.h"
 #include "SwiftCoding.h"
 #include "VideoDecoderIdentifier.h"
 #include "VideoEncoderIdentifier.h"
@@ -36,19 +35,14 @@
 #include <CoreMedia/CMFormatDescription.h>
 #include <WebCore/PlatformVideoColorSpace.h>
 #include <WebCore/ProcessIdentity.h>
-#include <WebCore/SharedMemory.h>
 #include <WebCore/VideoCodecType.h>
 #include <WebCore/VideoEncoderScalabilityMode.h>
 #include <optional>
-#include <span>
-#include <wtf/Function.h>
 #include <wtf/Ref.h>
 #include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
 #include <wtf/WorkQueue.h>
 #include <wtf/text/WTFString.h>
@@ -59,8 +53,6 @@ class Semaphore;
 }
 
 namespace WebCore {
-class GPUVideoEncoder;
-class PixelBufferConformerCV;
 class VideoInfo;
 }
 
@@ -72,8 +64,6 @@ class RemoteVideoFrameObjectHeap;
 // Swift doesn't give a function that takes a class template's reference type the overloads that take a Span, unless
 // the type is spelled through an alias.
 using CodecStringArgument = IPC::CxxDecodedArgument<String>;
-using EncoderParametersArgument = IPC::CxxDecodedArgument<Vector<std::pair<String, String>>>;
-using SharedVideoFrameArgument = IPC::CxxDecodedArgument<SharedVideoFrame>;
 
 // A WebCore::PlatformVideoColorSpace that Swift can make and read: each value counts only if the flag before it is set.
 struct LibWebRTCCodecsColorSpace {
@@ -96,10 +86,16 @@ bool isValidDecoderCodecString(WebCore::VideoCodecType, CodecStringArgument&);
 CMFormatDescriptionRef WTF_NULLABLE createDecoderFormatDescription(const WebCore::VideoInfo&, LibWebRTCCodecsColorSpace colorSpaceOverride) CF_RETURNS_RETAINED;
 LibWebRTCCodecsColorSpace colorSpaceOfPixelBuffer(CVPixelBufferRef WTF_NONNULL);
 
+// What LibWebRTCCodecsProxy.swift's encoders leave to WebCore: the check of a configuration and its codec string, which
+// a null String passes; giving a frame its colour space; and the colour properties of a compression session for the
+// colour space of the frames it encodes, returned +1.
+bool isValidEncoderConfiguration(WebCore::VideoCodecType, CodecStringArgument&, bool useLowLatency, WebCore::VideoEncoderScalabilityMode);
+void attachCodecsColorSpace(CVPixelBufferRef WTF_NONNULL, LibWebRTCCodecsColorSpace);
+CFDictionaryRef WTF_NONNULL copyCompressionSessionColorProperties(LibWebRTCCodecsColorSpace) CF_RETURNS_RETAINED;
+
 // The receiver of the web process's video decoder and encoder messages, which run on the codecs queue. Swift handles
 // them (LibWebRTCCodecsProxy.swift), keeping the decoders and encoders in the Swift state that m_swiftState holds; this
-// keeps the connection and codecs queue, the shared preferences the messages are enabled by, and the frames read from
-// the video frame heap.
+// keeps the connection and codecs queue, and the shared preferences the messages are enabled by.
 class SWIFT_PRIVATE_FILEID("WebKit/LibWebRTCCodecsProxy.swift") LibWebRTCCodecsProxy final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
     WTF_MAKE_TZONE_ALLOCATED(LibWebRTCCodecsProxy);
 public:
@@ -122,11 +118,6 @@ public:
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
     void updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess);
 
-    // Reads the heap frame that a SharedVideoFrame refers to, if it refers to one, so that the heap releases it.
-    void releaseVideoFrame(SharedVideoFrameArgument&);
-    // The pixel buffer conformer that encoders share, on the codecs queue.
-    WebCore::PixelBufferConformerCV& pixelBufferConformer();
-
     static void setRTCLoggingLevel(uint8_t);
 
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
@@ -144,36 +135,9 @@ private:
     const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
     const WebCore::ProcessIdentity m_resourceOwner;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-    std::unique_ptr<WebCore::PixelBufferConformerCV> m_pixelBufferConformer;
     // A retained reference to the Swift state, as an address, from the constructor to the destructor.
     const uintptr_t m_swiftState;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
-
-// An encoder of LibWebRTCCodecsProxy.swift. What it encodes goes to the web process, and each result goes to the callback
-// on the codecs queue.
-class LibWebRTCCodecsProxyEncoder final : public ThreadSafeRefCounted<LibWebRTCCodecsProxyEncoder> {
-public:
-    // Null if the configuration isn't valid, or there is no encoder for it.
-    static RefPtr<LibWebRTCCodecsProxyEncoder> create(LibWebRTCCodecsProxy&, uint64_t identifier, WebCore::VideoCodecType, CodecStringArgument&, EncoderParametersArgument&, bool useLowLatency, bool useAnnexB, WebCore::VideoEncoderScalabilityMode, void (^WTF_NONNULL resultCallback)(bool));
-    ~LibWebRTCCodecsProxyEncoder();
-
-    void initialize(uint16_t width, uint16_t height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, uint32_t maxFramerate);
-    // Returns false if the frame can't be encoded. Otherwise its result goes to the callback.
-    [[nodiscard]] bool encodeFrame(SharedVideoFrameArgument&, int64_t timeStamp, bool hasDuration, uint64_t duration, bool shouldEncodeAsKeyFrame);
-    void flush();
-    void setRates(uint32_t bitRate, uint32_t frameRate);
-    // Each takes a right of its own to the port that the encoder's IPCTypes.Semaphore or SharedMemoryHandle owns.
-    void setSharedVideoFrameSemaphore(mach_port_t);
-    void setSharedVideoFrameMemory(mach_port_t, uint64_t size);
-
-private:
-    LibWebRTCCodecsProxyEncoder(LibWebRTCCodecsProxy&, Ref<WebCore::GPUVideoEncoder>&&);
-
-    // Weak, since the proxy's Swift state keeps the encoder.
-    const ThreadSafeWeakPtr<LibWebRTCCodecsProxy> m_proxy;
-    const Ref<WebCore::GPUVideoEncoder> m_encoder;
-    const UniqueRef<SharedVideoFrameReader> m_frameReader;
-};
 
 }
 

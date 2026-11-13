@@ -367,8 +367,6 @@ platform/network/cf/FormDataStreamCFNet.mm
 platform/sql/SQLiteStatement.h
 platform/text/PlatformLocale.cpp
 platform/text/QuotedPrintable.cpp
-platform/video-codecs/cocoa/GPUVideoEncoderVTBH264.mm
-platform/video-codecs/cocoa/GPUVideoEncoderVTBH265.mm
 plugins/DOMMimeType.cpp
 rendering/AttachmentLayout.mm
 rendering/AutoTableLayout.cpp

@@ -36,7 +36,6 @@ struct NaluIndex;
 
 
 WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromAVCC(std::span<const uint8_t>);
-WEBCORE_EXPORT Vector<uint8_t> convertAVCCMSampleBufferToAnnexB(CMSampleBufferRef, bool isKeyframe);
 
 WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromAVCAnnexBStream(std::span<const uint8_t>, const Vector<NaluIndex>&);
 WEBCORE_EXPORT Vector<uint8_t> convertAVCAnnexBToLengthPrefixed(std::span<const uint8_t>, const Vector<NaluIndex>&);

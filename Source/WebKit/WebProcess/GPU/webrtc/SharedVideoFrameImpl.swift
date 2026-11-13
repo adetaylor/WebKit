@@ -193,6 +193,21 @@ final class SharedVideoFrameSource {
         }
     }
 
+    // The same, for the buffer of a SharedVideoFrame that a Swift handler decoded.
+    @_expose(!Cxx)
+    func readBuffer(_ buffer: borrowing IPCTypes.Buffer) -> CVPixelBuffer? {
+        switch buffer {
+        case .null:
+            return readBufferFromSharedMemory()
+        case .remoteVideoFrameReadReference(let read):
+            return readBufferFromHeap(identifier: read.reference.identifier.rawValue, version: read.reference.version)
+        case .machSendRight(let sendRight):
+            return WebKit.createSharedVideoFramePixelBuffer(sendRight.port)
+        case .intSize(let size):
+            return blackPixelBuffer(width: size.width, height: size.height)
+        }
+    }
+
     private func readBufferFromHeap(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
         guard let heap else {
             assertionFailure()
