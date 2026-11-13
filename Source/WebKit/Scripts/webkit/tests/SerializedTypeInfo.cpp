@@ -730,6 +730,51 @@ Vector<SerializedTypeInfo> allSerializedTypes()
             },
         } },
 #endif // ENABLE(SWIFT_TYPE_CONDITION)
+        { "Namespace::SwiftShape"_s, {
+            { "Variant<"
+                "Namespace::SwiftCircle"
+#if ENABLE(SWIFT_TYPE_CONDITION)
+                ", Namespace::SwiftSquare"
+#endif
+                ", Namespace::SwiftTriangle"
+            ">"_s, "subclasses"_s }
+        } },
+        { "Namespace::SwiftCircle"_s, {
+            {
+                "float"_s,
+                "radius()"_s
+            },
+        } },
+#if ENABLE(SWIFT_TYPE_CONDITION)
+        { "Namespace::SwiftSquare"_s, {
+            {
+                "float"_s,
+                "side()"_s
+            },
+        } },
+#endif // ENABLE(SWIFT_TYPE_CONDITION)
+        { "Namespace::SwiftTriangle"_s, {
+        } },
+        { "Namespace::SwiftLight"_s, {
+            { "Variant<"
+                "Namespace::SwiftCircle"
+                ", Namespace::SwiftTriangle"
+            ">"_s, "subclasses"_s }
+        } },
+        { "Namespace::SwiftDrawing"_s, {
+            {
+                "Ref<Namespace::SwiftShape>"_s,
+                "shape"_s
+            },
+            {
+                "Vector<Ref<Namespace::SwiftShape>>"_s,
+                "shapes"_s
+            },
+            {
+                "Namespace::SwiftLight"_s,
+                "light"_s
+            },
+        } },
 #if USE(PASSKIT)
         { "PKPaymentMethod"_s, {
             { "WebKit::CoreIPCPKPaymentMethod"_s, "wrapper"_s }

@@ -127,7 +127,7 @@ def matches_bundle(item, bundle_filter):
 # LegacyPopulateFromEmptyConstructor - instead of calling a constructor with the members, call the empty constructor then insert the members one at a time.
 # OptionSet - for enum classes, instead of only allowing deserialization of the exact values, allow deserialization of any bit combination of the values.
 # RValue - serializer takes an rvalue reference, instead of an lvalue.
-# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. Not supported together with CreateUsing, whose function may check values that Swift would not.
+# Swift - also generate a Swift form of this struct, class, enum class or Variant using statement into IPCTypes in GeneratedSerializers.swift, for messages whose Swift receivers take Swift types. A RefCounted class becomes a final class, other structs and classes become structs. Enum values must be numbered in declaration order (bits in declaration order for an OptionSet), or each give its number, as Name = 180, which the generated C++ checks. A bool enum class must list its two values. A class serialized as its subclasses becomes an enum with a case for each, which each need a Swift form. Not supported together with CreateUsing, whose function may check values that Swift would not.
 # WebKitPlatform - put serializer into a file built as part of WebKitPlatform
 # CustomEncoder - Only generate the decoder, not the encoder.
 # WebKitSecureCodingClass - For webkit_secure_coding declarations that need a custom way of establishing the Obj-C class to instantiate (e.g. softlinked frameworks)
@@ -2461,7 +2461,7 @@ def swift_type_names(serialized_types, serialized_enums, using_statements):
             add(swift_types.swift_form_name(enum.namespace_and_name()), enum.namespace_and_name(), 'option_set' if enum.is_option_set() else 'enum')
     for type in serialized_types:
         if type.swift:
-            add(swift_types.swift_form_name(type.namespace_and_name()), type.namespace_and_name(), 'ref_counted' if type.return_ref else 'struct')
+            add(swift_types.swift_form_name(type.namespace_and_name()), type.namespace_and_name(), 'subclasses' if type.members_are_subclasses else 'ref_counted' if type.return_ref else 'struct')
     for using_statement in using_statements:
         if using_statement.is_swift():
             add(swift_types.swift_form_name(using_statement.name), using_statement.name, 'variant')
@@ -2494,7 +2494,8 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
         raise Exception(f'{context}: {cpp_name} has no Swift form. It must be marked [Swift] in a .serialization.in file, or be an ObjectIdentifier whose tag type is a template: of WTF::ObjectIdentifier or WTF::AtomicObjectIdentifier.')
     if referenced.cpp_name != cpp_name:
         raise Exception(f'{context}: {cpp_name} would be {swift_qualified_name(swift_name)} in Swift, which is the Swift form of {referenced.cpp_name}.')
-    if (template in ['Ref', 'RefPtr']) != (referenced.kind == 'ref_counted'):
+    # A type serialized as its subclasses is encoded alike whether it is held in a Ref or a reference to it.
+    if referenced.kind != 'subclasses' and (template in ['Ref', 'RefPtr']) != (referenced.kind == 'ref_counted'):
         raise Exception(f'{context}: {cpp_name} must be held in a Ref or RefPtr if, and only if, it is marked [RefCounted].')
     if (template == 'OptionSet') != (referenced.kind == 'option_set'):
         raise Exception(f'{context}: {cpp_name} must be held in an OptionSet if, and only if, it is marked [OptionSet].')
@@ -2521,8 +2522,6 @@ def check_swift_type_attributes(type, context):
         raise Exception(f'{context}: webkit_secure_coding types cannot be marked [Swift].')
     if (type.struct_or_class == 'alias') != (type.alias is not None):
         raise Exception(f'{context}: an alias marked [Swift] must name the type it is an alias of, with Alias=.')
-    if type.members_are_subclasses:
-        raise Exception(f'{context}: types serialized as their subclasses cannot be marked [Swift].')
     if type.templates or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', type.name):
         raise Exception(f'{context}: templates cannot be marked [Swift].')
 
@@ -2683,6 +2682,75 @@ def generate_swift_struct(type, swift_names):
         decoding_initializer))
     if owned:
         result = swift_guarded(SWIFT_OWNED_FORMS_CONDITION, result)
+    return swift_guarded(swift_condition(type.condition, context), result)
+
+
+def generate_swift_subclasses(type, swift_names):
+    """The Swift form of a type serialized as its subclasses: an enum with a case for each subclass, which holds the
+    subclass's Swift form, encoded as C++ encodes it, as the index of the subclass among those its conditions keep, then
+    the subclass. A subclass under a condition has its case under the same condition in Swift, which sees the macros of
+    wtf/Platform.h that C++ does (generate-platform-args), so both number the subclasses alike."""
+    context = f'[Swift] {type.namespace_and_name()}'
+    check_swift_type_attributes(type, context)
+    if type.parent_class_name is not None or type.dictionary_members:
+        raise Exception(f'{context}: a type serialized as its subclasses that is marked [Swift] cannot have a parent class or dictionary members.')
+    if len(type.members) > 255:
+        raise Exception(f'{context}: it has more subclasses than IPC can encode.')
+    cases = []
+    for member in type.members:
+        cpp_name = f'{member.namespace}::{member.name}'
+        member_context = f'{context}: subclass {cpp_name}'
+        # C++ decodes each subclass as a Ref of it if it is RefCounted.
+        referenced = swift_names.get(swift_types.swift_form_name(cpp_name))
+        held_type = f'Ref<{cpp_name}>' if referenced is not None and referenced.kind == 'ref_counted' else cpp_name
+        swift_type, swift_coder = swift_type_and_coder(held_type, member_context, swift_names)
+        case = SwiftMember(swift_lower_camel_case(member.name), swift_type, swift_coder, len(cases))
+        case.condition = swift_condition(member.condition, member_context)
+        if swift_types.is_owned_type(cpp_name):
+            raise Exception(f'{member_context}: a subclass whose Swift form owns a resource is not supported.')
+        cases.append(case)
+    check_swift_names_are_unique([case.name for case in cases], context, 'subclasses')
+
+    name = swift_types.swift_form_name(type.namespace_and_name())
+    result = []
+    result.append(f'extension {swift_types.SWIFT_TYPES_NAMESPACE} {{')
+    result.append(f'    enum {name}: Sendable, Equatable {{')
+    result.extend(swift_conditional_lines(cases, lambda case: [f'        case {swift_identifier(case.name)}({case.type})']))
+    result.append('    }')
+    result.append('}')
+    result.append('')
+    # Without conditional subclasses, each subclass's index is a constant.
+    is_conditional = any(case.condition is not None for case in cases)
+    decode_lines = ['        let index = try UInt8.decode(from: &decoder)']
+    encode_lines = []
+    if is_conditional:
+        decode_lines.append('        var position: UInt8 = 0')
+        encode_lines.append('        var position: UInt8 = 0')
+
+    def decode_case_lines(case):
+        position = 'position' if is_conditional else str(case.index)
+        lines = [f'        if index == {position} {{']
+        lines.append(f'            return .{swift_identifier(case.name)}(try {case.coder}.decode(from: &decoder))')
+        lines.append('        }')
+        if is_conditional:
+            lines.append('        position += 1')
+        return lines
+
+    def encode_case_lines(case):
+        position = 'position' if is_conditional else str(case.index)
+        lines = [f'        if case .{swift_identifier(case.name)}(let subclass) = value {{']
+        lines.append(f'            UInt8.encode({position}, to: encoder)')
+        lines.append(f'            {case.coder}.encode(subclass, to: encoder)')
+        lines.append('            return')
+        lines.append('        }')
+        if is_conditional:
+            lines.append('        position += 1')
+        return lines
+
+    decode_lines.extend(swift_conditional_lines(cases, decode_case_lines))
+    decode_lines.append('        throw IPCDecodingError()')
+    encode_lines.extend(swift_conditional_lines(cases, encode_case_lines))
+    result.extend(swift_coder_conformance(name, decode_lines, encode_lines))
     return swift_guarded(swift_condition(type.condition, context), result)
 
 
@@ -2923,7 +2991,7 @@ def generate_swift(serialized_types, serialized_enums, using_statements):
             declarations.append(generate_swift_enum(enum))
     for type in serialized_types:
         if type.swift:
-            declarations.append(generate_swift_struct(type, swift_names))
+            declarations.append(generate_swift_subclasses(type, swift_names) if type.members_are_subclasses else generate_swift_struct(type, swift_names))
     for using_statement in using_statements:
         if using_statement.is_swift():
             declarations.append(generate_swift_variant(using_statement, swift_names))
