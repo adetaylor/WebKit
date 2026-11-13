@@ -55,6 +55,10 @@ messages -> IPCTesterReceiver {
     DescribeColorSpaceSwift(WebCore::ColorSpace colorSpace) -> (String description) SwiftTypes
     DescribeCxxDecodedColorSpaceSwift([CxxDecoded] WebCore::ColorSpace colorSpace) -> (String description) SwiftTypes
     CompareColorSpacesSwift(WebCore::ColorSpace colorSpace, [CxxDecoded] WebCore::ColorSpace cxxDecodedColorSpace) -> (bool equal) SwiftTypes
+    DescribeControlSwift(Ref<WebCore::ControlPart> part, WebCore::ControlStyle style) -> (String description) SwiftTypes
+    DescribeCxxDecodedControlSwift([CxxDecoded] Ref<WebCore::ControlPart> part, [CxxDecoded] WebCore::ControlStyle style) -> (String description) SwiftTypes
+    DescribeSystemImageSwift(Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
+    DescribeCxxDecodedSystemImageSwift([CxxDecoded] Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
 #endif
     [EnabledBy=AllowTestOnlyIPC] EnabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
     [EnabledBy=EncryptedMediaAPIEnabled] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes

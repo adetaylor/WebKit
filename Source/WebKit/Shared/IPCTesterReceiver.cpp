@@ -144,6 +144,26 @@ void IPCTesterReceiver::compareColorSpacesSwift(const WebCore::ColorSpace& color
 {
     completionHandler(CFEqual(colorSpace.platformColorSpace(), cxxDecodedColorSpace.platformColorSpace()));
 }
+
+void IPCTesterReceiver::describeControlSwift(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(part, style));
+}
+
+void IPCTesterReceiver::describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(part, style));
+}
+
+void IPCTesterReceiver::describeSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(image));
+}
+
+void IPCTesterReceiver::describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(image));
+}
 #endif
 
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
