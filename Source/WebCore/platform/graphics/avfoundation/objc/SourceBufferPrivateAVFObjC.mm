@@ -48,9 +48,7 @@
 #import "SourceBufferParserWebM.h"
 #import "SourceBufferPrivateClient.h"
 #import "TimeRanges.h"
-#import "VideoMediaSampleRenderer.h"
 #import "VideoTrackPrivateMediaSourceAVFObjC.h"
-#import "WebAVSampleBufferListener.h"
 #import "WebSampleBufferVideoRendering.h"
 #import <AVFoundation/AVAssetTrack.h>
 #import <JavaScriptCore/TypedArrayInlines.h>

@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteCommandEncoderProxy.h"
 #include "WebGPUIdentifier.h"
@@ -109,4 +109,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGPU::RemoteRenderPassEncoderProxy)
     static bool isType(const ::WebGPU::RenderPassEncoder&) { return true; }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

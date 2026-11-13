@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::BlendComponent {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::BlendComponent {
     ::WebGPU::BlendOperation operation;
     ::WebGPU::BlendFactor srcFactor;
     ::WebGPU::BlendFactor dstFactor;

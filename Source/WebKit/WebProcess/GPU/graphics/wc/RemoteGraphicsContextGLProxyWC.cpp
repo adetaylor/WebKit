@@ -30,7 +30,7 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcessConnection.h"
-#include "RemoteGraphicsContextGLMessages.h"
+#include "RemoteGraphicsContextGLResourcesMessages.h"
 #include "RemoteRenderingBackendProxy.h"
 #include "WCPlatformLayerGCGL.h"
 #include "WebProcess.h"
@@ -84,7 +84,7 @@ void RemoteGraphicsContextGLProxyWC::prepareForDisplay()
 {
     if (isContextLost())
         return;
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGL::PrepareForDisplay());
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::PrepareForDisplay());
     if (!sendResult.succeeded()) {
         markContextLost();
         return;

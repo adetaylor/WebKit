@@ -28,7 +28,7 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 #include "StreamConnectionWorkQueue.h"
 #include <WebCore/GraphicsContextGLANGLE.h>
 #include <wtf/RunLoop.h>

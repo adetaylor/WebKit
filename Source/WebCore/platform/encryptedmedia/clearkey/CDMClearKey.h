@@ -31,24 +31,13 @@
 #if ENABLE(ENCRYPTED_MEDIA)
 
 #include "CDMFactory.h"
-#include "CDMInstanceSession.h"
 #include "CDMPrivate.h"
-#include "CDMProxy.h"
-#include "SharedBuffer.h"
 #include <wtf/TZoneMalloc.h>
-#include <wtf/WeakPtr.h>
 
 namespace WebCore {
 
-namespace ClearKey {
-
-enum {
-    AES128CTRBlockSizeInBytes = 16,
-    IVSizeInBytes = 16,
-};
-
-} // namespace ClearKey
-
+// The ClearKey CDM of WebCore's own EME, a thin layer over WebCoreEME's (CDMClearKeyBridge.swift). The GPU process's
+// receivers use WebCoreEME's directly, and only this CDMPrivate, for its policy.
 class CDMFactoryClearKey final : public CDMFactory {
     WTF_MAKE_TZONE_ALLOCATED(CDMFactoryClearKey);
 public:
@@ -92,46 +81,6 @@ public:
     std::optional<String> sanitizeSessionId(const String&) const final;
 };
 
-class CDMInstanceClearKey final : public CDMInstanceProxy {
-    WTF_MAKE_TZONE_ALLOCATED(CDMInstanceClearKey);
-    WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(CDMInstanceClearKey);
-public:
-    CDMInstanceClearKey();
-    virtual ~CDMInstanceClearKey();
-
-    uint32_t getNextSessionIdValue() { return m_nextSessionIdValue++; }
-
-    // CDMInstance
-    ImplementationType implementationType() const final { return ImplementationType::ClearKey; }
-    void initializeWithConfiguration(const CDMKeySystemConfiguration&, AllowDistinctiveIdentifiers, AllowPersistentState, SuccessCallback&&) final;
-    void setServerCertificate(Ref<SharedBuffer>&&, SuccessCallback&&) final;
-    void setStorageDirectory(const String&) final;
-    const String& keySystem() const final;
-    RefPtr<CDMInstanceSession> createSession() final;
-
-private:
-    uint32_t m_nextSessionIdValue { 0 };
-};
-
-class CDMInstanceSessionClearKey final : public CDMInstanceSessionProxy {
-public:
-    CDMInstanceSessionClearKey(CDMInstanceClearKey& parent)
-        : CDMInstanceSessionProxy(parent) { }
-    void requestLicense(LicenseType, KeyGroupingStrategy, const String& initDataType, Ref<SharedBuffer>&& initData, LicenseCallback&&) final;
-    void updateLicense(const String&, LicenseType, Ref<SharedBuffer>&&, LicenseUpdateCallback&&) final;
-    void loadSession(LicenseType, const String&, const String&, LoadSessionCallback&&) final;
-    void closeSession(const String&, CloseSessionCallback&&) final;
-    void removeSessionData(const String&, LicenseType, RemoveSessionDataCallback&&) final;
-    void storeRecordOfKeyUsage(const String&) final;
-private:
-    NODELETE CDMInstanceClearKey* parentInstance() const;
-
-    String m_sessionID;
-    KeyStore m_keyStore;
-};
-
 } // namespace WebCore
-
-SPECIALIZE_TYPE_TRAITS_CDM_INSTANCE(WebCore::CDMInstanceClearKey, WebCore::CDMInstance::ImplementationType::ClearKey);
 
 #endif // ENABLE(ENCRYPTED_MEDIA)

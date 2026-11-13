@@ -29,7 +29,9 @@
 #if ENABLE(GPU_PROCESS)
 
 #include "AudioMediaStreamTrackRendererInternalUnitManager.h"
+#if ENABLE(VIDEO) && PLATFORM(COCOA)
 #include "AudioVideoRendererRemoteMessageReceiverMessages.h"
+#endif
 #include "DisplayListData.h"
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcessConnectionInfo.h"
@@ -43,7 +45,6 @@
 #include "RemoteAudioSourceProviderManager.h"
 #include "RemoteAudioSourceProviderManagerMessages.h"
 #include "RemoteCDMFactory.h"
-#include "RemoteCDMProxy.h"
 #include "RemoteMediaEngineConfigurationFactory.h"
 #include "RemoteMediaPlayerManager.h"
 #include "RemoteRemoteCommandListenerMessages.h"
@@ -59,7 +60,7 @@
 #include <WebCore/RenderingMode.h>
 #include <WebCore/SharedBuffer.h>
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 #include "RemoteCDMInstanceSessionMessages.h"
 #endif
 
@@ -244,10 +245,12 @@ bool GPUProcessConnection::dispatchMessage(IPC::Connection& connection, IPC::Dec
         return true;
     }
 
+#if PLATFORM(COCOA)
     if (decoder.messageReceiverName() == Messages::AudioVideoRendererRemoteMessageReceiver::messageReceiverName()) {
         RELEASE_LOG_ERROR(Media, "The AudioVideoRendererRemoteMessageReceiver object has beed destroyed");
         return true;
     }
+#endif
 
 #endif
 
@@ -263,7 +266,7 @@ bool GPUProcessConnection::dispatchMessage(IPC::Connection& connection, IPC::Dec
     }
 #endif // PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteCDMInstanceSession::messageReceiverName()) {
         protect(WebProcess::singleton().cdmFactory())->didReceiveSessionMessage(connection, decoder);
         return true;
@@ -483,6 +486,7 @@ void GPUProcessConnection::releaseGraphicsContextGL(RemoteGraphicsContextGLIdent
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 void GPUProcessConnection::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& serverHandle)
 {
     m_connection->send(Messages::GPUConnectionToWebProcess::CreateGPU(identifier, renderingBackendIdentifier, WTF::move(serverHandle)), 0, IPC::SendOption::DispatchMessageEvenWhenWaitingForSyncReply);
@@ -492,6 +496,7 @@ void GPUProcessConnection::releaseGPU(WebGPUIdentifier identifier)
 {
     m_connection->send(Messages::GPUConnectionToWebProcess::ReleaseGPU(identifier), 0, IPC::SendOption::DispatchMessageEvenWhenWaitingForSyncReply);
 }
+#endif
 
 } // namespace WebKit
 

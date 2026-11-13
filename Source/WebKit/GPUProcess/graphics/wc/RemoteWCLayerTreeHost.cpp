@@ -30,7 +30,7 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 #include "RemoteWCLayerTreeHostMessages.h"
 #include "StreamConnectionWorkQueue.h"
 #include "WCScene.h"

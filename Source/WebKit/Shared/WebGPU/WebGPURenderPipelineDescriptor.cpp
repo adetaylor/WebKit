@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPURenderPipelineDescriptor.h>
 
@@ -53,43 +52,6 @@ std::optional<RenderPipelineDescriptor> ConvertToBackingContext::convertToBackin
     }
 
     return { { { { renderPipelineDescriptor.label }, layout }, WTF::move(*vertex), renderPipelineDescriptor.primitive, renderPipelineDescriptor.depthStencil, renderPipelineDescriptor.multisample, WTF::move(fragment) } };
-}
-
-std::optional<::WebGPU::RenderPipelineDescriptor> ConvertFromBackingContext::convertFromBacking(const RenderPipelineDescriptor& renderPipelineDescriptor, RenderPipelineDescriptorStorage& storage, bool allowMissingPipelineLayout)
-{
-    auto layout = convertLayoutFromBacking(renderPipelineDescriptor, allowMissingPipelineLayout);
-    if (!layout)
-        return std::nullopt;
-
-    auto vertex = convertFromBacking(renderPipelineDescriptor.vertex, storage);
-    if (!vertex)
-        return std::nullopt;
-
-    auto primitive = renderPipelineDescriptor.primitive.value_or(::WebGPU::PrimitiveState { });
-    auto multisample = renderPipelineDescriptor.multisample.value_or(::WebGPU::MultisampleState { });
-
-    std::optional<::WebGPU::FragmentState> fragment;
-    if (renderPipelineDescriptor.fragment) {
-        fragment = convertFromBacking(*renderPipelineDescriptor.fragment, storage);
-        if (!fragment)
-            return std::nullopt;
-    }
-
-    return { { renderPipelineDescriptor.label, WTF::move(*layout), WTF::move(*vertex), primitive, renderPipelineDescriptor.depthStencil, multisample, WTF::move(fragment) } };
-}
-
-std::optional<RefPtr<::WebGPU::PipelineLayout>> ConvertFromBackingContext::convertLayoutFromBacking(const PipelineDescriptorBase& pipelineDescriptorBase, bool allowMissingPipelineLayout)
-{
-    if (!pipelineDescriptorBase.layout) {
-        if (!allowMissingPipelineLayout)
-            return std::nullopt;
-        return { nullptr };
-    }
-
-    RefPtr layout = convertPipelineLayoutFromBacking(*pipelineDescriptorBase.layout);
-    if (!layout)
-        return std::nullopt;
-    return { WTF::move(layout) };
 }
 
 } // namespace WebKit

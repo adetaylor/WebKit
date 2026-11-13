@@ -35,11 +35,7 @@
 #include "ImageBufferShareableBitmapBackend.h"
 #include "Logging.h"
 #include "PrepareBackingStoreBuffersData.h"
-#include "RemoteBarcodeDetector.h"
-#include "RemoteBarcodeDetectorMessages.h"
 #include "RemoteDisplayListRecorder.h"
-#include "RemoteFaceDetector.h"
-#include "RemoteFaceDetectorMessages.h"
 #include "RemoteGraphicsContext.h"
 #include "RemoteImageBuffer.h"
 #include "RemoteImageBufferProxyMessages.h"
@@ -51,9 +47,6 @@
 #include "RemoteSharedResourceCache.h"
 #include "RemoteSnapshot.h"
 #include "RemoteSnapshotRecorder.h"
-#include "RemoteTextDetector.h"
-#include "RemoteTextDetectorMessages.h"
-#include "ShapeDetectionObjectHeap.h"
 #include "SharedFont.h"
 #include "WebPageProxy.h"
 #include <WebCore/Filter.h>
@@ -75,12 +68,6 @@
 #include "ImageBufferShareableMappedIOSurfaceBackend.h"
 #include "ImageBufferShareableMappedIOSurfaceBitmapBackend.h"
 #include <WebCore/IOSurfacePool.h>
-#endif
-
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-#import <WebCore/BarcodeDetectorImplementation.h>
-#import <WebCore/FaceDetectorImplementation.h>
-#import <WebCore/TextDetectorImplementation.h>
 #endif
 
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
@@ -119,7 +106,6 @@ RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuCon
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_renderingBackendIdentifier(identifier)
-    , m_shapeDetectionObjectHeap(ShapeDetection::ObjectHeap::create())
 {
     ASSERT(RunLoop::isMain());
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
@@ -744,83 +730,6 @@ void RemoteRenderingBackend::finalizeRenderingUpdate(RenderingUpdateID rendering
     send(Messages::RemoteRenderingBackendProxy::DidFinalizeRenderingUpdate(renderingUpdateID));
 }
 
-void RemoteRenderingBackend::createBarcodeDetector(ShapeDetectionIdentifier identifier, const WebCore::ShapeDetection::BarcodeDetectorOptions& barcodeDetectorOptions)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    auto inner = WebCore::ShapeDetection::BarcodeDetectorImpl::create(barcodeDetectorOptions);
-    auto remoteBarcodeDetector = RemoteBarcodeDetector::create(WTF::move(inner), *this, identifier);
-    m_shapeDetectionObjectHeap->addObject(identifier, remoteBarcodeDetector);
-    m_streamConnection->startReceivingMessages(remoteBarcodeDetector, Messages::RemoteBarcodeDetector::messageReceiverName(), identifier.toUInt64());
-#else
-    UNUSED_PARAM(identifier);
-    UNUSED_PARAM(barcodeDetectorOptions);
-#endif
-}
-
-void RemoteRenderingBackend::releaseBarcodeDetector(ShapeDetectionIdentifier identifier)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    m_streamConnection->stopReceivingMessages(Messages::RemoteBarcodeDetector::messageReceiverName(), identifier.toUInt64());
-    m_shapeDetectionObjectHeap->removeObject(identifier);
-#else
-    UNUSED_PARAM(identifier);
-#endif
-}
-
-void RemoteRenderingBackend::supportedBarcodeDetectorBarcodeFormats(CompletionHandler<void(Vector<WebCore::ShapeDetection::BarcodeFormat>&&)>&& completionHandler)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    WebCore::ShapeDetection::BarcodeDetectorImpl::getSupportedFormats(WTF::move(completionHandler));
-#else
-    completionHandler({ });
-#endif
-}
-
-void RemoteRenderingBackend::createFaceDetector(ShapeDetectionIdentifier identifier, const WebCore::ShapeDetection::FaceDetectorOptions& faceDetectorOptions)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    auto inner = WebCore::ShapeDetection::FaceDetectorImpl::create(faceDetectorOptions);
-    auto remoteFaceDetector = RemoteFaceDetector::create(WTF::move(inner), *this, identifier);
-    m_shapeDetectionObjectHeap->addObject(identifier, remoteFaceDetector);
-    m_streamConnection->startReceivingMessages(remoteFaceDetector, Messages::RemoteFaceDetector::messageReceiverName(), identifier.toUInt64());
-#else
-    UNUSED_PARAM(identifier);
-    UNUSED_PARAM(faceDetectorOptions);
-#endif
-}
-
-void RemoteRenderingBackend::releaseFaceDetector(ShapeDetectionIdentifier identifier)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    m_streamConnection->stopReceivingMessages(Messages::RemoteFaceDetector::messageReceiverName(), identifier.toUInt64());
-    m_shapeDetectionObjectHeap->removeObject(identifier);
-#else
-    UNUSED_PARAM(identifier);
-#endif
-}
-
-void RemoteRenderingBackend::createTextDetector(ShapeDetectionIdentifier identifier)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    auto inner = WebCore::ShapeDetection::TextDetectorImpl::create();
-    auto remoteTextDetector = RemoteTextDetector::create(WTF::move(inner), *this, identifier);
-    m_shapeDetectionObjectHeap->addObject(identifier, remoteTextDetector);
-    m_streamConnection->startReceivingMessages(remoteTextDetector, Messages::RemoteTextDetector::messageReceiverName(), identifier.toUInt64());
-#else
-    UNUSED_PARAM(identifier);
-#endif
-}
-
-void RemoteRenderingBackend::releaseTextDetector(ShapeDetectionIdentifier identifier)
-{
-#if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
-    m_streamConnection->stopReceivingMessages(Messages::RemoteTextDetector::messageReceiverName(), identifier.toUInt64());
-    m_shapeDetectionObjectHeap->removeObject(identifier);
-#else
-    UNUSED_PARAM(identifier);
-#endif
-}
-
 RefPtr<ImageBuffer> RemoteRenderingBackend::imageBuffer(RenderingResourceIdentifier renderingResourceIdentifier)
 {
     assertIsCurrent(workQueue());
@@ -850,6 +759,17 @@ void RemoteRenderingBackend::getImageBufferResourceLimitsForTesting(CompletionHa
 {
     callback(m_sharedResourceCache->getResourceLimitsForTesting(m_sharedPreferencesForWebProcess.acceleratedImageBufferLimit));
 }
+
+#if USE(CG)
+CGImageRef copyCachedNativeImage(RemoteRenderingBackend& backend, uint64_t renderingResourceIdentifier, bool& found)
+{
+    RefPtr image = backend.remoteResourceCache().cachedNativeImage(RenderingResourceIdentifier { renderingResourceIdentifier });
+    found = !!image;
+    if (!image)
+        return nullptr;
+    return image->platformImage().leakRef();
+}
+#endif
 
 } // namespace WebKit
 

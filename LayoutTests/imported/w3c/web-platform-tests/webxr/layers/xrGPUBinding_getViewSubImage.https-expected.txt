@@ -1,0 +1,5 @@
+
+PASS A projection layer's frames give view sub-images whose color texture a render pass can clear
+PASS A projection layer with a depthStencilFormat gives a depth texture
+PASS Destroying a layer, and dropping the binding, layers and sub-images, releases them
+

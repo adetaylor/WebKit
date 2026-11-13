@@ -178,10 +178,6 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/WebGPU/WebGPUVertexState.h
     Modules/WebGPU/WebGPUXRLayerBacking.h
 
-    Modules/WebGPU/Implementation/WebGPUCompositorIntegrationImpl.h
-    Modules/WebGPU/Implementation/WebGPUCreateImpl.h
-    Modules/WebGPU/Implementation/WebGPUImpl.h
-
     Modules/airplay/PlaybackTargetClientContextIdentifier.h
     Modules/airplay/WebMediaSessionManager.h
     Modules/airplay/WebMediaSessionManagerClient.h
@@ -2602,7 +2598,6 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/GraphicsContextGLActiveInfo.h
     platform/graphics/GraphicsContextGLAttributes.h
     platform/graphics/GraphicsContextGLEnums.h
-    platform/graphics/GraphicsContextGLState.h
     platform/graphics/GraphicsContextState.h
     platform/graphics/GraphicsContextStateSaver.h
     platform/graphics/GraphicsLayer.h
@@ -2668,7 +2663,6 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/MediaPlayerEnums.h
     platform/graphics/MediaPlayerIdentifier.h
     platform/graphics/MediaPlayerPrivate.h
-    platform/graphics/MediaReorderQueue.h
     platform/graphics/MediaResourceSniffer.h
     platform/graphics/MediaSampleConverter.h
     platform/graphics/MediaSourceConfiguration.h
@@ -2859,6 +2853,8 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/coreimage/FilterCoreImageSwiftBridge.h
     platform/graphics/filters/ParallelRowsDispatch.h
     platform/graphics/filters/skia/FilterSkiaBridge.h
+    platform/graphics/cg/CGRendererSPI.h
+    platform/graphics/cg/CGRendererSwiftBridge.h
 
     platform/graphics/filters/parameters/FEBlendParameters.h
     platform/graphics/filters/parameters/FEColorMatrixParameters.h
@@ -2938,6 +2934,9 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/MDNSRegisterError.h
     platform/mediastream/MediaConstraintType.h
     platform/mediastream/MediaConstraints.h
+    platform/mediastream/CaptureSourceDecisions.h
+    platform/mediastream/MediaConstraintsEvaluation.h
+    platform/mediastream/MediaConstraintsSwiftBridge.h
     platform/mediastream/MediaSettingsRange.h
     platform/mediastream/MediaStreamPrivate.h
     platform/mediastream/MediaStreamRequest.h
@@ -2989,6 +2988,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mock/MockRealtimeAudioSource.h
     platform/mock/MockRealtimeMediaSourceCenter.h
     platform/mock/MockRealtimeVideoSource.h
+    platform/mock/MockVideoSettings.h
     platform/mock/ScrollbarsControllerMock.h
 
     platform/mock/mediasource/MockMediaSourcePrivate.h

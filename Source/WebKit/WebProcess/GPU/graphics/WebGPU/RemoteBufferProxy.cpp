@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteBufferProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBufferMessages.h"
 #include "WebGPUConvertToBackingContext.h"
@@ -137,4 +137,4 @@ bool RemoteBufferProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

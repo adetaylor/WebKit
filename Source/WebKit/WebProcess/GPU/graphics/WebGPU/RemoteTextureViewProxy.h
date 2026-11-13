@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteTextureProxy.h"
 #include "WebGPUIdentifier.h"
@@ -81,4 +81,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGPU::RemoteTextureViewProxy)
     static bool isType(const ::WebGPU::TextureView&) { return true; }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

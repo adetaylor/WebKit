@@ -1,0 +1,4 @@
+Tests that external textures imported from WebCodecs VideoFrames sample their frames, as iframes with their own GPU come and go.
+
+PASS all 96 frames sampled their colour
+

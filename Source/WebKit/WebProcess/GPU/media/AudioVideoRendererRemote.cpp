@@ -26,7 +26,7 @@
 #include "config.h"
 #include "AudioVideoRendererRemote.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 
 #include "AudioVideoRendererRemoteMessageReceiverMessages.h"
 #include "Logging.h"
@@ -1497,8 +1497,12 @@ WebCore::FloatSize AudioVideoRendererRemote::naturalSize() const
 void AudioVideoRendererRemote::setCDMInstance(CDMInstance* instance)
 {
     std::optional<RemoteCDMInstanceIdentifier> identifier;
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     if (auto* remoteInstance = dynamicDowncast<RemoteCDMInstance>(instance))
         identifier = remoteInstance->identifier();
+#else
+    UNUSED_PARAM(instance);
+#endif
 
     ensureOnDispatcherWithConnection([identifier = WTF::move(identifier)](auto& renderer, auto& connection) mutable {
         connection.send(Messages::RemoteAudioVideoRendererProxyManager::SetCDMInstance(renderer.m_identifier, WTF::move(identifier)), 0);

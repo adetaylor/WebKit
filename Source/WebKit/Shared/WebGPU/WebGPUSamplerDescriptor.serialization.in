@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::SamplerDescriptor {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::SamplerDescriptor {
     String label;
     ::WebGPU::AddressMode addressModeU;
     ::WebGPU::AddressMode addressModeV;

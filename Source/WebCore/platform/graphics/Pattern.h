@@ -82,7 +82,7 @@ public:
 #if USE(SKIA)
     PlatformPatternPtr createPlatformPattern(const SkSamplingOptions&, const sk_sp<GrContextThreadSafeProxy>&) const;
 #else
-    PlatformPatternPtr createPlatformPattern(const AffineTransform& userSpaceTransform) const;
+    WEBCORE_EXPORT PlatformPatternPtr createPlatformPattern(const AffineTransform& userSpaceTransform) const;
 #endif
 
     NODELETE void setPatternSpaceTransform(const AffineTransform&);

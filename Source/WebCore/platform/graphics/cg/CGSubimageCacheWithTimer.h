@@ -85,7 +85,7 @@ public:
         static const bool safeToCompareToEmptyOrDeleted = true;
     };
 
-    static RetainPtr<CGImageRef> getSubimage(CGImageRef, const FloatRect&);
+    WEBCORE_EXPORT static RetainPtr<CGImageRef> getSubimage(CGImageRef, const FloatRect&);
     static void clearImage(CGImageRef);
     static void clear();
 

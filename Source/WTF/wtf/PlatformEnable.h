@@ -108,6 +108,15 @@
 #endif
 #endif
 
+/* The additions define these where the SDK and deployment target have the GPU families; they are 0 elsewhere. */
+#if !defined(HAVE_METAL_FAMILY_8)
+#define HAVE_METAL_FAMILY_8 0
+#endif
+
+#if !defined(HAVE_METAL_FAMILY_9)
+#define HAVE_METAL_FAMILY_9 0
+#endif
+
 
 
 /* ==== Platform specific defaults ==== */
@@ -1173,9 +1182,23 @@
 #define ENABLE_IPC_TESTING_SWIFT 1
 #endif
 
+#if !defined(ENABLE_GPU_PROCESS_CDM_SWIFT) && PLATFORM(COCOA) && ENABLE(IPC_TESTING_SWIFT) && ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#define ENABLE_GPU_PROCESS_CDM_SWIFT 1
+#endif
+
+#if !defined(ENABLE_GPU_PROCESS_WEBGPU_SWIFT) && PLATFORM(COCOA) && ENABLE(IPC_TESTING_SWIFT) && ENABLE(GPU_PROCESS)
+#define ENABLE_GPU_PROCESS_WEBGPU_SWIFT 1
+#endif
+
+// The GPU process's Swift receiver of image buffer drawing, which draws with the Swift CG renderer directly.
+#if !defined(ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT) && PLATFORM(COCOA) && ENABLE(IPC_TESTING_SWIFT) && ENABLE(GPU_PROCESS) && USE(CG)
+#define ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT 1
+#endif
+
 // Whether any IPC message receiver is in Swift, which needs the Swift IPC support code.
 #if !defined(ENABLE_SWIFT_IPC_RECEIVERS) \
-    && (ENABLE(BACK_FORWARD_LIST_SWIFT) || (ENABLE(IPC_TESTING_API) && ENABLE(IPC_TESTING_SWIFT)))
+    && (ENABLE(BACK_FORWARD_LIST_SWIFT) || (ENABLE(IPC_TESTING_API) && ENABLE(IPC_TESTING_SWIFT)) || ENABLE(GPU_PROCESS_CDM_SWIFT) \
+        || ENABLE(GPU_PROCESS_WEBGPU_SWIFT))
 #define ENABLE_SWIFT_IPC_RECEIVERS 1
 #endif
 

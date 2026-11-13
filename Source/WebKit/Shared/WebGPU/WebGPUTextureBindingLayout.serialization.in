@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::TextureBindingLayout {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::TextureBindingLayout {
     ::WebGPU::TextureSampleType sampleType;
     ::WebGPU::TextureViewDimension viewDimension;
     bool multisampled;

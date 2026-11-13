@@ -21,9 +21,14 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::ProgrammableStage {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct WebKit::WebGPU::PipelineConstant {
+    String key
+    double value
+}
+
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::ProgrammableStage {
     WebKit::WebGPUIdentifier module
     String entryPoint
-    Vector<KeyValuePair<String, double>> constants
+    Vector<WebKit::WebGPU::PipelineConstant> constants
 }
 #endif

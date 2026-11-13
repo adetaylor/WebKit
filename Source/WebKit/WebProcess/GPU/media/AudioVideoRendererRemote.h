@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 
 #include "GPUProcessConnection.h"
 #include "LayerHostingContext.h"

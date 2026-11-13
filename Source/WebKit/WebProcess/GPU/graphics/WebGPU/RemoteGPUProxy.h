@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "GPUProcessConnection.h"
 #include "RemoteRenderingBackendIdentifier.h"
@@ -183,4 +183,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::RemoteGPUProxy)
     static bool isType(const WebCore::WebGPUIntegration& gpu) { return gpu.isRemoteGPUProxy(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

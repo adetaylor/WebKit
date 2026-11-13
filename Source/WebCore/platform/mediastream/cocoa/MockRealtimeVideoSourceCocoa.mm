@@ -33,27 +33,49 @@
 
 #if ENABLE(MEDIA_STREAM)
 
-#import "GraphicsContextCG.h"
-#import "ImageBuffer.h"
 #import "ImageTransferSessionVT.h"
 #import "MediaConstraints.h"
 #import "MockRealtimeMediaSourceCenter.h"
-#import "NativeImage.h"
-#import "NotImplemented.h"
-#import "PlatformImage.h"
-#import "PlatformLayer.h"
-#import "RealtimeMediaSourceSettings.h"
 #import "RealtimeVideoUtilities.h"
 #import "VideoFrame.h"
-#import <QuartzCore/CALayer.h>
-#import <QuartzCore/CATransaction.h>
-#import <objc/runtime.h>
+#import <wtf/HashMap.h>
+#import <wtf/Lock.h>
 #import <wtf/MediaTime.h>
-
-#import "CoreVideoSoftLink.h"
-#import <pal/cf/CoreMediaSoftLink.h>
+#import <wtf/NeverDestroyed.h>
+#import <wtf/cocoa/VectorCocoa.h>
 
 namespace WebCore {
+
+static Lock sourcesLock;
+
+static HashMap<uint64_t, ThreadSafeWeakPtr<MockRealtimeVideoSourceMac>>& sources() WTF_REQUIRES_LOCK(sourcesLock)
+{
+    static NeverDestroyed<HashMap<uint64_t, ThreadSafeWeakPtr<MockRealtimeVideoSourceMac>>> sources;
+    return sources;
+}
+
+RefPtr<MockRealtimeVideoSourceMac> MockRealtimeVideoSourceMac::sourceWithGeneratorIdentifier(uint64_t identifier)
+{
+    Locker locker { sourcesLock };
+    return sources().get(identifier).get();
+}
+
+double mockVideoSourceDidGenerateFrame(uint64_t identifier, CGImageRef image, double presentationTime)
+{
+    RefPtr source = MockRealtimeVideoSourceMac::sourceWithGeneratorIdentifier(identifier);
+    if (!source)
+        return 0;
+    source->didGenerateFrame(image, presentationTime);
+    return source->observedFrameRate();
+}
+
+void mockVideoSourceDidTakePhoto(uint64_t identifier, uint64_t requestIdentifier, NSData *data, NSString *errorMessage)
+{
+    callOnMainThread([identifier, requestIdentifier, data = data ? makeVector(data) : Vector<uint8_t> { }, errorMessage = String { errorMessage }.isolatedCopy()]() mutable {
+        if (RefPtr source = MockRealtimeVideoSourceMac::sourceWithGeneratorIdentifier(identifier))
+            source->didTakePhoto(requestIdentifier, WTF::move(data), WTF::move(errorMessage));
+    });
+}
 
 CaptureSourceOrError MockRealtimeVideoSource::create(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
@@ -73,9 +95,12 @@ CaptureSourceOrError MockRealtimeVideoSource::create(String&& deviceID, AtomStri
     return source;
 }
 
-Ref<MockRealtimeVideoSource> MockRealtimeVideoSourceMac::createForMockDisplayCapturer(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
+Ref<MockRealtimeVideoSourceMac> MockRealtimeVideoSourceMac::create(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
 {
-    return adoptRef(*new MockRealtimeVideoSourceMac(WTF::move(deviceID), WTF::move(name), WTF::move(hashSalts), pageIdentifier));
+    Ref source = adoptRef(*new MockRealtimeVideoSourceMac(WTF::move(deviceID), WTF::move(name), WTF::move(hashSalts), pageIdentifier));
+    Locker locker { sourcesLock };
+    sources().add(source->generator().identifier(), source.get());
+    return source;
 }
 
 MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac(String&& deviceID, AtomString&& name, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
@@ -83,27 +108,22 @@ MockRealtimeVideoSourceMac::MockRealtimeVideoSourceMac(String&& deviceID, AtomSt
 {
 }
 
-MockRealtimeVideoSourceMac::~MockRealtimeVideoSourceMac() = default;
+MockRealtimeVideoSourceMac::~MockRealtimeVideoSourceMac()
+{
+    Locker locker { sourcesLock };
+    sources().remove(generator().identifier());
+}
 
-void MockRealtimeVideoSourceMac::updateSampleBuffer()
+void MockRealtimeVideoSourceMac::didGenerateFrame(CGImageRef image, double presentationTime)
 {
     ASSERT(!isMainThread());
 
-    RefPtr imageBuffer = this->imageBufferInternal();
-    if (!imageBuffer)
-        return;
-
     if (!m_imageTransferSession) {
-        lazyInitialize(m_imageTransferSession, ImageTransferSessionVT::create(preferedPixelBufferFormat()));
+        m_imageTransferSession = ImageTransferSessionVT::create(preferedPixelBufferFormat());
         m_imageTransferSession->setMaximumBufferPoolSize(10);
     }
 
-    PlatformImagePtr platformImage;
-    if (auto nativeImage = imageBuffer->copyNativeImage())
-        platformImage = nativeImage->platformImage();
-
-    auto presentationTime = MediaTime::createWithDouble((elapsedTime() + 100_ms).seconds());
-    auto videoFrame = m_imageTransferSession->createVideoFrame(platformImage.get(), presentationTime, size(), videoFrameRotation());
+    auto videoFrame = m_imageTransferSession->createVideoFrame(image, MediaTime::createWithDouble(presentationTime), size(), videoFrameRotation());
     if (!videoFrame) {
         static const size_t MaxPixelGenerationFailureCount = 150;
         if (++m_pixelGenerationFailureCount > MaxPixelGenerationFailureCount) {

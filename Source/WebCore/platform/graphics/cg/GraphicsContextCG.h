@@ -27,11 +27,16 @@
 
 #if USE(CG)
 
+#include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/ColorSpaceCG.h>
 #include <WebCore/GraphicsContext.h>
+#include <wtf/ForbidHeapAllocation.h>
 #include <wtf/TZoneMalloc.h>
 
 namespace WebCore {
+
+class CGRendererCore;
+class GraphicsContextCGCapture;
 
 class WEBCORE_EXPORT GraphicsContextCG : public GraphicsContext {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(GraphicsContextCG, WEBCORE_EXPORT);
@@ -57,6 +62,7 @@ public:
     using GraphicsContext::drawNativeImage;
     void drawNativeImage(const NativeImage&, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions = { }) final;
     void drawRect(const FloatRect&, float borderThickness = 1) final;
+    void drawGlyphsImmediate(const FontBase&, std::span<const GlyphBufferGlyph>, std::span<const GlyphBufferAdvance>, const FloatPoint&, FontSmoothingMode) final;
     void drawLine(const FloatPoint&, const FloatPoint&) final;
     void drawEllipse(const FloatRect&) final;
 
@@ -129,6 +135,7 @@ public:
     void drawDotsForDocumentMarker(const FloatRect&, DocumentMarkerLineStyle) final;
 
     void beginPage(const FloatRect& pageRect) final;
+    void unwindStateStack() final;
     void endPage() final;
 
     void setURLForRect(const URL&, const FloatRect&) final;
@@ -167,19 +174,56 @@ public:
     void setMaxEDRHeadroom(std::optional<float>) final;
 #endif
 
+    // Makes GraphicsContext's state the renderer's, for C++ that reads it after the renderer was used without this context.
+    void updateStateFromSwiftRenderer();
+    void updateStateFromSwiftRenderer(const CGRendererStateSnapshot&, GraphicsContextState::ChangeFlags);
+
+    bool canLendSwiftRenderer() const final { return true; }
+
+    class SwiftRendererLend;
+    // Lends the context's renderer to a Swift receiver for one message: state() is the renderer, which the receiver's handler
+    // takes inout. Until the lend ends, nothing else may use the renderer. A lender keeps a reference to the context and
+    // registers for as long as it can lend (addSwiftRendererLender()); the context must have no lenders when destroyed. C++
+    // only: Swift takes the state from the lend's C++ owner.
+    static SwiftRendererLend lendSwiftRenderer(GraphicsContextCG&) __attribute__((availability(swift, unavailable)));
+
+    // Testing only, for the differential harness: lends the renderer to what RemoteCGRenderer's handler for the message does,
+    // then draws a rect or ellipse the handler declines as RemoteGraphicsContext's handler would. Returns false where the
+    // handler declines a path segment, for the caller to draw it.
+    enum class ReceiverMessageForTesting : uint8_t {
+        Save, Restore, Translate, Rotate, Scale, SetCTM, ConcatCTM, SetFillPackedColor, SetStrokePackedColor,
+        SetStrokePackedColorAndThickness, SetFillRule, SetStrokeThickness, SetStrokeStyle, SetCompositeMode, SetAlpha,
+        SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
+        SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
+        ClearRect, ApplyStrokePattern, ApplyFillPattern, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect,
+        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath, DrawNativeImage, DrawPattern, FillRoundedRect,
+        FillRectWithRoundedHole
+    };
+    // The path is FillPath's, StrokePath's or DrawPath's; the image DrawNativeImage's or DrawPattern's.
+    WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr, CGImageRef = nullptr) __attribute__((availability(swift, unavailable)));
+    // The image of an image buffer that this draws (nativeImageForDrawing()), for a Swift receiver's draw of one.
+    WEBCORE_EXPORT RefPtr<NativeImage> nativeImageForSwiftReceiver(ImageBuffer&) __attribute__((availability(swift, unavailable)));
+    // Testing only: the renderer's saved levels, which include those only a Swift receiver saved.
+    WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
+    void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));
+    void removeSwiftRendererLender() __attribute__((availability(swift, unavailable)));
+
 private:
     // Applying the pending state does not change the observable state of the context, so this is
     // usable from the const accessors.
     void updatePlatformContextStateIfNeeded() const;
     void updatePlatformContextState();
 
-    void setCGDropShadow(const std::optional<GraphicsDropShadow>&, bool shadowsIgnoreTransforms);
+    // Whether the renderer, which this context keeps in place, is lent to a Swift receiver (SwiftRendererLend).
+    enum class SwiftRendererState : uint8_t { InPlace, InPlaceLent };
+
+    template<typename Function> decltype(auto) withSwiftRenderer(Function&&) const;
+    void updateStaleState() final;
+    void didUpdateStateForSwiftRenderer();
+    void setSwiftRendererShadow(const GraphicsDropShadow&, bool isStyle);
+    bool swiftDrawsShadowBlur() const;
+    bool shadowColorChangesFill(const Color&) const;
     void clearCGDropShadow();
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-    void setCGGaussianBlur(const GraphicsGaussianBlur&, bool shadowsIgnoreTransforms);
-    void setCGColorMatrix(const GraphicsColorMatrix&);
-#endif
-    void setCGStyle(const std::optional<GraphicsStyle>&, bool shadowsIgnoreTransforms);
 
     FloatRect boundsIncludingDropShadow(const FloatRect&);
     void paintGradientInClip(Gradient&, const AffineTransform& gradientSpaceTransform, NOESCAPE const Invocable<FloatRect()> auto& computeContentBounds, NOESCAPE const Invocable<void(CGContextRef)> auto& clip);
@@ -188,20 +232,62 @@ private:
 #endif
 
     const RetainPtr<CGContextRef> m_cgContext;
+#if ASSERT_ENABLED
+    std::unique_ptr<GraphicsContextCGCapture> m_capture;
+#endif
+    // The CGRendererCore (CGRenderer.swift) this context draws with, built in place. GraphicsContextCG.cpp checks the size.
+    static constexpr size_t swiftRendererSize = 392;
+    alignas(8) mutable std::byte m_swiftRendererStorage[swiftRendererSize];
     mutable std::optional<ColorSpace> m_colorSpace;
 #if HAVE(SUPPORT_HDR_DISPLAY)
     std::optional<float> m_maxEDRHeadroom;
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
-#if HAVE(CGCONTEXT_STROKE_ARC)
-    // Whether the renderer draws a butt-capped stroked arc with exactly the coverage of filling its outline.
-    const bool m_strokesArcsLikeFills : 1;
-#endif
-    mutable bool m_userToDeviceTransformKnownToBeIdentity : 1 { false };
+    // A byte of its own rather than a bitfield, so that lending and returning the renderer are single stores.
+    mutable SwiftRendererState m_swiftRendererState;
+    unsigned m_swiftRendererLenders { 0 };
     // Flag for pending draws. Start with true because we do not know what commands have been scheduled to the context.
     mutable bool m_hasDrawn : 1 { true };
 };
+
+class GraphicsContextCG::SwiftRendererLend {
+    WTF_MAKE_NONCOPYABLE(SwiftRendererLend);
+    WTF_FORBID_HEAP_ALLOCATION;
+public:
+    // The receiver may have changed the renderer's state: GraphicsContext's copy is brought up to date when next used.
+    ~SwiftRendererLend()
+    {
+        if (m_context) {
+            m_context->m_swiftRendererState = SwiftRendererState::InPlace;
+            m_context->m_stateIsStale = true;
+        }
+    }
+
+    explicit operator bool() const { return m_context; }
+    CGRendererCore& state() const { return *m_core; }
+
+private:
+    friend class GraphicsContextCG;
+
+    SwiftRendererLend(GraphicsContextCG* context, CGRendererCore* core)
+        : m_context(context)
+        , m_core(core)
+    {
+    }
+
+    GraphicsContextCG* const m_context;
+    CGRendererCore* const m_core;
+};
+
+inline GraphicsContextCG::SwiftRendererLend GraphicsContextCG::lendSwiftRenderer(GraphicsContextCG& context)
+{
+    // Lent already means that something reached the renderer while a Swift receiver has it.
+    RELEASE_ASSERT(context.m_swiftRendererState == SwiftRendererState::InPlace);
+    context.m_swiftRendererState = SwiftRendererState::InPlaceLent;
+    // Only Swift reaches the renderer through this address.
+    return SwiftRendererLend { &context, reinterpret_cast<CGRendererCore*>(context.m_swiftRendererStorage) };
+}
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);
 

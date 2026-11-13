@@ -1,0 +1,776 @@
+// Copyright (c) 2021-2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import CoreGraphics
+import Foundation
+public import IOSurface
+import Metal
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Queue
+#if hasAttribute(diagnose)
+@diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
+#endif
+public import WebGPU_Private.WebGPUCpp
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpucanvasconfiguration, with the canvas's size.
+@_spi(WebKitGPU)
+public struct GPUCanvasConfiguration {
+    public var device: DeviceReference
+    public var format = WebGPU.TextureFormat.Bgra8unorm
+    // The bits of OptionSet<WebGPU::TextureUsage>.
+    public var usage = WebGPU.TextureUsage.RenderAttachment.rawValue
+    public var viewFormats: [WebGPU.TextureFormat] = []
+    public var colorSpace = WebGPU.PredefinedColorSpace.SRGB
+    public var toneMappingMode = WebGPU.CanvasToneMappingMode.Standard
+    public var compositingAlphaMode = WebGPU.CanvasAlphaMode.Opaque
+    public var reportValidationErrors = true
+    public var width: UInt32 = 0
+    public var height: UInt32 = 0
+
+    public init(device: DeviceReference) {
+        self.device = device
+    }
+}
+
+extension GPUCanvasConfiguration {
+}
+
+@_spi(WebKitGPU)
+public typealias PresentationContextReference = PresentationContextIOSurfaceImpl
+
+// A canvas context that presents through the compositor's IOSurfaces, for a Swift caller.
+@_spi(WebKitGPU)
+extension PresentationContextIOSurfaceImpl {
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-getcurrenttexture: the texture the canvas draws into for the
+    // frame, or an invalid texture if the frame isn't one of the configuration's. nil before the first configure().
+    public func getCurrentTexture(_ frameIndex: UInt32) -> TextureReference? {
+        currentTexture(frameIndex)
+    }
+
+    // An IOSurface object rather than an IOSurfaceRef, which CoreGraphics declares as well as IOSurface.
+    public func addRenderBuffer(_ surface: IOSurface) {
+        appendIOSurface(surface as IOSurfaceRef)
+    }
+
+    // Replaces the IOSurface at index and rebuilds the Metal texture over it, so the next
+    // getCurrentTexture(index) draws into the new surface.
+    public func replaceIOSurface(at index: UInt32, with surface: IOSurfaceRef) {
+        guard Int(index) < ioSurfaces.count else { return }
+        ioSurfaces[Int(index)] = surface
+        #if HAVE_IOSURFACE_SET_OWNERSHIP_IDENTITY && HAVE_TASK_IDENTITY_TOKEN
+        let port = webProcessID.sendRight()
+        if port != MACH_PORT_NULL {
+            _ = IOSurfaceSetOwnershipIdentity(surface, port, IOSurfaceMemoryLedgerTags.graphics.rawValue, 0)
+        }
+        #endif
+        guard let deviceImpl = configuredDevice.first?.impl, Int(index) < renderBuffers.count,
+              let previousMTLTexture = renderBuffers[Int(index)].texture.texture()
+        else {
+            return
+        }
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: previousMTLTexture.pixelFormat,
+            width: previousMTLTexture.width,
+            height: previousMTLTexture.height,
+            mipmapped: false
+        )
+        textureDescriptor.usage = previousMTLTexture.usage
+        textureDescriptor.storageMode = previousMTLTexture.storageMode
+        let previousTexture = renderBuffers[Int(index)].texture
+        let format = previousTexture.formatOrDefault
+        let viewFormats = configuredViewFormats.isEmpty ? [format] : configuredViewFormats
+        let newTexture = makeTexture(
+            deviceImpl.newTextureWithDescriptor(textureDescriptor, surface, 0),
+            twoDimensionalTextureParameters(
+                format,
+                usage: previousTexture.usage(),
+                width: previousTexture.width(),
+                height: previousTexture.height()
+            ),
+            viewFormats: viewFormats,
+            deviceImpl
+        )
+        newTexture.makeCanvasBacking()
+        renderBuffers[Int(index)] = RenderBuffer(texture: newTexture, luminanceClampTexture: [])
+    }
+
+    public var lastFrameGPUCost: Double {
+        lastDrainedFrameGPUCostSeconds()
+    }
+
+    public var lastFramePresentStall: Double {
+        lastFramePresentStallSeconds()
+    }
+}
+
+// The state of a canvas context that presents through the compositor's IOSurfaces, held by its Swift callers. Used only
+// on its Instance's API thread: the compositor calls back on the work queue.
+@_spi(WebKitGPU)
+public final class PresentationContextIOSurfaceImpl: GPUObjectReference {
+    private struct RenderBuffer {
+        let texture: TextureImpl
+        // The rgba16float texture the canvas draws into under standard tone mapping; `texture` then holds the
+        // clamped copy. Empty or one element: an Optional of a foreign reference is avoided.
+        let luminanceClampTexture: [TextureImpl]
+
+        var presentedTexture: TextureImpl {
+            luminanceClampTexture.first ?? texture
+        }
+    }
+
+    private struct ConfiguredDevice {
+        let impl: DeviceImpl
+    }
+
+    // The device of the last configure(), kept even when that configure failed, until unconfigure(). Empty or
+    // one element.
+    private var configuredDevice: [ConfiguredDevice] = []
+    private var ioSurfaces: [IOSurfaceRef] = []
+    private var renderBuffers: [RenderBuffer] = []
+    // The buffers of the surfaces the compositor just replaced, copied into the new ones by the next configure.
+    private var existingRenderBuffers: [RenderBuffer] = []
+    // Empty until the first configure, then one element.
+    private var invalidTextures: [TextureImpl] = []
+    private var luminanceClampFunction: (any MTLFunction)?
+    private var luminanceClampPipeline: (any MTLComputePipelineState)?
+    private var resizePipeline: (any MTLComputePipelineState)?
+    // Oldest first.
+    private var inFlightFrames: [TextureImpl] = []
+    private var maximumInFlightFrames = 0
+    private var lastDrainedFrameGPUCost: Double = 0
+    private var backingLastFramePresentStall: Double = 0
+    // Premultiplied alpha until configured, unlike CanvasConfiguration's default.
+    private var colorSpace = WebGPU.PredefinedColorSpace.SRGB
+    private var toneMappingMode = WebGPU.CanvasToneMappingMode.Standard
+    private var alphaMode = WebGPU.CanvasAlphaMode.Premultiplied
+    // The view formats from the last configure(), used when replacing a render buffer surface.
+    private var configuredViewFormats: [WebGPU.TextureFormat] = []
+    // The compositor's IOSurfaces are attributed to it. Empty without one.
+    private let webProcessID: WTF.MachSendRight
+
+    fileprivate init(webProcessIDPort: mach_port_t) {
+        webProcessID = WTF.MachSendRight.create(webProcessIDPort)
+    }
+
+    // The compositor has recreated its render buffers, which it then adds: the canvas draws into them from the next
+    // configure().
+    @_spi(WebKitGPU)
+    public func renderBuffersWereRecreated() {
+        existingRenderBuffers = renderBuffers
+        renderBuffers = []
+        ioSurfaces = []
+    }
+
+    func appendIOSurface(_ surface: IOSurfaceRef) {
+        ioSurfaces.append(surface)
+        #if HAVE_IOSURFACE_SET_OWNERSHIP_IDENTITY && HAVE_TASK_IDENTITY_TOKEN
+        let port = webProcessID.sendRight()
+        if port != MACH_PORT_NULL {
+            _ = IOSurfaceSetOwnershipIdentity(surface, port, IOSurfaceMemoryLedgerTags.graphics.rawValue, 0)
+        }
+        #endif
+    }
+
+    private static func isAllowedFormat(_ format: WebGPU.TextureFormat) -> Bool {
+        format == WebGPU.TextureFormat.Bgra8unorm || format == WebGPU.TextureFormat.Rgba8unorm
+            || format == WebGPU.TextureFormat.Rgba16float
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configure
+    @_spi(WebKitGPU)
+    public func configure(_ configuration: GPUCanvasConfiguration) {
+        let deviceImpl = configuration.device
+        let storageMode = canvasStorageMode(deviceImpl)
+        let invalidTexture = makeInvalidTextureImpl(deviceImpl)
+        renderBuffers = []
+        inFlightFrames = []
+        maximumInFlightFrames = 0
+        lastDrainedFrameGPUCost = 0
+        backingLastFramePresentStall = 0
+        invalidTextures = [invalidTexture]
+
+        let reportValidationErrors = configuration.reportValidationErrors
+        configuredDevice = [ConfiguredDevice(impl: deviceImpl)]
+        func generateAValidationError(_ message: Swift.String) {
+            if reportValidationErrors {
+                deviceImpl.generateAValidationError(message)
+            }
+        }
+
+        let format = configuration.format
+        let maxTextureDimension2D = deviceImpl.capabilities.limits.maxTextureDimension2D
+        let width = min(maxTextureDimension2D, configuration.width)
+        let height = min(maxTextureDimension2D, configuration.height)
+        let effectiveFormat = Self.isAllowedFormat(format) ? format : WebGPU.TextureFormat.Bgra8unorm
+        colorSpace = configuration.colorSpace
+        toneMappingMode = configuration.toneMappingMode
+        alphaMode = configuration.compositingAlphaMode
+
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: texturePixelFormat(effectiveFormat),
+            width: Int(width),
+            height: Int(height),
+            mipmapped: false
+        )
+        textureDescriptor.usage = metalTextureUsage(configuration.usage, effectiveFormat)
+        textureDescriptor.storageMode = storageMode
+
+        if let mismatched = ioSurfaces.first(where: { IOSurfaceGetWidth($0) != Int(width) || IOSurfaceGetHeight($0) != Int(height) }) {
+            let surfaceWidth = Int32(truncatingIfNeeded: IOSurfaceGetWidth(mismatched))
+            let surfaceHeight = Int32(truncatingIfNeeded: IOSurfaceGetHeight(mismatched))
+            generateAValidationError(
+                "Invalid surface size. Backing surface has size (\(surfaceWidth), \(surfaceHeight)) but attempting to configure a size of (\(width), \(height))"
+            )
+            return
+        }
+
+        if !Self.isAllowedFormat(format) {
+            generateAValidationError("Requested texture format \(textureFormatName(format)) is not a valid context format")
+            return
+        }
+
+        if width == 0 || height == 0 {
+            generateAValidationError("Width or height is zero")
+            return
+        }
+
+        let requestedWidth = configuration.width
+        let requestedHeight = configuration.height
+        if requestedWidth > maxTextureDimension2D || requestedHeight > maxTextureDimension2D {
+            generateAValidationError("Requested canvas width and/or height are too large")
+            return
+        }
+
+        let viewFormats = configuration.viewFormats
+        for index in viewFormats.indices {
+            let viewFormat = viewFormats[index]
+            if !Self.isAllowedFormat(removeSRGBSuffix(viewFormat)) {
+                generateAValidationError("Requested texture view format BGRA8UnormStorage is not enabled")
+                return
+            }
+        }
+
+        // Without view formats in the configuration, the validation takes the format of the textures as their only
+        // view format; the textures allow views only in the formats that the configuration lists.
+        configuredViewFormats = []
+        configuredViewFormats.reserveCapacity(viewFormats.count)
+        for index in viewFormats.indices {
+            configuredViewFormats.append(viewFormats[index])
+        }
+        let usage = configuration.usage
+        if let error = errorValidatingTextureCreation(
+            deviceImpl,
+            twoDimensionalTextureParameters(effectiveFormat, usage: usage, width: width, height: height),
+            viewFormats: configuredViewFormats.isEmpty ? [effectiveFormat] : configuredViewFormats
+        ) {
+            generateAValidationError(error)
+            return
+        }
+
+        var requestsStorage = false
+        if format == WebGPU.TextureFormat.Bgra8unorm {
+            requestsStorage = textureUsageContains(configuration.usage, .StorageBinding)
+        }
+        if requestsStorage && !deviceImpl.hasFeature(WebGPU.FeatureName.Bgra8unormStorage) {
+            generateAValidationError("Requested storage format but BGRA8UnormStorage is not enabled")
+            return
+        }
+
+        textureDescriptor.usage.formUnion([.renderTarget, .shaderRead])
+        let needsLuminanceClampFunction =
+            textureDescriptor.pixelFormat == .rgba16Float && toneMappingMode == WebGPU.CanvasToneMappingMode.Standard
+        // The surfaces were made for the format the compositor integration chose, which the configuration need not have:
+        // a texture over a surface must not need more bytes than the surface has.
+        let surfaceFormat = needsLuminanceClampFunction ? MTLPixelFormat.bgra8Unorm : textureDescriptor.pixelFormat
+        if ioSurfaces.contains(where: { !surfaceHolds($0, surfaceFormat, width: Int(width), height: Int(height)) }) {
+            generateAValidationError("The backing surfaces don't have the layout of the requested texture format \(textureFormatName(format))")
+            return
+        }
+        let existingUsage = textureDescriptor.usage
+        let metalDevice = deviceImpl.device()
+        var apiFormat = effectiveFormat
+        var resizeCommandBuffer: (any MTLCommandBuffer)?
+        for ioSurface in ioSurfaces {
+            var luminanceClampTexture: [TextureImpl] = []
+            var luminanceClampDescriptor: MTLTextureDescriptor?
+            if needsLuminanceClampFunction {
+                textureDescriptor.pixelFormat = .rgba16Float
+                apiFormat = WebGPU.TextureFormat.Rgba16float
+                textureDescriptor.usage = existingUsage
+                textureDescriptor.usage.insert(.shaderRead)
+                luminanceClampDescriptor = textureDescriptor
+                let texture = makeTexture(
+                    deviceImpl.newTextureWithDescriptor(textureDescriptor, nil, 0),
+                    twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
+                    viewFormats: configuredViewFormats,
+                    deviceImpl
+                )
+                texture.makeCanvasBacking()
+                luminanceClampTexture = [texture]
+                textureDescriptor.pixelFormat = .bgra8Unorm
+                apiFormat = WebGPU.TextureFormat.Bgra8unorm
+                textureDescriptor.usage = existingUsage.union(.shaderWrite)
+            }
+
+            let parentTexture = makeTexture(
+                deviceImpl.newTextureWithDescriptor(textureDescriptor, ioSurface, 0),
+                twoDimensionalTextureParameters(apiFormat, usage: usage, width: width, height: height),
+                viewFormats: configuredViewFormats,
+                deviceImpl
+            )
+            parentTexture.makeCanvasBacking()
+            renderBuffers.append(RenderBuffer(texture: parentTexture, luminanceClampTexture: luminanceClampTexture))
+            if existingRenderBuffers.count >= renderBuffers.count {
+                if resizeCommandBuffer == nil {
+                    resizeCommandBuffer = deviceImpl.defaultQueueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
+                }
+
+                let existing = existingRenderBuffers[renderBuffers.count - 1]
+                textureDescriptor.usage.insert(.shaderWrite)
+                copyTextureToTexture(
+                    deviceImpl.newTextureWithDescriptor(textureDescriptor, parentTexture.texture()?.iosurface, 0),
+                    existing.texture.texture(),
+                    resizeCommandBuffer,
+                    metalDevice,
+                    deviceImpl
+                )
+                if let luminanceClampParent = luminanceClampTexture.first, let luminanceClampDescriptor,
+                    !existing.luminanceClampTexture.isEmpty
+                {
+                    // FIXME: luminanceClampDescriptor is textureDescriptor itself, so this copies into a new BGRA
+                    // texture rather than into luminanceClampParent.
+                    luminanceClampDescriptor.usage.insert(.shaderWrite)
+                    copyTextureToTexture(
+                        deviceImpl.newTextureWithDescriptor(luminanceClampDescriptor, luminanceClampParent.texture()?.iosurface, 0),
+                        existing.luminanceClampTexture.first?.texture(),
+                        resizeCommandBuffer,
+                        metalDevice,
+                        deviceImpl
+                    )
+                }
+            }
+        }
+
+        if let resizeCommandBuffer {
+            deviceImpl.defaultQueueImpl.commitMTLCommandBuffer(resizeCommandBuffer)
+        }
+        assert(ioSurfaces.count == renderBuffers.count)
+        maximumInFlightFrames = renderBuffers.count > 1 ? renderBuffers.count - 1 : 1
+        // The committed resize consumed the existing buffers.
+        if resizeCommandBuffer != nil {
+            existingRenderBuffers = []
+        }
+
+        if needsLuminanceClampFunction {
+            buildLuminanceClampPipeline(metalDevice)
+        }
+    }
+
+    private func buildLuminanceClampPipeline(_ metalDevice: (any MTLDevice)?) {
+        guard let metalDevice else {
+            luminanceClampFunction = nil
+            luminanceClampPipeline = nil
+            return
+        }
+        // A library that fails to compile keeps the previous pipeline.
+        guard let library = compileLibraryWithFastMath(metalDevice, luminanceClampKernelSource) else {
+            return
+        }
+        let function = library.makeFunction(name: "luminanceClamp")
+        luminanceClampFunction = function
+        luminanceClampPipeline = function.flatMap { try? metalDevice.makeComputePipelineState(function: $0) }
+    }
+
+    private func resizePipelineState(_ metalDevice: (any MTLDevice)?) -> (any MTLComputePipelineState)? {
+        if let resizePipeline {
+            return resizePipeline
+        }
+
+        guard let metalDevice,
+            let library = compileLibraryWithFastMath(metalDevice, resizeKernelSource),
+            let function = library.makeFunction(name: "resize")
+        else {
+            return nil
+        }
+        do {
+            let pipeline = try metalDevice.makeComputePipelineState(function: function)
+            resizePipeline = pipeline
+            return pipeline
+        } catch {
+            logAlways("\(error as NSError)")
+            return nil
+        }
+    }
+
+    private func copyTextureToTexture(
+        _ destination: (any MTLTexture)?,
+        _ source: (any MTLTexture)?,
+        _ commandBuffer: (any MTLCommandBuffer)?,
+        _ metalDevice: (any MTLDevice)?,
+        _ deviceImpl: DeviceImpl
+    ) {
+        guard let source, let destination, let pipelineState = resizePipelineState(metalDevice) else {
+            return
+        }
+
+        let computeDescriptor = MTLComputePassDescriptor()
+        computeDescriptor.dispatchType = .serial
+
+        let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
+        deviceImpl.defaultQueueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
+        computeEncoder?.setComputePipelineState(pipelineState)
+
+        computeEncoder?.setTexture(source, index: 0)
+        computeEncoder?.setTexture(destination, index: 1)
+        let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
+        let threadgroupCount = MTLSize(
+            width: (destination.width + threadgroupSize.width - 1) / threadgroupSize.width,
+            height: (destination.height + threadgroupSize.height - 1) / threadgroupSize.height,
+            depth: 1
+        )
+        computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
+        deviceImpl.defaultQueueImpl.endEncoding(computeEncoder, commandBuffer)
+    }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-unconfigure
+    @_spi(WebKitGPU)
+    public func unconfigure() {
+        configuredViewFormats = []
+        ioSurfaces = []
+        renderBuffers = []
+        inFlightFrames = []
+        maximumInFlightFrames = 0
+        lastDrainedFrameGPUCost = 0
+        backingLastFramePresentStall = 0
+        configuredDevice = []
+    }
+
+    private func isValidFrameIndex(_ index: UInt32) -> Bool {
+        ioSurfaces.count == renderBuffers.count && index < renderBuffers.count
+    }
+
+    private func waitForInFlightFrameSlot() {
+        if maximumInFlightFrames == 0 {
+            return
+        }
+
+        let clock = SuspendingClock()
+        var stall = Duration.zero
+        while inFlightFrames.count >= maximumInFlightFrames {
+            let oldestFrame = inFlightFrames.removeFirst()
+            // Blocking here is what tells the frame pacer the canvas is presenting faster than the GPU retires frames.
+            let waitStartTime = clock.now
+            let completed = oldestFrame.waitForCommandBufferCompletion()
+            stall += waitStartTime.duration(to: clock.now)
+            let gpuFrameCost = oldestFrame.gpuFrameCostSeconds()
+            lastDrainedFrameGPUCost = completed && gpuFrameCost > 0 ? gpuFrameCost : 0
+        }
+        let (seconds, attoseconds) = stall.components
+        backingLastFramePresentStall = Double(seconds) + Double(attoseconds) * 1e-18
+    }
+
+    @_spi(WebKitGPU)
+    public func present(_ currentIndex: UInt32) {
+        guard isValidFrameIndex(currentIndex), let configured = configuredDevice.first else {
+            return
+        }
+
+        waitForInFlightFrameSlot()
+
+        let queueImpl = configured.impl.defaultQueueImpl
+        let renderBuffer = renderBuffers[Int(currentIndex)]
+        if let computePipelineState = luminanceClampPipeline, let luminanceClampTexture = renderBuffer.luminanceClampTexture.first {
+            let commandBuffer = queueImpl.commandBufferWithDescriptor(MTLCommandBufferDescriptor())
+            let computeDescriptor = MTLComputePassDescriptor()
+            computeDescriptor.dispatchType = .serial
+
+            let computeEncoder = commandBuffer?.makeComputeCommandEncoder(descriptor: computeDescriptor)
+            queueImpl.setEncoderForBuffer(commandBuffer, computeEncoder)
+            computeEncoder?.setComputePipelineState(computePipelineState)
+            let inputTexture = luminanceClampTexture.texture()
+            computeEncoder?.setTexture(inputTexture, index: 0)
+            computeEncoder?.setTexture(renderBuffer.texture.texture(), index: 1)
+            let threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
+            let threadgroupCount = MTLSize(
+                width: ((inputTexture?.width ?? 0) + threadgroupSize.width - 1) / threadgroupSize.width,
+                height: ((inputTexture?.height ?? 0) + threadgroupSize.height - 1) / threadgroupSize.height,
+                depth: 1
+            )
+            computeEncoder?.dispatchThreadgroups(threadgroupCount, threadsPerThreadgroup: threadgroupSize)
+            queueImpl.endEncoding(computeEncoder, commandBuffer)
+            queueImpl.commitMTLCommandBuffer(commandBuffer)
+        }
+
+        inFlightFrames.append(renderBuffer.presentedTexture)
+        precondition(inFlightFrames.count <= maximumInFlightFrames)
+    }
+
+    // Generates the configured device's validation error when the index is not a configured frame.
+    func validateCurrentTextureIndex(_ index: UInt32) -> Bool {
+        if isValidFrameIndex(index) {
+            return true
+        }
+        configuredDevice.first?.impl.generateAValidationError("GPUCanvasContext is not configured correctly")
+        return false
+    }
+
+    // currentFrameTexture(), or the invalid texture if the frame isn't a configured one.
+    func currentTexture(_ index: UInt32) -> TextureImpl? {
+        guard validateCurrentTextureIndex(index) else {
+            return invalidTextures.first
+        }
+        let texture = renderBuffers[Int(index)].presentedTexture
+        texture.recreateIfNeeded()
+        return texture
+    }
+
+    // textureAsNativeImage(), in GPUObjectReference.swift.
+    func renderBufferAsNativeImage(_ bufferIndex: UInt32, _ isIOSurfaceSupportedFormat: inout Bool) -> CGImage? {
+        isIOSurfaceSupportedFormat = false
+        guard !configuredDevice.isEmpty, bufferIndex < renderBuffers.count else {
+            return nil
+        }
+
+        let texture = renderBuffers[Int(bufferIndex)].presentedTexture
+        guard texture.waitForCommandBufferCompletion() else {
+            return nil
+        }
+
+        guard let mtlTexture = texture.texture(),
+            mtlTexture.pixelFormat != .bgra8Unorm && mtlTexture.pixelFormat != .bgra8Unorm_srgb
+                && mtlTexture.pixelFormat != .rgba16Float
+        else {
+            isIOSurfaceSupportedFormat = true
+            return nil
+        }
+
+        let fp16 = mtlTexture.pixelFormat == .rgba16Float
+        var colorSpaceName = CGColorSpace.sRGB
+        switch colorSpace {
+        case WebGPU.PredefinedColorSpace.SRGB:
+            colorSpaceName = CGColorSpace.sRGB
+        case WebGPU.PredefinedColorSpace.SRGBLinear:
+            colorSpaceName = CGColorSpace.linearSRGB
+        case WebGPU.PredefinedColorSpace.DisplayP3:
+            colorSpaceName = CGColorSpace.displayP3
+        case WebGPU.PredefinedColorSpace.DisplayP3Linear:
+            colorSpaceName = CGColorSpace.linearDisplayP3
+        @unknown default:
+            break
+        }
+
+        let imageColorSpace = CGColorSpace(name: colorSpaceName)
+        let bytesPerPixel = fp16 ? 8 : 4
+        let width = mtlTexture.width
+        let height = mtlTexture.height
+        let bytesPerRow = bytesPerPixel * width
+        let bitsPerComponent = bytesPerPixel * 2
+        let bitsPerPixel = bitsPerComponent * 4
+        let alphaInfo = alphaMode == WebGPU.CanvasAlphaMode.Opaque ? CGImageAlphaInfo.noneSkipLast : CGImageAlphaInfo.premultipliedLast
+        var bitmapInfo = alphaInfo.rawValue | CGImageByteOrderInfo.order32Big.rawValue
+        if fp16 {
+            bitmapInfo = alphaInfo.rawValue | CGImageByteOrderInfo.order16Host.rawValue | CGBitmapInfo.floatComponents.rawValue
+        }
+
+        return createImageWithTextureBytes(
+            mtlTexture,
+            width,
+            height,
+            bitsPerComponent,
+            bitsPerPixel,
+            bytesPerRow,
+            imageColorSpace,
+            CGBitmapInfo(rawValue: bitmapInfo)
+        )
+    }
+
+    // The completion runs once the configured device's queue has scheduled the work submitted so far: at once without a
+    // device, or once it is lost.
+    @_spi(WebKitGPU)
+    public func onSubmittedWorkScheduled(_ completion: @escaping () -> Void) {
+        guard let device = configuredDevice.first else {
+            completion()
+            return
+        }
+        let deviceImpl = device.impl
+        deviceImpl.defaultQueueImpl.onSubmittedWorkScheduled(deviceIsUsable: deviceImpl.isValid() && !deviceImpl.isLost(), completion)
+    }
+
+    func lastDrainedFrameGPUCostSeconds() -> Double {
+        lastDrainedFrameGPUCost
+    }
+
+    @_spi(WebKitGPU)
+    public func isValid() -> Bool {
+        true
+    }
+
+    func lastFramePresentStallSeconds() -> Double {
+        backingLastFramePresentStall
+    }
+}
+
+// `webProcessIDPort` is MACH_PORT_NULL without a web process identity; the Impl keeps its own send right.
+func makePresentationContextIOSurfaceImpl(_ webProcessIDPort: mach_port_t) -> PresentationContextIOSurfaceImpl {
+    PresentationContextIOSurfaceImpl(webProcessIDPort: webProcessIDPort)
+}
+
+private func canvasStorageMode(_ deviceImpl: DeviceImpl) -> MTLStorageMode {
+    #if WTF_PLATFORM_MAC || WTF_PLATFORM_MACCATALYST
+    #if ENABLE_WEBGPU_BY_DEFAULT
+    hasUnifiedMemory(deviceImpl) ? .shared : deprecatedManagedStorageMode
+    #else
+    deprecatedManagedStorageMode
+    #endif
+    #else
+    .shared
+    #endif
+}
+
+private let resizeKernelSource = """
+
+    using namespace metal;
+    kernel void resize(texture2d<float, access::read>  inTexture  [[texture(0)]],
+        texture2d<float, access::write> outTexture [[texture(1)]],
+        uint2 gid [[thread_position_in_grid]])
+    {
+        if (gid.x >= outTexture.get_width() || gid.y >= outTexture.get_height())
+            return;
+
+        float2 remappedGid = float2(static_cast<float>(gid.x), static_cast<float>(gid.y)) * float2(static_cast<float>(inTexture.get_width()) / outTexture.get_width(), static_cast<float>(inTexture.get_height()) / outTexture.get_height());
+        float4 color = inTexture.read(uint2((uint)remappedGid.x, (uint)remappedGid.y));
+        outTexture.write(color, gid);
+    }
+    """
+
+private let luminanceClampKernelSource = """
+
+        using namespace metal;
+        // A float3x3 is built from its columns, so each float3 below is one column of the BT.709
+        // matrix: the luma coefficients run down the first column, not across the first row. Writing
+        // these as rows transposes both matrices, and while a transposed pair still round trips
+        // exactly, the value clamped in between is then no longer luma, so any color whose first
+        // component goes negative comes back a different color.
+        constant float3x3 rgbToYCbCr = float3x3(
+            float3(0.2126, -0.1146, 0.5),
+            float3(0.7152, -0.3854, -0.4542),
+            float3(0.0722, 0.5, -0.0458));
+        constant float3x3 yCbCrToRGB = float3x3(
+            float3(1, 1, 1),
+            float3(0, -0.1873, 1.8556),
+            float3(1.5748, -0.4681, 0));
+        kernel void luminanceClamp(texture2d<float, access::read>  inTexture  [[texture(0)]],
+            texture2d<float, access::write> outTexture [[texture(1)]],
+            uint2 gid [[thread_position_in_grid]])
+        {
+            if (gid.x >= outTexture.get_width() || gid.y >= outTexture.get_height())
+                return;
+
+            float4 inColor  = inTexture.read(gid);
+            float3 yCbCr = rgbToYCbCr * inColor.rgb;
+            yCbCr.x = clamp(yCbCr.x, 0., 1.);
+            float3 outColor = yCbCrToRGB * yCbCr;
+            // Clamping luminance says nothing about how opaque the frame is, so the alpha the canvas
+            // was drawn with has to survive. An opaque canvas is presented through a surface with no
+            // alpha channel at all, which is what makes it opaque.
+            outTexture.write(float4(outColor, inColor.a), gid);
+        }
+    """
+
+// nil, logged, when Metal reports any error, including warnings alongside a library.
+private func compileLibraryWithFastMath(_ device: any MTLDevice, _ source: String) -> (any MTLLibrary)? {
+    let options = MTLCompileOptions()
+    enableFastMath(options)
+    let (library, error) = newLibraryKeepingWarnings(device, source, options)
+    if let error {
+        logAlways("\(error)")
+        return nil
+    }
+    return library
+}
+
+// The texture's bytes as an image; nil when they cannot be allocated.
+private func createImageWithTextureBytes(
+    _ texture: any MTLTexture,
+    _ width: Int,
+    _ height: Int,
+    _ bitsPerComponent: Int,
+    _ bitsPerPixel: Int,
+    _ bytesPerRow: Int,
+    _ colorSpace: CGColorSpace?,
+    _ bitmapInfo: CGBitmapInfo
+) -> CGImage? {
+    // Metal writes rows of the texture's own format: the rows must hold them, the region must be in the texture, and
+    // the CPU must be able to read the texture.
+    guard texture.storageMode != .private, texture.storageMode != .memoryless,
+        let format = textureFormat(texture.pixelFormat), width >= 0, height >= 0, width <= texture.width,
+        height <= texture.height
+    else {
+        return nil
+    }
+    let (rowBytes, rowBytesOverflow) = width.multipliedReportingOverflow(by: Int(texelBlockSize(format)))
+    let (imageBytesSize, overflow) = bytesPerRow.multipliedReportingOverflow(by: height)
+    guard texelBlockSize(format) != 0, !rowBytesOverflow, bytesPerRow >= rowBytes, !overflow,
+        let imageBytes = NSMutableData(length: imageBytesSize)
+    else {
+        return nil
+    }
+    // Safety: Metal writes `height` rows of `rowBytes`, `bytesPerRow` apart, from the region, which the checks above keep
+    // in the texture, into the imageBytesSize bytes just allocated, which `imageBytes` keeps alive past the call.
+    unsafe texture.getBytes(imageBytes.mutableBytes, bytesPerRow: bytesPerRow, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+    guard let colorSpace, let dataProvider = CGDataProvider(data: imageBytes) else {
+        return nil
+    }
+    // Safety: the only pointer argument, the decode array, is nil.
+    return unsafe CGImage(
+        width: width,
+        height: height,
+        bitsPerComponent: bitsPerComponent,
+        bitsPerPixel: bitsPerPixel,
+        bytesPerRow: bytesPerRow,
+        space: colorSpace,
+        bitmapInfo: bitmapInfo,
+        provider: dataProvider,
+        decode: nil,
+        shouldInterpolate: false,
+        intent: .defaultIntent
+    )
+}
+
+// Whether a texture of `pixelFormat`, `width` by `height`, fits in the bytes of the surface: one plane of elements of the
+// format's size, rows at least that wide, and room for every row.
+private func surfaceHolds(_ surface: IOSurfaceRef, _ pixelFormat: MTLPixelFormat, width: Int, height: Int) -> Bool {
+    guard let format = textureFormat(pixelFormat), IOSurfaceGetPlaneCount(surface) == 0, IOSurfaceGetElementWidth(surface) == 1,
+        IOSurfaceGetElementHeight(surface) == 1
+    else {
+        return false
+    }
+    let bytesPerPixel = Int(texelBlockSize(format))
+    let bytesPerRow = IOSurfaceGetBytesPerRow(surface)
+    let (rowBytes, rowBytesOverflow) = width.multipliedReportingOverflow(by: bytesPerPixel)
+    let (surfaceBytes, surfaceBytesOverflow) = bytesPerRow.multipliedReportingOverflow(by: height)
+    return bytesPerPixel > 0 && IOSurfaceGetBytesPerElement(surface) == bytesPerPixel && !rowBytesOverflow && !surfaceBytesOverflow
+        && bytesPerRow >= rowBytes && IOSurfaceGetAllocSize(surface) >= surfaceBytes
+}

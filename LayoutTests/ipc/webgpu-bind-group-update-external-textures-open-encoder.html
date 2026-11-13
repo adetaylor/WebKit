@@ -73,7 +73,10 @@ async function run()
     const unboundTextureId = freshId();
     for (const identifier of [boundTextureId, unboundTextureId]) {
         remoteDevice.ImportExternalTextureFromVideoFrame({
-            descriptor: { label: "externalTexture", mediaIdentifier: { }, colorSpace: 0, visibleSize: { width: 0, height: 0 }, sharedFrame: { } },
+            mediaIdentifier: { },
+            colorSpace: 0,
+            visibleSize: { width: 0, height: 0 },
+            sharedFrame: { },
             identifier,
         });
     }
@@ -83,15 +86,13 @@ async function run()
         descriptor: {
             label: "bindGroupLayout",
             entries: [{
-                alias: {
-                    binding: 0,
-                    visibility: 4, // ShaderStage::Compute
-                    buffer: { },
-                    sampler: { },
-                    texture: { },
-                    storageTexture: { },
-                    externalTexture: { optionalValue: { } },
-                },
+                binding: 0,
+                visibility: 4, // ShaderStage::Compute
+                buffer: { },
+                sampler: { },
+                texture: { },
+                storageTexture: { },
+                externalTexture: { optionalValue: { } },
             }],
         },
         identifier: bindGroupLayoutId,

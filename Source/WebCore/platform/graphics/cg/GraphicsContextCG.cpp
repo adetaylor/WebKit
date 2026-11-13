@@ -34,7 +34,10 @@
 #include "CGUtilities.h"
 #include "DisplayListRecorder.h"
 #include "FloatConversion.h"
+#include "Font.h"
+#include "FontCascade.h"
 #include "Gradient.h"
+#include "GraphicsContextCGCapture.h"
 #include "ImageBuffer.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
@@ -46,6 +49,7 @@
 #include <pal/spi/cg/CoreGraphicsSPI.h>
 #include <pal/spi/cg/ImageIOSPI.h>
 #include <wtf/MathExtras.h>
+#include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/URL.h>
@@ -56,54 +60,34 @@
 #include <WebKitAdditions/AXCustomColorModeController.h>
 #endif
 
+#include "WebCore-Swift.h"
+
 #include <pal/cg/CoreGraphicsSoftLink.h>
+
+// A call to the renderer this context draws with, whichever way it's stored (GraphicsContextCG::withSwiftRenderer()).
+#define SWIFT_RENDERER(call) withSwiftRenderer([&](auto& renderer) { return renderer.call; })
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsBefore.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsBefore.mm>
-#endif
-
-#ifndef CGIOSurfaceContextUsingWebKitBehavior
-static inline bool CGIOSurfaceContextUsingWebKitBehavior(CGContextRef)
-{
-    return false;
-}
 #endif
 
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(GraphicsContextCG);
 
+#if ASSERT_ENABLED
+#define CAPTURE(call) \
+    GraphicsContextCGCapture::Scope captureScope(m_capture.get()); \
+    if (auto* capture = captureScope.outermost()) \
+        capture->call
+#else
+#define CAPTURE(call)
+#endif
+
 static void setCGFillColor(CGContextRef context, const Color& color, const ColorSpace& colorSpace)
 {
     CGContextSetFillColorWithColor(context, cachedCGColorInDestinationStandardRange(color, colorSpace).get());
 }
-
-#if HAVE(CGCONTEXT_STROKE_ARC)
-// A butt-capped stroke of width r along the arc of radius r / 2 covers exactly the pie wedge of radius r.
-// Drawing the wedge as a stroked arc lets the renderer batch it with other stroked arcs.
-static void fillPieWedgeAsStrokeArc(CGContextRef context, const PathArc& arc, const Color& color, const ColorSpace& colorSpace)
-{
-    CGContextSaveGState(context);
-    CGContextSetStrokeColorWithColor(context, cachedCGColorInDestinationStandardRange(color, colorSpace).get());
-    CGContextSetLineWidth(context, arc.radius);
-    CGContextSetLineCap(context, kCGLineCapButt);
-    CGContextSetLineDash(context, 0, nullptr, 0);
-    CGContextStrokeArc(context, arc.center.x(), arc.center.y(), arc.radius / 2, arc.startAngle, arc.endAngle, arc.direction == RotationDirection::Counterclockwise);
-    CGContextRestoreGState(context);
-}
-
-// Limited to fills where any coverage difference between the stroke and the fill is invisible: a pixel drawn twice looks
-// the same as once, and a wedge that winds more than once is filled solid, as the stroke paints it.
-static bool canFillPieWedgeAsStrokeArc(const GraphicsContext& context)
-{
-    return context.fillRule() == WindRule::NonZero
-        && context.fillColor().isOpaque()
-        && context.alpha() == 1
-        && context.compositeOperation() == CompositeOperator::SourceOver
-        && context.blendMode() == BlendMode::Normal
-        && !context.hasDropShadow();
-}
-#endif
 
 CGAffineTransform getUserToBaseCTM(CGContextRef context)
 {
@@ -136,17 +120,6 @@ static InterpolationQuality coreInterpolationQuality(CGContextRef context)
         return InterpolationQuality::High;
     }
     return InterpolationQuality::Default;
-}
-
-NODELETE static CGTextDrawingMode cgTextDrawingMode(TextDrawingModeFlags mode)
-{
-    bool fill = mode.contains(TextDrawingMode::Fill);
-    bool stroke = mode.contains(TextDrawingMode::Stroke);
-    if (fill && stroke)
-        return kCGTextFillStroke;
-    if (fill)
-        return kCGTextFill;
-    return kCGTextStroke;
 }
 
 NODELETE static CGBlendMode selectCGBlendMode(CompositeOperator compositeOperator, BlendMode blendMode)
@@ -244,6 +217,37 @@ static FloatRect strokedPathBoundingBox(CGContextRef context, NOESCAPE const Inv
     return bounds;
 }
 
+static CGRendererGradientGeometry gradientGeometry(const Gradient& gradient)
+{
+    CGRendererGradientGeometry geometry { };
+    geometry.spreadMethod = static_cast<uint8_t>(gradient.spreadMethod());
+    WTF::switchOn(gradient.data(),
+        [&](const Gradient::LinearData& data) {
+            geometry.kind = 0;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.x1 = data.point1.x();
+            geometry.y1 = data.point1.y();
+        },
+        [&](const Gradient::RadialData& data) {
+            geometry.kind = 1;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.x1 = data.point1.x();
+            geometry.y1 = data.point1.y();
+            geometry.startRadius = data.startRadius;
+            geometry.endRadius = data.endRadius;
+            geometry.aspectRatio = data.aspectRatio;
+        },
+        [&](const Gradient::ConicData& data) {
+            geometry.kind = 2;
+            geometry.x0 = data.point0.x();
+            geometry.y0 = data.point0.y();
+            geometry.angleRadians = data.angleRadians;
+        });
+    return geometry;
+}
+
 #if !HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
 // Older transparency layers are bounded by the clip, so content outside of it would lose its shadow.
 void GraphicsContextCG::paintGradientInCGLayer(Gradient& gradient, const AffineTransform& gradientSpaceTransform, const FloatRect& contentBounds, NOESCAPE const Invocable<void(CGContextRef)> auto& clip)
@@ -261,7 +265,8 @@ void GraphicsContextCG::paintGradientInCGLayer(Gradient& gradient, const AffineT
     CGContextTranslateCTM(layerContext.get(), -layerBounds.x(), -layerBounds.y());
     clip(layerContext.get());
     CGContextConcatCTM(layerContext.get(), gradientSpaceTransform);
-    gradient.paint(layerContext.get());
+    if (RetainPtr platformGradient = gradient.platformGradient())
+        CGRendererCore::paintGradient(layerContext.get(), platformGradient.get(), gradientGeometry(gradient));
     CGContextDrawLayerInRect(context.get(), layerBounds, layer.get());
 }
 #endif
@@ -278,29 +283,17 @@ void GraphicsContextCG::paintGradientInClip(Gradient& gradient, const AffineTran
 
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
-    // The clip has to be applied inside the transparency layer, otherwise it would also clip away the shadow.
-    // Passing the content bounds to CGContextBeginTransparencyLayerWithRect() would lose the shadow of content
-    // outside the clip (rdar://190563103), so bound the layer with a clip covering the content and its shadow.
-    if (hasDropShadow) {
-        auto layerBounds = boundsIncludingDropShadow(computeContentBounds());
-        CGContextSaveGState(context.get());
-        CGContextClipToRect(context.get(), layerBounds);
-        CGContextBeginTransparencyLayer(context.get(), nullptr);
-#if !HAVE(FIX_FOR_RADAR_190563103)
-        // FIXME: Remove this workaround once the system framework rdar://190563103 is fixed.
-        CGContextClearRect(context.get(), layerBounds);
-#endif
-    }
+    if (hasDropShadow)
+        CGRendererBeginGradientShadowLayer(context.get(), boundsIncludingDropShadow(computeContentBounds()));
     {
         CGContextStateSaver stateSaver(context.get());
         clip(context.get());
         CGContextConcatCTM(context.get(), gradientSpaceTransform);
-        gradient.paint(*this);
+        if (RetainPtr platformGradient = gradient.platformGradient(Gradient::paintColorSpace(*this)))
+            CGRendererCore::paintGradient(context.get(), platformGradient.get(), gradientGeometry(gradient));
     }
-    if (hasDropShadow) {
-        CGContextEndTransparencyLayer(context.get());
-        CGContextRestoreGState(context.get());
-    }
+    if (hasDropShadow)
+        CGRendererEndGradientShadowLayer(context.get());
 }
 
 static void drawPathWithCGContext(CGContextRef context, CGPathDrawingMode drawingMode, const Path& path)
@@ -328,18 +321,110 @@ static GraphicsContext::IsDeferred isDeferredForCGContext(CGContextRef cgContext
     return GraphicsContext::IsDeferred::Yes;
 }
 
+// The one place that reaches the renderer, which is stored in place. Lent, it is a Swift receiver's until the lend ends
+// (SwiftRendererLend).
+template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(Function&& function) const
+{
+    RELEASE_ASSERT(m_swiftRendererState == SwiftRendererState::InPlace);
+    return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
+}
+
 GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
-#if HAVE(CGCONTEXT_STROKE_ARC)
-    , m_strokesArcsLikeFills(CGIOSurfaceContextUsingWebKitBehavior(cgContext))
-#endif
+    , m_swiftRendererState(SwiftRendererState::InPlace)
 {
+    // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
+#if CPU(ADDRESS64)
+    static_assert(sizeof(CGRendererCore) == swiftRendererSize);
+#else
+    static_assert(sizeof(CGRendererCore) <= swiftRendererSize);
+#endif
+    static_assert(alignof(CGRendererCore) <= 8);
+    auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext) {
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, imageInterpolationQuality()));
+    };
+    if (!cgContext) {
+        // An invalid context draws nothing: its renderer draws into a stand-in.
+        RetainPtr standIn = adoptCF(CGBitmapContextCreate(nullptr, 1, 1, 8, 4, sRGBColorSpaceSingleton(), static_cast<uint32_t>(kCGImageAlphaPremultipliedFirst) | static_cast<uint32_t>(kCGBitmapByteOrder32Little)));
+        makeRenderer(standIn.get(), true, false);
+        return;
+    }
+    makeRenderer(cgContext, m_renderingMode == RenderingMode::Unaccelerated, CGContextGetType(cgContext) == kCGContextTypePDF);
+#if ASSERT_ENABLED
+    m_capture = GraphicsContextCGCapture::createIfEnabled(cgContext, m_renderingMode, m_isLayerCGContext);
+#endif
 }
 
-GraphicsContextCG::~GraphicsContextCG() = default;
+GraphicsContextCG::~GraphicsContextCG()
+{
+    RELEASE_ASSERT(!m_swiftRendererLenders);
+    withSwiftRenderer([](auto& renderer) {
+        std::destroy_at(&renderer);
+    });
+}
+
+void GraphicsContextCG::addSwiftRendererLender()
+{
+    // WebKit's generated header passes the renderer to Swift with a stand-in for this helper
+    // (WebKit/Shared/WebCoreSwiftForWebKit.h), which takes its storage to be the object itself.
+    auto* core = std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage));
+    RELEASE_ASSERT(_impl::_impl_CGRendererCore::getOpaquePointer(*core) == reinterpret_cast<char*>(core));
+    ++m_swiftRendererLenders;
+    SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
+    SWIFT_RENDERER(setDestinationColorSpace(CGRendererDestinationColorSpace { colorSpace() }));
+}
+
+bool GraphicsContextCG::applyReceiverMessageForTesting(const CGRendererReceiverTestMessage& message, const Path* path, CGImageRef image)
+{
+    // What a lender's registration gives the renderer (addSwiftRendererLender()).
+    SWIFT_RENDERER(setGradientColorSpace(CGRendererGradientColorSpace { Gradient::paintColorSpace(*this) }));
+    SWIFT_RENDERER(setDestinationColorSpace(CGRendererDestinationColorSpace { colorSpace() }));
+    RetainPtr<CGPathRef> platformPath = path ? path->platformPath() : nullptr;
+    bool handled;
+    {
+        auto lend = lendSwiftRenderer(*this);
+        handled = lend.state().applyReceiverMessageForTesting(message, platformPath.get(), image);
+    }
+    if (handled)
+        return true;
+    FloatRect rect { message.values[0], message.values[1], message.values[2], message.values[3] };
+    switch (static_cast<ReceiverMessageForTesting>(message.message)) {
+    case ReceiverMessageForTesting::FillRect:
+        fillRect(rect, message.integers[0] ? RequiresClipToRect::Yes : RequiresClipToRect::No);
+        break;
+    case ReceiverMessageForTesting::FillEllipse:
+        fillEllipse(rect);
+        break;
+    case ReceiverMessageForTesting::StrokeRect:
+        strokeRect(rect, message.values[4]);
+        break;
+    case ReceiverMessageForTesting::StrokeEllipse:
+        strokeEllipse(rect);
+        break;
+    default:
+        return false;
+    }
+    return true;
+}
+
+RefPtr<NativeImage> GraphicsContextCG::nativeImageForSwiftReceiver(ImageBuffer& imageBuffer)
+{
+    return nativeImageForDrawing(imageBuffer);
+}
+
+unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const
+{
+    return SWIFT_RENDERER(savedLevelCount());
+}
+
+void GraphicsContextCG::removeSwiftRendererLender()
+{
+    RELEASE_ASSERT(m_swiftRendererLenders);
+    --m_swiftRendererLenders;
+}
 
 bool GraphicsContextCG::hasPlatformContext() const
 {
@@ -374,33 +459,100 @@ const ColorSpace& GraphicsContextCG::colorSpace() const
     return *m_colorSpace;
 }
 
+// The renderer's top saved level (CGRendererCore::savedLevelKind()).
+enum class SwiftRendererSavedLevel : uint8_t { None, Save, TransparencyLayer, ReceiverSave, ReceiverTransparencyLayer };
+
 void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
+    CAPTURE(save(purpose));
     // Apply the state before saving, so that the state pushed on the stack describes the gstate
     // saved below. This has to happen before GraphicsContext::save(), because
     // Purpose::TransparencyLayer resets the properties CG resets for a layer without marking them
     // as changed, and a pending change to them would otherwise reach the context as the reset
     // value instead of the value the layer has to be composited with.
     updatePlatformContextStateIfNeeded();
+    ensureStateIsCurrent();
     GraphicsContext::save(purpose);
-    CGContextSaveGState(contextForState());
+    SWIFT_RENDERER(save(purpose == GraphicsContextState::Purpose::TransparencyLayer));
 }
 
 void GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
 {
-    if (!stackSize())
+    CAPTURE(restore(purpose));
+    ensureStateIsCurrent();
+    // A level that only a Swift receiver saved is the renderer's alone.
+    auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
+    if (level == SwiftRendererSavedLevel::ReceiverSave || level == SwiftRendererSavedLevel::ReceiverTransparencyLayer) {
+        if (purpose != (level == SwiftRendererSavedLevel::ReceiverSave ? GraphicsContextState::Purpose::SaveRestore : GraphicsContextState::Purpose::TransparencyLayer))
+            return;
+        if (purpose == GraphicsContextState::Purpose::SaveRestore)
+            SWIFT_RENDERER(restore());
+        else
+            SWIFT_RENDERER(endTransparencyLayer());
+        m_stateIsStale = true;
+        // GraphicsContext's state may hold a gradient or pattern that the level had, which goes now, as with C++'s own levels.
+        ensureStateIsCurrent();
+        return;
+    }
+
+    if (!stackSize() || m_state.purpose() != purpose)
         return;
 
     GraphicsContext::restore(purpose);
-    CGContextRestoreGState(contextForState());
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    SWIFT_RENDERER(restore());
+}
+
+void GraphicsContextCG::unwindStateStack()
+{
+    ensureStateIsCurrent();
+    for (auto levels = SWIFT_RENDERER(savedLevelCount()); levels; --levels) {
+        switch (static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()))) {
+        case SwiftRendererSavedLevel::None:
+            break;
+        case SwiftRendererSavedLevel::Save:
+        case SwiftRendererSavedLevel::ReceiverSave:
+            restore(GraphicsContextState::Purpose::SaveRestore);
+            continue;
+        case SwiftRendererSavedLevel::TransparencyLayer:
+        case SwiftRendererSavedLevel::ReceiverTransparencyLayer:
+            endTransparencyLayer();
+            continue;
+        }
+        break;
+    }
+    GraphicsContext::unwindStateStack();
+}
+
+void GraphicsContextCG::updateStaleState()
+{
+    m_stateIsStale = false;
+    if (!SWIFT_RENDERER(hasStaleStateForCxx()))
+        return;
+    CGRendererStateSnapshot snapshot { };
+    SWIFT_RENDERER(takeStaleStateForCxx(snapshot));
+    // Levels that C++ saved and a Swift receiver has restored in the renderer.
+    for (auto restores = snapshot.pendingCxxRestores; restores && stackSize(); --restores)
+        GraphicsContext::restore(m_state.purpose());
+    auto properties = GraphicsContextState::ChangeFlags::fromRaw(snapshot.staleProperties);
+    if (properties)
+        updateStateFromSwiftRenderer(snapshot, properties);
 }
 
 void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
+    CAPTURE(drawNativeImage(nativeImage, destRect, srcRect, options));
     auto image = nativeImage.platformImage();
     if (!image)
         return;
+
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    if (auto rendererOptions = CGRendererImageOptionsFor(options); rendererOptions.rendererDraws) {
+        FloatSize imageSize = nativeImage.size();
+        auto result = SWIFT_RENDERER(drawNativeImage(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), srcRect.x(), srcRect.y(), srcRect.width(), srcRect.height(), rendererOptions.compositeOperator, rendererOptions.blendMode, rendererOptions.interpolationQuality, rendererOptions.orientation, nativeImage.headroom(), rendererOptions.headroom));
+        if (result)
+            return;
+    }
+#endif
 
 #if ENABLE(AX_CUSTOM_COLOR_MODE) && HAVE(CGSTYLE_COLORMATRIX_BLUR)
     if (auto invertContent = options.invertContent(); invertContent == InvertContent::Yes || invertContent == InvertContent::Forced) {
@@ -591,6 +743,391 @@ void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const Fl
     LOG_WITH_STREAM(Images, stream << "GraphicsContextCG::drawNativeImage " << image.get() << " size " << imageSize << " into " << destRect << " took " << (MonotonicTime::now() - startTime).milliseconds() << "ms");
 }
 
+static CGRendererColorData colorData(const Color&);
+static Color colorFromData(const CGRendererColorData&);
+static FloatRect boundsIncludingDropShadowOf(CGContextRef, const GraphicsDropShadow&, bool shadowsIgnoreTransforms, const FloatRect&);
+
+} // namespace WebCore
+
+void CGRendererColorValueOf(const WebCore::Color& color, CGRendererColorValue& value)
+{
+    value = { };
+    value.isVisible = color.isVisible();
+    value.data = WebCore::colorData(color);
+    if (auto packedColor = color.tryGetAsPackedInline()) {
+        value.isPacked = true;
+        value.packedColor = packedColor->value;
+    }
+}
+
+CGColorRef CGRendererCopyCGColorForData(const CGRendererColorData& data, const CGRendererDestinationColorSpace& colorSpace)
+{
+    return WebCore::cachedCGColorInDestinationStandardRange(WebCore::colorFromData(data), colorSpace.colorSpace().value_or(WebCore::ColorSpace::SRGB())).leakRef();
+}
+
+CGRendererGlyphPreparation::CGRendererGlyphPreparation(const WebCore::FontBase& font, std::span<const CGGlyph> glyphs, WebCore::FontSmoothingMode smoothingMode, const WebCore::Color* simpleShadowColor, const WebCore::Color& fillColor, const WebCore::ColorSpace& colorSpace, bool isInTransparencyLayer)
+{
+    using namespace WebCore;
+    const auto& platformData = font.platformData();
+    if (!platformData.size())
+        return;
+    if (isInGPUProcess() && font.hasAnyComplexColorFormatGlyphs(glyphs)) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
+    if (!font.allowsAntialiasing())
+        smoothingMode = FontSmoothingMode::None;
+
+    float ascentDelta = 0;
+    m_font = platformData.ctFont();
+    if (platformData.orientation() == FontOrientation::Vertical && !glyphs.empty()) {
+        m_translations.resize(glyphs.size());
+        CTFontGetVerticalTranslationsForGlyphs(m_font.get(), glyphs.data(), m_translations.mutableSpan().data(), glyphs.size());
+        ascentDelta = font.fontMetrics().ascent(FontBaseline::Ideographic) - font.fontMetrics().ascent();
+    }
+
+    // The shadow's glyphs are in its color, whose alpha is multiplied by the fill color's.
+    if (simpleShadowColor)
+        m_shadowFillColor = cachedCGColorInDestinationStandardRange(simpleShadowColor->colorWithAlphaMultipliedBy(fillColor.alphaAsFloat()), colorSpace);
+
+    static const CGAffineTransform verticalTranslationMatrix = computeBaseVerticalTextMatrix(computeBaseOverallTextMatrix(std::nullopt));
+    m_facts = {
+        computeTextMatrix(font), verticalTranslationMatrix, platformData.size(), font.syntheticBoldOffset(), ascentDelta,
+        static_cast<uint8_t>(smoothingMode), platformData.isColorBitmapFont(), isInTransparencyLayer
+    };
+    m_draws = true;
+}
+
+WebCore::Color CGRendererColorFromValue(const CGRendererColorValue& value)
+{
+    if (value.data.form)
+        return WebCore::colorFromData(value.data);
+    if (value.isPacked)
+        return WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { value.packedColor }) };
+    return WebCore::colorFromData(value.data);
+}
+
+void CGRendererShadowValuesOf(const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    auto packedColor = shadow.color.tryGetAsPackedInline();
+    values = {
+        shadow.offset.width(), shadow.offset.height(), shadow.radius, shadow.opacity,
+        packedColor ? packedColor->value : 0, shadow.color.isValid(), shadow.color.isVisible(), shadow.radiusMode == WebCore::ShadowRadiusMode::Legacy
+    };
+    color = WebCore::colorData(shadow.color);
+}
+
+WebCore::GraphicsDropShadow CGRendererDropShadowFromValues(const CGRendererShadowValues& values, const CGRendererColorData& color)
+{
+    return { { values.width, values.height }, values.radius, WebCore::colorFromData(color), values.legacyRadius ? WebCore::ShadowRadiusMode::Legacy : WebCore::ShadowRadiusMode::Default, values.opacity };
+}
+
+CGColorRef CGRendererCopyShadow(const WebCore::GraphicsContextCG& context, const WebCore::GraphicsDropShadow& shadow, CGRendererShadowValues& values, CGRendererColorData& color)
+{
+    CGRendererShadowValuesOf(shadow, values, color);
+    if (color.form != 2) {
+        color = { };
+        return nullptr;
+    }
+    return WebCore::cachedCGColorInDestinationStandardRange(shadow.color, context.colorSpace()).leakRef();
+}
+
+CGRendererImageOptions CGRendererImageOptionsFor(WebCore::RasterDrawingOptions options)
+{
+    // The renderer's pixel alignment of images for the iOS family can't be checked against the C++ here.
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    bool rendererDraws = !(options.dynamicRangeLimit() == WebCore::PlatformDynamicRangeLimit::standard() && options.drawsHDRContent() == WebCore::DrawsHDRContent::Yes);
+#if ENABLE(AX_CUSTOM_COLOR_MODE)
+    rendererDraws = rendererDraws && options.invertContent() == WebCore::InvertContent::No;
+#endif
+#else
+    bool rendererDraws = false;
+#endif
+    return { options.compositeOperator(), options.blendMode(), options.interpolationQuality(), static_cast<uint8_t>(options.orientation().orientation()), options.headroom(), rendererDraws };
+}
+
+CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
+{
+    RefPtr nativeImage = imageBuffer.createNativeImageReference();
+    if (!nativeImage)
+        return nullptr;
+    headroom = nativeImage->headroom();
+    return RetainPtr { nativeImage->platformImage() }.leakRef();
+}
+
+CGRendererBrushSource::CGRendererBrushSource()
+    : m_gradientSpaceTransform(CGAffineTransformIdentity)
+{
+}
+
+CGRendererBrushSource::CGRendererBrushSource(const WebCore::SourceBrush& brush)
+    : m_gradient(brush.gradient())
+    , m_gradientSpaceTransform(brush.gradientSpaceTransform())
+    , m_pattern(brush.pattern())
+{
+}
+
+CGRendererBrushSource::CGRendererBrushSource(const CGRendererBrushSource&) = default;
+CGRendererBrushSource& CGRendererBrushSource::operator=(const CGRendererBrushSource&) = default;
+CGRendererBrushSource::~CGRendererBrushSource() = default;
+
+CGRendererBrushSource::CGRendererBrushSource(Ref<WebCore::Gradient>&& gradient, const WebCore::AffineTransform& spaceTransform)
+    : m_gradient(WTF::move(gradient))
+    , m_gradientSpaceTransform(spaceTransform)
+{
+}
+
+CGRendererBrushSource::CGRendererBrushSource(Ref<WebCore::Pattern>&& pattern)
+    : m_gradientSpaceTransform(CGAffineTransformIdentity)
+    , m_pattern(WTF::move(pattern))
+{
+}
+
+CGGradientRef CGRendererCopyBrushGradient(const CGRendererBrushSource& source, const CGRendererGradientColorSpace& colorSpace, CGRendererGradientGeometry& geometry, CGAffineTransform& spaceTransform)
+{
+    RefPtr gradient = source.m_gradient;
+    if (!gradient)
+        return nullptr;
+    geometry = WebCore::gradientGeometry(*gradient);
+    spaceTransform = source.m_gradientSpaceTransform;
+    return RetainPtr { gradient->platformGradient(colorSpace.m_colorSpace) }.leakRef();
+}
+
+bool CGRendererPaintsGradientShadowsInLayer()
+{
+#if HAVE(CGSTYLE_FIXES_DROP_SHADOW_BLUR)
+    return false;
+#else
+    return true;
+#endif
+}
+
+CGRect CGRendererBoundsIncludingDropShadow(CGContextRef context, float offsetWidth, float offsetHeight, float radius, bool shadowsIgnoreTransforms, CGRect bounds)
+{
+    return WebCore::boundsIncludingDropShadowOf(context, WebCore::GraphicsDropShadow { { offsetWidth, offsetHeight }, radius, { } }, shadowsIgnoreTransforms, bounds);
+}
+
+void CGRendererBeginGradientShadowLayer(CGContextRef context, CGRect layerBounds)
+{
+    // The clip has to be applied inside the transparency layer, otherwise it would also clip away the shadow.
+    // Passing the content bounds to CGContextBeginTransparencyLayerWithRect() would lose the shadow of content
+    // outside the clip (rdar://190563103), so bound the layer with a clip covering the content and its shadow.
+    CGContextSaveGState(context);
+    CGContextClipToRect(context, layerBounds);
+    CGContextBeginTransparencyLayer(context, nullptr);
+#if !HAVE(FIX_FOR_RADAR_190563103)
+    // FIXME: Remove this workaround once the system framework rdar://190563103 is fixed.
+    CGContextClearRect(context, layerBounds);
+#endif
+}
+
+void CGRendererEndGradientShadowLayer(CGContextRef context)
+{
+    CGContextEndTransparencyLayer(context);
+    CGContextRestoreGState(context);
+}
+
+CGRect CGRendererStrokedPathBounds(CGContextRef context, const WebCore::Path& path)
+{
+    return WebCore::strokedPathBoundingBox(context, [&] {
+        WebCore::setCGContextPath(context, path);
+    });
+}
+
+void CGRendererClipToStrokedPath(CGContextRef context, const WebCore::Path& path, float thickness)
+{
+    CGContextSetLineWidth(context, thickness);
+    WebCore::setCGContextPath(context, path);
+    CGContextReplacePathWithStrokedPath(context);
+    CGContextClip(context);
+}
+
+static WebCore::Path pathOfSegment(CGRendererPathSegment segment)
+{
+    return WebCore::Path { CGRendererPathSegmentFromValues(segment) };
+}
+
+CGRect CGRendererPathSegmentBounds(CGRendererPathSegment segment)
+{
+    return pathOfSegment(segment).fastBoundingRect();
+}
+
+void CGRendererClipToPathSegment(CGContextRef context, CGRendererPathSegment segment, WebCore::WindRule rule)
+{
+    CGRendererClipToPath(context, pathOfSegment(segment), rule);
+}
+
+CGRect CGRendererStrokedPathSegmentBounds(CGContextRef context, CGRendererPathSegment segment)
+{
+    return CGRendererStrokedPathBounds(context, pathOfSegment(segment));
+}
+
+void CGRendererClipToStrokedPathSegment(CGContextRef context, CGRendererPathSegment segment, float thickness)
+{
+    CGRendererClipToStrokedPath(context, pathOfSegment(segment), thickness);
+}
+
+CGRect CGRendererRoundedRectBounds(const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    return path.fastBoundingRect();
+}
+
+void CGRendererClipToRoundedRectPath(CGContextRef context, const WebCore::FloatRoundedRect& rect, WebCore::WindRule rule)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipToPath(context, path, rule);
+}
+
+CGRect CGRendererStrokedRectBounds(CGContextRef context, CGRect rect, float lineWidth)
+{
+    return WebCore::strokedPathBoundingBox(context, [&] {
+        CGContextSetLineWidth(context, std::max(lineWidth, 0.f));
+        CGContextAddRect(context, rect);
+    });
+}
+
+void CGRendererClipToStrokedRect(CGContextRef context, CGRect rect, float lineWidth)
+{
+    CGContextSetLineWidth(context, std::max(lineWidth, 0.f));
+    CGContextAddRect(context, rect);
+    CGContextReplacePathWithStrokedPath(context);
+    CGContextClip(context);
+}
+
+void CGRendererBrushSource::applyTo(WebCore::SourceBrush& brush) const
+{
+    if (RefPtr gradient = m_gradient)
+        brush.setGradient(gradient.releaseNonNull(), WebCore::AffineTransform(m_gradientSpaceTransform));
+    else if (RefPtr pattern = m_pattern)
+        brush.setPattern(pattern.releaseNonNull());
+}
+
+CGPatternRef CGRendererCreateBrushPattern(const CGRendererBrushSource& source, CGContextRef context)
+{
+    RefPtr pattern = source.m_pattern;
+    if (!pattern)
+        return nullptr;
+    return pattern->createPlatformPattern(WebCore::AffineTransform(WebCore::getUserToBaseCTM(context))).leakRef();
+}
+
+CGColorRef CGRendererCopyCachedColor(uint32_t packedColor)
+{
+    return WebCore::cachedCGColor(WebCore::Color { WebCore::asSRGBA(WebCore::PackedColor::RGBA { packedColor }) }).leakRef();
+}
+
+void CGRendererClipToPath(CGContextRef context, const WebCore::Path& path, WebCore::WindRule clipRule)
+{
+    if (path.isEmpty())
+        CGContextClipToRect(context, CGRectZero);
+    else {
+        WebCore::setCGContextPath(context, path);
+        if (clipRule == WebCore::WindRule::EvenOdd)
+            CGContextEOClip(context);
+        else
+            CGContextClip(context);
+    }
+}
+
+void CGRendererClipToPathImpl(CGContextRef context, const WebCore::PathImpl& impl, WebCore::WindRule clipRule)
+{
+    CGContextBeginPath(context);
+    WebCore::addToCGContextPath(context, impl);
+    if (clipRule == WebCore::WindRule::EvenOdd)
+        CGContextEOClip(context);
+    else
+        CGContextClip(context);
+}
+
+void CGRendererClipToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipToPath(context, path, WebCore::WindRule::NonZero);
+}
+
+void CGRendererClipOutToRoundedRect(CGContextRef context, const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    CGRendererClipOutToPath(context, path);
+}
+
+static WebCore::Path rectWithRoundedHolePath(const WebCore::FloatRect& rect, const WebCore::FloatRoundedRect& roundedHoleRect)
+{
+    WebCore::Path path;
+    path.addRect(rect);
+    if (!roundedHoleRect.radii().isZero())
+        path.addRoundedRect(roundedHoleRect);
+    else
+        path.addRect(roundedHoleRect.rect());
+    return path;
+}
+
+CGPathRef CGRendererCopyRoundedRectPath(const WebCore::FloatRoundedRect& rect)
+{
+    WebCore::Path path;
+    path.addRoundedRect(rect);
+    return RetainPtr { path.platformPath() }.leakRef();
+}
+
+CGPathRef CGRendererCopyRectWithRoundedHolePath(CGRect rect, const WebCore::FloatRoundedRect& hole)
+{
+    return RetainPtr { rectWithRoundedHolePath(WebCore::FloatRect { rect }, hole).platformPath() }.leakRef();
+}
+
+bool CGRendererRoundedRectIsEllipse(const WebCore::FloatRoundedRect& rect)
+{
+    const auto& r = rect.rect();
+    const auto& radii = rect.radii();
+    bool equalWidths = (radii.topLeft().width() == radii.topRight().width() && radii.topRight().width() == radii.bottomLeft().width() && radii.bottomLeft().width() == radii.bottomRight().width());
+    bool equalHeights = (radii.topLeft().height() == radii.bottomLeft().height() && radii.bottomLeft().height() == radii.topRight().height() && radii.topRight().height() == radii.bottomRight().height());
+    return equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height();
+}
+
+CGRendererShadowBlurRoundedRect CGRendererShadowBlurRoundedRectOf(const WebCore::FloatRoundedRect& rect)
+{
+    auto size = [](const WebCore::FloatSize& size) {
+        return WebCore::ShadowBlurSize { size.width(), size.height() };
+    };
+    const auto& bounds = rect.rect();
+    const auto& radii = rect.radii();
+    return {
+        { bounds.x(), bounds.y(), bounds.width(), bounds.height() },
+        { size(radii.topLeft()), size(radii.topRight()), size(radii.bottomLeft()), size(radii.bottomRight()) }
+    };
+}
+
+void CGRendererClipOutToPath(CGContextRef context, const WebCore::Path& path)
+{
+    CGContextBeginPath(context);
+    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+    if (!path.isEmpty())
+        WebCore::addToCGContextPath(context, path);
+    CGContextEOClip(context);
+}
+
+void CGRendererClipOutToPathImpl(CGContextRef context, const WebCore::PathImpl& impl)
+{
+    CGContextBeginPath(context);
+    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+    WebCore::addToCGContextPath(context, impl);
+    CGContextEOClip(context);
+}
+
+CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
+{
+#if CACHE_SUBIMAGES
+    if (!(CGImageGetCachingFlags(image) & kCGImageCachingTransient))
+        return WebCore::CGSubimageCacheWithTimer::getSubimage(image, rect).leakRef();
+#endif
+    return CGImageCreateWithImageInRect(image, rect);
+}
+
+namespace WebCore {
+
 static void drawPatternCallback(void* info, CGContextRef context)
 {
     CGImageRef image = (CGImageRef)info;
@@ -604,8 +1141,25 @@ static void drawPatternReleaseCallback(void* info)
     SUPPRESS_RETAINPTR_CTOR_ADOPT callOnMainThread([image = adoptCF(static_cast<CGImageRef>(info))] { });
 }
 
+} // namespace WebCore
+
+CGPatternRef CGRendererCreateImagePattern(CGImageRef image, CGRect tileBounds, CGAffineTransform matrix, CGFloat xStep, CGFloat yStep)
+{
+#if HAVE(CGPATTERN_CREATE_WITH_IMAGE_TRANSFORM_STEP)
+    if (PAL::canLoad_CoreGraphics_CGPatternCreateWithImageTransformStep())
+        return PAL::softLink_CoreGraphics_CGPatternCreateWithImageTransformStep(image, matrix, xStep, yStep, kCGPatternTilingConstantSpacing);
+#endif
+    static const CGPatternCallbacks patternCallbacks = { 0, WebCore::drawPatternCallback, WebCore::drawPatternReleaseCallback };
+    // The pattern takes this reference to the image, which drawPatternReleaseCallback() releases.
+    // FIXME: If CGPatternCreate() returns NULL, drawPatternReleaseCallback() never runs and the image reference leaks.
+    return CGPatternCreate(RetainPtr { image }.leakRef(), tileBounds, matrix, xStep, yStep, kCGPatternTilingConstantSpacing, true, &patternCallbacks);
+}
+
+namespace WebCore {
+
 void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
+    CAPTURE(drawPattern(nativeImage, destRect, tileRect, patternTransform, phase, spacing, options));
     if (!patternTransform.isInvertible())
         return;
 
@@ -624,176 +1178,40 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
 #endif
 
     auto image = nativeImage.platformImage();
+    if (!image)
+        return;
     auto imageSize = nativeImage.size();
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextStateSaver stateSaver(context);
-    CGContextClipToRect(context, destRect);
-
-    setCGBlendMode(context, options.compositeOperator(), options.blendMode());
-
-    auto interpolationQuality = imageInterpolationQualityForOptions(options);
-    if (interpolationQuality != imageInterpolationQuality())
-        CGContextSetInterpolationQuality(context, toCGInterpolationQuality(interpolationQuality));
-
-    CGContextTranslateCTM(context, destRect.x(), destRect.y() + destRect.height());
-    CGContextScaleCTM(context, 1, -1);
-
-    // Compute the scaled tile size.
-    float scaledTileHeight = tileRect.height() * narrowPrecisionToFloat(patternTransform.d());
-
-    // We have to adjust the phase to deal with the fact we're in Cartesian space now (with the bottom left corner of destRect being
-    // the origin).
-    float adjustedX = phase.x() - destRect.x() + tileRect.x() * narrowPrecisionToFloat(patternTransform.a()); // We translated the context so that destRect.x() is the origin, so subtract it out.
-    float adjustedY = destRect.height() - (phase.y() - destRect.y() + tileRect.y() * narrowPrecisionToFloat(patternTransform.d()) + scaledTileHeight);
-
-    float h = CGImageGetHeight(image.get());
-
-    RetainPtr<CGImageRef> subImage;
-    if (tileRect.size() == imageSize)
-        subImage = image;
-    else {
-        // Copying a sub-image out of a partially-decoded image stops the decoding of the original image. It should never happen
-        // because sub-images are only used for border-image, which only renders when the image is fully decoded.
-        ASSERT(h == imageSize.height());
-        subImage = adoptCF(CGImageCreateWithImageInRect(image.get(), tileRect));
-    }
-
-    // If we need to paint gaps between tiles because we have a partially loaded image or non-zero spacing,
-    // fall back to the less efficient CGPattern-based mechanism.
-    float scaledTileWidth = tileRect.width() * narrowPrecisionToFloat(patternTransform.a());
-    float w = CGImageGetWidth(image.get());
-    if (w == imageSize.width() && h == imageSize.height() && !spacing.width() && !spacing.height()) {
-        // FIXME: CG seems to snap the images to integral sizes. When we care (e.g. with border-image-repeat: round),
-        // we should tile all but the last, and stretch the last image to fit.
-        CGContextDrawTiledImage(context, FloatRect(adjustedX, adjustedY, scaledTileWidth, scaledTileHeight), subImage.get());
-    } else {
-        static const CGPatternCallbacks patternCallbacks = { 0, drawPatternCallback, drawPatternReleaseCallback };
-        CGAffineTransform matrix = CGAffineTransformMake(narrowPrecisionToCGFloat(patternTransform.a()), 0, 0, narrowPrecisionToCGFloat(patternTransform.d()), adjustedX, adjustedY);
-        matrix = CGAffineTransformConcat(matrix, CGContextGetCTM(context));
-        // The top of a partially-decoded image is drawn at the bottom of the tile. Map it to the top.
-        matrix = CGAffineTransformTranslate(matrix, 0, imageSize.height() - h);
-        RetainPtr<CGPatternRef> pattern;
-#if HAVE(CGPATTERN_CREATE_WITH_IMAGE_TRANSFORM_STEP)
-        if (PAL::canLoad_CoreGraphics_CGPatternCreateWithImageTransformStep()) {
-            pattern = adoptCF(PAL::softLink_CoreGraphics_CGPatternCreateWithImageTransformStep(subImage.get(), matrix,
-                tileRect.width() + spacing.width() * (1 / narrowPrecisionToFloat(patternTransform.a())),
-                tileRect.height() + spacing.height() * (1 / narrowPrecisionToFloat(patternTransform.d())),
-                kCGPatternTilingConstantSpacing));
-        } else
-#endif
-        {
-            // The pattern takes ownership of the image reference, which is released in drawPatternReleaseCallback().
-            // FIXME: If CGPatternCreate() returns NULL, drawPatternReleaseCallback() never runs and the image reference leaks.
-            SUPPRESS_RETAINPTR_CTOR_ADOPT pattern = adoptCF(CGPatternCreate(subImage.leakRef(), CGRectMake(0, 0, tileRect.width(), tileRect.height()), matrix,
-                tileRect.width() + spacing.width() * (1 / narrowPrecisionToFloat(patternTransform.a())),
-                tileRect.height() + spacing.height() * (1 / narrowPrecisionToFloat(patternTransform.d())),
-                kCGPatternTilingConstantSpacing, true, &patternCallbacks));
-        }
-
-        if (!pattern)
-            return;
-
-        RetainPtr<CGColorSpaceRef> patternSpace = adoptCF(CGColorSpaceCreatePattern(nullptr));
-
-        CGFloat alpha = 1;
-        RetainPtr<CGColorRef> color = adoptCF(CGColorCreateWithPattern(patternSpace.get(), pattern.get(), &alpha));
-        CGContextSetFillColorSpace(context, patternSpace.get());
-
-        CGContextSetBaseCTM(context, CGAffineTransformIdentity);
-        CGContextSetPatternPhase(context, CGSizeZero);
-
-        CGContextSetFillColorWithColor(context, color.get());
-        CGContextFillRect(context, CGContextGetClipBoundingBox(context)); // FIXME: we know the clip; we set it above.
-    }
+    SWIFT_RENDERER(drawPattern(image.get(), imageSize.width(), imageSize.height(), destRect.x(), destRect.y(), destRect.width(), destRect.height(), tileRect.x(), tileRect.y(), tileRect.width(), tileRect.height(), patternTransform.a(), patternTransform.d(), phase.x(), phase.y(), spacing.width(), spacing.height(), options.compositeOperator(), options.blendMode(), options.interpolationQuality()));
 }
 
 // Draws a filled rectangle with a stroked border.
 void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 {
+    CAPTURE(drawRect(rect, borderThickness));
     // FIXME: this function does not handle patterns and gradients like drawPath does, it probably should.
     ASSERT(!rect.isEmpty());
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    CGContextFillRect(context, rect);
-
-    if (strokeStyle() != StrokeStyle::NoStroke) {
-        // We do a fill of four rects to simulate the stroke of a border.
-        Color oldFillColor = fillColor();
-        if (oldFillColor != strokeColor())
-            setCGFillColor(context, strokeColor(), colorSpace());
-        CGRect rects[4] = {
-            FloatRect(rect.x(), rect.y(), rect.width(), borderThickness),
-            FloatRect(rect.x(), rect.maxY() - borderThickness, rect.width(), borderThickness),
-            FloatRect(rect.x(), rect.y() + borderThickness, borderThickness, rect.height() - 2 * borderThickness),
-            FloatRect(rect.maxX() - borderThickness, rect.y() + borderThickness, borderThickness, rect.height() - 2 * borderThickness)
-        };
-        CGContextFillRects(context, rects, 4);
-        if (oldFillColor != strokeColor())
-            setCGFillColor(context, oldFillColor, colorSpace());
-    }
+    SWIFT_RENDERER(drawRect(rect, borderThickness, fillColor() != strokeColor()));
 }
 
 // This is only used to draw borders.
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
-    if (strokeStyle() == StrokeStyle::NoStroke)
+    CAPTURE(drawLine(point1, point2));
+    SWIFT_RENDERER(drawLine(point1.x(), point1.y(), point2.x(), point2.y()));
+}
+
+void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
+{
+    CAPTURE(drawGlyphs(font, glyphs, advances, point, smoothingMode));
+    // A shadow with no blur may be drawn as glyphs in its color.
+    std::optional<Color> simpleShadowColor;
+    if (auto shadow = dropShadow(); shadow && shadow->color.isValid() && !shadow->radius)
+        simpleShadowColor = shadow->color;
+    CGRendererGlyphPreparation preparation { font, glyphs, smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor(), colorSpace(), isInTransparencyLayer() || SWIFT_RENDERER(hasReceiverTransparencyLayer()) };
+    if (!preparation.draws() || !preparation.font())
         return;
-
-    float thickness = strokeThickness();
-    bool isVerticalLine = (point1.x() + thickness == point2.x());
-    float strokeWidth = isVerticalLine ? point2.y() - point1.y() : point2.x() - point1.x();
-    if (!thickness || !strokeWidth)
-        return;
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    StrokeStyle strokeStyle = this->strokeStyle();
-    float cornerWidth = 0;
-    bool drawsDashedLine = strokeStyle == StrokeStyle::DottedStroke || strokeStyle == StrokeStyle::DashedStroke;
-
-    CGContextStateSaver stateSaver(context, drawsDashedLine);
-    if (drawsDashedLine) {
-        // Figure out end points to ensure we always paint corners.
-        cornerWidth = dashedLineCornerWidthForStrokeWidth(strokeWidth);
-        setCGFillColor(context, strokeColor(), colorSpace());
-        if (isVerticalLine) {
-            CGContextFillRect(context, FloatRect(point1.x(), point1.y(), thickness, cornerWidth));
-            CGContextFillRect(context, FloatRect(point1.x(), point2.y() - cornerWidth, thickness, cornerWidth));
-        } else {
-            CGContextFillRect(context, FloatRect(point1.x(), point1.y(), cornerWidth, thickness));
-            CGContextFillRect(context, FloatRect(point2.x() - cornerWidth, point1.y(), cornerWidth, thickness));
-        }
-        strokeWidth -= 2 * cornerWidth;
-        float patternWidth = dashedLinePatternWidthForStrokeWidth(strokeWidth);
-        // Check if corner drawing sufficiently covers the line.
-        if (strokeWidth <= patternWidth + 1)
-            return;
-
-        float patternOffset = dashedLinePatternOffsetForPatternAndStrokeWidth(patternWidth, strokeWidth);
-        const CGFloat dashedLine[2] = { static_cast<CGFloat>(patternWidth), static_cast<CGFloat>(patternWidth) };
-        CGContextSetLineDash(context, patternOffset, dashedLine, 2);
-    }
-
-    auto centeredPoints = centerLineAndCutOffCorners(isVerticalLine, cornerWidth, point1, point2);
-    auto p1 = centeredPoints[0];
-    auto p2 = centeredPoints[1];
-
-    if (shouldAntialias()) {
-#if PLATFORM(IOS_FAMILY)
-        // Force antialiasing on for line patterns as they don't look good with it turned off (<rdar://problem/5459772>).
-        CGContextSetShouldAntialias(context, strokeStyle == StrokeStyle::DottedStroke || strokeStyle == StrokeStyle::DashedStroke);
-#else
-        CGContextSetShouldAntialias(context, false);
-#endif
-    }
-    CGContextBeginPath(context);
-    CGContextMoveToPoint(context, p1.x(), p1.y());
-    CGContextAddLineToPoint(context, p2.x(), p2.y());
-    CGContextStrokePath(context);
-    if (shouldAntialias())
-        CGContextSetShouldAntialias(context, true);
+    Vector<CGPoint, 256> positions(glyphs.size());
+    SWIFT_RENDERER(drawGlyphs(CGRendererGlyphRun { preparation.font(), glyphs, advances, preparation.translations() }, CGRendererGlyphPositions { positions.mutableSpan() }, preparation.facts(), preparation.shadowFillColor(), point.x(), point.y()));
 }
 
 void GraphicsContextCG::drawEllipse(const FloatRect& rect)
@@ -803,193 +1221,140 @@ void GraphicsContextCG::drawEllipse(const FloatRect& rect)
     drawPath(path);
 }
 
+// The renderer draws ShadowBlur's shadows itself where it draws ShadowBlur's images itself (drawNativeImage()).
+bool GraphicsContextCG::swiftDrawsShadowBlur() const
+{
+#if HAVE(SUPPORT_HDR_DISPLAY_APIS) && !PLATFORM(IOS_FAMILY)
+    return canUseShadowBlur();
+#else
+    return false;
+#endif
+}
+
+// Whether GraphicsContextState::setFillColor() of a shadow's color, as ShadowBlur sets it through a GraphicsContextView,
+// would change the fill and so CG's fill color.
+bool GraphicsContextCG::shadowColorChangesFill(const Color& shadowColor) const
+{
+    return !(fillBrush() == SourceBrush { shadowColor }) || m_state.indeterminateProperties().contains(GraphicsContextState::Change::FillBrush);
+}
+
+static uint8_t swiftBrushKind(const SourceBrush& brush)
+{
+    if (brush.gradient())
+        return 1;
+    return brush.pattern() ? 2 : 0;
+}
+
 void GraphicsContextCG::applyStrokePattern()
 {
-    RefPtr strokePattern = this->strokePattern();
-    if (!strokePattern)
-        return;
-
-    const RetainPtr<CGContextRef>& cgContext = contextForDraw();
-    AffineTransform userToBaseCTM = AffineTransform(getUserToBaseCTM(cgContext));
-
-    auto platformPattern = strokePattern->createPlatformPattern(userToBaseCTM);
-    if (!platformPattern)
-        return;
-
-    RetainPtr<CGColorSpaceRef> patternSpace = adoptCF(CGColorSpaceCreatePattern(0));
-    CGContextSetStrokeColorSpace(cgContext, patternSpace.get());
-
-    const CGFloat patternAlpha = 1;
-    CGContextSetStrokePattern(cgContext, platformPattern.get(), &patternAlpha);
+    CAPTURE(unsupported("applyStrokePattern"_s));
+    SWIFT_RENDERER(applyStrokePattern());
 }
 
 void GraphicsContextCG::applyFillPattern()
 {
-    RefPtr fillPattern = this->fillPattern();
-    if (!fillPattern)
-        return;
-
-    const RetainPtr<CGContextRef>& cgContext = contextForDraw();
-    AffineTransform userToBaseCTM = AffineTransform(getUserToBaseCTM(cgContext));
-
-    auto platformPattern = fillPattern->createPlatformPattern(userToBaseCTM);
-    if (!platformPattern)
-        return;
-
-    RetainPtr<CGColorSpaceRef> patternSpace = adoptCF(CGColorSpaceCreatePattern(nullptr));
-    CGContextSetFillColorSpace(cgContext, patternSpace.get());
-
-    const CGFloat patternAlpha = 1;
-    CGContextSetFillPattern(cgContext, platformPattern.get(), &patternAlpha);
-}
-
-NODELETE static inline bool calculateDrawingMode(const GraphicsContext& context, CGPathDrawingMode& mode)
-{
-    bool shouldFill = context.fillBrush().isVisible();
-    bool shouldStroke = context.strokeBrush().isVisible() || (context.strokeStyle() != StrokeStyle::NoStroke);
-    bool useEOFill = context.fillRule() == WindRule::EvenOdd;
-
-    if (shouldFill) {
-        if (shouldStroke) {
-            if (useEOFill)
-                mode = kCGPathEOFillStroke;
-            else
-                mode = kCGPathFillStroke;
-        } else { // fill, no stroke
-            if (useEOFill)
-                mode = kCGPathEOFill;
-            else
-                mode = kCGPathFill;
-        }
-    } else {
-        // Setting mode to kCGPathStroke even if shouldStroke is false. In that case, we return false and mode will not be used,
-        // but the compiler will not complain about an uninitialized variable.
-        mode = kCGPathStroke;
-    }
-
-    return shouldFill || shouldStroke;
+    CAPTURE(unsupported("applyFillPattern"_s));
+    SWIFT_RENDERER(applyFillPattern());
 }
 
 void GraphicsContextCG::drawPath(const Path& path)
 {
+    CAPTURE(drawPath(path));
     if (path.isEmpty())
         return;
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (fillGradient() || strokeGradient()) {
-        // We don't have any optimized way to fill & stroke a path using gradients
-        // FIXME: Be smarter about this.
-        fillPath(path);
-        strokePath(path);
+    m_hasDrawn = true;
+    if (SWIFT_RENDERER(fillsWithoutGradient()) && SWIFT_RENDERER(strokesWithoutGradient())) {
+        if (SWIFT_RENDERER(drawsPath()))
+            SWIFT_RENDERER(drawPath(protect(path.platformPath()).get()));
         return;
     }
 
-    if (fillPattern())
-        applyFillPattern();
-    if (strokePattern())
-        applyStrokePattern();
-
-    CGPathDrawingMode drawingMode;
-    if (calculateDrawingMode(*this, drawingMode))
-        drawPathWithCGContext(context, drawingMode, path);
+    // There's no way to fill and stroke a path with a gradient in one draw.
+    fillPath(path);
+    strokePath(path);
 }
 
 void GraphicsContextCG::fillPath(const Path& path)
 {
+    CAPTURE(fillPath(path));
     if (path.isEmpty())
         return;
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (RefPtr fillGradient = this->fillGradient()) {
-        paintGradientInClip(*fillGradient, fillGradientSpaceTransform(), [&] {
-            return path.fastBoundingRect();
-        }, [&](CGContextRef clipContext) {
-            setCGContextPath(clipContext, path);
-            if (fillRule() == WindRule::EvenOdd)
-                CGContextEOClip(clipContext);
-            else
-                CGContextClip(clipContext);
-        });
-
+    if (SWIFT_RENDERER(fillsWithoutGradient())) {
+        SWIFT_RENDERER(fillPath(protect(path.platformPath()).get()));
         return;
     }
 
-    if (fillPattern())
-        applyFillPattern();
-#if HAVE(CGCONTEXT_STROKE_ARC)
-    else if (auto arc = m_strokesArcsLikeFills ? path.pieWedgeArc() : std::nullopt; arc && arc->radius > 0 && canFillPieWedgeAsStrokeArc(*this)) {
-        fillPieWedgeAsStrokeArc(context.get(), *arc, fillColor(), colorSpace());
-        return;
-    }
-#endif
-
-    drawPathWithCGContext(context, fillRule() == WindRule::EvenOdd ? kCGPathEOFill : kCGPathFill, path);
+    // A gradient fills the clip of the path's own segments: a CGPath of it would convert the Path in place.
+    RefPtr fillGradient = this->fillGradient();
+    paintGradientInClip(*fillGradient, fillGradientSpaceTransform(), [&] {
+        return path.fastBoundingRect();
+    }, [&](CGContextRef clipContext) {
+        setCGContextPath(clipContext, path);
+        if (fillRule() == WindRule::EvenOdd)
+            CGContextEOClip(clipContext);
+        else
+            CGContextClip(clipContext);
+    });
 }
 
 void GraphicsContextCG::strokePath(const Path& path)
 {
+    CAPTURE(strokePath(path));
     if (path.isEmpty())
         return;
 
+    if (SWIFT_RENDERER(strokesWithoutGradient())) {
+        if (auto line = path.singleDataLine())
+            SWIFT_RENDERER(strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y()));
+        else
+            SWIFT_RENDERER(strokePath(protect(path.platformPath()).get()));
+        return;
+    }
+
     const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (RefPtr strokeGradient = this->strokeGradient()) {
-        paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
-            return strokedPathBoundingBox(context.get(), [&] {
-                setCGContextPath(context.get(), path);
-            });
-        }, [&](CGContextRef clipContext) {
-            CGContextSetLineWidth(clipContext, strokeThickness());
-            setCGContextPath(clipContext, path);
-            CGContextReplacePathWithStrokedPath(clipContext);
-            CGContextClip(clipContext);
-        });
-        return;
-    }
-
-    if (strokePattern())
-        applyStrokePattern();
-
-    if (auto line = path.singleDataLine()) {
-        CGPoint cgPoints[2] { line->start(), line->end() };
-        CGContextStrokeLineSegments(context, cgPoints, 2);
-        return;
-    }
-
-    drawPathWithCGContext(context, kCGPathStroke, path);
+    RefPtr strokeGradient = this->strokeGradient();
+    paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
+        return FloatRect { CGRendererStrokedPathBounds(context.get(), path) };
+    }, [&](CGContextRef clipContext) {
+        CGRendererClipToStrokedPath(clipContext, path, strokeThickness());
+    });
 }
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
+    CAPTURE(fillRect(rect, requiresClipToRect));
+    if (SWIFT_RENDERER(fillRect(rect)))
+        return;
 
     if (RefPtr fillGradient = this->fillGradient()) {
         fillRect(rect, *fillGradient, fillGradientSpaceTransform(), requiresClipToRect);
         return;
     }
 
-    if (fillPattern())
-        applyFillPattern();
-
-    bool drawOwnShadow = canUseShadowBlur();
-    CGContextStateSaver stateSaver(context, drawOwnShadow);
-    if (drawOwnShadow) {
-        clearCGDropShadow();
-
-        const auto shadow = dropShadow();
-        ASSERT(shadow);
-
-        ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
-        contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
+    // The renderer declines only gradients and blurred shadows.
+    ASSERT(canUseShadowBlur());
+    auto shadow = dropShadow();
+    if (swiftDrawsShadowBlur()) {
+        SWIFT_RENDERER(fillRectWithShadowBlur(rect, shadow->color, shadowColorChangesFill(shadow->color)));
+        return;
     }
 
+    // Where the renderer doesn't draw images (the iOS family), ShadowBlur draws through this context.
+    const RetainPtr<CGContextRef>& context = contextForDraw();
+    if (fillPattern())
+        applyFillPattern();
+    CGContextStateSaver stateSaver(context);
+    clearCGDropShadow();
+    ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
+    contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
     CGContextFillRect(context, rect);
 }
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, const AffineTransform& gradientSpaceTransform, RequiresClipToRect requiresClipToRect)
 {
+    CAPTURE(fillRect(rect, gradient, gradientSpaceTransform, requiresClipToRect));
     paintGradientInClip(gradient, gradientSpaceTransform, [&] {
         return rect;
     }, [&](CGContextRef clipContext) {
@@ -1000,35 +1365,49 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    Color oldFillColor = fillColor();
-
-    if (oldFillColor != color)
-        setCGFillColor(context, color, colorSpace());
-
-    bool drawOwnShadow = canUseShadowBlur();
-    CGContextStateSaver stateSaver(context, drawOwnShadow);
-    if (drawOwnShadow) {
-        clearCGDropShadow();
-
-        const auto shadow = dropShadow();
-        ASSERT(shadow);
-
-        ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
-        contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
+    CAPTURE(fillRect(rect, color));
+    bool changesFillColor = fillColor() != color;
+    auto packedColor = color.tryGetAsPackedInline();
+    RetainPtr<CGColorRef> platformColor;
+    if (packedColor) {
+        if (SWIFT_RENDERER(fillRect(rect, packedColor->value, changesFillColor)))
+            return;
+    } else {
+        platformColor = cachedCGColorInDestinationStandardRange(color, colorSpace());
+        if (SWIFT_RENDERER(fillRect(rect, platformColor.get(), changesFillColor)))
+            return;
     }
 
-    CGContextFillRect(context, rect);
+    // The renderer declines only blurred shadows.
+    ASSERT(canUseShadowBlur());
+    auto shadow = dropShadow();
+    if (swiftDrawsShadowBlur()) {
+        if (packedColor)
+            SWIFT_RENDERER(fillRectWithShadowBlur(rect, packedColor->value, changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
+        else
+            SWIFT_RENDERER(fillRectWithShadowBlur(rect, platformColor.get(), changesFillColor, shadow->color, shadowColorChangesFill(shadow->color)));
+        return;
+    }
 
-    if (drawOwnShadow)
-        stateSaver.restore();
-
-    if (oldFillColor != color)
+    // ShadowBlur draws through this context where the renderer doesn't draw images (the iOS family).
+    const RetainPtr<CGContextRef>& context = contextForDraw();
+    Color oldFillColor = fillColor();
+    if (changesFillColor)
+        setCGFillColor(context, color, colorSpace());
+    {
+        CGContextStateSaver stateSaver(context);
+        clearCGDropShadow();
+        ShadowBlur contextShadow(*shadow, shadowsIgnoreTransforms());
+        contextShadow.drawRectShadow(*this, FloatRoundedRect(rect));
+        CGContextFillRect(context, rect);
+    }
+    if (changesFillColor)
         setCGFillColor(context, oldFillColor, colorSpace());
 }
 
 void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const Color& color)
 {
+    CAPTURE(fillRoundedRect(rect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
     Color oldFillColor = fillColor();
 
@@ -1047,13 +1426,9 @@ void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const 
         contextShadow.drawRectShadow(*this, rect);
     }
 
-    const FloatRect& r = rect.rect();
-    const CornerRadii& radii = rect.radii();
-    bool equalWidths = (radii.topLeft().width() == radii.topRight().width() && radii.topRight().width() == radii.bottomLeft().width() && radii.bottomLeft().width() == radii.bottomRight().width());
-    bool equalHeights = (radii.topLeft().height() == radii.bottomLeft().height() && radii.bottomLeft().height() == radii.topRight().height() && radii.topRight().height() == radii.bottomRight().height());
     bool hasCustomFill = fillGradient() || fillPattern();
-    if (!hasCustomFill && equalWidths && equalHeights && radii.topLeft().width() * 2 == r.width() && radii.topLeft().height() * 2 == r.height())
-        CGContextFillEllipseInRect(context, r);
+    if (!hasCustomFill && CGRendererRoundedRectIsEllipse(rect))
+        CGContextFillEllipseInRect(context, rect.rect());
     else {
         Path path;
         path.addRoundedRect(rect);
@@ -1069,15 +1444,10 @@ void GraphicsContextCG::fillRoundedRectImpl(const FloatRoundedRect& rect, const 
 
 void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const FloatRoundedRect& roundedHoleRect, const Color& color)
 {
+    CAPTURE(fillRectWithRoundedHole(rect, roundedHoleRect, color));
     const RetainPtr<CGContextRef>& context = contextForDraw();
 
-    Path path;
-    path.addRect(rect);
-
-    if (!roundedHoleRect.radii().isZero())
-        path.addRoundedRect(roundedHoleRect);
-    else
-        path.addRect(roundedHoleRect.rect());
+    auto path = rectWithRoundedHolePath(rect, roundedHoleRect);
 
     Color oldFillColor = fillColor();
 
@@ -1108,51 +1478,32 @@ void GraphicsContextCG::fillRectWithRoundedHole(const FloatRect& rect, const Flo
 
 void GraphicsContextCG::resetClip()
 {
-    CGContextResetClip(contextForDraw());
+    CAPTURE(resetClip());
+    SWIFT_RENDERER(resetClip());
 }
 
 void GraphicsContextCG::clip(const FloatRect& rect)
 {
-    CGContextClipToRect(contextForDraw(), rect);
+    CAPTURE(clip(rect));
+    SWIFT_RENDERER(clip(rect));
 }
 
 void GraphicsContextCG::clipOut(const FloatRect& rect)
 {
-    // FIXME: Using CGRectInfinite is much faster than getting the clip bounding box. However, due
-    // to <rdar://problem/12584492>, CGRectInfinite can't be used with an accelerated context that
-    // has certain transforms that aren't just a translation or a scale. And due to <rdar://problem/14634453>
-    // we cannot use it in for a printing context either.
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    const AffineTransform& ctm = getCTM();
-    bool canUseCGRectInfinite = CGContextGetType(context) != kCGContextTypePDF && (renderingMode() == RenderingMode::Unaccelerated || (!ctm.b() && !ctm.c()));
-    CGRect rects[2] = { canUseCGRectInfinite ? CGRectInfinite : CGContextGetClipBoundingBox(context), rect };
-    CGContextBeginPath(context);
-    CGContextAddRects(context, rects, 2);
-    CGContextEOClip(context);
+    CAPTURE(clipOut(rect));
+    SWIFT_RENDERER(clipOut(rect));
 }
 
 void GraphicsContextCG::clipOut(const Path& path)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextBeginPath(context);
-    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
-    if (!path.isEmpty())
-        addToCGContextPath(context, path);
-    CGContextEOClip(context);
+    CAPTURE(clipOut(path));
+    CGRendererClipOutToPath(contextForDraw().get(), path);
 }
 
 void GraphicsContextCG::clipPath(const Path& path, WindRule clipRule)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    if (path.isEmpty())
-        CGContextClipToRect(context, CGRectZero);
-    else {
-        setCGContextPath(context, path);
-        if (clipRule == WindRule::EvenOdd)
-            CGContextEOClip(context);
-        else
-            CGContextClip(context);
-    }
+    CAPTURE(clipPath(path, clipRule));
+    CGRendererClipToPath(contextForDraw().get(), path, clipRule);
 }
 
 void GraphicsContextCG::clipTransformedPath(const AffineTransform& pathTransform, const Path& path, WindRule clipRule)
@@ -1175,6 +1526,7 @@ void GraphicsContextCG::clipTransformedPath(const AffineTransform& pathTransform
 
 void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const FloatRect& destRect)
 {
+    CAPTURE(unsupported("clipToImageBuffer"_s));
     // FIXME: This image needs to be grayscale to be used as an alpha mask here.
     const RetainPtr<CGContextRef>& context = contextForDraw();
     CGContextTranslateCTM(context, destRect.x(), destRect.maxY());
@@ -1187,43 +1539,53 @@ void GraphicsContextCG::clipToNativeImage(const NativeImage& nativeImage, const 
 
 IntRect GraphicsContextCG::clipBounds() const
 {
-    return enclosingIntRect(CGContextGetClipBoundingBox(contextForDraw()));
+    m_hasDrawn = true;
+    return enclosingIntRect(SWIFT_RENDERER(clipBoundingBox()));
 }
 
 void GraphicsContextCG::beginTransparencyLayer(float opacity)
 {
+    CAPTURE(beginTransparencyLayer(opacity));
+    ensureStateIsCurrent();
     GraphicsContext::beginTransparencyLayer(opacity);
-
     // CG composites the layer using the alpha, style and blend mode that are in effect when the
     // layer begins, and resets them for the layer contents. Purpose::TransparencyLayer resets
     // them in our state to match, without marking them as changed, so any pending change to them
     // has to reach the context before that happens.
     updatePlatformContextStateIfNeeded();
-
-    save(GraphicsContextState::Purpose::TransparencyLayer);
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextSetAlpha(context, opacity);
-    CGContextBeginTransparencyLayer(context, 0);
-
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
+    SWIFT_RENDERER(beginTransparencyLayer(opacity));
 }
 
-void GraphicsContextCG::beginTransparencyLayer(CompositeOperator, BlendMode)
+void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperator, BlendMode blendMode)
 {
-    // Passing state().alpha() to beginTransparencyLayer(opacity) will
-    // preserve the current global alpha.
-    beginTransparencyLayer(state().alpha());
+    CAPTURE(beginTransparencyLayer(compositeOperator, blendMode));
+    UNUSED_PARAM(compositeOperator);
+    UNUSED_PARAM(blendMode);
+    ensureStateIsCurrent();
+    // The layer keeps the current global alpha.
+    GraphicsContext::beginTransparencyLayer(state().alpha());
+    GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
+    SWIFT_RENDERER(beginTransparencyLayerWithCurrentAlpha());
 }
 
 void GraphicsContextCG::endTransparencyLayer()
 {
+    CAPTURE(endTransparencyLayer());
+    ensureStateIsCurrent();
+    auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
+    if (level == SwiftRendererSavedLevel::ReceiverTransparencyLayer) {
+        SWIFT_RENDERER(endTransparencyLayer());
+        m_stateIsStale = true;
+        return;
+    }
+    if (level == SwiftRendererSavedLevel::ReceiverSave)
+        return;
+    if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
+        return;
     GraphicsContext::endTransparencyLayer();
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextEndTransparencyLayer(context);
-
-    restore(GraphicsContextState::Purpose::TransparencyLayer);
+    SWIFT_RENDERER(endTransparencyLayer());
+    GraphicsContext::restore(GraphicsContextState::Purpose::TransparencyLayer);
 }
 
 static CGFloat scaledBlurRadius(CGFloat blurRadius, const CGAffineTransform& userToBaseCTM, bool shadowsIgnoreTransforms)
@@ -1248,32 +1610,23 @@ static BaseSpaceDropShadow baseSpaceDropShadow(const GraphicsDropShadow& shadow,
     return { offset, scaledBlurRadius(shadow.radius, userToBaseCTM, shadowsIgnoreTransforms) };
 }
 
-void GraphicsContextCG::setCGDropShadow(const std::optional<GraphicsDropShadow>& shadow, bool shadowsIgnoreTransforms)
-{
-    if (!shadow || !shadow->color.isValid() || (shadow->offset.isZero() && !shadow->radius)) {
-        clearCGDropShadow();
-        return;
-    }
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    auto [offset, blurRadius] = baseSpaceDropShadow(*shadow, getUserToBaseCTM(context), shadowsIgnoreTransforms);
-
-    // Apply the opacity to the shadow color. Setting it as the context alpha would override the alpha of the drawing.
-    RetainPtr style = adoptCF(CGStyleCreateShadow2(offset, blurRadius, cachedCGColorInDestinationStandardRange(shadow->color.colorWithAlphaMultipliedBy(shadow->opacity), colorSpace()).get()));
-    CGContextSetStyle(context, style.get());
-}
 
 FloatRect GraphicsContextCG::boundsIncludingDropShadow(const FloatRect& bounds)
 {
     auto shadow = dropShadow();
     ASSERT(shadow);
+    return boundsIncludingDropShadowOf(contextForDraw().get(), *shadow, shadowsIgnoreTransforms(), bounds);
+}
 
-    AffineTransform userToBaseCTM = getUserToBaseCTM(contextForDraw());
+static FloatRect boundsIncludingDropShadowOf(CGContextRef context, const GraphicsDropShadow& shadow, bool shadowsIgnoreTransforms, const FloatRect& bounds)
+{
+    AffineTransform userToBaseCTM = getUserToBaseCTM(context);
     auto baseToUserCTM = userToBaseCTM.inverse();
     if (!baseToUserCTM)
         return bounds;
 
-    auto [offset, blurRadius] = baseSpaceDropShadow(*shadow, userToBaseCTM, shadowsIgnoreTransforms());
+    auto [offset, blurRadius] = baseSpaceDropShadow(shadow, userToBaseCTM, shadowsIgnoreTransforms);
 
     // CG blurs shadows with a standard deviation of half the blur radius, and bounds the
     // result at 2.8 standard deviations plus a pixel.
@@ -1284,77 +1637,64 @@ FloatRect GraphicsContextCG::boundsIncludingDropShadow(const FloatRect& bounds)
     return baseToUserCTM->mapRect(unionRect(baseSpaceBounds, shadowBounds));
 }
 
+static CGRendererColorData colorData(const Color& color)
+{
+    CGRendererColorData values { };
+    auto data = color.data();
+    if (!data)
+        return values;
+    values.isSemantic = data->isSemantic;
+    values.usesFunctionSerialization = data->usesFunctionSerialization;
+    WTF::switchOn(data->data,
+        [&](PackedColor::RGBA packedColor) {
+            values.form = 1;
+            values.packedColor = packedColor.value;
+        },
+        [&](const OutOfLineColorDataForIPC& components) {
+            values.form = 2;
+            values.colorSpace = static_cast<uint8_t>(components.colorSpace);
+            values.c1 = components.c1;
+            values.c2 = components.c2;
+            values.c3 = components.c3;
+            values.alpha = components.alpha;
+        });
+    return values;
+}
+
+static Color colorFromData(const CGRendererColorData& values)
+{
+    if (!values.form)
+        return { };
+    Variant<PackedColor::RGBA, OutOfLineColorDataForIPC> data = PackedColor::RGBA { values.packedColor };
+    if (values.form == 2)
+        data = OutOfLineColorDataForIPC { static_cast<ColorSpaceName>(values.colorSpace), values.c1, values.c2, values.c3, values.alpha };
+    return Color { std::optional { ColorDataForIPC { values.isSemantic, values.usesFunctionSerialization, WTF::move(data) } } };
+}
+
 void GraphicsContextCG::clearCGDropShadow()
 {
     CGContextSetStyle(contextForDraw(), nullptr);
 }
 
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-void GraphicsContextCG::setCGGaussianBlur(const GraphicsGaussianBlur& gaussianBlur, bool shadowsIgnoreTransforms)
+void GraphicsContextCG::setSwiftRendererShadow(const GraphicsDropShadow& shadow, bool isStyle)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    ASSERT(gaussianBlur.radius.width() == gaussianBlur.radius.height());
-
-    CGAffineTransform userToBaseCTM = getUserToBaseCTM(context);
-    CGFloat blurRadius = scaledBlurRadius(gaussianBlur.radius.width(), userToBaseCTM, shadowsIgnoreTransforms);
-
-    CGGaussianBlurStyle gaussianBlurStyle = { 1, blurRadius };
-    auto style = adoptCF(CGStyleCreateGaussianBlur(&gaussianBlurStyle));
-    CGContextSetStyle(context, style.get());
-}
-
-void GraphicsContextCG::setCGColorMatrix(const GraphicsColorMatrix& colorMatrix)
-{
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    CGColorMatrixStyle cgColorMatrix = { 1, { 0 } };
-    for (auto [dst, src] : zippedRange(cgColorMatrix.matrix, colorMatrix.values))
-        dst = src;
-    auto style = adoptCF(CGStyleCreateColorMatrix(&cgColorMatrix));
-    CGContextSetStyle(context, style.get());
-}
-#endif
-
-void GraphicsContextCG::setCGStyle(const std::optional<GraphicsStyle>& style, bool shadowsIgnoreTransforms)
-{
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (!style) {
-        CGContextSetStyle(context, nullptr);
+    CGRendererShadowValues values;
+    CGRendererColorData data;
+    RetainPtr color = adoptCF(CGRendererCopyShadow(*this, shadow, values, data));
+    if (!color) {
+        if (isStyle)
+            SWIFT_RENDERER(setDropShadowStyle(values));
+        else
+            SWIFT_RENDERER(setDropShadow(values));
         return;
     }
-
-    WTF::switchOn(*style,
-        [&] (const GraphicsDropShadow& dropShadow) {
-            setCGDropShadow(dropShadow, shadowsIgnoreTransforms);
-        },
-        [&] (const GraphicsGaussianBlur& gaussianBlur) {
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-            setCGGaussianBlur(gaussianBlur, shadowsIgnoreTransforms);
-#else
-            ASSERT_NOT_REACHED();
-            UNUSED_PARAM(gaussianBlur);
-#endif
-        },
-        [&] (const GraphicsColorMatrix& colorMatrix) {
-#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-            setCGColorMatrix(colorMatrix);
-#else
-            ASSERT_NOT_REACHED();
-            UNUSED_PARAM(colorMatrix);
-#endif
-        }
-    );
+    if (isStyle)
+        SWIFT_RENDERER(setDropShadowStyle(values, color.get(), data));
+    else
+        SWIFT_RENDERER(setDropShadow(values, color.get(), data));
 }
 
-void GraphicsContextCG::updatePlatformContextStateIfNeeded() const
-{
-    if (m_state.changes())
-        const_cast<GraphicsContextCG&>(*this).updatePlatformContextState();
-}
-
-void GraphicsContextCG::updatePlatformContextState()
+void GraphicsContextCG::didUpdateStateForSwiftRenderer()
 {
     auto changes = m_state.changes();
     if (!changes)
@@ -1371,107 +1711,252 @@ void GraphicsContextCG::updatePlatformContextState()
             changes.add(GraphicsContextState::Change::Style);
     }
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
+
+    // The shadow and style below are converted with the new value, as C++'s state already has it.
+    if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
+        SWIFT_RENDERER(setShadowsIgnoreTransforms(m_state.shadowsIgnoreTransforms()));
 
     for (auto change : changes) {
         switch (change) {
-        case GraphicsContextState::Change::FillBrush:
-            if (!m_state.fillBrush().hasPatternOrGradient())
-                setCGFillColor(context, m_state.fillBrush().color(), colorSpace());
+        case GraphicsContextState::Change::FillBrush: {
+            auto& brush = m_state.fillBrush();
+            if (auto packedColor = brush.color().tryGetAsPackedInline())
+                SWIFT_RENDERER(setFillPackedColor(packedColor->value, swiftBrushKind(brush)));
+            else
+                SWIFT_RENDERER(setFillPlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible()));
+            if (brush.hasPatternOrGradient())
+                SWIFT_RENDERER(setFillSource(CGRendererBrushSource { brush }, swiftBrushKind(brush)));
             break;
+        }
+
+        case GraphicsContextState::Change::FillRule:
+            SWIFT_RENDERER(setFillRule(static_cast<uint8_t>(m_state.fillRule())));
+            break;
+
+        case GraphicsContextState::Change::StrokeBrush: {
+            auto& brush = m_state.strokeBrush();
+            if (auto packedColor = brush.color().tryGetAsPackedInline())
+                SWIFT_RENDERER(setStrokePackedColor(packedColor->value, swiftBrushKind(brush)));
+            else
+                SWIFT_RENDERER(setStrokePlatformColor(cachedCGColorInDestinationStandardRange(brush.color(), colorSpace()).get(), colorData(brush.color()), swiftBrushKind(brush), brush.color().isVisible()));
+            if (brush.hasPatternOrGradient())
+                SWIFT_RENDERER(setStrokeSource(CGRendererBrushSource { brush }, swiftBrushKind(brush)));
+            break;
+        }
 
         case GraphicsContextState::Change::StrokeThickness:
-            CGContextSetLineWidth(context, std::max(m_state.strokeThickness(), 0.f));
+            SWIFT_RENDERER(setStrokeThickness(m_state.strokeThickness()));
             break;
 
-        case GraphicsContextState::Change::StrokeBrush:
-            if (!m_state.strokeBrush().hasPatternOrGradient())
-                CGContextSetStrokeColorWithColor(context, cachedCGColorInDestinationStandardRange(m_state.strokeBrush().color(), colorSpace()).get());
+        case GraphicsContextState::Change::StrokeStyle:
+            SWIFT_RENDERER(setStrokeStyle(static_cast<uint8_t>(m_state.strokeStyle())));
             break;
 
         case GraphicsContextState::Change::CompositeMode:
-            setCGBlendMode(context, m_state.compositeMode().operation, m_state.compositeMode().blendMode);
+            SWIFT_RENDERER(setCompositeMode(m_state.compositeMode().operation, m_state.compositeMode().blendMode));
             break;
 
         case GraphicsContextState::Change::DropShadow:
-            setCGDropShadow(m_state.dropShadow(), m_state.shadowsIgnoreTransforms());
+            if (auto& shadow = m_state.dropShadow())
+                setSwiftRendererShadow(*shadow, false);
+            else
+                SWIFT_RENDERER(clearDropShadow());
             break;
 
         case GraphicsContextState::Change::Style:
-            setCGStyle(m_state.style(), m_state.shadowsIgnoreTransforms());
+            if (auto& style = m_state.style()) {
+                WTF::switchOn(*style,
+                    [&](const GraphicsDropShadow& shadow) {
+                        setSwiftRendererShadow(shadow, true);
+                    },
+                    [&](const GraphicsGaussianBlur& gaussianBlur) {
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+                        ASSERT(gaussianBlur.radius.width() == gaussianBlur.radius.height());
+                        SWIFT_RENDERER(setGaussianBlurStyle(gaussianBlur.radius.width(), gaussianBlur.radius.height()));
+#else
+                        UNUSED_PARAM(gaussianBlur);
+#endif
+                    },
+                    [&](const GraphicsColorMatrix& colorMatrix) {
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+                        CGRendererColorMatrix values;
+                        for (auto [destination, source] : zippedRange(values.values, colorMatrix.values))
+                            destination = source;
+                        SWIFT_RENDERER(setColorMatrixStyle(values));
+#else
+                        UNUSED_PARAM(colorMatrix);
+#endif
+                    });
+            } else
+                SWIFT_RENDERER(setNoStyle());
             break;
 
         case GraphicsContextState::Change::Alpha:
-            CGContextSetAlpha(context, m_state.alpha());
+            SWIFT_RENDERER(setAlpha(m_state.alpha()));
             break;
 
         case GraphicsContextState::Change::ImageInterpolationQuality:
-            CGContextSetInterpolationQuality(context, toCGInterpolationQuality(m_state.imageInterpolationQuality()));
+            SWIFT_RENDERER(setImageInterpolationQuality(m_state.imageInterpolationQuality()));
             break;
 
         case GraphicsContextState::Change::TextDrawingMode:
-            CGContextSetTextDrawingMode(context, cgTextDrawingMode(m_state.textDrawingMode()));
+            SWIFT_RENDERER(setTextDrawingMode(m_state.textDrawingMode().toRaw()));
             break;
 
         case GraphicsContextState::Change::ShouldAntialias:
-            CGContextSetShouldAntialias(context, m_state.shouldAntialias());
+            SWIFT_RENDERER(setShouldAntialias(m_state.shouldAntialias()));
             break;
 
         case GraphicsContextState::Change::ShouldSmoothFonts:
-            CGContextSetShouldSmoothFonts(context, m_state.shouldSmoothFonts());
+            SWIFT_RENDERER(setShouldSmoothFonts(m_state.shouldSmoothFonts()));
             break;
 
-        default:
+        case GraphicsContextState::Change::ShouldSubpixelQuantizeFonts:
+            SWIFT_RENDERER(setShouldSubpixelQuantizeFonts(m_state.shouldSubpixelQuantizeFonts()));
+            break;
+
+        case GraphicsContextState::Change::ShadowsIgnoreTransforms:
             break;
         }
     }
 }
 
+void GraphicsContextCG::updateStateFromSwiftRenderer()
+{
+    CGRendererStateSnapshot snapshot { };
+    SWIFT_RENDERER(snapshotState(snapshot));
+    updateStateFromSwiftRenderer(snapshot, GraphicsContextState::ChangeFlags::all());
+}
+
+void GraphicsContextCG::updateStateFromSwiftRenderer(const CGRendererStateSnapshot& snapshot, GraphicsContextState::ChangeFlags properties)
+{
+    using Change = GraphicsContextState::Change;
+
+    auto color = [&](uint32_t packedColor, uint32_t platformColorSlot) {
+        if (!platformColorSlot)
+            return Color { asSRGBA(PackedColor::RGBA { packedColor }) };
+        CGRendererColorData platformColor { };
+        SWIFT_RENDERER(copyPlatformColor(platformColorSlot, platformColor));
+        return colorFromData(platformColor);
+    };
+    auto brush = [&](const CGRendererBrushSnapshot& values) {
+        SourceBrush sourceBrush { color(values.packedColor, values.platformColorSlot) };
+        if (values.sourceSlot) {
+            CGRendererBrushSource source;
+            SWIFT_RENDERER(copyBrushSource(values.sourceSlot, source));
+            source.applyTo(sourceBrush);
+        }
+        return sourceBrush;
+    };
+    auto dropShadow = [&](const CGRendererShadowSnapshot& shadow) {
+        auto& values = shadow.values;
+        return GraphicsDropShadow {
+            { values.width, values.height }, values.radius, values.isValid ? color(values.packedColor, shadow.platformColorSlot) : Color { },
+            values.legacyRadius ? ShadowRadiusMode::Legacy : ShadowRadiusMode::Default, values.opacity
+        };
+    };
+
+    auto style = [&]() -> std::optional<GraphicsStyle> {
+        switch (snapshot.style) {
+        case 1:
+            return dropShadow(snapshot.styleDropShadow);
+#if HAVE(CGSTYLE_COLORMATRIX_BLUR)
+        case 2:
+            return GraphicsGaussianBlur { { snapshot.gaussianBlurWidth, snapshot.gaussianBlurHeight } };
+        case 3: {
+            CGRendererColorMatrix matrix { };
+            SWIFT_RENDERER(copyColorMatrix(snapshot.colorMatrixSlot, matrix));
+            GraphicsColorMatrix colorMatrix;
+            for (auto [destination, source] : zippedRange(colorMatrix.values, matrix.values))
+                destination = source;
+            return colorMatrix;
+        }
+#endif
+        default:
+            return std::nullopt;
+        }
+    };
+
+    if (properties.contains(Change::FillBrush))
+        m_state.setFillBrush(brush(snapshot.fill));
+    if (properties.contains(Change::FillRule))
+        m_state.setFillRule(snapshot.fillRule ? WindRule::EvenOdd : WindRule::NonZero);
+    if (properties.contains(Change::StrokeBrush))
+        m_state.setStrokeBrush(brush(snapshot.stroke));
+    if (properties.contains(Change::StrokeThickness))
+        m_state.setStrokeThickness(snapshot.strokeThickness);
+    if (properties.contains(Change::StrokeStyle))
+        m_state.setStrokeStyle(static_cast<StrokeStyle>(snapshot.strokeStyle));
+    if (properties.contains(Change::CompositeMode))
+        m_state.setCompositeMode({ static_cast<CompositeOperator>(snapshot.compositeOperator), static_cast<BlendMode>(snapshot.blendMode) });
+    if (properties.contains(Change::DropShadow))
+        m_state.setDropShadow(snapshot.hasDropShadow ? std::optional { dropShadow(snapshot.dropShadow) } : std::nullopt);
+    if (properties.contains(Change::Style))
+        m_state.setStyle(style());
+    if (properties.contains(Change::Alpha))
+        m_state.setAlpha(snapshot.alpha);
+    if (properties.contains(Change::TextDrawingMode))
+        m_state.setTextDrawingMode(TextDrawingModeFlags::fromRaw(snapshot.textDrawingMode));
+    if (properties.contains(Change::ImageInterpolationQuality))
+        m_state.setImageInterpolationQuality(static_cast<InterpolationQuality>(snapshot.imageInterpolationQuality));
+    if (properties.contains(Change::ShouldAntialias))
+        m_state.setShouldAntialias(snapshot.shouldAntialias);
+    if (properties.contains(Change::ShouldSmoothFonts))
+        m_state.setShouldSmoothFonts(snapshot.shouldSmoothFonts);
+    if (properties.contains(Change::ShouldSubpixelQuantizeFonts))
+        m_state.setShouldSubpixelQuantizeFonts(snapshot.shouldSubpixelQuantizeFonts);
+    if (properties.contains(Change::ShadowsIgnoreTransforms))
+        m_state.setShadowsIgnoreTransforms(snapshot.shadowsIgnoreTransforms);
+    // The renderer and the CGContext have these already.
+    m_state.didApplyChanges();
+#if HAVE(SUPPORT_HDR_DISPLAY)
+    m_maxEDRHeadroom = snapshot.hasMaxEDRHeadroom ? std::optional { snapshot.maxEDRHeadroom } : std::nullopt;
+#endif
+}
+
+void GraphicsContextCG::updatePlatformContextStateIfNeeded() const
+{
+    if (m_state.changes())
+        const_cast<GraphicsContextCG&>(*this).updatePlatformContextState();
+}
+
+void GraphicsContextCG::updatePlatformContextState()
+{
+    CAPTURE(stateUpdate(m_state));
+    didUpdateStateForSwiftRenderer();
+}
+
 void GraphicsContextCG::setMiterLimit(float limit)
 {
-    CGContextSetMiterLimit(contextForDraw(), limit);
+    CAPTURE(setMiterLimit(limit));
+    SWIFT_RENDERER(setMiterLimit(limit));
 }
 
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
-    CGContextClearRect(contextForDraw(), r);
+    CAPTURE(clearRect(r));
+    SWIFT_RENDERER(clearRect(r));
 }
 
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (RefPtr strokeGradient = this->strokeGradient()) {
-        paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
-            return strokedPathBoundingBox(context.get(), [&] {
-                CGContextSetLineWidth(context.get(), std::max(lineWidth, 0.f));
-                CGContextAddRect(context.get(), rect);
-            });
-        }, [&](CGContextRef clipContext) {
-            CGContextSetLineWidth(clipContext, std::max(lineWidth, 0.f));
-            CGContextAddRect(clipContext, rect);
-            CGContextReplacePathWithStrokedPath(clipContext);
-            CGContextClip(clipContext);
-        });
+    CAPTURE(strokeRect(rect, lineWidth));
+    if (SWIFT_RENDERER(strokeRect(rect, lineWidth)))
         return;
-    }
 
-    if (strokePattern())
-        applyStrokePattern();
-
-    // Using CGContextAddRect and CGContextStrokePath to stroke rect rather than
-    // convenience functions (CGContextStrokeRect/CGContextStrokeRectWithWidth).
-    // The convenience functions currently (in at least OSX 10.9.4) fail to
-    // apply some attributes of the graphics state in certain cases
-    // (as identified in https://bugs.webkit.org/show_bug.cgi?id=132948)
-    CGContextSetLineWidth(context, std::max(lineWidth, 0.f));
-    CGContextAddRect(context, rect);
-    CGContextStrokePath(context);
-    CGContextSetLineWidth(context, std::max(strokeThickness(), 0.f));
+    // The renderer declines only gradients.
+    const RetainPtr<CGContextRef>& context = contextForDraw();
+    RefPtr strokeGradient = this->strokeGradient();
+    paintGradientInClip(*strokeGradient, strokeGradientSpaceTransform(), [&] {
+        return FloatRect { CGRendererStrokedRectBounds(context.get(), rect, lineWidth) };
+    }, [&](CGContextRef clipContext) {
+        CGRendererClipToStrokedRect(clipContext, rect, lineWidth);
+    });
 }
 
 void GraphicsContextCG::strokeArc(const PathArc& arc)
 {
+    CAPTURE(strokeArc(arc));
 #if HAVE(CGCONTEXT_STROKE_ARC)
     if (!strokeGradient()) {
         if (strokePattern())
@@ -1487,66 +1972,34 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
 
 void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
-    // Gradient stroking requires building a stroked path and clipping to it,
-    // which CGContextStrokeLineSegments cannot do. Defer to strokePath() via
-    // the base class for that case. Patterns can be inlined as long as we set
-    // them up first, matching the fast path inside strokePath().
-    if (strokeGradient()) {
-        GraphicsContext::strokeLine(line);
+    CAPTURE(strokeLine(line));
+    if (SWIFT_RENDERER(strokesWithoutGradient())) {
+        SWIFT_RENDERER(strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y()));
         return;
     }
-    if (strokePattern())
-        applyStrokePattern();
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGPoint pts[2] = { line.start(), line.end() };
-    CGContextStrokeLineSegments(context, pts, 2);
+    // Gradient stroking requires building a stroked path and clipping to it: strokePath() via the base class.
+    GraphicsContext::strokeLine(line);
 }
 
 void GraphicsContextCG::setLineCap(LineCap cap)
 {
-    switch (cap) {
-    case LineCap::Butt:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapButt);
-        break;
-    case LineCap::Round:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapRound);
-        break;
-    case LineCap::Square:
-        CGContextSetLineCap(contextForDraw(), kCGLineCapSquare);
-        break;
-    }
+    CAPTURE(setLineCap(cap));
+    SWIFT_RENDERER(setLineCap(cap));
 }
 
 void GraphicsContextCG::setLineDash(const DashArray& dashes, float dashOffset)
 {
-    if (dashOffset < 0) {
-        float length = 0;
-        for (size_t i = 0; i < dashes.size(); ++i)
-            length += static_cast<float>(dashes[i]);
-        // CGContextSetLineDash repeats odd-length arrays, so the effective cycle is twice the sum.
-        if (dashes.size() % 2)
-            length *= 2;
-        if (length)
-            dashOffset = fmod(dashOffset, length) + length;
-    }
-    auto dashesSpan = dashes.span();
-    CGContextSetLineDash(contextForDraw(), dashOffset, dashesSpan.data(), dashesSpan.size());
+    CAPTURE(setLineDash(dashes, dashOffset));
+    SWIFT_RENDERER(clearLineDash());
+    for (auto dash : dashes)
+        SWIFT_RENDERER(appendLineDash(dash));
+    SWIFT_RENDERER(applyLineDash(dashOffset));
 }
 
 void GraphicsContextCG::setLineJoin(LineJoin join)
 {
-    switch (join) {
-    case LineJoin::Miter:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinMiter);
-        break;
-    case LineJoin::Round:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinRound);
-        break;
-    case LineJoin::Bevel:
-        CGContextSetLineJoin(contextForDraw(), kCGLineJoinBevel);
-        break;
-    }
+    CAPTURE(setLineJoin(join));
+    SWIFT_RENDERER(setLineJoin(join));
 }
 
 // The transform functions below apply the pending state to the platform context even though they
@@ -1556,84 +2009,74 @@ void GraphicsContextCG::setLineJoin(LineJoin join)
 
 void GraphicsContextCG::scale(const FloatSize& size)
 {
-    CGContextScaleCTM(contextForDraw(), size.width(), size.height());
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    CAPTURE(scale(size));
+    SWIFT_RENDERER(scale(size.width(), size.height()));
 }
 
 void GraphicsContextCG::rotate(float angle)
 {
-    CGContextRotateCTM(contextForDraw(), angle);
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    CAPTURE(rotate(angle));
+    SWIFT_RENDERER(rotate(angle));
 }
 
 void GraphicsContextCG::translate(float x, float y)
 {
-    CGContextTranslateCTM(contextForDraw(), x, y);
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    CAPTURE(translate(x, y));
+    SWIFT_RENDERER(translate(x, y));
 }
 
 void GraphicsContextCG::concatCTM(const AffineTransform& transform)
 {
-    CGContextConcatCTM(contextForDraw(), transform);
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    CAPTURE(concatCTM(transform));
+    SWIFT_RENDERER(concatCTM(transform));
 }
 
 void GraphicsContextCG::setCTM(const AffineTransform& transform)
 {
-    CGContextSetCTM(contextForDraw(), transform);
-    m_userToDeviceTransformKnownToBeIdentity = false;
+    CAPTURE(setCTM(transform));
+    SWIFT_RENDERER(setCTM(transform));
 }
 
 AffineTransform GraphicsContextCG::getCTM(IncludeDeviceScale includeScale) const
 {
-    // The CTM usually includes the deviceScaleFactor except in WebKit 1 when the
-    // content is non-composited, since the scale factor is integrated at a lower
-    // level. To guarantee the deviceScale is included, we can use this CG API.
-    if (includeScale == DefinitelyIncludeDeviceScale)
-        return CGContextGetUserSpaceToDeviceSpaceTransform(contextForDraw());
-
-    return CGContextGetCTM(contextForDraw());
+    m_hasDrawn = true;
+    return SWIFT_RENDERER(ctm(includeScale == DefinitelyIncludeDeviceScale));
 }
 
 FloatRect GraphicsContextCG::roundToDevicePixels(const FloatRect& rect) const
 {
-    CGAffineTransform deviceMatrix;
-    if (!m_userToDeviceTransformKnownToBeIdentity) {
-        deviceMatrix = CGContextGetUserSpaceToDeviceSpaceTransform(contextForState());
-        if (CGAffineTransformIsIdentity(deviceMatrix))
-            m_userToDeviceTransformKnownToBeIdentity = true;
-    }
-    if (m_userToDeviceTransformKnownToBeIdentity)
+    if (SWIFT_RENDERER(isUserToDeviceTransformKnownToBeIdentity()))
         return roundedIntRect(rect);
+    auto deviceMatrix = CGContextGetUserSpaceToDeviceSpaceTransform(contextForState());
+    if (CGAffineTransformIsIdentity(deviceMatrix)) {
+        SWIFT_RENDERER(setUserToDeviceTransformKnownToBeIdentity());
+        return roundedIntRect(rect);
+    }
     return cgRoundToDevicePixelsNonIdentity(deviceMatrix, rect);
 }
 
 void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
+    CAPTURE(drawLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle));
     auto [rects, color] = computeRectsAndStrokeColorForLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
     if (rects.isEmpty())
         return;
     bool changeFillColor = fillColor() != color;
-    if (changeFillColor)
-        setCGFillColor(contextForDraw(), color, colorSpace());
-    CGContextFillRects(contextForDraw(), rects.span().data(), rects.size());
-    if (changeFillColor)
-        setCGFillColor(contextForDraw(), fillColor(), colorSpace());
+    CGRendererRects rectsView { rects.span() };
+    if (auto packedColor = color.tryGetAsPackedInline())
+        SWIFT_RENDERER(fillRectsInPackedColor(rectsView, packedColor->value, changeFillColor));
+    else
+        SWIFT_RENDERER(fillRectsInPlatformColor(rectsView, cachedCGColorInDestinationStandardRange(color, colorSpace()).get(), changeFillColor));
 }
 
 void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect)
 {
+    CAPTURE(unsupported("setURLForRect"_s));
     RetainPtr<CFURLRef> urlRef = link.createCFURL();
     if (!urlRef)
         return;
 
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    FloatRect rect = destRect;
-    // Get the bounding box to handle clipping.
-    rect.intersect(CGContextGetClipBoundingBox(context));
-
-    CGPDFContextSetURLForRect(context, urlRef.get(), CGRectApplyAffineTransform(rect, CGContextGetCTM(context)));
+    SWIFT_RENDERER(setURLForRect(urlRef.get(), destRect));
 }
 
 bool GraphicsContextCG::isCALayerContext() const
@@ -1659,72 +2102,53 @@ RenderingMode GraphicsContextCG::renderingMode() const
 
 void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 {
+    CAPTURE(applyDeviceScaleFactor(deviceScaleFactor));
     GraphicsContext::applyDeviceScaleFactor(deviceScaleFactor);
-
-    // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it.
-    // Failing to change the base level CTM will cause certain CG features, such as focus rings,
-    // to draw with a scale factor of 1 rather than the actual scale factor.
-    CGContextSetBaseCTM(contextForDraw(), CGAffineTransformScale(CGContextGetBaseCTM(contextForDraw()), deviceScaleFactor, deviceScaleFactor));
+    // CoreGraphics expects the base CTM of a HiDPI context to have the scale factor applied to it. Failing to change the
+    // base level CTM will cause certain CG features, such as focus rings, to draw with a scale factor of 1 rather than the
+    // actual scale factor.
+    SWIFT_RENDERER(applyDeviceScaleFactorToBaseCTM(deviceScaleFactor));
 }
 
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
-    // CGContextFillEllipseInRect only supports solid colors.
-    if (fillGradient() || fillPattern()) {
-        fillEllipseAsPath(ellipse);
+    CAPTURE(fillEllipse(ellipse));
+    if (SWIFT_RENDERER(fillEllipse(ellipse)))
         return;
-    }
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextFillEllipseInRect(context, ellipse);
+    // CGContextFillEllipseInRect only supports solid colors.
+    fillEllipseAsPath(ellipse);
 }
 
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
-    // CGContextStrokeEllipseInRect only supports solid colors.
-    if (strokeGradient() || strokePattern()) {
-        strokeEllipseAsPath(ellipse);
+    CAPTURE(strokeEllipse(ellipse));
+    if (SWIFT_RENDERER(strokeEllipse(ellipse)))
         return;
-    }
-
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGContextStrokeEllipseInRect(context, ellipse);
+    // CGContextStrokeEllipseInRect only supports solid colors.
+    strokeEllipseAsPath(ellipse);
 }
 
 void GraphicsContextCG::beginPage(const FloatRect& pageRect)
 {
+    CAPTURE(unsupported("beginPage"_s));
+    ensureStateIsCurrent();
     const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (CGContextGetType(context) != kCGContextTypePDF) {
+    if (!SWIFT_RENDERER(beginPDFPage(pageRect))) {
         ASSERT_NOT_REACHED();
         return;
     }
 
-    auto mediaBox = CGRectMake(pageRect.x(), pageRect.y(), pageRect.width(), pageRect.height());
-    auto mediaBoxData = adoptCF(CFDataCreate(nullptr, (const UInt8 *)&mediaBox, sizeof(CGRect)));
-
-    const void* key = kCGPDFContextMediaBox;
-    const void* value = mediaBoxData.get();
-    auto pageInfo = adoptCF(CFDictionaryCreate(kCFAllocatorDefault, &key, &value, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
-
-    CGPDFContextBeginPage(context, pageInfo.get());
-
     ASSERT(!stackSize());
     m_state = GraphicsContextState { GraphicsContextState::basicChangeFlags, coreInterpolationQuality(context.get()) };
+    SWIFT_RENDERER(resetState(m_state.imageInterpolationQuality()));
     didUpdateState(m_state);
-    m_userToDeviceTransformKnownToBeIdentity = false;
 }
 
 void GraphicsContextCG::endPage()
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    if (CGContextGetType(context) != kCGContextTypePDF) {
+    CAPTURE(unsupported("endPage"_s));
+    if (!SWIFT_RENDERER(endPDFPage()))
         ASSERT_NOT_REACHED();
-        return;
-    }
-
-    CGPDFContextEndPage(context);
 }
 
 bool GraphicsContextCG::supportsInternalLinks() const
@@ -1734,30 +2158,24 @@ bool GraphicsContextCG::supportsInternalLinks() const
 
 void GraphicsContextCG::setDestinationForRect(const String& name, const FloatRect& destRect)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-
-    FloatRect rect = destRect;
-    rect.intersect(CGContextGetClipBoundingBox(context));
-
-    CGRect transformedRect = CGRectApplyAffineTransform(rect, CGContextGetCTM(context));
-    CGPDFContextSetDestinationForRect(context, name.createCFString().get(), transformedRect);
+    CAPTURE(unsupported("setDestinationForRect"_s));
+    SWIFT_RENDERER(setDestinationForRect(name.createCFString().get(), destRect));
 }
 
 void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoint& position)
 {
-    const RetainPtr<CGContextRef>& context = contextForDraw();
-    CGPoint transformedPoint = CGPointApplyAffineTransform(position, CGContextGetCTM(context));
-    CGPDFContextAddDestinationAtPoint(context, name.createCFString().get(), transformedPoint);
+    CAPTURE(unsupported("addDestinationAtPoint"_s));
+    SWIFT_RENDERER(addDestinationAtPoint(name.createCFString().get(), position.x(), position.y()));
 }
 
 bool GraphicsContextCG::canUseShadowBlur() const
 {
-    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !m_state.shadowsIgnoreTransforms();
+    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
 }
 
 bool GraphicsContextCG::consumeHasDrawn()
 {
-    bool hasDrawn = m_hasDrawn;
+    bool hasDrawn = SWIFT_RENDERER(consumeHasDrawn()) || m_hasDrawn;
     m_hasDrawn = false;
     return hasDrawn;
 }
@@ -1765,12 +2183,16 @@ bool GraphicsContextCG::consumeHasDrawn()
 #if HAVE(SUPPORT_HDR_DISPLAY)
 void GraphicsContextCG::setMaxEDRHeadroom(std::optional<float> headroom)
 {
+    CAPTURE(setMaxEDRHeadroom(headroom));
     m_maxEDRHeadroom = headroom;
+    SWIFT_RENDERER(setMaxEDRHeadroom(headroom.value_or(0), !!headroom));
 }
 #endif
 
 
 }
+
+#undef SWIFT_RENDERER
 
 #if USE(APPLE_INTERNAL_SDK) && __has_include(<WebKitAdditions/IOSurfaceAdditionsAfter.mm>)
 #include <WebKitAdditions/IOSurfaceAdditionsAfter.mm>

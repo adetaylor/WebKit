@@ -1,0 +1,175 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test the GPU process's capture receiver with unknown, repeated and malformed arguments.</title>
+<pre id="log"></pre>
+<script>
+if (window.testRunner) {
+    testRunner.dumpAsText();
+    testRunner.waitUntilDone();
+    testRunner.setUserMediaPermission(true);
+}
+
+function log(line)
+{
+    document.getElementById('log').textContent += line + '\n';
+}
+
+const uint8 = value => ({ type: 'uint8_t', value });
+const uint64 = value => ({ type: 'uint64_t', value });
+const bool = value => ({ type: 'bool', value: value ? 1 : 0 });
+const vector = elements => ({ type: 'Vector', value: elements });
+const string = value => ({ type: 'String', value });
+
+// The first mock camera, as a CaptureDevice: persistent ID, type (Camera), label, group ID, enabled, default, mock,
+// ephemeral.
+const mockCamera = [string('239c24b2-2b15-11e3-8224-0800200c9a66'), uint8(8), string('Mock video device 1'), string(''), bool(true), bool(true), bool(true), bool(false)];
+
+// A MediaConstraints with no constraint: 18 empty constraints, no advanced set, not valid.
+const emptyConstraints = [...Array(18).fill(bool(false)), vector([]), bool(false)];
+// PhotoSettings with nothing set.
+const noPhotoSettings = [bool(false), bool(false), bool(false), bool(false)];
+
+function message(name)
+{
+    return IPC.messages[`UserMediaCaptureManagerProxy_${name}`].name;
+}
+
+function send(name, args)
+{
+    IPC.sendMessage('GPU', 0, message(name), args);
+}
+
+function sendSync(name, args)
+{
+    try {
+        return IPC.sendSyncMessage('GPU', 0, message(name), 1000, args);
+    } catch (error) {
+        return null;
+    }
+}
+
+function sendWithReply(name, args)
+{
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => resolve(null), 2000);
+        IPC.connectionForProcessTarget('GPU').sendWithAsyncReply(0, message(name), args, result => {
+            clearTimeout(timeout);
+            resolve(result?.arguments ? result : null);
+        });
+    });
+}
+
+function takeInvalidMessage()
+{
+    try {
+        const reply = IPC.sendSyncMessage('GPU', 0, IPC.messages.GPUConnectionToWebProcess_TakeInvalidMessageStringForTesting.name, 1000, []);
+        // Swift handlers that reject a message mark it without a description.
+        const value = reply?.arguments?.[0]?.value;
+        if (!value)
+            return 'none';
+        const description = value.replace(/\0/g, '');
+        return description ? `"${description}"` : 'marked';
+    } catch (error) {
+        return 'none';
+    }
+}
+
+// Waits for the GPU process to have handled the messages sent so far.
+function flush()
+{
+    return sendSync('IsPowerEfficient', [uint64(1)]);
+}
+
+function check(description)
+{
+    flush();
+    log(`${description}: invalid message ${takeInvalidMessage()}`);
+}
+
+function replyText(result)
+{
+    if (!result)
+        return 'no reply';
+    const values = result.arguments.map(argument => argument.value === undefined ? 'replied' : typeof argument.value === 'string' ? `"${argument.value}"` : String(argument.value));
+    return values.join(', ');
+}
+
+async function run()
+{
+    if (!window.IPC || !window.testRunner) {
+        log('This test needs the IPC testing API.');
+        return;
+    }
+
+    // A camera track first, so that the web process may capture.
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    log(`A camera track: ${stream.getVideoTracks()[0].readyState}`);
+    takeInvalidMessage();
+
+    // A source of our own, of the first mock camera.
+    const sourceID = 0x123456n;
+    const created = await sendWithReply('CreateMediaSourceForCaptureDeviceWithConstraints', [uint64(sourceID), ...mockCamera, string(''), string(''), ...emptyConstraints, bool(true), uint64(IPC.pageID)]);
+    log(`CreateMediaSourceForCaptureDeviceWithConstraints: ${created ? `error message ${created.arguments[0].value || 'none'}` : 'no reply'}`);
+    send('StartProducingData', [uint64(sourceID), uint64(IPC.pageID)]);
+    check('StartProducingData of the new source');
+    const duplicate = await sendWithReply('CreateMediaSourceForCaptureDeviceWithConstraints', [uint64(sourceID), ...mockCamera, string(''), string(''), ...emptyConstraints, bool(true), uint64(IPC.pageID)]);
+    log(`CreateMediaSourceForCaptureDeviceWithConstraints with the same identifier: ${duplicate ? 'replied' : 'no reply'}`);
+    check('A second source with the same identifier');
+
+    // Identifiers no source has: ignored, as a source that has just been removed is.
+    const unknown = sourceID + 1000n;
+    send('StartProducingData', [uint64(unknown), uint64(IPC.pageID)]);
+    send('StopProducingData', [uint64(unknown)]);
+    send('EndProducingData', [uint64(unknown)]);
+    send('SetShouldApplyRotation', [uint64(unknown)]);
+    send('SetIsInBackground', [uint64(unknown), bool(true)]);
+    send('RemoveSource', [uint64(unknown)]);
+    send('ApplyConstraints', [uint64(unknown), ...emptyConstraints]);
+    check('Unknown source identifiers');
+    log(`IsPowerEfficient of an unknown source: ${replyText(sendSync('IsPowerEfficient', [uint64(unknown)]))}`);
+    log(`TakePhoto of an unknown source: ${replyText(await sendWithReply('TakePhoto', [uint64(unknown), ...noPhotoSettings]))}`);
+    log(`GetPhotoCapabilities of an unknown source: ${replyText(await sendWithReply('GetPhotoCapabilities', [uint64(unknown)]))}`);
+    log(`GetPhotoSettings of an unknown source: ${replyText(await sendWithReply('GetPhotoSettings', [uint64(unknown)]))}`);
+
+    // Cloning needs a source to clone and an identifier no source has.
+    send('Clone', [uint64(unknown), uint64(unknown + 1n), uint64(IPC.pageID)]);
+    check('Clone of an unknown source');
+    send('Clone', [uint64(sourceID), uint64(sourceID), uint64(IPC.pageID)]);
+    check('Clone onto the cloned source');
+    const clone = sourceID + 2000n;
+    send('Clone', [uint64(sourceID), uint64(clone), uint64(IPC.pageID)]);
+    check('Clone onto a new identifier');
+    send('Clone', [uint64(sourceID), uint64(clone), uint64(IPC.pageID)]);
+    check('A second clone onto the same identifier');
+    send('ApplyConstraints', [uint64(clone), ...emptyConstraints]);
+    send('SetIsInBackground', [uint64(clone), bool(false)]);
+    send('StopProducingData', [uint64(clone)]);
+    send('RemoveSource', [uint64(clone)]);
+    send('RemoveSource', [uint64(clone)]);
+    check('Using and removing the clone twice');
+
+    // Malformed arguments.
+    send('ApplyConstraints', [uint64(sourceID), bool(true)]);
+    check('ApplyConstraints with truncated constraints');
+    send('ApplyConstraints', [uint64(sourceID), ...Array(18).fill(bool(false)), vector([]), uint8(2)]);
+    check('ApplyConstraints with a validity flag that is not a bool');
+    send('SetIsInBackground', [uint64(sourceID), uint8(2)]);
+    check('SetIsInBackground with a flag that is not a bool');
+    log(`TakePhoto with a fill light mode out of range: ${replyText(await sendWithReply('TakePhoto', [uint64(sourceID), bool(true), uint8(9), bool(false), bool(false), bool(false)]))}`);
+    check('TakePhoto with a fill light mode out of range');
+    log(`TakePhoto with a photo width that is not a double: ${replyText(await sendWithReply('TakePhoto', [uint64(sourceID), bool(false), bool(false), bool(true), uint8(1)]))}`);
+    check('TakePhoto with a truncated photo width');
+    send('StartProducingData', [uint64(sourceID)]);
+    check('StartProducingData without a page');
+
+    // The source still works.
+    log(`IsPowerEfficient of the camera: ${replyText(sendSync('IsPowerEfficient', [uint64(sourceID)]))}`);
+    const settings = await sendWithReply('GetPhotoSettings', [uint64(sourceID)]);
+    log(`GetPhotoSettings of the camera: ${settings ? 'replied' : 'no reply'}`);
+    send('RemoveSource', [uint64(sourceID)]);
+    log(`The camera track: ${stream.getVideoTracks()[0].readyState}`);
+    stream.getTracks().forEach(track => track.stop());
+    check('After stopping the track');
+}
+
+run().catch(error => log(`Error: ${error}`)).finally(() => window.testRunner?.notifyDone());
+</script>

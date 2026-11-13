@@ -69,7 +69,6 @@ class MediaPlayerPrivateMediaSourceAVFObjC;
 class MediaSourcePrivateAVFObjC;
 class TimeRanges;
 class AudioTrackPrivate;
-class VideoMediaSampleRenderer;
 class VideoTrackPrivate;
 class AudioTrackPrivateMediaSourceAVFObjC;
 class VideoTrackPrivateMediaSourceAVFObjC;

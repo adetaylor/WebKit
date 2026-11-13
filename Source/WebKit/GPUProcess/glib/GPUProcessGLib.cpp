@@ -32,7 +32,7 @@
 #include "GPUProcessCreationParameters.h"
 #include <glib.h>
 #if ENABLE(WEBGL)
-#include "RemoteGraphicsContextGL.h"
+#include "RemoteGraphicsContextGLResources.h"
 #include "StreamConnectionWorkQueue.h"
 #include <WebCore/GraphicsContextGLANGLE.h>
 #endif

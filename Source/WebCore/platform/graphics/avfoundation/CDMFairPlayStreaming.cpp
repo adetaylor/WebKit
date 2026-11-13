@@ -39,7 +39,6 @@
 #include "SharedBuffer.h"
 #include "WebCore-Swift.h"
 #include <algorithm>
-#include <wtf/JSONValues.h>
 #include <wtf/LoggerHelper.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -57,7 +56,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(CDMPrivateFairPlayStreaming);
 NODELETE static WTFLogChannel& logChannel() { return LogEME; }
 #endif
 
-// The parsing and the decisions are in CDMFairPlayStreamingParsing.swift. The JSON stays here.
+// The parsing and the decisions are in CDMFairPlayStreamingParsing.swift.
 
 // The key IDs of 'sinf' init data are the default key IDs of 'tenc' boxes.
 static constexpr size_t sinfKeyIDSize = 16;
@@ -82,35 +81,9 @@ static FairPlayInitDataType initDataTypeFromName(const String& name)
 // The key IDs whose scheme is valid, back to back, or nullopt when no entry has both a scheme and a key ID.
 static std::optional<Vector<uint8_t>> sinfKeyIDs(const SharedBuffer& buffer)
 {
-    // JSON of the format: "{ sinf: [ <base64-encoded-string> ] }"
-    if (buffer.size() > std::numeric_limits<unsigned>::max())
-        return std::nullopt;
-
-    auto value = JSON::Value::parseJSON(byteCast<Latin1Character>(buffer.makeContiguous()->span()));
-    if (!value)
-        return std::nullopt;
-
-    auto object = value->asObject();
-    if (!object)
-        return std::nullopt;
-
-    auto sinfArray = object->getArray(CDMPrivateFairPlayStreaming::sinfName());
-    if (!sinfArray)
-        return std::nullopt;
-
     Vector<uint8_t> keyIDs;
-    bool hasSchemeAndKeyID = false;
-    for (auto& entry : *sinfArray) {
-        auto sinf = entry->asString();
-        if (!sinf)
-            continue;
-
-        if (sinf.is8Bit() ? fairPlaySinfKeyIDLatin1Impl({ sinf.span8() }, keyIDs) : fairPlaySinfKeyIDUTF16Impl({ sinf.span16() }, keyIDs))
-            hasSchemeAndKeyID = true;
-    }
-    if (!hasSchemeAndKeyID)
+    if (!fairPlayInitDataKeyIDsImpl(FairPlayInitDataType::Sinf, { buffer.makeContiguous()->span() }, keyIDs))
         return std::nullopt;
-
     return keyIDs;
 }
 
@@ -157,28 +130,8 @@ const String& CDMPrivateFairPlayStreaming::mptsName()
 
 std::optional<Vector<Ref<SharedBuffer>>> CDMPrivateFairPlayStreaming::extractKeyIDsMpts(const SharedBuffer& buffer)
 {
-    // JSON of the format: "{ "codc" : [integer],  "mtyp" : [integer],  "cont" : "mpts"} }"
-    if (buffer.size() > std::numeric_limits<unsigned>::max())
-        return { };
-
-    auto value = JSON::Value::parseJSON(byteCast<Latin1Character>(buffer.makeContiguous()->span()));
-    if (!value)
-        return { };
-
-    auto object = value->asObject();
-    if (!object)
-        return { };
-
-    auto contValue = object->getString("cont"_s);
-    if (contValue != "mpts"_s)
-        return { };
-
-    auto codcValue = object->getInteger("codc"_s);
-    if (!codcValue)
-        return { };
-
-    auto mtypValue = object->getInteger("mtyp"_s);
-    if (!mtypValue)
+    MediaParserByteVector unused;
+    if (!fairPlayInitDataKeyIDsImpl(FairPlayInitDataType::Mpts, { buffer.makeContiguous()->span() }, unused))
         return { };
 
     return mptsKeyIDs();
@@ -225,9 +178,7 @@ std::unique_ptr<CDMPrivate> CDMFactoryFairPlayStreaming::createCDM(const String&
 
 bool CDMFactoryFairPlayStreaming::supportsKeySystem(const String& keySystem)
 {
-    // https://w3c.github.io/encrypted-media/#key-system
-    // "Key System strings are compared using case-sensitive matching."
-    return keySystem == "com.apple.fps"_s || keySystem.startsWith("com.apple.fps."_s);
+    return fairPlaySupportsKeySystemImpl(mediaParserShortName(StringView(keySystem).left(MediaParserShortName::capacity)), keySystem.length());
 }
 
 CDMPrivateFairPlayStreaming::CDMPrivateFairPlayStreaming(const String& mediaKeysHashSalt, const CDMPrivateClient& client)
@@ -276,12 +227,11 @@ static FairPlayConfiguration fairPlayConfiguration(const CDMKeySystemConfigurati
         .hasAudioCapabilities = !configuration.audioCapabilities.isEmpty(),
         .hasVideoCapabilities = !configuration.videoCapabilities.isEmpty(),
     };
-#if HAVE(AVCONTENTKEYSESSION)
-    result.hasSupportedAudioCapability = std::ranges::any_of(configuration.audioCapabilities, CDMInstanceFairPlayStreamingAVFObjC::supportsMediaCapability);
-    result.hasSupportedVideoCapability = std::ranges::any_of(configuration.videoCapabilities, CDMInstanceFairPlayStreamingAVFObjC::supportsMediaCapability);
-    result.supportsPersistableState = CDMInstanceFairPlayStreamingAVFObjC::supportsPersistableState();
-    result.supportsPersistentKeys = CDMInstanceFairPlayStreamingAVFObjC::supportsPersistentKeys();
-#endif
+    auto supportsMediaCapability = [](const CDMMediaCapability& capability) {
+        return fairPlaySupportsMediaCapabilityImpl(mediaParserText(capability.contentType), !!capability.encryptionScheme, capability.encryptionScheme.value_or(CDMEncryptionScheme::cenc));
+    };
+    result.hasSupportedAudioCapability = std::ranges::any_of(configuration.audioCapabilities, supportsMediaCapability);
+    result.hasSupportedVideoCapability = std::ranges::any_of(configuration.videoCapabilities, supportsMediaCapability);
     return result;
 }
 
@@ -380,26 +330,7 @@ bool CDMPrivateFairPlayStreaming::supportsSessions() const
 
 bool CDMPrivateFairPlayStreaming::supportsInitData(const String& initDataType, const SharedBuffer& initData) const
 {
-    switch (initDataTypeFromName(initDataType)) {
-    case FairPlayInitDataType::Other:
-        return false;
-    case FairPlayInitDataType::Sinf: {
-        auto keyIDs = sinfKeyIDs(initData);
-        return keyIDs && !keyIDs->isEmpty();
-    }
-    case FairPlayInitDataType::Cenc: {
-#if HAVE(FAIRPLAYSTREAMING_CENC_INITDATA)
-        return cencHasFairPlayPsshImpl({ initData.span() });
-#else
-        return false;
-#endif
-    }
-    case FairPlayInitDataType::Skd:
-    case FairPlayInitDataType::Mpts:
-        return true;
-    }
-    ASSERT_NOT_REACHED();
-    return false;
+    return fairPlaySupportsInitDataImpl(mediaParserShortName(initDataType), { initData.span() });
 }
 
 RefPtr<SharedBuffer> CDMPrivateFairPlayStreaming::sanitizeResponse(const SharedBuffer& response) const

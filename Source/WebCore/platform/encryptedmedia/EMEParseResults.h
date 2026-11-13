@@ -58,32 +58,11 @@
 
 namespace WebCore {
 
-enum class ClearKeyInitDataType : uint8_t {
-    Other,
-    KeyIDs,
-    Cenc,
-    WebM,
-};
-
-struct ClearKeyInitDataSupport {
-    ClearKeyInitDataType type { ClearKeyInitDataType::Other };
-    bool supported { false };
-};
-
-// The key IDs a ClearKey license request lists: keyIDCount IDs of keyIDSize bytes each, back to back from
-// firstKeyIDOffset in the init data. Without key IDs the request is empty, unless initDataIsRequest says that the init
-// data itself is the request.
-struct ClearKeyLicenseRequest {
-    uint32_t firstKeyIDOffset { 0 };
-    uint32_t keyIDSize { 0 };
-    uint32_t keyIDCount { 0 };
-    bool initDataIsRequest { false };
-};
-
-enum class ClearKeyUpdateKind : uint8_t {
-    Invalid,
-    License,
-    ReleaseAcknowledgement,
+// What a ClearKey session's license update did. Padded to 8 bytes for Swift interop (rdar://191583570).
+struct alignas(8) ClearKeyUpdateResult {
+    bool sessionWasClosed { false };
+    bool hasChangedKeys { false };
+    bool succeeded { false };
 };
 
 // What the ClearKey policy reads of a CDMKeySystemConfiguration and its CDMRestrictions. Padded to 8 bytes for Swift

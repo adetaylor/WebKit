@@ -21,8 +21,8 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::TextureDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
-    WebKit::WebGPU::Extent3D size;
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::TextureDescriptor : WebKit::WebGPU::ObjectDescriptorBase {
+    ::WebGPU::Extent3D size;
     uint32_t mipLevelCount;
     uint32_t sampleCount;
     ::WebGPU::TextureDimension dimension;

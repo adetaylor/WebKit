@@ -1,0 +1,4 @@
+Tests that the GPU process survives a page that goes away with GPU work in flight.
+
+PASS the GPU process still works
+

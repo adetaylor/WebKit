@@ -41,7 +41,6 @@
 
 typedef struct AudioFormatVorbisModeInfo AudioFormatVorbisModeInfo;
 typedef const struct opaqueCMFormatDescription* CMFormatDescriptionRef;
-typedef const struct opaqueCMFormatDescription* CMVideoFormatDescriptionRef;
 typedef struct opaqueCMSampleBuffer* CMSampleBufferRef;
 typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 typedef struct OpaqueCMBlockBuffer* CMBlockBufferRef;
@@ -59,10 +58,6 @@ WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromFormatDescription(CMFormatDe
 WEBCORE_EXPORT Ref<SharedBuffer> sharedBufferFromCMBlockBuffer(CMBlockBufferRef);
 WEBCORE_EXPORT RetainPtr<CMBlockBufferRef> ensureContiguousBlockBuffer(CMBlockBufferRef);
 
-// Converts a CMSampleBuffer whose data buffer holds length-prefixed (avcC/hvcC-style) NAL units into Annex B format.
-using CMVideoFormatDescriptionGetParameterSetAtIndexFunction = OSStatus (*)(CMFormatDescriptionRef, size_t, const uint8_t**, size_t*, size_t*, int*);
-WEBCORE_EXPORT Vector<uint8_t> convertParameterSetsCMSampleBufferToAnnexB(CMSampleBufferRef, bool isKeyframe, CMVideoFormatDescriptionGetParameterSetAtIndexFunction);
-
 // Convert MediaSamplesBlock to the equivalent CMSampleBufferRef. If CMFormatDescriptionRef
 // is set it will be used, otherwise it will be created from the MediaSamplesBlock's TrackInfo.
 WEBCORE_EXPORT std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> toCMSampleBuffer(const MediaSamplesBlock&, CMFormatDescriptionRef = nullptr);
@@ -75,11 +70,11 @@ bool hasSeparateAlphaStream(CMFormatDescriptionRef);
 
 WEBCORE_EXPORT void attachColorSpaceToPixelBuffer(const PlatformVideoColorSpace&, CVPixelBufferRef);
 
-CFStringRef convertToCMColorPrimaries(PlatformVideoColorPrimaries);
-CFStringRef convertToCMTransferFunction(PlatformVideoTransferCharacteristics);
-CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
+WEBCORE_EXPORT CFStringRef convertToCMColorPrimaries(PlatformVideoColorPrimaries);
+WEBCORE_EXPORT CFStringRef convertToCMTransferFunction(PlatformVideoTransferCharacteristics);
+WEBCORE_EXPORT CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
 
-PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
+WEBCORE_EXPORT PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
 
 #if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
 WEBCORE_EXPORT Vector<Ref<SharedBuffer>> getKeyIDs(CMFormatDescriptionRef);
@@ -131,7 +126,7 @@ Vector<AudioStreamPacketDescription> getPacketDescriptions(CMSampleBufferRef);
 // empty Vector on failure or if the buffer carries no timing entries.
 Vector<CMSampleTimingInfo> getSampleTimingInfoArray(CMSampleBufferRef);
 
-RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t>, CMVideoFormatDescriptionRef);
+RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer NOESCAPE, CMVideoFormatDescriptionRef);
 
 // Iterate over each sub-sample contained in a CMSampleBufferRef.
 // Transparently handles the kCMSampleBufferError_BufferHasNoSampleSizes shape

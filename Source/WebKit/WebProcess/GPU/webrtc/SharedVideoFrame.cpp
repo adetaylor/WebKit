@@ -60,15 +60,9 @@ using namespace WebCore;
 // The protocol state and decisions are in SharedVideoFrameImpl.swift.
 
 static_assert(sizeof(SharedVideoFrameWriterImpl) == sizeof(void*) && alignof(SharedVideoFrameWriterImpl) == alignof(void*));
-static_assert(sizeof(SharedVideoFrameReaderImpl) == sizeof(void*) && alignof(SharedVideoFrameReaderImpl) == alignof(void*));
+static_assert(sizeof(SharedVideoFrameSource) == sizeof(void*) && alignof(SharedVideoFrameSource) == alignof(void*));
 
 // Swift traps when it passes a span with a null base back to C++, so empty storage is handed over with a valid one.
-static std::span<const uint8_t> spanWithNonNullBase(std::span<const uint8_t> bytes)
-{
-    static constexpr std::array<uint8_t, 1> emptyBytes { };
-    return bytes.data() ? bytes : std::span { emptyBytes }.first(0);
-}
-
 static std::span<uint8_t> spanWithNonNullBase(std::span<uint8_t> bytes)
 {
     static std::array<uint8_t, 1> emptyBytes { };
@@ -258,50 +252,34 @@ bool SharedVideoFrameWriter::isDisabled()
     return swiftImpl().isDisabled();
 }
 
-SharedVideoFrameReaderContext::SharedVideoFrameReaderContext(SharedVideoFrameReader& reader)
-    : m_reader(reader)
+CVPixelBufferPoolRef createSharedVideoFrameBufferPool(uint32_t width, uint32_t height, OSType pixelFormat)
 {
+    auto result = createIOSurfaceCVPixelBufferPool(width, height, pixelFormat);
+    if (!result)
+        return nullptr;
+    return result->leakRef();
 }
 
-bool SharedVideoFrameReaderContext::hasStorage() const
+CVPixelBufferRef createSharedVideoFramePixelBuffer(mach_port_t port)
 {
-    return !!m_reader.m_storage;
+    auto surface = WebCore::IOSurface::createFromSendRight(MachSendRight::create(port));
+    if (!surface) {
+        RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameReader::readBuffer no surface");
+        return nullptr;
+    }
+    return WebCore::createCVPixelBuffer(protect(surface->surface()).get()).value_or(nullptr).leakRef();
 }
 
-std::span<const uint8_t> SharedVideoFrameReaderContext::storageBytes() const
+CVPixelBufferRef createSharedVideoFrameBlackPixelBuffer(int32_t width, int32_t height, bool shouldUseIOSurface)
 {
-    return spanWithNonNullBase(m_reader.m_storage->span());
-}
-
-void SharedVideoFrameReaderContext::signalSemaphore() const
-{
-    if (m_reader.m_semaphore)
-        m_reader.m_semaphore->signal();
-}
-
-void SharedVideoFrameReaderContext::setOwnershipIdentity(CVPixelBufferRef pixelBuffer) const
-{
-    if (m_reader.m_resourceOwner)
-        setOwnershipIdentityForCVPixelBuffer(pixelBuffer, m_reader.m_resourceOwner);
-}
-
-CVPixelBufferPoolRef createSharedVideoFrameBufferPool(const SharedVideoFrameInfo& info)
-{
-    return info.createCompatibleBufferPool().leakRef();
-}
-
-CVPixelBufferRef createSharedVideoFramePixelBuffer(SharedVideoFrameInfo& info, NOESCAPE std::span<const uint8_t> planes, CVPixelBufferPoolRef pool)
-{
-    return info.createPixelBufferFromMemory(planes, pool).leakRef();
+    return WebCore::createBlackPixelBuffer(width, height, shouldUseIOSurface).leakRef();
 }
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SharedVideoFrameReader);
 
 SharedVideoFrameReader::SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeap>&& objectHeap, const ProcessIdentity& resourceOwner, UseIOSurfaceBufferPool useIOSurfaceBufferPool)
-    : m_objectHeap(WTF::move(objectHeap))
-    , m_resourceOwner(resourceOwner)
 {
-    new (m_impl) SharedVideoFrameReaderImpl(SharedVideoFrameReaderImpl::init(useIOSurfaceBufferPool == UseIOSurfaceBufferPool::Yes));
+    new (m_impl) SharedVideoFrameSource(SharedVideoFrameSource::init(objectHeap.get(), resourceOwner, !!resourceOwner, useIOSurfaceBufferPool == UseIOSurfaceBufferPool::Yes));
 }
 
 SharedVideoFrameReader::SharedVideoFrameReader()
@@ -311,52 +289,40 @@ SharedVideoFrameReader::SharedVideoFrameReader()
 
 SharedVideoFrameReader::~SharedVideoFrameReader()
 {
-    std::destroy_at(&swiftImpl());
+    std::destroy_at(&swiftSource());
 }
 
-SharedVideoFrameReaderImpl& SharedVideoFrameReader::swiftImpl()
+SharedVideoFrameSource& SharedVideoFrameReader::swiftSource()
 {
-    return *std::launder(reinterpret_cast<SharedVideoFrameReaderImpl*>(m_impl));
+    return *std::launder(reinterpret_cast<SharedVideoFrameSource*>(m_impl));
+}
+
+void SharedVideoFrameReader::setSemaphore(IPC::Semaphore&& semaphore)
+{
+    auto sendRight = semaphore.createSendRight();
+    swiftSource().setSemaphore(sendRight.sendRight());
+}
+
+bool SharedVideoFrameReader::setSharedMemory(SharedMemory::Handle&& handle)
+{
+    auto size = handle.size();
+    auto sendRight = handle.releaseHandle();
+    return swiftSource().setSharedMemory(sendRight.sendRight(), size);
 }
 
 RetainPtr<CVPixelBufferRef> SharedVideoFrameReader::readBuffer(SharedVideoFrame::Buffer&& buffer)
 {
-    return switchOn(WTF::move(buffer),
-    [this](RemoteVideoFrameReadReference&& reference) -> RetainPtr<CVPixelBufferRef> {
-        ASSERT(m_objectHeap);
-        if (!m_objectHeap) {
-            RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameReader::readBuffer no object heap");
-            return nullptr;
-        }
-
-        auto sample = m_objectHeap->get(WTF::move(reference));
-        if (!sample) {
-            RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameReader::readBuffer no sample");
-            return nullptr;
-        }
-
-        ASSERT(sample->pixelBuffer());
-        return sample->pixelBuffer();
-    } , [](MachSendRight&& sendRight) -> RetainPtr<CVPixelBufferRef> {
-        auto surface = WebCore::IOSurface::createFromSendRight(WTF::move(sendRight));
-        if (!surface) {
-            RELEASE_LOG_ERROR(WebRTC, "SharedVideoFrameReader::readBuffer no surface");
-            return nullptr;
-        }
-        return WebCore::createCVPixelBuffer(protect(surface->surface()).get()).value_or(nullptr);
-    }, [this](std::nullptr_t representation) -> RetainPtr<CVPixelBufferRef> {
-        SharedVideoFrameReaderContext context { *this };
-        return adoptCF(swiftImpl().readBufferFromSharedMemory(context));
-    }, [this](IntSize size) -> RetainPtr<CVPixelBufferRef> {
-        if (m_blackFrameSize != size) {
-            m_blackFrameSize = size;
-            bool useIOSurfaceBufferPool = swiftImpl().usesIOSurfaceBufferPool();
-            m_blackFrame = WebCore::createBlackPixelBuffer(m_blackFrameSize.width(), m_blackFrameSize.height(), useIOSurfaceBufferPool);
-            if (m_resourceOwner && useIOSurfaceBufferPool)
-                setOwnershipIdentityForCVPixelBuffer(m_blackFrame.get(), m_resourceOwner);
-        }
-        return m_blackFrame.get();
+    // The send right of an IOSurface stays in `buffer` until the read returns.
+    auto tag = WTF::switchOn(buffer, [](std::nullptr_t) {
+        return SharedVideoFrameBufferTag { };
+    }, [](const RemoteVideoFrameReadReference& reference) {
+        return SharedVideoFrameBufferTag { .kind = SharedVideoFrameBufferKind::HeapReference, .identifier = reference.identifier().toUInt64(), .version = reference.version() };
+    }, [](const MachSendRight& sendRight) {
+        return SharedVideoFrameBufferTag { .kind = SharedVideoFrameBufferKind::IOSurface, .port = sendRight.sendRight() };
+    }, [](IntSize size) {
+        return SharedVideoFrameBufferTag { .kind = SharedVideoFrameBufferKind::BlackFrame, .width = size.width(), .height = size.height() };
     });
+    return adoptCF(swiftSource().readBuffer(tag));
 }
 
 RefPtr<VideoFrame> SharedVideoFrameReader::read(SharedVideoFrame&& sharedVideoFrame)
@@ -366,12 +332,6 @@ RefPtr<VideoFrame> SharedVideoFrameReader::read(SharedVideoFrame&& sharedVideoFr
         return nullptr;
 
     return VideoFrameCV::create(sharedVideoFrame.time, sharedVideoFrame.mirrored, sharedVideoFrame.rotation, WTF::move(pixelBuffer), WTF::move(sharedVideoFrame.colorSpace), sharedVideoFrame.shouldIgnoreAlpha ? VideoFrameCV::ShouldIgnoreAlpha::Yes : VideoFrameCV::ShouldIgnoreAlpha::No);
-}
-
-bool SharedVideoFrameReader::setSharedMemory(SharedMemory::Handle&& handle)
-{
-    m_storage = SharedMemory::map(WTF::move(handle), SharedMemory::Protection::ReadOnly);
-    return !!m_storage;
 }
 
 }

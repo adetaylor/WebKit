@@ -56,7 +56,6 @@
 #import "TextTrackRepresentation.h"
 #import "VideoFrameCV.h"
 #import "VideoLayerManagerObjC.h"
-#import "VideoMediaSampleRenderer.h"
 #import "WebSampleBufferVideoRendering.h"
 #import <AVFoundation/AVFoundation.h>
 #import <CoreMedia/CMTime.h>

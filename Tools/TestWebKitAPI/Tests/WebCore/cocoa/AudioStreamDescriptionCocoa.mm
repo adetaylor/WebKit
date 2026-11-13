@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,6 +28,8 @@
 #if PLATFORM(COCOA)
 #import "Helpers/Test.h"
 #import <WebCore/CAAudioStreamDescription.h>
+#import <WebCore/WebAudioBufferList.h>
+#import <limits>
 
 namespace {
 
@@ -116,5 +118,80 @@ REGISTER_TYPED_TEST_SUITE_P(EachSampleTypeTest,
     CreateWorks, FormatFailsBytesPerFrame, FormatFailsBitsPerChannel, FormatFailsChannelsPerFrame);
 
 INSTANTIATE_TYPED_TEST_SUITE_P(AudioStreamDescriptionCocoa, EachSampleTypeTest, SampleTypes);
+
+TEST(AudioStreamDescriptionCocoa, MakesPackedLinearPCMDescriptions)
+{
+    using WebCore::AudioStreamDescription;
+    using WebCore::CAAudioStreamDescription;
+    AudioFormatFlags packed = static_cast<AudioFormatFlags>(kAudioFormatFlagsNativeEndian) | static_cast<AudioFormatFlags>(kAudioFormatFlagIsPacked);
+    struct Expected {
+        AudioStreamDescription::PCMFormat format;
+        uint32_t channels;
+        CAAudioStreamDescription::IsInterleaved interleaved;
+        AudioFormatFlags flags;
+        uint32_t bytesPerFrame;
+        uint32_t bitsPerChannel;
+    };
+    const Expected cases[] = {
+        { AudioStreamDescription::Uint8, 2, CAAudioStreamDescription::IsInterleaved::Yes, packed, 2, 8 },
+        { AudioStreamDescription::Int16, 2, CAAudioStreamDescription::IsInterleaved::Yes, packed | kAudioFormatFlagIsSignedInteger, 4, 16 },
+        { AudioStreamDescription::Int24, 1, CAAudioStreamDescription::IsInterleaved::No, packed | kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsNonInterleaved, 3, 24 },
+        { AudioStreamDescription::Int32, 6, CAAudioStreamDescription::IsInterleaved::Yes, packed | kAudioFormatFlagIsSignedInteger, 24, 32 },
+        { AudioStreamDescription::Float32, 2, CAAudioStreamDescription::IsInterleaved::No, packed | kAudioFormatFlagIsFloat | kAudioFormatFlagIsNonInterleaved, 4, 32 },
+        { AudioStreamDescription::Float64, 3, CAAudioStreamDescription::IsInterleaved::Yes, packed | kAudioFormatFlagIsFloat, 24, 64 },
+    };
+    for (auto& expected : cases) {
+        CAAudioStreamDescription description(44100, expected.channels, expected.format, expected.interleaved);
+        auto& asbd = description.streamDescription();
+        EXPECT_EQ(asbd.mSampleRate, 44100);
+        EXPECT_EQ(asbd.mFormatID, kAudioFormatLinearPCM);
+        EXPECT_EQ(asbd.mFormatFlags, expected.flags);
+        EXPECT_EQ(asbd.mFramesPerPacket, 1u);
+        EXPECT_EQ(asbd.mChannelsPerFrame, expected.channels);
+        EXPECT_EQ(asbd.mBytesPerFrame, expected.bytesPerFrame);
+        EXPECT_EQ(asbd.mBytesPerPacket, expected.bytesPerFrame);
+        EXPECT_EQ(asbd.mBitsPerChannel, expected.bitsPerChannel);
+        EXPECT_EQ(asbd.mReserved, 0u);
+        EXPECT_EQ(description.format(), expected.format);
+    }
+}
+
+TEST(AudioStreamDescriptionCocoa, FormatOfUint8AndInt24)
+{
+    auto uint8 = createASBD<uint8_t>(2);
+    EXPECT_EQ(WebCore::CAAudioStreamDescription(uint8).format(), WebCore::AudioStreamDescription::Uint8);
+
+    auto int24 = createASBD<int32_t>(2);
+    int24.mBitsPerChannel = 24;
+    int24.mBytesPerFrame = int24.mBytesPerPacket = 6;
+    EXPECT_EQ(WebCore::CAAudioStreamDescription(int24).format(), WebCore::AudioStreamDescription::Int24);
+
+    auto float24 = createASBD<float>(2);
+    float24.mBitsPerChannel = 24;
+    float24.mBytesPerFrame = float24.mBytesPerPacket = 6;
+    EXPECT_EQ(WebCore::CAAudioStreamDescription(float24).format(), WebCore::AudioStreamDescription::None);
+
+    auto bigEndian = createASBD<int16_t>(1);
+    bigEndian.mFormatFlags |= kAudioFormatFlagIsBigEndian;
+    EXPECT_EQ(WebCore::CAAudioStreamDescription(bigEndian).format(), WebCore::AudioStreamDescription::None);
+}
+
+TEST(AudioStreamDescriptionCocoa, BufferListSizesOverflow)
+{
+    WebCore::CAAudioStreamDescription interleaved(48000, 2, WebCore::AudioStreamDescription::Float32, WebCore::CAAudioStreamDescription::IsInterleaved::Yes);
+    EXPECT_TRUE(WebCore::WebAudioBufferList::isSupportedDescription(interleaved, 4096));
+    EXPECT_FALSE(WebCore::WebAudioBufferList::isSupportedDescription(interleaved, std::numeric_limits<size_t>::max() / 2 + 1));
+    EXPECT_FALSE(WebCore::WebAudioBufferList::isSupportedDescription(interleaved, std::numeric_limits<size_t>::max() / 8 + 1));
+
+    // Each of the two buffers fits, but not both.
+    WebCore::CAAudioStreamDescription planar(48000, 2, WebCore::AudioStreamDescription::Float32, WebCore::CAAudioStreamDescription::IsInterleaved::No);
+    EXPECT_TRUE(WebCore::WebAudioBufferList::isSupportedDescription(planar, std::numeric_limits<size_t>::max() / 8));
+    EXPECT_FALSE(WebCore::WebAudioBufferList::isSupportedDescription(planar, std::numeric_limits<size_t>::max() / 8 + 1));
+
+    WebCore::WebAudioBufferList list(planar, 480);
+    EXPECT_EQ(list.list()->mNumberBuffers, 2u);
+    EXPECT_EQ(list.bufferAsSpan(0).size(), 480u * 4);
+    EXPECT_EQ(list.bufferAsSpan(1).size(), 480u * 4);
+}
 
 #endif

@@ -308,7 +308,7 @@ webkit_platform_headers: <WebCore/AffineTransform.h>
     WebCore::DoubleSize size()
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint {
     float x()
     float y()
 }
@@ -353,7 +353,7 @@ enum class WebCore::IndexedDB::RequestType : uint8_t {
     Other,
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRect {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatRect {
     WebCore::FloatPoint location()
     WebCore::FloatSize size()
 }
@@ -577,7 +577,7 @@ webkit_platform_headers: <WebCore/IntRect.h>
     int height();
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatSize {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatSize {
     float width();
     float height();
 }
@@ -747,7 +747,7 @@ header: <WebCore/WebCodecsEncodedVideoChunk.h>
 header: <WebCore/WebCodecsEncodedAudioChunk.h>
 
 header: <WebCore/VideoEncoderScalabilityMode.h>
-enum class WebCore::VideoEncoderScalabilityMode : uint8_t {
+[Swift] enum class WebCore::VideoEncoderScalabilityMode : uint8_t {
     L1T1,
     L1T2,
     L1T3
@@ -1491,7 +1491,7 @@ struct WebCore::PlatformMediaCapabilitiesEncodingInfo : WebCore::PlatformMediaCa
 
 header: <WebCore/VideoCodecType.h>
 
-enum class WebCore::VideoCodecType : uint8_t {
+[Swift] enum class WebCore::VideoCodecType : uint8_t {
     H264,
     H265,
     VP9,
@@ -1671,7 +1671,7 @@ header: <WebCore/Page.h>
     int32_t indexInFrame;
 };
 
-enum class WebCore::AlphaPremultiplication : uint8_t {
+[Swift] enum class WebCore::AlphaPremultiplication : uint8_t {
     Premultiplied,
     Unpremultiplied
 };
@@ -2080,7 +2080,7 @@ header: <WebCore/NotificationResources.h>
 }
 
 #if PLATFORM(COCOA)
-struct AudioStreamBasicDescription {
+[Swift] struct AudioStreamBasicDescription {
     double mSampleRate;
     UInt32 mFormatID;
     UInt32 mFormatFlags;
@@ -2092,7 +2092,7 @@ struct AudioStreamBasicDescription {
     UInt32 mReserved;
 };
 
-class WebCore::CAAudioStreamDescription {
+[Swift] class WebCore::CAAudioStreamDescription {
     AudioStreamBasicDescription streamDescription();
 }
 #endif
@@ -3243,7 +3243,7 @@ enum class WebCore::MediaPlayerWirelessPlaybackTargetType : uint8_t {
     TargetTypeTVOut
 };
 
-enum class WebCore::MediaPlayerPitchCorrectionAlgorithm : uint8_t {
+[Swift] enum class WebCore::MediaPlayerPitchCorrectionAlgorithm : uint8_t {
     BestAllAround,
     BestForMusic,
     BestForSpeech,
@@ -3289,7 +3289,7 @@ struct WebCore::AppHighlight {
 };
 #endif // ENABLE(APP_HIGHLIGHTS)
 
-struct WebCore::MediaDeviceHashSalts {
+[Swift] struct WebCore::MediaDeviceHashSalts {
     String persistentDeviceSalt;
     String ephemeralDeviceSalt;
 };
@@ -3970,7 +3970,7 @@ header: <WebCore/SecurityPolicyViolationEvent.h>
     std::optional<uint16_t> port;
 };
 
-enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
+[Swift] enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
     Bt709,
     Bt470bg,
     Smpte170m,
@@ -3985,7 +3985,7 @@ enum class WebCore::PlatformVideoColorPrimaries : uint8_t {
     Unspecified,
 };
 
-enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
+[Swift] enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
     Bt709,
     Smpte170m,
     Iec6196621,
@@ -4005,7 +4005,7 @@ enum class WebCore::PlatformVideoTransferCharacteristics : uint8_t {
     Unspecified
 };
 
-enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
+[Swift] enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
     Rgb,
     Bt709,
     Bt470bg,
@@ -4018,7 +4018,7 @@ enum class WebCore::PlatformVideoMatrixCoefficients : uint8_t {
     Unspecified,
 };
 
-enum class WebCore::PlatformVideoChromaLocation : uint8_t {
+[Swift] enum class WebCore::PlatformVideoChromaLocation : uint8_t {
     Left,
     Center,
     TopLeft,
@@ -4029,7 +4029,7 @@ enum class WebCore::PlatformVideoChromaLocation : uint8_t {
     Unspecified,
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] struct WebCore::PlatformVideoColorSpace {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebCore::PlatformVideoColorSpace {
     std::optional<WebCore::PlatformVideoColorPrimaries> primaries;
     std::optional<WebCore::PlatformVideoTransferCharacteristics> transfer;
     std::optional<WebCore::PlatformVideoMatrixCoefficients> matrix;
@@ -4272,7 +4272,7 @@ struct WebCore::CSSValueKey {
     bool useElevatedUserInterfaceLevel;
 };
 
-struct WebCore::VideoFrameTimeMetadata {
+[Swift] struct WebCore::VideoFrameTimeMetadata {
     std::optional<double> processingDuration;
     std::optional<Seconds> captureTime;
     std::optional<Seconds> receiveTime;
@@ -4956,12 +4956,12 @@ class WebCore::Credential {
 
 #if ENABLE(GPU_PROCESS)
 header: <WebCore/BarcodeDetectorOptionsInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::BarcodeDetectorOptions {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::BarcodeDetectorOptions {
     Vector<WebCore::ShapeDetection::BarcodeFormat> formats;
 };
 
 header: <WebCore/BarcodeFormatInterface.h>
-[AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::BarcodeFormat : uint8_t {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::BarcodeFormat : uint8_t {
     Aztec,
     Code_128,
     Code_39,
@@ -4979,7 +4979,7 @@ header: <WebCore/BarcodeFormatInterface.h>
 };
 
 header: <WebCore/DetectedBarcodeInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedBarcode {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedBarcode {
     WebCore::FloatRect boundingBox;
     String rawValue;
     WebCore::ShapeDetection::BarcodeFormat format;
@@ -4987,32 +4987,32 @@ header: <WebCore/DetectedBarcodeInterface.h>
 };
 
 header: <WebCore/DetectedFaceInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedFace {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedFace {
     WebCore::FloatRect boundingBox;
     std::optional<Vector<WebCore::ShapeDetection::Landmark>> landmarks;
 };
 
 header: <WebCore/DetectedTextInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedText {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::DetectedText {
     WebCore::FloatRect boundingBox;
     String rawValue;
     Vector<WebCore::FloatPoint> cornerPoints;
 };
 
 header: <WebCore/FaceDetectorOptionsInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::FaceDetectorOptions {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::FaceDetectorOptions {
     uint16_t maxDetectedFaces;
     bool fastMode;
 };
 
 header: <WebCore/LandmarkInterface.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::Landmark {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ShapeDetection::Landmark {
     Vector<WebCore::FloatPoint> locations;
     WebCore::ShapeDetection::LandmarkType type;
 };
 
 header: <WebCore/LandmarkTypeInterface.h>
-[AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::LandmarkType : uint8_t {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] enum class WebCore::ShapeDetection::LandmarkType : uint8_t {
     Mouth,
     Eye,
     Nose,
@@ -5355,7 +5355,7 @@ header: <WebCore/WritingToolsTypes.h>
 #endif
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureFormat : uint8_t {
+[Swift] enum class ::WebGPU::TextureFormat : uint8_t {
     R8unorm,
     R8snorm,
     R8uint,
@@ -5460,14 +5460,17 @@ enum class ::WebGPU::TextureFormat : uint8_t {
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::TextureAspect : uint8_t {
+[Swift] enum class ::WebGPU::TextureAspect : uint8_t {
     All,
     StencilOnly,
     DepthOnly,
 };
 
 header: <WebGPU/WebGPUCpp.h>
-enum class ::WebGPU::PowerPreference : bool
+[Swift] enum class ::WebGPU::PowerPreference : bool {
+    LowPower,
+    HighPerformance,
+};
 
 header: <WebCore/WebGPUCppAPI.h>
 using ::WebGPU::PowerPreference = ::WebGPU::PowerPreference
@@ -6492,7 +6495,7 @@ header: <WebCore/TextAttachmentForSerialization.h>
 };
 
 header: <WebCore/PredefinedColorSpace.h>
-enum class WebCore::PredefinedColorSpace : uint8_t {
+[Swift] enum class WebCore::PredefinedColorSpace : uint8_t {
       SRGB
     , SRGBLinear
 #if ENABLE(PREDEFINED_COLOR_SPACE_DISPLAY_P3)
@@ -6865,8 +6868,10 @@ using WebCore::GraphicsStyle = Variant<WebCore::GraphicsDropShadow, WebCore::Gra
 enum class WebCore::ScrollBehaviorForFixedElements : bool
 #if USE(CG)
 using WebCore::GlyphBufferGlyph = CGGlyph
+using WebCore::GlyphBufferAdvance = CGSize
 #else
 using WebCore::GlyphBufferGlyph = WebCore::Glyph
+using WebCore::GlyphBufferAdvance = WebCore::FloatSize
 #endif
 using WebCore::Glyph = unsigned short
 

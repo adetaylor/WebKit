@@ -1535,71 +1535,6 @@ RetainPtr<CMBlockBufferRef> ensureContiguousBlockBuffer(CMBlockBufferRef rawBloc
     return adoptCF(contiguousBuffer);
 }
 
-Vector<uint8_t> convertParameterSetsCMSampleBufferToAnnexB(CMSampleBufferRef sampleBuffer, bool isKeyframe, CMVideoFormatDescriptionGetParameterSetAtIndexFunction getParameterSetAtIndex)
-{
-    static constexpr uint8_t annexBHeaderBytes[] = { 0, 0, 0, 1 };
-    static constexpr size_t avccHeaderByteSize = sizeof(uint32_t);
-
-    Vector<uint8_t> annexBBuffer;
-
-    RetainPtr description = PAL::CMSampleBufferGetFormatDescription(sampleBuffer);
-    if (!description) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB no description");
-        return annexBBuffer;
-    }
-
-    int naluHeaderSize = 0;
-    size_t paramSetCount = 0;
-    if (getParameterSetAtIndex(description, 0, nullptr, nullptr, &paramSetCount, &naluHeaderSize) != noErr)
-        return annexBBuffer;
-    if (naluHeaderSize != avccHeaderByteSize) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB unexpected nalu header size");
-        return annexBBuffer;
-    }
-
-    if (isKeyframe) {
-        for (size_t i = 0; i < paramSetCount; ++i) {
-            const uint8_t* paramSet = nullptr;
-            size_t paramSetSize = 0;
-            if (getParameterSetAtIndex(description, i, &paramSet, &paramSetSize, nullptr, nullptr) != noErr || !paramSet)
-                return { };
-            annexBBuffer.append(std::span { annexBHeaderBytes });
-            annexBBuffer.append(unsafeMakeSpan(paramSet, paramSetSize));
-        }
-    }
-
-    RetainPtr blockBuffer = PAL::CMSampleBufferGetDataBuffer(sampleBuffer);
-    if (!blockBuffer) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB no block buffer");
-        return { };
-    }
-
-    RetainPtr contiguousBuffer = ensureContiguousBlockBuffer(blockBuffer);
-    if (!contiguousBuffer) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB unable to create a contiguous block buffer");
-        return { };
-    }
-
-    auto dataSpan = [&contiguousBuffer] -> std::optional<std::span<const uint8_t>> {
-        char* dataPtr = nullptr;
-        size_t blockBufferSize = PAL::CMBlockBufferGetDataLength(contiguousBuffer.get());
-        if (PAL::CMBlockBufferGetDataPointer(contiguousBuffer.get(), 0, nullptr, nullptr, &dataPtr) != noErr)
-            return { };
-        return unsafeMakeSpan(byteCast<uint8_t>(dataPtr), blockBufferSize);
-    }();
-    if (!dataSpan) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB unable to get block buffer data");
-        return { };
-    }
-
-    if (!appendAnnexBFromLengthPrefixedImpl({ *dataSpan }, annexBBuffer)) {
-        RELEASE_LOG_ERROR(WebRTC, "convertParameterSetsCMSampleBufferToAnnexB missing data");
-        return { };
-    }
-
-    return annexBBuffer;
-}
-
 Ref<SharedBuffer> sharedBufferFromCMBlockBuffer(CMBlockBufferRef blockBuffer)
 {
     return SharedBuffer::create(DataSegment::Provider {
@@ -1928,7 +1863,7 @@ String channelLayoutDescription(UInt32 channelLayoutTag)
     SUPPRESS_RETAINPTR_CTOR_ADOPT return adoptCF(channelLayoutName).get(); // The caller is responsible for releasing the returned string.
 }
 
-RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer, CMVideoFormatDescriptionRef videoFormat)
+RetainPtr<CMSampleBufferRef> sampleBufferFromVideoData(std::span<const uint8_t> buffer NOESCAPE, CMVideoFormatDescriptionRef videoFormat)
 {
     // This is an out-parameter which is immediately adopted below.
     SUPPRESS_UNRETAINED_LOCAL CMBlockBufferRef newVlockBuffer;

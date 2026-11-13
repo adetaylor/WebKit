@@ -31,6 +31,7 @@
 #include "RemoteAudioSessionConfiguration.h"
 #include <WebCore/AudioSession.h>
 #include <WebCore/ProcessIdentifier.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
@@ -46,7 +47,11 @@ class GPUConnectionToWebProcess;
 class RemoteAudioSessionProxyManager;
 struct SharedPreferencesForWebProcess;
 
-class RemoteAudioSessionProxy
+// Receives the audio session messages of one web process's connection to the GPU process. Its state (category, mode,
+// route sharing policy, preferred buffer size, sound stage size, activity, interruption) is Swift's
+// (RemoteAudioSessionProxyManager.swift), keyed by identifier(), which handles the messages that change it; C++ handles the
+// ones that need the audio session's promises or a String.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteAudioSessionProxy.swift") RemoteAudioSessionProxy
     : public RefCounted<RemoteAudioSessionProxy>, public IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteAudioSessionProxy);
     friend class RemoteAudioSessionProxyManager;
@@ -61,25 +66,18 @@ public:
 
     virtual ~RemoteAudioSessionProxy();
 
+    uint64_t identifier() const { return m_identifier; }
     WebCore::ProcessIdentifier processIdentifier();
     RemoteAudioSessionConfiguration configuration();
 
-    WebCore::AudioSession::CategoryType category() const { return m_category; };
-    WebCore::AudioSession::Mode mode() const { return m_mode; };
-    WebCore::RouteSharingPolicy routeSharingPolicy() const { return m_routeSharingPolicy; }
-    size_t preferredBufferSize() const { return m_preferredBufferSize; }
-    bool isActive() const { return m_active; }
-    bool isInterrupted() const { return m_isInterrupted; }
+    // Implemented in Swift.
+    bool isActive() const;
 
     void configurationChanged();
     void beginInterruption();
     void endInterruption(WebCore::AudioSession::MayResume);
 
     const String& sceneIdentifier() const LIFETIME_BOUND { return m_sceneIdentifier; }
-    void setSceneIdentifier(const String&);
-
-    WebCore::AudioSession::SoundStageSize soundStageSize() const { return m_soundStageSize; }
-    void setSoundStageSize(WebCore::AudioSession::SoundStageSize);
 
     // IPC::MessageReceiver
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
@@ -95,34 +93,29 @@ public:
 private:
     explicit RemoteAudioSessionProxy(GPUConnectionToWebProcess&);
 
-    // Messages
-    void setCategory(WebCore::AudioSession::CategoryType, WebCore::AudioSession::Mode, WebCore::RouteSharingPolicy);
-    void setPreferredBufferSize(uint64_t);
+    // Messages handled in C++.
     using SetActiveCompletion = CompletionHandler<void(bool)>;
     void tryToSetActive(bool, SetActiveCompletion&&);
     void tryToSetActiveSync(bool, SetActiveCompletion&&);
-    void setIsPlayingToBluetoothOverride(std::optional<bool>&& value);
     void systemCategoryForTesting(CompletionHandler<void(WebCore::AudioSessionCategory)>&&);
     void systemActivationCountForTesting(CompletionHandler<void(uint64_t)>&&);
     void triggerBeginInterruptionForTesting();
     void triggerEndInterruptionForTesting();
-
     void beginInterruptionRemote();
     void endInterruptionRemote(WebCore::AudioSession::MayResume);
+    void setSceneIdentifier(const String&);
+
+    // Implemented in Swift: the sound stage size, and, once the session's activity changed as asked, whether that changed the
+    // proxy's.
+    WebCore::AudioSession::SoundStageSize soundStageSize() const;
+    bool didSetActive(bool active);
 
     RemoteAudioSessionProxyManager& audioSessionManager();
     IPC::Connection& connection() const;
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnection;
-    WebCore::AudioSession::CategoryType m_category { WebCore::AudioSession::CategoryType::None };
-    WebCore::AudioSession::Mode m_mode { WebCore::AudioSession::Mode::Default };
-    WebCore::RouteSharingPolicy m_routeSharingPolicy { WebCore::RouteSharingPolicy::Default };
-    WebCore::AudioSession::SoundStageSize m_soundStageSize { WebCore::AudioSession::SoundStageSize::Automatic };
+    const uint64_t m_identifier;
     String m_sceneIdentifier;
-    size_t m_preferredBufferSize { 0 };
-    bool m_active { false };
-    bool m_isInterrupted { false };
-    bool m_isPlayingToBluetoothOverrideChanged { false };
 #if PLATFORM(IOS_FAMILY)
     String m_speakerID;
 #endif

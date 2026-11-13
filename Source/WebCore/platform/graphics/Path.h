@@ -84,7 +84,7 @@ public:
     static constexpr float circleControlPoint() { return PathImpl::circleControlPoint(); }
 
     WEBCORE_EXPORT std::optional<PathSegment> singleSegment() const;
-    std::optional<PathDataLine> singleDataLine() const;
+    WEBCORE_EXPORT std::optional<PathDataLine> singleDataLine() const;
     // Returns the arc of a path that is exactly MoveTo(c), Arc(center c), LineTo(c): a pie wedge.
     WEBCORE_EXPORT std::optional<PathArc> pieWedgeArc() const;
 

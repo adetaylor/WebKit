@@ -32,6 +32,7 @@
 #include "StreamConnectionWorkQueue.h"
 #include "StreamServerConnection.h"
 #include <WebCore/SharedBuffer.h>
+#include <WebCore/TrackInfo.h>
 #include <concepts>
 #include <type_traits>
 #include <wtf/EscapableByteSpan.h>
@@ -235,6 +236,7 @@ public:
     // Decodes a C++-decoded value (IPCCoding.CxxDecoded in Swift) with its own ArgumentCoder. Returns null if
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
+    WebCore::VideoInfo* WTF_NULLABLE decodeVideoInfo() SWIFT_RETURNS_RETAINED;
 
 #if OS(DARWIN)
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
@@ -380,10 +382,9 @@ public:
     }
 
 #ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<CxxDecodedArgument<T>>::ref(); }
-    void deref() const
+    // Swift's release, which frees with fastFree() as decode() allocates. Unsafe: an extra call frees an object that Swift
+    // still uses.
+    SWIFT_UNSAFE void swiftDeref() const
     {
         if (!this->derefBase())
             return;
@@ -403,7 +404,7 @@ private:
     }
 
     std::optional<T> m_value;
-} SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+} SWIFT_SHARED_REFERENCE(.swiftRef, .swiftDeref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 // A Decoder that generated Swift decodes from outside the dispatch of a message, such as a value or a reply that
 // C++ encodes as IPC would, for Swift to decode with its messages' coders. It owns the Decoder and lends it as
@@ -453,13 +454,6 @@ public:
             cancel();
     }
 
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    SWIFT_UNSAFE void ref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::ref(); }
-    SWIFT_UNSAFE void deref() const { ThreadSafeRefCounted<SwiftReplyEncoder>::deref(); }
-#endif
-
     void encode(bool value) { encodeValue(value); }
     void encode(uint8_t value) { encodeValue(value); }
     void encode(uint16_t value) { encodeValue(value); }
@@ -497,6 +491,7 @@ public:
 
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
+    void encodeVideoInfo(const WebCore::VideoInfo&);
 
 #if OS(DARWIN)
     // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up
@@ -677,13 +672,6 @@ public:
         m_streamConnection->stopReceivingMessages(m_receiverName, m_identifier);
     }
 
-#ifdef __swift__
-    // FIXME: rdar://165684636 means we have to define these at this level of the
-    // type hierarchy.
-    void ref() const { RefCounted<SwiftStreamReceiverRegistration>::ref(); }
-    void deref() const { RefCounted<SwiftStreamReceiverRegistration>::deref(); }
-#endif
-
 private:
     SwiftStreamReceiverRegistration(StreamServerConnection& streamConnection, StreamMessageReceiver& receiver, ReceiverName receiverName, uint64_t identifier)
         : m_streamConnection(streamConnection)
@@ -711,8 +699,7 @@ concept HasFixedSharedPreferencesForWebProcess = Owner::hasFixedSharedPreference
 // forwarder as the StreamMessageReceiver it is, but can pass the Ref to it that it holds. The static_asserts are there
 // because the constraints aren't enforced for Swift callers.
 template<typename OwnerPointer, typename ForwarderRef>
-SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED
-{
+SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const OwnerPointer& ownerPointer, const ForwarderRef& forwarder, ReceiverName receiverName, uint64_t identifier) SWIFT_RETURNS_RETAINED {
     static_assert(std::is_pointer_v<OwnerPointer>);
     static_assert(IsRefOfStreamMessageReceiver<ForwarderRef>::value);
     auto& owner = *ownerPointer;
@@ -728,7 +715,7 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
             return sharedPreferences;
         });
     } else {
-        forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }]() -> SharedPreferences {
+        forwarder->setSharedPreferencesProvider([weakOwner = WeakPtr { owner }] -> SharedPreferences {
             if (RefPtr protectedOwner = weakOwner.get())
                 return protectedOwner->sharedPreferencesForWebProcess();
             return std::nullopt;

@@ -31,7 +31,6 @@
 #include <AudioToolbox/AudioToolbox.h>
 #include <CoreAudio/CoreAudioTypes.h>
 #include <WebCore/AudioSession.h>
-#include <WebCore/BaseAudioCaptureUnit.h>
 #include <WebCore/CAAudioStreamDescription.h>
 #include <WebCore/CaptureDevice.h>
 #include <WebCore/RealtimeMediaSource.h>
@@ -68,6 +67,9 @@ public:
 #endif
     void echoCancellationChanged();
 
+    // The sinks its capture unit feeds while it produces data (AudioCaptureSink).
+    const Vector<WeakPtr<AudioCaptureSink>>& audioCaptureSinks() const LIFETIME_BOUND { return m_audioCaptureSinks; }
+
     WTF_ABSTRACT_THREAD_SAFE_REF_COUNTED_AND_CAN_MAKE_WEAK_PTR_IMPL;
     virtual ~CoreAudioCaptureSource();
 
@@ -78,11 +80,14 @@ protected:
     void setCanResumeAfterInterruption(bool value) { m_canResumeAfterInterruption = value; }
 
 private:
-    friend class BaseAudioCaptureUnit;
     friend class CoreAudioCaptureUnit;
     friend class CoreAudioCaptureSourceFactory;
 
     bool isCaptureSource() const final { return true; }
+    bool canHaveAudioCaptureSinks() const final { return true; }
+    void addAudioCaptureSink(AudioCaptureSink&) final;
+    void removeAudioCaptureSink(AudioCaptureSink&) final;
+    void audioSampleObserversChanged() final;
     void startProducingData() final;
     void stopProducingData() final;
     void endProducingData() final;
@@ -125,18 +130,7 @@ private:
     bool m_echoCancellationChanging { false };
 
     std::optional<bool> m_echoCancellationCapability;
-};
-
-class CoreAudioSpeakerSamplesProducer {
-public:
-    virtual ~CoreAudioSpeakerSamplesProducer() = default;
-    // Main thread
-    virtual const CAAudioStreamDescription& format() = 0;
-    virtual void captureUnitIsStarting() = 0;
-    virtual void captureUnitHasStopped() = 0;
-    virtual void canRenderAudioChanged() = 0;
-    // Background thread.
-    virtual OSStatus produceSpeakerSamples(size_t sampleCount, AudioBufferList&, uint64_t sampleTime, double hostTime, AudioUnitRenderActionFlags&) = 0;
+    Vector<WeakPtr<AudioCaptureSink>> m_audioCaptureSinks;
 };
 
 class CoreAudioCaptureSourceFactory : public AudioCaptureFactory, public AudioSessionInterruptionObserver, public RefCounted<CoreAudioCaptureSourceFactory> {
@@ -149,10 +143,6 @@ public:
     void deref() const final { RefCounted::deref(); }
 
     void scheduleReconfiguration();
-
-    WEBCORE_EXPORT void registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    WEBCORE_EXPORT void unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer&);
-    WEBCORE_EXPORT bool shouldAudioCaptureUnitRenderAudio();
 
 protected:
     CoreAudioCaptureSourceFactory();

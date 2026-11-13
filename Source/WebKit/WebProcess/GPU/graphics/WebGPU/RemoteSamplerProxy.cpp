@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteSamplerProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteSamplerMessages.h"
 #include "WebGPUConvertToBackingContext.h"
@@ -63,4 +63,4 @@ bool RemoteSamplerProxy::isValid() const
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

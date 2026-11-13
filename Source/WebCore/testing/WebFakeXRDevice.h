@@ -43,6 +43,11 @@
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+#include <IOSurface/IOSurfaceRef.h>
+#include <wtf/RetainPtr.h>
+#endif
+
 namespace WebCore {
 
 struct XRCanvasConfiguration;
@@ -148,6 +153,11 @@ private:
     bool m_simulateIncompletePlaneData { false };
 #endif
     Vector<Ref<WebFakeXRInputController>> m_inputConnections;
+#if PLATFORM(MAC) && ENABLE(WEBXR_LAYERS) && ENABLE(WEBGPU)
+    // The Mac has no compositor, so the device sends this as the color buffer of a WebGPU session's projection layer, layer 1.
+    RetainPtr<IOSurfaceRef> m_webGPUColorSurface;
+    uint64_t m_webGPUFrameIndex { 0 };
+#endif
 };
 
 class WebFakeXRDevice final : public RefCounted<WebFakeXRDevice> {

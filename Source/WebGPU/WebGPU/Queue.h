@@ -25,13 +25,15 @@
 
 #pragma once
 
-#import "Instance.h"
+#import <CoreVideo/CVMetalTextureCache.h>
 #import <CoreVideo/CVPixelBuffer.h>
+#import <IOSurface/IOSurfaceRef.h>
 #import <Metal/Metal.h>
 #import <WebGPU/WebGPUCpp.h>
+#import <memory>
+#import <span>
 #import <wtf/CompletionHandler.h>
 #import <wtf/FastMalloc.h>
-#import <wtf/HashMap.h>
 #import <wtf/Ref.h>
 #import <wtf/SwiftBridging.h>
 #import <wtf/TZoneMalloc.h>
@@ -41,180 +43,62 @@
 
 IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
-
 namespace WebGPU::Metal {
 
-class Buffer;
-class CommandBuffer;
-class CommandEncoder;
-class Device;
-class Texture;
-class TextureView;
-
-// A frame carries primaries of its own, which are usually neither of the two color spaces WebGPU
-// names, so both importExternalTexture() and copyExternalImageToTexture() have to convert them.
-// Row-major and applied to linear-light values; std::nullopt when the frame's primaries already are
-// the destination's, which has to stay a no-op rather than a transfer function round trip.
-std::optional<std::array<float, 9>> primariesConversionMatrixForPixelBuffer(CVPixelBufferRef, WebGPU::PredefinedColorSpace destination);
-
-// The HDR transfer functions which importExternalTexture() and copyExternalImageToTexture() decode
-// and tone map to SDR. Anything else is treated as SDR. The values are what the external texture
-// shader finds in the fourth column of its primaries conversion matrix, so they must not change.
-enum class HDRTransferFunction : uint8_t {
-    None = 0,
-    PQ = 1, // NOLINT
-    HLG = 2, // NOLINT
+// Host mirror of the MSL `WebKitStagedCopyArgs` declared in the kernel source in Queue.swift. It is a hand-maintained
+// ABI, and getting the field widths wrong produces silently wrong offsets rather than a compile error. MSL `ulong` is
+// 64-bit, so the static_asserts below pin size and every offset.
+struct StagedCopyArguments {
+    uint64_t sourceWordOffset;
+    uint64_t destinationWordOffset;
+    uint64_t wordCount;
 };
-HDRTransferFunction hdrTransferFunctionForPixelBuffer(CVPixelBufferRef);
+static_assert(sizeof(StagedCopyArguments) == 24, "StagedCopyArguments must match MSL WebKitStagedCopyArgs (3 x ulong)");
+static_assert(!offsetof(StagedCopyArguments, sourceWordOffset), "sourceWordOffset must be at offset 0");
+static_assert(offsetof(StagedCopyArguments, destinationWordOffset) == 8, "destinationWordOffset must be at offset 8");
+static_assert(offsetof(StagedCopyArguments, wordCount) == 16, "wordCount must be at offset 16");
 
-// https://gpuweb.github.io/gpuweb/#gpuqueue
-// A device owns its default queue, not the other way around.
-class Queue final : public WebGPU::Queue {
-    WTF_MAKE_TZONE_ALLOCATED(Queue);
-public:
-    static Ref<Queue> create(id<MTLCommandQueue> commandQueue, Adapter& adapter, Device& device)
-    {
-        return adoptRef(*new Queue(commandQueue, adapter, device));
-    }
-    static Ref<Queue> createInvalid(Adapter& adapter, Device& device)
-    {
-        return adoptRef(*new Queue(adapter, device));
-    }
-
-    ~Queue();
-
-    // The callback is called with false when the device is lost.
-    void onSubmittedWorkDone(CompletionHandler<void(bool)>&& callback);
-    void submit(Vector<Ref<WebGPU::Metal::CommandBuffer>>&& commands);
-    void writeBuffer(Buffer&, uint64_t bufferOffset, std::span<uint8_t> data);
-    // For callers whose `data` dies as soon as writeBuffer() returns: at or above
-    // WGPU_LARGE_BUFFER_SIZE the staged copy only aliases the bytes, so those callers cannot use the
-    // borrowing overload above.
-    void writeBuffer(Buffer&, uint64_t bufferOffset, Vector<uint8_t>&& data);
-    void writeBuffer(id<MTLBuffer>, uint64_t bufferOffset, std::span<uint8_t> data);
-    void clearBuffer(id<MTLBuffer>, NSUInteger offset = 0, NSUInteger size = NSUIntegerMax);
-    void copyBuffer(id<MTLBuffer> source, uint64_t sourceOffset, id<MTLBuffer> destination, uint64_t destinationOffset, uint64_t size);
-    void writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<uint8_t> data, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D& writeSize, bool skipValidation = false);
-    void copyExternalImageToTexture(const WebGPU::ImageCopyExternalImage& source, const WebGPU::ImageCopyTextureTagged& destination, const WebGPU::Extent3D& copySize) final;
-    void setLabel(String&&) final;
-
-    void submit(Vector<Ref<WebGPU::CommandBuffer>>&&) final;
-    void onSubmittedWorkDone(CompletionHandler<void()>&&) final;
-    void writeBuffer(WebGPU::Buffer&, uint64_t bufferOffset, std::span<const uint8_t> data) final;
-    void writeTexture(const WebGPU::TexelCopyTextureInfo& destination, std::span<const uint8_t> data, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D& writeSize) final;
-
-    void onSubmittedWorkScheduled(Function<void()>&&);
-
-    bool isValid() const final { return m_commandQueue; }
-    void makeInvalid();
-    void setCommittedSignalEvent(id<MTLSharedEvent>, size_t frameIndex);
-
-    const Device& device() const SWIFT_RETURNS_INDEPENDENT_VALUE;
-    void generateAValidationError(String&&);
-    void clearTextureIfNeeded(const WebGPU::TexelCopyTextureInfo&, NSUInteger);
-    id<MTLCommandBuffer> _Nullable commandBufferWithDescriptor(MTLCommandBufferDescriptor*);
-    void commitMTLCommandBuffer(id<MTLCommandBuffer>);
-    void removeMTLCommandBuffer(id<MTLCommandBuffer>);
-    void setEncoderForBuffer(id<MTLCommandBuffer>, id<MTLCommandEncoder>);
-    id<MTLCommandEncoder> _Nullable encoderForBuffer(id<MTLCommandBuffer>) const;
-    void clearTextureViewIfNeeded(TextureView&);
-    void clearTextureViewIfNeeded(Texture&);
-    NODELETE static bool writeWillCompletelyClear(WebGPU::TextureDimension, uint32_t widthForMetal, uint32_t logicalSizeWidth, uint32_t heightForMetal, uint32_t logicalSizeHeight, uint32_t depthForMetal, uint32_t logicalSizeDepthOrArrayLayers);
-    void endEncoding(id<MTLCommandEncoder>, id<MTLCommandBuffer>) const;
-
-    id<MTLBlitCommandEncoder> ensureBlitCommandEncoder();
-    void finalizeBlitCommandEncoder();
-
-    void addProvisionalTextureClear(Texture&, uint32_t mipLevel, uint32_t slice, uint64_t commandEncoderId);
-    void removeProvisionalTextureClears(const Texture&, uint32_t mipLevel, uint32_t slice);
-    void discardProvisionalTextureClears(uint64_t commandEncoderId);
-    void resolveProvisionalTextureClears(std::optional<uint64_t> committingCommandEncoderId = std::nullopt);
-
-    // This can be called on a background thread.
-    void scheduleWork(Instance::WorkItem&&);
-    [[nodiscard]] uint64_t retainCounterSampleBuffer(CommandEncoder&);
-    void releaseCounterSampleBuffer(uint64_t);
-    void retainTimestampsForOneUpdate(NSMutableSet<id<MTLCounterSampleBuffer>> *);
-    void waitForAllCommitedWorkToComplete();
-    void synchronizeResourceAndWait(id<MTLBuffer>);
-    id<MTLIndirectCommandBuffer> trimICB(id<MTLIndirectCommandBuffer> dest, id<MTLIndirectCommandBuffer> src, NSUInteger newSize);
-    id<MTLDevice> _Nullable metalDevice() const;
-    std::pair<id<MTLBuffer>, uint64_t> newTemporaryBufferWithBytes(std::span<uint8_t> data, bool noCopy);
-    void stageBufferWrite(id<MTLBuffer>, uint64_t bufferOffset, std::span<uint8_t> data);
-    void encodeStagedCopy(id<MTLBuffer> temporaryBuffer, uint64_t temporaryBufferOffset, id<MTLBuffer>, uint64_t bufferOffset, uint64_t size, bool finalizeAfterCopy);
-
-private:
-    Queue(id<MTLCommandQueue>, Adapter&, Device&);
-    Queue(Adapter&, Device&);
-
-    NSString * _Nullable errorValidatingSubmit(const Vector<Ref<WebGPU::Metal::CommandBuffer>>&) const;
-    bool validateWriteBuffer(const Buffer&, uint64_t bufferOffset, size_t) const;
+// Host mirror of the MSL `WebKitCopyExternalImageArgs` in Queue.swift. It is a hand-maintained ABI: the static_asserts
+// below pin the size and every offset. Every field is a scalar or an array of scalars: MSL lays those out exactly
+// as C does, while its vector and matrix types carry alignment rules of their own.
+struct CopyExternalImageArguments {
+    uint32_t sourceOriginX;
+    uint32_t sourceOriginY;
+    uint32_t destinationOriginX;
+    uint32_t destinationOriginY;
+    uint32_t copyWidth;
+    uint32_t copyHeight;
+    uint32_t sourceMaxX;
+    uint32_t sourceMaxY;
+    uint32_t flags;
+    float colorMatrix[9]; // Row-major.
+    // A video frame's simd::float3x2 crop and simd::float4x3 YCbCr matrices, flattened column-major.
+    // Flattened because a simd float3 column is padded to 16 bytes, so neither matrix has a size the
+    // arithmetic would guess right.
+    float uvRemapMatrix[6];
+    float ycbcrMatrix[12];
+};
+static_assert(sizeof(CopyExternalImageArguments) == 144, "CopyExternalImageArguments must match MSL WebKitCopyExternalImageArgs (9 x uint + 27 x float)");
+static_assert(!offsetof(CopyExternalImageArguments, sourceOriginX), "sourceOriginX must be at offset 0");
+static_assert(offsetof(CopyExternalImageArguments, sourceOriginY) == 4, "sourceOriginY must be at offset 4");
+static_assert(offsetof(CopyExternalImageArguments, destinationOriginX) == 8, "destinationOriginX must be at offset 8");
+static_assert(offsetof(CopyExternalImageArguments, destinationOriginY) == 12, "destinationOriginY must be at offset 12");
+static_assert(offsetof(CopyExternalImageArguments, copyWidth) == 16, "copyWidth must be at offset 16");
+static_assert(offsetof(CopyExternalImageArguments, copyHeight) == 20, "copyHeight must be at offset 20");
+static_assert(offsetof(CopyExternalImageArguments, sourceMaxX) == 24, "sourceMaxX must be at offset 24");
+static_assert(offsetof(CopyExternalImageArguments, sourceMaxY) == 28, "sourceMaxY must be at offset 28");
+static_assert(offsetof(CopyExternalImageArguments, flags) == 32, "flags must be at offset 32");
+static_assert(offsetof(CopyExternalImageArguments, colorMatrix) == 36, "colorMatrix must be at offset 36");
+static_assert(offsetof(CopyExternalImageArguments, uvRemapMatrix) == 72, "uvRemapMatrix must be at offset 72");
+static_assert(offsetof(CopyExternalImageArguments, ycbcrMatrix) == 96, "ycbcrMatrix must be at offset 96");
 
 
-    NODELETE bool isIdle() const;
-    bool isSchedulingIdle() const { return m_submittedCommandBufferCount == m_scheduledCommandBufferCount; }
-    id<MTLComputeCommandEncoder> _Nullable ensureStagedCopyEncoder();
-    id<MTLComputePipelineState> _Nullable stagedCopyPipelineState();
-    std::pair<id<MTLBuffer>, uint64_t> reserveTemporaryBuffer(size_t);
-    void removeMTLCommandBufferInternal(id<MTLCommandBuffer>);
-    void clearTextureIfNeeded(Texture&, uint32_t mipLevelCount, uint32_t arrayLayerCount, uint32_t baseMipLevel, uint32_t baseArrayLayer);
-
-    NSString * _Nullable errorValidatingWriteTexture(const WebGPU::TexelCopyTextureInfo&, const WebGPU::TexelCopyBufferLayout&, const WebGPU::Extent3D&, size_t, const Texture&) const;
-    NSString * _Nullable errorValidatingCopyExternalImageToTexture(const WebGPU::ImageCopyTextureTagged&, const WebGPU::Extent3D&, const Texture&, const Device&) const;
-    // Renders one source texel per destination texel, so the pipeline only varies by the destination's
-    // pixel format. Cached per format, because a copy per animation frame is the expected usage.
-    id<MTLRenderPipelineState> _Nullable copyExternalImagePipelineState(MTLPixelFormat);
-
-    struct ProvisionalTextureClear {
-        ThreadSafeWeakPtr<Texture> texture;
-        uint32_t mipLevel { 0 };
-        uint32_t slice { 0 };
-        uint64_t commandEncoderId { 0 };
-    };
-
-    id<MTLCommandQueue> _Nullable m_commandQueue { nil };
-    id<MTLCommandBuffer> _Nullable m_commandBuffer { nil };
-    id<MTLBlitCommandEncoder> _Nullable m_blitCommandEncoder { nil };
-    id<MTLComputeCommandEncoder> _Nullable m_stagedCopyEncoder { nil };
-    id<MTLComputePipelineState> _Nullable m_stagedCopyPipelineState { nil };
-    bool m_stagedCopyPipelineCreationFailed { false };
-    NSMutableDictionary<NSNumber *, id<MTLRenderPipelineState>> * _Nullable m_copyExternalImagePipelineStates { nil };
-    bool m_copyExternalImagePipelineCreationFailed { false };
-    ThreadSafeWeakPtr<Device> m_device; // The only kind of queues that exist right now are default queues, which are owned by Devices.
-    uint64_t m_submittedCommandBufferCount { 0 };
-    uint64_t m_completedCommandBufferCount { 0 };
-    uint64_t m_scheduledCommandBufferCount { 0 };
-    using OnSubmittedWorkScheduledCallbacks = Vector<WTF::Function<void()>>;
-    HashMap<uint64_t, OnSubmittedWorkScheduledCallbacks, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_onSubmittedWorkScheduledCallbacks;
-    using OnSubmittedWorkDoneCallbacks = Vector<WTF::Function<void(bool)>>;
-    HashMap<uint64_t, OnSubmittedWorkDoneCallbacks, DefaultHash<uint64_t>, WTF::UnsignedWithZeroKeyHashTraits<uint64_t>> m_onSubmittedWorkDoneCallbacks;
-    NSMutableDictionary<NSNumber*, NSMutableSet<id<MTLCounterSampleBuffer>>*> * _Nullable m_retainedCounterSampleBuffers;
-    NSMutableOrderedSet<id<MTLCommandBuffer>> * _Nullable m_createdNotCommittedBuffers { nil };
-    NSMutableOrderedSet<id<MTLCommandBuffer>> * _Nullable m_committedNotCompletedBuffers WTF_GUARDED_BY_LOCK(m_committedNotCompletedBuffersLock) { nil };
-    Lock m_committedNotCompletedBuffersLock;
-    NSMapTable<id<MTLCommandBuffer>, id<MTLCommandEncoder>> * _Nullable m_openCommandEncoders;
-    const ThreadSafeWeakPtr<Instance> m_instance;
-    id<MTLBuffer> _Nullable m_temporaryBuffer;
-    uint64_t m_temporaryBufferOffset;
-    // The bytes a pending staged copy aliases, waiting for finalizeBlitCommandEncoder() to attach
-    // them to the staging command buffer. Set only inside
-    // writeBuffer(Buffer&, uint64_t, Vector<uint8_t>&&).
-    Vector<uint8_t> m_noCopyStagingSource;
-    Vector<ProvisionalTextureClear> m_provisionalTextureClears;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refQueue, derefQueue) SWIFT_PRIVATE_FILEID("WebGPU/Queue.swift");
+// CoreVideoInterop.swift and ExternalTextureImport.swift spell HAVE(COREVIDEO_METAL_SUPPORT) out, because Swift cannot
+// evaluate the CoreVideo macro it expands to.
+#if HAVE(COREVIDEO_METAL_SUPPORT) != (HAVE(WEBGPU_IMPLEMENTATION) && (PLATFORM(MAC) || PLATFORM(IOS) || PLATFORM(VISION)))
+#error "Update the HAVE(COREVIDEO_METAL_SUPPORT) conditions in CoreVideoInterop.swift and ExternalTextureImport.swift"
+#endif
 
 } // namespace WebGPU::Metal
-
-#if !ENABLE(SWIFT_BASE_CLASS_ANNOTATIONS)
-inline void refQueue(WebGPU::Metal::Queue* obj)
-{
-    obj->ref();
-}
-
-inline void derefQueue(WebGPU::Metal::Queue* obj)
-{
-    obj->deref();
-}
-#endif
 
 IGNORE_CLANG_WARNINGS_END

@@ -348,6 +348,11 @@ set(WebKit_SWIFT_INCLUDE_DIRECTORIES
     "${CMAKE_BINARY_DIR}/Source/WebCore"
 )
 
+# WebKit's Swift can expose to C++ declarations that name WebCore's Swift CGRendererCore, as the GPU process's Swift receiver
+# of image buffer drawing does with the CG renderer that its context lends it. WebKit's generated header then includes
+# Shared/WebCoreSwiftForWebKit.h, which has what it needs of WebCore's.
+webkit_target_add_swift_options(WebKit "-Xfrontend -clang-header-expose-module -Xfrontend WebCore=WebCoreSwiftForWebKit.h")
+
 set(WebKit_FORWARDING_HEADERS_FILES
     Platform/cocoa/WKCrashReporter.h
 
@@ -751,6 +756,16 @@ elseif (WEBKIT_SDK_IS_IOS_FAMILY)
         $<$<BOOL:${SPRINGBOARDSERVICES_LIBRARY}>:${SPRINGBOARDSERVICES_LIBRARY}>
         $<$<BOOL:${UIKITSERVICES_LIBRARY}>:${UIKITSERVICES_LIBRARY}>
     )
+endif ()
+
+# LibWebRTCCodecsProxy's Swift codecs call CoreMedia and VideoToolbox. A Mac may lack them, so macOS links them weakly,
+# and the codecs check for them before they start.
+if (USE_LIBWEBRTC)
+    if (WEBKIT_PLATFORM_MAC)
+        target_link_options(WebKit PRIVATE "LINKER:-weak_framework,CoreMedia" "LINKER:-weak_framework,VideoToolbox")
+    else ()
+        target_link_options(WebKit PRIVATE "LINKER:-framework,CoreMedia" "LINKER:-framework,VideoToolbox")
+    endif ()
 endif ()
 
 set(WebKit_FORWARDING_HEADERS_DIRECTORIES
@@ -2448,6 +2463,12 @@ if (WEBKIT_SDK_IS_IOS_FAMILY)
     # Headers.cmake adds the iOS headers, some of which other lists name too.
     list(REMOVE_DUPLICATES WebKit_PROJECT_HEADERS)
     list(REMOVE_DUPLICATES WebKit_PRIVATE_FRAMEWORK_HEADERS)
+endif ()
+
+# The Swift WebGPU receivers call WebGPU.framework's Swift module, WebGPUSwift.
+if (TARGET WebGPU)
+    webkit_target_add_swift_options(WebKit -I${WebGPU_SWIFT_MODULES_DIR})
+    target_link_libraries(WebKit PRIVATE WebGPU)
 endif ()
 
 # Headers which import WebKitAdditions fragments have to be run through the

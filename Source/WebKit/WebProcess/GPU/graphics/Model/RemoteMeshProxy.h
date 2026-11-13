@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "Mesh.h"
 #include "RemoteDeviceProxy.h"
@@ -177,4 +177,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::RemoteMeshProxy)
     static bool isType(const WebKit::Mesh& mesh) { return mesh.isRemoteMeshProxy(); }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

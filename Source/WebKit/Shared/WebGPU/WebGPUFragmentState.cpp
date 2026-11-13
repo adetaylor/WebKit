@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUFragmentState.h>
 #include <wtf/Borrow.h>
@@ -42,17 +41,6 @@ std::optional<FragmentState> ConvertToBackingContext::convertToBacking(const ::W
         return std::nullopt;
 
     return { { WTF::move(*base), Vector<std::optional<ColorTargetState>> { fragmentState.targets } } };
-}
-
-std::optional<::WebGPU::FragmentState> ConvertFromBackingContext::convertFromBacking(const FragmentState& fragmentState, RenderPipelineDescriptorStorage& storage)
-{
-    auto stage = convertFromBacking(static_cast<const ProgrammableStage&>(fragmentState), storage.fragmentConstants);
-    if (!stage)
-        return std::nullopt;
-
-    storage.fragmentTargets = fragmentState.targets;
-
-    return { { WTF::move(*stage), storage.fragmentTargets.span() } };
 }
 
 } // namespace WebKit

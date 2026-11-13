@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUShaderModuleDescriptor.h>
 #include <wtf/Borrow.h>
@@ -38,22 +37,9 @@ namespace WebKit::WebGPU {
 std::optional<ShaderModuleDescriptor> ConvertToBackingContext::convertToBacking(const ::WebGPU::ShaderModuleDescriptor& shaderModuleDescriptor)
 {
     auto hints = WTF::map(shaderModuleDescriptor.hints, [&](auto& hint) {
-        return makeKeyValuePair(hint.entryPoint, ShaderModuleCompilationHint { convertToBacking(hint.layout.get()) });
+        return ShaderModuleCompilationHintEntry { hint.entryPoint, ShaderModuleCompilationHint { convertToBacking(hint.layout.get()) } };
     });
     return { { { shaderModuleDescriptor.label }, shaderModuleDescriptor.code, WTF::move(hints) } };
-}
-
-std::optional<::WebGPU::ShaderModuleDescriptor> ConvertFromBackingContext::convertFromBacking(const ShaderModuleDescriptor& shaderModuleDescriptor, Vector<::WebGPU::ShaderModuleCompilationHint>& hintsStorage)
-{
-    hintsStorage.reserveInitialCapacity(shaderModuleDescriptor.hints.size());
-    for (const auto& hint : borrow(shaderModuleDescriptor.hints)) {
-        RefPtr pipelineLayout = convertPipelineLayoutFromBacking(hint.value.pipelineLayout);
-        if (!pipelineLayout)
-            return std::nullopt;
-        hintsStorage.append({ .entryPoint = hint.key, .layout = pipelineLayout.releaseNonNull() });
-    }
-
-    return { { shaderModuleDescriptor.label, shaderModuleDescriptor.code, hintsStorage.span() } };
 }
 
 } // namespace WebKit

@@ -57,8 +57,6 @@ list(APPEND PAL_PUBLIC_HEADERS
     crypto/CryptoEDKeyBridging.h
     crypto/PlatformECKey.h
 
-    graphics/cocoa/WebAVContentKeyGrouping.h
-    graphics/cocoa/WebAVContentKeyReportGroupExtras.h
 
     ios/UIKitSoftLink.h
 

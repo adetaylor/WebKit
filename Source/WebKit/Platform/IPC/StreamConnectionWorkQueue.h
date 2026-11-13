@@ -31,6 +31,7 @@
 #include <wtf/Deque.h>
 #include <wtf/FunctionDispatcher.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/Threading.h>
 #include <wtf/Vector.h>
 
@@ -60,6 +61,12 @@ public:
     // SerialFunctionDispatcher
     SWIFT_UNSAFE void dispatch(WTF::Function<void()>&&) final;
     bool isCurrent() const final;
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { SerialFunctionDispatcher::ref(); }
+    void deref() const { SerialFunctionDispatcher::deref(); }
+#endif
 
 private:
     void startProcessingThread() WTF_REQUIRES_LOCK(m_lock);

@@ -1027,52 +1027,6 @@ TEST(CMUtilities, PixelAspectRatioOfUnrepresentableSpacingsIsAbsent)
     }
 }
 
-static OSStatus getNoParameterSets(CMFormatDescriptionRef, size_t, const uint8_t**, size_t*, size_t* parameterSetCount, int* nalUnitHeaderLength)
-{
-    if (parameterSetCount)
-        *parameterSetCount = 0;
-    if (nalUnitHeaderLength)
-        *nalUnitHeaderLength = 4;
-    return noErr;
-}
-
-static Vector<uint8_t> convertToAnnexB(std::span<const uint8_t> lengthPrefixed)
-{
-    CMFormatDescriptionRef rawDescription = nullptr;
-    PAL::CMVideoFormatDescriptionCreate(kCFAllocatorDefault, kCMVideoCodecType_H264, 16, 16, nullptr, &rawDescription);
-    RetainPtr description = adoptCF(rawDescription);
-    CMBlockBufferRef rawBlockBuffer = nullptr;
-    PAL::CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault, nullptr, lengthPrefixed.size(), kCFAllocatorDefault, nullptr, 0, lengthPrefixed.size(), kCMBlockBufferAssureMemoryNowFlag, &rawBlockBuffer);
-    RetainPtr blockBuffer = adoptCF(rawBlockBuffer);
-    PAL::CMBlockBufferReplaceDataBytes(lengthPrefixed.data(), blockBuffer.get(), 0, lengthPrefixed.size());
-    CMSampleTimingInfo timing = { PAL::CMTimeMake(1, 30), PAL::CMTimeMake(0, 30), PAL::CMTimeMake(0, 30) };
-    size_t sampleSize = lengthPrefixed.size();
-    CMSampleBufferRef rawSampleBuffer = nullptr;
-    PAL::CMSampleBufferCreate(kCFAllocatorDefault, blockBuffer.get(), true, nullptr, nullptr, description.get(), 1, 1, &timing, 1, &sampleSize, &rawSampleBuffer);
-    RetainPtr sampleBuffer = adoptCF(rawSampleBuffer);
-    if (!sampleBuffer)
-        return { };
-    return WebCore::convertParameterSetsCMSampleBufferToAnnexB(sampleBuffer.get(), true, getNoParameterSets);
-}
-
-TEST(CMUtilities, AnnexBConversionKeepsEmptyNALUnits)
-{
-    constexpr uint8_t lengthPrefixed[] = { 0, 0, 0, 0, 0, 0, 0, 3, 'a', 'b', 'c', 0, 0, 0, 0 };
-    constexpr uint8_t annexB[] = { 0, 0, 0, 1, 0, 0, 0, 1, 'a', 'b', 'c', 0, 0, 0, 1 };
-    EXPECT_TRUE(equalSpans(convertToAnnexB(lengthPrefixed).span(), std::span { annexB }));
-}
-
-TEST(CMUtilities, AnnexBConversionRejectsIncompleteNALUnits)
-{
-    // A length that runs past the end, trailing bytes too short for a length, and a length near 2^32.
-    constexpr uint8_t tooLong[] = { 0, 0, 0, 2, 'a', 'b', 0, 0, 0, 2, 'c' };
-    EXPECT_TRUE(convertToAnnexB(tooLong).isEmpty());
-    constexpr uint8_t trailingBytes[] = { 0, 0, 0, 1, 'a', 0, 0, 0 };
-    EXPECT_TRUE(convertToAnnexB(trailingBytes).isEmpty());
-    constexpr uint8_t hugeLength[] = { 0xff, 0xff, 0xff, 0xfd, 'a' };
-    EXPECT_TRUE(convertToAnnexB(hugeLength).isEmpty());
-}
-
 static MediaTime aacFrames(int64_t frames)
 {
     return MediaTime(frames, 48000);

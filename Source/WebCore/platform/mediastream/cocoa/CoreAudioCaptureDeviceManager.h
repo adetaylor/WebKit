@@ -28,14 +28,12 @@
 #include <wtf/Platform.h>
 #if ENABLE(MEDIA_STREAM) && PLATFORM(MAC)
 
-#include <CoreAudio/CoreAudio.h>
 #include <WebCore/CaptureDeviceManager.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class CoreAudioCaptureDevice;
-
+// The HAL's microphones and speakers, which AudioCaptureDevices.swift enumerates and keeps.
 class CoreAudioCaptureDeviceManager final : public CaptureDeviceManager {
     friend class NeverDestroyed<CoreAudioCaptureDeviceManager>;
 public:
@@ -44,26 +42,23 @@ public:
     const Vector<CaptureDevice>& captureDevices() final;
     std::optional<CaptureDevice> captureDeviceWithPersistentID(CaptureDevice::DeviceType, const String&);
 
-    std::optional<CoreAudioCaptureDevice> coreAudioDeviceWithUID(const String&);
-    const Vector<CaptureDevice>& speakerDevices() const LIFETIME_BOUND { return m_speakerDevices; }
+    // The HAL ID of the enabled microphone or speaker with the given persistent ID.
+    std::optional<uint32_t> coreAudioDeviceWithUID(const String&);
+    const Vector<CaptureDevice>& speakerDevices() const LIFETIME_BOUND;
 
-    void setFilterTapEnabledDevices(bool doFiltering) { m_filterTapEnabledDevices = doFiltering; }
+    WEBCORE_EXPORT void setFilterTapEnabledDevices(bool);
+
+    void devicesDidChange() { deviceChanged(); }
 
 private:
     CoreAudioCaptureDeviceManager() = default;
     virtual ~CoreAudioCaptureDeviceManager();
 
-    Vector<CoreAudioCaptureDevice>& coreAudioCaptureDevices();
+    void updateDevicesIfNeeded(bool initialize) const;
 
-    enum class NotifyIfDevicesHaveChanged { Notify, DoNotNotify };
-    void refreshAudioCaptureDevices(NotifyIfDevicesHaveChanged);
-    void scheduleUpdateCaptureDevices();
-
-    Vector<CaptureDevice> m_captureDevices;
-    Vector<CaptureDevice> m_speakerDevices;
-    Vector<CoreAudioCaptureDevice> m_coreAudioCaptureDevices;
-    bool m_wasRefreshAudioCaptureDevicesScheduled { false };
-    bool m_filterTapEnabledDevices { false };
+    mutable Vector<CaptureDevice> m_captureDevices;
+    mutable Vector<CaptureDevice> m_speakerDevices;
+    mutable uint64_t m_generation { 0 };
 };
 
 } // namespace WebCore

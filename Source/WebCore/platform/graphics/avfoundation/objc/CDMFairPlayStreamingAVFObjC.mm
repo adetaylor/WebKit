@@ -28,29 +28,29 @@
 
 #if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
 
+#import "MediaParsersCxxBridging.h"
 #import "SharedBuffer.h"
-#import <pal/spi/cocoa/AVFoundationSPI.h>
+#import "WebCore-Swift.h"
+#import <AVFoundation/AVContentKeySession.h>
 #import <wtf/Ref.h>
 #import <wtf/Vector.h>
-#import <wtf/cocoa/TypeCastsCocoa.h>
 
 namespace WebCore {
 
 Vector<Ref<SharedBuffer>> CDMPrivateFairPlayStreaming::keyIDsForRequest(AVContentKeyRequest *request)
 {
-    if (RetainPtr identiferStr = dynamic_objc_cast<NSString>(request.identifier))
-        return { SharedBuffer::create(retainPtr([identiferStr dataUsingEncoding:NSUTF8StringEncoding]).get()) };
-    if (RetainPtr identifierData = dynamic_objc_cast<NSData>(request.identifier))
-        return { SharedBuffer::create(identifierData.get()) };
-    if (request.initializationData) {
-        if (auto sinfKeyIDs = CDMPrivateFairPlayStreaming::extractKeyIDsSinf(SharedBuffer::create(retainPtr(request.initializationData).get())))
-            return WTF::move(sinfKeyIDs.value());
-#if HAVE(FAIRPLAYSTREAMING_MTPS_INITDATA)
-        if (auto mptsKeyIDs = CDMPrivateFairPlayStreaming::extractKeyIDsMpts(SharedBuffer::create(retainPtr(request.initializationData).get())))
-            return WTF::move(mptsKeyIDs.value());
-#endif
+    MediaParserByteVector keyIDBytes;
+    MediaParserUInt32Vector keyIDSizes;
+    fairPlayRequestKeyIDsImpl(request.identifier, request.initializationData, keyIDBytes, keyIDSizes);
+
+    Vector<Ref<SharedBuffer>> keyIDs;
+    keyIDs.reserveInitialCapacity(keyIDSizes.size());
+    auto bytes = keyIDBytes.span();
+    for (auto size : keyIDSizes) {
+        keyIDs.append(SharedBuffer::create(bytes.first(size)));
+        bytes = bytes.subspan(size);
     }
-    return { };
+    return keyIDs;
 }
 
 } // namespace WebCore

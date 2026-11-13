@@ -1,0 +1,270 @@
+// Copyright (C) 2020-2021 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+#if ENABLE_GPU_PROCESS && ENABLE_WEBGL
+
+internal import WebCoreWebGL
+import WebKit_Internal
+
+// The GL names of the web process's names for a context's objects, as the HashMap with IntHash that kept them in C++:
+// 0 is a name, the two largest values aren't (they mark empty and deleted slots), adding a name that is there changes
+// nothing, and a name that isn't there has GL name 0.
+struct RemoteGraphicsContextGLObjectNames {
+    private static let empty = UInt32.max
+    private static let deleted = UInt32.max - 1
+
+    // Open addressing with linear probing over a power-of-two number of slots, of which at most three quarters hold a
+    // name or a deleted mark, so that every probe ends at an empty slot.
+    private var names = [UInt32](repeating: empty, count: 64)
+    private var objects = [UInt32](repeating: 0, count: 64)
+    private var count = 0
+    private var deletedCount = 0
+
+    func isValidKey(_ name: UInt32) -> Bool {
+        name < Self.deleted
+    }
+
+    func get(_ name: UInt32) -> UInt32 {
+        guard let index = index(of: name) else {
+            return 0
+        }
+        return objects[index]
+    }
+
+    mutating func add(_ name: UInt32, _ object: UInt32) {
+        if index(of: name) != nil {
+            return
+        }
+        if (count + deletedCount + 1) * 4 > names.count * 3 {
+            resize()
+        }
+        let mask = names.count - 1
+        var index = Int(Self.hash(name)) & mask
+        while names[index] != Self.empty && names[index] != Self.deleted {
+            index = (index + 1) & mask
+        }
+        if names[index] == Self.deleted {
+            deletedCount -= 1
+        }
+        names[index] = name
+        objects[index] = object
+        count += 1
+    }
+
+    mutating func take(_ name: UInt32) -> UInt32 {
+        guard let index = index(of: name) else {
+            return 0
+        }
+        let object = objects[index]
+        names[index] = Self.deleted
+        objects[index] = 0
+        count -= 1
+        deletedCount += 1
+        return object
+    }
+
+    private func index(of name: UInt32) -> Int? {
+        let mask = names.count - 1
+        var index = Int(Self.hash(name)) & mask
+        while true {
+            let slot = names[index]
+            if slot == name {
+                return index
+            }
+            if slot == Self.empty {
+                return nil
+            }
+            index = (index + 1) & mask
+        }
+    }
+
+    // Twice as many slots as names, or more, without the deleted marks.
+    private mutating func resize() {
+        var capacity = 64
+        while capacity < (count + 1) * 4 {
+            capacity *= 2
+        }
+        let oldNames = names
+        let oldObjects = objects
+        names = [UInt32](repeating: Self.empty, count: capacity)
+        objects = [UInt32](repeating: 0, count: capacity)
+        count = 0
+        deletedCount = 0
+        for (index, name) in oldNames.enumerated() where name != Self.empty && name != Self.deleted {
+            add(name, oldObjects[index])
+        }
+    }
+
+    // WTF::intHash() of a 32-bit integer.
+    private static func hash(_ value: UInt32) -> UInt32 {
+        var key = value
+        key = key &+ ~(key << 15)
+        key ^= key >> 10
+        key = key &+ (key << 3)
+        key ^= key >> 6
+        key = key &+ ~(key << 11)
+        key ^= key >> 16
+        return key
+    }
+}
+
+// Receives a WebGL context's GL calls, on the stream connection of its RemoteGraphicsContextGLResources, and makes them on
+// the WebGL island's context. Like any stream receiver, it is confined to the connection's work queue. Its handlers are
+// largely generated by Tools/Scripts/generate-gpup-webgl, in RemoteGraphicsContextGLFunctionsGenerated.swift.
+@_expose(Cxx)
+final class RemoteGraphicsContextGL {
+    @_expose(!Cxx)
+    let island: GLContext
+    var names = RemoteGraphicsContextGLObjectNames()
+
+    fileprivate init(island: GLContext) {
+        self.island = island
+    }
+
+    // The forwarder keeps this alive, so this mustn't keep the forwarder: its registration, in the Swift state of the
+    // RemoteGraphicsContextGLResources, does.
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteGraphicsContextGLMessageForwarder {
+        WebKit.RemoteGraphicsContextGLMessageForwarder.create(target: self)
+    }
+
+    // The registration gives the forwarder the shared preferences.
+    @_expose(!Cxx)
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        WebKit.OptionalSharedPreferencesForWebProcess()
+    }
+
+    // Messages to be received, besides the generated ones.
+
+    func ensureExtensionEnabled(glExtension: UInt8) throws(InvalidMessage) {
+        let success = island.enableExtension(glExtension)
+        try messageCheck {
+            success
+        }
+    }
+
+    func getErrors() -> UInt8 {
+        island.getErrors()
+    }
+
+    func drawBuffers(bufs: [UInt32]) {
+        island.drawBuffers(bufs)
+    }
+
+    func drawBuffersEXT(bufs: [UInt32]) {
+        island.drawBuffersEXT(bufs)
+    }
+
+    func invalidateFramebuffer(glTarget: UInt32, attachments: [UInt32]) {
+        island.invalidateFramebuffer(glTarget, attachments)
+    }
+
+    func invalidateSubFramebuffer(glTarget: UInt32, attachments: [UInt32], x: Int32, y: Int32, width: Int32, height: Int32) {
+        island.invalidateSubFramebuffer(glTarget, attachments, x, y, width, height)
+    }
+
+    // One matrix, of which the first columns x rows values are the matrix's, as UniformMatrix*fv of one sends it.
+    func uniformMatrixOne(columns: UInt8, rows: UInt8, location: Int32, transpose: Bool, m0: Float, m1: Float, m2: Float, m3: Float, m4: Float, m5: Float, m6: Float, m7: Float, m8: Float, m9: Float, m10: Float, m11: Float, m12: Float, m13: Float, m14: Float, m15: Float) throws(InvalidMessage) {
+        let known = island.uniformMatrix(columns: GLint(columns), rows: GLint(rows), location, transpose ? 1 : 0, ANGLEFloat16(values: (m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15)))
+        try messageCheck {
+            known
+        }
+    }
+}
+
+// What a RemoteGraphicsContextGLResources's m_swiftState holds while its receivers receive messages: the receiver of the
+// GL calls, and the registration that keeps them coming to it.
+private final class RemoteGraphicsContextGLState {
+    let receiver: RemoteGraphicsContextGL
+    let registration: IPC.SwiftStreamReceiverRegistration?
+
+    init(receiver: RemoteGraphicsContextGL, registration: IPC.SwiftStreamReceiverRegistration?) {
+        self.receiver = receiver
+        self.registration = registration
+    }
+}
+
+// The members of RemoteGraphicsContextGLResources (RemoteGraphicsContextGLResources.h) that make and reach its Swift state,
+// on its work queue.
+extension WebKit.RemoteGraphicsContextGLResources {
+    @cxx
+    @implementation
+    @unsafe
+    func createSwiftState(_ islandShell: UInt, _ identifier: UInt64) -> UInt {
+        // Safety: the caller keeps alive the context whose islandShell() this is, and so its shell.
+        let receiver = RemoteGraphicsContextGL(island: unsafe GLShell.fromReference(islandShell).context!)
+        let registration = IPC.registerSwiftStreamReceiver(self, receiver.getMessageReceiver(), .RemoteGraphicsContextGL, identifier)
+        let state = RemoteGraphicsContextGLState(receiver: receiver, registration: registration)
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
+    }
+
+    @cxx
+    @implementation
+    @unsafe
+    static func destroySwiftState(_ swiftState: UInt) {
+        // Safety: createSwiftState() retained the state at this address, and only this releases it.
+        _ = unsafe Unmanaged<RemoteGraphicsContextGLState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+    }
+
+    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
+            preconditionFailure("RemoteGraphicsContextGLResources has no Swift state")
+        }
+        return unsafe address
+    }
+
+    // Only reached while the receivers receive messages, between createSwiftState() and destroySwiftState().
+    private var receiver: RemoteGraphicsContextGL {
+        // Safety: m_swiftState is 0 or a retained RemoteGraphicsContextGLState that only destroySwiftState() releases, once
+        // the receivers no longer receive messages.
+        unsafe Unmanaged<RemoteGraphicsContextGLState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue().receiver
+    }
+
+    // The names, for the messages that C++ handles.
+
+    @cxx
+    @implementation
+    func isValidObjectName(_ name: UInt32) -> Bool {
+        receiver.names.isValidKey(name)
+    }
+
+    @cxx
+    @implementation
+    func objectName(_ name: UInt32) -> UInt32 {
+        receiver.names.get(name)
+    }
+
+    @cxx
+    @implementation
+    func takeObjectName(_ name: UInt32) -> UInt32 {
+        receiver.names.take(name)
+    }
+
+    @cxx
+    @implementation
+    func addObjectName(_ name: UInt32, _ object: UInt32) {
+        receiver.names.add(name, object)
+    }
+}
+
+#endif

@@ -32,16 +32,7 @@
 #import <wtf/SystemTracing.h>
 #import <wtf/text/TextStream.h>
 
-#if ENABLE(WEBCORE_SWIFT)
-#import "WebCore-Swift.h"
-#endif
-
 namespace WebCore {
-
-void setFilterResultCIContextsForTesting(CIContext *linearSRGB, CIContext *sRGB)
-{
-    setFilterResultContextsForTesting(linearSRGB, sRGB);
-}
 
 namespace FilterCoreImageSwiftBridge {
 

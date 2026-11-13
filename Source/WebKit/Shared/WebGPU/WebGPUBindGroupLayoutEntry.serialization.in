@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::BindGroupLayoutEntry {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::BindGroupLayoutEntry {
     uint32_t binding;
     OptionSet<::WebGPU::ShaderStage> visibility;
     std::optional<::WebGPU::BufferBindingLayout> buffer;

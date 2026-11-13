@@ -17,7 +17,6 @@ set(WebCore_PRIVATE_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/ShapeDetection"
     "${WEBCORE_DIR}/Modules/ShapeDetection/Interfaces"
     "${WEBCORE_DIR}/Modules/WebGPU"
-    "${WEBCORE_DIR}/Modules/WebGPU/Implementation"
     "${WEBCORE_DIR}/Modules/airplay"
     "${WEBCORE_DIR}/Modules/applepay"
     "${WEBCORE_DIR}/Modules/applepay/paymentrequest"
@@ -2550,6 +2549,11 @@ if (ENABLE_WEBGL)
         platform/graphics/angle/ANGLEUtilities.cpp
         platform/graphics/angle/GraphicsContextGLANGLE.cpp
     )
+    # GraphicsContextGLANGLE.cpp is a shell over the WebGL island's Swift (platform/graphics/angle/swift), which only the
+    # Apple ports build: its other platforms (EGL, GBM, WinCairo) need those ports' Swift toolchains.
+    if (NOT APPLE)
+        message(FATAL_ERROR "ENABLE_WEBGL needs the WebGL island, WebCore's WebCoreWebGL Swift module, which only the Apple ports build so far")
+    endif ()
 
     list(APPEND WebCore_PRIVATE_LIBRARIES ANGLE::GLES)
 elseif (USE_ANGLE_EGL)
@@ -2902,8 +2906,8 @@ if (NOT USE_FRAMEWORK_BUNDLES)
     set(WebCore_INTERFACE_INCLUDE_DIRECTORIES ${WebCore_PRIVATE_FRAMEWORK_HEADERS_DIR})
 endif ()
 
-if (NOT APPLE)
-    # The WebGPU C++ API header, <WebGPU/WebGPUCpp.h>, which ports without WebGPU.framework copy to
+if (NOT APPLE OR NOT ENABLE_WEBGPU)
+    # The WebGPU C++ API header, <WebGPU/WebGPUCpp.h>, which builds without WebGPU.framework copy to
     # a plain include directory. WebCore headers include it, so the users of WebCore need it too.
     list(APPEND WebCore_PRIVATE_INCLUDE_DIRECTORIES ${WebGPU_PRIVATE_FRAMEWORK_HEADERS_DIR})
     list(APPEND WebCore_INTERFACE_INCLUDE_DIRECTORIES ${WebGPU_PRIVATE_FRAMEWORK_HEADERS_DIR})
@@ -3350,6 +3354,62 @@ if (SWIFT_REQUIRED AND APPLE)
 endif ()
     # These include WebCoreSwift-Generated.h, so they are built in WebCore_SwiftInterop.
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)(HTTPHeaderField|LinkHeader|ServerTimingParser|ReferrerPolicy|CacheValidation|HTTPParsers|ParsedContentRange|ParsedContentType|RFC8941)\\.cpp( |$)")
+        platform/graphics/filters/FEColorMatrix.cpp
+        platform/graphics/filters/FEConvolveMatrix.cpp
+        platform/graphics/filters/FEDisplacementMap.cpp
+        platform/graphics/filters/FEDropShadow.cpp
+        platform/graphics/filters/FEGaussianBlur.cpp
+        platform/graphics/filters/FEOffset.cpp
+        platform/graphics/filters/Filter.cpp
+        platform/graphics/filters/FilterEffect.cpp
+        platform/graphics/filters/FilterGraphicsBridge.cpp
+        platform/graphics/filters/FilterResults.cpp
+        platform/graphics/filters/parameters/FEImageBridge.cpp
+        platform/graphics/filters/parameters/SourceGraphicBridge.cpp
+        rendering/CSSFilterRenderer.cpp
+        svg/graphics/filters/SVGFilterRenderer.cpp
+        Modules/encryptedmedia/InitDataRegistry.cpp
+        platform/encryptedmedia/clearkey/CDMClearKey.cpp
+        platform/graphics/AV1Utilities.cpp
+        platform/graphics/AnnexBUtilities.cpp
+        platform/graphics/H264Utilities.cpp
+        platform/graphics/HEVCBitstreamParser.cpp
+        platform/graphics/HEVCUtilities.cpp
+        platform/graphics/VP9Utilities.cpp
+        platform/graphics/avfoundation/AudioVideoRendererAVFObjC.mm
+        platform/graphics/avfoundation/CDMFairPlayStreaming.cpp
+        platform/graphics/avfoundation/FormatDescriptionUtilities.cpp
+        platform/graphics/avfoundation/objc/CDMFairPlayStreamingAVFObjC.mm
+        platform/graphics/avfoundation/objc/CDMInstanceFairPlayStreamingAVFObjC.mm
+        platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm
+        platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.cpp
+        platform/graphics/avfoundation/InbandTextTrackPrivateAVF.cpp
+        platform/graphics/cocoa/CMUtilities.mm
+        platform/graphics/cocoa/H264UtilitiesCocoa.mm
+        platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
+        platform/graphics/cocoa/VP9UtilitiesCocoa.mm
+        platform/graphics/iso/ISOBox.cpp
+        platform/graphics/iso/ISOOriginalFormatBox.cpp
+        platform/graphics/iso/ISOProtectionSchemeInfoBox.cpp
+        platform/graphics/iso/ISOProtectionSystemSpecificHeaderBox.cpp
+        platform/graphics/iso/ISOSchemeInformationBox.cpp
+        platform/graphics/iso/ISOSchemeTypeBox.cpp
+        platform/graphics/iso/ISOTrackEncryptionBox.cpp
+        platform/graphics/iso/ISOVTTCue.cpp
+    )
+    if (ENABLE_WEBGL)
+        # The C++ that calls the WebGL island's Swift, through the headers beside its module maps.
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES
+            platform/graphics/angle/GLLentMemory.cpp
+            platform/graphics/angle/GraphicsContextGLANGLE.cpp
+            platform/graphics/cocoa/ANGLECocoaShims.mm
+            platform/graphics/cocoa/GraphicsContextGLCocoa.mm)
+    endif ()
+    foreach (_f IN LISTS WebCore_SWIFT_INTEROP_SOURCES)
+        list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
+    endforeach ()
+    # Some of them are also in a platform's WebCore_SOURCES, as members of the unified sources.
+    list(REMOVE_ITEM WebCore_SOURCES ${WebCore_SWIFT_INTEROP_SOURCES})
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3466,6 +3526,40 @@ if (SWIFT_REQUIRED AND APPLE)
         "-Xfrontend -disable-autolink-framework -Xfrontend CoreMedia"
         "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
         "-Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia"
+    if (WTF_CPU_X86_64)
+        webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
+    endif ()
+    # WebCore soft-links these frameworks, so its Swift doesn't autolink them or their overlays, and a stray use of
+    # their symbols fails the link. As WebCore.xcconfig's WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS. The check at the end of
+    # this file keeps the list complete for direct imports; MediaToolbox and VideoToolbox come through the C++ modules,
+    # CoreML through Vision's.
+    set(WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS
+        AVFAudio AVFoundation AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox ScreenCaptureKit Vision VideoToolbox)
+    foreach (_framework IN LISTS WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
+        webkit_target_add_swift_options(WebCore
+            "-Xfrontend -disable-autolink-framework -Xfrontend ${_framework}"
+            "-Xfrontend -disable-autolink-library -Xfrontend swift${_framework}"
+        )
+    endforeach ()
+
+    # Its Swift reaches their symbols through accessors generated with the target's SDK from PAL's SOFT_LINK
+    # declarations, for the symbols that platform/cocoa/SoftLinkAccessors.in lists. The SDK's declarations are read in
+    # C++ interop mode, as WebCore's Swift imports them.
+    set(WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS AVFAudio AVFoundation AudioToolbox CoreML CoreMedia ScreenCaptureKit Vision)
+    set(_soft_link_accessors_dir ${WebCore_DERIVED_SOURCES_DIR}/SoftLinkAccessors)
+    set(_soft_link_pal_headers
+        ${PAL_DIR}/pal/cf/AudioToolboxSoftLink.h
+        ${PAL_DIR}/pal/cf/CoreMediaSoftLink.h
+        ${PAL_DIR}/pal/cocoa/AVFAudioSoftLink.h
+        ${PAL_DIR}/pal/cocoa/AVFoundationSoftLink.h
+        ${PAL_DIR}/pal/cocoa/CoreMLSoftLink.h
+        ${PAL_DIR}/pal/cocoa/VisionSoftLink.h
+        ${PAL_DIR}/pal/mac/ScreenCaptureKitSoftLink.h
+    )
+    # The clients of WebCore's Swift module load the modules it imports, and search this directory for WebCore's.
+    set(_soft_link_accessors_types
+        ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/module.modulemap
+        ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/PALSoftLinkTypes.h
     )
 
     # C++ sources that include WebCoreSwift-Generated.h.
@@ -3494,6 +3588,38 @@ if (SWIFT_REQUIRED AND APPLE)
         platform/network/ParsedContentRange.cpp
         platform/network/ParsedContentType.cpp
         platform/network/RFC8941.cpp
+        platform/audio/cocoa/CARingBuffer.cpp
+    # The pure Swift value types, in WebCore.framework, which WebCoreEME, WebCore's Swift and WebKit's Swift import.
+    # Without -force_load the linker drops archive members that hold only types and conformances.
+    add_subdirectory(platform/swift/support)
+    target_link_libraries(WebCore PRIVATE WebCoreSwiftSupport)
+    target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreSwiftSupport>")
+    webkit_target_add_swift_options(WebCore "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
+    add_dependencies(WebCore_SwiftGeneratedDeps WebCoreSwiftSupport)
+    # The encrypted media Swift module, in WebCore.framework, which WebCore's Swift and WebKit's Swift import. Without
+    # -force_load the linker drops archive members that hold only types and conformances.
+    add_subdirectory(platform/encryptedmedia/swift)
+    target_link_libraries(WebCore PRIVATE WebCoreEME)
+    target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreEME>")
+    webkit_target_add_swift_options(WebCore
+        "-I${WebCoreEME_SWIFT_MODULE_DIR}"
+        "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
+    add_dependencies(WebCore_SwiftGeneratedDeps WebCoreEME)
+    if (ENABLE_WEBGL)
+        # The WebGL island's Swift module, in WebCore.framework. Without -force_load the linker drops archive members
+        # that hold only types and conformances.
+        add_subdirectory(platform/graphics/angle/swift)
+        target_link_libraries(WebCore PRIVATE WebCoreWebGL)
+        target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreWebGL>")
+        # GraphicsContextGLANGLE's members that only call the island.
+        target_sources(WebCore PRIVATE ${WEBCORE_DIR}/platform/graphics/angle/GraphicsContextGLANGLE.swift)
+        webkit_target_add_swift_options(WebCore
+            "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
+            "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}")
+        add_dependencies(WebCore_SwiftGeneratedDeps WebCoreWebGL)
+    endif ()
+else ()
+    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"
@@ -3777,6 +3903,10 @@ if (DEFINED WebCore_SWIFT_INTEROP_SOURCES)
     WEBKIT_DEFINE_SUBTARGET(WebCore_SwiftInterop WebCore ${WebCore_SWIFT_INTEROP_SOURCES})
     WEBKIT_REUSE_PREFIX_HEADER(WebCore_SwiftInterop WebCore WebCorePrefix.h PREFIX_LANGUAGES CXX OBJCXX)
     target_compile_definitions(WebCore_SwiftInterop PRIVATE WEBCORE_COMPILING_SWIFT_INTEROP_SUBTARGET)
+    if (TARGET WebCoreWebGL)
+        target_include_directories(WebCore_SwiftInterop PRIVATE "${WebCoreWebGL_HEADER_DIR}" "${WebCoreWebGL_INTEROP_MODULE_DIR}")
+        add_dependencies(WebCore_SwiftInterop WebCoreWebGL_SwiftInterop)
+    endif ()
 
     set(_interop_objs "$<FILTER:$<TARGET_OBJECTS:WebCore_SwiftInterop>,EXCLUDE,\\.(g|p)ch$>")
     set(_interop_rsp "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/WebCore_SwiftInterop.dir/$<CONFIG>/objects.rsp")
@@ -3917,7 +4047,7 @@ if (DEFINED WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             endforeach ()
         endif ()
     endforeach ()
-    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreMedia MediaToolbox VideoToolbox)
+    foreach (_framework IN ITEMS AVFAudio AVFoundation AVKit AudioToolbox AudioToolboxCore CoreML CoreMedia MediaToolbox ScreenCaptureKit Vision VideoToolbox)
         if (_framework IN_LIST _webcore_swift_imports AND NOT _framework IN_LIST WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS)
             message(FATAL_ERROR "WebCore's Swift imports ${_framework}, which WebCore soft-links: add it to WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS, and to WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS in WebCore.xcconfig")
         endif ()

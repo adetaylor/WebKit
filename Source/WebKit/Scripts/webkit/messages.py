@@ -1214,7 +1214,7 @@ def generate_messages_header(receiver):
 _SWIFT_WRAPPER_TEMPLATES = ('Ref', 'RefPtr', 'Vector')
 
 # Plain C structs that a Swift bridge header declares outside any namespace.
-_SWIFT_GLOBAL_TYPES = frozenset()
+_SWIFT_GLOBAL_TYPES = frozenset(['CGRendererColorValue'])
 
 
 class UnmappableSwiftType(Exception):
@@ -1622,6 +1622,7 @@ def headers_for_type(type, for_implementation_file=False):
     header_infos_and_types = class_template_headers(type)
 
     special_cases = {
+        'CGRendererColorValue': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CVPixelBufferRef': ['<WebCore/CVUtilities.h>'],
         'GCGLint': ['<WebCore/GraphicsTypesGL.h>'],
         'GenericPromise::Result': ['<wtf/NativePromise.h>'],

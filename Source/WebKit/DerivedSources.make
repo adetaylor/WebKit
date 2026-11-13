@@ -298,8 +298,10 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/ShapeDetection/RemoteFaceDetector \
 	GPUProcess/ShapeDetection/RemoteTextDetector \
 	GPUProcess/graphics/Model/RemoteMesh \
+	GPUProcess/graphics/RemoteCGRenderer \
 	GPUProcess/graphics/RemoteGraphicsContext \
 	GPUProcess/graphics/RemoteGraphicsContextGL \
+	GPUProcess/graphics/RemoteGraphicsContextGLResources \
 	GPUProcess/graphics/RemoteImageBuffer \
 	GPUProcess/graphics/RemoteImageBufferSet \
 	GPUProcess/graphics/RemoteRenderingBackend \
@@ -664,6 +666,7 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/GPUProcessSessionParameters.serialization.in \
 	GPUProcess/graphics/PathSegment.serialization.in \
 	GPUProcess/graphics/RemoteGraphicsContextGLInitializationState.serialization.in \
+	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
 	GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in \
 	GPUProcess/media/InitializationSegmentInfo.serialization.in \

@@ -70,7 +70,7 @@ inline PlatformVideoColorSpace srgbAsBT709YUVColorSpace()
     };
 }
 
-NODELETE void overrideVideoColorSpaceAsNeeded(PlatformVideoColorSpace&, const std::optional<PlatformVideoColorSpace>&);
+NODELETE WEBCORE_EXPORT void overrideVideoColorSpaceAsNeeded(PlatformVideoColorSpace&, const std::optional<PlatformVideoColorSpace>&);
 
 NODELETE WEBCORE_EXPORT bool usesITUR2100TF(const PlatformVideoColorSpace&);
 

@@ -1,0 +1,238 @@
+---
+# Bounds of the pointer parameters of ANGLE's entry points that the WebGL island calls with Swift arrays, from which
+# Swift makes safe Span overloads: how many elements ANGLE reads through the pointer, and that it doesn't keep it.
+Name: WebCoreANGLE
+Functions:
+- Name: GL_Uniform1fv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: count
+    NoEscape: true
+- Name: GL_Uniform1iv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: count
+    NoEscape: true
+- Name: GL_Uniform1uiv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: count
+    NoEscape: true
+- Name: GL_Uniform2fv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 2"
+    NoEscape: true
+- Name: GL_Uniform2iv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 2"
+    NoEscape: true
+- Name: GL_Uniform2uiv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 2"
+    NoEscape: true
+- Name: GL_Uniform3fv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 3"
+    NoEscape: true
+- Name: GL_Uniform3iv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 3"
+    NoEscape: true
+- Name: GL_Uniform3uiv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 3"
+    NoEscape: true
+- Name: GL_Uniform4fv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 4"
+    NoEscape: true
+- Name: GL_Uniform4iv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 4"
+    NoEscape: true
+- Name: GL_Uniform4uiv
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 4"
+    NoEscape: true
+- Name: GL_UniformMatrix2fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 4"
+    NoEscape: true
+- Name: GL_UniformMatrix3fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 9"
+    NoEscape: true
+- Name: GL_UniformMatrix4fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 16"
+    NoEscape: true
+- Name: GL_UniformMatrix2x3fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 6"
+    NoEscape: true
+- Name: GL_UniformMatrix3x2fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 6"
+    NoEscape: true
+- Name: GL_UniformMatrix2x4fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 8"
+    NoEscape: true
+- Name: GL_UniformMatrix4x2fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 8"
+    NoEscape: true
+- Name: GL_UniformMatrix3x4fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 12"
+    NoEscape: true
+- Name: GL_UniformMatrix4x3fv
+  Parameters:
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: "count * 12"
+    NoEscape: true
+- Name: GL_DrawBuffers
+  Parameters:
+  - Position: 1
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: n
+    NoEscape: true
+- Name: GL_DrawBuffersEXT
+  Parameters:
+  - Position: 1
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: n
+    NoEscape: true
+- Name: GL_InvalidateFramebuffer
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: numAttachments
+    NoEscape: true
+- Name: GL_InvalidateSubFramebuffer
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: numAttachments
+    NoEscape: true
+- Name: GL_DiscardFramebufferEXT
+  Parameters:
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: numAttachments
+    NoEscape: true
+- Name: GL_MultiDrawArraysANGLE
+  Parameters:
+  - Position: 1
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+- Name: GL_MultiDrawArraysInstancedANGLE
+  Parameters:
+  - Position: 1
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+- Name: GL_MultiDrawArraysInstancedBaseInstanceANGLE
+  Parameters:
+  - Position: 1
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 2
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 3
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true
+  - Position: 4
+    BoundsSafety:
+      Kind: counted_by
+      BoundedBy: drawcount
+    NoEscape: true

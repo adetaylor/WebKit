@@ -51,8 +51,15 @@ set(WebGPU_PRIVATE_LIBRARIES
     ${METAL_FRAMEWORK}
     ${QUARTZCORE_FRAMEWORK}
     ICU::uc
-    WGSLCore
 )
+
+# The public watchOS SDK has no Metal or IOSurface, so find_library() finds the additions SDK's link stubs, which have
+# no headers. Linking a framework by path also puts its directory on the compile lines, ahead of the symlinked headers,
+# and the stubs hide them. Link the stubs by name instead.
+if (WEBKIT_SDK_IS_WATCHOS AND NOT USE_APPLE_INTERNAL_SDK)
+    list(REMOVE_ITEM WebGPU_PRIVATE_LIBRARIES ${IOSURFACE_FRAMEWORK} ${METAL_FRAMEWORK})
+    list(APPEND WebGPU_PRIVATE_LIBRARIES "-F${WEBKIT_SDK_ADDITIONS_DIR}/System/Library/Frameworks" "-framework IOSurface" "-framework Metal")
+endif ()
 
 # WebKit::WebGPU aliases an INTERFACE library whose only link content is this
 # variable; without it consumers link nothing and get undefined wgpu* symbols.
@@ -80,14 +87,47 @@ if (SWIFT_REQUIRED)
     # These #import the generated Swift interop header, so they build in a
     # subtarget that can be ordered after it. Keep them out of the bundles.
     set(WebGPU_SWIFT_INTEROP_SOURCES
+        Adapter.mm
+        BindGroup.mm
+        BindGroupLayout.mm
         Buffer.mm
+        CommandBuffer.mm
         CommandEncoder.mm
+        ComputePassEncoder.mm
+        ComputePipeline.mm
+        Device.mm
+        ExternalTexture.mm
+        HardwareCapabilities.mm
+        Instance.mm
+        Pipeline.mm
+        PipelineLayout.mm
+        PresentationContextCoreAnimation.mm
+        PresentationContextIOSurface.mm
+        QuerySet.mm
         Queue.mm
+        RenderBundle.mm
+        RenderBundleEncoder.mm
+        RenderPassEncoder.mm
+        RenderPipeline.mm
+        Sampler.mm
+        ShaderModule.mm
+        Texture.mm
+        TextureView.mm
+        XRProjectionLayer.mm
+        XRSubImage.mm
     )
     foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)
         list(APPEND WebGPU_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
     endforeach ()
 endif ()
+# These #import the generated Swift interop header, so they build in a
+# subtarget that can be ordered after it. Keep them out of the bundles.
+set(WebGPU_SWIFT_INTEROP_SOURCES
+    XRProjectionLayer.mm
+)
+foreach (_f IN LISTS WebGPU_SWIFT_INTEROP_SOURCES)
+    list(APPEND WebGPU_UNIFIED_SOURCE_EXCLUDES "(^|/)${_f}( |$)")
+endforeach ()
 
 WEBKIT_COMPUTE_SOURCES(WebGPU)
 
@@ -134,7 +174,6 @@ set(WebGPU_DEPENDENCIES
     WebGPU_CopyHeaders
     WebGPU_CopyPrivateHeaders
     WebGPU_CopyModules
-    wgsl-types
 )
 
 if (SWIFT_REQUIRED)
@@ -148,28 +187,164 @@ if (SWIFT_REQUIRED)
                 "${_webgpu_swiftmodule_dir}/${WEBKIT_SWIFT_MODULE_TRIPLE}.${_ext}")
     endforeach ()
 endif ()
+set(_webgpu_swiftmodule_dir "${_webgpu_modules_dir}/WebGPUSwift.swiftmodule")
+# In a directory of its own rather than the framework's Modules, so that a Swift client can add it to its import search
+# path without clang reading the framework's module maps from there too.
+set(_webgpu_swiftmodule_dir "${WebGPU_SWIFT_MODULES_DIR}/WebGPUSwift.swiftmodule")
+set(WebGPU_POST_BUILD_COMMAND
+    ${CMAKE_COMMAND} -E make_directory "${_webgpu_swiftmodule_dir}")
+foreach (_ext IN ITEMS swiftmodule swiftdoc abi.json)
+    list(APPEND WebGPU_POST_BUILD_COMMAND
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_BINARY_DIR}/WebGPUSwift.${_ext}"
+            "${_webgpu_swiftmodule_dir}/${WEBKIT_SWIFT_MODULE_TRIPLE}.${_ext}")
+endforeach ()
 
 WEBKIT_FRAMEWORK(WebGPU)
 WEBKIT_ADD_PREFIX_HEADER(WebGPU WebGPUPrefix.h PREFIX_LANGUAGES OBJCXX)
 
 if (SWIFT_REQUIRED)
     target_sources(WebGPU PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/Adapter.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/BindGroup.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/BindGroupLayout.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/Buffer.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/CommandBuffer.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/CommandEncoder.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/ComputePassEncoder.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/ComputePipeline.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/DebugToggles.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/Device.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/DeviceHelpers.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/EncoderModel.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTexture.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTextureImport.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/HardwareCapabilities.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/Instance.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/LayoutConversion.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/Pipeline.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/PipelineLayout.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/PipelineModel.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/PresentationContextCoreAnimation.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/PresentationContextIOSurface.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/QuerySet.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/Queue.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundle.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundleEncoder.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundleEncoderCreation.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderPassEncoder.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderPipeline.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/RenderPipelineTables.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/Sampler.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/ShaderModule.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/StdLibExtras.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/Texture.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/TextureFormats.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/TextureView.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/WGSLBridge.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/XRProjectionLayer.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/XRSubImage.swift
     )
+    target_link_libraries(WebGPU PRIVATE WGSL)
+    # Without -force_load the linker drops archive members that hold only types and conformances.
+    # The compiler's Swift symbols are an implementation detail of WebGPU.framework.
+    target_link_options(WebGPU PRIVATE
+        "LINKER:-force_load,$<TARGET_FILE:WGSL>"
+        "LINKER:-unexported_symbol,_$s*4WGSL*"
+    )
+    webkit_target_compile_definitions(WebGPU PRIVATE HAVE_WGSL_COMPILER=1)
+target_sources(WebGPU PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/Adapter.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/BindGroup.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/BindGroupLayout.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Buffer.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommandBuffer.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommandEncoder.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/ComputePassEncoder.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/ComputePipeline.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/CoreVideoInterop.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/DebugToggles.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Device.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeviceHelpers.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/EncoderModel.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTexture.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/ExternalTextureImport.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/HardwareCapabilities.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/GPUObjectReference.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Instance.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/LayoutConversion.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/MetalMemory.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Pipeline.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/PipelineLayout.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/PipelineModel.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/PresentationContextIOSurface.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/QuerySet.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Queue.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundle.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundleEncoder.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderBundleEncoderCreation.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderPassEncoder.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderPipeline.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/RenderPipelineTables.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Sampler.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/ShaderModule.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/StdLibExtras.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/Texture.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/TextureFormats.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/TextureView.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/WGSLBridge.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/XRProjectionLayer.swift
+    ${CMAKE_CURRENT_SOURCE_DIR}/XRSubImage.swift
+)
+target_link_libraries(WebGPU PRIVATE WGSL)
+# Without -force_load the linker drops archive members that hold only types and conformances.
+# The compiler's Swift symbols are an implementation detail of WebGPU.framework.
+target_link_options(WebGPU PRIVATE
+    "LINKER:-force_load,$<TARGET_FILE:WGSL>"
+    "LINKER:-unexported_symbol,_$s*4WGSL*"
+)
+webkit_target_compile_definitions(WebGPU PRIVATE HAVE_WGSL_COMPILER=1)
 
     webkit_target_add_swift_options(WebGPU
         -I${CMAKE_CURRENT_SOURCE_DIR}/Internal
         "-library-level spi"
+        "-Werror SendableClosureCaptures"
     )
+webkit_target_add_swift_options(WebGPU
+    -I${CMAKE_CURRENT_SOURCE_DIR}/Internal
+    "-library-level spi"
+    "-Werror SendableClosureCaptures"
+    "-enable-experimental-feature CheckImplementationOnly"
+    "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-DWEBGPU_PSO_REPRO>"
+)
 
     set(WebGPU_SWIFT_EMIT_CLANG_HEADER_MIN_ACCESS internal)
+# Pipeline.swift's PSO repro tooling, in the builds that had it in C++ (!NDEBUG || (ENABLE_LIBFUZZER && ASAN_ENABLED)): the
+# Debug config above, and libFuzzer builds with ASan.
+if (ENABLE_LIBFUZZER AND ENABLE_SANITIZERS MATCHES "address")
+    webkit_target_add_swift_options(WebGPU -DWEBGPU_PSO_REPRO -DWEBGPU_PSO_REPRO_ALWAYS)
+endif ()
+
+set(WebGPU_SWIFT_EMIT_CLANG_HEADER_MIN_ACCESS internal)
+
+    # Whole-module optimization outside Debug, as for WGSL: the C++ classes call small Swift methods
+    # on every command, which need cross-file inlining.
+    WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebGPU)
+
+    # Outside the dyld shared cache, the Objective-C runtime rewrites an image's @protocol references when it loads it.
+    # The Swift code references Metal's protocols, so keep those references in __DATA, on the page the selector
+    # references already dirty, rather than dirtying a page of __DATA_CONST in every process that maps WebGPU.
+    target_link_options(WebGPU PRIVATE "LINKER:-rename_section,__DATA_CONST,__objc_protorefs,__DATA,__objc_protorefs")
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebGPU WebGPU
         "${WebGPU_HEADERS_DIR}"
         "WebGPUSwift-Generated.h")
+# The Swift module has its own name, since WebGPU names the C++ namespace that Swift sees, so it has no underlying
+# clang module of the same name.
+set(WebGPU_SWIFT_NO_UNDERLYING_MODULE TRUE)
+WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebGPU WebGPUSwift
+    "${WebGPU_HEADERS_DIR}"
+    "WebGPUSwift-Generated.h")
 
     WEBKIT_DEFINE_SUBTARGET(WebGPU_SwiftInterop WebGPU ${WebGPU_SWIFT_INTEROP_SOURCES})
     target_precompile_headers(WebGPU_SwiftInterop REUSE_FROM WebGPU)

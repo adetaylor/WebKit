@@ -4,7 +4,7 @@
 
 #import "config.h"
 
-#if ENABLE(WEBXR)
+#if ENABLE(WEBXR) && HAVE(COMPOSITOR_SERVICES)
 
 #import <pal/spi/cocoa/CompositorServicesSPI.h>
 #import <wtf/SoftLinking.h>
@@ -91,4 +91,4 @@ SOFT_LINK_FUNCTION_FOR_SOURCE_WITH_EXPORT(PAL, CompositorServices, cp_view_textu
 SOFT_LINK_FUNCTION_FOR_SOURCE_WITH_EXPORT(PAL, CompositorServices, cp_view_texture_map_get_viewport, MTLViewport, (cp_view_texture_map_t view_texture_map), (view_texture_map), PAL_EXPORT)
 SOFT_LINK_FUNCTION_FOR_SOURCE_WITH_EXPORT(PAL, CompositorServices, cp_view_texture_map_get_slice_index, size_t, (cp_view_texture_map_t view_texture_map), (view_texture_map), PAL_EXPORT)
 
-#endif // ENABLE(WEBXR)
+#endif // ENABLE(WEBXR) && HAVE(COMPOSITOR_SERVICES)

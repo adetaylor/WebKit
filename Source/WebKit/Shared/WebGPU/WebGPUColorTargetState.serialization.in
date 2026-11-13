@@ -22,7 +22,7 @@
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::ColorTargetState {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::ColorTargetState {
     ::WebGPU::TextureFormat format;
     std::optional<::WebGPU::BlendState> blend;
     OptionSet<::WebGPU::ColorWrite> writeMask;

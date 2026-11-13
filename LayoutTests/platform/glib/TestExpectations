@@ -3139,6 +3139,7 @@ webxr [ Pass ]
 # ENABLE_WEBGPU is off for the GLIB ports, so XRGPUBinding is unavailable.
 webkit.org/b/327533 imported/w3c/web-platform-tests/webxr/layers/xrGPUProjectionLayer_ignoreDepthValues.https.html [ Skip ]
 webkit.org/b/327533 imported/w3c/web-platform-tests/webxr/layers/xrGPUProjectionLayer_destroy.https.html [ Skip ]
+webkit.org/b/327533 imported/w3c/web-platform-tests/webxr/layers/xrGPUBinding_getViewSubImage.https.html [ Skip ]
 webkit.org/b/327533 imported/w3c/web-platform-tests/webxr/layers/xrProjectionLayer_ignoreDepthValues.https.html [ Skip ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
@@ -3431,6 +3432,7 @@ imported/w3c/web-platform-tests/encrypted-media/clearkey-update-non-ascii-input.
 
 # Specific to Cocoa-ports.
 ipc/pasteboard-write-custom-data.html [ Skip ]
+ipc/audio-video-renderer-receiver.html [ Skip ]
 # Tests the mach message attachment limits.
 ipc/send-message-with-many-attachments.html [ Skip ]
 # Hardcodes Cocoa's WebCore::CertificateInfo::trust field in the IPC payload; SOUP's

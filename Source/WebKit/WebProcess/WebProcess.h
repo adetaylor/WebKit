@@ -334,7 +334,7 @@ public:
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactory& legacyCDMFactory();
 #endif
-#if ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
     RemoteCDMFactory& cdmFactory();
 #endif
     RemoteMediaEngineConfigurationFactory& mediaEngineConfigurationFactory();

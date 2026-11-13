@@ -196,55 +196,6 @@ private func added(_ first: Int, _ second: Int) -> Int? {
     return overflow ? nil : result
 }
 
-// MARK: Length-prefixed to Annex B
-
-// Each 32-bit big-endian NAL unit length becomes the start code 00 00 00 01. Appends nothing when a NAL unit runs past
-// the end.
-@_expose(Cxx)
-func appendAnnexBFromLengthPrefixedImpl(_ data: borrowing WebCore.MediaParserBytes, _ output: inout WebCore.MediaParserByteVector) -> Bool {
-    let bytes: Span<UInt8> = data.span()
-    var offset = 0
-    while offset < bytes.count {
-        guard let packetSize = lengthPrefixedPacketSize(bytes, at: offset) else {
-            return false
-        }
-        offset += 4 + packetSize
-    }
-    if bytes.isEmpty {
-        return true
-    }
-
-    // Start codes and lengths have the same size.
-    let start = output.size()
-    WebCore.appendBytes(&output, bytes)
-    var annexB: MutableSpan<UInt8> = output.mutableSpan()
-    offset = 0
-    while offset < bytes.count {
-        guard let packetSize = lengthPrefixedPacketSize(bytes, at: offset) else {
-            return false
-        }
-        annexB[start + offset] = 0
-        annexB[start + offset + 1] = 0
-        annexB[start + offset + 2] = 0
-        annexB[start + offset + 3] = 1
-        offset += 4 + packetSize
-    }
-    return true
-}
-
-private func lengthPrefixedPacketSize(_ bytes: Span<UInt8>, at offset: Int) -> Int? {
-    let remaining = bytes.count - offset
-    guard remaining >= 4 else {
-        return nil
-    }
-    let length = UInt32(bytes[offset]) << 24 | UInt32(bytes[offset + 1]) << 16 | UInt32(bytes[offset + 2]) << 8 | UInt32(bytes[offset + 3])
-    // On 32-bit, a length that doesn't fit in an Int is rejected too.
-    guard let packetSize = Int(exactly: length), packetSize <= remaining - 4 else {
-        return nil
-    }
-    return packetSize
-}
-
 // MARK: Vorbis packet durations
 
 // ilog(modeCount - 1) bits. A stream has at least one mode.
