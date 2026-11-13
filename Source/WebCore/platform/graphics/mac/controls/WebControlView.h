@@ -25,7 +25,13 @@
 
 #pragma once
 
-#if PLATFORM(MAC)
+#include <wtf/Platform.h>
+
+#if PLATFORM(MAC) && defined(__OBJC__)
+
+#import <AppKit/AppKit.h>
+
+NS_HEADER_AUDIT_BEGIN(nullability, sendability)
 
 @interface WebControlWindow : NSWindow
 @property (class) BOOL hasKeyAppearance;
@@ -40,4 +46,15 @@
 @interface WebControlTextFieldCell : NSTextFieldCell
 @end
 
-#endif // PLATFORM(MAC)
+// NSCell's drawing without a view, which AppKit declares with a nonnull view (rdar://105250010).
+@protocol WebViewlessCellDrawing
+- (void)drawWithFrame:(NSRect)cellFrame inView:(nullable NSView *)controlView;
+- (void)drawFocusRingMaskWithFrame:(NSRect)cellFrame inView:(nullable NSView *)controlView;
+@end
+
+@interface NSCell (WebViewlessCellDrawing) <WebViewlessCellDrawing>
+@end
+
+NS_HEADER_AUDIT_END(nullability, sendability)
+
+#endif // PLATFORM(MAC) && defined(__OBJC__)

@@ -120,7 +120,7 @@ WGSL_LDFLAGS = -Wl,-force_load,$(BUILT_PRODUCTS_DIR)/libwgsl.a -Wl,-unexported_s
 // already dirty, rather than dirtying a page of __DATA_CONST in every process that maps WebGPU.
 OBJC_PROTOCOL_REFERENCES_LDFLAGS = -Wl,-rename_section,__DATA_CONST,__objc_protorefs,__DATA,__objc_protorefs;
 
-OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(WGSL_LDFLAGS) $(OBJC_PROTOCOL_REFERENCES_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec;
+OTHER_LDFLAGS = $(inherited) $(UNEXPORT_SWIFT_CXX_LDFLAGS) $(WGSL_LDFLAGS) $(OBJC_PROTOCOL_REFERENCES_LDFLAGS) $(SOURCE_VERSION_LDFLAGS) $(WK_NO_STATIC_INITIALIZERS) $(OTHER_LDFLAGS_SHARED_CACHE) $(OTHER_LDFLAGS_ADDITIONAL_FRAMEWORKS) -Wl,-unexported_symbol,*s_heapSpec $(OTHER_LDFLAGS_THIN_LTO_IMPORT);
 
 // The Swift module has its own name, since WebGPU names the C++ namespace that Swift sees.
 SWIFT_MODULE_NAME = WebGPUSwift;
