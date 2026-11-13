@@ -298,7 +298,6 @@
 		1CEBD7FB2716B5B400A5254D /* DebugRelease.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = DebugRelease.xcconfig; sourceTree = "<group>"; };
 		1CEBD7FC2716B64400A5254D /* WebGPU.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WebGPU.xcconfig; sourceTree = "<group>"; };
 		1CEBD7FD2716B64F00A5254D /* WGSL.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = WGSL.xcconfig; sourceTree = "<group>"; };
-		1CEBD8042716BFAB00A5254D /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		1CEBD80A2716C36C00A5254D /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		1CEBD80B2716C37900A5254D /* ExportMacros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ExportMacros.h; sourceTree = "<group>"; };
 		1CEBD8242716C81400A5254D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -567,7 +566,6 @@
 				33EA185C27BC193D00A1DD52 /* AST */,
 				97296763299BFB72001C8BD4 /* generator */,
 				979240B1297018290050EA2C /* Metal */,
-				1CEBD8042716BFAB00A5254D /* config.h */,
 				E58D0FD8675223397DC0AA4D /* Support */,
 				E5F76F70B6B0F94B0C32BA25 /* wgslc */,
 				E5ECF6D5E7BCD1D2FD653858 /* wgslfuzz */,

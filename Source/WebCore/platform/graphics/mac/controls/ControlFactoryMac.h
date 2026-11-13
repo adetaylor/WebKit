@@ -28,16 +28,11 @@
 #if PLATFORM(MAC)
 
 #import "ControlFactoryCocoa.h"
-#import "WebControlView.h"
+#import "MacControlPainter.h"
 #import <wtf/CheckedRef.h>
 #import <wtf/TZoneMalloc.h>
 
-OBJC_CLASS NSServicesRolloverButtonCell;
-
 namespace WebCore {
-
-class FloatRect;
-struct ControlStyle;
 
 class ControlFactoryMac final : public ControlFactoryCocoa, public CanMakeCheckedPtr<ControlFactoryMac> {
     WTF_MAKE_TZONE_ALLOCATED(ControlFactoryMac);
@@ -48,11 +43,7 @@ public:
 
     static ControlFactoryMac& singleton();
 
-    NSView *drawingView(const FloatRect&, const ControlStyle&) const;
-
-#if ENABLE(SERVICE_CONTROLS)
-    NSServicesRolloverButtonCell *servicesRolloverButtonCell() const;
-#endif
+    MacControlPainter& painter() const { return m_painter; }
 
 private:
     std::unique_ptr<PlatformControl> createPlatformButton(ButtonPart&) final;
@@ -76,32 +67,9 @@ private:
     std::unique_ptr<PlatformControl> createPlatformToggleButton(ToggleButtonPart&) final;
     Type type() const final { return Type::Mac; }
 
-    NSButtonCell *buttonCell() const;
-    NSButtonCell *defaultButtonCell() const;
-    NSButtonCell *checkboxCell() const;
-    NSButtonCell *radioCell() const;
-    NSLevelIndicatorCell *levelIndicatorCell() const;
-    NSPopUpButtonCell *popUpButtonCell() const;
-    NSSearchFieldCell *searchFieldCell() const;
-    NSMenu *searchMenuTemplate() const;
-    NSSliderCell *sliderCell() const;
-    NSTextFieldCell *textFieldCell() const;
+    std::unique_ptr<PlatformControl> createPlatformControl(ControlPart&);
 
-    mutable RetainPtr<WebControlView> m_drawingView;
-
-    mutable RetainPtr<NSButtonCell> m_buttonCell;
-    mutable RetainPtr<NSButtonCell> m_defaultButtonCell;
-    mutable RetainPtr<NSButtonCell> m_checkboxCell;
-    mutable RetainPtr<NSButtonCell> m_radioCell;
-    mutable RetainPtr<NSLevelIndicatorCell> m_levelIndicatorCell;
-    mutable RetainPtr<NSPopUpButtonCell> m_popUpButtonCell;
-#if ENABLE(SERVICE_CONTROLS)
-    mutable RetainPtr<NSServicesRolloverButtonCell> m_servicesRolloverButtonCell;
-#endif
-    mutable RetainPtr<NSSearchFieldCell> m_searchFieldCell;
-    mutable RetainPtr<NSMenu> m_searchMenuTemplate;
-    mutable RetainPtr<NSSliderCell> m_sliderCell;
-    mutable RetainPtr<NSTextFieldCell> m_textFieldCell;
+    mutable MacControlPainter m_painter;
 };
 
 } // namespace WebCore
