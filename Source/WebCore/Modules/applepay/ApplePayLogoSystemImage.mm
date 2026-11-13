@@ -28,85 +28,11 @@
 
 #if ENABLE(APPLE_PAY)
 
-#import "FloatRect.h"
-#import "GeometryUtilities.h"
-#import "GraphicsContext.h"
-#import <wtf/NeverDestroyed.h>
-#import <wtf/RetainPtr.h>
 #import <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
 
-static NSBundle *passKitBundleSingleton()
-{
-    static NeverDestroyed<RetainPtr<NSBundle>> passKitBundle = [] {
-        RetainPtr systemDirectoryPath = FileSystem::systemDirectoryPath();
-        return [NSBundle bundleWithURL:[NSURL fileURLWithPath:retainPtr([systemDirectoryPath stringByAppendingPathComponent:@"Library/Frameworks/PassKit.framework"]).get() isDirectory:YES]];
-    }();
-    return passKitBundle.get().get();
-}
-
-static RetainPtr<CGPDFPageRef> loadPassKitPDFPage(NSString *imageName)
-{
-    RetainPtr<NSURL> url = [passKitBundleSingleton() URLForResource:imageName withExtension:@"pdf"];
-    if (!url)
-        return nullptr;
-    auto document = adoptCF(CGPDFDocumentCreateWithURL((CFURLRef)url.get()));
-    if (!document)
-        return nullptr;
-    if (!CGPDFDocumentGetNumberOfPages(document.get()))
-        return nullptr;
-    return CGPDFDocumentGetPage(document.get(), 1);
-}
-
-static RetainPtr<CGPDFPageRef> applePayLogoWhite()
-{
-    static NeverDestroyed<RetainPtr<CGPDFPageRef>> logoPage = loadPassKitPDFPage(@"PayButtonLogoWhite");
-    return logoPage;
-}
-
-static RetainPtr<CGPDFPageRef> applePayLogoBlack()
-{
-    static NeverDestroyed<RetainPtr<CGPDFPageRef>> logoPage = loadPassKitPDFPage(@"PayButtonLogoBlack");
-    return logoPage;
-}
-
-static RetainPtr<CGPDFPageRef> applePayLogoForStyle(ApplePayLogoStyle style)
-{
-    switch (style) {
-    case ApplePayLogoStyle::White:
-        return applePayLogoWhite();
-
-    case ApplePayLogoStyle::Black:
-        return applePayLogoBlack();
-    }
-
-    ASSERT_NOT_REACHED();
-    return nullptr;
-}
-
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ApplePayLogoSystemImage);
-
-void ApplePayLogoSystemImage::draw(GraphicsContext& context, const FloatRect& destinationRect) const
-{
-    auto page = applePayLogoForStyle(m_applePayLogoStyle);
-    if (!page)
-        return;
-    RetainPtr cgContext = context.platformContext();
-    CGContextSaveGState(cgContext.get());
-    CGSize pdfSize = CGPDFPageGetBoxRect(page.get(), kCGPDFMediaBox).size;
-
-    auto largestRect = largestRectWithAspectRatioInsideRect(pdfSize.width / pdfSize.height, destinationRect);
-    CGContextTranslateCTM(cgContext.get(), largestRect.x(), largestRect.y());
-    auto scale = largestRect.width() / pdfSize.width;
-    CGContextScaleCTM(cgContext.get(), scale, scale);
-
-    CGContextTranslateCTM(cgContext.get(), 0, pdfSize.height);
-    CGContextScaleCTM(cgContext.get(), 1, -1);
-
-    CGContextDrawPDFPage(cgContext.get(), page.get());
-    CGContextRestoreGState(cgContext.get());
-}
 
 } // namespace WebCore
 

@@ -30,6 +30,9 @@
 #if USE(CG)
 
 #include "AffineTransform.h"
+#include "ARKitBadgeSystemImage.h"
+#include "AppKitControlSystemImage.h"
+#include "ApplePayLogoSystemImage.h"
 #include "CGSubimageCacheWithTimer.h"
 #include "CGUtilities.h"
 #include "DisplayListRecorder.h"
@@ -1859,6 +1862,34 @@ void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, Documen
 {
     CAPTURE(drawDotsForDocumentMarker(rect, style));
     SWIFT_RENDERER(drawDotsForDocumentMarker(rect, style.mode, cachedCGColor(style.color).get()));
+}
+
+void GraphicsContextCG::drawSystemImage(SystemImage& systemImage, const FloatRect& destinationRect)
+{
+    CAPTURE(unsupported("drawSystemImage"_s));
+#if ENABLE(APPLE_PAY)
+    if (RefPtr logo = dynamicDowncast<ApplePayLogoSystemImage>(systemImage)) {
+        SWIFT_RENDERER(drawApplePayLogo(logo->applePayLogoStyle() == ApplePayLogoStyle::Black, destinationRect));
+        return;
+    }
+#endif
+#if USE(SYSTEM_PREVIEW)
+    if (RefPtr badge = dynamicDowncast<ARKitBadgeSystemImage>(systemImage)) {
+        RefPtr nativeImage = badge->nativeImage();
+        RetainPtr image = nativeImage ? nativeImage->platformImage() : nullptr;
+        SWIFT_RENDERER(drawARKitBadge(image.get(), destinationRect, isInGPUProcess()));
+        return;
+    }
+#endif
+#if USE(APPKIT)
+    if (RefPtr controlImage = dynamicDowncast<AppKitControlSystemImage>(systemImage)) {
+        if (controlImage->controlType() == AppKitControlSystemImageType::ScrollbarTrackCorner)
+            SWIFT_RENDERER(drawScrollbarTrackCorner(destinationRect, controlImage->useDarkAppearance(), colorData(controlImage->tintColor())));
+        return;
+    }
+#endif
+    UNUSED_PARAM(systemImage);
+    UNUSED_PARAM(destinationRect);
 }
 
 void GraphicsContextCG::setURLForRect(const URL& link, const FloatRect& destRect)

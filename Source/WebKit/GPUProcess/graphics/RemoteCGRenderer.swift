@@ -32,6 +32,35 @@ private func cgRect(_ rect: WebCore.FloatRect) -> CGRect {
     CGRect(x: CGFloat(rect.x()), y: CGFloat(rect.y()), width: CGFloat(rect.width()), height: CGFloat(rect.height()))
 }
 
+private func cgRect(_ rect: IPCTypes.FloatRect) -> CGRect {
+    CGRect(x: CGFloat(rect.location.x), y: CGFloat(rect.location.y), width: CGFloat(rect.size.width), height: CGFloat(rect.size.height))
+}
+
+extension IPCTypes.WebCoreColor {
+    // Color::data() as the renderer takes a color's data (GraphicsContextCG.cpp's colorData()).
+    fileprivate var cgRendererColorData: CGRendererColorData {
+        var values = CGRendererColorData()
+        guard let data else {
+            return values
+        }
+        values.isSemantic = data.isSemantic
+        values.usesFunctionSerialization = data.usesFunctionSerialization
+        switch data.components {
+        case .packed(let packedColor):
+            values.form = 1
+            values.packedColor = packedColor
+        case .outOfLine(let colorSpace, let c1, let c2, let c3, let alpha):
+            values.form = 2
+            values.colorSpace = colorSpace.rawValue
+            values.c1 = c1
+            values.c2 = c2
+            values.c3 = c3
+            values.alpha = alpha
+        }
+        return values
+    }
+}
+
 private func cgAffineTransform(_ transform: WebCore.AffineTransform) -> CGAffineTransform {
     CGAffineTransform(a: transform.a(), b: transform.b(), c: transform.c(), d: transform.d(), tx: transform.e(), ty: transform.f())
 }
@@ -813,19 +842,34 @@ final class RemoteCGRenderer {
         WebKit.drawControlPart(resources, leaf, part, borderRect, deviceScaleFactor, style)
     }
 
-    func drawSystemImage(state: inout CGRendererCore, systemImage: WebCore.RefSystemImage, destinationRect: WebCore.FloatRect) {
-        let leaf = state.receiveLeafContext()
-        WebKit.drawSystemImage(leaf, systemImage, destinationRect)
+    // GraphicsContext::drawSystemImage(), as GraphicsContextCG draws each kind.
+    func drawSystemImage(state: inout CGRendererCore, systemImage: IPCTypes.SystemImage, destinationRect: IPCTypes.FloatRect) {
+        let rect = cgRect(destinationRect)
+        switch systemImage {
+        #if ENABLE_APPLE_PAY
+        case .applePayLogoSystemImage(let logo):
+            state.receiveDrawApplePayLogo(logo.applePayLogoStyle == .black, rect)
+        #endif
+        #if USE_APPKIT
+        case .appKitControlSystemImage(let controlImage):
+            state.receiveDrawScrollbarTrackCorner(rect, controlImage.useDarkAppearance, controlImage.tintColor.cgRendererColorData)
+        #endif
+        }
     }
 
     #if USE_SYSTEM_PREVIEW
+    // ARKitBadgeSystemImage's draw, with the cached native image it names as its backdrop.
     func drawBadgeSystemImage(
         state: inout CGRendererCore,
         imageIdentifier: WebCore.OptionalRenderingResourceIdentifier,
         destinationRect: WebCore.FloatRect
     ) throws(InvalidMessage) {
-        let leaf = state.receiveLeafContext()
-        try messageCheck { WebKit.drawBadgeSystemImage(resources, leaf, imageIdentifier, destinationRect) }
+        var image: CGImage? = nil
+        if let identifier = imageIdentifier.value {
+            image = WebKit.copyNativeImageForClip(resources, identifier)
+            try messageCheck { image != nil }
+        }
+        state.receiveDrawARKitBadge(image, cgRect(destinationRect))
     }
     #endif
 

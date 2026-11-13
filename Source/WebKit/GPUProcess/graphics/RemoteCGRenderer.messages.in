@@ -29,6 +29,7 @@
 # of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
 # process copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path
 # of them, and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
+# A system image is decoded in Swift (SwiftTypes).
 # The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
 # with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
 # list doesn't.
@@ -139,7 +140,7 @@ messages -> RemoteCGRenderer Stream {
     DrawMeshGradient
     DrawFilteredImageBuffer
     DrawControlPart
-    DrawSystemImage
+    DrawSystemImage(Ref<WebCore::SystemImage> systemImage, WebCore::FloatRect destinationRect) StreamBatched SwiftTypes
 #if USE(SYSTEM_PREVIEW)
     DrawBadgeSystemImage
 #endif

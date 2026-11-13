@@ -52,10 +52,6 @@
 #include <WebCore/SVGFilterRenderer.h>
 #include <wtf/ZippedRange.h>
 
-#if USE(SYSTEM_PREVIEW)
-#include <WebCore/ARKitBadgeSystemImage.h>
-#endif
-
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeap.h"
 #include <WebCore/VideoFrame.h>
@@ -588,26 +584,6 @@ void drawControlPart(const RemoteCGRendererResources& resources, CGRendererLeafC
     leaf.context().drawControlPart(part, borderRect, deviceScaleFactor, style);
     part->setOverrideControlFactory(nullptr);
 }
-
-void drawSystemImage(CGRendererLeafContext& leaf, const Ref<SystemImage>& systemImage, const FloatRect& destinationRect)
-{
-    leaf.context().drawSystemImage(systemImage, destinationRect);
-}
-
-#if USE(SYSTEM_PREVIEW)
-bool drawBadgeSystemImage(const RemoteCGRendererResources& resources, CGRendererLeafContext& leaf, std::optional<RenderingResourceIdentifier> imageIdentifier, const FloatRect& destinationRect)
-{
-    RefPtr<NativeImage> nativeImage;
-    if (imageIdentifier) {
-        nativeImage = resources.cachedNativeImage(*imageIdentifier);
-        if (!nativeImage)
-            return false;
-    }
-    Ref badge = ARKitBadgeSystemImage::create(WTF::move(nativeImage));
-    leaf.context().drawSystemImage(badge, destinationRect);
-    return true;
-}
-#endif
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 CGImageRef copyVideoFrameImage(const RemoteCGRendererResources& resources, const SharedVideoFrame& frame, CGRendererImageFacts& facts, bool& hasAlpha)

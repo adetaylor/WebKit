@@ -116,6 +116,52 @@
 // the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 // Boston, MA 02110-1301, USA.
 
+// Copyright (C) 2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
+// Copyright (C) 2022-2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
 // The safe Span overloads Swift synthesizes for CGRendererGlyphRun's span accessors come from Cxx. Xcode builds don't find
@@ -124,6 +170,13 @@ private import Cxx
 // CGRendererCore's members for a Swift receiver use these.
 public import CoreGraphics
 import CoreText
+#if USE_SYSTEM_PREVIEW
+import CoreImage
+import WebCore_Private.Core.ARKitBadgeSystemImage
+#endif
+#if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
+import Foundation
+#endif
 import WebCore_Private.Core.AffineTransform
 import WebCore_Private.Core.CGRendererSPI
 public import WebCore_Private.Core.CGRendererSwiftBridge
@@ -4928,6 +4981,294 @@ extension CGRendererCore {
         }
         return true
     }
+}
+
+
+// MARK: System images
+
+#if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
+// A system framework's PDF image, as ApplePayLogoSystemImage.mm and ARKitBadgeSystemImage.mm load it: its bytes, which a draw
+// makes a document of, since CoreGraphics's PDF documents aren't Sendable.
+private struct SystemImagePDF: Sendable {
+    private let data: Data?
+
+    init(_ bundle: Bundle?, _ name: Swift.String) {
+        data = bundle?.url(forResource: name, withExtension: "pdf").flatMap { try? Data(contentsOf: $0, options: .mappedIfSafe) }
+    }
+
+    func firstPage() -> CGPDFPage? {
+        guard let data, let provider = CGDataProvider(data: data as CFData), let document = CGPDFDocument(provider) else {
+            return nil
+        }
+        guard document.numberOfPages > 0 else {
+            return nil
+        }
+        return document.page(at: 1)
+    }
+}
+#endif
+
+#if ENABLE_APPLE_PAY
+// FileSystem::systemDirectoryPath()'s PassKit.framework.
+private func passKitBundle() -> Bundle? {
+    var systemDirectoryPath = "/System/"
+    #if targetEnvironment(simulator)
+    if let simulatorRoot = ProcessInfo.processInfo.environment["SIMULATOR_ROOT"] as Swift.String? {
+        systemDirectoryPath = simulatorRoot + "/System/"
+    }
+    #endif
+    return Bundle(url: URL(fileURLWithPath: systemDirectoryPath + "Library/Frameworks/PassKit.framework", isDirectory: true))
+}
+
+private struct ApplePayLogos: Sendable {
+    let white: SystemImagePDF
+    let black: SystemImagePDF
+
+    init() {
+        let bundle = passKitBundle()
+        white = SystemImagePDF(bundle, "PayButtonLogoWhite")
+        black = SystemImagePDF(bundle, "PayButtonLogoBlack")
+    }
+}
+
+private let applePayLogos = ApplePayLogos()
+
+// largestRectWithAspectRatioInsideRect(), in its float arithmetic.
+private func largestRectWithAspectRatio(_ aspectRatio: Float, inside rect: CGRect) -> (x: Float, y: Float, width: Float, height: Float) {
+    var x = Float(rect.origin.x)
+    var y = Float(rect.origin.y)
+    var width = Float(rect.size.width)
+    var height = Float(rect.size.height)
+    if aspectRatio > width / height {
+        let dy = (width / aspectRatio - height) / 2
+        y -= dy
+        height = height + dy + dy
+    } else {
+        let dx = (height * aspectRatio - width) / 2
+        x -= dx
+        width = width + dx + dx
+    }
+    return (x, y, width, height)
+}
+#endif
+
+#if USE_SYSTEM_PREVIEW
+private typealias ARKitBadgeMetrics = WebCore.ARKitBadgeSystemImage.BadgeMetrics
+
+private func arKitBadgeLogo() -> SystemImagePDF {
+    #if targetEnvironment(simulator)
+    _ = Bundle(path: "/System/Library/PrivateFrameworks/AssetViewer.framework")?.load()
+    let bundle = NSClassFromString("ASVThumbnailView").map { Bundle(for: $0) }
+    #else
+    let bundle = Bundle(url: URL(fileURLWithPath: "/System/Library/PrivateFrameworks/AssetViewer.framework"))
+    #endif
+    return SystemImagePDF(bundle, "ARKitBadge")
+}
+
+private let arKitBadgeLogoPDF = arKitBadgeLogo()
+
+// The blurred, saturated and tinted backdrop that ARKitBadgeSystemImage::draw() puts behind the badge, cropped to it: rendered
+// into an IOSurface in the GPU process, as Core Image renders there.
+private func arKitBadgeBackdrop(_ image: CGImage, _ rect: CGRect, _ insetBadgeRect: CGRect, _ badgeDimension: Int, _ rendersIntoIOSurface: Bool) -> CGImage? {
+    let inputImage = CIImage(cgImage: image)
+    let transform = CGAffineTransform(
+        scaleX: CGFloat(Float(rect.width) / Float(image.width)),
+        y: CGFloat(Float(rect.height) / Float(image.height))
+    )
+    let scaledImage = inputImage.transformed(by: transform)
+    // Core Image coordinates are y-up, so the badge rectangle is flipped within the image frame.
+    let flippedInsetBadgeRect = CGRect(
+        x: insetBadgeRect.origin.x,
+        y: rect.height - insetBadgeRect.origin.y - insetBadgeRect.size.height,
+        width: CGFloat(badgeDimension),
+        height: CGFloat(badgeDimension)
+    )
+    let blurredImage = scaledImage.clampedToRect(flippedInsetBadgeRect).applyingGaussianBlur(sigma: 10)
+    guard let saturationFilter = CIFilter(name: "CIColorControls"), let tintFilter = CIFilter(name: "CIConstantColorGenerator"),
+        let sourceOverFilter = CIFilter(name: "CISourceOverCompositing")
+    else {
+        return nil
+    }
+    saturationFilter.setValue(blurredImage, forKey: kCIInputImageKey)
+    saturationFilter.setValue(1.8, forKey: kCIInputSaturationKey)
+    tintFilter.setValue(CIColor(red: 1, green: 1, blue: 1, alpha: 0.18), forKey: kCIInputColorKey)
+    sourceOverFilter.setValue(tintFilter.outputImage, forKey: kCIInputImageKey)
+    sourceOverFilter.setValue(saturationFilter.outputImage, forKey: kCIInputBackgroundImageKey)
+    guard let outputImage = sourceOverFilter.outputImage else {
+        return nil
+    }
+    let ciContext = CIContext()
+    #if HAVE_IOSURFACE_COREIMAGE_SUPPORT
+    if rendersIntoIOSurface {
+        let translatedImage = outputImage.cropped(to: flippedInsetBadgeRect)
+            .transformed(by: CGAffineTransform(translationX: -flippedInsetBadgeRect.origin.x, y: -flippedInsetBadgeRect.origin.y))
+        guard let sRGB = CGColorSpace(name: CGColorSpace.sRGB),
+            let badgeSurface = IOSurfaceCore.create(pool: nil, width: Int32(badgeDimension), height: Int32(badgeDimension), colorSpace: sRGB)
+        else {
+            return nil
+        }
+        ciContext.render(
+            translatedImage,
+            to: badgeSurface.surface,
+            bounds: CGRect(x: 0, y: 0, width: badgeDimension, height: badgeDimension),
+            colorSpace: sRGB
+        )
+        guard let surfaceContext = badgeSurface.createPlatformContext() else {
+            return nil
+        }
+        return badgeSurface.createImage(surfaceContext)
+    }
+    #endif
+    return ciContext.createCGImage(outputImage, from: flippedInsetBadgeRect)
+}
+#endif
+
+extension CGRendererCore {
+    #if ENABLE_APPLE_PAY
+    // ApplePayLogoSystemImage::draw(): PassKit's logo, the largest that keeps its aspect ratio in the rect.
+    @_expose(Cxx)
+    mutating func drawApplePayLogo(_ isBlack: Bool, _ rect: CGRect) {
+        guard let page = (isBlack ? applePayLogos.black : applePayLogos.white).firstPage() else {
+            return
+        }
+        hasDrawn = true
+        context.saveGState()
+        let pdfSize = page.getBoxRect(.mediaBox).size
+        let largestRect = largestRectWithAspectRatio(Float(pdfSize.width / pdfSize.height), inside: rect)
+        context.translateBy(x: CGFloat(largestRect.x), y: CGFloat(largestRect.y))
+        let scale = CGFloat(largestRect.width) / pdfSize.width
+        context.scaleBy(x: scale, y: scale)
+        context.translateBy(x: 0, y: pdfSize.height)
+        context.scaleBy(x: 1, y: -1)
+        context.drawPDFPage(page)
+        context.restoreGState()
+    }
+    #endif
+
+    #if USE_SYSTEM_PREVIEW
+    // ARKitBadgeSystemImage::draw(): AR Quick Look's badge in the rect's top right corner, over a blurred backdrop of the
+    // image if there is one, with a drop shadow, where the rect is large enough for it. `rendersIntoIOSurface`: in the GPU
+    // process, where Core Image renders the backdrop into an IOSurface.
+    @_expose(Cxx)
+    mutating func drawARKitBadge(_ image: CGImage?, _ rect: CGRect, _ rendersIntoIOSurface: Bool) {
+        guard let page = arKitBadgeLogoPDF.firstPage() else {
+            return
+        }
+        let minimumSizeForLarge = CGFloat(ARKitBadgeMetrics.minimumSizeForLarge)
+        let useSmallBadge = rect.width < minimumSizeForLarge || rect.height < minimumSizeForLarge
+        let badgeOffset = Int(useSmallBadge ? ARKitBadgeMetrics.smallOffset : ARKitBadgeMetrics.largeOffset)
+        let badgeDimension = Int(useSmallBadge ? ARKitBadgeMetrics.smallDimension : ARKitBadgeMetrics.largeDimension)
+        let minimumDimension = CGFloat(badgeDimension + 2 * badgeOffset)
+        if rect.width < minimumDimension || rect.height < minimumDimension {
+            return
+        }
+        let dimension = CGFloat(badgeDimension)
+        // In FloatRect's float arithmetic, as ARKitBadgeSystemImage::draw() places them.
+        let x = Float(rect.origin.x)
+        let y = Float(rect.origin.y)
+        let width = Float(rect.width)
+        let absoluteBadgeRect = CGRect(
+            x: CGFloat(x + width - Float(badgeDimension) - Float(badgeOffset)),
+            y: CGFloat(y + Float(badgeOffset)),
+            width: dimension,
+            height: dimension
+        )
+        let insetBadgeRect = CGRect(x: CGFloat(width - Float(badgeDimension) - Float(badgeOffset)), y: CGFloat(badgeOffset), width: dimension, height: dimension)
+        let badgeRect = CGRect(x: 0, y: 0, width: dimension, height: dimension)
+        // The circle that clips the badge, and casts its drop shadow, its radius in whole points.
+        let radius = CGFloat(badgeDimension / 2)
+        let circle = CGPath(roundedRect: absoluteBadgeRect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+        hasDrawn = true
+
+        context.saveGState()
+        context.saveGState()
+        // A drop shadow around the circle, its blur radius in user space, as GraphicsContext sets it. The circle's opaque
+        // black only casts the shadow, which the clip below keeps out of the circle.
+        let shadowColor: UInt32 = 26
+        applyShadow(makeShadow(
+            CGRendererShadowValues(width: 0, height: 0, radius: 16, opacity: 1, packedColor: shadowColor, isValid: true, isVisible: true, legacyRadius: false),
+            platformColorSlot: 0
+        ))
+        context.setFillColor(CGColor(srgbRed: 0, green: 0, blue: 0, alpha: 1))
+        context.beginPath()
+        context.addRect(rect)
+        context.addPath(circle)
+        context.closePath()
+        context.clip(using: .evenOdd)
+        // A slightly smaller circle casts the shadow, so that the solid circle leaves no fringe around the clipped badge.
+        context.beginPath()
+        let slightlySmallerAbsoluteBadgeRect = CGRect(
+            x: absoluteBadgeRect.origin.x + 0.5,
+            y: absoluteBadgeRect.origin.y + 0.5,
+            width: dimension - 1,
+            height: dimension - 1
+        )
+        context.addPath(CGPath(
+            roundedRect: slightlySmallerAbsoluteBadgeRect,
+            cornerWidth: slightlySmallerAbsoluteBadgeRect.width / 2,
+            cornerHeight: slightlySmallerAbsoluteBadgeRect.height / 2,
+            transform: nil
+        ))
+        context.closePath()
+        context.fillPath()
+        context.restoreGState()
+
+        let backdrop = image.flatMap { arKitBadgeBackdrop($0, rect, insetBadgeRect, badgeDimension, rendersIntoIOSurface) }
+
+        // The badge, clipped to the circle.
+        context.saveGState()
+        context.beginPath()
+        context.addPath(circle)
+        context.closePath()
+        context.clip()
+        context.translateBy(x: absoluteBadgeRect.origin.x, y: absoluteBadgeRect.origin.y)
+        context.translateBy(x: 0, y: dimension)
+        context.scaleBy(x: 1, y: -1)
+        if let backdrop {
+            context.draw(backdrop, in: badgeRect)
+        } else {
+            // Without a backdrop image, a translucent neutral fill, so that the logo has a backdrop to be read on.
+            context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 0.6))
+            context.fill(badgeRect)
+        }
+        let pdfSize = page.getBoxRect(.mediaBox).size
+        context.scaleBy(x: dimension / pdfSize.width, y: dimension / pdfSize.height)
+        context.drawPDFPage(page)
+        context.flush()
+        context.restoreGState()
+        context.restoreGState()
+    }
+    #endif
+
+    #if ENABLE_APPLE_PAY
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawApplePayLogo(_ isBlack: Bool, _ rect: CGRect) {
+        drawApplePayLogo(isBlack, rect)
+    }
+    #endif
+
+    #if USE_SYSTEM_PREVIEW
+    // A Swift receiver's badge, which it draws in the GPU process.
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawARKitBadge(_ image: CGImage?, _ rect: CGRect) {
+        drawARKitBadge(image, rect, true)
+    }
+    #endif
+
+    #if WTF_PLATFORM_MAC
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveDrawScrollbarTrackCorner(_ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGRendererColorData) {
+        drawScrollbarTrackCorner(rect, usesDarkAppearance, tintColor)
+    }
+
+    // AppKitControlSystemImage::draw() of a ScrollbarTrackCornerSystemImageMac: AppKit's scroll bar track corner, in the
+    // appearance the image was made in.
+    @_expose(Cxx)
+    mutating func drawScrollbarTrackCorner(_ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGRendererColorData) {
+        hasDrawn = true
+        drawAppKitScrollbarTrackCorner(context, rect, usesDarkAppearance, tintColor.form != 0 ? CGRendererCopyCachedCGColorForData(tintColor) : nil)
+    }
+    #endif
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && USE_CG

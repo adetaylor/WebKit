@@ -58,8 +58,6 @@ public:
 
     RefPtr<NativeImage> nativeImage() const { return m_nativeImage; }
 
-    void draw(GraphicsContext&, const FloatRect&) const final;
-
 private:
     ARKitBadgeSystemImage(RefPtr<NativeImage>&& nativeImage)
         : SystemImage(SystemImageType::ARKitBadge)

@@ -43,7 +43,6 @@
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/RenderingResourceIdentifier.h>
 #include <WebCore/SharedMemory.h>
-#include <WebCore/SystemImage.h>
 #include <wtf/Function.h>
 #include <wtf/HashMap.h>
 #include <wtf/Ref.h>
@@ -265,10 +264,6 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
 // handlers draw them; false where a resource is missing, which is an invalid message, before anything is drawn.
 bool drawFilteredImageBuffer(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&);
 void drawControlPart(const RemoteCGRendererResources&, CGRendererLeafContext&, const Ref<WebCore::ControlPart>&, const WebCore::FloatRoundedRect& borderRect, float deviceScaleFactor, const WebCore::ControlStyle&);
-void drawSystemImage(CGRendererLeafContext&, const Ref<WebCore::SystemImage>&, const WebCore::FloatRect& destinationRect);
-#if USE(SYSTEM_PREVIEW)
-bool drawBadgeSystemImage(const RemoteCGRendererResources&, CGRendererLeafContext&, std::optional<WebCore::RenderingResourceIdentifier> imageIdentifier, const WebCore::FloatRect& destinationRect);
-#endif
 // Whether the filter's sources are there to be found, before the receiver makes a leaf context to draw it in.
 bool hasFilterSources(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&);
 

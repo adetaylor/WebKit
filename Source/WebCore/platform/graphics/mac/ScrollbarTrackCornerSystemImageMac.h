@@ -43,7 +43,6 @@ public:
 
     virtual ~ScrollbarTrackCornerSystemImageMac() = default;
 
-    void drawControl(GraphicsContext&, const FloatRect&) const final;
 
 private:
     ScrollbarTrackCornerSystemImageMac();

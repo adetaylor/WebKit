@@ -43,6 +43,29 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Copyright (C) 2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+
 #if ENABLE_WEBCORE_SWIFT && WTF_PLATFORM_MAC
 
 import AppKit
@@ -2258,6 +2281,49 @@ extension WebCore.MacControlPainter {
         .zero
         #endif
     }
+}
+
+
+// MARK: AppKit control system images
+
+// ScrollbarTrackCornerSystemImageMac::drawControl() in the appearance that AppKitControlSystemImage::draw() sets: the dark or
+// light appearance, tinted with the image's tint color if it has one, drawn with the context as AppKit's current one.
+func drawAppKitScrollbarTrackCorner(_ context: CGContext, _ rect: CGRect, _ usesDarkAppearance: Bool, _ tintColor: CGColor?) {
+    enterControlDrawing((context, rect, usesDarkAppearance, tintColor)) { arguments in
+        let (context, rect, usesDarkAppearance, tintColor) = arguments
+        withAppKitControlImageAppearance(usesDarkAppearance, tintColor) {
+            context.saveGState()
+            let savedContext = NSGraphicsContext.current
+            let setsContext = savedContext?.cgContext !== context
+            if setsContext {
+                NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
+            }
+            let options: [CFString: CFTypeRef] = [kCUIWidgetKey: kCUIWidgetScrollBarTrackCorner, kCUIIsFlippedKey: kCFBooleanTrue]
+            NSAppearance.currentDrawing()._draw(in: rect, context: context, options: options)
+            if setsContext {
+                NSGraphicsContext.current = savedContext
+            }
+            context.restoreGState()
+        }
+    }
+}
+
+// LocalDefaultSystemAppearance, as AppKitControlSystemImage::draw() sets it.
+@MainActor
+private func withAppKitControlImageAppearance(_ usesDarkAppearance: Bool, _ tintColor: CGColor?, _ body: @MainActor () -> Void) {
+    guard var appearance = NSAppearance(named: usesDarkAppearance ? .darkAqua : .aqua) else {
+        body()
+        return
+    }
+    if let tintColor, let tint = NSColor(cgColor: tintColor) {
+        // The internal SDK's declaration returns an optional.
+        guard let tintedAppearance = appearance.applyingTintColor(tint) as NSAppearance? else {
+            body()
+            return
+        }
+        appearance = tintedAppearance
+    }
+    withDrawingAppearance(appearance, body)
 }
 
 #endif // ENABLE_WEBCORE_SWIFT && WTF_PLATFORM_MAC

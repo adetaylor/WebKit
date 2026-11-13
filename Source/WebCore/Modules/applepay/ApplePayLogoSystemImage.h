@@ -52,8 +52,6 @@ public:
 
     ApplePayLogoStyle applePayLogoStyle() const { return m_applePayLogoStyle; }
 
-    void draw(GraphicsContext&, const FloatRect&) const final;
-
 private:
     ApplePayLogoSystemImage(ApplePayLogoStyle applePayLogoStyle)
         : SystemImage(SystemImageType::ApplePayLogo)
