@@ -41,8 +41,6 @@
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
 
-#if ENABLE(BACK_FORWARD_LIST_SWIFT)
-
 // Workaround for rdar://162358154
 using SpanConstChar = std::span<const char>;
 
@@ -98,4 +96,3 @@ unsigned maxFrameStateDepthForMessageCheck();
 // Message types are not visible to Swift.
 void sendDidAddHistoryItemToBackForwardItem(WebKit::WebProcessProxy&, WebCore::FrameIdentifier, const WebKit::FrameState&, const WebCore::BackForwardItemIdentifier&);
 
-#endif // ENABLE(BACK_FORWARD_LIST_SWIFT)
