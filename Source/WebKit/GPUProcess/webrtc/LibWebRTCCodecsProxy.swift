@@ -121,14 +121,16 @@ private func isValidEncoderInitialization(codecType: IPCTypes.VideoCodecType, us
 
 // The decoders and encoders of a LibWebRTCCodecsProxy, with the replies they owe, on the codecs queue, apart from the flag
 // the main thread reads and what the proxy gives them: its video frame heap, the web process's identity, and the codecs
-// queue. @unchecked Sendable: the decoders, the encoders and their replies are only used on the codecs queue, where every
-// handler runs and where the decoders' and encoders' results are dispatched to, and the flag is atomic.
+// queue. @unchecked Sendable: the decoders, the encoders, their replies and the encoders' converter are only used on the
+// codecs queue, where every handler runs and where the decoders' and encoders' results are dispatched to, and the flag is
+// atomic.
 private final class LibWebRTCCodecsProxyState: @unchecked Sendable {
     let videoFrameObjectHeap: WebKit.RemoteVideoFrameObjectHeap
     let resourceOwner: WebCore.ProcessIdentity?
     let codecsQueue: DispatchQueue
     var decoders: [IPCTypes.VideoDecoderIdentifier: Decoder] = [:]
     var encoders: [IPCTypes.VideoEncoderIdentifier: Encoder] = [:]
+    let pixelBufferConverter = LibWebRTCCodecsPixelBufferConverter()
     // Read on the main thread.
     let hasEncodersOrDecoders = Atomic<Bool>(false)
 
@@ -385,7 +387,8 @@ extension WebKit.LibWebRTCCodecsProxy {
                 isLowLatencyEnabled: useLowLatency,
                 scalabilityMode: scalabilityMode,
                 output: output,
-                frameSource: frameSource
+                frameSource: frameSource,
+                pixelBufferConverter: state.pixelBufferConverter
             )
         else {
             reply.send(false)

@@ -639,105 +639,20 @@ private func nanoseconds(_ time: IPCTypes.MediaTime) -> Int64 {
     return Int64(value)
 }
 
-// An encoder of LibWebRTCCodecsProxy.swift, over a VideoToolbox compression session, on the codecs queue. It reads the
-// frames shared with it, converts 32-bit BGRA ones to full range 4:2:0, and makes a new session when a frame's colour
-// space changes.
-final class LibWebRTCCodecsEncoder {
-    let output: LibWebRTCCodecsEncoderOutput
-    let frameSource: SharedVideoFrameSource
-    private let codecType: IPCTypes.VideoCodecType
-    private let scalabilityMode: IPCTypes.VideoEncoderScalabilityMode
-    private let isLowLatencyEnabled: Bool
-    private let profileLevel: CFString?
-    private var session: VTCompressionSession?
-    private var width: UInt16 = 0
-    private var height: UInt16 = 0
-    private var targetBitrateBps: UInt32 = 0
-    private var colorSpace = WebKit.LibWebRTCCodecsColorSpace()
+// Converts 32-bit BGRA frames to full range 4:2:0 for the encoders of a LibWebRTCCodecsProxy, on the codecs queue, so that
+// they share one transfer session and one pool of converted buffers.
+final class LibWebRTCCodecsPixelBufferConverter {
     private var pixelTransferSession: VTPixelTransferSession?
     private var pixelBufferPool: CVPixelBufferPool?
     private var pixelBufferPoolSize: (width: Int, height: Int) = (0, 0)
 
-    // Nil if there is no encoder for the codec and the scalability mode.
-    init?(
-        codecType: IPCTypes.VideoCodecType,
-        parameters: [(String?, String?)],
-        isLowLatencyEnabled: Bool,
-        scalabilityMode: IPCTypes.VideoEncoderScalabilityMode,
-        output: LibWebRTCCodecsEncoderOutput,
-        frameSource: SharedVideoFrameSource
-    ) {
-        switch codecType {
-        case .h265:
-            // We only support L1T1 for H265.
-            self.scalabilityMode = .l1T1
-            profileLevel = nil
-        case .h264:
-            guard scalabilityMode != .l1T3 else {
-                return nil
-            }
-            self.scalabilityMode = scalabilityMode
-            profileLevel = computeVTProfileLevel(parameters)
-        case .vp9, .av1:
-            return nil
-        }
-        self.codecType = codecType
-        self.isLowLatencyEnabled = isLowLatencyEnabled
-        self.output = output
-        self.frameSource = frameSource
-    }
-
     deinit {
-        output.encoderWasReleased()
-        if let session {
-            VTCompressionSessionInvalidate(session)
-        }
         if let pixelTransferSession {
             VTPixelTransferSessionInvalidate(pixelTransferSession)
         }
     }
 
-    func initialize(width: UInt16, height: UInt16, startBitrateKbps: UInt32) {
-        self.width = width
-        self.height = height
-        targetBitrateBps = startBitrateKbps &* 1000
-        // FIXME: We might want to check that the session creation went fine, or error the encoder otherwise.
-        _ = resetCompressionSession()
-    }
-
-    func setRates(bitRateKbps: UInt32, frameRate: UInt32) {
-        // FIXME: we should set kVTCompressionPropertyKey_ExpectedFrameRate according frameRate, and may have to use frameRate for duration.
-        targetBitrateBps = bitRateKbps &* 1000
-        setEncoderBitrateBps(targetBitrateBps)
-    }
-
-    func flush() {
-        if let session {
-            _ = VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
-        }
-    }
-
-    // Returns false if the frame can't be read or converted. Otherwise its result goes to the output.
-    func encodeFrame(_ frame: consuming IPCTypes.SharedVideoFrame, timeStamp: Int64, duration: UInt64?, isKeyframeRequired: Bool) -> Bool {
-        guard var pixelBuffer = frameSource.readBuffer(frame.buffer) else {
-            return false
-        }
-
-        var frameColorSpace = frame.colorSpace.codecsColorSpace
-        if CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA {
-            frameColorSpace = IPCTypes.PlatformVideoColorSpace(primaries: .bt709, transfer: .iec6196621, matrix: .bt709, fullRange: true, chromaLocation: nil).codecsColorSpace
-            guard let converted = convertToFullRange420(pixelBuffer) else {
-                return false
-            }
-            pixelBuffer = converted
-        }
-
-        WebKit.attachCodecsColorSpace(pixelBuffer, frameColorSpace)
-        encode(pixelBuffer, timeStampNs: nanoseconds(frame.time), timeStamp: timeStamp, duration: duration, rotation: frame.rotation, isMirrored: frame.mirrored, isKeyframeRequired: isKeyframeRequired)
-        return true
-    }
-
-    private func convertToFullRange420(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {
+    func convertToFullRange420(_ pixelBuffer: CVPixelBuffer) -> CVPixelBuffer? {
         if pixelTransferSession == nil {
             var sessionOut: VTPixelTransferSession?
             guard unsafe VTPixelTransferSessionCreate(allocator: kCFAllocatorDefault, pixelTransferSessionOut: &sessionOut) == noErr else {
@@ -777,6 +692,102 @@ final class LibWebRTCCodecsEncoder {
             return nil
         }
         return destination
+    }
+}
+
+// An encoder of LibWebRTCCodecsProxy.swift, over a VideoToolbox compression session, on the codecs queue. It reads the
+// frames shared with it, has 32-bit BGRA ones converted to full range 4:2:0, and makes a new session when a frame's colour
+// space changes.
+final class LibWebRTCCodecsEncoder {
+    let output: LibWebRTCCodecsEncoderOutput
+    let frameSource: SharedVideoFrameSource
+    private let codecType: IPCTypes.VideoCodecType
+    private let scalabilityMode: IPCTypes.VideoEncoderScalabilityMode
+    private let isLowLatencyEnabled: Bool
+    private let profileLevel: CFString?
+    private var session: VTCompressionSession?
+    private var width: UInt16 = 0
+    private var height: UInt16 = 0
+    private var targetBitrateBps: UInt32 = 0
+    private var colorSpace = WebKit.LibWebRTCCodecsColorSpace()
+    private let pixelBufferConverter: LibWebRTCCodecsPixelBufferConverter
+
+    // Nil if there is no encoder for the codec and the scalability mode.
+    init?(
+        codecType: IPCTypes.VideoCodecType,
+        parameters: [(String?, String?)],
+        isLowLatencyEnabled: Bool,
+        scalabilityMode: IPCTypes.VideoEncoderScalabilityMode,
+        output: LibWebRTCCodecsEncoderOutput,
+        frameSource: SharedVideoFrameSource,
+        pixelBufferConverter: LibWebRTCCodecsPixelBufferConverter
+    ) {
+        switch codecType {
+        case .h265:
+            // We only support L1T1 for H265.
+            self.scalabilityMode = .l1T1
+            profileLevel = nil
+        case .h264:
+            guard scalabilityMode != .l1T3 else {
+                return nil
+            }
+            self.scalabilityMode = scalabilityMode
+            profileLevel = computeVTProfileLevel(parameters)
+        case .vp9, .av1:
+            return nil
+        }
+        self.codecType = codecType
+        self.isLowLatencyEnabled = isLowLatencyEnabled
+        self.output = output
+        self.frameSource = frameSource
+        self.pixelBufferConverter = pixelBufferConverter
+    }
+
+    deinit {
+        output.encoderWasReleased()
+        if let session {
+            VTCompressionSessionInvalidate(session)
+        }
+    }
+
+    func initialize(width: UInt16, height: UInt16, startBitrateKbps: UInt32) {
+        self.width = width
+        self.height = height
+        targetBitrateBps = startBitrateKbps &* 1000
+        // FIXME: We might want to check that the session creation went fine, or error the encoder otherwise.
+        _ = resetCompressionSession()
+    }
+
+    func setRates(bitRateKbps: UInt32, frameRate: UInt32) {
+        // FIXME: we should set kVTCompressionPropertyKey_ExpectedFrameRate according frameRate, and may have to use frameRate for duration.
+        targetBitrateBps = bitRateKbps &* 1000
+        setEncoderBitrateBps(targetBitrateBps)
+    }
+
+    func flush() {
+        if let session {
+            _ = VTCompressionSessionCompleteFrames(session, untilPresentationTimeStamp: .invalid)
+        }
+    }
+
+    // Returns false if the frame can't be read or converted. Otherwise its result goes to the output.
+    func encodeFrame(_ frame: consuming IPCTypes.SharedVideoFrame, timeStamp: Int64, duration: UInt64?, isKeyframeRequired: Bool) -> Bool {
+        guard var pixelBuffer = frameSource.readBuffer(frame.buffer) else {
+            return false
+        }
+
+        var frameColorSpace = frame.colorSpace.codecsColorSpace
+        if CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA {
+            frameColorSpace = IPCTypes.PlatformVideoColorSpace(primaries: .bt709, transfer: .iec6196621, matrix: .bt709, fullRange: true, chromaLocation: nil).codecsColorSpace
+            guard let converted = pixelBufferConverter.convertToFullRange420(pixelBuffer) else {
+                return false
+            }
+            pixelBuffer = converted
+        }
+
+        WebKit.attachCodecsColorSpace(pixelBuffer, frameColorSpace)
+        encode(pixelBuffer, timeStampNs: nanoseconds(frame.time), timeStamp: timeStamp, duration: duration, rotation: frame.rotation, isMirrored: frame.mirrored, isKeyframeRequired: isKeyframeRequired)
+        return true
     }
 
     private func encode(_ pixelBuffer: CVPixelBuffer, timeStampNs: Int64, timeStamp: Int64, duration: UInt64?, rotation: IPCTypes.VideoFrameRotation, isMirrored: Bool, isKeyframeRequired: Bool) {
