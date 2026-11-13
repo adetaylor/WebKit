@@ -1056,6 +1056,72 @@ extension IPCCoding.Vector where Element == UInt8 {
     }
 }
 
+extension IPCTypes {
+    /// WebCore::Color (IPCTypes.Color is WebGPU::Color's form), as C++ encodes it: Color::data(), a std::optional of a WebCore::ColorDataForIPC, whose Variant holds the
+    /// PackedColor::RGBA of an inline color or the color space and components of an out-of-line one. Accepted where
+    /// ArgumentCoder<WebCore::Color> accepts it.
+    struct WebCoreColor: IPCCoder, Sendable, Equatable {
+        enum Components: Sendable, Equatable {
+            case packed(UInt32)
+            case outOfLine(colorSpace: IPCTypes.ColorSpaceName, c1: Float, c2: Float, c3: Float, alpha: Float)
+        }
+
+        struct Data: Sendable, Equatable {
+            var isSemantic: Bool
+            var usesFunctionSerialization: Bool
+            var components: Components
+        }
+
+        /// Nil for an invalid color.
+        var data: Data?
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> WebCoreColor {
+            guard try Bool.decode(from: &decoder) else {
+                return WebCoreColor(data: nil)
+            }
+            let isSemantic = try Bool.decode(from: &decoder)
+            let usesFunctionSerialization = try Bool.decode(from: &decoder)
+            let components: Components
+            switch try UInt8.decode(from: &decoder) {
+            case 0:
+                components = .packed(try UInt32.decode(from: &decoder))
+            case 1:
+                let colorSpace = try IPCTypes.ColorSpaceName.decode(from: &decoder)
+                let c1 = try Float.decode(from: &decoder)
+                let c2 = try Float.decode(from: &decoder)
+                let c3 = try Float.decode(from: &decoder)
+                let alpha = try Float.decode(from: &decoder)
+                components = .outOfLine(colorSpace: colorSpace, c1: c1, c2: c2, c3: c3, alpha: alpha)
+            default:
+                throw IPCDecodingError()
+            }
+            return WebCoreColor(data: Data(isSemantic: isSemantic, usesFunctionSerialization: usesFunctionSerialization, components: components))
+        }
+
+        static func encode(_ value: WebCoreColor, to encoder: IPC.SwiftReplyEncoder) {
+            guard let data = value.data else {
+                encoder.encode(false)
+                return
+            }
+            encoder.encode(true)
+            encoder.encode(data.isSemantic)
+            encoder.encode(data.usesFunctionSerialization)
+            switch data.components {
+            case .packed(let value):
+                encoder.encode(UInt8(0))
+                encoder.encode(value)
+            case .outOfLine(let colorSpace, let c1, let c2, let c3, let alpha):
+                encoder.encode(UInt8(1))
+                IPCTypes.ColorSpaceName.encode(colorSpace, to: encoder)
+                encoder.encode(c1)
+                encoder.encode(c2)
+                encoder.encode(c3)
+                encoder.encode(alpha)
+            }
+        }
+    }
+}
+
 #if canImport(CoreGraphics)
 extension IPCTypes {
     /// WebCore::ColorSpace where CoreGraphics draws: its CGColorSpace, made of the CGColorSpaceSerialization that C++

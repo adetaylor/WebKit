@@ -188,8 +188,11 @@ struct WebCore::ApplePayShippingMethod {
     std::optional<WebCore::ApplePayError::Domain> domain();
 }
 
-enum class WebCore::ApplePayLogoStyle : bool
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayLogoSystemImage {
+[Swift] enum class WebCore::ApplePayLogoStyle : bool {
+    White,
+    Black
+};
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::ApplePayLogoSystemImage {
     WebCore::ApplePayLogoStyle applePayLogoStyle()
 }
 
