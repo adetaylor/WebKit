@@ -23,18 +23,20 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS) && ENABLE(ENCRYPTED_MEDIA)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=EncryptedMediaAPIEnabled
+    EnabledBy=EncryptedMediaAPIEnabled,
+    SwiftImplementation,
+    SwiftTypes
 ]
 messages -> RemoteCDMFactoryProxy {
-    CreateCDM(String keySystem, String mediaKeysHashSalt) -> (std::optional<WebKit::RemoteCDMIdentifier> identifier, struct WebKit::RemoteCDMConfiguration configuration) Synchronous
-    SupportsKeySystem(String keySystem) -> (bool result) Synchronous
-    RemoveInstance(WebKit::RemoteCDMInstanceIdentifier identifier)
-    RemoveSession(WebKit::RemoteCDMInstanceSessionIdentifier identifier)
+    CreateCDM(String keySystem, String mediaKeysHashSalt) -> (std::optional<WebKit::RemoteCDMIdentifier> identifier, struct WebKit::RemoteCDMConfiguration configuration) Synchronous SwiftSyncHandler
+    SupportsKeySystem(String keySystem) -> (bool result) Synchronous SwiftSyncHandler
+    RemoveInstance(WebKit::RemoteCDMInstanceIdentifier identifier) SwiftSyncHandler
+    RemoveSession(WebKit::RemoteCDMInstanceSessionIdentifier identifier) SwiftSyncHandler
 }
 
 #endif

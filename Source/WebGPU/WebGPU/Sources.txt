@@ -21,35 +21,4 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
 // THE POSSIBILITY OF SUCH DAMAGE.
 
-Adapter.mm
-BindGroup.mm
-BindGroupLayout.mm
-Buffer.mm
-CommandBuffer.mm
-CommandEncoder.mm
-CommandsMixin.mm
-ComputePassEncoder.mm
-ComputePipeline.mm
-Device.mm
-ExternalTexture.mm
-HardwareCapabilities.mm
-Instance.mm
-Pipeline.mm
-PipelineLayout.mm
-PresentationContext.mm
-PresentationContextCoreAnimation.mm
-PresentationContextIOSurface.mm
-QuerySet.mm
-Queue.mm
-RenderBundle.mm
-RenderBundleEncoder.mm
-RenderPassEncoder.mm
-RenderPipeline.mm
-Sampler.mm
-ShaderModule.mm
-Texture.mm
-TextureView.mm
-XRBinding.mm
 XRProjectionLayer.mm
-XRSubImage.mm
-XRView.mm

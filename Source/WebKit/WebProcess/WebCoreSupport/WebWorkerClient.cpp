@@ -66,7 +66,7 @@ public:
 #if ENABLE(WEBGL)
     RefPtr<WebCore::GraphicsContextGL> createGraphicsContextGL(const WebCore::GraphicsContextGLAttributes&) const final;
 #endif
-#if HAVE(WEBGPU_IMPLEMENTATION)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     RefPtr<WebCore::WebGPUIntegration> createGPUForWebGPU() const override;
 #endif
 private:
@@ -151,7 +151,7 @@ RefPtr<GraphicsContextGL> GPUProcessWebWorkerClient::createGraphicsContextGL(con
 }
 #endif
 
-#if HAVE(WEBGPU_IMPLEMENTATION)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 RefPtr<WebCore::WebGPUIntegration> GPUProcessWebWorkerClient::createGPUForWebGPU() const
 {
     RefPtr dispatcher = this->dispatcher();

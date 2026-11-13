@@ -452,11 +452,6 @@ typedef NS_ENUM(NSInteger, AVPlayerResourceConservationLevel) {
 
 NS_ASSUME_NONNULL_BEGIN
 
-// FIXME: Move this inside the #if USE(APPLE_INTERNAL_SDK) once rdar://81297776 has been in the build for awhile.
-@interface AVCaptureSession (AVCaptureSessionPrivate)
-- (instancetype)initWithAssumedIdentity:(tcc_identity_t)tccIdentity SPI_AVAILABLE(ios(15.0)) API_UNAVAILABLE(macos, macCatalyst, watchos, tvos);
-@end
-
 @interface AVCaptureDevice (AVCaptureServerConnection)
 + (void)ensureServerConnection;
 @end
@@ -551,3 +546,29 @@ NS_ASSUME_NONNULL_END
 #endif // HAVE(AVCONTENTKEYSESSION)
 
 #endif // !__has_feature(modules)
+
+// Outside the condition above, so that CameraCaptureSource.swift sees them too.
+#import <wtf/Platform.h>
+
+#if HAVE(AVCAPTUREDEVICE)
+
+#import <AVFoundation/AVCaptureSession.h>
+#import <pal/spi/cocoa/TCCSPI.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+#if HAVE(AVSAMPLEBUFFERVIDEOOUTPUT)
+// FIXME: Move this inside the #if USE(APPLE_INTERNAL_SDK) once rdar://81297776 has been in the build for awhile.
+@interface AVCaptureSession (AVCaptureSessionPrivate)
+- (instancetype)initWithAssumedIdentity:(tcc_identity_t)tccIdentity SPI_AVAILABLE(ios(15.0)) API_UNAVAILABLE(macos, macCatalyst, watchos, tvos);
+@end
+#endif
+
+// FIXME (119325252): Remove staging code for -[AVCaptureSession initWithMediaEnvironment:]
+@interface AVCaptureSession (Staging_113653478)
+- (instancetype)initWithMediaEnvironment:(NSString *)mediaEnvironment;
+@end
+
+NS_ASSUME_NONNULL_END
+
+#endif // HAVE(AVCAPTUREDEVICE)

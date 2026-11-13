@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteAdapterProxy.h"
 #include "SharedVideoFrame.h"
@@ -65,7 +65,7 @@ public:
     WebGPUIdentifier backing() const { return m_backing; }
 
     Vector<::WebGPU::FeatureName> features() const final { return m_features; }
-    const ::WebGPU::Limits& limits() const LIFETIME_BOUND final { return m_limits; }
+    ::WebGPU::Limits limits() const final { return m_limits; }
     NODELETE Ref<::WebGPU::Queue> queue() final;
     void destroy() final;
 
@@ -137,4 +137,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGPU::RemoteDeviceProxy)
     static bool isType(const ::WebGPU::Device&) { return true; }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCanvasConfiguration.h>
 #include <WebCore/WebGPUDevice.h>
@@ -39,26 +38,6 @@ std::optional<CanvasConfiguration> ConvertToBackingContext::convertToBacking(con
 {
     auto device = convertToBacking(canvasConfiguration.device.get());
     return { { device, canvasConfiguration.format, canvasConfiguration.usage, Vector<::WebGPU::TextureFormat> { canvasConfiguration.viewFormats }, WebCore::convertFromWebGPU(canvasConfiguration.colorSpace), canvasConfiguration.toneMappingMode, canvasConfiguration.compositingAlphaMode, canvasConfiguration.reportValidationErrors, canvasConfiguration.width, canvasConfiguration.height } };
-}
-
-std::optional<::WebGPU::CanvasConfiguration> ConvertFromBackingContext::convertFromBacking(const CanvasConfiguration& canvasConfiguration)
-{
-    RefPtr device = convertDeviceFromBacking(canvasConfiguration.device);
-    if (!device)
-        return std::nullopt;
-
-    return { {
-        .device = device.releaseNonNull(),
-        .format = canvasConfiguration.format,
-        .usage = canvasConfiguration.usage,
-        .viewFormats = canvasConfiguration.viewFormats.span(),
-        .colorSpace = WebCore::convertToWebGPU(canvasConfiguration.colorSpace),
-        .toneMappingMode = canvasConfiguration.toneMappingMode,
-        .compositingAlphaMode = canvasConfiguration.compositingAlphaMode,
-        .reportValidationErrors = canvasConfiguration.reportValidationErrors,
-        .width = canvasConfiguration.width,
-        .height = canvasConfiguration.height,
-    } };
 }
 
 } // namespace WebKit

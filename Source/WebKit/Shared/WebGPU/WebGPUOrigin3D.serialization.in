@@ -24,7 +24,7 @@ headers: "StreamConnectionEncoder.h"
 
 #if ENABLE(GPU_PROCESS)
 header: <WebGPU/WebGPUCpp.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct ::WebGPU::Origin3D {
+[AdditionalEncoder=StreamConnectionEncoder, CustomHeader, Swift] struct ::WebGPU::Origin3D {
     uint32_t x;
     uint32_t y;
     uint32_t z;

@@ -21,17 +21,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebGPUEnabled
+    EnabledBy=WebGPUEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteCompositorIntegration Stream {
 #if PLATFORM(COCOA)
-    void RecreateRenderBuffers(int width, int height, WebCore::ColorSpace destinationColorSpace, enum:uint8_t WebCore::AlphaPremultiplication alphaMode, ::WebGPU::TextureFormat textureFormat, WebKit::WebGPUIdentifier deviceIdentifier) -> (uint32_t renderBufferCount) Synchronous
-    void PrepareForDisplay(uint32_t frameIndex) -> (Seconds gpuFrameCost, Seconds presentStall, MachSendRight displayBuffer, std::optional<uint32_t> replacedRenderBufferIndex) Synchronous NotStreamEncodableReply // Because CanvasRenderingContext::prepareForDisplay() requires the layer contents synchronously, this needs to be Synchronous.
+    void RecreateRenderBuffers(int32_t width, int32_t height, [CxxDecoded] WebCore::ColorSpace destinationColorSpace, enum:uint8_t WebCore::AlphaPremultiplication alphaMode, ::WebGPU::TextureFormat textureFormat, WebKit::WebGPUIdentifier deviceIdentifier) -> (uint32_t renderBufferCount) Synchronous NotStreamEncodableReply SwiftReplyValue
+    void PrepareForDisplay(uint32_t frameIndex) -> (struct WebKit::PrepareForDisplayReply result) Synchronous NotStreamEncodableReply SwiftReplyValue // Because CanvasRenderingContext::prepareForDisplay() requires the layer contents synchronously, this needs to be Synchronous.
 #endif
     void PaintCompositedResultsToCanvas(WebCore::RenderingResourceIdentifier imageBuffer, uint32_t bufferIndex) -> () Synchronous
     void Destruct()

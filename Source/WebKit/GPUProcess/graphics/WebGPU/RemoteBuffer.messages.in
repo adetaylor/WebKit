@@ -21,12 +21,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=WebGPUEnabled
+    EnabledBy=WebGPUEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteBuffer Stream {
     void GetMappedRange(uint64_t offset, std::optional<uint64_t> size) -> (std::optional<Vector<uint8_t>> data) Synchronous

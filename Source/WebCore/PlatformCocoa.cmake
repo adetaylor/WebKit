@@ -439,7 +439,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/avfoundation/MediaPlaybackTargetCocoa.mm
     platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.cpp
     platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm
-    platform/graphics/avfoundation/WebAVSampleBufferListener.mm
 
     platform/graphics/avfoundation/objc/AVAssetTrackUtilities.mm
     platform/graphics/avfoundation/objc/AudioTrackPrivateAVFObjC.mm
@@ -546,7 +545,6 @@ list(APPEND WebCore_SOURCES
 
     platform/mediarecorder/MediaRecorderPrivateWriter.cpp
 
-    platform/mediastream/cocoa/CoreAudioCaptureUnit.mm
     platform/mediastream/cocoa/MockRealtimeVideoSourceCocoa.mm
     platform/mediastream/cocoa/RealtimeOutgoingVideoSourceCocoa.cpp
 
@@ -843,9 +841,6 @@ list(REMOVE_ITEM WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/WebGPU/GPUVertexState.h
     Modules/WebGPU/GPUVertexStepMode.h
 
-    Modules/WebGPU/Implementation/WebGPUCompositorIntegrationImpl.h
-    Modules/WebGPU/Implementation/WebGPUImpl.h
-
     Modules/compression/CompressionStreamEncoder.h
     Modules/compression/DecompressionStreamDecoder.h
     Modules/compression/Formats.h
@@ -1094,6 +1089,7 @@ list(REMOVE_ITEM WebCore_PRIVATE_FRAMEWORK_HEADERS
 
 list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.h
+    Modules/ShapeDetection/Implementation/Cocoa/DetectedShapes.h
     Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.h
     Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.h
 
@@ -1232,7 +1228,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/TextRecognitionResult.h
     platform/WebCoreMainThread.h
 
-    platform/audio/cocoa/AudioOutputUnitAdaptor.h
+    platform/audio/cocoa/AudioOutputUnit.h
     platform/audio/cocoa/AudioSampleBufferList.h
     platform/audio/cocoa/AudioSampleDataConverter.h
     platform/audio/cocoa/AudioSampleDataSource.h
@@ -1240,6 +1236,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/audio/cocoa/AudioUtilitiesCocoa.h
     platform/audio/cocoa/CAAudioStreamDescription.h
     platform/audio/cocoa/CARingBuffer.h
+    platform/audio/cocoa/CARingBufferSwiftBridge.h
     platform/audio/cocoa/MediaSessionManagerCocoa.h
     platform/audio/cocoa/SpatialAudioExperienceHelper.h
     platform/audio/cocoa/SpatialAudioPlaybackHelper.h
@@ -1307,14 +1304,18 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     platform/graphics/avfoundation/AudioSourceProviderAVFObjC.h
     platform/graphics/avfoundation/AudioVideoRendererAVFObjC.h
+    platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.h
+    platform/graphics/avfoundation/AudioVideoRendererHost.h
+    platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.h
+    platform/graphics/avfoundation/MediaPlayerAVFoundationHost.h
     platform/graphics/avfoundation/CDMFairPlayStreaming.h
+    platform/graphics/avfoundation/CDMInstanceFairPlayStreamingHost.h
     platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.h
     platform/graphics/avfoundation/ImageDecoderFactoryAVF.h
     platform/graphics/avfoundation/InbandTextTrackPrivateAVF.h
     platform/graphics/avfoundation/MediaPlaybackTargetCocoa.h
     platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.h
     platform/graphics/avfoundation/SampleBufferDisplayLayer.h
-    platform/graphics/avfoundation/WebAVSampleBufferListener.h
     platform/graphics/avfoundation/WebMediaSessionManagerMac.h
 
     platform/graphics/avfoundation/objc/AVAssetMIMETypeCache.h
@@ -1324,6 +1325,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h
     platform/graphics/avfoundation/objc/MediaSampleAVFObjC.h
     platform/graphics/avfoundation/objc/VideoLayerManagerObjC.h
+    platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.h
 
     platform/graphics/ca/FrameProcessIndicators.h
     platform/graphics/ca/GraphicsLayerCA.h
@@ -1446,15 +1448,20 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mediastream/RealtimeMediaSourceIdentifier.h
 
     platform/mediastream/cocoa/AVVideoCaptureSource.h
+    platform/mediastream/cocoa/AudioCaptureControllerHandle.h
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererInternalUnit.h
     platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.h
-    platform/mediastream/cocoa/BaseAudioCaptureUnit.h
     platform/mediastream/cocoa/BaseAudioMediaStreamTrackRendererUnit.h
+    platform/mediastream/cocoa/CameraCaptureSourceHandle.h
+    platform/mediastream/cocoa/CaptureSourceSupport.h
     platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.h
     platform/mediastream/cocoa/CoreAudioCaptureSource.h
     platform/mediastream/cocoa/CoreAudioCaptureUnit.h
     platform/mediastream/cocoa/DisplayCaptureSourceCocoa.h
+    platform/mediastream/cocoa/DisplayCaptureSourceHandle.h
+    platform/mediastream/cocoa/MockVideoSourceHandle.h
     platform/mediastream/cocoa/RealtimeIncomingVideoSourceCocoa.h
+    platform/mediastream/cocoa/RealtimeVideoUtilities.h
     platform/mediastream/cocoa/ScreenCaptureKitCaptureSource.h
     platform/mediastream/cocoa/ScreenCaptureKitSharingSessionManager.h
     platform/mediastream/cocoa/WebAudioSourceProviderCocoa.h
@@ -1484,7 +1491,6 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/network/ios/LegacyPreviewLoaderClient.h
     platform/network/ios/WebCoreURLResponseIOS.h
 
-    platform/video-codecs/cocoa/GPUVideoDecoder.h
     platform/video-codecs/cocoa/GPUVideoEncoder.h
 
     platform/xr/cocoa/PlatformXRPose.h

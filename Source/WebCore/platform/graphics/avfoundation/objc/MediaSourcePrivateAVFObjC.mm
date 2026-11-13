@@ -38,7 +38,6 @@
 #import "PlatformStrategies.h"
 #import "SourceBufferParserAVFObjC.h"
 #import "SourceBufferPrivateAVFObjC.h"
-#import "VideoMediaSampleRenderer.h"
 #import <algorithm>
 #import <objc/runtime.h>
 #import <ranges>

@@ -26,7 +26,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS_MODEL)
+#if ENABLE(GPU_PROCESS_MODEL) && ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "ModelTypes.h"
 #include <WebCore/Color.h>

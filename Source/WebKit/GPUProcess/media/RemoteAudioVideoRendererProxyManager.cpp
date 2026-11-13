@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteAudioVideoRendererProxyManager.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 
 #include "AudioVideoRendererRemoteMessageReceiverMessages.h"
 #include "GPUConnectionToWebProcess.h"
@@ -35,27 +35,20 @@
 #include "Logging.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
 #include "RemoteCDMFactoryProxy.h"
-#include "RemoteCDMInstanceProxy.h"
 #include "RemoteLegacyCDMFactoryProxy.h"
 #include "RemoteLegacyCDMSessionProxy.h"
 #include "RemoteVideoFrameObjectHeap.h"
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include "VideoReceiverEndpointManager.h"
 #endif
-#if USE(AVFOUNDATION)
 #include <WebCore/AudioVideoRendererAVFObjC.h>
-#else
-#include <WebCore/AudioVideoRenderer.h>
-#endif
 #include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/MediaSamplesBlock.h>
 #include <WebCore/PlatformLayer.h>
 #include <WebCore/SharedTimebase.h>
 
 #include <wtf/LoggerHelper.h>
-#if PLATFORM(COCOA)
 #include <wtf/MachSendRightAnnotated.h>
-#endif
 #include <wtf/Markable.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
@@ -78,20 +71,11 @@ void RemoteAudioVideoRendererProxyManager::publishAndSend(RemoteAudioVideoRender
     m_gpuConnectionToWebProcess.get()->connection().send(std::forward<Message>(message), identifier);
 }
 
-RefPtr<AudioVideoRenderer> RemoteAudioVideoRendererProxyManager::createRenderer(UniqueRef<SharedTimebase>&& sharedTimebase)
-{
-#if USE(AVFOUNDATION)
-    return AudioVideoRendererAVFObjC::create(Ref { m_gpuConnectionToWebProcess.get()->logger() }, LoggerHelper::uniqueLogIdentifier(), WTF::move(sharedTimebase));
-#else
-    UNUSED_PARAM(sharedTimebase);
-    ASSERT_NOT_REACHED();
-    return nullptr;
-#endif
-}
-
 Ref<RemoteAudioVideoRendererProxyManager> RemoteAudioVideoRendererProxyManager::create(GPUConnectionToWebProcess& connection)
 {
-    return adoptRef(*new RemoteAudioVideoRendererProxyManager(connection));
+    Ref manager = adoptRef(*new RemoteAudioVideoRendererProxyManager(connection));
+    manager->m_swiftState = manager->createSwiftState(connection.connection());
+    return manager;
 }
 
 RemoteAudioVideoRendererProxyManager::RemoteAudioVideoRendererProxyManager(GPUConnectionToWebProcess& connection)
@@ -111,11 +95,13 @@ RemoteAudioVideoRendererProxyManager::~RemoteAudioVideoRendererProxyManager()
         if (RefPtr renderer = keyValuePair.value.renderer)
             renderer->shutdown();
     }
+    destroySwiftState(std::exchange(m_swiftState, 0));
 }
 
 void RemoteAudioVideoRendererProxyManager::connectionToWebProcessClosed()
 {
     ALWAYS_LOG(LOGIDENTIFIER);
+    clear();
     for (auto& keyValuePair : std::exchange(m_renderers, { })) {
         if (RefPtr renderer = keyValuePair.value.renderer)
             renderer->shutdown();
@@ -142,85 +128,57 @@ void RemoteAudioVideoRendererProxyManager::createManager(RemoteAudioVideoRendere
         return;
     }
 
-    RefPtr renderer = createRenderer(makeUniqueRefFromNonNullUniquePtr(WTF::move(sharedTimebase)));
-    ASSERT(renderer);
-    if (!renderer) {
-        completionHandler(std::nullopt);
-        return;
-    }
+    Ref rendererAVFObjC = AudioVideoRendererAVFObjC::create(Ref { m_gpuConnectionToWebProcess.get()->logger() }, LoggerHelper::uniqueLogIdentifier(), makeUniqueRefFromNonNullUniquePtr(WTF::move(sharedTimebase)));
+    auto token = rendererAVFObjC->swiftToken();
+    Ref<AudioVideoRenderer> renderer = WTF::move(rendererAVFObjC);
 
-    RendererContext context {
-        .renderer = renderer.releaseNonNull(),
-        .mediaElementIdentifier = mediaElementIdentifier,
-        .playerIdentifier = playerIdentifier,
-    };
-
-    if (isVideoSoftwareDecodingInContentProcessEnabled()) {
-        context.preferences.add(VideoRendererPreference::RequiresHardwareDecoder);
-        context.renderer->setPreferences(context.preferences);
-    }
-
-    context.renderer->notifyWhenErrorOccurs([weakThis = ThreadSafeWeakPtr { *this }, identifier](PlatformMediaError error) {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::ErrorOccurred(error));
-    });
-
-    context.renderer->notifyFirstFrameAvailable([weakThis = ThreadSafeWeakPtr { *this }, identifier] {
+    renderer->notifyFirstFrameAvailable([weakThis = ThreadSafeWeakPtr { *this }, identifier] {
         RefPtr protectedThis = weakThis.get();
         if (!protectedThis || !protectedThis->m_renderers.contains(identifier))
             return;
-#if PLATFORM(COCOA)
         protectedThis->contextFor(identifier).layerHostingContextManager.setVideoLayerSizeIfPossible();
-#endif
         protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::FirstFrameAvailable(protectedThis->stateFor(identifier)));
     });
 
-    context.renderer->notifyWhenRequiresFlushToResume([weakThis = ThreadSafeWeakPtr { *this }, identifier] {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::RequiresFlushToResume(protectedThis->stateFor(identifier)));
-    });
-
-    context.renderer->notifyRenderingModeChanged([weakThis = ThreadSafeWeakPtr { *this }, identifier] {
+    renderer->notifyRenderingModeChanged([weakThis = ThreadSafeWeakPtr { *this }, identifier] {
         if (RefPtr protectedThis = weakThis.get(); protectedThis && protectedThis->m_renderers.contains(identifier))
             protectedThis->rendereringModeChanged(identifier);
     });
 
-    context.renderer->notifySizeChanged([weakThis = ThreadSafeWeakPtr { *this }, identifier](const MediaTime& time, FloatSize size) {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::SizeChanged(time, size, protectedThis->stateFor(identifier)));
-    });
-
-    context.renderer->notifyEffectiveRateChanged([weakThis = ThreadSafeWeakPtr { *this }, identifier](double) {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::EffectiveRateChanged(protectedThis->stateFor(identifier)));
-    });
+    // The Swift state hears the core's other notifications. These make the renderer listen to its synchronizer's rate and
+    // read the size of the video samples it gets.
+    renderer->notifyEffectiveRateChanged([](double) { });
+    renderer->notifySizeChanged([](const MediaTime&, FloatSize) { });
 
 #if ENABLE(LINEAR_MEDIA_PLAYER)
     RetainPtr videoTarget = m_gpuConnectionToWebProcess.get()->videoReceiverEndpointManager().takeVideoTargetForMediaElementIdentifier(mediaElementIdentifier, playerIdentifier);
-    context.renderer->setVideoTarget(videoTarget.get());
+    renderer->setVideoTarget(videoTarget.get());
 #endif
 
-    m_renderers.set(identifier, WTF::move(context));
+    m_renderers.set(identifier, RendererContext {
+        .renderer = WTF::move(renderer),
+        .mediaElementIdentifier = mediaElementIdentifier,
+        .playerIdentifier = playerIdentifier,
+    });
+    addRenderer(identifier.toUInt64(), token);
 
     publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::StateUpdate(stateFor(identifier)));
     completionHandler(WTF::move(handle));
 }
 
-void RemoteAudioVideoRendererProxyManager::shutdown(RemoteAudioVideoRendererIdentifier identifier)
+void RemoteAudioVideoRendererProxyManager::shutDownRenderer(uint64_t identifier)
 {
-    MESSAGE_CHECK(m_renderers.contains(identifier));
-    ALWAYS_LOG(LOGIDENTIFIER, identifier.loggingString());
-
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->shutdown();
+    ALWAYS_LOG(LOGIDENTIFIER, identifier);
+    if (auto iterator = m_renderers.find(RemoteAudioVideoRendererIdentifier(identifier)); iterator != m_renderers.end()) {
+        if (RefPtr renderer = iterator->value.renderer)
+            renderer->shutdown();
+    }
 }
 
-void RemoteAudioVideoRendererProxyManager::destroy(RemoteAudioVideoRendererIdentifier identifier)
+void RemoteAudioVideoRendererProxyManager::destroyRenderer(uint64_t identifier)
 {
-    MESSAGE_CHECK(m_renderers.contains(identifier));
-    ALWAYS_LOG(LOGIDENTIFIER, identifier.loggingString());
-
-    if (auto iterator = m_renderers.find(identifier); iterator != m_renderers.end()) {
+    ALWAYS_LOG(LOGIDENTIFIER, identifier);
+    if (auto iterator = m_renderers.find(RemoteAudioVideoRendererIdentifier(identifier)); iterator != m_renderers.end()) {
         if (RefPtr renderer = iterator->value.renderer)
             renderer->shutdown();
         m_renderers.remove(iterator);
@@ -262,17 +220,6 @@ void RemoteAudioVideoRendererProxyManager::setPreferences(RemoteAudioVideoRender
     }
 }
 
-bool RemoteAudioVideoRendererProxyManager::isVideoSoftwareDecodingInContentProcessEnabled() const
-{
-    return m_gpuConnectionToWebProcess.get()->sharedPreferencesForWebProcessValue().videoSoftwareDecodingInContentProcessEnabled;
-}
-
-void RemoteAudioVideoRendererProxyManager::setHasProtectedVideoContent(RemoteAudioVideoRendererIdentifier identifier, bool hasProtected)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setHasProtectedVideoContent(hasProtected);
-}
-
 void RemoteAudioVideoRendererProxyManager::addTrack(RemoteAudioVideoRendererIdentifier identifier, WebCore::AudioVideoRenderer::TrackType type, CompletionHandler<void(std::expected<TrackIdentifier, PlatformMediaError>)>&& completionHandler)
 {
     RefPtr renderer = rendererFor(identifier);
@@ -280,35 +227,12 @@ void RemoteAudioVideoRendererProxyManager::addTrack(RemoteAudioVideoRendererIden
         completionHandler(makeUnexpected(PlatformMediaError::NotSupportedError));
         return;
     }
+    // The Swift state hears when an audio track needs re-enqueuing.
     if (auto trackIdentifier = renderer->addTrack(type)) {
-        renderer->notifyTrackNeedsReenqueuing(*trackIdentifier, [weakThis = ThreadSafeWeakPtr { *this }, identifier](TrackIdentifier trackIdentifier, const MediaTime& time) {
-            if (RefPtr protectedThis = weakThis.get())
-                protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::TrackNeedsReenqueuing(trackIdentifier, time, protectedThis->stateFor(identifier)));
-        });
-
         completionHandler(*trackIdentifier);
         return;
     }
     completionHandler(makeUnexpected(PlatformMediaError::NotSupportedError));
-}
-
-void RemoteAudioVideoRendererProxyManager::removeTrack(RemoteAudioVideoRendererIdentifier identifier, TrackIdentifier trackIdentifier)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->removeTrack(trackIdentifier);
-}
-
-void RemoteAudioVideoRendererProxyManager::requestMediaDataWhenReady(RemoteAudioVideoRendererIdentifier identifier, TrackIdentifier trackIdentifier)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer)
-        return;
-    renderer->requestMediaDataWhenReady(trackIdentifier)->whenSettled(RunLoop::mainSingleton(), [identifier, trackIdentifier, weakThis = ThreadSafeWeakPtr { *this }](auto result) {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis || !result)
-            return;
-        protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::ReadyForMoreMediaData(trackIdentifier));
-    });
 }
 
 MediaSampleConverter& RemoteAudioVideoRendererProxyManager::converterFor(RendererContext& context, TrackIdentifier trackIdentifier)
@@ -341,87 +265,10 @@ void RemoteAudioVideoRendererProxyManager::enqueueSample(RemoteAudioVideoRendere
     completionHandler(false);
 }
 
-void RemoteAudioVideoRendererProxyManager::notifyTimeReachedAndStall(RemoteAudioVideoRendererIdentifier identifier, const MediaTime& time, CompletionHandler<void(WebCore::MediaTimePromise::Result&&)>&& completionHandler)
-{
-    if (RefPtr renderer = rendererFor(identifier)) {
-        renderer->notifyTimeReachedAndStall(time)->whenSettled(RunLoop::mainSingleton(), WTF::move(completionHandler));
-        return;
-    }
-    completionHandler(makeUnexpected(PlatformMediaError::NotSupportedError));
-}
-
-void RemoteAudioVideoRendererProxyManager::cancelTimeReachedAction(RemoteAudioVideoRendererIdentifier identifier)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->cancelTimeReachedAction();
-}
-
-void RemoteAudioVideoRendererProxyManager::performTaskAtTime(RemoteAudioVideoRendererIdentifier identifier, const MediaTime& time)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer)
-        return;
-    renderer->performTaskAtTime(time, [weakThis = ThreadSafeWeakPtr { *this }, time, identifier](auto) {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::TaskTimeReached(time, protectedThis->stateFor(identifier)));
-    });
-}
-
-void RemoteAudioVideoRendererProxyManager::flush(RemoteAudioVideoRendererIdentifier identifier)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->flush();
-}
-
-void RemoteAudioVideoRendererProxyManager::flushTrack(RemoteAudioVideoRendererIdentifier identifier, TrackIdentifier trackIdentifier, CompletionHandler<void(bool)>&& completionHandler)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer) {
-        completionHandler(false);
-        return;
-    }
-    renderer->flushTrack(trackIdentifier);
-    completionHandler(renderer->isReadyForMoreSamples(trackIdentifier));
-}
-
-void RemoteAudioVideoRendererProxyManager::applicationWillResignActive(RemoteAudioVideoRendererIdentifier identifier)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->applicationWillResignActive();
-}
-
 void RemoteAudioVideoRendererProxyManager::setSpatialTrackingInfo(RemoteAudioVideoRendererIdentifier identifier, bool prefersSpatialAudioExperience, WebCore::MediaPlayerSoundStageSize soundStage, const String& sceneIdentifier, const String& defaultLabel, const String& label)
 {
     if (RefPtr renderer = rendererFor(identifier))
         renderer->setSpatialTrackingInfo(prefersSpatialAudioExperience, soundStage, sceneIdentifier, defaultLabel, label);
-}
-
-void RemoteAudioVideoRendererProxyManager::notifyWhenErrorOccurs(RemoteAudioVideoRendererIdentifier identifier, CompletionHandler<void(WebCore::PlatformMediaError)>&& completionHandler)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer) {
-        completionHandler(PlatformMediaError::NotSupportedError);
-        return;
-    }
-    renderer->notifyWhenErrorOccurs([completionHandler = WTF::move(completionHandler)](auto error) mutable {
-        completionHandler(error);
-    });
-}
-
-void RemoteAudioVideoRendererProxyManager::installTimeObserver(RemoteAudioVideoRendererIdentifier identifier, Seconds interval)
-{
-    auto iterator = m_renderers.find(identifier);
-    if (iterator == m_renderers.end())
-        return;
-    auto& context = iterator->value;
-    context.renderer->setTimeObserver(interval, [weakThis = ThreadSafeWeakPtr { *this }, identifier](const MediaTime&) {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        if (!protectedThis->m_renderers.contains(identifier))
-            return;
-        protectedThis->maybeUpdateCachedVideoMetrics(identifier);
-    });
 }
 
 // SynchronizerInterface
@@ -447,76 +294,10 @@ void RemoteAudioVideoRendererProxyManager::pause(RemoteAudioVideoRendererIdentif
     context.renderer->pause(hostTime);
 }
 
-void RemoteAudioVideoRendererProxyManager::setRate(RemoteAudioVideoRendererIdentifier identifier, double rate)
-{
-    auto iterator = m_renderers.find(identifier);
-    MESSAGE_CHECK(iterator != m_renderers.end());
-    if (iterator == m_renderers.end())
-        return;
-    auto& context = iterator->value;
-
-    context.renderer->setRate(rate);
-}
-
-void RemoteAudioVideoRendererProxyManager::stall(RemoteAudioVideoRendererIdentifier identifier)
-{
-    auto iterator = m_renderers.find(identifier);
-    MESSAGE_CHECK(iterator != m_renderers.end());
-    auto& context = iterator->value;
-
-    context.renderer->stall();
-}
-
-void RemoteAudioVideoRendererProxyManager::prepareToSeek(RemoteAudioVideoRendererIdentifier identifier, const MediaTime& seekTime, CompletionHandler<void(WebCore::MediaTimePromise::Result&&)>&& completionHandler)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer) {
-        completionHandler(makeUnexpected(PlatformMediaError::NotSupportedError));
-        return;
-    }
-    renderer->prepareToSeek(seekTime)->whenSettled(RunLoop::mainSingleton(), [weakThis = ThreadSafeWeakPtr { *this }, identifier, completionHandler = WTF::move(completionHandler)](auto&& result) mutable {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::StateUpdate(protectedThis->stateFor(identifier)));
-        completionHandler(WTF::move(result));
-    });
-}
-
-void RemoteAudioVideoRendererProxyManager::finishSeek(RemoteAudioVideoRendererIdentifier identifier, const MediaTime& time, CompletionHandler<void(GenericPromise::Result&&)>&& completionHandler)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer) {
-        completionHandler(makeUnexpected(GenericPromise::RejectValueType { }));
-        return;
-    }
-    renderer->finishSeek(time)->whenSettled(RunLoop::mainSingleton(), [weakThis = ThreadSafeWeakPtr { *this }, identifier, completionHandler = WTF::move(completionHandler)](auto&& result) mutable {
-        if (RefPtr protectedThis = weakThis.get())
-            protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::StateUpdate(protectedThis->stateFor(identifier)));
-        completionHandler(WTF::move(result));
-    });
-}
-
 void RemoteAudioVideoRendererProxyManager::setScreenReserved(RemoteAudioVideoRendererIdentifier identifier, bool reserved)
 {
     if (RefPtr renderer = rendererFor(identifier))
         renderer->setScreenReserved(reserved);
-}
-
-void RemoteAudioVideoRendererProxyManager::setVolume(RemoteAudioVideoRendererIdentifier identifier, float volume)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setVolume(volume);
-}
-
-void RemoteAudioVideoRendererProxyManager::setMuted(RemoteAudioVideoRendererIdentifier identifier, bool muted)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setMuted(muted);
-}
-
-void RemoteAudioVideoRendererProxyManager::setPreservesPitchAndCorrectionAlgorithm(RemoteAudioVideoRendererIdentifier identifier, bool preservesPitch, std::optional<WebCore::MediaPlayerPitchCorrectionAlgorithm> algorithm)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setPreservesPitchAndCorrectionAlgorithm(preservesPitch, algorithm);
 }
 
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
@@ -545,45 +326,10 @@ void RemoteAudioVideoRendererProxyManager::setShouldMaintainAspectRatio(RemoteAu
         renderer->setShouldMaintainAspectRatio(maintain);
 }
 
-void RemoteAudioVideoRendererProxyManager::renderingCanBeAcceleratedChanged(RemoteAudioVideoRendererIdentifier identifier, bool renderingIsAccelerated)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->renderingCanBeAcceleratedChanged(renderingIsAccelerated);
-}
-
 void RemoteAudioVideoRendererProxyManager::contentBoxRectChanged(RemoteAudioVideoRendererIdentifier identifier, const WebCore::LayoutRect& rect)
 {
     if (RefPtr renderer = rendererFor(identifier))
         renderer->contentBoxRectChanged(rect);
-}
-
-void RemoteAudioVideoRendererProxyManager::notifyWhenHasAvailableVideoFrame(WebKit::RemoteAudioVideoRendererIdentifier identifier, bool notify)
-{
-    RefPtr renderer = rendererFor(identifier);
-    if (!renderer)
-        return;
-    contextFor(identifier).isGatheringVideoFrameMetadata = notify;
-    if (!notify) {
-        renderer->notifyWhenHasAvailableVideoFrame({ });
-        return;
-    }
-    renderer->notifyWhenHasAvailableVideoFrame([weakThis = ThreadSafeWeakPtr { *this }, identifier](auto presentationTime, auto clockTime) {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis || !protectedThis->m_renderers.contains(identifier))
-            return;
-        // Per-frame consumers (e.g. requestVideoFrameCallback) need the metrics
-        // for this exact frame. Fetch them and ship them with the IPC so the
-        // receiver doesn't have to read a stale shared cache. This path is
-        // independent of the cadence-based metrics push.
-        auto metrics = protectedThis->contextFor(identifier).renderer->videoPlaybackQualityMetrics();
-        protectedThis->publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::HasAvailableVideoFrame(presentationTime, clockTime, protectedThis->stateFor(identifier), WTF::move(metrics)));
-    });
-}
-
-void RemoteAudioVideoRendererProxyManager::expectMinimumUpcomingPresentationTime(RemoteAudioVideoRendererIdentifier identifier, const MediaTime& time)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->expectMinimumUpcomingPresentationTime(time);
 }
 
 void RemoteAudioVideoRendererProxyManager::setShouldDisableHDR(RemoteAudioVideoRendererIdentifier identifier, bool disable)
@@ -602,58 +348,6 @@ void RemoteAudioVideoRendererProxyManager::setResourceOwner(RemoteAudioVideoRend
 {
     if (RefPtr renderer = rendererFor(identifier))
         renderer->setResourceOwner(resourceOwner);
-}
-
-void RemoteAudioVideoRendererProxyManager::setVideoPlaybackMetricsUpdateInterval(RemoteAudioVideoRendererIdentifier identifier, double interval)
-{
-    DEBUG_LOG(LOGIDENTIFIER, identifier.loggingString(), " interval=", interval, "s");
-    auto iterator = m_renderers.find(identifier);
-    MESSAGE_CHECK(iterator != m_renderers.end());
-    auto& context = iterator->value;
-
-    static const Seconds metricsAdvanceUpdate = 0.25_s;
-    updateCachedVideoMetrics(identifier);
-    context.videoPlaybackMetricsUpdateInterval = Seconds(interval);
-    context.nextPlaybackQualityMetricsUpdateTime = MonotonicTime::now() + Seconds(interval) - metricsAdvanceUpdate;
-
-    // The metrics push is the only consumer of the periodic time observer; install it on
-    // demand and tear it down when no longer needed.
-    if (interval > 0)
-        installTimeObserver(identifier, metricsAdvanceUpdate);
-    else
-        context.renderer->setTimeObserver(0_s, { });
-}
-
-void RemoteAudioVideoRendererProxyManager::maybeUpdateCachedVideoMetrics(RemoteAudioVideoRendererIdentifier identifier)
-{
-    auto iterator = m_renderers.find(identifier);
-    if (iterator == m_renderers.end())
-        return;
-    auto& context = iterator->value;
-    // While rVFC is gathering metadata the WebContent cache is refreshed per
-    // frame via HasAvailableVideoFrame; the cadence-based push would just
-    // duplicate work, so skip it.
-    if (context.isGatheringVideoFrameMetadata)
-        return;
-    if (context.renderer->paused() || !context.videoPlaybackMetricsUpdateInterval || MonotonicTime::now() < context.nextPlaybackQualityMetricsUpdateTime)
-        return;
-    updateCachedVideoMetrics(identifier);
-}
-
-void RemoteAudioVideoRendererProxyManager::updateCachedVideoMetrics(RemoteAudioVideoRendererIdentifier identifier)
-{
-    auto iterator = m_renderers.find(identifier);
-    if (iterator == m_renderers.end())
-        return;
-    auto& context = iterator->value;
-    context.nextPlaybackQualityMetricsUpdateTime = MonotonicTime::now() + context.videoPlaybackMetricsUpdateInterval;
-    auto metrics = context.renderer->videoPlaybackQualityMetrics();
-    if (!metrics) {
-        DEBUG_LOG(LOGIDENTIFIER, identifier.loggingString(), " no metrics available");
-        return;
-    }
-    DEBUG_LOG(LOGIDENTIFIER, identifier.loggingString(), " total=", metrics->totalVideoFrames, " dropped=", metrics->droppedVideoFrames, " corrupted=", metrics->corruptedVideoFrames, " displayComposited=", metrics->displayCompositedVideoFrames, " frameDelay=", metrics->totalFrameDelay);
-    publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::UpdatePlaybackQualityMetrics(WTF::move(*metrics)));
 }
 
 void RemoteAudioVideoRendererProxyManager::flushAndRemoveImage(RemoteAudioVideoRendererIdentifier identifier)
@@ -693,7 +387,6 @@ void RemoteAudioVideoRendererProxyManager::currentBitmapImage(RemoteAudioVideoRe
     });
 }
 
-
 #if ENABLE(VIDEO_PRESENTATION_MODE)
 void RemoteAudioVideoRendererProxyManager::setVideoFullscreenFrame(RemoteAudioVideoRendererIdentifier identifier, const WebCore::FloatRect& frame)
 {
@@ -707,12 +400,6 @@ void RemoteAudioVideoRendererProxyManager::isInFullscreenOrPictureInPictureChang
         renderer->isInFullscreenOrPictureInPictureChanged(isInFullscreen);
 }
 #endif
-
-void RemoteAudioVideoRendererProxyManager::setTextTrackRepresentation(RemoteAudioVideoRendererIdentifier identifier, WebCore::TextTrackRepresentation* textRepresentation)
-{
-    if (RefPtr renderer = rendererFor(identifier))
-        renderer->setTextTrackRepresentation(textRepresentation);
-}
 
 void RemoteAudioVideoRendererProxyManager::syncTextTrackBounds(RemoteAudioVideoRendererIdentifier identifier)
 {
@@ -730,7 +417,6 @@ RemoteAudioVideoRendererState RemoteAudioVideoRendererProxyManager::stateFor(Rem
     };
 }
 
-#if PLATFORM(COCOA)
 std::optional<FloatRect> RemoteAudioVideoRendererProxyManager::hostedVideoLayerBoundsForTesting(HTMLMediaElementIdentifier mediaElementIdentifier) const
 {
     for (auto& context : m_renderers.values()) {
@@ -741,7 +427,6 @@ std::optional<FloatRect> RemoteAudioVideoRendererProxyManager::hostedVideoLayerB
     }
     return std::nullopt;
 }
-#endif
 
 void RemoteAudioVideoRendererProxyManager::rendereringModeChanged(RemoteAudioVideoRendererIdentifier identifier)
 {
@@ -751,7 +436,6 @@ void RemoteAudioVideoRendererProxyManager::rendereringModeChanged(RemoteAudioVid
 
     auto state = stateFor(identifier);
 
-#if PLATFORM(COCOA)
     auto& context = contextFor(identifier);
 
     bool canShowWhileLocked = false;
@@ -762,11 +446,9 @@ void RemoteAudioVideoRendererProxyManager::rendereringModeChanged(RemoteAudioVid
     // See webkit.org/b/299655
     SUPPRESS_FORWARD_DECL_ARG if (auto maybeHostingContext = context.layerHostingContextManager.createHostingContextIfNeeded(context.renderer->platformVideoLayer(), canShowWhileLocked))
         publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::LayerHostingContextChanged(state, *maybeHostingContext, context.layerHostingContextManager.videoLayerSize()));
-#endif
     publishAndSend(identifier, Messages::AudioVideoRendererRemoteMessageReceiver::RenderingModeChanged(state));
 }
 
-#if PLATFORM(COCOA)
 void RemoteAudioVideoRendererProxyManager::setVideoLayerSize(RemoteAudioVideoRendererIdentifier identifier, const WebCore::FloatSize& size)
 {
     ALWAYS_LOG(LOGIDENTIFIER, identifier.loggingString(), ", size: ", size.width(), "x", size.height());
@@ -788,12 +470,10 @@ void RemoteAudioVideoRendererProxyManager::setVideoLayerSizeFenced(RemoteAudioVi
         context.renderer->setVideoLayerSizeFenced(size, WTF::move(sendRightAnnotated));
     });
 }
-#endif
 
 void RemoteAudioVideoRendererProxyManager::requestHostingContext(RemoteAudioVideoRendererIdentifier identifier, LayerHostingContextCallback&& completionHandler)
 {
     ALWAYS_LOG(LOGIDENTIFIER, identifier.loggingString());
-#if PLATFORM(COCOA)
     MESSAGE_CHECK_COMPLETION(m_renderers.contains(identifier), completionHandler({ }));
     contextFor(identifier).layerHostingContextManager.requestHostingContext()->whenSettled(RunLoop::mainSingleton(), [completionHandler = WTF::move(completionHandler)](auto&& result) mutable {
         if (!result) {
@@ -802,9 +482,6 @@ void RemoteAudioVideoRendererProxyManager::requestHostingContext(RemoteAudioVide
         }
         completionHandler(WTF::move(*result));
     });
-#else
-    completionHandler({ });
-#endif
 }
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -840,10 +517,19 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
         renderer->setCDMInstance(nullptr);
         return;
     }
-    if (RefPtr instanceProxy = protect(m_gpuConnectionToWebProcess.get()->cdmFactoryProxy())->getInstance(*instanceId))
-        renderer->setCDMInstance(&instanceProxy->instance());
-    else
-        ALWAYS_LOG(LOGIDENTIFIER, "Unable to find CDMInstance: ", instanceId->loggingString());
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    Ref factory = m_gpuConnectionToWebProcess.get()->cdmFactoryProxy();
+    if (RefPtr instance = factory->cdmInstance(*instanceId)) {
+        renderer->setCDMInstance(instance.get());
+        return;
+    }
+    // A ClearKey instance, which has no C++ instance: the renderers only decrypt with FairPlay Streaming's.
+    if (factory->hasInstance(instanceId->toUInt64())) {
+        renderer->setCDMInstance(nullptr);
+        return;
+    }
+#endif
+    ALWAYS_LOG(LOGIDENTIFIER, "Unable to find CDMInstance: ", instanceId->loggingString());
 }
 
 void RemoteAudioVideoRendererProxyManager::setInitData(RemoteAudioVideoRendererIdentifier identifier, Ref<WebCore::SharedBuffer> initData, CompletionHandler<void(std::expected<void, WebCore::PlatformMediaError>)>&& completionHandler)
@@ -861,7 +547,6 @@ void RemoteAudioVideoRendererProxyManager::attemptToDecrypt(RemoteAudioVideoRend
 }
 
 #endif
-
 
 #if !RELEASE_LOG_DISABLED
 WTFLogChannel& RemoteAudioVideoRendererProxyManager::logChannel() const

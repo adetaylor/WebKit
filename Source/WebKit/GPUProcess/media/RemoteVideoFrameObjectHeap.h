@@ -26,26 +26,54 @@
 #pragma once
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
-#include "Connection.h"
+
+#include "ObjectIdentifierDomains.h"
+#include "RemoteVideoFrameIdentifier.h"
 #include "RemoteVideoFrameProxy.h"
-#include "ThreadSafeObjectHeap.h"
 #include "WorkQueueMessageReceiver.h"
+#include <WebCore/VideoFrame.h>
+#include <optional>
+#include <wtf/CompletionHandler.h>
+#include <wtf/Lock.h>
+#include <wtf/Ref.h>
+#include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
+#include <wtf/TZoneMalloc.h>
 
 #if PLATFORM(COCOA)
+#include "Connection.h"
 #include "SharedVideoFrame.h"
+#include "SwiftCoding.h"
+#include <WebCore/ColorSpace.h>
+#include <wtf/RetainPtr.h>
 #endif
 
+namespace IPC {
+class Connection;
+class Semaphore;
+}
+
 namespace WebCore {
-class ColorSpace;
 class ImageRotationSessionVT;
 class PixelBufferConformerCV;
-class VideoFrame;
 }
 
 namespace WebKit {
 
-// Holds references to all VideoFrame instances that are mapped from GPU process to Web process.
-class RemoteVideoFrameObjectHeap final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
+#if PLATFORM(COCOA)
+// The display transform of a frame that the heap lends, which the frame's pixel buffer doesn't carry.
+struct RemoteVideoFrameTransform {
+    uint16_t rotation { 0 };
+    bool isMirrored { false };
+};
+#endif
+
+// Holds the VideoFrames that the GPU process lends to the web process, which refers to them with RemoteVideoFrameReferences,
+// for any thread, and receives the web process's messages about them on its work queue. The frames are in the Swift state
+// that m_swiftState holds (RemoteVideoFrameObjectHeap.swift), which also handles the messages that take Swift types. On
+// Cocoa platforms, it holds what its readers use of a frame, its pixel buffer and display transform, rather than the frame.
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteVideoFrameObjectHeap.swift") RemoteVideoFrameObjectHeap final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
+    WTF_MAKE_TZONE_ALLOCATED(RemoteVideoFrameObjectHeap);
 public:
     static Ref<RemoteVideoFrameObjectHeap> create(Ref<IPC::Connection>&&);
     ~RemoteVideoFrameObjectHeap();
@@ -53,36 +81,63 @@ public:
     void ref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::ref(); }
     void deref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::deref(); }
 
+    // Stops the heap's messages and writing frames for the web process, and releases the frames. Clients might hold on to
+    // the heap after this. They should also stop themselves, but if they do not, releasing the frames avoids big memory
+    // leaks, and they fail gracefully to look them up. Frames can still be added.
     void close();
     // Adds `frame` under a newly generated reference.
     RemoteVideoFrameReference add(Ref<WebCore::VideoFrame>&&);
-    // Adds `frame` under `reference`.
+    // Adds `frame` under `reference`. On Cocoa platforms, it takes the frame's pixel buffer then; a frame without one
+    // can't be read.
     void add(RemoteVideoFrameReference, Ref<WebCore::VideoFrame>&&);
-    RefPtr<WebCore::VideoFrame> get(RemoteVideoFrameReadReference&&);
+#if PLATFORM(COCOA)
+    // An identifier for a frame that Swift adds (RemoteVideoFrameObjectHeap.swift's lend()).
+    static uint64_t generateFrameIdentifier();
+
+    struct LentFrame {
+        RetainPtr<CVPixelBufferRef> pixelBuffer;
+        WebCore::VideoFrameRotation rotation { WebCore::VideoFrameRotation::None };
+        bool isMirrored { false };
+    };
+    std::optional<LentFrame> get(RemoteVideoFrameReadReference&&);
+#endif
 
     void stopListeningForIPC(Ref<RemoteVideoFrameObjectHeap>&&) { close(); }
     void lowMemoryHandler();
 
-private:
-    explicit RemoteVideoFrameObjectHeap(Ref<IPC::Connection>&&);
+#if PLATFORM(COCOA)
+    // Each takes a right of its own to the port that the heap's IPCTypes.Semaphore or SharedMemoryHandle owns.
+    void setSharedVideoFrameSemaphore(mach_port_t);
+    void setSharedVideoFrameMemory(mach_port_t, uint64_t size);
+#endif
 
-    // IPC::MessageReceiver overrides.
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
 
-    // Messages.
-    void releaseVideoFrame(RemoteVideoFrameWriteReference&&);
+private:
+    explicit RemoteVideoFrameObjectHeap(Ref<IPC::Connection>&&);
+
+    // Messages that take C++ types.
 #if PLATFORM(COCOA)
     void getVideoFrameBuffer(RemoteVideoFrameReadReference&&);
     void convertFrameBuffer(SharedVideoFrame&&, bool shouldApplyRotation, CompletionHandler<void(WebCore::ColorSpace)>&&);
-    void setSharedVideoFrameSemaphore(IPC::Semaphore&&);
-    void setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&&);
-
-    UniqueRef<WebCore::PixelBufferConformerCV> createPixelConformer();
+    // Takes frameFromHeap if the SharedVideoFrame refers to a heap frame, and otherwise reads the frame it carries, and
+    // sends it back as 32-bit BGRA.
+    WebCore::ColorSpace sendConvertedFrameBuffer(SharedVideoFrame&&, std::optional<LentFrame>&& frameFromHeap, bool shouldApplyRotation);
 #endif
 
+    // Implemented in Swift, in RemoteVideoFrameObjectHeap.swift, on the state that m_swiftState holds. Each is safe on
+    // any thread.
+    static uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
+#if PLATFORM(COCOA)
+    void swiftAdd(uint64_t identifier, CVPixelBufferRef WTF_NULLABLE, uint16_t rotation, bool isMirrored);
+#else
+    void swiftAdd(uint64_t identifier, WebCore::VideoFrame* WTF_NONNULL);
+#endif
+    void swiftRemoveAll();
+
     const Ref<IPC::Connection> m_connection;
-    IPC::ThreadSafeObjectHeap<RemoteVideoFrameIdentifier, RefPtr<WebCore::VideoFrame>> m_heap;
 #if PLATFORM(COCOA)
     SharedVideoFrameWriter m_sharedVideoFrameWriter;
     SharedVideoFrameReader m_sharedVideoFrameReader;
@@ -91,7 +146,17 @@ private:
     std::unique_ptr<WebCore::ImageRotationSessionVT> m_imageRotationSession WTF_GUARDED_BY_LOCK(m_pixelBufferConformerLock);
 #endif
     bool m_isClosed { false };
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    const uintptr_t m_swiftState;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// How long a read waits for the frame of a reference that isn't in the heap yet. The GPU process adds a frame under a
+// reference it allocates before it sends the reference anywhere, so a miss for such a reference is final. The web process
+// allocates the references of the frames it requests: an asynchronous request can let the reference reach a consumer on
+// another connection (e.g. WebGL copyTextureFromVideoFrame on its own stream) before the request that adds the frame is
+// handled. The 10 s are an outer safety cap for that, not a steady-state wait.
+inline double remoteVideoFrameReadTimeoutSeconds(uint64_t identifier) { return isInGPUProcessObjectIdentifierDomain(identifier) ? 0 : 10; }
 
 }
+
 #endif

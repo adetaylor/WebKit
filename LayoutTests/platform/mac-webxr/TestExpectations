@@ -1,0 +1,13 @@
+# The Mac's opt-in WebXR configuration: a CMake build with WebXR on, which the default Mac expectations skip.
+#
+#   cmake --preset mac-dev-debug-webxr        (or mac-dev-debug with -DENABLE_WEBXR=ON -DENABLE_WEBXR_LAYERS=ON)
+#   cmake --build --preset mac-dev-debug-webxr
+#   Tools/Scripts/run-webkit-tests --debug --root=WebKitBuild/cmake-mac/DebugWebXR \
+#       --additional-expectations=LayoutTests/platform/mac-webxr/TestExpectations \
+#       --experimental-feature WebXRLayersAPIEnabled=true --experimental-feature WebXRWebGPUBindingsEnabled=true \
+#       imported/w3c/web-platform-tests/webxr/layers
+#
+# The simulated XR device of internals.xrTest stands in for the compositor. On the Mac it gives a WebGPU session's
+# projection layer an IOSurface as its color buffer, so these tests reach the GPU process's XRGPUBinding receivers.
+
+imported/w3c/web-platform-tests/webxr/layers [ Pass ]

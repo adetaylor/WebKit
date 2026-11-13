@@ -21,11 +21,11 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::RenderPipelineDescriptor : WebKit::WebGPU::PipelineDescriptorBase {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::RenderPipelineDescriptor : WebKit::WebGPU::PipelineDescriptorBase {
     WebKit::WebGPU::VertexState vertex;
-    std::optional<WebKit::WebGPU::PrimitiveState> primitive;
-    std::optional<WebKit::WebGPU::DepthStencilState> depthStencil;
-    std::optional<WebKit::WebGPU::MultisampleState> multisample;
+    std::optional<::WebGPU::PrimitiveState> primitive;
+    std::optional<::WebGPU::DepthStencilState> depthStencil;
+    std::optional<::WebGPU::MultisampleState> multisample;
     std::optional<WebKit::WebGPU::FragmentState> fragment;
 };
 #endif

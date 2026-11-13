@@ -73,6 +73,8 @@ public:
 
     MachSendRight createSendRight() const;
     explicit operator bool() const { return m_sendRight || m_semaphore != SEMAPHORE_NULL; }
+    // For a real-time thread that signals it directly, while the semaphore lives.
+    semaphore_t machSemaphore() const { return m_semaphore; }
 #elif OS(WINDOWS)
     explicit Semaphore(Win32Handle&&);
     Win32Handle win32Handle() const { return Win32Handle { m_semaphoreHandle }; }

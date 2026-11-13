@@ -57,12 +57,14 @@
 #include <expected>
 #include <optional>
 #include <span>
+#include <type_traits>
 #include <variant> // NOLINT: See the Swift C++ interop constraints above.
 #include <wtf/Forward.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Ref.h>
 #include <wtf/Seconds.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/Variant.h>
 #include <wtf/Vector.h>
@@ -73,7 +75,10 @@
 #include <wtf/RetainPtr.h>
 
 typedef struct CGImage* CGImageRef;
-typedef struct __CVBuffer* CVPixelBufferRef;
+// CoreVideo's own chain: Swift treats a CVPixelBuffer as a CVBuffer only when these match it.
+typedef struct __CVBuffer* CVBufferRef;
+typedef CVBufferRef CVImageBufferRef;
+typedef CVImageBufferRef CVPixelBufferRef;
 typedef struct __IOSurface* IOSurfaceRef;
 #endif
 
@@ -922,6 +927,8 @@ struct CanvasConfiguration {
     bool reportValidationErrors { true };
     uint32_t width { 0 };
     uint32_t height { 0 };
+
+    std::span<const TextureFormat> viewFormatsSpan() const LIFETIME_BOUND { return viewFormats; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpucopyexternalimagedestinfo
@@ -966,6 +973,7 @@ struct ImageCopyExternalImage {
     bool premultipliedAlpha { true };
     PredefinedColorSpace colorSpace { PredefinedColorSpace::SRGB };
 };
+
 #endif
 
 // https://immersive-web.github.io/WebXR-WebGPU-Binding/#dictdef-xrgpuprojectionlayerinit
@@ -976,6 +984,10 @@ struct XRProjectionLayerDescriptor {
     double scaleFactor { 1 };
 };
 
+// The element types of spans that the span accessors below hand to Swift, which can name a specialization only through
+// a type alias.
+using OptionalTextureFormat = std::optional<TextureFormat>;
+
 // https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundleencoderdescriptor
 struct RenderBundleEncoderDescriptor {
     String label;
@@ -985,6 +997,8 @@ struct RenderBundleEncoderDescriptor {
     uint32_t sampleCount { 1 };
     bool depthReadOnly { false };
     bool stencilReadOnly { false };
+
+    std::span<const OptionalTextureFormat> colorFormatsSpan() const LIFETIME_BOUND { return colorFormats; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpurenderbundledescriptor
@@ -1052,7 +1066,7 @@ struct VertexState {
     ProgrammableStage stage;
     // Borrowed for the duration of the call. std::nullopt: no vertex buffer in that slot.
     std::span<const std::optional<VertexBufferLayout>> buffers;
-};
+} SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpublendcomponent
 struct BlendComponent {
@@ -1079,7 +1093,7 @@ struct FragmentState {
     ProgrammableStage stage;
     // Borrowed for the duration of the call. std::nullopt: no color target in that slot.
     std::span<const std::optional<ColorTargetState>> targets;
-};
+} SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpuprimitivestate
 struct PrimitiveState {
@@ -1198,6 +1212,8 @@ struct BindGroupLayoutEntry {
 struct BindGroupLayoutDescriptor {
     String label;
     std::span<const BindGroupLayoutEntry> entries; // Borrowed for the duration of the call.
+
+    std::span<const BindGroupLayoutEntry> entriesSpan() const LIFETIME_BOUND { return entries; }
 } SWIFT_VIEW;
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpupipelinelayoutdescriptor
@@ -1298,7 +1314,7 @@ public:
     virtual ~Adapter() = default;
 
     virtual Vector<FeatureName> features() const = 0;
-    virtual const Limits& limits() const = 0;
+    virtual Limits limits() const = 0;
     virtual AdapterInfo info() = 0;
     virtual bool isXRCompatible() const = 0;
     // Completes with nullptr when the device cannot be created. An adapter creates one device.
@@ -1432,7 +1448,7 @@ public:
     virtual ~Device() = default;
 
     virtual Vector<FeatureName> features() const = 0;
-    virtual const Limits& limits() const = 0;
+    virtual Limits limits() const = 0;
     virtual Ref<Queue> queue() = 0;
     virtual void destroy() = 0;
 
@@ -1557,18 +1573,13 @@ protected:
     QuerySet() = default;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(refWebGPUQuerySet, derefWebGPUQuerySet);
 
-// Queue::writeBuffer() and Queue::writeTexture() may alias rather than copy data of at least this size.
-constexpr uint64_t largeBufferSize = 32 * 1024 * 1024;
-
 class Queue : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Queue> {
 public:
     virtual ~Queue() = default;
 
     virtual void submit(Vector<Ref<CommandBuffer>>&&) = 0;
     virtual void onSubmittedWorkDone(CompletionHandler<void()>&&) = 0;
-    // A write of at least largeBufferSize bytes may alias `data` rather than copy it, until the work
-    // submitted after it has completed. The caller keeps it alive until then, for example with
-    // onSubmittedWorkDone().
+    // The span writes are done with `data` when they return.
     virtual void writeBuffer(Buffer&, uint64_t bufferOffset, std::span<const uint8_t> data) = 0;
     virtual void writeTexture(const TexelCopyTextureInfo& destination, std::span<const uint8_t> data, const TexelCopyBufferLayout&, const Extent3D& writeSize) = 0;
 #if PLATFORM(COCOA)

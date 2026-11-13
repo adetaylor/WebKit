@@ -84,9 +84,9 @@ JSSpeechSynthesisErrorEvent.cpp
 JSSpeechSynthesisErrorEventInit.cpp
 JSSpeechSynthesisEventInit.cpp
 Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.mm @nonARC
+Modules/ShapeDetection/Implementation/Cocoa/DetectedShapes.mm @nonARC
 Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.mm @nonARC
 Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.mm @nonARC
-Modules/ShapeDetection/Implementation/Cocoa/VisionUtilities.mm @nonARC
 Modules/airplay/WebMediaSessionManager.mm @nonARC
 Modules/applepay/ApplePayCouponCodeChangedEvent.cpp
 Modules/applepay/ApplePayCancelEvent.cpp
@@ -274,7 +274,7 @@ platform/audio/cocoa/AudioDecoderCocoa.cpp
 platform/audio/cocoa/AudioDestinationCocoa.cpp
 platform/audio/cocoa/AudioEncoderCocoa.cpp
 platform/audio/cocoa/AudioFileReaderCocoa.mm @nonARC
-platform/audio/cocoa/AudioOutputUnitAdaptor.cpp
+platform/audio/cocoa/AudioOutputUnit.cpp
 platform/audio/cocoa/AudioSampleBufferList.cpp
 platform/audio/cocoa/AudioSampleBufferConverter.mm @nonARC
 platform/audio/cocoa/AudioSampleDataConverter.mm @nonARC
@@ -288,14 +288,12 @@ platform/audio/cocoa/PlatformRawAudioDataCocoa.cpp
 platform/audio/cocoa/PitchShiftAudioUnit.mm @nonARC
 platform/audio/cocoa/SpatialAudioExperienceHelper.mm @nonARC
 platform/audio/cocoa/WebAudioBufferList.cpp
-platform/audio/ios/AudioOutputUnitAdaptorIOS.cpp @no-unify
 platform/audio/ios/AudioSessionIOS.mm @nonARC @no-unify
 platform/audio/ios/MediaDeviceRoute.mm @nonARC @no-unify
 platform/audio/ios/MediaDeviceRouteController.mm @nonARC
 platform/audio/ios/MediaSessionHelperIOS.mm @nonARC @no-unify
 platform/audio/ios/MediaSessionManagerIOS.mm @nonARC @no-unify
 platform/audio/ios/SpatialAudioPlaybackHelperIOS.mm @nonARC @no-unify
-platform/audio/mac/AudioOutputUnitAdaptorMac.cpp
 platform/audio/mac/AudioHardwareListenerMac.cpp
 platform/audio/mac/AudioSessionMac.mm @nonARC
 platform/audio/mac/SharedRoutingArbitrator.mm @nonARC
@@ -382,7 +380,6 @@ platform/graphics/avfoundation/MediaPlaybackTargetCocoa.mm @nonARC
 platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.cpp
 platform/graphics/avfoundation/MediaSelectionGroupAVFObjC.mm @nonARC
 platform/graphics/avfoundation/SampleBufferDisplayLayer.cpp
-platform/graphics/avfoundation/WebAVSampleBufferListener.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/WebMediaSessionManagerMac.cpp
 platform/graphics/avfoundation/objc/AVAssetMIMETypeCache.mm @nonARC
 platform/graphics/avfoundation/objc/AVAssetTrackUtilities.mm @nonARC @no-unify-when(bundle<=8)
@@ -394,7 +391,6 @@ platform/graphics/avfoundation/objc/AudioTrackPrivateMediaSourceAVFObjC.cpp
 platform/graphics/avfoundation/objc/CDMFairPlayStreamingAVFObjC.mm @nonARC
 platform/graphics/avfoundation/objc/CDMSessionAVContentKeySession.mm @nonARC
 platform/graphics/avfoundation/objc/CDMSessionAVFoundationObjC.mm @nonARC
-platform/graphics/avfoundation/objc/ContentKeyGroupFactoryAVFObjC.mm @nonARC
 platform/graphics/avfoundation/objc/ImageDecoderAVFObjC.mm @nonARC
 platform/graphics/avfoundation/objc/InbandTextTrackPrivateAVFObjC.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/objc/InbandChapterTrackPrivateAVFObjC.mm @nonARC @no-unify-when(bundle<=8)
@@ -411,7 +407,6 @@ platform/graphics/avfoundation/objc/TextTrackPrivateMediaSourceAVFObjC.cpp
 platform/graphics/avfoundation/objc/VideoLayerManagerObjC.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/objc/VideoTrackPrivateAVFObjC.cpp
 platform/graphics/avfoundation/objc/VideoTrackPrivateMediaSourceAVFObjC.mm @nonARC
-platform/graphics/avfoundation/objc/WebAVContentKeyGroup.mm @nonARC @no-unify-when(bundle<=8)
 platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm @nonARC
 platform/graphics/ca/FrameProcessIndicators.cpp
 platform/graphics/ca/GraphicsLayerCA.cpp
@@ -440,6 +435,7 @@ platform/graphics/cg/FloatSizeCG.cpp
 platform/graphics/cg/GradientCG.cpp
 platform/graphics/cg/GradientRendererCG.cpp
 platform/graphics/cg/GraphicsContextCG.cpp
+platform/graphics/cg/GraphicsContextCGCapture.cpp
 platform/graphics/cg/GraphicsContextGLCG.cpp
 platform/graphics/cg/IOSurfacePool.mm @nonARC
 platform/graphics/cg/ImageBackingStoreCG.cpp
@@ -505,7 +501,6 @@ platform/graphics/cocoa/WebActionDisablingCALayerDelegate.mm @nonARC
 platform/graphics/cocoa/WebCoreCALayerExtras.mm @nonARC
 platform/graphics/cocoa/WebCoreDecompressionSession.mm @nonARC
 platform/graphics/cocoa/WebProcessGraphicsContextGLCocoa.mm @nonARC
-platform/graphics/cocoa/VideoMediaSampleRenderer.mm @nonARC
 platform/graphics/cocoa/VideoTrackPrivateWebM.cpp
 platform/graphics/cocoa/WebLayer.mm @nonARC
 platform/graphics/cocoa/controls/ApplePayButtonCocoa.mm @nonARC
@@ -659,8 +654,7 @@ platform/mediastream/cocoa/AVVideoCaptureSource.mm @nonARC @no-unify-when(bundle
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererCocoa.cpp
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererInternalUnit.cpp
 platform/mediastream/cocoa/AudioMediaStreamTrackRendererUnit.cpp
-platform/mediastream/cocoa/BaseAudioCaptureUnit.cpp
-platform/mediastream/cocoa/CoreAudioCaptureDevice.cpp
+platform/mediastream/cocoa/CaptureSourceSupport.mm @nonARC
 platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.cpp
 platform/mediastream/cocoa/CoreAudioCaptureSource.cpp
 platform/mediastream/cocoa/CoreAudioCaptureUnit.cpp
@@ -718,14 +712,7 @@ platform/text/cocoa/LocaleCocoa.mm @nonARC
 platform/text/cocoa/LocalizedDateCache.mm @nonARC
 platform/text/cocoa/TextBoundaries.mm @nonARC
 platform/text/mac/TextCheckingMac.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoEncoder.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoEncoderVTB.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoEncoderVTBH264.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoEncoderVTBH265.mm @nonARC
 platform/video-codecs/cocoa/VideoDecoderVTBSession.mm @nonARC
-platform/video-codecs/cocoa/VideoEncoderVTBSession.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoDecoder.mm @nonARC
-platform/video-codecs/cocoa/GPUVideoDecoderVTB.mm @nonARC
 platform/xr/cocoa/PlatformXRPose.cpp
 rendering/AttachmentLayout.mm @nonARC
 rendering/cocoa/RenderThemeCocoa.mm @nonARC

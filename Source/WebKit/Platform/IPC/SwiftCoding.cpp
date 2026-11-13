@@ -30,6 +30,7 @@
 
 #include "GeneratedSerializers.h"
 #include <WebCore/SharedBuffer.h>
+#include <WebCore/TrackInfo.h>
 
 namespace IPC {
 
@@ -39,6 +40,14 @@ WebCore::SharedBuffer* SwiftDecoder::decodeSharedBuffer()
     if (!buffer) [[unlikely]]
         return nullptr;
     return &buffer->leakRef();
+}
+
+WebCore::VideoInfo* SwiftDecoder::decodeVideoInfo()
+{
+    auto info = borrowed().decode<Ref<WebCore::VideoInfo>>();
+    if (!info) [[unlikely]]
+        return nullptr;
+    return &info->leakRef();
 }
 
 SwiftReplyEncoder* SwiftReplyEncoder::createForMessage(Connection& connection, MessageName name, uint64_t destinationID)
@@ -52,6 +61,13 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
     RELEASE_ASSERT(!m_inStream);
     RELEASE_ASSERT(m_encoder);
     *m_encoder << buffer;
+}
+
+void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
+{
+    RELEASE_ASSERT(!m_inStream);
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << info;
 }
 
 } // namespace IPC

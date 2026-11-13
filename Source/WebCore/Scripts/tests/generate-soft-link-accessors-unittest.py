@@ -169,7 +169,7 @@ class ManifestTest(unittest.TestCase):
         with open(os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in')) as f:
             entries = generator.parse_manifest(f.readlines())
         pal = os.path.join(WEBCORE_DIR, 'PAL', 'pal')
-        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h')])
+        result = generator.parse_pal([os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h'), os.path.join(pal, 'mac', 'ScreenCaptureKitSoftLink.h')])
         generator.validate(entries, result, sorted({framework for _, framework, _, _ in entries}))
 
 
@@ -529,8 +529,8 @@ class SDKTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as output:
             arguments = argparse.Namespace(
                 manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
-                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h')],
-                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h'), os.path.join(pal, 'cocoa', 'VisionSoftLink.h'), os.path.join(pal, 'mac', 'ScreenCaptureKitSoftLink.h')],
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia', 'ScreenCaptureKit', 'Vision'], stub_framework=[], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
                 synthesize_interface=None, synthesize_argument=[])
             generator.generate(arguments)
             with open(os.path.join(output, 'AudioToolboxSoftLinkAccessors.swift')) as f:
@@ -539,7 +539,29 @@ class SDKTest(unittest.TestCase):
             with open(os.path.join(output, 'AVFoundationSoftLinkAccessors.swift')) as f:
                 avfoundation = f.read()
             self.assertIn('static let AVContentKeySystemFairPlayStreaming: AVContentKeySystem? = {', avfoundation)
+            with open(os.path.join(output, 'CoreMediaSoftLinkAccessors.swift')) as f:
+                coremedia = f.read()
+            self.assertIn('func CMTimeAdd(_ lhs: CMTime, _ rhs: CMTime) -> CMTime {', coremedia)
             self.assertTrue(os.path.exists(os.path.join(output, 'PALSoftLinkTypes', 'module.modulemap')))
+            with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
+                vision = f.read()
+            self.assertIn('static let VNBarcodeSymbologyQR: VNBarcodeSymbology = {', vision)
+            self.assertIn('static func pointsInImage(of object: Vision.VNFaceLandmarkRegion2D, imageSize: CGSize) -> [CGPoint]? {', vision)
+
+    def test_stub_frameworks(self):
+        sdk = subprocess.run(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], capture_output=True, text=True).stdout.strip()
+        pal = os.path.join(WEBCORE_DIR, 'PAL', 'pal')
+        with tempfile.TemporaryDirectory() as output:
+            arguments = argparse.Namespace(
+                manifest=os.path.join(WEBCORE_DIR, 'platform', 'cocoa', 'SoftLinkAccessors.in'),
+                pal_header=[os.path.join(pal, 'cf', 'AudioToolboxSoftLink.h'), os.path.join(pal, 'cf', 'CoreMediaSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFAudioSoftLink.h'), os.path.join(pal, 'cocoa', 'AVFoundationSoftLink.h'), os.path.join(pal, 'cocoa', 'CoreMLSoftLink.h')],
+                framework=['AVFAudio', 'AVFoundation', 'AudioToolbox', 'CoreML', 'CoreMedia'], stub_framework=['ScreenCaptureKit', 'Vision'], output_dir=output, types_output_dir=None, sdk=sdk, target='arm64-apple-macos15.0',
+                synthesize_interface=None, synthesize_argument=[])
+            generator.generate(arguments)
+            with open(os.path.join(output, 'VisionSoftLinkAccessors.swift')) as f:
+                self.assertEqual(f.read(), generator.stub_file('Vision'))
+            with open(os.path.join(output, 'PALSoftLinkTypes', 'PALSoftLinkTypes.h')) as f:
+                self.assertNotIn('Vision', f.read())
 
 
 if __name__ == '__main__':

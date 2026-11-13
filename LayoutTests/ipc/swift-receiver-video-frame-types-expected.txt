@@ -1,0 +1,3 @@
+
+PASS A Swift receiver takes and replies with the video frame types as Swift values, in every process.
+

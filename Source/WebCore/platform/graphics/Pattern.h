@@ -81,7 +81,7 @@ public:
 #if USE(SKIA)
     PlatformPatternPtr createPlatformPattern(const SkSamplingOptions&, const sk_sp<GrContextThreadSafeProxy>&) const;
 #else
-    PlatformPatternPtr createPlatformPattern(const AffineTransform& userSpaceTransform) const;
+    WEBCORE_EXPORT PlatformPatternPtr createPlatformPattern(const AffineTransform& userSpaceTransform) const;
 #endif
 
     // A new pattern with the same tile and repeat flags, and another pattern space transform.

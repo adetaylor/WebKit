@@ -199,6 +199,78 @@ final class IPCSwiftWorkQueueTester {
     }
     #endif
 
+    #if ENABLE_GPU_PROCESS && WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    // The fields of a video frame's Swift form, for a test to compare with the ones it sent.
+    func describeSharedVideoFrameSwift(
+        connection: IPC.Connection,
+        frame: borrowing IPCTypes.SharedVideoFrame
+    ) -> (timeValue: Int64, timeScale: UInt32, flags: UInt32, rotation: UInt16, colorSpace: UInt32, bufferKind: UInt8, bufferValue: UInt64) {
+        noteDispatch()
+        let flags = (frame.mirrored ? 1 : 0) | (frame.shouldIgnoreAlpha ? 2 : 0) | describeFullRange(frame.colorSpace) | UInt32(frame.time.timeFlags) << 8
+        let (bufferKind, bufferValue): (UInt8, UInt64) =
+            switch frame.buffer {
+            case .null: (0, 0)
+            case .remoteVideoFrameReadReference(let read): (1, read.reference.identifier.rawValue &+ read.reference.version << 48)
+            case .machSendRight(let right): (2, right.isNull ? 0 : 1)
+            case .intSize(let size): (3, UInt64(UInt32(bitPattern: size.width)) << 32 | UInt64(UInt32(bitPattern: size.height)))
+            }
+        return (frame.time.timeValue, frame.time.timeScale, flags, frame.rotation.rawValue, describe(frame.colorSpace), bufferKind, bufferValue)
+    }
+
+    func echoSharedVideoFrameSwift(
+        connection: IPC.Connection,
+        frame: consuming IPCTypes.SharedVideoFrame,
+        reply: consuming IPCSwiftWorkQueueTesterEchoSharedVideoFrameSwiftReply
+    ) {
+        noteDispatch()
+        reply.send(frame)
+    }
+
+    func describeVideoFramePropertiesSwift(
+        connection: IPC.Connection,
+        properties: IPCTypes.RemoteVideoFrameProxyProperties
+    ) -> (timeValue: Int64, flags: UInt32, rotation: UInt16, width: Int32, height: Int32, pixelFormat: UInt32, colorSpace: UInt32) {
+        noteDispatch()
+        let flags = (properties.isMirrored ? 1 : 0) | (properties.shouldIgnoreAlpha ? 2 : 0) | describeFullRange(properties.colorSpace)
+        return (
+            properties.presentationTime.timeValue, flags, properties.rotation.rawValue, properties.size.width, properties.size.height,
+            properties.pixelFormat, describe(properties.colorSpace)
+        )
+    }
+
+    func echoVideoFramePropertiesSwift(
+        connection: IPC.Connection,
+        properties: IPCTypes.RemoteVideoFrameProxyProperties,
+        marker: UInt64,
+        reply: consuming IPCSwiftWorkQueueTesterEchoVideoFramePropertiesSwiftReply
+    ) {
+        noteDispatch()
+        reply.send((properties: properties, marker: marker))
+    }
+
+    func describeVideoFrameWriteReferenceSwift(
+        connection: IPC.Connection,
+        write: IPCTypes.RemoteVideoFrameWriteReference
+    ) -> (identifier: UInt64, version: UInt64, pendingReads: UInt64) {
+        noteDispatch()
+        return (write.reference.identifier.rawValue, write.reference.version, write.pendingReads)
+    }
+
+    // 4 if the color space says whether it is full range, and 8 more if it is.
+    private func describeFullRange(_ colorSpace: IPCTypes.PlatformVideoColorSpace) -> UInt32 {
+        colorSpace.fullRange.map { $0 ? 12 : 4 } ?? 0
+    }
+
+    // A byte per member, from the most significant: primaries, transfer, matrix, chroma location; 0xFF for none.
+    private func describe(_ colorSpace: IPCTypes.PlatformVideoColorSpace) -> UInt32 {
+        let primaries = UInt32(colorSpace.primaries?.rawValue ?? 0xFF)
+        let transfer = UInt32(colorSpace.transfer?.rawValue ?? 0xFF)
+        let matrix = UInt32(colorSpace.matrix?.rawValue ?? 0xFF)
+        let chromaLocation = UInt32(colorSpace.chromaLocation?.rawValue ?? 0xFF)
+        return primaries << 24 | transfer << 16 | matrix << 8 | chromaLocation
+    }
+    #endif
+
     // The handlers of IPCTester::benchmarkWorkQueueDispatch(), which IPCWorkQueueTester's C++ ones match.
 
     func benchEmpty(connection: IPC.Connection) {

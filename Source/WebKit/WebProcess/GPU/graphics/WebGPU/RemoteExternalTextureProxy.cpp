@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteExternalTextureProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteExternalTextureMessages.h"
 #include "WebGPUConvertToBackingContext.h"
@@ -82,4 +82,4 @@ void RemoteExternalTextureProxy::updateExternalTexture(CVPixelBufferRef)
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

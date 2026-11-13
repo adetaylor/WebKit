@@ -110,8 +110,6 @@
 #import <wtf/text/WTFString.h>
 
 #if HAVE(WEBGPU_IMPLEMENTATION)
-#import <WebCore/WebGPU.h>
-#import <WebCore/WebGPUCreateImpl.h>
 #endif
 
 #if HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
@@ -1136,13 +1134,6 @@ void WebChromeClient::mockMediaPlaybackTargetPickerDismissPopup()
 void WebChromeClient::changeUniversalAccessZoomFocus(const WebCore::IntRect& viewRect, const WebCore::IntRect& selectionRect)
 {
     WebCore::changeUniversalAccessZoomFocus(viewRect, selectionRect);
-}
-#endif
-
-#if HAVE(WEBGPU_IMPLEMENTATION)
-RefPtr<WebCore::WebGPUIntegration> WebChromeClient::createGPUForWebGPU() const
-{
-    return nullptr;
 }
 #endif
 

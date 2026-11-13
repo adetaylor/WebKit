@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUExternalTextureDescriptor.h>
 
@@ -48,15 +47,6 @@ std::optional<ExternalTextureDescriptor> ConvertToBackingContext::convertToBacki
         , std::nullopt
 #endif
     } };
-}
-
-std::optional<WebCore::WebGPUExternalTextureDescriptor> ConvertFromBackingContext::convertFromBacking(const ExternalTextureDescriptor& externalTextureDescriptor, ConvertFromBackingContext::PixelBufferType pixelBuffer)
-{
-    auto base = convertFromBacking(static_cast<const ObjectDescriptorBase&>(externalTextureDescriptor));
-    if (!base)
-        return std::nullopt;
-
-    return { { WTF::move(*base), pixelBuffer, externalTextureDescriptor.colorSpace, externalTextureDescriptor.visibleSize } };
 }
 
 } // namespace WebKit

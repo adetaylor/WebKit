@@ -1,0 +1,91 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test the replies of the GPU process's EME CDM message receivers, byte for byte.</title>
+<pre id="log"></pre>
+<script src="resources/cdm-proxy-messages.js"></script>
+<script>
+if (window.testRunner) {
+    testRunner.dumpAsText();
+    testRunner.waitUntilDone();
+}
+
+async function run()
+{
+    if (!window.IPC) {
+        log('This test needs the IPC testing API.');
+        return;
+    }
+
+    for (const keySystem of ['org.w3.clearkey', 'org.w3.clearkey.unknown', '', null])
+        logSync('RemoteCDMFactoryProxy_SupportsKeySystem', 0, [string(keySystem)]);
+
+    logSync('RemoteCDMFactoryProxy_CreateCDM', 0, [string('com.example.unknown'), string('salt')]);
+    const cdm = identifierIn(logSync('RemoteCDMFactoryProxy_CreateCDM', 0, [string('org.w3.clearkey'), string('salt')]));
+    log(`CDM: ${cdm ? 'created' : 'none'}`);
+    if (!cdm)
+        return;
+
+    send('RemoteCDMProxy_SetLogIdentifier', cdm, [uint64(7)]);
+    send('RemoteCDMProxy_LoadAndInitialize', cdm, []);
+
+    const configurations = [
+        { },
+        { label: 'keyids', initDataTypes: ['keyids', 'cenc', 'webm'], sessionTypes: [0], distinctiveIdentifier: 2, persistentState: 1 },
+        { initDataTypes: ['keyids'], video: [['video/mp4; codecs="avc1.640028"', '']], audio: [['audio/mp4; codecs="mp4a.40.2"', '', true]], sessionTypes: [0, 2] },
+        { initDataTypes: ['unknown'], video: [['video/mp4', 'HW_SECURE_ALL']], distinctiveIdentifier: 0, persistentState: 0 },
+        { initDataTypes: [null, ''], video: [[null, null]] },
+    ];
+    for (const candidate of configurations) {
+        for (const access of [false, true])
+            await logWithReply('RemoteCDMProxy_GetSupportedConfiguration', cdm, [...configuration(candidate), bool(access)]);
+    }
+
+    const instance = identifierIn(logSync('RemoteCDMProxy_CreateInstance', cdm, []));
+    log(`Instance: ${instance ? 'created' : 'none'}`);
+    if (!instance)
+        return;
+
+    await logWithReply('RemoteCDMInstanceProxy_InitializeWithConfiguration', instance, [...configuration(configurations[1]), bool(false), bool(false)]);
+    for (const certificate of ['', 'certificate'])
+        await logWithReply('RemoteCDMInstanceProxy_SetServerCertificate', instance, buffer(certificate));
+    await logWithReply('RemoteCDMInstanceProxy_SetServerCertificate', instance, sharedMemoryBuffer(5000, 'c'));
+    for (const directory of ['', '/tmp', '../'])
+        send('RemoteCDMInstanceProxy_SetStorageDirectory', instance, [string(directory)]);
+
+    const session = identifierIn(logSync('RemoteCDMInstanceProxy_CreateSession', instance, [uint64(9)]));
+    log(`Session: ${session ? 'created' : 'none'}`);
+    if (!session)
+        return;
+
+    const keyID = '0123456789abcdef';
+    send('RemoteCDMInstanceSessionProxy_SetLogIdentifier', session, [uint64(11)]);
+    for (const [initDataType, initData] of [['keyids', null], ['keyids', ''], ['keyids', `{"kids":["${base64url(keyID)}"]}`], ['webm', keyID], ['unknown', keyID]])
+        await logWithReply('RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(0), bool(false), string(initDataType), ...optionalBuffer(initData)]);
+
+    await logWithReply('RemoteCDMInstanceSessionProxy_RequestLicense', session, [uint8(0), bool(false), string('keyids'), bool(true), ...sharedMemoryBuffer(5000, ' ')]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(0), bool(true), ...sharedMemoryBuffer(5000, ' ')]);
+
+    const license = `{"keys":[{"kty":"oct","kid":"${base64url(keyID)}","k":"${base64url('fedcba9876543210')}"}]}`;
+    for (const response of [null, '', 'not json', license, `{"kids":["${base64url(keyID)}"]}`])
+        await logWithReply('RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(0), ...optionalBuffer(response)]);
+
+    await logWithReply('RemoteCDMInstanceSessionProxy_LoadSession', session, [uint8(1), string('1'), string('https://example.com')]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_LoadSession', session, [uint8(1), string('not a number'), string('')]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_RemoveSessionData', session, [string('1'), uint8(0)]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_UpdateLicense', session, [string('1'), uint8(0), ...optionalBuffer(license)]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_RemoveSessionData', session, [string('1'), uint8(0)]);
+    send('RemoteCDMInstanceSessionProxy_StoreRecordOfKeyUsage', session, [string('1')]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_CloseSession', session, [string('1')]);
+
+    send('RemoteCDMFactoryProxy_RemoveSession', 0, [uint64(session)]);
+    await logWithReply('RemoteCDMInstanceSessionProxy_CloseSession', session, [string('1')]);
+    send('RemoteCDMFactoryProxy_RemoveInstance', 0, [uint64(instance)]);
+    logSync('RemoteCDMInstanceProxy_CreateSession', instance, [uint64(9)]);
+    logSync('RemoteCDMProxy_CreateInstance', 0, []);
+    await logWithReply('RemoteCDMProxy_GetSupportedConfiguration', 0, [...configuration({ }), bool(false)]);
+
+    const invalidMessage = sendSync('GPUConnectionToWebProcess_TakeInvalidMessageStringForTesting', 0, []);
+    log(`Invalid message: ${invalidMessage?.arguments?.[0]?.value || 'none'}`);
+}
+
+run().finally(() => window.testRunner?.notifyDone());
+</script>

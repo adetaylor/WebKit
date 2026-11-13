@@ -218,6 +218,22 @@
             }
         },
         {
+            "name": "mac-dev-debug-webxr",
+            "displayName": "macOS Development (Debug, ccache, compile_commands, WebXR for the simulated XR device's layout tests)",
+            "inherits": ["mac-debug", "dev"],
+            "binaryDir": "WebKitBuild/cmake-mac/DebugWebXR",
+            "cacheVariables": {
+                "ENABLE_WEBXR": {
+                    "type": "BOOL",
+                    "value": "ON"
+                },
+                "ENABLE_WEBXR_LAYERS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            }
+        },
+        {
             "name": "mac-dev-relwithdebinfo",
             "displayName": "macOS Development (RelWithDebInfo -- optimized + debuggable)",
             "inherits": ["mac", "dev"],
@@ -632,6 +648,11 @@
             "name": "mac-dev-debug-o3",
             "displayName": "macOS Development Debug O3",
             "configurePreset": "mac-dev-debug-o3"
+        },
+        {
+            "name": "mac-dev-debug-webxr",
+            "displayName": "macOS Development Debug WebXR",
+            "configurePreset": "mac-dev-debug-webxr"
         },
         {
             "name": "mac-dev-relwithdebinfo",

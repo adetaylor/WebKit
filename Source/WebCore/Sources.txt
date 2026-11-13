@@ -107,9 +107,6 @@ Modules/WebGPU/GPUValidationError.cpp
 Modules/WebGPU/GPUVertexAttribute.cpp
 Modules/WebGPU/GPUVertexBufferLayout.cpp
 Modules/WebGPU/GPUVertexState.cpp
-Modules/WebGPU/Implementation/WebGPUCompositorIntegrationImpl.cpp
-Modules/WebGPU/Implementation/WebGPUCreateImpl.cpp
-Modules/WebGPU/Implementation/WebGPUImpl.cpp
 Modules/WebGPU/WGSLLanguageFeatures.cpp
 Modules/WebGPU/WebGPUXRLayerBacking.cpp
 Modules/airplay/WebKitPlaybackTargetAvailabilityEvent.cpp
@@ -2916,8 +2913,10 @@ platform/mediarecorder/MediaRecorderPrivateMock.cpp
 platform/mediastream/AudioMediaStreamTrackRenderer.cpp
 platform/mediastream/AudioTrackPrivateMediaStream.cpp
 platform/mediastream/CaptureDeviceManager.cpp
+platform/mediastream/CaptureSourceDecisions.cpp
 platform/mediastream/MediaConstraintType.cpp
 platform/mediastream/MediaConstraints.cpp
+platform/mediastream/MediaConstraintsEvaluation.cpp
 platform/mediastream/MediaEndpointConfiguration.cpp
 platform/mediastream/MediaStreamPrivate.cpp
 platform/mediastream/MediaStreamTrackDataHolder.cpp

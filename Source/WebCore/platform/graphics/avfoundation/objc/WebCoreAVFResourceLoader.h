@@ -27,6 +27,7 @@
 
 #if ENABLE(VIDEO) && USE(AVFOUNDATION)
 
+#include <CoreFoundation/CoreFoundation.h>
 #include <wtf/CancellableTask.h>
 #include <wtf/Forward.h>
 #include <wtf/MonotonicTime.h>
@@ -34,6 +35,7 @@
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -51,7 +53,9 @@ class PlatformResourceMediaLoader;
 class ResourceError;
 class ResourceResponse;
 
-class WebCoreAVFResourceLoader : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebCoreAVFResourceLoader> {
+// Answers an AVAssetResourceLoadingRequest from WebCore's media resource loader. WebCoreAVFResourceLoader.swift implements
+// the members this doesn't define: what it reads of and tells the AVFoundation request.
+class SWIFT_PRIVATE_FILEID("WebCore/WebCoreAVFResourceLoader.swift") WebCoreAVFResourceLoader : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<WebCoreAVFResourceLoader> {
     WTF_MAKE_TZONE_ALLOCATED(WebCoreAVFResourceLoader);
     WTF_MAKE_NONCOPYABLE(WebCoreAVFResourceLoader);
 public:
@@ -77,9 +81,22 @@ private:
     bool responseReceived(const String&, int, const ParsedContentRange&, size_t);
     bool newDataStoredInSharedBuffer(const FragmentedSharedBuffer&);
 
-    void startLoadingImpl();
     void loadFailed(const ResourceError&);
     void loadFinished();
+
+    // Implemented in Swift. didReceiveResponse() and respondWithData() return true when no further processing should occur.
+    bool didReceiveResponse(int status, uint64_t responseOffset, int64_t contentLength, CFStringRef contentType, bool isLoadingDataURL);
+    bool respondWithData(CFArrayRef segments);
+    void failLoading(CFErrorRef);
+
+    enum class LoadStart : uint8_t {
+        Loading,
+        LoadingDataURL,
+        Failed,
+    };
+    LoadStart startResourceLoad(bool requestsRange, bool requestsAllDataToEndOfResource);
+    bool isLoadingDataURL() const;
+    void finishRequestLoading();
 
     void startLoadingTimer();
     NODELETE void stopLoadingTimer();

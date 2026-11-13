@@ -331,7 +331,7 @@ typedef struct CGContextDelegate *CGContextDelegateRef;
 typedef void (*CGContextDelegateCallback)(void);
 typedef struct CGRenderingState *CGRenderingStateRef;
 typedef struct CGGState *CGGStateRef;
-typedef struct CGStyle *CGStyleRef;
+typedef struct CF_BRIDGED_TYPE(id) CGStyle *CGStyleRef;
 
 typedef struct CGNotificationCenter *CGNotificationCenterRef;
 typedef void (*CGNotificationCallback)(CGNotificationCenterRef, void* info, CFStringRef name, const void* object, CFDictionaryRef auxInfo);
@@ -412,8 +412,8 @@ void CGNotificationCenterAddCallback(CGNotificationCenterRef, CGNotificationCall
 
 CGAffineTransform CGContextGetBaseCTM(CGContextRef);
 CGCompositeOperation CGContextGetCompositeOperation(CGContextRef);
-CGColorRef CGContextGetFillColorAsColor(CGContextRef);
-CGColorRef CGContextGetStrokeColorAsColor(CGContextRef);
+CGColorRef CGContextGetFillColorAsColor(CGContextRef) CF_RETURNS_NOT_RETAINED;
+CGColorRef CGContextGetStrokeColorAsColor(CGContextRef) CF_RETURNS_NOT_RETAINED;
 CGFloat CGContextGetLineWidth(CGContextRef);
 bool CGContextGetShouldSmoothFonts(CGContextRef);
 bool CGContextGetShouldAntialias(CGContextRef);
@@ -495,7 +495,7 @@ CGError CGSSetWindowClipShape(CGSConnectionID, CGSWindowID, CGRegionRef shape);
 CGError CGSSetWindowWarp(CGSConnectionID, CGSWindowID, int w, int h, const float* mesh);
 CGRect* CGSNextRect(const CGSRegionEnumeratorObj);
 CGSRegionEnumeratorObj CGSRegionEnumerator(CGRegionRef);
-CGStyleRef CGStyleCreateFocusRingWithColor(const CGFocusRingStyle*, CGColorRef);
+CGStyleRef CGStyleCreateFocusRingWithColor(const CGFocusRingStyle*, CGColorRef) CF_RETURNS_RETAINED;
 void CGContextSetStyle(CGContextRef, CGStyleRef);
 void CGContextDrawConicGradient(CGContextRef, CGGradientRef, CGPoint center, CGFloat angle);
 void CGPathAddUnevenCornersRoundedRect(CGMutablePathRef, const CGAffineTransform *, CGRect, const CGSize corners[4]);
@@ -511,10 +511,10 @@ CGPatternRef CGPatternCreateWithImageTransformStep(CGImageRef, CGAffineTransform
 
 extern const CFStringRef kCGGradientInterpolatesPremultiplied;
 
-CGStyleRef CGStyleCreateShadow2(CGSize offset, CGFloat radius, CGColorRef);
+CGStyleRef CGStyleCreateShadow2(CGSize offset, CGFloat radius, CGColorRef) CF_RETURNS_RETAINED;
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
-CGStyleRef CGStyleCreateGaussianBlur(const CGGaussianBlurStyle*);
-CGStyleRef CGStyleCreateColorMatrix(const CGColorMatrixStyle*);
+CGStyleRef CGStyleCreateGaussianBlur(const CGGaussianBlurStyle*) CF_RETURNS_RETAINED;
+CGStyleRef CGStyleCreateColorMatrix(const CGColorMatrixStyle*) CF_RETURNS_RETAINED;
 #endif
 
 #if HAVE(CG_PATH_CONTINUOUS_ROUNDED_RECT)

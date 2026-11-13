@@ -26,12 +26,14 @@
 #include "config.h"
 #include "CoreAudioCaptureSource.h"
 
+#include "AudioCaptureControllerHandle.h"
+
 #if ENABLE(MEDIA_STREAM)
 
+#include "AudioOutputUnit.h"
 #include "AudioSampleBufferList.h"
 #include "AudioSampleDataSource.h"
 #include "AudioSession.h"
-#include "CoreAudioCaptureDevice.h"
 #include "CoreAudioCaptureDeviceManager.h"
 #include "CoreAudioCaptureUnit.h"
 #include "Logging.h"
@@ -81,11 +83,11 @@ static CaptureSourceOrError initializeCoreAudioCaptureSource(Ref<CoreAudioCaptur
 CaptureSourceOrError CoreAudioCaptureSource::create(const CaptureDevice& device, MediaDeviceHashSalts&& hashSalts, const MediaConstraints* constraints, std::optional<PageIdentifier> pageIdentifier)
 {
 #if PLATFORM(MAC)
-    auto coreAudioDevice = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(device.persistentId());
-    if (!coreAudioDevice)
+    auto deviceID = CoreAudioCaptureDeviceManager::singleton().coreAudioDeviceWithUID(device.persistentId());
+    if (!deviceID)
         return CaptureSourceOrError({ "No CoreAudioCaptureSource device"_s, MediaAccessDenialReason::PermissionDenied });
 
-    auto source = adoptRef(*new CoreAudioCaptureSource(device, coreAudioDevice->deviceID(), WTF::move(hashSalts), pageIdentifier));
+    auto source = adoptRef(*new CoreAudioCaptureSource(device, *deviceID, WTF::move(hashSalts), pageIdentifier));
 #elif PLATFORM(IOS_FAMILY)
     auto coreAudioDevice = AVAudioSessionCaptureDeviceManager::singleton().audioSessionDeviceWithUID(device.persistentId());
     if (!coreAudioDevice && !device.isDefault()) {
@@ -179,24 +181,6 @@ void CoreAudioCaptureSourceFactory::disableMutedSpeechActivityEventListener()
     CoreAudioCaptureUnit::defaultSingleton().disableMutedSpeechActivityEventListener();
 }
 
-void CoreAudioCaptureSourceFactory::registerSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    CoreAudioCaptureUnit::defaultSingleton().registerSpeakerSamplesProducer(producer);
-}
-
-void CoreAudioCaptureSourceFactory::unregisterSpeakerSamplesProducer(CoreAudioSpeakerSamplesProducer& producer)
-{
-    CoreAudioCaptureUnit::defaultSingleton().unregisterSpeakerSamplesProducer(producer);
-}
-
-bool CoreAudioCaptureSourceFactory::shouldAudioCaptureUnitRenderAudio()
-{
-#if PLATFORM(IOS_FAMILY)
-    return CoreAudioCaptureUnit::defaultSingleton().isRunning();
-#else
-    return CoreAudioCaptureUnit::defaultSingleton().isRunning() && CoreAudioCaptureUnit::defaultSingleton().canRenderAudio();
-#endif // PLATFORM(IOS_FAMILY)
-}
 
 CoreAudioCaptureSource::CoreAudioCaptureSource(const CaptureDevice& device, uint32_t captureDeviceID, MediaDeviceHashSalts&& hashSalts, std::optional<PageIdentifier> pageIdentifier)
     : RealtimeMediaSource(device, WTF::move(hashSalts), pageIdentifier)
@@ -258,12 +242,35 @@ void CoreAudioCaptureSource::startProducingData()
     initializeToStartProducingData();
     protect(m_unit)->startProducingData();
     m_currentSettings = { };
+    protect(m_unit)->updateMicrophoneConfiguration();
 }
 
 void CoreAudioCaptureSource::stopProducingData()
 {
     ALWAYS_LOG_IF(loggerPtr(), LOGIDENTIFIER);
     protect(m_unit)->stopProducingData();
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::addAudioCaptureSink(AudioCaptureSink& sink)
+{
+    ASSERT(isMainThread());
+    m_audioCaptureSinks.append(sink);
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::removeAudioCaptureSink(AudioCaptureSink& sink)
+{
+    ASSERT(isMainThread());
+    m_audioCaptureSinks.removeAllMatching([&](auto& weakSink) {
+        return !weakSink || weakSink.get() == &sink;
+    });
+    protect(m_unit)->updateMicrophoneConfiguration();
+}
+
+void CoreAudioCaptureSource::audioSampleObserversChanged()
+{
+    protect(m_unit)->updateMicrophoneConfiguration();
 }
 
 void CoreAudioCaptureSource::endProducingData()
@@ -279,13 +286,10 @@ void CoreAudioCaptureSource::endProducingData()
 const RealtimeMediaSourceCapabilities& CoreAudioCaptureSource::capabilities()
 {
     if (!m_capabilities) {
-        RealtimeMediaSourceCapabilities capabilities(settings().supportedConstraints());
-        capabilities.setDeviceId(hashedId());
-        capabilities.setGroupId(hashedGroupId());
-        capabilities.setEchoCancellation(m_echoCancellationCapability ? (*m_echoCancellationCapability ? RealtimeMediaSourceCapabilities::EchoCancellation::On : RealtimeMediaSourceCapabilities::EchoCancellation::Off) : RealtimeMediaSourceCapabilities::EchoCancellation::OnOrOff);
-        capabilities.setVolume({ 0.0, 1.0 });
-        capabilities.setSampleRate(protect(m_unit)->sampleRateCapacities());
-        m_capabilities = WTF::move(capabilities);
+        auto echoCancellation = m_echoCancellationCapability ? (*m_echoCancellationCapability ? RealtimeMediaSourceCapabilities::EchoCancellation::On : RealtimeMediaSourceCapabilities::EchoCancellation::Off) : RealtimeMediaSourceCapabilities::EchoCancellation::OnOrOff;
+        auto sampleRates = protect(m_unit)->sampleRateCapacities();
+        auto values = AudioCaptureControllerHandle::microphoneCapabilities(captureSupportedConstraintBits(settings().supportedConstraints()), static_cast<uint8_t>(echoCancellation), sampleRates.min(), sampleRates.max());
+        m_capabilities = captureCapabilities(values, hashedId(), hashedGroupId());
     }
     return m_capabilities.value();
 }
@@ -294,24 +298,8 @@ const RealtimeMediaSourceSettings& CoreAudioCaptureSource::settings()
 {
     if (!m_currentSettings) {
         Ref unit = m_unit.get();
-
-        RealtimeMediaSourceSettings settings;
-        settings.setVolume(volume());
-        settings.setSampleRate(unit->isRenderingAudio() ? unit->actualSampleRate() : sampleRate());
-        settings.setDeviceId(hashedId());
-        settings.setGroupId(hashedGroupId());
-        settings.setLabel(name());
-        settings.setEchoCancellation(echoCancellation());
-
-        RealtimeMediaSourceSupportedConstraints supportedConstraints;
-        supportedConstraints.setSupportsDeviceId(true);
-        supportedConstraints.setSupportsGroupId(true);
-        supportedConstraints.setSupportsEchoCancellation(true);
-        supportedConstraints.setSupportsVolume(true);
-        supportedConstraints.setSupportsSampleRate(true);
-        settings.setSupportedConstraints(supportedConstraints);
-
-        m_currentSettings = WTF::move(settings);
+        auto values = AudioCaptureControllerHandle::microphoneSettings(volume(), unit->isRenderingAudio() ? unit->actualSampleRate() : sampleRate(), echoCancellation());
+        m_currentSettings = captureSettings(values, name(), hashedId(), hashedGroupId());
     }
     return m_currentSettings.value();
 }

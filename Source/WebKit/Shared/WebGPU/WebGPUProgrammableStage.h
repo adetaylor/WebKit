@@ -29,7 +29,6 @@
 
 #include "WebGPUIdentifier.h"
 #include <optional>
-#include <wtf/KeyValuePair.h>
 #include <wtf/Ref.h>
 #include <wtf/Vector.h>
 
@@ -37,10 +36,16 @@ namespace WebKit::WebGPU {
 
 using PipelineConstantValue = double; // May represent WGSL’s bool, f32, i32, u32.
 
+// Encoded as the KeyValuePair it replaces was: the key, then the value.
+struct PipelineConstant {
+    String key;
+    PipelineConstantValue value;
+};
+
 struct ProgrammableStage {
     WebGPUIdentifier module;
     String entryPoint;
-    Vector<KeyValuePair<String, PipelineConstantValue>> constants;
+    Vector<PipelineConstant> constants;
 };
 
 } // namespace WebKit::WebGPU

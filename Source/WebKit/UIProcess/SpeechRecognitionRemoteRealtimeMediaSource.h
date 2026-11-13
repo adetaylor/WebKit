@@ -31,6 +31,7 @@
 #include <WebCore/RealtimeMediaSourceIdentifier.h>
 #include <WebCore/SpeechRecognitionConnectionClientIdentifier.h>
 #include <wtf/MediaTime.h>
+#include <wtf/WorkQueue.h>
 
 #if PLATFORM(COCOA)
 #include "SharedCARingBuffer.h"
@@ -69,6 +70,10 @@ public:
 private:
     SpeechRecognitionRemoteRealtimeMediaSource(WebCore::RealtimeMediaSourceIdentifier, SpeechRecognitionRemoteRealtimeMediaSourceManager&, const WebCore::CaptureDevice&, WebCore::PageIdentifier, WebCore::SpeechRecognitionConnectionClientIdentifier);
 
+#if PLATFORM(COCOA)
+    void fetchAndDeliverSamples(WTF::MediaTime, uint64_t numberOfFrames);
+#endif
+
     // WebCore::RealtimeMediaSource
     void startProducingData() final;
     void stopProducingData() final;
@@ -82,6 +87,9 @@ private:
     WebCore::RealtimeMediaSourceSettings m_settings;
 
 #if PLATFORM(COCOA)
+    // The ring, and the list samples are fetched into, are used only on m_queue.
+    const Ref<WorkQueue> m_queue;
+    std::optional<uint32_t> m_frameCount;
     std::optional<WebCore::CAAudioStreamDescription> m_description;
     std::unique_ptr<ConsumerSharedCARingBuffer> m_ringBuffer;
     std::unique_ptr<WebCore::WebAudioBufferList> m_buffer;

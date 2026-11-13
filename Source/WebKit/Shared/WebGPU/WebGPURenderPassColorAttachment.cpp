@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS)
 
-#include "WebGPUConvertFromBackingContext.h"
 #include "WebGPUConvertToBackingContext.h"
 #include <WebCore/WebGPUCppAPI.h>
 
@@ -50,35 +49,6 @@ std::optional<RenderPassColorAttachment> ConvertToBackingContext::convertToBacki
         resolveTarget = colorAttachmentViewIdentifier(*this, *renderPassColorAttachment.resolveTarget);
 
     return { { identifier, renderPassColorAttachment.depthSlice, resolveTarget, renderPassColorAttachment.clearValue, renderPassColorAttachment.loadOp, renderPassColorAttachment.storeOp } };
-}
-
-std::optional<::WebGPU::RenderPassColorAttachment> ConvertFromBackingContext::convertFromBacking(const RenderPassColorAttachment& renderPassColorAttachment)
-{
-    RefPtr view = convertTextureViewFromBacking(renderPassColorAttachment.view);
-    RefPtr texture = !view ? convertTextureFromBacking(renderPassColorAttachment.view) : nullptr;
-    if (!view && !texture)
-        return std::nullopt;
-
-    std::optional<::WebGPU::RenderPassAttachmentView> resolveTarget;
-    if (renderPassColorAttachment.resolveTarget) {
-        RefPtr view = convertTextureViewFromBacking(renderPassColorAttachment.resolveTarget.value());
-        if (!view) {
-            RefPtr texture = convertTextureFromBacking(renderPassColorAttachment.resolveTarget.value());
-            if (!texture)
-                return std::nullopt;
-
-            resolveTarget = ::WebGPU::RenderPassAttachmentView { texture.releaseNonNull() };
-        } else
-            resolveTarget = ::WebGPU::RenderPassAttachmentView { view.releaseNonNull() };
-    }
-
-    ::WebGPU::RenderPassAttachmentView viewTextureVariant = [&] -> ::WebGPU::RenderPassAttachmentView {
-        if (view)
-            return view.releaseNonNull();
-        return texture.releaseNonNull();
-    }();
-
-    return { { WTF::move(viewTextureVariant), renderPassColorAttachment.depthSlice, WTF::move(resolveTarget), renderPassColorAttachment.clearValue.value_or(::WebGPU::Color { }), renderPassColorAttachment.loadOp, renderPassColorAttachment.storeOp } };
 }
 
 } // namespace WebKit

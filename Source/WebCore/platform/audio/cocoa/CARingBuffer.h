@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -29,10 +29,10 @@
 
 #include <JavaScriptCore/ArrayBuffer.h>
 #include <WebCore/AudioStreamDescription.h>
+#include <WebCore/CARingBufferSwiftBridge.h>
 #include <optional>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/Lock.h>
-#include <wtf/SequenceLocked.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
@@ -52,12 +52,7 @@ public:
         Ok,
         TooMuch, // fetch start time is earlier than buffer start time and fetch end time is later than buffer end time
     };
-    struct TimeBounds {
-        uint64_t startFrame { 0 };
-        uint64_t endFrame { 0 };
-        uint64_t writeAhead { 0 };
-        bool operator<=>(const TimeBounds&) const = default;
-    };
+    using TimeBounds = CARingBufferBounds;
     NODELETE WEBCORE_EXPORT TimeBounds getStoreTimeBounds();
     WEBCORE_EXPORT Error store(const AudioBufferList*, size_t frameCount, uint64_t startFrame, uint64_t writeAhead = 0);
 
@@ -70,31 +65,33 @@ public:
 
     WEBCORE_EXPORT TimeBounds getFetchTimeBounds();
 
-    uint32_t channelCount() const { return m_channelCount; }
-    uint32_t frameCount() const { return m_frameCount; }
+
+    uint32_t channelCount() const { return m_geometry.channelCount; }
+    uint32_t frameCount() const { return m_geometry.frameCount; }
+
+    // The ring's memory, for a reader that plays it out on an audio unit's IO thread (AudioOutputUnit).
+    const CARingBufferGeometry& geometry() const { return m_geometry; }
+    const CARingBufferBoundsStorage& boundsStorage() const LIFETIME_BOUND { return *m_timeBounds; }
+    std::span<const uint8_t> channelData() const LIFETIME_BOUND { return m_channelData; }
 
 protected:
     WEBCORE_EXPORT CARingBuffer(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
     WEBCORE_EXPORT void initialize();
 
-    NODELETE WEBCORE_EXPORT static CheckedSize computeCapacityBytes(size_t bytesPerFrame, size_t frameCount);
-    NODELETE WEBCORE_EXPORT static CheckedSize computeSizeForBuffers(size_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
+    // The storage of a shared ring: its bounds, then its channels. For a handle from another process, use the mapping one.
+    WEBCORE_EXPORT static CARingBufferStorageSize sharedStorageSizeForAllocation(uint32_t bytesPerFrame, size_t frameCount, uint32_t numChannelStreams);
+    WEBCORE_EXPORT static CARingBufferStorageSize sharedStorageSizeForMapping(uint32_t bytesPerFrame, uint64_t frameCount, uint32_t numChannelStreams);
 
     virtual void* data() LIFETIME_BOUND = 0;
-    std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), m_channelCount * m_capacityBytes); }
-    using TimeBoundsBuffer = SequenceLocked<TimeBounds>;
+    std::span<uint8_t> span() LIFETIME_BOUND { return unsafeMakeSpan(static_cast<uint8_t*>(data()), static_cast<size_t>(m_geometry.channelCount * m_geometry.capacityBytes)); }
+    using TimeBoundsBuffer = CARingBufferBoundsStorage;
     virtual TimeBoundsBuffer& timeBoundsBuffer() LIFETIME_BOUND = 0;
 
 private:
-    size_t frameOffset(uint64_t frameNumber) const { return (frameNumber % m_frameCount) * m_bytesPerFrame; }
-    void setTimeBounds(TimeBounds bufferBounds);
-    void fetchInternal(AudioBufferList*, size_t frameCount, uint64_t startFrame, FetchMode, TimeBounds bufferBounds);
-
-    Vector<std::span<Byte>> m_channels;
-    const uint32_t m_channelCount;
-    const size_t m_bytesPerFrame;
-    const uint32_t m_frameCount;
-    const size_t m_capacityBytes;
+    // CARingBuffer.swift implements the ring's logic over these.
+    const CARingBufferGeometry m_geometry;
+    std::span<uint8_t> m_channelData;
+    TimeBoundsBuffer* m_timeBounds { nullptr };
 
     // Stored range.
     TimeBounds m_storeBounds;

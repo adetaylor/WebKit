@@ -58,7 +58,6 @@
 
 #if ENABLE(ENCRYPTED_MEDIA)
 #include "RemoteCDMInstanceIdentifier.h"
-#include "RemoteCDMInstanceProxy.h"
 #endif
 
 #if PLATFORM(COCOA)

@@ -101,7 +101,6 @@ public:
     virtual bool isValid(const ::WebGPU::XRView&) const = 0;
 
     virtual bool isRemoteGPUProxy() const { return false; }
-    virtual bool isWebGPUIntegrationImpl() const { return false; }
 
     // A lost integration, such as one whose GPU process has exited, cannot create anything again.
     virtual bool isLost() const { return false; }

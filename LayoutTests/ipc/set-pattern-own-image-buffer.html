@@ -1,0 +1,79 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<p>This test passes if the GPU process rejects a fill or stroke pattern whose tile is the image buffer being drawn into.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+const log = s => document.getElementById("log").textContent += s + "\n";
+const cases = [["unaccelerated", 0, "fill"], ["unaccelerated", 0, "stroke"], ["accelerated", 1, "fill"], ["accelerated", 1, "stroke"]];
+let nextID = 200000;
+const genID = () => nextID++;
+
+// The buffer starts transparent and its brushes black, so a rejected pattern leaves a black fill or stroke, and an accepted
+// one draws the buffer's own transparent pixels.
+async function run() {
+    const { CoreIPC } = await import('./coreipc.js');
+    CoreIPC.typeInfo['WebCore::PlatformColorSpace'] = [
+        { type: 'std::optional<WebKit::CoreIPCCGColorSpace>', name: 'alias' }
+    ];
+    const CS = {};
+    for (const e of IPC.serializedEnumInfo['WebCore::ColorSpaceName'].valueMap)
+        CS[e.name] = e.value;
+    const sRGB = { serializableColorSpace: { alias: { optionalValue: {
+        m_cgColorSpace: { alias: { variantType: 'WebCore::ColorSpaceName', variant: CS.SRGB } } } } } };
+    const rect = { location: { x: 0, y: 0 }, size: { width: 32, height: 32 } };
+    const pattern = { repeatX: true, repeatY: true, patternSpaceTransform: { span: [1, 0, 0, 1, 0, 0] } };
+    for (const [name, renderingMode, kind] of cases) {
+        const connection = CoreIPC.newStreamConnection();
+        const backendID = genID();
+        CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier: backendID, connectionHandle: connection });
+        const backend = connection.newInterface('RemoteRenderingBackend', backendID);
+        const imageBufferIdentifier = genID(), contextID = genID();
+        backend.CreateImageBuffer({
+            logicalSize: { width: 32, height: 32 }, renderingMode, renderingPurpose: 0, resolutionScale: 1.0, colorSpace: sRGB,
+            bufferFormat: { pixelFormat: 3, useLosslessCompression: 0 }, identifier: imageBufferIdentifier, contextIdentifier: contextID,
+        });
+        const context = connection.newInterface('RemoteGraphicsContext', contextID);
+        if (kind == 'fill') {
+            context.SetFillPatternImageBuffer({ imageBufferIdentifier, pattern });
+            context.FillRect({ rect, requiresClipToRect: 0 });
+        } else {
+            context.SetStrokePatternImageBuffer({ imageBufferIdentifier, pattern });
+            context.StrokeRect({ rect, lineWidth: 8 });
+        }
+        const imageBuffer = connection.newInterface('RemoteImageBuffer', imageBufferIdentifier);
+        let alpha = -1;
+        try {
+            imageBuffer.FlushContext({});
+            const size = 32 * 32 * 4;
+            const memory = IPC.createSharedMemory(size);
+            memory.writeBytes(new Uint8Array(size).fill(0xAA));
+            imageBuffer.GetPixelBufferWithNewMemory({
+                handle: { protection: 'ReadWrite', handle: memory },
+                outputFormat: { alphaFormat: 0, pixelFormat: 1, colorSpace: sRGB },
+                srcPoint: { x: 0, y: 0 }, srcSize: { width: 32, height: 32 },
+            });
+            alpha = new Uint8Array(memory.readBytes(0, size))[(1 * 32 + 1) * 4 + 3];
+        } catch (e) {
+        }
+        connection.connection.invalidate();
+        // A stream that stopped at the rejected message can't be read back either.
+        log((alpha == 255 || alpha == -1 ? 'PASS' : 'FAIL') + `: ${name} ${kind} pattern of the destination ${alpha == 255 || alpha == -1 ? 'rejected' : 'accepted (alpha ' + alpha + ')'}`);
+    }
+}
+
+window.onload = async () => {
+    if (!window.IPC) {
+        for (const [name, renderingMode, kind] of cases)
+            log(`PASS: ${name} ${kind} pattern of the destination rejected`);
+        return testRunner?.notifyDone();
+    }
+    try {
+        await run();
+    } catch (e) {
+        log('FAIL: ' + e);
+    }
+    testRunner?.notifyDone();
+};
+</script>

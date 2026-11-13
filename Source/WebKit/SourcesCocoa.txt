@@ -76,6 +76,9 @@ GPUProcess/cocoa/GPUConnectionToWebProcessCocoa.mm @nonARC
 GPUProcess/cocoa/GPUProcessCocoa.mm @nonARC
 GPUProcess/graphics/Model/MeshImpl.cpp
 GPUProcess/graphics/Model/WebKitMesh.mm
+GPUProcess/graphics/GPUProcessIOSurfaces.cpp
+GPUProcess/media/GPUVideoFrameSource.cpp
+GPUProcess/graphics/RemoteCGRendererResources.cpp
 GPUProcess/graphics/RemoteGraphicsContextGLCocoa.cpp
 GPUProcess/graphics/RemoteSnapshotPDFDrawingTask.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequestCocoa.mm @nonARC @no-unify-when(bundle<=8)
@@ -87,7 +90,7 @@ GPUProcess/media/RemoteImageDecoderAVFProxy.cpp
 GPUProcess/media/cocoa/VideoReceiverEndpointManager.mm @nonARC
 GPUProcess/media/cocoa/RemoteMediaPlayerProxyCocoa.mm @nonARC
 GPUProcess/media/ios/RemoteMediaSessionHelperProxy.cpp
-GPUProcess/webrtc/CapturePreviewManager.mm @nonARC
+GPUProcess/webrtc/CapturePreviewLayer.mm @nonARC
 GPUProcess/webrtc/LibWebRTCCodecsProxy.mm @nonARC @no-unify // Includes libwebrtc headers with macro pollution.
 GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManager.cpp
 GPUProcess/webrtc/RemoteSampleBufferDisplayLayer.mm @nonARC
@@ -981,6 +984,7 @@ RemoteCDMInstanceProxyMessageReceiver.cpp @cost:3
 RemoteCDMInstanceSessionMessageReceiver.cpp
 RemoteCDMInstanceSessionProxyMessageReceiver.cpp
 RemoteCDMProxyMessageReceiver.cpp
+RemoteCGRendererMessageReceiver.cpp
 RemoteImageBufferMessageReceiver.cpp @cost:5
 RemoteImageBufferProxyMessageReceiver.cpp
 RemoteImageBufferSetMessageReceiver.cpp @cost:5

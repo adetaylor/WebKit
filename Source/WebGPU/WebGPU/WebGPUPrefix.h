@@ -30,13 +30,6 @@
 #include <wtf/Platform.h>
 
 #ifdef __cplusplus
-#include "AST/ASTBuilder.h"
-#include "AST/ASTNode.h"
-#include "CompilationMessage.h"
-#include "ConstantValue.h"
-#include "Types.h"
-#include "WGSL.h"
-#include "WGSLEnums.h"
 #include <wtf/FastMalloc.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>

@@ -21,9 +21,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE(GPU_PROCESS)
-[AdditionalEncoder=StreamConnectionEncoder] struct WebKit::WebGPU::VertexBufferLayout {
+[AdditionalEncoder=StreamConnectionEncoder, Swift] struct WebKit::WebGPU::VertexBufferLayout {
     uint64_t arrayStride
     ::WebGPU::VertexStepMode stepMode
-    Vector<WebKit::WebGPU::VertexAttribute> attributes
+    Vector<::WebGPU::VertexAttribute> attributes
 }
 #endif

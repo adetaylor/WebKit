@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteDeviceProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteBindGroupLayoutProxy.h"
 #include "RemoteBindGroupProxy.h"
@@ -47,6 +47,7 @@
 #include "SharedVideoFrame.h"
 #include "WebGPUCommandEncoderDescriptor.h"
 #include "WebGPUConvertToBackingContext.h"
+#include "WebGPUExternalTextureDescriptor.h"
 #include <WebCore/WebGPUCppAPI.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -159,7 +160,7 @@ RefPtr<::WebGPU::ExternalTexture> RemoteDeviceProxy::importExternalTexture(const
         }
     }
 
-    auto sendResult = send(Messages::RemoteDevice::ImportExternalTextureFromVideoFrame(WTF::move(*convertedDescriptor), identifier));
+    auto sendResult = send(Messages::RemoteDevice::ImportExternalTextureFromVideoFrame(convertedDescriptor->mediaIdentifier, convertedDescriptor->colorSpace, convertedDescriptor->visibleSize, WTF::move(convertedDescriptor->sharedFrame), identifier));
     if (sendResult != IPC::Error::NoError)
         return nullptr;
 #endif
@@ -467,4 +468,4 @@ void RemoteDeviceProxy::pauseAllErrorReporting(bool pause)
 
 } // namespace WebKit::WebGPU
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

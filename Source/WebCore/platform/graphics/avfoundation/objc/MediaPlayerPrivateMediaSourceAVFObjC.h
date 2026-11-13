@@ -63,7 +63,6 @@ class InbandTextTrackPrivate;
 class MediaSourcePrivateAVFObjC;
 class VideoFrameCV;
 class VideoLayerManagerObjC;
-class VideoMediaSampleRenderer;
 class VideoTrackPrivate;
 
 class MediaPlayerPrivateMediaSourceAVFObjC
@@ -378,7 +377,6 @@ private:
     double m_rate WTF_GUARDED_BY_CAPABILITY(mainThread) { 1 };
     mutable bool m_loadingProgressed WTF_GUARDED_BY_CAPABILITY(mainThread) { false };
     bool m_hasAvailableVideoFrame WTF_GUARDED_BY_CAPABILITY(mainThread) { false };
-    bool m_allRenderersHaveAvailableSamples WTF_GUARDED_BY_CAPABILITY(mainThread) { false };
     bool m_pageIsVisible WTF_GUARDED_BY_CAPABILITY(mainThread) { false };
     ViewportVisibility m_viewportVisibility WTF_GUARDED_BY_CAPABILITY(mainThread) { ViewportVisibility::NotVisible };
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)

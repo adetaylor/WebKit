@@ -31,3 +31,117 @@
 #include "IPCSwiftWorkQueueTesterSupport.h"
 #include "IPCTesterReceiverMessages.h"
 #include "SecurityFlags.h"
+
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "CapturePreviewLayer.h"
+#endif
+
+#if ENABLE(GPU_PROCESS)
+#include "GPUConnectionToWebProcess.h"
+#include "GPUConnectionToWebProcessMessages.h"
+#include "GPUProcess.h"
+#include "GPUProcessMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
+#include "RemoteVideoFrameObjectHeap.h"
+#include "RemoteVideoFrameObjectHeapMessages.h"
+#endif
+
+#if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
+#include "LibWebRTCCodecsProxy.h"
+#include "LibWebRTCCodecsProxyMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "UserMediaCaptureManagerProxy.h"
+#include "UserMediaCaptureManagerProxyMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#include "RemoteCDMFactoryProxyMessages.h"
+#include "RemoteCDMInstanceProxyMessages.h"
+#include "RemoteCDMInstanceSessionProxyMessages.h"
+#include "RemoteCDMProxyMessages.h"
+#include "RemoteCDMSwiftSupport.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
+#include "RemoteAudioDestinationManager.h"
+#include "RemoteAudioDestinationManagerMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
+#include "RemoteAudioSessionProxy.h"
+#include "RemoteAudioSessionProxyManager.h"
+#include "RemoteAudioSessionProxyMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
+#include "RemoteAudioVideoRendererProxyManager.h"
+#include "RemoteAudioVideoRendererProxyManagerMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
+#include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
+#include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && HAVE(SHAPE_DETECTION_API_IMPLEMENTATION)
+#include "RemoteBarcodeDetectorMessages.h"
+#include "RemoteFaceDetectorMessages.h"
+#include "RemoteRenderingBackend.h"
+#include "RemoteRenderingBackendMessages.h"
+#include "RemoteTextDetectorMessages.h"
+#endif
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+#include "RemoteGraphicsContextGLMessages.h"
+#include "RemoteGraphicsContextGLResources.h"
+#endif
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererGlyphs.h"
+#include "RemoteCGRendererLineDash.h"
+#include "RemoteCGRendererLineSegments.h"
+#include "RemoteCGRendererLineStrokes.h"
+#include "RemoteCGRendererPath.h"
+#include "RemoteCGRendererPathSegment.h"
+#include "RemoteCGRendererResources.h"
+#include "RemoteCGRendererShadow.h"
+#include "RemoteCGRendererStyle.h"
+#include "RemoteCGRendererMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#include "GPUProcessIOSurfaces.h"
+#include "GPUVideoFrameSource.h"
+#include "RemoteAdapterMessages.h"
+#include "RemoteBindGroupLayoutMessages.h"
+#include "RemoteBindGroupMessages.h"
+#include "RemoteBufferMessages.h"
+#include "RemoteCommandBufferMessages.h"
+#include "RemoteCommandEncoderMessages.h"
+#include "RemoteCompositorIntegrationMessages.h"
+#include "RemoteComputePassEncoderMessages.h"
+#include "RemoteComputePipelineMessages.h"
+#include "RemoteDeviceMessages.h"
+#include "RemoteExternalTextureMessages.h"
+#include "RemoteGPU.h"
+#include "RemoteGPUMessages.h"
+#include "RemotePipelineLayoutMessages.h"
+#include "RemotePresentationContextMessages.h"
+#include "RemoteQuerySetMessages.h"
+#include "RemoteQueueMessages.h"
+#include "RemoteRenderBundleEncoderMessages.h"
+#include "RemoteRenderBundleMessages.h"
+#include "RemoteRenderPassEncoderMessages.h"
+#include "RemoteRenderPipelineMessages.h"
+#include "RemoteSamplerMessages.h"
+#include "RemoteShaderModuleMessages.h"
+#include "RemoteTextureMessages.h"
+#include "RemoteTextureViewMessages.h"
+#include "RemoteXRBindingMessages.h"
+#include "RemoteXRProjectionLayerMessages.h"
+#include "RemoteXRSubImageMessages.h"
+#include "RemoteXRViewMessages.h"
+#endif

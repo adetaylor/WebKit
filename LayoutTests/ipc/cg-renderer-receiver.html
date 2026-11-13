@@ -1,0 +1,162 @@
+<!DOCTYPE html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<p>This test passes if an image buffer draws the same through the GPU process's Swift CG renderer receiver (RemoteCGRenderer) as through RemoteGraphicsContext alone.</p>
+<pre id="log"></pre>
+<script>
+testRunner?.dumpAsText();
+testRunner?.waitUntilDone();
+
+const log = s => document.getElementById("log").textContent += s + "\n";
+const modes = [["unaccelerated", 0], ["accelerated", 1]];
+const size = 48;
+let nextID = 300000;
+const genID = () => nextID++;
+
+const rect = (x, y, width, height) => ({ location: { x, y }, size: { width, height } });
+const transform = (a, b, c, d, e, f) => ({ span: [a, b, c, d, e, f] });
+
+// One scene as [message, arguments] pairs. "swift" marks those RemoteCGRenderer takes; the rest only RemoteGraphicsContext
+// does, and read the C++ state the Swift ones set (DrawRect compares the fill and stroke colors) or draw what the renderer
+// declines (ellipses with a pattern).
+function scene(tileImageBufferIdentifier) {
+    const pattern = { repeatX: true, repeatY: true, patternSpaceTransform: transform(1, 0, 0, 1, 0, 0) };
+    return [
+        ["swift", "Restore", {}],
+        ["swift", "SetFillPackedColor", 0xFF2020FF],
+        ["swift", "FillRect", { rect: rect(0, 0, size, size), requiresClipToRect: 0 }],
+        ["swift", "Save", {}],
+        ["swift", "Translate", { x: 3, y: 4 }],
+        ["swift", "Scale", { scale: { width: 1.25, height: 0.75 } }],
+        ["swift", "Clip", { rect: rect(1, 1, 30, 40) }],
+        ["swift", "SetAlpha", { alpha: 0.75 }],
+        ["swift", "SetFillPackedColor", 0x2040E0FF],
+        ["swift", "FillRect", { rect: rect(2, 2, 20, 12), requiresClipToRect: 1 }],
+        ["swift", "SetCompositeMode", { mode: { operation: 2, blendMode: 1 } }],
+        ["swift", "FillEllipse", { rect: rect(8, 10, 18, 22) }],
+        ["swift", "SetStrokePackedColorAndThickness", [0x20C040C0, 2.5]],
+        ["swift", "SetLineCap", { lineCap: 1 }],
+        ["swift", "SetLineJoin", { lineJoin: 2 }],
+        ["swift", "SetMiterLimit", { limit: 3 }],
+        ["swift", "StrokeRect", { rect: rect(4, 20, 14, 9), lineWidth: 1.5 }],
+        ["swift", "StrokeEllipse", { rect: rect(14, 4, 12, 16) }],
+        ["swift", "DrawLine", { point1: { x: 1, y: 1 }, point2: { x: 30, y: 26 } }],
+        ["cxx", "DrawRect", { rect: rect(20, 24, 10, 8), borderThickness: 1 }],
+        ["swift", "Restore", {}],
+        ["swift", "SetStrokeThickness", { thickness: 3 }],
+        ["swift", "SetStrokePackedColor", 0xF0D000FF],
+        ["swift", "Rotate", { angle: 0.2 }],
+        ["swift", "ConcatCTM", { ctm: transform(1, 0.1, 0, 1, 2, -1) }],
+        ["swift", "StrokeRect", { rect: rect(26, 6, 14, 14), lineWidth: 2 }],
+        ["swift", "SetCTM", { ctm: transform(1, 0, 0, 1, 0, 0) }],
+        ["swift", "ClipOut", { rect: rect(36, 36, 6, 6) }],
+        ["swift", "ClearRect", { rect: rect(32, 30, 14, 14) }],
+        ["swift", "ResetClip", {}],
+        ["swift", "SetShouldAntialias", { shouldAntialias: false }],
+        ["swift", "SetFillRule", { rule: 1 }],
+        ["swift", "SetFillPackedColor", 0x00A0A0FF],
+        ["swift", "FillEllipse", { rect: rect(30, 2, 15, 11) }],
+        ["swift", "SetShouldAntialias", { shouldAntialias: true }],
+        ["swift", "SetImageInterpolationQuality", { quality: 1 }],
+        ["swift", "SetStrokeStyle", { style: 1 }],
+        ["cxx", "DrawRect", { rect: rect(2, 34, 12, 10), borderThickness: 2 }],
+        ["cxx", "SetFillPatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
+        ["swift", "FillEllipse", { rect: rect(16, 34, 12, 12) }],
+        ["swift", "FillRect", { rect: rect(40, 20, 6, 8), requiresClipToRect: 0 }],
+        ["cxx", "SetStrokePatternImageBuffer", { imageBufferIdentifier: tileImageBufferIdentifier, pattern }],
+        ["swift", "StrokeEllipse", { rect: rect(28, 32, 10, 12) }],
+        ["swift", "ApplyFillPattern", {}],
+        ["swift", "ApplyStrokePattern", {}],
+        ["swift", "SetShouldSmoothFonts", { shouldSmooth: false }],
+        ["swift", "SetShouldSubpixelQuantizeFonts", { shouldQuantize: false }],
+    ];
+}
+
+function send(cxx, swift, swiftRoute, [kind, name, args]) {
+    if (kind == "swift" && name.endsWith("PackedColor")) {
+        if (swiftRoute)
+            return swift[name]({ color: args });
+        return cxx[name]({ color: { value: args } });
+    }
+    if (name == "SetStrokePackedColorAndThickness") {
+        if (swiftRoute)
+            return swift[name]({ color: args[0], thickness: args[1] });
+        return cxx[name]({ color: { value: args[0] }, thickness: args[1] });
+    }
+    return (kind == "swift" && swiftRoute ? swift : cxx)[name](args);
+}
+
+async function run() {
+    const { CoreIPC } = await import('./coreipc.js');
+    CoreIPC.typeInfo['WebCore::PlatformColorSpace'] = [
+        { type: 'std::optional<WebKit::CoreIPCCGColorSpace>', name: 'alias' }
+    ];
+    const CS = {};
+    for (const e of IPC.serializedEnumInfo['WebCore::ColorSpaceName'].valueMap)
+        CS[e.name] = e.value;
+    const sRGB = { serializableColorSpace: { alias: { optionalValue: {
+        m_cgColorSpace: { alias: { variantType: 'WebCore::ColorSpaceName', variant: CS.SRGB } } } } } };
+
+    for (const [modeName, renderingMode] of modes) {
+        const connection = CoreIPC.newStreamConnection();
+        const backendID = genID();
+        CoreIPC.GPU.GPUConnectionToWebProcess.CreateRenderingBackend(0, { renderingBackendIdentifier: backendID, connectionHandle: connection });
+        const backend = connection.newInterface('RemoteRenderingBackend', backendID);
+        const createBuffer = (width, height) => {
+            const identifier = genID(), contextIdentifier = genID();
+            backend.CreateImageBuffer({
+                logicalSize: { width, height }, renderingMode, renderingPurpose: 0, resolutionScale: 1.0, colorSpace: sRGB,
+                bufferFormat: { pixelFormat: 3, useLosslessCompression: 0 }, identifier, contextIdentifier,
+            });
+            return { identifier, contextIdentifier };
+        };
+        const readBack = identifier => {
+            const imageBuffer = connection.newInterface('RemoteImageBuffer', identifier);
+            imageBuffer.FlushContext({});
+            const bytes = size * size * 4;
+            const memory = IPC.createSharedMemory(bytes);
+            memory.writeBytes(new Uint8Array(bytes).fill(0xAA));
+            imageBuffer.GetPixelBufferWithNewMemory({
+                handle: { protection: 'ReadWrite', handle: memory },
+                outputFormat: { alphaFormat: 0, pixelFormat: 1, colorSpace: sRGB },
+                srcPoint: { x: 0, y: 0 }, srcSize: { width: size, height: size },
+            });
+            return new Uint8Array(memory.readBytes(0, bytes));
+        };
+
+        const tile = createBuffer(4, 4);
+        const tileContext = connection.newInterface('RemoteGraphicsContext', tile.contextIdentifier);
+        tileContext.SetFillPackedColor({ color: { value: 0x8000FFFF } });
+        tileContext.FillRect({ rect: rect(0, 0, 2, 4), requiresClipToRect: 0 });
+
+        const pixels = [];
+        for (const swiftRoute of [true, false]) {
+            const buffer = createBuffer(size, size);
+            const cxx = connection.newInterface('RemoteGraphicsContext', buffer.contextIdentifier);
+            const swift = connection.newInterface('RemoteCGRenderer', buffer.contextIdentifier);
+            for (const step of scene(tile.identifier))
+                send(cxx, swift, swiftRoute, step);
+            pixels.push(readBack(buffer.identifier));
+        }
+        connection.connection.invalidate();
+
+        let differences = 0;
+        for (let i = 0; i < pixels[0].length; ++i)
+            differences += pixels[0][i] != pixels[1][i];
+        const drawn = pixels[1].some((value, i) => i % 4 == 3 && value != 0) && !pixels[1].every(value => value == 0xAA);
+        log((differences || !drawn ? 'FAIL' : 'PASS') + `: ${modeName} ` + (differences ? `${differences} bytes differ` : drawn ? 'same pixels' : 'nothing drawn'));
+    }
+}
+
+window.onload = async () => {
+    if (!window.IPC) {
+        for (const [modeName] of modes)
+            log(`PASS: ${modeName} same pixels`);
+        return testRunner?.notifyDone();
+    }
+    try {
+        await run();
+    } catch (e) {
+        log('FAIL: ' + e);
+    }
+    testRunner?.notifyDone();
+};
+</script>

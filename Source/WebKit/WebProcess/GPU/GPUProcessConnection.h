@@ -126,8 +126,10 @@ public:
     void createGraphicsContextGL(RemoteGraphicsContextGLIdentifier, const WebCore::GraphicsContextGLAttributes&, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier);
 #endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     void createGPU(WebGPUIdentifier, RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
     void releaseGPU(WebGPUIdentifier);
+#endif
 
     class Client : public AbstractThreadSafeRefCountedAndCanMakeWeakPtr {
     public:

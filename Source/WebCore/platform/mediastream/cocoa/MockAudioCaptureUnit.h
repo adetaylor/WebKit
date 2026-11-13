@@ -35,7 +35,9 @@ namespace MockAudioCaptureUnit {
 void enable();
 void disable();
 CoreAudioCaptureUnit& singleton();
-NODELETE void increaseBufferSize();
+void increaseBufferSize();
+// The default sample rate of the mock microphone with the given device ID, if there's one.
+std::optional<double> defaultSampleRateForDevice(uint32_t deviceID);
 
 }
 

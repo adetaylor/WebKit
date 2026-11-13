@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
 
 #include "RemoteGPUProxy.h"
 #include "WebGPUIdentifier.h"
@@ -54,7 +54,7 @@ public:
     RemoteGPUProxy& root() { return m_parent->root(); }
 
     Vector<::WebGPU::FeatureName> features() const final { return m_features; }
-    const ::WebGPU::Limits& limits() const LIFETIME_BOUND final { return m_limits; }
+    ::WebGPU::Limits limits() const final { return m_limits; }
     ::WebGPU::AdapterInfo info() final { return m_info; }
     bool isXRCompatible() const final { return m_xrCompatible; }
     void requestDevice(const ::WebGPU::DeviceDescriptor&, CompletionHandler<void(RefPtr<::WebGPU::Device>&&)>&&) final;
@@ -100,4 +100,4 @@ SPECIALIZE_TYPE_TRAITS_BEGIN(WebKit::WebGPU::RemoteAdapterProxy)
     static bool isType(const ::WebGPU::Adapter&) { return true; }
 SPECIALIZE_TYPE_TRAITS_END()
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS_WEBGPU_SWIFT)

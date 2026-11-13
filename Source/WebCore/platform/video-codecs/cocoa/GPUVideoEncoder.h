@@ -25,18 +25,8 @@
 
 #pragma once
 
-#include <WebCore/PlatformVideoColorSpace.h>
-#include <WebCore/VideoCodecType.h>
-#include <WebCore/VideoEncoderScalabilityMode.h>
 #include <WebCore/VideoFrame.h>
 #include <optional>
-#include <span>
-#include <utility>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/Vector.h>
-#include <wtf/text/WTFString.h>
-
-typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 
 namespace WebCore {
 
@@ -52,32 +42,6 @@ struct GPUVideoEncoderFrameInfo {
     bool isScreenshare { false };
     int qp { -1 };
     std::optional<uint8_t> temporalIndex { };
-};
-
-using GPUVideoEncoderCallback = Function<void(std::span<const uint8_t>, const GPUVideoEncoderFrameInfo&)>;
-using GPUVideoEncoderDescriptionCallback = Function<void(std::span<const uint8_t>, const PlatformVideoColorSpace&)>;
-using GPUVideoEncoderErrorCallback = Function<void(bool isFrameDropped)>; // isFrameDropped is false in case of encoder error, and true if encoder decided to drop frame (say to ensure bitrate is respected).
-
-class GPUVideoEncoder : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<GPUVideoEncoder> {
-public:
-    virtual ~GPUVideoEncoder() = default;
-
-    struct CreationInfo {
-        VideoCodecType codecType;
-        bool useAnnexB;
-        VideoEncoderScalabilityMode scalabilityMode;
-        bool isLowLatencyEnabled;
-        Ref<WorkQueue> queue;
-    };
-    WEBCORE_EXPORT static RefPtr<GPUVideoEncoder> create(CreationInfo&&, const Vector<std::pair<String, String>>& parameters, GPUVideoEncoderCallback&&, GPUVideoEncoderDescriptionCallback&&, GPUVideoEncoderErrorCallback&&);
-
-    virtual void initialize(uint16_t width, uint16_t height, unsigned startBitrate, unsigned maxBitrate, unsigned minBitrate, uint32_t maxFramerate) = 0;
-    virtual void encodeFrame(CVPixelBufferRef, int64_t timeStampNs, int64_t timeStamp, std::optional<uint64_t> duration, VideoFrame::Rotation, bool isMirrored, bool isKeyframeRequired) = 0;
-    virtual void setRates(uint32_t bitRate, uint32_t frameRate) = 0;
-    virtual void flush() = 0;
-
-protected:
-    GPUVideoEncoder() = default;
 };
 
 }

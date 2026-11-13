@@ -1,0 +1,1744 @@
+// Copyright (c) 2021-2026 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import Foundation
+import Metal
+import simd
+@_implementationOnly import WebGPU_Internal.CxxBridging
+@_implementationOnly import WebGPU_Internal.Device
+@_implementationOnly import WebGPU_Internal.Queue
+import WebGPU_Private.WebGPU
+@_spiOnly import WebGPU_Private.WebGPUCpp
+
+// Where an external texture binding's planes and constants go, for one stage.
+struct ExternalTextureIndices {
+    var containerIndex = UInt(NSNotFound)
+    var resourceIndex = UInt(NSNotFound)
+    var argumentBufferIndex = UInt(NSNotFound)
+}
+
+// The constants an external texture binding writes into an argument buffer after its two planes. The matrices are
+// column-major, as the shader's float3x2, float4x3 and float3x3 lay them out.
+struct ExternalTextureConstants {
+    var uvRemapping: (Float, Float, Float, Float, Float, Float) = (0, 0, 0, 0, 0, 0)
+    var colorSpaceConversion: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    )
+    // Three columns of four: the xyz of each convert the frame's primaries, all zero to keep them, and the first column's
+    // w is its HDRTransferFunction.
+    var primariesConversion: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float) = (
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    )
+    var visibleWidth: UInt32 = 0
+    var visibleHeight: UInt32 = 0
+}
+
+// The constants an external texture binding writes into an argument buffer after its two planes, from `firstIndex`, as
+// the shader's float3x2, float4x3, float3x4 and uint2.
+private func writeExternalTextureConstants(
+    _ writer: ArgumentConstantWriter?,
+    _ firstIndex: UInt32,
+    _ constants: ExternalTextureConstants
+) {
+    guard let writer else {
+        return
+    }
+    let uv = constants.uvRemapping
+    writer.storeFloat3x2(simd_float3x2(SIMD2(uv.0, uv.1), SIMD2(uv.2, uv.3), SIMD2(uv.4, uv.5)), at: firstIndex)
+    let csc = constants.colorSpaceConversion
+    writer.storeFloat4x3(
+        simd_float4x3(
+            SIMD3(csc.0, csc.1, csc.2),
+            SIMD3(csc.3, csc.4, csc.5),
+            SIMD3(csc.6, csc.7, csc.8),
+            SIMD3(csc.9, csc.10, csc.11)
+        ),
+        at: firstIndex &+ 1
+    )
+    let primaries = constants.primariesConversion
+    writer.storeFloat3x4(
+        simd_float3x4(
+            SIMD4(primaries.0, primaries.1, primaries.2, primaries.3),
+            SIMD4(primaries.4, primaries.5, primaries.6, primaries.7),
+            SIMD4(primaries.8, primaries.9, primaries.10, primaries.11)
+        ),
+        at: firstIndex &+ 2
+    )
+    writer.storeUInt2(SIMD2<UInt32>(constants.visibleWidth, constants.visibleHeight), at: firstIndex &+ 3)
+}
+
+/// A buffer bound with a dynamic offset; a group keeps them sorted by bindingIndex.
+struct DynamicBufferRecord {
+    let type: LayoutBufferType
+    let bindingSize: UInt64
+    let bufferSize: UInt64
+    let bindingIndex: UInt32
+}
+
+/// A sampler a bind group holds: one strong reference per distinct sampler, with the argument-buffer slot it has in each
+/// stage.
+struct SamplerBinding {
+    let impl: SamplerImpl
+    var slots: PerStage<UInt32?>
+}
+
+// One per GPUBindGroup, held by its Swift callers and the encoders and bundles that bound it. Owns the bound resources, the argument buffers, the layout, the samplers and their
+// argument-buffer slots, the dynamic buffers and the per-pipeline validation cache, and runs every check the encoders
+// make on a group. Used only on its Instance's API thread, so not Sendable.
+@_spi(WebKitGPU)
+public final class BindGroupImpl: GPUObjectReference, LinkedImpl {
+    private var linkSlot = ImplLinkSlot<BindGroupImpl>()
+    /// nil exactly when the group is invalid.
+    let layoutImpl: BindGroupLayoutImpl?
+    /// nil when the stage has no arguments, or when a resource bound in it was destroyed before creation.
+    let argumentBuffers: PerStage<(any MTLBuffer)?>
+    /// The gpuAddress of each argument buffer (0 for none), which never changes: the encoders' binding caches key on it.
+    let argumentBufferAddresses: PerStage<UInt64>
+    /// The bound resources; `mtlResources` holds their MTLResources.
+    let resources: ResourceSet
+    private(set) var mtlResources: ResourceLists
+    /// In first-use order.
+    let samplerBindings: [SamplerBinding]
+    let dynamicBuffers: [DynamicBufferRecord]
+    private let externalTextureIndices: PerStage<ExternalTextureIndices>
+    let uniqueId: UInt32
+    // Pipelines this group already validated against, keyed by (group index, pipeline). A group is usually used with a
+    // handful of pipelines, so a short array beats hashing on every draw; the rest spill over.
+    private var recentValidations: [(key: UInt64, maxOffset: UInt32)] = []
+    private var otherValidations: [UInt64: UInt32] = [:]
+    // The live render bundles that hold the group; see updateExternalTextures().
+    var renderBundleConsumerCount = 0
+    // Declared last, so that the device outlives the rest of the group.
+    let deviceImpl: DeviceImpl
+
+    fileprivate init(
+        deviceImpl: DeviceImpl,
+        layoutImpl: BindGroupLayoutImpl,
+        argumentBuffers: consuming PerStage<(any MTLBuffer)?>,
+        resources: consuming ResourceSet,
+        mtlResources: consuming ResourceLists,
+        samplerBindings: consuming [SamplerBinding],
+        dynamicBuffers: consuming [DynamicBufferRecord],
+        externalTextureIndices: PerStage<ExternalTextureIndices>,
+        uniqueId: UInt32
+    ) {
+        self.layoutImpl = layoutImpl
+        self.argumentBuffers = argumentBuffers
+        argumentBufferAddresses = PerStage(
+            vertex: argumentBuffers.vertex?.gpuAddress ?? 0,
+            fragment: argumentBuffers.fragment?.gpuAddress ?? 0,
+            compute: argumentBuffers.compute?.gpuAddress ?? 0
+        )
+        self.resources = resources
+        self.mtlResources = mtlResources
+        self.samplerBindings = samplerBindings
+        self.dynamicBuffers = dynamicBuffers
+        self.externalTextureIndices = externalTextureIndices
+        self.uniqueId = uniqueId
+        self.deviceImpl = deviceImpl
+        // Each resource keeps the group's link.
+        self.resources.registerBindGroupHolder(self)
+    }
+
+    private init(invalidFor deviceImpl: DeviceImpl) {
+        layoutImpl = nil
+        argumentBuffers = PerStage(repeating: nil)
+        argumentBufferAddresses = PerStage(repeating: 0)
+        resources = .empty
+        mtlResources = []
+        samplerBindings = []
+        dynamicBuffers = []
+        externalTextureIndices = noExternalTextureIndices
+        uniqueId = 0
+        self.deviceImpl = deviceImpl
+    }
+
+    fileprivate static func invalid(_ deviceImpl: DeviceImpl) -> BindGroupImpl {
+        BindGroupImpl(invalidFor: deviceImpl)
+    }
+
+    deinit {
+        linkSlot.end()
+    }
+
+    var link: ImplLink<BindGroupImpl> {
+        linkSlot.link(for: self)
+    }
+
+    var hasSamplers: Bool {
+        !samplerBindings.isEmpty
+    }
+
+    /// The layout's dynamic buffer count; 0 for an invalid group.
+    var dynamicBufferCount: UInt32 {
+        layoutImpl?.counts.dynamicBufferCount ?? 0
+    }
+
+    public func isValid() -> Bool {
+        layoutImpl != nil
+    }
+
+    @_spi(WebKitGPU)
+    public func setLabel(_ label: Swift.String?) {
+        let metalLabel = label?.isEmpty == false ? label : nil
+        argumentBuffers.vertex?.label = metalLabel
+        argumentBuffers.fragment?.label = metalLabel
+        argumentBuffers.compute?.label = metalLabel
+    }
+
+    /// `minimumBufferSizes` is the pipeline's; `dynamicOffsets` the encoder's offsets for this group.
+    func errorValidatingBindGroup(_ minimumBufferSizes: MinimumBufferSizes, group: UInt32, dynamicOffsets: [UInt32]?) -> String? {
+        guard let layoutImpl else {
+            return nil
+        }
+        // In container order: the first failure picks the message.
+        for record in resources.records {
+            guard case .buffer(let buffer) = record.impl else {
+                continue
+            }
+            // nil when the layout has no entry for the binding; 0 for a non-buffer entry.
+            let layoutMinBindingSize: UInt64? =
+                switch layoutImpl.entry(binding: record.binding)?.layout {
+                case .none: nil
+                case .some(.buffer(let layoutBuffer)): layoutBuffer.minBindingSize
+                case .some: 0
+                }
+            guard var bufferSize = layoutMinBindingSize else {
+                return "Buffer size is missing for binding at index \(record.binding) bind group"
+            }
+            if let shaderSize = minimumBufferSizes.size(group: group, binding: record.binding) {
+                if bufferSize != 0 && shaderSize > bufferSize {
+                    return "buffer size from WGSL shader(\(shaderSize)) is less than the binding buffer size(\(bufferSize))"
+                }
+                bufferSize = max(bufferSize, shaderSize)
+            }
+            if bufferSize == 0 {
+                continue
+            }
+            // The first dynamic buffer of the binding.
+            var dynamicOffset: UInt32 = 0
+            if let dynamicOffsets, let dynamicOffsetIndex = dynamicBuffers.firstIndex(where: { $0.bindingIndex == record.binding }),
+                dynamicOffsetIndex < dynamicOffsets.count
+            {
+                dynamicOffset = dynamicOffsets[dynamicOffsetIndex]
+            }
+            let (totalOffset, overflowed) = record.entryOffset.addingReportingOverflow(UInt64(dynamicOffset))
+            if overflowed {
+                return "resourceOffset(\(record.entryOffset)) + dynamicOffset(\(dynamicOffset)) overflows uint64_t"
+            }
+            let bufferLength = buffer.currentSize()
+            if totalOffset > bufferLength || bufferLength - totalOffset < bufferSize || bufferSize > record.entrySize {
+                return
+                    "buffer length(\(bufferLength)) minus offset(\(totalOffset)), (resourceOffset(\(record.entryOffset)) + dynamicOffset(\(dynamicOffset))), is less than required bufferSize(\(bufferSize))"
+            }
+        }
+        return nil
+    }
+
+    /// For a valid group only: the encoders check that the group has a layout first.
+    func errorValidatingDynamicOffsets(_ dynamicOffsets: [UInt32], maxOffset: inout UInt32) -> String? {
+        guard let layoutImpl else {
+            preconditionFailure("errorValidatingDynamicOffsets on an invalid bind group")
+        }
+        let bufferCount = layoutImpl.counts.dynamicBufferCount
+        if dynamicOffsets.count != Int(bufferCount) {
+            return
+                "dynamicOffsetCount(\(dynamicOffsets.count)) in setBindGroupCall does not equal the dynamicBufferCount(\(bufferCount)) in bind group layout"
+        }
+
+        let uniformAlignment = deviceImpl.encoderLimits.uniformAlignment
+        let storageAlignment = deviceImpl.encoderLimits.storageAlignment
+        for (index, dynamicOffset) in dynamicOffsets.enumerated() {
+            maxOffset = max(maxOffset, dynamicOffset)
+            guard index < dynamicBuffers.count else {
+                return "dynamicBuffer(\(index)) is nil"
+            }
+            let buffer = dynamicBuffers[index]
+            let (dynamicOffsetPlusBindingSize, overflowed) = UInt64(dynamicOffset).addingReportingOverflow(buffer.bindingSize)
+            if overflowed || dynamicOffsetPlusBindingSize > buffer.bufferSize {
+                return
+                    "dynamicBuffer(\(index)): dynamicOffset(\(dynamicOffset)) + buffer->bindingSize(\(buffer.bindingSize)) > buffer->bufferSize(\(buffer.bufferSize))"
+            }
+
+            let isUniform = buffer.type == .uniform
+            if !(isUniform ? uniformAlignment : storageAlignment).isMultiple(dynamicOffset) {
+                let alignment =
+                    isUniform ? deviceImpl.encoderLimits.minUniformBufferOffsetAlignment : deviceImpl.encoderLimits.minStorageBufferOffsetAlignment
+                return
+                    "dynamicBuffer(\(index)): dynamicOffset(\(dynamicOffset)) is not divisible by the \(isUniform ? "uniform" : "storage") buffer alignment(\(alignment))"
+            }
+        }
+        return nil
+    }
+
+    /// `pipelineLayout` is the pipeline's layout at the group's index.
+    func makeSubmitInvalid(_ stage: Stage, pipelineLayout: BindGroupLayoutImpl?) -> Bool {
+        guard let pipelineLayout, !pipelineLayout.entries.isEmpty else {
+            return false
+        }
+        if !isValid() {
+            return true
+        }
+        return UInt(argumentBuffers[stage]?.length ?? 0) != pipelineLayout.encodedLength(UInt8(stage.rawValue))
+    }
+
+    private static func validationKey(group: UInt32, pipelineId: UInt64) -> UInt64 {
+        UInt64(group) | (pipelineId << 32)
+    }
+
+    func previouslyValidated(group: UInt32, pipelineId: UInt64, maxOffset: UInt32) -> Bool {
+        let key = Self.validationKey(group: group, pipelineId: pipelineId)
+        for validation in recentValidations where validation.key == key {
+            return validation.maxOffset >= maxOffset
+        }
+        guard !otherValidations.isEmpty, let validatedOffset = otherValidations[key] else {
+            return false
+        }
+        return validatedOffset >= maxOffset
+    }
+
+    func validatedSuccessfully(group: UInt32, pipelineId: UInt64, maxOffset: UInt32) {
+        let key = Self.validationKey(group: group, pipelineId: pipelineId)
+        if let index = recentValidations.firstIndex(where: { $0.key == key }) {
+            recentValidations[index].maxOffset = max(recentValidations[index].maxOffset, maxOffset)
+        } else if let existing = otherValidations[key] {
+            otherValidations[key] = max(existing, maxOffset)
+        } else if recentValidations.count < 8 {
+            recentValidations.append((key: key, maxOffset: maxOffset))
+        } else {
+            otherValidations[key] = maxOffset
+        }
+    }
+
+    func rebindSamplersIfNeeded() -> Bool {
+        guard let layoutImpl else {
+            return true
+        }
+        for binding in samplerBindings {
+            let sampler = binding.impl
+            if sampler.cachedSamplerState() != nil {
+                continue
+            }
+            logAlways(
+                "Rebinding of samplers required, if this occurs frequently the application is using too many unique samplers"
+            )
+            guard let samplerState = sampler.tryCacheSamplerState() else {
+                return false
+            }
+            for stage in Stage.allCases {
+                guard let slot = binding.slots[stage], let encoder = layoutImpl.argumentEncoder(stage), let buffer = argumentBuffers[stage]
+                else {
+                    continue
+                }
+                encoder.setArgumentBuffer(buffer, offset: 0)
+                encoder.setSamplerState(samplerState, index: Int(slot))
+            }
+        }
+        return true
+    }
+
+    func releaseDestroyedResources() {
+        modifyMTLResources { lists in
+            _ = resources.replaceDestroyedResourcesWithPlaceholders(&lists)
+        }
+    }
+
+    /// Mutates `mtlResources` outside any access to it: it is moved out and back, so that no release happens during an
+    /// access and the per-setBindGroup reads need no runtime exclusivity check.
+    private func modifyMTLResources(_ body: (inout ResourceLists) -> Void) {
+        var lists: ResourceLists = []
+        swap(&lists, &mtlResources)
+        body(&lists)
+        swap(&lists, &mtlResources)
+    }
+
+    @_spi(WebKitGPU)
+    public func updateExternalTextures(_ externalTexture: ExternalTextureImpl) -> Bool {
+        guard renderBundleConsumerCount == 0, let layoutImpl, externalTexture.deviceImpl === deviceImpl, !externalTexture.hasPendingUsers()
+        else {
+            return false
+        }
+
+        // Only the external texture this group binds, and only while no open encoder uses it.
+        var foundBoundExternalTexture = false
+        for record in resources.records {
+            guard case .externalTexture(let boundExternalTexture) = record.impl else {
+                continue
+            }
+            guard boundExternalTexture === externalTexture, boundExternalTexture.openCommandEncoderCount() == 0 else {
+                return false
+            }
+            foundBoundExternalTexture = true
+        }
+        guard foundBoundExternalTexture else {
+            return false
+        }
+
+        let imported = importBoundExternalTexture(deviceImpl, externalTexture)
+        let placeholder = deviceImpl.placeholderTexture(false)
+        let texture0 = imported.texture0 ?? placeholder
+        let texture1 = imported.texture1 ?? placeholder
+        externalTexture.updateExternalTextures(texture0, texture1)
+        guard let texture0, let texture1 else {
+            return false
+        }
+        var constants = imported.constants
+        constants.visibleWidth = externalTexture.visibleWidth()
+        constants.visibleHeight = externalTexture.visibleHeight()
+
+        let notFound = UInt(bitPattern: NSNotFound)
+        for stage in Stage.allCases {
+            let indices = externalTextureIndices[stage]
+            let index = indices.argumentBufferIndex
+            let resourceIndex = indices.resourceIndex
+            let containerIndex = indices.containerIndex
+            if index == notFound || containerIndex >= UInt(mtlResources.count) {
+                continue
+            }
+            let resourceCount = UInt(mtlResources[Int(containerIndex)].count)
+            if resourceIndex >= resourceCount || resourceIndex &+ 1 >= resourceCount {
+                continue
+            }
+
+            modifyMTLResources { lists in
+                lists[Int(containerIndex)][Int(resourceIndex)] = texture0
+                lists[Int(containerIndex)][Int(resourceIndex) + 1] = texture1
+            }
+
+            guard let encoder = layoutImpl.argumentEncoder(stage), let buffer = argumentBuffers[stage] else {
+                continue
+            }
+            encoder.setArgumentBuffer(buffer, offset: 0)
+            encoder.setTexture(texture0, index: Int(truncatingIfNeeded: index))
+            encoder.setTexture(texture1, index: Int(truncatingIfNeeded: index &+ 1))
+            guard let firstConstantIndex = UInt32(exactly: index &+ 2) else {
+                continue
+            }
+            writeExternalTextureConstants(
+                ArgumentConstantWriter(layoutImpl.typedArgumentEncoder(stage), buffer: buffer),
+                firstConstantIndex,
+                constants
+            )
+        }
+        return true
+    }
+}
+
+extension BindGroupLayoutImpl {
+    fileprivate func argumentEncoder(_ stage: Stage) -> (any MTLArgumentEncoder)? {
+        switch stage {
+        case .vertex: vertexArgumentEncoder()
+        case .fragment: fragmentArgumentEncoder()
+        case .compute: computeArgumentEncoder()
+        }
+    }
+}
+
+/// Imports the external texture's pixel buffer as premultiplied; a destroyed external texture imports nothing.
+private func importBoundExternalTexture(
+    _ deviceImpl: DeviceImpl,
+    _ externalTexture: ExternalTextureImpl
+) -> (texture0: (any MTLTexture)?, texture1: (any MTLTexture)?, constants: ExternalTextureConstants) {
+    guard let pixelBuffer = externalTexture.pixelBuffer() else {
+        return (nil, nil, ExternalTextureConstants())
+    }
+    let colorSpace = WebGPU.PredefinedColorSpace(rawValue: externalTexture.colorSpaceRawValue()) ?? .SRGB
+    let imported = deviceImpl.externalTextureImporter.importPixelBuffer(deviceImpl, pixelBuffer, colorSpace, premultiplyAlpha: true)
+    return (imported.texture0, imported.texture1, imported.constants)
+}
+
+// MARK: - Creation (Device::createBindGroup)
+
+private enum DescriptorResource {
+    case buffer(BufferImpl, sameDevice: Bool, offset: UInt64, size: UInt64?)
+    case sampler(SamplerImpl, sameDevice: Bool)
+    case texture(TextureImpl, sameDevice: Bool)
+    case textureView(TextureViewImpl, sameDevice: Bool)
+    case externalTexture(ExternalTextureImpl)
+}
+
+private struct DescriptorEntry {
+    let binding: UInt32
+    let resource: DescriptorResource
+}
+
+/// Takes the device reference the group keeps.
+///
+/// Takes the entries out of `entries`, in order, leaving its buffer for the builder to reuse.
+private func makeBindGroupImpl(
+    _ deviceImpl: DeviceImpl,
+    _ layoutImpl: BindGroupLayoutImpl,
+    _ entries: inout [DescriptorEntry]
+) -> BindGroupImpl {
+    guard deviceImpl.isValid() else {
+        return .invalid(deviceImpl)
+    }
+
+    let isAutoGenerated = layoutImpl.counts.isAutoGenerated
+    if !layoutImpl.isValid() || (!isAutoGenerated && entries.count != layoutImpl.entries.count) || layoutImpl.deviceImpl !== deviceImpl {
+        reportBindGroupError(deviceImpl, "invalid BindGroupLayout createBindGroup")
+        return .invalid(deviceImpl)
+    }
+
+    var creation = BindGroupCreation(deviceImpl: deviceImpl, layoutImpl: layoutImpl)
+    if creation.argumentBufferAllocationFailed {
+        deviceImpl.generateAnOutOfMemoryError("GPUDevice.createBindGroup: the argument buffer could not be allocated")
+        return .invalid(deviceImpl)
+    }
+    var usedBindingSlots = SmallIndexSet()
+    // Popped from the reversed list rather than read in place, which would copy each entry's references.
+    entries.reverse()
+    while let entry = entries.popLast() {
+        if !usedBindingSlots.insert(entry.binding) {
+            reportBindGroupError(deviceImpl, "Binding \(entry.binding) is duplicated in the bind group descriptor")
+            return .invalid(deviceImpl)
+        }
+        if !creation.add(entry) {
+            if let message = creation.error {
+                reportBindGroupError(deviceImpl, message)
+            }
+            return .invalid(deviceImpl)
+        }
+    }
+
+    for stage in Stage.allCases where !creation.argumentIndices[stage].isEmpty {
+        return .invalid(deviceImpl)
+    }
+
+    // Sorted before the resources are built; nothing between reads it.
+    if creation.dynamicBuffers.count > 1 {
+        creation.dynamicBuffers.sort { $0.bindingIndex < $1.bindingIndex }
+    }
+    let (resources, mtlResources) = creation.buildResources()
+    for stage in Stage.allCases {
+        if let buffer = creation.argumentBuffers[stage] {
+            buffer.label = layoutImpl.argumentEncoder(stage)?.label
+        }
+    }
+
+    if deviceImpl.bindGroupIdsExhausted() {
+        deviceImpl.loseTheDevice(WebGPU.DeviceLostReason.Unknown)
+        return .invalid(deviceImpl)
+    }
+
+    return creation.makeImpl(
+        resources: consume resources,
+        mtlResources: consume mtlResources,
+        uniqueId: deviceImpl.takeBindGroupId()
+    )
+}
+
+// https://gpuweb.github.io/gpuweb/#typedefdef-gpubindingresource
+@_spi(WebKitGPU)
+public enum GPUBindingResource {
+    case sampler(SamplerReference)
+    case texture(TextureReference)
+    case textureView(TextureViewReference)
+    // nil size: the rest of the buffer after the offset.
+    case buffer(BufferReference, offset: UInt64, size: UInt64?)
+    case externalTexture(ExternalTextureReference)
+}
+
+// https://gpuweb.github.io/gpuweb/#dictdef-gpubindgroupentry
+@_spi(WebKitGPU)
+public struct GPUBindGroupEntry {
+    public var binding: UInt32
+    public var resource: GPUBindingResource
+
+    public init(binding: UInt32, resource: GPUBindingResource) {
+        self.binding = binding
+        self.resource = resource
+    }
+}
+
+/// Device::createBindGroup, for a Swift caller.
+func createBindGroupImpl(
+    _ deviceImpl: DeviceImpl,
+    layout: BindGroupLayoutReference,
+    entries descriptorEntries: [GPUBindGroupEntry]
+) -> BindGroupImpl {
+    var entries: [DescriptorEntry] = []
+    entries.reserveCapacity(descriptorEntries.count)
+    for entry in descriptorEntries {
+        let resource: DescriptorResource =
+            switch entry.resource {
+            case .sampler(let sampler):
+                .sampler(sampler, sameDevice: sampler.deviceImpl === deviceImpl)
+            case .texture(let texture):
+                .texture(texture, sameDevice: texture.deviceImpl === deviceImpl)
+            case .textureView(let view):
+                .textureView(view, sameDevice: view.deviceImpl === deviceImpl)
+            case .buffer(let buffer, let offset, let size):
+                .buffer(
+                    buffer,
+                    sameDevice: buffer.deviceImpl === deviceImpl,
+                    offset: offset,
+                    size: size
+                )
+            case .externalTexture(let texture):
+                .externalTexture(texture)
+            }
+        entries.append(DescriptorEntry(binding: entry.binding, resource: resource))
+    }
+    return makeBindGroupImpl(deviceImpl, layout, &entries)
+}
+
+/// A Set<UInt32> that keeps values below 64 in a bit mask, so that the usual binding and argument indices allocate
+/// nothing.
+private struct SmallIndexSet {
+    private var mask: UInt64 = 0
+    private var others = Set<UInt32>()
+
+    init() {
+    }
+
+    init(_ values: [UInt32]) {
+        for value in values {
+            _ = insert(value)
+        }
+    }
+
+    /// The set of the values below 64 whose bits are set.
+    init(bits: UInt64) {
+        mask = bits
+    }
+
+    var isEmpty: Bool {
+        mask == 0 && others.isEmpty
+    }
+
+    /// Set.insert(_:).inserted.
+    mutating func insert(_ value: UInt32) -> Bool {
+        guard value < 64 else {
+            return others.insert(value).inserted
+        }
+        let bit = UInt64(1) << value
+        if mask & bit != 0 {
+            return false
+        }
+        mask |= bit
+        return true
+    }
+
+    mutating func remove(_ value: UInt32) {
+        if value < 64 {
+            mask &= ~(UInt64(1) << value)
+        } else {
+            others.remove(value)
+        }
+    }
+}
+
+private func reportBindGroupError(_ deviceImpl: DeviceImpl, _ message: String) {
+    deviceImpl.generateAValidationError("GPUDevice.createBindGroup: \(message)")
+}
+
+/// The stage slots: vertex, fragment, compute, then one for entries visible to no stage.
+///
+/// Slots 0-2 are Stage raw values. Containers are built in slot order.
+private let stageSlotCount = 4
+
+/// The MTLRenderStages raw value of each stage slot: 0 for compute and 3 for the slot of no stage.
+private func renderStagesRawValue(forSlot slot: Int) -> UInt {
+    switch slot {
+    case 0: 1
+    case 1: 2
+    case 2: 0
+    default: 3
+    }
+}
+
+/// Every stage's ExternalTextureIndices, all NSNotFound.
+private var noExternalTextureIndices: PerStage<ExternalTextureIndices> {
+    PerStage(repeating: ExternalTextureIndices())
+}
+
+/// Resources are bucketed by MTLResourceUsage (Read, Write, ReadWrite), at index usage - 1.
+private let resourceUsageCount = 3
+
+/// What the bind group checks read from a Texture or TextureView, after clearing it.
+private struct BoundTexture {
+    let owner: BoundResource
+    let tracking: TrackingInfo
+    let sameDevice: Bool
+    let isDestroyed: Bool
+    let isValid: Bool
+    let usage: UInt8
+    let sampleCount: UInt32
+    let format: WebGPU.TextureFormat
+    let aspect: WebGPU.TextureAspect
+    let texture: (any MTLTexture)?
+    let sampledTexture: (any MTLTexture)?
+    let hasSwizzle: Bool
+    let is2DTexture: Bool
+    let mipLevelCount: UInt32
+}
+
+/// The state of one bind group creation.
+///
+/// Holds no Device reference: the caller reports `error` with its own.
+private struct BindGroupCreation {
+    let deviceImpl: DeviceImpl
+    let layoutImpl: BindGroupLayoutImpl
+    let uniformAlignment: PowerOfTwo
+    let storageAlignment: PowerOfTwo
+    // Printed in the alignment error, whichever alignment failed.
+    let minStorageBufferOffsetAlignment: UInt32
+    let maxUniformBufferBindingSize: UInt64
+    let maxStorageBufferBindingSize: UInt64
+    var float32Filterable: Bool {
+        deviceImpl.hasFeature(WebGPU.FeatureName.Float32Filterable)
+    }
+    var encoders: PerStage<(any MTLArgumentEncoder)?>
+    // The writers of the constants of the argument buffers, which the encoders encode into.
+    var constantWriters = PerStage<ArgumentConstantWriter?>(repeating: nil)
+    var argumentBuffers = PerStage<(any MTLBuffer)?>(repeating: nil)
+    var argumentIndices = PerStage<SmallIndexSet>(repeating: SmallIndexSet())
+    /// Every resource's record, owner and MTLResource, in the order they were added.
+    ///
+    /// A record's `resource` is its own index (one owner per record) until buildResources orders them by bucket
+    /// (stage slot * resourceUsageCount + MTLResourceUsage - 1).
+    var records: [UsageRecord] = []
+    var owners = OwnerList()
+    var mtlResources: [any MTLResource] = []
+    /// The number of resources in each bucket.
+    var bucketCounts = SIMD16<UInt32>()
+    /// Each record's bucket, kept only once a record arrives in a lower bucket than the one before it; until then the
+    /// records are already in bucket order.
+    var recordBuckets: [UInt8]?
+    var lastBucket = 0
+    var dynamicBuffers: [DynamicBufferRecord] = []
+    var samplerBindings: [SamplerBinding] = []
+    var externalTextureIndices = noExternalTextureIndices
+    /// A stage with arguments has no argument buffer: nothing may be encoded, since the argument encoders' writes
+    /// (constantDataAtIndex: among them) would have no buffer to go to.
+    private(set) var argumentBufferAllocationFailed = false
+    /// The validation error that made add() fail, for the caller to report.
+    private(set) var error: String?
+
+    init(deviceImpl: DeviceImpl, layoutImpl: BindGroupLayoutImpl) {
+        self.deviceImpl = deviceImpl
+        self.layoutImpl = layoutImpl
+        uniformAlignment = deviceImpl.encoderLimits.uniformAlignment
+        storageAlignment = deviceImpl.encoderLimits.storageAlignment
+        minStorageBufferOffsetAlignment = deviceImpl.capabilities.limits.minStorageBufferOffsetAlignment
+        maxUniformBufferBindingSize = deviceImpl.capabilities.limits.maxUniformBufferBindingSize
+        maxStorageBufferBindingSize = deviceImpl.capabilities.limits.maxStorageBufferBindingSize
+        encoders = PerStage(
+            vertex: layoutImpl.vertexArgumentEncoder(),
+            fragment: layoutImpl.fragmentArgumentEncoder(),
+            compute: layoutImpl.computeArgumentEncoder()
+        )
+        for stage in Stage.allCases {
+            let encodedLength = layoutImpl.encodedLength(UInt8(stage.rawValue))
+            if encodedLength != 0 {
+                argumentBuffers[stage] = deviceImpl.safeCreateBuffer(encodedLength, .shared)
+                if argumentBuffers[stage] == nil {
+                    argumentBufferAllocationFailed = true
+                }
+            }
+            encoders[stage]?.setArgumentBuffer(argumentBuffers[stage], offset: 0)
+            constantWriters[stage] = ArgumentConstantWriter(layoutImpl.typedArgumentEncoder(stage), buffer: argumentBuffers[stage])
+            argumentIndices[stage] =
+                layoutImpl.argumentIndexBits[stage].map { SmallIndexSet(bits: $0) } ?? SmallIndexSet(layoutImpl.argumentIndices[stage])
+        }
+    }
+
+    /// Every caller returns false at once, and add() returns that straight to makeBindGroupImpl, which reports it.
+    mutating func reportError(_ message: String) {
+        error = message
+    }
+
+    /// Appends one MTLResource and its usage record to bucket `bucket`.
+    @inline(__always)
+    mutating func append(
+        bucket: Int,
+        mtlResource: any MTLResource,
+        usage: EntryUsage,
+        binding: UInt32,
+        entryOffset: UInt64,
+        entrySize: UInt64,
+        owner: BoundResource,
+        tracking: TrackingInfo
+    ) {
+        if recordBuckets == nil && bucket < lastBucket {
+            var buckets: [UInt8] = []
+            buckets.reserveCapacity(records.count + 1)
+            for earlierBucket in 0..<(stageSlotCount * resourceUsageCount) {
+                buckets.append(contentsOf: repeatElement(UInt8(earlierBucket), count: Int(bucketCounts[earlierBucket])))
+            }
+            recordBuckets = buckets
+        }
+        recordBuckets?.append(UInt8(bucket))
+        lastBucket = bucket
+        bucketCounts[bucket] &+= 1
+        records.append(
+            UsageRecord(
+                usage: usage,
+                binding: binding,
+                entryOffset: entryOffset,
+                entrySize: entrySize,
+                resource: Int32(records.count),
+                impl: owner.trackedImpl,
+                tracking: tracking
+            )
+        )
+        owners.append(owner)
+        mtlResources.append(mtlResource)
+    }
+
+    mutating func removeArgumentIndices(_ stage: Stage, from first: UInt32, count: UInt32) {
+        for offset in 0..<count {
+            argumentIndices[stage].remove(first &+ offset)
+        }
+    }
+
+    /// Adds one descriptor entry in every stage slot; false when the group is invalid.
+    @inline(__always)
+    mutating func add(_ entry: borrowing DescriptorEntry) -> Bool {
+        let layoutEntry = layoutImpl.entry(binding: entry.binding)
+        var bindingContainedInStage = false
+        var appendedBufferToDynamicBuffers = false
+        for slot in 0..<stageSlotCount {
+            let stage = Stage(rawValue: slot)
+            guard let layoutEntry, let index = argumentBufferIndexForEntry(layoutEntry, stage) else {
+                continue
+            }
+            bindingContainedInStage = true
+            guard let access = layoutEntry.bindingAccess(for: stage) else {
+                preconditionFailure("A bind group layout entry without an access for a stage it has an argument in")
+            }
+            let usageIndex = resourceUsageIndex(access)
+
+            let succeeded: Bool
+            switch entry.resource {
+            case .buffer(let impl, let sameDevice, let offset, let size):
+                succeeded = addBuffer(
+                    entry.binding,
+                    impl,
+                    sameDevice: sameDevice,
+                    offset: offset,
+                    size: size,
+                    layoutEntry: layoutEntry,
+                    stage: stage,
+                    slot: slot,
+                    index: index,
+                    usageIndex: usageIndex,
+                    appendedToDynamicBuffers: &appendedBufferToDynamicBuffers
+                )
+            case .sampler(let impl, let sameDevice):
+                succeeded = addSampler(impl, sameDevice: sameDevice, layoutEntry: layoutEntry, stage: stage, index: index)
+            case .texture(let impl, let sameDevice):
+                succeeded = addTexture(
+                    entry.binding,
+                    .texture(impl, sameDevice: sameDevice),
+                    layoutEntry: layoutEntry,
+                    stage: stage,
+                    slot: slot,
+                    index: index,
+                    usageIndex: usageIndex
+                )
+            case .textureView(let impl, let sameDevice):
+                succeeded = addTexture(
+                    entry.binding,
+                    .textureView(impl, sameDevice: sameDevice),
+                    layoutEntry: layoutEntry,
+                    stage: stage,
+                    slot: slot,
+                    index: index,
+                    usageIndex: usageIndex
+                )
+            case .externalTexture(let impl):
+                succeeded = addExternalTexture(
+                    entry.binding,
+                    impl,
+                    layoutEntry: layoutEntry,
+                    stage: stage,
+                    slot: slot,
+                    index: index,
+                    usageIndex: usageIndex
+                )
+            }
+            if !succeeded {
+                return false
+            }
+        }
+
+        if !bindingContainedInStage && !layoutImpl.counts.isAutoGenerated {
+            reportError("Binding \(Int32(bitPattern: entry.binding)) was not contained in the bind group")
+            return false
+        }
+        return true
+    }
+
+    @inline(__always)
+    mutating func addBuffer(
+        _ binding: UInt32,
+        _ buffer: BufferImpl,
+        sameDevice: Bool,
+        offset: UInt64,
+        size: UInt64?,
+        layoutEntry: LayoutEntry,
+        stage: Stage?,
+        slot: Int,
+        index: UInt32,
+        usageIndex: Int,
+        appendedToDynamicBuffers: inout Bool
+    ) -> Bool {
+        guard case .buffer(let layoutBinding) = layoutEntry.layout else {
+            reportError("Expected buffer but it was not present in the bind group layout")
+            return false
+        }
+        let mtlBuffer = buffer.buffer()
+        let isDestroyed = buffer.isDestroyed()
+        if isDestroyed, let stage {
+            encoders[stage] = nil
+            argumentBuffers[stage] = nil
+        }
+
+        let bufferLength = UInt64(mtlBuffer?.length ?? 0)
+        let entryOffset = isDestroyed ? 0 : offset
+        let bufferLengthMinusOffset = bufferLength > entryOffset ? bufferLength - entryOffset : 0
+        let entrySize = size ?? bufferLengthMinusOffset
+        if layoutBinding.hasDynamicOffset && !appendedToDynamicBuffers {
+            dynamicBuffers.append(
+                DynamicBufferRecord(
+                    type: layoutBinding.type,
+                    bindingSize: entrySize,
+                    bufferSize: bufferLengthMinusOffset,
+                    bindingIndex: binding
+                )
+            )
+            appendedToDynamicBuffers = true
+        }
+
+        if !buffer.isValid() || !sameDevice {
+            if !isDestroyed {
+                reportError("Buffer is invalid or created from a different device")
+            }
+            return false
+        }
+
+        let isUniformBuffer = layoutBinding.type == .uniform
+        let isStorageBuffer = layoutBinding.type == .storage || layoutBinding.type == .readOnlyStorage
+        if !buffer.isDestroyed() {
+            if offset >= bufferLength {
+                reportError("Unexpected entry.offset(\(offset)) >= buffer length(\(bufferLength))")
+                return false
+            }
+
+            if !hasProperUsageFlags(layoutBinding.type, buffer.usageRawValue()) {
+                reportError("Unexpected type(\(layoutBinding.type.rawValue)), buffer.usage(\(apiBufferUsage(buffer.usageRawValue())))")
+                return false
+            }
+
+            if (isUniformBuffer && !uniformAlignment.isMultiple(offset)) || (isStorageBuffer && !storageAlignment.isMultiple(offset)) {
+                reportError("Buffer offset(\(offset)) is not a multiple of the device buffer alignment(\(minStorageBufferOffsetAlignment))")
+                return false
+            }
+
+            if (isUniformBuffer && entrySize > maxUniformBufferBindingSize) || (isStorageBuffer && entrySize > maxStorageBufferBindingSize)
+            {
+                reportError(
+                    "Buffer size(\(entrySize)) is larger than the device limits(\(isUniformBuffer ? maxUniformBufferBindingSize : maxStorageBufferBindingSize))"
+                )
+                return false
+            }
+            if isStorageBuffer && entrySize % 4 != 0 {
+                reportError("Storage buffer size(\(entrySize)) is not multiple of 4")
+                return false
+            }
+            if entrySize == 0 || entrySize &+ entryOffset > bufferLength
+                || (layoutBinding.minBindingSize != 0 && layoutBinding.minBindingSize > entrySize)
+            {
+                reportError(
+                    "entrySize == 0 or entrySize(\(entrySize)) + entryOffset(\(entryOffset)) > buffer size(\(bufferLength)) or layoutBinding->minBindingSize(\(layoutBinding.minBindingSize)) > entrySize(\(entrySize))"
+                )
+                return false
+            }
+        }
+
+        if let stage, bufferLength != 0 {
+            argumentIndices[stage].remove(index)
+            encoders[stage]?.setBuffer(mtlBuffer, offset: Int(truncatingIfNeeded: entryOffset), index: Int(index))
+            if let bufferSizeIndex = layoutEntry.bufferSizeArgumentBufferIndices[stage] {
+                argumentIndices[stage].remove(bufferSizeIndex)
+                constantWriters[stage]?
+                    .storeInt(min(UInt32(truncatingIfNeeded: entrySize), UInt32(truncatingIfNeeded: bufferLength)), at: bufferSizeIndex)
+            }
+        }
+        if let mtlBuffer {
+            let tracking = TrackingInfo(
+                kind: .buffer,
+                identity: identityKey(ObjectIdentifier(buffer)),
+                baseMipLevel: 0,
+                mipLevelCount: 0,
+                baseArrayLayer: 0,
+                arrayLayerCount: 0,
+                aspect: .All
+            )
+            append(
+                bucket: slot * resourceUsageCount + usageIndex,
+                mtlResource: mtlBuffer,
+                usage: entryUsage(layoutBinding.type),
+                binding: binding,
+                entryOffset: entryOffset,
+                entrySize: entrySize,
+                owner: .buffer(buffer),
+                tracking: tracking
+            )
+        }
+        return true
+    }
+
+    mutating func addSampler(
+        _ sampler: SamplerImpl,
+        sameDevice: Bool,
+        layoutEntry: LayoutEntry,
+        stage: Stage?,
+        index: UInt32
+    ) -> Bool {
+        guard case .sampler(let layoutBinding) = layoutEntry.layout else {
+            reportError("Expected sampler but it was not present in the bind group layout")
+            return false
+        }
+        if !sampler.isValid() || !sameDevice {
+            reportError("Underlying sampler is not valid or created from a different device")
+            return false
+        }
+        if !samplerTypeMatches(layoutBinding.type, sampler) {
+            reportError("Expected sampler type(\(layoutBinding.type.rawValue)) has wrong comparison or filtering modes")
+            return false
+        }
+
+        let samplerState = sampler.tryCacheSamplerState()
+        guard let stage else {
+            return true
+        }
+        argumentIndices[stage].remove(index)
+        encoders[stage]?.setSamplerState(samplerState, index: Int(index))
+        // A group holds a few samplers at most, so a walk finds a repeat.
+        let samplerIndex: Int
+        if let existing = samplerBindings.firstIndex(where: { $0.impl === sampler }) {
+            samplerIndex = existing
+        } else {
+            samplerIndex = samplerBindings.count
+            samplerBindings.append(SamplerBinding(impl: sampler, slots: PerStage(repeating: nil)))
+        }
+        samplerBindings[samplerIndex].slots[stage] = index
+        return true
+    }
+
+    enum TextureResource {
+        case texture(TextureImpl, sameDevice: Bool)
+        case textureView(TextureViewImpl, sameDevice: Bool)
+    }
+
+    /// Clears the texture if it needs it, then reads the state the checks use.
+    ///
+    /// nil when the texture could not be zero-filled: nothing may read it uninitialized. A texture of another device is
+    /// rejected later, so it is not touched.
+    func clearAndRead(_ resource: TextureResource) -> BoundTexture? {
+        switch resource {
+        case .texture(let impl, let sameDevice):
+            if sameDevice
+                && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
+                    deviceImpl,
+                    impl,
+                    .All,
+                    impl.mipLevelCount(),
+                    impl.arrayLayerCount(),
+                    0,
+                    0
+                )
+            {
+                return nil
+            }
+            let texture = impl.texture()
+            return BoundTexture(
+                owner: .texture(impl),
+                tracking: TrackingInfo(
+                    kind: .texture,
+                    identity: identityKey(ObjectIdentifier(impl)),
+                    baseMipLevel: 0,
+                    mipLevelCount: impl.mipLevelCount(),
+                    baseArrayLayer: 0,
+                    arrayLayerCount: impl.arrayLayerCount(),
+                    aspect: .All
+                ),
+                sameDevice: sameDevice,
+                isDestroyed: impl.isDestroyed(),
+                isValid: impl.isValid(),
+                usage: impl.usage(),
+                sampleCount: impl.sampleCount(),
+                format: impl.formatOrDefault,
+                aspect: .All,
+                texture: texture,
+                sampledTexture: texture,
+                hasSwizzle: false,
+                is2DTexture: impl.is2DTexture(),
+                mipLevelCount: impl.mipLevelCount()
+            )
+        case .textureView(let impl, let sameDevice):
+            let aspect = WebGPU.TextureAspect(rawValue: impl.aspect()) ?? .All
+            if sameDevice
+                && !deviceImpl.defaultQueueImpl.clearTextureIfNeeded(
+                    deviceImpl,
+                    impl.parentTextureImpl,
+                    aspect,
+                    impl.mipLevelCount(),
+                    impl.arrayLayerCount(),
+                    impl.baseMipLevel(),
+                    impl.baseArrayLayer()
+                )
+            {
+                return nil
+            }
+            return BoundTexture(
+                owner: .textureView(impl),
+                tracking: TrackingInfo(
+                    kind: .textureView,
+                    identity: identityKey(ObjectIdentifier(impl.parentTextureImpl)),
+                    baseMipLevel: impl.baseMipLevel(),
+                    mipLevelCount: impl.mipLevelCount(),
+                    baseArrayLayer: impl.baseArrayLayer(),
+                    arrayLayerCount: impl.arrayLayerCount(),
+                    aspect: aspect
+                ),
+                sameDevice: sameDevice,
+                isDestroyed: impl.isDestroyed(),
+                isValid: impl.isValid(),
+                usage: impl.usage(),
+                sampleCount: impl.sampleCount(),
+                format: impl.formatOrDefault,
+                aspect: aspect,
+                texture: impl.texture(),
+                sampledTexture: impl.sampledTexture(),
+                hasSwizzle: impl.hasSwizzle(),
+                is2DTexture: impl.is2DTexture(),
+                mipLevelCount: impl.mipLevelCount()
+            )
+        }
+    }
+
+    mutating func addTexture(
+        _ binding: UInt32,
+        _ resource: TextureResource,
+        layoutEntry: LayoutEntry,
+        stage: Stage?,
+        slot: Int,
+        index: UInt32,
+        usageIndex: Int
+    ) -> Bool {
+        let textureEntry: TextureLayout?
+        let storageTextureEntry: StorageTextureLayout?
+        let isExternalTextureEntry: Bool
+        switch layoutEntry.layout {
+        case .texture(let layout):
+            (textureEntry, storageTextureEntry, isExternalTextureEntry) = (layout, nil, false)
+        case .storageTexture(let layout):
+            (textureEntry, storageTextureEntry, isExternalTextureEntry) = (nil, layout, false)
+        case .externalTexture:
+            (textureEntry, storageTextureEntry, isExternalTextureEntry) = (nil, nil, true)
+        case .buffer, .sampler:
+            reportError("Expected texture or storage texture but it was not present in the bind group layout")
+            return false
+        }
+
+        guard let bound = clearAndRead(resource) else {
+            reportError("Lazy zero-initialization of the texture failed")
+            return false
+        }
+        let texture = textureEntry != nil && !isExternalTextureEntry ? bound.sampledTexture : bound.texture
+        if !bound.isDestroyed {
+            if !bound.isValid {
+                reportError("Underlying texture is not valid")
+                return false
+            }
+            if !bound.sameDevice {
+                reportError("Underlying texture was created from a different device")
+                return false
+            }
+            if (textureEntry != nil && !textureUsageContains(bound.usage, .TextureBinding))
+                || (storageTextureEntry != nil && !textureUsageContains(bound.usage, .StorageBinding))
+            {
+                reportError(
+                    "Storage texture usage(\(apiTextureUsage(bound.usage))) did not have storage usage or storage texture entry did not have storage binding"
+                )
+                return false
+            }
+            if let textureEntry, (textureEntry.multisampled ? 4 : 1) != bound.sampleCount {
+                reportError(
+                    "Bind group entry multisampled(\(textureEntry.multisampled ? 1 : 0)) state does not match underlying texture sample count(\(Int32(bitPattern: bound.sampleCount)))"
+                )
+                return false
+            }
+            if !layoutImpl.counts.isAutoGenerated, let textureEntry, !sampleTypeMatches(textureEntry.sampleType, bound.format, bound.aspect)
+            {
+                reportError(
+                    "Bind group entry sampleType(\(sampleTypeName(textureEntry.sampleType))) does not match TextureView sampleType(\(formatSampleTypeNames(bound.format, bound.aspect))) for texture format(\(textureFormatName(bound.format)))"
+                )
+                return false
+            }
+            let textureType = bound.texture?.textureType ?? .type1D
+            if !viewDimensionMatches(textureEntry?.viewDimension, textureType)
+                || !viewDimensionMatches(storageTextureEntry?.viewDimension, textureType)
+            {
+                reportError("Bind group entry viewDimension does not match TextureView viewDimension")
+                return false
+            }
+            if let storageTextureEntry, storageTextureEntry.format != bound.format {
+                reportError("Bind group storage texture entry format does not match TextureView format")
+                return false
+            }
+            if storageTextureEntry != nil && bound.hasSwizzle {
+                reportError("Storage textures must be bound through a view whose swizzle is \"rgba\"")
+                return false
+            }
+            if storageTextureEntry != nil, (bound.texture?.mipmapLevelCount ?? 0) != 1 {
+                reportError("Storage textures must have a single mip level(\(bound.texture?.mipmapLevelCount ?? 0))")
+                return false
+            }
+
+            if let textureEntry, isFloat32Format(texture),
+                !isValidFloat32SampleType(textureEntry.sampleType) || (textureEntry.sampleType == .Float && !float32Filterable)
+            {
+                reportError(
+                    "Can not create bind group with filterable 32bpp floating point texture as float32-filterable feature is not enabled"
+                )
+                return false
+            }
+            if isExternalTextureEntry {
+                if !textureUsageContains(bound.usage, .TextureBinding) {
+                    reportError(
+                        "Can not create bind group with a texture view set to an external texture slot which does not have usage containing texture binding."
+                    )
+                    return false
+                }
+                if !bound.is2DTexture {
+                    reportError(
+                        "Can not create bind group with a texture view set to an external texture slot when the texture view is not a 2D texture."
+                    )
+                    return false
+                }
+                if bound.mipLevelCount != 1 {
+                    reportError(
+                        "Can not create bind group with a texture view set to an external texture slot when the texture view has more than 1 mip level"
+                    )
+                    return false
+                }
+                if !isAllowedExternalTextureFormat(bound.format) {
+                    reportError(
+                        "Can not create bind group with a texture view set to an external texture which is not an allowed external texture format"
+                    )
+                    return false
+                }
+                if bound.sampleCount != 1 {
+                    reportError(
+                        "Can not create bind group with a texture view set to an external texture which has a sample count greater than 1"
+                    )
+                    return false
+                }
+            }
+        } else if let stage {
+            encoders[stage] = nil
+            argumentBuffers[stage] = nil
+        }
+
+        // An external texture slot is six arguments wide and every one has to be written, or an argument index stays
+        // unconsumed and the group is invalid. A plain view is one plane already in its color space: identity uv and
+        // color conversions, and the all-zero primaries matrix that means "no conversion". Its texels are taken as
+        // premultiplied.
+        if isExternalTextureEntry {
+            let secondPlane = chromaPlaneFromRGB(texture, alphaFirst: false, premultiplied: true)
+            if let stage {
+                removeArgumentIndices(stage, from: index, count: 6)
+                encoders[stage]?.setTexture(texture, index: Int(index))
+                encoders[stage]?.setTexture(secondPlane, index: Int(index) + 1)
+                var constants = ExternalTextureConstants()
+                constants.uvRemapping = (1, 0, 0, 1, 0, 0)
+                constants.colorSpaceConversion = (1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+                constants.visibleWidth = UInt32(truncatingIfNeeded: texture?.width ?? 0)
+                constants.visibleHeight = UInt32(truncatingIfNeeded: texture?.height ?? 0)
+                writeExternalTextureConstants(constantWriters[stage], index &+ 2, constants)
+            }
+            for plane in [texture, secondPlane] {
+                guard let plane else {
+                    continue
+                }
+                append(
+                    bucket: slot * resourceUsageCount + usageIndex,
+                    mtlResource: plane,
+                    usage: .constantTexture,
+                    binding: binding,
+                    entryOffset: 0,
+                    entrySize: 0,
+                    owner: bound.owner,
+                    tracking: bound.tracking
+                )
+            }
+            return true
+        }
+
+        if let stage {
+            argumentIndices[stage].remove(index)
+            encoders[stage]?.setTexture(texture, index: Int(index))
+        }
+        if let texture {
+            let usage = storageTextureEntry.map { entryUsage($0.access) } ?? .constantTexture
+            append(
+                bucket: slot * resourceUsageCount + usageIndex,
+                mtlResource: texture,
+                usage: usage,
+                binding: binding,
+                entryOffset: 0,
+                entrySize: 0,
+                owner: bound.owner,
+                tracking: bound.tracking
+            )
+        }
+        return true
+    }
+
+    mutating func addExternalTexture(
+        _ binding: UInt32,
+        _ externalTexture: ExternalTextureImpl,
+        layoutEntry: LayoutEntry,
+        stage: Stage?,
+        slot: Int,
+        index: UInt32,
+        usageIndex: Int
+    ) -> Bool {
+        guard case .externalTexture = layoutEntry.layout else {
+            reportError("Expected external texture but it was not present in the bind group layout")
+            return false
+        }
+        if externalTexture.deviceImpl !== deviceImpl {
+            reportError("External texture was created from a different device")
+            return false
+        }
+
+        let imported = importBoundExternalTexture(deviceImpl, externalTexture)
+        let placeholder = deviceImpl.placeholderTexture(false)
+        let texture0 = imported.texture0 ?? placeholder
+        if let stage {
+            externalTextureIndices[stage].argumentBufferIndex = UInt(index)
+            externalTextureIndices[stage].resourceIndex = UInt(bucketCounts[slot * resourceUsageCount + usageIndex])
+        }
+        let tracking = TrackingInfo(
+            kind: .externalTexture,
+            identity: identityKey(ObjectIdentifier(externalTexture)),
+            baseMipLevel: 0,
+            mipLevelCount: 0,
+            baseArrayLayer: 0,
+            arrayLayerCount: 0,
+            aspect: .All
+        )
+        if let texture0 {
+            append(
+                bucket: slot * resourceUsageCount + usageIndex,
+                mtlResource: texture0,
+                usage: .constantTexture,
+                binding: binding,
+                entryOffset: 0,
+                entrySize: 0,
+                owner: .externalTexture(externalTexture),
+                tracking: tracking
+            )
+        }
+        let texture1 = imported.texture1 ?? placeholder
+        if let texture1 {
+            append(
+                bucket: slot * resourceUsageCount + usageIndex,
+                mtlResource: texture1,
+                usage: .constantTexture,
+                binding: binding,
+                entryOffset: 0,
+                entrySize: 0,
+                owner: .externalTexture(externalTexture),
+                tracking: tracking
+            )
+        }
+
+        if let stage {
+            removeArgumentIndices(stage, from: index, count: 6)
+            externalTexture.updateExternalTextures(texture0, texture1)
+            encoders[stage]?.setTexture(texture0, index: Int(index))
+            encoders[stage]?.setTexture(texture1, index: Int(index) + 1)
+            var constants = imported.constants
+            constants.visibleWidth = externalTexture.visibleWidth()
+            constants.visibleHeight = externalTexture.visibleHeight()
+            writeExternalTextureConstants(constantWriters[stage], index &+ 2, constants)
+        }
+        return true
+    }
+
+    /// One container per non-empty (stage slot, usage) bucket, in slot order.
+    ///
+    /// Each stage records its read-only container for the external texture refresh.
+    @inline(__always)
+    mutating func buildResources() -> (resources: ResourceSet, mtlResources: ResourceLists) {
+        if let recordBuckets {
+            orderByBucket(recordBuckets)
+        }
+        var containerCount = 0
+        for bucket in 0..<stageSlotCount * resourceUsageCount where bucketCounts[bucket] != 0 {
+            containerCount += 1
+        }
+        var containers = ResourceContainers()
+        var lists: ResourceLists = []
+        var allResources: [any MTLResource] = []
+        swap(&allResources, &mtlResources)
+        if containerCount == 1, let bucket = (0..<stageSlotCount * resourceUsageCount).first(where: { bucketCounts[$0] != 0 }) {
+            // The usual group: one container, whose list is every resource.
+            let slot = bucket / resourceUsageCount
+            let usageIndex = bucket % resourceUsageCount
+            if let stage = Stage(rawValue: slot), usageIndex == 0 {
+                externalTextureIndices[stage].containerIndex = 0
+            }
+            containers.append(
+                recordCount: Int(bucketCounts[bucket]),
+                usage: MTLResourceUsage(rawValue: UInt(usageIndex + 1)),
+                renderStages: MTLRenderStages(rawValue: renderStagesRawValue(forSlot: slot))
+            )
+            lists.append(consume allResources)
+            return (ResourceSet(containers: containers, records: takeRecords(), owners: takeOwners()), lists)
+        }
+        lists.reserveCapacity(containerCount)
+        var start = 0
+        for slot in 0..<stageSlotCount {
+            for usageIndex in 0..<resourceUsageCount {
+                let bucket = slot * resourceUsageCount + usageIndex
+                let resourceCount = Int(bucketCounts[bucket])
+                if resourceCount == 0 {
+                    continue
+                }
+                if let stage = Stage(rawValue: slot), usageIndex == 0 {
+                    externalTextureIndices[stage].containerIndex = UInt(containers.count)
+                }
+                lists.append(containerCount == 1 ? allResources : Array(allResources[start..<(start + resourceCount)]))
+                containers.append(
+                    recordCount: resourceCount,
+                    usage: MTLResourceUsage(rawValue: UInt(usageIndex + 1)),
+                    renderStages: MTLRenderStages(rawValue: renderStagesRawValue(forSlot: slot))
+                )
+                start += resourceCount
+            }
+        }
+        return (ResourceSet(containers: containers, records: takeRecords(), owners: takeOwners()), lists)
+    }
+
+    // Moved out: the group keeps them, and creation is done with them.
+    @inline(__always)
+    private mutating func takeRecords() -> [UsageRecord] {
+        var builtRecords: [UsageRecord] = []
+        swap(&builtRecords, &records)
+        return builtRecords
+    }
+
+    @inline(__always)
+    private mutating func takeOwners() -> OwnerList {
+        var builtOwners = OwnerList()
+        swap(&builtOwners, &owners)
+        return builtOwners
+    }
+
+    /// Puts the records, owners and MTLResources in bucket order, each bucket in the order its resources were added.
+    private mutating func orderByBucket(_ buckets: [UInt8]) {
+        var orderedRecords: [UsageRecord] = []
+        var orderedOwners = OwnerList()
+        var orderedResources: [any MTLResource] = []
+        orderedRecords.reserveCapacity(records.count)
+        orderedResources.reserveCapacity(records.count)
+        for bucket in 0..<(stageSlotCount * resourceUsageCount) where bucketCounts[bucket] != 0 {
+            for index in buckets.indices where Int(buckets[index]) == bucket {
+                let record = records[index]
+                orderedRecords.append(
+                    UsageRecord(
+                        usage: record.usage,
+                        binding: record.binding,
+                        entryOffset: record.entryOffset,
+                        entrySize: record.entrySize,
+                        resource: Int32(orderedRecords.count),
+                        impl: record.impl,
+                        tracking: record.tracking
+                    )
+                )
+                orderedOwners.append(owners[index])
+                orderedResources.append(mtlResources[index])
+            }
+        }
+        records = orderedRecords
+        owners = orderedOwners
+        mtlResources = orderedResources
+    }
+
+    /// Moves the group's state out of creation into the Impl.
+    @inline(__always)
+    mutating func makeImpl(
+        resources: consuming ResourceSet,
+        mtlResources: consuming ResourceLists,
+        uniqueId: UInt32
+    ) -> BindGroupImpl {
+        var builtArgumentBuffers = PerStage<(any MTLBuffer)?>(repeating: nil)
+        var builtSamplerBindings: [SamplerBinding] = []
+        var builtDynamicBuffers: [DynamicBufferRecord] = []
+        swap(&builtArgumentBuffers, &argumentBuffers)
+        swap(&builtSamplerBindings, &samplerBindings)
+        swap(&builtDynamicBuffers, &dynamicBuffers)
+        return BindGroupImpl(
+            deviceImpl: deviceImpl,
+            layoutImpl: layoutImpl,
+            argumentBuffers: builtArgumentBuffers,
+            resources: resources,
+            mtlResources: mtlResources,
+            samplerBindings: builtSamplerBindings,
+            dynamicBuffers: builtDynamicBuffers,
+            externalTextureIndices: externalTextureIndices,
+            uniqueId: uniqueId
+        )
+    }
+}
+
+/// The entry's argument index in `stage`, or nil.
+///
+/// For the slot of no stage (nil `stage`), an entry visible to no stage has index 0.
+private func argumentBufferIndexForEntry(_ entry: LayoutEntry, _ stage: Stage?) -> UInt32? {
+    guard let stage else {
+        return entry.bindingAccess(for: nil) != nil ? 0 : nil
+    }
+    return entry.argumentBufferIndices[stage]
+}
+
+/// The MTLResourceUsage of an access, minus one.
+private func resourceUsageIndex(_ access: MTLBindingAccess) -> Int {
+    switch access {
+    case .readOnly: 0
+    case .writeOnly: 1
+    case .readWrite: 2
+    @unknown default: preconditionFailure("unknown MTLBindingAccess")
+    }
+}
+
+private func entryUsage(_ type: LayoutBufferType) -> EntryUsage {
+    switch type {
+    case .uniform: .constant
+    case .storage: .storage
+    case .readOnlyStorage: .storageRead
+    case .float3x2, .float4x3, .float3x4, .uint2, .arrayLength: []
+    }
+}
+
+private func entryUsage(_ access: WebGPU.StorageTextureAccess) -> EntryUsage {
+    switch access {
+    case .ReadOnly: .storageTextureRead
+    case .ReadWrite: .storageTextureReadWrite
+    case .WriteOnly: .storageTextureWriteOnly
+    @unknown default: preconditionFailure("unknown WebGPU::StorageTextureAccess")
+    }
+}
+
+private func bufferUsageContains(_ usage: UInt16, _ bit: WebGPU.BufferUsage) -> Bool {
+    usage & bit.rawValue != 0
+}
+
+private func hasProperUsageFlags(_ type: LayoutBufferType, _ usage: UInt16) -> Bool {
+    switch type {
+    case .uniform: bufferUsageContains(usage, .Uniform)
+    case .storage, .readOnlyStorage: bufferUsageContains(usage, .Storage)
+    case .float3x2, .float4x3, .float3x4, .uint2, .arrayLength: false
+    }
+}
+
+/// The WGPUBufferUsage bits of `usage`, for error messages.
+private func apiBufferUsage(_ usage: UInt16) -> UInt64 {
+    let bits: [(WebGPU.BufferUsage, WGPUBufferUsage)] = [
+        (.MapRead, WGPUBufferUsage_MapRead), (.MapWrite, WGPUBufferUsage_MapWrite), (.CopySource, WGPUBufferUsage_CopySrc),
+        (.CopyDestination, WGPUBufferUsage_CopyDst), (.Index, WGPUBufferUsage_Index), (.Vertex, WGPUBufferUsage_Vertex),
+        (.Uniform, WGPUBufferUsage_Uniform), (.Storage, WGPUBufferUsage_Storage), (.Indirect, WGPUBufferUsage_Indirect),
+        (.QueryResolve, WGPUBufferUsage_QueryResolve),
+    ]
+    var result: UInt64 = 0
+    for (bit, apiBit) in bits where bufferUsageContains(usage, bit) {
+        result |= UInt64(apiBit)
+    }
+    return result
+}
+
+private func samplerTypeMatches(_ type: WebGPU.SamplerBindingType, _ sampler: SamplerImpl) -> Bool {
+    switch type {
+    case .Filtering: !sampler.isComparison()
+    case .NonFiltering: !sampler.isComparison() && !sampler.isFiltering()
+    case .Comparison: sampler.isComparison()
+    @unknown default: preconditionFailure("unknown WebGPU::SamplerBindingType")
+    }
+}
+
+private struct FormatTypes: OptionSet {
+    let rawValue: UInt8
+
+    static let float = FormatTypes(rawValue: 1 << 0)
+    static let unfilterableFloat = FormatTypes(rawValue: 1 << 1)
+    static let depth = FormatTypes(rawValue: 1 << 2)
+    static let signedInt = FormatTypes(rawValue: 1 << 3)
+    static let unsignedInt = FormatTypes(rawValue: 1 << 4)
+}
+
+private func formatTypes(_ format: WebGPU.TextureFormat, _ aspect: WebGPU.TextureAspect, float32Filterable: Bool) -> FormatTypes {
+    let filterableFloat: FormatTypes = [.float, .unfilterableFloat]
+    let float32: FormatTypes = float32Filterable ? [.unfilterableFloat, .float] : .unfilterableFloat
+    switch format {
+    case .R8unorm, .R8snorm:
+        return filterableFloat
+    case .R8uint, .R16uint, .Rg8uint, .R32uint, .Rg16uint, .Rgba8uint, .Rgb10a2uint, .Rg32uint, .Rgba16uint, .Rgba32uint, .Stencil8:
+        return .unsignedInt
+    case .R8sint, .R16sint, .Rg8sint, .R32sint, .Rg16sint, .Rgba8sint, .Rg32sint, .Rgba16sint, .Rgba32sint:
+        return .signedInt
+    case .R16unorm, .R16snorm, .Rg16unorm, .Rg16snorm, .Rgba16unorm, .Rgba16snorm, .R16float, .Rg8unorm, .Rg8snorm:
+        return filterableFloat
+    case .R32float, .Rg32float, .Rgba32float:
+        return float32
+    case .Rg16float, .Rgba8unorm, .Rgba8unormSRGB, .Rgba8snorm, .Bgra8unorm, .Bgra8unormSRGB, .Rgb10a2unorm, .Rg11b10ufloat, .Rgb9e5ufloat,
+        .Rgba16float:
+        return filterableFloat
+    case .Depth16unorm, .Depth24plus, .Depth32float:
+        return [.depth, .unfilterableFloat]
+    case .Depth24plusStencil8, .Depth32floatStencil8:
+        switch aspect {
+        case .All: return [.depth, .unfilterableFloat, .unsignedInt]
+        case .StencilOnly: return .unsignedInt
+        case .DepthOnly: return [.depth, .unfilterableFloat]
+        // Any other aspect is treated as DepthOnly.
+        @unknown default: return [.depth, .unfilterableFloat]
+        }
+    case .Bc1RgbaUnorm, .Bc1RgbaUnormSRGB, .Bc2RgbaUnorm, .Bc2RgbaUnormSRGB, .Bc3RgbaUnorm, .Bc3RgbaUnormSRGB, .Bc4RUnorm, .Bc4RSnorm,
+        .Bc5RgUnorm, .Bc5RgSnorm, .Bc6hRgbUfloat, .Bc6hRgbFloat, .Bc7RgbaUnorm, .Bc7RgbaUnormSRGB, .Etc2Rgb8unorm, .Etc2Rgb8unormSRGB,
+        .Etc2Rgb8a1unorm, .Etc2Rgb8a1unormSRGB, .Etc2Rgba8unorm, .Etc2Rgba8unormSRGB, .EacR11unorm, .EacR11snorm, .EacRg11unorm,
+        .EacRg11snorm, .Astc4x4Unorm, .Astc4x4UnormSRGB, .Astc5x4Unorm, .Astc5x4UnormSRGB, .Astc5x5Unorm, .Astc5x5UnormSRGB, .Astc6x5Unorm,
+        .Astc6x5UnormSRGB, .Astc6x6Unorm, .Astc6x6UnormSRGB, .Astc8x5Unorm, .Astc8x5UnormSRGB, .Astc8x6Unorm, .Astc8x6UnormSRGB,
+        .Astc8x8Unorm, .Astc8x8UnormSRGB, .Astc10x5Unorm, .Astc10x5UnormSRGB, .Astc10x6Unorm, .Astc10x6UnormSRGB, .Astc10x8Unorm,
+        .Astc10x8UnormSRGB, .Astc10x10Unorm, .Astc10x10UnormSRGB, .Astc12x10Unorm, .Astc12x10UnormSRGB, .Astc12x12Unorm,
+        .Astc12x12UnormSRGB:
+        return filterableFloat
+    @unknown default:
+        preconditionFailure("unknown WebGPU::TextureFormat")
+    }
+}
+
+extension BindGroupCreation {
+    func sampleTypeMatches(_ sampleType: WebGPU.TextureSampleType, _ format: WebGPU.TextureFormat, _ aspect: WebGPU.TextureAspect) -> Bool {
+        let types = formatTypes(format, aspect, float32Filterable: float32Filterable)
+        switch sampleType {
+        case .Float: return types.contains(.float)
+        case .UnfilterableFloat: return types.contains(.unfilterableFloat)
+        case .Depth: return types.contains(.depth)
+        case .Sint: return types.contains(.signedInt)
+        case .Uint: return types.contains(.unsignedInt)
+        @unknown default: preconditionFailure("unknown WebGPU::TextureSampleType")
+        }
+    }
+
+    /// The names of the sample types the format allows, for error messages.
+    func formatSampleTypeNames(_ format: WebGPU.TextureFormat, _ aspect: WebGPU.TextureAspect) -> String {
+        let types = formatTypes(format, aspect, float32Filterable: float32Filterable)
+        let names: [(FormatTypes, String)] = [
+            (.float, "float"), (.unfilterableFloat, "unfilterable-float"), (.depth, "depth"), (.signedInt, "sint"), (.unsignedInt, "uint"),
+        ]
+        return names.filter { types.contains($0.0) }.map(\.1).joined(separator: " + ")
+    }
+}
+
+private func sampleTypeName(_ sampleType: WebGPU.TextureSampleType) -> String {
+    switch sampleType {
+    case .Float: "float"
+    case .UnfilterableFloat: "unfilterable-float"
+    case .Depth: "depth"
+    case .Sint: "sint"
+    case .Uint: "uint"
+    @unknown default: preconditionFailure("unknown WebGPU::TextureSampleType")
+    }
+}
+
+/// True when there is no entry.
+private func viewDimensionMatches(_ viewDimension: WebGPU.TextureViewDimension?, _ textureType: MTLTextureType) -> Bool {
+    guard let viewDimension else {
+        return true
+    }
+    switch viewDimension {
+    case ._1d: return textureType == .type1D
+    case ._2d: return textureType == .type2D || textureType == .type2DMultisample
+    case ._2dArray: return textureType == .type2DArray || textureType == .type2DMultisampleArray
+    case .Cube: return textureType == .typeCube
+    case .CubeArray: return textureType == .typeCubeArray
+    case ._3d: return textureType == .type3D
+    @unknown default: preconditionFailure("unknown WebGPU::TextureViewDimension")
+    }
+}
+
+private func isFloat32Format(_ texture: (any MTLTexture)?) -> Bool {
+    guard let pixelFormat = texture?.pixelFormat else {
+        return false
+    }
+    return pixelFormat == .r32Float || pixelFormat == .rg32Float || pixelFormat == .rgba32Float
+}
+
+private func isValidFloat32SampleType(_ sampleType: WebGPU.TextureSampleType) -> Bool {
+    sampleType == .Float || sampleType == .UnfilterableFloat
+}
+
+private func isAllowedExternalTextureFormat(_ format: WebGPU.TextureFormat) -> Bool {
+    format == .Rgba8unorm || format == .Bgra8unorm || format == .Rgba16float
+}
+
+/// A single-plane frame's stand-in for a chroma plane.
+///
+/// It holds the two channels the shader reads from a second plane, plus alpha where a real chroma plane leaves 1. Its
+/// blue channel, which a real chroma plane samples as 0, says whether plane 0 is already premultiplied.
+private func chromaPlaneFromRGB(_ texture: (any MTLTexture)?, alphaFirst: Bool, premultiplied: Bool) -> (any MTLTexture)? {
+    guard let texture else {
+        return nil
+    }
+    let premultipliedChannel: MTLTextureSwizzle = premultiplied ? .one : .zero
+    let swizzle =
+        alphaFirst
+        ? MTLTextureSwizzleChannels(red: .blue, green: .alpha, blue: premultipliedChannel, alpha: .red)
+        : MTLTextureSwizzleChannels(red: .green, green: .blue, blue: premultipliedChannel, alpha: .alpha)
+    return texture.makeTextureView(
+        pixelFormat: texture.pixelFormat,
+        textureType: texture.textureType,
+        levels: 0..<texture.mipmapLevelCount,
+        slices: 0..<texture.arrayLength,
+        swizzle: swizzle
+    )
+}
+
+@_spi(WebKitGPU)
+extension DeviceReference {
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup. The label isn't kept.
+    public func createBindGroup(_ layout: BindGroupLayoutReference, _ entries: [GPUBindGroupEntry], label: Swift.String?) -> BindGroupReference {
+        createBindGroupImpl(self, layout: layout, entries: entries)
+    }
+}
+
+@_spi(WebKitGPU)
+public typealias BindGroupReference = BindGroupImpl
