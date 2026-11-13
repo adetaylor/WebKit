@@ -2826,6 +2826,36 @@ def generate_swift_enum(enum):
     return swift_guarded(swift_condition(enum.condition, context), result)
 
 
+def generate_swift_cxx_enum_validation(enum):
+    """For a C++ enum whose Swift form is its import (swift_types.CXX_ENUM_TYPES): which of its values C++ declares, as
+    WTF::isValidEnum() checks them, by the case of each value that .serialization.in lists, under the value's condition."""
+    context = f'C++ enum {enum.namespace_and_name()}'
+    if enum.is_option_set() or enum.underlying_type == 'bool':
+        raise Exception(f'{context}: only enums of an integer type can have their import as their Swift form.')
+    values = enum.valid_values
+    if not values:
+        raise Exception(f'{context}: an enum whose import is its Swift form must list its values.')
+    swift_type = swift_types.CXX_ENUM_TYPES[enum.namespace_and_name().removeprefix('::')]
+    result = [f'extension {swift_type}: IPCCxxEnum {{']
+    result.append('    static func isDeclaredValue(_ value: Self) -> Bool {')
+    result.append('        switch value {')
+    result.extend(swift_conditional_lines(
+        [SwiftCaseOfValue(value.name, swift_condition(value.condition, context)) for value in values],
+        lambda case: [f'        case .{case.name}:', '            return true']))
+    result.append('        default:')
+    result.append('            return false')
+    result.append('        }')
+    result.append('    }')
+    result.append('}')
+    return swift_guarded(swift_condition(enum.condition, context), result)
+
+
+class SwiftCaseOfValue(object):
+    def __init__(self, name, condition):
+        self.name = name
+        self.condition = condition
+
+
 def swift_enum_numbers(enum, context):
     """The number of each value of an enum marked [Swift]: its declaration order, or the numbers that all its values give."""
     values = enum.valid_values
@@ -2989,6 +3019,8 @@ def generate_swift(serialized_types, serialized_enums, using_statements):
     for enum in serialized_enums:
         if enum.is_swift():
             declarations.append(generate_swift_enum(enum))
+        elif enum.namespace_and_name().removeprefix('::') in swift_types.CXX_ENUM_TYPES:
+            declarations.append(generate_swift_cxx_enum_validation(enum))
     for type in serialized_types:
         if type.swift:
             declarations.append(generate_swift_subclasses(type, swift_names) if type.members_are_subclasses else generate_swift_struct(type, swift_names))

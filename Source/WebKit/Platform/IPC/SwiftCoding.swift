@@ -1056,12 +1056,18 @@ extension IPCCoding.Vector where Element == UInt8 {
     }
 }
 
+/// A C++ enum as Swift imports it, which generated Swift (GeneratedSerializers.swift) tells the values of that C++ declares:
+/// Swift's init?(rawValue:) of an imported enum accepts any value.
+protocol IPCCxxEnum: RawRepresentable {
+    static func isDeclaredValue(_ value: Self) -> Bool
+}
+
 extension IPCCoding {
-    /// A C++ enum as Swift imports it (swift_types.py's _CXX_ENUM_TYPES), encoded as its underlying integer: accepted where
-    /// the import has a case of that value, which are the values that C++ declares.
-    enum CxxEnum<Value: RawRepresentable & Sendable>: IPCCoder where Value.RawValue: IPCCoder, Value.RawValue.Value == Value.RawValue {
+    /// A C++ enum as Swift imports it (swift_types.py's CXX_ENUM_TYPES), encoded as its underlying integer: accepted where
+    /// the value is one that C++ declares.
+    enum CxxEnum<Value: IPCCxxEnum & Sendable>: IPCCoder where Value.RawValue: IPCCoder, Value.RawValue.Value == Value.RawValue {
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Value {
-            guard let value = Value(rawValue: try Value.RawValue.decode(from: &decoder)) else {
+            guard let value = Value(rawValue: try Value.RawValue.decode(from: &decoder)), Value.isDeclaredValue(value) else {
                 throw IPCDecodingError()
             }
             return value

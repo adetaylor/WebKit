@@ -102,13 +102,14 @@ _HAND_WRITTEN_TYPES = {
 def is_hand_written(cpp_type):
     """Whether the Swift form of a C++ IPC type is one that SwiftCoding.swift writes by hand, like IPCTypes.ColorSpace."""
     name = strip_cpp_type_decorations(cpp_type).removeprefix('::')
-    return name in _HAND_WRITTEN_TYPES or name in _CXX_ENUM_TYPES
+    return name in _HAND_WRITTEN_TYPES or name in CXX_ENUM_TYPES
 
 
-# C++ enums whose Swift form is the enum that Swift imports: encoded as their underlying integer, and accepted where Swift's
-# import of the enum has a case of that value, which are the values C++ declares. For enums whose values are declared under
+# C++ enums whose Swift form is the enum that Swift imports: encoded as their underlying integer, and accepted where the value
+# is one that .serialization.in lists, under its conditions, as WTF::isValidEnum() accepts it (generate-serializers.py generates
+# the check: Swift's init?(rawValue:) of an imported enum accepts any value). For enums whose values are declared under
 # conditions in their order, which a Swift form numbering them in .serialization.in order couldn't number as C++ does.
-_CXX_ENUM_TYPES = {
+CXX_ENUM_TYPES = {
     'WebCore::StyleAppearance': 'WebCore.StyleAppearance',
 }
 
@@ -271,8 +272,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         swift_type = _HAND_WRITTEN_TYPES[cpp_type.removeprefix('::')]
         return (swift_type, swift_type)
 
-    if cpp_type.removeprefix('::') in _CXX_ENUM_TYPES:
-        swift_type = _CXX_ENUM_TYPES[cpp_type.removeprefix('::')]
+    if cpp_type.removeprefix('::') in CXX_ENUM_TYPES:
+        swift_type = CXX_ENUM_TYPES[cpp_type.removeprefix('::')]
         return (swift_type, 'IPCCoding.CxxEnum<%s>' % swift_type)
 
     match = re.match(r'^([A-Za-z_][A-Za-z_0-9:]*)<(.+)>$', cpp_type)
