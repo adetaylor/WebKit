@@ -173,6 +173,7 @@ import CoreText
 #if USE_SYSTEM_PREVIEW
 import CoreImage
 import WebCore_Private.Core.ARKitBadgeSystemImage
+import wtf.Core.RuntimeApplicationChecks
 #endif
 #if ENABLE_APPLE_PAY || USE_SYSTEM_PREVIEW
 import Foundation
@@ -5105,7 +5106,7 @@ private func arKitBadgeBackdrop(_ image: CGImage, _ rect: CGRect, _ insetBadgeRe
         width: CGFloat(badgeDimension),
         height: CGFloat(badgeDimension)
     )
-    let blurredImage = scaledImage.clampedToRect(flippedInsetBadgeRect).applyingGaussianBlur(sigma: 10)
+    let blurredImage = scaledImage.clamped(to: flippedInsetBadgeRect).applyingGaussianBlur(sigma: 10)
     guard let saturationFilter = CIFilter(name: "CIColorControls"), let tintFilter = CIFilter(name: "CIConstantColorGenerator"),
         let sourceOverFilter = CIFilter(name: "CISourceOverCompositing")
     else {
@@ -5288,10 +5289,10 @@ extension CGRendererCore {
     #endif
 
     #if USE_SYSTEM_PREVIEW
-    // A Swift receiver's badge, which it draws in the GPU process.
+    // A Swift receiver's badge, in the GPU process or in the process that replays a recording of it to print it.
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawARKitBadge(_ image: CGImage?, _ rect: CGRect) {
-        drawARKitBadge(image, rect, true)
+        drawARKitBadge(image, rect, WTF.isInGPUProcess())
     }
     #endif
 

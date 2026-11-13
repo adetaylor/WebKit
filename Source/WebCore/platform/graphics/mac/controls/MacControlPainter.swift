@@ -84,6 +84,7 @@ import pal.spi.mac.NSSearchFieldCellSPI
 import pal.spi.mac.NSServicesRolloverButtonCellSPI
 #endif
 import pal.spi.mac.NSViewSPI
+import wtf.Core.RuntimeApplicationChecks
 
 // MARK: Entering the drawing
 
@@ -2357,8 +2358,9 @@ private func drawMacControl(
 @available(*, unavailable)
 extension MacControlPainterCells: Sendable {}
 
-// Whether a Swift receiver draws cells without a view, as PlatformControlMac does in the GPU process.
-private let receiverDrawsViewlessCells = NSCell.instancesRespond(to: Selector(("_setFallbackBackingScaleFactor:")))
+// Whether a Swift receiver draws cells without a view, as PlatformControlMac does: only in the GPU process, not when a
+// recording is replayed in the process printing it.
+private let receiverDrawsViewlessCells = WTF.isInGPUProcess() && NSCell.instancesRespond(to: Selector(("_setFallbackBackingScaleFactor:")))
 
 // ControlPart::draw() of a Mac control part that a Swift receiver draws: the cells' states updated for its rect, then the
 // control drawn as PlatformControlMac::draw() draws it, with what the context it draws into gives it. `state` is
