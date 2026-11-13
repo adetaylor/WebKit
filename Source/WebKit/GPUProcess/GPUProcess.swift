@@ -64,4 +64,212 @@ extension WebKit.GPUProcess {
     }
 }
 
+// The Now Playing election across the pages of every web process: the page whose candidate session is preferred owns the
+// Now Playing panel and gets the remote commands; without one, the UI process's fallback session, if its process has a
+// connection, gets the remote commands alone. One connection at a time is the NowPlayingManager's client.
+@MainActor
+final class NowPlayingArbiter {
+    struct Owner: Equatable {
+        let process: UInt64
+        let page: UInt64
+        let session: UInt64
+    }
+
+    // A media session of a web process, as WebCore::QualifiedMediaSessionIdentifier.
+    struct QualifiedSession: Equatable {
+        let session: UInt64
+        let process: UInt64
+    }
+
+    private enum SeatRole {
+        case eligibleOwner
+        case commandOnly
+    }
+
+    private struct Seat: Equatable {
+        let process: UInt64
+        let role: SeatRole
+    }
+
+    private struct OwnerPage: Equatable {
+        let page: UInt64
+        let process: UInt64
+    }
+
+    private(set) var activeOwner: Owner?
+    var fallbackSession: QualifiedSession?
+    private(set) var remoteCommandTarget: QualifiedSession?
+    // The connections to the web processes, as GPUProcess::m_webProcessConnections, by process identifier.
+    private var connections: [UInt64: WebKit.GPUConnectionToWebProcess] = [:]
+
+    fileprivate nonisolated init() {
+    }
+
+    func add(_ connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
+        connections[process] = connection
+    }
+
+    func remove(process: UInt64) {
+        connections[process] = nil
+        recompute()
+    }
+
+    func connection(_ process: UInt64) -> WebKit.GPUConnectionToWebProcess? {
+        connections[process]
+    }
+
+    func isActive(process: UInt64, page: UInt64) -> Bool {
+        activeOwner.map { $0.process == process && $0.page == page } ?? false
+    }
+
+    func isActive(process: UInt64, session: UInt64) -> Bool {
+        activeOwner.map { $0.process == process && $0.session == session } ?? false
+    }
+
+    func isRemoteCommandTarget(process: UInt64, session: UInt64) -> Bool {
+        remoteCommandTarget == QualifiedSession(session: session, process: process)
+    }
+
+    // The session that the remote commands go to, which the caller, the NowPlayingManager's client, can only name in its
+    // own process.
+    func remoteCommandTargetSession(in process: UInt64) -> UInt64? {
+        guard let remoteCommandTarget else {
+            return nil
+        }
+        guard remoteCommandTarget.process == process else {
+            assertionFailure()
+            WebKit.LogChannel.Media().releaseLog.error("GPUProcess::remoteCommandTargetSessionInProcess: command target belongs to another process; delivering nothing rather than a cross-process identifier")
+            return nil
+        }
+        return remoteCommandTarget.session
+    }
+
+    func setFallbackSession(_ session: QualifiedSession?) {
+        fallbackSession = session
+        // The fallback is only consulted when the election has no eligible owner, and every change to the candidates
+        // recomputes on its own, so an owner means this cannot change the outcome.
+        if activeOwner == nil {
+            recompute()
+        }
+    }
+
+    func clientDidClose(process: UInt64) {
+        if fallbackSession?.process == process {
+            fallbackSession = nil
+        }
+        if remoteCommandTarget?.process == process {
+            remoteCommandTarget = nil
+        }
+        recompute()
+    }
+
+    func recompute() {
+        var winner: (connection: WebKit.GPUConnectionToWebProcess, process: UInt64, page: UInt64, state: IPCTypes.NowPlayingCandidateState)?
+
+        // Seed with the current owner so that equal candidates keep the incumbent, since the candidates are in
+        // dictionaries whose iteration order is not stable.
+        if let activeOwner, let connection = connections[activeOwner.process], let state = connection.state.nowPlayingCandidates[activeOwner.page] {
+            winner = (connection, activeOwner.process, activeOwner.page, state)
+        }
+
+        for (process, connection) in connections {
+            for (page, state) in connection.state.nowPlayingCandidates {
+                if let current = winner, !isPreferred(state, over: current.state) {
+                    continue
+                }
+                winner = (connection, process, page, state)
+            }
+        }
+
+        var seated: (connection: WebKit.GPUConnectionToWebProcess, process: UInt64)?
+        var eligibleOwner: Owner?
+        var commandTarget: QualifiedSession?
+        if let winner {
+            seated = (winner.connection, winner.process)
+            eligibleOwner = Owner(process: winner.process, page: winner.page, session: winner.state.sessionIdentifier.rawValue)
+            commandTarget = QualifiedSession(session: winner.state.sessionIdentifier.rawValue, process: winner.process)
+        } else if let fallbackSession, let connection = connections[fallbackSession.process] {
+            seated = (connection, fallbackSession.process)
+            commandTarget = fallbackSession
+        }
+
+        // A single connection is the NowPlayingManager client at a time: the elected owner (which also drives the
+        // NowPlaying panel and audio session) or, when no session is eligible, a command-only fallback that receives
+        // remote commands but shows no panel. Track the seated process and role so an unrelated recompute does not
+        // churn a fallback client's remote-command listener.
+        let previousSeat = remoteCommandTarget.map { Seat(process: $0.process, role: activeOwner != nil ? .eligibleOwner : .commandOnly) }
+        let newSeat = seated.map { Seat(process: $0.process, role: eligibleOwner != nil ? .eligibleOwner : .commandOnly) }
+
+        if let eligibleOwner, let seated {
+            // Add the new owner as the client before resigning the previous one so the panel never blanks between
+            // owners (NowPlayingManager::removeClient no-ops once m_client has been replaced). This also refreshes the
+            // owner's NowPlayingInfo, so it runs even when the seat is unchanged.
+            seated.connection.becomeNowPlayingOwner(eligibleOwner.page)
+            if let previousSeat, previousSeat.process != seated.process {
+                connections[previousSeat.process]?.resignNowPlayingManagerClient()
+            }
+        } else if newSeat != previousSeat {
+            // No eligible session. Resign the previous client first so an owner->fallback transition drops the stale
+            // panel, then seat the UI process's current session (if any) as a command-only client. Skipped entirely
+            // when it is already the command-only client, so its remote-command listener is not destroyed and recreated.
+            if let previousSeat {
+                connections[previousSeat.process]?.resignNowPlayingManagerClient()
+            }
+            seated?.connection.becomeRemoteCommandFallbackTarget()
+        }
+
+        let ownerChanged = eligibleOwner.map { OwnerPage(page: $0.page, process: $0.process) } != activeOwner.map { OwnerPage(page: $0.page, process: $0.process) }
+        activeOwner = eligibleOwner
+        remoteCommandTarget = commandTarget
+
+        // The UI process owns the per-page "is the NowPlaying session" state, so it hears the election result
+        // directly rather than through the content processes, none of which can see the whole picture.
+        if ownerChanged {
+            WebKit.GPUProcess.nowPlayingOwnerDidChange(eligibleOwner != nil, eligibleOwner?.page ?? 0, eligibleOwner?.process ?? 0)
+        }
+    }
+}
+
+// Mirrors the logic in PlatformMediaSessionManager::bestEligibleSessionForRemoteControls +
+// HTMLMediaElement::selectBestMediaSession.
+private func isPreferred(_ candidate: IPCTypes.NowPlayingCandidateState, over incumbent: IPCTypes.NowPlayingCandidateState) -> Bool {
+    let candidateIsAudioVideo = candidate.presentationType != .webAudio
+    let incumbentIsAudioVideo = incumbent.presentationType != .webAudio
+    if candidateIsAudioVideo != incumbentIsAudioVideo {
+        return candidateIsAudioVideo
+    }
+
+    if candidateIsAudioVideo {
+        if candidate.isLargeEnoughForMainContent != incumbent.isLargeEnoughForMainContent {
+            return candidate.isLargeEnoughForMainContent
+        }
+        return (candidate.mostRecentUserInteractionTime ?? 0) > (incumbent.mostRecentUserInteractionTime ?? 0)
+    }
+
+    return candidate.isPlaying && !incumbent.isPlaying
+}
+
+let nowPlayingArbiter = NowPlayingArbiter()
+
+extension WebKit.GPUProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func swiftInitializeNowPlayingFallbackSession(_ sessionIdentifier: UInt64, _ processIdentifier: UInt64) {
+        nowPlayingArbiter.fallbackSession = NowPlayingArbiter.QualifiedSession(session: sessionIdentifier, process: processIdentifier)
+    }
+
+    @MainActor
+    func setNowPlayingFallbackSession(connection: IPC.Connection, session: IPCTypes.QualifiedMediaSessionIdentifier?) {
+        nowPlayingArbiter.setFallbackSession(session.map { NowPlayingArbiter.QualifiedSession(session: $0.object.rawValue, process: $0.processIdentifier.rawValue) })
+    }
+
+    // Sent by the UI process when a page commits a new main-frame load. The page re-enters the election on its next
+    // candidate push if it still has an eligible session.
+    @MainActor
+    func withdrawNowPlayingCandidate(connection: IPC.Connection, page: IPCTypes.QualifiedPageIdentifier) {
+        nowPlayingArbiter.connection(page.processIdentifier.rawValue)?.clearNowPlayingCandidates(page: page.object.rawValue)
+    }
+}
+
 #endif // ENABLE_GPU_PROCESS
