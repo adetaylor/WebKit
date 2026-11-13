@@ -8,7 +8,7 @@ testRunner?.waitUntilDone();
 const log = s => document.getElementById("log").textContent += s + "\n";
 const modes = [["unaccelerated", 0], ["accelerated", 1]];
 const size = 48;
-let nextID = 300000;
+let nextID = Math.floor(Math.random() * 0x1000000) + 1;
 const genID = () => nextID++;
 
 const rect = (x, y, width, height) => ({ location: { x, y }, size: { width, height } });
