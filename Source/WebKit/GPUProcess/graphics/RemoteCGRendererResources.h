@@ -70,6 +70,8 @@ class Semaphore;
 namespace WebKit {
 
 class DisplayListDataFonts;
+class RemoteCGRendererFont;
+class RemoteCGRendererRecordedGlyphs;
 class RemoteCGRendererRecordedMessageEncoder;
 class RemoteRenderingBackend;
 class RemoteSnapshot;
@@ -91,7 +93,7 @@ public:
     // The resources, for the print process (RemoteSnapshotPrintData): false where it can't have one, such as an image.
     bool exportForPrint(RemoteSnapshotPrintRecording&, DisplayListDataFonts&) const __attribute__((availability(swift, unavailable)));
     // The resources that the print process takes from that, with the fonts it made of the snapshot's.
-    bool importFromPrint(RemoteSnapshotPrintRecording&, std::span<const Ref<SharedFont>>) __attribute__((availability(swift, unavailable)));
+    bool importFromPrint(RemoteSnapshotPrintRecording&, std::span<const Ref<RemoteCGRendererFont>>) __attribute__((availability(swift, unavailable)));
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -107,7 +109,7 @@ private:
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
-    HashMap<WebCore::RenderingResourceIdentifier, Ref<SharedFont>> m_fonts;
+    HashMap<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>> m_fonts;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
     // The cached SVG filters that DrawFilteredImageBuffer's filters name, with the message's effects merged in.
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;
@@ -138,7 +140,7 @@ public:
     WebCore::GraphicsContextCG& targetContext() const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const;
     RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
-    RefPtr<SharedFont> cachedFont(WebCore::RenderingResourceIdentifier) const;
+    RefPtr<RemoteCGRendererFont> cachedFont(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::PathImpl> cachedPathImpl(RemotePathImplIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::MeshGradient> cachedMeshGradient(RemoteMeshGradientIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::Filter> cachedFilter(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
@@ -158,7 +160,8 @@ public:
     bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
     bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
     bool recordGradient(RemoteGradientIdentifier) const;
-    bool recordFont(WebCore::RenderingResourceIdentifier) const;
+    // A DrawGlyphs's font, which the recorded run keeps, with its facts for the run.
+    bool recordGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererRecordedGlyphs&) const;
     bool recordMeshGradient(RemoteMeshGradientIdentifier) const;
     // A DrawFilteredImageBuffer's source and its filter's FEImage images, and the cached SVG filter it names, into which the
     // filter's effects are merged, as RemoteGraphicsContext merges them.

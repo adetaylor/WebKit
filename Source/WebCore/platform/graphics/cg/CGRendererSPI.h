@@ -92,11 +92,17 @@ inline void CGRendererSetStrokePattern(CGContextRef context, CGPatternRef patter
 }
 
 // CTFontDrawGlyphs() of a run's glyphs in its font at the positions Swift computed, which reach C as pointers.
-inline void CGRendererDrawGlyphs(const CGRendererGlyphRun& run, const CGRendererGlyphPositions& positions, CGContextRef context)
+inline void CGRendererDrawGlyphs(const CGRendererGlyphRun& run, std::span<const CGPoint> positions NOESCAPE, CGContextRef context)
 {
     auto glyphs = run.glyphs();
-    auto points = positions.span();
-    CTFontDrawGlyphs(run.font(), glyphs.data(), points.data(), std::min(glyphs.size(), points.size()), context);
+    CTFontDrawGlyphs(run.font(), glyphs.data(), positions.data(), std::min(glyphs.size(), positions.size()), context);
+}
+
+// CTFontGetVerticalTranslationsForGlyphs() of a run in a vertical font.
+inline void CGRendererGetVerticalTranslations(const CGRendererGlyphRun& run, std::span<CGSize> translations NOESCAPE)
+{
+    auto glyphs = run.glyphs();
+    CTFontGetVerticalTranslationsForGlyphs(run.font(), glyphs.data(), translations.data(), std::min(glyphs.size(), translations.size()));
 }
 
 // CGPDFContextBeginPage() with a media box, whose dictionary holds the rect's bytes.

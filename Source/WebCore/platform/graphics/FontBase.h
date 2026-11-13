@@ -144,7 +144,9 @@ public:
     // Returns nullopt if none of the glyphs are OT-SVG glyphs.
     std::optional<BitVector> findOTSVGGlyphs(std::span<const GlyphBufferGlyph>) const;
 
-    bool hasAnyComplexColorFormatGlyphs(std::span<const GlyphBufferGlyph>) const;
+    WEBCORE_EXPORT bool hasAnyComplexColorFormatGlyphs(std::span<const GlyphBufferGlyph>) const;
+    // Whether the font has the tables that give a glyph complex color, without which hasAnyComplexColorFormatGlyphs() is false.
+    bool hasComplexColorFormatGlyphTables() const;
 
 protected:
     struct NoEmojiGlyphs { };

@@ -50,6 +50,7 @@
 #include <WebCore/MeshGradientRendererCPU.h>
 #include <WebCore/NativeImage.h>
 #include <WebCore/SVGFilterRenderer.h>
+#include <wtf/ZippedRange.h>
 
 #if USE(SYSTEM_PREVIEW)
 #include <WebCore/ARKitBadgeSystemImage.h>
@@ -157,58 +158,60 @@ RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResour
     return m_backend->remoteResourceCache().cachedNativeImage(identifier);
 }
 
-RefPtr<SharedFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
+RefPtr<RemoteCGRendererFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
 {
     if (isReplaying())
         return m_replayedResources.last()->m_fonts.get(identifier);
     if (!m_backend)
         return nullptr;
-    return m_backend->remoteResourceCache().cachedFont(identifier);
+    return m_backend->remoteResourceCache().cachedCGRendererFont(identifier);
 }
 
-RemoteCGRendererGlyphDraw makeRemoteCGRendererGlyphDraw()
+Ref<RemoteCGRendererFont> RemoteCGRendererFont::create(Ref<SharedFont>&& sharedFont)
 {
-    return { };
+    CGRendererGlyphFontFacts facts;
+    CTFontRef ctFont = CGRendererGlyphFontFactsOf(sharedFont.get(), facts);
+    return adoptRef(*new RemoteCGRendererFont(WTF::move(sharedFont), ctFont, facts));
 }
 
-RemoteCGRendererGlyphDraw::~RemoteCGRendererGlyphDraw() = default;
-
-RemoteCGRendererGlyphPreparationResult RemoteCGRendererGlyphDraw::prepare(const RemoteCGRendererGlyphs& glyphs, const RemoteCGRendererResources& resources, RenderingResourceIdentifier fontIdentifier, FontSmoothingMode smoothingMode, const CGRendererGlyphContext& glyphContext)
+RemoteCGRendererFont::RemoteCGRendererFont(Ref<SharedFont>&& sharedFont, CTFontRef ctFont, const CGRendererGlyphFontFacts& facts)
+    : m_sharedFont(WTF::move(sharedFont))
+    , m_ctFont(ctFont)
+    , m_facts(facts)
 {
-    m_preparation = std::nullopt;
-    m_positions.clear();
-    m_drawsRecordedRun = glyphs.isRecorded();
-    if (!m_drawsRecordedRun) {
-        m_glyphs.clear();
-        m_glyphs.append(glyphs.glyphs());
-        // At the precision of RemoteGraphicsContext's DrawGlyphs, so that the run draws as it does there.
-        m_advances.clear();
-        m_advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) {
-            return GlyphBufferAdvance { static_cast<float>(advance.width), static_cast<float>(advance.height) };
-        });
+}
+
+RemoteCGRendererFont::~RemoteCGRendererFont() = default;
+
+CGRendererGlyphFontFacts RemoteCGRendererFont::factsForGlyphs(std::span<const GlyphBufferGlyph> glyphs) const
+{
+    if (!m_ctFont)
+        return { };
+    auto facts = m_facts;
+    if (facts.hasComplexColorFormatTables) {
+        Locker locker { m_complexColorFormatGlyphsLock };
+        if (m_sharedFont->hasAnyComplexColorFormatGlyphs(glyphs)) {
+            ASSERT_NOT_REACHED();
+            facts.draws = false;
+        }
     }
-    auto runGlyphs = m_drawsRecordedRun ? glyphs.glyphs() : m_glyphs.span();
+    return facts;
+}
+
+CTFontRef copyGlyphsForDraw(const RemoteCGRendererResources& resources, RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs& glyphs, std::span<GlyphBufferGlyph> glyphsCopy NOESCAPE, std::span<GlyphBufferAdvance> advancesCopy NOESCAPE, CGRendererGlyphFontFacts& facts, bool& found)
+{
+    facts = { };
     RefPtr font = resources.cachedFont(fontIdentifier);
-    if (!font)
-        return { false, false };
-    auto& context = resources.targetContext();
-    // The fill color is only for the shadow's.
-    std::optional<Color> simpleShadowColor;
-    std::optional<Color> fillColor;
-    if (glyphContext.hasSimpleShadow) {
-        simpleShadowColor = CGRendererColorFromValue(glyphContext.shadowColor);
-        fillColor = CGRendererColorFromValue(glyphContext.fillColor);
-    }
-    m_preparation.emplace(*font, runGlyphs, smoothingMode, simpleShadowColor ? &*simpleShadowColor : nullptr, fillColor ? *fillColor : Color::black, context.colorSpace(), context.isInTransparencyLayer() || glyphContext.hasReceiverTransparencyLayer);
-    if (!m_preparation->draws() || !m_preparation->font())
-        return { true, false };
-    m_positions.grow(runGlyphs.size());
-    return { true, true };
-}
-
-CGColorRef copyGlyphShadowFillColor(const RemoteCGRendererGlyphDraw& draw)
-{
-    return RetainPtr { draw.shadowFillColor() }.leakRef();
+    found = !!font;
+    if (!font || !font->ctFont())
+        return nullptr;
+    auto count = std::min({ glyphs.size(), glyphsCopy.size(), advancesCopy.size() });
+    memcpySpan(glyphsCopy.first(count), glyphs.glyphs().first(count));
+    // At the precision of RemoteGraphicsContext's DrawGlyphs, so that the run draws as it does there.
+    for (auto [copy, advance] : zippedRange(advancesCopy.first(count), glyphs.advances().first(count)))
+        copy = GlyphBufferAdvance { static_cast<float>(advance.width), static_cast<float>(advance.height) };
+    facts = font->factsForGlyphs(glyphsCopy.first(count));
+    return RetainPtr { font->ctFont() }.leakRef();
 }
 
 RefPtr<Gradient> RemoteCGRendererResources::cachedGradient(RemoteGradientIdentifier identifier) const
@@ -276,9 +279,18 @@ bool RemoteCGRendererResources::recordGradient(RemoteGradientIdentifier identifi
     return addRecorded(m_recordedResources->m_gradients, identifier, cachedGradient(identifier));
 }
 
-bool RemoteCGRendererResources::recordFont(RenderingResourceIdentifier identifier) const
+bool RemoteCGRendererResources::recordGlyphs(RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererRecordedGlyphs& glyphs) const
 {
-    return addRecorded(m_recordedResources->m_fonts, identifier, cachedFont(identifier));
+    RefPtr font = cachedFont(fontIdentifier);
+    if (!font)
+        return false;
+    // A recording draws every run of an identifier in the font it first recorded for it, as the print process does.
+    Ref recordedFont = m_recordedResources->m_fonts.add(fontIdentifier, font.releaseNonNull()).iterator->value;
+    auto& run = glyphs.m_run.get();
+    RELEASE_ASSERT(!run.font);
+    run.facts = recordedFont->factsForGlyphs(run.glyphs.span());
+    run.font = WTF::move(recordedFont);
+    return true;
 }
 
 bool RemoteCGRendererResources::recordMeshGradient(RemoteMeshGradientIdentifier identifier) const

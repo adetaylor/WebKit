@@ -979,6 +979,11 @@ std::optional<BitVector> FontBase::findOTSVGGlyphs(std::span<const GlyphBufferGl
     return result;
 }
 
+bool FontBase::hasComplexColorFormatGlyphTables() const
+{
+    return glyphsWithComplexColorFormat().hasRelevantTables();
+}
+
 bool FontBase::hasAnyComplexColorFormatGlyphs(std::span<const GlyphBufferGlyph> glyphs) const
 {
     auto& complexGlyphs = glyphsWithComplexColorFormat();

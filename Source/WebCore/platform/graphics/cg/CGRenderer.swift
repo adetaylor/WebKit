@@ -118,8 +118,8 @@
 
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
-// The safe MutableSpan overload Swift synthesizes for CGRendererGlyphPositions's span accessor comes from Cxx. Xcode builds
-// don't find it unless this file imports Cxx.
+// The safe Span overloads Swift synthesizes for CGRendererGlyphRun's span accessors come from Cxx. Xcode builds don't find
+// them unless this file imports Cxx.
 private import Cxx
 // CGRendererCore's members for a Swift receiver use these.
 public import CoreGraphics
@@ -1229,6 +1229,9 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     private var dashLengths: [CGFloat] = []
     private var lineDash: [CGFloat] = []
     private var lineSegment: [CGPoint] = []
+    // ContiguousArray, whose spans, unlike Array's, the deployment targets have.
+    private var glyphPositions: ContiguousArray<CGPoint> = []
+    private var glyphTranslations: ContiguousArray<CGSize> = []
     private var shadowBlurDrawing: CGRendererShadowBlurDrawing? = nil
     // GraphicsContextCG::setMaxEDRHeadroom(): a context's, not a state's.
     private var maxEDRHeadroom: Float? = nil
@@ -2798,20 +2801,53 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         CGRendererDrawPath(context, mode, copy path)
     }
 
-    // FontCascade::drawGlyphs(): a run of glyphs in a font, from an anchor point, with the font smoothing it asks for, a shadow
-    // with no blur drawn as glyphs in the shadow color, and synthetic bold as a second, offset run. The state it changes for
-    // the glyphs goes back afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
+    // FontCascade::drawGlyphs() of GraphicsContextCG::drawGlyphsImmediate()'s run: the glyphs in the font, whose facts it
+    // worked out, from an anchor point, with the font smoothing it asks for.
     @_expose(Cxx)
     mutating func drawGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
+        _ facts: CGRendererGlyphFontFacts,
+        _ smoothingMode: UInt8,
+        _ isInTransparencyLayer: Bool,
         _ shadowFillColor: CGColor?,
         _ x: Float,
         _ y: Float
     ) {
+        drawGlyphRun(run, facts, smoothingMode, isInTransparencyLayer, shadowFillColor, false, x, y)
+    }
+
+    // FontCascade::drawGlyphs(): a run of glyphs in a font, from an anchor point, with the font smoothing it asks for unless the
+    // font doesn't allow antialiasing, a shadow with no blur drawn as glyphs in the shadow color (the given color, or one made
+    // from the receiver's state), and synthetic bold as a second, offset run. The state it changes for the glyphs goes back
+    // afterwards, as GraphicsContext::updatePlatformContextState() puts it back for the C++.
+    private mutating func drawGlyphRun(
+        _ run: CGRendererGlyphRun,
+        _ facts: CGRendererGlyphFontFacts,
+        _ requestedSmoothingMode: UInt8,
+        _ isInTransparencyLayer: Bool,
+        _ shadowFillColor: CGColor?,
+        _ computesReceiverShadowColor: Bool,
+        _ x: Float,
+        _ y: Float
+    ) {
+        if !facts.draws {
+            return
+        }
+        let glyphs: Span<CGGlyph> = run.glyphs()
+        let advances: Span<CGSize> = run.advances()
+        let count = glyphs.count
+        let smoothingMode = facts.allowsAntialiasing ? requestedSmoothingMode : CGRendererFontSmoothing.none
         hasDrawn = true
-        var positions = positions
+        if glyphPositions.count < count {
+            glyphPositions = ContiguousArray(repeating: CGPoint.zero, count: count)
+        }
+        if facts.isVertical && count > 0 {
+            if glyphTranslations.count < count {
+                glyphTranslations = ContiguousArray(repeating: CGSize.zero, count: count)
+            }
+            var translations = glyphTranslations.mutableSpan
+            CGRendererGetVerticalTranslations(run, &translations)
+        }
         let ctm = context.ctm
         var syntheticBoldOffset = facts.syntheticBoldOffset
         if syntheticBoldOffset != 0 && !isIdentityOrTranslationOrFlipped(ctm) {
@@ -2826,21 +2862,21 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 
         var hasSimpleShadow = false
         if let shadow = state.dropShadow, state.textDrawingMode == CGRendererTextDrawingMode.fill, shadow.isValid, shadow.radius == 0,
-            !facts.isColorBitmapFont, !state.shadowsIgnoreTransforms || isIdentityOrTranslationOrFlipped(ctm), !facts.isInTransparencyLayer
+            !facts.isColorBitmapFont, !state.shadowsIgnoreTransforms || isIdentityOrTranslationOrFlipped(ctm), !isInTransparencyLayer
         {
             hasSimpleShadow = true
         }
 
         var restoresSmoothing = false
         #if !WTF_PLATFORM_IOS_FAMILY
-        let shouldSmoothFonts = facts.smoothingMode != CGRendererFontSmoothing.antialiased && facts.smoothingMode != CGRendererFontSmoothing.none
+        let shouldSmoothFonts = smoothingMode != CGRendererFontSmoothing.antialiased && smoothingMode != CGRendererFontSmoothing.none
         if shouldSmoothFonts != state.shouldSmoothFonts {
             restoresSmoothing = true
             context.setShouldSmoothFonts(shouldSmoothFonts)
         }
         #endif
         var restoresAntialiasing = false
-        let shouldAntialias = facts.smoothingMode != CGRendererFontSmoothing.none
+        let shouldAntialias = smoothingMode != CGRendererFontSmoothing.none
         if shouldAntialias != state.shouldAntialias {
             restoresAntialiasing = true
             context.setShouldAntialias(shouldAntialias)
@@ -2855,25 +2891,27 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         let isRotated = (ctm.b != 0 || ctm.c != 0) && (ctm.a != 0 || ctm.d != 0)
         context.setShouldSubpixelQuantizeFonts(isTranslationOrIntegralScale || (!isRotated && state.shouldSubpixelQuantizeFonts))
 
-        if hasSimpleShadow, let shadow = state.dropShadow, let shadowFillColor {
+        if hasSimpleShadow, let shadow = state.dropShadow,
+            let shadowFillColor = computesReceiverShadowColor ? receiverGlyphShadowColor() : shadowFillColor
+        {
             // Simple shadows are drawn here rather than by CG, which would lose subpixel antialiasing.
             let shadowX = x + shadow.width
             let shadowY = y + (state.shadowsIgnoreTransforms ? -shadow.height : shadow.height)
             let originalFillColor = CGContextGetFillColorAsColor(context)
             CGContextSetStyle(context, nil)
             context.setFillColor(shadowFillColor)
-            showGlyphs(run, &positions, facts, shadowX, shadowY)
+            showGlyphs(run, glyphs, advances, facts, shadowX, shadowY)
             if syntheticBoldOffset != 0 {
-                showGlyphs(run, &positions, facts, shadowX + syntheticBoldOffset, shadowY)
+                showGlyphs(run, glyphs, advances, facts, shadowX + syntheticBoldOffset, shadowY)
             }
             if let originalFillColor {
                 context.setFillColor(originalFillColor)
             }
         }
 
-        showGlyphs(run, &positions, facts, x, y)
+        showGlyphs(run, glyphs, advances, facts, x, y)
         if syntheticBoldOffset != 0 {
-            showGlyphs(run, &positions, facts, x + syntheticBoldOffset, y)
+            showGlyphs(run, glyphs, advances, facts, x + syntheticBoldOffset, y)
         }
 
         // Platform drawing may assume an identity text matrix.
@@ -2893,14 +2931,15 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
 
     // RepeatedDrawGlyphs::showGlyphsWithAdvances(): the glyphs' positions in text space, from the anchor and the advances
     // (and, for vertical text, each glyph's translation), then CTFontDrawGlyphs().
-    private func showGlyphs(
+    private mutating func showGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: inout CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
+        _ glyphs: Span<CGGlyph>,
+        _ advances: Span<CGSize>,
+        _ facts: CGRendererGlyphFontFacts,
         _ x: Float,
         _ y: Float
     ) {
-        let count = run.size()
+        let count = glyphs.count
         if count == 0 {
             return
         }
@@ -2913,27 +2952,48 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
             CGSize(width: t.a * size.width + t.c * size.height, height: t.b * size.width + t.d * size.height)
         }
         do {
-            var output: MutableSpan<CGPoint> = positions.mutableSpan()
-            if run.isVertical() {
+            var output = glyphPositions.mutableSpan
+            if facts.isVertical {
+                let translations = glyphTranslations.span
                 var positionX = CGFloat(x)
                 var positionY = CGFloat(y + facts.ascentDelta)
                 for index in 0..<count {
-                    let translation = applyToSize(facts.verticalTranslationMatrix, run.translation(index))
+                    let translation = applyToSize(facts.verticalTranslationMatrix, translations[index])
                     output[index] = apply(matrix, positionX + translation.width, positionY + translation.height)
-                    let advance = run.advance(index)
+                    let advance = advances[index]
                     positionX += advance.width
                     positionY += advance.height
                 }
             } else {
                 output[0] = apply(matrix, CGFloat(x), CGFloat(y))
                 for index in 1..<count {
-                    let advance = applyToSize(matrix, run.advance(index - 1))
+                    let advance = applyToSize(matrix, advances[index - 1])
                     let previous = output[index - 1]
                     output[index] = CGPoint(x: previous.x + advance.width, y: previous.y + advance.height)
                 }
             }
         }
-        CGRendererDrawGlyphs(run, positions, context)
+        CGRendererDrawGlyphs(run, glyphPositions.span, context)
+    }
+
+    // Whether a transparency layer is open, whoever began it: GraphicsContext's isInTransparencyLayer() or a Swift receiver's.
+    private func isInAnyTransparencyLayer() -> Bool {
+        for level in 0..<depth where stack[level].purpose == .transparencyLayer {
+            return true
+        }
+        return false
+    }
+
+    // The color a Swift receiver's drop shadow without blur draws glyphs in, from the receiver's state.
+    private func receiverGlyphShadowColor() -> CGColor? {
+        guard let shadow = state.dropShadow else {
+            return nil
+        }
+        return CGRendererCopyGlyphShadowColor(
+            colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible),
+            colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible),
+            destinationColorSpace
+        )
     }
 
     // MARK: Focus rings
@@ -3828,30 +3888,17 @@ extension CGRendererCore {
         }
     }
 
-    // The state a run of glyphs draws in, for the receiver's C++ that prepares it (GraphicsContextCG::drawGlyphsImmediate()).
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public func receiveGlyphContext() -> CGRendererGlyphContext {
-        var context = CGRendererGlyphContext()
-        // The colors are only for a simple shadow's draw.
-        if let shadow = state.dropShadow, shadow.isValid && shadow.radius == 0 {
-            context.fillColor = colorValue(state.fill.packedColor, state.fill.platformColorSlot, state.fill.isColorVisible)
-            context.shadowColor = colorValue(shadow.packedColor, shadow.platformColorSlot, shadow.isVisible)
-            context.hasSimpleShadow = true
-        }
-        context.hasReceiverTransparencyLayer = hasReceiverTransparencyLayer()
-        return context
-    }
-
+    // A Swift receiver's run of glyphs, in a font whose facts its cache worked out, from the anchor point
+    // (GraphicsContextCG::drawGlyphsImmediate()).
     @_expose(!Cxx)
     @_spi(WebKitGPU) public mutating func receiveDrawGlyphs(
         _ run: CGRendererGlyphRun,
-        _ positions: CGRendererGlyphPositions,
-        _ facts: CGRendererGlyphDrawFacts,
-        _ shadowFillColor: CGColor?,
+        _ facts: CGRendererGlyphFontFacts,
+        _ smoothingMode: UInt8,
         _ x: Float,
         _ y: Float
     ) {
-        drawGlyphs(run, positions, facts, shadowFillColor, x, y)
+        drawGlyphRun(run, facts, smoothingMode, isInAnyTransparencyLayer(), nil, true, x, y)
     }
 
     private func colorValue(_ packedColor: UInt32, _ platformColorSlot: UInt32, _ isVisible: Bool) -> CGRendererColorValue {

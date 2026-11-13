@@ -154,8 +154,8 @@ final class RemoteCGRendererRecorder {
             .fillRectWithCachedGradient(_, let identifier),
             .fillRectWithCachedGradientAndSpaceTransform(_, let identifier, _, _):
             try messageCheck { resources.recordGradient(identifier) }
-        case .drawGlyphs(let fontIdentifier, _, _, _):
-            try messageCheck { resources.recordFont(fontIdentifier) }
+        case .drawGlyphs(let fontIdentifier, let glyphs, _, _):
+            try messageCheck { resources.recordGlyphs(fontIdentifier, glyphs) }
         case .drawMeshGradient(let identifier, _):
             try messageCheck { resources.recordMeshGradient(identifier) }
         case .drawFilteredImageBuffer(let sourceImageIdentifier, _, let filter):

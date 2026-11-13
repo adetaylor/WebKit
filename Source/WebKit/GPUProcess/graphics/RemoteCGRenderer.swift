@@ -101,6 +101,9 @@ final class RemoteCGRenderer {
     private var replayDepth = 0
     // How many recordings are being replayed, including those that replayedRecordings leaves out.
     private var replayLevel = 0
+    // A live DrawGlyphs's glyphs and advances, copied out of the message.
+    private var liveGlyphs: ContiguousArray<CGGlyph> = []
+    private var liveAdvances: ContiguousArray<CGSize> = []
 
     @_expose(!Cxx)
     private init(
@@ -873,7 +876,8 @@ final class RemoteCGRenderer {
         state.receiveDrawLinesForText(segments, point.x(), point.y(), thickness, printing, doubleLines, strokeStyle)
     }
 
-    // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++.
+    // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++. A recorded run has the font that the
+    // recorder found for it; a live one's glyphs and advances are copied out of the message first.
     func drawGlyphs(
         state: inout CGRendererCore,
         fontIdentifier: WebCore.RenderingResourceIdentifier,
@@ -881,15 +885,35 @@ final class RemoteCGRenderer {
         localAnchor: WebCore.FloatPoint,
         smoothingMode: WebCore.FontSmoothingMode
     ) throws(InvalidMessage) {
-        var draw = WebKit.makeRemoteCGRendererGlyphDraw()
-        let glyphContext = state.receiveGlyphContext()
-        let preparation = draw.prepare(glyphsAdvances, resources, fontIdentifier, smoothingMode, glyphContext)
-        try messageCheck { preparation.found }
-        guard preparation.draws else {
+        if glyphsAdvances.isRecorded() {
+            let facts = glyphsAdvances.recordedFacts()
+            guard facts.draws else {
+                return
+            }
+            state.receiveDrawGlyphs(glyphsAdvances.recordedRun(), facts, smoothingMode.rawValue, localAnchor.x(), localAnchor.y())
             return
         }
-        let shadowFillColor = glyphContext.hasSimpleShadow ? WebKit.copyGlyphShadowFillColor(draw) : nil
-        state.receiveDrawGlyphs(draw.run(glyphsAdvances), draw.positions(), draw.facts(), shadowFillColor, localAnchor.x(), localAnchor.y())
+        let count = glyphsAdvances.size()
+        if liveGlyphs.count < count {
+            liveGlyphs = ContiguousArray(repeating: 0, count: count)
+            liveAdvances = ContiguousArray(repeating: CGSize.zero, count: count)
+        }
+        var facts = CGRendererGlyphFontFacts()
+        var found = false
+        let font: CTFont?
+        do {
+            var glyphsCopy = liveGlyphs.mutableSpan
+            var advancesCopy = liveAdvances.mutableSpan
+            font = WebKit.copyGlyphsForDraw(resources, fontIdentifier, glyphsAdvances, &glyphsCopy, &advancesCopy, &facts, &found)
+        }
+        try messageCheck { found }
+        guard let font else {
+            return
+        }
+        let glyphStorage = liveGlyphs
+        let advanceStorage = liveAdvances
+        let run = CGRendererMakeGlyphRun(font, glyphStorage.span.extracting(0..<count), advanceStorage.span.extracting(0..<count))
+        state.receiveDrawGlyphs(run, facts, smoothingMode.rawValue, localAnchor.x(), localAnchor.y())
     }
 
     // RemoteGraphicsContext::drawDisplayList(): a missing display list is an invalid message. A recording draws the display
