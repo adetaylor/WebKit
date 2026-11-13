@@ -86,6 +86,14 @@ class SwiftBase;
 #if ENABLE(SWIFT_TYPE_CONDITION)
 class SwiftDerived;
 #endif
+class SwiftShape;
+class SwiftCircle;
+#if ENABLE(SWIFT_TYPE_CONDITION)
+class SwiftSquare;
+#endif
+class SwiftTriangle;
+class SwiftLight;
+struct SwiftDrawing;
 }
 
 namespace Namespace::Subnamespace {
@@ -504,6 +512,38 @@ template<> struct ArgumentCoder<Namespace::SwiftDerived> {
     static std::optional<Namespace::SwiftDerived> decode(Decoder&);
 };
 #endif
+
+template<> struct ArgumentCoder<Namespace::SwiftShape> {
+    static void encode(Encoder&, const Namespace::SwiftShape&);
+    static std::optional<Ref<Namespace::SwiftShape>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftCircle> {
+    static void encode(Encoder&, const Namespace::SwiftCircle&);
+    static std::optional<Ref<Namespace::SwiftCircle>> decode(Decoder&);
+};
+
+#if ENABLE(SWIFT_TYPE_CONDITION)
+template<> struct ArgumentCoder<Namespace::SwiftSquare> {
+    static void encode(Encoder&, const Namespace::SwiftSquare&);
+    static std::optional<Ref<Namespace::SwiftSquare>> decode(Decoder&);
+};
+#endif
+
+template<> struct ArgumentCoder<Namespace::SwiftTriangle> {
+    static void encode(Encoder&, const Namespace::SwiftTriangle&);
+    static std::optional<Ref<Namespace::SwiftTriangle>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftLight> {
+    static void encode(Encoder&, const Namespace::SwiftLight&);
+    static std::optional<Ref<Namespace::SwiftLight>> decode(Decoder&);
+};
+
+template<> struct ArgumentCoder<Namespace::SwiftDrawing> {
+    static void encode(Encoder&, const Namespace::SwiftDrawing&);
+    static std::optional<Namespace::SwiftDrawing> decode(Decoder&);
+};
 
 } // namespace IPC
 

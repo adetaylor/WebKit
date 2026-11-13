@@ -269,6 +269,180 @@ extension IPCTypes.SwiftDerived: IPCCoder {
 #endif
 
 extension IPCTypes {
+    enum SwiftShape: Sendable, Equatable {
+        case swiftCircle(IPCTypes.SwiftCircle)
+        #if ENABLE_SWIFT_TYPE_CONDITION
+        case swiftSquare(IPCTypes.SwiftSquare)
+        #endif
+        case swiftTriangle(IPCTypes.SwiftTriangle)
+    }
+}
+
+extension IPCTypes.SwiftShape: IPCCoder {
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftShape {
+        let index = try UInt8.decode(from: &decoder)
+        var position: UInt8 = 0
+        if index == position {
+            return .swiftCircle(try IPCTypes.SwiftCircle.decode(from: &decoder))
+        }
+        position += 1
+        #if ENABLE_SWIFT_TYPE_CONDITION
+        if index == position {
+            return .swiftSquare(try IPCTypes.SwiftSquare.decode(from: &decoder))
+        }
+        position += 1
+        #endif
+        if index == position {
+            return .swiftTriangle(try IPCTypes.SwiftTriangle.decode(from: &decoder))
+        }
+        position += 1
+        throw IPCDecodingError()
+    }
+
+    static func encode(_ value: IPCTypes.SwiftShape, to encoder: IPC.SwiftReplyEncoder) {
+        var position: UInt8 = 0
+        if case .swiftCircle(let subclass) = value {
+            UInt8.encode(position, to: encoder)
+            IPCTypes.SwiftCircle.encode(subclass, to: encoder)
+            return
+        }
+        position += 1
+        #if ENABLE_SWIFT_TYPE_CONDITION
+        if case .swiftSquare(let subclass) = value {
+            UInt8.encode(position, to: encoder)
+            IPCTypes.SwiftSquare.encode(subclass, to: encoder)
+            return
+        }
+        position += 1
+        #endif
+        if case .swiftTriangle(let subclass) = value {
+            UInt8.encode(position, to: encoder)
+            IPCTypes.SwiftTriangle.encode(subclass, to: encoder)
+            return
+        }
+        position += 1
+    }
+}
+
+extension IPCTypes {
+    struct SwiftCircle: Sendable, Equatable {
+        var radius: Float
+    }
+}
+
+extension IPCTypes.SwiftCircle: IPCCoder {
+    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {
+        self.radius = try Float.decode(from: &decoder)
+    }
+
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftCircle {
+        try IPCTypes.SwiftCircle(ipcDecodingFrom: &decoder)
+    }
+
+    static func encode(_ value: IPCTypes.SwiftCircle, to encoder: IPC.SwiftReplyEncoder) {
+        Float.encode(value.radius, to: encoder)
+    }
+}
+
+#if ENABLE_SWIFT_TYPE_CONDITION
+extension IPCTypes {
+    struct SwiftSquare: Sendable, Equatable {
+        var side: Float
+    }
+}
+
+extension IPCTypes.SwiftSquare: IPCCoder {
+    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {
+        self.side = try Float.decode(from: &decoder)
+    }
+
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftSquare {
+        try IPCTypes.SwiftSquare(ipcDecodingFrom: &decoder)
+    }
+
+    static func encode(_ value: IPCTypes.SwiftSquare, to encoder: IPC.SwiftReplyEncoder) {
+        Float.encode(value.side, to: encoder)
+    }
+}
+#endif
+
+extension IPCTypes {
+    struct SwiftTriangle: Sendable, Equatable {
+    }
+}
+
+extension IPCTypes.SwiftTriangle: IPCCoder {
+    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {
+    }
+
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftTriangle {
+        try IPCTypes.SwiftTriangle(ipcDecodingFrom: &decoder)
+    }
+
+    static func encode(_ value: IPCTypes.SwiftTriangle, to encoder: IPC.SwiftReplyEncoder) {
+    }
+}
+
+extension IPCTypes {
+    enum SwiftLight: Sendable, Equatable {
+        case swiftCircle(IPCTypes.SwiftCircle)
+        case swiftTriangle(IPCTypes.SwiftTriangle)
+    }
+}
+
+extension IPCTypes.SwiftLight: IPCCoder {
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftLight {
+        let index = try UInt8.decode(from: &decoder)
+        if index == 0 {
+            return .swiftCircle(try IPCTypes.SwiftCircle.decode(from: &decoder))
+        }
+        if index == 1 {
+            return .swiftTriangle(try IPCTypes.SwiftTriangle.decode(from: &decoder))
+        }
+        throw IPCDecodingError()
+    }
+
+    static func encode(_ value: IPCTypes.SwiftLight, to encoder: IPC.SwiftReplyEncoder) {
+        if case .swiftCircle(let subclass) = value {
+            UInt8.encode(0, to: encoder)
+            IPCTypes.SwiftCircle.encode(subclass, to: encoder)
+            return
+        }
+        if case .swiftTriangle(let subclass) = value {
+            UInt8.encode(1, to: encoder)
+            IPCTypes.SwiftTriangle.encode(subclass, to: encoder)
+            return
+        }
+    }
+}
+
+extension IPCTypes {
+    struct SwiftDrawing: Sendable, Equatable {
+        var shape: IPCTypes.SwiftShape
+        var shapes: [IPCTypes.SwiftShape]
+        var light: IPCTypes.SwiftLight
+    }
+}
+
+extension IPCTypes.SwiftDrawing: IPCCoder {
+    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {
+        self.shape = try IPCTypes.SwiftShape.decode(from: &decoder)
+        self.shapes = try IPCCoding.Vector<IPCTypes.SwiftShape>.decode(from: &decoder)
+        self.light = try IPCTypes.SwiftLight.decode(from: &decoder)
+    }
+
+    static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> IPCTypes.SwiftDrawing {
+        try IPCTypes.SwiftDrawing(ipcDecodingFrom: &decoder)
+    }
+
+    static func encode(_ value: IPCTypes.SwiftDrawing, to encoder: IPC.SwiftReplyEncoder) {
+        IPCTypes.SwiftShape.encode(value.shape, to: encoder)
+        IPCCoding.Vector<IPCTypes.SwiftShape>.encode(value.shapes, to: encoder)
+        IPCTypes.SwiftLight.encode(value.light, to: encoder)
+    }
+}
+
+extension IPCTypes {
     enum SwiftVariant: Sendable, Equatable {
         case empty
         case uint64(UInt64)
@@ -357,16 +531,24 @@ extension IPCTypes {
     /// The Swift forms of C++ types by qualified C++ name, so Swift naming a C++ type that has none does not compile.
     enum CxxName {
         typealias Namespace_SwiftBoolEnum = IPCTypes.SwiftBoolEnum
+        typealias Namespace_SwiftCircle = IPCTypes.SwiftCircle
         #if ENABLE_SWIFT_TYPE_CONDITION
         typealias Namespace_SwiftDerived = IPCTypes.SwiftDerived
         #endif
+        typealias Namespace_SwiftDrawing = IPCTypes.SwiftDrawing
         typealias Namespace_SwiftEnum = IPCTypes.SwiftEnum
         typealias Namespace_SwiftInner = IPCTypes.SwiftInner
         typealias Namespace_SwiftLeaf = IPCTypes.SwiftLeaf
+        typealias Namespace_SwiftLight = IPCTypes.SwiftLight
         typealias Namespace_SwiftMultiLineVariant = IPCTypes.SwiftMultiLineVariant
         typealias Namespace_SwiftNode = IPCTypes.SwiftNode
         typealias Namespace_SwiftOptionSet = IPCTypes.SwiftOptionSet
+        typealias Namespace_SwiftShape = IPCTypes.SwiftShape
+        #if ENABLE_SWIFT_TYPE_CONDITION
+        typealias Namespace_SwiftSquare = IPCTypes.SwiftSquare
+        #endif
         typealias Namespace_SwiftStruct = IPCTypes.SwiftStruct
+        typealias Namespace_SwiftTriangle = IPCTypes.SwiftTriangle
         typealias Namespace_SwiftVariant = IPCTypes.SwiftVariant
         typealias WebCore_FrameIdentifier = IPCTypes.FrameIdentifier
         typealias WebKit_SwiftAtomicTestIdentifier = IPCTypes.SwiftAtomicTestIdentifier

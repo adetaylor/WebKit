@@ -561,7 +561,19 @@ enum class WebKit::E : uint8_t {
 [Swift, RefCounted] class WebCore::TimingFunction subclasses {
     WebCore::LinearTimingFunction,
 }
-''', r'types serialized as their subclasses cannot be marked \[Swift\]')
+''', r'subclass WebCore::LinearTimingFunction: WebCore::LinearTimingFunction has no Swift form')
+        self.assertGenerationFails('''
+[Swift, RefCounted] class WebCore::TimingFunction subclasses {
+    WebCore::LinearTimingFunction,
+}
+[Swift, RefCounted] class WebCore::LinearTimingFunction {
+    float value();
+}
+[Swift, RefCounted] class WebCore::Shape subclasses {
+    WebCore::LinearTimingFunction,
+    WebCore::LinearTimingFunction,
+}
+''', r'more than one of its subclasses would be named linearTimingFunction in Swift')
         self.assertGenerationFails('''
 [Swift] CFFooRef wrapped by WebKit::FooWrapper {
 }

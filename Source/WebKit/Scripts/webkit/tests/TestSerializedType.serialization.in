@@ -464,6 +464,38 @@ headers: "SwiftTypes.h"
 }
 #endif
 
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftShape subclasses {
+    Namespace::SwiftCircle,
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    Namespace::SwiftSquare,
+#endif
+    Namespace::SwiftTriangle
+}
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftCircle {
+    float radius();
+}
+
+#if ENABLE(SWIFT_TYPE_CONDITION)
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftSquare {
+    float side();
+}
+#endif
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftTriangle {
+}
+
+[Swift, RefCounted, CustomHeader] class Namespace::SwiftLight subclasses {
+    Namespace::SwiftCircle
+    Namespace::SwiftTriangle
+}
+
+[Swift, CustomHeader] struct Namespace::SwiftDrawing {
+    Ref<Namespace::SwiftShape> shape;
+    Vector<Ref<Namespace::SwiftShape>> shapes;
+    Namespace::SwiftLight light;
+}
+
 [Swift] using Namespace::SwiftVariant = Variant<std::monostate, uint64_t, String, Vector<String>, Namespace::SwiftInner, Ref<Namespace::SwiftNode>>
 
 [Swift] using Namespace::SwiftMultiLineVariant = Variant<

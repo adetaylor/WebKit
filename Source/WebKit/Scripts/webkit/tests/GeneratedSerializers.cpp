@@ -2013,6 +2013,213 @@ std::optional<Namespace::SwiftDerived> ArgumentCoder<Namespace::SwiftDerived>::d
 
 #endif
 
+enum class Namespace_SwiftShape_Subclass : IPC::EncodedVariantIndex {
+    SwiftCircle
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    , SwiftSquare
+#endif
+    , SwiftTriangle
+};
+
+IGNORE_WARNINGS_BEGIN("missing-noreturn")
+void ArgumentCoder<Namespace::SwiftShape>::encode(Encoder& encoder, const Namespace::SwiftShape& instance)
+{
+    if (auto* subclass = dynamicDowncast<Namespace::SwiftCircle>(instance)) {
+        encoder << Namespace_SwiftShape_Subclass::SwiftCircle;
+        encoder << *subclass;
+        return;
+    }
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    if (auto* subclass = dynamicDowncast<Namespace::SwiftSquare>(instance)) {
+        encoder << Namespace_SwiftShape_Subclass::SwiftSquare;
+        encoder << *subclass;
+        return;
+    }
+#endif
+    if (auto* subclass = dynamicDowncast<Namespace::SwiftTriangle>(instance)) {
+        encoder << Namespace_SwiftShape_Subclass::SwiftTriangle;
+        encoder << *subclass;
+        return;
+    }
+    ASSERT_NOT_REACHED();
+}
+IGNORE_WARNINGS_END
+
+std::optional<Ref<Namespace::SwiftShape>> ArgumentCoder<Namespace::SwiftShape>::decode(Decoder& decoder)
+{
+    auto type = decoder.decode<Namespace_SwiftShape_Subclass>();
+    UNUSED_PARAM(type);
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+
+    if (type == Namespace_SwiftShape_Subclass::SwiftCircle) {
+        auto result = decoder.decode<Ref<Namespace::SwiftCircle>>();
+        if (!decoder.isValid()) [[unlikely]]
+            return std::nullopt;
+        return WTF::move(*result);
+    }
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    if (type == Namespace_SwiftShape_Subclass::SwiftSquare) {
+        auto result = decoder.decode<Ref<Namespace::SwiftSquare>>();
+        if (!decoder.isValid()) [[unlikely]]
+            return std::nullopt;
+        return WTF::move(*result);
+    }
+#endif
+    if (type == Namespace_SwiftShape_Subclass::SwiftTriangle) {
+        auto result = decoder.decode<Ref<Namespace::SwiftTriangle>>();
+        if (!decoder.isValid()) [[unlikely]]
+            return std::nullopt;
+        return WTF::move(*result);
+    }
+    ASSERT_NOT_REACHED();
+    return std::nullopt;
+}
+
+void ArgumentCoder<Namespace::SwiftCircle>::encode(Encoder& encoder, const Namespace::SwiftCircle& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.radius())>, float>);
+
+    encoder << instance.radius();
+}
+
+std::optional<Ref<Namespace::SwiftCircle>> ArgumentCoder<Namespace::SwiftCircle>::decode(Decoder& decoder)
+{
+    auto radius = decoder.decode<float>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftCircle::create(
+            WTF::move(*radius)
+        )
+    };
+}
+
+#if ENABLE(SWIFT_TYPE_CONDITION)
+void ArgumentCoder<Namespace::SwiftSquare>::encode(Encoder& encoder, const Namespace::SwiftSquare& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.side())>, float>);
+
+    encoder << instance.side();
+}
+
+std::optional<Ref<Namespace::SwiftSquare>> ArgumentCoder<Namespace::SwiftSquare>::decode(Decoder& decoder)
+{
+    auto side = decoder.decode<float>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftSquare::create(
+            WTF::move(*side)
+        )
+    };
+}
+
+#endif
+
+void ArgumentCoder<Namespace::SwiftTriangle>::encode(Encoder& encoder, const Namespace::SwiftTriangle& instance)
+{
+    struct ShouldBeSameSizeAsSwiftTriangle : public VirtualTableAndRefCountOverhead<std::is_polymorphic_v<Namespace::SwiftTriangle>, true> {
+    };
+    static_assert(sizeof(ShouldBeSameSizeAsSwiftTriangle) == sizeof(Namespace::SwiftTriangle));
+    static_assert(IsIncreasing < 0
+    >);
+
+}
+
+std::optional<Ref<Namespace::SwiftTriangle>> ArgumentCoder<Namespace::SwiftTriangle>::decode(Decoder& decoder)
+{
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftTriangle::create(
+        )
+    };
+}
+
+enum class Namespace_SwiftLight_Subclass : IPC::EncodedVariantIndex {
+    SwiftCircle
+    , SwiftTriangle
+};
+
+IGNORE_WARNINGS_BEGIN("missing-noreturn")
+void ArgumentCoder<Namespace::SwiftLight>::encode(Encoder& encoder, const Namespace::SwiftLight& instance)
+{
+    if (auto* subclass = dynamicDowncast<Namespace::SwiftCircle>(instance)) {
+        encoder << Namespace_SwiftLight_Subclass::SwiftCircle;
+        encoder << *subclass;
+        return;
+    }
+    if (auto* subclass = dynamicDowncast<Namespace::SwiftTriangle>(instance)) {
+        encoder << Namespace_SwiftLight_Subclass::SwiftTriangle;
+        encoder << *subclass;
+        return;
+    }
+    ASSERT_NOT_REACHED();
+}
+IGNORE_WARNINGS_END
+
+std::optional<Ref<Namespace::SwiftLight>> ArgumentCoder<Namespace::SwiftLight>::decode(Decoder& decoder)
+{
+    auto type = decoder.decode<Namespace_SwiftLight_Subclass>();
+    UNUSED_PARAM(type);
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+
+    if (type == Namespace_SwiftLight_Subclass::SwiftCircle) {
+        auto result = decoder.decode<Ref<Namespace::SwiftCircle>>();
+        if (!decoder.isValid()) [[unlikely]]
+            return std::nullopt;
+        return WTF::move(*result);
+    }
+    if (type == Namespace_SwiftLight_Subclass::SwiftTriangle) {
+        auto result = decoder.decode<Ref<Namespace::SwiftTriangle>>();
+        if (!decoder.isValid()) [[unlikely]]
+            return std::nullopt;
+        return WTF::move(*result);
+    }
+    ASSERT_NOT_REACHED();
+    return std::nullopt;
+}
+
+void ArgumentCoder<Namespace::SwiftDrawing>::encode(Encoder& encoder, const Namespace::SwiftDrawing& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.shape)>, Ref<Namespace::SwiftShape>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.shapes)>, Vector<Ref<Namespace::SwiftShape>>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.light)>, Namespace::SwiftLight>);
+    struct ShouldBeSameSizeAsSwiftDrawing : public VirtualTableAndRefCountOverhead<std::is_polymorphic_v<Namespace::SwiftDrawing>, false> {
+        Ref<Namespace::SwiftShape> shape;
+        Vector<Ref<Namespace::SwiftShape>> shapes;
+        Namespace::SwiftLight light;
+    };
+    static_assert(sizeof(ShouldBeSameSizeAsSwiftDrawing) == sizeof(Namespace::SwiftDrawing));
+    static_assert(IsIncreasing < 0
+        , offsetof(Namespace::SwiftDrawing, shape)
+        , offsetof(Namespace::SwiftDrawing, shapes)
+        , offsetof(Namespace::SwiftDrawing, light)
+    >);
+
+    encoder << instance.shape;
+    encoder << instance.shapes;
+    encoder << instance.light;
+}
+
+std::optional<Namespace::SwiftDrawing> ArgumentCoder<Namespace::SwiftDrawing>::decode(Decoder& decoder)
+{
+    auto shape = decoder.decode<Ref<Namespace::SwiftShape>>();
+    auto shapes = decoder.decode<Vector<Ref<Namespace::SwiftShape>>>();
+    auto light = decoder.decode<Ref<Namespace::SwiftLight>>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftDrawing {
+            WTF::move(*shape),
+            WTF::move(*shapes),
+            WTF::move(*light)
+        }
+    };
+}
+
 } // namespace IPC
 
 namespace WTF {
@@ -2038,6 +2245,33 @@ template<> bool isValidEnum<IPC::WebCore_MoveOnlyBaseClass_Subclass>(IPC::Encode
 IGNORE_WARNINGS_BEGIN("switch-unreachable")
     switch (static_cast<IPC::WebCore_MoveOnlyBaseClass_Subclass>(value)) {
     case IPC::WebCore_MoveOnlyBaseClass_Subclass::MoveOnlyDerivedClass:
+        return true;
+    }
+IGNORE_WARNINGS_END
+    return false;
+}
+
+template<> bool isValidEnum<IPC::Namespace_SwiftShape_Subclass>(IPC::EncodedVariantIndex value)
+{
+IGNORE_WARNINGS_BEGIN("switch-unreachable")
+    switch (static_cast<IPC::Namespace_SwiftShape_Subclass>(value)) {
+    case IPC::Namespace_SwiftShape_Subclass::SwiftCircle:
+#if ENABLE(SWIFT_TYPE_CONDITION)
+    case IPC::Namespace_SwiftShape_Subclass::SwiftSquare:
+#endif
+    case IPC::Namespace_SwiftShape_Subclass::SwiftTriangle:
+        return true;
+    }
+IGNORE_WARNINGS_END
+    return false;
+}
+
+template<> bool isValidEnum<IPC::Namespace_SwiftLight_Subclass>(IPC::EncodedVariantIndex value)
+{
+IGNORE_WARNINGS_BEGIN("switch-unreachable")
+    switch (static_cast<IPC::Namespace_SwiftLight_Subclass>(value)) {
+    case IPC::Namespace_SwiftLight_Subclass::SwiftCircle:
+    case IPC::Namespace_SwiftLight_Subclass::SwiftTriangle:
         return true;
     }
 IGNORE_WARNINGS_END
