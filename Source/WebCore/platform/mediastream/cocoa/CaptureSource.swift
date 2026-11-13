@@ -248,7 +248,7 @@ import WebCore_Private.Core.RealtimeMediaSourceCenter
 }
 
 // CaptureDevice::DeviceType, for the kinds the GPU process captures.
-@_spi(WebKitGPU) public enum CaptureDeviceKind: Sendable {
+@_spi(WebKitGPU) @frozen public enum CaptureDeviceKind: Sendable {
     case microphone
     case camera
     case screen
