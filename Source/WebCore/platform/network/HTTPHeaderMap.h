@@ -204,6 +204,11 @@ public:
     CommonHeadersVector& commonHeaders() LIFETIME_BOUND { return m_commonHeaders; }
     UncommonHeadersVector& uncommonHeaders() LIFETIME_BOUND { return m_uncommonHeaders; }
 
+    // For Swift, which cannot use the vector references above or get(StringView).
+    std::span<const CommonHeader> commonHeadersSpan() const LIFETIME_BOUND { return m_commonHeaders.span(); }
+    std::span<const UncommonHeader> uncommonHeadersSpan() const LIFETIME_BOUND { return m_uncommonHeaders.span(); }
+    String valueForName(const String& name) const { return get(StringView { name }); }
+
     const_iterator begin() const LIFETIME_BOUND { return const_iterator(*this, 0, 0); }
     const_iterator end() const LIFETIME_BOUND { return const_iterator(*this, m_commonHeaders.size(), m_uncommonHeaders.size()); }
 
