@@ -205,6 +205,10 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('Seconds', 'WTF::Seconds'):
         return ('Double', 'Double')
 
+    # A WallTime is encoded as its seconds since the epoch, a double, which Swift takes as them.
+    if cpp_type in ('WallTime', 'WTF::WallTime'):
+        return ('Double', 'Double')
+
     # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
     if cpp_type in ('GenericPromise::Result', 'WTF::GenericPromise::Result'):
         return ('Bool', 'Bool')
@@ -287,7 +291,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
                               "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, and the owned types %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES))))
 
 

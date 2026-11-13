@@ -40,7 +40,7 @@ enum class WebCore::PlatformMediaSessionRemoteControlCommandType : uint8_t {
     EndScrubbingCommand,
 };
 
-enum class WebCore::PlatformMediaSessionMediaType : uint8_t {
+[Swift] enum class WebCore::PlatformMediaSessionMediaType : uint8_t {
     None,
     Video,
     VideoAudio,

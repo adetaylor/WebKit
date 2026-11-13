@@ -98,12 +98,12 @@ header: <WebCore/ProcessQualified.h>
     WebCore::ProcessIdentifier processIdentifier();
 };
 
-[Alias=class ProcessQualified<MediaSessionIdentifier>, CustomHeader] alias WebCore::QualifiedMediaSessionIdentifier {
+[Alias=class ProcessQualified<MediaSessionIdentifier>, CustomHeader, Swift] alias WebCore::QualifiedMediaSessionIdentifier {
     WebCore::MediaSessionIdentifier object();
     WebCore::ProcessIdentifier processIdentifier();
 };
 
-[Alias=class ProcessQualified<PageIdentifier>, CustomHeader] alias WebCore::QualifiedPageIdentifier {
+[Alias=class ProcessQualified<PageIdentifier>, CustomHeader, Swift] alias WebCore::QualifiedPageIdentifier {
     WebCore::PageIdentifier object();
     WebCore::ProcessIdentifier processIdentifier();
 };
