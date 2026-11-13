@@ -3686,6 +3686,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/MediaPlayerAVFoundationCore.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/WebCoreAVFResourceLoader.swift
         ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
         ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift

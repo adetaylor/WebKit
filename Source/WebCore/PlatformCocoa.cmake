@@ -1324,6 +1324,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h
     platform/graphics/avfoundation/objc/MediaSampleAVFObjC.h
     platform/graphics/avfoundation/objc/VideoLayerManagerObjC.h
+    platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.h
 
     platform/graphics/ca/FrameProcessIndicators.h
     platform/graphics/ca/GraphicsLayerCA.h

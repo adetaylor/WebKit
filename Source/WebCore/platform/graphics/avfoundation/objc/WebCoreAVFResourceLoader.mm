@@ -48,12 +48,9 @@
 #import <wtf/SoftLinking.h>
 #import <wtf/TZoneMallocInlines.h>
 #import <wtf/WorkQueue.h>
+#import <wtf/cocoa/TypeCastsCocoa.h>
 #import <wtf/text/CString.h>
 #import <wtf/text/MakeString.h>
-
-@interface AVAssetResourceLoadingContentInformationRequest (WebKitExtensions)
-@property (nonatomic, getter=isEntireLengthAvailableOnDemand) BOOL entireLengthAvailableOnDemand;
-@end
 
 namespace WebCore {
 
@@ -340,12 +337,9 @@ WebCoreAVFResourceLoader::WebCoreAVFResourceLoader(MediaPlayerPrivateAVFoundatio
 
 WebCoreAVFResourceLoader::~WebCoreAVFResourceLoader() = default;
 
-void WebCoreAVFResourceLoader::startLoading()
+auto WebCoreAVFResourceLoader::startResourceLoad(bool requestsRange, bool requestsAllDataToEndOfResource) -> LoadStart
 {
     assertIsCurrent(m_targetDispatcher.get());
-
-    if (m_dataURLMediaLoader)
-        return;
 
     RetainPtr<NSURLRequest> nsRequest = [m_avRequest request];
 
@@ -354,31 +348,38 @@ void WebCoreAVFResourceLoader::startLoading()
 
     m_loadStartTime = MonotonicTime::now();
 
-    RetainPtr<AVAssetResourceLoadingDataRequest> dataRequest = [m_avRequest dataRequest];
-    m_currentOffset = m_requestedOffset = dataRequest ? [dataRequest requestedOffset] : -1;
-    m_requestedLength = dataRequest ? [dataRequest requestedLength] : -1;
-
     ALWAYS_LOG(LOGIDENTIFIER, "protocol: ", request.url().protocol(), ", offset: ", m_currentOffset, ", length: ", m_requestedLength);
 
-    if (dataRequest && m_requestedLength > 0
-        && !request.hasHTTPHeaderField(HTTPHeaderName::Range)) {
-        String rangeEnd = dataRequest.get().requestsAllDataToEndOfResource ? emptyString() : makeString(m_requestedOffset + m_requestedLength - 1);
+    if (requestsRange && !request.hasHTTPHeaderField(HTTPHeaderName::Range)) {
+        String rangeEnd = requestsAllDataToEndOfResource ? emptyString() : makeString(m_requestedOffset + m_requestedLength - 1);
         request.addHTTPHeaderField(HTTPHeaderName::Range, makeString("bytes="_s, m_requestedOffset, '-', rangeEnd));
     }
 
     if (request.url().protocolIsData()) {
         m_dataURLMediaLoader = DataURLResourceMediaLoader::create(*this, WTF::move(request));
-        return;
+        return LoadStart::LoadingDataURL;
     }
 
     m_resourceMediaLoader = PlatformResourceMediaLoader::create(*this, m_platformMediaLoader, WTF::move(request));
     if (!m_resourceMediaLoader) {
         ERROR_LOG(LOGIDENTIFIER, "Failed to start load for media at url ", URL { [nsRequest URL] }.string());
-        [m_avRequest finishLoadingWithError:0];
-        return;
+        return LoadStart::Failed;
     }
+    return LoadStart::Loading;
+}
 
-    startLoadingTimer();
+bool WebCoreAVFResourceLoader::isLoadingDataURL() const
+{
+    assertIsCurrent(m_targetDispatcher.get());
+
+    return !!m_dataURLMediaLoader;
+}
+
+void WebCoreAVFResourceLoader::finishRequestLoading()
+{
+    BEGIN_BLOCK_OBJC_EXCEPTIONS
+    [m_avRequest finishLoading];
+    END_BLOCK_OBJC_EXCEPTIONS
 }
 
 // No code accessing `this` should ever be used after calling stopLoading().
@@ -410,38 +411,9 @@ bool WebCoreAVFResourceLoader::responseReceived(const String& mimeType, int stat
 
     ALWAYS_LOG(LOGIDENTIFIER, "status: ", status, ", range: ", contentRange.firstBytePosition(), "-", contentRange.lastBytePosition(), "/", contentRange.instanceLength(), ", expectedContentLength: ", expectedContentLength);
 
-    if (status && !isHttpOkStatus(status)) {
-        [m_avRequest finishLoadingWithError:0];
-        return true;
-    }
-
-    m_responseOffset = contentRange.isValid() ? static_cast<NSUInteger>(contentRange.firstBytePosition()) : 0;
-
-    if (RetainPtr<AVAssetResourceLoadingContentInformationRequest> contentInfo = [m_avRequest contentInformationRequest]) {
-        String uti = UTIFromMIMEType(mimeType);
-
-        [contentInfo setContentType:uti.createNSString().get()];
-
-        [contentInfo setContentLength:contentRange.isValid() ? contentRange.instanceLength() : expectedContentLength];
-        [contentInfo setByteRangeAccessSupported:YES];
-
-        // Do not set "EntireLengthAvailableOnDemand" to YES when the loader is DataURLResourceMediaLoader.
-        // When the property is YES, AVAssetResourceLoader will request small data ranges over and over again
-        // during the playback. For DataURLResourceMediaLoader, that means it needs to decode the URL repeatedly,
-        // which is very inefficient for long URLs.
-        // FIXME: don't have blob exception once rdar://132719739 is fixed.
-        if (!m_dataURLMediaLoader && [contentInfo respondsToSelector:@selector(setEntireLengthAvailableOnDemand:)])
-            [contentInfo setEntireLengthAvailableOnDemand:YES];
-
-        if (![m_avRequest dataRequest]) {
-            BEGIN_BLOCK_OBJC_EXCEPTIONS
-            [m_avRequest finishLoading];
-            END_BLOCK_OBJC_EXCEPTIONS
-            stopLoading();
-            return true;
-        }
-    }
-    return false;
+    uint64_t responseOffset = contentRange.isValid() ? static_cast<NSUInteger>(contentRange.firstBytePosition()) : 0;
+    int64_t contentLength = contentRange.isValid() ? contentRange.instanceLength() : static_cast<int64_t>(expectedContentLength);
+    return didReceiveResponse(status, responseOffset, contentLength, UTIFromMIMEType(mimeType).createCFString().get(), isLoadingDataURL());
 }
 
 void WebCoreAVFResourceLoader::startLoadingTimer()
@@ -485,13 +457,8 @@ void WebCoreAVFResourceLoader::loadFailed(const ResourceError& error)
 
     ERROR_LOG(LOGIDENTIFIER, error.sanitizedDescription());
 
-    // <rdar://problem/13987417> Set the contentType of the contentInformationRequest to an empty
-    // string to trigger AVAsset's playable value to complete loading.
-    if ([m_avRequest contentInformationRequest] && ![[m_avRequest contentInformationRequest] contentType])
-        [[m_avRequest contentInformationRequest] setContentType:@""];
-
-    [m_avRequest finishLoadingWithError:protect(error.nsError())];
-    stopLoading();
+    RetainPtr nsError = error.nsError();
+    failLoading(bridge_cast(nsError.get()));
 }
 
 void WebCoreAVFResourceLoader::loadFinished()
@@ -500,9 +467,7 @@ void WebCoreAVFResourceLoader::loadFinished()
 
     ALWAYS_LOG(LOGIDENTIFIER);
 
-    BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [m_avRequest finishLoading];
-    END_BLOCK_OBJC_EXCEPTIONS
+    finishRequestLoading();
     stopLoading();
 }
 
@@ -510,54 +475,7 @@ bool WebCoreAVFResourceLoader::newDataStoredInSharedBuffer(const FragmentedShare
 {
     assertIsCurrent(m_targetDispatcher.get());
 
-    RetainPtr<AVAssetResourceLoadingDataRequest> dataRequest = [m_avRequest dataRequest];
-    if (!dataRequest)
-        return true;
-
-    // Check for possible unsigned overflow.
-    ASSERT(m_currentOffset >= m_requestedOffset);
-    ASSERT(m_requestedLength >= m_currentOffset - m_requestedOffset);
-
-    NSUInteger remainingLength = m_requestedLength - (m_currentOffset - m_requestedOffset);
-
-    auto bytesToSkip = m_currentOffset - m_responseOffset;
-    auto array = data.createNSDataArray();
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL NSData* segment in array.get()) {
-        if (!remainingLength)
-            break;
-        NSUInteger usableBytes = segment.length;
-        NSUInteger bytesOffset = 0;
-        if (bytesToSkip) {
-            if (bytesToSkip > segment.length) {
-                bytesToSkip -= segment.length;
-                continue;
-            }
-            usableBytes = segment.length - bytesToSkip;
-            bytesOffset = bytesToSkip;
-            bytesToSkip = 0;
-        }
-        m_currentOffset += usableBytes;
-        if (!bytesOffset && usableBytes <= remainingLength)
-            [dataRequest respondWithData:segment];
-        else {
-            usableBytes = std::min(usableBytes, remainingLength);
-            [dataRequest respondWithData:[segment subdataWithRange:NSMakeRange(bytesOffset, usableBytes)]];
-        }
-        remainingLength -= usableBytes;
-    }
-
-    // There was not enough data in the buffer to satisfy the data request.
-    if (remainingLength)
-        return false;
-
-    ASSERT(m_currentOffset >= m_requestedOffset + m_requestedLength);
-
-    BEGIN_BLOCK_OBJC_EXCEPTIONS
-    [m_avRequest finishLoading];
-    END_BLOCK_OBJC_EXCEPTIONS
-    stopLoading();
-    return true;
+    return respondWithData(bridge_cast(data.createNSDataArray().get()));
 }
 
 #if !RELEASE_LOG_DISABLED
