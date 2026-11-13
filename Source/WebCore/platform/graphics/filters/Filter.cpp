@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,10 +27,13 @@
 #include "Filter.h"
 
 #include "FilterEffect.h"
-#include "FilterImage.h"
-#include "FilterResults.h"
 #include "FilterStyle.h"
+#include "FilterSwiftBridge.h"
 #include "ImageBuffer.h"
+
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
+#endif
 
 namespace WebCore {
 
@@ -49,46 +52,12 @@ Filter::Filter(Filter::Type filterType, const FilterGeometry& geometry, OptionSe
 {
 }
 
-FloatPoint Filter::scaledByFilterScale(const FloatPoint& point) const
-{
-    return point.scaled(m_geometry.scale.width(), m_geometry.scale.height());
-}
-
-FloatSize Filter::scaledByFilterScale(const FloatSize& size) const
-{
-    return size * m_geometry.scale;
-}
-
 FloatRect Filter::scaledByFilterScale(const FloatRect& rect) const
 {
     auto scaledRect = rect;
     scaledRect.scale(m_geometry.scale);
     return scaledRect;
 }
-
-FloatRect Filter::maxEffectRect(const FloatRect& primitiveSubregion) const
-{
-    return intersection(primitiveSubregion, m_geometry.filterRegion);
-}
-
-FloatRect Filter::clipToMaxEffectRect(const FloatRect& imageRect, const FloatRect& primitiveSubregion) const
-{
-    auto maxEffectRect = this->maxEffectRect(primitiveSubregion);
-    return intersection(imageRect, maxEffectRect);
-}
-
-#if USE(CORE_IMAGE)
-FloatRect Filter::absoluteEnclosingFilterRegion() const
-{
-    return scaledByFilterScale(m_enclosingFilterRegion);
-}
-
-FloatRect Filter::flippedRectRelativeToAbsoluteEnclosingFilterRegion(const FloatRect& absoluteRect) const
-{
-    auto absoluteFilterRegion = absoluteEnclosingFilterRegion();
-    return FloatRect(absoluteRect.x() - absoluteFilterRegion.x(), absoluteFilterRegion.maxY() - absoluteRect.maxY(), absoluteRect.width(), absoluteRect.height());
-}
-#endif
 
 bool Filter::clampFilterRegionIfNeeded()
 {
@@ -113,28 +82,8 @@ RenderingMode Filter::renderingMode() const
 
 void Filter::setFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes)
 {
-    m_filterRenderingModes = supportedFilterRenderingModes(preferredFilterRenderingModes);
-    ASSERT(m_filterRenderingModes.contains(FilterRenderingMode::Software));
-}
-
-RefPtr<FilterImage> Filter::apply(ImageBuffer* sourceImage, const FloatRect& sourceImageRect, FilterResults& results)
-{
-    RefPtr<FilterImage> input;
-
-    if (sourceImage) {
-        auto absoluteSourceImageRect = enclosingIntRect(scaledByFilterScale(sourceImageRect));
-        input = FilterImage::create(m_geometry.filterRegion, sourceImageRect, absoluteSourceImageRect, Ref { *sourceImage }, results.allocator());
-        if (!input)
-            return nullptr;
-    }
-
-    auto result = apply(input.get(), results);
-    if (!result)
-        return nullptr;
-
-    result->correctPremultipliedPixelBuffer();
-    result->transformToColorSpace(ColorSpace::SRGB());
-    return result;
+    auto modes = supportedFilterRenderingModes(preferredFilterRenderingModes);
+    m_filterRenderingModes = OptionSet<FilterRenderingMode>::fromRaw(filterRenderingModesIncludingSoftware(modes.toRaw()));
 }
 
 FilterStyleVector Filter::createFilterStyles(GraphicsContext& context, const FloatRect& sourceImageRect) const
@@ -149,13 +98,24 @@ FilterStyleVector Filter::createFilterStyles(GraphicsContext& context, const Flo
     return result;
 }
 
-ImageBuffer* Filter::filterResultBuffer(FilterImage& filterImage) const
+FilterRendererParameters filterRendererParameters(const Filter& filter)
 {
+    auto renderingOptions = filter.renderingOptions();
+    return {
+        .filterScale = filter.filterScale(),
+        .filterRegion = filter.filterRegion(),
+        .referenceBox = filter.referenceBox(),
 #if USE(CORE_IMAGE)
-    return filterImage.filterResultImageBuffer(*this);
+        .enclosingFilterRegion = filter.enclosingFilterRegion(),
+#else
+        .enclosingFilterRegion = filter.filterRegion(),
 #endif
-
-    return filterImage.imageBuffer();
+        .renderingMode = filter.renderingMode(),
+        .primitiveUnitsAreObjectBoundingBox = filter.primitiveUnitsAreObjectBoundingBox(),
+        .accelerated = filter.filterRenderingModes().contains(FilterRenderingMode::Accelerated),
+        .fastAndLowQuality = renderingOptions.contains(FilterRenderingOption::FastAndLowQuality),
+        .showDebugOverlay = renderingOptions.contains(FilterRenderingOption::ShowDebugOverlay),
+    };
 }
 
 } // namespace WebCore

@@ -3,7 +3,7 @@
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2010 Dirk Schulze <krit@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -24,13 +24,8 @@
 #include "config.h"
 #include "FEImage.h"
 
-#include "FEImageSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FEImageCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -42,7 +37,7 @@ Ref<FEImage> FEImage::create(SourceImage&& sourceImage, const FloatRect& sourceI
 FEImage::FEImage(SourceImage&& sourceImage, const FloatRect& sourceImageRect)
     : FilterEffect(Type::FEImage)
     , m_sourceImage(WTF::move(sourceImage))
-    , m_sourceImageRect(sourceImageRect)
+    , m_parameters { sourceImageRect }
 {
 }
 
@@ -50,12 +45,7 @@ bool FEImage::operator==(const FEImage& other) const
 {
     return FilterEffect::operator==(other)
         && m_sourceImage == other.m_sourceImage
-        && m_sourceImageRect == other.m_sourceImageRect;
-}
-
-FloatRect FEImage::calculateImageRect(const Filter& filter, std::span<const FloatRect>, const FloatRect& primitiveSubregion) const
-{
-    return filter.maxEffectRect(primitiveSubregion);
+        && m_parameters == other.m_parameters;
 }
 
 OptionSet<FilterRenderingMode> FEImage::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -67,27 +57,13 @@ OptionSet<FilterRenderingMode> FEImage::supportedFilterRenderingModes(OptionSet<
     return modes & preferredFilterRenderingModes;
 }
 
-std::unique_ptr<FilterEffectApplier> FEImage::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEImageCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEImage::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEImageSoftwareApplier>(*this);
-}
-
 TextStream& FEImage::externalRepresentation(TextStream& ts, FilterRepresentation representation) const
 {
     ts << indent << "[feImage"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    if (!m_sourceImageRect.isEmpty())
-        ts << " image-size=\""_s << m_sourceImageRect.width() << 'x' << m_sourceImageRect.height() << '"';
+    if (!m_parameters.sourceImageRect.isEmpty())
+        ts << " image-size=\""_s << m_parameters.sourceImageRect.width() << 'x' << m_parameters.sourceImageRect.height() << '"';
 
     // FIXME: should this dump also object returned by FEImage::image() ?
 

@@ -2,7 +2,7 @@
  * Copyright (C) 2004, 2005, 2006, 2007 Nikolas Zimmermann <zimmermann@kde.org>
  * Copyright (C) 2004, 2005 Rob Buis <buis@kde.org>
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -23,13 +23,8 @@
 #include "config.h"
 #include "FEMerge.h"
 
-#include "FEMergeSoftwareApplier.h"
-#include "ImageBuffer.h"
+#include "Filter.h"
 #include <wtf/text/TextStream.h>
-
-#if USE(CORE_IMAGE)
-#include "FEMergeCoreImageApplier.h"
-#endif
 
 namespace WebCore {
 
@@ -56,20 +51,6 @@ OptionSet<FilterRenderingMode> FEMerge::supportedFilterRenderingModes(OptionSet<
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEMerge::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEMergeCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEMerge::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEMergeSoftwareApplier>(*this);
 }
 
 TextStream& FEMerge::externalRepresentation(TextStream& ts, FilterRepresentation representation) const

@@ -4,7 +4,7 @@
  * Copyright (C) 2005 Eric Seidel <eric@webkit.org>
  * Copyright (C) 2009 Dirk Schulze <krit@webkit.org>
  * Copyright (C) Research In Motion Limited 2010. All rights reserved.
- * Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -25,12 +25,11 @@
 #include "config.h"
 #include "FEDisplacementMap.h"
 
-#include "FEDisplacementMapSoftwareApplier.h"
 #include "Filter.h"
 #include <wtf/text/TextStream.h>
 
-#if USE(CORE_IMAGE)
-#include "FEDisplacementMapCoreImageApplier.h"
+#if ENABLE(WEBCORE_SWIFT)
+#include "WebCore-Swift.h"
 #endif
 
 namespace WebCore {
@@ -38,76 +37,49 @@ namespace WebCore {
 Ref<FEDisplacementMap> FEDisplacementMap::create(ChannelSelectorType xChannelSelector, ChannelSelectorType yChannelSelector, float scale, ColorSpace colorSpace, bool in2IsTainted)
 {
     Ref<FEDisplacementMap> effect = adoptRef(*new FEDisplacementMap(xChannelSelector, yChannelSelector, scale, colorSpace));
-    effect->m_in2IsTainted = in2IsTainted;
+    effect->m_parameters.in2IsTainted = in2IsTainted;
     return effect;
 }
 
 FEDisplacementMap::FEDisplacementMap(ChannelSelectorType xChannelSelector, ChannelSelectorType yChannelSelector, float scale, ColorSpace colorSpace)
     : FilterEffect(FilterEffect::Type::FEDisplacementMap, colorSpace)
-    , m_xChannelSelector(xChannelSelector)
-    , m_yChannelSelector(yChannelSelector)
-    , m_scale(scale)
+    , m_parameters { xChannelSelector, yChannelSelector, scale, false }
 {
 }
 
 bool FEDisplacementMap::operator==(const FEDisplacementMap& other) const
 {
     return FilterEffect::operator==(other)
-        && m_xChannelSelector == other.m_xChannelSelector
-        && m_yChannelSelector == other.m_yChannelSelector
-        && m_scale == other.m_scale
-        && m_in2IsTainted == other.m_in2IsTainted;
+        && m_parameters == other.m_parameters;
 }
 
 bool FEDisplacementMap::setXChannelSelector(const ChannelSelectorType xChannelSelector)
 {
-    if (m_xChannelSelector == xChannelSelector)
+    if (m_parameters.xChannelSelector == xChannelSelector)
         return false;
-    m_xChannelSelector = xChannelSelector;
+    m_parameters.xChannelSelector = xChannelSelector;
     return true;
 }
 
 bool FEDisplacementMap::setYChannelSelector(const ChannelSelectorType yChannelSelector)
 {
-    if (m_yChannelSelector == yChannelSelector)
+    if (m_parameters.yChannelSelector == yChannelSelector)
         return false;
-    m_yChannelSelector = yChannelSelector;
+    m_parameters.yChannelSelector = yChannelSelector;
     return true;
 }
 
 bool FEDisplacementMap::setScale(float scale)
 {
-    if (m_scale == scale)
+    if (m_parameters.scale == scale)
         return false;
-    m_scale = scale;
+    m_parameters.scale = scale;
     return true;
-}
-
-FloatRect FEDisplacementMap::calculateImageRect(const Filter& filter, std::span<const FloatRect>, const FloatRect& primitiveSubregion) const
-{
-    return filter.maxEffectRect(primitiveSubregion);
 }
 
 IntOutsets FEDisplacementMap::calculateOutsets(const FloatSize& maxDisplacement)
 {
-    auto intDisplacement = expandedIntSize(maxDisplacement);
-    return { intDisplacement.height(), intDisplacement.width(), intDisplacement.height(), intDisplacement.width() };
-}
-
-const ColorSpace& FEDisplacementMap::resultColorSpace(std::span<const Ref<FilterImage>> inputs) const
-{
-    // Spec: The 'color-interpolation-filters' property only applies to the 'in2' source image
-    // and does not apply to the 'in' source image. The 'in' source image must remain in its
-    // current color space.
-    // The result is in that same color space because it is a displacement of the 'in' image.
-    return inputs[0]->colorSpace();
-}
-
-void FEDisplacementMap::transformInputsColorSpace(std::span<const Ref<FilterImage>> inputs) const
-{
-    // Do not transform the first primitive input, as per the spec.
-    ASSERT(inputs.size() == 2);
-    inputs[1]->transformToColorSpace(operatingColorSpace());
+    return feDisplacementMapOutsets(maxDisplacement).intOutsets();
 }
 
 OptionSet<FilterRenderingMode> FEDisplacementMap::supportedFilterRenderingModes(OptionSet<FilterRenderingMode> preferredFilterRenderingModes) const
@@ -117,20 +89,6 @@ OptionSet<FilterRenderingMode> FEDisplacementMap::supportedFilterRenderingModes(
     modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
-}
-
-std::unique_ptr<FilterEffectApplier> FEDisplacementMap::createAcceleratedApplier() const
-{
-#if USE(CORE_IMAGE)
-    return FilterEffectApplier::create<FEDisplacementMapCoreImageApplier>(*this);
-#else
-    return nullptr;
-#endif
-}
-
-std::unique_ptr<FilterEffectApplier> FEDisplacementMap::createSoftwareApplier() const
-{
-    return FilterEffectApplier::create<FEDisplacementMapSoftwareApplier>(*this);
 }
 
 static TextStream& operator<<(TextStream& ts, const ChannelSelectorType& type)
@@ -160,9 +118,9 @@ TextStream& FEDisplacementMap::externalRepresentation(TextStream& ts, FilterRepr
     ts << indent << "[feDisplacementMap"_s;
     FilterEffect::externalRepresentation(ts, representation);
 
-    ts << " scale=\"" << m_scale << '"';
-    ts << " xChannelSelector=\"" << m_xChannelSelector << '"';
-    ts << " yChannelSelector=\"" << m_yChannelSelector << '"';
+    ts << " scale=\"" << m_parameters.scale << '"';
+    ts << " xChannelSelector=\"" << m_parameters.xChannelSelector << '"';
+    ts << " yChannelSelector=\"" << m_parameters.yChannelSelector << '"';
 
     ts << "]\n"_s;
     return ts;

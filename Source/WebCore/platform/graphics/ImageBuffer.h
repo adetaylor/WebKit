@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2006 Nikolas Zimmermann <zimmermann@kde.org>
- * Copyright (C) 2007-2024 Apple Inc. All rights reserved.
+ * Copyright (C) 2007-2026 Apple Inc. All rights reserved.
  * Copyright (C) 2010 Torch Mobile (Beijing) Co. Ltd. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 #include <wtf/Function.h>
 #include <wtf/OptionSet.h>
 #include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
@@ -98,7 +99,7 @@ class ImageBuffer : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<Image
 public:
     using Parameters = ImageBufferParameters;
 
-    static RefPtr<ImageBuffer> create(const FloatSize& size, RenderingMode mode, RenderingPurpose purpose, float resolutionScale, const ColorSpace& colorSpace, PixelFormat bufferFormat, GraphicsClient* client = nullptr)
+    SWIFT_SAFE static RefPtr<ImageBuffer> create(const FloatSize& size, RenderingMode mode, RenderingPurpose purpose, float resolutionScale, const ColorSpace& colorSpace, PixelFormat bufferFormat, GraphicsClient* client = nullptr)
     {
         return create(size, mode, purpose, resolutionScale, colorSpace, ImageBufferFormat { bufferFormat }, client);
     }
@@ -209,9 +210,9 @@ public:
     //     ASSERT(buffer.hasOneRef());
     //     auto nativeImage = buffer.copyNativeImage();
     //     buffer = nullptr;
-    WEBCORE_EXPORT static RefPtr<NativeImage> sinkIntoNativeImage(RefPtr<ImageBuffer>);
-    WEBCORE_EXPORT static RefPtr<ImageBuffer> sinkIntoBufferForDifferentThread(RefPtr<ImageBuffer>);
-    WEBCORE_EXPORT static std::unique_ptr<SerializedImageBuffer> sinkIntoSerializedImageBuffer(RefPtr<ImageBuffer>&&);
+    SWIFT_UNSAFE WEBCORE_EXPORT static RefPtr<NativeImage> sinkIntoNativeImage(RefPtr<ImageBuffer>);
+    SWIFT_UNSAFE WEBCORE_EXPORT static RefPtr<ImageBuffer> sinkIntoBufferForDifferentThread(RefPtr<ImageBuffer>);
+    SWIFT_UNSAFE WEBCORE_EXPORT static std::unique_ptr<SerializedImageBuffer> sinkIntoSerializedImageBuffer(RefPtr<ImageBuffer>&&);
 
     WEBCORE_EXPORT virtual void convertToLuminanceMask();
     WEBCORE_EXPORT virtual void transformToColorSpace(const ColorSpace& newColorSpace);
@@ -220,12 +221,12 @@ public:
     WEBCORE_EXPORT virtual void putPixelBuffer(const PixelBufferSourceView&, const IntRect& srcRect, const IntPoint& destPoint = { }, AlphaPremultiplication destFormat = AlphaPremultiplication::Premultiplied);
 
     WEBCORE_EXPORT bool isInUse() const;
-    WEBCORE_EXPORT virtual void releaseGraphicsContext();
+    SWIFT_UNSAFE WEBCORE_EXPORT virtual void releaseGraphicsContext();
     WEBCORE_EXPORT bool setVolatile();
     WEBCORE_EXPORT SetNonVolatileResult setNonVolatile();
     WEBCORE_EXPORT VolatilityState volatilityState() const;
     WEBCORE_EXPORT void setVolatilityState(VolatilityState);
-    WEBCORE_EXPORT void setVolatileAndPurgeForTesting();
+    SWIFT_UNSAFE WEBCORE_EXPORT void setVolatileAndPurgeForTesting();
     WEBCORE_EXPORT virtual std::unique_ptr<ThreadSafeImageBufferFlusher> createFlusher();
 
     WEBCORE_EXPORT virtual String debugDescription() const;
