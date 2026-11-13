@@ -3972,9 +3972,9 @@ if (DEFINED WebCore_EXTRA_LINK_OPTIONS)
     target_link_options(WebCore PRIVATE ${WebCore_EXTRA_LINK_OPTIONS})
 endif ()
 
-# When SWIFT_REQUIRED is ON, CMake selects the Swift linker for targets that
-# have Swift sources or transitively depend on Swift libraries (PAL). Force the
-# CXX linker -- swiftc mishandles -I include paths during linking.
+# CMake selects the Swift linker for targets that have Swift sources or
+# transitively depend on Swift libraries (PAL). Force the CXX linker -- swiftc
+# mishandles -I include paths during linking.
 set_target_properties(WebCore PROPERTIES LINKER_LANGUAGE CXX)
 
 if (APPLE)

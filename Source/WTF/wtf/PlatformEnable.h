@@ -1181,16 +1181,12 @@
 #define ENABLE_SCROLL_POCKET_IN_FULLSCREEN 1
 #endif
 
-#if !defined(ENABLE_BACK_FORWARD_LIST_SWIFT) \
+#if !defined(ENABLE_IPC_TESTING_SWIFT) \
     && ((PLATFORM(MAC) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260500) \
     || ((PLATFORM(IOS) || PLATFORM(MACCATALYST)) && __IPHONE_OS_VERSION_MAX_ALLOWED >= 260500) \
     || (PLATFORM(VISION) && __VISION_OS_VERSION_MAX_ALLOWED >= 270000) \
     || (PLATFORM(WATCHOS) && __WATCH_OS_VERSION_MAX_ALLOWED >= 270000) \
     || (PLATFORM(APPLETV) && __TV_OS_VERSION_MAX_ALLOWED >= 270000))
-#define ENABLE_BACK_FORWARD_LIST_SWIFT 1
-#endif
-
-#if !defined(ENABLE_IPC_TESTING_SWIFT) && ENABLE(BACK_FORWARD_LIST_SWIFT)
 #define ENABLE_IPC_TESTING_SWIFT 1
 #endif
 
@@ -1221,10 +1217,9 @@
 #define ENABLE_GPU_PROCESS_CORE_SWIFT 1
 #endif
 
-// Whether any IPC message receiver is in Swift, which needs the Swift IPC support code.
-#if !defined(ENABLE_SWIFT_IPC_RECEIVERS) \
-    && (ENABLE(BACK_FORWARD_LIST_SWIFT) || (ENABLE(IPC_TESTING_API) && ENABLE(IPC_TESTING_SWIFT)) || ENABLE(GPU_PROCESS_CDM_SWIFT) \
-        || ENABLE(GPU_PROCESS_WEBGPU_SWIFT))
+// Whether any IPC message receiver is in Swift, which needs the Swift IPC support code. The back/forward
+// list's always is.
+#if !defined(ENABLE_SWIFT_IPC_RECEIVERS)
 #define ENABLE_SWIFT_IPC_RECEIVERS 1
 #endif
 
