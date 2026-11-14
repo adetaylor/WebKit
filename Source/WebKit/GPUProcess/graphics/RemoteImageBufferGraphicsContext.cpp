@@ -78,61 +78,38 @@ using namespace WebCore;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-// The drawing of an image buffer whose drawing is recorded (RenderingMode::DisplayList), whose context can't lend a
-// renderer: recorded in Swift (RemoteCGRendererRecorder) while the buffer receives drawing, and drawn where the WebCore
-// display list that the buffer's context records is drawn, by the one placeholder that display list has. It receives the
-// messages for the recorder, so that a draw on another thread sees whole messages. Once the buffer no longer receives
-// drawing, it keeps the recording and lets the recorder, which keeps the rendering backend, go.
-class RemoteCGRendererRecordedDrawing final : public IPC::StreamMessageReceiver {
+// What the one placeholder of the WebCore display list that a DisplayList image buffer's context records keeps: the buffer's
+// drawing, recorded in Swift (RemoteCGRendererRecordedDrawing, RemoteImageBuffer.swift), which it draws into the context the
+// display list is drawn into, if that context can lend its renderer.
+class RemoteCGRendererRecordedDrawingHandle final : public ThreadSafeRefCounted<RemoteCGRendererRecordedDrawingHandle> {
 public:
-    static Ref<RemoteCGRendererRecordedDrawing> create(RemoteRenderingBackend& renderingBackend)
+    static Ref<RemoteCGRendererRecordedDrawingHandle> adopt(uintptr_t drawing)
     {
-        Ref resources = RemoteCGRendererResources::createForRecorder(renderingBackend);
-        return adoptRef(*new RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder::create(resources.ptr(), RemoteCGRendererDisplayLists::forBackend(&renderingBackend))));
+        return adoptRef(*new RemoteCGRendererRecordedDrawingHandle(drawing));
     }
 
-    void stopRecording()
+    ~RemoteCGRendererRecordedDrawingHandle()
     {
-        Locker locker { m_lock };
-        if (!m_recorder)
-            return;
-        m_recording = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder->takeRecording());
-        m_forwarder = nullptr;
-        m_recorder = nullptr;
+        RemoteCGRendererRecordedDrawing::releaseDrawing(m_drawing);
     }
 
-    void draw(GraphicsContext& context)
+    void draw(GraphicsContext& context) const
     {
         if (!context.canLendSwiftRenderer())
             return;
-        std::unique_ptr<RemoteCGRendererRecording> recording;
-        {
-            Locker locker { m_lock };
-            recording = WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder ? m_recorder->currentRecording() : *m_recording);
-        }
         replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-            recording->draw(state, &resources);
+            RemoteCGRendererRecordedDrawing::draw(m_drawing, state, &resources);
         });
     }
 
 private:
-    explicit RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder&& recorder)
-        : m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(WTF::move(recorder)))
-        , m_forwarder(RemoteCGRendererRecorder::createMessageReceiver(*m_recorder))
+    explicit RemoteCGRendererRecordedDrawingHandle(uintptr_t drawing)
+        : m_drawing(drawing)
     {
+        RELEASE_ASSERT(drawing);
     }
 
-    void didReceiveStreamMessage(IPC::StreamServerConnection& connection, IPC::Decoder& decoder) final
-    {
-        Locker locker { m_lock };
-        if (m_forwarder)
-            m_forwarder->didReceiveStreamMessage(connection, decoder);
-    }
-
-    Lock m_lock;
-    std::unique_ptr<RemoteCGRendererRecorder> m_recorder WTF_GUARDED_BY_LOCK(m_lock);
-    RefPtr<RemoteCGRendererRecorderMessageForwarder> m_forwarder WTF_GUARDED_BY_LOCK(m_lock);
-    std::unique_ptr<RemoteCGRendererRecording> m_recording WTF_GUARDED_BY_LOCK(m_lock);
+    const uintptr_t m_drawing;
 };
 
 #endif
@@ -179,6 +156,15 @@ RemoteImageBufferGraphicsContext* RemoteImageBufferGraphicsContext::createForIma
     instance->m_renderingResourcesRequest = ScopedRenderingResourcesRequest::acquire();
     renderingBackend.sharedResourceCache().didCreateImageBuffer(imageBuffer.renderingPurpose(), imageBuffer.renderingMode());
     return &instance.leakRef();
+}
+
+void RemoteImageBufferGraphicsContext::installRecordedDrawing(uintptr_t drawing)
+{
+    ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
+    Ref handle = RemoteCGRendererRecordedDrawingHandle::adopt(drawing);
+    static_cast<DisplayList::RecorderImpl&>(imageBufferContext()).drawPlaceholder([handle = WTF::move(handle)](GraphicsContext& context) {
+        handle->draw(context);
+    });
 }
 
 void RemoteImageBufferGraphicsContext::releaseImageBuffer()
@@ -314,15 +300,9 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
         return;
     }
-    if (m_imageBuffer->renderingMode() == RenderingMode::DisplayList) {
-        Ref recordedDrawing = RemoteCGRendererRecordedDrawing::create(m_renderingBackend);
-        static_cast<DisplayList::RecorderImpl&>(imageBufferContext()).drawPlaceholder([recordedDrawing](GraphicsContext& context) {
-            recordedDrawing->draw(context);
-        });
-        streamConnection.startReceivingMessages(recordedDrawing, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-        m_recordedDrawing = WTF::move(recordedDrawing);
+    // The image buffer's Swift receiver records the drawing of one whose drawing is recorded (installRecordedDrawing()).
+    if (m_imageBuffer->renderingMode() == RenderingMode::DisplayList)
         return;
-    }
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     streamConnection.startReceivingMessages(*this, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
 #else
@@ -336,8 +316,6 @@ void RemoteImageBufferGraphicsContext::stopListeningForIPC()
     auto& streamConnection = m_renderingBackend->streamConnection();
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     streamConnection.stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-    if (RefPtr recordedDrawing = std::exchange(m_recordedDrawing, nullptr))
-        recordedDrawing->stopRecording();
 #else
     streamConnection.stopReceivingMessages(Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #endif
