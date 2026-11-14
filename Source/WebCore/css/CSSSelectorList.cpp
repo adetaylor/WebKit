@@ -35,10 +35,22 @@
 
 namespace WebCore {
 
+WTF_MAKE_TZONE_ALLOCATED_IMPL(CSSSelectorListStorage);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(CSSSelectorList);
 
-CSSSelectorList::CSSSelectorList(const CSSSelectorList& other)
-    : m_selectorArray(other.m_selectorArray)
+CSSSelectorList::CSSSelectorList(Ref<CSSSelectorListStorage>&& storage)
+{
+    storage->m_isHeldByList = true;
+    // Walks forward stop at m_isFirstInComplexSelector and back at m_isLastInComplexSelector, so these two keep every
+    // walk inside the vector, whoever appended the records.
+    auto& selectors = storage->m_selectors;
+    RELEASE_ASSERT(selectors.isEmpty() || (selectors.first().m_isLastInComplexSelector && selectors.last().m_isFirstInComplexSelector));
+    if (!storage->m_selectors.isEmpty())
+        m_storage = WTF::move(storage);
+}
+
+CSSSelectorList::CSSSelectorList(Vector<CSSSelector>&& selectors)
+    : CSSSelectorList(adoptRef(*new CSSSelectorListStorage(WTF::move(selectors))))
 {
 }
 
@@ -52,28 +64,26 @@ CSSSelectorList::CSSSelectorList(MutableCSSSelectorList&& selectorVector)
             ++flattenedSize;
     }
     ASSERT(flattenedSize);
-    m_selectorArray = FixedVector<CSSSelector>(flattenedSize);
-    size_t arrayIndex = 0;
+    Vector<CSSSelector> selectorArray(ReserveCapacityTag { }, flattenedSize);
     for (size_t i = 0; i < selectorVector.size(); ++i) {
         auto* last = selectorVector[i].get();
         auto* current = last;
         while (current) {
-            new (NotNull, &m_selectorArray[arrayIndex]) CSSSelector(current->releaseSelector());
+            selectorArray.append(current->releaseSelector());
             if (current != last)
-                m_selectorArray[arrayIndex].m_isLastInComplexSelector = false;
+                selectorArray.last().m_isLastInComplexSelector = false;
             current = current->precedingInComplexSelector();
-            ASSERT((arrayIndex < (m_selectorArray.size() - 1)) || (flattenedSize == arrayIndex + 1));
             if (current)
-                m_selectorArray[arrayIndex].m_isFirstInComplexSelector = false;
-            ++arrayIndex;
+                selectorArray.last().m_isFirstInComplexSelector = false;
         }
-        ASSERT(!m_selectorArray[arrayIndex - 1].precedingInComplexSelector());
+        ASSERT(!selectorArray.last().precedingInComplexSelector());
     }
-    ASSERT(flattenedSize == arrayIndex);
+    ASSERT(flattenedSize == selectorArray.size());
+    *this = CSSSelectorList { WTF::move(selectorArray) };
 }
 
 CSSSelectorList::CSSSelectorList(std::span<const CSSSelector* const> selectors)
-    : m_selectorArray(FixedVector<CSSSelector>::map(selectors, [](auto* selector) {
+    : CSSSelectorList(Vector<CSSSelector>::map(selectors, [](auto* selector) {
         return *selector;
     }))
 {
@@ -81,7 +91,7 @@ CSSSelectorList::CSSSelectorList(std::span<const CSSSelector* const> selectors)
 
 CSSSelectorList CSSSelectorList::makeCopyingSimpleSelector(const CSSSelector& simpleSelector)
 {
-    FixedVector<CSSSelector> selectorArray { simpleSelector };
+    Vector<CSSSelector> selectorArray { simpleSelector };
     auto& firstSelector = selectorArray[0];
     firstSelector.m_isFirstInComplexSelector = true;
     firstSelector.m_isLastInComplexSelector = true;
@@ -95,11 +105,11 @@ CSSSelectorList CSSSelectorList::makeCopyingComplexSelector(const CSSSelector& c
     for (auto* selector = &complexSelector; selector; selector = selector->precedingInComplexSelector())
         ++length;
 
-    FixedVector<CSSSelector> selectorArray(length);
-
-    size_t i = 0;
-    for (auto* selector = &complexSelector; selector; selector = selector->precedingInComplexSelector(), ++i)
-        new (NotNull, &selectorArray[i]) CSSSelector(*selector);
+    Vector<CSSSelector> selectorArray(ReserveCapacityTag { }, length);
+    for (auto* selector = &complexSelector; selector; selector = selector->precedingInComplexSelector())
+        selectorArray.append(*selector);
+    // complexSelector can be inside a complex selector (RuleFeature's :has() compounds): the copy starts one.
+    selectorArray.first().m_isLastInComplexSelector = true;
 
     return CSSSelectorList { WTF::move(selectorArray) };
 }
@@ -114,8 +124,8 @@ CSSSelectorList CSSSelectorList::makeJoining(const CSSSelectorList& a, const CSS
     auto aComponentCount = a.componentCount();
     auto bComponentCount = b.componentCount();
 
-    auto selectorArray = FixedVector<CSSSelector>::createWithSizeFromGenerator(aComponentCount + bComponentCount, [&](size_t i) {
-        return i < aComponentCount ? a.m_selectorArray[i] : b.m_selectorArray[i - aComponentCount];
+    Vector<CSSSelector> selectorArray(aComponentCount + bComponentCount, [&](size_t i) {
+        return i < aComponentCount ? a.selectorAt(i) : b.selectorAt(i - aComponentCount);
     });
 
     return CSSSelectorList { WTF::move(selectorArray) };
@@ -130,23 +140,21 @@ CSSSelectorList CSSSelectorList::makeJoining(const Vector<const CSSSelectorList*
     if (!totalComponentCount)
         return { };
 
-    FixedVector<CSSSelector> selectorArray(totalComponentCount);
-
-    size_t componentIndex = 0;
+    Vector<CSSSelector> selectorArray(ReserveCapacityTag { }, totalComponentCount);
     for (auto list : lists) {
         auto count = list->componentCount();
         for (size_t i = 0; i < count; ++i)
-            new (NotNull, &selectorArray[componentIndex++]) CSSSelector(list->m_selectorArray[i]);
+            selectorArray.append(list->selectorAt(i));
     }
 
-    ASSERT(componentIndex == totalComponentCount);
+    ASSERT(selectorArray.size() == totalComponentCount);
 
     return CSSSelectorList { WTF::move(selectorArray) };
 }
 
 unsigned CSSSelectorList::size() const
 {
-    return std::ranges::count_if(m_selectorArray, [](auto& selector) {
+    return std::ranges::count_if(selectors(), [](auto& selector) {
         return !selector.precedingInComplexSelector();
     });
 }
