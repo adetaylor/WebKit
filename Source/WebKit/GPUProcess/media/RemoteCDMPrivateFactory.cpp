@@ -24,13 +24,11 @@
  */
 
 #include "config.h"
-#include "RemoteCDMFactoryProxy.h"
+#include "RemoteCDMPrivateFactory.h"
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
-#include "GPUProcess.h"
-#include "RemoteCDMFactoryProxyMessages.h"
 #include "RemoteCDMIdentifier.h"
 #include "RemoteCDMInstanceMessages.h"
 #include "RemoteCDMInstanceSessionIdentifier.h"
@@ -44,7 +42,7 @@ namespace WebKit {
 
 using namespace WebCore;
 
-WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMFactoryProxy);
+WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMPrivateFactory);
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMPrivateHandle);
 
 // The CDMInstanceClient of a C++ CDM's instance.
@@ -53,7 +51,7 @@ class RemoteCDMInstanceClient final : public CDMInstanceClient, public RefCounte
 public:
     USING_CAN_MAKE_WEAKPTR(CDMInstanceClient);
 
-    static Ref<RemoteCDMInstanceClient> create(RemoteCDMFactoryProxy& factory, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
+    static Ref<RemoteCDMInstanceClient> create(RemoteCDMPrivateFactory& factory, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
     {
         return adoptRef(*new RemoteCDMInstanceClient(factory, cdm, instance, identifier));
     }
@@ -67,7 +65,7 @@ public:
     void deref() const final { RefCounted::deref(); }
 
 private:
-    RemoteCDMInstanceClient(RemoteCDMFactoryProxy& factory, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
+    RemoteCDMInstanceClient(RemoteCDMPrivateFactory& factory, RemoteCDMPrivateHandle& cdm, CDMInstance& instance, RemoteCDMInstanceIdentifier identifier)
         : m_factory(factory)
         , m_cdm(cdm)
         , m_instance(instance)
@@ -101,7 +99,7 @@ private:
     uint64_t logIdentifier() const final { return m_logIdentifier; }
 #endif
 
-    WeakPtr<RemoteCDMFactoryProxy> m_factory;
+    WeakPtr<RemoteCDMPrivateFactory> m_factory;
     WeakPtr<RemoteCDMPrivateHandle> m_cdm;
     const Ref<CDMInstance> m_instance;
     RemoteCDMInstanceIdentifier m_identifier;
@@ -113,66 +111,43 @@ private:
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteCDMInstanceClient);
 
-Ref<RemoteCDMFactoryProxy> RemoteCDMFactoryProxy::create(GPUConnectionToWebProcess& connection)
+Ref<RemoteCDMPrivateFactory> RemoteCDMPrivateFactory::create(GPUConnectionToWebProcess& connection)
 {
-    Ref factory = adoptRef(*new RemoteCDMFactoryProxy(connection));
-    factory->m_swiftState = factory->createSwiftState();
-    return factory;
+    return adoptRef(*new RemoteCDMPrivateFactory(connection));
 }
 
-RemoteCDMFactoryProxy::RemoteCDMFactoryProxy(GPUConnectionToWebProcess& connection)
+RemoteCDMPrivateFactory::RemoteCDMPrivateFactory(GPUConnectionToWebProcess& connection)
     : m_gpuConnectionToWebProcess(connection)
 {
 }
 
-RemoteCDMFactoryProxy::~RemoteCDMFactoryProxy()
-{
-    destroySwiftState(m_swiftState);
-}
+RemoteCDMPrivateFactory::~RemoteCDMPrivateFactory() = default;
 
-RefPtr<CDMInstance> RemoteCDMFactoryProxy::cdmInstance(const RemoteCDMInstanceIdentifier& identifier) const
+RefPtr<CDMInstance> RemoteCDMPrivateFactory::cdmInstance(const RemoteCDMInstanceIdentifier& identifier) const
 {
     return m_cdmInstances.get(identifier);
 }
 
-uint64_t RemoteCDMFactoryProxy::generateCDMIdentifier()
+uint64_t RemoteCDMPrivateFactory::generateCDMIdentifier()
 {
     return RemoteCDMIdentifier::generate().toUInt64();
 }
 
-uint64_t RemoteCDMFactoryProxy::generateInstanceIdentifier()
+uint64_t RemoteCDMPrivateFactory::generateInstanceIdentifier()
 {
     return RemoteCDMInstanceIdentifier::generate().toUInt64();
 }
 
-uint64_t RemoteCDMFactoryProxy::generateSessionIdentifier()
+uint64_t RemoteCDMPrivateFactory::generateSessionIdentifier()
 {
     return RemoteCDMInstanceSessionIdentifier::generate().toUInt64();
 }
 
-void RemoteCDMFactoryProxy::removeInstance(uint64_t identifier)
+void RemoteCDMPrivateFactory::removeInstance(uint64_t identifier)
 {
     RemoteCDMInstanceIdentifier instanceIdentifier { identifier };
     m_instanceClients.remove(instanceIdentifier);
     m_cdmInstances.remove(instanceIdentifier);
-    RefPtr connection = m_gpuConnectionToWebProcess.get();
-    if (connection && allowsExitUnderMemoryPressure())
-        connection->gpuProcess().tryExitIfUnusedAndUnderMemoryPressure();
-}
-
-bool RemoteCDMFactoryProxy::addSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier, IPC::MessageReceiver& receiver)
-{
-    RefPtr connection = m_gpuConnectionToWebProcess.get();
-    if (!connection)
-        return false;
-    connection->messageReceiverMap().addMessageReceiver(receiverName, identifier, receiver);
-    return true;
-}
-
-void RemoteCDMFactoryProxy::removeSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier)
-{
-    if (RefPtr connection = m_gpuConnectionToWebProcess.get())
-        connection->messageReceiverMap().removeMessageReceiver(receiverName, identifier);
 }
 
 static CDMFactory* factoryForKeySystem(const String& keySystem)
@@ -186,7 +161,7 @@ static CDMFactory* factoryForKeySystem(const String& keySystem)
     return factories[foundIndex].ptr();
 }
 
-RemoteCDMPrivateHandle* RemoteCDMFactoryProxy::createCDM(const String& keySystem, const String& mediaKeysHashSalt)
+RefPtr<RemoteCDMPrivateHandle> RemoteCDMPrivateFactory::createCDM(const String& keySystem, const String& mediaKeysHashSalt)
 {
     RefPtr factory = factoryForKeySystem(keySystem);
     if (!factory)
@@ -196,37 +171,23 @@ RemoteCDMPrivateHandle* RemoteCDMFactoryProxy::createCDM(const String& keySystem
     if (!privateCDM)
         return nullptr;
 
-    return &RemoteCDMPrivateHandle::create(*this, makeUniqueRefFromNonNullUniquePtr(WTF::move(privateCDM))).leakRef();
+    return RemoteCDMPrivateHandle::create(*this, makeUniqueRefFromNonNullUniquePtr(WTF::move(privateCDM)));
 }
 
-void RemoteCDMFactoryProxy::registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle& cdm, CDMInstance& instance)
+void RemoteCDMPrivateFactory::registerCxxInstance(uint64_t identifier, RemoteCDMPrivateHandle& cdm, CDMInstance& instance)
 {
     RemoteCDMInstanceIdentifier instanceIdentifier { identifier };
     m_instanceClients.set(instanceIdentifier, RemoteCDMInstanceClient::create(*this, cdm, instance, instanceIdentifier));
     m_cdmInstances.set(instanceIdentifier, instance);
 }
 
-RefPtr<GPUConnectionToWebProcess> RemoteCDMFactoryProxy::gpuConnectionToWebProcess() const
+RefPtr<GPUConnectionToWebProcess> RemoteCDMPrivateFactory::gpuConnectionToWebProcess() const
 {
     return m_gpuConnectionToWebProcess.get();
 }
 
-String RemoteCDMFactoryProxy::mediaKeysStorageDirectory() const
-{
-    if (RefPtr connection = m_gpuConnectionToWebProcess.get())
-        return connection->mediaKeysStorageDirectory();
-    return emptyString();
-}
-
-std::optional<SharedPreferencesForWebProcess> RemoteCDMFactoryProxy::sharedPreferencesForWebProcess() const
-{
-    if (RefPtr connection = m_gpuConnectionToWebProcess.get())
-        return connection->sharedPreferencesForWebProcess();
-    return std::nullopt;
-}
-
 #if !RELEASE_LOG_DISABLED
-const Logger& RemoteCDMFactoryProxy::logger() const
+const Logger& RemoteCDMPrivateFactory::logger() const
 {
     if (!m_logger) {
         m_logger = Logger::create(this);
@@ -237,12 +198,12 @@ const Logger& RemoteCDMFactoryProxy::logger() const
 }
 #endif
 
-Ref<RemoteCDMPrivateHandle> RemoteCDMPrivateHandle::create(RemoteCDMFactoryProxy& factory, UniqueRef<CDMPrivate>&& cdm)
+Ref<RemoteCDMPrivateHandle> RemoteCDMPrivateHandle::create(RemoteCDMPrivateFactory& factory, UniqueRef<CDMPrivate>&& cdm)
 {
     return adoptRef(*new RemoteCDMPrivateHandle(factory, WTF::move(cdm)));
 }
 
-RemoteCDMPrivateHandle::RemoteCDMPrivateHandle(RemoteCDMFactoryProxy& factory, UniqueRef<CDMPrivate>&& cdm)
+RemoteCDMPrivateHandle::RemoteCDMPrivateHandle(RemoteCDMPrivateFactory& factory, UniqueRef<CDMPrivate>&& cdm)
     : m_factory(factory)
     , m_private(WTF::move(cdm))
 #if !RELEASE_LOG_DISABLED

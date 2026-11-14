@@ -45,6 +45,8 @@ final class GPUConnectionState {
     // The Now Playing candidate states of the connection's pages, by page identifier, which the election reads.
     var nowPlayingCandidates: [UInt64: IPCTypes.NowPlayingCandidateState] = [:]
 
+    // Declared before the receivers, so that their messages stop before the receivers go.
+    private var registrations: [IPC.SwiftReceiverRegistration] = []
     // The receivers the state owns, from when the connection is added to the GPU process; their registrations route their
     // messages to them until the connection is removed from it.
     #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
@@ -53,7 +55,9 @@ final class GPUConnectionState {
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     private(set) var audioMediaStreamTrackRendererInternalUnitManager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
     #endif
-    private var registrations: [IPC.SwiftReceiverRegistration] = []
+    #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
+    private(set) var cdmFactory: RemoteCDMFactoryProxy?
+    #endif
 
     fileprivate nonisolated init(processIdentifier: UInt64, isLockdownModeEnabled: Bool) {
         self.processIdentifier = processIdentifier
@@ -70,6 +74,11 @@ final class GPUConnectionState {
         #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
         if let audioMediaStreamTrackRendererInternalUnitManager {
             receivers.append(audioMediaStreamTrackRendererInternalUnitManager)
+        }
+        #endif
+        #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
+        if let cdmFactory {
+            receivers.append(cdmFactory)
         }
         #endif
         return receivers
@@ -94,6 +103,11 @@ final class GPUConnectionState {
                 0
             )
         )
+        #endif
+        #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
+        let cdmFactory = RemoteCDMFactoryProxy(connection: connection)
+        self.cdmFactory = cdmFactory
+        register(IPC.registerSwiftReceiver(connection, cdmFactory.getMessageReceiver(), .RemoteCDMFactoryProxy, 0))
         #endif
     }
 
@@ -189,6 +203,16 @@ extension WebKit.GPUConnectionToWebProcess {
     func swiftRemoteCommandTargetSession() -> UInt64 {
         nowPlayingArbiter.remoteCommandTargetSession(in: state.processIdentifier) ?? 0
     }
+
+    #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
+    @cxx
+    @implementation
+    @MainActor
+    func hasCDMInstance(_ identifier: UInt64) -> Bool {
+        MainActor.preconditionIsolated()
+        return state.cdmFactory?.hasInstance(identifier) ?? false
+    }
+    #endif
 
     @cxx
     @implementation

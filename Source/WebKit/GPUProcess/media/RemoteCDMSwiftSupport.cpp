@@ -28,6 +28,7 @@
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
 
+#include "GPUConnectionToWebProcess.h"
 #include <WebCore/CDMInstance.h>
 #if HAVE(AVCONTENTKEYSESSION)
 #include <WebCore/CDMInstanceFairPlayStreamingHost.h>
@@ -44,7 +45,12 @@ SharedBuffer* makeRemoteCDMBuffer(WTF::SpanUInt8 bytes NOESCAPE)
     return &SharedBuffer::create(bytes).leakRef();
 }
 
-CDMInstance* createRemoteCDMInstance(RemoteCDMFactoryProxy& factory, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken)
+RemoteCDMPrivateHandle* createRemoteCDM(GPUConnectionToWebProcess& connection, const String& keySystem, const String& mediaKeysHashSalt)
+{
+    return protect(connection.cdmPrivateFactory())->createCDM(keySystem, mediaKeysHashSalt).leakRef();
+}
+
+CDMInstance* createRemoteCDMInstance(GPUConnectionToWebProcess& connection, RemoteCDMPrivateHandle& cdm, uint64_t identifier, String& keySystem, uint64_t& fairPlayInstanceToken)
 {
     RefPtr instance = cdm.createInstance();
     if (!instance)
@@ -55,7 +61,7 @@ CDMInstance* createRemoteCDMInstance(RemoteCDMFactoryProxy& factory, RemoteCDMPr
 #else
     fairPlayInstanceToken = 0;
 #endif
-    factory.registerCxxInstance(identifier, cdm, *instance);
+    protect(connection.cdmPrivateFactory())->registerCxxInstance(identifier, cdm, *instance);
     return instance.leakRef();
 }
 

@@ -1024,6 +1024,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteAudioDestinationManagerMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.cpp
 
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp

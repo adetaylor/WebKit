@@ -90,8 +90,7 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include "RemoteCDMFactoryProxy.h"
-#include "RemoteCDMFactoryProxyMessages.h"
+#include "RemoteCDMPrivateFactory.h"
 #endif
 
 #if ENABLE(MEDIA_SOURCE)
@@ -452,11 +451,6 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     m_sampleBufferDisplayLayerManager->close();
 #endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    // The factory's Swift state keeps the factory until it is cleared, which didClose() does unless the factory came later.
-    if (m_cdmFactoryProxy)
-        m_cdmFactoryProxy->clear();
-#endif
 #if USE(AUDIO_SESSION)
     if (RefPtr audioSessionProxy = std::exchange(m_audioSessionProxy, nullptr))
         protect(m_gpuProcess->audioSessionManager())->removeProxy(*audioSessionProxy);
@@ -531,10 +525,6 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
     m_libWebRTCCodecsProxy = nullptr;
-#endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (m_cdmFactoryProxy)
-        m_cdmFactoryProxy->clear();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -623,10 +613,6 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
 #endif
 #if HAVE(AVASSETREADER)
     if (m_imageDecoderAVFProxy && !m_imageDecoderAVFProxy->allowsExitUnderMemoryPressure())
-        return false;
-#endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (auto* cdmFactoryProxy = m_cdmFactoryProxy.get(); cdmFactoryProxy && !cdmFactoryProxy->allowsExitUnderMemoryPressure())
         return false;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -773,12 +759,18 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
 #endif
 
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-RemoteCDMFactoryProxy& GPUConnectionToWebProcess::cdmFactoryProxy()
+RemoteCDMPrivateFactory& GPUConnectionToWebProcess::cdmPrivateFactory()
 {
-    if (!m_cdmFactoryProxy)
-        lazyInitialize(m_cdmFactoryProxy, RemoteCDMFactoryProxy::create(*this));
+    if (!m_cdmPrivateFactory)
+        lazyInitialize(m_cdmPrivateFactory, RemoteCDMPrivateFactory::create(*this));
 
-    return *m_cdmFactoryProxy;
+    return *m_cdmPrivateFactory;
+}
+
+void GPUConnectionToWebProcess::removeCDMInstance(uint64_t identifier)
+{
+    if (RefPtr factory = m_cdmPrivateFactory)
+        factory->removeInstance(identifier);
 }
 #endif
 
@@ -1199,12 +1191,7 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
     }
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-
-    // The CDMs, instances and sessions that the factory makes register their messages in messageReceiverMap(). A
+    // The CDMs, instances and sessions that the Swift factory makes register their messages in messageReceiverMap(). A
     // message for one that has gone is dropped, as before they did.
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchMessage(connection, decoder);
@@ -1299,11 +1286,6 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
     }
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    if (decoder.messageReceiverName() == Messages::RemoteCDMFactoryProxy::messageReceiverName()) {
-        protect(cdmFactoryProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
-        return true;
-    }
-
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
         return true;
