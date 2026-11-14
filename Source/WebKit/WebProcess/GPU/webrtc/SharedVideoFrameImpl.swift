@@ -197,7 +197,11 @@ final class SharedVideoFrameSource {
     // The pixel buffer of the frame and its display transform, if it can be read.
     @_expose(!Cxx)
     func read(_ frame: borrowing IPCTypes.SharedVideoFrame) -> (pixelBuffer: CVPixelBuffer, rotation: UInt16, isMirrored: Bool)? {
-        readBuffer(frame.buffer).map { ($0, frame.rotation.rawValue, frame.mirrored) }
+        guard let pixelBuffer = readBuffer(frame.buffer) else {
+            return nil
+        }
+        WebKit.attachSharedVideoFrameColorSpace(pixelBuffer, frame.colorSpace.sharedVideoFrameColorSpace)
+        return (pixelBuffer, frame.rotation.rawValue, frame.mirrored)
     }
 
     // Returned +1.
@@ -309,6 +313,29 @@ final class SharedVideoFrameSource {
         if let resourceOwner {
             WebCore.setOwnershipIdentityForCVPixelBuffer(pixelBuffer, resourceOwner)
         }
+    }
+}
+
+extension IPCTypes.PlatformVideoColorSpace {
+    fileprivate var sharedVideoFrameColorSpace: WebKit.SharedVideoFrameColorSpace {
+        var colorSpace = WebKit.SharedVideoFrameColorSpace()
+        if let primaries, let value = WebCore.PlatformVideoColorPrimaries(rawValue: primaries.rawValue) {
+            colorSpace.hasPrimaries = true
+            colorSpace.primaries = value
+        }
+        if let transfer, let value = WebCore.PlatformVideoTransferCharacteristics(rawValue: transfer.rawValue) {
+            colorSpace.hasTransfer = true
+            colorSpace.transfer = value
+        }
+        if let matrix, let value = WebCore.PlatformVideoMatrixCoefficients(rawValue: matrix.rawValue) {
+            colorSpace.hasMatrix = true
+            colorSpace.matrix = value
+        }
+        if let chromaLocation, let value = WebCore.PlatformVideoChromaLocation(rawValue: chromaLocation.rawValue) {
+            colorSpace.hasChromaLocation = true
+            colorSpace.chromaLocation = value
+        }
+        return colorSpace
     }
 }
 

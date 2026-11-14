@@ -33,6 +33,7 @@
 #include "RemoteVideoFrameProxy.h"
 #include "SharedVideoFrameImplBridge.h"
 #include "WebKit-Swift.h"
+#include <WebCore/CMUtilities.h>
 #include <WebCore/CVUtilities.h>
 #include <WebCore/IOSurface.h>
 #include <WebCore/SharedVideoFrameInfo.h>
@@ -250,6 +251,20 @@ void SharedVideoFrameWriter::disable()
 bool SharedVideoFrameWriter::isDisabled()
 {
     return swiftImpl().isDisabled();
+}
+
+void attachSharedVideoFrameColorSpace(CVPixelBufferRef pixelBuffer, SharedVideoFrameColorSpace colorSpace)
+{
+    PlatformVideoColorSpace platformColorSpace;
+    if (colorSpace.hasPrimaries)
+        platformColorSpace.primaries = colorSpace.primaries;
+    if (colorSpace.hasTransfer)
+        platformColorSpace.transfer = colorSpace.transfer;
+    if (colorSpace.hasMatrix)
+        platformColorSpace.matrix = colorSpace.matrix;
+    if (colorSpace.hasChromaLocation)
+        platformColorSpace.chromaLocation = colorSpace.chromaLocation;
+    attachColorSpaceToPixelBuffer(platformColorSpace, pixelBuffer);
 }
 
 CVPixelBufferPoolRef createSharedVideoFrameBufferPool(uint32_t width, uint32_t height, OSType pixelFormat)
