@@ -406,11 +406,10 @@ private func pixelBufferAttributes(_ format: CMFormatDescription) -> CFDictionar
     #else
     let compatibilityKey = kCVPixelBufferExtendedPixelsRightKey
     #endif
-    let attributes: [CFString: Any] = [
-        compatibilityKey: true,
-        kCVPixelBufferIOSurfacePropertiesKey: [CFString: Any](),
-        kCVPixelBufferPixelFormatTypeKey: Int64(pixelFormat),
-    ]
+    let attributes = NSDictionary(
+        objects: [true as NSNumber, NSDictionary(), NSNumber(value: Int64(pixelFormat))],
+        forKeys: [compatibilityKey as NSString, kCVPixelBufferIOSurfacePropertiesKey as NSString, kCVPixelBufferPixelFormatTypeKey as NSString]
+    )
     return attributes as CFDictionary
 }
 
@@ -581,7 +580,7 @@ final class LibWebRTCCodecsDecoder {
             VTDecompressionSessionInvalidate(session)
         }
 
-        let decoderSpecification = [kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder: true] as CFDictionary
+        let decoderSpecification = NSDictionary(object: true as NSNumber, forKey: kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder as NSString) as CFDictionary
         var sessionOut: VTDecompressionSession?
         let status = unsafe VTDecompressionSessionCreate(
             allocator: kCFAllocatorDefault,
