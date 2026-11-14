@@ -3945,6 +3945,16 @@ if (APPLE)
         webkit_target_add_swift_options(WebCore "-Xcc -Wno-ignored-attributes")
     endif ()
 
+    # With the internal SDK, clang adds -fno-builtin-calloc and -fno-builtin-stpcpy to every compile, the importer's
+    # included, and LLVM inlines a function only into a caller with the same no-builtin attributes: give them to
+    # Swift's functions too, so the C++ inline functions they call can be inlined.
+    if (USE_APPLE_INTERNAL_SDK)
+        webkit_target_add_swift_options(WebCore
+            "-Xcc -Xclang -Xcc -default-function-attr -Xcc -Xclang -Xcc no-builtin-calloc"
+            "-Xcc -Xclang -Xcc -default-function-attr -Xcc -Xclang -Xcc no-builtin-stpcpy"
+        )
+    endif ()
+
     # C++ sources that include WebCoreSwift-Generated.h.
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports}
         ${_webcore_swift_interop_sources_apple})

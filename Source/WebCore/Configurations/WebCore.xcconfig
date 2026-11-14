@@ -282,6 +282,10 @@ MODULE_VERIFIER_KIND = builtin;
 // -O2 compiles those inline C++ functions as WebCore's C++ is, not at the importer's default -Os, so their loops
 // vectorize. Debug leaves them unoptimized, as it leaves WebCore's C++: Swift's -Onone pipeline does not remove the ARC
 // markers clang's optimized code generation emits, and the backend cannot select them.
+// With the internal SDK, clang adds -fno-builtin-calloc and -fno-builtin-stpcpy to every compile, the importer's
+// included, so each C++ function carries those two no-builtin attributes, and LLVM inlines a function only into a caller
+// that has them too. -default-function-attr gives them to Swift's functions as well, so the C++ inline functions they
+// call can be inlined.
 // -enable-dfa-jump-thread lets LLVM branch from each transition of a state machine written as a switch in a loop
 // straight to the next state.
 // BuiltinModule is for the vendored SIMD operations in SIMD*.swift, until the standard library has them.
@@ -313,7 +317,9 @@ WK_WEBGL_ISLAND_SWIFT_FLAGS = -I $(CONFIGURATION_TEMP_DIR)/WebCoreWebGL.build/Ob
 WK_SWIFT_SYSTEM_FRAMEWORK_FLAGS = -Xcc -iframework$(WK_PRIVATE_SDK_DIR)$(SYSTEM_LIBRARY_DIR)/PrivateFrameworks;
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS = -Xcc -O2;
 WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS[config=Debug] = ;
-OTHER_SWIFT_FLAGS = $(inherited) -Werror DeprecatedDeclaration -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_SYSTEM_FRAMEWORK_FLAGS) $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature BuiltinModule -Werror SendableClosureCaptures $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -enable-experimental-feature BorrowInout -enable-experimental-feature BorrowAndMutateAccessors -enable-experimental-feature AddressableParameters -enable-experimental-feature CxxImplementation $(WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS) $(WK_WEBCOREEME_TBD_FLAGS_$(ENABLE_WEBCORE_SWIFT)) $(WK_WEBGL_ISLAND_SWIFT_FLAGS);
+WK_SWIFT_IMPORTED_CXX_NO_BUILTIN_FLAGS = $(WK_SWIFT_IMPORTED_CXX_NO_BUILTIN_FLAGS_$(USE_INTERNAL_SDK));
+WK_SWIFT_IMPORTED_CXX_NO_BUILTIN_FLAGS_YES = -Xcc -Xclang -Xcc -default-function-attr -Xcc -Xclang -Xcc no-builtin-calloc -Xcc -Xclang -Xcc -default-function-attr -Xcc -Xclang -Xcc no-builtin-stpcpy;
+OTHER_SWIFT_FLAGS = $(inherited) -Werror DeprecatedDeclaration -Xcc -std=c++2b -Xcc -fno-exceptions -Xcc -fignore-exceptions $(WK_SWIFT_SYSTEM_FRAMEWORK_FLAGS) $(WK_SWIFT_IMPORTED_CXX_OPTIMIZATION_FLAGS) $(WK_SWIFT_IMPORTED_CXX_NO_BUILTIN_FLAGS) -Xllvm -enable-dfa-jump-thread -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib -Xfrontend -emit-clang-header-min-access -Xfrontend internal -enable-experimental-feature BuiltinModule -Werror SendableClosureCaptures $(WK_SWIFT_PGO_USE_FLAGS) $(WK_SWIFT_PGO_GEN_FLAGS) @$(BUILT_PRODUCTS_DIR)/DerivedSources/WebCore/platform-enabled-swift-args.$(arch).resp $(WK_SWIFT_BOUNDS_SAFETY_ATTRIBUTES_FLAGS) -enable-experimental-feature BorrowInout -enable-experimental-feature BorrowAndMutateAccessors -enable-experimental-feature AddressableParameters -enable-experimental-feature CxxImplementation $(WK_SOFT_LINKED_FRAMEWORKS_SWIFT_FLAGS) $(WK_WEBCOREEME_TBD_FLAGS_$(ENABLE_WEBCORE_SWIFT)) $(WK_WEBGL_ISLAND_SWIFT_FLAGS);
 // WebCore.framework exports WebCoreSwiftSupport's symbols (WebCoreSwiftSupport.xcconfig), so its TBD lists them.
 WK_WEBCOREEME_TBD_FLAGS_ENABLE_WEBCORE_SWIFT = -Xfrontend -embed-tbd-for-module -Xfrontend WebCoreSwiftSupport -Xfrontend -embed-tbd-for-module -Xfrontend WebCoreEME;
 // Swift that holds C++ state must not let it reach another thread. Several of the diagnostics that catch that
