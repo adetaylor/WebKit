@@ -253,10 +253,25 @@ public:
     void mediaPlayerCharacteristicChanged() final { m_events.add("characteristic"_s); }
     void mediaPlayerBufferedTimeRangesChanged() final { m_events.add("buffered"_s); }
     void mediaPlayerSeekableTimeRangesChanged() final { m_events.add("seekable"_s); }
+    void mediaPlayerRenderingModeChanged() final
+    {
+        if (m_recordsRenderingModeChanges)
+            m_events.add("renderingMode"_s);
+    }
+    void mediaPlayerEngineFailedToLoad() final
+    {
+        if (m_recordsRenderingModeChanges)
+            m_events.add("engineFailed"_s);
+    }
 
     URL videoWithAudioURL() const
     {
         return [NSBundle.test_resourcesBundle URLForResource:@"video-with-audio" withExtension:@"mp4"];
+    }
+
+    static URL resourceURL(NSString *name, NSString *extension)
+    {
+        return [NSBundle.test_resourcesBundle URLForResource:name withExtension:extension];
     }
 
     static String timeString(const MediaTime& time)
@@ -322,9 +337,48 @@ public:
             EXPECT_STREQ(Util::toSTD(m_checkpoints[index++]).c_str(), line.characters());
     }
 
+    // The engine's own readiness and asset answers, read from the engine that the load created even if the media player
+    // later moves on to another engine.
+    void engineCheckpoint(ASCIILiteral label, WebCore::MediaPlayerPrivateInterface& engine)
+    {
+        StringBuilder builder;
+        auto size = engine.naturalSize();
+        bool progressed = false;
+        bool answered = false;
+        engine.didLoadingProgressAsync([&](bool value) {
+            progressed = value;
+            answered = true;
+        });
+        Util::run(&answered);
+        builder.append(label, ": ready="_s, static_cast<unsigned>(engine.readyState()), " network="_s, static_cast<unsigned>(engine.networkState()),
+            " paused="_s, engine.paused(), " duration="_s, timeString(engine.duration()),
+            " size="_s, size.width(), 'x', size.height(), " video="_s, engine.hasVideo(), " audio="_s, engine.hasAudio(),
+            " captions="_s, engine.hasClosedCaptions(), " loadType="_s, static_cast<unsigned>(engine.movieLoadType()),
+            " minSeekable="_s, timeString(engine.minTimeSeekable()), " maxSeekable="_s, timeString(engine.maxTimeSeekable()),
+            " progressed="_s, progressed, " fileSize="_s, engine.fileSize(), " errorCode="_s, engine.platformErrorCode(),
+            " startDate="_s, timeString(engine.getStartDate()), " layer="_s, !!engine.platformLayer(),
+            " frame="_s, engine.hasAvailableVideoFrame(), " fullscreen="_s, engine.supportsFullscreen(), " events={"_s);
+        Vector<String> events = copyToVector(m_events);
+        std::sort(events.begin(), events.end(), codePointCompareLessThan);
+        for (size_t i = 0; i < events.size(); ++i)
+            builder.append(i ? ","_s : ""_s, events[i]);
+        builder.append('}');
+        m_events.clear();
+        auto line = builder.toString();
+        WTFLogAlways("AV4D-REPLAY %s", Util::toSTD(line).c_str());
+        m_checkpoints.append(WTF::move(line));
+    }
+
+    RefPtr<WebCore::MediaPlayerPrivateInterface> loadAVFoundation(const URL& url)
+    {
+        mediaPlayer->load(url, { });
+        return mediaPlayer->playerPrivate();
+    }
+
     RefPtr<WebCore::MediaPlayer> mediaPlayer;
     HashSet<String> m_events;
     Vector<String> m_checkpoints;
+    bool m_recordsRenderingModeChanges { false };
 };
 
 TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, StateTimeSeekAndRate)
@@ -373,6 +427,139 @@ TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, StateTimeSeekAndRate)
     });
 }
 
+
+// Drives the readiness state machine and the asset's status through preloading in steps, rendering to a layer and then
+// to a context, page visibility, a seek issued while another is in flight, an audio-only file, a file that isn't media
+// and a missing file, and prints the engine's answers at each step. Recorded from the C++ implementation.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, ReadinessAndAsset)
+{
+    m_recordsRenderingModeChanges = true;
+
+    mediaPlayer->setPreload(WebCore::MediaPlayerPreload::None);
+    RefPtr engine = loadAVFoundation(videoWithAudioURL());
+    ASSERT_TRUE(engine);
+    Util::runFor(0.3_s);
+    engineCheckpoint("preload none"_s, *engine);
+
+    mediaPlayer->setPreload(WebCore::MediaPlayerPreload::MetaData);
+    Util::waitFor([&] { return engine->readyState() >= WebCore::MediaPlayerReadyState::HaveMetadata; });
+    Util::runFor(0.3_s);
+    engineCheckpoint("preload metadata"_s, *engine);
+
+    mediaPlayer->setPageIsVisible(true);
+    Util::runFor(0.1_s);
+    engineCheckpoint("visible"_s, *engine);
+
+    mediaPlayer->prepareToPlay();
+    Util::waitFor([&] {
+        return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData && engine->platformLayer()
+            && mediaPlayer->buffered().length() && mediaPlayer->buffered().maximumBufferedTime() >= mediaPlayer->duration();
+    });
+    Util::runFor(0.3_s);
+    engineCheckpoint("prepared"_s, *engine);
+
+    RefPtr image = engine->nativeImageForCurrentTime();
+    engine->acceleratedRenderingStateChanged();
+    Util::runFor(0.3_s);
+    engineCheckpoint(image ? "asked to paint, image"_s : "asked to paint, no image"_s, *engine);
+
+    mediaPlayer->setPageIsVisible(false);
+    Util::runFor(0.1_s);
+    engineCheckpoint("hidden"_s, *engine);
+
+    bool firstDone = false;
+    bool secondDone = false;
+    String firstSeek;
+    String secondSeek;
+    mediaPlayer->seekToTarget(WebCore::SeekTarget { MediaTime(2, 1) })->whenSettled(RunLoop::mainSingleton(), [&](auto&& settled) {
+        firstSeek = settled ? makeString("seeked to "_s, timeString(*settled)) : "seek rejected"_s;
+        firstDone = true;
+    });
+    mediaPlayer->seekToTarget(WebCore::SeekTarget { MediaTime(7, 1) })->whenSettled(RunLoop::mainSingleton(), [&](auto&& settled) {
+        secondSeek = settled ? makeString("seeked to "_s, timeString(*settled)) : "seek rejected"_s;
+        secondDone = true;
+    });
+    Util::run(&firstDone);
+    Util::run(&secondDone);
+    Util::runFor(0.2_s);
+    engineCheckpoint("two seeks"_s, *engine);
+    WTFLogAlways("AV4D-REPLAY seeks: %s; %s", Util::toSTD(firstSeek).c_str(), Util::toSTD(secondSeek).c_str());
+    EXPECT_STREQ(Util::toSTD(firstSeek).c_str(), "seek rejected");
+    EXPECT_STREQ(Util::toSTD(secondSeek).c_str(), "seeked to 7");
+
+    engine = nullptr;
+    mediaPlayer = WebCore::MediaPlayer::create(*this, WebCore::MediaPlayerMediaEngineIdentifier::AVFoundation);
+    m_events.clear();
+    engine = loadAVFoundation(resourceURL(@"half-a-second-48000", @"mp3"));
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] { return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData; });
+    Util::runFor(0.3_s);
+    engineCheckpoint("audio only"_s, *engine);
+
+    engine = nullptr;
+    mediaPlayer = WebCore::MediaPlayer::create(*this, WebCore::MediaPlayerMediaEngineIdentifier::AVFoundation);
+    m_events.clear();
+    engine = loadAVFoundation(resourceURL(@"alert", @"html"));
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] { return engine->networkState() >= WebCore::MediaPlayerNetworkState::FormatError; });
+    Util::runFor(0.3_s);
+    engineCheckpoint("not media"_s, *engine);
+
+    engine = nullptr;
+    mediaPlayer = WebCore::MediaPlayer::create(*this, WebCore::MediaPlayerMediaEngineIdentifier::AVFoundation);
+    m_events.clear();
+    engine = loadAVFoundation([NSBundle.test_resourcesBundle.resourceURL URLByAppendingPathComponent:@"no-such-file.mp4"]);
+    ASSERT_TRUE(engine);
+    // The C++ player stays loading: its metadata loads fail, and nothing updates its state after that.
+    Util::runFor(1_s);
+    engineCheckpoint("missing file"_s, *engine);
+    engine = nullptr;
+
+    expectCheckpoints({
+        "preload none: ready=0 network=1 paused=1 duration=0 size=0x0 video=0 audio=0 captions=0 loadType=0 minSeekable=0 maxSeekable=0 progressed=0 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={network}"_s,
+        "preload metadata: ready=1 network=1 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=1 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={characteristic,ready,size}"_s,
+        "visible: ready=1 network=1 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={renderingMode}"_s,
+        "prepared: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=1 fileSize=160121 errorCode=0 startDate=invalid layer=1 frame=0 fullscreen=1 events={buffered,characteristic,network,ready,renderingMode,seekable}"_s,
+        "asked to paint, image: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=1 fullscreen=1 events={renderingMode}"_s,
+        "hidden: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=1 fullscreen=1 events={}"_s,
+        "two seeks: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=1 fullscreen=1 events={firstFrame}"_s,
+        "audio only: ready=4 network=3 paused=1 duration=0.528 size=0x0 video=0 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=0.5 progressed=1 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={buffered,characteristic,network,ready,seekable}"_s,
+        "not media: ready=0 network=4 paused=1 duration=0 size=0x0 video=0 audio=0 captions=0 loadType=0 minSeekable=0 maxSeekable=0 progressed=0 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={characteristic,engineFailed,network}"_s,
+        "missing file: ready=0 network=2 paused=1 duration=0 size=0x0 video=0 audio=0 captions=0 loadType=0 minSeekable=0 maxSeekable=0 progressed=0 fileSize=0 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={network}"_s,
+    });
+}
+
+// Prints the cost of the readiness calls the media element makes, of re-deciding the rendering mode, and of page
+// visibility changes, to compare builds.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, ReadinessCallCost)
+{
+    mediaPlayer->setPageIsVisible(true);
+    RefPtr engine = loadAVFoundation(videoWithAudioURL());
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] {
+        return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData && engine->platformLayer();
+    });
+
+    constexpr unsigned iterations = 200000;
+    double sink = 0;
+    auto measure = [&](unsigned count, auto&& body) {
+        auto start = MonotonicTime::now();
+        for (unsigned i = 0; i < count; ++i)
+            body();
+        return (MonotonicTime::now() - start).nanoseconds() / count;
+    };
+
+    auto getters = measure(iterations, [&] {
+        sink += engine->paused() + engine->naturalSize().width() + static_cast<unsigned>(engine->movieLoadType());
+    });
+    auto renderingMode = measure(iterations, [&] { engine->acceleratedRenderingStateChanged(); });
+    auto visibility = measure(iterations / 10, [&] {
+        engine->setPageIsVisible(false);
+        engine->setPageIsVisible(true);
+    });
+
+    WTFLogAlways("AV4D-BENCH readiness getters %.1f ns/call, rendering mode %.1f ns/call, hide+show %.1f ns/pair (%g)", getters, renderingMode, visibility, sink);
+}
 
 // Prints the cost of the calls that the media element makes most often, paused and playing, and of exact seeks, to
 // compare builds.
