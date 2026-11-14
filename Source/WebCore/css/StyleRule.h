@@ -314,7 +314,7 @@ private:
 
 class StyleRuleGroup : public StyleRuleBase {
 public:
-    NODELETE const Vector<Ref<StyleRuleBase>>& childRules() const;
+    NODELETE WEBCORE_EXPORT const Vector<Ref<StyleRuleBase>>& childRules() const;
 
     void wrapperInsertRule(unsigned, Ref<StyleRuleBase>&&);
     void wrapperRemoveRule(unsigned);
