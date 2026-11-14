@@ -163,6 +163,21 @@ ASCIILiteral httpHeaderNameString(HTTPHeaderName headerName)
     return headerNameStrings[static_cast<unsigned>(headerName)];
 }
 
+static std::array<StringImpl::StaticStringImpl, numHTTPHeaderNames> lowercaseHeaderNameStrings = {{
+''')
+
+for http_header_name in http_header_names:
+    gperf_file.write('    StringImpl::StaticStringImpl("%s"_s),\n' % (http_header_name.lower(),))
+
+gperf_file.write('''}};
+
+String lowercaseHTTPHeaderNameString(HTTPHeaderName headerName)
+{
+    RELEASE_ASSERT(static_cast<unsigned>(headerName) < numHTTPHeaderNames);
+
+    return lowercaseHeaderNameStrings[static_cast<unsigned>(headerName)];
+}
+
 } // namespace WebCore
 
 #if defined(__clang__)
@@ -222,6 +237,7 @@ header_file.write('const size_t maxHTTPHeaderNameLength = %u;\n' % len(max(http_
 header_file.write('''
 bool findHTTPHeaderName(StringView, HTTPHeaderName&);
 WEBCORE_EXPORT ASCIILiteral httpHeaderNameString(HTTPHeaderName);
+String lowercaseHTTPHeaderNameString(HTTPHeaderName);
 
 } // namespace WebCore
 
