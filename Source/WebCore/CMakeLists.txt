@@ -4144,6 +4144,9 @@ else ()
         # Document's map of std::unique_ptr<Locale>: with the MSVC standard library the importer instantiates
         # its destructor, which needs Locale's definition, so the Document submodule has PlatformLocale.h too.
         set(_webcore_swift_core_submodule_headers_Document platform/text/PlatformLocale.h)
+        # Node's pure virtual serializeNode() returns SerializedNode by value: the importer needs its definition
+        # for the member's thunk (Swift 6.5-dev baff8d0917d3).
+        set(_webcore_swift_core_submodule_headers_Node dom/SerializedNode.h)
     endif ()
 
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES
@@ -4334,6 +4337,20 @@ else ()
     # build; here each names its header in the source tree. The headers imported one by one
     # (`WebCore_Private.Core.Element` and so on) are each a submodule of Core, as in the framework's
     # umbrella map.
+    # The tree builder (HTMLTreeBuilder.swift, HTMLConstructionSite.swift, HTMLElementStack.swift), which
+    # HTMLDocumentParser.cpp drives through WebCore-Swift.h; the selector parser's CSSSelector.h; the transform
+    # blending's StylePrimitiveNumericTypes+Blending.h.
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLDocumentParser.cpp)
+    list(APPEND _webcore_swift_core_submodules
+        css/CSSSelector.h dom/Comment.h dom/CustomElementRegistry.h dom/DocumentFragment.h dom/DocumentType.h
+        dom/ElementInlines.h dom/ExceptionOr.h html/HTMLDocument.h html/parser/HTMLDocumentParser.h
+        html/HTMLFormElement.h html/HTMLHtmlElement.h html/HTMLMaybeFormAssociatedCustomElement.h
+        html/parser/HTMLParserOptions.h html/HTMLScriptElement.h html/HTMLTemplateElement.h
+        html/parser/HTMLTreeBuilderSwiftSupport.h html/HTMLUnknownElement.h bindings/js/JSCustomElementInterface.h
+        dom/ProcessingInstruction.h ${WebCore_DERIVED_SOURCES_DIR}/Settings.h dom/ShadowRoot.h
+        style/values/primitives/StylePrimitiveNumericTypes+Blending.h)
+    list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
+
     if (_webcore_swift_core_submodules)
         string(APPEND _webcore_swift_modules "    module Core {\n")
         foreach (_h IN LISTS _webcore_swift_core_submodules)
@@ -4341,6 +4358,8 @@ else ()
                 set(_h "${WEBCORE_DIR}/${_h}")
             endif ()
             get_filename_component(_name "${_h}" NAME_WE)
+            # A submodule name is an identifier: StylePrimitiveNumericTypes+Blending.h is ..._Blending.
+            string(MAKE_C_IDENTIFIER "${_name}" _name)
             string(APPEND _webcore_swift_modules
                 "        explicit module ${_name} {\n"
                 "            header \"${_h}\"\n")
