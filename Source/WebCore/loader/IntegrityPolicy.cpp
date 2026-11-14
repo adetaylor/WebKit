@@ -29,12 +29,11 @@
 #include "Document.h"
 #include "FormData.h"
 #include "IntegrityPolicyViolationReportBody.h"
-#include "RFC8941.h"
 #include "Report.h"
 #include "ResourceLoaderOptions.h"
 #include "ResourceResponse.h"
 #include "SecurityContext.h"
-#include "SubresourceIntegrity.h"
+#include "WebCore-Swift.h"
 #include <wtf/Borrow.h>
 #include <wtf/TZoneMalloc.h>
 
@@ -67,44 +66,9 @@ static void reportViolation(const URL& requestURL, Document& document, bool bloc
 // https://w3c.github.io/webappsec-subresource-integrity/#processing-an-integrity-policy
 std::unique_ptr<IntegrityPolicy> processIntegrityPolicy(const ResourceResponse& response, HTTPHeaderName headerName)
 {
-    auto parseInnerList = [](auto& innerList, auto& vector, std::optional<String> match) {
-        for (auto& itemAndParameters : borrow(innerList)) {
-            auto& item = itemAndParameters.first;
-            auto* token = std::get_if<RFC8941::Token>(&item);
-            if (!token)
-                continue;
-            auto value = token->string();
-
-            if ((!match || value == *match))
-                vector.append(value);
-        }
-    };
-    // 2. Let dictionary be the result of getting a structured field value from headers given headerName and "dictionary".
-    auto parsedHeader = RFC8941::parseDictionaryStructuredFieldValue(response.httpHeaderField(headerName));
-    if (!parsedHeader)
-        return nullptr;
-    // 1. Let integrityPolicy be a new integrity policy struct.
-    std::unique_ptr<IntegrityPolicy> policy = makeUnique<IntegrityPolicy>();
-    bool sourcesExists = false;
-    for (auto& [name, valueAndParameters] : *parsedHeader) {
-        RFC8941::InnerList* innerList = std::get_if<RFC8941::InnerList>(&valueAndParameters.first);
-        if (!innerList)
-            continue;
-        // 4. If dictionary["blocked-destinations"] exists:
-        // 4.1. If its value contains "script", append "script" to integrityPolicy’s blocked destinations.
-        if (name == "blocked-destinations"_s)
-            parseInnerList(*innerList, policy->blockedDestinations, "script"_s);
-        // 3. If dictionary["sources"] ... value contains "inline", append "inline" to integrityPolicy’s sources.
-        else if (name == "sources"_s) {
-            sourcesExists = true;
-            parseInnerList(*innerList, policy->sources, "inline"_s);
-        } else if (name == "endpoints"_s)
-            parseInnerList(*innerList, policy->endpoints, std::nullopt);
-    }
-    // 3. If dictionary["sources"] does not exist, append "inline" to integrityPolicy’s sources.
-    if (!sourcesExists)
-        policy->sources.append("inline"_s);
-    return policy;
+    if (auto policy = integrityPolicyFromHeader(response.httpHeaderField(headerName)))
+        return makeUnique<IntegrityPolicy>(WTF::move(*policy));
+    return nullptr;
 }
 
 // https://w3c.github.io/webappsec-subresource-integrity/#should-request-be-blocked-by-integrity-policy-section
@@ -114,9 +78,8 @@ bool shouldRequestBeBlockedByIntegrityPolicy(ScriptExecutionContext& context, co
     auto integrityPolicyReportOnly = context.integrityPolicyReportOnly();
 
     // 2. Let parsedMetadata be the result of calling parse metadata with request’s integrity metadata.
-    auto parsedMetadata = parseIntegrityMetadata(options.integrity);
     // 3. If parsedMetadata is not the empty set and request’s mode is either "cors" or "same-origin", return "Allowed".
-    if (!parsedMetadata.isEmpty() && (options.mode == FetchOptions::Mode::Cors || options.mode == FetchOptions::Mode::SameOrigin))
+    if (subresourceIntegrityHasItems(options.integrity) && (options.mode == FetchOptions::Mode::Cors || options.mode == FetchOptions::Mode::SameOrigin))
         return false;
     // 4. If request’s url is local, return "Allowed".
     if (url.hasLocalScheme())

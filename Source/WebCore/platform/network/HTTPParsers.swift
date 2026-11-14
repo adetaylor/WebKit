@@ -851,7 +851,7 @@ private typealias HTTPHeaderLineFailureReasonBuffer = InlineArray<171, UInt8>
 private typealias HTTPHeaderLineFailureReasonWithEllipsisBuffer = InlineArray<172, UInt16>
 
 @inline(always)
-private func parseHTTPDateBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(_ characters: Span<CodeUnit>) -> Double {
+func parseHTTPDateBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(_ characters: Span<CodeUnit>) -> Double {
     // FIXME: parseDate() requires Latin1, but we're passing it UTF-8.
     if characters.count <= HTTPDateStackBuffer.count / 3 {
         var buffer = HTTPDateStackBuffer(repeating: 0)
@@ -956,7 +956,7 @@ private func isNoCORSSafelistedRequestHeaderNameBody<CodeUnit: FixedWidthInteger
 /// `isCrossOriginSafeRequestHeader()` (https://fetch.spec.whatwg.org/#cors-safelisted-request-header). Its limit
 /// counts code units.
 @inline(never)
-private func isCrossOriginSafeRequestHeaderBody<CodeUnit: HTTPHeaderStringCodeUnit>(
+func isCrossOriginSafeRequestHeaderBody<CodeUnit: HTTPHeaderStringCodeUnit>(
     _ name: WebCore.HTTPHeaderName,
     _ characters: Span<CodeUnit>
 ) -> Bool {

@@ -35,6 +35,7 @@
 #include "OwnerPermissionsPolicyData.h"
 #include "Quirks.h"
 #include "SecurityOrigin.h"
+#include "WebCore-Swift.h"
 #include <wtf/TZoneMalloc.h>
 #include <wtf/text/MakeString.h>
 
@@ -44,239 +45,14 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(PermissionsPolicy);
 
 using namespace HTMLNames;
 
-static ASCIILiteral toFeatureNameForLogging(PermissionsPolicy::Feature feature)
-{
-    switch (feature) {
-    case PermissionsPolicy::Feature::Camera:
-        return "Camera"_s;
-    case PermissionsPolicy::Feature::Microphone:
-        return "Microphone"_s;
-    case PermissionsPolicy::Feature::SpeakerSelection:
-        return "SpeakerSelection"_s;
-    case PermissionsPolicy::Feature::DisplayCapture:
-        return "DisplayCapture"_s;
-    case PermissionsPolicy::Feature::DeferredFetch:
-        return "DeferredFetch"_s;
-    case PermissionsPolicy::Feature::DeferredFetchMinimal:
-        return "DeferredFetchMinimal"_s;
-    case PermissionsPolicy::Feature::Gamepad:
-        return "Gamepad"_s;
-    case PermissionsPolicy::Feature::Geolocation:
-        return "Geolocation"_s;
-    case PermissionsPolicy::Feature::Payment:
-        return "Payment"_s;
-    case PermissionsPolicy::Feature::ScreenWakeLock:
-        return "ScreenWakeLock"_s;
-    case PermissionsPolicy::Feature::SyncXHR:
-        return "SyncXHR"_s;
-    case PermissionsPolicy::Feature::Fullscreen:
-        return "Fullscreen"_s;
-    case PermissionsPolicy::Feature::WebShare:
-        return "WebShare"_s;
-#if ENABLE(DEVICE_ORIENTATION)
-    case PermissionsPolicy::Feature::Gyroscope:
-        return "Gyroscope"_s;
-    case PermissionsPolicy::Feature::Accelerometer:
-        return "Accelerometer"_s;
-    case PermissionsPolicy::Feature::Magnetometer:
-        return "Magnetometer"_s;
-#endif
-#if ENABLE(WEB_AUTHN)
-    case PermissionsPolicy::Feature::PublickeyCredentialsGetRule:
-        return "PublickeyCredentialsGet"_s;
-    case PermissionsPolicy::Feature::DigitalCredentialsGetRule:
-        return "DigitalCredentialsGet"_s;
-#endif
-#if ENABLE(WEBXR)
-    case PermissionsPolicy::Feature::XRSpatialTracking:
-        return "XRSpatialTracking"_s;
-#endif
-    case PermissionsPolicy::Feature::PrivateToken:
-        return "PrivateToken"_s;
-    case PermissionsPolicy::Feature::StorageAccess:
-        return "StorageAccess"_s;
-    case PermissionsPolicy::Feature::LocalNetwork:
-        return "LocalNetwork"_s;
-    case PermissionsPolicy::Feature::LoopbackNetwork:
-        return "LoopbackNetwork"_s;
-    case PermissionsPolicy::Feature::CrossOriginIsolated:
-        return "CrossOriginIsolated"_s;
-    case PermissionsPolicy::Feature::Invalid:
-        return "Invalid"_s;
-    }
-    ASSERT_NOT_REACHED();
-    return ""_s;
-}
+// The Swift implementation numbers the features from the same ENABLE() groups as this enumeration.
+static_assert(std::to_underlying(PermissionsPolicy::Feature::Invalid) == 18 + 3 * permissionsPolicyHasDeviceOrientationFeatures + 2 * permissionsPolicyHasWebAuthenticationFeatures + permissionsPolicyHasWebXRFeatures);
 
 // https://w3c.github.io/webappsec-permissions-policy/#serialized-policy-directive
 static std::pair<PermissionsPolicy::Feature, StringView> readFeatureIdentifier(StringView value)
 {
-    value = value.trim(isASCIIWhitespace<char16_t>);
-
-    PermissionsPolicy::Feature feature = PermissionsPolicy::Feature::Invalid;
-    StringView remainingValue;
-
-    constexpr auto cameraToken { "camera"_s };
-    constexpr auto microphoneToken { "microphone"_s };
-    constexpr auto speakerSelectionToken { "speaker-selection"_s };
-    constexpr auto displayCaptureToken { "display-capture"_s };
-    constexpr auto deferredFetchToken { "deferred-fetch"_s };
-    constexpr auto deferredFetchMinimalToken { "deferred-fetch-minimal"_s };
-    constexpr auto gamepadToken { "gamepad"_s };
-    constexpr auto geolocationToken { "geolocation"_s };
-    constexpr auto paymentToken { "payment"_s };
-    constexpr auto screenWakeLockToken { "screen-wake-lock"_s };
-    constexpr auto syncXHRToken { "sync-xhr"_s };
-    constexpr auto fullscreenToken { "fullscreen"_s };
-    constexpr auto webShareToken { "web-share"_s };
-#if ENABLE(DEVICE_ORIENTATION)
-    constexpr auto gyroscopeToken { "gyroscope"_s };
-    constexpr auto accelerometerToken { "accelerometer"_s };
-    constexpr auto magnetometerToken { "magnetometer"_s };
-#endif
-#if ENABLE(WEB_AUTHN)
-    constexpr auto publickeyCredentialsGetRuleToken { "publickey-credentials-get"_s };
-    constexpr auto digitalCredentialsGetRuleToken { "digital-credentials-get"_s };
-#endif
-#if ENABLE(WEBXR)
-    constexpr auto xrSpatialTrackingToken { "xr-spatial-tracking"_s };
-#endif
-    constexpr auto privateTokenToken { "private-token"_s };
-    constexpr auto storageAccessToken { "storage-access"_s };
-    constexpr auto localNetworkToken { "local-network"_s };
-    constexpr auto loopbackNetworkToken { "loopback-network"_s };
-    constexpr auto crossOriginIsolatedToken { "cross-origin-isolated"_s };
-
-    if (value.startsWith(cameraToken)) {
-        feature = PermissionsPolicy::Feature::Camera;
-        remainingValue = value.substring(cameraToken.length());
-    } else if (value.startsWith(microphoneToken)) {
-        feature = PermissionsPolicy::Feature::Microphone;
-        remainingValue = value.substring(microphoneToken.length());
-    } else if (value.startsWith(speakerSelectionToken)) {
-        feature = PermissionsPolicy::Feature::SpeakerSelection;
-        remainingValue = value.substring(speakerSelectionToken.length());
-    } else if (value.startsWith(displayCaptureToken)) {
-        feature = PermissionsPolicy::Feature::DisplayCapture;
-        remainingValue = value.substring(displayCaptureToken.length());
-    } else if (value.startsWith(deferredFetchMinimalToken)) {
-        feature = PermissionsPolicy::Feature::DeferredFetchMinimal;
-        remainingValue = value.substring(deferredFetchMinimalToken.length());
-    } else if (value.startsWith(deferredFetchToken)) {
-        feature = PermissionsPolicy::Feature::DeferredFetch;
-        remainingValue = value.substring(deferredFetchToken.length());
-    } else if (value.startsWith(gamepadToken)) {
-        feature = PermissionsPolicy::Feature::Gamepad;
-        remainingValue = value.substring(gamepadToken.length());
-    } else if (value.startsWith(geolocationToken)) {
-        feature = PermissionsPolicy::Feature::Geolocation;
-        remainingValue = value.substring(geolocationToken.length());
-    } else if (value.startsWith(paymentToken)) {
-        feature = PermissionsPolicy::Feature::Payment;
-        remainingValue = value.substring(paymentToken.length());
-    } else if (value.startsWith(screenWakeLockToken)) {
-        feature = PermissionsPolicy::Feature::ScreenWakeLock;
-        remainingValue = value.substring(screenWakeLockToken.length());
-    } else if (value.startsWith(syncXHRToken)) {
-        feature = PermissionsPolicy::Feature::SyncXHR;
-        remainingValue = value.substring(syncXHRToken.length());
-    } else if (value.startsWith(fullscreenToken)) {
-        feature = PermissionsPolicy::Feature::Fullscreen;
-        remainingValue = value.substring(fullscreenToken.length());
-    } else if (value.startsWith(webShareToken)) {
-        feature = PermissionsPolicy::Feature::WebShare;
-        remainingValue = value.substring(webShareToken.length());
-#if ENABLE(DEVICE_ORIENTATION)
-    } else if (value.startsWith(gyroscopeToken)) {
-        feature = PermissionsPolicy::Feature::Gyroscope;
-        remainingValue = value.substring(gyroscopeToken.length());
-    } else if (value.startsWith(accelerometerToken)) {
-        feature = PermissionsPolicy::Feature::Accelerometer;
-        remainingValue = value.substring(accelerometerToken.length());
-    } else if (value.startsWith(magnetometerToken)) {
-        feature = PermissionsPolicy::Feature::Magnetometer;
-        remainingValue = value.substring(magnetometerToken.length());
-#endif
-#if ENABLE(WEB_AUTHN)
-    } else if (value.startsWith(publickeyCredentialsGetRuleToken)) {
-        feature = PermissionsPolicy::Feature::PublickeyCredentialsGetRule;
-        remainingValue = value.substring(publickeyCredentialsGetRuleToken.length());
-    } else if (value.startsWith(digitalCredentialsGetRuleToken)) {
-        feature = PermissionsPolicy::Feature::DigitalCredentialsGetRule;
-        remainingValue = value.substring(digitalCredentialsGetRuleToken.length());
-#endif
-#if ENABLE(WEBXR)
-    } else if (value.startsWith(xrSpatialTrackingToken)) {
-        feature = PermissionsPolicy::Feature::XRSpatialTracking;
-        remainingValue = value.substring(xrSpatialTrackingToken.length());
-#endif
-    } else if (value.startsWith(privateTokenToken)) {
-        feature = PermissionsPolicy::Feature::PrivateToken;
-        remainingValue = value.substring(privateTokenToken.length());
-    } else if (value.startsWith(storageAccessToken)) {
-        feature = PermissionsPolicy::Feature::StorageAccess;
-        remainingValue = value.substring(storageAccessToken.length());
-    } else if (value.startsWith(loopbackNetworkToken)) {
-        feature = PermissionsPolicy::Feature::LoopbackNetwork;
-        remainingValue = value.substring(loopbackNetworkToken.length());
-    } else if (value.startsWith(localNetworkToken)) {
-        feature = PermissionsPolicy::Feature::LocalNetwork;
-        remainingValue = value.substring(localNetworkToken.length());
-    } else if (value.startsWith(crossOriginIsolatedToken)) {
-        feature = PermissionsPolicy::Feature::CrossOriginIsolated;
-        remainingValue = value.substring(crossOriginIsolatedToken.length());
-    }
-
-    // FIXME: webkit.org/b/274159.
-    // Using colon as delimiter is no longer standard behavior. We should drop this,
-    // update tests and use splitOnAsciiWhiteSpace to read feature identifier.
-    if (remainingValue.startsWith(":"_s))
-        remainingValue = remainingValue.substring(1);
-
-    return { feature, remainingValue };
-}
-
-static ASCIILiteral defaultAllowlistValue(PermissionsPolicy::Feature feature)
-{
-    switch (feature) {
-    case PermissionsPolicy::Feature::DeferredFetchMinimal:
-    case PermissionsPolicy::Feature::Gamepad:
-    case PermissionsPolicy::Feature::SyncXHR:
-    case PermissionsPolicy::Feature::StorageAccess:
-        return "*"_s;
-    case PermissionsPolicy::Feature::Camera:
-    case PermissionsPolicy::Feature::Microphone:
-    case PermissionsPolicy::Feature::SpeakerSelection:
-    case PermissionsPolicy::Feature::DisplayCapture:
-    case PermissionsPolicy::Feature::DeferredFetch:
-    case PermissionsPolicy::Feature::Geolocation:
-    case PermissionsPolicy::Feature::Payment:
-    case PermissionsPolicy::Feature::ScreenWakeLock:
-    case PermissionsPolicy::Feature::Fullscreen:
-    case PermissionsPolicy::Feature::WebShare:
-#if ENABLE(DEVICE_ORIENTATION)
-    case PermissionsPolicy::Feature::Gyroscope:
-    case PermissionsPolicy::Feature::Accelerometer:
-    case PermissionsPolicy::Feature::Magnetometer:
-#endif
-#if ENABLE(WEB_AUTHN)
-    case PermissionsPolicy::Feature::PublickeyCredentialsGetRule:
-    case PermissionsPolicy::Feature::DigitalCredentialsGetRule:
-#endif
-#if ENABLE(WEBXR)
-    case PermissionsPolicy::Feature::XRSpatialTracking:
-#endif
-    case PermissionsPolicy::Feature::PrivateToken:
-    case PermissionsPolicy::Feature::LocalNetwork:
-    case PermissionsPolicy::Feature::LoopbackNetwork:
-    case PermissionsPolicy::Feature::CrossOriginIsolated:
-        return "'self'"_s;
-    case PermissionsPolicy::Feature::Invalid:
-        return "'none'"_s;
-    }
-
-    ASSERT_NOT_REACHED();
-    return "'none'"_s;
+    auto result = value.is8Bit() ? permissionsPolicyFeatureIdentifier8(value.span8()) : permissionsPolicyFeatureIdentifier16(value.span16());
+    return { static_cast<PermissionsPolicy::Feature>(result.feature), value.substring(result.remainingStart, result.remainingLength) };
 }
 
 static void forEachFeature(NOESCAPE const Function<void(PermissionsPolicy::Feature)>& apply)
@@ -287,14 +63,7 @@ static void forEachFeature(NOESCAPE const Function<void(PermissionsPolicy::Featu
 
 static bool isFeatureAllowedByDefaultAllowlist(PermissionsPolicy::Feature feature, const SecurityOriginData& origin, const SecurityOriginData& documentOrigin)
 {
-    auto allowlistValue = defaultAllowlistValue(feature);
-    if (allowlistValue == "*"_s)
-        return true;
-
-    if (equalIgnoringASCIICase(allowlistValue, "'self'"_s))
-        return origin == documentOrigin;
-
-    return false;
+    return permissionsPolicyIsAllowedByDefault(std::to_underlying(feature), origin == documentOrigin);
 }
 
 // https://w3c.github.io/webappsec-permissions-policy/#algo-check-permissions-policy
@@ -347,7 +116,7 @@ static bool computeFeatureEnabled(PermissionsPolicy::Feature feature, const Docu
     // FIXME: Spec suggests generating violation report for Reporting API but we only add log now.
     if (!enabled && shouldReportViolation == PermissionsPolicy::ShouldReportViolation::Yes) {
         if (RefPtr window = document.window())
-            window->printErrorMessage(makeString("Permission policy '"_s, toFeatureNameForLogging(feature), "' check failed for document with origin '"_s, origin.toString(), "'."_s), MessageSource::Security);
+            window->printErrorMessage(makeString("Permission policy '"_s, permissionsPolicyFeatureNameForLogging(std::to_underlying(feature)), "' check failed for document with origin '"_s, origin.toString(), "'."_s), MessageSource::Security);
     }
 
     return enabled;

@@ -60,7 +60,6 @@ enum class FetchOptionsDestination : uint8_t;
 enum class IncludesCredentials : bool;
 
 WEBCORE_EXPORT bool isSimpleCrossOriginAccessRequest(const String& method, const HTTPHeaderMap&);
-bool isOnAccessControlSimpleRequestMethodAllowlist(const String&);
 
 void updateRequestReferrer(ResourceRequest&, ReferrerPolicy, const URL&, const OriginAccessPatterns&);
     

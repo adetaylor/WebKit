@@ -28,6 +28,8 @@ internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+internal import WebCore_Private.ContentSecurityPolicySwift
+internal import WebCore_Private.Core.SecurityPoliciesSwiftTypes
 internal import wtf.Core.StdLibExtras
 internal import wtf.Core.Stopwatch
 internal import wtf.Core.text.Latin1Character
@@ -122,6 +124,19 @@ protocol ContentSecurityPolicyCharacter {
     // A part of a String's characters, as String(std::span) makes it: an empty part of a non-empty String is an
     // empty String, not a null one.
     static func cspMakeSubstring(_ characters: Span<Self>) -> WTF.String
+    // contentSecurityPolicyHashSourceDigest() of the characters between a hash source's quotes.
+    static func cspHashSourceDigest(_ characters: Span<Self>) -> WebCore.ContentSecurityPolicyDigest
+    // parseSandboxPolicy() of a sandbox directive's value.
+    static func cspSandboxPolicy(_ characters: Span<Self>) -> WebCore.SandboxPolicyParseResult
+}
+
+extension ContentSecurityPolicyCharacter where Self: HTTPHeaderStringCodeUnit {
+    static func cspHashSourceDigest(_ characters: Span<Self>) -> WebCore.ContentSecurityPolicyDigest {
+        contentSecurityPolicyHashSourceDigest(characters)
+    }
+    static func cspSandboxPolicy(_ characters: Span<Self>) -> WebCore.SandboxPolicyParseResult {
+        parseSandboxPolicy(characters)
+    }
 }
 
 extension WTF.Latin1Character: ContentSecurityPolicyCharacter {
@@ -134,6 +149,12 @@ extension WTF.Latin1Character: ContentSecurityPolicyCharacter {
         return WTF.String(characters)
     }
     static func cspMakeSubstring(_ characters: Span<WTF.Latin1Character>) -> WTF.String { WTF.String(characters) }
+    static func cspHashSourceDigest(_ characters: Span<WTF.Latin1Character>) -> WebCore.ContentSecurityPolicyDigest {
+        contentSecurityPolicyHashSourceDigest(WTF.bytesOfLatin1Characters(characters))
+    }
+    static func cspSandboxPolicy(_ characters: Span<WTF.Latin1Character>) -> WebCore.SandboxPolicyParseResult {
+        parseSandboxPolicy(WTF.bytesOfLatin1Characters(characters))
+    }
 }
 
 extension UInt16: ContentSecurityPolicyCharacter {

@@ -53,7 +53,6 @@
 #include "SecurityOrigin.h"
 #include "SecurityPolicyViolationEvent.h"
 #include "Settings.h"
-#include "SubresourceIntegrity.h"
 #include "ViolationReportType.h"
 #include "WorkerGlobalScope.h"
 #include "ContentSecurityPolicySwift.h"
@@ -72,9 +71,7 @@
 #include <wtf/SetForScope.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/MakeString.h>
-#include <wtf/text/ParsingUtilities.h>
 #include <wtf/text/StringBuilder.h>
-#include <wtf/text/StringParsingBuffer.h>
 #include <wtf/text/TextPosition.h>
 
 namespace WebCore {
@@ -128,11 +125,9 @@ struct ContentSecurityPolicySwiftScope {
     URL preRedirectURL { };
     JSC::JSGlobalObject* globalObject { nullptr };
     RefPtr<Element> element { };
-    Vector<ResourceCryptographicDigest> subresourceIntegrityDigests { };
     // The ancestors of a frame-ancestors check, which outlive the scope: the frame's, or the given origins.
     RefPtr<const LocalFrame> frame { };
     const Vector<Ref<SecurityOrigin>>* ancestorOrigins { nullptr };
-    SandboxFlags sandboxFlags { };
     ContentSecurityPolicyDirectiveListVector directives { policy->m_swiftDirectives->directives };
     SetForScope<ContentSecurityPolicySwiftScope*> activation { currentContentSecurityPolicySwiftScope, this };
 };
@@ -337,7 +332,7 @@ void ContentSecurityPolicy::didReceiveHeader(const String& header, ContentSecuri
     ContentSecurityPolicySwiftScope scope { .policy = *this };
     for (auto upgrades = scope.directives.didReceiveHeader(header, static_cast<uint8_t>(type), static_cast<uint8_t>(policyFrom), static_cast<uint8_t>(m_contentSecurityPolicyModeForExtension)); upgrades; --upgrades)
         setUpgradeInsecureRequests(true);
-    enforceSandboxFlags(scope.sandboxFlags);
+    enforceSandboxFlags(SandboxFlags::fromRaw(scope.directives.sandboxFlags()));
     addHashAlgorithmsForInlineScripts(OptionSet<ContentSecurityPolicyHashAlgorithm>::fromRaw(scope.directives.hashAlgorithmsForInlineScripts()));
     addHashAlgorithmsForInlineStylesheets(OptionSet<ContentSecurityPolicyHashAlgorithm>::fromRaw(scope.directives.hashAlgorithmsForInlineStylesheets()));
     
@@ -406,14 +401,6 @@ bool ContentSecurityPolicy::allowContentSecurityPolicySourceStarToMatchAnyProtoc
     return false;
 }
 
-static Vector<ResourceCryptographicDigest> parseSubResourceIntegrityIntoDigests(const String& subResourceIntegrity)
-{
-    auto encodedDigests = parseIntegrityMetadata(subResourceIntegrity);
-    return WTF::compactMap(encodedDigests, [](auto& encodedDigest) {
-        return decodeEncodedResourceCryptographicDigest(encodedDigest);
-    });
-}
-
 static Vector<ContentSecurityPolicyHash> generateHashesForContent(const StringView content, OptionSet<ContentSecurityPolicyHashAlgorithm> algorithms)
 {
     if (algorithms.isEmpty())
@@ -461,9 +448,8 @@ bool ContentSecurityPolicy::allowScriptForStrictDynamic(const URL& sourceURL, co
 {
     if (!m_swiftDirectives->directives.shouldPerformEarlyCSPCheck() || m_swiftDirectives->directives.isEmpty() || (!sourceURL.isEmpty() && LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(sourceURL.protocol())))
         return true;
-    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = sourceURL.isEmpty() ? "inline"_s : sourceURL.string(), .consoleURL = sourceURL, .sourceURL = contextURL.string(), .sourceContent = scriptContent, .sourcePosition = TextPosition(contextLine, OrdinalNumber()),
-        .subresourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity) };
-    return scope.directives.allowScriptForStrictDynamic(sourceURL.string(), contentSecurityPolicyURLBounds(sourceURL), nonce.trim(isASCIIWhitespace), parserInserted == ParserInserted::Yes, contentSecurityPolicyContentHashes(generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts)), scope.subresourceIntegrityDigests.size(), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = sourceURL.isEmpty() ? "inline"_s : sourceURL.string(), .consoleURL = sourceURL, .sourceURL = contextURL.string(), .sourceContent = scriptContent, .sourcePosition = TextPosition(contextLine, OrdinalNumber()) };
+    return scope.directives.allowScriptForStrictDynamic(sourceURL.string(), contentSecurityPolicyURLBounds(sourceURL), nonce.trim(isASCIIWhitespace), parserInserted == ParserInserted::Yes, contentSecurityPolicyContentHashes(generateHashesForContent(scriptContent, m_hashAlgorithmsForInlineScripts)), subResourceIntegrity, allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowInlineScript(const String& contextURL, const TextPosition& contextPosition, StringView scriptContent, Element& element, const String& nonce, bool overrideContentSecurityPolicy) const
@@ -552,8 +538,8 @@ bool ContentSecurityPolicy::allowScriptFromSource(const URL& url, std::optional<
 {
     if (m_swiftDirectives->directives.isEmpty() || m_swiftDirectives->directives.shouldPerformEarlyCSPCheck() || LegacySchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = (!preRedirectURL.isNull() ? preRedirectURL : url).string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition), .subresourceIntegrityDigests = parseSubResourceIntegrityIntoDigests(subResourceIntegrity) };
-    return scope.directives.allowScriptFromSource(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, nonce.trim(isASCIIWhitespace), scope.subresourceIntegrityDigests.size(), allowContentSecurityPolicySourceStarToMatchAnyProtocol());
+    ContentSecurityPolicySwiftScope scope { .policy = *this, .blockedURL = (!preRedirectURL.isNull() ? preRedirectURL : url).string(), .consoleURL = url, .sourceURL = String(), .sourcePosition = WTF::move(sourcePosition) };
+    return scope.directives.allowScriptFromSource(url.string(), contentSecurityPolicyURLBounds(url), redirectResponseReceived == RedirectResponseReceived::Yes, nonce.trim(isASCIIWhitespace), subResourceIntegrity, allowContentSecurityPolicySourceStarToMatchAnyProtocol());
 }
 
 bool ContentSecurityPolicy::allowImageFromSource(const URL& url, std::optional<TextPosition>&& sourcePosition, RedirectResponseReceived redirectResponseReceived, const URL& preRedirectURL) const
@@ -986,13 +972,6 @@ void ContentSecurityPolicyCallbacks::logToConsole(String message)
     contentSecurityPolicySwiftScope().policy->logToConsole(message);
 }
 
-String ContentSecurityPolicyCallbacks::enforceSandboxPolicy(String policy)
-{
-    String invalidTokens;
-    contentSecurityPolicySwiftScope().sandboxFlags.add(SecurityContext::parseSandboxPolicy(policy, invalidTokens));
-    return invalidTokens;
-}
-
 bool ContentSecurityPolicyCallbacks::isPublicSuffix(String host)
 {
     return PublicSuffixStore::singleton().isPublicSuffix(host);
@@ -1011,23 +990,6 @@ bool ContentSecurityPolicyCallbacks::decodedPathSegmentsMatch(String a, String b
 uint16_t ContentSecurityPolicyCallbacks::defaultPort(bool isSecure)
 {
     return WTF::defaultPortForProtocol(isSecure ? "https"_s : "http"_s).value_or(isSecure ? 443 : 80);
-}
-
-// The text between a hash-source's quotes: hash-algorithm "-" base64-value, whose value is at most maximumDigestLength
-// bytes. Anything else gives a digest with no algorithm.
-ContentSecurityPolicyDigest ContentSecurityPolicyCallbacks::parseHashSource(String source)
-{
-    return readCharactersForParsing(source, [](auto buffer) {
-        auto digest = parseCryptographicDigest(buffer);
-        if (!digest || !buffer.atEnd() || digest->value.size() > ContentSecurityPolicyHash::maximumDigestLength)
-            return ContentSecurityPolicyDigest { };
-        return contentSecurityPolicyDigest(*digest);
-    });
-}
-
-ContentSecurityPolicyDigest ContentSecurityPolicyCallbacks::integrityDigest(unsigned index)
-{
-    return contentSecurityPolicyDigest(contentSecurityPolicySwiftScope().subresourceIntegrityDigests.at(index));
 }
 
 bool ContentSecurityPolicyCallbacks::frameAncestorURL(unsigned index, String& url, ContentSecurityPolicyURLBounds& bounds)

@@ -26,9 +26,9 @@
 #include "config.h"
 #include "TimingAllowOrigin.h"
 
-#include "HTTPParsers.h"
 #include "ResourceResponse.h"
 #include "SecurityOrigin.h"
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
@@ -39,26 +39,13 @@ bool passesTimingAllowOriginCheck(const ResourceResponse& response, const Securi
     if (resourceOrigin->isSameSchemeHostPort(initiatorSecurityOrigin))
         return true;
 
-    const auto& timingAllowOriginString = response.httpHeaderField(HTTPHeaderName::TimingAllowOrigin);
-    const auto& securityOrigin = initiatorSecurityOrigin.toString();
-    for (auto originWithSpace : StringView(timingAllowOriginString).split(',')) {
-        auto origin = originWithSpace.trim(isASCIIWhitespaceWithoutFF<char16_t>);
-        if (origin == "*"_s || origin == securityOrigin)
-            return true;
-    }
-
-    return false;
+    return timingAllowOriginAllows(response.httpHeaderField(HTTPHeaderName::TimingAllowOrigin), initiatorSecurityOrigin.toString());
 }
 
 bool passesNavigationTAOCheck(const Vector<Vector<String>>& navigationTimingAllowValuesList, const SecurityOrigin& destinationOrigin)
 {
     // https://fetch.spec.whatwg.org/#navigation-tao-check
-    auto destinationOriginString = destinationOrigin.toString();
-    for (auto& taoValues : navigationTimingAllowValuesList) {
-        if (!taoValues.contains("*"_s) && !taoValues.contains(destinationOriginString))
-            return false;
-    }
-    return true;
+    return timingAllowOriginNavigationListAllows(navigationTimingAllowValuesList, destinationOrigin.toString());
 }
 
 }

@@ -33,6 +33,7 @@
 #include "OriginAccessPatterns.h"
 #include "SecurityOrigin.h"
 #include "UserContentURLPattern.h"
+#include "WebCore-Swift.h"
 #include <memory>
 #include <wtf/HashMap.h>
 #include <wtf/Lock.h>
@@ -57,22 +58,6 @@ NODELETE static OriginAccessMap& originAccessMap() WTF_REQUIRES_LOCK(originAcces
     return originAccessMap;
 }
 
-bool SecurityPolicy::shouldHideReferrer(const URL& url, const URL& referrer)
-{
-    bool referrerIsSecureURL = referrer.protocolIs("https"_s);
-    bool referrerIsWebURL = referrerIsSecureURL || referrer.protocolIs("http"_s);
-
-    if (!referrerIsWebURL)
-        return true;
-
-    if (!referrerIsSecureURL)
-        return false;
-
-    bool URLIsSecureURL = url.protocolIs("https"_s);
-
-    return !URLIsSecureURL;
-}
-
 String SecurityPolicy::referrerToOriginString(const URL& referrer)
 {
     String originString = SecurityOrigin::create(referrer)->toString();
@@ -88,76 +73,36 @@ String SecurityPolicy::generateReferrerHeader(ReferrerPolicy referrerPolicy, con
     ASSERT(referrer.string() == URL { referrer.string() }.strippedForUseAsReferrer().string
         || referrer.string() == SecurityOrigin::create(URL { referrer.string() })->toString());
 
-    if (referrer.isEmpty())
-        return String();
-
-    if (!referrer.protocolIsInHTTPFamily())
-        return String();
-
-    switch (referrerPolicy) {
-    case ReferrerPolicy::EmptyString:
-        ASSERT_NOT_REACHED();
-        break;
-    case ReferrerPolicy::NoReferrer:
-        return String();
-    case ReferrerPolicy::NoReferrerWhenDowngrade:
-        break;
-    case ReferrerPolicy::SameOrigin: {
-        auto origin = SecurityOrigin::create(referrer);
-        if (!origin->canRequest(url, patterns))
-            return String();
-        break;
+    auto outcome = securityPolicyReferrerOutcome(referrerPolicy, referrer.isEmpty(), referrer.protocolIsInHTTPFamily(), false, false, false, false, false, false);
+    bool canRequest = outcome == SecurityPolicyReferrerOutcome::NeedsCanRequest && SecurityOrigin::create(referrer)->canRequest(url, patterns);
+    if (outcome == SecurityPolicyReferrerOutcome::NeedsCanRequest)
+        outcome = securityPolicyReferrerOutcome(referrerPolicy, false, true, false, false, false, false, true, canRequest);
+    if (outcome == SecurityPolicyReferrerOutcome::NeedsSchemes) {
+        // The URL's scheme matters only for an https referrer.
+        bool referrerIsHTTPS = referrer.protocolIs("https"_s);
+        bool referrerIsHTTP = !referrerIsHTTPS && referrer.protocolIs("http"_s);
+        bool urlIsHTTPS = referrerIsHTTPS && url.protocolIs("https"_s);
+        outcome = securityPolicyReferrerOutcome(referrerPolicy, false, true, true, referrerIsHTTPS, referrerIsHTTP, urlIsHTTPS, true, canRequest);
     }
-    case ReferrerPolicy::Origin:
+    if (outcome == SecurityPolicyReferrerOutcome::Origin)
         return referrerToOriginString(referrer);
-    case ReferrerPolicy::StrictOrigin:
-        if (shouldHideReferrer(url, referrer))
-            return String();
-        return referrerToOriginString(referrer);
-    case ReferrerPolicy::OriginWhenCrossOrigin: {
-        auto origin = SecurityOrigin::create(referrer);
-        if (!origin->canRequest(url, patterns))
-            return referrerToOriginString(referrer);
-        break;
-    }
-    case ReferrerPolicy::StrictOriginWhenCrossOrigin: {
-        auto origin = SecurityOrigin::create(referrer);
-        if (!origin->canRequest(url, patterns)) {
-            if (shouldHideReferrer(url, referrer))
-                return String();
-            return referrerToOriginString(referrer);
-        }
-        break;
-    }
-    case ReferrerPolicy::UnsafeUrl:
+    if (outcome == SecurityPolicyReferrerOutcome::Full)
         return referrer.string();
-    }
-
-    return shouldHideReferrer(url, referrer) ? String() : referrer.string();
+    return String();
 }
 
 String SecurityPolicy::generateOriginHeader(ReferrerPolicy referrerPolicy, const URL& url, const SecurityOrigin& securityOrigin, const OriginAccessPatterns& patterns)
 {
-    switch (referrerPolicy) {
-    case ReferrerPolicy::NoReferrer:
-        return "null"_s;
-    case ReferrerPolicy::NoReferrerWhenDowngrade:
-    case ReferrerPolicy::StrictOrigin:
-    case ReferrerPolicy::StrictOriginWhenCrossOrigin:
-        if (protocolIs(securityOrigin.protocol(), "https"_s) && !url.protocolIs("https"_s))
-            return "null"_s;
-        break;
-    case ReferrerPolicy::SameOrigin:
-        if (!securityOrigin.canRequest(url, patterns))
-            return "null"_s;
-        break;
-    case ReferrerPolicy::EmptyString:
-    case ReferrerPolicy::Origin:
-    case ReferrerPolicy::OriginWhenCrossOrigin:
-    case ReferrerPolicy::UnsafeUrl:
-        break;
+    auto outcome = securityPolicyOriginHeaderOutcome(referrerPolicy, false, false, false, false, false);
+    if (outcome == SecurityPolicyReferrerOutcome::NeedsCanRequest)
+        outcome = securityPolicyOriginHeaderOutcome(referrerPolicy, false, false, false, true, securityOrigin.canRequest(url, patterns));
+    if (outcome == SecurityPolicyReferrerOutcome::NeedsSchemes) {
+        // The URL's scheme matters only for an https origin.
+        bool originIsHTTPS = protocolIs(securityOrigin.protocol(), "https"_s);
+        outcome = securityPolicyOriginHeaderOutcome(referrerPolicy, true, originIsHTTPS && url.protocolIs("https"_s), originIsHTTPS, false, false);
     }
-
+    if (outcome == SecurityPolicyReferrerOutcome::None)
+        return "null"_s;
     return securityOrigin.toString();
 }
 

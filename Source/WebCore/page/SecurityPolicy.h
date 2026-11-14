@@ -40,10 +40,6 @@ class UserContentURLPattern;
 
 class SecurityPolicy {
 public:
-    // True if the referrer should be omitted according to ReferrerPolicy::Default.
-    // If you intend to send a referrer header, you should use generateReferrerHeader instead.
-    WEBCORE_EXPORT static bool shouldHideReferrer(const URL&, const URL& referrer);
-
     // Returns the referrer's security origin plus a / to make it a canonical URL
     // and thus useable as referrer.
     static String referrerToOriginString(const URL& referrer);

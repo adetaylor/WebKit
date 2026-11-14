@@ -1,3 +1,26 @@
+// Copyright (C) 2021-2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+// EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+// PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+// OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +52,7 @@ internal import JavaScriptCore_Private.Cxx.WasmCalleeGroup
 internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
+internal import WebCore_Private.Core.SecurityPoliciesSwiftTypes
 internal import WebCore_Private.HTTPHeaderParsersTypes
 internal import wtf.Core.StdLibExtras
 internal import wtf.Core.Stopwatch
@@ -124,7 +148,7 @@ func escapeStructuredFieldString16(_ input: WebCore.HTTPHeaderUTF16Span) -> WTF.
 }
 
 @inline(never)
-private func parseStructuredFieldBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+func parseStructuredFieldBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(
     _ characters: Span<CodeUnit>,
     _ type: WebCore.HTTPHeaderStructuredFieldType,
     _ steps: inout MutableSpan<WebCore.HTTPHeaderStructuredFieldStep>
@@ -157,7 +181,7 @@ private func parseStructuredFieldBody<CodeUnit: FixedWidthInteger & UnsignedInte
 }
 
 @inline(never)
-private func structuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>(
+func structuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>(
     _ characters: Span<CodeUnit>,
     _ start: UInt32,
     _ length: UInt32,
@@ -179,7 +203,7 @@ private func structuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>(
 }
 
 @inline(never)
-private func escapeStructuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>(_ characters: Span<CodeUnit>) -> WTF.String {
+func escapeStructuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>(_ characters: Span<CodeUnit>) -> WTF.String {
     // https://datatracker.ietf.org/doc/html/rfc8941#section-3.3.3: the null string when a code unit is outside
     // U+0020-U+007E.
     var escapes = 0
@@ -208,6 +232,190 @@ private func escapeStructuredFieldStringBody<CodeUnit: HTTPHeaderStringCodeUnit>
     var output = escaped.mutableSpan
     rfc8941Escape(characters, into: &output)
     return UInt8.httpHeaderString(escaped.span)
+}
+
+// What Cross-Origin-Opener-Policy, Cross-Origin-Embedder-Policy, Document-Isolation-Policy and Origin-Agent-Cluster
+// read of an item, as RFC8941::parseItemStructuredFieldValue() gives it: the step of its bare item, and the step of its
+// "report-to" parameter's value when that value is a string. A parameter given twice keeps its last value.
+struct RFC8941PolicyItem {
+    var bareItem: WebCore.HTTPHeaderStructuredFieldStep
+    var reportTo: WebCore.HTTPHeaderStructuredFieldStep?
+}
+
+// RFC8941::parseItemStructuredFieldValue() of `characters`: nil when they are not an item, or when one of its byte
+// sequences, the bare item's or a parameter's, is not base64 that WTF's base64Decode() decodes. Each bare item is read
+// as soon as it is parsed, so the item needs no buffer of its steps.
+func rfc8941PolicyItem<CodeUnit: HTTPHeaderStringCodeUnit>(_ characters: Span<CodeUnit>) -> RFC8941PolicyItem? {
+    guard !characters.isEmpty else {
+        return nil
+    }
+    // The parser writes each bare item's step here: the item's, then each parameter value's.
+    var stepStorage = [1 of WebCore.HTTPHeaderStructuredFieldStep](repeating: WebCore.HTTPHeaderStructuredFieldStep())
+    var step = stepStorage.mutableSpan
+    var parser = RFC8941Parser()
+    parser.skipSpaces(characters)
+    guard parser.parseBareItem(characters, &step) else {
+        return nil
+    }
+    let bareItem = step[0]
+    guard rfc8941BareItemDecodes(characters, bareItem) else {
+        return nil
+    }
+    // RFC8941Parser.parseParameters(), reading each parameter as it is parsed.
+    var reportTo: WebCore.HTTPHeaderStructuredFieldStep? = nil
+    while parser.skipExactly(characters, 0x3B) { // ';'
+        parser.skipSpaces(characters)
+        guard let key = parser.parseKey(characters) else {
+            return nil
+        }
+        let isReportTo = rfc8941CharactersEqual(characters.extracting(key.start..<parser.position), "report-to")
+        guard parser.skipExactly(characters, 0x3D) else { // '='
+            // A parameter with no value is a Boolean true, which is not a string.
+            if isReportTo {
+                reportTo = nil
+            }
+            continue
+        }
+        parser.stepCount = 0
+        guard parser.parseBareItem(characters, &step), rfc8941BareItemDecodes(characters, step[0]) else {
+            return nil
+        }
+        if isReportTo {
+            reportTo = step[0].kind == .String ? step[0] : nil
+        }
+    }
+    parser.skipSpaces(characters)
+    guard parser.position == characters.count else {
+        return nil
+    }
+    return RFC8941PolicyItem(bareItem: bareItem, reportTo: reportTo)
+}
+
+// Whether the step makes a bare item: all of them do but a byte sequence that does not decode.
+private func rfc8941BareItemDecodes<CodeUnit: HTTPHeaderStringCodeUnit>(
+    _ characters: Span<CodeUnit>,
+    _ step: WebCore.HTTPHeaderStructuredFieldStep
+) -> Bool {
+    switch step.kind {
+    case .Integer, .Decimal, .String, .Token, .Boolean:
+        return true
+    case .ByteSequence:
+        return structuredFieldBase64Decodes(rfc8941Text(characters, step), url: false)
+    default:
+        // The parser writes a bare item first and after each parameter key.
+        fatalError()
+    }
+}
+
+// The text of a step: a token's, a key's or a byte sequence's.
+private func rfc8941Text<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+    _ characters: Span<CodeUnit>,
+    _ step: WebCore.HTTPHeaderStructuredFieldStep
+) -> Span<CodeUnit> {
+    characters.extracting(Int(step.start)..<(Int(step.start) + Int(step.length)))
+}
+
+// Whether the text of a token or key step is `literal`.
+func rfc8941TextEquals<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+    _ characters: Span<CodeUnit>,
+    _ step: WebCore.HTTPHeaderStructuredFieldStep,
+    _ literal: Swift.String
+) -> Bool {
+    rfc8941CharactersEqual(rfc8941Text(characters, step), literal)
+}
+
+// Whether `characters` are the ASCII `literal`, code unit for code unit, as String's == compares a String with an
+// ASCIILiteral.
+func rfc8941CharactersEqual<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+    _ characters: Span<CodeUnit>,
+    _ literal: Swift.String
+) -> Bool {
+    let utf8 = literal.utf8
+    let bytes = utf8.span
+    guard characters.count == bytes.count else {
+        return false
+    }
+    for index in bytes.indices {
+        if characters[index] != CodeUnit(bytes[index]) {
+            return false
+        }
+    }
+    return true
+}
+
+// Calls `body8` with the Latin-1 characters of `string` as bytes, or `body16` with its UTF-16 code units. An empty or
+// null String has no characters in either width, and goes to `body16`.
+func rfc8941WithCharacters<Result>(
+    _ string: borrowing WTF.String,
+    _ body8: (Span<UInt8>) -> Result,
+    _ body16: (Span<UInt16>) -> Result
+) -> Result {
+    if string.isEmpty() {
+        return body16(Span<UInt16>())
+    }
+    let bytes: Span<UInt8> = WebCore.securityPoliciesSpan8(string)
+    if !bytes.isEmpty {
+        return body8(bytes)
+    }
+    return body16(string.checkedSpan16())
+}
+
+// The 8-bit String of the ASCII `token`.
+func rfc8941TokenString(_ token: Swift.String) -> WTF.String {
+    let utf8 = token.utf8
+    return WTF.makeStringFromLatin1Characters(utf8.span)
+}
+
+// makeString(token, "; report-to=\"", reportTo, '"'): a policy header's value that is the ASCII token with a report-to
+// parameter, `reportTo` written between the quotes as it is. It is 8-bit unless `reportTo` is 16-bit.
+func rfc8941TokenWithReportToHeaderValue(_ token: Swift.String, _ reportTo: borrowing WTF.String) -> WTF.String {
+    let tokenUTF8 = token.utf8
+    let tokenBytes = tokenUTF8.span
+    let characters8: Span<UInt8> = WebCore.securityPoliciesSpan8(reportTo)
+    var is8Bit = !characters8.isEmpty
+    if !is8Bit {
+        is8Bit = reportTo.is8Bit()
+    }
+    if is8Bit {
+        var bytes: [UInt8] = []
+        let reportToStart = rfc8941ReportToHeaderValue(tokenBytes, characters8.count, &bytes)
+        var output = bytes.mutableSpan
+        for index in characters8.indices {
+            output[reportToStart + index] = characters8[index]
+        }
+        return WTF.makeStringFromLatin1Characters(bytes.span)
+    }
+    let characters: Span<UInt16> = reportTo.checkedSpan16()
+    var codeUnits: [UInt16] = []
+    let reportToStart = rfc8941ReportToHeaderValue(tokenBytes, characters.count, &codeUnits)
+    var output = codeUnits.mutableSpan
+    for index in characters.indices {
+        output[reportToStart + index] = characters[index]
+    }
+    return WTF.makeStringFromUTF16Characters(codeUnits.span)
+}
+
+// Makes `codeUnits` a policy header's value with a report-to parameter of `reportToCount` code units, all of it but
+// the parameter written: the token, `; report-to="`, and the closing quote in the last code unit. Returns where the
+// parameter starts.
+private func rfc8941ReportToHeaderValue<D: FixedWidthInteger & UnsignedInteger>(
+    _ token: Span<UInt8>,
+    _ reportToCount: Int,
+    _ codeUnits: inout [D]
+) -> Int {
+    let separatorUTF8 = "; report-to=\"".utf8
+    let separator = separatorUTF8.span
+    // A String's length and two short literals': far from overflowing.
+    let reportToStart = token.count &+ separator.count
+    codeUnits = [D](repeating: 0x22, count: reportToStart &+ reportToCount &+ 1)
+    var output = codeUnits.mutableSpan
+    for index in token.indices {
+        output[index] = D(token[index])
+    }
+    for index in separator.indices {
+        output[token.count + index] = D(separator[index])
+    }
+    return reportToStart
 }
 
 // Structured field values (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2), over Latin-1 (UInt8) or

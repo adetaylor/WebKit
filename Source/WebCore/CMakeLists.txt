@@ -3541,6 +3541,33 @@ if (APPLE)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)ContentSecurityPolicy\\.cpp( |$)")
 endif ()
 
+# These include WebCore-Swift.h, so they build in WebCore_SwiftInterop.
+set(WebCore_SECURITY_POLICIES_SWIFT_INTEROP_SOURCES
+    Modules/fetch/FetchHeaders.cpp
+
+    dom/SecurityContext.cpp
+
+    html/PermissionsPolicy.cpp
+
+    loader/CrossOriginAccessControl.cpp
+    loader/CrossOriginEmbedderPolicy.cpp
+    loader/CrossOriginOpenerPolicy.cpp
+    loader/CrossOriginPreflightResultCache.cpp
+    loader/DocumentIsolationPolicy.cpp
+    loader/IntegrityPolicy.cpp
+    loader/OriginAgentClusterPolicy.cpp
+    loader/SubresourceIntegrity.cpp
+
+    page/SecurityPolicy.cpp
+
+    platform/network/ResourceResponseBase.cpp
+    platform/network/TimingAllowOrigin.cpp
+)
+foreach (_f IN LISTS WebCore_SECURITY_POLICIES_SWIFT_INTEROP_SOURCES)
+    cmake_path(GET _f FILENAME _fn)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_fn}( |$)")
+endforeach ()
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3850,6 +3877,23 @@ if (APPLE)
         ${WEBCORE_DIR}/html/parser/HTMLSrcsetParser.swift
         ${WEBCORE_DIR}/platform/DateComponents.swift
     )
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/Modules/fetch/FetchHeaders.swift
+        ${WEBCORE_DIR}/dom/SecurityContext.swift
+        ${WEBCORE_DIR}/html/PermissionsPolicy.swift
+        ${WEBCORE_DIR}/loader/CrossOriginAccessControl.swift
+        ${WEBCORE_DIR}/loader/CrossOriginEmbedderPolicy.swift
+        ${WEBCORE_DIR}/loader/CrossOriginOpenerPolicy.swift
+        ${WEBCORE_DIR}/loader/CrossOriginPreflightResultCache.swift
+        ${WEBCORE_DIR}/loader/DocumentIsolationPolicy.swift
+        ${WEBCORE_DIR}/loader/IntegrityPolicy.swift
+        ${WEBCORE_DIR}/loader/OriginAgentClusterPolicy.swift
+        ${WEBCORE_DIR}/loader/ResourceCryptographicDigest.swift
+        ${WEBCORE_DIR}/loader/SubresourceIntegrity.swift
+        ${WEBCORE_DIR}/page/SecurityPolicy.swift
+        ${WEBCORE_DIR}/platform/network/ResourceResponseBase.swift
+        ${WEBCORE_DIR}/platform/network/TimingAllowOrigin.swift
+    )
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
@@ -3967,6 +4011,8 @@ if (APPLE)
 
     # The HTML microsyntaxes' C++ sources that include WebCoreSwift-Generated.h.
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES})
+    # The security policies' C++ sources that include WebCoreSwift-Generated.h.
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_SECURITY_POLICIES_SWIFT_INTEROP_SOURCES})
 
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirective.swift

@@ -37,85 +37,13 @@
 #include "SharedBuffer.h"
 #include "SubresourceLoader.h"
 #include "ViolationReportType.h"
+#include "WebCore-Swift.h"
 #include <wtf/Borrow.h>
 #include <wtf/ScopedLambda.h>
 #include <wtf/text/Base64.h>
 #include <wtf/text/MakeString.h>
 
 namespace WebCore {
-
-// https://w3c.github.io/webappsec-subresource-integrity/#valid-sri-hash-algorithm-token
-static std::optional<EncodedResourceCryptographicDigest::Algorithm> validSRIHashAlgorithmToken(StringView string)
-{
-    // A string is a valid SRI hash algorithm token if its ASCII lowercase is contained in the valid SRI hash algorithm token set.
-    if (equalLettersIgnoringASCIICase(string, "sha256"_s))
-        return EncodedResourceCryptographicDigest::Algorithm::SHA256;
-    if (equalLettersIgnoringASCIICase(string, "sha384"_s))
-        return EncodedResourceCryptographicDigest::Algorithm::SHA384;
-    if (equalLettersIgnoringASCIICase(string, "sha512"_s))
-        return EncodedResourceCryptographicDigest::Algorithm::SHA512;
-    return std::nullopt;
-}
-
-// Base64 or base64url characters, followed by at most two U+003D (=).
-static bool isBase64OrBase64URLValue(StringView value)
-{
-    auto end = value.length();
-    for (unsigned i = 0; i < 2 && end && value[end - 1] == '='; ++i)
-        --end;
-    if (!end)
-        return false;
-    for (unsigned i = 0; i < end; ++i) {
-        if (!isBase64OrBase64URLCharacter(value[i]))
-            return false;
-    }
-    return true;
-}
-
-// https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata-section
-Vector<EncodedResourceCryptographicDigest> parseIntegrityMetadata(const String& metadata)
-{
-    // 1. Let result be the empty set.
-    Vector<EncodedResourceCryptographicDigest> result;
-
-    // 2. For each item returned by splitting metadata on spaces:
-    // FIXME: The spec links "splitting" to strictly splitting on U+0020 SPACE; this splits on ASCII whitespace,
-    // as earlier drafts did, so that values spanning several lines keep working.
-    auto metadataWithSingleSpaces = metadata.simplifyWhiteSpace(isASCIIWhitespace);
-    for (auto item : StringView { metadataWithSingleSpaces }.split(' ')) {
-        // 1. Let expression-and-options be the result of splitting item on U+003F (?).
-        // 2. Let algorithm-expression be expression-and-options[0].
-        auto algorithmExpression = item.left(item.find('?'));
-
-        // 3. Let base64-value be the empty string.
-        StringView base64Value = emptyString();
-
-        // 4. Let algorithm-and-value be the result of splitting algorithm-expression on U+002D (-).
-        // 5. Let algorithm be algorithm-and-value[0].
-        auto firstHyphen = algorithmExpression.find('-');
-        auto algorithm = validSRIHashAlgorithmToken(algorithmExpression.left(firstHyphen));
-
-        // 6. If algorithm is not a valid SRI hash algorithm token, then continue.
-        if (!algorithm)
-            continue;
-
-        // 7. If algorithm-and-value[1] exists, set base64-value to algorithm-and-value[1].
-        // FIXME: This keeps everything after the first U+002D (-), so that base64url values, which can contain one, keep working.
-        if (firstHyphen != notFound)
-            base64Value = algorithmExpression.substring(firstHyphen + 1);
-
-        // FIXME: The spec keeps a value that is empty or not base64; this skips the token instead, as other engines do and WPT expects.
-        if (!isBase64OrBase64URLValue(base64Value))
-            continue;
-
-        // 8. Let metadata be the ordered map «["alg" → algorithm, "val" → base64-value]».
-        // 9. Append metadata to result.
-        result.append({ *algorithm, base64Value.toString() });
-    }
-
-    // 3. Return result.
-    return result;
-}
 
 // https://fetch.spec.whatwg.org/#main-fetch filters the response "depending on request's response tainting".
 // WebKit does not filter subresource responses, so this derives the filtered response's type from the tainting.
@@ -151,60 +79,6 @@ NODELETE static bool isCORSSameOrigin(ResourceResponse::Type type)
     }
     ASSERT_NOT_REACHED();
     return false;
-}
-
-// https://w3c.github.io/webappsec-subresource-integrity/#get-the-strongest-metadata
-static Vector<EncodedResourceCryptographicDigest> strongestMetadataFromSet(Vector<EncodedResourceCryptographicDigest>&& set)
-{
-    // 1. Let result be the empty set and strongest be null.
-    Vector<EncodedResourceCryptographicDigest> result;
-    std::optional<EncodedResourceCryptographicDigest::Algorithm> strongest;
-
-    // 2. For each item in set:
-    for (auto& item : borrow(set)) {
-        // 1. Assert: item["alg"] is a valid SRI hash algorithm token.
-        // NOTE: Algorithm can only hold valid tokens at this point.
-        ASSERT(item.algorithm == EncodedResourceCryptographicDigest::Algorithm::SHA256
-            || item.algorithm == EncodedResourceCryptographicDigest::Algorithm::SHA384
-            || item.algorithm == EncodedResourceCryptographicDigest::Algorithm::SHA512);
-
-        // 2. If result is the empty set, then:
-        if (result.isEmpty()) {
-            // 1. Append item to result.
-            // 2. Set strongest to item.
-            strongest = item.algorithm;
-            result.append(WTF::move(item));
-
-            // 3. Continue.
-            continue;
-        }
-
-        // 3. Let currentAlgorithm be strongest["alg"], and currentAlgorithmIndex be the index of currentAlgorithm in the valid SRI hash algorithm token set.
-        // 4. Let newAlgorithm be the item["alg"], and newAlgorithmIndex be the index of newAlgorithm in the valid SRI hash algorithm token set.
-        // (Algorithm's values are ordered the same way as the valid SRI hash algorithm token set.)
-        auto currentAlgorithm = *strongest;
-        auto newAlgorithm = item.algorithm;
-
-        // 5. If newAlgorithmIndex is less than currentAlgorithmIndex, continue.
-        if (newAlgorithm < currentAlgorithm)
-            continue;
-
-        // 6. Otherwise, if newAlgorithmIndex is greater than currentAlgorithmIndex:
-        if (newAlgorithm > currentAlgorithm) {
-            // 1. Set strongest to item.
-            // 2. Set result to « item ».
-            strongest = item.algorithm;
-            result.clear();
-            result.append(WTF::move(item));
-            continue;
-        }
-
-        // 7. Otherwise, newAlgorithmIndex and currentAlgorithmIndex are the same value. Append item to result.
-        result.append(WTF::move(item));
-    }
-
-    // 3. Return result.
-    return result;
 }
 
 static Ref<FormData> createReportFormData(const String& type, const URL& url, const String& userAgent, NOESCAPE const Function<void(JSON::Object&)>& populateBody)
@@ -301,10 +175,10 @@ void reportHashesIfNeeded(const CachedResource& resource)
 bool doBytesMatchMetadataList(ResourceResponse::Tainting tainting, NOESCAPE const ScopedLambda<ResourceCryptographicDigest(ResourceCryptographicDigest::Algorithm)>& digestForAlgorithm, const String& metadataList)
 {
     // 1. Let parsedMetadata be the result of parsing metadataList.
-    auto parsedMetadata = parseIntegrityMetadata(metadataList);
+    auto algorithm = subresourceIntegrityStrongestAlgorithm(metadataList);
 
     // 2. If parsedMetadata is empty, return true.
-    if (parsedMetadata.isEmpty())
+    if (algorithm == SubresourceIntegrityStrongestAlgorithm::None)
         return true;
 
     // FIXME: The current draft has no such step; earlier drafts had "If response is not eligible for integrity
@@ -313,36 +187,9 @@ bool doBytesMatchMetadataList(ResourceResponse::Tainting tainting, NOESCAPE cons
         return false;
 
     // 3. Let metadata be the result of getting the strongest metadata from parsedMetadata.
-    auto metadata = strongestMetadataFromSet(WTF::move(parsedMetadata));
-
-    // 4. For each item in metadata:
-    for (auto& item : borrow(metadata)) {
-        // 1. Let algorithm be item["alg"].
-        auto algorithm = item.algorithm;
-
-        // 2. Let expectedValue be item["val"].
-        auto& expectedValue = item.digest;
-
-        // 3. Let actualValue be the result of applying algorithm to bytes.
-        // https://w3c.github.io/webappsec-subresource-integrity/#apply-algorithm-to-response
-        //   1. Let result be the result of applying algorithm to bytes.
-        //   2. Return the result of base64 encoding result.
-        auto digest = digestForAlgorithm(algorithm);
-        auto actualValue = base64EncodeToString(borrow(digest.value)->span());
-
-        // 4. If actualValue is a case-sensitive match for expectedValue, return true.
-        if (actualValue == expectedValue)
-            return true;
-
-        // FIXME: The spec only matches padded base64; this also accepts unpadded base64 and base64url, as other engines do and WPT expects.
-        if (auto expectedDigest = base64Decode(expectedValue); expectedDigest && *expectedDigest == digest.value)
-            return true;
-        if (auto expectedDigest = base64URLDecode(expectedValue); expectedDigest && *expectedDigest == digest.value)
-            return true;
-    }
-
+    // 4. For each item in metadata, return true if applying its algorithm to bytes matches its value.
     // 5. Return false.
-    return false;
+    return subresourceIntegrityMatches(metadataList, digestForAlgorithm(static_cast<ResourceCryptographicDigest::Algorithm>(algorithm)));
 }
 
 bool doBytesMatchMetadataList(ResourceResponse::Tainting tainting, const FragmentedSharedBuffer* bytes, const String& metadataList)
@@ -415,7 +262,7 @@ String integrityMismatchDescription(const URL& url, const ResourceResponse& resp
 bool matchIntegrityMetadataWithoutReportingHashes(const CachedResource& resource, const String& integrityMetadata)
 {
     if (resource.loadFailedOrCanceled())
-        return parseIntegrityMetadata(integrityMetadata).isEmpty();
+        return !subresourceIntegrityHasItems(integrityMetadata);
 
     return doBytesMatchMetadataList(resource.responseTainting(), [resource = Ref { resource }](auto algorithm) {
         return resource->cryptographicDigest(algorithm);

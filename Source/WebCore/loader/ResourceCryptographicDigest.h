@@ -29,7 +29,6 @@
 #include <wtf/HashTraits.h>
 #include <wtf/Hasher.h>
 #include <wtf/Vector.h>
-#include <wtf/text/Latin1Character.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
@@ -59,18 +58,6 @@ inline void add(Hasher& hasher, const ResourceCryptographicDigest& digest)
 {
     add(hasher, digest.algorithm, digest.value);
 }
-
-struct EncodedResourceCryptographicDigest {
-    using Algorithm = ResourceCryptographicDigest::Algorithm;
-    
-    Algorithm algorithm;
-    String digest;
-};
-
-std::optional<ResourceCryptographicDigest> parseCryptographicDigest(StringParsingBuffer<char16_t>&);
-std::optional<ResourceCryptographicDigest> parseCryptographicDigest(StringParsingBuffer<Latin1Character>&);
-
-std::optional<ResourceCryptographicDigest> decodeEncodedResourceCryptographicDigest(const EncodedResourceCryptographicDigest&);
 
 ResourceCryptographicDigest cryptographicDigestForSharedBuffer(ResourceCryptographicDigest::Algorithm, const FragmentedSharedBuffer*);
 ResourceCryptographicDigest cryptographicDigestForBytes(ResourceCryptographicDigest::Algorithm, std::span<const uint8_t> bytes);

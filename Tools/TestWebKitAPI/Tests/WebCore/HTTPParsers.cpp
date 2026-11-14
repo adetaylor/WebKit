@@ -27,10 +27,21 @@
 
 #include "Helpers/Test.h"
 #include <WebCore/CacheValidation.h>
+#include <WebCore/CrossOriginAccessControl.h>
+#include <WebCore/CrossOriginEmbedderPolicy.h>
+#include <WebCore/CrossOriginOpenerPolicy.h>
+#include <WebCore/ExceptionOr.h>
+#include <WebCore/FetchHeaders.h>
 #include <WebCore/HTTPHeaderMap.h>
+#include <WebCore/HTTPHeaderNames.h>
 #include <WebCore/HTTPParsers.h>
+#include <WebCore/IntegrityPolicy.h>
 #include <WebCore/LinkHeader.h>
 #include <WebCore/RFC8941.h>
+#include <WebCore/ResourceRequest.h>
+#include <WebCore/ResourceResponse.h>
+#include <WebCore/SecurityContext.h>
+#include <WebCore/SecurityOrigin.h>
 #include <WebCore/ServerTiming.h>
 #include <WebCore/ServerTimingParser.h>
 #include <wtf/DateMath.h>
@@ -1194,6 +1205,30 @@ TEST(HTTPParsers, CacheControlDirectiveNames)
     EXPECT_FALSE(parse("public~"_s).isPublic);
 }
 
+// Values of 63 to 67 code units and longer, each with a space, a control character or a tab to remove before the
+// directives are read, and the last directive's value running to the end.
+TEST(HTTPParsers, CacheControlLengthsWithCharactersToRemove)
+{
+    auto parse = [](const String& value) {
+        HTTPHeaderMap headers;
+        headers.set("Cache-Control"_s, value);
+        return parseCacheControlDirectives(headers);
+    };
+    for (unsigned length : { 63, 64, 65, 66, 67, 128, 129, 300 }) {
+        for (auto prefix : { "public, max-age="_s, "public,\tmax-age="_s, "\x7Fpublic,max-age="_s, "public , max-age="_s }) {
+            StringBuilder zeros;
+            for (unsigned i = prefix.length() + 1; i < length; ++i)
+                zeros.append('0');
+            auto value = makeString(prefix, zeros.toString(), '7');
+            for (auto& string : { value, sixteenBitString(value) }) {
+                auto directives = parse(string);
+                EXPECT_TRUE(directives.isPublic) << length;
+                EXPECT_TRUE(directives.maxAge == Seconds { 7 }) << length;
+            }
+        }
+    }
+}
+
 TEST(HTTPParsers, DigitRunLengths)
 {
     // Values of 18 and 19 digits and at uint64_t's limit, with and without leading zeros.
@@ -1258,6 +1293,404 @@ TEST(HTTPParsers, HeaderLineFailureReasonLengths)
             EXPECT_EQ(failureReason, makeString("CR doesn't follow LF after header value at "_s, repeatedLetters(128), static_cast<char16_t>(0x2026)));
             EXPECT_EQ(failureReason.length(), 172u);
             EXPECT_FALSE(failureReason.is8Bit());
+        }
+    }
+}
+
+// Policy headers whose items and dictionaries parse into about 32 steps: an item's bare item and two per parameter, and
+// a dictionary member's key, then its value's steps.
+TEST(HTTPParsers, PolicyHeadersWithManyParameters)
+{
+    auto responseWithHeader = [](HTTPHeaderName name, const String& value) {
+        ResourceResponse response;
+        response.setURL(URL { "https://example.com/"_s });
+        response.setHTTPHeaderField(name, value);
+        return response;
+    };
+    auto parameters = [](unsigned count) {
+        StringBuilder builder;
+        for (unsigned i = 0; i < count; ++i)
+            builder.append("; p"_s, i, "=1"_s);
+        return builder.toString();
+    };
+
+    // 31 and 33 steps, report-to last.
+    for (unsigned count : { 14u, 15u }) {
+        auto policy = obtainCrossOriginOpenerPolicy(responseWithHeader(HTTPHeaderName::CrossOriginOpenerPolicy, makeString("same-origin"_s, parameters(count), "; report-to=\"e\""_s)), CredentiallessSupport::No);
+        EXPECT_EQ(policy.value, CrossOriginOpenerPolicyValue::SameOrigin);
+        EXPECT_EQ("e"_s, policy.reportingEndpoint);
+    }
+    // A byte sequence that is not base64 makes the item invalid.
+    auto policy = obtainCrossOriginOpenerPolicy(responseWithHeader(HTTPHeaderName::CrossOriginOpenerPolicy, makeString("same-origin"_s, parameters(16), "; x=:!!:"_s)), CredentiallessSupport::No);
+    EXPECT_EQ(policy.value, CrossOriginOpenerPolicyValue::UnsafeNone);
+    EXPECT_TRUE(policy.reportingEndpoint.isEmpty());
+
+    auto members = [](unsigned count) {
+        StringBuilder builder;
+        for (unsigned i = 0; i < count; ++i)
+            builder.append('a', i, "=1, "_s);
+        return builder.toString();
+    };
+    // Two steps for each a<i>=1, three for x=() and four for blocked-destinations=(script): 31, 32 and 33 steps.
+    for (auto& value : { makeString(members(12), "x=(), blocked-destinations=(script)"_s), makeString(members(14), "blocked-destinations=(script)"_s), makeString(members(13), "x=(), blocked-destinations=(script)"_s) }) {
+        auto integrityPolicy = processIntegrityPolicy(responseWithHeader(HTTPHeaderName::IntegrityPolicy, value), HTTPHeaderName::IntegrityPolicy);
+        ASSERT_TRUE(!!integrityPolicy);
+        ASSERT_EQ(integrityPolicy->blockedDestinations.size(), 1U);
+        EXPECT_EQ("script"_s, integrityPolicy->blockedDestinations[0]);
+        ASSERT_EQ(integrityPolicy->sources.size(), 1U);
+        EXPECT_EQ("inline"_s, integrityPolicy->sources[0]);
+    }
+    EXPECT_FALSE(processIntegrityPolicy(responseWithHeader(HTTPHeaderName::IntegrityPolicy, makeString(members(14), "blocked-destinations=(script), z=:!!:"_s)), HTTPHeaderName::IntegrityPolicy));
+}
+
+// Messages for invalid sandbox tokens of about 256 code units with their ending, in both widths, and the flags of a
+// valid token between two invalid ones. A token's part of the message is the token in quotes, after ", " unless it is
+// the first.
+TEST(HTTPParsers, SandboxPolicyLongInvalidTokens)
+{
+    auto token = [](unsigned length, bool wide) {
+        StringBuilder builder;
+        builder.append(wide ? u'\u0101' : u'x');
+        for (unsigned i = 1; i < length; ++i)
+            builder.append(static_cast<char16_t>('a' + i % 26));
+        return builder.toString();
+    };
+    auto allowScripts = SandboxFlags::all();
+    allowScripts.remove({ SandboxFlag::Scripts, SandboxFlag::AutomaticFeatures });
+
+    for (bool wide : { false, true }) {
+        for (unsigned length : { 1u, 225u, 226u, 227u, 228u, 300u }) {
+            String message;
+            auto invalid = token(length, wide);
+            EXPECT_EQ(SecurityContext::parseSandboxPolicy(invalid, message).toRaw(), SandboxFlags::all().toRaw());
+            EXPECT_EQ(message, makeString('\'', invalid, "' is an invalid sandbox flag."_s));
+            EXPECT_EQ(message.is8Bit(), !wide);
+        }
+        auto first = token(100, wide);
+        for (unsigned length : { 121u, 122u, 123u, 124u }) {
+            String message;
+            auto second = token(length, wide);
+            EXPECT_EQ(SecurityContext::parseSandboxPolicy(makeString(first, " allow-scripts\t"_s, second), message).toRaw(), allowScripts.toRaw());
+            EXPECT_EQ(message, makeString('\'', first, "', '"_s, second, "' are invalid sandbox flags."_s));
+        }
+    }
+}
+
+static String repeatedCharacter(char16_t character, unsigned count)
+{
+    StringBuilder builder;
+    for (unsigned i = 0; i < count; ++i)
+        builder.append(character);
+    return builder.toString();
+}
+
+// The Access-Control-Request-Headers value of preflight requests for 15, 16 and 17 headers that are not CORS-safelisted,
+// alone and after safelisted ones, and for names of 255, 256 and 257 code units in all: 8-bit, with a 16-bit name first
+// or later in the value, with a code unit above U+00FF, and a single name.
+TEST(HTTPParsers, PreflightRequestHeadersCountsAndLengths)
+{
+    auto origin = SecurityOrigin::createFromString("https://example.com"_s);
+    auto requestHeadersValue = [&](const Vector<std::pair<String, String>>& headers) {
+        ResourceRequest request { URL { "https://other.example/resource"_s } };
+        request.setHTTPMethod("PUT"_s);
+        for (auto& [name, value] : headers)
+            request.addHTTPHeaderField(name, value);
+        return createAccessControlPreflightRequest(request, origin.get(), String(), false).httpHeaderField(HTTPHeaderName::AccessControlRequestHeaders);
+    };
+
+    for (unsigned count : { 15u, 16u, 17u }) {
+        Vector<std::pair<String, String>> headers;
+        Vector<std::pair<String, String>> withSafelistedHeaders { { "Accept"_s, "*/*"_s }, { "Range"_s, "bytes=0-"_s } };
+        for (unsigned i = count; i; --i) {
+            headers.append({ makeString("X-Name-"_s, i / 10, i % 10), "1"_s });
+            withSafelistedHeaders.append({ makeString("X-Name-"_s, i / 10, i % 10), "1"_s });
+        }
+        StringBuilder expected;
+        for (unsigned i = 1; i <= count; ++i)
+            expected.append(i > 1 ? ","_s : ""_s, "x-name-"_s, i / 10, i % 10);
+        EXPECT_EQ(requestHeadersValue(headers), expected.toString()) << count;
+        EXPECT_EQ(requestHeadersValue(withSafelistedHeaders), expected.toString()) << count;
+    }
+
+    for (unsigned length : { 255u, 256u, 257u }) {
+        auto first = makeString("X-B"_s, repeatedCharacter('B', 125));
+        auto lowercasedFirst = makeString("x-b"_s, repeatedCharacter('b', 125));
+        auto second = makeString("x-a"_s, repeatedCharacter('a', length - 131));
+        auto expected = makeString(second, ',', lowercasedFirst);
+        EXPECT_EQ(requestHeadersValue({ { first, "1"_s }, { second, "2"_s } }), expected) << length;
+        EXPECT_EQ(requestHeadersValue({ { first, "1"_s }, { sixteenBitString(second), "2"_s } }), expected) << length;
+        EXPECT_EQ(requestHeadersValue({ { sixteenBitString(first), "1"_s }, { second, "2"_s } }), expected) << length;
+
+        auto wide = makeString("x-"_s, char16_t { 0x0130 }, repeatedCharacter('a', length - 131));
+        EXPECT_EQ(requestHeadersValue({ { first, "1"_s }, { wide, "2"_s } }), makeString(lowercasedFirst, ',', wide)) << length;
+
+        auto one = makeString("X-ONE"_s, repeatedCharacter('Q', length - 5));
+        EXPECT_EQ(requestHeadersValue({ { one, "1"_s } }), one.convertToASCIILowercase()) << length;
+        EXPECT_EQ(requestHeadersValue({ { sixteenBitString(one), "1"_s } }), one.convertToASCIILowercase()) << length;
+    }
+}
+
+// A Headers object's pairs, as its iterator gives them.
+static String fetchHeadersIterationPairs(FetchHeaders& headers)
+{
+    StringBuilder pairs;
+    auto iterator = headers.createIterator(nullptr);
+    while (auto next = iterator.next())
+        pairs.append(next->key, '=', next->value, ';');
+    return pairs.toString();
+}
+
+// A Headers object iterated over 15, 16 and 17 names, with Set-Cookie values and without, and over names of 255 to 257
+// code units in all, the Set-Cookie values' name counting as ten; then values joined by append() and get("set-cookie"),
+// and messages, of 255, 256 and 257 code units, and values of 31, 32 and 33 code units joined.
+TEST(HTTPParsers, FetchHeadersIterationAndJoinLengths)
+{
+    for (unsigned count : { 15u, 16u, 17u }) {
+        for (bool withSetCookie : { false, true }) {
+            auto headers = FetchHeaders::create();
+            for (unsigned i = count; i; --i)
+                EXPECT_FALSE(headers->append(makeString("X-Name-"_s, i / 10, i % 10), makeString('v', i)).hasException());
+            StringBuilder expected;
+            if (withSetCookie) {
+                EXPECT_FALSE(headers->append("Set-Cookie"_s, "a=1"_s).hasException());
+                EXPECT_FALSE(headers->append("Set-Cookie"_s, "b=2"_s).hasException());
+                expected.append("set-cookie=a=1;set-cookie=b=2;"_s);
+            }
+            for (unsigned i = 1; i <= count; ++i)
+                expected.append("x-name-"_s, i / 10, i % 10, "=v"_s, i, ';');
+            EXPECT_EQ(fetchHeadersIterationPairs(headers.get()), expected.toString()) << count << ' ' << withSetCookie;
+        }
+    }
+
+    for (unsigned last : { 21u, 22u, 23u, 31u, 32u, 33u }) {
+        bool withSetCookie = last < 31;
+        for (bool wide : { false, true }) {
+            auto headers = FetchHeaders::create();
+            StringBuilder expected;
+            if (withSetCookie) {
+                EXPECT_FALSE(headers->append("set-cookie"_s, "s=1"_s).hasException());
+                expected.append("set-cookie=s=1;"_s);
+            }
+            for (unsigned i = 0; i < 8; ++i) {
+                auto name = makeString("X-"_s, static_cast<char>('A' + i), repeatedCharacter('Z', (i < 7 ? 32 : last) - 3));
+                EXPECT_FALSE(headers->append(wide ? sixteenBitString(name) : name, "v"_s).hasException());
+                expected.append(name.convertToASCIILowercase(), "=v;"_s);
+            }
+            EXPECT_EQ(fetchHeadersIterationPairs(headers.get()), expected.toString()) << last << ' ' << wide;
+        }
+    }
+
+    for (unsigned length : { 255u, 256u, 257u }) {
+        for (bool wide : { false, true }) {
+            auto headers = FetchHeaders::create();
+            auto value = repeatedCharacter('a', length - 5);
+            EXPECT_FALSE(headers->append("x-a"_s, wide ? sixteenBitString(value) : value).hasException());
+            EXPECT_FALSE(headers->append("X-A"_s, " \t bbb\r\n"_s).hasException());
+            auto joined = headers->get("x-a"_s);
+            ASSERT_FALSE(joined.hasException());
+            EXPECT_EQ(joined.returnValue(), makeString(value, ", bbb"_s)) << length << ' ' << wide;
+
+            auto firstCookie = repeatedCharacter('p', (length - 2) / 2);
+            auto secondCookie = repeatedCharacter('q', length - 2 - (length - 2) / 2);
+            EXPECT_FALSE(headers->append("set-cookie"_s, firstCookie).hasException());
+            EXPECT_FALSE(headers->append("Set-Cookie"_s, wide ? sixteenBitString(secondCookie) : secondCookie).hasException());
+            auto cookies = headers->get("Set-Cookie"_s);
+            ASSERT_FALSE(cookies.hasException());
+            EXPECT_EQ(cookies.returnValue(), makeString(firstCookie, ", "_s, secondCookie)) << length << ' ' << wide;
+
+            auto invalidName = makeString("x "_s, repeatedCharacter('n', length - 25));
+            auto nameResult = headers->append(wide ? sixteenBitString(invalidName) : invalidName, "v"_s);
+            ASSERT_TRUE(nameResult.hasException());
+            EXPECT_EQ(nameResult.exception().message(), makeString("Invalid header name: '"_s, invalidName, '\'')) << length << ' ' << wide;
+
+            auto invalidValue = makeString('a', '\0', repeatedCharacter('v', length - 36));
+            auto valueResult = headers->set("x-a"_s, wide ? sixteenBitString(invalidValue) : invalidValue);
+            ASSERT_TRUE(valueResult.hasException());
+            EXPECT_EQ(valueResult.exception().message(), makeString("Header 'x-a' has invalid value: '"_s, invalidValue, '\'')) << length << ' ' << wide;
+        }
+    }
+
+    for (unsigned length : { 31u, 32u, 33u }) {
+        for (bool wide : { false, true }) {
+            auto headers = FetchHeaders::create();
+            auto first = repeatedCharacter('c', length);
+            auto second = makeString(repeatedCharacter('d', length - 1), 'e');
+            EXPECT_FALSE(headers->append("x-c"_s, wide ? sixteenBitString(first) : first).hasException());
+            EXPECT_FALSE(headers->append("X-C"_s, wide ? sixteenBitString(second) : second).hasException());
+            auto joined = headers->get("x-c"_s);
+            ASSERT_FALSE(joined.hasException());
+            EXPECT_EQ(joined.returnValue(), makeString(first, ", "_s, second)) << length << ' ' << wide;
+        }
+    }
+}
+
+// Iterates a Headers object made of names, each with the value "v", 8-bit and 16-bit, and expects the names lowercased in
+// code point order.
+static void expectFetchHeadersIterationInCodePointOrder(const Vector<String>& names)
+{
+    Vector<String> keys;
+    for (auto& name : names)
+        keys.append(name.convertToASCIILowercase());
+    std::ranges::sort(keys, [](const String& a, const String& b) {
+        return WTF::codePointCompareLessThan(a, b);
+    });
+    StringBuilder expected;
+    for (auto& key : keys)
+        expected.append(key, "=v;"_s);
+
+    for (bool wide : { false, true }) {
+        auto headers = FetchHeaders::create();
+        for (auto& name : names)
+            EXPECT_FALSE(headers->append(wide ? sixteenBitString(name) : name, "v"_s).hasException()) << name;
+        EXPECT_EQ(fetchHeadersIterationPairs(headers.get()), expected.toString()) << names[0] << ' ' << wide;
+    }
+}
+
+// A Headers object iterated over names that share 7, 8, 9 or more leading code units with the names of common headers,
+// among some of those common headers.
+TEST(HTTPParsers, FetchHeadersIterationOfNamesSharingPrefixes)
+{
+    expectFetchHeadersIterationInCodePointOrder({ "Content-Language"_s, "Content-Type"_s, "Accept-Charset"_s, "Content"_s, "Content!"_s, "Content_"_s,
+        "Content-"_s, "Content-A"_s, "Content-M"_s, "Content-L"_s, "Content-Lb"_s, "content-T"_s, "Content-Tz"_s, "Content-Languagf"_s, "Accept-C"_s,
+        "Accept-Charsets"_s });
+}
+
+// A Headers object iterated over the name of every HTTPHeaderName value and that name followed by '!', in groups of at most
+// 16 names and 256 code units, then all at once: each key is a name lowercased, so a common header's key is its
+// httpHeaderNameString() lowercased.
+TEST(HTTPParsers, FetchHeadersIterationOfEveryHeaderName)
+{
+    Vector<String> all;
+    Vector<String> group;
+    unsigned groupCodeUnits = 0;
+    for (unsigned i = 0; i < numHTTPHeaderNames; ++i) {
+        String name { httpHeaderNameString(static_cast<HTTPHeaderName>(i)) };
+        if (group.size() + 2 > 16 || groupCodeUnits + 2 * name.length() + 1 > 256) {
+            expectFetchHeadersIterationInCodePointOrder(group);
+            group.clear();
+            groupCodeUnits = 0;
+        }
+        for (auto& member : { name, makeString(name, '!') }) {
+            group.append(member);
+            all.append(member);
+        }
+        groupCodeUnits += 2 * name.length() + 1;
+    }
+    expectFetchHeadersIterationInCodePointOrder(group);
+    expectFetchHeadersIterationInCodePointOrder(all);
+}
+
+// Access-Control-Expose-Headers lists of 7 to 9 and 15 to 17 tokens: a CORS response keeps the uncommon headers its
+// tokens name, every header when the ninth token is "*" and the filter checks for it, and none of them when the last
+// entry is not a token.
+TEST(HTTPParsers, ExposeHeadersTokenCounts)
+{
+    for (unsigned count : { 7u, 8u, 9u, 15u, 16u, 17u }) {
+        for (unsigned variant : { 0u, 1u, 2u }) {
+            bool hasStar = variant == 1 && count > 8;
+            bool isInvalid = variant == 2;
+            StringBuilder list;
+            for (unsigned i = 0; i < count; ++i) {
+                if (i)
+                    list.append(", "_s);
+                if (hasStar && i == 8)
+                    list.append('*');
+                else if (isInvalid && i == count - 1)
+                    list.append("x y"_s);
+                else
+                    list.append("X-T"_s, i);
+            }
+            auto isExposed = [&](unsigned i, bool exposesAll) {
+                if (isInvalid)
+                    return false;
+                if (hasStar && exposesAll)
+                    return true;
+                return i < count && !(hasStar && i == 8);
+            };
+            for (bool wide : { false, true }) {
+                ResourceResponse response { URL { "https://example.com/"_s }, "text/plain"_s, 0, String() };
+                response.setHTTPHeaderField(HTTPHeaderName::AccessControlExposeHeaders, wide ? sixteenBitString(list.toString()) : list.toString());
+                for (unsigned i = 0; i <= count; ++i)
+                    response.setHTTPHeaderField(makeString("x-t"_s, i), "v"_s);
+                response.setTainting(ResourceResponse::Tainting::Cors);
+
+                for (auto check : { ResourceResponse::PerformExposeAllHeadersCheck::Yes, ResourceResponse::PerformExposeAllHeadersCheck::No }) {
+                    auto filtered = ResourceResponse::filter(response, check);
+                    for (unsigned i = 0; i <= count; ++i)
+                        EXPECT_EQ(filtered.httpHeaderFields().contains(makeString("x-t"_s, i)), isExposed(i, check == ResourceResponse::PerformExposeAllHeadersCheck::Yes)) << count << ' ' << variant << ' ' << wide << ' ' << i;
+                }
+                auto sanitized = response;
+                sanitized.sanitizeHTTPHeaderFields(ResourceResponse::SanitizationType::CrossOriginSafe);
+                for (unsigned i = 0; i <= count; ++i)
+                    EXPECT_EQ(sanitized.httpHeaderFields().contains(makeString("x-t"_s, i)), isExposed(i, true)) << count << ' ' << variant << ' ' << wide << ' ' << i;
+            }
+        }
+    }
+}
+
+// Responses with 63, 64 and 65 uncommon headers: a CORS response keeps those its Access-Control-Expose-Headers value names,
+// the first, the 63rd to 65th and the last, after filter() and sanitizeHTTPHeaderFields(), and an opaque response or a
+// redirection keeps none of them.
+TEST(HTTPParsers, UncommonHeaderCounts)
+{
+    for (unsigned count : { 63u, 64u, 65u }) {
+        auto isExposed = [&](unsigned i) {
+            return !i || i == 62 || i == 63 || i == 64 || i == count - 1;
+        };
+        for (bool wide : { false, true }) {
+            auto list = makeString("x-u0, X-U62, x-u63, X-U64, x-u"_s, count - 1, ", Report-To"_s);
+            ResourceResponse response { URL { "https://example.com/"_s }, "text/plain"_s, 0, String() };
+            response.setHTTPHeaderField(HTTPHeaderName::AccessControlExposeHeaders, wide ? sixteenBitString(list) : list);
+            response.setHTTPHeaderField(HTTPHeaderName::ReportTo, "r"_s);
+            response.setHTTPHeaderField(HTTPHeaderName::ETag, "e"_s);
+            for (unsigned i = 0; i < count; ++i) {
+                auto name = makeString("X-U"_s, i);
+                response.setHTTPHeaderField(wide && i >= 62 ? sixteenBitString(name) : name, "v"_s);
+            }
+            response.setTainting(ResourceResponse::Tainting::Cors);
+
+            for (auto check : { ResourceResponse::PerformExposeAllHeadersCheck::Yes, ResourceResponse::PerformExposeAllHeadersCheck::No }) {
+                auto filtered = ResourceResponse::filter(response, check);
+                EXPECT_TRUE(filtered.httpHeaderFields().contains(HTTPHeaderName::ReportTo)) << count << ' ' << wide;
+                EXPECT_FALSE(filtered.httpHeaderFields().contains(HTTPHeaderName::ETag)) << count << ' ' << wide;
+                for (unsigned i = 0; i < count; ++i)
+                    EXPECT_EQ(filtered.httpHeaderFields().contains(makeString("x-u"_s, i)), isExposed(i)) << count << ' ' << wide << ' ' << i;
+            }
+            for (auto tainting : { ResourceResponse::Tainting::Cors, ResourceResponse::Tainting::Opaque }) {
+                auto sanitized = response;
+                sanitized.setTainting(tainting);
+                sanitized.sanitizeHTTPHeaderFields(ResourceResponse::SanitizationType::CrossOriginSafe);
+                bool isCORS = tainting == ResourceResponse::Tainting::Cors;
+                EXPECT_EQ(sanitized.httpHeaderFields().contains(HTTPHeaderName::ReportTo), isCORS) << count << ' ' << wide;
+                EXPECT_TRUE(sanitized.httpHeaderFields().contains(HTTPHeaderName::ETag)) << count << ' ' << wide;
+                for (unsigned i = 0; i < count; ++i)
+                    EXPECT_EQ(sanitized.httpHeaderFields().contains(makeString("x-u"_s, i)), isCORS && isExposed(i)) << count << ' ' << wide << ' ' << i;
+            }
+            auto redirection = response;
+            redirection.sanitizeHTTPHeaderFields(ResourceResponse::SanitizationType::Redirection);
+            EXPECT_FALSE(redirection.httpHeaderFields().contains(HTTPHeaderName::ReportTo)) << count << ' ' << wide;
+            EXPECT_TRUE(redirection.httpHeaderFields().contains(HTTPHeaderName::ETag)) << count << ' ' << wide;
+            EXPECT_TRUE(redirection.httpHeaderFields().uncommonHeaders().isEmpty()) << count << ' ' << wide;
+        }
+    }
+
+    // When the value names the first 64 uncommon headers, the 65th is the only header removed.
+    for (unsigned count : { 64u, 65u }) {
+        StringBuilder list;
+        for (unsigned i = 0; i < 64; ++i)
+            list.append("x-u"_s, i, ", "_s);
+        list.append("Access-Control-Expose-Headers"_s);
+        ResourceResponse response { URL { "https://example.com/"_s }, "text/plain"_s, 0, String() };
+        response.setHTTPHeaderField(HTTPHeaderName::AccessControlExposeHeaders, list.toString());
+        for (unsigned i = 0; i < count; ++i)
+            response.setHTTPHeaderField(makeString("X-U"_s, i), "v"_s);
+        response.setTainting(ResourceResponse::Tainting::Cors);
+        auto sanitized = response;
+        sanitized.sanitizeHTTPHeaderFields(ResourceResponse::SanitizationType::CrossOriginSafe);
+        for (auto& result : { ResourceResponse::filter(response, ResourceResponse::PerformExposeAllHeadersCheck::Yes), sanitized }) {
+            EXPECT_TRUE(result.httpHeaderFields().contains(HTTPHeaderName::AccessControlExposeHeaders)) << count;
+            EXPECT_EQ(result.httpHeaderFields().uncommonHeaders().size(), 64u) << count;
+            EXPECT_FALSE(result.httpHeaderFields().contains(makeString("x-u"_s, 64u))) << count;
         }
     }
 }
