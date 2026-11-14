@@ -93,7 +93,10 @@ OTHER_CPLUSPLUSFLAGS = $(inherited) $(WK_COMMON_OTHER_CPLUSPLUSFLAGS);
 
 _EXPERIMENTAL_SWIFT_EXPLICIT_MODULES = YES;
 
-WK_DEFAULT_COMPILATION_CACHE_ENABLE_CACHING = YES;
+// The development toolchain's clang, which Xcode's build service runs in process for cached compilations (prefix
+// headers, Swift's explicit module dependencies), stops on an assertion (InProcessModuleCache: "Wrote the same PCM
+// with different contents"); without caching each compilation is its own process.
+WK_DEFAULT_COMPILATION_CACHE_ENABLE_CACHING = NO;
 COMPILATION_CACHE_ENABLE_CACHING = $(WK_DEFAULT_COMPILATION_CACHE_ENABLE_CACHING);
 
 FUSE_BUILD_SCRIPT_PHASES = YES;
