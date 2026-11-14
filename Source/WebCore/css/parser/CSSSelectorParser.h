@@ -59,9 +59,9 @@ public:
     SWIFT_UNSAFE WEBCORE_EXPORT static std::optional<CSSSelectorList> parseSelectorList(const String&, const CSSParserContext&, StyleSheetContents* = nullptr, CSSParserEnum::NestedContext = { });
 
     static bool supportsComplexSelector(CSSParserTokenRange, const CSSSelectorParserContext&);
-    static CSSSelectorList resolveNestingParent(const CSSSelectorList& nestedSelectorList, const CSSSelectorList* parentResolvedSelectorList, bool parentRuleIsScope = false);
-    static CSSSelectorList makeHasScopeSelector(const Vector<const CSSSelector*>& compoundSelectors);
-    static CSSSelectorList makeHasArgumentWithScope(const CSSSelector& hasArgument, const CSSSelector& scopeSelector);
+    WEBCORE_EXPORT static CSSSelectorList resolveNestingParent(const CSSSelectorList& nestedSelectorList, const CSSSelectorList* parentResolvedSelectorList, bool parentRuleIsScope = false);
+    WEBCORE_EXPORT static CSSSelectorList makeHasScopeSelector(const Vector<const CSSSelector*>& compoundSelectors);
+    WEBCORE_EXPORT static CSSSelectorList makeHasArgumentWithScope(const CSSSelector& hasArgument, const CSSSelector& scopeSelector);
     WEBCORE_EXPORT static std::optional<Style::PseudoElementIdentifier> parsePseudoElement(StringView, const CSSSelectorParserContext&);
 
 private:
