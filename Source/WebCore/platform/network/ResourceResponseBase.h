@@ -266,7 +266,6 @@ protected:
 private:
     void parseCacheControlDirectives() const;
     NODELETE void updateHeaderParsedState(HTTPHeaderName);
-    void sanitizeHTTPHeaderFieldsAccordingToTainting();
 
 protected:
     URL m_url;

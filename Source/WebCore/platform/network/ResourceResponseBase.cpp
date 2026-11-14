@@ -36,6 +36,7 @@
 #include "MIMETypeRegistry.h"
 #include "ParsedContentRange.h"
 #include "ResourceResponse.h"
+#include "WebCore-Swift.h"
 #include "WebCorePersistentCoders.h"
 #include <wtf/MathExtras.h>
 #include <wtf/StdLibExtras.h>
@@ -220,6 +221,26 @@ ResourceResponse ResourceResponseBase::responseForMIMEType(URL&& url, const Stri
     return ResourceResponse { WTF::move(url), extractMIMETypeFromMediaType(mimeType), expectedLength, WTF::move(encoding) };
 }
 
+// resourceResponseCORSHeadersToKeep() and resourceResponseSanitizedHeadersToKeep() hold header names in 128-bit sets.
+static_assert(numHTTPHeaderNames <= 128);
+
+static void applyHTTPHeaderKeepMask(HTTPHeaderMap& headers, const SecurityPoliciesKeepMask& keep)
+{
+    if (!keep.removesHeaders)
+        return;
+    headers.commonHeaders().removeAllMatching([&](auto& header) {
+        auto name = std::to_underlying(header.key);
+        return !(((name < 64 ? keep.commonNamesLow : keep.commonNamesHigh) >> (name % 64)) & 1);
+    });
+    size_t index = 0;
+    headers.uncommonHeaders().removeAllMatching([&](auto&) {
+        size_t position = index++;
+        if (position < 64)
+            return !((keep.uncommonPositions >> position) & 1);
+        return position - 64 >= keep.laterUncommonPositions.size() || !keep.laterUncommonPositions[position - 64];
+    });
+}
+
 ResourceResponse ResourceResponseBase::filter(const ResourceResponse& response, PerformExposeAllHeadersCheck performCheck)
 {
     if (response.tainting() == Tainting::Opaque) {
@@ -251,18 +272,7 @@ ResourceResponse ResourceResponseBase::filter(const ResourceResponse& response, 
 
     ASSERT(response.tainting() == Tainting::Cors);
     filteredResponse.setType(Type::Cors);
-
-    auto accessControlExposeHeaderSet = valueOrDefault(parseAccessControlAllowList<ASCIICaseInsensitiveHash>(response.httpHeaderField(HTTPHeaderName::AccessControlExposeHeaders)));
-    if (performCheck == PerformExposeAllHeadersCheck::Yes && accessControlExposeHeaderSet.contains<HashTranslatorASCIILiteral>("*"_s))
-        return filteredResponse;
-
-    filteredResponse.m_httpHeaderFields.uncommonHeaders().removeAllMatching([&](auto& entry) {
-        return !isCrossOriginSafeHeader(entry.key, accessControlExposeHeaderSet);
-    });
-    filteredResponse.m_httpHeaderFields.commonHeaders().removeAllMatching([&](auto& entry) {
-        return !isCrossOriginSafeHeader(entry.key, accessControlExposeHeaderSet);
-    });
-
+    applyHTTPHeaderKeepMask(filteredResponse.m_httpHeaderFields, resourceResponseCORSHeadersToKeep(filteredResponse.m_httpHeaderFields, response.httpHeaderField(HTTPHeaderName::AccessControlExposeHeaders), performCheck == PerformExposeAllHeadersCheck::Yes));
     return filteredResponse;
 }
 
@@ -440,106 +450,6 @@ void ResourceResponseBase::setHTTPVersion(String&& versionText)
     // FIXME: Should invalidate or update platform response if present.
 }
 
-NODELETE static bool isSafeRedirectionResponseHeader(HTTPHeaderName name)
-{
-    // WebCore needs to keep location and cache related headers as it does caching.
-    // We also keep CORS/ReferrerPolicy headers until CORS checks/Referrer computation are done in NetworkProcess.
-    return name == HTTPHeaderName::Location
-        || name == HTTPHeaderName::ReferrerPolicy
-        || name == HTTPHeaderName::CacheControl
-        || name == HTTPHeaderName::Date
-        || name == HTTPHeaderName::Expires
-        || name == HTTPHeaderName::ETag
-        || name == HTTPHeaderName::LastModified
-        || name == HTTPHeaderName::Age
-        || name == HTTPHeaderName::Pragma
-        || name == HTTPHeaderName::Refresh
-        || name == HTTPHeaderName::Vary
-        || name == HTTPHeaderName::CrossOriginOpenerPolicy
-        || name == HTTPHeaderName::CrossOriginOpenerPolicyReportOnly
-        || name == HTTPHeaderName::CrossOriginEmbedderPolicy
-        || name == HTTPHeaderName::CrossOriginEmbedderPolicyReportOnly
-        || name == HTTPHeaderName::AccessControlAllowCredentials
-        || name == HTTPHeaderName::AccessControlAllowHeaders
-        || name == HTTPHeaderName::AccessControlAllowMethods
-        || name == HTTPHeaderName::AccessControlAllowOrigin
-        || name == HTTPHeaderName::AccessControlExposeHeaders
-        || name == HTTPHeaderName::AccessControlMaxAge
-        || name == HTTPHeaderName::CrossOriginResourcePolicy
-        || name == HTTPHeaderName::TimingAllowOrigin;
-}
-
-NODELETE static bool isSafeCrossOriginResponseHeader(HTTPHeaderName name)
-{
-    // All known response headers used in WebProcesses.
-    return name == HTTPHeaderName::AcceptRanges
-        || name == HTTPHeaderName::AccessControlAllowCredentials
-        || name == HTTPHeaderName::AccessControlAllowHeaders
-        || name == HTTPHeaderName::AccessControlAllowMethods
-        || name == HTTPHeaderName::AccessControlAllowOrigin
-        || name == HTTPHeaderName::AccessControlExposeHeaders
-        || name == HTTPHeaderName::AccessControlMaxAge
-        || name == HTTPHeaderName::AccessControlRequestHeaders
-        || name == HTTPHeaderName::AccessControlRequestMethod
-        || name == HTTPHeaderName::Age
-        || name == HTTPHeaderName::CacheControl
-        || name == HTTPHeaderName::ContentDisposition
-        || name == HTTPHeaderName::ContentEncoding
-        || name == HTTPHeaderName::ContentLanguage
-        || name == HTTPHeaderName::ContentLength
-        || name == HTTPHeaderName::ContentRange
-        || name == HTTPHeaderName::ContentSecurityPolicy
-        || name == HTTPHeaderName::ContentSecurityPolicyReportOnly
-        || name == HTTPHeaderName::ContentType
-        || name == HTTPHeaderName::CrossOriginResourcePolicy
-        || name == HTTPHeaderName::Date
-        || name == HTTPHeaderName::ETag
-        || name == HTTPHeaderName::Expires
-        || name == HTTPHeaderName::IcyMetaInt
-        || name == HTTPHeaderName::IcyMetadata
-        || name == HTTPHeaderName::LastEventID
-        || name == HTTPHeaderName::LastModified
-        || name == HTTPHeaderName::Link
-        || name == HTTPHeaderName::Location
-        || name == HTTPHeaderName::Pragma
-        || name == HTTPHeaderName::Range
-        || name == HTTPHeaderName::ReferrerPolicy
-        || name == HTTPHeaderName::Refresh
-        || name == HTTPHeaderName::ServerTiming
-        || name == HTTPHeaderName::SourceMap
-        || name == HTTPHeaderName::XSourceMap
-        || name == HTTPHeaderName::TimingAllowOrigin
-        || name == HTTPHeaderName::Trailer
-        || name == HTTPHeaderName::Vary
-        || name == HTTPHeaderName::XContentTypeOptions
-        || name == HTTPHeaderName::XFrameOptions
-        || name == HTTPHeaderName::XXSSProtection;
-}
-
-void ResourceResponseBase::sanitizeHTTPHeaderFieldsAccordingToTainting()
-{
-    switch (m_tainting) {
-    case ResourceResponse::Tainting::Basic:
-        break;
-    case ResourceResponse::Tainting::Cors: {
-        auto corsSafeHeaderSet = valueOrDefault(parseAccessControlAllowList<ASCIICaseInsensitiveHash>(httpHeaderField(HTTPHeaderName::AccessControlExposeHeaders)));
-        if (corsSafeHeaderSet.contains<HashTranslatorASCIILiteral>("*"_s))
-            return;
-
-        m_httpHeaderFields.commonHeaders().removeAllMatching([&corsSafeHeaderSet](auto& header) {
-            return !isSafeCrossOriginResponseHeader(header.key) && !corsSafeHeaderSet.contains<HashTranslatorASCIILiteralCaseInsensitive>(httpHeaderNameString(header.key));
-        });
-        m_httpHeaderFields.uncommonHeaders().removeAllMatching([&corsSafeHeaderSet](auto& header) { return !corsSafeHeaderSet.contains(header.key); });
-        break;
-    }
-    case ResourceResponse::Tainting::Opaque:
-    case ResourceResponse::Tainting::Opaqueredirect:
-        m_httpHeaderFields.commonHeaders().removeAllMatching([](auto& header) { return !isSafeCrossOriginResponseHeader(header.key); });
-        m_httpHeaderFields.uncommonHeaders().clear();
-        break;
-    }
-}
-
 void ResourceResponseBase::sanitizeHTTPHeaderFields(SanitizationType type)
 {
     lazyInit(AllFields);
@@ -547,17 +457,9 @@ void ResourceResponseBase::sanitizeHTTPHeaderFields(SanitizationType type)
     m_httpHeaderFields.remove(HTTPHeaderName::SetCookie);
     m_httpHeaderFields.remove(HTTPHeaderName::SetCookie2);
 
-    switch (type) {
-    case SanitizationType::RemoveCookies:
+    if (type == SanitizationType::RemoveCookies || (type == SanitizationType::CrossOriginSafe && m_tainting == Tainting::Basic))
         return;
-    case SanitizationType::Redirection: {
-        m_httpHeaderFields.commonHeaders().removeAllMatching([](auto& header) { return !isSafeRedirectionResponseHeader(header.key); });
-        m_httpHeaderFields.uncommonHeaders().clear();
-        return;
-    }
-    case SanitizationType::CrossOriginSafe:
-        sanitizeHTTPHeaderFieldsAccordingToTainting();
-    }
+    applyHTTPHeaderKeepMask(m_httpHeaderFields, resourceResponseSanitizedHeadersToKeep(m_httpHeaderFields, type, m_tainting, type == SanitizationType::CrossOriginSafe && m_tainting == Tainting::Cors ? httpHeaderField(HTTPHeaderName::AccessControlExposeHeaders) : String()));
 }
 
 bool ResourceResponseBase::isHTTP09() const
@@ -771,11 +673,7 @@ static std::optional<WallTime> parseDateValueInHeader(const HTTPHeaderMap& heade
     String headerValue = headers.get(headerName);
     if (headerValue.isEmpty())
         return std::nullopt;
-    // This handles all date formats required by RFC2616:
-    // Sun, 06 Nov 1994 08:49:37 GMT  ; RFC 822, updated by RFC 1123
-    // Sunday, 06-Nov-94 08:49:37 GMT ; RFC 850, obsoleted by RFC 1036
-    // Sun Nov  6 08:49:37 1994       ; ANSI C's asctime() format
-    return parseHTTPDate(headerValue);
+    return WebCore::parseDateValueInHeader(headerValue);
 }
 
 std::optional<WallTime> ResourceResponseBase::date() const
@@ -794,11 +692,7 @@ std::optional<Seconds> ResourceResponseBase::age() const
     lazyInit(CommonFieldsOnly);
 
     if (!m_haveParsedAgeHeader) {
-        String headerValue = m_httpHeaderFields.get(HTTPHeaderName::Age);
-        bool ok;
-        double ageDouble = headerValue.toDouble(&ok);
-        if (ok)
-            m_age = Seconds { ageDouble };
+        parseAgeValueInHeader(m_httpHeaderFields.get(HTTPHeaderName::Age), m_age);
         m_haveParsedAgeHeader = true;
     }
     return m_age;
@@ -833,21 +727,12 @@ std::optional<WallTime> ResourceResponseBase::lastModified() const
     return m_lastModified;
 }
 
-static ParsedContentRange parseContentRangeInHeader(const HTTPHeaderMap& headers)
-{
-    String contentRangeValue = headers.get(HTTPHeaderName::ContentRange);
-    if (contentRangeValue.isEmpty())
-        return ParsedContentRange();
-
-    return ParsedContentRange(contentRangeValue);
-}
-
 const ParsedContentRange& ResourceResponseBase::contentRange() const
 {
     lazyInit(CommonFieldsOnly);
 
     if (!m_haveParsedContentRangeHeader) {
-        m_contentRange = parseContentRangeInHeader(m_httpHeaderFields);
+        m_contentRange = parseContentRangeInHeader(m_httpHeaderFields.get(HTTPHeaderName::ContentRange));
         m_haveParsedContentRangeHeader = true;
     }
 
@@ -858,23 +743,14 @@ bool ResourceResponseBase::isAttachment() const
 {
     lazyInit(AllFields);
 
-    auto value = m_httpHeaderFields.get(HTTPHeaderName::ContentDisposition);
-    return equalLettersIgnoringASCIICase(StringView(value).left(value.find(';')).trim(isUnicodeCompatibleASCIIWhitespace<char16_t>), "attachment"_s);
+    return resourceResponseIsAttachment(m_httpHeaderFields.get(HTTPHeaderName::ContentDisposition));
 }
 
 bool ResourceResponseBase::isAttachmentWithFilename() const
 {
     lazyInit(AllFields);
 
-    String contentDisposition = m_httpHeaderFields.get(HTTPHeaderName::ContentDisposition);
-    if (contentDisposition.isNull())
-        return false;
-
-    StringView contentDispositionView { contentDisposition };
-    if (!equalLettersIgnoringASCIICase(contentDispositionView.left(contentDispositionView.find(';')).trim(isUnicodeCompatibleASCIIWhitespace<char16_t>), "attachment"_s))
-        return false;
-
-    return !filenameFromHTTPContentDisposition(contentDispositionView).isNull();
+    return resourceResponseIsAttachmentWithFilename(m_httpHeaderFields.get(HTTPHeaderName::ContentDisposition));
 }
 
 ResourceResponseBase::Source ResourceResponseBase::source() const
@@ -914,11 +790,7 @@ bool ResourceResponseBase::equalForWebKitLegacyChallengeComparison(const Resourc
 
 bool ResourceResponseBase::containsInvalidHTTPHeaders() const
 {
-    for (auto& header : httpHeaderFields()) {
-        if (!isValidHTTPHeaderValue(header.value.trim(isASCIIWhitespaceWithoutFF<char16_t>)))
-            return true;
-    }
-    return false;
+    return resourceResponseContainsInvalidHTTPHeaders(httpHeaderFields());
 }
 
 std::optional<ResourceResponseData> ResourceResponseBase::getResponseData() const

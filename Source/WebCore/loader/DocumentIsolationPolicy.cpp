@@ -31,17 +31,13 @@
 #include "FormData.h"
 #include "HTTPHeaderNames.h"
 #include "JSFetchRequestDestination.h"
-#include "RFC8941.h"
 #include "Report.h"
 #include "ReportingClient.h"
 #include "ResourceResponse.h"
 #include "ViolationReportType.h"
-#include <wtf/text/MakeString.h>
+#include "WebCore-Swift.h"
 
 namespace WebCore {
-
-static constexpr auto isolateAndRequireCORPToken { "isolate-and-require-corp"_s };
-static constexpr auto isolateAndCredentiallessToken { "isolate-and-credentialless"_s };
 
 DocumentIsolationPolicy obtainDocumentIsolationPolicy(const ResourceResponse& response, IsSecureContext isSecureContext, CredentiallessSupport credentiallessSupport)
 {
@@ -66,53 +62,14 @@ DocumentIsolationPolicy obtainDocumentIsolationPolicy(const URL& url, DocumentIs
     return headerPolicy;
 }
 
-// As for Cross-Origin-Embedder-Policy, report-to is only used with a policy value and has to be a string.
-// https://github.com/WICG/document-isolation-policy/issues/10
-static std::pair<DocumentIsolationPolicyValue, String> parseDocumentIsolationPolicyHeader(StringView headerValue)
-{
-    auto parsedItem = RFC8941::parseItemStructuredFieldValue(headerValue);
-    if (!parsedItem)
-        return { };
-
-    auto* token = std::get_if<RFC8941::Token>(&parsedItem->first);
-    if (!token)
-        return { };
-
-    auto value = [&] {
-        if (token->string() == isolateAndRequireCORPToken)
-            return DocumentIsolationPolicyValue::IsolateAndRequireCORP;
-        if (token->string() == isolateAndCredentiallessToken)
-            return DocumentIsolationPolicyValue::IsolateAndCredentialless;
-        return DocumentIsolationPolicyValue::None;
-    }();
-    if (value == DocumentIsolationPolicyValue::None)
-        return { };
-
-    auto* reportTo = parsedItem->second.getIf<String>("report-to"_s);
-    return { value, reportTo ? *reportTo : String { } };
-}
-
 DocumentIsolationPolicy parseDocumentIsolationPolicy(const ResourceResponse& response)
 {
-    auto [value, reportingEndpoint] = parseDocumentIsolationPolicyHeader(response.httpHeaderField(HTTPHeaderName::DocumentIsolationPolicy));
-    auto [reportOnlyValue, reportOnlyReportingEndpoint] = parseDocumentIsolationPolicyHeader(response.httpHeaderField(HTTPHeaderName::DocumentIsolationPolicyReportOnly));
-    return { value, reportOnlyValue, WTF::move(reportingEndpoint), WTF::move(reportOnlyReportingEndpoint) };
+    return documentIsolationPolicyFromHeaders(response.httpHeaderField(HTTPHeaderName::DocumentIsolationPolicy), response.httpHeaderField(HTTPHeaderName::DocumentIsolationPolicyReportOnly));
 }
 
 void DocumentIsolationPolicy::addPolicyHeadersTo(ResourceResponse& response) const
 {
-    auto addHeader = [&response](HTTPHeaderName headerName, DocumentIsolationPolicyValue value, const String& reportingEndpoint) {
-        if (value == DocumentIsolationPolicyValue::None)
-            return;
-        auto token = value == DocumentIsolationPolicyValue::IsolateAndCredentialless ? isolateAndCredentiallessToken : isolateAndRequireCORPToken;
-        auto escapedReportingEndpoint = reportingEndpoint.isEmpty() ? std::nullopt : RFC8941::escapeString(reportingEndpoint);
-        if (!escapedReportingEndpoint)
-            response.setHTTPHeaderField(headerName, token);
-        else
-            response.setHTTPHeaderField(headerName, makeString(token, "; report-to=\""_s, *escapedReportingEndpoint, '"'));
-    };
-    addHeader(HTTPHeaderName::DocumentIsolationPolicy, value, reportingEndpoint);
-    addHeader(HTTPHeaderName::DocumentIsolationPolicyReportOnly, reportOnlyValue, reportOnlyReportingEndpoint);
+    securityPoliciesSetPolicyHeaders(response, HTTPHeaderName::DocumentIsolationPolicy, HTTPHeaderName::DocumentIsolationPolicyReportOnly, documentIsolationPolicyHeaderValues(value, reportingEndpoint, reportOnlyValue, reportOnlyReportingEndpoint));
 }
 
 void sendDocumentIsolationPolicyCORPViolation(ReportingClient& reportingClient, const URL& contextURL, const String& endpoint, COEPDisposition disposition, FetchOptions::Destination destination, const URL& blockedURL)

@@ -32,7 +32,7 @@
 #include "PolicyContainer.h"
 #include "SecurityOrigin.h"
 #include "SecurityOriginPolicy.h"
-#include <wtf/text/StringBuilder.h>
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
@@ -118,88 +118,17 @@ void SecurityContext::enforceSandboxFlags(SandboxFlags flags, SandboxFlagsSource
 
 bool SecurityContext::isSupportedSandboxPolicy(StringView policy)
 {
-    static constexpr std::array supportedPolicies {
-        "allow-top-navigation-to-custom-protocols"_s, "allow-forms"_s, "allow-same-origin"_s, "allow-scripts"_s,
-        "allow-top-navigation"_s, "allow-pointer-lock"_s, "allow-popups"_s, "allow-popups-to-escape-sandbox"_s,
-        "allow-top-navigation-by-user-activation"_s, "allow-modals"_s, "allow-storage-access-by-user-activation"_s,
-        "allow-downloads"_s
-    };
-
-    for (auto supportedPolicy : supportedPolicies) {
-        if (equalIgnoringASCIICase(policy, supportedPolicy))
-            return true;
-    }
-    return false;
+    return policy.is8Bit() ? isSupportedSandboxPolicy8(policy.span8()) : isSupportedSandboxPolicy16(policy.span16());
 }
 
-// Keep SecurityContext::isSupportedSandboxPolicy() in sync when updating this function.
 SandboxFlags SecurityContext::parseSandboxPolicy(StringView policy, String& invalidTokensErrorMessage)
 {
-    // http://www.w3.org/TR/html5/the-iframe-element.html#attr-iframe-sandbox
-    // Parse the unordered set of unique space-separated tokens.
-    SandboxFlags flags = SandboxFlags::all();
-    unsigned length = policy.length();
-    unsigned start = 0;
-    unsigned numberOfTokenErrors = 0;
-    StringBuilder tokenErrors;
-    while (true) {
-        while (start < length && isASCIIWhitespace(policy[start]))
-            ++start;
-        if (start >= length)
-            break;
-        unsigned end = start + 1;
-        while (end < length && !isASCIIWhitespace(policy[end]))
-            ++end;
-
-        // Turn off the corresponding sandbox flag if it's set as "allowed".
-        auto sandboxToken = policy.substring(start, end - start);
-        if (equalLettersIgnoringASCIICase(sandboxToken, "allow-same-origin"_s))
-            flags.remove(SandboxFlag::Origin);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-downloads"_s))
-            flags.remove(SandboxFlag::Downloads);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-forms"_s))
-            flags.remove(SandboxFlag::Forms);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-scripts"_s)) {
-            flags.remove(SandboxFlag::Scripts);
-            flags.remove(SandboxFlag::AutomaticFeatures);
-        } else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-top-navigation"_s)) {
-            flags.remove(SandboxFlag::TopNavigation);
-            flags.remove(SandboxFlag::TopNavigationByUserActivation);
-        } else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-popups"_s))
-            flags.remove(SandboxFlag::Popups);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-pointer-lock"_s))
-            flags.remove(SandboxFlag::PointerLock);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-popups-to-escape-sandbox"_s))
-            flags.remove(SandboxFlag::PropagatesToAuxiliaryBrowsingContexts);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-top-navigation-by-user-activation"_s))
-            flags.remove(SandboxFlag::TopNavigationByUserActivation);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-top-navigation-to-custom-protocols"_s))
-            flags.remove(SandboxFlag::TopNavigationToCustomProtocols);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-modals"_s))
-            flags.remove(SandboxFlag::Modals);
-        else if (equalLettersIgnoringASCIICase(sandboxToken, "allow-storage-access-by-user-activation"_s))
-            flags.remove(SandboxFlag::StorageAccessByUserActivation);
-        else {
-            if (numberOfTokenErrors)
-                tokenErrors.append(", '"_s);
-            else
-                tokenErrors.append('\'');
-            tokenErrors.append(sandboxToken, '\'');
-            numberOfTokenErrors++;
-        }
-
-        start = end + 1;
-    }
-
-    if (numberOfTokenErrors) {
-        if (numberOfTokenErrors > 1)
-            tokenErrors.append(" are invalid sandbox flags."_s);
-        else
-            tokenErrors.append(" is an invalid sandbox flag."_s);
-        invalidTokensErrorMessage = tokenErrors.toString();
-    }
-
-    return flags;
+    // parseSandboxPolicy8() and parseSandboxPolicy16() start with every bit of the flags set.
+    static_assert(SandboxFlags::all().toRaw() == std::numeric_limits<uint16_t>::max());
+    auto result = policy.is8Bit() ? parseSandboxPolicy8(policy.span8()) : parseSandboxPolicy16(policy.span16());
+    if (!result.invalidTokensErrorMessage.isNull())
+        invalidTokensErrorMessage = WTF::move(result.invalidTokensErrorMessage);
+    return SandboxFlags::fromRaw(result.flags);
 }
 
 void SecurityContext::setReferrerPolicy(ReferrerPolicy referrerPolicy)

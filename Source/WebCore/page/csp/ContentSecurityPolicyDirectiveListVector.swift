@@ -30,6 +30,7 @@ internal import JavaScriptCore_Private.Cxx.WasmInstanceAnchor
 internal import JavaScriptCore_Private.Cxx.WasmModule
 internal import JavaScriptCore_Private.Cxx.WasmModuleDebugInfo
 internal import WebCore_Private.ContentSecurityPolicySwift
+internal import WebCore_Private.Core.SecurityPoliciesSwiftTypes
 internal import wtf.Core.StdLibExtras
 internal import wtf.Core.Stopwatch
 internal import wtf.Core.text.WTFString
@@ -408,6 +409,8 @@ final class ContentSecurityPolicyDirectiveListVector {
     private var modeForExtension = contentSecurityPolicyModeForExtensionNone
     private var scriptHashAlgorithms: UInt8 = 0
     private var styleHashAlgorithms: UInt8 = 0
+    // The sandbox flags of the policies of the header didReceiveHeader() was last called with.
+    private var headerSandboxFlags: UInt16 = 0
     // Indexed by ContentSecurityPolicyDirectiveNames; empty until the first violation.
     private var nameStrings: [WTF.String] = []
     // A bit per name whose String nameStrings holds (there are fewer than 64 names).
@@ -461,6 +464,7 @@ final class ContentSecurityPolicyDirectiveListVector {
     @_expose(Cxx)
     func didReceiveHeader(_ header: consuming WTF.String, _ type: UInt8, _ policyFrom: UInt8, _ modeForExtension: UInt8) -> UInt32 {
         self.modeForExtension = modeForExtension
+        headerSandboxFlags = 0
         if header.is8Bit() {
             return addPolicies(header.span8(), type, policyFrom)
         }
@@ -512,6 +516,12 @@ final class ContentSecurityPolicyDirectiveListVector {
     @_expose(Cxx)
     func hashAlgorithmsForInlineStylesheets() -> UInt8 {
         styleHashAlgorithms
+    }
+
+    // The SandboxFlags of the sandbox directives of the header didReceiveHeader() was last called with.
+    @_expose(Cxx)
+    func sandboxFlags() -> UInt16 {
+        headerSandboxFlags
     }
 
     @_expose(Cxx)
@@ -759,13 +769,13 @@ final class ContentSecurityPolicyDirectiveListVector {
         _ nonce: consuming WTF.String,
         _ parserInserted: Bool,
         _ hashes: WebCore.ContentSecurityPolicyContentHashes,
-        _ integrityDigestCount: UInt32,
+        _ integrity: consuming WTF.String,
         _ allowContentSecurityPolicySourceStarToMatchAnyProtocol: Bool
     ) -> Bool {
         let nonce = consume nonce
         let url = ContentSecurityPolicyURL(sourceURL, bounds, selfOrigin, allowContentSecurityPolicySourceStarToMatchAnyProtocol)
         let prefix = url.isEmpty ? "Refused to execute a script" : "Refused to load"
-        var digests = ContentSecurityPolicyIntegrityDigests(integrityDigestCount)
+        var digests = ContentSecurityPolicyIntegrityDigests(integrity)
         // swift-format-ignore: OnlyOneTrailingClosureArgument
         return allPoliciesAllow({ policy, violatedDirective in
             let consoleMessage = consoleMessageForViolation(policy, violatedDirective, prefix)
@@ -972,12 +982,12 @@ final class ContentSecurityPolicyDirectiveListVector {
         _ bounds: WebCore.ContentSecurityPolicyURLBounds,
         _ didReceiveRedirectResponse: Bool,
         _ nonce: consuming WTF.String,
-        _ integrityDigestCount: UInt32,
+        _ integrity: consuming WTF.String,
         _ allowContentSecurityPolicySourceStarToMatchAnyProtocol: Bool
     ) -> Bool {
         let nonce = consume nonce
         let url = ContentSecurityPolicyURL(url, bounds, selfOrigin, allowContentSecurityPolicySourceStarToMatchAnyProtocol)
-        var digests = ContentSecurityPolicyIntegrityDigests(integrityDigestCount)
+        var digests = ContentSecurityPolicyIntegrityDigests(integrity)
         return allowSource("Refused to load") {
             $0.violatedDirectiveForScript(url, didReceiveRedirectResponse, &digests, nonce)
         }
@@ -1159,10 +1169,11 @@ final class ContentSecurityPolicyDirectiveListVector {
         modeForExtension
     }
 
-    func enforceSandboxFlags(_ sandboxPolicy: WTF.String) {
-        let invalidTokens = WebCore.ContentSecurityPolicyCallbacks.enforceSandboxPolicy(sandboxPolicy)
-        if !invalidTokens.isNull() {
-            reportInvalidSandboxFlags(invalidTokens)
+    func enforceSandboxFlags<C: ContentSecurityPolicyCharacter>(_ sandboxPolicy: Span<C>) {
+        let result = C.cspSandboxPolicy(sandboxPolicy)
+        headerSandboxFlags |= result.flags
+        if !result.invalidTokensErrorMessage.isNull() {
+            reportInvalidSandboxFlags(result.invalidTokensErrorMessage)
         }
     }
 
@@ -1180,10 +1191,6 @@ final class ContentSecurityPolicyDirectiveListVector {
 
     func isLocalHostOrLoopbackIPAddress(_ host: WTF.String) -> Bool {
         WebCore.ContentSecurityPolicyCallbacks.isLocalHostOrLoopbackIPAddress(host)
-    }
-
-    func parseHashSource(_ source: WTF.String) -> WebCore.ContentSecurityPolicyDigest {
-        WebCore.ContentSecurityPolicyCallbacks.parseHashSource(source)
     }
 
     // MARK: - Parse-time reports

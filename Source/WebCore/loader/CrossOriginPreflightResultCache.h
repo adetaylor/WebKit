@@ -31,7 +31,6 @@
 #include <WebCore/StoredCredentialsPolicy.h>
 #include <pal/SessionID.h>
 #include <wtf/HashMap.h>
-#include <wtf/HashSet.h>
 #include <wtf/MonotonicTime.h>
 #include <wtf/URLHash.h>
 #include <wtf/UniqueRef.h>
@@ -46,22 +45,19 @@ class CrossOriginPreflightResultCacheItem {
 public:
     WEBCORE_EXPORT static std::expected<UniqueRef<CrossOriginPreflightResultCacheItem>, String> create(StoredCredentialsPolicy, const ResourceResponse&);
 
-    CrossOriginPreflightResultCacheItem(MonotonicTime, StoredCredentialsPolicy, HashSet<String>&&, HashSet<String, ASCIICaseInsensitiveHash>&&);
+    CrossOriginPreflightResultCacheItem(MonotonicTime, StoredCredentialsPolicy, String&& allowMethods, String&& allowHeaders);
 
     WEBCORE_EXPORT std::optional<String> validateMethodAndHeaders(const String& method, const HTTPHeaderMap&) const;
     WEBCORE_EXPORT bool allowsRequest(StoredCredentialsPolicy, const String& method, const HTTPHeaderMap&) const;
 
 private:
-    bool allowsCrossOriginMethod(const String&, StoredCredentialsPolicy) const;
-    std::optional<String> validateCrossOriginHeaders(const HTTPHeaderMap&, StoredCredentialsPolicy) const;
-
     // FIXME: A better solution to holding onto the absolute expiration time might be
     // to start a timer for the expiration delta that removes this from the cache when
     // it fires.
     MonotonicTime m_absoluteExpiryTime;
     StoredCredentialsPolicy m_storedCredentialsPolicy;
-    HashSet<String> m_methods;
-    HashSet<String, ASCIICaseInsensitiveHash> m_headers;
+    String m_allowMethods;
+    String m_allowHeaders;
 };
 
 class CrossOriginPreflightResultCache {
@@ -79,11 +75,11 @@ private:
     HashMap<std::tuple<PAL::SessionID, ClientOrigin, URL>, std::unique_ptr<CrossOriginPreflightResultCacheItem>> m_preflightHashMap;
 };
 
-inline CrossOriginPreflightResultCacheItem::CrossOriginPreflightResultCacheItem(MonotonicTime absoluteExpiryTime, StoredCredentialsPolicy  storedCredentialsPolicy, HashSet<String>&& methods, HashSet<String, ASCIICaseInsensitiveHash>&& headers)
+inline CrossOriginPreflightResultCacheItem::CrossOriginPreflightResultCacheItem(MonotonicTime absoluteExpiryTime, StoredCredentialsPolicy storedCredentialsPolicy, String&& allowMethods, String&& allowHeaders)
     : m_absoluteExpiryTime(absoluteExpiryTime)
     , m_storedCredentialsPolicy(storedCredentialsPolicy)
-    , m_methods(WTF::move(methods))
-    , m_headers(WTF::move(headers))
+    , m_allowMethods(WTF::move(allowMethods))
+    , m_allowHeaders(WTF::move(allowHeaders))
 {
 }
 

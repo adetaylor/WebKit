@@ -43,33 +43,18 @@
 #include "ResourceRequest.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
+#include "WebCore-Swift.h"
 #include <mutex>
-#include <ranges>
-#include <wtf/Borrow.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/RuntimeApplicationChecks.h>
 #include <wtf/text/AtomString.h>
 #include <wtf/text/MakeString.h>
-#include <wtf/text/StringBuilder.h>
 
 namespace WebCore {
 
-bool isOnAccessControlSimpleRequestMethodAllowlist(const String& method)
-{
-    return method == "GET"_s || method == "HEAD"_s || method == "POST"_s;
-}
-
 bool isSimpleCrossOriginAccessRequest(const String& method, const HTTPHeaderMap& headerMap)
 {
-    if (!isOnAccessControlSimpleRequestMethodAllowlist(method))
-        return false;
-
-    for (const auto& header : headerMap) {
-        if (!header.keyAsHTTPHeaderName || !isCrossOriginSafeRequestHeader(header.keyAsHTTPHeaderName.value(), header.value))
-            return false;
-    }
-
-    return true;
+    return crossOriginAccessControlIsSimpleRequest(method, headerMap);
 }
 
 void updateRequestReferrer(ResourceRequest& request, ReferrerPolicy referrerPolicy, const URL& outgoingReferrerURL, const OriginAccessPatterns& patterns)
@@ -103,31 +88,8 @@ ResourceRequest createAccessControlPreflightRequest(const ResourceRequest& reque
     if (!referrer.isNull())
         preflightRequest.setHTTPReferrer(referrer);
 
-    const HTTPHeaderMap& requestHeaderFields = request.httpHeaderFields();
-
-    if (!requestHeaderFields.isEmpty()) {
-        Vector<String> unsafeHeaders;
-        for (auto& headerField : requestHeaderFields) {
-            if (!headerField.keyAsHTTPHeaderName || !isCrossOriginSafeRequestHeader(*headerField.keyAsHTTPHeaderName, headerField.value))
-                unsafeHeaders.append(headerField.key.convertToASCIILowercase());
-        }
-
-        std::ranges::sort(unsafeHeaders, WTF::codePointCompareLessThan);
-
-        StringBuilder headerBuffer;
-
-        bool appendComma = false;
-        for (const auto& headerField : borrow(unsafeHeaders)) {
-            if (appendComma)
-                headerBuffer.append(',');
-            else
-                appendComma = true;
-
-            headerBuffer.append(headerField);
-        }
-        if (!headerBuffer.isEmpty())
-            preflightRequest.setHTTPHeaderField(HTTPHeaderName::AccessControlRequestHeaders, headerBuffer.toString());
-    }
+    if (auto requestHeaders = crossOriginAccessControlRequestHeadersValue(request.httpHeaderFields()); !requestHeaders.isNull())
+        preflightRequest.setHTTPHeaderField(HTTPHeaderName::AccessControlRequestHeaders, requestHeaders);
 
     if (includeFetchMetadata) {
         Ref requestOrigin = SecurityOrigin::create(request.url());
@@ -214,22 +176,7 @@ String validateCrossOriginRedirectionURL(const URL& redirectURL)
 
 OptionSet<HTTPHeadersToKeepFromCleaning> httpHeadersToKeepFromCleaning(const HTTPHeaderMap& headers)
 {
-    OptionSet<HTTPHeadersToKeepFromCleaning> headersToKeep;
-    if (headers.contains(HTTPHeaderName::AcceptEncoding))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::AcceptEncoding);
-    if (headers.contains(HTTPHeaderName::CacheControl))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::CacheControl);
-    if (headers.contains(HTTPHeaderName::ContentType))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::ContentType);
-    if (headers.contains(HTTPHeaderName::Origin))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::Origin);
-    if (headers.contains(HTTPHeaderName::Pragma))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::Pragma);
-    if (headers.contains(HTTPHeaderName::Referer))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::Referer);
-    if (headers.contains(HTTPHeaderName::UserAgent))
-        headersToKeep.add(HTTPHeadersToKeepFromCleaning::UserAgent);
-    return headersToKeep;
+    return OptionSet<HTTPHeadersToKeepFromCleaning>::fromRaw(crossOriginAccessControlHeadersToKeep(headers));
 }
 
 void cleanHTTPRequestHeadersForAccessControl(ResourceRequest& request, OptionSet<HTTPHeadersToKeepFromCleaning> headersToKeep)
@@ -282,28 +229,11 @@ std::expected<void, String> passesAccessControlCheck(const ResourceResponse& res
 {
     // A wildcard Access-Control-Allow-Origin can not be used if credentials are to be sent,
     // even with Access-Control-Allow-Credentials set to true.
-    const String& accessControlOriginString = response.httpHeaderField(HTTPHeaderName::AccessControlAllowOrigin);
     bool starAllowed = storedCredentialsPolicy == StoredCredentialsPolicy::DoNotUse;
     if (!starAllowed)
         starAllowed = checkDisabler && !checkDisabler->crossOriginAccessControlCheckEnabled();
-    if (accessControlOriginString == "*"_s && starAllowed)
-        return { };
-
-    String securityOriginString = securityOrigin.toString();
-    if (accessControlOriginString != securityOriginString) {
-        if (accessControlOriginString == "*"_s)
-            return makeUnexpected("Cannot use wildcard in Access-Control-Allow-Origin when credentials flag is true."_s);
-        if (accessControlOriginString.find(',') != notFound)
-            return makeUnexpected("Access-Control-Allow-Origin cannot contain more than one origin."_s);
-        return makeUnexpected(makeString("Origin "_s, securityOriginString, " is not allowed by Access-Control-Allow-Origin."_s, " Status code: "_s, response.httpStatusCode()));
-    }
-
-    if (storedCredentialsPolicy == StoredCredentialsPolicy::Use) {
-        const String& accessControlCredentialsString = response.httpHeaderField(HTTPHeaderName::AccessControlAllowCredentials);
-        if (accessControlCredentialsString != "true"_s)
-            return makeUnexpected("Credentials flag is true, but Access-Control-Allow-Credentials is not \"true\"."_s);
-    }
-
+    if (auto message = crossOriginAccessControlCheckFailure(response.httpHeaderField(HTTPHeaderName::AccessControlAllowOrigin), storedCredentialsPolicy == StoredCredentialsPolicy::Use ? response.httpHeaderField(HTTPHeaderName::AccessControlAllowCredentials) : String(), response.httpStatusCode(), securityOrigin.toString(), starAllowed, storedCredentialsPolicy == StoredCredentialsPolicy::Use); !message.isNull())
+        return makeUnexpected(WTF::move(message));
     return { };
 }
 

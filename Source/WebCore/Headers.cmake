@@ -1928,6 +1928,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     loader/ResourceMonitorThrottlerHolder.h
     loader/ResourceTiming.h
     loader/ResourceTimingInformation.h
+    loader/SecurityPoliciesSwiftTypes.h
     loader/ServerTiming.h
     loader/ServerTimingParser.h
     loader/ShouldTreatAsContinuingLoad.h

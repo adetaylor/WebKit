@@ -27,10 +27,10 @@
 #include "OriginAgentClusterPolicy.h"
 
 #include "HTTPHeaderNames.h"
-#include "RFC8941.h"
 #include "ResourceResponse.h"
 #include "ScriptExecutionContext.h"
 #include "Settings.h"
+#include "WebCore-Swift.h"
 
 namespace WebCore {
 
@@ -43,12 +43,7 @@ OriginKeyed obtainOriginAgentClusterPolicy(const ResourceResponse& response, IsS
     if (context && !context->settingsValues().originAgentClusterEnabled)
         return OriginKeyed::No;
 
-    auto parsingResult = RFC8941::parseItemStructuredFieldValue(response.httpHeaderField(HTTPHeaderName::OriginAgentCluster));
-    if (!parsingResult)
-        return OriginKeyed::No;
-
-    auto* boolValue = std::get_if<bool>(&parsingResult->first);
-    return boolValue && *boolValue ? OriginKeyed::Yes : OriginKeyed::No;
+    return originAgentClusterPolicyFromHeader(response.httpHeaderField(HTTPHeaderName::OriginAgentCluster));
 }
 
 } // namespace WebCore
