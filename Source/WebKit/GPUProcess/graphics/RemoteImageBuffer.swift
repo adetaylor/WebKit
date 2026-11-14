@@ -37,6 +37,8 @@ final class RemoteImageBuffer {
     private let identifier: UInt64
     private let backend: WebKit.RemoteRenderingBackend
     private let context: WebKit.RemoteImageBufferGraphicsContext
+    // The drawing of a buffer whose drawing is recorded (RenderingMode::DisplayList), which its context can't draw.
+    private let recordedDrawing: RemoteCGRendererRecordedDrawing?
     // The signal that FlushContext signals once the buffer's drawing is flushed.
     private var flushSignal: FlushSignal?
 
@@ -45,12 +47,14 @@ final class RemoteImageBuffer {
         imageBuffer: WebCore.ImageBuffer,
         identifier: UInt64,
         backend: WebKit.RemoteRenderingBackend,
-        context: WebKit.RemoteImageBufferGraphicsContext
+        context: WebKit.RemoteImageBufferGraphicsContext,
+        recordedDrawing: RemoteCGRendererRecordedDrawing?
     ) {
         self.imageBuffer = imageBuffer
         self.identifier = identifier
         self.backend = backend
         self.context = context
+        self.recordedDrawing = recordedDrawing
     }
 
     // A receiver of the buffer's messages, which the backend's stream connection keeps until stopReceivingMessages(): nil
@@ -63,20 +67,57 @@ final class RemoteImageBuffer {
         backend: WebKit.RemoteRenderingBackend
     ) -> RemoteImageBuffer? {
         let context = WebKit.RemoteImageBufferGraphicsContext.createForImageBufferReceiver(imageBuffer, contextIdentifier, backend)
-        let receiver = RemoteImageBuffer(imageBuffer: imageBuffer, identifier: identifier, backend: backend, context: context)
+        var recordedDrawing: RemoteCGRendererRecordedDrawing?
+        if imageBuffer.renderingMode() == .DisplayList {
+            // Another receiver of drawing has the context's identifier: the message is invalid.
+            guard let drawing = startRecordedDrawing(context, contextIdentifier, backend) else {
+                context.releaseImageBuffer()
+                return nil
+            }
+            recordedDrawing = drawing
+        }
+        let receiver = RemoteImageBuffer(
+            imageBuffer: imageBuffer,
+            identifier: identifier,
+            backend: backend,
+            context: context,
+            recordedDrawing: recordedDrawing
+        )
         let forwarder = WebKit.RemoteImageBufferMessageForwarder.create(target: receiver)
         guard IPC.tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, .RemoteImageBuffer, identifier) else {
             context.stopListeningForIPC()
+            recordedDrawing?.stopRecording()
             context.releaseImageBuffer()
             return nil
         }
         return receiver
     }
 
+    // Records the drawing of a buffer whose drawing is recorded, which its context's recording draws where the buffer is drawn,
+    // until the buffer no longer receives drawing.
+    private static func startRecordedDrawing(
+        _ context: WebKit.RemoteImageBufferGraphicsContext,
+        _ contextIdentifier: WebKit.RemoteGraphicsContextIdentifier,
+        _ backend: WebKit.RemoteRenderingBackend
+    ) -> RemoteCGRendererRecordedDrawing? {
+        let (recordedDrawing, forwarder) = RemoteCGRendererRecordedDrawing.create(
+            resources: WebKit.createDisplayListRecorderResources(backend),
+            displayLists: backend.state.displayLists
+        )
+        guard IPC.tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, .RemoteCGRenderer, contextIdentifier.toUInt64())
+        else {
+            return nil
+        }
+        // Safety: the drawing is retained once, which only the placeholder that the context gives it releases.
+        unsafe context.installRecordedDrawing(UInt(bitPattern: unsafe Unmanaged.passRetained(recordedDrawing).toOpaque()))
+        return recordedDrawing
+    }
+
     // The buffer's messages, and its context's, stop coming; the buffer stops being counted.
     @_expose(!Cxx)
     func stopReceivingMessages() {
         context.stopListeningForIPC()
+        recordedDrawing?.stopRecording()
         _ = backend.streamConnection().tryStopReceivingMessages(.RemoteImageBuffer, identifier)
         context.releaseImageBuffer()
     }

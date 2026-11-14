@@ -38,6 +38,7 @@
 #include <WebCore/AlphaPremultiplication.h>
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/IntPoint.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #endif
 
@@ -74,7 +75,6 @@ class RemoteCGRendererPathSegment;
 class RemoteCGRendererGlyphs;
 class RemoteCGRendererLineDash;
 class RemoteCGRendererLineSegments;
-class RemoteCGRendererRecordedDrawing;
 struct RemoteCGRendererShadow;
 struct RemoteCGRendererStyle;
 #endif
@@ -108,6 +108,10 @@ public:
     // Stops counting the buffer, and unwinds its context's state stack, whose restores may never come, as the web process may
     // have gone.
     void releaseImageBuffer();
+    // For the Swift receiver of an image buffer whose drawing is recorded: the drawing that the one placeholder of the WebCore
+    // display list that its context records draws, which the placeholder keeps. Unsafe: the drawing must be a retained
+    // RemoteCGRendererRecordedDrawing that nothing else releases.
+    SWIFT_UNSAFE void installRecordedDrawing(uintptr_t);
 
     // Copies the pixels of the rect into the shared memory that the rendering backend keeps for them, as the buffer's
     // getPixelBuffer() gives them in the format, or zeroes the memory if it gives none.
@@ -199,8 +203,6 @@ private:
     WebCore::GraphicsContextCG& cgContext() { return static_cast<WebCore::GraphicsContextCG&>(drawingContext()); }
     // Whether this counts itself as a lender of its GraphicsContextCG's renderer, while it has a Swift receiver.
     bool m_isSwiftRendererLender { false };
-    // The drawing of an image buffer whose drawing is recorded, while this receives it.
-    RefPtr<RemoteCGRendererRecordedDrawing> m_recordedDrawing;
     // What the drawing of an image buffer that failed to allocate is drawn into.
     RefPtr<WebCore::ImageBuffer> m_discardedDrawingTarget;
     // For an image buffer's Swift receiver: whether the buffer is still counted, and what it keeps.

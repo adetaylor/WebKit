@@ -24,6 +24,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
 
+import Synchronization
 @_spi(WebKitGPU) internal import WebCore
 import WebCore_Private
 import WebKit_Internal
@@ -137,15 +138,25 @@ enum RemoteCGRendererSnapshotFrameReferences {
     case rerecording
 }
 
-// Records the RemoteCGRenderer messages to a display list recorder or a snapshot recorder, on its stream connection's work
-// queue, as RemoteGraphicsContext records them into a WebCore display list recorder: the resources that a message names are
-// looked up and kept as it is recorded, and a missing one is an invalid message. The print process records a snapshot's
-// recordings again with one.
+// The lock of a recorder whose recording another thread draws (RemoteCGRendererRecordedDrawing), so that it draws whole
+// messages.
+final class RemoteCGRendererRecorderLock: Sendable {
+    let mutex = Mutex<Void>(())
+}
+
+// Records the RemoteCGRenderer messages to a display list recorder, a snapshot recorder or the recorder of an image buffer whose
+// drawing is recorded, on its stream connection's work queue, as RemoteGraphicsContext records them into a WebCore display list
+// recorder: the resources that a message names are looked up and kept as it is recorded, and a missing one is an invalid
+// message. The print process records a snapshot's recordings again with one. Exposed only for the generated C++ forwarder's
+// weak reference.
 @_expose(Cxx)
 final class RemoteCGRendererRecorder {
     private let resources: WebKit.RemoteCGRendererResources
     private let displayLists: RemoteCGRendererDisplayLists
     private let snapshotFrames: RemoteCGRendererSnapshotFrameReferences
+    // Which a message is recorded under, for a recorder whose recording another thread draws: its takeRecording() and
+    // currentRecording() are then called under it.
+    private let lock: RemoteCGRendererRecorderLock?
     private var messages: [RemoteCGRenderer.RecordedMessage] = []
     private var images: RemoteCGRendererRecordedImages?
     private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
@@ -160,16 +171,13 @@ final class RemoteCGRendererRecorder {
     init(
         resources: WebKit.RemoteCGRendererResources,
         displayLists: RemoteCGRendererDisplayLists,
-        snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none
+        snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none,
+        lock: RemoteCGRendererRecorderLock? = nil
     ) {
         self.resources = resources
         self.displayLists = displayLists
         self.snapshotFrames = snapshotFrames
-    }
-
-    @used
-    static func create(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists) -> RemoteCGRendererRecorder {
-        RemoteCGRendererRecorder(resources: resources, displayLists: displayLists)
+        self.lock = lock
     }
 
     // The snapshot whose frame it records, if it records one.
@@ -182,14 +190,14 @@ final class RemoteCGRendererRecorder {
     }
 
     // The forwarder of the recorder's messages, which keeps it, as the stream connection the forwarder is registered with keeps
-    // the forwarder. C++ calls it too, so @used keeps it under -O -wmo (rdar://179098545).
-    @used
+    // the forwarder.
+    @_expose(!Cxx)
     static func createMessageReceiver(recorder: RemoteCGRendererRecorder) -> RefRemoteCGRendererRecorderMessageForwarder {
         WebKit.RemoteCGRendererRecorderMessageForwarder.create(target: recorder)
     }
 
     // What it recorded, after which it records into a new recording.
-    @used
+    @_expose(!Cxx)
     func takeRecording() -> RemoteCGRendererRecording {
         let recording = RemoteCGRendererRecording(
             messages: messages,
@@ -210,7 +218,7 @@ final class RemoteCGRendererRecorder {
     }
 
     // What it recorded so far, while it records more.
-    @used
+    @_expose(!Cxx)
     func currentRecording() -> RemoteCGRendererRecording {
         RemoteCGRendererRecording(
             messages: messages,
@@ -224,6 +232,17 @@ final class RemoteCGRendererRecorder {
 
     @_expose(!Cxx)
     func record(_ message: consuming RemoteCGRenderer.RecordedMessage) throws(InvalidMessage) {
+        guard let lock else {
+            try recordUnlocked(consume message)
+            return
+        }
+        let message = consume message
+        try lock.mutex.withLock { _ throws(InvalidMessage) in
+            try recordUnlocked(message)
+        }
+    }
+
+    private func recordUnlocked(_ message: consuming RemoteCGRenderer.RecordedMessage) throws(InvalidMessage) {
         var namesResource = true
         switch copy message {
         case .fillCachedPath(let identifier), .clipCachedPath(let identifier, _), .clipTransformedCachedPath(_, let identifier, _):
@@ -348,6 +367,81 @@ final class RemoteCGRendererRecorder {
         WebKit.setSharedVideoFrameMemory(resources, storageHandle)
     }
     #endif
+}
+
+// The drawing of an image buffer whose drawing is recorded (RenderingMode::DisplayList), whose context can't lend a renderer:
+// recorded while the buffer receives drawing (RemoteImageBuffer.swift), and drawn where the WebCore display list that the
+// buffer's context records is drawn, by the one placeholder that display list has, which keeps it, on any thread. Once the
+// buffer no longer receives drawing, it keeps the recording and lets the recorder, which keeps the rendering backend, go.
+// @unchecked Sendable: its recorder and recording are only used under the recorder's lock.
+@_expose(Cxx)
+final class RemoteCGRendererRecordedDrawing: @unchecked Sendable {
+    // A recording that leaves the lock. @unchecked Sendable: a recording is immutable, and is replayed on other threads.
+    private struct LockedRecording: @unchecked Sendable {
+        let recording: RemoteCGRendererRecording?
+    }
+
+    private let lock: RemoteCGRendererRecorderLock
+    private var recorder: RemoteCGRendererRecorder?
+    private var recording: RemoteCGRendererRecording?
+
+    @_expose(!Cxx)
+    private init(recorder: RemoteCGRendererRecorder, lock: RemoteCGRendererRecorderLock) {
+        self.recorder = recorder
+        self.lock = lock
+    }
+
+    // The drawing, and the receiver of the buffer's drawing, which records it until stopRecording().
+    @_expose(!Cxx)
+    static func create(
+        resources: WebKit.RemoteCGRendererResources,
+        displayLists: RemoteCGRendererDisplayLists
+    ) -> (RemoteCGRendererRecordedDrawing, RefRemoteCGRendererRecorderMessageForwarder) {
+        let lock = RemoteCGRendererRecorderLock()
+        let recorder = RemoteCGRendererRecorder(resources: resources, displayLists: displayLists, lock: lock)
+        let forwarder = RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
+        return (RemoteCGRendererRecordedDrawing(recorder: recorder, lock: lock), forwarder)
+    }
+
+    @_expose(!Cxx)
+    func stopRecording() {
+        lock.mutex.withLock { _ in
+            guard let recorder else {
+                return
+            }
+            recording = recorder.takeRecording()
+            self.recorder = nil
+        }
+    }
+
+    private func currentRecording() -> RemoteCGRendererRecording? {
+        let locked = lock.mutex.withLock { _ in
+            LockedRecording(recording: recorder?.currentRecording() ?? recording)
+        }
+        return locked.recording
+    }
+
+    // Draws what the buffer's drawing recorded so far into a context's renderer, lent for the draw, with resources for a replay
+    // into the context, for the placeholder that keeps the drawing (RemoteImageBufferGraphicsContext::installRecordedDrawing()).
+    @used
+    static func draw(_ drawing: UInt, state: inout CGRendererCore, resources: WebKit.RemoteCGRendererResources) {
+        // Safety: the placeholder keeps the drawing retained from installRecordedDrawing() until it lets go of it (releaseDrawing()).
+        let drawing = unsafe Unmanaged<RemoteCGRendererRecordedDrawing>.fromOpaque(address(drawing)).takeUnretainedValue()
+        drawing.currentRecording()?.draw(state: &state, resources: resources)
+    }
+
+    @used
+    static func releaseDrawing(_ drawing: UInt) {
+        // Safety: installRecordedDrawing() was given the drawing retained, which only the placeholder releases, once.
+        unsafe Unmanaged<RemoteCGRendererRecordedDrawing>.fromOpaque(address(drawing)).release()
+    }
+
+    private static func address(_ drawing: UInt) -> UnsafeMutableRawPointer {
+        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: drawing) else {
+            preconditionFailure("A placeholder has no recorded drawing")
+        }
+        return unsafe address
+    }
 }
 
 // The display lists of a rendering backend, which its contexts' DrawDisplayList messages name, on its work queue, by key
