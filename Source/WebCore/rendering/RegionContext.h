@@ -62,6 +62,8 @@ protected:
     Vector<AffineTransform> m_transformStack;
     Vector<IntRect> m_clipStack;
 
+    // Swift retains and releases a region context through its checked pointer count, and a function that returns one
+    // leaves it owned by its creator.
 } SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT; // class RegionContext
 
 class RegionContextStateSaver {

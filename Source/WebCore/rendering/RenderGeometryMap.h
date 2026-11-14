@@ -133,7 +133,8 @@ private:
 #endif
 };
 
-// A RenderGeometryMap that a C++ caller lends to Swift for the duration of one call.
+// A RenderGeometryMap that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is
+// never null. It has no operator*: these members are the only access to the map.
 class RenderGeometryMapView {
 public:
     RenderGeometryMapView(RenderGeometryMap& map LIFETIME_BOUND)

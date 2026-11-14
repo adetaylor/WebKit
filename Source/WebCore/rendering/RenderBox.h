@@ -765,6 +765,8 @@ private:
 
     // Used to store state between styleWillChange and styleDidChange
     static bool s_hadNonVisibleOverflow;
+
+    // Swift retains, releases and receives one as it does a RenderObject.
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 inline bool isSkippedContentRoot(const RenderBox&);

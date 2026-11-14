@@ -353,6 +353,10 @@ private:
     std::unique_ptr<RenderMarquee> m_marquee;
 
     const std::unique_ptr<ScrollAnchoringController> m_scrollAnchoringController;
+
+    // Swift retains and releases a scrollable area through its checked pointer count. If C++ destroys one while Swift
+    // holds it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves
+    // it owned by C++, and Swift retains it.
 } SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/RenderLayerTree.swift");
 
 } // namespace WebCore

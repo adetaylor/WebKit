@@ -1147,7 +1147,10 @@ public:
         bool requireSecurityOriginAccessForWidgets { false };
 
     private:
-        // Integers, so that the struct is trivially copyable and Swift imports it as a view that refers to none of these.
+        // A view of the painting call's root layer, subtree paint root, region context and overlap test requests, held
+        // as integers so that the struct is trivially copyable. It must not outlive the painting call that made it, and
+        // Swift reaches the objects only through the accessors above, any of which may return null. setRootLayer() and
+        // setRegionContext() store what they are given, which the caller keeps alive.
         uintptr_t m_rootLayer { 0 };
         uintptr_t m_subtreePaintRoot { 0 };
         uintptr_t m_regionContext { 0 };

@@ -1401,6 +1401,10 @@ private:
 
     using RareDataMap = SingleThreadWeakHashMap<const RenderObject, std::unique_ptr<RenderObjectRareData>>;
     NODELETE static RareDataMap& rareDataMap();
+
+    // Swift retains and releases a renderer through its checked pointer count. If C++ destroys one while Swift holds
+    // it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves it
+    // owned by C++, and Swift retains it.
 } SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 class RenderObject::SetLayoutNeededForbiddenScope {

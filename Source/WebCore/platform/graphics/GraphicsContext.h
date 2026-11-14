@@ -462,6 +462,7 @@ private:
 
 // A GraphicsContext that C++ lends to Swift for the duration of a call. Swift cannot import
 // GraphicsContext, which is neither copyable nor movable, so it calls the members it needs here.
+// Made from a reference, so it is never null; operator* is the context.
 class LentGraphicsContext {
 public:
     explicit LentGraphicsContext(GraphicsContext& context LIFETIME_BOUND)

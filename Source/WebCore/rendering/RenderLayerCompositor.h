@@ -237,7 +237,8 @@ public:
         bool intrinsic { false };
     };
 
-    // A RequiresCompositingData that a C++ caller lends to Swift for the duration of one call.
+    // A RequiresCompositingData that a C++ caller lends to Swift for the duration of one call. Made from a reference,
+    // so it is never null; operator* is the data.
     class RequiresCompositingDataView {
     public:
         RequiresCompositingDataView(RequiresCompositingData& data LIFETIME_BOUND)
@@ -780,6 +781,10 @@ private:
 #if PLATFORM(IOS_FAMILY)
     const std::unique_ptr<LegacyWebKitScrollingLayerCoordinator> m_legacyScrollingLayerCoordinator;
 #endif
+
+    // Swift retains and releases a compositor through its checked pointer count. If C++ destroys one while Swift holds
+    // it, its memory is zero-filled and not freed, so Swift's next use faults. A function that returns one leaves it
+    // owned by C++, and Swift retains it.
 } SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebCore/RenderLayerCompositor.swift");
 
 void paintScrollbar(Scrollbar*, GraphicsContext&, const IntRect& clip, const Color& backgroundColor = Color());

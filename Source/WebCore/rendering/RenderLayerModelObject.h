@@ -230,6 +230,8 @@ private:
         const Style::ComputedStyle* oldStyle { nullptr };
     };
     static StyleChange s_styleChange;
+
+    // Swift retains, releases and receives one as it does a RenderObject.
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount) SWIFT_PRIVATE_FILEID("WebCore/RenderLayerModelObjectLayer.swift");
 
 // Pixel-snapping (== 'device pixel alignment') helpers.

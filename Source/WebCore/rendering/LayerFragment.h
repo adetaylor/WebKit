@@ -123,7 +123,8 @@ public:
 
 typedef Vector<LayerFragment, 1> LayerFragments;
 
-// LayerFragments that a C++ caller lends to Swift for the duration of one call.
+// LayerFragments that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is never
+// null; operator* is the fragment list.
 class LayerFragmentsView {
 public:
     explicit LayerFragmentsView(LayerFragments& fragments LIFETIME_BOUND)

@@ -332,6 +332,8 @@ private:
 
     SingleThreadWeakPtr<RenderBlockFlow> m_viewTransitionContainingBlock;
     HashMap<AtomString, SingleThreadWeakPtr<RenderBox>> m_viewTransitionGroups;
+
+    // Swift retains, releases and receives one as it does a RenderObject.
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 } // namespace WebCore

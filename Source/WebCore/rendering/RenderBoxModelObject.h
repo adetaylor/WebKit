@@ -282,6 +282,8 @@ protected:
 
 private:
     RenderBlock* containingBlockForAutoHeightDetectionGeneric(const auto& logicalHeight) const;
+
+    // Swift retains, releases and receives one as it does a RenderObject.
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.incrementCheckedPtrCount, .decrementCheckedPtrCount);
 
 NODELETE bool isEmptyInline(const RenderBoxModelObject&);

@@ -211,7 +211,7 @@ private:
 };
 
 // A keyframe list that Swift reads during a call. Swift does not import BlendingKeyframes, which it can neither copy
-// nor move.
+// nor move. Made from a reference, so it is never null; operator* is the keyframe list.
 class BlendingKeyframesView {
 public:
     BlendingKeyframesView(const BlendingKeyframes& keyframes LIFETIME_BOUND)

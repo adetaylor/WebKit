@@ -211,7 +211,8 @@ private:
     mutable std::unique_ptr<NodeSet> m_listBasedTestResult;
 } SWIFT_SELF_CONTAINED; // Owns everything it points to: its nodes, element and scrollbar by RefPtr, and the node set.
 
-// A HitTestResult that a C++ caller lends to Swift for the duration of one call.
+// A HitTestResult that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is never
+// null; operator* is the result.
 class HitTestResultView {
 public:
     explicit HitTestResultView(HitTestResult& result LIFETIME_BOUND)

@@ -164,7 +164,9 @@ struct PaintInfo {
     OptionSet<PaintBehavior> paintBehavior;
 
 private:
-    // Integers, so that the struct is trivially copyable and Swift imports it as a view that refers to none of these.
+    // A view of the painting call's context and objects, held as integers so that the struct is trivially copyable. It
+    // must not outlive the call that made it, and Swift reaches the objects only through the accessors above: the
+    // context is never null; the others may be.
     uintptr_t m_subtreePaintRoot; // used to draw just one element and its visual children
     uintptr_t m_paintContainer; // the layer object that originates the current painting
     uintptr_t m_enclosingSelfPaintingLayer { 0 };
@@ -174,7 +176,8 @@ private:
     uintptr_t m_context;
 } SWIFT_VIEW;
 
-// A PaintInfo that a C++ caller lends to Swift for the duration of one call.
+// A PaintInfo that a C++ caller lends to Swift for the duration of one call. Made from a reference, so it is never
+// null; operator* is the PaintInfo.
 class PaintInfoView {
 public:
     PaintInfoView(PaintInfo& paintInfo LIFETIME_BOUND)
