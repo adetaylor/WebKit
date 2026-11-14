@@ -100,9 +100,10 @@ private final class RemoteAudioDestination {
             }
         }
         // Safety: the port is the right that the message's handle carries and owns.
-        ring = unsafe SharedMemoryMapping(port: handle.memory.port, size: handle.memory.size, writable: false).flatMap {
-            SharedAudioRing(memory: $0, bytesPerFrame: 4, channelStreamCount: channelCount, frameCount: handle.frameCount)
-        }
+        ring = unsafe SharedMemoryMapping(port: handle.memory.port, size: handle.memory.size, writable: false)
+            .flatMap {
+                SharedAudioRing(memory: $0, bytesPerFrame: 4, channelStreamCount: channelCount, frameCount: handle.frameCount)
+            }
         attachRing()
         if ring == nil {
             return
@@ -118,70 +119,64 @@ private final class RemoteAudioDestination {
     }
 }
 
-// The Swift state of a RemoteAudioDestinationManager (RemoteAudioDestinationManager.h): its destinations by identifier.
-@MainActor
-final class RemoteAudioDestinationManagerState {
-    fileprivate var destinations: [UInt64: RemoteAudioDestination] = [:]
+// Receives the audio destination messages of one web process's connection to the GPU process, which owns it
+// (GPUConnectionState), and owns the destinations, which play out the rings the web process writes. iOS's scene identifier,
+// whose spatial experience only C++ can make, goes to the connection itself (GPUConnectionToWebProcess.messages.in).
+@_expose(Cxx)
+final class RemoteAudioDestinationManager {
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var messageForwarder: RefRemoteAudioDestinationManagerMessageForwarder?
+    // The connection, until it closes: the connection's Swift state, which the connection holds, holds this.
+    private var connection: WebKit.GPUConnectionToWebProcess?
+    private let isLockdownModeEnabled: Bool
+    private var destinations: [UInt64: RemoteAudioDestination] = [:]
 
-    fileprivate nonisolated init() {
+    @_expose(!Cxx)
+    init(connection: WebKit.GPUConnectionToWebProcess, isLockdownModeEnabled: Bool) {
+        self.connection = connection
+        self.isLockdownModeEnabled = isLockdownModeEnabled
+        self.messageForwarder = WebKit.RemoteAudioDestinationManagerMessageForwarder.create(target: self)
     }
 
-    fileprivate var allowsExitUnderMemoryPressure: Bool {
-        !destinations.values.contains { $0.isPlaying }
-    }
-}
-
-extension WebKit.RemoteAudioDestinationManager {
-    @cxx
-    @implementation
-    func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteAudioDestinationManagerState()).toOpaque())
-    }
-
-    @cxx
-    @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        let state = unsafe Unmanaged<RemoteAudioDestinationManagerState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
-        MainActor.assumeIsolated {
-            // The destinations stop rendering here, on the main thread.
-            state.destinations.removeAll()
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteAudioDestinationManagerMessageForwarder {
+        guard let messageForwarder = self.messageForwarder else {
+            fatalError("Unreachable - guaranteed to exist")
         }
+        return messageForwarder
     }
 
-    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("The manager has no Swift state")
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        // The connection dispatches the receiver's messages on the main thread, which alone changes `connection`.
+        MainActor.preconditionIsolated()
+        guard let connection else {
+            return WebKit.OptionalSharedPreferencesForWebProcess()
         }
-        return unsafe address
+        return connection.sharedPreferencesForWebProcess()
     }
 
-    private var state: RemoteAudioDestinationManagerState {
-        // Safety: m_swiftState is a retained RemoteAudioDestinationManagerState from the constructor to the destructor, and
-        // nothing else changes it.
-        unsafe Unmanaged<RemoteAudioDestinationManagerState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
+    private var prefersSpatialAudioExperience: Bool {
+        #if HAVE_SPATIAL_AUDIO_EXPERIENCE
+        sharedPreferencesForWebProcess().value?.preferSpatialAudioExperience ?? false
+        #else
+        false
+        #endif
     }
 
-    @cxx
-    @implementation
-    func allowsExitUnderMemoryPressure() -> Bool {
-        let state = state
-        return MainActor.assumeIsolated {
-            state.allowsExitUnderMemoryPressure
-        }
+    // The destinations stop rendering, before they go with the connection.
+    @_expose(!Cxx)
+    @MainActor
+    func invalidate() {
+        destinations.removeAll()
     }
 
-    @cxx
-    @implementation
-    func spatialTarget(_ destinationIdentifier: UInt64) -> WebKit.RemoteAudioDestinationSpatialTarget {
-        let state = state
-        return MainActor.assumeIsolated {
-            var target = WebKit.RemoteAudioDestinationSpatialTarget()
-            if let destination = state.destinations[destinationIdentifier] {
-                target.outputUnitIdentifier = destination.outputUnitIdentifier
-                target.prefersSpatialAudioExperience = destination.prefersSpatialAudioExperience
-            }
-            return target
-        }
+    // The output unit of the destination that iOS's spatial experience is set on, if there is one, and whether its web
+    // process preferred a spatial experience when it made it.
+    @_expose(!Cxx)
+    @MainActor
+    func spatialTarget(_ destinationIdentifier: UInt64) -> (outputUnitIdentifier: UInt64, prefersSpatialAudioExperience: Bool)? {
+        destinations[destinationIdentifier].map { ($0.outputUnitIdentifier, $0.prefersSpatialAudioExperience) }
     }
 
     @MainActor
@@ -197,11 +192,10 @@ extension WebKit.RemoteAudioDestinationManager {
         frameCount: consuming IPCTypes.SharedMemoryHandle
     ) throws(InvalidMessage) -> UInt64 {
         try messageCheck("Received a createAudioDestination() message from a webpage in Lockdown mode.") {
-            !isLockdownModeEnabled()
+            !isLockdownModeEnabled
         }
-        let state = state
         try messageCheck("AudioDestination already cached.") {
-            state.destinations[identifier.rawValue] == nil
+            destinations[identifier.rawValue] == nil
         }
         let destination = RemoteAudioDestination(
             identifier: identifier.rawValue,
@@ -209,22 +203,23 @@ extension WebKit.RemoteAudioDestinationManager {
             hardwareSampleRate: hardwareSampleRate,
             renderSemaphore: renderSemaphore,
             frameCount: frameCount,
-            prefersSpatialAudioExperience: prefersSpatialAudioExperience()
+            prefersSpatialAudioExperience: prefersSpatialAudioExperience
         )
-        state.destinations[identifier.rawValue] = destination
+        destinations[identifier.rawValue] = destination
         return destination.latency
     }
 
     @MainActor
     func deleteAudioDestination(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioDestinationIdentifier) throws(InvalidMessage) {
         try messageCheck("Received a deleteAudioDestination() message from a webpage in Lockdown mode.") {
-            !isLockdownModeEnabled()
+            !isLockdownModeEnabled
         }
-        let state = state
-        state.destinations.removeValue(forKey: identifier.rawValue)
-        destinationWasDeleted(identifier.rawValue)
-        if state.allowsExitUnderMemoryPressure {
-            tryExitIfUnusedAndUnderMemoryPressure()
+        destinations.removeValue(forKey: identifier.rawValue)
+        #if WTF_PLATFORM_IOS_FAMILY
+        self.connection?.audioDestinationWasDeleted(identifier.rawValue)
+        #endif
+        if allowsExitUnderMemoryPressure {
+            self.connection?.tryExitIfUnusedAndUnderMemoryPressure()
         }
     }
 
@@ -233,8 +228,8 @@ extension WebKit.RemoteAudioDestinationManager {
         connection: IPC.Connection,
         identifier: IPCTypes.RemoteAudioDestinationIdentifier
     ) throws(InvalidMessage) -> (isPlaying: Bool, audioUnitLatency: UInt64) {
-        try messageCheck { !isLockdownModeEnabled() }
-        guard let destination = state.destinations[identifier.rawValue] else {
+        try messageCheck { !isLockdownModeEnabled }
+        guard let destination = destinations[identifier.rawValue] else {
             return (false, 0)
         }
         destination.start()
@@ -242,9 +237,12 @@ extension WebKit.RemoteAudioDestinationManager {
     }
 
     @MainActor
-    func stopAudioDestination(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioDestinationIdentifier) throws(InvalidMessage) -> Bool {
-        try messageCheck { !isLockdownModeEnabled() }
-        guard let destination = state.destinations[identifier.rawValue] else {
+    func stopAudioDestination(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioDestinationIdentifier
+    ) throws(InvalidMessage) -> Bool {
+        try messageCheck { !isLockdownModeEnabled }
+        guard let destination = destinations[identifier.rawValue] else {
             return false
         }
         destination.stop()
@@ -257,7 +255,21 @@ extension WebKit.RemoteAudioDestinationManager {
         identifier: IPCTypes.RemoteAudioDestinationIdentifier,
         storageHandle: borrowing IPCTypes.ConsumerSharedCARingBufferHandle
     ) {
-        state.destinations[identifier.rawValue]?.storageChanged(storageHandle)
+        destinations[identifier.rawValue]?.storageChanged(storageHandle)
+    }
+}
+
+extension RemoteAudioDestinationManager: GPUConnectionReceiver {
+    @_expose(!Cxx)
+    @MainActor
+    var allowsExitUnderMemoryPressure: Bool {
+        !destinations.values.contains { $0.isPlaying }
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func connectionDidClose() {
+        connection = nil
     }
 }
 

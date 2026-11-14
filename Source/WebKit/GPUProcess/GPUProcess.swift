@@ -305,7 +305,9 @@ extension WebKit.GPUProcess {
             return false
         }
         #endif
-        return webProcessConnections.all.values.allSatisfy { $0.allowsExitUnderMemoryPressure() }
+        return webProcessConnections.all.values.allSatisfy {
+            $0.state.allowsExitUnderMemoryPressure && $0.allowsExitUnderMemoryPressure()
+        }
     }
 
     @cxx

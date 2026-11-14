@@ -29,6 +29,7 @@
 #if ENABLE(MEDIA_STREAM) && ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
 
 #include "AudioMediaStreamTrackRendererInternalUnitIdentifier.h"
+#include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcessConnection.h"
 #include "IPCSemaphore.h"
 #include "Logging.h"
@@ -229,7 +230,7 @@ void AudioMediaStreamTrackRendererInternalUnitManagerProxy::retrieveFormatDescri
 
 void AudioMediaStreamTrackRendererInternalUnitManagerProxy::setLastDeviceUsed(const String& deviceID)
 {
-    protect(WebProcess::singleton().ensureGPUProcessConnection().connection())->send(Messages::RemoteAudioMediaStreamTrackRendererInternalUnitManager::SetLastDeviceUsed { deviceID }, 0);
+    protect(WebProcess::singleton().ensureGPUProcessConnection().connection())->send(Messages::GPUConnectionToWebProcess::SetLastAudioMediaStreamTrackRendererDeviceUsed { deviceID }, 0);
 }
 
 void AudioMediaStreamTrackRendererInternalUnitManagerProxy::deleteUnitForTesting()

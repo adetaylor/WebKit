@@ -32,6 +32,7 @@
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
 
 namespace IPC {
@@ -83,7 +84,13 @@ SwiftReceiverRegistration* WTF_NULLABLE registerSwiftReceiver(const OwnerPointer
     auto& owner = *ownerPointer;
     if (!owner.addSwiftReceiver(receiverName, identifier, forwarder.get()))
         return nullptr;
-    return &SwiftReceiverRegistration::create([weakOwner = WeakPtr { owner }, receiverName, identifier] {
+    auto weakOwner = [&] {
+        if constexpr (requires { owner.controlBlock(); })
+            return ThreadSafeWeakPtr { owner };
+        else
+            return WeakPtr { owner };
+    }();
+    return &SwiftReceiverRegistration::create([weakOwner = WTF::move(weakOwner), receiverName, identifier] {
         if (RefPtr owner = weakOwner.get())
             owner->removeSwiftReceiver(receiverName, identifier);
     }).leakRef();

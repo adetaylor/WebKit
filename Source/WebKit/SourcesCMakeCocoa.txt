@@ -30,8 +30,6 @@
 // _WKCaptionStyleMenuController*Mac.mm entries will need #if PLATFORM(MAC)
 // self-guards (the latter already has one) or a separate Mac-only list.
 
-GPUProcess/media/RemoteAudioDestinationManager.cpp
-
 NetworkProcess/Downloads/cocoa/WKDownloadProgress.mm @nonARC
 
 NetworkProcess/cocoa/DeviceManagementSoftLink.mm @nonARC @no-unify // SOFT_LINK_*_FOR_SOURCE defines non-inline symbols.

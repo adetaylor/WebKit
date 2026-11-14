@@ -27,7 +27,7 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=WebAudioEnabled,
-    SwiftImplementation,
+    SwiftReceiver,
     SwiftTypes
 ]
 messages -> RemoteAudioDestinationManager {
@@ -37,9 +37,6 @@ messages -> RemoteAudioDestinationManager {
     StartAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying, uint64_t audioUnitLatency) SwiftSyncHandler
     StopAudioDestination(WebKit::RemoteAudioDestinationIdentifier identifier) -> (bool isPlaying) SwiftSyncHandler
     AudioSamplesStorageChanged(WebKit::RemoteAudioDestinationIdentifier identifier, struct WebKit::ConsumerSharedCARingBufferHandle storageHandle) SwiftSyncHandler
-#if PLATFORM(IOS_FAMILY)
-    SetSceneIdentifier(WebKit::RemoteAudioDestinationIdentifier identifier, String sceneIdentifier) CxxTypes
-#endif
 }
 
 #endif
