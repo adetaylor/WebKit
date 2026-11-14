@@ -480,8 +480,8 @@ public:
     virtual void scrollOriginDidChange() { }
 
     WEBCORE_EXPORT virtual ~ScrollableArea();
-    // Declared so that Swift imports the class; never defined, so a move fails to link.
-    SWIFT_UNAVAILABLE_IN_SWIFT ScrollableArea(ScrollableArea&&);
+    // Declared so that Swift imports the class. Nothing moves a ScrollableArea: the definition stops if anything does.
+    SWIFT_UNAVAILABLE_IN_SWIFT WEBCORE_EXPORT ScrollableArea(ScrollableArea&&);
 
 protected:
     WEBCORE_EXPORT ScrollableArea();

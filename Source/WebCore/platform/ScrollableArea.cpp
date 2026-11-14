@@ -86,6 +86,25 @@ static_assert(sizeof(ScrollableArea) == sizeof(SameSizeAsScrollableArea), "Scrol
 ScrollableArea::ScrollableArea() = default;
 ScrollableArea::~ScrollableArea() = default;
 
+IGNORE_CLANG_WARNINGS_BEGIN("missing-noreturn")
+// Declared so that Swift imports the class; nothing moves a ScrollableArea.
+ScrollableArea::ScrollableArea(ScrollableArea&&)
+{
+    RELEASE_ASSERT_NOT_REACHED();
+}
+IGNORE_CLANG_WARNINGS_END
+
+#if !OS(WINDOWS)
+// The complete object form of the move constructor, which the compiler does not emit for an abstract class, and which
+// Swift's value witnesses for ScrollableArea reference. ScrollableArea has no virtual base, so the two forms would be
+// the same.
+[[noreturn]] void scrollableAreaCompleteObjectMoveConstructor(ScrollableArea*, ScrollableArea&&) asm(STRINGIZE_VALUE_OF(__USER_LABEL_PREFIX__) "_ZN7WebCore14ScrollableAreaC1EOS0_");
+void scrollableAreaCompleteObjectMoveConstructor(ScrollableArea*, ScrollableArea&&)
+{
+    RELEASE_ASSERT_NOT_REACHED();
+}
+#endif
+
 ScrollAnimator& ScrollableArea::scrollAnimator() const
 {
     if (!m_scrollAnimator) {
