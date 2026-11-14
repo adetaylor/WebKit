@@ -47,6 +47,7 @@
 #include "RemoteSharedResourceCache.h"
 #include "RemoteSnapshotIdentifier.h"
 #include "RemoteSnapshotRecorderIdentifier.h"
+#include "RemoteSnapshotSink.h"
 #include "RenderingUpdateID.h"
 #include "ScopedActiveMessageReceiveQueue.h"
 #include "ScopedRenderingResourcesRequest.h"
@@ -247,11 +248,20 @@ private:
     // has none to replace.
     bool swiftCacheNativeImage(WebCore::NativeImage&, CGImageRef WTF_NULLABLE, float width, float height, float headroom, WebCore::RenderingResourceIdentifier, bool replaces);
     bool swiftReleaseNativeImage(WebCore::RenderingResourceIdentifier);
+    // A recorder of the RemoteCGRenderer messages to it into a frame of a snapshot, which has the right to draw the snapshot's
+    // other frames: false if one already has the identifier.
+    bool swiftCreateSnapshotRecorder(RemoteSnapshotRecorderIdentifier, RemoteSnapshotKey);
+    // Makes what the recorder recorded the snapshot's frame: false if there is no such recorder.
+    bool swiftSinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier, WebCore::FrameIdentifier);
+    // Lets go, on the work queue, of the recordings that other threads let go of (scheduleSwiftReleases()).
+    void swiftReleasePendingRecordings();
 
     // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained
     // RemoteRenderingBackendState that nothing else releases.
     uintptr_t swiftState() const { return m_swiftState; }
     SWIFT_UNSAFE void setSwiftState(uintptr_t state) { m_swiftState = state; }
+    // For Swift, from any thread: has the work queue call swiftReleasePendingRecordings().
+    void scheduleSwiftReleases();
 #endif
 
     const Ref<IPC::StreamConnectionWorkQueue> m_workQueue;
@@ -274,7 +284,9 @@ private:
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     HashMap<RemoteDisplayListRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteDisplayListRecorder>> m_remoteDisplayListRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
 #endif
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     HashMap<RemoteSnapshotRecorderIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteSnapshotRecorder>> m_remoteSnapshotRecorders WTF_GUARDED_BY_CAPABILITY(workQueue());
+#endif
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
 #endif

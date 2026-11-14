@@ -40,8 +40,8 @@
 #include "LogInitialization.h"
 #include "Logging.h"
 #include "RemoteMediaPlayerManagerProxy.h"
-#include "RemoteSnapshot.h"
 #include "RemoteSnapshotPDFDrawingTask.h"
+#include "RemoteSnapshotSink.h"
 #include "SandboxExtension.h"
 #include "WebPageProxyMessages.h"
 #include "WebProcessPoolMessages.h"
@@ -97,6 +97,10 @@
 
 #if HAVE(SCREEN_CAPTURE_KIT)
 #include <WebCore/ScreenCaptureKitCaptureSource.h>
+#endif
+
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteSnapshotRecorder.h"
 #endif
 
 namespace WebKit {
@@ -165,8 +169,8 @@ void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& conn
         m_webProcessConnections.remove(connection.webProcessIdentifier());
 
     removeTransferredImageBuffersForProcess(connection.webProcessIdentifier());
-    abandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
-    removeSnapshotsForProcess(connection.webProcessIdentifier());
+    swiftAbandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
+    swiftRemoveSnapshotsForProcess(connection.webProcessIdentifier());
 
     connection.swiftDidRemoveFromGPUProcess();
 
@@ -423,153 +427,120 @@ void GPUProcess::removeTransferredImageBuffersForProcess(WebCore::ProcessIdentif
     });
 }
 
-// Long enough for any frame whose process is responsive. One whose process is not, or went away
-// before connecting here, draws nothing rather than holding up whoever is waiting for the snapshot.
-static constexpr Seconds snapshotDeadline = 10_s;
-
-Ref<RemoteSnapshot> GPUProcess::ensureSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, std::optional<FrameIdentifier> rootFrameIdentifier)
-{
-    RefPtr<RemoteSnapshot> snapshot;
-    bool isNewEntry = false;
-    {
-        Locker locker(m_globalResourceLocker);
-        auto result = m_snapshots.ensure(snapshotIdentifier, [&] {
-            return RemoteSnapshot::create(rootFrameIdentifier);
-        });
-        snapshot = result.iterator->value.ptr();
-        isNewEntry = result.isNewEntry;
-    }
-    // Only one frame can be the root.
-    if (snapshot->rootFrameIdentifier() != rootFrameIdentifier)
-        snapshot->fail();
-    if (isNewEntry) {
-        // Identifiers are never reused, so finding one when the deadline comes means it is this snapshot.
-        callOnMainRunLoop([snapshotIdentifier] {
-            RunLoop::mainSingleton().dispatchAfter(snapshotDeadline, [snapshotIdentifier] {
-                GPUProcess::singleton().snapshotDeadlineExpired(snapshotIdentifier);
-            });
-        });
-    }
-    return snapshot.releaseNonNull();
-}
-
-void GPUProcess::snapshotDeadlineExpired(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    RefPtr snapshot = this->snapshot(snapshotIdentifier);
-    if (!snapshot)
-        return;
-    bool isAwaited = snapshot->isAwaited();
-    snapshot->abandonUnresolvedFrames();
-    // Whoever is waiting takes it now. Anything else is not coming for it, such as a root whose
-    // process went away after the snapshot was released, or a GPU process that was relaunched under
-    // whoever asked for it.
-    if (!isAwaited || snapshot->hasFailed())
-        releaseSnapshot(snapshotIdentifier);
-}
-
 void GPUProcess::createSnapshot(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier rootFrameIdentifier, const FloatSize& size, ProcessIdentifier rootProcessIdentifier)
 {
-    // May already exist, if whoever draws it asked first.
-    Ref snapshot = ensureSnapshot(snapshotIdentifier, rootFrameIdentifier);
-    snapshot->setSize(size);
-    snapshot->setFrameOwner(rootFrameIdentifier, rootProcessIdentifier);
+    swiftCreateSnapshot(snapshotKey(snapshotIdentifier), rootFrameIdentifier, size, rootProcessIdentifier);
 }
 
 void GPUProcess::failSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
 {
-    // Created failed if it does not exist yet, so that whoever asks to draw it afterwards does not
-    // wait for it.
-    ensureSnapshot(snapshotIdentifier, std::nullopt)->fail();
-}
-
-Ref<RemoteSnapshot> GPUProcess::snapshotForRecorder(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        return snapshot.releaseNonNull();
-    // Already released, so let the recorder fill a snapshot that is dropped with it.
-    return RemoteSnapshot::create(std::nullopt);
-}
-
-RefPtr<RemoteSnapshot> GPUProcess::snapshot(RemoteSnapshotIdentifier snapshotIdentifier)
-{
-    Locker locker(m_globalResourceLocker);
-    return m_snapshots.get(snapshotIdentifier);
+    swiftFailSnapshot(snapshotKey(snapshotIdentifier));
 }
 
 void GPUProcess::abandonSnapshotFrame(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameIdentifier)
 {
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        snapshot->abandonFrame(frameIdentifier);
+    swiftAbandonSnapshotFrame(snapshotKey(snapshotIdentifier), frameIdentifier);
 }
 
 void GPUProcess::snapshotFrameWillBeDrawnByProcess(RemoteSnapshotIdentifier snapshotIdentifier, FrameIdentifier frameIdentifier, ProcessIdentifier processIdentifier)
 {
-    // A process that has not connected yet may still do so to record the frame, so only its
-    // going away abandons the frame. The UI process says so if it has not connected by then.
-    if (RefPtr snapshot = this->snapshot(snapshotIdentifier))
-        snapshot->setFrameOwner(frameIdentifier, processIdentifier);
+    swiftSnapshotFrameWillBeDrawnByProcess(snapshotKey(snapshotIdentifier), frameIdentifier, processIdentifier);
 }
 
 void GPUProcess::abandonSnapshotFramesOwnedBy(ProcessIdentifier processIdentifier)
 {
-    Vector<Ref<RemoteSnapshot>> snapshots;
-    {
-        Locker locker(m_globalResourceLocker);
-        snapshots = copyToVector(m_snapshots.values());
-    }
-    for (Ref snapshot : snapshots)
-        snapshot->abandonFramesOwnedBy(processIdentifier);
+    swiftAbandonSnapshotFramesOwnedBy(processIdentifier);
 }
 
-void GPUProcess::takeSnapshotWhenComplete(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<RemoteSnapshot>&&)>&& completionHandler)
+void GPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
 {
-    // May be asked for before its root has created it, since the UI process asks as soon as it
-    // has asked for the root. Anything that went wrong since is reported as failure.
-    Ref snapshot = ensureSnapshot(identifier, rootFrameIdentifier);
-    snapshot->whenComplete([identifier, snapshot, completionHandler = WTF::move(completionHandler)](bool success) mutable {
-        {
-            Ref gpuProcess = GPUProcess::singleton();
-            Locker locker(gpuProcess->m_globalResourceLocker);
-            auto iterator = gpuProcess->m_snapshots.find(identifier);
-            if (iterator != gpuProcess->m_snapshots.end() && iterator->value.ptr() == snapshot.ptr())
-                gpuProcess->m_snapshots.remove(iterator);
-        }
-        completionHandler(success ? RefPtr { WTF::move(snapshot) } : nullptr);
-    });
+    swiftReleaseSnapshot(snapshotKey(identifier));
 }
+
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+static RemoteSnapshotIdentifier snapshotIdentifier(RemoteSnapshotKey key)
+{
+    auto uuid = WTF::UUID::tryCreate(key.high, key.low);
+    RELEASE_ASSERT(uuid);
+    return { *uuid, ProcessIdentifier(key.process) };
+}
+
+Ref<RemoteSnapshotDisplayLists> GPUProcess::snapshotDisplayLists(const RemoteSnapshotIdentifier& identifier, std::optional<uint64_t> token)
+{
+    Ref gpuProcess = singleton();
+    Locker locker(gpuProcess->m_globalResourceLocker);
+    RefPtr displayLists = gpuProcess->m_snapshotDisplayLists.get(identifier);
+    if (displayLists && (!token || displayLists->token() == *token))
+        return displayLists.releaseNonNull();
+    return RemoteSnapshotDisplayLists::create();
+}
+
+uint64_t GPUProcess::createSnapshotDisplayLists(RemoteSnapshotKey key)
+{
+    Ref gpuProcess = singleton();
+    Ref displayLists = RemoteSnapshotDisplayLists::create();
+    auto token = displayLists->token();
+    Locker locker(gpuProcess->m_globalResourceLocker);
+    gpuProcess->m_snapshotDisplayLists.set(snapshotIdentifier(key), WTF::move(displayLists));
+    return token;
+}
+
+void GPUProcess::forgetSnapshotDisplayLists(RemoteSnapshotKey key)
+{
+    RefPtr<RemoteSnapshotDisplayLists> displayLists;
+    {
+        Ref gpuProcess = singleton();
+        Locker locker(gpuProcess->m_globalResourceLocker);
+        displayLists = gpuProcess->m_snapshotDisplayLists.take(snapshotIdentifier(key));
+    }
+}
+
+void GPUProcess::abandonSnapshotDisplayList(RemoteSnapshotKey key, uint64_t frameKey)
+{
+    snapshotDisplayLists(snapshotIdentifier(key))->abandonFrame(FrameIdentifier(frameKey));
+}
+
+void GPUProcess::addSnapshotFrameReference(const RemoteSnapshotIdentifier& identifier, FrameIdentifier frameIdentifier, uint64_t displayListsToken)
+{
+    swiftAddSnapshotFrameReference(snapshotKey(identifier), frameIdentifier, displayListsToken);
+}
+
+void GPUProcess::snapshotFrameWasRecorded(const RemoteSnapshotIdentifier& identifier, FrameIdentifier frameIdentifier, uint64_t displayListsToken)
+{
+    swiftSnapshotFrameWasRecorded(snapshotKey(identifier), frameIdentifier, displayListsToken);
+}
+
+#endif
 
 #if PLATFORM(COCOA)
 
 void GPUProcess::sinkCompletedSnapshotToPDF(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, std::optional<ProcessIdentifier> printProcessIdentifier, CompletionHandler<void(RefPtr<WebCore::SharedBuffer>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [rootFrameIdentifier, printProcessIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [printProcessIdentifier, completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        if (!sink) {
             completionHandler({ });
             return;
         }
-        RemoteSnapshotPDFDrawingTask::create(snapshot.releaseNonNull(), rootFrameIdentifier, WTF::move(completionHandler))->start(printProcessIdentifier);
-    });
+        RemoteSnapshotPDFDrawingTask::create(*sink, WTF::move(completionHandler))->start(printProcessIdentifier);
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #endif
 
 void GPUProcess::sinkCompletedSnapshotToBitmap(RemoteSnapshotIdentifier identifier, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [rootFrameIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
-            completionHandler({ });
-            return;
-        }
-        completionHandler(snapshot->drawToBitmap(snapshot->size(), rootFrameIdentifier));
-    });
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        completionHandler(sink ? sink->drawToBitmap() : std::nullopt);
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #if HAVE(IOSURFACE)
 
 void GPUProcess::sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier identifier, float scale, const ColorSpace& colorSpace, FrameIdentifier rootFrameIdentifier, CompletionHandler<void(std::optional<ImageBufferBackendHandle>&&)>&& completionHandler)
 {
-    takeSnapshotWhenComplete(identifier, rootFrameIdentifier, [identifier, scale, colorSpace, rootFrameIdentifier, completionHandler = WTF::move(completionHandler)](RefPtr<RemoteSnapshot>&& snapshot) mutable {
-        if (!snapshot) {
+    RemoteSnapshotSink::create(identifier, rootFrameIdentifier, [identifier, scale, colorSpace, completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink* sink) mutable {
+        if (!sink) {
             completionHandler({ });
             return;
         }
@@ -583,54 +554,20 @@ void GPUProcess::sinkCompletedSnapshotToIOSurface(RemoteSnapshotIdentifier ident
 #if USE(APPLE_INTERNAL_SDK)
         useIOSurfaceWebKitBehavior = connection->sharedPreferencesForWebProcessValue().useIOSurfaceWebKitBehavior;
 #endif
-        completionHandler(snapshot->drawToIOSurface(snapshot->size(), scale, colorSpace, rootFrameIdentifier, connection->webProcessIdentity(), useIOSurfaceWebKitBehavior));
-    });
+        completionHandler(sink->drawToIOSurface(scale, colorSpace, connection->webProcessIdentity(), useIOSurfaceWebKitBehavior));
+    })->swiftTakeSnapshotWhenComplete();
 }
 
 #endif
 
-void GPUProcess::releaseSnapshot(RemoteSnapshotIdentifier identifier)
-{
-    // Currently it's not possible to know if a snapshot exists, hence no ASSERT.
-    RefPtr<RemoteSnapshot> snapshot;
-    {
-        Locker locker(m_globalResourceLocker);
-        snapshot = m_snapshots.take(identifier);
-    }
-    // Anything still waiting for it would otherwise wait for frames that will never be asked for.
-    if (snapshot)
-        snapshot->fail();
-}
-
 void GPUProcess::waitForSnapshot(RemoteSnapshotIdentifier identifier, CompletionHandler<void()>&& completionHandler)
 {
-    // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
-    RefPtr snapshot = this->snapshot(identifier);
-    if (!snapshot) {
-        completionHandler();
-        return;
-    }
-    // After the sink waiting for it, so that its reply is sent first.
-    snapshot->whenComplete([completionHandler = WTF::move(completionHandler)](bool) mutable {
+    Ref wait = RemoteSnapshotSink::create(identifier, std::nullopt, [completionHandler = WTF::move(completionHandler)](RemoteSnapshotSink*) mutable {
         completionHandler();
     });
-}
-
-void GPUProcess::removeSnapshotsForProcess(WebCore::ProcessIdentifier processIdentifier)
-{
-    // Only the minting process can ask for a snapshot to be drawn.
-    Vector<Ref<RemoteSnapshot>> snapshots;
-    {
-        Locker locker(m_globalResourceLocker);
-        m_snapshots.removeIf([&](auto& entry) {
-            if (entry.key.processIdentifier() != processIdentifier)
-                return false;
-            snapshots.append(entry.value);
-            return true;
-        });
-    }
-    for (Ref snapshot : snapshots)
-        snapshot->fail();
+    // Sent after the sink, keeping its order, so a snapshot that is not here has already been drawn.
+    if (!wait->swiftWaitForSnapshot())
+        wait->completeWithoutSnapshot();
 }
 
 #if ENABLE(MEDIA_STREAM)

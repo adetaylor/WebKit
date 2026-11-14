@@ -34,6 +34,7 @@
 #include <WebCore/ColorSpace.h>
 #include <WebCore/ImageBufferTransferIdentifier.h>
 #include "RemoteSnapshotIdentifier.h"
+#include "RemoteSnapshotSink.h"
 #include "SandboxExtension.h"
 #include "SecurityFlags.h"
 #include "WebPageProxyIdentifier.h"
@@ -95,7 +96,9 @@ namespace WebKit {
 class CapturePreviewLayer;
 class GPUConnectionToWebProcess;
 class RemoteAudioSessionProxyManager;
-class RemoteSnapshot;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class RemoteSnapshotDisplayLists;
+#endif
 struct CoreIPCAuditToken;
 struct GPUProcessConnectionParameters;
 struct GPUProcessCreationParameters;
@@ -193,18 +196,31 @@ public:
     void setPresentingApplicationAuditToken(WebCore::ProcessIdentifier, WebCore::PageIdentifier, std::optional<CoreIPCAuditToken>&&);
 #endif
 
+    // The snapshots are Swift's (RemoteSnapshot.swift), which these hand the messages about them to.
     // Created by the process painting its root, or by whoever asks to draw it if that comes first.
     // Neither can come after it is released. A frame recording into one that does not exist records
     // into nothing, so none can bring back a snapshot that was released.
     void createSnapshot(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, const WebCore::FloatSize&, WebCore::ProcessIdentifier rootProcessIdentifier);
     // For a root that could not be recorded.
     void failSnapshot(RemoteSnapshotIdentifier);
-    Ref<RemoteSnapshot> snapshotForRecorder(RemoteSnapshotIdentifier);
-    RefPtr<RemoteSnapshot> snapshot(RemoteSnapshotIdentifier);
     void abandonSnapshotFrame(RemoteSnapshotIdentifier, WebCore::FrameIdentifier);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // For the ports that record snapshot frames as WebCore display lists (RemoteSnapshotRecorder.h): a snapshot's display
+    // lists, or, for one that doesn't exist or whose display lists don't have the token, ones that are dropped with whoever
+    // takes them. The recorders' frames reach the snapshot only if it has the display lists they record into.
+#ifndef __swift__
+    static Ref<RemoteSnapshotDisplayLists> snapshotDisplayLists(const RemoteSnapshotIdentifier&, std::optional<uint64_t> token = std::nullopt);
+#endif
+    static void addSnapshotFrameReference(const RemoteSnapshotIdentifier&, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    static void snapshotFrameWasRecorded(const RemoteSnapshotIdentifier&, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    // For Swift, which keeps a snapshot's display lists as long as it keeps the snapshot: their token.
+    static uint64_t createSnapshotDisplayLists(RemoteSnapshotKey);
+    static void forgetSnapshotDisplayLists(RemoteSnapshotKey);
+    static void abandonSnapshotDisplayList(RemoteSnapshotKey, uint64_t frameKey);
+#endif
 
     // Hands an ImageBuffer from one web process's rendering backend to another's. Unlike
-    // m_snapshots, the identifier is minted here and unguessable, so only a process it was given
+    // a snapshot's, the identifier is minted here and unguessable, so only a process it was given
     // can claim the buffer. The depositing process owns an unclaimed buffer until the process
     // brokering delivery hands it on, which only decides whose exit discards it.
     WebCore::ImageBufferTransferIdentifier depositTransferredImageBuffer(WebCore::ProcessIdentifier owner, Ref<WebCore::ImageBuffer>&&);
@@ -332,12 +348,21 @@ private:
     void releaseSnapshot(RemoteSnapshotIdentifier);
     void snapshotFrameWillBeDrawnByProcess(RemoteSnapshotIdentifier, WebCore::FrameIdentifier, WebCore::ProcessIdentifier);
     void waitForSnapshot(RemoteSnapshotIdentifier, CompletionHandler<void()>&&);
-    Ref<RemoteSnapshot> ensureSnapshot(RemoteSnapshotIdentifier, std::optional<WebCore::FrameIdentifier> rootFrameIdentifier);
-    void snapshotDeadlineExpired(RemoteSnapshotIdentifier);
-    // Takes the snapshot once it is complete, or passes null if it failed.
-    void takeSnapshotWhenComplete(RemoteSnapshotIdentifier, WebCore::FrameIdentifier rootFrameIdentifier, CompletionHandler<void(RefPtr<RemoteSnapshot>&&)>&&);
     void abandonSnapshotFramesOwnedBy(WebCore::ProcessIdentifier);
-    void removeSnapshotsForProcess(WebCore::ProcessIdentifier);
+
+    // Implemented in Swift (RemoteSnapshot.swift), on its registry of snapshots, which the rendering backends' work queues
+    // reach too.
+    static void swiftCreateSnapshot(RemoteSnapshotKey, WebCore::FrameIdentifier rootFrameIdentifier, WebCore::FloatSize, WebCore::ProcessIdentifier rootProcessIdentifier);
+    static void swiftFailSnapshot(RemoteSnapshotKey);
+    static void swiftAbandonSnapshotFrame(RemoteSnapshotKey, WebCore::FrameIdentifier);
+    static void swiftReleaseSnapshot(RemoteSnapshotKey);
+    static void swiftSnapshotFrameWillBeDrawnByProcess(RemoteSnapshotKey, WebCore::FrameIdentifier, WebCore::ProcessIdentifier);
+    static void swiftAbandonSnapshotFramesOwnedBy(WebCore::ProcessIdentifier);
+    static void swiftRemoveSnapshotsForProcess(WebCore::ProcessIdentifier);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    static void swiftAddSnapshotFrameReference(RemoteSnapshotKey, WebCore::FrameIdentifier, uint64_t displayListsToken);
+    static void swiftSnapshotFrameWasRecorded(RemoteSnapshotKey, WebCore::FrameIdentifier, uint64_t displayListsToken);
+#endif
 
 #if USE(OS_STATE)
     RetainPtr<NSDictionary> additionalStateForDiagnosticReport() const final;
@@ -391,7 +416,9 @@ private:
     // the protocols are insecure and prone to id guessing and content stuffing.
     // Do not add more globally shared resources.
     Lock m_globalResourceLocker;
-    HashMap<RemoteSnapshotIdentifier, Ref<RemoteSnapshot>> m_snapshots WTF_GUARDED_BY_LOCK(m_globalResourceLocker);
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    HashMap<RemoteSnapshotIdentifier, Ref<RemoteSnapshotDisplayLists>> m_snapshotDisplayLists WTF_GUARDED_BY_LOCK(m_globalResourceLocker);
+#endif
 
     struct TransferredImageBuffer {
         Markable<WebCore::ProcessIdentifier> owner;

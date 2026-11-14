@@ -45,7 +45,6 @@
 #include "RemoteRenderingBackendMessages.h"
 #include "RemoteRenderingBackendProxyMessages.h"
 #include "RemoteSharedResourceCache.h"
-#include "RemoteSnapshot.h"
 #include "RemoteSnapshotRecorder.h"
 #include "SharedFont.h"
 #include "WebPageProxy.h"
@@ -163,9 +162,9 @@ void RemoteRenderingBackend::workQueueUninitialize()
 #else
     m_remoteImageBuffers.clear();
     m_remoteDisplayListRecorders.clear();
+    m_remoteSnapshotRecorders.clear();
 #endif
     m_remoteImageBufferSets.clear();
-    m_remoteSnapshotRecorders.clear();
     // Make sure we destroy the ResourceCache on the WorkQueue since it gets populated on the WorkQueue.
     m_remoteResourceCache.releaseAllResources();
 
@@ -286,25 +285,36 @@ void RemoteRenderingBackend::createSnapshot(RemoteSnapshotIdentifier snapshotIde
 void RemoteRenderingBackend::createSnapshotRecorder(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshotIdentifier snapshotIdentifier)
 {
     assertIsCurrent(workQueue());
-    Ref snapshot = GPUProcess::singleton().snapshotForRecorder(snapshotIdentifier);
-    auto result = m_remoteSnapshotRecorders.add(identifier, RemoteSnapshotRecorder::create(identifier, snapshot, *this));
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    MESSAGE_CHECK(swiftCreateSnapshotRecorder(identifier, snapshotKey(snapshotIdentifier)), "Recorder already created");
+#else
+    auto result = m_remoteSnapshotRecorders.add(identifier, RemoteSnapshotRecorder::create(identifier, snapshotIdentifier, *this));
     MESSAGE_CHECK(result.isNewEntry, "Recorder already created");
+#endif
 }
 
 void RemoteRenderingBackend::sinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier identifier, FrameIdentifier frameIdentifier, CompletionHandler<void(bool)>&& completionHandler)
 {
     assertIsCurrent(workQueue());
-    RefPtr recorder = m_remoteSnapshotRecorders.take(identifier).get();
-    MESSAGE_CHECK(recorder, "Recorder sunk into snapshot before being cached");
     // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    recorder->sinkIntoSnapshotFrame(frameIdentifier, workQueue());
+    MESSAGE_CHECK(swiftSinkSnapshotRecorderIntoSnapshotFrame(identifier, frameIdentifier), "Recorder sunk into snapshot before being cached");
 #else
-    Ref snapshot = recorder->snapshot();
-    snapshot->setFrame(frameIdentifier, recorder->takeDisplayList(), workQueue());
+    RefPtr recorder = m_remoteSnapshotRecorders.take(identifier).get();
+    MESSAGE_CHECK(recorder, "Recorder sunk into snapshot before being cached");
+    recorder->sinkIntoSnapshotFrame(frameIdentifier, workQueue());
 #endif
     completionHandler(true);
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+void RemoteRenderingBackend::scheduleSwiftReleases()
+{
+    m_workQueue->dispatch([protectedThis = Ref { *this }] {
+        protectedThis->swiftReleasePendingRecordings();
+    });
+}
+#endif
 
 template<typename ImageBufferType>
 static RefPtr<ImageBuffer> allocateImageBufferInternal(const FloatSize& logicalSize, RenderingMode renderingMode, RenderingPurpose purpose, float resolutionScale, const ColorSpace& colorSpace, ImageBufferFormat bufferFormat, ImageBufferCreationContext& creationContext)

@@ -71,7 +71,6 @@ class RemoteCGRendererFont;
 class RemoteCGRendererRecordedGlyphs;
 class RemoteCGRendererRecordedMessageEncoder;
 class RemoteRenderingBackend;
-class RemoteSnapshot;
 class SharedFont;
 struct RemoteSnapshotPrintData;
 struct RemoteSnapshotPrintRecording;
@@ -125,10 +124,9 @@ private:
 // While a recording is replayed (beginReplay()), its resources are the ones looked up.
 class RemoteCGRendererResources final : public RefCounted<RemoteCGRendererResources> {
 public:
-    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend, WebCore::ImageBuffer& target) { return adoptRef(*new RemoteCGRendererResources(&backend, &target, nullptr, nullptr)); }
-    // A snapshot recorder's also keeps the snapshot whose frames its DrawSnapshotFrame references.
-    static Ref<RemoteCGRendererResources> createForRecorder(RemoteRenderingBackend&, RemoteSnapshot*);
-    static Ref<RemoteCGRendererResources> createForReplay(WebCore::GraphicsContextCG& target) { return adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, &target, nullptr)); }
+    static Ref<RemoteCGRendererResources> create(RemoteRenderingBackend& backend, WebCore::ImageBuffer& target) { return adoptRef(*new RemoteCGRendererResources(&backend, &target, nullptr)); }
+    static Ref<RemoteCGRendererResources> createForRecorder(RemoteRenderingBackend& backend) { return adoptRef(*new RemoteCGRendererResources(&backend, nullptr, nullptr)); }
+    static Ref<RemoteCGRendererResources> createForReplay(WebCore::GraphicsContextCG& target) { return adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, &target)); }
     static Ref<RemoteCGRendererResources> createForRerecording();
     ~RemoteCGRendererResources();
 
@@ -168,8 +166,6 @@ public:
     // A DrawFilteredImageBuffer's source and its filter's FEImage images, and the cached SVG filter it names, into which the
     // filter's effects are merged, as RemoteGraphicsContext merges them.
     bool recordFilter(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&) const;
-    // A DrawSnapshotFrame's frame, which the snapshot then waits for: false for a recorder that isn't a snapshot's.
-    bool addSnapshotFrameReference(WebCore::FrameIdentifier) const;
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     // Reads a DrawVideoFrame's frame, which a recording doesn't keep, so that the reader keeps in step with the sender.
     void readVideoFrame(const SharedVideoFrame&) const;
@@ -191,7 +187,7 @@ public:
 #endif
 
 private:
-    RemoteCGRendererResources(RemoteRenderingBackend*, WebCore::ImageBuffer* target, WebCore::GraphicsContextCG* targetContext, RemoteSnapshot*);
+    RemoteCGRendererResources(RemoteRenderingBackend*, WebCore::ImageBuffer* target, WebCore::GraphicsContextCG* targetContext);
 
     bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
     bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
@@ -200,11 +196,9 @@ private:
     const RefPtr<WebCore::ImageBuffer> m_target;
     // A replay's context, which outlives the replay, the only time it is used.
     WebCore::GraphicsContextCG* const m_targetContext;
-    const RefPtr<RemoteSnapshot> m_snapshot;
     mutable Ref<RemoteCGRendererRecordedResources> m_recordedResources;
     mutable Vector<Ref<RemoteCGRendererRecordedResources>, 2> m_replayedResources;
     mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
-    bool m_isRerecording { false };
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     mutable std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
 #endif
@@ -244,7 +238,7 @@ RemoteCGRendererRecordedResources* WTF_NONNULL copyRecordedResources(const Remot
 // A display list recorder's resources (createForRecorder()), for Swift.
 inline RemoteCGRendererResources* WTF_NONNULL createDisplayListRecorderResources(RemoteRenderingBackend& backend) SWIFT_RETURNS_RETAINED
 {
-    return &RemoteCGRendererResources::createForRecorder(backend, nullptr).leakRef();
+    return &RemoteCGRendererResources::createForRecorder(backend).leakRef();
 }
 
 // Lends the context's renderer to Swift for the draw, which replays a recording into it with the resources.

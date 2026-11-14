@@ -133,37 +133,32 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
         return RemoteCGRendererFont::create(WTF::move(font));
     });
 
-    Vector<RemoteCGRendererRecording> recordings;
-    recordings.reserveInitialCapacity(data.recordings.size());
+    auto frames = RemoteCGRendererSnapshotFrames::create();
     for (auto& printRecording : data.recordings) {
         Ref recordedResources = RemoteCGRendererRecordedResources::create();
         if (!recordedResources->importFromPrint(printRecording, fonts.span()))
             return false;
-        auto displayLists = RemoteCGRendererDisplayLists::create();
         for (auto [key, index] : printRecording.displayLists) {
-            if (index >= recordings.size() || !displayLists.add(recordings[index], key))
+            if (!frames.addDisplayListToNextRecording(key, index))
                 return false;
         }
         Ref resources = RemoteCGRendererResources::createForRerecording();
-        auto recorder = RemoteCGRendererRecorder::create(resources.ptr(), displayLists);
-        Ref forwarder = RemoteCGRendererRecorder::createMessageReceiver(recorder);
+        Ref forwarder = frames.beginRerecording(resources.ptr());
         resources->beginReplay(recordedResources);
         bool isValid = forwarder->didReceiveRecordedMessages(printRecording.messages.span());
         resources->endReplay();
+        frames.endRerecording();
         if (!isValid)
             return false;
-        recordings.append(recorder.takeRecording());
     }
 
-    auto frames = RemoteCGRendererSnapshotFrames::create();
     for (auto [key, index] : data.frames) {
         if (!index) {
             frames.addAbandoned(key);
             continue;
         }
-        if (*index >= recordings.size())
+        if (!frames.addFrame(key, *index))
             return false;
-        frames.add(recordings[*index], key);
     }
 
     bool isDrawn = false;
