@@ -276,6 +276,7 @@ public:
     IOSurface& operator=(const IOSurface&) = delete;
 
 private:
+    friend class GraphicsContextGLCocoa;
     friend class IOSurfacePool;
 
     explicit IOSurface(uintptr_t swiftState);

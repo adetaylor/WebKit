@@ -48,7 +48,7 @@ namespace WebCore {
 
 class GraphicsLayerContentsDisplayDelegate;
 
-class WEBCORE_EXPORT GraphicsContextGLCocoa : public GraphicsContextGLANGLE, public CanMakeCheckedPtr<GraphicsContextGLCocoa> {
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/GraphicsContextGLCocoa.swift") GraphicsContextGLCocoa : public GraphicsContextGLANGLE, public CanMakeCheckedPtr<GraphicsContextGLCocoa> {
     WTF_MAKE_TZONE_ALLOCATED(GraphicsContextGLCocoa);
     WTF_OVERRIDE_DELETE_FOR_CHECKED_PTR(GraphicsContextGLCocoa);
 public:
@@ -114,7 +114,7 @@ protected:
     // If not possible, calls the `signal`.
     void insertFinishedSignalOrInvoke(Function<void()> signal);
     void* createMetalSharedEventEGLSync(id, uint64_t);
-    RetainPtr<IOSurfaceRef> copySurfaceBuffer(SurfaceBuffer);
+    std::unique_ptr<IOSurface> copySurfaceBuffer(SurfaceBuffer);
 
     size_t spareDrawingBufferCountForTesting() const;
     // As the kernel has it, rather than as the context last set it.
@@ -134,10 +134,14 @@ protected:
     static constexpr size_t maxSpareDrawingBuffers { 5 };
 
 private:
-    friend struct GLContextCallbacks;
-
-    // A drawing buffer surface of the context's colour space and alpha, owned by the context's process, retained.
-    RetainPtr<IOSurfaceRef> createDrawingBufferSurface(IntSize);
+    // Implemented in GraphicsContextGLCocoa.swift. The states are +1 references to IOSurfaceCores, or 0, which the
+    // caller adopts with IOSurface::adoptSwiftState().
+    // Makes the island's Cocoa platform, whose drawing buffers Swift makes of the context's colour space, alpha and owner.
+    bool swiftCreateCocoaPlatform(uint64_t contextID, bool isWebGL2, bool alpha, bool premultipliedAlpha, uint8_t powerPreference, uint64_t windowGPUID, bool xrCompatible, uint32_t ownershipIdentity, int32_t maximumSurfaceWidth, int32_t maximumSurfaceHeight);
+    // The same state for the same display buffer surface while it stays one of the last few.
+    uintptr_t swiftDisplayBufferSurfaceState();
+    uintptr_t swiftCopySurfaceBufferState(SurfaceBuffer);
+    void swiftDrawingBufferColorSpaceDidChange();
 
     // The IOSurfaces of the island's last display buffers, so that one isn't made for every frame. The island's Cocoa
     // platform has the display, the EGL context and the drawing buffers.
