@@ -4285,6 +4285,8 @@ else ()
         "-library-level spi"
         # For the vendored SIMD operations in SIMD*.swift, until the standard library has them.
         "-enable-experimental-feature BuiltinModule"
+        # As WebCore.xcconfig: C++ member functions defined in Swift (@cxx @implementation).
+        "-enable-experimental-feature CxxImplementation"
         # Apple applies these to every Swift target; WebCore's Swift is written against them.
         ${WEBKIT_SWIFT_EXPERIMENTAL_FEATURE_FLAGS}
         ${WEBKIT_SWIFT_MEMORY_SAFETY_FLAGS}
