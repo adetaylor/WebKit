@@ -826,6 +826,7 @@
 				JavaScriptCore/JSRunLoopTimer.mm,
 				JavaScriptCore/MarkedVector.cpp,
 				JavaScriptCore/PropertySlot.cpp,
+				JavaScriptCore/RegularExpression.cpp,
 				JavaScriptCore/StrongBlock.cpp,
 				JavaScriptCore/TemporalBench.cpp,
 				JavaScriptCore/WeakSet.cpp,
