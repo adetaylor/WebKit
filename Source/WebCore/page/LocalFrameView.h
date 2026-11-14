@@ -623,6 +623,23 @@ public:
     NODELETE bool containsScrollableArea(ScrollableArea*) const;
     const ScrollableAreaSet* scrollableAreas() const LIFETIME_BOUND { return m_scrollableAreas.get(); }
     
+    // A loop over scrollableAreas() holds one of these for its duration. Adding or removing a scrollable area while
+    // one is held stops, since either can rehash the set under the loop's iterator.
+    class ScrollableAreaIterationScope {
+        WTF_MAKE_NONCOPYABLE(ScrollableAreaIterationScope);
+    public:
+        explicit ScrollableAreaIterationScope(const LocalFrameView& frameView)
+            : m_frameView(frameView)
+        {
+            ++m_frameView->m_scrollableAreaIterationDepth;
+        }
+
+        ~ScrollableAreaIterationScope() { --m_frameView->m_scrollableAreaIterationDepth; }
+
+    private:
+        const CheckedRef<const LocalFrameView> m_frameView;
+    };
+
     void addScrollableAreaForAnimatedScroll(ScrollableArea*);
     void removeScrollableAreaForAnimatedScroll(ScrollableArea*);
     const ScrollableAreaSet* scrollableAreasForAnimatedScroll() const LIFETIME_BOUND { return m_scrollableAreasForAnimatedScroll.get(); }
@@ -1113,6 +1130,7 @@ private:
     IntSize m_scrollGeometryContentSize;
 
     const std::unique_ptr<ScrollableAreaSet> m_scrollableAreas;
+    mutable unsigned m_scrollableAreaIterationDepth { 0 };
     const std::unique_ptr<ScrollableAreaSet> m_scrollableAreasForAnimatedScroll;
     const std::unique_ptr<ScrollableAreaSet> m_anchoringScrollableAreas;
     const std::unique_ptr<SingleThreadWeakHashSet<RenderLayerModelObject>> m_viewportConstrainedObjects;

@@ -816,6 +816,7 @@ void LocalFrameView::invalidateScrollbarsForAllScrollableAreas()
     if (!m_scrollableAreas)
         return;
 
+    ScrollableAreaIterationScope iterationScope(*this);
     for (CheckedRef area : *m_scrollableAreas) {
         CheckedPtr<ScrollableArea> scrollableArea(area);
         scrollableArea->invalidateScrollbars();
@@ -5663,6 +5664,7 @@ void LocalFrameView::notifyScrollableAreasThatContentAreaWillPaint() const
     if (!m_scrollableAreas)
         return;
 
+    ScrollableAreaIterationScope iterationScope(*this);
     for (CheckedRef area : *m_scrollableAreas) {
         CheckedPtr<ScrollableArea> scrollableArea(area);
         // ScrollView ScrollableAreas will be handled via the Frame tree traversal above.
@@ -6710,6 +6712,7 @@ void LocalFrameView::removeScrollableAreaForAnimatedScroll(ScrollableArea* scrol
 
 bool LocalFrameView::addScrollableArea(ScrollableArea* scrollableArea)
 {
+    RELEASE_ASSERT(!m_scrollableAreaIterationDepth);
     if (!m_scrollableAreas)
         lazyInitialize(m_scrollableAreas, makeUnique<ScrollableAreaSet>());
     
@@ -6723,6 +6726,7 @@ bool LocalFrameView::addScrollableArea(ScrollableArea* scrollableArea)
 
 bool LocalFrameView::removeScrollableArea(ScrollableArea* scrollableArea)
 {
+    RELEASE_ASSERT(!m_scrollableAreaIterationDepth);
     if (m_scrollableAreas && m_scrollableAreas->remove(*scrollableArea)) {
         scrollableAreaSetChanged();
         return true;
