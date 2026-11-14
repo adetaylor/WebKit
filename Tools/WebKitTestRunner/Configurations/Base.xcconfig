@@ -65,7 +65,9 @@ PREBINDING = NO
 GCC_C_LANGUAGE_STANDARD = gnu99
 GCC_ENABLE_CPP_EXCEPTIONS = NO;
 GCC_ENABLE_CPP_RTTI = NO;
-GCC_PRECOMPILE_PREFIX_HEADER = YES
+// The development toolchain's clang, which precompiles prefix headers inside the build service, stops on an
+// assertion (InProcessModuleCache: "Wrote the same PCM with different contents"); the prefix header is included instead.
+GCC_PRECOMPILE_PREFIX_HEADER = NO;
 GCC_TREAT_WARNINGS_AS_ERRORS = YES
 GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO

@@ -71,7 +71,9 @@ GCC_FAST_OBJC_DISPATCH = YES;
 GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
 GCC_NO_COMMON_BLOCKS = YES;
 GCC_OBJC_CALL_CXX_CDTORS = YES;
-GCC_PRECOMPILE_PREFIX_HEADER = YES;
+// The development toolchain's clang, which precompiles prefix headers inside the build service, stops on an
+// assertion (InProcessModuleCache: "Wrote the same PCM with different contents"); the prefix header is included instead.
+GCC_PRECOMPILE_PREFIX_HEADER = NO;
 GCC_SYMBOLS_PRIVATE_EXTERN = YES;
 GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
