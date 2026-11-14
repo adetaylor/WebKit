@@ -1038,7 +1038,7 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteImageBufferMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
         GPUProcess/graphics/RemoteRenderingBackend.cpp
-        GPUProcess/graphics/RemoteSnapshot.cpp
+        GPUProcess/graphics/RemoteSnapshotSink.cpp
         GPUProcess/graphics/RemoteSnapshotPrintData.cpp
         GPUProcess/graphics/RemoteSnapshotRecorder.cpp
         GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
@@ -1662,6 +1662,7 @@ set_source_files_properties(
 list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/GPUConnectionToWebProcess.swift
     ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
+    ${WEBKIT_DIR}/GPUProcess/graphics/RemoteSnapshot.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift

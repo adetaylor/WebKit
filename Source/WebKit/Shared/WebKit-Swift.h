@@ -63,6 +63,7 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcess.h"
 #include "GPUProcessMessages.h"
+#include "RemoteSnapshotSink.h"
 #include "SwiftReceiverRegistration.h"
 #endif
 

@@ -87,7 +87,7 @@ class RemoteCGRendererRecordedDrawing final : public IPC::StreamMessageReceiver 
 public:
     static Ref<RemoteCGRendererRecordedDrawing> create(RemoteRenderingBackend& renderingBackend)
     {
-        Ref resources = RemoteCGRendererResources::createForRecorder(renderingBackend, nullptr);
+        Ref resources = RemoteCGRendererResources::createForRecorder(renderingBackend);
         return adoptRef(*new RemoteCGRendererRecordedDrawing(RemoteCGRendererRecorder::create(resources.ptr(), RemoteCGRendererDisplayLists::forBackend(&renderingBackend))));
     }
 

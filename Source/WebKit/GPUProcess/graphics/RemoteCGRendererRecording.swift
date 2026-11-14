@@ -128,13 +128,24 @@ final class RemoteCGRendererRecording {
     }
 }
 
+// What a recorder's DrawSnapshotFrame messages reference: nothing, which makes them invalid messages, the frames of the snapshot
+// it records a frame of, or, in the print process, which records a snapshot's recordings again, the frames that the snapshot
+// had.
+enum RemoteCGRendererSnapshotFrameReferences {
+    case none
+    case snapshot(RemoteSnapshot)
+    case rerecording
+}
+
 // Records the RemoteCGRenderer messages to a display list recorder or a snapshot recorder, on its stream connection's work
 // queue, as RemoteGraphicsContext records them into a WebCore display list recorder: the resources that a message names are
-// looked up and kept as it is recorded, and a missing one is an invalid message.
+// looked up and kept as it is recorded, and a missing one is an invalid message. The print process records a snapshot's
+// recordings again with one.
 @_expose(Cxx)
 final class RemoteCGRendererRecorder {
     private let resources: WebKit.RemoteCGRendererResources
     private let displayLists: RemoteCGRendererDisplayLists
+    private let snapshotFrames: RemoteCGRendererSnapshotFrameReferences
     private var messages: [RemoteCGRenderer.RecordedMessage] = []
     private var images: RemoteCGRendererRecordedImages?
     private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
@@ -146,9 +157,14 @@ final class RemoteCGRendererRecorder {
     private(set) var readVideoFrames = false
 
     @_expose(!Cxx)
-    private init(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists) {
+    init(
+        resources: WebKit.RemoteCGRendererResources,
+        displayLists: RemoteCGRendererDisplayLists,
+        snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none
+    ) {
         self.resources = resources
         self.displayLists = displayLists
+        self.snapshotFrames = snapshotFrames
     }
 
     @used
@@ -156,8 +172,17 @@ final class RemoteCGRendererRecorder {
         RemoteCGRendererRecorder(resources: resources, displayLists: displayLists)
     }
 
-    // The forwarder of the recorder's messages, which keeps it, as the stream connection the C++ registers the forwarder with
-    // keeps the forwarder. Only C++ calls it, so @used keeps it under -O -wmo (rdar://179098545).
+    // The snapshot whose frame it records, if it records one.
+    @_expose(!Cxx)
+    var snapshot: RemoteSnapshot? {
+        guard case .snapshot(let snapshot) = snapshotFrames else {
+            return nil
+        }
+        return snapshot
+    }
+
+    // The forwarder of the recorder's messages, which keeps it, as the stream connection the forwarder is registered with keeps
+    // the forwarder. C++ calls it too, so @used keeps it under -O -wmo (rdar://179098545).
     @used
     static func createMessageReceiver(recorder: RemoteCGRendererRecorder) -> RefRemoteCGRendererRecorderMessageForwarder {
         WebKit.RemoteCGRendererRecorderMessageForwarder.create(target: recorder)
@@ -249,7 +274,15 @@ final class RemoteCGRendererRecorder {
             recordedDisplayLists[RemoteIdentifierKey(value: key)] = recording
         case .drawSnapshotFrame(let frameIdentifier):
             namesResource = false
-            try messageCheck { resources.addSnapshotFrameReference(frameIdentifier) }
+            // A frame that the snapshot then waits for.
+            switch snapshotFrames {
+            case .none:
+                try messageCheck { false }
+            case .snapshot(let snapshot):
+                snapshot.addFrameReference(frameIdentifier.toUInt64())
+            case .rerecording:
+                break
+            }
         default:
             namesResource = false
         }
@@ -334,11 +367,6 @@ final class RemoteCGRendererDisplayLists {
         self.backendResources = backendResources
     }
 
-    @used
-    static func create() -> RemoteCGRendererDisplayLists {
-        RemoteCGRendererDisplayLists(backendResources: nil)
-    }
-
     // The display lists of a rendering backend (RemoteRenderingBackend.swift), for its C++ that records into them or draws
     // them.
     @used
@@ -347,7 +375,7 @@ final class RemoteCGRendererDisplayLists {
     }
 
     // False for a key that already names a display list, which is an invalid message.
-    @used
+    @_expose(!Cxx)
     func add(_ recording: RemoteCGRendererRecording, key: UInt64) -> Bool {
         let key = RemoteIdentifierKey(value: key)
         guard recordings[key] == nil else {
@@ -373,16 +401,48 @@ final class RemoteCGRendererDisplayLists {
     }
 }
 
-// The frames of a snapshot whose root a replay draws (RemoteSnapshot), made for the replay on the thread that replays it:
-// each frame's recording, or none for a frame that was abandoned, which draws nothing.
+// A recording of a snapshot's frame, which is let go of on the work queue of the rendering backend that recorded it: a frame's
+// recording keeps resources that the backend's work queue references too, such as fonts, which another thread can replay but
+// can't release. None for a recording that the print process records again, which it lets go of where it draws it.
+// @unchecked Sendable: it is immutable, and is replayed on other threads as the C++ snapshot replayed its recordings.
+final class RemoteSnapshotFrameRecording: @unchecked Sendable {
+    let recording: RemoteCGRendererRecording
+    private let backend: WebKit.RemoteRenderingBackend?
+
+    init(recording: RemoteCGRendererRecording, backend: WebKit.RemoteRenderingBackend?) {
+        self.recording = recording
+        self.backend = backend
+    }
+
+    deinit {
+        backend?.releaseOnWorkQueue(recording)
+    }
+}
+
+// The frames of a snapshot whose root a replay draws (RemoteSnapshot.swift): each frame's recording, or none for a frame that
+// was abandoned, which draws nothing. The GPU process's sinks draw the frames that the snapshot had when it completed
+// (forSink()), on the main thread; the print process makes them from the snapshot's print data, recording each recording
+// again (beginRerecording()), and draws them where it makes them.
 @_expose(Cxx)
 final class RemoteCGRendererSnapshotFrames {
-    private var recordings: [UInt64: RemoteCGRendererRecording] = [:]
+    private var recordings: [UInt64: RemoteSnapshotFrameRecording] = [:]
     private var abandonedFrames: Set<UInt64> = []
     private var framesBeingDrawn: Set<UInt64> = []
+    // The print process's recordings, in the order of the snapshot's print data, the display lists that the next one draws,
+    // and its recorder while it records it.
+    private var rerecordings: [RemoteCGRendererRecording] = []
+    private var nextDisplayLists: [(key: UInt64, recording: RemoteCGRendererRecording)] = []
+    private var rerecorder: RemoteCGRendererRecorder?
 
     @_expose(!Cxx)
     private init() {
+    }
+
+    // The frames of a snapshot when it completed, by key (WebKit.frameKey()).
+    @_expose(!Cxx)
+    init(recordings: [UInt64: RemoteSnapshotFrameRecording], abandonedFrames: Set<UInt64>) {
+        self.recordings = recordings
+        self.abandonedFrames = abandonedFrames
     }
 
     @used
@@ -390,10 +450,56 @@ final class RemoteCGRendererSnapshotFrames {
         RemoteCGRendererSnapshotFrames()
     }
 
-    // A frame, by key (WebKit.frameKey()), and its recording.
+    // The frames of the snapshot that a sink waited for, which it draws once the snapshot completed with its root.
     @used
-    func add(_ recording: RemoteCGRendererRecording, key: UInt64) {
-        recordings[key] = recording
+    static func forSink(_ sink: WebKit.RemoteSnapshotSink) -> RemoteCGRendererSnapshotFrames {
+        guard let frames = sink.frames else {
+            preconditionFailure("A sink draws only a snapshot that completed with its root")
+        }
+        return frames
+    }
+
+    // A display list, by key, that the recording that the print process records next draws: the recording at the index, which
+    // it recorded before. False for an index past those, or a key that another of its display lists has.
+    @used
+    func addDisplayListToNextRecording(key: UInt64, index: UInt64) -> Bool {
+        guard index < rerecordings.count, !nextDisplayLists.contains(where: { $0.key == key }) else {
+            return false
+        }
+        nextDisplayLists.append((key, rerecordings[Int(index)]))
+        return true
+    }
+
+    // The receiver of the messages of the recording that the print process records next, until endRerecording().
+    @used
+    func beginRerecording(resources: WebKit.RemoteCGRendererResources) -> RefRemoteCGRendererRecorderMessageForwarder {
+        let displayLists = RemoteCGRendererDisplayLists(backendResources: nil)
+        for displayList in nextDisplayLists {
+            _ = displayLists.add(displayList.recording, key: displayList.key)
+        }
+        nextDisplayLists = []
+        let recorder = RemoteCGRendererRecorder(resources: resources, displayLists: displayLists, snapshotFrames: .rerecording)
+        rerecorder = recorder
+        return RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
+    }
+
+    @used
+    func endRerecording() {
+        guard let rerecorder else {
+            preconditionFailure("The print process ends a recording it didn't begin")
+        }
+        rerecordings.append(rerecorder.takeRecording())
+        self.rerecorder = nil
+    }
+
+    // A frame, by key, and the recording at the index that the print process recorded: false for an index past those.
+    @used
+    func addFrame(key: UInt64, index: UInt64) -> Bool {
+        guard index < rerecordings.count else {
+            return false
+        }
+        recordings[key] = RemoteSnapshotFrameRecording(recording: rerecordings[Int(index)], backend: nil)
+        return true
     }
 
     @used
@@ -436,8 +542,8 @@ final class RemoteCGRendererSnapshotFrames {
             indices[ObjectIdentifier(recording)] = index
             return index
         }
-        for (key, recording) in recordings {
-            guard let index = add(recording) else {
+        for (key, frame) in recordings {
+            guard let index = add(frame.recording) else {
                 return false
             }
             builder.addFrame(key, index)
@@ -448,14 +554,14 @@ final class RemoteCGRendererSnapshotFrames {
         return true
     }
 
-    // RemoteSnapshot::applyFrame(). A frame that is being drawn, which only a frame that draws itself reaches, isn't drawn
-    // again.
+    // A frame that the replay draws, the root or one a DrawSnapshotFrame draws. A frame that is being drawn, which only a frame
+    // that draws itself reaches, isn't drawn again.
     @_expose(!Cxx)
     func draw(_ key: UInt64, to renderer: RemoteCGRenderer, state: inout CGRendererCore) -> Bool {
         if abandonedFrames.contains(key) {
             return true
         }
-        guard let recording = recordings[key] else {
+        guard let recording = recordings[key]?.recording else {
             return false
         }
         guard framesBeingDrawn.insert(key).inserted else {

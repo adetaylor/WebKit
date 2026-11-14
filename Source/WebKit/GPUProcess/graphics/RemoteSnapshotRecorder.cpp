@@ -25,77 +25,95 @@
 
 #include "config.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteSnapshotRecorder.h"
 
+#include "DisplayListData.h"
+#include "GPUProcess.h"
 #include "Logging.h"
-#include "RemoteSnapshot.h"
-
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererResources.h"
-#include "RemoteRenderingBackend.h"
-#include "WebKit-Swift.h"
-#else
 #include "RemoteGraphicsContextMessages.h"
 #include "RemoteSnapshotRecorderMessages.h"
-#endif
 
 namespace WebKit {
 using namespace WebCore;
 
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+static std::atomic<uint64_t> lastSnapshotDisplayListsToken;
 
-Ref<RemoteSnapshotRecorder> RemoteSnapshotRecorder::create(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
+RemoteSnapshotDisplayLists::RemoteSnapshotDisplayLists()
+    : m_token(++lastSnapshotDisplayListsToken)
 {
-    Ref instance = adoptRef(*new RemoteSnapshotRecorder(identifier, snapshot, renderingBackend));
+}
+
+RemoteSnapshotDisplayLists::~RemoteSnapshotDisplayLists() = default;
+
+void RemoteSnapshotDisplayLists::setFrame(FrameIdentifier frameIdentifier, Ref<const DisplayList::DisplayList>&& displayList, SerialFunctionDispatcher& releaseDispatcher)
+{
+    Locker locker(m_lock);
+    // A frame is only asked to record once, so another display list is dropped rather than replacing the first.
+    m_frames.add(frameIdentifier, DisplayListAndReleaseDispatcher { WTF::move(displayList), releaseDispatcher });
+}
+
+void RemoteSnapshotDisplayLists::abandonFrame(FrameIdentifier frameIdentifier)
+{
+    Locker locker(m_lock);
+    m_frames.set(frameIdentifier, std::nullopt);
+}
+
+bool RemoteSnapshotDisplayLists::applyFrame(FrameIdentifier frameIdentifier, GraphicsContext& context) const
+{
+    RefPtr<const DisplayList::DisplayList> displayList;
+    {
+        Locker locker(m_lock);
+        auto iterator = m_frames.find(frameIdentifier);
+        if (iterator == m_frames.end())
+            return false;
+        if (!iterator->value)
+            return true;
+        displayList = iterator->value->displayList();
+    }
+    context.drawDisplayList(*displayList);
+    return true;
+}
+
+#if PLATFORM(COCOA)
+std::optional<DisplayListData> RemoteSnapshotDisplayLists::createDisplayListData(FrameIdentifier rootFrameIdentifier) const
+{
+    RefPtr<const DisplayList::DisplayList> displayList;
+    {
+        Locker locker(m_lock);
+        auto iterator = m_frames.find(rootFrameIdentifier);
+        if (iterator != m_frames.end() && iterator->value)
+            displayList = iterator->value->displayList();
+    }
+    if (!displayList)
+        return std::nullopt;
+    return DisplayListData::create(*displayList);
+}
+#endif
+
+RemoteSnapshotDisplayLists::DisplayListAndReleaseDispatcher::DisplayListAndReleaseDispatcher(Ref<const DisplayList::DisplayList>&& displayList, SerialFunctionDispatcher& dispatcher)
+    : m_displayList(WTF::move(displayList))
+    , m_dispatcher(dispatcher)
+{
+}
+
+RemoteSnapshotDisplayLists::DisplayListAndReleaseDispatcher::~DisplayListAndReleaseDispatcher()
+{
+    if (m_displayList)
+        m_dispatcher->dispatch([displayList = WTF::move(m_displayList)] mutable { });
+}
+
+Ref<RemoteSnapshotRecorder> RemoteSnapshotRecorder::create(RemoteSnapshotRecorderIdentifier identifier, const RemoteSnapshotIdentifier& snapshotIdentifier, RemoteRenderingBackend& renderingBackend)
+{
+    Ref instance = adoptRef(*new RemoteSnapshotRecorder(DisplayList::RecorderImpl::create(FloatRect { }), identifier, snapshotIdentifier, renderingBackend));
     instance->startListeningForIPC();
     return instance;
 }
 
-RemoteSnapshotRecorder::RemoteSnapshotRecorder(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
-    : m_snapshot(snapshot)
-    , m_renderingBackend(renderingBackend)
-    , m_identifier(identifier)
-    , m_recorder(WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecorder>(RemoteCGRendererRecorder::create(RemoteCGRendererResources::createForRecorder(renderingBackend, &snapshot).ptr(), RemoteCGRendererDisplayLists::forBackend(&renderingBackend))))
-{
-}
-
-RemoteSnapshotRecorder::~RemoteSnapshotRecorder() = default;
-
-void RemoteSnapshotRecorder::startListeningForIPC()
-{
-    Ref forwarder = RemoteCGRendererRecorder::createMessageReceiver(*m_recorder);
-    m_renderingBackend->streamConnection().startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-}
-
-void RemoteSnapshotRecorder::stopListeningForIPC()
-{
-    m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-}
-
-Ref<RemoteSnapshot> RemoteSnapshotRecorder::snapshot() const
-{
-    return m_snapshot;
-}
-
-void RemoteSnapshotRecorder::sinkIntoSnapshotFrame(FrameIdentifier frameIdentifier, SerialFunctionDispatcher& releaseDispatcher)
-{
-    m_snapshot->setFrame(frameIdentifier, WTF::makeUniqueWithoutFastMallocCheck<RemoteCGRendererRecording>(m_recorder->takeRecording()), releaseDispatcher);
-}
-
-#else
-
-Ref<RemoteSnapshotRecorder> RemoteSnapshotRecorder::create(RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
-{
-    Ref instance = adoptRef(*new RemoteSnapshotRecorder(DisplayList::RecorderImpl::create(FloatRect { }), identifier, snapshot, renderingBackend));
-    instance->startListeningForIPC();
-    return instance;
-}
-
-RemoteSnapshotRecorder::RemoteSnapshotRecorder(Ref<DisplayList::RecorderImpl>&& recorder, RemoteSnapshotRecorderIdentifier identifier, RemoteSnapshot& snapshot, RemoteRenderingBackend& renderingBackend)
+RemoteSnapshotRecorder::RemoteSnapshotRecorder(Ref<DisplayList::RecorderImpl>&& recorder, RemoteSnapshotRecorderIdentifier identifier, const RemoteSnapshotIdentifier& snapshotIdentifier, RemoteRenderingBackend& renderingBackend)
     : RemoteGraphicsContext(recorder, renderingBackend)
-    , m_snapshot(snapshot)
+    , m_snapshotIdentifier(snapshotIdentifier)
+    , m_displayLists(GPUProcess::snapshotDisplayLists(snapshotIdentifier))
     , m_recorder(WTF::move(recorder))
     , m_identifier(identifier)
 {
@@ -115,22 +133,22 @@ void RemoteSnapshotRecorder::stopListeningForIPC()
     m_renderingBackend->streamConnection().stopReceivingMessages(Messages::RemoteSnapshotRecorder::messageReceiverName(), m_identifier.toUInt64());
 }
 
-Ref<RemoteSnapshot> RemoteSnapshotRecorder::snapshot() const
+void RemoteSnapshotRecorder::sinkIntoSnapshotFrame(FrameIdentifier frameIdentifier, SerialFunctionDispatcher& releaseDispatcher)
 {
-    return m_snapshot;
+    // The display list is in place before the snapshot hears of it, so that the frame has it once it is resolved.
+    m_displayLists->setFrame(frameIdentifier, m_recorder->takeDisplayList(), releaseDispatcher);
+    GPUProcess::snapshotFrameWasRecorded(m_snapshotIdentifier, frameIdentifier, m_displayLists->token());
 }
 
 void RemoteSnapshotRecorder::drawSnapshotFrame(FrameIdentifier frameIdentifier)
 {
-    m_snapshot->addFrameReference(frameIdentifier);
-    m_recorder->drawPlaceholder([snapshot = m_snapshot, frameIdentifier] (GraphicsContext& context) {
-        bool result = snapshot->applyFrame(frameIdentifier, context);
+    GPUProcess::addSnapshotFrameReference(m_snapshotIdentifier, frameIdentifier, m_displayLists->token());
+    m_recorder->drawPlaceholder([displayLists = m_displayLists, frameIdentifier](GraphicsContext& context) {
+        bool result = displayLists->applyFrame(frameIdentifier, context);
         ASSERT_UNUSED(result, result); // Programming error, consistency checked with isComplete().
     });
 }
 
-#endif
+} // namespace WebKit
 
-}
-
-#endif
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

@@ -24,6 +24,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
 
+import Synchronization
 @_spi(WebKitGPU) internal import WebCore
 import WebCore_Private
 import WebKit_Internal
@@ -115,11 +116,20 @@ final class RemoteRenderingBackendResources {
     }
 }
 
-// The rendering backend's state in Swift, on its work queue: its resources, its display list recorders, by identifier, and
-// the display lists that its contexts' DrawDisplayList messages name.
+// A recording that another thread let go of, for the work queue to release. @unchecked Sendable: only the work queue uses it
+// after this.
+private struct PendingRecordingRelease: @unchecked Sendable {
+    let recording: RemoteCGRendererRecording
+}
+
+// The rendering backend's state in Swift, on its work queue: its resources, its display list recorders and snapshot recorders,
+// by identifier, and the display lists that its contexts' DrawDisplayList messages name.
 final class RemoteRenderingBackendState {
     let resources = RemoteRenderingBackendResources()
     var displayListRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
+    var snapshotRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
+    // The recordings of snapshot frames that other threads let go of (RemoteSnapshotFrameRecording), which any thread adds to.
+    fileprivate let pendingReleases = Mutex<[PendingRecordingRelease]>([])
     // Recorders whose recordings became display lists, for the next recorders to reuse: a page makes many short display
     // lists, such as one for each run of text it caches, in each rendering update.
     var idleDisplayListRecorders: [DisplayListRecorder] = []
@@ -193,6 +203,11 @@ extension WebKit.RemoteRenderingBackend {
         state.reusesDisplayListRecorders = false
         state.idleDisplayListRecorders = []
         for identifier in recorders.keys {
+            _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
+        }
+        let snapshotRecorders = state.snapshotRecorders
+        state.snapshotRecorders = [:]
+        for identifier in snapshotRecorders.keys {
             _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         state.displayLists.removeAll()
@@ -306,10 +321,14 @@ extension WebKit.RemoteRenderingBackend {
         return true
     }
 
-    private func makeDisplayListRecorder(_ state: RemoteRenderingBackendState) -> DisplayListRecorder {
-        let recorder = RemoteCGRendererRecorder.create(
+    private func makeDisplayListRecorder(
+        _ state: RemoteRenderingBackendState,
+        snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none
+    ) -> DisplayListRecorder {
+        let recorder = RemoteCGRendererRecorder(
             resources: WebKit.createDisplayListRecorderResources(self),
-            displayLists: state.displayLists
+            displayLists: state.displayLists,
+            snapshotFrames: snapshotFrames
         )
         return DisplayListRecorder(recorder: recorder, forwarder: RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder))
     }
@@ -337,6 +356,63 @@ extension WebKit.RemoteRenderingBackend {
             state.idleDisplayListRecorders.append(displayListRecorder)
         }
         return added
+    }
+
+    @cxx
+    @implementation
+    func swiftCreateSnapshotRecorder(
+        _ identifier: WebKit.RemoteSnapshotRecorderIdentifier,
+        _ snapshot: WebKit.RemoteSnapshotKey
+    ) -> Bool {
+        let state = self.state
+        let key = identifier.toUInt64()
+        guard state.snapshotRecorders[RemoteIdentifierKey(value: key)] == nil else {
+            return false
+        }
+        let snapshotRecorder = makeDisplayListRecorder(
+            state,
+            snapshotFrames: .snapshot(remoteSnapshots.snapshotForRecorder(RemoteSnapshotRegistryKey(snapshot)))
+        )
+        guard IPC.tryStartReceivingSwiftMessages(streamConnection(), snapshotRecorder.forwarder, .RemoteCGRenderer, key) else {
+            return false
+        }
+        state.snapshotRecorders[RemoteIdentifierKey(value: key)] = snapshotRecorder
+        return true
+    }
+
+    @cxx
+    @implementation
+    func swiftSinkSnapshotRecorderIntoSnapshotFrame(
+        _ identifier: WebKit.RemoteSnapshotRecorderIdentifier,
+        _ frameIdentifier: WebCore.FrameIdentifier
+    ) -> Bool {
+        let key = identifier.toUInt64()
+        guard let snapshotRecorder = state.snapshotRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
+            return false
+        }
+        _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)
+        let recorder = snapshotRecorder.recorder
+        let recording = RemoteSnapshotFrameRecording(recording: recorder.takeRecording(), backend: self)
+        recorder.snapshot?.setFrame(frameIdentifier.toUInt64(), recording)
+        return true
+    }
+
+    // Lets go of a recording of a snapshot frame on the work queue, from any thread.
+    func releaseOnWorkQueue(_ recording: RemoteCGRendererRecording) {
+        let release = PendingRecordingRelease(recording: recording)
+        state.pendingReleases.withLock { $0.append(release) }
+        scheduleSwiftReleases()
+    }
+
+    @cxx
+    @implementation
+    func swiftReleasePendingRecordings() {
+        let released = state.pendingReleases.withLock { pendingReleases in
+            var released: [PendingRecordingRelease] = []
+            swap(&released, &pendingReleases)
+            return released
+        }
+        withExtendedLifetime(released) {}
     }
 
     @cxx

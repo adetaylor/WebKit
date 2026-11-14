@@ -36,7 +36,6 @@
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
 #include "RemoteSharedResourceCache.h"
-#include "RemoteSnapshot.h"
 #include "SharedFont.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SharedVideoFrame.h"
@@ -110,16 +109,10 @@ Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::copy()
     return copy;
 }
 
-Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRecorder(RemoteRenderingBackend& backend, RemoteSnapshot* snapshot)
-{
-    return adoptRef(*new RemoteCGRendererResources(&backend, nullptr, nullptr, snapshot));
-}
-
-RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend* backend, ImageBuffer* target, GraphicsContextCG* targetContext, RemoteSnapshot* snapshot)
+RemoteCGRendererResources::RemoteCGRendererResources(RemoteRenderingBackend* backend, ImageBuffer* target, GraphicsContextCG* targetContext)
     : m_backend(backend)
     , m_target(target)
     , m_targetContext(targetContext)
-    , m_snapshot(snapshot)
     , m_recordedResources(RemoteCGRendererRecordedResources::create())
 {
 }
@@ -344,17 +337,7 @@ bool RemoteCGRendererResources::recordFilter(std::optional<RenderingResourceIden
 
 Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRerecording()
 {
-    Ref resources = adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, nullptr, nullptr));
-    resources->m_isRerecording = true;
-    return resources;
-}
-
-bool RemoteCGRendererResources::addSnapshotFrameReference(FrameIdentifier frameIdentifier) const
-{
-    if (!m_snapshot)
-        return m_isRerecording;
-    m_snapshot->addFrameReference(frameIdentifier);
-    return true;
+    return adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, nullptr));
 }
 
 Ref<RemoteCGRendererRecordedResources> RemoteCGRendererResources::takeRecordedResources() const

@@ -2985,6 +2985,7 @@
 		958DB16BF77E484586CBFE6C /* RemoteGPUMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5352BC963EAD4935A4834B0D /* RemoteGPUMessageReceiver.swift */; };
 		96537FFD60364C8189A1BE62 /* GPUConnectionToWebProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */; };
 		D8DBCDC2185A43C0AB73A16F /* GPUProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219C838F24364575BC265172 /* GPUProcess.swift */; };
+		5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */; };
 		52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */; };
 		CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */; };
 		B394E805E7C74311B20EACF1 /* CapturePreviewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */; };
@@ -7360,8 +7361,9 @@
 		7BDC880D2E72D80500C7A37F /* RemoteSnapshotRecorderProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotRecorderProxy.cpp; sourceTree = "<group>"; };
 		7BDC880E2E72DA2100C7A37F /* RemoteSnapshotRecorder.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshotRecorder.h; sourceTree = "<group>"; };
 		7BDC880F2E72DA2100C7A37F /* RemoteSnapshotRecorder.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotRecorder.cpp; sourceTree = "<group>"; };
-		7BDC88112E734E2F00C7A37F /* RemoteSnapshot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshot.h; sourceTree = "<group>"; };
-		7BDC88122E734E2F00C7A37F /* RemoteSnapshot.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshot.cpp; sourceTree = "<group>"; };
+		7BDC88112E734E2F00C7A37F /* RemoteSnapshotSink.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshotSink.h; sourceTree = "<group>"; };
+		7BDC88122E734E2F00C7A37F /* RemoteSnapshotSink.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotSink.cpp; sourceTree = "<group>"; };
+		5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSnapshot.swift; sourceTree = "<group>"; };
 		49041213C2405A7837C0F277 /* RemoteSnapshotPDFDrawingTask.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotPDFDrawingTask.cpp; sourceTree = "<group>"; };
 		3E6A2C795914EBF83BAFCF4D /* RemoteSnapshotPDFDrawingTask.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshotPDFDrawingTask.h; sourceTree = "<group>"; };
 		7BDC88132E734E2F00C7A37F /* RemoteSnapshotIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSnapshotIdentifier.h; sourceTree = "<group>"; };
@@ -15133,8 +15135,7 @@
 				726D56DD253A64810002EF90 /* RemoteResourceCache.cpp */,
 				726D56DE253A64810002EF90 /* RemoteResourceCache.h */,
 				966F42B3BF3CA9AFEE64F9BF /* RemoteSerializedImageBufferIdentifier.h */,
-				7BDC88122E734E2F00C7A37F /* RemoteSnapshot.cpp */,
-				7BDC88112E734E2F00C7A37F /* RemoteSnapshot.h */,
+				5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */,
 				7BDC88132E734E2F00C7A37F /* RemoteSnapshotIdentifier.h */,
 				49041213C2405A7837C0F277 /* RemoteSnapshotPDFDrawingTask.cpp */,
 				3E6A2C795914EBF83BAFCF4D /* RemoteSnapshotPDFDrawingTask.h */,
@@ -15144,6 +15145,8 @@
 				7BDC880E2E72DA2100C7A37F /* RemoteSnapshotRecorder.h */,
 				A76EFA982E7244510022429C /* RemoteSnapshotRecorder.messages.in */,
 				7BDC880B2E72D80500C7A37F /* RemoteSnapshotRecorderIdentifier.h */,
+				7BDC88122E734E2F00C7A37F /* RemoteSnapshotSink.cpp */,
+				7BDC88112E734E2F00C7A37F /* RemoteSnapshotSink.h */,
 				7BCF70CA2614935E00E4FB70 /* ScopedRenderingResourcesRequest.cpp */,
 				7BCF70CD2614935F00E4FB70 /* ScopedRenderingResourcesRequest.h */,
 				7BCF70CB2614935E00E4FB70 /* ScopedRenderingResourcesRequestCocoa.mm */,
@@ -22850,6 +22853,7 @@
 				E9B359F98E993DCAE216EA11 /* RemoteShaderModule.swift in Sources */,
 				7255C2D17E57B8B386EC3848 /* RemoteShaderModuleMessageReceiver.swift in Sources */,
 				D0B380CB197443E79AC83409 /* RemoteShapeDetectors.swift in Sources */,
+				5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */,
 				4DA1AC01D71C47279D83AD97 /* RemoteTextDetectorMessageReceiver.swift in Sources */,
 				B33B524D3B64E1BB70B85BB2 /* RemoteTexture.swift in Sources */,
 				4742D0A58ABE0CB657481F11 /* RemoteTextureMessageReceiver.swift in Sources */,
