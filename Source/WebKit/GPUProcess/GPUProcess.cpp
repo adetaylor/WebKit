@@ -134,13 +134,6 @@ void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier iden
 
     auto newConnection = GPUConnectionToWebProcess::create(*this, identifier, sessionID, WTF::move(connectionHandle), WTF::move(parameters));
 
-#if ENABLE(MEDIA_STREAM)
-    // FIXME: We should refactor code to go from WebProcess -> GPUProcess -> UIProcess when getUserMedia is called instead of going from WebProcess -> UIProcess directly.
-    auto access = m_mediaCaptureAccessMap.take(identifier);
-    newConnection->updateCaptureAccess(access.allowAudioCapture, access.allowVideoCapture, access.allowDisplayCapture, access.willUseEchoCancellation);
-    newConnection->setOrientationForMediaCapture(m_orientation);
-#endif
-
 #if ENABLE(IPC_TESTING_API)
     if (parameters.ignoreInvalidMessageForTesting)
         newConnection->connection().setIgnoreInvalidMessageForTesting();
@@ -167,8 +160,9 @@ void GPUProcess::securityFlagsDidChange(SecurityFlags::Storage&& securityFlags)
 void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& connection)
 {
     RELEASE_LOG(Process, "%p - GPUProcess::removeGPUConnectionToWebProcess: processIdentifier=%" PRIu64, this, connection.webProcessIdentifier().toUInt64());
-    ASSERT(m_webProcessConnections.contains(connection.webProcessIdentifier()));
-    m_webProcessConnections.remove(connection.webProcessIdentifier());
+    ASSERT(m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection);
+    if (m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection)
+        m_webProcessConnections.remove(connection.webProcessIdentifier());
 
     removeTransferredImageBuffersForProcess(connection.webProcessIdentifier());
     abandonSnapshotFramesOwnedBy(connection.webProcessIdentifier());
@@ -645,18 +639,6 @@ void GPUProcess::setMockCaptureDevicesEnabled(bool isEnabled)
     WebCore::MockRealtimeMediaSourceCenter::setMockRealtimeMediaSourceCenterEnabled(isEnabled);
 }
 
-void GPUProcess::setOrientationForMediaCapture(WebCore::IntDegrees orientation)
-{
-    m_orientation = orientation;
-
-#if PLATFORM(COCOA)
-    swiftSetCapturePreviewOrientation(orientation);
-#endif
-
-    for (auto& connection : m_webProcessConnections.values())
-        connection->setOrientationForMediaCapture(orientation);
-}
-
 void GPUProcess::enableMicrophoneMuteStatusAPI()
 {
 #if PLATFORM(COCOA)
@@ -665,15 +647,6 @@ void GPUProcess::enableMicrophoneMuteStatusAPI()
             protect(process->parentProcessConnection())->send(Messages::GPUProcessProxy::MicrophoneMuteStatusChanged(isMuting), 0);
     });
 #endif
-}
-
-void GPUProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
-{
-#if PLATFORM(COCOA)
-    swiftCapturePreviewRotationChanged(persistentId, static_cast<uint16_t>(rotation));
-#endif
-    for (auto& connection : m_webProcessConnections.values())
-        connection->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
 }
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
@@ -891,28 +864,6 @@ void GPUProcess::stopCapturePreviewManager()
     setCapturePreviewVideoDevice({ }, std::nullopt);
 }
 #endif // ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-
-void GPUProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier processID, CompletionHandler<void()>&& completionHandler)
-{
-    RELEASE_LOG(WebRTC, "GPUProcess::updateCaptureAccess: Entering (audio=%d, video=%d, display=%d, echoCancellation=%d)", allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation);
-
-#if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-    ensureAVCaptureServerConnection();
-#endif
-
-    if (RefPtr connection = webProcessConnection(processID)) {
-        connection->updateCaptureAccess(allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation);
-        return completionHandler();
-    }
-
-    auto& access = m_mediaCaptureAccessMap.add(processID, MediaCaptureAccess { allowAudioCapture, allowVideoCapture, allowDisplayCapture, willUseEchoCancellation }).iterator->value;
-    access.allowAudioCapture |= allowAudioCapture;
-    access.allowVideoCapture |= allowVideoCapture;
-    access.allowDisplayCapture |= allowDisplayCapture;
-    access.willUseEchoCancellation = willUseEchoCancellation;
-
-    completionHandler();
-}
 
 void GPUProcess::updateCaptureOrigin(const WebCore::SecurityOriginData& originData, WebCore::ProcessIdentifier processID)
 {

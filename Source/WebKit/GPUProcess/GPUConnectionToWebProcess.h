@@ -246,17 +246,11 @@ public:
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-    void setOrientationForMediaCapture(WebCore::IntDegrees);
     void reapplyCaptureEnvironment(WebCore::PageIdentifier);
-    void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
-    void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&);
-    void stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&);
-    void updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation);
     void updateCaptureOrigin(const WebCore::SecurityOriginData&);
     NODELETE bool setCaptureAttributionString();
-    bool allowsAudioCapture() const { return m_allowsAudioCapture; }
-    bool allowsVideoCapture() const { return m_allowsVideoCapture; }
-    bool allowsDisplayCapture() const { return m_allowsDisplayCapture; }
+    // For the Swift capture access (GPUProcess.swift): a web process that will use echo cancellation can capture audio.
+    static void prewarmEchoCancellingAudioCapture();
 #endif
 #if ENABLE(VIDEO)
     NODELETE RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const;
@@ -480,9 +474,6 @@ private:
 
 #if ENABLE(MEDIA_STREAM)
     Ref<WebCore::SecurityOrigin> m_captureOrigin;
-    bool m_allowsAudioCapture { false };
-    bool m_allowsVideoCapture { false };
-    bool m_allowsDisplayCapture { false };
 #endif
 #if ENABLE(VIDEO)
     IPC::ScopedActiveMessageReceiveQueue<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;

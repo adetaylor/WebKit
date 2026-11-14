@@ -248,25 +248,13 @@ private:
     void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&) final { }
     void removeMessageReceiver(IPC::ReceiverName messageReceiverName) final { }
     IPC::Connection& connection() final { return m_process.get()->connection(); }
-    bool willStartCapture(CaptureDevice::DeviceType type, PageIdentifier pageIdentifier) const final
+    WebCore::ProcessIdentifier webProcessIdentifier() const final { return m_process.get()->webProcessIdentifier(); }
+    RefPtr<IPC::Connection> uiProcessConnection() final
     {
         RefPtr process = m_process.get();
-
-        switch (type) {
-        case CaptureDevice::DeviceType::SystemAudio:
-        case CaptureDevice::DeviceType::Unknown:
-        case CaptureDevice::DeviceType::Speaker:
-            return false;
-        case CaptureDevice::DeviceType::Microphone:
-            return process->allowsAudioCapture();
-        case CaptureDevice::DeviceType::Camera:
-        case CaptureDevice::DeviceType::Canvas:
-            return process->allowsVideoCapture();
-        case CaptureDevice::DeviceType::Screen:
-            return process->allowsDisplayCapture();
-        case CaptureDevice::DeviceType::Window:
-            return process->allowsDisplayCapture();
-        }
+        if (!process)
+            return nullptr;
+        return protect(process->gpuProcess())->parentProcessConnection();
     }
 
     bool setCaptureAttributionString() final
@@ -323,16 +311,6 @@ private:
     }
 
     RemoteVideoFrameObjectHeap* remoteVideoFrameObjectHeap() final { return &m_process.get()->videoFrameObjectHeap(); }
-
-    void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier pageIdentifier, const String& persistentId) final
-    {
-        m_process.get()->startMonitoringCaptureDeviceRotation(pageIdentifier, persistentId);
-    }
-
-    void stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier pageIdentifier, const String& persistentId) final
-    {
-        m_process.get()->stopMonitoringCaptureDeviceRotation(pageIdentifier, persistentId);
-    }
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const
     {
@@ -1352,14 +1330,6 @@ const String& GPUConnectionToWebProcess::mediaKeysStorageDirectory() const
 #endif
 
 #if ENABLE(MEDIA_STREAM)
-void GPUConnectionToWebProcess::setOrientationForMediaCapture(IntDegrees orientation)
-{
-// FIXME: <https://bugs.webkit.org/show_bug.cgi?id=211085>
-#if PLATFORM(COCOA)
-    protect(userMediaCaptureManagerProxy())->setOrientation(orientation);
-#endif
-}
-
 void GPUConnectionToWebProcess::reapplyCaptureEnvironment(WebCore::PageIdentifier pageIdentifier)
 {
 #if PLATFORM(COCOA)
@@ -1370,50 +1340,11 @@ void GPUConnectionToWebProcess::reapplyCaptureEnvironment(WebCore::PageIdentifie
 #endif
 }
 
-void GPUConnectionToWebProcess::startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier pageIdentifier, const String& persistentId)
-{
-#if PLATFORM(COCOA)
-    protect(gpuProcess().parentProcessConnection())->send(Messages::GPUProcessProxy::StartMonitoringCaptureDeviceRotation(pageIdentifier, persistentId, RotationMonitoringReason::Capture), 0);
-#else
-    UNUSED_PARAM(pageIdentifier);
-    UNUSED_PARAM(persistentId);
-#endif
-}
-
-void GPUConnectionToWebProcess::stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier pageIdentifier, const String& persistentId)
-{
-#if PLATFORM(COCOA)
-    protect(gpuProcess().parentProcessConnection())->send(Messages::GPUProcessProxy::StopMonitoringCaptureDeviceRotation(pageIdentifier, persistentId, RotationMonitoringReason::Capture), 0);
-#else
-    UNUSED_PARAM(pageIdentifier);
-    UNUSED_PARAM(persistentId);
-#endif
-}
-
-void GPUConnectionToWebProcess::rotationAngleForCaptureDeviceChanged(const String& persistentId, WebCore::VideoFrameRotation rotation)
-{
-#if PLATFORM(COCOA)
-    protect(userMediaCaptureManagerProxy())->rotationAngleForCaptureDeviceChanged(persistentId, rotation);
-#else
-    UNUSED_PARAM(persistentId);
-    UNUSED_PARAM(rotation);
-#endif
-}
-
-void GPUConnectionToWebProcess::updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation)
+void GPUConnectionToWebProcess::prewarmEchoCancellingAudioCapture()
 {
 #if PLATFORM(MAC) && ENABLE(MEDIA_STREAM)
-    if (willUseEchoCancellation) {
-        ASSERT(allowAudioCapture);
-        CoreAudioCaptureUnit::defaultSingleton().prewarmAudioUnitCreation();
-    }
-#else
-    UNUSED_PARAM(willUseEchoCancellation);
+    CoreAudioCaptureUnit::defaultSingleton().prewarmAudioUnitCreation();
 #endif
-
-    m_allowsAudioCapture |= allowAudioCapture;
-    m_allowsVideoCapture |= allowVideoCapture;
-    m_allowsDisplayCapture |= allowDisplayCapture;
 }
 
 void GPUConnectionToWebProcess::updateCaptureOrigin(const WebCore::SecurityOriginData& originData)

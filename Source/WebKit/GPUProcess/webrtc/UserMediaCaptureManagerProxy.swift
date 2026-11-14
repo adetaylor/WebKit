@@ -34,10 +34,6 @@ import WebKit_Internal
 
 // MARK: Wire values
 
-private func swiftString(_ string: borrowing WTF.String) -> String {
-    IPCCoding.WTFString.swiftString(string) ?? ""
-}
-
 // MediaAccessDenialReason::NoReason and MediaConstraintType::Unknown.
 private let noDenialReason = IPCTypes.MediaAccessDenialReason.noReason
 private let unknownConstraint = IPCTypes.MediaConstraintType.unknown
@@ -581,10 +577,15 @@ final class UserMediaCaptureManagerProxyState {
 #if os(iOS) || os(visionOS) || os(tvOS)
     private var pageMicrophones: [UInt64: () -> CaptureSource?] = [:]
 #endif
-    fileprivate var orientation: Int32 = 0
+    private var orientation: Int32
+    // The web process whose connection this is the capture receiver of.
+    private let process: UInt64
 
-    init(proxy: WebKit.UserMediaCaptureManagerProxy) {
+    init(proxy: WebKit.UserMediaCaptureManagerProxy, process: UInt64) {
         receiver = proxy
+        self.process = process
+        orientation = captureEnvironment.orientation
+        webProcessConnections[process]?.state.captureManager = self
     }
 
     // The receiver, until the connection closes.
@@ -625,6 +626,45 @@ final class UserMediaCaptureManagerProxyState {
         }
     }
 
+    // The UI process monitors the rotation of the cameras that capture for a page.
+    private func monitorRotation(_ pageIdentifier: UInt64, _ persistentID: String, start: Bool) {
+        guard let uiProcessConnection = WebKit.userMediaCaptureUIProcessConnection(proxy), let page = IPCTypes.PageIdentifier(rawValue: pageIdentifier) else {
+            return
+        }
+        if start {
+            WebKit.UserMediaCaptureManagerProxy.GPUProcessProxyMessages.startMonitoringCaptureDeviceRotation(
+                on: uiProcessConnection,
+                to: 0,
+                pageID: page,
+                devicePersistentId: persistentID,
+                reason: .capture
+            )
+        } else {
+            WebKit.UserMediaCaptureManagerProxy.GPUProcessProxyMessages.stopMonitoringCaptureDeviceRotation(
+                on: uiProcessConnection,
+                to: 0,
+                pageID: page,
+                devicePersistentId: persistentID,
+                reason: .capture
+            )
+        }
+    }
+
+    // What the UI process allowed the web process to capture.
+    private func allowsCapture(_ kind: CaptureDeviceKind) -> Bool {
+        guard let access = webProcessConnections[process]?.state.captureAccess else {
+            return false
+        }
+        switch kind {
+        case .microphone:
+            return access.audio
+        case .camera:
+            return access.video
+        case .screen, .window:
+            return access.display
+        }
+    }
+
     private func liveCameraSources(_ pageIdentifier: UInt64) -> [CaptureSource] {
         let sources = (pageCameraSources[pageIdentifier] ?? []).compactMap { $0() }
         pageCameraSources[pageIdentifier] = sources.map { source in { [weak source] in source } }
@@ -652,7 +692,7 @@ final class UserMediaCaptureManagerProxyState {
         }
 #endif
         source.monitorOrientation(orientation)
-        proxy.startMonitoringCaptureDeviceRotation(pageIdentifier, WTF.String(device.persistentID))
+        monitorRotation(pageIdentifier, device.persistentID, start: true)
         addCameraSource(source, pageIdentifier)
         return .success(source)
     }
@@ -669,7 +709,7 @@ final class UserMediaCaptureManagerProxyState {
         guard let kind = deviceKind(device.type) else {
             return (IPCTypes.CaptureSourceError(errorMessage: "Unsupported device", denialReason: .invalidAccess, invalidConstraint: unknownConstraint), emptySettings, emptyCapabilities)
         }
-        guard proxy.willStartCapture(cxxDeviceType(kind), pageIdentifier.rawValue) else {
+        guard allowsCapture(kind) else {
             return (IPCTypes.CaptureSourceError(errorMessage: "Request is not allowed", denialReason: .permissionDenied, invalidConstraint: unknownConstraint), emptySettings, emptyCapabilities)
         }
         try messageCheck { proxies[identifier] == nil }
@@ -790,7 +830,7 @@ final class UserMediaCaptureManagerProxyState {
         let remaining = liveCameraSources(pageIdentifier).filter { $0 !== source }
         pageCameraSources[pageIdentifier] = remaining.map { remainingSource in { [weak remainingSource] in remainingSource } }
         if !remaining.contains(where: { $0.persistentID == source.persistentID && !$0.isEnded }) {
-            proxy.stopMonitoringCaptureDeviceRotation(pageIdentifier, WTF.String(source.persistentID))
+            monitorRotation(pageIdentifier, source.persistentID, start: false)
         }
     }
 
@@ -890,8 +930,9 @@ extension WebKit.UserMediaCaptureManagerProxy {
     @cxx
     @implementation
     @MainActor
-    func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(UserMediaCaptureManagerProxyState(proxy: self)).toOpaque())
+    func createSwiftState(_ webProcessIdentifier: UInt64) -> UInt {
+        let state = UserMediaCaptureManagerProxyState(proxy: self, process: webProcessIdentifier)
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
     }
 
     @cxx
@@ -934,25 +975,6 @@ extension WebKit.UserMediaCaptureManagerProxy {
         let swiftState = m_swiftState
         MainActor.assumeIsolated {
             Self.state(swiftState).clear()
-        }
-    }
-
-    @cxx
-    @implementation
-    func setOrientation(_ orientation: Int32) {
-        let swiftState = m_swiftState
-        MainActor.assumeIsolated {
-            Self.state(swiftState).setOrientation(orientation)
-        }
-    }
-
-    @cxx
-    @implementation
-    func swiftRotationAngleForCaptureDeviceChanged(_ persistentID: WTF.String, _ rotation: UInt16) {
-        let persistentID = swiftString(persistentID)
-        let swiftState = m_swiftState
-        MainActor.assumeIsolated {
-            Self.state(swiftState).rotationAngleForCaptureDeviceChanged(persistentID, rotation)
         }
     }
 
