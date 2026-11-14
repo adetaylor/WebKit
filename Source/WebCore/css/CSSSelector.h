@@ -55,19 +55,21 @@ enum class SelectorSpecificityIncrement {
 };
 
 // Selector for a StyleRule.
+// A record is valid only in its CSSSelectorList's array: the walkers step to this + 1 and this - 1. Swift would hold
+// a copy, so the type is unsafe to Swift, which reads records in place through CSSSelectorList's index accessors.
 DECLARE_ALLOCATOR_WITH_HEAP_IDENTIFIER(CSSSelectorRareData);
-class CSSSelector {
+class SWIFT_UNSAFE __attribute__((swift_attr("~Sendable"))) CSSSelector {
     WTF_MAKE_TZONE_ALLOCATED(CSSSelector);
 public:
     CSSSelector() = default;
-    CSSSelector(const CSSSelector&);
-    CSSSelector(CSSSelector&&);
+    CSSSelector(const CSSSelector&) = default;
+    CSSSelector(CSSSelector&&) = default;
     enum MutableSelectorCopyTag { MutableSelectorCopy };
     CSSSelector(const CSSSelector&, MutableSelectorCopyTag);
     NODELETE explicit CSSSelector(const QualifiedName&, bool tagIsForNamespaceRule = false);
 
     ~CSSSelector();
-    CSSSelector& operator=(CSSSelector&&);
+    CSSSelector& operator=(CSSSelector&&) = default;
 
     // Re-create selector text from selector's data.
     String selectorText(StringView separator = { }, StringView rightSide = { }) const;
@@ -160,13 +162,13 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     const AtomString& value() const LIFETIME_BOUND;
     const AtomString& serializingValue() const LIFETIME_BOUND;
     const QualifiedName& attribute() const LIFETIME_BOUND;
-    const AtomString& argument() const LIFETIME_BOUND { return m_hasRareData ? m_data.rareData->argument : nullAtom(); }
+    const AtomString& argument() const LIFETIME_BOUND { return m_rareData ? m_rareData->argument : nullAtom(); }
     AttributeMatchType attributeMatchType() const;
-    const FixedVector<int>* integerList() const LIFETIME_BOUND { return m_hasRareData ? std::get_if<FixedVector<int>>(&m_data.rareData->argumentList) : nullptr; }
-    const FixedVector<AtomString>* stringList() const LIFETIME_BOUND { return m_hasRareData ? std::get_if<FixedVector<AtomString>>(&m_data.rareData->argumentList) : nullptr; }
-    const FixedVector<PossiblyQuotedIdentifier>* langList() const LIFETIME_BOUND { return m_hasRareData ? std::get_if<FixedVector<PossiblyQuotedIdentifier>>(&m_data.rareData->argumentList) : nullptr; }
-    const CSSSelectorList* selectorList() const LIFETIME_BOUND { return m_hasRareData ? m_data.rareData->selectorList.get() : nullptr; }
-    CSSSelectorList* selectorList() LIFETIME_BOUND { return m_hasRareData ? m_data.rareData->selectorList.get() : nullptr; }
+    // A list that was set is never empty (the setters' callers assert it), so empty means not set.
+    const FixedVector<int>* integerList() const LIFETIME_BOUND { return m_rareData && !m_rareData->integerList.isEmpty() ? &m_rareData->integerList : nullptr; }
+    const FixedVector<AtomString>* stringList() const LIFETIME_BOUND { return m_rareData && !m_rareData->stringList.isEmpty() ? &m_rareData->stringList : nullptr; }
+    const FixedVector<PossiblyQuotedIdentifier>* langList() const LIFETIME_BOUND { return m_rareData && !m_rareData->langList.isEmpty() ? &m_rareData->langList : nullptr; }
+    const CSSSelectorList* selectorList() const LIFETIME_BOUND { return m_rareData ? m_rareData->selectorList.get() : nullptr; }
 
     NODELETE bool matchNth(int count) const;
     NODELETE int nthA() const;
@@ -240,19 +242,19 @@ private:
     unsigned m_isFirstInComplexSelector : 1 { true };
     unsigned m_isLastInComplexSelector : 1 { true };
 
-    unsigned m_hasRareData : 1 { false };
     unsigned m_isForPage : 1 { false };
     unsigned m_tagIsForNamespaceRule : 1 { false };
     unsigned m_attributeMatchType : 2 { std::to_underlying(AttributeMatchType::Default) };
     unsigned m_isImplicit : 1 { false };
     unsigned m_isEquivalentToClassSelector : 1 { false };
-    // 27 bits
+    // 26 bits
 #if !ASSERT_WITH_SECURITY_IMPLICATION_DISABLED
     unsigned m_destructorHasBeenCalled : 1 { false };
 #endif
 
     CSSSelector& operator=(const CSSSelector&) = delete;
 
+    // Copies of a selector share their RareData; createRareData() copies it before a write when it is shared.
     struct RareData : public RefCounted<RareData> {
         WTF_MAKE_STRUCT_TZONE_ALLOCATED(RareData);
         static Ref<RareData> create(AtomString);
@@ -270,9 +272,11 @@ private:
 
         int a { 0 }; // Used for :nth-*
         int b { 0 }; // Used for :nth-*
-        QualifiedName attribute; // used for attribute selector
         AtomString argument; // Used for :contains and :nth-*
-        Variant<std::monostate, FixedVector<int>, FixedVector<AtomString>, FixedVector<PossiblyQuotedIdentifier>> argumentList; // Used for :heading (int), :active-view-transition-type/::highlight/::view-transition-*/::part (AtomString), :lang (PossiblyQuotedIdentifier)
+        // At most one is set: :heading (int), :active-view-transition-type/::highlight/::view-transition-*/::part (AtomString), :lang (PossiblyQuotedIdentifier)
+        FixedVector<int> integerList;
+        FixedVector<AtomString> stringList;
+        FixedVector<PossiblyQuotedIdentifier> langList;
         std::unique_ptr<CSSSelectorList> selectorList; // Used for :is(), :matches(), and :not().
 
         Ref<RareData> deepCopy() const;
@@ -281,14 +285,12 @@ private:
         RareData(AtomString&& value);
         RareData(const RareData& other);
     };
+    // Makes m_rareData exist and be this selector's own, so it can be written.
     void createRareData();
 
-    // FIXME: The active member depends on m_hasRareData and the match type, and is ref'd and deref'd manually. Store it in a smart pointer instead.
-    union DataUnion {
-        SUPPRESS_UNCOUNTED_MEMBER AtomStringImpl* value { nullptr };
-        SUPPRESS_UNCOUNTED_MEMBER QualifiedName::QualifiedNameImpl* tagQName;
-        SUPPRESS_UNCOUNTED_MEMBER RareData* rareData;
-    } m_data;
+    AtomString m_value; // When there is no RareData; it moves to RareData when one is made.
+    QualifiedName m_name { nullQName() }; // The tag (Match::Tag) or the attribute (attribute selectors).
+    RefPtr<RareData> m_rareData;
 };
 
 NODELETE bool complexSelectorCanMatchPseudoElement(const CSSSelector&);
@@ -305,8 +307,8 @@ inline bool operator==(const PossiblyQuotedIdentifier& a, const AtomString& b) {
 inline const QualifiedName& CSSSelector::attribute() const
 {
     ASSERT(isAttributeSelector());
-    ASSERT_WITH_SECURITY_IMPLICATION(m_hasRareData);
-    return m_data.rareData->attribute;
+    ASSERT_WITH_SECURITY_IMPLICATION(m_rareData);
+    return m_name;
 }
 
 inline bool CSSSelector::matchesPseudoElement() const
@@ -365,48 +367,16 @@ inline void CSSSelector::setValue(const AtomString& value, bool matchLowerCase)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(match() != Match::Tag);
     auto matchingValue = matchLowerCase ? value.convertToASCIILowercase() : value;
-    if (!m_hasRareData && matchingValue != value)
+    if (m_rareData || matchingValue != value)
         createRareData();
 
-    // Need to do ref counting manually for the union.
-    if (!m_hasRareData) {
-        if (m_data.value)
-            m_data.value->deref();
-        m_data.value = value.impl();
-        m_data.value->ref();
+    if (!m_rareData) {
+        m_value = value;
         return;
     }
 
-    m_data.rareData->matchingValue = WTF::move(matchingValue);
-    m_data.rareData->serializingValue = value;
-}
-
-inline CSSSelector::CSSSelector(CSSSelector&& other)
-    : m_relation(other.m_relation)
-    , m_match(other.m_match)
-    , m_pseudoType(other.m_pseudoType)
-    , m_isFirstInComplexSelector(other.m_isFirstInComplexSelector)
-    , m_isLastInComplexSelector(other.m_isLastInComplexSelector)
-    , m_hasRareData(other.m_hasRareData)
-    , m_isForPage(other.m_isForPage)
-    , m_tagIsForNamespaceRule(other.m_tagIsForNamespaceRule)
-    , m_attributeMatchType(other.m_attributeMatchType)
-    , m_isImplicit(other.m_isImplicit)
-    , m_isEquivalentToClassSelector(other.m_isEquivalentToClassSelector)
-    , m_data(WTF::move(other.m_data))
-{
-    other.m_data.value = nullptr;
-    other.m_hasRareData = false;
-    other.m_match = std::to_underlying(Match::Unknown);
-}
-
-inline CSSSelector& CSSSelector::operator=(CSSSelector&& other)
-{
-    if (this != &other) {
-        this->~CSSSelector();
-        new (this) CSSSelector(WTF::move(other));
-    }
-    return *this;
+    m_rareData->matchingValue = WTF::move(matchingValue);
+    m_rareData->serializingValue = value;
 }
 
 inline CSSSelector::~CSSSelector()
@@ -415,17 +385,11 @@ inline CSSSelector::~CSSSelector()
 #if !ASSERT_WITH_SECURITY_IMPLICATION_DISABLED
     m_destructorHasBeenCalled = true;
 #endif
-    if (m_hasRareData)
-        m_data.rareData->deref();
-    else if (match() == Match::Tag)
-        m_data.tagQName->deref();
-    else if (m_data.value)
-        m_data.value->deref();
 }
 
 inline const QualifiedName& CSSSelector::tagQName() const
 {
-    return *reinterpret_cast<const QualifiedName*>(&m_data.tagQName);
+    return m_name;
 }
 
 inline const AtomString& CSSSelector::tagLowercaseLocalName() const
@@ -436,21 +400,17 @@ inline const AtomString& CSSSelector::tagLowercaseLocalName() const
 inline const AtomString& CSSSelector::value() const
 {
     ASSERT_WITH_SECURITY_IMPLICATION(match() != Match::Tag);
-    if (m_hasRareData)
-        return m_data.rareData->matchingValue;
-
-    // AtomString is really just an AtomStringImpl* so the cast below is safe.
-    return *reinterpret_cast<const AtomString*>(&m_data.value);
+    if (m_rareData)
+        return m_rareData->matchingValue;
+    return m_value;
 }
 
 inline const AtomString& CSSSelector::serializingValue() const
 {
     ASSERT_WITH_SECURITY_IMPLICATION(match() != Match::Tag);
-    if (m_hasRareData)
-        return m_data.rareData->serializingValue;
-
-    // AtomString is really just an AtomStringImpl* so the cast below is safe.
-    return *reinterpret_cast<const AtomString*>(&m_data.value);
+    if (m_rareData)
+        return m_rareData->serializingValue;
+    return m_value;
 }
 
 inline auto CSSSelector::attributeMatchType() const -> AttributeMatchType

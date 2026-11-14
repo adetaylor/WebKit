@@ -55,7 +55,9 @@ using namespace HTMLNames;
 
 struct SameSizeAsCSSSelector {
     unsigned flags;
-    void* unionPointer;
+    void* value;
+    void* name;
+    void* rareData;
 };
 
 static_assert(CSSSelector::Relation::Subselector == static_cast<CSSSelector::Relation>(0u), "Subselector must be 0 for consumeCombinator.");
@@ -67,19 +69,21 @@ CSSSelector::CSSSelector(const QualifiedName& tagQName, bool tagIsForNamespaceRu
     : m_relation(std::to_underlying(Relation::DescendantSpace))
     , m_match(std::to_underlying(Match::Tag))
     , m_tagIsForNamespaceRule(tagIsForNamespaceRule)
+    , m_name(tagQName)
 {
-    m_data.tagQName = tagQName.impl();
-    m_data.tagQName->ref();
 }
 
 void CSSSelector::createRareData()
 {
     ASSERT_WITH_SECURITY_IMPLICATION(match() != Match::Tag);
-    if (m_hasRareData)
+    if (!m_rareData) {
+        // Move the value to the rare data stucture.
+        m_rareData = RareData::create(WTF::move(m_value));
         return;
-    // Move the value to the rare data stucture.
-    m_data.rareData = &RareData::create(adoptRef(m_data.value)).leakRef();
-    m_hasRareData = true;
+    }
+    // A copy shares its RareData: copy it before writing, as copying the selector used to.
+    if (!m_rareData->hasOneRef())
+        m_rareData = m_rareData->deepCopy();
 }
 
 struct SelectorSpecificity {
@@ -757,69 +761,74 @@ String CSSSelector::selectorText(StringView separator, StringView rightSide) con
 void CSSSelector::setAttribute(const QualifiedName& value, AttributeMatchType matchType)
 {
     createRareData();
-    m_data.rareData->attribute = value;
+    m_name = value;
     m_attributeMatchType = std::to_underlying(matchType);
 }
 
 void CSSSelector::setArgument(const AtomString& value)
 {
     createRareData();
-    m_data.rareData->argument = value;
+    m_rareData->argument = value;
 }
 
 void CSSSelector::setIntegerList(FixedVector<int> integerList)
 {
     createRareData();
-    m_data.rareData->argumentList = WTF::move(integerList);
+    m_rareData->integerList = WTF::move(integerList);
+    m_rareData->stringList = { };
+    m_rareData->langList = { };
 }
 
 void CSSSelector::setStringList(FixedVector<AtomString> stringList)
 {
     createRareData();
-    m_data.rareData->argumentList = WTF::move(stringList);
+    m_rareData->integerList = { };
+    m_rareData->stringList = WTF::move(stringList);
+    m_rareData->langList = { };
 }
 
 void CSSSelector::setLangList(FixedVector<PossiblyQuotedIdentifier> langList)
 {
     createRareData();
-    m_data.rareData->argumentList = WTF::move(langList);
+    m_rareData->integerList = { };
+    m_rareData->stringList = { };
+    m_rareData->langList = WTF::move(langList);
 }
 
 void CSSSelector::setSelectorList(std::unique_ptr<CSSSelectorList> selectorList)
 {
     createRareData();
-    m_data.rareData->selectorList = WTF::move(selectorList);
+    m_rareData->selectorList = WTF::move(selectorList);
 }
 
 void CSSSelector::setNth(int a, int b)
 {
     createRareData();
-    m_data.rareData->a = a;
-    m_data.rareData->b = b;
+    m_rareData->a = a;
+    m_rareData->b = b;
 }
 
 bool CSSSelector::matchNth(int count) const
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(m_hasRareData);
-    return m_data.rareData->matchNth(count);
+    ASSERT_WITH_SECURITY_IMPLICATION(m_rareData);
+    return m_rareData->matchNth(count);
 }
 
 int CSSSelector::nthA() const
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(m_hasRareData);
-    return m_data.rareData->a;
+    ASSERT_WITH_SECURITY_IMPLICATION(m_rareData);
+    return m_rareData->a;
 }
 
 int CSSSelector::nthB() const
 {
-    ASSERT_WITH_SECURITY_IMPLICATION(m_hasRareData);
-    return m_data.rareData->b;
+    ASSERT_WITH_SECURITY_IMPLICATION(m_rareData);
+    return m_rareData->b;
 }
 
 CSSSelector::RareData::RareData(AtomString&& value)
     : matchingValue(value)
     , serializingValue(WTF::move(value))
-    , attribute(anyQName())
 {
 }
 
@@ -828,9 +837,10 @@ CSSSelector::RareData::RareData(const RareData& other)
     , serializingValue(other.serializingValue)
     , a(other.a)
     , b(other.b)
-    , attribute(other.attribute)
     , argument(other.argument)
-    , argumentList(other.argumentList)
+    , integerList(other.integerList)
+    , stringList(other.stringList)
+    , langList(other.langList)
 {
     if (other.selectorList)
         this->selectorList = makeUnique<CSSSelectorList>(*other.selectorList);
@@ -867,34 +877,10 @@ bool CSSSelector::RareData::equals(const RareData& other) const
         && serializingValue == other.serializingValue
         && a == other.a
         && b == other.b
-        && attribute == other.attribute
         && argument == other.argument
-        && argumentList == other.argumentList;
-}
-
-CSSSelector::CSSSelector(const CSSSelector& other)
-    : m_relation(other.m_relation)
-    , m_match(other.m_match)
-    , m_pseudoType(other.m_pseudoType)
-    , m_isFirstInComplexSelector(other.m_isFirstInComplexSelector)
-    , m_isLastInComplexSelector(other.m_isLastInComplexSelector)
-    , m_hasRareData(other.m_hasRareData)
-    , m_isForPage(other.m_isForPage)
-    , m_tagIsForNamespaceRule(other.m_tagIsForNamespaceRule)
-    , m_attributeMatchType(other.m_attributeMatchType)
-    , m_isImplicit(other.m_isImplicit)
-    , m_isEquivalentToClassSelector(other.m_isEquivalentToClassSelector)
-{
-    // Manually ref count the m_data union because they are stored as raw ptr, not as Ref.
-    if (other.m_hasRareData)
-        m_data.rareData = &protect(other.m_data.rareData)->deepCopy().leakRef();
-    else if (other.match() == Match::Tag) {
-        m_data.tagQName = other.m_data.tagQName;
-        m_data.tagQName->ref();
-    } else if (other.m_data.value) {
-        m_data.value = other.m_data.value;
-        m_data.value->ref();
-    }
+        && integerList == other.integerList
+        && stringList == other.stringList
+        && langList == other.langList;
 }
 
 CSSSelector::CSSSelector(const CSSSelector& other, MutableSelectorCopyTag)
@@ -1028,17 +1014,17 @@ bool complexSelectorMatchesElementBackedPseudoElement(const CSSSelector& complex
 bool CSSSelector::simpleSelectorEqual(const CSSSelector& other) const
 {
     auto valuesEqual = [&] {
-        if (m_hasRareData)
-            return protect(m_data.rareData)->equals(*protect(other.m_data.rareData));
+        if (m_rareData)
+            return protect(m_rareData)->equals(*protect(other.m_rareData)) && m_name == other.m_name;
         if (match() == Match::Tag)
-            return *m_data.tagQName == *other.m_data.tagQName;
-        return m_data.value == other.m_data.value;
+            return m_name == other.m_name;
+        return m_value == other.m_value;
     };
 
     // Relation and selector list bits are ignored.
     return m_match == other.m_match
         && m_pseudoType == other.m_pseudoType
-        && m_hasRareData == other.m_hasRareData
+        && !m_rareData == !other.m_rareData
         && m_tagIsForNamespaceRule == other.m_tagIsForNamespaceRule
         && m_attributeMatchType == other.m_attributeMatchType
         && m_isImplicit == other.m_isImplicit

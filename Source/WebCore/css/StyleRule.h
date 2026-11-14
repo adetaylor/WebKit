@@ -137,11 +137,13 @@ public:
     using StyleRuleBase::hasDocumentSecurityOrigin;
 
     // Used for CSSOM.
-    void wrapperAdoptSelectorList(CSSSelectorList&&);
+    // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
+    SWIFT_UNSAFE void wrapperAdoptSelectorList(CSSSelectorList&&);
 
     Vector<Ref<StyleRule>> splitIntoMultipleRulesWithMaximumSelectorComponentCount(unsigned) const;
 
-    void adoptSelectorList(CSSSelectorList&&);
+    // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
+    SWIFT_UNSAFE void adoptSelectorList(CSSSelectorList&&);
 #if ENABLE(CSS_SELECTOR_JIT)
     CompiledSelector& compiledSelectorForListIndex(unsigned index) const;
     void releaseCompiledSelectors() const { m_compiledSelectors = { }; }
@@ -181,7 +183,8 @@ public:
     const CSSSelectorList& originalSelectorList() const LIFETIME_BOUND { return m_originalSelectorList; }
 
     // Used by CSSOM.
-    void wrapperAdoptOriginalSelectorList(CSSSelectorList&&);
+    // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
+    SWIFT_UNSAFE void wrapperAdoptOriginalSelectorList(CSSSelectorList&&);
 
     String debugDescription() const;
 protected:
@@ -296,7 +299,8 @@ public:
     const StyleProperties& properties() const { return m_properties; }
     MutableStyleProperties& mutableProperties();
 
-    void wrapperAdoptSelectorList(CSSSelectorList&& selectors) { m_selectorList = WTF::move(selectors); }
+    // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
+    SWIFT_UNSAFE void wrapperAdoptSelectorList(CSSSelectorList&& selectors) { m_selectorList = WTF::move(selectors); }
 
     Ref<StyleRulePage> copy() const { return adoptRef(*new StyleRulePage(*this)); }
 
@@ -423,8 +427,9 @@ public:
     const CSSSelectorList& scopeEnd() const LIFETIME_BOUND { return m_scopeEnd; }
     const CSSSelectorList& originalScopeStart() const LIFETIME_BOUND { return m_originalScopeStart; }
     const CSSSelectorList& originalScopeEnd() const LIFETIME_BOUND { return m_originalScopeEnd; }
-    void setScopeStart(CSSSelectorList&& scopeStart) { m_scopeStart = WTF::move(scopeStart); }
-    void setScopeEnd(CSSSelectorList&& scopeEnd) { m_scopeEnd = WTF::move(scopeEnd); }
+    // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
+    SWIFT_UNSAFE void setScopeStart(CSSSelectorList&& scopeStart) { m_scopeStart = WTF::move(scopeStart); }
+    SWIFT_UNSAFE void setScopeEnd(CSSSelectorList&& scopeEnd) { m_scopeEnd = WTF::move(scopeEnd); }
     NODELETE WeakPtr<const StyleSheetContents> styleSheetContents() const;
     NODELETE void setStyleSheetContents(const StyleSheetContents&);
 
