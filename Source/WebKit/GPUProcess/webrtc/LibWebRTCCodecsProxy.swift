@@ -39,6 +39,10 @@ private final class PendingReply<Reply: ~Copyable>: @unchecked Sendable {
     }
 }
 
+// The flags of the dispatches of each frame's result: DispatchQueue.async's default, an array literal, makes every call
+// look up the array's generic metadata and run an unspecialized SetAlgebra initializer.
+private let perFrameDispatchFlags = DispatchWorkItemFlags(rawValue: 0)
+
 // The replies to DecodeFrame or EncodeFrame that a decoder or an encoder owes, in the order it reports their results.
 // Each decoder and encoder has its own, so that the results of one that the web process released don't answer another's.
 // @unchecked Sendable: it is only used on the codecs queue.
@@ -247,8 +251,11 @@ extension WebKit.LibWebRTCCodecsProxy {
             isMirrored: isMirrored,
             logsGeneratedFrames: enableAdditionalLogging
         ) { [weak pendingReplies] result in
-            codecsQueue.async { [weak pendingReplies] in
-                pendingReplies?.sendNext { $0.send(result) }
+            guard let pendingReplies else {
+                return
+            }
+            codecsQueue.async(flags: perFrameDispatchFlags) {
+                pendingReplies.sendNext { $0.send(result) }
             }
         }
         let decoder = LibWebRTCCodecsDecoder(identifier: id, output: output, colorSpaceOverride: colorSpaceOverride, logsReceivedFrames: enableAdditionalLogging)
@@ -370,8 +377,11 @@ extension WebKit.LibWebRTCCodecsProxy {
             useAnnexB: useAnnexB,
             usesTwoTemporalLayers: codecType == .h264 && scalabilityMode == .l1T2
         ) { [weak pendingReplies] result in
-            codecsQueue.async { [weak pendingReplies] in
-                pendingReplies?.sendNext { $0.send(result) }
+            guard let pendingReplies else {
+                return
+            }
+            codecsQueue.async(flags: perFrameDispatchFlags) {
+                pendingReplies.sendNext { $0.send(result) }
             }
         }
         let frameSource = SharedVideoFrameSource(
