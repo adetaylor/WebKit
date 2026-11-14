@@ -134,6 +134,12 @@ member AVFoundation AVPlayerItemTrack assetTrack var assetTrack: AVAssetTrack? {
 member AVFoundation AVMetadataItem +metadataItemsFromArray:withKey:keySpace: func metadataItemsWithKey(from metadataItems: NSArray, withKey key: AnyObject?, keySpace: NSString?) -> NSArray
 member AVFoundation AVMetadataItem +metadataItemsFromArray:filteredAndSortedAccordingToPreferredLanguages: func metadataItemsForPreferredLanguages(from metadataItems: NSArray, filteredAndSortedAccordingToPreferredLanguages preferredLanguages: NSArray) -> NSArray
 
+# The AVFoundation player's asset status (MediaPlayerPrivateAVFoundation.swift).
+class AVFoundation AVAssetTrack
+class AVFoundation AVPlayerItemTrack
+member AVFoundation AVPlayerItem tracks var tracks: NSArray { get }
+member AVFoundation AVURLAsset variants var variants: NSArray { get }
+
 # The camera (CameraCaptureSource.swift).
 class AVFoundation AVCaptureDevice
 class AVFoundation AVCaptureDeviceFormat as AVCaptureDevice.Format
