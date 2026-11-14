@@ -88,8 +88,10 @@ final class WebProcessConnections {
         all[process] = connection
     }
 
-    func remove(process: UInt64) {
-        all[process] = nil
+    func remove(_ connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
+        if let current = all[process], current.state === connection.state {
+            all[process] = nil
+        }
     }
 }
 
@@ -287,6 +289,92 @@ extension WebKit.GPUProcess {
         webProcessConnections[page.processIdentifier.rawValue]?.clearNowPlayingCandidates(page: page.object.rawValue)
     }
 }
+
+#if ENABLE_MEDIA_STREAM
+// What the UI process allowed a web process to capture, which only grows.
+struct CaptureAccess {
+    var audio = false
+    var video = false
+    var display = false
+
+    mutating func formUnion(_ other: CaptureAccess) {
+        audio = audio || other.audio
+        video = video || other.video
+        display = display || other.display
+    }
+}
+
+// The capture environment of the GPU process that outlives its connections: the orientation of the device for capture,
+// and the access the UI process gave web processes whose connections the GPU process doesn't have yet.
+@MainActor
+final class CaptureEnvironment {
+    var orientation: Int32 = 0
+    private var pendingAccess: [UInt64: (access: CaptureAccess, willUseEchoCancellation: Bool)] = [:]
+
+    fileprivate nonisolated init() {
+    }
+
+    fileprivate func addPendingAccess(_ access: CaptureAccess, willUseEchoCancellation: Bool, process: UInt64) {
+        var pending = pendingAccess[process] ?? (CaptureAccess(), false)
+        pending.access.formUnion(access)
+        pending.willUseEchoCancellation = willUseEchoCancellation
+        pendingAccess[process] = pending
+    }
+
+    func takePendingAccess(process: UInt64) -> (access: CaptureAccess, willUseEchoCancellation: Bool) {
+        pendingAccess.removeValue(forKey: process) ?? (CaptureAccess(), false)
+    }
+}
+
+let captureEnvironment = CaptureEnvironment()
+
+extension WebKit.GPUProcess {
+    @MainActor
+    func setOrientationForMediaCapture(connection: IPC.Connection, orientation: Int32) {
+        captureEnvironment.orientation = orientation
+        #if WTF_PLATFORM_COCOA
+        state.capturePreview?.setOrientation(orientation)
+        for gpuConnection in webProcessConnections.all.values {
+            gpuConnection.state.captureManager?.setOrientation(orientation)
+        }
+        #endif
+    }
+
+    @MainActor
+    func rotationAngleForCaptureDeviceChanged(connection: IPC.Connection, persistentId: String?, rotation: IPCTypes.VideoFrameRotation) {
+        #if WTF_PLATFORM_COCOA
+        let persistentID = persistentId ?? ""
+        state.capturePreview?.rotationAngleForCaptureDeviceChanged(persistentID, rotation.rawValue)
+        for gpuConnection in webProcessConnections.all.values {
+            gpuConnection.state.captureManager?.rotationAngleForCaptureDeviceChanged(persistentID, rotation.rawValue)
+        }
+        #endif
+    }
+
+    @MainActor
+    func updateCaptureAccess(
+        connection: IPC.Connection,
+        allowAudioCapture: Bool,
+        allowVideoCapture: Bool,
+        allowDisplayCapture: Bool,
+        willUseEchoCancellation: Bool,
+        processID: IPCTypes.ProcessIdentifier
+    ) {
+        WebKit.LogChannel.WebRTC().releaseLog.log(
+            "GPUProcess::updateCaptureAccess: Entering (audio=\(allowAudioCapture ? 1 : 0), video=\(allowVideoCapture ? 1 : 0), display=\(allowDisplayCapture ? 1 : 0), echoCancellation=\(willUseEchoCancellation ? 1 : 0))"
+        )
+        #if WTF_PLATFORM_COCOA
+        ensureAVCaptureServerConnection()
+        #endif
+        let access = CaptureAccess(audio: allowAudioCapture, video: allowVideoCapture, display: allowDisplayCapture)
+        if let gpuConnection = webProcessConnections[processID.rawValue] {
+            gpuConnection.state.allowCapture(access, willUseEchoCancellation: willUseEchoCancellation)
+            return
+        }
+        captureEnvironment.addPendingAccess(access, willUseEchoCancellation: willUseEchoCancellation, process: processID.rawValue)
+    }
+}
+#endif
 
 // We wouldn't want the GPUProcess to repeatedly exit then relaunch when under memory pressure. In particular, we need to make sure the
 // WebProcess has a change to schedule work after the GPUProcess get launched. For this reason, we make sure that the GPUProcess never

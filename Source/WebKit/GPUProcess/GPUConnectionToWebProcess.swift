@@ -44,6 +44,14 @@ final class GPUConnectionState {
     let isLockdownModeEnabled: Bool
     // The Now Playing candidate states of the connection's pages, by page identifier, which the election reads.
     var nowPlayingCandidates: [UInt64: IPCTypes.NowPlayingCandidateState] = [:]
+    #if ENABLE_MEDIA_STREAM
+    // What the UI process allowed the web process to capture.
+    private(set) var captureAccess = CaptureAccess()
+    #if WTF_PLATFORM_COCOA
+    // The state of the connection's capture receiver, while it has one.
+    weak var captureManager: UserMediaCaptureManagerProxyState?
+    #endif
+    #endif
 
     // Declared before the receivers, so that their messages stop before the receivers go.
     private var registrations: [IPC.SwiftReceiverRegistration] = []
@@ -130,6 +138,16 @@ final class GPUConnectionState {
         receivers.allSatisfy { $0.allowsExitUnderMemoryPressure }
     }
 
+    #if ENABLE_MEDIA_STREAM
+    func allowCapture(_ access: CaptureAccess, willUseEchoCancellation: Bool) {
+        if willUseEchoCancellation {
+            assert(access.audio)
+            WebKit.GPUConnectionToWebProcess.prewarmEchoCancellingAudioCapture()
+        }
+        captureAccess.formUnion(access)
+    }
+    #endif
+
     fileprivate func invalidateReceivers() {
         #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
         audioDestinationManager?.invalidate()
@@ -179,6 +197,11 @@ extension WebKit.GPUConnectionToWebProcess {
     func swiftDidAddToGPUProcess() {
         webProcessConnections.add(self, process: state.processIdentifier)
         state.createReceivers(for: self)
+        #if ENABLE_MEDIA_STREAM
+        // FIXME: We should refactor code to go from WebProcess -> GPUProcess -> UIProcess when getUserMedia is called instead of going from WebProcess -> UIProcess directly.
+        let pending = captureEnvironment.takePendingAccess(process: state.processIdentifier)
+        state.allowCapture(pending.access, willUseEchoCancellation: pending.willUseEchoCancellation)
+        #endif
     }
 
     @cxx
@@ -186,7 +209,7 @@ extension WebKit.GPUConnectionToWebProcess {
     @MainActor
     func swiftDidRemoveFromGPUProcess() {
         state.connectionDidClose()
-        webProcessConnections.remove(process: state.processIdentifier)
+        webProcessConnections.remove(self, process: state.processIdentifier)
         nowPlayingArbiter.recompute()
     }
 

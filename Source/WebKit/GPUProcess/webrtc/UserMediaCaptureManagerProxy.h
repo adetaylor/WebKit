@@ -164,7 +164,8 @@ public:
         virtual void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&) = 0;
         virtual void removeMessageReceiver(IPC::ReceiverName) = 0;
         virtual IPC::Connection& connection() = 0;
-        virtual bool willStartCapture(WebCore::CaptureDevice::DeviceType, WebCore::PageIdentifier) const = 0;
+        virtual WebCore::ProcessIdentifier webProcessIdentifier() const = 0;
+        virtual RefPtr<IPC::Connection> uiProcessConnection() = 0;
         virtual Logger& logger() = 0;
         virtual bool setCaptureAttributionString() { return true; }
         virtual WebCore::ProcessIdentity resourceOwner() const = 0;
@@ -179,9 +180,6 @@ public:
 #endif
         virtual void startProducingData(WebCore::CaptureDevice::DeviceType, WebCore::PageIdentifier) { }
         virtual RemoteVideoFrameObjectHeap* remoteVideoFrameObjectHeap() { return nullptr; }
-
-        virtual void startMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&) { }
-        virtual void stopMonitoringCaptureDeviceRotation(WebCore::PageIdentifier, const String&) { }
         virtual std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const = 0;
     };
     static Ref<UserMediaCaptureManagerProxy> create(UniqueRef<ConnectionProxy>&&);
@@ -193,12 +191,9 @@ public:
     // Implemented in Swift.
     void close();
     void clear();
-    void setOrientation(WebCore::IntDegrees);
-    void swiftRotationAngleForCaptureDeviceChanged(String persistentID, uint16_t rotation);
     bool hasSourceProxies() const;
     void swiftReapplyCaptureEnvironment(uint64_t pageIdentifier);
 
-    void rotationAngleForCaptureDeviceChanged(const String& persistentID, WebCore::VideoFrameRotation rotation) { swiftRotationAngleForCaptureDeviceChanged(persistentID, static_cast<uint16_t>(rotation)); }
     void reapplyCaptureEnvironment(WebCore::PageIdentifier pageIdentifier) { swiftReapplyCaptureEnvironment(pageIdentifier.toUInt64()); }
 
     void didReceiveMessageFromGPUProcess(IPC::Connection& connection, IPC::Decoder& decoder) { didReceiveMessage(connection, decoder); }
@@ -207,12 +202,10 @@ public:
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
     // For the Swift state: what the GPU process's runtime does for capture.
-    bool willStartCapture(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier) const;
     UserMediaCaptureEnvironmentFailure applyCaptureEnvironment(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
     void reapplyCaptureEnvironmentForSource(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
     void startProducingData(WebCore::CaptureDevice::DeviceType, uint64_t pageIdentifier);
-    void startMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID);
-    void stopMonitoringCaptureDeviceRotation(uint64_t pageIdentifier, const String& persistentID);
+    RefPtr<IPC::Connection> uiProcessConnection() const { return m_connectionProxy->uiProcessConnection(); }
     UserMediaCaptureFramePublisher* WTF_NONNULL framePublisher(bool usesFrameHeap) SWIFT_RETURNS_RETAINED;
     static WebCore::CaptureConstraints* WTF_NULLABLE takeConstraints(IPC::CxxDecodedArgument<WebCore::MediaConstraints>&) SWIFT_RETURNS_RETAINED;
 
@@ -226,13 +219,16 @@ private:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
 
     // Implemented in Swift.
-    SWIFT_MAIN_ACTOR uintptr_t createSwiftState();
+    SWIFT_MAIN_ACTOR uintptr_t createSwiftState(uint64_t webProcessIdentifier);
     static void destroySwiftState(uintptr_t);
 
     const UniqueRef<ConnectionProxy> m_connectionProxy;
     // A retained reference to the Swift state, as an address, from the constructor to the destructor.
     uintptr_t m_swiftState { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// For the Swift state, which sends the UI process the rotation monitoring of its cameras.
+IPC::Connection* WTF_NULLABLE userMediaCaptureUIProcessConnection(const UserMediaCaptureManagerProxy&) SWIFT_RETURNS_RETAINED;
 
 }
 

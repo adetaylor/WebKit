@@ -239,8 +239,6 @@ public:
     SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, CapturePreviewLayer* WTF_NULLABLE);
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
-    SWIFT_MAIN_ACTOR void swiftSetCapturePreviewOrientation(int32_t);
-    SWIFT_MAIN_ACTOR void swiftCapturePreviewRotationChanged(String persistentID, uint16_t rotation);
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
 
     // For the capture preview (CapturePreviewManager.swift).
@@ -302,9 +300,6 @@ private:
 #if ENABLE(MEDIA_STREAM)
     void setMockCaptureDevicesEnabled(bool);
     void enableMicrophoneMuteStatusAPI();
-    void setOrientationForMediaCapture(WebCore::IntDegrees);
-    void rotationAngleForCaptureDeviceChanged(const String&, WebCore::VideoFrameRotation);
-    void updateCaptureAccess(bool allowAudioCapture, bool allowVideoCapture, bool allowDisplayCapture, bool willUseEchoCancellation, WebCore::ProcessIdentifier, CompletionHandler<void()>&&);
     void updateCaptureOrigin(const WebCore::SecurityOriginData&, WebCore::ProcessIdentifier);
 #if PLATFORM(COCOA)
     void startCapturePreview(std::optional<WebCore::CaptureDevice>&& videoDevice, std::optional<WebCore::CaptureDevice>&& audioDevice, WebCore::PageIdentifier, WebCore::IntSize previewSize, WebCore::IntDegrees orientation, Vector<SandboxExtension::Handle>&&, String&& applicationBundleIdentifier, WebCore::SecurityOriginData&&, CompletionHandler<void(WebCore::HostingContext)>&&);
@@ -369,13 +364,6 @@ private:
     GPUProcessPreferences m_preferences;
 
 #if ENABLE(MEDIA_STREAM)
-    struct MediaCaptureAccess {
-        bool allowAudioCapture { false };
-        bool allowVideoCapture { false };
-        bool allowDisplayCapture { false };
-        bool willUseEchoCancellation { false };
-    };
-    HashMap<WebCore::ProcessIdentifier, MediaCaptureAccess> m_mediaCaptureAccessMap;
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     // The layer the capture preview shows its camera in, while it does.
     RefPtr<CapturePreviewLayer> m_capturePreviewLayer;
@@ -390,7 +378,6 @@ private:
     Vector<Ref<SandboxExtension>> m_capturePreviewSandboxExtensions;
     const RefPtr<WorkQueue> m_videoMediaStreamTrackRendererQueue;
 #endif
-    WebCore::IntDegrees m_orientation { 0 };
 #endif
 #if USE(LIBWEBRTC) && PLATFORM(COCOA)
     const RefPtr<WorkQueue> m_libWebRTCCodecsQueue;
