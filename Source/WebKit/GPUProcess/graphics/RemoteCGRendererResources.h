@@ -106,6 +106,11 @@ private:
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
+    // The fonts, by identifier: the first that the recording kept, which is most often the only one, and the others.
+    RefPtr<RemoteCGRendererFont> font(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
+    Ref<RemoteCGRendererFont> addFont(WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>&&) __attribute__((availability(swift, unavailable)));
+    void setFont(WebCore::RenderingResourceIdentifier, const Ref<RemoteCGRendererFont>&) __attribute__((availability(swift, unavailable)));
+    std::optional<KeyValuePair<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>>> m_firstFont;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>> m_fonts;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
     // The cached SVG filters that DrawFilteredImageBuffer's filters name, with the message's effects merged in.

@@ -116,6 +116,10 @@ final class RemoteCGRendererRecorder {
     private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
     private var needsContext = false
     private var namesResources = false
+    // Whether its resources' video frame reader has state, from SetSharedVideoFrameSemaphore, SetSharedVideoFrameMemory or
+    // DrawVideoFrame.
+    @_expose(!Cxx)
+    private(set) var readVideoFrames = false
 
     @_expose(!Cxx)
     private init(resources: WebKit.RemoteCGRendererResources, displayLists: RemoteCGRendererDisplayLists) {
@@ -146,7 +150,9 @@ final class RemoteCGRendererRecorder {
             namesResources: namesResources
         )
         messages = []
-        recordedDisplayLists = [:]
+        if !recordedDisplayLists.isEmpty {
+            recordedDisplayLists = [:]
+        }
         needsContext = false
         namesResources = false
         return recording
@@ -229,16 +235,19 @@ final class RemoteCGRendererRecorder {
         shouldDiscardAlpha: WebCore.ShouldDiscardAlpha,
         options: WebCore.RasterDrawingOptions
     ) {
+        readVideoFrames = true
         resources.readVideoFrame(frame)
     }
 
     @_expose(!Cxx)
     func setSharedVideoFrameSemaphore(semaphore: borrowing IPC.Semaphore) {
+        readVideoFrames = true
         WebKit.setSharedVideoFrameSemaphore(resources, semaphore)
     }
 
     @_expose(!Cxx)
     func setSharedVideoFrameMemory(storageHandle: borrowing WebCore.SharedMemory.Handle) {
+        readVideoFrames = true
         WebKit.setSharedVideoFrameMemory(resources, storageHandle)
     }
     #endif

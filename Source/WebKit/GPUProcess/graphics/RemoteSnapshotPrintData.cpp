@@ -45,6 +45,8 @@ bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecord
 {
     if (!m_nativeImages.isEmpty() || !m_imageBuffers.isEmpty() || !m_meshGradients.isEmpty())
         return false;
+    if (m_firstFont)
+        recording.fonts.append({ m_firstFont->key, fonts.index(m_firstFont->value->sharedFont()) });
     for (auto& [identifier, font] : m_fonts)
         recording.fonts.append({ identifier, fonts.index(font->sharedFont()) });
     for (auto& [identifier, gradient] : m_gradients)
@@ -61,7 +63,7 @@ bool RemoteCGRendererRecordedResources::importFromPrint(RemoteSnapshotPrintRecor
     for (auto& [identifier, index] : recording.fonts) {
         if (index >= fonts.size())
             return false;
-        m_fonts.set(identifier, fonts[index]);
+        setFont(identifier, fonts[index]);
     }
     for (auto& [identifier, gradient] : recording.gradients)
         m_gradients.set(identifier, WTF::move(gradient));
