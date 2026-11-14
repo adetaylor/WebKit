@@ -1138,8 +1138,8 @@ struct ContentSecurityPolicyDirectiveListParser {
             return
         }
         m_haveSandboxPolicy = true
-        // Parses the flags with SecurityContext::parseSandboxPolicy, applies them, and reports the invalid tokens.
-        m_policy.enforceSandboxFlags(C.cspMakeString(value))
+        // Adds the flags parseSandboxPolicy() gives to the header's, and reports the invalid tokens.
+        m_policy.enforceSandboxFlags(value)
     }
 
     private mutating func setUpgradeInsecureRequests(_ directive: ParsedDirective) {

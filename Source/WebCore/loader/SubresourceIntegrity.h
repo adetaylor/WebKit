@@ -41,9 +41,6 @@ enum class ResourceResponseBaseTainting : uint8_t;
 
 // The algorithms below do not depend on CachedResource, so that any loader can use them.
 
-// https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata-section
-WEBCORE_EXPORT Vector<EncodedResourceCryptographicDigest> parseIntegrityMetadata(const String& metadata);
-
 // https://w3c.github.io/webappsec-subresource-integrity/#does-response-match-metadatalist
 // `digestForAlgorithm` lets callers that already hold digests of the bytes (e.g. CachedResource) avoid hashing them again.
 bool doBytesMatchMetadataList(ResourceResponseBaseTainting, NOESCAPE const ScopedLambda<ResourceCryptographicDigest(ResourceCryptographicDigest::Algorithm)>& digestForAlgorithm, const String& metadataList);

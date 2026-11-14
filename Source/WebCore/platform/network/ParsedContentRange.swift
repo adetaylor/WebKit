@@ -84,7 +84,7 @@ func contentRangeHeaderValue(_ firstBytePosition: Int64, _ lastBytePosition: Int
 /// The constructor keeps an invalid range's instance length, `ParsedContentRange::invalidLength`, and the positions
 /// parsed before the value failed.
 @inline(always)
-private func parseContentRangeBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+func parseContentRangeBody<CodeUnit: FixedWidthInteger & UnsignedInteger>(
     _ characters: Span<CodeUnit>
 ) -> WebCore.ParsedContentRange {
     let range = httpContentRangeValues(characters)

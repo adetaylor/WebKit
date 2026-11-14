@@ -34,32 +34,15 @@
 #include "NavigationRequester.h"
 #include "Page.h"
 #include "PingLoader.h"
-#include "RFC8941.h"
 #include "Report.h"
 #include "ReportingClient.h"
 #include "ResourceResponse.h"
 #include "ScriptExecutionContext.h"
 #include "SecurityPolicy.h"
 #include "ViolationReportType.h"
-#include <wtf/text/MakeString.h>
+#include "WebCore-Swift.h"
 
 namespace WebCore {
-
-static ASCIILiteral crossOriginOpenerPolicyToString(const CrossOriginOpenerPolicyValue& coop)
-{
-    switch (coop) {
-    case CrossOriginOpenerPolicyValue::SameOrigin:
-    case CrossOriginOpenerPolicyValue::SameOriginPlusCOEP:
-        return "same-origin"_s;
-    case CrossOriginOpenerPolicyValue::SameOriginAllowPopups:
-        return "same-origin-allow-popups"_s;
-    case CrossOriginOpenerPolicyValue::NoopenerAllowPopups:
-        return "noopener-allow-popups"_s;
-    case CrossOriginOpenerPolicyValue::UnsafeNone:
-        break;
-    }
-    return "unsafe-none"_s;
-}
 
 static ASCIILiteral crossOriginOpenerPolicyValueToEffectivePolicyString(CrossOriginOpenerPolicyValue coop)
 {
@@ -112,62 +95,6 @@ static void sendViolationReportWhenNavigatingAwayFromCOOPResponse(ReportingClien
     reportingClient.sendReportToEndpoints(coopURL, { }, singleElementSpan(endpoint), WTF::move(report), ViolationReportType::CrossOriginOpenerPolicy);
 }
 
-// https://html.spec.whatwg.org/multipage/origin.html#matching-coop
-static bool matchingCOOP(CrossOriginOpenerPolicyValue activeDocumentCOOPValue, const SecurityOrigin& activeDocumentNavigationOrigin, CrossOriginOpenerPolicyValue responseCOOPValue, const SecurityOrigin& responseOrigin)
-{
-    if (activeDocumentCOOPValue == CrossOriginOpenerPolicyValue::UnsafeNone && responseCOOPValue == CrossOriginOpenerPolicyValue::UnsafeNone)
-        return true;
-    if (activeDocumentCOOPValue == CrossOriginOpenerPolicyValue::UnsafeNone || responseCOOPValue == CrossOriginOpenerPolicyValue::UnsafeNone)
-        return false;
-    if (responseCOOPValue == CrossOriginOpenerPolicyValue::NoopenerAllowPopups)
-        return false;
-    if (activeDocumentCOOPValue == responseCOOPValue && activeDocumentNavigationOrigin.isSameOriginAs(responseOrigin))
-        return true;
-    return false;
-}
-
-// https://html.spec.whatwg.org/multipage/origin.html#check-browsing-context-group-switch-coop-value-popup
-static bool coopValuesRequireBrowsingContextGroupSwitchForPopup(CrossOriginOpenerPolicyValue activeDocumentCOOPValue, const SecurityOrigin& activeDocumentNavigationOrigin, CrossOriginOpenerPolicyValue responseCOOPValue, const SecurityOrigin& responseOrigin)
-{
-    if (responseCOOPValue == CrossOriginOpenerPolicyValue::NoopenerAllowPopups)
-        return true;
-
-    if ((activeDocumentCOOPValue == CrossOriginOpenerPolicyValue::SameOriginAllowPopups || activeDocumentCOOPValue == CrossOriginOpenerPolicyValue::NoopenerAllowPopups) && responseCOOPValue == CrossOriginOpenerPolicyValue::UnsafeNone)
-        return false;
-
-    if (matchingCOOP(activeDocumentCOOPValue, activeDocumentNavigationOrigin, responseCOOPValue, responseOrigin))
-        return false;
-
-    return true;
-}
-
-// https://html.spec.whatwg.org/multipage/origin.html#check-browsing-context-group-switch-coop-value
-bool coopValuesRequireBrowsingContextGroupSwitch(IsInitialAboutBlank isInitialAboutBlank, CrossOriginOpenerPolicyValue activeDocumentCOOPValue, const SecurityOrigin& activeDocumentNavigationOrigin, CrossOriginOpenerPolicyValue responseCOOPValue, const SecurityOrigin& responseOrigin)
-{
-    if (isInitialAboutBlank == IsInitialAboutBlank::Yes)
-        return coopValuesRequireBrowsingContextGroupSwitchForPopup(activeDocumentCOOPValue, activeDocumentNavigationOrigin, responseCOOPValue, responseOrigin);
-
-    if (matchingCOOP(activeDocumentCOOPValue, activeDocumentNavigationOrigin, responseCOOPValue, responseOrigin))
-        return false;
-
-    return true;
-}
-
-// https://html.spec.whatwg.org/multipage/origin.html#check-bcg-switch-navigation-report-only
-static bool checkIfEnforcingReportOnlyCOOPWouldRequireBrowsingContextGroupSwitch(IsInitialAboutBlank isInitialAboutBlank, const CrossOriginOpenerPolicy& activeDocumentCOOP, const SecurityOrigin& activeDocumentNavigationOrigin, const CrossOriginOpenerPolicy& responseCOOP, const SecurityOrigin& responseOrigin)
-{
-    if (!coopValuesRequireBrowsingContextGroupSwitch(isInitialAboutBlank, activeDocumentCOOP.reportOnlyValue, activeDocumentNavigationOrigin, responseCOOP.reportOnlyValue, responseOrigin))
-        return false;
-
-    if (coopValuesRequireBrowsingContextGroupSwitch(isInitialAboutBlank, activeDocumentCOOP.reportOnlyValue, activeDocumentNavigationOrigin, responseCOOP.value, responseOrigin))
-        return true;
-
-    if (coopValuesRequireBrowsingContextGroupSwitch(isInitialAboutBlank, activeDocumentCOOP.value, activeDocumentNavigationOrigin, responseCOOP.reportOnlyValue, responseOrigin))
-        return true;
-
-    return false;
-}
-
 // Non-initial empty documents (about:blank) should inherit their cross-origin-opener-policy from the navigation's initiator top level document,
 // if the initiator and its top level document are same-origin, or default (unsafe-none) otherwise.
 // https://github.com/whatwg/html/issues/6913
@@ -210,7 +137,7 @@ static CrossOriginOpenerPolicyEnforcementResult enforceResponseCrossOriginOpener
         sendViolationReportWhenNavigatingAwayFromCOOPResponse(reportingClient, currentCoopEnforcementResult.crossOriginOpenerPolicy, COOPDisposition::Enforce, currentCoopEnforcementResult.url, responseURL, currentCoopEnforcementResult.currentOrigin, responseOrigin, currentCoopEnforcementResult.isCurrentContextNavigationSource);
     }
 
-    if (checkIfEnforcingReportOnlyCOOPWouldRequireBrowsingContextGroupSwitch(isDisplayingInitialEmptyDocument ? IsInitialAboutBlank::Yes : IsInitialAboutBlank::No, currentCoopEnforcementResult.crossOriginOpenerPolicy, currentCoopEnforcementResult.currentOrigin, responseCOOP, responseOrigin)) {
+    if (crossOriginOpenerPolicyReportOnlyRequiresBrowsingContextGroupSwitch(isDisplayingInitialEmptyDocument ? IsInitialAboutBlank::Yes : IsInitialAboutBlank::No, currentCoopEnforcementResult.crossOriginOpenerPolicy.value, currentCoopEnforcementResult.crossOriginOpenerPolicy.reportOnlyValue, responseCOOP.value, responseCOOP.reportOnlyValue, currentCoopEnforcementResult.currentOrigin->isSameOriginAs(responseOrigin))) {
         newCOOPEnforcementResult.needsBrowsingContextGroupSwitchDueToReportOnly = true;
         sendViolationReportWhenNavigatingToCOOPResponse(reportingClient, responseCOOP, COOPDisposition::Reporting, responseURL, currentCoopEnforcementResult.url, responseOrigin, currentCoopEnforcementResult.currentOrigin, referrer);
         sendViolationReportWhenNavigatingAwayFromCOOPResponse(reportingClient, currentCoopEnforcementResult.crossOriginOpenerPolicy, COOPDisposition::Reporting, currentCoopEnforcementResult.url, responseURL, currentCoopEnforcementResult.currentOrigin, responseOrigin, currentCoopEnforcementResult.isCurrentContextNavigationSource);
@@ -219,56 +146,23 @@ static CrossOriginOpenerPolicyEnforcementResult enforceResponseCrossOriginOpener
     return newCOOPEnforcementResult;
 }
 
-static constexpr auto coopUnsafeNoneToken { "unsafe-none"_s };
-static constexpr auto coopSameOriginToken { "same-origin"_s };
-static constexpr auto coopSameOriginAllowPopupsToken { "same-origin-allow-popups"_s };
-static constexpr auto coopNoopenerAllowPopupsToken { "noopener-allow-popups"_s };
-
 bool isRecognizedCrossOriginOpenerPolicyToken(StringView token)
 {
-    return token == coopSameOriginToken || token == coopSameOriginAllowPopupsToken || token == coopNoopenerAllowPopupsToken || token == coopUnsafeNoneToken;
+    return token.is8Bit() ? isRecognizedCrossOriginOpenerPolicyToken8(token.span8()) : isRecognizedCrossOriginOpenerPolicyToken16(token.span16());
 }
 
 // https://html.spec.whatwg.org/multipage/origin.html#obtain-coop
 CrossOriginOpenerPolicy obtainCrossOriginOpenerPolicy(const ResourceResponse& response, CredentiallessSupport credentiallessSupport)
 {
-    std::optional<CrossOriginEmbedderPolicy> coep;
-    auto ensureCOEP = [&coep, &response, credentiallessSupport] -> CrossOriginEmbedderPolicy& {
-        if (!coep)
-            coep = obtainCrossOriginEmbedderPolicy(response, IsSecureContext::Yes, credentiallessSupport, nullptr);
-        return *coep;
-    };
-    auto parseCOOP = [&response, &ensureCOEP](HTTPHeaderName headerName, auto& value, auto& reportingEndpoint) {
-        auto coopParsingResult = RFC8941::parseItemStructuredFieldValue(response.httpHeaderField(headerName));
-        if (!coopParsingResult)
-            return;
-
-        auto* policyString = std::get_if<RFC8941::Token>(&coopParsingResult->first);
-        if (!policyString)
-            return;
-
-        if (policyString->string() == coopSameOriginToken) {
-            auto& coep = ensureCOEP();
-            if (isCompatibleWithCrossOriginIsolation(coep.value) || (headerName == HTTPHeaderName::CrossOriginOpenerPolicyReportOnly && isCompatibleWithCrossOriginIsolation(coep.reportOnlyValue)))
-                value = CrossOriginOpenerPolicyValue::SameOriginPlusCOEP;
-            else
-                value = CrossOriginOpenerPolicyValue::SameOrigin;
-        } else if (policyString->string() == coopSameOriginAllowPopupsToken)
-            value = CrossOriginOpenerPolicyValue::SameOriginAllowPopups;
-        else if (policyString->string() == coopNoopenerAllowPopupsToken)
-            value = CrossOriginOpenerPolicyValue::NoopenerAllowPopups;
-
-        if (auto* reportToString = coopParsingResult->second.getIf<String>("report-to"_s))
-            reportingEndpoint = *reportToString;
-    };
-
     CrossOriginOpenerPolicy policy;
     if (!SecurityOrigin::create(response.url())->isPotentiallyTrustworthy())
         return policy;
 
-    parseCOOP(HTTPHeaderName::CrossOriginOpenerPolicy, policy.value, policy.reportingEndpoint);
-    parseCOOP(HTTPHeaderName::CrossOriginOpenerPolicyReportOnly, policy.reportOnlyValue, policy.reportOnlyReportingEndpoint);
-    return policy;
+    policy = crossOriginOpenerPolicyFromHeaders(response.httpHeaderField(HTTPHeaderName::CrossOriginOpenerPolicy), response.httpHeaderField(HTTPHeaderName::CrossOriginOpenerPolicyReportOnly));
+    // The embedder policy is read only for a same-origin value, which it can make same-origin-plus-COEP.
+    if (policy.value != CrossOriginOpenerPolicyValue::SameOrigin && policy.reportOnlyValue != CrossOriginOpenerPolicyValue::SameOrigin)
+        return policy;
+    return crossOriginOpenerPolicyWithEmbedderPolicy(WTF::move(policy), response.httpHeaderField(HTTPHeaderName::CrossOriginEmbedderPolicy), response.httpHeaderField(HTTPHeaderName::CrossOriginEmbedderPolicyReportOnly), credentiallessSupport == CredentiallessSupport::Yes);
 }
 
 CrossOriginOpenerPolicy CrossOriginOpenerPolicy::isolatedCopy() const &
@@ -283,18 +177,7 @@ CrossOriginOpenerPolicy CrossOriginOpenerPolicy::isolatedCopy() &&
 
 void CrossOriginOpenerPolicy::addPolicyHeadersTo(ResourceResponse& response) const
 {
-    if (value != CrossOriginOpenerPolicyValue::UnsafeNone) {
-        if (reportingEndpoint.isEmpty())
-            response.setHTTPHeaderField(HTTPHeaderName::CrossOriginOpenerPolicy, crossOriginOpenerPolicyToString(value));
-        else
-            response.setHTTPHeaderField(HTTPHeaderName::CrossOriginOpenerPolicy, makeString(crossOriginOpenerPolicyToString(value), "; report-to=\""_s, reportingEndpoint, '\"'));
-    }
-    if (reportOnlyValue != CrossOriginOpenerPolicyValue::UnsafeNone) {
-        if (reportOnlyReportingEndpoint.isEmpty())
-            response.setHTTPHeaderField(HTTPHeaderName::CrossOriginOpenerPolicyReportOnly, crossOriginOpenerPolicyToString(reportOnlyValue));
-        else
-            response.setHTTPHeaderField(HTTPHeaderName::CrossOriginOpenerPolicyReportOnly, makeString(crossOriginOpenerPolicyToString(reportOnlyValue), "; report-to=\""_s, reportOnlyReportingEndpoint, '\"'));
-    }
+    securityPoliciesSetPolicyHeaders(response, HTTPHeaderName::CrossOriginOpenerPolicy, HTTPHeaderName::CrossOriginOpenerPolicyReportOnly, crossOriginOpenerPolicyHeaderValues(value, reportingEndpoint, reportOnlyValue, reportOnlyReportingEndpoint));
 }
 
 // https://html.spec.whatwg.org/multipage/browsing-the-web.html#process-a-navigate-fetch (Step 13.5.6)

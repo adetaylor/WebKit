@@ -74,32 +74,87 @@ struct ContentSecurityPolicyHashValue: Hashable {
     }
 }
 
-// A script's integrity digests, read from ContentSecurityPolicy when a source list with hashes first needs them.
+// A script's integrity digests, parsed from its integrity attribute when a source list with hashes first needs them:
+// each digest of its metadata that decodes, of every algorithm.
 struct ContentSecurityPolicyIntegrityDigests {
-    private let count: UInt32
-    private var digests: [WebCore.ContentSecurityPolicyDigest] = []
+    private let integrity: WTF.String
+    private var digests: [ContentSecurityPolicyHashValue] = []
+    private var isParsed = false
 
-    init(_ count: UInt32) {
-        self.count = count
+    init(_ integrity: consuming WTF.String) {
+        self.integrity = integrity
     }
 
     // Whether there are digests and `hashes` contains every one.
     mutating func areAllContained(_ hashes: borrowing Set<ContentSecurityPolicyHashValue>) -> Bool {
-        if count == 0 || hashes.isEmpty {
+        if hashes.isEmpty {
             return false
         }
-        if digests.isEmpty {
-            digests.reserveCapacity(Int(count))
-            for index in 0..<count {
-                digests.append(WebCore.ContentSecurityPolicyCallbacks.integrityDigest(index))
+        if !isParsed {
+            isParsed = true
+            let decodedDigests = subresourceIntegrityDecodedDigests(integrity)
+            digests.reserveCapacity(decodedDigests.count)
+            for digest in decodedDigests {
+                digests.append(ContentSecurityPolicyHashValue(makeContentSecurityPolicyDigest(digest.algorithm, digest.value.span)))
             }
         }
         let digests = self.digests.span
-        for index in 0..<digests.count where !hashes.contains(ContentSecurityPolicyHashValue(digests[index])) {
+        if digests.isEmpty {
+            return false
+        }
+        for index in 0..<digests.count where !hashes.contains(digests[index]) {
             return false
         }
         return true
     }
+}
+
+// The text between a hash-source's quotes: hash-algorithm "-" base64-value, whose value is at most maximumDigestLength
+// bytes. Anything else gives a digest with no algorithm.
+func contentSecurityPolicyHashSourceDigest<CodeUnit: FixedWidthInteger & UnsignedInteger>(
+    _ source: Span<CodeUnit>
+) -> WebCore.ContentSecurityPolicyDigest {
+    guard let extent = resourceCryptographicDigestExtent(source, from: 0), extent.value.upperBound == source.count,
+        let value = resourceCryptographicDigestValue(source.extracting(extent.value)),
+        value.count <= Int(contentSecurityPolicyMaximumDigestLength)
+    else {
+        return WebCore.ContentSecurityPolicyDigest()
+    }
+    return makeContentSecurityPolicyDigest(extent.algorithm, value.span)
+}
+
+// A digest with its bytes in the words' memory order, or with a length of 0xFF, which matches no hash source, when it
+// has more than maximumDigestLength bytes.
+func makeContentSecurityPolicyDigest(_ algorithm: UInt8, _ value: Span<UInt8>) -> WebCore.ContentSecurityPolicyDigest {
+    var digest = WebCore.ContentSecurityPolicyDigest()
+    digest.algorithm = algorithm
+    digest.length = 0xFF
+    if value.count > Int(contentSecurityPolicyMaximumDigestLength) {
+        return digest
+    }
+    // At most maximumDigestLength bytes.
+    digest.length = UInt8(truncatingIfNeeded: value.count)
+    digest.words = (
+        contentSecurityPolicyDigestWord(value, 0), contentSecurityPolicyDigestWord(value, 1),
+        contentSecurityPolicyDigestWord(value, 2), contentSecurityPolicyDigestWord(value, 3),
+        contentSecurityPolicyDigestWord(value, 4), contentSecurityPolicyDigestWord(value, 5),
+        contentSecurityPolicyDigestWord(value, 6), contentSecurityPolicyDigestWord(value, 7)
+    )
+    return digest
+}
+
+// The digest's bytes 8 * index to 8 * index + 7 in the word's memory order, zero past its length.
+private func contentSecurityPolicyDigestWord(_ value: Span<UInt8>, _ index: Int) -> UInt64 {
+    var word: UInt64 = 0
+    var byteIndex = index * 8
+    let end = Swift.min(byteIndex + 8, value.count)
+    var shift: UInt64 = 0
+    while byteIndex < end {
+        word |= UInt64(value[byteIndex]) &<< shift
+        shift += 8
+        byteIndex += 1
+    }
+    return UInt64(littleEndian: word)
 }
 
 private let noneKeyword: [UInt8] = Array("'none'".utf8)
@@ -465,7 +520,7 @@ struct ContentSecurityPolicySourceList {
                 continue
             }
 
-            if parseHashSource(token, policy, &store) {
+            if parseHashSource(token, &store) {
                 continue
             }
 
@@ -950,12 +1005,10 @@ struct ContentSecurityPolicySourceList {
     // base64-value  = 1*( ALPHA / DIGIT / "+" / "/" / "-" / "_" )*2( "=" )
     private mutating func parseHashSource<C: ContentSecurityPolicyCharacter>(
         _ token: Span<C>,
-        _ policy: ContentSecurityPolicyDirectiveListVector,
         _ store: inout ContentSecurityPolicySourceStore
     ) -> Bool {
-        // The quotes, the algorithm and the '-' parseCryptographicDigest needs are checked here, so only a token that
-        // could be a hash-source is handed to it, without its quotes. The policy checks the rest: the digest's
-        // characters and decoding.
+        // The quotes, the algorithm and the '-' are checked here, so only a token that could be a hash-source is parsed
+        // as a digest, without its quotes, which checks the rest: the digest's characters and decoding.
         if token.count < 8 || token[0].cspCodeUnit != 0x27 || token[7].cspCodeUnit != 0x2D {
             return false
         }
@@ -972,7 +1025,7 @@ struct ContentSecurityPolicySourceList {
         }
 
         // No algorithm when the rest is not a hash-source; a length above maximumDigestLength is not one either.
-        let digest = policy.parseHashSource(C.cspMakeString(token.extracting(1..<(token.count - 1))))
+        let digest = C.cspHashSourceDigest(token.extracting(1..<(token.count - 1)))
         if digest.algorithm == 0 || digest.length > contentSecurityPolicyMaximumDigestLength {
             return false
         }

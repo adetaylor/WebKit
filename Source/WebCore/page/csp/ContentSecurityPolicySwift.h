@@ -64,14 +64,10 @@ struct ContentSecurityPolicyContentHashes {
 // What ContentSecurityPolicy's Swift implementation asks of the policy it is called for, on the calling thread.
 struct ContentSecurityPolicyCallbacks {
     static void logToConsole(String message);
-    static String enforceSandboxPolicy(String policy);
     static bool isPublicSuffix(String host);
     static bool isLocalHostOrLoopbackIPAddress(String host);
     static bool decodedPathSegmentsMatch(String a, String b);
     static uint16_t defaultPort(bool isSecure);
-    static ContentSecurityPolicyDigest parseHashSource(String source);
-
-    static ContentSecurityPolicyDigest integrityDigest(unsigned index);
     // The URL of the ancestor at `index`, nearest first, made from its origin, or false past the last one.
     static bool frameAncestorURL(unsigned index, String& url, ContentSecurityPolicyURLBounds&);
     static String blockedURLForConsole();

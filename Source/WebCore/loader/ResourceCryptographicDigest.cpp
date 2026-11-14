@@ -28,78 +28,8 @@
 
 #include "SharedBuffer.h"
 #include <pal/crypto/CryptoDigest.h>
-#include <wtf/text/Base64.h>
-#include <wtf/text/ParsingUtilities.h>
-#include <wtf/text/StringParsingBuffer.h>
 
 namespace WebCore {
-
-template<typename CharacterType> static std::optional<ResourceCryptographicDigest::Algorithm> parseHashAlgorithmAdvancingPosition(StringParsingBuffer<CharacterType>& buffer)
-{
-    // FIXME: This would be much cleaner with a lookup table of pairs of label / algorithm enum values, but I can't
-    // figure out how to keep the labels compiletime strings for skipExactlyIgnoringASCIICase.
-
-    if (skipExactlyIgnoringASCIICase(buffer, "sha256"_s))
-        return ResourceCryptographicDigest::Algorithm::SHA256;
-    if (skipExactlyIgnoringASCIICase(buffer, "sha384"_s))
-        return ResourceCryptographicDigest::Algorithm::SHA384;
-    if (skipExactlyIgnoringASCIICase(buffer, "sha512"_s))
-        return ResourceCryptographicDigest::Algorithm::SHA512;
-
-    return std::nullopt;
-}
-
-template<typename CharacterType> static std::optional<ResourceCryptographicDigest> parseCryptographicDigestImpl(StringParsingBuffer<CharacterType>& buffer)
-{
-    if (buffer.atEnd())
-        return std::nullopt;
-
-    auto algorithm = parseHashAlgorithmAdvancingPosition(buffer);
-    if (!algorithm)
-        return std::nullopt;
-
-    if (!skipExactly(buffer, '-'))
-        return std::nullopt;
-
-    auto beginHashValue = buffer.span();
-    skipWhile<isBase64OrBase64URLCharacter>(buffer);
-    skipExactly(buffer, '=');
-    skipExactly(buffer, '=');
-
-    if (buffer.position() == beginHashValue.data())
-        return std::nullopt;
-
-    StringView hashValue(beginHashValue.first(buffer.position() - beginHashValue.data()));
-
-    if (auto digest = base64Decode(hashValue))
-        return ResourceCryptographicDigest { *algorithm, WTF::move(*digest) };
-
-    if (auto digest = base64URLDecode(hashValue))
-        return ResourceCryptographicDigest { *algorithm, WTF::move(*digest) };
-
-    return std::nullopt;
-}
-
-std::optional<ResourceCryptographicDigest> parseCryptographicDigest(StringParsingBuffer<char16_t>& buffer)
-{
-    return parseCryptographicDigestImpl(buffer);
-}
-
-std::optional<ResourceCryptographicDigest> parseCryptographicDigest(StringParsingBuffer<Latin1Character>& buffer)
-{
-    return parseCryptographicDigestImpl(buffer);
-}
-
-std::optional<ResourceCryptographicDigest> decodeEncodedResourceCryptographicDigest(const EncodedResourceCryptographicDigest& encodedDigest)
-{
-    if (auto digest = base64Decode(encodedDigest.digest))
-        return ResourceCryptographicDigest { encodedDigest.algorithm, WTF::move(*digest) };
-
-    if (auto digest = base64URLDecode(encodedDigest.digest))
-        return ResourceCryptographicDigest { encodedDigest.algorithm, WTF::move(*digest) };
-
-    return std::nullopt;
-}
 
 NODELETE static PAL::Crypto::CryptoDigest::Algorithm toCryptoDigestAlgorithm(ResourceCryptographicDigest::Algorithm algorithm)
 {
