@@ -55,6 +55,10 @@ import CompositorServices_Private
 #else
 import CompositorServices
 #endif
+// The SwiftUI overlays of CompositorServices and ARKit (CompositorLayer, RemoteDeviceIdentifier.cDevice), which the
+// development toolchain does not import with SwiftUI.
+import _ARKit_SwiftUI
+import _CompositorServices_SwiftUI
 
 @objc
 @implementation
