@@ -44,6 +44,10 @@ import ARKit
 import CompositorServices
 import Metal
 import SwiftUI
+// The SwiftUI overlays of CompositorServices and ARKit (CompositorLayer, RemoteDeviceIdentifier.cDevice), which the
+// development toolchain does not import with SwiftUI.
+import _ARKit_SwiftUI
+import _CompositorServices_SwiftUI
 import os
 
 @objc
