@@ -118,7 +118,7 @@ class LocalAudioSessionRoutingArbitrator;
 class RemoteAudioHardwareListenerProxy;
 class RemoteAudioSessionProxy;
 class RemoteAudioSessionProxyManager;
-class RemoteCDMFactoryProxy;
+class RemoteCDMPrivateFactory;
 class RemoteImageDecoderAVFProxy;
 class RemoteLegacyCDMFactoryProxy;
 class RemoteMediaEngineConfigurationFactoryProxy;
@@ -268,7 +268,13 @@ public:
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    RemoteCDMFactoryProxy& cdmFactoryProxy();
+    RemoteCDMPrivateFactory& cdmPrivateFactory();
+    // For the Swift EME receivers, which the connection's Swift state owns: the C++ CDMs' instances.
+    void removeCDMInstance(uint64_t identifier);
+    String cdmMediaKeysStorageDirectory() const { return mediaKeysStorageDirectory(); }
+    // Implemented in Swift: whether the identifier is a CDM instance's at all, since the Swift ClearKey instances have no
+    // C++ instance.
+    SWIFT_MAIN_ACTOR bool hasCDMInstance(uint64_t identifier) const;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -501,7 +507,7 @@ private:
     RemoteGPUMap m_remoteGPUMap;
 #endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    const RefPtr<RemoteCDMFactoryProxy> m_cdmFactoryProxy;
+    const RefPtr<RemoteCDMPrivateFactory> m_cdmPrivateFactory;
 #endif
 #if USE(AUDIO_SESSION)
     RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;
