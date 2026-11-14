@@ -35,7 +35,12 @@ final class RemoteRenderingBackendState {
     // The image buffer that the last lookup found, which the draws of one image buffer after another find without the
     // dictionary. Only while the receiver is in imageBuffers, so that it keeps the buffer no longer than the receiver does.
     private var lastFoundImageBuffer: (key: UInt64, imageBuffer: WebCore.ImageBuffer)?
-    var displayListRecorders: [RemoteIdentifierKey: RemoteCGRendererRecorder] = [:]
+    var displayListRecorders: [RemoteIdentifierKey: DisplayListRecorder] = [:]
+    // Recorders whose recordings became display lists, for the next recorders to reuse: a page makes many short display
+    // lists, such as one for each run of text it caches, in each rendering update.
+    var idleDisplayListRecorders: [DisplayListRecorder] = []
+    // False once the backend is uninitialized, after which an idle recorder would keep the backend that its resources keep.
+    var reusesDisplayListRecorders = true
     let displayLists = RemoteCGRendererDisplayLists.create()
 
     // False if a receiver already has the key.
@@ -71,6 +76,14 @@ final class RemoteRenderingBackendState {
     }
 }
 
+// A display list recorder and the forwarder of its messages, which the stream connection keeps while it receives them.
+struct DisplayListRecorder {
+    let recorder: RemoteCGRendererRecorder
+    let forwarder: RefRemoteCGRendererRecorderMessageForwarder
+}
+
+private let maximumIdleDisplayListRecorders = 16
+
 extension WebKit.RemoteRenderingBackend {
     @cxx
     @implementation
@@ -101,6 +114,8 @@ extension WebKit.RemoteRenderingBackend {
         }
         let recorders = state.displayListRecorders
         state.displayListRecorders = [:]
+        state.reusesDisplayListRecorders = false
+        state.idleDisplayListRecorders = []
         for identifier in recorders.keys {
             _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
@@ -170,16 +185,29 @@ extension WebKit.RemoteRenderingBackend {
         guard state.displayListRecorders[RemoteIdentifierKey(value: key)] == nil else {
             return false
         }
+        // The recorder starts receiving from the end of the idle ones, from where it moves without a copy of the forwarder.
+        if state.idleDisplayListRecorders.isEmpty {
+            state.idleDisplayListRecorders.append(makeDisplayListRecorder(state))
+        }
+        let started = IPC.tryStartReceivingSwiftMessages(
+            streamConnection(),
+            state.idleDisplayListRecorders[state.idleDisplayListRecorders.count - 1].forwarder,
+            .RemoteCGRenderer,
+            key
+        )
+        guard started else {
+            return false
+        }
+        state.displayListRecorders[RemoteIdentifierKey(value: key)] = state.idleDisplayListRecorders.removeLast()
+        return true
+    }
+
+    private func makeDisplayListRecorder(_ state: RemoteRenderingBackendState) -> DisplayListRecorder {
         let recorder = RemoteCGRendererRecorder.create(
             resources: WebKit.createDisplayListRecorderResources(self),
             displayLists: state.displayLists
         )
-        let forwarder = RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
-        guard IPC.tryStartReceivingSwiftMessages(streamConnection(), forwarder, .RemoteCGRenderer, key) else {
-            return false
-        }
-        state.displayListRecorders[RemoteIdentifierKey(value: key)] = recorder
-        return true
+        return DisplayListRecorder(recorder: recorder, forwarder: RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder))
     }
 
     // Makes what the recorder recorded the display list that the identifier names: false if there is no such recorder, or
@@ -192,11 +220,19 @@ extension WebKit.RemoteRenderingBackend {
     ) -> Bool {
         let state = self.state
         let key = identifier.toUInt64()
-        guard let recorder = state.displayListRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
+        guard let displayListRecorder = state.displayListRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
             return false
         }
-        _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)
-        return state.displayLists.add(recorder.takeRecording(), key: WebKit.displayListKey(displayListIdentifier))
+        let stopped = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)
+        let recorder = displayListRecorder.recorder
+        let added = state.displayLists.add(recorder.takeRecording(), key: WebKit.displayListKey(displayListIdentifier))
+        // A recorder that read video frames keeps the reader's state, which a new recorder doesn't have.
+        if stopped, state.reusesDisplayListRecorders, !recorder.readVideoFrames,
+            state.idleDisplayListRecorders.count < maximumIdleDisplayListRecorders
+        {
+            state.idleDisplayListRecorders.append(displayListRecorder)
+        }
+        return added
     }
 
     @cxx

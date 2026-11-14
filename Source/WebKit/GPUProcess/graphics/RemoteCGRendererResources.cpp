@@ -68,6 +68,34 @@ RemoteCGRendererRecordedResources::RemoteCGRendererRecordedResources() = default
 
 RemoteCGRendererRecordedResources::~RemoteCGRendererRecordedResources() = default;
 
+RefPtr<RemoteCGRendererFont> RemoteCGRendererRecordedResources::font(RenderingResourceIdentifier identifier) const
+{
+    if (m_firstFont && m_firstFont->key == identifier)
+        return m_firstFont->value.ptr();
+    return m_fonts.get(identifier);
+}
+
+Ref<RemoteCGRendererFont> RemoteCGRendererRecordedResources::addFont(RenderingResourceIdentifier identifier, Ref<RemoteCGRendererFont>&& font)
+{
+    if (!m_firstFont) {
+        m_firstFont.emplace(identifier, WTF::move(font));
+        return m_firstFont->value;
+    }
+    if (m_firstFont->key == identifier)
+        return m_firstFont->value;
+    return m_fonts.add(identifier, WTF::move(font)).iterator->value;
+}
+
+void RemoteCGRendererRecordedResources::setFont(RenderingResourceIdentifier identifier, const Ref<RemoteCGRendererFont>& font)
+{
+    if (!m_firstFont)
+        m_firstFont.emplace(identifier, font);
+    else if (m_firstFont->key == identifier)
+        m_firstFont->value = font;
+    else
+        m_fonts.set(identifier, font);
+}
+
 Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::copy() const
 {
     Ref copy = create();
@@ -75,6 +103,7 @@ Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::copy()
     copy->m_nativeImages = m_nativeImages;
     copy->m_imageBuffers = m_imageBuffers;
     copy->m_gradients = m_gradients;
+    copy->m_firstFont = m_firstFont;
     copy->m_fonts = m_fonts;
     copy->m_meshGradients = m_meshGradients;
     copy->m_filters = m_filters;
@@ -156,7 +185,7 @@ RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResour
 RefPtr<RemoteCGRendererFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
 {
     if (isReplaying())
-        return m_replayedResources.last()->m_fonts.get(identifier);
+        return m_replayedResources.last()->font(identifier);
     if (!m_backend)
         return nullptr;
     return m_backend->remoteResourceCache().cachedCGRendererFont(identifier);
@@ -280,7 +309,7 @@ bool RemoteCGRendererResources::recordGlyphs(RenderingResourceIdentifier fontIde
     if (!font)
         return false;
     // A recording draws every run of an identifier in the font it first recorded for it, as the print process does.
-    Ref recordedFont = m_recordedResources->m_fonts.add(fontIdentifier, font.releaseNonNull()).iterator->value;
+    Ref recordedFont = m_recordedResources->addFont(fontIdentifier, font.releaseNonNull());
     auto& run = glyphs.m_run.get();
     RELEASE_ASSERT(!run.font);
     run.facts = recordedFont->factsForGlyphs(run.glyphs.span());
