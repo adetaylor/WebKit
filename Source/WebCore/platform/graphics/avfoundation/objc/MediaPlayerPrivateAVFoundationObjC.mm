@@ -712,21 +712,6 @@ void MediaPlayerPrivateAVFoundationObjC::destroyVideoLayer()
     setNeedsRenderingModeChanged();
 }
 
-MediaTime MediaPlayerPrivateAVFoundationObjC::getStartDate() const
-{
-    // Date changes as the track's playback position changes. Must subtract currentTime (offset in seconds) from date offset to get date beginning
-    double date = [[m_avPlayerItem currentDate] timeIntervalSince1970];
-
-    // No live streams were made during the epoch (1970). AVFoundation returns 0 if the media file doesn't have a start date
-    if (!date)
-        return MediaTime::invalidTime();
-
-    double currentTime = PAL::CMTimeGetSeconds([m_avPlayerItem currentTime]);
-
-    // Rounding due to second offset error when subtracting.
-    return MediaTime::createWithDouble(round(date - currentTime));
-}
-
 bool MediaPlayerPrivateAVFoundationObjC::hasAvailableVideoFrame() const
 {
     if (currentRenderingMode() == MediaRenderingMode::MediaRenderingToLayer)
@@ -1714,68 +1699,10 @@ MediaTime MediaPlayerPrivateAVFoundationObjC::platformMaxTimeLoaded() const
     return m_buffered.maximumBufferedTime();
 }
 
-unsigned long long MediaPlayerPrivateAVFoundationObjC::totalBytes() const
-{
-    if (!metaDataAvailable())
-        return 0;
-
-    if (m_cachedTotalBytes)
-        return m_cachedTotalBytes;
-
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *thisTrack in m_cachedTracks.get())
-        m_cachedTotalBytes += [[thisTrack assetTrack] totalSampleDataLength];
-
-    return m_cachedTotalBytes;
-}
-
 void MediaPlayerPrivateAVFoundationObjC::setAsset(RetainPtr<id>&& asset)
 {
     m_avAsset = WTF::move(asset);
     processChapterTracks();
-}
-
-std::optional<bool> MediaPlayerPrivateAVFoundationObjC::allTracksArePlayable() const
-{
-    if (m_avPlayerItem) {
-        // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-        for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *track in [m_avPlayerItem tracks]) {
-            if (!trackIsPlayable(track.assetTrack))
-                return false;
-        }
-
-        return true;
-    }
-
-    if (!m_avAsset || [m_avAsset statusOfValueForKey:@"tracks" error:NULL] != AVKeyValueStatusLoaded)
-        return std::nullopt;
-
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVAssetTrack *assetTrack : [m_avAsset tracks]) {
-        if ([assetTrack isEnabled] && !trackIsPlayable(assetTrack))
-            return false;
-    }
-    return true;
-}
-
-bool MediaPlayerPrivateAVFoundationObjC::containsDisabledTracks() const
-{
-    if (m_avPlayerItem) {
-        // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-        for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *track in [m_avPlayerItem tracks]) {
-            if (![track isEnabled])
-                return true;
-        }
-        return false;
-    }
-
-    ASSERT(m_avAsset);
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVAssetTrack *assetTrack : [m_avAsset tracks]) {
-        if (![assetTrack isEnabled])
-            return true;
-    }
-    return false;
 }
 
 bool MediaPlayerPrivateAVFoundationObjC::trackIsPlayable(AVAssetTrack* track) const
@@ -1833,62 +1760,45 @@ bool MediaPlayerPrivateAVFoundationObjC::trackIsPlayable(AVAssetTrack* track) co
 
 MediaPlayerPrivateAVFoundation::AssetStatus MediaPlayerPrivateAVFoundationObjC::assetStatus() const
 {
-    if (!m_avAsset)
-        return MediaPlayerAVAssetStatusDoesNotExist;
-
-    if (!m_cachedAssetIsLoaded) {
-        NSError *error = nil;
-        auto status = [&] {
-            // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-            for (SUPPRESS_UNRETAINED_LOCAL NSString *keyName in assetMetadataKeyNamesSingleton()) {
-                AVKeyValueStatus keyStatus = [m_avAsset statusOfValueForKey:keyName error:&error];
-
-                if (error)
-                    ERROR_LOG(LOGIDENTIFIER, "failed for ", keyName, ", error = ", error);
-
-                if (keyStatus < AVKeyValueStatusLoaded)
-                    return MediaPlayerAVAssetStatusLoading; // At least one key is not loaded yet.
-
-                if (keyStatus == AVKeyValueStatusFailed)
-                    return MediaPlayerAVAssetStatusFailed; // At least one key could not be loaded.
-
-                if (keyStatus == AVKeyValueStatusCancelled)
-                    return MediaPlayerAVAssetStatusCancelled; // Loading of at least one key was cancelled.
-            }
-            return MediaPlayerAVAssetStatusLoaded;
-        }();
-        if (status != MediaPlayerAVAssetStatusLoaded) {
-            if (status != MediaPlayerAVAssetStatusFailed)
-                return status;
-            if (([error.domain isEqualToString:@"AVFoundationErrorDomain"] && error.code == AVErrorServerIncorrectlyConfigured)
-                || [error.domain isEqualToString:@"NSURLErrorDomain"])
-                return MediaPlayerAVAssetStatusNetworkError;
+    if (!m_avAsset || !m_cachedAssetIsLoaded || loadingMetadata() || m_cachedTracksArePlayable == MediaPlayerAVFoundationCachedAnswer::Unknown
+        || m_cachedAssetIsHLS == MediaPlayerAVFoundationCachedAnswer::Unknown || m_cachedAssetIsPlayable == MediaPlayerAVFoundationCachedAnswer::Unknown) {
+        auto status = fillAssetStatusCaches();
+        if (status != MediaPlayerAVAssetStatusLoaded)
             return status;
-        }
-        m_cachedAssetIsLoaded = true;
     }
 
-    // m_loadingMetadata will be false until all tracks' properties have finished loading.
-    // See: beginLoadingMetadata().
-    if (loadingMetadata())
-        return MediaPlayerAVAssetStatusLoading;
-
-    if (!m_cachedTracksArePlayable) {
-        m_cachedTracksArePlayable = allTracksArePlayable();
-        if (!m_cachedTracksArePlayable)
-            return MediaPlayerAVAssetStatusLoading;
-    }
-
-    if (!m_cachedAssetIsHLS)
-        m_cachedAssetIsHLS = [[m_avAsset variants] count] > 0;
-
-    if (!m_cachedAssetIsPlayable)
-        m_cachedAssetIsPlayable = [[m_avAsset valueForKey:@"playable"] boolValue] || containsDisabledTracks();
-
-    if (*m_cachedAssetIsPlayable && *m_cachedTracksArePlayable)
+    if (m_cachedAssetIsPlayable == MediaPlayerAVFoundationCachedAnswer::Yes && m_cachedTracksArePlayable == MediaPlayerAVFoundationCachedAnswer::Yes)
         return MediaPlayerAVAssetStatusPlayable;
 
     return MediaPlayerAVAssetStatusLoaded;
+}
+
+MediaPlayerPrivateAVFoundation::AssetStatus MediaPlayerPrivateAVFoundationObjC::assetKeysStatus() const
+{
+    NSError *error = nil;
+    auto status = [&] {
+        // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
+        for (SUPPRESS_UNRETAINED_LOCAL NSString *keyName in assetMetadataKeyNamesSingleton()) {
+            AVKeyValueStatus keyStatus = [m_avAsset statusOfValueForKey:keyName error:&error];
+
+            if (error)
+                ERROR_LOG(LOGIDENTIFIER, "failed for ", keyName, ", error = ", error);
+
+            if (keyStatus < AVKeyValueStatusLoaded)
+                return MediaPlayerAVAssetStatusLoading; // At least one key is not loaded yet.
+
+            if (keyStatus == AVKeyValueStatusFailed)
+                return MediaPlayerAVAssetStatusFailed; // At least one key could not be loaded.
+
+            if (keyStatus == AVKeyValueStatusCancelled)
+                return MediaPlayerAVAssetStatusCancelled; // Loading of at least one key was cancelled.
+        }
+        return MediaPlayerAVAssetStatusLoaded;
+    }();
+    if (status == MediaPlayerAVAssetStatusFailed
+        && (([error.domain isEqualToString:@"AVFoundationErrorDomain"] && error.code == AVErrorServerIncorrectlyConfigured) || [error.domain isEqualToString:@"NSURLErrorDomain"]))
+        return MediaPlayerAVAssetStatusNetworkError;
+    return status;
 }
 
 long MediaPlayerPrivateAVFoundationObjC::assetErrorCode() const
@@ -3008,17 +2918,6 @@ AVAssetTrack* MediaPlayerPrivateAVFoundationObjC::firstEnabledVisibleTrack() con
     return firstEnabledTrack(AVMediaCharacteristicVisual);
 }
 
-bool MediaPlayerPrivateAVFoundationObjC::hasLoadedMediaSelectionGroups()
-{
-    if (!m_avAsset)
-        return false;
-
-    if ([m_avAsset statusOfValueForKey:@"availableMediaCharacteristicsWithMediaSelectionOptions" error:NULL] != AVKeyValueStatusLoaded)
-        return false;
-
-    return true;
-}
-
 AVMediaSelectionGroup* MediaPlayerPrivateAVFoundationObjC::safeMediaSelectionGroupForLegibleMedia()
 {
     if (!hasLoadedMediaSelectionGroups())
@@ -4097,51 +3996,14 @@ MediaPlayerAVFoundationHost::~MediaPlayerAVFoundationHost() = default;
 
 bool MediaPlayerAVFoundationHost::willLog(MediaPlayerAVFoundationLogLevel level) const
 {
-#if !RELEASE_LOG_DISABLED
     RefPtr player = m_player.get();
-    if (!player)
-        return false;
-    // The logger filters again, and tells its observers.
-    switch (level) {
-    case MediaPlayerAVFoundationLogLevel::Always:
-    case MediaPlayerAVFoundationLogLevel::Error:
-        return player->logger().enabled();
-    case MediaPlayerAVFoundationLogLevel::Info:
-        return player->logger().willLog(player->logChannel(), WTFLogLevel::Info, { });
-    case MediaPlayerAVFoundationLogLevel::Debug:
-        return player->logger().willLog(player->logChannel(), WTFLogLevel::Debug, { });
-    }
-#else
-    UNUSED_PARAM(level);
-#endif
-    return false;
+    return player && player->willLogFromSwift(level);
 }
 
 void MediaPlayerAVFoundationHost::log(MediaPlayerAVFoundationLogLevel level, WTF::SpanUInt8 message NOESCAPE) const
 {
-#if !RELEASE_LOG_DISABLED
-    RefPtr player = m_player.get();
-    if (!player)
-        return;
-    auto text = String::fromUTF8(message);
-    switch (level) {
-    case MediaPlayerAVFoundationLogLevel::Always:
-        ALWAYS_LOG_WITH_THIS(player, LOGIDENTIFIER_WITH_THIS(player), text);
-        return;
-    case MediaPlayerAVFoundationLogLevel::Error:
-        ERROR_LOG_WITH_THIS(player, LOGIDENTIFIER_WITH_THIS(player), text);
-        return;
-    case MediaPlayerAVFoundationLogLevel::Info:
-        INFO_LOG_WITH_THIS(player, LOGIDENTIFIER_WITH_THIS(player), text);
-        return;
-    case MediaPlayerAVFoundationLogLevel::Debug:
-        DEBUG_LOG_WITH_THIS(player, LOGIDENTIFIER_WITH_THIS(player), text);
-        return;
-    }
-#else
-    UNUSED_PARAM(level);
-    UNUSED_PARAM(message);
-#endif
+    if (RefPtr player = m_player.get())
+        player->logFromSwift(level, message);
 }
 
 void MediaPlayerAVFoundationHost::queueChange(uint64_t identifier) const

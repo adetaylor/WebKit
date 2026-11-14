@@ -3720,6 +3720,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/MediaPlayerAVFoundationCore.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
         ${WEBCORE_DIR}/platform/graphics/avfoundation/WebCoreAVFResourceLoader.swift

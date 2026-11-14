@@ -78,7 +78,11 @@ class VideoLayerManagerObjC;
 class VideoTrackPrivateAVFObjC;
 class WebCoreAVFResourceLoader;
 
-class WEBCORE_EXPORT MediaPlayerPrivateAVFoundationObjC final : public MediaPlayerPrivateAVFoundation {
+enum class MediaPlayerAVFoundationCachedAnswer : uint8_t { Unknown, No, Yes };
+
+// MediaPlayerPrivateAVFoundation.swift implements what the readiness state machine asks of the asset: its status,
+// whether its tracks are playable, its start date and size, and whether its media selection groups have loaded.
+class WEBCORE_EXPORT SWIFT_PRIVATE_FILEID("WebCore/MediaPlayerPrivateAVFoundation.swift") MediaPlayerPrivateAVFoundationObjC final : public MediaPlayerPrivateAVFoundation {
 public:
     explicit MediaPlayerPrivateAVFoundationObjC(MediaPlayer&);
     virtual ~MediaPlayerPrivateAVFoundationObjC();
@@ -216,7 +220,7 @@ private:
     void sizeChanged() final;
     void resolvedURLChanged() final;
 
-    bool isHLS() const final { return m_cachedAssetIsHLS.value_or(false); }
+    bool isHLS() const final { return m_cachedAssetIsHLS == MediaPlayerAVFoundationCachedAnswer::Yes; }
 
     bool hasAvailableVideoFrame() const final;
 
@@ -360,9 +364,11 @@ private:
 
     void setShouldDisableHDR(bool) final;
 
-    std::optional<bool> allTracksArePlayable() const;
-    bool containsDisabledTracks() const;
     bool trackIsPlayable(AVAssetTrack*) const;
+    // The status of the asset's metadata keys, or Loaded once they have all loaded.
+    MediaPlayerPrivateAVFoundation::AssetStatus assetKeysStatus() const;
+    // Implemented in Swift: assetStatus() until the asset's caches below are all known, filling them; Loaded once they are.
+    MediaPlayerPrivateAVFoundation::AssetStatus fillAssetStatusCaches() const;
 
     std::optional<VideoPlaybackQualityMetrics> videoPlaybackQualityMetrics(AVPlayerLayer*) const;
 
@@ -484,9 +490,9 @@ private:
     bool m_cachedIsReadyForDisplay { false };
     bool m_haveBeenAskedToCreateLayer { false };
     mutable bool m_cachedAssetIsLoaded { false };
-    mutable std::optional<bool> m_cachedAssetIsPlayable;
-    mutable std::optional<bool> m_cachedTracksArePlayable;
-    mutable std::optional<bool> m_cachedAssetIsHLS;
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedAssetIsPlayable { MediaPlayerAVFoundationCachedAnswer::Unknown };
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedTracksArePlayable { MediaPlayerAVFoundationCachedAnswer::Unknown };
+    mutable MediaPlayerAVFoundationCachedAnswer m_cachedAssetIsHLS { MediaPlayerAVFoundationCachedAnswer::Unknown };
     bool m_volumeLocked { false };
     bool m_muted { false };
     bool m_preservesPitch { true };
