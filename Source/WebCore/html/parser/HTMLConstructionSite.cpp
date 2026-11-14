@@ -114,3 +114,10 @@ bool isValidCustomElementName(const AtomString& name)
 }
 
 } // namespace WebCore
+
+#if OS(WINDOWS)
+// FIXME: HTMLConstructionSite.swift releases HTMLUnknownElement nodes, and their CheckedPtr operator delete calls
+// secureZeroBytes<HTMLUnknownElement>. On Windows the Swift compiler references that instantiation without emitting
+// it, so it is instantiated here.
+template void WTF::secureZeroBytes<WebCore::HTMLUnknownElement>(WebCore::HTMLUnknownElement&);
+#endif
