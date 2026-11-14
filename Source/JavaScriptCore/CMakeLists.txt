@@ -1832,11 +1832,11 @@ endif ()
 WEBKIT_FRAMEWORK_DECLARE(JavaScriptCore)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
-# JSBigInt's digit arithmetic and the JSON parser have no C++ implementation, so every port compiles their Swift. Each
-# imports only a header that includes only the standard library, so one command compiles it whole-module into an
-# object JavaScriptCore links, and writes the header its C++ includes, with libJavaScriptCore.xcconfig's,
-# JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift settings.
-set(WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS "" CACHE STRING "Extra swiftc flags for JSBigInt's Swift digit arithmetic")
+# libJavaScriptCore's Swift (JSBigInt's digit arithmetic) and the JSON parser have no C++ implementation, so every
+# port compiles their Swift. One command compiles each whole-module into an object JavaScriptCore links, and writes the
+# header its C++ includes, with libJavaScriptCore.xcconfig's, JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift
+# settings.
+set(WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS "" CACHE STRING "Extra swiftc flags for libJavaScriptCore's Swift (JSCSwift)")
 set(_jsc_swift_platform_flags -O -g)
 if (WIN32)
     cmake_path(CONVERT "$ENV{SDKROOT}" TO_CMAKE_PATH_LIST _jsc_swift_sdk)
@@ -1869,7 +1869,11 @@ set(_jsc_swift_shared_flags
     -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib
     -Xfrontend -emit-clang-header-min-access -Xfrontend internal)
 
-set(_jsc_bigint_swift_sources
+# libJavaScriptCore's Swift, the module JSCSwift. It imports JSCSwiftBoundary.modulemap's headers, which include
+# JavaScriptCore's, WTF's and bmalloc's, so the Clang importer is given JavaScriptCore's installed headers and the
+# directories its C++ finds the others in, the -D set every Swift target's importer gets, and wtf/Platform.h's and
+# cmakeconfig.h's values.
+set(_jsc_swift_sources
     runtime/JSBigIntDigits.swift
     runtime/JSBigIntDigitsAddSub.swift
     runtime/JSBigIntDigitsDivide.swift
@@ -1877,35 +1881,92 @@ set(_jsc_bigint_swift_sources
     runtime/JSBigIntDigitsMultiply.swift
     runtime/JSBigIntDigitsPrimitives.swift
 )
-list(TRANSFORM _jsc_bigint_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
-set(_jsc_bigint_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
-set(_jsc_bigint_swift_obj "${_jsc_bigint_swift_dir}/JSCSwift.${_jsc_swift_object_suffix}")
-set(_jsc_bigint_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift-Swift.h")
-file(MAKE_DIRECTORY "${_jsc_bigint_swift_dir}")
-set(_jsc_bigint_swift_flags
+list(TRANSFORM _jsc_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
+set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
+set(_jsc_swift_obj "${_jsc_swift_dir}/JSCSwift.${_jsc_swift_object_suffix}")
+set(_jsc_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift-Swift.h")
+set(_jsc_swift_depfile "${_jsc_swift_dir}/JSCSwift.d")
+file(MAKE_DIRECTORY "${_jsc_swift_dir}")
+# The module's dependency file, for the headers it imports.
+file(WRITE "${_jsc_swift_dir}/output-file-map.json" "{\"\": {\"dependencies\": \"${_jsc_swift_depfile}\"}}\n")
+# The boundary's headers include JavaScriptCore's private headers by name. The importer reads a copy of
+# JSCSwiftBoundary.modulemap and of the headers it names, away from the sources, and none of JavaScriptCore's source
+# directories or header maps, so those includes resolve to the installed private headers, and so to
+# JavaScriptCore_Private's submodules, which the Swift imports too, as in Xcode, whose header maps name the framework's
+# headers. Through the sources, the importer would parse those headers' declarations a second time, outside the module.
+set(_jsc_swift_boundary_dir "${_jsc_swift_dir}/boundary")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap")
+file(STRINGS "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap" _jsc_swift_boundary_headers REGEX "^ *header \"")
+list(TRANSFORM _jsc_swift_boundary_headers REPLACE "^ *header \"([^\"]+)\".*$" "\\1")
+set(_jsc_swift_boundary_inputs "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap")
+set(_jsc_swift_boundary_outputs "${_jsc_swift_boundary_dir}/module.modulemap")
+set(_jsc_swift_boundary_copies COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap" "${_jsc_swift_boundary_dir}/module.modulemap")
+foreach (_header IN LISTS _jsc_swift_boundary_headers)
+    cmake_path(GET _header PARENT_PATH _header_dir)
+    file(MAKE_DIRECTORY "${_jsc_swift_boundary_dir}/${_header_dir}")
+    list(APPEND _jsc_swift_boundary_inputs "${JAVASCRIPTCORE_DIR}/${_header}")
+    list(APPEND _jsc_swift_boundary_outputs "${_jsc_swift_boundary_dir}/${_header}")
+    list(APPEND _jsc_swift_boundary_copies COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${JAVASCRIPTCORE_DIR}/${_header}" "${_jsc_swift_boundary_dir}/${_header}")
+endforeach ()
+add_custom_command(
+    OUTPUT ${_jsc_swift_boundary_outputs}
+    ${_jsc_swift_boundary_copies}
+    DEPENDS ${_jsc_swift_boundary_inputs}
+    COMMENT "Copying JSCSwiftBoundary.modulemap and its headers"
+    VERBATIM)
+set(_jsc_swift_importer_resp "${_jsc_swift_dir}/JSCSwift.importer.resp")
+file(GENERATE OUTPUT "${_jsc_swift_importer_resp}"
+    CONTENT "-Xcc\n-I${JavaScriptCore_PRIVATE_HEADERS_DIR}\n-Xcc\n-I$<JOIN:$<FILTER:$<FILTER:$<TARGET_PROPERTY:JavaScriptCore,INCLUDE_DIRECTORIES>,EXCLUDE,\\.hmap$>,EXCLUDE,^${JAVASCRIPTCORE_DIR}>,\n-Xcc\n-I>\n")
+set(_jsc_swift_platform_resp "${_jsc_swift_dir}/JSCSwift.platform-swift-args.resp")
+_webkit_generate_platform_swift_args(JSCSwift "${_jsc_swift_platform_resp}")
+_WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS(_jsc_swift_importer_defines)
+list(TRANSFORM _jsc_swift_importer_defines PREPEND "-Xcc;")
+set(_jsc_swift_flags
     -module-name JSCSwift ${_jsc_swift_shared_flags} ${_jsc_swift_platform_flags}
-    -Xcc "-fmodule-map-file=${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
+    "@${_jsc_swift_importer_resp}" "@${_jsc_swift_platform_resp}" ${_jsc_swift_importer_defines}
+    -Xcc "-fmodule-map-file=${_jsc_swift_boundary_dir}/module.modulemap"
     -Xcc -fno-exceptions -Xcc -fignore-exceptions
-    -enable-experimental-feature ForeignReferenceTypeInheritance
-    -Werror StrictMemorySafety -Werror ForeignReferenceType -Werror ExistentialAny)
+    -enable-experimental-feature ForeignReferenceTypeInheritance -enable-experimental-feature CxxImplementation
+    -enable-upcoming-feature NonisolatedNonsendingByDefault -Xfrontend -disable-round-trip-debug-types
+    -Werror StrictMemorySafety -Werror ForeignReferenceType -Werror ExistentialAny -Werror RegionIsolation
+    -Werror NoUsage -Werror NoUseUnstructuredThrowingTask -Werror UnnecessaryEffectMarker -Werror UnusedImportAccess
+    -Werror VariableNeverMutated)
+if (APPLE)
+    # JavaScriptCore_Private, the framework's private module, which the boundary's headers reach.
+    list(APPEND _jsc_swift_flags -F "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+endif ()
 if (WIN32 AND WTF_CPU_X86_64)
     # swiftc targets x86_64 with cmpxchg16b, which clang-cl does not. The Swift functions need the same target
     # features as the C++ that calls them, or the LTO inliner does not inline them into it.
-    list(APPEND _jsc_bigint_swift_flags -Xcc -mno-cx16)
+    list(APPEND _jsc_swift_flags -Xcc -mno-cx16)
 endif ()
-separate_arguments(_jsc_bigint_swift_extra NATIVE_COMMAND "${WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS}")
+separate_arguments(_jsc_swift_extra NATIVE_COMMAND "${WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS}")
 add_custom_command(
-    OUTPUT "${_jsc_bigint_swift_obj}" "${_jsc_bigint_swift_hdr}"
-    COMMAND "${ORIGINAL_Swift_COMPILER}" ${_jsc_bigint_swift_flags} ${_jsc_bigint_swift_extra}
-        -emit-clang-header-path "${_jsc_bigint_swift_hdr}"
-        -c ${_jsc_bigint_swift_sources} -o "${_jsc_bigint_swift_obj}"
-    DEPENDS ${_jsc_bigint_swift_sources} "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
-        "${JAVASCRIPTCORE_DIR}/runtime/JSBigIntSwiftDigits.h"
+    OUTPUT "${_jsc_swift_obj}" "${_jsc_swift_hdr}"
+    COMMAND "${ORIGINAL_Swift_COMPILER}" ${_jsc_swift_flags} ${_jsc_swift_extra}
+        -emit-clang-header-path "${_jsc_swift_hdr}"
+        -emit-dependencies -output-file-map "${_jsc_swift_dir}/output-file-map.json"
+        -c ${_jsc_swift_sources} -o "${_jsc_swift_obj}"
+    DEPENDS ${_jsc_swift_sources} ${_jsc_swift_boundary_outputs} "${_jsc_swift_importer_resp}" "${_jsc_swift_platform_resp}"
+    DEPFILE "${_jsc_swift_depfile}"
     COMMENT "Compiling JSCSwift"
     VERBATIM)
-add_custom_target(JSCSwift DEPENDS "${_jsc_bigint_swift_obj}" "${_jsc_bigint_swift_hdr}")
-list(APPEND JavaScriptCore_SOURCES "${_jsc_bigint_swift_obj}")
-set_source_files_properties("${_jsc_bigint_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+add_custom_target(JSCSwift DEPENDS "${_jsc_swift_obj}" "${_jsc_swift_hdr}")
+# The headers the importer reads: JavaScriptCore's generated and private headers, WTF's and bmalloc's.
+add_dependencies(JSCSwift JavaScriptCore_CopyHeaders JavaScriptCore_CopyPrivateHeaders)
+if (TARGET WTF_CopyHeaders)
+    add_dependencies(JSCSwift WTF_CopyHeaders)
+endif ()
+if (TARGET bmalloc_CopyHeaders)
+    add_dependencies(JSCSwift bmalloc_CopyHeaders)
+endif ()
+if (TARGET JavaScriptCore_CopyModules)
+    add_dependencies(JSCSwift JavaScriptCore_CopyModules)
+endif ()
+list(APPEND JavaScriptCore_SOURCES "${_jsc_swift_obj}")
+set_source_files_properties("${_jsc_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 # JSBigInt.cpp, in a unified source, includes the generated header.
 list(APPEND JavaScriptCore_DEPENDENCIES JSCSwift)
 
