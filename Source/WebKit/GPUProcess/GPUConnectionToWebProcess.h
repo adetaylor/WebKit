@@ -56,6 +56,10 @@
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+#include "RemoteAudioDestinationIdentifier.h"
+#endif
+
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 #include "SampleBufferDisplayLayerIdentifier.h"
 #endif
@@ -98,13 +102,20 @@ class SecurityOriginData;
 
 namespace WebKit {
 
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+// The output unit of an audio destination that iOS's spatial experience is set on, 0 if there's no such destination, and
+// whether its web process preferred a spatial experience when it made it.
+struct RemoteAudioDestinationSpatialTarget {
+    uint64_t outputUnitIdentifier { 0 };
+    bool prefersSpatialAudioExperience { false };
+};
+#endif
+
 class GPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxy;
 class LocalAudioSessionRoutingArbitrator;
-class RemoteAudioDestinationManager;
 class RemoteAudioHardwareListenerProxy;
-class RemoteAudioMediaStreamTrackRendererInternalUnitManager;
 class RemoteAudioSessionProxy;
 class RemoteAudioSessionProxyManager;
 class RemoteCDMFactoryProxy;
@@ -196,6 +207,22 @@ public:
     SWIFT_MAIN_ACTOR uint64_t swiftRemoteCommandTargetSession() const;
     SWIFT_MAIN_ACTOR void swiftNowPlayingClientDidClose();
 
+    // For IPC::registerSwiftReceiver(): routes the web process's messages for the receiver name and destination, 0 for
+    // all of them, to the receiver until removeSwiftReceiver(). The connection's Swift state registers the receivers it owns.
+    bool addSwiftReceiver(IPC::ReceiverName, uint64_t identifier, IPC::MessageReceiver&);
+    void removeSwiftReceiver(IPC::ReceiverName, uint64_t identifier);
+
+    // For the Swift receivers.
+    void tryExitIfUnusedAndUnderMemoryPressure();
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    // Asks the web process to reset the track renderer unit, whose timeline jumped.
+    void resetAudioMediaStreamTrackRendererInternalUnit(uint64_t identifier);
+    static bool isAudioSessionInterrupted();
+#endif
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    void audioDestinationWasDeleted(uint64_t destinationIdentifier);
+#endif
+
     Ref<RemoteSharedResourceCache> sharedResourceCache();
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -237,7 +264,6 @@ public:
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     void startCapturingAudio();
     void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
-    bool isLastToCaptureAudio() const { return m_isLastToCaptureAudio; }
 #endif
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
@@ -319,18 +345,29 @@ private:
     GPUConnectionToWebProcess(GPUProcess&, WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&);
 
     // Implemented in Swift.
-    uintptr_t createSwiftState(uint64_t webProcessIdentifier);
+    uintptr_t createSwiftState(uint64_t webProcessIdentifier, bool isLockdownModeEnabled);
     // Unsafe: the state must be the one createSwiftState() made, which only the destructor releases.
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     // m_swiftState, for Swift, which can only read it.
     uintptr_t swiftState() const { return m_swiftState; }
 
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    RemoteAudioDestinationManager& remoteAudioDestinationManager();
-#endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UserMediaCaptureManagerProxy& userMediaCaptureManagerProxy();
-    RemoteAudioMediaStreamTrackRendererInternalUnitManager& audioMediaStreamTrackRendererInternalUnitManager();
+
+    // Implemented in Swift: for the track renderer units, whether this connection's process is the one that most recently
+    // started capturing audio, and the audio session's interruptions.
+    SWIFT_MAIN_ACTOR void swiftLastToCaptureAudioChanged(bool isLastToCaptureAudio);
+    SWIFT_MAIN_ACTOR void swiftBeginAudioSessionInterruption();
+    SWIFT_MAIN_ACTOR void swiftEndAudioSessionInterruption();
+
+    void setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID);
+#endif
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    // Implemented in Swift.
+    SWIFT_MAIN_ACTOR RemoteAudioDestinationSpatialTarget swiftAudioDestinationSpatialTarget(uint64_t destinationIdentifier);
+
+    void setAudioDestinationSceneIdentifier(RemoteAudioDestinationIdentifier, String&& sceneIdentifier);
 #endif
 
     void createRenderingBackend(RemoteRenderingBackendIdentifier, IPC::StreamServerConnection::Handle&&);
@@ -413,8 +450,8 @@ private:
     const Ref<GPUProcess> m_gpuProcess;
     const WebCore::ProcessIdentifier m_webProcessIdentifier;
     const WebCore::ProcessIdentity m_webProcessIdentity;
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    const std::unique_ptr<RemoteAudioDestinationManager> m_remoteAudioDestinationManager;
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    HashMap<uint64_t, String> m_audioDestinationSceneIdentifiers;
 #endif
     const RefPtr<RemoteSharedResourceCache> m_sharedResourceCache;
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -429,8 +466,8 @@ private:
     PAL::SessionID m_sessionID;
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     RefPtr<UserMediaCaptureManagerProxy> m_userMediaCaptureManagerProxy;
-    const std::unique_ptr<RemoteAudioMediaStreamTrackRendererInternalUnitManager> m_audioMediaStreamTrackRendererInternalUnitManager;
-    bool m_isLastToCaptureAudio { false };
+    class AudioSessionInterruptionForwarder;
+    const RefPtr<AudioSessionInterruptionForwarder> m_audioSessionInterruptionForwarder;
 
     const Ref<RemoteSampleBufferDisplayLayerManager> m_sampleBufferDisplayLayerManager;
 #endif

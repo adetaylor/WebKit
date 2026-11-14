@@ -43,8 +43,6 @@
 #include "MediaOverridesForTesting.h"
 #include "MessageSenderInlines.h"
 #include "RemoteAudioHardwareListenerProxy.h"
-#include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
-#include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
 #include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
 #if ENABLE(GPU_PROCESS_MODEL)
@@ -107,11 +105,6 @@
 #include "UserMediaCaptureManagerProxyMessages.h"
 #endif
 
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-#include "RemoteAudioDestinationManager.h"
-#include "RemoteAudioDestinationManagerMessages.h"
-#endif
-
 #if USE(AUDIO_SESSION)
 #include "RemoteAudioSessionProxy.h"
 #include "RemoteAudioSessionProxyManager.h"
@@ -163,6 +156,16 @@
 #include <WebCore/CoreAudioCaptureUnit.h>
 #endif
 
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+#include <WebCore/AudioMediaStreamTrackRenderer.h>
+#include <WebCore/AudioSession.h>
+#endif
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY) && HAVE(SPATIAL_AUDIO_EXPERIENCE)
+#include <WebCore/AudioOutputUnit.h>
+#include <WebCore/SpatialAudioExperienceHelper.h>
+#endif
+
 #if ENABLE(MEDIA_STREAM)
 #include <WebCore/SecurityOrigin.h>
 #endif
@@ -193,6 +196,45 @@ using namespace WebCore;
 
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+
+// Tells the connection's Swift track renderer units about the audio session's interruptions.
+class GPUConnectionToWebProcess::AudioSessionInterruptionForwarder final : public WebCore::AudioSessionInterruptionObserver, public RefCounted<AudioSessionInterruptionForwarder> {
+    WTF_MAKE_TZONE_ALLOCATED_INLINE(AudioSessionInterruptionForwarder);
+public:
+    static Ref<AudioSessionInterruptionForwarder> create(GPUConnectionToWebProcess& connection)
+    {
+        return adoptRef(*new AudioSessionInterruptionForwarder(connection));
+    }
+
+    ~AudioSessionInterruptionForwarder()
+    {
+        WebCore::AudioSession::removeInterruptionObserver(*this);
+    }
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+private:
+    explicit AudioSessionInterruptionForwarder(GPUConnectionToWebProcess& connection)
+        : m_connection(connection)
+    {
+        WebCore::AudioSession::addInterruptionObserver(*this);
+    }
+
+    void beginAudioSessionInterruption() final
+    {
+        if (RefPtr connection = m_connection.get())
+            connection->swiftBeginAudioSessionInterruption();
+    }
+
+    void endAudioSessionInterruption(WebCore::AudioSession::MayResume) final
+    {
+        if (RefPtr connection = m_connection.get())
+            connection->swiftEndAudioSessionInterruption();
+    }
+
+    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
+};
 
 class GPUProxyForCapture final : public UserMediaCaptureManagerProxy::ConnectionProxy {
     WTF_MAKE_TZONE_ALLOCATED_INLINE(GPUProxyForCapture);
@@ -333,6 +375,7 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
 #endif
     , m_sessionID(sessionID)
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    , m_audioSessionInterruptionForwarder(AudioSessionInterruptionForwarder::create(*this))
     , m_sampleBufferDisplayLayerManager(RemoteSampleBufferDisplayLayerManager::create(*this, parameters.sharedPreferencesForWebProcess))
 #endif
 #if ENABLE(MEDIA_STREAM)
@@ -358,7 +401,7 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
 {
     RELEASE_ASSERT(RunLoop::isMain());
 
-    m_swiftState = createSwiftState(m_webProcessIdentifier.toUInt64());
+    m_swiftState = createSwiftState(m_webProcessIdentifier.toUInt64(), m_isLockdownModeEnabled);
 
     // This must be called before any media playback function is invoked.
     enableMediaPlaybackIfNecessary();
@@ -461,9 +504,6 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     if (RefPtr userMediaCaptureManagerProxy = std::exchange(m_userMediaCaptureManagerProxy, nullptr))
         userMediaCaptureManagerProxy->close();
-    // Its Swift state keeps it until then.
-    if (m_audioMediaStreamTrackRendererInternalUnitManager)
-        m_audioMediaStreamTrackRendererInternalUnitManager->clear();
 #endif
 #if ENABLE(VIDEO)
     protect(videoFrameObjectHeap())->close();
@@ -575,15 +615,8 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
         return false;
 #endif
 
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    RefPtr remoteAudioDestinationManager = m_remoteAudioDestinationManager.get();
-    if (remoteAudioDestinationManager && !remoteAudioDestinationManager->allowsExitUnderMemoryPressure())
-        return false;
-#endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     if (m_userMediaCaptureManagerProxy && m_userMediaCaptureManagerProxy->hasSourceProxies())
-        return false;
-    if (m_audioMediaStreamTrackRendererInternalUnitManager && m_audioMediaStreamTrackRendererInternalUnitManager->hasUnits())
         return false;
     if (!m_sampleBufferDisplayLayerManager->allowsExitUnderMemoryPressure())
         return false;
@@ -637,13 +670,53 @@ void GPUConnectionToWebProcess::lowMemoryHandler(Critical critical, Synchronous 
 #endif
 }
 
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-RemoteAudioDestinationManager& GPUConnectionToWebProcess::remoteAudioDestinationManager()
+bool GPUConnectionToWebProcess::addSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier, IPC::MessageReceiver& receiver)
 {
-    if (!m_remoteAudioDestinationManager)
-        lazyInitialize(m_remoteAudioDestinationManager, makeUniqueWithoutRefCountedCheck<RemoteAudioDestinationManager>(*this));
+    if (!identifier)
+        m_messageReceiverMap.addMessageReceiver(receiverName, receiver);
+    else
+        m_messageReceiverMap.addMessageReceiver(receiverName, identifier, receiver);
+    return true;
+}
 
-    return *m_remoteAudioDestinationManager;
+void GPUConnectionToWebProcess::removeSwiftReceiver(IPC::ReceiverName receiverName, uint64_t identifier)
+{
+    if (!identifier)
+        m_messageReceiverMap.removeMessageReceiver(receiverName);
+    else
+        m_messageReceiverMap.removeMessageReceiver(receiverName, identifier);
+}
+
+void GPUConnectionToWebProcess::tryExitIfUnusedAndUnderMemoryPressure()
+{
+    protect(gpuProcess())->tryExitIfUnusedAndUnderMemoryPressure();
+}
+
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+void GPUConnectionToWebProcess::setAudioDestinationSceneIdentifier(RemoteAudioDestinationIdentifier identifier, String&& sceneIdentifier)
+{
+    auto target = swiftAudioDestinationSpatialTarget(identifier.toUInt64());
+    if (!target.outputUnitIdentifier)
+        return;
+    auto& currentSceneIdentifier = m_audioDestinationSceneIdentifiers.add(identifier.toUInt64(), String { }).iterator->value;
+    if (currentSceneIdentifier == sceneIdentifier)
+        return;
+    currentSceneIdentifier = WTF::move(sceneIdentifier);
+#if HAVE(SPATIAL_AUDIO_EXPERIENCE)
+    if (!target.prefersSpatialAudioExperience) {
+        RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING ", but !prefersSpatialAudioExperience, so bailing", identifier.toUInt64(), currentSceneIdentifier.utf8().data());
+        return;
+    }
+
+    RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING, identifier.toUInt64(), currentSceneIdentifier.utf8().data());
+    RetainPtr experience = WebCore::createSpatialAudioExperienceWithOptions({ .sceneIdentifier = currentSceneIdentifier });
+    WebCore::AudioOutputUnit::setSpatialAudioExperience(target.outputUnitIdentifier, experience.get());
+#endif
+}
+
+void GPUConnectionToWebProcess::audioDestinationWasDeleted(uint64_t identifier)
+{
+    m_audioDestinationSceneIdentifiers.remove(identifier);
 }
 #endif
 
@@ -655,12 +728,23 @@ UserMediaCaptureManagerProxy& GPUConnectionToWebProcess::userMediaCaptureManager
     return *m_userMediaCaptureManagerProxy;
 }
 
-RemoteAudioMediaStreamTrackRendererInternalUnitManager& GPUConnectionToWebProcess::audioMediaStreamTrackRendererInternalUnitManager()
+void GPUConnectionToWebProcess::resetAudioMediaStreamTrackRendererInternalUnit(uint64_t identifier)
 {
-    if (!m_audioMediaStreamTrackRendererInternalUnitManager)
-        lazyInitialize(m_audioMediaStreamTrackRendererInternalUnitManager, makeUniqueWithoutRefCountedCheck<RemoteAudioMediaStreamTrackRendererInternalUnitManager>(*this));
+    protect(connection())->send(Messages::GPUProcessConnection::ResetAudioMediaStreamTrackRendererInternalUnit { AudioMediaStreamTrackRendererInternalUnitIdentifier { identifier } }, 0);
+}
 
-    return *m_audioMediaStreamTrackRendererInternalUnitManager;
+bool GPUConnectionToWebProcess::isAudioSessionInterrupted()
+{
+    return WebCore::AudioSession::singleton().isInterrupted();
+}
+
+void GPUConnectionToWebProcess::setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID)
+{
+#if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
+    protect(audioSessionProxy())->setPreferredSpeakerID(deviceID != WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID() ? deviceID : emptyString());
+#else
+    UNUSED_PARAM(deviceID);
+#endif
 }
 #endif
 
@@ -1097,12 +1181,6 @@ void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTes
 
 bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
-#if ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-    if (decoder.messageReceiverName() == Messages::RemoteAudioDestinationManager::messageReceiverName()) {
-        protect(remoteAudioDestinationManager())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-#endif
 #if ENABLE(VIDEO)
     if (decoder.messageReceiverName() == Messages::RemoteMediaPlayerManagerProxy::messageReceiverName()) {
         protect(remoteMediaPlayerManagerProxy())->didReceiveMessageFromWebProcess(connection, decoder);
@@ -1117,10 +1195,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     if (decoder.messageReceiverName() == Messages::UserMediaCaptureManagerProxy::messageReceiverName()) {
         protect(userMediaCaptureManagerProxy())->didReceiveMessageFromGPUProcess(connection, decoder);
-        return true;
-    }
-    if (decoder.messageReceiverName() == Messages::RemoteAudioMediaStreamTrackRendererInternalUnitManager::messageReceiverName()) {
-        protect(audioMediaStreamTrackRendererInternalUnitManager())->didReceiveMessage(connection, decoder);
         return true;
     }
 #endif
@@ -1373,9 +1447,7 @@ void GPUConnectionToWebProcess::startCapturingAudio()
 
 void GPUConnectionToWebProcess::processIsStartingToCaptureAudio(GPUConnectionToWebProcess& process)
 {
-    m_isLastToCaptureAudio = this == &process;
-    if (RefPtr manager = m_audioMediaStreamTrackRendererInternalUnitManager.get())
-        manager->notifyLastToCaptureAudioChanged();
+    swiftLastToCaptureAudioChanged(this == &process);
 }
 #endif
 

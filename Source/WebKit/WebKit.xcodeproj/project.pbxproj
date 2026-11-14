@@ -2119,8 +2119,6 @@
 		9B02E0CC235EB957004044B2 /* _WKTextManipulationItem.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B02E0CA235EB884004044B2 /* _WKTextManipulationItem.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9B02E0D1235EB953004044B2 /* _WKTranslationDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B02E0D0235EB62D004044B2 /* _WKTranslationDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9B02E0D7235FC94F004044B2 /* _WKTextManipulationToken.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B02E0CD235EB967004044B2 /* _WKTextManipulationToken.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		9B1229CD23FF25F2008CA751 /* RemoteAudioDestinationManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B1229CB23FF25F2008CA751 /* RemoteAudioDestinationManager.h */; };
-		9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9B1229CC23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp */; };
 		9B1229D223FF2BCC008CA751 /* RemoteAudioDestinationIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B1229D023FF2A5E008CA751 /* RemoteAudioDestinationIdentifier.h */; };
 		9B12A4D62C73C155008A9AAB /* _WKPageLoadTiming.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B12A4D42C73C155008A9AAB /* _WKPageLoadTiming.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		9B12A4DC2C746D16008A9AAB /* _WKPageLoadTimingInternal.h in Headers */ = {isa = PBXBuildFile; fileRef = 9B12A4DB2C746D16008A9AAB /* _WKPageLoadTimingInternal.h */; };
@@ -5927,8 +5925,6 @@
 		41C3B88526444AAB004ED4DE /* AudioMediaStreamTrackRendererInternalUnitManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioMediaStreamTrackRendererInternalUnitManager.h; sourceTree = "<group>"; };
 		41C3B88626444AAC004ED4DE /* AudioMediaStreamTrackRendererInternalUnitManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AudioMediaStreamTrackRendererInternalUnitManager.cpp; sourceTree = "<group>"; };
 		41C3B88726444AD3004ED4DE /* AudioMediaStreamTrackRendererInternalUnitIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AudioMediaStreamTrackRendererInternalUnitIdentifier.h; sourceTree = "<group>"; };
-		41C3B89026493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioMediaStreamTrackRendererInternalUnitManager.h; sourceTree = "<group>"; };
-		41C3B89126493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAudioMediaStreamTrackRendererInternalUnitManager.cpp; sourceTree = "<group>"; };
 		41C3B89426493B7C004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in; sourceTree = "<group>"; };
 		41C5378F21F1362D008B1FAD /* _WKWebsiteDataStoreDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKWebsiteDataStoreDelegate.h; sourceTree = "<group>"; };
 		41C979112F6BE87500CC77F2 /* WebRTCNetworkBase.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebRTCNetworkBase.h; sourceTree = "<group>"; };
@@ -7970,8 +7966,6 @@
 		EE8DDFA0C506A366A09FA182 /* SharedVideoFrameImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedVideoFrameImpl.swift; sourceTree = "<group>"; };
 		9B033E71252580F300501071 /* IPCTestingAPI.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCTestingAPI.h; sourceTree = "<group>"; };
 		9B033E72252580F300501071 /* IPCTestingAPI.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPCTestingAPI.cpp; sourceTree = "<group>"; };
-		9B1229CB23FF25F2008CA751 /* RemoteAudioDestinationManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioDestinationManager.h; sourceTree = "<group>"; };
-		9B1229CC23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteAudioDestinationManager.cpp; sourceTree = "<group>"; };
 		9B1229CF23FF2814008CA751 /* RemoteAudioDestinationManager.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteAudioDestinationManager.messages.in; sourceTree = "<group>"; };
 		9B1229D023FF2A5E008CA751 /* RemoteAudioDestinationIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteAudioDestinationIdentifier.h; sourceTree = "<group>"; };
 		9B12A4D42C73C155008A9AAB /* _WKPageLoadTiming.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = _WKPageLoadTiming.h; sourceTree = "<group>"; };
@@ -10148,8 +10142,6 @@
 				5C046A1B290B26CF00FF7820 /* InitializationSegmentInfo.serialization.in */,
 				5C046A19290B26CE00FF7820 /* MediaDescriptionInfo.h */,
 				5C046A1A290B26CF00FF7820 /* MediaDescriptionInfo.serialization.in */,
-				9B1229CC23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp */,
-				9B1229CB23FF25F2008CA751 /* RemoteAudioDestinationManager.h */,
 				9B1229CF23FF2814008CA751 /* RemoteAudioDestinationManager.messages.in */,
 				C67A04F7A09E99C20F74D929 /* RemoteAudioDestinationManager.swift */,
 				CD20CE7525CC999F0069B542 /* RemoteAudioHardwareListenerProxy.cpp */,
@@ -14490,8 +14482,6 @@
 				F8007191CE11D81698746D2C /* LibWebRTCCodecsProxy.swift */,
 				1AC3E2A2A6F9841EC3479C9F /* LibWebRTCCodecsProxyDecoder.swift */,
 				6D5132DB5A87B4BDB10812A9 /* LibWebRTCCodecsProxyEncoder.swift */,
-				41C3B89126493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.cpp */,
-				41C3B89026493B7B004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.h */,
 				41C3B89426493B7C004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in */,
 				9D9A7173313F5691BC414AFF /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift */,
 				41FCD6B423CDCAC200C62567 /* RemoteSampleBufferDisplayLayer.h */,
@@ -19316,7 +19306,6 @@
 				71C9EC9F2CF9FB6400B8AF06 /* RemoteAnimationTimeline.h in Headers */,
 				7114EA442EBCB3FD00190912 /* RemoteAnimationUtilities.h in Headers */,
 				9B1229D223FF2BCC008CA751 /* RemoteAudioDestinationIdentifier.h in Headers */,
-				9B1229CD23FF25F2008CA751 /* RemoteAudioDestinationManager.h in Headers */,
 				9B5BEC2A240101580070C6EF /* RemoteAudioDestinationProxy.h in Headers */,
 				CDBB49FD240D9A720017C292 /* RemoteAudioSessionConfiguration.h in Headers */,
 				513C7B782E7CFD1100079881 /* RemoteAudioVideoRendererState.h in Headers */,
@@ -22781,7 +22770,6 @@
 				DD5697CE2DC06F7700050321 /* rdar150228472.swift in Sources */,
 				6DAE1F965DD7CAE4D530D40E /* RemoteAdapter.swift in Sources */,
 				F22096AAC6CB39F166D57453 /* RemoteAdapterMessageReceiver.swift in Sources */,
-				9B1229CE23FF25F2008CA751 /* RemoteAudioDestinationManager.cpp in Sources */,
 				3592DEBDFAC2733BD1784AED /* RemoteAudioDestinationManager.swift in Sources */,
 				E35DB5B58EE56E795DC83725 /* RemoteAudioDestinationManagerMessageReceiver.swift in Sources */,
 				A25F4E66CB48F7E263FD5498 /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift in Sources */,

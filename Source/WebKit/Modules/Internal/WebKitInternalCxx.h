@@ -41,6 +41,7 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcess.h"
 #include "GPUProcessMessages.h"
+#include "SwiftReceiverRegistration.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
@@ -67,7 +68,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
-#include "RemoteAudioDestinationManager.h"
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
@@ -83,7 +83,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-#include "RemoteAudioMediaStreamTrackRendererInternalUnitManager.h"
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
 #endif
 

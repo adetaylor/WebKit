@@ -77,6 +77,10 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UpdateSampleBufferDisplayLayerBoundsAndPosition(WebKit::SampleBufferDisplayLayerIdentifier identifier, WebCore::FloatRect bounds, std::optional<MachSendRightAnnotated> fence);
+    [EnabledBy=UseGPUProcessForMediaEnabled] SetLastAudioMediaStreamTrackRendererDeviceUsed(String deviceID)
+#endif
+#if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
+    [EnabledBy=WebAudioEnabled] SetAudioDestinationSceneIdentifier(WebKit::RemoteAudioDestinationIdentifier identifier, String sceneIdentifier)
 #endif
 
 #if ENABLE(EXTENSION_CAPABILITIES)
