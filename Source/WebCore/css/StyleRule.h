@@ -140,7 +140,8 @@ public:
     // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
     SWIFT_UNSAFE void wrapperAdoptSelectorList(CSSSelectorList&&);
 
-    Vector<Ref<StyleRule>> splitIntoMultipleRulesWithMaximumSelectorComponentCount(unsigned) const;
+    // Unsafe to Swift: Swift infers the returned Vector<Ref<StyleRule>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE Vector<Ref<StyleRule>> splitIntoMultipleRulesWithMaximumSelectorComponentCount(unsigned) const;
 
     // Unsafe to Swift: the caller invalidates every RuleSet built from the rule, as CSSOM's RuleMutationScope does.
     SWIFT_UNSAFE void adoptSelectorList(CSSSelectorList&&);
@@ -178,8 +179,9 @@ public:
     NODELETE Ref<StyleRuleWithNesting> copy() const;
     ~StyleRuleWithNesting();
 
-    const Vector<Ref<StyleRuleBase>>& nestedRules() const LIFETIME_BOUND { return m_nestedRules; }
-    Vector<Ref<StyleRuleBase>>& nestedRules() LIFETIME_BOUND { return m_nestedRules; }
+    // Unsafe to Swift: Swift infers a copy of the returned Vector<Ref<...>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE const Vector<Ref<StyleRuleBase>>& nestedRules() const LIFETIME_BOUND { return m_nestedRules; }
+    SWIFT_UNSAFE Vector<Ref<StyleRuleBase>>& nestedRules() LIFETIME_BOUND { return m_nestedRules; }
     const CSSSelectorList& originalSelectorList() const LIFETIME_BOUND { return m_originalSelectorList; }
 
     // Used by CSSOM.
@@ -314,10 +316,12 @@ private:
 
 class StyleRuleGroup : public StyleRuleBase {
 public:
-    NODELETE WEBCORE_EXPORT const Vector<Ref<StyleRuleBase>>& childRules() const;
+    // Unsafe to Swift: Swift infers a copy of the returned Vector<Ref<...>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE NODELETE WEBCORE_EXPORT const Vector<Ref<StyleRuleBase>>& childRules() const;
 
-    void wrapperInsertRule(unsigned, Ref<StyleRuleBase>&&);
-    void wrapperRemoveRule(unsigned);
+    // Unsafe to Swift: the index is not checked (CSSOM checks it before calling).
+    SWIFT_UNSAFE void wrapperInsertRule(unsigned, Ref<StyleRuleBase>&&);
+    SWIFT_UNSAFE void wrapperRemoveRule(unsigned);
 
     friend class CSSGroupingRule;
     friend class CSSStyleSheet;
