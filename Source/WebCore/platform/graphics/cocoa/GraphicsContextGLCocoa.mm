@@ -79,15 +79,6 @@ CVPixelBufferRef GLContextCallbacks::convertPixelBufferTo420f(CVPixelBufferRef p
 }
 #endif
 
-IOSurfaceRef GLContextCallbacks::createDrawingBufferSurface(uint64_t contextID, int32_t width, int32_t height)
-{
-    // Only a GraphicsContextGLCocoa makes the Cocoa platform, which is what calls this.
-    auto* context = static_cast<GraphicsContextGLCocoa*>(GraphicsContextGLANGLE::contextForCallback(contextID));
-    if (!context)
-        return nullptr;
-    return context->createDrawingBufferSurface({ width, height }).leakRef();
-}
-
 RefPtr<GraphicsContextGLCocoa> GraphicsContextGLCocoa::create(GraphicsContextGLAttributes&& attributes, ProcessIdentity&& resourceOwner)
 {
     auto context = adoptRef(*new GraphicsContextGLCocoa(WTF::move(attributes), WTF::move(resourceOwner)));
@@ -114,19 +105,18 @@ GraphicsContextGLCocoa::~GraphicsContextGLCocoa()
 
 IOSurface* GraphicsContextGLCocoa::displayBufferSurface()
 {
-    auto island = islandCalls();
-    if (!island.hasPlatform())
-        return nullptr;
-    auto surface = adoptCF(island.displayBufferSurface());
-    if (!surface)
+    auto state = swiftDisplayBufferSurfaceState();
+    if (!state)
         return nullptr;
     auto& surfaces = m_displayBufferSurfaces;
     for (auto& displayBufferSurface : surfaces) {
-        if (displayBufferSurface && displayBufferSurface->surface() == surface.get())
+        if (displayBufferSurface && displayBufferSurface->m_swiftState == state) {
+            IOSurface::destroySwiftState(state);
             return displayBufferSurface.get();
+        }
     }
     auto& displayBufferSurface = surfaces[m_nextDisplayBufferSurface++ % surfaces.size()];
-    displayBufferSurface = IOSurface::createFromSurface(surface.get(), std::nullopt);
+    displayBufferSurface = IOSurface::adoptSwiftState(state);
     return displayBufferSurface.get();
 }
 
@@ -150,11 +140,11 @@ bool GraphicsContextGLCocoa::platformInitializeContext()
     uint32_t ownershipIdentity = 0;
 #endif
     auto maximumSurfaceSize = IOSurface::maximumSize();
-    auto island = islandCalls();
-    if (!island.createCocoaPlatform(contextID(), attributes.isWebGL2, attributes.alpha, std::to_underlying(attributes.powerPreference), windowGPUID, xrCompatible, ownershipIdentity, maximumSurfaceSize.width(), maximumSurfaceSize.height())) {
+    if (!swiftCreateCocoaPlatform(contextID(), attributes.isWebGL2, attributes.alpha, attributes.premultipliedAlpha, std::to_underlying(attributes.powerPreference), windowGPUID, xrCompatible, ownershipIdentity, maximumSurfaceSize.width(), maximumSurfaceSize.height())) {
         LOG(WebGL, "EGLContext Initialization failed.");
         return false;
     }
+    auto island = islandCalls();
     m_displayObj = ANGLEHandles::unwrap(island.platformDisplay());
     m_configObj = ANGLEHandles::unwrap(island.platformConfig());
     m_contextObj = ANGLEHandles::unwrap(island.platformContext());
@@ -188,9 +178,9 @@ bool GraphicsContextGLCocoa::reshapeDrawingBuffer()
     return false;
 }
 
-RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::copySurfaceBuffer(SurfaceBuffer bufferType)
+std::unique_ptr<IOSurface> GraphicsContextGLCocoa::copySurfaceBuffer(SurfaceBuffer bufferType)
 {
-    return adoptCF(islandCalls().copySurfaceBuffer(std::to_underlying(bufferType)));
+    return IOSurface::adoptSwiftState(swiftCopySurfaceBufferState(bufferType));
 }
 
 void GraphicsContextGLCocoa::setDrawingBufferColorSpace(const ColorSpace& colorSpace)
@@ -200,22 +190,7 @@ void GraphicsContextGLCocoa::setDrawingBufferColorSpace(const ColorSpace& colorS
     if (m_drawingBufferColorSpace == colorSpace)
         return;
     m_drawingBufferColorSpace = colorSpace;
-    islandCalls().drawingBufferColorSpaceDidChange();
-}
-
-RetainPtr<IOSurfaceRef> GraphicsContextGLCocoa::createDrawingBufferSurface(IntSize size)
-{
-    IOSurface::IOSurfaceOptions options;
-#if HAVE(IOSURFACE_ALPHA_CHANNEL_MODE)
-    if (contextAttributes().alpha)
-        options.alphaPremultiplication = contextAttributes().premultipliedAlpha ? AlphaPremultiplication::Premultiplied : AlphaPremultiplication::Unpremultiplied;
-#endif
-    auto surface = IOSurface::create(nullptr, size, m_drawingBufferColorSpace, IOSurface::Name::GraphicsContextGL, IOSurface::Format::BGRA, UseLosslessCompression::No, options);
-    if (!surface)
-        return nullptr;
-    if (m_resourceOwner)
-        surface->setOwnershipIdentity(m_resourceOwner);
-    return surface->surface();
+    swiftDrawingBufferColorSpaceDidChange();
 }
 
 bool GraphicsContextGLCocoa::hasSpareDrawingBuffersInUse() const
@@ -474,12 +449,12 @@ RefPtr<VideoFrame> GraphicsContextGLCocoa::surfaceBufferToVideoFrame(SurfaceBuff
         return nullptr;
     if (buffer == SurfaceBuffer::DrawingBuffer)
         prepareTexture();
-    RetainPtr copy = copySurfaceBuffer(buffer);
+    auto copy = copySurfaceBuffer(buffer);
     if (!copy)
         return nullptr;
     // The flip is this context's own work, so the encoder reading the copy needs it scheduled.
     waitUntilWorkScheduled();
-    auto mediaSamplePixelBuffer = createCVPixelBuffer(copy.get());
+    auto mediaSamplePixelBuffer = createCVPixelBuffer(copy->surface());
     if (!mediaSamplePixelBuffer)
         return nullptr;
     // The surface describes the color space, but a pixel buffer consumer looks for the attachment.
@@ -510,12 +485,12 @@ RefPtr<NativeImage> GraphicsContextGLCocoa::copyNativeImage(SurfaceBuffer buffer
         return nullptr;
     if (buffer == SurfaceBuffer::DrawingBuffer)
         prepareTexture();
-    RetainPtr copy = copySurfaceBuffer(buffer);
+    auto copy = copySurfaceBuffer(buffer);
     if (!copy)
         return nullptr;
     // The flip is this context's own work, so the image reading the copy needs it scheduled.
     waitUntilWorkScheduled();
-    auto copyPixelBuffer = createCVPixelBuffer(copy.get());
+    auto copyPixelBuffer = createCVPixelBuffer(copy->surface());
     if (!copyPixelBuffer)
         return nullptr;
     RefPtr image = NativeImage::create(WTF::move(*copyPixelBuffer), alphaInfoForSurfaceBufferContents(contextAttributes()), m_drawingBufferColorSpace.platformColorSpace());

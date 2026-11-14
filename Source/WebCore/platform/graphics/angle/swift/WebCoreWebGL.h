@@ -115,8 +115,6 @@ struct GLContextCallbacks final {
     static void didLoseDisplay(uint64_t contextID);
 
 #if defined(__APPLE__)
-    // A drawing buffer's IOSurface, of the context's colour space and owner.
-    static IOSurfaceRef createDrawingBufferSurface(uint64_t contextID, int32_t width, int32_t height) CF_RETURNS_RETAINED;
     // A frame converted to '420f', for the video uploads, or null if it couldn't be.
     static CVPixelBufferRef convertPixelBufferTo420f(CVPixelBufferRef) CF_RETURNS_RETAINED;
 #endif
@@ -144,8 +142,7 @@ public:
     void createContext(uint64_t contextID, ANGLEDisplay, ANGLEContext, bool isWebGL2, bool supportsWebGLDraftExtensions) const;
     bool hasContext() const;
 #if defined(__APPLE__)
-    // Makes the Cocoa platform, then the context on it. Returns false if the platform is not valid.
-    bool createCocoaPlatform(uint64_t contextID, bool isWebGL2, bool alpha, uint8_t powerPreference, uint64_t windowGPUID, bool xrCompatible, uint32_t ownershipIdentity, int32_t maximumSurfaceWidth, int32_t maximumSurfaceHeight) const;
+    // Makes the context on the Cocoa platform, which the shell's Swift made (GLShell.createCocoaPlatform).
     void createCocoaContext(uint64_t contextID, bool supportsWebGLDraftExtensions) const;
     bool hasPlatform() const;
 #endif
@@ -272,8 +269,6 @@ public:
     static bool reportsDebugMessage(GLenum, GLuint);
 #if defined(__APPLE__)
     void destroyPlatformWithoutContext() const;
-    // Retained, or null. Not CF_RETURNS_RETAINED: Swift implements it, and returns the reference retained itself.
-    IOSurfaceRef displayBufferSurface() const;
     bool hasSpareDrawingBuffersInUse() const;
     bool isPlatformValid() const;
     ANGLEConfig platformConfig() const;
@@ -283,10 +278,7 @@ public:
     intptr_t spareDrawingBufferCountForTesting() const;
     intptr_t volatileSpareDrawingBufferCountForTesting() const;
     void waitUntilWorkScheduled() const;
-    // Retained, or null, as displayBufferSurface().
-    IOSurfaceRef copySurfaceBuffer(uint8_t) const;
     void didPrepareForDisplay() const;
-    void drawingBufferColorSpaceDidChange() const;
     bool readCompositedResults(GLLentMutableBytes, int32_t, int32_t) const;
     bool willPrepareForDisplay() const;
     static bool isDisplayInitializedForTesting(ANGLEDisplay);

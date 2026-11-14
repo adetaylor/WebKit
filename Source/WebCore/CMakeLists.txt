@@ -3997,8 +3997,10 @@ if (APPLE)
         add_subdirectory(platform/graphics/angle/swift)
         target_link_libraries(WebCore PRIVATE WebCoreWebGL)
         target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreWebGL>")
-        # GraphicsContextGLANGLE's members that only call the island.
-        target_sources(WebCore PRIVATE ${WEBCORE_DIR}/platform/graphics/angle/GraphicsContextGLANGLE.swift)
+        # GraphicsContextGLANGLE's members that only call the island, and GraphicsContextGLCocoa's surface members.
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/platform/graphics/angle/GraphicsContextGLANGLE.swift
+            ${WEBCORE_DIR}/platform/graphics/cocoa/GraphicsContextGLCocoa.swift)
         webkit_target_add_swift_options(WebCore
             "-I${WebCoreWebGL_SWIFT_MODULE_DIR}"
             "-Xcc -I${WebCoreWebGL_INTEROP_MODULE_DIR}")

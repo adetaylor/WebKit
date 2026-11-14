@@ -54,6 +54,11 @@ struct CocoaGLContextAttributes {
     var maximumSurfaceHeight: Int32
 }
 
+// Makes the IOSurfaces of a Cocoa platform's drawing buffers, of the colour space, alpha and owner of its shell's context.
+public protocol CocoaGLSurfaceFactory: AnyObject {
+    func createDrawingBufferSurface(width: Int32, height: Int32) -> IOSurfaceRef?
+}
+
 // A drawing buffer: an IOSurface and the pbuffer of it ANGLE renders to.
 struct CocoaGLPbuffer {
     var surface: IOSurfaceRef
@@ -76,12 +81,13 @@ struct CocoaGLSpareBuffer {
 // The Cocoa platform of a WebGL context: ANGLE's Metal display and the context's EGL context, the IOSurface drawing
 // buffers it renders to and displays.
 public final class CocoaGLPlatform: GLContextPlatform {
-    static let maxReusedDrawingBuffers = 3
+    public static let maxReusedDrawingBuffers = 3
     // On iOS CoreAnimation keeps a displayed buffer for about 4 frames; one more for headroom.
     static let maxSpareDrawingBuffers = 5
 
     let contextID: UInt64
     let attributes: CocoaGLContextAttributes
+    let surfaceFactory: any CocoaGLSurfaceFactory
     private(set) var display = ANGLEDisplay()
     private(set) var displayKey = 0
     private(set) var config = ANGLEConfig()
@@ -97,8 +103,9 @@ public final class CocoaGLPlatform: GLContextPlatform {
     private var spareDrawingBuffers: [CocoaGLSpareBuffer] = []
 
     // Makes the display and the context, and the context current. isValid() is false if it couldn't.
-    public init(contextID: UInt64, isWebGL2: Bool, alpha: Bool, powerPreference: UInt8, windowGPUID: UInt64, xrCompatible: Bool, ownershipIdentity: UInt32, maximumSurfaceWidth: Int32, maximumSurfaceHeight: Int32) {
+    public init(contextID: UInt64, isWebGL2: Bool, alpha: Bool, powerPreference: UInt8, windowGPUID: UInt64, xrCompatible: Bool, ownershipIdentity: UInt32, maximumSurfaceWidth: Int32, maximumSurfaceHeight: Int32, surfaceFactory: any CocoaGLSurfaceFactory) {
         self.contextID = contextID
+        self.surfaceFactory = surfaceFactory
         self.attributes = CocoaGLContextAttributes(isWebGL2: isWebGL2, alpha: alpha, powerPreference: powerPreference, windowGPUID: windowGPUID, xrCompatible: xrCompatible, ownershipIdentity: ownershipIdentity, maximumSurfaceWidth: maximumSurfaceWidth, maximumSurfaceHeight: maximumSurfaceHeight)
         initializeContext()
     }
@@ -372,8 +379,8 @@ public final class CocoaGLPlatform: GLContextPlatform {
         buffer == CocoaGLSurfaceBuffer.displayBuffer ? displayBufferIndex : drawingBufferIndex
     }
 
-    // The display buffer's surface, retained, or nil.
-    public func displayBufferSurface() -> IOSurfaceRef? {
+    // The display buffer's surface, or nil.
+    func displayBufferSurface() -> IOSurfaceRef? {
         drawingBuffers[displayBufferIndex]?.surface
     }
 
@@ -382,7 +389,7 @@ public final class CocoaGLPlatform: GLContextPlatform {
             return createPbuffer(spare, context)
         }
         let size = context.internalFramebufferSize
-        guard let surface = GLContextCallbacks.createDrawingBufferSurface(contextID, size.width, size.height) else {
+        guard let surface = surfaceFactory.createDrawingBufferSurface(width: size.width, height: size.height) else {
             return nil
         }
         return createPbuffer(surface, context)

@@ -1253,7 +1253,7 @@ private func releaseLayerContents() {
 // MARK: The facades' Swift members
 
 extension IOSurfaceCore {
-    fileprivate static func retained(_ surface: IOSurfaceCore?) -> UInt {
+    static func retained(_ surface: IOSurfaceCore?) -> UInt {
         guard let surface else {
             return 0
         }

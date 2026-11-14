@@ -3377,6 +3377,7 @@
 		7BDB82542A8E037F008E54DC /* WebGLExtensionAny.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDB82532A8E0379008E54DC /* WebGLExtensionAny.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BDDA31F274FA0210038659E /* GraphicsContextGLCocoa.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BDDA34C275A01310038659E /* ProcessIdentity.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BDDA349275A01300038659E /* ProcessIdentity.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A7C3E19F5B2D4E6F8A9B0C1D /* GraphicsContextGLCocoa.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */; };
 		7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */; };
 		7BE37F7C27BB86B8007A6CD3 /* ANGLEUtilitiesCocoa.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7BCD42DA2705C94900EB2127 /* ANGLEUtilitiesCocoa.mm */; };
 		7BE37F7D27BB86CD007A6CD3 /* ANGLEUtilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7BCD42D8270599EF00EB2127 /* ANGLEUtilities.cpp */; };
@@ -15273,6 +15274,7 @@
 		7BD9D6D32A81AB69005B1935 /* CookieChangeEventInit.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = CookieChangeEventInit.idl; sourceTree = "<group>"; };
 		7BD9D6D72A81AFB3005B1935 /* CookieChangeEvent.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CookieChangeEvent.cpp; sourceTree = "<group>"; };
 		7BDB82532A8E0379008E54DC /* WebGLExtensionAny.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WebGLExtensionAny.h; sourceTree = "<group>"; };
+		B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GraphicsContextGLCocoa.swift; sourceTree = "<group>"; };
 		7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GraphicsContextGLCocoa.mm; sourceTree = "<group>"; };
 		7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GraphicsContextGLCocoa.h; sourceTree = "<group>"; };
 		7BDDA349275A01300038659E /* ProcessIdentity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProcessIdentity.h; sourceTree = "<group>"; };
@@ -37812,6 +37814,7 @@
 				B277B4030B22F37C0004BEC6 /* GraphicsContextCocoa.mm */,
 				7BDDA31D274F9DA50038659E /* GraphicsContextGLCocoa.h */,
 				7BDDA31C274F9DA40038659E /* GraphicsContextGLCocoa.mm */,
+				B8D4F2A06C3E5F7A9B0C1D2E /* GraphicsContextGLCocoa.swift */,
 				51F084492D3E1D0700F85E0A /* H264UtilitiesCocoa.h */,
 				51F0844A2D3E1D0700F85E0A /* H264UtilitiesCocoa.mm */,
 				CDA595962146DF7800A84185 /* HEVCUtilitiesCocoa.h */,
@@ -52200,6 +52203,7 @@
 				6E72F54E229DCD1000B3E151 /* GraphicsContextGLANGLE.cpp in Sources */,
 				4C42D65D82E11655A2D53802 /* GraphicsContextGLANGLE.swift in Sources */,
 				7BE37F7A27BB86AB007A6CD3 /* GraphicsContextGLCocoa.mm in Sources */,
+				A7C3E19F5B2D4E6F8A9B0C1D /* GraphicsContextGLCocoa.swift in Sources */,
 				197517565C5615893EA685B3 /* H264Utilities.swift in Sources */,
 				B1416F72350D05D960F8308D /* HEVCBitstreamParser.swift in Sources */,
 				B0A964DA066DB62E57C49C40 /* HEVCCodecStrings.swift in Sources */,
