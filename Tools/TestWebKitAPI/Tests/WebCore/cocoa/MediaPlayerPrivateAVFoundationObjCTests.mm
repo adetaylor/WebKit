@@ -297,6 +297,8 @@ public:
         if (m_recordsRenderingModeChanges)
             m_events.add("engineFailed"_s);
     }
+    bool mediaPlayerIsVideo() const final { return m_isVideo; }
+    bool mediaPlayerShouldDisableHDR() const final { return m_shouldDisableHDR; }
 
     URL videoWithAudioURL() const
     {
@@ -413,6 +415,8 @@ public:
     HashSet<String> m_events;
     Vector<String> m_checkpoints;
     bool m_recordsRenderingModeChanges { false };
+    bool m_isVideo { false };
+    bool m_shouldDisableHDR { false };
 };
 
 TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, StateTimeSeekAndRate)
@@ -704,6 +708,155 @@ TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, VideoLayer)
         "page shown: layer=1 gravity=AVLayerVideoGravityResizeAspect player=1"_s,
         "context, image: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=1 fullscreen=1 events={buffered,firstFrame,renderingMode,seekable}"_s,
     });
+}
+
+// Drives the AVFoundation player's muting, volume, audibility, tone mapping and external playback settings, given while
+// it loads and once it has loaded, paused and playing, as a video and as an audio element's player, and prints what the
+// AVPlayer and its layer hold. Recorded from the C++ implementation.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, Controls)
+{
+    // A BOOL property read through its getter, if the object has it; "-" otherwise.
+    auto boolProperty = [](id object, NSString *key, NSString *getter) -> ASCIILiteral {
+        if (!object || ![object respondsToSelector:NSSelectorFromString(getter)])
+            return "-"_s;
+        return [[object valueForKey:key] boolValue] ? "1"_s : "0"_s;
+    };
+
+    for (bool isVideo : { true, false }) {
+        m_isVideo = isVideo;
+        m_shouldDisableHDR = true;
+        mediaPlayer = WebCore::MediaPlayer::create(*this, WebCore::MediaPlayerMediaEngineIdentifier::AVFoundation);
+        mediaPlayer->setPageIsVisible(true);
+        mediaPlayer->setViewportVisibility(WebCore::MediaPlayerViewportVisibility::VisibleInViewport);
+
+        RefPtr engine = loadAVFoundation(videoWithAudioURL());
+        ASSERT_TRUE(engine);
+        RefPtr objcEngine = dynamicDowncast<WebCore::MediaPlayerPrivateAVFoundationObjC>(*engine);
+        ASSERT_TRUE(objcEngine);
+
+        auto controlsCheckpoint = [&](ASCIILiteral label) {
+            id player = engine->objCAVFoundationAVPlayer();
+            CALayer *platformLayer = engine->platformLayer();
+            RetainPtr playerLayer = platformLayer ? findAVPlayerLayer(platformLayer) : nil;
+            StringBuilder builder;
+            builder.append(isVideo ? "video "_s : "audio "_s, label, ": player="_s, !!player, " audible="_s, objcEngine->isAudible());
+            if (player) {
+                builder.append(" volume="_s, [[player valueForKey:@"volume"] floatValue], " muted="_s, [[player valueForKey:@"muted"] boolValue],
+                    " external="_s, [[player valueForKey:@"allowsExternalPlayback"] boolValue],
+                    " selectionCriteria="_s, [[player valueForKey:@"appliesMediaSelectionCriteriaAutomatically"] boolValue]);
+            }
+            builder.append(" suppressed="_s, boolProperty(player, @"suppressesAudioRendering", @"_suppressesAudioRendering"),
+                " wirelessDisabled="_s, mediaPlayer->wirelessVideoPlaybackDisabled(), " targetType="_s, static_cast<unsigned>(mediaPlayer->wirelessPlaybackTargetType()),
+                " layer="_s, !!playerLayer, " toneMapped="_s, boolProperty(playerLayer.get(), @"toneMapToStandardDynamicRange", @"toneMapToStandardDynamicRange"), " events={"_s);
+            Vector<String> events = copyToVector(m_events);
+            std::sort(events.begin(), events.end(), codePointCompareLessThan);
+            for (size_t i = 0; i < events.size(); ++i)
+                builder.append(i ? ","_s : ""_s, events[i]);
+            builder.append('}');
+            m_events.clear();
+            auto line = builder.toString();
+            WTFLogAlways("AV4H-REPLAY %s", Util::toSTD(line).c_str());
+            m_checkpoints.append(WTF::move(line));
+        };
+
+        mediaPlayer->setMuted(true);
+        mediaPlayer->setVolume(0.5);
+        mediaPlayer->setWirelessVideoPlaybackDisabled(true);
+        controlsCheckpoint("set while loading"_s);
+
+        Util::waitFor([&] { return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData; });
+        Util::runFor(0.3_s);
+        controlsCheckpoint("loaded"_s);
+
+        mediaPlayer->setMuted(false);
+        controlsCheckpoint("unmuted"_s);
+
+        mediaPlayer->setVolume(0);
+        controlsCheckpoint("volume 0"_s);
+
+        mediaPlayer->setVolume(1);
+        controlsCheckpoint("volume 1"_s);
+
+        mediaPlayer->setShouldDisableHDR(false);
+        controlsCheckpoint("HDR allowed"_s);
+
+        mediaPlayer->setShouldDisableHDR(true);
+        controlsCheckpoint("HDR disabled"_s);
+
+        mediaPlayer->setWirelessVideoPlaybackDisabled(false);
+        controlsCheckpoint("wireless allowed"_s);
+
+        mediaPlayer->setShouldDisableSleep(true);
+        mediaPlayer->setShouldDisableSleep(false);
+
+        mediaPlayer->play();
+        Util::waitFor([&] { return mediaPlayer->effectiveRate() > 0; });
+        mediaPlayer->setMuted(true);
+        controlsCheckpoint("muted while playing"_s);
+
+        mediaPlayer->pause();
+        Util::waitFor([&] { return !mediaPlayer->effectiveRate(); });
+        Util::runFor(0.2_s);
+        controlsCheckpoint("paused, muted"_s);
+
+        mediaPlayer->setVolumeLocked(true);
+        mediaPlayer->setVolume(0.25);
+        mediaPlayer->setMuted(false);
+        controlsCheckpoint("volume locked, unmuted"_s);
+
+        engine = nullptr;
+        objcEngine = nullptr;
+        mediaPlayer = nullptr;
+    }
+
+    expectCheckpoints({
+        "video set while loading: player=0 audible=0 suppressed=- wirelessDisabled=1 targetType=0 layer=0 toneMapped=- events={network}"_s,
+        "video loaded: player=1 audible=0 volume=0.5 muted=1 external=0 selectionCriteria=0 suppressed=1 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={buffered,characteristic,firstFrame,network,ready,seekable,size}"_s,
+        "video unmuted: player=1 audible=1 volume=0.5 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "video volume 0: player=1 audible=0 volume=0 muted=0 external=0 selectionCriteria=0 suppressed=1 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "video volume 1: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "video HDR allowed: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "video HDR disabled: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=1 events={}"_s,
+        "video wireless allowed: player=1 audible=1 volume=1 muted=0 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={}"_s,
+        "video muted while playing: player=1 audible=1 volume=1 muted=1 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={buffered,rate}"_s,
+        "video paused, muted: player=1 audible=0 volume=1 muted=1 external=1 selectionCriteria=0 suppressed=1 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={buffered,rate}"_s,
+        "video volume locked, unmuted: player=1 audible=1 volume=1 muted=0 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={}"_s,
+        "audio set while loading: player=0 audible=0 suppressed=- wirelessDisabled=1 targetType=0 layer=0 toneMapped=- events={network}"_s,
+        "audio loaded: player=1 audible=0 volume=0.5 muted=1 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={buffered,characteristic,firstFrame,network,ready,seekable,size}"_s,
+        "audio unmuted: player=1 audible=1 volume=0.5 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "audio volume 0: player=1 audible=0 volume=0 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "audio volume 1: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "audio HDR allowed: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=0 events={}"_s,
+        "audio HDR disabled: player=1 audible=1 volume=1 muted=0 external=0 selectionCriteria=0 suppressed=0 wirelessDisabled=1 targetType=1 layer=1 toneMapped=1 events={}"_s,
+        "audio wireless allowed: player=1 audible=1 volume=1 muted=0 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={}"_s,
+        "audio muted while playing: player=1 audible=1 volume=1 muted=1 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={rate}"_s,
+        "audio paused, muted: player=1 audible=0 volume=1 muted=1 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={rate}"_s,
+        "audio volume locked, unmuted: player=1 audible=1 volume=1 muted=0 external=1 selectionCriteria=0 suppressed=0 wirelessDisabled=0 targetType=1 layer=1 toneMapped=1 events={}"_s,
+    });
+}
+
+// Prints the cost of the controls the media element sets, to compare builds.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, ControlsCallCost)
+{
+    RefPtr engine = loadAVFoundation(videoWithAudioURL());
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] { return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData; });
+
+    constexpr unsigned iterations = 2000;
+    auto measure = [&](auto&& body) {
+        auto start = MonotonicTime::now();
+        for (unsigned i = 0; i < iterations; ++i)
+            body(i);
+        return (MonotonicTime::now() - start).nanoseconds() / iterations;
+    };
+    unsigned sink = 0;
+    auto muted = measure([&](unsigned i) { engine->setMuted(i & 1); });
+    auto volume = measure([&](unsigned i) { engine->setVolume(i & 1 ? 0.5 : 1); });
+    auto targetType = measure([&](unsigned) { sink += static_cast<unsigned>(engine->wirelessPlaybackTargetType()); });
+    auto hdr = measure([&](unsigned i) { engine->setShouldDisableHDR(i & 1); });
+
+    WTFLogAlways("AV4H-BENCH setMuted %.1f ns/call, setVolume %.1f ns/call, wirelessPlaybackTargetType %.1f ns/call, setShouldDisableHDR %.1f ns/call (%u)", muted, volume, targetType, hdr, sink);
+    engine = nullptr;
 }
 
 // Prints the cost of pulling the current frame from the video output, as an image and as a video frame, paused and
