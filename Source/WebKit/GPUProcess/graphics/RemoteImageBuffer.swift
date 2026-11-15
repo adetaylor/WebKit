@@ -84,7 +84,7 @@ final class RemoteImageBuffer {
             recordedDrawing: recordedDrawing
         )
         let forwarder = WebKit.RemoteImageBufferMessageForwarder.create(target: receiver)
-        guard IPC.tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, .RemoteImageBuffer, identifier) else {
+        guard WebKit.tryStartReceivingSwiftMessages(backend, forwarder, .RemoteImageBuffer, identifier) else {
             context.stopListeningForIPC()
             recordedDrawing?.stopRecording()
             context.releaseImageBuffer()
@@ -104,7 +104,7 @@ final class RemoteImageBuffer {
             resources: WebKit.createDisplayListRecorderResources(backend),
             displayLists: backend.state.displayLists
         )
-        guard IPC.tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, .RemoteCGRenderer, contextIdentifier.toUInt64())
+        guard WebKit.tryStartReceivingSwiftMessages(backend, forwarder, .RemoteCGRenderer, contextIdentifier.toUInt64())
         else {
             return nil
         }
@@ -118,7 +118,7 @@ final class RemoteImageBuffer {
     func stopReceivingMessages() {
         context.stopListeningForIPC()
         recordedDrawing?.stopRecording()
-        _ = backend.streamConnection().tryStopReceivingMessages(.RemoteImageBuffer, identifier)
+        _ = backend.tryStopReceivingMessages(.RemoteImageBuffer, identifier)
         context.releaseImageBuffer()
     }
 
