@@ -28,6 +28,7 @@
 #include "Helpers/PlatformUtilities.h"
 #include "Helpers/cocoa/TestNSBundleExtras.h"
 #include <WebCore/MediaPlayerPrivateAVFoundationObjC.h>
+#include <WebCore/VideoFrame.h>
 #include <WebCoreTestSupport/WebCoreTestSupport.h>
 #include <wtf/Identified.h>
 #include <wtf/text/StringBuilder.h>
@@ -591,6 +592,116 @@ TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, CreationCancelAndPolicies)
         "default policy: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={buffered,seekable}"_s,
         "played and paused: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={rate}"_s,
     });
+}
+
+static CALayer *findAVPlayerLayer(CALayer *layer)
+{
+    if ([layer isKindOfClass:NSClassFromString(@"AVPlayerLayer")])
+        return layer;
+    for (CALayer *sublayer in layer.sublayers) {
+        if (auto *found = findAVPlayerLayer(sublayer))
+            return found;
+    }
+    return nil;
+}
+
+// Drives the AVFoundation player's AVPlayerLayer through creation, aspect ratio, page and viewport visibility, and the
+// switch to context rendering, and prints its gravity and whether the layer shows the player. Recorded from the C++
+// implementation.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, VideoLayer)
+{
+    m_recordsRenderingModeChanges = true;
+    mediaPlayer->setPageIsVisible(true);
+    mediaPlayer->setViewportVisibility(WebCore::MediaPlayerViewportVisibility::VisibleInViewport);
+    RefPtr engine = loadAVFoundation(videoWithAudioURL());
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] { return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData && engine->platformLayer(); });
+    Util::runFor(0.3_s);
+
+    auto layerCheckpoint = [&](ASCIILiteral label) {
+        RetainPtr playerLayer = findAVPlayerLayer(engine->platformLayer());
+        String gravity = playerLayer ? String([playerLayer valueForKey:@"videoGravity"]) : "none"_s;
+        bool showsPlayer = playerLayer && [playerLayer valueForKey:@"player"];
+        auto line = makeString(label, ": layer="_s, !!playerLayer, " gravity="_s, gravity, " player="_s, showsPlayer);
+        WTFLogAlways("AV4G-REPLAY %s", Util::toSTD(line).c_str());
+        m_checkpoints.append(WTF::move(line));
+    };
+
+    layerCheckpoint("created"_s);
+    engineCheckpoint("created engine"_s, *engine);
+
+    mediaPlayer->setShouldMaintainAspectRatio(false);
+    Util::runFor(0.1_s);
+    layerCheckpoint("stretched"_s);
+
+    mediaPlayer->setShouldMaintainAspectRatio(true);
+    Util::runFor(0.1_s);
+    layerCheckpoint("aspect"_s);
+
+    mediaPlayer->setViewportVisibility(WebCore::MediaPlayerViewportVisibility::NotVisible);
+    Util::runFor(0.1_s);
+    layerCheckpoint("out of viewport"_s);
+
+    mediaPlayer->setViewportVisibility(WebCore::MediaPlayerViewportVisibility::VisibleInViewport);
+    Util::runFor(0.1_s);
+    layerCheckpoint("back in viewport"_s);
+
+    mediaPlayer->setPageIsVisible(false);
+    Util::runFor(0.1_s);
+    layerCheckpoint("page hidden"_s);
+
+    mediaPlayer->setPageIsVisible(true);
+    Util::runFor(0.1_s);
+    layerCheckpoint("page shown"_s);
+
+    RefPtr image = engine->nativeImageForCurrentTime();
+    engine->acceleratedRenderingStateChanged();
+    Util::runFor(0.3_s);
+    engineCheckpoint(image ? "context, image"_s : "context, no image"_s, *engine);
+    engine = nullptr;
+
+    expectCheckpoints({
+        "created: layer=1 gravity=AVLayerVideoGravityResizeAspect player=1"_s,
+        "created engine: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=1 fileSize=160121 errorCode=0 startDate=invalid layer=1 frame=1 fullscreen=1 events={buffered,characteristic,firstFrame,network,ready,renderingMode,seekable,size}"_s,
+        "stretched: layer=1 gravity=AVLayerVideoGravityResize player=1"_s,
+        "aspect: layer=1 gravity=AVLayerVideoGravityResizeAspect player=1"_s,
+        "out of viewport: layer=1 gravity=AVLayerVideoGravityResizeAspect player=0"_s,
+        "back in viewport: layer=1 gravity=AVLayerVideoGravityResizeAspect player=1"_s,
+        "page hidden: layer=1 gravity=AVLayerVideoGravityResizeAspect player=0"_s,
+        "page shown: layer=1 gravity=AVLayerVideoGravityResizeAspect player=1"_s,
+        "context, image: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=1 fullscreen=1 events={buffered,firstFrame,renderingMode,seekable}"_s,
+    });
+}
+
+// Prints the cost of pulling the current frame from the video output, as an image and as a video frame, paused and
+// playing, to compare builds.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, VideoOutputCost)
+{
+    RefPtr engine = loadAVFoundation(videoWithAudioURL());
+    ASSERT_TRUE(engine);
+    Util::waitFor([&] { return engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData; });
+    RefPtr warm = engine->nativeImageForCurrentTime();
+
+    constexpr unsigned iterations = 2000;
+    auto measure = [&](auto&& body) {
+        auto start = MonotonicTime::now();
+        for (unsigned i = 0; i < iterations; ++i)
+            body();
+        return (MonotonicTime::now() - start).nanoseconds() / iterations;
+    };
+    unsigned sink = 0;
+    auto pausedImage = measure([&] { sink += !!engine->nativeImageForCurrentTime(); });
+    auto pausedFrame = measure([&] { sink += !!engine->videoFrameForCurrentTime(); });
+
+    mediaPlayer->setMuted(true);
+    mediaPlayer->play();
+    Util::waitFor([&] { return mediaPlayer->effectiveRate() > 0; });
+    auto playingImage = measure([&] { sink += !!engine->nativeImageForCurrentTime(); });
+    auto playingFrame = measure([&] { sink += !!engine->videoFrameForCurrentTime(); });
+    mediaPlayer->pause();
+
+    WTFLogAlways("AV4G-BENCH image paused %.1f ns/call, frame paused %.1f ns/call, image playing %.1f ns/call, frame playing %.1f ns/call (%u)", pausedImage, pausedFrame, playingImage, playingFrame, sink);
+    engine = nullptr;
 }
 
 // Prints the cost of the readiness calls the media element makes, of re-deciding the rendering mode, and of page
