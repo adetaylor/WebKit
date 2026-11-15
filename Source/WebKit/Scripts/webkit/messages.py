@@ -3443,7 +3443,7 @@ def generate_swift_message_handler(receiver):
     if not implementation:
         append_message_forwarder_creation(result, message_forwarder_class, ref_message_forwarder_class, class_name, weak_ref_class)
     if receiver.has_swift_receiver_owner():
-        append_swift_receiver_owner_start(result, message_forwarder_class, class_name)
+        append_swift_receiver_owner_start(result, message_forwarder_class, class_name, receiver.swift_receiver_owner_provider)
     if receiver.is_recordable():
         result += generate_swift_recorded_messages(receiver)
 
@@ -3463,13 +3463,18 @@ def generate_swift_message_handler(receiver):
 SWIFT_RECEIVER_OWNER_CLIENT_FUNCTIONS = ['runScheduledWork', 'didStopReceiving', 'didStopWorkQueue']
 
 
-def append_swift_receiver_owner_start(result, message_forwarder_class, class_name):
+def append_swift_receiver_owner_start(result, message_forwarder_class, class_name, provider):
     result.append('\n')
     result.append('extension %s {\n' % class_name)
     result.append('    // Starts receiving this receiver\'s messages, through its forwarder, which the owner keeps, and so this, until its\n')
     result.append('    // work queue stops.\n')
-    result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
-    result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    if provider:
+        result.append('    // The owner is the one that provider gives.\n')
+        result.append('    func startReceiving(on provider: %s) {\n' % (provider.replace('::', '.') if '::' in provider else 'WebKit.' + provider))
+        result.append('        IPC.startSwiftReceiver(provider, WebKit.%s.create(target: self))\n' % message_forwarder_class)
+    else:
+        result.append('    func startReceiving(on owner: IPC.SwiftReceiverOwner) {\n')
+        result.append('        IPC.startSwiftReceiver(owner, WebKit.%s.create(target: self))\n' % message_forwarder_class)
     result.append('    }\n')
     result.append('}\n')
 

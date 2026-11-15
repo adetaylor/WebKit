@@ -46,6 +46,7 @@ SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
 # A top-level Swift stream receiver, which an IPC::SwiftReceiverOwner owns: its forwarder is the owner's
 # IPC::SwiftReceiverOwnerClient, generated Swift starts it with startReceiving(on:), and its Swift sends can go on the owner.
+# 'SwiftReceiverOwner=Provider' starts it on the owner that the C++ class Provider gives, with swiftReceiverOwner().
 SWIFT_RECEIVER_OWNER_ATTRIBUTE = 'SwiftReceiverOwner'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
 # On a message that only C++ sends, so that a receiver's 'SwiftSends=' makes no Swift sender for it: for a message whose
@@ -87,7 +88,7 @@ _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'rep
 _NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -108,6 +109,9 @@ class MessageReceiver(object):
         self.swift_types = swift_types
         # The C++ class that lends the handlers of a Swift stream receiver the state they take inout.
         self.swift_receiver_state_lender = swift_receiver_state_lender
+        # The C++ class that gives the IPC::SwiftReceiverOwner that a receiver with 'SwiftReceiverOwner' starts on, if not
+        # the owner itself.
+        self.swift_receiver_owner_provider = swift_receiver_owner_provider
         # The receiver whose definitions of the messages this one names it takes (parser.resolve_message_references()).
         self.messages_from = messages_from
         # The names of the receivers whose messages this Swift receiver's Swift sends, and, once parser.resolve_swift_sends()

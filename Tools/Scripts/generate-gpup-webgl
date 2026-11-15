@@ -118,7 +118,7 @@ gl_swift_template_messages = """    void EnsureExtensionEnabled(uint8_t glExtens
 
 gl_messages_template = (
     template_preamble
-    + "#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)\n\n[\n    DispatchedFrom=WebContent,\n    DispatchedTo=GPU,\n    EnabledBy=WebGLEnabled,\n    SwiftReceiver,\n    SwiftTypes"
+    + "#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)\n\n[\n    DispatchedFrom=WebContent,\n    DispatchedTo=GPU,\n    EnabledBy=WebGLEnabled,\n    SwiftReceiver,\n    SwiftTypes,\n    SwiftReceiverOwner=RemoteGraphicsContextGLResources"
     + "\n]\nmessages -> RemoteGraphicsContextGL Stream {{\n"
     + gl_swift_template_messages
     + "{}\n}}\n\n#endif\n"
@@ -197,7 +197,7 @@ resources_functions_impl_template = (
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection);
+#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 
 namespace WebKit {{
 using namespace WebCore;

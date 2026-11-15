@@ -813,6 +813,17 @@ void GPUConnectionToWebProcess::releaseRenderingBackend(RemoteRenderingBackendId
     m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
 }
 
+Function<void(IPC::MessageName)> GPUConnectionToWebProcess::terminateWebProcessOnInvalidMessage()
+{
+    return [weakThis = ThreadSafeWeakPtr { *this }, webProcessIdentifier = webProcessIdentifier()](IPC::MessageName messageName) {
+        RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), webProcessIdentifier.toUInt64());
+        callOnMainRunLoop([weakThis, messageName] {
+            if (RefPtr protectedThis = weakThis.get())
+                protectedThis->terminateWebProcess(messageName);
+        });
+    };
+}
+
 #if ENABLE(WEBGL)
 void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
@@ -835,7 +846,10 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     MESSAGE_CHECK(streamConnection);
 
     auto addResult = m_remoteGraphicsContextGLMap.ensure(identifier, [&] {
-        return IPC::ScopedActiveMessageReceiveQueue { RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), identifier, *renderingBackend, streamConnection.releaseNonNull()) };
+        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
+        // Once it has made the context, the owner keeps it until it stops.
+        RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), identifier, *renderingBackend, owner);
+        return IPC::ScopedActiveMessageReceiveQueue { WTF::move(owner) };
     });
     ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
@@ -898,13 +912,7 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
     MESSAGE_CHECK(streamConnection);
 
     auto addResult = m_remoteGPUMap.ensure(identifier, [&] {
-        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), [weakThis = ThreadSafeWeakPtr { *this }, webProcessIdentifier = webProcessIdentifier()](IPC::MessageName messageName) {
-            RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), webProcessIdentifier.toUInt64());
-            callOnMainRunLoop([weakThis, messageName] {
-                if (RefPtr protectedThis = weakThis.get())
-                    protectedThis->terminateWebProcess(messageName);
-            });
-        });
+        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
 #if HAVE(TASK_IDENTITY_TOKEN)
         MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
 #else

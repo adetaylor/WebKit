@@ -46,7 +46,7 @@
 #include "RemoteVideoFrameObjectHeap.h"
 #endif
 
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection);
+#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 
 namespace WebKit {
 
@@ -70,19 +70,18 @@ IPC::StreamConnectionWorkQueue& remoteGraphicsContextGLStreamWorkQueueSingleton(
 }
 
 #if !PLATFORM(COCOA) && !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
-Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
     ASSERT_NOT_REACHED();
-    auto instance = adoptRef(*new RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, WTF::move(streamConnection)));
+    auto instance = adoptRef(*new RemoteGraphicsContextGLResources(gpuConnectionToWebProcess, graphicsContextGLIdentifier, renderingBackend, owner));
     instance->initialize(WTF::move(attributes));
     return instance;
 }
 #endif
 
-RemoteGraphicsContextGLResources::RemoteGraphicsContextGLResources(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, Ref<IPC::StreamServerConnection>&& streamConnection)
+RemoteGraphicsContextGLResources::RemoteGraphicsContextGLResources(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteGraphicsContextGLIdentifier identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
     : m_gpuConnectionToWebProcess(gpuConnectionToWebProcess)
-    , m_workQueue(remoteGraphicsContextGLStreamWorkQueueSingleton())
-    , m_connection(WTF::move(streamConnection))
+    , m_owner(owner)
     , m_identifier(identifier)
     , m_renderingBackend(renderingBackend)
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
@@ -93,7 +92,6 @@ RemoteGraphicsContextGLResources::RemoteGraphicsContextGLResources(GPUConnection
 #endif
 #endif
     , m_renderingResourcesRequest(ScopedWebGLRenderingResourcesRequest::acquire())
-    , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
     , m_webProcessIdentity(gpuConnectionToWebProcess.webProcessIdentity())
 {
     assertIsMainRunLoop();
@@ -112,24 +110,19 @@ IGNORE_GCC_WARNINGS_END
 void RemoteGraphicsContextGLResources::initialize(GraphicsContextGLAttributes&& attributes)
 {
     assertIsMainRunLoop();
-    m_workQueue->dispatch([attributes = WTF::move(attributes), protectedThis = protect(*this)]() mutable {
+    Ref workQueue = this->workQueue();
+    workQueue->dispatch([attributes = WTF::move(attributes), protectedThis = protect(*this)]() mutable {
         protectedThis->workQueueInitialize(WTF::move(attributes));
-    });
-}
-
-void RemoteGraphicsContextGLResources::stopListeningForIPC(Ref<RemoteGraphicsContextGLResources>&& refFromConnection)
-{
-    assertIsMainRunLoop();
-    m_workQueue->dispatch([protectedThis = WTF::move(refFromConnection)] {
-        protectedThis->workQueueUninitialize();
     });
 }
 
 void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsContextGLAttributes&& attributes)
 {
     assertIsCurrent(workQueue());
+    RefPtr streamConnection = this->streamConnection();
+    if (!streamConnection)
+        return;
     platformWorkQueueInitialize(WTF::move(attributes));
-    m_connection->open(*this, m_workQueue);
     if (RefPtr context = m_context) {
         context->setClient(this);
         auto contextAttributes = context->contextAttributes();
@@ -161,35 +154,23 @@ void RemoteGraphicsContextGLResources::workQueueInitialize(WebCore::GraphicsCont
             initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
         }
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }));
-        m_swiftState = createSwiftState(context->islandShell(), m_identifier.toUInt64());
-        m_connection->startReceivingMessages(*this, Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
+        // The owner and its stream connection keep this until the stream connection stops.
+        m_owner->setCompanion(*this);
+        streamConnection->startReceivingMessages(*this, Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
+        m_swiftState = createSwiftState(context->islandShell());
     } else
         send(Messages::RemoteGraphicsContextGLProxy::WasCreated(std::nullopt));
 }
 
-void RemoteGraphicsContextGLResources::workQueueUninitialize()
+void RemoteGraphicsContextGLResources::didStopReceiving()
 {
+    RELEASE_ASSERT(workQueue().isCurrent());
     assertIsCurrent(workQueue());
-    if (m_context) {
-        m_context->setClient(nullptr);
-        m_context = nullptr;
-        m_connection->stopReceivingMessages(Messages::RemoteGraphicsContextGLResources::messageReceiverName(), m_identifier.toUInt64());
-        // Its registration stops the Swift receiver's messages.
+    if (RefPtr context = std::exchange(m_context, nullptr))
+        context->setClient(nullptr);
+    if (m_swiftState)
         destroySwiftState(std::exchange(m_swiftState, 0));
-    }
-    m_connection->invalidate();
     m_renderingResourcesRequest = { };
-}
-
-void RemoteGraphicsContextGLResources::didReceiveInvalidMessage(IPC::StreamServerConnection&, IPC::MessageName messageName, const Vector<uint32_t>&)
-{
-    RefPtr gpuConnectionToWebProcess = m_gpuConnectionToWebProcess.get();
-    uint64_t webProcessID = gpuConnectionToWebProcess ? gpuConnectionToWebProcess->webProcessIdentifier().toUInt64() : 0;
-    RELEASE_LOG_FAULT_WITH_PAYLOAD(IPC, "Received an invalid message %s from WebContent process %" PRIu64 ", requesting for it to be terminated.", description(messageName), webProcessID);
-    callOnMainRunLoop([weakGPUConnectionToWebProcess = m_gpuConnectionToWebProcess, messageName] {
-        if (RefPtr gpuConnectionToWebProcess = weakGPUConnectionToWebProcess.get())
-            gpuConnectionToWebProcess->terminateWebProcess(messageName);
-    });
 }
 
 void RemoteGraphicsContextGLResources::forceContextLost()
@@ -211,7 +192,7 @@ void RemoteGraphicsContextGLResources::didChangeMemoryCost()
         return;
 
     m_memoryCostUpdateScheduled = true;
-    m_workQueue->dispatch([protectedThis = protect(*this)] {
+    protect(workQueue())->dispatch([protectedThis = protect(*this)] {
         assertIsCurrent(protectedThis->workQueue());
 
         protectedThis->m_memoryCostUpdateScheduled = false;

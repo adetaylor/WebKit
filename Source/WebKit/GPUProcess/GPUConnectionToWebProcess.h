@@ -145,10 +145,6 @@ class RemoteMediaPlayerManagerProxy;
 class RemoteVideoFrameObjectHeap;
 #endif
 
-#if ENABLE(WEBGL)
-class RemoteGraphicsContextGLResources;
-#endif
-
 // m_swiftState holds the connection's Swift state (GPUConnectionToWebProcess.swift).
 class SWIFT_PRIVATE_FILEID("WebKit/GPUConnectionToWebProcess.swift") GPUConnectionToWebProcess
     : public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<GPUConnectionToWebProcess, WTF::DestructionThread::Main>
@@ -292,6 +288,8 @@ public:
 
     bool allowsExitUnderMemoryPressure() const;
     void terminateWebProcess(IPC::MessageName);
+    // For the owners of stream receivers: logs a message they find invalid and terminates the web process.
+    Function<void(IPC::MessageName)> terminateWebProcessOnInvalidMessage();
 
     void lowMemoryHandler(WTF::Critical, WTF::Synchronous);
 
@@ -490,7 +488,7 @@ private:
 
     RemoteRenderingBackendMap m_remoteRenderingBackendMap;
 #if ENABLE(WEBGL)
-    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteGraphicsContextGLResources>>;
+    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<IPC::SwiftReceiverOwner>>;
     RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
 #endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
