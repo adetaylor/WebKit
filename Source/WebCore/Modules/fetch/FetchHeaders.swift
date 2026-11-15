@@ -422,92 +422,8 @@ func fetchHeadersIteratorNext(
         let hasSetCookie = !setCookieValues.isEmpty()
         let commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader> = headers.commonHeadersSpan()
         let uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader> = headers.uncommonHeadersSpan()
-        // A map holds fewer than 2^32 headers, so this cannot overflow.
-        let count = commonHeaders.count &+ uncommonHeaders.count &+ (hasSetCookie ? 1 : 0)
-
-        // The names are ordered on the stack when they fit there and no common header repeats, else sorted on the heap.
         keys.shrink(0)
-        var setCookieKeyIndex: UInt = 0
-        var codeUnitCount = Int.max
-        var isOrdered = false
-        if count <= FetchHeadersInlineIteratorNames.count {
-            var inlineNames = FetchHeadersInlineIteratorNames(repeating: FetchHeadersIteratorName(start: 0, end: 0, source: 0))
-            var inlineCodeUnits = FetchHeadersInlineIteratorCodeUnits(repeating: 0)
-            var commonNameRanks: UInt128 = 0
-            var hasRepeatedCommonName = false
-            do {
-                var names = inlineNames.mutableSpan
-                var codeUnits = inlineCodeUnits.mutableSpan
-                codeUnitCount = fetchHeadersWriteUncommonIteratorNames(
-                    commonHeaders,
-                    uncommonHeaders,
-                    hasSetCookie,
-                    &commonNameRanks,
-                    &hasRepeatedCommonName,
-                    &names,
-                    &codeUnits
-                )
-            }
-            if codeUnitCount <= FetchHeadersInlineIteratorCodeUnits.count, !hasRepeatedCommonName {
-                var inlineOrder = FetchHeadersInlineIteratorOrder(repeating: 0)
-                do {
-                    var order = inlineOrder.mutableSpan
-                    setCookieKeyIndex = UInt(
-                        fetchHeadersOrderIteratorNames(
-                            commonNameRanks,
-                            inlineNames.span.extracting(0..<uncommonHeaders.count),
-                            inlineCodeUnits.span,
-                            hasSetCookie,
-                            &order
-                        )
-                    )
-                }
-                let order = inlineOrder.span.extracting(0..<count)
-                for position in order.indices {
-                    keys.append(consuming: fetchHeadersOrderedIteratorKey(order[position], uncommonHeaders))
-                }
-                isOrdered = true
-            }
-        }
-        if !isOrdered {
-            if codeUnitCount == Int.max {
-                // Only counted: no name fits in empty buffers.
-                var noNames = UniqueArray<FetchHeadersIteratorName>()
-                var noCodeUnits = UniqueArray<UInt16>()
-                var names = noNames.mutableSpan
-                var codeUnits = noCodeUnits.mutableSpan
-                codeUnitCount = fetchHeadersWriteIteratorNames(
-                    commonHeaders,
-                    uncommonHeaders,
-                    hasSetCookie,
-                    count,
-                    &names,
-                    &codeUnits
-                )
-            }
-            var heapNames = UniqueArray(repeating: FetchHeadersIteratorName(start: 0, end: 0, source: 0), count: count)
-            var heapCodeUnits = UniqueArray<UInt16>(repeating: 0, count: codeUnitCount)
-            do {
-                var names = heapNames.mutableSpan
-                var codeUnits = heapCodeUnits.mutableSpan
-                _ = fetchHeadersWriteIteratorNames(
-                    commonHeaders,
-                    uncommonHeaders,
-                    hasSetCookie,
-                    count,
-                    &names,
-                    &codeUnits
-                )
-                fetchHeadersSortIteratorNames(&names, count, codeUnits.span)
-            }
-            let names = heapNames.span
-            for position in names.indices {
-                keys.append(consuming: fetchHeadersIteratorKey(names[position], commonHeaders, uncommonHeaders))
-            }
-            if hasSetCookie {
-                setCookieKeyIndex = UInt(fetchHeadersSetCookieKeyIndex(names, heapCodeUnits.span))
-            }
-        }
+        let setCookieKeyIndex = UInt(fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &keys))
 
         // Adjust the current index to work with Set-Cookie headers. This relies on the fact that
         // `currentIndex + setCookieIndex` gives you the current total index into the iteration.
@@ -554,523 +470,142 @@ func fetchHeadersIteratorNext(
     return WebCore.SecurityPoliciesOptionalStringPair()
 }
 
-/// Room on the stack for the names of most maps: up to 16 names of 256 code units in all, and their sorted order.
-///
-/// More go on the heap.
-private typealias FetchHeadersInlineIteratorNames = [16 of FetchHeadersIteratorName]
-private typealias FetchHeadersInlineIteratorCodeUnits = [256 of UInt16]
-private typealias FetchHeadersInlineIteratorOrder = [16 of UInt8]
-
-/// One of the names the iterator sorts: its lowercased code units are `codeUnits[start..<end]`, and `source` is its
-/// position in map order (common headers, uncommon headers, then the null String standing for the Set-Cookie values).
+/// One of the names the iterator sorts: its code units, lowercased, are `start..<end` of the names' code units, and
+/// `source` is its position in map order (common headers, uncommon headers, then the null String standing for the
+/// Set-Cookie values).
 private struct FetchHeadersIteratorName {
-    var start: Int
-    var end: Int
-    var source: Int
-}
-
-/// Writes the names of `uncommonHeaders` to `names` in map order, `source` being the index among them, each name's code
-/// units lowercased with ASCII rules to `codeUnits` from the start (those past its end are not written), and sets the bit
-/// of each common header name's rank in `commonNameRanks`, with `hasRepeatedCommonName` when it is set already.
-///
-/// Returns the number of code units of all the iterator's names, as fetchHeadersWriteIteratorNames() counts them.
-private func fetchHeadersWriteUncommonIteratorNames(
-    _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
-    _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
-    _ hasSetCookie: Bool,
-    _ commonNameRanks: inout UInt128,
-    _ hasRepeatedCommonName: inout Bool,
-    _ names: inout MutableSpan<FetchHeadersIteratorName>,
-    _ codeUnits: inout MutableSpan<UInt16>
-) -> Int {
-    let offsets = fetchHeadersCommonNameOffsets.span
-    let ranks = fetchHeadersCommonNameRanks.span
-    var codeUnitCount = 0
-    for index in commonHeaders.indices {
-        let nameIndex = Int(commonHeaders[index].key.rawValue)
-        // A rank is below the number of HTTPHeaderName's values, 103, so the shift is by less than 128.
-        let rankBit = UInt128(1) &<< ranks[nameIndex]
-        if commonNameRanks & rankBit != 0 {
-            hasRepeatedCommonName = true
-        }
-        commonNameRanks |= rankBit
-        // nameIndex is below the number of HTTPHeaderName's values, and the offsets have one more and increase; the code
-        // units of fewer than 2^32 names, each shorter than 2^31, do not overflow.
-        codeUnitCount &+= Int(offsets[nameIndex &+ 1]) &- Int(offsets[nameIndex])
-    }
     var start = 0
-    for index in uncommonHeaders.indices {
-        let end = fetchHeadersWriteIteratorName(uncommonHeaders[index].key, start, &codeUnits)
-        names[index] = FetchHeadersIteratorName(start: start, end: end, source: index)
-        // Neither the code units of the uncommon names nor of all the names, as above, overflow.
-        codeUnitCount &+= end &- start
-        start = end
-    }
-    if hasSetCookie {
-        // Likewise.
-        codeUnitCount &+= fetchHeadersSetCookieName.count
-    }
-    return codeUnitCount
+    var end = 0
+    var source = 0
 }
 
-/// Writes the iterator's `count` names to `names` in map order, each name's code units lowercased with ASCII rules to
-/// `codeUnits` (`set-cookie` stands for the Set-Cookie values, as `compareIteratorKeys()` reads the null String).
+/// Appends the iterator's keys to `keys`, sorted as `compareIteratorKeys()` sorts them.
 ///
-/// Returns the number of code units the names have; those past the end of `codeUnits` are not written.
-private func fetchHeadersWriteIteratorNames(
+/// The keys are the names of `commonHeaders` and `uncommonHeaders` lowercased and, with `hasSetCookie`, the null String
+/// standing for the Set-Cookie values, which sorts as `set-cookie`; equal names keep their map order. Returns the number
+/// of keys below `set-cookie`, as `std::ranges::lower_bound` finds it, when there are Set-Cookie values, else 0.
+///
+/// The names are sorted on the stack when there are at most 16 of 256 code units in all, else on the heap.
+private func fetchHeadersAppendSortedKeys(
     _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
     _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
     _ hasSetCookie: Bool,
-    _ count: Int,
-    _ names: inout MutableSpan<FetchHeadersIteratorName>,
-    _ codeUnits: inout MutableSpan<UInt16>
+    _ keys: inout WebCore.SecurityPoliciesStringVector
 ) -> Int {
-    let fitsNames = count <= names.count
-    var codeUnitCount = 0
+    // A map holds fewer than 2^32 headers, each name shorter than 2^31, so none of these sums can overflow.
+    let count = commonHeaders.count &+ uncommonHeaders.count &+ (hasSetCookie ? 1 : 0)
+    var codeUnitCount = hasSetCookie ? fetchHeadersSetCookieName.count : 0
     for index in commonHeaders.indices {
-        let end = fetchHeadersWriteCommonIteratorName(commonHeaders[index].key, codeUnitCount, &codeUnits)
-        if fitsNames {
-            names[index] = FetchHeadersIteratorName(start: codeUnitCount, end: end, source: index)
-        }
-        codeUnitCount = end
+        // Likewise.
+        codeUnitCount &+= Int(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key).length())
     }
     for index in uncommonHeaders.indices {
-        let end = fetchHeadersWriteIteratorName(uncommonHeaders[index].key, codeUnitCount, &codeUnits)
-        if fitsNames {
-            // Below count.
-            let source = commonHeaders.count &+ index
-            names[source] = FetchHeadersIteratorName(start: codeUnitCount, end: end, source: source)
-        }
-        codeUnitCount = end
+        // Likewise.
+        codeUnitCount &+= Int(uncommonHeaders[index].key.length())
+    }
+    if count <= 16, codeUnitCount <= 256 {
+        var names = InlineArray<16, FetchHeadersIteratorName>(repeating: FetchHeadersIteratorName())
+        var codeUnits = InlineArray<256, UInt16>(repeating: 0)
+        var namesSpan = names.mutableSpan
+        var codeUnitsSpan = codeUnits.mutableSpan
+        return fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &namesSpan, &codeUnitsSpan, &keys)
+    }
+    var names = UniqueArray(repeating: FetchHeadersIteratorName(), count: count)
+    var codeUnits = UniqueArray<UInt16>(repeating: 0, count: codeUnitCount)
+    var namesSpan = names.mutableSpan
+    var codeUnitsSpan = codeUnits.mutableSpan
+    return fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &namesSpan, &codeUnitsSpan, &keys)
+}
+
+/// fetchHeadersAppendSortedKeys() with room in `names` for every name, and in `codeUnits` for their code units.
+private func fetchHeadersAppendSortedKeys(
+    _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
+    _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
+    _ hasSetCookie: Bool,
+    _ names: inout MutableSpan<FetchHeadersIteratorName>,
+    _ codeUnits: inout MutableSpan<UInt16>,
+    _ keys: inout WebCore.SecurityPoliciesStringVector
+) -> Int {
+    var count = 0
+    var end = 0
+    for index in commonHeaders.indices {
+        let start = end
+        end = fetchHeadersWriteLowercased(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key), &codeUnits, start)
+        names[count] = FetchHeadersIteratorName(start: start, end: end, source: count)
+        count += 1
+    }
+    for index in uncommonHeaders.indices {
+        let start = end
+        end = fetchHeadersWriteLowercased(uncommonHeaders[index].key, &codeUnits, start)
+        names[count] = FetchHeadersIteratorName(start: start, end: end, source: count)
+        count += 1
     }
     if hasSetCookie {
-        let setCookieName = fetchHeadersSetCookieName.span
-        // The code units of fewer than 2^32 names, each shorter than 2^31, and these: no overflow.
-        let end = codeUnitCount &+ setCookieName.count
-        if end <= codeUnits.count {
-            for index in setCookieName.indices {
-                // Below end.
-                codeUnits[codeUnitCount &+ index] = UInt16(setCookieName[index])
-            }
-        }
-        if fitsNames {
-            // count is the number of headers plus one here.
-            names[count &- 1] = FetchHeadersIteratorName(start: codeUnitCount, end: end, source: count &- 1)
-        }
-        codeUnitCount = end
+        let start = end
+        end = crossOriginAccessControlCopy(fetchHeadersSetCookieName.span, to: &codeUnits, at: start)
+        names[count] = FetchHeadersIteratorName(start: start, end: end, source: count)
+        count += 1
     }
-    return codeUnitCount
+
+    // An insertion sort, which keeps equal names in map order.
+    let pool = codeUnits.span
+    for sorted in stride(from: 1, to: count, by: 1) {
+        let name = names[sorted]
+        var position = sorted
+        while position > 0, fetchHeadersIteratorNameLessThan(pool, name, names[position - 1]) {
+            names[position] = names[position - 1]
+            position -= 1
+        }
+        names[position] = name
+    }
+
+    for position in 0..<count {
+        keys.append(consuming: fetchHeadersIteratorKey(names[position], commonHeaders, uncommonHeaders))
+    }
+    var setCookieKeyIndex = 0
+    if hasSetCookie {
+        while setCookieKeyIndex < count,
+            crossOriginAccessControlCodePointLessThan(
+                pool.extracting(names[setCookieKeyIndex].start..<names[setCookieKeyIndex].end),
+                fetchHeadersSetCookieName.span
+            )
+        {
+            setCookieKeyIndex += 1
+        }
+    }
+    return setCookieKeyIndex
 }
 
-/// Writes the code units of the common header name `name`, lowercased, to `codeUnits` from `start` on, when they fit in
-/// `codeUnits`, from fetchHeadersCommonNameCharacters.
-///
-/// Returns the end of them.
-private func fetchHeadersWriteCommonIteratorName(
-    _ name: WebCore.HTTPHeaderName,
-    _ start: Int,
-    _ codeUnits: inout MutableSpan<UInt16>
-) -> Int {
-    let offsets = fetchHeadersCommonNameOffsets.span
-    let index = Int(name.rawValue)
-    // index is below the number of HTTPHeaderName's values, and the offsets have one more.
-    let characters = fetchHeadersCommonNameCharacters.span.extracting(Int(offsets[index])..<Int(offsets[index &+ 1]))
-    // The code units of fewer than 2^32 names, each shorter than 2^31: no overflow.
-    let end = start &+ characters.count
-    if end <= codeUnits.count {
-        fetchHeadersWriteLowercased(characters, start, &codeUnits)
-    }
-    return end
-}
-
-/// Writes the code units of `name`, lowercased with ASCII rules, to `codeUnits` from `start` on, when they fit in
-/// `codeUnits`.
-///
-/// Returns the end of them.
-private func fetchHeadersWriteIteratorName(
-    _ name: borrowing WTF.String,
-    _ start: Int,
-    _ codeUnits: inout MutableSpan<UInt16>
-) -> Int {
+/// Writes the code units of `name`, lowercased with ASCII rules, to `codeUnits` from `start` on, which has room for
+/// them, and returns the end of them.
+private func fetchHeadersWriteLowercased(_ name: borrowing WTF.String, _ codeUnits: inout MutableSpan<UInt16>, _ start: Int) -> Int {
     let characters: Span<UInt8> = WebCore.securityPoliciesSpan8(name)
     if !characters.isEmpty {
-        // The code units of fewer than 2^32 names, each shorter than 2^31: no overflow.
-        let end = start &+ characters.count
-        if end <= codeUnits.count {
-            fetchHeadersWriteLowercased(characters, start, &codeUnits)
-        }
-        return end
+        return fetchHeadersWriteLowercased(characters, &codeUnits, start)
     }
-    let units: Span<UInt16> = name.checkedSpan16()
-    // The code units of fewer than 2^32 names, each shorter than 2^31: no overflow.
-    let end = start &+ units.count
-    if end <= codeUnits.count {
-        fetchHeadersWriteLowercased(units, start, &codeUnits)
-    }
-    return end
+    return fetchHeadersWriteLowercased(name.checkedSpan16(), &codeUnits, start)
 }
 
-/// Writes `characters`, lowercased with ASCII rules, to `codeUnits` from `start` on, where they fit: eight at a time, the
-/// last eight overlapping the ones before them, when there are eight.
-private func fetchHeadersWriteLowercased(
-    _ characters: Span<UInt8>,
-    _ start: Int,
-    _ codeUnits: inout MutableSpan<UInt16>
-) {
-    if characters.count < 8 {
-        for index in characters.indices {
-            let character = UInt8(truncatingIfNeeded: HTTPHeaderCodeUnits.toASCIILower(UInt32(characters[index])))
-            // Below the end the caller checked.
-            codeUnits[start &+ index] = UInt16(character)
-        }
-        return
-    }
-    let bytes = characters.bytes
-    var codeUnitBytes = codeUnits.mutableBytes
-    // There are at least eight characters here.
-    let lastOffset = characters.count &- 8
-    var offset = 0
-    while true {
-        let word = fetchHeadersASCIILowercase(UInt64(littleEndian: bytes.load(fromByteOffset: offset, as: UInt64.self)))
-        // Below the end the caller checked, which is at most codeUnits.count, so neither this nor the byte offsets overflow.
-        let position = start &+ offset
-        // Likewise.
-        codeUnitBytes.storeBytes(of: fetchHeadersWidened(word).littleEndian, toByteOffset: position &* 2, as: UInt64.self)
-        // Likewise.
-        codeUnitBytes.storeBytes(of: fetchHeadersWidened(word >> 32).littleEndian, toByteOffset: position &* 2 &+ 8, as: UInt64.self)
-        if offset == lastOffset {
-            return
-        }
-        // Below lastOffset here, so this is below the characters' count.
-        offset = min(offset &+ 8, lastOffset)
-    }
-}
-
-/// Writes `units`, lowercased with ASCII rules, to `codeUnits` from `start` on, where they fit: four at a time, the last
-/// four overlapping the ones before them, when there are four.
-private func fetchHeadersWriteLowercased(_ units: Span<UInt16>, _ start: Int, _ codeUnits: inout MutableSpan<UInt16>) {
-    if units.count < 4 {
-        for index in units.indices {
-            // Below the end the caller checked.
-            codeUnits[start &+ index] = UInt16(truncatingIfNeeded: HTTPHeaderCodeUnits.toASCIILower(UInt32(units[index])))
-        }
-        return
-    }
-    let bytes = units.bytes
-    var codeUnitBytes = codeUnits.mutableBytes
-    // There are at least four units here.
-    let lastOffset = units.count &- 4
-    var offset = 0
-    while true {
-        // Below the units' count, a String's length.
-        let word = fetchHeadersASCIILowercaseUnits(UInt64(littleEndian: bytes.load(fromByteOffset: offset &* 2, as: UInt64.self)))
-        // Below the end the caller checked, which is at most codeUnits.count.
-        codeUnitBytes.storeBytes(of: word.littleEndian, toByteOffset: (start &+ offset) &* 2, as: UInt64.self)
-        if offset == lastOffset {
-            return
-        }
-        // Below lastOffset here, so this is below the units' count.
-        offset = min(offset &+ 4, lastOffset)
-    }
-}
-
-/// The eight characters of `word`, the first in its lowest byte, with the ASCII capital letters lowercased.
-///
-/// A character's low seven bits plus 0x3F, and plus 0x25, reach its high bit when they are at least 'A', and above 'Z';
-/// neither sum carries out of the character.
-@inline(always)
-private func fetchHeadersASCIILowercase(_ word: UInt64) -> UInt64 {
-    let low = word & 0x7F7F_7F7F_7F7F_7F7F
-    let isUpper = (low + 0x3F3F_3F3F_3F3F_3F3F) & ~(low + 0x2525_2525_2525_2525) & ~word & 0x8080_8080_8080_8080
-    return word | isUpper >> 2
-}
-
-/// The four 16-bit code units of `word`, the first in its lowest bits, with the ASCII capital letters lowercased, as
-/// fetchHeadersASCIILowercase() does with 0x7FBF and 0x7FA5.
-@inline(always)
-private func fetchHeadersASCIILowercaseUnits(_ word: UInt64) -> UInt64 {
-    let low = word & 0x7FFF_7FFF_7FFF_7FFF
-    let isUpper = (low + 0x7FBF_7FBF_7FBF_7FBF) & ~(low + 0x7FA5_7FA5_7FA5_7FA5) & ~word & 0x8000_8000_8000_8000
-    return word | isUpper >> 10
-}
-
-/// The four low bytes of `word` as four 16-bit code units, the first in the lowest.
-@inline(always)
-private func fetchHeadersWidened(_ word: UInt64) -> UInt64 {
-    (word & 0xFF) | (word & 0xFF00) << 8 | (word & 0xFF_0000) << 16 | (word & 0xFF00_0000) << 24
-}
-
-/// Sorts the first `count` of `names` by code point, keeping names that compare equal in their order (a header named
-/// Set-Cookie before the null String): each name goes after the sorted names that are not above it.
-private func fetchHeadersSortIteratorNames(_ names: inout MutableSpan<FetchHeadersIteratorName>, _ count: Int, _ codeUnits: Span<UInt16>) {
-    var index = 1
-    while index < count {
-        let name = names[index]
-        var low = 0
-        var high = index
-        while low < high {
-            // Both are at most index, so neither the sum nor the difference overflows.
-            let middle = low &+ (high &- low) / 2
-            if fetchHeadersIteratorNameLessThan(codeUnits, name, names[middle]) {
-                high = middle
-            } else {
-                // Below index.
-                low = middle &+ 1
-            }
-        }
-        var position = index
-        while position > low {
-            // position is above low, which is at least 0.
-            names[position] = names[position &- 1]
-            // Likewise.
-            position &-= 1
-        }
-        names[low] = name
-        // Below count.
-        index &+= 1
-    }
-}
-
-/// The order fetchHeadersSortIteratorNames() gives the iterator's names when no common header repeats: the common header
-/// names whose ranks are set in `commonNameRanks`, the uncommon header names `names`, and with `hasSetCookie` the null
-/// String standing for the Set-Cookie values, at most 16 names in all.
-///
-/// A common name sorts before an uncommon name equal to it, and both before the null String, as in map order.
-/// `order[position]` is the raw value of the common header name sorted to `position`,
-/// `fetchHeadersUncommonIteratorName` plus the index of an uncommon header name, or
-/// `fetchHeadersSetCookieIteratorName`. With `hasSetCookie`, returns the number of names below `set-cookie`, as
-/// fetchHeadersSetCookieKeyIndex() counts them; else returns 0.
-private func fetchHeadersOrderIteratorNames(
-    _ commonNameRanks: UInt128,
-    _ names: Span<FetchHeadersIteratorName>,
-    _ codeUnits: Span<UInt16>,
-    _ hasSetCookie: Bool,
-    _ order: inout MutableSpan<UInt8>
+private func fetchHeadersWriteLowercased<CodeUnit: HTTPHeaderStringCodeUnit>(
+    _ characters: Span<CodeUnit>,
+    _ codeUnits: inout MutableSpan<UInt16>,
+    _ start: Int
 ) -> Int {
-    let setCookieRank = Int(fetchHeadersCommonNameRanks.span[Int(WebCore.HTTPHeaderName.SetCookie.rawValue)])
-    // A rank is below 103: no overflow.
-    let setCookieUpperBound = setCookieRank &+ 1
-    // Each uncommon name's number of HTTPHeaderName's names not above it, which is the number of ranks below it.
-    var inlineUpperBounds = FetchHeadersInlineIteratorOrder(repeating: 0)
-    var uncommonNamesBelowSetCookie = 0
-    var uncommonNamesAboveSetCookie = 0
-    var isAboveSetCookie: UInt16 = 0
-    do {
-        var upperBounds = inlineUpperBounds.mutableSpan
-        for index in names.indices {
-            let name = codeUnits.extracting(names[index].start..<names[index].end)
-            let upperBound = fetchHeadersCommonNameUpperBound(name)
-            upperBounds[index] = UInt8(truncatingIfNeeded: upperBound)
-            if !hasSetCookie {
-                continue
-            }
-            if upperBound < setCookieUpperBound {
-                // At most 16 names: neither count overflows.
-                uncommonNamesBelowSetCookie &+= 1
-            } else if upperBound > setCookieUpperBound || crossOriginAccessControlCodePointLessThan(fetchHeadersSetCookieName.span, name) {
-                // Likewise.
-                uncommonNamesAboveSetCookie &+= 1
-                // index is below 16, so the shift is exact.
-                isAboveSetCookie |= 1 &<< index
-            }
-        }
+    for index in characters.indices {
+        // Below the end the caller made room for.
+        codeUnits[start &+ index] = UInt16(truncatingIfNeeded: HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(characters[index])))
     }
-    let upperBounds = inlineUpperBounds.span
-    for index in names.indices {
-        var position = fetchHeadersRanksBelow(commonNameRanks, Int(upperBounds[index]))
-        for other in names.indices {
-            // At most 16 names: no overflow.
-            position &+= other != index && fetchHeadersIteratorNameSortsBefore(codeUnits, names[other], other, names[index], index) ? 1 : 0
-        }
-        if isAboveSetCookie >> index & 1 != 0 {
-            // Below 16.
-            position &+= 1
-        }
-        order[position] = fetchHeadersUncommonIteratorName | UInt8(truncatingIfNeeded: index)
-    }
-    let namesByRank = fetchHeadersCommonNamesByRank.span
-    var remainingRanks = commonNameRanks
-    var commonNamesBefore = 0
-    while remainingRanks != 0 {
-        let rank = remainingRanks.trailingZeroBitCount
-        var position = commonNamesBefore
-        for index in names.indices {
-            // At most 16 names: no overflow.
-            position &+= Int(upperBounds[index]) <= rank ? 1 : 0
-        }
-        if hasSetCookie, rank > setCookieRank {
-            // Below 16.
-            position &+= 1
-        }
-        order[position] = namesByRank[rank]
-        // Likewise.
-        commonNamesBefore &+= 1
-        // remainingRanks is not 0.
-        remainingRanks &= remainingRanks &- 1
-    }
-    if !hasSetCookie {
-        return 0
-    }
-    // At most 16 names: none of these overflows.
-    order[fetchHeadersRanksBelow(commonNameRanks, setCookieUpperBound) &+ names.count &- uncommonNamesAboveSetCookie] =
-        fetchHeadersSetCookieIteratorName
     // Likewise.
-    return fetchHeadersRanksBelow(commonNameRanks, setCookieRank) &+ uncommonNamesBelowSetCookie
+    return start &+ characters.count
 }
 
-/// What fetchHeadersOrderIteratorNames() writes for an uncommon header name, plus its index, and for the null String.
-private let fetchHeadersUncommonIteratorName: UInt8 = 0x80
-private let fetchHeadersSetCookieIteratorName: UInt8 = 0xFF
-
-/// The number of ranks below `rank` set in `ranks`.
-@inline(always)
-private func fetchHeadersRanksBelow(_ ranks: UInt128, _ rank: Int) -> Int {
-    // rank is at most the number of HTTPHeaderName's values, 103, so the shift is by less than 128.
-    (ranks & ~(UInt128.max &<< rank)).nonzeroBitCount
-}
-
-/// The number of HTTPHeaderName's names, lowercased, that are not above `name` by code point, as `std::ranges::upper_bound`
-/// finds it among them sorted.
-///
-/// `name`'s prefix, made as fetchHeadersCommonNamePrefixesByRank's are, orders it against each name whose prefix
-/// differs from it; a name with the same prefix is compared by code point.
-private func fetchHeadersCommonNameUpperBound(_ name: Span<UInt16>) -> Int {
-    let namesByRank = fetchHeadersCommonNamesByRank.span
-    let prefixes = fetchHeadersCommonNamePrefixesByRank.span
-    let offsets = fetchHeadersCommonNameOffsets.span
-    let characters = fetchHeadersCommonNameCharacters.span
-    // A code unit above 0xFF is taken as 0xFF: either is above every character of the names.
-    var prefix: UInt64 = 0
-    for position in 0..<8 {
-        prefix <<= 8
-        if position < name.count {
-            prefix |= UInt64(min(name[position], 0xFF))
-        }
-    }
-    var first = 0
-    var remaining = namesByRank.count
-    while remaining > 0 {
-        let step = remaining / 2
-        // first + step is below namesByRank.count.
-        let middle = first &+ step
-        let isBelow: Bool
-        if prefix != prefixes[middle] {
-            isBelow = prefix < prefixes[middle]
-        } else {
-            let index = Int(namesByRank[middle])
-            // index is below the number of HTTPHeaderName's values, and the offsets have one more.
-            isBelow = crossOriginAccessControlCodePointLessThan(name, characters.extracting(Int(offsets[index])..<Int(offsets[index &+ 1])))
-        }
-        if isBelow {
-            remaining = step
-        } else {
-            // middle is below namesByRank.count, and step + 1 at most remaining.
-            first = middle &+ 1
-            // Likewise.
-            remaining &-= step &+ 1
-        }
-    }
-    return first
-}
-
-/// The key of the name fetchHeadersOrderIteratorNames() writes as `name`: a common header's name lowercased, an uncommon
-/// header's name lowercased, or the null String standing for the Set-Cookie values.
-private func fetchHeadersOrderedIteratorKey(_ name: UInt8, _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>) -> WTF.String {
-    if name < fetchHeadersUncommonIteratorName {
-        // What convertToASCIILowercase() makes of httpHeaderNameString(); name is the raw value of one of HTTPHeaderName's
-        // values, from fetchHeadersCommonNamesByRank.
-        return WebCore.lowercaseHTTPHeaderNameString(WebCore.HTTPHeaderName(rawValue: UInt16(name))!)
-    }
-    if name == fetchHeadersSetCookieIteratorName {
-        return WTF.String()
-    }
-    return uncommonHeaders[Int(name & ~fetchHeadersUncommonIteratorName)].key.convertToASCIILowercase()
-}
-
-/// Whether name `a`, at `aIndex` in map order, sorts before name `b`, at `bIndex`: fetchHeadersIteratorNameLessThan(),
-/// and map order for equal names.
-private func fetchHeadersIteratorNameSortsBefore(
-    _ codeUnits: Span<UInt16>,
-    _ a: FetchHeadersIteratorName,
-    _ aIndex: Int,
-    _ b: FetchHeadersIteratorName,
-    _ bIndex: Int
-) -> Bool {
-    if fetchHeadersIteratorNameLessThan(codeUnits, a, b) {
-        return true
-    }
-    return !fetchHeadersIteratorNameLessThan(codeUnits, b, a) && aIndex < bIndex
-}
-
-/// The first position among the sorted `names` whose name is not below `set-cookie`, as `std::ranges::lower_bound`
-/// finds it.
-private func fetchHeadersSetCookieKeyIndex(_ names: Span<FetchHeadersIteratorName>, _ codeUnits: Span<UInt16>) -> Int {
-    var first = 0
-    var remaining = names.count
-    while remaining > 0 {
-        let step = remaining / 2
-        // first + step is below names.count.
-        let middle = first &+ step
-        let name = names[middle]
-        if crossOriginAccessControlCodePointLessThan(codeUnits.extracting(name.start..<name.end), fetchHeadersSetCookieName.span) {
-            // middle is below names.count, and step + 1 at most remaining.
-            first = middle &+ 1
-            // Likewise.
-            remaining &-= step &+ 1
-        } else {
-            remaining = step
-        }
-    }
-    return first
-}
-
-/// `compareIteratorKeys()` of two of the names the iterator sorts: `WTF::codePointCompareLessThan()` of their code units,
-/// four at a time, the last four overlapping the ones before them, while both have four.
+/// `compareIteratorKeys()` of two of the names the iterator sorts, whose code units are in `codeUnits`.
 private func fetchHeadersIteratorNameLessThan(
     _ codeUnits: Span<UInt16>,
     _ a: FetchHeadersIteratorName,
     _ b: FetchHeadersIteratorName
 ) -> Bool {
-    // Each name lies within codeUnits, so none of these offsets overflows.
-    let aCount = a.end &- a.start
-    // Likewise.
-    let bCount = b.end &- b.start
-    let commonLength = min(aCount, bCount)
-    if commonLength < 4 {
-        var position = 0
-        while position < commonLength {
-            // Below a.end and b.end.
-            let aCodeUnit = codeUnits[a.start &+ position]
-            // Likewise.
-            let bCodeUnit = codeUnits[b.start &+ position]
-            if aCodeUnit != bCodeUnit {
-                return aCodeUnit < bCodeUnit
-            }
-            // Below commonLength.
-            position &+= 1
-        }
-        return aCount < bCount
-    }
-    let bytes = codeUnits.bytes
-    // commonLength is at least 4 here.
-    let lastOffset = commonLength &- 4
-    var offset = 0
-    while true {
-        // Below a.end, at most codeUnits.count, so neither the position nor its byte offset overflows.
-        let aWord = UInt64(littleEndian: bytes.load(fromByteOffset: (a.start &+ offset) &* 2, as: UInt64.self))
-        // Likewise for b.
-        let bWord = UInt64(littleEndian: bytes.load(fromByteOffset: (b.start &+ offset) &* 2, as: UInt64.self))
-        if aWord != bWord {
-            // The code units before this word are equal, and the first that differs is the lowest one that does.
-            let shift = UInt64((aWord ^ bWord).trailingZeroBitCount / 16 * 16)
-            return (aWord >> shift) & 0xFFFF < (bWord >> shift) & 0xFFFF
-        }
-        if offset == lastOffset {
-            return aCount < bCount
-        }
-        // Below lastOffset here, so this is below commonLength.
-        offset = min(offset &+ 4, lastOffset)
-    }
+    crossOriginAccessControlCodePointLessThan(codeUnits.extracting(a.start..<a.end), codeUnits.extracting(b.start..<b.end))
 }
 
 /// The key of `name` among the sorted names: a common header's name lowercased, an uncommon header's name lowercased, or
@@ -1182,8 +717,7 @@ private func fetchHeadersCanAddHeader(
 
 /// fetchHeadersCanAddHeader() of a common header of another map, named `name`, with `value`.
 ///
-/// A known name is a valid token, and the checks of a name ignore ASCII case, so they read its lowercased characters
-/// from fetchHeadersCommonNameCharacters.
+/// A known name is a valid token, and the checks of a name ignore ASCII case, so they read its lowercased name.
 private func fetchHeadersCanAddCommonHeader(
     _ name: WebCore.HTTPHeaderName,
     _ value: borrowing WTF.String,
@@ -1197,10 +731,8 @@ private func fetchHeadersCanAddCommonHeader(
     if headersGuard == .Immutable {
         return .immutable
     }
-    let offsets = fetchHeadersCommonNameOffsets.span
-    let index = Int(name.rawValue)
-    // index is below the number of HTTPHeaderName's values, and the offsets have one more.
-    let nameCharacters = fetchHeadersCommonNameCharacters.span.extracting(Int(offsets[index])..<Int(offsets[index &+ 1]))
+    let lowercaseName = WebCore.lowercaseHTTPHeaderNameString(name)
+    let nameCharacters: Span<UInt8> = WebCore.securityPoliciesSpan8(lowercaseName)
     if headersGuard == .Request {
         let isForbidden: Bool
         if !valueCharacters.isEmpty {
@@ -1442,304 +974,6 @@ private func fetchHeadersIsSetCookie(_ name: borrowing WTF.String, _ characters:
     }
     return HTTPHeaderCodeUnits.equalIgnoringASCIICase(name.checkedSpan16(), fetchHeadersSetCookieName.span)
 }
-
-/// The names of HTTPHeaderName's values, as httpHeaderNameString() gives them, lowercased: the name of the value with
-/// raw value `index` is
-/// `fetchHeadersCommonNameCharacters[fetchHeadersCommonNameOffsets[index]..<fetchHeadersCommonNameOffsets[index + 1]]`.
-///
-/// FetchHeaders.cpp checks that HTTPHeaderName has this many values.
-private let fetchHeadersCommonNameOffsets: [UInt16] = [
-    0, 6, 20, 35, 50, 63, 95, 123, 151, 178, 207, 229, 259, 288, 291, 304,
-    317, 332, 342, 361, 377, 393, 407, 423, 436, 459, 494, 506, 512, 519, 547, 587,
-    613, 651, 679, 682, 686, 699, 724, 761, 765, 771, 778, 782, 793, 805, 813, 830,
-    843, 851, 870, 886, 914, 924, 937, 950, 954, 962, 968, 988, 997, 1004, 1010, 1029,
-    1034, 1041, 1056, 1063, 1072, 1091, 1105, 1119, 1133, 1140, 1151, 1171, 1191, 1215, 1232, 1254,
-    1275, 1288, 1302, 1324, 1357, 1367, 1378, 1387, 1404, 1406, 1425, 1432, 1449, 1456, 1481, 1498,
-    1508, 1512, 1515, 1537, 1552, 1563, 1576, 1592,
-]
-private let fetchHeadersCommonNameCharacters: [UInt8] = [
-    // accept
-    0x61, 0x63, 0x63, 0x65, 0x70, 0x74,
-    // accept-charset
-    0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2D, 0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74,
-    // accept-encoding
-    0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2D, 0x65, 0x6E, 0x63, 0x6F, 0x64, 0x69, 0x6E, 0x67,
-    // accept-language
-    0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2D, 0x6C, 0x61, 0x6E, 0x67, 0x75, 0x61, 0x67, 0x65,
-    // accept-ranges
-    0x61, 0x63, 0x63, 0x65, 0x70, 0x74, 0x2D, 0x72, 0x61, 0x6E, 0x67, 0x65, 0x73,
-    // access-control-allow-credentials
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x2D, 0x63,
-    0x72, 0x65, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x61, 0x6C, 0x73,
-    // access-control-allow-headers
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x2D, 0x68,
-    0x65, 0x61, 0x64, 0x65, 0x72, 0x73,
-    // access-control-allow-methods
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x2D, 0x6D,
-    0x65, 0x74, 0x68, 0x6F, 0x64, 0x73,
-    // access-control-allow-origin
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x2D, 0x6F,
-    0x72, 0x69, 0x67, 0x69, 0x6E,
-    // access-control-expose-headers
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x65, 0x78, 0x70, 0x6F, 0x73, 0x65, 0x2D,
-    0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73,
-    // access-control-max-age
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x6D, 0x61, 0x78, 0x2D, 0x61, 0x67, 0x65,
-    // access-control-request-headers
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-    0x2D, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72, 0x73,
-    // access-control-request-method
-    0x61, 0x63, 0x63, 0x65, 0x73, 0x73, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x2D, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-    0x2D, 0x6D, 0x65, 0x74, 0x68, 0x6F, 0x64,
-    // age
-    0x61, 0x67, 0x65,
-    // authorization
-    0x61, 0x75, 0x74, 0x68, 0x6F, 0x72, 0x69, 0x7A, 0x61, 0x74, 0x69, 0x6F, 0x6E,
-    // cache-control
-    0x63, 0x61, 0x63, 0x68, 0x65, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C,
-    // clear-site-data
-    0x63, 0x6C, 0x65, 0x61, 0x72, 0x2D, 0x73, 0x69, 0x74, 0x65, 0x2D, 0x64, 0x61, 0x74, 0x61,
-    // connection
-    0x63, 0x6F, 0x6E, 0x6E, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E,
-    // content-disposition
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x64, 0x69, 0x73, 0x70, 0x6F, 0x73, 0x69, 0x74, 0x69, 0x6F, 0x6E,
-    // content-encoding
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x65, 0x6E, 0x63, 0x6F, 0x64, 0x69, 0x6E, 0x67,
-    // content-language
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x6C, 0x61, 0x6E, 0x67, 0x75, 0x61, 0x67, 0x65,
-    // content-length
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x6C, 0x65, 0x6E, 0x67, 0x74, 0x68,
-    // content-location
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x6C, 0x6F, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E,
-    // content-range
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x72, 0x61, 0x6E, 0x67, 0x65,
-    // content-security-policy
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x73, 0x65, 0x63, 0x75, 0x72, 0x69, 0x74, 0x79, 0x2D, 0x70, 0x6F, 0x6C, 0x69, 0x63,
-    0x79,
-    // content-security-policy-report-only
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x73, 0x65, 0x63, 0x75, 0x72, 0x69, 0x74, 0x79, 0x2D, 0x70, 0x6F, 0x6C, 0x69, 0x63,
-    0x79, 0x2D, 0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x2D, 0x6F, 0x6E, 0x6C, 0x79,
-    // content-type
-    0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x74, 0x79, 0x70, 0x65,
-    // cookie
-    0x63, 0x6F, 0x6F, 0x6B, 0x69, 0x65,
-    // cookie2
-    0x63, 0x6F, 0x6F, 0x6B, 0x69, 0x65, 0x32,
-    // cross-origin-embedder-policy
-    0x63, 0x72, 0x6F, 0x73, 0x73, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x65, 0x6D, 0x62, 0x65, 0x64, 0x64, 0x65, 0x72, 0x2D,
-    0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79,
-    // cross-origin-embedder-policy-report-only
-    0x63, 0x72, 0x6F, 0x73, 0x73, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x65, 0x6D, 0x62, 0x65, 0x64, 0x64, 0x65, 0x72, 0x2D,
-    0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79, 0x2D, 0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x2D, 0x6F, 0x6E, 0x6C, 0x79,
-    // cross-origin-opener-policy
-    0x63, 0x72, 0x6F, 0x73, 0x73, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x6F, 0x70, 0x65, 0x6E, 0x65, 0x72, 0x2D, 0x70, 0x6F,
-    0x6C, 0x69, 0x63, 0x79,
-    // cross-origin-opener-policy-report-only
-    0x63, 0x72, 0x6F, 0x73, 0x73, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x6F, 0x70, 0x65, 0x6E, 0x65, 0x72, 0x2D, 0x70, 0x6F,
-    0x6C, 0x69, 0x63, 0x79, 0x2D, 0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x2D, 0x6F, 0x6E, 0x6C, 0x79,
-    // cross-origin-resource-policy
-    0x63, 0x72, 0x6F, 0x73, 0x73, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x72, 0x65, 0x73, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x2D,
-    0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79,
-    // dnt
-    0x64, 0x6E, 0x74,
-    // date
-    0x64, 0x61, 0x74, 0x65,
-    // default-style
-    0x64, 0x65, 0x66, 0x61, 0x75, 0x6C, 0x74, 0x2D, 0x73, 0x74, 0x79, 0x6C, 0x65,
-    // document-isolation-policy
-    0x64, 0x6F, 0x63, 0x75, 0x6D, 0x65, 0x6E, 0x74, 0x2D, 0x69, 0x73, 0x6F, 0x6C, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2D, 0x70, 0x6F, 0x6C,
-    0x69, 0x63, 0x79,
-    // document-isolation-policy-report-only
-    0x64, 0x6F, 0x63, 0x75, 0x6D, 0x65, 0x6E, 0x74, 0x2D, 0x69, 0x73, 0x6F, 0x6C, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2D, 0x70, 0x6F, 0x6C,
-    0x69, 0x63, 0x79, 0x2D, 0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x2D, 0x6F, 0x6E, 0x6C, 0x79,
-    // etag
-    0x65, 0x74, 0x61, 0x67,
-    // expect
-    0x65, 0x78, 0x70, 0x65, 0x63, 0x74,
-    // expires
-    0x65, 0x78, 0x70, 0x69, 0x72, 0x65, 0x73,
-    // host
-    0x68, 0x6F, 0x73, 0x74,
-    // icy-metaint
-    0x69, 0x63, 0x79, 0x2D, 0x6D, 0x65, 0x74, 0x61, 0x69, 0x6E, 0x74,
-    // icy-metadata
-    0x69, 0x63, 0x79, 0x2D, 0x6D, 0x65, 0x74, 0x61, 0x64, 0x61, 0x74, 0x61,
-    // if-match
-    0x69, 0x66, 0x2D, 0x6D, 0x61, 0x74, 0x63, 0x68,
-    // if-modified-since
-    0x69, 0x66, 0x2D, 0x6D, 0x6F, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x2D, 0x73, 0x69, 0x6E, 0x63, 0x65,
-    // if-none-match
-    0x69, 0x66, 0x2D, 0x6E, 0x6F, 0x6E, 0x65, 0x2D, 0x6D, 0x61, 0x74, 0x63, 0x68,
-    // if-range
-    0x69, 0x66, 0x2D, 0x72, 0x61, 0x6E, 0x67, 0x65,
-    // if-unmodified-since
-    0x69, 0x66, 0x2D, 0x75, 0x6E, 0x6D, 0x6F, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64, 0x2D, 0x73, 0x69, 0x6E, 0x63, 0x65,
-    // integrity-policy
-    0x69, 0x6E, 0x74, 0x65, 0x67, 0x72, 0x69, 0x74, 0x79, 0x2D, 0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79,
-    // integrity-policy-report-only
-    0x69, 0x6E, 0x74, 0x65, 0x67, 0x72, 0x69, 0x74, 0x79, 0x2D, 0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79, 0x2D, 0x72, 0x65, 0x70, 0x6F, 0x72,
-    0x74, 0x2D, 0x6F, 0x6E, 0x6C, 0x79,
-    // keep-alive
-    0x6B, 0x65, 0x65, 0x70, 0x2D, 0x61, 0x6C, 0x69, 0x76, 0x65,
-    // last-event-id
-    0x6C, 0x61, 0x73, 0x74, 0x2D, 0x65, 0x76, 0x65, 0x6E, 0x74, 0x2D, 0x69, 0x64,
-    // last-modified
-    0x6C, 0x61, 0x73, 0x74, 0x2D, 0x6D, 0x6F, 0x64, 0x69, 0x66, 0x69, 0x65, 0x64,
-    // link
-    0x6C, 0x69, 0x6E, 0x6B,
-    // location
-    0x6C, 0x6F, 0x63, 0x61, 0x74, 0x69, 0x6F, 0x6E,
-    // origin
-    0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E,
-    // origin-agent-cluster
-    0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E, 0x2D, 0x61, 0x67, 0x65, 0x6E, 0x74, 0x2D, 0x63, 0x6C, 0x75, 0x73, 0x74, 0x65, 0x72,
-    // ping-from
-    0x70, 0x69, 0x6E, 0x67, 0x2D, 0x66, 0x72, 0x6F, 0x6D,
-    // ping-to
-    0x70, 0x69, 0x6E, 0x67, 0x2D, 0x74, 0x6F,
-    // pragma
-    0x70, 0x72, 0x61, 0x67, 0x6D, 0x61,
-    // proxy-authorization
-    0x70, 0x72, 0x6F, 0x78, 0x79, 0x2D, 0x61, 0x75, 0x74, 0x68, 0x6F, 0x72, 0x69, 0x7A, 0x61, 0x74, 0x69, 0x6F, 0x6E,
-    // range
-    0x72, 0x61, 0x6E, 0x67, 0x65,
-    // referer
-    0x72, 0x65, 0x66, 0x65, 0x72, 0x65, 0x72,
-    // referrer-policy
-    0x72, 0x65, 0x66, 0x65, 0x72, 0x72, 0x65, 0x72, 0x2D, 0x70, 0x6F, 0x6C, 0x69, 0x63, 0x79,
-    // refresh
-    0x72, 0x65, 0x66, 0x72, 0x65, 0x73, 0x68,
-    // report-to
-    0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x2D, 0x74, 0x6F,
-    // reporting-endpoints
-    0x72, 0x65, 0x70, 0x6F, 0x72, 0x74, 0x69, 0x6E, 0x67, 0x2D, 0x65, 0x6E, 0x64, 0x70, 0x6F, 0x69, 0x6E, 0x74, 0x73,
-    // sec-fetch-dest
-    0x73, 0x65, 0x63, 0x2D, 0x66, 0x65, 0x74, 0x63, 0x68, 0x2D, 0x64, 0x65, 0x73, 0x74,
-    // sec-fetch-mode
-    0x73, 0x65, 0x63, 0x2D, 0x66, 0x65, 0x74, 0x63, 0x68, 0x2D, 0x6D, 0x6F, 0x64, 0x65,
-    // sec-fetch-site
-    0x73, 0x65, 0x63, 0x2D, 0x66, 0x65, 0x74, 0x63, 0x68, 0x2D, 0x73, 0x69, 0x74, 0x65,
-    // sec-gpc
-    0x73, 0x65, 0x63, 0x2D, 0x67, 0x70, 0x63,
-    // sec-purpose
-    0x73, 0x65, 0x63, 0x2D, 0x70, 0x75, 0x72, 0x70, 0x6F, 0x73, 0x65,
-    // sec-speculation-tags
-    0x73, 0x65, 0x63, 0x2D, 0x73, 0x70, 0x65, 0x63, 0x75, 0x6C, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2D, 0x74, 0x61, 0x67, 0x73,
-    // sec-websocket-accept
-    0x73, 0x65, 0x63, 0x2D, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x61, 0x63, 0x63, 0x65, 0x70, 0x74,
-    // sec-websocket-extensions
-    0x73, 0x65, 0x63, 0x2D, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x65, 0x78, 0x74, 0x65, 0x6E, 0x73, 0x69, 0x6F,
-    0x6E, 0x73,
-    // sec-websocket-key
-    0x73, 0x65, 0x63, 0x2D, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x6B, 0x65, 0x79,
-    // sec-websocket-protocol
-    0x73, 0x65, 0x63, 0x2D, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x70, 0x72, 0x6F, 0x74, 0x6F, 0x63, 0x6F, 0x6C,
-    // sec-websocket-version
-    0x73, 0x65, 0x63, 0x2D, 0x77, 0x65, 0x62, 0x73, 0x6F, 0x63, 0x6B, 0x65, 0x74, 0x2D, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E,
-    // server-timing
-    0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2D, 0x74, 0x69, 0x6D, 0x69, 0x6E, 0x67,
-    // service-worker
-    0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2D, 0x77, 0x6F, 0x72, 0x6B, 0x65, 0x72,
-    // service-worker-allowed
-    0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2D, 0x77, 0x6F, 0x72, 0x6B, 0x65, 0x72, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x65, 0x64,
-    // service-worker-navigation-preload
-    0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x2D, 0x77, 0x6F, 0x72, 0x6B, 0x65, 0x72, 0x2D, 0x6E, 0x61, 0x76, 0x69, 0x67, 0x61, 0x74,
-    0x69, 0x6F, 0x6E, 0x2D, 0x70, 0x72, 0x65, 0x6C, 0x6F, 0x61, 0x64,
-    // set-cookie
-    0x73, 0x65, 0x74, 0x2D, 0x63, 0x6F, 0x6F, 0x6B, 0x69, 0x65,
-    // set-cookie2
-    0x73, 0x65, 0x74, 0x2D, 0x63, 0x6F, 0x6F, 0x6B, 0x69, 0x65, 0x32,
-    // sourcemap
-    0x73, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x6D, 0x61, 0x70,
-    // speculation-rules
-    0x73, 0x70, 0x65, 0x63, 0x75, 0x6C, 0x61, 0x74, 0x69, 0x6F, 0x6E, 0x2D, 0x72, 0x75, 0x6C, 0x65, 0x73,
-    // te
-    0x74, 0x65,
-    // timing-allow-origin
-    0x74, 0x69, 0x6D, 0x69, 0x6E, 0x67, 0x2D, 0x61, 0x6C, 0x6C, 0x6F, 0x77, 0x2D, 0x6F, 0x72, 0x69, 0x67, 0x69, 0x6E,
-    // trailer
-    0x74, 0x72, 0x61, 0x69, 0x6C, 0x65, 0x72,
-    // transfer-encoding
-    0x74, 0x72, 0x61, 0x6E, 0x73, 0x66, 0x65, 0x72, 0x2D, 0x65, 0x6E, 0x63, 0x6F, 0x64, 0x69, 0x6E, 0x67,
-    // upgrade
-    0x75, 0x70, 0x67, 0x72, 0x61, 0x64, 0x65,
-    // upgrade-insecure-requests
-    0x75, 0x70, 0x67, 0x72, 0x61, 0x64, 0x65, 0x2D, 0x69, 0x6E, 0x73, 0x65, 0x63, 0x75, 0x72, 0x65, 0x2D, 0x72, 0x65, 0x71, 0x75, 0x65,
-    0x73, 0x74, 0x73,
-    // use-as-dictionary
-    0x75, 0x73, 0x65, 0x2D, 0x61, 0x73, 0x2D, 0x64, 0x69, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x61, 0x72, 0x79,
-    // user-agent
-    0x75, 0x73, 0x65, 0x72, 0x2D, 0x61, 0x67, 0x65, 0x6E, 0x74,
-    // vary
-    0x76, 0x61, 0x72, 0x79,
-    // via
-    0x76, 0x69, 0x61,
-    // x-content-type-options
-    0x78, 0x2D, 0x63, 0x6F, 0x6E, 0x74, 0x65, 0x6E, 0x74, 0x2D, 0x74, 0x79, 0x70, 0x65, 0x2D, 0x6F, 0x70, 0x74, 0x69, 0x6F, 0x6E, 0x73,
-    // x-frame-options
-    0x78, 0x2D, 0x66, 0x72, 0x61, 0x6D, 0x65, 0x2D, 0x6F, 0x70, 0x74, 0x69, 0x6F, 0x6E, 0x73,
-    // x-sourcemap
-    0x78, 0x2D, 0x73, 0x6F, 0x75, 0x72, 0x63, 0x65, 0x6D, 0x61, 0x70,
-    // x-temp-tablet
-    0x78, 0x2D, 0x74, 0x65, 0x6D, 0x70, 0x2D, 0x74, 0x61, 0x62, 0x6C, 0x65, 0x74,
-    // x-xss-protection
-    0x78, 0x2D, 0x78, 0x73, 0x73, 0x2D, 0x70, 0x72, 0x6F, 0x74, 0x65, 0x63, 0x74, 0x69, 0x6F, 0x6E,
-]
-
-/// The rank of each of HTTPHeaderName's names, lowercased, among them all sorted by code point:
-/// `fetchHeadersCommonNameRanks[index]` for the value with raw value `index`, and `fetchHeadersCommonNamesByRank[rank]` the
-/// raw value of the name of that rank.
-private let fetchHeadersCommonNameRanks: [UInt8] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-    32, 33, 36, 34, 35, 37, 38, 39, 40, 41, 42, 44, 43, 45, 46, 47,
-    48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-    64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-    80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
-    96, 97, 98, 99, 100, 101, 102,
-]
-private let fetchHeadersCommonNamesByRank: [UInt8] = [
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-    16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
-    32, 33, 35, 36, 34, 37, 38, 39, 40, 41, 42, 44, 43, 45, 46, 47,
-    48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
-    64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
-    80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,
-    96, 97, 98, 99, 100, 101, 102,
-]
-
-/// The first eight characters of each of HTTPHeaderName's names, lowercased, in rank order: one byte each from the most
-/// significant, zeros past the name's end.
-///
-/// No name has a zero character, so two names' prefixes compare as their first eight characters do.
-private let fetchHeadersCommonNamePrefixesByRank: [UInt64] = [
-    0x6163636570740000, 0x6163636570742D63, 0x6163636570742D65, 0x6163636570742D6C,
-    0x6163636570742D72, 0x6163636573732D63, 0x6163636573732D63, 0x6163636573732D63,
-    0x6163636573732D63, 0x6163636573732D63, 0x6163636573732D63, 0x6163636573732D63,
-    0x6163636573732D63, 0x6167650000000000, 0x617574686F72697A, 0x63616368652D636F,
-    0x636C6561722D7369, 0x636F6E6E65637469, 0x636F6E74656E742D, 0x636F6E74656E742D,
-    0x636F6E74656E742D, 0x636F6E74656E742D, 0x636F6E74656E742D, 0x636F6E74656E742D,
-    0x636F6E74656E742D, 0x636F6E74656E742D, 0x636F6E74656E742D, 0x636F6F6B69650000,
-    0x636F6F6B69653200, 0x63726F73732D6F72, 0x63726F73732D6F72, 0x63726F73732D6F72,
-    0x63726F73732D6F72, 0x63726F73732D6F72, 0x6461746500000000, 0x64656661756C742D,
-    0x646E740000000000, 0x646F63756D656E74, 0x646F63756D656E74, 0x6574616700000000,
-    0x6578706563740000, 0x6578706972657300, 0x686F737400000000, 0x6963792D6D657461,
-    0x6963792D6D657461, 0x69662D6D61746368, 0x69662D6D6F646966, 0x69662D6E6F6E652D,
-    0x69662D72616E6765, 0x69662D756E6D6F64, 0x696E746567726974, 0x696E746567726974,
-    0x6B6565702D616C69, 0x6C6173742D657665, 0x6C6173742D6D6F64, 0x6C696E6B00000000,
-    0x6C6F636174696F6E, 0x6F726967696E0000, 0x6F726967696E2D61, 0x70696E672D66726F,
-    0x70696E672D746F00, 0x707261676D610000, 0x70726F78792D6175, 0x72616E6765000000,
-    0x7265666572657200, 0x7265666572726572, 0x7265667265736800, 0x7265706F72742D74,
-    0x7265706F7274696E, 0x7365632D66657463, 0x7365632D66657463, 0x7365632D66657463,
-    0x7365632D67706300, 0x7365632D70757270, 0x7365632D73706563, 0x7365632D77656273,
-    0x7365632D77656273, 0x7365632D77656273, 0x7365632D77656273, 0x7365632D77656273,
-    0x7365727665722D74, 0x736572766963652D, 0x736572766963652D, 0x736572766963652D,
-    0x7365742D636F6F6B, 0x7365742D636F6F6B, 0x736F757263656D61, 0x73706563756C6174,
-    0x7465000000000000, 0x74696D696E672D61, 0x747261696C657200, 0x7472616E73666572,
-    0x7570677261646500, 0x757067726164652D, 0x7573652D61732D64, 0x757365722D616765,
-    0x7661727900000000, 0x7669610000000000, 0x782D636F6E74656E, 0x782D6672616D652D,
-    0x782D736F75726365, 0x782D74656D702D74, 0x782D7873732D7072,
-]
 
 private let fetchHeadersSetCookieName: [UInt8] = Array("set-cookie".utf8)
 
