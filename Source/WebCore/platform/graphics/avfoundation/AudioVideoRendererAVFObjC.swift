@@ -343,7 +343,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     private var sizeChangeObservers: [AnyObject] = []
     private var hasSizeChangedCallback = false
     private var hasAvailableVideoFrameCallback = false
-    private var hasResourceOwner = false
+    private var resourceOwner: TaskIdentityToken?
     private var timeJumpedObserver: AnyObject?
     private var currentTimeObserver: AnyObject?
     private var performTaskObserver: AnyObject?
@@ -1470,8 +1470,8 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     @_expose(Cxx)
-    func setHasResourceOwner(_ hasOwner: Bool) {
-        hasResourceOwner = hasOwner
+    func setResourceOwner(_ taskIdToken: mach_port_t) {
+        resourceOwner = TaskIdentityToken(copying: taskIdToken)
     }
 
     @_expose(Cxx)
@@ -1694,7 +1694,7 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
         newVideoRenderer.setPreferences(preferences)
         host.setVideoRendererTimebase(true, lastVideoRendererIdentifier)
         configureHasAvailableVideoFrameCallbackIfNeeded()
-        newVideoRenderer.setHasResourceOwner(hasResourceOwner)
+        newVideoRenderer.setResourceOwner(resourceOwner)
 
         completion?(true)
     }
