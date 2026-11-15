@@ -498,6 +498,13 @@ messages -> Destination {
                       '            notify(on: owner.connection(), to: ipcDestinationID, value: value)\n'
                       '        }\n', swift)
 
+        provided = parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, SwiftReceiver, SwiftTypes, SwiftReceiverOwner=OwnedResources]\nmessages -> Owned Stream {\n    Message(uint32_t value)\n}\n'))
+        self.assertTrue(provided.has_swift_receiver_owner())
+        self.assertIn('class OwnedMessageForwarder final : public IPC::StreamMessageReceiver, public IPC::SwiftReceiverOwnerClient {\n', messages.generate_messages_header(provided))
+        self.assertIn('    func startReceiving(on provider: WebKit.OwnedResources) {\n'
+                      '        IPC.startSwiftReceiver(provider, WebKit.OwnedMessageForwarder.create(target: self))\n'
+                      '    }\n', messages.generate_swift_message_handler(provided))
+
         for attributes, kind in ((['SwiftReceiver', 'SwiftReceiverOwner'], ''), (['SwiftImplementation', 'SwiftTypes', 'SwiftReceiverOwner'], ' Stream'), (['SwiftReceiver', 'SwiftReceiverOwner'], ' WorkQueue')):
             with self.assertRaisesRegex(Exception, r"ERROR: Receiver Owned has 'SwiftReceiverOwner', which is for Swift stream receivers without a state lender"):
                 parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> Owned%s {\n    Message(uint32_t value)\n}\n' % (', '.join(attributes), kind)))

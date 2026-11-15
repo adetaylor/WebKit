@@ -32,7 +32,7 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection);
+#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 
 namespace WebKit {
 using namespace WebCore;

@@ -29,7 +29,8 @@
     DispatchedTo=GPU,
     EnabledBy=WebGLEnabled,
     SwiftReceiver,
-    SwiftTypes
+    SwiftTypes,
+    SwiftReceiverOwner=RemoteGraphicsContextGLResources
 ]
 messages -> RemoteGraphicsContextGL Stream {
     void EnsureExtensionEnabled(uint8_t glExtension) StreamBatched
