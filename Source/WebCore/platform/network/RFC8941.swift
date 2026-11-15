@@ -268,7 +268,7 @@ func rfc8941PolicyItem<CodeUnit: HTTPHeaderStringCodeUnit>(_ characters: Span<Co
         guard let key = parser.parseKey(characters) else {
             return nil
         }
-        let isReportTo = rfc8941CharactersEqual(characters.extracting(key.start..<parser.position), "report-to")
+        let isReportTo = crossOriginAccessControlEquals(characters.extracting(key.start..<parser.position), "report-to")
         guard parser.skipExactly(characters, 0x3D) else { // '='
             // A parameter with no value is a Boolean true, which is not a string.
             if isReportTo {
@@ -321,26 +321,7 @@ func rfc8941TextEquals<CodeUnit: FixedWidthInteger & UnsignedInteger>(
     _ step: WebCore.HTTPHeaderStructuredFieldStep,
     _ literal: Swift.String
 ) -> Bool {
-    rfc8941CharactersEqual(rfc8941Text(characters, step), literal)
-}
-
-// Whether `characters` are the ASCII `literal`, code unit for code unit, as String's == compares a String with an
-// ASCIILiteral.
-func rfc8941CharactersEqual<CodeUnit: FixedWidthInteger & UnsignedInteger>(
-    _ characters: Span<CodeUnit>,
-    _ literal: Swift.String
-) -> Bool {
-    let utf8 = literal.utf8
-    let bytes = utf8.span
-    guard characters.count == bytes.count else {
-        return false
-    }
-    for index in bytes.indices {
-        if characters[index] != CodeUnit(bytes[index]) {
-            return false
-        }
-    }
-    return true
+    crossOriginAccessControlEquals(rfc8941Text(characters, step), literal)
 }
 
 // Calls `body8` with the Latin-1 characters of `string` as bytes, or `body16` with its UTF-16 code units. An empty or
@@ -370,52 +351,28 @@ func rfc8941TokenString(_ token: Swift.String) -> WTF.String {
 // parameter, `reportTo` written between the quotes as it is. It is 8-bit unless `reportTo` is 16-bit.
 func rfc8941TokenWithReportToHeaderValue(_ token: Swift.String, _ reportTo: borrowing WTF.String) -> WTF.String {
     let tokenUTF8 = token.utf8
-    let tokenBytes = tokenUTF8.span
-    let characters8: Span<UInt8> = WebCore.securityPoliciesSpan8(reportTo)
-    var is8Bit = !characters8.isEmpty
-    if !is8Bit {
-        is8Bit = reportTo.is8Bit()
+    let characters: Span<UInt8> = WebCore.securityPoliciesSpan8(reportTo)
+    if characters.isEmpty, !reportTo.is8Bit() {
+        return rfc8941TokenWithReportToHeaderValue(UInt16.self, tokenUTF8.span, reportTo.checkedSpan16())
     }
-    if is8Bit {
-        var bytes: [UInt8] = []
-        let reportToStart = rfc8941ReportToHeaderValue(tokenBytes, characters8.count, &bytes)
-        var output = bytes.mutableSpan
-        for index in characters8.indices {
-            output[reportToStart + index] = characters8[index]
-        }
-        return WTF.makeStringFromLatin1Characters(bytes.span)
-    }
-    let characters: Span<UInt16> = reportTo.checkedSpan16()
-    var codeUnits: [UInt16] = []
-    let reportToStart = rfc8941ReportToHeaderValue(tokenBytes, characters.count, &codeUnits)
-    var output = codeUnits.mutableSpan
-    for index in characters.indices {
-        output[reportToStart + index] = characters[index]
-    }
-    return WTF.makeStringFromUTF16Characters(codeUnits.span)
+    return rfc8941TokenWithReportToHeaderValue(UInt8.self, tokenUTF8.span, characters)
 }
 
-// Makes `codeUnits` a policy header's value with a report-to parameter of `reportToCount` code units, all of it but
-// the parameter written: the token, `; report-to="`, and the closing quote in the last code unit. Returns where the
-// parameter starts.
-private func rfc8941ReportToHeaderValue<D: FixedWidthInteger & UnsignedInteger>(
+private func rfc8941TokenWithReportToHeaderValue<CodeUnit: HTTPHeaderStringCodeUnit & ConvertibleFromBytes, Source: HTTPHeaderStringCodeUnit>(
+    _: CodeUnit.Type,
     _ token: Span<UInt8>,
-    _ reportToCount: Int,
-    _ codeUnits: inout [D]
-) -> Int {
+    _ reportTo: Span<Source>
+) -> WTF.String {
     let separatorUTF8 = "; report-to=\"".utf8
     let separator = separatorUTF8.span
     // A String's length and two short literals': far from overflowing.
-    let reportToStart = token.count &+ separator.count
-    codeUnits = [D](repeating: 0x22, count: reportToStart &+ reportToCount &+ 1)
-    var output = codeUnits.mutableSpan
-    for index in token.indices {
-        output[index] = D(token[index])
+    let length = token.count &+ separator.count &+ reportTo.count &+ 1
+    return crossOriginAccessControlMakeString(CodeUnit.self, length) { output in
+        var position = crossOriginAccessControlCopy(token, to: &output, at: 0)
+        position = crossOriginAccessControlCopy(separator, to: &output, at: position)
+        position = crossOriginAccessControlCopy(reportTo, to: &output, at: position)
+        output[position] = 0x22
     }
-    for index in separator.indices {
-        output[token.count + index] = D(separator[index])
-    }
-    return reportToStart
 }
 
 // Structured field values (https://datatracker.ietf.org/doc/html/rfc8941#section-4.2), over Latin-1 (UInt8) or

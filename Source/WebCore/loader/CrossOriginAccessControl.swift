@@ -279,7 +279,7 @@ private let crossOriginAccessControlOriginSuffix: [UInt8] = [
     0x20,
 ]
 
-// MARK: Helpers for the preflight result cache, Timing-Allow-Origin and Integrity-Policy
+// MARK: Helpers the other security policy checks share
 
 /// `isOnAccessControlSimpleRequestMethodAllowlist()`: `GET`, `HEAD` or `POST`, case-sensitively.
 func crossOriginAccessControlIsSimpleMethod(_ method: borrowing WTF.String) -> Bool {
@@ -460,7 +460,7 @@ func crossOriginAccessControlMessage(
     if is8Bit {
         // Two literals, a String's characters and eleven code units at most: far from overflowing.
         let length = prefix.count &+ characters.byteCount &+ suffix.count &+ decimalLength
-        return crossOriginAccessControlMakeString8(length) { text in
+        return crossOriginAccessControlMakeString(UInt8.self, length) { text in
             do {
                 var bytes = text.mutableBytes
                 crossOriginAccessControlCopyBytes(prefix.bytes, to: &bytes, at: 0)
@@ -477,7 +477,7 @@ func crossOriginAccessControlMessage(
     let characterCount = characters.byteCount / 2
     // Two literals, a String's characters and eleven code units at most: far from overflowing.
     let length = prefix.count &+ characterCount &+ suffix.count &+ decimalLength
-    return crossOriginAccessControlMakeString16(length) { text in
+    return crossOriginAccessControlMakeString(UInt16.self, length) { text in
         crossOriginAccessControlWiden(prefix, to: &text, at: 0)
         do {
             var bytes = text.mutableBytes
@@ -528,54 +528,35 @@ func crossOriginAccessControlFindComma<CodeUnit: HTTPHeaderStringCodeUnit>(_ cha
     return characters.count
 }
 
-// MARK: Private helpers
-
-/// The code units a message or a joined value is made in on the stack; a longer one is made on the heap.
-private let crossOriginAccessControlInlineTextCount = 256
-
-/// The 8-bit String of the `length` code units `fill` writes from the start of the span it is given.
+/// The String of the `length` code units `fill` writes from the start of the span it is given, 8-bit when `CodeUnit` is
+/// `UInt8`: written on the stack when there are at most 256, else on the heap.
 @inline(always)
-private func crossOriginAccessControlMakeString8(_ length: Int, _ fill: (inout MutableSpan<UInt8>) -> Void) -> WTF.String {
-    if length <= crossOriginAccessControlInlineTextCount {
-        var buffer = InlineArray<256, UInt8>(repeating: 0)
+func crossOriginAccessControlMakeString<CodeUnit: HTTPHeaderStringCodeUnit>(
+    _: CodeUnit.Type,
+    _ length: Int,
+    _ fill: (inout MutableSpan<CodeUnit>) -> Void
+) -> WTF.String {
+    if length <= 256 {
+        var buffer = InlineArray<256, CodeUnit>(repeating: 0)
         do {
             var text = buffer.mutableSpan
             fill(&text)
         }
-        return WTF.makeStringFromLatin1Characters(buffer.span.extracting(first: length))
+        return CodeUnit.httpHeaderString(buffer.span.extracting(first: length))
     }
-    var buffer = UniqueArray<UInt8>(repeating: 0, count: length)
+    var buffer = UniqueArray<CodeUnit>(repeating: 0, count: length)
     do {
         var text = buffer.mutableSpan
         fill(&text)
     }
-    return WTF.makeStringFromLatin1Characters(buffer.span)
-}
-
-/// The 16-bit String of the `length` code units `fill` writes from the start of the span it is given.
-@inline(always)
-private func crossOriginAccessControlMakeString16(_ length: Int, _ fill: (inout MutableSpan<UInt16>) -> Void) -> WTF.String {
-    if length <= crossOriginAccessControlInlineTextCount {
-        var buffer = InlineArray<256, UInt16>(repeating: 0)
-        do {
-            var text = buffer.mutableSpan
-            fill(&text)
-        }
-        return WTF.makeStringFromUTF16Characters(buffer.span.extracting(first: length))
-    }
-    var buffer = UniqueArray<UInt16>(repeating: 0, count: length)
-    do {
-        var text = buffer.mutableSpan
-        fill(&text)
-    }
-    return WTF.makeStringFromUTF16Characters(buffer.span)
+    return CodeUnit.httpHeaderString(buffer.span)
 }
 
 /// Copies `characters` into `text` from `position`, each code unit in the width of `Output`, which holds it, and
 /// returns the position after them.
 ///
 /// Code units of the same width are copied by their bytes.
-private func crossOriginAccessControlCopy<Input: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
+func crossOriginAccessControlCopy<Input: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
     _ characters: Span<Input>,
     to text: inout MutableSpan<Output>,
     at position: Int
@@ -590,6 +571,24 @@ private func crossOriginAccessControlCopy<Input: HTTPHeaderStringCodeUnit, Outpu
     // A position within the text, which has room for the characters.
     return position &+ characters.count
 }
+
+/// `WTF::codePointCompareLessThan()` of two runs of code units: whether `first` sorts before `second` by code unit
+/// value, a run before any longer one it begins.
+func crossOriginAccessControlCodePointLessThan<First: FixedWidthInteger & UnsignedInteger, Second: FixedWidthInteger & UnsignedInteger>(
+    _ first: Span<First>,
+    _ second: Span<Second>
+) -> Bool {
+    for index in 0..<min(first.count, second.count) {
+        let firstCodeUnit = HTTPHeaderCodeUnits.value(first[index])
+        let secondCodeUnit = HTTPHeaderCodeUnits.value(second[index])
+        if firstCodeUnit != secondCodeUnit {
+            return firstCodeUnit < secondCodeUnit
+        }
+    }
+    return first.count < second.count
+}
+
+// MARK: Private helpers
 
 /// Copies `characters` into `text` from `position`, each code unit in the width of `Output`, which holds it.
 private func crossOriginAccessControlWiden<Input: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit>(
@@ -879,11 +878,11 @@ private func crossOriginAccessControlSortedNames<PoolCodeUnit: HTTPHeaderStringC
     }
     let sortedNames = names.span
     if is8Bit {
-        return crossOriginAccessControlMakeString8(length) { text in
+        return crossOriginAccessControlMakeString(UInt8.self, length) { text in
             crossOriginAccessControlJoin(sortedNames, count, pool, &text)
         }
     }
-    return crossOriginAccessControlMakeString16(length) { text in
+    return crossOriginAccessControlMakeString(UInt16.self, length) { text in
         crossOriginAccessControlJoin(sortedNames, count, pool, &text)
     }
 }
@@ -906,22 +905,4 @@ private func crossOriginAccessControlJoin<PoolCodeUnit: HTTPHeaderStringCodeUnit
         // Within the pool.
         position = crossOriginAccessControlCopy(pool.extracting(name.start..<name.start &+ name.length), to: &text, at: position)
     }
-}
-
-/// `WTF::codePointCompareLessThan()` of two runs of code units: whether `first` sorts before `second` by code unit
-/// value, a run before any longer one it begins.
-private func crossOriginAccessControlCodePointLessThan<CodeUnit: FixedWidthInteger & UnsignedInteger>(
-    _ first: Span<CodeUnit>,
-    _ second: Span<CodeUnit>
-) -> Bool {
-    let commonLength = min(first.count, second.count)
-    var position = 0
-    while position < commonLength {
-        if first[position] != second[position] {
-            return first[position] < second[position]
-        }
-        // Below commonLength.
-        position &+= 1
-    }
-    return first.count < second.count
 }
