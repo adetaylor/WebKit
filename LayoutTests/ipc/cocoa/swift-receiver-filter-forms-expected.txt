@@ -1,0 +1,3 @@
+
+PASS Swift checks and normalizes filters as C++ does.
+

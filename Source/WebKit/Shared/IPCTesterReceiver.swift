@@ -263,6 +263,178 @@ final class IPCTesterReceiver {
         IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedSystemImageDescription(image))
     }
 
+    // A filter decoded in Swift and in C++ must be described alike: as ipcTesterDescription() describes it
+    // (IPCTesterPayload.h).
+
+    @MainActor
+    func describeFilterSwift(connection: IPC.Connection, filter: IPCTypes.Filter) -> String? {
+        switch filter {
+        case .cssFilterRenderer(let cssFilter):
+            return "css(functions=\(cssFilter.functions.count)" + cssFilter.functions.map { " " + Self.description($0) }.joined()
+                + Self.description(cssFilter.geometry, cssFilter.filterRenderingModes, cssFilter.renderingOptions) + ")"
+        case .svgFilterRenderer(let svgFilter):
+            return Self.description(svgFilter)
+        }
+    }
+
+    @MainActor
+    func describeCxxDecodedFilterSwift(
+        connection: IPC.Connection,
+        filter: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedFilterSwiftFilter
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedFilterDescription(filter))
+    }
+
+    private static func description(_ values: Float...) -> String {
+        values.map { "\($0.bitPattern)" }.joined(separator: ",")
+    }
+
+    private static func description(_ values: [Float]) -> String {
+        "\(values.count)" + values.map { ":\($0.bitPattern)" }.joined()
+    }
+
+    private static func description(_ rect: IPCTypes.FloatRect) -> String {
+        description(rect.location.x, rect.location.y, rect.size.width, rect.size.height)
+    }
+
+    private static func description(_ function: IPCTypes.ComponentTransferFunction) -> String {
+        "\(function.type.rawValue),"
+            + description(function.slope, function.intercept, function.amplitude, function.exponent, function.offset) + ","
+            + description(function.tableValues)
+    }
+
+    private static func description(_ lightSource: IPCTypes.LightSource) -> String {
+        switch lightSource {
+        case .distantLightSource(let distant):
+            return "distant:" + description(distant.azimuth, distant.elevation)
+        case .pointLightSource(let point):
+            return "point:" + description(point.position.x, point.position.y, point.position.z)
+        case .spotLightSource(let spot):
+            return "spot:"
+                + description(spot.position.x, spot.position.y, spot.position.z, spot.direction.x, spot.direction.y, spot.direction.z,
+                    spot.specularExponent, spot.limitingConeAngle)
+        }
+    }
+
+    private static func description(
+        _ geometry: IPCTypes.FilterGeometry,
+        _ modes: IPCTypes.FilterRenderingMode,
+        _ options: IPCTypes.FilterRenderingOption
+    ) -> String {
+        " referenceBox=" + description(geometry.referenceBox) + " filterRegion=" + description(geometry.filterRegion) + " scale="
+            + description(geometry.scale.width, geometry.scale.height) + " modes=\(modes.rawValue) options=\(options.rawValue)"
+    }
+
+    private static func description(_ svgFilter: IPCTypes.SVGFilterRenderer) -> String {
+        var result = "svg(units=\(svgFilter.primitiveUnits.rawValue) expression=\(svgFilter.expression.count)"
+        for term in svgFilter.expression {
+            result += ":\(term.index),\(term.level)"
+            if let geometry = term.geometry {
+                let flags: [IPCTypes.FilterEffectGeometryFlags] = [.hasX, .hasY, .hasWidth, .hasHeight]
+                let values = [geometry.boundaries.location.x, geometry.boundaries.location.y, geometry.boundaries.size.width, geometry.boundaries.size.height]
+                for (flag, value) in zip(flags, values) {
+                    result += geometry.flags.contains(flag) ? ",\(value.bitPattern)" : ",-"
+                }
+            }
+        }
+        result += " effects=\(svgFilter.effects.count)" + svgFilter.effects.map { " " + description(FunctionOrEffect.effect($0)) }.joined()
+        result += description(svgFilter.geometry, svgFilter.filterRenderingModes, svgFilter.renderingOptions)
+        result += " identifier=" + (svgFilter.renderingResourceIdentifierIfExists.map { "\($0.rawValue)" } ?? "none") + ")"
+        return result
+    }
+
+    private enum FunctionOrEffect {
+        case function(IPCTypes.FilterFunction)
+        case effect(IPCTypes.FilterEffect)
+    }
+
+    private static func description(_ function: IPCTypes.FilterFunction) -> String {
+        description(FunctionOrEffect.function(function))
+    }
+
+    private static func colorSpaceName(_ colorSpace: IPCTypes.ColorSpace) -> String {
+        colorSpace.cgColorSpace.name.map { String($0) } ?? "none"
+    }
+
+    // The effects of a filter function, and of an SVG filter's effects, which are the same types in two enums.
+    private static func description(_ item: FunctionOrEffect) -> String {
+        let fields: String
+        let colorSpace: IPCTypes.ColorSpace
+        switch item {
+        case .function(.svgFilterRenderer(let svgFilter)):
+            return description(svgFilter)
+        case .function(.feBlend(let blend)), .effect(.feBlend(let blend)):
+            fields = "blend(\(blend.blendMode.rawValue)"
+            colorSpace = blend.operatingColorSpace
+        case .function(.feColorMatrix(let colorMatrix)), .effect(.feColorMatrix(let colorMatrix)):
+            fields = "colorMatrix(\(colorMatrix.type.rawValue)," + description(colorMatrix.values)
+            colorSpace = colorMatrix.operatingColorSpace
+        case .function(.feComponentTransfer(let transfer)), .effect(.feComponentTransfer(let transfer)):
+            fields = "componentTransfer(" + [transfer.redFunction, transfer.greenFunction, transfer.blueFunction, transfer.alphaFunction].map {
+                description($0) + ";"
+            }.joined()
+            colorSpace = transfer.operatingColorSpace
+        case .function(.feComposite(let composite)), .effect(.feComposite(let composite)):
+            fields = "composite(\(composite.operation.rawValue)," + description(composite.k1, composite.k2, composite.k3, composite.k4)
+            colorSpace = composite.operatingColorSpace
+        case .function(.feConvolveMatrix(let convolve)), .effect(.feConvolveMatrix(let convolve)):
+            fields = "convolveMatrix(\(convolve.kernelSize.width)x\(convolve.kernelSize.height)," + description(convolve.divisor, convolve.bias)
+                + ",\(convolve.targetOffset.x),\(convolve.targetOffset.y),\(convolve.edgeMode.rawValue),"
+                + description(convolve.kernelUnitLength.x, convolve.kernelUnitLength.y) + ",\(convolve.preserveAlpha ? 1 : 0),"
+                + description(convolve.kernel)
+            colorSpace = convolve.operatingColorSpace
+        case .function(.feDiffuseLighting(let lighting)), .effect(.feDiffuseLighting(let lighting)):
+            fields = "diffuseLighting(" + description(lighting.lightingColor) + ","
+                + description(lighting.surfaceScale, lighting.diffuseConstant, lighting.kernelUnitLengthX, lighting.kernelUnitLengthY) + ","
+                + description(lighting.lightSource)
+            colorSpace = lighting.operatingColorSpace
+        case .function(.feDisplacementMap(let displacement)), .effect(.feDisplacementMap(let displacement)):
+            fields = "displacementMap(\(displacement.xChannelSelector.rawValue),\(displacement.yChannelSelector.rawValue),"
+                + description(displacement.scale) + ",\(displacement.in2IsTainted ? 1 : 0)"
+            colorSpace = displacement.operatingColorSpace
+        case .function(.feDropShadow(let shadow)), .effect(.feDropShadow(let shadow)):
+            fields = "dropShadow(" + description(shadow.stdDeviationX, shadow.stdDeviationY, shadow.dx, shadow.dy) + ","
+                + description(shadow.shadowColor) + "," + description(shadow.shadowOpacity)
+            colorSpace = shadow.operatingColorSpace
+        case .function(.feFlood(let flood)), .effect(.feFlood(let flood)):
+            fields = "flood(" + description(flood.floodColor) + "," + description(flood.floodOpacity)
+            colorSpace = flood.operatingColorSpace
+        case .function(.feGaussianBlur(let blur)), .effect(.feGaussianBlur(let blur)):
+            fields = "gaussianBlur(" + description(blur.stdDeviationX, blur.stdDeviationY) + ",\(blur.edgeMode.rawValue)"
+            colorSpace = blur.operatingColorSpace
+        case .function(.feImage(let image)), .effect(.feImage(let image)):
+            return "image(\(image.sourceImage.imageIdentifier.rawValue)," + description(image.sourceImageRect) + ")"
+        case .function(.feMerge(let merge)), .effect(.feMerge(let merge)):
+            fields = "merge(\(merge.numberOfEffectInputs)"
+            colorSpace = merge.operatingColorSpace
+        case .function(.feMorphology(let morphology)), .effect(.feMorphology(let morphology)):
+            fields = "morphology(\(morphology.morphologyOperator.rawValue)," + description(morphology.radiusX, morphology.radiusY)
+            colorSpace = morphology.operatingColorSpace
+        case .function(.feOffset(let offset)), .effect(.feOffset(let offset)):
+            fields = "offset(" + description(offset.dx, offset.dy)
+            colorSpace = offset.operatingColorSpace
+        case .function(.feSpecularLighting(let lighting)), .effect(.feSpecularLighting(let lighting)):
+            fields = "specularLighting(" + description(lighting.lightingColor) + ","
+                + description(lighting.surfaceScale, lighting.specularConstant, lighting.specularExponent, lighting.kernelUnitLengthX,
+                    lighting.kernelUnitLengthY) + "," + description(lighting.lightSource)
+            colorSpace = lighting.operatingColorSpace
+        case .function(.feTile(let tile)), .effect(.feTile(let tile)):
+            fields = "tile("
+            colorSpace = tile.operatingColorSpace
+        case .function(.feTurbulence(let turbulence)), .effect(.feTurbulence(let turbulence)):
+            fields = "turbulence(\(turbulence.type.rawValue)," + description(turbulence.baseFrequencyX, turbulence.baseFrequencyY)
+                + ",\(turbulence.numOctaves)," + description(turbulence.seed) + ",\(turbulence.stitchTiles ? 1 : 0)"
+            colorSpace = turbulence.operatingColorSpace
+        case .function(.sourceAlpha(let sourceAlpha)), .effect(.sourceAlpha(let sourceAlpha)):
+            fields = "sourceAlpha("
+            colorSpace = sourceAlpha.operatingColorSpace
+        case .function(.sourceGraphic(let sourceGraphic)), .effect(.sourceGraphic(let sourceGraphic)):
+            fields = "sourceGraphic("
+            colorSpace = sourceGraphic.operatingColorSpace
+        }
+        return fields + " colorSpace=" + colorSpaceName(colorSpace) + ")"
+    }
+
     private static func description(_ color: IPCTypes.WebCoreColor) -> String {
         guard let data = color.data else {
             return "invalid"

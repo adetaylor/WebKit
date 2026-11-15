@@ -45,7 +45,31 @@
 #include <CoreGraphics/CoreGraphics.h>
 #include <WebCore/ColorSpace.h>
 #include <WebCore/ControlPart.h>
+#include <WebCore/CSSFilterRenderer.h>
 #include <WebCore/ControlStyle.h>
+#include <WebCore/DistantLightSource.h>
+#include <WebCore/FEBlend.h>
+#include <WebCore/FEColorMatrix.h>
+#include <WebCore/FEComponentTransfer.h>
+#include <WebCore/FEComposite.h>
+#include <WebCore/FEConvolveMatrix.h>
+#include <WebCore/FEDiffuseLighting.h>
+#include <WebCore/FEDisplacementMap.h>
+#include <WebCore/FEDropShadow.h>
+#include <WebCore/FEFlood.h>
+#include <WebCore/FEGaussianBlur.h>
+#include <WebCore/FEImage.h>
+#include <WebCore/FEMerge.h>
+#include <WebCore/FEMorphology.h>
+#include <WebCore/FEOffset.h>
+#include <WebCore/FESpecularLighting.h>
+#include <WebCore/FETile.h>
+#include <WebCore/FETurbulence.h>
+#include <WebCore/PointLightSource.h>
+#include <WebCore/SVGFilterRenderer.h>
+#include <WebCore/SourceAlpha.h>
+#include <WebCore/SourceGraphic.h>
+#include <WebCore/SpotLightSource.h>
 #include <WebCore/MeterPart.h>
 #include <WebCore/ProgressBarPart.h>
 #include <WebCore/SliderTrackPart.h>
@@ -339,6 +363,251 @@ inline String ipcTesterDescription(const WebCore::SystemImage& image)
     return "unknown"_s;
 }
 
+// What a filter is made of, which IPCTesterReceiver replies for one decoded in C++ and in Swift (IPCTesterReceiver.swift
+// describes the Swift form alike), so that a test can check that both decoders check and normalize the same bytes alike.
+// Floats are described by their bits, color spaces by their names.
+inline void ipcTesterAppendFloats(StringBuilder& builder, std::initializer_list<float> values)
+{
+    bool first = true;
+    for (auto value : values) {
+        if (!first)
+            builder.append(',');
+        first = false;
+        builder.append(std::bit_cast<uint32_t>(value));
+    }
+}
+
+inline void ipcTesterAppendFloatVector(StringBuilder& builder, const Vector<float>& values)
+{
+    builder.append(values.size());
+    for (auto value : values)
+        builder.append(':', std::bit_cast<uint32_t>(value));
+}
+
+inline void ipcTesterAppendRect(StringBuilder& builder, const WebCore::FloatRect& rect)
+{
+    ipcTesterAppendFloats(builder, { rect.x(), rect.y(), rect.width(), rect.height() });
+}
+
+inline void ipcTesterAppendComponentTransferFunction(StringBuilder& builder, const WebCore::ComponentTransferFunction& function)
+{
+    builder.append(static_cast<unsigned>(function.type), ',');
+    ipcTesterAppendFloats(builder, { function.slope, function.intercept, function.amplitude, function.exponent, function.offset });
+    builder.append(',');
+    ipcTesterAppendFloatVector(builder, function.tableValues);
+}
+
+inline void ipcTesterAppendLightSourceDescription(StringBuilder& builder, const WebCore::LightSource& lightSource)
+{
+    if (auto* distant = dynamicDowncast<WebCore::DistantLightSource>(lightSource)) {
+        builder.append("distant:"_s);
+        ipcTesterAppendFloats(builder, { distant->azimuth(), distant->elevation() });
+    } else if (auto* point = dynamicDowncast<WebCore::PointLightSource>(lightSource)) {
+        builder.append("point:"_s);
+        ipcTesterAppendFloats(builder, { point->position().x(), point->position().y(), point->position().z() });
+    } else if (auto* spot = dynamicDowncast<WebCore::SpotLightSource>(lightSource)) {
+        builder.append("spot:"_s);
+        ipcTesterAppendFloats(builder, { spot->position().x(), spot->position().y(), spot->position().z(), spot->direction().x(), spot->direction().y(),
+            spot->direction().z(), spot->specularExponent(), spot->limitingConeAngle() });
+    }
+}
+
+inline void ipcTesterAppendFilterFunctionDescription(StringBuilder&, const WebCore::FilterFunction&);
+
+inline void ipcTesterAppendFilterGeometry(StringBuilder& builder, const WebCore::Filter& filter)
+{
+    builder.append(" referenceBox="_s);
+    ipcTesterAppendRect(builder, filter.referenceBox());
+    builder.append(" filterRegion="_s);
+    ipcTesterAppendRect(builder, filter.filterRegion());
+    builder.append(" scale="_s);
+    ipcTesterAppendFloats(builder, { filter.filterScale().width(), filter.filterScale().height() });
+    builder.append(" modes="_s, filter.filterRenderingModes().toRaw(), " options="_s, filter.renderingOptions().toRaw());
+}
+
+inline void ipcTesterAppendFilterFunctionDescription(StringBuilder& builder, const WebCore::FilterFunction& function)
+{
+    using Type = WebCore::FilterFunction::Type;
+    if (auto* svgFilter = dynamicDowncast<WebCore::SVGFilterRenderer>(function)) {
+        builder.append("svg(units="_s, static_cast<unsigned>(svgFilter->primitiveUnits()), " expression="_s, svgFilter->expression().size());
+        for (auto& term : svgFilter->expression()) {
+            builder.append(':', term.index, ',', term.level);
+            if (term.geometry) {
+                for (auto value : { term.geometry->x(), term.geometry->y(), term.geometry->width(), term.geometry->height() }) {
+                    if (value)
+                        builder.append(',', std::bit_cast<uint32_t>(*value));
+                    else
+                        builder.append(",-"_s);
+                }
+            }
+        }
+        builder.append(" effects="_s, svgFilter->effects().size());
+        for (auto& effect : svgFilter->effects()) {
+            builder.append(' ');
+            ipcTesterAppendFilterFunctionDescription(builder, effect.get());
+        }
+        ipcTesterAppendFilterGeometry(builder, *svgFilter);
+        auto identifier = svgFilter->renderingResourceIdentifierIfExists();
+        builder.append(" identifier="_s, identifier ? String::number(identifier->toUInt64()) : "none"_s, ')');
+        return;
+    }
+    auto* effect = dynamicDowncast<WebCore::FilterEffect>(function);
+    if (!effect) {
+        builder.append("unknown"_s);
+        return;
+    }
+    switch (effect->filterType()) {
+    case Type::FEBlend:
+        builder.append("blend("_s, static_cast<unsigned>(downcast<WebCore::FEBlend>(*effect).blendMode()));
+        break;
+    case Type::FEColorMatrix: {
+        auto& colorMatrix = downcast<WebCore::FEColorMatrix>(*effect);
+        builder.append("colorMatrix("_s, static_cast<unsigned>(colorMatrix.type()), ',');
+        ipcTesterAppendFloatVector(builder, colorMatrix.values());
+        break;
+    }
+    case Type::FEComponentTransfer: {
+        auto& transfer = downcast<WebCore::FEComponentTransfer>(*effect);
+        builder.append("componentTransfer("_s);
+        for (auto& function : { transfer.redFunction(), transfer.greenFunction(), transfer.blueFunction(), transfer.alphaFunction() }) {
+            ipcTesterAppendComponentTransferFunction(builder, function);
+            builder.append(';');
+        }
+        break;
+    }
+    case Type::FEComposite: {
+        auto& composite = downcast<WebCore::FEComposite>(*effect);
+        builder.append("composite("_s, static_cast<unsigned>(composite.operation()), ',');
+        ipcTesterAppendFloats(builder, { composite.k1(), composite.k2(), composite.k3(), composite.k4() });
+        break;
+    }
+    case Type::FEConvolveMatrix: {
+        auto& convolve = downcast<WebCore::FEConvolveMatrix>(*effect);
+        builder.append("convolveMatrix("_s, convolve.kernelSize().width(), 'x', convolve.kernelSize().height(), ',');
+        ipcTesterAppendFloats(builder, { convolve.divisor(), convolve.bias() });
+        builder.append(',', convolve.targetOffset().x(), ',', convolve.targetOffset().y(), ',', static_cast<unsigned>(convolve.edgeMode()), ',');
+        ipcTesterAppendFloats(builder, { convolve.kernelUnitLength().x(), convolve.kernelUnitLength().y() });
+        builder.append(',', convolve.preserveAlpha() ? 1 : 0, ',');
+        ipcTesterAppendFloatVector(builder, convolve.kernel());
+        break;
+    }
+    case Type::FEDiffuseLighting: {
+        auto& lighting = downcast<WebCore::FEDiffuseLighting>(*effect);
+        builder.append("diffuseLighting("_s);
+        ipcTesterAppendColorDescription(builder, lighting.lightingColor());
+        builder.append(',');
+        ipcTesterAppendFloats(builder, { lighting.surfaceScale(), lighting.diffuseConstant(), lighting.kernelUnitLengthX(), lighting.kernelUnitLengthY() });
+        builder.append(',');
+        ipcTesterAppendLightSourceDescription(builder, lighting.lightSource());
+        break;
+    }
+    case Type::FEDisplacementMap: {
+        auto& displacement = downcast<WebCore::FEDisplacementMap>(*effect);
+        builder.append("displacementMap("_s, static_cast<unsigned>(displacement.xChannelSelector()), ',', static_cast<unsigned>(displacement.yChannelSelector()), ',');
+        ipcTesterAppendFloats(builder, { displacement.scale() });
+        builder.append(',', displacement.in2IsTainted() ? 1 : 0);
+        break;
+    }
+    case Type::FEDropShadow: {
+        auto& shadow = downcast<WebCore::FEDropShadow>(*effect);
+        builder.append("dropShadow("_s);
+        ipcTesterAppendFloats(builder, { shadow.stdDeviationX(), shadow.stdDeviationY(), shadow.dx(), shadow.dy() });
+        builder.append(',');
+        ipcTesterAppendColorDescription(builder, shadow.shadowColor());
+        builder.append(',');
+        ipcTesterAppendFloats(builder, { shadow.shadowOpacity() });
+        break;
+    }
+    case Type::FEFlood: {
+        auto& flood = downcast<WebCore::FEFlood>(*effect);
+        builder.append("flood("_s);
+        ipcTesterAppendColorDescription(builder, flood.floodColor());
+        builder.append(',');
+        ipcTesterAppendFloats(builder, { flood.floodOpacity() });
+        break;
+    }
+    case Type::FEGaussianBlur: {
+        auto& blur = downcast<WebCore::FEGaussianBlur>(*effect);
+        builder.append("gaussianBlur("_s);
+        ipcTesterAppendFloats(builder, { blur.stdDeviationX(), blur.stdDeviationY() });
+        builder.append(',', static_cast<unsigned>(blur.edgeMode()));
+        break;
+    }
+    case Type::FEImage: {
+        auto& image = downcast<WebCore::FEImage>(*effect);
+        builder.append("image("_s, image.sourceImage().imageIdentifier().toUInt64(), ',');
+        ipcTesterAppendRect(builder, image.sourceImageRect());
+        builder.append(')');
+        return;
+    }
+    case Type::FEMerge:
+        builder.append("merge("_s, downcast<WebCore::FEMerge>(*effect).numberOfEffectInputs());
+        break;
+    case Type::FEMorphology: {
+        auto& morphology = downcast<WebCore::FEMorphology>(*effect);
+        builder.append("morphology("_s, static_cast<unsigned>(morphology.morphologyOperator()), ',');
+        ipcTesterAppendFloats(builder, { morphology.radiusX(), morphology.radiusY() });
+        break;
+    }
+    case Type::FEOffset: {
+        auto& offset = downcast<WebCore::FEOffset>(*effect);
+        builder.append("offset("_s);
+        ipcTesterAppendFloats(builder, { offset.dx(), offset.dy() });
+        break;
+    }
+    case Type::FESpecularLighting: {
+        auto& lighting = downcast<WebCore::FESpecularLighting>(*effect);
+        builder.append("specularLighting("_s);
+        ipcTesterAppendColorDescription(builder, lighting.lightingColor());
+        builder.append(',');
+        ipcTesterAppendFloats(builder, { lighting.surfaceScale(), lighting.specularConstant(), lighting.specularExponent(), lighting.kernelUnitLengthX(),
+            lighting.kernelUnitLengthY() });
+        builder.append(',');
+        ipcTesterAppendLightSourceDescription(builder, lighting.lightSource());
+        break;
+    }
+    case Type::FETile:
+        builder.append("tile("_s);
+        break;
+    case Type::FETurbulence: {
+        auto& turbulence = downcast<WebCore::FETurbulence>(*effect);
+        builder.append("turbulence("_s, static_cast<unsigned>(turbulence.type()), ',');
+        ipcTesterAppendFloats(builder, { turbulence.baseFrequencyX(), turbulence.baseFrequencyY() });
+        builder.append(',', turbulence.numOctaves(), ',');
+        ipcTesterAppendFloats(builder, { turbulence.seed() });
+        builder.append(',', turbulence.stitchTiles() ? 1 : 0);
+        break;
+    }
+    case Type::SourceAlpha:
+        builder.append("sourceAlpha("_s);
+        break;
+    case Type::SourceGraphic:
+        builder.append("sourceGraphic("_s);
+        break;
+    default:
+        builder.append("unknown"_s);
+        return;
+    }
+    RetainPtr<CFStringRef> name = CGColorSpaceGetName(effect->operatingColorSpace().platformColorSpace());
+    builder.append(" colorSpace="_s, name ? String(name.get()) : "none"_s, ')');
+}
+
+inline String ipcTesterDescription(const WebCore::Filter& filter)
+{
+    StringBuilder builder;
+    if (auto* cssFilter = dynamicDowncast<WebCore::CSSFilterRenderer>(filter)) {
+        builder.append("css(functions="_s, cssFilter->functions().size());
+        for (auto& function : cssFilter->functions()) {
+            builder.append(' ');
+            ipcTesterAppendFilterFunctionDescription(builder, function.get());
+        }
+        ipcTesterAppendFilterGeometry(builder, *cssFilter);
+        builder.append(')');
+    } else
+        ipcTesterAppendFilterFunctionDescription(builder, filter);
+    return builder.toString();
+}
+
 #if ENABLE(IPC_TESTING_SWIFT)
 inline String ipcTesterCxxDecodedControlDescription(IPC::CxxDecodedArgument<Ref<WebCore::ControlPart>>& partArgument, IPC::CxxDecodedArgument<WebCore::ControlStyle>& styleArgument)
 {
@@ -353,6 +622,13 @@ inline String ipcTesterCxxDecodedSystemImageDescription(IPC::CxxDecodedArgument<
     auto image = imageArgument.take();
     RELEASE_ASSERT(image);
     return ipcTesterDescription(image->get());
+}
+
+inline String ipcTesterCxxDecodedFilterDescription(IPC::CxxDecodedArgument<Ref<WebCore::Filter>>& filterArgument)
+{
+    auto filter = filterArgument.take();
+    RELEASE_ASSERT(filter);
+    return ipcTesterDescription(filter->get());
 }
 #endif
 

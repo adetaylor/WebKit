@@ -551,6 +551,18 @@ enum class WebKit::E : uint8_t {
                       '    }\n', swift)
         self.assertIn('        typealias WebKit_RemoteVideoFrameReference = IPCTypes.RemoteVideoFrameReference\n', swift)
 
+    def test_vector_using_statements(self):
+        swift = generate_swift('''
+[Swift] struct WebKit::Term {
+    uint32_t index;
+};
+using WebKit::Expression = Vector<WebKit::Term>;
+[Swift] struct WebKit::Program {
+    WebKit::Expression expression;
+};
+''')
+        self.assertIn('        var expression: [IPCTypes.Term]\n', swift)
+
     def test_cxx_enum_validation(self):
         swift = generate_swift('''
 enum class WebCore::StyleAppearance : uint8_t {
