@@ -69,6 +69,8 @@
 #include <WebCore/FloatBoxExtent.h>
 #include <WebCore/InheritanceGrandchild.h>
 #include <WebCore/InheritsFrom.h>
+#include <WebCore/IntPoint.h>
+#include <WebCore/IntSize.h>
 #include <WebCore/MoveOnlyBaseClass.h>
 #include <WebCore/MoveOnlyDerivedClass.h>
 #include <WebCore/OpaqueTypeObject.h>
@@ -2216,6 +2218,216 @@ std::optional<Namespace::SwiftDrawing> ArgumentCoder<Namespace::SwiftDrawing>::d
             WTF::move(*shape),
             WTF::move(*shapes),
             WTF::move(*light)
+        }
+    };
+}
+
+void ArgumentCoder<WebCore::IntSize>::encode(Encoder& encoder, const WebCore::IntSize& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.width())>, int>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.height())>, int>);
+
+    encoder << instance.width();
+    encoder << instance.height();
+}
+
+std::optional<WebCore::IntSize> ArgumentCoder<WebCore::IntSize>::decode(Decoder& decoder)
+{
+    auto width = decoder.decode<int>();
+    auto height = decoder.decode<int>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        WebCore::IntSize {
+            WTF::move(*width),
+            WTF::move(*height)
+        }
+    };
+}
+
+void ArgumentCoder<WebCore::IntPoint>::encode(Encoder& encoder, const WebCore::IntPoint& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.x())>, int>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.y())>, int>);
+
+    encoder << instance.x();
+    encoder << instance.y();
+}
+
+std::optional<WebCore::IntPoint> ArgumentCoder<WebCore::IntPoint>::decode(Decoder& decoder)
+{
+    auto x = decoder.decode<int>();
+    auto y = decoder.decode<int>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        WebCore::IntPoint {
+            WTF::move(*x),
+            WTF::move(*y)
+        }
+    };
+}
+
+void ArgumentCoder<Namespace::SwiftPolicyTerm>::encode(Encoder& encoder, const Namespace::SwiftPolicyTerm& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.index)>, uint32_t>);
+    struct ShouldBeSameSizeAsSwiftPolicyTerm : public VirtualTableAndRefCountOverhead<std::is_polymorphic_v<Namespace::SwiftPolicyTerm>, false> {
+        uint32_t index;
+    };
+    static_assert(sizeof(ShouldBeSameSizeAsSwiftPolicyTerm) == sizeof(Namespace::SwiftPolicyTerm));
+    static_assert(IsIncreasing < 0
+        , offsetof(Namespace::SwiftPolicyTerm, index)
+    >);
+
+    encoder << instance.index;
+}
+
+std::optional<Namespace::SwiftPolicyTerm> ArgumentCoder<Namespace::SwiftPolicyTerm>::decode(Decoder& decoder)
+{
+    auto index = decoder.decode<uint32_t>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftPolicyTerm {
+            WTF::move(*index)
+        }
+    };
+}
+
+void ArgumentCoder<Namespace::SwiftPolicy>::encode(Encoder& encoder, const Namespace::SwiftPolicy& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.size())>, WebCore::IntSize>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.offset())>, WebCore::IntPoint>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.values())>, Vector<float>>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.radius())>, float>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.exponent())>, float>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.kind())>, Namespace::SwiftEnum>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.terms())>, Vector<Namespace::SwiftPolicyTerm>>);
+
+    encoder << instance.size();
+    encoder << instance.offset();
+    encoder << instance.values();
+    encoder << instance.radius();
+    encoder << instance.exponent();
+    encoder << instance.kind();
+    encoder << instance.terms();
+}
+
+std::optional<Ref<Namespace::SwiftPolicy>> ArgumentCoder<Namespace::SwiftPolicy>::decode(Decoder& decoder)
+{
+    auto size = decoder.decode<WebCore::IntSize>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!(size->width() > 0 && size->height() > 0)) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: size.width > 0 && size.height > 0"_s);
+#endif
+        return std::nullopt;
+    }
+    auto offset = decoder.decode<WebCore::IntPoint>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!((offset->x() >= 0 && offset->x() < size->width()) || offset->y() == 0)) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: offset.x >= 0 && offset.x < size.width || offset.y == 0"_s);
+#endif
+        return std::nullopt;
+    }
+    auto values = decoder.decode<Vector<float>>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!((static_cast<int64_t>(size->width()) * static_cast<int64_t>(size->height())) == static_cast<int64_t>(values->size()))) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: size.width * size.height == count(values)"_s);
+#endif
+        return std::nullopt;
+    }
+    auto radius = decoder.decode<float>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    *radius = (0.0f < *radius ? *radius : 0.0f);
+    auto exponent = decoder.decode<float>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    *exponent = *exponent >= 128.0f ? 128.0f : (*exponent <= 1.0f ? 1.0f : *exponent);
+    if (!(*exponent != 0.5f)) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: exponent != 0.5"_s);
+#endif
+        return std::nullopt;
+    }
+    auto kind = decoder.decode<Namespace::SwiftEnum>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!(*kind == Namespace::SwiftEnum::URL ? static_cast<int64_t>(values->size()) == 1 : *kind != Namespace::SwiftEnum::Default)) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: kind == SwiftEnum::URL ? count(values) == 1 : kind != SwiftEnum::Default"_s);
+#endif
+        return std::nullopt;
+    }
+    auto terms = decoder.decode<Vector<Namespace::SwiftPolicyTerm>>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!(static_cast<int64_t>(terms->size()) > 0 && std::ranges::all_of(*terms, [&](auto& term) { return static_cast<int64_t>(term.index) < static_cast<int64_t>(values->size()); }))) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: count(terms) > 0 && all(terms, term, term.index < count(values))"_s);
+#endif
+        return std::nullopt;
+    }
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::SwiftPolicy::create(
+            WTF::move(*size),
+            WTF::move(*offset),
+            WTF::move(*values),
+            WTF::move(*radius),
+            WTF::move(*exponent),
+            WTF::move(*kind),
+            WTF::move(*terms)
+        )
+    };
+}
+
+void ArgumentCoder<Namespace::CxxPolicy>::encode(Encoder& encoder, const Namespace::CxxPolicy& instance)
+{
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.value)>, double>);
+    static_assert(std::is_same_v<std::remove_cvref_t<decltype(instance.flag)>, bool>);
+    struct ShouldBeSameSizeAsCxxPolicy : public VirtualTableAndRefCountOverhead<std::is_polymorphic_v<Namespace::CxxPolicy>, false> {
+        double value;
+        bool flag;
+    };
+    static_assert(sizeof(ShouldBeSameSizeAsCxxPolicy) == sizeof(Namespace::CxxPolicy));
+    static_assert(IsIncreasing < 0
+        , offsetof(Namespace::CxxPolicy, value)
+        , offsetof(Namespace::CxxPolicy, flag)
+    >);
+
+    encoder << instance.value;
+    encoder << instance.flag;
+}
+
+std::optional<Namespace::CxxPolicy> ArgumentCoder<Namespace::CxxPolicy>::decode(Decoder& decoder)
+{
+    auto value = decoder.decode<double>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    *value = (*value < -1.5 ? *value : -1.5);
+    auto flag = decoder.decode<bool>();
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    if (!(*value != 0 && *flag)) {
+#if ENABLE(IPC_TESTING_API)
+        decoder.setErrorString("Validation failed: value != 0 && flag"_s);
+#endif
+        return std::nullopt;
+    }
+    if (!decoder.isValid()) [[unlikely]]
+        return std::nullopt;
+    return {
+        Namespace::CxxPolicy {
+            WTF::move(*value),
+            WTF::move(*flag)
         }
     };
 }

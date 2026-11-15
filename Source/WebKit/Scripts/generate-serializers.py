@@ -29,6 +29,7 @@ import os
 import re
 import sys
 
+from webkit import decode_policy
 from webkit import swift_types
 from webkit.opaque_ipc_types import OPAQUE_TYPES, is_opaque_type, opaque_ipc_types
 
@@ -140,6 +141,8 @@ def matches_bundle(item, bundle_filter):
 # EncodeRequestBody - Include the body of the WebCore::ResourceRequest when encoding (by default, it is omitted).
 # Validator - additional C++ to validate the value when decoding
 # SwiftValidator - the same check as Validator, as a Swift expression of the members decoded so far, for a type marked [Swift], which needs one for each Validator
+# Check - a condition the decoded value must meet, in the decode policy language (webkit/decode_policy.py), which the C++ decoder and the Swift form's decoder both check, so that they decode alike
+# Normalize - the value the decoded value is replaced with, in the decode policy language, by both decoders; it applies before the member's Check
 # NotSerialized - member is present in structure but intentionally not serialized.
 # OptionalTupleBits - This member stores bits of whether each following member is serialized. Attribute must be immediately before members with OptionalTupleBit.
 # OptionalTupleBit - The name of the bit indicating whether this member is serialized.
@@ -1046,6 +1049,69 @@ def should_decode_ref(member, serialized_types):
     return members_are_subclasses_by_name.get(member.type, False)
 
 
+def swift_enum_value(enum, value):
+    """The Swift spelling of a value of a described enum, for a decode policy (webkit/decode_policy.py)."""
+    cpp_name = enum.namespace_and_name().removeprefix('::')
+    if enum.is_swift():
+        return f'{swift_qualified_name(swift_types.swift_form_name(cpp_name))}.{swift_identifier(swift_lower_camel_case(value))}'
+    if cpp_name in swift_types.CXX_ENUM_TYPES:
+        return f'{swift_types.CXX_ENUM_TYPES[cpp_name]}.{value}'
+    raise decode_policy.DecodePolicyError(f'{cpp_name} has no Swift form: it must be marked [Swift], or be listed in CXX_ENUM_TYPES in swift_types.py.')
+
+
+def compile_decode_policies(serialized_types, serialized_enums, using_statements):
+    """Translates each member's Check and Normalize (webkit/decode_policy.py) into C++, and into Swift for the types whose
+    Swift forms decode it: those marked [Swift] and their parent classes. Stores them in member.decode_policies, Normalize
+    first. Runs once per list of types."""
+    global _compiled_decode_policies_for
+    if _compiled_decode_policies_for is serialized_types:
+        return
+    _compiled_decode_policies_for = serialized_types
+    index = decode_policy.TypeIndex(serialized_types, serialized_enums, using_statements)
+    swift_naming = decode_policy.SwiftNaming(_SWIFT_KEYWORDS, swift_enum_value)
+    with_swift_forms = set()
+    for type in serialized_types:
+        ancestor = type if type.swift else None
+        while ancestor is not None:
+            with_swift_forms.add(id(ancestor))
+            ancestor = ancestor.parent_class
+
+    def members_in_decode_order(type):
+        members = members_in_decode_order(type.parent_class) if type.parent_class is not None else []
+        return members + type.serialized_members()
+
+    for type in serialized_types:
+        if type.members_are_subclasses or type.cf_type is not None or type.is_webkit_secure_coding_type():
+            continue
+        def decoded_member(member):
+            variable = sanitize_string_for_variable_name(member.name)
+            cpp_type = f'Ref<{member.type}>' if should_decode_ref(member, serialized_types) else member.type
+            return (re.sub(r'^m_(?=[A-Za-z_])', '', variable), variable, cpp_type)
+
+        decoded = [decoded_member(member) for member in members_in_decode_order(type.parent_class)] if type.parent_class is not None else []
+        for member in type.serialized_members():
+            context = f'{type.namespace_and_name()}: member {member.name}'
+            try:
+                sources = decode_policy.policy_attributes(member)
+            except decode_policy.DecodePolicyError as error:
+                raise Exception(f'{context}: {error}')
+            policies = []
+            if sources:
+                if member.optional_tuple_bit() is not None or type.populate_from_empty_constructor:
+                    raise Exception(f'{context}: a member with a Check or Normalize can\'t be an optional tuple member, or be set on an empty object.')
+                for kind, source in sorted(sources, key=lambda policy: policy[0] != 'Normalize'):
+                    try:
+                        policies.append(decode_policy.compile_member_policy(kind, source, index, decoded, decoded_member(member),
+                                                                            swift_naming if id(type) in with_swift_forms else None))
+                    except decode_policy.DecodePolicyError as error:
+                        raise Exception(f'{context}: {error}')
+            member.decode_policies = policies
+            decoded.append(decoded_member(member))
+
+
+_compiled_decode_policies_for = None
+
+
 def decode_type(type, serialized_types):
     if type.cf_type is not None:
         return decode_cf_type(type)
@@ -1131,8 +1197,23 @@ def decode_type(type, serialized_types):
                 result.append(f'        decoder.addIndexOfDecodingFailure({str(i)});')
                 result.append('        addedDecodingFailureIndex = true;')
                 result.append('    }')
+        policies = getattr(member, 'decode_policies', [])
+        if policies:
+            result.append('    if (!decoder.isValid()) [[unlikely]]')
+            result.append('        return std::nullopt;')
+        for policy in policies:
+            if policy.kind == 'Normalize':
+                result.append(f'    *{sanitized_variable_name} = {policy.cpp};')
+                continue
+            escaped_source = policy.source.replace('\\', '\\\\').replace('"', '\\"')
+            result.append(f'    if (!({policy.cpp})) {{')
+            result.append('#if ENABLE(IPC_TESTING_API)')
+            result.append(f'        decoder.setErrorString("Validation failed: {escaped_source}"_s);')
+            result.append('#endif')
+            result.append('        return std::nullopt;')
+            result.append('    }')
         for attribute in member.attributes:
-            if attribute.startswith('SwiftValidator='):
+            if attribute.startswith(('SwiftValidator=', 'Check=', 'Normalize=')):
                 continue
             match = re.search(r'Validator=\'(.*)\'', attribute)
             if match:
@@ -1947,7 +2028,7 @@ def parse_serialized_types(file):
         if match:
             member_attributes_s, member_type, member_name = match.groups()
             member_attributes = []
-            for validator_name in ['SwiftValidator', 'Validator']:
+            for validator_name in ['SwiftValidator', 'Validator', 'Check', 'Normalize']:
                 match = re.search(r"((, |^)+(" + validator_name + r"='.*?'))(, |$)?", member_attributes_s)
                 if match:
                     complete, _, validator, _ = match.groups()
@@ -2285,7 +2366,7 @@ _SWIFT_COMPATIBLE_TYPE_ATTRIBUTES = frozenset([
     'LegacyPopulateFromEmptyConstructor', 'Nested', 'RValue', 'RefCounted', 'Swift', 'WebKitPlatform', 'Wrapper',
 ])
 _SWIFT_COMPATIBLE_ENUM_ATTRIBUTES = frozenset(['AdditionalEncoder', 'CustomHeader', 'Nested', 'OptionSet', 'Swift', 'WebKitPlatform'])
-_SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES = frozenset(['BitField', 'NotSerialized', 'SwiftValidator', 'Validator'])
+_SWIFT_COMPATIBLE_MEMBER_ATTRIBUTES = frozenset(['BitField', 'Check', 'Normalize', 'NotSerialized', 'SwiftValidator', 'Validator'])
 
 # Types that generated Swift names without qualification, so must not be shadowed by a type in IPCTypes.
 _SWIFT_RESERVED_TYPE_NAMES = frozenset([
@@ -2321,6 +2402,8 @@ class SwiftMember(object):
         self.owned = False
         # The member's SwiftValidator: a Swift expression that must be true once it is decoded.
         self.validator = None
+        # Its Check and Normalize (decode_policy.CompiledPolicy), Normalize first.
+        self.policies = []
 
 
 def swift_identifier(name):
@@ -2574,6 +2657,7 @@ def swift_members(type, context, swift_names):
             validator = re.fullmatch(r"SwiftValidator='(.*)'", attribute)
             if validator:
                 swift_member.validator = validator.group(1)
+        swift_member.policies = getattr(member, 'decode_policies', [])
         members.append(swift_member)
     return members
 
@@ -2674,15 +2758,23 @@ def generate_swift_struct(type, swift_names):
     result.append('}')
     result.append('')
     def validation_lines(member):
-        if member.validator is None:
-            return []
-        return [f'        guard {member.validator} else {{', '            throw IPCDecodingError()', '        }']
+        lines = []
+        for policy in member.policies:
+            if policy.kind == 'Normalize':
+                lines.append(f'        {swift_identifier(member.name)} = {policy.swift}')
+            else:
+                lines.extend([f'        guard {policy.swift} else {{', '            throw IPCDecodingError()', '        }'])
+        if member.validator is not None:
+            lines.extend([f'        guard {member.validator} else {{', '            throw IPCDecodingError()', '        }'])
+        return lines
 
     decoding_initializer = ['    fileprivate init(ipcDecodingFrom decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) {']
-    if owned:
-        # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any.
+    if owned or any(member.policies for member in members):
+        # Swift can't destroy a partly initialized ~Copyable value, so every member is decoded before self has any. A decode
+        # policy reads the members decoded so far, which all() would capture self for, so they are locals too.
         for member in members:
-            decoding_initializer.append(f'        let {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
+            binding = 'var' if any(policy.kind == 'Normalize' for policy in member.policies) else 'let'
+            decoding_initializer.append(f'        {binding} {swift_identifier(member.name)} = try {member.coder}.decode(from: &decoder)')
             decoding_initializer.extend(validation_lines(member))
         decoding_initializer.extend(f'        self.{swift_identifier(member.name)} = {swift_identifier(member.name)}' for member in members)
     else:
@@ -3028,6 +3120,7 @@ def swift_line_comments(block_comment):
 
 
 def generate_swift(serialized_types, serialized_enums, using_statements):
+    compile_decode_policies(serialized_types, serialized_enums, using_statements)
     swift_names = swift_type_names(serialized_types, serialized_enums, using_statements)
     identifiers = swift_identifiers(serialized_types, serialized_enums, using_statements)
     declarations = [generate_swift_identifiers(identifiers)]
@@ -3136,6 +3229,7 @@ def main(argv):
     headers = sorted(header_set)
 
     serialized_types = resolve_inheritance(serialized_types)
+    compile_decode_policies(serialized_types, serialized_enums, using_statements)
     swift_source = generate_swift(serialized_types, serialized_enums, using_statements)
 
     if output_dir and not os.path.exists(output_dir):

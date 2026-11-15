@@ -2532,7 +2532,7 @@ header: <WebCore/SwitchPart.h>
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SpotLightSource {
     WebCore::FloatPoint3D position();
     WebCore::FloatPoint3D direction();
-    float specularExponent();
+    [Normalize='specularExponent >= 128 ? 128 : (specularExponent <= 1 ? 1 : specularExponent)'] float specularExponent();
     float limitingConeAngle();
 };
 
@@ -2544,7 +2544,7 @@ header: <WebCore/SwitchPart.h>
 
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEColorMatrix {
     WebCore::ColorMatrixType type();
-    [Validator='WebCore::FEColorMatrix::areValuesValidForType(*type, *values)'] Vector<float> values();
+    [Check='type == ColorMatrixType::FECOLORMATRIX_TYPE_MATRIX ? count(values) == 20 : (type == ColorMatrixType::FECOLORMATRIX_TYPE_SATURATE || type == ColorMatrixType::FECOLORMATRIX_TYPE_HUEROTATE) ? count(values) == 1 : type == ColorMatrixType::FECOLORMATRIX_TYPE_LUMINANCETOALPHA'] Vector<float> values();
 
     WebCore::ColorSpace operatingColorSpace();
 };
@@ -2580,14 +2580,14 @@ header: <WebCore/FEComponentTransfer.h>
 };
 
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEConvolveMatrix {
-    [Validator='!kernelSize->isEmpty()'] WebCore::IntSize kernelSize();
-    [Validator='*divisor != 0'] float divisor();
+    [Check='kernelSize.width > 0 && kernelSize.height > 0'] WebCore::IntSize kernelSize();
+    [Check='divisor != 0'] float divisor();
     float bias();
-    [Validator='WebCore::IntRect({ }, *kernelSize).contains(*targetOffset)'] WebCore::IntPoint targetOffset();
+    [Check='targetOffset.x >= 0 && targetOffset.x < kernelSize.width && targetOffset.y >= 0 && targetOffset.y < kernelSize.height'] WebCore::IntPoint targetOffset();
     WebCore::EdgeModeType edgeMode();
-    [Validator='kernelUnitLength->x() > 0 && kernelUnitLength->y() > 0'] WebCore::FloatPoint kernelUnitLength();
+    [Check='kernelUnitLength.x > 0 && kernelUnitLength.y > 0'] WebCore::FloatPoint kernelUnitLength();
     bool preserveAlpha();
-    [Validator='kernelSize->unclampedArea() == kernel->size()'] Vector<float> kernel();
+    [Check='kernelSize.width * kernelSize.height == count(kernel)'] Vector<float> kernel();
 
     WebCore::ColorSpace operatingColorSpace();
 };
@@ -2595,7 +2595,7 @@ header: <WebCore/FEComponentTransfer.h>
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDiffuseLighting {
     WebCore::Color lightingColor();
     float surfaceScale();
-    float diffuseConstant();
+    [Normalize='max(diffuseConstant, 0)'] float diffuseConstant();
     float kernelUnitLengthX();
     float kernelUnitLengthY();
     WebCore::LightSource lightSource();
@@ -2651,8 +2651,8 @@ header: <WebCore/FEComponentTransfer.h>
 
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEMorphology {
     WebCore::MorphologyOperatorType morphologyOperator();
-    float radiusX();
-    float radiusY();
+    [Normalize='max(0, radiusX)'] float radiusX();
+    [Normalize='max(0, radiusY)'] float radiusY();
 
     WebCore::ColorSpace operatingColorSpace();
 };
@@ -2671,8 +2671,8 @@ header: <WebCore/FEComponentTransfer.h>
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FESpecularLighting {
     WebCore::Color lightingColor();
     float surfaceScale();
-    float specularConstant();
-    float specularExponent();
+    [Normalize='max(specularConstant, 0)'] float specularConstant();
+    [Normalize='specularExponent >= 128 ? 128 : (specularExponent <= 1 ? 1 : specularExponent)'] float specularExponent();
     float kernelUnitLengthX();
     float kernelUnitLengthY();
     WebCore::LightSource lightSource();
@@ -5949,7 +5949,7 @@ header: <WebCore/Filter.h>
 [AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::SVGFilterRenderer {
     WebCore::SVGUnitTypes::SVGUnitType primitiveUnits();
     WebCore::SVGFilterExpression expression();
-    [Validator='WebCore::SVGFilterRenderer::isValidSVGFilterExpression(*expression, *effects)'] Vector<Ref<WebCore::FilterEffect>> effects();
+    [Check='count(expression) > 0 && count(effects) > 0 && all(expression, term, term.index < count(effects))'] Vector<Ref<WebCore::FilterEffect>> effects();
     WebCore::FilterGeometry geometry();
     OptionSet<WebCore::FilterRenderingMode> filterRenderingModes();
     OptionSet<WebCore::FilterRenderingOption> renderingOptions();
