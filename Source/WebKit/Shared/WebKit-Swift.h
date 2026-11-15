@@ -125,7 +125,6 @@
 #include "RemoteCGRendererLineDash.h"
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
-#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererShadow.h"

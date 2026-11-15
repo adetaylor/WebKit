@@ -45,6 +45,7 @@
 #include <WebCore/MeshGradient.h>
 #include <WebCore/MeshGradientRendererCPU.h>
 #include <WebCore/NativeImage.h>
+#include <WebCore/PathImpl.h>
 #include <wtf/ZippedRange.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -141,14 +142,6 @@ RefPtr<PathImpl> RemoteCGRendererResources::cachedPathImpl(RemotePathImplIdentif
     if (!m_backend)
         return nullptr;
     return m_backend->remoteResourceCache().cachedPathImpl(identifier);
-}
-
-RemoteCGRendererPath RemoteCGRendererResources::cachedPath(RemotePathImplIdentifier identifier) const
-{
-    RefPtr pathImpl = cachedPathImpl(identifier);
-    if (!pathImpl)
-        return { };
-    return RemoteCGRendererPath { pathImpl.releaseNonNull() };
 }
 
 static CGImageRef copyImage(const NativeImage& image, CGRendererImageFacts& facts)
@@ -354,6 +347,14 @@ CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources& r
     if (!tileImageBuffer || drawsIntoTarget)
         return { };
     return CGRendererBrushSource { WebCore::Pattern::create({ tileImageBuffer.releaseNonNull() }, parameters) };
+}
+
+CGPathRef copyCachedPlatformPath(const RemoteCGRendererResources& resources, RemotePathImplIdentifier identifier)
+{
+    RefPtr pathImpl = resources.cachedPathImpl(identifier);
+    if (!pathImpl)
+        return nullptr;
+    return CGRendererCopyPlatformPath(*pathImpl);
 }
 
 CFURLRef copyURL(const URL& link)

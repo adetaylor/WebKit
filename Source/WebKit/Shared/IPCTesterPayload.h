@@ -91,6 +91,7 @@
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include <WebCore/AffineTransform.h>
 #include <WebCore/CGRendererSwiftBridge.h>
+#include <WebCore/Path.h>
 #include <WebCore/WindRule.h>
 #endif
 #endif
@@ -632,6 +633,21 @@ inline String ipcTesterDescription(WebCore::WindRule rule, const WebCore::Affine
         static_cast<unsigned>(data.colorSpace), ',', static_cast<unsigned>(data.form), ',', data.isSemantic ? 1 : 0, ',', data.usesFunctionSerialization ? 1 : 0);
     return builder.toString();
 }
+
+// The segments of a path, as the CG renderer takes them (CGRendererPathSegmentValues()), for a path decoded in C++ and in Swift.
+inline String ipcTesterDescription(const WebCore::Path& path)
+{
+    StringBuilder builder;
+    auto segments = path.segments();
+    builder.append("segments="_s, segments.size());
+    for (auto& segment : segments) {
+        auto values = CGRendererPathSegmentValues(segment);
+        builder.append(' ', static_cast<unsigned>(values.kind), ':', values.flag ? 1 : 0);
+        for (float value : std::span { values.values })
+            builder.append(',', std::bit_cast<uint32_t>(value));
+    }
+    return builder.toString();
+}
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)
@@ -665,6 +681,13 @@ inline String ipcTesterCxxDecodedDrawingFormsDescription(IPC::CxxDecodedArgument
     auto color = colorArgument.take();
     RELEASE_ASSERT(rule && transform && color);
     return ipcTesterDescription(*rule, *transform, *color);
+}
+
+inline String ipcTesterCxxDecodedPathDescription(IPC::CxxDecodedArgument<WebCore::Path>& pathArgument)
+{
+    auto path = pathArgument.take();
+    RELEASE_ASSERT(path);
+    return ipcTesterDescription(*path);
 }
 #endif
 #endif

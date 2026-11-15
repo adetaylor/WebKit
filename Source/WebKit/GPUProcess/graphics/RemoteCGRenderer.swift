@@ -200,6 +200,149 @@ private func bezierCurveSegment(_ curve: WebCore.PathDataBezierCurve) -> CGRende
     )
 }
 
+private func pathSegmentValues(
+    _ kind: CGRendererPathSegmentKind,
+    _ values: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float),
+    flag: Bool = false
+) -> CGRendererPathSegment {
+    CGRendererPathSegment(values: values, kind: kind, flag: flag)
+}
+
+extension IPCTypes.PathSegment {
+    // CGRendererPathSegmentValues() of the segment.
+    var cgRendererPathSegment: CGRendererPathSegment {
+        switch data {
+        case .pathMoveTo(let moveTo):
+            let p = moveTo.point
+            return pathSegmentValues(.MoveTo, (p.x, p.y, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathLineTo(let lineTo):
+            let p = lineTo.point
+            return pathSegmentValues(.LineTo, (p.x, p.y, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathQuadCurveTo(let quadTo):
+            let c = quadTo.controlPoint
+            let e = quadTo.endPoint
+            return pathSegmentValues(.QuadCurveTo, (c.x, c.y, e.x, e.y, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathBezierCurveTo(let bezierTo):
+            let c1 = bezierTo.controlPoint1
+            let c2 = bezierTo.controlPoint2
+            let e = bezierTo.endPoint
+            return pathSegmentValues(.BezierCurveTo, (c1.x, c1.y, c2.x, c2.y, e.x, e.y, 0, 0, 0, 0, 0, 0))
+        case .pathArcTo(let arcTo):
+            let c1 = arcTo.controlPoint1
+            let c2 = arcTo.controlPoint2
+            return pathSegmentValues(.ArcTo, (c1.x, c1.y, c2.x, c2.y, arcTo.radius, 0, 0, 0, 0, 0, 0, 0))
+        case .pathArc(let arc):
+            return Self.arcSegment(arc, .Arc)
+        case .pathClosedArc(let closedArc):
+            return Self.arcSegment(closedArc.arc, .ClosedArc)
+        case .pathEllipse(let ellipse):
+            let c = ellipse.center
+            return pathSegmentValues(
+                .Ellipse,
+                (c.x, c.y, ellipse.radiusX, ellipse.radiusY, ellipse.rotation, ellipse.startAngle, ellipse.endAngle, 0, 0, 0, 0, 0),
+                flag: ellipse.direction == .counterclockwise
+            )
+        case .pathEllipseInRect(let ellipseInRect):
+            let r = ellipseInRect.rect
+            return pathSegmentValues(.EllipseInRect, (r.location.x, r.location.y, r.size.width, r.size.height, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathRect(let rect):
+            let r = rect.rect
+            return pathSegmentValues(.Rect, (r.location.x, r.location.y, r.size.width, r.size.height, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathRoundedRect(let roundedRect):
+            let r = roundedRect.roundedRect.rect
+            let radii = roundedRect.roundedRect.radii
+            return pathSegmentValues(
+                .RoundedRect,
+                (
+                    r.location.x, r.location.y, r.size.width, r.size.height, radii.topLeft.width, radii.topLeft.height, radii.topRight.width,
+                    radii.topRight.height, radii.bottomLeft.width, radii.bottomLeft.height, radii.bottomRight.width, radii.bottomRight.height
+                ),
+                flag: roundedRect.strategy == .preferBezier
+            )
+        case .pathContinuousRoundedRect(let continuousRoundedRect):
+            let r = continuousRoundedRect.rect
+            return pathSegmentValues(
+                .ContinuousRoundedRect,
+                (r.location.x, r.location.y, r.size.width, r.size.height, continuousRoundedRect.cornerWidth, continuousRoundedRect.cornerHeight, 0, 0, 0, 0, 0, 0)
+            )
+        case .pathDataLine(let line):
+            let s = line.start
+            let e = line.end
+            return pathSegmentValues(.DataLine, (s.x, s.y, e.x, e.y, 0, 0, 0, 0, 0, 0, 0, 0))
+        case .pathDataQuadCurve(let curve):
+            let s = curve.start
+            let c = curve.controlPoint
+            let e = curve.endPoint
+            return pathSegmentValues(.DataQuadCurve, (s.x, s.y, c.x, c.y, e.x, e.y, 0, 0, 0, 0, 0, 0))
+        case .pathDataBezierCurve(let curve):
+            let s = curve.start
+            let c1 = curve.controlPoint1
+            let c2 = curve.controlPoint2
+            let e = curve.endPoint
+            return pathSegmentValues(.DataBezierCurve, (s.x, s.y, c1.x, c1.y, c2.x, c2.y, e.x, e.y, 0, 0, 0, 0))
+        case .pathDataArc(let arc):
+            let s = arc.start
+            let c1 = arc.controlPoint1
+            let c2 = arc.controlPoint2
+            return pathSegmentValues(.DataArc, (s.x, s.y, c1.x, c1.y, c2.x, c2.y, arc.radius, 0, 0, 0, 0, 0))
+        case .pathCloseSubpath:
+            return pathSegmentValues(.CloseSubpath, (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        }
+    }
+
+    private static func arcSegment(_ arc: IPCTypes.PathArc, _ kind: CGRendererPathSegmentKind) -> CGRendererPathSegment {
+        let c = arc.center
+        return pathSegmentValues(kind, (c.x, c.y, arc.radius, arc.startAngle, arc.endAngle, 0, 0, 0, 0, 0, 0, 0), flag: arc.direction == .counterclockwise)
+    }
+}
+
+extension CGRendererPath {
+    // The path that Path makes of the message's segments: none, one, or a PathStream of them.
+    init(_ path: IPCTypes.Path) {
+        let segments = path.segments
+        switch segments.count {
+        case 0:
+            self = .empty
+        case 1:
+            self = .segment(segments[0].cgRendererPathSegment)
+        default:
+            self = .segments(ContiguousArray(segments.lazy.map { $0.cgRendererPathSegment }))
+        }
+    }
+}
+
+extension IPCTypes.WindRule {
+    var windRule: WebCore.WindRule {
+        self == .evenOdd ? .EvenOdd : .NonZero
+    }
+}
+
+extension IPCTypes.AffineTransform {
+    // AffineTransform's a, b, c, d, e and f, as CGAffineTransform's.
+    var cgAffineTransform: CGAffineTransform {
+        let v = span
+        return CGAffineTransform(a: v[0], b: v[1], c: v[2], d: v[3], tx: v[4], ty: v[5])
+    }
+}
+
+extension IPCTypes.CGRendererColorValue {
+    var cgRendererColorValue: CGRendererColorValue {
+        let d = data
+        let colorData = CGRendererColorData(
+            c1: d.c1,
+            c2: d.c2,
+            c3: d.c3,
+            alpha: d.alpha,
+            packedColor: d.packedColor,
+            colorSpace: d.colorSpace,
+            form: d.form,
+            isSemantic: d.isSemantic,
+            usesFunctionSerialization: d.usesFunctionSerialization
+        )
+        return CGRendererColorValue(data: colorData, packedColor: packedColor, isPacked: isPacked, isVisible: isVisible)
+    }
+}
+
 // Receives the RemoteCGRenderer messages of an image buffer's context, on its stream connection's work queue, and draws
 // them with the context's Swift CG renderer, as RemoteGraphicsContext and GraphicsContextCG would. The context lends each
 // handler its renderer, stored in place, as the handler's state. The same handlers replay recordings of the messages
@@ -539,31 +682,30 @@ final class RemoteCGRenderer {
         state.receiveStrokePathSegment(segment.values())
     }
 
-    // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing.
+    // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing. A missing cached
+    // path is an invalid message.
 
-    func fillPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
-        fill(&state, path)
+    func fillPath(state: inout CGRendererCore, path: IPCTypes.Path) {
+        fill(&state, CGRendererPath(path))
     }
 
-    func strokePath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
-        if path.isEmpty() {
-            return
-        }
-        stroke(&state, path)
+    func strokePath(state: inout CGRendererCore, path: IPCTypes.Path) {
+        stroke(&state, CGRendererPath(path))
     }
 
     // GraphicsContextCG::drawPath(): with a gradient, the fill and the stroke one after the other.
-    func drawPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
-        if path.isEmpty() {
+    func drawPath(state: inout CGRendererCore, path: IPCTypes.Path) {
+        let path = CGRendererPath(path)
+        if path.isEmpty {
             return
         }
-        if state.receiveDrawPathWithoutGradient({ WebKit.copyPlatformPath(path) }) {
+        if state.receiveDrawPathWithoutGradient({ path.platformPath() }) {
             return
         }
         // A fill without a gradient draws the CGPath of the path, which C++ makes of the Path in place, so that the stroke's
         // clip then has the CGPath rather than the segments.
         if state.receiveFillsWithoutGradient() {
-            let platformPath = WebKit.copyPlatformPath(path)
+            let platformPath = path.platformPath()
             state.receiveFillPath(platformPath)
             state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
                 clipToStrokedPlatformPath(context, platformPath, thickness)
@@ -574,24 +716,33 @@ final class RemoteCGRenderer {
         stroke(&state, path)
     }
 
-    func clipPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
-        state.receiveClip { context in path.clip(context, windRule) }
+    func clipPath(state: inout CGRendererCore, path: IPCTypes.Path, windRule: IPCTypes.WindRule) {
+        let path = CGRendererPath(path)
+        let rule = windRule.windRule
+        state.receiveClip { context in path.clip(context, rule) }
     }
 
-    func clipOutToPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath) {
+    func clipOutToPath(state: inout CGRendererCore, path: IPCTypes.Path) {
+        let path = CGRendererPath(path)
         state.receiveClip { context in path.clipOut(context) }
     }
 
     func fillCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier) throws(InvalidMessage) {
-        let path = resources.cachedPath(identifier)
-        try messageCheck { path.isValid() }
-        fill(&state, path)
+        let path = WebKit.copyCachedPlatformPath(resources, identifier)
+        try messageCheck { path != nil }
+        guard let path else {
+            return
+        }
+        fill(&state, .platformPath(path))
     }
 
     func clipCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier, windRule: WebCore.WindRule) throws(InvalidMessage) {
-        let path = resources.cachedPath(identifier)
-        try messageCheck { path.isValid() }
-        state.receiveClip { context in path.clip(context, windRule) }
+        let path = WebKit.copyCachedPlatformPath(resources, identifier)
+        try messageCheck { path != nil }
+        guard let path else {
+            return
+        }
+        state.receiveClip { context in CGRendererPath.platformPath(path).clip(context, windRule) }
     }
 
     // RemoteGraphicsContext's image handlers. A missing image is an invalid message, and an image this process can't read draws
@@ -818,42 +969,43 @@ final class RemoteCGRenderer {
 
     // GraphicsContextCG::fillPath(): a gradient in the clip of the path's own segments, and a pie wedge as a stroked arc where
     // the context strokes arcs as it fills them.
-    private func fill(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) {
-        if path.isEmpty() {
+    private func fill(_ state: inout CGRendererCore, _ path: CGRendererPath) {
+        if path.isEmpty {
             return
         }
         guard state.receiveFillsWithoutGradient() else {
-            let path = copy path
-            let bounds = cgRect(path.fastBoundingRect())
+            let bounds = path.fastBoundingRect
             state.receiveFillWithGradient({ bounds }) { context, rule in path.clip(context, rule) }
             return
         }
         #if HAVE_CGCONTEXT_STROKE_ARC
-        let wedge = path.pieWedgeArcValues()
-        if wedge.kind == .Arc {
+        if let wedge = path.pieWedgeArc {
             let v = wedge.values
             if state.receiveFillPieWedge(v.0, v.1, v.2, v.3, v.4, wedge.flag) {
                 return
             }
         }
         #endif
-        state.receiveFillPath(WebKit.copyPlatformPath(path))
+        state.receiveFillPath(path.platformPath())
     }
 
     // GraphicsContextCG::strokePath(): a single line as a line segment, and a gradient in the clip of the stroked path.
-    private func stroke(_ state: inout CGRendererCore, _ path: borrowing WebKit.RemoteCGRendererPath) {
+    private func stroke(_ state: inout CGRendererCore, _ path: CGRendererPath) {
+        if path.isEmpty {
+            return
+        }
         guard state.receiveStrokesWithoutGradient() else {
-            let platformPath = WebKit.copyPlatformPath(path)
+            let platformPath = path.platformPath()
             state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, platformPath) }) { context, thickness in
                 clipToStrokedPlatformPath(context, platformPath, thickness)
             }
             return
         }
-        if path.isSingleDataLine() {
-            state.receiveStrokePathSegment(path.singleSegmentValues())
+        if let line = path.singleDataLine {
+            state.receiveStrokePathSegment(line)
             return
         }
-        state.receiveStrokePath(WebKit.copyPlatformPath(path))
+        state.receiveStrokePath(path.platformPath())
     }
 
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
@@ -911,8 +1063,10 @@ final class RemoteCGRenderer {
 
     // RemoteGraphicsContext's clips to a path in coordinates a transform maps it from.
 
-    func clipTransformedPath(state: inout CGRendererCore, pathTransform: WebCore.AffineTransform, path: WebKit.RemoteCGRendererPath, windRule: WebCore.WindRule) {
-        state.receiveClipTransformed(cgAffineTransform(pathTransform)) { context in path.clip(context, windRule) }
+    func clipTransformedPath(state: inout CGRendererCore, pathTransform: IPCTypes.AffineTransform, path: IPCTypes.Path, windRule: IPCTypes.WindRule) {
+        let path = CGRendererPath(path)
+        let rule = windRule.windRule
+        state.receiveClipTransformed(pathTransform.cgAffineTransform) { context in path.clip(context, rule) }
     }
 
     func clipTransformedCachedPath(
@@ -921,16 +1075,20 @@ final class RemoteCGRenderer {
         identifier: WebKit.RemotePathImplIdentifier,
         windRule: WebCore.WindRule
     ) throws(InvalidMessage) {
-        let path = resources.cachedPath(identifier)
-        try messageCheck { path.isValid() }
-        state.receiveClipTransformed(cgAffineTransform(pathTransform)) { context in path.clip(context, windRule) }
-    }
-
-    func drawFocusRingPath(state: inout CGRendererCore, path: WebKit.RemoteCGRendererPath, outlineWidth: Float, color: CGRendererColorValue, zoomFactor: Float) {
-        if path.isEmpty() {
+        let path = WebKit.copyCachedPlatformPath(resources, identifier)
+        try messageCheck { path != nil }
+        guard let path else {
             return
         }
-        state.receiveDrawFocusRing(WebKit.copyPlatformPath(path), color, zoomFactor)
+        state.receiveClipTransformed(cgAffineTransform(pathTransform)) { context in CGRendererPath.platformPath(path).clip(context, windRule) }
+    }
+
+    func drawFocusRingPath(state: inout CGRendererCore, path: IPCTypes.Path, outlineWidth: Float, color: IPCTypes.CGRendererColorValue, zoomFactor: Float) {
+        let path = CGRendererPath(path)
+        if path.isEmpty {
+            return
+        }
+        state.receiveDrawFocusRing(path.platformPath(), color.cgRendererColorValue, zoomFactor)
     }
 
     // RemoteGraphicsContext's page handlers, for a PDF.

@@ -144,11 +144,6 @@ header: "RemoteCGRendererPathSegment.h"
     WebCore::PathSegment segment();
 };
 
-header: "RemoteCGRendererPath.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPath {
-    Vector<WebCore::PathSegment> segments();
-};
-
 header: "RemoteCGRendererShadow.h"
 [AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebKit::RemoteCGRendererShadow {
     CGRendererShadowValues values;

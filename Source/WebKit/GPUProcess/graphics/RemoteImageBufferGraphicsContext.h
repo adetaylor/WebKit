@@ -70,7 +70,6 @@ enum class RemoteImageBufferPixelsResult : uint8_t {
 };
 
 class RemoteCGRendererLineStrokes;
-class RemoteCGRendererPath;
 class RemoteCGRendererPathSegment;
 class RemoteCGRendererGlyphs;
 class RemoteCGRendererLineDash;
@@ -144,13 +143,7 @@ public:
     // RemoteCGRenderer's messages whose arguments differ from RemoteGraphicsContext's, as RemoteGraphicsContext draws them.
     void fillPathSegment(const RemoteCGRendererPathSegment&);
     void strokePathSegment(const RemoteCGRendererPathSegment&);
-    void fillPath(const RemoteCGRendererPath&);
-    void strokePath(const RemoteCGRendererPath&);
-    void drawPath(const RemoteCGRendererPath&);
-    void clipPath(const RemoteCGRendererPath&, WebCore::WindRule);
-    void clipOutToPath(const RemoteCGRendererPath&);
-    void clipTransformedPath(const WebCore::AffineTransform&, const RemoteCGRendererPath&, WebCore::WindRule);
-    void drawFocusRingPath(const RemoteCGRendererPath&, float outlineWidth, const CGRendererColorValue&, float zoomFactor);
+    void drawFocusRingPath(const WebCore::Path&, float outlineWidth, const CGRendererColorValue&, float zoomFactor);
     void setDropShadow(const RemoteCGRendererShadow&);
     void setStyle(const RemoteCGRendererStyle&);
     void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);

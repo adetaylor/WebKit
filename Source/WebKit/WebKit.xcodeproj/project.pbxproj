@@ -9617,7 +9617,6 @@
 		E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineDash.h; sourceTree = "<group>"; };
 		20166B90E8394C948FB307D4 /* RemoteCGRendererLineSegments.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineSegments.h; sourceTree = "<group>"; };
 		B1372BAAE5C24A7289E58930 /* RemoteCGRendererLineStrokes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineStrokes.h; sourceTree = "<group>"; };
-		7FE2364DA2A340CCA51DF350 /* RemoteCGRendererPath.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererPath.h; sourceTree = "<group>"; };
 		E64B39A517BD4E74B58B8B96 /* RemoteCGRendererPathSegment.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererPathSegment.h; sourceTree = "<group>"; };
 		9E4B3867A39642CD864F598C /* RemoteCGRendererResources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteCGRendererResources.cpp; sourceTree = "<group>"; };
 		C3E8A4D6192F4A3EBD5C7F03 /* RemoteSnapshotPrintData.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSnapshotPrintData.cpp; sourceTree = "<group>"; };
@@ -15071,7 +15070,6 @@
 				E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */,
 				20166B90E8394C948FB307D4 /* RemoteCGRendererLineSegments.h */,
 				B1372BAAE5C24A7289E58930 /* RemoteCGRendererLineStrokes.h */,
-				7FE2364DA2A340CCA51DF350 /* RemoteCGRendererPath.h */,
 				E64B39A517BD4E74B58B8B96 /* RemoteCGRendererPathSegment.h */,
 				B2D7F3C5081E4F2DAC4B6E02 /* RemoteCGRendererRecording.swift */,
 				9E4B3867A39642CD864F598C /* RemoteCGRendererResources.cpp */,

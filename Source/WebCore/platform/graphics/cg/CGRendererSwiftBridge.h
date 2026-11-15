@@ -326,6 +326,12 @@ WEBCORE_EXPORT CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRound
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
 WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
+// The same for a path of the segments, in turn, as Path makes it of a PathStream of them; the segments added to the context's
+// path in place, as GraphicsContextCG adds a Path's for a clip (addToCGContextPath()); and Path::fastBoundingRect() of a path
+// of more than one.
+WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePathFromSegments(std::span<const CGRendererPathSegment> segments NOESCAPE) CF_RETURNS_RETAINED;
+WEBCORE_EXPORT void CGRendererAddPathSegments(CGContextRef _Nonnull, std::span<const CGRendererPathSegment> segments NOESCAPE);
+WEBCORE_EXPORT CGRect CGRendererPathSegmentsFastBoundingRect(std::span<const CGRendererPathSegment> segments NOESCAPE);
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it
 // would make first.
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
