@@ -126,6 +126,12 @@ public:
     void dispatch(Function<void()>&&);
 
     IPC::StreamServerConnection& streamConnection() const { return m_streamConnection.get(); }
+    // Ends the messages to a receiver on the stream connection: false if none receives them.
+    bool tryStopReceivingMessages(IPC::ReceiverName receiverName, uint64_t destinationID)
+    {
+        assertIsCurrent(workQueue());
+        return m_streamConnection->tryStopReceivingMessages(receiverName, destinationID);
+    }
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -293,6 +299,14 @@ private:
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 bool isSmallLayerBacking(const WebCore::ImageBufferParameters&);
+
+// IPC::tryStartReceivingSwiftMessages() on the backend's stream connection, for the Swift receivers that the backend's
+// handlers make.
+template<typename ForwarderRef>
+bool tryStartReceivingSwiftMessages(RemoteRenderingBackend& backend, const ForwarderRef& forwarder, IPC::ReceiverName receiverName, uint64_t destinationID)
+{
+    return IPC::tryStartReceivingSwiftMessages(backend.streamConnection(), forwarder, receiverName, destinationID);
+}
 
 #if USE(CG) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 // The image of the native image the backend has cached under the identifier, for Swift, which takes what a C++ method

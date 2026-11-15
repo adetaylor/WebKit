@@ -203,12 +203,12 @@ extension WebKit.RemoteRenderingBackend {
         state.reusesDisplayListRecorders = false
         state.idleDisplayListRecorders = []
         for identifier in recorders.keys {
-            _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
+            _ = tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         let snapshotRecorders = state.snapshotRecorders
         state.snapshotRecorders = [:]
         for identifier in snapshotRecorders.keys {
-            _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
+            _ = tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         state.displayLists.removeAll()
         state.resources.removeAllNativeImages()
@@ -308,8 +308,8 @@ extension WebKit.RemoteRenderingBackend {
         if state.idleDisplayListRecorders.isEmpty {
             state.idleDisplayListRecorders.append(makeDisplayListRecorder(state))
         }
-        let started = IPC.tryStartReceivingSwiftMessages(
-            streamConnection(),
+        let started = WebKit.tryStartReceivingSwiftMessages(
+            self,
             state.idleDisplayListRecorders[state.idleDisplayListRecorders.count - 1].forwarder,
             .RemoteCGRenderer,
             key
@@ -346,7 +346,7 @@ extension WebKit.RemoteRenderingBackend {
         guard let displayListRecorder = state.displayListRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
             return false
         }
-        let stopped = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)
+        let stopped = tryStopReceivingMessages(.RemoteCGRenderer, key)
         let recorder = displayListRecorder.recorder
         let added = state.displayLists.add(recorder.takeRecording(), key: WebKit.displayListKey(displayListIdentifier))
         // A recorder that read video frames keeps the reader's state, which a new recorder doesn't have.
@@ -373,7 +373,7 @@ extension WebKit.RemoteRenderingBackend {
             state,
             snapshotFrames: .snapshot(remoteSnapshots.snapshotForRecorder(RemoteSnapshotRegistryKey(snapshot)))
         )
-        guard IPC.tryStartReceivingSwiftMessages(streamConnection(), snapshotRecorder.forwarder, .RemoteCGRenderer, key) else {
+        guard WebKit.tryStartReceivingSwiftMessages(self, snapshotRecorder.forwarder, .RemoteCGRenderer, key) else {
             return false
         }
         state.snapshotRecorders[RemoteIdentifierKey(value: key)] = snapshotRecorder
@@ -390,7 +390,7 @@ extension WebKit.RemoteRenderingBackend {
         guard let snapshotRecorder = state.snapshotRecorders.removeValue(forKey: RemoteIdentifierKey(value: key)) else {
             return false
         }
-        _ = streamConnection().tryStopReceivingMessages(.RemoteCGRenderer, key)
+        _ = tryStopReceivingMessages(.RemoteCGRenderer, key)
         let recorder = snapshotRecorder.recorder
         let recording = RemoteSnapshotFrameRecording(recording: recorder.takeRecording(), backend: self)
         recorder.snapshot?.setFrame(frameIdentifier.toUInt64(), recording)
