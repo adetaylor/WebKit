@@ -33,6 +33,7 @@
 #include <WebCore/PixelBuffer.h>
 #include <WebCore/PixelBufferFormat.h>
 #include <WebCore/RenderingMode.h>
+#include <memory>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
@@ -53,6 +54,9 @@ class FilterImageAllocator : public RefCounted<FilterImageAllocator> {
 public:
 #if !defined(__swift__)
     static Ref<FilterImageAllocator> create(ImageBufferAllocator& allocator) { return adoptRef(*new FilterImageAllocator(allocator)); }
+    // An allocator that owns its ImageBufferAllocator, for results that Swift keeps (FilterResultsImpl), which nothing revokes.
+    WEBCORE_EXPORT static Ref<FilterImageAllocator> create(std::unique_ptr<ImageBufferAllocator>&&);
+    WEBCORE_EXPORT ~FilterImageAllocator();
 
     ImageBufferAllocator* allocator() const { return m_allocator; }
     void revoke() { m_allocator = nullptr; }
@@ -64,7 +68,10 @@ private:
     {
     }
 
+    explicit FilterImageAllocator(std::unique_ptr<ImageBufferAllocator>&&);
+
     ImageBufferAllocator* m_allocator;
+    std::unique_ptr<ImageBufferAllocator> m_ownedAllocator;
 };
 
 // What FilterImageImpl needs from C++: its allocator, and the ImageBuffer operations Swift can't call itself.

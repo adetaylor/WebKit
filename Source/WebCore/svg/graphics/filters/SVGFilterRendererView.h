@@ -51,6 +51,7 @@ public:
 
     FilterEffectView effect(unsigned index) const LIFETIME_BOUND;
 
+    unsigned effectCount() const;
     unsigned termCount() const;
     unsigned termEffectIndex(unsigned term) const;
     FilterEffectGeometryValues termGeometry(unsigned term) const;

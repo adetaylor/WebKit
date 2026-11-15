@@ -120,7 +120,7 @@ OptionSet<FilterRenderingMode> FEConvolveMatrix::supportedFilterRenderingModes(O
 {
     OptionSet<FilterRenderingMode> modes = FilterRenderingMode::Software;
 #if USE(CORE_IMAGE)
-    if (feConvolveMatrixSupportsCoreImage(FEConvolveMatrixParametersView { m_parameters }))
+    if (feConvolveMatrixSupportsCoreImage(m_parameters.edgeMode))
         modes.add(FilterRenderingMode::Accelerated);
 #endif
     return modes & preferredFilterRenderingModes;
