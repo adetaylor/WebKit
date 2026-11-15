@@ -383,6 +383,7 @@
 		6E26C8A1B6891DA43ED61C49 /* SourceGraphicCoreImageApplier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 891274330DA336C9F62B4FD9 /* SourceGraphicCoreImageApplier.swift */; };
 		051878F9FFBBDCAB67019E3B /* FilterImageCoreImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858741E091BCC484DB9EA870 /* FilterImageCoreImage.swift */; };
 		30BFCF0D446FC8041CA913A4 /* FilterApply.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039255D9989BF1E4550183E8 /* FilterApply.swift */; };
+		5BFA1DB344F12A184D12D2AB /* FilterDescriptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FEF80DBB80CED162C0DA8A3 /* FilterDescriptions.swift */; };
 		44428BC0239608D55EA7B2DD /* FilterMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A7C036C6BBBA8E0F949BE2 /* FilterMath.swift */; };
 		AA8E6DEB3ECFC1BED5278B35 /* FilterGeometryMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57101E2FF013E790B43ACD55 /* FilterGeometryMath.swift */; };
 		E4DCB2E8232B2774CE214DFE /* FilterImageImpl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */; };
@@ -19326,6 +19327,7 @@
 		891274330DA336C9F62B4FD9 /* SourceGraphicCoreImageApplier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceGraphicCoreImageApplier.swift; sourceTree = "<group>"; };
 		858741E091BCC484DB9EA870 /* FilterImageCoreImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterImageCoreImage.swift; sourceTree = "<group>"; };
 		039255D9989BF1E4550183E8 /* FilterApply.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterApply.swift; sourceTree = "<group>"; };
+		1FEF80DBB80CED162C0DA8A3 /* FilterDescriptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterDescriptions.swift; sourceTree = "<group>"; };
 		49A7C036C6BBBA8E0F949BE2 /* FilterMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterMath.swift; sourceTree = "<group>"; };
 		57101E2FF013E790B43ACD55 /* FilterGeometryMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterGeometryMath.swift; sourceTree = "<group>"; };
 		F89B5A6F6D9A2A037611404B /* FilterImageImpl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterImageImpl.swift; sourceTree = "<group>"; };
@@ -35329,6 +35331,7 @@
 				72B8B03227533F8100F752AA /* Filter.cpp */,
 				845E72F70FD261EE00A87D79 /* Filter.h */,
 				039255D9989BF1E4550183E8 /* FilterApply.swift */,
+				1FEF80DBB80CED162C0DA8A3 /* FilterDescriptions.swift */,
 				08C925170FCC7C4A00480DEC /* FilterEffect.cpp */,
 				08C925180FCC7C4A00480DEC /* FilterEffect.h */,
 				729661A2275960A500E7DF9B /* FilterEffectGeometry.h */,
@@ -51992,6 +51995,7 @@
 				C5A8869A8017446784B2C58F /* FETurbulenceCoreImageApplier.swift in Sources */,
 				7CA7E13AB4D056ECF711EB51 /* FETurbulenceSoftwareApplier.swift in Sources */,
 				30BFCF0D446FC8041CA913A4 /* FilterApply.swift in Sources */,
+				5BFA1DB344F12A184D12D2AB /* FilterDescriptions.swift in Sources */,
 				EBBE3AC62075A0224822DACB /* FilterEngine.swift in Sources */,
 				AA8E6DEB3ECFC1BED5278B35 /* FilterGeometryMath.swift in Sources */,
 				051878F9FFBBDCAB67019E3B /* FilterImageCoreImage.swift in Sources */,

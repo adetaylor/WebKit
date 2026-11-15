@@ -28,7 +28,6 @@
 
 #include "GraphicsContext.h"
 #include "NativeImage.h"
-#include "SourceImage.h"
 
 #if USE(CORE_IMAGE)
 #include "IOSurface.h"
@@ -36,55 +35,25 @@
 
 namespace WebCore {
 
-static FEImageSourceKind sourceKind(const SourceImage& sourceImage)
+void feImageDrawNativeImage(NativeImage& nativeImage, ImageBuffer& destination, const IntRect& destinationRect)
 {
-    if (sourceImage.nativeImageIfExists())
-        return FEImageSourceKind::NativeImage;
-    if (sourceImage.imageBufferIfExists())
-        return FEImageSourceKind::ImageBuffer;
-    return FEImageSourceKind::None;
-}
-
-FEImageSource::FEImageSource(const SourceImage& sourceImage)
-    : kind(sourceKind(sourceImage))
-    , m_sourceImage(sourceImage)
-{
-}
-
-void FEImageSource::drawNativeImage(ImageBuffer& destination, const IntRect& destinationRect) const
-{
-    RefPtr nativeImage = m_sourceImage.nativeImageIfExists();
-    if (!nativeImage)
-        return;
-    destination.context().drawNativeImage(*nativeImage, destinationRect, FloatRect { { }, nativeImage->size() });
-}
-
-RefPtr<ImageBuffer> FEImageSource::imageBuffer() const
-{
-    return m_sourceImage.imageBufferIfExists();
+    destination.context().drawNativeImage(nativeImage, destinationRect, FloatRect { { }, nativeImage.size() });
 }
 
 #if USE(CORE_IMAGE)
-IntSize FEImageSource::nativeImageSize() const
+IntSize feImageNativeImageSize(NativeImage& nativeImage)
 {
-    RefPtr nativeImage = m_sourceImage.nativeImageIfExists();
-    return nativeImage ? nativeImage->size() : IntSize();
+    return nativeImage.size();
 }
 
-CGImageRef FEImageSource::copyNativeImagePlatformImage() const
+CGImageRef feImageCopyNativeImagePlatformImage(NativeImage& nativeImage)
 {
-    RefPtr nativeImage = m_sourceImage.nativeImageIfExists();
-    if (!nativeImage)
-        return nullptr;
-    return nativeImage->platformImage().leakRef();
+    return nativeImage.platformImage().leakRef();
 }
 
-IOSurfaceRef FEImageSource::imageBufferSurface() const
+IOSurfaceRef feImageImageBufferSurface(ImageBuffer& imageBuffer)
 {
-    RefPtr imageBuffer = m_sourceImage.imageBufferIfExists();
-    if (!imageBuffer)
-        return nullptr;
-    auto* surface = imageBuffer->surface();
+    auto* surface = imageBuffer.surface();
     return surface ? surface->surface() : nullptr;
 }
 #endif
