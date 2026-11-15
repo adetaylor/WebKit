@@ -391,8 +391,8 @@ extension IPCTypes.PlatformVideoColorSpace {
 }
 
 private func pixelBufferAttributes(_ format: CMFormatDescription) -> CFDictionary {
-    let isFullRange = (CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_FullRangeVideo) as? Bool) ?? false
-    let bitDepth = (CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent) as? Int32) ?? 8
+    let isFullRange = CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_FullRangeVideo) === kCFBooleanTrue
+    let bitDepth = (CMFormatDescriptionGetExtension(format, extensionKey: kCMFormatDescriptionExtension_BitsPerComponent) as? NSNumber)?.int32Value ?? 8
     assert(bitDepth == 8 || bitDepth == 10)
 
     let pixelFormat: OSType =
