@@ -94,6 +94,7 @@ RemoteGraphicsContextGLResources::RemoteGraphicsContextGLResources(GPUConnection
 #endif
     , m_renderingResourcesRequest(ScopedWebGLRenderingResourcesRequest::acquire())
     , m_sharedPreferencesForWebProcess(gpuConnectionToWebProcess.sharedPreferencesForWebProcessValue())
+    , m_webProcessIdentity(gpuConnectionToWebProcess.webProcessIdentity())
 {
     assertIsMainRunLoop();
 }
@@ -286,7 +287,7 @@ bool RemoteGraphicsContextGLResources::webXRPromptAccepted() const
 {
 #if ENABLE(WEBXR) && PLATFORM(COCOA) && !PLATFORM(IOS_FAMILY_SIMULATOR)
     auto currentAcceptedValue = protect(GPUProcess::singleton())->immersiveModeProcessIdentity();
-    return currentAcceptedValue && m_sharedResourceCache->resourceOwner() == *currentAcceptedValue;
+    return currentAcceptedValue && m_webProcessIdentity == *currentAcceptedValue;
 #else
     return webXREnabled();
 #endif
@@ -344,7 +345,7 @@ void RemoteGraphicsContextGLResources::getBufferSubDataSharedMemory(uint32_t tar
 
     RefPtr context = m_context;
 
-    handle.setOwnershipOfMemory(m_sharedResourceCache->resourceOwner(), WebKit::MemoryLedger::Default);
+    handle.setOwnershipOfMemory(m_webProcessIdentity, WebKit::MemoryLedger::Default);
     auto buffer = SharedMemory::map(WTF::move(handle), SharedMemory::Protection::ReadWrite);
     if (buffer && dataSize <= buffer->size())
         validBufferData = context->getBufferSubDataWithStatus(target, offset, buffer->mutableSpan().subspan(0, dataSize));
@@ -386,7 +387,7 @@ void RemoteGraphicsContextGLResources::readPixelsSharedMemory(WebCore::IntRect r
     std::optional<WebCore::IntSize> readArea;
 
     RefPtr context = m_context;
-    handle.setOwnershipOfMemory(m_sharedResourceCache->resourceOwner(), WebKit::MemoryLedger::Default);
+    handle.setOwnershipOfMemory(m_webProcessIdentity, WebKit::MemoryLedger::Default);
     if (auto buffer = SharedMemory::map(WTF::move(handle), SharedMemory::Protection::ReadWrite))
         readArea = context->readPixelsWithStatus(rect, format, type, packReverseRowOrder, buffer->mutableSpan());
     else

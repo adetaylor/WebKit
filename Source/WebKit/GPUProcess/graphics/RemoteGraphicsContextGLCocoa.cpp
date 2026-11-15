@@ -30,7 +30,6 @@
 
 #include "GPUConnectionToWebProcess.h"
 #include "IPCUtilities.h"
-#include "RemoteSharedResourceCache.h"
 #include "StreamConnectionWorkQueue.h"
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
@@ -120,7 +119,7 @@ RemoteGraphicsContextGLCocoa::RemoteGraphicsContextGLCocoa(GPUConnectionToWebPro
 void RemoteGraphicsContextGLCocoa::platformWorkQueueInitialize(WebCore::GraphicsContextGLAttributes&& attributes)
 {
     assertIsCurrent(workQueue());
-    m_context = WebCore::GraphicsContextGLCocoa::create(WTF::move(attributes), WebCore::ProcessIdentity { m_sharedResourceCache->resourceOwner() });
+    m_context = WebCore::GraphicsContextGLCocoa::create(WTF::move(attributes), WebCore::ProcessIdentity { m_webProcessIdentity });
 }
 
 void RemoteGraphicsContextGLCocoa::prepareForDisplay(IPC::Semaphore&& finishedSemaphore, CompletionHandler<void(WTF::MachSendRight&&)>&& completionHandler)
