@@ -191,7 +191,6 @@ using namespace WebCore;
 
 enum MediaPlayerAVFoundationObservationContext {
     MediaPlayerAVFoundationObservationContextPlayerItem,
-    MediaPlayerAVFoundationObservationContextPlayerItemTrack,
     MediaPlayerAVFoundationObservationContextPlayer,
     MediaPlayerAVFoundationObservationContextAVPlayerLayer,
 };
@@ -501,10 +500,6 @@ void MediaPlayerPrivateAVFoundationObjC::cancelLoad()
             [m_avPlayer removeObserver:m_objcObserver.get() forKeyPath:keyName];
     }
     m_core->swift.detach();
-
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *track in m_cachedTracks.get())
-        [track removeObserver:m_objcObserver.get() forKeyPath:@"enabled"];
 
     [m_objcObserver disconnect];
 
@@ -3512,46 +3507,6 @@ void MediaPlayerPrivateAVFoundationObjC::metadataDidArrive(const RetainPtr<NSArr
 #endif
 }
 
-void MediaPlayerPrivateAVFoundationObjC::tracksDidChange(const RetainPtr<NSArray>& tracks)
-{
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *track in m_cachedTracks.get())
-        [track removeObserver:m_objcObserver.get() forKeyPath:@"enabled"];
-
-    NSArray *assetTracks = [m_avAsset tracks];
-
-    m_cachedTracks = [tracks objectsAtIndexes:[tracks indexesOfObjectsPassingTest:^(id obj, NSUInteger, BOOL*) {
-        AVAssetTrack* assetTrack = [obj assetTrack];
-
-        if ([assetTracks containsObject:assetTrack])
-            return YES;
-
-        // Track is a streaming track. Omit if it belongs to a valid AVMediaSelectionGroup.
-        if (!hasLoadedMediaSelectionGroups())
-            return NO;
-
-        if ([assetTrack hasMediaCharacteristic:AVMediaCharacteristicAudible] && safeMediaSelectionGroupForAudibleMedia())
-            return NO;
-
-        if ([assetTrack hasMediaCharacteristic:AVMediaCharacteristicVisual] && safeMediaSelectionGroupForVisualMedia())
-            return NO;
-
-        if ([assetTrack hasMediaCharacteristic:AVMediaCharacteristicLegible] && safeMediaSelectionGroupForLegibleMedia())
-            return NO;
-
-        return YES;
-    }]];
-
-    // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-    for (SUPPRESS_UNRETAINED_LOCAL AVPlayerItemTrack *track in m_cachedTracks.get())
-        [track addObserver:m_objcObserver.get() forKeyPath:@"enabled" options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextPlayerItemTrack];
-
-    m_cachedTotalBytes = 0;
-
-    tracksChanged();
-    updateStates();
-}
-
 void MediaPlayerPrivateAVFoundationObjC::durationDidChange(const MediaTime& duration)
 {
     if (m_cachedDuration == duration)
@@ -3983,6 +3938,18 @@ void MediaPlayerAVFoundationHost::metadataLoadingCompleted() const
     }
 }
 
+void MediaPlayerAVFoundationHost::tracksDidChange() const
+{
+    if (RefPtr player = m_player.get())
+        player->tracksDidChange();
+}
+
+void MediaPlayerAVFoundationHost::trackEnabledDidChange(bool enabled) const
+{
+    if (RefPtr player = m_player.get())
+        player->trackEnabledDidChange(enabled);
+}
+
 void MediaPlayerAVFoundationHost::updateStates() const
 {
     if (RefPtr player = m_player.get())
@@ -4083,7 +4050,6 @@ NSArray* itemKVOPropertiesSingleton()
     // MediaPlayerAVFoundationCore.swift observes the item's other keys.
     static NeverDestroyed<RetainPtr<NSArray>> keys = adoptNS([[NSArray alloc] initWithObjects:
         @"asset",
-        @"tracks",
     nil]);
     return keys.get();
 }
@@ -4155,18 +4121,10 @@ NSArray* playerKVOPropertiesSingleton()
                 player.firstFrameAvailableDidChange([newValue boolValue]);
         }
 
-        if (context == MediaPlayerAVFoundationObservationContextPlayerItemTrack) {
-            if ([keyPath isEqualToString:@"enabled"])
-                player.trackEnabledDidChange([newValue boolValue]);
-        }
-
         if (context == MediaPlayerAVFoundationObservationContextPlayerItem && !willChange) {
             // A value changed for an AVPlayerItem
             if ([keyPath isEqualToString:@"asset"]) {
                 player.setAsset(RetainPtr<id>(newValue));
-                shouldLogValue = false;
-            } else if ([keyPath isEqualToString:@"tracks"]) {
-                player.tracksDidChange(dynamic_objc_cast<NSArray>(newValue));
                 shouldLogValue = false;
             }
         }

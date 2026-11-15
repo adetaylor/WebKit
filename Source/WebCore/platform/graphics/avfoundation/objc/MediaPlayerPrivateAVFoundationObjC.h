@@ -104,7 +104,6 @@ public:
     void setShouldContinueAfterKeyNeeded(bool) final;
 #endif
 
-    void tracksDidChange(const RetainPtr<NSArray>&);
     void metadataGroupDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void metadataDidArrive(const RetainPtr<NSArray>&, const MediaTime&);
     void firstFrameAvailableDidChange(bool);
@@ -370,6 +369,8 @@ private:
     MediaPlayerPrivateAVFoundation::AssetStatus assetKeysStatus() const;
     // Implemented in Swift: hands the asset, AVPlayer and AVPlayerItem to the Swift core once made.
     void attachAVObjectsToCore();
+    // Implemented in Swift.
+    void tracksDidChange();
     // Implemented in Swift: assetStatus() until the asset's caches below are all known, filling them; Loaded once they are.
     MediaPlayerPrivateAVFoundation::AssetStatus fillAssetStatusCaches() const;
 

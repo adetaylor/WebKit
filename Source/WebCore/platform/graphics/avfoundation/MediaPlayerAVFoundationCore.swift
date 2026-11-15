@@ -92,6 +92,8 @@ private enum PlayerChange: Sendable {
     case rate(Double)
     case timeControlStatus(Int)
     case didEnd(Double)
+    case tracks(ObjectBox?)
+    case trackEnabled(Bool)
     // A change that only logs, as the C++ observer's task did, or does nothing.
     case logOnly(Swift.String)
     case none
@@ -110,6 +112,11 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
     private var player: AVPlayer?
     private var item: AVPlayerItem?
     private var periodicTimeObserver: AnyObject?
+    @_expose(!Cxx)
+    private(set) var reportedTracks: NSArray?
+    // Held strongly, so that the observers are removed from the tracks they were added to.
+    private var enabledObservedTracks: NSArray?
+    private var isDetached = false
 
     private var changes: [UInt64: PlayerChange] = [:]
     private var lastChangeIdentifier: UInt64 = 0
@@ -171,6 +178,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     @_expose(!Cxx)
     func attachPlayer(_ newPlayer: AVPlayer) {
+        isDetached = false
         if let _ = player {
             return
         }
@@ -203,6 +211,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     @_expose(!Cxx)
     func attachItem(_ newItem: AVPlayerItem) {
+        isDetached = false
         if let _ = item {
             return
         }
@@ -227,6 +236,9 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         item = nil
         player = nil
         asset = nil
+        observeEnabled(of: nil)
+        reportedTracks = nil
+        isDetached = true
 
         pendingStatusChanges = 0
         cachedItemStatus = Int(ItemStatus.doesNotExist.rawValue)
@@ -235,6 +247,23 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         cachedHasEnabledVideo = false
         cachedPresentationSize = (0, 0)
         loadedRanges = []
+    }
+
+    // MARK: Tracks
+
+    @_expose(!Cxx)
+    func observeEnabled(of tracks: NSArray?) {
+        if let observed = enabledObservedTracks {
+            for case let track as NSObject in observed {
+                listener.stopObservingEnabled(track)
+            }
+        }
+        enabledObservedTracks = tracks
+        if let tracks {
+            for case let track as NSObject in tracks {
+                listener.observeEnabled(track)
+            }
+        }
     }
 
     // MARK: Loading the asset
@@ -287,6 +316,10 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
     // MARK: Changes, in the order key-value observing reported them
 
     fileprivate func enqueue(_ change: PlayerChange) {
+        // As the C++ observer's disconnect did: what reaches the main thread after the load was cancelled is dropped.
+        if isDetached {
+            return
+        }
         lastChangeIdentifier += 1
         changes[lastChangeIdentifier] = change
         host.queueChange(lastChangeIdentifier)
@@ -360,6 +393,13 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .timeControlStatus(let status):
             timeControlStatusDidChange(status)
             logChange(change)
+        case .tracks(let tracks):
+            reportedTracks = tracks?.object as? NSArray
+            host.tracksDidChange()
+            logChange(change)
+        case .trackEnabled(let enabled):
+            host.trackEnabledDidChange(enabled)
+            logChange(change)
         case .didEnd(let currentTime):
             requestedPlaying = false
             timeControlStatusAtCachedCurrentTime = timeControlStatusPaused
@@ -394,6 +434,8 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .rate(let value): description = "did change 'rate' to \(value)"
         case .timeControlStatus(let value): description = "did change 'timeControlStatus' to \(value)"
         case .logOnly(let keyPath): description = "will change '\(keyPath)'"
+        case .tracks: description = "did change 'tracks'"
+        case .trackEnabled(let value): description = "did change 'enabled' to \(value ? 1 : 0)"
         case .loadedTimeRanges, .seekableTimeRanges, .didEnd, .none:
             return
         }
@@ -780,8 +822,11 @@ private let itemKeyPaths = [
     "hasEnabledVideo",
     "canPlayFastForward",
     "canPlayFastReverse",
+    "tracks",
 ]
 private let rateKeyPath = "rate"
+private let tracksKeyPath = "tracks"
+private let enabledKeyPath = "enabled"
 private let timeControlStatusKeyPath = "timeControlStatus"
 
 // Observes the AVPlayerItem's and AVPlayer's keys that the core caches, and the item's end of playback, and hands what
@@ -806,6 +851,14 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
         for keyPath in itemKeyPaths {
             item.removeObserver(self, forKeyPath: keyPath)
         }
+    }
+
+    func observeEnabled(_ track: NSObject) {
+        unsafe track.addObserver(self, forKeyPath: enabledKeyPath, options: [.new], context: nil)
+    }
+
+    func stopObservingEnabled(_ track: NSObject) {
+        track.removeObserver(self, forKeyPath: enabledKeyPath)
     }
 
     func observePlayer(_ player: NSObject) {
@@ -851,6 +904,10 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
         }
         if keyPath == timeControlStatusKeyPath {
             enqueue(.timeControlStatus(intValue(newValue)))
+            return
+        }
+        if keyPath == enabledKeyPath {
+            enqueue(.trackEnabled(boolValue(newValue)))
             return
         }
 
@@ -912,6 +969,8 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
             enqueue(.canPlayFastForward(boolValue(newValue)))
         case "seekableTimeRanges":
             enqueue(.none)
+        case tracksKeyPath:
+            enqueue(.tracks((newValue as? NSArray).map { ObjectBox(object: $0) }))
         default:
             break
         }

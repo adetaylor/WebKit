@@ -73,6 +73,8 @@ public:
     void metadataLoadingCompleted() const;
     void updateStates() const;
     void tracksChanged() const;
+    void tracksDidChange() const;
+    void trackEnabledDidChange(bool) const;
     void sizeChanged() const;
     void rateChanged() const;
     void durationDidChange(CMTime) const;

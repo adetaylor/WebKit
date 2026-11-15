@@ -190,6 +190,7 @@ public:
 
     bool metaDataAvailable() const { return m_readyState >= MediaPlayer::ReadyState::HaveMetadata; }
     bool loadingMetadata() const { return m_loadingMetadata; }
+    void updateStates();
 
     // For the Swift parts of the player, which log through the player's logger.
     bool willLogFromSwift(MediaPlayerAVFoundationLogLevel) const;
@@ -299,8 +300,6 @@ protected:
     void tracksChanged() override = 0;
 
     virtual bool isHLS() const { return false; }
-
-    void updateStates();
 
     void setHasVideo(bool);
     void setHasAudio(bool);
