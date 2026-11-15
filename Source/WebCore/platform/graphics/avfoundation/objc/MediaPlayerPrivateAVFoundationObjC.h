@@ -366,8 +366,10 @@ private:
     void setShouldDisableHDR(bool) final;
 
     bool trackIsPlayable(AVAssetTrack*) const;
-    // The status of the asset's metadata keys, or Loaded once they have all loaded.
+    // Implemented in Swift: the status of the asset's metadata keys, or Loaded once they have all loaded.
     MediaPlayerPrivateAVFoundation::AssetStatus assetKeysStatus() const;
+    // Implemented in Swift: hands the asset, AVPlayer and AVPlayerItem to the Swift core once made.
+    void attachAVObjectsToCore();
     // Implemented in Swift: assetStatus() until the asset's caches below are all known, filling them; Loaded once they are.
     MediaPlayerPrivateAVFoundation::AssetStatus fillAssetStatusCaches() const;
 
@@ -413,6 +415,8 @@ private:
     const RetainPtr<WebCoreAVFMovieObserver> m_objcObserver;
     struct Core;
     std::unique_ptr<Core> m_core;
+    // m_core's Swift object, unretained, for MediaPlayerPrivateAVFoundation.swift.
+    uintptr_t m_swiftCore { 0 };
     RetainPtr<id> m_timeObserver;
     mutable String m_languageOfPrimaryAudioTrack;
     bool m_videoFrameHasDrawn { false };

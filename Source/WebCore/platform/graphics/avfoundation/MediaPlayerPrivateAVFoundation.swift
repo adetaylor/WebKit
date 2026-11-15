@@ -45,6 +45,7 @@ import WebCore_Private.Core.MediaPlayerPrivateAVFoundationObjC
 private let assetStatusDoesNotExist: UInt8 = 0
 private let assetStatusLoading: UInt8 = 2
 private let assetStatusFailed: UInt8 = 3
+private let assetStatusCancelled: UInt8 = 4
 private let assetStatusNetworkError: UInt8 = 5
 private let assetStatusLoaded: UInt8 = 6
 private let assetStatusPlayable: UInt8 = 7
@@ -113,7 +114,7 @@ private func number<Value: BinaryFloatingPoint>(_ value: Value) -> Swift.String 
 }
 
 extension WebCore.MediaPlayerPrivateAVFoundation {
-    private func logMessage(_ level: WebCore.MediaPlayerAVFoundationLogLevel, _ message: @autoclosure () -> Swift.String) {
+    fileprivate func logMessage(_ level: WebCore.MediaPlayerAVFoundationLogLevel, _ message: @autoclosure () -> Swift.String) {
         guard willLogFromSwift(level) else {
             return
         }
@@ -487,12 +488,36 @@ extension WebCore.MediaPlayerPrivateAVFoundation {
     }
 }
 
+// AVErrorServerIncorrectlyConfigured (static_assert in objc/MediaPlayerPrivateAVFoundationObjC.mm).
+private let avErrorServerIncorrectlyConfigured = -11850
+
 // The asset's and its tracks' synchronous accessors, which AVFoundation deprecates in favour of asynchronous loading.
 // They don't block: the C++ player loads these keys first (beginLoadingMetadata()), and asks only once they have loaded.
 #if hasAttribute(diagnose)
 @diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine asks once the asset's keys have loaded")
 #endif
-private func hasLoaded(_ asset: AVAsset, _ key: Swift.String) -> Bool {
+private func keyStatus(of asset: AVAsset, _ key: Swift.String, _ error: inout NSError?) -> KeyStatus {
+    // AVFoundation writes the error, if any, through the autoreleasing pointer to the local it is given.
+    switch unsafe asset.statusOfValue(forKey: key, error: &error) {
+    case .loaded: .loaded
+    case .failed: .failed
+    case .cancelled: .cancelled
+    default: .notLoaded
+    }
+}
+
+// AVKeyValueStatus, as the asset status reads it.
+private enum KeyStatus {
+    case notLoaded
+    case loaded
+    case failed
+    case cancelled
+}
+
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine asks once the asset's keys have loaded")
+#endif
+func hasLoaded(_ asset: AVAsset, _ key: Swift.String) -> Bool {
     // A null error pointer: AVFoundation writes no error.
     unsafe asset.statusOfValue(forKey: key, error: nil) == .loaded
 }
@@ -524,6 +549,81 @@ private func assetTrack(of playerItemTrack: AVPlayerItemTrack) -> AVAssetTrack? 
 }
 
 extension WebCore.MediaPlayerPrivateAVFoundationObjC {
+    // m_core keeps the core alive for the player's whole life; m_swiftCore is its pointer, unretained.
+    private var core: MediaPlayerAVFoundationCore {
+        unsafe Unmanaged<MediaPlayerAVFoundationCore>.fromOpaque(UnsafeRawPointer(bitPattern: m_swiftCore)!).takeUnretainedValue()
+    }
+
+    @cxx
+    @implementation
+    func attachAVObjectsToCore() {
+        let core = core
+        core.attachAsset(m_avAsset.get())
+        if let player = m_avPlayer.get() {
+            core.attachPlayer(player)
+        }
+        if let item = m_avPlayerItem.get() {
+            core.attachItem(item)
+        }
+    }
+
+    @cxx
+    @implementation
+    func checkPlayability() {
+        if m_haveCheckedPlayability {
+            return
+        }
+        m_haveCheckedPlayability = true
+
+        logMessage(.Info, "MediaPlayerPrivateAVFoundationObjC::checkPlayability")
+        if let asset = m_avAsset.get() {
+            core.loadPlayability(asset)
+        }
+    }
+
+    @cxx
+    @implementation
+    override func beginLoadingMetadata() {
+        logMessage(.Info, "MediaPlayerPrivateAVFoundationObjC::beginLoadingMetadata")
+        core.loadMetadata()
+    }
+
+    @cxx
+    @implementation
+    func assetKeysStatus() -> WebCore.MediaPlayerPrivateAVFoundation.AssetStatus {
+        guard let asset = m_avAsset.get() else {
+            return .init(rawValue: assetStatusLoading)
+        }
+        var lastError: NSError?
+        var status = assetStatusLoaded
+        for key in assetMetadataKeys {
+            var error: NSError?
+            let keyStatus = keyStatus(of: asset, key, &error)
+            if let error {
+                logMessage(.Error, "MediaPlayerPrivateAVFoundationObjC::assetStatus failed for \(key), error = \(error)")
+                lastError = error
+            }
+            if keyStatus == .notLoaded {
+                // At least one key is not loaded yet.
+                return .init(rawValue: assetStatusLoading)
+            }
+            if keyStatus == .failed {
+                // At least one key could not be loaded.
+                status = assetStatusFailed
+                break
+            }
+            if keyStatus == .cancelled {
+                // Loading of at least one key was cancelled.
+                return .init(rawValue: assetStatusCancelled)
+            }
+        }
+        if status == assetStatusFailed, let error = lastError,
+            (error.domain == "AVFoundationErrorDomain" && error.code == avErrorServerIncorrectlyConfigured) || error.domain == "NSURLErrorDomain" {
+            return .init(rawValue: assetStatusNetworkError)
+        }
+        return .init(rawValue: status)
+    }
+
     // Answers assetStatus() until the asset's caches are all known, and fills them; Loaded once they are.
     @cxx
     @implementation
