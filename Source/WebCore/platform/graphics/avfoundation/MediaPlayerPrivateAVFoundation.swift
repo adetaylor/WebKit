@@ -38,6 +38,7 @@
 
 internal import AVFoundation
 internal import CoreMedia
+internal import QuartzCore
 import WebCore_Private.Core.MediaPlayerPrivateAVFoundation
 import WebCore_Private.Core.MediaPlayerPrivateAVFoundationObjC
 
@@ -578,6 +579,50 @@ extension WebCore.MediaPlayerPrivateAVFoundationObjC {
         if let item = m_avPlayerItem.get() {
             core.attachItem(item)
         }
+        core.attachVideoLayer(m_videoLayer.get())
+    }
+
+    @cxx
+    @implementation
+    func updateVideoLayerGravity(_ animated: Bool) {
+        assert(WTF.isMainThread())
+        guard let layer = m_videoLayer.get() else {
+            return
+        }
+
+        var gravity = shouldMaintainAspectRatio() ? AVFoundationSoftLink.AVLayerVideoGravityResizeAspect : AVFoundationSoftLink.AVLayerVideoGravityResize
+        if hasVideoFullscreenLayer() {
+            // MediaPlayer::VideoGravity: Resize, ResizeAspect, ResizeAspectFill.
+            switch m_videoFullscreenGravity.rawValue {
+            case 0: gravity = AVFoundationSoftLink.AVLayerVideoGravityResize
+            case 1: gravity = AVFoundationSoftLink.AVLayerVideoGravityResizeAspect
+            default: gravity = AVFoundationSoftLink.AVLayerVideoGravityResizeAspectFill
+            }
+        }
+
+        if layer.videoGravity == gravity {
+            return
+        }
+
+        let disableActions = !animated
+        logMessage(.Always, "MediaPlayerPrivateAVFoundationObjC::updateVideoLayerGravity Setting gravity to \"\(gravity.rawValue)\", animated: \(!disableActions)")
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(disableActions)
+        layer.videoGravity = gravity
+        CATransaction.commit()
+
+        syncTextTrackBounds()
+    }
+
+    @cxx
+    @implementation
+    func updateLayerAttachment() {
+        assert(WTF.isMainThread())
+        guard let layer = m_videoLayer.get(), let player = m_avPlayer.get() else {
+            return
+        }
+        layer.player = shouldAttachLayerToPlayer() ? player : nil
     }
 
     @cxx

@@ -191,6 +191,7 @@ public:
     bool metaDataAvailable() const { return m_readyState >= MediaPlayer::ReadyState::HaveMetadata; }
     bool loadingMetadata() const { return m_loadingMetadata; }
     void updateStates();
+    bool shouldMaintainAspectRatio() const { return m_shouldMaintainAspectRatio; }
 
     // For the Swift parts of the player, which log through the player's logger.
     bool willLogFromSwift(MediaPlayerAVFoundationLogLevel) const;
@@ -242,7 +243,6 @@ protected:
     PlatformLayer* platformLayer() override { return 0; }
     bool supportsAcceleratedRendering() const override = 0;
     void acceleratedRenderingStateChanged() override;
-    bool shouldMaintainAspectRatio() const { return m_shouldMaintainAspectRatio; }
     void setShouldMaintainAspectRatio(bool) override;
     bool canSaveMediaData() const override;
 
@@ -298,6 +298,7 @@ protected:
 
     virtual void updateIsAudible() = 0;
     void tracksChanged() override = 0;
+    void syncTextTrackBounds() override = 0;
 
     virtual bool isHLS() const { return false; }
 

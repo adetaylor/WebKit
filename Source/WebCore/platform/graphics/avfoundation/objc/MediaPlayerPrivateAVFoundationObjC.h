@@ -237,7 +237,9 @@ private:
 
     enum class ShouldAnimate : bool { No, Yes };
     void updateVideoLayerGravity() final { updateVideoLayerGravity(ShouldAnimate::No); }
-    void updateVideoLayerGravity(ShouldAnimate);
+    void updateVideoLayerGravity(ShouldAnimate shouldAnimate) { updateVideoLayerGravity(shouldAnimate == ShouldAnimate::Yes); }
+    // Implemented in Swift.
+    void updateVideoLayerGravity(bool animated);
 
     void updateIsAudible() final;
 
@@ -367,7 +369,7 @@ private:
     bool trackIsPlayable(AVAssetTrack*) const;
     // Implemented in Swift: the status of the asset's metadata keys, or Loaded once they have all loaded.
     MediaPlayerPrivateAVFoundation::AssetStatus assetKeysStatus() const;
-    // Implemented in Swift: hands the asset, AVPlayer and AVPlayerItem to the Swift core once made.
+    // Implemented in Swift: hands the asset, AVPlayer, AVPlayerItem and video layer to the Swift core once made.
     void attachAVObjectsToCore();
     // Implemented in Swift.
     void tracksDidChange();
@@ -402,6 +404,7 @@ private:
 
     void updateLayerAttachment();
     NODELETE bool shouldAttachLayerToPlayer();
+    bool hasVideoFullscreenLayer() const;
 
 #if PLATFORM(MAC)
     void screenReservedChanged(bool) final;
