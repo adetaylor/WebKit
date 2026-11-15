@@ -103,22 +103,26 @@ func crossOriginAccessControlHeadersToKeep(_ headers: borrowing WebCore.HTTPHead
 /// `headers` is the header map of the request the preflight is made for, which the caller passes by reference and does
 /// not change during the call. This function reads it through its header spans and holds nothing of it past the call.
 /// The C++ functions it calls are `HTTPHeaderMap::commonHeadersSpan()` and `uncommonHeadersSpan()`,
-/// `securityPoliciesHTTPHeaderNameString()`, `securityPoliciesSpan8()`, `String`'s `checkedSpan16()`, `is8Bit()` and
+/// `lowercaseHTTPHeaderNameString()`, `securityPoliciesSpan8()`, `String`'s `checkedSpan16()`, `is8Bit()` and
 /// `length()`, `makeStringFromLatin1Characters()` and `makeStringFromUTF16Characters()`, and none reaches the request.
 @_expose(Cxx)
 func crossOriginAccessControlRequestHeadersValue(_ headers: borrowing WebCore.HTTPHeaderMap) -> WTF.String {
     let commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader> = headers.commonHeadersSpan()
     let uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader> = headers.uncommonHeadersSpan()
-    // Two Vector sizes, each below 2^32: far from overflowing.
-    let maximumCount = commonHeaders.count &+ uncommonHeaders.count
-    if maximumCount <= crossOriginAccessControlInlineNameCount {
-        var names = InlineArray<16, CrossOriginAccessControlName>(repeating: CrossOriginAccessControlName())
-        var namesSpan = names.mutableSpan
-        return crossOriginAccessControlJoinedNames(commonHeaders, uncommonHeaders, &namesSpan)
+    var codeUnitCount = 0
+    for index in commonHeaders.indices {
+        // The lengths of the names of one map: far from overflowing.
+        codeUnitCount &+= Int(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key).length())
     }
-    var names = UniqueArray<CrossOriginAccessControlName>(repeating: CrossOriginAccessControlName(), count: maximumCount)
-    var namesSpan = names.mutableSpan
-    return crossOriginAccessControlJoinedNames(commonHeaders, uncommonHeaders, &namesSpan)
+    for index in uncommonHeaders.indices {
+        // Likewise.
+        codeUnitCount &+= Int(uncommonHeaders[index].key.length())
+    }
+    // Two Vector sizes, each below 2^32: far from overflowing.
+    let count = commonHeaders.count &+ uncommonHeaders.count
+    return crossOriginAccessControlWithNames(CrossOriginAccessControlName(), count, codeUnitCount) { names, codeUnits in
+        crossOriginAccessControlJoinedNames(commonHeaders, uncommonHeaders, &names, &codeUnits)
+    }
 }
 
 /// `passesAccessControlCheck()`: the null string when the response's `Access-Control-Allow-Origin` value `allowOrigin`
@@ -230,7 +234,7 @@ private func crossOriginAccessControlCheckFailureForOrigins<
         }
         return crossOriginAccessControlMessage(
             crossOriginAccessControlOriginPrefix.span,
-            originCharacters.bytes,
+            originCharacters,
             is8Bit: originIs8Bit,
             crossOriginAccessControlOriginSuffix.span,
             statusCode: statusCode
@@ -436,19 +440,18 @@ func crossOriginAccessControlEquals<CodeUnit: FixedWidthInteger & UnsignedIntege
 func crossOriginAccessControlMessage(_ prefix: Span<UInt8>, _ string: borrowing WTF.String, _ suffix: Span<UInt8>) -> WTF.String {
     let bytes: Span<UInt8> = WebCore.securityPoliciesSpan8(string)
     if !bytes.isEmpty {
-        return crossOriginAccessControlMessage(prefix, bytes.bytes, is8Bit: true, suffix)
+        return crossOriginAccessControlMessage(prefix, bytes, is8Bit: true, suffix)
     }
     let units: Span<UInt16> = string.checkedSpan16()
-    return crossOriginAccessControlMessage(prefix, units.bytes, is8Bit: string.is8Bit(), suffix)
+    return crossOriginAccessControlMessage(prefix, units, is8Bit: string.is8Bit(), suffix)
 }
 
-/// `makeString()` of the ASCII `prefix`, a String's code units, whose bytes are `characters`, the ASCII `suffix` and,
-/// when there is one, `statusCode`. `is8Bit` is whether that String, and so the message, is 8-bit; its code units have
-/// the message's width when there are any.
+/// `makeString()` of the ASCII `prefix`, a String's `characters`, the ASCII `suffix` and, when there is one,
+/// `statusCode`. `is8Bit` is whether that String, and so the message, is 8-bit.
 @inline(never)
-func crossOriginAccessControlMessage(
+func crossOriginAccessControlMessage<CodeUnit: HTTPHeaderStringCodeUnit>(
     _ prefix: Span<UInt8>,
-    _ characters: RawSpan,
+    _ characters: Span<CodeUnit>,
     is8Bit: Bool,
     _ suffix: Span<UInt8>,
     statusCode: Int32? = nil
@@ -457,38 +460,15 @@ func crossOriginAccessControlMessage(
     if let statusCode {
         decimalLength = crossOriginAccessControlDecimalLength(statusCode)
     }
+    // Two literals, a String's characters and eleven code units at most: far from overflowing.
+    let length = prefix.count &+ characters.count &+ suffix.count &+ decimalLength
     if is8Bit {
-        // Two literals, a String's characters and eleven code units at most: far from overflowing.
-        let length = prefix.count &+ characters.byteCount &+ suffix.count &+ decimalLength
         return crossOriginAccessControlMakeString(UInt8.self, length) { text in
-            do {
-                var bytes = text.mutableBytes
-                crossOriginAccessControlCopyBytes(prefix.bytes, to: &bytes, at: 0)
-                crossOriginAccessControlCopyBytes(characters, to: &bytes, at: prefix.count)
-                // The end of the characters, within the text.
-                crossOriginAccessControlCopyBytes(suffix.bytes, to: &bytes, at: prefix.count &+ characters.byteCount)
-            }
-            if let statusCode {
-                crossOriginAccessControlWriteDecimal(statusCode, to: &text, endingAt: length)
-            }
+            crossOriginAccessControlWriteMessage(prefix, characters, suffix, statusCode, length, &text)
         }
     }
-    // Two bytes per code unit.
-    let characterCount = characters.byteCount / 2
-    // Two literals, a String's characters and eleven code units at most: far from overflowing.
-    let length = prefix.count &+ characterCount &+ suffix.count &+ decimalLength
     return crossOriginAccessControlMakeString(UInt16.self, length) { text in
-        crossOriginAccessControlWiden(prefix, to: &text, at: 0)
-        do {
-            var bytes = text.mutableBytes
-            // The prefix's end within the text, in bytes.
-            crossOriginAccessControlCopyBytes(characters, to: &bytes, at: prefix.count &* 2)
-        }
-        // The end of the characters, within the text.
-        crossOriginAccessControlWiden(suffix, to: &text, at: prefix.count &+ characterCount)
-        if let statusCode {
-            crossOriginAccessControlWriteDecimal(statusCode, to: &text, endingAt: length)
-        }
+        crossOriginAccessControlWriteMessage(prefix, characters, suffix, statusCode, length, &text)
     }
 }
 
@@ -566,7 +546,10 @@ func crossOriginAccessControlCopy<Input: HTTPHeaderStringCodeUnit, Output: HTTPH
         // A position within the text, in bytes.
         crossOriginAccessControlCopyBytes(characters.bytes, to: &destination, at: position &* MemoryLayout<Output>.stride)
     } else {
-        crossOriginAccessControlWiden(characters, to: &text, at: position)
+        for index in characters.indices {
+            // A position within the text, which has room for the characters.
+            text[position &+ index] = Output(truncatingIfNeeded: characters[index])
+        }
     }
     // A position within the text, which has room for the characters.
     return position &+ characters.count
@@ -588,17 +571,89 @@ func crossOriginAccessControlCodePointLessThan<First: FixedWidthInteger & Unsign
     return first.count < second.count
 }
 
+/// Calls `body` with room for `count` names and `codeUnitCount` code units: on the stack for up to 16 names of 256 code
+/// units in all, else on the heap.
+@inline(always)
+func crossOriginAccessControlWithNames<Name, Result>(
+    _ name: Name,
+    _ count: Int,
+    _ codeUnitCount: Int,
+    _ body: (inout MutableSpan<Name>, inout MutableSpan<UInt16>) -> Result
+) -> Result {
+    if count <= 16, codeUnitCount <= 256 {
+        var names = InlineArray<16, Name>(repeating: name)
+        var codeUnits = InlineArray<256, UInt16>(repeating: 0)
+        var namesSpan = names.mutableSpan
+        var codeUnitsSpan = codeUnits.mutableSpan
+        return body(&namesSpan, &codeUnitsSpan)
+    }
+    var names = UniqueArray(repeating: name, count: count)
+    var codeUnits = UniqueArray<UInt16>(repeating: 0, count: codeUnitCount)
+    var namesSpan = names.mutableSpan
+    var codeUnitsSpan = codeUnits.mutableSpan
+    return body(&namesSpan, &codeUnitsSpan)
+}
+
+/// Writes the code units of `name`, lowercased with ASCII rules, to `codeUnits` from `start` on, which has room for
+/// them, and returns the end of them.
+func crossOriginAccessControlWriteLowercased(_ name: borrowing WTF.String, _ codeUnits: inout MutableSpan<UInt16>, _ start: Int) -> Int {
+    let characters: Span<UInt8> = WebCore.securityPoliciesSpan8(name)
+    if !characters.isEmpty {
+        return crossOriginAccessControlWriteLowercased(characters, &codeUnits, start)
+    }
+    return crossOriginAccessControlWriteLowercased(name.checkedSpan16(), &codeUnits, start)
+}
+
+private func crossOriginAccessControlWriteLowercased<CodeUnit: HTTPHeaderStringCodeUnit>(
+    _ characters: Span<CodeUnit>,
+    _ codeUnits: inout MutableSpan<UInt16>,
+    _ start: Int
+) -> Int {
+    for index in characters.indices {
+        // Below the end the caller made room for.
+        codeUnits[start &+ index] = UInt16(truncatingIfNeeded: HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(characters[index])))
+    }
+    // Likewise.
+    return start &+ characters.count
+}
+
+/// Sorts the first `count` of `names` by code point of their code units, `codeUnits[range(name)]`, with an insertion
+/// sort, which keeps equal names in their order.
+@inline(always)
+func crossOriginAccessControlSortNames<Name>(
+    _ names: inout MutableSpan<Name>,
+    _ count: Int,
+    _ codeUnits: Span<UInt16>,
+    _ range: (Name) -> Range<Int>
+) {
+    for sorted in stride(from: 1, to: count, by: 1) {
+        let name = names[sorted]
+        let characters = codeUnits.extracting(range(name))
+        var position = sorted
+        while position > 0, crossOriginAccessControlCodePointLessThan(characters, codeUnits.extracting(range(names[position - 1]))) {
+            names[position] = names[position - 1]
+            position -= 1
+        }
+        names[position] = name
+    }
+}
+
 // MARK: Private helpers
 
-/// Copies `characters` into `text` from `position`, each code unit in the width of `Output`, which holds it.
-private func crossOriginAccessControlWiden<Input: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit>(
-    _ characters: Span<Input>,
-    to text: inout MutableSpan<Output>,
-    at position: Int
+/// Writes the message crossOriginAccessControlMessage() makes, of `length` code units, into `text`.
+private func crossOriginAccessControlWriteMessage<CodeUnit: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
+    _ prefix: Span<UInt8>,
+    _ characters: Span<CodeUnit>,
+    _ suffix: Span<UInt8>,
+    _ statusCode: Int32?,
+    _ length: Int,
+    _ text: inout MutableSpan<Output>
 ) {
-    for index in characters.indices {
-        // A position within the text, which has room for the characters.
-        text[position &+ index] = Output(truncatingIfNeeded: characters[index])
+    var position = crossOriginAccessControlCopy(prefix, to: &text, at: 0)
+    position = crossOriginAccessControlCopy(characters, to: &text, at: position)
+    _ = crossOriginAccessControlCopy(suffix, to: &text, at: position)
+    if let statusCode {
+        crossOriginAccessControlWriteDecimal(statusCode, to: &text, endingAt: length)
     }
 }
 
@@ -680,182 +735,45 @@ private func crossOriginAccessControlWriteDecimal<Output: HTTPHeaderStringCodeUn
 
 // MARK: The Access-Control-Request-Headers value
 
-/// The names crossOriginAccessControlRequestHeadersValue() sorts on the stack; more are sorted on the heap.
-private let crossOriginAccessControlInlineNameCount = 16
-
-/// A name the Access-Control-Request-Headers value joins: its ASCII-lowercased code units are `length` code units of a
-/// pool from `start`, and `is8Bit` is whether its String is 8-bit.
-private struct CrossOriginAccessControlName: BitwiseCopyable {
+/// A name the Access-Control-Request-Headers value joins: its ASCII-lowercased code units are `start..<end` of the
+/// names' code units, and `is8Bit` is whether its String is 8-bit.
+private struct CrossOriginAccessControlName {
     var start = 0
-    var length = 0
+    var end = 0
     var is8Bit = true
 }
 
-/// The Access-Control-Request-Headers value of the headers in `commonHeaders` and `uncommonHeaders`, with `names` room
-/// for each of their names.
+/// The Access-Control-Request-Headers value of the headers in `commonHeaders` and `uncommonHeaders`.
 ///
-/// Each name is ASCII-lowercased once into a pool of 8-bit code units, or of 16-bit ones when a name is 16-bit, which
-/// holds 256 code units on the stack and the rest on the heap.
+/// `names` has room for each of their names and `codeUnits` for their code units. The value is the names of the headers
+/// that are not CORS-safelisted request headers, ASCII-lowercased and sorted by code point with equal names in map order,
+/// joined with commas in the text a StringBuilder gives. The first name alone is kept as it is, the null string when it
+/// is empty; once more is appended, the text is 16-bit if the first name is, or if a later one is 16-bit with more than
+/// one character or one above U+00FF.
+///
+/// The null string when there is no name.
 private func crossOriginAccessControlJoinedNames(
     _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
     _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
-    _ names: inout MutableSpan<CrossOriginAccessControlName>
-) -> WTF.String {
-    do {
-        var pool = InlineArray<256, UInt8>(repeating: 0)
-        var poolSpan = pool.mutableSpan
-        if let count = crossOriginAccessControlCollectNames(commonHeaders, uncommonHeaders, &names, &poolSpan) {
-            return crossOriginAccessControlSortedNames(&names, count, poolSpan.span)
-        }
-    }
-    do {
-        var pool = InlineArray<256, UInt16>(repeating: 0)
-        var poolSpan = pool.mutableSpan
-        if let count = crossOriginAccessControlCollectNames(commonHeaders, uncommonHeaders, &names, &poolSpan) {
-            return crossOriginAccessControlSortedNames(&names, count, poolSpan.span)
-        }
-    }
-    var poolLength = 0
-    for index in commonHeaders.indices where !crossOriginAccessControlIsSafeRequestHeader(commonHeaders[index]) {
-        // Lengths of Strings in one map: far from overflowing.
-        poolLength &+= Int(WebCore.securityPoliciesHTTPHeaderNameString(commonHeaders[index].key).length())
-    }
-    for index in uncommonHeaders.indices {
-        // Lengths of Strings in one map: far from overflowing.
-        poolLength &+= crossOriginAccessControlLength(uncommonHeaders[index].key)
-    }
-    var pool = UniqueArray<UInt16>(repeating: 0, count: poolLength)
-    var poolSpan = pool.mutableSpan
-    // The pool has room for every name in either width.
-    let count = crossOriginAccessControlCollectNames(commonHeaders, uncommonHeaders, &names, &poolSpan) ?? 0
-    return crossOriginAccessControlSortedNames(&names, count, poolSpan.span)
-}
-
-/// The length of `string`.
-private func crossOriginAccessControlLength(_ string: borrowing WTF.String) -> Int {
-    Int(string.length())
-}
-
-/// Records in `names`, and copies ASCII-lowercased into `pool`, the names of the headers in `commonHeaders` that are
-/// not CORS-safelisted request headers, then those of every header in `uncommonHeaders`, in that order, and returns how
-/// many there are.
-///
-/// Nil when `pool` is too short for them, or has 8-bit code units and a name is 16-bit.
-private func crossOriginAccessControlCollectNames<PoolCodeUnit: HTTPHeaderStringCodeUnit>(
-    _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
-    _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
     _ names: inout MutableSpan<CrossOriginAccessControlName>,
-    _ pool: inout MutableSpan<PoolCodeUnit>
-) -> Int? {
+    _ codeUnits: inout MutableSpan<UInt16>
+) -> WTF.String {
     var count = 0
-    var poolLength = 0
-    for index in commonHeaders.indices {
-        if crossOriginAccessControlIsSafeRequestHeader(commonHeaders[index]) {
-            continue
-        }
-        let name = WebCore.securityPoliciesHTTPHeaderNameString(commonHeaders[index].key)
-        guard let name = crossOriginAccessControlCollectName(name, &pool, &poolLength) else {
-            return nil
-        }
-        names[count] = name
-        // At most one name per header of the map, which names has room for.
-        count &+= 1
+    var end = 0
+    for index in commonHeaders.indices where !crossOriginAccessControlIsSafeRequestHeader(commonHeaders[index]) {
+        let start = end
+        end = crossOriginAccessControlWriteLowercased(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key), &codeUnits, start)
+        names[count] = CrossOriginAccessControlName(start: start, end: end, is8Bit: true)
+        count += 1
     }
     for index in uncommonHeaders.indices {
-        guard let name = crossOriginAccessControlCollectName(uncommonHeaders[index].key, &pool, &poolLength) else {
-            return nil
-        }
-        names[count] = name
-        // At most one name per header of the map, which names has room for.
-        count &+= 1
+        let start = end
+        end = crossOriginAccessControlWriteLowercased(uncommonHeaders[index].key, &codeUnits, start)
+        names[count] = CrossOriginAccessControlName(start: start, end: end, is8Bit: uncommonHeaders[index].key.is8Bit())
+        count += 1
     }
-    return count
-}
-
-/// Copies `string` ASCII-lowercased into `pool` from `poolLength`, which it moves past it, and returns where it is.
-///
-/// Nil when `pool` is too short for it, or has 8-bit code units and `string` is 16-bit and not empty.
-private func crossOriginAccessControlCollectName<PoolCodeUnit: HTTPHeaderStringCodeUnit>(
-    _ string: borrowing WTF.String,
-    _ pool: inout MutableSpan<PoolCodeUnit>,
-    _ poolLength: inout Int
-) -> CrossOriginAccessControlName? {
-    let bytes: Span<UInt8> = WebCore.securityPoliciesSpan8(string)
-    if !bytes.isEmpty {
-        return crossOriginAccessControlCollectName(bytes, is8Bit: true, &pool, &poolLength)
-    }
-    let units: Span<UInt16> = string.checkedSpan16()
-    if units.isEmpty {
-        return CrossOriginAccessControlName(start: poolLength, length: 0, is8Bit: string.is8Bit())
-    }
-    if PoolCodeUnit.bitWidth < 16 {
-        return nil
-    }
-    return crossOriginAccessControlCollectName(units, is8Bit: false, &pool, &poolLength)
-}
-
-private func crossOriginAccessControlCollectName<CodeUnit: HTTPHeaderStringCodeUnit, PoolCodeUnit: HTTPHeaderStringCodeUnit>(
-    _ characters: Span<CodeUnit>,
-    is8Bit: Bool,
-    _ pool: inout MutableSpan<PoolCodeUnit>,
-    _ poolLength: inout Int
-) -> CrossOriginAccessControlName? {
-    let start = poolLength
-    // poolLength is within the pool.
-    guard characters.count <= pool.count &- start else {
-        return nil
-    }
-    for index in characters.indices {
-        let codeUnit = HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(characters[index]))
-        // Below the pool's count, checked above.
-        pool[start &+ index] = PoolCodeUnit(truncatingIfNeeded: codeUnit)
-    }
-    // Within the pool, checked above.
-    poolLength = start &+ characters.count
-    return CrossOriginAccessControlName(start: start, length: characters.count, is8Bit: is8Bit)
-}
-
-/// The first `count` of `names`, sorted by code point with equal names in the order they were collected, joined with
-/// commas in the text a StringBuilder gives: the first name alone is kept as it is, the null string when it is empty;
-/// once more is appended, the text is 16-bit if the first name is, or if a later one is 16-bit with more than one
-/// character or one above U+00FF.
-///
-/// The null string when there is no name.
-private func crossOriginAccessControlSortedNames<PoolCodeUnit: HTTPHeaderStringCodeUnit>(
-    _ names: inout MutableSpan<CrossOriginAccessControlName>,
-    _ count: Int,
-    _ pool: Span<PoolCodeUnit>
-) -> WTF.String {
-    // Binary insertion: each name goes after every name it does not sort before.
-    var sorted = 1
-    while sorted < count {
-        let name = names[sorted]
-        // Each name lies within the pool, so its end cannot overflow.
-        let characters = pool.extracting(name.start..<name.start &+ name.length)
-        var low = 0
-        var high = sorted
-        while low < high {
-            // Two indices below count.
-            let middle = low &+ (high &- low) / 2
-            let other = names[middle]
-            // Within the pool.
-            if crossOriginAccessControlCodePointLessThan(characters, pool.extracting(other.start..<other.start &+ other.length)) {
-                high = middle
-            } else {
-                // Below high.
-                low = middle &+ 1
-            }
-        }
-        var index = sorted
-        while index > low {
-            // Above low, which is at least 0.
-            names[index] = names[index &- 1]
-            index &-= 1
-        }
-        names[low] = name
-        // Below count.
-        sorted &+= 1
-    }
+    let pool = codeUnits.span
+    crossOriginAccessControlSortNames(&names, count, pool) { $0.start..<$0.end }
 
     if count == 0 {
         return WTF.String()
@@ -866,9 +784,13 @@ private func crossOriginAccessControlSortedNames<PoolCodeUnit: HTTPHeaderStringC
     for index in 0..<count {
         let name = names[index]
         // Lengths of Strings in one map: far from overflowing.
-        length &+= name.length
-        if index > 0 && !name.is8Bit && name.length != 0 {
-            if name.length != 1 || pool[name.start] > 0xFF {
+        let nameLength = name.end &- name.start
+        // Likewise.
+        length &+= nameLength
+        if index > 0, !name.is8Bit, nameLength != 0 {
+            if nameLength != 1 {
+                is8Bit = false
+            } else if pool[name.start] > 0xFF {
                 is8Bit = false
             }
         }
@@ -888,10 +810,10 @@ private func crossOriginAccessControlSortedNames<PoolCodeUnit: HTTPHeaderStringC
 }
 
 /// Writes the first `count` of `names` into `text` with a comma between each two.
-private func crossOriginAccessControlJoin<PoolCodeUnit: HTTPHeaderStringCodeUnit, Output: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
+private func crossOriginAccessControlJoin<Output: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
     _ names: Span<CrossOriginAccessControlName>,
     _ count: Int,
-    _ pool: Span<PoolCodeUnit>,
+    _ pool: Span<UInt16>,
     _ text: inout MutableSpan<Output>
 ) {
     var position = 0
@@ -902,7 +824,6 @@ private func crossOriginAccessControlJoin<PoolCodeUnit: HTTPHeaderStringCodeUnit
             position &+= 1
         }
         let name = names[index]
-        // Within the pool.
-        position = crossOriginAccessControlCopy(pool.extracting(name.start..<name.start &+ name.length), to: &text, at: position)
+        position = crossOriginAccessControlCopy(pool.extracting(name.start..<name.end), to: &text, at: position)
     }
 }
