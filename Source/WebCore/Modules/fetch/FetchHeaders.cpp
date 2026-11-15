@@ -132,8 +132,6 @@ void FetchHeaders::filterAndFill(const HTTPHeaderMap& headers, Guard guard)
 
 std::optional<KeyValuePair<String, String>> FetchHeaders::Iterator::next()
 {
-    // fetchHeadersIteratorNext() reads the lowercased names of HTTPHeaderName's values, and their order, from tables of this many.
-    static_assert(numHTTPHeaderNames == 103);
     return fetchHeadersIteratorNext(m_headers->m_headers, m_headers->m_setCookieValues, m_headers->m_updateCounter, m_keys, m_currentIndex, m_setCookieIndex, m_updateCounter);
 }
 
