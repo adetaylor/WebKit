@@ -484,8 +484,6 @@ private struct FetchHeadersIteratorName {
 /// The keys are the names of `commonHeaders` and `uncommonHeaders` lowercased and, with `hasSetCookie`, the null String
 /// standing for the Set-Cookie values, which sorts as `set-cookie`; equal names keep their map order. Returns the number
 /// of keys below `set-cookie`, as `std::ranges::lower_bound` finds it, when there are Set-Cookie values, else 0.
-///
-/// The names are sorted on the stack when there are at most 16 of 256 code units in all, else on the heap.
 private func fetchHeadersAppendSortedKeys(
     _ commonHeaders: Span<WebCore.HTTPHeaderMap.CommonHeader>,
     _ uncommonHeaders: Span<WebCore.HTTPHeaderMap.UncommonHeader>,
@@ -503,18 +501,9 @@ private func fetchHeadersAppendSortedKeys(
         // Likewise.
         codeUnitCount &+= Int(uncommonHeaders[index].key.length())
     }
-    if count <= 16, codeUnitCount <= 256 {
-        var names = InlineArray<16, FetchHeadersIteratorName>(repeating: FetchHeadersIteratorName())
-        var codeUnits = InlineArray<256, UInt16>(repeating: 0)
-        var namesSpan = names.mutableSpan
-        var codeUnitsSpan = codeUnits.mutableSpan
-        return fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &namesSpan, &codeUnitsSpan, &keys)
+    return crossOriginAccessControlWithNames(FetchHeadersIteratorName(), count, codeUnitCount) { names, codeUnits in
+        fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &names, &codeUnits, &keys)
     }
-    var names = UniqueArray(repeating: FetchHeadersIteratorName(), count: count)
-    var codeUnits = UniqueArray<UInt16>(repeating: 0, count: codeUnitCount)
-    var namesSpan = names.mutableSpan
-    var codeUnitsSpan = codeUnits.mutableSpan
-    return fetchHeadersAppendSortedKeys(commonHeaders, uncommonHeaders, hasSetCookie, &namesSpan, &codeUnitsSpan, &keys)
 }
 
 /// fetchHeadersAppendSortedKeys() with room in `names` for every name, and in `codeUnits` for their code units.
@@ -530,13 +519,13 @@ private func fetchHeadersAppendSortedKeys(
     var end = 0
     for index in commonHeaders.indices {
         let start = end
-        end = fetchHeadersWriteLowercased(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key), &codeUnits, start)
+        end = crossOriginAccessControlWriteLowercased(WebCore.lowercaseHTTPHeaderNameString(commonHeaders[index].key), &codeUnits, start)
         names[count] = FetchHeadersIteratorName(start: start, end: end, source: count)
         count += 1
     }
     for index in uncommonHeaders.indices {
         let start = end
-        end = fetchHeadersWriteLowercased(uncommonHeaders[index].key, &codeUnits, start)
+        end = crossOriginAccessControlWriteLowercased(uncommonHeaders[index].key, &codeUnits, start)
         names[count] = FetchHeadersIteratorName(start: start, end: end, source: count)
         count += 1
     }
@@ -547,17 +536,8 @@ private func fetchHeadersAppendSortedKeys(
         count += 1
     }
 
-    // An insertion sort, which keeps equal names in map order.
     let pool = codeUnits.span
-    for sorted in stride(from: 1, to: count, by: 1) {
-        let name = names[sorted]
-        var position = sorted
-        while position > 0, fetchHeadersIteratorNameLessThan(pool, name, names[position - 1]) {
-            names[position] = names[position - 1]
-            position -= 1
-        }
-        names[position] = name
-    }
+    crossOriginAccessControlSortNames(&names, count, pool) { $0.start..<$0.end }
 
     for position in 0..<count {
         keys.append(consuming: fetchHeadersIteratorKey(names[position], commonHeaders, uncommonHeaders))
@@ -574,38 +554,6 @@ private func fetchHeadersAppendSortedKeys(
         }
     }
     return setCookieKeyIndex
-}
-
-/// Writes the code units of `name`, lowercased with ASCII rules, to `codeUnits` from `start` on, which has room for
-/// them, and returns the end of them.
-private func fetchHeadersWriteLowercased(_ name: borrowing WTF.String, _ codeUnits: inout MutableSpan<UInt16>, _ start: Int) -> Int {
-    let characters: Span<UInt8> = WebCore.securityPoliciesSpan8(name)
-    if !characters.isEmpty {
-        return fetchHeadersWriteLowercased(characters, &codeUnits, start)
-    }
-    return fetchHeadersWriteLowercased(name.checkedSpan16(), &codeUnits, start)
-}
-
-private func fetchHeadersWriteLowercased<CodeUnit: HTTPHeaderStringCodeUnit>(
-    _ characters: Span<CodeUnit>,
-    _ codeUnits: inout MutableSpan<UInt16>,
-    _ start: Int
-) -> Int {
-    for index in characters.indices {
-        // Below the end the caller made room for.
-        codeUnits[start &+ index] = UInt16(truncatingIfNeeded: HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(characters[index])))
-    }
-    // Likewise.
-    return start &+ characters.count
-}
-
-/// `compareIteratorKeys()` of two of the names the iterator sorts, whose code units are in `codeUnits`.
-private func fetchHeadersIteratorNameLessThan(
-    _ codeUnits: Span<UInt16>,
-    _ a: FetchHeadersIteratorName,
-    _ b: FetchHeadersIteratorName
-) -> Bool {
-    crossOriginAccessControlCodePointLessThan(codeUnits.extracting(a.start..<a.end), codeUnits.extracting(b.start..<b.end))
 }
 
 /// The key of `name` among the sorted names: a common header's name lowercased, an uncommon header's name lowercased, or
