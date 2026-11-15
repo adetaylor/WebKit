@@ -2599,7 +2599,24 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
         raise Exception(f'{context}: {cpp_name} must be held in an OptionSet if, and only if, it is marked [OptionSet].')
 
 
+# The aliases of vectors in .serialization.in (`using WebCore::SVGFilterExpression = Vector<WebCore::SVGFilterExpressionTerm>`): a
+# member of such a type has the Swift form of the vector.
+_swift_plain_aliases = {}
+
+
+def set_swift_plain_aliases(using_statements):
+    _swift_plain_aliases.clear()
+    for using_statement in using_statements:
+        if not using_statement.is_swift() and len(using_statement.alias_lines) == 1 and re.match(r'(?:WTF::)?Vector<', using_statement.alias_lines[0].strip()):
+            _swift_plain_aliases[using_statement.name.removeprefix('::')] = using_statement.alias_lines[0].strip()
+
+
+def resolve_swift_plain_aliases(cpp_type):
+    return re.sub(r'(?<![A-Za-z_0-9:])(?:::)?[A-Za-z_][A-Za-z_0-9]*(?:::[A-Za-z_][A-Za-z_0-9]*)+', lambda match: _swift_plain_aliases.get(match.group(0).removeprefix('::'), match.group(0)), cpp_type)
+
+
 def swift_type_and_coder(cpp_type, context, swift_names):
+    cpp_type = resolve_swift_plain_aliases(cpp_type)
     try:
         swift_type, swift_coder = swift_types.swift_type_and_coder(cpp_type, cxx_name_coders=False)
     except swift_types.UnmappableSwiftType as error:
@@ -3121,6 +3138,7 @@ def swift_line_comments(block_comment):
 
 def generate_swift(serialized_types, serialized_enums, using_statements):
     compile_decode_policies(serialized_types, serialized_enums, using_statements)
+    set_swift_plain_aliases(using_statements)
     swift_names = swift_type_names(serialized_types, serialized_enums, using_statements)
     identifiers = swift_identifiers(serialized_types, serialized_enums, using_statements)
     declarations = [generate_swift_identifiers(identifiers)]

@@ -84,6 +84,8 @@ private:
     void describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
     void describeSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
     void describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
 #endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);

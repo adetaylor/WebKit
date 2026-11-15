@@ -164,6 +164,16 @@ void IPCTesterReceiver::describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemIm
 {
     completionHandler(ipcTesterDescription(image));
 }
+
+void IPCTesterReceiver::describeFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(filter));
+}
+
+void IPCTesterReceiver::describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(filter));
+}
 #endif
 
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)

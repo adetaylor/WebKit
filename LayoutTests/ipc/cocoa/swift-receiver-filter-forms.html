@@ -1,0 +1,211 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver checks and normalizes filters as C++ does.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, 1000, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+// Resolves with the reply, or with null if the message was not handled.
+function send(messageName, args)
+{
+    return new Promise(resolve => {
+        IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, messageName, args, result => resolve(result?.arguments ? result : null));
+    });
+}
+
+// Sends each case to the Swift and the C++ describer at once, and resolves with their descriptions, null where a message was
+// not handled.
+async function describeAll(cases)
+{
+    const description = result => result ? result.arguments[0].value : null;
+    const results = await Promise.all(cases.map(([, args]) => Promise.all([
+        send(IPC.messages.IPCTesterReceiver_DescribeFilterSwift.name, args),
+        send(IPC.messages.IPCTesterReceiver_DescribeCxxDecodedFilterSwift.name, args),
+    ])));
+    takeInvalidMessageString();
+    return results.map(([swift, cxx]) => [description(swift), description(cxx)]);
+}
+
+const u8 = value => ({ type: 'uint8_t', value });
+const u32 = value => ({ type: 'uint32_t', value });
+const u64 = value => ({ type: 'uint64_t', value });
+const i32 = value => ({ type: 'int32_t', value });
+const f = value => ({ type: 'float', value });
+const b = value => ({ type: 'bool', value });
+const floats = values => [u64(values.length), ...values.map(f)];
+const rect = (x, y, width, height) => [f(x), f(y), f(width), f(height)];
+
+// A ColorSpace named by its ColorSpaceName, and a Color, as Color::data() encodes it.
+const sRGB = [b(1), u8(0), u8(19)];
+const linearSRGB = [b(1), u8(0), u8(14)];
+const packedColor = value => [b(1), b(0), b(0), u8(0), u32(value)];
+
+// The index of each subclass of FilterEffect, of FilterFunction (an SVG filter first, then the effects), and of Filter.
+const effectIndex = {
+    blend: 0, colorMatrix: 1, componentTransfer: 2, composite: 3, convolveMatrix: 4, diffuseLighting: 5, displacementMap: 6,
+    dropShadow: 7, flood: 8, gaussianBlur: 9, image: 10, merge: 11, morphology: 12, offset: 13, tile: 14, specularLighting: 15,
+    turbulence: 16, sourceAlpha: 17, sourceGraphic: 18,
+};
+const functionIndex = {
+    svg: 0, blend: 1, colorMatrix: 2, componentTransfer: 3, composite: 4, convolveMatrix: 5, diffuseLighting: 6, displacementMap: 7,
+    dropShadow: 8, flood: 9, gaussianBlur: 10, image: 11, merge: 12, morphology: 13, offset: 14, specularLighting: 15, tile: 16,
+    turbulence: 17, sourceAlpha: 18, sourceGraphic: 19,
+};
+
+// Each effect's members after its subclass index.
+const distant = (azimuth, elevation) => [u8(0), f(azimuth), f(elevation)];
+const point = (x, y, z) => [u8(1), f(x), f(y), f(z)];
+const spot = (exponent, cone = 30) => [u8(2), f(1), f(2), f(3), f(4), f(5), f(6), f(exponent), f(cone)];
+const transferFunction = (type, table = []) => [u8(type), f(1), f(0.5), f(2), f(3), f(0.25), ...floats(table)];
+const effect = {
+    blend: mode => [u8(mode), ...sRGB],
+    colorMatrix: (type, values) => [u8(type), ...floats(values), ...linearSRGB],
+    componentTransfer: () => [...transferFunction(1), ...transferFunction(2, [0, 0.5, 1]), ...transferFunction(4), ...transferFunction(5), ...sRGB],
+    composite: operation => [u8(operation), f(0.5), f(1), f(-1), f(0), ...sRGB],
+    convolveMatrix: (width, height, divisor, x, y, unitX, unitY, kernel) => [i32(width), i32(height), f(divisor), f(0.5), i32(x), i32(y), u8(1), f(unitX), f(unitY), b(1), ...floats(kernel), ...sRGB],
+    diffuseLighting: (constant, light) => [...packedColor(0xff00ffff), f(1.5), f(constant), f(1), f(1), ...light, ...linearSRGB],
+    displacementMap: () => [u8(1), u8(4), f(20), ...sRGB, b(0)],
+    dropShadow: () => [f(2), f(3), f(4), f(5), ...packedColor(0x000000ff), f(0.5), ...sRGB],
+    flood: () => [...packedColor(0x00ff00ff), f(0.75), ...sRGB],
+    gaussianBlur: (x, y) => [f(x), f(y), u8(3), ...sRGB],
+    image: identifier => [u64(identifier), ...rect(1, 2, 30, 40)],
+    merge: count => [u32(count), ...sRGB],
+    morphology: (radiusX, radiusY) => [u8(1), f(radiusX), f(radiusY), ...sRGB],
+    offset: () => [f(-3), f(4.5), ...sRGB],
+    tile: () => [...sRGB],
+    specularLighting: (constant, exponent, light) => [...packedColor(0xffffffff), f(2), f(constant), f(exponent), f(1), f(2), ...light, ...linearSRGB],
+    turbulence: octaves => [u8(2), f(0.05), f(0.1), i32(octaves), f(7), b(1), ...sRGB],
+    sourceAlpha: () => [...sRGB],
+    sourceGraphic: () => [...sRGB],
+};
+
+// A filter's geometry, rendering modes (Software) and options.
+const geometry = [...rect(0, 0, 100, 100), ...rect(-10, -10, 120, 120), f(1), f(1), u8(1), u8(0)];
+
+const cssFilter = functions => [u8(0), u64(functions.length), ...functions.flat()];
+const cssFunction = (name, members) => [u8(functionIndex[name]), ...members];
+const term = (index, level = 0, effectGeometry = null) => [u32(index), u32(level), ...(effectGeometry ? [b(1), ...effectGeometry] : [b(0)])];
+const svgBody = (terms, effects, identifier = null) => [u8(2), u64(terms.length), ...terms.flat(), u64(effects.length), ...effects.flat(), ...geometry,
+    ...(identifier === null ? [b(0)] : [b(1), u64(identifier)])];
+const svgEffect = (name, members) => [u8(effectIndex[name]), ...members];
+const svgFilter = (terms, effects, identifier = null) => [u8(1), ...svgBody(terms, effects, identifier)];
+const css = functions => [...cssFilter(functions), ...geometry];
+
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []).arguments[0].value;
+    takeInvalidMessageString();
+    try {
+        const cases = [];
+        const single = (name, members) => css([cssFunction(name, members)]);
+
+        // Each effect as a CSS filter's function.
+        for (let mode = 0; mode < 18; ++mode)
+            cases.push([`blend mode ${mode}`, single('blend', effect.blend(mode))]);
+        cases.push(['a component transfer', single('componentTransfer', effect.componentTransfer())]);
+        for (let operation = 0; operation < 9; ++operation)
+            cases.push([`composite operation ${operation}`, single('composite', effect.composite(operation))]);
+        cases.push(['a displacement map', single('displacementMap', effect.displacementMap())]);
+        cases.push(['a drop shadow', single('dropShadow', effect.dropShadow())]);
+        cases.push(['a flood', single('flood', effect.flood())]);
+        cases.push(['a gaussian blur', single('gaussianBlur', effect.gaussianBlur(2, 0))]);
+        cases.push(['an image', single('image', effect.image(5))]);
+        cases.push(['a merge', single('merge', effect.merge(3))]);
+        cases.push(['an offset', single('offset', effect.offset())]);
+        cases.push(['a tile', single('tile', effect.tile())]);
+        cases.push(['a turbulence', single('turbulence', effect.turbulence(4))]);
+        cases.push(['a source alpha and a source graphic', css([cssFunction('sourceAlpha', effect.sourceAlpha()), cssFunction('sourceGraphic', effect.sourceGraphic())])]);
+
+        // FEColorMatrix's values must suit its type.
+        const matrix = [...Array(20).keys()].map(value => value / 20);
+        for (const [type, values] of [[1, matrix], [1, matrix.slice(1)], [1, [...matrix, 1]], [2, [0.5]], [2, []], [2, [0.5, 1]], [3, [90]], [3, []], [4, []], [4, [1, 2]], [0, []], [0, [1]], [5, []]])
+            cases.push([`a color matrix of type ${type} with ${values.length} values`, single('colorMatrix', effect.colorMatrix(type, values))]);
+
+        // FEConvolveMatrix's kernel size, divisor, target, kernel unit length and kernel.
+        const kernel9 = [1, 2, 1, 2, 4, 2, 1, 2, 1];
+        for (const [description, args] of [
+            ['a convolve matrix', [3, 3, 16, 1, 1, 1, 1, kernel9]],
+            ['a convolve matrix targeting its last element', [3, 3, 16, 2, 2, 1, 1, kernel9]],
+            ['a convolve matrix targeting past its width', [3, 3, 16, 3, 1, 1, 1, kernel9]],
+            ['a convolve matrix targeting past its height', [3, 3, 16, 1, 3, 1, 1, kernel9]],
+            ['a convolve matrix targeting before its origin', [3, 3, 16, -1, 0, 1, 1, kernel9]],
+            ['a convolve matrix of no width', [0, 3, 16, 0, 0, 1, 1, []]],
+            ['a convolve matrix of negative height', [3, -3, 16, 0, 0, 1, 1, []]],
+            ['a convolve matrix of divisor 0', [3, 3, 0, 1, 1, 1, 1, kernel9]],
+            ['a convolve matrix of divisor -0', [3, 3, -0, 1, 1, 1, 1, kernel9]],
+            ['a convolve matrix of divisor NaN', [3, 3, NaN, 1, 1, 1, 1, kernel9]],
+            ['a convolve matrix of kernel unit length 0', [3, 3, 16, 1, 1, 0, 1, kernel9]],
+            ['a convolve matrix of kernel unit height NaN', [3, 3, 16, 1, 1, 1, NaN, kernel9]],
+            ['a convolve matrix of too short a kernel', [3, 3, 16, 1, 1, 1, 1, kernel9.slice(1)]],
+            ['a convolve matrix of too long a kernel', [3, 3, 16, 1, 1, 1, 1, [...kernel9, 0]]],
+            ['a convolve matrix whose area overflows', [65536, 65536, 1, 0, 0, 1, 1, []]],
+            ['a convolve matrix whose area overflows 32 bits to its kernel size', [65537, 65535, 1, 0, 0, 1, 1, [1]]],
+        ])
+            cases.push([description, single('convolveMatrix', effect.convolveMatrix(...args))]);
+
+        // The normalized members: FEMorphology's radii, the lighting constants, and the specular exponents.
+        for (const radius of [2, 0, -0, -1, NaN, Infinity, -Infinity])
+            cases.push([`a morphology of radius ${radius}`, single('morphology', effect.morphology(radius, -radius))]);
+        for (const constant of [1, 0, -0, -2, NaN, -Infinity]) {
+            cases.push([`a diffuse lighting of constant ${constant}`, single('diffuseLighting', effect.diffuseLighting(constant, distant(45, 30)))]);
+            cases.push([`a specular lighting of constant ${constant}`, single('specularLighting', effect.specularLighting(constant, 20, point(1, 2, 3)))]);
+        }
+        for (const exponent of [20, 1, 0.5, 0, -5, 128, 128.5, 1000, NaN, Infinity]) {
+            cases.push([`a specular lighting of exponent ${exponent}`, single('specularLighting', effect.specularLighting(1, exponent, spot(exponent)))]);
+            cases.push([`a spot light of exponent ${exponent}`, single('diffuseLighting', effect.diffuseLighting(1, spot(exponent)))]);
+        }
+        cases.push(['an unknown light source', single('diffuseLighting', effect.diffuseLighting(1, [u8(3), f(0), f(0)]))]);
+
+        // SVG filters: as a filter, and as a CSS filter's function; the expression must name the effects.
+        const graphic = svgEffect('sourceGraphic', effect.sourceGraphic());
+        const blur = svgEffect('gaussianBlur', effect.gaussianBlur(3, 3));
+        const effectGeometry = flags => [...rect(5, 6, 70, 80), u8(flags)];
+        cases.push(['an SVG filter', svgFilter([term(0, 1), term(1, 0)], [graphic, blur], 7)]);
+        cases.push(['an SVG filter without an identifier', svgFilter([term(0, 1), term(1, 0)], [graphic, blur])]);
+        for (const flags of [0, 1, 5, 15, 16, 255])
+            cases.push([`an SVG filter's term with geometry flags ${flags}`, svgFilter([term(0, 1, effectGeometry(flags)), term(1)], [graphic, blur])]);
+        cases.push(['an SVG filter naming its last effect', svgFilter([term(1)], [graphic, blur])]);
+        cases.push(['an SVG filter naming past its effects', svgFilter([term(2)], [graphic, blur])]);
+        cases.push(['an SVG filter naming effect 4294967295', svgFilter([term(0), term(4294967295)], [graphic, blur])]);
+        cases.push(['an SVG filter without terms', svgFilter([], [graphic, blur])]);
+        cases.push(['an SVG filter without effects', svgFilter([term(0)], [])]);
+        cases.push(['a CSS filter referencing an SVG filter', css([cssFunction('svg', svgBody([term(0), term(1)], [graphic, blur], 9)), cssFunction('offset', effect.offset())])]);
+        cases.push(['a CSS filter referencing an SVG filter naming past its effects', css([cssFunction('svg', svgBody([term(5)], [graphic, blur]))])]);
+        cases.push(['an SVG filter of every effect', svgFilter([term(0)], Object.keys(effectIndex).map(name => {
+            const members = {
+                blend: () => effect.blend(1), colorMatrix: () => effect.colorMatrix(2, [0.5]), convolveMatrix: () => effect.convolveMatrix(3, 3, 16, 1, 1, 1, 1, kernel9),
+                diffuseLighting: () => effect.diffuseLighting(-1, point(1, 2, 3)), gaussianBlur: () => effect.gaussianBlur(1, 2), image: () => effect.image(11),
+                merge: () => effect.merge(2), morphology: () => effect.morphology(-1, 3), specularLighting: () => effect.specularLighting(-1, 500, distant(1, 2)),
+                turbulence: () => effect.turbulence(2), composite: () => effect.composite(6),
+            }[name] ?? effect[name];
+            return svgEffect(name, members());
+        }))]);
+
+        // Unknown subclasses and truncated filters.
+        cases.push(['an unknown filter', [u8(2), ...geometry]]);
+        cases.push(['an unknown function', css([[u8(20)]])]);
+        cases.push(['an unknown SVG effect', svgFilter([term(0)], [[u8(19), ...sRGB]])]);
+        cases.push(['a CSS filter cut short', cssFilter([cssFunction('tile', effect.tile())])]);
+
+        let accepted = 0;
+        const descriptions = await describeAll(cases);
+        cases.forEach(([description], i) => {
+            const [swift, cxx] = descriptions[i];
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+            if (swift !== null)
+                ++accepted;
+        });
+        assert_greater_than(accepted, 80, 'Most of the filters are accepted');
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+}, "Swift checks and normalizes filters as C++ does.");
+</script>
+</body>

@@ -111,6 +111,15 @@ def is_hand_written(cpp_type):
 # conditions in their order, which a Swift form numbering them in .serialization.in order couldn't number as C++ does.
 CXX_ENUM_TYPES = {
     'WebCore::StyleAppearance': 'WebCore.StyleAppearance',
+    # The filter model's enums, which WebCore's Swift filter engine takes.
+    'WebCore::BlendMode': 'WebCore.BlendMode',
+    'WebCore::ChannelSelectorType': 'WebCore.ChannelSelectorType',
+    'WebCore::ColorMatrixType': 'WebCore.ColorMatrixType',
+    'WebCore::ComponentTransferType': 'WebCore.ComponentTransferType',
+    'WebCore::CompositeOperationType': 'WebCore.CompositeOperationType',
+    'WebCore::EdgeModeType': 'WebCore.EdgeModeType',
+    'WebCore::MorphologyOperatorType': 'WebCore.MorphologyOperatorType',
+    'WebCore::TurbulenceType': 'WebCore.TurbulenceType',
 }
 
 
@@ -199,6 +208,8 @@ _NESTED_SWIFT_FORM_NAMES = {
     'WebCore::PathRoundedRect::Strategy': 'PathRoundedRectStrategy',
     'WebCore::ControlStyle::State': 'ControlStyleState',
     'WebCore::MeterPart::GaugeRegion': 'MeterPartGaugeRegion',
+    'WebCore::FilterEffectGeometry::Flags': 'FilterEffectGeometryFlags',
+    'WebCore::SVGUnitTypes::SVGUnitType': 'SVGUnitType',
 }
 
 

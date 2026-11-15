@@ -313,7 +313,7 @@ webkit_platform_headers: <WebCore/AffineTransform.h>
     float y()
 }
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint3D {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FloatPoint3D {
     float x()
     float y()
     float z()
@@ -2520,29 +2520,29 @@ header: <WebCore/SwitchPart.h>
     [Check='progress >= 0 && progress <= 1'] float progress();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::DistantLightSource {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::DistantLightSource {
     float azimuth();
     float elevation();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::PointLightSource {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::PointLightSource {
     WebCore::FloatPoint3D position();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SpotLightSource {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SpotLightSource {
     WebCore::FloatPoint3D position();
     WebCore::FloatPoint3D direction();
     [Normalize='specularExponent >= 128 ? 128 : (specularExponent <= 1 ? 1 : specularExponent)'] float specularExponent();
     float limitingConeAngle();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEBlend {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEBlend {
     WebCore::BlendMode blendMode();
 
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEColorMatrix {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEColorMatrix {
     WebCore::ColorMatrixType type();
     [Check='type == ColorMatrixType::FECOLORMATRIX_TYPE_MATRIX ? count(values) == 20 : (type == ColorMatrixType::FECOLORMATRIX_TYPE_SATURATE || type == ColorMatrixType::FECOLORMATRIX_TYPE_HUEROTATE) ? count(values) == 1 : type == ColorMatrixType::FECOLORMATRIX_TYPE_LUMINANCETOALPHA'] Vector<float> values();
 
@@ -2550,7 +2550,7 @@ header: <WebCore/SwitchPart.h>
 };
 
 header: <WebCore/FEComponentTransfer.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ComponentTransferFunction {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::ComponentTransferFunction {
     WebCore::ComponentTransferType type;
     float slope;
     float intercept;
@@ -2560,7 +2560,7 @@ header: <WebCore/FEComponentTransfer.h>
     Vector<float> tableValues;
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEComponentTransfer {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEComponentTransfer {
     WebCore::ComponentTransferFunction redFunction();
     WebCore::ComponentTransferFunction greenFunction();
     WebCore::ComponentTransferFunction blueFunction();
@@ -2569,7 +2569,7 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEComposite {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEComposite {
     WebCore::CompositeOperationType operation();
     float k1();
     float k2();
@@ -2579,7 +2579,7 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEConvolveMatrix {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEConvolveMatrix {
     [Check='kernelSize.width > 0 && kernelSize.height > 0'] WebCore::IntSize kernelSize();
     [Check='divisor != 0'] float divisor();
     float bias();
@@ -2592,7 +2592,7 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDiffuseLighting {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDiffuseLighting {
     WebCore::Color lightingColor();
     float surfaceScale();
     [Normalize='max(diffuseConstant, 0)'] float diffuseConstant();
@@ -2603,7 +2603,7 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDisplacementMap {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDisplacementMap {
     WebCore::ChannelSelectorType xChannelSelector();
     WebCore::ChannelSelectorType yChannelSelector();
     float scale();
@@ -2612,7 +2612,7 @@ header: <WebCore/FEComponentTransfer.h>
     bool in2IsTainted();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDropShadow {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEDropShadow {
     float stdDeviationX();
     float stdDeviationY();
     float dx();
@@ -2623,14 +2623,14 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEFlood {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEFlood {
     WebCore::Color floodColor();
     float floodOpacity();
 
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEGaussianBlur {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEGaussianBlur {
     float stdDeviationX();
     float stdDeviationY();
     WebCore::EdgeModeType edgeMode();
@@ -2638,18 +2638,18 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEImage {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEImage {
     WebCore::SourceImage sourceImage();
     WebCore::FloatRect sourceImageRect();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEMerge {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEMerge {
     unsigned numberOfEffectInputs();
 
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEMorphology {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEMorphology {
     WebCore::MorphologyOperatorType morphologyOperator();
     [Normalize='max(0, radiusX)'] float radiusX();
     [Normalize='max(0, radiusY)'] float radiusY();
@@ -2657,18 +2657,18 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEOffset {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FEOffset {
     float dx();
     float dy();
 
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FETile {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FETile {
     WebCore::ColorSpace operatingColorSpace();
 }
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FESpecularLighting {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FESpecularLighting {
     WebCore::Color lightingColor();
     float surfaceScale();
     [Normalize='max(specularConstant, 0)'] float specularConstant();
@@ -2680,7 +2680,7 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FETurbulence {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FETurbulence {
     WebCore::TurbulenceType type();
     float baseFrequencyX();
     float baseFrequencyY();
@@ -2691,28 +2691,28 @@ header: <WebCore/FEComponentTransfer.h>
     WebCore::ColorSpace operatingColorSpace();
 };
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceAlpha {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceAlpha {
     WebCore::ColorSpace operatingColorSpace();
 }
 
-[RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceGraphic {
+[Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceGraphic {
     WebCore::ColorSpace operatingColorSpace();
 }
 
-[Nested, OptionSet] enum class WebCore::FilterEffectGeometry::Flags : uint8_t {
+[Swift, Nested, OptionSet] enum class WebCore::FilterEffectGeometry::Flags : uint8_t {
     HasX,
     HasY,
     HasWidth,
     HasHeight
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::FilterEffectGeometry {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::FilterEffectGeometry {
     WebCore::FloatRect m_boundaries;
     OptionSet<WebCore::FilterEffectGeometry::Flags> m_flags;
 };
 
 header: <WebCore/SVGFilterExpression.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::SVGFilterExpressionTerm {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::SVGFilterExpressionTerm {
     unsigned index;
     unsigned level;
     std::optional<WebCore::FilterEffectGeometry> geometry;
@@ -4248,7 +4248,7 @@ enum class WebCore::IFrameUnloadReason : bool;
   WebCore::TestReportBody
 };
 
-[AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceImage {
+[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SourceImage {
     WebCore::RenderingResourceIdentifier imageIdentifier();
 }
 
@@ -5928,25 +5928,25 @@ class WebCore::FilterOperations {
 #endif // !USE(COORDINATED_GRAPHICS)
 
 header: <WebCore/Filter.h>
-[CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::FilterGeometry {
+[Swift, CustomHeader, AdditionalEncoder=StreamConnectionEncoder] struct WebCore::FilterGeometry {
     WebCore::FloatRect referenceBox;
     WebCore::FloatRect filterRegion;
     WebCore::FloatSize scale;
 }
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::Filter subclasses {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::Filter subclasses {
     WebCore::CSSFilterRenderer
     WebCore::SVGFilterRenderer
 }
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::CSSFilterRenderer {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::CSSFilterRenderer {
     Vector<Ref<WebCore::FilterFunction>> functions();
     WebCore::FilterGeometry geometry();
     OptionSet<WebCore::FilterRenderingMode> filterRenderingModes();
     OptionSet<WebCore::FilterRenderingOption> renderingOptions();
 }
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::SVGFilterRenderer {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::SVGFilterRenderer {
     WebCore::SVGUnitTypes::SVGUnitType primitiveUnits();
     WebCore::SVGFilterExpression expression();
     [Check='count(expression) > 0 && count(effects) > 0 && all(expression, term, term.index < count(effects))'] Vector<Ref<WebCore::FilterEffect>> effects();
@@ -6261,7 +6261,7 @@ header: <WebCore/SharedBuffer.h>
 };
 #endif // !USE(COORDINATED_GRAPHICS)
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::FilterEffect subclasses {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::FilterEffect subclasses {
     WebCore::FEBlend
     WebCore::FEColorMatrix
     WebCore::FEComponentTransfer
@@ -6338,7 +6338,7 @@ header: <WebCore/AppleVisualEffect.h>
     Variant<WebCore::PlatformCursorType, std::optional<WebCore::Cursor::CustomCursorIPCData>> ipcData();
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::LightSource subclasses {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::LightSource subclasses {
     WebCore::DistantLightSource
     WebCore::PointLightSource
     WebCore::SpotLightSource
@@ -6349,7 +6349,7 @@ header: <WebCore/NativeImage.h>
     RefPtr<WebCore::ShareableBitmap> toShareableBitmap();
 };
 
-[AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::FilterFunction subclasses {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, RefCounted] class WebCore::FilterFunction subclasses {
     WebCore::SVGFilterRenderer
     WebCore::FEBlend
     WebCore::FEColorMatrix
@@ -6767,14 +6767,14 @@ enum class WebCore::TurbulenceType : uint8_t {
 };
 
 header: <WebCore/FilterRenderingMode.h>
-[OptionSet] enum class WebCore::FilterRenderingMode : uint8_t {
+[Swift, OptionSet] enum class WebCore::FilterRenderingMode : uint8_t {
     Software,
     Accelerated,
     GraphicsContext
 };
 
 header: <WebCore/Filter.h>
-[OptionSet] enum class WebCore::FilterRenderingOption : uint8_t {
+[Swift, OptionSet] enum class WebCore::FilterRenderingOption : uint8_t {
     ShowDebugOverlay,
     FastAndLowQuality,
     ApplyToSVGRenderer
@@ -6905,7 +6905,7 @@ using WebCore::PageOverlay::PageOverlayID = uint64_t
     Rtl
 };
 
-[Nested] enum class WebCore::SVGUnitTypes::SVGUnitType : uint8_t {
+[Swift, Nested] enum class WebCore::SVGUnitTypes::SVGUnitType : uint8_t {
     SVG_UNIT_TYPE_UNKNOWN
     SVG_UNIT_TYPE_USERSPACEONUSE
     SVG_UNIT_TYPE_OBJECTBOUNDINGBOX
