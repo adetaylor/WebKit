@@ -188,7 +188,7 @@ private struct FilterStyleInputRects: FilterEffectInputRects {
 // mode, to its one input.
 @_expose(Cxx)
 func filterEffectStyleRects(
-    _ effect: WebCore.FilterEffectView,
+    _ effectView: WebCore.FilterEffectView,
     _ renderer: borrowing WebCore.FilterRendererParameters,
     _ inputPrimitiveSubregion: WebCore.FloatRect,
     _ inputImageRect: WebCore.FloatRect,
@@ -196,7 +196,8 @@ func filterEffectStyleRects(
 ) -> WebCore.FilterStyleRects {
     let context = filterApplyContextOf(renderer)
     let inputs = FilterStyleInputRects(inputPrimitiveSubregion: inputPrimitiveSubregion, inputImageRect: inputImageRect)
-    let type = effect.type()
+    let effect = FilterEffectDescription(effectView)
+    let type = effect.type
     var rects = WebCore.FilterStyleRects()
     rects.primitiveSubregion = filterEffectPrimitiveSubregion(type, context, inputs, geometry.hasGeometry ? geometry : nil)
     rects.imageRect = imageRectOfEffect(effect, type, context, inputs, rects.primitiveSubregion)
@@ -421,21 +422,21 @@ struct FilterEngine {
     // FilterEffect::apply(): the effect's cached result, or a new image it writes from its inputs. `geometry`: the x, y,
     // width and height of an SVG filter primitive.
     mutating func applyEffect(
-        _ effect: WebCore.FilterEffectView,
+        _ effect: FilterEffectDescription,
         _ key: FilterEffectKey,
         _ context: borrowing WebCore.FilterApplyContext,
         _ renderer: borrowing WebCore.FilterRendererParameters,
         _ inputs: FilterEffectInputs,
         _ geometry: WebCore.FilterEffectGeometryValues? = nil
     ) -> FilterImageBox? {
-        guard inputs.count == Int(effect.numberOfImageInputs()) else {
+        guard inputs.count == effect.numberOfImageInputs else {
             return nil
         }
         if let result = results.result(key) {
             return result
         }
 
-        let type = effect.type()
+        let type = effect.type
         let primitiveSubregion = filterEffectPrimitiveSubregion(type, context, inputs, geometry)
         let imageRect = imageRectOfEffect(effect, type, context, inputs, primitiveSubregion)
         let absoluteImageRect = WebCore.enclosingIntRect(context.scaledByFilterScale(imageRect))
@@ -443,11 +444,14 @@ struct FilterEngine {
             return nil
         }
 
-        let isAlphaImage = resultIsAlphaImage(effect, type, inputs)
+        let isAlphaImage = resultIsAlphaImage(effect, inputs)
         // Only the arithmetic composite can make invalid premultiplied pixels.
-        let isValidPremultiplied = type != .FEComposite || effect.compositeParameters().operation != .FECOMPOSITE_OPERATOR_ARITHMETIC
+        var isValidPremultiplied = true
+        if case .composite(let composite) = effect.parameters, composite.operation == .FECOMPOSITE_OPERATOR_ARITHMETIC {
+            isValidPremultiplied = false
+        }
         // FEDisplacementMap's result is a displacement of its first input, in that input's color space.
-        let resultColorSpace = type == .FEDisplacementMap ? inputs[0].image.colorSpace : effect.operatingColorSpace()
+        let resultColorSpace = type == .FEDisplacementMap ? inputs[0].image.colorSpace : effect.operatingColorSpace
         // A local until the kernel has written it, so that the kernel's access to it is checked when compiled.
         var resultImage = FilterImageImpl(
             allocator,
@@ -462,7 +466,7 @@ struct FilterEngine {
 
         // 'color-interpolation-filters' doesn't apply to FEDisplacementMap's first input, which stays in its color space.
         if FilterImageImpl.transformsColorSpace {
-            let operatingColorSpace = effect.operatingColorSpace()
+            let operatingColorSpace = effect.operatingColorSpace
             for position in 0..<inputs.count where type != .FEDisplacementMap || position == 1 {
                 inputs[position].image.transformToColorSpace(operatingColorSpace)
             }
@@ -474,7 +478,7 @@ struct FilterEngine {
             }
         }
 
-        guard applyKernel(effect, type, context, renderer, inputs, &resultImage) else {
+        guard applyKernel(effect, context, renderer, inputs, &resultImage) else {
             return nil
         }
         let memoryCost = resultImage.memoryCost()
@@ -513,31 +517,30 @@ private func filterEffectPrimitiveSubregion(
 
 // FilterEffect::calculateImageRect() of each effect type.
 private func imageRectOfEffect(
-    _ effect: WebCore.FilterEffectView,
+    _ effect: FilterEffectDescription,
     _ type: WebCore.FilterEffectType,
     _ context: borrowing WebCore.FilterApplyContext,
     _ inputs: some FilterEffectInputRects,
     _ primitiveSubregion: WebCore.FloatRect
 ) -> WebCore.FloatRect {
-    switch type {
-    case .FEComposite:
+    switch effect.parameters {
+    case .composite(let parameters):
         return feCompositeImageRect(
             context,
-            effect.compositeParameters(),
+            parameters,
             secondInputImageRect: inputs.imageRect(1),
             unitedInputImageRects: unitedImageRects(inputs),
             primitiveSubregion
         )
-    case .FEDropShadow:
-        return feDropShadowImageRect(context, effect.dropShadowParameters(), inputs.imageRect(0), primitiveSubregion)
-    case .FEGaussianBlur:
-        return feGaussianBlurImageRect(context, effect.gaussianBlurParameters(), inputs.imageRect(0), primitiveSubregion)
-    case .FEMorphology:
-        return feMorphologyImageRect(context, effect.morphologyParameters(), inputs.imageRect(0), primitiveSubregion)
-    case .FEOffset:
-        return feOffsetImageRect(context, effect.offsetParameters(), inputs.imageRect(0), primitiveSubregion)
-    case .FEConvolveMatrix, .FEDiffuseLighting, .FEDisplacementMap, .FEFlood, .FEImage, .FESpecularLighting, .FETile,
-        .FETurbulence:
+    case .dropShadow(let parameters, _):
+        return feDropShadowImageRect(context, parameters, inputs.imageRect(0), primitiveSubregion)
+    case .gaussianBlur(let parameters):
+        return feGaussianBlurImageRect(context, parameters, inputs.imageRect(0), primitiveSubregion)
+    case .morphology(let parameters):
+        return feMorphologyImageRect(context, parameters, inputs.imageRect(0), primitiveSubregion)
+    case .offset(let parameters):
+        return feOffsetImageRect(context, parameters, inputs.imageRect(0), primitiveSubregion)
+    case .convolveMatrix, .lighting, .displacementMap, .flood, .image, .tile, .turbulence:
         return context.maxEffectRect(primitiveSubregion)
     default:
         return filterEffectImageRect(
@@ -584,14 +587,13 @@ func takeImageInputs(_ count: Int, _ stack: inout FilterImageStack) -> FilterEff
 extension FilterEngine {
     // FilterEffect::resultIsAlphaImage() of each effect type.
     private func resultIsAlphaImage(
-        _ effect: WebCore.FilterEffectView,
-        _ type: WebCore.FilterEffectType,
+        _ effect: FilterEffectDescription,
         _ inputs: FilterEffectInputs
     ) -> Bool {
-        switch type {
-        case .FEColorMatrix:
-            return effect.colorMatrixParameters().type() == .FECOLORMATRIX_TYPE_LUMINANCETOALPHA
-        case .FEGaussianBlur, .FEMorphology, .FEOffset, .FETile:
+        switch effect.parameters {
+        case .colorMatrix(let parameters):
+            return parameters.type == .FECOLORMATRIX_TYPE_LUMINANCETOALPHA
+        case .gaussianBlur, .morphology, .offset, .tile:
             return inputs[0].isAlphaImage
         default:
             return false
@@ -604,15 +606,14 @@ extension FilterEngine {
     // it has it, otherwise Software). The two-input effects take another entry for one image twice: Swift takes the
     // inputs inout, which one image can't be twice.
     private func applyKernel(
-        _ effect: WebCore.FilterEffectView,
-        _ type: WebCore.FilterEffectType,
+        _ effect: FilterEffectDescription,
         _ context: borrowing WebCore.FilterApplyContext,
         _ renderer: borrowing WebCore.FilterRendererParameters,
         _ inputs: FilterEffectInputs,
         _ result: inout FilterImageImpl
     ) -> Bool {
-        switch type {
-        case .SourceGraphic:
+        switch effect.parameters {
+        case .sourceGraphic:
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return sourceGraphicApplyCoreImage(context, &inputs[0].image, &result)
@@ -625,7 +626,7 @@ extension FilterEngine {
             }
             return sourceGraphicApplySoftware(&inputs[0].image, &result)
 
-        case .SourceAlpha:
+        case .sourceAlpha:
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return sourceAlphaApplyCoreImage(inputs[0].image, &result)
@@ -635,8 +636,7 @@ extension FilterEngine {
             }
             return sourceAlphaApplySoftware(&inputs[0].image, &result)
 
-        case .FEBlend:
-            let parameters = effect.blendParameters()
+        case .blend(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feBlendApplyCoreImage(parameters, inputs[0].image, inputs[1].image, &result)
@@ -649,36 +649,35 @@ extension FilterEngine {
             }
             return feBlendApplySoftware(parameters, &inputs[0].image, &inputs[1].image, &result)
 
-        case .FEColorMatrix:
+        case .colorMatrix(let parameters):
             #if USE_SKIA
-            return feColorMatrixApplySkia(effect.colorMatrixParameters(), &inputs[0].image, &result)
+            return feColorMatrixApplySkia(parameters, &inputs[0].image, &result)
             #else
             if context.accelerated {
                 #if USE_CORE_IMAGE
-                return feColorMatrixApplyCoreImage(context, effect.colorMatrixParameters(), inputs[0].image, &result)
+                return feColorMatrixApplyCoreImage(context, parameters, inputs[0].image, &result)
                 #else
                 return false
                 #endif
             }
-            return feColorMatrixApplySoftware(effect.colorMatrixParameters(), &inputs[0].image, &result)
+            return feColorMatrixApplySoftware(parameters, &inputs[0].image, &result)
             #endif
 
-        case .FEComponentTransfer:
+        case .componentTransfer(let parameters):
             #if USE_SKIA
-            return feComponentTransferApplySkia(effect.componentTransferParameters(), &inputs[0].image, &result)
+            return feComponentTransferApplySkia(parameters, &inputs[0].image, &result)
             #else
             if context.accelerated {
                 #if USE_CORE_IMAGE
-                return feComponentTransferApplyCoreImage(context, effect.componentTransferParameters(), &inputs[0].image, &result)
+                return feComponentTransferApplyCoreImage(context, parameters, &inputs[0].image, &result)
                 #else
                 return false
                 #endif
             }
-            return feComponentTransferApplySoftware(effect.componentTransferParameters(), &inputs[0].image, &result)
+            return feComponentTransferApplySoftware(parameters, &inputs[0].image, &result)
             #endif
 
-        case .FEComposite:
-            let parameters = effect.compositeParameters()
+        case .composite(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feCompositeApplyCoreImage(context, parameters, inputs[0].image, inputs[1].image, &result)
@@ -691,14 +690,14 @@ extension FilterEngine {
                 if sameInputs {
                     return feCompositeApplySoftwareArithmeticWithSameInputs(
                         parameters,
-                        effect.operatingColorSpace(),
+                        effect.operatingColorSpace,
                         &inputs[0].image,
                         &result
                     )
                 }
                 return feCompositeApplySoftwareArithmetic(
                     parameters,
-                    effect.operatingColorSpace(),
+                    effect.operatingColorSpace,
                     &inputs[0].image,
                     &inputs[1].image,
                     &result
@@ -709,25 +708,18 @@ extension FilterEngine {
             }
             return feCompositeApplySoftware(parameters, &inputs[0].image, &inputs[1].image, &result)
 
-        case .FEConvolveMatrix:
+        case .convolveMatrix(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
-                return feConvolveMatrixApplyCoreImage(context, effect.convolveMatrixParameters(), inputs[0].image, &result)
+                return feConvolveMatrixApplyCoreImage(context, parameters, inputs[0].image, &result)
                 #else
                 return false
                 #endif
             }
-            return feConvolveMatrixApplySoftware(
-                effect.convolveMatrixParameters(),
-                effect.operatingColorSpace(),
-                &inputs[0].image,
-                &result
-            )
+            return feConvolveMatrixApplySoftware(parameters, effect.operatingColorSpace, &inputs[0].image, &result)
 
-        case .FEDiffuseLighting, .FESpecularLighting:
-            let parameters = effect.lightingParameters()
-            let lightSource = resolvedLightSourceParameters(effect.lightSource(), renderer)
-            let lightingColor = effect.lightingColor()
+        case .lighting(let parameters, let unresolvedLightSource, let lightingColor):
+            let lightSource = resolvedLightSourceParameters(unresolvedLightSource, renderer)
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feLightingApplyCoreImage(context, parameters, lightSource, lightingColor, inputs[0].image, &result)
@@ -737,8 +729,7 @@ extension FilterEngine {
             }
             return feLightingApplySoftware(context, parameters, lightSource, lightingColor, &inputs[0].image, &result)
 
-        case .FEDisplacementMap:
-            let parameters = effect.displacementMapParameters()
+        case .displacementMap(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feDisplacementMapApplyCoreImage(context, parameters, inputs[0].image, inputs[1].image, &result)
@@ -751,9 +742,9 @@ extension FilterEngine {
             }
             return feDisplacementMapApplySoftware(context, parameters, &inputs[0].image, &inputs[1].image, &result)
 
-        case .FEDropShadow:
-            let parameters = effect.dropShadowParameters()
+        case .dropShadow(let parameters, let shadowColor):
             #if USE_SKIA
+            _ = shadowColor
             return feDropShadowApplySkia(context, parameters, &inputs[0].image, &result)
             #else
             if context.accelerated {
@@ -761,30 +752,31 @@ extension FilterEngine {
                 return feDropShadowApplyCoreImage(
                     context,
                     parameters,
-                    effect.dropShadowColor(),
-                    effect.operatingColorSpaceIsSRGB(),
+                    shadowColor,
+                    effect.operatingColorSpaceIsSRGB,
                     inputs[0].image,
                     &result
                 )
                 #else
+                _ = shadowColor
                 return false
                 #endif
             }
             return feDropShadowApplySoftware(context, parameters, &inputs[0].image, &result)
             #endif
 
-        case .FEFlood:
+        case .flood(let parameters, let floodColor):
             if context.accelerated {
                 #if USE_CORE_IMAGE
-                return feFloodApplyCoreImage(context, effect.floodColor(), effect.operatingColorSpaceIsSRGB(), &result)
+                return feFloodApplyCoreImage(context, floodColor, effect.operatingColorSpaceIsSRGB, &result)
                 #else
+                _ = floodColor
                 return false
                 #endif
             }
-            return feFloodApplySoftware(effect.floodParameters(), &result)
+            return feFloodApplySoftware(parameters, &result)
 
-        case .FEGaussianBlur:
-            let parameters = effect.gaussianBlurParameters()
+        case .gaussianBlur(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feGaussianBlurApplyCoreImage(context, parameters, inputs[0].image, &result)
@@ -801,17 +793,17 @@ extension FilterEngine {
             #endif
             return feGaussianBlurApplySoftware(context, parameters, &inputs[0].image, &result)
 
-        case .FEImage:
+        case .image(let parameters, let source):
             if context.accelerated {
                 #if USE_CORE_IMAGE
-                return feImageApplyCoreImage(context, effect.imageParameters(), effect.imageSource(), &result)
+                return feImageApplyCoreImage(context, parameters, source, &result)
                 #else
                 return false
                 #endif
             }
-            return feImageApplySoftware(context, effect.imageParameters(), effect.imageSource(), &result)
+            return feImageApplySoftware(context, parameters, source, &result)
 
-        case .FEMerge:
+        case .merge:
             // The inputs are merged one by one, each over those before it.
             if context.accelerated {
                 #if USE_CORE_IMAGE
@@ -831,8 +823,7 @@ extension FilterEngine {
             }
             return true
 
-        case .FEMorphology:
-            let parameters = effect.morphologyParameters()
+        case .morphology(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feMorphologyApplyCoreImage(context, parameters, inputs[0].image, &result)
@@ -840,10 +831,9 @@ extension FilterEngine {
                 return false
                 #endif
             }
-            return feMorphologyApplySoftware(context, parameters, effect.operatingColorSpace(), &inputs[0].image, &result)
+            return feMorphologyApplySoftware(context, parameters, effect.operatingColorSpace, &inputs[0].image, &result)
 
-        case .FEOffset:
-            let parameters = effect.offsetParameters()
+        case .offset(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feOffsetApplyCoreImage(context, parameters, inputs[0].image, &result)
@@ -853,7 +843,7 @@ extension FilterEngine {
             }
             return feOffsetApplySoftware(context, parameters, &inputs[0].image, &result)
 
-        case .FETile:
+        case .tile:
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feTileApplyCoreImage(context, inputs[0].image, &result)
@@ -863,8 +853,7 @@ extension FilterEngine {
             }
             return feTileApplySoftware(context, &inputs[0].image, &result)
 
-        case .FETurbulence:
-            let parameters = effect.turbulenceParameters()
+        case .turbulence(let parameters):
             if context.accelerated {
                 #if USE_CORE_IMAGE
                 return feTurbulenceApplyCoreImage(context, parameters, &result)
@@ -873,9 +862,6 @@ extension FilterEngine {
                 #endif
             }
             return feTurbulenceApplySoftware(context, parameters, &result)
-
-        @unknown default:
-            return false
         }
     }
 }

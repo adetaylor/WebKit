@@ -146,11 +146,36 @@ func svgFilterApply(
     _ rendersResult: Bool,
     _ absoluteImageRect: inout WebCore.IntRect
 ) -> WebCore.RefPtrImageBuffer {
-    let renderer = filter.parameters()
-    let context = filterApplyContextOf(renderer)
+    svgFilterResult(SVGFilterDescription(filter), sourceImage, sourceImageRect, allocator, &results, rendersResult, &absoluteImageRect)
+}
+
+// SVGFilterRenderer::apply() of a described SVG filter: its result, with its absolute image rect, or nil if it fails.
+// `rendersResult`: as FilterEngine.finalResult() takes it.
+@_spi(WebKitGPU) public func applySVGFilter(
+    _ filter: borrowing SVGFilterDescription,
+    _ sourceImage: WebCore.ImageBuffer?,
+    _ sourceImageRect: WebCore.FloatRect,
+    _ allocator: WebCore.FilterImageAllocator,
+    _ results: inout FilterResultsState,
+    _ rendersResult: Bool,
+    _ absoluteImageRect: inout WebCore.IntRect
+) -> WebCore.ImageBuffer? {
+    svgFilterResult(filter, sourceImage, sourceImageRect, allocator, &results.impl, rendersResult, &absoluteImageRect).get()
+}
+
+private func svgFilterResult(
+    _ filter: borrowing SVGFilterDescription,
+    _ sourceImage: WebCore.ImageBuffer?,
+    _ sourceImageRect: WebCore.FloatRect,
+    _ allocator: WebCore.FilterImageAllocator,
+    _ results: inout FilterResultsImpl,
+    _ rendersResult: Bool,
+    _ absoluteImageRect: inout WebCore.IntRect
+) -> WebCore.RefPtrImageBuffer {
+    let context = filterApplyContextOf(filter.renderer)
     return withFilterEngine(allocator, &results) { engine in
         var source = SVGFilterSourceImage(sourceImage, sourceImageRect)
-        guard let result = engine.applySVGFilter(filter, renderer, context, &source) else {
+        guard let result = engine.applySVGFilter(filter, context, &source) else {
             return WebCore.RefPtrImageBuffer()
         }
         return engine.finalResult(result, context, rendersResult, &absoluteImageRect)
@@ -160,12 +185,11 @@ func svgFilterApply(
 extension FilterEngine {
     // SVGFilterRenderer::apply(const Filter&, FilterImage&, FilterResults&): an SVG filter a CSS filter references, applied
     // to the result of the function before it.
-    mutating func applyReferencedSVGFilter(_ filter: WebCore.SVGFilterRendererView, _ sourceImage: FilterImageBox) -> FilterImageBox? {
-        let renderer = filter.parameters()
-        let context = filterApplyContextOf(renderer)
+    mutating func applyReferencedSVGFilter(_ filter: borrowing SVGFilterDescription, _ sourceImage: FilterImageBox) -> FilterImageBox? {
+        let context = filterApplyContextOf(filter.renderer)
         if WebCore.areEssentiallyEqual(sourceImage.primitiveSubregion, context.filterRegion) {
             var source = SVGFilterSourceImage(sourceImage)
-            return applySVGFilter(filter, renderer, context, &source)
+            return applySVGFilter(filter, context, &source)
         }
         // Per the SVG spec, standard inputs (SourceGraphic, SourceAlpha, etc.) use the filter region as their default
         // primitive subregion. The source image may come from an outer CSSFilterRenderer whose filter region is the
@@ -175,25 +199,26 @@ extension FilterEngine {
             return nil
         }
         var source = SVGFilterSourceImage(input)
-        return applySVGFilter(filter, renderer, context, &source)
+        return applySVGFilter(filter, context, &source)
     }
 
     // The expression: a stack program over the effects. Each term pushes its effect's result, made from the inputs it
-    // takes off the stack.
+    // takes off the stack. Fails for a term whose effect the filter doesn't have.
     mutating func applySVGFilter(
-        _ filter: WebCore.SVGFilterRendererView,
-        _ renderer: borrowing WebCore.FilterRendererParameters,
+        _ filter: borrowing SVGFilterDescription,
         _ context: borrowing WebCore.FilterApplyContext,
         _ sourceImage: inout SVGFilterSourceImage
     ) -> FilterImageBox? {
-        let identifier = filter.identifier()
         var stack = FilterImageStack()
-        for term in 0..<filter.termCount() {
-            let index = filter.termEffectIndex(term)
-            let effect = filter.effect(index)
-            let key = FilterEffectKey(identifier, index)
+        for term in filter.terms {
+            let index = term.effectIndex
+            guard Int(index) < filter.effects.count else {
+                return nil
+            }
+            let effect = filter.effects[Int(index)]
+            let key = FilterEffectKey(filter.identifier, index)
 
-            if effect.type() == .SourceGraphic {
+            if effect.type == .SourceGraphic {
                 if let result = cachedResult(key) {
                     stack.push(result)
                     continue
@@ -206,8 +231,8 @@ extension FilterEngine {
             }
 
             // Need to remove the inputs here in case the effect already has a result.
-            let inputs = takeImageInputs(Int(effect.numberOfImageInputs()), &stack)
-            guard let result = applyEffect(effect, key, context, renderer, inputs, filter.termGeometry(term)) else {
+            let inputs = takeImageInputs(effect.numberOfImageInputs, &stack)
+            guard let result = applyEffect(effect, key, context, filter.renderer, inputs, term.geometry) else {
                 return nil
             }
             stack.push(result)

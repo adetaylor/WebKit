@@ -94,7 +94,7 @@ OptionSet<FilterRenderingMode> FEColorMatrix::supportedFilterRenderingModes(Opti
 {
     OptionSet<FilterRenderingMode> modes = FilterRenderingMode::Software;
 #if USE(CORE_IMAGE)
-    if (feColorMatrixSupportsCoreImage(FEColorMatrixParametersView { m_parameters }))
+    if (feColorMatrixSupportsCoreImage(m_parameters.type))
         modes.add(FilterRenderingMode::Accelerated);
 #endif
 #if USE(SKIA)

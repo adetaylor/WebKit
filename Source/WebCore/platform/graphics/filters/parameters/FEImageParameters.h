@@ -28,6 +28,7 @@
 #include <WebCore/IntRect.h>
 #include <WebCore/IntSize.h>
 #include <wtf/Platform.h>
+#include <wtf/RefPtr.h>
 #include <wtf/SwiftBridging.h>
 
 #if USE(CORE_IMAGE)
@@ -38,50 +39,27 @@
 
 namespace WebCore {
 
-class SourceImage;
+class NativeImage;
+
+// The optional native image of FEImage's source that FilterEffectView returns (FilterDescriptions.swift).
+using RefPtrNativeImage = RefPtr<NativeImage>;
 
 // FEImage's parameters, which FEImage stores (its getters are the IPC model) and passes to its Swift functions. Its
-// source image, which Swift doesn't import, stays in FEImage and reaches Swift as an FEImageSource.
+// source image reaches Swift as the NativeImage or ImageBuffer it is (FilterImageSource).
 struct FEImageParameters {
     FloatRect sourceImageRect;
 
     bool operator==(const FEImageParameters&) const = default;
 };
 
-enum class FEImageSourceKind : uint8_t {
-    NativeImage,
-    ImageBuffer,
-    // An image the GPU process hasn't resolved: only its identifier.
-    None
-};
-
-// FEImage's source image, lent to Swift for one call: its kind, and its image through the members (FEImageBridge.cpp).
-// Swift can't read the source image or keep it. NativeImage stays C++.
-class SWIFT_VIEW SWIFT_SAFE FEImageSource {
-public:
-#if !defined(__swift__)
-    explicit FEImageSource(const SourceImage&);
-#endif
-
-    // Draws all of the source NativeImage, if the source is one, into `destinationRect` of `destination`.
-    void drawNativeImage(ImageBuffer& destination, const IntRect& destinationRect) const;
-
-    // The source ImageBuffer, or null if the source isn't one.
-    RefPtr<ImageBuffer> imageBuffer() const;
-
+// What WebCore's Swift can't do with FEImage's source image itself (FEImageBridge.cpp): draw all of a NativeImage into
+// `destinationRect` of `destination`, and with Core Image, read a NativeImage's size and CGImage and an ImageBuffer's
+// IOSurface (null if it has none).
+void feImageDrawNativeImage(NativeImage&, ImageBuffer& destination, const IntRect& destinationRect);
 #if USE(CORE_IMAGE)
-    // The source NativeImage's size and CGImage, or empty and null if the source isn't a NativeImage.
-    IntSize nativeImageSize() const;
-    CF_RETURNS_RETAINED CGImageRef copyNativeImagePlatformImage() const;
-
-    // The IOSurface of the source ImageBuffer, or null if the source isn't an ImageBuffer or the image buffer has none.
-    CF_RETURNS_NOT_RETAINED IOSurfaceRef imageBufferSurface() const;
+IntSize feImageNativeImageSize(NativeImage&);
+CF_RETURNS_RETAINED CGImageRef feImageCopyNativeImagePlatformImage(NativeImage&);
+CF_RETURNS_NOT_RETAINED IOSurfaceRef feImageImageBufferSurface(ImageBuffer&);
 #endif
-
-    FEImageSourceKind kind;
-
-private:
-    const SourceImage& m_sourceImage;
-};
 
 } // namespace WebCore

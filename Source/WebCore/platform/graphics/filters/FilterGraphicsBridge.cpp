@@ -28,6 +28,23 @@
 
 #include "ImageBufferAllocator.h"
 
+namespace WebCore {
+
+Ref<FilterImageAllocator> FilterImageAllocator::create(std::unique_ptr<ImageBufferAllocator>&& allocator)
+{
+    return adoptRef(*new FilterImageAllocator(WTF::move(allocator)));
+}
+
+FilterImageAllocator::FilterImageAllocator(std::unique_ptr<ImageBufferAllocator>&& allocator)
+    : m_allocator(allocator.get())
+    , m_ownedAllocator(WTF::move(allocator))
+{
+}
+
+FilterImageAllocator::~FilterImageAllocator() = default;
+
+} // namespace WebCore
+
 namespace WebCore::FilterGraphicsBridge {
 
 RefPtr<PixelBuffer> createPixelBuffer(const FilterImageAllocator& allocator, const PixelBufferFormat& format, const IntSize& size)

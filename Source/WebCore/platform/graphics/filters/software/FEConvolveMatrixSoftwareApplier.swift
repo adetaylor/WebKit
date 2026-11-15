@@ -22,8 +22,8 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-// The safe Span overloads Swift synthesizes for FEConvolveMatrixParametersView.kernelValues() and PixelBufferAccess call
-// Cxx's Span(_unsafeCxxSpan:). Xcode builds don't find it unless this file imports Cxx.
+// The safe Span overloads Swift synthesizes for PixelBufferAccess call Cxx's Span(_unsafeCxxSpan:). Xcode builds don't find
+// it unless this file imports Cxx.
 private import Cxx
 import WebCore_Private.Core.AlphaPremultiplication
 import WebCore_Private.Core.ColorSpace
@@ -55,12 +55,12 @@ import WebCore_Private.Core.PixelBufferSwiftBridge
 // computed on its own: the rows of B, C and D, or of A and E, which take the edge mode into account. When the kernel is
 // larger than the image, every pixel is in A.
 func feConvolveMatrixApplySoftware(
-    _ parameters: WebCore.FEConvolveMatrixParametersView,
+    _ parameters: FEConvolveMatrixValues,
     _ operatingColorSpace: borrowing WebCore.ColorSpace,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
-    let alphaFormat: WebCore.AlphaPremultiplication = parameters.preserveAlpha() ? .Unpremultiplied : .Premultiplied
+    let alphaFormat: WebCore.AlphaPremultiplication = parameters.preserveAlpha ? .Unpremultiplied : .Premultiplied
     guard let destination = result.pixelBuffer(alphaFormat).get() else {
         return false
     }
@@ -80,7 +80,7 @@ func feConvolveMatrixApplySoftware(
 
     // FEColorMatrix::normalizedFloats() of the kernel, in the order the taps visit it: the kernel is applied rotated by
     // 180 degrees.
-    let kernelValues: Span<Float> = parameters.kernelValues()
+    let kernelValues: Span<Float> = parameters.kernel.span
     var taps = ContiguousArray<Float>(repeating: 0, count: kernelValues.count)
     for index in kernelValues.indices {
         taps[index] = normalizedFloat(kernelValues[kernelValues.count - 1 - index])
@@ -132,16 +132,15 @@ private struct ConvolveMatrixGeometry {
     let jobCount: Int
 
     // Nil for a kernel that FEConvolveMatrix's IPC and DOM validation would have rejected.
-    init?(_ parameters: WebCore.FEConvolveMatrixParametersView, width: Int, height: Int) {
-        let kernelSize = parameters.kernelSize()
-        let targetOffset = parameters.targetOffset()
+    init?(_ parameters: FEConvolveMatrixValues, width: Int, height: Int) {
+        let kernelSize = parameters.kernelSize
+        let targetOffset = parameters.targetOffset
         kernelWidth = Int(kernelSize.width())
         kernelHeight = Int(kernelSize.height())
         targetX = Int(targetOffset.x())
         targetY = Int(targetOffset.y())
-        let kernelValues: Span<Float> = parameters.kernelValues()
         guard kernelWidth > 0, kernelHeight > 0, (0..<kernelWidth).contains(targetX), (0..<kernelHeight).contains(targetY),
-            kernelWidth.checkedMultiplied(by: kernelHeight) == kernelValues.count
+            kernelWidth.checkedMultiplied(by: kernelHeight) == parameters.kernel.count
         else {
             return nil
         }
@@ -151,10 +150,10 @@ private struct ConvolveMatrixGeometry {
         self.height = max(height, 0)
         rowBytes = self.width * 4
         byteCount = rowBytes.checkedMultiplied(by: self.height) ?? .max
-        divisor = parameters.divisor()
-        bias = parameters.bias() * 255
-        preserveAlpha = parameters.preserveAlpha()
-        switch parameters.edgeMode() {
+        divisor = parameters.divisor
+        bias = parameters.bias * 255
+        preserveAlpha = parameters.preserveAlpha
+        switch parameters.edgeMode {
         case .Duplicate:
             edgeMode = .duplicate
         case .Wrap:

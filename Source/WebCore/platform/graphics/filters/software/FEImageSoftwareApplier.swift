@@ -32,13 +32,14 @@ import WebCore_Private.Core.GraphicsContextSwiftBridge
 import WebCore_Private.Core.ImageBuffer
 import WebCore_Private.Core.IntPoint
 import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.NativeImage
 
 // FEImageSoftwareApplier::apply(): all of the source image drawn into its place in the result. NativeImage sources are
 // drawn by C++ (FEImageBridge.cpp).
 func feImageApplySoftware(
     _ context: borrowing WebCore.FilterApplyContext,
     _ parameters: borrowing WebCore.FEImageParameters,
-    _ source: WebCore.FEImageSource,
+    _ source: FilterImageSource,
     _ result: inout FilterImageImpl
 ) -> Bool {
     guard let resultImage = result.imageBuffer().get() else {
@@ -50,29 +51,23 @@ func feImageApplySoftware(
         return true
     }
 
-    switch source.kind {
-    case .NativeImage:
+    switch source {
+    case .nativeImage(let nativeImage):
         var imageRect = context.scaledByFilterScale(sourceImageRect)
         imageRect.moveBy(negatedLocation(result.absoluteImageRect))
-        source.drawNativeImage(resultImage, WebCore.roundedIntRect(imageRect))
+        WebCore.feImageDrawNativeImage(nativeImage, resultImage, WebCore.roundedIntRect(imageRect))
         return true
-    case .ImageBuffer:
+    case .imageBuffer(let imageBuffer):
         var destinationRect = sourceImageRect
         destinationRect.moveBy(result.primitiveSubregion.location())
         destinationRect.scale(context.filterScale)
         destinationRect.moveBy(negatedLocation(result.absoluteImageRect))
-        let sourceImageBuffer = source.imageBuffer()
-        guard let imageBuffer = sourceImageBuffer.get() else {
-            return true
-        }
         let bufferBounds = WebCore.FloatRect(WebCore.FloatPoint(), imageBuffer.logicalSize())
         let drawing = WebCore.ImageBufferDrawing(resultImage)
         drawing.context().drawImageBuffer(imageBuffer, destinationRect, bufferBounds, .SourceOver, .Normal)
         return true
-    case .None:
+    case .none:
         assertionFailure()
-        return false
-    @unknown default:
         return false
     }
 }

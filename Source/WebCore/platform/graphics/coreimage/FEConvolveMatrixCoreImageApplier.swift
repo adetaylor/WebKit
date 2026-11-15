@@ -33,26 +33,27 @@ import WebCore_Private.Core.IntSize
 
 // FEConvolveMatrixCoreImageApplier::supportsCoreImageRendering().
 @_expose(Cxx)
-func feConvolveMatrixSupportsCoreImage(_ parameters: WebCore.FEConvolveMatrixParametersView) -> Bool {
-    parameters.edgeMode() == .None
+func feConvolveMatrixSupportsCoreImage(_ edgeMode: WebCore.EdgeModeType) -> Bool {
+    edgeMode == .None
 }
 
 // FEConvolveMatrixCoreImageApplier::apply().
 func feConvolveMatrixApplyCoreImage(
     _ context: borrowing WebCore.FilterApplyContext,
-    _ parameters: WebCore.FEConvolveMatrixParametersView,
+    _ parameters: FEConvolveMatrixValues,
     _ input: borrowing FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
-    guard var inputImage = input.ciImage, let kernel = convolveMatrixKernel else {
+    // The kernel reads kernelSize's values, which the parameters must have.
+    guard parameters.hasValidKernel, var inputImage = input.ciImage, let kernel = convolveMatrixKernel else {
         return false
     }
 
     let extent = context.coreImageRect(result.absoluteImageRect)
 
-    let kernelSize = parameters.kernelSize()
-    let targetOffset = parameters.targetOffset()
-    let preserveAlpha = parameters.preserveAlpha()
+    let kernelSize = parameters.kernelSize
+    let targetOffset = parameters.targetOffset
+    let preserveAlpha = parameters.preserveAlpha
     // ConvolveMatrixConstants of the kernel: int2 kernelSize, int2 target (y flipped), float divisor, float bias,
     // uint8_t edgeMode, bool preserveAlpha, padded to the 8-byte alignment of int2.
     var constants = ConvolveMatrixConstantWriter()
@@ -60,14 +61,14 @@ func feConvolveMatrixApplyCoreImage(
     constants.append(kernelSize.height())
     constants.append(targetOffset.x())
     constants.append(kernelSize.height() &- targetOffset.y() &- 1)
-    constants.append(parameters.divisor())
-    constants.append(parameters.bias())
-    constants.append(coreImageEdgeMode(parameters.edgeMode()))
+    constants.append(parameters.divisor)
+    constants.append(parameters.bias)
+    constants.append(coreImageEdgeMode(parameters.edgeMode))
     constants.append(UInt8(preserveAlpha ? 1 : 0))
     constants.padToMultiple(of: 8)
 
     var kernelValues = ConvolveMatrixConstantWriter()
-    let values: Span<Float> = parameters.kernelValues()
+    let values: Span<Float> = parameters.kernel.span
     for index in values.indices {
         kernelValues.append(normalizedFloat(values[index]))
     }
