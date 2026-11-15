@@ -24,9 +24,6 @@
 #if ENABLE_WEBCORE_SWIFT
 #if USE_CORE_IMAGE
 
-// The safe Span overload Swift synthesizes for ComponentTransferFunctionView.tableValuesSpan() calls Cxx's
-// Span(_unsafeCxxSpan:). Xcode builds don't find it unless this file imports Cxx.
-private import Cxx
 import CoreGraphics
 import CoreImage
 import CoreImage.CIFilterBuiltins
@@ -43,7 +40,7 @@ import WebCore_Private.Core.SourceGraphicParameters
 // FEComponentTransferCoreImageApplier::apply().
 func feComponentTransferApplyCoreImage(
     _ context: borrowing WebCore.FilterApplyContext,
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
@@ -51,10 +48,10 @@ func feComponentTransferApplyCoreImage(
         return false
     }
 
-    let redType = parameters.red().type()
-    let greenType = parameters.green().type()
-    let blueType = parameters.blue().type()
-    let alphaType = parameters.alpha().type()
+    let redType = parameters.red.type
+    let greenType = parameters.green.type
+    let blueType = parameters.blue.type
+    let alphaType = parameters.alpha.type
     let linear = WebCore.ComponentTransferType.FECOMPONENTTRANSFER_TYPE_LINEAR
     let resultImage: CIImage?
     if redType == linear && greenType == linear && blueType == linear && alphaType == linear {
@@ -76,16 +73,16 @@ func feComponentTransferApplyCoreImage(
 // layout for every apply. Longer tables are applied in software.
 private let componentTransferKernelTableByteCount = 4096
 
-private func componentTransferTableByteCount(_ parameters: WebCore.FEComponentTransferParametersView) -> Int {
-    tableByteCount(parameters.red()) + tableByteCount(parameters.green()) + tableByteCount(parameters.blue())
-        + tableByteCount(parameters.alpha())
+private func componentTransferTableByteCount(_ parameters: FEComponentTransferValues) -> Int {
+    tableByteCount(parameters.red) + tableByteCount(parameters.green) + tableByteCount(parameters.blue)
+        + tableByteCount(parameters.alpha)
 }
 
 // The bytes appendTransferFunction() adds to the table argument for `function`.
-private func tableByteCount(_ function: WebCore.ComponentTransferFunctionView) -> Int {
-    switch function.type() {
+private func tableByteCount(_ function: ComponentTransferFunctionValues) -> Int {
+    switch function.type {
     case .FECOMPONENTTRANSFER_TYPE_TABLE, .FECOMPONENTTRANSFER_TYPE_DISCRETE:
-        let tableValues: Span<Float> = function.tableValuesSpan()
+        let tableValues: Span<Float> = function.tableValues.span
         return tableValues.count * MemoryLayout<Float>.size
     default:
         return 0
@@ -96,7 +93,7 @@ private func tableByteCount(_ function: WebCore.ComponentTransferFunctionView) -
 // and gives Core Image the result's image buffer, at the result's place in the absolute enclosing filter region.
 private func applyComponentTransferInSoftware(
     _ context: borrowing WebCore.FilterApplyContext,
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
@@ -134,26 +131,26 @@ private func applyComponentTransferInSoftware(
 
 // FEComponentTransferCoreImageApplier::applyLinear(): every channel is linear.
 private func applyLinearComponentTransfer(
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ inputImage: CIImage
 ) -> CIImage? {
     let filter = CIFilter.colorPolynomial()
     filter.inputImage = inputImage
-    filter.redCoefficients = linearCoefficients(parameters.red())
-    filter.greenCoefficients = linearCoefficients(parameters.green())
-    filter.blueCoefficients = linearCoefficients(parameters.blue())
-    filter.alphaCoefficients = linearCoefficients(parameters.alpha())
+    filter.redCoefficients = linearCoefficients(parameters.red)
+    filter.greenCoefficients = linearCoefficients(parameters.green)
+    filter.blueCoefficients = linearCoefficients(parameters.blue)
+    filter.alphaCoefficients = linearCoefficients(parameters.alpha)
     return filter.outputImage
 }
 
-private func linearCoefficients(_ function: WebCore.ComponentTransferFunctionView) -> CIVector {
-    CIVector(x: CGFloat(function.intercept()), y: CGFloat(function.slope()), z: 0, w: 0)
+private func linearCoefficients(_ function: ComponentTransferFunctionValues) -> CIVector {
+    CIVector(x: CGFloat(function.intercept), y: CGFloat(function.slope), z: 0, w: 0)
 }
 
 // FEComponentTransferCoreImageApplier::applyOther(): the kernel below, with the four functions in its constants and their
 // tables one after the other in its table buffer.
 private func applyComponentTransferKernel(
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ inputImage: CIImage
 ) -> CIImage? {
     guard let kernel = componentTransferKernel else {
@@ -162,10 +159,10 @@ private func applyComponentTransferKernel(
 
     var constants = ComponentTransferKernelWriter()
     var tables = ComponentTransferKernelWriter()
-    appendTransferFunction(parameters.red(), constants: &constants, tables: &tables)
-    appendTransferFunction(parameters.green(), constants: &constants, tables: &tables)
-    appendTransferFunction(parameters.blue(), constants: &constants, tables: &tables)
-    appendTransferFunction(parameters.alpha(), constants: &constants, tables: &tables)
+    appendTransferFunction(parameters.red, constants: &constants, tables: &tables)
+    appendTransferFunction(parameters.green, constants: &constants, tables: &tables)
+    appendTransferFunction(parameters.blue, constants: &constants, tables: &tables)
+    appendTransferFunction(parameters.alpha, constants: &constants, tables: &tables)
 
     tables.padWithZeros(toCount: componentTransferKernelTableByteCount)
     let arguments: [Any] = [inputImage, constants.data, tables.data]
@@ -186,7 +183,7 @@ private enum ComponentTransferKernelType: UInt32 {
 // params[3]; } for `function` to `constants`, and its table, if it has one, to `tables`. An empty table is the identity, as
 // in software: the kernel never indexes a table of no entries.
 private func appendTransferFunction(
-    _ function: WebCore.ComponentTransferFunctionView,
+    _ function: ComponentTransferFunctionValues,
     constants: inout ComponentTransferKernelWriter,
     tables: inout ComponentTransferKernelWriter
 ) {
@@ -195,21 +192,21 @@ private func appendTransferFunction(
     var tableStart: UInt32 = 0
     var parameters: (Float, Float, Float) = (0, 0, 0)
 
-    switch function.type() {
+    switch function.type {
     case .FECOMPONENTTRANSFER_TYPE_UNKNOWN, .FECOMPONENTTRANSFER_TYPE_IDENTITY:
         break
     case .FECOMPONENTTRANSFER_TYPE_LINEAR:
         type = .linear
-        parameters = (function.slope(), function.intercept(), 0)
+        parameters = (function.slope, function.intercept, 0)
     case .FECOMPONENTTRANSFER_TYPE_GAMMA:
         type = .gamma
-        parameters = (function.amplitude(), function.exponent(), function.offset())
+        parameters = (function.amplitude, function.exponent, function.offset)
     case .FECOMPONENTTRANSFER_TYPE_TABLE, .FECOMPONENTTRANSFER_TYPE_DISCRETE:
-        let tableValues: Span<Float> = function.tableValuesSpan()
+        let tableValues: Span<Float> = function.tableValues.span
         if tableValues.isEmpty {
             break
         }
-        type = function.type() == .FECOMPONENTTRANSFER_TYPE_TABLE ? .table : .discrete
+        type = function.type == .FECOMPONENTTRANSFER_TYPE_TABLE ? .table : .discrete
         // Sizes in C++ unsigned, as the kernel reads them.
         tableLength = UInt32(truncatingIfNeeded: tableValues.count)
         tableStart = UInt32(truncatingIfNeeded: tables.count / 4)

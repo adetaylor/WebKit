@@ -25,6 +25,7 @@
 
 #pragma once
 
+#include <WebCore/Color.h>
 #include <WebCore/ColorSpace.h>
 #include <WebCore/FEBlendParameters.h>
 #include <WebCore/FEColorMatrixParameters.h>
@@ -40,11 +41,17 @@
 #include <WebCore/FEMorphologyParameters.h>
 #include <WebCore/FEOffsetParameters.h>
 #include <WebCore/FETurbulenceParameters.h>
+#include <WebCore/FilterGraphicsBridge.h>
 #include <WebCore/FilterSwiftBridge.h>
 #include <WebCore/LightSourceParameters.h>
 #include <cstdint>
+#include <wtf/Platform.h>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
+
+#if USE(CG)
+#include <CoreGraphics/CoreGraphics.h>
+#endif
 
 namespace WebCore {
 
@@ -102,7 +109,9 @@ public:
     FilterColorComponents floodColor() const;
     FEGaussianBlurParameters gaussianBlurParameters() const;
     FEImageParameters imageParameters() const;
-    FEImageSource imageSource() const LIFETIME_BOUND;
+    // FEImage's source image, if it is a native image, or if it is an image buffer.
+    RefPtrNativeImage imageSourceNativeImage() const;
+    RefPtrImageBuffer imageSourceImageBuffer() const;
     // FEDiffuseLighting and FESpecularLighting.
     FELightingParameters lightingParameters() const;
     // The light source, its positions in primitive units.
@@ -116,5 +125,14 @@ public:
 private:
     const Ref<const FilterEffect> m_effect;
 };
+
+// For the effects of the filters that the GPU process describes in Swift (FilterDescriptions.swift): a color in an effect's
+// operating color space, as FilterEffectView's colors are, whether a color space is sRGB, and on CG, the ColorSpace of a
+// CGColorSpace.
+FilterColorComponents filterEffectColorComponents(const Color&, const ColorSpace&);
+bool filterEffectColorSpaceIsSRGB(const ColorSpace&);
+#if USE(CG)
+ColorSpace filterEffectColorSpace(CGColorSpaceRef);
+#endif
 
 } // namespace WebCore

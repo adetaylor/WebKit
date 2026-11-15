@@ -67,7 +67,7 @@ import WebCore_Private.Core.IntPoint
 
 // FEComponentTransferSoftwareApplier::apply().
 func feComponentTransferApplySoftware(
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
@@ -92,7 +92,7 @@ func feComponentTransferApplySoftware(
 #if USE_SKIA
 // FEComponentTransferSkiaApplier::apply(): Skia draws the input through the tables (FilterSkiaBridge.cpp).
 func feComponentTransferApplySkia(
-    _ parameters: WebCore.FEComponentTransferParametersView,
+    _ parameters: FEComponentTransferValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
@@ -110,13 +110,13 @@ func feComponentTransferApplySkia(
 private let componentTransferTableSize = 256
 
 // FEComponentTransfer::computeLookupTable() of the red, green, blue and alpha functions, one table after the other.
-private func componentTransferLookupTables(_ parameters: WebCore.FEComponentTransferParametersView) -> ContiguousArray<UInt8> {
+private func componentTransferLookupTables(_ parameters: FEComponentTransferValues) -> ContiguousArray<UInt8> {
     var tables = ContiguousArray<UInt8>(repeating: 0, count: 4 * componentTransferTableSize)
     var span = tables.mutableSpan
-    fillComponentTransferLookupTable(&span, base: 0, parameters.red())
-    fillComponentTransferLookupTable(&span, base: componentTransferTableSize, parameters.green())
-    fillComponentTransferLookupTable(&span, base: 2 * componentTransferTableSize, parameters.blue())
-    fillComponentTransferLookupTable(&span, base: 3 * componentTransferTableSize, parameters.alpha())
+    fillComponentTransferLookupTable(&span, base: 0, parameters.red)
+    fillComponentTransferLookupTable(&span, base: componentTransferTableSize, parameters.green)
+    fillComponentTransferLookupTable(&span, base: 2 * componentTransferTableSize, parameters.blue)
+    fillComponentTransferLookupTable(&span, base: 3 * componentTransferTableSize, parameters.alpha)
     return tables
 }
 
@@ -125,14 +125,14 @@ private func componentTransferLookupTables(_ parameters: WebCore.FEComponentTran
 private func fillComponentTransferLookupTable(
     _ tables: inout MutableSpan<UInt8>,
     base: Int,
-    _ function: WebCore.ComponentTransferFunctionView
+    _ function: ComponentTransferFunctionValues
 ) {
-    switch function.type() {
+    switch function.type {
     case .FECOMPONENTTRANSFER_TYPE_UNKNOWN, .FECOMPONENTTRANSFER_TYPE_IDENTITY:
         fillIdentityLookupTable(&tables, base: base)
 
     case .FECOMPONENTTRANSFER_TYPE_TABLE:
-        let tableValues: Span<Float> = function.tableValuesSpan()
+        let tableValues: Span<Float> = function.tableValues.span
         // Vector's size_t count in a C++ unsigned.
         let n = UInt32(truncatingIfNeeded: tableValues.count)
         if n < 1 {
@@ -150,7 +150,7 @@ private func fillComponentTransferLookupTable(
         }
 
     case .FECOMPONENTTRANSFER_TYPE_DISCRETE:
-        let tableValues: Span<Float> = function.tableValuesSpan()
+        let tableValues: Span<Float> = function.tableValues.span
         let n = UInt32(truncatingIfNeeded: tableValues.count)
         if n < 1 {
             fillIdentityLookupTable(&tables, base: base)
@@ -165,8 +165,8 @@ private func fillComponentTransferLookupTable(
         }
 
     case .FECOMPONENTTRANSFER_TYPE_LINEAR:
-        let slope = function.slope()
-        let intercept = function.intercept()
+        let slope = function.slope
+        let intercept = function.intercept
         for i in 0..<componentTransferTableSize {
             // Float arithmetic, as in C++.
             let value = Double(slope * Float(i) + 255 * intercept)
@@ -174,9 +174,9 @@ private func fillComponentTransferLookupTable(
         }
 
     case .FECOMPONENTTRANSFER_TYPE_GAMMA:
-        let amplitude = Double(function.amplitude())
-        let exponent = Double(function.exponent())
-        let offset = Double(function.offset())
+        let amplitude = Double(function.amplitude)
+        let exponent = Double(function.exponent)
+        let offset = Double(function.offset)
         for i in 0..<componentTransferTableSize {
             let value = 255.0 * (amplitude * pow(Double(i) / 255.0, exponent) + offset)
             tables[base + i] = componentTransferByte(value)
