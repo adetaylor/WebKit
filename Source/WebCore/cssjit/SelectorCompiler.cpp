@@ -1686,6 +1686,11 @@ static FunctionType constructFragmentsInternal(const CSSSelector& rootSelector, 
         }
 
         auto relation = selector->relation();
+        // The leftmost compound has no compound to its left, so its relative combinator relates to nothing: the
+        // interpreter (SelectorChecker::matchRecursively) ignores it. Read it as a descendant one, so that the last
+        // fragment closes its descendant and adjacent backtracking tails.
+        if (!selector->precedingInComplexSelector() && (relation == CSSSelector::Relation::Child || relation == CSSSelector::Relation::DirectAdjacent || relation == CSSSelector::Relation::IndirectAdjacent))
+            relation = CSSSelector::Relation::DescendantSpace;
         if (relation == CSSSelector::Relation::Subselector)
             continue;
 
