@@ -529,6 +529,70 @@ TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, ReadinessAndAsset)
     });
 }
 
+// Drives the AVFoundation player's AVPlayer and AVPlayerItem through creation, cancelling the load, loading again,
+// the buffering policies and wireless playback being disabled, and prints the engine's answers at each step. Recorded
+// from the C++ implementation, so moving the AV objects' creation and observation is held to it.
+TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, CreationCancelAndPolicies)
+{
+    m_recordsRenderingModeChanges = true;
+    auto loadAndWait = [&](ASCIILiteral label) {
+        RefPtr engine = loadAVFoundation(videoWithAudioURL());
+        Util::waitFor([&] {
+            return engine && engine->readyState() == WebCore::MediaPlayerReadyState::HaveEnoughData && mediaPlayer->buffered().length()
+                && mediaPlayer->buffered().maximumBufferedTime() >= mediaPlayer->duration();
+        });
+        Util::runFor(0.3_s);
+        if (engine)
+            engineCheckpoint(label, *engine);
+        return engine;
+    };
+
+    RefPtr engine = loadAndWait("loaded"_s);
+    ASSERT_TRUE(engine);
+
+    mediaPlayer->cancelLoad();
+    Util::runFor(0.3_s);
+    engineCheckpoint("cancelled"_s, *engine);
+
+    engine = loadAndWait("loaded again"_s);
+    ASSERT_TRUE(engine);
+
+    for (auto [policy, label] : std::initializer_list<std::pair<WebCore::MediaPlayerBufferingPolicy, ASCIILiteral>> {
+        { WebCore::MediaPlayerBufferingPolicy::LimitReadAhead, "limit read-ahead"_s },
+        { WebCore::MediaPlayerBufferingPolicy::MakeResourcesPurgeable, "purgeable"_s },
+        { WebCore::MediaPlayerBufferingPolicy::PurgeResources, "purge"_s },
+        { WebCore::MediaPlayerBufferingPolicy::Default, "default policy"_s } }) {
+        mediaPlayer->setBufferingPolicy(policy);
+        Util::runFor(0.3_s);
+        engineCheckpoint(label, *engine);
+    }
+
+    mediaPlayer->setWirelessVideoPlaybackDisabled(true);
+    Util::runFor(0.2_s);
+    WTFLogAlways("AV4E-REPLAY wireless disabled=%d wireless=%d", mediaPlayer->wirelessVideoPlaybackDisabled(), mediaPlayer->isCurrentPlaybackTargetWireless());
+    EXPECT_TRUE(mediaPlayer->wirelessVideoPlaybackDisabled());
+    EXPECT_FALSE(mediaPlayer->isCurrentPlaybackTargetWireless());
+
+    mediaPlayer->play();
+    Util::waitFor([&] { return mediaPlayer->effectiveRate() > 0; });
+    mediaPlayer->pause();
+    Util::waitFor([&] { return !mediaPlayer->effectiveRate(); });
+    Util::runFor(0.2_s);
+    engineCheckpoint("played and paused"_s, *engine);
+    engine = nullptr;
+
+    expectCheckpoints({
+        "loaded: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=1 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={buffered,characteristic,network,ready,seekable,size}"_s,
+        "cancelled: ready=4 network=3 paused=1 duration=0 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={}"_s,
+        "loaded again: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={buffered,characteristic,duration,network,ready,seekable,size}"_s,
+        "limit read-ahead: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={}"_s,
+        "purgeable: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={}"_s,
+        "purge: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={}"_s,
+        "default policy: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={buffered,seekable}"_s,
+        "played and paused: ready=4 network=3 paused=1 duration=10 size=320x240 video=1 audio=1 captions=0 loadType=1 minSeekable=0 maxSeekable=10 progressed=0 fileSize=160121 errorCode=0 startDate=invalid layer=0 frame=0 fullscreen=1 events={rate}"_s,
+    });
+}
+
 // Prints the cost of the readiness calls the media element makes, of re-deciding the rendering mode, and of page
 // visibility changes, to compare builds.
 TEST_F(MediaPlayerPrivateAVFoundationObjCReplay, ReadinessCallCost)
