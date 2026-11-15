@@ -279,15 +279,10 @@ private func removeControlCharactersAndSpaces<CodeUnit: HTTPHeaderStringCodeUnit
     }
     var count = firstRemoved
     // firstRemoved is below the value's count.
-    var position = firstRemoved &+ 1
-    while position < value.count {
-        if !isControlCharacterOrSpace(value[position]) {
-            output[count] = value[position]
-            // Below the position, which is below the value's count.
-            count &+= 1
-        }
-        // Below the value's count.
-        position &+= 1
+    for position in (firstRemoved &+ 1)..<value.count where !isControlCharacterOrSpace(value[position]) {
+        output[count] = value[position]
+        // Below the position, which is below the value's count.
+        count &+= 1
     }
     return count
 }
@@ -305,14 +300,10 @@ private func containsNoCacheIgnoringASCIICase<CodeUnit: FixedWidthInteger & Unsi
         return false
     }
     // The value is at least as long as "no-cache", so each window lies within it.
-    let lastStart = value.count &- noCache.count
-    var start = 0
-    while start <= lastStart {
+    for start in 0...(value.count &- noCache.count) {
         if HTTPHeaderCodeUnits.equalIgnoringASCIICase(value.extracting(start..<(start &+ noCache.count)), noCache) {
             return true
         }
-        // At most lastStart + 1, which is at most the count.
-        start &+= 1
     }
     return false
 }
