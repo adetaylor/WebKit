@@ -267,13 +267,13 @@ private struct ResourceResponseExposedHeaders: ~Copyable {
     ) -> Bool {
         let tokens = stackTokens.span.extracting(0..<stackTokenCount)
         for index in tokens.indices {
-            if codeUnitsAreEqualIgnoringASCIICase(list.extracting(tokens[index]), name) {
+            if crossOriginAccessControlEqualsIgnoringASCIICase(list.extracting(tokens[index]), name) {
                 return true
             }
         }
         let moreTokens = heapTokens.span
         for index in moreTokens.indices {
-            if codeUnitsAreEqualIgnoringASCIICase(list.extracting(moreTokens[index]), name) {
+            if crossOriginAccessControlEqualsIgnoringASCIICase(list.extracting(moreTokens[index]), name) {
                 return true
             }
         }
@@ -344,23 +344,6 @@ private func resourceResponseExposedHeaders<CodeUnit: HTTPHeaderStringCodeUnit>(
             return ResourceResponseExposedHeaders()
         }
     }
-}
-
-/// `equalIgnoringASCIICase()` of two strings' code units.
-private func codeUnitsAreEqualIgnoringASCIICase<First: FixedWidthInteger & UnsignedInteger, Second: FixedWidthInteger & UnsignedInteger>(
-    _ first: Span<First>,
-    _ second: Span<Second>
-) -> Bool {
-    if first.count != second.count {
-        return false
-    }
-    for index in first.indices {
-        let a = HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(first[index]))
-        if a != HTTPHeaderCodeUnits.toASCIILower(HTTPHeaderCodeUnits.value(second[index])) {
-            return false
-        }
-    }
-    return true
 }
 
 /// WebCore keeps location and cache related headers, as it does caching.

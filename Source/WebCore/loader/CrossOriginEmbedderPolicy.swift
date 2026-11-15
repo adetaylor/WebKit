@@ -107,7 +107,7 @@ func isUnsupportedCrossOriginEmbedderPolicyToken8(_ token: WebCore.HTTPHeaderLat
     if supportsCredentialless {
         return false
     }
-    return rfc8941CharactersEqual(characters, "credentialless")
+    return crossOriginAccessControlEquals(characters, "credentialless")
 }
 
 /// isUnsupportedCrossOriginEmbedderPolicyToken8() for 16-bit characters, which hold for the call in the same way, and
@@ -121,7 +121,7 @@ func isUnsupportedCrossOriginEmbedderPolicyToken16(_ token: WebCore.HTTPHeaderUT
     if supportsCredentialless {
         return false
     }
-    return rfc8941CharactersEqual(characters, "credentialless")
+    return crossOriginAccessControlEquals(characters, "credentialless")
 }
 
 /// The values CrossOriginEmbedderPolicy::addPolicyHeadersTo() sets for the Cross-Origin-Embedder-Policy and
@@ -208,8 +208,8 @@ private func crossOriginEmbedderPolicyTokenIsRecognized<CodeUnit: FixedWidthInte
     _ token: Span<CodeUnit>,
     _ supportsCredentialless: Bool
 ) -> Bool {
-    rfc8941CharactersEqual(token, "require-corp") || rfc8941CharactersEqual(token, "unsafe-none")
-        || (supportsCredentialless && rfc8941CharactersEqual(token, "credentialless"))
+    crossOriginAccessControlEquals(token, "require-corp") || crossOriginAccessControlEquals(token, "unsafe-none")
+        || (supportsCredentialless && crossOriginAccessControlEquals(token, "credentialless"))
 }
 
 // The endpoint is written between the quotes as it is, without escaping.

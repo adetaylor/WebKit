@@ -867,7 +867,7 @@ private func fetchHeadersOrderIteratorNames(
             if upperBound < setCookieUpperBound {
                 // At most 16 names: neither count overflows.
                 uncommonNamesBelowSetCookie &+= 1
-            } else if upperBound > setCookieUpperBound || fetchHeadersCodePointLessThan(fetchHeadersSetCookieName.span, name) {
+            } else if upperBound > setCookieUpperBound || crossOriginAccessControlCodePointLessThan(fetchHeadersSetCookieName.span, name) {
                 // Likewise.
                 uncommonNamesAboveSetCookie &+= 1
                 // index is below 16, so the shift is exact.
@@ -959,7 +959,7 @@ private func fetchHeadersCommonNameUpperBound(_ name: Span<UInt16>) -> Int {
         } else {
             let index = Int(namesByRank[middle])
             // index is below the number of HTTPHeaderName's values, and the offsets have one more.
-            isBelow = fetchHeadersCodePointLessThan(name, characters.extracting(Int(offsets[index])..<Int(offsets[index &+ 1])))
+            isBelow = crossOriginAccessControlCodePointLessThan(name, characters.extracting(Int(offsets[index])..<Int(offsets[index &+ 1])))
         }
         if isBelow {
             remaining = step
@@ -1012,7 +1012,7 @@ private func fetchHeadersSetCookieKeyIndex(_ names: Span<FetchHeadersIteratorNam
         // first + step is below names.count.
         let middle = first &+ step
         let name = names[middle]
-        if fetchHeadersCodePointLessThan(codeUnits.extracting(name.start..<name.end), fetchHeadersSetCookieName.span) {
+        if crossOriginAccessControlCodePointLessThan(codeUnits.extracting(name.start..<name.end), fetchHeadersSetCookieName.span) {
             // middle is below names.count, and step + 1 at most remaining.
             first = middle &+ 1
             // Likewise.
@@ -1071,26 +1071,6 @@ private func fetchHeadersIteratorNameLessThan(
         // Below lastOffset here, so this is below commonLength.
         offset = min(offset &+ 4, lastOffset)
     }
-}
-
-/// `WTF::codePointCompareLessThan()` of two runs of code units: whether `first` sorts before `second` by code unit
-/// value, a run before any longer one it begins.
-private func fetchHeadersCodePointLessThan<First: FixedWidthInteger & UnsignedInteger, Second: FixedWidthInteger & UnsignedInteger>(
-    _ first: Span<First>,
-    _ second: Span<Second>
-) -> Bool {
-    let commonLength = min(first.count, second.count)
-    var position = 0
-    while position < commonLength {
-        let firstCodeUnit = HTTPHeaderCodeUnits.value(first[position])
-        let secondCodeUnit = HTTPHeaderCodeUnits.value(second[position])
-        if firstCodeUnit != secondCodeUnit {
-            return firstCodeUnit < secondCodeUnit
-        }
-        // Below commonLength.
-        position &+= 1
-    }
-    return first.count < second.count
 }
 
 /// The key of `name` among the sorted names: a common header's name lowercased, an uncommon header's name lowercased, or
@@ -1877,11 +1857,6 @@ private func fetchHeadersIs8Bit(
     return false
 }
 
-/// Room on the stack for most joined values and messages: 256 code units.
-///
-/// Longer ones are written on the heap.
-private typealias FetchHeadersInlineCharacters<CodeUnit: HTTPHeaderStringCodeUnit> = [256 of CodeUnit]
-
 private func fetchHeadersConcatenation<CodeUnit: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
     _ codeUnit: CodeUnit.Type,
     _ length: Int,
@@ -1895,24 +1870,13 @@ private func fetchHeadersConcatenation<CodeUnit: HTTPHeaderStringCodeUnit & Conv
     _ secondRange: Range<Int>?,
     _ suffix: Span<UInt8>
 ) -> WTF.String {
-    var inlineCharacters = FetchHeadersInlineCharacters<CodeUnit>(repeating: 0)
-    if length <= inlineCharacters.count {
-        var output = inlineCharacters.mutableSpan
-        var offset = fetchHeadersStoreText(prefix, &output, 0)
+    crossOriginAccessControlMakeString(CodeUnit.self, length) { output in
+        var offset = crossOriginAccessControlCopy(prefix, to: &output, at: 0)
         offset = fetchHeadersStoreString(firstCharacters, firstUnits, firstRange, &output, offset)
-        offset = fetchHeadersStoreText(middle, &output, offset)
+        offset = crossOriginAccessControlCopy(middle, to: &output, at: offset)
         offset = fetchHeadersStoreString(secondCharacters, secondUnits, secondRange, &output, offset)
-        _ = fetchHeadersStoreText(suffix, &output, offset)
-        return CodeUnit.httpHeaderString(output.span.extracting(0..<length))
+        _ = crossOriginAccessControlCopy(suffix, to: &output, at: offset)
     }
-    var characters = UniqueArray<CodeUnit>(repeating: 0, count: length)
-    var output = characters.mutableSpan
-    var offset = fetchHeadersStoreText(prefix, &output, 0)
-    offset = fetchHeadersStoreString(firstCharacters, firstUnits, firstRange, &output, offset)
-    offset = fetchHeadersStoreText(middle, &output, offset)
-    offset = fetchHeadersStoreString(secondCharacters, secondUnits, secondRange, &output, offset)
-    _ = fetchHeadersStoreText(suffix, &output, offset)
-    return CodeUnit.httpHeaderString(output.span)
 }
 
 /// Stores the code units of a String, `characters` or else `units`, all of them or those in `range`, in `output` from
@@ -1925,9 +1889,9 @@ private func fetchHeadersStoreString<CodeUnit: HTTPHeaderStringCodeUnit & Conver
     _ offset: Int
 ) -> Int {
     if !characters.isEmpty {
-        return fetchHeadersStoreCodeUnits(characters.extracting(range ?? characters.indices), &output, offset)
+        return crossOriginAccessControlCopy(characters.extracting(range ?? characters.indices), to: &output, at: offset)
     }
-    return fetchHeadersStoreCodeUnits(units.extracting(range ?? units.indices), &output, offset)
+    return crossOriginAccessControlCopy(units.extracting(range ?? units.indices), to: &output, at: offset)
 }
 
 /// `makeString(interleave(values, ", "_s))`, which StringBuilder makes: the only value itself (the empty String for
@@ -1974,14 +1938,14 @@ private func fetchHeadersJoinedSetCookieValues<CodeUnit: HTTPHeaderStringCodeUni
     _ length: Int,
     _ values: borrowing WebCore.SecurityPoliciesStringVector
 ) -> WTF.String {
-    var inlineCharacters = FetchHeadersInlineCharacters<CodeUnit>(repeating: 0)
-    if length <= inlineCharacters.count {
-        var output = inlineCharacters.mutableSpan
+    if length <= 256 {
+        var buffer = InlineArray<256, CodeUnit>(repeating: 0)
+        var output = buffer.mutableSpan
         fetchHeadersStoreJoinedValues(values, &output)
-        return CodeUnit.httpHeaderString(output.span.extracting(0..<length))
+        return CodeUnit.httpHeaderString(output.span.extracting(first: length))
     }
-    var characters = UniqueArray<CodeUnit>(repeating: 0, count: length)
-    var output = characters.mutableSpan
+    var buffer = UniqueArray<CodeUnit>(repeating: 0, count: length)
+    var output = buffer.mutableSpan
     fetchHeadersStoreJoinedValues(values, &output)
     return CodeUnit.httpHeaderString(output.span)
 }
@@ -1993,7 +1957,7 @@ private func fetchHeadersStoreJoinedValues<CodeUnit: HTTPHeaderStringCodeUnit & 
     var offset = 0
     for index in 0..<values.size() {
         if index > 0 {
-            offset = fetchHeadersStoreText(fetchHeadersCommaSpace.span, &output, offset)
+            offset = crossOriginAccessControlCopy(fetchHeadersCommaSpace.span, to: &output, at: offset)
         }
         offset = fetchHeadersStoreValue(values[index], &output, offset)
     }
@@ -2007,100 +1971,9 @@ private func fetchHeadersStoreValue<CodeUnit: HTTPHeaderStringCodeUnit & Convert
 ) -> Int {
     let characters: Span<UInt8> = WebCore.securityPoliciesSpan8(string)
     if !characters.isEmpty {
-        return fetchHeadersStoreCodeUnits(characters, &output, offset)
+        return crossOriginAccessControlCopy(characters, to: &output, at: offset)
     }
-    return fetchHeadersStoreCodeUnits(string.checkedSpan16(), &output, offset)
-}
-
-/// Stores `characters` in `output` from `offset` on, and returns the offset after them.
-///
-/// An 8-bit `output` is given only code units below 0x100. Fewer than 32 code units of the output's width are copied as
-/// words, which calls nothing.
-private func fetchHeadersStoreCodeUnits<Source: HTTPHeaderStringCodeUnit, CodeUnit: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
-    _ characters: Span<Source>,
-    _ output: inout MutableSpan<CodeUnit>,
-    _ offset: Int
-) -> Int {
-    if Source.self == CodeUnit.self, characters.count < 32 {
-        var outputBytes = output.mutableBytes
-        // Below the length the caller counted, so the byte offset does not overflow.
-        fetchHeadersCopyShortBytes(characters.bytes, &outputBytes, offset &* MemoryLayout<CodeUnit>.size)
-    } else {
-        for index in characters.indices {
-            // Below the length the caller counted.
-            output[offset &+ index] = CodeUnit(truncatingIfNeeded: characters[index])
-        }
-    }
-    // At most the length the caller counted.
-    return offset &+ characters.count
-}
-
-/// Copies `source` to `output` from byte `start` on: eight bytes at a time, the last eight overlapping the ones before
-/// them, or with fewer than eight, the first and last four or two, or the one.
-private func fetchHeadersCopyShortBytes(_ source: RawSpan, _ output: inout MutableRawSpan, _ start: Int) {
-    let byteCount = source.byteCount
-    if byteCount >= 8 {
-        // There are at least eight bytes here.
-        let lastOffset = byteCount &- 8
-        var offset = 0
-        while true {
-            // Below the end the caller counted, which is at most output.byteCount.
-            output.storeBytes(of: source.load(fromByteOffset: offset, as: UInt64.self), toByteOffset: start &+ offset, as: UInt64.self)
-            if offset == lastOffset {
-                return
-            }
-            // Below lastOffset here, so this is below byteCount.
-            offset = min(offset &+ 8, lastOffset)
-        }
-    }
-    if byteCount >= 4 {
-        // There are at least four bytes here.
-        let lastOffset = byteCount &- 4
-        let first = source.load(fromByteOffset: 0, as: UInt32.self)
-        let last = source.load(fromByteOffset: lastOffset, as: UInt32.self)
-        output.storeBytes(of: first, toByteOffset: start, as: UInt32.self)
-        // Below the end the caller counted.
-        output.storeBytes(of: last, toByteOffset: start &+ lastOffset, as: UInt32.self)
-        return
-    }
-    if byteCount >= 2 {
-        // There are at least two bytes here.
-        let lastOffset = byteCount &- 2
-        let first = source.load(fromByteOffset: 0, as: UInt16.self)
-        let last = source.load(fromByteOffset: lastOffset, as: UInt16.self)
-        output.storeBytes(of: first, toByteOffset: start, as: UInt16.self)
-        // Below the end the caller counted.
-        output.storeBytes(of: last, toByteOffset: start &+ lastOffset, as: UInt16.self)
-        return
-    }
-    if byteCount == 1 {
-        output.storeBytes(of: source.load(fromByteOffset: 0, as: UInt8.self), toByteOffset: start, as: UInt8.self)
-    }
-}
-
-/// Stores the ASCII `text` in `output` from `offset` on, and returns the offset after it: one or two characters as
-/// stores, more as a copy.
-private func fetchHeadersStoreText<CodeUnit: HTTPHeaderStringCodeUnit & ConvertibleFromBytes>(
-    _ text: Span<UInt8>,
-    _ output: inout MutableSpan<CodeUnit>,
-    _ offset: Int
-) -> Int {
-    switch text.count {
-    case 0:
-        return offset
-    case 1:
-        output[offset] = CodeUnit(truncatingIfNeeded: text[0])
-        // At most the length the caller counted.
-        return offset &+ 1
-    case 2:
-        output[offset] = CodeUnit(truncatingIfNeeded: text[0])
-        // Below the length the caller counted.
-        output[offset &+ 1] = CodeUnit(truncatingIfNeeded: text[1])
-        // At most the length the caller counted.
-        return offset &+ 2
-    default:
-        return fetchHeadersStoreCodeUnits(text, &output, offset)
-    }
+    return crossOriginAccessControlCopy(string.checkedSpan16(), to: &output, at: offset)
 }
 
 private func fetchHeadersTypeError(_ message: consuming WTF.String) -> WebCore.Exception {

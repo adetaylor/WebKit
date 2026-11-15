@@ -366,36 +366,12 @@ private func stringsAreEqual(_ a: borrowing WTF.String, _ b: borrowing WTF.Strin
     if b.isNull() {
         return false
     }
-    let firstBytes: Span<UInt8> = WebCore.securityPoliciesSpan8(a)
-    let secondBytes: Span<UInt8> = WebCore.securityPoliciesSpan8(b)
-    if !firstBytes.isEmpty {
-        if !secondBytes.isEmpty {
-            return codeUnitsAreEqual(firstBytes, secondBytes)
-        }
-        let secondUnits: Span<UInt16> = b.checkedSpan16()
-        return codeUnitsAreEqual(firstBytes, secondUnits)
+    let bytes: Span<UInt8> = WebCore.securityPoliciesSpan8(a)
+    if !bytes.isEmpty {
+        return crossOriginAccessControlEquals(bytes, b)
     }
-    let firstUnits: Span<UInt16> = a.checkedSpan16()
-    if !secondBytes.isEmpty {
-        return codeUnitsAreEqual(firstUnits, secondBytes)
-    }
-    let secondUnits: Span<UInt16> = b.checkedSpan16()
-    return codeUnitsAreEqual(firstUnits, secondUnits)
-}
-
-private func codeUnitsAreEqual<First: FixedWidthInteger & UnsignedInteger, Second: FixedWidthInteger & UnsignedInteger>(
-    _ first: Span<First>,
-    _ second: Span<Second>
-) -> Bool {
-    if first.count != second.count {
-        return false
-    }
-    for index in first.indices {
-        if HTTPHeaderCodeUnits.value(first[index]) != HTTPHeaderCodeUnits.value(second[index]) {
-            return false
-        }
-    }
-    return true
+    let units: Span<UInt16> = a.checkedSpan16()
+    return crossOriginAccessControlEquals(units, b)
 }
 
 // MARK: Revalidation
