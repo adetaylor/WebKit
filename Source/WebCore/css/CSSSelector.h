@@ -210,6 +210,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 
 private:
     friend class CSSSelectorList;
+    friend class CSSSelectorListStorage;
     friend class MutableCSSSelector;
 
     void setValue(const AtomString&, bool matchLowerCase = false);
