@@ -299,10 +299,8 @@ public:
 
     static uint64_t objectCountForTesting() { return gObjectCountForTesting; }
 
-    using RemoteRenderingBackendMap = HashMap<RemoteRenderingBackendIdentifier, IPC::ScopedActiveMessageReceiveQueue<RemoteRenderingBackend>>;
-    const RemoteRenderingBackendMap& remoteRenderingBackendMap() const LIFETIME_BOUND { return m_remoteRenderingBackendMap; }
-
-    NODELETE RemoteRenderingBackend* remoteRenderingBackend(RemoteRenderingBackendIdentifier);
+    // Implemented in Swift: the number of rendering backends the connection's Swift state holds.
+    SWIFT_MAIN_ACTOR size_t swiftRenderingBackendCount();
 
 #if HAVE(AUDIT_TOKEN)
     const HashMap<WebCore::PageIdentifier, CoreIPCAuditToken>& presentingApplicationAuditTokens() const LIFETIME_BOUND { return m_presentingApplicationAuditTokens; }
@@ -348,6 +346,34 @@ private:
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     // m_swiftState, for Swift, which can only read it.
     uintptr_t swiftState() const { return m_swiftState; }
+
+    // Implemented in Swift: the Swift state holds the rendering backends and the owners of the WebGL and WebGPU receivers until
+    // they are released or the connection closes, and stops them then.
+    SWIFT_MAIN_ACTOR bool swiftHasRenderingBackend(uint64_t identifier);
+    SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&);
+    // Whether the state had it.
+    SWIFT_MAIN_ACTOR bool swiftReleaseRenderingBackend(uint64_t identifier);
+#if ENABLE(WEBGL)
+    SWIFT_MAIN_ACTOR bool swiftHasGraphicsContextGL(uint64_t identifier);
+    SWIFT_MAIN_ACTOR void swiftAddGraphicsContextGL(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, WebCore::GraphicsContextGLAttributes);
+    // Whether none is left.
+    SWIFT_MAIN_ACTOR bool swiftReleaseGraphicsContextGL(uint64_t identifier);
+    void createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes, uint64_t identifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
+#endif
+#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+    SWIFT_MAIN_ACTOR bool swiftHasGPU(uint64_t identifier);
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
+#else
+    SWIFT_MAIN_ACTOR void swiftAddGPU(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, MachSendRight webProcessResourceOwner);
+#endif
+    // Whether none is left.
+    SWIFT_MAIN_ACTOR bool swiftReleaseGPU(uint64_t identifier);
+#if ENABLE(GPU_PROCESS_MODEL)
+    void createGPUModel(RemoteRenderingBackend&, IPC::SwiftReceiverOwner&, uint64_t identifier);
+#endif
+#endif
+    SWIFT_MAIN_ACTOR void swiftCloseStreamReceivers();
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UserMediaCaptureManagerProxy& userMediaCaptureManagerProxy();
@@ -486,15 +512,6 @@ private:
     const String m_applicationBundleIdentifier;
 #endif
 
-    RemoteRenderingBackendMap m_remoteRenderingBackendMap;
-#if ENABLE(WEBGL)
-    using RemoteGraphicsContextGLMap = HashMap<RemoteGraphicsContextGLIdentifier, IPC::ScopedActiveMessageReceiveQueue<IPC::SwiftReceiverOwner>>;
-    RemoteGraphicsContextGLMap m_remoteGraphicsContextGLMap;
-#endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    using RemoteGPUMap = HashMap<WebGPUIdentifier, IPC::ScopedActiveMessageReceiveQueue<IPC::SwiftReceiverOwner>>;
-    RemoteGPUMap m_remoteGPUMap;
-#endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     const RefPtr<RemoteCDMPrivateFactory> m_cdmPrivateFactory;
 #endif

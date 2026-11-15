@@ -110,7 +110,7 @@ class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderin
 public:
     static Ref<RemoteRenderingBackend> create(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
     virtual ~RemoteRenderingBackend();
-    void stopListeningForIPC();
+    SWIFT_MAIN_ACTOR void stopListeningForIPC();
 
     NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
