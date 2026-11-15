@@ -869,6 +869,28 @@ CGMutablePathRef CGRendererCreatePath(CGRendererPathSegment segment)
     return path.leakRef();
 }
 
+CGMutablePathRef CGRendererCreatePathFromSegments(std::span<const CGRendererPathSegment> segments NOESCAPE)
+{
+    RetainPtr path = adoptCF(CGPathCreateMutable());
+    for (auto& segment : segments)
+        WebCore::addToCGPath(path.get(), CGRendererPathSegmentFromValues(segment));
+    return path.leakRef();
+}
+
+void CGRendererAddPathSegments(CGContextRef context, std::span<const CGRendererPathSegment> segments NOESCAPE)
+{
+    for (auto& segment : segments)
+        WebCore::addToCGContextPath(context, CGRendererPathSegmentFromValues(segment));
+}
+
+CGRect CGRendererPathSegmentsFastBoundingRect(std::span<const CGRendererPathSegment> segments NOESCAPE)
+{
+    auto pathSegments = WTF::map(segments, [](auto& segment) {
+        return CGRendererPathSegmentFromValues(segment);
+    });
+    return WebCore::PathStream::computeFastBoundingRect(pathSegments.span());
+}
+
 CGPathRef CGRendererCopyPlatformPath(const WebCore::PathImpl& impl)
 {
     if (auto* stream = dynamicDowncast<WebCore::PathStream>(impl)) {
@@ -877,7 +899,7 @@ CGPathRef CGRendererCopyPlatformPath(const WebCore::PathImpl& impl)
             WebCore::addToCGPath(path.get(), segment);
         return path.leakRef();
     }
-    return RetainPtr<CGPathRef> { downcast<WebCore::PathCG>(impl).platformPath() }.leakRef();
+    return CGPathCreateCopy(downcast<WebCore::PathCG>(impl).platformPath());
 }
 
 #endif // USE(CG)

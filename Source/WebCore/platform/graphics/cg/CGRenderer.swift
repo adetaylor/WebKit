@@ -944,6 +944,120 @@ private struct CGRendererLineStroke {
         width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
 }
 
+// A path that a receiver fills, strokes, draws or clips to, as GraphicsContextCG does a Path: of no segment, of one, which a
+// Path keeps as the segment, of more, whose CGPath PathCG makes of them, or of a cached path's CGPath, which is all a PathCG has.
+@_spi(WebKitGPU) @frozen public enum CGRendererPath {
+    case empty
+    case segment(CGRendererPathSegment)
+    case segments(ContiguousArray<CGRendererPathSegment>)
+    case platformPath(CGPath)
+
+    @_spi(WebKitGPU) public var isEmpty: Bool {
+        if case .empty = self {
+            return true
+        }
+        return false
+    }
+
+    // Path::singleDataLine(), whose stroke GraphicsContextCG::strokePath() draws as a line.
+    @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
+        if case .segment(let segment) = self, segment.kind == .DataLine {
+            return segment
+        }
+        return nil
+    }
+
+    // Path::pieWedgeArc(): the arc of a move to its center, the arc and a line back to its center.
+    @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
+        guard case .segments(let segments) = self, segments.count == 3 else {
+            return nil
+        }
+        let moveTo = segments[0]
+        let arc = segments[1]
+        let lineTo = segments[2]
+        guard moveTo.kind == .MoveTo, arc.kind == .Arc, lineTo.kind == .LineTo else {
+            return nil
+        }
+        guard moveTo.values.0 == arc.values.0, moveTo.values.1 == arc.values.1, lineTo.values.0 == arc.values.0, lineTo.values.1 == arc.values.1 else {
+            return nil
+        }
+        return arc
+    }
+
+    // Path::platformPath().
+    @_spi(WebKitGPU) public func platformPath() -> CGPath {
+        switch self {
+        case .empty:
+            CGMutablePath()
+        case .segment(let segment):
+            CGRendererCreatePath(segment)
+        case .segments(let segments):
+            CGRendererCreatePathFromSegments(segments.span)
+        case .platformPath(let path):
+            path
+        }
+    }
+
+    // Path::fastBoundingRect(), as a FloatRect.
+    @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
+        switch self {
+        case .empty:
+            return .zero
+        case .segment(let segment):
+            return CGRendererPathSegmentBounds(segment)
+        case .segments(let segments):
+            return CGRendererPathSegmentsFastBoundingRect(segments.span)
+        case .platformPath(let path):
+            let bounds = path.boundingBox
+            if bounds.isNull {
+                return .zero
+            }
+            return CGRect(
+                x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
+                width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+        }
+    }
+
+    // GraphicsContextCG::clipPath(), which adds the path to the context's in place: an empty one clips everything out.
+    @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+        switch self {
+        case .empty:
+            context.clip(to: .zero)
+            return
+        case .segment(let segment):
+            CGRendererClipToPathSegment(context, segment, rule)
+            return
+        case .segments, .platformPath:
+            context.beginPath()
+            add(to: context)
+        }
+        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
+    }
+
+    // GraphicsContextCG::clipOut(const Path&): the clip's bounds, even-odd with the path.
+    @_spi(WebKitGPU) public func clipOut(_ context: CGContext) {
+        context.beginPath()
+        context.addRect(context.boundingBoxOfClipPath)
+        add(to: context)
+        context.clip(using: .evenOdd)
+    }
+
+    // PathCG's addToCGContextPath() of the path.
+    private func add(to context: CGContext) {
+        switch self {
+        case .empty:
+            break
+        case .segment(let segment):
+            let segments: ContiguousArray = [segment]
+            CGRendererAddPathSegments(context, segments.span)
+        case .segments(let segments):
+            CGRendererAddPathSegments(context, segments.span)
+        case .platformPath(let path):
+            context.addPath(path)
+        }
+    }
+}
+
 // MARK: Rounded rects
 
 private func safeFPDivision(_ u: Float, _ v: Float) -> Float {

@@ -27,9 +27,9 @@
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the colors
 # of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
-# process copies out of the message, paths and their segments, which it decodes into plain values or the PathImpl of a path
-# of them, and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
-# A system image and a control part are decoded in Swift (SwiftTypes).
+# process copies out of the message, the segments of FillPathSegment and StrokePathSegment, which it decodes into plain values,
+# and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
+# Paths, a system image and a control part are decoded in Swift (SwiftTypes).
 # The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
 # with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
 # list doesn't.
@@ -91,11 +91,11 @@ messages -> RemoteCGRenderer Stream {
     StrokeQuadCurve
     StrokeBezierCurve
     StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
-    FillPath(WebKit::RemoteCGRendererPath path) StreamBatched
-    StrokePath(WebKit::RemoteCGRendererPath path) StreamBatched
-    DrawPath(WebKit::RemoteCGRendererPath path) StreamBatched
-    ClipPath(WebKit::RemoteCGRendererPath path, enum:bool WebCore::WindRule windRule) StreamBatched
-    ClipOutToPath(WebKit::RemoteCGRendererPath path) StreamBatched
+    FillPath(WebCore::Path path) StreamBatched SwiftTypes
+    StrokePath(WebCore::Path path) StreamBatched SwiftTypes
+    DrawPath(WebCore::Path path) StreamBatched SwiftTypes
+    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes
+    ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes
     FillCachedPath
     ClipCachedPath
     DrawNativeImage
@@ -132,9 +132,9 @@ messages -> RemoteCGRenderer Stream {
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched
-    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebKit::RemoteCGRendererPath path, enum:bool WebCore::WindRule windRule) StreamBatched
+    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes
     ClipTransformedCachedPath
-    DrawFocusRingPath(WebKit::RemoteCGRendererPath path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched
+    DrawFocusRingPath(WebCore::Path path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched SwiftTypes
     BeginPage
     EndPage
     DrawMeshGradient

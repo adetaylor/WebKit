@@ -465,6 +465,27 @@ final class IPCTesterReceiver {
     ) -> String? {
         IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedDrawingFormsDescription(windRule, transform, color))
     }
+
+    // A path decoded in Swift and in C++ must have alike segments, as the CG renderer takes them.
+
+    @MainActor
+    func describePathSwift(connection: IPC.Connection, path: IPCTypes.Path) -> String? {
+        var description = "segments=\(path.segments.count)"
+        for segment in path.segments {
+            let values = segment.cgRendererPathSegment
+            let v = values.values
+            description += " \(values.kind.rawValue):\(values.flag ? 1 : 0)"
+            for value in [v.0, v.1, v.2, v.3, v.4, v.5, v.6, v.7, v.8, v.9, v.10, v.11] {
+                description += ",\(value.bitPattern)"
+            }
+        }
+        return description
+    }
+
+    @MainActor
+    func describeCxxDecodedPathSwift(connection: IPC.Connection, path: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedPathSwiftPath) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedPathDescription(path))
+    }
     #endif
 
     private static func description(_ color: IPCTypes.WebCoreColor) -> String {

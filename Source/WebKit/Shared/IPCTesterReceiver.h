@@ -90,6 +90,8 @@ private:
 #if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     void describeDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
     void describeCxxDecodedDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
+    void describePathSwift(const WebCore::Path&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedPathSwift(const WebCore::Path&, CompletionHandler<void(String&&)>&&);
 #endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);

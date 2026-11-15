@@ -46,7 +46,6 @@
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererShadow.h"
@@ -387,11 +386,11 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(StrokeQuadCurve, &RemoteGraphicsContext::strokeQuadCurve)
     HANDLE_CG_RENDERER_MESSAGE(StrokeBezierCurve, &RemoteGraphicsContext::strokeBezierCurve)
     HANDLE_CG_RENDERER_MESSAGE(StrokePathSegment, &RemoteImageBufferGraphicsContext::strokePathSegment)
-    HANDLE_CG_RENDERER_MESSAGE(FillPath, &RemoteImageBufferGraphicsContext::fillPath)
-    HANDLE_CG_RENDERER_MESSAGE(StrokePath, &RemoteImageBufferGraphicsContext::strokePath)
-    HANDLE_CG_RENDERER_MESSAGE(DrawPath, &RemoteImageBufferGraphicsContext::drawPath)
-    HANDLE_CG_RENDERER_MESSAGE(ClipPath, &RemoteImageBufferGraphicsContext::clipPath)
-    HANDLE_CG_RENDERER_MESSAGE(ClipOutToPath, &RemoteImageBufferGraphicsContext::clipOutToPath)
+    HANDLE_CG_RENDERER_MESSAGE(FillPath, &RemoteGraphicsContext::fillPath)
+    HANDLE_CG_RENDERER_MESSAGE(StrokePath, &RemoteGraphicsContext::strokePath)
+    HANDLE_CG_RENDERER_MESSAGE(DrawPath, &RemoteGraphicsContext::drawPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipPath, &RemoteGraphicsContext::clipPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipOutToPath, &RemoteGraphicsContext::clipOutToPath)
     HANDLE_CG_RENDERER_MESSAGE(FillCachedPath, &RemoteGraphicsContext::fillCachedPath)
     HANDLE_CG_RENDERER_MESSAGE(ClipCachedPath, &RemoteGraphicsContext::clipCachedPath)
     HANDLE_CG_RENDERER_MESSAGE(DrawNativeImage, &RemoteGraphicsContext::drawNativeImage)
@@ -428,7 +427,7 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform)
     HANDLE_CG_RENDERER_MESSAGE(FillRoundedRect, &RemoteImageBufferGraphicsContext::fillRoundedRect)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithRoundedHole, &RemoteImageBufferGraphicsContext::fillRectWithRoundedHole)
-    HANDLE_CG_RENDERER_MESSAGE(ClipTransformedPath, &RemoteImageBufferGraphicsContext::clipTransformedPath)
+    HANDLE_CG_RENDERER_MESSAGE(ClipTransformedPath, &RemoteGraphicsContext::clipTransformedPath)
     HANDLE_CG_RENDERER_MESSAGE(ClipTransformedCachedPath, &RemoteGraphicsContext::clipTransformedCachedPath)
     HANDLE_CG_RENDERER_MESSAGE(DrawFocusRingPath, &RemoteImageBufferGraphicsContext::drawFocusRingPath)
     HANDLE_CG_RENDERER_MESSAGE(BeginPage, &RemoteGraphicsContext::beginPage)
@@ -497,39 +496,9 @@ void RemoteImageBufferGraphicsContext::strokePathSegment(const RemoteCGRendererP
     RemoteGraphicsContext::strokePathSegment(segment.segment());
 }
 
-void RemoteImageBufferGraphicsContext::fillPath(const RemoteCGRendererPath& path)
+void RemoteImageBufferGraphicsContext::drawFocusRingPath(const Path& path, float outlineWidth, const CGRendererColorValue& color, float zoomFactor)
 {
-    RemoteGraphicsContext::fillPath(path.path());
-}
-
-void RemoteImageBufferGraphicsContext::strokePath(const RemoteCGRendererPath& path)
-{
-    RemoteGraphicsContext::strokePath(path.path());
-}
-
-void RemoteImageBufferGraphicsContext::drawPath(const RemoteCGRendererPath& path)
-{
-    RemoteGraphicsContext::drawPath(path.path());
-}
-
-void RemoteImageBufferGraphicsContext::clipPath(const RemoteCGRendererPath& path, WindRule rule)
-{
-    RemoteGraphicsContext::clipPath(path.path(), rule);
-}
-
-void RemoteImageBufferGraphicsContext::clipOutToPath(const RemoteCGRendererPath& path)
-{
-    RemoteGraphicsContext::clipOutToPath(path.path());
-}
-
-void RemoteImageBufferGraphicsContext::clipTransformedPath(const AffineTransform& pathTransform, const RemoteCGRendererPath& path, WindRule rule)
-{
-    RemoteGraphicsContext::clipTransformedPath(pathTransform, path.path(), rule);
-}
-
-void RemoteImageBufferGraphicsContext::drawFocusRingPath(const RemoteCGRendererPath& path, float outlineWidth, const CGRendererColorValue& color, float zoomFactor)
-{
-    RemoteGraphicsContext::drawFocusRingPath(path.path(), outlineWidth, CGRendererColorFromValue(color), zoomFactor);
+    RemoteGraphicsContext::drawFocusRingPath(path, outlineWidth, CGRendererColorFromValue(color), zoomFactor);
 }
 
 void RemoteImageBufferGraphicsContext::setDropShadow(const RemoteCGRendererShadow& shadow)

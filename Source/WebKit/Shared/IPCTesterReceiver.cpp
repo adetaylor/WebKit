@@ -186,6 +186,16 @@ void IPCTesterReceiver::describeCxxDecodedDrawingFormsSwift(WebCore::WindRule ru
 {
     completionHandler(ipcTesterDescription(rule, transform, color));
 }
+
+void IPCTesterReceiver::describePathSwift(const WebCore::Path& path, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(path));
+}
+
+void IPCTesterReceiver::describeCxxDecodedPathSwift(const WebCore::Path& path, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(path));
+}
 #endif
 
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)

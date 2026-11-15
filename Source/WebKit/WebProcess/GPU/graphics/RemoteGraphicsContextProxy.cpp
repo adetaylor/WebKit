@@ -38,7 +38,6 @@
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererPath.h"
 #include "RemoteCGRendererPathSegment.h"
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
@@ -290,7 +289,7 @@ void RemoteGraphicsContextProxy::clipOut(const Path& path)
 {
     sendPendingDrawsIfNecessary();
     updateStateForClipOut(path);
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipOutToPath, (path), (RemoteCGRendererPath { path }));
+    SEND_RENDERER_MESSAGE(ClipOutToPath, path);
 }
 
 void RemoteGraphicsContextProxy::clipPath(const Path& path, WindRule rule)
@@ -304,7 +303,7 @@ void RemoteGraphicsContextProxy::clipPath(const Path& path, WindRule rule)
         }
     }
 
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipPath, (path, rule), (RemoteCGRendererPath { path }, rule));
+    SEND_RENDERER_MESSAGE(ClipPath, path, rule);
 }
 
 void RemoteGraphicsContextProxy::clipTransformedPath(const AffineTransform& pathTransform, const Path& path, WindRule rule)
@@ -318,7 +317,7 @@ void RemoteGraphicsContextProxy::clipTransformedPath(const AffineTransform& path
         }
     }
 
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(ClipTransformedPath, (pathTransform, path, rule), (pathTransform, RemoteCGRendererPath { path }, rule));
+    SEND_RENDERER_MESSAGE(ClipTransformedPath, pathTransform, path, rule);
 }
 
 void RemoteGraphicsContextProxy::resetClip()
@@ -539,14 +538,14 @@ void RemoteGraphicsContextProxy::drawPath(const Path& path)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawPath, (path), (RemoteCGRendererPath { path }));
+    SEND_RENDERER_MESSAGE(DrawPath, path);
 }
 
 void RemoteGraphicsContextProxy::drawFocusRing(const Path& path, float outlineWidth, const Color& color, float zoomFactor)
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawFocusRingPath, (path, outlineWidth, color, zoomFactor), (RemoteCGRendererPath { path }, outlineWidth, rendererColorValue(color), zoomFactor));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawFocusRingPath, (path, outlineWidth, color, zoomFactor), (path, outlineWidth, rendererColorValue(color), zoomFactor));
 }
 
 void RemoteGraphicsContextProxy::drawFocusRing(const Vector<FloatRect>& rects, float outlineWidth, const Color& color, float zoomFactor)
@@ -558,7 +557,7 @@ void RemoteGraphicsContextProxy::drawFocusRing(const Vector<FloatRect>& rects, f
     Path path;
     for (auto& rect : rects)
         path.addRect(rect);
-    send(Messages::RemoteCGRenderer::DrawFocusRingPath(RemoteCGRendererPath { path }, outlineWidth, rendererColorValue(color), zoomFactor));
+    send(Messages::RemoteCGRenderer::DrawFocusRingPath(path, outlineWidth, rendererColorValue(color), zoomFactor));
 #else
     send(Messages::RemoteGraphicsContext::DrawFocusRingRects(rects, outlineWidth, color, zoomFactor));
 #endif
@@ -599,7 +598,7 @@ void RemoteGraphicsContextProxy::fillPath(const Path& path)
         }
     }
 
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillPath, (path), (RemoteCGRendererPath { path }));
+    SEND_RENDERER_MESSAGE(FillPath, path);
 }
 
 void RemoteGraphicsContextProxy::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
@@ -747,7 +746,7 @@ void RemoteGraphicsContextProxy::strokePath(const Path& path)
     }
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(StrokePath, (path), (RemoteCGRendererPath { path }));
+    SEND_RENDERER_MESSAGE(StrokePath, path);
 }
 
 void RemoteGraphicsContextProxy::strokeRect(const FloatRect& rect, float width)

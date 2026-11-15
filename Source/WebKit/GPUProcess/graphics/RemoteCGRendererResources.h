@@ -27,12 +27,12 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-#include "RemoteCGRendererPath.h"
 #include "RemoteDisplayListIdentifier.h"
 #include "RemoteGradientIdentifier.h"
 #include "RemoteMeshGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
 #include <WebCore/AffineTransform.h>
+#include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/Pattern.h>
 #include <WebCore/Color.h>
 #include <WebCore/FilterGraphicsBridge.h>
@@ -125,9 +125,6 @@ public:
     static Ref<RemoteCGRendererResources> createForReplay(WebCore::GraphicsContextCG& target) { return adoptRef(*new RemoteCGRendererResources(nullptr, nullptr, &target)); }
     static Ref<RemoteCGRendererResources> createForRerecording();
     ~RemoteCGRendererResources();
-
-    // The cached path, or one that isn't valid.
-    RemoteCGRendererPath cachedPath(RemotePathImplIdentifier) const;
 
     // The native image that a filter's FEImage names: the backend's, or, in a replay, the one the recording kept for the filter.
     // The image buffer that the receiver draws into, if it draws into one, and the context it draws into otherwise.
@@ -264,6 +261,10 @@ CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, 
 // destination's size in pixels, which the facts give, and the options GraphicsContext draws it with: found is false for a
 // missing gradient, and the image is null where nothing is drawn.
 CGImageRef _Nullable copyMeshGradientImage(const RemoteCGRendererResources&, RemoteMeshGradientIdentifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace&, CGSize destinationSize, CGRendererImageFacts&, CGRendererImageOptions&) CF_RETURNS_RETAINED;
+
+// The CGPath of a cached path (Path::platformPath()): the backend's, or, in a replay, the one the recording kept. Null for a
+// missing path, which is an invalid message.
+CGPathRef _Nullable copyCachedPlatformPath(const RemoteCGRendererResources&, RemotePathImplIdentifier) CF_RETURNS_RETAINED;
 
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;
