@@ -847,7 +847,11 @@ void AudioVideoRendererAVFObjC::setResourceOwner(const ProcessIdentity& resource
     if (m_isShutdown)
         return;
     m_resourceOwner = resourceOwner;
-    m_core->swift.setHasResourceOwner(!!resourceOwner);
+#if HAVE(TASK_IDENTITY_TOKEN)
+    m_core->swift.setResourceOwner(resourceOwner ? resourceOwner.taskIdToken() : MACH_PORT_NULL);
+#else
+    m_core->swift.setResourceOwner(MACH_PORT_NULL);
+#endif
     if (RefPtr decompressionSession = this->decompressionSession())
         decompressionSession->setResourceOwner(resourceOwner);
 }
@@ -1438,30 +1442,6 @@ double AudioVideoRendererAVFObjC::updateFrameRateMonitor()
     return m_frameRateMonitor->observedFrameRate();
 }
 
-void AudioVideoRendererAVFObjC::assignResourceOwner(CMSampleBufferRef sample)
-{
-    if (!m_resourceOwner)
-        return;
-
-    auto assignImageBuffer = [&](CVPixelBufferRef imageBuffer) {
-        if (!imageBuffer || CFGetTypeID(imageBuffer) != CVPixelBufferGetTypeID())
-            return;
-
-        if (RetainPtr surface = CVPixelBufferGetIOSurface(imageBuffer))
-            IOSurface::setOwnershipIdentity(surface.get(), m_resourceOwner);
-    };
-
-    RetainPtr videoFormatDescription = PAL::CMSampleBufferGetFormatDescription(sample);
-    if (PAL::CMFormatDescriptionGetMediaType(videoFormatDescription.get()) == kCMMediaType_TaggedBufferGroup) {
-        RetainPtr group = PAL::CMSampleBufferGetTaggedBufferGroup(sample);
-
-        for (CFIndex index = 0; index < PAL::CMTaggedBufferGroupGetCount(group.get()); ++index)
-            assignImageBuffer(protect(PAL::CMTaggedBufferGroupGetCVPixelBufferAtIndex(group.get(), index)));
-        return;
-    }
-    assignImageBuffer(protect(PAL::CMSampleBufferGetImageBuffer(sample)));
-}
-
 bool AudioVideoRendererAVFObjC::willLog(AudioVideoRendererLogLevel level) const
 {
     switch (level) {
@@ -1849,12 +1829,6 @@ double AudioVideoRendererHost::frameRateMonitorUpdate() const
 {
     RefPtr renderer = m_renderer.get();
     return renderer ? renderer->updateFrameRateMonitor() : 0;
-}
-
-void AudioVideoRendererHost::assignResourceOwner(CMSampleBufferRef sample) const
-{
-    if (RefPtr renderer = m_renderer.get())
-        renderer->assignResourceOwner(sample);
 }
 
 NSObject *AudioVideoRendererHost::renderingObject(AudioVideoRendererObject object, uint64_t trackIdentifier) const

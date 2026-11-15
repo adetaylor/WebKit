@@ -139,7 +139,6 @@ public:
     void invalidateDecompressionSession(uint64_t rendererIdentifier) const;
     bool isDecompressionSessionHardwareAccelerated() const;
     double frameRateMonitorUpdate() const;
-    void assignResourceOwner(CMSampleBufferRef) const;
 
     // The main thread: the renderers.
     NSObject *renderingObject(AudioVideoRendererObject, uint64_t trackIdentifier) const;

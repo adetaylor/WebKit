@@ -47,6 +47,7 @@
 #if ENABLE_WEBCORE_SWIFT && HAVE_IOSURFACE
 
 public import CoreGraphics
+internal import CoreMedia
 import CoreVideo
 import Foundation
 #if hasAttribute(diagnose)
@@ -373,8 +374,9 @@ private let surfaceBytesPerRowAlignment = Atomic<Int>(0)
 // IOSurfacePurgeabilityState's kIOSurfacePurgeableNonVolatile, which Swift imports as the empty option set.
 private let purgeableNonVolatile: UInt32 = 0
 
-// A send right to a task identity token that the surface keeps for the contexts it creates.
-private final class TaskIdentityToken: Sendable {
+// A send right to a task identity token: what a surface keeps for the contexts it creates, and what the video renderer
+// charges its decoded frames to.
+final class TaskIdentityToken: Sendable {
     let port: mach_port_t
 
     init?(copying port: mach_port_t) {
@@ -909,6 +911,35 @@ private final class TaskIdentityToken: Sendable {
             ioSurfaceLog.error("IOSurface::setOwnershipIdentity: Failed to claim ownership of IOSurface \(Swift.String(IOSurfaceGetID(surface), radix: 16)), task id token: \(taskIdToken), error: \(result)")
         }
         #endif
+    }
+
+    static func setOwnershipIdentity(ofImagesIn sampleBuffer: CMSampleBuffer, _ resourceOwner: TaskIdentityToken) {
+        func setOwnershipIdentity<Buffer: AnyObject>(of imageBuffer: Buffer?) {
+            guard let imageBuffer, CFGetTypeID(imageBuffer) == CVPixelBufferGetTypeID() else {
+                return
+            }
+            let pixelBuffer = imageBuffer as! CVPixelBuffer
+            // Safety: CVPixelBufferGetIOSurface follows the Get rule, and the sample buffer keeps the pixel buffer and its surface.
+            guard let surface = unsafe CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue() else {
+                return
+            }
+            withExtendedLifetime(resourceOwner) {
+                Self.setOwnershipIdentity(surface, resourceOwner.port)
+            }
+        }
+
+        if let formatDescription = CMSampleBufferGetFormatDescription(sampleBuffer),
+            CMFormatDescriptionGetMediaType(formatDescription) == kCMMediaType_TaggedBufferGroup
+        {
+            guard let group = CMSampleBufferGetTaggedBufferGroup(sampleBuffer) else {
+                return
+            }
+            for index in 0..<CMTaggedBufferGroupGetCount(group) {
+                setOwnershipIdentity(of: CMTaggedBufferGroupGetCVPixelBufferAtIndex(group, index))
+            }
+            return
+        }
+        setOwnershipIdentity(of: CMSampleBufferGetImageBuffer(sampleBuffer))
     }
 }
 
