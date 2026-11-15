@@ -1441,6 +1441,7 @@ add_custom_command(
         ${_serializers_absolute_outputs}
     MAIN_DEPENDENCY ${WEBKIT_DIR}/Scripts/generate-serializers.py
     DEPENDS
+        ${WEBKIT_DIR}/Scripts/webkit/decode_policy.py
         ${WEBKIT_DIR}/Scripts/webkit/opaque_ipc_types.py
         ${WEBKIT_DIR}/Scripts/webkit/swift_types.py
         ${WebKit_SERIALIZATION_DEPENDENCIES}

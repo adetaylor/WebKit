@@ -1936,6 +1936,7 @@
 		86E9F1292EC4D44500BCC96D /* CoreIPCCGColorSpace.mm in Sources */ = {isa = PBXBuildFile; fileRef = 86E9F1282EC4D44500BCC96D /* CoreIPCCGColorSpace.mm */; };
 		86EB7204298D310A00C1DC77 /* SecItemShim.h in Headers */ = {isa = PBXBuildFile; fileRef = 86EB7202298D310900C1DC77 /* SecItemShim.h */; };
 		86F9536518FF58F5001DB2EF /* ProcessAssertion.h in Headers */ = {isa = PBXBuildFile; fileRef = 86F9536018FF4FD4001DB2EF /* ProcessAssertion.h */; };
+		40D03FDC5BAC980BAB242C6A /* decode_policy.py in Copy Message Generation Scripts */ = {isa = PBXBuildFile; fileRef = A58D34CA5132F2B750339581 /* decode_policy.py */; };
 		8924EE768B0E3D3460643D82 /* swift_types.py in Copy Message Generation Scripts */ = {isa = PBXBuildFile; fileRef = C750B0D4A72804D6C9DC8ACA /* swift_types.py */; };
 		8BFE6BF82F3C2F1300E82291 /* WKUSDStageConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFE6BF72F3C2F1300E82291 /* WKUSDStageConverter.swift */; };
 		8BFE6BF92F3C2F1300E82291 /* WKUSDStageConverter.h in Headers */ = {isa = PBXBuildFile; fileRef = 8BFE6BF62F3C2F1300E82291 /* WKUSDStageConverter.h */; };
@@ -3473,6 +3474,7 @@
 			dstSubfolderSpec = 1;
 			files = (
 				1A07D2F81919B3A900ECDA16 /* __init__.py in Copy Message Generation Scripts */,
+				40D03FDC5BAC980BAB242C6A /* decode_policy.py in Copy Message Generation Scripts */,
 				1A07D2F91919B3A900ECDA16 /* messages.py in Copy Message Generation Scripts */,
 				1A07D2FA1919B3A900ECDA16 /* model.py in Copy Message Generation Scripts */,
 				F422427A2E8C389800C1143F /* opaque_ipc_types.py in Copy Message Generation Scripts */,
@@ -8636,6 +8638,7 @@
 		C6A4CA092252899800169289 /* WKBundlePageMac.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WKBundlePageMac.h; sourceTree = "<group>"; };
 		C6A4CA0A2252899800169289 /* WKBundlePageMac.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = WKBundlePageMac.mm; sourceTree = "<group>"; };
 		C6BE81F46F00E97FF47359F2 /* DisplayOnlyImageProxy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DisplayOnlyImageProxy.h; sourceTree = "<group>"; };
+		A58D34CA5132F2B750339581 /* decode_policy.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = decode_policy.py; path = webkit/decode_policy.py; sourceTree = "<group>"; };
 		C750B0D4A72804D6C9DC8ACA /* swift_types.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = swift_types.py; path = webkit/swift_types.py; sourceTree = "<group>"; };
 		C7A41E902E8F1A0100D3B841 /* Untrusted.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Untrusted.h; sourceTree = "<group>"; };
 		C7A41E922E8F1A0100D3B841 /* untrusted_origins.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = untrusted_origins.py; path = webkit/untrusted_origins.py; sourceTree = "<group>"; };
@@ -17882,6 +17885,7 @@
 				E3A997B92AFFCEA2006C90F1 /* compile-sandbox.sh */,
 				4157853021276B6F00DD3800 /* copy-webcontent-resources-to-private-headers.sh */,
 				DDDB911E2DEA2A9900341445 /* create-legacy-swift-overlay-symlink.sh */,
+				A58D34CA5132F2B750339581 /* decode_policy.py */,
 				E3AA48772CFE941500760D28 /* generate-derived-log-sources.py */,
 				C0CE73361247F70E00BC0EC4 /* generate-message-receiver.py */,
 				5CD4F01C28B6ADDB00F9ECEA /* generate-serializers.py */,
