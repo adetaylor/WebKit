@@ -243,10 +243,10 @@ private func crossOriginOpenerPolicyReadHeader<CodeUnit: HTTPHeaderStringCodeUni
 private func crossOriginOpenerPolicyTokenIsRecognized<CodeUnit: FixedWidthInteger & UnsignedInteger>(
     _ token: Span<CodeUnit>
 ) -> Bool {
-    rfc8941CharactersEqual(token, "same-origin")
-        || rfc8941CharactersEqual(token, "same-origin-allow-popups")
-        || rfc8941CharactersEqual(token, "noopener-allow-popups")
-        || rfc8941CharactersEqual(token, "unsafe-none")
+    crossOriginAccessControlEquals(token, "same-origin")
+        || crossOriginAccessControlEquals(token, "same-origin-allow-popups")
+        || crossOriginAccessControlEquals(token, "noopener-allow-popups")
+        || crossOriginAccessControlEquals(token, "unsafe-none")
 }
 
 // The value is not unsafe-none. The endpoint is written between the quotes as it is, without escaping.
