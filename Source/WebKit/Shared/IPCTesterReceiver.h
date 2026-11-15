@@ -87,6 +87,10 @@ private:
     void describeFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
     void describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
 #endif
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    void describeDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
+    void describeCxxDecodedDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);
+#endif
     void enabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
     void disabledMessageSwift(uint32_t, CompletionHandler<void(uint32_t)>&&);
 

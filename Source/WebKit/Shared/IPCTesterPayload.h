@@ -88,6 +88,11 @@
 #if ENABLE(IPC_TESTING_SWIFT)
 #include "SwiftCoding.h"
 #endif
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include <WebCore/AffineTransform.h>
+#include <WebCore/CGRendererSwiftBridge.h>
+#include <WebCore/WindRule.h>
+#endif
 #endif
 
 namespace WebKit {
@@ -608,6 +613,27 @@ inline String ipcTesterDescription(const WebCore::Filter& filter)
     return builder.toString();
 }
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// What a fill rule, a transform and a color as the CG renderer takes it are made of, which IPCTesterReceiver replies for those
+// decoded in C++ and in Swift (IPCTesterReceiver.swift describes the Swift forms alike). Floats and doubles are described by
+// their bits.
+inline String ipcTesterDescription(WebCore::WindRule rule, const WebCore::AffineTransform& transform, const CGRendererColorValue& color)
+{
+    StringBuilder builder;
+    builder.append("rule="_s, static_cast<unsigned>(rule), " transform="_s);
+    bool isFirst = true;
+    for (double value : transform.span()) {
+        builder.append(isFirst ? ""_s : ","_s, std::bit_cast<uint64_t>(value));
+        isFirst = false;
+    }
+    const auto& data = color.data;
+    builder.append(" color="_s, color.packedColor, ',', color.isPacked ? 1 : 0, ',', color.isVisible ? 1 : 0, " data="_s, std::bit_cast<uint32_t>(data.c1), ',',
+        std::bit_cast<uint32_t>(data.c2), ',', std::bit_cast<uint32_t>(data.c3), ',', std::bit_cast<uint32_t>(data.alpha), ',', data.packedColor, ',',
+        static_cast<unsigned>(data.colorSpace), ',', static_cast<unsigned>(data.form), ',', data.isSemantic ? 1 : 0, ',', data.usesFunctionSerialization ? 1 : 0);
+    return builder.toString();
+}
+#endif
+
 #if ENABLE(IPC_TESTING_SWIFT)
 inline String ipcTesterCxxDecodedControlDescription(IPC::CxxDecodedArgument<Ref<WebCore::ControlPart>>& partArgument, IPC::CxxDecodedArgument<WebCore::ControlStyle>& styleArgument)
 {
@@ -630,6 +656,17 @@ inline String ipcTesterCxxDecodedFilterDescription(IPC::CxxDecodedArgument<Ref<W
     RELEASE_ASSERT(filter);
     return ipcTesterDescription(filter->get());
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+inline String ipcTesterCxxDecodedDrawingFormsDescription(IPC::CxxDecodedArgument<WebCore::WindRule>& ruleArgument, IPC::CxxDecodedArgument<WebCore::AffineTransform>& transformArgument, IPC::CxxDecodedArgument<CGRendererColorValue>& colorArgument)
+{
+    auto rule = ruleArgument.take();
+    auto transform = transformArgument.take();
+    auto color = colorArgument.take();
+    RELEASE_ASSERT(rule && transform && color);
+    return ipcTesterDescription(*rule, *transform, *color);
+}
+#endif
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)

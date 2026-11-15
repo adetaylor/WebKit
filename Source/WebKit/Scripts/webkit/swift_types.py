@@ -77,7 +77,7 @@ _TWO_ARGUMENT_TEMPLATES = {
 _PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
 
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
-_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'WTFLogLevel'])
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'CGRendererColorData', 'CGRendererColorValue', 'WTFLogLevel'])
 
 # Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
 _WTF_SWIFT_TYPES = frozenset(['MediaTime'])

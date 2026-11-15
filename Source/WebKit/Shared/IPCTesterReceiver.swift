@@ -435,6 +435,38 @@ final class IPCTesterReceiver {
         return fields + " colorSpace=" + colorSpaceName(colorSpace) + ")"
     }
 
+    #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+    // A fill rule, a transform and a color as the CG renderer takes it, decoded in Swift and in C++, must be described alike:
+    // as ipcTesterDescription() describes them (IPCTesterPayload.h).
+
+    @MainActor
+    func describeDrawingFormsSwift(
+        connection: IPC.Connection,
+        windRule: IPCTypes.WindRule,
+        transform: IPCTypes.AffineTransform,
+        color: IPCTypes.CGRendererColorValue
+    ) -> String? {
+        let values = transform.span.map { String($0.bitPattern) }.joined(separator: ",")
+        let data = color.data
+        let dataValues = [
+            String(data.c1.bitPattern), String(data.c2.bitPattern), String(data.c3.bitPattern), String(data.alpha.bitPattern), String(data.packedColor),
+            String(data.colorSpace), String(data.form), data.isSemantic ? "1" : "0", data.usesFunctionSerialization ? "1" : "0",
+        ]
+        return "rule=\(windRule.rawValue) transform=\(values) color=\(color.packedColor),\(color.isPacked ? 1 : 0),\(color.isVisible ? 1 : 0) data="
+            + dataValues.joined(separator: ",")
+    }
+
+    @MainActor
+    func describeCxxDecodedDrawingFormsSwift(
+        connection: IPC.Connection,
+        windRule: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftWindRule,
+        transform: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftTransform,
+        color: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedDrawingFormsSwiftColor
+    ) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedDrawingFormsDescription(windRule, transform, color))
+    }
+    #endif
+
     private static func description(_ color: IPCTypes.WebCoreColor) -> String {
         guard let data = color.data else {
             return "invalid"

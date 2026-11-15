@@ -1357,7 +1357,7 @@ static CGRendererColorData colorData(const Color& color)
 
 static Color colorFromData(const CGRendererColorData& values)
 {
-    if (!values.form)
+    if (!values.form || values.form > 2 || values.colorSpace > static_cast<uint8_t>(ColorSpaceName::XYZ_D65))
         return { };
     Variant<PackedColor::RGBA, OutOfLineColorDataForIPC> data = PackedColor::RGBA { values.packedColor };
     if (values.form == 2)

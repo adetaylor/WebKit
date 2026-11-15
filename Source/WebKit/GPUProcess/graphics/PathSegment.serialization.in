@@ -199,14 +199,14 @@ header: "RemoteCGRendererLineDash.h"
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorData {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorData {
     float c1;
     float c2;
     float c3;
     float alpha;
     uint32_t packedColor;
-    [Validator='WTF::isValidEnum<WebCore::ColorSpaceName>(*colorSpace)'] uint8_t colorSpace;
-    [Validator='*form <= 2'] uint8_t form;
+    [Validator='WTF::isValidEnum<WebCore::ColorSpaceName>(*colorSpace)', SwiftValidator='IPCTypes.ColorSpaceName(rawValue: colorSpace) != nil'] uint8_t colorSpace;
+    [Validator='*form <= 2', SwiftValidator='form <= 2'] uint8_t form;
     bool isSemantic;
     bool usesFunctionSerialization;
 };
@@ -224,7 +224,7 @@ header: <WebCore/CGRendererSwiftBridge.h>
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorValue {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererColorValue {
     CGRendererColorData data;
     uint32_t packedColor;
     bool isPacked;

@@ -176,6 +176,18 @@ void IPCTesterReceiver::describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&& fil
 }
 #endif
 
+#if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+void IPCTesterReceiver::describeDrawingFormsSwift(WebCore::WindRule rule, const WebCore::AffineTransform& transform, const CGRendererColorValue& color, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(rule, transform, color));
+}
+
+void IPCTesterReceiver::describeCxxDecodedDrawingFormsSwift(WebCore::WindRule rule, const WebCore::AffineTransform& transform, const CGRendererColorValue& color, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(rule, transform, color));
+}
+#endif
+
 void IPCTesterReceiver::halveEvenNumberSyncHandlerSwift(IPC::Connection& connection, uint32_t value, CompletionHandler<void(uint32_t)>&& completionHandler)
 {
     halveEvenNumberSwift(connection, value, WTF::move(completionHandler));
