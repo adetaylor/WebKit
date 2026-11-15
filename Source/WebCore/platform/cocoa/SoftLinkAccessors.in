@@ -143,6 +143,9 @@ class AVFoundation AVAssetTrack
 class AVFoundation AVPlayerItemTrack
 member AVFoundation AVPlayerItem tracks var tracks: NSArray { get }
 member AVFoundation AVURLAsset variants var variants: NSArray { get }
+constant AVFoundation AVMediaCharacteristicAudible as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicVisual as AVMediaCharacteristic
+constant AVFoundation AVMediaCharacteristicLegible as AVMediaCharacteristic
 
 # The camera (CameraCaptureSource.swift).
 class AVFoundation AVCaptureDevice

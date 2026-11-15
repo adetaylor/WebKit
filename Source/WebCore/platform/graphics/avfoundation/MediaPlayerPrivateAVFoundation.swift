@@ -516,6 +516,19 @@ func hasLoaded(_ asset: AVAsset, _ key: Swift.String) -> Bool {
     unsafe asset.statusOfValue(forKey: key, error: nil) == .loaded
 }
 
+// A streaming track the item plays as one of the asset's media selection groups' options.
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the asset's media selection groups have loaded")
+#endif
+private func belongsToSelectionGroup(_ track: AVAssetTrack, of asset: AVAsset) -> Bool {
+    for characteristic in [AVFoundationSoftLink.AVMediaCharacteristicAudible, AVFoundationSoftLink.AVMediaCharacteristicVisual, AVFoundationSoftLink.AVMediaCharacteristicLegible] {
+        if track.hasMediaCharacteristic(characteristic), let _ = asset.mediaSelectionGroup(forMediaCharacteristic: characteristic) {
+            return true
+        }
+    }
+    return false
+}
+
 #if hasAttribute(diagnose)
 @diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine asks once the asset's keys have loaded")
 #endif
@@ -559,6 +572,44 @@ extension WebCore.MediaPlayerPrivateAVFoundationObjC {
         if let item = m_avPlayerItem.get() {
             core.attachItem(item)
         }
+    }
+
+    @cxx
+    @implementation
+    func tracksDidChange() {
+        let core = core
+        var tracks: NSArray?
+        if let reported = core.reportedTracks {
+            let asset = m_avAsset.get()
+            let assetTrackList = asset.map { assetTracks($0) } ?? NSArray()
+            let groupsLoaded = hasLoadedMediaSelectionGroups()
+            let kept = NSMutableArray()
+            for element in reported {
+                guard let playerItemTrack = AVFoundationClass.cast(element as AnyObject, to: AVFoundationClass.AVPlayerItemTrack) else {
+                    continue
+                }
+                let assetTrack = assetTrack(of: playerItemTrack)
+                if let assetTrack, assetTrackList.contains(assetTrack) {
+                    kept.add(playerItemTrack)
+                    continue
+                }
+                if !groupsLoaded {
+                    continue
+                }
+                if let assetTrack, let asset, belongsToSelectionGroup(assetTrack, of: asset) {
+                    continue
+                }
+                kept.add(playerItemTrack)
+            }
+            tracks = kept
+        }
+        m_cachedTracks = .init(tracks as? [Any])
+        core.observeEnabled(of: tracks)
+
+        m_cachedTotalBytes = 0
+
+        tracksChanged()
+        updateStates()
     }
 
     @cxx
