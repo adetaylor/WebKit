@@ -106,6 +106,7 @@ private struct ObjectBox: @unchecked Sendable {
 final class MediaPlayerAVFoundationCore: @unchecked Sendable {
     private let host: WebCore.MediaPlayerAVFoundationHost
     private let listener: MediaPlayerItemListener
+    private var asset: AVAsset?
     private var player: AVPlayer?
     private var item: AVPlayerItem?
     private var periodicTimeObserver: AnyObject?
@@ -161,19 +162,15 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     // MARK: The AVPlayer and AVPlayerItem
 
-    // The AVPlayer or AVPlayerItem that the C++ player made, observed from now on.
-    @_expose(Cxx)
-    func attach(_ object: NSObject) {
-        if let player = AVFoundationClass.cast(object, to: AVFoundationClass.AVPlayer) {
-            attachPlayer(player)
-            return
-        }
-        if let item = AVFoundationClass.cast(object, to: AVFoundationClass.AVPlayerItem) {
-            attachItem(item)
-        }
+    // The asset, AVPlayer and AVPlayerItem that the C++ player has: the asset replaces the one before; the player and
+    // the item are observed from now on.
+    @_expose(!Cxx)
+    func attachAsset(_ newAsset: AVAsset?) {
+        asset = newAsset
     }
 
-    private func attachPlayer(_ newPlayer: AVPlayer) {
+    @_expose(!Cxx)
+    func attachPlayer(_ newPlayer: AVPlayer) {
         if let _ = player {
             return
         }
@@ -204,7 +201,8 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         } as AnyObject
     }
 
-    private func attachItem(_ newItem: AVPlayerItem) {
+    @_expose(!Cxx)
+    func attachItem(_ newItem: AVPlayerItem) {
         if let _ = item {
             return
         }
@@ -228,6 +226,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         periodicTimeObserver = nil
         item = nil
         player = nil
+        asset = nil
 
         pendingStatusChanges = 0
         cachedItemStatus = Int(ItemStatus.doesNotExist.rawValue)
@@ -236,6 +235,53 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         cachedHasEnabledVideo = false
         cachedPresentationSize = (0, 0)
         loadedRanges = []
+    }
+
+    // MARK: Loading the asset
+
+    // Whether the asset is playable and its tracks, which the readiness state machine waits for.
+    @_expose(!Cxx)
+    func loadPlayability(_ asset: AVAsset) {
+        let weakCore = WeakCore(self)
+        loadValues(of: asset, assetPlayabilityKeys) {
+            ensureOnWebCoreMainThread {
+                weakCore.core?.host.playabilityLoaded()
+            }
+        }
+    }
+
+    // The asset's metadata keys, then each of its tracks' keys if its tracks loaded. The tracks are those of the asset
+    // the core has when the asset's keys have loaded.
+    @_expose(!Cxx)
+    func loadMetadata() {
+        guard let asset else {
+            return
+        }
+        let group = DispatchGroup()
+        group.enter()
+        let groupBox = DispatchGroupBox(group: group)
+        let weakCore = WeakCore(self)
+        loadValues(of: asset, assetMetadataKeys) {
+            WTF.callOnMainThreadWithBlock {
+                if let asset = weakCore.core?.asset, hasLoaded(asset, "tracks") {
+                    for element in AVFoundationMember.tracks(of: asset)?.tracks ?? NSArray() {
+                        guard let track = AVFoundationClass.cast(element as AnyObject, to: AVFoundationClass.AVAssetTrack) else {
+                            continue
+                        }
+                        groupBox.group.enter()
+                        loadValues(of: track, assetTrackMetadataKeys) {
+                            groupBox.group.leave()
+                        }
+                    }
+                }
+                groupBox.group.leave()
+            }
+        }
+        group.notify(queue: .main) {
+            WTF.callOnMainThreadWithBlock {
+                weakCore.core?.host.metadataLoadingCompleted()
+            }
+        }
     }
 
     // MARK: Changes, in the order key-value observing reported them
@@ -680,7 +726,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
         setShouldObserveTimeControlStatus(false)
         item?.seek(to: time, toleranceBefore: before, toleranceAfter: after) { [weak self] finished in
-            DispatchQueue.main.async { [weak self] in
+            WTF.callOnMainThreadWithBlock { [weak self] in
                 guard let self else {
                     return
                 }
@@ -779,7 +825,7 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
     }
 
     private func enqueue(_ change: PlayerChange) {
-        onMainThread { [weak self] in
+        ensureOnWebCoreMainThread { [weak self] in
             self?.core?.enqueue(change)
         }
     }
@@ -870,4 +916,58 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
             break
         }
     }
+}
+
+let assetPlayabilityKeys = ["playable", "tracks"]
+let assetMetadataKeys = [
+    "duration",
+    "naturalSize",
+    "preferredTransform",
+    "preferredVolume",
+    "preferredRate",
+    "playable",
+    "resolvedURL",
+    "tracks",
+    "availableMediaCharacteristicsWithMediaSelectionOptions",
+    "availableChapterLocales",
+    "variants",
+]
+private let assetTrackMetadataKeys = ["totalSampleDataLength", "mediaType", "enabled", "preferredTransform", "naturalSize", "formatDescriptions"]
+
+// WTF's ensureOnMainThread(): WebCore's main thread, which is the web thread in iOS WebKitLegacy.
+private func ensureOnWebCoreMainThread(_ body: @escaping @Sendable () -> Void) {
+    if WTF.isMainThread() {
+        body()
+        return
+    }
+    WTF.callOnMainThreadWithBlock(body)
+}
+
+// A weak reference to the core that AVFoundation's completions carry to the main thread, so that only the main thread
+// ever holds the core strongly.
+private struct WeakCore: @unchecked Sendable {
+    weak var core: MediaPlayerAVFoundationCore?
+
+    init(_ core: MediaPlayerAVFoundationCore) {
+        self.core = core
+    }
+}
+
+private struct DispatchGroupBox: @unchecked Sendable {
+    let group: DispatchGroup
+}
+
+// AVFoundation deprecates these callbacks in favour of async loading; the readiness state machine is callback driven.
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine is driven by these completions")
+#endif
+private func loadValues(of asset: AVAsset, _ keys: [Swift.String], _ completion: @escaping @Sendable () -> Void) {
+    asset.loadValuesAsynchronously(forKeys: keys, completionHandler: completion)
+}
+
+#if hasAttribute(diagnose)
+@diagnose(DeprecatedDeclaration, as: ignored, reason: "the readiness state machine is driven by these completions")
+#endif
+private func loadValues(of track: AVAssetTrack, _ keys: [Swift.String], _ completion: @escaping @Sendable () -> Void) {
+    track.loadValuesAsynchronously(forKeys: keys, completionHandler: completion)
 }

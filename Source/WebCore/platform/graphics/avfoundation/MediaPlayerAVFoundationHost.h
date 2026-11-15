@@ -69,6 +69,8 @@ public:
     // Runs the core's change `identifier` from the media player's event loop.
     void queueChange(uint64_t identifier) const;
 
+    void playabilityLoaded() const;
+    void metadataLoadingCompleted() const;
     void updateStates() const;
     void tracksChanged() const;
     void sizeChanged() const;

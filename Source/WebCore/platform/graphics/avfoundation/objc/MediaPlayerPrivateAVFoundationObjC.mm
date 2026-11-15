@@ -202,7 +202,6 @@ enum MediaPlayerAVFoundationObservationContext {
 }
 -(id)initWithPlayer:(ThreadSafeWeakPtr<MediaPlayerPrivateAVFoundationObjC>&&)callback;
 -(void)disconnect;
--(void)metadataLoaded;
 -(void)chapterMetadataDidChange:(NSNotification *)notification;
 -(void)observeValueForKeyPath:keyPath ofObject:(id)object change:(NSDictionary *)change context:(MediaPlayerAVFoundationObservationContext)context;
 - (void)legibleOutput:(id)output didOutputAttributedStrings:(NSArray *)strings nativeSampleBuffers:(NSArray *)nativeSamples forItemTime:(CMTime)itemTime;
@@ -249,9 +248,7 @@ struct LogArgument<AVPlayerTimeControlStatus> {
 
 namespace WebCore {
 
-static NSArray *assetMetadataKeyNamesSingleton();
 static NSArray *itemKVOPropertiesSingleton();
-static NSArray *assetTrackMetadataKeyNamesSingleton();
 static NSArray *playerKVOPropertiesSingleton();
 
 static dispatch_queue_t globalLoaderDelegateQueueSingleton()
@@ -435,8 +432,9 @@ public:
     MediaPlayerAVFoundationCore swift;
 };
 
-// MediaPlayerAVFoundationCore.swift's status values.
+// MediaPlayerAVFoundationCore.swift's and MediaPlayerPrivateAVFoundation.swift's status values.
 static_assert(AVPlayerItemStatusUnknown == 0 && AVPlayerItemStatusFailed == 2);
+static_assert(AVErrorServerIncorrectlyConfigured == -11850);
 static_assert(AVPlayerTimeControlStatusPaused == 0 && AVPlayerTimeControlStatusWaitingToPlayAtSpecifiedRate == 1 && AVPlayerTimeControlStatusPlaying == 2);
 
 MediaPlayerPrivateAVFoundationObjC::MediaPlayerPrivateAVFoundationObjC(MediaPlayer& player)
@@ -449,6 +447,7 @@ MediaPlayerPrivateAVFoundationObjC::MediaPlayerPrivateAVFoundationObjC(MediaPlay
 {
     ALWAYS_LOG(LOGIDENTIFIER);
     m_core = makeUnique<Core>(MediaPlayerAVFoundationCore::init(MediaPlayerAVFoundationHost::create(*this).ptr()));
+    m_swiftCore = reinterpret_cast<uintptr_t>(swift::_impl::_impl_RefCountedClass::getOpaquePointer(m_core->swift));
     m_muted = player.muted();
     m_volume = player.volume();
     m_isVideoPlayer = player.isVideoPlayer();
@@ -1024,6 +1023,7 @@ void MediaPlayerPrivateAVFoundationObjC::createAVAssetForURL(const URL& url, Ret
 
     m_haveCheckedPlayability = false;
 
+    attachAVObjectsToCore();
     checkPlayability();
 }
 
@@ -1082,7 +1082,7 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayer()
     // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
     for (SUPPRESS_UNRETAINED_LOCAL NSString *keyName in playerKVOPropertiesSingleton())
         [m_avPlayer addObserver:m_objcObserver.get() forKeyPath:keyName options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextPlayer];
-    m_core->swift.attach(m_avPlayer.get());
+    attachAVObjectsToCore();
 
     m_avPlayer.get().appliesMediaSelectionCriteriaAutomatically = NO;
 #if HAVE(AVPLAYER_VIDEORANGEOVERRIDE)
@@ -1178,7 +1178,7 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayerItem()
 
         [m_avPlayerItem addObserver:m_objcObserver.get() forKeyPath:keyName options:options context:(void *)MediaPlayerAVFoundationObservationContextPlayerItem];
     }
-    m_core->swift.attach(m_avPlayerItem.get());
+    attachAVObjectsToCore();
 
     [m_avPlayerItem setAudioTimePitchAlgorithm:MediaSessionManagerCocoa::audioTimePitchAlgorithmForMediaPlayerPitchCorrectionAlgorithm(player->pitchCorrectionAlgorithm(), player->preservesPitch(), m_core->swift.requestedRateValue()).createNSString().get()];
 
@@ -1224,55 +1224,6 @@ ALLOW_NEW_API_WITHOUT_GUARDS_END
     [m_avPlayerItem addOutput:m_metadataOutput];
 }
 
-
-void MediaPlayerPrivateAVFoundationObjC::checkPlayability()
-{
-    if (m_haveCheckedPlayability)
-        return;
-    m_haveCheckedPlayability = true;
-
-    INFO_LOG(LOGIDENTIFIER);
-    __block ThreadSafeWeakPtr weakThis { *this };
-
-    [m_avAsset loadValuesAsynchronouslyForKeys:@[@"playable", @"tracks"] completionHandler:^{
-        ensureOnMainThread([weakThis = WTF::move(weakThis)] {
-            if (RefPtr protectedThis = weakThis.get()) {
-                protectedThis->updateStates();
-                protectedThis->playabilityKnown();
-            }
-        });
-    }];
-}
-
-void MediaPlayerPrivateAVFoundationObjC::beginLoadingMetadata()
-{
-    INFO_LOG(LOGIDENTIFIER);
-
-    OSObjectPtr<dispatch_group_t> metadataLoadingGroup = adoptOSObject(dispatch_group_create());
-    dispatch_group_enter(metadataLoadingGroup.get());
-    ThreadSafeWeakPtr weakThis { *this };
-    [m_avAsset loadValuesAsynchronouslyForKeys:assetMetadataKeyNamesSingleton() completionHandler:^{
-        callOnMainThread([weakThis, metadataLoadingGroup] {
-            if (RefPtr protectedThis = weakThis.get(); protectedThis && [protectedThis->m_avAsset statusOfValueForKey:@"tracks" error:nil] == AVKeyValueStatusLoaded) {
-                // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-                for (SUPPRESS_UNRETAINED_LOCAL AVAssetTrack *track in [protectedThis->m_avAsset tracks]) {
-                    dispatch_group_enter(metadataLoadingGroup.get());
-                    [track loadValuesAsynchronouslyForKeys:assetTrackMetadataKeyNamesSingleton() completionHandler:^{
-                        dispatch_group_leave(metadataLoadingGroup.get());
-                    }];
-                }
-            }
-            dispatch_group_leave(metadataLoadingGroup.get());
-        });
-    }];
-
-    dispatch_group_notify(metadataLoadingGroup.get(), mainDispatchQueueSingleton(), ^{
-        callOnMainThread([weakThis] {
-            if (RefPtr protectedThis = weakThis.get())
-                [protectedThis->m_objcObserver metadataLoaded];
-        });
-    });
-}
 
 MediaPlayerPrivateAVFoundation::ItemStatus MediaPlayerPrivateAVFoundationObjC::playerItemStatus() const
 {
@@ -1702,6 +1653,7 @@ MediaTime MediaPlayerPrivateAVFoundationObjC::platformMaxTimeLoaded() const
 void MediaPlayerPrivateAVFoundationObjC::setAsset(RetainPtr<id>&& asset)
 {
     m_avAsset = WTF::move(asset);
+    attachAVObjectsToCore();
     processChapterTracks();
 }
 
@@ -1771,34 +1723,6 @@ MediaPlayerPrivateAVFoundation::AssetStatus MediaPlayerPrivateAVFoundationObjC::
         return MediaPlayerAVAssetStatusPlayable;
 
     return MediaPlayerAVAssetStatusLoaded;
-}
-
-MediaPlayerPrivateAVFoundation::AssetStatus MediaPlayerPrivateAVFoundationObjC::assetKeysStatus() const
-{
-    NSError *error = nil;
-    auto status = [&] {
-        // FIXME: Remove the suppression once https://github.com/llvm/llvm-project/pull/230818 is deployed (rdar://189710680).
-        for (SUPPRESS_UNRETAINED_LOCAL NSString *keyName in assetMetadataKeyNamesSingleton()) {
-            AVKeyValueStatus keyStatus = [m_avAsset statusOfValueForKey:keyName error:&error];
-
-            if (error)
-                ERROR_LOG(LOGIDENTIFIER, "failed for ", keyName, ", error = ", error);
-
-            if (keyStatus < AVKeyValueStatusLoaded)
-                return MediaPlayerAVAssetStatusLoading; // At least one key is not loaded yet.
-
-            if (keyStatus == AVKeyValueStatusFailed)
-                return MediaPlayerAVAssetStatusFailed; // At least one key could not be loaded.
-
-            if (keyStatus == AVKeyValueStatusCancelled)
-                return MediaPlayerAVAssetStatusCancelled; // Loading of at least one key was cancelled.
-        }
-        return MediaPlayerAVAssetStatusLoaded;
-    }();
-    if (status == MediaPlayerAVAssetStatusFailed
-        && (([error.domain isEqualToString:@"AVFoundationErrorDomain"] && error.code == AVErrorServerIncorrectlyConfigured) || [error.domain isEqualToString:@"NSURLErrorDomain"]))
-        return MediaPlayerAVAssetStatusNetworkError;
-    return status;
 }
 
 long MediaPlayerPrivateAVFoundationObjC::assetErrorCode() const
@@ -4020,6 +3944,23 @@ void MediaPlayerAVFoundationHost::queueChange(uint64_t identifier) const
     });
 }
 
+void MediaPlayerAVFoundationHost::playabilityLoaded() const
+{
+    if (RefPtr player = m_player.get()) {
+        player->updateStates();
+        player->playabilityKnown();
+    }
+}
+
+void MediaPlayerAVFoundationHost::metadataLoadingCompleted() const
+{
+    if (RefPtr player = m_player.get()) {
+        player->queueTaskOnEventLoop([player] {
+            player->metadataLoaded();
+        });
+    }
+}
+
 void MediaPlayerAVFoundationHost::updateStates() const
 {
     if (RefPtr player = m_player.get())
@@ -4115,24 +4056,6 @@ void MediaPlayerAVFoundationHost::playbackStateChanged() const
         mediaPlayer->playbackStateChanged();
 }
 
-NSArray* assetMetadataKeyNamesSingleton()
-{
-    static NeverDestroyed<RetainPtr<NSArray>> keys = adoptNS([[NSArray alloc] initWithObjects:
-        @"duration",
-        @"naturalSize",
-        @"preferredTransform",
-        @"preferredVolume",
-        @"preferredRate",
-        @"playable",
-        @"resolvedURL",
-        @"tracks",
-        @"availableMediaCharacteristicsWithMediaSelectionOptions",
-        @"availableChapterLocales",
-        @"variants",
-    nil]);
-    return keys.get();
-}
-
 NSArray* itemKVOPropertiesSingleton()
 {
     // MediaPlayerAVFoundationCore.swift observes the item's other keys.
@@ -4140,12 +4063,6 @@ NSArray* itemKVOPropertiesSingleton()
         @"asset",
         @"tracks",
     nil]);
-    return keys.get();
-}
-
-NSArray* assetTrackMetadataKeyNamesSingleton()
-{
-    static NeverDestroyed<RetainPtr<NSArray>> keys = adoptNS([[NSArray alloc] initWithObjects:@"totalSampleDataLength", @"mediaType", @"enabled", @"preferredTransform", @"naturalSize", @"formatDescriptions", nil]);
     return keys.get();
 }
 
@@ -4179,17 +4096,6 @@ NSArray* playerKVOPropertiesSingleton()
 - (void)disconnect
 {
     m_player = nullptr;
-}
-
-- (void)metadataLoaded
-{
-    ensureOnMainThread([self, strongSelf = retainPtr(self)] {
-        if (RefPtr player = m_player.get()) {
-            player->queueTaskOnEventLoop([player = WTF::move(player)] {
-                player->metadataLoaded();
-            });
-        }
-    });
 }
 
 - (void)chapterMetadataDidChange:(NSNotification *)unusedNotification

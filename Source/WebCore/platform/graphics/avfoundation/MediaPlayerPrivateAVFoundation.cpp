@@ -412,7 +412,7 @@ void MediaPlayerPrivateAVFoundation::updateStates()
 {
     // MediaPlayerPrivateAVFoundation.swift's raw values.
     static_assert(MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusDoesNotExist == 0 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusLoading == 2
-        && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusFailed == 3 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusNetworkError == 5
+        && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusFailed == 3 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusCancelled == 4 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusNetworkError == 5
         && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusLoaded == 6 && MediaPlayerPrivateAVFoundation::MediaPlayerAVAssetStatusPlayable == 7);
     static_assert(MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusUnknown == 1 && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusFailed == 2
         && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusReadyToPlay == 3 && MediaPlayerPrivateAVFoundation::MediaPlayerAVPlayerItemStatusPlaybackBufferEmpty == 4
