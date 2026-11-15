@@ -1052,18 +1052,15 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayer()
         [m_avPlayer addObserver:m_objcObserver.get() forKeyPath:keyName options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextPlayer];
     attachAVObjectsToCore();
 
-    m_avPlayer.get().appliesMediaSelectionCriteriaAutomatically = NO;
 #if HAVE(AVPLAYER_VIDEORANGEOVERRIDE)
     m_avPlayer.get().videoRangeOverride = protect(convertDynamicRangeModeEnumToAVVideoRange(player->preferredDynamicRangeMode()));
 #endif
 
-    if ([m_videoLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
-        [m_videoLayer setToneMapToStandardDynamicRange:player->shouldDisableHDR()];
-
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
     updateDisableExternalPlayback();
-    [m_avPlayer setAllowsExternalPlayback:m_allowsWirelessVideoPlayback];
 #endif
+
+    configureAVPlayer(player->shouldDisableHDR(), player->shouldDisableSleep());
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS_FAMILY)
     if (m_shouldPlayToPlaybackTarget) {
@@ -1071,25 +1068,6 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayer()
         m_shouldPlayToPlaybackTarget = false;
         setShouldPlayToPlaybackTarget(true);
     }
-#endif
-
-#if PLATFORM(IOS_FAMILY) && !PLATFORM(IOS_FAMILY_SIMULATOR) && !PLATFORM(MACCATALYST)
-    setShouldDisableSleep(player->shouldDisableSleep());
-
-    if ([m_avPlayer respondsToSelector:@selector(setPreventsAutomaticBackgroundingDuringVideoPlayback:)])
-        m_avPlayer.get().preventsAutomaticBackgroundingDuringVideoPlayback = NO;
-#endif
-
-    [m_avPlayer setVolume:m_volume];
-
-    if (m_muted)
-        [m_avPlayer setMuted:m_muted];
-
-    if (m_isVideoPlayer)
-        [m_avPlayer _setSuppressesAudioRendering:m_suppressesAudioRendering];
-
-#if HAVE(AVPLAYER_DISCONNECTEDFROMSYSTEMAUDIO)
-    [m_avPlayer setDisconnectedFromSystemAudio:!m_isAudible completionHandler:nil];
 #endif
 
 #if HAVE(SPATIAL_TRACKING_LABEL)
@@ -1508,22 +1486,6 @@ void MediaPlayerPrivateAVFoundationObjC::setVolume(float volume)
 #endif
 }
 
-void MediaPlayerPrivateAVFoundationObjC::setMuted(bool muted)
-{
-    if (m_muted == muted)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, muted);
-
-    m_muted = muted;
-    updateIsAudible();
-
-    if (!m_avPlayer)
-        return;
-
-    [m_avPlayer setMuted:m_muted];
-}
-
 void MediaPlayerPrivateAVFoundationObjC::setRateDouble(double rate)
 {
     m_core->swift.setRequestedRate(rate);
@@ -1929,55 +1891,6 @@ MediaTime MediaPlayerPrivateAVFoundationObjC::mediaTimeForTimeValue(const MediaT
 
     // FIXME - impossible to implement until rdar://8721510 is fixed.
     return timeValue;
-}
-
-void MediaPlayerPrivateAVFoundationObjC::updateIsAudible()
-{
-    // HLS can recreate its tracks while loading, briefly reporting that it
-    // does not have audio. Suppressing audio rendering (or disconnecting from
-    // system audio) in response perturbs AVFoundation's timebase, causing it
-    // to seek into a still-unbuffered range. This leads to AVFoundation
-    // restarting the loading process, recreating its tracks again and causing
-    // a cycle. Break this cycle by waiting for HaveFutureData before
-    // suppressing or disconnecting audio. This ensures that any timebase
-    // perturbation in response to audio suppression occurs within a buffered
-    // range.
-    if (!hasAudio() && readyState() < MediaPlayer::ReadyState::HaveFutureData)
-        return;
-
-    bool isAudible = hasAudio() && !m_muted && m_volume;
-    bool isAudibleChanged = m_isAudible != isAudible;
-
-    bool suppressesAudioRendering = !isAudible && (!hasAudio() || hasVideo());
-    bool suppressesAudioRenderingChanged = m_suppressesAudioRendering != suppressesAudioRendering;
-
-    if (!isAudibleChanged && !suppressesAudioRenderingChanged)
-        return;
-
-    // Only change the state of suppressesAudioRendering and
-    // disconnectedFromSystemAudio when playback is paused, to
-    // avoid the reconfiguring of video playback that AVFoundation
-    // performs when these properties are changed. However,
-    // ignore this check if becoming audible to ensure audio
-    // rendering starts immediately. This method will be called
-    // again by timeControlStatusDidChange().
-    if (suppressesAudioRendering && m_core->swift.timeControlStatus() == AVPlayerTimeControlStatusPlaying)
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, isAudible, "suppressesAudioRendering = ", suppressesAudioRendering);
-    m_isAudible = isAudible;
-    m_suppressesAudioRendering = suppressesAudioRendering;
-
-    if (!m_avPlayer)
-        return;
-
-    if (m_isVideoPlayer && suppressesAudioRenderingChanged)
-        [m_avPlayer _setSuppressesAudioRendering:m_suppressesAudioRendering];
-
-#if HAVE(AVPLAYER_DISCONNECTEDFROMSYSTEMAUDIO)
-    if (isAudibleChanged)
-        [m_avPlayer setDisconnectedFromSystemAudio:!m_isAudible completionHandler:nil];
-#endif
 }
 
 void MediaPlayerPrivateAVFoundationObjC::setHasAudioForTesting(bool hasAudio)
@@ -3025,32 +2938,6 @@ bool MediaPlayerPrivateAVFoundationObjC::isCurrentPlaybackTargetWireless() const
     return wirelessTarget;
 }
 
-MediaPlayer::WirelessPlaybackTargetType MediaPlayerPrivateAVFoundationObjC::wirelessPlaybackTargetType() const
-{
-    if (!m_avPlayer)
-        return MediaPlayer::WirelessPlaybackTargetType::TargetTypeNone;
-
-#if PLATFORM(IOS_FAMILY)
-    if (!PAL::isAVFoundationFrameworkAvailable())
-        return MediaPlayer::WirelessPlaybackTargetType::TargetTypeNone;
-
-    switch ([m_avPlayer externalPlaybackType]) {
-    case AVPlayerExternalPlaybackTypeNone:
-        return MediaPlayer::WirelessPlaybackTargetType::TargetTypeNone;
-    case AVPlayerExternalPlaybackTypeAirPlay:
-        return MediaPlayer::WirelessPlaybackTargetType::TargetTypeAirPlay;
-    case AVPlayerExternalPlaybackTypeTVOut:
-        return MediaPlayer::WirelessPlaybackTargetType::TargetTypeTVOut;
-    }
-
-    ASSERT_NOT_REACHED();
-    return MediaPlayer::WirelessPlaybackTargetType::TargetTypeNone;
-
-#else
-    return MediaPlayer::WirelessPlaybackTargetType::TargetTypeAirPlay;
-#endif
-}
-
 #if PLATFORM(IOS_FAMILY)
 static RetainPtr<NSString> externalDeviceDisplayNameForPlayer(AVPlayer *player)
 {
@@ -3139,16 +3026,6 @@ bool MediaPlayerPrivateAVFoundationObjC::wirelessVideoPlaybackDisabled() const
     INFO_LOG(LOGIDENTIFIER, !m_allowsWirelessVideoPlayback);
 
     return !m_allowsWirelessVideoPlayback;
-}
-
-void MediaPlayerPrivateAVFoundationObjC::setWirelessVideoPlaybackDisabled(bool disabled)
-{
-    INFO_LOG(LOGIDENTIFIER, disabled);
-    m_allowsWirelessVideoPlayback = !disabled;
-    if (!m_avPlayer)
-        return;
-
-    [m_avPlayer setAllowsExternalPlayback:!disabled];
 }
 
 OptionSet<MediaPlaybackTargetType> MediaPlayerPrivateAVFoundationObjC::supportedPlaybackTargetTypes() const
@@ -3456,17 +3333,6 @@ double MediaPlayerPrivateAVFoundationObjC::minFastReverseRate() const
     return m_core->swift.canPlayFastReverse() ? -std::numeric_limits<double>::infinity() : 0.0;
 }
 
-void MediaPlayerPrivateAVFoundationObjC::setShouldDisableSleep(bool flag)
-{
-#if PLATFORM(IOS_FAMILY) && !PLATFORM(IOS_FAMILY_SIMULATOR) && !PLATFORM(MACCATALYST)
-ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    [m_avPlayer _setPreventsSleepDuringVideoPlayback:flag];
-ALLOW_DEPRECATED_DECLARATIONS_END
-#else
-    UNUSED_PARAM(flag);
-#endif
-}
-
 std::optional<VideoPlaybackQualityMetrics> MediaPlayerPrivateAVFoundationObjC::videoPlaybackQualityMetrics()
 {
     assertIsMainThread();
@@ -3537,17 +3403,6 @@ void MediaPlayerPrivateAVFoundationObjC::setPreferredDynamicRangeMode(DynamicRan
 #else
     UNUSED_PARAM(mode);
 #endif
-}
-
-void MediaPlayerPrivateAVFoundationObjC::setShouldDisableHDR(bool shouldDisable)
-{
-    assertIsMainThread();
-
-    if (![m_videoLayer respondsToSelector:@selector(setToneMapToStandardDynamicRange:)])
-        return;
-
-    ALWAYS_LOG(LOGIDENTIFIER, shouldDisable);
-    [m_videoLayer setToneMapToStandardDynamicRange:shouldDisable];
 }
 
 void MediaPlayerPrivateAVFoundationObjC::setPlatformDynamicRangeLimit(PlatformDynamicRangeLimit platformDynamicRangeLimit)
