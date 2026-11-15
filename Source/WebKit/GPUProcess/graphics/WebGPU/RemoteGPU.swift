@@ -88,33 +88,32 @@ final class RemoteGPUWorkScheduler: Sendable {
     }
 }
 
-// Implemented here, for GPUConnectionToWebProcess (RemoteGPU.h).
-extension WebKit {
+// For GPUConnectionToWebProcess.swift: starts the receiver of a web process's WebGPU messages to its GPU with that identifier
+// on the owner, which keeps it until it stops; it draws to and reads the rendering backend's image buffers, and reads the
+// video frames the web process shares.
+extension RemoteGPU {
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    @cxx
-    @implementation
-    static func createRemoteGPU(
+    @_expose(!Cxx)
+    static func create(
         _ owner: IPC.SwiftReceiverOwner,
         _ renderingBackend: WebKit.RemoteRenderingBackend,
         _ identifier: UInt64,
-        _ webProcessResourceOwner: WTF.MachSendRight,
+        _ webProcessResourceOwner: consuming WTF.MachSendRight,
         _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
-        _ webProcessIdentity: WebCore.ProcessIdentity,
-        _ hasWebProcessIdentity: Bool
+        _ webProcessIdentity: WebCore.ProcessIdentity?
     ) {
-        let videoFrameSources = WebGPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: hasWebProcessIdentity ? webProcessIdentity : nil)
-        RemoteGPU.start(owner, renderingBackend, videoFrameSources, identifier, webProcessResourceOwner)
+        let videoFrameSources = WebGPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: webProcessIdentity)
+        start(owner, renderingBackend, videoFrameSources, identifier, webProcessResourceOwner)
     }
     #else
-    @cxx
-    @implementation
-    static func createRemoteGPU(
+    @_expose(!Cxx)
+    static func create(
         _ owner: IPC.SwiftReceiverOwner,
         _ renderingBackend: WebKit.RemoteRenderingBackend,
         _ identifier: UInt64,
-        _ webProcessResourceOwner: WTF.MachSendRight
+        _ webProcessResourceOwner: consuming WTF.MachSendRight
     ) {
-        RemoteGPU.start(owner, renderingBackend, WebGPUVideoFrameSources(), identifier, webProcessResourceOwner)
+        start(owner, renderingBackend, WebGPUVideoFrameSources(), identifier, webProcessResourceOwner)
     }
     #endif
 }

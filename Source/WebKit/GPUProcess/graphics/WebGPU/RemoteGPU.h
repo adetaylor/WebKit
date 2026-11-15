@@ -31,31 +31,15 @@
 #include <IOSurface/IOSurfaceRef.h>
 #include <WebCore/PixelFormat.h>
 #include <WebCore/RenderingResourceIdentifier.h>
-#include <wtf/MachSendRight.h>
 #include <wtf/SwiftBridging.h>
-
-namespace IPC {
-class SwiftReceiverOwner;
-}
 
 namespace WebCore {
 class NativeImage;
-class ProcessIdentity;
 }
 
 namespace WebKit {
 
 class RemoteRenderingBackend;
-class RemoteVideoFrameObjectHeap;
-
-// Creates the receiver of a web process's WebGPU messages to its GPU with that identifier, RemoteGPU, which Swift implements
-// (RemoteGPU.swift): it starts receiving them on the owner, which keeps it until it stops, and draws to and reads the
-// rendering backend's image buffers, and reads the video frames the web process shares.
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-void createRemoteGPU(IPC::SwiftReceiverOwner&, RemoteRenderingBackend&, uint64_t identifier, MachSendRight webProcessResourceOwner, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
-#else
-void createRemoteGPU(IPC::SwiftReceiverOwner&, RemoteRenderingBackend&, uint64_t identifier, MachSendRight webProcessResourceOwner);
-#endif
 
 // What copyImageBufferSurface() says of the image buffer whose IOSurface it gives.
 struct RemoteGPUImageBufferSurface {

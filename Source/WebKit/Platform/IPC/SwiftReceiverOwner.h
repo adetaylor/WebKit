@@ -93,9 +93,9 @@ public:
     ~SwiftReceiverOwner();
 
     // Stops the receiver's messages, and then the work queue, and lets go of the receiver. For
-    // ScopedActiveMessageReceiveQueue, on the thread that created this. An owner on a shared work queue does the same
-    // on that queue, later, and leaves the queue running.
-    void stopListeningForIPC() __attribute__((availability(swift, unavailable)));
+    // ScopedActiveMessageReceiveQueue, or the Swift state that holds the owner, on the main thread, which created this. An
+    // owner on a shared work queue does the same on that queue, later, and leaves the queue running.
+    SWIFT_MAIN_ACTOR void stopListeningForIPC();
 
     // The shared preferences are those of the receiver's creation, which registerSwiftStreamReceiver() keeps a copy of.
     static constexpr bool hasFixedSharedPreferencesForWebProcess = true;

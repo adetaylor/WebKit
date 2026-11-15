@@ -481,18 +481,7 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     protect(videoFrameObjectHeap())->close();
     protect(remoteMediaPlayerManagerProxy())->connectionToWebProcessClosed();
 #endif
-#if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-    // RemoteGPU objects maintains ref to RemoteRenderingBackend objects so drop them first.
-    m_remoteGPUMap.clear();
-#endif
-    // RemoteRenderingBackend objects ref their GPUConnectionToWebProcess so we need to make sure
-    // to break the reference cycle by destroying them.
-    m_remoteRenderingBackendMap.clear();
-
-#if ENABLE(WEBGL)
-    // RemoteGraphicsContextsGL objects are unneeded after connection closes.
-    m_remoteGraphicsContextGLMap.clear();
-#endif
+    swiftCloseStreamReceivers();
 #if USE(GRAPHICS_LAYER_WC)
     remoteGraphicsStreamWorkQueue().dispatch([webProcessIdentifier = m_webProcessIdentifier] {
 #if ENABLE(WEBGL)
@@ -797,18 +786,17 @@ void GPUConnectionToWebProcess::createRenderingBackend(RemoteRenderingBackendIde
     auto streamConnection = IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
     MESSAGE_CHECK(streamConnection);
 
-    auto addResult = m_remoteRenderingBackendMap.ensure(identifier, [&] {
-        return IPC::ScopedActiveMessageReceiveQueue { RemoteRenderingBackend::create(*this, identifier, streamConnection.releaseNonNull()) };
-    });
-    if (!addResult.isNewEntry) {
+    if (swiftHasRenderingBackend(identifier.toUInt64())) {
         streamConnection->invalidate();
         MESSAGE_CHECK(false);
     }
+    Ref renderingBackend = RemoteRenderingBackend::create(*this, identifier, streamConnection.releaseNonNull());
+    swiftAddRenderingBackend(identifier.toUInt64(), renderingBackend);
 }
 
 void GPUConnectionToWebProcess::releaseRenderingBackend(RemoteRenderingBackendIdentifier renderingBackendIdentifier)
 {
-    bool found = m_remoteRenderingBackendMap.remove(renderingBackendIdentifier);
+    bool found = swiftReleaseRenderingBackend(renderingBackendIdentifier.toUInt64());
     ASSERT_UNUSED(found, found);
     m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
 }
@@ -833,10 +821,12 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
 #endif
     MESSAGE_CHECK(!attributes.supportWebGLDraftExtensions || m_sharedPreferencesForWebProcess.webGLDraftExtensionsEnabled);
 
-    auto it = m_remoteRenderingBackendMap.find(renderingBackendIdentifier);
-    if (it == m_remoteRenderingBackendMap.end())
+    if (!swiftHasRenderingBackend(renderingBackendIdentifier.toUInt64()))
         return;
-    RefPtr renderingBackend = it->value.get();
+    if (swiftHasGraphicsContextGL(identifier.toUInt64())) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
 
     IPC::StreamServerConnectionParameters params;
 #if ENABLE(IPC_TESTING_API)
@@ -845,21 +835,21 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     auto streamConnection = IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
     MESSAGE_CHECK(streamConnection);
 
-    auto addResult = m_remoteGraphicsContextGLMap.ensure(identifier, [&] {
-        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
-        // Once it has made the context, the owner keeps it until it stops.
-        RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), identifier, *renderingBackend, owner);
-        return IPC::ScopedActiveMessageReceiveQueue { WTF::move(owner) };
-    });
-    ASSERT_UNUSED(addResult, addResult.isNewEntry);
+    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
+    swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
+}
+
+void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes attributes, uint64_t identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
+{
+    // Once it has made the context, the owner keeps it until it stops.
+    RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), RemoteGraphicsContextGLIdentifier { identifier }, renderingBackend, owner);
 }
 
 void GPUConnectionToWebProcess::releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier)
 {
     MESSAGE_CHECK(!isLockdownModeEnabled());
 
-    m_remoteGraphicsContextGLMap.remove(identifier);
-    if (m_remoteGraphicsContextGLMap.isEmpty())
+    if (swiftReleaseGraphicsContextGL(identifier.toUInt64()))
         m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
 }
 
@@ -868,14 +858,6 @@ void GPUConnectionToWebProcess::releaseGraphicsContextGLForTesting(RemoteGraphic
     releaseGraphicsContextGL(identifier);
 }
 #endif
-
-RemoteRenderingBackend* GPUConnectionToWebProcess::remoteRenderingBackend(RemoteRenderingBackendIdentifier renderingBackendIdentifier)
-{
-    auto it = m_remoteRenderingBackendMap.find(renderingBackendIdentifier);
-    if (it == m_remoteRenderingBackendMap.end())
-        return nullptr;
-    return it->value.get();
-}
 
 #if ENABLE(VIDEO)
 void GPUConnectionToWebProcess::performWithMediaPlayerOnMainThread(MediaPlayerIdentifier identifier, Function<void(MediaPlayer&)>&& callback)
@@ -899,10 +881,12 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
 {
     MESSAGE_CHECK(m_sharedPreferencesForWebProcess.webGPUEnabled);
 
-    auto it = m_remoteRenderingBackendMap.find(renderingBackendIdentifier);
-    if (it == m_remoteRenderingBackendMap.end())
+    if (!swiftHasRenderingBackend(renderingBackendIdentifier.toUInt64()))
         return;
-    RefPtr renderingBackend = it->value.get();
+    if (swiftHasGPU(identifier.toUInt64())) {
+        ASSERT_NOT_REACHED();
+        return;
+    }
 
     IPC::StreamServerConnectionParameters params;
 #if ENABLE(IPC_TESTING_API)
@@ -911,33 +895,30 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
     auto streamConnection = IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
     MESSAGE_CHECK(streamConnection);
 
-    auto addResult = m_remoteGPUMap.ensure(identifier, [&] {
-        Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
+    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
 #if HAVE(TASK_IDENTITY_TOKEN)
-        MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
+    MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
 #else
-        MachSendRight webProcessResourceOwner;
-#endif
-#if ENABLE(GPU_PROCESS_MODEL)
-        // The owner's stream connection keeps it until the owner stops. It receives messages from the start, as RemoteGPU
-        // does once it has started.
-        RemoteGPUModel::create(*this, *renderingBackend, owner, identifier);
+    MachSendRight webProcessResourceOwner;
 #endif
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-        createRemoteGPU(owner, *renderingBackend, identifier.toUInt64(), WTF::move(webProcessResourceOwner), videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
+    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner), videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
 #else
-        createRemoteGPU(owner, *renderingBackend, identifier.toUInt64(), WTF::move(webProcessResourceOwner));
+    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner));
 #endif
-        return IPC::ScopedActiveMessageReceiveQueue { WTF::move(owner) };
-    });
-    ASSERT_UNUSED(addResult, addResult.isNewEntry);
 }
+
+#if ENABLE(GPU_PROCESS_MODEL)
+void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, uint64_t identifier)
+{
+    // It receives messages from the start, as RemoteGPU does once it has started.
+    RemoteGPUModel::create(*this, renderingBackend, owner, WebGPUIdentifier { identifier });
+}
+#endif
 
 void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
 {
-    bool result = m_remoteGPUMap.remove(identifier);
-    ASSERT_UNUSED(result, result);
-    if (m_remoteGPUMap.isEmpty()) {
+    if (swiftReleaseGPU(identifier.toUInt64())) {
         ensureOnMainRunLoop([gpuProcess = Ref { gpuProcess() }] {
             gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
         });

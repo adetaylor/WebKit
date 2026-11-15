@@ -67,6 +67,16 @@ final class GPUConnectionState {
     private(set) var cdmFactory: RemoteCDMFactoryProxy?
     #endif
 
+    // The receivers with stream connections of their own, by identifier, from when they are added until they are released
+    // or the connection closes; the state stops their messages then.
+    fileprivate var renderingBackends: [UInt64: WebKit.RemoteRenderingBackend] = [:]
+    #if ENABLE_WEBGL
+    fileprivate var graphicsContextGLOwners: [UInt64: IPC.SwiftReceiverOwner] = [:]
+    #endif
+    #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
+    fileprivate var gpuOwners: [UInt64: IPC.SwiftReceiverOwner] = [:]
+    #endif
+
     fileprivate nonisolated init(processIdentifier: UInt64, isLockdownModeEnabled: Bool) {
         self.processIdentifier = processIdentifier
         self.isLockdownModeEnabled = isLockdownModeEnabled
@@ -148,6 +158,38 @@ final class GPUConnectionState {
     }
     #endif
 
+    fileprivate func releaseRenderingBackend(_ identifier: UInt64) -> Bool {
+        guard let renderingBackend = renderingBackends.removeValue(forKey: identifier) else {
+            return false
+        }
+        renderingBackend.stopListeningForIPC()
+        return true
+    }
+
+    // The WebGPU receivers keep rendering backends, so they go first. The rendering backends keep the connection, so this also
+    // breaks that cycle.
+    fileprivate func closeStreamReceivers() {
+        #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
+        let gpuOwners = self.gpuOwners
+        self.gpuOwners.removeAll()
+        for owner in gpuOwners.values {
+            owner.stopListeningForIPC()
+        }
+        #endif
+        let renderingBackends = self.renderingBackends
+        self.renderingBackends.removeAll()
+        for renderingBackend in renderingBackends.values {
+            renderingBackend.stopListeningForIPC()
+        }
+        #if ENABLE_WEBGL
+        let graphicsContextGLOwners = self.graphicsContextGLOwners
+        self.graphicsContextGLOwners.removeAll()
+        for owner in graphicsContextGLOwners.values {
+            owner.stopListeningForIPC()
+        }
+        #endif
+    }
+
     fileprivate func invalidateReceivers() {
         #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
         audioDestinationManager?.invalidate()
@@ -173,6 +215,7 @@ extension WebKit.GPUConnectionToWebProcess {
         MainActor.assumeIsolated {
             // The receivers stop rendering here, on the main thread.
             state.invalidateReceivers()
+            state.closeStreamReceivers()
         }
     }
 
@@ -323,6 +366,163 @@ extension WebKit.GPUConnectionToWebProcess {
     func isRemoteCommandTargetSessionForTesting(connection: IPC.Connection, identifier: IPCTypes.MediaSessionIdentifier) -> Bool {
         nowPlayingArbiter.isRemoteCommandTarget(process: state.processIdentifier, session: identifier.rawValue)
     }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func swiftHasRenderingBackend(_ identifier: UInt64) -> Bool {
+        state.renderingBackends[identifier] != nil
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddRenderingBackend(_ identifier: UInt64, _ renderingBackend: WebKit.RemoteRenderingBackend) {
+        precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
+        state.renderingBackends[identifier] = renderingBackend
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReleaseRenderingBackend(_ identifier: UInt64) -> Bool {
+        state.releaseRenderingBackend(identifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftRenderingBackendCount() -> Int {
+        state.renderingBackends.count
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftCloseStreamReceivers() {
+        state.closeStreamReceivers()
+    }
+
+    #if ENABLE_WEBGL
+    @cxx
+    @implementation
+    @MainActor
+    func swiftHasGraphicsContextGL(_ identifier: UInt64) -> Bool {
+        state.graphicsContextGLOwners[identifier] != nil
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddGraphicsContextGL(
+        _ identifier: UInt64,
+        _ renderingBackendIdentifier: UInt64,
+        _ owner: IPC.SwiftReceiverOwner,
+        _ attributes: WebCore.GraphicsContextGLAttributes
+    ) {
+        guard let renderingBackend = state.renderingBackends[renderingBackendIdentifier],
+            state.graphicsContextGLOwners[identifier] == nil
+        else {
+            assertionFailure("The context has been added, or its rendering backend has not")
+            owner.stopListeningForIPC()
+            return
+        }
+        createGraphicsContextGLResources(attributes, identifier, renderingBackend, owner)
+        state.graphicsContextGLOwners[identifier] = owner
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReleaseGraphicsContextGL(_ identifier: UInt64) -> Bool {
+        let owner: IPC.SwiftReceiverOwner? = state.graphicsContextGLOwners.removeValue(forKey: identifier)
+        owner?.stopListeningForIPC()
+        return state.graphicsContextGLOwners.isEmpty
+    }
+    #endif
+
+    #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
+    @cxx
+    @implementation
+    @MainActor
+    func swiftHasGPU(_ identifier: UInt64) -> Bool {
+        state.gpuOwners[identifier] != nil
+    }
+
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddGPU(
+        _ identifier: UInt64,
+        _ renderingBackendIdentifier: UInt64,
+        _ owner: IPC.SwiftReceiverOwner,
+        _ webProcessResourceOwner: WTF.MachSendRight,
+        _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
+        _ webProcessIdentity: WebCore.ProcessIdentity,
+        _ hasWebProcessIdentity: Bool
+    ) {
+        guard let renderingBackend = renderingBackendForGPU(identifier, renderingBackendIdentifier, owner) else {
+            return
+        }
+        RemoteGPU.create(
+            owner,
+            renderingBackend,
+            identifier,
+            webProcessResourceOwner,
+            videoFrameHeap,
+            hasWebProcessIdentity ? webProcessIdentity : nil
+        )
+        state.gpuOwners[identifier] = owner
+    }
+    #else
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddGPU(
+        _ identifier: UInt64,
+        _ renderingBackendIdentifier: UInt64,
+        _ owner: IPC.SwiftReceiverOwner,
+        _ webProcessResourceOwner: WTF.MachSendRight
+    ) {
+        guard let renderingBackend = renderingBackendForGPU(identifier, renderingBackendIdentifier, owner) else {
+            return
+        }
+        RemoteGPU.create(owner, renderingBackend, identifier, webProcessResourceOwner)
+        state.gpuOwners[identifier] = owner
+    }
+    #endif
+
+    // The rendering backend of a new WebGPU receiver, after its companions are made, or nil, with the owner stopped.
+    @MainActor
+    private func renderingBackendForGPU(
+        _ identifier: UInt64,
+        _ renderingBackendIdentifier: UInt64,
+        _ owner: IPC.SwiftReceiverOwner
+    ) -> WebKit.RemoteRenderingBackend? {
+        guard let renderingBackend = state.renderingBackends[renderingBackendIdentifier], state.gpuOwners[identifier] == nil else {
+            assertionFailure("The GPU has been added, or its rendering backend has not")
+            owner.stopListeningForIPC()
+            return nil
+        }
+        #if ENABLE_GPU_PROCESS_MODEL
+        createGPUModel(renderingBackend, owner, identifier)
+        #endif
+        return renderingBackend
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReleaseGPU(_ identifier: UInt64) -> Bool {
+        let owner = state.gpuOwners.removeValue(forKey: identifier)
+        assert(owner != nil, "The GPU has not been added")
+        owner?.stopListeningForIPC()
+        return state.gpuOwners.isEmpty
+    }
+    #endif
 }
 
 #endif // ENABLE_GPU_PROCESS
