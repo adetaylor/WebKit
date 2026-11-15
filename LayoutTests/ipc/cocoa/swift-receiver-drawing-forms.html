@@ -1,0 +1,88 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that a Swift receiver decodes fill rules, transforms and the CG renderer's colors as C++ does.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+
+function takeInvalidMessageString()
+{
+    const reply = IPC.sendSyncMessage('UI', 0, IPC.messages.WebProcessProxy_TakeInvalidMessageStringForTesting.name, 1000, []);
+    return reply?.arguments?.[0]?.value ?? '';
+}
+
+// Resolves with the reply, or with null if the message was not handled.
+function send(messageName, args)
+{
+    return new Promise(resolve => {
+        IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, messageName, args, result => resolve(result?.arguments ? result : null));
+    });
+}
+
+// Sends each case to the Swift and the C++ describer at once, and resolves with their descriptions, null where a message was
+// not handled.
+async function describeAll(swiftMessageName, cxxMessageName, cases)
+{
+    const description = result => result ? result.arguments[0].value : null;
+    const results = await Promise.all(cases.map(([, args]) => Promise.all([send(swiftMessageName, args), send(cxxMessageName, args)])));
+    takeInvalidMessageString();
+    return results.map(([swift, cxx]) => [description(swift), description(cxx)]);
+}
+
+const u8 = value => ({ type: 'uint8_t', value });
+const u32 = value => ({ type: 'uint32_t', value });
+const f = value => ({ type: 'float', value });
+const d = value => ({ type: 'double', value });
+const b = value => ({ type: 'bool', value });
+
+const identity = [1, 0, 0, 1, 0, 0];
+const transform = values => values.map(d);
+
+// A CGRendererColorValue: its CGRendererColorData (components, packed color, color space, form and flags), then its packed
+// color and flags.
+const colorData = ({ c = [0.25, 0.5, 0.75, 1], packed = 0, colorSpace = 0, form = 2, semantic = 0, functionSerialization = 0 } = {}) =>
+    [...c.map(f), u32(packed), u8(colorSpace), u8(form), b(semantic), b(functionSerialization)];
+const color = (data = colorData(), packed = 0x336699ff, isPacked = 0, isVisible = 1) => [...data, u32(packed), b(isPacked), b(isVisible)];
+
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []).arguments[0].value;
+    takeInvalidMessageString();
+    try {
+        const cases = [];
+        for (const rule of [0, 1])
+            cases.push([`rule ${rule}`, [b(rule), ...transform(identity), ...color()]]);
+        cases.push(['a rule that is not a bool', [u8(2), ...transform(identity), ...color()]]);
+        for (const values of [[2, 0.5, -0.5, 2, 10, -20], [NaN, Infinity, -Infinity, -0, 1e300, -1e-300], [0, 0, 0, 0, 0, 0]])
+            cases.push([`the transform ${values}`, [b(0), ...transform(values), ...color()]]);
+        cases.push(['a transform cut short', [b(0), ...transform([1, 0, 0, 1, 0])]]);
+        for (let colorSpace = 0; colorSpace < 24; ++colorSpace)
+            cases.push([`a color in color space ${colorSpace}`, [b(0), ...transform(identity), ...color(colorData({ colorSpace }))]]);
+        for (const colorSpace of [127, 128, 255])
+            cases.push([`a color in color space ${colorSpace}`, [b(0), ...transform(identity), ...color(colorData({ colorSpace }))]]);
+        for (let form = 0; form < 5; ++form)
+            cases.push([`a color of form ${form}`, [b(0), ...transform(identity), ...color(colorData({ form, packed: 0xff0000ff }))]]);
+        cases.push(['a packed color', [b(1), ...transform(identity), ...color(colorData({ form: 1, packed: 0x00ff00ff }), 0x00ff00ff, 1, 1)]]);
+        cases.push(['an invisible color', [b(1), ...transform(identity), ...color(colorData({ form: 0 }), 0, 1, 0)]]);
+        cases.push(['a semantic color', [b(0), ...transform(identity), ...color(colorData({ semantic: 1, functionSerialization: 1 }))]]);
+        cases.push(['color components that are not numbers', [b(0), ...transform(identity), ...color(colorData({ c: [NaN, Infinity, -0, -1] }))]]);
+        cases.push(['a color flag that is not a bool', [b(0), ...transform(identity), ...colorData(), u32(0), u8(2), b(1)]]);
+        cases.push(['a color cut short', [b(0), ...transform(identity), ...colorData()]]);
+
+        let accepted = 0;
+        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeDrawingFormsSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedDrawingFormsSwift.name, cases);
+        cases.forEach(([description], i) => {
+            const [swift, cxx] = descriptions[i];
+            assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
+            if (swift !== null)
+                ++accepted;
+        });
+        assert_equals(accepted, 34, 'The valid cases are accepted');
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+    done();
+}, "A Swift receiver decodes fill rules, transforms and the CG renderer's colors as C++ does, and rejects what C++ rejects.");
+</script>
+</body>
