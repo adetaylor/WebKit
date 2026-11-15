@@ -105,10 +105,11 @@ public:
 
     void clearRules();
 
-    const Vector<Ref<StyleRuleLayer>>& layerRulesBeforeImportRules() const LIFETIME_BOUND { return m_layerRulesBeforeImportRules; }
-    const Vector<Ref<StyleRuleImport>>& importRules() const LIFETIME_BOUND { return m_importRules; }
-    const Vector<Ref<StyleRuleNamespace>>& namespaceRules() const LIFETIME_BOUND { return m_namespaceRules; }
-    const Vector<Ref<StyleRuleBase>>& childRules() const LIFETIME_BOUND { return m_childRules; }
+    // Unsafe to Swift: Swift infers a copy of the returned Vector<Ref<...>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE const Vector<Ref<StyleRuleLayer>>& layerRulesBeforeImportRules() const LIFETIME_BOUND { return m_layerRulesBeforeImportRules; }
+    SWIFT_UNSAFE const Vector<Ref<StyleRuleImport>>& importRules() const LIFETIME_BOUND { return m_importRules; }
+    SWIFT_UNSAFE const Vector<Ref<StyleRuleNamespace>>& namespaceRules() const LIFETIME_BOUND { return m_namespaceRules; }
+    SWIFT_UNSAFE const Vector<Ref<StyleRuleBase>>& childRules() const LIFETIME_BOUND { return m_childRules; }
 
     void notifyLoadedSheet(const CachedCSSStyleSheet*);
     
@@ -130,9 +131,11 @@ public:
 
     NODELETE unsigned estimatedSizeInBytes() const;
     
-    bool wrapperInsertRule(Ref<StyleRuleBase>&&, unsigned index);
+    // Unsafe to Swift: the index is checked in debug builds only (CSSOM checks it before calling).
+    SWIFT_UNSAFE bool wrapperInsertRule(Ref<StyleRuleBase>&&, unsigned index);
     void adoptScopeRules(StyleRuleBase&) const;
-    bool wrapperDeleteRule(unsigned index);
+    // Unsafe to Swift: the index is checked in debug builds only (CSSOM checks it before calling).
+    SWIFT_UNSAFE bool wrapperDeleteRule(unsigned index);
 
     Ref<StyleSheetContents> copy() const { return adoptRef(*new StyleSheetContents(*this)); }
 
