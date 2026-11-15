@@ -199,6 +199,7 @@ protected:
 #endif
     ScopedWebGLRenderingResourcesRequest m_renderingResourcesRequest;
     SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
+    const WebCore::ProcessIdentity m_webProcessIdentity;
     // A retained reference to the Swift state, as an address, while the receivers receive messages, and otherwise 0.
     uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
     std::optional<uint64_t> m_estimatedMemoryCost WTF_GUARDED_BY_CAPABILITY(workQueue());
