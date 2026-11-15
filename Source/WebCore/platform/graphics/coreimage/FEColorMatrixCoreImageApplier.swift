@@ -24,9 +24,6 @@
 #if ENABLE_WEBCORE_SWIFT
 #if USE_CORE_IMAGE
 
-// The safe Span overload Swift synthesizes for valueSpan() calls Cxx's Span(_unsafeCxxSpan:). Xcode builds don't find it
-// unless this file imports Cxx.
-private import Cxx
 import CoreImage
 import CoreImage.CIFilterBuiltins
 import WebCore_Private.Core.FEColorMatrixParameters
@@ -35,15 +32,15 @@ import WebCore_Private.Core.IntRect
 
 // FEColorMatrixCoreImageApplier::supportsCoreImageRendering().
 @_expose(Cxx)
-func feColorMatrixSupportsCoreImage(_ parameters: WebCore.FEColorMatrixParametersView) -> Bool {
-    parameters.type() != .FECOLORMATRIX_TYPE_UNKNOWN
+func feColorMatrixSupportsCoreImage(_ type: WebCore.ColorMatrixType) -> Bool {
+    type != .FECOLORMATRIX_TYPE_UNKNOWN
 }
 
 // FEColorMatrixCoreImageApplier::apply(): CIColorMatrix with the normalized values, clamped to [0, 1] and cropped to the
 // result.
 func feColorMatrixApplyCoreImage(
     _ context: borrowing WebCore.FilterApplyContext,
-    _ parameters: WebCore.FEColorMatrixParametersView,
+    _ parameters: FEColorMatrixValues,
     _ input: borrowing FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
@@ -51,8 +48,8 @@ func feColorMatrixApplyCoreImage(
         return false
     }
 
-    let type = parameters.type()
-    let values: Span<Float> = parameters.valueSpan()
+    let type = parameters.type
+    let values: Span<Float> = parameters.values.span
     // Fails for a list with fewer values than the type reads, which the IPC decoder and the DOM reject.
     guard values.count >= feColorMatrixRequiredValueCount(type) else {
         return false

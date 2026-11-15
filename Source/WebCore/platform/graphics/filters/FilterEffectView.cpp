@@ -41,6 +41,7 @@
 #include "FEOffset.h"
 #include "FETurbulence.h"
 #include "LightSource.h"
+#include "NativeImage.h"
 
 namespace WebCore {
 
@@ -93,7 +94,7 @@ ColorSpace FilterEffectView::operatingColorSpace() const
 
 bool FilterEffectView::operatingColorSpaceIsSRGB() const
 {
-    return m_effect->operatingColorSpace() == ColorSpace::SRGB();
+    return filterEffectColorSpaceIsSRGB(m_effect->operatingColorSpace());
 }
 
 FEBlendParameters FilterEffectView::blendParameters() const
@@ -158,9 +159,14 @@ FEImageParameters FilterEffectView::imageParameters() const
     return downcast<FEImage>(m_effect).parameters();
 }
 
-FEImageSource FilterEffectView::imageSource() const
+RefPtrNativeImage FilterEffectView::imageSourceNativeImage() const
 {
-    return FEImageSource { downcast<FEImage>(m_effect).sourceImage() };
+    return downcast<FEImage>(m_effect).sourceImage().nativeImageIfExists();
+}
+
+RefPtrImageBuffer FilterEffectView::imageSourceImageBuffer() const
+{
+    return downcast<FEImage>(m_effect).sourceImage().imageBufferIfExists();
 }
 
 FELightingParameters FilterEffectView::lightingParameters() const
@@ -192,5 +198,22 @@ FETurbulenceParameters FilterEffectView::turbulenceParameters() const
 {
     return downcast<FETurbulence>(m_effect).parameters();
 }
+
+FilterColorComponents filterEffectColorComponents(const Color& color, const ColorSpace& colorSpace)
+{
+    return filterColorComponents(color, colorSpace);
+}
+
+bool filterEffectColorSpaceIsSRGB(const ColorSpace& colorSpace)
+{
+    return colorSpace == ColorSpace::SRGB();
+}
+
+#if USE(CG)
+ColorSpace filterEffectColorSpace(CGColorSpaceRef colorSpace)
+{
+    return ColorSpace { RetainPtr { colorSpace } };
+}
+#endif
 
 } // namespace WebCore

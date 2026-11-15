@@ -67,8 +67,8 @@
 
 #if ENABLE_WEBCORE_SWIFT
 
-// The safe Span overloads Swift synthesizes for valueSpan() and PixelBufferAccess.mutableSpan() call Cxx's
-// Span(_unsafeCxxSpan:) and MutableSpan(_unsafeCxxSpan:). Xcode builds don't find them unless this file imports Cxx.
+// The safe MutableSpan overload Swift synthesizes for PixelBufferAccess.mutableSpan() calls Cxx's
+// MutableSpan(_unsafeCxxSpan:). Xcode builds don't find it unless this file imports Cxx.
 private import Cxx
 #if canImport(Darwin)
 import Darwin
@@ -97,12 +97,12 @@ import WebCore_Private.Core.FilterSkiaBridge
 // FEColorMatrixSoftwareApplier::apply(): draws the input into the result's image buffer, then applies the matrix to its
 // unpremultiplied pixels.
 func feColorMatrixApplySoftware(
-    _ parameters: WebCore.FEColorMatrixParametersView,
+    _ parameters: FEColorMatrixValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
-    let type = parameters.type()
-    let values: Span<Float> = parameters.valueSpan()
+    let type = parameters.type
+    let values: Span<Float> = parameters.values.span
     // Fails for a list with fewer values than the type reads, which the IPC decoder and the DOM reject.
     guard values.count >= feColorMatrixRequiredValueCount(type) else {
         return false
@@ -133,12 +133,12 @@ func feColorMatrixApplySoftware(
 #if USE_SKIA
 // FEColorMatrixSkiaApplier::apply(): Skia draws the input through the 5 x 4 matrix (FilterSkiaBridge.cpp).
 func feColorMatrixApplySkia(
-    _ parameters: WebCore.FEColorMatrixParametersView,
+    _ parameters: FEColorMatrixValues,
     _ input: inout FilterImageImpl,
     _ result: inout FilterImageImpl
 ) -> Bool {
-    let type = parameters.type()
-    let values: Span<Float> = parameters.valueSpan()
+    let type = parameters.type
+    let values: Span<Float> = parameters.values.span
     // Fails for a list with fewer values than the type reads.
     guard values.count >= feColorMatrixRequiredValueCount(type) else {
         return false

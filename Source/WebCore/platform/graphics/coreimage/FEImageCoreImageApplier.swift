@@ -33,13 +33,15 @@ import WebCore_Private.Core.FilterSwiftBridge
 import WebCore_Private.Core.FloatPoint
 import WebCore_Private.Core.FloatRect
 import WebCore_Private.Core.FloatSize
+import WebCore_Private.Core.ImageBuffer
 import WebCore_Private.Core.IntRect
+import WebCore_Private.Core.NativeImage
 
 // FEImageCoreImageApplier::apply(): the source image, mapped to its place in the absolute enclosing filter region.
 func feImageApplyCoreImage(
     _ context: borrowing WebCore.FilterApplyContext,
     _ parameters: borrowing WebCore.FEImageParameters,
-    _ source: WebCore.FEImageSource,
+    _ source: FilterImageSource,
     _ result: inout FilterImageImpl
 ) -> Bool {
     let sourceImageRect = parameters.sourceImageRect
@@ -49,19 +51,19 @@ func feImageApplyCoreImage(
     }
 
     var image: CIImage?
-    switch source.kind {
-    case .NativeImage:
+    switch source {
+    case .nativeImage(let nativeImage):
         let imageRect = context.scaledByFilterScale(sourceImageRect)
 
-        image = source.copyNativeImagePlatformImage().map { CIImage(cgImage: $0) }
+        image = WebCore.feImageCopyNativeImagePlatformImage(nativeImage).map { CIImage(cgImage: $0) }
 
-        let sourceRect = WebCore.FloatRect(WebCore.FloatPoint(), WebCore.FloatSize(source.nativeImageSize()))
+        let sourceRect = WebCore.FloatRect(WebCore.FloatPoint(), WebCore.FloatSize(WebCore.feImageNativeImageSize(nativeImage)))
         let destinationRect = context.flippedRectRelativeToAbsoluteEnclosingFilterRegion(WebCore.roundedIntRect(imageRect))
 
         let transform = WebCore.makeMapBetweenRects(sourceRect, destinationRect)
         image = image?.transformed(by: cgAffineTransform(transform))
-    case .ImageBuffer:
-        guard let surface = source.imageBufferSurface() else {
+    case .imageBuffer(let imageBuffer):
+        guard let surface = WebCore.feImageImageBufferSurface(imageBuffer) else {
             return false
         }
 
@@ -73,9 +75,7 @@ func feImageApplyCoreImage(
         let absoluteSourceRect = context.flippedRectRelativeToAbsoluteEnclosingFilterRegion(scaledSourceRect)
         let translation = CGAffineTransform(translationX: CGFloat(absoluteSourceRect.x()), y: CGFloat(absoluteSourceRect.y()))
         image = CIImage(ioSurface: surface).transformed(by: translation).cropped(to: context.coreImageRect(result.absoluteImageRect))
-    case .None:
-        image = nil
-    @unknown default:
+    case .none:
         image = nil
     }
 

@@ -57,6 +57,11 @@ FilterEffectView SVGFilterRendererView::effect(unsigned index) const
     return FilterEffectView { m_renderer->effects()[index] };
 }
 
+unsigned SVGFilterRendererView::effectCount() const
+{
+    return m_renderer->effects().size();
+}
+
 unsigned SVGFilterRendererView::termCount() const
 {
     return m_renderer->expression().size();

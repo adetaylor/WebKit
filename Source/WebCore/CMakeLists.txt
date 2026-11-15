@@ -3676,6 +3676,7 @@ if (APPLE)
         ${WEBCORE_DIR}/platform/graphics/coreimage/SourceGraphicCoreImageApplier.swift
         ${WEBCORE_DIR}/platform/graphics/coreimage/FilterImageCoreImage.swift
         ${WEBCORE_DIR}/platform/graphics/filters/FilterApply.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterDescriptions.swift
         ${WEBCORE_DIR}/platform/graphics/filters/FilterEngine.swift
         ${WEBCORE_DIR}/platform/graphics/filters/FilterGeometryMath.swift
         ${WEBCORE_DIR}/platform/graphics/filters/FilterImageImpl.swift

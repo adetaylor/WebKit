@@ -50,11 +50,12 @@ func cssFilterEnclosingFilterRegion(
     _ functionFilterRegions: borrowing WebCore.FilterImageRects
 ) -> WebCore.FloatRect {
     let regions: Span<WebCore.FloatRect> = functionFilterRegions.span()
-    var enclosingFilterRegion = filterRegion
+    var svgFilterRegions: [WebCore.FloatRect] = []
+    svgFilterRegions.reserveCapacity(regions.count)
     for index in regions.indices {
-        enclosingFilterRegion.unite(regions[index])
+        svgFilterRegions.append(regions[index])
     }
-    return enclosingFilterRegion
+    return describedCSSFilterEnclosingFilterRegion(filterRegion, svgFilterRegions)
 }
 #endif
 
@@ -86,27 +87,51 @@ func cssFilterApply(
     _ rendersResult: Bool,
     _ absoluteImageRect: inout WebCore.IntRect
 ) -> WebCore.RefPtrImageBuffer {
-    let renderer = filter.parameters()
-    let context = filterApplyContextOf(renderer)
+    cssFilterResult(CSSFilterDescription(filter), sourceImage, sourceImageRect, allocator, &results, rendersResult, &absoluteImageRect)
+}
+
+// CSSFilterRenderer::apply() of a described CSS filter: its result, with its absolute image rect, or nil if it fails.
+// `rendersResult`: as FilterEngine.finalResult() takes it.
+@_spi(WebKitGPU) public func applyCSSFilter(
+    _ filter: borrowing CSSFilterDescription,
+    _ sourceImage: WebCore.ImageBuffer?,
+    _ sourceImageRect: WebCore.FloatRect,
+    _ allocator: WebCore.FilterImageAllocator,
+    _ results: inout FilterResultsState,
+    _ rendersResult: Bool,
+    _ absoluteImageRect: inout WebCore.IntRect
+) -> WebCore.ImageBuffer? {
+    cssFilterResult(filter, sourceImage, sourceImageRect, allocator, &results.impl, rendersResult, &absoluteImageRect).get()
+}
+
+private func cssFilterResult(
+    _ filter: borrowing CSSFilterDescription,
+    _ sourceImage: WebCore.ImageBuffer?,
+    _ sourceImageRect: WebCore.FloatRect,
+    _ allocator: WebCore.FilterImageAllocator,
+    _ results: inout FilterResultsImpl,
+    _ rendersResult: Bool,
+    _ absoluteImageRect: inout WebCore.IntRect
+) -> WebCore.RefPtrImageBuffer {
+    let context = filterApplyContextOf(filter.renderer)
     return withFilterEngine(allocator, &results) { engine in
         guard var result = engine.sourceImage(sourceImage, sourceImageRect, context) else {
             return WebCore.RefPtrImageBuffer()
         }
-        let identifier = filter.identifier()
-        for index in 0..<filter.functionCount() {
+        for (index, function) in filter.functions.enumerated() {
             let next: FilterImageBox?
-            switch filter.functionKind(index) {
-            case .Effect:
+            switch function {
+            case .effect(let effect):
                 next = engine.applyEffect(
-                    filter.effect(index),
-                    FilterEffectKey(identifier, index),
+                    effect,
+                    FilterEffectKey(filter.identifier, UInt32(index)),
                     context,
-                    renderer,
+                    filter.renderer,
                     FilterEffectInputs(result)
                 )
-            case .SVGFilter:
-                next = engine.applyReferencedSVGFilter(filter.svgFilter(index), result)
-            default:
+            case .svgFilter(let svgFilter):
+                next = engine.applyReferencedSVGFilter(svgFilter, result)
+            case nil:
                 next = nil
             }
             guard let next else {
