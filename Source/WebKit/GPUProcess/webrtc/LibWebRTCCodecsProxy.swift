@@ -39,9 +39,9 @@ private final class PendingReply<Reply: ~Copyable>: @unchecked Sendable {
     }
 }
 
-// The flags of the dispatches of each frame's result: DispatchQueue.async's default, an array literal, makes every call
+// The flags of the dispatches to the codecs queue: DispatchQueue.async's default, an array literal, makes every call
 // look up the array's generic metadata and run an unspecialized SetAlgebra initializer.
-private let perFrameDispatchFlags = DispatchWorkItemFlags(rawValue: 0)
+private let codecsQueueDispatchFlags = DispatchWorkItemFlags(rawValue: 0)
 
 // The replies to DecodeFrame or EncodeFrame that a decoder or an encoder owes, in the order it reports their results.
 // Each decoder and encoder has its own, so that the results of one that the web process released don't answer another's.
@@ -254,7 +254,7 @@ extension WebKit.LibWebRTCCodecsProxy {
             guard let pendingReplies else {
                 return
             }
-            codecsQueue.async(flags: perFrameDispatchFlags) {
+            codecsQueue.async(flags: codecsQueueDispatchFlags) {
                 pendingReplies.sendNext { $0.send(result) }
             }
         }
@@ -270,7 +270,7 @@ extension WebKit.LibWebRTCCodecsProxy {
             return
         }
         let pendingReplies = decoder.pendingReplies.replies
-        state.codecsQueue.async {
+        state.codecsQueue.async(flags: codecsQueueDispatchFlags) {
             for pending in pendingReplies {
                 pending.reply.take()?.send(true)
             }
@@ -289,7 +289,7 @@ extension WebKit.LibWebRTCCodecsProxy {
         }
         decoder.platform.flush()
         let pending = PendingReply(reply)
-        state.codecsQueue.async {
+        state.codecsQueue.async(flags: codecsQueueDispatchFlags) {
             pending.reply.take()?.send()
         }
     }
@@ -380,7 +380,7 @@ extension WebKit.LibWebRTCCodecsProxy {
             guard let pendingReplies else {
                 return
             }
-            codecsQueue.async(flags: perFrameDispatchFlags) {
+            codecsQueue.async(flags: codecsQueueDispatchFlags) {
                 pendingReplies.sendNext { $0.send(result) }
             }
         }
@@ -416,7 +416,7 @@ extension WebKit.LibWebRTCCodecsProxy {
             return
         }
         let pendingReplies = encoder.pendingReplies.replies
-        state.codecsQueue.async {
+        state.codecsQueue.async(flags: codecsQueueDispatchFlags) {
             for pending in pendingReplies {
                 pending.reply.take()?.send(true)
             }
@@ -478,7 +478,7 @@ extension WebKit.LibWebRTCCodecsProxy {
         let state = state
         state.encoders[id]?.platform.flush()
         let pending = PendingReply(reply)
-        state.codecsQueue.async {
+        state.codecsQueue.async(flags: codecsQueueDispatchFlags) {
             pending.reply.take()?.send()
         }
     }

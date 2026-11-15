@@ -774,7 +774,7 @@ final class TaskIdentityToken: Sendable {
             bitmapInfo: configuration.bitmapInfo
         )
         if context == nil {
-            ioSurfaceLog.error("IOSurface::createBitmapPlatformContext: Failed to create bitmap context for IOSurface \(Swift.String(IOSurfaceGetID(self.surface), radix: 16)) (size \(self.width) x \(self.height)), bitsPerComponent \(configuration.bitsPerComponent), bytesPerRow \(bytesPerRow)")
+            ioSurfaceLog.error("IOSurface::createBitmapPlatformContext: Failed to create bitmap context for IOSurface \(IOSurfaceGetID(self.surface), format: .hex) (size \(self.width) x \(self.height)), bitsPerComponent \(configuration.bitsPerComponent), bytesPerRow \(bytesPerRow)")
         }
         return context
     }
@@ -908,7 +908,7 @@ final class TaskIdentityToken: Sendable {
         }
         let result = IOSurfaceSetOwnershipIdentity(surface, taskIdToken, IOSurfaceMemoryLedgerTags.graphics.rawValue, 0)
         if result != KERN_SUCCESS {
-            ioSurfaceLog.error("IOSurface::setOwnershipIdentity: Failed to claim ownership of IOSurface \(Swift.String(IOSurfaceGetID(surface), radix: 16)), task id token: \(taskIdToken), error: \(result)")
+            ioSurfaceLog.error("IOSurface::setOwnershipIdentity: Failed to claim ownership of IOSurface \(IOSurfaceGetID(surface), format: .hex), task id token: \(taskIdToken), error: \(result)")
         }
         #endif
     }
