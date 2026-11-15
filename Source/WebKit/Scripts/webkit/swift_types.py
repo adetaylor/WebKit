@@ -151,6 +151,10 @@ _OWNED_VECTOR_TYPES = {
 }
 
 
+# The extents of the std::spans of const primitives of fixed extent that messages carry, each with its IPCCoding.ExtentN in
+# SwiftCoding.swift: such a span is encoded as its elements, without a count, so Swift takes a copy of exactly that many.
+_FIXED_SPAN_EXTENTS = frozenset([6])
+
 # A [Lent] std::span<const uint8_t> message argument: its bytes are lent to the Swift handler during dispatch, as
 # IPC::LentBytes (SwiftCoding.h), rather than copied into a [UInt8]. Generated Swift decodes past them, then lends them
 # with the arguments after them decoded.
@@ -324,6 +328,11 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         if template == 'std::span' and len(arguments) == 1 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
             element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
             return ('[%s]' % element, 'IPCCoding.Vector<%s>' % element)
+        if template == 'std::span' and len(arguments) == 2 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
+            if not arguments[1].isdigit() or int(arguments[1]) not in _FIXED_SPAN_EXTENTS:
+                raise UnmappableSwiftType("'%s' has no Swift form: messages that take Swift types support a std::span of const primitives of fixed extent %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS))))
+            element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
+            return ('[%s]' % element, 'IPCCoding.FixedSpan<%s, IPCCoding.Extent%s>' % (element, arguments[1]))
         raise UnmappableSwiftType("'%s' has no Swift form: %s<> is not supported in messages that take Swift types." % (cpp_type, template))
 
     if cpp_type.removeprefix('::').removeprefix('WTF::') in _WTF_SWIFT_TYPES:
@@ -350,8 +359,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
+                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):
