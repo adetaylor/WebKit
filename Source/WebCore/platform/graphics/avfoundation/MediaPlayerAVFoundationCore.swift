@@ -23,9 +23,10 @@
 
 // The AVFoundation player's core: the AVPlayerItem's status, buffering, ranges, duration, size and enabled media as
 // key-value observing reports them, the AVPlayer's rate and time control status, the requested rate and playing state,
-// the current time and its extrapolation, seeking, and the end of playback. MediaPlayerPrivateAVFoundationObjC.mm keeps
-// the C++ player that implements MediaPlayerPrivateInterface, creates the AVPlayer and AVPlayerItem, and reaches this
-// through MediaPlayerAVFoundationCore's calls; this reaches it through MediaPlayerAVFoundationHost.
+// the current time and its extrapolation, seeking, the end of playback, and the video layer's readiness for display.
+// MediaPlayerPrivateAVFoundationObjC.mm keeps the C++ player that implements MediaPlayerPrivateInterface, creates the
+// AVPlayer, AVPlayerItem and video layer, and reaches this through MediaPlayerAVFoundationCore's calls; this reaches it
+// through MediaPlayerAVFoundationHost.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their symbols come from the generated accessors. No AVFoundation class
 // is used where its class object would be needed.
@@ -94,6 +95,7 @@ private enum PlayerChange: Sendable {
     case didEnd(Double)
     case tracks(ObjectBox?)
     case trackEnabled(Bool)
+    case readyForDisplay(Bool)
     // A change that only logs, as the C++ observer's task did, or does nothing.
     case logOnly(Swift.String)
     case none
@@ -117,6 +119,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
     // Held strongly, so that the observers are removed from the tracks they were added to.
     private var enabledObservedTracks: NSArray?
     private var isDetached = false
+    private var observedVideoLayer: NSObject?
 
     private var changes: [UInt64: PlayerChange] = [:]
     private var lastChangeIdentifier: UInt64 = 0
@@ -247,6 +250,23 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         cachedHasEnabledVideo = false
         cachedPresentationSize = (0, 0)
         loadedRanges = []
+    }
+
+    // MARK: The video layer
+
+    // Observes the readiness of this AVPlayerLayer instead of the one before, or of none.
+    @_expose(!Cxx)
+    func attachVideoLayer(_ layer: NSObject?) {
+        if layer === observedVideoLayer {
+            return
+        }
+        if let observedVideoLayer {
+            listener.stopObservingReadyForDisplay(observedVideoLayer)
+        }
+        observedVideoLayer = layer
+        if let layer {
+            listener.observeReadyForDisplay(layer)
+        }
     }
 
     // MARK: Tracks
@@ -400,6 +420,9 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .trackEnabled(let enabled):
             host.trackEnabledDidChange(enabled)
             logChange(change)
+        case .readyForDisplay(let ready):
+            host.firstFrameAvailableDidChange(ready)
+            logChange(change)
         case .didEnd(let currentTime):
             requestedPlaying = false
             timeControlStatusAtCachedCurrentTime = timeControlStatusPaused
@@ -436,6 +459,7 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
         case .logOnly(let keyPath): description = "will change '\(keyPath)'"
         case .tracks: description = "did change 'tracks'"
         case .trackEnabled(let value): description = "did change 'enabled' to \(value ? 1 : 0)"
+        case .readyForDisplay(let value): description = "did change 'readyForDisplay' to \(value ? 1 : 0)"
         case .loadedTimeRanges, .seekableTimeRanges, .didEnd, .none:
             return
         }
@@ -827,10 +851,11 @@ private let itemKeyPaths = [
 private let rateKeyPath = "rate"
 private let tracksKeyPath = "tracks"
 private let enabledKeyPath = "enabled"
+private let readyForDisplayKeyPath = "readyForDisplay"
 private let timeControlStatusKeyPath = "timeControlStatus"
 
-// Observes the AVPlayerItem's and AVPlayer's keys that the core caches, and the item's end of playback, and hands what
-// they report to the core on the main thread.
+// Observes the AVPlayerItem's and AVPlayer's keys that the core caches, the item's end of playback and the video layer's
+// readiness for display, and hands what they report to the core on the main thread.
 final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
     fileprivate weak var core: MediaPlayerAVFoundationCore?
     private let backgroundQueue = DispatchQueue(label: "MediaPlayerAVFoundationCore Background Queue")
@@ -859,6 +884,14 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
 
     func stopObservingEnabled(_ track: NSObject) {
         track.removeObserver(self, forKeyPath: enabledKeyPath)
+    }
+
+    func observeReadyForDisplay(_ layer: NSObject) {
+        unsafe layer.addObserver(self, forKeyPath: readyForDisplayKeyPath, options: [.new], context: nil)
+    }
+
+    func stopObservingReadyForDisplay(_ layer: NSObject) {
+        layer.removeObserver(self, forKeyPath: readyForDisplayKeyPath)
     }
 
     func observePlayer(_ player: NSObject) {
@@ -908,6 +941,10 @@ final class MediaPlayerItemListener: NSObject, @unchecked Sendable {
         }
         if keyPath == enabledKeyPath {
             enqueue(.trackEnabled(boolValue(newValue)))
+            return
+        }
+        if keyPath == readyForDisplayKeyPath {
+            enqueue(.readyForDisplay(boolValue(newValue)))
             return
         }
 

@@ -192,7 +192,6 @@ using namespace WebCore;
 enum MediaPlayerAVFoundationObservationContext {
     MediaPlayerAVFoundationObservationContextPlayerItem,
     MediaPlayerAVFoundationObservationContextPlayer,
-    MediaPlayerAVFoundationObservationContextAVPlayerLayer,
 };
 
 @interface WebCoreAVFMovieObserver : NSObject <AVPlayerItemLegibleOutputPushDelegate, AVPlayerItemMetadataOutputPushDelegate, AVPlayerItemMetadataCollectorPushDelegate>
@@ -666,7 +665,7 @@ void MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer()
     m_videoLayer = adoptNS([PAL::allocAVPlayerLayerInstance() init]);
 
     [m_videoLayer setName:@"MediaPlayerPrivate AVPlayerLayer"];
-    [m_videoLayer addObserver:m_objcObserver.get() forKeyPath:@"readyForDisplay" options:NSKeyValueObservingOptionNew context:(void *)MediaPlayerAVFoundationObservationContextAVPlayerLayer];
+    attachAVObjectsToCore();
     updateVideoLayerGravity();
     [m_videoLayer setContentsScale:player->playerContentsScale()];
     setPlatformDynamicRangeLimit(player->platformDynamicRangeLimit());
@@ -693,11 +692,11 @@ void MediaPlayerPrivateAVFoundationObjC::destroyVideoLayer()
 
     ALWAYS_LOG(LOGIDENTIFIER);
 
-    [m_videoLayer removeObserver:m_objcObserver.get() forKeyPath:@"readyForDisplay"];
-    [m_videoLayer setPlayer:nil];
+    RetainPtr videoLayer = std::exchange(m_videoLayer, nil);
+    attachAVObjectsToCore();
+    [videoLayer setPlayer:nil];
     m_videoLayerManager->didDestroyVideoLayer();
 
-    m_videoLayer = nil;
     m_haveBeenAskedToCreateLayer = false;
 
 #if HAVE(SPATIAL_TRACKING_LABEL)
@@ -1975,44 +1974,6 @@ MediaTime MediaPlayerPrivateAVFoundationObjC::mediaTimeForTimeValue(const MediaT
 
     // FIXME - impossible to implement until rdar://8721510 is fixed.
     return timeValue;
-}
-
-void MediaPlayerPrivateAVFoundationObjC::updateVideoLayerGravity(ShouldAnimate shouldAnimate)
-{
-    assertIsMainThread();
-
-    if (!m_videoLayer)
-        return;
-
-    NSString* videoGravity = shouldMaintainAspectRatio() ? AVLayerVideoGravityResizeAspect : AVLayerVideoGravityResize;
-#if ENABLE(VIDEO_PRESENTATION_MODE)
-    if (m_videoLayerManager->videoFullscreenLayer()) {
-        switch (m_videoFullscreenGravity) {
-        case MediaPlayer::VideoGravity::Resize:
-            videoGravity = AVLayerVideoGravityResize;
-            break;
-        case MediaPlayer::VideoGravity::ResizeAspect:
-            videoGravity = AVLayerVideoGravityResizeAspect;
-            break;
-        case MediaPlayer::VideoGravity::ResizeAspectFill:
-            videoGravity = AVLayerVideoGravityResizeAspectFill;
-            break;
-        }
-    }
-#endif
-
-    if ([m_videoLayer videoGravity] == videoGravity)
-        return;
-
-    bool shouldDisableActions = shouldAnimate == ShouldAnimate::No;
-    ALWAYS_LOG(LOGIDENTIFIER, "Setting gravity to \"", videoGravity, "\", animated: ", !shouldDisableActions);
-
-    [CATransaction begin];
-    [CATransaction setDisableActions:shouldDisableActions];
-    [m_videoLayer setVideoGravity:videoGravity];
-    [CATransaction commit];
-
-    syncTextTrackBounds();
 }
 
 void MediaPlayerPrivateAVFoundationObjC::updateIsAudible()
@@ -3817,16 +3778,13 @@ RefPtr<WebCoreAVFResourceLoader> MediaPlayerPrivateAVFoundationObjC::takeResourc
     return m_resourceLoaderMap.take(key);
 }
 
-void MediaPlayerPrivateAVFoundationObjC::updateLayerAttachment()
+bool MediaPlayerPrivateAVFoundationObjC::hasVideoFullscreenLayer() const
 {
-    assertIsMainThread();
-    if (!m_videoLayer || !m_avPlayer)
-        return;
-
-    if (shouldAttachLayerToPlayer())
-        [m_videoLayer setPlayer:m_avPlayer.get()];
-    else
-        [m_videoLayer setPlayer:nil];
+#if ENABLE(VIDEO_PRESENTATION_MODE)
+    return !!m_videoLayerManager->videoFullscreenLayer();
+#else
+    return false;
+#endif
 }
 
 bool MediaPlayerPrivateAVFoundationObjC::shouldAttachLayerToPlayer()
@@ -3926,6 +3884,12 @@ void MediaPlayerAVFoundationHost::trackEnabledDidChange(bool enabled) const
 {
     if (RefPtr player = m_player.get())
         player->trackEnabledDidChange(enabled);
+}
+
+void MediaPlayerAVFoundationHost::firstFrameAvailableDidChange(bool isReady) const
+{
+    if (RefPtr player = m_player.get())
+        player->firstFrameAvailableDidChange(isReady);
 }
 
 void MediaPlayerAVFoundationHost::updateStates() const
@@ -4093,11 +4057,6 @@ NSArray* playerKVOPropertiesSingleton()
         id newValue = [change valueForKey:NSKeyValueChangeNewKey];
         bool willChange = [[change valueForKey:NSKeyValueChangeNotificationIsPriorKey] boolValue];
         bool shouldLogValue = !willChange;
-
-        if (context == MediaPlayerAVFoundationObservationContextAVPlayerLayer) {
-            if ([keyPath isEqualToString:@"readyForDisplay"])
-                player.firstFrameAvailableDidChange([newValue boolValue]);
-        }
 
         if (context == MediaPlayerAVFoundationObservationContextPlayerItem && !willChange) {
             // A value changed for an AVPlayerItem

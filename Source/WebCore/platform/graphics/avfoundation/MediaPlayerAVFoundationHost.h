@@ -74,6 +74,7 @@ public:
     void updateStates() const;
     void tracksChanged() const;
     void tracksDidChange() const;
+    void firstFrameAvailableDidChange(bool) const;
     void trackEnabledDidChange(bool) const;
     void sizeChanged() const;
     void rateChanged() const;

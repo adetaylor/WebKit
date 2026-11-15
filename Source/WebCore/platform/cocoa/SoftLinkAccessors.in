@@ -146,6 +146,9 @@ member AVFoundation AVURLAsset variants var variants: NSArray { get }
 constant AVFoundation AVMediaCharacteristicAudible as AVMediaCharacteristic
 constant AVFoundation AVMediaCharacteristicVisual as AVMediaCharacteristic
 constant AVFoundation AVMediaCharacteristicLegible as AVMediaCharacteristic
+constant AVFoundation AVLayerVideoGravityResize as AVLayerVideoGravity
+constant AVFoundation AVLayerVideoGravityResizeAspect as AVLayerVideoGravity
+constant AVFoundation AVLayerVideoGravityResizeAspectFill as AVLayerVideoGravity
 
 # The camera (CameraCaptureSource.swift).
 class AVFoundation AVCaptureDevice
