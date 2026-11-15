@@ -25,11 +25,14 @@
 // item's status give, page and viewport visibility, whether a seek is in flight, the media's characteristics and size,
 // the step from metadata to playback, and what the media player is told of each; and what it asks of the asset and the
 // player item: the asset's status from its loaded keys, whether its tracks are playable or some are disabled, whether
-// it is a stream with variants, its start date, its size in bytes, and whether its media selection groups have loaded.
+// it is a stream with variants, its start date, its size in bytes, and whether its media selection groups have loaded;
+// and the AVPlayer's muting, audibility, sleep, tone mapping and external playback settings, given to it when it is
+// made and when they change, and the kind of external playback it is in.
 // MediaPlayerPrivateAVFoundation.cpp keeps the loads, the rendering set-up, the seek promise and the pending seek, the
 // text tracks, the media player's callbacks, the cached times and the getters the media element calls most often;
 // objc/MediaPlayerPrivateAVFoundationObjC.mm keeps the AVFoundation objects, the asset's cached status, the status of
-// the asset's keys with their errors, and the codec policy each track is held to.
+// the asset's keys with their errors, the codec policy each track is held to, the volume, rate and pitch (which the
+// audio source provider also takes), the dynamic range, the playback target and the keys.
 //
 // WebCore soft-links AVFoundation and CoreMedia: their classes and functions come from the generated accessors, and no
 // AVFoundation class is used where its class object would be needed.
@@ -121,6 +124,11 @@ extension WebCore.MediaPlayerPrivateAVFoundation {
         }
         let bytes = ContiguousArray(message().utf8)
         logFromSwift(level, bytes.span)
+    }
+
+    // hasAudio(), which the base class declares protected: a derived class's extension can't reach that declaration.
+    fileprivate func hasAudioFromSwift() -> Bool {
+        hasAudio()
     }
 
     // MARK: Visibility and aspect ratio
@@ -857,4 +865,178 @@ extension WebCore.MediaPlayerPrivateAVFoundationObjC {
 
         return UInt64(bitPattern: m_cachedTotalBytes)
     }
+}
+
+// AVPlayerTimeControlStatus.playing, as the core caches it.
+private let timeControlStatusPlaying = 2
+
+// MediaPlayerWirelessPlaybackTargetType: None, AirPlay, TVOut.
+private let wirelessPlaybackTargetTypeNone: UInt8 = 0
+private let wirelessPlaybackTargetTypeAirPlay: UInt8 = 1
+private let wirelessPlaybackTargetTypeTVOut: UInt8 = 2
+
+// Sets a BOOL property that is SPI, and so not declared to WebCore's Swift (AVFoundationSPI.h, QuartzCoreSPI.h), if the
+// object has its setter: key-value coding calls that setter unless the object also has a plain set<Key>:, which it
+// would call first.
+private func setPrivateBoolProperty(_ object: NSObject, _ key: Swift.String, setter: Swift.String, _ value: Bool) {
+    let selector = NSSelectorFromString(setter)
+    let plainSetter = NSSelectorFromString("set\(key.prefix(1).uppercased())\(key.dropFirst()):")
+    guard object.responds(to: selector), plainSetter == selector || !object.responds(to: plainSetter) else {
+        return
+    }
+    object.setValue(NSNumber(value: value), forKey: key)
+}
+
+private let toneMapToStandardDynamicRangeKey = "toneMapToStandardDynamicRange"
+private let toneMapToStandardDynamicRangeSetter = "setToneMapToStandardDynamicRange:"
+
+extension WebCore.MediaPlayerPrivateAVFoundationObjC {
+    // MARK: Controls
+
+    @cxx
+    @implementation
+    func configureAVPlayer(_ shouldDisableHDR: Bool, _ shouldDisableSleep: Bool) {
+        guard let player = m_avPlayer.get() else {
+            return
+        }
+
+        player.appliesMediaSelectionCriteriaAutomatically = false
+
+        if let layer = m_videoLayer.get() {
+            setPrivateBoolProperty(layer, toneMapToStandardDynamicRangeKey, setter: toneMapToStandardDynamicRangeSetter, shouldDisableHDR)
+        }
+
+#if ENABLE_WIRELESS_PLAYBACK_TARGET
+        player.allowsExternalPlayback = m_allowsWirelessVideoPlayback
+#endif
+
+#if WTF_PLATFORM_IOS_FAMILY && !WTF_PLATFORM_IOS_FAMILY_SIMULATOR && !WTF_PLATFORM_MACCATALYST
+        setPrivateBoolProperty(player, "preventsSleepDuringVideoPlayback", setter: "_setPreventsSleepDuringVideoPlayback:", shouldDisableSleep)
+        setPrivateBoolProperty(player, "preventsAutomaticBackgroundingDuringVideoPlayback", setter: "setPreventsAutomaticBackgroundingDuringVideoPlayback:", false)
+#endif
+
+        player.volume = Float(m_volume)
+
+        if m_muted {
+            player.isMuted = true
+        }
+
+        applyAudibility(to: player)
+    }
+
+    @cxx
+    @implementation
+    func setMuted(_ muted: Bool) {
+        if m_muted == muted {
+            return
+        }
+
+        logMessage(.Always, "MediaPlayerPrivateAVFoundationObjC::setMuted \(muted)")
+
+        m_muted = muted
+        updateAudibility()
+
+        m_avPlayer.get()?.isMuted = muted
+    }
+
+    @cxx
+    @implementation
+    override func updateIsAudible() {
+        updateAudibility()
+    }
+
+    // updateIsAudible(), which Swift can't call as it implements it.
+    private func updateAudibility() {
+        let isAudible = hasAudioFromSwift() && !m_muted && m_volume != 0
+        if m_isAudible == isAudible {
+            return
+        }
+
+        // Only change the state of suppressesAudioRendering and
+        // disconnectedFromSystemAudio when playback is paused, to
+        // avoid the reconfiguring of video playback that AVFoundation
+        // performs when these properties are changed. However,
+        // ignore this check if becoming audible to ensure audio
+        // rendering starts immediately. This method will be called
+        // again by timeControlStatusDidChange().
+        if !isAudible && core.timeControlStatus() == timeControlStatusPlaying {
+            return
+        }
+
+        logMessage(.Always, "MediaPlayerPrivateAVFoundationObjC::updateIsAudible \(isAudible)")
+        m_isAudible = isAudible
+
+        guard let player = m_avPlayer.get() else {
+            return
+        }
+        applyAudibility(to: player)
+    }
+
+    private func applyAudibility(to player: AVPlayer) {
+        if m_isVideoPlayer {
+            setPrivateBoolProperty(player, "suppressesAudioRendering", setter: "_setSuppressesAudioRendering:", !m_isAudible)
+        }
+
+#if HAVE_AVPLAYER_DISCONNECTEDFROMSYSTEMAUDIO
+        player.__setDisconnectedFromSystemAudio(!m_isAudible, completionHandler: nil)
+#endif
+    }
+
+    @cxx
+    @implementation
+    func setShouldDisableSleep(_ flag: Bool) {
+#if WTF_PLATFORM_IOS_FAMILY && !WTF_PLATFORM_IOS_FAMILY_SIMULATOR && !WTF_PLATFORM_MACCATALYST
+        if let player = m_avPlayer.get() {
+            setPrivateBoolProperty(player, "preventsSleepDuringVideoPlayback", setter: "_setPreventsSleepDuringVideoPlayback:", flag)
+        }
+#endif
+    }
+
+    @cxx
+    @implementation
+    func setShouldDisableHDR(_ shouldDisable: Bool) {
+        assert(WTF.isMainThread())
+
+        guard let layer = m_videoLayer.get(), layer.responds(to: NSSelectorFromString(toneMapToStandardDynamicRangeSetter)) else {
+            return
+        }
+
+        logMessage(.Always, "MediaPlayerPrivateAVFoundationObjC::setShouldDisableHDR \(shouldDisable)")
+        layer.setValue(NSNumber(value: shouldDisable), forKey: toneMapToStandardDynamicRangeKey)
+    }
+
+#if ENABLE_WIRELESS_PLAYBACK_TARGET
+    @cxx
+    @implementation
+    func setWirelessVideoPlaybackDisabled(_ disabled: Bool) {
+        logMessage(.Info, "MediaPlayerPrivateAVFoundationObjC::setWirelessVideoPlaybackDisabled \(disabled)")
+        m_allowsWirelessVideoPlayback = !disabled
+        m_avPlayer.get()?.allowsExternalPlayback = !disabled
+    }
+
+    @cxx
+    @implementation
+    func wirelessPlaybackTargetTypeValue() -> UInt8 {
+#if WTF_PLATFORM_IOS_FAMILY
+        guard let player = m_avPlayer.get(), player.responds(to: NSSelectorFromString("externalPlaybackType")) else {
+            return wirelessPlaybackTargetTypeNone
+        }
+
+        // AVPlayer's externalPlaybackType, an AVPlayerExternalPlaybackType (None, AirPlay, TVOut), is SPI.
+        switch (player.value(forKey: "externalPlaybackType") as? NSNumber)?.intValue {
+        case 1:
+            return wirelessPlaybackTargetTypeAirPlay
+        case 2:
+            return wirelessPlaybackTargetTypeTVOut
+        default:
+            return wirelessPlaybackTargetTypeNone
+        }
+#else
+        guard let _ = m_avPlayer.get() else {
+            return wirelessPlaybackTargetTypeNone
+        }
+        return wirelessPlaybackTargetTypeAirPlay
+#endif
+    }
+#endif
 }

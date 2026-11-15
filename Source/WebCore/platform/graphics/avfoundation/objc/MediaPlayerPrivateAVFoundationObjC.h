@@ -164,6 +164,7 @@ private:
     bool platformPaused() const final;
     void setVolumeLocked(bool) final;
     void setVolume(float) final;
+    // Implemented in Swift.
     void setMuted(bool) final;
     void paint(GraphicsContext&, const FloatRect&) final;
     void paintCurrentFrameInContext(GraphicsContext&, const FloatRect&) final;
@@ -239,6 +240,7 @@ private:
     // Implemented in Swift.
     void updateVideoLayerGravity(bool animated);
 
+    // Implemented in Swift.
     void updateIsAudible() final;
 
     bool didPassCORSAccessCheck() const final;
@@ -303,8 +305,11 @@ private:
     bool hasAudio() const final;
     bool isCurrentPlaybackTargetWireless() const final;
     String wirelessPlaybackTargetName() const final;
-    MediaPlayer::WirelessPlaybackTargetType wirelessPlaybackTargetType() const final;
+    MediaPlayerWirelessPlaybackTargetType wirelessPlaybackTargetType() const final { return static_cast<MediaPlayerWirelessPlaybackTargetType>(wirelessPlaybackTargetTypeValue()); }
+    // Implemented in Swift: a MediaPlayerWirelessPlaybackTargetType.
+    uint8_t wirelessPlaybackTargetTypeValue() const;
     bool wirelessVideoPlaybackDisabled() const final;
+    // Implemented in Swift.
     void setWirelessVideoPlaybackDisabled(bool) final;
     OptionSet<MediaPlaybackTargetType> supportedPlaybackTargetTypes() const final;
     static OptionSet<MediaPlaybackTargetType> playbackTargetTypes();
@@ -321,6 +326,7 @@ private:
 
     Vector<String> preferredAudioCharacteristics() const;
 
+    // Implemented in Swift.
     void setShouldDisableSleep(bool) final;
     void updateRotationSession();
 
@@ -358,7 +364,10 @@ private:
 
     void checkNewVideoFrameMetadata();
 
+    // Implemented in Swift.
     void setShouldDisableHDR(bool) final;
+    // Implemented in Swift: the settings createAVPlayer() gives a new AVPlayer and its layer.
+    void configureAVPlayer(bool shouldDisableHDR, bool shouldDisableSleep);
 
     bool trackIsPlayable(AVAssetTrack*) const;
     // Implemented in Swift: the status of the asset's metadata keys, or Loaded once they have all loaded.
