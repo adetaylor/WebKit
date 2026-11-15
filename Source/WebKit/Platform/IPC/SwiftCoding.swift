@@ -184,6 +184,11 @@ extension Double: IPCBlockPrimitive {
 /// Swift types generated from .serialization.in types marked [Swift].
 enum IPCTypes {}
 
+/// The extent of a std::span of fixed extent (IPCCoding.FixedSpan): one IPCCoding.ExtentN for each that swift_types.py lists.
+protocol IPCSpanExtent {
+    static var count: Int { get }
+}
+
 extension Bool: IPCCoder {
     static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Bool {
         var value = false
@@ -518,6 +523,24 @@ enum IPCCoding {
                 Element.encode(element, to: encoder)
             }
         }
+    }
+
+    /// std::span<const T, N>: its N elements, with no count before them, which Swift takes a copy of. Extent gives N.
+    enum FixedSpan<Element: IPCCoder, Extent: IPCSpanExtent>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Element.Value] {
+            try Element.decodeArray(count: Extent.count, from: &decoder)
+        }
+
+        static func encode(_ value: [Element.Value], to encoder: IPC.SwiftReplyEncoder) {
+            precondition(value.count == Extent.count, "A span of fixed extent has exactly that many elements")
+            for element in value {
+                Element.encode(element, to: encoder)
+            }
+        }
+    }
+
+    enum Extent6: IPCSpanExtent {
+        static var count: Int { 6 }
     }
 
     /// WTF::String, whose null string is nil.
