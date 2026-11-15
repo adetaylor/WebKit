@@ -613,13 +613,13 @@ struct WebCore::CaptureDeviceWithCapabilities {
 header: <WebCore/RealtimeMediaSourceCapabilities.h>
 [CustomHeader, Swift] class WebCore::DoubleCapabilityRange {
     double min();
-    [Validator='min <= max', SwiftValidator='min <= max'] double max();
+    [Check='min <= max'] double max();
 };
 
 header: <WebCore/RealtimeMediaSourceCapabilities.h>
 [CustomHeader, Swift] class WebCore::LongCapabilityRange {
     int min();
-    [Validator='min <= max', SwiftValidator='min <= max'] int max();
+    [Check='min <= max'] int max();
 };
 
 [Swift] class WebCore::RealtimeMediaSourceCapabilities {
