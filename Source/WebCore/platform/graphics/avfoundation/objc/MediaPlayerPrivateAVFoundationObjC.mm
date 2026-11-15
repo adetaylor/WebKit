@@ -80,7 +80,6 @@
 #import "WebCoreNSURLExtras.h"
 #import "WebCoreNSURLSession.h"
 #import "WebCore-Swift.h"
-#import <AVFoundation/AVAssetImageGenerator.h>
 #import <AVFoundation/AVAssetTrack.h>
 #import <AVFoundation/AVMediaSelectionGroup.h>
 #import <AVFoundation/AVMetadataItem.h>
@@ -586,7 +585,7 @@ bool MediaPlayerPrivateAVFoundationObjC::hasVideoInlineLayer() const
 
 bool MediaPlayerPrivateAVFoundationObjC::hasContextRenderer() const
 {
-    return m_videoOutput || m_imageGenerator;
+    return !!m_videoOutput;
 }
 
 void MediaPlayerPrivateAVFoundationObjC::createContextVideoRenderer()
@@ -594,35 +593,9 @@ void MediaPlayerPrivateAVFoundationObjC::createContextVideoRenderer()
     createVideoOutput();
 }
 
-void MediaPlayerPrivateAVFoundationObjC::createImageGenerator()
-{
-    INFO_LOG(LOGIDENTIFIER);
-
-    if (!m_avAsset || m_imageGenerator)
-        return;
-
-    m_imageGenerator = [PAL::getAVAssetImageGeneratorClassSingleton() assetImageGeneratorWithAsset:m_avAsset];
-
-    [m_imageGenerator setApertureMode:AVAssetImageGeneratorApertureModeCleanAperture];
-    [m_imageGenerator setAppliesPreferredTrackTransform:YES];
-    [m_imageGenerator setRequestedTimeToleranceBefore:PAL::kCMTimeZero];
-    [m_imageGenerator setRequestedTimeToleranceAfter:PAL::kCMTimeZero];
-}
-
 void MediaPlayerPrivateAVFoundationObjC::destroyContextVideoRenderer()
 {
     destroyVideoOutput();
-    destroyImageGenerator();
-}
-
-void MediaPlayerPrivateAVFoundationObjC::destroyImageGenerator()
-{
-    if (!m_imageGenerator)
-        return;
-
-    INFO_LOG(LOGIDENTIFIER);
-
-    m_imageGenerator = 0;
 }
 
 void MediaPlayerPrivateAVFoundationObjC::createVideoLayer()
@@ -1759,25 +1732,6 @@ void MediaPlayerPrivateAVFoundationObjC::paint(GraphicsContext& context, const F
     paintCurrentFrameInContext(context, rect);
 }
 
-RetainPtr<CGImageRef> MediaPlayerPrivateAVFoundationObjC::createImageForTimeInRect(float time, const FloatRect& rect)
-{
-    if (!m_imageGenerator)
-        createImageGenerator();
-    ASSERT(m_imageGenerator);
-
-    MonotonicTime start = MonotonicTime::now();
-
-    [m_imageGenerator setMaximumSize:CGSize(rect.size())];
-ALLOW_DEPRECATED_DECLARATIONS_BEGIN
-    RetainPtr rawImage = adoptCF([m_imageGenerator copyCGImageAtTime:PAL::CMTimeMakeWithSeconds(time, 600) actualTime:nil error:nil]);
-    RetainPtr image = adoptCF(CGImageCreateCopyWithColorSpace(rawImage.get(), sRGBColorSpaceSingleton()));
-ALLOW_DEPRECATED_DECLARATIONS_END
-
-    INFO_LOG(LOGIDENTIFIER, "creating image took ", (MonotonicTime::now() - start).seconds());
-
-    return image;
-}
-
 void MediaPlayerPrivateAVFoundationObjC::getSupportedTypes(HashSet<String>& supportedTypes)
 {
     supportedTypes = AVAssetMIMETypeCache::singleton().supportedTypes();
@@ -2540,11 +2494,6 @@ void MediaPlayerPrivateAVFoundationObjC::paintWithVideoOutput(GraphicsContext& c
 
         FloatRect imageRect { FloatPoint::zero(), lastImage->size() };
         context.drawNativeImage(*lastImage, outputRect, imageRect);
-
-        // If we have created an AVAssetImageGenerator in the past due to m_videoOutput not having an available
-        // video frame, destroy it now that it is no longer needed.
-        if (m_imageGenerator)
-            destroyImageGenerator();
     });
 }
 

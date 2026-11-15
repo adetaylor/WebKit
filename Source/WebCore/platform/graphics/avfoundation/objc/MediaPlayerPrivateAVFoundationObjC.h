@@ -37,7 +37,6 @@
 #include <wtf/RobinHoodHashMap.h>
 #include <wtf/WorkQueue.h>
 
-OBJC_CLASS AVAssetImageGenerator;
 OBJC_CLASS AVAssetTrack;
 OBJC_CLASS AVAssetResourceLoadingRequest;
 OBJC_CLASS AVMediaSelectionGroup;
@@ -256,10 +255,6 @@ private:
     AudioSourceProvider* audioSourceProvider() final;
 #endif
 
-    void createImageGenerator();
-    void destroyImageGenerator();
-    RetainPtr<CGImageRef> createImageForTimeInRect(float, const FloatRect&);
-
     using UpdateCompletion = CompletionHandler<void()>;
     void updateLastImage(NOESCAPE UpdateCompletion&&);
 
@@ -434,7 +429,6 @@ private:
     RefPtr<AudioSourceProviderAVFObjC> m_provider;
 #endif
 
-    RetainPtr<AVAssetImageGenerator> m_imageGenerator;
     RefPtr<QueuedVideoOutput> m_videoOutput;
     RetainPtr<CVPixelBufferRef> m_lastPixelBuffer;
     RefPtr<NativeImage> m_lastImage;
