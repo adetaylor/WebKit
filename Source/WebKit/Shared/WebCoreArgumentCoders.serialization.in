@@ -2431,7 +2431,7 @@ header: <WebCore/ApplePayButtonPart.h>
 
 header: <WebCore/ButtonPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder, DisableMissingMemberCheck] class WebCore::ButtonPart {
-    [Validator='type == WebCore::StyleAppearance::Button || type == WebCore::StyleAppearance::DefaultButton || type == WebCore::StyleAppearance::PushButton || type == WebCore::StyleAppearance::SquareButton', SwiftValidator='type == .Button || type == .DefaultButton || type == .PushButton || type == .SquareButton'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::Button || type == StyleAppearance::DefaultButton || type == StyleAppearance::PushButton || type == StyleAppearance::SquareButton'] WebCore::StyleAppearance type();
 }
 
 header: <WebCore/InnerSpinButtonPart.h>
@@ -2452,12 +2452,12 @@ header: <WebCore/SearchFieldPart.h>
 
 header: <WebCore/SliderThumbPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder, DisableMissingMemberCheck] class WebCore::SliderThumbPart {
-    [Validator='type == WebCore::StyleAppearance::SliderThumbHorizontal || type == WebCore::StyleAppearance::SliderThumbVertical', SwiftValidator='type == .SliderThumbHorizontal || type == .SliderThumbVertical'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::SliderThumbHorizontal || type == StyleAppearance::SliderThumbVertical'] WebCore::StyleAppearance type();
 }
 
 header: <WebCore/SearchFieldResultsPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder, DisableMissingMemberCheck] class WebCore::SearchFieldResultsPart {
-    [Validator='type == WebCore::StyleAppearance::SearchFieldResultsButton || type == WebCore::StyleAppearance::SearchFieldResultsDecoration', SwiftValidator='type == .SearchFieldResultsButton || type == .SearchFieldResultsDecoration'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::SearchFieldResultsButton || type == StyleAppearance::SearchFieldResultsDecoration'] WebCore::StyleAppearance type();
 }
 
 header: <WebCore/SearchFieldCancelButtonPart.h>
@@ -2466,7 +2466,7 @@ header: <WebCore/SearchFieldCancelButtonPart.h>
 
 header: <WebCore/TextAreaPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder, DisableMissingMemberCheck] class WebCore::TextAreaPart {
-    [Validator='type == WebCore::StyleAppearance::Listbox || type == WebCore::StyleAppearance::TextArea', SwiftValidator='type == .Listbox || type == .TextArea'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::Listbox || type == StyleAppearance::TextArea'] WebCore::StyleAppearance type();
 }
 
 header: <WebCore/TextFieldPart.h>
@@ -2475,7 +2475,7 @@ header: <WebCore/TextFieldPart.h>
 
 header: <WebCore/ToggleButtonPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder, DisableMissingMemberCheck] class WebCore::ToggleButtonPart {
-    [Validator='type == WebCore::StyleAppearance::Checkbox || type == WebCore::StyleAppearance::Radio', SwiftValidator='type == .Checkbox || type == .Radio'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::Checkbox || type == StyleAppearance::Radio'] WebCore::StyleAppearance type();
 }
 
 #if ENABLE(SERVICE_CONTROLS)
@@ -2507,7 +2507,7 @@ header: <WebCore/ColorWellPart.h>
 };
 
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SliderTrackPart {
-    [Validator='type == WebCore::StyleAppearance::SliderHorizontal || type == WebCore::StyleAppearance::SliderVertical', SwiftValidator='type == .SliderHorizontal || type == .SliderVertical'] WebCore::StyleAppearance type();
+    [Check='type == StyleAppearance::SliderHorizontal || type == StyleAppearance::SliderVertical'] WebCore::StyleAppearance type();
     WebCore::IntSize thumbSize();
     WebCore::IntRect trackBounds();
     Vector<double> tickRatios();
@@ -2517,7 +2517,7 @@ header: <WebCore/ColorWellPart.h>
 header: <WebCore/SwitchPart.h>
 [Swift, RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::SwitchPart {
     bool isOn();
-    [Validator='progress >= 0.0f && progress <= 1.0f', SwiftValidator='progress >= 0 && progress <= 1'] float progress();
+    [Check='progress >= 0 && progress <= 1'] float progress();
 };
 
 [RefCounted, AdditionalEncoder=StreamConnectionEncoder] class WebCore::DistantLightSource {
