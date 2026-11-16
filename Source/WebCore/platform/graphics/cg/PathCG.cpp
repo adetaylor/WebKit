@@ -884,9 +884,9 @@ static const WebCore::PathArc* pieWedgeArc(std::span<const WebCore::PathSegment>
     return arc;
 }
 
-CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts)
+CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts, bool computesFastBoundingRect)
 {
-    facts = { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero };
+    facts = { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero, false };
     if (segments.size() == 1)
         facts.segment = CGRendererPathSegmentValues(segments[0]);
     if (segments.size() < 2)
@@ -894,6 +894,11 @@ CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSeg
     if (auto* arc = pieWedgeArc(segments))
         facts.pieWedgeArc = CGRendererPathSegmentValues(WebCore::PathSegment { *arc });
     RetainPtr path = adoptCF(CGPathCreateMutable());
+    if (!computesFastBoundingRect) {
+        for (auto& segment : segments)
+            WebCore::addToCGPath(path.get(), segment);
+        return path.leakRef();
+    }
     WebCore::FloatPoint lastMoveToPoint;
     WebCore::FloatPoint currentPoint;
     auto fastBoundingRect = WebCore::FloatRect::smallestRect();
@@ -907,6 +912,7 @@ CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSeg
     if (fastBoundingRect.isSmallest())
         fastBoundingRect.extend(currentPoint);
     facts.fastBoundingRect = fastBoundingRect;
+    facts.hasFastBoundingRect = true;
     return path.leakRef();
 }
 

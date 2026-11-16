@@ -721,7 +721,7 @@ inline String ipcTesterPathDescription(CGPathRef WTF_NULLABLE platformPath, CGRe
 inline String ipcTesterDescription(const WebCore::Path& path)
 {
     auto segments = path.segments();
-    CGRendererPathFacts facts { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero };
+    CGRendererPathFacts facts { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero, false };
     if (segments.size() == 1)
         facts.segment = CGRendererPathSegmentValues(segments[0]);
     if (auto arc = path.pieWedgeArc())
@@ -734,6 +734,7 @@ inline String ipcTesterDescription(const WebCore::Path& path)
     if (segments.size() < 2)
         return ipcTesterPathDescription(nullptr, facts, digest);
     facts.fastBoundingRect = path.fastBoundingRect();
+    facts.hasFastBoundingRect = true;
     return ipcTesterPathDescription(path.platformPath(), facts, digest);
 }
 #endif

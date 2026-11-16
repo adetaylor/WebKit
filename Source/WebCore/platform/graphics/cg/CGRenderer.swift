@@ -1055,8 +1055,9 @@ private struct CGRendererLineStroke {
             .zero
         case .segment(let segment):
             CGRendererPathSegmentBounds(segment)
-        case .segments(_, let facts):
-            facts.fastBoundingRect
+        case .segments(let path, let facts):
+            // A decode for a handler that said it wouldn't ask has no PathStream bounds, so the CGPath's stand in for them.
+            facts.hasFastBoundingRect ? facts.fastBoundingRect : path.fastBoundingRect
         case .platformPath(let path):
             path.fastBoundingRect
         }
