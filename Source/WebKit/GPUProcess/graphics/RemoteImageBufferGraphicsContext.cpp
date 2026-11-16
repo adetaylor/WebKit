@@ -61,9 +61,6 @@
 #include <WebCore/GraphicsLayerContentsDisplayDelegate.h>
 #include <WebCore/PlatformCALayerDelegatedContents.h>
 #endif
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-#include <WebCore/DynamicContentScalingDisplayList.h>
-#endif
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
@@ -258,14 +255,6 @@ void RemoteImageBufferGraphicsContext::waitForDisplayBuffer()
 {
     if (RefPtr fence = std::exchange(m_displayBufferFence, nullptr))
         fence->waitFor(WebCore::delegatedContentsFinishedTimeout);
-}
-#endif
-
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-void RemoteImageBufferGraphicsContext::encodeDynamicContentScalingDisplayList(IPC::SwiftReplyEncoder& encoder)
-{
-    std::optional<DynamicContentScalingDisplayList> displayList { m_imageBuffer->dynamicContentScalingDisplayList() };
-    encoder.encodeWithArgumentCoder(WTF::move(displayList));
 }
 #endif
 

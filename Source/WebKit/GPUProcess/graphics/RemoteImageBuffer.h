@@ -38,10 +38,6 @@
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/ShareableBitmap.h>
 
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-#include <WebCore/DynamicContentScalingDisplayList.h>
-#endif
-
 namespace IPC {
 class Semaphore;
 class StreamConnectionWorkQueue;
@@ -83,10 +79,6 @@ private:
     void setFlushSignal(IPC::Signal&&);
     void flushContext();
     void flushContextSync(CompletionHandler<void()>&&);
-
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-    void dynamicContentScalingDisplayList(CompletionHandler<void(std::optional<WebCore::DynamicContentScalingDisplayList>&&)>&&);
-#endif
 
     const Ref<WebCore::ImageBuffer> m_imageBuffer;
 #if PLATFORM(COCOA)

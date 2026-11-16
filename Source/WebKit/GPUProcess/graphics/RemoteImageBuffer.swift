@@ -234,15 +234,6 @@ final class RemoteImageBuffer {
         finishedSignal.signal()
     }
     #endif
-
-    #if ENABLE_RE_DYNAMIC_CONTENT_SCALING
-    func dynamicContentScalingDisplayList(reply: consuming RemoteImageBufferDynamicContentScalingDisplayListReply) {
-        let context = context
-        reply.send { encoder in
-            context.encodeDynamicContentScalingDisplayList(encoder)
-        }
-    }
-    #endif
 }
 
 // A flush signal, which the receiver keeps in a class since IPCTypes.Signal is ~Copyable.

@@ -129,9 +129,6 @@ public:
     void encodeDisplayBuffer(IPC::SwiftReplyEncoder&);
     void waitForDisplayBuffer();
 #endif
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-    void encodeDynamicContentScalingDisplayList(IPC::SwiftReplyEncoder&);
-#endif
 #endif
 
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
