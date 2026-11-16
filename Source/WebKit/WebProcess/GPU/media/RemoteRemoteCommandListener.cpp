@@ -31,7 +31,6 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcessProxy.h"
 #include "RemoteRemoteCommandListenerMessages.h"
-#include "RemoteRemoteCommandListenerProxyMessages.h"
 #include "WebProcess.h"
 
 namespace WebKit {
@@ -95,7 +94,7 @@ void RemoteRemoteCommandListener::updateSupportedCommands()
     m_currentCommands = supportedCommands;
     m_currentSupportSeeking = supportsSeeking();
 
-    protect(ensureGPUProcessConnection().connection())->send(Messages::RemoteRemoteCommandListenerProxy::UpdateSupportedCommands { copyToVector(supportedCommands), m_currentSupportSeeking }, identifier());
+    protect(ensureGPUProcessConnection().connection())->send(Messages::GPUConnectionToWebProcess::SetSupportedRemoteCommands { copyToVector(supportedCommands), m_currentSupportSeeking }, 0);
 }
 
 }

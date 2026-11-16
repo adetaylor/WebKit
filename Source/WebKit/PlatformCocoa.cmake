@@ -355,7 +355,6 @@ set(WebKit_FORWARDING_HEADERS_FILES
 list(APPEND WebKit_MESSAGES_IN_FILES
     GPUProcess/media/RemoteImageDecoderAVFProxy
 
-    GPUProcess/media/ios/RemoteMediaSessionHelperProxy
 
     GPUProcess/webrtc/UserMediaCaptureManagerProxy
 

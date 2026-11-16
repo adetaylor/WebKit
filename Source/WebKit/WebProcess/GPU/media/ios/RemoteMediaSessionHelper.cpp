@@ -33,7 +33,6 @@
 #include "MediaPlaybackTargetContextSerialized.h"
 #include "MediaPlaybackTargetSerialized.h"
 #include "RemoteMediaSessionHelperMessages.h"
-#include "RemoteMediaSessionHelperProxyMessages.h"
 #include "WebProcess.h"
 #include <WebCore/MediaPlaybackTargetCocoa.h>
 
@@ -64,12 +63,12 @@ void RemoteMediaSessionHelper::gpuProcessConnectionDidClose(GPUProcessConnection
 
 void RemoteMediaSessionHelper::startMonitoringWirelessRoutesInternal()
 {
-    protect(ensureConnection())->send(Messages::RemoteMediaSessionHelperProxy::StartMonitoringWirelessRoutes(), { });
+    protect(ensureConnection())->send(Messages::GPUConnectionToWebProcess::StartMonitoringWirelessRoutes(), { });
 }
 
 void RemoteMediaSessionHelper::stopMonitoringWirelessRoutesInternal()
 {
-    protect(ensureConnection())->send(Messages::RemoteMediaSessionHelperProxy::StopMonitoringWirelessRoutes(), { });
+    protect(ensureConnection())->send(Messages::GPUConnectionToWebProcess::StopMonitoringWirelessRoutes(), { });
 }
 
 #if ENABLE(WIRELESS_PLAYBACK_MEDIA_PLAYER)

@@ -32,7 +32,6 @@
 #include "MessageReceiverMap.h"
 #include "RemoteAudioHardwareListenerIdentifier.h"
 #include "RemoteAudioSessionIdentifier.h"
-#include "RemoteRemoteCommandListenerIdentifier.h"
 #include "RemoteRenderingBackendIdentifier.h"
 #include "RemoteSnapshotIdentifier.h"
 #include "ScopedActiveMessageReceiveQueue.h"
@@ -102,6 +101,14 @@ class SecurityOriginData;
 
 namespace WebKit {
 
+// Whether the web process has a remote command listener, the commands it supports, as a mask of 1 << command type, and
+// whether it supports seeking.
+struct RemoteCommandListenerState {
+    bool hasListener { false };
+    uint32_t commands { 0 };
+    bool supportsSeeking { false };
+};
+
 #if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
 // The output unit of an audio destination that iOS's spatial experience is set on, 0 if there's no such destination, and
 // whether its web process preferred a spatial experience when it made it.
@@ -123,7 +130,6 @@ class RemoteImageDecoderAVFProxy;
 class RemoteLegacyCDMFactoryProxy;
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
-class RemoteRemoteCommandListenerProxy;
 class RemoteRenderingBackend;
 class RemoteSampleBufferDisplayLayerManager;
 class RemoteSharedResourceCache;
@@ -201,6 +207,7 @@ public:
     // this connection's process closed while its connection was the NowPlayingManager's client.
     SWIFT_MAIN_ACTOR bool swiftIsActiveNowPlayingPage(uint64_t pageIdentifier) const;
     SWIFT_MAIN_ACTOR uint64_t swiftRemoteCommandTargetSession() const;
+    SWIFT_MAIN_ACTOR RemoteCommandListenerState swiftRemoteCommandListenerState() const;
     SWIFT_MAIN_ACTOR void swiftNowPlayingClientDidClose();
 
     // For IPC::registerSwiftReceiver(): routes the web process's messages for the receiver name and destination, 0 for
@@ -217,6 +224,9 @@ public:
 #endif
 #if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
     void audioDestinationWasDeleted(uint64_t destinationIdentifier);
+#endif
+#if PLATFORM(IOS_FAMILY)
+    static void setMonitorsWirelessRoutes(bool);
 #endif
 
     Ref<RemoteSharedResourceCache> sharedResourceCache();
@@ -431,14 +441,11 @@ private:
 #endif
 
 #if PLATFORM(IOS_FAMILY)
-    RemoteMediaSessionHelperProxy& mediaSessionHelperProxy();
     void ensureMediaSessionHelper();
 #endif
 
     void createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
     void releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
-    void createRemoteCommandListener(RemoteRemoteCommandListenerIdentifier);
-    void releaseRemoteCommandListener(RemoteRemoteCommandListenerIdentifier);
     void releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier);
     void setMediaOverridesForTesting(MediaOverridesForTesting);
     void configureLoggingChannel(const String&, WTFLogChannelState, WTFLogLevel);
@@ -519,7 +526,7 @@ private:
     RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;
 #endif
 #if PLATFORM(IOS_FAMILY)
-    const std::unique_ptr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
+    const RefPtr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     const RefPtr<RemoteLegacyCDMFactoryProxy> m_legacyCdmFactoryProxy;
@@ -542,7 +549,6 @@ private:
     RemoteWCLayerTreeHostMap m_remoteWCLayerTreeHostMap;
 #endif
 
-    RefPtr<RemoteRemoteCommandListenerProxy> m_remoteRemoteCommandListener;
     HashMap<WebCore::PageIdentifier, WebCore::NowPlayingInfo> m_nowPlayingInfos;
     bool m_isNowPlayingManagerClient { false };
     const bool m_isLockdownModeEnabled { false };

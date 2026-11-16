@@ -348,7 +348,6 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/media/RemoteAudioVideoRendererProxyManager \
 	GPUProcess/media/RemoteCDMInstanceSessionProxy \
 	GPUProcess/media/RemoteCDMProxy \
-	GPUProcess/media/ios/RemoteMediaSessionHelperProxy \
 	GPUProcess/media/RemoteAudioDestinationManager \
 	GPUProcess/media/RemoteCDMFactoryProxy \
 	GPUProcess/media/RemoteCDMInstanceProxy \
@@ -358,7 +357,6 @@ MESSAGE_RECEIVERS = \
 	GPUProcess/media/RemoteMediaPlayerProxy \
 	GPUProcess/media/RemoteMediaResourceLoader \
 	GPUProcess/media/RemoteVideoFrameObjectHeap \
-	GPUProcess/media/RemoteRemoteCommandListenerProxy \
 	ModelProcess/ModelConnectionToWebProcess \
 	ModelProcess/ModelProcess \
 	ModelProcess/ModelProcessModelPlayerManagerProxy \

@@ -267,7 +267,6 @@ set(WebKit_MESSAGES_IN_FILES
     GPUProcess/media/RemoteMediaPlayerManagerProxy
     GPUProcess/media/RemoteMediaPlayerProxy
     GPUProcess/media/RemoteMediaResourceLoader
-    GPUProcess/media/RemoteRemoteCommandListenerProxy
     GPUProcess/media/RemoteVideoFrameObjectHeap
 
     GPUProcess/webrtc/LibWebRTCCodecsProxy
