@@ -34,6 +34,7 @@
 #if PLATFORM(COCOA)
 #include <WebCore/FloatRect.h> // NOLINT
 #endif
+#include <WebCore/Path.h> // NOLINT
 #include <optional> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
@@ -73,6 +74,10 @@ void TestWithStreamSwiftRecordableMessageForwarder::didReceiveStreamMessage(IPC:
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetLabelSource::name()) {
         IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetLabelSource>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetLabelSource);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::FillPath::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::FillPath>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchFillPath);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -144,6 +149,10 @@ void TestWithStreamSwiftRecordableRecorderMessageForwarder::dispatch(IPC::Stream
         IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetLabelSource>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetLabelSource);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::FillPath::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::FillPath>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchFillPath);
+        return;
+    }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
 }
@@ -191,6 +200,11 @@ IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::enc
     return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::SetLabel::name());
 }
 
+IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::encoderForFillPath()
+{
+    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::FillPath::name());
+}
+
 void TestWithStreamSwiftRecordableRecordedMessageEncoder::appendEncodedMessage(IPC::SwiftReplyEncoder& encoder)
 {
     IPC::appendSwiftEncodedRecordedMessage(m_encodedMessages, encoder);
@@ -232,6 +246,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetLabelSource>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetLabelSource::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_FillPath>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::FillPath::Arguments>(globalObject, decoder);
 }
 
 }

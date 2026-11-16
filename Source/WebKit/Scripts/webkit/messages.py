@@ -2983,15 +2983,20 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # the C++ that calls this would otherwise copy each one that isn't trivially copyable, for every message.
 # The Swift decoding of the arguments of a message that takes Swift types, by a dispatch that returns its Invalid result if
 # they are malformed.
-def swift_types_argument_decoding(message, indent):
+# With decode_context, the dispatch first asks the target, with the state, for the context to decode the arguments whose coders
+# take one ('SwiftDecodeContext=').
+def swift_types_argument_decoding(message, indent, decode_context=None):
     result = []
     if not message.parameters:
         return result
     for parameter in message.parameters:
         result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
+    if decode_context:
+        result.append('%slet decodeContext = target.%s(state: state)\n' % (indent, decode_context))
     result.append('%sdo {\n' % indent)
     for parameter in message.parameters:
-        result.append('%s    %s = try %s.decode(from: &decoder)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type)))
+        context = ', context: decodeContext' if decode_context and swift_types.takes_decode_context(parameter.type) else ''
+        result.append('%s    %s = try %s.decode(from: &decoder%s)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type), context))
     result.append('%s} catch {\n' % indent)
     result.append('%s    return .Invalid\n' % indent)
     result.append('%s}\n' % indent)
@@ -3016,7 +3021,7 @@ def swift_lent_state_dispatch_function(receiver, message):
     result.append(',\n'.join(['        %s' % parameter for parameter in parameters]))
     result.append('\n    ) -> IPC.SwiftLentStateDispatch {\n')
     if takes_swift_types:
-        result += swift_types_argument_decoding(message, '        ')
+        result += swift_types_argument_decoding(message, '        ', message.swift_decode_context())
     result.append('        do throws(InvalidMessage) {\n')
     result.append('            %stry mayThrowInvalidMessage(\n' % ('let handled = ' if may_decline else ''))
     result.append('                target.%s(\n' % handler_function_name(message))

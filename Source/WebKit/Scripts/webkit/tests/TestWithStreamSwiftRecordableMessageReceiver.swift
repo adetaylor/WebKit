@@ -177,6 +177,31 @@ final class TestWithStreamSwiftRecordableWeakRef {
         }
         return .Handled
     }
+
+    @used
+    func dispatchFillPath(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let path: IPCTypes.Path
+        let decodeContext = target.pathDecodeContext(state: state)
+        do {
+            path = try IPCTypes.Path.decode(from: &decoder, context: decodeContext)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.fillPath(
+                    state: &state,
+                    path: path
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftRecordableMessageForwarder {
@@ -203,6 +228,7 @@ extension TestWithStreamSwiftRecordable {
         case draw(rect: WebCore.FloatRect, clip: Bool)
         #endif
         case setLabel(label: String?, tag: UInt64?)
+        case fillPath(path: IPCTypes.Path)
     }
 
     // Calls the handler of each message in turn, as the forwarder does for a message it receives, with the state lent for
@@ -251,6 +277,13 @@ extension TestWithStreamSwiftRecordable {
                         tag: tag
                     )
                 )
+            case .fillPath(let path):
+                _ = try? mayThrowInvalidMessage(
+                    target.fillPath(
+                        state: &state,
+                        path: path
+                    )
+                )
             }
         }
     }
@@ -273,6 +306,10 @@ extension TestWithStreamSwiftRecordable {
                 let messageEncoder = encoder.encoderForSetLabel()
                 IPCCoding.WTFString.encode(label, to: messageEncoder)
                 IPCCoding.StdOptional<UInt64>.encode(tag, to: messageEncoder)
+                encoder.appendEncodedMessage(messageEncoder)
+            case .fillPath(let path):
+                let messageEncoder = encoder.encoderForFillPath()
+                IPCTypes.Path.encode(path, to: messageEncoder)
                 encoder.appendEncodedMessage(messageEncoder)
             }
         }
@@ -406,6 +443,28 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.setLabelSource(source: source)
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchFillPath(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let path: IPCTypes.Path
+        do {
+            path = try IPCTypes.Path.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try target.record(
+                .fillPath(
+                    path: path
+                )
             )
         } catch {
             return .Invalid
