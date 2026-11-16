@@ -225,7 +225,7 @@ RetainPtr<CGImageRef> IOSurface::sinkIntoImage(std::unique_ptr<IOSurface> surfac
     if (!context)
         context = surface->createPlatformContext();
     ASSERT(ioSurfaceContextGetSurface(context.get()) == surface->m_surface);
-    return adoptCF(ioSurfaceContextCreateImageReference(context.get()));
+    return adoptCF(ioSurfaceContextCreateImageReference(context.get(), false));
 }
 
 RetainPtr<CGContextRef> IOSurface::createPlatformContext(PlatformDisplayID displayID, std::optional<CGImageAlphaInfo> overrideAlphaInfo, bool useWebKitBehavior)
@@ -516,14 +516,33 @@ CGImageRef ioSurfaceContextCreateImage(CGContextRef context)
     return CGIOSurfaceContextCreateImage(context);
 }
 
-CGImageRef ioSurfaceContextCreateImageReference(CGContextRef context)
+CGImageRef ioSurfaceContextCreateImageReference(CGContextRef context, bool isTransient)
 {
-    return CGIOSurfaceContextCreateImageReference(context);
+    CGImageRef image = CGIOSurfaceContextCreateImageReference(context);
+    if (isTransient)
+        CGImageSetCachingFlags(image, kCGImageCachingTransient);
+    return image;
 }
 
 IOSurfaceRef ioSurfaceContextGetSurface(CGContextRef context)
 {
     return CGIOSurfaceContextGetSurface(context);
+}
+
+bool ioSurfaceContextInvalidateSurface(CGContextRef context)
+{
+    if (!PAL::canLoad_CoreGraphics_CGIOSurfaceContextInvalidateSurface())
+        return false;
+    PAL::softLink_CoreGraphics_CGIOSurfaceContextInvalidateSurface(context);
+    return true;
+}
+
+bool ioSurfaceContextFlushQueue(CGContextRef context)
+{
+    if (!PAL::canLoad_CoreGraphics_CGIOSurfaceContextFlushQueue())
+        return false;
+    PAL::softLink_CoreGraphics_CGIOSurfaceContextFlushQueue(context);
+    return true;
 }
 
 } // namespace WebCore

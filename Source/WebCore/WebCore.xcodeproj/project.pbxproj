@@ -445,6 +445,7 @@
 		8D1A63B609FF70005A50202A /* ShadowBlurKernel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */; };
 		C85D977768D6677F509D4047 /* VImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63866A9D038D86C964446936 /* VImageBridge.swift */; };
 		CC31639BAC3951C071785011 /* ShareableBitmapCG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */; };
+		2F33973E80CA688DE1E8090E /* ImageBufferSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */; };
 		8130383DB225B6A7C0CDF935 /* IOSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = E984F4227EC94A2C317A2C1A /* IOSurface.swift */; };
 		C56DFE43F7178BFD17970722 /* VImageBridge+BoxConvolve.swift in Sources */ = {isa = PBXBuildFile; fileRef = C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */; };
 		CFF1676880E095F27D7D94DE /* VImageBridge+ColorMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */; };
@@ -2650,6 +2651,7 @@
 		53ED3FDF167A88E7006762E6 /* JSInternalSettingsGenerated.h in Headers */ = {isa = PBXBuildFile; fileRef = 53ED3FDD167A88E7006762E6 /* JSInternalSettingsGenerated.h */; };
 		541F1CEE88912A324F8443AB /* UnifiedSource48-header-RenderStyleGetters.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DE0DF0E2DD6063156D395BC5 /* UnifiedSource48-header-RenderStyleGetters.cpp */; };
 		550640B02407587E00AAE045 /* ImageBufferCGBackend.h in Headers */ = {isa = PBXBuildFile; fileRef = 72BAC3AD23E1E545008D741C /* ImageBufferCGBackend.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		EDDC8D357AEEB24651766B09 /* ImageBufferSurface.h in Headers */ = {isa = PBXBuildFile; fileRef = E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		550A0BCA085F6039007353D6 /* QualifiedName.h in Headers */ = {isa = PBXBuildFile; fileRef = 550A0BC8085F6039007353D6 /* QualifiedName.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		550A0BCC085F6039007353D7 /* LocalNameWithNamespace.h in Headers */ = {isa = PBXBuildFile; fileRef = 550A0BCB085F6039007353D7 /* LocalNameWithNamespace.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5546757B1FD212A9003B10B0 /* ImageSource.h in Headers */ = {isa = PBXBuildFile; fileRef = 554675781FD1FC1A003B10B0 /* ImageSource.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -14915,6 +14917,7 @@
 		72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferIOSurfaceBackend.h; sourceTree = "<group>"; };
 		72BAC3AC23E1E545008D741C /* ImageBufferCGBackend.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImageBufferCGBackend.cpp; sourceTree = "<group>"; };
 		72BAC3AD23E1E545008D741C /* ImageBufferCGBackend.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImageBufferCGBackend.h; sourceTree = "<group>"; };
+		E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageBufferSurface.h; sourceTree = "<group>"; };
 		72BB9E86295257F800842DBB /* ToggleButtonPart.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ToggleButtonPart.h; sourceTree = "<group>"; };
 		72BDED0D2F8D9B1600199F64 /* ShareableCVPixelBuffer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShareableCVPixelBuffer.h; sourceTree = "<group>"; };
 		72BDED0E2F8D9B1600199F64 /* ShareableCVPixelBuffer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ShareableCVPixelBuffer.cpp; sourceTree = "<group>"; };
@@ -19429,6 +19432,7 @@
 		C6ACDF9D39AC3B3B90CEDCDD /* ShadowBlurKernel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShadowBlurKernel.swift; sourceTree = "<group>"; };
 		63866A9D038D86C964446936 /* VImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VImageBridge.swift; sourceTree = "<group>"; };
 		845307223380A4EDB6151FE4 /* ShareableBitmapCG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableBitmapCG.swift; sourceTree = "<group>"; };
+		E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageBufferSurface.swift; sourceTree = "<group>"; };
 		E984F4227EC94A2C317A2C1A /* IOSurface.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSurface.swift; sourceTree = "<group>"; };
 		C73E36DBAB473D0811B028B3 /* VImageBridge+BoxConvolve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+BoxConvolve.swift"; sourceTree = "<group>"; };
 		0E95AF393EDB8CEE85060366 /* VImageBridge+ColorMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VImageBridge+ColorMatrix.swift"; sourceTree = "<group>"; };
@@ -37167,6 +37171,8 @@
 				72BAC3AA23E1E544008D741C /* ImageBufferCGBitmapBackend.h */,
 				72BAC3A923E1E543008D741C /* ImageBufferIOSurfaceBackend.cpp */,
 				72BAC3AB23E1E544008D741C /* ImageBufferIOSurfaceBackend.h */,
+				E47B5179AB3E773154B7CF4E /* ImageBufferSurface.h */,
+				E53A4264B8BB492DDEF98C8D /* ImageBufferSurface.swift */,
 				555B87EA1CAAF0AB00349425 /* ImageDecoderCG.cpp */,
 				555B87EB1CAAF0AB00349425 /* ImageDecoderCG.h */,
 				F123D54F8A383CE1B55FCBAD /* ImageDecoderCG.swift */,
@@ -47167,6 +47173,7 @@
 				86BBA9F02987EBF300A78986 /* ImageBufferParameters.h in Headers */,
 				2D7705C7255276CD001D0C94 /* ImageBufferPlatformBackend.h in Headers */,
 				322B61152C50C26300FB5440 /* ImageBufferResourceLimits.h in Headers */,
+				EDDC8D357AEEB24651766B09 /* ImageBufferSurface.h in Headers */,
 				74D182473E2A6702BD173A73 /* ImageBufferTransferIdentifier.h in Headers */,
 				073930C32AC4E85300C1D1B1 /* ImageCapture.h in Headers */,
 				5A8EA984E6E737343E65221A /* ImageContentSettings.h in Headers */,
@@ -52231,6 +52238,7 @@
 				1AC900C31943C0FC008625B5 /* HTTPHeaderNames.cpp in Sources */,
 				B5FDB01712B14B4B9A1C5CAF /* HTTPParsers.swift in Sources */,
 				B2C50D07CBEE493CA220BDC0 /* IIRKernel.swift in Sources */,
+				2F33973E80CA688DE1E8090E /* ImageBufferSurface.swift in Sources */,
 				ED666582528540CAF79EE240 /* ImageDecoderCG.swift in Sources */,
 				88C34489AB3494E36F0B2E95 /* ImageDecoding.swift in Sources */,
 				0C8AB8D60605AC220A644356 /* ImageDecodingCG.swift in Sources */,

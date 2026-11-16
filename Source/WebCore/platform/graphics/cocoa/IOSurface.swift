@@ -665,7 +665,7 @@ final class TaskIdentityToken: Sendable {
         }
         precondition(context.surface === surface)
         // The context is one of this surface's.
-        return unsafe WebCore.ioSurfaceContextCreateImageReference(context.context)
+        return unsafe WebCore.ioSurfaceContextCreateImageReference(context.context, false)
     }
 
     private struct BitmapConfiguration {
@@ -1292,7 +1292,7 @@ extension IOSurfaceCore {
     }
 
     // The surface a facade's swiftState refers to, which the facade keeps alive.
-    fileprivate static func borrowed(_ swiftState: UInt) -> IOSurfaceCore {
+    static func borrowed(_ swiftState: UInt) -> IOSurfaceCore {
         unsafe Unmanaged<IOSurfaceCore>.fromOpaque(UnsafeRawPointer(bitPattern: swiftState)!).takeUnretainedValue()
     }
 
@@ -1302,7 +1302,7 @@ extension IOSurfaceCore {
 }
 
 extension IOSurfacePoolCore {
-    fileprivate static func borrowed(_ poolState: UInt) -> IOSurfacePoolCore? {
+    static func borrowed(_ poolState: UInt) -> IOSurfacePoolCore? {
         guard let pointer = unsafe UnsafeRawPointer(bitPattern: poolState) else {
             return nil
         }

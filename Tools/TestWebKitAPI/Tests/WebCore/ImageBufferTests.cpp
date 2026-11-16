@@ -36,6 +36,11 @@
 #include <cmath>
 #include <type_traits>
 #include <wtf/MemoryFootprint.h>
+#include <wtf/text/StringBuilder.h>
+
+#if USE(CG)
+#include <WebCore/ImageBufferSurface.h>
+#endif
 
 namespace TestWebKitAPI {
 using namespace WebCore;
@@ -409,6 +414,171 @@ TEST(ImageBufferTests, GetPixelBufferAllZeros)
     EXPECT_TRUE(getPixelBufferAllZeros({ { }, size / 10 }));
     EXPECT_TRUE(getPixelBufferAllZeros({ FloatPoint { size - size / 10 }, size / 10 }));
 }
+
+#if HAVE(IOSURFACE)
+
+static std::array<uint64_t, 7> surfaceCounts()
+{
+    auto counts = imageBufferSurfaceCountsForTesting();
+    return { counts.contextFlushes, counts.cachedImageInvalidations, counts.drawingCommandSubmissions, counts.imagesCreated, counts.imageReferencesCreated, counts.imagesSunk, counts.displayCopies };
+}
+
+static Color pixelAt(ImageBuffer& buffer, IntPoint point)
+{
+    PixelBufferFormat format { AlphaPremultiplication::Unpremultiplied, PixelFormat::RGBA8, ColorSpace::SRGB() };
+    RefPtr pixels = buffer.getPixelBuffer(format, { point, { 1, 1 } });
+    if (!pixels)
+        return { };
+    auto bytes = pixels->bytes();
+    return SRGBA<uint8_t> { bytes[0], bytes[1], bytes[2], bytes[3] };
+}
+
+static Color pixelAt(NativeImage& image, IntPoint point)
+{
+    auto size = image.size();
+    RefPtr buffer = ImageBuffer::create(size, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
+    if (!buffer)
+        return { };
+    buffer->context().drawNativeImage(image, FloatRect { { }, size }, FloatRect { { }, size }, { CompositeOperator::Copy });
+    return pixelAt(*buffer, point);
+}
+
+// The flushes, invalidations and images of an accelerated buffer through a canvas-like sequence, counted at every step.
+// The expected counts are the ones the C++ ImageBufferIOSurfaceBackend made before it became a facade over
+// ImageBufferSurfaceCore.
+TEST(ImageBufferTests, IOSurfaceBackendFlushesAndInvalidatesAsBefore)
+{
+    IntSize size { 32, 32 };
+    FloatRect rect { { }, size };
+    auto createAccelerated = [&] {
+        return ImageBuffer::create(size, RenderingMode::Accelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
+    };
+
+    Vector<std::array<uint64_t, 7>> steps;
+    auto start = surfaceCounts();
+    auto record = [&] {
+        auto counts = surfaceCounts();
+        for (size_t i = 0; i < counts.size(); ++i)
+            counts[i] -= start[i];
+        steps.append(counts);
+    };
+
+    RefPtr a = createAccelerated();
+    RefPtr b = createAccelerated();
+    ASSERT_NE(a, nullptr);
+    ASSERT_NE(b, nullptr);
+    ASSERT_EQ(a->renderingMode(), RenderingMode::Accelerated);
+    record();
+
+    a->context().fillRect(rect, Color::red);
+    EXPECT_EQ(pixelAt(*a, { 16, 16 }), Color::red);
+    record();
+    EXPECT_EQ(pixelAt(*a, { 16, 16 }), Color::red);
+    record();
+
+    b->context().drawImageBuffer(*a, rect, rect, { CompositeOperator::Copy });
+    record();
+    b->flushDrawingContext();
+    record();
+
+    RefPtr copy = a->copyNativeImage();
+    ASSERT_NE(copy, nullptr);
+    record();
+    RefPtr greenSource = ImageBuffer::create(size, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
+    ASSERT_NE(greenSource, nullptr);
+    greenSource->context().fillRect(rect, Color::green);
+    RefPtr green = greenSource->getPixelBuffer({ AlphaPremultiplication::Unpremultiplied, PixelFormat::RGBA8, ColorSpace::SRGB() }, { { }, size });
+    ASSERT_NE(green, nullptr);
+    a->putPixelBuffer(*green, { { }, size });
+    record();
+    b->context().drawImageBuffer(*a, rect, rect, { CompositeOperator::Copy });
+    b->flushDrawingContext();
+    record();
+    EXPECT_EQ(pixelAt(*b, { 16, 16 }), Color::green);
+    copy = nullptr;
+    record();
+
+    RefPtr delegate = a->layerContentsDisplayDelegate();
+    EXPECT_NE(delegate, nullptr);
+    record();
+    a->context().fillRect(rect, Color::blue);
+    a->prepareForDisplay();
+    record();
+    a->prepareForDisplay();
+    record();
+    a->releaseLayerContentsDisplayDelegate();
+    delegate = nullptr;
+
+    a->context().fillRect(rect, Color::red);
+    a->submitDrawingCommands();
+    record();
+    a->flushDrawingContext();
+    record();
+    a->flushDrawingContext();
+    record();
+
+    a->releaseGraphicsContext();
+    EXPECT_EQ(pixelAt(*a, { 16, 16 }), Color::red);
+    record();
+
+    RefPtr c = createAccelerated();
+    ASSERT_NE(c, nullptr);
+    c->context().fillRect(rect, Color::blue);
+    c->flushDrawingContext();
+    c->releaseGraphicsContext();
+    record();
+    for (unsigned i = 0; i < 500 && c->isInUse(); ++i)
+        usleep(10000);
+    EXPECT_FALSE(c->isInUse());
+    EXPECT_TRUE(c->setVolatile());
+    EXPECT_EQ(c->volatilityState(), VolatilityState::Volatile);
+    EXPECT_TRUE(c->setVolatile());
+    record();
+    EXPECT_EQ(c->setNonVolatile(), SetNonVolatileResult::Valid);
+    EXPECT_EQ(c->volatilityState(), VolatilityState::NonVolatile);
+    record();
+    EXPECT_EQ(pixelAt(*c, { 16, 16 }), Color::blue);
+    c = nullptr;
+    record();
+
+    EXPECT_NE(a->surface(), nullptr);
+    record();
+    RefPtr reference = a->createNativeImageReference();
+    EXPECT_NE(reference, nullptr);
+    reference = nullptr;
+    a->context().fillRect(rect, Color::green);
+    EXPECT_NE(a->surface(), nullptr);
+    record();
+
+    copy = a->copyNativeImage();
+    a = nullptr;
+    record();
+    EXPECT_EQ(pixelAt(*copy, { 16, 16 }), Color::green);
+    copy = nullptr;
+
+    b->context().fillRect(rect, Color::blue);
+    RefPtr sunk = ImageBuffer::sinkIntoNativeImage(WTF::move(b));
+    ASSERT_NE(sunk, nullptr);
+    record();
+    EXPECT_EQ(pixelAt(*sunk, { 16, 16 }), Color::blue);
+
+    StringBuilder description;
+    for (auto& step : steps)
+        description.append('{', step[0], ',', step[1], ',', step[2], ',', step[3], ',', step[4], ',', step[5], ',', step[6], "} "_s);
+    WTFLogAlways("IOSurfaceBackendFlushesAndInvalidatesAsBefore steps: %s", reinterpret_cast<const char*>(description.toString().utf8().data()));
+
+    Vector<std::array<uint64_t, 7>> expected {
+        { 0, 0, 0, 0, 0, 0, 0 }, { 1, 0, 0, 0, 0, 0, 0 }, { 1, 0, 0, 0, 0, 0, 0 }, { 1, 0, 0, 1, 0, 0, 0 },
+        { 2, 0, 0, 1, 0, 0, 0 }, { 2, 0, 0, 2, 0, 0, 0 }, { 2, 1, 0, 2, 0, 0, 0 }, { 3, 1, 0, 3, 0, 0, 0 },
+        { 3, 1, 0, 3, 0, 0, 0 }, { 3, 1, 0, 4, 0, 0, 1 }, { 3, 1, 0, 5, 0, 0, 2 }, { 3, 1, 0, 6, 0, 0, 3 },
+        { 3, 1, 1, 6, 0, 0, 3 }, { 4, 1, 1, 6, 0, 0, 3 }, { 4, 1, 1, 6, 0, 0, 3 }, { 4, 1, 1, 6, 0, 0, 3 },
+        { 5, 1, 1, 6, 0, 0, 3 }, { 5, 1, 1, 6, 0, 0, 3 }, { 5, 1, 1, 6, 0, 0, 3 }, { 5, 1, 1, 6, 0, 0, 3 },
+        { 5, 2, 1, 6, 0, 0, 3 }, { 6, 2, 1, 6, 1, 0, 3 }, { 6, 3, 1, 7, 1, 0, 3 }, { 6, 3, 1, 7, 1, 1, 3 },
+    };
+    EXPECT_EQ(steps, expected);
+}
+
+#endif // HAVE(IOSURFACE)
 
 #endif
 

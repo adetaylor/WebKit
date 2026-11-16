@@ -62,11 +62,11 @@ public:
     void prepareForDisplay() override;
 
 protected:
-    ImageBufferIOSurfaceBackend(const ImageBufferParameters&, std::unique_ptr<IOSurface>, RetainPtr<CGContextRef> platformContext, PlatformDisplayID, IOSurfacePool*, bool useIOSurfaceWebKitBehavior = false);
-    CGContextRef ensurePlatformContext();
+    // The core is one over the surface.
+    ImageBufferIOSurfaceBackend(const ImageBufferParameters&, std::unique_ptr<IOSurface>, ImageBufferSurface&&);
     // Returns true if flush happened.
     bool flushContextDraws();
-    
+
     RefPtr<NativeImage> copyNativeImage() override;
     RefPtr<NativeImage> createNativeImageReference() override;
     RefPtr<NativeImage> sinkIntoNativeImage() override;
@@ -88,22 +88,11 @@ protected:
 
     unsigned bytesPerRow() const override;
 
-    // Returns true if this invalidation requires a flush to complete
-    bool invalidateCachedNativeImage();
     void prepareForExternalRead();
     void prepareForExternalWrite();
-
-    RetainPtr<CGImageRef> createImage();
-    RetainPtr<CGImageRef> createImageReference();
+    bool consumeContextHasDrawn();
 
     std::unique_ptr<IOSurface> m_surface;
-    RetainPtr<CGContextRef> m_platformContext;
-    const PlatformDisplayID m_displayID;
-    const bool m_useIOSurfaceWebKitBehavior;
-    bool m_mayHaveOutstandingBackingStoreReferences { false };
-    VolatilityState m_volatilityState { VolatilityState::NonVolatile };
-    RefPtr<IOSurfacePool> m_ioSurfacePool;
-    bool m_needsFirstFlush { true };
     RefPtr<ImageBufferIOSurfaceDisplayDelegate> m_layerContentsDisplayDelegate;
 };
 
