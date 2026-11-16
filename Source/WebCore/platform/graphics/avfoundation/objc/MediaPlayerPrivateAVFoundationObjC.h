@@ -423,8 +423,8 @@ private:
     const RetainPtr<WebCoreAVFMovieObserver> m_objcObserver;
     struct Core;
     std::unique_ptr<Core> m_core;
-    // m_core's Swift object, unretained, for MediaPlayerPrivateAVFoundation.swift.
-    uintptr_t m_swiftCore { 0 };
+    // m_core's key in MediaPlayerAVFoundationCore.swift's table of cores, for MediaPlayerPrivateAVFoundation.swift.
+    uint64_t m_coreKey { 0 };
     RetainPtr<id> m_timeObserver;
     mutable String m_languageOfPrimaryAudioTrack;
     bool m_videoFrameHasDrawn { false };
