@@ -155,4 +155,7 @@
 
 #include "ContentSecurityPolicySwift.h"
 
+#include "platform/audio/AudioDSPBoundaryTypes.h"
+
+#include "BiquadFilterType.h"
 #include "WebCoreSwift-Generated.h"
