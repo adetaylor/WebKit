@@ -417,6 +417,12 @@ module WebCore_Internal [system] {
         export *
     }
 
+    explicit module ImageBufferSurface {
+        requires cplusplus20
+        header "../../platform/graphics/cg/ImageBufferSurface.h"
+        export *
+    }
+
     explicit module NativeImage {
         requires cplusplus20
         header "../../platform/graphics/NativeImage.h"

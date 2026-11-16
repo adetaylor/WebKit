@@ -277,6 +277,7 @@ public:
 
 private:
     friend class GraphicsContextGLCocoa;
+    friend class ImageBufferSurface;
     friend class IOSurfacePool;
 
     explicit IOSurface(uintptr_t swiftState);
@@ -393,8 +394,12 @@ WEBCORE_EXPORT WTF::TextStream& operator<<(WTF::TextStream&, WebCore::IOSurface:
 // Core Graphics can draw it in, and the contexts ones that ioSurfaceContextCreate() made for the surface.
 SWIFT_UNSAFE CGContextRef ioSurfaceContextCreate(IOSurfaceRef, size_t width, size_t height, size_t bitsPerComponent, size_t bitsPerPixel, CGColorSpaceRef, CGBitmapInfo, bool useWebKitBehavior, PlatformDisplayID, mach_port_t ownerTaskIdToken) CF_RETURNS_RETAINED;
 SWIFT_UNSAFE CGImageRef ioSurfaceContextCreateImage(CGContextRef) CF_RETURNS_RETAINED;
-SWIFT_UNSAFE CGImageRef ioSurfaceContextCreateImageReference(CGContextRef) CF_RETURNS_RETAINED;
+// A transient image is one that is drawn once, which Core Graphics needn't cache.
+SWIFT_UNSAFE CGImageRef ioSurfaceContextCreateImageReference(CGContextRef, bool isTransient) CF_RETURNS_RETAINED;
 SWIFT_UNSAFE IOSurfaceRef ioSurfaceContextGetSurface(CGContextRef);
+// False if Core Graphics can't invalidate the context's cached images of its surface, or flush its queue.
+SWIFT_UNSAFE bool ioSurfaceContextInvalidateSurface(CGContextRef);
+SWIFT_UNSAFE bool ioSurfaceContextFlushQueue(CGContextRef);
 
 } // namespace WebCore
 

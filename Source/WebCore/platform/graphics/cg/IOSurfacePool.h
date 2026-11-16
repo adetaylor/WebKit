@@ -50,6 +50,7 @@ class SWIFT_PRIVATE_FILEID("WebCore/IOSurface.swift") IOSurfacePool : public Thr
     WTF_MAKE_NONCOPYABLE(IOSurfacePool);
     friend class LazyNeverDestroyed<IOSurfacePool>;
     friend class IOSurface;
+    friend class ImageBufferSurface;
 
 public:
     WEBCORE_EXPORT static IOSurfacePool& sharedPoolSingleton();

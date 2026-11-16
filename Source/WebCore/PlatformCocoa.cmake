@@ -1349,6 +1349,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/cg/ImageBufferCGBackend.h
     platform/graphics/cg/ImageBufferCGBitmapBackend.h
     platform/graphics/cg/ImageBufferIOSurfaceBackend.h
+    platform/graphics/cg/ImageBufferSurface.h
     platform/graphics/cg/ImageDecoderCG.h
     platform/graphics/cg/PDFDocumentBuffer.h
     platform/graphics/cg/PathCG.h
