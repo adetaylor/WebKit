@@ -1113,7 +1113,7 @@ header: <WebCore/RectCorners.h>
     WebCore::RubberBandingBehavior left();
 }
 
-[Swift, AdditionalEncoder=StreamConnectionEncoder] class WebCore::Path {
+[AdditionalEncoder=StreamConnectionEncoder] class WebCore::Path {
     Vector<WebCore::PathSegment> segments();
 }
 

@@ -869,26 +869,50 @@ CGMutablePathRef CGRendererCreatePath(CGRendererPathSegment segment)
     return path.leakRef();
 }
 
-CGMutablePathRef CGRendererCreatePathFromSegments(std::span<const CGRendererPathSegment> segments NOESCAPE)
+// As Path::pieWedgeArc(): a move to the arc's center, the arc, and a line back to its center.
+static const WebCore::PathArc* pieWedgeArc(std::span<const WebCore::PathSegment> segments)
 {
+    if (segments.size() != 3)
+        return nullptr;
+    auto* moveTo = std::get_if<WebCore::PathMoveTo>(&segments[0].data());
+    auto* arc = std::get_if<WebCore::PathArc>(&segments[1].data());
+    auto* lineTo = std::get_if<WebCore::PathLineTo>(&segments[2].data());
+    if (!moveTo || !arc || !lineTo)
+        return nullptr;
+    if (moveTo->point != arc->center || lineTo->point != arc->center)
+        return nullptr;
+    return arc;
+}
+
+CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts)
+{
+    facts = { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero };
+    if (segments.size() == 1)
+        facts.segment = CGRendererPathSegmentValues(segments[0]);
+    if (segments.size() < 2)
+        return nullptr;
+    if (auto* arc = pieWedgeArc(segments))
+        facts.pieWedgeArc = CGRendererPathSegmentValues(WebCore::PathSegment { *arc });
     RetainPtr path = adoptCF(CGPathCreateMutable());
-    for (auto& segment : segments)
-        WebCore::addToCGPath(path.get(), CGRendererPathSegmentFromValues(segment));
+    WebCore::FloatPoint lastMoveToPoint;
+    WebCore::FloatPoint currentPoint;
+    auto fastBoundingRect = WebCore::FloatRect::smallestRect();
+    for (auto& segment : segments) {
+        WTF::switchOn(segment.data(), [&](auto& data) {
+            WebCore::addToCGPath(path.get(), data);
+            data.extendFastBoundingRect(currentPoint, lastMoveToPoint, fastBoundingRect);
+            currentPoint = data.calculateEndPoint(currentPoint, lastMoveToPoint);
+        });
+    }
+    if (fastBoundingRect.isSmallest())
+        fastBoundingRect.extend(currentPoint);
+    facts.fastBoundingRect = fastBoundingRect;
     return path.leakRef();
 }
 
-void CGRendererAddPathSegments(CGContextRef context, std::span<const CGRendererPathSegment> segments NOESCAPE)
+WebCore::Path CGRendererPathOfPlatformPath(CGPathRef platformPath)
 {
-    for (auto& segment : segments)
-        WebCore::addToCGContextPath(context, CGRendererPathSegmentFromValues(segment));
-}
-
-CGRect CGRendererPathSegmentsFastBoundingRect(std::span<const CGRendererPathSegment> segments NOESCAPE)
-{
-    auto pathSegments = WTF::map(segments, [](auto& segment) {
-        return CGRendererPathSegmentFromValues(segment);
-    });
-    return WebCore::PathStream::computeFastBoundingRect(pathSegments.span());
+    return WebCore::Path { WebCore::PathCG::create(adoptCF(CGPathCreateMutableCopy(platformPath))) };
 }
 
 CGPathRef CGRendererCopyPlatformPath(const WebCore::PathImpl& impl)
@@ -899,7 +923,7 @@ CGPathRef CGRendererCopyPlatformPath(const WebCore::PathImpl& impl)
             WebCore::addToCGPath(path.get(), segment);
         return path.leakRef();
     }
-    return CGPathCreateCopy(downcast<WebCore::PathCG>(impl).platformPath());
+    return RetainPtr<CGPathRef> { downcast<WebCore::PathCG>(impl).platformPath() }.leakRef();
 }
 
 #endif // USE(CG)

@@ -46,6 +46,10 @@
 #include <wtf/text/StringBuilder.h>
 #include <wtf/unicode/CharacterNames.h>
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include <WebCore/CGRendererSwiftBridge.h>
+#endif
+
 #if OS(DARWIN)
 #include <wtf/MachSendRight.h>
 #endif
@@ -147,6 +151,16 @@ private:
     size_t m_offset { 0 };
     size_t m_size { 0 };
 };
+
+class SwiftDecoder;
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// Decodes a WebCore::Path as C++ decodes it, a Vector of its segments, and returns the CGPath that Path makes of more than one,
+// which the caller owns, with what the CG renderer asks of the path besides. A free function, since Swift takes what a C++
+// method returns as unretained whatever its annotation. Null for a path of no segment or one, and for a malformed one,
+// which invalidates the decoder.
+CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&) CF_RETURNS_RETAINED;
+#endif
 
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
 // generated Swift. A failed decode returns false and invalidates the decoder. Values are returned
@@ -278,6 +292,9 @@ private:
     friend class NonEscapableBorrowLender<SwiftDecoder>;
     friend class NonEscapableBorrowOwningLender<SwiftDecoder>;
     template<typename> friend class CxxDecodedArgument;
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    friend CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&);
+#endif
 
     explicit SwiftDecoder(NonEscapableBorrowLease<Decoder>& lease LIFETIME_BOUND)
         : NonEscapableBorrow(lease)
@@ -496,6 +513,12 @@ public:
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
     void encodeVideoInfo(const WebCore::VideoInfo&);
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // Encodes the WebCore::Path that decodeCGRendererPath() decoded into the CGPath and facts, with its own ArgumentCoder: the
+    // segment of a path of one, or else the CGPath's elements, as C++ encodes a Path of a CGPath.
+    void encodeCGRendererPath(CGPathRef _Nullable, CGRendererPathFacts);
+#endif
 
 #if OS(DARWIN)
     // Encodes a send right that the caller gives up, as C++ encodes a MachSendRight. Unsafe in Swift, which gives up

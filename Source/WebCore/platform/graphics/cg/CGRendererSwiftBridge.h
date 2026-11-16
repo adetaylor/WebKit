@@ -313,6 +313,8 @@ WEBCORE_EXPORT void CGRendererClipOutToPath(CGContextRef _Nonnull, const WebCore
 // The same for a Path of the PathImpl, without the Path, whose reference to it a decoded path would otherwise take.
 WEBCORE_EXPORT void CGRendererClipToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&, WebCore::WindRule) __attribute__((availability(swift, unavailable)));
 WEBCORE_EXPORT void CGRendererClipOutToPathImpl(CGContextRef _Nonnull, const WebCore::PathImpl&) __attribute__((availability(swift, unavailable)));
+// The same for a CGPath, which it adds as addToCGContextPath() adds a rounded rect's, after the clip's bounds.
+WEBCORE_EXPORT void CGRendererClipOutToPlatformPath(CGContextRef _Nonnull, CGPathRef _Nonnull);
 
 
 // A rounded rect's rect and radii as plain values, for CGRenderer.swift, which ShadowBlur::drawRectShadow() and
@@ -326,12 +328,21 @@ WEBCORE_EXPORT CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRound
 // The CGPath that Path makes (PathCG) for a path of just the segment. Swift's CGMutablePath methods add with an identity
 // transform rather than none, which changes what CG stores for -0, infinities and NaN.
 WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
-// The same for a path of the segments, in turn, as Path makes it of a PathStream of them; the segments added to the context's
-// path in place, as GraphicsContextCG adds a Path's for a clip (addToCGContextPath()); and Path::fastBoundingRect() of a path
-// of more than one.
-WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePathFromSegments(std::span<const CGRendererPathSegment> segments NOESCAPE) CF_RETURNS_RETAINED;
-WEBCORE_EXPORT void CGRendererAddPathSegments(CGContextRef _Nonnull, std::span<const CGRendererPathSegment> segments NOESCAPE);
-WEBCORE_EXPORT CGRect CGRendererPathSegmentsFastBoundingRect(std::span<const CGRendererPathSegment> segments NOESCAPE);
+// What a Swift receiver asks of a message's path besides its CGPath: how many segments it has; its segment, if it has one,
+// which it draws without a CGPath; the arc of a pie wedge (Path::pieWedgeArc()) as an Arc segment, or a CloseSubpath segment
+// for any other path; and Path::fastBoundingRect() of a path of more than one segment.
+struct CGRendererPathFacts {
+    size_t segmentCount;
+    CGRendererPathSegment segment;
+    CGRendererPathSegment pieWedgeArc;
+    CGRect fastBoundingRect;
+};
+// The CGPath that Path makes (PathCG) of a PathStream of the segments, as CGRendererCopyPlatformPath() does, and the path's
+// facts, whose bounds are PathStream::computeFastBoundingRect()'s, in the same pass over the segments. Null for a path of no
+// segment or one.
+WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// The Path of such a CGPath, as a Path of a PathCG, which C++ encodes as the segments of the CGPath's elements.
+WEBCORE_EXPORT WebCore::Path CGRendererPathOfPlatformPath(CGPathRef _Nonnull) __attribute__((availability(swift, unavailable)));
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it
 // would make first.
 WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));

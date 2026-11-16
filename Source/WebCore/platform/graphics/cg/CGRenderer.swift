@@ -944,13 +944,74 @@ private struct CGRendererLineStroke {
         width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
 }
 
+// The CGPath of a path that a receiver draws, which others may share: a cached path's is the cache's and its recordings', and a
+// message's is its recording's. Only this type reaches the CGPath, to draw, add and measure it, so no Swift can cast it to a
+// CGMutablePath and change what another draw reads.
+@_spi(WebKitGPU) @frozen public struct CGRendererPlatformPath {
+    private let path: CGPath
+
+    @_spi(WebKitGPU) public init(_ path: CGPath) {
+        self.path = path
+    }
+
+    @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
+        state.receiveFillPath(path)
+    }
+
+    @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
+        state.receiveStrokePath(path)
+    }
+
+    // GraphicsContextCG::strokePath() with a gradient: the gradient in the clip of the stroked path.
+    @_spi(WebKitGPU) public func strokeWithGradient(_ state: inout CGRendererCore) {
+        let path = path
+        state.receiveStrokeWithGradient({ context in strokedPlatformPathBounds(context, path) }) { context, thickness in
+            clipToStrokedPlatformPath(context, path, thickness)
+        }
+    }
+
+    // GraphicsContextCG::drawPath() without a gradient, of the path that makePath() makes only if the context draws it.
+    @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
+        state.receiveDrawPathWithoutGradient { makePath().path }
+    }
+
+    @_spi(WebKitGPU) public func drawFocusRing(_ state: inout CGRendererCore, _ color: CGRendererColorValue, _ zoomFactor: Float) {
+        state.receiveDrawFocusRing(path, color, zoomFactor)
+    }
+
+    // GraphicsContextCG::clipPath() of a PathCG, which adds its CGPath to the context's path.
+    func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+        context.beginPath()
+        context.addPath(path)
+        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
+    }
+
+    func clipOut(_ context: CGContext) {
+        CGRendererClipOutToPlatformPath(context, path)
+    }
+
+    // PathCG::fastBoundingRect(), as a FloatRect.
+    var fastBoundingRect: CGRect {
+        let bounds = path.boundingBox
+        if bounds.isNull {
+            return .zero
+        }
+        return CGRect(
+            x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
+            width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+    }
+}
+
 // A path that a receiver fills, strokes, draws or clips to, as GraphicsContextCG does a Path: of no segment, of one, which a
-// Path keeps as the segment, of more, whose CGPath PathCG makes of them, or of a cached path's CGPath, which is all a PathCG has.
+// Path keeps as the segment, of more, as the CGPath that PathCG makes of them with what the receiver asks of the path besides
+// (CGRendererCreatePathOfSegments()), or of a cached path's CGPath, which is all a PathCG has. A clip to a path of more segments
+// adds its CGPath to the context's path, as GraphicsContextCG adds a PathCG's, rather than the segments themselves, and a clip
+// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()).
 @_spi(WebKitGPU) @frozen public enum CGRendererPath {
     case empty
     case segment(CGRendererPathSegment)
-    case segments(ContiguousArray<CGRendererPathSegment>)
-    case platformPath(CGPath)
+    case segments(CGRendererPlatformPath, CGRendererPathFacts)
+    case platformPath(CGRendererPlatformPath)
 
     @_spi(WebKitGPU) public var isEmpty: Bool {
         if case .empty = self {
@@ -969,31 +1030,20 @@ private struct CGRendererLineStroke {
 
     // Path::pieWedgeArc(): the arc of a move to its center, the arc and a line back to its center.
     @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
-        guard case .segments(let segments) = self, segments.count == 3 else {
-            return nil
+        if case .segments(_, let facts) = self, facts.pieWedgeArc.kind == .Arc {
+            return facts.pieWedgeArc
         }
-        let moveTo = segments[0]
-        let arc = segments[1]
-        let lineTo = segments[2]
-        guard moveTo.kind == .MoveTo, arc.kind == .Arc, lineTo.kind == .LineTo else {
-            return nil
-        }
-        guard moveTo.values.0 == arc.values.0, moveTo.values.1 == arc.values.1, lineTo.values.0 == arc.values.0, lineTo.values.1 == arc.values.1 else {
-            return nil
-        }
-        return arc
+        return nil
     }
 
     // Path::platformPath().
-    @_spi(WebKitGPU) public func platformPath() -> CGPath {
+    @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
         switch self {
         case .empty:
-            CGMutablePath()
+            CGRendererPlatformPath(CGMutablePath())
         case .segment(let segment):
-            CGRendererCreatePath(segment)
-        case .segments(let segments):
-            CGRendererCreatePathFromSegments(segments.span)
-        case .platformPath(let path):
+            CGRendererPlatformPath(CGRendererCreatePath(segment))
+        case .segments(let path, _), .platformPath(let path):
             path
         }
     }
@@ -1002,59 +1052,37 @@ private struct CGRendererLineStroke {
     @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
         switch self {
         case .empty:
-            return .zero
+            .zero
         case .segment(let segment):
-            return CGRendererPathSegmentBounds(segment)
-        case .segments(let segments):
-            return CGRendererPathSegmentsFastBoundingRect(segments.span)
+            CGRendererPathSegmentBounds(segment)
+        case .segments(_, let facts):
+            facts.fastBoundingRect
         case .platformPath(let path):
-            let bounds = path.boundingBox
-            if bounds.isNull {
-                return .zero
-            }
-            return CGRect(
-                x: CGFloat(Float(bounds.origin.x)), y: CGFloat(Float(bounds.origin.y)),
-                width: CGFloat(Float(bounds.size.width)), height: CGFloat(Float(bounds.size.height)))
+            path.fastBoundingRect
         }
     }
 
-    // GraphicsContextCG::clipPath(), which adds the path to the context's in place: an empty one clips everything out.
+    // GraphicsContextCG::clipPath(): an empty path clips everything out.
     @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
         switch self {
         case .empty:
             context.clip(to: .zero)
-            return
         case .segment(let segment):
             CGRendererClipToPathSegment(context, segment, rule)
-            return
-        case .segments, .platformPath:
-            context.beginPath()
-            add(to: context)
+        case .segments(let path, _), .platformPath(let path):
+            path.clip(context, rule)
         }
-        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
     }
 
     // GraphicsContextCG::clipOut(const Path&): the clip's bounds, even-odd with the path.
     @_spi(WebKitGPU) public func clipOut(_ context: CGContext) {
-        context.beginPath()
-        context.addRect(context.boundingBoxOfClipPath)
-        add(to: context)
-        context.clip(using: .evenOdd)
-    }
-
-    // PathCG's addToCGContextPath() of the path.
-    private func add(to context: CGContext) {
-        switch self {
-        case .empty:
-            break
-        case .segment(let segment):
-            let segments: ContiguousArray = [segment]
-            CGRendererAddPathSegments(context, segments.span)
-        case .segments(let segments):
-            CGRendererAddPathSegments(context, segments.span)
-        case .platformPath(let path):
-            context.addPath(path)
+        if isEmpty {
+            context.beginPath()
+            context.addRect(context.boundingBoxOfClipPath)
+            context.clip(using: .evenOdd)
+            return
         }
+        platformPath().clipOut(context)
     }
 }
 

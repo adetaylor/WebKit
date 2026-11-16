@@ -29,6 +29,7 @@
 #if ENABLE(SWIFT_IPC_RECEIVERS)
 
 #include "GeneratedSerializers.h"
+#include <WebCore/Path.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
 
@@ -67,6 +68,33 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
     RELEASE_ASSERT(m_encoder);
     *m_encoder << buffer;
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts)
+{
+    auto segments = decoder.borrowed().decode<Vector<WebCore::PathSegment>>();
+    if (!segments) [[unlikely]] {
+        facts = { };
+        return nullptr;
+    }
+    return CGRendererCreatePathOfSegments(segments->span(), facts);
+}
+
+void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)
+{
+    WebCore::Path path;
+    if (platformPath)
+        path = CGRendererPathOfPlatformPath(platformPath);
+    else if (facts.segmentCount == 1)
+        path = WebCore::Path { CGRendererPathSegmentFromValues(facts.segment) };
+    if (m_inStream) {
+        streamEncoder() << path;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << path;
+}
+#endif
 
 void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
 {

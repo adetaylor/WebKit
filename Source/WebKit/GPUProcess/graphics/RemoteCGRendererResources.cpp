@@ -141,6 +141,7 @@ RefPtr<PathImpl> RemoteCGRendererResources::cachedPathImpl(RemotePathImplIdentif
         return m_replayedResources.last()->m_paths.get(identifier);
     if (!m_backend)
         return nullptr;
+    assertIsCurrent(m_backend->workQueue());
     return m_backend->remoteResourceCache().cachedPathImpl(identifier);
 }
 
