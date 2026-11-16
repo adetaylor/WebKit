@@ -113,6 +113,21 @@ TEST(WTF_NonEscapableBorrow, NestedLenders)
     EXPECT_EQ(counter.value, 2);
 }
 
+TEST(WTF_NonEscapableBorrow, ViewMovedOutOfItsLenderReachesTheObject)
+{
+    Counter counter;
+    {
+        NonEscapableBorrowLender<CounterView> lender { counter };
+        auto incrementTwice = [](CounterView view) {
+            CounterView copy = view;
+            copy.increment();
+            view.increment();
+        };
+        incrementTwice(WTF::move(lender.view()));
+    }
+    EXPECT_EQ(counter.value, 2);
+}
+
 TEST(WTF_NonEscapableBorrow, OwningLenderLendsTheObjectItOwnsWhenMoved)
 {
     auto counter = makeUniqueWithoutFastMallocCheck<Counter>();
