@@ -3397,6 +3397,40 @@ set(_webcore_swift_interop_sources_all_ports
     platform/ScrollView.cpp
     platform/ScrollableArea.cpp
     platform/ScrollingEffectsController.cpp)
+# The audio DSP is Swift on every port with Web Audio (there is no C++ for it). Its interop .cpp files include
+# WebCoreSwift-Generated.h, so they build in WebCore_SwiftInterop, like the other ports' above; the Swift
+# sources are added to WebCore below.
+set(WebCore_AUDIO_DSP_SWIFT_SOURCES
+    AudioDSP.swift
+
+    Modules/webaudio/BiquadKernel.swift
+    Modules/webaudio/CompressorKernel.swift
+    Modules/webaudio/DelayKernel.swift
+    Modules/webaudio/IIRKernel.swift
+    Modules/webaudio/WaveShaperKernel.swift
+
+    platform/audio/AudioResampler.swift
+    platform/audio/PannerGeometry.swift
+)
+if (ENABLE_WEB_AUDIO)
+    list(APPEND _webcore_swift_interop_sources_all_ports
+        Modules/webaudio/BiquadDSPKernel.cpp
+        Modules/webaudio/DelayDSPKernel.cpp
+        Modules/webaudio/IIRDSPKernel.cpp
+        Modules/webaudio/WaveShaperDSPKernel.cpp
+
+        platform/audio/AudioResampler.cpp
+        platform/audio/Cone.cpp
+        platform/audio/DirectConvolver.cpp
+        platform/audio/Distance.cpp
+        platform/audio/DynamicsCompressor.cpp
+        platform/audio/DynamicsCompressorKernel.cpp
+        platform/audio/EqualPowerPanner.cpp
+        platform/audio/SincResampler.cpp
+        platform/audio/StereoPanner.cpp
+        platform/audio/VectorMath.cpp
+        platform/audio/ZeroPole.cpp)
+endif ()
 # The C++ of the Swift ports that only the Apple ports have.
 set(_webcore_swift_interop_sources_apple
     page/scrolling/mac/ScrollerPairMac.mm
@@ -4446,6 +4480,11 @@ else ()
         endif ()
         target_link_options(WebCore PRIVATE "${_swift_sdk_lib_dir}/swiftrt.obj")
     endif ()
+endif ()
+
+if (ENABLE_WEB_AUDIO)
+    list(TRANSFORM WebCore_AUDIO_DSP_SWIFT_SOURCES PREPEND "${WEBCORE_DIR}/")
+    target_sources(WebCore PRIVATE ${WebCore_AUDIO_DSP_SWIFT_SOURCES})
 endif ()
 
 WEBKIT_FRAMEWORK(WebCore)
