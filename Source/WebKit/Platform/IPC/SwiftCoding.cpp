@@ -70,14 +70,14 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
 }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts)
+CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts, bool computesFastBoundingRect)
 {
     auto segments = decoder.borrowed().decode<Vector<WebCore::PathSegment>>();
     if (!segments) [[unlikely]] {
         facts = { };
         return nullptr;
     }
-    return CGRendererCreatePathOfSegments(segments->span(), facts);
+    return CGRendererCreatePathOfSegments(segments->span(), facts, computesFastBoundingRect);
 }
 
 void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)

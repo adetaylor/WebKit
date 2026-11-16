@@ -91,11 +91,11 @@ messages -> RemoteCGRenderer Stream {
     StrokeQuadCurve
     StrokeBezierCurve
     StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
-    FillPath(WebCore::Path path) StreamBatched SwiftTypes
-    StrokePath(WebCore::Path path) StreamBatched SwiftTypes
-    DrawPath(WebCore::Path path) StreamBatched SwiftTypes
-    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes
-    ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes
+    FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
+    StrokePath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    DrawPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
+    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     FillCachedPath
     ClipCachedPath
     DrawNativeImage
@@ -132,9 +132,9 @@ messages -> RemoteCGRenderer Stream {
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched
-    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes
+    ClipTransformedPath(WebCore::AffineTransform pathTransform, WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     ClipTransformedCachedPath
-    DrawFocusRingPath(WebCore::Path path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched SwiftTypes
+    DrawFocusRingPath(WebCore::Path path, float outlineWidth, CGRendererColorValue color, float zoomFactor) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     BeginPage
     EndPage
     DrawMeshGradient

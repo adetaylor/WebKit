@@ -1134,9 +1134,19 @@ extension IPCTypes {
         }
         #endif
 
+        /// What a handler uses of the path besides its CGPath, which a lent-state dispatch asks it for ('SwiftDecodeContext=').
+        struct DecodeContext {
+            /// Path::fastBoundingRect(), which only a gradient fill uses.
+            let needsFastBoundingRect: Bool
+        }
+
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Path {
+            try decode(from: &decoder, context: DecodeContext(needsFastBoundingRect: true))
+        }
+
+        static func decode(from decoder: inout IPC.SwiftDecoder, context: DecodeContext) throws(IPCDecodingError) -> Path {
             var facts = CGRendererPathFacts()
-            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts)
+            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect)
             guard decoder.isValid() else {
                 throw IPCDecodingError()
             }

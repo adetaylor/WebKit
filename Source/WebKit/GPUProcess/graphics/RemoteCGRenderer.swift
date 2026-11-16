@@ -575,6 +575,16 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing. A missing cached
     // path is an invalid message.
 
+    // What the path handlers use of a message's path: Path::fastBoundingRect() only for a fill with a gradient, from FillPath
+    // or DrawPath.
+    func fillPathDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.Path.DecodeContext {
+        IPCTypes.Path.DecodeContext(needsFastBoundingRect: !state.receiveFillsWithoutGradient())
+    }
+
+    func pathDecodeContextWithoutBounds(state: borrowing CGRendererCore) -> IPCTypes.Path.DecodeContext {
+        IPCTypes.Path.DecodeContext(needsFastBoundingRect: false)
+    }
+
     func fillPath(state: inout CGRendererCore, path: IPCTypes.Path) {
         fill(&state, path.rendererPath)
     }

@@ -330,17 +330,18 @@ WEBCORE_EXPORT CGRendererRoundedRect CGRendererRoundedRectOf(WebCore::FloatRound
 WEBCORE_EXPORT CGMutablePathRef _Nonnull CGRendererCreatePath(CGRendererPathSegment) CF_RETURNS_RETAINED;
 // What a Swift receiver asks of a message's path besides its CGPath: how many segments it has; its segment, if it has one,
 // which it draws without a CGPath; the arc of a pie wedge (Path::pieWedgeArc()) as an Arc segment, or a CloseSubpath segment
-// for any other path; and Path::fastBoundingRect() of a path of more than one segment.
+// for any other path; and Path::fastBoundingRect() of a path of more than one segment, where it was asked for.
 struct CGRendererPathFacts {
     size_t segmentCount;
     CGRendererPathSegment segment;
     CGRendererPathSegment pieWedgeArc;
     CGRect fastBoundingRect;
+    bool hasFastBoundingRect;
 };
 // The CGPath that Path makes (PathCG) of a PathStream of the segments, as CGRendererCopyPlatformPath() does, and the path's
-// facts, whose bounds are PathStream::computeFastBoundingRect()'s, in the same pass over the segments. Null for a path of no
-// segment or one.
-WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// facts, whose bounds, if computesFastBoundingRect, are PathStream::computeFastBoundingRect()'s, in the same pass over the
+// segments. Null for a path of no segment or one.
+WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
 // The Path of such a CGPath, as a Path of a PathCG, which C++ encodes as the segments of the CGPath's elements.
 WEBCORE_EXPORT WebCore::Path CGRendererPathOfPlatformPath(CGPathRef _Nonnull) __attribute__((availability(swift, unavailable)));
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it

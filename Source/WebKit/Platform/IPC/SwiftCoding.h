@@ -156,10 +156,10 @@ class SwiftDecoder;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 // Decodes a WebCore::Path as C++ decodes it, a Vector of its segments, and returns the CGPath that Path makes of more than one,
-// which the caller owns, with what the CG renderer asks of the path besides. A free function, since Swift takes what a C++
-// method returns as unretained whatever its annotation. Null for a path of no segment or one, and for a malformed one,
-// which invalidates the decoder.
-CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&) CF_RETURNS_RETAINED;
+// which the caller owns, with what the CG renderer asks of the path besides: its fast bounds only if computesFastBoundingRect.
+// A free function, since Swift takes what a C++ method returns as unretained whatever its annotation. Null for a path of no
+// segment or one, and for a malformed one, which invalidates the decoder.
+CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED;
 #endif
 
 // The primitive decoders of the Decoder of a message whose Swift receiver takes Swift types, lent to
@@ -293,7 +293,7 @@ private:
     friend class NonEscapableBorrowOwningLender<SwiftDecoder>;
     template<typename> friend class CxxDecodedArgument;
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    friend CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&);
+    friend CGPathRef _Nullable decodeCGRendererPath(SwiftDecoder&, CGRendererPathFacts&, bool computesFastBoundingRect);
 #endif
 
     explicit SwiftDecoder(NonEscapableBorrowLease<Decoder>& lease LIFETIME_BOUND)
