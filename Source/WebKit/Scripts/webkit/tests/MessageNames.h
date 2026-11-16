@@ -176,6 +176,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftLentState_FillPath,
     TestWithStreamSwiftLentState_Reset,
     TestWithStreamSwiftLentState_SetLabel,
+    TestWithStreamSwiftLentState_SetSemaphore,
     TestWithStreamSwiftLentState_SetValues,
 #if PLATFORM(COCOA)
     TestWithStreamSwiftRecordable_Draw,
@@ -185,6 +186,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftRecordable_Reset,
     TestWithStreamSwiftRecordable_SetLabel,
     TestWithStreamSwiftRecordable_SetLabelSource,
+    TestWithStreamSwiftRecordable_SetSemaphore,
     TestWithStreamSwiftRecordable_SetSource,
     TestWithStreamSwiftRecordable_SetValues,
     TestWithStreamSwiftState_SendCxxString,

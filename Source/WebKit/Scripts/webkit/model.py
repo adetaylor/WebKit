@@ -325,10 +325,14 @@ class MessageReceiver(object):
                 raise Exception("ERROR: Message %s takes Swift types, but cannot take %s '%s': %s" % (description, kind, parameter.name, error))
         # A Swift value of an owned type (swift_types.is_owned_type) is the only owner of what the message carries, which
         # the handler takes. So the handler must be called during dispatch, and never decline the message, which would
-        # have C++ handle it again with arguments Swift has taken.
+        # have C++ handle it again with arguments Swift has taken: a receiver that lends state calls it during dispatch,
+        # and a message of its that takes Swift types can't decline.
         owned_parameters = [parameter for _, parameter in parameters if not parameter.attributes and is_owned_type(parameter.type)]
-        if owned_parameters and (self.swift_receiver_state_lender or not (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE) or message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE))):
+        if owned_parameters and not (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE) or message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE)):
             raise Exception("ERROR: Message %s takes Swift types, and the Swift form of '%s' owns what the message carries, so its handler must be called during dispatch: on a stream or WorkQueue, or with '%s'" % (description, owned_parameters[0].name, SWIFT_SYNC_HANDLER_ATTRIBUTE))
+        # A recording keeps the values of its messages, which an owned value can't be shared with.
+        if owned_parameters and self.is_recordable() and not message.has_attribute(NOT_RECORDED_ATTRIBUTE):
+            raise Exception("ERROR: Message %s takes Swift types, and the Swift form of '%s' owns what the message carries, so a recording can't keep it: it must be '%s'" % (description, owned_parameters[0].name, NOT_RECORDED_ATTRIBUTE))
         if any(is_owned_type(parameter.type) for parameter in reply_parameters):
             if len(reply_parameters) != 1:
                 raise unsupported("with a reply of more than one value that includes an owned type (a ~Copyable Swift value)")

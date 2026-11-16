@@ -710,8 +710,12 @@ messages -> TestReceiver Stream {
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) SwiftMayDecline SwiftTypes')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, which is not supported with attributes on parameter 'buffer' on a receiver with 'SwiftReceiverStateLender='"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message([CxxDecoded] Ref<WebCore::SharedBuffer> buffer) SwiftTypes')
-        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, and the Swift form of 'right' owns what the message carries"):
-            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(MachSendRight right) SwiftTypes')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(MachSendRight right) SwiftTypes')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, and the Swift form of 'right' owns what the message carries, so a recording can't keep it: it must be 'NotRecorded'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(MachSendRight right) SwiftTypes')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender', 'Recordable'], '    Message(MachSendRight right) NotRecorded SwiftTypes')
+        self.assertTrue(receiver.takes_swift_types(receiver.messages[0]))
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) -> (uint32_t reply)')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'state'"):

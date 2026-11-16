@@ -26,6 +26,7 @@
 
 #include "ArgumentCoders.h"
 #include "Connection.h"
+#include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "StreamMessageReceiver.h"
 #include "SwiftCoding.h"
@@ -222,6 +223,36 @@ public:
 
 private:
     SUPPRESS_FORWARD_DECL_MEMBER const WebCore::Path& m_path;
+};
+
+class SetSemaphore {
+public:
+    using Arguments = std::tuple<IPC::Semaphore, float>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_SetSemaphore; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = false;
+    static constexpr bool isStreamBatched = false;
+
+    SetSemaphore(const IPC::Semaphore& semaphore, float scale)
+        : m_semaphore(semaphore)
+        , m_scale(scale)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        encoder << m_semaphore;
+        encoder << m_scale;
+    }
+
+private:
+    const IPC::Semaphore& m_semaphore;
+    float m_scale;
 };
 
 } // namespace TestWithStreamSwiftLentState

@@ -39,4 +39,5 @@ messages -> TestWithStreamSwiftRecordable Stream {
     SetLabel(String label, std::optional<uint64_t> tag) StreamBatched SwiftTypes
     SetLabelSource(uint64_t source) NotRecorded SwiftTypes
     FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContext
+    SetSemaphore(IPC::Semaphore semaphore, uint64_t source) NotRecorded NotStreamEncodable SwiftTypes
 }
