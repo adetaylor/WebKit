@@ -6051,6 +6051,7 @@
 		F6A77C9596D2E8EC17867716 /* CSSParserObserver.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E582BE2A8FB00AE645C /* CSSParserObserver.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A25E75D3D4E1E68CD477B1A6 /* CSSSupportsParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E8B2BE2A8FB00AE645C /* CSSSupportsParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		EF8CB8BF4AE3017B55CB5B3C /* CSSSubstitutionParser.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E912BE2A8FB00AE645C /* CSSSubstitutionParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		0770DD6602CE48B59F9BFFF0 /* CSSAtRuleID.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E472BE2A8FB00AE645C /* CSSAtRuleID.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFE79B32BE308D000114272 /* CSSParserEnum.h in Headers */ = {isa = PBXBuildFile; fileRef = BC7C5E502BE2A8FB00AE645C /* CSSParserEnum.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		BCFEE3292DC6AC6800EC3901 /* StyleExtractorGenerated.h in Headers */ = {isa = PBXBuildFile; fileRef = BCFEE3282DC6AC6800EC3901 /* StyleExtractorGenerated.h */; };
 		BCFEE32B2DC6ACE000EC3901 /* StyleExtractorState.h in Headers */ = {isa = PBXBuildFile; fileRef = BCFEE32A2DC6ACE000EC3901 /* StyleExtractorState.h */; };
@@ -46077,6 +46078,7 @@
 				7ABA250328AAF2D4005D4F6D /* CSPViolationReportBody.h in Headers */,
 				71C29E32203CE781008F36D2 /* CSSAnimation.h in Headers */,
 				319848011A1D817B00A13318 /* CSSAnimationEvent.h in Headers */,
+				0770DD6602CE48B59F9BFFF0 /* CSSAtRuleID.h in Headers */,
 				BCB272132CC1F21B00265123 /* CSSBasicShape.h in Headers */,
 				FBD6AF8815EF25C9008B7110 /* CSSBasicShapeValue.h in Headers */,
 				BC9E7FB90BC1E39FDA28B95E /* CSSBorderImage.h in Headers */,
