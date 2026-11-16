@@ -202,6 +202,37 @@ final class TestWithStreamSwiftRecordableWeakRef {
         }
         return .Handled
     }
+
+    @used
+    func dispatchSetSemaphore(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let semaphore: IPCTypes.Semaphore
+        let source: UInt64
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do {
+            source = try UInt64.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setSemaphore(
+                    state: &state,
+                    semaphore: semaphore,
+                    source: source
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftRecordableMessageForwarder {
@@ -465,6 +496,32 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
                 .fillPath(
                     path: path
                 )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetSemaphore(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let semaphore: IPCTypes.Semaphore
+        let source: UInt64
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do {
+            source = try UInt64.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setSemaphore(semaphore: semaphore, source: source)
             )
         } catch {
             return .Invalid

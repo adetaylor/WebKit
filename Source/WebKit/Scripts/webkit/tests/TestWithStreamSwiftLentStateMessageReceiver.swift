@@ -138,6 +138,37 @@ final class TestWithStreamSwiftLentStateWeakRef {
         }
         return .Handled
     }
+
+    @used
+    func dispatchSetSemaphore(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let semaphore: IPCTypes.Semaphore
+        let scale: Float
+        do {
+            semaphore = try IPCTypes.Semaphore.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do {
+            scale = try Float.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setSemaphore(
+                    state: &state,
+                    semaphore: semaphore,
+                    scale: scale
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftLentStateMessageForwarder {

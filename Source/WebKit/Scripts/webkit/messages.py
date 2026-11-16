@@ -3045,13 +3045,18 @@ def swift_types_argument_decoding(message, indent, decode_context=None):
         result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
     if decode_context:
         result.append('%slet decodeContext = target.%s(state: state)\n' % (indent, decode_context))
-    result.append('%sdo {\n' % indent)
-    for parameter in message.parameters:
+    # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a message with
+    # an owned argument is decoded in a block of its own.
+    decodes_each_in_own_block = any(swift_types.is_owned_type(parameter.type) for parameter in message.parameters)
+    for index, parameter in enumerate(message.parameters):
+        if index == 0 or decodes_each_in_own_block:
+            result.append('%sdo {\n' % indent)
         context = ', context: decodeContext' if decode_context and swift_types.takes_decode_context(parameter.type) else ''
         result.append('%s    %s = try %s.decode(from: &decoder%s)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type), context))
-    result.append('%s} catch {\n' % indent)
-    result.append('%s    return .Invalid\n' % indent)
-    result.append('%s}\n' % indent)
+        if index == len(message.parameters) - 1 or decodes_each_in_own_block:
+            result.append('%s} catch {\n' % indent)
+            result.append('%s    return .Invalid\n' % indent)
+            result.append('%s}\n' % indent)
     return result
 
 

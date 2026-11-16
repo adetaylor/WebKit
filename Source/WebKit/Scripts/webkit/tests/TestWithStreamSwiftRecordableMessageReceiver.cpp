@@ -27,6 +27,7 @@
 #include "ArgumentCoders.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
+#include "IPCSemaphore.h" // NOLINT
 #include "TestWithStreamSwiftRecordableLender.h" // NOLINT
 #include "TestWithStreamSwiftRecordableMessages.h" // NOLINT
 #include "TestWithStreamSwiftRecordableRun.h" // NOLINT
@@ -78,6 +79,10 @@ void TestWithStreamSwiftRecordableMessageForwarder::didReceiveStreamMessage(IPC:
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::FillPath::name()) {
         IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::FillPath>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchFillPath);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetSemaphore::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetSemaphore>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetSemaphore);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -151,6 +156,10 @@ void TestWithStreamSwiftRecordableRecorderMessageForwarder::dispatch(IPC::Stream
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::FillPath::name()) {
         IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::FillPath>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchFillPath);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetSemaphore::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetSemaphore>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetSemaphore);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -250,6 +259,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_FillPath>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::FillPath::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetSemaphore>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetSemaphore::Arguments>(globalObject, decoder);
 }
 
 }
