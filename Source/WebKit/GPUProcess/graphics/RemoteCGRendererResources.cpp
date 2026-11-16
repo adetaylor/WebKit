@@ -39,15 +39,12 @@
 #include "SharedFont.h"
 #include "SharedPreferencesForWebProcess.h"
 #include "SharedVideoFrame.h"
-#include <WebCore/FEImage.h>
-#include <WebCore/FilterResults.h>
 #include <WebCore/Gradient.h>
 #include <WebCore/GraphicsContextCG.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/MeshGradient.h>
 #include <WebCore/MeshGradientRendererCPU.h>
 #include <WebCore/NativeImage.h>
-#include <WebCore/SVGFilterRenderer.h>
 #include <wtf/ZippedRange.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
@@ -99,13 +96,10 @@ Ref<RemoteCGRendererRecordedResources> RemoteCGRendererRecordedResources::copy()
 {
     Ref copy = create();
     copy->m_paths = m_paths;
-    copy->m_nativeImages = m_nativeImages;
-    copy->m_imageBuffers = m_imageBuffers;
     copy->m_gradients = m_gradients;
     copy->m_firstFont = m_firstFont;
     copy->m_fonts = m_fonts;
     copy->m_meshGradients = m_meshGradients;
-    copy->m_filters = m_filters;
     return copy;
 }
 
@@ -164,15 +158,6 @@ static CGImageRef copyImage(const NativeImage& image, CGRendererImageFacts& fact
     facts.height = size.height();
     facts.headroom = image.headroom();
     return image.platformImage().leakRef();
-}
-
-RefPtr<NativeImage> RemoteCGRendererResources::cachedNativeImage(RenderingResourceIdentifier identifier) const
-{
-    if (isReplaying())
-        return m_replayedResources.last()->m_nativeImages.get(identifier);
-    if (!m_backend)
-        return nullptr;
-    return m_backend->cachedNativeImage(identifier);
 }
 
 RefPtr<RemoteCGRendererFont> RemoteCGRendererResources::cachedFont(RenderingResourceIdentifier identifier) const
@@ -240,15 +225,6 @@ RefPtr<Gradient> RemoteCGRendererResources::cachedGradient(RemoteGradientIdentif
     return m_backend->remoteResourceCache().cachedGradient(identifier);
 }
 
-RefPtr<ImageBuffer> RemoteCGRendererResources::imageBuffer(RenderingResourceIdentifier identifier) const
-{
-    if (isReplaying())
-        return m_replayedResources.last()->m_imageBuffers.get(identifier);
-    if (!m_backend)
-        return nullptr;
-    return m_backend->imageBuffer(identifier);
-}
-
 RefPtr<MeshGradient> RemoteCGRendererResources::cachedMeshGradient(RemoteMeshGradientIdentifier identifier) const
 {
     if (isReplaying())
@@ -256,15 +232,6 @@ RefPtr<MeshGradient> RemoteCGRendererResources::cachedMeshGradient(RemoteMeshGra
     if (!m_backend)
         return nullptr;
     return m_backend->remoteResourceCache().cachedMeshGradient(identifier);
-}
-
-RefPtr<Filter> RemoteCGRendererResources::cachedFilter(RenderingResourceIdentifier identifier) const
-{
-    if (isReplaying())
-        return m_replayedResources.last()->m_filters.get(identifier);
-    if (!m_backend)
-        return nullptr;
-    return m_backend->remoteResourceCache().cachedFilter(identifier);
 }
 
 template<typename Map, typename Key, typename Value>
@@ -279,16 +246,6 @@ static bool addRecorded(Map& map, Key key, RefPtr<Value>&& value)
 bool RemoteCGRendererResources::recordPath(RemotePathImplIdentifier identifier) const
 {
     return addRecorded(m_recordedResources->m_paths, identifier, cachedPathImpl(identifier));
-}
-
-bool RemoteCGRendererResources::recordNativeImage(RenderingResourceIdentifier identifier) const
-{
-    return addRecorded(m_recordedResources->m_nativeImages, identifier, cachedNativeImage(identifier));
-}
-
-bool RemoteCGRendererResources::recordImageBuffer(RenderingResourceIdentifier identifier) const
-{
-    return addRecorded(m_recordedResources->m_imageBuffers, identifier, imageBuffer(identifier));
 }
 
 bool RemoteCGRendererResources::recordGradient(RemoteGradientIdentifier identifier) const
@@ -313,26 +270,6 @@ bool RemoteCGRendererResources::recordGlyphs(RenderingResourceIdentifier fontIde
 bool RemoteCGRendererResources::recordMeshGradient(RemoteMeshGradientIdentifier identifier) const
 {
     return addRecorded(m_recordedResources->m_meshGradients, identifier, cachedMeshGradient(identifier));
-}
-
-bool RemoteCGRendererResources::recordFilter(std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter) const
-{
-    if (sourceImageIdentifier && !recordImageBuffer(*sourceImageIdentifier))
-        return false;
-    for (auto& effect : filter->effectsOfType(FilterEffect::Type::FEImage)) {
-        auto imageIdentifier = downcast<FEImage>(effect.get()).sourceImage().imageIdentifier();
-        if (!recordNativeImage(imageIdentifier) && !recordImageBuffer(imageIdentifier))
-            return false;
-    }
-    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
-    if (!svgFilter || !svgFilter->hasValidRenderingResourceIdentifier())
-        return true;
-    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(cachedFilter(filter->renderingResourceIdentifier()));
-    if (!cachedSVGFilter)
-        return false;
-    cachedSVGFilter->mergeEffects(svgFilter->effects());
-    m_recordedResources->m_filters.set(filter->renderingResourceIdentifier(), cachedSVGFilter.releaseNonNull());
-    return true;
 }
 
 Ref<RemoteCGRendererResources> RemoteCGRendererResources::createForRerecording()
@@ -458,30 +395,6 @@ CGImageRef copyMeshGradientImage(const RemoteCGRendererResources& resources, Rem
     return copyImage(*image, facts);
 }
 
-static std::optional<SourceImage> sourceImage(const RemoteCGRendererResources& resources, RenderingResourceIdentifier identifier)
-{
-    if (RefPtr sourceNativeImage = resources.cachedNativeImage(identifier))
-        return { { sourceNativeImage.releaseNonNull() } };
-    if (RefPtr sourceImageBuffer = resources.imageBuffer(identifier))
-        return { { sourceImageBuffer.releaseNonNull() } };
-    return std::nullopt;
-}
-
-static bool hasFilterSources(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const Ref<Filter>& filter)
-{
-    if (sourceImageIdentifier && !resources.imageBuffer(*sourceImageIdentifier))
-        return false;
-    for (auto& effect : filter->effectsOfType(FilterEffect::Type::FEImage)) {
-        Ref feImage = downcast<FEImage>(effect.get());
-        if (!sourceImage(resources, feImage->sourceImage().imageIdentifier()))
-            return false;
-    }
-    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
-    if (svgFilter && svgFilter->hasValidRenderingResourceIdentifier())
-        return is<SVGFilterRenderer>(resources.cachedFilter(filter->renderingResourceIdentifier()));
-    return true;
-}
-
 static bool useIOSurfaceWebKitBehavior(RemoteRenderingBackend& backend)
 {
 #if USE(APPLE_INTERNAL_SDK)
@@ -503,69 +416,12 @@ static std::unique_ptr<ImageBufferAllocator> filterResultsAllocator(RemoteRender
 #endif
 }
 
-CGImageRef copyFilteredImage(const RemoteCGRendererResources& resources, std::optional<RenderingResourceIdentifier> sourceImageIdentifier, const FloatRect& sourceImageRect, const Ref<Filter>& filter, RemoteCGRendererFilteredImage& filtered)
+FilterImageAllocator* createFilterImageAllocator(const RemoteCGRendererResources& resources, bool forReplay)
 {
-    filtered = { };
-    if (!hasFilterSources(resources, sourceImageIdentifier, filter))
-        return nullptr;
-    filtered.valid = true;
-
-    RefPtr<ImageBuffer> sourceImageBuffer;
-    if (sourceImageIdentifier)
-        sourceImageBuffer = resources.imageBuffer(*sourceImageIdentifier);
-
-    // GraphicsContext::drawFilteredImageBuffer()'s result, drawn as GraphicsContext::drawImageBuffer() draws one.
-    auto apply = [&](Filter& filterToDraw, FilterResults& results) -> CGImageRef {
-        for (auto& effect : filterToDraw.effectsOfType(FilterEffect::Type::FEImage)) {
-            Ref feImage = downcast<FEImage>(effect.get());
-            feImage->setImageSource(*sourceImage(resources, feImage->sourceImage().imageIdentifier()));
-        }
-        auto result = filterToDraw.apply(sourceImageBuffer.get(), sourceImageRect, results, FilterResultBuffer::Rendered);
-        if (!result)
-            return nullptr;
-        Ref imageBuffer = result->imageBuffer;
-        RefPtr image = resources.targetContext().nativeImageForSwiftReceiver(imageBuffer.get());
-        if (!image)
-            return nullptr;
-        filtered.scaleX = filterToDraw.filterScale().width();
-        filtered.scaleY = filterToDraw.filterScale().height();
-        filtered.facts.resolutionScale = imageBuffer->resolutionScale();
-        filtered.facts.found = true;
-        filtered.destination = FloatRect { result->absoluteImageRect };
-        FloatRect source { { }, imageBuffer->logicalSize() };
-        filtered.source = source;
-        filtered.options = CGRendererImageOptionsFor({ });
-        source.scale(filtered.facts.resolutionScale);
-        CGRendererSetInvertColorMatrix(*image, source, { }, filtered.facts);
-        filtered.imageBuffer = WTF::move(imageBuffer);
-        return copyImage(*image, filtered.facts);
-    };
-
-    RefPtr svgFilter = dynamicDowncast<SVGFilterRenderer>(filter.get());
-    bool namesCachedFilter = svgFilter && svgFilter->hasValidRenderingResourceIdentifier();
-    // A recording's filter, which DisplayList's DrawFilteredImageBuffer draws with results of its own: the recorder merged
-    // the message's effects into the cached filter it named.
-    if (resources.isReplaying()) {
-        RefPtr<Filter> filterToDraw = filter.ptr();
-        if (namesCachedFilter)
-            filterToDraw = resources.cachedFilter(filter->renderingResourceIdentifier());
-        FilterResults results;
-        return apply(*filterToDraw, results);
-    }
-
-    RefPtr backend = resources.backend();
-    RELEASE_ASSERT(backend);
-    if (!namesCachedFilter) {
-        FilterResults results(filterResultsAllocator(*backend));
-        return apply(filter.get(), results);
-    }
-
-    RefPtr cachedSVGFilter = dynamicDowncast<SVGFilterRenderer>(resources.cachedFilter(filter->renderingResourceIdentifier()));
-    cachedSVGFilter->mergeEffects(svgFilter->effects());
-    auto& results = cachedSVGFilter->ensureResults([&] {
-        return makeUnique<FilterResults>(filterResultsAllocator(*backend));
-    });
-    return apply(*cachedSVGFilter, results);
+    RefPtr backend = forReplay ? nullptr : resources.backend();
+    if (!backend)
+        return &FilterImageAllocator::create(makeUnique<ImageBufferAllocator>()).leakRef();
+    return &FilterImageAllocator::create(filterResultsAllocator(*backend)).leakRef();
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)

@@ -49,6 +49,7 @@
 #include "SharedFont.h"
 #include "WebPageProxy.h"
 #include <WebCore/Filter.h>
+#include <WebCore/SVGFilterRenderer.h>
 #include <WebCore/FontCustomPlatformData.h>
 #include <WebCore/Gradient.h>
 #include <WebCore/HTMLCanvasElement.h>
@@ -702,8 +703,15 @@ void RemoteRenderingBackend::cacheFilter(Ref<Filter>&& filter)
 {
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(filter->hasValidRenderingResourceIdentifier(), "Received a Filter without a valid resource identifier.");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    auto identifier = filter->renderingResourceIdentifier();
+    bool isSVGFilter = is<SVGFilterRenderer>(filter.get());
+#endif
     bool success = m_remoteResourceCache.cacheFilter(WTF::move(filter));
     MESSAGE_CHECK(success, "Filter already cached.");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    swiftCacheFilter(identifier, isSVGFilter);
+#endif
 }
 
 void RemoteRenderingBackend::releaseFilter(RenderingResourceIdentifier identifier)
@@ -711,6 +719,9 @@ void RemoteRenderingBackend::releaseFilter(RenderingResourceIdentifier identifie
     assertIsCurrent(workQueue());
     bool success = m_remoteResourceCache.releaseFilter(identifier);
     MESSAGE_CHECK(success, "Filter released before being cached.");
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    swiftReleaseFilter(identifier);
+#endif
 }
 
 void RemoteRenderingBackend::createDisplayListRecorder(RemoteDisplayListRecorderIdentifier identifier)
@@ -756,6 +767,7 @@ void RemoteRenderingBackend::releaseMemory()
     m_remoteResourceCache.releaseMemory();
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     swiftReleaseDisplayLists();
+    swiftReleaseFilters();
 #endif
 }
 

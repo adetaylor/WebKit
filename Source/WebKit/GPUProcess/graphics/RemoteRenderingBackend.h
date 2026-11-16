@@ -261,6 +261,11 @@ private:
     bool swiftSinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier, WebCore::FrameIdentifier);
     // Lets go, on the work queue, of the recordings that other threads let go of (scheduleSwiftReleases()).
     void swiftReleasePendingRecordings();
+    // RemoteResourceCache cached, released one of, or released all of the filters, of which the Swift draws keep their
+    // own state.
+    void swiftCacheFilter(WebCore::RenderingResourceIdentifier, bool isSVGFilter);
+    void swiftReleaseFilter(WebCore::RenderingResourceIdentifier);
+    void swiftReleaseFilters();
 
     // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained
     // RemoteRenderingBackendState that nothing else releases.

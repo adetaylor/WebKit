@@ -35,7 +35,7 @@
 #include <WebCore/AffineTransform.h>
 #include <WebCore/Pattern.h>
 #include <WebCore/Color.h>
-#include <WebCore/Filter.h>
+#include <WebCore/FilterGraphicsBridge.h>
 #include <WebCore/FloatRoundedRect.h>
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/GraphicsTypes.h>
@@ -102,8 +102,6 @@ private:
     RemoteCGRendererRecordedResources();
 
     HashMap<RemotePathImplIdentifier, Ref<WebCore::PathImpl>> m_paths;
-    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::NativeImage>> m_nativeImages;
-    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::ImageBuffer>> m_imageBuffers;
     HashMap<RemoteGradientIdentifier, Ref<WebCore::Gradient>> m_gradients;
     // The fonts, by identifier: the first that the recording kept, which is most often the only one, and the others.
     RefPtr<RemoteCGRendererFont> font(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
@@ -112,8 +110,6 @@ private:
     std::optional<KeyValuePair<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>>> m_firstFont;
     HashMap<WebCore::RenderingResourceIdentifier, Ref<RemoteCGRendererFont>> m_fonts;
     HashMap<RemoteMeshGradientIdentifier, Ref<WebCore::MeshGradient>> m_meshGradients;
-    // The cached SVG filters that DrawFilteredImageBuffer's filters name, with the message's effects merged in.
-    HashMap<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>> m_filters;
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // What a RemoteCGRenderer looks up by identifier, as RemoteGraphicsContext's handlers do, and what it draws into:
@@ -134,17 +130,13 @@ public:
     RemoteCGRendererPath cachedPath(RemotePathImplIdentifier) const;
 
     // The native image that a filter's FEImage names: the backend's, or, in a replay, the one the recording kept for the filter.
-    RefPtr<WebCore::NativeImage> cachedNativeImage(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     // The image buffer that the receiver draws into, if it draws into one, and the context it draws into otherwise.
     WebCore::ImageBuffer* targetImageBuffer() const { return m_target.get(); }
     WebCore::GraphicsContextCG& targetContext() const __attribute__((availability(swift, unavailable)));
-    // The image buffer that a filter names: the backend's, or, in a replay, the one the recording kept for the filter.
-    RefPtr<WebCore::ImageBuffer> imageBuffer(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::Gradient> cachedGradient(RemoteGradientIdentifier) const;
     RefPtr<RemoteCGRendererFont> cachedFont(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::PathImpl> cachedPathImpl(RemotePathImplIdentifier) const __attribute__((availability(swift, unavailable)));
     RefPtr<WebCore::MeshGradient> cachedMeshGradient(RemoteMeshGradientIdentifier) const __attribute__((availability(swift, unavailable)));
-    RefPtr<WebCore::Filter> cachedFilter(WebCore::RenderingResourceIdentifier) const __attribute__((availability(swift, unavailable)));
     // The copy of the target that the receiver draws an accelerated target into itself from (copyImageBufferImage()), which
     // the receiver lets go after the draw.
     void releaseSelfCopy() const { m_selfCopy = nullptr; }
@@ -157,15 +149,12 @@ public:
 
     // The resources that a recorder's message names, copied into its recording's as RemoteGraphicsContext looks them up for a
     // WebCore display list recorder: false where one is missing, which is an invalid message. The recording keeps the native
-    // images and image buffers that its draws name in Swift (RemoteCGRendererRecording), and these those its filters name.
+    // images and image buffers that its draws name, and its filters, in Swift (RemoteCGRendererRecording).
     bool recordPath(RemotePathImplIdentifier) const;
     bool recordGradient(RemoteGradientIdentifier) const;
     // A DrawGlyphs's font, which the recorded run keeps, with its facts for the run.
     bool recordGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererRecordedGlyphs&) const;
     bool recordMeshGradient(RemoteMeshGradientIdentifier) const;
-    // A DrawFilteredImageBuffer's source and its filter's FEImage images, and the cached SVG filter it names, into which the
-    // filter's effects are merged, as RemoteGraphicsContext merges them.
-    bool recordFilter(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const Ref<WebCore::Filter>&) const;
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     // Reads a DrawVideoFrame's frame, which a recording doesn't keep, so that the reader keeps in step with the sender.
     void readVideoFrame(const SharedVideoFrame&) const;
@@ -188,9 +177,6 @@ public:
 
 private:
     RemoteCGRendererResources(RemoteRenderingBackend*, WebCore::ImageBuffer* target, WebCore::GraphicsContextCG* targetContext);
-
-    bool recordNativeImage(WebCore::RenderingResourceIdentifier) const;
-    bool recordImageBuffer(WebCore::RenderingResourceIdentifier) const;
 
     const RefPtr<RemoteRenderingBackend> m_backend;
     const RefPtr<WebCore::ImageBuffer> m_target;
@@ -255,24 +241,9 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
     return identifier.toUInt64();
 }
 
-// How GraphicsContext::drawFilteredImageBuffer() draws a filter's result: its image, at the result's absolute rect, with the
-// context scaled down by the filter's scale. valid is false where a resource is missing, which is an invalid message. The
-// result's image buffer, whose image is a reference to it, must last until the image is drawn.
-struct RemoteCGRendererFilteredImage {
-    CGRendererImageFacts facts { };
-    CGRendererImageOptions options { };
-    CGRect destination { };
-    CGRect source { };
-    float scaleX { 1 };
-    float scaleY { 1 };
-    bool valid { false };
-    RefPtr<WebCore::ImageBuffer> imageBuffer;
-};
-
-// The image of a DrawFilteredImageBuffer's filter applied to its source, as RemoteGraphicsContext's handler applies it: the
-// filter, or the cached SVG filter it names with its effects merged in, with its FEImage images looked up. Null where
-// nothing is drawn.
-CGImageRef _Nullable copyFilteredImage(const RemoteCGRendererResources&, std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, const WebCore::FloatRect& sourceImageRect, const Ref<WebCore::Filter>&, RemoteCGRendererFilteredImage&) CF_RETURNS_RETAINED;
+// The allocator of the images of the filters that a RemoteCGRenderer applies (RemoteCGRendererFilters.swift): the backend's
+// shared resource cache's, as RemoteGraphicsContext's, or for a replay or a renderer without a backend, the default one.
+WebCore::FilterImageAllocator* WTF_NONNULL createFilterImageAllocator(const RemoteCGRendererResources&, bool forReplay) SWIFT_RETURNS_RETAINED;
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
 // The image of a DrawVideoFrame's frame, read as RemoteGraphicsContext reads it, with its size and whether it has alpha; null
