@@ -52,8 +52,6 @@
 #include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
 #include "RemoteMediaPlayerProxyMessages.h"
-#include "RemoteRemoteCommandListenerProxy.h"
-#include "RemoteRemoteCommandListenerProxyMessages.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteSampleBufferDisplayLayerManager.h"
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
@@ -69,6 +67,7 @@
 #include <WebCore/MediaPlayer.h>
 #include <WebCore/MockRealtimeMediaSourceCenter.h>
 #include <WebCore/NowPlayingManager.h>
+#include <WebCore/RemoteCommandListener.h>
 #include <WebCore/SharedMemory.h>
 #include <wtf/TZoneMallocInlines.h>
 
@@ -112,7 +111,6 @@
 
 #if PLATFORM(IOS_FAMILY)
 #include "RemoteMediaSessionHelperProxy.h"
-#include "RemoteMediaSessionHelperProxyMessages.h"
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
@@ -1030,12 +1028,21 @@ void GPUConnectionToWebProcess::hostedVideoLayerBoundsForTesting(WebCore::MediaP
 
 void GPUConnectionToWebProcess::updateSupportedRemoteCommands()
 {
-    if (!m_isNowPlayingManagerClient || !m_remoteRemoteCommandListener)
+    if (!m_isNowPlayingManagerClient)
+        return;
+    auto listener = swiftRemoteCommandListenerState();
+    if (!listener.hasListener)
         return;
 
+    static_assert(std::to_underlying(PlatformMediaSession::RemoteControlCommandType::EndScrubbingCommand) < 32);
+    RemoteCommandListener::RemoteCommandsSet commands;
+    for (uint8_t type = 0; type < 32; ++type) {
+        if (listener.commands & (1u << type) && isValidEnum<PlatformMediaSession::RemoteControlCommandType>(type))
+            commands.add(static_cast<PlatformMediaSession::RemoteControlCommandType>(type));
+    }
     Ref gpuProcess = this->gpuProcess();
-    gpuProcess->nowPlayingManager().setSupportsSeeking(m_remoteRemoteCommandListener->supportsSeeking());
-    gpuProcess->nowPlayingManager().setSupportedRemoteCommands(m_remoteRemoteCommandListener->supportedCommands());
+    gpuProcess->nowPlayingManager().setSupportsSeeking(listener.supportsSeeking);
+    gpuProcess->nowPlayingManager().setSupportedRemoteCommands(commands);
 }
 
 void GPUConnectionToWebProcess::didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType type, const PlatformMediaSession::RemoteCommandArgument& argument)
@@ -1052,16 +1059,19 @@ void GPUConnectionToWebProcess::ensureAudioSession(EnsureAudioSessionCompletion&
 #endif
 
 #if PLATFORM(IOS_FAMILY)
-RemoteMediaSessionHelperProxy& GPUConnectionToWebProcess::mediaSessionHelperProxy()
-{
-    if (!m_mediaSessionHelperProxy)
-        lazyInitialize(m_mediaSessionHelperProxy, makeUniqueWithoutRefCountedCheck<RemoteMediaSessionHelperProxy>(*this));
-    return *m_mediaSessionHelperProxy;
-}
-
 void GPUConnectionToWebProcess::ensureMediaSessionHelper()
 {
-    mediaSessionHelperProxy();
+    if (!m_mediaSessionHelperProxy)
+        lazyInitialize(m_mediaSessionHelperProxy, RemoteMediaSessionHelperProxy::create(*this));
+}
+
+void GPUConnectionToWebProcess::setMonitorsWirelessRoutes(bool monitors)
+{
+    Ref helper = MediaSessionHelper::sharedHelper();
+    if (monitors)
+        helper->startMonitoringWirelessRoutes();
+    else
+        helper->stopMonitoringWirelessRoutes();
 }
 #endif
 
@@ -1101,17 +1111,6 @@ void GPUConnectionToWebProcess::releaseAudioHardwareListener(RemoteAudioHardware
 void GPUConnectionToWebProcess::releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
 {
     protect(gpuProcess())->releaseTransferredImageBuffer(identifier);
-}
-
-void GPUConnectionToWebProcess::createRemoteCommandListener(RemoteRemoteCommandListenerIdentifier identifier)
-{
-    m_remoteRemoteCommandListener = RemoteRemoteCommandListenerProxy::create(*this, WTF::move(identifier));
-}
-
-void GPUConnectionToWebProcess::releaseRemoteCommandListener(RemoteRemoteCommandListenerIdentifier identifier)
-{
-    if (m_remoteRemoteCommandListener && m_remoteRemoteCommandListener->identifier() == identifier)
-        m_remoteRemoteCommandListener = nullptr;
 }
 
 void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTesting overrides)
@@ -1177,12 +1176,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-#if PLATFORM(IOS_FAMILY)
-    if (decoder.messageReceiverName() == Messages::RemoteMediaSessionHelperProxy::messageReceiverName()) {
-        mediaSessionHelperProxy().didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-#endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMFactoryProxy::messageReceiverName()) {
         protect(legacyCdmFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
@@ -1215,11 +1208,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-    if (decoder.messageReceiverName() == Messages::RemoteRemoteCommandListenerProxy::messageReceiverName()) {
-        if (RefPtr listener = m_remoteRemoteCommandListener)
-            listener->didReceiveMessage(connection, decoder);
-        return true;
-    }
     if (decoder.messageReceiverName() == Messages::RemoteSharedResourceCache::messageReceiverName()) {
         sharedResourceCache()->didReceiveMessage(connection, decoder);
         return true;

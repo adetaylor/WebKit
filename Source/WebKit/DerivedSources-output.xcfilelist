@@ -308,8 +308,6 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionCoordinatorPro
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionCoordinatorProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionHelperMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionHelperMessages.h
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionHelperProxyMessageReceiver.cpp
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionHelperProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionManagerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaSessionManagerProxyMessageReceiver.cpp
@@ -332,8 +330,6 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteQueueMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteQueueMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerMessages.h
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerProxyMessageReceiver.cpp
-$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRemoteCommandListenerProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderBundleEncoderMessages.h

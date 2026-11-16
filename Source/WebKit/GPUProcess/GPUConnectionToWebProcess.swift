@@ -44,6 +44,12 @@ final class GPUConnectionState {
     let isLockdownModeEnabled: Bool
     // The Now Playing candidate states of the connection's pages, by page identifier, which the election reads.
     var nowPlayingCandidates: [UInt64: IPCTypes.NowPlayingCandidateState] = [:]
+    // The web process's remote command listener, while it has one, which the NowPlayingManager's commands come from.
+    private(set) var remoteCommandListener: RemoteCommandListener?
+    #if WTF_PLATFORM_IOS_FAMILY
+    // Whether the web process has MediaSessionHelper monitor wireless routes.
+    private(set) var isMonitoringWirelessRoutes = false
+    #endif
     #if ENABLE_MEDIA_STREAM
     // What the UI process allowed the web process to capture.
     private(set) var captureAccess = CaptureAccess()
@@ -148,6 +154,36 @@ final class GPUConnectionState {
         receivers.allSatisfy { $0.allowsExitUnderMemoryPressure }
     }
 
+    func createRemoteCommandListener(_ identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier) {
+        remoteCommandListener = RemoteCommandListener(identifier: identifier)
+    }
+
+    func releaseRemoteCommandListener(_ identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier) {
+        if remoteCommandListener?.identifier == identifier {
+            remoteCommandListener = nil
+        }
+    }
+
+    // Whether the connection has a listener, whose commands these become.
+    func setSupportedRemoteCommands(_ commands: [IPCTypes.PlatformMediaSessionRemoteControlCommandType], supportsSeeking: Bool) -> Bool {
+        guard remoteCommandListener != nil else {
+            return false
+        }
+        remoteCommandListener?.commands = Set(commands)
+        remoteCommandListener?.supportsSeeking = supportsSeeking
+        return true
+    }
+
+    #if WTF_PLATFORM_IOS_FAMILY
+    func setMonitorsWirelessRoutes(_ monitors: Bool) {
+        guard monitors != isMonitoringWirelessRoutes else {
+            return
+        }
+        isMonitoringWirelessRoutes = monitors
+        WebKit.GPUConnectionToWebProcess.setMonitorsWirelessRoutes(monitors)
+    }
+    #endif
+
     #if ENABLE_MEDIA_STREAM
     func allowCapture(_ access: CaptureAccess, willUseEchoCancellation: Bool) {
         if willUseEchoCancellation {
@@ -197,7 +233,17 @@ final class GPUConnectionState {
         #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
         audioMediaStreamTrackRendererInternalUnitManager?.invalidate()
         #endif
+        #if WTF_PLATFORM_IOS_FAMILY
+        setMonitorsWirelessRoutes(false)
+        #endif
     }
+}
+
+// A web process's remote command listener: the commands it supports.
+struct RemoteCommandListener {
+    let identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier
+    var commands: Set<IPCTypes.PlatformMediaSessionRemoteControlCommandType> = []
+    var supportsSeeking = false
 }
 
 extension WebKit.GPUConnectionToWebProcess {
@@ -268,6 +314,19 @@ extension WebKit.GPUConnectionToWebProcess {
     @MainActor
     func swiftRemoteCommandTargetSession() -> UInt64 {
         nowPlayingArbiter.remoteCommandTargetSession(in: state.processIdentifier) ?? 0
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftRemoteCommandListenerState() -> WebKit.RemoteCommandListenerState {
+        var listenerState = WebKit.RemoteCommandListenerState()
+        if let listener = state.remoteCommandListener {
+            listenerState.hasListener = true
+            listenerState.commands = listener.commands.reduce(0) { $0 | UInt32(1) << $1.rawValue }
+            listenerState.supportsSeeking = listener.supportsSeeking
+        }
+        return listenerState
     }
 
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
@@ -359,6 +418,39 @@ extension WebKit.GPUConnectionToWebProcess {
     func isActiveNowPlayingSessionForTesting(connection: IPC.Connection, identifier: IPCTypes.MediaSessionIdentifier) -> Bool {
         nowPlayingArbiter.isActive(process: state.processIdentifier, session: identifier.rawValue)
     }
+
+    @MainActor
+    func createRemoteCommandListener(connection: IPC.Connection, identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier) {
+        state.createRemoteCommandListener(identifier)
+    }
+
+    @MainActor
+    func releaseRemoteCommandListener(connection: IPC.Connection, identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier) {
+        state.releaseRemoteCommandListener(identifier)
+    }
+
+    @MainActor
+    func setSupportedRemoteCommands(
+        connection: IPC.Connection,
+        commands: [IPCTypes.PlatformMediaSessionRemoteControlCommandType],
+        supportsSeeking: Bool
+    ) {
+        if state.setSupportedRemoteCommands(commands, supportsSeeking: supportsSeeking) {
+            updateSupportedRemoteCommands()
+        }
+    }
+
+    #if WTF_PLATFORM_IOS_FAMILY
+    @MainActor
+    func startMonitoringWirelessRoutes(connection: IPC.Connection) {
+        state.setMonitorsWirelessRoutes(true)
+    }
+
+    @MainActor
+    func stopMonitoringWirelessRoutes(connection: IPC.Connection) {
+        state.setMonitorsWirelessRoutes(false)
+    }
+    #endif
 
     // Unlike the remote command target session, safe to ask from any process: it compares rather than assuming the
     // caller owns the target.

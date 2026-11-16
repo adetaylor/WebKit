@@ -55,6 +55,8 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
 #endif
 #if PLATFORM(IOS_FAMILY)
     EnsureMediaSessionHelper()
+    [EnabledBy=UseGPUProcessForMediaEnabled] StartMonitoringWirelessRoutes() SwiftTypes
+    [EnabledBy=UseGPUProcessForMediaEnabled] StopMonitoringWirelessRoutes() SwiftTypes
 #endif
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
     CreateVisibilityPropagationContextForPage(WebKit::WebPageProxyIdentifier pageProxyID, WebCore::PageIdentifier pageID, bool canShowWhileLocked);
@@ -63,8 +65,9 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
     SetMediaOverridesForTesting(struct WebKit::MediaOverridesForTesting configuration)
     CreateAudioHardwareListener(WebKit::RemoteAudioHardwareListenerIdentifier identifier)
     ReleaseAudioHardwareListener(WebKit::RemoteAudioHardwareListenerIdentifier identifier)
-    CreateRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier)
-    ReleaseRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier)
+    CreateRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier) SwiftTypes
+    ReleaseRemoteCommandListener(WebKit::RemoteRemoteCommandListenerIdentifier identifier) SwiftTypes
+    [EnabledBy=UseGPUProcessForMediaEnabled] SetSupportedRemoteCommands(Vector<WebCore::PlatformMediaSessionRemoteControlCommandType> commands, bool supportsSeeking) SwiftTypes
     ReleaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
     ConfigureLoggingChannel(String channelName, enum:uint8_t WTFLogChannelState state, enum:uint8_t WTFLogLevel level)
 #if USE(GRAPHICS_LAYER_WC)
