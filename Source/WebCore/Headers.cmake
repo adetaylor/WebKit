@@ -1070,6 +1070,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/deprecated-cssom/DeprecatedCSSOMValue.h
     css/deprecated-cssom/DeprecatedCSSOMValueList.h
 
+    css/parser/CSSAtRuleID.h
     css/parser/CSSCustomPropertySyntax.h
     css/parser/CSSParser.h
     css/parser/CSSParserContext.h
