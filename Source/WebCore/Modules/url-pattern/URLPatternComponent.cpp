@@ -34,7 +34,6 @@
 #include <JavaScriptCore/YarrFlags.h>
 #include <JavaScriptCore/YarrInterpreter.h>
 #include <JavaScriptCore/YarrPattern.h>
-#include <wtf/BumpPointerAllocator.h>
 #include <wtf/text/MakeString.h>
 
 namespace WebCore {
@@ -94,8 +93,7 @@ ExceptionOr<URLPatternComponent> URLPatternComponent::compile(StringView input, 
     if (JSC::Yarr::hasError(errorCode))
         return Exception { ExceptionCode::TypeError, makeString("Unable to create RegExp object regular expression from provided URLPattern string: "_s, JSC::Yarr::errorMessage(errorCode)) };
 
-    auto allocator = makeUniqueRef<WTF::BumpPointerAllocator>();
-    auto bytecode = JSC::Yarr::byteCompile(yarrPattern, allocator.ptr(), errorCode, nullptr);
+    auto bytecode = JSC::Yarr::byteCompile(yarrPattern, errorCode);
     if (JSC::Yarr::hasError(errorCode) || !bytecode)
         return Exception { ExceptionCode::TypeError, "Unable to compile RegExp bytecode from provided URLPattern string."_s };
 
@@ -107,7 +105,7 @@ ExceptionOr<URLPatternComponent> URLPatternComponent::compile(StringView input, 
         return part.type == PartType::Regexp;
     });
 
-    CompiledPattern compiled { WTF::move(allocator), makeUniqueRefFromNonNullUniquePtr(WTF::move(bytecode)) };
+    CompiledPattern compiled { makeUniqueRefFromNonNullUniquePtr(WTF::move(bytecode)) };
 
     return URLPatternComponent { WTF::move(patternString), WTF::move(compiled), WTF::move(nameList), hasRegexGroups };
 }

@@ -157,6 +157,7 @@
 #include "Watchdog.h"
 #include "WeakGCMapInlines.h"
 #include "WideningNumberPredictionFuzzerAgent.h"
+#include "YarrInterpreter.h"
 #include <wtf/CryptographicallyRandomNumber.h>
 #include <wtf/ProcessID.h>
 #include <wtf/ReadWriteLock.h>
@@ -1031,6 +1032,7 @@ void VM::shrinkFootprintWhenIdle()
         heap.collectNow(Synchronousness::Sync, CollectionScope::Full);
         // FIXME: Consider stopping various automatic threads here.
         // https://bugs.webkit.org/show_bug.cgi?id=185447
+        Yarr::releaseSpareStorage();
         WTF::releaseFastMallocFreeMemory();
     });
 }

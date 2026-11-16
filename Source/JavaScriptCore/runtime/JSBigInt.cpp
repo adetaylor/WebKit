@@ -61,6 +61,7 @@
 
 #include "JSBigIntSwiftDigits.h"
 #include "TemporalSwiftBoundary.h" // JSCSwift-Swift.h declares the whole module's Swift, Temporal's too.
+#include "YarrInterpreterSwiftTypes.h"
 #include "JSCSwift-Swift.h"
 
 WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN

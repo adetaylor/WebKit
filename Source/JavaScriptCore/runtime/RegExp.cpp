@@ -273,9 +273,9 @@ RegExp* RegExp::create(VM& vm, const String& patternString, OptionSet<Yarr::Flag
 }
 
 
-static std::unique_ptr<Yarr::BytecodePattern> byteCodeCompilePattern(VM* vm, Yarr::YarrPattern& pattern, Yarr::ErrorCode& errorCode)
+static std::unique_ptr<Yarr::BytecodePattern> byteCodeCompilePattern(VM*, Yarr::YarrPattern& pattern, Yarr::ErrorCode& errorCode)
 {
-    return Yarr::byteCompile(pattern, &vm->m_regExpAllocator, errorCode, &vm->m_regExpAllocatorLock);
+    return Yarr::byteCompile(pattern, errorCode);
 }
 
 void RegExp::byteCodeCompileIfNecessary(VM* vm)

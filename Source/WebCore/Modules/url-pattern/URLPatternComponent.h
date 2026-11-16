@@ -33,10 +33,6 @@
 #include <wtf/Vector.h>
 #include <wtf/text/WTFString.h>
 
-namespace WTF {
-class BumpPointerAllocator;
-}
-
 namespace JSC {
 namespace Yarr {
 struct BytecodePattern;
@@ -70,7 +66,6 @@ public:
 
 private:
     struct CompiledPattern {
-        UniqueRef<WTF::BumpPointerAllocator> allocator;
         UniqueRef<JSC::Yarr::BytecodePattern> bytecode;
     };
 
