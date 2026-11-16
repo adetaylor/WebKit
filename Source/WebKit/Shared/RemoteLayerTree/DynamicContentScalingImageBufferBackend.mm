@@ -62,11 +62,9 @@ static CFDictionaryRef makeContextOptions(const WebCore::ColorSpace& colorSpace)
 class GraphicsContextDynamicContentScaling : public WebCore::GraphicsContextCG {
 public:
     GraphicsContextDynamicContentScaling(const WebCore::IntSize& backendSize, const WebCore::ColorSpace& colorSpace, WebCore::RenderingMode renderingMode)
-        : GraphicsContextCG(adoptCF(RECGCommandsContextCreate(backendSize, makeContextOptions(colorSpace))).autorelease(), GraphicsContextCG::Unknown, renderingMode)
+        : GraphicsContextCG(adoptCF(RECGCommandsContextCreate(backendSize, makeContextOptions(colorSpace))).autorelease(), GraphicsContextCG::Unknown, renderingMode, GraphicsContextCG::AllowsShadowBlur::No)
     {
     }
-
-    bool canUseShadowBlur() const final { return false; }
 };
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(DynamicContentScalingImageBufferBackend);

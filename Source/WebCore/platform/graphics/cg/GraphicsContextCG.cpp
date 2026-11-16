@@ -260,11 +260,12 @@ template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(
     return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
 }
 
-GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
+GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode, AllowsShadowBlur allowsShadowBlur)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
+    , m_allowsShadowBlur(allowsShadowBlur == AllowsShadowBlur::Yes)
     , m_swiftRendererState(SwiftRendererState::InPlace)
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
@@ -275,7 +276,7 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 #endif
     static_assert(alignof(CGRendererCore) <= 8);
     auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext, bool strokesArcsLikeFills) {
-        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, strokesArcsLikeFills, imageInterpolationQuality()));
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, strokesArcsLikeFills, m_allowsShadowBlur, imageInterpolationQuality()));
     };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
@@ -1935,7 +1936,7 @@ void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoi
 
 bool GraphicsContextCG::canUseShadowBlur() const
 {
-    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
+    return m_allowsShadowBlur && renderingMode() == RenderingMode::Unaccelerated && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
 }
 
 bool GraphicsContextCG::consumeHasDrawn()

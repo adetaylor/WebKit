@@ -358,6 +358,47 @@ TEST(GraphicsContextTests, ScaleFactorForDrawingHandlesDegenerateSourceRect)
     }
 }
 
+TEST(GraphicsContextTests, FillsWithBlurredShadowWithoutShadowBlurDrawCGShadows)
+{
+    constexpr size_t width = 64;
+    constexpr size_t height = 64;
+    auto colorSpace = ColorSpace::SRGB();
+    auto makeContext = [&] {
+        return adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    };
+    auto draw = [](GraphicsContextCG& context) {
+        context.setDropShadow({ { 4, 6 }, 5, Color::black });
+        context.setFillColor(Color::blue);
+        context.fillRect({ 8, 8, 12, 12 });
+        context.fillRect({ 30, 8, 12, 12 }, Color::green);
+        context.fillRoundedRect(FloatRoundedRect({ 8, 34, 20, 16 }, CornerRadii { 4 }), Color::red);
+    };
+    auto pixels = [](CGContextRef context) {
+        CGContextFlush(context);
+        auto* data = static_cast<const uint8_t*>(CGBitmapContextGetData(context));
+        return Vector<uint8_t>(std::span { data, CGBitmapContextGetBytesPerRow(context) * CGBitmapContextGetHeight(context) });
+    };
+
+    RetainPtr recording = makeContext();
+    GraphicsContextCG recordingContext(recording.get(), GraphicsContextCG::Unknown, RenderingMode::Unaccelerated, GraphicsContextCG::AllowsShadowBlur::No);
+    draw(recordingContext);
+    EXPECT_FALSE(recordingContext.canUseShadowBlur());
+
+    // An accelerated context draws its shadows with CG.
+    RetainPtr expected = makeContext();
+    GraphicsContextCG expectedContext(expected.get(), GraphicsContextCG::Unknown, RenderingMode::Accelerated);
+    draw(expectedContext);
+
+    auto actualPixels = pixels(recording.get());
+    EXPECT_EQ(actualPixels, pixels(expected.get()));
+
+    // The fills cover about 600 pixels; their shadows cover more around them.
+    size_t visiblePixels = 0;
+    for (size_t i = 3; i < actualPixels.size(); i += 4)
+        visiblePixels += !!actualPixels[i];
+    EXPECT_GT(visiblePixels, 900u);
+}
+
 } // namespace TestWebKitAPI
 
 #endif // USE(CG)

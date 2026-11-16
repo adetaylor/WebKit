@@ -1435,6 +1435,8 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     // Whether CG strokes arcs with the coverage of filling their outlines here (CGIOSurfaceContextUsingWebKitBehavior()), so
     // that a pie wedge can fill as a stroked arc, which CG batches.
     private let strokesArcsLikeFills: Bool
+    // GraphicsContextCG::AllowsShadowBlur: false for a context that records its drawing, whose shadows CG must record.
+    private let allowsShadowBlur: Bool
     private var state: CGRendererState
     private var stack: [CGRendererSavedState]
     private var depth = 0
@@ -1487,18 +1489,20 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         _ isUnaccelerated: Bool,
         _ isPDFContext: Bool,
         _ strokesArcsLikeFills: Bool,
+        _ allowsShadowBlur: Bool,
         _ imageInterpolationQuality: WebCore.InterpolationQuality
     ) {
         self.context = copy context
         self.isUnaccelerated = isUnaccelerated
         self.isPDFContext = isPDFContext
         self.strokesArcsLikeFills = strokesArcsLikeFills
+        self.allowsShadowBlur = allowsShadowBlur
         self.state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
         self.stack = Array(repeating: CGRendererSavedState(state: state, purpose: .saveRestore), count: 8)
     }
 
     private var canUseShadowBlur: Bool {
-        isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
+        allowsShadowBlur && isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
     }
 
     // The Color of a drop shadow, as GraphicsContext's state has it, for ShadowBlur.
@@ -5135,7 +5139,7 @@ extension CGRendererCore {
 extension CGRendererCore {
     // A fresh GraphicsContextCG's renderer for the context, which only draws.
     private static func drawing(_ context: CGContext) -> CGRendererCore {
-        CGRendererCore(context, true, false, false, .Default)
+        CGRendererCore(context, true, false, false, true, .Default)
     }
 
     // GraphicsContext::drawConsumingImageBuffer() of an image buffer's image at its pixel size into the rect, with the

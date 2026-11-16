@@ -45,7 +45,10 @@ public:
         Unknown,
         CGContextFromCALayer
     };
-    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt);
+    // Whether a blurred drop shadow may be drawn with ShadowBlur. A context that records its drawing passes No, so that CG
+    // records the shadow.
+    enum class AllowsShadowBlur : bool { No, Yes };
+    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt, AllowsShadowBlur = AllowsShadowBlur::Yes);
 
     ~GraphicsContextCG();
 
@@ -146,7 +149,7 @@ public:
 
     bool supportsInternalLinks() const final;
 
-    virtual bool canUseShadowBlur() const;
+    bool canUseShadowBlur() const;
 
     FloatRect roundToDevicePixels(const FloatRect&) const;
 
@@ -244,6 +247,7 @@ private:
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
+    const bool m_allowsShadowBlur : 1;
     // A byte of its own rather than a bitfield, so that lending and returning the renderer are single stores.
     mutable SwiftRendererState m_swiftRendererState;
     unsigned m_swiftRendererLenders { 0 };
