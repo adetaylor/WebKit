@@ -806,9 +806,7 @@ def accessors_file(framework, entries, declarations, typedefs, interfaces_for, h
         declaration = declarations.symbols[name]
         if kind == 'function':
             typedef = find_function_typedef(typedefs, f'PALSoftLink_{name}_t')
-            imported = find_declaration(interfaces_for(framework), name)
-            if typedef and not imported and swift_type == 'refined':
-                imported = declaration_from_typedef(typedef)
+            imported = declaration_from_typedef(typedef) if typedef and swift_type == 'refined' else find_declaration(interfaces_for(framework), name)
             if not typedef or not imported:
                 raise GeneratorError(f'{name}: no typedef or imported declaration found')
             w += function_accessor(declaration, typedef, imported, swift_type == 'pointer')
