@@ -869,7 +869,7 @@ def forward_declarations_and_headers(receiver):
     # For OptionalSharedPreferencesForWebProcess, which a Swift receiver's sharedPreferencesForWebProcess() returns.
     if receiver.is_swift_receiver() and receiver_needs_shared_preferences(receiver):
         headers.add('"SharedPreferencesForWebProcess.h"')
-        if swift_receiver_runs_on_work_queue(receiver):
+        if receiver.has_attribute(STREAM_ATTRIBUTE):
             headers.add('<wtf/Function.h>')
 
     # For IPC::CxxDecodedArgument.
@@ -1407,8 +1407,10 @@ def generate_messages_header(receiver):
             result.append('    // the queue its handlers are confined to. Registering again, for another destination, must name the same queue.\n')
             result.append('    void startReceivingMessages(IPC::Connection&, WorkQueue&, uint64_t destinationID = 0);\n')
             if receiver_needs_shared_preferences(receiver):
-                result.append('    // Lets the C++ that registers the receiver supply its shared preferences, which dispatch otherwise asks Swift for.\n')
-                result.append('    void setSharedPreferencesProvider(Function<std::optional<SharedPreferencesForWebProcess>()>&& provider) { m_sharedPreferencesProvider = WTF::move(provider); }\n')
+                result.append('    // Sets the shared preferences that dispatch checks messages against, which it keeps: before the first\n')
+                result.append('    // startReceivingMessages(), on the thread that calls it, and after it, on the work queue, after the messages\n')
+                result.append('    // already dispatched to it. Until they are set, every message is disabled.\n')
+                result.append('    void updateSharedPreferences(SharedPreferencesForWebProcess);\n')
         else:
             result.append('    void ref() const final { RefCounted::ref(); }\n')
             result.append('    void deref() const final { RefCounted::deref(); }\n')
@@ -1417,8 +1419,10 @@ def generate_messages_header(receiver):
         if not swift_receiver_runs_on_work_queue(receiver):
             result.append('    std::optional<' + handler_namespace + '::' + class_name + '> getMessageTarget();\n')
         result.append('    std::unique_ptr<' + handler_namespace + '::' + weak_ref_class + '> m_handler;\n')
-        if swift_receiver_runs_on_work_queue(receiver) and receiver_needs_shared_preferences(receiver):
+        if is_stream and receiver_needs_shared_preferences(receiver):
             result.append('    Function<std::optional<SharedPreferencesForWebProcess>()> m_sharedPreferencesProvider;\n')
+        if is_work_queue and receiver_needs_shared_preferences(receiver):
+            result.append('    std::optional<SharedPreferencesForWebProcess> m_sharedPreferences;\n')
         if lender:
             result.append('    RefPtr<%s> m_stateLender;\n' % lender)
         if is_work_queue:
@@ -2688,7 +2692,10 @@ def generate_target_and_enabled_by_statements(receiver, messages):
             # target here as well costs more than the dispatch itself. A gone target has no shared preferences, so a
             # receiver with EnabledBy marks the message invalid then. Asking Swift for the shared preferences costs
             # about as much, so they come from a C++ provider when the receiver's host has set one.
-            if needs_shared_preferences:
+            # A WorkQueue receiver's forwarder keeps its own copy, which only its queue reads and writes once it is receiving.
+            if needs_shared_preferences and receiver.has_attribute(WORK_QUEUE_ATTRIBUTE):
+                result.append('    auto& sharedPreferences = m_sharedPreferences;\n')
+            elif needs_shared_preferences:
                 result.append('    auto sharedPreferences = m_sharedPreferencesProvider ? m_sharedPreferencesProvider() : m_handler->sharedPreferencesForWebProcess();\n')
             return
         result.append('    auto target = getMessageTarget();\n')
@@ -2884,6 +2891,19 @@ def generate_message_handler(receiver):
             result.append('    connection.addWorkQueueMessageReceiver(Messages::%s::messageReceiverName(), workQueue, *this, destinationID);\n' % receiver.name)
             result.append('}\n')
             result.append('\n')
+            if receiver_needs_shared_preferences(receiver):
+                result.append('void %s::updateSharedPreferences(SharedPreferencesForWebProcess sharedPreferences)\n' % forwarder_class)
+                result.append('{\n')
+                result.append('    RefPtr workQueue = m_workQueue;\n')
+                result.append('    if (!workQueue) {\n')
+                result.append('        m_sharedPreferences = WTF::move(sharedPreferences);\n')
+                result.append('        return;\n')
+                result.append('    }\n')
+                result.append('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n')
+                result.append('        protectedThis->m_sharedPreferences = WTF::move(sharedPreferences);\n')
+                result.append('    });\n')
+                result.append('}\n')
+                result.append('\n')
 
         if not swift_receiver_runs_on_work_queue(receiver):
             result.append('std::optional<%s> %s::getMessageTarget()\n' % (class_name, forwarder_class))
@@ -3136,7 +3156,7 @@ def generate_swift_message_handler(receiver):
                 result.append('        target.%s()\n' % hook)
                 result.append('    }\n')
         if swift_receiver_runs_on_work_queue(receiver):
-            if receiver_needs_shared_preferences(receiver):
+            if receiver_needs_shared_preferences(receiver) and receiver.has_attribute(STREAM_ATTRIBUTE):
                 result.append('\n')
                 result.append('    @used\n')
                 result.append('    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {\n')
