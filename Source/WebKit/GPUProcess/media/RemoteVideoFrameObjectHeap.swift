@@ -136,11 +136,11 @@ private struct VideoFrameTable {
     }
 }
 
-// The frames of a RemoteVideoFrameObjectHeap, for any thread.
-private final class RemoteVideoFrameObjectHeapState {
-    let frames = Mutex(VideoFrameTable())
+// The frames of a RemoteVideoFrameObjectHeap, for any thread, and the handler of its message that releases one.
+final class RemoteVideoFrameObjectHeapState {
+    fileprivate let frames = Mutex(VideoFrameTable())
 
-    func add(_ reference: VideoFrameReference, _ frame: HeapFrame) {
+    fileprivate func add(_ reference: VideoFrameReference, _ frame: HeapFrame) {
         let (_, waiters) = frames.withLock { ($0.add(reference, frame), $0.takeWaiters()) }
         for waiter in waiters {
             waiter.signal()
@@ -156,7 +156,7 @@ private final class RemoteVideoFrameObjectHeapState {
 
     // Waits for a frame that isn't in the heap yet only if the web process allocated its reference
     // (remoteVideoFrameReadTimeoutSeconds()).
-    func read(_ reference: VideoFrameReference) -> HeapFrame? {
+    fileprivate func read(_ reference: VideoFrameReference) -> HeapFrame? {
         let timeout = WebKit.remoteVideoFrameReadTimeoutSeconds(reference.identifier)
         guard timeout > 0 else {
             return frames.withLock { $0.read(reference) }
@@ -183,14 +183,18 @@ private final class RemoteVideoFrameObjectHeapState {
         }
     }
 
-    func release(_ reference: VideoFrameReference, pendingReads: UInt64) {
+    fileprivate func release(_ reference: VideoFrameReference, pendingReads: UInt64) {
         _ = frames.withLock { $0.remove(reference, pendingReads: pendingReads) }
+    }
+
+    func releaseVideoFrame(connection: IPC.Connection, write: IPCTypes.RemoteVideoFrameWriteReference) {
+        release(VideoFrameReference(identifier: write.reference.identifier.rawValue, version: write.reference.version), pendingReads: write.pendingReads)
     }
 }
 
 // The members of the C++ heap (RemoteVideoFrameObjectHeap.h) that reach its Swift state, which m_swiftState holds
 // retained, by address, from the heap's constructor to its destructor, and the handlers of its messages that take Swift
-// types, on its work queue.
+// types and the heap, on its work queue.
 extension WebKit.RemoteVideoFrameObjectHeap {
     @cxx
     @implementation
@@ -211,7 +215,7 @@ extension WebKit.RemoteVideoFrameObjectHeap {
         return unsafe address
     }
 
-    fileprivate var state: RemoteVideoFrameObjectHeapState {
+    var state: RemoteVideoFrameObjectHeapState {
         // Safety: m_swiftState is a retained RemoteVideoFrameObjectHeapState from the constructor to the destructor, and
         // nothing changes it.
         unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
@@ -249,11 +253,6 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     @implementation
     func swiftRemoveAll() {
         state.removeAll()
-    }
-
-    func releaseVideoFrame(connection: IPC.Connection, write: IPCTypes.RemoteVideoFrameWriteReference) {
-        let reference = VideoFrameReference(identifier: write.reference.identifier.rawValue, version: write.reference.version)
-        state.release(reference, pendingReads: write.pendingReads)
     }
 
     #if WTF_PLATFORM_COCOA
