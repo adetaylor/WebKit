@@ -1499,7 +1499,7 @@ def generate_messages_header(receiver):
         else:
             if_swift_enabled(receiver, result, append_cxx_decoded_arguments_for_swift, None)
 
-    if receiver.is_swift_implementation():
+    if receiver.is_swift_implementation() and (swift_implementation_messages(receiver) or not receiver.swift_state):
         # Each is declared whatever the message's condition, as it takes no type the condition could remove.
         result.append('namespace %s {\nclass %s;\n}\n\n' % (receiver.namespace, receiver.name))
         result.append('// What %sMessageReceiver.swift implements, with @cxx @implementation: the dispatch of each message that\n' % receiver.name)
@@ -1703,7 +1703,24 @@ def swift_implementation_dispatch_parameters(receiver, message):
 
 
 def swift_implementation_messages(receiver):
-    return [message for message in receiver.messages if receiver.takes_swift_types(message)]
+    return [message for message in receiver.messages if receiver.takes_swift_types(message) and not receiver.dispatches_to_swift_state(message)]
+
+
+# The Swift class to which generated Swift dispatches the messages that go to a receiver's Swift state, with 'SwiftState='.
+def swift_state_dispatch_class(receiver):
+    return '%sStateDispatch' % receiver.name
+
+
+# What a receiver with 'SwiftState=' dispatches a message that goes to its Swift state with: its swift_state_dispatch_class(),
+# which the receiver's IPC::SwiftStateDispatch keeps, and the Swift method of it that dispatches the message.
+def swift_state_dispatch_target_and_function(receiver, message):
+    dispatch_class = '%s::%s' % (receiver.namespace, swift_state_dispatch_class(receiver))
+    return '&%s(m_swiftStateDispatch, *this)' % swift_state_dispatch_function(receiver), '%s::dispatch%s' % (dispatch_class, message.name)
+
+
+# The generated C++ function that gives a receiver's swift_state_dispatch_class(), making it for the first message.
+def swift_state_dispatch_function(receiver):
+    return '%s%sStateDispatch' % (receiver.name[0].lower(), receiver.name[1:])
 
 
 def swift_implementation_receiver_class(receiver):
@@ -1769,6 +1786,11 @@ def async_message_statement(receiver, message):
         result.append('        IPC::%s<Messages::%s::%s>(%s);\n' % (function, receiver.name, message.name, ', '.join(arguments)))
 
     def append_with_dispatch_function_args(receiver, result):
+        if receiver.dispatches_to_swift_state(message):
+            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            target, function = swift_state_dispatch_target_and_function(receiver, message)
+            append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, target, function)
+            return
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
             pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
             append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, 'this', swift_implementation_dispatch_function(receiver, message))
@@ -1859,7 +1881,9 @@ def sync_message_statement(receiver, message):
 
     swift_dispatch_function = swift_types_dispatch_function(message) if receiver.takes_swift_types(message) else dispatch_function
     swift_target, swift_function = swift_dispatch_target_and_function(receiver, message)
-    if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
+    if receiver.dispatches_to_swift_state(message):
+        append_call_with_target_name(result, swift_dispatch_function, *swift_state_dispatch_target_and_function(receiver, message))
+    elif receiver.is_swift_implementation() and receiver.takes_swift_types(message):
         append_call_with_target_name(result, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message))
     else:
         if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
@@ -2725,6 +2749,9 @@ def generate_message_handler(receiver):
         result.append('#include "%s.h"\n\n' % receiver.receiver_name)
     else:
         if_swift_enabled(receiver, result, lambda x: x.append('#include "%s.h" // NOLINT\n' % 'Shared/WebKit-Swift'), lambda x: x.append('#include "%s.h"\n\n' % receiver.name))
+    if receiver.swift_state:
+        # For the Swift class that dispatches the messages that go to the receiver's Swift state.
+        result.append('#include "Shared/WebKit-Swift.h" // NOLINT\n')
     result += generate_header_includes_from_conditions(header_conditions)
     result.append('\n')
 
@@ -2733,6 +2760,17 @@ def generate_message_handler(receiver):
     result.append("#endif\n\n")
 
     result.append('namespace %s {\n\n' % receiver.namespace)
+
+    if receiver.swift_state:
+        dispatch_class = swift_state_dispatch_class(receiver)
+        result.append('// The Swift dispatch of the messages that go to the receiver\'s Swift state, which keeps the state. It is made for the\n')
+        result.append('// first of them, on the queue they are dispatched on, and kept until the receiver goes.\n')
+        result.append('static %s& %s(IPC::SwiftStateDispatch& dispatch, %s& receiver)\n' % (dispatch_class, swift_state_dispatch_function(receiver), receiver.name))
+        result.append('{\n')
+        result.append('    if (!dispatch) [[unlikely]]\n')
+        result.append('        dispatch.set(%s::create(&receiver));\n' % dispatch_class)
+        result.append('    return dispatch.get<%s>();\n' % dispatch_class)
+        result.append('}\n\n')
 
     async_messages = []
     sync_messages = []
@@ -3065,7 +3103,9 @@ def generate_swift_message_handler(receiver):
     if receiver.swift_receiver_build_enabled_by:
         result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
 
-    if implementation:
+    # A receiver with 'SwiftState=' whose messages all go to its Swift state has no @cxx @implementation dispatch.
+    emits_extension = implementation and bool(swift_implementation_messages(receiver) or not receiver.swift_state)
+    if emits_extension:
         result.append('extension SwiftDispatch.%s {\n' % receiver.name)
     first_message_index = len(result)
     if not implementation and not swift_receiver_runs_on_work_queue(receiver):
@@ -3124,9 +3164,18 @@ def generate_swift_message_handler(receiver):
     # A Swift handler cannot throw across the C++ boundary - swiftc will not represent a throwing
     # function in C++ at all - so IPC dispatch is pointed at one of these instead. Each catches a
     # failed message check on the handler's behalf, and supplies the reply if the message has one.
+    # A receiver with 'SwiftState=' dispatches the messages that go to its Swift state from a Swift class, which generated
+    # Swift declares after the receiver's @cxx @implementation dispatch functions, in state_result.
+    cxx_class_name = class_name
+    main_result = result
+    state_result = []
     for message in receiver.messages:
-        if not (receiver.takes_swift_types(message) if implementation else generates_swift_trampoline(receiver, message)):
+        dispatches_to_swift_state = receiver.dispatches_to_swift_state(message)
+        if not (receiver.takes_swift_types(message) if receiver.is_swift_implementation() else generates_swift_trampoline(receiver, message)):
             continue
+        implementation = receiver.is_swift_implementation() and not dispatches_to_swift_state
+        class_name = receiver.swift_state if dispatches_to_swift_state else cxx_class_name
+        result = state_result if dispatches_to_swift_state else main_result
 
         message_start = len(result)
         if receiver.swift_receiver_state_lender:
@@ -3398,13 +3447,39 @@ def generate_swift_message_handler(receiver):
             result.insert(message_start, '\n    #if %s' % condition)
             result.append('    #endif\n')
 
+    implementation = receiver.is_swift_implementation()
+    class_name = cxx_class_name
+    result = main_result
+
     # No empty line opens the extension.
     if implementation and first_message_index < len(result) and result[first_message_index].startswith('\n'):
         if result[first_message_index] == '\n':
             del result[first_message_index]
         else:
             result[first_message_index] = result[first_message_index][1:]
-    result.append('}\n')
+    if emits_extension or not implementation:
+        result.append('}\n')
+
+    if receiver.swift_state:
+        dispatch_class = swift_state_dispatch_class(receiver)
+        if emits_extension:
+            result.append('\n')
+        result.append('// The dispatch of the receiver\'s messages that go to its Swift state, the target, which the receiver\'s generated C++\n')
+        result.append('// keeps until the receiver goes, and calls with each of them on the queue it dispatches them on.\n')
+        result.append('@_expose(Cxx)\n')
+        result.append('final class %s {\n' % dispatch_class)
+        result.append('    private let target: %s\n' % receiver.swift_state)
+        result.append('\n')
+        result.append('    private init(target: %s) {\n' % receiver.swift_state)
+        result.append('        self.target = target\n')
+        result.append('    }\n')
+        result.append('\n')
+        result.append('    @used\n')
+        result.append('    static func create(_ receiver: %s) -> %s {\n' % (class_name, dispatch_class))
+        result.append('        %s(target: receiver.state)\n' % dispatch_class)
+        result.append('    }\n')
+        result += state_result
+        result.append('}\n')
 
     for message, reply_value_type, encoding_statements in stream_reply_values:
         cxx_encoded_reply = message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)

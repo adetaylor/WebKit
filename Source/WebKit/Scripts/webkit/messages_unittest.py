@@ -67,6 +67,7 @@ _test_receiver_names = [
     'TestWithStreamSwiftLentState',
     'TestWithStreamSwiftRecordable',
     'TestWithStreamSwiftReplyValues',
+    'TestWithStreamSwiftState',
     'TestWithStreamSwiftTypes',
     'TestWithSuperclass',
     'TestWithSuperclassAndWantsAsyncDispatch',
@@ -85,6 +86,7 @@ _test_receiver_names = [
     'TestWithWantsDispatch',
     'TestWithWantsDispatchNoSyncMessages',
     'TestWithWorkQueueSwiftImplementation',
+    'TestWithWorkQueueSwiftState',
 ]
 
 
@@ -376,6 +378,61 @@ messages -> TestReceiver%s {
         self.assertIn('extension SwiftDispatch.TestReceiver {\n    #if HAVE_FEATURE\n', swift)
         self.assertEqual(swift.count('    #if HAVE_FEATURE\n'), 2)
         self.assertNotIn('CxxMessage', swift)
+
+    def test_swift_state(self):
+        def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
+            return parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    %s
+]
+messages -> TestReceiver %s {
+%s
+}
+""" % (',\n    '.join(attributes), receiver_attributes, messages_text)))
+
+        receiver = parse("""
+    StateMessage(uint32_t value)
+    ReceiverMessage(uint32_t value) WantsReceiver
+    CxxMessage(uint32_t value) CxxTypes
+""")
+        self.assertTrue(receiver.dispatches_to_swift_state(receiver.messages[0]))
+        self.assertFalse(receiver.dispatches_to_swift_state(receiver.messages[1]))
+        self.assertFalse(receiver.dispatches_to_swift_state(receiver.messages[2]))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('bool dispatchReceiverMessage(WebKit::TestReceiver* WTF_NONNULL, IPC::Connection* WTF_NONNULL, IPC::SwiftDecoder);', header)
+        self.assertNotIn('dispatchStateMessage', header)
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('#include "Shared/WebKit-Swift.h"', handler)
+        self.assertIn('static TestReceiverStateDispatch& testReceiverStateDispatch(IPC::SwiftStateDispatch& dispatch, TestReceiver& receiver)\n', handler)
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::StateMessage>(connection, decoder, &testReceiverStateDispatch(m_swiftStateDispatch, *this), &WebKit::TestReceiverStateDispatch::dispatchStateMessage);', handler)
+        self.assertIn('IPC::handleSwiftMessage<Messages::TestReceiver::ReceiverMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchReceiverMessage);', handler)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('extension SwiftDispatch.TestReceiver {\n    @cxx\n    @implementation\n    static func dispatchReceiverMessage(\n', swift)
+        self.assertIn('@_expose(Cxx)\nfinal class TestReceiverStateDispatch {\n    private let target: TestState\n', swift)
+        self.assertIn('        TestReceiverStateDispatch(target: receiver.state)\n', swift)
+        state_dispatch = re.search(r'func dispatchStateMessage\((.|\n)*?\n    \}\n', swift).group(0)
+        self.assertIn('        decoder: inout IPC.SwiftDecoder\n', state_dispatch)
+        self.assertNotIn('var decoder = decoder', state_dispatch)
+        self.assertIn('target.stateMessage(', state_dispatch)
+
+        # With every message going to the state, there is no @cxx @implementation dispatch.
+        receiver = parse('    StateMessage(uint32_t value)', receiver_attributes='Stream')
+        self.assertNotIn('SwiftDispatch', messages.generate_messages_header(receiver))
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertNotIn('extension SwiftDispatch', swift)
+        self.assertIn('    func dispatchStateMessage(\n        decoder: inout IPC.SwiftDecoder\n    ) -> Bool {\n', swift)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftState=', which is for stream and WorkQueue receivers with 'SwiftImplementation'"):
+            parse('    StateMessage(uint32_t value)', receiver_attributes='')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftState=', which is for stream and WorkQueue receivers with 'SwiftImplementation'"):
+            parse('    StateMessage(uint32_t value)', attributes=('SwiftReceiver', 'SwiftTypes', 'SwiftState=TestState'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'WantsReceiver', which is for messages that take Swift types to receivers with 'SwiftState='"):
+            parse('    Message(uint32_t value) WantsReceiver', attributes=('SwiftImplementation', 'SwiftTypes'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'WantsReceiver', which is for messages that take Swift types to receivers with 'SwiftState='"):
+            parse('    Message(uint32_t value) WantsReceiver CxxTypes')
 
     def test_swift_types_and_wants_dispatch_message(self):
         def parse(attributes, receiver_attributes):

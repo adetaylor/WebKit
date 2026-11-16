@@ -1013,6 +1013,7 @@ set(WebKit_SWIFT_INTEROP_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
     ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeapMessageReceiver.cpp
 )
 if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)

@@ -759,6 +759,38 @@ SwiftStreamReceiverRegistration* WTF_NULLABLE registerSwiftStreamReceiver(const 
     return &SwiftStreamReceiverRegistration::create(*streamConnection, forwarder.get(), receiverName, identifier).leakRef();
 }
 
+// Keeps the Swift object to which a 'SwiftImplementation' receiver with 'SwiftState=' dispatches the messages that go to
+// its Swift state. Only the receiver's generated message receiver, which includes the Swift-generated header, names its
+// class, as which it sets and gets it.
+class SwiftStateDispatch {
+    WTF_MAKE_NONCOPYABLE(SwiftStateDispatch);
+public:
+    SwiftStateDispatch() = default;
+
+    ~SwiftStateDispatch()
+    {
+        if (m_dispatch)
+            m_destroy(m_dispatch);
+    }
+
+    explicit operator bool() const { return m_dispatch; }
+
+    template<typename Dispatch> SWIFT_UNSAFE void set(Dispatch dispatch)
+    {
+        RELEASE_ASSERT(!m_dispatch);
+        m_dispatch = makeUniqueWithoutFastMallocCheck<Dispatch>(WTF::move(dispatch)).release();
+        m_destroy = [](void* dispatch) {
+            delete static_cast<Dispatch*>(dispatch);
+        };
+    }
+
+    template<typename Dispatch> SWIFT_UNSAFE Dispatch& get() const { return *static_cast<Dispatch*>(m_dispatch); }
+
+private:
+    void* m_dispatch { nullptr };
+    void (*m_destroy)(void*) { nullptr };
+};
+
 // Builds the WTF::String that generated Swift hands to C++ for a Swift String, one code unit at a time
 // as SwiftReplyEncoder encodes one.
 class SwiftStringBuilder {

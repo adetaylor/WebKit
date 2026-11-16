@@ -44,6 +44,15 @@ SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 # dispatch function for each, with @cxx @implementation, that calls the receiver's handler, a Swift method of the C++
 # class. Its other messages are C++ messages to C++ handlers, which may call members of the class that Swift implements.
 SWIFT_IMPLEMENTATION_ATTRIBUTE = 'SwiftImplementation'
+# On a stream or WorkQueue receiver with 'SwiftImplementation': 'SwiftState=State' names the Swift class of the state that
+# its Swift extension's `state` gives, which lasts as long as the receiver. The handlers of its messages that take Swift
+# types are methods of that class, which generated Swift calls from a Swift object that the receiver's generated C++
+# makes for the first of them and keeps, without the receiver, unless the message is 'WantsReceiver'. Its messages must
+# all be dispatched on one serial queue, as a stream receiver's are.
+SWIFT_STATE_ATTRIBUTE = 'SwiftState'
+# On a message that takes Swift types, to a receiver with 'SwiftState=': its handler is a method of the receiver's Swift
+# extension, as it is without 'SwiftState='.
+WANTS_RECEIVER_ATTRIBUTE = 'WantsReceiver'
 # A top-level Swift stream receiver, which an IPC::SwiftReceiverOwner owns: its forwarder is the owner's
 # IPC::SwiftReceiverOwnerClient, generated Swift starts it with startReceiving(on:), and its Swift sends can go on the owner.
 # 'SwiftReceiverOwner=Provider' starts it on the owner that the C++ class Provider gives, with swiftReceiverOwner().
@@ -89,7 +98,7 @@ _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'dec
 _NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None, swift_state=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -113,6 +122,8 @@ class MessageReceiver(object):
         # The C++ class that gives the IPC::SwiftReceiverOwner that a receiver with 'SwiftReceiverOwner' starts on, if not
         # the owner itself.
         self.swift_receiver_owner_provider = swift_receiver_owner_provider
+        # The Swift class of a 'SwiftImplementation' receiver's state, with 'SwiftState='.
+        self.swift_state = swift_state
         # The receiver whose definitions of the messages this one names it takes (parser.resolve_message_references()).
         self.messages_from = messages_from
         # The names of the receivers whose messages this Swift receiver's Swift sends, and, once parser.resolve_swift_sends()
@@ -132,6 +143,11 @@ class MessageReceiver(object):
 
     def is_swift_implementation(self):
         return self.has_attribute(SWIFT_IMPLEMENTATION_ATTRIBUTE)
+
+    def dispatches_to_swift_state(self, message):
+        """Whether a message that takes Swift types goes to the Swift state of a receiver with 'SwiftState=', rather than to
+        a handler that is a method of the receiver."""
+        return bool(self.swift_state) and self.takes_swift_types(message) and not message.has_attribute(WANTS_RECEIVER_ATTRIBUTE)
 
     def has_swift_receiver_owner(self):
         return self.has_attribute(SWIFT_RECEIVER_OWNER_ATTRIBUTE)
@@ -170,6 +186,11 @@ class MessageReceiver(object):
         return self.is_swift_receiver() and not self.swift_receiver_state_lender and (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE))
 
     def _enforce_swift_implementation_constraints(self):
+        if self.swift_state and not (self.is_swift_implementation() and (self.has_attribute(STREAM_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE))):
+            raise Exception("ERROR: Receiver %s has '%s=', which is for stream and WorkQueue receivers with '%s'" % (self.name, SWIFT_STATE_ATTRIBUTE, SWIFT_IMPLEMENTATION_ATTRIBUTE))
+        for message in self.messages:
+            if message.has_attribute(WANTS_RECEIVER_ATTRIBUTE) and not (self.swift_state and self.takes_swift_types(message)):
+                raise Exception("ERROR: Message %s.%s has '%s', which is for messages that take Swift types to receivers with '%s='" % (self.name, message.name, WANTS_RECEIVER_ATTRIBUTE, SWIFT_STATE_ATTRIBUTE))
         if not self.is_swift_implementation():
             return
         if self.is_swift_receiver() or self.swift_receiver_state_lender:
