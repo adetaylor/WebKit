@@ -33,7 +33,6 @@
 #include "YarrInterpreter.h"
 #include "YarrSyntaxChecker.h"
 #include <wtf/Assertions.h>
-#include <wtf/BumpPointerAllocator.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/text/MakeString.h>
 
@@ -78,11 +77,10 @@ private:
 
         m_numSubpatterns = pattern.m_numSubpatterns;
 
-        return byteCompile(pattern, &m_regexAllocator, m_constructionErrorCode);
+        return byteCompile(pattern, m_constructionErrorCode);
     }
 
     ErrorCode m_constructionErrorCode { Yarr::ErrorCode::NoError };
-    BumpPointerAllocator m_regexAllocator;
 
 public:
     int lastMatchLength { -1 };

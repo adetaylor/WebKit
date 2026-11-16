@@ -1891,6 +1891,9 @@ set(_jsc_swift_sources
     runtime/temporal/core/PlainDateTimeCore.swift
     runtime/temporal/core/Rounding.swift
     runtime/temporal/core/ZonedDateTimeCore.swift
+
+    yarr/YarrByteCompiler.swift
+    yarr/YarrInterpreterMatcher.swift
 )
 list(TRANSFORM _jsc_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
 set(_jsc_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
@@ -1982,7 +1985,7 @@ if (TARGET JavaScriptCore_CopyModules)
 endif ()
 list(APPEND JavaScriptCore_SOURCES "${_jsc_swift_obj}")
 set_source_files_properties("${_jsc_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
-# JSBigInt.cpp and Temporal's C++, in unified sources, include the generated header.
+# JSBigInt.cpp, Temporal's C++ and YarrInterpreter.cpp, in unified sources, include the generated header.
 list(APPEND JavaScriptCore_DEPENDENCIES JSCSwift)
 
 set(_jsc_json_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/LiteralParserSwift")

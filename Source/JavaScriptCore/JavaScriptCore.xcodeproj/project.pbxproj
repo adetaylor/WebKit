@@ -1460,6 +1460,9 @@
 		866739D213BFDE710023D87C /* BigInteger.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D013BFDE710023D87C /* BigInteger.h */; };
 		866739D313BFDE710023D87C /* Uint16WithFraction.h in Headers */ = {isa = PBXBuildFile; fileRef = 866739D113BFDE710023D87C /* Uint16WithFraction.h */; };
 		86704B4312DB8A8100A9FE7B /* YarrSyntaxChecker.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B4112DB8A8100A9FE7B /* YarrSyntaxChecker.h */; };
+		B4C152F41E93449BA9C1565A /* YarrByteCompiler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3154603EA8F44BFDBC1F19BA /* YarrByteCompiler.swift */; };
+		448518380D684262A3243044 /* YarrInterpreterMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7369A0B408BD45CAB40FF17A /* YarrInterpreterMatcher.swift */; };
+		59940B1D602E4E2A8049A666 /* YarrInterpreterSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 5E7ED4319C0A4210B98BA371 /* YarrInterpreterSwiftTypes.h */; };
 		86704B8512DBA33700A9FE7B /* YarrInterpreter.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B7E12DBA33700A9FE7B /* YarrInterpreter.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		86704B8712DBA33700A9FE7B /* YarrJIT.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B8012DBA33700A9FE7B /* YarrJIT.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		86704B8812DBA33700A9FE7B /* YarrParser.h in Headers */ = {isa = PBXBuildFile; fileRef = 86704B8112DBA33700A9FE7B /* YarrParser.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -5233,6 +5236,9 @@
 		866739D113BFDE710023D87C /* Uint16WithFraction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Uint16WithFraction.h; sourceTree = "<group>"; };
 		86704B4012DB8A8100A9FE7B /* YarrSyntaxChecker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrSyntaxChecker.cpp; path = yarr/YarrSyntaxChecker.cpp; sourceTree = "<group>"; };
 		86704B4112DB8A8100A9FE7B /* YarrSyntaxChecker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrSyntaxChecker.h; path = yarr/YarrSyntaxChecker.h; sourceTree = "<group>"; };
+		3154603EA8F44BFDBC1F19BA /* YarrByteCompiler.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = YarrByteCompiler.swift; path = yarr/YarrByteCompiler.swift; sourceTree = "<group>"; };
+		7369A0B408BD45CAB40FF17A /* YarrInterpreterMatcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = YarrInterpreterMatcher.swift; path = yarr/YarrInterpreterMatcher.swift; sourceTree = "<group>"; };
+		5E7ED4319C0A4210B98BA371 /* YarrInterpreterSwiftTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrInterpreterSwiftTypes.h; path = yarr/YarrInterpreterSwiftTypes.h; sourceTree = "<group>"; };
 		86704B7D12DBA33700A9FE7B /* YarrInterpreter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrInterpreter.cpp; path = yarr/YarrInterpreter.cpp; sourceTree = "<group>"; };
 		86704B7E12DBA33700A9FE7B /* YarrInterpreter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = YarrInterpreter.h; path = yarr/YarrInterpreter.h; sourceTree = "<group>"; };
 		86704B7F12DBA33700A9FE7B /* YarrJIT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = YarrJIT.cpp; path = yarr/YarrJIT.cpp; sourceTree = "<group>"; };
@@ -10059,8 +10065,11 @@
 				E3282BBA1FE930A400EDAF71 /* YarrErrorCode.h */,
 				A3FF9BC62234746600B1A9AB /* YarrFlags.cpp */,
 				A3FF9BC52234746600B1A9AB /* YarrFlags.h */,
+				3154603EA8F44BFDBC1F19BA /* YarrByteCompiler.swift */,
 				86704B7D12DBA33700A9FE7B /* YarrInterpreter.cpp */,
 				86704B7E12DBA33700A9FE7B /* YarrInterpreter.h */,
+				7369A0B408BD45CAB40FF17A /* YarrInterpreterMatcher.swift */,
+				5E7ED4319C0A4210B98BA371 /* YarrInterpreterSwiftTypes.h */,
 				86704B7F12DBA33700A9FE7B /* YarrJIT.cpp */,
 				86704B8012DBA33700A9FE7B /* YarrJIT.h */,
 				653BC43E26D013A600D8BE20 /* YarrJITRegisters.h */,
@@ -13319,6 +13328,7 @@
 				E3282BBB1FE930AF00EDAF71 /* YarrErrorCode.h in Headers */,
 				A3FF9BC72234749100B1A9AB /* YarrFlags.h in Headers */,
 				86704B8512DBA33700A9FE7B /* YarrInterpreter.h in Headers */,
+				59940B1D602E4E2A8049A666 /* YarrInterpreterSwiftTypes.h in Headers */,
 				86704B8712DBA33700A9FE7B /* YarrJIT.h in Headers */,
 				653BC43F26D013A600D8BE20 /* YarrJITRegisters.h in Headers */,
 				E3F0FC9526A11B4A0099FFA0 /* YarrMatchingContextHolder.h in Headers */,
@@ -14534,6 +14544,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B16D00010000000000000006 /* JSBigIntDigits.swift in Sources */,
+				B4C152F41E93449BA9C1565A /* YarrByteCompiler.swift in Sources */,
+				448518380D684262A3243044 /* YarrInterpreterMatcher.swift in Sources */,
 				B16D00010000000000000012 /* JSBigIntDigitsAddSub.swift in Sources */,
 				B16D00010000000000000014 /* JSBigIntDigitsDivide.swift in Sources */,
 				B16D0001000000000000001A /* JSBigIntDigitsFFT.swift in Sources */,

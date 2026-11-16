@@ -50,7 +50,6 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_BEGIN
 #include <JavaScriptCore/WeakGCMap.h>
 #include <JavaScriptCore/WriteBarrier.h>
 #include <wtf/ApproximateTime.h>
-#include <wtf/BumpPointerAllocator.h>
 #include <wtf/CheckedArithmetic.h>
 #include <wtf/Compiler.h>
 #include <wtf/LazyRef.h>
@@ -932,8 +931,6 @@ public:
     CrossTaskToken* crossTaskToken() const { return m_crossTaskToken.get(); }
     JS_EXPORT_PRIVATE void setCrossTaskToken(RefPtr<CrossTaskToken>&&);
     std::unique_ptr<RegExpCache> m_regExpCache;
-    BumpPointerAllocator m_regExpAllocator;
-    ConcurrentJSLock m_regExpAllocatorLock;
 
     const Ref<CompactTDZEnvironmentMap> m_compactVariableMap;
 
