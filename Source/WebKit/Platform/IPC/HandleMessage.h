@@ -656,11 +656,33 @@ void encodeDefaultSwiftReply(Encoder& encoder)
     });
 }
 
+// Calls a Swift dispatch function with the lender's view of the decoder: by reference for a Swift receiver's dispatch,
+// which takes it inout, or moved into the argument of a 'SwiftImplementation' receiver's, which takes it by value, so that
+// the argument isn't a second view, counted on the lease.
+template<bool movesDecoder, typename Argument>
+ALWAYS_INLINE decltype(auto) passSwiftDispatchArgument(Argument&& argument)
+{
+    if constexpr (movesDecoder && std::is_same_v<std::remove_cvref_t<Argument>, SwiftDecoder>)
+        return WTF::move(argument);
+    else
+        return std::forward<Argument>(argument);
+}
+
+template<typename Argument>
+using SwiftDispatchArgumentIfDecoderIsMoved = std::conditional_t<std::is_same_v<std::remove_cvref_t<Argument>, SwiftDecoder>, SwiftDecoder&&, Argument>;
+
+template<typename F, typename... Arguments>
+ALWAYS_INLINE bool invokeSwiftDispatch(F function, Arguments&&... arguments)
+{
+    constexpr bool movesDecoder = std::is_invocable_v<F, SwiftDispatchArgumentIfDecoderIsMoved<Arguments>...>;
+    SUPPRESS_UNCOUNTED_ARG return std::invoke(function, passSwiftDispatchArgument<movesDecoder>(std::forward<Arguments>(arguments))...);
+}
+
 template<typename MessageType, typename T, typename F>
 void handleSwiftMessage(Connection& connection, Decoder& decoder, T* object, F function)
 {
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view()))
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view()))
         markSwiftArgumentsInvalid(decoder);
 }
 
@@ -671,9 +693,9 @@ bool dispatchSwiftStreamMessage(StreamServerConnection& connection, T* object, F
 {
     ASSERT(connection.isCurrentWorkQueue());
     if constexpr (std::is_invocable_v<F, T*, StreamServerConnection*, Arguments...>)
-        SUPPRESS_UNCOUNTED_ARG return std::invoke(function, object, &connection, std::forward<Arguments>(arguments)...);
+        SUPPRESS_UNCOUNTED_ARG return invokeSwiftDispatch(function, object, &connection, std::forward<Arguments>(arguments)...);
     else
-        return std::invoke(function, object, std::forward<Arguments>(arguments)...);
+        return invokeSwiftDispatch(function, object, std::forward<Arguments>(arguments)...);
 }
 
 template<typename MessageType, typename T, typename F>
@@ -689,7 +711,7 @@ void handleSwiftMessageAsync(Connection& connection, Decoder& decoder, T* object
 {
     Ref replyEncoder = SwiftReplyEncoder::create(connection, makeUniqueRef<Encoder>(MessageType::asyncMessageReplyName(), decoder.asyncReplyID().toUInt64()), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view(), replyEncoder.ptr())) {
         replyEncoder->discard();
         markSwiftArgumentsInvalid(decoder);
         return;
@@ -743,7 +765,7 @@ void handleSwiftMessageSynchronous(Connection& connection, Decoder& decoder, Uni
 {
     Ref swiftReplyEncoder = SwiftReplyEncoder::create(connection, WTF::move(replyEncoder), encodeDefaultSwiftReply<MessageType>);
     NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
-    SUPPRESS_UNCOUNTED_ARG if (!std::invoke(function, object, &connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
+    SUPPRESS_UNCOUNTED_ARG if (!invokeSwiftDispatch(function, object, &connection, swiftDecoderLender.view(), swiftReplyEncoder.ptr())) {
         replyEncoder = makeUniqueRefFromNonNullUniquePtr(swiftReplyEncoder->discard());
         markSwiftArgumentsInvalid(decoder);
     }
