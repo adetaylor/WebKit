@@ -70,6 +70,7 @@ namespace WebCore {
 #if HAVE(IOSURFACE)
 class IOSurfacePool;
 #endif
+class ShareableBitmap;
 
 struct ImageBufferSurfaceCountsForTesting {
     uint64_t contextFlushes;
@@ -93,7 +94,11 @@ public:
     // A core over the surface, with a context that draws into it, cleared if shouldClear; empty if no context can be made.
     // The format is the one the backend asks for, which its display copies use.
     WEBCORE_EXPORT static ImageBufferSurface create(IOSurface&, IOSurfacePool*, IOSurface::Format, UseLosslessCompression, PlatformDisplayID, bool useWebKitBehavior, bool shouldClear);
+    // A core over a surface that the backend draws into through a bitmap context while it's locked.
+    WEBCORE_EXPORT static ImageBufferSurface createForMappedBitmap(IOSurface&, IOSurfacePool*);
 #endif
+    // A core over a bitmap's memory; empty for a bitmap with a gain map, whose images C++ makes.
+    WEBCORE_EXPORT static ImageBufferSurface create(ShareableBitmap&);
     // A core over a bitmap context, whose memory the data provider owns.
     WEBCORE_EXPORT static ImageBufferSurface create(CGContextRef, CGDataProviderRef, CGColorSpaceRef, IntSize, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, CGBitmapInfo);
 
@@ -140,7 +145,9 @@ private:
     // Foundation object return a +1 reference, which the caller adopts.
 #if HAVE(IOSURFACE)
     static uintptr_t createIOSurfaceSwiftState(uintptr_t surfaceState, uintptr_t poolState, IOSurface::Format, UseLosslessCompression, PlatformDisplayID, bool useWebKitBehavior, bool shouldClear);
+    static uintptr_t createMappedIOSurfaceBitmapSwiftState(uintptr_t surfaceState, uintptr_t poolState);
 #endif
+    static uintptr_t createShareableBitmapSwiftState(uintptr_t bitmapState);
     static uintptr_t createBitmapSwiftState(CGContextRef, CGDataProviderRef, CGColorSpaceRef, int width, int height, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, uint32_t bitmapInfo);
     static void destroySwiftState(uintptr_t);
     static CGContextRef swiftPlatformContext(uintptr_t);

@@ -43,6 +43,52 @@
 // OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Copyright (C) 2020-2023 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Copyright (C) 2020-2022 Apple Inc. All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in the
+//    documentation and/or other materials provided with the distribution.
+//
+// THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+// PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+// BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+// CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+// SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+// CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+// ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+// THE POSSIBILITY OF SUCH DAMAGE.
 
 #if ENABLE_WEBCORE_SWIFT && USE_CG
 
@@ -53,6 +99,7 @@ import IOSurface
 import Synchronization
 import WebCore_Private.Core.ImageBufferBackend
 import WebCore_Private.Core.ImageBufferSurface
+import WebCore_Private.Core.ShareableBitmap
 #if HAVE_IOSURFACE
 import WebCore_Private.Core.IOSurface
 import WebCore_Private.Core.IOSurfacePool
@@ -71,8 +118,9 @@ private func count(_ counter: borrowing Atomic<UInt64>) {
 }
 
 // The surface of an ImageBufferCGBackend and its state: an IOSurface with the context that draws into it, when Core
-// Graphics must flush it and invalidate the images of it, and its volatility; or a bitmap context and the data provider
-// that owns its memory. WebCore::ImageBufferSurface is a facade over it for the C++ backends.
+// Graphics must flush it and invalidate the images of it, and its volatility; an IOSurface that a bitmap context draws
+// into while it's locked, and its volatility; a shareable bitmap; or a bitmap context and the data provider that owns
+// its memory. WebCore::ImageBufferSurface is a facade over it for the C++ backends.
 // It isn't Sendable: like the backend that owns it, it's used on one thread at a time.
 // The context of a surface, in a class, so that a call that draws through it borrows it rather than retaining it.
 private final class PlatformContextHolder {
@@ -94,7 +142,9 @@ final class ImageBufferSurfaceCore {
     private enum Storage {
         #if HAVE_IOSURFACE
         case ioSurface(IOSurfaceCore)
+        case mappedIOSurfaceBitmap(IOSurfaceCore)
         #endif
+        case shareableBitmap(ShareableBitmapCore)
         case bitmap(CGContext, CGDataProvider, BitmapConfiguration)
         case sunk
     }
@@ -127,7 +177,33 @@ final class ImageBufferSurfaceCore {
         self.useWebKitBehavior = useWebKitBehavior
         self.pool = pool
     }
+
+    // A surface for a bitmap context, which the facade makes while it holds the surface's lock.
+    init(mappedBitmapSurface surface: IOSurfaceCore, pool: IOSurfacePoolCore?) {
+        self.width = surface.width
+        self.height = surface.height
+        self.colorSpace = surface.colorSpace
+        self.storage = .mappedIOSurfaceBitmap(surface)
+        self.format = surface.usedFormat?.format ?? .BGRA
+        self.useLosslessCompression = false
+        self.displayID = 0
+        self.useWebKitBehavior = false
+        self.pool = pool
+    }
     #endif
+
+    init(bitmap: ShareableBitmapCore) {
+        self.width = bitmap.width
+        self.height = bitmap.height
+        self.colorSpace = bitmap.colorSpace
+        self.storage = .shareableBitmap(bitmap)
+        #if HAVE_IOSURFACE
+        self.format = .BGRA
+        self.useLosslessCompression = false
+        self.displayID = 0
+        self.useWebKitBehavior = false
+        #endif
+    }
 
     init(context: CGContext, provider: CGDataProvider, colorSpace: CGColorSpace, width: Int32, height: Int32, configuration: BitmapConfiguration) {
         self.width = width
@@ -146,16 +222,19 @@ final class ImageBufferSurfaceCore {
         CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height))
     }
 
-    var context: CGContext {
+    // The context the facade draws through: nil for the surfaces whose facade makes its own.
+    var context: CGContext? {
         switch storage {
         #if HAVE_IOSURFACE
         case .ioSurface(let surface):
             return ensurePlatformContext(surface).platformContext.context
+        case .mappedIOSurfaceBitmap:
+            return nil
         #endif
         case .bitmap(let context, _, _):
             return context
-        case .sunk:
-            preconditionFailure("The surface was sunk into an image")
+        case .shareableBitmap, .sunk:
+            return nil
         }
     }
 
@@ -169,7 +248,11 @@ final class ImageBufferSurfaceCore {
             count(imageCreationCount)
             let holder = ensurePlatformContext(surface)
             return surface.createImage(holder.platformContext)
+        case .mappedIOSurfaceBitmap:
+            return nil
         #endif
+        case .shareableBitmap(let bitmap):
+            return bitmap.createBasePlatformImage(copyBackingStore: true, shouldInterpolate: false)
         case .bitmap(let context, _, _):
             return context.makeImage()
         case .sunk:
@@ -189,7 +272,11 @@ final class ImageBufferSurfaceCore {
             // The context is one of this surface's. An image made again for every use gets no hits from Core Graphics'
             // per-image caches, nor from GraphicsContext's subimage cache.
             return unsafe WebCore.ioSurfaceContextCreateImageReference(holder.platformContext.context, true)
+        case .mappedIOSurfaceBitmap:
+            return nil
         #endif
+        case .shareableBitmap(let bitmap):
+            return bitmap.createBasePlatformImage(copyBackingStore: false, shouldInterpolate: false)
         case .bitmap(_, let provider, let configuration):
             // No decode array.
             return unsafe CGImage(
@@ -223,11 +310,30 @@ final class ImageBufferSurfaceCore {
         return holder
     }
 
+    // The surface of an accelerated backend.
     private var surface: IOSurfaceCore? {
         guard case .ioSurface(let surface) = storage else {
             return nil
         }
         return surface
+    }
+
+    // The surface of an accelerated backend, or of a backend that draws into its surface through a bitmap context.
+    private var anySurface: IOSurfaceCore? {
+        switch storage {
+        case .ioSurface(let surface), .mappedIOSurfaceBitmap(let surface):
+            return surface
+        case .shareableBitmap, .bitmap, .sunk:
+            return nil
+        }
+    }
+
+    // The context of an accelerated backend's surface.
+    private var surfaceContext: CGContext {
+        guard let surface else {
+            preconditionFailure("Not the surface of an accelerated backend")
+        }
+        return ensurePlatformContext(surface).platformContext.context
     }
 
     // Makes the context of an accelerated backend's surface: false if it can't.
@@ -243,7 +349,7 @@ final class ImageBufferSurfaceCore {
     }
 
     fileprivate func clear() {
-        context.clear(bounds)
+        surfaceContext.clear(bounds)
     }
 
     func releasePlatformContext() {
@@ -259,7 +365,7 @@ final class ImageBufferSurfaceCore {
         }
         needsFirstFlush = false
         count(contextFlushCount)
-        context.flush()
+        surfaceContext.flush()
         return true
     }
 
@@ -278,7 +384,7 @@ final class ImageBufferSurfaceCore {
         }
         if needsFlush {
             count(contextFlushCount)
-            context.flush()
+            surfaceContext.flush()
         }
     }
 
@@ -290,7 +396,7 @@ final class ImageBufferSurfaceCore {
     // to (https://webkit.org/b/157966, https://webkit.org/b/228682). True if a flush must complete it.
     private func invalidateCachedImage() -> Bool {
         count(cachedImageInvalidationCount)
-        let context = self.context
+        let context = surfaceContext
         // The context is one of this surface's.
         if unsafe WebCore.ioSurfaceContextInvalidateSurface(context) {
             return false
@@ -302,7 +408,7 @@ final class ImageBufferSurfaceCore {
     func submitDrawingCommands() {
         count(drawingCommandSubmissionCount)
         // The context is one of this surface's.
-        if unsafe WebCore.ioSurfaceContextFlushQueue(context) {
+        if unsafe WebCore.ioSurfaceContextFlushQueue(surfaceContext) {
             return
         }
         // Making an image makes the rendering start.
@@ -321,37 +427,51 @@ final class ImageBufferSurfaceCore {
     }
 
     func setVolatile() -> Bool {
-        guard let surface else {
+        switch storage {
+        case .ioSurface(let surface):
+            if surface.isInUse {
+                return false
+            }
+            if volatilityState == .Volatile {
+                assert(surface.isVolatile)
+                return true
+            }
+            volatilityState = .Volatile
+            surface.setVolatile(true)
+            return true
+        case .mappedIOSurfaceBitmap(let surface):
+            if surface.isInUse {
+                return false
+            }
+            volatilityState = .Volatile
+            surface.setVolatile(true)
+            return true
+        case .shareableBitmap, .bitmap, .sunk:
             return true
         }
-        if surface.isInUse {
-            return false
-        }
-        if volatilityState == .Volatile {
-            assert(surface.isVolatile)
-            return true
-        }
-        volatilityState = .Volatile
-        surface.setVolatile(true)
-        return true
     }
 
     func setNonVolatile() -> WebCore.SetNonVolatileResult {
-        guard let surface else {
+        switch storage {
+        case .ioSurface(let surface):
+            guard volatilityState == .Volatile else {
+                assert(!surface.isVolatile)
+                return .Valid
+            }
+            volatilityState = .NonVolatile
+            let previousState = surface.setVolatile(false)
+            if previousState == .Empty {
+                let context = surfaceContext
+                assert(context.ctm.isIdentity)
+                context.clear(bounds)
+            }
+            return previousState
+        case .mappedIOSurfaceBitmap(let surface):
+            volatilityState = .NonVolatile
+            return surface.setVolatile(false)
+        case .shareableBitmap, .bitmap, .sunk:
             return .Valid
         }
-        guard volatilityState == .Volatile else {
-            assert(!surface.isVolatile)
-            return .Valid
-        }
-        volatilityState = .NonVolatile
-        let previousState = surface.setVolatile(false)
-        if previousState == .Empty {
-            let context = self.context
-            assert(context.ctm.isIdentity)
-            context.clear(bounds)
-        }
-        return previousState
     }
 
     func setVolatilityState(_ state: WebCore.VolatilityState) {
@@ -370,7 +490,7 @@ final class ImageBufferSurfaceCore {
     }
 
     func moveSurfaceToPool() {
-        guard let surface else {
+        guard let surface = anySurface else {
             return
         }
         platformContext = nil
@@ -444,7 +564,19 @@ extension WebCore.ImageBufferSurface {
         }
         return ImageBufferSurfaceCore.retained(core)
     }
+
+    @cxx
+    @implementation
+    static func createMappedIOSurfaceBitmapSwiftState(_ surfaceState: UInt, _ poolState: UInt) -> UInt {
+        ImageBufferSurfaceCore.retained(ImageBufferSurfaceCore(mappedBitmapSurface: IOSurfaceCore.borrowed(surfaceState), pool: IOSurfacePoolCore.borrowed(poolState)))
+    }
     #endif
+
+    @cxx
+    @implementation
+    static func createShareableBitmapSwiftState(_ bitmapState: UInt) -> UInt {
+        ImageBufferSurfaceCore.retained(ImageBufferSurfaceCore(bitmap: WebCore.ShareableBitmap.borrowed(bitmapState)))
+    }
 
     @cxx
     @implementation
@@ -480,7 +612,7 @@ extension WebCore.ImageBufferSurface {
     @cxx
     @implementation
     static func swiftPlatformContext(_ swiftState: UInt) -> Unmanaged<CGContext>? {
-        unsafe Unmanaged.passRetained(ImageBufferSurfaceCore.borrowed(swiftState).context)
+        unsafe ImageBufferSurfaceCore.borrowed(swiftState).context.map { unsafe Unmanaged.passRetained($0) }
     }
 
     @cxx
