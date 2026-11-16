@@ -239,6 +239,7 @@ if (ENABLE_JAVASCRIPTCORE)
         Tests/JavaScriptCore/StrongBlock.cpp
         Tests/JavaScriptCore/TemporalBench.cpp
         Tests/JavaScriptCore/WeakSet.cpp
+        Tests/JavaScriptCore/YarrInterpreterBench.cpp
     )
 
     set(TestJavaScriptCore_LIBRARIES
