@@ -283,6 +283,23 @@ messages -> TestReceiver %s {
         self.assertIn('    ASSERT(m_workQueue && m_workQueue->isCurrent());\n', implementation)
         self.assertIn('    RELEASE_ASSERT(m_workQueue.get() == &workQueue);\n', implementation)
 
+        # With EnabledBy, the forwarder checks its own copy of the shared preferences, which it is given, rather than
+        # asking Swift for them.
+        receiver = parser.parse(io.StringIO("""
+[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, SwiftReceiver, SwiftTypes, EnabledBy=SomeFeature]
+messages -> TestReceiver WorkQueue {
+    Message(uint32_t value)
+}
+"""))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('    void updateSharedPreferences(SharedPreferencesForWebProcess);\n', header)
+        self.assertIn('    std::optional<SharedPreferencesForWebProcess> m_sharedPreferences;\n', header)
+        self.assertNotIn('m_sharedPreferencesProvider', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('    auto& sharedPreferences = m_sharedPreferences;\n', implementation)
+        self.assertIn('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n', implementation)
+        self.assertNotIn('sharedPreferencesForWebProcess', messages.generate_swift_message_handler(receiver))
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
             parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver cannot have both 'WorkQueue' and 'Stream'"):
