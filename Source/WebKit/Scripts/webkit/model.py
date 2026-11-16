@@ -25,7 +25,7 @@ import re
 
 from collections import Counter, defaultdict
 from .opaque_ipc_types import is_opaque_type, opaque_ipc_types
-from .swift_types import UnmappableSwiftType, is_lent_bytes, is_lent_cxx_view, is_owned_type, strip_cpp_type_decorations, swift_type_and_coder
+from .swift_types import UnmappableSwiftType, is_lent_bytes, is_lent_cxx_view, is_owned_type, strip_cpp_type_decorations, swift_type_and_coder, takes_decode_context
 from .untrusted_origins import conveys_untrusted_value, is_privileged_receiver, unwrap_if_untrusted, unwrap_untrusted
 
 BUILTIN_ATTRIBUTE = "Builtin"
@@ -69,6 +69,7 @@ RECORDABLE_ATTRIBUTE = 'Recordable'
 # On a parameter of a message to a 'Recordable' receiver whose type a recording can't keep: the type it records instead,
 # made from the argument, whose argument() gives the handler the argument back.
 RECORDED_AS_ATTRIBUTE_PREFIX = 'RecordedAs='
+SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX = 'SwiftDecodeContext='
 # On a message to a 'Recordable' receiver that a recording leaves out: the recorder's dispatch calls the recorder's own
 # handler of it.
 NOT_RECORDED_ATTRIBUTE = 'NotRecorded'
@@ -83,7 +84,7 @@ WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE = 'WantsAsyncDispatchMessage'
 
 # Names the generated Swift dispatch of a message that takes Swift types gives its own locals and
 # stored properties, so a parameter cannot have them.
-_SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'replyEncoder', 'reply', 'target'])
+_SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'decodeContext', 'replyEncoder', 'reply', 'target'])
 # Types that refer to storage they don't own, which a 'CxxDecoded' holder can't take.
 _NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
@@ -179,6 +180,8 @@ class MessageReceiver(object):
             for message in self.messages:
                 if message.has_attribute(SWIFT_MAY_DECLINE_ATTRIBUTE):
                     raise Exception("ERROR: Message %s.%s has '%s', which is for receivers with 'SwiftReceiverStateLender='" % (self.name, message.name, SWIFT_MAY_DECLINE_ATTRIBUTE))
+                if message.swift_decode_context():
+                    raise Exception("ERROR: Message %s.%s has '%s', which is for receivers with 'SwiftReceiverStateLender='" % (self.name, message.name, SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX))
             return
         if not self.is_swift_receiver() or not self.has_attribute(STREAM_ATTRIBUTE):
             raise Exception("ERROR: Receiver %s has 'SwiftReceiverStateLender=%s', which is for Swift stream receivers" % (self.name, self.swift_receiver_state_lender))
@@ -191,6 +194,11 @@ class MessageReceiver(object):
                 for parameter in message.parameters:
                     if parameter.attributes:
                         raise Exception("ERROR: Message %s takes Swift types, which is not supported with attributes on parameter '%s' on a receiver with 'SwiftReceiverStateLender='" % (description, parameter.name))
+            if message.swift_decode_context():
+                if not self.takes_swift_types(message):
+                    raise Exception("ERROR: Message %s has '%s', which is for messages that take Swift types" % (description, SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX))
+                if not any(takes_decode_context(parameter.type) for parameter in message.parameters):
+                    raise Exception("ERROR: Message %s has '%s', but none of its parameters has a Swift coder that takes a decoding context" % (description, SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX))
             if message.reply_parameters is not None:
                 raise Exception("ERROR: Message %s has a reply, which is not supported on a receiver with 'SwiftReceiverStateLender='" % description)
             for parameter in message.parameters:
@@ -365,6 +373,14 @@ class Message(object):
 
     def has_attribute(self, attribute):
         return attribute in self.attributes
+
+    # The method of a lent-state receiver that its Swift dispatch asks, with the state, for the context to decode the
+    # arguments whose Swift coders take one ('SwiftDecodeContext='), or None.
+    def swift_decode_context(self):
+        for attribute in self.attributes:
+            if attribute.startswith(SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX):
+                return attribute[len(SWIFT_DECODE_CONTEXT_ATTRIBUTE_PREFIX):]
+        return None
 
 
 class Parameter(object):

@@ -99,6 +99,14 @@ _HAND_WRITTEN_TYPES = {
     'WebCore::Path': 'IPCTypes.Path',
 }
 
+# Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
+# handler for ('SwiftDecodeContext='): what of the value the handler will use.
+_DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path'])
+
+
+def takes_decode_context(cpp_type):
+    return strip_cpp_type_decorations(cpp_type) in _DECODE_CONTEXT_TYPES
+
 
 def is_hand_written(cpp_type):
     """Whether the Swift form of a C++ IPC type is one that SwiftCoding.swift writes by hand, like IPCTypes.ColorSpace."""

@@ -30,6 +30,7 @@
 #include "TestWithStreamSwiftLentStateLender.h" // NOLINT
 #include "TestWithStreamSwiftLentStateMessages.h" // NOLINT
 #include <WebCore/FloatRect.h> // NOLINT
+#include <WebCore/Path.h> // NOLINT
 #include <wtf/Vector.h> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
@@ -55,6 +56,10 @@ void TestWithStreamSwiftLentStateMessageForwarder::didReceiveStreamMessage(IPC::
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::SetLabel::name()) {
         IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftLentState::SetLabel>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchSetLabel);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftLentState::FillPath::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftLentState::FillPath>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftLentStateWeakRef::dispatchFillPath);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -103,6 +108,10 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetLabel>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::SetLabel::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_FillPath>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftLentState::FillPath::Arguments>(globalObject, decoder);
 }
 
 }

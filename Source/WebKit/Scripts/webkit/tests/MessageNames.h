@@ -171,6 +171,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftImplementation_SendValues,
     TestWithStreamSwiftImplementation_SendWithConnection,
     TestWithStreamSwiftLentState_Draw,
+    TestWithStreamSwiftLentState_FillPath,
     TestWithStreamSwiftLentState_Reset,
     TestWithStreamSwiftLentState_SetLabel,
     TestWithStreamSwiftLentState_SetValues,
@@ -178,6 +179,7 @@ enum class MessageName : uint16_t {
     TestWithStreamSwiftRecordable_Draw,
 #endif
     TestWithStreamSwiftRecordable_DrawRun,
+    TestWithStreamSwiftRecordable_FillPath,
     TestWithStreamSwiftRecordable_Reset,
     TestWithStreamSwiftRecordable_SetLabel,
     TestWithStreamSwiftRecordable_SetLabelSource,

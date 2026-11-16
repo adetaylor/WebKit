@@ -38,6 +38,7 @@
 
 namespace WebCore {
 class FloatRect;
+class Path;
 }
 namespace WebKit {
 class TestWithStreamSwiftLentState;
@@ -194,6 +195,33 @@ public:
 private:
     const String& m_label;
     SUPPRESS_FORWARD_DECL_MEMBER const Vector<uint32_t>& m_values;
+};
+
+class FillPath {
+public:
+    using Arguments = std::tuple<WebCore::Path>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftLentState_FillPath; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    explicit FillPath(const WebCore::Path& path)
+        : m_path(path)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_path;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::Path& m_path;
 };
 
 } // namespace TestWithStreamSwiftLentState

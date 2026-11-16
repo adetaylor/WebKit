@@ -642,6 +642,16 @@ messages -> TestReceiver Stream {
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) -> (uint32_t reply)')
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'state'"):
             parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t state)')
+        receiver = parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(WebCore::Path path) SwiftTypes SwiftDecodeContext=pathDecodeContext')
+        self.assertEqual(receiver.messages[0].swift_decode_context(), 'pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', but none of its parameters has a Swift coder that takes a decoding context"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t value) SwiftTypes SwiftDecodeContext=valueDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', which is for messages that take Swift types"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(WebCore::Path path) SwiftDecodeContext=pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftDecodeContext=', which is for receivers with 'SwiftReceiverStateLender='"):
+            parse(['SwiftReceiver', 'SwiftTypes'], '    Message(WebCore::Path path) SwiftDecodeContext=pathDecodeContext')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message takes Swift types, so cannot have a parameter named 'decodeContext'"):
+            parse(['SwiftReceiver', 'SwiftReceiverStateLender=WebKit::Lender'], '    Message(uint32_t decodeContext) SwiftTypes')
 
     def test_recordable_constraints(self):
         stream_receiver = """

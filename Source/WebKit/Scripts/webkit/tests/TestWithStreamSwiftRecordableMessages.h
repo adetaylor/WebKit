@@ -38,6 +38,7 @@
 namespace WebCore {
 class FloatPoint;
 class FloatRect;
+class Path;
 }
 
 namespace WebKit {
@@ -111,6 +112,7 @@ public:
     void encodeDraw(const WebCore::FloatRect& rect, bool clip);
 #endif
     IPC::SwiftReplyEncoder* WTF_NONNULL encoderForSetLabel() SWIFT_RETURNS_RETAINED;
+    IPC::SwiftReplyEncoder* WTF_NONNULL encoderForFillPath() SWIFT_RETURNS_RETAINED;
     void appendEncodedMessage(IPC::SwiftReplyEncoder&);
     Vector<uint8_t> takeEncodedMessages() { return std::exchange(m_encodedMessages, { }); }
 private:
@@ -328,6 +330,33 @@ public:
 
 private:
     uint64_t m_source;
+};
+
+class FillPath {
+public:
+    using Arguments = std::tuple<WebCore::Path>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_FillPath; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    explicit FillPath(const WebCore::Path& path)
+        : m_path(path)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_path;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const WebCore::Path& m_path;
 };
 
 } // namespace TestWithStreamSwiftRecordable

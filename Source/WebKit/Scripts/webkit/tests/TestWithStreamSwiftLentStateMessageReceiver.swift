@@ -113,6 +113,31 @@ final class TestWithStreamSwiftLentStateWeakRef {
         }
         return .Handled
     }
+
+    @used
+    func dispatchFillPath(
+        state: inout TestWithStreamSwiftLentState.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let path: IPCTypes.Path
+        let decodeContext = target.pathDecodeContext(state: state)
+        do {
+            path = try IPCTypes.Path.decode(from: &decoder, context: decodeContext)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.fillPath(
+                    state: &state,
+                    path: path
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftLentStateMessageForwarder {

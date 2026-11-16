@@ -109,6 +109,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamSwiftImplementation_SendValues"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftImplementation_SendWithConnection"_s, ReceiverName::TestWithStreamSwiftImplementation, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_Draw"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftLentState_FillPath"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_Reset"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_SetLabel"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftLentState_SetValues"_s, ReceiverName::TestWithStreamSwiftLentState, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
@@ -116,6 +117,7 @@ const MessageDescriptionsArray messageDescriptions {
     MessageDescription { "TestWithStreamSwiftRecordable_Draw"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
 #endif
     MessageDescription { "TestWithStreamSwiftRecordable_DrawRun"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
+    MessageDescription { "TestWithStreamSwiftRecordable_FillPath"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftRecordable_Reset"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftRecordable_SetLabel"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },
     MessageDescription { "TestWithStreamSwiftRecordable_SetLabelSource"_s, ReceiverName::TestWithStreamSwiftRecordable, true, false, false, ProcessName::Unknown, ProcessName::Unknown },

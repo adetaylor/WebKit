@@ -347,6 +347,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_Draw>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftLentState_SetLabel:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_SetLabel>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftLentState_FillPath:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftLentState_FillPath>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftRecordable_Reset:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_Reset>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftRecordable_SetSource:
@@ -363,6 +365,8 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetLabel>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftRecordable_SetLabelSource:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetLabelSource>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftRecordable_FillPath:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_FillPath>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftReplyValues_SendLaterSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
@@ -1586,6 +1590,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
             { "label"_s, "String"_s },
             { "values"_s, "Vector<uint32_t>"_s },
         };
+    case MessageName::TestWithStreamSwiftLentState_FillPath:
+        return Vector<ArgumentDescription> {
+            { "path"_s, "WebCore::Path"_s },
+        };
     case MessageName::TestWithStreamSwiftRecordable_Reset:
         return Vector<ArgumentDescription> { };
     case MessageName::TestWithStreamSwiftRecordable_SetSource:
@@ -1617,6 +1625,10 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
     case MessageName::TestWithStreamSwiftRecordable_SetLabelSource:
         return Vector<ArgumentDescription> {
             { "source"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftRecordable_FillPath:
+        return Vector<ArgumentDescription> {
+            { "path"_s, "WebCore::Path"_s },
         };
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return Vector<ArgumentDescription> {
