@@ -230,6 +230,8 @@ private:
     ShareableBitmapConfiguration m_configuration;
     const Ref<SharedMemory> m_sharedMemory;
 #if USE(CG)
+    friend class ImageBufferSurface;
+
     std::optional<SharedMemoryHandle> m_ownershipHandle;
 
     // Implemented in ShareableBitmapCG.swift. m_swiftState is a +1 reference to the ShareableBitmapCore, and the context and

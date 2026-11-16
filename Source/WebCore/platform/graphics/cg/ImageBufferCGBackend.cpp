@@ -31,6 +31,7 @@
 #include "IOSurfacePool.h"
 #include "IntRect.h"
 #include "PixelBuffer.h"
+#include "ShareableBitmap.h"
 #include <CoreGraphics/CoreGraphics.h>
 #include <wtf/MachSendRight.h>
 #include <wtf/TZoneMallocInlines.h>
@@ -93,7 +94,19 @@ ImageBufferSurface ImageBufferSurface::create(IOSurface& surface, IOSurfacePool*
 {
     return ImageBufferSurface { createIOSurfaceSwiftState(surface.m_swiftState, pool ? pool->m_swiftState : 0, format, useLosslessCompression, displayID, useWebKitBehavior, shouldClear) };
 }
+
+ImageBufferSurface ImageBufferSurface::createForMappedBitmap(IOSurface& surface, IOSurfacePool* pool)
+{
+    return ImageBufferSurface { createMappedIOSurfaceBitmapSwiftState(surface.m_swiftState, pool ? pool->m_swiftState : 0) };
+}
 #endif
+
+ImageBufferSurface ImageBufferSurface::create(ShareableBitmap& bitmap)
+{
+    if (bitmap.m_configuration.shareableGainMap())
+        return { };
+    return ImageBufferSurface { createShareableBitmapSwiftState(bitmap.m_swiftState) };
+}
 
 ImageBufferSurface ImageBufferSurface::create(CGContextRef context, CGDataProviderRef dataProvider, CGColorSpaceRef colorSpace, IntSize size, size_t bitsPerComponent, size_t bitsPerPixel, size_t bytesPerRow, CGBitmapInfo bitmapInfo)
 {

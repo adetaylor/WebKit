@@ -228,7 +228,7 @@ extension WebCore.ShareableBitmap {
         unsafe Unmanaged<ShareableBitmapCore>.fromOpaque(UnsafeRawPointer(bitPattern: m_swiftState)!).takeUnretainedValue()
     }
 
-    private static func borrowed(_ swiftState: UInt) -> ShareableBitmapCore {
+    static func borrowed(_ swiftState: UInt) -> ShareableBitmapCore {
         unsafe Unmanaged<ShareableBitmapCore>.fromOpaque(UnsafeRawPointer(bitPattern: swiftState)!).takeUnretainedValue()
     }
 
