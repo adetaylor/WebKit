@@ -263,8 +263,9 @@ CGRendererBrushSource imageBufferPatternBrush(const RemoteCGRendererResources&, 
 CGImageRef _Nullable copyMeshGradientImage(const RemoteCGRendererResources&, RemoteMeshGradientIdentifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace&, CGSize destinationSize, CGRendererImageFacts&, CGRendererImageOptions&) CF_RETURNS_RETAINED;
 
 // The CGPath of a cached path (Path::platformPath()): the backend's, or, in a replay, the one the recording kept. Null for a
-// missing path, which is an invalid message.
-CGPathRef _Nullable copyCachedPlatformPath(const RemoteCGRendererResources&, RemotePathImplIdentifier) CF_RETURNS_RETAINED;
+// missing path, which is an invalid message. Unsafe in Swift, which shares it with the cache: only CGRendererPlatformPath may
+// hold it.
+SWIFT_UNSAFE CGPathRef _Nullable copyCachedPlatformPath(const RemoteCGRendererResources&, RemotePathImplIdentifier) CF_RETURNS_RETAINED;
 
 // The CFURL of a SetURLForRect's link, as GraphicsContextCG::setURLForRect() makes it.
 CFURLRef _Nullable copyURL(const URL&) CF_RETURNS_RETAINED;

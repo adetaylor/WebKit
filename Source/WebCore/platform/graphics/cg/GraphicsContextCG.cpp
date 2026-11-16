@@ -839,6 +839,18 @@ void CGRendererClipOutToPathImpl(CGContextRef context, const WebCore::PathImpl& 
     CGContextEOClip(context);
 }
 
+void CGRendererClipOutToPlatformPath(CGContextRef context, CGPathRef path)
+{
+    CGContextBeginPath(context);
+    CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+    auto ctm = CGContextGetCTM(context);
+    RetainPtr transformedPath = adoptCF(CGPathCreateCopyByTransformingPath(path, &ctm));
+    CGContextSetCTM(context, CGAffineTransformIdentity);
+    CGContextAddPath(context, transformedPath.get());
+    CGContextSetCTM(context, ctm);
+    CGContextEOClip(context);
+}
+
 CGImageRef CGRendererCopySubimage(CGImageRef image, CGRect rect)
 {
 #if CACHE_SUBIMAGES

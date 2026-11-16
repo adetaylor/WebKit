@@ -37,6 +37,9 @@ import IOSurface
 #if canImport(CoreGraphics)
 import CoreGraphics
 import Foundation
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+@_spi(WebKitGPU) internal import WebCore
+#endif
 #endif
 
 /// A malformed message argument, which makes C++ mark the message invalid.
@@ -1101,6 +1104,51 @@ extension IPCCoding {
         }
     }
 }
+
+#if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+extension IPCTypes {
+    /// WebCore::Path, which C++ decodes as it does, as a Vector of its segments, so that Swift accepts exactly what C++ does,
+    /// into the CGPath that Path makes of more than one segment and what the CG renderer asks of the path besides
+    /// (IPC.decodeCGRendererPath()). It is encoded as C++ encodes a Path: of its segment, or of its CGPath's elements. Only this
+    /// type reaches the CGPath, to encode it; the renderer draws it as a CGRendererPlatformPath.
+    struct Path: IPCCoder, Sendable {
+        private let facts: CGRendererPathFacts
+        /// Of a path of more than one segment, and only of one.
+        private let platformPath: CGPath?
+
+        /// The path that Path makes of the segments: none, one, or a PathStream of them.
+        var rendererPath: CGRendererPath {
+            if let platformPath {
+                return .segments(CGRendererPlatformPath(platformPath), facts)
+            }
+            if facts.segmentCount == 1 {
+                return .segment(facts.segment)
+            }
+            return .empty
+        }
+
+        #if ENABLE_IPC_TESTING_API
+        /// What the renderer takes of the path, for a test that compares it with a path that C++ decoded.
+        var testingDescription: WTF.String {
+            WebKit.ipcTesterPathDescription(platformPath, facts)
+        }
+        #endif
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Path {
+            var facts = CGRendererPathFacts()
+            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts)
+            guard decoder.isValid() else {
+                throw IPCDecodingError()
+            }
+            return Path(facts: facts, platformPath: platformPath)
+        }
+
+        static func encode(_ value: Path, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeCGRendererPath(value.platformPath, value.facts)
+        }
+    }
+}
+#endif
 
 extension IPCTypes {
     /// WebCore::Color, as C++ encodes it: Color::data(), a std::optional of a WebCore::ColorDataForIPC, whose Variant holds

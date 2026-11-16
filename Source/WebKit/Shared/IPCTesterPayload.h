@@ -92,6 +92,7 @@
 #include <WebCore/AffineTransform.h>
 #include <WebCore/CGRendererSwiftBridge.h>
 #include <WebCore/Path.h>
+#include <WebCore/PathCG.h>
 #include <WebCore/WindRule.h>
 #endif
 #endif
@@ -634,19 +635,106 @@ inline String ipcTesterDescription(WebCore::WindRule rule, const WebCore::Affine
     return builder.toString();
 }
 
-// The segments of a path, as the CG renderer takes them (CGRendererPathSegmentValues()), for a path decoded in C++ and in Swift.
-inline String ipcTesterDescription(const WebCore::Path& path)
+// What the CG renderer takes of a path (CGRendererPathFacts and the CGPath of a path of more than one segment), for a path
+// decoded in Swift, and for one decoded in C++, of which Path itself gives them.
+// A digest of the pixels of a bitmap filled black after a clip out.
+template<typename ClipOut> uint64_t ipcTesterClipOutDigest(const ClipOut& clipOut)
 {
-    StringBuilder builder;
-    auto segments = path.segments();
-    builder.append("segments="_s, segments.size());
-    for (auto& segment : segments) {
-        auto values = CGRendererPathSegmentValues(segment);
-        builder.append(' ', static_cast<unsigned>(values.kind), ':', values.flag ? 1 : 0);
+    constexpr size_t side = 64;
+    RetainPtr colorSpace = adoptCF(CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
+    RetainPtr context = adoptCF(CGBitmapContextCreate(nullptr, side, side, 8, side * 4, colorSpace.get(), kCGImageAlphaPremultipliedLast));
+    CGContextSetRGBFillColor(context.get(), 1, 1, 1, 1);
+    CGContextFillRect(context.get(), CGRectMake(0, 0, side, side));
+    clipOut(context.get());
+    CGContextSetRGBFillColor(context.get(), 0, 0, 0, 1);
+    CGContextFillRect(context.get(), CGRectMake(0, 0, side, side));
+    uint64_t digest = 14695981039346656037ull;
+    for (auto byte : unsafeMakeSpan(static_cast<const uint8_t*>(CGBitmapContextGetData(context.get())), side * side * 4)) {
+        digest ^= byte;
+        digest *= 1099511628211ull;
+    }
+    return digest;
+}
+
+inline String ipcTesterPathDescription(CGPathRef WTF_NULLABLE platformPath, CGRendererPathFacts facts, uint64_t clipOutDigest) __attribute__((availability(swift, unavailable)))
+{
+    auto appendSegment = [](StringBuilder& builder, const CGRendererPathSegment& values) {
+        builder.append(static_cast<unsigned>(values.kind), ':', values.flag ? 1 : 0);
         for (float value : std::span { values.values })
             builder.append(',', std::bit_cast<uint32_t>(value));
+    };
+    StringBuilder builder;
+    builder.append("segments="_s, facts.segmentCount);
+    if (facts.segmentCount == 1) {
+        builder.append(" segment="_s);
+        appendSegment(builder, facts.segment);
     }
+    builder.append(" wedge="_s);
+    appendSegment(builder, facts.pieWedgeArc);
+    builder.append(" clipout="_s, clipOutDigest);
+    if (!platformPath)
+        return builder.toString();
+    builder.append(" bounds="_s, std::bit_cast<uint64_t>(facts.fastBoundingRect.origin.x), ',', std::bit_cast<uint64_t>(facts.fastBoundingRect.origin.y), ',',
+        std::bit_cast<uint64_t>(facts.fastBoundingRect.size.width), ',', std::bit_cast<uint64_t>(facts.fastBoundingRect.size.height), " elements="_s);
+    CGPathApply(platformPath, &builder, [](void* info, const CGPathElement* element) {
+        auto& builder = *static_cast<StringBuilder*>(info);
+        size_t pointCount = 0;
+        switch (element->type) {
+        case kCGPathElementMoveToPoint:
+        case kCGPathElementAddLineToPoint:
+            pointCount = 1;
+            break;
+        case kCGPathElementAddQuadCurveToPoint:
+            pointCount = 2;
+            break;
+        case kCGPathElementAddCurveToPoint:
+            pointCount = 3;
+            break;
+        case kCGPathElementCloseSubpath:
+            break;
+        }
+        builder.append(' ', static_cast<int>(element->type));
+        for (auto& point : unsafeMakeSpan(element->points, pointCount))
+            builder.append(',', std::bit_cast<uint64_t>(point.x), ',', std::bit_cast<uint64_t>(point.y));
+    });
     return builder.toString();
+}
+
+// The same for a path decoded in Swift, clipped out as the renderer clips it out (CGRendererPath.clipOut()).
+inline String ipcTesterPathDescription(CGPathRef WTF_NULLABLE platformPath, CGRendererPathFacts facts)
+{
+    RetainPtr<CGPathRef> clipOutPath = platformPath;
+    if (!clipOutPath && facts.segmentCount == 1)
+        clipOutPath = adoptCF(CGRendererCreatePath(facts.segment));
+    auto digest = ipcTesterClipOutDigest([&](CGContextRef context) {
+        if (clipOutPath) {
+            CGRendererClipOutToPlatformPath(context, clipOutPath.get());
+            return;
+        }
+        CGContextBeginPath(context);
+        CGContextAddRect(context, CGContextGetClipBoundingBox(context));
+        CGContextEOClip(context);
+    });
+    return ipcTesterPathDescription(platformPath, facts, digest);
+}
+
+inline String ipcTesterDescription(const WebCore::Path& path)
+{
+    auto segments = path.segments();
+    CGRendererPathFacts facts { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero };
+    if (segments.size() == 1)
+        facts.segment = CGRendererPathSegmentValues(segments[0]);
+    if (auto arc = path.pieWedgeArc())
+        facts.pieWedgeArc = CGRendererPathSegmentValues(WebCore::PathSegment { *arc });
+    // C++ clips a PathCG of the segments out, as GraphicsContextCG::clipOut() does a Path of a CGPath.
+    Ref pathCG = WebCore::PathCG::create(segments.span());
+    auto digest = ipcTesterClipOutDigest([&](CGContextRef context) {
+        CGRendererClipOutToPathImpl(context, pathCG.get());
+    });
+    if (segments.size() < 2)
+        return ipcTesterPathDescription(nullptr, facts, digest);
+    facts.fastBoundingRect = path.fastBoundingRect();
+    return ipcTesterPathDescription(path.platformPath(), facts, digest);
 }
 #endif
 

@@ -96,6 +96,7 @@ _CXX_DECODED_TYPES = {
 _HAND_WRITTEN_TYPES = {
     'WebCore::Color': 'IPCTypes.WebCoreColor',
     'WebCore::ColorSpace': 'IPCTypes.ColorSpace',
+    'WebCore::Path': 'IPCTypes.Path',
 }
 
 
