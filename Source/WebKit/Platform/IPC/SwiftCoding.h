@@ -29,6 +29,7 @@
 #include "Decoder.h"
 #include "Encoder.h"
 #include "StreamConnectionEncoder.h"
+#include "StreamConnectionWorkQueue.h"
 #include "StreamServerConnection.h"
 #include <WebCore/SharedBuffer.h>
 #include <concepts>
