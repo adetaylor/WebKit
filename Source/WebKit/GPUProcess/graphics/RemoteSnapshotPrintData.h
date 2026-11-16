@@ -30,7 +30,6 @@
 #include "DisplayListData.h"
 #include "RemoteGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
-#include <WebCore/Filter.h>
 #include <WebCore/Gradient.h>
 #include <WebCore/PathImpl.h>
 #include <WebCore/RenderingResourceIdentifier.h>
@@ -51,7 +50,6 @@ struct RemoteSnapshotPrintRecording {
     Vector<std::pair<WebCore::RenderingResourceIdentifier, uint64_t>> fonts;
     Vector<std::pair<RemoteGradientIdentifier, Ref<WebCore::Gradient>>> gradients;
     Vector<std::pair<RemotePathImplIdentifier, Ref<WebCore::PathImpl>>> paths;
-    Vector<std::pair<WebCore::RenderingResourceIdentifier, Ref<WebCore::Filter>>> filters;
     Vector<std::pair<uint64_t, uint64_t>> displayLists;
 };
 

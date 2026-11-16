@@ -138,7 +138,7 @@ messages -> RemoteCGRenderer Stream {
     BeginPage
     EndPage
     DrawMeshGradient
-    DrawFilteredImageBuffer
+    DrawFilteredImageBuffer(std::optional<WebCore::RenderingResourceIdentifier> sourceImageIdentifier, WebCore::FloatRect sourceImageRect, Ref<WebCore::Filter> filter) StreamBatched SwiftTypes
     DrawControlPart(Ref<WebCore::ControlPart> part, WebCore::FloatRoundedRect borderRect, float deviceScaleFactor, WebCore::ControlStyle style) StreamBatched SwiftTypes
     DrawSystemImage(Ref<WebCore::SystemImage> systemImage, WebCore::FloatRect destinationRect) StreamBatched SwiftTypes
 #if USE(SYSTEM_PREVIEW)

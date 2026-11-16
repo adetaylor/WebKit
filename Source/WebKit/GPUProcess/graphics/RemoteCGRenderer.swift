@@ -38,7 +38,7 @@ private func cgRect(_ rect: IPCTypes.FloatRect) -> CGRect {
 
 extension IPCTypes.WebCoreColor {
     // Color::data() as the renderer takes a color's data (GraphicsContextCG.cpp's colorData()).
-    fileprivate var cgRendererColorData: CGRendererColorData {
+    var cgRendererColorData: CGRendererColorData {
         var values = CGRendererColorData()
         guard let data else {
             return values
@@ -226,6 +226,8 @@ final class RemoteCGRenderer {
     private var imageReplays: [RemoteCGRendererRecordedImages] = []
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
     private var liveGlyphs: ContiguousArray<CGGlyph> = []
+    // The descriptions of the effects of the filters it drew last (RemoteCGRendererFilters.swift).
+    private let filterDescriptions = RemoteCGRendererFilterDescriptions()
     private var liveAdvances: ContiguousArray<CGSize> = []
     #if WTF_PLATFORM_MAC
     // The cells it draws Mac control parts with, as a control factory's, made when first used.
@@ -300,17 +302,25 @@ final class RemoteCGRenderer {
 
     // The image buffer or native image that a draw names: one of the backend's, or, in a replay, one that the recording kept.
     private func imageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) -> WebCore.ImageBuffer? {
+        imageBuffer(key: identifier.toUInt64())
+    }
+
+    private func imageBuffer(key: UInt64) -> WebCore.ImageBuffer? {
         if replayLevel == 0 {
-            return backendResources?.imageBuffer(key: identifier.toUInt64())
+            return backendResources?.imageBuffer(key: key)
         }
-        return imageReplays.last?.imageBuffers[RemoteIdentifierKey(value: identifier.toUInt64())]
+        return imageReplays.last?.imageBuffers[RemoteIdentifierKey(value: key)]
     }
 
     private func nativeImage(_ identifier: WebCore.RenderingResourceIdentifier) -> RemoteCGRendererImage? {
+        nativeImage(key: identifier.toUInt64())
+    }
+
+    private func nativeImage(key: UInt64) -> RemoteCGRendererImage? {
         if replayLevel == 0 {
-            return backendResources?.nativeImage(key: identifier.toUInt64())
+            return backendResources?.nativeImage(key: key)
         }
-        return imageReplays.last?.nativeImages[RemoteIdentifierKey(value: identifier.toUInt64())]
+        return imageReplays.last?.nativeImages[RemoteIdentifierKey(value: key)]
     }
 
     // GraphicsContextCG::drawNativeImage()'s facts of the image, with the color matrix that inverts it where the options do.
@@ -956,24 +966,86 @@ final class RemoteCGRenderer {
         state.receiveDrawNativeImage(image, facts, cgRect(destination), CGRect(x: 0, y: 0, width: CGFloat(facts.width), height: CGFloat(facts.height)), options)
     }
 
+    // RemoteGraphicsContext::drawFilteredImageBuffer(): the filter, or the cached SVG filter it names with its effects merged
+    // in, applied to the source, with its FEImage images looked up. A missing image or cached filter is an invalid message.
     func drawFilteredImageBuffer(
         state: inout CGRendererCore,
-        sourceImageIdentifier: WebCore.OptionalRenderingResourceIdentifier,
-        sourceImageRect: WebCore.FloatRect,
-        filter: WebCore.RefFilter
+        sourceImageIdentifier: IPCTypes.RenderingResourceIdentifier?,
+        sourceImageRect: IPCTypes.FloatRect,
+        filter: IPCTypes.Filter
     ) throws(InvalidMessage) {
-        var filtered = WebKit.RemoteCGRendererFilteredImage()
-        let image = WebKit.copyFilteredImage(resources, sourceImageIdentifier, sourceImageRect, filter, &filtered)
-        try messageCheck { filtered.valid }
-        guard let image else {
+        var sourceImageBuffer: WebCore.ImageBuffer?
+        if let sourceImageIdentifier {
+            sourceImageBuffer = imageBuffer(key: sourceImageIdentifier.rawValue)
+            try messageCheck { sourceImageBuffer != nil }
+        }
+        let describer = RemoteCGRendererFilterDescriber(descriptions: filterDescriptions) { [self] key in
+            if let image = nativeImage(key: key) {
+                return .nativeImage(image.nativeImage)
+            }
+            if let imageBuffer = imageBuffer(key: key) {
+                return .imageBuffer(imageBuffer)
+            }
+            return nil
+        }
+        let rect = floatRect(sourceImageRect)
+        var absoluteImageRect = WebCore.IntRect()
+        let result: WebCore.ImageBuffer?
+        let filterScale: WebCore.FloatSize
+        switch filter {
+        case .cssFilterRenderer(let cssFilter):
+            guard let described = describer.describe(cssFilter) else {
+                try messageCheck { false }
+                return
+            }
+            filterScale = described.renderer.filterScale
+            let allocator = WebKit.createFilterImageAllocator(resources, replayLevel > 0)
+            var results = FilterResultsState()
+            result = applyCSSFilter(described, sourceImageBuffer, rect, allocator, &results, true, &absoluteImageRect)
+        case .svgFilterRenderer(let svgFilter):
+            // A recording keeps a cached SVG filter's merged effects as a filter of its own (RemoteCGRendererRecording).
+            if let identifier = svgFilter.renderingResourceIdentifierIfExists {
+                // The draw's FEImage images are found before its effects are merged.
+                var drawnEffects: [FilterEffectDescription]?
+                if svgFilter.hasFEImage {
+                    drawnEffects = describer.describeEffects(svgFilter.effects)
+                    try messageCheck { drawnEffects != nil }
+                }
+                let cachedFilter = replayLevel == 0 ? backendResources?.filter(key: identifier.rawValue) : nil
+                guard let cachedFilter, let merged = cachedFilter.merge(svgFilter),
+                    let described = cachedFilter.describe(merged, describer, drawnEffects: drawnEffects)
+                else {
+                    try messageCheck { false }
+                    return
+                }
+                filterScale = described.renderer.filterScale
+                result = cachedFilter.apply(described, sourceImageBuffer, rect, resources, &absoluteImageRect)
+            } else {
+                guard let described = describer.describe(svgFilter, identifier: 0) else {
+                    try messageCheck { false }
+                    return
+                }
+                filterScale = described.renderer.filterScale
+                let allocator = WebKit.createFilterImageAllocator(resources, replayLevel > 0)
+                var results = FilterResultsState()
+                result = applySVGFilter(described, sourceImageBuffer, rect, allocator, &results, true, &absoluteImageRect)
+            }
+        }
+        guard let resultImageBuffer = result else {
             return
         }
-        // GraphicsContext::drawFilteredImageBuffer(): the result's image at its absolute rect, in the space of the filter's scale,
-        // while the result lasts.
-        withExtendedLifetime(filtered) {
-            state.receiveScale(1 / filtered.scaleX, 1 / filtered.scaleY)
-            state.receiveDrawNativeImage(image, filtered.facts, filtered.destination, filtered.source, filtered.options)
-            state.receiveScale(filtered.scaleX, filtered.scaleY)
+        // GraphicsContext::drawFilteredImageBuffer(): the result's image at its absolute rect, in the space of the filter's
+        // scale, drawn as GraphicsContext::drawImageBuffer() draws one, while the result lasts.
+        let source = WebCore.FloatRect(WebCore.FloatPoint(), resultImageBuffer.logicalSize())
+        let options = WebCore.RasterDrawingOptions()
+        var facts = CGRendererImageFacts()
+        guard let image = WebKit.copyImageBufferImage(resources, resultImageBuffer, source, options, false, &facts) else {
+            return
+        }
+        withExtendedLifetime(resultImageBuffer) {
+            state.receiveScale(1 / filterScale.width(), 1 / filterScale.height())
+            state.receiveDrawNativeImage(image, facts, cgRect(WebCore.FloatRect(absoluteImageRect)), cgRect(source), CGRendererImageOptionsFor(options))
+            state.receiveScale(filterScale.width(), filterScale.height())
         }
     }
 

@@ -40,10 +40,11 @@
 namespace WebKit {
 using namespace WebCore;
 
-// DisplayListData's limits: the print process draws no images, image buffers or mesh gradients.
+// DisplayListData's limits: the print process draws no mesh gradients, nor images or image buffers, which a recording keeps in
+// Swift (RemoteCGRendererRecording.encodedMessages()).
 bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecording& recording, DisplayListDataFonts& fonts) const
 {
-    if (!m_nativeImages.isEmpty() || !m_imageBuffers.isEmpty() || !m_meshGradients.isEmpty())
+    if (!m_meshGradients.isEmpty())
         return false;
     if (m_firstFont)
         recording.fonts.append({ m_firstFont->key, fonts.index(m_firstFont->value->sharedFont()) });
@@ -53,8 +54,6 @@ bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecord
         recording.gradients.append({ identifier, gradient });
     for (auto& [identifier, pathImpl] : m_paths)
         recording.paths.append({ identifier, pathImpl });
-    for (auto& [identifier, filter] : m_filters)
-        recording.filters.append({ identifier, filter });
     return true;
 }
 
@@ -69,8 +68,6 @@ bool RemoteCGRendererRecordedResources::importFromPrint(RemoteSnapshotPrintRecor
         m_gradients.set(identifier, WTF::move(gradient));
     for (auto& [identifier, pathImpl] : recording.paths)
         m_paths.set(identifier, WTF::move(pathImpl));
-    for (auto& [identifier, filter] : recording.filters)
-        m_filters.set(identifier, WTF::move(filter));
     return true;
 }
 

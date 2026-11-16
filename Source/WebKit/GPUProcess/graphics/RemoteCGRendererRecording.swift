@@ -244,6 +244,7 @@ final class RemoteCGRendererRecorder {
 
     private func recordUnlocked(_ message: consuming RemoteCGRenderer.RecordedMessage) throws(InvalidMessage) {
         var namesResource = true
+        var message = message
         switch copy message {
         case .fillCachedPath(let identifier), .clipCachedPath(let identifier, _), .clipTransformedCachedPath(_, let identifier, _):
             try messageCheck { resources.recordPath(identifier) }
@@ -270,8 +271,29 @@ final class RemoteCGRendererRecorder {
             try messageCheck { resources.recordGlyphs(fontIdentifier, glyphs) }
         case .drawMeshGradient(let identifier, _):
             try messageCheck { resources.recordMeshGradient(identifier) }
-        case .drawFilteredImageBuffer(let sourceImageIdentifier, _, let filter):
-            try messageCheck { resources.recordFilter(sourceImageIdentifier, filter) }
+        case .drawFilteredImageBuffer(let sourceImageIdentifier, let sourceImageRect, let filter):
+            namesResource = false
+            if let sourceImageIdentifier {
+                try recordImageBuffer(key: sourceImageIdentifier.rawValue)
+            }
+            for key in filter.feImageIdentifiers {
+                try recordNativeImageOrImageBuffer(key: key)
+            }
+            // The cached SVG filter that the filter names, with the filter's effects merged in, as a filter of the recording's
+            // own, which a replay applies with results of its own.
+            if case .svgFilterRenderer(let svgFilter) = filter, let identifier = svgFilter.renderingResourceIdentifierIfExists {
+                let cachedFilter = displayLists.backendResources?.filter(key: identifier.rawValue)
+                guard var merged = cachedFilter?.merge(svgFilter) else {
+                    try messageCheck { false }
+                    return
+                }
+                merged.renderingResourceIdentifierIfExists = nil
+                message = .drawFilteredImageBuffer(
+                    sourceImageIdentifier: sourceImageIdentifier,
+                    sourceImageRect: sourceImageRect,
+                    filter: .svgFilterRenderer(merged)
+                )
+            }
         #if USE_SYSTEM_PREVIEW
         case .drawBadgeSystemImage(let imageIdentifier, _):
             namesResource = false
@@ -312,7 +334,10 @@ final class RemoteCGRendererRecorder {
     // The backend's native image or image buffer that a message names, which the recording keeps: a missing one is an invalid
     // message.
     private func recordNativeImage(_ identifier: WebCore.RenderingResourceIdentifier) throws(InvalidMessage) {
-        let key = identifier.toUInt64()
+        try recordNativeImage(key: identifier.toUInt64())
+    }
+
+    private func recordNativeImage(key: UInt64) throws(InvalidMessage) {
         let image = displayLists.backendResources?.nativeImage(key: key)
         try messageCheck { image != nil }
         // As the C++ keeps a recording's other resources, the first one an identifier names.
@@ -323,12 +348,24 @@ final class RemoteCGRendererRecorder {
     }
 
     private func recordImageBuffer(_ identifier: WebCore.RenderingResourceIdentifier) throws(InvalidMessage) {
-        let key = identifier.toUInt64()
+        try recordImageBuffer(key: identifier.toUInt64())
+    }
+
+    private func recordImageBuffer(key: UInt64) throws(InvalidMessage) {
         let imageBuffer = displayLists.backendResources?.imageBuffer(key: key)
         try messageCheck { imageBuffer != nil }
         let images = recordedImages()
         if let imageBuffer, images.imageBuffers.index(forKey: RemoteIdentifierKey(value: key)) == nil {
             images.imageBuffers[RemoteIdentifierKey(value: key)] = imageBuffer
+        }
+    }
+
+    // The native image, or else the image buffer, that an FEImage names (FEImage's SourceImage).
+    private func recordNativeImageOrImageBuffer(key: UInt64) throws(InvalidMessage) {
+        if displayLists.backendResources?.nativeImage(key: key) != nil {
+            try recordNativeImage(key: key)
+        } else {
+            try recordImageBuffer(key: key)
         }
     }
 
