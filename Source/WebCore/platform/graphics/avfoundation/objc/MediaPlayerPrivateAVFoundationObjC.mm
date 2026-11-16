@@ -444,7 +444,7 @@ MediaPlayerPrivateAVFoundationObjC::MediaPlayerPrivateAVFoundationObjC(MediaPlay
 {
     ALWAYS_LOG(LOGIDENTIFIER);
     m_core = makeUnique<Core>(MediaPlayerAVFoundationCore::init(MediaPlayerAVFoundationHost::create(*this).ptr()));
-    m_swiftCore = reinterpret_cast<uintptr_t>(swift::_impl::_impl_RefCountedClass::getOpaquePointer(m_core->swift));
+    m_coreKey = m_core->swift.registeredKey();
     m_muted = player.muted();
     m_volume = player.volume();
     m_isVideoPlayer = player.isVideoPlayer();
@@ -475,6 +475,7 @@ MediaPlayerPrivateAVFoundationObjC::~MediaPlayerPrivateAVFoundationObjC()
         destroyVideoLayer();
 
     cancelLoad();
+    m_core->swift.unregister();
 }
 
 void MediaPlayerPrivateAVFoundationObjC::cancelLoad()

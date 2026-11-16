@@ -565,9 +565,8 @@ private func assetTrack(of playerItemTrack: AVPlayerItemTrack) -> AVAssetTrack? 
 }
 
 extension WebCore.MediaPlayerPrivateAVFoundationObjC {
-    // m_core keeps the core alive for the player's whole life; m_swiftCore is its pointer, unretained.
     private var core: MediaPlayerAVFoundationCore {
-        unsafe Unmanaged<MediaPlayerAVFoundationCore>.fromOpaque(UnsafeRawPointer(bitPattern: m_swiftCore)!).takeUnretainedValue()
+        MediaPlayerAVFoundationCore.registered(m_coreKey)
     }
 
     @cxx

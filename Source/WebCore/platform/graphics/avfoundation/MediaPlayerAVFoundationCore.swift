@@ -35,6 +35,7 @@
 
 internal import AVFoundation
 internal import CoreMedia
+internal import Synchronization
 import WebCore_Private.Core.MediaPlayerAVFoundationHost
 
 // MediaPlayerPrivateAVFoundation::ItemStatus.
@@ -105,9 +106,18 @@ private struct ObjectBox: @unchecked Sendable {
     let object: NSObject
 }
 
+// The live C++ players' cores, by their table keys, so that the C++ player's Swift members can reach theirs. Any thread.
+private struct CoreTable {
+    var lastKey: UInt64 = 0
+    var cores: [UInt64: MediaPlayerAVFoundationCore] = [:]
+}
+
+private let coreTable = Mutex(CoreTable())
+
 // What MediaPlayerPrivateAVFoundationObjC.mm calls.
 @_expose(Cxx)
 final class MediaPlayerAVFoundationCore: @unchecked Sendable {
+    private let tableKey: UInt64
     private let host: WebCore.MediaPlayerAVFoundationHost
     private let listener: MediaPlayerItemListener
     private var asset: AVAsset?
@@ -155,9 +165,37 @@ final class MediaPlayerAVFoundationCore: @unchecked Sendable {
 
     @_expose(Cxx)
     init(_ host: WebCore.MediaPlayerAVFoundationHost) {
+        tableKey = coreTable.withLock { table in
+            table.lastKey += 1
+            return table.lastKey
+        }
         self.host = host
         listener = MediaPlayerItemListener()
         listener.core = self
+        coreTable.withLock { [tableKey] table in
+            table.cores[tableKey] = self
+        }
+    }
+
+    @_expose(Cxx)
+    func registeredKey() -> UInt64 {
+        tableKey
+    }
+
+    // The C++ player is being destroyed: its Swift members can't reach this from now on.
+    @_expose(Cxx)
+    func unregister() {
+        _ = coreTable.withLock { [tableKey] table in
+            table.cores.removeValue(forKey: tableKey)
+        }
+    }
+
+    // The core of the live C++ player that holds this key.
+    @_expose(!Cxx)
+    static func registered(_ tableKey: UInt64) -> MediaPlayerAVFoundationCore {
+        coreTable.withLock { table in
+            table.cores[tableKey]!
+        }
     }
 
     // MARK: Logging
