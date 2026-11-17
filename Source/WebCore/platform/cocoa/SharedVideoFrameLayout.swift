@@ -485,7 +485,9 @@ func sharedVideoFrameCreatePixelBuffer(
 
 // A CVPixelBuffer is a CVBuffer, which some builds import as a class of its own.
 private func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
-    pixelBuffer as! CVBuffer
+    // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+    func cast<Target: AnyObject>(to _: Target.Type) -> Target { pixelBuffer as! Target }
+    return cast(to: CVBuffer.self)
 }
 
 private enum PlaneAppend {
