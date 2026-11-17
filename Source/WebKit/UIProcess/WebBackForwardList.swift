@@ -161,7 +161,7 @@ final class WebBackForwardList {
 
         // We should have always started out with an m_page and we should never close the page twice
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        let pageAvailable = Bool(fromCxx: page)
+        let pageAvailable = (page.get() != nil)
         #else
         let pageAvailable = page.__convertToBool()
         #endif
@@ -337,7 +337,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return nil
         }
         #else
@@ -362,7 +362,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return nil
         }
         #else
@@ -394,7 +394,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return nil
         }
         #else
@@ -427,7 +427,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return nil
         }
         #else
@@ -471,7 +471,7 @@ final class WebBackForwardList {
 
     func itemAtIndexWithoutSkipping(index: Int) -> (item: WebKit.WebBackForwardListItem?, index: Int) {
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return (nil, index)
         }
         #else
@@ -491,7 +491,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return 0
         }
         #else
@@ -511,7 +511,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return 0
         }
         #else
@@ -569,7 +569,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return WebBackForwardList.makeListPairResult(items: [], makeAPIArray: makeAPIArray)
         }
         #else
@@ -619,7 +619,7 @@ final class WebBackForwardList {
         assertValidIndex()
 
         #if compiler(>=6.4) && !SWIFT_WEBKIT_TOOLCHAIN
-        guard Bool(fromCxx: page) else {
+        guard (page.get() != nil) else {
             return WebBackForwardList.makeListPairResult(items: [], makeAPIArray: makeAPIArray)
         }
         #else
