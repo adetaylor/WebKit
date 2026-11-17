@@ -94,7 +94,7 @@ messages -> RemoteCGRenderer Stream {
     FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
     StrokePath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     DrawPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
-    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=clipPathDecodeContext
     ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     FillCachedPath
     ClipCachedPath

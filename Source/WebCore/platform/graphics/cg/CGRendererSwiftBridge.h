@@ -342,6 +342,9 @@ struct CGRendererPathFacts {
 // facts, whose bounds, if computesFastBoundingRect, are PathStream::computeFastBoundingRect()'s, in the same pass over the
 // segments. Null for a path of no segment or one.
 WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// The facts of a path of the segments for a clip to it, and, for a path of more than one segment, the segments added to the
+// context's path as GraphicsContextCG::clipPath() adds a PathStream's: false for a path of no segment or one, which it leaves.
+WEBCORE_EXPORT bool CGRendererAddSegmentsToContextPath(CGContextRef _Nonnull, std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&) __attribute__((availability(swift, unavailable)));
 // The Path of such a CGPath, as a Path of a PathCG, which C++ encodes as the segments of the CGPath's elements.
 WEBCORE_EXPORT WebCore::Path CGRendererPathOfPlatformPath(CGPathRef _Nonnull) __attribute__((availability(swift, unavailable)));
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it

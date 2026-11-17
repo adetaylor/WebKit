@@ -621,17 +621,26 @@ final class RemoteCGRenderer {
         IPCTypes.Path.DecodeContext(needsFastBoundingRect: false)
     }
 
+    // ClipPath adds a path of more than one segment to the context's path as it decodes it, as GraphicsContextCG::clipPath() adds
+    // a PathStream's, rather than making a CGPath to add.
+    func clipPathDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.Path.DecodeContext {
+        IPCTypes.Path.DecodeContext(needsFastBoundingRect: false, clipContext: state.receiveContextOfClipPath())
+    }
+
     func fillPath(state: inout CGRendererCore, path: IPCTypes.Path) {
-        fill(&state, path.rendererPath)
+        path.withRendererPath { path in fill(&state, path) }
     }
 
     func strokePath(state: inout CGRendererCore, path: IPCTypes.Path) {
-        stroke(&state, path.rendererPath)
+        path.withRendererPath { path in stroke(&state, path) }
     }
 
     // GraphicsContextCG::drawPath(): with a gradient, the fill and the stroke one after the other.
     func drawPath(state: inout CGRendererCore, path: IPCTypes.Path) {
-        let path = path.rendererPath
+        path.withRendererPath { path in draw(&state, path) }
+    }
+
+    private func draw(_ state: inout CGRendererCore, _ path: borrowing CGRendererPath) {
         if path.isEmpty {
             return
         }
@@ -651,14 +660,13 @@ final class RemoteCGRenderer {
     }
 
     func clipPath(state: inout CGRendererCore, path: IPCTypes.Path, windRule: IPCTypes.WindRule) {
-        let path = path.rendererPath
-        let rule = windRule.windRule
-        state.receiveClip { context in path.clip(context, rule) }
+        path.clip(&state, windRule.windRule)
     }
 
     func clipOutToPath(state: inout CGRendererCore, path: IPCTypes.Path) {
-        let path = path.rendererPath
-        state.receiveClip { context in path.clipOut(context) }
+        path.withRendererPath { path in
+            state.receiveClip { context in path.clipOut(context) }
+        }
     }
 
     // The cache's CGPath of a cached path, shared with the cache, which only CGRendererPlatformPath reaches.
@@ -908,7 +916,7 @@ final class RemoteCGRenderer {
 
     // GraphicsContextCG::fillPath(): a gradient in the clip of the path's own segments, and a pie wedge as a stroked arc where
     // the context strokes arcs as it fills them.
-    private func fill(_ state: inout CGRendererCore, _ path: CGRendererPath) {
+    private func fill(_ state: inout CGRendererCore, _ path: borrowing CGRendererPath) {
         if path.isEmpty {
             return
         }
@@ -925,11 +933,11 @@ final class RemoteCGRenderer {
             }
         }
         #endif
-        path.platformPath().fill(&state)
+        path.fillPlatformPath(&state)
     }
 
     // GraphicsContextCG::strokePath(): a single line as a line segment, and a gradient in the clip of the stroked path.
-    private func stroke(_ state: inout CGRendererCore, _ path: CGRendererPath) {
+    private func stroke(_ state: inout CGRendererCore, _ path: borrowing CGRendererPath) {
         if path.isEmpty {
             return
         }
@@ -941,7 +949,7 @@ final class RemoteCGRenderer {
             state.receiveStrokePathSegment(line)
             return
         }
-        path.platformPath().stroke(&state)
+        path.strokePlatformPath(&state)
     }
 
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
@@ -1000,9 +1008,10 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's clips to a path in coordinates a transform maps it from.
 
     func clipTransformedPath(state: inout CGRendererCore, pathTransform: IPCTypes.AffineTransform, path: IPCTypes.Path, windRule: IPCTypes.WindRule) {
-        let path = path.rendererPath
         let rule = windRule.windRule
-        state.receiveClipTransformed(pathTransform.cgAffineTransform) { context in path.clip(context, rule) }
+        path.withRendererPath { path in
+            state.receiveClipTransformed(pathTransform.cgAffineTransform) { context in path.clip(context, rule) }
+        }
     }
 
     func clipTransformedCachedPath(
@@ -1020,11 +1029,12 @@ final class RemoteCGRenderer {
     }
 
     func drawFocusRingPath(state: inout CGRendererCore, path: IPCTypes.Path, outlineWidth: Float, color: IPCTypes.CGRendererColorValue, zoomFactor: Float) {
-        let path = path.rendererPath
-        if path.isEmpty {
-            return
+        path.withRendererPath { path in
+            if path.isEmpty {
+                return
+            }
+            path.platformPath().drawFocusRing(&state, color.cgRendererColorValue, zoomFactor)
         }
-        path.platformPath().drawFocusRing(&state, color.cgRendererColorValue, zoomFactor)
     }
 
     // RemoteGraphicsContext's page handlers, for a PDF.

@@ -946,19 +946,20 @@ private struct CGRendererLineStroke {
 
 // The CGPath of a path that a receiver draws, which others may share: a cached path's is the cache's and its recordings', and a
 // message's is its recording's. Only this type reaches the CGPath, to draw, add and measure it, so no Swift can cast it to a
-// CGMutablePath and change what another draw reads.
+// CGMutablePath and change what another draw reads. Inlinable, so that a receiver's draw borrows the CGPath rather than copying
+// the path.
 @_spi(WebKitGPU) @frozen public struct CGRendererPlatformPath {
-    private let path: CGPath
+    @usableFromInline let path: CGPath
 
-    @_spi(WebKitGPU) public init(_ path: CGPath) {
+    @inlinable @_spi(WebKitGPU) public init(_ path: CGPath) {
         self.path = path
     }
 
-    @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
+    @inlinable @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
         state.receiveFillPath(path)
     }
 
-    @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
+    @inlinable @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
         state.receiveStrokePath(path)
     }
 
@@ -971,7 +972,7 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::drawPath() without a gradient, of the path that makePath() makes only if the context draws it.
-    @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
+    @inlinable @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
         state.receiveDrawPathWithoutGradient { makePath().path }
     }
 
@@ -980,18 +981,18 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::clipPath() of a PathCG, which adds its CGPath to the context's path.
-    func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+    @inlinable func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
         context.beginPath()
         context.addPath(path)
         context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
     }
 
-    func clipOut(_ context: CGContext) {
+    @usableFromInline func clipOut(_ context: CGContext) {
         CGRendererClipOutToPlatformPath(context, path)
     }
 
     // PathCG::fastBoundingRect(), as a FloatRect.
-    var fastBoundingRect: CGRect {
+    @usableFromInline var fastBoundingRect: CGRect {
         let bounds = path.boundingBox
         if bounds.isNull {
             return .zero
@@ -1006,14 +1007,15 @@ private struct CGRendererLineStroke {
 // Path keeps as the segment, of more, as the CGPath that PathCG makes of them with what the receiver asks of the path besides
 // (CGRendererCreatePathOfSegments()), or of a cached path's CGPath, which is all a PathCG has. A clip to a path of more segments
 // adds its CGPath to the context's path, as GraphicsContextCG adds a PathCG's, rather than the segments themselves, and a clip
-// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()).
+// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()). Inlinable, as CGRendererPlatformPath is, and a fill or a
+// stroke of the CGPath borrows it from the path.
 @_spi(WebKitGPU) @frozen public enum CGRendererPath {
     case empty
     case segment(CGRendererPathSegment)
     case segments(CGRendererPlatformPath, CGRendererPathFacts)
     case platformPath(CGRendererPlatformPath)
 
-    @_spi(WebKitGPU) public var isEmpty: Bool {
+    @inlinable @_spi(WebKitGPU) public var isEmpty: Bool {
         if case .empty = self {
             return true
         }
@@ -1021,7 +1023,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::singleDataLine(), whose stroke GraphicsContextCG::strokePath() draws as a line.
-    @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
+    @inlinable @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
         if case .segment(let segment) = self, segment.kind == .DataLine {
             return segment
         }
@@ -1029,7 +1031,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::pieWedgeArc(): the arc of a move to its center, the arc and a line back to its center.
-    @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
+    @inlinable @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
         if case .segments(_, let facts) = self, facts.pieWedgeArc.kind == .Arc {
             return facts.pieWedgeArc
         }
@@ -1037,7 +1039,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::platformPath().
-    @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
+    @inlinable @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
         switch self {
         case .empty:
             CGRendererPlatformPath(CGMutablePath())
@@ -1048,8 +1050,27 @@ private struct CGRendererLineStroke {
         }
     }
 
+    // The fill and the stroke of platformPath().
+    @inlinable @_spi(WebKitGPU) public func fillPlatformPath(_ state: inout CGRendererCore) {
+        switch self {
+        case .empty, .segment:
+            platformPath().fill(&state)
+        case .segments(let path, _), .platformPath(let path):
+            path.fill(&state)
+        }
+    }
+
+    @inlinable @_spi(WebKitGPU) public func strokePlatformPath(_ state: inout CGRendererCore) {
+        switch self {
+        case .empty, .segment:
+            platformPath().stroke(&state)
+        case .segments(let path, _), .platformPath(let path):
+            path.stroke(&state)
+        }
+    }
+
     // Path::fastBoundingRect(), as a FloatRect.
-    @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
+    @inlinable @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
         switch self {
         case .empty:
             .zero
@@ -1064,7 +1085,7 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::clipPath(): an empty path clips everything out.
-    @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+    @inlinable @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
         switch self {
         case .empty:
             context.clip(to: .zero)
@@ -4880,6 +4901,19 @@ extension CGRendererCore {
     @_spi(WebKitGPU) public mutating func receiveClip(_ clip: (CGContext) -> Void) {
         hasDrawn = true
         clip(context)
+    }
+
+    // The context to whose path a receiver's decode of a clip's path adds its segments, as GraphicsContextCG::clipPath() adds a
+    // PathStream's, for receiveClipToContextPath().
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveContextOfClipPath() -> CGContext {
+        context
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipToContextPath(_ rule: WebCore.WindRule) {
+        hasDrawn = true
+        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
     }
 
     // GraphicsContextCG::drawNativeImage() of the image a receiver found. A copy of the image buffer the receiver draws into

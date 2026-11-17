@@ -1115,16 +1115,33 @@ extension IPCTypes {
         private let facts: CGRendererPathFacts
         /// Of a path of more than one segment, and only of one.
         private let platformPath: CGPath?
+        /// Of a path of more than one segment that a clip's decode added to the context's path (DecodeContext.clipContext)
+        /// instead, which only clip() takes.
+        private let isInClipContextPath: Bool
 
-        /// The path that Path makes of the segments: none, one, or a PathStream of them.
-        var rendererPath: CGRendererPath {
+        /// The path that Path makes of the segments, none, one, or a PathStream of them, which body borrows, so that a draw
+        /// neither copies the facts nor retains the CGPath.
+        func withRendererPath<Result>(_ body: (borrowing CGRendererPath) -> Result) -> Result {
+            precondition(!isInClipContextPath, "A path that a clip's decode added to the context's path is only clipped to")
             if let platformPath {
-                return .segments(CGRendererPlatformPath(platformPath), facts)
+                return body(.segments(CGRendererPlatformPath(platformPath), facts))
             }
             if facts.segmentCount == 1 {
-                return .segment(facts.segment)
+                return body(.segment(facts.segment))
             }
-            return .empty
+            return body(.empty)
+        }
+
+        /// GraphicsContextCG::clipPath(): a path of more than one segment that the decode added to the context's path is
+        /// clipped to there, as GraphicsContextCG clips to a PathStream's segments.
+        func clip(_ state: inout CGRendererCore, _ rule: WebCore.WindRule) {
+            if isInClipContextPath {
+                state.receiveClipToContextPath(rule)
+                return
+            }
+            withRendererPath { path in
+                state.receiveClip { context in path.clip(context, rule) }
+            }
         }
 
         #if ENABLE_IPC_TESTING_API
@@ -1138,6 +1155,14 @@ extension IPCTypes {
         struct DecodeContext {
             /// Path::fastBoundingRect(), which only a gradient fill uses.
             let needsFastBoundingRect: Bool
+            /// The context of a clip to the path, to whose path the decode adds the segments of a path of more than one rather
+            /// than making their CGPath.
+            let clipContext: CGContext?
+
+            init(needsFastBoundingRect: Bool, clipContext: CGContext? = nil) {
+                self.needsFastBoundingRect = needsFastBoundingRect
+                self.clipContext = clipContext
+            }
         }
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Path {
@@ -1146,14 +1171,16 @@ extension IPCTypes {
 
         static func decode(from decoder: inout IPC.SwiftDecoder, context: DecodeContext) throws(IPCDecodingError) -> Path {
             var facts = CGRendererPathFacts()
-            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect)
+            var isInClipContextPath = false
+            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect, context.clipContext, &isInClipContextPath)
             guard decoder.isValid() else {
                 throw IPCDecodingError()
             }
-            return Path(facts: facts, platformPath: platformPath)
+            return Path(facts: facts, platformPath: platformPath, isInClipContextPath: isInClipContextPath)
         }
 
         static func encode(_ value: Path, to encoder: IPC.SwiftReplyEncoder) {
+            precondition(!value.isInClipContextPath, "A path that a clip's decode added to the context's path is only clipped to")
             encoder.encodeCGRendererPath(value.platformPath, value.facts)
         }
     }
