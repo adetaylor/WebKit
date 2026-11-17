@@ -460,6 +460,7 @@ set(WebKit_SERIALIZATION_IN_FILES
     GPUProcess/graphics/PathSegment.serialization.in
     GPUProcess/graphics/RemoteGraphicsContextGLInitializationState.serialization.in
 
+    GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in
     GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 
     GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in

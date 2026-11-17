@@ -1633,6 +1633,10 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
     if (APPLE)
         # Don't fire the module's own cross-import overlay while compiling it.
         list(APPEND _swift_options "-Xfrontend -disable-cross-import-overlays")
+        # ICU's headers are copied into the installed headers' directory, which FindICU.cmake makes a system include
+        # directory, so it comes after the PAL header map, which names PAL's headers in the source tree. Search it first,
+        # so that <pal/...> is the header of the pal module and not a copy outside it.
+        list(APPEND _swift_options "-Xcc -I${PAL_FRAMEWORK_HEADERS_DIR}")
     endif ()
     if (${_target}_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY)
         list(APPEND _swift_options "-I${_interop_module_path}")
