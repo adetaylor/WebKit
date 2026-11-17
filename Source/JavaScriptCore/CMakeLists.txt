@@ -1947,6 +1947,10 @@ set(_jsc_swift_flags
 if (APPLE)
     # JavaScriptCore_Private, the framework's private module, which the boundary's headers reach.
     list(APPEND _jsc_swift_flags -F "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+    if (USE_APPLE_INTERNAL_SDK)
+        list(APPEND _jsc_swift_flags -F "${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks"
+            -Xcc "-iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks")
+    endif ()
 endif ()
 if (WIN32 AND WTF_CPU_X86_64)
     # swiftc targets x86_64 with cmpxchg16b, which clang-cl does not. The Swift functions need the same target
