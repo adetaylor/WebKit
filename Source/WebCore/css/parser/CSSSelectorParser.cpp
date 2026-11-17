@@ -31,9 +31,9 @@
 #include "CSSSelectorParser.h"
 
 #include "CSSParserEnum.h"
-#include "CSSParserIdioms.h"
-#include "CSSPropertyParserConsumer+Ident.h"
-#include "CSSPropertyParserConsumer+Primitives.h"
+#include "CSSParserSwiftParse.h"
+#include "CSSParserTokenRange.h"
+#include "CSSSelector.h"
 #include "CSSSelectorInlines.h"
 #include "CSSTokenizer.h"
 #include "CommonAtomStrings.h"
@@ -44,1160 +44,10 @@
 #include "SelectorPseudoTypeMap.h"
 #include "UserAgentParts.h"
 #include <memory>
-#include <wtf/MathExtras.h>
-#include <wtf/OptionSet.h>
-#include <wtf/SetForScope.h>
 #include <wtf/text/StringBuilder.h>
 #include <wtf/text/StringToIntegerConversion.h>
 
 namespace WebCore {
-
-static AtomString serializeANPlusB(const std::pair<int, int>&);
-static bool consumeANPlusB(CSSParserTokenRange&, std::pair<int, int>&);
-
-static void appendImplicitSelectorPseudoClassScopeIfNeeded(MutableCSSSelector& selector)
-{
-    if ((!selector.hasExplicitNestingParent() && !selector.hasExplicitPseudoClassScope()) || selector.startsWithExplicitCombinator()) {
-        auto scopeSelector = makeUnique<MutableCSSSelector>();
-        scopeSelector->setMatch(CSSSelector::Match::PseudoClass);
-        scopeSelector->setPseudoClass(CSSSelector::PseudoClass::Scope);
-        scopeSelector->setImplicit();
-        selector.prependInComplexSelectorAsRelative(WTF::move(scopeSelector));
-    }
-}
-
-static void appendImplicitSelectorNestingParentIfNeeded(MutableCSSSelector& selector)
-{
-    if (!selector.hasExplicitNestingParent() || selector.startsWithExplicitCombinator()) {
-        auto nestingParentSelector = makeUnique<MutableCSSSelector>();
-        nestingParentSelector->setMatch(CSSSelector::Match::NestingParent);
-        // https://drafts.csswg.org/css-nesting/#nesting
-        // Spec: nested rules with relative selectors include the specificity of their implied nesting selector.
-        selector.prependInComplexSelectorAsRelative(WTF::move(nestingParentSelector));
-    }
-}
-
-static void appendImplicitSelectorIfNeeded(MutableCSSSelector& selector, CSSParserEnum::NestedContextType last)
-{
-    if (last == CSSParserEnum::NestedContextType::Style) {
-        // For a rule inside a style rule, we had the implicit & if it's not there already or if it starts with a combinator > ~ +
-        appendImplicitSelectorNestingParentIfNeeded(selector);
-    } else if (last == CSSParserEnum::NestedContextType::Scope) {
-        // For a rule inside a scope rule, we had the implicit ":scope" if there is no explicit & or :scope already
-        appendImplicitSelectorPseudoClassScopeIfNeeded(selector);
-    }
-}
-
-MutableCSSSelectorList parseMutableCSSSelectorList(CSSParserTokenRange& range, const CSSSelectorParserContext& context, StyleSheetContents* styleSheet, CSSParserEnum::NestedContext nestedContext, CSSParserEnum::IsForgiving isForgiving, CSSSelectorParser::DisallowPseudoElement disallowPseudoElement)
-{
-    CSSSelectorParser parser(context, styleSheet, disallowPseudoElement);
-    range.consumeWhitespace();
-    auto consume = [&] {
-        if (nestedContext && isForgiving == CSSParserEnum::IsForgiving::No)
-            return parser.consumeNestedSelectorList(range);
-        if (nestedContext && isForgiving == CSSParserEnum::IsForgiving::Yes)
-            return parser.consumeNestedComplexForgivingSelectorList(range);
-        if (isForgiving == CSSParserEnum::IsForgiving::Yes)
-            return parser.consumeComplexForgivingSelectorList(range);
-        return parser.consumeComplexSelectorList(range);
-    };
-    auto result = consume();
-    if (result.isEmpty() || !range.atEnd())
-        return { };
-
-    // In nested context, add the implicit :scope or &
-    if (nestedContext) {
-        for (auto& selector : result)
-            appendImplicitSelectorIfNeeded(*selector, *nestedContext);
-    }
-
-    return result;
-}
-
-std::optional<CSSSelectorList> parseCSSSelectorList(CSSParserTokenRange range, const CSSSelectorParserContext& context, StyleSheetContents* styleSheet, CSSParserEnum::NestedContext nestedContext)
-{
-    auto result = parseMutableCSSSelectorList(range, context, styleSheet, nestedContext, CSSParserEnum::IsForgiving::No, CSSSelectorParser::DisallowPseudoElement::No);
-
-    if (result.isEmpty() || !range.atEnd())
-        return { };
-
-    return CSSSelectorList { WTF::move(result) };
-}
-
-CSSSelectorParser::CSSSelectorParser(const CSSSelectorParserContext& context, StyleSheetContents* styleSheet, DisallowPseudoElement disallowPseudoElement)
-    : m_context(context)
-    , m_styleSheet(styleSheet)
-    , m_disallowPseudoElements(disallowPseudoElement == DisallowPseudoElement::Yes)
-{
-}
-
-template <typename ConsumeSelector>
-MutableCSSSelectorList CSSSelectorParser::consumeSelectorList(CSSParserTokenRange& range, NOESCAPE const ConsumeSelector& consumeSelector)
-{
-    MutableCSSSelectorList selectorList;
-    auto selector = consumeSelector(range);
-    if (!selector)
-        return { };
-
-    selectorList.append(WTF::move(selector));
-    while (!range.atEnd() && range.peek().type() == CommaToken) {
-        range.consumeIncludingWhitespace();
-        selector = consumeSelector(range);
-        if (!selector)
-            return { };
-        selectorList.append(WTF::move(selector));
-    }
-
-    if (m_failedParsing)
-        return { };
-
-    return selectorList;
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeComplexSelectorList(CSSParserTokenRange& range)
-{
-    return consumeSelectorList(range, [&] (CSSParserTokenRange& range) {
-        return consumeComplexSelector(range);
-    });
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeRelativeSelectorList(CSSParserTokenRange& range)
-{
-    return consumeSelectorList(range, [&](CSSParserTokenRange& range) {
-        return consumeRelativeScopeSelector(range);
-    });
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeNestedSelectorList(CSSParserTokenRange& range)
-{
-    return consumeSelectorList(range, [&] (CSSParserTokenRange& range) {
-        return consumeNestedComplexSelector(range);
-    });
-}
-
-template<typename ConsumeSelector>
-MutableCSSSelectorList CSSSelectorParser::consumeForgivingSelectorList(CSSParserTokenRange& range, NOESCAPE const ConsumeSelector& consumeSelector)
-{
-    if (m_failedParsing)
-        return { };
-
-    MutableCSSSelectorList selectorList;
-
-    auto consumeForgiving = [&] {
-        auto initialRange = range;
-        auto unknownSelector = [&] {
-            auto unknownSelector = makeUnique<MutableCSSSelector>();
-            auto unknownRange = initialRange.rangeUntil(range);
-            unknownSelector->setMatch(CSSSelector::Match::ForgivingUnknown);
-            // We store the complete range content for serialization.
-            unknownSelector->setValue(AtomString { unknownRange.serialize() });
-            // If the range contains a nesting selector, we mark this unknown selector as "nest containing" (it will be used during rule set building)
-            for (auto& token : unknownRange) {
-                if (token.type() == DelimiterToken && token.delimiter() == '&') {
-                    unknownSelector->setMatch(CSSSelector::Match::ForgivingUnknownNestContaining);
-                    break;
-                }
-            }
-            return unknownSelector;
-        };
-
-        auto selector = consumeSelector(range);
-
-        if (m_failedParsing && !m_disableForgivingParsing) {
-            selector = { };
-            m_failedParsing = false;
-        }
-
-        // Range is not over and next token is not a comma (means there is more to this selector) so this selector is unknown.
-        // Consume until next comma and add the full range as an unknown selector to the selector list.
-        if ((!range.atEnd() && range.peek().type() != CommaToken) || !selector) {
-            while (!range.atEnd() && range.peek().type() != CommaToken)
-                range.consumeComponentValue();
-            if (!m_disableForgivingParsing)
-                selectorList.append(unknownSelector());
-            return;
-        }
-
-        selectorList.append(WTF::move(selector));
-    };
-
-    consumeForgiving();
-
-    while (!range.atEnd() && range.peek().type() == CommaToken) {
-        range.consumeIncludingWhitespace();
-        consumeForgiving();
-    }
-
-    if (selectorList.isEmpty()) {
-        if (m_disableForgivingParsing)
-            m_failedParsing = true;
-        return { };
-    }
-
-    return selectorList;
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeComplexForgivingSelectorList(CSSParserTokenRange& range)
-{
-    return consumeForgivingSelectorList(range, [&](CSSParserTokenRange& range) {
-        return consumeComplexSelector(range);
-    });
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeNestedComplexForgivingSelectorList(CSSParserTokenRange& range)
-{
-    return consumeForgivingSelectorList(range, [&] (CSSParserTokenRange& range) {
-        return consumeNestedComplexSelector(range);
-    });
-}
-
-std::optional<CSSSelectorList> CSSSelectorParser::parseSelectorList(const String& string, const CSSParserContext& context, StyleSheetContents* styleSheet, CSSParserEnum::NestedContext nestedContext)
-{
-    return parseCSSSelectorList(CSSTokenizer(string).tokenRange(), context, styleSheet, nestedContext);
-}
-
-bool CSSSelectorParser::supportsComplexSelector(CSSParserTokenRange range, const CSSSelectorParserContext& context)
-{
-    range.consumeWhitespace();
-    CSSSelectorParser parser(context, nullptr);
-
-    // @supports requires that all arguments parse.
-    parser.m_disableForgivingParsing = true;
-
-    auto mutableSelector = parser.consumeComplexSelector(range);
-
-    if (parser.m_failedParsing || !range.atEnd() || !mutableSelector)
-        return false;
-
-    return !containsUnknownWebKitPseudoElements(mutableSelector->selector());
-}
-
-MutableCSSSelectorList CSSSelectorParser::consumeCompoundSelectorList(CSSParserTokenRange& range)
-{
-    MutableCSSSelectorList selectorList;
-    auto selector = consumeCompoundSelector(range);
-    range.consumeWhitespace();
-    if (!selector)
-        return { };
-    selectorList.append(WTF::move(selector));
-    while (!range.atEnd() && range.peek().type() == CommaToken) {
-        range.consumeIncludingWhitespace();
-        selector = consumeCompoundSelector(range);
-        range.consumeWhitespace();
-        if (!selector)
-            return { };
-        selectorList.append(WTF::move(selector));
-    }
-    return selectorList;
-}
-
-static PossiblyQuotedIdentifier consumePossiblyQuotedIdentifier(CSSParserTokenRange& range)
-{
-    auto& token = range.consumeIncludingWhitespace();
-    if (token.type() != IdentToken && token.type() != StringToken)
-        return { };
-    auto string = token.value();
-    if (string.startsWith("--"_s))
-        return { };
-    return { string.toAtomString(), token.type() == StringToken };
-}
-
-static FixedVector<PossiblyQuotedIdentifier> consumeLangArgumentList(CSSParserTokenRange& range)
-{
-    Vector<PossiblyQuotedIdentifier> list;
-    auto item = consumePossiblyQuotedIdentifier(range);
-    if (item.isNull())
-        return { };
-    list.append(WTF::move(item));
-    while (!range.atEnd() && range.peek().type() == CommaToken) {
-        range.consumeIncludingWhitespace();
-        item = consumePossiblyQuotedIdentifier(range);
-        if (item.isNull())
-            return { };
-        list.append(WTF::move(item));
-    }
-    return FixedVector<PossiblyQuotedIdentifier> { WTF::move(list) };
-}
-
-static std::optional<FixedVector<AtomString>> consumeCommaSeparatedCustomIdentList(CSSParserTokenRange& range)
-{
-    Vector<AtomString> customIdents { };
-
-    do {
-        auto ident = CSSPropertyParserHelpers::consumeEagerlyResolvableCustomIdentRaw(range);
-        if (!ident)
-            return std::nullopt;
-
-        customIdents.append(ident.toAtomString());
-    } while (CSSPropertyParserHelpers::consumeCommaIncludingWhitespace(range));
-
-    if (!range.atEnd())
-        return std::nullopt;
-
-    // The parsing code guarantees there has to be at least one custom ident.
-    ASSERT(!customIdents.isEmpty());
-
-    return FixedVector<AtomString> { WTF::move(customIdents) };
-}
-
-static std::optional<FixedVector<int>> consumeCommaSeparatedIntegerList(CSSParserTokenRange& range)
-{
-    Vector<int> integers;
-
-    do {
-        range.consumeWhitespace();
-        const auto& token = range.peek();
-        if (token.type() != NumberToken || token.numericValueType() != IntegerValueType)
-            return std::nullopt;
-
-        integers.append(static_cast<int>(token.numericValue()));
-        range.consumeIncludingWhitespace();
-    } while (CSSPropertyParserHelpers::consumeCommaIncludingWhitespace(range));
-
-    if (!range.atEnd())
-        return std::nullopt;
-
-    ASSERT(!integers.isEmpty());
-
-    return FixedVector<int> { WTF::move(integers) };
-}
-
-enum class CompoundSelectorFlag {
-    HasPseudoElementForRightmostCompound = 1 << 0,
-};
-
-NODELETE static OptionSet<CompoundSelectorFlag> extractCompoundFlags(const MutableCSSSelector& simpleSelector, CSSParserMode parserMode)
-{
-    if (simpleSelector.match() != CSSSelector::Match::PseudoElement)
-        return { };
-    
-    // FIXME: https://bugs.webkit.org/show_bug.cgi?id=161747
-    // The UASheetMode check is a work-around to allow this selector in mediaControls(New).css:
-    // input[type="range" i]::-webkit-media-slider-container > div {
-    if (isUASheetBehavior(parserMode) && simpleSelector.pseudoElement() == CSSSelector::PseudoElement::UserAgentPart)
-        return { };
-
-    return CompoundSelectorFlag::HasPseudoElementForRightmostCompound;
-}
-
-NODELETE static bool isDescendantCombinator(CSSSelector::Relation relation)
-{
-    return relation == CSSSelector::Relation::DescendantSpace;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeNestedComplexSelector(CSSParserTokenRange& range)
-{
-    auto selector = consumeComplexSelector(range);
-    if (selector)
-        return selector;
-
-    selector = consumeRelativeNestedSelector(range);
-    if (selector)
-        return selector;
-
-    return nullptr;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeComplexSelector(CSSParserTokenRange& range)
-{
-    auto selector = consumeCompoundSelector(range);
-    if (!selector)
-        return nullptr;
-
-    OptionSet<CompoundSelectorFlag> previousCompoundFlags;
-
-    for (auto* simple = selector.get(); simple && !previousCompoundFlags; simple = simple->precedingInComplexSelector())
-        previousCompoundFlags = extractCompoundFlags(*simple, m_context.mode);
-
-    while (true) {
-        auto combinator = consumeCombinator(range);
-        if (combinator == CSSSelector::Relation::Subselector)
-            break;
-
-        auto nextSelector = consumeCompoundSelector(range);
-        if (!nextSelector)
-            return isDescendantCombinator(combinator) ? WTF::move(selector) : nullptr;
-        if (previousCompoundFlags.contains(CompoundSelectorFlag::HasPseudoElementForRightmostCompound))
-            return nullptr;
-        auto* end = nextSelector.get();
-        auto compoundFlags = extractCompoundFlags(*end, m_context.mode);
-        while (end->precedingInComplexSelector()) {
-            end = end->precedingInComplexSelector();
-            compoundFlags.add(extractCompoundFlags(*end, m_context.mode));
-        }
-        end->setRelation(combinator);
-        previousCompoundFlags = compoundFlags;
-        end->setPrecedingInComplexSelector(WTF::move(selector));
-
-        selector = WTF::move(nextSelector);
-    }
-
-    return selector;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeRelativeScopeSelector(CSSParserTokenRange& range)
-{
-    auto scopeCombinator = consumeCombinator(range);
-
-    if (scopeCombinator == CSSSelector::Relation::Subselector)
-        scopeCombinator = CSSSelector::Relation::DescendantSpace;
-
-    auto selector = consumeComplexSelector(range);
-    if (!selector)
-        return nullptr;
-
-    auto* end = selector.get();
-    while (end->precedingInComplexSelector())
-        end = end->precedingInComplexSelector();
-
-    auto scopeSelector = makeUnique<MutableCSSSelector>();
-    scopeSelector->setMatch(CSSSelector::Match::HasScope);
-
-    end->setRelation(scopeCombinator);
-    end->setPrecedingInComplexSelector(WTF::move(scopeSelector));
-
-    return selector;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeRelativeNestedSelector(CSSParserTokenRange& range)
-{
-    auto scopeCombinator = consumeCombinator(range);
-
-    // Nesting should only work with ~ > + combinators in this function. 
-    // The descendant combinator is handled in another code path.
-    if (scopeCombinator != CSSSelector::Relation::DirectAdjacent && scopeCombinator != CSSSelector::Relation::IndirectAdjacent && scopeCombinator != CSSSelector::Relation::Child)
-        return nullptr;
-    
-    auto selector = consumeComplexSelector(range);
-    if (!selector)
-        return nullptr;
-
-    auto last = selector->leftmostSimpleSelector();
-    last->setRelation(scopeCombinator);
-
-    return selector;
-}
-
-NODELETE static bool isScrollbarPseudoClass(CSSSelector::PseudoClass pseudo)
-{
-    switch (pseudo) {
-    case CSSSelector::PseudoClass::Enabled:
-    case CSSSelector::PseudoClass::Disabled:
-    case CSSSelector::PseudoClass::Hover:
-    case CSSSelector::PseudoClass::Active:
-    case CSSSelector::PseudoClass::Horizontal:
-    case CSSSelector::PseudoClass::Vertical:
-    case CSSSelector::PseudoClass::Decrement:
-    case CSSSelector::PseudoClass::Increment:
-    case CSSSelector::PseudoClass::Start:
-    case CSSSelector::PseudoClass::End:
-    case CSSSelector::PseudoClass::DoubleButton:
-    case CSSSelector::PseudoClass::SingleButton:
-    case CSSSelector::PseudoClass::NoButton:
-    case CSSSelector::PseudoClass::CornerPresent:
-    case CSSSelector::PseudoClass::WindowInactive:
-        return true;
-    default:
-        return false;
-    }
-}
-
-NODELETE static bool isUserActionPseudoClass(CSSSelector::PseudoClass pseudo)
-{
-    switch (pseudo) {
-    case CSSSelector::PseudoClass::Hover:
-    case CSSSelector::PseudoClass::Focus:
-    case CSSSelector::PseudoClass::Active:
-    case CSSSelector::PseudoClass::FocusVisible:
-    case CSSSelector::PseudoClass::FocusWithin:
-        return true;
-    default:
-        return false;
-    }
-}
-
-NODELETE static bool isPseudoClassValidAfterPseudoElement(CSSSelector::PseudoClass pseudoClass, CSSSelector::PseudoElement compoundPseudoElement)
-{
-    // FIXME: https://drafts.csswg.org/selectors-4/#pseudo-element-states states all pseudo-elements
-    // can be followed by isUserActionPseudoClass().
-    // Validity of these is determined by their content.
-    if (isLogicalCombinationPseudoClass(pseudoClass))
-        return true;
-
-    switch (compoundPseudoElement) {
-    case CSSSelector::PseudoElement::Part:
-        return !isTreeStructuralPseudoClass(pseudoClass);
-    case CSSSelector::PseudoElement::WebKitResizer:
-    case CSSSelector::PseudoElement::WebKitScrollbar:
-    case CSSSelector::PseudoElement::WebKitScrollbarCorner:
-    case CSSSelector::PseudoElement::WebKitScrollbarButton:
-    case CSSSelector::PseudoElement::WebKitScrollbarThumb:
-    case CSSSelector::PseudoElement::WebKitScrollbarTrack:
-    case CSSSelector::PseudoElement::WebKitScrollbarTrackPiece:
-        return isScrollbarPseudoClass(pseudoClass);
-    case CSSSelector::PseudoElement::Selection:
-        return pseudoClass == CSSSelector::PseudoClass::WindowInactive;
-    case CSSSelector::PseudoElement::ViewTransitionGroup:
-    case CSSSelector::PseudoElement::ViewTransitionImagePair:
-    case CSSSelector::PseudoElement::ViewTransitionNew:
-    case CSSSelector::PseudoElement::ViewTransitionOld:
-        return pseudoClass == CSSSelector::PseudoClass::OnlyChild;
-    case CSSSelector::PseudoElement::Picker:
-    case CSSSelector::PseudoElement::UserAgentPart:
-    case CSSSelector::PseudoElement::UserAgentPartLegacyAlias:
-    case CSSSelector::PseudoElement::WebKitUnknown:
-        return isUserActionPseudoClass(pseudoClass);
-    default:
-        return false;
-    }
-}
-
-static bool isTreeAbidingPseudoElement(const MutableCSSSelector& simpleSelector)
-{
-    if (simpleSelector.match() != CSSSelector::Match::PseudoElement)
-        return false;
-
-    switch (simpleSelector.pseudoElement()) {
-    case CSSSelector::PseudoElement::Before:
-    case CSSSelector::PseudoElement::After:
-    case CSSSelector::PseudoElement::Marker:
-    case CSSSelector::PseudoElement::Backdrop:
-    case CSSSelector::PseudoElement::Picker:
-    case CSSSelector::PseudoElement::PickerIcon:
-        return true;
-    case CSSSelector::PseudoElement::UserAgentPart:
-        return simpleSelector.value() == UserAgentParts::detailsContent()
-            || simpleSelector.value() == UserAgentParts::fileSelectorButton()
-            || simpleSelector.value() == UserAgentParts::placeholder();
-    default:
-        return false;
-    }
-}
-
-static bool isSimpleSelectorValidAfterPseudoElement(const MutableCSSSelector& simpleSelector, const MutableCSSSelector& compoundPseudoElement)
-{
-    if (compoundPseudoElement.pseudoElement() == CSSSelector::PseudoElement::Picker
-        || (compoundPseudoElement.pseudoElement() == CSSSelector::PseudoElement::UserAgentPart && compoundPseudoElement.value() == UserAgentParts::detailsContent())) {
-        if (simpleSelector.match() == CSSSelector::Match::PseudoElement)
-            return true;
-    }
-    if (compoundPseudoElement.pseudoElement() == CSSSelector::PseudoElement::Part) {
-        if (simpleSelector.match() == CSSSelector::Match::PseudoElement && simpleSelector.pseudoElement() != CSSSelector::PseudoElement::Part)
-            return true;
-    }
-    if (compoundPseudoElement.pseudoElement() == CSSSelector::PseudoElement::Slotted) {
-        if (isTreeAbidingPseudoElement(simpleSelector))
-            return true;
-    }
-    if (simpleSelector.match() != CSSSelector::Match::PseudoClass)
-        return false;
-
-    return isPseudoClassValidAfterPseudoElement(simpleSelector.pseudoClass(), compoundPseudoElement.pseudoElement());
-}
-
-NODELETE static bool atEndIgnoringWhitespace(CSSParserTokenRange range)
-{
-    range.consumeWhitespace();
-    return range.atEnd();
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeCompoundSelector(CSSParserTokenRange& range)
-{
-    ASSERT(!m_precedingPseudoElement || m_disallowPseudoElements);
-
-    std::unique_ptr<MutableCSSSelector> compoundSelector;
-
-    auto parsedName = consumeQualifiedName(range);
-
-    if (!parsedName) {
-        compoundSelector = consumeSimpleSelector(range);
-        if (!compoundSelector)
-            return nullptr;
-        if (compoundSelector->match() == CSSSelector::Match::PseudoElement)
-            m_precedingPseudoElement = compoundSelector.get();
-    }
-
-    while (auto simpleSelector = consumeSimpleSelector(range)) {
-        if (simpleSelector->match() == CSSSelector::Match::PseudoElement)
-            m_precedingPseudoElement = simpleSelector.get();
-
-        if (compoundSelector)
-            compoundSelector->prependInComplexSelector(CSSSelector::Relation::Subselector, WTF::move(simpleSelector));
-        else
-            compoundSelector = WTF::move(simpleSelector);
-    }
-
-    if (!m_disallowPseudoElements)
-        m_precedingPseudoElement = nullptr;
-
-    // While inside a nested selector like :is(), the default namespace shall be ignored when [1]:
-    // * The compound selector represents the subject [2], and
-    // * The compound selector does not contain a type/universal selector.
-    //
-    // [1] https://drafts.csswg.org/selectors/#matches
-    // [2] https://drafts.csswg.org/selectors/#selector-subject
-    SetForScope ignoreDefaultNamespace(m_ignoreDefaultNamespace, m_resistDefaultNamespace && !parsedName && atEndIgnoringWhitespace(range));
-    if (!compoundSelector) {
-        auto namespacePrefix = parsedName->namespacePrefix;
-        AtomString namespaceURI = determineNamespace(namespacePrefix);
-        if (namespaceURI.isNull()) {
-            m_failedParsing = true;
-            return nullptr;
-        }
-        if (namespaceURI == defaultNamespace())
-            namespacePrefix = nullAtom();
-        
-        return makeUnique<MutableCSSSelector>(QualifiedName(namespacePrefix, parsedName->name, namespaceURI));
-    }
-    auto namespacePrefix = parsedName ? parsedName->namespacePrefix : nullAtom();
-    auto elementName = parsedName ? parsedName->name : nullAtom();
-    prependTypeSelectorIfNeeded(namespacePrefix, elementName, *compoundSelector);
-    return splitCompoundAtImplicitShadowCrossingCombinator(WTF::move(compoundSelector), m_context);
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeSimpleSelector(CSSParserTokenRange& range)
-{
-    const CSSParserToken& token = range.peek();
-    std::unique_ptr<MutableCSSSelector> selector;
-    if (token.type() == HashToken)
-        selector = consumeId(range);
-    else if (token.type() == DelimiterToken && token.delimiter() == '.')
-        selector = consumeClass(range);
-    else if (token.type() == DelimiterToken && token.delimiter() == '&')
-        selector = consumeNesting(range);
-    else if (token.type() == LeftBracketToken)
-        selector = consumeAttribute(range);
-    else if (token.type() == ColonToken)
-        selector = consumePseudo(range);
-    else
-        return nullptr;
-
-    if (!selector) {
-        m_failedParsing = true;
-        return nullptr;
-    }
-
-    if (m_precedingPseudoElement) {
-        // FIXME: https://bugs.webkit.org/show_bug.cgi?id=161747
-        // The UASheetMode check is a work-around to allow this selector in mediaControls(New).css:
-        // video::-webkit-media-text-track-region-container.scrolling
-        if (!isUASheetBehavior(m_context.mode) && !isSimpleSelectorValidAfterPseudoElement(*selector, *m_precedingPseudoElement))
-            m_failedParsing = true;
-    }
-
-    return selector;
-}
-
-std::optional<ParsedQualifiedName> consumeQualifiedName(CSSParserTokenRange& range)
-{
-    AtomString name;
-    AtomString namespacePrefix;
-
-    auto& firstToken = range.peek();
-    if (firstToken.type() == IdentToken) {
-        name = firstToken.value().toAtomString();
-        range.consume();
-    } else if (firstToken.type() == DelimiterToken && firstToken.delimiter() == '*') {
-        name = starAtom();
-        range.consume();
-    } else if (firstToken.type() == DelimiterToken && firstToken.delimiter() == '|') {
-        // This is an empty namespace, which'll get assigned this value below.
-        name = emptyAtom();
-    } else
-        return { };
-
-    if (range.peek().type() != DelimiterToken || range.peek().delimiter() != '|')
-        return ParsedQualifiedName { name, namespacePrefix };
-
-    namespacePrefix = name;
-
-    if (range.peek(1).type() == IdentToken) {
-        range.consume();
-        name = range.consume().value().toAtomString();
-        return ParsedQualifiedName { name, namespacePrefix };
-    }
-
-    if (range.peek(1).type() == DelimiterToken && range.peek(1).delimiter() == '*') {
-        range.consume();
-        range.consume();
-        return ParsedQualifiedName { starAtom(), namespacePrefix };
-    }
-
-    return { };
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeId(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == HashToken);
-    if (range.peek().getHashTokenType() != HashTokenId)
-        return nullptr;
-
-    auto selector = makeUnique<MutableCSSSelector>();
-    selector->setMatch(CSSSelector::Match::Id);
-
-    auto token = range.consume();
-    selector->setValue(token.value().toAtomString(), m_context.mode == HTMLQuirksMode);
-    return selector;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeClass(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == DelimiterToken);
-    ASSERT(range.peek().delimiter() == '.');
-    range.consume();
-    if (range.peek().type() != IdentToken)
-        return nullptr;
-
-    auto token = range.consume();
-    auto identifier = token.value();
-
-    auto selector = makeUnique<MutableCSSSelector>();
-
-    // The class prefix selector (.foo-*) is a dash-terminated identifier immediately followed by
-    // an asterisk, with no intervening whitespace. https://drafts.csswg.org/selectors/#class-prefix
-    bool matchLowerCase = false;
-    if (m_context.cssClassPrefixSelectorEnabled && identifier.endsWith('-')
-        && range.peek().type() == DelimiterToken && range.peek().delimiter() == '*') {
-        range.consume();
-        selector->setMatch(CSSSelector::Match::ClassPrefix);
-    } else {
-        selector->setMatch(CSSSelector::Match::Class);
-        matchLowerCase = m_context.mode == HTMLQuirksMode;
-    }
-    selector->setValue(identifier.toAtomString(), matchLowerCase);
-
-    return selector;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeNesting(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == DelimiterToken);
-    ASSERT(range.peek().delimiter() == '&');
-    range.consume();
-
-    auto selector = makeUnique<MutableCSSSelector>();
-    selector->setMatch(CSSSelector::Match::NestingParent);
-    
-    return selector;
-}
-
-// [class~="foo"] selects the same elements as .foo: both compare the whitespace-separated
-// tokens of the class attribute case-sensitively. Marking it lets matching use the tokenized
-// ElementData::classNames() instead of searching the raw attribute value.
-static bool isEquivalentToClassSelector(const CSSSelector& selector, CSSParserMode mode)
-{
-    // Only HTMLStandardMode. Quirks mode ASCII-lowercases the class list while [class~=] stays
-    // case-sensitive, and UA sheets are parsed once and shared with quirks mode documents.
-    if (mode != HTMLStandardMode)
-        return false;
-
-    if (selector.match() != CSSSelector::Match::List)
-        return false;
-
-    // A prefixed or uppercase attribute name is a different attribute, except for HTML elements
-    // where the name is matched ASCII-case-insensitively. Requiring an exact match keeps
-    // [CLASS~=foo] and [html|class~=foo] on the general attribute path.
-    if (selector.attribute() != HTMLNames::classAttr)
-        return false;
-
-    if (selector.attributeMatchType() == CSSSelector::AttributeMatchType::CaseInsensitive)
-        return false;
-
-    // Neither [class~=""] nor a value with whitespace can match anything, which is not what a
-    // class selector would do.
-    auto& value = selector.value();
-    return !value.isEmpty() && value.find(isASCIIWhitespace<char16_t>) == notFound;
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumeAttribute(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == LeftBracketToken);
-    CSSParserTokenRange block = range.consumeBlock();
-    block.consumeWhitespace();
-
-    auto parsedName = consumeQualifiedName(block);
-    if (!parsedName)
-        return nullptr;
-    block.consumeWhitespace();
-
-    AtomString namespaceURI = determineNamespace(parsedName->namespacePrefix);
-    if (namespaceURI.isNull())
-        return nullptr;
-
-    QualifiedName qualifiedName = parsedName->namespacePrefix.isNull()
-        ? QualifiedName(nullAtom(), parsedName->name, nullAtom())
-        : QualifiedName(parsedName->namespacePrefix, parsedName->name, namespaceURI);
-
-    auto selector = makeUnique<MutableCSSSelector>();
-
-    if (block.atEnd()) {
-        selector->setAttribute(qualifiedName, CSSSelector::AttributeMatchType::Default);
-        selector->setMatch(CSSSelector::Match::Set);
-        return selector;
-    }
-
-    selector->setMatch(consumeAttributeMatch(block));
-
-    const CSSParserToken& attributeValue = block.consumeIncludingWhitespace();
-    if (attributeValue.type() != IdentToken && attributeValue.type() != StringToken)
-        return nullptr;
-    selector->setValue(attributeValue.value().toAtomString());
-
-    selector->setAttribute(qualifiedName, consumeAttributeFlags(block));
-
-    if (!block.atEnd())
-        return nullptr;
-
-    if (isEquivalentToClassSelector(selector->selector(), m_context.mode))
-        selector->setIsEquivalentToClassSelector();
-
-    return selector;
-}
-
-static AtomString consumePickerArgument(CSSParserTokenRange& block)
-{
-    auto& ident = block.consumeIncludingWhitespace();
-    if (ident.type() != IdentToken || !block.atEnd())
-        return nullAtom();
-    if (!equalLettersIgnoringASCIICase(ident.value(), "select"_s))
-        return nullAtom();
-    return ident.value().convertToASCIILowercaseAtom();
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::consumePseudo(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == ColonToken);
-    range.consume();
-
-    int colons = 1;
-    if (range.peek().type() == ColonToken) {
-        range.consume();
-        colons++;
-    }
-
-    const CSSParserToken& token = range.peek();
-    if (token.type() != IdentToken && token.type() != FunctionToken)
-        return nullptr;
-
-    std::unique_ptr<MutableCSSSelector> selector;
-
-    if (colons == 1)
-        selector = MutableCSSSelector::parsePseudoClassSelector(token.value(), m_context);
-    else {
-        selector = MutableCSSSelector::parsePseudoElementSelector(token.value(), m_context);
-#if ENABLE(VIDEO)
-        if (token.type() == IdentToken
-            && selector
-            && selector->match() == CSSSelector::Match::PseudoElement
-            && selector->pseudoElement() == CSSSelector::PseudoElement::UserAgentPart
-            && selector->value() == UserAgentParts::webkitMediaTextTrackDisplay()) {
-            // This will convert a `::-webkit-media-text-track-display` selector into a
-            // `::cue` selector, so that websites which were previously using that selector
-            // to move cues with transform:translateY() rules can continue to do so.
-            selector->setValue(UserAgentParts::cue());
-        }
-
-        // Treat the ident version of cue as PseudoElement::UserAgentPart.
-        if (token.type() == IdentToken && selector && selector->match() == CSSSelector::Match::PseudoElement && selector->pseudoElement() == CSSSelector::PseudoElement::Cue)
-            selector->setPseudoElement(CSSSelector::PseudoElement::UserAgentPart);
-#endif
-    }
-
-    if (!selector)
-        return nullptr;
-
-    // Pseudo-elements are not allowed inside pseudo-classes or pseudo-elements.
-    if (selector->match() == CSSSelector::Match::PseudoElement && m_disallowPseudoElements)
-        return nullptr;
-    SetForScope disallowPseudoElementsScope(m_disallowPseudoElements, true);
-
-    if (token.type() == IdentToken) {
-        range.consume();
-        if ((selector->match() == CSSSelector::Match::PseudoElement && CSSSelector::pseudoElementRequiresArgument(selector->pseudoElement()))
-            || (selector->match() == CSSSelector::Match::PseudoClass && CSSSelector::pseudoClassRequiresArgument(selector->pseudoClass())))
-            return nullptr;
-        return selector;
-    }
-
-    ASSERT(token.type() == FunctionToken);
-    CSSParserTokenRange block = range.consumeBlock();
-    block.consumeWhitespace();
-
-    if (selector->match() == CSSSelector::Match::PseudoClass) {
-        switch (selector->pseudoClass()) {
-        case CSSSelector::PseudoClass::Not: {
-            SetForScope resistDefaultNamespace(m_resistDefaultNamespace, true);
-            auto selectorList = consumeComplexSelectorList(block);
-            if (selectorList.size() < 1 || !block.atEnd())
-                return nullptr;
-            selector->setSelectorList(makeUnique<CSSSelectorList>(WTF::move(selectorList)));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Heading: {
-            auto integerList = consumeCommaSeparatedIntegerList(block);
-            if (!integerList)
-                return nullptr;
-            selector->setIntegerList(WTF::move(*integerList));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::NthChild:
-        case CSSSelector::PseudoClass::NthLastChild:
-        case CSSSelector::PseudoClass::NthOfType:
-        case CSSSelector::PseudoClass::NthLastOfType: {
-            std::pair<int, int> ab;
-            if (!consumeANPlusB(block, ab))
-                return nullptr;
-            block.consumeWhitespace();
-            // FIXME: We should be able to do this lazily. See: https://bugs.webkit.org/show_bug.cgi?id=217149
-            selector->setArgument(serializeANPlusB(ab));
-            if (!block.atEnd()) {
-                auto type = selector->pseudoClass();
-                if (type == CSSSelector::PseudoClass::NthOfType || type == CSSSelector::PseudoClass::NthLastOfType)
-                    return nullptr;
-                if (block.peek().type() != IdentToken)
-                    return nullptr;
-                const CSSParserToken& ident = block.consume();
-                if (!equalLettersIgnoringASCIICase(ident.value(), "of"_s))
-                    return nullptr;
-                block.consumeWhitespace();
-                auto selectorList = consumeComplexSelectorList(block);
-                if (selectorList.isEmpty() || !block.atEnd())
-                    return nullptr;
-                selector->setSelectorList(makeUnique<CSSSelectorList>(WTF::move(selectorList)));
-            }
-            selector->setNth(ab.first, ab.second);
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Lang: {
-            auto list = consumeLangArgumentList(block);
-            if (list.isEmpty() || !block.atEnd())
-                return nullptr;
-            selector->setLangList(WTF::move(list));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Is:
-        case CSSSelector::PseudoClass::Where:
-        case CSSSelector::PseudoClass::WebKitAny: {
-            SetForScope resistDefaultNamespace(m_resistDefaultNamespace, true);
-            auto selectorList = makeUnique<CSSSelectorList>();
-            auto consumedBlock = consumeComplexForgivingSelectorList(block);
-            if (!block.atEnd())
-                return nullptr;
-            if (consumedBlock.isEmpty())
-                *selectorList = CSSSelectorList { };
-            else
-                *selectorList = CSSSelectorList { WTF::move(consumedBlock) };
-            selector->setSelectorList(WTF::move(selectorList));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Host: {
-            auto innerSelector = consumeCompoundSelector(block);
-            block.consumeWhitespace();
-            if (!innerSelector || !block.atEnd())
-                return nullptr;
-            selector->adoptSelectorVector(MutableCSSSelectorList::from(WTF::move(innerSelector)));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Has: {
-            if (m_disallowHasPseudoClass)
-                return nullptr;
-            SetForScope resistDefaultNamespace(m_resistDefaultNamespace, true);
-            SetForScope disallowNestedHas(m_disallowHasPseudoClass, true);
-            auto selectorList = consumeRelativeSelectorList(block);
-            if (selectorList.isEmpty() || !block.atEnd())
-                return nullptr;
-            selector->setSelectorList(makeUnique<CSSSelectorList>(WTF::move(selectorList)));
-            return selector;
-        }
-        case CSSSelector::PseudoClass::Dir: {
-            const CSSParserToken& ident = block.consumeIncludingWhitespace();
-            if (ident.type() != IdentToken || !block.atEnd())
-                return nullptr;
-            selector->setArgument(ident.value().toAtomString());
-            return selector;
-        }
-        case CSSSelector::PseudoClass::State: {
-            const CSSParserToken& ident = block.consumeIncludingWhitespace();
-            if (ident.type() != IdentToken || !block.atEnd())
-                return nullptr;
-            selector->setArgument(ident.value().toAtomString());
-            return selector;
-        }
-        case CSSSelector::PseudoClass::ActiveViewTransitionType: {
-            auto typeList = consumeCommaSeparatedCustomIdentList(block);
-            if (!typeList)
-                return nullptr;
-            selector->setStringList(WTF::move(*typeList));
-            return selector;
-        }
-        default:
-            break;
-        }
-    }
-    
-    if (selector->match() == CSSSelector::Match::PseudoElement) {
-        switch (selector->pseudoElement()) {
-#if ENABLE(VIDEO)
-        case CSSSelector::PseudoElement::Cue: {
-            auto selectorList = consumeCompoundSelectorList(block);
-            if (selectorList.isEmpty() || !block.atEnd())
-                return nullptr;
-            selector->setSelectorList(makeUnique<CSSSelectorList>(WTF::move(selectorList)));
-            return selector;
-        }
-#endif
-        case CSSSelector::PseudoElement::Highlight: {
-            auto& token = block.consumeIncludingWhitespace();
-            if (!block.atEnd())
-                return nullptr;
-            if (token.type() == IdentToken) {
-                selector->setStringList({ { token.value().toAtomString() } });
-                return selector;
-            }
-            if (token.type() == DelimiterToken && token.delimiter() == '*') {
-                selector->setStringList({ { universalPseudoElementNameAtom() } });
-                return selector;
-            }
-            return nullptr;
-        }
-
-        case CSSSelector::PseudoElement::Picker: {
-            auto argument = consumePickerArgument(block);
-            if (argument.isNull())
-                return nullptr;
-
-            selector->setStringList({ { argument } });
-            return selector;
-        }
-
-        case CSSSelector::PseudoElement::ViewTransitionGroup:
-        case CSSSelector::PseudoElement::ViewTransitionImagePair:
-        case CSSSelector::PseudoElement::ViewTransitionOld:
-        case CSSSelector::PseudoElement::ViewTransitionNew: {
-            Vector<AtomString> nameAndClasses;
-
-            // Check for implicit universal selector.
-            if (block.peek().type() == DelimiterToken && block.peek().delimiter() == '.')
-                nameAndClasses.append(universalPseudoElementNameAtom());
-
-            // Parse name or explicit universal selector.
-            if (nameAndClasses.isEmpty()) {
-                const auto& ident = block.consume();
-                if (ident.type() == IdentToken && isValidCustomIdentifier(ident.id()))
-                    nameAndClasses.append(ident.value().toAtomString());
-                else if (ident.type() == DelimiterToken && ident.delimiter() == '*')
-                    nameAndClasses.append(universalPseudoElementNameAtom());
-                else
-                    return nullptr;
-            }
-
-            // Parse classes.
-            while (!block.atEnd() && !CSSTokenizer::isWhitespace(block.peek().type())) {
-                if (block.peek().type() != DelimiterToken || block.consume().delimiter() != '.')
-                    return nullptr;
-
-                if (block.peek().type() != IdentToken)
-                    return nullptr;
-                nameAndClasses.append({ block.consume().value().toAtomString() });
-            }
-
-            block.consumeWhitespace();
-
-            if (!block.atEnd())
-                return nullptr;
-
-            selector->setStringList(FixedVector<AtomString> { WTF::move(nameAndClasses) });
-            return selector;
-        }
-
-        case CSSSelector::PseudoElement::Part: {
-            Vector<AtomString> argumentList;
-            do {
-                auto& ident = block.consumeIncludingWhitespace();
-                if (ident.type() != IdentToken)
-                    return nullptr;
-                argumentList.append(ident.value().toAtomString());
-            } while (!block.atEnd());
-            selector->setStringList(FixedVector<AtomString> { WTF::move(argumentList) });
-            return selector;
-        }
-        case CSSSelector::PseudoElement::Slotted: {
-            auto innerSelector = consumeCompoundSelector(block);
-            block.consumeWhitespace();
-            if (!innerSelector || !block.atEnd())
-                return nullptr;
-            selector->adoptSelectorVector(MutableCSSSelectorList::from(WTF::move(innerSelector)));
-            return selector;
-        }
-        default:
-            break;
-        }
-    }
-
-    return nullptr;
-}
-
-CSSSelector::Relation CSSSelectorParser::consumeCombinator(CSSParserTokenRange& range)
-{
-    auto fallbackResult = CSSSelector::Relation::Subselector;
-    while (CSSTokenizer::isWhitespace(range.peek().type())) {
-        range.consume();
-        fallbackResult = CSSSelector::Relation::DescendantSpace;
-    }
-
-    if (range.peek().type() != DelimiterToken)
-        return fallbackResult;
-
-    char16_t delimiter = range.peek().delimiter();
-
-    if (delimiter == '+' || delimiter == '~' || delimiter == '>') {
-        range.consumeIncludingWhitespace();
-        if (delimiter == '+')
-            return CSSSelector::Relation::DirectAdjacent;
-        if (delimiter == '~')
-            return CSSSelector::Relation::IndirectAdjacent;
-        return CSSSelector::Relation::Child;
-    }
-
-    return fallbackResult;
-}
-
-CSSSelector::Match CSSSelectorParser::consumeAttributeMatch(CSSParserTokenRange& range)
-{
-    const CSSParserToken& token = range.consumeIncludingWhitespace();
-    switch (token.type()) {
-    case IncludeMatchToken:
-        return CSSSelector::Match::List;
-    case DashMatchToken:
-        return CSSSelector::Match::Hyphen;
-    case PrefixMatchToken:
-        return CSSSelector::Match::Begin;
-    case SuffixMatchToken:
-        return CSSSelector::Match::End;
-    case SubstringMatchToken:
-        return CSSSelector::Match::Contain;
-    case DelimiterToken:
-        if (token.delimiter() == '=')
-            return CSSSelector::Match::Exact;
-        [[fallthrough]];
-    default:
-        m_failedParsing = true;
-        return CSSSelector::Match::Exact;
-    }
-}
-
-CSSSelector::AttributeMatchType CSSSelectorParser::consumeAttributeFlags(CSSParserTokenRange& range)
-{
-    if (range.peek().type() != IdentToken)
-        return CSSSelector::AttributeMatchType::Default;
-    const CSSParserToken& flag = range.consumeIncludingWhitespace();
-    if (equalLettersIgnoringASCIICase(flag.value(), "i"_s))
-        return CSSSelector::AttributeMatchType::CaseInsensitive;
-    if (equalLettersIgnoringASCIICase(flag.value(), "s"_s))
-        return CSSSelector::AttributeMatchType::CaseSensitive;
-    m_failedParsing = true;
-    return CSSSelector::AttributeMatchType::Default;
-}
 
 // <an+b> token sequences have special serialization rules: https://www.w3.org/TR/css-syntax-3/#serializing-anb
 static AtomString serializeANPlusB(const std::pair<int, int>& ab)
@@ -1222,192 +72,210 @@ static AtomString serializeANPlusB(const std::pair<int, int>& ab)
     return builder.toAtomString();
 }
 
-static bool consumeANPlusB(CSSParserTokenRange& range, std::pair<int, int>& result)
+static_assert(CSSParserSwiftNoPseudoElement > std::to_underlying(CSSSelector::PseudoElement::WebKitUnknown)); // the last
+
+static CSSParserSwiftStateData& selectorParserData(CSSParserSwiftState& state) { return static_cast<CSSParserSwiftStateData&>(state); }
+static CSSParserSwiftParse& selectorParserParse(CSSParserSwiftState& state) { return selectorParserData(state).parse; }
+
+// The token at `index`, which must be one of the parse's.
+static const CSSParserToken& selectorParserToken(CSSParserSwiftState& state, size_t index)
 {
-    const CSSParserToken& token = range.consume();
-    if (token.type() == NumberToken && token.numericValueType() == IntegerValueType) {
-        result = std::make_pair(0, clampTo<int>(token.numericValue()));
-        return true;
+    auto tokens = selectorParserData(state).tokens;
+    RELEASE_ASSERT(index < tokens.size());
+    return tokens[index];
+}
+
+int64_t CSSParserSwiftState::parseIntegerInValue(size_t index, uint32_t offset)
+{
+    auto text = valueText(selectorParserToken(*this, index));
+    RELEASE_ASSERT(offset <= text.length());
+    auto parsed = parseInteger<int>(text.substring(offset));
+    return parsed ? *parsed : std::numeric_limits<int64_t>::min();
+}
+
+bool CSSParserSwiftState::isHashTokenId(size_t index)
+{
+    return type(index) == HashToken && selectorParserToken(*this, index).getHashTokenType() == HashTokenId;
+}
+
+uint8_t CSSParserSwiftState::numericSign(size_t index)
+{
+    return type(index) == NumberToken ? selectorParserToken(*this, index).numericSign() : NoSign;
+}
+
+uint32_t CSSParserSwiftState::selectorContextFlags()
+{
+    auto& parse = selectorParserParse(*this);
+    auto& context = parse.selectorContext;
+    auto& styleSheet = parse.inputs.styleSheet;
+    return std::to_underlying(context.mode) | (context.cssClassPrefixSelectorEnabled ? CSSParserSwiftSelectorContextClassPrefixSelectorEnabled : 0)
+        | (!styleSheet || styleSheet->defaultNamespace() == starAtom() ? CSSParserSwiftSelectorContextDefaultNamespaceIsStar : 0);
+}
+
+uint16_t CSSParserSwiftState::pseudoClass(size_t index)
+{
+    auto found = findPseudoClassAndCompatibilityElementName(selectorParserToken(*this, index).value());
+    if (found.pseudoClass)
+        return CSSSelector::isPseudoClassEnabled(*found.pseudoClass, selectorParserParse(*this).selectorContext) ? CSSParserSwiftPseudoIsClass << 8 | std::to_underlying(*found.pseudoClass) : 0;
+    if (found.compatibilityPseudoElement) {
+        ASSERT(CSSSelector::isPseudoElementEnabled(*found.compatibilityPseudoElement, selectorParserToken(*this, index).value(), selectorParserParse(*this).selectorContext));
+        return CSSParserSwiftPseudoIsCompatibilityElement << 8 | std::to_underlying(*found.compatibilityPseudoElement);
     }
-    if (token.type() == IdentToken) {
-        if (equalLettersIgnoringASCIICase(token.value(), "odd"_s)) {
-            result = std::make_pair(2, 1);
-            return true;
-        }
-        if (equalLettersIgnoringASCIICase(token.value(), "even"_s)) {
-            result = std::make_pair(2, 0);
-            return true;
-        }
+    return 0;
+}
+
+uint16_t CSSParserSwiftState::pseudoElement(size_t index)
+{
+    auto found = CSSSelector::parsePseudoElementName(selectorParserToken(*this, index).value(), selectorParserParse(*this).selectorContext);
+    return found ? 1 + std::to_underlying(*found) : 0;
+}
+
+// CSSSelectorParser's namespace resolution, with its style sheet and m_ignoreDefaultNamespace as the parse had them.
+struct SelectorNamespaceResolver {
+    const RefPtr<StyleSheetContents> m_styleSheet;
+    bool m_ignoreDefaultNamespace { false };
+
+    const AtomString& defaultNamespace() const
+    {
+        if (!m_styleSheet || m_ignoreDefaultNamespace)
+            return starAtom();
+        return m_styleSheet->defaultNamespace();
     }
 
-    // The 'n' will end up as part of an ident or dimension. For a valid <an+b>,
-    // this will store a string of the form 'n', 'n-', or 'n-123'.
-    StringView nString;
-
-    if (token.type() == DelimiterToken && token.delimiter() == '+' && range.peek().type() == IdentToken) {
-        result.first = 1;
-        nString = range.consume().value();
-    } else if (token.type() == DimensionToken && token.numericValueType() == IntegerValueType) {
-        result.first = clampTo<int>(token.numericValue());
-        nString = token.unitString();
-    } else if (token.type() == IdentToken) {
-        if (token.value()[0] == '-') {
-            result.first = -1;
-            nString = token.value().substring(1);
-        } else {
-            result.first = 1;
-            nString = token.value();
-        }
+    const AtomString& determineNamespace(const AtomString& prefix)
+    {
+        if (prefix.isNull())
+            return defaultNamespace();
+        if (prefix.isEmpty())
+            return emptyAtom(); // No namespace. If an element/attribute has a namespace, we won't match it.
+        if (prefix == starAtom())
+            return starAtom(); // We'll match any namespace.
+        if (!m_styleSheet)
+            return nullAtom(); // Cannot resolve prefix to namespace without a stylesheet, syntax error.
+        return m_styleSheet->namespaceURIFromPrefix(prefix);
     }
+};
 
-    range.consumeWhitespace();
+static SelectorNamespaceResolver namespaceResolver(CSSParserSwiftState& state, bool ignoreDefaultNamespace, bool withStyleSheet)
+{
+    return { withStyleSheet ? selectorParserParse(state).inputs.styleSheet : nullptr, ignoreDefaultNamespace };
+}
 
-    if (nString.isEmpty() || !isASCIIAlphaCaselessEqual(nString[0], 'n'))
+static AtomString namespacePrefix(CSSParserSwiftState& state, CSSParserSwiftNamespace kind, uint32_t prefixToken)
+{
+    switch (kind) {
+    case CSSParserSwiftNamespace::Default: return nullAtom();
+    case CSSParserSwiftNamespace::NoNamespace: return emptyAtom();
+    case CSSParserSwiftNamespace::Any: return starAtom();
+    case CSSParserSwiftNamespace::Prefix: return selectorParserToken(state, prefixToken).value().toAtomString();
+    }
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+static CSSParserSwiftNamespace checkedNamespaceKind(uint8_t kind)
+{
+    RELEASE_ASSERT(kind <= std::to_underlying(CSSParserSwiftNamespace::Prefix));
+    return static_cast<CSSParserSwiftNamespace>(kind);
+}
+
+uint8_t CSSParserSwiftState::namespaceStatus(uint8_t kind, uint32_t prefixToken, bool ignoreDefaultNamespace, bool withStyleSheet)
+{
+    auto prefix = namespacePrefix(*this, checkedNamespaceKind(kind), prefixToken);
+    auto resolver = namespaceResolver(*this, ignoreDefaultNamespace, withStyleSheet);
+    auto& namespaceURI = resolver.determineNamespace(prefix);
+    auto& defaultURI = resolver.defaultNamespace();
+    return (namespaceURI.isNull() ? 0 : CSSParserSwiftNamespaceResolves)
+        | (namespaceURI == defaultURI ? CSSParserSwiftNamespaceIsDefault : 0)
+        | (namespaceURI == starAtom() ? CSSParserSwiftNamespaceIsStar : 0)
+        | (defaultURI == starAtom() ? CSSParserSwiftNamespaceDefaultIsStar : 0);
+}
+
+bool CSSParserSwiftState::isClassSelectorEquivalent(size_t nameToken, size_t valueToken)
+{
+    if (selectorParserToken(*this, nameToken).value() != HTMLNames::classAttr->localName())
         return false;
-    if (nString.length() > 1 && nString[1] != '-')
-        return false;
-
-    if (nString.length() > 2) {
-        auto parsedNumber = parseInteger<int>(nString.substring(1));
-        result.second = parsedNumber.value_or(0);
-        return parsedNumber.has_value();
-    }
-
-    NumericSign sign = nString.length() == 1 ? NoSign : MinusSign;
-    if (sign == NoSign && range.peek().type() == DelimiterToken) {
-        char delimiterSign = range.consumeIncludingWhitespace().delimiter();
-        if (delimiterSign == '+')
-            sign = PlusSign;
-        else if (delimiterSign == '-')
-            sign = MinusSign;
-        else
-            return false;
-    }
-
-    if (sign == NoSign && range.peek().type() != NumberToken) {
-        result.second = 0;
-        return true;
-    }
-
-    const CSSParserToken& b = range.consume();
-    if (b.type() != NumberToken || b.numericValueType() != IntegerValueType)
-        return false;
-    if ((b.numericSign() == NoSign) == (sign == NoSign))
-        return false;
-    result.second = clampTo<int>(b.numericValue());
-    if (sign == MinusSign)
-        result.second = -result.second;
-    return true;
+    auto value = selectorParserToken(*this, valueToken).value();
+    return !value.isEmpty() && value.find(isASCIIWhitespace<char16_t>) == notFound;
 }
 
-const AtomString& CSSSelectorParser::defaultNamespace() const
+void CSSParserSwiftState::setResultAtom(uint8_t slot, uint32_t token, CSSParserSwiftAtom kind)
 {
-    if (!m_styleSheet || m_ignoreDefaultNamespace)
-        return starAtom();
-    return m_styleSheet->defaultNamespace();
+    RELEASE_ASSERT(slot < 2);
+    selectorParserParse(*this).resultAtoms[slot] = selectorAtom(kind, token, token, 0, 0);
 }
 
-const AtomString& CSSSelectorParser::determineNamespace(const AtomString& prefix)
+AtomString CSSParserSwiftState::selectorAtom(CSSParserSwiftAtom kind, uint32_t token, uint32_t end, int32_t a, int32_t b)
 {
-    if (prefix.isNull())
-        return defaultNamespace();
-    if (prefix.isEmpty())
-        return emptyAtom(); // No namespace. If an element/attribute has a namespace, we won't match it.
-    if (prefix == starAtom())
-        return starAtom(); // We'll match any namespace.
-    if (!m_styleSheet)
-        return nullAtom(); // Cannot resolve prefix to namespace without a stylesheet, syntax error.
-    return m_styleSheet->namespaceURIFromPrefix(prefix);
-}
-
-void CSSSelectorParser::prependTypeSelectorIfNeeded(const AtomString& namespacePrefix, const AtomString& elementName, MutableCSSSelector& compoundSelector)
-{
-    bool isShadowDOM = compoundSelector.needsImplicitShadowCombinatorForMatching();
-    
-    if (elementName.isNull() && defaultNamespace() == starAtom() && !isShadowDOM)
-        return;
-
-    AtomString determinedElementName = elementName.isNull() ? starAtom() : elementName;
-    AtomString namespaceURI = determineNamespace(namespacePrefix);
-    if (namespaceURI.isNull()) {
-        m_failedParsing = true;
-        return;
+    switch (kind) {
+    case CSSParserSwiftAtom::None: return nullAtom();
+    case CSSParserSwiftAtom::Value: return selectorParserToken(*this, token).value().toAtomString();
+    case CSSParserSwiftAtom::ASCIILowercase: return selectorParserToken(*this, token).value().convertToASCIILowercaseAtom();
+    case CSSParserSwiftAtom::Star: return starAtom();
+    case CSSParserSwiftAtom::Empty: return emptyAtom();
+    case CSSParserSwiftAtom::UserAgentPartLegacyAlias: return CSSSelector::nameForUserAgentPartLegacyAlias(selectorParserToken(*this, token).value());
+    case CSSParserSwiftAtom::UserAgentPartCue: return UserAgentParts::cue();
+    case CSSParserSwiftAtom::UniversalPseudoElementName: return universalPseudoElementNameAtom();
+    case CSSParserSwiftAtom::SerializedRange: {
+        // We store the complete range content for serialization.
+        RELEASE_ASSERT(token <= end && end <= selectorParserData(*this).tokens.size());
+        auto tokens = selectorParserData(*this).tokens.subspan(token, end - token);
+        return AtomString { CSSParserTokenRange { tokens }.serialize() };
     }
-    AtomString determinedPrefix = namespacePrefix;
-    if (namespaceURI == defaultNamespace())
-        determinedPrefix = nullAtom();
-    QualifiedName tag(determinedPrefix, determinedElementName, namespaceURI);
-
-    // *:host never matches, so we can't discard the *,
-    // otherwise we can't tell the difference between *:host and just :host.
-    //
-    // Also, selectors where we use a ShadowPseudo combinator between the
-    // element and the pseudo element for matching (custom pseudo elements,
-    // ::cue), we need a universal selector to set the combinator
-    // (relation) on in the cases where there are no simple selectors preceding
-    // the pseudo element.
-    bool isHostPseudo = compoundSelector.isHostPseudoClass();
-    if (isHostPseudo && elementName.isNull() && namespacePrefix.isNull())
-        return;
-    if (tag != anyQName() || isHostPseudo || isShadowDOM)
-        compoundSelector.appendTagInComplexSelector(tag, determinedPrefix == nullAtom() && determinedElementName == starAtom() && !isHostPseudo);
-}
-
-std::unique_ptr<MutableCSSSelector> CSSSelectorParser::splitCompoundAtImplicitShadowCrossingCombinator(std::unique_ptr<MutableCSSSelector> compoundSelector, const CSSSelectorParserContext& context)
-{
-    // Complex selectors are represented as a linked list that stores combinator separated compound selectors
-    // from right-to-left. Yet, within a single compound selector, stores the simple selectors
-    // from left-to-right.
-    //
-    // ".a.b > div#id" is stored in a complex selector as [div, #id, .a, .b], each element in the
-    // list stored with an associated relation (combinator or Subselector).
-    //
-    // ::cue, ::shadow, and custom pseudo elements have an implicit ShadowPseudo combinator
-    // to their left, which really makes for a new compound selector, yet it's consumed by
-    // the selector parser as a single compound selector.
-    //
-    // Example: input#x::-webkit-inner-spin-button -> [ ::-webkit-inner-spin-button, input, #x ]
-    //
-    auto* splitAfter = compoundSelector.get();
-    while (splitAfter->precedingInComplexSelector() && !splitAfter->precedingInComplexSelector()->needsImplicitShadowCombinatorForMatching())
-        splitAfter = splitAfter->precedingInComplexSelector();
-
-    if (!splitAfter || !splitAfter->precedingInComplexSelector())
-        return compoundSelector;
-
-    // ::part() combines with other pseudo elements.
-    bool isPart = splitAfter->precedingInComplexSelector()->match() == CSSSelector::Match::PseudoElement && splitAfter->precedingInComplexSelector()->pseudoElement() == CSSSelector::PseudoElement::Part;
-
-    // ::slotted() combines with other pseudo elements.
-    bool isSlotted = splitAfter->precedingInComplexSelector()->match() == CSSSelector::Match::PseudoElement && splitAfter->precedingInComplexSelector()->pseudoElement() == CSSSelector::PseudoElement::Slotted;
-
-    std::unique_ptr<MutableCSSSelector> secondCompound;
-    if (isUASheetBehavior(context.mode) || isPart || isSlotted) {
-        // FIXME: https://bugs.webkit.org/show_bug.cgi?id=161747
-        // We have to recur, since we have rules in media controls like video::a::b. This should not be allowed, and
-        // we should remove this recursion once those rules are gone.
-        secondCompound = splitCompoundAtImplicitShadowCrossingCombinator(splitAfter->releaseFromComplexSelector(), context);
-    } else
-        secondCompound = splitAfter->releaseFromComplexSelector();
-
-    auto relation = [&] {
-        if (isSlotted)
-            return CSSSelector::Relation::ShadowSlotted;
-        if (isPart)
-            return CSSSelector::Relation::ShadowPartDescendant;
-        return CSSSelector::Relation::ShadowDescendant;
-    }();
-    secondCompound->prependInComplexSelector(relation, WTF::move(compoundSelector));
-    return secondCompound;
-}
-
-bool CSSSelectorParser::containsUnknownWebKitPseudoElements(const CSSSelector& complexSelector)
-{
-    for (auto current = &complexSelector; current; current = current->precedingInComplexSelector()) {
-        if (current->match() == CSSSelector::Match::PseudoElement && current->pseudoElement() == CSSSelector::PseudoElement::WebKitUnknown)
-            return true;
+    case CSSParserSwiftAtom::ANPlusB:
+        return serializeANPlusB({ a, b });
+    case CSSParserSwiftAtom::PickerSelectFunction: return AtomString { makeString("picker("_s, "select"_s, ')') };
     }
-    return false;
+    RELEASE_ASSERT_NOT_REACHED();
+}
+
+// The type or attribute selector's QualifiedName, made from the parsed name and namespace prefix; nullQName() for no name.
+QualifiedName CSSParserSwiftState::selectorQualifiedName(uint32_t nameToken, CSSParserSwiftAtom nameAtom, CSSParserSwiftNamespace namespaceKind, uint32_t prefixToken, bool ignoreDefaultNamespace, bool withStyleSheet, bool isAttribute)
+{
+    if (nameAtom == CSSParserSwiftAtom::None)
+        return nullQName();
+    RELEASE_ASSERT(nameAtom == CSSParserSwiftAtom::Value || nameAtom == CSSParserSwiftAtom::Star);
+    auto name = selectorAtom(nameAtom, nameToken, nameToken, 0, 0);
+    auto prefix = namespacePrefix(*this, checkedNamespaceKind(std::to_underlying(namespaceKind)), prefixToken);
+    auto resolver = namespaceResolver(*this, ignoreDefaultNamespace, withStyleSheet);
+    AtomString namespaceURI = resolver.determineNamespace(prefix);
+    RELEASE_ASSERT(!namespaceURI.isNull()); // Swift fails the selector where it is null.
+    if (isAttribute)
+        return prefix.isNull() ? QualifiedName(nullAtom(), name, nullAtom()) : QualifiedName(prefix, name, namespaceURI);
+    if (namespaceURI == resolver.defaultNamespace())
+        prefix = nullAtom();
+    return QualifiedName(prefix, name, namespaceURI);
+}
+
+void CSSParserSwiftState::setSelectorList(CSSSelectorListStorage& storage)
+{
+    // Every list the parser hands over has a complex selector.
+    RELEASE_ASSERT(storage.componentCount());
+    selectorParserParse(*this).selectorList = CSSSelectorList { Ref { storage } };
+}
+
+std::optional<CSSSelectorList> parseCSSSelectorList(CSSParserTokenRange range, const CSSSelectorParserContext& context, StyleSheetContents* styleSheet, CSSParserEnum::NestedContext nestedContext)
+{
+    CSSParserSwiftParse parse { context, { .styleSheet = styleSheet, .nestedContext = nestedContext } };
+    parse.run(range, CSSParserSwiftRequest::SelectorList);
+    return WTF::move(parse.selectorList);
+}
+
+std::optional<CSSSelectorList> CSSSelectorParser::parseSelectorList(const String& string, const CSSParserContext& context, StyleSheetContents* styleSheet, CSSParserEnum::NestedContext nestedContext)
+{
+    return parseCSSSelectorList(CSSTokenizer(string).tokenRange(), context, styleSheet, nestedContext);
+}
+
+std::optional<ParsedQualifiedName> consumeQualifiedName(CSSParserTokenRange& range)
+{
+    CSSParserSwiftParse parse { CSSSelectorParserContext { } };
+    parse.run(range, CSSParserSwiftRequest::QualifiedName);
+    // The tokens consumed in the low 31 bits, and whether there is a name in the top bit.
+    auto consumed = parse.result & 0x7FFFFFFF;
+    RELEASE_ASSERT(consumed <= range.size());
+    range = range.span().subspan(consumed);
+    if (!(parse.result & 0x80000000))
+        return std::nullopt;
+    return ParsedQualifiedName { parse.resultAtoms[1], parse.resultAtoms[0] };
 }
 
 CSSSelectorList CSSSelectorParser::resolveNestingParent(const CSSSelectorList& nestedSelectorList, const CSSSelectorList* parentResolvedSelectorList, bool parentRuleIsScope)
@@ -1510,84 +378,18 @@ CSSSelectorList CSSSelectorParser::resolveNestingParent(const CSSSelectorList& n
     return CSSSelectorList { WTF::move(result) };
 }
 
-NODELETE static std::optional<Style::PseudoElementIdentifier> pseudoElementIdentifierFor(CSSSelectorPseudoElement selectorPseudoElement)
-{
-    auto type = CSSSelector::stylePseudoElementTypeFor(selectorPseudoElement);
-    if (!type)
-        return { };
-    return Style::PseudoElementIdentifier { *type };
-}
-
-// FIXME: It's probably worth investigating if more logic can be shared with
-// CSSSelectorParser::consumePseudo(), though note that the requirements are subtly different.
 std::optional<Style::PseudoElementIdentifier> CSSSelectorParser::parsePseudoElement(StringView input, const CSSSelectorParserContext& context)
 {
-    auto tokenizer = CSSTokenizer { input };
-    auto range = tokenizer.tokenRange();
-    auto token = range.consume();
-    if (token.type() != ColonToken)
-        return { };
-    token = range.consume();
-    if (token.type() == IdentToken) {
-        if (!range.atEnd())
-            return { };
-        auto pseudoClassOrElement = findPseudoClassAndCompatibilityElementName(token.value());
-        if (!pseudoClassOrElement.compatibilityPseudoElement)
-            return { };
-        ASSERT(CSSSelector::isPseudoElementEnabled(*pseudoClassOrElement.compatibilityPseudoElement, token.value(), context));
-        return pseudoElementIdentifierFor(*pseudoClassOrElement.compatibilityPseudoElement);
-    }
-    if (token.type() != ColonToken)
-        return { };
-    token = range.peek();
-    if (token.type() != IdentToken && token.type() != FunctionToken)
-        return { };
-    auto pseudoElement = CSSSelector::parsePseudoElementName(token.value(), context);
-    if (!pseudoElement)
-        return { };
-    if (token.type() == IdentToken) {
-        range.consume();
-        if (!range.atEnd() || CSSSelector::pseudoElementRequiresArgument(*pseudoElement))
-            return std::nullopt;
-        if (auto pseudoElementIdentifier = pseudoElementIdentifierFor(*pseudoElement))
-            return pseudoElementIdentifier;
-        // Reject non-standard user agent part pseudo-elements here as we never supported these in
-        // getComputedStyle() and there's no reason to start now.
-        if (*pseudoElement == CSSSelector::PseudoElement::UserAgentPart && !token.value().startsWith('-'))
-            return { Style::PseudoElementIdentifier { PseudoElementType::UserAgentPartFallback, token.value().toAtomString() } };
+    CSSParserSwiftParse parse { context };
+    parse.run(CSSTokenizer { input }.tokenRange(), CSSParserSwiftRequest::PseudoElement);
+    // 1 + the PseudoElementType in the low byte, 0 for none; bit 8 when result atom 0 is the name argument.
+    if (!(parse.result & 0xFF))
         return std::nullopt;
-    }
-    ASSERT(token.type() == FunctionToken);
-    auto block = range.consumeBlock();
-    if (!range.atEnd())
-        return { };
-    block.consumeWhitespace();
-    switch (*pseudoElement) {
-    case CSSSelector::PseudoElement::Highlight:
-    case CSSSelector::PseudoElement::ViewTransitionGroup:
-    case CSSSelector::PseudoElement::ViewTransitionImagePair:
-    case CSSSelector::PseudoElement::ViewTransitionOld:
-    case CSSSelector::PseudoElement::ViewTransitionNew: {
-        auto& token = block.consumeIncludingWhitespace();
-        if (!block.atEnd())
-            return { };
-        if (token.type() == IdentToken) {
-            if (!isValidCustomIdentifier(token.id()) && *pseudoElement != CSSSelector::PseudoElement::Highlight)
-                return { };
-            return { Style::PseudoElementIdentifier { *CSSSelector::stylePseudoElementTypeFor(*pseudoElement), token.value().toAtomString() } };
-        }
-        // Intentionally don't parse the universal selector here, because getComputedStyle() only supports returning styles for unique identifiers.
-        return { };
-    }
-    case CSSSelector::PseudoElement::Picker: {
-        auto argument = consumePickerArgument(block);
-        if (argument.isNull())
-            return { };
-        return { Style::PseudoElementIdentifier { PseudoElementType::UserAgentPartFallback, AtomString { makeString("picker("_s, argument, ')') } } };
-    }
-    default:
-        return { };
-    }
+    auto type = (parse.result & 0xFF) - 1;
+    RELEASE_ASSERT(type <= std::to_underlying(PseudoElementType::HighestEnumValue));
+    if (parse.result & 0x100)
+        return Style::PseudoElementIdentifier { static_cast<PseudoElementType>(type), parse.resultAtoms[0] };
+    return Style::PseudoElementIdentifier { static_cast<PseudoElementType>(type) };
 }
 
 struct HasCompoundContext {

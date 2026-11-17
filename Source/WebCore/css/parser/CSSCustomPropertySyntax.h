@@ -82,12 +82,6 @@ struct __attribute__((swift_attr("~Sendable"))) CSSCustomPropertySyntax {
     static std::optional<CSSCustomPropertySyntax> consumeType(CSSParserTokenRange&);
 
     static CSSCustomPropertySyntax universal() { return { }; }
-
-    NODELETE bool containsUnknownType() const;
-
-private:
-    template<typename CharacterType> static std::optional<Component> parseComponent(std::span<const CharacterType>);
-    static Type typeForTypeName(StringView);
 };
 
 // Serializes to the <syntax> string form, e.g. "*", "<length>", "<length>+", "<color> | <length>".

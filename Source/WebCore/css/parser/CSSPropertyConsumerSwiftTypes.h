@@ -273,8 +273,17 @@ struct __attribute__((swift_attr("~Sendable"))) CSSParserSwiftTokenReader : CSSC
     }
     // Whether a token is an ident token whose value is `ident`, compared case-sensitively.
     bool identEquals(size_t index, const AtomString& ident) const { return type(index) == IdentToken && token(index).value() == ident; }
+    // The length of a token's value (CSSParserToken::value(): the name of an ident, function or at-keyword token; a
+    // dimension token's unit), and its code unit at `offset`, or 0 past its end.
+    uint32_t valueLength(size_t index) const { return index < count() ? valueText(token(index)).length() : 0; }
+    uint16_t valueCharacter(size_t index, uint32_t offset) const
+    {
+        auto value = index < count() ? valueText(token(index)) : StringView { };
+        return offset < value.length() ? value[offset] : 0;
+    }
 protected:
     CSSParserSwiftTokenReader() = default;
+    static StringView valueText(const CSSParserToken& token) { return token.type() == DimensionToken ? token.unitString() : token.value(); }
     const CSSParserToken& token(size_t index) const { return static_cast<const State&>(*this).tokens[index]; }
 };
 
@@ -344,9 +353,11 @@ struct __attribute__((swift_attr("~Sendable"))) CSSPropertyConsumerSwiftShorthan
     void addLonghand(uint16_t longhand, CSSValue*, bool implicit) const;
     void addAllLonghands(uint16_t shorthand, CSSValue*, bool implicit) const;
     void addProperty(uint16_t property, CSSValue&, bool important) const;
-    // The CSSSubstitutionValue of the tokens [start, end), for the property or each longhand of the shorthand, if they
-    // contain a substitution function; with the namespace map, or with none.
-    bool addSubstitutionValue(uint32_t start, uint32_t end, bool withNamespaceMap) const;
+    // The CSSSubstitutionValue of the tokens [start, end), which contain a substitution function, for the property or
+    // each longhand of the shorthand; with the namespace map, or with none.
+    void addSubstitutionValue(uint32_t start, uint32_t end, bool withNamespaceMap) const;
+    // What the context enables for the validation of substitution functions (cssParserSubstitutionFlags).
+    uint32_t substitutionFlags() const;
     bool isKeywordValid(uint16_t property, uint16_t valueID) const;
 protected:
     CSSPropertyConsumerSwiftShorthandSink() = default;

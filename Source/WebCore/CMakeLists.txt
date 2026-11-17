@@ -3381,6 +3381,8 @@ set(_webcore_swift_interop_sources_all_ports
     css/parser/CSSParserFastPaths.cpp
     ${_webcore_css_calc_swift_interop_sources}
     css/parser/CSSPropertyParserSwift.cpp
+    css/parser/CSSParserSwiftState.cpp
+    css/parser/CSSParserToken.cpp
     ${_webcore_style_transforms_swift_interop_sources}
     html/parser/HTMLPreloadScanner.cpp
     html/parser/HTMLDocumentParser.cpp
@@ -3813,6 +3815,14 @@ if (APPLE)
         ${WEBCORE_DIR}/css/calc/CSSCalcSwift.swift
         ${WEBCORE_DIR}/css/calc/StyleCalculationSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserAtRulesSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserRulesSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSelectorSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSubstitutionSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSupportsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSyntaxSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserUnitSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftAlignment.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftEffects.swift
@@ -4080,6 +4090,14 @@ else ()
         ${WEBCORE_DIR}/css/calc/CSSCalcSwift.swift
         ${WEBCORE_DIR}/css/calc/StyleCalculationSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserAtRulesSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserRulesSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSelectorSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSubstitutionSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSupportsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserSyntaxSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserUnitSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftAlignment.swift
         ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftEffects.swift
@@ -4254,6 +4272,8 @@ else ()
         "    }\n")
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports})
     list(REMOVE_DUPLICATES WebCore_SWIFT_INTEROP_SOURCES)
+    # The CSS parser's entry into Swift, and the unit-name lookup CSSParserToken::stringToUnitType calls.
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserSwiftState.h css/parser/CSSParserEnum.h css/parser/CSSAtRuleID.h)
     list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
 
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)

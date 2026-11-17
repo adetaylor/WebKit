@@ -408,6 +408,16 @@
 		C55D00000000000000000010 /* CSSPropertyConsumerSwiftSmall.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D0000000000000000000F /* CSSPropertyConsumerSwiftSmall.swift */; };
 		C55D00000000000000000008 /* CSSPropertyParsingSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55D00000000000000000007 /* CSSPropertyParsingSwift.swift */; };
 		C55A00000000000000000004 /* CSSTokenizerSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55A00000000000000000003 /* CSSTokenizerSwift.swift */; };
+		CE85F5E282394DB0885A771D /* CSSParserSubstitutionSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6F03E2B7E504C3A8854E12C /* CSSParserSubstitutionSwift.swift */; };
+		A117B0BF6CAC48CFBC1C05F1 /* CSSParserSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F9B6FE10FB44C09AE41D30B /* CSSParserSwift.swift */; };
+		01DF1CD4E3BC44F18EDA5375 /* CSSParserUnitSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3646C67A12D044169FB80F8E /* CSSParserUnitSwift.swift */; };
+		3DE24C54FB8043DB94742EF0 /* CSSParserSyntaxSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0E350DA6F947D6BC4E5C80 /* CSSParserSyntaxSwift.swift */; };
+		D906F9590EDB4CE28776B357 /* CSSParserSupportsSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F9C0728DFA4ACF88A7C56A /* CSSParserSupportsSwift.swift */; };
+		222D408E72E24AF48EAC4A5E /* CSSParserAtRulesSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2459700C2554A73883DD881 /* CSSParserAtRulesSwift.swift */; };
+		01569E1F9A5F47E2970E860C /* CSSParserRulesSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31A1A4F720848D6A0EB00F3 /* CSSParserRulesSwift.swift */; };
+		60DB09E797734DD5814E696C /* CSSParserSelectorSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBCAF019D8B0437A974853ED /* CSSParserSelectorSwift.swift */; };
+		C43F842F492B4CADB7BBE0F0 /* CSSParserSwiftState.h in Headers */ = {isa = PBXBuildFile; fileRef = 158434FBA13840788DCBAD58 /* CSSParserSwiftState.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		DB8C25B3D6414A56AAF905D8 /* CSSParserSwiftState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F351DCF657934915A2AA6777 /* CSSParserSwiftState.cpp */; };
 		EE5716363D30463BB1D2F0A9 /* StyleTransformFunctionSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E4564400D54442CBC8FA29B /* StyleTransformFunctionSwift.swift */; };
 		D4AB6D265E6D4FC680B78613 /* StyleTransformListSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 190DEC1E51EB40CA8859C6D8 /* StyleTransformListSwift.swift */; };
 		0130D7B99C2A45E4B32F6687 /* StyleTransformSwiftTypes.h in Headers */ = {isa = PBXBuildFile; fileRef = 17B52A75657E49F09B624888 /* StyleTransformSwiftTypes.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2102,7 +2112,7 @@
 		48ED5FE22ED105670065A629 /* AXStitchUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 48ED5FDF2ED105670065A629 /* AXStitchUtilities.h */; };
 		4906C6ED2F72C176008E84A1 /* WebXRSessionListener.h in Headers */ = {isa = PBXBuildFile; fileRef = 4906C6EC2F72C176008E84A1 /* WebXRSessionListener.h */; };
 		490D51012B698A8300C6B266 /* PseudoElementIdentifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 490D51002B698A8300C6B266 /* PseudoElementIdentifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		491342E32B43FFEF00FEEF18 /* CSSSelectorInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 491342DA2B43FAA800FEEF18 /* CSSSelectorInlines.h */; };
+		491342E32B43FFEF00FEEF18 /* CSSSelectorInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 491342DA2B43FAA800FEEF18 /* CSSSelectorInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		491342E42B43FFEF00FEEF18 /* CSSSelectorEnums.h in Headers */ = {isa = PBXBuildFile; fileRef = 491342D92B43FAA700FEEF18 /* CSSSelectorEnums.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		493E5E0912D6420500020081 /* PlatformCALayerClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 493E5E0812D6420500020081 /* PlatformCALayerClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		494265312B61F7EA000446D5 /* PseudoElementRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = 494265302B61F7E9000446D5 /* PseudoElementRequest.h */; };
@@ -20548,6 +20558,17 @@
 		C55D00000000000000000007 /* CSSPropertyParsingSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSPropertyParsingSwift.swift; sourceTree = "<group>"; };
 		C55C00000000000000000001 /* CSSCalcSwiftTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSCalcSwiftTypes.h; sourceTree = "<group>"; };
 		C55A00000000000000000003 /* CSSTokenizerSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSTokenizerSwift.swift; sourceTree = "<group>"; };
+		B6F03E2B7E504C3A8854E12C /* CSSParserSubstitutionSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserSubstitutionSwift.swift; sourceTree = "<group>"; };
+		4F9B6FE10FB44C09AE41D30B /* CSSParserSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserSwift.swift; sourceTree = "<group>"; };
+		3646C67A12D044169FB80F8E /* CSSParserUnitSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserUnitSwift.swift; sourceTree = "<group>"; };
+		FB0E350DA6F947D6BC4E5C80 /* CSSParserSyntaxSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserSyntaxSwift.swift; sourceTree = "<group>"; };
+		D0F9C0728DFA4ACF88A7C56A /* CSSParserSupportsSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserSupportsSwift.swift; sourceTree = "<group>"; };
+		C2459700C2554A73883DD881 /* CSSParserAtRulesSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserAtRulesSwift.swift; sourceTree = "<group>"; };
+		F31A1A4F720848D6A0EB00F3 /* CSSParserRulesSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserRulesSwift.swift; sourceTree = "<group>"; };
+		FBCAF019D8B0437A974853ED /* CSSParserSelectorSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSSParserSelectorSwift.swift; sourceTree = "<group>"; };
+		158434FBA13840788DCBAD58 /* CSSParserSwiftState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSParserSwiftState.h; sourceTree = "<group>"; };
+		4E44DD5EA9014BC995D8D250 /* CSSParserSwiftParse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSParserSwiftParse.h; sourceTree = "<group>"; };
+		F351DCF657934915A2AA6777 /* CSSParserSwiftState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSParserSwiftState.cpp; sourceTree = "<group>"; };
 		C55A00000000000000000001 /* CSSTokenizerSwiftTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSTokenizerSwiftTypes.h; sourceTree = "<group>"; };
 		BC7C5E902BE2A8FB00AE645C /* CSSSubstitutionParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CSSSubstitutionParser.cpp; sourceTree = "<group>"; };
 		BC7C5E912BE2A8FB00AE645C /* CSSSubstitutionParser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSSSubstitutionParser.h; sourceTree = "<group>"; };
@@ -34436,6 +34457,7 @@
 				BC7C5E9C2BE2B54E00AE645C /* CSSFontVariantNumericParser.h */,
 				BC7C5E552BE2A8FB00AE645C /* CSSParser.cpp */,
 				BC7C5E562BE2A8FB00AE645C /* CSSParser.h */,
+				C2459700C2554A73883DD881 /* CSSParserAtRulesSwift.swift */,
 				BC7C5E4E2BE2A8FB00AE645C /* CSSParserContext.cpp */,
 				BC7C5E4F2BE2A8FB00AE645C /* CSSParserContext.h */,
 				BC7C5E502BE2A8FB00AE645C /* CSSParserEnum.h */,
@@ -34448,11 +34470,21 @@
 				BC7C5E582BE2A8FB00AE645C /* CSSParserObserver.h */,
 				BC7C5E592BE2A8FB00AE645C /* CSSParserObserverWrapper.cpp */,
 				BC7C5E5A2BE2A8FB00AE645C /* CSSParserObserverWrapper.h */,
+				F31A1A4F720848D6A0EB00F3 /* CSSParserRulesSwift.swift */,
+				FBCAF019D8B0437A974853ED /* CSSParserSelectorSwift.swift */,
+				B6F03E2B7E504C3A8854E12C /* CSSParserSubstitutionSwift.swift */,
+				D0F9C0728DFA4ACF88A7C56A /* CSSParserSupportsSwift.swift */,
+				4F9B6FE10FB44C09AE41D30B /* CSSParserSwift.swift */,
+				4E44DD5EA9014BC995D8D250 /* CSSParserSwiftParse.h */,
+				F351DCF657934915A2AA6777 /* CSSParserSwiftState.cpp */,
+				158434FBA13840788DCBAD58 /* CSSParserSwiftState.h */,
+				FB0E350DA6F947D6BC4E5C80 /* CSSParserSyntaxSwift.swift */,
 				BC7C5E5B2BE2A8FB00AE645C /* CSSParserToken.cpp */,
 				BC7C5E5C2BE2A8FB00AE645C /* CSSParserToken.h */,
 				BC7C5E5D2BE2A8FB00AE645C /* CSSParserTokenRange.cpp */,
 				BC7C5E5E2BE2A8FB00AE645C /* CSSParserTokenRange.h */,
 				BC2650602D931D8B0027337D /* CSSParserTokenRangeGuard.h */,
+				3646C67A12D044169FB80F8E /* CSSParserUnitSwift.swift */,
 				C55D00000000000000000009 /* CSSPropertyConsumerSwiftBuilders.h */,
 				C55D00000000000000000011 /* CSSPropertyConsumerSwiftComponents.h */,
 				C55D00000000000000000003 /* CSSPropertyConsumerSwift.swift */,
@@ -46247,6 +46279,7 @@
 				BCFE79B02BE308AD00114272 /* CSSParserIdioms.h in Headers */,
 				BCFE79AC2BE3081700114272 /* CSSParserMode.h in Headers */,
 				F6A77C9596D2E8EC17867716 /* CSSParserObserver.h in Headers */,
+				C43F842F492B4CADB7BBE0F0 /* CSSParserSwiftState.h in Headers */,
 				BCFE79AF2BE308A200114272 /* CSSParserToken.h in Headers */,
 				BCFE79B12BE308B900114272 /* CSSParserTokenRange.h in Headers */,
 				BCB2721C2CC1F21B00265123 /* CSSPathFunction.h in Headers */,
@@ -52364,6 +52397,15 @@
 				D3AD122B89884F7BACE7A703 /* CrossOriginEmbedderPolicy.swift in Sources */,
 				6E21F342A935416A96DE601E /* CrossOriginOpenerPolicy.swift in Sources */,
 				7DF4E08248144A53B05EF35A /* CrossOriginPreflightResultCache.swift in Sources */,
+				222D408E72E24AF48EAC4A5E /* CSSParserAtRulesSwift.swift in Sources */,
+				01569E1F9A5F47E2970E860C /* CSSParserRulesSwift.swift in Sources */,
+				60DB09E797734DD5814E696C /* CSSParserSelectorSwift.swift in Sources */,
+				CE85F5E282394DB0885A771D /* CSSParserSubstitutionSwift.swift in Sources */,
+				D906F9590EDB4CE28776B357 /* CSSParserSupportsSwift.swift in Sources */,
+				A117B0BF6CAC48CFBC1C05F1 /* CSSParserSwift.swift in Sources */,
+				DB8C25B3D6414A56AAF905D8 /* CSSParserSwiftState.cpp in Sources */,
+				3DE24C54FB8043DB94742EF0 /* CSSParserSyntaxSwift.swift in Sources */,
+				01DF1CD4E3BC44F18EDA5375 /* CSSParserUnitSwift.swift in Sources */,
 				1ABA76CA11D20E50004C201C /* CSSPropertyNames.cpp in Sources */,
 				2D22830323A8470700364B7E /* CursorMac.mm in Sources */,
 				5CBD59592280E926002B22AA /* CustomHeaderFields.cpp in Sources */,

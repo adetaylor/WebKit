@@ -30,39 +30,18 @@
 #include "config.h"
 #include "CSSParserObserverWrapper.h"
 
-#include "CSSParserTokenRange.h"
-
 namespace WebCore {
 
-unsigned CSSParserObserverWrapper::startOffset(const CSSParserTokenRange& range)
+void CSSParserObserverWrapper::skipCommentsBefore(unsigned startIndex, bool leaveDirectlyBefore)
 {
-    return m_tokenOffsets[range.begin() - m_firstParserToken];
-}
-
-unsigned CSSParserObserverWrapper::previousTokenStartOffset(const CSSParserTokenRange& range)
-{
-    if (range.begin() == m_firstParserToken)
-        return 0;
-    return m_tokenOffsets[range.begin() - m_firstParserToken - 1];
-}
-
-NODELETE unsigned CSSParserObserverWrapper::endOffset(const CSSParserTokenRange& range)
-{
-    return m_tokenOffsets[range.end() - m_firstParserToken];
-}
-
-void CSSParserObserverWrapper::skipCommentsBefore(const CSSParserTokenRange& range, bool leaveDirectlyBefore)
-{
-    unsigned startIndex = range.begin() - m_firstParserToken;
     if (!leaveDirectlyBefore)
         ++startIndex;
     while (m_commentIndex < m_commentOffsets.size() && m_commentOffsets[m_commentIndex].tokensBefore < startIndex)
         ++m_commentIndex;
 }
 
-void CSSParserObserverWrapper::yieldCommentsBefore(const CSSParserTokenRange& range)
+void CSSParserObserverWrapper::yieldCommentsBefore(unsigned startIndex)
 {
-    unsigned startIndex = range.begin() - m_firstParserToken;
     for (; m_commentIndex < m_commentOffsets.size(); ++m_commentIndex) {
         auto& commentOffset = m_commentOffsets[m_commentIndex];
         if (commentOffset.tokensBefore > startIndex)

@@ -32,6 +32,7 @@
 
 #include "CSSMarkup.h"
 #include "CSSPropertyParser.h"
+#include "WebCore-Swift.h"
 #include <wtf/HexNumber.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/text/StringBuilder.h>
@@ -39,316 +40,14 @@
 namespace WebCore {
 DEFINE_ALLOCATOR_WITH_HEAP_IDENTIFIER(CSSParserToken);
 
-template<typename CharacterType>
-NODELETE CSSUnitType cssPrimitiveValueUnitFromTrie(std::span<const CharacterType> data)
+CSSUnitType CSSParserToken::stringToUnitType(StringView name)
 {
-    ASSERT(data.data());
-    switch (data.size()) {
-    case 1:
-        switch (toASCIILower(data[0])) {
-        case 'q':
-            return CSSUnitType::Q;
-        case 's':
-            return CSSUnitType::S;
-        case 'x':
-            return CSSUnitType::X;
-        }
-        break;
-    case 2:
-        switch (toASCIILower(data[0])) {
-        case 'c':
-            switch (toASCIILower(data[1])) {
-            case 'h':
-                return CSSUnitType::Ch;
-            case 'm':
-                return CSSUnitType::Cm;
-            }
-            break;
-        case 'e':
-            switch (toASCIILower(data[1])) {
-            case 'm':
-                return CSSUnitType::Em;
-            case 'x':
-                return CSSUnitType::Ex;
-            }
-            break;
-        case 'f':
-            if (toASCIILower(data[1]) == 'r')
-                return CSSUnitType::Fr;
-            break;
-        case 'h':
-            if (toASCIILower(data[1]) == 'z')
-                return CSSUnitType::Hz;
-            break;
-        case 'i':
-            switch (toASCIILower(data[1])) {
-            case 'c':
-                return CSSUnitType::Ic;
-            case 'n':
-                return CSSUnitType::In;
-            }
-            break;
-        case 'l':
-            if (toASCIILower(data[1]) == 'h')
-                return CSSUnitType::Lh;
-            break;
-        case 'm':
-            switch (toASCIILower(data[1])) {
-            case 'm':
-                return CSSUnitType::Mm;
-            case 's':
-                return CSSUnitType::Ms;
-            }
-            break;
-        case 'p':
-            switch (toASCIILower(data[1])) {
-            case 'c':
-                return CSSUnitType::Pc;
-            case 't':
-                return CSSUnitType::Pt;
-            case 'x':
-                return CSSUnitType::Px;
-            }
-            break;
-        case 'v':
-            switch (toASCIILower(data[1])) {
-            case 'b':
-                return CSSUnitType::Vb;
-            case 'h':
-                return CSSUnitType::Vh;
-            case 'i':
-                return CSSUnitType::Vi;
-            case 'w':
-                return CSSUnitType::Vw;
-            }
-            break;
-        }
-        break;
-    case 3:
-        switch (toASCIILower(data[0])) {
-        case 'c':
-            if (toASCIILower(data[1]) == 'a') {
-                if (toASCIILower(data[2]) == 'p')
-                    return CSSUnitType::Cap;
-            }
-            if (toASCIILower(data[1]) == 'q') {
-                switch (toASCIILower(data[2])) {
-                case 'b':
-                    return CSSUnitType::Cqb;
-                case 'h':
-                    return CSSUnitType::Cqh;
-                case 'i':
-                    return CSSUnitType::Cqi;
-                case 'w':
-                    return CSSUnitType::Cqw;
-                }
-            }
-            break;
-        case 'd':
-            switch (toASCIILower(data[1])) {
-            case 'e':
-                if (toASCIILower(data[2]) == 'g')
-                    return CSSUnitType::Deg;
-                break;
-            case 'p':
-                if (toASCIILower(data[2]) == 'i')
-                    return CSSUnitType::Dpi;
-                break;
-            case 'v':
-                switch (toASCIILower(data[2])) {
-                case 'b':
-                    return CSSUnitType::Dvb;
-                case 'h':
-                    return CSSUnitType::Dvh;
-                case 'i':
-                    return CSSUnitType::Dvi;
-                case 'w':
-                    return CSSUnitType::Dvw;
-                }
-                break;
-            }
-            break;
-        case 'l':
-            if (toASCIILower(data[1]) == 'v') {
-                switch (toASCIILower(data[2])) {
-                case 'b':
-                    return CSSUnitType::Lvb;
-                case 'h':
-                    return CSSUnitType::Lvh;
-                case 'i':
-                    return CSSUnitType::Lvi;
-                case 'w':
-                    return CSSUnitType::Lvw;
-                }
-            }
-            break;
-        case 'k':
-            if (toASCIILower(data[1]) == 'h' && toASCIILower(data[2]) == 'z')
-                return CSSUnitType::Khz;
-            break;
-        case 'r':
-            switch (toASCIILower(data[1])) {
-            case 'a':
-                if (toASCIILower(data[2]) == 'd')
-                    return CSSUnitType::Rad;
-                break;
-            case 'c':
-                if (toASCIILower(data[2]) == 'h')
-                    return CSSUnitType::Rch;
-                break;
-            case 'e':
-                if (toASCIILower(data[2]) == 'm')
-                    return CSSUnitType::Rem;
-                if (toASCIILower(data[2]) == 'x')
-                    return CSSUnitType::Rex;
-                break;
-            case 'i':
-                if (toASCIILower(data[2]) == 'c')
-                    return CSSUnitType::Ric;
-                break;
-            case 'l':
-                if (toASCIILower(data[2]) == 'h')
-                    return CSSUnitType::Rlh;
-                break;
-            }
-            break;
-        case 's':
-            if (toASCIILower(data[1]) == 'v') {
-                switch (toASCIILower(data[2])) {
-                case 'b':
-                    return CSSUnitType::Svb;
-                case 'h':
-                    return CSSUnitType::Svh;
-                case 'i':
-                    return CSSUnitType::Svi;
-                case 'w':
-                    return CSSUnitType::Svw;
-                }
-            }
-            break;
-        }
-        break;
-    case 4:
-        switch (toASCIILower(data[0])) {
-        case 'd':
-            switch (toASCIILower(data[1])) {
-            case 'p':
-                switch (toASCIILower(data[2])) {
-                case 'c':
-                    if (toASCIILower(data[3]) == 'm')
-                        return CSSUnitType::Dpcm;
-                    break;
-                case 'p':
-                    if (toASCIILower(data[3]) == 'x')
-                        return CSSUnitType::Dppx;
-                    break;
-                }
-                break;
-            }
-            break;
-        case 'g':
-            if (toASCIILower(data[1]) == 'r' && toASCIILower(data[2]) == 'a' && toASCIILower(data[3]) == 'd')
-                return CSSUnitType::Grad;
-            break;
-        case 'r':
-            if (toASCIILower(data[1]) == 'c' && toASCIILower(data[2]) == 'a' && toASCIILower(data[3]) == 'p')
-                return CSSUnitType::Rcap;
-            break;
-        case 't':
-            if (toASCIILower(data[1]) == 'u' && toASCIILower(data[2]) == 'r' && toASCIILower(data[3]) == 'n')
-                return CSSUnitType::Turn;
-            break;
-        case 'v':
-            switch (toASCIILower(data[1])) {
-            case 'm':
-                switch (toASCIILower(data[2])) {
-                case 'a':
-                    if (toASCIILower(data[3]) == 'x')
-                        return CSSUnitType::Vmax;
-                    break;
-                case 'i':
-                    if (toASCIILower(data[3]) == 'n')
-                        return CSSUnitType::Vmin;
-                    break;
-                }
-                break;
-            }
-            break;
-        }
-        break;
-    case 5:
-        switch (toASCIILower(data[0])) {
-        case '_':
-            if (toASCIILower(data[1]) == '_' && toASCIILower(data[2]) == 'q' && toASCIILower(data[3]) == 'e' && toASCIILower(data[4]) == 'm')
-                return CSSUnitType::QuirkyEm;
-            break;
-        case 'c':
-            if (toASCIILower(data[1]) == 'q' && toASCIILower(data[2]) == 'm') {
-                switch (toASCIILower(data[3])) {
-                case 'a':
-                    if (toASCIILower(data[4]) == 'x')
-                        return CSSUnitType::Cqmax;
-                    break;
-                case 'i':
-                    if (toASCIILower(data[4]) == 'n')
-                        return CSSUnitType::Cqmin;
-                    break;
-                }
-            }
-            break;
-        case 'd':
-            if (toASCIILower(data[1]) == 'v' && toASCIILower(data[2]) == 'm') {
-                switch (toASCIILower(data[3])) {
-                case 'a':
-                    if (toASCIILower(data[4]) == 'x')
-                        return CSSUnitType::Dvmax;
-                    break;
-                case 'i':
-                    if (toASCIILower(data[4]) == 'n')
-                        return CSSUnitType::Dvmin;
-                    break;
-                }
-            }
-            break;
-        case 'l':
-            if (toASCIILower(data[1]) == 'v' && toASCIILower(data[2]) == 'm') {
-                switch (toASCIILower(data[3])) {
-                case 'a':
-                    if (toASCIILower(data[4]) == 'x')
-                        return CSSUnitType::Lvmax;
-                    break;
-                case 'i':
-                    if (toASCIILower(data[4]) == 'n')
-                        return CSSUnitType::Lvmin;
-                    break;
-                }
-            }
-            break;
-        case 's':
-            if (toASCIILower(data[1]) == 'v' && toASCIILower(data[2]) == 'm') {
-                switch (toASCIILower(data[3])) {
-                case 'a':
-                    if (toASCIILower(data[4]) == 'x')
-                        return CSSUnitType::Svmax;
-                    break;
-                case 'i':
-                    if (toASCIILower(data[4]) == 'n')
-                        return CSSUnitType::Svmin;
-                    break;
-                }
-            }
-            break;
-        }
-        break;
-    }
-    return CSSUnitType::Unknown;
-}
-
-CSSUnitType CSSParserToken::stringToUnitType(StringView stringView)
-{
-    if (stringView.is8Bit())
-        return cssPrimitiveValueUnitFromTrie(stringView.span8());
-    return cssPrimitiveValueUnitFromTrie(stringView.span16());
+    uint64_t characters = 0;
+    for (unsigned i = 0; i < std::min(name.length(), 8u); ++i)
+        characters |= static_cast<uint64_t>(isASCII(name[i]) ? name[i] : 0) << (8 * i);
+    auto unit = cssParserUnitTypeForName(characters, name.length());
+    RELEASE_ASSERT(unit <= std::to_underlying(CSSUnitType::QuirkyEm));
+    return static_cast<CSSUnitType>(unit);
 }
 
 CSSParserToken::CSSParserToken(CSSParserTokenType type, BlockType blockType)
@@ -431,7 +130,7 @@ void CSSParserToken::convertToDimensionWithUnit(CSSUnitType unit)
     initValueFromStringView(string);
 }
 
-void CSSParserToken::convertToDimensionWithUnit(StringView unit)
+void CSSParserToken::convertToDimensionWithUnit(StringView unit, CSSUnitType unitType)
 {
     ASSERT(m_type == NumberToken);
     auto originalNumberText = originalText();
@@ -442,7 +141,7 @@ void CSSParserToken::convertToDimensionWithUnit(StringView unit)
             string = merged;
     }
     m_type = DimensionToken;
-    m_unit = static_cast<unsigned>(stringToUnitType(unit));
+    m_unit = static_cast<unsigned>(unitType);
     m_nonUnitPrefixLength = string == unit ? 0 : originalNumberTextLength;
     initValueFromStringView(string);
 }

@@ -1069,12 +1069,19 @@ private struct CSSTokenizerScanner<Unit: CSSCodeUnit> {
             let unit = consumeName(data, &state)
             poolIfUnescaped(unit, state, &sink)
             let kind = unit.unescaped ? WebCore.CSSTokenizerPooledDimension : WebCore.CSSTokenizerDimension
-            return step(sink.numericToken(kind, isInteger, sign, start, length, offset32(unit.start), offset32(unit.length), number.value))
+            // An unescaped unit is the pooled value the token takes, whose code units are those of state.unescaped.
+            let unitType =
+                unit.unescaped
+                ? cssParserUnitType(state.unescaped.span)
+                : cssParserUnitType(data.extracting(unit.start..<unit.start &+ unit.length))
+            return step(
+                sink.numericToken(kind, isInteger, sign, start, length, offset32(unit.start), offset32(unit.length), unitType, number.value)
+            )
         }
         if consumeIfNext(data, 0x25) {
-            return step(sink.numericToken(WebCore.CSSTokenizerPercentage, isInteger, sign, start, length, 0, 0, number.value))
+            return step(sink.numericToken(WebCore.CSSTokenizerPercentage, isInteger, sign, start, length, 0, 0, 0, number.value))
         }
-        return step(sink.numericToken(WebCore.CSSTokenizerNumber, isInteger, sign, start, length, 0, 0, number.value))
+        return step(sink.numericToken(WebCore.CSSTokenizerNumber, isInteger, sign, start, length, 0, 0, 0, number.value))
     }
 
     // MARK: Names

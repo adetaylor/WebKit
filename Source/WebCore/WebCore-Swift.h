@@ -75,6 +75,8 @@
 
 #include "CSSPropertyConsumerSwiftTypes.h"
 
+#include "CSSParserSwiftState.h"
+
 #include "ContentSecurityPolicySwift.h"
 
 #include "CacheValidation.h"

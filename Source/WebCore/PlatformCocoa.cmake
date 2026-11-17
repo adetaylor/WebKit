@@ -705,7 +705,6 @@ list(APPEND WebCore_USER_AGENT_STYLE_SHEETS
 
 list(REMOVE_ITEM WebCore_PRIVATE_FRAMEWORK_HEADERS
     ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsing.h
-    ${WebCore_DERIVED_SOURCES_DIR}/CSSSelectorInlines.h
     ${WebCore_DERIVED_SOURCES_DIR}/JSReadableStreamDefaultController.h
     ${WebCore_DERIVED_SOURCES_DIR}/UserAgentParts.h
     ${WebCore_DERIVED_SOURCES_DIR}/UserAgentStyleSheets.h

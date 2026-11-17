@@ -77,8 +77,6 @@ RefPtr<CSSValue> consumeCustomIdentExcluding(CSSParserTokenRange&, CSS::Property
 // MARK: <dashed-ident>
 // https://drafts.csswg.org/css-values/#dashed-idents
 
-StringView consumeEagerlyResolvableDashedIdentRaw(CSSParserTokenRange&);
-
 std::optional<CSS::CustomIdent> consumeUnresolvedDashedIdent(CSSParserTokenRange&, CSS::PropertyParserState&);
 
 RefPtr<CSSValue> consumeDashedIdent(CSSParserTokenRange&, CSS::PropertyParserState&);

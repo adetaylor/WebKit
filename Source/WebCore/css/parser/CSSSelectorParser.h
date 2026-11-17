@@ -47,70 +47,13 @@ class StyleRule;
 
 class CSSSelectorParser {
 public:
-    enum class DisallowPseudoElement : bool { No, Yes };
-    CSSSelectorParser(const CSSSelectorParserContext&, StyleSheetContents*, DisallowPseudoElement = DisallowPseudoElement::No);
-
-    MutableCSSSelectorList consumeComplexSelectorList(CSSParserTokenRange&);
-    MutableCSSSelectorList consumeNestedSelectorList(CSSParserTokenRange&);
-    MutableCSSSelectorList consumeComplexForgivingSelectorList(CSSParserTokenRange&);
-    MutableCSSSelectorList consumeNestedComplexForgivingSelectorList(CSSParserTokenRange&);
-
     // Unsafe to Swift, which infers std::optional<CSSSelectorList> Sendable though its copies share a non-atomic count.
     SWIFT_UNSAFE WEBCORE_EXPORT static std::optional<CSSSelectorList> parseSelectorList(const String&, const CSSParserContext&, StyleSheetContents* = nullptr, CSSParserEnum::NestedContext = { });
 
-    static bool supportsComplexSelector(CSSParserTokenRange, const CSSSelectorParserContext&);
     WEBCORE_EXPORT static CSSSelectorList resolveNestingParent(const CSSSelectorList& nestedSelectorList, const CSSSelectorList* parentResolvedSelectorList, bool parentRuleIsScope = false);
     WEBCORE_EXPORT static CSSSelectorList makeHasScopeSelector(const Vector<const CSSSelector*>& compoundSelectors);
     WEBCORE_EXPORT static CSSSelectorList makeHasArgumentWithScope(const CSSSelector& hasArgument, const CSSSelector& scopeSelector);
     WEBCORE_EXPORT static std::optional<Style::PseudoElementIdentifier> parsePseudoElement(StringView, const CSSSelectorParserContext&);
-
-private:
-    template<typename ConsumeSelector> MutableCSSSelectorList consumeSelectorList(CSSParserTokenRange&, NOESCAPE const ConsumeSelector&);
-    template<typename ConsumeSelector> MutableCSSSelectorList consumeForgivingSelectorList(CSSParserTokenRange&, NOESCAPE const ConsumeSelector&);
-
-    MutableCSSSelectorList consumeCompoundSelectorList(CSSParserTokenRange&);
-    MutableCSSSelectorList consumeRelativeSelectorList(CSSParserTokenRange&);
-
-    std::unique_ptr<MutableCSSSelector> consumeComplexSelector(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeNestedComplexSelector(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeCompoundSelector(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeRelativeScopeSelector(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeRelativeNestedSelector(CSSParserTokenRange&);
-
-    // This doesn't include element names, since they're handled specially.
-    std::unique_ptr<MutableCSSSelector> consumeSimpleSelector(CSSParserTokenRange&);
-
-    // These will return nullptr when the selector is invalid.
-    std::unique_ptr<MutableCSSSelector> consumeId(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeClass(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumePseudo(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeAttribute(CSSParserTokenRange&);
-    std::unique_ptr<MutableCSSSelector> consumeNesting(CSSParserTokenRange&);
-
-    NODELETE CSSSelector::Relation consumeCombinator(CSSParserTokenRange&);
-    CSSSelector::Match consumeAttributeMatch(CSSParserTokenRange&);
-    CSSSelector::AttributeMatchType consumeAttributeFlags(CSSParserTokenRange&);
-
-    NODELETE const AtomString& defaultNamespace() const;
-    NODELETE const AtomString& determineNamespace(const AtomString& prefix);
-    void prependTypeSelectorIfNeeded(const AtomString& namespacePrefix, const AtomString& elementName, MutableCSSSelector&);
-    static std::unique_ptr<MutableCSSSelector> splitCompoundAtImplicitShadowCrossingCombinator(std::unique_ptr<MutableCSSSelector> compoundSelector, const CSSSelectorParserContext&);
-    NODELETE static bool containsUnknownWebKitPseudoElements(const CSSSelector& complexSelector);
-
-    class DisallowPseudoElementsScope;
-
-    const CSSSelectorParserContext m_context;
-    const RefPtr<StyleSheetContents> m_styleSheet;
-
-    // FIXME: This m_failedParsing is ugly and confusing, we should look into removing it (the return value of each function already convey this information).
-    bool m_failedParsing { false };
-
-    bool m_disallowPseudoElements { false };
-    bool m_disallowHasPseudoClass { false };
-    bool m_resistDefaultNamespace { false };
-    bool m_ignoreDefaultNamespace { false };
-    bool m_disableForgivingParsing { false };
-    const MutableCSSSelector* m_precedingPseudoElement { nullptr };
 };
 
 struct ParsedQualifiedName {
@@ -120,7 +63,5 @@ struct ParsedQualifiedName {
 std::optional<ParsedQualifiedName> consumeQualifiedName(CSSParserTokenRange&);
 
 SWIFT_UNSAFE std::optional<CSSSelectorList> parseCSSSelectorList(CSSParserTokenRange, const CSSSelectorParserContext&, StyleSheetContents* = nullptr, CSSParserEnum::NestedContext = { });
-
-MutableCSSSelectorList parseMutableCSSSelectorList(CSSParserTokenRange&, const CSSSelectorParserContext&, StyleSheetContents*, CSSParserEnum::NestedContext, CSSParserEnum::IsForgiving, CSSSelectorParser::DisallowPseudoElement);
 
 } // namespace WebCore

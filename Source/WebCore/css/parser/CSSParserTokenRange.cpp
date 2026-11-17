@@ -60,27 +60,6 @@ CSSParserTokenRange CSSParserTokenRange::consumeBlock()
     return start.first(m_tokens.data() - start.data() - 1);
 }
 
-CSSParserTokenRange CSSParserTokenRange::consumeBlockCheckingForEditability(StyleSheetContents* styleSheet)
-{
-    ASSERT(peek().getBlockType() == CSSParserToken::BlockStart);
-    auto start = m_tokens.subspan(1);
-    unsigned nestingLevel = 0;
-    do {
-        const auto& token = consume();
-        if (token.getBlockType() == CSSParserToken::BlockStart)
-            nestingLevel++;
-        else if (token.getBlockType() == CSSParserToken::BlockEnd)
-            nestingLevel--;
-
-        if (styleSheet && !styleSheet->usesStyleBasedEditability() && token.type() == IdentToken && equalLettersIgnoringASCIICase(token.value(), "-webkit-user-modify"_s))
-            styleSheet->parserSetUsesStyleBasedEditability();
-    } while (nestingLevel && !m_tokens.empty());
-
-    if (nestingLevel)
-        return start.first(m_tokens.data() - start.data()); // Ended at EOF
-    return start.first(m_tokens.data() - start.data() - 1);
-}
-
 void CSSParserTokenRange::consumeComponentValue()
 {
     // FIXME: This is going to do multiple passes over large sections of a stylesheet.

@@ -497,20 +497,22 @@ void CSSPropertyConsumerSwiftShorthandSink::addProperty(uint16_t property, CSSVa
     state().result.addProperty(state().value.propertyParserState, static_cast<CSSPropertyID>(property), CSSPropertyID::Invalid, &propertyValue, important ? IsImportant::Yes : IsImportant::No);
 }
 
-bool CSSPropertyConsumerSwiftShorthandSink::addSubstitutionValue(uint32_t start, uint32_t end, bool withNamespaceMap) const
+void CSSPropertyConsumerSwiftShorthandSink::addSubstitutionValue(uint32_t start, uint32_t end, bool withNamespaceMap) const
 {
     auto& sink = state();
     auto& state = sink.value.propertyParserState;
     auto range = swiftTokenRange(sink.value, start, end);
-    if (!CSSSubstitutionParser::containsSubstitutionFunctions(range, state.context))
-        return false;
     const CSSNamespacePrefixMap noNamespaceMap;
     Ref substitution = CSSSubstitutionValue::create(range, withNamespaceMap ? sink.namespaceMap : noNamespaceMap, state.context);
     if (WebCore::isShorthand(state.currentProperty))
         sink.result.addPropertyForAllLonghandsOfCurrentShorthand(state, CSSShorthandSubstitutionValue::create(state.currentProperty, WTF::move(substitution)));
     else
         sink.result.addProperty(state, state.currentProperty, CSSPropertyID::Invalid, WTF::move(substitution), state.important);
-    return true;
+}
+
+uint32_t CSSPropertyConsumerSwiftShorthandSink::substitutionFlags() const
+{
+    return cssParserSubstitutionFlags(state().value.propertyParserState.context);
 }
 
 bool CSSPropertyConsumerSwiftShorthandSink::isKeywordValid(uint16_t property, uint16_t valueID) const

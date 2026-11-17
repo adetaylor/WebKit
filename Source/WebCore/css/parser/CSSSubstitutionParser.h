@@ -56,4 +56,10 @@ public:
     static std::optional<Vector<unsigned, 2>> consumeEnvVariableIndices(CSSParserTokenRange&);
 };
 
+// What the context enables for the validation of substitution functions: the CSSParserSwift*Enabled bits of
+// CSSParserSwiftState.h.
+uint32_t cssParserSubstitutionFlags(const CSSParserContext&);
+// The custom property value of a DeclarationValue request's result for the tokens of `range`.
+RefPtr<CSSCustomPropertyValue> cssCustomPropertyValueOfKind(uint32_t result, const AtomString&, CSSParserTokenRange, const CSSParserContext&, const CSSNamespacePrefixMap&);
+
 } // namespace WebCore

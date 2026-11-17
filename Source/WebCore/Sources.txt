@@ -1123,6 +1123,7 @@ css/parser/CSSParser.cpp @cost:3
 css/parser/CSSParserContext.cpp
 css/parser/CSSParserFastPaths.cpp
 css/parser/CSSParserObserverWrapper.cpp
+css/parser/CSSParserSwiftState.cpp @no-unify
 css/parser/CSSParserToken.cpp
 css/parser/CSSParserTokenRange.cpp
 css/parser/CSSPropertyParser.cpp @cost:3
