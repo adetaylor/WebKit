@@ -1024,6 +1024,7 @@ if (APPLE)
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteAudioDestinationManagerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp

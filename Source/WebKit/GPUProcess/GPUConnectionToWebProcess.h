@@ -120,7 +120,7 @@ struct RemoteAudioDestinationSpatialTarget {
 
 class GPUProcess;
 class LayerHostingContext;
-class LibWebRTCCodecsProxy;
+class LibWebRTCCodecsProxyMessageForwarder;
 class LocalAudioSessionRoutingArbitrator;
 class RemoteAudioHardwareListenerProxy;
 class RemoteAudioSessionProxy;
@@ -390,6 +390,13 @@ private:
 #endif
     SWIFT_MAIN_ACTOR void swiftCloseStreamReceivers();
 
+#if PLATFORM(COCOA) && USE(LIBWEBRTC)
+    // Implemented in Swift: the Swift state makes and keeps the receiver of the video decoder and encoder messages, whose
+    // forwarder this registers on the codecs queue, the dispatch queue that codecsQueue is.
+    SWIFT_MAIN_ACTOR Ref<LibWebRTCCodecsProxyMessageForwarder> swiftCreateLibWebRTCCodecsProxy(RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity resourceOwner, bool hasResourceOwner, void* WTF_NONNULL codecsQueue);
+    void stopLibWebRTCCodecsProxy();
+#endif
+
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     UserMediaCaptureManagerProxy& userMediaCaptureManagerProxy();
 
@@ -515,7 +522,7 @@ private:
     IPC::ScopedActiveMessageReceiveQueue<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    IPC::ScopedActiveMessageReceiveQueue<LibWebRTCCodecsProxy> m_libWebRTCCodecsProxy;
+    RefPtr<LibWebRTCCodecsProxyMessageForwarder> m_libWebRTCCodecsProxy;
 #endif
 #if HAVE(AUDIT_TOKEN)
     HashMap<WebCore::PageIdentifier, CoreIPCAuditToken> m_presentingApplicationAuditTokens;

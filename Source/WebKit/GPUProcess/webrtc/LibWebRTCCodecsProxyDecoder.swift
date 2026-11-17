@@ -299,7 +299,7 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
 
         guard let frame else {
             if !isReordered {
-                WebKit.LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.failedDecoding(on: connection, to: 0, identifier: identifier)
+                LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.failedDecoding(on: connection, to: 0, identifier: identifier)
             }
             return
         }
@@ -317,7 +317,7 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
             // Safety: CVPixelBufferGetIOSurface follows the Get rule, and the pixel buffer keeps its surface.
             let ioSurface = unsafe CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue()
             let surface = ioSurface.map { IPCTypes.MachSendRight(surface: $0) } ?? IPCTypes.MachSendRight()
-            WebKit.LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedDecodingCV(
+            LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedDecodingCV(
                 on: connection,
                 to: 0,
                 identifier: identifier,
@@ -341,7 +341,7 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
             colorSpace: IPCTypes.PlatformVideoColorSpace(WebKit.colorSpaceOfPixelBuffer(pixelBuffer)),
             shouldIgnoreAlpha: false
         )
-        WebKit.LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedDecoding(
+        LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedDecoding(
             on: connection,
             to: 0,
             identifier: identifier,

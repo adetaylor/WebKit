@@ -27,8 +27,9 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=WebCodecsVideoEnabled || PeerConnectionEnabled,
-    SwiftImplementation,
+    SwiftReceiver,
     SwiftTypes,
+    SwiftActor,
     SwiftSends=LibWebRTCCodecs
 ]
 messages -> LibWebRTCCodecsProxy WorkQueue {
