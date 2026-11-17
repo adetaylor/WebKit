@@ -806,7 +806,8 @@ final class HTMLConstructionSite {
                 var result = host.attachDeclarativeShadow(
                     mode, delegatesFocus, clonable, serializable, slotAssignment, referenceTarget, registryKind)
                 if !result.hasException() {
-                    let shadowRoot: WebCore.ShadowRoot = result.releaseReturnValue()
+                    // Released once, after hasException() said it holds a value.
+                    let shadowRoot: WebCore.ShadowRoot = unsafe result.releaseReturnValue()
                     let element = createHTMLElement(&token)
                     WebCore.dynamicDowncastHTMLTemplateElement(element)!.setDeclarativeShadowRoot(shadowRoot)
                     openElements.push(HTMLStackItem(element: element))
