@@ -73,6 +73,8 @@ CSSSelector& CSSSelectorListStorage::appendRecord(CSSSelectorFields fields, CSSS
         record.setImplicit();
     if (fields.flags & CSSSelectorFields::ForPage)
         record.setForPage();
+    if (fields.flags & CSSSelectorFields::EquivalentToClass)
+        record.setIsEquivalentToClassSelector();
     record.setRelation(static_cast<CSSSelector::Relation>(fields.relation));
     m_selectors.append(WTF::move(record));
     return m_selectors.last();
