@@ -300,6 +300,32 @@ messages -> TestReceiver WorkQueue {
         self.assertIn('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n', implementation)
         self.assertNotIn('sharedPreferencesForWebProcess', messages.generate_swift_message_handler(receiver))
 
+        # With SwiftActor, dispatch enters the target, an actor on the work queue, with assumeIsolated, and moves the
+        # owned arguments into it.
+        receiver = parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'WorkQueue', """
+    Message(uint32_t value) -> (uint32_t reply)
+    SyncMessage(uint32_t value) -> (uint32_t reply) Synchronous
+    HandleMessage(WebCore::SharedMemory::Handle handle)
+    LentMessage([Lent] std::span<const uint8_t> data)
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('    private let target: TestReceiver\n', swift)
+        self.assertEqual(swift.count('        target.assumeIsolated { target in\n'), 4)
+        self.assertIn('    @_expose(!Cxx)\n    init(target: TestReceiver) {\n', swift)
+        self.assertIn('        connection: sending IPC.Connection,\n', swift)
+        self.assertIn('        nonisolated(unsafe) let dataLent = decoder.lentBytes(dataPosition)\n', swift)
+        self.assertIn('                try unsafe mayThrowInvalidMessage(\n', swift)
+        self.assertIn('                        data: dataLent\n', swift)
+        self.assertIn('        var handleOwned = Optional(handle)\n', swift)
+        self.assertIn('handle: handleOwned.take()!', swift)
+        self.assertIn('                    reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+        self.assertNotIn('MainActor', swift)
+        self.assertNotIn('Task', swift)
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.CxxMessage takes C\+\+ types, which a receiver with 'SwiftActor' can't"):
+            parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'WorkQueue', '    CxxMessage(uint32_t value) CxxTypes')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftActor', which is for Swift receivers with 'WorkQueue'"):
+            parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'Stream', '    Message(uint32_t value)')
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
             parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver cannot have both 'WorkQueue' and 'Stream'"):

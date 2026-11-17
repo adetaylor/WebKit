@@ -39,6 +39,9 @@ STREAM_ATTRIBUTE = "Stream"
 # On a Swift receiver whose host registers it with addWorkQueueMessageReceiver(): its generated forwarder is a
 # WorkQueueMessageReceiver, and its handlers are called synchronously on that work queue.
 WORK_QUEUE_ATTRIBUTE = "WorkQueue"
+# On a WorkQueue Swift receiver whose messages all take Swift types: its Swift target is an actor whose executor is the
+# queue its forwarder is registered with, and dispatch enters it with assumeIsolated, which traps off that queue.
+SWIFT_ACTOR_ATTRIBUTE = "SwiftActor"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 # A C++ receiver whose messages that take Swift types are decoded and handled in Swift: generated Swift implements a
 # dispatch function for each, with @cxx @implementation, that calls the receiver's handler, a Swift method of the C++
@@ -175,6 +178,12 @@ class MessageReceiver(object):
             raise Exception("ERROR: Receiver %s has '%s', which is for Swift receivers: a C++ receiver chooses its own base class" % (self.name, WORK_QUEUE_ATTRIBUTE))
         if self.has_attribute(WORK_QUEUE_ATTRIBUTE) and self.has_attribute(STREAM_ATTRIBUTE):
             raise Exception("ERROR: Receiver %s cannot have both '%s' and '%s'" % (self.name, WORK_QUEUE_ATTRIBUTE, STREAM_ATTRIBUTE))
+        if self.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            if not (self.is_swift_receiver() and self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
+                raise Exception("ERROR: Receiver %s has '%s', which is for Swift receivers with '%s'" % (self.name, SWIFT_ACTOR_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE))
+            for message in self.messages:
+                if not message.is_async_reply and not self.takes_swift_types(message):
+                    raise Exception("ERROR: Message %s.%s takes C++ types, which a receiver with '%s' can't" % (self.name, message.name, SWIFT_ACTOR_ATTRIBUTE))
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
         self._enforce_lent_state_constraints()

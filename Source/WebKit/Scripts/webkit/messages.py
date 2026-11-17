@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -3164,6 +3164,9 @@ def generate_swift_message_handler(receiver):
         else:
             result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
             result.append('    private weak var target: %s?\n' % (class_name))
+        if receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            # Only Swift makes it, and the C++ header can't take an actor.
+            result.append('    @_expose(!Cxx)\n')
         result.append('    init(target: %s) {\n' % (class_name))
         result.append('        self.target = target\n')
         result.append('    }\n')
@@ -3243,7 +3246,9 @@ def generate_swift_message_handler(receiver):
         decodes_on_stream = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
         passes_connection = not decodes_on_stream or message.has_attribute(WANTS_CONNECTION_ATTRIBUTE)
         invalid_message_target = '&decoder' if decodes_on_stream else 'connection'
-        parameters = ['connection: %s%s' % ('' if swift_receiver_runs_on_work_queue(receiver) else 'sending ', connection_type)] if passes_connection else []
+        # An actor receiver's dispatch sends the connection into the actor, as main-thread dispatch sends it to the main actor.
+        sends_connection = not swift_receiver_runs_on_work_queue(receiver) or receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE)
+        parameters = ['connection: %s%s' % ('sending ' if sends_connection else '', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
         owned_parameter_names = [parameter.name for parameter in message.parameters if takes_swift_types and not parameter.attributes and swift_types.is_owned_type(parameter.type)]
@@ -3286,7 +3291,8 @@ def generate_swift_message_handler(receiver):
         # A stream receiver's handler is always called directly, on the stream connection's work queue
         # rather than the main actor. The receiver is confined to that queue, so dispatch asserts it is
         # there instead of entering an actor. A WorkQueue receiver's handler is called directly too, on
-        # the queue its forwarder is registered with, which only that registration determines.
+        # the queue its forwarder is registered with, which only that registration determines, or, with
+        # 'SwiftActor', inside its actor, whose executor must be that queue.
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
         runs_on_work_queue = swift_receiver_runs_on_work_queue(receiver)
         sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or runs_on_work_queue
@@ -3391,12 +3397,13 @@ def generate_swift_message_handler(receiver):
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
             cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
 
-        def append_handler_call(base, await_keyword, typed_do):
-            for name in lent_parameters:
-                result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
+        def append_handler_call(base, await_keyword, typed_do, lends_inside=True, unsafe_keyword=''):
+            if lends_inside:
+                for name in lent_parameters:
+                    result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
             assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
-            call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]
+            call = ['%stry %s%smayThrowInvalidMessage(' % (assignment, unsafe_keyword, await_keyword)]
             if arguments:
                 call.append('    target.%s(' % handler_function_name(message))
                 call.append(',\n'.join(['        %s' % argument for argument in arguments]))
@@ -3415,7 +3422,23 @@ def generate_swift_message_handler(receiver):
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)
 
-        if runs_on_work_queue:
+        if runs_on_work_queue and receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            # The actor's closure can't consume the ~Copyable arguments it captures, as the main actor's can't.
+            for name in owned_parameter_names:
+                result.append('        var %sOwned = Optional(%s)\n' % (name, name))
+                arguments[arguments.index('%s: %s' % (name, name))] = '%s: %sOwned.take()!' % (name, name)
+            # The lent bytes and the C++ objects that C++ decoded are in the region of the decoder, which C++ lends.
+            lent_names = list(lent_parameters) + [name for name, swift_type, coder in decoded_parameters if coder and coder != LENT_BYTES_CODER and re.match(r'(WebCore|WebKit|IPC|WTF)\.', swift_type)]
+            if lent_names:
+                result.append('        // Safety: C++ lends these to this dispatch, which uses them only before it returns, on the actor\'s queue.\n')
+            for name in lent_names:
+                value = 'decoder.lentBytes(%sPosition)' % name if name in lent_parameters else name
+                result.append('        nonisolated(unsafe) let %sLent = %s\n' % (name, value))
+                arguments[arguments.index('%s: %s' % (name, name))] = '%s: %sLent' % (name, name)
+            result.append('        target.assumeIsolated { target in\n')
+            append_handler_call('            ', '', True, lends_inside=False, unsafe_keyword='unsafe ' if lent_names else '')
+            result.append('        }\n')
+        elif runs_on_work_queue:
             append_handler_call('        ', '', True)
         elif sync_handler:
             # The main actor's closure can't consume the ~Copyable arguments it captures, so each moves into an Optional
