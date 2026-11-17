@@ -635,7 +635,7 @@ func blendedStyleRotateValues(
 
     let fromAngle = from?.angle ?? 0
     let toAngle = to.angle
-    let fromAxis = from.map { normalizedAxis($0) } ?? (0, 0, 1)
+    let fromAxis = from.map { normalizedAxis($0) } ?? (x: 0, y: 0, z: 1)
     let toAxis = normalizedAxis(to)
     if fromAngle == 0 || toAngle == 0 || (fromAxis.x == toAxis.x && fromAxis.y == toAxis.y && fromAxis.z == toAxis.z) {
         let axis = fromAngle == 0 && toAngle != 0 ? toAxis : fromAxis
