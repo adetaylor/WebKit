@@ -918,7 +918,9 @@ final class TaskIdentityToken: Sendable {
             guard let imageBuffer, CFGetTypeID(imageBuffer) == CVPixelBufferGetTypeID() else {
                 return
             }
-            let pixelBuffer = imageBuffer as! CVPixelBuffer
+            // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+            func cast<Target: AnyObject>(to _: Target.Type) -> Target { imageBuffer as! Target }
+            let pixelBuffer = cast(to: CVPixelBuffer.self)
             // Safety: CVPixelBufferGetIOSurface follows the Get rule, and the sample buffer keeps the pixel buffer and its surface.
             guard let surface = unsafe CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue() else {
                 return

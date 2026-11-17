@@ -655,11 +655,11 @@ void GPUConnectionToWebProcess::setAudioDestinationSceneIdentifier(RemoteAudioDe
     currentSceneIdentifier = WTF::move(sceneIdentifier);
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
     if (!target.prefersSpatialAudioExperience) {
-        RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING ", but !prefersSpatialAudioExperience, so bailing", identifier.toUInt64(), currentSceneIdentifier.utf8().data());
+        RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING ", but !prefersSpatialAudioExperience, so bailing", identifier.toUInt64(), currentSceneIdentifier.utf8());
         return;
     }
 
-    RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING, identifier.toUInt64(), currentSceneIdentifier.utf8().data());
+    RELEASE_LOG(Media, "RemoteAudioDestination::setSceneIdentifier(%" PRIu64 ") %" PUBLIC_LOG_STRING, identifier.toUInt64(), currentSceneIdentifier.utf8());
     RetainPtr experience = WebCore::createSpatialAudioExperienceWithOptions({ .sceneIdentifier = currentSceneIdentifier });
     WebCore::AudioOutputUnit::setSpatialAudioExperience(target.outputUnitIdentifier, experience.get());
 #endif
