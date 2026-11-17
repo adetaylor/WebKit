@@ -468,13 +468,41 @@ extension WebKit.GPUConnectionToWebProcess {
         state.renderingBackends[identifier] != nil
     }
 
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    // Before the backend receives messages, which its renderers' video frames are read from the heap for.
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddRenderingBackend(
+        _ identifier: UInt64,
+        _ renderingBackend: WebKit.RemoteRenderingBackend,
+        _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
+        _ webProcessIdentity: WebCore.ProcessIdentity,
+        _ hasWebProcessIdentity: Bool
+    ) {
+        precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
+        #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+        let videoFrameSources = GPUVideoFrameSources(
+            heap: videoFrameHeap,
+            webProcessIdentity: hasWebProcessIdentity ? webProcessIdentity : nil
+        )
+        renderingBackend.initializeSwiftState(videoFrameSources: videoFrameSources)
+        #endif
+        state.renderingBackends[identifier] = renderingBackend
+    }
+    #else
+    // Before the backend receives messages.
     @cxx
     @implementation
     @MainActor
     func swiftAddRenderingBackend(_ identifier: UInt64, _ renderingBackend: WebKit.RemoteRenderingBackend) {
         precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
+        #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+        renderingBackend.initializeSwiftState(videoFrameSources: GPUVideoFrameSources())
+        #endif
         state.renderingBackends[identifier] = renderingBackend
     }
+    #endif
 
     @cxx
     @implementation
@@ -613,6 +641,19 @@ extension WebKit.GPUConnectionToWebProcess {
         assert(owner != nil, "The GPU has not been added")
         owner?.stopListeningForIPC()
         return state.gpuOwners.isEmpty
+    }
+    #endif
+}
+
+// What the connection's receivers make the readers of the video frames its web process shares with: the connection's video
+// frame heap, and the web process's identity, if it has one, which the buffers read out of shared memory are attributed to.
+struct GPUVideoFrameSources {
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    let heap: WebKit.RemoteVideoFrameObjectHeap
+    let webProcessIdentity: WebCore.ProcessIdentity?
+
+    func make() -> SharedVideoFrameSource {
+        SharedVideoFrameSource(heap: heap, resourceOwner: webProcessIdentity)
     }
     #endif
 }

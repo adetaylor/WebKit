@@ -29,7 +29,7 @@
 # of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
 # process copies out of the message, the segments of FillPathSegment and StrokePathSegment, which it decodes into plain values,
 # and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
-# Paths, a system image and a control part are decoded in Swift (SwiftTypes).
+# Paths, a system image, a control part, and the semaphore and memory of the video frames are decoded in Swift (SwiftTypes).
 # The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
 # with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
 # list doesn't.
@@ -146,8 +146,8 @@ messages -> RemoteCGRenderer Stream {
 #endif
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
     DrawVideoFrame NotRecorded
-    SetSharedVideoFrameSemaphore NotRecorded
-    SetSharedVideoFrameMemory NotRecorded
+    SetSharedVideoFrameSemaphore NotRecorded SwiftTypes
+    SetSharedVideoFrameMemory NotRecorded SwiftTypes
 #endif
     DrawDisplayList(WebKit::RemoteDisplayListIdentifier identifier) StreamBatched
     DrawSnapshotFrame(WebCore::FrameIdentifier frameIdentifier)

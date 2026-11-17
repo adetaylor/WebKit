@@ -156,9 +156,12 @@ final class RemoteRenderingBackendState {
     // False once the backend is uninitialized, after which an idle recorder would keep the backend that its resources keep.
     var reusesDisplayListRecorders = true
     let displayLists: RemoteCGRendererDisplayLists
+    // What its receivers and recorders read the web process's video frames with.
+    let videoFrameSources: GPUVideoFrameSources
 
-    init() {
+    init(videoFrameSources: GPUVideoFrameSources) {
         displayLists = RemoteCGRendererDisplayLists(backendResources: resources)
+        self.videoFrameSources = videoFrameSources
     }
 
     var imageBuffers: [UInt64: RemoteImageBuffer] {
@@ -191,19 +194,19 @@ struct DisplayListRecorder {
 private let maximumIdleDisplayListRecorders = 16
 
 extension WebKit.RemoteRenderingBackend {
-    @cxx
-    @implementation
-    func swiftInitialize() {
+    // For GPUConnectionToWebProcess.swift, which adds the backend before it receives messages.
+    func initializeSwiftState(videoFrameSources: GPUVideoFrameSources) {
         precondition(swiftState() == 0)
+        let state = RemoteRenderingBackendState(videoFrameSources: videoFrameSources)
         // Safety: the state is new, and retained once, which only destroySwiftState() releases.
-        unsafe setSwiftState(UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteRenderingBackendState()).toOpaque()))
+        unsafe setSwiftState(UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque()))
     }
 
     // Static, so that the destructor never retains the backend it destroys.
     @cxx
     @implementation
     static func destroySwiftState(_ swiftState: UInt) {
-        // Safety: swiftInitialize() retained the state at this address, and only the destructor releases it.
+        // Safety: initializeSwiftState() retained the state at this address, and only the destructor releases it.
         _ = unsafe Unmanaged<RemoteRenderingBackendState>
             .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
             .takeRetainedValue()
@@ -282,7 +285,7 @@ extension WebKit.RemoteRenderingBackend {
         let swiftState = swiftState()
         precondition(swiftState != 0, "RemoteRenderingBackend has no Swift state")
         // Each draw of an image buffer looks it up, so the state is borrowed for the lookup rather than retained.
-        // Safety: m_swiftState is a retained RemoteRenderingBackendState from swiftInitialize() to the destructor, which
+        // Safety: m_swiftState is a retained RemoteRenderingBackendState from initializeSwiftState() to the destructor, which
         // doesn't run during the call.
         return unsafe Unmanaged<RemoteRenderingBackendState>
             .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
@@ -350,6 +353,7 @@ extension WebKit.RemoteRenderingBackend {
         let recorder = RemoteCGRendererRecorder(
             resources: WebKit.createDisplayListRecorderResources(self),
             displayLists: state.displayLists,
+            videoFrameSources: state.videoFrameSources,
             snapshotFrames: snapshotFrames
         )
         return DisplayListRecorder(recorder: recorder, forwarder: RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder))
@@ -470,7 +474,7 @@ extension WebKit.RemoteRenderingBackend {
     var state: RemoteRenderingBackendState {
         let swiftState = swiftState()
         precondition(swiftState != 0, "RemoteRenderingBackend has no Swift state")
-        // Safety: m_swiftState is a retained RemoteRenderingBackendState from swiftInitialize() to the destructor.
+        // Safety: m_swiftState is a retained RemoteRenderingBackendState from initializeSwiftState() to the destructor.
         return unsafe Unmanaged<RemoteRenderingBackendState>
             .fromOpaque(UnsafeRawPointer(bitPattern: swiftState) ?? noSwiftState())
             .takeUnretainedValue()

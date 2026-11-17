@@ -360,7 +360,12 @@ private:
     // Implemented in Swift: the Swift state holds the rendering backends and the owners of the WebGL and WebGPU receivers until
     // they are released or the connection closes, and stops them then.
     SWIFT_MAIN_ACTOR bool swiftHasRenderingBackend(uint64_t identifier);
+    // Before the backend starts listening for IPC.
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&, RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity);
+#else
     SWIFT_MAIN_ACTOR void swiftAddRenderingBackend(uint64_t identifier, RemoteRenderingBackend&);
+#endif
     // Whether the state had it.
     SWIFT_MAIN_ACTOR bool swiftReleaseRenderingBackend(uint64_t identifier);
 #if ENABLE(WEBGL)

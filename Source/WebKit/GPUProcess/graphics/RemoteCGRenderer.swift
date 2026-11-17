@@ -233,6 +233,40 @@ extension IPCTypes.CGRendererColorValue {
     }
 }
 
+// The reader of the video frames that the web process shares with a receiver or a recorder, made when it first needs one: none
+// without sources, as for a replay or the print process, which have no frames.
+struct RemoteCGRendererVideoFrames {
+    private let sources: GPUVideoFrameSources?
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    private var reader: SharedVideoFrameSource?
+    #endif
+
+    init(_ sources: GPUVideoFrameSources?) {
+        self.sources = sources
+    }
+
+    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
+    mutating func source() -> SharedVideoFrameSource? {
+        if reader == nil {
+            reader = sources?.make()
+        }
+        return reader
+    }
+
+    mutating func setSemaphore(_ semaphore: consuming IPCTypes.Semaphore) {
+        if let source = source() {
+            source.setSemaphore(semaphore)
+        }
+    }
+
+    mutating func setSharedMemory(_ handle: consuming IPCTypes.SharedMemoryHandle) {
+        if let source = source() {
+            source.setSharedMemory(handle)
+        }
+    }
+    #endif
+}
+
 // Receives the RemoteCGRenderer messages of an image buffer's context, on its stream connection's work queue, and draws
 // them with the context's Swift CG renderer, as RemoteGraphicsContext and GraphicsContextCG would. The context lends each
 // handler its renderer, stored in place, as the handler's state. The same handlers replay recordings of the messages
@@ -247,6 +281,7 @@ final class RemoteCGRenderer {
     private let backendResources: RemoteRenderingBackendResources?
     private let displayLists: RemoteCGRendererDisplayLists?
     private let snapshotFrames: RemoteCGRendererSnapshotFrames?
+    private var videoFrames: RemoteCGRendererVideoFrames
     // The recordings being replayed, innermost last, and the transforms that their SetCTMs are relative to.
     private var replayedRecordings: [RemoteCGRendererRecording] = []
     private var replayBaseTransforms: [CGAffineTransform] = []
@@ -276,6 +311,7 @@ final class RemoteCGRenderer {
     ) {
         self.resources = resources
         self.backendResources = backendState?.resources
+        self.videoFrames = RemoteCGRendererVideoFrames(backendState?.videoFrameSources)
         self.displayLists = displayLists
         self.snapshotFrames = snapshotFrames
     }
@@ -1201,9 +1237,12 @@ final class RemoteCGRenderer {
         shouldDiscardAlpha: WebCore.ShouldDiscardAlpha,
         options: WebCore.RasterDrawingOptions
     ) {
+        guard let pixelBuffer = videoFrames.source()?.readBuffer(frame.bufferTag()) else {
+            return
+        }
         var facts = CGRendererImageFacts()
         var hasAlpha = false
-        guard let image = WebKit.copyVideoFrameImage(resources, frame, &facts, &hasAlpha) else {
+        guard let image = WebKit.copyVideoFrameImage(pixelBuffer, frame, &facts, &hasAlpha) else {
             return
         }
         var imageOptions = CGRendererImageOptionsFor(options)
@@ -1216,12 +1255,12 @@ final class RemoteCGRenderer {
         state.receiveDrawNativeImage(image, facts, cgRect(rect), CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)), imageOptions)
     }
 
-    func setSharedVideoFrameSemaphore(state: inout CGRendererCore, semaphore: borrowing IPC.Semaphore) {
-        WebKit.setSharedVideoFrameSemaphore(resources, semaphore)
+    func setSharedVideoFrameSemaphore(state: inout CGRendererCore, semaphore: consuming IPCTypes.Semaphore) {
+        videoFrames.setSemaphore(semaphore)
     }
 
-    func setSharedVideoFrameMemory(state: inout CGRendererCore, storageHandle: borrowing WebCore.SharedMemory.Handle) {
-        WebKit.setSharedVideoFrameMemory(resources, storageHandle)
+    func setSharedVideoFrameMemory(state: inout CGRendererCore, storageHandle: consuming IPCTypes.SharedMemoryHandle) {
+        videoFrames.setSharedMemory(storageHandle)
     }
     #endif
 

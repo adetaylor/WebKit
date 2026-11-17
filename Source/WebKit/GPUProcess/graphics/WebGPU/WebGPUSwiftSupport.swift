@@ -174,7 +174,7 @@ final class WebGPUImplTable {
 
     let owner: IPC.SwiftReceiverOwner
     let renderingBackend: WebKit.RemoteRenderingBackend
-    let videoFrameSources: WebGPUVideoFrameSources
+    let videoFrameSources: GPUVideoFrameSources
     private let instance: InstanceReference
     private var entries: [UInt64: Entry] = [:]
     private var stores = Stores()
@@ -184,7 +184,7 @@ final class WebGPUImplTable {
     init(
         owner: IPC.SwiftReceiverOwner,
         renderingBackend: WebKit.RemoteRenderingBackend,
-        videoFrameSources: WebGPUVideoFrameSources,
+        videoFrameSources: GPUVideoFrameSources,
         instance: InstanceReference
     ) {
         self.owner = owner
@@ -748,19 +748,6 @@ func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
     pixelBuffer as! CVBuffer
 }
 #endif
-
-// What a WebGPU receiver makes the reader of the video frames its web process shares with: the connection's video frame
-// heap, and the web process's identity, if it has one, which the buffers read out of shared memory are attributed to.
-struct WebGPUVideoFrameSources {
-    #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    let heap: WebKit.RemoteVideoFrameObjectHeap
-    let webProcessIdentity: WebCore.ProcessIdentity?
-
-    func make() -> SharedVideoFrameSource {
-        SharedVideoFrameSource(heap: heap, resourceOwner: webProcessIdentity)
-    }
-    #endif
-}
 
 // A Swift receiver's link to the registry that owns it: its entry, which it removes when the web process destructs its
 // object, and the objects its messages name, which most messages look up. Strong, because a weak reference costs as much

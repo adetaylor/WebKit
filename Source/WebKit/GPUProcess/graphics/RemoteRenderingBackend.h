@@ -110,6 +110,8 @@ class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderin
 public:
     static Ref<RemoteRenderingBackend> create(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
     virtual ~RemoteRenderingBackend();
+    // Once the connection has added the backend (GPUConnectionToWebProcess::swiftAddRenderingBackend()).
+    void startListeningForIPC();
     SWIFT_MAIN_ACTOR void stopListeningForIPC();
 
     NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
@@ -163,7 +165,6 @@ public:
 private:
     friend class RemoteImageBufferSet;
     RemoteRenderingBackend(GPUConnectionToWebProcess&, RemoteRenderingBackendIdentifier, Ref<IPC::StreamServerConnection>&&);
-    void startListeningForIPC();
     void workQueueInitialize();
     void workQueueUninitialize();
     template<typename T>
@@ -233,11 +234,11 @@ private:
     void getImageBufferResourceLimitsForTesting(CompletionHandler<void(WebCore::ImageBufferResourceLimits)>&&);
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    // Implemented in Swift (RemoteRenderingBackend.swift), on the state that m_swiftState holds from swiftInitialize() to
-    // the destructor: the registries of the image buffers' receivers and of the display list recorders, and the display
-    // lists (RemoteCGRendererDisplayLists.forBackend()), on the work queue. swiftUninitialize() empties them.
-    void swiftInitialize();
-    // Unsafe: the state must be the one swiftInitialize() made, which only the destructor releases.
+    // Implemented in Swift (RemoteRenderingBackend.swift), on the state that m_swiftState holds from when the connection adds
+    // the backend (GPUConnectionToWebProcess::swiftAddRenderingBackend()) to the destructor: the registries of the image
+    // buffers' receivers and of the display list recorders, and the display lists (RemoteCGRendererDisplayLists.forBackend()),
+    // on the work queue. swiftUninitialize() empties them.
+    // Unsafe: the state must be the one the connection made, which only the destructor releases.
     SWIFT_UNSAFE static void destroySwiftState(uintptr_t);
     void swiftUninitialize();
     // Makes the receiver of an image buffer's messages: false if one already has the identifier.

@@ -162,7 +162,8 @@ final class RemoteCGRendererRecorder {
     private var recordedDisplayLists: [RemoteIdentifierKey: RemoteCGRendererRecording] = [:]
     private var needsContext = false
     private var namesResources = false
-    // Whether its resources' video frame reader has state, from SetSharedVideoFrameSemaphore, SetSharedVideoFrameMemory or
+    private var videoFrames: RemoteCGRendererVideoFrames
+    // Whether its video frame reader has state, from SetSharedVideoFrameSemaphore, SetSharedVideoFrameMemory or
     // DrawVideoFrame.
     @_expose(!Cxx)
     private(set) var readVideoFrames = false
@@ -171,11 +172,13 @@ final class RemoteCGRendererRecorder {
     init(
         resources: WebKit.RemoteCGRendererResources,
         displayLists: RemoteCGRendererDisplayLists,
+        videoFrameSources: GPUVideoFrameSources?,
         snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none,
         lock: RemoteCGRendererRecorderLock? = nil
     ) {
         self.resources = resources
         self.displayLists = displayLists
+        self.videoFrames = RemoteCGRendererVideoFrames(videoFrameSources)
         self.snapshotFrames = snapshotFrames
         self.lock = lock
     }
@@ -380,7 +383,8 @@ final class RemoteCGRendererRecorder {
     }
 
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    // RemoteGraphicsContext reads the frame, which a WebCore display list recorder then doesn't record.
+    // RemoteGraphicsContext reads the frame, which a WebCore display list recorder then doesn't record, so that the reader
+    // keeps in step with the sender.
     @_expose(!Cxx)
     func drawVideoFrame(
         frame: WebKit.SharedVideoFrame,
@@ -389,19 +393,19 @@ final class RemoteCGRendererRecorder {
         options: WebCore.RasterDrawingOptions
     ) {
         readVideoFrames = true
-        resources.readVideoFrame(frame)
+        _ = videoFrames.source()?.readBuffer(frame.bufferTag())
     }
 
     @_expose(!Cxx)
-    func setSharedVideoFrameSemaphore(semaphore: borrowing IPC.Semaphore) {
+    func setSharedVideoFrameSemaphore(semaphore: consuming IPCTypes.Semaphore) {
         readVideoFrames = true
-        WebKit.setSharedVideoFrameSemaphore(resources, semaphore)
+        videoFrames.setSemaphore(semaphore)
     }
 
     @_expose(!Cxx)
-    func setSharedVideoFrameMemory(storageHandle: borrowing WebCore.SharedMemory.Handle) {
+    func setSharedVideoFrameMemory(storageHandle: consuming IPCTypes.SharedMemoryHandle) {
         readVideoFrames = true
-        WebKit.setSharedVideoFrameMemory(resources, storageHandle)
+        videoFrames.setSharedMemory(storageHandle)
     }
     #endif
 }
@@ -432,10 +436,16 @@ final class RemoteCGRendererRecordedDrawing: @unchecked Sendable {
     @_expose(!Cxx)
     static func create(
         resources: WebKit.RemoteCGRendererResources,
-        displayLists: RemoteCGRendererDisplayLists
+        displayLists: RemoteCGRendererDisplayLists,
+        videoFrameSources: GPUVideoFrameSources
     ) -> (RemoteCGRendererRecordedDrawing, RefRemoteCGRendererRecorderMessageForwarder) {
         let lock = RemoteCGRendererRecorderLock()
-        let recorder = RemoteCGRendererRecorder(resources: resources, displayLists: displayLists, lock: lock)
+        let recorder = RemoteCGRendererRecorder(
+            resources: resources,
+            displayLists: displayLists,
+            videoFrameSources: videoFrameSources,
+            lock: lock
+        )
         let forwarder = RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
         return (RemoteCGRendererRecordedDrawing(recorder: recorder, lock: lock), forwarder)
     }
@@ -609,7 +619,12 @@ final class RemoteCGRendererSnapshotFrames {
             _ = displayLists.add(displayList.recording, key: displayList.key)
         }
         nextDisplayLists = []
-        let recorder = RemoteCGRendererRecorder(resources: resources, displayLists: displayLists, snapshotFrames: .rerecording)
+        let recorder = RemoteCGRendererRecorder(
+            resources: resources,
+            displayLists: displayLists,
+            videoFrameSources: nil,
+            snapshotFrames: .rerecording
+        )
         rerecorder = recorder
         return RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
     }
