@@ -558,7 +558,7 @@ final class LibWebRTCCodecsEncoderOutput: @unchecked Sendable {
         }
 
         sendDescriptionIfNeeded(sampleBuffer, colorSpace: colorSpace)
-        WebKit.LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedEncoding(on: connection, to: 0, identifier: identifier, data: data, info: frameInfo)
+        LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedEncoding(on: connection, to: 0, identifier: identifier, data: data, info: frameInfo)
         notifyResult(true)
 
         let totalSampleSize = CMSampleBufferGetTotalSampleSize(sampleBuffer)
@@ -591,7 +591,7 @@ final class LibWebRTCCodecsEncoderOutput: @unchecked Sendable {
 
     private func sendDescription(_ description: [UInt8], colorSpace: IPCTypes.PlatformVideoColorSpace) {
         state.withLock { $0.needsToSendDescription = false }
-        WebKit.LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.setEncodingConfiguration(on: connection, to: 0, identifier: identifier, description: description, colorSpace: colorSpace)
+        LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.setEncodingConfiguration(on: connection, to: 0, identifier: identifier, description: description, colorSpace: colorSpace)
     }
 }
 

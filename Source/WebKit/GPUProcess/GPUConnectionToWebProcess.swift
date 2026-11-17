@@ -23,6 +23,9 @@
 
 #if ENABLE_GPU_PROCESS
 
+#if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
+import Dispatch
+#endif
 import WebKit_Internal
 
 // A receiver of a web process's messages that the connection's Swift state owns and routes the messages to while the
@@ -72,6 +75,10 @@ final class GPUConnectionState {
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
     private(set) var cdmFactory: RemoteCDMFactoryProxy?
     #endif
+    #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
+    // From before the connection opens: the C++ connection registers its forwarder on the codecs queue.
+    fileprivate var libWebRTCCodecsProxy: LibWebRTCCodecsProxy?
+    #endif
 
     // The receivers with stream connections of their own, by identifier, from when they are added until they are released
     // or the connection closes; the state stops their messages then.
@@ -103,6 +110,11 @@ final class GPUConnectionState {
         #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
         if let cdmFactory {
             receivers.append(cdmFactory)
+        }
+        #endif
+        #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
+        if let libWebRTCCodecsProxy {
+            receivers.append(libWebRTCCodecsProxy)
         }
         #endif
         return receivers
@@ -277,6 +289,35 @@ extension WebKit.GPUConnectionToWebProcess {
         // changes it.
         unsafe Unmanaged<GPUConnectionState>.fromOpaque(Self.stateAddress(swiftState())).takeUnretainedValue()
     }
+
+    #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
+    @cxx
+    @implementation
+    @MainActor
+    func swiftCreateLibWebRTCCodecsProxy(
+        _ videoFrameObjectHeap: WebKit.RemoteVideoFrameObjectHeap,
+        _ resourceOwner: WebCore.ProcessIdentity,
+        _ hasResourceOwner: Bool,
+        _ codecsQueue: UnsafeMutableRawPointer
+    ) -> RefLibWebRTCCodecsProxyMessageForwarder {
+        // Safety: the connection passes the dispatch queue of the GPU process's codecs WorkQueue, which keeps it for the
+        // process's life, and this retains it.
+        let queue = unsafe Unmanaged<DispatchQueue>.fromOpaque(codecsQueue).takeUnretainedValue()
+        guard let codecsQueue = queue as? DispatchSerialQueue else {
+            preconditionFailure("The codecs queue is not serial")
+        }
+        precondition(state.libWebRTCCodecsProxy == nil, "The connection has a codecs receiver")
+        // Safety: the heap is used on any thread, which its own lock and its WorkQueue confine its state to.
+        nonisolated(unsafe) let videoFrameObjectHeap = videoFrameObjectHeap
+        let proxy = unsafe LibWebRTCCodecsProxy(
+            videoFrameObjectHeap: videoFrameObjectHeap,
+            resourceOwner: hasResourceOwner ? resourceOwner : nil,
+            codecsQueue: codecsQueue
+        )
+        state.libWebRTCCodecsProxy = proxy
+        return proxy.getMessageReceiver()
+    }
+    #endif
 }
 
 extension WebKit.GPUConnectionToWebProcess {
