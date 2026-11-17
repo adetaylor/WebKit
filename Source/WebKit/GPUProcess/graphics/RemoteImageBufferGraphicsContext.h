@@ -27,10 +27,129 @@
 
 #if ENABLE(GPU_PROCESS)
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+
+#include "RemoteGraphicsContextIdentifier.h"
+#include "RemoteRenderingBackend.h"
+#include "StreamServerConnection.h"
+#include <WebCore/GraphicsContextCG.h>
+#include <WebCore/GraphicsLayerContentsDisplayDelegate.h>
+#include <WebCore/ImageBuffer.h>
+#include <WebCore/PlatformCALayerDelegatedContents.h>
+#include <wtf/SwiftBridging.h>
+#include <wtf/ThreadSafeRefCounted.h>
+
+namespace IPC {
+template<typename> class CxxDecodedArgument;
+class SwiftReplyEncoder;
+}
+
+namespace WebCore {
+class SharedMemoryHandle;
+struct PixelBufferFormat;
+}
+
+namespace WebKit {
+
+// What RemoteImageBufferGraphicsContext::getPixelBuffer() did, so that Swift can check the message.
+enum class RemoteImageBufferPixelsResult : uint8_t {
+    Copied,
+    NoSharedMemory,
+    UnsupportedFormat,
+    SharedMemoryTooSmall,
+};
+
+// The lender of the renderer of the context that an image buffer's drawing is drawn into, to the receiver of that drawing
+// (RemoteCGRenderer), which it starts, for each message; for a buffer whose drawing is recorded, the image buffer's receiver
+// records the drawing instead (RemoteImageBuffer.swift). The generated forwarder's per-message lend is inline here, with
+// the work on WebCore types that Swift can't do safely.
+class RemoteImageBufferGraphicsContext final : public ThreadSafeRefCounted<RemoteImageBufferGraphicsContext> {
+public:
+    static RemoteImageBufferGraphicsContext* WTF_NONNULL createForSwift(WebCore::ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& backend) SWIFT_RETURNS_RETAINED
+    {
+        Ref context = adoptRef(*new RemoteImageBufferGraphicsContext(imageBuffer, identifier, backend));
+        context->startListeningForIPC();
+        return &context.leakRef();
+    }
+    ~RemoteImageBufferGraphicsContext()
+    {
+        if (m_isSwiftRendererLender)
+            cgContext().removeSwiftRendererLender();
+    }
+    void stopListeningForIPC() { m_renderingBackend->streamConnection().stopReceivingMessages(IPC::ReceiverName::RemoteCGRenderer, m_identifier.toUInt64()); }
+
+    // For the Swift receiver of an image buffer whose drawing is recorded: the drawing that the one placeholder of the WebCore
+    // display list that its context records draws, which the placeholder keeps. Unsafe: the drawing must be a retained
+    // RemoteCGRendererRecordedDrawing that nothing else releases.
+    SWIFT_UNSAFE void installRecordedDrawing(uintptr_t);
+    // Copies the pixels of the rect into the shared memory that the rendering backend keeps for them, as the buffer's
+    // getPixelBuffer() gives them in the format, or zeroes the memory if it gives none.
+    RemoteImageBufferPixelsResult getPixelBuffer(IPC::CxxDecodedArgument<WebCore::PixelBufferFormat>&, int x, int y, int width, int height);
+    // Maps the memory of the handle as the shared memory that the rendering backend keeps for pixels: false if it can't be
+    // mapped, in which case the backend keeps none.
+    bool setPixelBufferSharedMemory(IPC::CxxDecodedArgument<WebCore::SharedMemoryHandle>&);
+    // Caches a copy of the buffer's image, or a placeholder if there is none, as the native image with the identifier: false
+    // if one already has it.
+    bool copyNativeImage(uint64_t imageIdentifier);
+    void encodeBackendHandle(IPC::SwiftReplyEncoder&);
+    // Prepares the buffer for display, and encodes the send right of the surface to display, or none. The display may still
+    // be drawing it: waitForDisplayBuffer() waits until it is done, or until a timeout.
+    void encodeDisplayBuffer(IPC::SwiftReplyEncoder&);
+    void waitForDisplayBuffer();
+
+    // RemoteCGRenderer's handlers' state, the context's renderer, which the context lends for one message.
+    WebCore::GraphicsContextCG::SwiftRendererLend lendSwiftReceiverState() { return WebCore::GraphicsContextCG::lendSwiftRenderer(cgContext()); }
+
+private:
+    RemoteImageBufferGraphicsContext(WebCore::ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& backend)
+        : m_renderingBackend(backend)
+        , m_context(imageBuffer.context())
+        , m_imageBuffer(imageBuffer)
+        , m_identifier(identifier)
+    {
+        // The context of an image buffer that failed to allocate (NullImageBufferBackend) draws nothing and can't lend a
+        // renderer: its drawing is drawn into an image buffer of its own, which nothing shows.
+        if (!m_context.canLendSwiftRenderer() && imageBuffer.renderingMode() != WebCore::RenderingMode::DisplayList)
+            m_discardedDrawingTarget = WebCore::ImageBuffer::create({ 1, 1 }, WebCore::RenderingMode::Unaccelerated, WebCore::RenderingPurpose::Unspecified, 1, WebCore::ColorSpace::SRGB(), WebCore::PixelFormat::BGRA8);
+        m_isSwiftRendererLender = drawingContext().canLendSwiftRenderer();
+        if (m_isSwiftRendererLender)
+            cgContext().addSwiftRendererLender();
+    }
+
+    // Starts the receiver of the drawing, if the context lends a renderer.
+    void startListeningForIPC();
+
+
+    // The context that the Swift receiver draws into: the image buffer's, or for a buffer that failed to allocate, its
+    // discarded drawing target's.
+    WebCore::GraphicsContext& drawingContext() { return m_discardedDrawingTarget ? m_discardedDrawingTarget->context() : m_context; }
+    WebCore::GraphicsContextCG& cgContext() { return static_cast<WebCore::GraphicsContextCG&>(drawingContext()); }
+
+    const Ref<RemoteRenderingBackend> m_renderingBackend;
+    WebCore::GraphicsContext& m_context;
+    const Ref<WebCore::ImageBuffer> m_imageBuffer;
+    const RemoteGraphicsContextIdentifier m_identifier;
+    // What the drawing of an image buffer that failed to allocate is drawn into.
+    RefPtr<WebCore::ImageBuffer> m_discardedDrawingTarget;
+    // Whether this counts itself as a lender of its GraphicsContextCG's renderer.
+    bool m_isSwiftRendererLender { false };
+    RefPtr<WebCore::GraphicsLayerContentsDisplayDelegate> m_displayDelegate;
+    RefPtr<WebCore::PlatformCALayerDelegatedContentsFence> m_displayBufferFence;
+};
+
+} // namespace WebKit
+
+#else
+
 #include "RemoteGraphicsContextIdentifier.h"
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 #include "RemoteGraphicsContext.h"
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#include "ArrayReferenceTuple.h"
+#include <WebCore/GlyphBufferMembers.h>
+#include <array>
+#include <span>
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
@@ -69,28 +188,15 @@ enum class RemoteImageBufferPixelsResult : uint8_t {
     SharedMemoryTooSmall,
 };
 
-class RemoteCGRendererLineStrokes;
-class RemoteCGRendererPathSegment;
-class RemoteCGRendererGlyphs;
-class RemoteCGRendererLineDash;
-class RemoteCGRendererLineSegments;
-struct RemoteCGRendererShadow;
-struct RemoteCGRendererStyle;
+enum class RemoteCGRendererStyleKind : uint8_t;
 #endif
 
 class RemoteImageBufferGraphicsContext;
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 // RemoteGraphicsContext playing back the IPC GraphicsContext drawing commands to a GraphicsContext of an ImageBuffer.
 // Used to create renderings to the ImageBuffer. With the CG renderer in Swift, it takes RemoteCGRenderer's messages for a
 // context that can't lend its renderer, a dynamic content scaling image buffer's.
 using RemoteImageBufferGraphicsContextBase = RemoteGraphicsContext;
-#else
-// The receiver of an image buffer's drawing, in Swift: RemoteCGRenderer, to which the buffer's context lends its renderer
-// for each message, or, for a buffer whose drawing is recorded, a recorder (RemoteCGRendererRecorder), whose recording is
-// drawn where the buffer is.
-using RemoteImageBufferGraphicsContextBase = ThreadSafeRefCounted<RemoteImageBufferGraphicsContext>;
-#endif
 
 class RemoteImageBufferGraphicsContext final : public RemoteImageBufferGraphicsContextBase {
 public:
@@ -104,6 +210,8 @@ public:
     // counts the buffer in the shared resource cache, and keeps the GPU process's rendering resources, until then. The
     // other members are the receiver's handlers' work on WebCore types that Swift has no form of.
     static RemoteImageBufferGraphicsContext* WTF_NONNULL createForImageBufferReceiver(WebCore::ImageBuffer&, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&) SWIFT_RETURNS_RETAINED;
+    // For the Swift receiver of an image buffer, which counts the buffer itself (RemoteImageBuffer.swift).
+    static RemoteImageBufferGraphicsContext* WTF_NONNULL createForSwift(WebCore::ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& backend) SWIFT_RETURNS_RETAINED { return &create(imageBuffer, identifier, backend).leakRef(); }
     // Stops counting the buffer, and unwinds its context's state stack, whose restores may never come, as the web process may
     // have gone.
     void releaseImageBuffer();
@@ -129,24 +237,17 @@ public:
     void encodeDisplayBuffer(IPC::SwiftReplyEncoder&);
     void waitForDisplayBuffer();
 #endif
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-    void encodeDynamicContentScalingDisplayList(IPC::SwiftReplyEncoder&);
-#endif
 #endif
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     void drawImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, const WebCore::FloatRect& destinationRect, const WebCore::FloatRect& srcRect, WebCore::RasterDrawingOptions) final;
     bool drawsInto(const WebCore::ImageBuffer& imageBuffer) const final { return &imageBuffer == m_imageBuffer.ptr(); }
-#endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     // RemoteCGRenderer's messages whose arguments differ from RemoteGraphicsContext's, as RemoteGraphicsContext draws them.
-    void fillPathSegment(const RemoteCGRendererPathSegment&);
-    void strokePathSegment(const RemoteCGRendererPathSegment&);
     void drawFocusRingPath(const WebCore::Path&, float outlineWidth, const CGRendererColorValue&, float zoomFactor);
-    void setDropShadow(const RemoteCGRendererShadow&);
-    void setStyle(const RemoteCGRendererStyle&);
-    void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);
+    void setDropShadow(const CGRendererShadowValues&, const CGRendererColorData&, bool hasShadow);
+    void setStyle(RemoteCGRendererStyleKind, const CGRendererShadowValues&, const CGRendererColorData&, bool hasShadow, float blurWidth, float blurHeight, const std::array<float, 20>& colorMatrix);
+    void setLineDash(std::span<const double>, float dashOffset);
     void setFillColor(const CGRendererColorValue&);
     void setStrokeColor(const CGRendererColorValue&);
     void fillRectWithColor(const WebCore::FloatRect&, const CGRendererColorValue&);
@@ -154,9 +255,8 @@ public:
     void fillRoundedRect(const WebCore::FloatRoundedRect&, const CGRendererColorValue&, WebCore::BlendMode);
     void fillRectWithRoundedHole(const WebCore::FloatRect&, const WebCore::FloatRoundedRect&, const CGRendererColorValue&);
     void fillRectWithCachedGradient(const WebCore::FloatRect&, RemoteGradientIdentifier);
-    void drawLinesForText(const WebCore::FloatPoint&, float thickness, const RemoteCGRendererLineSegments&, bool printing, bool doubleLines, WebCore::StrokeStyle);
     void drawDotsForDocumentMarker(const WebCore::FloatRect&, WebCore::DocumentMarkerLineStyleMode, const CGRendererColorValue&);
-    void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
+    void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
     void fillRectWithCachedGradientAndSpaceTransform(const WebCore::FloatRect&, RemoteGradientIdentifier, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
 #endif
 
@@ -176,17 +276,10 @@ private:
     void setFillPackedColorValue(uint32_t);
     void setStrokePackedColorValue(uint32_t);
     void setStrokePackedColorValueAndThickness(uint32_t, float);
-    void strokeLines(const RemoteCGRendererLineStrokes&);
     void drawRecordedDisplayList(RemoteDisplayListIdentifier);
 #endif
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     WebCore::GraphicsContext& imageBufferContext() { return context(); }
-#else
-    WebCore::GraphicsContext& imageBufferContext() { return m_context; }
-    const Ref<RemoteRenderingBackend> m_renderingBackend;
-    WebCore::GraphicsContext& m_context;
-#endif
     const Ref<WebCore::ImageBuffer> m_imageBuffer;
     const RemoteGraphicsContextIdentifier m_identifier;
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
@@ -209,5 +302,7 @@ private:
 };
 
 } // namespace WebKit
+
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
 #endif // ENABLE(GPU_PROCESS)

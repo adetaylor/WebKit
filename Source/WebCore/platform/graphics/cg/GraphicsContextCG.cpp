@@ -44,6 +44,8 @@
 #include "ImageBuffer.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
+#include "MeshGradientRendererCPU.h"
+#include "NativeImage.h"
 #include "Path.h"
 #include "PathCG.h"
 #include "Pattern.h"
@@ -58,6 +60,10 @@
 #include <wtf/URL.h>
 #include <wtf/ZippedRange.h>
 #include <wtf/text/TextStream.h>
+
+#if ENABLE(VIDEO) && USE(AVFOUNDATION)
+#include "VideoFrameCV.h"
+#endif
 
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
 #include <WebKitAdditions/AXCustomColorModeController.h>
@@ -260,11 +266,12 @@ template<typename Function> decltype(auto) GraphicsContextCG::withSwiftRenderer(
     return function(*std::launder(reinterpret_cast<CGRendererCore*>(m_swiftRendererStorage)));
 }
 
-GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode)
+GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource source, std::optional<RenderingMode> knownRenderingMode, AllowsShadowBlur allowsShadowBlur)
     : GraphicsContext(isDeferredForCGContext(cgContext), GraphicsContextState::basicChangeFlags, coreInterpolationQuality(cgContext))
     , m_cgContext(cgContext)
     , m_renderingMode(knownRenderingMode.value_or(renderingModeForCGContext(cgContext, source)))
     , m_isLayerCGContext(source == GraphicsContextCG::CGContextFromCALayer)
+    , m_allowsShadowBlur(allowsShadowBlur == AllowsShadowBlur::Yes)
     , m_swiftRendererState(SwiftRendererState::InPlace)
 {
     // Exact where pointers are 8 bytes, so that the storage doesn't outgrow the struct; with 4-byte pointers the struct is smaller.
@@ -275,7 +282,7 @@ GraphicsContextCG::GraphicsContextCG(CGContextRef cgContext, CGContextSource sou
 #endif
     static_assert(alignof(CGRendererCore) <= 8);
     auto makeRenderer = [&](CGContextRef context, bool isUnaccelerated, bool isPDFContext, bool strokesArcsLikeFills) {
-        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, strokesArcsLikeFills, imageInterpolationQuality()));
+        new (m_swiftRendererStorage) CGRendererCore(CGRendererCore::init(context, isUnaccelerated, isPDFContext, strokesArcsLikeFills, m_allowsShadowBlur, imageInterpolationQuality()));
     };
     if (!cgContext) {
         // An invalid context draws nothing: its renderer draws into a stand-in.
@@ -346,6 +353,18 @@ RefPtr<NativeImage> GraphicsContextCG::nativeImageForSwiftReceiver(ImageBuffer& 
     return nativeImageForDrawing(imageBuffer);
 }
 
+static thread_local GraphicsContextCG* currentSwiftReplayContext;
+
+GraphicsContextCG* GraphicsContextCG::exchangeSwiftReplayContext(GraphicsContextCG* context)
+{
+    return std::exchange(currentSwiftReplayContext, context);
+}
+
+GraphicsContextCG* GraphicsContextCG::swiftReplayContext()
+{
+    return currentSwiftReplayContext;
+}
+
 unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const
 {
     return SWIFT_RENDERER(savedLevelCount());
@@ -391,7 +410,24 @@ const ColorSpace& GraphicsContextCG::colorSpace() const
 }
 
 // The renderer's top saved level (CGRendererCore::savedLevelKind()).
-enum class SwiftRendererSavedLevel : uint8_t { None, Save, TransparencyLayer, ReceiverSave, ReceiverTransparencyLayer };
+enum class SwiftRendererSavedLevel : uint8_t { None, Save, TransparencyLayer, ReceiverSave, ReceiverTransparencyLayer, Transform, ReceiverTransform };
+
+static bool isReceiverLevel(SwiftRendererSavedLevel level)
+{
+    return level == SwiftRendererSavedLevel::ReceiverSave || level == SwiftRendererSavedLevel::ReceiverTransparencyLayer || level == SwiftRendererSavedLevel::ReceiverTransform;
+}
+
+static GraphicsContextState::Purpose purposeOfReceiverLevel(SwiftRendererSavedLevel level)
+{
+    switch (level) {
+    case SwiftRendererSavedLevel::ReceiverTransparencyLayer:
+        return GraphicsContextState::Purpose::TransparencyLayer;
+    case SwiftRendererSavedLevel::ReceiverTransform:
+        return GraphicsContextState::Purpose::Transform;
+    default:
+        return GraphicsContextState::Purpose::SaveRestore;
+    }
+}
 
 void GraphicsContextCG::save(GraphicsContextState::Purpose purpose)
 {
@@ -413,9 +449,11 @@ bool GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
     ensureStateIsCurrent();
     // A level that only a Swift receiver saved is the renderer's alone.
     auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
-    if (level == SwiftRendererSavedLevel::ReceiverSave || level == SwiftRendererSavedLevel::ReceiverTransparencyLayer) {
-        if (purpose != (level == SwiftRendererSavedLevel::ReceiverSave ? GraphicsContextState::Purpose::SaveRestore : GraphicsContextState::Purpose::TransparencyLayer))
-            return;
+    if (isReceiverLevel(level)) {
+        if (purpose != purposeOfReceiverLevel(level))
+            return false;
+        if (purpose == GraphicsContextState::Purpose::Transform)
+            return restoreTransform();
         if (purpose == GraphicsContextState::Purpose::SaveRestore)
             SWIFT_RENDERER(restore());
         else
@@ -423,14 +461,43 @@ bool GraphicsContextCG::restore(GraphicsContextState::Purpose purpose)
         m_stateIsStale = true;
         // GraphicsContext's state may hold a gradient or pattern that the level had, which goes now, as with C++'s own levels.
         ensureStateIsCurrent();
-        return;
+        return true;
     }
 
-    if (!stackSize() || m_state.purpose() != purpose)
-        return;
+    if (!canRestore(purpose))
+        return false;
+
+    if (purpose == GraphicsContextState::Purpose::Transform)
+        return restoreTransform();
 
     GraphicsContext::restore(purpose);
     SWIFT_RENDERER(restore());
+    return true;
+}
+
+void GraphicsContextCG::saveTransform()
+{
+    CAPTURE(unsupported("saveTransform"_s));
+    ensureStateIsCurrent();
+    GraphicsContext::save(GraphicsContextState::Purpose::Transform);
+    SWIFT_RENDERER(saveTransform());
+}
+
+// The renderer restores the CTM, which GraphicsContext's state doesn't hold for a platform context.
+bool GraphicsContextCG::restoreTransform()
+{
+    CAPTURE(unsupported("restoreTransform"_s));
+    ensureStateIsCurrent();
+    auto level = static_cast<SwiftRendererSavedLevel>(SWIFT_RENDERER(savedLevelKind()));
+    if (level == SwiftRendererSavedLevel::ReceiverTransform) {
+        SWIFT_RENDERER(restoreTransform());
+        return true;
+    }
+    if (isReceiverLevel(level) || !canRestore(GraphicsContextState::Purpose::Transform))
+        return false;
+    GraphicsContext::restore(GraphicsContextState::Purpose::Transform);
+    SWIFT_RENDERER(restoreTransform());
+    return true;
 }
 
 void GraphicsContextCG::unwindStateStack()
@@ -447,6 +514,10 @@ void GraphicsContextCG::unwindStateStack()
         case SwiftRendererSavedLevel::TransparencyLayer:
         case SwiftRendererSavedLevel::ReceiverTransparencyLayer:
             endTransparencyLayer();
+            continue;
+        case SwiftRendererSavedLevel::Transform:
+        case SwiftRendererSavedLevel::ReceiverTransform:
+            restoreTransform();
             continue;
         }
         break;
@@ -615,6 +686,66 @@ void CGRendererSetInvertColorMatrix(const WebCore::NativeImage& nativeImage, con
 #endif
 }
 
+static CGImageRef copyImage(const WebCore::NativeImage& image, CGRendererImageFacts& facts)
+{
+    auto size = image.size();
+    facts.width = size.width();
+    facts.height = size.height();
+    facts.headroom = image.headroom();
+    return image.platformImage().leakRef();
+}
+
+static WebCore::GraphicsContextCG& drawingContext(WebCore::ImageBuffer* target)
+{
+    if (!target) {
+        auto* replayContext = WebCore::GraphicsContextCG::swiftReplayContext();
+        RELEASE_ASSERT(replayContext);
+        return *replayContext;
+    }
+    auto& context = target->context();
+    // Only a GraphicsContextCG lends a Swift renderer.
+    RELEASE_ASSERT(context.canLendSwiftRenderer());
+    return static_cast<WebCore::GraphicsContextCG&>(context);
+}
+
+CGImageRef CGRendererCopyImageBufferImageForDrawing(WebCore::ImageBuffer* target, WebCore::ImageBuffer& imageBuffer, const WebCore::FloatRect& scaledSourceRect, WebCore::RasterDrawingOptions options, CGRendererImageFacts& facts)
+{
+    RefPtr image = drawingContext(target).nativeImageForSwiftReceiver(imageBuffer);
+    if (!image)
+        return nullptr;
+    CGRendererSetInvertColorMatrix(*image, scaledSourceRect, options, facts);
+    return copyImage(*image, facts);
+}
+
+CGImageRef CGRendererCopyMeshGradientImage(const WebCore::MeshGradient& gradient, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace& destinationColorSpace, CGSize destinationSize, CGRendererImageFacts& facts, CGRendererImageOptions& options)
+{
+    options = CGRendererImageOptionsFor({ });
+    float scale;
+    auto pixelSize = WebCore::MeshGradientRenderer::pixelSize(WebCore::AffineTransform { deviceTransform }, WebCore::FloatSize { destinationSize }, scale);
+    if (pixelSize.isEmpty())
+        return nullptr;
+    auto& contextColorSpace = destinationColorSpace.colorSpace() ? *destinationColorSpace.colorSpace() : WebCore::ColorSpace::SRGB();
+    RefPtr image = WebCore::MeshGradientRendererCPU { }.renderedImage(gradient, pixelSize, scale, contextColorSpace, [](const WebCore::IntSize& size, const WebCore::ColorSpace& colorSpace, WebCore::PixelFormat pixelFormat) {
+        return WebCore::ImageBuffer::create(size, WebCore::RenderingMode::Unaccelerated, WebCore::RenderingPurpose::Unspecified, 1, colorSpace, WebCore::ImageBufferFormat { pixelFormat });
+    });
+    if (!image)
+        return nullptr;
+    return copyImage(*image, facts);
+}
+
+#if ENABLE(VIDEO) && USE(AVFOUNDATION)
+CGImageRef CGRendererCopyVideoFrameImage(CVPixelBufferRef pixelBuffer, const MediaTime& presentationTime, bool isMirrored, WebCore::VideoFrameRotation rotation, const WebCore::PlatformVideoColorSpace& colorSpace, bool ignoresAlpha, CGRendererImageFacts& facts, bool& hasAlpha)
+{
+    hasAlpha = false;
+    Ref videoFrame = WebCore::VideoFrameCV::create(presentationTime, isMirrored, rotation, RetainPtr { pixelBuffer }, WebCore::PlatformVideoColorSpace { colorSpace }, ignoresAlpha ? WebCore::VideoFrameCV::ShouldIgnoreAlpha::Yes : WebCore::VideoFrameCV::ShouldIgnoreAlpha::No);
+    RefPtr image = videoFrame->copyNativeImage();
+    if (!image)
+        return nullptr;
+    hasAlpha = image->hasAlpha();
+    return copyImage(*image, facts);
+}
+#endif
+
 CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
 {
     RefPtr nativeImage = imageBuffer.createNativeImageReference();
@@ -650,6 +781,36 @@ CGRendererBrushSource::CGRendererBrushSource(Ref<const WebCore::Pattern>&& patte
     : m_gradientSpaceTransform(CGAffineTransformIdentity)
     , m_pattern(WTF::move(pattern))
 {
+}
+
+CGRendererBrushSource CGRendererGradientBrushSource(const WebCore::Gradient& gradient, const WebCore::AffineTransform& spaceTransform)
+{
+    return { Ref { gradient }, spaceTransform };
+}
+
+CGRendererBrushSource CGRendererNativeImagePatternBrushSource(WebCore::NativeImage& tileImage, const WebCore::PatternParameters& parameters)
+{
+    return CGRendererBrushSource { WebCore::Pattern::create({ Ref { tileImage } }, parameters) };
+}
+
+CGRendererBrushSource CGRendererImageBufferPatternBrushSource(WebCore::ImageBuffer& tileImageBuffer, const WebCore::PatternParameters& parameters)
+{
+    return CGRendererBrushSource { WebCore::Pattern::create({ Ref { tileImageBuffer } }, parameters) };
+}
+
+CFURLRef CGRendererCopyURL(const URL& link)
+{
+    return link.createCFURL().leakRef();
+}
+
+WebCore::FloatRect CGRendererRectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
+{
+    return rect.rect();
+}
+
+uint8_t CGRendererTextDrawingModeValue(WebCore::TextDrawingModeFlags mode)
+{
+    return mode.toRaw();
 }
 
 CGGradientRef CGRendererCopyBrushGradient(const CGRendererBrushSource& source, const CGRendererGradientColorSpace& colorSpace, CGRendererGradientGeometry& geometry, CGAffineTransform& spaceTransform)
@@ -1049,6 +1210,7 @@ void GraphicsContextCG::strokePath(const Path& path)
     if (path.isEmpty())
         return;
 
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokesWithoutGradient())) {
         if (auto line = path.singleDataLine())
             SWIFT_RENDERER(strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y()));
@@ -1280,6 +1442,7 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     ensureStateIsCurrent();
     // The layer keeps the current global alpha.
     GraphicsContext::beginTransparencyLayer(state().alpha());
+    updatePlatformContextStateIfNeeded();
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
     SWIFT_RENDERER(beginTransparencyLayerWithCurrentAlpha());
 }
@@ -1294,9 +1457,7 @@ void GraphicsContextCG::endTransparencyLayer()
         m_stateIsStale = true;
         return;
     }
-    if (level == SwiftRendererSavedLevel::ReceiverSave)
-        return;
-    if (!stackSize() || m_state.purpose() != GraphicsContextState::Purpose::TransparencyLayer)
+    if (isReceiverLevel(level) || !canRestore(GraphicsContextState::Purpose::TransparencyLayer))
         return;
     GraphicsContext::endTransparencyLayer();
     SWIFT_RENDERER(endTransparencyLayer());
@@ -1657,6 +1818,7 @@ void GraphicsContextCG::clearRect(const FloatRect& r)
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     CAPTURE(strokeRect(rect, lineWidth));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokeRect(rect, lineWidth)))
         return;
 
@@ -1675,6 +1837,7 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
     CAPTURE(strokeArc(arc));
 #if HAVE(CGCONTEXT_STROKE_ARC)
     if (!strokeGradient()) {
+        updatePlatformContextStateIfNeeded();
         if (strokePattern())
             applyStrokePattern();
 
@@ -1935,7 +2098,7 @@ void GraphicsContextCG::addDestinationAtPoint(const String& name, const FloatPoi
 
 bool GraphicsContextCG::canUseShadowBlur() const
 {
-    return (renderingMode() == RenderingMode::Unaccelerated) && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
+    return m_allowsShadowBlur && renderingMode() == RenderingMode::Unaccelerated && hasBlurredDropShadow() && !shadowsIgnoreTransforms();
 }
 
 bool GraphicsContextCG::consumeHasDrawn()

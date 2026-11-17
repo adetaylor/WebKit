@@ -25,7 +25,10 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_WEBGPU_SWIFT
 
+import CoreGraphics
+import IOSurface
 import Synchronization
+@_spi(WebKitGPU) internal import WebCore
 @_spi(WebKitGPU) import WebGPUSwift
 internal import WebGPU_Private
 import WebKit_Internal
@@ -239,6 +242,92 @@ final class RemoteGPU {
     func isValid(identifier: IPCTypes.WebGPUIdentifier) -> (Bool, Bool) {
         let state = table.objectState(identifier.rawValue)
         return (state.valid, state.exists)
+    }
+}
+
+// What copyImageBufferSurface() says of the image buffer whose IOSurface it gives.
+struct RemoteGPUImageBufferSurface {
+    var pixelFormat = WebCore.PixelFormat.BGRA8
+    var width: UInt32 = 0
+    var height: UInt32 = 0
+    var isDisplayP3 = false
+}
+
+// The rendering backend's image buffers, for the WebGPU receivers, from their work queue.
+extension WebKit.RemoteRenderingBackend {
+    // Paints the image, or else the IOSurface's image, into the image buffer with that identifier.
+    func paintToImageBuffer(_ image: CGImage?, _ surface: IOSurfaceRef?, forceOpaque: Bool, imageBufferIdentifier: UInt64) {
+        if let image {
+            paintToImageBuffer(image, imageBufferIdentifier)
+            return
+        }
+        guard let surface else {
+            return
+        }
+        let ioSurface = IOSurfaceCore(surface: surface, colorSpace: nil)
+        guard let context = ioSurface.createPlatformContext(overrideAlphaInfo: alphaInfoIgnoringAlpha(ioSurface, forceOpaque: forceOpaque)),
+            let surfaceImage = ioSurface.createImage(context)
+        else {
+            return
+        }
+        // The image of the surface is drawn while the context it was made with lives, as IOSurface requires.
+        withExtendedLifetime(context) {
+            paintToImageBuffer(surfaceImage, imageBufferIdentifier)
+        }
+    }
+
+    private func paintToImageBuffer(_ image: CGImage, _ imageBufferIdentifier: UInt64) {
+        guard let nativeImage = WebKit.RemoteRenderingBackend.createTransientNativeImage(image).get() else {
+            return
+        }
+        paintNativeImageToImageBuffer(nativeImage, WebCore.RenderingResourceIdentifier(imageBufferIdentifier))
+    }
+
+    // The IOSurface of the image buffer with that identifier, read for a copy, and what it says of the image buffer: nil unless
+    // the image buffer is accelerated and not empty.
+    func copyImageBufferSurface(_ imageBufferIdentifier: UInt64) -> (surface: IOSurfaceRef, description: RemoteGPUImageBufferSurface)? {
+        var flushedImageBuffer: WebCore.ImageBuffer?
+        performOnWorkQueueAndWait {
+            flushedImageBuffer = self.imageBuffer(WebCore.RenderingResourceIdentifier(imageBufferIdentifier)).get()
+            flushedImageBuffer?.flushDrawingContext()
+        }
+        // Only accelerated ImageBuffers have an IOSurface to wrap in an MTLTexture. GPUQueue rejects unaccelerated sources
+        // before we get here, but the backing may have been dropped since.
+        var isDisplayP3 = false
+        guard let imageBuffer = flushedImageBuffer,
+            let surface = WebKit.RemoteRenderingBackend.surfaceForCopy(imageBuffer, &isDisplayP3)
+        else {
+            return nil
+        }
+        let size = imageBuffer.truncatedLogicalSize()
+        guard size.width() > 0, size.height() > 0 else {
+            return nil
+        }
+        let description = RemoteGPUImageBufferSurface(
+            pixelFormat: imageBuffer.pixelFormat(),
+            width: UInt32(size.width()),
+            height: UInt32(size.height()),
+            isDisplayP3: isDisplayP3
+        )
+        return (surface, description)
+    }
+}
+
+// A surface made with an opaque format (BGRX, RGBX) reads back as its alpha format's, so the alpha channel to ignore is chosen
+// here, as the opaque format's bitmap configuration and IOSurface::withNativeImage() would.
+private func alphaInfoIgnoringAlpha(_ ioSurface: IOSurfaceCore, forceOpaque: Bool) -> CGImageAlphaInfo? {
+    guard forceOpaque else {
+        return nil
+    }
+    switch ioSurface.usedFormat?.format ?? .BGRA {
+    case .BGRA, .RGBA:
+        return .noneSkipFirst
+    #if ENABLE_PIXEL_FORMAT_RGBA16F
+    case .RGBA16F:
+        return .noneSkipLast
+    #endif
+    default:
+        return nil
     }
 }
 

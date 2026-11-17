@@ -33,7 +33,7 @@
 #include "MeshImpl.h"
 #include "ModelObjectHeap.h"
 #include "ModelTypes.h"
-#include "RemoteGPU.h"
+#include "RemoteRenderingBackend.h"
 #include "RemoteMeshMessages.h"
 #include "StreamConnectionWorkQueue.h"
 #include "StreamServerConnection.h"
@@ -412,7 +412,7 @@ void RemoteMesh::processRemovals(Vector<WebModel::TypedResourceId>&& meshRemoval
 void RemoteMesh::paintCurrentFrameToImageBuffer(WebCore::RenderingResourceIdentifier imageBufferIdentifier, uint32_t bufferIndex, CompletionHandler<void()>&& completionHandler)
 {
     if (RefPtr nativeImage { m_backing->getCurrentFrameAsNativeImage(bufferIndex) })
-        paintNativeImageToImageBuffer(m_model->renderingBackend(), *nativeImage, imageBufferIdentifier);
+        m_model->renderingBackend().paintNativeImageToImageBuffer(*nativeImage, imageBufferIdentifier);
     completionHandler();
 }
 

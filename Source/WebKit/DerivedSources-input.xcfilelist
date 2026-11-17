@@ -77,7 +77,6 @@ $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteComputePipeline.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteDevice.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteExternalTexture.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteGPU.messages.in
-$(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemotePipelineLayout.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemotePresentationContext.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteQuerySet.messages.in
@@ -450,6 +449,7 @@ $(PROJECT_DIR)/Shared/WebFindOptions.serialization.in
 $(PROJECT_DIR)/Shared/WebFoundTextRange.serialization.in
 $(PROJECT_DIR)/Shared/WebFrameMetrics.serialization.in
 $(PROJECT_DIR)/Shared/WebGL.serialization.in
+$(PROJECT_DIR)/Shared/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 $(PROJECT_DIR)/Shared/WebGPU/WebGPUBindGroupDescriptor.serialization.in
 $(PROJECT_DIR)/Shared/WebGPU/WebGPUBindGroupEntry.serialization.in
 $(PROJECT_DIR)/Shared/WebGPU/WebGPUBindGroupLayoutDescriptor.serialization.in

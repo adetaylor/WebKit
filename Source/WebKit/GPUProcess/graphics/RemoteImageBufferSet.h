@@ -27,7 +27,35 @@
 
 #if ENABLE(GPU_PROCESS)
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+
+// With the CG renderer in Swift, a layer's image buffer set is RemoteImageBufferSet.swift.
+
+#include "PrepareBackingStoreBuffersData.h"
+#include "RemoteImageBufferSetConfiguration.h"
+#include "RenderingUpdateID.h"
+#include <wtf/Forward.h>
+
+namespace IPC {
+template<typename> class CxxDecodedArgument;
+class SwiftReplyEncoder;
+}
+
+namespace WebCore {
+class ImageBuffer;
+}
+
+namespace WebKit {
+
+// The reply to a set's EndPrepareForDisplay, for RemoteImageBufferSet.swift: the front buffer's backend handle is a C++ variant.
+void encodeImageBufferSetEndPrepareForDisplayReply(IPC::SwiftReplyEncoder&, IPC::CxxDecodedArgument<RenderingUpdateID>&, WebCore::ImageBuffer* WTF_NULLABLE frontBuffer, WebCore::ImageBuffer* WTF_NULLABLE backBuffer, WebCore::ImageBuffer* WTF_NULLABLE secondaryBackBuffer);
+
+} // namespace WebKit
+
+#else
+
 #include "IPCEvent.h"
+#include <wtf/SwiftBridging.h>
 #include "ImageBufferSetIdentifier.h"
 #include "PrepareBackingStoreBuffersData.h"
 #include "RemoteGraphicsContextIdentifier.h"
@@ -58,7 +86,12 @@ public:
 
     // Ensures frontBuffer is valid, either by swapping an existing back
     // buffer, or allocating a new one.
-    void ensureBufferForDisplay(ImageBufferSetPrepareBufferForDisplayInputData&, SwapBuffersDisplayRequirement&, bool isSync);
+    SwapBuffersDisplayRequirement ensureBufferForDisplay(ImageBufferSetPrepareBufferForDisplayInputData& inputData, bool isSync)
+    {
+        auto displayRequirement = SwapBuffersDisplayRequirement::NeedsNormalDisplay;
+        ensureBufferForDisplay(inputData, displayRequirement, isSync);
+        return displayRequirement;
+    }
 
     // Initializes the contents of the new front buffer using the previous
     // frames (if applicable), clips to the dirty region, and clears the pixels
@@ -68,6 +101,12 @@ public:
     bool makeBuffersVolatile(OptionSet<BufferInSetType> requestedBuffers, OptionSet<BufferInSetType>& volatileBuffers, bool forcePurge);
 
     bool isPreparingForDisplay() const { return m_context.get(); }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { IPC::StreamMessageReceiver::ref(); }
+    void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
 
 private:
     RemoteImageBufferSet(ImageBufferSetIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
@@ -83,6 +122,8 @@ private:
     };
     ExternalReadSendRight frontBufferSendRightForExternalRead(const Vector<uint64_t>& alreadyMappedBuffers);
 #endif
+
+    void ensureBufferForDisplay(ImageBufferSetPrepareBufferForDisplayInputData&, SwapBuffersDisplayRequirement&, bool isSync);
 
     // Tries to swap one of the existing back buffers to the new front buffer, if any are
     // not currently in-use.
@@ -124,9 +165,14 @@ private:
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     WebCore::DynamicContentScalingResourceCache m_dynamicContentScalingResourceCache;
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// RemoteRenderingBackend.swift keeps the sets with dynamic content scaling too.
+using RefRemoteImageBufferSet = Ref<RemoteImageBufferSet>;
 
 
 } // namespace WebKit
 
-#endif
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+
+#endif // ENABLE(GPU_PROCESS)

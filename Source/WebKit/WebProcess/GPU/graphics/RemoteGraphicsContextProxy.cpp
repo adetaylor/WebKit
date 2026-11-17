@@ -33,14 +33,8 @@
 #include "RemoteGraphicsContextMessages.h"
 #endif
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererLineDash.h"
-#include "RemoteCGRendererLineSegments.h"
-#include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererPathSegment.h"
-#include "RemoteCGRendererShadow.h"
-#include "RemoteCGRendererStyle.h"
+#include "RemoteCGRendererStyleKind.h"
 #endif
 #include "RemoteImageBufferProxy.h"
 #include "RemoteRenderingBackendProxy.h"
@@ -110,6 +104,54 @@ static CGRendererColorValue rendererColorValue(const Color& color)
     CGRendererColorValue value;
     CGRendererColorValueOf(color, value);
     return value;
+}
+
+// A shadow and a style as RemoteCGRenderer's SetDropShadow and SetStyle take them: plain values, which the GPU process doesn't
+// need to switch on. hasShadow is false for none.
+struct RendererShadow {
+    CGRendererShadowValues values { };
+    CGRendererColorData color { };
+    bool hasShadow { false };
+};
+
+static RendererShadow rendererShadow(const std::optional<GraphicsDropShadow>& shadow)
+{
+    RendererShadow result;
+    if (shadow) {
+        result.hasShadow = true;
+        CGRendererShadowValuesOf(*shadow, result.values, result.color);
+    }
+    return result;
+}
+
+struct RendererStyle {
+    RemoteCGRendererStyleKind kind { RemoteCGRendererStyleKind::None };
+    RendererShadow dropShadow;
+    float blurWidth { 0 };
+    float blurHeight { 0 };
+    std::array<float, 20> colorMatrix { };
+};
+
+static RendererStyle rendererStyle(const std::optional<WebCore::GraphicsStyle>& style)
+{
+    RendererStyle result;
+    if (!style)
+        return result;
+    WTF::switchOn(*style,
+        [&](const WebCore::GraphicsDropShadow& shadow) {
+            result.kind = RemoteCGRendererStyleKind::DropShadow;
+            result.dropShadow = rendererShadow(shadow);
+        },
+        [&](const WebCore::GraphicsGaussianBlur& blur) {
+            result.kind = RemoteCGRendererStyleKind::GaussianBlur;
+            result.blurWidth = blur.radius.width();
+            result.blurHeight = blur.radius.height();
+        },
+        [&](const WebCore::GraphicsColorMatrix& matrix) {
+            result.kind = RemoteCGRendererStyleKind::ColorMatrix;
+            result.colorMatrix = matrix.values;
+        });
+    return result;
 }
 #endif
 
@@ -250,7 +292,7 @@ void RemoteGraphicsContextProxy::setLineCap(LineCap lineCap)
 void RemoteGraphicsContextProxy::setLineDash(const DashArray& array, float dashOffset)
 {
     sendPendingDrawsIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetLineDash, (FixedVector<double>(array.span()), dashOffset), (RemoteCGRendererLineDash { array.span() }, dashOffset));
+    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetLineDash, (FixedVector<double>(array.span()), dashOffset), (array.span(), dashOffset));
 }
 
 void RemoteGraphicsContextProxy::setLineJoin(LineJoin lineJoin)
@@ -388,7 +430,7 @@ void RemoteGraphicsContextProxy::drawGlyphsImmediate(const FontBase& font, std::
     appendStateChangeItemIfNecessary();
     recordResourceUse(const_cast<FontBase&>(font));
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    send(Messages::RemoteCGRenderer::DrawGlyphs(font.renderingResourceIdentifier(), RemoteCGRendererGlyphs { glyphs, advances }, localAnchor, smoothingMode));
+    send(Messages::RemoteCGRenderer::DrawGlyphs(font.renderingResourceIdentifier(), { glyphs.data(), advances.data(), std::min(glyphs.size(), advances.size()) }, localAnchor, smoothingMode));
 #else
     send(Messages::RemoteGraphicsContext::DrawGlyphs(font.renderingResourceIdentifier(), { glyphs.data(), Vector<FloatSize>(advances).span().data(), glyphs.size() }, localAnchor, smoothingMode));
 #endif
@@ -523,7 +565,7 @@ void RemoteGraphicsContextProxy::drawLinesForText(const FloatPoint& point, float
 {
     sendPendingDrawsIfNecessary();
     appendStateChangeItemIfNecessary();
-    SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(DrawLinesForText, (point, thickness, lineSegments, printing, doubleLines, style), (point, thickness, RemoteCGRendererLineSegments { lineSegments }, printing, doubleLines, style));
+    SEND_RENDERER_MESSAGE(DrawLinesForText, point, thickness, lineSegments, printing, doubleLines, style);
 }
 
 void RemoteGraphicsContextProxy::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
@@ -603,7 +645,7 @@ void RemoteGraphicsContextProxy::fillPath(const Path& path)
             SEND_RENDERER_MESSAGE(FillBezierCurve, curve);
         },
         [&](auto&&) {
-            SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(FillPathSegment, (*segment), (RemoteCGRendererPathSegment { *segment }));
+            SEND_RENDERER_MESSAGE(FillPathSegment, *segment);
         });
         return;
     }
@@ -757,7 +799,7 @@ void RemoteGraphicsContextProxy::strokePath(const Path& path)
                 SEND_RENDERER_MESSAGE(StrokeBezierCurve, curve);
             },
             [&](auto&&) {
-                SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(StrokePathSegment, (*segment), (RemoteCGRendererPathSegment { *segment }));
+                SEND_RENDERER_MESSAGE(StrokePathSegment, *segment);
             });
         return;
     }
@@ -813,9 +855,7 @@ void RemoteGraphicsContextProxy::sendPendingDraws()
     ASSERT(m_pendingLineStrokes.isEmpty() || m_pendingArcStrokes.isEmpty());
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    RemoteCGRendererLineStrokes lines { WTF::move(m_pendingLineStrokes) };
-    send(Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness(lines));
-    m_pendingLineStrokes = lines.takeLines();
+    send(Messages::RemoteCGRenderer::StrokeLinesWithColorAndThickness(m_pendingLineStrokes.span()));
     m_pendingLineStrokes.shrink(0);
 #else
     if (!m_pendingLineStrokes.isEmpty()) {
@@ -1097,10 +1137,21 @@ void RemoteGraphicsContextProxy::appendStateChangeItemIfNecessary()
     // before the DropShadow and Style.
     if (changes.contains(GraphicsContextState::Change::ShadowsIgnoreTransforms))
         SEND_RENDERER_MESSAGE(SetShadowsIgnoreTransforms, state.shadowsIgnoreTransforms());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    if (changes.contains(GraphicsContextState::Change::DropShadow)) {
+        auto shadow = rendererShadow(state.dropShadow());
+        send(Messages::RemoteCGRenderer::SetDropShadow(shadow.values, shadow.color, shadow.hasShadow));
+    }
+    if (changes.contains(GraphicsContextState::Change::Style)) {
+        auto style = rendererStyle(state.style());
+        send(Messages::RemoteCGRenderer::SetStyle(style.kind, style.dropShadow.values, style.dropShadow.color, style.dropShadow.hasShadow, style.blurWidth, style.blurHeight, style.colorMatrix));
+    }
+#else
     if (changes.contains(GraphicsContextState::Change::DropShadow))
-        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetDropShadow, (state.dropShadow()), (rendererShadow(state.dropShadow())));
+        SEND_RENDERER_MESSAGE(SetDropShadow, state.dropShadow());
     if (changes.contains(GraphicsContextState::Change::Style))
-        SEND_RENDERER_MESSAGE_WITH_SWIFT_ARGUMENTS(SetStyle, (state.style()), (rendererStyle(state.style())));
+        SEND_RENDERER_MESSAGE(SetStyle, state.style());
+#endif
     if (changes.contains(GraphicsContextState::Change::Alpha))
         SEND_RENDERER_MESSAGE(SetAlpha, state.alpha());
     if (changes.contains(GraphicsContextState::Change::TextDrawingMode))

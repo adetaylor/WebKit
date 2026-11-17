@@ -620,7 +620,7 @@ bool PathCG::strokeContains(const FloatPoint& point, NOESCAPE const Function<voi
     GraphicsContextCG graphicsContext(context);
     strokeStyleApplier(graphicsContext);
 
-    bool hitSuccess = CGContextPathContainsPoint(context, point, kCGPathStroke);
+    bool hitSuccess = CGContextPathContainsPoint(graphicsContext.platformContext(), point, kCGPathStroke);
     CGContextRestoreGState(context);
 
     return hitSuccess;
@@ -655,9 +655,9 @@ FloatRect PathCG::strokeBoundingRect(const Path& path, NOESCAPE const Function<v
     if (strokeStyleApplier) {
         GraphicsContextCG graphicsContext(context);
         strokeStyleApplier(graphicsContext);
-    }
-
-    CGContextReplacePathWithStrokedPath(context);
+        CGContextReplacePathWithStrokedPath(graphicsContext.platformContext());
+    } else
+        CGContextReplacePathWithStrokedPath(context);
     CGRect box = CGContextIsPathEmpty(context) ? CGRectZero : CGContextGetPathBoundingBox(context);
     CGContextRestoreGState(context);
 
@@ -884,11 +884,16 @@ static const WebCore::PathArc* pieWedgeArc(std::span<const WebCore::PathSegment>
     return arc;
 }
 
-CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts, bool computesFastBoundingRect)
+static void initializePathFacts(std::span<const WebCore::PathSegment> segments, CGRendererPathFacts& facts)
 {
     facts = { segments.size(), { }, { { }, CGRendererPathSegmentKind::CloseSubpath, false }, CGRectZero, false };
     if (segments.size() == 1)
         facts.segment = CGRendererPathSegmentValues(segments[0]);
+}
+
+CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts, bool computesFastBoundingRect)
+{
+    initializePathFacts(segments, facts);
     if (segments.size() < 2)
         return nullptr;
     if (auto* arc = pieWedgeArc(segments))
@@ -914,6 +919,17 @@ CGMutablePathRef CGRendererCreatePathOfSegments(std::span<const WebCore::PathSeg
     facts.fastBoundingRect = fastBoundingRect;
     facts.hasFastBoundingRect = true;
     return path.leakRef();
+}
+
+bool CGRendererAddSegmentsToContextPath(CGContextRef context, std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts& facts)
+{
+    initializePathFacts(segments, facts);
+    if (segments.size() < 2)
+        return false;
+    CGContextBeginPath(context);
+    for (auto& segment : segments)
+        WebCore::addToCGContextPath(context, segment);
+    return true;
 }
 
 WebCore::Path CGRendererPathOfPlatformPath(CGPathRef platformPath)

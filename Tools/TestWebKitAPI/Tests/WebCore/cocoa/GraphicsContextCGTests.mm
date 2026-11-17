@@ -191,6 +191,43 @@ TEST(GraphicsContextTests, StrokeRectDoesNotDesynchroniseLineWidth)
     EXPECT_FALSE(isGreenAtRow(1));
 }
 
+TEST(GraphicsContextTests, StrokeRectUsesPendingStrokeColor)
+{
+    auto colorSpace = ColorSpace::SRGB();
+    constexpr int width = 16;
+    constexpr int height = 16;
+    RetainPtr cgContext = adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    GraphicsContextCG ctx(cgContext.get());
+
+    ctx.setStrokeColor(Color::green);
+    ctx.strokeRect(FloatRect(2, 2, 12, 12), 4);
+    CGContextFlush(cgContext.get());
+
+    auto* data = static_cast<uint8_t*>(CGBitmapContextGetData(cgContext.get()));
+    auto* pixel = data + 2 * CGBitmapContextGetBytesPerRow(cgContext.get()) + (width / 2) * 4;
+    EXPECT_EQ(0, pixel[0]);
+    EXPECT_GT(pixel[1], 128);
+}
+
+TEST(GraphicsContextTests, BeginTransparencyLayerUsesPendingAlpha)
+{
+    auto colorSpace = ColorSpace::SRGB();
+    constexpr int width = 4;
+    constexpr int height = 4;
+    RetainPtr cgContext = adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    GraphicsContextCG ctx(cgContext.get());
+
+    ctx.setAlpha(0.5);
+    ctx.beginTransparencyLayer(CompositeOperator::SourceOver, BlendMode::Normal);
+    ctx.fillRect(FloatRect(0, 0, width, height), Color::green);
+    ctx.endTransparencyLayer();
+    CGContextFlush(cgContext.get());
+
+    auto* data = static_cast<uint8_t*>(CGBitmapContextGetData(cgContext.get()));
+    auto* pixel = data + 2 * CGBitmapContextGetBytesPerRow(cgContext.get()) + 2 * 4;
+    EXPECT_NEAR(pixel[3], 128, 2);
+}
+
 TEST(GraphicsContextTests, CGBitmapRenderingModeIsUnaccelerated)
 {
     auto srgb = ColorSpace::SRGB();
@@ -397,6 +434,47 @@ TEST(GraphicsContextTests, RestoreDoesNotRestoreSaveTransform)
     EXPECT_TRUE(ctx.restore());
     EXPECT_EQ(0u, ctx.stackSize());
     EXPECT_EQ(IntRect(0, 0, 20, 20), ctx.clipBounds());
+}
+
+TEST(GraphicsContextTests, FillsWithBlurredShadowWithoutShadowBlurDrawCGShadows)
+{
+    constexpr size_t width = 64;
+    constexpr size_t height = 64;
+    auto colorSpace = ColorSpace::SRGB();
+    auto makeContext = [&] {
+        return adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    };
+    auto draw = [](GraphicsContextCG& context) {
+        context.setDropShadow({ { 4, 6 }, 5, Color::black });
+        context.setFillColor(Color::blue);
+        context.fillRect({ 8, 8, 12, 12 });
+        context.fillRect({ 30, 8, 12, 12 }, Color::green);
+        context.fillRoundedRect(FloatRoundedRect({ 8, 34, 20, 16 }, CornerRadii { 4 }), Color::red);
+    };
+    auto pixels = [](CGContextRef context) {
+        CGContextFlush(context);
+        auto* data = static_cast<const uint8_t*>(CGBitmapContextGetData(context));
+        return Vector<uint8_t>(std::span { data, CGBitmapContextGetBytesPerRow(context) * CGBitmapContextGetHeight(context) });
+    };
+
+    RetainPtr recording = makeContext();
+    GraphicsContextCG recordingContext(recording.get(), GraphicsContextCG::Unknown, RenderingMode::Unaccelerated, GraphicsContextCG::AllowsShadowBlur::No);
+    draw(recordingContext);
+    EXPECT_FALSE(recordingContext.canUseShadowBlur());
+
+    // An accelerated context draws its shadows with CG.
+    RetainPtr expected = makeContext();
+    GraphicsContextCG expectedContext(expected.get(), GraphicsContextCG::Unknown, RenderingMode::Accelerated);
+    draw(expectedContext);
+
+    auto actualPixels = pixels(recording.get());
+    EXPECT_EQ(actualPixels, pixels(expected.get()));
+
+    // The fills cover about 600 pixels; their shadows cover more around them.
+    size_t visiblePixels = 0;
+    for (size_t i = 3; i < actualPixels.size(); i += 4)
+        visiblePixels += !!actualPixels[i];
+    EXPECT_GT(visiblePixels, 900u);
 }
 
 } // namespace TestWebKitAPI

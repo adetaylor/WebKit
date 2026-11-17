@@ -76,9 +76,8 @@ GPUProcess/cocoa/GPUConnectionToWebProcessCocoa.mm @nonARC
 GPUProcess/cocoa/GPUProcessCocoa.mm @nonARC
 GPUProcess/graphics/Model/MeshImpl.cpp
 GPUProcess/graphics/Model/WebKitMesh.mm
-GPUProcess/graphics/RemoteCGRendererResources.cpp
 GPUProcess/graphics/RemoteSnapshotPDFDrawingTask.cpp
-GPUProcess/graphics/RemoteSnapshotPrintData.cpp
+Shared/graphics/RemoteSnapshotPrintData.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequestCocoa.mm @nonARC @no-unify-when(bundle<=8)
 GPUProcess/ios/GPUProcessIOS.mm @nonARC
 GPUProcess/mac/GPUProcessMac.mm @nonARC
