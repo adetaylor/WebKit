@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "IndexedDB.h"
+#include <WebCore/IndexedDB.h>
 
 namespace WebCore {
 
