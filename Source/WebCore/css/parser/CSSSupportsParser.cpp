@@ -32,6 +32,7 @@
 
 #include "CSSAtRuleID.h"
 #include "CSSParser.h"
+#include "CSSParserSwiftParse.h"
 #include "CSSPropertyParserConsumer+Font.h"
 #include "CSSPropertyParserConsumer+Ident.h"
 #include "CSSPropertyParserConsumer+Primitives.h"
@@ -43,312 +44,50 @@
 
 namespace WebCore {
 
-CSSSupportsParser::SupportsResult CSSSupportsParser::supportsCondition(CSSParserTokenRange range, CSSParser& parser, ParsingMode mode)
-{
-    // FIXME: The spec allows leading whitespace in @supports but not CSS.supports,
-    // but major browser vendors allow it in CSS.supports also.
-    range.consumeWhitespace();
-    CSSSupportsParser supportsParser(parser);
-
-    auto result = supportsParser.consumeCondition(range);
-    if (mode != ParsingMode::AllowBareDeclarationAndGeneralEnclosed || result != Invalid)
-        return result;
-
-    // window.CSS.supports requires parsing as-if the condition was wrapped in
-    // parenthesis. The only productions that wouldn't have parsed above are the
-    // declaration condition or the general enclosed productions.
-    return supportsParser.consumeSupportsFeatureOrGeneralEnclosed(range);
-}
+// CSSParserSupportsSwift.swift returns these values.
+static_assert(CSSSupportsParser::Unsupported == 0);
+static_assert(CSSSupportsParser::Supported == 1);
+static_assert(CSSSupportsParser::Invalid == 2);
 
 CSSSupportsParser::SupportsResult CSSSupportsParser::supportsCondition(StringView condition, const CSSParserContext& context, ParsingMode mode)
 {
     CSSParser parser(context, condition);
     if (!parser.tokenizer())
         return SupportsResult::Invalid;
-    return supportsCondition(parser.tokenizer()->tokenRange(), parser, mode);
-}
-
-enum class ClauseType { Unresolved, Conjunction, Disjunction };
-
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeCondition(CSSParserTokenRange range)
-{
-    if (range.peek().type() == IdentToken) {
-        if (equalLettersIgnoringASCIICase(range.peek().value(), "not"_s))
-            return consumeNegation(range);
-    }
-
-    bool result = false;
-    auto clauseType = ClauseType::Unresolved;
-
-    auto previousTokenType = IdentToken;
-
-    while (true) {
-        auto nextResult = consumeConditionInParenthesis(range, previousTokenType);
-        if (nextResult == Invalid)
-            return Invalid;
-        bool nextSupported = nextResult;
-        if (clauseType == ClauseType::Unresolved)
-            result = nextSupported;
-        else if (clauseType == ClauseType::Conjunction)
-            result &= nextSupported;
-        else
-            result |= nextSupported;
-
-        if (range.atEnd())
-            break;
-        range.consumeWhitespace();
-        if (range.atEnd())
-            break;
-
-        const CSSParserToken& token = range.peek();
-        if (token.type() != IdentToken)
-            return Invalid;
-
-        previousTokenType = token.type();
-
-        if (clauseType == ClauseType::Unresolved)
-            clauseType = token.value().length() == 3 ? ClauseType::Conjunction : ClauseType::Disjunction;
-        if ((clauseType == ClauseType::Conjunction && !equalLettersIgnoringASCIICase(token.value(), "and"_s))
-            || (clauseType == ClauseType::Disjunction && !equalLettersIgnoringASCIICase(token.value(), "or"_s)))
-            return Invalid;
-
-        range.consume();
-        if (!CSSTokenizer::isWhitespace(range.peek().type()))
-            return Invalid;
-        range.consumeWhitespace();
-    }
-    return result ? Supported : Unsupported;
-}
-
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeNegation(CSSParserTokenRange range)
-{
-    ASSERT(range.peek().type() == IdentToken);
-    auto tokenType = range.peek().type();
-
-    if (range.peek().type() == IdentToken)
-        range.consume();
-    if (!CSSTokenizer::isWhitespace(range.peek().type()))
-        return Invalid;
-    range.consumeWhitespace();
-    auto result = consumeConditionInParenthesis(range, tokenType);
-    range.consumeWhitespace();
-    if (!range.atEnd() || result == Invalid)
-        return Invalid;
-
-    return result ? Unsupported : Supported;
-}
-
-// <function-token> <any-value>? | <supports-selector-fn> | <supports-font-format-fn> | <supports-font-tech-fn>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsFunction(CSSParserTokenRange& range)
-{
-    if (range.peek().type() != FunctionToken)
-        return Invalid;
-
-    switch (range.peek().functionId()) {
-    case CSSValueID::Selector:
-        return consumeSupportsSelectorFunction(range);
-    case CSSValueID::FontFormat:
-        return consumeSupportsFontFormatFunction(range);
-    case CSSValueID::FontTech:
-        return consumeSupportsFontTechFunction(range);
-    case CSSValueID::AtRule:
-        return consumeSupportsAtRuleFunction(range);
-    case CSSValueID::NamedFeature:
-        return consumeSupportsNamedFeatureFunction(range);
-    default: // Unknown functions should parse as unsupported.
-        range.consumeComponentValue();
-        return Unsupported;
-    }
-}
-
-// The CSSWG resolved that margin-trim has no inline keywords, but some sites still feature-detect them.
-static bool isMarginTrimInlineKeyword(CSSParserTokenRange range)
-{
-    range.consumeWhitespace();
-    switch (range.consumeIncludingWhitespace().id()) {
-    case CSSValueID::Inline:
-    case CSSValueID::InlineStart:
-    case CSSValueID::InlineEnd:
-        return range.atEnd();
-    default:
-        return false;
-    }
-}
-
-static bool isMarginTrimInlineDeclaration(CSSParserTokenRange range)
-{
-    if (range.consumeIncludingWhitespace().parseAsCSSPropertyID() != CSSPropertyID::MarginTrim)
-        return false;
-    if (range.consume().type() != ColonToken)
-        return false;
-    return isMarginTrimInlineKeyword(range);
+    CSSParserSwiftParse parse { parser.context(), { .context = &parser.context(), .parser = &parser, .mode = std::to_underlying(mode) } };
+    parse.run(parser.tokenizer()->tokenRange(), CSSParserSwiftRequest::SupportsCondition);
+    RELEASE_ASSERT(parse.result <= Invalid);
+    return static_cast<SupportsResult>(parse.result);
 }
 
 bool CSSSupportsParser::isMarginTrimInlineValue(StringView value)
 {
     CSSTokenizer tokenizer(value);
-    return isMarginTrimInlineKeyword(tokenizer.tokenRange());
+    CSSParserSwiftParse parse { CSSSelectorParserContext { } };
+    parse.run(tokenizer.tokenRange(), CSSParserSwiftRequest::MarginTrimInlineValue);
+    return parse.result;
 }
 
-// <supports-feature> | <general-enclosed>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsFeatureOrGeneralEnclosed(CSSParserTokenRange& range)
+uint64_t CSSParserSwiftState::supportsFontFunction(bool technology, uint32_t start, uint32_t end)
 {
-    if (range.peek().type() == FunctionToken) {
-        if (auto result = consumeSupportsFunction(range); result != Invalid)
-            return result;
-    }
-
-    if (range.peek().type() != IdentToken)
-        return Unsupported;
-
-    if (m_parser.context().marginTrimInlineSupportsQuirkEnabled && isMarginTrimInlineDeclaration(range))
-        return Supported;
-
-    return m_parser.supportsDeclaration(range) ? Supported : Unsupported;
-}
-
-// <supports-selector-fn>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsSelectorFunction(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == FunctionToken && range.peek().functionId() == CSSValueID::Selector);
-
-    auto block = range.consumeBlock();
-    block.consumeWhitespace();
-
-    return CSSSelectorParser::supportsComplexSelector(block, m_parser.context()) ? Supported : Unsupported;
-}
-
-// <supports-font-format-fn>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsFontFormatFunction(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == FunctionToken && range.peek().functionId() == CSSValueID::FontFormat);
-
-    auto state = CSS::PropertyParserState { .context = m_parser.context() };
-    auto format = CSSPropertyParserHelpers::consumeFontFormat(range, state, true);
-    if (format.isNull())
-        return Unsupported;
-    return FontCustomPlatformData::supportsFormat(format) ? Supported : Unsupported;
-}
-
-// <supports-font-tech-fn>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsFontTechFunction(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == FunctionToken && range.peek().functionId() == CSSValueID::FontTech);
-
-    auto state = CSS::PropertyParserState { .context = m_parser.context() };
-    auto technologies = CSSPropertyParserHelpers::consumeFontTech(range, state, true);
-    if (technologies.isEmpty())
-        return Unsupported;
-    ASSERT(technologies.size() == 1);
-    return FontCustomPlatformData::supportsTechnology(technologies[0]) ? Supported : Unsupported;
-}
-
-// <supports-at-rule-fn> = at-rule( <at-keyword-token> )
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsAtRuleFunction(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == FunctionToken && range.peek().functionId() == CSSValueID::AtRule);
-
-    auto function = CSSPropertyParserHelpers::consumeFunction(range);
-    auto atKeywordToken = function.consumeIncludingWhitespace();
-    if (atKeywordToken.type() != AtKeywordToken)
-        return Invalid;
-    if (!function.atEnd())
-        return Invalid;
-
-    // List all the at-rules here, so when adding a new at-rule, the compiler
-    // will remind to add them to this list.
-    // FIXME: should look into auto-generating this list using data from CSSProperties.json
-    switch (cssAtRuleID(atKeywordToken.value())) {
-    case CSSAtRuleWebkitKeyframes:
-    case CSSAtRuleAnnotation:
-    case CSSAtRuleCharacterVariant:
-    case CSSAtRuleContainer:
-    case CSSAtRuleCounterStyle:
-    case CSSAtRuleFontFace:
-    case CSSAtRuleFontFeatureValues:
-    case CSSAtRuleFontPaletteValues:
-    case CSSAtRuleImport:
-    case CSSAtRuleKeyframes:
-    case CSSAtRuleLayer:
-    case CSSAtRuleMedia:
-    case CSSAtRuleNamespace:
-    case CSSAtRuleOrnaments:
-    case CSSAtRulePage:
-    case CSSAtRulePositionTry:
-    case CSSAtRuleProperty:
-    case CSSAtRuleScope:
-    case CSSAtRuleStartingStyle:
-    case CSSAtRuleStyleset:
-    case CSSAtRuleStylistic:
-    case CSSAtRuleSupports:
-    case CSSAtRuleSwash:
-    case CSSAtRuleViewTransition:
-        return Supported;
-
-    case CSSAtRuleFunction:
-        return m_parser.context().propertySettings.cssFunctionAtRuleEnabled ? Supported : Unsupported;
-
-    case CSSAtRuleEnvironmentMap:
-#if ENABLE(SPATIAL_PORTAL)
-        return m_parser.context().propertySettings.spatialPortalEnabled ? Supported : Unsupported;
-#else
-        return Unsupported;
-#endif
-
-    case CSSAtRuleInvalid:
-    // Per spec, @charset is not an at-rule.
-    case CSSAtRuleCharset:
-        return Unsupported;
-    }
-
-    ASSERT_NOT_REACHED();
-    return Invalid;
-}
-
-// <supports-named-feature-fn> = named-feature( <ident> )
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeSupportsNamedFeatureFunction(CSSParserTokenRange& range)
-{
-    ASSERT(range.peek().type() == FunctionToken && range.peek().functionId() == CSSValueID::NamedFeature);
-
-    auto functionArgs = CSSPropertyParserHelpers::consumeFunction(range);
-    auto namedFeature = CSSPropertyParserHelpers::consumeIdentRaw(functionArgs);
-
-    if (!namedFeature)
-        return Invalid;
-    if (!functionArgs.atEnd())
-        return Invalid;
-
-    switch (*namedFeature) {
-    // FIXME (webkit.org/b/321970): remaining issue before transformed anchor is fully supported.
-    case CSSValueID::AnchorPositionFollowsTransforms:
-        return Unsupported;
-
-    // FIXME: not implemented yet
-    // https://github.com/WebKit/standards-positions/issues/680
-    case CSSValueID::SingleAxisScrollContainer:
-        return Unsupported;
-
-    default:
-        return Unsupported;
-    }
-}
-
-// <supports-in-parens> = ( <supports-condition> ) | <supports-feature> | <general-enclosed>
-CSSSupportsParser::SupportsResult CSSSupportsParser::consumeConditionInParenthesis(CSSParserTokenRange& range,  CSSParserTokenType startTokenType)
-{
-    if (startTokenType == IdentToken && range.peek().type() != LeftParenthesisToken) {
-        if (auto result = consumeSupportsFunction(range); result != Invalid)
-            return result;
-        return Invalid;
-    }
-
-    auto innerRange = range.consumeBlock();
-    innerRange.consumeWhitespace();
-
-    if (auto result = consumeCondition(innerRange); result != Invalid)
-        return result;
-
-    return consumeSupportsFeatureOrGeneralEnclosed(innerRange);
+    auto tokens = static_cast<CSSParserSwiftStateData&>(*this).tokens;
+    RELEASE_ASSERT(start <= end && end <= tokens.size());
+    CSSParserTokenRange range { tokens.subspan(start, end - start) };
+    auto state = CSS::PropertyParserState { .context = static_cast<CSSParserSwiftStateData&>(*this).parse.context() };
+    auto result = [&] {
+        if (technology) {
+            auto technologies = CSSPropertyParserHelpers::consumeFontTech(range, state, true);
+            if (technologies.isEmpty())
+                return CSSSupportsParser::Unsupported;
+            ASSERT(technologies.size() == 1);
+            return FontCustomPlatformData::supportsTechnology(technologies[0]) ? CSSSupportsParser::Supported : CSSSupportsParser::Unsupported;
+        }
+        auto format = CSSPropertyParserHelpers::consumeFontFormat(range, state, true);
+        if (format.isNull())
+            return CSSSupportsParser::Unsupported;
+        return FontCustomPlatformData::supportsFormat(format) ? CSSSupportsParser::Supported : CSSSupportsParser::Unsupported;
+    }();
+    return static_cast<uint64_t>(end - start - range.size()) << 2 | result;
 }
 
 } // namespace WebCore

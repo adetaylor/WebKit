@@ -114,7 +114,8 @@ public:
 
     // Converts NumberToken to DimensionToken.
     void convertToDimensionWithUnit(CSSUnitType);
-    NODELETE void convertToDimensionWithUnit(StringView);
+    // unitType is the CSSUnitType of unit.
+    NODELETE void convertToDimensionWithUnit(StringView unit, CSSUnitType unitType);
 
     // Converts NumberToken to PercentageToken.
     NODELETE void convertToPercentage();

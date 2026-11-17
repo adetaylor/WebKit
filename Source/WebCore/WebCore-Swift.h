@@ -76,6 +76,14 @@
 #include "CSSPropertyConsumerSwiftTypes.h"
 
 #include "ContentSecurityPolicySwift.h"
+#include "CSSParserSwiftState.h"
+
+#include "CustomElementRegistry.h"
+#include "DocumentFragment.h"
+#include "HTMLDocument.h"
+#include "HTMLDocumentParser.h"
+#include "HTMLParserOptions.h"
+#include "HTMLTreeBuilderSwiftSupport.h"
 
 #include "CacheValidation.h"
 #include "HTTPHeaderParsersTypes.h"
