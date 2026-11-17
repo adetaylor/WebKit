@@ -28,69 +28,15 @@
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 
-#import "Connection.h"
-#import "GPUConnectionToWebProcess.h"
-#import "GPUProcess.h"
-#import "LibWebRTCCodecsProxyMessages.h"
-#import "Logging.h"
-#import "RemoteVideoFrameObjectHeap.h"
 #import <WebCore/CMUtilities.h>
 #import <WebCore/HEVCUtilitiesCocoa.h>
 #import <WebCore/LibWebRTCProvider.h>
 #import <VideoToolbox/VTCompressionProperties.h>
-#import <wtf/TZoneMallocInlines.h>
 
 namespace WebKit {
 using namespace WebCore;
 
-WTF_MAKE_TZONE_ALLOCATED_IMPL(LibWebRTCCodecsProxy);
-
-Ref<LibWebRTCCodecsProxy> LibWebRTCCodecsProxy::create(GPUConnectionToWebProcess& webProcessConnection, SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
-{
-    Ref proxy = adoptRef(*new LibWebRTCCodecsProxy(webProcessConnection.connection(), webProcessConnection.gpuProcess().libWebRTCCodecsQueue(), webProcessConnection.videoFrameObjectHeap(), webProcessConnection.webProcessIdentity(), sharedPreferencesForWebProcess));
-    proxy->m_connection->addWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName(), proxy->m_queue.get(), proxy.get());
-    return proxy;
-}
-
-LibWebRTCCodecsProxy::LibWebRTCCodecsProxy(Ref<IPC::Connection>&& connection, Ref<WorkQueue>&& queue, Ref<RemoteVideoFrameObjectHeap>&& videoFrameObjectHeap, const ProcessIdentity& resourceOwner, const SharedPreferencesForWebProcess& sharedPreferencesForWebProcess)
-    : m_connection(WTF::move(connection))
-    , m_queue(WTF::move(queue))
-    , m_videoFrameObjectHeap(WTF::move(videoFrameObjectHeap))
-    , m_resourceOwner(resourceOwner)
-    , m_sharedPreferencesForWebProcess(sharedPreferencesForWebProcess)
-    , m_swiftState(createSwiftState(m_videoFrameObjectHeap.get(), m_resourceOwner, !!m_resourceOwner, (__bridge void*)m_queue->dispatchQueue()))
-{
-    m_queue->dispatch([this, protectedThis = Ref { *this }, sharedPreferencesForWebProcess] {
-        m_sharedPreferencesForWebProcess = sharedPreferencesForWebProcess;
-    });
-}
-
-LibWebRTCCodecsProxy::~LibWebRTCCodecsProxy()
-{
-    destroySwiftState(m_swiftState);
-}
-
-void LibWebRTCCodecsProxy::stopListeningForIPC(Ref<LibWebRTCCodecsProxy>&& refFromConnection)
-{
-    m_connection->removeWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName());
-    m_queue->dispatch([protectedThis = WTF::move(refFromConnection)] {
-        protectedThis->failPendingReplies();
-    });
-}
-
-std::optional<SharedPreferencesForWebProcess> LibWebRTCCodecsProxy::sharedPreferencesForWebProcess() const
-{
-    return m_sharedPreferencesForWebProcess;
-}
-
-void LibWebRTCCodecsProxy::updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess sharedPreferencesForWebProcess)
-{
-    m_queue->dispatch([this, protectedThis = Ref { *this }, sharedPreferencesForWebProcess = WTF::move(sharedPreferencesForWebProcess)] {
-        m_sharedPreferencesForWebProcess = sharedPreferencesForWebProcess;
-    });
-}
-
-void LibWebRTCCodecsProxy::setRTCLoggingLevel(uint8_t level)
+void setLibWebRTCLoggingLevel(uint8_t level)
 {
     WebCore::LibWebRTCProvider::setRTCLogging(static_cast<WTFLogLevel>(level));
 }

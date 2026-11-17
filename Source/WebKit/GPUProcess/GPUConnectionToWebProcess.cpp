@@ -37,7 +37,6 @@
 #include "GPUProcessMessages.h"
 #include "GPUProcessProxyMessages.h"
 #include "LayerHostingContext.h"
-#include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
 #include "Logging.h"
 #include "MediaOverridesForTesting.h"
@@ -359,9 +358,6 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
 #if ENABLE(VIDEO)
     , m_videoFrameObjectHeap(RemoteVideoFrameObjectHeap::create(m_connection.get()))
 #endif
-#if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    , m_libWebRTCCodecsProxy(LibWebRTCCodecsProxy::create(*this, parameters.sharedPreferencesForWebProcess))
-#endif
 #if HAVE(AUDIT_TOKEN)
     , m_presentingApplicationAuditTokens(WTF::move(parameters.presentingApplicationAuditTokens))
 #endif
@@ -377,6 +373,14 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     RELEASE_ASSERT(RunLoop::isMain());
 
     m_swiftState = createSwiftState(m_webProcessIdentifier.toUInt64(), m_isLockdownModeEnabled);
+
+#if PLATFORM(COCOA) && USE(LIBWEBRTC)
+    Ref codecsQueue = gpuProcess.libWebRTCCodecsQueue();
+    Ref libWebRTCCodecsProxy = swiftCreateLibWebRTCCodecsProxy(videoFrameObjectHeap(), m_webProcessIdentity, !!m_webProcessIdentity, codecsQueue->dispatchQueue());
+    libWebRTCCodecsProxy->updateSharedPreferences(m_sharedPreferencesForWebProcess);
+    libWebRTCCodecsProxy->startReceivingMessages(m_connection, codecsQueue);
+    m_libWebRTCCodecsProxy = WTF::move(libWebRTCCodecsProxy);
+#endif
 
     // This must be called before any media playback function is invoked.
     enableMediaPlaybackIfNecessary();
@@ -432,10 +436,21 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
         protect(m_gpuProcess->audioSessionManager())->removeProxy(*audioSessionProxy);
 #endif
 
+#if PLATFORM(COCOA) && USE(LIBWEBRTC)
+    stopLibWebRTCCodecsProxy();
+#endif
     destroySwiftState(std::exchange(m_swiftState, 0));
 
     --gObjectCountForTesting;
 }
+
+#if PLATFORM(COCOA) && USE(LIBWEBRTC)
+void GPUConnectionToWebProcess::stopLibWebRTCCodecsProxy()
+{
+    if (std::exchange(m_libWebRTCCodecsProxy, nullptr))
+        m_connection->removeWorkQueueMessageReceiver(Messages::LibWebRTCCodecsProxy::messageReceiverName());
+}
+#endif
 
 Ref<RemoteSharedResourceCache> GPUConnectionToWebProcess::sharedResourceCache()
 {
@@ -489,7 +504,7 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
     });
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    m_libWebRTCCodecsProxy = nullptr;
+    stopLibWebRTCCodecsProxy();
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
@@ -582,10 +597,6 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (auto* legacyCdmFactoryProxy = m_legacyCdmFactoryProxy.get(); legacyCdmFactoryProxy && !legacyCdmFactoryProxy->allowsExitUnderMemoryPressure())
-        return false;
-#endif
-#if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    if (!m_libWebRTCCodecsProxy->allowsExitUnderMemoryPressure())
         return false;
 #endif
     return true;
@@ -1373,7 +1384,8 @@ void GPUConnectionToWebProcess::updateSharedPreferencesForWebProcess(SharedPrefe
 {
     m_sharedPreferencesForWebProcess = WTF::move(sharedPreferencesForWebProcess);
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
-    protect(m_libWebRTCCodecsProxy.get())->updateSharedPreferencesForWebProcess(m_sharedPreferencesForWebProcess);
+    if (RefPtr libWebRTCCodecsProxy = m_libWebRTCCodecsProxy)
+        libWebRTCCodecsProxy->updateSharedPreferences(m_sharedPreferencesForWebProcess);
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     m_sampleBufferDisplayLayerManager->updateSharedPreferencesForWebProcess(m_sharedPreferencesForWebProcess);

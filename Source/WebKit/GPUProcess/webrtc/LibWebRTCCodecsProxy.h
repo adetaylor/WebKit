@@ -27,39 +27,18 @@
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 
-#include "SharedPreferencesForWebProcess.h"
 #include "SwiftCoding.h"
-#include "VideoDecoderIdentifier.h"
-#include "VideoEncoderIdentifier.h"
-#include "WorkQueueMessageReceiver.h"
 #include <CoreMedia/CMFormatDescription.h>
 #include <WebCore/PlatformVideoColorSpace.h>
-#include <WebCore/ProcessIdentity.h>
 #include <WebCore/VideoCodecType.h>
 #include <WebCore/VideoEncoderScalabilityMode.h>
-#include <optional>
-#include <wtf/Ref.h>
-#include <wtf/RefPtr.h>
-#include <wtf/SwiftBridging.h>
-#include <wtf/TZoneMalloc.h>
-#include <wtf/ThreadSafeRefCounted.h>
-#include <wtf/Vector.h>
-#include <wtf/WorkQueue.h>
 #include <wtf/text/WTFString.h>
-
-namespace IPC {
-class Connection;
-class Semaphore;
-}
 
 namespace WebCore {
 class VideoInfo;
 }
 
 namespace WebKit {
-
-class GPUConnectionToWebProcess;
-class RemoteVideoFrameObjectHeap;
 
 // Swift doesn't give a function that takes a class template's reference type the overloads that take a Span, unless
 // the type is spelled through an alias.
@@ -93,51 +72,7 @@ bool isValidEncoderConfiguration(WebCore::VideoCodecType, CodecStringArgument&, 
 void attachCodecsColorSpace(CVPixelBufferRef WTF_NONNULL, LibWebRTCCodecsColorSpace);
 CFDictionaryRef WTF_NONNULL copyCompressionSessionColorProperties(LibWebRTCCodecsColorSpace) CF_RETURNS_RETAINED;
 
-// The receiver of the web process's video decoder and encoder messages, which run on the codecs queue. Swift handles
-// them (LibWebRTCCodecsProxy.swift), keeping the decoders and encoders in the Swift state that m_swiftState holds; this
-// keeps the connection and codecs queue, and the shared preferences the messages are enabled by.
-class SWIFT_PRIVATE_FILEID("WebKit/LibWebRTCCodecsProxy.swift") LibWebRTCCodecsProxy final : public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any> {
-    WTF_MAKE_TZONE_ALLOCATED(LibWebRTCCodecsProxy);
-public:
-    static Ref<LibWebRTCCodecsProxy> create(GPUConnectionToWebProcess&, SharedPreferencesForWebProcess&);
-    ~LibWebRTCCodecsProxy();
-
-    void ref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::ref(); }
-    void deref() const final { IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::deref(); }
-
-    // Fails what is pending once the messages already queued have been handled.
-    void stopListeningForIPC(Ref<LibWebRTCCodecsProxy>&& refFromConnection);
-    // Implemented in Swift; called on the main thread.
-    bool allowsExitUnderMemoryPressure() const;
-
-    IPC::Connection& connection() const LIFETIME_BOUND { return m_connection; }
-    WorkQueue& workQueue() const LIFETIME_BOUND { return m_queue; }
-    RemoteVideoFrameObjectHeap& videoFrameObjectHeap() const LIFETIME_BOUND { return m_videoFrameObjectHeap; }
-    const WebCore::ProcessIdentity& resourceOwner() const LIFETIME_BOUND { return m_resourceOwner; }
-
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
-    void updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess);
-
-    static void setRTCLoggingLevel(uint8_t);
-
-    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
-
-private:
-    LibWebRTCCodecsProxy(Ref<IPC::Connection>&&, Ref<WorkQueue>&&, Ref<RemoteVideoFrameObjectHeap>&&, const WebCore::ProcessIdentity&, const SharedPreferencesForWebProcess&);
-
-    // Implemented in Swift, in LibWebRTCCodecsProxy.swift, on the state that m_swiftState holds.
-    static uintptr_t createSwiftState(RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity resourceOwner, bool hasResourceOwner, void* WTF_NONNULL codecsQueue);
-    static void destroySwiftState(uintptr_t);
-    void failPendingReplies();
-
-    const Ref<IPC::Connection> m_connection;
-    const Ref<WorkQueue> m_queue;
-    const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
-    const WebCore::ProcessIdentity m_resourceOwner;
-    SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
-    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
-    const uintptr_t m_swiftState;
-} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+void setLibWebRTCLoggingLevel(uint8_t);
 
 }
 
