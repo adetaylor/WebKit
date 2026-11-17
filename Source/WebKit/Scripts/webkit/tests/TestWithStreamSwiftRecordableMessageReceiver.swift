@@ -188,6 +188,7 @@ final class TestWithStreamSwiftRecordableWeakRef {
         do {
             path = try IPCTypes.Path.decode(from: &decoder, context: decodeContext)
         } catch {
+            IPCTypes.Path.decodeFailed(context: decodeContext)
             return .Invalid
         }
         do throws(InvalidMessage) {

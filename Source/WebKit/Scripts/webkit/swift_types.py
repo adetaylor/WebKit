@@ -100,7 +100,8 @@ _HAND_WRITTEN_TYPES = {
 }
 
 # Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
-# handler for ('SwiftDecodeContext='): what of the value the handler will use.
+# handler for ('SwiftDecodeContext='): what of the value the handler will use. A malformed message's dispatch calls its
+# decodeFailed(context:).
 _DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path'])
 
 

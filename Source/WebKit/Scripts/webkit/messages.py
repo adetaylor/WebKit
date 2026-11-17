@@ -3042,15 +3042,22 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # The Swift decoding of the arguments of a message that takes Swift types, by a dispatch that returns its Invalid result if
 # they are malformed.
 # With decode_context, the dispatch first asks the target, with the state, for the context to decode the arguments whose coders
-# take one ('SwiftDecodeContext=').
+# take one ('SwiftDecodeContext='), and tells those coders if the message is malformed (decodeFailed(context:)).
 def swift_types_argument_decoding(message, indent, decode_context=None):
     result = []
     if not message.parameters:
         return result
     for parameter in message.parameters:
         result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
+    # A coder that took the context is told when the message turns out to be malformed, so that it can undo what its decode
+    # did with the context.
+    decode_context_coders = []
     if decode_context:
         result.append('%slet decodeContext = target.%s(state: state)\n' % (indent, decode_context))
+        for parameter in message.parameters:
+            coder = swift_types.swift_coder(parameter.type)
+            if swift_types.takes_decode_context(parameter.type) and coder not in decode_context_coders:
+                decode_context_coders.append(coder)
     # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a message with
     # an owned argument is decoded in a block of its own.
     decodes_each_in_own_block = any(swift_types.is_owned_type(parameter.type) for parameter in message.parameters)
@@ -3061,6 +3068,8 @@ def swift_types_argument_decoding(message, indent, decode_context=None):
         result.append('%s    %s = try %s.decode(from: &decoder%s)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type), context))
         if index == len(message.parameters) - 1 or decodes_each_in_own_block:
             result.append('%s} catch {\n' % indent)
+            for coder in decode_context_coders:
+                result.append('%s    %s.decodeFailed(context: decodeContext)\n' % (indent, coder))
             result.append('%s    return .Invalid\n' % indent)
             result.append('%s}\n' % indent)
     return result

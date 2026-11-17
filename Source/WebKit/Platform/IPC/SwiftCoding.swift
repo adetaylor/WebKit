@@ -1179,6 +1179,12 @@ extension IPCTypes {
             return Path(facts: facts, platformPath: platformPath, isInClipContextPath: isInClipContextPath)
         }
 
+        /// The message whose path a decode with the context added to the clip context's path turned out to be malformed: the
+        /// context's path is left empty, as it is between draws.
+        static func decodeFailed(context: DecodeContext) {
+            context.clipContext?.beginPath()
+        }
+
         static func encode(_ value: Path, to encoder: IPC.SwiftReplyEncoder) {
             precondition(!value.isInClipContextPath, "A path that a clip's decode added to the context's path is only clipped to")
             encoder.encodeCGRendererPath(value.platformPath, value.facts)
