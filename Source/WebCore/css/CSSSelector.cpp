@@ -284,77 +284,6 @@ unsigned CSSSelector::specificityForPage() const
     return s;
 }
 
-std::optional<PseudoElementType> CSSSelector::stylePseudoElementTypeFor(PseudoElement type)
-{
-    switch (type) {
-    case PseudoElement::FirstLine:
-        return PseudoElementType::FirstLine;
-    case PseudoElement::FirstLetter:
-        return PseudoElementType::FirstLetter;
-    case PseudoElement::GrammarError:
-        return PseudoElementType::GrammarError;
-    case PseudoElement::SpellingError:
-        return PseudoElementType::SpellingError;
-    case PseudoElement::Selection:
-        return PseudoElementType::Selection;
-    case PseudoElement::TargetText:
-        return PseudoElementType::TargetText;
-    case PseudoElement::Highlight:
-        return PseudoElementType::Highlight;
-    case PseudoElement::Marker:
-        return PseudoElementType::Marker;
-    case PseudoElement::Backdrop:
-        return PseudoElementType::Backdrop;
-    case PseudoElement::Before:
-        return PseudoElementType::Before;
-    case PseudoElement::After:
-        return PseudoElementType::After;
-    case PseudoElement::Checkmark:
-        return PseudoElementType::Checkmark;
-    case PseudoElement::PickerIcon:
-        return PseudoElementType::PickerIcon;
-    case PseudoElement::WebKitScrollbar:
-        return PseudoElementType::WebKitScrollbar;
-    case PseudoElement::WebKitScrollbarButton:
-        return PseudoElementType::WebKitScrollbarButton;
-    case PseudoElement::WebKitScrollbarCorner:
-        return PseudoElementType::WebKitScrollbarCorner;
-    case PseudoElement::WebKitScrollbarThumb:
-        return PseudoElementType::WebKitScrollbarThumb;
-    case PseudoElement::WebKitScrollbarTrack:
-        return PseudoElementType::WebKitScrollbarTrack;
-    case PseudoElement::WebKitScrollbarTrackPiece:
-        return PseudoElementType::WebKitScrollbarTrackPiece;
-    case PseudoElement::WebKitResizer:
-        return PseudoElementType::WebKitResizer;
-    case PseudoElement::ViewTransition:
-        return PseudoElementType::ViewTransition;
-    case PseudoElement::ViewTransitionGroup:
-        return PseudoElementType::ViewTransitionGroup;
-    case PseudoElement::ViewTransitionImagePair:
-        return PseudoElementType::ViewTransitionImagePair;
-    case PseudoElement::ViewTransitionOld:
-        return PseudoElementType::ViewTransitionOld;
-    case PseudoElement::ViewTransitionNew:
-        return PseudoElementType::ViewTransitionNew;
-    case PseudoElement::InternalWritingSuggestions:
-        return PseudoElementType::InternalWritingSuggestions;
-#if ENABLE(VIDEO)
-    case PseudoElement::Cue:
-#endif
-    case PseudoElement::Slotted:
-    case PseudoElement::Part:
-    case PseudoElement::Picker:
-    case PseudoElement::UserAgentPart:
-    case PseudoElement::UserAgentPartLegacyAlias:
-    case PseudoElement::WebKitUnknown:
-        return { };
-    }
-
-    ASSERT_NOT_REACHED();
-    return { };
-}
-
 std::optional<CSSSelector::PseudoElement> CSSSelector::parsePseudoElementName(StringView name, const CSSSelectorParserContext& context)
 {
     if (name.isEmpty())
@@ -1029,23 +958,6 @@ bool CSSSelector::simpleSelectorEqual(const CSSSelector& other) const
         && m_attributeMatchType == other.m_attributeMatchType
         && m_isImplicit == other.m_isImplicit
         && valuesEqual();
-}
-
-bool isElementBackedPseudoElement(CSSSelector::PseudoElement pseudoElement)
-{
-    switch (pseudoElement) {
-    case CSSSelector::PseudoElement::Part:
-    case CSSSelector::PseudoElement::Picker:
-    case CSSSelector::PseudoElement::Slotted:
-    case CSSSelector::PseudoElement::UserAgentPart:
-    case CSSSelector::PseudoElement::UserAgentPartLegacyAlias:
-#if ENABLE(VIDEO)
-    case CSSSelector::PseudoElement::Cue:
-#endif
-        return true;
-    default:
-        return false;
-    }
 }
 
 NODELETE static bool shouldSkipForEqualMode(const CSSSelector& simpleSelector, ComplexSelectorsEqualMode mode)

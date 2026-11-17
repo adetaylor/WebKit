@@ -193,15 +193,17 @@ CSSTokenizerSink::~CSSTokenizerSink() = default;
     return state.append(CSSParserToken(isIdentifier ? HashTokenId : HashTokenUnrestricted, state.value(pooled, start, length)));
 }
 
-[[clang::always_inline]] bool CSSTokenizerSink::numericToken(CSSTokenizerNumericKind kind, bool isInteger, uint8_t sign, uint32_t start, uint32_t length, uint32_t unitStart, uint32_t unitLength, double value)
+[[clang::always_inline]] bool CSSTokenizerSink::numericToken(CSSTokenizerNumericKind kind, bool isInteger, uint8_t sign, uint32_t start, uint32_t length, uint32_t unitStart, uint32_t unitLength, uint8_t unit, double value)
 {
     auto& state = sinkState(*this);
     RELEASE_ASSERT(kind <= CSSTokenizerPooledDimension);
     auto token = state.number(isInteger, sign, start, length, value);
     if (kind == CSSTokenizerPercentage)
         token.convertToPercentage();
-    else if (kind != CSSTokenizerNumber)
-        token.convertToDimensionWithUnit(state.value(kind == CSSTokenizerPooledDimension, unitStart, unitLength));
+    else if (kind != CSSTokenizerNumber) {
+        RELEASE_ASSERT(unit <= std::to_underlying(CSSUnitType::QuirkyEm));
+        token.convertToDimensionWithUnit(state.value(kind == CSSTokenizerPooledDimension, unitStart, unitLength), static_cast<CSSUnitType>(unit));
+    }
     return state.append(WTF::move(token));
 }
 
@@ -327,10 +329,6 @@ CSSTokenizer::CSSTokenizer(StringView string, CSSParserObserverWrapper* wrapper,
         RELEASE_ASSERT(constructionSuccessPtr);
         *constructionSuccessPtr = false;
         return;
-    }
-
-    if (wrapper) {
-        wrapper->finalizeConstruction(m_tokens.begin());
     }
 }
 

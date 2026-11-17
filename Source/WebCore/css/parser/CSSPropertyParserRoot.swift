@@ -49,8 +49,10 @@ internal import WebCore_Private.Core.CSSPropertyConsumerSwiftTypes
 /// parseValue makes `value` and `sink` on its stack for this call only, over its own CSS::PropertyParserState,
 /// CSS::PropertyParserResult and CSSGradientSwiftStops. While they are live, Swift calls only:
 /// - `value`'s members: parseWithCxx, parseCalc, isExposed, setResult, tokenValue and the token accessors (type,
-///   blockType, unitType, delimiter, identifier, identEquals, isIntegerNumber, isDashedIdent);
-/// - `sink`'s members: addLonghand, addAllLonghands, addProperty, addSubstitutionValue, isKeywordValid;
+///   blockType, unitType, delimiter, identifier, identEquals, isIntegerNumber, isDashedIdent, valueLength,
+///   valueCharacter);
+/// - `sink`'s members: addLonghand, addAllLonghands, addProperty, addSubstitutionValue, substitutionFlags,
+///   isKeywordValid;
 /// - addBorderImageLonghandsForSwift, valueID, isTimelineRangeNameForSwift, isCSSWideKeyword,
 ///   makeMaskBorderLonghandValue, setGridResult, setGridLineResult, CSSKeywordValue::implicitInitialValue, the
 ///   CSSProperty predicates (isSizingProperty, isMarginProperty, isInsetProperty, acceptsQuirkyLength,
@@ -173,17 +175,21 @@ extension PropertyParser {
         return false
     }
 
-    /// The substitution value of `tokens`, if they contain a substitution function.
+    /// The substitution value of `tokens`, if they contain a substitution function
+    /// (`CSSSubstitutionParser::containsSubstitutionFunctions`).
     func addSubstitutionValue(_ sink: borrowing ShorthandSink, _ tokens: Range<Int>, withNamespaceMap: Bool) -> Bool {
-        guard hasSubstitutionFunctionToken(tokens) else {
+        guard hasSubstitutionFunctionToken(tokens),
+            CSSParserSubstitution.containsSubstitutionFunctions(self.tokens.value, tokens, sink.substitutionFlags())
+        else {
             return false
         }
         // Both at most the token count, an Int from a UInt32.
-        return sink.addSubstitutionValue(
+        sink.addSubstitutionValue(
             UInt32(truncatingIfNeeded: tokens.lowerBound),
             UInt32(truncatingIfNeeded: tokens.upperBound),
             withNamespaceMap
         )
+        return true
     }
 
     /// `consumeStyleProperty`. The C++ descriptor consumers that fall back to it pass no namespace map, so a

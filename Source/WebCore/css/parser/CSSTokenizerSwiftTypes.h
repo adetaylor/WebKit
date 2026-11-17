@@ -43,9 +43,9 @@ enum CSSTokenizerNumericKind : uint8_t { CSSTokenizerNumber, CSSTokenizerPercent
 // observer. Offsets and lengths index the tokenizer's input; a type is a CSSParserTokenType and a block type a
 // CSSParserToken::BlockType. A value the scanner built is first pooled with poolValue(), and the next token
 // takes it in place of a range when its pooled flag is set; every token drops a pooled value it did not take.
-// numericToken() takes the number's value, or NaN to have the sink convert its text. A member returns false when
-// the token could not be allocated. Only CSSTokenizer's constructor makes one, on its stack, and only the scan
-// it calls reaches it.
+// numericToken() takes a dimension's CSSUnitType, and the number's value, or NaN to have the sink convert its text.
+// A member returns false when the token could not be allocated. Only CSSTokenizer's constructor makes one, on its
+// stack, and only the scan it calls reaches it.
 class __attribute__((swift_attr("~Sendable"))) CSSTokenizerSink {
 public:
     CSSTokenizerSink(const CSSTokenizerSink&) = delete;
@@ -60,7 +60,7 @@ public:
     bool delimiterToken(char16_t);
     bool valueToken(uint8_t type, uint8_t blockType, bool pooled, uint32_t start, uint32_t length);
     bool hashToken(bool isIdentifier, bool pooled, uint32_t start, uint32_t length);
-    bool numericToken(CSSTokenizerNumericKind, bool isInteger, uint8_t sign, uint32_t start, uint32_t length, uint32_t unitStart, uint32_t unitLength, double value);
+    bool numericToken(CSSTokenizerNumericKind, bool isInteger, uint8_t sign, uint32_t start, uint32_t length, uint32_t unitStart, uint32_t unitLength, uint8_t unit, double value);
 
     // Keeps a value the scanner built in the tokenizer's string pool, pending for the next token.
     void poolValue([[clang::noescape]] std::span<const char16_t> value);

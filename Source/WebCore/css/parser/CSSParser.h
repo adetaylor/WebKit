@@ -43,37 +43,17 @@ namespace WebCore {
 
 class CSSParserObserver;
 class CSSParserObserverWrapper;
-class CSSSelectorList;
 class CSSTokenizer;
-class StyleRuleCounterStyle;
 class StyleRuleKeyframe;
-class StyleRule;
 class StyleRuleBase;
-class StyleRuleCharset;
-class StyleRuleContainer;
-class StyleRuleFontFace;
-class StyleRuleFontFeatureValues;
-class StyleRuleFontFeatureValuesBlock;
-class StyleRuleFontPaletteValues;
-class StyleRuleFunction;
-class StyleRuleImport;
-class StyleRuleKeyframes;
-class StyleRuleLayer;
-class StyleRuleMedia;
-class StyleRuleNamespace;
-class StyleRulePage;
-class StyleRulePositionTry;
-class StyleRuleSupports;
-class StyleRuleViewTransition;
-#if ENABLE(SPATIAL_PORTAL)
-class StyleRuleEnvironmentMap;
-#endif
 class StyleSheetContents;
 class ImmutableStyleProperties;
 class Element;
 class MutableStyleProperties;
 
-enum CSSAtRuleID : uint8_t;
+enum class CSSParserSwiftRequest : uint8_t;
+struct CSSParserSwiftParseInputs;
+struct CSSParserSwiftState;
 
 class CSSParser {
     WTF_MAKE_NONCOPYABLE(CSSParser);
@@ -101,7 +81,7 @@ public:
         NoRules, // For parsing at-rules inside declaration lists (without nesting support)
     };
 
-    CSSParser(const CSSParserContext&, StringView string LIFETIME_BOUND, StyleSheetContents* = nullptr, CSSParserObserverWrapper* = nullptr, CSSParserEnum::NestedContext = { });
+    CSSParser(const CSSParserContext&, StringView string LIFETIME_BOUND, StyleSheetContents* = nullptr, CSSParserObserverWrapper* = nullptr);
     ~CSSParser();
 
     static ParseResult parseValue(MutableStyleProperties&, CSSPropertyID, StringView, IsImportant, const CSSParserContext&);
@@ -114,9 +94,6 @@ public:
     static RefPtr<StyleRuleNestedDeclarations> parseNestedDeclarations(StringView, const CSSParserContext&);
 
     static void parseStyleSheet(StringView, const CSSParserContext&, StyleSheetContents&);
-    static CSSSelectorList parsePageSelector(CSSParserTokenRange, StyleSheetContents*);
-
-    bool supportsDeclaration(CSSParserTokenRange&);
 
     // This function updates the range it's given.
     RefPtr<StyleRuleBase> consumeAtRule(CSSParserTokenRange&, AllowedRules);
@@ -130,123 +107,27 @@ public:
     const CSSTokenizer* tokenizer() const LIFETIME_BOUND { return m_tokenizer.get(); }
 
 private:
+    friend struct CSSParserSwiftState;
+
     struct NestingContext {
         // FIXME: Can we build StylePropertySets directly?
         // FIXME: Investigate using a smaller inline buffer
         ParsedPropertyVector m_parsedProperties;
         Vector<Ref<StyleRuleBase>> m_parsedRules;
-    };
-    CSSParser(const CSSParserContext&, StyleSheetContents*);
-
-    enum class RuleList : uint8_t {
-        TopLevel,
-        Regular,
-        Keyframes,
-        FontFeatureValues,
+        std::unique_ptr<ParsedPropertyVector> m_initialDeclarationBlock;
     };
 
-    // Returns whether the first encountered rule was valid
-    template<typename T>
-    bool consumeRuleList(CSSParserTokenRange, RuleList, NOESCAPE const T& callback);
+    // Runs cssParseWithSwift for `request` on the tokens of `range`, with this parser's context, style sheet and
+    // nesting state. Returns the request's result.
+    uint32_t runWithSwift(CSSParserTokenRange, CSSParserSwiftRequest, CSSParserSwiftParseInputs&&, RefPtr<StyleRuleBase>* rule = nullptr);
 
-    // This function updates the range it's given.
-    RefPtr<StyleRuleBase> consumeQualifiedRule(CSSParserTokenRange&, AllowedRules);
-
-    // This function is used for all the nested group rules (@media, @layer, @supports, @scope, @container,..etc)
-    // It handles potentially orphaned declarations (in the context of style nesting)
-    // https://drafts.csswg.org/css-nesting/#conditionals
-    Vector<Ref<StyleRuleBase>> consumeNestedGroupRules(CSSParserTokenRange block);
-
-    static RefPtr<StyleRuleCharset> consumeCharsetRule(CSSParserTokenRange prelude);
-    RefPtr<StyleRuleImport> consumeImportRule(CSSParserTokenRange prelude);
-    RefPtr<StyleRuleNamespace> consumeNamespaceRule(CSSParserTokenRange prelude);
-    RefPtr<StyleRuleMedia> consumeMediaRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleSupports> consumeSupportsRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleFontFace> consumeFontFaceRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleFontFeatureValuesBlock> consumeFontFeatureValuesRuleBlock(CSSAtRuleID, CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleFontFeatureValues> consumeFontFeatureValuesRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleFontPaletteValues> consumeFontPaletteValuesRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleKeyframes> consumeKeyframesRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRulePage> consumePageRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleCounterStyle> consumeCounterStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleLayer> consumeLayerRule(CSSParserTokenRange prelude, std::optional<CSSParserTokenRange> block);
-    RefPtr<StyleRuleContainer> consumeContainerRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleProperty> consumePropertyRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleScope> consumeScopeRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleStartingStyle> consumeStartingStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleViewTransition> consumeViewTransitionRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRulePositionTry> consumePositionTryRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleFunction> consumeFunctionRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-#if ENABLE(SPATIAL_PORTAL)
-    RefPtr<StyleRuleEnvironmentMap> consumeEnvironmentMapRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-#endif
-
-    RefPtr<StyleRuleKeyframe> consumeKeyframeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    RefPtr<StyleRuleBase> consumeStyleRule(CSSParserTokenRange prelude, CSSParserTokenRange block);
-    ParsedPropertyVector consumeDeclarationListInNewNestingContext(CSSParserTokenRange, StyleRuleType);
-    Vector<Ref<StyleRuleBase>> consumeDeclarationRuleListInNewNestingContext(CSSParserTokenRange, StyleRuleType);
-
-    enum class BlockAllowedRule : uint8_t { QualifiedRules = 1 << 0, Declarations = 1 << 1, AtRules = 1 << 2, };
-
-    enum class ParsingStyleDeclarationsInRuleList : bool { No, Yes };
-
-    // FIXME: We should return value for all those functions instead of using class member attributes.
-    void consumeBlockContent(CSSParserTokenRange, StyleRuleType, OptionSet<BlockAllowedRule>, ParsingStyleDeclarationsInRuleList = ParsingStyleDeclarationsInRuleList::No);
-    void consumeDeclarationList(CSSParserTokenRange, StyleRuleType);
-    void consumeDeclarationRuleList(CSSParserTokenRange, StyleRuleType);
-    void consumeStyleBlock(CSSParserTokenRange, StyleRuleType, ParsingStyleDeclarationsInRuleList = ParsingStyleDeclarationsInRuleList::No);
-
-    // For the inspector, an invalid declaration that may instead be consumed as a nested style rule.
-    struct DeferredInvalidDeclaration {
-        unsigned startOffset { 0 };
-        unsigned endOffset { 0 };
-        bool isImportant { false };
-    };
-    struct ConsumeDeclarationResult {
-        bool isValid { false };
-        std::optional<DeferredInvalidDeclaration> deferredInvalidDeclaration;
-    };
-    ConsumeDeclarationResult consumeDeclaration(CSSParserTokenRange, StyleRuleType);
-    void consumeDeclarationValue(CSSParserTokenRange, CSSPropertyID, IsImportant, StyleRuleType);
-    void consumeCustomPropertyValue(CSSParserTokenRange, const AtomString& propertyName, IsImportant);
-
-    StyleSheetContents* styleSheet() const { return m_styleSheet.get(); }
-
-    Ref<StyleRuleBase> createNestedDeclarationsRule();
-    void runInNewNestingContext(NOESCAPE const auto&);
     NestingContext& topContext()
     {
         ASSERT(!m_nestingContextStack.isEmpty());
         return m_nestingContextStack.last();
     }
 
-    bool isStyleNestedContext() const
-    {
-        return !m_ancestorRuleTypeStack.isEmpty() && m_ancestorRuleTypeStack.last() != CSSParserEnum::NestedContextType::Function;
-    }
-
-    bool isFunctionNestedContext() const
-    {
-        return !m_ancestorRuleTypeStack.isEmpty() && m_ancestorRuleTypeStack.last() == CSSParserEnum::NestedContextType::Function;
-    }
-
-    bool hasStyleRuleAncestor() const
-    {
-        return m_ancestorRuleTypeStack.contains(CSSParserEnum::NestedContextType::Style);
-    }
-
-    // FIXME: we could unify all those into a single stack data structure.
-    // https://bugs.webkit.org/show_bug.cgi?id=265566
-    unsigned m_ruleListNestingLevel { 0 };
-    Vector<CSSParserEnum::NestedContextType, 16> m_ancestorRuleTypeStack;
     Vector<NestingContext, 16> m_nestingContextStack { 1 };
-
-    std::optional<CSSParserEnum::NestedContextType> lastAncestorRuleType() const
-    {
-        if (!m_ancestorRuleTypeStack.isEmpty())
-            return m_ancestorRuleTypeStack.last();
-        return { };
-    }
 
     const CSSParserContext& m_context;
 

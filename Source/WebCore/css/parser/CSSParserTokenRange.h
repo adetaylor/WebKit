@@ -86,7 +86,6 @@ public:
 
     // The returned range doesn't include the brackets
     NODELETE CSSParserTokenRange consumeBlock();
-    CSSParserTokenRange consumeBlockCheckingForEditability(StyleSheetContents*);
 
     NODELETE void consumeComponentValue();
 

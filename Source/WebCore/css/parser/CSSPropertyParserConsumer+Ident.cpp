@@ -106,15 +106,6 @@ RefPtr<CSSValue> consumeCustomIdentExcluding(CSSParserTokenRange& range, CSS::Pr
 // MARK: <dashed-ident>
 // https://drafts.csswg.org/css-values/#dashed-idents
 
-StringView consumeEagerlyResolvableDashedIdentRaw(CSSParserTokenRange& range)
-{
-    // FIXME: When support for the ident() function is added, this will only succeed if the ident() function can be eagerly resolved without additional context.
-
-    if (range.peek().type() != IdentToken || !range.peek().value().startsWith("--"_s))
-        return { };
-    return range.consumeIncludingWhitespace().value();
-}
-
 std::optional<CSS::CustomIdent> consumeUnresolvedDashedIdent(CSSParserTokenRange& range, CSS::PropertyParserState&)
 {
     if (range.peek().type() != IdentToken || !range.peek().value().startsWith("--"_s))

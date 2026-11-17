@@ -51,38 +51,9 @@ public:
         AllowBareDeclarationAndGeneralEnclosed,
     };
 
-    static SupportsResult supportsCondition(CSSParserTokenRange, CSSParser&, ParsingMode);
     WEBCORE_EXPORT static SupportsResult supportsCondition(StringView, const CSSParserContext&, ParsingMode);
 
     static bool isMarginTrimInlineValue(StringView);
-
-private:
-    CSSSupportsParser(CSSParser& parser)
-        : m_parser(parser)
-    { }
-
-    SupportsResult consumeCondition(CSSParserTokenRange);
-    SupportsResult consumeNegation(CSSParserTokenRange);
-    SupportsResult consumeSupportsFunction(CSSParserTokenRange&);
-    SupportsResult consumeSupportsFeatureOrGeneralEnclosed(CSSParserTokenRange&);
-    // https://drafts.csswg.org/css-conditional-4/#typedef-supports-selector-fn
-    // <supports-selector-fn> = selector( <complex-selector> );
-    SupportsResult consumeSupportsSelectorFunction(CSSParserTokenRange&);
-
-    // https://drafts.csswg.org/css-conditional-5/#typedef-supports-font-format-fn
-    SupportsResult consumeSupportsFontFormatFunction(CSSParserTokenRange&);
-    // https://drafts.csswg.org/css-conditional-5/#typedef-supports-font-tech-fn
-    SupportsResult consumeSupportsFontTechFunction(CSSParserTokenRange&);
-
-    // https://drafts.csswg.org/css-conditional-5/#typedef-supports-at-rule-fn
-    SupportsResult consumeSupportsAtRuleFunction(CSSParserTokenRange&);
-
-    // https://drafts.csswg.org/css-conditional-5/#typedef-supports-named-feature-fn
-    SupportsResult consumeSupportsNamedFeatureFunction(CSSParserTokenRange&);
-
-    SupportsResult consumeConditionInParenthesis(CSSParserTokenRange&, CSSParserTokenType);
-
-    CSSParser& m_parser;
 };
 
 } // namespace WebCore

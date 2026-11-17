@@ -42,12 +42,13 @@ public:
         return adoptRef(*new CSSParserObserverWrapper(observer));
     }
 
-    NODELETE unsigned startOffset(const CSSParserTokenRange&);
-    NODELETE unsigned previousTokenStartOffset(const CSSParserTokenRange&);
-    NODELETE unsigned endOffset(const CSSParserTokenRange&); // Includes trailing comments
+    // The start offset of the tokenizer's token `index`; the token count's is EOF's. Nothing is recorded for an
+    // empty string.
+    unsigned tokenOffset(unsigned index) const { return m_tokenOffsets[index]; }
+    unsigned tokenOffsetCount() const { return m_tokenOffsets.size(); }
 
-    NODELETE void skipCommentsBefore(const CSSParserTokenRange&, bool leaveDirectlyBefore);
-    void yieldCommentsBefore(const CSSParserTokenRange&);
+    NODELETE void skipCommentsBefore(unsigned tokenIndex, bool leaveDirectlyBefore);
+    void yieldCommentsBefore(unsigned tokenIndex);
 
     CSSParserObserver& observer() LIFETIME_BOUND { return m_observer; }
     void addComment(unsigned startOffset, unsigned endOffset, unsigned tokensBefore)
@@ -56,11 +57,6 @@ public:
         m_commentOffsets.append(position);
     }
     void addToken(unsigned startOffset) { m_tokenOffsets.append(startOffset); }
-    void finalizeConstruction(CSSParserToken* firstParserToken)
-    {
-        m_firstParserToken = firstParserToken;
-        ASSERT(!m_commentIndex);
-    }
 
 private:
     explicit CSSParserObserverWrapper(CSSParserObserver& observer)
@@ -69,7 +65,6 @@ private:
 
     CSSParserObserver& m_observer;
     Vector<unsigned> m_tokenOffsets;
-    CSSParserToken* m_firstParserToken;
 
     struct CommentPosition {
         unsigned startOffset;
