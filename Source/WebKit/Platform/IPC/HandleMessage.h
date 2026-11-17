@@ -855,6 +855,14 @@ ALWAYS_INLINE void handleSwiftMessageWithLentState(StreamServerConnection& conne
 // For a message that takes Swift types: its Swift dispatch decodes the arguments while the state is lent, and returns
 // Invalid if they are malformed. As above, a message that finds no state to lend is decoded, by C++, and dropped, so that
 // the stream moves past its arguments.
+// Decodes and drops a message that finds no state to lend, out of line: inlined, the decoded arguments would grow the frame of
+// the receiver's dispatch function, as above.
+template<typename MessageType>
+NEVER_INLINE void dropSwiftTypesMessageWithoutState(Decoder& decoder)
+{
+    UNUSED_VARIABLE(decoder.decode<typename MessageType::Arguments>());
+}
+
 template<typename MessageType, typename L, typename T, typename U, typename MF>
 ALWAYS_INLINE void handleSwiftTypesMessageWithLentState(StreamServerConnection& connection, Decoder& decoder, const RefPtr<L>& lender, T* object, MF U::* function)
 {
@@ -862,14 +870,14 @@ ALWAYS_INLINE void handleSwiftTypesMessageWithLentState(StreamServerConnection& 
     UNUSED_PARAM(connection);
     ASSERT(lender);
     if (!lender) [[unlikely]] {
-        UNUSED_VARIABLE(decoder.decode<typename MessageType::Arguments>());
+        dropSwiftTypesMessageWithoutState<MessageType>(decoder);
         return;
     }
     SwiftLentStateDispatch result;
     {
         auto lend = lender->lendSwiftReceiverState();
         if (!lend) [[unlikely]] {
-            UNUSED_VARIABLE(decoder.decode<typename MessageType::Arguments>());
+            dropSwiftTypesMessageWithoutState<MessageType>(decoder);
             return;
         }
         NonEscapableBorrowLender<SwiftDecoder> swiftDecoderLender { decoder };
