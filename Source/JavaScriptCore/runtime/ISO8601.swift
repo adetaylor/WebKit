@@ -452,7 +452,7 @@ extension TemporalISO8601 {
     /// A month code is at most 4 characters, so the 8-bit characters are copied into a fixed buffer of code units.
     static func parseMonthCode(_ monthCode: borrowing WTF.String) -> JSC.ParsedMonthCode? {
         if !monthCode.is8Bit() {
-            let characters: Span<UInt16> = monthCode.span16()
+            let characters: Span<UInt16> = monthCode.checkedSpan16()
             return parseMonthCode(characters)
         }
         let characters: Span<WTF.Latin1Character> = monthCode.span8()
