@@ -52,7 +52,7 @@ class IDBResourceIdentifier {
 public:
     NODELETE explicit IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&);
     NODELETE IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&, const IDBRequest&);
-    explicit IDBResourceIdentifier(const IDBServer::IDBConnectionToClient&);
+    WEBCORE_EXPORT explicit IDBResourceIdentifier(const IDBServer::IDBConnectionToClient&);
 
     bool isEmpty() const
     {

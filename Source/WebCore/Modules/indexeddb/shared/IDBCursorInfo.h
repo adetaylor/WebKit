@@ -53,6 +53,9 @@ public:
     NODELETE static IDBCursorInfo objectStoreCursor(IDBTransaction&, IDBObjectStoreIdentifier, const IDBKeyRangeData&, IndexedDB::CursorDirection, IndexedDB::CursorType);
     NODELETE static IDBCursorInfo indexCursor(IDBTransaction&, IDBObjectStoreIdentifier, IDBIndexIdentifier, const IDBKeyRangeData&, IndexedDB::CursorDirection, IndexedDB::CursorType);
 
+    // For a backing store used without a client IDBTransaction (the in-tree IDBBackingStoreBench).
+    WEBCORE_EXPORT static IDBCursorInfo forBackingStore(const IDBResourceIdentifier& cursor, const IDBResourceIdentifier& transaction, IDBObjectStoreIdentifier, std::optional<IDBIndexIdentifier>, const IDBKeyRangeData&, IndexedDB::CursorDirection, IndexedDB::CursorType);
+
     IDBResourceIdentifier identifier() const { return m_cursorIdentifier; }
     IDBResourceIdentifier transactionIdentifier() const { return m_transactionIdentifier; }
     Variant<IDBObjectStoreIdentifier, IDBIndexIdentifier> sourceIdentifier() const { return m_sourceIdentifier; }

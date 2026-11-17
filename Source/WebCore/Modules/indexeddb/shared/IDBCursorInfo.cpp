@@ -43,6 +43,13 @@ IDBCursorInfo IDBCursorInfo::indexCursor(IDBTransaction& transaction, IDBObjectS
     return { transaction, objectStoreIdentifier, indexIdentifier, range, direction, type };
 }
 
+IDBCursorInfo IDBCursorInfo::forBackingStore(const IDBResourceIdentifier& cursor, const IDBResourceIdentifier& transaction, IDBObjectStoreIdentifier objectStoreIdentifier, std::optional<IDBIndexIdentifier> indexIdentifier, const IDBKeyRangeData& range, IndexedDB::CursorDirection direction, IndexedDB::CursorType type)
+{
+    if (indexIdentifier)
+        return { cursor, transaction, objectStoreIdentifier, *indexIdentifier, range, IndexedDB::CursorSource::Index, direction, type };
+    return { cursor, transaction, objectStoreIdentifier, objectStoreIdentifier, range, IndexedDB::CursorSource::ObjectStore, direction, type };
+}
+
 IDBCursorInfo::IDBCursorInfo(IDBTransaction& transaction, IDBObjectStoreIdentifier objectStoreIdentifier, const IDBKeyRangeData& range, IndexedDB::CursorDirection direction, IndexedDB::CursorType type)
     : m_cursorIdentifier(transaction.database().connectionProxy())
     , m_transactionIdentifier(transaction.info().identifier())
