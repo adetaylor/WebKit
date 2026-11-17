@@ -28,12 +28,10 @@
 
 #include "IDBStorageRegistry.h"
 #include "Logging.h"
+#include <WebCore/IDBBackingStoreFactories.h>
 #include <WebCore/IDBRequestData.h>
 #include <WebCore/IDBServer.h>
-#include <WebCore/MemoryIDBBackingStore.h>
 #include <WebCore/SQLiteFileSystem.h>
-#include <WebCore/SQLiteIDBBackingStore.h>
-#include <WebCore/SQLiteMemoryIDBBackingStore.h>
 #include <algorithm>
 #include <wtf/Borrow.h>
 #include <wtf/TZoneMalloc.h>
@@ -137,7 +135,7 @@ String IDBStorageManager::idbStorageOriginDirectory(const String& rootDirectory,
         return emptyString();
 
     migrateOriginDataImpl(oldOriginDirectory, originDirectory, [](const String& name) {
-        return WebCore::SQLiteFileSystem::computeHashForFileName(WebCore::IDBServer::SQLiteIDBBackingStore::decodeDatabaseName(name));
+        return WebCore::SQLiteFileSystem::computeHashForFileName(WebCore::IDBServer::decodeDatabaseName(name));
     });
 
     return originDirectory;
@@ -148,7 +146,7 @@ uint64_t IDBStorageManager::idbStorageSize(const String& originDirectory)
     if (originDirectory.isEmpty())
         return 0;
 
-    return WebCore::IDBServer::SQLiteIDBBackingStore::databasesSizeForDirectory(originDirectory);
+    return WebCore::IDBServer::databasesSizeForDirectory(originDirectory);
 }
 
 static void getOriginsForVersion(const String& versionPath, HashSet<WebCore::ClientOrigin>& origins)
@@ -291,11 +289,11 @@ Vector<WebCore::IDBDatabaseNameAndVersion> IDBStorageManager::getAllDatabaseName
     auto databaseIdentifiers = FileSystem::listDirectory(m_path);
     for (auto identifier : databaseIdentifiers) {
         auto databaseDirectory = FileSystem::pathByAppendingComponent(m_path, identifier);
-        auto databasePath = WebCore::IDBServer::SQLiteIDBBackingStore::fullDatabasePathForDirectory(databaseDirectory);
+        auto databasePath = WebCore::IDBServer::fullDatabasePathForDirectory(databaseDirectory);
         if (visitedDatabasePaths.contains(databasePath))
             continue;
 
-        if (auto nameAndVersion = WebCore::IDBServer::SQLiteIDBBackingStore::databaseNameAndVersionFromFile(databasePath))
+        if (auto nameAndVersion = WebCore::IDBServer::databaseNameAndVersionFromFile(databasePath))
             result.append(WTF::move(*nameAndVersion));
     }
 
@@ -344,12 +342,12 @@ std::unique_ptr<WebCore::IDBServer::IDBBackingStore> IDBStorageManager::createBa
 {
     if (m_path.isEmpty() || identifier.isTransient()) {
         if (m_useSQLiteMemoryBackingStore)
-            return makeUnique<WebCore::IDBServer::SQLiteMemoryIDBBackingStore>(identifier);
-        return makeUnique<WebCore::IDBServer::MemoryIDBBackingStore>(identifier);
+            return WebCore::IDBServer::makeSQLiteMemoryIDBBackingStore(identifier);
+        return WebCore::IDBServer::makeMemoryIDBBackingStore(identifier);
     }
 
     auto name = WebCore::SQLiteFileSystem::computeHashForFileName(identifier.databaseName());
-    return makeUnique<WebCore::IDBServer::SQLiteIDBBackingStore>(identifier, FileSystem::pathByAppendingComponent(m_path, name));
+    return WebCore::IDBServer::makeSQLiteIDBBackingStore(identifier, FileSystem::pathByAppendingComponent(m_path, name));
 }
 
 void IDBStorageManager::requestSpace(const WebCore::ClientOrigin&, uint64_t size, CompletionHandler<void(bool)>&& completionHandler)

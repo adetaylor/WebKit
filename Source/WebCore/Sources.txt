@@ -225,6 +225,7 @@ Modules/indexeddb/server/MemoryIndex.cpp
 Modules/indexeddb/server/MemoryIndexCursor.cpp
 Modules/indexeddb/server/MemoryObjectStore.cpp @cost:3
 Modules/indexeddb/server/MemoryObjectStoreCursor.cpp
+Modules/indexeddb/server/IDBBackingStoreFactories.cpp
 Modules/indexeddb/server/SQLiteIDBBackingStore.cpp @cost:5
 Modules/indexeddb/server/SQLiteMemoryIDBBackingStore.cpp
 Modules/indexeddb/server/SQLiteIDBCursor.cpp
