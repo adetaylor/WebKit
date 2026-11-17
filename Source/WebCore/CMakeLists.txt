@@ -3764,7 +3764,7 @@ if (APPLE)
     )
     # On the internal SDK, Vision's Swift interface reaches C++ headers in the SDK's private frameworks that throw,
     # which -fno-exceptions rejects outside system headers. Search those frameworks as system frameworks, as
-    # WebCore.xcconfig's SYSTEM_FRAMEWORK_SEARCH_PATHS does.
+    # WebCore.xcconfig's WK_SWIFT_SYSTEM_FRAMEWORK_FLAGS does.
     if (USE_APPLE_INTERNAL_SDK)
         webkit_target_add_swift_options(WebCore "-Xcc -iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks")
     endif ()

@@ -9,8 +9,6 @@ set(WebGPU_PUBLIC_FRAMEWORK_HEADERS
 
 set(WebGPU_PRIVATE_FRAMEWORK_HEADERS
     ${WebGPU_CPP_API_HEADERS}
-    CxxBridgingPublic.h
-    WebGPU.h
 )
 
 set(WebGPU_PRIVATE_INCLUDE_DIRECTORIES
@@ -19,8 +17,6 @@ set(WebGPU_PRIVATE_INCLUDE_DIRECTORIES
 )
 
 set(WebGPU_PRIVATE_DEFINITIONS
-    WGPU_IMPLEMENTATION
-    WGPU_SHARED_LIBRARY
     __WEBGPU__
 )
 
@@ -62,7 +58,7 @@ if (WEBKIT_SDK_IS_WATCHOS AND NOT USE_APPLE_INTERNAL_SDK)
 endif ()
 
 # WebKit::WebGPU aliases an INTERFACE library whose only link content is this
-# variable; without it consumers link nothing and get undefined wgpu* symbols.
+# variable; without it consumers link nothing and get undefined WebGPU symbols.
 set(WebGPU_INTERFACE_LIBRARIES WebGPU)
 
 WEBKIT_FRAMEWORK_DECLARE(WebGPU)
@@ -148,7 +144,6 @@ foreach (_ext IN ITEMS swiftmodule swiftdoc abi.json)
 endforeach ()
 
 WEBKIT_FRAMEWORK(WebGPU)
-WEBKIT_ADD_PREFIX_HEADER(WebGPU WebGPUPrefix.h PREFIX_LANGUAGES OBJCXX)
 
 target_sources(WebGPU PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Adapter.swift
