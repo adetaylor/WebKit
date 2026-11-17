@@ -1397,6 +1397,9 @@ function(_WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS _outvar)
     )
     if (APPLE)
         list(APPEND _flags -DWK_SUPPORTS_SWIFT_OBJCXX_INTEROP=1)
+        # wtf/Platform.h's ICU setting on Cocoa. ICU's headers are a module of their own (WTF/icu/module.modulemap), which
+        # Platform.h doesn't reach, and with renaming its functions are macros that Swift can't call.
+        list(APPEND _flags -DU_DISABLE_RENAMING=1)
     endif ()
     # -fexperimental-bounds-safety-attributes belongs to this hash-normalizing
     # set conceptually, but lives in WebKitSwiftFlags.cmake so it also reaches
