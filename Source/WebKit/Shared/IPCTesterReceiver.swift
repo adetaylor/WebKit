@@ -260,14 +260,6 @@ final class IPCTesterReceiver {
         }
     }
 
-    @MainActor
-    func describeCxxDecodedFilterSwift(
-        connection: IPC.Connection,
-        filter: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedFilterSwiftFilter
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedFilterDescription(filter))
-    }
-
     private static func description(_ values: Float...) -> String {
         values.map { "\($0.bitPattern)" }.joined(separator: ",")
     }

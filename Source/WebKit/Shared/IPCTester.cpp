@@ -557,6 +557,11 @@ void IPCTester::describeSystemImage(Ref<WebCore::SystemImage>&& image, Completio
 {
     completionHandler(ipcTesterDescription(image));
 }
+
+void IPCTester::describeFilter(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(filter));
+}
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)

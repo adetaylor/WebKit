@@ -159,11 +159,6 @@ void IPCTesterReceiver::describeFilterSwift(Ref<WebCore::Filter>&& filter, Compl
 {
     completionHandler(ipcTesterDescription(filter));
 }
-
-void IPCTesterReceiver::describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
-{
-    completionHandler(ipcTesterDescription(filter));
-}
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

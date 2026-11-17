@@ -740,13 +740,6 @@ inline String ipcTesterDescription(const WebCore::Path& path)
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)
-inline String ipcTesterCxxDecodedFilterDescription(IPC::CxxDecodedArgument<Ref<WebCore::Filter>>& filterArgument)
-{
-    auto filter = filterArgument.take();
-    RELEASE_ASSERT(filter);
-    return ipcTesterDescription(filter->get());
-}
-
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 inline String ipcTesterCxxDecodedDrawingFormsDescription(IPC::CxxDecodedArgument<WebCore::WindRule>& ruleArgument, IPC::CxxDecodedArgument<WebCore::AffineTransform>& transformArgument, IPC::CxxDecodedArgument<CGRendererColorValue>& colorArgument)
 {

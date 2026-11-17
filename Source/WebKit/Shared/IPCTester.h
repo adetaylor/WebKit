@@ -45,6 +45,7 @@
 
 namespace WebCore {
 class ControlPart;
+class Filter;
 class SystemImage;
 struct ControlStyle;
 }
@@ -101,6 +102,7 @@ private:
 #if PLATFORM(COCOA)
     void describeControl(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
     void describeSystemImage(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeFilter(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
 #endif
 #if ENABLE(IPC_TESTING_SWIFT)
     void sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&&);
