@@ -72,7 +72,7 @@ std::optional<cbor::CBORValue> decodeResponseMap(const Vector<uint8_t>& inBuffer
     return decodedResponse;
 }
 
-CtapDeviceResponseCode getResponseCode(const Vector<uint8_t>& buffer)
+CtapDeviceResponseCode getResponseCode(Vector<uint8_t> buffer)
 {
     if (buffer.isEmpty())
         return CtapDeviceResponseCode::kCtap2ErrInvalidCBOR;
@@ -179,7 +179,7 @@ static std::optional<AuthenticationExtensionsClientOutputs> parseAuthenticatorDa
     return outputs;
 }
 
-RefPtr<AuthenticatorAttestationResponse> readCTAPMakeCredentialResponse(const Vector<uint8_t>& inBuffer, WebCore::AuthenticatorAttachment attachment, Vector<AuthenticatorTransport>&& transports, const AttestationConveyancePreference& attestation, const std::optional<pin::HmacSecretRequest>& hmacSecretRequest)
+RefPtr<AuthenticatorAttestationResponse> readCTAPMakeCredentialResponse(Vector<uint8_t> inBuffer, WebCore::AuthenticatorAttachment attachment, Vector<AuthenticatorTransport> transports, AttestationConveyancePreference attestation, const std::optional<pin::HmacSecretRequest>& hmacSecretRequest)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)
@@ -224,7 +224,7 @@ RefPtr<AuthenticatorAttestationResponse> readCTAPMakeCredentialResponse(const Ve
     return AuthenticatorAttestationResponse::create(credentialId, *attestationObject, WTF::move(extensions), attachment, WTF::move(transports));
 }
 
-RefPtr<AuthenticatorAssertionResponse> readCTAPGetAssertionResponse(const Vector<uint8_t>& inBuffer, WebCore::AuthenticatorAttachment attachment, const std::optional<pin::HmacSecretRequest>& hmacSecretRequest)
+RefPtr<AuthenticatorAssertionResponse> readCTAPGetAssertionResponse(Vector<uint8_t> inBuffer, WebCore::AuthenticatorAttachment attachment, const std::optional<pin::HmacSecretRequest>& hmacSecretRequest)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)
@@ -289,7 +289,7 @@ RefPtr<AuthenticatorAssertionResponse> readCTAPGetAssertionResponse(const Vector
     return response;
 }
 
-std::optional<AuthenticatorGetInfoResponse> readCTAPGetInfoResponse(const Vector<uint8_t>& inBuffer)
+std::optional<AuthenticatorGetInfoResponse> readCTAPGetInfoResponse(Vector<uint8_t> inBuffer)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)

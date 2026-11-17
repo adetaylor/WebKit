@@ -106,7 +106,7 @@ static Vector<uint8_t> authenticateForProtocol(PINUVAuthProtocol protocol, const
     return signature;
 }
 
-std::optional<UTF8CString> validateAndConvertToUTF8(const String& pin)
+std::optional<UTF8CString> validateAndConvertToUTF8(String pin)
 {
     if (!hasAtLeastFourCodepoints(pin))
         return std::nullopt;
@@ -138,7 +138,7 @@ static Vector<uint8_t> encodePinCommand(Subcommand subcommand, PINUVAuthProtocol
 
 RetriesResponse::RetriesResponse() = default;
 
-std::optional<RetriesResponse> RetriesResponse::parse(const Vector<uint8_t>& inBuffer)
+std::optional<RetriesResponse> RetriesResponse::parse(Vector<uint8_t> inBuffer)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)
@@ -163,7 +163,7 @@ KeyAgreementResponse::~KeyAgreementResponse() = default;
 KeyAgreementResponse::KeyAgreementResponse(KeyAgreementResponse&&) = default;
 KeyAgreementResponse& KeyAgreementResponse::operator=(KeyAgreementResponse&&) = default;
 
-std::optional<KeyAgreementResponse> KeyAgreementResponse::parse(const Vector<uint8_t>& inBuffer)
+std::optional<KeyAgreementResponse> KeyAgreementResponse::parse(Vector<uint8_t> inBuffer)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)
@@ -208,7 +208,7 @@ std::optional<KeyAgreementResponse> KeyAgreementResponse::parseFromCOSE(const CB
     return KeyAgreementResponse(peerKey.releaseNonNull());
 }
 
-cbor::CBORValue::MapValue encodeCOSEPublicKey(const Vector<uint8_t>& rawPublicKey)
+cbor::CBORValue::MapValue encodeCOSEPublicKey(Vector<uint8_t> rawPublicKey)
 {
     ASSERT(rawPublicKey.size() == 65);
     auto x = rawPublicKey.subvector(1, ES256FieldElementLength);
@@ -229,7 +229,7 @@ TokenResponse::TokenResponse(Ref<WebCore::CryptoKeyHMAC>&& token)
 {
 }
 
-std::optional<TokenResponse> TokenResponse::parse(PINUVAuthProtocol protocol, const WebCore::CryptoKeyAES& sharedKey, const Vector<uint8_t>& inBuffer)
+std::optional<TokenResponse> TokenResponse::parse(PINUVAuthProtocol protocol, const WebCore::CryptoKeyAES& sharedKey, Vector<uint8_t> inBuffer)
 {
     auto decodedMap = decodeResponseMap(inBuffer);
     if (!decodedMap)
@@ -252,7 +252,7 @@ std::optional<TokenResponse> TokenResponse::parse(PINUVAuthProtocol protocol, co
     return TokenResponse(tokenKey.releaseNonNull());
 }
 
-Vector<uint8_t> TokenResponse::pinAuth(PINUVAuthProtocol protocol, const Vector<uint8_t>& clientDataHash) const
+Vector<uint8_t> TokenResponse::pinAuth(PINUVAuthProtocol protocol, Vector<uint8_t> clientDataHash) const
 {
     return authenticateForProtocol(protocol, m_token, clientDataHash);
 }
@@ -262,12 +262,12 @@ const Vector<uint8_t>& TokenResponse::token() const
     return m_token->key();
 }
 
-Vector<uint8_t> encodeAsCBOR(const RetriesRequest& request)
+Vector<uint8_t> encodeAsCBOR(RetriesRequest request)
 {
     return encodePinCommand(Subcommand::kGetRetries, request.protocol);
 }
 
-Vector<uint8_t> encodeAsCBOR(const KeyAgreementRequest& request)
+Vector<uint8_t> encodeAsCBOR(KeyAgreementRequest request)
 {
     return encodePinCommand(Subcommand::kGetKeyAgreement, request.protocol);
 }
@@ -341,7 +341,7 @@ static Vector<uint8_t> encryptForProtocol(PINUVAuthProtocol protocol, const Cryp
     return result.releaseReturnValue();
 }
 
-std::optional<TokenRequest> TokenRequest::tryCreate(PINUVAuthProtocol protocol, const UTF8CString& pin, const CryptoKeyEC& peerKey)
+std::optional<TokenRequest> TokenRequest::tryCreate(PINUVAuthProtocol protocol, UTF8CString pin, const CryptoKeyEC& peerKey)
 {
     // The following implements Section 5.5.4 Getting sharedSecret from Authenticator.
     // https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#gettingSharedSecret
@@ -405,7 +405,7 @@ const Vector<uint8_t>& SetPinRequest::pinAuth() const
     return m_pinUvAuthParam;
 }
 
-std::optional<SetPinRequest> SetPinRequest::tryCreate(PINUVAuthProtocol protocol, const String& inputPin, const WebCore::CryptoKeyEC& peerKey)
+std::optional<SetPinRequest> SetPinRequest::tryCreate(PINUVAuthProtocol protocol, String inputPin, const WebCore::CryptoKeyEC& peerKey)
 {
     std::optional<UTF8CString> newPin = validateAndConvertToUTF8(inputPin);
     if (!newPin)
@@ -469,7 +469,7 @@ Vector<uint8_t> encodeAsCBOR(const TokenRequest& request)
     });
 }
 
-Vector<uint8_t> encodeAsCBOR(const SetPinRequest& request)
+Vector<uint8_t> encodeAsCBOR(SetPinRequest request)
 {
     return encodePinCommand(Subcommand::kSetPin, request.m_protocol, [coseKey = WTF::move(request.m_coseKey), encryptedPin = request.m_newPinEnc, pinUvAuthParam = request.m_pinUvAuthParam] (CBORValue::MapValue* map) mutable {
         map->emplace(static_cast<int64_t>(RequestKey::kKeyAgreement), WTF::move(coseKey));
@@ -488,7 +488,7 @@ HmacSecretRequest::HmacSecretRequest(Ref<CryptoKeyAES>&& sharedKey, CBORValue::M
 {
 }
 
-std::optional<HmacSecretRequest> HmacSecretRequest::create(PINUVAuthProtocol protocol, const Vector<uint8_t>& salt1, const std::optional<Vector<uint8_t>>& salt2, RefPtr<CryptoKeyEC>&& peerKey)
+std::optional<HmacSecretRequest> HmacSecretRequest::create(PINUVAuthProtocol protocol, Vector<uint8_t> salt1, std::optional<Vector<uint8_t>> salt2, RefPtr<CryptoKeyEC> peerKey)
 {
     if (salt1.size() != 32)
         return std::nullopt;
@@ -549,7 +549,7 @@ HmacSecretResponse::HmacSecretResponse(Vector<uint8_t>&& decryptedOutput)
 {
 }
 
-std::optional<HmacSecretResponse> HmacSecretResponse::parse(PINUVAuthProtocol protocol, const CryptoKeyAES& sharedKey, const Vector<uint8_t>& encryptedOutput)
+std::optional<HmacSecretResponse> HmacSecretResponse::parse(PINUVAuthProtocol protocol, const CryptoKeyAES& sharedKey, Vector<uint8_t> encryptedOutput)
 {
     auto output = decryptForProtocol(protocol, sharedKey, encryptedOutput);
     if (output.isEmpty())
