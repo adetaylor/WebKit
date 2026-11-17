@@ -1486,7 +1486,6 @@ class webkit_ipc_swift_impl(object):
         msg_name = webkit_ipc_msg_name(func)
         self.name = msg_name[0].lower() + msg_name[1:]
         self.params: List[str] = []
-        self.checks = False
         self.body: List[str] = []
         self.reply_types: List[str] = []
         self.out_conversion = ""
@@ -1499,7 +1498,6 @@ class webkit_ipc_swift_impl(object):
         island_args = []
         if is_create:
             self.params += ["name: UInt32"]
-            self.check("name")
         for a in func.args.args:
             if a in in_args:
                 gcgl_type = a.type.get_decay_type().type_name
@@ -1511,7 +1509,6 @@ class webkit_ipc_swift_impl(object):
                     continue
                 name = message_args[0][1]
                 if gcgl_type in named_object_types:
-                    self.check(name)
                     if is_delete:
                         self.body += [f"if {name} == 0 {{", "    return", "}"]
                         island_args += [f"names.take({name})"]
@@ -1555,17 +1552,12 @@ class webkit_ipc_swift_impl(object):
             else:
                 self.body += [f"return {call}"]
             self.reply_types += [swift_type_of_message_type(ipc_type)]
-        throws = " throws(InvalidMessage)" if self.checks else ""
         reply = ""
         if len(self.reply_types) == 1:
             reply = f" -> {self.reply_types[0]}"
         elif self.reply_types:
             reply = f" -> ({', '.join(self.reply_types)})"
-        self.signature = f"{self.name}({', '.join(self.params)}){throws}{reply}"
-
-    def check(self, name: str):
-        self.checks = True
-        self.body += [f"try messageCheck {{ names.isValidKey({name}) }}"]
+        self.signature = f"{self.name}({', '.join(self.params)}){reply}"
 
     def __str__(self):
         body = "".join(f"\n        {line}" for line in self.body)
