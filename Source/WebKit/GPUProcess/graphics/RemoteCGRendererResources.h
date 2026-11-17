@@ -41,7 +41,6 @@
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/RenderingResourceIdentifier.h>
-#include <WebCore/SharedMemory.h>
 #include <wtf/Function.h>
 #include <wtf/HashMap.h>
 #include <wtf/Ref.h>
@@ -49,6 +48,8 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/Vector.h>
+
+typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
 
 namespace WebCore {
 class CGRendererCore;
@@ -58,10 +59,6 @@ class ImageBuffer;
 class MeshGradient;
 class NativeImage;
 class PathImpl;
-}
-
-namespace IPC {
-class Semaphore;
 }
 
 namespace WebKit {
@@ -74,7 +71,6 @@ class RemoteRenderingBackend;
 class SharedFont;
 struct RemoteSnapshotPrintData;
 struct RemoteSnapshotPrintRecording;
-class SharedVideoFrameReader;
 struct SharedVideoFrame;
 
 // The resources that a recording's messages name (RemoteCGRendererRecording.swift), which it keeps from when it records them,
@@ -152,19 +148,11 @@ public:
     // A DrawGlyphs's font, which the recorded run keeps, with its facts for the run.
     bool recordGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererRecordedGlyphs&) const;
     bool recordMeshGradient(RemoteMeshGradientIdentifier) const;
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-    // Reads a DrawVideoFrame's frame, which a recording doesn't keep, so that the reader keeps in step with the sender.
-    void readVideoFrame(const SharedVideoFrame&) const;
-#endif
     // The recorder's recording's resources, which it hands to its recording (takeRecordedResources()).
     Ref<RemoteCGRendererRecordedResources> takeRecordedResources() const __attribute__((availability(swift, unavailable)));
     Ref<RemoteCGRendererRecordedResources> copyRecordedResources() const __attribute__((availability(swift, unavailable))) { return m_recordedResources->copy(); }
 
     RemoteRenderingBackend* backend() const __attribute__((availability(swift, unavailable))) { return m_backend.get(); }
-    // The reader of the receiver's video frames, made when first used.
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-    SharedVideoFrameReader& sharedVideoFrameReader() const __attribute__((availability(swift, unavailable)));
-#endif
 
 #ifdef __swift__
     // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
@@ -182,9 +170,6 @@ private:
     mutable Ref<RemoteCGRendererRecordedResources> m_recordedResources;
     mutable Vector<Ref<RemoteCGRendererRecordedResources>, 2> m_replayedResources;
     mutable RefPtr<WebCore::ImageBuffer> m_selfCopy;
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-    mutable std::unique_ptr<SharedVideoFrameReader> m_sharedVideoFrameReader;
-#endif
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // Collects a snapshot's recordings into print data, as Swift walks them (RemoteCGRendererSnapshotFrames.encode(to:)).
@@ -243,11 +228,9 @@ inline uint64_t frameKey(WebCore::FrameIdentifier identifier)
 WebCore::FilterImageAllocator* WTF_NONNULL createFilterImageAllocator(const RemoteCGRendererResources&, bool forReplay) SWIFT_RETURNS_RETAINED;
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-// The image of a DrawVideoFrame's frame, read as RemoteGraphicsContext reads it, with its size and whether it has alpha; null
-// for a frame that can't be read. The reader takes the semaphore and the memory of its frames.
-CGImageRef _Nullable copyVideoFrameImage(const RemoteCGRendererResources&, const SharedVideoFrame&, CGRendererImageFacts&, bool& hasAlpha) CF_RETURNS_RETAINED;
-void setSharedVideoFrameSemaphore(const RemoteCGRendererResources&, const IPC::Semaphore&);
-void setSharedVideoFrameMemory(const RemoteCGRendererResources&, const WebCore::SharedMemory::Handle&);
+// The image of a DrawVideoFrame's frame, whose pixel buffer SharedVideoFrameSource read, as RemoteGraphicsContext makes it
+// (VideoFrame::copyNativeImage()), with its size and whether it has alpha; null for a frame it can't make one of.
+CGImageRef _Nullable copyVideoFrameImage(CVPixelBufferRef _Nonnull, const SharedVideoFrame&, CGRendererImageFacts&, bool& hasAlpha) CF_RETURNS_RETAINED;
 #endif
 
 // The brush of a SetFillCachedGradient, a SetFillPatternNativeImage or a SetFillPatternImageBuffer, or of their stroke

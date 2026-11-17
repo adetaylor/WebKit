@@ -100,9 +100,11 @@ final class RemoteImageBuffer {
         _ contextIdentifier: WebKit.RemoteGraphicsContextIdentifier,
         _ backend: WebKit.RemoteRenderingBackend
     ) -> RemoteCGRendererRecordedDrawing? {
+        let backendState = backend.state
         let (recordedDrawing, forwarder) = RemoteCGRendererRecordedDrawing.create(
             resources: WebKit.createDisplayListRecorderResources(backend),
-            displayLists: backend.state.displayLists
+            displayLists: backendState.displayLists,
+            videoFrameSources: backendState.videoFrameSources
         )
         guard WebKit.tryStartReceivingSwiftMessages(backend, forwarder, .RemoteCGRenderer, contextIdentifier.toUInt64())
         else {

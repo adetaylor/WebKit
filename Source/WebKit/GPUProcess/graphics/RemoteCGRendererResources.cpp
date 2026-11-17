@@ -29,9 +29,7 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-#include "GPUConnectionToWebProcess.h"
 #include "ImageBufferShareableAllocator.h"
-#include "IPCSemaphore.h"
 #include "RemoteCGRendererGlyphs.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteResourceCache.h"
@@ -49,8 +47,7 @@
 #include <wtf/ZippedRange.h>
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-#include "RemoteVideoFrameObjectHeap.h"
-#include <WebCore/VideoFrame.h>
+#include <WebCore/VideoFrameCV.h>
 #endif
 
 namespace WebKit {
@@ -363,18 +360,6 @@ CFURLRef copyURL(const URL& link)
     return link.createCFURL().leakRef();
 }
 
-#if PLATFORM(COCOA) && ENABLE(VIDEO)
-SharedVideoFrameReader& RemoteCGRendererResources::sharedVideoFrameReader() const
-{
-    if (!m_sharedVideoFrameReader) {
-        RELEASE_ASSERT(m_backend);
-        Ref gpuConnectionToWebProcess = m_backend->gpuConnectionToWebProcess();
-        m_sharedVideoFrameReader = makeUnique<SharedVideoFrameReader>(Ref { gpuConnectionToWebProcess->videoFrameObjectHeap() }, gpuConnectionToWebProcess->webProcessIdentity());
-    }
-    return *m_sharedVideoFrameReader;
-}
-#endif
-
 CGImageRef copyMeshGradientImage(const RemoteCGRendererResources& resources, RemoteMeshGradientIdentifier identifier, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace& destinationColorSpace, CGSize destinationSize, CGRendererImageFacts& facts, CGRendererImageOptions& options)
 {
     facts = { };
@@ -427,36 +412,18 @@ FilterImageAllocator* createFilterImageAllocator(const RemoteCGRendererResources
 }
 
 #if PLATFORM(COCOA) && ENABLE(VIDEO)
-CGImageRef copyVideoFrameImage(const RemoteCGRendererResources& resources, const SharedVideoFrame& frame, CGRendererImageFacts& facts, bool& hasAlpha)
+CGImageRef copyVideoFrameImage(CVPixelBufferRef pixelBuffer, const SharedVideoFrame& frame, CGRendererImageFacts& facts, bool& hasAlpha)
 {
     facts = { };
     facts.resolutionScale = 1;
     facts.found = true;
     hasAlpha = false;
-    RefPtr videoFrame = resources.sharedVideoFrameReader().read(SharedVideoFrame { frame });
-    if (!videoFrame)
-        return nullptr;
+    Ref videoFrame = VideoFrameCV::create(frame.time, frame.mirrored, frame.rotation, RetainPtr { pixelBuffer }, PlatformVideoColorSpace { frame.colorSpace }, frame.shouldIgnoreAlpha ? VideoFrameCV::ShouldIgnoreAlpha::Yes : VideoFrameCV::ShouldIgnoreAlpha::No);
     RefPtr image = videoFrame->copyNativeImage();
     if (!image)
         return nullptr;
     hasAlpha = image->hasAlpha();
     return copyImage(*image, facts);
-}
-
-void RemoteCGRendererResources::readVideoFrame(const SharedVideoFrame& frame) const
-{
-    RefPtr videoFrame = sharedVideoFrameReader().read(SharedVideoFrame { frame });
-    UNUSED_VARIABLE(videoFrame);
-}
-
-void setSharedVideoFrameSemaphore(const RemoteCGRendererResources& resources, const IPC::Semaphore& semaphore)
-{
-    resources.sharedVideoFrameReader().setSemaphore(IPC::Semaphore { semaphore.createSendRight() });
-}
-
-void setSharedVideoFrameMemory(const RemoteCGRendererResources& resources, const SharedMemory::Handle& handle)
-{
-    resources.sharedVideoFrameReader().setSharedMemory(SharedMemory::Handle { handle });
 }
 #endif
 

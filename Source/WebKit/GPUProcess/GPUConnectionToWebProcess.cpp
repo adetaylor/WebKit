@@ -789,7 +789,12 @@ void GPUConnectionToWebProcess::createRenderingBackend(RemoteRenderingBackendIde
         MESSAGE_CHECK(false);
     }
     Ref renderingBackend = RemoteRenderingBackend::create(*this, identifier, streamConnection.releaseNonNull());
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    swiftAddRenderingBackend(identifier.toUInt64(), renderingBackend, videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
+#else
     swiftAddRenderingBackend(identifier.toUInt64(), renderingBackend);
+#endif
+    renderingBackend->startListeningForIPC();
 }
 
 void GPUConnectionToWebProcess::releaseRenderingBackend(RemoteRenderingBackendIdentifier renderingBackendIdentifier)

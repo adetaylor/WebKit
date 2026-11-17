@@ -102,7 +102,7 @@ extension RemoteGPU {
         _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
         _ webProcessIdentity: WebCore.ProcessIdentity?
     ) {
-        let videoFrameSources = WebGPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: webProcessIdentity)
+        let videoFrameSources = GPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: webProcessIdentity)
         start(owner, renderingBackend, videoFrameSources, identifier, webProcessResourceOwner)
     }
     #else
@@ -113,7 +113,7 @@ extension RemoteGPU {
         _ identifier: UInt64,
         _ webProcessResourceOwner: consuming WTF.MachSendRight
     ) {
-        start(owner, renderingBackend, WebGPUVideoFrameSources(), identifier, webProcessResourceOwner)
+        start(owner, renderingBackend, GPUVideoFrameSources(), identifier, webProcessResourceOwner)
     }
     #endif
 }
@@ -140,7 +140,7 @@ final class RemoteGPU {
     fileprivate static func start(
         _ owner: IPC.SwiftReceiverOwner,
         _ renderingBackend: WebKit.RemoteRenderingBackend,
-        _ videoFrameSources: WebGPUVideoFrameSources,
+        _ videoFrameSources: GPUVideoFrameSources,
         _ identifier: UInt64,
         _ webProcessResourceOwner: consuming WTF.MachSendRight
     ) {

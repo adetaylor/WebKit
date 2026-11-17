@@ -101,9 +101,7 @@ WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteRenderingBackend);
 
 Ref<RemoteRenderingBackend> RemoteRenderingBackend::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackendIdentifier identifier, Ref<IPC::StreamServerConnection>&& streamConnection)
 {
-    auto instance = adoptRef(*new RemoteRenderingBackend(gpuConnectionToWebProcess, identifier, WTF::move(streamConnection)));
-    instance->startListeningForIPC();
-    return instance;
+    return adoptRef(*new RemoteRenderingBackend(gpuConnectionToWebProcess, identifier, WTF::move(streamConnection)));
 }
 
 RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuConnectionToWebProcess, RemoteRenderingBackendIdentifier identifier, Ref<IPC::StreamServerConnection>&& streamConnection)
@@ -116,9 +114,6 @@ RemoteRenderingBackend::RemoteRenderingBackend(GPUConnectionToWebProcess& gpuCon
 {
     ASSERT(RunLoop::isMain());
     weakPtrFactory().prepareForUseOnlyOnNonMainThread();
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    swiftInitialize();
-#endif
 }
 
 RemoteRenderingBackend::~RemoteRenderingBackend()
