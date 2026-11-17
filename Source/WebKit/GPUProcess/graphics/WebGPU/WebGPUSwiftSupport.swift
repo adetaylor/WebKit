@@ -745,7 +745,9 @@ func gpuByteOwner(_ memory: IPCTypes.ReadOnlySharedMemory) -> GPUByteOwner {
 #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
 // CoreVideo's CVPixelBuffer is CVBuffer itself in some builds and a class of its own in others.
 func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
-    pixelBuffer as! CVBuffer
+    // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+    func cast<Target: AnyObject>(to _: Target.Type) -> Target { pixelBuffer as! Target }
+    return cast(to: CVBuffer.self)
 }
 #endif
 

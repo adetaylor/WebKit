@@ -72,7 +72,11 @@ func sharedVideoFrameIsReadWriteSupported(_ layout: WebCore.SharedVideoFrameLayo
     switch layout.bufferType {
     case kCVPixelFormatType_32BGRA, kCVPixelFormatType_32ARGB, kCVPixelFormatType_420YpCbCr8BiPlanarFullRange,
         kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr10BiPlanarFullRange,
-        kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar:
+        kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange, kCVPixelFormatType_422YpCbCr8BiPlanarFullRange,
+        kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_422YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange, kCVPixelFormatType_444YpCbCr8BiPlanarFullRange,
+        kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange, kCVPixelFormatType_444YpCbCr10BiPlanarFullRange,
+        kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange, kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar:
         return true
     default:
         return false
@@ -327,16 +331,25 @@ private func encodedPlanesFillFrame(_ layout: WebCore.SharedVideoFrameLayout, by
     guard layout.width <= maximumFrameDimension, layout.height <= maximumFrameDimension else {
         return false
     }
-    let planes: (bytesPerPixel: Int, chromaBytesPerPixel: Int, hasAlphaPlane: Bool)
+    // The chroma plane has a sample pair for each `chromaColumns` pixels of a row and a row for each `chromaRows` rows.
+    let planes: (bytesPerPixel: Int, chromaBytesPerPixel: Int, chromaColumns: Int, chromaRows: Int, hasAlphaPlane: Bool)
     switch layout.bufferType {
     case kCVPixelFormatType_32BGRA, kCVPixelFormatType_32ARGB:
-        planes = (4, 0, false)
+        planes = (4, 0, 1, 1, false)
     case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange:
-        planes = (1, 2, false)
+        planes = (1, 2, 2, 2, false)
     case kCVPixelFormatType_420YpCbCr10BiPlanarFullRange, kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange:
-        planes = (2, 4, false)
+        planes = (2, 4, 2, 2, false)
+    case kCVPixelFormatType_422YpCbCr8BiPlanarFullRange, kCVPixelFormatType_422YpCbCr8BiPlanarVideoRange:
+        planes = (1, 2, 2, 1, false)
+    case kCVPixelFormatType_422YpCbCr10BiPlanarFullRange, kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange:
+        planes = (2, 4, 2, 1, false)
+    case kCVPixelFormatType_444YpCbCr8BiPlanarFullRange, kCVPixelFormatType_444YpCbCr8BiPlanarVideoRange:
+        planes = (1, 2, 1, 1, false)
+    case kCVPixelFormatType_444YpCbCr10BiPlanarFullRange, kCVPixelFormatType_444YpCbCr10BiPlanarVideoRange:
+        planes = (2, 4, 1, 1, false)
     case kCVPixelFormatType_420YpCbCr8VideoRange_8A_TriPlanar:
-        planes = (1, 2, true)
+        planes = (1, 2, 2, 2, true)
     default:
         return false
     }
@@ -355,8 +368,8 @@ private func encodedPlanesFillFrame(_ layout: WebCore.SharedVideoFrameLayout, by
     if planes.chromaBytesPerPixel > 0 {
         guard
             let chroma = encodedPlaneByteCount(
-                rows: (height + 1) / 2,
-                pixelBytesPerRow: (width + 1) / 2 * planes.chromaBytesPerPixel,
+                rows: (height + planes.chromaRows - 1) / planes.chromaRows,
+                pixelBytesPerRow: (width + planes.chromaColumns - 1) / planes.chromaColumns * planes.chromaBytesPerPixel,
                 encodedRows: layout.heightPlaneB,
                 encodedBytesPerRow: layout.bytesPerRowPlaneB
             ),
@@ -485,7 +498,9 @@ func sharedVideoFrameCreatePixelBuffer(
 
 // A CVPixelBuffer is a CVBuffer, which some builds import as a class of its own.
 private func cvBuffer<PixelBuffer: AnyObject>(_ pixelBuffer: PixelBuffer) -> CVBuffer {
-    pixelBuffer as! CVBuffer
+    // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+    func cast<Target: AnyObject>(to _: Target.Type) -> Target { pixelBuffer as! Target }
+    return cast(to: CVBuffer.self)
 }
 
 private enum PlaneAppend {

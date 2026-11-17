@@ -102,12 +102,6 @@ NODELETE static void setSynchronizerScreenReserved(AVSampleBufferRenderSynchroni
 @end
 #endif
 
-#if HAVE(RECOMMENDED_PIXEL_ATTRIBUTES_API)
-@interface AVSampleBufferVideoRenderer (Staging_152246223)
-@property (readonly, nonnull) NSDictionary<NSString*, NS_SWIFT_SENDABLE id> *recommendedPixelBufferAttributes;
-@end
-#endif
-
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(AudioVideoRendererAVFObjC);
@@ -123,11 +117,16 @@ public:
 static_assert(static_cast<uint8_t>(PlatformMediaError::DecoderCreationError) == 9);
 static_assert(static_cast<uint8_t>(PlatformMediaError::AudioDecodingError) == 13);
 static_assert(static_cast<uint8_t>(PlatformMediaError::VideoDecodingError) == 14);
+static_assert(static_cast<uint8_t>(PlatformMediaError::HardwareDecoderUnavailable) == 19);
 // And its TrackInfoTrackType values.
 static_assert(static_cast<uint8_t>(TrackInfoTrackType::Audio) == 1);
 static_assert(static_cast<uint8_t>(TrackInfoTrackType::Video) == 2);
 // And its MediaPlayerPitchCorrectionAlgorithm values.
 static_assert(static_cast<uint8_t>(MediaPlayerPitchCorrectionAlgorithm::BestForSpeech) == 2);
+// And the VideoRendererPreference and WebCoreDecompressionSession::DecodingFlag bits that it and
+// VideoMediaSampleRenderer.swift test for a hardware decoder.
+static_assert(static_cast<uint8_t>(VideoRendererPreference::RequiresHardwareDecoder) == 1 << 5);
+static_assert(static_cast<uint8_t>(WebCoreDecompressionSession::DecodingFlag::HardwareOnly) == 1 << 3);
 
 static PeriodicSharedTimer& sharedTimebaseTimer()
 {

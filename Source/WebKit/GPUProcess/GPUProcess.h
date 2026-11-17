@@ -70,10 +70,8 @@
 #include <WebCore/DisplayCapturePromptType.h>
 #endif
 
-#if PLATFORM(VISION) && ENABLE(MODEL_PROCESS)
-namespace IPC {
-class SharedFileHandle;
-}
+#if PLATFORM(VISION) && ENABLE(MODEL_PROCESS) && HAVE(CORE_RE)
+#include "SharedFileHandle.h"
 #endif
 
 namespace WebCore {

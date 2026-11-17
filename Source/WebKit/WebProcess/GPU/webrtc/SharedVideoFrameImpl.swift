@@ -340,7 +340,9 @@ extension IPCTypes.PlatformVideoColorSpace {
 }
 
 private func cvPixelBuffer<Buffer: AnyObject>(_ buffer: Buffer) -> CVPixelBuffer {
-    buffer as! CVPixelBuffer
+    // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+    func cast<Target: AnyObject>(to _: Target.Type) -> Target { buffer as! Target }
+    return cast(to: CVPixelBuffer.self)
 }
 
 #endif // ENABLE_GPU_PROCESS && WTF_PLATFORM_COCOA && ENABLE_VIDEO

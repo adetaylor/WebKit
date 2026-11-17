@@ -915,7 +915,9 @@ final class LibWebRTCCodecsEncoder {
 
 // Xcode builds import WebKit's CVPixelBuffer as a class of its own, distinct from VideoToolbox's CVImageBuffer.
 private func cvImageBuffer<Buffer: AnyObject>(_ buffer: Buffer) -> CVImageBuffer {
-    buffer as! CVImageBuffer
+    // Newer Swift compilers wrongly diagnose a cast to a named CoreVideo type as failing; this is the same cast.
+    func cast<Target: AnyObject>(to _: Target.Type) -> Target { buffer as! Target }
+    return cast(to: CVImageBuffer.self)
 }
 
 #endif
