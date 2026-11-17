@@ -1078,6 +1078,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSParserFastPathsSwiftTypes.h
     css/parser/CSSParserIdioms.h
     css/parser/CSSParserMode.h
+    css/parser/CSSParserObserver.h
     css/parser/CSSParserToken.h
     css/parser/CSSParserTokenRange.h
     css/parser/CSSPropertyConsumerSwiftBuilders.h
@@ -1091,7 +1092,10 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSPropertyParserConsumer+Image.h
     css/parser/CSSPropertyParserConsumer+LinkParameters.h
     css/parser/CSSPropertyParserState.h
+    css/parser/CSSSelectorParser.h
     css/parser/CSSSelectorParserContext.h
+    css/parser/CSSSubstitutionParser.h
+    css/parser/CSSSupportsParser.h
     css/parser/CSSTokenizer.h
     css/parser/CSSTokenizerInputStream.h
     css/parser/CSSTokenizerSwiftTypes.h

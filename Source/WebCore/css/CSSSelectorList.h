@@ -98,7 +98,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
     bool hasExplicitNestingParent() const;
     NODELETE bool hasOnlyNestingSelector() const;
 
-    String selectorsText() const;
+    WEBCORE_EXPORT String selectorsText() const;
     void buildSelectorsText(StringBuilder&) const;
 
     unsigned componentCount() const { return m_selectorArray.size(); }

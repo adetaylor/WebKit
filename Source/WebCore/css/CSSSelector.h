@@ -72,7 +72,7 @@ public:
     // Re-create selector text from selector's data.
     String selectorText(StringView separator = { }, StringView rightSide = { }) const;
 
-    unsigned computeSpecificity() const;
+    WEBCORE_EXPORT unsigned computeSpecificity() const;
     std::array<uint8_t, 3> computeSpecificityTuple() const;
     NODELETE unsigned specificityForPage() const;
 
