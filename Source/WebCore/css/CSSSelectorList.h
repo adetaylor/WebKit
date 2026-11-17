@@ -37,6 +37,27 @@ namespace WebCore {
 class MutableCSSSelector;
 using MutableCSSSelectorList = Vector<std::unique_ptr<MutableCSSSelector>>;
 
+// The scalar fields of one record a parser writes into a CSSSelectorListStorage, as raw values: the writer checks each.
+struct CSSSelectorFields {
+    enum Flag : uint16_t {
+        ContinuesComplexSelector = 1 << 0, // not the first record of its complex selector (the subject's compound first)
+        MatchLowerCase = 1 << 1, // setValue(value, true): quirks-mode id and class
+        Implicit = 1 << 2,
+        ForPage = 1 << 3,
+        TagIsForNamespaceRule = 1 << 4,
+        EquivalentToClass = 1 << 5,
+        LastFlag = EquivalentToClass,
+    };
+    enum class List : uint8_t { None, Strings, Identifiers, Integers };
+
+    uint8_t match { 0 }; // CSSSelector::Match
+    uint8_t relation { std::to_underlying(CSSSelector::Relation::DescendantSpace) };
+    uint8_t pseudoType { 0 }; // CSSSelector::PseudoClass, PseudoElement or PagePseudoClass, by match
+    uint8_t attributeMatchType { 0 }; // CSSSelector::AttributeMatchType
+    uint16_t flags { 0 };
+    List list { List::None }; // appendSelector's argument list
+};
+
 // The records of a CSSSelectorList, shared by its copies. A list's records are not written once a CSSSelectorList holds
 // them. The vector stays private: Swift infers a Vector of records Sendable though their reference counts are not
 // atomic. CSSSelector is unsafe to Swift, so safe Swift reads records only through CSSSelectorList's index accessors.
@@ -44,6 +65,7 @@ class CSSSelectorListStorage : public RefCounted<CSSSelectorListStorage> {
     WTF_MAKE_TZONE_ALLOCATED(CSSSelectorListStorage);
 public:
     static Ref<CSSSelectorListStorage> create() { return adoptRef(*new CSSSelectorListStorage(Vector<CSSSelector> { })); }
+    static Ref<CSSSelectorListStorage> createWithCapacity(size_t);
 
     size_t componentCount() const { return m_selectors.size(); }
     CSSSelector selectorAt(size_t index) const { return m_selectors[index]; }
@@ -53,11 +75,28 @@ public:
         m_selectors.append(WTF::move(selector));
     }
 
+    // The writer: one whole record per call, in the list's order. Each call traps on a value CSSSelector cannot hold,
+    // on an argument the record's readers dereference unchecked and it lacks, and once a list holds the storage, so
+    // the records are a valid list after every call. Atoms and names are taken by value.
+    // A simple selector with no name and no argument (id, class, a pseudo-class or pseudo-element without one, ...).
+    void appendSimpleSelector(CSSSelectorFields, const AtomString& value);
+    // A type selector (`name`), an attribute selector (`name`, `value`) or a pseudo-class or pseudo-element with an
+    // argument: `selectorList`, a storage written before, becomes its list (a list holds it from then on), and its
+    // argument list has `listSize` items, null or 0 until setListItem sets them.
+    void appendSelector(CSSSelectorFields, const AtomString& value, const QualifiedName& name, const AtomString& argument, int a, int b, CSSSelectorListStorage* selectorList, uint32_t listSize);
+    // Item `item` of the last record's argument list: `atom` (and `integerOrQuoted` != 0 for a quoted identifier),
+    // or the integer `integerOrQuoted`.
+    void setListItem(size_t item, const AtomString& atom, int integerOrQuoted);
+
 private:
     friend class CSSSelectorList;
     explicit CSSSelectorListStorage(Vector<CSSSelector>&& selectors)
         : m_selectors(WTF::move(selectors))
     { }
+    CSSSelector& appendRecord(CSSSelectorFields, CSSSelector&&);
+    void appendAttributeSelector(CSSSelectorFields, const QualifiedName&, const AtomString& value);
+    void appendFunctionalSelector(CSSSelectorFields, const AtomString& value, const AtomString& argument, int a, int b, CSSSelectorListStorage* selectorList, uint32_t listSize);
+    CSSSelector::RareData& lastRareData();
 
     // End of a multipart selector is indicated by m_isLastInComplexSelector bit in the last item.
     Vector<CSSSelector> m_selectors;
