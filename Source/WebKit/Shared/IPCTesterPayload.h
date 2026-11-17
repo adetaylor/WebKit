@@ -740,28 +740,6 @@ inline String ipcTesterDescription(const WebCore::Path& path)
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)
-inline String ipcTesterCxxDecodedControlDescription(IPC::CxxDecodedArgument<Ref<WebCore::ControlPart>>& partArgument, IPC::CxxDecodedArgument<WebCore::ControlStyle>& styleArgument)
-{
-    auto part = partArgument.take();
-    auto style = styleArgument.take();
-    RELEASE_ASSERT(part && style);
-    return ipcTesterDescription(part->get(), *style);
-}
-
-inline String ipcTesterCxxDecodedSystemImageDescription(IPC::CxxDecodedArgument<Ref<WebCore::SystemImage>>& imageArgument)
-{
-    auto image = imageArgument.take();
-    RELEASE_ASSERT(image);
-    return ipcTesterDescription(image->get());
-}
-
-inline String ipcTesterCxxDecodedFilterDescription(IPC::CxxDecodedArgument<Ref<WebCore::Filter>>& filterArgument)
-{
-    auto filter = filterArgument.take();
-    RELEASE_ASSERT(filter);
-    return ipcTesterDescription(filter->get());
-}
-
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 inline String ipcTesterCxxDecodedDrawingFormsDescription(IPC::CxxDecodedArgument<WebCore::WindRule>& ruleArgument, IPC::CxxDecodedArgument<WebCore::AffineTransform>& transformArgument, IPC::CxxDecodedArgument<CGRendererColorValue>& colorArgument)
 {
@@ -778,6 +756,12 @@ inline String ipcTesterCxxDecodedPathDescription(IPC::CxxDecodedArgument<WebCore
     RELEASE_ASSERT(path);
     return ipcTesterDescription(*path);
 }
+
+#if ENABLE(GPU_PROCESS)
+// Where the Swift coders of RemoteCGRenderer's messages don't decode and encode what C++ encodes as the web process does
+// (IPCTesterCGRendererWireForms.cpp): a line for each, empty if none.
+String ipcTesterCGRendererWireFormMismatches();
+#endif
 #endif
 #endif
 

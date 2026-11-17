@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -165,6 +165,25 @@ def if_swift_enabled(receiver, result, swift_steps, cpp_steps):
         result.append('#endif // ENABLE(%s)\n' % receiver.swift_receiver_build_enabled_by)
     elif cpp_steps:
         cpp_steps(result)
+
+
+# For a receiver with 'SwiftImplementation': the steps for its Swift dispatch, under the condition its Swift is built with,
+# and otherwise the steps for its C++ handlers.
+def if_swift_implementation_enabled(receiver, result, swift_steps, cpp_steps):
+    condition = receiver.swift_implementation_build_enabled_by
+    if not condition:
+        swift_steps(result)
+        return
+    result.append('#if ENABLE(%s)\n' % condition)
+    swift_steps(result)
+    result.append('#else // ENABLE(%s)\n' % condition)
+    cpp_steps(result)
+    result.append('#endif // ENABLE(%s)\n' % condition)
+
+
+# The condition, if any, that the generated Swift of a receiver is built under.
+def swift_build_enabled_by(receiver):
+    return receiver.swift_receiver_build_enabled_by or receiver.swift_implementation_build_enabled_by
 
 
 def types_that_must_be_moved():
@@ -410,6 +429,30 @@ def message_to_struct_declaration(receiver, message):
         result.append('%s m_%s;\n' % parameter)
     result.append('};\n')
     return surround_in_condition(''.join(result), message.condition)
+
+
+# For a receiver with 'CxxSenders': a function for each message without a reply whose arguments C++ needn't move, which
+# sends it on the connection, for Swift, which can't name the message classes or call Connection::send().
+def generate_cxx_senders(receiver):
+    result = []
+    if receiver.cxx_senders_enabled_by:
+        result.append('#if ENABLE(%s)\n' % receiver.cxx_senders_enabled_by)
+    for message in receiver.messages:
+        if message.reply_parameters is not None or message.is_async_reply:
+            continue
+        if any(type_must_be_moved(unwrap_if_untrusted(parameter.type)) for parameter in message.parameters):
+            continue
+        parameters = ['IPC::Connection& connection', 'uint64_t destinationID'] + ['%s %s' % (function_parameter_type(x.type, x.kind), x.name) for x in message.parameters]
+        sender = []
+        sender.append('inline void send%s(%s)\n' % (message.name, ', '.join(parameters)))
+        sender.append('{\n')
+        sender.append('    connection.send(%s(%s), destinationID);\n' % (message.name, ', '.join([x.name for x in message.parameters])))
+        sender.append('}\n')
+        result.append(surround_in_condition(''.join(sender), message.condition))
+        result.append('\n')
+    if receiver.cxx_senders_enabled_by:
+        result.append('#endif\n')
+    return result
 
 
 def atomic_object_identifier(type):
@@ -999,6 +1042,27 @@ def messages_with_distinct_reply_types(receiver):
     return result
 
 
+# A declaration or definition that the messages of the receiver with the message's reply types share, rendered for one of
+# them, which names its completion handler: for one that has no condition if there is one, and otherwise for the first
+# message under each condition, each under its condition.
+def render_for_reply_types(receiver, message, render):
+    key = tuple(parameter.type for parameter in message.reply_parameters)
+    group = [other for other in messages_with_completion_handlers(receiver) if tuple(parameter.type for parameter in other.reply_parameters) == key]
+    unconditional = [other for other in group if not other.condition]
+    if unconditional:
+        return render(unconditional[0])
+    representatives = []
+    for other in group:
+        if other.condition not in [representative.condition for representative in representatives]:
+            representatives.append(other)
+    lines = []
+    for index, representative in enumerate(representatives):
+        lines.append('%s %s' % ('#if' if not index else '#elif', representative.condition))
+        lines.append(render(representative))
+    lines.append('#endif')
+    return '\n'.join(lines)
+
+
 def message_to_complete_with_default_reply_declaration(receiver, message):
     return 'void completeWithDefaultReply(%sCompletionHandler&);' % message.name
 
@@ -1021,19 +1085,46 @@ def swift_primitive_reply_type(message):
     return cpp_type if _swift_primitive_type_name(cpp_type) else None
 
 
+# Messages whose Swift handlers reply through complete(): a single primitive, or several values, which Swift passes as the
+# elements of the tuple it returns, and complete() moves into the C++ completion handler.
 def messages_with_distinct_primitive_reply_types(receiver):
-    return [x for x in messages_with_distinct_reply_types(receiver) if swift_primitive_reply_type(x)]
+    return [x for x in messages_with_distinct_reply_types(receiver) if swift_primitive_reply_type(x) or len(x.reply_parameters) > 1]
+
+
+# Whether complete() takes a reply value by value rather than by rvalue reference, which Swift passes with 'consuming:'.
+def _complete_takes_by_value(parameter):
+    return bool(_swift_primitive_type_name(_strip_cpp_type_decorations(parameter.type))) or parameter.kind.startswith('enum:')
+
+
+# The declaration leaves the parameters unnamed, as Swift imports them.
+def _complete_reply_parameters(message, named=True):
+    if swift_primitive_reply_type(message):
+        return '%s reply' % swift_primitive_reply_type(message)
+    parameters = []
+    for parameter in message.reply_parameters:
+        cpp_type = _strip_cpp_type_decorations(parameter.type)
+        declaration = cpp_type if _complete_takes_by_value(parameter) else '%s&&' % cpp_type
+        parameters.append('%s %s' % (declaration, parameter.name) if named else declaration)
+    return ', '.join(parameters)
+
+
+def _complete_reply_arguments(message):
+    if swift_primitive_reply_type(message):
+        return 'reply'
+    return ', '.join(parameter.name if _complete_takes_by_value(parameter) else 'WTF::move(%s)' % parameter.name for parameter in message.reply_parameters)
 
 
 def message_to_complete_declaration(receiver, message):
-    return 'void complete(%sCompletionHandler&, %s);' % (message.name, swift_primitive_reply_type(message))
+    if swift_primitive_reply_type(message):
+        return 'void complete(%sCompletionHandler&, %s);' % (message.name, swift_primitive_reply_type(message))
+    return 'void complete(%sCompletionHandler&, %s);' % (message.name, _complete_reply_parameters(message, named=False))
 
 
 def message_to_complete_definition(receiver, message):
     return '\n'.join([
-        'void complete(%sCompletionHandler& completionHandler, %s reply)' % (message.name, swift_primitive_reply_type(message)),
+        'void complete(%sCompletionHandler& completionHandler, %s)' % (message.name, _complete_reply_parameters(message)),
         '{',
-        '    (*completionHandler)(reply);',
+        '    (*completionHandler)(%s);' % _complete_reply_arguments(message),
         '}',
     ])
 
@@ -1481,20 +1572,22 @@ def generate_messages_header(receiver):
     result.append('\n')
     result.append('\n'.join([message_to_struct_declaration(receiver, x) for x in receiver.messages]))
     result.append('\n')
+    if receiver.has_attribute(CXX_SENDERS_ATTRIBUTE):
+        result += generate_cxx_senders(receiver)
     result.append('} // namespace %s\n} // namespace Messages\n' % receiver.name)
 
     def append_completion_handler_types_for_swift(result):
         reply_messages = messages_with_completion_handlers(receiver)
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n' % receiver.name)
-        result.append('\n'.join([message_to_completion_handler_using_declaration(receiver, x) for x in reply_messages]))
+        result.append('\n'.join([surround_in_condition(message_to_completion_handler_using_declaration(receiver, x) + '\n', x.condition).rstrip('\n') for x in reply_messages]))
         result.append('\n')
         if reply_messages:
             result.append('\n')
-            result.append('\n\n'.join([message_to_complete_with_default_reply_declaration(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
+            result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_declaration(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
             result.append('\n')
             for message in messages_with_distinct_primitive_reply_types(receiver):
-                result.append('\n%s\n' % message_to_complete_declaration(receiver, message))
+                result.append('\n%s\n' % render_for_reply_types(receiver, message, lambda m: message_to_complete_declaration(receiver, m)))
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
         result.append('\n')
     if_swift_enabled(receiver, result, append_completion_handler_types_for_swift, None)
@@ -1673,8 +1766,8 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     if not reply_parameters:
         return 'completionHandler.pointee()'
     if len(reply_parameters) > 1:
-        raise UnmappableSwiftType("Cannot derive a Swift reply for '%s': multi-value replies would need "
-                                  "a tuple return, which is not implemented." % message.name)
+        arguments = ['%s%s.%d' % ('' if _complete_takes_by_value(parameter) else 'consuming: ', reply_variable, index) for index, parameter in enumerate(reply_parameters)]
+        return 'CompletionHandlers.%s.complete(completionHandler, %s)' % (receiver.name, ', '.join(arguments))
     if swift_primitive_reply_type(message):
         return 'CompletionHandlers.%s.complete(completionHandler, %s)' % (receiver.name, reply_variable)
     if reply_parameters[0].kind.startswith('enum:'):
@@ -1682,7 +1775,7 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     return 'completionHandler.pointee(consuming: %s)' % reply_variable
 
 
-# Whether a Synchronous message's Swift handler is given its reply as a value rather than returning it.
+# Whether a message's Swift handler is given its reply as a value rather than returning it.
 def gives_swift_reply_value(message):
     return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) or message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
 
@@ -1748,7 +1841,7 @@ def generates_swift_trampoline(receiver, message):
 
 # The HandleMessage.h function that dispatches a message whose Swift receiver decodes the arguments.
 def swift_types_dispatch_function(message):
-    if gives_swift_reply_value(message):
+    if gives_swift_reply_value(message) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronousWithReplyValue'
     if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronous'
@@ -1808,7 +1901,8 @@ def async_message_statement(receiver, message):
             return
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
             pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
-            append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, 'this', swift_implementation_dispatch_function(receiver, message))
+            cpp_pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (dispatch_function, receiver.name, message.name, connection)
+            if_swift_implementation_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this', swift_implementation_dispatch_function(receiver, message)), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, cpp_pattern, 'this', handler_function(receiver, message)))
             return
         if receiver.swift_receiver_state_lender:
             if_swift_enabled(receiver, result, append_lent_state_dispatch, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, '        IPC::handleMessage<Messages::%s::%s>(connection, %%s);\n' % (receiver.name, message.name), 'this', handler_function(receiver, message)))
@@ -1899,7 +1993,7 @@ def sync_message_statement(receiver, message):
     if receiver.dispatches_to_swift_state(message):
         append_call_with_target_name(result, swift_dispatch_function, *swift_state_dispatch_target_and_function(receiver, message))
     elif receiver.is_swift_implementation() and receiver.takes_swift_types(message):
-        append_call_with_target_name(result, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message))
+        if_swift_implementation_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message)), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)))
     else:
         if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
     result.append('        return;\n')
@@ -1983,7 +2077,9 @@ def headers_for_type(type, for_implementation_file=False):
     header_infos_and_types = class_template_headers(type)
 
     special_cases = {
+        'CGRendererColorData': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CGRendererColorValue': ['<WebCore/CGRendererSwiftBridge.h>'],
+        'CGRendererShadowValues': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CVPixelBufferRef': ['<WebCore/CVUtilities.h>'],
         'GCGLint': ['<WebCore/GraphicsTypesGL.h>'],
         'GenericPromise::Result': ['<wtf/NativePromise.h>'],
@@ -2962,9 +3058,9 @@ def generate_message_handler(receiver):
             return
         result.append('\n')
         result.append('namespace CompletionHandlers {\nnamespace %s {\n\n' % receiver.name)
-        result.append('\n\n'.join([message_to_complete_with_default_reply_definition(receiver, x) for x in messages_with_distinct_reply_types(receiver)]))
+        result.append('\n\n'.join([render_for_reply_types(receiver, x, lambda m: message_to_complete_with_default_reply_definition(receiver, m)) for x in messages_with_distinct_reply_types(receiver)]))
         for message in messages_with_distinct_primitive_reply_types(receiver):
-            result.append('\n\n%s' % message_to_complete_definition(receiver, message))
+            result.append('\n\n%s' % render_for_reply_types(receiver, message, lambda m: message_to_complete_definition(receiver, m)))
         result.append('\n\n')
         result.append('} // namespace %s\n} // namespace CompletionHandlers\n' % receiver.name)
     if_swift_enabled(receiver, result, append_complete_with_default_reply_definitions, None)
@@ -3053,15 +3149,22 @@ def check_swift_types_are_dispatched_on_main_thread(receiver):
 # The Swift decoding of the arguments of a message that takes Swift types, by a dispatch that returns its Invalid result if
 # they are malformed.
 # With decode_context, the dispatch first asks the target, with the state, for the context to decode the arguments whose coders
-# take one ('SwiftDecodeContext=').
+# take one ('SwiftDecodeContext='), and tells those coders if the message is malformed (decodeFailed(context:)).
 def swift_types_argument_decoding(message, indent, decode_context=None):
     result = []
     if not message.parameters:
         return result
     for parameter in message.parameters:
         result.append('%slet %s: %s\n' % (indent, parameter.name, swift_types.swift_type_and_coder(parameter.type)[0]))
+    # A coder that took the context is told when the message turns out to be malformed, so that it can undo what its decode
+    # did with the context.
+    decode_context_coders = []
     if decode_context:
         result.append('%slet decodeContext = target.%s(state: state)\n' % (indent, decode_context))
+        for parameter in message.parameters:
+            coder = swift_types.swift_coder(parameter.type)
+            if swift_types.takes_decode_context(parameter.type) and coder not in decode_context_coders:
+                decode_context_coders.append(coder)
     # Swift can't destroy a ~Copyable value on some paths out of a block and not others, so each argument of a message with
     # an owned argument is decoded in a block of its own.
     decodes_each_in_own_block = any(swift_types.is_owned_type(parameter.type) for parameter in message.parameters)
@@ -3072,6 +3175,8 @@ def swift_types_argument_decoding(message, indent, decode_context=None):
         result.append('%s    %s = try %s.decode(from: &decoder%s)\n' % (indent, parameter.name, swift_types.swift_coder(parameter.type), context))
         if index == len(message.parameters) - 1 or decodes_each_in_own_block:
             result.append('%s} catch {\n' % indent)
+            for coder in decode_context_coders:
+                result.append('%s    %s.decodeFailed(context: decodeContext)\n' % (indent, coder))
             result.append('%s    return .Invalid\n' % indent)
             result.append('%s}\n' % indent)
     return result
@@ -3126,12 +3231,12 @@ def generate_swift_message_handler(receiver):
     result.append('\n')
     if receiver.condition:
         result.append('#if %s\n' % swift_receiver_condition(receiver))
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
+    if swift_build_enabled_by(receiver):
+        result.append('#if ENABLE_%s\n' % (swift_build_enabled_by(receiver)))
     result.append('import WebKit_Internal\n')
     if receiver.condition:
         result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
+    if swift_build_enabled_by(receiver):
         result.append('#endif\n')
     result.append('\n')
 
@@ -3142,8 +3247,8 @@ def generate_swift_message_handler(receiver):
 
     if receiver.condition:
         result.append('#if %s\n' % swift_receiver_condition(receiver))
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
+    if swift_build_enabled_by(receiver):
+        result.append('#if ENABLE_%s\n' % (swift_build_enabled_by(receiver)))
 
     # A receiver with 'SwiftState=' whose messages all go to its Swift state has no @cxx @implementation dispatch.
     emits_extension = implementation and bool(swift_implementation_messages(receiver) or not receiver.swift_state)
@@ -3166,6 +3271,9 @@ def generate_swift_message_handler(receiver):
         else:
             result.append('final class %s: @unchecked Sendable {\n' % (weak_ref_class))
             result.append('    private weak var target: %s?\n' % (class_name))
+        if receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            # Only Swift makes it, and the C++ header can't take an actor.
+            result.append('    @_expose(!Cxx)\n')
         result.append('    init(target: %s) {\n' % (class_name))
         result.append('        self.target = target\n')
         result.append('    }\n')
@@ -3245,7 +3353,9 @@ def generate_swift_message_handler(receiver):
         decodes_on_stream = takes_swift_types and receiver.has_attribute(STREAM_ATTRIBUTE)
         passes_connection = not decodes_on_stream or message.has_attribute(WANTS_CONNECTION_ATTRIBUTE)
         invalid_message_target = '&decoder' if decodes_on_stream else 'connection'
-        parameters = ['connection: %s%s' % ('' if swift_receiver_runs_on_work_queue(receiver) else 'sending ', connection_type)] if passes_connection else []
+        # An actor receiver's dispatch sends the connection into the actor, as main-thread dispatch sends it to the main actor.
+        sends_connection = not swift_receiver_runs_on_work_queue(receiver) or receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE)
+        parameters = ['connection: %s%s' % ('sending ' if sends_connection else '', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
         decoded_parameters = []
         owned_parameter_names = [parameter.name for parameter in message.parameters if takes_swift_types and not parameter.attributes and swift_types.is_owned_type(parameter.type)]
@@ -3288,7 +3398,8 @@ def generate_swift_message_handler(receiver):
         # A stream receiver's handler is always called directly, on the stream connection's work queue
         # rather than the main actor. The receiver is confined to that queue, so dispatch asserts it is
         # there instead of entering an actor. A WorkQueue receiver's handler is called directly too, on
-        # the queue its forwarder is registered with, which only that registration determines.
+        # the queue its forwarder is registered with, which only that registration determines, or, with
+        # 'SwiftActor', inside its actor, whose executor must be that queue.
         is_stream = receiver.has_attribute(STREAM_ATTRIBUTE)
         runs_on_work_queue = swift_receiver_runs_on_work_queue(receiver)
         sync_handler = message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) or runs_on_work_queue
@@ -3393,12 +3504,13 @@ def generate_swift_message_handler(receiver):
             reply_statements = [swift_reply_completion_call(receiver, message, 'reply')]
             cancel_statements = ['CompletionHandlers.%s.completeWithDefaultReply(completionHandler)' % receiver.name]
 
-        def append_handler_call(base, await_keyword, typed_do):
-            for name in lent_parameters:
-                result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
+        def append_handler_call(base, await_keyword, typed_do, lends_inside=True, unsafe_keyword=''):
+            if lends_inside:
+                for name in lent_parameters:
+                    result.append('%slet %s = decoder.lentBytes(%sPosition)\n' % (base, name, name))
             result.append('%sdo%s {\n' % (base, ' throws(InvalidMessage)' if typed_do else ''))
             assignment = 'let reply = ' if message.reply_parameters and not reply_value_type else ''
-            call = ['%stry %smayThrowInvalidMessage(' % (assignment, await_keyword)]
+            call = ['%stry %s%smayThrowInvalidMessage(' % (assignment, unsafe_keyword, await_keyword)]
             if arguments:
                 call.append('    target.%s(' % handler_function_name(message))
                 call.append(',\n'.join(['        %s' % argument for argument in arguments]))
@@ -3417,7 +3529,23 @@ def generate_swift_message_handler(receiver):
                 result.append('%s    %s\n' % (base, statement))
             result.append('%s}\n' % base)
 
-        if runs_on_work_queue:
+        if runs_on_work_queue and receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE):
+            # The actor's closure can't consume the ~Copyable arguments it captures, as the main actor's can't.
+            for name in owned_parameter_names:
+                result.append('        var %sOwned = Optional(%s)\n' % (name, name))
+                arguments[arguments.index('%s: %s' % (name, name))] = '%s: %sOwned.take()!' % (name, name)
+            # The lent bytes and the C++ objects that C++ decoded are in the region of the decoder, which C++ lends.
+            lent_names = list(lent_parameters) + [name for name, swift_type, coder in decoded_parameters if coder and coder != LENT_BYTES_CODER and re.match(r'(WebCore|WebKit|IPC|WTF)\.', swift_type)]
+            if lent_names:
+                result.append('        // Safety: C++ lends these to this dispatch, which uses them only before it returns, on the actor\'s queue.\n')
+            for name in lent_names:
+                value = 'decoder.lentBytes(%sPosition)' % name if name in lent_parameters else name
+                result.append('        nonisolated(unsafe) let %sLent = %s\n' % (name, value))
+                arguments[arguments.index('%s: %s' % (name, name))] = '%s: %sLent' % (name, name)
+            result.append('        target.assumeIsolated { target in\n')
+            append_handler_call('            ', '', True, lends_inside=False, unsafe_keyword='unsafe ' if lent_names else '')
+            result.append('        }\n')
+        elif runs_on_work_queue:
             append_handler_call('        ', '', True)
         elif sync_handler:
             # The main actor's closure can't consume the ~Copyable arguments it captures, so each moves into an Optional
@@ -3574,7 +3702,7 @@ def generate_swift_message_handler(receiver):
 
     if receiver.condition:
         result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
+    if swift_build_enabled_by(receiver):
         result.append('#endif\n')
 
     return ''.join(result)

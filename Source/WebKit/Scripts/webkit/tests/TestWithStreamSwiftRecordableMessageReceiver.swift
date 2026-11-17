@@ -188,6 +188,7 @@ final class TestWithStreamSwiftRecordableWeakRef {
         do {
             path = try IPCTypes.Path.decode(from: &decoder, context: decodeContext)
         } catch {
+            IPCTypes.Path.decodeFailed(context: decodeContext)
             return .Invalid
         }
         do throws(InvalidMessage) {
@@ -233,6 +234,62 @@ final class TestWithStreamSwiftRecordableWeakRef {
         }
         return .Handled
     }
+
+    @used
+    func dispatchDrawGlyphs(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let glyphs: IPCTypes.GlyphRun
+        let segments: [WebCore.FloatSegment]
+        let decodeContext = target.glyphsDecodeContext(state: state)
+        do {
+            glyphs = try IPCTypes.GlyphRun.decode(from: &decoder, context: decodeContext)
+            segments = try IPCCoding.TrivialSpan<WebCore.FloatSegment>.decode(from: &decoder)
+        } catch {
+            IPCTypes.GlyphRun.decodeFailed(context: decodeContext)
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.drawGlyphs(
+                    state: &state,
+                    glyphs: glyphs,
+                    segments: segments
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetMatrix(
+        state: inout TestWithStreamSwiftRecordable.State,
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let matrix: IPCCoding.StdArray20<Float>.Value
+        let strokeStyle: WebCore.StrokeStyle
+        do {
+            matrix = try IPCCoding.StdArray20<Float>.decode(from: &decoder)
+            strokeStyle = try IPCCoding.CxxEnum<WebCore.StrokeStyle>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try mayThrowInvalidMessage(
+                target.setMatrix(
+                    state: &state,
+                    matrix: matrix,
+                    strokeStyle: strokeStyle
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
 }
 
 extension WebKit.TestWithStreamSwiftRecordableMessageForwarder {
@@ -260,6 +317,8 @@ extension TestWithStreamSwiftRecordable {
         #endif
         case setLabel(label: String?, tag: UInt64?)
         case fillPath(path: IPCTypes.Path)
+        case drawGlyphs(glyphs: IPCTypes.GlyphRun, segments: [WebCore.FloatSegment])
+        case setMatrix(matrix: IPCCoding.StdArray20<Float>.Value, strokeStyle: WebCore.StrokeStyle)
     }
 
     // Calls the handler of each message in turn, as the forwarder does for a message it receives, with the state lent for
@@ -315,6 +374,22 @@ extension TestWithStreamSwiftRecordable {
                         path: path
                     )
                 )
+            case .drawGlyphs(let glyphs, let segments):
+                _ = try? mayThrowInvalidMessage(
+                    target.drawGlyphs(
+                        state: &state,
+                        glyphs: glyphs,
+                        segments: segments
+                    )
+                )
+            case .setMatrix(let matrix, let strokeStyle):
+                _ = try? mayThrowInvalidMessage(
+                    target.setMatrix(
+                        state: &state,
+                        matrix: matrix,
+                        strokeStyle: strokeStyle
+                    )
+                )
             }
         }
     }
@@ -341,6 +416,16 @@ extension TestWithStreamSwiftRecordable {
             case .fillPath(let path):
                 let messageEncoder = encoder.encoderForFillPath()
                 IPCTypes.Path.encode(path, to: messageEncoder)
+                encoder.appendEncodedMessage(messageEncoder)
+            case .drawGlyphs(let glyphs, let segments):
+                let messageEncoder = encoder.encoderForDrawGlyphs()
+                IPCTypes.GlyphRun.encode(glyphs, to: messageEncoder)
+                IPCCoding.TrivialSpan<WebCore.FloatSegment>.encode(segments, to: messageEncoder)
+                encoder.appendEncodedMessage(messageEncoder)
+            case .setMatrix(let matrix, let strokeStyle):
+                let messageEncoder = encoder.encoderForSetMatrix()
+                IPCCoding.StdArray20<Float>.encode(matrix, to: messageEncoder)
+                IPCCoding.CxxEnum<WebCore.StrokeStyle>.encode(strokeStyle, to: messageEncoder)
                 encoder.appendEncodedMessage(messageEncoder)
             }
         }
@@ -522,6 +607,56 @@ final class TestWithStreamSwiftRecordableRecorderWeakRef {
         do throws(InvalidMessage) {
             try mayThrowInvalidMessage(
                 target.setSemaphore(semaphore: semaphore, source: source)
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchDrawGlyphs(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let glyphs: IPCTypes.GlyphRun
+        let segments: [WebCore.FloatSegment]
+        do {
+            glyphs = try IPCTypes.GlyphRun.decode(from: &decoder)
+            segments = try IPCCoding.TrivialSpan<WebCore.FloatSegment>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try target.record(
+                .drawGlyphs(
+                    glyphs: glyphs,
+                    segments: segments
+                )
+            )
+        } catch {
+            return .Invalid
+        }
+        return .Handled
+    }
+
+    @used
+    func dispatchSetMatrix(
+        decoder: inout IPC.SwiftDecoder
+    ) -> IPC.SwiftLentStateDispatch {
+        let matrix: IPCCoding.StdArray20<Float>.Value
+        let strokeStyle: WebCore.StrokeStyle
+        do {
+            matrix = try IPCCoding.StdArray20<Float>.decode(from: &decoder)
+            strokeStyle = try IPCCoding.CxxEnum<WebCore.StrokeStyle>.decode(from: &decoder)
+        } catch {
+            return .Invalid
+        }
+        do throws(InvalidMessage) {
+            try target.record(
+                .setMatrix(
+                    matrix: matrix,
+                    strokeStyle: strokeStyle
+                )
             )
         } catch {
             return .Invalid

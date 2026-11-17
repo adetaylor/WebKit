@@ -40,4 +40,6 @@ messages -> TestWithStreamSwiftRecordable Stream {
     SetLabelSource(uint64_t source) NotRecorded SwiftTypes
     FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContext
     SetSemaphore(IPC::Semaphore semaphore, uint64_t source) NotRecorded NotStreamEncodable SwiftTypes
+    DrawGlyphs(IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphs, std::span<const WebCore::FloatSegment> segments) StreamBatched SwiftTypes SwiftDecodeContext=glyphsDecodeContext
+    SetMatrix(std::array<float, 20> matrix, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched SwiftTypes
 }

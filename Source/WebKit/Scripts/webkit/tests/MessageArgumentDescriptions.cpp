@@ -371,6 +371,10 @@ std::optional<JSC::JSValue> jsValueForArguments(JSC::JSGlobalObject* globalObjec
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_FillPath>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftRecordable_SetSemaphore:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetSemaphore>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftRecordable_DrawGlyphs:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_DrawGlyphs>(globalObject, decoder);
+    case MessageName::TestWithStreamSwiftRecordable_SetMatrix:
+        return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetMatrix>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return jsValueForDecodedMessage<MessageName::TestWithStreamSwiftReplyValues_SendLaterSync>(globalObject, decoder);
     case MessageName::TestWithStreamSwiftReplyValues_SendCxxEncodedSync:
@@ -1682,6 +1686,16 @@ std::optional<Vector<ArgumentDescription>> messageArgumentDescriptions(MessageNa
         return Vector<ArgumentDescription> {
             { "semaphore"_s, "IPC::Semaphore"_s },
             { "source"_s, "uint64_t"_s },
+        };
+    case MessageName::TestWithStreamSwiftRecordable_DrawGlyphs:
+        return Vector<ArgumentDescription> {
+            { "glyphs"_s, "IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>"_s },
+            { "segments"_s, "std::span<const WebCore::FloatSegment>"_s },
+        };
+    case MessageName::TestWithStreamSwiftRecordable_SetMatrix:
+        return Vector<ArgumentDescription> {
+            { "matrix"_s, "std::array<float, 20>"_s },
+            { "strokeStyle"_s, "WebCore::StrokeStyle"_s },
         };
     case MessageName::TestWithStreamSwiftReplyValues_SendLaterSync:
         return Vector<ArgumentDescription> {

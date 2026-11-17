@@ -181,11 +181,13 @@ enum class MessageName : uint16_t {
 #if PLATFORM(COCOA)
     TestWithStreamSwiftRecordable_Draw,
 #endif
+    TestWithStreamSwiftRecordable_DrawGlyphs,
     TestWithStreamSwiftRecordable_DrawRun,
     TestWithStreamSwiftRecordable_FillPath,
     TestWithStreamSwiftRecordable_Reset,
     TestWithStreamSwiftRecordable_SetLabel,
     TestWithStreamSwiftRecordable_SetLabelSource,
+    TestWithStreamSwiftRecordable_SetMatrix,
     TestWithStreamSwiftRecordable_SetSemaphore,
     TestWithStreamSwiftRecordable_SetSource,
     TestWithStreamSwiftRecordable_SetValues,

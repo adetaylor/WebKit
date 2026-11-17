@@ -26,7 +26,7 @@ async function describeAll(cases)
     const description = result => result ? result.arguments[0].value : null;
     const results = await Promise.all(cases.map(([, args]) => Promise.all([
         send(IPC.messages.IPCTesterReceiver_DescribeFilterSwift.name, args),
-        send(IPC.messages.IPCTesterReceiver_DescribeCxxDecodedFilterSwift.name, args),
+        send(IPC.messages.IPCTester_DescribeFilter.name, args),
     ])));
     takeInvalidMessageString();
     return results.map(([swift, cxx]) => [description(swift), description(cxx)]);

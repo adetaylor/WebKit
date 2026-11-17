@@ -7419,6 +7419,7 @@
 		7BF19B5F290FC5B400EF322A /* IPCTesterReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCTesterReceiver.h; sourceTree = "<group>"; };
 		22F44BA8FB3C77138477BC3A /* IPCWorkQueueTester.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCWorkQueueTester.h; sourceTree = "<group>"; };
 		B10637BA880595B8BA222F83 /* IPCWorkQueueTester.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = IPCWorkQueueTester.messages.in; sourceTree = "<group>"; };
+		A854C8ED25DE7393D581401A /* IPCTesterCGRendererWireForms.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPCTesterCGRendererWireForms.cpp; sourceTree = "<group>"; };
 		7BF19B60290FC5B400EF322A /* IPCTesterReceiver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPCTesterReceiver.cpp; sourceTree = "<group>"; };
 		7BFE47312E8A96FB00F60A1C /* RemoteNativeImageProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteNativeImageProxy.h; sourceTree = "<group>"; };
 		7BFE47322E8A96FB00F60A1C /* RemoteNativeImageProxy.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteNativeImageProxy.cpp; sourceTree = "<group>"; };
@@ -10816,6 +10817,7 @@
 				7B50E97F2771F6CE003DAAC4 /* IPCTester.cpp */,
 				7B50E9802771F6CF003DAAC4 /* IPCTester.h */,
 				86EFFA402B03A6B900ABE77D /* IPCTester.messages.in */,
+				A854C8ED25DE7393D581401A /* IPCTesterCGRendererWireForms.cpp */,
 				C6734126A882801F8F6EF787 /* IPCTesterPayload.h */,
 				7BF19B60290FC5B400EF322A /* IPCTesterReceiver.cpp */,
 				7BF19B5F290FC5B400EF322A /* IPCTesterReceiver.h */,

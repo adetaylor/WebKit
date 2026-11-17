@@ -180,6 +180,7 @@
 		5C1F05932164356B0039302C /* CFURLExtras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F05912164356B0039302C /* CFURLExtras.cpp */; };
 		5C1F0595216437B30039302C /* URLCF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C1F0594216437B30039302C /* URLCF.cpp */; };
 		5C6222A62ED864D100AFEC2D /* RefCountable.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6222A52ED864D100AFEC2D /* RefCountable.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		1E400025C76DBE63C0E38030 /* NativePromiseSettler.h in Headers */ = {isa = PBXBuildFile; fileRef = D8D98A64DE7F93349A36E413 /* NativePromiseSettler.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5C6552C029423F85008CD0F3 /* ThreadSafeWeakHashSet.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CB8CB6D28C16CB700539906 /* ArgumentCoder.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5CC0EE7521629F1900A1A842 /* URLParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CC0EE7321629F1900A1A842 /* URLParser.cpp */; };
@@ -1473,6 +1474,7 @@
 		5C1F0594216437B30039302C /* URLCF.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = URLCF.cpp; sourceTree = "<group>"; };
 		5C1F0597216439940039302C /* URLHash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = URLHash.h; sourceTree = "<group>"; };
 		5C6222A52ED864D100AFEC2D /* RefCountable.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RefCountable.h; sourceTree = "<group>"; };
+		D8D98A64DE7F93349A36E413 /* NativePromiseSettler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NativePromiseSettler.h; sourceTree = "<group>"; };
 		5C6552BF29423F85008CD0F3 /* ThreadSafeWeakHashSet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadSafeWeakHashSet.h; sourceTree = "<group>"; };
 		5C7C88D31D0A3A0A009D2F6D /* UniqueRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UniqueRef.h; sourceTree = "<group>"; };
 		5CB8CB6C28C16CB700539906 /* ArgumentCoder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgumentCoder.h; sourceTree = "<group>"; };
@@ -2653,6 +2655,7 @@
 				FE8225301B2A1E5B00BA68FD /* NakedPtr.h */,
 				51B07F532AB8797300E14EE9 /* NativePromise.cpp */,
 				5164042C2AB1D46B0042B1C3 /* NativePromise.h */,
+				D8D98A64DE7F93349A36E413 /* NativePromiseSettler.h */,
 				0F5BF1651F2317830029D91D /* NaturalLoops.h */,
 				1A3F6BE6174ADA2100B2EEA7 /* NeverDestroyed.h */,
 				0F0D85B317234CB100338210 /* NoLock.h */,
@@ -3803,6 +3806,7 @@
 				DD3DC96827A4BF8E007E5B61 /* MonotonicTime.h in Headers */,
 				DD3DC96227A4BF8E007E5B61 /* NakedPtr.h in Headers */,
 				5164042D2AB1D46B0042B1C3 /* NativePromise.h in Headers */,
+				1E400025C76DBE63C0E38030 /* NativePromiseSettler.h in Headers */,
 				DD3DC8D827A4BF8E007E5B61 /* NaturalLoops.h in Headers */,
 				E396C11D2BE885D9000CBAE1 /* neon.h in Headers */,
 				46335BEF2E778B1300860375 /* NetworkOSObject.h in Headers */,

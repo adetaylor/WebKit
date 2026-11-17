@@ -25,6 +25,7 @@
 #include "config.h"
 #include "Shared/WebKit-Swift.h" // NOLINT
 #include "ArgumentCoders.h" // NOLINT
+#include "ArrayReferenceTuple.h" // NOLINT
 #include "Decoder.h" // NOLINT
 #include "HandleMessage.h" // NOLINT
 #include "IPCSemaphore.h" // NOLINT
@@ -35,8 +36,13 @@
 #if PLATFORM(COCOA)
 #include <WebCore/FloatRect.h> // NOLINT
 #endif
+#include <WebCore/FloatSegment.h> // NOLINT
+#include <WebCore/GlyphBufferMembers.h> // NOLINT
+#include <WebCore/GraphicsTypes.h> // NOLINT
 #include <WebCore/Path.h> // NOLINT
+#include <array> // NOLINT
 #include <optional> // NOLINT
+#include <span> // NOLINT
 #include <wtf/text/WTFString.h> // NOLINT
 
 #if ENABLE(IPC_TESTING_API)
@@ -83,6 +89,14 @@ void TestWithStreamSwiftRecordableMessageForwarder::didReceiveStreamMessage(IPC:
     }
     if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetSemaphore::name()) {
         IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetSemaphore>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetSemaphore);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::DrawGlyphs::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::DrawGlyphs>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchDrawGlyphs);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetMatrix::name()) {
+        IPC::handleSwiftTypesMessageWithLentState<Messages::TestWithStreamSwiftRecordable::SetMatrix>(connection, decoder, m_stateLender, m_handler.get(), &TestWithStreamSwiftRecordableWeakRef::dispatchSetMatrix);
         return;
     }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
@@ -162,6 +176,14 @@ void TestWithStreamSwiftRecordableRecorderMessageForwarder::dispatch(IPC::Stream
         IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetSemaphore>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetSemaphore);
         return;
     }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::DrawGlyphs::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::DrawGlyphs>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchDrawGlyphs);
+        return;
+    }
+    if (decoder.messageName() == Messages::TestWithStreamSwiftRecordable::SetMatrix::name()) {
+        IPC::handleSwiftTypesRecordedMessage<Messages::TestWithStreamSwiftRecordable::SetMatrix>(connection, decoder, m_handler.get(), &TestWithStreamSwiftRecordableRecorderWeakRef::dispatchSetMatrix);
+        return;
+    }
     RELEASE_LOG_ERROR(IPC, "Unhandled stream message %s to %" PRIu64, IPC::description(decoder.messageName()).characters(), decoder.destinationID());
     decoder.markInvalid();
 }
@@ -214,6 +236,16 @@ IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::enc
     return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::FillPath::name());
 }
 
+IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::encoderForDrawGlyphs()
+{
+    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::DrawGlyphs::name());
+}
+
+IPC::SwiftReplyEncoder* TestWithStreamSwiftRecordableRecordedMessageEncoder::encoderForSetMatrix()
+{
+    return IPC::SwiftReplyEncoder::createForRecordedMessage(Messages::TestWithStreamSwiftRecordable::SetMatrix::name());
+}
+
 void TestWithStreamSwiftRecordableRecordedMessageEncoder::appendEncodedMessage(IPC::SwiftReplyEncoder& encoder)
 {
     IPC::appendSwiftEncodedRecordedMessage(m_encodedMessages, encoder);
@@ -263,6 +295,14 @@ template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::Tes
 template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetSemaphore>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
 {
     return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetSemaphore::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_DrawGlyphs>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::DrawGlyphs::Arguments>(globalObject, decoder);
+}
+template<> std::optional<JSC::JSValue> jsValueForDecodedMessage<MessageName::TestWithStreamSwiftRecordable_SetMatrix>(JSC::JSGlobalObject* globalObject, Decoder& decoder)
+{
+    return jsValueForDecodedArguments<Messages::TestWithStreamSwiftRecordable::SetMatrix::Arguments>(globalObject, decoder);
 }
 
 }

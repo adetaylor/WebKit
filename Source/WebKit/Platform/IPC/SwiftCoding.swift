@@ -546,6 +546,101 @@ enum IPCCoding {
         static var count: Int { 6 }
     }
 
+    enum Extent20: IPCSpanExtent {
+        static var count: Int { 20 }
+    }
+
+    /// std::array<T, 20> of a primitive: its elements, one after another, as a tuple, which needs no allocation, and which is
+    /// how Swift imports a C array of 20 of them.
+    enum StdArray20<Element: IPCBlockPrimitive>: IPCCoder {
+        typealias Value = (Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element, Element)
+
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Value {
+            var value: Value = (.zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero, .zero)
+            value.0 = try Element.decode(from: &decoder)
+            value.1 = try Element.decode(from: &decoder)
+            value.2 = try Element.decode(from: &decoder)
+            value.3 = try Element.decode(from: &decoder)
+            value.4 = try Element.decode(from: &decoder)
+            value.5 = try Element.decode(from: &decoder)
+            value.6 = try Element.decode(from: &decoder)
+            value.7 = try Element.decode(from: &decoder)
+            value.8 = try Element.decode(from: &decoder)
+            value.9 = try Element.decode(from: &decoder)
+            value.10 = try Element.decode(from: &decoder)
+            value.11 = try Element.decode(from: &decoder)
+            value.12 = try Element.decode(from: &decoder)
+            value.13 = try Element.decode(from: &decoder)
+            value.14 = try Element.decode(from: &decoder)
+            value.15 = try Element.decode(from: &decoder)
+            value.16 = try Element.decode(from: &decoder)
+            value.17 = try Element.decode(from: &decoder)
+            value.18 = try Element.decode(from: &decoder)
+            value.19 = try Element.decode(from: &decoder)
+            return value
+        }
+
+        static func encode(_ value: Value, to encoder: IPC.SwiftReplyEncoder) {
+            Element.encode(value.0, to: encoder)
+            Element.encode(value.1, to: encoder)
+            Element.encode(value.2, to: encoder)
+            Element.encode(value.3, to: encoder)
+            Element.encode(value.4, to: encoder)
+            Element.encode(value.5, to: encoder)
+            Element.encode(value.6, to: encoder)
+            Element.encode(value.7, to: encoder)
+            Element.encode(value.8, to: encoder)
+            Element.encode(value.9, to: encoder)
+            Element.encode(value.10, to: encoder)
+            Element.encode(value.11, to: encoder)
+            Element.encode(value.12, to: encoder)
+            Element.encode(value.13, to: encoder)
+            Element.encode(value.14, to: encoder)
+            Element.encode(value.15, to: encoder)
+            Element.encode(value.16, to: encoder)
+            Element.encode(value.17, to: encoder)
+            Element.encode(value.18, to: encoder)
+            Element.encode(value.19, to: encoder)
+        }
+    }
+
+    /// std::span<const T> of a trivially copyable struct (IPCTrivialSpanElement): its count, then the bytes of its elements,
+    /// which Swift copies into an Array of its own in one block.
+    enum TrivialSpan<Element: IPCTrivialSpanElement & BitwiseCopyable>: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> [Element] {
+            guard let count = Int(exactly: try UInt64.decode(from: &decoder)) else {
+                throw IPCDecodingError()
+            }
+            // C++ decodes an empty span without aligning the decoder.
+            if count == 0 {
+                return []
+            }
+            // A count beyond what is left of the message is malformed, and mustn't be allocated.
+            guard count <= decoder.remainingByteCount() / MemoryLayout<Element>.stride else {
+                decoder.markInvalid()
+                throw IPCDecodingError()
+            }
+            var decoded = false
+            let result = unsafe [Element](unsafeUninitializedCapacity: count) { storage, initializedCount in
+                // Sound: the decoder writes every byte of the count elements, or fails, when none of them is counted.
+                decoded = unsafe decoder.decodeBytes(into: UnsafeMutableRawBufferPointer(storage), alignment: MemoryLayout<Element>.alignment)
+                initializedCount = decoded ? count : 0
+            }
+            guard decoded else {
+                throw IPCDecodingError()
+            }
+            return result
+        }
+
+        static func encode(_ value: [Element], to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encode(UInt64(value.count))
+            if value.isEmpty {
+                return
+            }
+            encoder.encodeElements(value)
+        }
+    }
+
     /// WTF::String, whose null string is nil.
     ///
     /// A Swift String cannot hold an unpaired UTF-16 surrogate, so one decodes as U+FFFD.
@@ -726,6 +821,65 @@ enum IPCCoding {
             for unit in value.utf16 {
                 encoder.encode(unit)
             }
+        }
+    }
+}
+
+/// A trivially copyable type that Swift imports, of which every bit pattern is a valid value, so that Swift can copy the
+/// bytes of a std::span of it to and from a message (IPCCoding.TrivialSpan): swift_types.py lists them. The Swift that takes
+/// each one declares its conformance, which can't be silent: it must state the promise (everyBitPatternIsAValue). A type that
+/// some bytes from another process don't make a valid value of, such as one with a bool, an enum or a pointer, must not conform.
+protocol IPCTrivialSpanElement {
+    /// The conformer's promise that any bytes make a valid value of it, on which the copies of its bytes rely. Unsafe: a
+    /// false promise lets another process's bytes make invalid Swift values.
+    @unsafe static var everyBitPatternIsAValue: Void { get }
+}
+
+extension IPC.SwiftDecoder {
+    /// Decodes the first count elements of elements, all of them by default, from bytes that C++ encoded as the elements of
+    /// a std::span (Encoder::encodeSpan()), in one block.
+    mutating func decodeElements<Element: IPCTrivialSpanElement & BitwiseCopyable, Elements: MutableCollection & RandomAccessCollection>(
+        into elements: inout Elements,
+        count: Int? = nil
+    ) -> Bool where Elements.Element == Element {
+        let count = count ?? elements.count
+        precondition(count >= 0 && count <= elements.count)
+        let decoded = elements.withContiguousMutableStorageIfAvailable { storage in
+            // Sound: Element is BitwiseCopyable, and every bit pattern of it is a valid value (IPCTrivialSpanElement), so any
+            // bytes the decoder writes make valid elements; and it writes only within these count elements, which storage
+            // lends for this call.
+            let bytes = unsafe UnsafeMutableRawBufferPointer(rebasing: UnsafeMutableRawBufferPointer(storage)[0..<(count * MemoryLayout<Element>.stride)])
+            return unsafe decodeBytes(into: bytes, alignment: MemoryLayout<Element>.alignment)
+        }
+        guard let decoded else {
+            preconditionFailure("decodeElements needs contiguous storage")
+        }
+        return decoded
+    }
+
+    /// Decodes bytes.count bytes into bytes, as C++ decodes the elements of a std::span of a type of that alignment. Unsafe:
+    /// the caller must lend bytes for the call, and the bytes must make valid values of the type it decodes.
+    @unsafe
+    mutating func decodeBytes(into bytes: UnsafeMutableRawBufferPointer, alignment: Int) -> Bool {
+        var span = unsafe MutableSpan<UInt8>(_unsafeBytes: bytes)
+        return decodeBytes(&span, alignment)
+    }
+}
+
+extension IPC.SwiftReplyEncoder {
+    /// Encodes the first count elements of elements, all of them by default, as C++ encodes the elements of a std::span
+    /// (Encoder::encodeSpan()).
+    func encodeElements<Element: IPCTrivialSpanElement & BitwiseCopyable, Elements: RandomAccessCollection>(_ elements: Elements, count: Int? = nil) where Elements.Element == Element {
+        let count = count ?? elements.count
+        precondition(count >= 0 && count <= elements.count)
+        let alignment = MemoryLayout<Element>.alignment
+        let encoded: Void? = elements.withContiguousStorageIfAvailable { storage in
+            // Sound: the bytes are only read, within these count elements, which storage lends for this call.
+            let bytes = unsafe UnsafeRawBufferPointer(rebasing: UnsafeRawBufferPointer(storage)[0..<(count * MemoryLayout<Element>.stride)])
+            encodeBytes(unsafe Span<UInt8>(_unsafeBytes: bytes), alignment)
+        }
+        guard encoded != nil else {
+            preconditionFailure("encodeElements needs contiguous storage")
         }
     }
 }
@@ -1106,6 +1260,24 @@ extension IPCCoding {
 }
 
 #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+extension IPCCoding.CxxDecoded {
+    /// WebCore::PathSegment, which C++ decodes as it does, into the plain values that the CG renderer takes of it
+    /// (CGRendererPathSegmentValues()), in one call, and encodes again from them.
+    enum PathSegment: IPCCoder {
+        static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> CGRendererPathSegment {
+            var values = CGRendererPathSegment()
+            guard decoder.decodeCGRendererPathSegment(&values) else {
+                throw IPCDecodingError()
+            }
+            return values
+        }
+
+        static func encode(_ value: CGRendererPathSegment, to encoder: IPC.SwiftReplyEncoder) {
+            encoder.encodeCGRendererPathSegment(value)
+        }
+    }
+}
+
 extension IPCTypes {
     /// WebCore::Path, which C++ decodes as it does, as a Vector of its segments, so that Swift accepts exactly what C++ does,
     /// into the CGPath that Path makes of more than one segment and what the CG renderer asks of the path besides
@@ -1115,16 +1287,33 @@ extension IPCTypes {
         private let facts: CGRendererPathFacts
         /// Of a path of more than one segment, and only of one.
         private let platformPath: CGPath?
+        /// Of a path of more than one segment that a clip's decode added to the context's path (DecodeContext.clipContext)
+        /// instead, which only clip() takes.
+        private let isInClipContextPath: Bool
 
-        /// The path that Path makes of the segments: none, one, or a PathStream of them.
-        var rendererPath: CGRendererPath {
+        /// The path that Path makes of the segments, none, one, or a PathStream of them, which body borrows, so that a draw
+        /// neither copies the facts nor retains the CGPath.
+        func withRendererPath<Result>(_ body: (borrowing CGRendererPath) -> Result) -> Result {
+            precondition(!isInClipContextPath, "A path that a clip's decode added to the context's path is only clipped to")
             if let platformPath {
-                return .segments(CGRendererPlatformPath(platformPath), facts)
+                return body(.segments(CGRendererPlatformPath(platformPath), facts))
             }
             if facts.segmentCount == 1 {
-                return .segment(facts.segment)
+                return body(.segment(facts.segment))
             }
-            return .empty
+            return body(.empty)
+        }
+
+        /// GraphicsContextCG::clipPath(): a path of more than one segment that the decode added to the context's path is
+        /// clipped to there, as GraphicsContextCG clips to a PathStream's segments.
+        func clip(_ state: inout CGRendererCore, _ rule: WebCore.WindRule) {
+            if isInClipContextPath {
+                state.receiveClipToContextPath(rule)
+                return
+            }
+            withRendererPath { path in
+                state.receiveClip { context in path.clip(context, rule) }
+            }
         }
 
         #if ENABLE_IPC_TESTING_API
@@ -1138,6 +1327,14 @@ extension IPCTypes {
         struct DecodeContext {
             /// Path::fastBoundingRect(), which only a gradient fill uses.
             let needsFastBoundingRect: Bool
+            /// The context of a clip to the path, to whose path the decode adds the segments of a path of more than one rather
+            /// than making their CGPath.
+            let clipContext: CGContext?
+
+            init(needsFastBoundingRect: Bool, clipContext: CGContext? = nil) {
+                self.needsFastBoundingRect = needsFastBoundingRect
+                self.clipContext = clipContext
+            }
         }
 
         static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> Path {
@@ -1146,14 +1343,22 @@ extension IPCTypes {
 
         static func decode(from decoder: inout IPC.SwiftDecoder, context: DecodeContext) throws(IPCDecodingError) -> Path {
             var facts = CGRendererPathFacts()
-            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect)
+            var isInClipContextPath = false
+            let platformPath = IPC.decodeCGRendererPath(&decoder, &facts, context.needsFastBoundingRect, context.clipContext, &isInClipContextPath)
             guard decoder.isValid() else {
                 throw IPCDecodingError()
             }
-            return Path(facts: facts, platformPath: platformPath)
+            return Path(facts: facts, platformPath: platformPath, isInClipContextPath: isInClipContextPath)
+        }
+
+        /// The message whose path a decode with the context added to the clip context's path turned out to be malformed: the
+        /// context's path is left empty, as it is between draws.
+        static func decodeFailed(context: DecodeContext) {
+            context.clipContext?.beginPath()
         }
 
         static func encode(_ value: Path, to encoder: IPC.SwiftReplyEncoder) {
+            precondition(!value.isInClipContextPath, "A path that a clip's decode added to the context's path is only clipped to")
             encoder.encodeCGRendererPath(value.platformPath, value.facts)
         }
     }
