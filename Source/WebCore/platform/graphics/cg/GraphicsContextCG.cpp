@@ -472,6 +472,7 @@ void GraphicsContextCG::updateStaleState()
 void GraphicsContextCG::drawNativeImage(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
     CAPTURE(drawNativeImage(nativeImage, destRect, srcRect, options));
+    updatePlatformContextStateIfNeeded();
     auto image = nativeImage.platformImage();
     if (!image)
         return;
@@ -898,6 +899,7 @@ namespace WebCore {
 void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatRect& destRect, const FloatRect& tileRect, const AffineTransform& patternTransform, const FloatPoint& phase, const FloatSize& spacing, RasterDrawingOptions options)
 {
     CAPTURE(drawPattern(nativeImage, destRect, tileRect, patternTransform, phase, spacing, options));
+    updatePlatformContextStateIfNeeded();
     if (!patternTransform.isInvertible())
         return;
 
@@ -926,6 +928,7 @@ void GraphicsContextCG::drawPattern(const NativeImage& nativeImage, const FloatR
 void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 {
     CAPTURE(drawRect(rect, borderThickness));
+    updatePlatformContextStateIfNeeded();
     // FIXME: this function does not handle patterns and gradients like drawPath does, it probably should.
     ASSERT(!rect.isEmpty());
     SWIFT_RENDERER(drawRect(rect, borderThickness, fillColor() != strokeColor()));
@@ -935,12 +938,14 @@ void GraphicsContextCG::drawRect(const FloatRect& rect, float borderThickness)
 void GraphicsContextCG::drawLine(const FloatPoint& point1, const FloatPoint& point2)
 {
     CAPTURE(drawLine(point1, point2));
+    updatePlatformContextStateIfNeeded();
     SWIFT_RENDERER(drawLine(point1.x(), point1.y(), point2.x(), point2.y()));
 }
 
 void GraphicsContextCG::drawGlyphsImmediate(const FontBase& font, std::span<const GlyphBufferGlyph> glyphs, std::span<const GlyphBufferAdvance> advances, const FloatPoint& point, FontSmoothingMode smoothingMode)
 {
     CAPTURE(drawGlyphs(font, glyphs, advances, point, smoothingMode));
+    updatePlatformContextStateIfNeeded();
     CGRendererGlyphFontFacts facts;
     CTFontRef ctFont = CGRendererGlyphFontFactsOf(font, facts);
     if (!ctFont || !facts.draws)
@@ -993,6 +998,7 @@ void GraphicsContextCG::applyFillPattern()
 void GraphicsContextCG::drawPath(const Path& path)
 {
     CAPTURE(drawPath(path));
+    updatePlatformContextStateIfNeeded();
     if (path.isEmpty())
         return;
 
@@ -1011,6 +1017,7 @@ void GraphicsContextCG::drawPath(const Path& path)
 void GraphicsContextCG::fillPath(const Path& path)
 {
     CAPTURE(fillPath(path));
+    updatePlatformContextStateIfNeeded();
     if (path.isEmpty())
         return;
 
@@ -1062,6 +1069,7 @@ void GraphicsContextCG::strokePath(const Path& path)
 void GraphicsContextCG::fillRect(const FloatRect& rect, RequiresClipToRect requiresClipToRect)
 {
     CAPTURE(fillRect(rect, requiresClipToRect));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(fillRect(rect)))
         return;
 
@@ -1090,6 +1098,7 @@ void GraphicsContextCG::fillRect(const FloatRect& rect, Gradient& gradient, cons
 void GraphicsContextCG::fillRect(const FloatRect& rect, const Color& color)
 {
     CAPTURE(fillRect(rect, color));
+    updatePlatformContextStateIfNeeded();
     bool changesFillColor = fillColor() != color;
     auto packedColor = color.tryGetAsPackedInline();
     RetainPtr<CGColorRef> platformColor;
@@ -1641,6 +1650,7 @@ void GraphicsContextCG::setMiterLimit(float limit)
 void GraphicsContextCG::clearRect(const FloatRect& r)
 {
     CAPTURE(clearRect(r));
+    updatePlatformContextStateIfNeeded();
     SWIFT_RENDERER(clearRect(r));
 }
 
@@ -1679,6 +1689,7 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
 void GraphicsContextCG::strokeLine(const PathDataLine& line)
 {
     CAPTURE(strokeLine(line));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokesWithoutGradient())) {
         SWIFT_RENDERER(strokeLineSegment(line.start().x(), line.start().y(), line.end().x(), line.end().y()));
         return;
@@ -1764,6 +1775,7 @@ FloatRect GraphicsContextCG::roundToDevicePixels(const FloatRect& rect) const
 void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickness, std::span<const FloatSegment> lineSegments, bool isPrinting, bool doubleLines, StrokeStyle strokeStyle)
 {
     CAPTURE(drawLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle));
+    updatePlatformContextStateIfNeeded();
     auto [rects, color] = computeRectsAndStrokeColorForLinesForText(origin, thickness, lineSegments, isPrinting, doubleLines, strokeStyle);
     if (rects.isEmpty())
         return;
@@ -1778,6 +1790,7 @@ void GraphicsContextCG::drawLinesForText(const FloatPoint& origin, float thickne
 void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& color, float zoomFactor)
 {
     CAPTURE(unsupported("drawFocusRing"_s));
+    updatePlatformContextStateIfNeeded();
     if (path.isEmpty())
         return;
     SWIFT_RENDERER(drawFocusRing(protect(path.platformPath()).get(), cachedCGColor(color).get(), zoomFactor));
@@ -1786,12 +1799,14 @@ void GraphicsContextCG::drawFocusRing(const Path& path, float, const Color& colo
 void GraphicsContextCG::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyle style)
 {
     CAPTURE(drawDotsForDocumentMarker(rect, style));
+    updatePlatformContextStateIfNeeded();
     SWIFT_RENDERER(drawDotsForDocumentMarker(rect, style.mode, cachedCGColor(style.color).get()));
 }
 
 void GraphicsContextCG::drawSystemImage(SystemImage& systemImage, const FloatRect& destinationRect)
 {
     CAPTURE(unsupported("drawSystemImage"_s));
+    updatePlatformContextStateIfNeeded();
 #if ENABLE(APPLE_PAY)
     if (RefPtr logo = dynamicDowncast<ApplePayLogoSystemImage>(systemImage)) {
         SWIFT_RENDERER(drawApplePayLogo(logo->applePayLogoStyle() == ApplePayLogoStyle::Black, destinationRect));
@@ -1861,6 +1876,7 @@ void GraphicsContextCG::applyDeviceScaleFactor(float deviceScaleFactor)
 void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 {
     CAPTURE(fillEllipse(ellipse));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(fillEllipse(ellipse)))
         return;
     // CGContextFillEllipseInRect only supports solid colors.
@@ -1870,6 +1886,7 @@ void GraphicsContextCG::fillEllipse(const FloatRect& ellipse)
 void GraphicsContextCG::strokeEllipse(const FloatRect& ellipse)
 {
     CAPTURE(strokeEllipse(ellipse));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokeEllipse(ellipse)))
         return;
     // CGContextStrokeEllipseInRect only supports solid colors.
