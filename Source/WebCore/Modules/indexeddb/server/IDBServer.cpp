@@ -26,13 +26,11 @@
 #include "config.h"
 #include "IDBServer.h"
 
+#include "IDBBackingStoreFactories.h"
 #include "IDBRequestData.h"
 #include "IDBResultData.h"
 #include "Logging.h"
-#include "MemoryIDBBackingStore.h"
 #include "SQLiteFileSystem.h"
-#include "SQLiteIDBBackingStore.h"
-#include "SQLiteMemoryIDBBackingStore.h"
 #include "SecurityOrigin.h"
 #include <algorithm>
 #include <wtf/Borrow.h>
@@ -126,12 +124,12 @@ std::unique_ptr<IDBBackingStore> IDBServer::createBackingStore(const IDBDatabase
 {
     ASSERT(!isMainThread());
     if (m_databaseDirectoryPath.isEmpty())
-        return makeUnique<MemoryIDBBackingStore>(identifier);
+        return makeMemoryIDBBackingStore(identifier);
 
     if (identifier.isTransient())
-        return makeUnique<MemoryIDBBackingStore>(identifier);
+        return makeMemoryIDBBackingStore(identifier);
 
-    return makeUnique<SQLiteIDBBackingStore>(identifier, upgradedDatabaseDirectory(identifier));
+    return makeSQLiteIDBBackingStore(identifier, upgradedDatabaseDirectory(identifier));
 }
 
 void IDBServer::openDatabase(const IDBOpenRequestData& requestData)
@@ -511,11 +509,11 @@ static void getDatabaseNameAndVersionFromOriginDirectory(const String& directory
 {
     Vector<String> databaseDirectoryNames = FileSystem::listDirectory(directory);
     for (auto& databaseDirectoryName : borrow(databaseDirectoryNames)) {
-        auto fullDatabasePath = SQLiteIDBBackingStore::fullDatabasePathForDirectory(FileSystem::pathByAppendingComponent(directory, databaseDirectoryName));
+        auto fullDatabasePath = fullDatabasePathForDirectory(FileSystem::pathByAppendingComponent(directory, databaseDirectoryName));
         if (excludedDatabasePaths.contains(fullDatabasePath))
             continue;
 
-        if (auto nameAndVersion = SQLiteIDBBackingStore::databaseNameAndVersionFromFile(fullDatabasePath))
+        if (auto nameAndVersion = databaseNameAndVersionFromFile(fullDatabasePath))
             result.append(WTF::move(*nameAndVersion));
     }
 }
@@ -758,7 +756,7 @@ uint64_t IDBServer::diskUsage(const String& rootDirectory, const ClientOrigin& o
 
     auto oldVersionOriginDirectory = IDBDatabaseIdentifier::databaseDirectoryRelativeToRoot(origin, rootDirectory, "v0"_s);
     auto newVersionOriginDirectory = IDBDatabaseIdentifier::databaseDirectoryRelativeToRoot(origin, rootDirectory, "v1"_s);
-    return SQLiteIDBBackingStore::databasesSizeForDirectory(oldVersionOriginDirectory) + SQLiteIDBBackingStore::databasesSizeForDirectory(newVersionOriginDirectory);
+    return databasesSizeForDirectory(oldVersionOriginDirectory) + databasesSizeForDirectory(newVersionOriginDirectory);
 }
 
 void IDBServer::upgradeFilesIfNecessary()
@@ -774,7 +772,7 @@ void IDBServer::upgradeFilesIfNecessary()
 String IDBServer::upgradedDatabaseDirectory(const WebCore::IDBDatabaseIdentifier& identifier)
 {
     String oldOriginDirectory = identifier.databaseDirectoryRelativeToRoot(m_databaseDirectoryPath, "v0"_s);
-    String oldDatabaseDirectory = FileSystem::pathByAppendingComponent(oldOriginDirectory, SQLiteIDBBackingStore::encodeDatabaseName(identifier.databaseName()));
+    String oldDatabaseDirectory = FileSystem::pathByAppendingComponent(oldOriginDirectory, encodeDatabaseName(identifier.databaseName()));
     String newOriginDirectory = identifier.databaseDirectoryRelativeToRoot(m_databaseDirectoryPath, "v1"_s);
     String fileNameHash = SQLiteFileSystem::computeHashForFileName(identifier.databaseName());
     String newDatabaseDirectory = FileSystem::pathByAppendingComponent(newOriginDirectory, fileNameHash);
