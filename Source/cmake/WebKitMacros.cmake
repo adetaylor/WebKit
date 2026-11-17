@@ -1397,6 +1397,9 @@ function(_WEBKIT_COMPUTE_SWIFT_SHARED_CLANG_FLAGS _outvar)
     )
     if (APPLE)
         list(APPEND _flags -DWK_SUPPORTS_SWIFT_OBJCXX_INTEROP=1)
+        # wtf/Platform.h's ICU setting on Cocoa. ICU's headers are a module of their own (WTF/icu/module.modulemap), which
+        # Platform.h doesn't reach, and with renaming its functions are macros that Swift can't call.
+        list(APPEND _flags -DU_DISABLE_RENAMING=1)
     endif ()
     # -fexperimental-bounds-safety-attributes belongs to this hash-normalizing
     # set conceptually, but lives in WebKitSwiftFlags.cmake so it also reaches
@@ -1556,7 +1559,10 @@ function(_webkit_setup_swift_header_deps _target _stamp _header _resp)
         endif ()
     endif ()
 
-    add_dependencies(${_target}_SwiftInterop ${_target}_SwiftCxxHeader)
+    # The C++ that includes the interop header builds in ${_target}_SwiftInterop, if the target has any.
+    if (TARGET ${_target}_SwiftInterop)
+        add_dependencies(${_target}_SwiftInterop ${_target}_SwiftCxxHeader)
+    endif ()
 endfunction()
 
 function(WEBKIT_QUERY_SWIFT_TARGET_INFO _result _swift_compiler)
@@ -1619,11 +1625,18 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
     foreach (_f IN LISTS _shared_cc_flags)
         list(APPEND _swift_options "-Xcc ${_f}")
     endforeach ()
-    if (APPLE)
-        # Swift modules extend their underlying ObjC++ module.
+    if (APPLE AND NOT ${_target}_SWIFT_NO_UNDERLYING_MODULE)
+        # Swift modules extend their underlying ObjC++ module. A target whose Swift module is named differently from
+        # its framework's clang module sets ${_target}_SWIFT_NO_UNDERLYING_MODULE, and imports what it needs.
         list(APPEND _swift_options "-import-underlying-module")
+    endif ()
+    if (APPLE)
         # Don't fire the module's own cross-import overlay while compiling it.
         list(APPEND _swift_options "-Xfrontend -disable-cross-import-overlays")
+        # ICU's headers are copied into the installed headers' directory, which FindICU.cmake makes a system include
+        # directory, so it comes after the PAL header map, which names PAL's headers in the source tree. Search it first,
+        # so that <pal/...> is the header of the pal module and not a copy outside it.
+        list(APPEND _swift_options "-Xcc -I${PAL_FRAMEWORK_HEADERS_DIR}")
     endif ()
     if (${_target}_SWIFT_INTEROP_MODULE_PATH_SWIFT_ONLY)
         list(APPEND _swift_options "-I${_interop_module_path}")
@@ -1675,6 +1688,7 @@ macro(WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER _target _module_n
             "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -F${CMAKE_LIBRARY_OUTPUT_DIRECTORY}>"
             "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-F ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}>"
             "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks>")
+        # FIXME: Logic should probably be folded into FindICU module.
         if (EXISTS "${CMAKE_OSX_SYSROOT}/usr/local/include/unicode_private.modulemap")
             target_compile_options(${_target} PRIVATE
                 "$<$<COMPILE_LANGUAGE:Swift>:SHELL:-Xcc -isystem${CMAKE_OSX_SYSROOT}/usr/local/include>"

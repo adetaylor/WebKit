@@ -1221,6 +1221,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/ScrollAlignment.h
     platform/ScrollAnimation.h
     platform/ScrollingEffectsController.h
+    platform/ScrollingMomentumCalculator.h
     platform/SharedTimer.h
     platform/SystemSoundManager.h
     platform/TextRecognitionResult.h
@@ -1348,6 +1349,7 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/graphics/cg/ImageBufferCGBackend.h
     platform/graphics/cg/ImageBufferCGBitmapBackend.h
     platform/graphics/cg/ImageBufferIOSurfaceBackend.h
+    platform/graphics/cg/ImageBufferSurface.h
     platform/graphics/cg/ImageDecoderCG.h
     platform/graphics/cg/PDFDocumentBuffer.h
     platform/graphics/cg/PathCG.h
@@ -1632,7 +1634,9 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/mac/PasteboardWriter.h
     platform/mac/PlatformEventFactoryMac.h
     platform/mac/PlaybackSessionInterfaceMac.h
+    platform/mac/ScrollbarsControllerMacTypes.h
     platform/mac/ScrollbarThemeMac.h
+    platform/mac/ScrollTypesMac.h
     platform/mac/VideoPresentationInterfaceMac.h
     platform/mac/WebCoreFullScreenWindow.h
     platform/mac/WebCoreNSFontManagerExtras.h
@@ -1640,7 +1644,9 @@ list(APPEND WebCore_PRIVATE_FRAMEWORK_HEADERS
 
     page/mac/CorrectionIndicator.h
 
+    page/scrolling/mac/ScrollerImpDelegateBinding.h
     page/scrolling/mac/ScrollerPairMac.h
+    page/scrolling/mac/ScrollerPairMacTypes.h
     page/scrolling/mac/ScrollingCoordinatorMac.h
     page/scrolling/mac/ScrollingTreeFrameScrollingNodeMac.h
     page/scrolling/mac/ScrollingTreeOverflowScrollingNodeMac.h
