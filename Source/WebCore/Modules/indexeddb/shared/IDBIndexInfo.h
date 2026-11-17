@@ -44,6 +44,9 @@ public:
     IDBObjectStoreIdentifier objectStoreIdentifier() const { return m_objectStoreIdentifier; }
     const String& name() const LIFETIME_BOUND { return m_name; }
     const IDBKeyPath& keyPath() const LIFETIME_BOUND { return m_keyPath; }
+    // By-value reads for Swift.
+    String nameValue() const { return m_name; }
+    IDBKeyPath keyPathValue() const { return m_keyPath; }
     bool unique() const { return m_unique; }
     bool multiEntry() const { return m_multiEntry; }
 

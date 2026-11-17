@@ -105,6 +105,13 @@ public:
 
     WEBCORE_EXPORT bool operator==(const IDBKeyData& other) const;
 
+    // For Swift, which cannot call operator<=>: -1, 0 or 1, from the same comparison.
+    int compare(const IDBKeyData& other) const
+    {
+        auto result = *this <=> other;
+        return is_lt(result) ? -1 : is_gt(result) ? 1 : 0;
+    }
+
     String string() const
     {
         return std::get<String>(m_value);
@@ -131,6 +138,11 @@ public:
     }
 
     size_t size() const;
+
+    // By-value reads for Swift, which cannot use the const& getters above. arrayElement traps when i >= arrayCount().
+    ThreadSafeDataBuffer binaryValue() const { return binary(); }
+    size_t arrayCount() const { return array().size(); }
+    IDBKeyData arrayElement(size_t i) const { return array().at(i); }
 
     const ValueVariant& value() const LIFETIME_BOUND { return m_value; };
 
@@ -170,6 +182,9 @@ inline void add(Hasher& hasher, const IDBKeyData& keyData)
         break;
     }
 }
+
+// A name Swift can spell for Vector<IDBKeyData>.
+using IDBKeyDataVector = Vector<IDBKeyData>;
 
 struct IDBKeyDataHashTraits : public WTF::CustomHashTraits<IDBKeyData> {
     static const bool emptyValueIsZero = false;

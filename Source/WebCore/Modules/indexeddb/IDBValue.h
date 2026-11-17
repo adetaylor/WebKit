@@ -26,6 +26,7 @@
 #pragma once
 
 #include <WebCore/FileSystemHandleGlobalIdentifier.h>
+#include <WebCore/FileSystemHandleRecord.h>
 #include <WebCore/ThreadSafeDataBuffer.h>
 #include <wtf/RefPtr.h>
 #include <wtf/TZoneMalloc.h>
@@ -57,6 +58,10 @@ public:
     WEBCORE_EXPORT IDBValue isolatedCopy() const;
 
     const ThreadSafeDataBuffer& data() const LIFETIME_BOUND { return m_data; }
+    // By-value reads for Swift, which cannot use the const& getters.
+    ThreadSafeDataBuffer dataValue() const { return m_data; }
+    Vector<String> blobURLsValue() const { return m_blobURLs; }
+    Vector<String> blobFilePathsValue() const { return m_blobFilePaths; }
     const Vector<String>& blobURLs() const LIFETIME_BOUND { return m_blobURLs; }
     const Vector<String>& blobFilePaths() const LIFETIME_BOUND { return m_blobFilePaths; }
     const Vector<FileSystemHandleGlobalIdentifier>& fileSystemHandleGlobalIdentifiers() const LIFETIME_BOUND { return m_fileSystemHandleGlobalIdentifiers; }

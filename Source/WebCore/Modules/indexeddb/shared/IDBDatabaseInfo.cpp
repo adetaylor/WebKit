@@ -140,6 +140,13 @@ Vector<String> IDBDatabaseInfo::objectStoreNames() const
     });
 }
 
+Vector<IDBObjectStoreInfo> IDBDatabaseInfo::objectStores() const
+{
+    return WTF::map(m_objectStoreMap, [](auto& pair) -> IDBObjectStoreInfo {
+        return pair.value;
+    });
+}
+
 void IDBDatabaseInfo::deleteObjectStore(const String& objectStoreName)
 {
     auto* info = infoForExistingObjectStore(objectStoreName);
