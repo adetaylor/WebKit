@@ -30,6 +30,7 @@
 
 #include "GeneratedSerializers.h"
 #include <WebCore/Path.h>
+#include <WebCore/PathSegment.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
 
@@ -70,14 +71,39 @@ void SwiftReplyEncoder::encodeSharedBuffer(const WebCore::SharedBuffer& buffer)
 }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts, bool computesFastBoundingRect)
+CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts, bool computesFastBoundingRect, CGContextRef clipContext, bool& addedToClipContextPath)
 {
-    auto segments = decoder.borrowed().decode<Vector<WebCore::PathSegment>>();
+    addedToClipContextPath = false;
+    auto segments = decoder.borrowed().decode<Vector<WebCore::PathSegment, 16>>();
     if (!segments) [[unlikely]] {
         facts = { };
         return nullptr;
     }
+    if (clipContext) {
+        addedToClipContextPath = CGRendererAddSegmentsToContextPath(clipContext, segments->span(), facts);
+        return nullptr;
+    }
     return CGRendererCreatePathOfSegments(segments->span(), facts, computesFastBoundingRect);
+}
+
+bool SwiftDecoder::decodeCGRendererPathSegment(CGRendererPathSegment& values)
+{
+    auto segment = borrowed().decode<WebCore::PathSegment>();
+    if (!segment) [[unlikely]]
+        return false;
+    values = CGRendererPathSegmentValues(*segment);
+    return true;
+}
+
+void SwiftReplyEncoder::encodeCGRendererPathSegment(CGRendererPathSegment values)
+{
+    auto segment = CGRendererPathSegmentFromValues(values);
+    if (m_inStream) {
+        streamEncoder() << segment;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << segment;
 }
 
 void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)

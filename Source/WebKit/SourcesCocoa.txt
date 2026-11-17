@@ -168,6 +168,7 @@ Shared/ApplePay/mac/WebPaymentCoordinatorProxyMac.mm @nonARC
 
 Shared/APIWebArchive.mm @nonARC
 Shared/APIWebArchiveResource.mm @nonARC
+Shared/IPCTesterCGRendererWireForms.cpp
 Shared/JavaScriptEvaluationResult.mm @nonARC
 Shared/DocumentEditingContext.mm @nonARC
 Shared/VisibleContentRectUpdateInfo.cpp

@@ -28,6 +28,7 @@
 #include <wtf/ArgumentCoder.h>
 #include <wtf/Compiler.h>
 #include <wtf/Forward.h>
+#include <wtf/RefCountable.h>
 
 #if USE(UNIX_DOMAIN_SOCKETS)
 #include <wtf/unix/UnixFileDescriptor.h>
@@ -81,5 +82,8 @@ private:
     MachSendRight m_handle;
 #endif
 };
+
+// For a function that Swift implements with @cxx @implementation, which takes a connection handle.
+using ConnectionHandleArgument = WTF::MoveOnlyArgument<ConnectionHandle>;
 
 } // namespace IPC

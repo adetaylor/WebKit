@@ -86,6 +86,12 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
             ('WebCore::ColorSpace', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
             ('const WebCore::ColorSpace&', ('IPCTypes.ColorSpace', 'IPCTypes.ColorSpace')),
             ('std::optional<WebCore::ColorSpace>', ('IPCTypes.ColorSpace?', 'IPCCoding.StdOptional<IPCTypes.ColorSpace>')),
+            ('std::array<float, 20>', ('IPCCoding.StdArray20<Float>.Value', 'IPCCoding.StdArray20<Float>')),
+            ('std::array<WebCore::FloatPoint, 20>', ('[IPCTypes.FloatPoint]', 'IPCCoding.FixedSpan<IPCTypes.CxxName.WebCore_FloatPoint, IPCCoding.Extent20>')),
+            ('WebCore::PathSegment', ('CGRendererPathSegment', 'IPCCoding.CxxDecoded.PathSegment')),
+            ('std::array<WebCore::FloatPoint, 6>', ('[IPCTypes.FloatPoint]', 'IPCCoding.FixedSpan<IPCTypes.CxxName.WebCore_FloatPoint, IPCCoding.Extent6>')),
+            ('std::span<const WebCore::FloatSegment>', ('[WebCore.FloatSegment]', 'IPCCoding.TrivialSpan<WebCore.FloatSegment>')),
+            ('std::span<const ::WebCore::PathDataLineColorThickness>', ('[WebCore.PathDataLineColorThickness]', 'IPCCoding.TrivialSpan<WebCore.PathDataLineColorThickness>')),
         ]:
             self.assertEqual(swift_types.swift_type_and_coder(cpp_type), expected)
 
@@ -100,7 +106,7 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::FrameIdentifier', cxx_name_coders=False), ('IPCTypes.FrameIdentifier', 'IPCTypes.FrameIdentifier'))
 
     def test_unmappable_types(self):
-        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'std::span<const String, 6>', 'std::span<const double, N>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>']:
+        for cpp_type in ['long', 'URL', 'WTF::URL', '::WTF::URL', 'std::monostate', '::std::monostate', 'HashMap<String, String>', 'std::pair<uint8_t, long>', 'std::pair<uint8_t>', 'std::span<uint8_t>', 'std::span<const String>', 'std::span<const uint8_t, 4>', 'std::span<const String, 6>', 'std::span<const double, N>', 'Vector<IPC::Semaphore>', 'std::optional<Vector<MachSendRight>>', 'std::pair<MachSendRight, uint32_t>', 'RefPtr<IPC::Semaphore>', 'RetainPtr<CGImageRef>', 'std::array<float, 3>', 'std::array<float, N>', 'std::array<URL, 6>', 'std::span<WebCore::FloatSegment>', 'std::span<const WebCore::FloatSegment, 6>', 'std::span<const WebCore::FloatRect>']:
             with self.assertRaises(swift_types.UnmappableSwiftType):
                 swift_types.swift_type_and_coder(cpp_type)
 
@@ -114,11 +120,22 @@ class SwiftTypeAndCoderTest(unittest.TestCase):
         self.assertFalse(swift_types.is_hand_written('WebCore::PlatformColorSpace'))
         self.assertFalse(swift_types.is_owned_type('WebCore::ColorSpace'))
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::Color'), ('IPCTypes.WebCoreColor', 'IPCTypes.WebCoreColor'))
+        glyph_run = 'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>'
+        self.assertEqual(swift_types.swift_type_and_coder(glyph_run), ('IPCTypes.GlyphRun', 'IPCTypes.GlyphRun'))
+        self.assertTrue(swift_types.takes_decode_context('const %s&' % glyph_run))
+        self.assertFalse(swift_types.takes_decode_context('WebCore::Color'))
+
+    def test_trivial_span_elements(self):
+        self.assertTrue(swift_types.is_trivial_span_element('const WebCore::FloatSegment'))
+        self.assertTrue(swift_types.is_trivial_span_element('::WebCore::PathDataLineColorThickness'))
+        self.assertFalse(swift_types.is_trivial_span_element('WebCore::FloatRect'))
 
     def test_cxx_enum_types(self):
         self.assertTrue(swift_types.is_hand_written('WebCore::StyleAppearance'))
         self.assertEqual(swift_types.swift_type_and_coder('WebCore::StyleAppearance'), ('WebCore.StyleAppearance', 'IPCCoding.CxxEnum<WebCore.StyleAppearance>'))
         self.assertEqual(swift_types.swift_type_and_coder('std::optional<WebCore::StyleAppearance>'), ('WebCore.StyleAppearance?', 'IPCCoding.StdOptional<IPCCoding.CxxEnum<WebCore.StyleAppearance>>'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::FontSmoothingMode'), ('WebCore.FontSmoothingMode', 'IPCCoding.CxxEnum<WebCore.FontSmoothingMode>'))
+        self.assertEqual(swift_types.swift_type_and_coder('WebCore::StrokeStyle'), ('WebCore.StrokeStyle', 'IPCCoding.CxxEnum<WebCore.StrokeStyle>'))
 
     def test_cxx_name(self):
         self.assertEqual(swift_types.swift_cxx_name('WebCore::FrameIdentifier'), 'WebCore_FrameIdentifier')

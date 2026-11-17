@@ -77,7 +77,7 @@ _TWO_ARGUMENT_TEMPLATES = {
 _PIXEL_BUFFER_TYPE = 'RetainPtr<CVPixelBufferRef>'
 
 # Types marked [Swift] in a .serialization.in file whose C++ name has no namespace.
-_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'CGRendererColorData', 'CGRendererColorValue', 'WTFLogLevel'])
+_GLOBAL_NAMESPACE_SWIFT_TYPES = frozenset(['AudioStreamBasicDescription', 'CGRendererColorData', 'CGRendererColorValue', 'CGRendererShadowValues', 'WTFLogLevel'])
 
 # Types marked [Swift] in a .serialization.in file that are in WTF, which .messages.in files name without it.
 _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
@@ -88,6 +88,9 @@ _WTF_SWIFT_TYPES = frozenset(['MediaTime'])
 _CXX_DECODED_TYPES = {
     'WebCore::SharedBuffer': ('WebCore.SharedBuffer', 'IPCCoding.CxxDecoded.SharedBuffer'),
     'WebCore::VideoInfo': ('WebCore.VideoInfo', 'IPCCoding.CxxDecoded.VideoInfo'),
+    # A path segment, which C++ decodes in one call into the plain values that the CG renderer takes of it, rather than Swift
+    # decoding its variant member by member: its messages are per draw. Its [Swift] form, IPCTypes.PathSegment, is a member's.
+    'WebCore::PathSegment': ('CGRendererPathSegment', 'IPCCoding.CxxDecoded.PathSegment'),
 }
 
 
@@ -97,11 +100,20 @@ _HAND_WRITTEN_TYPES = {
     'WebCore::Color': 'IPCTypes.WebCoreColor',
     'WebCore::ColorSpace': 'IPCTypes.ColorSpace',
     'WebCore::Path': 'IPCTypes.Path',
+    # A glyph run as RemoteCGRenderer's DrawGlyphs sends it, whose Swift form (RemoteCGRendererMessageTypes.swift) is its copy of the
+    # glyphs and of the advances.
+    'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>': 'IPCTypes.GlyphRun',
 }
 
 # Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
-# handler for ('SwiftDecodeContext='): what of the value the handler will use.
-_DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path'])
+# handler for ('SwiftDecodeContext='): what of the value the handler will use, or where it decodes it to. A malformed
+# message's dispatch calls its decodeFailed(context:).
+_DECODE_CONTEXT_TYPES = frozenset(['WebCore::Path', 'IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>'])
+
+
+def is_trivial_span_element(cpp_type):
+    """Whether a std::span of a C++ type is encoded as the bytes of its elements, which Swift copies as a block."""
+    return strip_cpp_type_decorations(cpp_type).removeprefix('::') in _TRIVIAL_SPAN_ELEMENT_TYPES
 
 
 def takes_decode_context(cpp_type):
@@ -129,6 +141,20 @@ CXX_ENUM_TYPES = {
     'WebCore::EdgeModeType': 'WebCore.EdgeModeType',
     'WebCore::MorphologyOperatorType': 'WebCore.MorphologyOperatorType',
     'WebCore::TurbulenceType': 'WebCore.TurbulenceType',
+    # The CG renderer's text drawing.
+    'WebCore::FontSmoothingMode': 'WebCore.FontSmoothingMode',
+    'WebCore::StrokeStyle': 'WebCore.StrokeStyle',
+}
+
+# Trivially copyable C++ types that Swift imports, each conforming to IPCTrivialSpanElement with its stated promise, of which
+# every bit pattern is a valid value: a std::span of one is encoded as the bytes of its elements (Encoder::encodeSpan()), which
+# Swift copies into an Array of the imported struct in one block. A struct with a bool, an enum or a pointer can't be one.
+_TRIVIAL_SPAN_ELEMENT_TYPES = {
+    'WebCore::FloatSegment': 'WebCore.FloatSegment',
+    'WebCore::PathDataLineColorThickness': 'WebCore.PathDataLineColorThickness',
+    # The glyphs and advances of a glyph run on Cocoa platforms, which IPCTypes.GlyphRun decodes.
+    'WebCore::GlyphBufferGlyph': 'CGGlyph',
+    'WebCore::GlyphBufferAdvance': 'CGSize',
 }
 
 
@@ -160,9 +186,13 @@ _OWNED_VECTOR_TYPES = {
 }
 
 
-# The extents of the std::spans of const primitives of fixed extent that messages carry, each with its IPCCoding.ExtentN in
-# SwiftCoding.swift: such a span is encoded as its elements, without a count, so Swift takes a copy of exactly that many.
-_FIXED_SPAN_EXTENTS = frozenset([6])
+# The extents of the std::spans of const primitives of fixed extent and of the std::arrays that messages carry, each with its
+# IPCCoding.ExtentN in SwiftCoding.swift: such a span or array is encoded as its elements, without a count, so Swift takes a copy
+# of exactly that many.
+_FIXED_SPAN_EXTENTS = frozenset([6, 20])
+
+# The sizes of the std::arrays of primitives whose Swift form is a tuple, each with its IPCCoding.StdArrayN in SwiftCoding.swift.
+_STD_ARRAY_TUPLE_SIZES = frozenset([20])
 
 # A [Lent] std::span<const uint8_t> message argument: its bytes are lent to the Swift handler during dispatch, as
 # IPC::LentBytes (SwiftCoding.h), rather than copied into a [UInt8]. Generated Swift decodes past them, then lends them
@@ -333,6 +363,21 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
             return (value_format % inner_type, coder_format % inner_coder)
         if template in _TRANSPARENT_TEMPLATES and len(arguments) == 1:
             return swift_type_and_coder(arguments[0], cxx_name_coders)
+        # A std::array of primitives of a size that IPCCoding has a StdArrayN for is a tuple of them in Swift, with no
+        # allocation, as the CG renderer's C arrays of them are imported.
+        if template == 'std::array' and len(arguments) == 2 and arguments[0] in _PRIMITIVE_TYPES and arguments[1].isdigit() and int(arguments[1]) in _STD_ARRAY_TUPLE_SIZES:
+            coder = 'IPCCoding.StdArray%s<%s>' % (arguments[1], _PRIMITIVE_TYPES[arguments[0]])
+            return ('%s.Value' % coder, coder)
+        # A std::array is encoded as its elements, one after another, as a std::span of fixed extent is, without a count.
+        if template == 'std::array' and len(arguments) == 2:
+            if not arguments[1].isdigit() or int(arguments[1]) not in _FIXED_SPAN_EXTENTS:
+                raise UnmappableSwiftType("'%s' has no Swift form: messages that take Swift types support a std::array of size %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS))))
+            element_type, element_coder = swift_type_and_coder(arguments[0], cxx_name_coders)
+            return ('[%s]' % element_type, 'IPCCoding.FixedSpan<%s, IPCCoding.Extent%s>' % (element_coder, arguments[1]))
+        # A span of a trivially copyable struct is encoded as the bytes of its elements, which Swift copies as a block.
+        if template == 'std::span' and len(arguments) == 1 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip().removeprefix('::') in _TRIVIAL_SPAN_ELEMENT_TYPES:
+            element = _TRIVIAL_SPAN_ELEMENT_TYPES[arguments[0].removeprefix('const ').strip().removeprefix('::')]
+            return ('[%s]' % element, 'IPCCoding.TrivialSpan<%s>' % element)
         # A span of const primitives is encoded as a Vector of them is, so Swift takes a copy of its elements.
         if template == 'std::span' and len(arguments) == 1 and arguments[0].startswith('const ') and arguments[0].removeprefix('const ').strip() in _PRIMITIVE_TYPES:
             element = _PRIMITIVE_TYPES[arguments[0].removeprefix('const ').strip()]
@@ -368,8 +413,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
-                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
+                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 
 def swift_coder(cpp_type):

@@ -58,6 +58,11 @@ messages -> IPCTester {
     SendSwiftTypesMessagesToReceiver() -> (String failures)
     AddReceiverForSwiftTypesTesting() -> (bool swiftUsed) Synchronous
     RemoveReceiverForSwiftTypesTesting() -> () Synchronous
+#if PLATFORM(COCOA)
+    DescribeControl(Ref<WebCore::ControlPart> part, WebCore::ControlStyle style) -> (String description)
+    DescribeSystemImage(Ref<WebCore::SystemImage> image) -> (String description)
+    DescribeFilter(Ref<WebCore::Filter> filter) -> (String description)
+#endif
 #if ENABLE(IPC_TESTING_SWIFT)
     SendSwiftStreamMessagesInProcess() -> (String failures) Synchronous
     BenchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount) -> (uint64_t nanoseconds) Synchronous

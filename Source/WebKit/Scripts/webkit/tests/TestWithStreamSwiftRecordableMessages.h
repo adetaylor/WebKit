@@ -25,11 +25,15 @@
 #pragma once
 
 #include "ArgumentCoders.h"
+#include "ArrayReferenceTuple.h"
 #include "Connection.h"
 #include "IPCSemaphore.h"
 #include "MessageNames.h"
 #include "StreamMessageReceiver.h"
 #include "SwiftCoding.h"
+#include <WebCore/GlyphBufferMembers.h>
+#include <array>
+#include <span>
 #include <wtf/Forward.h>
 #include <wtf/RefPtr.h>
 #include <wtf/RuntimeApplicationChecks.h>
@@ -40,6 +44,7 @@ namespace WebCore {
 class FloatPoint;
 class FloatRect;
 class Path;
+enum class StrokeStyle : uint8_t;
 }
 
 namespace WebKit {
@@ -114,6 +119,8 @@ public:
 #endif
     IPC::SwiftReplyEncoder* WTF_NONNULL encoderForSetLabel() SWIFT_RETURNS_RETAINED;
     IPC::SwiftReplyEncoder* WTF_NONNULL encoderForFillPath() SWIFT_RETURNS_RETAINED;
+    IPC::SwiftReplyEncoder* WTF_NONNULL encoderForDrawGlyphs() SWIFT_RETURNS_RETAINED;
+    IPC::SwiftReplyEncoder* WTF_NONNULL encoderForSetMatrix() SWIFT_RETURNS_RETAINED;
     void appendEncodedMessage(IPC::SwiftReplyEncoder&);
     Vector<uint8_t> takeEncodedMessages() { return std::exchange(m_encodedMessages, { }); }
 private:
@@ -388,6 +395,66 @@ public:
 private:
     const IPC::Semaphore& m_semaphore;
     uint64_t m_source;
+};
+
+class DrawGlyphs {
+public:
+    using Arguments = std::tuple<IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>, std::span<const WebCore::FloatSegment>>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_DrawGlyphs; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    DrawGlyphs(const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>& glyphs, const std::span<const WebCore::FloatSegment>& segments)
+        : m_glyphs(glyphs)
+        , m_segments(segments)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_glyphs;
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_segments;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>& m_glyphs;
+    SUPPRESS_FORWARD_DECL_MEMBER const std::span<const WebCore::FloatSegment>& m_segments;
+};
+
+class SetMatrix {
+public:
+    using Arguments = std::tuple<std::array<float, 20>, WebCore::StrokeStyle>;
+
+    static constexpr IPC::MessageName name() { return IPC::MessageName::TestWithStreamSwiftRecordable_SetMatrix; }
+    static constexpr bool isSync = false;
+    static constexpr bool canDispatchOutOfOrder = false;
+    static constexpr bool replyCanDispatchOutOfOrder = false;
+    static constexpr bool deferSendingIfSuspended = false;
+    static constexpr bool isStreamEncodable = true;
+    static constexpr bool isStreamBatched = true;
+
+    SetMatrix(const std::array<float, 20>& matrix, WebCore::StrokeStyle strokeStyle)
+        : m_matrix(matrix)
+        , m_strokeStyle(strokeStyle)
+    {
+    }
+
+    template<typename Encoder>
+    void encode(Encoder& encoder)
+    {
+        SUPPRESS_FORWARD_DECL_ARG encoder << m_matrix;
+        encoder << m_strokeStyle;
+    }
+
+private:
+    SUPPRESS_FORWARD_DECL_MEMBER const std::array<float, 20>& m_matrix;
+    WebCore::StrokeStyle m_strokeStyle;
 };
 
 } // namespace TestWithStreamSwiftRecordable

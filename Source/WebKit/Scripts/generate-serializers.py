@@ -2598,6 +2598,9 @@ def check_swift_type_references(cpp_type, context, swift_names, template=None):
         arguments = swift_types.split_template_arguments(match.group(2))
         if template == 'Markable':
             arguments = arguments[:1]
+        # Swift imports the elements of a span of trivially copyable structs, so they have no forms in IPCTypes.
+        if template == 'std::span' and len(arguments) == 1 and swift_types.is_trivial_span_element(arguments[0]):
+            return
         for argument in arguments:
             check_swift_type_references(argument, context, swift_names, template)
         return

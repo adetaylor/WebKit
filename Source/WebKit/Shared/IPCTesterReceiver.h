@@ -81,11 +81,8 @@ private:
     void describeCxxDecodedColorSpaceSwift(const WebCore::ColorSpace&, CompletionHandler<void(String&&)>&&);
     void compareColorSpacesSwift(const WebCore::ColorSpace&, const WebCore::ColorSpace&, CompletionHandler<void(bool)>&&);
     void describeControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
-    void describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
     void describeSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
-    void describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
     void describeFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
-    void describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
 #endif
 #if PLATFORM(COCOA) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     void describeDrawingFormsSwift(WebCore::WindRule, const WebCore::AffineTransform&, const CGRendererColorValue&, CompletionHandler<void(String&&)>&&);

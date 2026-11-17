@@ -300,6 +300,32 @@ messages -> TestReceiver WorkQueue {
         self.assertIn('    workQueue->dispatch([protectedThis = Ref { *this }, sharedPreferences = WTF::move(sharedPreferences)] mutable {\n', implementation)
         self.assertNotIn('sharedPreferencesForWebProcess', messages.generate_swift_message_handler(receiver))
 
+        # With SwiftActor, dispatch enters the target, an actor on the work queue, with assumeIsolated, and moves the
+        # owned arguments into it.
+        receiver = parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'WorkQueue', """
+    Message(uint32_t value) -> (uint32_t reply)
+    SyncMessage(uint32_t value) -> (uint32_t reply) Synchronous
+    HandleMessage(WebCore::SharedMemory::Handle handle)
+    LentMessage([Lent] std::span<const uint8_t> data)
+""")
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertIn('    private let target: TestReceiver\n', swift)
+        self.assertEqual(swift.count('        target.assumeIsolated { target in\n'), 4)
+        self.assertIn('    @_expose(!Cxx)\n    init(target: TestReceiver) {\n', swift)
+        self.assertIn('        connection: sending IPC.Connection,\n', swift)
+        self.assertIn('        nonisolated(unsafe) let dataLent = decoder.lentBytes(dataPosition)\n', swift)
+        self.assertIn('                try unsafe mayThrowInvalidMessage(\n', swift)
+        self.assertIn('                        data: dataLent\n', swift)
+        self.assertIn('        var handleOwned = Optional(handle)\n', swift)
+        self.assertIn('handle: handleOwned.take()!', swift)
+        self.assertIn('                    reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+        self.assertNotIn('MainActor', swift)
+        self.assertNotIn('Task', swift)
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.CxxMessage takes C\+\+ types, which a receiver with 'SwiftActor' can't"):
+            parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'WorkQueue', '    CxxMessage(uint32_t value) CxxTypes')
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftActor', which is for Swift receivers with 'WorkQueue'"):
+            parse_work_queue_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftActor'], 'Stream', '    Message(uint32_t value)')
+
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'WorkQueue', which is for Swift receivers"):
             parse_work_queue_receiver([], 'WorkQueue', '    Message(uint32_t value)')
         with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver cannot have both 'WorkQueue' and 'Stream'"):
@@ -395,6 +421,51 @@ messages -> TestReceiver%s {
         self.assertIn('extension SwiftDispatch.TestReceiver {\n    #if HAVE_FEATURE\n', swift)
         self.assertEqual(swift.count('    #if HAVE_FEATURE\n'), 2)
         self.assertNotIn('CxxMessage', swift)
+
+        # With 'SwiftReceiverBuildEnabledBy=', a C++ receiver that Swift implements where the flag is enabled, and whose C++
+        # handlers take its messages elsewhere.
+        receiver = parse_swift_implementation('    SwiftMessage(uint32_t value)\n    SyncMessage() -> (bool reply) Synchronous', stream=False, attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftReceiverBuildEnabledBy=SWIFT_FLAG'))
+        self.assertFalse(receiver.is_swift_receiver())
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('#if ENABLE(SWIFT_FLAG)\n        IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n#else // ENABLE(SWIFT_FLAG)\n        IPC::handleMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &TestReceiver::swiftMessage);\n#endif // ENABLE(SWIFT_FLAG)\n', handler)
+        self.assertIn('#else // ENABLE(SWIFT_FLAG)\n        IPC::handleMessageSynchronous<Messages::TestReceiver::SyncMessage>(connection, decoder, replyEncoder, this, &TestReceiver::syncMessage);\n', handler)
+        self.assertNotIn('MessageForwarder', handler)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertEqual(swift.count('#if ENABLE_SWIFT_FLAG\n'), 2)
+
+    def test_cxx_senders(self):
+        receiver = parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    CxxSenders
+]
+messages -> TestReceiver {
+    PlainMessage(double value, String name)
+    EmptyMessage()
+    ReplyMessage(uint32_t value) -> (bool reply)
+    MovedMessage(MachSendRight sendRight)
+#if HAVE(FEATURE)
+    ConditionalMessage(bool flag)
+#endif
+}
+"""))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('inline void sendPlainMessage(IPC::Connection& connection, uint64_t destinationID, double value, const String& name)\n{\n    connection.send(PlainMessage(value, name), destinationID);\n}\n', header)
+        self.assertIn('inline void sendEmptyMessage(IPC::Connection& connection, uint64_t destinationID)\n{\n    connection.send(EmptyMessage(), destinationID);\n}\n', header)
+        self.assertIn('#if HAVE(FEATURE)\ninline void sendConditionalMessage(IPC::Connection& connection, uint64_t destinationID, bool flag)\n', header)
+        self.assertNotIn('sendReplyMessage', header)
+        self.assertNotIn('sendMovedMessage', header)
+        self.assertNotIn('inline void send', messages.generate_messages_header(parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo]\nmessages -> TestReceiver {\n    EmptyMessage()\n}\n'))))
+
+        header = messages.generate_messages_header(parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders=FEATURE]\nmessages -> TestReceiver {\n    EmptyMessage()\n}\n')))
+        self.assertIn('#if ENABLE(FEATURE)\ninline void sendEmptyMessage(IPC::Connection& connection, uint64_t destinationID)\n{\n    connection.send(EmptyMessage(), destinationID);\n}\n\n#endif\n', header)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'CxxSenders', which is for receivers whose messages are sent on an IPC::Connection"):
+            parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders]\nmessages -> TestReceiver Stream {\n    EmptyMessage()\n}\n'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Clash has a parameter named 'connection', which its C\+\+ sender \('CxxSenders'\) takes itself"):
+            parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders]\nmessages -> TestReceiver {\n    Clash(uint64_t connection)\n}\n'))
 
     def test_swift_state(self):
         def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
@@ -683,6 +754,88 @@ messages -> TestReceiver Stream {
         self.assertIn('CompletionHandlers.TestReceiver.complete(completionHandler, reply)', swift)
         self.assertRegex(swift, r'EnumReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(reply\)\n')
         self.assertRegex(swift, r'StructReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(consuming: reply\)\n')
+
+    def test_async_cxx_encoded_replies(self):
+        def parse_receiver(attributes, kind, messages_text):
+            return parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> TestReceiver%s {\n%s\n}\n' % (', '.join(attributes), kind, messages_text)))
+
+        message = '    Message(uint32_t value) -> (std::optional<WebKit::ImageBufferBackendHandle> handle, uint64_t identifier) CxxEncodedReply'
+        for attributes, kind, target in ((['SwiftReceiver', 'SwiftTypes'], ' Stream', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftReceiver', 'SwiftTypes'], ' WorkQueue', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftReceiver', 'SwiftTypes'], '', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftImplementation', 'SwiftTypes'], ' Stream', 'this, &SwiftDispatch::TestReceiver::dispatchMessage')):
+            receiver = parse_receiver(attributes, kind, message)
+            # The reply goes out of the stream as any asynchronous reply does, through the reply encoder that C++ encodes into.
+            self.assertIn('IPC::handleSwiftMessageAsync<Messages::TestReceiver::Message>(connection, decoder, %s);\n' % target, messages.generate_message_handler(receiver))
+            swift = messages.generate_swift_message_handler(receiver)
+            self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+            self.assertIn('    consuming func send(encodedBy encode: (IPC.SwiftReplyEncoder) -> Void) {\n        encode(replyEncoder)\n        replyEncoder.send()\n    }\n', swift)
+            self.assertIn('    deinit {\n        replyEncoder.cancel()\n    }\n', swift)
+
+        # A Synchronous reply that C++ encodes is still given as a value, with the dispatch that sends it out of the stream.
+        synchronous = parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (MachSendRight right) Synchronous NotStreamEncodableReply CxxEncodedReply')
+        self.assertIn('IPC::handleSwiftMessageSynchronousWithReplyValue<Messages::TestReceiver::Message>', messages.generate_message_handler(synchronous))
+
+        error = r"ERROR: Message TestReceiver.Message has 'CxxEncodedReply', which is for messages with a reply that take Swift types: asynchronous ones, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver"
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> () CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) Synchronous CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' WorkQueue', '    Message(uint32_t value) -> (uint32_t reply) Synchronous NotStreamEncodableReply CxxEncodedReply')
+        # SwiftReplyValue stays Synchronous-only.
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types"):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
+
+    def test_conditional_completion_handlers(self):
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+    Always(uint32_t value) -> (uint8_t reply)
+#if PLATFORM(COCOA)
+    CocoaOnly(uint32_t value) -> (uint64_t reply)
+    CocoaShared(uint32_t value) -> (uint8_t reply)
+#endif
+""")
+        header = messages.generate_messages_header(receiver)
+        # A conditional message's completion handler exists only where the message does.
+        self.assertIn('#if PLATFORM(COCOA)\nusing CocoaOnlyCompletionHandler = ', header)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler&);\n#endif\n', header)
+        # The declaration that messages with the same reply types share exists if any of them does.
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);\n', header)
+        self.assertNotIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(AlwaysCompletionHandler&);', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaOnlyCompletionHandler& completionHandler)\n', implementation)
+
+        # A conditional message first, then an unconditional one with the same reply types: the shared declaration names the
+        # unconditional one's handler, under no condition.
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+#if PLATFORM(COCOA)
+    CocoaFirst(uint32_t value) -> (uint16_t reply)
+#endif
+    AlwaysLater(uint32_t value) -> (uint16_t reply)
+""")
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysLaterCompletionHandler&);\n', header)
+        self.assertNotIn('void completeWithDefaultReply(CocoaFirstCompletionHandler&);', header)
+        self.assertIn('\nvoid complete(AlwaysLaterCompletionHandler&, uint16_t);\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('\nvoid completeWithDefaultReply(AlwaysLaterCompletionHandler& completionHandler)\n', implementation)
+        self.assertNotIn('completeWithDefaultReply(CocoaFirstCompletionHandler& completionHandler)', implementation)
+
+        # Messages with the same reply types under two conditions: each branch names its own message's handler.
+        receiver = parse_swift_receiver(['ExceptionForEnabledBy', 'SwiftReceiver'], """
+#if PLATFORM(COCOA)
+    CocoaMessage(uint32_t value) -> (uint16_t reply)
+#endif
+#if PLATFORM(GTK)
+    GTKMessage(uint32_t value) -> (uint16_t reply)
+#endif
+""")
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler&);\n#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler&);\n#endif\n', header)
+        implementation = messages.generate_message_handler(receiver)
+        self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler& completionHandler)\n', implementation)
+        self.assertIn('#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler& completionHandler)\n', implementation)
 
     def test_lent_state_constraints(self):
         stream_receiver = """

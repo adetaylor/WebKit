@@ -43,6 +43,13 @@
 
 #endif
 
+namespace WebCore {
+class ControlPart;
+class Filter;
+class SystemImage;
+struct ControlStyle;
+}
+
 namespace WebKit {
 
 #if ENABLE(IPC_TESTING_API)
@@ -92,6 +99,11 @@ private:
     void sendSwiftTypesMessagesToReceiver(IPC::Connection&, CompletionHandler<void(String&&)>&&);
     void addReceiverForSwiftTypesTesting(IPC::Connection&, CompletionHandler<void(bool)>&&);
     void removeReceiverForSwiftTypesTesting(IPC::Connection&, CompletionHandler<void()>&&);
+#if PLATFORM(COCOA)
+    void describeControl(Ref<WebCore::ControlPart>&&, const WebCore::ControlStyle&, CompletionHandler<void(String&&)>&&);
+    void describeSystemImage(Ref<WebCore::SystemImage>&&, CompletionHandler<void(String&&)>&&);
+    void describeFilter(Ref<WebCore::Filter>&&, CompletionHandler<void(String&&)>&&);
+#endif
 #if ENABLE(IPC_TESTING_SWIFT)
     void sendSwiftStreamMessagesInProcess(CompletionHandler<void(String&&)>&&);
     void benchmarkStreamDispatch(uint32_t kind, bool swift, uint32_t messageCount, CompletionHandler<void(uint64_t)>&&);

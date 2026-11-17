@@ -150,27 +150,12 @@ void IPCTesterReceiver::describeControlSwift(Ref<WebCore::ControlPart>&& part, c
     completionHandler(ipcTesterDescription(part, style));
 }
 
-void IPCTesterReceiver::describeCxxDecodedControlSwift(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
-{
-    completionHandler(ipcTesterDescription(part, style));
-}
-
 void IPCTesterReceiver::describeSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
 {
     completionHandler(ipcTesterDescription(image));
 }
 
-void IPCTesterReceiver::describeCxxDecodedSystemImageSwift(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
-{
-    completionHandler(ipcTesterDescription(image));
-}
-
 void IPCTesterReceiver::describeFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
-{
-    completionHandler(ipcTesterDescription(filter));
-}
-
-void IPCTesterReceiver::describeCxxDecodedFilterSwift(Ref<WebCore::Filter>&& filter, CompletionHandler<void(String&&)>&& completionHandler)
 {
     completionHandler(ipcTesterDescription(filter));
 }

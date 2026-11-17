@@ -233,15 +233,6 @@ final class IPCTesterReceiver {
     }
 
     @MainActor
-    func describeCxxDecodedControlSwift(
-        connection: IPC.Connection,
-        part: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftPart,
-        style: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftStyle
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedControlDescription(part, style))
-    }
-
-    @MainActor
     func describeSystemImageSwift(connection: IPC.Connection, image: IPCTypes.SystemImage) -> String? {
         switch image {
         #if ENABLE_APPLE_PAY
@@ -253,14 +244,6 @@ final class IPCTesterReceiver {
             return "appKitControl=0 tint=\(Self.description(controlImage.tintColor)) dark=\(controlImage.useDarkAppearance ? 1 : 0)"
         #endif
         }
-    }
-
-    @MainActor
-    func describeCxxDecodedSystemImageSwift(
-        connection: IPC.Connection,
-        image: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedSystemImageSwiftImage
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedSystemImageDescription(image))
     }
 
     // A filter decoded in Swift and in C++ must be described alike: as ipcTesterDescription() describes it
@@ -275,14 +258,6 @@ final class IPCTesterReceiver {
         case .svgFilterRenderer(let svgFilter):
             return Self.description(svgFilter)
         }
-    }
-
-    @MainActor
-    func describeCxxDecodedFilterSwift(
-        connection: IPC.Connection,
-        filter: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedFilterSwiftFilter
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedFilterDescription(filter))
     }
 
     private static func description(_ values: Float...) -> String {
@@ -473,6 +448,15 @@ final class IPCTesterReceiver {
         IPCCoding.WTFString.swiftString(path.testingDescription)
     }
 
+    #if ENABLE_GPU_PROCESS
+    // RemoteCGRenderer's messages whose arguments Swift decodes, encoded as the web process encodes them, must be decoded and
+    // encoded again by their Swift coders into the same bytes.
+    @MainActor
+    func wireFormMismatchesOfCGRendererSwift(connection: IPC.Connection) -> String? {
+        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCGRendererWireFormMismatches())
+    }
+    #endif
+
     @MainActor
     func describeCxxDecodedPathSwift(connection: IPC.Connection, path: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedPathSwiftPath) -> String? {
         IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedPathDescription(path))
@@ -646,5 +630,69 @@ final class IPCTesterReceiver {
         node.children.reduce(1) { $0 + nodeCount($1) }
     }
 }
+
+#if ENABLE_GPU_PROCESS && ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
+private func reencode<Coder: IPCCoder>(_: Coder.Type, _ decoder: inout IPC.SwiftDecoder, _ encoder: IPC.SwiftReplyEncoder) throws(IPCDecodingError) {
+    Coder.encode(try Coder.decode(from: &decoder), to: encoder)
+}
+
+// The storage that variant 0 decodes every DrawGlyphs's run into, as a live dispatch decodes into the renderer's, so that a longer
+// run then a shorter one decode into storage larger than the run. Only the main thread uses it, one call at a time, as only a
+// renderer's work queue uses the renderer's (GlyphRun.Storage).
+private let ipcTesterLiveGlyphRun = IPCTypes.GlyphRun.Storage()
+
+// For ipcTesterCGRendererWireFormMismatches(): decodes the arguments of one of RemoteCGRenderer's messages with the coders that
+// its Swift dispatch decodes them with, and encodes them again with the same coders. A DrawGlyphs's run decodes into storage of
+// its own for variant 1, as the recorder's does, and else into ipcTesterLiveGlyphRun. False if they don't decode.
+@_expose(Cxx)
+func ipcTesterReencodeCGRendererArguments(_ messageName: UInt16, _ decoder: inout IPC.SwiftDecoder, _ encoder: IPC.SwiftReplyEncoder, _ variant: UInt8) -> Bool {
+    do throws(IPCDecodingError) {
+        switch IPC.MessageName(rawValue: messageName) {
+        case .RemoteCGRenderer_SetLineDash:
+            try reencode(IPCCoding.Vector<Double>.self, &decoder, encoder)
+            try reencode(Float.self, &decoder, encoder)
+        case .RemoteCGRenderer_FillPathSegment, .RemoteCGRenderer_StrokePathSegment:
+            try reencode(IPCCoding.CxxDecoded.PathSegment.self, &decoder, encoder)
+        case .RemoteCGRenderer_StrokeLinesWithColorAndThickness:
+            try reencode(IPCCoding.TrivialSpan<WebCore.PathDataLineColorThickness>.self, &decoder, encoder)
+        case .RemoteCGRenderer_SetDropShadow:
+            try reencode(IPCTypes.CxxName.CGRendererShadowValues.self, &decoder, encoder)
+            try reencode(IPCTypes.CxxName.CGRendererColorData.self, &decoder, encoder)
+            try reencode(Bool.self, &decoder, encoder)
+        case .RemoteCGRenderer_SetStyle:
+            try reencode(IPCTypes.CxxName.WebKit_RemoteCGRendererStyleKind.self, &decoder, encoder)
+            try reencode(IPCTypes.CxxName.CGRendererShadowValues.self, &decoder, encoder)
+            try reencode(IPCTypes.CxxName.CGRendererColorData.self, &decoder, encoder)
+            try reencode(Bool.self, &decoder, encoder)
+            try reencode(Float.self, &decoder, encoder)
+            try reencode(Float.self, &decoder, encoder)
+            try reencode(IPCCoding.StdArray20<Float>.self, &decoder, encoder)
+        case .RemoteCGRenderer_DrawLinesForText:
+            try reencode(IPCTypes.CxxName.WebCore_FloatPoint.self, &decoder, encoder)
+            try reencode(Float.self, &decoder, encoder)
+            try reencode(IPCCoding.TrivialSpan<WebCore.FloatSegment>.self, &decoder, encoder)
+            try reencode(Bool.self, &decoder, encoder)
+            try reencode(Bool.self, &decoder, encoder)
+            try reencode(IPCCoding.CxxEnum<WebCore.StrokeStyle>.self, &decoder, encoder)
+        case .RemoteCGRenderer_DrawGlyphs:
+            try reencode(IPCTypes.CxxName.WebCore_RenderingResourceIdentifier.self, &decoder, encoder)
+            let run =
+                if variant == 1 {
+                    try IPCTypes.GlyphRun.decode(from: &decoder)
+                } else {
+                    try IPCTypes.GlyphRun.decode(from: &decoder, context: ipcTesterLiveGlyphRun)
+                }
+            IPCTypes.GlyphRun.encode(run, to: encoder)
+            try reencode(IPCTypes.CxxName.WebCore_FloatPoint.self, &decoder, encoder)
+            try reencode(IPCCoding.CxxEnum<WebCore.FontSmoothingMode>.self, &decoder, encoder)
+        default:
+            return false
+        }
+    } catch {
+        return false
+    }
+    return true
+}
+#endif
 
 #endif
