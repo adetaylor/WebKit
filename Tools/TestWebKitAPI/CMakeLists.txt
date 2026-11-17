@@ -286,6 +286,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/CDMClearKeyTests.cpp
         Tests/WebCore/CSSParser.cpp
         Tests/WebCore/CSSParserFastPaths.cpp
+        Tests/WebCore/CSSRulesBench.cpp
         Tests/WebCore/CSSTokenizerBench.cpp
         Tests/WebCore/CSSTokenizerTests.cpp
         Tests/WebCore/CSSValueAggregates.cpp
@@ -381,6 +382,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/STUNMessageParsingTest.cpp
         Tests/WebCore/SampleMap.cpp
         Tests/WebCore/SecurityOrigin.cpp
+        Tests/WebCore/SelectorMatchBench.cpp
         Tests/WebCore/SerializedScriptValue.cpp
         Tests/WebCore/ServiceWorkerRoutines.cpp
         Tests/WebCore/ShareableBitmap.cpp
