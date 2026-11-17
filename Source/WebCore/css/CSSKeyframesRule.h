@@ -42,7 +42,8 @@ public:
     NODELETE static Ref<StyleRuleKeyframes> create(const AtomString& name);
     ~StyleRuleKeyframes();
     
-    NODELETE const Vector<Ref<StyleRuleKeyframe>>& keyframes() const;
+    // Unsafe to Swift: Swift infers a copy of the returned Vector<Ref<...>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE NODELETE const Vector<Ref<StyleRuleKeyframe>>& keyframes() const;
 
     void parserAppendKeyframe(RefPtr<StyleRuleKeyframe>&&);
     void wrapperAppendKeyframe(Ref<StyleRuleKeyframe>&&);

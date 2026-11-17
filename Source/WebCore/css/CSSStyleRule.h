@@ -70,7 +70,8 @@ private:
     void getChildStyleSheets(HashSet<Ref<CSSStyleSheet>>&) final;
 
     String generateSelectorText() const;
-    Vector<Ref<StyleRuleBase>> nestedRules() const;
+    // Unsafe to Swift: Swift infers a copy of the returned Vector<Ref<...>> Sendable, and the rules' counts are not atomic.
+    SWIFT_UNSAFE Vector<Ref<StyleRuleBase>> nestedRules() const;
     void cssTextForRules(StringBuilder& rules) const;
     void cssTextForRulesWithReplacementURLs(StringBuilder& rules, const CSS::SerializationContext&) const;
 
