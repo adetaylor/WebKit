@@ -111,6 +111,13 @@ Vector<String> IDBObjectStoreInfo::indexNames() const
     });
 }
 
+Vector<IDBIndexInfo> IDBObjectStoreInfo::indexes() const
+{
+    return WTF::map(m_indexMap, [](auto& pair) -> IDBIndexInfo {
+        return pair.value;
+    });
+}
+
 void IDBObjectStoreInfo::deleteIndex(const String& indexName)
 {
     auto* info = infoForExistingIndex(indexName);

@@ -34,6 +34,9 @@
 
 namespace WebCore {
 
+using IDBKeyPathOptional = std::optional<IDBKeyPath>;
+using IDBIndexInfoVector = Vector<IDBIndexInfo>;
+
 class IDBObjectStoreInfo {
 public:
     WEBCORE_EXPORT IDBObjectStoreInfo(IDBObjectStoreIdentifier, const String& name, std::optional<IDBKeyPath>&&, bool autoIncrement, HashMap<IDBIndexIdentifier, IDBIndexInfo>&& = { });
@@ -41,6 +44,9 @@ public:
     IDBObjectStoreIdentifier identifier() const { return m_identifier; }
     const String& name() const LIFETIME_BOUND { return m_name; }
     const std::optional<IDBKeyPath>& keyPath() const LIFETIME_BOUND { return m_keyPath; }
+    // By-value reads for Swift.
+    String nameValue() const { return m_name; }
+    std::optional<IDBKeyPath> keyPathValue() const { return m_keyPath; }
     bool autoIncrement() const { return m_autoIncrement; }
 
     void rename(const String& newName) { m_name = newName; }
@@ -56,6 +62,8 @@ public:
     NODELETE IDBIndexInfo* infoForExistingIndex(IDBIndexIdentifier);
 
     Vector<String> indexNames() const;
+    // The infos by value, in the map's iteration order, for Swift.
+    Vector<IDBIndexInfo> indexes() const;
     const HashMap<IDBIndexIdentifier, IDBIndexInfo>& indexMap() const LIFETIME_BOUND { return m_indexMap; }
 
     void deleteIndex(const String& indexName);

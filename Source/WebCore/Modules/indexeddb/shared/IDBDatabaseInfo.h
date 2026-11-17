@@ -34,6 +34,8 @@
 
 namespace WebCore {
 
+using IDBObjectStoreInfoVector = Vector<IDBObjectStoreInfo>;
+
 class IDBDatabaseInfo {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(IDBDatabaseInfo, WEBCORE_EXPORT);
 public:
@@ -46,6 +48,8 @@ public:
     IDBDatabaseInfo isolatedCopy() const;
 
     const String& name() const LIFETIME_BOUND { return m_name; }
+    // By-value read for Swift.
+    String nameValue() const { return m_name; }
 
     void setVersion(uint64_t version) { m_version = version; }
     uint64_t version() const { return m_version; }
@@ -61,6 +65,8 @@ public:
     void renameObjectStore(IDBObjectStoreIdentifier, const String& newName);
 
     Vector<String> objectStoreNames() const;
+    // The infos by value, in the map's iteration order, for Swift.
+    Vector<IDBObjectStoreInfo> objectStores() const;
     const HashMap<IDBObjectStoreIdentifier, IDBObjectStoreInfo>& objectStoreMap() const LIFETIME_BOUND { return m_objectStoreMap; }
 
     void deleteObjectStore(const String& objectStoreName);
