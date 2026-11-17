@@ -102,12 +102,6 @@ NODELETE static void setSynchronizerScreenReserved(AVSampleBufferRenderSynchroni
 @end
 #endif
 
-#if HAVE(RECOMMENDED_PIXEL_ATTRIBUTES_API)
-@interface AVSampleBufferVideoRenderer (Staging_152246223)
-@property (readonly, nonnull) NSDictionary<NSString*, NS_SWIFT_SENDABLE id> *recommendedPixelBufferAttributes;
-@end
-#endif
-
 namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(AudioVideoRendererAVFObjC);
