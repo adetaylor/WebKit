@@ -119,8 +119,6 @@ list(APPEND WebKitPlatform_UNIFIED_SOURCE_LIST_FILES
 )
 
 list(APPEND WebKit_SOURCES
-    GPUProcess/media/RemoteAudioDestinationManager.cpp
-
     NetworkProcess/Downloads/cocoa/WKDownloadProgress.mm
 
     NetworkProcess/cocoa/LaunchServicesDatabaseObserver.mm
@@ -365,7 +363,6 @@ set(WebKit_FORWARDING_HEADERS_FILES
 list(APPEND WebKit_MESSAGES_IN_FILES
     GPUProcess/media/RemoteImageDecoderAVFProxy
 
-    GPUProcess/media/ios/RemoteMediaSessionHelperProxy
 
     GPUProcess/webrtc/UserMediaCaptureManagerProxy
 

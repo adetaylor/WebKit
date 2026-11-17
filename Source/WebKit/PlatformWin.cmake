@@ -155,41 +155,39 @@ elseif (USE_SKIA)
     include(Platform/Skia.cmake)
 endif ()
 
-if (SWIFT_REQUIRED)
-    # FIXME(rdar://185507163):
-    # The Swift SDK wraps the MSVC STL in a clang module (SDKROOT/usr/
-    # share/vcruntime.modulemap), but its `std` module names only two of the STL's
-    # __msvc_*.hpp internal headers. Override it to be more complete.
-    cmake_path(CONVERT "$ENV{SDKROOT}" TO_CMAKE_PATH_LIST _swift_sdkroot)
-    cmake_path(CONVERT "$ENV{VCToolsInstallDir}" TO_CMAKE_PATH_LIST _vc_tools_dir)
-    set(_sdk_vcruntime_mm "${_swift_sdkroot}/usr/share/vcruntime.modulemap")
-    set(_sdk_winsdk_um_mm "${_swift_sdkroot}/usr/share/winsdk_um.modulemap")
-    if (_swift_sdkroot AND _vc_tools_dir AND EXISTS "${_sdk_vcruntime_mm}")
-        # CONFIGURE_DEPENDS ensures this is rerun if VC changes its header set
-        # (subject to some known limitations of that cmake feature)
-        file(GLOB _msvc_internal_headers CONFIGURE_DEPENDS # NOLINT
-            RELATIVE "${_vc_tools_dir}/include"
-            "${_vc_tools_dir}/include/__msvc_*.hpp")
-        execute_process(
-            COMMAND ${PYTHON_EXECUTABLE} "${WEBKIT_DIR}/Scripts/generate-msvc-stl-modulemap.py"
-                --sdk-modulemap "${_sdk_vcruntime_mm}"
-                --winsdk-um-modulemap "${_sdk_winsdk_um_mm}"
-                --output-dir "${CMAKE_BINARY_DIR}/windows-modulemaps"
-                --headers ${_msvc_internal_headers}
-            OUTPUT_VARIABLE _win_vfs_overlay
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            ERROR_VARIABLE _win_mm_error
-            RESULT_VARIABLE _win_mm_result)
-    else ()
-        set(_win_mm_result 1)
-        set(_win_mm_error "no readable ${_sdk_vcruntime_mm}")
-    endif ()
-    if (NOT _win_mm_result EQUAL 0)
-        message(WARNING "Could not generate the amended MSVC STL modulemap for the Swift clang importer (SDKROOT='$ENV{SDKROOT}', VCToolsInstallDir='$ENV{VCToolsInstallDir}'); Swift C++ interop will likely fail to import WTF headers.\n${_win_mm_error}")
-    elseif (_win_vfs_overlay)
-        # A swiftc overlay, not -Xcc -ivfsoverlay: the importer injects the SDK's
-        # vcruntime.modulemap over any clang overlay (see the generator script).
-        # Single list item to avoid deduplication problems
-        list(APPEND WebKit_PLATFORM_SWIFT_CLANG_FLAG_PAIRS "-vfsoverlay ${_win_vfs_overlay}")
-    endif ()
+# FIXME(rdar://185507163):
+# The Swift SDK wraps the MSVC STL in a clang module (SDKROOT/usr/
+# share/vcruntime.modulemap), but its `std` module names only two of the STL's
+# __msvc_*.hpp internal headers. Override it to be more complete.
+cmake_path(CONVERT "$ENV{SDKROOT}" TO_CMAKE_PATH_LIST _swift_sdkroot)
+cmake_path(CONVERT "$ENV{VCToolsInstallDir}" TO_CMAKE_PATH_LIST _vc_tools_dir)
+set(_sdk_vcruntime_mm "${_swift_sdkroot}/usr/share/vcruntime.modulemap")
+set(_sdk_winsdk_um_mm "${_swift_sdkroot}/usr/share/winsdk_um.modulemap")
+if (_swift_sdkroot AND _vc_tools_dir AND EXISTS "${_sdk_vcruntime_mm}")
+    # CONFIGURE_DEPENDS ensures this is rerun if VC changes its header set
+    # (subject to some known limitations of that cmake feature)
+    file(GLOB _msvc_internal_headers CONFIGURE_DEPENDS # NOLINT
+        RELATIVE "${_vc_tools_dir}/include"
+        "${_vc_tools_dir}/include/__msvc_*.hpp")
+    execute_process(
+        COMMAND ${PYTHON_EXECUTABLE} "${WEBKIT_DIR}/Scripts/generate-msvc-stl-modulemap.py"
+            --sdk-modulemap "${_sdk_vcruntime_mm}"
+            --winsdk-um-modulemap "${_sdk_winsdk_um_mm}"
+            --output-dir "${CMAKE_BINARY_DIR}/windows-modulemaps"
+            --headers ${_msvc_internal_headers}
+        OUTPUT_VARIABLE _win_vfs_overlay
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_VARIABLE _win_mm_error
+        RESULT_VARIABLE _win_mm_result)
+else ()
+    set(_win_mm_result 1)
+    set(_win_mm_error "no readable ${_sdk_vcruntime_mm}")
+endif ()
+if (NOT _win_mm_result EQUAL 0)
+    message(WARNING "Could not generate the amended MSVC STL modulemap for the Swift clang importer (SDKROOT='$ENV{SDKROOT}', VCToolsInstallDir='$ENV{VCToolsInstallDir}'); Swift C++ interop will likely fail to import WTF headers.\n${_win_mm_error}")
+elseif (_win_vfs_overlay)
+    # A swiftc overlay, not -Xcc -ivfsoverlay: the importer injects the SDK's
+    # vcruntime.modulemap over any clang overlay (see the generator script).
+    # Single list item to avoid deduplication problems
+    list(APPEND WebKit_PLATFORM_SWIFT_CLANG_FLAG_PAIRS "-vfsoverlay ${_win_vfs_overlay}")
 endif ()

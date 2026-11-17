@@ -1070,6 +1070,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     css/parser/CSSSelectorParserContext.h
     css/parser/CSSTokenizer.h
     css/parser/CSSTokenizerInputStream.h
+    css/parser/CSSTokenizerSwiftTypes.h
     css/parser/MutableCSSSelector.h
 
     css/query/ContainerQuery.h
@@ -1687,22 +1688,28 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     html/forms/FileIconLoader.h
 
     html/parser/CSSPreloadScanner.h
+    html/parser/HTMLDocumentParser.h
     html/parser/HTMLDocumentParserFastPath.h
     html/parser/HTMLEntityParser.h
     html/parser/HTMLEntityTable.h
+    html/parser/HTMLFastPathParserTypes.h
     html/parser/HTMLInputStream.h
     html/parser/HTMLMetaCharsetParser.h
     html/parser/HTMLMicrosyntaxesSwiftTypes.h
     html/parser/HTMLNameCache.h
     html/parser/HTMLParserIdioms.h
     html/parser/HTMLParserOptions.h
+    html/parser/HTMLParserScheduler.h
     html/parser/HTMLParserScriptingFlagPolicy.h
     html/parser/HTMLPreloadScanner.h
     html/parser/HTMLResourcePreloader.h
+    html/parser/HTMLScriptRunnerHost.h
+    html/parser/HTMLSrcsetParser.h
     html/parser/HTMLToken.h
     html/parser/HTMLTokenizer.h
+    html/parser/HTMLTreeBuilderSwiftSupport.h
     html/parser/InputStreamPreprocessor.h
-    html/parser/HTMLSrcsetParser.h
+    html/parser/NestingLevelIncrementer.h
 
     html/shadow/TextControlInnerElements.h
     html/shadow/TextPlaceholderElement.h
@@ -2349,6 +2356,7 @@ set(WebCore_PRIVATE_FRAMEWORK_HEADERS
     platform/ScrollAnimation.h
     platform/ScrollAnimator.h
     platform/ScrollAnimatorScrollPhysicsClient.h
+    platform/ScrollExtents.h
     platform/ScrollPhysicsTypes.h
     platform/ScrollTypes.h
     platform/ScrollView.h
