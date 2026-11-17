@@ -233,15 +233,6 @@ final class IPCTesterReceiver {
     }
 
     @MainActor
-    func describeCxxDecodedControlSwift(
-        connection: IPC.Connection,
-        part: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftPart,
-        style: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedControlSwiftStyle
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedControlDescription(part, style))
-    }
-
-    @MainActor
     func describeSystemImageSwift(connection: IPC.Connection, image: IPCTypes.SystemImage) -> String? {
         switch image {
         #if ENABLE_APPLE_PAY
@@ -253,14 +244,6 @@ final class IPCTesterReceiver {
             return "appKitControl=0 tint=\(Self.description(controlImage.tintColor)) dark=\(controlImage.useDarkAppearance ? 1 : 0)"
         #endif
         }
-    }
-
-    @MainActor
-    func describeCxxDecodedSystemImageSwift(
-        connection: IPC.Connection,
-        image: CxxDecodedArguments.IPCTesterReceiver.DescribeCxxDecodedSystemImageSwiftImage
-    ) -> String? {
-        IPCCoding.WTFString.swiftString(WebKit.ipcTesterCxxDecodedSystemImageDescription(image))
     }
 
     // A filter decoded in Swift and in C++ must be described alike: as ipcTesterDescription() describes it

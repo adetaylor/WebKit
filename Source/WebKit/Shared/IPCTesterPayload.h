@@ -740,21 +740,6 @@ inline String ipcTesterDescription(const WebCore::Path& path)
 #endif
 
 #if ENABLE(IPC_TESTING_SWIFT)
-inline String ipcTesterCxxDecodedControlDescription(IPC::CxxDecodedArgument<Ref<WebCore::ControlPart>>& partArgument, IPC::CxxDecodedArgument<WebCore::ControlStyle>& styleArgument)
-{
-    auto part = partArgument.take();
-    auto style = styleArgument.take();
-    RELEASE_ASSERT(part && style);
-    return ipcTesterDescription(part->get(), *style);
-}
-
-inline String ipcTesterCxxDecodedSystemImageDescription(IPC::CxxDecodedArgument<Ref<WebCore::SystemImage>>& imageArgument)
-{
-    auto image = imageArgument.take();
-    RELEASE_ASSERT(image);
-    return ipcTesterDescription(image->get());
-}
-
 inline String ipcTesterCxxDecodedFilterDescription(IPC::CxxDecodedArgument<Ref<WebCore::Filter>>& filterArgument)
 {
     auto filter = filterArgument.take();

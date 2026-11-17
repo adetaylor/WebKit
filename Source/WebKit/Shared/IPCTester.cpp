@@ -547,6 +547,18 @@ void IPCTester::removeReceiverForSwiftTypesTesting(IPC::Connection& connection, 
     completionHandler();
 }
 
+#if PLATFORM(COCOA)
+void IPCTester::describeControl(Ref<WebCore::ControlPart>&& part, const WebCore::ControlStyle& style, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(part, style));
+}
+
+void IPCTester::describeSystemImage(Ref<WebCore::SystemImage>&& image, CompletionHandler<void(String&&)>&& completionHandler)
+{
+    completionHandler(ipcTesterDescription(image));
+}
+#endif
+
 #if ENABLE(IPC_TESTING_SWIFT)
 
 namespace {

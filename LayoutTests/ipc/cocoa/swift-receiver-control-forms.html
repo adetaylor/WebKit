@@ -89,7 +89,7 @@ promise_test(async t => {
         cases.push(['a style cut short', [u8(part.textField), u32(0), f(13)]]);
 
         let accepted = 0;
-        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeControlSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedControlSwift.name, cases);
+        const descriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeControlSwift.name, IPC.messages.IPCTester_DescribeControl.name, cases);
         cases.forEach(([description], i) => {
             const [swift, cxx] = descriptions[i];
             assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);
@@ -106,7 +106,7 @@ promise_test(async t => {
         images.push(['a scroll bar corner without a tint', [u8(1), ...invalidColor, b(0)]]);
         images.push(['a scroll bar corner with an out-of-line tint', [u8(1), ...outOfLineColor(1, 0.1, 0.2, 0.3, 0.5), b(0)]]);
         images.push(['an unknown system image', [u8(2), u8(0)]]);
-        const imageDescriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeSystemImageSwift.name, IPC.messages.IPCTesterReceiver_DescribeCxxDecodedSystemImageSwift.name, images);
+        const imageDescriptions = await describeAll(IPC.messages.IPCTesterReceiver_DescribeSystemImageSwift.name, IPC.messages.IPCTester_DescribeSystemImage.name, images);
         images.forEach(([description], i) => {
             const [swift, cxx] = imageDescriptions[i];
             assert_equals(swift, cxx, `Swift and C++ decode ${description} alike`);

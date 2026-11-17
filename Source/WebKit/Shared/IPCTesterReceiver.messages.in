@@ -56,9 +56,7 @@ messages -> IPCTesterReceiver {
     DescribeCxxDecodedColorSpaceSwift([CxxDecoded] WebCore::ColorSpace colorSpace) -> (String description) SwiftTypes
     CompareColorSpacesSwift(WebCore::ColorSpace colorSpace, [CxxDecoded] WebCore::ColorSpace cxxDecodedColorSpace) -> (bool equal) SwiftTypes
     DescribeControlSwift(Ref<WebCore::ControlPart> part, WebCore::ControlStyle style) -> (String description) SwiftTypes
-    DescribeCxxDecodedControlSwift([CxxDecoded] Ref<WebCore::ControlPart> part, [CxxDecoded] WebCore::ControlStyle style) -> (String description) SwiftTypes
     DescribeSystemImageSwift(Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
-    DescribeCxxDecodedSystemImageSwift([CxxDecoded] Ref<WebCore::SystemImage> image) -> (String description) SwiftTypes
     DescribeFilterSwift(Ref<WebCore::Filter> filter) -> (String description) SwiftTypes
     DescribeCxxDecodedFilterSwift([CxxDecoded] Ref<WebCore::Filter> filter) -> (String description) SwiftTypes
 #endif
