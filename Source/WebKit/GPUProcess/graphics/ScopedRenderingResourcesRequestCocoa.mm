@@ -41,6 +41,8 @@ OBJC_PROTOCOL(MTLDeviceSPI);
 
 namespace WebKit {
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
 static constexpr Seconds freeRenderingResourcesTimeout = 1_s;
 static bool didScheduleFreeRenderingResources;
 
@@ -57,6 +59,13 @@ void ScopedRenderingResourcesRequest::freeRenderingResources()
     didScheduleFreeRenderingResources = false;
     if (s_requests)
         return;
+    purgeDevices();
+}
+
+#endif
+
+void ScopedRenderingResourcesRequest::purgeDevices()
+{
     BEGIN_BLOCK_OBJC_EXCEPTIONS
 #if PLATFORM(MAC)
     auto devices = adoptNS(MTLCopyAllDevices());

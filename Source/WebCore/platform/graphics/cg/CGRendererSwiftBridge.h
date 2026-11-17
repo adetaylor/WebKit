@@ -133,6 +133,15 @@ inline CGRendererGlyphRun CGRendererMakeGlyphRun(CTFontRef _Nonnull font LIFETIM
     return { font, glyphs, advances };
 }
 
+namespace WTF {
+class MediaTime;
+class URL;
+}
+using WTF::MediaTime;
+using WTF::URL;
+
+typedef struct CF_BRIDGED_TYPE(id) __CVBuffer* CVPixelBufferRef;
+
 namespace WebCore {
 class AffineTransform;
 class CGRendererCore;
@@ -146,16 +155,20 @@ struct FloatSegment;
 class Gradient;
 class GraphicsContextCG;
 class ImageBuffer;
+class MeshGradient;
 class NativeImage;
 class Path;
 class PathImpl;
 class Pattern;
 struct PatternParameters;
+struct PlatformVideoColorSpace;
+enum class VideoFrameRotation : uint16_t;
 class SourceBrush;
 struct GraphicsDropShadow;
 }
 
 class CGRendererBrushSource;
+class CGRendererDestinationColorSpace;
 class CGRendererGradientColorSpace;
 
 // A pattern brush's CGPattern for one draw, as GraphicsContextCG::applyFillPattern() makes it: null when the pattern has no
@@ -186,6 +199,17 @@ private:
     CGAffineTransform m_gradientSpaceTransform;
     RefPtr<const WebCore::Pattern> m_pattern;
 };
+
+// The same brushes, for Swift: a gradient brush, and a pattern brush of a native image or an image buffer.
+WEBCORE_EXPORT CGRendererBrushSource CGRendererGradientBrushSource(const WebCore::Gradient&, const WebCore::AffineTransform& spaceTransform);
+WEBCORE_EXPORT CGRendererBrushSource CGRendererNativeImagePatternBrushSource(WebCore::NativeImage&, const WebCore::PatternParameters&);
+WEBCORE_EXPORT CGRendererBrushSource CGRendererImageBufferPatternBrushSource(WebCore::ImageBuffer&, const WebCore::PatternParameters&);
+
+// The CFURL of a link, as GraphicsContextCG::setURLForRect() makes it.
+WEBCORE_EXPORT CFURLRef _Nullable CGRendererCopyURL(const URL&) CF_RETURNS_RETAINED;
+// For Swift, which can't call them: FloatRoundedRect::rect(), and the raw value of the text drawing mode.
+WEBCORE_EXPORT WebCore::FloatRect CGRendererRectOfRoundedRect(const WebCore::FloatRoundedRect&);
+WEBCORE_EXPORT uint8_t CGRendererTextDrawingModeValue(WebCore::TextDrawingModeFlags);
 
 // The facts of a font (CGRendererGlyphFontFacts), and its CTFont, which the font keeps: null for a font without one.
 WEBCORE_EXPORT CTFontRef _Nullable CGRendererGlyphFontFactsOf(const WebCore::FontBase&, CGRendererGlyphFontFacts&) __attribute__((availability(swift, unavailable)));
@@ -342,11 +366,15 @@ struct CGRendererPathFacts {
 // facts, whose bounds, if computesFastBoundingRect, are PathStream::computeFastBoundingRect()'s, in the same pass over the
 // segments. Null for a path of no segment or one.
 WEBCORE_EXPORT CGMutablePathRef _Nullable CGRendererCreatePathOfSegments(std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&, bool computesFastBoundingRect) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// The facts of a path of the segments for a clip to it, and, for a path of more than one segment, the segments added to the
+// context's path as GraphicsContextCG::clipPath() adds a PathStream's: false for a path of no segment or one, which it leaves.
+WEBCORE_EXPORT bool CGRendererAddSegmentsToContextPath(CGContextRef _Nonnull, std::span<const WebCore::PathSegment> segments NOESCAPE, CGRendererPathFacts&) __attribute__((availability(swift, unavailable)));
 // The Path of such a CGPath, as a Path of a PathCG, which C++ encodes as the segments of the CGPath's elements.
 WEBCORE_EXPORT WebCore::Path CGRendererPathOfPlatformPath(CGPathRef _Nonnull) __attribute__((availability(swift, unavailable)));
 // The CGPath that a Path of the PathImpl draws (Path::platformPath()), without the copy of the PathImpl that a Path sharing it
 // would make first.
-WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED __attribute__((availability(swift, unavailable)));
+// Unsafe in Swift, which shares the CGPath with the PathImpl: only CGRendererPlatformPath may hold it.
+SWIFT_UNSAFE WEBCORE_EXPORT CGPathRef _Nonnull CGRendererCopyPlatformPath(const WebCore::PathImpl&) CF_RETURNS_RETAINED;
 
 // What the renderer's drawNativeImage() takes of an image draw's options: the dynamic range limit, which tone maps an image
 // that draws HDR content to standard range, is in limitsDynamicRange.
@@ -379,7 +407,21 @@ struct CGRendererImageFacts {
 };
 // GraphicsContextCG::drawNativeImage()'s inversion of an image for an accessibility color mode: the color matrix, in the
 // facts, for options that invert the image (InvertContent::Yes or Forced) where the platform has the mode.
-WEBCORE_EXPORT void CGRendererSetInvertColorMatrix(const WebCore::NativeImage&, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) __attribute__((availability(swift, unavailable)));
+WEBCORE_EXPORT void CGRendererSetInvertColorMatrix(const WebCore::NativeImage&, const WebCore::FloatRect& sourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&);
+// The image of an image buffer that a Swift receiver draws into a context, as GraphicsContext::drawImageBuffer() draws it
+// (nativeImageForDrawing()), with its size and headroom, and the color matrix that inverts it where the options do, in the
+// facts: null where the buffer has no image. The context is the target image buffer's, or, without one, the context of the
+// replay that draws it (GraphicsContextCG::lendSwiftRendererForReplay()).
+WEBCORE_EXPORT CGImageRef _Nullable CGRendererCopyImageBufferImageForDrawing(WebCore::ImageBuffer* _Nullable target, WebCore::ImageBuffer&, const WebCore::FloatRect& scaledSourceRect, WebCore::RasterDrawingOptions, CGRendererImageFacts&) CF_RETURNS_RETAINED;
+// The image of a DrawMeshGradient, which MeshGradientRenderer renders for the context's device transform and color space at
+// the destination's size in pixels, which the facts give, and the options GraphicsContext draws it with: null where nothing is
+// drawn.
+WEBCORE_EXPORT CGImageRef _Nullable CGRendererCopyMeshGradientImage(const WebCore::MeshGradient&, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace&, CGSize destinationSize, CGRendererImageFacts&, CGRendererImageOptions&) CF_RETURNS_RETAINED;
+#if ENABLE(VIDEO) && USE(AVFOUNDATION)
+// The image of a video frame of the pixel buffer, as VideoFrame::copyNativeImage() makes it, with its size, and whether it has
+// alpha: null for a frame it can't make one of.
+WEBCORE_EXPORT CGImageRef _Nullable CGRendererCopyVideoFrameImage(CVPixelBufferRef _Nonnull, const MediaTime& presentationTime, bool isMirrored, WebCore::VideoFrameRotation, const WebCore::PlatformVideoColorSpace&, bool ignoresAlpha, CGRendererImageFacts&, bool& hasAlpha) CF_RETURNS_RETAINED;
+#endif
 
 // A Color as the renderer takes it, as GraphicsContextCG converts its state's (didUpdateStateForSwiftRenderer()): an sRGBA8
 // color packed, any other as plain values with its CGColor, which CGRendererCopyColor() returns.

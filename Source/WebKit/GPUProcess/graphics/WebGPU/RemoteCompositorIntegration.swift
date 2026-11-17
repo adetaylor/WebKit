@@ -237,7 +237,12 @@ final class RemoteCompositorIntegration {
         // A premultiplied canvas must keep its alpha channel so transparent pixels composite over the page; an opaque
         // canvas forces the alpha to be ignored. This matters for RGBA16F, whose IOSurface format cannot itself encode
         // opacity.
-        WebKit.paintToImageBuffer(objects.renderingBackend, textureImage, renderBuffers[Int(bufferIndex)], alphaMode != .premultiplied, imageBuffer.rawValue)
+        objects.renderingBackend.paintToImageBuffer(
+            textureImage,
+            renderBuffers[Int(bufferIndex)],
+            forceOpaque: alphaMode != .premultiplied,
+            imageBufferIdentifier: imageBuffer.rawValue
+        )
     }
 
     func destruct() {

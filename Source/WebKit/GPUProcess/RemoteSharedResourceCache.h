@@ -38,6 +38,7 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/Ref.h>
 #include <wtf/Seconds.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
@@ -45,15 +46,21 @@
 #include <WebCore/IOSurfacePool.h>
 #endif
 
+namespace WebCore {
+class FilterImageAllocator;
+}
+
 namespace WebKit {
+
+class RemoteRenderingBackend;
 
 // Timeout for waiting on a resource to be published in the shared cache from another work queue.
 constexpr Seconds defaultRemoteSharedResourceCacheTimeout = 15_s;
 
 class GPUConnectionToWebProcess;
 // Class holding GPU process resources per Web Content process.
-// Thread-safe.
-class RemoteSharedResourceCache final : public ThreadSafeRefCounted<RemoteSharedResourceCache>, IPC::MessageReceiver {
+// Thread-safe. The counts of the image buffers are in the Swift state that m_swiftState holds (RemoteSharedResourceCache.swift).
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteSharedResourceCache.swift") RemoteSharedResourceCache final : public ThreadSafeRefCounted<RemoteSharedResourceCache>, IPC::MessageReceiver {
     WTF_MAKE_TZONE_ALLOCATED(RemoteSharedResourceCache);
 public:
     static Ref<RemoteSharedResourceCache> create(GPUConnectionToWebProcess&);
@@ -78,16 +85,20 @@ public:
     WebCore::IOSurfacePool& ioSurfacePool() const { return m_ioSurfacePool; }
 #endif
 
-    NODELETE void didCreateImageBuffer(WebCore::RenderingPurpose, WebCore::RenderingMode);
-    NODELETE void didReleaseImageBuffer(WebCore::RenderingPurpose, WebCore::RenderingMode);
-    NODELETE bool reachedAcceleratedImageBufferLimit(WebCore::RenderingPurpose, size_t globalAcceleratedImageBufferLimit) const;
-    NODELETE bool reachedImageBufferForCanvasLimit() const;
-    NODELETE WebCore::ImageBufferResourceLimits getResourceLimitsForTesting(size_t globalAcceleratedImageBufferLimit) const;
+    // Implemented in Swift, on the per-connection counts in the Swift state and the per-process ones, from any thread.
+    void didCreateImageBuffer(WebCore::RenderingPurpose, WebCore::RenderingMode);
+    void didReleaseImageBuffer(WebCore::RenderingPurpose, WebCore::RenderingMode);
+    bool reachedAcceleratedImageBufferLimit(WebCore::RenderingPurpose, size_t globalAcceleratedImageBufferLimit) const;
+    bool reachedImageBufferForCanvasLimit() const;
+    WebCore::ImageBufferResourceLimits getResourceLimitsForTesting(size_t globalAcceleratedImageBufferLimit) const;
 
     void lowMemoryHandler();
 
 private:
     RemoteSharedResourceCache(GPUConnectionToWebProcess&);
+
+    static uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
 
     // Messages
     void releaseSerializedImageBuffer(RemoteSerializedImageBufferIdentifier);
@@ -100,9 +111,15 @@ private:
 #if HAVE(IOSURFACE)
     const Ref<WebCore::IOSurfacePool> m_ioSurfacePool;
 #endif
-    std::atomic<size_t> m_acceleratedImageBufferForCanvasCount;
-    std::atomic<size_t> m_imageBufferForCanvasCount;
-};
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    const uintptr_t m_swiftState;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// The allocator of the images of the filters that a Swift renderer applies (RemoteCGRendererFilters.swift): the backend's
+// shared resource cache's, as RemoteGraphicsContext's, or, for a replay or a renderer without a backend, the default one.
+WebCore::FilterImageAllocator* WTF_NONNULL createFilterImageAllocator(RemoteRenderingBackend* WTF_NULLABLE) SWIFT_RETURNS_RETAINED;
+#endif
 
 } // namespace WebKit
 

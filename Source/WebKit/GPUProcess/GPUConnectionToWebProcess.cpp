@@ -44,7 +44,6 @@
 #if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 #include "RemoteAudioHardwareListenerProxy.h"
 #endif
-#include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
 #if ENABLE(GPU_PROCESS_MODEL)
 #include "RemoteGPUModel.h"

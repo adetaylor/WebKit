@@ -29,6 +29,7 @@
 #include <WebCore/ContentsFormat.h>
 #include <WebCore/FloatSize.h>
 #include <WebCore/ImageBufferFormat.h>
+#include <WebCore/ImageBufferParameters.h>
 #include <WebCore/RenderingMode.h>
 
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
@@ -51,6 +52,8 @@ struct RemoteImageBufferSetConfiguration {
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     WebCore::IncludeDynamicContentScalingDisplayList includeDisplayList { WebCore::IncludeDynamicContentScalingDisplayList::No };
 #endif
+
+    WebCore::ImageBufferParameters imageBufferParameters() const { return { logicalSize, resolutionScale, colorSpace, bufferFormat, renderingPurpose }; }
 };
 
 } // namespace WebKit

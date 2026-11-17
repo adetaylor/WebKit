@@ -32,17 +32,19 @@
 #include <WebCore/GraphicsTypes.h>
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/WindRule.h>
+#include <span>
 #include <wtf/Ref.h>
 #include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
 class GraphicsContext;
+class NativeImage;
 class Path;
 
 // A GraphicsContext lent to WebCore's Swift for one call. Swift can't keep it: the view is non-escapable. Its members are
 // the GraphicsContext calls WebCore's Swift makes, with GraphicsContext's default arguments.
-class SWIFT_NONESCAPABLE SWIFT_SAFE GraphicsContextView {
+class WEBCORE_EXPORT SWIFT_NONESCAPABLE SWIFT_SAFE GraphicsContextView {
 public:
     explicit GraphicsContextView(GraphicsContext& context LIFETIME_BOUND)
         : m_context(context)
@@ -53,6 +55,9 @@ public:
     void restore() const;
     void translate(const FloatSize&) const;
     void clip(const FloatRect&) const;
+    void resetClip() const;
+    // Clips to a path of the rects, with clipPath()'s default fill rule.
+    void clipToRects(std::span<const FloatRect> rects NOESCAPE) const;
     // False, with no clip, if the image buffer has no native image.
     bool clipToImageBuffer(ImageBuffer&, const FloatRect&) const;
     void setAlpha(float) const;
@@ -66,9 +71,12 @@ public:
     void fillRect(const FloatRect&, const Color&) const;
     void fillPath(const Path&) const;
     void clearRect(const FloatRect&) const;
+    void unwindStateStack() const;
     void drawImageBuffer(ImageBuffer&, const FloatPoint& destination, CompositeOperator) const;
     void drawImageBuffer(ImageBuffer&, const FloatRect& destination, CompositeOperator) const;
     void drawImageBuffer(ImageBuffer&, const FloatRect& destination, const FloatRect& source, CompositeOperator, BlendMode) const;
+    void setImageInterpolationQuality(InterpolationQuality) const;
+    void drawNativeImage(NativeImage&, const FloatRect& destination, const FloatRect& source, CompositeOperator) const;
 
 private:
     GraphicsContext& m_context;
@@ -76,7 +84,7 @@ private:
 
 // An ImageBuffer that WebCore's Swift draws into. It keeps the image buffer alive, and lends its context while Swift holds
 // it.
-class SWIFT_SELF_CONTAINED ImageBufferDrawing {
+class WEBCORE_EXPORT SWIFT_SELF_CONTAINED ImageBufferDrawing {
 public:
     explicit ImageBufferDrawing(ImageBuffer& imageBuffer)
         : m_imageBuffer(imageBuffer)

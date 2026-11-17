@@ -208,8 +208,7 @@ final class RemoteQueue {
         guard let objects = link.objects, let texture, let imageBufferIdentifier = source.imageBufferIdentifier else {
             return
         }
-        var surfaceDescription = WebKit.RemoteGPUImageBufferSurface()
-        guard let surface = WebKit.copyImageBufferSurface(objects.renderingBackend, imageBufferIdentifier.rawValue, &surfaceDescription),
+        guard let (surface, surfaceDescription) = objects.renderingBackend.copyImageBufferSurface(imageBufferIdentifier.rawValue),
             let sourceFormat = sourceTextureFormat(surfaceDescription.pixelFormat)
         else {
             return

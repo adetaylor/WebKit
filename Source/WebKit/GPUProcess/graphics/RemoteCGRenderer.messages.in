@@ -26,10 +26,11 @@
 # directly (RemoteCGRenderer.swift), which RemoteImageBufferGraphicsContext lends each handler. They share the stream and
 # the destination with the image buffer's RemoteGraphicsContext, which takes the rest, so they stay in order with them.
 # They are RemoteGraphicsContext's definitions, apart from the packed colors, which their handlers take as uint32_t, the colors
-# of document markers, focus rings and other draws, which go as plain values, the line strokes and line dashes, which the GPU
-# process copies out of the message, the segments of FillPathSegment and StrokePathSegment, which it decodes into plain values,
-# and shadows and styles, which it keeps for Swift to ask of them. A focus ring of rects goes as one of their path.
-# Paths, a system image, a control part, and the semaphore and memory of the video frames are decoded in Swift (SwiftTypes).
+# of document markers, focus rings and other draws, which go as plain values, the line dashes, which go as a span, and shadows
+# and styles, which go as the plain values of their members. A focus ring of rects goes as one of their path.
+# Paths, path segments, line strokes and segments, line dashes, shadows, styles, glyph runs, a system image, a control part,
+# and the semaphore and memory of the video frames are decoded in Swift (SwiftTypes); a DrawGlyphs's run straight into the
+# renderer's storage for it (SwiftDecodeContext=).
 # The display list and snapshot recorders take the same messages, recorded in Swift (RemoteCGRendererRecording.swift),
 # with DrawSnapshotFrame, which only a snapshot recorder takes; a recording doesn't keep video frames, as a WebCore display
 # list doesn't.
@@ -83,18 +84,18 @@ messages -> RemoteCGRenderer Stream {
     FillClosedArc
     FillQuadCurve
     FillBezierCurve
-    FillPathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
+    FillPathSegment(WebCore::PathSegment segment) StreamBatched SwiftTypes
     StrokeLine
-    StrokeLinesWithColorAndThickness(WebKit::RemoteCGRendererLineStrokes lines) StreamBatched
+    StrokeLinesWithColorAndThickness(std::span<const WebCore::PathDataLineColorThickness> lines) StreamBatched SwiftTypes
     StrokeArc
     StrokeClosedArc
     StrokeQuadCurve
     StrokeBezierCurve
-    StrokePathSegment(WebKit::RemoteCGRendererPathSegment segment) StreamBatched
+    StrokePathSegment(WebCore::PathSegment segment) StreamBatched SwiftTypes
     FillPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
     StrokePath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     DrawPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=fillPathDecodeContext
-    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
+    ClipPath(WebCore::Path path, enum:bool WebCore::WindRule windRule) StreamBatched SwiftTypes SwiftDecodeContext=clipPathDecodeContext
     ClipOutToPath(WebCore::Path path) StreamBatched SwiftTypes SwiftDecodeContext=pathDecodeContextWithoutBounds
     FillCachedPath
     ClipCachedPath
@@ -104,11 +105,11 @@ messages -> RemoteCGRenderer Stream {
     DrawPatternImageBuffer
     SetFillColor(CGRendererColorValue color) StreamBatched
     SetStrokeColor(CGRendererColorValue color) StreamBatched
-    SetDropShadow(struct WebKit::RemoteCGRendererShadow dropShadow) StreamBatched
-    SetStyle(struct WebKit::RemoteCGRendererStyle style) StreamBatched
+    SetDropShadow(CGRendererShadowValues values, CGRendererColorData color, bool hasShadow) StreamBatched SwiftTypes
+    SetStyle(enum:uint8_t WebKit::RemoteCGRendererStyleKind kind, CGRendererShadowValues shadowValues, CGRendererColorData shadowColor, bool hasShadow, float blurWidth, float blurHeight, std::array<float, 20> colorMatrix) StreamBatched SwiftTypes
     SetTextDrawingMode
     SetShadowsIgnoreTransforms
-    SetLineDash(WebKit::RemoteCGRendererLineDash dashArray, float dashOffset) StreamBatched
+    SetLineDash(std::span<const double> dashArray, float dashOffset) StreamBatched SwiftTypes
     FillRectWithColor(WebCore::FloatRect rect, CGRendererColorValue color) StreamBatched
     FillCompositedRect(WebCore::FloatRect rect, CGRendererColorValue color, enum:uint8_t WebCore::CompositeOperator op, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     ApplyDeviceScaleFactor
@@ -126,9 +127,9 @@ messages -> RemoteCGRenderer Stream {
     SetStrokePatternNativeImage
     SetStrokePatternImageBuffer
     FillRectWithCachedGradient(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier) StreamBatched
-    DrawLinesForText(WebCore::FloatPoint point, float thickness, WebKit::RemoteCGRendererLineSegments lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched
+    DrawLinesForText(WebCore::FloatPoint point, float thickness, std::span<const WebCore::FloatSegment> lineSegments, bool printing, bool doubleLines, enum:uint8_t WebCore::StrokeStyle strokeStyle) StreamBatched SwiftTypes
     DrawDotsForDocumentMarker(WebCore::FloatRect rect, enum:uint8_t WebCore::DocumentMarkerLineStyleMode mode, CGRendererColorValue color) StreamBatched
-    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, [RecordedAs=WebKit::RemoteCGRendererRecordedGlyphs] WebKit::RemoteCGRendererGlyphs glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched
+    DrawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphsAdvances, WebCore::FloatPoint localAnchor, enum:uint8_t WebCore::FontSmoothingMode smoothingMode) StreamBatched SwiftTypes SwiftDecodeContext=glyphRunDecodeContext
     FillRectWithCachedGradientAndSpaceTransform(WebCore::FloatRect rect, WebKit::RemoteGradientIdentifier identifier, WebCore::AffineTransform transform, enum:bool WebCore::RequiresClipToRect requiresClipToRect) StreamBatched
     FillRoundedRect(WebCore::FloatRoundedRect rect, CGRendererColorValue color, enum:uint8_t WebCore::BlendMode blendMode) StreamBatched
     FillRectWithRoundedHole(WebCore::FloatRect rect, WebCore::FloatRoundedRect roundedHoleRect, CGRendererColorValue color) StreamBatched

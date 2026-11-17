@@ -45,7 +45,10 @@ public:
         Unknown,
         CGContextFromCALayer
     };
-    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt);
+    // Whether a blurred drop shadow may be drawn with ShadowBlur. A context that records its drawing passes No, so that CG
+    // records the shadow.
+    enum class AllowsShadowBlur : bool { No, Yes };
+    GraphicsContextCG(CGContextRef, CGContextSource = CGContextSource::Unknown, std::optional<RenderingMode> knownRenderingMode = std::nullopt, AllowsShadowBlur = AllowsShadowBlur::Yes);
 
     ~GraphicsContextCG();
 
@@ -58,6 +61,8 @@ public:
 
     void save(GraphicsContextState::Purpose = GraphicsContextState::Purpose::SaveRestore) final;
     bool restore(GraphicsContextState::Purpose = GraphicsContextState::Purpose::SaveRestore) final;
+    void saveTransform() final;
+    bool restoreTransform() final;
 
     using GraphicsContext::drawNativeImage;
     void drawNativeImage(const NativeImage&, const FloatRect& destRect, const FloatRect& srcRect, RasterDrawingOptions = { }) final;
@@ -144,7 +149,7 @@ public:
 
     bool supportsInternalLinks() const final;
 
-    virtual bool canUseShadowBlur() const;
+    bool canUseShadowBlur() const;
 
     FloatRect roundToDevicePixels(const FloatRect&) const;
 
@@ -194,9 +199,9 @@ public:
         SetStrokePackedColorAndThickness, SetFillRule, SetStrokeThickness, SetStrokeStyle, SetCompositeMode, SetAlpha,
         SetImageInterpolationQuality, SetShouldAntialias, SetShouldSmoothFonts, SetShouldSubpixelQuantizeFonts, SetLineCap,
         SetLineJoin, SetMiterLimit, Clip, ClipOut, ResetClip, DrawLine, FillRect, FillEllipse, StrokeRect, StrokeEllipse,
-        ClearRect, ApplyStrokePattern, ApplyFillPattern, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect,
-        StrokeLinesWithColorAndThickness, FillPath, StrokePath, DrawPath, DrawNativeImage, DrawPattern, FillRoundedRect,
-        FillRectWithRoundedHole
+        ClearRect, FillPathSegment, StrokePathSegment, DrawPathSegment, DrawRect, StrokeLinesWithColorAndThickness, FillPath,
+        StrokePath, DrawPath, DrawNativeImage, DrawPattern, FillRoundedRect, FillRectWithRoundedHole, SaveTransform,
+        RestoreTransform
     };
     // The path is FillPath's, StrokePath's or DrawPath's; the image DrawNativeImage's or DrawPattern's.
     WEBCORE_EXPORT bool applyReceiverMessageForTesting(const CGRendererReceiverTestMessage&, const Path* = nullptr, CGImageRef = nullptr) __attribute__((availability(swift, unavailable)));
@@ -206,8 +211,15 @@ public:
     WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));
     void removeSwiftRendererLender() __attribute__((availability(swift, unavailable)));
+    // Lends the renderer, as a lender of its own, to a Swift replay into the context, which draws with it. Until the draw
+    // returns, the context is this thread's replay context (swiftReplayContext()).
+    template<typename Draw> static void lendSwiftRendererForReplay(GraphicsContextCG&, NOESCAPE const Draw&) __attribute__((availability(swift, unavailable)));
+    // The context of the innermost Swift replay on this thread, if any.
+    WEBCORE_EXPORT static GraphicsContextCG* swiftReplayContext() __attribute__((availability(swift, unavailable)));
 
 private:
+    WEBCORE_EXPORT static GraphicsContextCG* exchangeSwiftReplayContext(GraphicsContextCG*);
+
     // Applying the pending state does not change the observable state of the context, so this is
     // usable from the const accessors.
     void updatePlatformContextStateIfNeeded() const;
@@ -245,6 +257,7 @@ private:
 #endif
     const RenderingMode m_renderingMode : 2; // NOLINT
     const bool m_isLayerCGContext : 1;
+    const bool m_allowsShadowBlur : 1;
     // A byte of its own rather than a bitfield, so that lending and returning the renderer are single stores.
     mutable SwiftRendererState m_swiftRendererState;
     unsigned m_swiftRendererLenders { 0 };
@@ -288,6 +301,18 @@ inline GraphicsContextCG::SwiftRendererLend GraphicsContextCG::lendSwiftRenderer
     context.m_swiftRendererState = SwiftRendererState::InPlaceLent;
     // Only Swift reaches the renderer through this address.
     return SwiftRendererLend { &context, reinterpret_cast<CGRendererCore*>(context.m_swiftRendererStorage) };
+}
+
+template<typename Draw> void GraphicsContextCG::lendSwiftRendererForReplay(GraphicsContextCG& context, NOESCAPE const Draw& draw)
+{
+    context.addSwiftRendererLender();
+    auto* outerReplayContext = exchangeSwiftReplayContext(&context);
+    {
+        auto lend = lendSwiftRenderer(context);
+        draw(lend.state());
+    }
+    exchangeSwiftReplayContext(outerReplayContext);
+    context.removeSwiftRendererLender();
 }
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);

@@ -567,9 +567,10 @@ private enum CGRendererFontSmoothing {
     static let antialiased: UInt8 = 2
 }
 
-// TextDrawingMode: fill alone.
+// TextDrawingMode's flags.
 private enum CGRendererTextDrawingMode {
     static let fill: UInt8 = 1
+    static let stroke: UInt8 = 2
 }
 
 // AffineTransform::isIdentityOrTranslationOrFlipped().
@@ -823,6 +824,8 @@ private enum CGRendererStrokeStyle {
 private enum CGRendererPurpose {
     case saveRestore
     case transparencyLayer
+    // GraphicsContextState::Purpose::Transform: restoring it restores only the CTM, not CG's graphics state.
+    case transform
 }
 
 @usableFromInline struct CGRendererSavedState {
@@ -837,6 +840,8 @@ private enum CGRendererPurpose {
     // The level below's levelChanges and levelHasCxxBrushSource.
     var levelChanges: UInt32 = 0
     var levelHasCxxBrushSource = false
+    // A transform level's CTM, which restoring it puts back.
+    var ctm = CGAffineTransform.identity
 }
 
 // A color that isn't sRGBA8, as CG draws it and as the C++ state has it.
@@ -946,19 +951,20 @@ private struct CGRendererLineStroke {
 
 // The CGPath of a path that a receiver draws, which others may share: a cached path's is the cache's and its recordings', and a
 // message's is its recording's. Only this type reaches the CGPath, to draw, add and measure it, so no Swift can cast it to a
-// CGMutablePath and change what another draw reads.
+// CGMutablePath and change what another draw reads. Inlinable, so that a receiver's draw borrows the CGPath rather than copying
+// the path.
 @_spi(WebKitGPU) @frozen public struct CGRendererPlatformPath {
-    private let path: CGPath
+    @usableFromInline let path: CGPath
 
-    @_spi(WebKitGPU) public init(_ path: CGPath) {
+    @inlinable @_spi(WebKitGPU) public init(_ path: CGPath) {
         self.path = path
     }
 
-    @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
+    @inlinable @_spi(WebKitGPU) public func fill(_ state: inout CGRendererCore) {
         state.receiveFillPath(path)
     }
 
-    @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
+    @inlinable @_spi(WebKitGPU) public func stroke(_ state: inout CGRendererCore) {
         state.receiveStrokePath(path)
     }
 
@@ -971,7 +977,7 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::drawPath() without a gradient, of the path that makePath() makes only if the context draws it.
-    @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
+    @inlinable @_spi(WebKitGPU) public static func drawWithoutGradient(_ state: inout CGRendererCore, _ makePath: () -> CGRendererPlatformPath) -> Bool {
         state.receiveDrawPathWithoutGradient { makePath().path }
     }
 
@@ -980,18 +986,18 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::clipPath() of a PathCG, which adds its CGPath to the context's path.
-    func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+    @inlinable func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
         context.beginPath()
         context.addPath(path)
         context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
     }
 
-    func clipOut(_ context: CGContext) {
+    @usableFromInline func clipOut(_ context: CGContext) {
         CGRendererClipOutToPlatformPath(context, path)
     }
 
     // PathCG::fastBoundingRect(), as a FloatRect.
-    var fastBoundingRect: CGRect {
+    @usableFromInline var fastBoundingRect: CGRect {
         let bounds = path.boundingBox
         if bounds.isNull {
             return .zero
@@ -1006,14 +1012,15 @@ private struct CGRendererLineStroke {
 // Path keeps as the segment, of more, as the CGPath that PathCG makes of them with what the receiver asks of the path besides
 // (CGRendererCreatePathOfSegments()), or of a cached path's CGPath, which is all a PathCG has. A clip to a path of more segments
 // adds its CGPath to the context's path, as GraphicsContextCG adds a PathCG's, rather than the segments themselves, and a clip
-// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()).
+// out adds the CGPath of any path (CGRendererClipOutToPlatformPath()). Inlinable, as CGRendererPlatformPath is, and a fill or a
+// stroke of the CGPath borrows it from the path.
 @_spi(WebKitGPU) @frozen public enum CGRendererPath {
     case empty
     case segment(CGRendererPathSegment)
     case segments(CGRendererPlatformPath, CGRendererPathFacts)
     case platformPath(CGRendererPlatformPath)
 
-    @_spi(WebKitGPU) public var isEmpty: Bool {
+    @inlinable @_spi(WebKitGPU) public var isEmpty: Bool {
         if case .empty = self {
             return true
         }
@@ -1021,7 +1028,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::singleDataLine(), whose stroke GraphicsContextCG::strokePath() draws as a line.
-    @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
+    @inlinable @_spi(WebKitGPU) public var singleDataLine: CGRendererPathSegment? {
         if case .segment(let segment) = self, segment.kind == .DataLine {
             return segment
         }
@@ -1029,7 +1036,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::pieWedgeArc(): the arc of a move to its center, the arc and a line back to its center.
-    @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
+    @inlinable @_spi(WebKitGPU) public var pieWedgeArc: CGRendererPathSegment? {
         if case .segments(_, let facts) = self, facts.pieWedgeArc.kind == .Arc {
             return facts.pieWedgeArc
         }
@@ -1037,7 +1044,7 @@ private struct CGRendererLineStroke {
     }
 
     // Path::platformPath().
-    @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
+    @inlinable @_spi(WebKitGPU) public func platformPath() -> CGRendererPlatformPath {
         switch self {
         case .empty:
             CGRendererPlatformPath(CGMutablePath())
@@ -1048,8 +1055,27 @@ private struct CGRendererLineStroke {
         }
     }
 
+    // The fill and the stroke of platformPath().
+    @inlinable @_spi(WebKitGPU) public func fillPlatformPath(_ state: inout CGRendererCore) {
+        switch self {
+        case .empty, .segment:
+            platformPath().fill(&state)
+        case .segments(let path, _), .platformPath(let path):
+            path.fill(&state)
+        }
+    }
+
+    @inlinable @_spi(WebKitGPU) public func strokePlatformPath(_ state: inout CGRendererCore) {
+        switch self {
+        case .empty, .segment:
+            platformPath().stroke(&state)
+        case .segments(let path, _), .platformPath(let path):
+            path.stroke(&state)
+        }
+    }
+
     // Path::fastBoundingRect(), as a FloatRect.
-    @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
+    @inlinable @_spi(WebKitGPU) public var fastBoundingRect: CGRect {
         switch self {
         case .empty:
             .zero
@@ -1064,7 +1090,7 @@ private struct CGRendererLineStroke {
     }
 
     // GraphicsContextCG::clipPath(): an empty path clips everything out.
-    @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
+    @inlinable @_spi(WebKitGPU) public func clip(_ context: CGContext, _ rule: WebCore.WindRule) {
         switch self {
         case .empty:
             context.clip(to: .zero)
@@ -1414,6 +1440,8 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     // Whether CG strokes arcs with the coverage of filling their outlines here (CGIOSurfaceContextUsingWebKitBehavior()), so
     // that a pie wedge can fill as a stroked arc, which CG batches.
     private let strokesArcsLikeFills: Bool
+    // GraphicsContextCG::AllowsShadowBlur: false for a context that records its drawing, whose shadows CG must record.
+    private let allowsShadowBlur: Bool
     private var state: CGRendererState
     private var stack: [CGRendererSavedState]
     private var depth = 0
@@ -1466,18 +1494,20 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         _ isUnaccelerated: Bool,
         _ isPDFContext: Bool,
         _ strokesArcsLikeFills: Bool,
+        _ allowsShadowBlur: Bool,
         _ imageInterpolationQuality: WebCore.InterpolationQuality
     ) {
         self.context = copy context
         self.isUnaccelerated = isUnaccelerated
         self.isPDFContext = isPDFContext
         self.strokesArcsLikeFills = strokesArcsLikeFills
+        self.allowsShadowBlur = allowsShadowBlur
         self.state = CGRendererState(imageInterpolationQuality: imageInterpolationQuality)
         self.stack = Array(repeating: CGRendererSavedState(state: state, purpose: .saveRestore), count: 8)
     }
 
     private var canUseShadowBlur: Bool {
-        isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
+        allowsShadowBlur && isUnaccelerated && (state.dropShadow?.isBlurred ?? false) && !state.shadowsIgnoreTransforms
     }
 
     // The Color of a drop shadow, as GraphicsContext's state has it, for ShadowBlur.
@@ -2172,6 +2202,45 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         pop()
     }
 
+    // GraphicsContext::saveTransform() and restoreTransform(): a level that saves only the CTM, which CG's graphics state
+    // doesn't save, and leaves the state and the side tables as they are. A restore pops only a transform level.
+    @_expose(Cxx)
+    mutating func saveTransform() {
+        saveTransform(hasCxxLevel: true)
+    }
+
+    private mutating func saveTransform(hasCxxLevel: Bool) {
+        let saved = CGRendererSavedState(
+            state: state,
+            purpose: .transform,
+            platformColorCount: UInt32(platformColors.count),
+            sourceCount: UInt32(sources.count),
+            hasCxxLevel: hasCxxLevel,
+            levelChanges: levelChanges,
+            levelHasCxxBrushSource: levelHasCxxBrushSource,
+            ctm: context.ctm
+        )
+        if depth == stack.count {
+            stack.append(saved)
+        } else {
+            stack[depth] = saved
+        }
+        depth += 1
+    }
+
+    @_expose(Cxx)
+    mutating func restoreTransform() {
+        guard depth > 0, stack[depth - 1].purpose == .transform else {
+            return
+        }
+        popTransform()
+    }
+
+    private mutating func popTransform() {
+        depth -= 1
+        setCTM(stack[depth].ctm)
+    }
+
     private mutating func pop() {
         depth -= 1
         // GraphicsContext's state has no level to restore for a level that only a Swift receiver saved, so it may still have
@@ -2194,16 +2263,23 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         userToDeviceTransformKnownToBeIdentity = false
     }
 
-    // The top saved level, for GraphicsContextCG, which may restore it: 0 none; 1 a save or 2 a transparency layer that
-    // GraphicsContext's stack has too; 3 a save or 4 a transparency layer that only a Swift receiver made.
+    // The top saved level, for GraphicsContextCG, which may restore it: 0 none; 1 a save, 2 a transparency layer or 5 a
+    // transform that GraphicsContext's stack has too; 3 a save, 4 a transparency layer or 6 a transform that only a Swift
+    // receiver made.
     @_expose(Cxx)
     func savedLevelKind() -> UInt8 {
         guard depth > 0 else {
             return 0
         }
         let level = stack[depth - 1]
-        let kind: UInt8 = level.purpose == .transparencyLayer ? 2 : 1
-        return level.hasCxxLevel ? kind : kind + 2
+        switch level.purpose {
+        case .saveRestore:
+            return level.hasCxxLevel ? 1 : 3
+        case .transparencyLayer:
+            return level.hasCxxLevel ? 2 : 4
+        case .transform:
+            return level.hasCxxLevel ? 5 : 6
+        }
     }
 
     @_expose(Cxx)
@@ -2432,7 +2508,7 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
         return true
     }
 
-    // ApplyFillPattern and ApplyStrokePattern: the pattern brush's CGPattern, for the C++ that then draws with the CGContext.
+    // The pattern brush's CGPattern, for the C++ that then draws with the CGContext.
     @_expose(Cxx)
     mutating func applyFillPattern() {
         if state.fill.hasPattern {
@@ -3029,6 +3105,13 @@ private func colorDataAreEqual(_ a: CGRendererColorData, _ b: CGRendererColorDat
     ) {
         if !facts.draws {
             return
+        }
+        // GraphicsContextCG::drawGlyphsImmediate(): the pattern brushes that the text drawing mode draws with.
+        if state.textDrawingMode & CGRendererTextDrawingMode.fill != 0 && state.fill.hasPattern {
+            applyPattern(fill: true)
+        }
+        if state.textDrawingMode & CGRendererTextDrawingMode.stroke != 0 && state.stroke.hasPattern {
+            applyPattern(fill: false)
         }
         let glyphs: Span<CGGlyph> = run.glyphs()
         let advances: Span<CGSize> = run.advances()
@@ -3829,11 +3912,16 @@ extension CGRendererCore {
     }
 
     // GraphicsContextCG::restore(). GraphicsContext's copy of a gradient or pattern brush that C++ set in the level goes when
-    // GraphicsContextCG next brings it up to date, which it does at once when it restores the level itself.
+    // GraphicsContextCG next brings it up to date, which it does at once when it restores the level itself. False if a level
+    // is saved but the top one isn't a save, which it then leaves.
     @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveRestore() {
-        guard depth > 0, stack[depth - 1].purpose == .saveRestore else {
-            return
+    @discardableResult
+    @_spi(WebKitGPU) public mutating func receiveRestore() -> Bool {
+        guard depth > 0 else {
+            return true
+        }
+        guard stack[depth - 1].purpose == .saveRestore else {
+            return false
         }
         // GraphicsContext restores a level that C++ saved when it next brings its state up to date, after any C++ setter
         // that comes first has changed that level's copy: so it then takes all of the state.
@@ -3842,6 +3930,31 @@ extension CGRendererCore {
             cxxStaleProperties = CxxStateChange.all
         }
         pop()
+        return true
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveSaveTransform() {
+        saveTransform(hasCxxLevel: false)
+    }
+
+    // GraphicsContextCG::restoreTransform(). GraphicsContext's state keeps its properties when it restores a transform level
+    // that C++ saved, so only the level goes. False if a level is saved but the top one isn't a transform, which it then
+    // leaves.
+    @_expose(!Cxx)
+    @discardableResult
+    @_spi(WebKitGPU) public mutating func receiveRestoreTransform() -> Bool {
+        guard depth > 0 else {
+            return true
+        }
+        guard stack[depth - 1].purpose == .transform else {
+            return false
+        }
+        if stack[depth - 1].hasCxxLevel {
+            pendingCxxRestores += 1
+        }
+        popTransform()
+        return true
     }
 
     @_expose(!Cxx)
@@ -4882,6 +4995,19 @@ extension CGRendererCore {
         clip(context)
     }
 
+    // The context to whose path a receiver's decode of a clip's path adds its segments, as GraphicsContextCG::clipPath() adds a
+    // PathStream's, for receiveClipToContextPath().
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public func receiveContextOfClipPath() -> CGContext {
+        context
+    }
+
+    @_expose(!Cxx)
+    @_spi(WebKitGPU) public mutating func receiveClipToContextPath(_ rule: WebCore.WindRule) {
+        hasDrawn = true
+        context.clip(using: rule == .EvenOdd ? .evenOdd : .winding)
+    }
+
     // GraphicsContextCG::drawNativeImage() of the image a receiver found. A copy of the image buffer the receiver draws into
     // has the receiver's draws flushed after it, while the copy is still there, as the copy's reads go with them.
     @_expose(!Cxx)
@@ -4963,16 +5089,6 @@ extension CGRendererCore {
         strokeLineSegment(x1, y1, x2, y2)
     }
 
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveApplyFillPattern() {
-        applyFillPattern()
-    }
-
-    @_expose(!Cxx)
-    @_spi(WebKitGPU) public mutating func receiveApplyStrokePattern() {
-        applyStrokePattern()
-    }
-
     // Testing only: what RemoteCGRenderer's handler does for the message (GraphicsContextCG::applyReceiverMessageForTesting()).
     // False only for a gradient brush's path of several segments, whose clip needs the Path the handler has and the caller
     // doesn't pass, for the caller to draw it.
@@ -5016,13 +5132,11 @@ extension CGRendererCore {
         case 28: receiveStrokeRect(rect, v.4)
         case 29: receiveStrokeEllipse(rect)
         case 30: receiveClearRect(rect)
-        case 31: receiveApplyStrokePattern()
-        case 32: receiveApplyFillPattern()
-        case 33: receiveFillPathSegment(message.segment)
-        case 34: receiveStrokePathSegment(message.segment)
-        case 35: receiveDrawPathSegment(message.segment)
-        case 36: receiveDrawRect(rect, v.4)
-        case 37:
+        case 31: receiveFillPathSegment(message.segment)
+        case 32: receiveStrokePathSegment(message.segment)
+        case 33: receiveDrawPathSegment(message.segment)
+        case 34: receiveDrawRect(rect, v.4)
+        case 35:
             // One or two lines (the segment's flag), each four values and a thickness, in the segment's values.
             let s = message.segment.values
             var previous = CGRendererLineStroke()
@@ -5030,22 +5144,22 @@ extension CGRendererCore {
             if message.segment.flag {
                 strokeLine(s.5, s.6, s.7, s.8, i.1, s.9, &previous)
             }
-        case 38, 39:
+        case 36, 37:
             // A path of several segments' fill or stroke, whose CGPath the caller made.
-            guard let path, message.message == 38 ? receiveFillsWithoutGradient() : receiveStrokesWithoutGradient() else {
+            guard let path, message.message == 36 ? receiveFillsWithoutGradient() : receiveStrokesWithoutGradient() else {
                 return false
             }
-            if message.message == 38 {
+            if message.message == 36 {
                 receiveFillPath(path)
             } else {
                 receiveStrokePath(path)
             }
-        case 40:
+        case 38:
             guard let path else {
                 return false
             }
             return receiveDrawPathWithoutGradient { path }
-        case 41, 42:
+        case 39, 40:
             // An image the caller found, as RemoteCGRenderer's image handlers find one; nil draws nothing.
             guard let image else {
                 return true
@@ -5053,7 +5167,7 @@ extension CGRendererCore {
             let s = message.segment.values
             let destination = CGRect(x: CGFloat(s.0), y: CGFloat(s.1), width: CGFloat(s.2), height: CGFloat(s.3))
             let source = CGRect(x: CGFloat(s.4), y: CGFloat(s.5), width: CGFloat(s.6), height: CGFloat(s.7))
-            if message.message == 41 {
+            if message.message == 39 {
                 receiveDrawNativeImage(image, message.imageFacts, destination, source, message.imageOptions)
                 return true
             }
@@ -5068,7 +5182,7 @@ extension CGRendererCore {
                 CGSize(width: CGFloat(v.2), height: CGFloat(v.3)),
                 message.imageOptions
             )
-        case 43, 44:
+        case 41, 42:
             // A packed color's rounded rect fill in the blend mode, the radii in the segment's values; for a rect with a
             // rounded hole, the hole's rect, then its radii.
             let s = message.segment.values
@@ -5076,7 +5190,7 @@ extension CGRendererCore {
             color.isPacked = true
             color.packedColor = i.0
             color.isVisible = i.0 & 0xFF != 0
-            if message.message == 43 {
+            if message.message == 41 {
                 let radii = WebCore.CornerRadii(
                     WebCore.FloatSize(s.0, s.1), WebCore.FloatSize(s.2, s.3), WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7))
                 let rounded = WebCore.FloatRoundedRect(WebCore.FloatRect(v.0, v.1, v.2, v.3), radii)
@@ -5087,6 +5201,8 @@ extension CGRendererCore {
                 WebCore.FloatSize(s.4, s.5), WebCore.FloatSize(s.6, s.7), WebCore.FloatSize(s.8, s.9), WebCore.FloatSize(s.10, s.11))
             let hole = WebCore.FloatRoundedRect(WebCore.FloatRect(s.0, s.1, s.2, s.3), radii)
             receiveFillRectWithRoundedHole(rect, hole, color, nil)
+        case 43: receiveSaveTransform()
+        case 44: receiveRestoreTransform()
         default: break
         }
         return true
@@ -5101,7 +5217,7 @@ extension CGRendererCore {
 extension CGRendererCore {
     // A fresh GraphicsContextCG's renderer for the context, which only draws.
     private static func drawing(_ context: CGContext) -> CGRendererCore {
-        CGRendererCore(context, true, false, false, .Default)
+        CGRendererCore(context, true, false, false, true, .Default)
     }
 
     // GraphicsContext::drawConsumingImageBuffer() of an image buffer's image at its pixel size into the rect, with the

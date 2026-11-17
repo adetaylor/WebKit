@@ -26,6 +26,38 @@
 #include "config.h"
 #include "RemoteImageBufferSet.h"
 
+#if ENABLE(GPU_PROCESS) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+
+#include "ImageBufferBackendHandleSharing.h"
+#include "PrepareBackingStoreBuffersData.h"
+#include "SwiftCoding.h"
+#include <WebCore/ImageBuffer.h>
+
+namespace WebKit {
+
+void encodeImageBufferSetEndPrepareForDisplayReply(IPC::SwiftReplyEncoder& encoder, IPC::CxxDecodedArgument<RenderingUpdateID>& renderingUpdateIDArgument, WebCore::ImageBuffer* frontBuffer, WebCore::ImageBuffer* backBuffer, WebCore::ImageBuffer* secondaryBackBuffer)
+{
+    auto renderingUpdateID = renderingUpdateIDArgument.take();
+    RELEASE_ASSERT(renderingUpdateID);
+    auto identifier = [](WebCore::ImageBuffer* buffer) -> std::optional<WebCore::RenderingResourceIdentifier> {
+        return buffer ? std::optional { buffer->renderingResourceIdentifier() } : std::nullopt;
+    };
+    ImageBufferSetPrepareBufferForDisplayOutputData outputData;
+    if (frontBuffer)
+        outputData.backendHandle = downcast<ImageBufferBackendHandleSharing>(*frontBuffer->toBackendSharing()).createBackendHandle();
+    outputData.bufferCacheIdentifiers = { identifier(frontBuffer), identifier(backBuffer), identifier(secondaryBackBuffer) };
+    // If we failed to allocate a front buffer then nothing was painted, so let the web process know that it needs to
+    // repaint the whole layer next time.
+    if (!frontBuffer)
+        outputData.displayRequirement = SwapBuffersDisplayRequirement::NeedsFullDisplay;
+    encoder.encodeWithArgumentCoder(WTF::move(outputData));
+    encoder.encodeWithArgumentCoder(*renderingUpdateID);
+}
+
+} // namespace WebKit
+
+#elif ENABLE(GPU_PROCESS)
+
 #include "ImageBufferBackendHandleSharing.h"
 #include "Logging.h"
 #include "RemoteGraphicsContextIdentifier.h"
@@ -37,8 +69,6 @@
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NullImageBufferBackend.h>
 #include <wtf/Borrow.h>
-
-#if ENABLE(GPU_PROCESS)
 
 #define MESSAGE_CHECK(assertion, message) MESSAGE_CHECK_WITH_MESSAGE_BASE(assertion, &m_renderingBackend->streamConnection(), message)
 

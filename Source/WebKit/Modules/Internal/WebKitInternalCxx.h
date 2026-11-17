@@ -56,6 +56,7 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcess.h"
 #include "GPUProcessMessages.h"
+#include "RemoteSharedResourceCache.h"
 #include "RemoteSnapshotSink.h"
 #include "SwiftReceiverRegistration.h"
 #endif
@@ -157,17 +158,18 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererLineDash.h"
-#include "RemoteCGRendererLineSegments.h"
-#include "RemoteCGRendererLineStrokes.h"
-#include "RemoteCGRendererPathSegment.h"
-#include "RemoteCGRendererResources.h"
-#include "RemoteCGRendererShadow.h"
-#include "RemoteCGRendererStyle.h"
+#include "RemoteSnapshotPrintData.h"
+#include "SharedFont.h"
+#include <WebCore/Filter.h>
+#include <WebCore/FloatSegment.h>
+#include <WebCore/FontCustomPlatformData.h>
+#include <WebCore/MeshGradient.h>
+#include <WebCore/PathSegmentData.h>
 #include "RemoteCGRendererMessages.h"
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferMessages.h"
+#include "RemoteImageBufferSet.h"
+#include "RemoteImageBufferSetMessages.h"
 #include "RemoteRenderingBackend.h"
 #endif
 
@@ -183,7 +185,6 @@
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteDeviceMessages.h"
 #include "RemoteExternalTextureMessages.h"
-#include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
 #include "RemotePipelineLayoutMessages.h"
 #include "RemotePresentationContextMessages.h"

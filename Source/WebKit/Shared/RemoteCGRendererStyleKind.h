@@ -27,26 +27,12 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-#include <WebCore/FloatSegment.h>
-#include <span>
-#include <wtf/Vector.h>
+#include <cstdint>
 
 namespace WebKit {
 
-// The line segments of RemoteCGRenderer's DrawLinesForText. They go as RemoteGraphicsContext's span of them does, and the GPU
-// process decodes them into a copy of its own: the web process can still write the stream buffer while the message is handled.
-class RemoteCGRendererLineSegments {
-public:
-    explicit RemoteCGRendererLineSegments(std::span<const WebCore::FloatSegment> segments)
-        : m_segments(segments)
-    {
-    }
-
-    std::span<const WebCore::FloatSegment> span() const LIFETIME_BOUND { return m_segments.span(); }
-
-private:
-    Vector<WebCore::FloatSegment> m_segments;
-};
+// Which GraphicsStyle, if any, RemoteCGRenderer's SetStyle sets.
+enum class RemoteCGRendererStyleKind : uint8_t { None, DropShadow, GaussianBlur, ColorMatrix };
 
 } // namespace WebKit
 

@@ -37,14 +37,11 @@ GPUProcess/graphics/RemoteRenderingBackend.cpp @cost:6
 GPUProcess/graphics/RemoteResourceCache.cpp
 GPUProcess/graphics/RemoteSnapshotSink.cpp
 GPUProcess/graphics/RemoteSnapshotRecorder.cpp
-GPUProcess/graphics/ScopedRenderingResourcesRequest.cpp
 GPUProcess/graphics/ScopedWebGLRenderingResourcesRequest.cpp
 GPUProcess/graphics/ShareablePixelBuffer.cpp
-GPUProcess/graphics/SharedFont.cpp
 GPUProcess/graphics/Model/ModelObjectHeap.cpp
 GPUProcess/graphics/Model/RemoteGPUModel.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
-GPUProcess/graphics/WebGPU/RemoteGPU.cpp @cost:3
 GPUProcess/media/RemoteAudioHardwareListenerProxy.cpp
 GPUProcess/media/RemoteAudioTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteAudioVideoRendererProxyManager.cpp @cost:3
@@ -291,6 +288,7 @@ Shared/Extensions/WebExtensionRegisteredScriptsSQLiteStore.cpp
 Shared/Gamepad/GamepadData.cpp
 
 Shared/graphics/DisplayListData.cpp
+Shared/graphics/SharedFont.cpp
 
 Shared/WebGPU/WebGPUBindGroupDescriptor.cpp
 Shared/WebGPU/WebGPUBindGroupEntry.cpp

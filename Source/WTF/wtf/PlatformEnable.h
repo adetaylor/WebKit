@@ -1207,6 +1207,12 @@
 #define ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT 1
 #endif
 
+// The GPU process's Swift receiver of a layer's image buffer set, whose buffers the Swift CG renderer draws into. Dynamic
+// content scaling buffers keep the C++ receiver.
+#if !defined(ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT) && ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#define ENABLE_GPU_PROCESS_IMAGE_BUFFER_SET_SWIFT 1
+#endif
+
 #if !defined(ENABLE_GPU_PROCESS_MEDIA_SWIFT) && PLATFORM(COCOA) && ENABLE(IPC_TESTING_SWIFT) && ENABLE(GPU_PROCESS)
 #define ENABLE_GPU_PROCESS_MEDIA_SWIFT 1
 #endif

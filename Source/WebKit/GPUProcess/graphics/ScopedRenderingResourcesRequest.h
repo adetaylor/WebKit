@@ -27,10 +27,13 @@
 
 #include <atomic>
 #include <utility>
+#include <wtf/SwiftBridging.h>
 
 namespace WebKit {
 
-class ScopedRenderingResourcesRequest {
+// A request that keeps the GPU process's rendering resources, which are freed a while after the last request ends. With the
+// CG renderer in Swift, ScopedRenderingResourcesRequest.swift frees them.
+class SWIFT_PRIVATE_FILEID("WebKit/ScopedRenderingResourcesRequest.swift") ScopedRenderingResourcesRequest {
 public:
     ScopedRenderingResourcesRequest() = default;
     ScopedRenderingResourcesRequest(ScopedRenderingResourcesRequest&& other)
@@ -52,7 +55,7 @@ public:
     bool isRequested() const { return m_requested; }
     void reset()
     {
-        if (!m_requested)
+        if (!std::exchange(m_requested, false))
             return;
         ASSERT(s_requests);
         --s_requests;
@@ -64,15 +67,22 @@ public:
         return { DidRequest };
     }
 private:
+#if PLATFORM(COCOA)
     static void scheduleFreeRenderingResources();
     static void freeRenderingResources();
+    // Purges the Metal devices, catching the Objective-C exceptions they may throw.
+    static void purgeDevices();
+#else
+    static void scheduleFreeRenderingResources() { }
+    static void freeRenderingResources() { }
+#endif
     enum RequestState { DidRequest };
     ScopedRenderingResourcesRequest(RequestState)
         : m_requested(true)
     {
         ++s_requests;
     }
-    static std::atomic<unsigned> s_requests;
+    static inline std::atomic<unsigned> s_requests;
     bool m_requested { false };
     friend bool hasOutstandingRenderingResourceUsage();
 };

@@ -25,11 +25,13 @@
 
 @_spi(WebKitGPU) internal import WebCore
 import WebCore_Private
+import WebCore_Private.Core.GraphicsContextSwiftBridge
 import WebKit_Internal
 
 // The receiver of an image buffer's messages, from the buffer's creation until the rendering backend releases it, on the
 // backend's work queue. The buffer is a WebCore::ImageBuffer, with the backend it was made with; its context, which
-// receives its drawing, does what takes the WebCore types that Swift has no form of.
+// receives its drawing, does what takes the WebCore types that Swift can't handle safely. Until then, it counts the buffer
+// in the shared resource cache, and keeps the GPU process's rendering resources.
 @_expose(Cxx)
 final class RemoteImageBuffer {
     @_expose(!Cxx)
@@ -38,23 +40,29 @@ final class RemoteImageBuffer {
     private let backend: WebKit.RemoteRenderingBackend
     private let context: WebKit.RemoteImageBufferGraphicsContext
     // The drawing of a buffer whose drawing is recorded (RenderingMode::DisplayList), which its context can't draw.
-    private let recordedDrawing: RemoteCGRendererRecordedDrawing?
+    private var recordedDrawing: RemoteCGRendererRecordedDrawing?
     // The signal that FlushContext signals once the buffer's drawing is flushed.
     private var flushSignal: FlushSignal?
+    // Whether the buffer is still counted, and what it keeps until it isn't (releaseImageBuffer()).
+    private var countsImageBuffer = true
+    private var renderingResourcesRequest = WebKit.ScopedRenderingResourcesRequest.acquire()
 
     @_expose(!Cxx)
     private init(
         imageBuffer: WebCore.ImageBuffer,
         identifier: UInt64,
         backend: WebKit.RemoteRenderingBackend,
-        context: WebKit.RemoteImageBufferGraphicsContext,
-        recordedDrawing: RemoteCGRendererRecordedDrawing?
+        context: WebKit.RemoteImageBufferGraphicsContext
     ) {
         self.imageBuffer = imageBuffer
         self.identifier = identifier
         self.backend = backend
         self.context = context
-        self.recordedDrawing = recordedDrawing
+        backend.sharedResourceCache().didCreateImageBuffer(imageBuffer.renderingPurpose(), imageBuffer.renderingMode())
+    }
+
+    deinit {
+        releaseImageBuffer()
     }
 
     // A receiver of the buffer's messages, which the backend's stream connection keeps until stopReceivingMessages(): nil
@@ -66,31 +74,41 @@ final class RemoteImageBuffer {
         contextIdentifier: WebKit.RemoteGraphicsContextIdentifier,
         backend: WebKit.RemoteRenderingBackend
     ) -> RemoteImageBuffer? {
-        let context = WebKit.RemoteImageBufferGraphicsContext.createForImageBufferReceiver(imageBuffer, contextIdentifier, backend)
-        var recordedDrawing: RemoteCGRendererRecordedDrawing?
+        let context = WebKit.RemoteImageBufferGraphicsContext.createForSwift(imageBuffer, contextIdentifier, backend)
+        let receiver = RemoteImageBuffer(imageBuffer: imageBuffer, identifier: identifier, backend: backend, context: context)
         if imageBuffer.renderingMode() == .DisplayList {
             // Another receiver of drawing has the context's identifier: the message is invalid.
             guard let drawing = startRecordedDrawing(context, contextIdentifier, backend) else {
-                context.releaseImageBuffer()
+                receiver.releaseImageBuffer()
                 return nil
             }
-            recordedDrawing = drawing
+            receiver.recordedDrawing = drawing
         }
-        let receiver = RemoteImageBuffer(
-            imageBuffer: imageBuffer,
-            identifier: identifier,
-            backend: backend,
-            context: context,
-            recordedDrawing: recordedDrawing
-        )
         let forwarder = WebKit.RemoteImageBufferMessageForwarder.create(target: receiver)
         guard WebKit.tryStartReceivingSwiftMessages(backend, forwarder, .RemoteImageBuffer, identifier) else {
             context.stopListeningForIPC()
-            recordedDrawing?.stopRecording()
-            context.releaseImageBuffer()
+            receiver.recordedDrawing?.stopRecording()
+            receiver.releaseImageBuffer()
             return nil
         }
         return receiver
+    }
+
+    // Stops counting the buffer, and unwinds its context's state stack, whose restores may never come, as the web process may
+    // have gone.
+    private func releaseImageBuffer() {
+        guard countsImageBuffer else {
+            return
+        }
+        countsImageBuffer = false
+        backend.sharedResourceCache().didReleaseImageBuffer(imageBuffer.renderingPurpose(), imageBuffer.renderingMode())
+        renderingResourcesRequest = WebKit.ScopedRenderingResourcesRequest()
+        // Volatile image buffers do not have contexts.
+        guard imageBuffer.volatilityState() != .Volatile, imageBuffer.hasBackend() else {
+            return
+        }
+        let drawing = WebCore.ImageBufferDrawing(imageBuffer)
+        drawing.context().unwindStateStack()
     }
 
     // Records the drawing of a buffer whose drawing is recorded, which its context's recording draws where the buffer is drawn,
@@ -102,7 +120,7 @@ final class RemoteImageBuffer {
     ) -> RemoteCGRendererRecordedDrawing? {
         let backendState = backend.state
         let (recordedDrawing, forwarder) = RemoteCGRendererRecordedDrawing.create(
-            resources: WebKit.createDisplayListRecorderResources(backend),
+            resources: RemoteCGRendererResources(recorderOf: backend),
             displayLists: backendState.displayLists,
             videoFrameSources: backendState.videoFrameSources
         )
@@ -121,7 +139,7 @@ final class RemoteImageBuffer {
         context.stopListeningForIPC()
         recordedDrawing?.stopRecording()
         _ = backend.tryStopReceivingMessages(.RemoteImageBuffer, identifier)
-        context.releaseImageBuffer()
+        releaseImageBuffer()
     }
 
     // The pixels of a buffer that holds them, which isn't a layer's: other messages are invalid.
@@ -179,7 +197,7 @@ final class RemoteImageBuffer {
             imageBuffer.resolutionScale() == 1
         }
         try checkPixelsCanBeRead()
-        context.putPixelBuffer(pixelBuffer, srcPoint, srcSize, destPoint, destFormat)
+        imageBuffer.putPixelBuffer(pixelBuffer, WebCore.IntRect(srcPoint, srcSize), destPoint, destFormat)
     }
 
     func copyNativeImage(image: IPCTypes.RenderingResourceIdentifier) throws(InvalidMessage) {
@@ -232,15 +250,6 @@ final class RemoteImageBuffer {
         }
         context.waitForDisplayBuffer()
         finishedSignal.signal()
-    }
-    #endif
-
-    #if ENABLE_RE_DYNAMIC_CONTENT_SCALING
-    func dynamicContentScalingDisplayList(reply: consuming RemoteImageBufferDynamicContentScalingDisplayListReply) {
-        let context = context
-        reply.send { encoder in
-            context.encodeDynamicContentScalingDisplayList(encoder)
-        }
     }
     #endif
 }

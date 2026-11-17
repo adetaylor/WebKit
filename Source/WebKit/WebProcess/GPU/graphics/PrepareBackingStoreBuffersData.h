@@ -50,6 +50,19 @@ using PaintRectList = Vector<WebCore::FloatRect, 5>;
 
 PaintRectList computePaintingRects(const WebCore::Region& dirtyRegion, float resolutionScale);
 
+// computePaintingRects(), for Swift, which reads the rects through span().
+class PaintingRects {
+public:
+    PaintingRects(const WebCore::Region& dirtyRegion, float resolutionScale)
+        : m_rects(computePaintingRects(dirtyRegion, resolutionScale))
+    {
+    }
+    std::span<const WebCore::FloatRect> span() const LIFETIME_BOUND { return m_rects.span(); }
+
+private:
+    PaintRectList m_rects;
+};
+
 struct ImageBufferSetPrepareBufferForDisplayInputData {
     ImageBufferSetIdentifier remoteBufferSet;
     WebCore::Region dirtyRegion;
