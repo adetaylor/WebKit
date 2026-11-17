@@ -3312,8 +3312,9 @@ list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
     "(^|/)HTMLTokenizer\\.cpp( |$)"
     "(^|/)WebVTTTokenizer\\.cpp( |$)"
     "(^|/)XMLDocumentParserLibxml2\\.cpp( |$)")
-list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
-list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)TransformationMatrix\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSParserFastPaths\\.cpp( |$)")
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSPropertyParserSwift\\.cpp( |$)")
 # The transform sources that call style/values/transforms/*Swift.swift include WebCore-Swift.h, so they compile
 # in WebCore_SwiftInterop, after WebCore's Swift module.
 set(_webcore_style_transforms_swift_interop_sources
@@ -3323,14 +3324,6 @@ set(_webcore_style_transforms_swift_interop_sources
     style/values/transforms/StyleTransformList.cpp
     style/values/transforms/StyleTranslate.cpp
     style/values/transforms/functions/StyleTransformFunctionBase.cpp)
-foreach (_source IN LISTS _webcore_style_transforms_swift_interop_sources)
-    get_filename_component(_name "${_source}" NAME)
-    string(REPLACE "." "\\." _name "${_name}")
-    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
-endforeach ()
-list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSTokenizer\\.cpp( |$)")
-list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSParserFastPaths\\.cpp( |$)")
-list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)CSSPropertyParserSwift\\.cpp( |$)")
 # The calc sources that call CSSCalcSwift.swift include WebCore-Swift.h, so they compile
 # in WebCore_SwiftInterop, after WebCore's Swift module.
 set(_webcore_css_calc_swift_interop_sources
@@ -3349,26 +3342,91 @@ foreach (_source IN LISTS _webcore_css_calc_swift_interop_sources)
     string(REPLACE "." "\\." _name "${_name}")
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
 endforeach ()
+list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
 
-# These include WebCore-Swift.h, so they build in WebCore_SwiftInterop.
-set(WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES
-    html/parser/HTMLMetaCharsetParser.cpp
-    html/parser/HTMLParserIdioms.cpp
-    html/parser/HTMLSrcsetParser.cpp
-
-    platform/DateComponents.cpp
-)
-foreach (_f IN LISTS WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES)
-    cmake_path(GET _f FILENAME _fn)
-    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_fn}( |$)")
-endforeach ()
-
-if (SWIFT_REQUIRED AND APPLE)
-    # Includes WebCoreSwift-Generated.h, so it is built in WebCore_SwiftInterop.
-    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)ContentSecurityPolicy\\.cpp( |$)")
+# The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
+# Swift module, on every port.
+set(_webcore_swift_interop_sources_all_ports
+    html/parser/HTMLDocumentParserFastPath.cpp
+    html/parser/HTMLTokenizer.cpp
+    html/track/WebVTTTokenizer.cpp
+    xml/parser/XMLDocumentParserLibxml2.cpp
+    css/parser/CSSTokenizer.cpp
+    css/parser/CSSParserFastPaths.cpp
+    ${_webcore_css_calc_swift_interop_sources}
+    css/parser/CSSPropertyParserSwift.cpp
+    ${_webcore_style_transforms_swift_interop_sources}
+    html/parser/HTMLPreloadScanner.cpp
+    html/parser/HTMLDocumentParser.cpp
+    platform/graphics/transforms/TransformationMatrix.cpp
+    page/scrolling/ScrollingTree.cpp
+    page/scrolling/ScrollingTreeLatchingController.cpp
+    page/scrolling/ScrollingTreeScrollingNode.cpp
+    page/scrolling/ThreadedScrollingTree.cpp
+    page/scrolling/ThreadedScrollingTreeScrollingNodeDelegate.cpp
+    platform/KeyboardScrollingAnimator.cpp
+    platform/ScrollAnimator.cpp
+    platform/ScrollView.cpp
+    platform/ScrollableArea.cpp
+    platform/ScrollingEffectsController.cpp)
+# The C++ of the Swift ports that only the Apple ports have.
+set(_webcore_swift_interop_sources_apple
+    page/scrolling/mac/ScrollerPairMac.mm
+    page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.mm
+    platform/graphics/cg/ImageDecoderCG.cpp
+    platform/mac/ScrollAnimatorMac.mm
+    platform/mac/ScrollbarsControllerMac.mm
+    platform/mac/ScrollingEffectsController.mm
+    loader/HTTPHeaderField.cpp
+    loader/LinkHeader.cpp
+    loader/ServerTimingParser.cpp
+    platform/ReferrerPolicy.cpp
+    platform/network/CacheValidation.cpp
+    platform/network/HTTPParsers.cpp
+    platform/network/ParsedContentRange.cpp
+    platform/network/ParsedContentType.cpp
+    platform/network/RFC8941.cpp)
+set(_webcore_swift_interop_excludes ${_webcore_swift_interop_sources_all_ports})
+if (APPLE)
+    list(APPEND _webcore_swift_interop_excludes ${_webcore_swift_interop_sources_apple})
 endif ()
-    # These include WebCoreSwift-Generated.h, so they are built in WebCore_SwiftInterop.
-    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)(HTTPHeaderField|LinkHeader|ServerTimingParser|ReferrerPolicy|CacheValidation|HTTPParsers|ParsedContentRange|ParsedContentType|RFC8941)\\.cpp( |$)")
+foreach (_source IN LISTS _webcore_swift_interop_excludes)
+    string(REGEX REPLACE "^.*/" "" _name "${_source}")
+    string(REPLACE "+" "\\+" _name "${_name}")
+    string(REPLACE "." "\\." _name "${_name}")
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
+endforeach ()
+list(REMOVE_DUPLICATES WebCore_UNIFIED_SOURCE_EXCLUDES)
+# Some of them are also in a platform's WebCore_SOURCES, outside the unified sources.
+list(REMOVE_ITEM WebCore_SOURCES ${_webcore_swift_interop_excludes})
+
+if (APPLE)
+    # C++ sources that include WebCore-Swift.h. They build in the WebCore_SwiftInterop subtarget,
+    # which is ordered after the Swift compile that generates WebCoreSwift-Generated.h, so keep them
+    # out of the unified sources.
+    set(WebCore_SWIFT_INTEROP_SOURCES
+        Modules/ShapeDetection/Implementation/Cocoa/BarcodeDetectorImplementation.mm
+        Modules/ShapeDetection/Implementation/Cocoa/FaceDetectorImplementation.mm
+        Modules/ShapeDetection/Implementation/Cocoa/TextDetectorImplementation.mm
+
+        platform/audio/cocoa/AudioOutputUnit.cpp
+        platform/audio/cocoa/AudioSampleBufferList.cpp
+        platform/audio/cocoa/CAAudioStreamDescription.cpp
+        platform/audio/cocoa/CARingBuffer.cpp
+        platform/audio/cocoa/WebAudioBufferList.cpp
+        platform/graphics/PixelBufferConversion.cpp
+        platform/cocoa/SharedVideoFrameInfo.mm
+        platform/mediastream/MediaConstraintsEvaluation.cpp
+        platform/mediastream/cocoa/AVVideoCaptureSource.mm
+        platform/mediastream/cocoa/CoreAudioCaptureDeviceManager.cpp
+
+        platform/graphics/ImageBufferBackend.cpp
+        platform/graphics/ShadowBlur.cpp
+        platform/graphics/ShareableBitmap.cpp
+
+        platform/graphics/cg/GraphicsContextCG.cpp
+        platform/graphics/cg/ShareableBitmapCG.mm
+
         platform/graphics/filters/FEColorMatrix.cpp
         platform/graphics/filters/FEConvolveMatrix.cpp
         platform/graphics/filters/FEDisplacementMap.cpp
@@ -3379,18 +3437,26 @@ endif ()
         platform/graphics/filters/FilterEffect.cpp
         platform/graphics/filters/FilterGraphicsBridge.cpp
         platform/graphics/filters/FilterResults.cpp
+
         platform/graphics/filters/parameters/FEImageBridge.cpp
         platform/graphics/filters/parameters/SourceGraphicBridge.cpp
+
         rendering/CSSFilterRenderer.cpp
+
         svg/graphics/filters/SVGFilterRenderer.cpp
+
         Modules/encryptedmedia/InitDataRegistry.cpp
+
+        platform/encryptedmedia/CDMPrivate.cpp
         platform/encryptedmedia/clearkey/CDMClearKey.cpp
+
         platform/graphics/AV1Utilities.cpp
         platform/graphics/AnnexBUtilities.cpp
         platform/graphics/H264Utilities.cpp
         platform/graphics/HEVCBitstreamParser.cpp
         platform/graphics/HEVCUtilities.cpp
         platform/graphics/VP9Utilities.cpp
+
         platform/graphics/avfoundation/AudioVideoRendererAVFObjC.mm
         platform/graphics/avfoundation/CDMFairPlayStreaming.cpp
         platform/graphics/avfoundation/FormatDescriptionUtilities.cpp
@@ -3399,10 +3465,12 @@ endif ()
         platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm
         platform/graphics/avfoundation/ISOFairPlayStreamingPsshBox.cpp
         platform/graphics/avfoundation/InbandTextTrackPrivateAVF.cpp
+
         platform/graphics/cocoa/CMUtilities.mm
         platform/graphics/cocoa/H264UtilitiesCocoa.mm
         platform/graphics/cocoa/HEVCUtilitiesCocoa.mm
         platform/graphics/cocoa/VP9UtilitiesCocoa.mm
+
         platform/graphics/iso/ISOBox.cpp
         platform/graphics/iso/ISOOriginalFormatBox.cpp
         platform/graphics/iso/ISOProtectionSchemeInfoBox.cpp
@@ -3425,6 +3493,28 @@ endif ()
     endforeach ()
     # Some of them are also in a platform's WebCore_SOURCES, as members of the unified sources.
     list(REMOVE_ITEM WebCore_SOURCES ${WebCore_SWIFT_INTEROP_SOURCES})
+endif ()
+
+# These include WebCore-Swift.h on the Apple ports, so they build in WebCore_SwiftInterop.
+if (APPLE)
+    set(WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES
+        html/parser/HTMLMetaCharsetParser.cpp
+        html/parser/HTMLParserIdioms.cpp
+        html/parser/HTMLSrcsetParser.cpp
+
+        platform/DateComponents.cpp
+    )
+    foreach (_f IN LISTS WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES)
+        cmake_path(GET _f FILENAME _fn)
+        list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_fn}( |$)")
+    endforeach ()
+endif ()
+
+if (APPLE)
+    # Includes WebCoreSwift-Generated.h, so it is built in WebCore_SwiftInterop.
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)ContentSecurityPolicy\\.cpp( |$)")
+endif ()
+
 WEBKIT_COMPUTE_SOURCES(WebCore)
 
 WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(WebCore WebCoreJSBindings
@@ -3496,27 +3586,8 @@ if (NOT USE_HEADER_MAPS)
     endif ()
 endif ()
 
-if (SWIFT_REQUIRED AND APPLE)
-    # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.
-    webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
-
-    # FIXME: Remove SwiftStub.swift once WebCore has real Swift sources.
-    target_sources(WebCore PRIVATE ${WEBCORE_DIR}/SwiftStub.swift)
+if (APPLE)
     target_sources(WebCore PRIVATE
-        ${WEBCORE_DIR}/html/parser/HTMLMetaCharsetParser.swift
-        ${WEBCORE_DIR}/html/parser/HTMLMicrosyntaxCodeUnit.swift
-        ${WEBCORE_DIR}/html/parser/HTMLParserIdioms.swift
-        ${WEBCORE_DIR}/html/parser/HTMLSrcsetParser.swift
-        ${WEBCORE_DIR}/platform/DateComponents.swift
-    )
-
-    # The Swift port of ImageDecoderCG, as in WebCore.xcodeproj.
-    target_sources(WebCore PRIVATE
-        ${WEBCORE_DIR}/platform/cf/SafeCFNumber.swift
-        ${WEBCORE_DIR}/platform/graphics/ImageDecoding.swift
-        ${WEBCORE_DIR}/platform/graphics/cg/ImageDecoderCG.swift
-        ${WEBCORE_DIR}/platform/graphics/cg/ImageDecodingCG.swift
-    )
         ${WEBCORE_DIR}/loader/HTTPHeaderField.swift
         ${WEBCORE_DIR}/loader/LinkHeader.swift
         ${WEBCORE_DIR}/loader/ServerTimingParser.swift
@@ -3526,21 +3597,238 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBCORE_DIR}/platform/network/ParsedContentRange.swift
         ${WEBCORE_DIR}/platform/network/ParsedContentType.swift
         ${WEBCORE_DIR}/platform/network/RFC8941.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioCaptureUnit.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioControlThread.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioOutputUnit.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioSampleBufferList.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioUnitIsland.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/AudioUnitOwner.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/CAAudioStreamDescription.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/CARingBuffer.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferMix.swift
+        ${WEBCORE_DIR}/platform/audio/cocoa/CARingBufferPlayout.swift
+        ${WEBCORE_DIR}/platform/cocoa/SharedMemoryMapping.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelBufferConversion.swift
+        ${WEBCORE_DIR}/platform/graphics/Arm64Truncating.swift
+        ${WEBCORE_DIR}/platform/graphics/CheckedMath.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversion.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversionSIMD.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelConversionScalar.swift
+        ${WEBCORE_DIR}/platform/graphics/PixelTransfer.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurDrawing.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurGeometry.swift
+        ${WEBCORE_DIR}/platform/graphics/ShadowBlurKernel.swift
+        ${WEBCORE_DIR}/platform/graphics/ShareableBitmapLayout.swift
+        ${WEBCORE_DIR}/platform/graphics/cg/CGRenderer.swift
+        ${WEBCORE_DIR}/platform/mediastream/CaptureSourceDecisions.swift
+        ${WEBCORE_DIR}/platform/mediastream/MediaConstraintsEngine.swift
+        ${WEBCORE_DIR}/platform/graphics/mac/controls/MacControlPainter.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/AudioCaptureController.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/AudioCaptureDevices.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/CameraCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/CaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/DisplayCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/MicrophoneCaptureSource.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/MockVideoSource.swift
+        ${WEBCORE_DIR}/platform/mock/MockVideoSettings.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitCapturer.swift
+        ${WEBCORE_DIR}/platform/mediastream/cocoa/ScreenCaptureKitSharingSessionManager.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+BoxConvolve.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+ColorMatrix.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/VImageBridge+Conversion.swift
+        ${WEBCORE_DIR}/platform/cocoa/SharedVideoFrameLayout.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEBlendCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEColorMatrixCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEComponentTransferCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FECompositeCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEConvolveMatrixCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEDisplacementMapCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEDropShadowCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEFloodCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEGaussianBlurCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEImageCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FELightingCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEMergeCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEMorphologyCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FEOffsetCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FETileCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FETurbulenceCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/SourceAlphaCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/SourceGraphicCoreImageApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/coreimage/FilterImageCoreImage.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterApply.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterEngine.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterGeometryMath.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterImageImpl.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/FilterMath.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/LightingModel.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/ParallelRows.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEBlendSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEColorMatrixSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEComponentTransferSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FECompositeSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FECompositeSoftwareArithmeticApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEConvolveMatrixSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEDisplacementMapSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEDropShadowSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEFloodSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEGaussianBlurSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEImageSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FELightingSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FELightingSoftwareParallelApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEMergeSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEMorphologySoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FEOffsetSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FETileSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/FETurbulenceSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/SourceAlphaSoftwareApplier.swift
+        ${WEBCORE_DIR}/platform/graphics/filters/software/SourceGraphicSoftwareApplier.swift
+        ${WEBCORE_DIR}/rendering/CSSFilterRenderer.swift
+        ${WEBCORE_DIR}/svg/graphics/filters/SVGFilterRenderer.swift
+
+        ${WEBCORE_DIR}/Modules/encryptedmedia/InitDataRegistry.swift
+        ${WEBCORE_DIR}/platform/encryptedmedia/CDMSupportedConfiguration.swift
+        ${WEBCORE_DIR}/platform/encryptedmedia/clearkey/CDMClearKeyBridge.swift
+        ${WEBCORE_DIR}/platform/graphics/AV1Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/H264Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/HEVCBitstreamParser.swift
+        ${WEBCORE_DIR}/platform/graphics/HEVCCodecStrings.swift
+        ${WEBCORE_DIR}/platform/graphics/VP9Utilities.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/AudioVideoRendererAVFObjC.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMFairPlayStreamingParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/AVTrackPrivateAVFObjCImpl.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/CDMInstanceFairPlayStreamingAVF.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/FormatDescriptionCodecString.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/ISOFairPlayStreamingPssh.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/MediaPlayerAVFoundationCore.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/VideoMediaSampleRenderer.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/WebAVSampleBufferListener.swift
+        ${WEBCORE_DIR}/platform/graphics/avfoundation/WebCoreAVFResourceLoader.swift
+        ${WEBCORE_DIR}/platform/graphics/cocoa/CMUtilitiesParsing.swift
+        ${WEBCORE_DIR}/platform/graphics/iso/ISOBoxes.swift
+        ${WEBCORE_DIR}/platform/graphics/iso/ISOVTTCue.swift
+        ${WEBCORE_DIR}/platform/media-parsers/AnnexB.swift
+        ${WEBCORE_DIR}/platform/media-parsers/BitReader.swift
+        ${WEBCORE_DIR}/platform/media-parsers/ByteCursor.swift
+        ${WEBCORE_DIR}/platform/media-parsers/MutableSpanCopy.swift
+        ${WEBCORE_DIR}/platform/media-parsers/WTFCompatParsing.swift
+
+        ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionFacade.swift
+        ${WEBCORE_DIR}/Modules/ShapeDetection/Implementation/Cocoa/ShapeDetectionVision.swift
+    )
+
+    # Vision's import also brings the Compression overlay and libcompression, which WebCore doesn't use: keep them out of
+    # its load commands, as WebCore.xcconfig does. Vision and CoreML are on WebCore_SOFT_LINKED_SWIFT_FRAMEWORKS below.
+    webkit_target_add_swift_options(WebCore
+        "-Xfrontend -disable-autolink-library -Xfrontend swiftCompression"
+        "-Xfrontend -disable-autolink-library -Xfrontend compression"
+    )
+    # On the internal SDK, Vision's Swift interface reaches C++ headers in the SDK's private frameworks that throw,
+    # which -fno-exceptions rejects outside system headers. Search those frameworks as system frameworks, as
+    # WebCore.xcconfig's SYSTEM_FRAMEWORK_SEARCH_PATHS does.
+    if (USE_APPLE_INTERNAL_SDK)
+        webkit_target_add_swift_options(WebCore "-Xcc -iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks")
+    endif ()
+
+    # Matches WebCore.xcconfig. C++ and Swift both test it, so set it for the whole target.
+    webkit_target_compile_definitions(WebCore PRIVATE ENABLE_WEBCORE_SWIFT=1)
+
+    # The Swift ports, as in WebCore.xcodeproj.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/SIMDHelpers.swift
+        ${WEBCORE_DIR}/SIMDHighBitMask.swift
+        ${WEBCORE_DIR}/SIMDSaturatingSubtract.swift
+        ${WEBCORE_DIR}/SIMDTableLookup.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcEvaluation.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcNode.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcParser.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSerialization.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSimplification.swift
+        ${WEBCORE_DIR}/css/calc/CSSCalcSwift.swift
+        ${WEBCORE_DIR}/css/calc/StyleCalculationSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSParserFastPathsSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwift.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftAlignment.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftEffects.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftFonts.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftGrid.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftShapes.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftProperties.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftSmall.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyConsumerSwiftValues.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserDescriptors.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserRoot.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthands.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsBackgroundGrid.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsBox.swift
+        ${WEBCORE_DIR}/css/parser/CSSPropertyParserShorthandsFont.swift
+        ${WEBCORE_DIR}/css/parser/CSSTokenizerSwift.swift
+        ${WEBCORE_DIR}/css/typedom/CSSNumericValueSwift.swift
+        ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
+        ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
+        ${WEBCORE_DIR}/html/parser/HTMLEntityParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/MacScrollerImpState.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollerPairMac.swift
+        ${WEBCORE_DIR}/page/scrolling/mac/ScrollingTreeScrollingNodeDelegateMac.swift
+        ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsAnimations.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsClientProtocol.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsController.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
+        ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
+        ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/ScrollableArea.swift
+        ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
+        ${WEBCORE_DIR}/style/values/transforms/StyleTransformFunctionSwift.swift
+        ${WEBCORE_DIR}/style/values/transforms/StyleTransformListSwift.swift
+        ${WEBCORE_DIR}/platform/mac/ScrollbarsControllerMac.swift
+        ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
+    )
+    target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
         ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
+    )
+
+    # The Swift port of ImageDecoderCG, as in WebCore.xcodeproj.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/platform/cf/SafeCFNumber.swift
+        ${WEBCORE_DIR}/platform/graphics/ImageDecoding.swift
+        ${WEBCORE_DIR}/platform/graphics/cg/ImageDecoderCG.swift
+        ${WEBCORE_DIR}/platform/graphics/cg/ImageDecodingCG.swift
+    )
+
+    # HTML microsyntaxes in Swift.
+    target_sources(WebCore PRIVATE
+        ${WEBCORE_DIR}/html/parser/HTMLMetaCharsetParser.swift
+        ${WEBCORE_DIR}/html/parser/HTMLMicrosyntaxCodeUnit.swift
+        ${WEBCORE_DIR}/html/parser/HTMLParserIdioms.swift
+        ${WEBCORE_DIR}/html/parser/HTMLSrcsetParser.swift
+        ${WEBCORE_DIR}/platform/DateComponents.swift
+    )
 
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
+        # WebCore.xcconfig's OTHER_SWIFT_FLAGS and SWIFT_TREAT_WARNINGS_AS_ERRORS, with its -O2 for the imported C++
+        # outside Debug only.
+        "-Xcc -fno-exceptions"
+        "-Xcc -fignore-exceptions"
+        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<NOT:$<CONFIG:Debug>>>:SHELL:-Xcc -O2>"
+        "-Xllvm -enable-dfa-jump-thread"
+        "-Xllvm -sil-disable-pass=array-property-opt"
+        "-enable-experimental-feature BuiltinModule"
+        "-enable-experimental-feature AddressableParameters"
+        "-enable-experimental-feature CxxImplementation"
+        "-Werror DeprecatedDeclaration"
+        "-Werror SendableClosureCaptures"
+        -warnings-as-errors
     )
-    # WebCore soft-links AVFoundation and CoreMedia, so its Swift doesn't autolink them or their overlays; it takes their
-    # classes and constants from PAL's getters (pal/cocoa/AVFoundationSoftLink.h), and a stray use of their symbols fails
-    # the link. As WebCore.xcconfig.
-    webkit_target_add_swift_options(WebCore
-        "-Xfrontend -disable-autolink-framework -Xfrontend AVFoundation"
-        "-Xfrontend -disable-autolink-framework -Xfrontend AVFAudio"
-        "-Xfrontend -disable-autolink-framework -Xfrontend CoreMedia"
-        "-Xfrontend -disable-autolink-library -Xfrontend swiftAVFoundation"
-        "-Xfrontend -disable-autolink-library -Xfrontend swiftCoreMedia"
     if (WTF_CPU_X86_64)
         webkit_target_add_swift_options(WebCore "-D HAVE_SSSE3")
     endif ()
@@ -3576,9 +3864,61 @@ if (SWIFT_REQUIRED AND APPLE)
         ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/module.modulemap
         ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes/PALSoftLinkTypes.h
     )
+    set(_soft_link_accessors_sources "")
+    set(_soft_link_accessors_arguments "")
+    foreach (_framework IN LISTS WebCore_SOFT_LINK_ACCESSOR_FRAMEWORKS)
+        list(APPEND _soft_link_accessors_sources ${_soft_link_accessors_dir}/${_framework}SoftLinkAccessors.swift)
+        list(APPEND _soft_link_accessors_arguments --framework ${_framework})
+    endforeach ()
+    set(_soft_link_pal_sources "")
+    foreach (_header IN LISTS _soft_link_pal_headers)
+        list(APPEND _soft_link_accessors_arguments --pal-header ${_header})
+        string(REGEX REPLACE "\\.h$" "" _stem "${_header}")
+        foreach (_extension IN ITEMS .cpp .mm)
+            if (EXISTS "${_stem}${_extension}")
+                list(APPEND _soft_link_pal_sources "${_stem}${_extension}")
+            endif ()
+        endforeach ()
+    endforeach ()
+    WEBKIT_RESOLVE_TOOL(_swift_synthesize_interface swift-synthesize-interface)
+    set(_soft_link_synthesize_arguments
+        --synthesize-argument=-cxx-interoperability-mode=default --synthesize-argument=-Xcc --synthesize-argument=-std=c++2b)
+    if (USE_APPLE_INTERNAL_SDK)
+        list(APPEND _soft_link_synthesize_arguments
+            --synthesize-argument=-F${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks
+            --synthesize-argument=-Xcc --synthesize-argument=-iframework${CMAKE_OSX_SYSROOT}/System/Library/PrivateFrameworks)
+    endif ()
+    add_custom_command(
+        OUTPUT ${_soft_link_accessors_sources} ${_soft_link_accessors_types}
+        MAIN_DEPENDENCY ${WEBCORE_DIR}/platform/cocoa/SoftLinkAccessors.in
+        DEPENDS ${WEBCORE_DIR}/Scripts/generate-soft-link-accessors.py ${_soft_link_pal_headers} ${_soft_link_pal_sources}
+        COMMAND ${PYTHON_EXECUTABLE} ${WEBCORE_DIR}/Scripts/generate-soft-link-accessors.py
+            --manifest ${WEBCORE_DIR}/platform/cocoa/SoftLinkAccessors.in ${_soft_link_accessors_arguments}
+            --output-dir ${_soft_link_accessors_dir} --types-output-dir ${CMAKE_CURRENT_BINARY_DIR}
+            --sdk ${CMAKE_OSX_SYSROOT} --target ${CMAKE_Swift_COMPILER_TARGET}
+            --synthesize-interface ${_swift_synthesize_interface} ${_soft_link_synthesize_arguments}
+        VERBATIM)
+    target_sources(WebCore PRIVATE ${_soft_link_accessors_sources})
+    webkit_target_add_swift_options(WebCore "-I ${CMAKE_CURRENT_BINARY_DIR}/PALSoftLinkTypes")
+    # Apple CMake's JavaScriptCore.framework/Headers has headers that JavaScriptCore.h doesn't include.
+    webkit_target_add_swift_options(WebCore "-Xcc -Wno-incomplete-umbrella")
+    # The internal SDK's TCC module warns that an attribute on libc++'s div() follows its definition.
+    if (USE_APPLE_INTERNAL_SDK)
+        webkit_target_add_swift_options(WebCore "-Xcc -Wno-ignored-attributes")
+    endif ()
 
     # C++ sources that include WebCoreSwift-Generated.h.
-    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp ${WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES})
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports}
+        ${_webcore_swift_interop_sources_apple})
+
+    # Whole-module optimization outside Debug, as for WebGPU.
+    WEBKIT_SWIFT_WHOLE_MODULE_OUTSIDE_DEBUG(WebCore)
+
+    # As in WebCore.xcconfig, keep the Swift "Cxx" module's symbols private (rdar://139232237, rdar://165050676).
+    target_link_options(WebCore PRIVATE "LINKER:-unexported_symbol,_$s*3Cxx*")
+
+    # The HTML microsyntaxes' C++ sources that include WebCoreSwift-Generated.h.
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${WebCore_HTML_MICROSYNTAXES_SWIFT_INTEROP_SOURCES})
 
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyDirective.swift
@@ -3592,18 +3932,11 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyTrustedTypesDirective.swift
     )
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES page/csp/ContentSecurityPolicy.cpp)
-    set(WebCore_SWIFT_INTEROP_SOURCES
-        SwiftStubInterop.cpp
-        loader/HTTPHeaderField.cpp
-        loader/LinkHeader.cpp
-        loader/ServerTimingParser.cpp
-        platform/ReferrerPolicy.cpp
-        platform/network/CacheValidation.cpp
-        platform/network/HTTPParsers.cpp
-        platform/network/ParsedContentRange.cpp
-        platform/network/ParsedContentType.cpp
-        platform/network/RFC8941.cpp
-        platform/audio/cocoa/CARingBuffer.cpp
+
+    WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
+        "${WebCore_PRIVATE_HEADERS_DIR}"
+        "WebCoreSwift-Generated.h")
+
     # The pure Swift value types, in WebCore.framework, which WebCoreEME, WebCore's Swift and WebKit's Swift import.
     # Without -force_load the linker drops archive members that hold only types and conformances.
     add_subdirectory(platform/swift/support)
@@ -3611,6 +3944,7 @@ if (SWIFT_REQUIRED AND APPLE)
     target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreSwiftSupport>")
     webkit_target_add_swift_options(WebCore "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
     add_dependencies(WebCore_SwiftGeneratedDeps WebCoreSwiftSupport)
+
     # The encrypted media Swift module, in WebCore.framework, which WebCore's Swift and WebKit's Swift import. Without
     # -force_load the linker drops archive members that hold only types and conformances.
     add_subdirectory(platform/encryptedmedia/swift)
@@ -3620,6 +3954,7 @@ if (SWIFT_REQUIRED AND APPLE)
         "-I${WebCoreEME_SWIFT_MODULE_DIR}"
         "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
     add_dependencies(WebCore_SwiftGeneratedDeps WebCoreEME)
+
     if (ENABLE_WEBGL)
         # The WebGL island's Swift module, in WebCore.framework. Without -force_load the linker drops archive members
         # that hold only types and conformances.
@@ -3634,12 +3969,6 @@ if (SWIFT_REQUIRED AND APPLE)
         add_dependencies(WebCore_SwiftGeneratedDeps WebCoreWebGL)
     endif ()
 else ()
-    set(WebCore_SWIFT_INTEROP_SOURCES SwiftStubInterop.cpp)
-
-    WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
-        "${WebCore_PRIVATE_HEADERS_DIR}"
-        "WebCoreSwift-Generated.h")
-elseif (WK_BUILD_WEBCORE_SWIFT)
     # The Swift sources the WebCore Xcode project compiles, with WebCore.xcconfig's Swift settings.
     # SwiftStub.swift is left out: it imports Foundation, and these Swift sources already emit symbols.
     target_sources(WebCore PRIVATE
@@ -3676,9 +4005,24 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         ${WEBCORE_DIR}/html/parser/HTMLFastPathParser.swift
         ${WEBCORE_DIR}/html/parser/HTMLPreloadScanner.swift
         ${WEBCORE_DIR}/html/parser/HTMLTokenizer.swift
+        ${WEBCORE_DIR}/html/parser/HTMLConstructionSite.swift
+        ${WEBCORE_DIR}/html/parser/HTMLElementStack.swift
+        ${WEBCORE_DIR}/html/parser/HTMLTreeBuilder.swift
         ${WEBCORE_DIR}/platform/graphics/transforms/TransformationMatrix.swift
         ${WEBCORE_DIR}/style/values/transforms/StyleTransformFunctionSwift.swift
         ${WEBCORE_DIR}/style/values/transforms/StyleTransformListSwift.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTree.swift
+        ${WEBCORE_DIR}/page/scrolling/ScrollingTreeLatchingController.swift
+        ${WEBCORE_DIR}/platform/KeyboardScrollingAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimator.swift
+        ${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsAnimations.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsClientProtocol.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsController.swift
+        ${WEBCORE_DIR}/platform/ScrollPhysicsGeometry.swift
+        ${WEBCORE_DIR}/platform/ScrollSnapAnimationState.swift
+        ${WEBCORE_DIR}/platform/ScrollView.swift
+        ${WEBCORE_DIR}/platform/ScrollableArea.swift
         ${WebCore_DERIVED_SOURCES_DIR}/CSSPropertyParsingSwift.swift
     )
 
@@ -3714,20 +4058,109 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         platform/text/SegmentedString.h html/parser/HTMLToken.h html/parser/HTMLTokenizer.h
         html/parser/HTMLEntityParser.h html/parser/HTMLEntityTable.h css/parser/CSSTokenizerInputStream.h)
 
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserToken.h css/parser/CSSTokenizerSwiftTypes.h)
+
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSParserFastPaths.cpp)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserFastPathsSwiftTypes.h)
+
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_css_calc_swift_interop_sources})
+    list(APPEND _webcore_swift_core_submodules css/calc/CSSCalcSwiftTypes.h css/parser/CSSParserToken.h
+        style/AnchorPositionEvaluator.h)
+
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftTypes.h)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserIdioms.h)
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftBuilders.h)
+    # A registered custom property's syntax, which the consumers' Swift reads (a private header in Xcode).
+    list(APPEND _webcore_swift_core_submodules css/parser/CSSCustomPropertySyntax.h)
+    # The position values and the CSS::Position they hold, which the consumers' Swift builds.
+    list(APPEND _webcore_swift_core_submodules css/CSSPositionValue.h css/values/primitives/CSSPosition.h)
+    list(APPEND _webcore_swift_core_submodules css/typedom/CSSNumericValueSwiftTypes.h css/CSSProperty.h
+        css/CSSKeywordValueInlines.h)
+    # The transform sources call style/values/transforms/*Swift.swift's entry points through WebCore-Swift.h.
+    list(APPEND _webcore_swift_core_submodules style/values/transforms/StyleTransformFunction.h
+        style/values/transforms/StyleTransformList.h style/values/transforms/StyleTransformSwiftTypes.h)
+    # The HTML tree builder's and TransformationMatrix's Swift.
+    list(APPEND _webcore_swift_core_submodules
+        dom/Comment.h
+        dom/CustomElementRegistry.h
+        dom/DocumentFragment.h
+        dom/DocumentType.h
+        dom/ElementInlines.h
+        dom/ExceptionOr.h
+        html/HTMLDocument.h
+        html/parser/HTMLDocumentParser.h
+        html/HTMLFormElement.h
+        html/HTMLHtmlElement.h
+        html/HTMLMaybeFormAssociatedCustomElement.h
+        html/parser/HTMLParserOptions.h
+        html/HTMLScriptElement.h
+        html/HTMLTemplateElement.h
+        html/parser/HTMLTreeBuilderSwiftSupport.h
+        html/HTMLUnknownElement.h
+        bindings/js/JSCustomElementInterface.h
+        dom/ProcessingInstruction.h
+        ${WebCore_DERIVED_SOURCES_DIR}/Settings.h
+        dom/ShadowRoot.h
+        platform/graphics/transforms/TransformationMatrix.h)
+    # The scrolling Swift's: the headers it imports one by one, and ScrollPhysicsTypes and
+    # ScrollAnimatorScrollPhysicsClient, which it imports as submodules of their own, as in WebCore_Private.modulemap.
+    list(APPEND _webcore_swift_core_submodules
+        platform/BoxExtents.h
+        platform/BoxSides.h
+        platform/graphics/CornerRadii.h
+        platform/graphics/DoublePoint.h
+        platform/graphics/FloatPoint.h
+        platform/graphics/FloatRect.h
+        platform/graphics/FloatSize.h
+        page/FrameIdentifier.h
+        platform/graphics/IntPoint.h
+        platform/graphics/IntRect.h
+        platform/graphics/IntSize.h
+        platform/KeyboardScroll.h
+        platform/graphics/LayoutPoint.h
+        platform/graphics/LayoutRect.h
+        platform/graphics/LayoutSize.h
+        platform/PlatformEvent.h
+        platform/PlatformWheelEvent.h
+        platform/ProcessQualified.h
+        platform/RectEdges.h
+        platform/RubberbandingState.h
+        platform/ScrollAlignment.h
+        platform/ScrollExtents.h
+        page/scrolling/ScrollSnapOffsetsInfo.h
+        platform/ScrollTypes.h
+        platform/ScrollView.h
+        page/scrolling/ScrollingCoordinatorTypes.h
+        platform/ScrollingEffectsClock.h
+        page/scrolling/ScrollingNodeID.h
+        page/scrolling/ScrollingStateNode.h
+        page/scrolling/ScrollingTree.h
+        page/scrolling/ScrollingTreeFrameHostingNode.h
+        page/scrolling/ScrollingTreeFrameScrollingNode.h
+        page/scrolling/ScrollingTreeNode.h
+        page/scrolling/ScrollingTreeOverflowScrollProxyNode.h
+        page/scrolling/ScrollingTreeScrollingNode.h
+        platform/animation/TimingFunction.h)
+    string(APPEND _webcore_swift_modules
+        "    explicit module ScrollPhysicsTypes {\n"
+        "        header \"${WEBCORE_DIR}/platform/ScrollPhysicsTypes.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n"
+        "    explicit module ScrollAnimatorScrollPhysicsClient {\n"
+        "        header \"${WEBCORE_DIR}/platform/ScrollAnimatorScrollPhysicsClient.h\"\n"
+        "        requires cplusplus\n"
+        "        export *\n"
+        "    }\n")
+    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_swift_interop_sources_all_ports})
+    list(REMOVE_DUPLICATES WebCore_SWIFT_INTEROP_SOURCES)
+    list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
+
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES html/parser/HTMLPreloadScanner.cpp)
     list(APPEND _webcore_swift_core_submodules
         html/parser/HTMLResourcePreloader.h html/parser/CSSPreloadScanner.h html/parser/HTMLPreloadScanner.h
         html/HTMLImageElement.h loader/LinkLoader.h)
-
-    # TransformationMatrix.cpp calls TransformationMatrix.swift's entry points through WebCore-Swift.h.
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES platform/graphics/transforms/TransformationMatrix.cpp)
-    list(APPEND _webcore_swift_core_submodules platform/graphics/transforms/TransformationMatrix.h)
-
-    # The transform sources call style/values/transforms/*Swift.swift's entry points through WebCore-Swift.h.
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_style_transforms_swift_interop_sources})
-    list(APPEND _webcore_swift_core_submodules style/values/transforms/StyleTransformFunction.h
-        style/values/transforms/StyleTransformList.h style/values/transforms/StyleTransformSwiftTypes.h)
-
     target_sources(WebCore PRIVATE
         ${WEBCORE_DIR}/platform/image-decoders/ImageFrameBuffer.swift
         ${WEBCORE_DIR}/platform/image-decoders/bmp/BMPImageDecoder.swift
@@ -3749,28 +4182,6 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         "        requires cplusplus\n"
         "        export *\n"
         "    }\n")
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSTokenizer.cpp)
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserToken.h css/parser/CSSTokenizerSwiftTypes.h)
-
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSParserFastPaths.cpp)
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserFastPathsSwiftTypes.h)
-
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_css_calc_swift_interop_sources})
-    list(APPEND _webcore_swift_core_submodules css/calc/CSSCalcSwiftTypes.h css/parser/CSSParserToken.h
-        style/AnchorPositionEvaluator.h)
-
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftTypes.h)
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSParserIdioms.h)
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSPropertyConsumerSwiftBuilders.h)
-    # A registered custom property's syntax, which the consumers' Swift reads (a private header in Xcode).
-    list(APPEND _webcore_swift_core_submodules css/parser/CSSCustomPropertySyntax.h)
-    # The position values and the CSS::Position they hold, which the consumers' Swift builds.
-    list(APPEND _webcore_swift_core_submodules css/CSSPositionValue.h css/values/primitives/CSSPosition.h)
-    list(APPEND _webcore_swift_core_submodules css/typedom/CSSNumericValueSwiftTypes.h css/CSSProperty.h
-        css/CSSKeywordValueInlines.h)
-    list(APPEND WebCore_SWIFT_INTEROP_SOURCES css/parser/CSSPropertyParserSwift.cpp)
-    list(REMOVE_DUPLICATES _webcore_swift_core_submodules)
-
     webkit_target_add_swift_options(WebCore
         "-library-level spi"
         # For the vendored SIMD operations in SIMD*.swift, until the standard library has them.
@@ -3898,13 +4309,6 @@ elseif (WK_BUILD_WEBCORE_SWIFT)
         endif ()
         target_link_options(WebCore PRIVATE "${_swift_sdk_lib_dir}/swiftrt.obj")
     endif ()
-    # The pure Swift value types, in WebCore.framework, which WebCoreEME, WebCore's Swift and WebKit's Swift import.
-    # Without -force_load the linker drops archive members that hold only types and conformances.
-    add_subdirectory(platform/swift/support)
-    target_link_libraries(WebCore PRIVATE WebCoreSwiftSupport)
-    target_link_options(WebCore PRIVATE "LINKER:-force_load,$<TARGET_FILE:WebCoreSwiftSupport>")
-    webkit_target_add_swift_options(WebCore "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
-    add_dependencies(WebCore_SwiftGeneratedDeps WebCoreSwiftSupport)
 endif ()
 
 WEBKIT_FRAMEWORK(WebCore)

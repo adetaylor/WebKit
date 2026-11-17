@@ -1131,6 +1131,7 @@ set(JavaScriptCore_PRIVATE_FRAMEWORK_HEADERS
     runtime/CacheUpdate.h
     runtime/CagedBarrierPtr.h
     runtime/CallData.h
+    runtime/LiteralParserSwiftTypes.h
     runtime/TopExceptionScope.h
     runtime/ClassInfo.h
     runtime/CloneBase.h
@@ -1830,6 +1831,136 @@ endif ()
 
 WEBKIT_FRAMEWORK_DECLARE(JavaScriptCore)
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
+
+# JSBigInt's digit arithmetic and the JSON parser have no C++ implementation, so every port compiles their Swift. Each
+# imports only a header that includes only the standard library, so one command compiles it whole-module into an
+# object JavaScriptCore links, and writes the header its C++ includes, with libJavaScriptCore.xcconfig's,
+# JavaScriptCore.xcconfig's and CommonBase.xcconfig's Swift settings.
+set(WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS "" CACHE STRING "Extra swiftc flags for JSBigInt's Swift digit arithmetic")
+set(_jsc_swift_platform_flags -O -g)
+if (WIN32)
+    cmake_path(CONVERT "$ENV{SDKROOT}" TO_CMAKE_PATH_LIST _jsc_swift_sdk)
+    list(APPEND _jsc_swift_platform_flags -sdk "${_jsc_swift_sdk}" -debug-info-format=codeview)
+    set(_jsc_swift_object_suffix obj)
+elseif (APPLE)
+    list(APPEND _jsc_swift_platform_flags -sdk "${CMAKE_OSX_SYSROOT}"
+        -module-cache-path "${CMAKE_BINARY_DIR}/SwiftModuleCache"
+        -Xcc -fexperimental-bounds-safety-attributes -Xcc -fexperimental-late-parse-attributes)
+    set(_jsc_swift_object_suffix o)
+else ()
+    set(_jsc_swift_object_suffix o)
+endif ()
+if (CMAKE_Swift_COMPILER_TARGET)
+    list(APPEND _jsc_swift_platform_flags -target "${CMAKE_Swift_COMPILER_TARGET}")
+endif ()
+if (LTO_MODE)
+    list(APPEND _jsc_swift_platform_flags -Xfrontend -lto=llvm-${LTO_MODE} -Xfrontend -emit-bc)
+endif ()
+set(_jsc_swift_shared_flags
+    -wmo -swift-version 6 -cxx-interoperability-mode=default
+    -Xcc -std=c++2b -Xcc -fvisibility=hidden -Xcc -O2 -Xllvm -enable-dfa-jump-thread
+    -enable-upcoming-feature ExistentialAny -enable-upcoming-feature InternalImportsByDefault
+    -enable-upcoming-feature MemberImportVisibility
+    -enable-experimental-feature ImportCxxMembersLazily -enable-experimental-feature SuppressedAssociatedTypes
+    -enable-experimental-feature SuppressedAssociatedTypesWithDefaults
+    -enable-experimental-feature ImportNonPublicCxxMembers -enable-experimental-feature LifetimeDependence
+    -enable-experimental-feature Lifetimes -enable-experimental-feature SafeInteropWrappers
+    -strict-memory-safety
+    -Xfrontend -clang-header-expose-decls=has-expose-attr-or-stdlib
+    -Xfrontend -emit-clang-header-min-access -Xfrontend internal)
+
+set(_jsc_bigint_swift_sources
+    runtime/JSBigIntDigits.swift
+    runtime/JSBigIntDigitsAddSub.swift
+    runtime/JSBigIntDigitsDivide.swift
+    runtime/JSBigIntDigitsFFT.swift
+    runtime/JSBigIntDigitsMultiply.swift
+    runtime/JSBigIntDigitsPrimitives.swift
+)
+list(TRANSFORM _jsc_bigint_swift_sources PREPEND "${JAVASCRIPTCORE_DIR}/")
+set(_jsc_bigint_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift")
+set(_jsc_bigint_swift_obj "${_jsc_bigint_swift_dir}/JSCSwift.${_jsc_swift_object_suffix}")
+set(_jsc_bigint_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JSCSwift-Swift.h")
+file(MAKE_DIRECTORY "${_jsc_bigint_swift_dir}")
+set(_jsc_bigint_swift_flags
+    -module-name JSCSwift ${_jsc_swift_shared_flags} ${_jsc_swift_platform_flags}
+    -Xcc "-fmodule-map-file=${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
+    -Xcc -fno-exceptions -Xcc -fignore-exceptions
+    -enable-experimental-feature ForeignReferenceTypeInheritance
+    -Werror StrictMemorySafety -Werror ForeignReferenceType -Werror ExistentialAny)
+if (WIN32 AND WTF_CPU_X86_64)
+    # swiftc targets x86_64 with cmpxchg16b, which clang-cl does not. The Swift functions need the same target
+    # features as the C++ that calls them, or the LTO inliner does not inline them into it.
+    list(APPEND _jsc_bigint_swift_flags -Xcc -mno-cx16)
+endif ()
+separate_arguments(_jsc_bigint_swift_extra NATIVE_COMMAND "${WK_SWIFT_BIGINT_DIGITS_EXTRA_FLAGS}")
+add_custom_command(
+    OUTPUT "${_jsc_bigint_swift_obj}" "${_jsc_bigint_swift_hdr}"
+    COMMAND "${ORIGINAL_Swift_COMPILER}" ${_jsc_bigint_swift_flags} ${_jsc_bigint_swift_extra}
+        -emit-clang-header-path "${_jsc_bigint_swift_hdr}"
+        -c ${_jsc_bigint_swift_sources} -o "${_jsc_bigint_swift_obj}"
+    DEPENDS ${_jsc_bigint_swift_sources} "${JAVASCRIPTCORE_DIR}/JSCSwiftBoundary.modulemap"
+        "${JAVASCRIPTCORE_DIR}/runtime/JSBigIntSwiftDigits.h"
+    COMMENT "Compiling JSCSwift"
+    VERBATIM)
+add_custom_target(JSCSwift DEPENDS "${_jsc_bigint_swift_obj}" "${_jsc_bigint_swift_hdr}")
+list(APPEND JavaScriptCore_SOURCES "${_jsc_bigint_swift_obj}")
+set_source_files_properties("${_jsc_bigint_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+# JSBigInt.cpp, in a unified source, includes the generated header.
+list(APPEND JavaScriptCore_DEPENDENCIES JSCSwift)
+
+set(_jsc_json_swift_dir "${JavaScriptCore_DERIVED_SOURCES_DIR}/LiteralParserSwift")
+set(_jsc_json_swift_obj "${_jsc_json_swift_dir}/LiteralParserSwift.${_jsc_swift_object_suffix}")
+set(_jsc_json_swift_hdr "${JavaScriptCore_DERIVED_SOURCES_DIR}/JavaScriptCore-Swift.h")
+file(MAKE_DIRECTORY "${_jsc_json_swift_dir}")
+# JavaScriptCore_Private.modulemap's LiteralParserSwiftTypes, the one submodule the Swift imports.
+file(WRITE "${_jsc_json_swift_dir}/module.modulemap"
+    "module JavaScriptCore_Private {\n"
+    "    explicit module LiteralParserSwiftTypes {\n"
+    "        header \"${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h\"\n"
+    "        requires cplusplus\n"
+    "        export *\n"
+    "    }\n"
+    "}\n")
+set(_jsc_json_swift_flags
+    -module-name JavaScriptCore -parse-as-library ${_jsc_swift_shared_flags} ${_jsc_swift_platform_flags}
+    -Xcc "-I${_jsc_json_swift_dir}" -warnings-as-errors -Werror SendableClosureCaptures)
+if (WIN32)
+    list(APPEND _jsc_json_swift_flags -num-threads 0)
+endif ()
+add_custom_command(
+    OUTPUT "${_jsc_json_swift_obj}" "${_jsc_json_swift_hdr}"
+    COMMAND "${ORIGINAL_Swift_COMPILER}" ${_jsc_json_swift_flags}
+        -emit-clang-header-path "${_jsc_json_swift_hdr}"
+        -c "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" -o "${_jsc_json_swift_obj}"
+    DEPENDS "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwift.swift" "${JAVASCRIPTCORE_DIR}/runtime/LiteralParserSwiftTypes.h"
+    COMMENT "Compiling LiteralParserSwift.swift"
+    VERBATIM)
+list(APPEND JavaScriptCore_SOURCES runtime/LiteralParserSwiftFacade.cpp "${_jsc_json_swift_obj}")
+set_source_files_properties("${_jsc_json_swift_obj}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+set_source_files_properties(runtime/LiteralParserSwiftFacade.cpp PROPERTIES OBJECT_DEPENDS "${_jsc_json_swift_hdr}")
+
+# <swiftToCxx/_SwiftCxxInteroperability.h>, which the generated headers include, and the Swift runtime libraries the
+# objects auto-link.
+string(JSON _jsc_swift_paths GET "${WEBKIT_SWIFT_TARGET_INFO}" "paths")
+string(JSON _jsc_swift_resource_path GET "${_jsc_swift_paths}" "runtimeResourcePath")
+list(APPEND JavaScriptCore_PRIVATE_INCLUDE_DIRECTORIES "${_jsc_swift_resource_path}")
+if (WIN32)
+    # The import libraries of the Swift runtime are in the SDK, not the toolchain that -print-target-info describes.
+    if (WTF_CPU_ARM64)
+        set(_jsc_swift_arch aarch64)
+    else ()
+        set(_jsc_swift_arch x86_64)
+    endif ()
+    set(_jsc_swift_lib_dir "${_jsc_swift_sdk}/usr/lib/swift/windows/${_jsc_swift_arch}")
+    if (NOT EXISTS "${_jsc_swift_lib_dir}/swiftCore.lib")
+        message(FATAL_ERROR "No swiftCore.lib in ${_jsc_swift_lib_dir}; is SDKROOT set?")
+    endif ()
+    string(APPEND CMAKE_SHARED_LINKER_FLAGS " /LIBPATH:\"${_jsc_swift_lib_dir}\"")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS " /LIBPATH:\"${_jsc_swift_lib_dir}\"")
+else ()
+    string(JSON _jsc_swift_library_path GET "${_jsc_swift_paths}" "runtimeLibraryPaths" 0)
+endif ()
 WEBKIT_ADD_TARGET_UNSAFE_BUFFER_WARNINGS(JavaScriptCore)
 
 if (COMPILER_IS_GCC_OR_CLANG)
@@ -1922,6 +2053,10 @@ WEBKIT_DEFINE_SUBTARGET_WITH_PREFIX(JavaScriptCore JavaScriptCoreJIT
     DIRS jit dfg ftl bytecode bytecompiler llint lol tools)
 
 WEBKIT_FRAMEWORK(JavaScriptCore)
+
+if (NOT WIN32)
+    target_link_directories(JavaScriptCore PRIVATE "${_jsc_swift_library_path}")
+endif ()
 
 if (USE_APPLE_INTERNAL_SDK)
     WEBKIT_TARGET_USE_PGO(JavaScriptCore PROFILE JavaScriptCore)

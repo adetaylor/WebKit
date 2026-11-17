@@ -1,13 +1,5 @@
 set_property(DIRECTORY . PROPERTY FOLDER "WebKit")
 
-# SWIFT_REQUIRED is on for the whole build when any Swift feature is, including WK_BUILD_WEBCORE_SWIFT,
-# which puts Swift only in WebCore. Outside Apple, WebKit's own Swift belongs to its own features, so it
-# stays out of the build unless one of them is on. This directory's copy of the variable is the one
-# WebKit's Swift setup reads.
-if (NOT APPLE AND NOT ENABLE_BACK_FORWARD_LIST_SWIFT AND NOT ENABLE_IPC_TESTING_SWIFT)
-    set(SWIFT_REQUIRED OFF)
-endif ()
-
 # Build the IPC and platform layer as a subtarget. TestIPC links against it
 # directly instead of WebKit, which enables WebKit to keep c++ implementation
 # details out of the exported symbol table. In Xcode, this is built as
@@ -1009,37 +1001,34 @@ if (NOT APPLE)
     endforeach ()
 endif ()
 
-if (SWIFT_REQUIRED)
-    set(WebKit_SWIFT_INTEROP_SOURCES
-        Shared/IPCStreamTester.cpp
-        Shared/IPCTester.cpp
-        UIProcess/ProvisionalPageProxy.cpp
-        UIProcess/RemotePageProxy.cpp
-        UIProcess/WebBackForwardList.cpp
-        UIProcess/WebPageProxy.cpp
-        UIProcess/Automation/WebAutomationSession.cpp
-        WebProcess/WebPage/IPCTestingAPI.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
-        ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
-    )
-    if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
-        list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
-    endif ()
-    if (APPLE)
-        list(APPEND WebKit_SWIFT_INTEROP_SOURCES
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteTextDetectorMessageReceiver.cpp
-            GPUProcess/ShapeDetection/RemoteShapeDetectionSupport.cpp
+set(WebKit_SWIFT_INTEROP_SOURCES
+    Shared/IPCStreamTester.cpp
+    Shared/IPCTester.cpp
+    UIProcess/ProvisionalPageProxy.cpp
+    UIProcess/RemotePageProxy.cpp
+    UIProcess/WebBackForwardList.cpp
+    UIProcess/WebPageProxy.cpp
+    UIProcess/Automation/WebAutomationSession.cpp
+    WebProcess/WebPage/IPCTestingAPI.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/UIProcess/WebBackForwardListMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftStreamTesterMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCSwiftWorkQueueTesterMessageReceiver.cpp
+    ${WebKit_DERIVED_SOURCES_DIR}/Shared/IPCTesterReceiverMessageReceiver.cpp
+)
+if (NOT WIN32 AND NOT PORT STREQUAL "WPE")
+    list(APPEND WebKit_SWIFT_INTEROP_SOURCES UIProcess/ViewGestureController.cpp)
+endif ()
+if (APPLE)
+    list(APPEND WebKit_SWIFT_INTEROP_SOURCES
 
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
-            GPUProcess/media/RemoteCDMRegistry.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteTextDetectorMessageReceiver.cpp
+
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteCGRendererMessageReceiver.cpp
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
         GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
@@ -1074,13 +1063,10 @@ if (SWIFT_REQUIRED)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRSubImageMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteXRViewMessageReceiver.cpp
 
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteBindGroupMessageReceiver.cpp
-            ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/WebGPU/RemoteQuerySetMessageReceiver.cpp
-            GPUProcess/graphics/WebGPU/RemoteDevice.cpp
-            GPUProcess/graphics/WebGPU/WebGPUObjectHeap.cpp
+        UIProcess/API/ios/WKWebViewIOS.mm
+        UIProcess/API/mac/WKWebViewMac.mm
 
-            UIProcess/API/ios/WKWebViewIOS.mm
-            UIProcess/API/mac/WKWebViewMac.mm
+        UIProcess/PhoneNumberPossession/Cocoa/WebPhoneNumberPossessionCoordinatorProxyCocoa.mm
 
         UIProcess/ios/ViewGestureControllerIOS.mm
         UIProcess/mac/ViewGestureControllerMac.mm
@@ -1088,19 +1074,13 @@ if (SWIFT_REQUIRED)
 
         UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
 
-            UIProcess/mac/AppKitGestures/WKAppKitGestureController.mm
-            WebProcess/GPU/webrtc/SharedVideoFrame.cpp
+        UIProcess/RemoteLayerTree/RemoteScrollingCoordinatorProxy.cpp
+        UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.mm
+        WebProcess/WebPage/MomentumEventDispatcher.cpp
+        WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.mm
 
-            UIProcess/RemoteLayerTree/RemoteScrollingCoordinatorProxy.cpp
-            UIProcess/RemoteLayerTree/mac/RemoteLayerTreeEventDispatcher.mm
-            WebProcess/WebPage/MomentumEventDispatcher.cpp
-            WebProcess/WebPage/RemoteLayerTree/RemoteScrollingCoordinator.mm
-        )
-    endif ()
-    foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
-        cmake_path(GET _f FILENAME _fn)
-        list(APPEND WebKit_UNIFIED_SOURCE_EXCLUDES "(^|[/\\\\])${_fn}( |$)")
-    endforeach ()
+        WebProcess/GPU/webrtc/SharedVideoFrame.cpp
+    )
 endif ()
 foreach (_f IN LISTS WebKit_SWIFT_INTEROP_SOURCES)
     cmake_path(GET _f FILENAME _fn)
@@ -1117,28 +1097,13 @@ if (TARGET WebCoreSwiftSupport)
     webkit_target_add_swift_options(WebKit "-I${WebCoreSwiftSupport_SWIFT_MODULE_DIR}")
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreSwiftSupport)
 endif ()
-if (SWIFT_REQUIRED)
-    # should match the rest of WebKit and use -Onone, but it negatively impacts build time
-    webkit_target_add_swift_options(WebKit
-        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")
-    # Swift's assert() follows the optimization level, WTF's ASSERT the configuration: keep assert() on in Debug.
-    webkit_target_add_swift_options(WebKit
-        "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:SHELL:-assert-config Debug>")
-    # Every frontend job imports most of WebCore's C++ declarations, at a cost
-    # of seconds of CPU time and gigabytes of memory, before compiling anything.
-    # One batch per core repeats that work for each core and competes with the
-    # C++ compiles for memory, so use fewer, larger batches.
-    webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
-    webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
-endif ()
-
-# The GPU process's EME receivers import WebCore.framework's encrypted media Swift module.
 if (TARGET WebCoreEME)
     webkit_target_add_swift_options(WebKit
         "-I${WebCoreEME_SWIFT_MODULE_DIR}"
         "-Xcc -I${WebCoreEME_INTEROP_MODULE_DIR}")
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreEME)
 endif ()
+
 # The GPU process's WebGL receiver imports WebCore.framework's WebGL island Swift module, whose underlying clang module
 # needs ANGLE's headers.
 if (TARGET WebCoreWebGL)
@@ -1148,6 +1113,7 @@ if (TARGET WebCoreWebGL)
         "-Xcc -I${ANGLE_FRAMEWORK_HEADERS_DIR}")
     add_dependencies(WebKit_SwiftGeneratedDeps WebCoreWebGL)
 endif ()
+
 # should match the rest of WebKit and use -Onone, but it negatively impacts build time
 webkit_target_add_swift_options(WebKit
     "$<$<AND:$<COMPILE_LANGUAGE:Swift>,$<CONFIG:Debug>>:-O>")
@@ -1161,6 +1127,8 @@ webkit_target_add_swift_options(WebKit
 webkit_target_add_swift_options(WebKit "-driver-batch-count 4")
 # Lets WebKit's Swift implement members of C++ classes with @cxx @implementation.
 webkit_target_add_swift_options(WebKit "-enable-experimental-feature CxxImplementation")
+webkit_target_add_swift_options(WebKit "-Werror SendableClosureCaptures")
+
 if (WebKit_PUBLIC_FRAMEWORK_HEADERS)
     WEBKIT_COPY_FILES(WebKit_CopyHeaders
         DESTINATION ${WebKit_HEADERS_DIR}
@@ -1675,18 +1643,6 @@ list(APPEND WebKit_SOURCES
     ${WebKit_DERIVED_SOURCES_DIR}/SecurityFlags.cpp
 )
 
-if (ENABLE_BACK_FORWARD_LIST_SWIFT)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift
-        ${WEBKIT_DIR}/Platform/Logging.swift
-        ${WEBKIT_DIR}/Shared/API/APIArray.swift
-        ${WEBKIT_DIR}/UIProcess/StdlibExtras.swift
-        ${WEBKIT_DIR}/UIProcess/WebBackForwardList.swift
-    )
-endif ()
 set_source_files_properties(
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
@@ -1724,26 +1680,24 @@ if (ENABLE_IPC_TESTING_SWIFT)
     )
 endif ()
 
-if (SWIFT_REQUIRED)
-    set_source_files_properties(
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
-        PROPERTIES GENERATED TRUE)
-    list(APPEND WebKit_SOURCES
-        ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
-        ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
-        ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
-        ${WEBKIT_DIR}/Shared/IPCSwiftWorkQueueTester.swift
-        ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
-        ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
-        ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
-        ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
-        ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
-    )
-endif ()
+set_source_files_properties(
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
+    PROPERTIES GENERATED TRUE)
+list(APPEND WebKit_SOURCES
+    ${WEBKIT_DIR}/Shared/Concurrency+Extras.swift
+    ${WEBKIT_DIR}/Shared/Foundation+Extras.swift
+    ${WEBKIT_DIR}/Shared/IPCSwiftStreamTester.swift
+    ${WEBKIT_DIR}/Shared/IPCSwiftWorkQueueTester.swift
+    ${WEBKIT_DIR}/Shared/IPCTesterReceiver.swift
+    ${WEBKIT_DIR}/Shared/RunJavaScriptResult.swift
+    ${WEBKIT_DIR}/Shared/WTFCompletionHandler+Extras.swift
+    ${WEBKIT_DIR}/Shared/WTFExpected+Extras.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftStreamTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCSwiftWorkQueueTesterMessageReceiver.swift
+    ${WebKit_DERIVED_SOURCES_DIR}/IPCTesterReceiverMessageReceiver.swift
+)
 
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
