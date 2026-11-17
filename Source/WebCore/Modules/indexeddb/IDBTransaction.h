@@ -33,6 +33,7 @@
 #include <WebCore/IDBGetRecordData.h>
 #include <WebCore/IDBIndexIdentifier.h>
 #include <WebCore/IDBKeyRangeData.h>
+#include <WebCore/IDBObjectStore.h>
 #include <WebCore/IDBObjectStoreIdentifier.h>
 #include <WebCore/IDBOpenDBRequest.h>
 #include <WebCore/IDBTransactionInfo.h>
@@ -54,7 +55,6 @@ class IDBIndex;
 class IDBIndexInfo;
 class IDBKey;
 class IDBKeyData;
-class IDBObjectStore;
 class IDBObjectStoreInfo;
 class IDBResultData;
 class SerializedScriptValue;

@@ -26,7 +26,7 @@
 #pragma once
 
 #include <WebCore/ActiveDOMObject.h>
-#include "IDBCursorDirection.h"
+#include <WebCore/IDBCursorDirection.h>
 #include <WebCore/IDBIndexIdentifier.h>
 #include <WebCore/IDBKeyPath.h>
 #include <WebCore/IDBObjectStoreInfo.h>
