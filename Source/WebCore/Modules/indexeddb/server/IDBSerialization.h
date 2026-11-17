@@ -35,7 +35,7 @@ class IDBKeyData;
 RefPtr<SharedBuffer> serializeIDBKeyPath(const std::optional<IDBKeyPath>&);
 bool deserializeIDBKeyPath(std::span<const uint8_t> buffer, std::optional<IDBKeyPath>&);
 
-RefPtr<SharedBuffer> serializeIDBKeyData(const IDBKeyData&);
+WEBCORE_EXPORT RefPtr<SharedBuffer> serializeIDBKeyData(const IDBKeyData&);
 WEBCORE_EXPORT bool deserializeIDBKeyData(std::span<const uint8_t> buffer, IDBKeyData&);
 
 } // namespace WebCore

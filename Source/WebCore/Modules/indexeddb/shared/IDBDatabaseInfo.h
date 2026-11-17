@@ -55,16 +55,16 @@ public:
     uint64_t version() const { return m_version; }
 
     NODELETE bool hasObjectStore(const String& name) const;
-    IDBObjectStoreInfo createNewObjectStore(const String& name, std::optional<IDBKeyPath>&&, bool autoIncrement);
+    WEBCORE_EXPORT IDBObjectStoreInfo createNewObjectStore(const String& name, std::optional<IDBKeyPath>&&, bool autoIncrement);
     void addExistingObjectStore(const IDBObjectStoreInfo&);
-    NODELETE IDBObjectStoreInfo* infoForExistingObjectStore(IDBObjectStoreIdentifier);
-    NODELETE IDBObjectStoreInfo* infoForExistingObjectStore(const String& objectStoreName);
+    WEBCORE_EXPORT NODELETE IDBObjectStoreInfo* infoForExistingObjectStore(IDBObjectStoreIdentifier);
+    WEBCORE_EXPORT NODELETE IDBObjectStoreInfo* infoForExistingObjectStore(const String& objectStoreName);
     NODELETE const IDBObjectStoreInfo* infoForExistingObjectStore(IDBObjectStoreIdentifier) const;
     NODELETE const IDBObjectStoreInfo* infoForExistingObjectStore(const String& objectStoreName) const;
 
     void renameObjectStore(IDBObjectStoreIdentifier, const String& newName);
 
-    Vector<String> objectStoreNames() const;
+    WEBCORE_EXPORT Vector<String> objectStoreNames() const;
     // The infos by value, in the map's iteration order, for Swift.
     Vector<IDBObjectStoreInfo> objectStores() const;
     const HashMap<IDBObjectStoreIdentifier, IDBObjectStoreInfo>& objectStoreMap() const LIFETIME_BOUND { return m_objectStoreMap; }

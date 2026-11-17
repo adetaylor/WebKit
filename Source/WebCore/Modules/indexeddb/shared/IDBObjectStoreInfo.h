@@ -54,14 +54,14 @@ public:
     WEBCORE_EXPORT IDBObjectStoreInfo isolatedCopy() const &;
     WEBCORE_EXPORT IDBObjectStoreInfo isolatedCopy() &&;
 
-    IDBIndexInfo createNewIndex(IDBIndexIdentifier, const String& name, IDBKeyPath&&, bool unique, bool multiEntry);
+    WEBCORE_EXPORT IDBIndexInfo createNewIndex(IDBIndexIdentifier, const String& name, IDBKeyPath&&, bool unique, bool multiEntry);
     void addExistingIndex(const IDBIndexInfo&);
     NODELETE bool hasIndex(const String& name) const;
     NODELETE bool hasIndex(IDBIndexIdentifier) const;
     NODELETE IDBIndexInfo* infoForExistingIndex(const String& name);
     NODELETE IDBIndexInfo* infoForExistingIndex(IDBIndexIdentifier);
 
-    Vector<String> indexNames() const;
+    WEBCORE_EXPORT Vector<String> indexNames() const;
     // The infos by value, in the map's iteration order, for Swift.
     Vector<IDBIndexInfo> indexes() const;
     const HashMap<IDBIndexIdentifier, IDBIndexInfo>& indexMap() const LIFETIME_BOUND { return m_indexMap; }
