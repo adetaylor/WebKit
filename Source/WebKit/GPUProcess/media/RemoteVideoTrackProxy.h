@@ -28,26 +28,25 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
-#include "MessageReceiver.h"
+#include "VideoTrackPrivateRemoteConfiguration.h"
 #include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/TrackBase.h>
 #include <WebCore/VideoTrackPrivate.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 namespace IPC {
 class Connection;
-class Decoder;
 }
 
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-struct VideoTrackPrivateRemoteConfiguration;
 
-class RemoteVideoTrackProxy final
+// On Cocoa, Swift (RemoteVideoTrackProxy.swift) implements what the track's changes send to the web process.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteVideoTrackProxy.swift") RemoteVideoTrackProxy final
     : public ThreadSafeRefCounted<RemoteVideoTrackProxy, WTF::DestructionThread::Main>
     , private WebCore::VideoTrackPrivateClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteVideoTrackProxy);
@@ -80,12 +79,20 @@ private:
 
     // TrackPrivateBaseClient
     void idChanged(WebCore::TrackID) final;
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void labelChanged(const String&) final { updateConfiguration(); }
+    void languageChanged(const String&) final { updateConfiguration(); }
+#else
     void labelChanged(const String&) final;
     void languageChanged(const String&) final;
+#endif
     void willRemove() final;
 
     VideoTrackPrivateRemoteConfiguration configuration();
     void updateConfiguration();
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    IPC::Connection* WTF_NULLABLE webProcessConnection() const SWIFT_RETURNS_RETAINED;
+#endif
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connectionToWebProcess;
     const Ref<WebCore::VideoTrackPrivate> m_trackPrivate;

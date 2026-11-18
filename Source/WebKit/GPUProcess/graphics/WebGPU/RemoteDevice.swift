@@ -435,8 +435,7 @@ final class RemoteDevice {
             pixelBuffer = videoFrames.read(frame).map { cvBuffer($0.pixelBuffer) }
         case .none:
             if let mediaIdentifier {
-                var result = WebKit.GPUVideoFrameReadResult()
-                pixelBuffer = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result)
+                pixelBuffer = copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue).pixelBuffer
             }
         }
         var descriptor = GPUExternalTextureDescriptor()
@@ -453,14 +452,8 @@ final class RemoteDevice {
         guard let objects = link.objects, let externalTexture = objects.object(externalTextureIdentifier, as: ExternalTextureReference.self) else {
             return
         }
-        externalTexture.destroy()
-        var result = WebKit.GPUVideoFrameReadResult()
-        let pixelBuffer = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result)
-        guard result.hadFrame else {
-            return
-        }
         var descriptor = GPUExternalTextureDescriptor()
-        descriptor.pixelBuffer = pixelBuffer
+        descriptor.pixelBuffer = copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue).pixelBuffer
         externalTexture.update(descriptor)
     }
     #endif

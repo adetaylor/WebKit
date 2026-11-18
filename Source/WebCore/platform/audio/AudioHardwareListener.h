@@ -26,8 +26,13 @@
 #pragma once
 
 #include <wtf/AbstractRefCountedAndCanMakeWeakPtr.h>
+#include <wtf/Function.h>
 #include <wtf/Ref.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/WeakPtr.h>
+
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WebCore {
 
@@ -77,4 +82,32 @@ private:
     BufferSizeRange m_supportedBufferSizes;
 };
 
+// An AudioHardwareListener and a client of it that calls functions, for clients that can't subclass
+// AudioHardwareListener::Client, like Swift's.
+class WEBCORE_EXPORT AudioHardwareListenerCallbacks final : public AudioHardwareListener::Client, public RefCounted<AudioHardwareListenerCallbacks> {
+public:
+    using Callback = Function<void()>;
+    static AudioHardwareListenerCallbacks* WTF_NONNULL create(Callback&& didBecomeActive, Callback&& didBecomeInactive, Callback&& outputDeviceChanged) SWIFT_RETURNS_RETAINED;
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    uint64_t minimumSupportedBufferSize() const { return m_listener->supportedBufferSizes().minimum; }
+    uint64_t maximumSupportedBufferSize() const { return m_listener->supportedBufferSizes().maximum; }
+
+private:
+    AudioHardwareListenerCallbacks(Function<void()>&&, Function<void()>&&, Function<void()>&&);
+
+    void audioHardwareDidBecomeActive() final { m_didBecomeActive(); }
+    void audioHardwareDidBecomeInactive() final { m_didBecomeInactive(); }
+    void audioOutputDeviceChanged() final { m_outputDeviceChanged(); }
+
+    const Function<void()> m_didBecomeActive;
+    const Function<void()> m_didBecomeInactive;
+    const Function<void()> m_outputDeviceChanged;
+    const Ref<AudioHardwareListener> m_listener;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
 }
+
+IGNORE_CLANG_WARNINGS_END

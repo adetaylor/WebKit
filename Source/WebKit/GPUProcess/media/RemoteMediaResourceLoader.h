@@ -36,9 +36,14 @@
 #include <wtf/Identified.h>
 #include <wtf/Lock.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
 #include <wtf/WorkQueue.h>
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "RemoteMediaResource.h"
+#endif
 
 namespace IPC {
 class Connection;
@@ -51,7 +56,9 @@ namespace WebKit {
 class RemoteMediaPlayerProxy;
 class RemoteMediaResource;
 
-class RemoteMediaResourceLoader final
+// On Cocoa platforms, the resources that the loader hands its messages to are in its Swift state, which m_swiftState
+// holds (RemoteMediaResourceLoader.swift), and which also handles the messages that take no reply.
+class SWIFT_PRIVATE_FILEID("WebKit/RemoteMediaResourceLoader.swift") RemoteMediaResourceLoader final
     : public WebCore::PlatformMediaResourceLoader
     , public IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>
     , public Identified<RemoteMediaResourceLoaderIdentifier> {
@@ -66,9 +73,17 @@ public:
         return messageQueue.get();
     }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    static bool isCurrentQueue() { return defaultQueue()->isCurrent(); }
+
+    void addMediaResource(RemoteMediaResourceIdentifier identifier, RemoteMediaResource& resource) { swiftAddMediaResource(identifier.toUInt64(), resource); }
+    void removeMediaResource(RemoteMediaResourceIdentifier);
+    RefPtr<RemoteMediaResource> resourceForId(RemoteMediaResourceIdentifier identifier) { return swiftMediaResource(identifier.toUInt64()).get(); }
+#else
     void addMediaResource(RemoteMediaResourceIdentifier, RemoteMediaResource&);
     void removeMediaResource(RemoteMediaResourceIdentifier);
     RefPtr<RemoteMediaResource> resourceForId(RemoteMediaResourceIdentifier);
+#endif
 
     // Disambiguate ref/deref:
     void ref() const final { return IPC::WorkQueueMessageReceiver<WTF::DestructionThread::Any>::ref(); }
@@ -92,18 +107,32 @@ private:
     // Messages
     void responseReceived(RemoteMediaResourceIdentifier, const WebCore::ResourceResponse&, bool, CompletionHandler<void(WebCore::ShouldContinuePolicyCheck)>&&);
     void redirectReceived(RemoteMediaResourceIdentifier, WebCore::ResourceRequest&&, const WebCore::ResourceResponse&, CompletionHandler<void(WebCore::ResourceRequest&&)>&&);
-    void dataSent(RemoteMediaResourceIdentifier, uint64_t, uint64_t);
     void dataReceived(RemoteMediaResourceIdentifier, IPC::SharedBufferReference&&, CompletionHandler<void(std::optional<WebCore::SharedMemory::Handle>&&)>&&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    // Implemented in RemoteMediaResourceLoader.swift, on the state that m_swiftState holds. Each is safe on any thread.
+    static uintptr_t createSwiftState();
+    static void destroySwiftState(uintptr_t);
+    void swiftAddMediaResource(uint64_t identifier, RemoteMediaResourceWeakPtr);
+    RemoteMediaResourceWeakPtr swiftMediaResource(uint64_t identifier);
+    void swiftRemoveMediaResource(uint64_t identifier);
+#else
+    void dataSent(RemoteMediaResourceIdentifier, uint64_t, uint64_t);
     void accessControlCheckFailed(RemoteMediaResourceIdentifier, const WebCore::ResourceError&);
     void loadFailed(RemoteMediaResourceIdentifier, const WebCore::ResourceError&);
     void loadFinished(RemoteMediaResourceIdentifier, const WebCore::NetworkLoadMetrics&);
+#endif
 
     WeakPtr<RemoteMediaPlayerProxy> m_remoteMediaPlayerProxy WTF_GUARDED_BY_CAPABILITY(mainRunLoop);
     const Ref<IPC::Connection> m_connection;
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    // A retained reference to the Swift state, as an address, from the constructor to the destructor.
+    const uintptr_t m_swiftState;
+#else
     Lock m_lock;
     HashMap<RemoteMediaResourceIdentifier, ThreadSafeWeakPtr<RemoteMediaResource>> m_remoteMediaResources WTF_GUARDED_BY_LOCK(m_lock);
-};
+#endif
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit
 

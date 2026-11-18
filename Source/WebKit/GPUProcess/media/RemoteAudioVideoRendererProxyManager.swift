@@ -50,6 +50,8 @@ extension IPCTypes.MediaTime {
 private final class RemoteAudioVideoRenderer: AudioVideoRendererClient {
     let identifier: UInt64
     let core: AudioVideoRendererMainActorCore
+    // The renderer, for what reaches its C++ part.
+    let renderer: WebCore.AudioVideoRendererAVFObjC
     private weak var state: RemoteAudioVideoRendererProxyManagerState?
 
     // As the C++ renderer's own, after which it does nothing and refuses what it would have to settle later.
@@ -64,9 +66,10 @@ private final class RemoteAudioVideoRenderer: AudioVideoRendererClient {
     var metricsUpdateInterval: Double = 0
     var nextMetricsUpdateTime: Double = 0
 
-    init(identifier: UInt64, core: AudioVideoRendererMainActorCore, state: RemoteAudioVideoRendererProxyManagerState) {
+    init(identifier: UInt64, core: AudioVideoRendererMainActorCore, renderer: WebCore.AudioVideoRendererAVFObjC, state: RemoteAudioVideoRendererProxyManagerState) {
         self.identifier = identifier
         self.core = core
+        self.renderer = renderer
         self.state = state
     }
 
@@ -292,13 +295,15 @@ extension WebKit.RemoteAudioVideoRendererProxyManager {
 
     @cxx
     @implementation
-    func addRenderer(_ identifier: UInt64, _ token: UInt64) {
+    func addRenderer(_ identifier: UInt64, _ token: UInt64, _ cxxRenderer: WebCore.AudioVideoRendererAVFObjC) {
         let state = state
+        // Safety: the renderer is used on the main thread, as the manager is.
+        nonisolated(unsafe) let cxxRenderer = cxxRenderer
         MainActor.assumeIsolated {
             guard let core = AudioVideoRendererMainActorCore.renderer(forToken: token) else {
                 preconditionFailure("The renderer has no Swift core")
             }
-            let renderer = RemoteAudioVideoRenderer(identifier: identifier, core: core, state: state)
+            let renderer = RemoteAudioVideoRenderer(identifier: identifier, core: core, renderer: unsafe cxxRenderer, state: state)
             core.setClient(renderer)
             state.renderers[identifier] = renderer
         }
@@ -334,7 +339,7 @@ extension WebKit.RemoteAudioVideoRendererProxyManager {
             return
         }
         renderer.rejectPendingStall()
-        shutDownRenderer(identifier.rawValue)
+        renderer.renderer.shutdown()
         renderer.isShutdown = true
     }
 
@@ -517,6 +522,187 @@ extension WebKit.RemoteAudioVideoRendererProxyManager {
             renderer.core.expectMinimumUpcomingPresentationTime(expected.rendererTime)
         }
     }
+
+    // MARK: Messages that reach the renderer's C++ part
+
+    @MainActor
+    func setPreferences(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        preferences: IPCTypes.VideoRendererPreference
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        var preferences = preferences
+        if isVideoSoftwareDecodingInContentProcessEnabled() {
+            preferences.insert(.requiresHardwareDecoder)
+        } else {
+            preferences.remove(.requiresHardwareDecoder)
+        }
+        if !renderer.isShutdown {
+            renderer.core.setPreferences(preferences.rawValue)
+        }
+        #if WTF_PLATFORM_IOS_FAMILY
+        setCanShowWhileLocked(identifier.rawValue, preferences.contains(.canShowWhileLocked))
+        #endif
+    }
+
+    @MainActor
+    func addTrack(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        type: IPCTypes.TrackInfoTrackType
+    ) throws(InvalidMessage) -> Result<IPCTypes.SamplesRendererTrackIdentifier, IPCUnexpected<IPCTypes.PlatformMediaError>> {
+        let renderer = try renderer(identifier)
+        // The core hears when an audio track needs re-enqueuing.
+        guard let cxxType = WebCore.TrackInfoTrackType(rawValue: type.rawValue),
+            let trackIdentifier = renderer.renderer.addTrack(cxxType).value,
+            let track = IPCTypes.SamplesRendererTrackIdentifier(rawValue: trackIdentifier.toUInt64())
+        else {
+            return .failure(IPCUnexpected(.notSupportedError))
+        }
+        return .success(track)
+    }
+
+    @MainActor
+    func setSpatialTrackingInfo(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        prefersSpatialAudioExperience: Bool,
+        soundStageSize: IPCTypes.MediaPlayerSoundStageSize,
+        sceneIdentifier: String?,
+        defaultLabel: String?,
+        label: String?
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        guard let cxxSoundStageSize = WebCore.MediaPlayerSoundStageSize(rawValue: soundStageSize.rawValue) else {
+            return
+        }
+        renderer.renderer.setSpatialTrackingInfo(
+            prefersSpatialAudioExperience,
+            cxxSoundStageSize,
+            IPCCoding.WTFString.cxxString(sceneIdentifier),
+            IPCCoding.WTFString.cxxString(defaultLabel),
+            IPCCoding.WTFString.cxxString(label)
+        )
+    }
+
+    @MainActor
+    func play(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, hostTime: Double?) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if let hostTime {
+            renderer.renderer.playAtHostTime(hostTime)
+        } else {
+            renderer.renderer.play(nil)
+        }
+    }
+
+    @MainActor
+    func pause(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, hostTime: Double?) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if let hostTime {
+            renderer.renderer.pauseAtHostTime(hostTime)
+        } else {
+            renderer.renderer.pause(nil)
+        }
+    }
+
+    @MainActor
+    func setScreenReserved(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, reserved: Bool) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setScreenReserved(reserved)
+    }
+
+    #if HAVE_AUDIO_OUTPUT_DEVICE_UNIQUE_ID
+    @MainActor
+    func setOutputDeviceId(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, deviceId: String?) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setOutputDeviceId(IPCCoding.WTFString.cxxString(deviceId))
+    }
+    #endif
+
+    @MainActor
+    func setIsVisible(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, isVisible: Bool) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setIsVisible(isVisible)
+    }
+
+    @MainActor
+    func setPresentationSize(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, size: IPCTypes.IntSize) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setPresentationSize(WebCore.IntSize(size.width, size.height))
+    }
+
+    @MainActor
+    func setShouldMaintainAspectRatio(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, maintain: Bool) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setShouldMaintainAspectRatio(maintain)
+    }
+
+    @MainActor
+    func setShouldDisableHDR(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, disable: Bool) throws(InvalidMessage) {
+        try renderer(identifier).renderer.setShouldDisableHDR(disable)
+    }
+
+    @MainActor
+    func flushAndRemoveImage(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier) throws(InvalidMessage) {
+        try renderer(identifier).renderer.flushAndRemoveImage()
+    }
+
+    #if ENABLE_VIDEO_PRESENTATION_MODE
+    @MainActor
+    func setVideoFullscreenFrame(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, frame: IPCTypes.FloatRect) throws(InvalidMessage) {
+        let rect = WebCore.FloatRect(frame.location.x, frame.location.y, frame.size.width, frame.size.height)
+        try renderer(identifier).renderer.setVideoFullscreenFrame(rect)
+    }
+
+    @MainActor
+    func isInFullscreenOrPictureInPictureChanged(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, changed: Bool) throws(InvalidMessage) {
+        try renderer(identifier).renderer.isInFullscreenOrPictureInPictureChanged(changed)
+    }
+    #endif
+
+    @MainActor
+    func contentBoxRectChanged(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        boxRect: CxxDecodedArguments.RemoteAudioVideoRendererProxyManager.ContentBoxRectChangedBoxRect
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if let rect = boxRect.take().value {
+            renderer.renderer.contentBoxRectChanged(rect)
+        }
+    }
+
+    @MainActor
+    func setPlatformDynamicRangeLimit(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        limit: CxxDecodedArguments.RemoteAudioVideoRendererProxyManager.SetPlatformDynamicRangeLimitLimit
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if let limit = limit.take().value {
+            renderer.renderer.setPlatformDynamicRangeLimit(limit)
+        }
+    }
+
+    @MainActor
+    func setResourceOwner(
+        connection: IPC.Connection,
+        identifier: IPCTypes.RemoteAudioVideoRendererIdentifier,
+        resourceOwner: CxxDecodedArguments.RemoteAudioVideoRendererProxyManager.SetResourceOwnerResourceOwner
+    ) throws(InvalidMessage) {
+        let renderer = try renderer(identifier)
+        if let resourceOwner = resourceOwner.take().value {
+            renderer.renderer.setResourceOwner(resourceOwner)
+        }
+    }
+
+    @MainActor
+    func syncTextTrackBounds(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier) throws(InvalidMessage) {
+        try renderer(identifier).renderer.syncTextTrackBounds()
+    }
+
+    #if ENABLE_ENCRYPTED_MEDIA
+    @MainActor
+    func attemptToDecrypt(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier) throws(InvalidMessage) {
+        try renderer(identifier).renderer.attemptToDecrypt()
+    }
+    #endif
 
     @MainActor
     func setVideoPlaybackMetricsUpdateInterval(connection: IPC.Connection, identifier: IPCTypes.RemoteAudioVideoRendererIdentifier, interval: Double) throws(InvalidMessage) {

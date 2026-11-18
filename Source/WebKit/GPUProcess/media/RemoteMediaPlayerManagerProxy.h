@@ -37,22 +37,30 @@
 #include <WebCore/ShareableBitmap.h>
 #include <WebCore/VideoTarget.h>
 #include <wtf/HashMap.h>
-#include <wtf/Lock.h>
 #include <wtf/Logger.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "SwiftCoding.h"
+#endif
+
 namespace WebKit {
 
 class RemoteMediaPlayerProxy;
-struct RemoteMediaPlayerConfiguration;
 struct RemoteMediaPlayerProxyConfiguration;
 struct SharedPreferencesForWebProcess;
-class VideoReceiverEndpointMessage;
-class VideoReceiverSwapEndpointsMessage;
 
-class RemoteMediaPlayerManagerProxy
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+using RefPtrMediaPlayer = RefPtr<WebCore::MediaPlayer>;
+using RefPtrRemoteMediaPlayerProxy = RefPtr<RemoteMediaPlayerProxy>;
+using OptionalFloatRect = std::optional<WebCore::FloatRect>;
+#endif
+
+// On Cocoa, Swift (RemoteMediaPlayerManagerProxy.swift) keeps the players and handles the messages that create and delete them.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteMediaPlayerManagerProxy.swift") RemoteMediaPlayerManagerProxy
     : public RefCounted<RemoteMediaPlayerManagerProxy>, public IPC::MessageReceiver
 {
     WTF_MAKE_TZONE_ALLOCATED(RemoteMediaPlayerManagerProxy);
@@ -69,6 +77,7 @@ public:
 
     RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() { return m_gpuConnectionToWebProcess.get(); }
     void clear();
+
     void connectionToWebProcessClosed() { clear(); }
 
 #if !RELEASE_LOG_DISABLED
@@ -80,13 +89,27 @@ public:
     void didReceivePlayerMessage(IPC::Connection&, IPC::Decoder&);
     void didReceiveSyncPlayerMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    RefPtr<WebCore::MediaPlayer> mediaPlayer(std::optional<WebCore::MediaPlayerIdentifier> identifier) { return identifier ? swiftMediaPlayer(identifier->toUInt64()) : nullptr; }
+#else
     RefPtr<WebCore::MediaPlayer> mediaPlayer(std::optional<WebCore::MediaPlayerIdentifier>);
+#endif
 
 #if PLATFORM(COCOA)
-    std::optional<WebCore::FloatRect> hostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier) const;
+    SWIFT_MAIN_ACTOR std::optional<WebCore::FloatRect> hostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier) const;
 #endif
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    // For Swift.
+    uint64_t identifier() const { return m_identifier; }
+    GPUConnectionToWebProcess* WTF_NULLABLE swiftGPUConnection() const SWIFT_RETURNS_RETAINED { return m_gpuConnectionToWebProcess.get().leakRef(); }
+    // The engine is a valid MediaPlayerMediaEngineIdentifier, which Swift has decoded.
+    static bool hasMediaEngine(uint8_t engineIdentifier, bool forPlayback);
+    RemoteMediaPlayerProxy* WTF_NONNULL createPlayer(GPUConnectionToWebProcess&, uint64_t identifier, uint64_t clientIdentifier, uint8_t engineIdentifier, IPC::CxxDecodedArgument<RemoteMediaPlayerProxyConfiguration>&) SWIFT_RETURNS_RETAINED;
+#endif
+
 private:
     explicit RemoteMediaPlayerManagerProxy(GPUConnectionToWebProcess&);
 
@@ -94,15 +117,24 @@ private:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&) final;
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void createMediaPlayer(WebCore::MediaPlayerIdentifier, WebCore::MediaPlayerClientIdentifier, WebCore::MediaPlayerEnums::MediaEngineIdentifier, RemoteMediaPlayerProxyConfiguration&&);
     void deleteMediaPlayer(WebCore::MediaPlayerIdentifier);
+#endif
 
     // Media player factory
     void getSupportedTypes(WebCore::MediaPlayerEnums::MediaEngineIdentifier, CompletionHandler<void(Vector<String>&&)>&&);
     void supportsTypeAndCodecs(WebCore::MediaPlayerEnums::MediaEngineIdentifier, const WebCore::MediaEngineSupportParameters&&, CompletionHandler<void(WebCore::MediaPlayer::SupportsType)>&&);
     void supportsKeySystem(WebCore::MediaPlayerEnums::MediaEngineIdentifier, const String&&, const String&&, CompletionHandler<void(bool)>&&);
 
-    CheckedPtr<const WebCore::MediaPlayerFactory> playbackEngineForConnection(WebCore::MediaPlayerEnums::MediaEngineIdentifier) const;
+    static CheckedPtr<const WebCore::MediaPlayerFactory> playbackEngineForConnection(WebCore::MediaPlayerEnums::MediaEngineIdentifier);
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    // Implemented in Swift. Static where the destructor calls them, so that they don't retain the manager it destroys.
+    SWIFT_MAIN_ACTOR RefPtrRemoteMediaPlayerProxy player(uint64_t identifier);
+    SWIFT_MAIN_ACTOR RefPtrMediaPlayer swiftMediaPlayer(uint64_t identifier);
+    static void swiftDestroy(uint64_t identifier);
+#endif
 
 #if !RELEASE_LOG_DISABLED
     ASCIILiteral logClassName() const { return "RemoteMediaPlayerManagerProxy"; }
@@ -110,9 +142,12 @@ private:
     uint64_t logIdentifier() const { return m_logIdentifier; }
 #endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    const uint64_t m_identifier;
+#else
     HashMap<WebCore::MediaPlayerIdentifier, Ref<RemoteMediaPlayerProxy>> m_proxies;
+#endif
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_gpuConnectionToWebProcess;
-
 #if !RELEASE_LOG_DISABLED
     uint64_t m_logIdentifier { 0 };
     const Ref<Logger> m_logger;

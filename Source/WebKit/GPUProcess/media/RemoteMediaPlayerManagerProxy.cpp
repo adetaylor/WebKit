@@ -58,7 +58,7 @@ using namespace WebCore;
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteMediaPlayerManagerProxy);
 
-CheckedPtr<const MediaPlayerFactory> RemoteMediaPlayerManagerProxy::playbackEngineForConnection(MediaPlayerEnums::MediaEngineIdentifier engineIdentifier) const
+CheckedPtr<const MediaPlayerFactory> RemoteMediaPlayerManagerProxy::playbackEngineForConnection(MediaPlayerEnums::MediaEngineIdentifier engineIdentifier)
 {
     MediaPlayerEngineSelection selection {
         .identifier = engineIdentifier,
@@ -67,8 +67,20 @@ CheckedPtr<const MediaPlayerFactory> RemoteMediaPlayerManagerProxy::playbackEngi
     return MediaPlayer::mediaEngine(selection);
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+static uint64_t nextRemoteMediaPlayerManagerProxyIdentifier()
+{
+    static std::atomic<uint64_t> identifier;
+    return ++identifier;
+}
+#endif
+
 RemoteMediaPlayerManagerProxy::RemoteMediaPlayerManagerProxy(GPUConnectionToWebProcess& connection)
-    : m_gpuConnectionToWebProcess(connection)
+    :
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    m_identifier(nextRemoteMediaPlayerManagerProxyIdentifier()),
+#endif
+    m_gpuConnectionToWebProcess(connection)
 #if !RELEASE_LOG_DISABLED
     , m_logIdentifier { LoggerHelper::uniqueLogIdentifier() }
     , m_logger { connection.logger() }
@@ -78,9 +90,44 @@ RemoteMediaPlayerManagerProxy::RemoteMediaPlayerManagerProxy(GPUConnectionToWebP
 
 RemoteMediaPlayerManagerProxy::~RemoteMediaPlayerManagerProxy()
 {
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    swiftDestroy(m_identifier);
+#else
     clear();
+#endif
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+bool RemoteMediaPlayerManagerProxy::hasMediaEngine(uint8_t engineIdentifier, bool forPlayback)
+{
+    return MediaPlayer::mediaEngine({ .identifier = static_cast<MediaPlayerEnums::MediaEngineIdentifier>(engineIdentifier), .scope = forPlayback ? MediaPlayerScope::Playback : MediaPlayerScope::Supports });
+}
+
+RemoteMediaPlayerProxy* RemoteMediaPlayerManagerProxy::createPlayer(GPUConnectionToWebProcess& connection, uint64_t identifier, uint64_t clientIdentifier, uint8_t engineIdentifier, IPC::CxxDecodedArgument<RemoteMediaPlayerProxyConfiguration>& configuration)
+{
+    auto proxyConfiguration = configuration.take();
+    RELEASE_ASSERT(proxyConfiguration);
+    return &RemoteMediaPlayerProxy::create(*this, MediaPlayerIdentifier(identifier), MediaPlayerClientIdentifier(clientIdentifier), connection.connection(), static_cast<MediaPlayerEnums::MediaEngineIdentifier>(engineIdentifier), WTF::move(*proxyConfiguration), Ref { connection.videoFrameObjectHeap() }, connection.webProcessIdentity()).leakRef();
+}
+
+void RemoteMediaPlayerManagerProxy::didReceivePlayerMessage(IPC::Connection& connection, IPC::Decoder& decoder)
+{
+    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
+    if (ObjectIdentifier<MediaPlayerIdentifierType>::isValidIdentifier(decoder.destinationID())) {
+        if (RefPtr player = this->player(decoder.destinationID()))
+            player->didReceiveMessage(connection, decoder);
+    }
+}
+
+void RemoteMediaPlayerManagerProxy::didReceiveSyncPlayerMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& encoder)
+{
+    ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
+    if (ObjectIdentifier<MediaPlayerIdentifierType>::isValidIdentifier(decoder.destinationID())) {
+        if (RefPtr player = this->player(decoder.destinationID()))
+            player->didReceiveSyncMessage(connection, decoder, encoder);
+    }
+}
+#else
 void RemoteMediaPlayerManagerProxy::clear()
 {
     auto proxies = std::exchange(m_proxies, { });
@@ -122,6 +169,7 @@ void RemoteMediaPlayerManagerProxy::deleteMediaPlayer(MediaPlayerIdentifier iden
     if (!hasOutstandingRenderingResourceUsage())
         connection->gpuProcess().tryExitIfUnusedAndUnderMemoryPressure();
 }
+#endif // ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 void RemoteMediaPlayerManagerProxy::getSupportedTypes(MediaPlayerEnums::MediaEngineIdentifier engineIdentifier, CompletionHandler<void(Vector<String>&&)>&& completionHandler)
 {
@@ -167,6 +215,7 @@ void RemoteMediaPlayerManagerProxy::supportsKeySystem(MediaPlayerEnums::MediaEng
     completionHandler(result);
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerManagerProxy::didReceivePlayerMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
     ASSERT_WITH_SECURITY_IMPLICATION(RunLoop::isMain());
@@ -208,6 +257,7 @@ RefPtr<MediaPlayer> RemoteMediaPlayerManagerProxy::mediaPlayer(std::optional<Med
         return results->value->mediaPlayer();
     return nullptr;
 }
+#endif // !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #if !RELEASE_LOG_DISABLED
 WTFLogChannel& RemoteMediaPlayerManagerProxy::logChannel() const

@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteMediaEngineConfigurationFactoryProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "SharedPreferencesForWebProcess.h"
@@ -81,4 +81,4 @@ std::optional<SharedPreferencesForWebProcess> RemoteMediaEngineConfigurationFact
 
 }
 
-#endif
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)

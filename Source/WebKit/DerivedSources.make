@@ -663,13 +663,7 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/graphics/PathSegment.serialization.in \
 	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
-	GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in \
-	GPUProcess/media/InitializationSegmentInfo.serialization.in \
-	GPUProcess/media/MediaDescriptionInfo.serialization.in \
-	GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in \
-	GPUProcess/media/TextTrackPrivateRemoteConfiguration.serialization.in \
-	GPUProcess/media/TrackPrivateRemoteConfiguration.serialization.in \
-	GPUProcess/media/VideoTrackPrivateRemoteConfiguration.serialization.in \
+	Shared/RemoteMediaPlayerProxyConfiguration.serialization.in \
 	ModelProcess/ModelProcessCreationParameters.serialization.in \
 	NetworkProcess/NetworkActivityTracker.serialization.in \
 	NetworkProcess/NetworkProcessCreationParameters.serialization.in \
@@ -692,6 +686,7 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	Platform/IPC/StreamServerConnection.serialization.in \
 	Platform/IPC/TransferString.serialization.in \
 	Platform/cocoa/MediaPlaybackTargetContextSerialized.serialization.in \
+	Shared/AudioTrackPrivateRemoteConfiguration.serialization.in \
 	Shared/AuxiliaryProcessCreationParameters.serialization.in \
 	Shared/JavaScriptEvaluationResult.serialization.in \
 	Shared/API/APIArray.serialization.in \
@@ -872,11 +867,14 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	Shared/TextManipulationParameters.serialization.in \
 	Shared/TextRecognitionResult.serialization.in \
 	Shared/TextRecognitionUpdateResult.serialization.in \
+	Shared/TextTrackPrivateRemoteConfiguration.serialization.in \
+	Shared/TrackPrivateRemoteConfiguration.serialization.in \
 	Shared/URLSchemeTaskParameters.serialization.in \
 	Shared/UndoOrRedo.serialization.in \
 	Shared/UserContentControllerParameters.serialization.in \
 	Shared/UserData.serialization.in \
 	Shared/UserInterfaceIdiom.serialization.in \
+	Shared/VideoTrackPrivateRemoteConfiguration.serialization.in \
 	Shared/WebCompiledContentRuleListData.serialization.in \
 	Shared/ViewWindowCoordinates.serialization.in \
 	Shared/VisibleContentRectUpdateInfo.serialization.in \

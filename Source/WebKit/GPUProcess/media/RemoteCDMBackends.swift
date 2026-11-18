@@ -55,6 +55,8 @@ protocol RemoteCDMInstanceBackend: AnyObject {
     func setServerCertificate(_ certificate: WebCore.SharedBuffer) async -> Bool
     // Only C++ instances store anything.
     var usesStorageDirectory: Bool { get }
+    // The C++ instance, which the media players use.
+    var cxxInstance: WebCore.CDMInstance? { get }
     func setStorageDirectory(_ directory: String)
     // A session, which tells the web process's RemoteCDMInstanceSession with that identifier, on connection, what it
     // reports while cdm exists.
@@ -112,6 +114,10 @@ final class ClearKeyInstanceBackend: RemoteCDMInstanceBackend {
 
     var usesStorageDirectory: Bool {
         false
+    }
+
+    var cxxInstance: WebCore.CDMInstance? {
+        nil
     }
 
     func setStorageDirectory(_ directory: String) {
@@ -197,12 +203,17 @@ final class ClearKeySessionBackend: RemoteCDMSessionBackend {
 // FairPlayInstance's. On Cocoa, FairPlay Streaming's CDM is the GPU process's only C++ one: ClearKey's is Swift.
 @MainActor
 final class FairPlayCDMInstanceBackend: RemoteCDMInstanceBackend {
-    private let instance: WebCore.CDMInstance
+    // The C++ instance, as its client.
+    private let instance: WebKit.RemoteCDMInstanceClient
     private let fairPlayInstance: FairPlayInstance?
 
-    init(_ instance: WebCore.CDMInstance, fairPlayInstance: FairPlayInstance?) {
+    init(_ instance: WebKit.RemoteCDMInstanceClient, fairPlayInstance: FairPlayInstance?) {
         self.instance = instance
         self.fairPlayInstance = fairPlayInstance
+    }
+
+    var cxxInstance: WebCore.CDMInstance? {
+        instance.instance()
     }
 
     func initialize(

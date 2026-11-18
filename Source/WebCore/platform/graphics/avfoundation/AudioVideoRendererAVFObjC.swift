@@ -52,6 +52,7 @@ private enum PlatformMediaError: UInt8 {
     case decoderCreationError = 9
     case audioDecodingError = 13
     case videoDecodingError = 14
+    case hardwareDecoderUnavailable = 19
 }
 
 private enum SeekState {
@@ -94,6 +95,10 @@ private struct PublishState {
 // WebCore::VideoRendererPreference.
 private let prefersDecompressionSession: UInt8 = 1 << 0
 private let useDecompressionSessionForProtectedContent: UInt8 = 1 << 2
+private let requiresHardwareDecoder: UInt8 = 1 << 5
+
+private let couldNotFindVideoDecoderError = -12906 // kVTCouldNotFindVideoDecoderErr
+private let videoDecoderNotAvailableNowError = -12913 // kVTVideoDecoderNotAvailableNowErr
 
 private func isNumeric(_ time: CMTime) -> Bool {
     time.flags.contains(timeValid) && time.flags.intersection(timeSpecial).isEmpty
@@ -1951,9 +1956,14 @@ final class AudioVideoRendererCore: @unchecked Sendable, VideoMediaSampleRendere
     }
 
     @_expose(!Cxx)
-    func videoRendererErrorOccurred(hdcpObscured: Bool?) {
+    func videoRendererErrorOccurred(code: Int, hdcpObscured: Bool?) {
         if let hdcpObscured {
             host.hdcpStatusChanged(hdcpObscured)
+            return
+        }
+        let hardwareDecoderUnavailable = code == couldNotFindVideoDecoderError || code == videoDecoderNotAvailableNowError
+        if hardwareDecoderUnavailable && preferences & requiresHardwareDecoder != 0 {
+            notifyError(.hardwareDecoderUnavailable)
             return
         }
         notifyError(.videoDecodingError)
@@ -2029,6 +2039,7 @@ public struct AudioVideoRendererMainActorCore {
     }
 
     public func setClient(_ client: any AudioVideoRendererClient) { core.setClient(client) }
+    public func setPreferences(_ rawValue: UInt8) { core.setPreferences(rawValue) }
     public func setHasProtectedVideoContent(_ protectedContent: Bool) { core.setHasProtectedVideoContent(protectedContent) }
     public func removeTrack(_ trackId: UInt64) { core.removeTrack(trackId) }
     public func isReadyForMoreSamples(_ trackId: UInt64) -> Bool { core.isReadyForMoreSamples(trackId) }

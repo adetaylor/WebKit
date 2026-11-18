@@ -255,7 +255,7 @@ header: <WebCore/MediaPlayer.h>
     MediaTime positiveThreshold;
 };
 
-[OptionSet] enum class WebCore::VideoRendererPreference : uint8_t {
+[OptionSet, Swift] enum class WebCore::VideoRendererPreference : uint8_t {
     PrefersDecompressionSession,
     ProtectedFallbackDisabled,
     UseDecompressionSessionForProtectedContent,
@@ -321,7 +321,10 @@ header: <WebCore/AudioSession.h>
     Large,
 };
 
-enum class WebCore::AudioSessionMayResume : bool;
+[Swift] enum class WebCore::AudioSessionMayResume : bool {
+    No,
+    Yes,
+};
 
 enum class WebCore::AudioSessionRoutingArbitrationError : uint8_t {
     None,

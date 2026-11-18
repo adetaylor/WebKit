@@ -28,6 +28,7 @@
 #if ENABLE(VIDEO)
 
 #include <WebCore/InbandTextTrackPrivateClient.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
 namespace WebCore {
@@ -114,7 +115,7 @@ protected:
 private:
     CueFormat m_format { CueFormat::Unknown };
     Mode m_mode { Mode::Disabled };
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebCore
 
