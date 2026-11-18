@@ -78,8 +78,8 @@ func permissionsPolicyFeatureNameForLogging(_ feature: UInt8) -> WTF.String {
 /// isFeatureAllowedByDefaultAllowlist(): whether the default allowlist of the PermissionsPolicy::Feature value
 /// `feature` allows an origin, which `isSameOrigin` says is the document's or not.
 ///
-/// The allowlist is "*" for the gamepad, sync-xhr and storage-access features, 'self' for the other features, and
-/// 'none' for Invalid and past it.
+/// The allowlist is "*" for the deferred-fetch-minimal, gamepad, sync-xhr and storage-access features, 'self' for the
+/// other features, and 'none' for Invalid and past it.
 @_expose(Cxx)
 func permissionsPolicyIsAllowedByDefault(_ feature: UInt8, _ isSameOrigin: Bool) -> Bool {
     let features = permissionsPolicyFeatureTable.features
@@ -109,33 +109,37 @@ private let permissionsPolicyInvalidFeatureNameForLogging: [UInt8] = Array("Inva
 // The features before Invalid, in PermissionsPolicy::Feature's order, so that a feature's value is its index. The
 // device orientation, Web Authentication and WebXR features are values only in a build that enables them, and the
 // values after a disabled group are lower by its size. `tokenOrder` is the order readFeatureIdentifier() tries the
-// tokens in: the features' order, except that loopback-network comes before local-network.
+// tokens in: the features' order, except that deferred-fetch-minimal comes before deferred-fetch, a prefix of it, and
+// loopback-network before local-network.
 private let permissionsPolicyFeatureTable: (features: [PermissionsPolicyFeatureDescription], tokenOrder: [Int]) = {
     var features = [
         PermissionsPolicyFeatureDescription("camera", "Camera"),
         PermissionsPolicyFeatureDescription("microphone", "Microphone"),
         PermissionsPolicyFeatureDescription("speaker-selection", "SpeakerSelection"),
         PermissionsPolicyFeatureDescription("display-capture", "DisplayCapture"),
-        PermissionsPolicyFeatureDescription("gamepad", "Gamepad", allowsAllOriginsByDefault: true),
-        PermissionsPolicyFeatureDescription("geolocation", "Geolocation"),
-        PermissionsPolicyFeatureDescription("payment", "Payment"),
-        PermissionsPolicyFeatureDescription("screen-wake-lock", "ScreenWakeLock"),
-        PermissionsPolicyFeatureDescription("sync-xhr", "SyncXHR", allowsAllOriginsByDefault: true),
-        PermissionsPolicyFeatureDescription("fullscreen", "Fullscreen"),
-        PermissionsPolicyFeatureDescription("web-share", "WebShare"),
     ]
-    if WebCore.permissionsPolicyHasDeviceOrientationFeatures {
-        features.append(PermissionsPolicyFeatureDescription("gyroscope", "Gyroscope"))
-        features.append(PermissionsPolicyFeatureDescription("accelerometer", "Accelerometer"))
-        features.append(PermissionsPolicyFeatureDescription("magnetometer", "Magnetometer"))
-    }
-    if WebCore.permissionsPolicyHasWebAuthenticationFeatures {
-        features.append(PermissionsPolicyFeatureDescription("publickey-credentials-get", "PublickeyCredentialsGet"))
-        features.append(PermissionsPolicyFeatureDescription("digital-credentials-get", "DigitalCredentialsGet"))
-    }
-    if WebCore.permissionsPolicyHasWebXRFeatures {
-        features.append(PermissionsPolicyFeatureDescription("xr-spatial-tracking", "XRSpatialTracking"))
-    }
+    let deferredFetch = features.count
+    features.append(PermissionsPolicyFeatureDescription("deferred-fetch", "DeferredFetch"))
+    features.append(PermissionsPolicyFeatureDescription("deferred-fetch-minimal", "DeferredFetchMinimal", allowsAllOriginsByDefault: true))
+    features.append(PermissionsPolicyFeatureDescription("gamepad", "Gamepad", allowsAllOriginsByDefault: true))
+    features.append(PermissionsPolicyFeatureDescription("geolocation", "Geolocation"))
+    features.append(PermissionsPolicyFeatureDescription("payment", "Payment"))
+    features.append(PermissionsPolicyFeatureDescription("screen-wake-lock", "ScreenWakeLock"))
+    features.append(PermissionsPolicyFeatureDescription("sync-xhr", "SyncXHR", allowsAllOriginsByDefault: true))
+    features.append(PermissionsPolicyFeatureDescription("fullscreen", "Fullscreen"))
+    features.append(PermissionsPolicyFeatureDescription("web-share", "WebShare"))
+#if ENABLE_DEVICE_ORIENTATION
+    features.append(PermissionsPolicyFeatureDescription("gyroscope", "Gyroscope"))
+    features.append(PermissionsPolicyFeatureDescription("accelerometer", "Accelerometer"))
+    features.append(PermissionsPolicyFeatureDescription("magnetometer", "Magnetometer"))
+#endif
+#if ENABLE_WEB_AUTHN
+    features.append(PermissionsPolicyFeatureDescription("publickey-credentials-get", "PublickeyCredentialsGet"))
+    features.append(PermissionsPolicyFeatureDescription("digital-credentials-get", "DigitalCredentialsGet"))
+#endif
+#if ENABLE_WEBXR
+    features.append(PermissionsPolicyFeatureDescription("xr-spatial-tracking", "XRSpatialTracking"))
+#endif
     features.append(PermissionsPolicyFeatureDescription("private-token", "PrivateToken"))
     features.append(PermissionsPolicyFeatureDescription("storage-access", "StorageAccess", allowsAllOriginsByDefault: true))
     let localNetwork = features.count
@@ -144,6 +148,7 @@ private let permissionsPolicyFeatureTable: (features: [PermissionsPolicyFeatureD
     features.append(PermissionsPolicyFeatureDescription("cross-origin-isolated", "CrossOriginIsolated"))
 
     var tokenOrder = Array(features.indices)
+    tokenOrder.swapAt(deferredFetch, deferredFetch + 1)
     tokenOrder.swapAt(localNetwork, localNetwork + 1)
     return (features, tokenOrder)
 }()
