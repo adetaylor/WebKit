@@ -1050,6 +1050,7 @@ void GraphicsContextCG::strokePath(const Path& path)
     if (path.isEmpty())
         return;
 
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokesWithoutGradient())) {
         if (auto line = path.singleDataLine())
             SWIFT_RENDERER(strokeLineSegment(line->start().x(), line->start().y(), line->end().x(), line->end().y()));
@@ -1281,6 +1282,7 @@ void GraphicsContextCG::beginTransparencyLayer(CompositeOperator compositeOperat
     ensureStateIsCurrent();
     // The layer keeps the current global alpha.
     GraphicsContext::beginTransparencyLayer(state().alpha());
+    updatePlatformContextStateIfNeeded();
     GraphicsContext::save(GraphicsContextState::Purpose::TransparencyLayer);
     SWIFT_RENDERER(beginTransparencyLayerWithCurrentAlpha());
 }
@@ -1658,6 +1660,7 @@ void GraphicsContextCG::clearRect(const FloatRect& r)
 void GraphicsContextCG::strokeRect(const FloatRect& rect, float lineWidth)
 {
     CAPTURE(strokeRect(rect, lineWidth));
+    updatePlatformContextStateIfNeeded();
     if (SWIFT_RENDERER(strokeRect(rect, lineWidth)))
         return;
 
@@ -1676,6 +1679,7 @@ void GraphicsContextCG::strokeArc(const PathArc& arc)
     CAPTURE(strokeArc(arc));
 #if HAVE(CGCONTEXT_STROKE_ARC)
     if (!strokeGradient()) {
+        updatePlatformContextStateIfNeeded();
         if (strokePattern())
             applyStrokePattern();
 

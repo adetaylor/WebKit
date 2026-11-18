@@ -191,6 +191,43 @@ TEST(GraphicsContextTests, StrokeRectDoesNotDesynchroniseLineWidth)
     EXPECT_FALSE(isGreenAtRow(1));
 }
 
+TEST(GraphicsContextTests, StrokeRectUsesPendingStrokeColor)
+{
+    auto colorSpace = ColorSpace::SRGB();
+    constexpr int width = 16;
+    constexpr int height = 16;
+    RetainPtr cgContext = adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    GraphicsContextCG ctx(cgContext.get());
+
+    ctx.setStrokeColor(Color::green);
+    ctx.strokeRect(FloatRect(2, 2, 12, 12), 4);
+    CGContextFlush(cgContext.get());
+
+    auto* data = static_cast<uint8_t*>(CGBitmapContextGetData(cgContext.get()));
+    auto* pixel = data + 2 * CGBitmapContextGetBytesPerRow(cgContext.get()) + (width / 2) * 4;
+    EXPECT_EQ(0, pixel[0]);
+    EXPECT_GT(pixel[1], 128);
+}
+
+TEST(GraphicsContextTests, BeginTransparencyLayerUsesPendingAlpha)
+{
+    auto colorSpace = ColorSpace::SRGB();
+    constexpr int width = 4;
+    constexpr int height = 4;
+    RetainPtr cgContext = adoptCF(CGBitmapContextCreate(nullptr, width, height, 8, 4 * width, colorSpace.platformColorSpace(), kCGImageAlphaPremultipliedLast));
+    GraphicsContextCG ctx(cgContext.get());
+
+    ctx.setAlpha(0.5);
+    ctx.beginTransparencyLayer(CompositeOperator::SourceOver, BlendMode::Normal);
+    ctx.fillRect(FloatRect(0, 0, width, height), Color::green);
+    ctx.endTransparencyLayer();
+    CGContextFlush(cgContext.get());
+
+    auto* data = static_cast<uint8_t*>(CGBitmapContextGetData(cgContext.get()));
+    auto* pixel = data + 2 * CGBitmapContextGetBytesPerRow(cgContext.get()) + 2 * 4;
+    EXPECT_NEAR(pixel[3], 128, 2);
+}
+
 TEST(GraphicsContextTests, CGBitmapRenderingModeIsUnaccelerated)
 {
     auto srgb = ColorSpace::SRGB();
