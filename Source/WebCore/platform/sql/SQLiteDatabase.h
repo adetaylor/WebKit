@@ -45,6 +45,7 @@ namespace WebCore {
 
 class DatabaseAuthorizer;
 class SQLiteStatement;
+class SQLiteStatementOwner;
 class SQLiteTransaction;
 
 class SQLiteDatabase final : public CanMakeThreadSafeCheckedPtr<SQLiteDatabase> {
@@ -85,6 +86,13 @@ public:
 
     WEBCORE_EXPORT std::unique_ptr<SQLiteStatement> prepareStatementSlow(StringView query);
     WEBCORE_EXPORT std::unique_ptr<SQLiteStatement> prepareStatement(ASCIILiteral query);
+
+    // String forms for Swift, which cannot form a StringView or an ASCIILiteral safely. Each passes the same text.
+    WEBCORE_EXPORT SQLiteStatementOwner prepareStatementForString(const String& query);
+    bool executeCommandForString(const String& query) { return executeCommandSlow(query); }
+    bool tableExistsForString(const String& tableName) { return tableExists(tableName); }
+    String tableSQLForString(const String& tableName) { return tableSQL(tableName); }
+    String indexSQLForString(const String& indexName) { return indexSQL(indexName); }
 
     // Aborts the current database operation. This is thread safe.
     WEBCORE_EXPORT void interrupt();
@@ -228,6 +236,8 @@ private:
 };
 
 inline SQLiteDatabaseOwner makeSQLiteDatabase() { return SQLiteDatabaseOwner(); }
+
+using SQLiteDatabaseOpenOptions = OptionSet<SQLiteDatabase::OpenOptions>;
 
 inline void SQLiteDatabase::incrementStatementCount()
 {

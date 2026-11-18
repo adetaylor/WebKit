@@ -809,6 +809,11 @@ std::unique_ptr<SQLiteStatement> SQLiteDatabase::prepareStatementSlow(StringView
     return std::unique_ptr<SQLiteStatement>(new SQLiteStatement(*this, sqlStatement.value()));
 }
 
+SQLiteStatementOwner SQLiteDatabase::prepareStatementForString(const String& query)
+{
+    return SQLiteStatementOwner { prepareStatementSlow(query) };
+}
+
 std::unique_ptr<SQLiteStatement> SQLiteDatabase::prepareStatement(ASCIILiteral query)
 {
     auto sqlStatement = constructAndPrepareStatement(*this, query.spanIncludingNullTerminator());
