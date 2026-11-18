@@ -184,4 +184,6 @@
 #include "platform/audio/AudioDSPBoundaryTypes.h"
 
 #include "BiquadFilterType.h"
+#include "WebAuthnSwiftTypes.h"
+
 #include "WebCoreSwift-Generated.h"
