@@ -433,6 +433,32 @@ messages -> TestReceiver%s {
         swift = messages.generate_swift_message_handler(receiver)
         self.assertEqual(swift.count('#if ENABLE_SWIFT_FLAG\n'), 2)
 
+    def test_cxx_senders(self):
+        receiver = parser.parse(io.StringIO("""
+[
+    ExceptionForEnabledBy,
+    ExceptionForDispatchedFrom,
+    ExceptionForDispatchedTo,
+    CxxSenders
+]
+messages -> TestReceiver {
+    PlainMessage(double value, String name)
+    EmptyMessage()
+    ReplyMessage(uint32_t value) -> (bool reply)
+    MovedMessage(MachSendRight sendRight)
+#if HAVE(FEATURE)
+    ConditionalMessage(bool flag)
+#endif
+}
+"""))
+        header = messages.generate_messages_header(receiver)
+        self.assertIn('inline void sendPlainMessage(IPC::Connection& connection, uint64_t destinationID, double value, const String& name)\n{\n    connection.send(PlainMessage(value, name), destinationID);\n}\n', header)
+        self.assertIn('inline void sendEmptyMessage(IPC::Connection& connection, uint64_t destinationID)\n{\n    connection.send(EmptyMessage(), destinationID);\n}\n', header)
+        self.assertIn('#if HAVE(FEATURE)\ninline void sendConditionalMessage(IPC::Connection& connection, uint64_t destinationID, bool flag)\n', header)
+        self.assertNotIn('sendReplyMessage', header)
+        self.assertNotIn('sendMovedMessage', header)
+        self.assertNotIn('inline void send', messages.generate_messages_header(parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo]\nmessages -> TestReceiver {\n    EmptyMessage()\n}\n'))))
+
     def test_swift_state(self):
         def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
             return parser.parse(io.StringIO("""

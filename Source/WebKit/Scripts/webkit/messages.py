@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -428,6 +428,26 @@ def message_to_struct_declaration(receiver, message):
         result.append('%s m_%s;\n' % parameter)
     result.append('};\n')
     return surround_in_condition(''.join(result), message.condition)
+
+
+# For a receiver with 'CxxSenders': a function for each message without a reply whose arguments C++ needn't move, which
+# sends it on the connection, for Swift, which can't name the message classes or call Connection::send().
+def generate_cxx_senders(receiver):
+    result = []
+    for message in receiver.messages:
+        if message.reply_parameters is not None or message.is_async_reply:
+            continue
+        if any(type_must_be_moved(unwrap_if_untrusted(parameter.type)) for parameter in message.parameters):
+            continue
+        parameters = ['IPC::Connection& connection', 'uint64_t destinationID'] + ['%s %s' % (function_parameter_type(x.type, x.kind), x.name) for x in message.parameters]
+        sender = []
+        sender.append('inline void send%s(%s)\n' % (message.name, ', '.join(parameters)))
+        sender.append('{\n')
+        sender.append('    connection.send(%s(%s), destinationID);\n' % (message.name, ', '.join([x.name for x in message.parameters])))
+        sender.append('}\n')
+        result.append(surround_in_condition(''.join(sender), message.condition))
+        result.append('\n')
+    return result
 
 
 def atomic_object_identifier(type):
@@ -1495,6 +1515,8 @@ def generate_messages_header(receiver):
     result.append('\n')
     result.append('\n'.join([message_to_struct_declaration(receiver, x) for x in receiver.messages]))
     result.append('\n')
+    if receiver.has_attribute(CXX_SENDERS_ATTRIBUTE):
+        result += generate_cxx_senders(receiver)
     result.append('} // namespace %s\n} // namespace Messages\n' % receiver.name)
 
     def append_completion_handler_types_for_swift(result):

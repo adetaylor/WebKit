@@ -61,6 +61,9 @@ WANTS_RECEIVER_ATTRIBUTE = 'WantsReceiver'
 # 'SwiftReceiverOwner=Provider' starts it on the owner that the C++ class Provider gives, with swiftReceiverOwner().
 SWIFT_RECEIVER_OWNER_ATTRIBUTE = 'SwiftReceiverOwner'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
+# On a receiver: its messages header also declares, for each message without a reply whose arguments C++ needn't move, a
+# function that sends it, which Swift can call as it can't name the message classes or call Connection::send().
+CXX_SENDERS_ATTRIBUTE = 'CxxSenders'
 # On a message that only C++ sends, so that a receiver's 'SwiftSends=' makes no Swift sender for it: for a message whose
 # arguments name types that have no Swift forms, which Swift senders would otherwise spell as types in IPCTypes.
 SENT_FROM_CXX_ATTRIBUTE = 'SentFromCxx'

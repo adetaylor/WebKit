@@ -63,6 +63,7 @@ def parse(file):
     swift_receiver_owner_provider = None
     recordable = False
     swift_actor = False
+    cxx_senders = False
     messages_from = None
     swift_sends = None
     destination = None
@@ -140,6 +141,9 @@ def parse(file):
                 continue
             elif attribute == model.SWIFT_ACTOR_ATTRIBUTE:
                 swift_actor = True
+                continue
+            elif attribute == model.CXX_SENDERS_ATTRIBUTE:
+                cxx_senders = True
                 continue
             raise Exception("ERROR: Unknown extended attribute: '%s'" % attribute)
     if receiver_enabled_by and receiver_enabled_by_exception:
@@ -257,6 +261,8 @@ def parse(file):
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_IMPLEMENTATION_ATTRIBUTE]
     if swift_receiver_owner:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_RECEIVER_OWNER_ATTRIBUTE]
+    if cxx_senders:
+        receiver_attributes = (receiver_attributes or []) + [model.CXX_SENDERS_ATTRIBUTE]
     if recordable:
         receiver_attributes = (receiver_attributes or []) + [model.RECORDABLE_ATTRIBUTE]
     if swift_actor:
