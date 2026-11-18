@@ -26,6 +26,7 @@
 #ifndef SQLiteTransaction_h
 #define SQLiteTransaction_h
 
+#include <utility>
 #include <wtf/CheckedRef.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/TZoneMalloc.h>
@@ -40,8 +41,18 @@ class SQLiteTransaction {
 public:
     WEBCORE_EXPORT SQLiteTransaction(SQLiteDatabase& db, bool readOnly = false);
     WEBCORE_EXPORT ~SQLiteTransaction();
+    // Movable, so Swift imports it as a ~Copyable value: the moved-from transaction is not in progress, so its
+    // destructor does not roll back.
+    SQLiteTransaction(SQLiteTransaction&& other)
+        : m_db(other.m_db)
+        , m_inProgress(std::exchange(other.m_inProgress, false))
+        , m_readOnly(other.m_readOnly)
+    {
+    }
     
     WEBCORE_EXPORT void begin();
+    // Swift imports a member named begin() as an iterator accessor, so it calls this one.
+    void beginTransaction() { begin(); }
     WEBCORE_EXPORT void commit();
     WEBCORE_EXPORT void rollback();
     void stop();
