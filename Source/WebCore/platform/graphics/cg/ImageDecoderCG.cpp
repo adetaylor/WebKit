@@ -58,7 +58,7 @@ namespace WebCore {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(ImageDecoderCG);
 
-#if ENABLE(SPATIAL_IMAGE_DETECTION)
+#if ENABLE(SPATIAL_IMAGE_DETECTION) || ENABLE(IMAGE_ELEMENT_IMMERSIVE)
 #if HAVE(IMAGE_RESTRICTED_DECODING) && USE(APPLE_INTERNAL_SDK)
 const CFStringRef kCGImageSourceEnableRestrictedDecoding = CFSTR("kCGImageSourceEnableRestrictedDecoding");
 #endif
@@ -68,7 +68,7 @@ const CFStringRef kCGImageSourceCreateUnpremultipliedPNG = CFSTR("kCGImageSource
 #endif
 #endif
 
-#if ENABLE(SPATIAL_IMAGE_DETECTION)
+#if ENABLE(SPATIAL_IMAGE_DETECTION) || ENABLE(IMAGE_ELEMENT_IMMERSIVE)
 static RetainPtr<CFMutableDictionaryRef> createImageSourceOptions()
 {
     RetainPtr<CFMutableDictionaryRef> options = adoptCF(CFDictionaryCreateMutable(nullptr, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks));
@@ -89,6 +89,14 @@ static RetainPtr<CFMutableDictionaryRef> createImageSourceOptions()
 #endif
 
     return options;
+}
+#endif
+
+#if ENABLE(IMAGE_ELEMENT_IMMERSIVE)
+static RetainPtr<CFMutableDictionaryRef> imageSourceOptions()
+{
+    static NeverDestroyed<RetainPtr<CFMutableDictionaryRef>> options = createImageSourceOptions();
+    return options.get();
 }
 #endif
 
