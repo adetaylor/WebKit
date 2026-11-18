@@ -1191,6 +1191,10 @@
 #define ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT 1
 #endif
 
+#if !defined(ENABLE_GPU_PROCESS_MEDIA_SWIFT) && PLATFORM(COCOA) && ENABLE(IPC_TESTING_SWIFT) && ENABLE(GPU_PROCESS)
+#define ENABLE_GPU_PROCESS_MEDIA_SWIFT 1
+#endif
+
 // Whether any IPC message receiver is in Swift, which needs the Swift IPC support code. The back/forward
 // list's always is.
 #if !defined(ENABLE_SWIFT_IPC_RECEIVERS)

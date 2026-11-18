@@ -146,6 +146,10 @@ def parse(file):
         raise Exception("ERROR: 'ExceptionForEnabledBy' cannot be used together with 'EnabledBy=%s'" % receiver_enabled_by)
     if swift_receiver and swift_receiver_build_enabled_by:
         raise Exception("ERROR: 'SwiftReceiver' cannot be used together with 'SwiftReceiverBuildEnabledBy=%s'" % swift_receiver_build_enabled_by)
+    swift_implementation_build_enabled_by = None
+    if swift_implementation and swift_receiver_build_enabled_by:
+        swift_implementation_build_enabled_by = swift_receiver_build_enabled_by
+        swift_receiver_build_enabled_by = None
 
     for line in file_contents:
         line = line.strip()
@@ -257,7 +261,7 @@ def parse(file):
         receiver_attributes = (receiver_attributes or []) + [model.RECORDABLE_ATTRIBUTE]
     if swift_actor:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_ACTOR_ATTRIBUTE]
-    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state)
+    receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state, swift_implementation_build_enabled_by)
     if not messages_from:
         receiver.enforce_swift_types_constraints()
     return receiver

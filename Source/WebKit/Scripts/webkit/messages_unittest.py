@@ -422,6 +422,17 @@ messages -> TestReceiver%s {
         self.assertEqual(swift.count('    #if HAVE_FEATURE\n'), 2)
         self.assertNotIn('CxxMessage', swift)
 
+        # With 'SwiftReceiverBuildEnabledBy=', a C++ receiver that Swift implements where the flag is enabled, and whose C++
+        # handlers take its messages elsewhere.
+        receiver = parse_swift_implementation('    SwiftMessage(uint32_t value)\n    SyncMessage() -> (bool reply) Synchronous', stream=False, attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftReceiverBuildEnabledBy=SWIFT_FLAG'))
+        self.assertFalse(receiver.is_swift_receiver())
+        handler = messages.generate_message_handler(receiver)
+        self.assertIn('#if ENABLE(SWIFT_FLAG)\n        IPC::handleSwiftMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &SwiftDispatch::TestReceiver::dispatchSwiftMessage);\n#else // ENABLE(SWIFT_FLAG)\n        IPC::handleMessage<Messages::TestReceiver::SwiftMessage>(connection, decoder, this, &TestReceiver::swiftMessage);\n#endif // ENABLE(SWIFT_FLAG)\n', handler)
+        self.assertIn('#else // ENABLE(SWIFT_FLAG)\n        IPC::handleMessageSynchronous<Messages::TestReceiver::SyncMessage>(connection, decoder, replyEncoder, this, &TestReceiver::syncMessage);\n', handler)
+        self.assertNotIn('MessageForwarder', handler)
+        swift = messages.generate_swift_message_handler(receiver)
+        self.assertEqual(swift.count('#if ENABLE_SWIFT_FLAG\n'), 2)
+
     def test_swift_state(self):
         def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
             return parser.parse(io.StringIO("""

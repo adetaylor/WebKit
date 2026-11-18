@@ -101,7 +101,7 @@ _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'dec
 _NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
 class MessageReceiver(object):
-    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None, swift_state=None):
+    def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None, swift_state=None, swift_implementation_build_enabled_by=None):
         self.name = name
         self.superclass = superclass
         self.attributes = frozenset(attributes or [])
@@ -127,6 +127,9 @@ class MessageReceiver(object):
         self.swift_receiver_owner_provider = swift_receiver_owner_provider
         # The Swift class of a 'SwiftImplementation' receiver's state, with 'SwiftState='.
         self.swift_state = swift_state
+        # For a receiver with 'SwiftImplementation' and 'SwiftReceiverBuildEnabledBy=FLAG': its Swift dispatch and Swift
+        # sends are built only where FLAG is enabled, and elsewhere all its messages go to its C++ handlers.
+        self.swift_implementation_build_enabled_by = swift_implementation_build_enabled_by
         # The receiver whose definitions of the messages this one names it takes (parser.resolve_message_references()).
         self.messages_from = messages_from
         # The names of the receivers whose messages this Swift receiver's Swift sends, and, once parser.resolve_swift_sends()

@@ -167,6 +167,25 @@ def if_swift_enabled(receiver, result, swift_steps, cpp_steps):
         cpp_steps(result)
 
 
+# For a receiver with 'SwiftImplementation': the steps for its Swift dispatch, under the condition its Swift is built with,
+# and otherwise the steps for its C++ handlers.
+def if_swift_implementation_enabled(receiver, result, swift_steps, cpp_steps):
+    condition = receiver.swift_implementation_build_enabled_by
+    if not condition:
+        swift_steps(result)
+        return
+    result.append('#if ENABLE(%s)\n' % condition)
+    swift_steps(result)
+    result.append('#else // ENABLE(%s)\n' % condition)
+    cpp_steps(result)
+    result.append('#endif // ENABLE(%s)\n' % condition)
+
+
+# The condition, if any, that the generated Swift of a receiver is built under.
+def swift_build_enabled_by(receiver):
+    return receiver.swift_receiver_build_enabled_by or receiver.swift_implementation_build_enabled_by
+
+
 def types_that_must_be_moved():
     return [
         'IPC::ConnectionHandle',
@@ -1803,7 +1822,8 @@ def async_message_statement(receiver, message):
             return
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
             pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
-            append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, 'this', swift_implementation_dispatch_function(receiver, message))
+            cpp_pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (dispatch_function, receiver.name, message.name, connection)
+            if_swift_implementation_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this', swift_implementation_dispatch_function(receiver, message)), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, cpp_pattern, 'this', handler_function(receiver, message)))
             return
         if receiver.swift_receiver_state_lender:
             if_swift_enabled(receiver, result, append_lent_state_dispatch, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, '        IPC::handleMessage<Messages::%s::%s>(connection, %%s);\n' % (receiver.name, message.name), 'this', handler_function(receiver, message)))
@@ -1894,7 +1914,7 @@ def sync_message_statement(receiver, message):
     if receiver.dispatches_to_swift_state(message):
         append_call_with_target_name(result, swift_dispatch_function, *swift_state_dispatch_target_and_function(receiver, message))
     elif receiver.is_swift_implementation() and receiver.takes_swift_types(message):
-        append_call_with_target_name(result, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message))
+        if_swift_implementation_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, 'this', swift_implementation_dispatch_function(receiver, message)), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)))
     else:
         if_swift_enabled(receiver, result, lambda x: append_call_with_target_name(x, swift_dispatch_function, swift_target, swift_function), lambda x: append_call_with_target_name(x, dispatch_function, 'this', handler_function(receiver, message)), )
     result.append('        return;\n')
@@ -3124,12 +3144,12 @@ def generate_swift_message_handler(receiver):
     result.append('\n')
     if receiver.condition:
         result.append('#if %s\n' % swift_receiver_condition(receiver))
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
+    if swift_build_enabled_by(receiver):
+        result.append('#if ENABLE_%s\n' % (swift_build_enabled_by(receiver)))
     result.append('import WebKit_Internal\n')
     if receiver.condition:
         result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
+    if swift_build_enabled_by(receiver):
         result.append('#endif\n')
     result.append('\n')
 
@@ -3140,8 +3160,8 @@ def generate_swift_message_handler(receiver):
 
     if receiver.condition:
         result.append('#if %s\n' % swift_receiver_condition(receiver))
-    if receiver.swift_receiver_build_enabled_by:
-        result.append('#if ENABLE_%s\n' % (receiver.swift_receiver_build_enabled_by))
+    if swift_build_enabled_by(receiver):
+        result.append('#if ENABLE_%s\n' % (swift_build_enabled_by(receiver)))
 
     # A receiver with 'SwiftState=' whose messages all go to its Swift state has no @cxx @implementation dispatch.
     emits_extension = implementation and bool(swift_implementation_messages(receiver) or not receiver.swift_state)
@@ -3595,7 +3615,7 @@ def generate_swift_message_handler(receiver):
 
     if receiver.condition:
         result.append('#endif\n')
-    if receiver.swift_receiver_build_enabled_by:
+    if swift_build_enabled_by(receiver):
         result.append('#endif\n')
 
     return ''.join(result)
