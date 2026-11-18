@@ -373,7 +373,9 @@ private:
     SWIFT_MAIN_ACTOR void swiftAddGraphicsContextGL(uint64_t identifier, uint64_t renderingBackendIdentifier, IPC::SwiftReceiverOwner&, WebCore::GraphicsContextGLAttributes);
     // Whether none is left.
     SWIFT_MAIN_ACTOR bool swiftReleaseGraphicsContextGL(uint64_t identifier);
+#if !PLATFORM(COCOA)
     void createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes, uint64_t identifier, RemoteRenderingBackend&, IPC::SwiftReceiverOwner&);
+#endif
 #endif
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
     SWIFT_MAIN_ACTOR bool swiftHasGPU(uint64_t identifier);

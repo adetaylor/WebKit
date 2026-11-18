@@ -25,12 +25,13 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
 
 #include "Connection.h"
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
 #include "RemoteGraphicsContextGLIdentifier.h"
+#include "RemoteGraphicsContextGLShims.h"
 #include "RemoteNativeImageIdentifier.h"
 #include "RemoteRenderingBackend.h"
 #include "RemoteSharedResourceCache.h"
@@ -49,17 +50,11 @@
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
 
-#if PLATFORM(COCOA)
-#include <WebCore/GraphicsContextGLCocoa.h>
-#elif USE(GBM)
+#if USE(GBM)
 #include <WebCore/DMABufBuffer.h>
 #include <WebCore/GraphicsContextGLGBM.h>
 #else
 #include <WebCore/GraphicsContextGLEGL.h>
-#endif
-
-#if PLATFORM(MAC)
-#include <CoreGraphics/CGDisplayConfiguration.h>
 #endif
 
 #if USE(GRAPHICS_LAYER_WC)
@@ -71,21 +66,12 @@
 #include "RemoteVideoFrameProxy.h"
 #endif
 
-#if PLATFORM(COCOA)
-namespace WTF {
-class MachSendRight;
-}
-#endif
-
 namespace WebKit {
 #if ENABLE(VIDEO)
 class RemoteVideoFrameObjectHeap;
 #endif
 
-IPC::StreamConnectionWorkQueue& remoteGraphicsContextGLStreamWorkQueueSingleton();
-
-
-// The GPU process side of a WebGL context: it makes the GraphicsContextGL, receives the messages that take IPC handles or
+// On ports other than Cocoa, the GPU process side of a WebGL context: it makes the GraphicsContextGL, receives the messages that take IPC handles or
 // need the context's C++ objects, and sends the context's messages to the web process. RemoteGraphicsContextGL, the Swift
 // receiver of the GL calls, which the Swift state in m_swiftState holds, is the receiver of the owner, which keeps it from
 // its start until it stops; this is the owner's companion, which receives its messages on the owner's stream connection,
@@ -99,7 +85,7 @@ public:
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_owner->sharedPreferencesForWebProcess(); }
     // For IPC::startSwiftReceiver(), from the Swift receiver.
-    IPC::SwiftReceiverOwner& swiftReceiverOwner() const __attribute__((availability(swift, unavailable))) { return m_owner.get(); }
+    IPC::SwiftReceiverOwner& swiftReceiverOwner() const SWIFT_RETURNS_UNRETAINED { return m_owner.get(); }
 
     // Implemented in Swift (RemoteGraphicsContextGL.swift), on the state that m_swiftState holds while the receivers
     // receive messages: the Swift receiver of the GL calls on the island's context of the shell, started on the owner,
@@ -143,9 +129,7 @@ protected:
 
     // Messages to be received.
     void reshape(int32_t width, int32_t height);
-#if PLATFORM(COCOA)
-    virtual void prepareForDisplay(IPC::Semaphore&&, CompletionHandler<void(WTF::MachSendRight&&)>&&) = 0;
-#elif USE(GRAPHICS_LAYER_WC)
+#if USE(GRAPHICS_LAYER_WC)
     virtual void prepareForDisplay(CompletionHandler<void(std::optional<WCContentBufferIdentifier>)>&&) = 0;
 #elif USE(GBM)
     virtual void prepareForDisplay(Vector<uint64_t>&&, CompletionHandler<void(uint64_t, std::optional<WebCore::DMABufBuffer::Attributes>&&, UnixFileDescriptor&&, Vector<uint64_t>&&)>&&) = 0;
@@ -155,12 +139,6 @@ protected:
     void copyNativeImage(WebCore::GraphicsContextGL::SurfaceBuffer, RemoteNativeImageReference);
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
     void surfaceBufferToVideoFrame(WebCore::GraphicsContextGL::SurfaceBuffer, WebKit::RemoteVideoFrameReference, CompletionHandler<void(std::optional<WebKit::RemoteVideoFrameProxy::Properties>&&)>&&);
-#endif
-#if ENABLE(VIDEO) && PLATFORM(COCOA)
-    void copyTextureFromVideoFrame(SharedVideoFrame&&, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t type, bool unpackFlipY, bool unpackPremultiplyAlpha, CompletionHandler<void(bool)>&&);
-    void getLastVideoUploadForTesting(CompletionHandler<void(WebCore::GraphicsContextGLVideoUploadRecord)>&&);
-    void setSharedVideoFrameSemaphore(IPC::Semaphore&&);
-    void setSharedVideoFrameMemory(WebCore::SharedMemory::Handle&&);
 #endif
     void simulateEventForTesting(WebCore::GraphicsContextGL::SimulatedEventForTesting);
     void getBufferSubDataInline(uint32_t target, uint64_t offset, uint64_t dataSize, CompletionHandler<void(std::span<const uint8_t>)>&&);
@@ -172,9 +150,7 @@ protected:
 #endif
     void setDrawingBufferColorSpace(WebCore::ColorSpace&&);
 
-#if PLATFORM(COCOA)
-    using GCGLContext = WebCore::GraphicsContextGLCocoa;
-#elif USE(GBM)
+#if USE(GBM)
     using GCGLContext = WebCore::GraphicsContextGLGBM;
 #else
     using GCGLContext = WebCore::GraphicsContextGLEGL;
@@ -196,9 +172,6 @@ protected:
     const Ref<RemoteSharedResourceCache> m_sharedResourceCache;
 #if ENABLE(VIDEO)
     const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
-#if PLATFORM(COCOA)
-    SharedVideoFrameReader m_sharedVideoFrameReader;
-#endif
 #endif
     ScopedWebGLRenderingResourcesRequest m_renderingResourcesRequest;
     const WebCore::ProcessIdentity m_webProcessIdentity;

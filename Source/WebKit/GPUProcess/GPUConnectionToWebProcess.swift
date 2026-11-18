@@ -590,7 +590,11 @@ extension WebKit.GPUConnectionToWebProcess {
             owner.stopListeningForIPC()
             return
         }
+        #if WTF_PLATFORM_COCOA
+        WebKit.RemoteGraphicsContextGLClient.create(owner, self, renderingBackend, identifier, attributes)
+        #else
         createGraphicsContextGLResources(attributes, identifier, renderingBackend, owner)
+        #endif
         state.graphicsContextGLOwners[identifier] = owner
     }
 
