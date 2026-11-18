@@ -3369,6 +3369,20 @@ foreach (_source IN LISTS _webcore_css_calc_swift_interop_sources)
     list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)${_name}( |$)")
 endforeach ()
 list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES "(^|/)HTMLPreloadScanner\\.cpp( |$)")
+# The WebAuthn sources that forward to the WebAuthn Swift include WebCore-Swift.h, so they compile
+# in WebCore_SwiftInterop, after WebCore's Swift module.
+set(_webcore_webauthn_swift_interop_sources
+    Modules/webauthn/cbor/CBORReader.cpp
+    Modules/webauthn/cbor/CBORWriter.cpp
+    Modules/webauthn/fido/AuthenticatorGetInfoResponse.cpp
+    Modules/webauthn/fido/Pin.cpp)
+if (ENABLE_WEB_AUTHN)
+    list(APPEND WebCore_UNIFIED_SOURCE_EXCLUDES
+        "(^|/)CBORReader\\.cpp( |$)"
+        "(^|/)CBORWriter\\.cpp( |$)"
+        "(^|/)AuthenticatorGetInfoResponse\\.cpp( |$)"
+        "(^|/)Pin\\.cpp( |$)")
+endif ()
 
 # The C++ of WebCore's Swift ports that includes WebCore-Swift.h compiles in WebCore_SwiftInterop, after WebCore's
 # Swift module, on every port.
@@ -3970,6 +3984,20 @@ if (APPLE)
         ${WEBCORE_DIR}/page/csp/ContentSecurityPolicyTrustedTypesDirective.swift
     )
     list(APPEND WebCore_SWIFT_INTEROP_SOURCES page/csp/ContentSecurityPolicy.cpp)
+
+    # The WebAuthn protocol code (CBOR, CTAP2, U2F, HID framing, PIN, APDU), as in WebCore.xcodeproj.
+    if (ENABLE_WEB_AUTHN)
+        target_sources(WebCore PRIVATE
+            ${WEBCORE_DIR}/Modules/webauthn/apdu/WebAuthnApdu.swift
+            ${WEBCORE_DIR}/Modules/webauthn/cbor/WebAuthnCBOR.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnCtapRequests.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnCtapResponses.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnHid.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnPin.swift
+            ${WEBCORE_DIR}/Modules/webauthn/fido/WebAuthnU2f.swift
+        )
+        list(APPEND WebCore_SWIFT_INTEROP_SOURCES ${_webcore_webauthn_swift_interop_sources})
+    endif ()
 
     WEBKIT_SETUP_SWIFT_AND_GENERATE_SWIFT_CPP_INTEROP_HEADER(WebCore WebCore
         "${WebCore_PRIVATE_HEADERS_DIR}"

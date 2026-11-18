@@ -156,4 +156,6 @@
 #include "StyleTransformSwiftTypes.h"
 #include "ScrollingTreeScrollingNode.h"
 
+#include "WebAuthnSwiftTypes.h"
+
 #include "WebCoreSwift-Generated.h"
