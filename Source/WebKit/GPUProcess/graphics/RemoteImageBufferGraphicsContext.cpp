@@ -37,43 +37,10 @@
 #include <WebCore/GraphicsLayerContentsDisplayDelegate.h>
 #include <WebCore/PixelBuffer.h>
 #include <WebCore/PlatformCALayerDelegatedContents.h>
+#include <wtf/Scope.h>
 
 namespace WebKit {
 using namespace WebCore;
-
-// What the one placeholder of the WebCore display list that a DisplayList image buffer's context records keeps: the buffer's
-// drawing, recorded in Swift (RemoteCGRendererRecordedDrawing, RemoteImageBuffer.swift), which it draws into the context the
-// display list is drawn into, if that context can lend its renderer.
-class RemoteCGRendererRecordedDrawingHandle final : public ThreadSafeRefCounted<RemoteCGRendererRecordedDrawingHandle> {
-public:
-    static Ref<RemoteCGRendererRecordedDrawingHandle> adopt(uintptr_t drawing)
-    {
-        return adoptRef(*new RemoteCGRendererRecordedDrawingHandle(drawing));
-    }
-
-    ~RemoteCGRendererRecordedDrawingHandle()
-    {
-        RemoteCGRendererRecordedDrawing::releaseDrawing(m_drawing);
-    }
-
-    void draw(GraphicsContext& context) const
-    {
-        if (!context.canLendSwiftRenderer())
-            return;
-        GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
-            RemoteCGRendererRecordedDrawing::draw(m_drawing, state);
-        });
-    }
-
-private:
-    explicit RemoteCGRendererRecordedDrawingHandle(uintptr_t drawing)
-        : m_drawing(drawing)
-    {
-        RELEASE_ASSERT(drawing);
-    }
-
-    const uintptr_t m_drawing;
-};
 
 void RemoteImageBufferGraphicsContext::startListeningForIPC()
 {
@@ -88,12 +55,21 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
     m_renderingBackend->streamConnection().startReceivingMessages(forwarder, IPC::ReceiverName::RemoteCGRenderer, m_identifier.toUInt64());
 }
 
+// The one placeholder of the WebCore display list that the context records keeps the drawing, which it draws into the
+// context that the display list is drawn into, if that context can lend its renderer, and releases when it goes.
 void RemoteImageBufferGraphicsContext::installRecordedDrawing(uintptr_t drawing)
 {
     ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
-    Ref handle = RemoteCGRendererRecordedDrawingHandle::adopt(drawing);
-    static_cast<DisplayList::RecorderImpl&>(m_context).drawPlaceholder([handle = WTF::move(handle)](GraphicsContext& context) {
-        handle->draw(context);
+    RELEASE_ASSERT(drawing);
+    auto releaseDrawing = makeScopeExit([drawing] {
+        RemoteCGRendererRecordedDrawing::releaseDrawing(drawing);
+    });
+    static_cast<DisplayList::RecorderImpl&>(m_context).drawPlaceholder([drawing, releaseDrawing = WTF::move(releaseDrawing)](GraphicsContext& context) {
+        if (!context.canLendSwiftRenderer())
+            return;
+        GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
+            RemoteCGRendererRecordedDrawing::draw(drawing, state);
+        });
     });
 }
 
