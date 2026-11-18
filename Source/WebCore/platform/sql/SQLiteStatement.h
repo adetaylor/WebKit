@@ -52,6 +52,8 @@ public:
     WEBCORE_EXPORT int bindBlob(int index, std::span<const uint8_t> bytes NOESCAPE);
     WEBCORE_EXPORT int bindBlob(int index, const String&);
     WEBCORE_EXPORT int bindText(int index, StringView);
+    // bindText for Swift, which cannot form a StringView safely.
+    int bindString(int index, const String& text) { return bindText(index, text); }
     WEBCORE_EXPORT int bindInt(int index, int);
     WEBCORE_EXPORT int bindInt64(int index, int64_t);
     WEBCORE_EXPORT int bindDouble(int index, double);
