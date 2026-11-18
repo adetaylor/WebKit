@@ -48,7 +48,8 @@ public:
     template<typename T, typename... Args>
     bool bind(T, Args&&...);
 
-    WEBCORE_EXPORT int bindBlob(int index, std::span<const uint8_t>);
+    // The bytes are copied (SQLITE_TRANSIENT) before the call returns.
+    WEBCORE_EXPORT int bindBlob(int index, std::span<const uint8_t> bytes NOESCAPE);
     WEBCORE_EXPORT int bindBlob(int index, const String&);
     WEBCORE_EXPORT int bindText(int index, StringView);
     WEBCORE_EXPORT int bindInt(int index, int);
