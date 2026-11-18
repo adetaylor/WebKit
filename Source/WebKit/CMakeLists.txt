@@ -1851,6 +1851,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBuffer.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBufferSet.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGL.swift

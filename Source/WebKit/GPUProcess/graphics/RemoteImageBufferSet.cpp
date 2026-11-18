@@ -26,6 +26,8 @@
 #include "config.h"
 #include "RemoteImageBufferSet.h"
 
+#if ENABLE(GPU_PROCESS) && (!ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING))
+
 #include "ImageBufferBackendHandleSharing.h"
 #include "Logging.h"
 #include "RemoteGraphicsContextIdentifier.h"
@@ -37,8 +39,6 @@
 #include <WebCore/ImageBuffer.h>
 #include <WebCore/NullImageBufferBackend.h>
 #include <wtf/Borrow.h>
-
-#if ENABLE(GPU_PROCESS)
 
 #define MESSAGE_CHECK(assertion, message) MESSAGE_CHECK_WITH_MESSAGE_BASE(assertion, &m_renderingBackend->streamConnection(), message)
 

@@ -136,6 +136,7 @@
 #include "RemoteCGRendererMessages.h"
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferMessages.h"
+#include "RemoteImageBufferSet.h"
 #include "RemoteRenderingBackend.h"
 #endif
 

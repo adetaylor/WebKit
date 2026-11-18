@@ -28,13 +28,162 @@
 
 #if ENABLE(GPU_PROCESS)
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+
+#include "ImageBufferBackendHandleSharing.h"
+#include "SwiftCoding.h"
+#include "WebKit-Swift.h"
+#include <WebCore/DisplayListRecorderImpl.h>
+#include <WebCore/GraphicsLayerContentsDisplayDelegate.h>
+#include <WebCore/PixelBuffer.h>
+#include <WebCore/PlatformCALayerDelegatedContents.h>
+
+namespace WebKit {
+using namespace WebCore;
+
+// What the one placeholder of the WebCore display list that a DisplayList image buffer's context records keeps: the buffer's
+// drawing, recorded in Swift (RemoteCGRendererRecordedDrawing, RemoteImageBuffer.swift), which it draws into the context the
+// display list is drawn into, if that context can lend its renderer.
+class RemoteCGRendererRecordedDrawingHandle final : public ThreadSafeRefCounted<RemoteCGRendererRecordedDrawingHandle> {
+public:
+    static Ref<RemoteCGRendererRecordedDrawingHandle> adopt(uintptr_t drawing)
+    {
+        return adoptRef(*new RemoteCGRendererRecordedDrawingHandle(drawing));
+    }
+
+    ~RemoteCGRendererRecordedDrawingHandle()
+    {
+        RemoteCGRendererRecordedDrawing::releaseDrawing(m_drawing);
+    }
+
+    void draw(GraphicsContext& context) const
+    {
+        if (!context.canLendSwiftRenderer())
+            return;
+        GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
+            RemoteCGRendererRecordedDrawing::draw(m_drawing, state);
+        });
+    }
+
+private:
+    explicit RemoteCGRendererRecordedDrawingHandle(uintptr_t drawing)
+        : m_drawing(drawing)
+    {
+        RELEASE_ASSERT(drawing);
+    }
+
+    const uintptr_t m_drawing;
+};
+
+void RemoteImageBufferGraphicsContext::startListeningForIPC()
+{
+    // The image buffer's Swift receiver records the drawing of one whose drawing is recorded (installRecordedDrawing()).
+    if (!m_isSwiftRendererLender) {
+        RELEASE_ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
+        return;
+    }
+    Ref target = m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get();
+    Ref forwarder = RemoteCGRenderer::createMessageReceiver(m_renderingBackend.ptr(), target.ptr());
+    forwarder->setStateLender(*this);
+    m_renderingBackend->streamConnection().startReceivingMessages(forwarder, IPC::ReceiverName::RemoteCGRenderer, m_identifier.toUInt64());
+}
+
+void RemoteImageBufferGraphicsContext::installRecordedDrawing(uintptr_t drawing)
+{
+    ASSERT(m_imageBuffer->renderingMode() == RenderingMode::DisplayList);
+    Ref handle = RemoteCGRendererRecordedDrawingHandle::adopt(drawing);
+    static_cast<DisplayList::RecorderImpl&>(m_context).drawPlaceholder([handle = WTF::move(handle)](GraphicsContext& context) {
+        handle->draw(context);
+    });
+}
+
+// Swift can only read the shared memory's and the pixel buffer's bytes as unsafe spans (both are ref-counted).
+RemoteImageBufferPixelsResult RemoteImageBufferGraphicsContext::getPixelBuffer(IPC::CxxDecodedArgument<PixelBufferFormat>& outputFormat, int x, int y, int width, int height)
+{
+    RefPtr memory = m_renderingBackend->sharedMemoryForGetPixelBuffer();
+    if (!memory)
+        return RemoteImageBufferPixelsResult::NoSharedMemory;
+    auto destinationFormat = outputFormat.take();
+    RELEASE_ASSERT(destinationFormat);
+    if (!ImageBuffer::supportedPixelBufferFormats(destinationFormat->pixelFormat))
+        return RemoteImageBufferPixelsResult::UnsupportedFormat;
+    if (RefPtr pixelBuffer = m_imageBuffer->getPixelBuffer(*destinationFormat, { { x, y }, { width, height } })) {
+        if (pixelBuffer->bytes().size() > memory->size())
+            return RemoteImageBufferPixelsResult::SharedMemoryTooSmall;
+        memcpySpan(memory->mutableSpan(), pixelBuffer->bytes());
+    } else
+        zeroSpan(memory->mutableSpan());
+    return RemoteImageBufferPixelsResult::Copied;
+}
+
+// Swift can't take a SharedMemory handle out of its holder: the handle is move-only.
+bool RemoteImageBufferGraphicsContext::setPixelBufferSharedMemory(IPC::CxxDecodedArgument<SharedMemory::Handle>& handle)
+{
+    m_renderingBackend->setSharedMemoryForGetPixelBuffer(nullptr);
+    auto memoryHandle = handle.take();
+    RELEASE_ASSERT(memoryHandle);
+    RefPtr sharedMemory = SharedMemory::map(WTF::move(*memoryHandle), SharedMemory::Protection::ReadWrite);
+    if (!sharedMemory)
+        return false;
+    m_renderingBackend->setSharedMemoryForGetPixelBuffer(WTF::move(sharedMemory));
+    return true;
+}
+
+// Swift can't pass the image to addCachedNativeImage(), which takes it as an rvalue reference.
+bool RemoteImageBufferGraphicsContext::copyNativeImage(uint64_t imageIdentifier)
+{
+    RefPtr image = m_imageBuffer->copyNativeImage();
+    // The buffer may have failed to allocate, or the copy may fail.
+    if (!image)
+        image = RemoteRenderingBackend::createPlaceholderNativeImage();
+    if (!image)
+        return false;
+    return m_renderingBackend->addCachedNativeImage(image.releaseNonNull(), RenderingResourceIdentifier { imageIdentifier });
+}
+
+// The handle is a C++ variant, which only its C++ argument coder encodes.
+void RemoteImageBufferGraphicsContext::encodeBackendHandle(IPC::SwiftReplyEncoder& encoder)
+{
+    std::optional<ImageBufferBackendHandle> handle;
+    if (auto* sharing = m_imageBuffer->toBackendSharing())
+        handle = downcast<ImageBufferBackendHandleSharing>(*sharing).createBackendHandle();
+    encoder.encodeWithArgumentCoder(WTF::move(handle));
+}
+
+// The delegated contents hold a move-only send right, which only C++ can take apart and encode.
+void RemoteImageBufferGraphicsContext::encodeDisplayBuffer(IPC::SwiftReplyEncoder& encoder)
+{
+    RefPtr displayDelegate = m_displayDelegate;
+    if (!displayDelegate) {
+        displayDelegate = m_imageBuffer->layerContentsDisplayDelegate();
+        m_displayDelegate = displayDelegate;
+    } else
+        m_imageBuffer->prepareForDisplay();
+    auto contents = displayDelegate ? displayDelegate->delegatedContents() : std::nullopt;
+    if (!contents) {
+        m_displayBufferFence = nullptr;
+        encoder.encodeWithArgumentCoder(MachSendRight { });
+        return;
+    }
+    m_displayBufferFence = WTF::move(contents->finishedFence);
+    encoder.encodeWithArgumentCoder(WTF::move(contents->surface));
+}
+
+void RemoteImageBufferGraphicsContext::waitForDisplayBuffer()
+{
+    if (RefPtr fence = std::exchange(m_displayBufferFence, nullptr))
+        fence->waitFor(WebCore::delegatedContentsFinishedTimeout);
+}
+
+} // namespace WebKit
+
+#else
+
 #include "Logging.h"
 #include "RemoteRenderingBackend.h"
 #include <WebCore/ImageBuffer.h>
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 #include "RemoteGraphicsContextMessages.h"
-#endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "HandleMessage.h"
@@ -116,22 +265,12 @@ Ref<RemoteImageBufferGraphicsContext> RemoteImageBufferGraphicsContext::create(I
     return instance;
 }
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
     : RemoteGraphicsContext(imageBuffer.context(), renderingBackend)
     , m_imageBuffer(imageBuffer)
     , m_identifier(identifier)
 {
 }
-#else
-RemoteImageBufferGraphicsContext::RemoteImageBufferGraphicsContext(ImageBuffer& imageBuffer, RemoteGraphicsContextIdentifier identifier, RemoteRenderingBackend& renderingBackend)
-    : m_renderingBackend(renderingBackend)
-    , m_context(imageBuffer.context())
-    , m_imageBuffer(imageBuffer)
-    , m_identifier(identifier)
-{
-}
-#endif
 
 RemoteImageBufferGraphicsContext::~RemoteImageBufferGraphicsContext()
 {
@@ -270,12 +409,6 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     streamConnection.startReceivingMessages(*this, Messages::RemoteGraphicsContext::messageReceiverName(), m_identifier.toUInt64());
 #else
-#if !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
-    // The context of an image buffer that failed to allocate (NullImageBufferBackend) draws nothing and can't lend a
-    // renderer: its drawing is drawn into an image buffer of its own, which nothing shows.
-    if (!imageBufferContext().canLendSwiftRenderer() && m_imageBuffer->renderingMode() != RenderingMode::DisplayList)
-        m_discardedDrawingTarget = ImageBuffer::create({ 1, 1 }, RenderingMode::Unaccelerated, RenderingPurpose::Unspecified, 1, ColorSpace::SRGB(), PixelFormat::BGRA8);
-#endif
     if (drawingContext().canLendSwiftRenderer()) {
         if (!m_isSwiftRendererLender) {
             cgContext().addSwiftRendererLender();
@@ -290,11 +423,7 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
     // The image buffer's Swift receiver records the drawing of one whose drawing is recorded (installRecordedDrawing()).
     if (m_imageBuffer->renderingMode() == RenderingMode::DisplayList)
         return;
-#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     streamConnection.startReceivingMessages(*this, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
-#else
-    RELEASE_ASSERT_NOT_REACHED();
-#endif
 #endif
 }
 
@@ -568,7 +697,6 @@ void RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransfo
 
 #endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 void RemoteImageBufferGraphicsContext::drawImageBuffer(RenderingResourceIdentifier imageBufferIdentifier, const FloatRect& destinationRect, const FloatRect& srcRect, RasterDrawingOptions options)
 {
     RefPtr sourceImage = imageBuffer(imageBufferIdentifier);
@@ -583,10 +711,11 @@ void RemoteImageBufferGraphicsContext::drawImageBuffer(RenderingResourceIdentifi
     if (selfCopy)
         m_imageBuffer->flushDrawingContext();
 }
-#endif
 
 } // namespace WebKit
 
 #undef MESSAGE_CHECK
+
+#endif // ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && !ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 
 #endif // ENABLE(GPU_PROCESS)

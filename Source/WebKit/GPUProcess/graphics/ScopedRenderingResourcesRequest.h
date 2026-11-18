@@ -52,7 +52,7 @@ public:
     bool isRequested() const { return m_requested; }
     void reset()
     {
-        if (!m_requested)
+        if (!std::exchange(m_requested, false))
             return;
         ASSERT(s_requests);
         --s_requests;
