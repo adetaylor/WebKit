@@ -24,8 +24,6 @@
 import Foundation
 import Metal
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The pipeline's unique id and workgroup size.

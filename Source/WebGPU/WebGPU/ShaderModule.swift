@@ -24,7 +24,6 @@
 import Foundation
 import Metal
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.WGSLAPI
 @_spiOnly import WebGPU_Private.WebGPUCpp
 

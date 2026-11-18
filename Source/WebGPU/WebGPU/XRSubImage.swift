@@ -23,7 +23,6 @@
 
 private import CxxStdlib
 import Metal
-@_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The color and depth textures of a device's XR sub-image, per reusable texture index, kept in step with the

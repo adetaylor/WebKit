@@ -23,9 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindableResource
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.Device
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -40,8 +37,8 @@ struct RenderPassEncoderParameters {
 
 // MARK: Indirect draws: the only arguments Metal's indirect draws take are clamped ones
 
-private let drawIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments>.size
-private let drawIndexedIndirectScratchSize = MemoryLayout<WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments>.size
+private let drawIndirectScratchSize = MemoryLayout<WebKitMTLDrawPrimitivesIndirectArguments>.size
+private let drawIndexedIndirectScratchSize = MemoryLayout<WebKitMTLDrawIndexedPrimitivesIndirectArguments>.size
 
 // Writes the arguments, with lostOrOOBRead clear, into the buffer's contents at that offset, which must hold them.
 private func writeDrawIndexedIndirectArguments(
@@ -53,7 +50,7 @@ private func writeDrawIndexedIndirectArguments(
     _ baseVertex: Int32,
     _ baseInstance: UInt32
 ) {
-    let arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments(
+    let arguments = WebKitMTLDrawIndexedPrimitivesIndirectArguments(
         args: MTLDrawIndexedPrimitivesIndirectArguments(
             indexCount: indexCount,
             instanceCount: instanceCount,
@@ -82,7 +79,7 @@ private func lostOrOOBRead<Arguments>(_ buffer: (any MTLBuffer)?, _ offset: UInt
 }
 
 private func drawIndirectArgumentsLostOrOOBRead(_ scratch: any MTLBuffer, _ offset: UInt64) -> Bool {
-    typealias Arguments = WebGPU.Metal.WebKitMTLDrawPrimitivesIndirectArguments
+    typealias Arguments = WebKitMTLDrawPrimitivesIndirectArguments
     guard let flagOffset = MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead) else {
         preconditionFailure("lostOrOOBRead is a stored property")
     }
@@ -91,7 +88,7 @@ private func drawIndirectArgumentsLostOrOOBRead(_ scratch: any MTLBuffer, _ offs
 }
 
 private func indexedIndirectArgumentsLostOrOOBRead(_ indexedIndirectBuffer: (any MTLBuffer)?, _ offset: UInt64) -> UInt32? {
-    typealias Arguments = WebGPU.Metal.WebKitMTLDrawIndexedPrimitivesIndirectArguments
+    typealias Arguments = WebKitMTLDrawIndexedPrimitivesIndirectArguments
     guard let flagOffset = MemoryLayout<Arguments>.offset(of: \.lostOrOOBRead) else {
         preconditionFailure("lostOrOOBRead is a stored property")
     }
@@ -1198,7 +1195,7 @@ public final class RenderPassEncoderImpl: GPUObjectReference {
 
     private func setVertexBytes(
         _ commandEncoder: (any MTLRenderCommandEncoder)?,
-        _ indexData: WebGPU.Metal.IndexData,
+        _ indexData: IndexData,
         _ slot: HelperVertexSlot
     ) {
         withBytes(of: indexData) { commandEncoder?.setVertexBytes($0, index: Int(slot.rawValue)) }

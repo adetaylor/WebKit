@@ -22,8 +22,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import Metal
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.CxxBridging
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 @_spi(WebKitGPU)

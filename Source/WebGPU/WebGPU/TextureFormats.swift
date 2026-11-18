@@ -23,8 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.Device
-import WebGPU_Private.WebGPU
 import WebGPU_Private.WebGPUCpp
 
 // The texture format tables and the other format-only rules of https://gpuweb.github.io/gpuweb/#texture-formats.
@@ -44,26 +42,26 @@ func textureUsageContainsAll(_ usage: UInt8, _ other: UInt8) -> Bool {
     usage & other == other
 }
 
-// toAPI(OptionSet<WebGPU::TextureUsage>), for error messages.
+// The API's GPUTextureUsage bits of `usage`, for error messages.
 func apiTextureUsage(_ usage: UInt8) -> UInt64 {
     var result: UInt64 = 0
     if textureUsageContains(usage, .CopySource) {
-        result |= UInt64(WGPUTextureUsage_CopySrc)
+        result |= 0x1
     }
     if textureUsageContains(usage, .CopyDestination) {
-        result |= UInt64(WGPUTextureUsage_CopyDst)
+        result |= 0x2
     }
     if textureUsageContains(usage, .TextureBinding) {
-        result |= UInt64(WGPUTextureUsage_TextureBinding)
+        result |= 0x4
     }
     if textureUsageContains(usage, .StorageBinding) {
-        result |= UInt64(WGPUTextureUsage_StorageBinding)
+        result |= 0x8
     }
     if textureUsageContains(usage, .RenderAttachment) {
-        result |= UInt64(WGPUTextureUsage_RenderAttachment)
+        result |= 0x10
     }
     if textureUsageContains(usage, .Transient) {
-        result |= UInt64(WGPUTextureUsage_TransientAttachment)
+        result |= 0x20
     }
     return result
 }
@@ -3045,7 +3043,10 @@ private struct OverflowRecordingUInt64 {
     }
 }
 
-// A missing bytesPerRow or rowsPerImage is WGPU_COPY_STRIDE_UNDEFINED, which the checks and their messages use.
+// The bytesPerRow or rowsPerImage of a texel copy that has none.
+let copyStrideUndefined = UInt32.max
+
+// A missing bytesPerRow or rowsPerImage is copyStrideUndefined, which the checks and their messages use.
 func errorValidatingLinearTextureData(
     _ layout: WebGPU.TexelCopyBufferLayout,
     _ byteSize: UInt64,
@@ -3059,10 +3060,9 @@ func errorValidatingLinearTextureData(
     let blockWidth = texelBlockWidth(format)
     let blockHeight = texelBlockHeight(format)
     let blockSize = texelBlockSize(format)
-    let strideUndefined = UInt32(WGPU_COPY_STRIDE_UNDEFINED)
     let offset = layout.offset
-    let bytesPerRow = Optional(fromCxx: layout.bytesPerRow) ?? strideUndefined
-    let rowsPerImage = Optional(fromCxx: layout.rowsPerImage) ?? strideUndefined
+    let bytesPerRow = Optional(fromCxx: layout.bytesPerRow) ?? copyStrideUndefined
+    let rowsPerImage = Optional(fromCxx: layout.rowsPerImage) ?? copyStrideUndefined
 
     let widthInBlocks = copyExtent.width / blockWidth
     if copyExtent.width % blockWidth != 0 {
@@ -3080,26 +3080,26 @@ func errorValidatingLinearTextureData(
     }
 
     if heightInBlocks > 1 {
-        if bytesPerRow == strideUndefined {
+        if bytesPerRow == copyStrideUndefined {
             return errorString("bytesPerRow is undefined, but heightInBlocks(\(heightInBlocks)) > 1, this is not allowed")
         }
     }
 
     if copyExtent.depthOrArrayLayers > 1 {
-        if bytesPerRow == strideUndefined || rowsPerImage == strideUndefined {
+        if bytesPerRow == copyStrideUndefined || rowsPerImage == copyStrideUndefined {
             return errorString(
                 "depthOrArrayLayers(\(copyExtent.depthOrArrayLayers)) > 1 but bytesPerRow(\(bytesPerRow)) or rowsPerImage(\(rowsPerImage)) is undefined, this is not allowed"
             )
         }
     }
 
-    if bytesPerRow != strideUndefined {
+    if bytesPerRow != copyStrideUndefined {
         if UInt64(bytesPerRow) < bytesInLastRow {
             return errorString("bytesPerRow(\(bytesPerRow)) is less than bytesInLastRow(\(bytesInLastRow))")
         }
     }
 
-    if rowsPerImage != strideUndefined {
+    if rowsPerImage != copyStrideUndefined {
         if rowsPerImage < heightInBlocks {
             return errorString("rowsPerImage(\(rowsPerImage)) is less than heightInBlocks(\(heightInBlocks))")
         }

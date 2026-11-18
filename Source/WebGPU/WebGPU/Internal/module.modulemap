@@ -22,33 +22,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 
 module WebGPU_Internal [system] {
-    explicit module BindableResource {
-        header "../BindableResource.h"
-        export *
-    }
-
-    explicit module CommandEncoder {
-        header "../CommandEncoder.h"
-        export *
-    }
-
-    explicit module CxxBridging {
-        header "../CxxBridging.h"
-        export *
-    }
-
-    explicit module Device {
-        header "../Device.h"
-        export *
-    }
-
     explicit module MetalSPI {
         header "../MetalSPI.h"
-        export *
-    }
-
-    explicit module Queue {
-        header "../Queue.h"
         export *
     }
 

@@ -100,7 +100,7 @@ public enum InterpolationSampling: UInt8, Hashable, Sendable {
     case sample
 }
 
-/// WGSL::ShaderStage, in the C++ case order; raw values are the WGPUShaderStage bits.
+/// WGSL::ShaderStage, in the C++ case order; raw values are the GPUShaderStage bits.
 public enum ShaderStage: UInt8, Hashable, Sendable {
     case compute = 4
     case fragment = 2
@@ -109,10 +109,10 @@ public enum ShaderStage: UInt8, Hashable, Sendable {
 
 /// A set of shader stages: a binding's visibility.
 public struct ShaderStages: OptionSet, Hashable, Sendable {
-    /// The WGPUShaderStage bits.
+    /// The GPUShaderStage bits.
     public let rawValue: UInt8
 
-    /// Wraps WGPUShaderStage bits.
+    /// Wraps GPUShaderStage bits.
     public init(rawValue: UInt8) { self.rawValue = rawValue }
 
     /// The set containing only `stage`.

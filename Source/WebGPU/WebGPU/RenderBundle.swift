@@ -23,7 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // One per GPURenderBundle, built by RenderBundleEncoderImpl.finish(). Owns the ICBs (ICB mode), the encoder (replay

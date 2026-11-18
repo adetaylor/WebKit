@@ -76,7 +76,7 @@ func copyPixelBufferPlane(_ texture: any MTLTexture, _ pixelBuffer: CVPixelBuffe
 }
 
 // ExternalTextureImport.swift spells HAVE(COREVIDEO_METAL_SUPPORT) out, as this does, because Swift cannot evaluate the
-// CoreVideo macro it expands to: Queue.h checks that the two agree.
+// CoreVideo macro it expands to: MetalSPI.h checks that the two agree.
 #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
 func makeTextureCache(_ device: any MTLDevice) -> CVMetalTextureCache? {
     var cache: CVMetalTextureCache?

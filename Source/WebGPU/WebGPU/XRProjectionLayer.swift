@@ -29,7 +29,6 @@ import Metal
 #if USE_APPLE_INTERNAL_SDK && HAVE_COMPOSITOR_SERVICES && !targetEnvironment(simulator)
 @_implementationOnly import WebGPU_Internal.MetalSPI
 #endif
-@_implementationOnly import WebGPU_Internal.Queue
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The descriptor values of a projection layer.

@@ -23,8 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // The render stages of a bind group's compute resources.

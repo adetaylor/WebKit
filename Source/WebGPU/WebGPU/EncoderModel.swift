@@ -43,8 +43,6 @@
 
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.BindableResource
-@_implementationOnly import WebGPU_Internal.CxxBridging
 import WebGPU_Private.WebGPUCpp
 
 // MARK: WTF::HashTable replica
@@ -1247,7 +1245,7 @@ struct BundleIndexValidation {
     let indexType: MTLIndexType
     let indexBufferOffsetInBytes: UInt
     /// The struct the ICB clamp shader reads; its minVertexCount is `vertices.shaderValue`.
-    let indexData: WebGPU.Metal.IndexData
+    let indexData: IndexData
     let vertices: CountBound
 }
 

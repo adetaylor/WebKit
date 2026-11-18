@@ -25,8 +25,6 @@ import Foundation
 import Metal
 import Synchronization
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.MetalSPI
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
