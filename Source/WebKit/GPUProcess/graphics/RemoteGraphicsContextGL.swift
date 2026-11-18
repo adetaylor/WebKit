@@ -310,6 +310,19 @@ private final class IdleSpareDrawingBufferReleaseTimer: Sendable {
     }
 }
 
+// The signal that the display is done with a display buffer, which the context gives once its GPU work is done.
+private final class FinishedSignal: Sendable {
+    private let semaphore: IPCTypes.Semaphore
+
+    init(_ semaphore: consuming IPCTypes.Semaphore) {
+        self.semaphore = semaphore
+    }
+
+    func signal() {
+        semaphore.signal()
+    }
+}
+
 // The requests of the contexts for the GPU process's WebGL rendering resources, which it frees a second after the last
 // request ends, on the WebGL work queue.
 private struct WebGLRenderingResourcesRequests {
@@ -369,9 +382,36 @@ extension WebKit.RemoteGraphicsContextGLClient {
     @cxx
     @implementation
     func startReceiver() {
+        let shell = context()
+        let attributes = shell.contextAttributes()
+        let knownActiveExtensions = shell.knownActiveExtensions()
+        var initializationState = WebKit.RemoteGraphicsContextGLInitializationState()
+        initializationState.attributes = attributes
+        initializationState.knownActiveExtensions = UInt64(knownActiveExtensions.toRaw())
+        initializationState.requestableExtensions = UInt64(shell.requestableExtensions().toRaw())
+        initializationState.maxCombinedTextureImageUnits = shell.maxCombinedTextureImageUnits()
+        initializationState.maxVertexAttribs = shell.maxVertexAttribs()
+        initializationState.maxTextureSize = shell.maxTextureSize()
+        initializationState.maxCubeMapTextureSize = shell.maxCubeMapTextureSize()
+        initializationState.maxRenderbufferSize = shell.maxRenderbufferSize()
+        initializationState.maxViewportDims = shell.maxViewportDims()
+        initializationState.maxDrawingBufferSize = shell.maxDrawingBufferSize()
+        // MAX_SAMPLES is core in ES3 and otherwise comes from GL_ANGLE_framebuffer_multisample.
+        // Querying it without either would just add INVALID_ENUM to the error queue.
+        if attributes.isWebGL2 || knownActiveExtensions.contains(.ANGLE_framebuffer_multisample) {
+            initializationState.maxSamples = shell.maxSamples()
+        }
+        if attributes.isWebGL2 {
+            initializationState.maxTransformFeedbackSeparateAttribs = shell.maxTransformFeedbackSeparateAttribs()
+            initializationState.maxUniformBufferBindings = shell.maxUniformBufferBindings()
+            initializationState.uniformBufferOffsetAlignment = shell.uniformBufferOffsetAlignment()
+            initializationState.max3DTextureSize = shell.max3DTextureSize()
+            initializationState.maxArrayTextureLayers = shell.maxArrayTextureLayers()
+        }
+        sendWasCreated(&initializationState)
         // Safety: the receiver keeps this, and so the context whose islandShell() this is, and its shell, until it stops
         // receiving messages, and uses the island only for them.
-        let island = unsafe GLShell.fromReference(context().islandShell()).context!
+        let island = unsafe GLShell.fromReference(shell.islandShell()).context!
         RemoteGraphicsContextGL(island: island, client: self).startReceiving(on: owner())
     }
 }
@@ -445,9 +485,12 @@ extension RemoteGraphicsContextGL {
     // The finished fence is signalled once the context's GPU work for the display buffer is done.
     func prepareForDisplay(finishedFence: consuming IPCTypes.Semaphore, reply: consuming RemoteGraphicsContextGLPrepareForDisplayReply) {
         let context = self.context
-        let finishedFencePort = finishedFence.port
+        let finishedSignal = FinishedSignal(finishedFence)
+        context.prepareForDisplayWithFinishedSignal(WebKit.RemoteGraphicsContextGLTask {
+            finishedSignal.signal()
+        })
         reply.send { encoder in
-            WebKit.prepareForDisplay(context, finishedFencePort, encoder)
+            WebKit.encodeDisplayBuffer(context, encoder)
         }
         didDisplaySinceIdleSpareDrawingBufferReleaseScheduled = true
         if context.hasSpareDrawingBuffersInUse() {

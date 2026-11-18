@@ -34,7 +34,6 @@
 #if PLATFORM(COCOA)
 #include "GPUConnectionToWebProcess.h"
 #include "GPUProcess.h"
-#include "IPCSemaphore.h"
 #include "RemoteGraphicsContextGLInitializationState.h"
 #include "RemoteGraphicsContextGLProxyMessages.h"
 #include "RemoteRenderingBackend.h"
@@ -98,34 +97,13 @@ void RemoteGraphicsContextGLClient::initialize(GraphicsContextGLAttributes&& att
         return;
     }
     context->setClient(this);
-    auto contextAttributes = context->contextAttributes();
-    auto knownActiveExtensions = context->knownActiveExtensions();
-    RemoteGraphicsContextGLInitializationState initializationState {
-        .attributes = contextAttributes,
-        .knownActiveExtensions = knownActiveExtensions.toRaw(),
-        .requestableExtensions = context->requestableExtensions().toRaw(),
-        .estimatedMemoryCost = context->estimatedMemoryCost().transform([](size_t cost) { return static_cast<uint64_t>(cost); }),
-        .maxCombinedTextureImageUnits = context->maxCombinedTextureImageUnits(),
-        .maxVertexAttribs = context->maxVertexAttribs(),
-        .maxTextureSize = context->maxTextureSize(),
-        .maxCubeMapTextureSize = context->maxCubeMapTextureSize(),
-        .maxRenderbufferSize = context->maxRenderbufferSize(),
-        .maxViewportDims = context->maxViewportDims(),
-        .maxDrawingBufferSize = context->maxDrawingBufferSize(),
-    };
-    // MAX_SAMPLES is core in ES3 and otherwise comes from GL_ANGLE_framebuffer_multisample.
-    // Querying it without either would just add INVALID_ENUM to the error queue.
-    if (contextAttributes.isWebGL2 || knownActiveExtensions.contains(GCGLExtension::ANGLE_framebuffer_multisample))
-        initializationState.maxSamples = context->maxSamples();
-    if (contextAttributes.isWebGL2) {
-        initializationState.maxTransformFeedbackSeparateAttribs = context->maxTransformFeedbackSeparateAttribs();
-        initializationState.maxUniformBufferBindings = context->maxUniformBufferBindings();
-        initializationState.uniformBufferOffsetAlignment = context->uniformBufferOffsetAlignment();
-        initializationState.max3DTextureSize = context->max3DTextureSize();
-        initializationState.maxArrayTextureLayers = context->maxArrayTextureLayers();
-    }
-    m_owner->connection().send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }), m_identifier);
     startReceiver();
+}
+
+void RemoteGraphicsContextGLClient::sendWasCreated(RemoteGraphicsContextGLInitializationState& initializationState)
+{
+    initializationState.estimatedMemoryCost = m_context->estimatedMemoryCost().transform([](size_t cost) { return static_cast<uint64_t>(cost); });
+    m_owner->connection().send(Messages::RemoteGraphicsContextGLProxy::WasCreated({ initializationState }), m_identifier);
 }
 
 void RemoteGraphicsContextGLClient::forceContextLost()
@@ -152,11 +130,8 @@ void releaseWebGLThreadResources()
     });
 }
 
-void prepareForDisplay(GraphicsContextGLCocoa& context, mach_port_t finishedSemaphore, IPC::SwiftReplyEncoder& encoder)
+void encodeDisplayBuffer(GraphicsContextGLCocoa& context, IPC::SwiftReplyEncoder& encoder)
 {
-    context.prepareForDisplayWithFinishedSignal([finishedSemaphore = IPC::Semaphore { MachSendRight::create(finishedSemaphore) }]() mutable {
-        finishedSemaphore.signal();
-    });
     MachSendRight sendRight;
     if (auto* surface = context.displayBufferSurface())
         sendRight = surface->createSendRight();

@@ -41,6 +41,7 @@ IPC::StreamConnectionWorkQueue& remoteGraphicsContextGLStreamWorkQueueSingleton(
 
 #if PLATFORM(COCOA)
 
+#include "RemoteGraphicsContextGLInitializationState.h"
 #include "RemoteNativeImageIdentifier.h"
 #include "RemoteVideoFrameIdentifier.h"
 #include "RemoteVideoFrameProxyProperties.h"
@@ -69,12 +70,14 @@ public:
     static void create(IPC::SwiftReceiverOwner&, GPUConnectionToWebProcess&, RemoteRenderingBackend&, uint64_t identifier, const WebCore::GraphicsContextGLAttributes&);
     ~RemoteGraphicsContextGLClient();
 
-    // Implemented in Swift (RemoteGraphicsContextGL.swift): makes the receiver of the context's messages and starts it.
+    // Implemented in Swift (RemoteGraphicsContextGL.swift): tells the web process that the context was created, and makes
+    // the receiver of its messages and starts it.
     void startReceiver();
     // Implemented in Swift: the requests of the contexts for the WebGL rendering resources, which the GPU process frees a
     // second after the last request ends. A client requests them from its creation, on the main thread, to its end.
     static void acquireWebGLRenderingResources();
     static void releaseWebGLRenderingResources();
+    void sendWasCreated(RemoteGraphicsContextGLInitializationState&);
 
     IPC::SwiftReceiverOwner& owner() const SWIFT_RETURNS_UNRETAINED { return m_owner.get(); }
     uint64_t identifier() const { return m_identifier; }
@@ -113,10 +116,10 @@ private:
     bool m_memoryCostChanged { false };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
+using RemoteGraphicsContextGLTask = Function<void()>;
 // After the last context goes, on the work queue.
 void releaseWebGLThreadResources();
-// Signals the semaphore, a right of its own to which this takes, once the context's GPU work for the display buffer is done.
-void prepareForDisplay(WebCore::GraphicsContextGLCocoa&, mach_port_t finishedSemaphore, IPC::SwiftReplyEncoder&);
+void encodeDisplayBuffer(WebCore::GraphicsContextGLCocoa&, IPC::SwiftReplyEncoder&);
 bool copyNativeImage(WebCore::GraphicsContextGLCocoa&, RemoteSharedResourceCache&, WebCore::GraphicsContextGLSurfaceBuffer, RemoteNativeImageReference);
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
 std::optional<RemoteVideoFrameProxyProperties> surfaceBufferToVideoFrame(WebCore::GraphicsContextGLCocoa&, RemoteVideoFrameObjectHeap&, WebCore::GraphicsContextGLSurfaceBuffer, RemoteVideoFrameReference);
