@@ -1054,6 +1054,7 @@
 				WebCore/URLParserTextEncoding.cpp,
 				WebCore/UserAgentStringParser.cpp,
 				WebCore/VP9UtilitiesTests.cpp,
+				WebCore/WebAuthnBench.cpp,
 				WebCore/WebCodecsBufferTransfer.cpp,
 				WebCore/WebGPUFramePacer.cpp,
 				WebCore/WebTransportHeaderValidation.cpp,
