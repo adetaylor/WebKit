@@ -100,7 +100,7 @@ WTF_ALLOW_UNSAFE_BUFFER_USAGE_END
 float ScrollPhysicsClient::rubberBandHyperbolicCoefficient(const PlatformWheelEvent& wheelEvent)
 {
 #if HAVE(APPKIT_GESTURES_SUPPORT)
-    return WebCore::rubberBandHyperbolicCoefficient(wheelEvent);
+    return wheelEvent.inputSource() == MouseEventInputSource::Automation ? NSScrollingBehaviorHyperbolicCoefficientTouch : NSScrollingBehaviorHyperbolicCoefficientTrackpad;
 #else
     UNUSED_PARAM(wheelEvent);
     ASSERT_NOT_REACHED();
