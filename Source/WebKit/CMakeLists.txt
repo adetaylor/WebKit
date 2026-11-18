@@ -1047,6 +1047,7 @@ if (APPLE)
         GPUProcess/graphics/RemoteRenderingBackend.cpp
         GPUProcess/graphics/RemoteSnapshotSink.cpp
         Shared/graphics/RemoteSnapshotPrintData.cpp
+        Shared/IPCTesterCGRendererWireForms.cpp
         GPUProcess/graphics/RemoteSnapshotRecorder.cpp
         GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp

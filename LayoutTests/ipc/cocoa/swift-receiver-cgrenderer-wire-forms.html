@@ -1,0 +1,23 @@
+<!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
+<title>Test that the Swift coders of the CG renderer's messages decode and encode what C++ encodes as the web process does.</title>
+<script src="../../resources/testharness.js"></script>
+<script src="../../resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+    if (!window.IPC)
+        return;
+    IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_AddReceiverForSwiftTypesTesting.name, 1000, []);
+    try {
+        const reply = await new Promise(resolve => {
+            IPC.connectionForProcessTarget('UI').sendWithAsyncReply(0, IPC.messages.IPCTesterReceiver_WireFormMismatchesOfCGRendererSwift.name, [], result => resolve(result));
+        });
+        assert_true(!!reply?.arguments, 'The message is handled');
+        assert_equals(reply.arguments[0].value, '', 'Swift decodes and encodes each message as C++ encodes it, and rejects each cut short');
+    } finally {
+        IPC.sendSyncMessage('UI', 0, IPC.messages.IPCTester_RemoveReceiverForSwiftTypesTesting.name, 1000, []);
+    }
+    done();
+}, "The Swift coders of the CG renderer's messages decode and encode what C++ encodes as the web process does, and reject it cut short.");
+</script>
+</body>

@@ -64,6 +64,9 @@ messages -> IPCTesterReceiver {
     DescribeCxxDecodedDrawingFormsSwift([CxxDecoded] enum:bool WebCore::WindRule windRule, [CxxDecoded] WebCore::AffineTransform transform, [CxxDecoded] CGRendererColorValue color) -> (String description) SwiftTypes
     DescribePathSwift(WebCore::Path path) -> (String description) SwiftTypes
     DescribeCxxDecodedPathSwift([CxxDecoded] WebCore::Path path) -> (String description) SwiftTypes
+#if ENABLE(GPU_PROCESS)
+    WireFormMismatchesOfCGRendererSwift() -> (String mismatches) SwiftTypes
+#endif
 #endif
     [EnabledBy=AllowTestOnlyIPC] EnabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes
     [EnabledBy=EncryptedMediaAPIEnabled] DisabledMessageSwift(uint32_t value) -> (uint32_t doubled) SwiftTypes

@@ -756,6 +756,12 @@ inline String ipcTesterCxxDecodedPathDescription(IPC::CxxDecodedArgument<WebCore
     RELEASE_ASSERT(path);
     return ipcTesterDescription(*path);
 }
+
+#if ENABLE(GPU_PROCESS)
+// Where the Swift coders of RemoteCGRenderer's messages don't decode and encode what C++ encodes as the web process does
+// (IPCTesterCGRendererWireForms.cpp): a line for each, empty if none.
+String ipcTesterCGRendererWireFormMismatches();
+#endif
 #endif
 #endif
 
