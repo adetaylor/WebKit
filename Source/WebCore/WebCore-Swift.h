@@ -160,6 +160,7 @@
 #include "ScrollingTreeScrollingNode.h"
 
 #include "platform/audio/AudioDSPBoundaryTypes.h"
+#include "WebAuthnSwiftTypes.h"
 
 #include "BiquadFilterType.h"
 #include "WebCoreSwift-Generated.h"
