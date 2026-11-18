@@ -30,6 +30,7 @@
 #include <string_view>
 
 #include "JSBigIntSwiftDigits.h" // JSCSwift-Swift.h declares the whole module's Swift, JSBigInt's too.
+#include "YarrInterpreterSwiftTypes.h"
 #include "JSCSwift-Swift.h"
 
 namespace JSC {
