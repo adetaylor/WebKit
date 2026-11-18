@@ -34,7 +34,6 @@
 #include "GPUProcessConnectionMessages.h"
 #include "GPUProcessConnectionParameters.h"
 #include "GPUProcessMediaCodecCapabilities.h"
-#include "GPUProcessMessages.h"
 #include "GPUProcessProxyMessages.h"
 #include "LayerHostingContext.h"
 #include "LibWebRTCCodecsProxyMessages.h"
@@ -55,23 +54,14 @@
 #include "RemoteRenderingBackend.h"
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
 #include "RemoteSampleBufferDisplayLayerMessages.h"
-#include "RemoteScrollingCoordinatorTransaction.h"
 #include "RemoteSharedResourceCache.h"
 #include "RemoteSharedResourceCacheMessages.h"
-#include "RotationMonitoringReason.h"
-#include "ScopedRenderingResourcesRequest.h"
-#include "WebErrors.h"
-#include "WebProcessMessages.h"
-#include <WebCore/LogInitialization.h>
 #include <WebCore/MediaPlayer.h>
-#include <WebCore/MockRealtimeMediaSourceCenter.h>
 #include <WebCore/NowPlayingManager.h>
 #include <WebCore/RemoteCommandListener.h>
-#include <WebCore/SharedMemory.h>
 #include <wtf/TZoneMallocInlines.h>
 
 #if PLATFORM(COCOA)
-#include "RemoteLayerTreeDrawingAreaProxyMessages.h"
 #include <WebCore/AVVideoCaptureSource.h>
 #include <WebCore/MediaSessionManagerCocoa.h>
 #include <WebCore/MediaSessionManagerIOS.h>
@@ -86,10 +76,6 @@
 #include "RemoteGraphicsContextGLShims.h"
 #include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
-#endif
-
-#if ENABLE(MEDIA_SOURCE)
-#include <WebCore/MediaStrategy.h>
 #endif
 
 #if USE(AUDIO_SESSION)
@@ -157,6 +143,21 @@
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include "VideoReceiverEndpointManager.h"
 #include <wtf/LazyUniqueRef.h>
+#endif
+
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
+#include "RemoteScrollingCoordinatorTransaction.h"
+#include "RotationMonitoringReason.h"
+#include "WebErrors.h"
+#include "WebProcessMessages.h"
+#include <WebCore/MockRealtimeMediaSourceCenter.h>
+#include <WebCore/SharedMemory.h>
+#include "GPUProcessMessages.h"
+#include "ScopedRenderingResourcesRequest.h"
+#include <WebCore/LogInitialization.h>
+#if ENABLE(MEDIA_SOURCE)
+#include <WebCore/MediaStrategy.h>
+#endif
 #endif
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connection)
@@ -356,7 +357,7 @@ Ref<RemoteSharedResourceCache> GPUConnectionToWebProcess::sharedResourceCache()
 
 uint64_t GPUConnectionToWebProcess::gObjectCountForTesting = 0;
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
+#if (ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
 static bool isRemoteCDMChildReceiverName(IPC::ReceiverName name)
 {
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
@@ -431,7 +432,8 @@ void GPUConnectionToWebProcess::destroyVisibilityPropagationContextForPage(WebPa
 }
 #endif
 
-void GPUConnectionToWebProcess::configureLoggingChannel(const String& channelName, WTFLogChannelState state, WTFLogLevel level)
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
+void GPUConnectionToWebProcess::configureLoggingChannel(String channelName, WTFLogChannelState state, WTFLogLevel level)
 {
 #if !RELEASE_LOG_DISABLED
     if  (auto* channel = WebCore::getLogChannel(channelName)) {
@@ -451,6 +453,7 @@ void GPUConnectionToWebProcess::configureLoggingChannel(const String& channelNam
     UNUSED_PARAM(level);
 #endif
 }
+#endif
 
 #if USE(GRAPHICS_LAYER_WC)
 void GPUConnectionToWebProcess::createWCLayerTreeHost(WebKit::WCLayerTreeHostIdentifier identifier, uint64_t nativeWindow, bool usesOffscreenRendering)
@@ -465,6 +468,7 @@ void GPUConnectionToWebProcess::releaseWCLayerTreeHost(WebKit::WCLayerTreeHostId
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
 {
     if (hasOutstandingRenderingResourceUsage())
@@ -481,6 +485,7 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
 #endif
     return true;
 }
+#endif
 
 Logger& GPUConnectionToWebProcess::logger()
 {
@@ -498,10 +503,12 @@ void GPUConnectionToWebProcess::didReceiveInvalidMessage(IPC::Connection&, IPC::
     terminateWebProcess(messageName);
 }
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::terminateWebProcess(IPC::MessageName invalidMessageName)
 {
     gpuProcess().terminateWebProcess(m_webProcessIdentifier, invalidMessageName);
 }
+#endif
 
 void GPUConnectionToWebProcess::lowMemoryHandler(Critical critical, Synchronous synchronous)
 {
@@ -529,10 +536,12 @@ void GPUConnectionToWebProcess::removeSwiftReceiver(IPC::ReceiverName receiverNa
         m_messageReceiverMap.removeMessageReceiver(receiverName, identifier);
 }
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::tryExitIfUnusedAndUnderMemoryPressure()
 {
     protect(gpuProcess())->tryExitIfUnusedAndUnderMemoryPressure();
 }
+#endif
 
 #if ENABLE(WEB_AUDIO) && PLATFORM(IOS_FAMILY)
 void GPUConnectionToWebProcess::setAudioDestinationSceneIdentifier(RemoteAudioDestinationIdentifier identifier, String&& sceneIdentifier)
@@ -643,12 +652,14 @@ void GPUConnectionToWebProcess::createRenderingBackend(RemoteRenderingBackendIde
     renderingBackend->startListeningForIPC();
 }
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::releaseRenderingBackend(RemoteRenderingBackendIdentifier renderingBackendIdentifier)
 {
     bool found = swiftReleaseRenderingBackend(renderingBackendIdentifier.toUInt64());
     ASSERT_UNUSED(found, found);
     m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
 }
+#endif
 
 Function<void(IPC::MessageName)> GPUConnectionToWebProcess::terminateWebProcessOnInvalidMessage()
 {
@@ -661,7 +672,30 @@ Function<void(IPC::MessageName)> GPUConnectionToWebProcess::terminateWebProcessO
     };
 }
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+// The stream connections of the receivers that Swift makes, for Swift, which can't take their handles.
+RefPtr<IPC::StreamServerConnection> GPUConnectionToWebProcess::tryCreateStreamConnection(IPC::StreamServerConnection::Handle&& connectionHandle)
+{
+    IPC::StreamServerConnectionParameters params;
+#if ENABLE(IPC_TESTING_API)
+    params.ignoreInvalidMessageForTesting = connection().ignoreInvalidMessageForTesting();
+#endif
+    return IPC::StreamServerConnection::tryCreate(WTF::move(connectionHandle), params);
+}
+#endif
+
 #if ENABLE(WEBGL)
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
+{
+    if (!swiftShouldCreateGraphicsContextGL(identifier.toUInt64(), attributes.supportWebGLDraftExtensions, renderingBackendIdentifier.toUInt64()))
+        return;
+    RefPtr streamConnection = tryCreateStreamConnection(WTF::move(connectionHandle));
+    MESSAGE_CHECK(streamConnection);
+    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
+    swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
+}
+#else
 void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier, WebCore::GraphicsContextGLAttributes attributes, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     MESSAGE_CHECK(!isLockdownModeEnabled());
@@ -687,6 +721,7 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), remoteGraphicsContextGLStreamWorkQueueSingleton(), Messages::RemoteGraphicsContextGL::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
     swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
 }
+#endif
 
 #if !PLATFORM(COCOA)
 void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes attributes, uint64_t identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
@@ -696,6 +731,7 @@ void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::Graphi
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier)
 {
     MESSAGE_CHECK(!isLockdownModeEnabled());
@@ -703,11 +739,14 @@ void GPUConnectionToWebProcess::releaseGraphicsContextGL(RemoteGraphicsContextGL
     if (swiftReleaseGraphicsContextGL(identifier.toUInt64()))
         m_gpuProcess->tryExitIfUnusedAndUnderMemoryPressure();
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::releaseGraphicsContextGLForTesting(RemoteGraphicsContextGLIdentifier identifier)
 {
     releaseGraphicsContextGL(identifier);
 }
+#endif
 #endif
 
 #if ENABLE(VIDEO)
@@ -728,6 +767,26 @@ VideoReceiverEndpointManager& GPUConnectionToWebProcess::videoReceiverEndpointMa
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
+{
+    if (!swiftShouldCreateGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64()))
+        return;
+    RefPtr streamConnection = tryCreateStreamConnection(WTF::move(connectionHandle));
+    MESSAGE_CHECK(streamConnection);
+    Ref owner = IPC::SwiftReceiverOwner::create(streamConnection.releaseNonNull(), "WebGPU work queue"_s, Messages::RemoteGPU::messageReceiverName(), identifier.toUInt64(), sharedPreferencesForWebProcessValue(), terminateWebProcessOnInvalidMessage());
+#if HAVE(TASK_IDENTITY_TOKEN)
+    MachSendRight webProcessResourceOwner { webProcessIdentity().taskId() };
+#else
+    MachSendRight webProcessResourceOwner;
+#endif
+#if PLATFORM(COCOA) && ENABLE(VIDEO)
+    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner), videoFrameObjectHeap(), webProcessIdentity(), !!webProcessIdentity());
+#else
+    swiftAddGPU(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, WTF::move(webProcessResourceOwner));
+#endif
+}
+#else
 void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnection::Handle&& connectionHandle)
 {
     MESSAGE_CHECK(m_sharedPreferencesForWebProcess.webGPUEnabled);
@@ -759,14 +818,6 @@ void GPUConnectionToWebProcess::createGPU(WebGPUIdentifier identifier, RemoteRen
 #endif
 }
 
-#if ENABLE(GPU_PROCESS_MODEL)
-void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, uint64_t identifier)
-{
-    // It receives messages from the start, as RemoteGPU does once it has started.
-    RemoteGPUModel::create(*this, renderingBackend, owner, WebGPUIdentifier { identifier });
-}
-#endif
-
 void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
 {
     if (swiftReleaseGPU(identifier.toUInt64())) {
@@ -777,6 +828,17 @@ void GPUConnectionToWebProcess::releaseGPU(WebGPUIdentifier identifier)
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_MODEL)
+void GPUConnectionToWebProcess::createGPUModel(RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner, uint64_t identifier)
+{
+    // It receives messages from the start, as RemoteGPU does once it has started.
+    RemoteGPUModel::create(*this, renderingBackend, owner, WebGPUIdentifier { identifier });
+}
+#endif
+
+#endif
+
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::clearNowPlayingInfo(bool forAllPages, uint64_t pageIdentifier)
 {
     if (forAllPages)
@@ -784,18 +846,50 @@ void GPUConnectionToWebProcess::clearNowPlayingInfo(bool forAllPages, uint64_t p
     else if (PageIdentifier::isValidIdentifier(pageIdentifier))
         m_nowPlayingInfos.remove(PageIdentifier { pageIdentifier });
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::abandonSnapshotFrame(RemoteSnapshotIdentifier snapshotIdentifier, WebCore::FrameIdentifier frameIdentifier)
 {
     // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
     m_gpuProcess->abandonSnapshotFrame(snapshotIdentifier, frameIdentifier);
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::failSnapshot(RemoteSnapshotIdentifier snapshotIdentifier)
 {
     m_gpuProcess->failSnapshot(snapshotIdentifier);
 }
+#endif
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
+{
+    if (pageIdentifier)
+        swiftSetNowPlayingInfo(WTF::move(nowPlayingInfo), pageIdentifier->toUInt64());
+}
+
+void GPUConnectionToWebProcess::reuseNowPlayingArtworkImage(NowPlayingInfo& nowPlayingInfo, const NowPlayingInfo& previousInfo)
+{
+    auto& previousArtwork = previousInfo.metadata.artwork;
+    if (nowPlayingInfo.metadata.artwork && !nowPlayingInfo.metadata.artwork->image && previousArtwork && previousArtwork->src == nowPlayingInfo.metadata.artwork->src)
+        nowPlayingInfo.metadata.artwork->image = previousArtwork->image;
+}
+
+void GPUConnectionToWebProcess::setIsNowPlayingManagerClient(bool isClient)
+{
+    if (isClient)
+        gpuProcess().nowPlayingManager().addClient(*this);
+    else
+        gpuProcess().nowPlayingManager().removeClient(*this);
+}
+
+void GPUConnectionToWebProcess::setNowPlayingManagerInfo(const NowPlayingInfo& info)
+{
+    gpuProcess().nowPlayingManager().setNowPlayingInfo(info);
+}
+#else
 void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPlayingInfo, std::optional<WebCore::PageIdentifier> pageIdentifier)
 {
     if (!pageIdentifier)
@@ -816,7 +910,9 @@ void GPUConnectionToWebProcess::setNowPlayingInfoForPage(NowPlayingInfo&& nowPla
         updateSupportedRemoteCommands();
     }
 }
+#endif // ENABLE(GPU_PROCESS_CORE_SWIFT)
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::becomeNowPlayingOwner(uint64_t pageIdentifier)
 {
     m_isNowPlayingManagerClient = true;
@@ -828,20 +924,26 @@ void GPUConnectionToWebProcess::becomeNowPlayingOwner(uint64_t pageIdentifier)
     }
     updateSupportedRemoteCommands();
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::becomeRemoteCommandFallbackTarget()
 {
     m_isNowPlayingManagerClient = true;
     gpuProcess().nowPlayingManager().addClient(*this);
     updateSupportedRemoteCommands();
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::resignNowPlayingManagerClient()
 {
     m_isNowPlayingManagerClient = false;
     gpuProcess().nowPlayingManager().removeClient(*this);
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::nowPlayingClientDidClose()
 {
     ASSERT(m_isNowPlayingManagerClient);
@@ -856,6 +958,7 @@ void GPUConnectionToWebProcess::nowPlayingClientDidClose()
 
     swiftNowPlayingClientDidClose();
 }
+#endif
 
 void GPUConnectionToWebProcess::postNowPlayingRemoteControlCommandForTesting(WebCore::PlatformMediaSessionRemoteControlCommandType type, const WebCore::PlatformMediaSessionRemoteCommandArgument& argument)
 {
@@ -879,6 +982,20 @@ void GPUConnectionToWebProcess::hostedVideoLayerBoundsForTesting(WebCore::MediaP
 }
 #endif
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+void GPUConnectionToWebProcess::setNowPlayingManagerRemoteCommands(uint32_t commandMask, bool supportsSeeking)
+{
+    static_assert(std::to_underlying(PlatformMediaSession::RemoteControlCommandType::EndScrubbingCommand) < 32);
+    RemoteCommandListener::RemoteCommandsSet commands;
+    for (uint8_t type = 0; type < 32; ++type) {
+        if (commandMask & (1u << type) && isValidEnum<PlatformMediaSession::RemoteControlCommandType>(type))
+            commands.add(static_cast<PlatformMediaSession::RemoteControlCommandType>(type));
+    }
+    Ref gpuProcess = this->gpuProcess();
+    gpuProcess->nowPlayingManager().setSupportsSeeking(supportsSeeking);
+    gpuProcess->nowPlayingManager().setSupportedRemoteCommands(commands);
+}
+#else
 void GPUConnectionToWebProcess::updateSupportedRemoteCommands()
 {
     if (!m_isNowPlayingManagerClient)
@@ -897,6 +1014,7 @@ void GPUConnectionToWebProcess::updateSupportedRemoteCommands()
     gpuProcess->nowPlayingManager().setSupportsSeeking(listener.supportsSeeking);
     gpuProcess->nowPlayingManager().setSupportedRemoteCommands(commands);
 }
+#endif
 
 void GPUConnectionToWebProcess::didReceiveRemoteControlCommand(PlatformMediaSession::RemoteControlCommandType type, const PlatformMediaSession::RemoteCommandArgument& argument)
 {
@@ -947,10 +1065,12 @@ void GPUConnectionToWebProcess::releaseAudioHardwareListener(RemoteAudioHardware
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
 {
     protect(gpuProcess())->releaseTransferredImageBuffer(identifier);
 }
+#endif
 
 void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTesting overrides)
 {
@@ -976,6 +1096,75 @@ void GPUConnectionToWebProcess::setMediaOverridesForTesting(MediaOverridesForTes
 #endif
 }
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+// The children that are still C++ are routed by name here. The Swift receivers are routed by the receiver map, and
+// swiftRoutesUnregisteredReceiver() decides about the other names.
+bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
+{
+    switch (decoder.messageReceiverName()) {
+#if ENABLE(VIDEO)
+    case IPC::ReceiverName::RemoteMediaPlayerManagerProxy:
+        protect(remoteMediaPlayerManagerProxy())->didReceiveMessageFromWebProcess(connection, decoder);
+        return true;
+    case IPC::ReceiverName::RemoteMediaPlayerProxy:
+        protect(remoteMediaPlayerManagerProxy())->didReceivePlayerMessage(connection, decoder);
+        return true;
+#endif
+#if ENABLE(VIDEO)
+    case IPC::ReceiverName::RemoteAudioVideoRendererProxyManager:
+        protect(remoteAudioVideoRendererProxyManager())->didReceiveMessage(connection, decoder);
+        return true;
+#endif
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    case IPC::ReceiverName::RemoteMediaEngineConfigurationFactoryProxy:
+        protect(mediaEngineConfigurationFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
+        return true;
+#endif
+    case IPC::ReceiverName::RemoteSharedResourceCache:
+        sharedResourceCache()->didReceiveMessage(connection, decoder);
+        return true;
+#if ENABLE(IPC_TESTING_API)
+    case IPC::ReceiverName::IPCTester:
+        m_ipcTester->didReceiveMessage(connection, decoder);
+        return true;
+#endif
+    default:
+        break;
+    }
+    if (m_messageReceiverMap.dispatchMessage(connection, decoder))
+        return true;
+    return swiftRoutesUnregisteredReceiver(decoder.messageReceiverName());
+}
+
+bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection, IPC::Decoder& decoder, UniqueRef<IPC::Encoder>& replyEncoder)
+{
+    switch (decoder.messageReceiverName()) {
+#if ENABLE(VIDEO)
+    case IPC::ReceiverName::RemoteMediaPlayerManagerProxy:
+        protect(remoteMediaPlayerManagerProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
+        return true;
+    case IPC::ReceiverName::RemoteMediaPlayerProxy:
+        protect(remoteMediaPlayerManagerProxy())->didReceiveSyncPlayerMessage(connection, decoder, replyEncoder);
+        return true;
+#endif
+#if ENABLE(VIDEO)
+    case IPC::ReceiverName::RemoteAudioVideoRendererProxyManager:
+        protect(remoteAudioVideoRendererProxyManager())->didReceiveSyncMessage(connection, decoder, replyEncoder);
+        return true;
+#endif
+#if ENABLE(IPC_TESTING_API)
+    case IPC::ReceiverName::IPCTester:
+        m_ipcTester->didReceiveSyncMessage(connection, decoder, replyEncoder);
+        return true;
+#endif
+    default:
+        break;
+    }
+    if (m_messageReceiverMap.dispatchSyncMessage(connection, decoder, replyEncoder))
+        return true;
+    return swiftRoutesUnregisteredReceiver(decoder.messageReceiverName());
+}
+#else
 bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC::Decoder& decoder)
 {
 #if ENABLE(VIDEO)
@@ -1074,6 +1263,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
 #endif
     return messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
 }
+#endif // ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 String GPUConnectionToWebProcess::mediaCacheDirectory() const
 {
@@ -1109,7 +1299,8 @@ void GPUConnectionToWebProcess::updateCaptureOrigin(const WebCore::SecurityOrigi
     m_captureOrigin = originData.securityOrigin();
 }
 
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
 void GPUConnectionToWebProcess::startCapturingAudio()
 {
     m_gpuProcess->processIsStartingToCaptureAudio(*this);
@@ -1121,13 +1312,43 @@ void GPUConnectionToWebProcess::processIsStartingToCaptureAudio(GPUConnectionToW
 }
 #endif
 
-#if !PLATFORM(COCOA)
 bool GPUConnectionToWebProcess::setCaptureAttributionString()
 {
+#if PLATFORM(COCOA)
+    return gpuProcess().setCaptureAttributionString(m_captureOrigin->data());
+#else
     return false;
+#endif
+}
+#endif // ENABLE(MEDIA_STREAM)
+
+#if ENABLE(EXTENSION_CAPABILITIES) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
+String GPUConnectionToWebProcess::mediaPlaybackEnvironment(WebCore::PageIdentifier pageIdentifier)
+{
+    return m_mediaPlaybackEnvironments.get(pageIdentifier);
+}
+
+void GPUConnectionToWebProcess::setMediaPlaybackEnvironment(WebCore::PageIdentifier pageIdentifier, String mediaPlaybackEnvironment)
+{
+    if (mediaPlaybackEnvironment.isEmpty())
+        m_mediaPlaybackEnvironments.remove(pageIdentifier);
+    else
+        m_mediaPlaybackEnvironments.set(pageIdentifier, WTF::move(mediaPlaybackEnvironment));
+}
+
+String GPUConnectionToWebProcess::displayCaptureEnvironment(WebCore::PageIdentifier pageIdentifier)
+{
+    return m_displayCaptureEnvironments.get(pageIdentifier);
+}
+
+void GPUConnectionToWebProcess::setDisplayCaptureEnvironment(WebCore::PageIdentifier pageIdentifier, String displayCaptureEnvironment)
+{
+    if (displayCaptureEnvironment.isEmpty())
+        m_displayCaptureEnvironments.remove(pageIdentifier);
+    else
+        m_displayCaptureEnvironments.set(pageIdentifier, WTF::move(displayCaptureEnvironment));
 }
 #endif
-#endif // ENABLE(MEDIA_STREAM)
 
 #if ENABLE(VIDEO)
 RemoteVideoFrameObjectHeap& GPUConnectionToWebProcess::videoFrameObjectHeap() const
@@ -1171,11 +1392,6 @@ void GPUConnectionToWebProcess::enableMediaPlaybackIfNecessary()
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
     swiftEnableRoutingArbitration();
 #endif
-}
-
-bool GPUConnectionToWebProcess::isAlwaysOnLoggingAllowed() const
-{
-    return m_sessionID.isAlwaysOnLoggingAllowed() || m_sharedPreferencesForWebProcess.allowPrivacySensitiveOperationsInNonPersistentDataStores;
 }
 
 #if HAVE(AUDIT_TOKEN)
