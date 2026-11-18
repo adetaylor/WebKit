@@ -453,9 +453,6 @@ set(WebKit_MESSAGES_IN_FILES
 )
 
 set(WebKit_SERIALIZATION_IN_FILES
-    GPUProcess/GPUProcessCreationParameters.serialization.in
-    GPUProcess/GPUProcessPreferences.serialization.in
-    GPUProcess/GPUProcessSessionParameters.serialization.in
 
     GPUProcess/graphics/PathSegment.serialization.in
 
@@ -518,7 +515,10 @@ set(WebKit_SERIALIZATION_IN_FILES
     Shared/FrameTreeNodeData.serialization.in
     Shared/FullScreenMediaDetails.serialization.in
     Shared/GPUProcessConnectionParameters.serialization.in
+    Shared/GPUProcessCreationParameters.serialization.in
     Shared/GPUProcessMediaCodecCapabilities.serialization.in
+    Shared/GPUProcessPreferences.serialization.in
+    Shared/GPUProcessSessionParameters.serialization.in
     Shared/GoToBackForwardItemParameters.serialization.in
     Shared/IPCTester.serialization.in
     Shared/ImageOptions.serialization.in
