@@ -33,6 +33,7 @@
 #include <wtf/Lock.h>
 #include <wtf/OptionSet.h>
 #include <wtf/Platform.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/text/CString.h>
@@ -200,7 +201,31 @@ private:
 
     int m_openError { SQLITE_ERROR };
     UTF8CString m_openErrorMessage;
+} SWIFT_SHARED_REFERENCE(retainSQLiteDatabase, releaseSQLiteDatabase) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+
+// The owner Swift holds; Swift reaches the database through get() in a local and never stores the reference.
+// Swift never calls SQLiteDatabase() itself: the reference it gets does not own (the object leaks when released).
+// Not a std::unique_ptr, whose reset(pointer) would let Swift give a second owner the same database: this one
+// cannot adopt a pointer (no constructor, reset or assignment from one), and it never hands its pointer out as
+// owning (no release()).
+class SQLiteDatabaseOwner {
+    WTF_MAKE_NONCOPYABLE(SQLiteDatabaseOwner);
+public:
+    SQLiteDatabaseOwner(SQLiteDatabaseOwner&&) = default;
+    SQLiteDatabase* get() const { return m_database.get(); }
+    void reset() { m_database = nullptr; }
+
+private:
+    friend SQLiteDatabaseOwner makeSQLiteDatabase();
+    SQLiteDatabaseOwner()
+        : m_database(makeUnique<SQLiteDatabase>())
+    {
+    }
+
+    std::unique_ptr<SQLiteDatabase> m_database;
 };
+
+inline SQLiteDatabaseOwner makeSQLiteDatabase() { return SQLiteDatabaseOwner(); }
 
 inline void SQLiteDatabase::incrementStatementCount()
 {
@@ -218,3 +243,7 @@ inline void SQLiteDatabase::decrementStatementCount()
 }
 
 } // namespace WebCore
+
+// Swift's retain and release of a SQLiteDatabase reference: its checked-pointer count, as a CheckedPtr holds it.
+SWIFT_UNSAFE inline void retainSQLiteDatabase(WebCore::SQLiteDatabase* database) { database->incrementCheckedPtrCount(); }
+SWIFT_UNSAFE inline void releaseSQLiteDatabase(WebCore::SQLiteDatabase* database) { database->decrementCheckedPtrCount(); }
