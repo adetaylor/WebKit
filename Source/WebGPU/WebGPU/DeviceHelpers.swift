@@ -24,9 +24,7 @@
 import Foundation
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.BindableResource
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
+import WebGPU_Private.WebGPUCpp
 
 // The device's helper pipelines: the GPU-side clamps of index buffers and indirect draw arguments, the ICB encode and
 // clamp shaders of render bundles, and the indirect dispatch clamp's buffer and pipeline. DeviceImpl caches the
@@ -34,11 +32,66 @@ import Synchronization
 // the first device that asks, so a device on another GPU reuses the first one's functions. The dispatch clamp is
 // compiled per device, with that device's limit.
 
-// Must match Device.h's WEBKIT_DRAW_INDEXED_INDIRECT_STRUCT_TYPE and WEBKIT_DRAW_INDIRECT_STRUCT_TYPE.
+// The arguments the indirect draw clamps write for Metal's indirect draws, and the flag they set when the draw would read
+// out of bounds or the device is lost.
+struct WebKitMTLDrawIndexedPrimitivesIndirectArguments {
+    var args: MTLDrawIndexedPrimitivesIndirectArguments
+    var lostOrOOBRead: UInt32
+}
+
+struct WebKitMTLDrawPrimitivesIndirectArguments {
+    var args: MTLDrawPrimitivesIndirectArguments
+    var lostOrOOBRead: UInt32
+}
+
+// The layout the indirect-command-buffer clamp shader declares for its index data, as IndexDataUshort and IndexDataUint,
+// whose static_asserts pin them to this layout.
+struct IndexData {
+    var renderCommand: UInt64
+    var minVertexCount: UInt32
+    var minInstanceCount: UInt32
+    var bufferGpuAddress: UInt64
+    var indexBufferElementCountMinusOne: UInt32
+    var indexCount: UInt32
+    var instanceCount: UInt32
+    var firstIndex: UInt32
+    var baseVertex: Int32
+    var firstInstance: UInt32
+    var primitiveType: UInt32
+    // The shader's structs end with the padding that rounds them to the alignment of their 64-bit fields, and the bytes
+    // bound for them include it.
+    var tailPadding: UInt32 = 0
+}
+
+// MSL static_asserts that pin the shader struct `name` to the size and the field offsets of `T`, whose bytes are bound
+// for it. Each field is the shader's name for it and the key path of the field of `T` it reads.
+func metalLayoutAsserts<T>(_ name: String, _: T.Type, _ fields: [(name: String, keyPath: PartialKeyPath<T>)]) -> String {
+    var asserts = ["static_assert(sizeof(\(name)) == \(MemoryLayout<T>.size), \"sizeof(\(name)) in shader mismatches the API size\");"]
+    for field in fields {
+        guard let offset = MemoryLayout<T>.offset(of: field.keyPath) else {
+            preconditionFailure("\(name).\(field.name) is not a stored field")
+        }
+        asserts.append(
+            "static_assert(__builtin_offsetof(\(name), \(field.name)) == \(offset), \"\(name).\(field.name) in shader mismatches the API offset\");"
+        )
+    }
+    return asserts.joined(separator: "\n")
+}
+
 private let drawIndexedIndirectStructType =
-    "struct WebKitMTLDrawIndexedPrimitivesIndirectArguments { MTLDrawIndexedPrimitivesIndirectArguments args; unsigned lostOrOOBRead; };"
+    "struct WebKitMTLDrawIndexedPrimitivesIndirectArguments { MTLDrawIndexedPrimitivesIndirectArguments args; unsigned lostOrOOBRead; };\n"
+    + metalLayoutAsserts(
+        "WebKitMTLDrawIndexedPrimitivesIndirectArguments",
+        WebKitMTLDrawIndexedPrimitivesIndirectArguments.self,
+        [("args", \.args), ("lostOrOOBRead", \.lostOrOOBRead)]
+    )
 private let drawIndirectStructType =
-    "struct WebKitMTLDrawPrimitivesIndirectArguments { MTLDrawPrimitivesIndirectArguments args; unsigned lostOrOOBRead; };"
+    "struct WebKitMTLDrawPrimitivesIndirectArguments { MTLDrawPrimitivesIndirectArguments args; unsigned lostOrOOBRead; };\n"
+    + metalLayoutAsserts(
+        "WebKitMTLDrawPrimitivesIndirectArguments",
+        WebKitMTLDrawPrimitivesIndirectArguments.self,
+        [("args", \.args), ("lostOrOOBRead", \.lostOrOOBRead)]
+    )
 
 // The buffer index of the ICB container argument buffer. The indirect-encode shader hardcodes [[buffer(1)]] to match.
 private let bufferIndexForICBContainerValue = 1
@@ -197,34 +250,17 @@ private let icbIndirectEncodeShaderSource = """
         }
     """
 
-// The MSL static_asserts that pin each field of the clamp shader's index data struct to its offset in
-// WebGPU::Metal::IndexData, which C++ fills in.
-private func indexDataOffsetAsserts(_ structName: String) -> String {
-    let fields: [(name: String, offset: Int?)] = [
-        ("renderCommand", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.renderCommand)),
-        ("minVertexCount", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.minVertexCount)),
-        ("minInstanceCount", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.minInstanceCount)),
-        ("indexBuffer", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.bufferGpuAddress)),
-        ("indexBufferElementCountMinusOne", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.indexBufferElementCountMinusOne)),
-        ("indexCount", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.indexCount)),
-        ("instanceCount", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.instanceCount)),
-        ("firstIndex", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.firstIndex)),
-        ("baseVertex", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.baseVertex)),
-        ("baseInstance", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.firstInstance)),
-        ("primitiveType", MemoryLayout<WebGPU.Metal.IndexData>.offset(of: \.primitiveType)),
-    ]
-    return
-        fields.map { field in
-            guard let offset = field.offset else {
-                preconditionFailure("IndexData.\(field.name) is not a stored field")
-            }
-            return
-                "static_assert(__builtin_offsetof(\(structName), \(field.name)) == \(offset), \"\(structName).\(field.name) in shader mismatches the API offset\");"
-        }
-        .joined(separator: "\n    ")
+// The MSL static_asserts that pin the clamp shader's index data struct to IndexData.
+private func indexDataLayoutAsserts(_ structName: String) -> String {
+    metalLayoutAsserts(structName, IndexData.self, [
+        ("renderCommand", \.renderCommand), ("minVertexCount", \.minVertexCount), ("minInstanceCount", \.minInstanceCount),
+        ("indexBuffer", \.bufferGpuAddress), ("indexBufferElementCountMinusOne", \.indexBufferElementCountMinusOne),
+        ("indexCount", \.indexCount), ("instanceCount", \.instanceCount), ("firstIndex", \.firstIndex),
+        ("baseVertex", \.baseVertex), ("baseInstance", \.firstInstance), ("primitiveType", \.primitiveType),
+    ])
 }
 
-private func icbCommandClampShaderSource(_ indexDataSize: Int) -> String {
+private func icbCommandClampShaderSource() -> String {
     """
 
         using namespace metal;
@@ -260,10 +296,8 @@ private func icbCommandClampShaderSource(_ indexDataSize: Int) -> String {
         };
 
         static_assert(sizeof(primitive_type) == sizeof(uint32_t), "API assumes primitive type is sizeof uint32_t");
-        static_assert(sizeof(IndexDataUshort) == \(indexDataSize), "sizeof(IndexDataUshort) in shader mismatches the API size");
-        static_assert(sizeof(IndexDataUint) == \(indexDataSize), "sizeof(IndexDataUint) in shader mismatches the API size");
-        \(indexDataOffsetAsserts("IndexDataUshort"))
-        \(indexDataOffsetAsserts("IndexDataUint"))
+        \(indexDataLayoutAsserts("IndexDataUshort"))
+        \(indexDataLayoutAsserts("IndexDataUint"))
 
         [[vertex]] void vsICB(device const IndexDataUint* indexData [[buffer(0)]],
             device ICBContainer *icb_container [[buffer(\(bufferIndexForICBContainerValue))]],
@@ -528,7 +562,7 @@ extension DeviceImpl {
         let functions = icbCommandClampFunctions.get {
             compileHelperFunctions(
                 metalDevice,
-                icbCommandClampShaderSource(MemoryLayout<WebGPU.Metal.IndexData>.stride),
+                icbCommandClampShaderSource(),
                 ["vsICB", "vsUshortICB"]
             )
         }

@@ -24,8 +24,6 @@
 import Dispatch
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif

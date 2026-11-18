@@ -22,7 +22,6 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import Foundation
-@_implementationOnly import WebGPU_Internal.Device
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 /// The Impls of a pipeline layout's bind group layouts, in group order.

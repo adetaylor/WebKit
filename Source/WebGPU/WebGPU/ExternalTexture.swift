@@ -23,8 +23,6 @@
 
 import CoreVideo
 import Metal
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -98,7 +96,8 @@ public final class ExternalTextureImpl: GPUObjectReference, LinkedImpl {
     private let backingVisibleWidth: UInt32
     private let backingVisibleHeight: UInt32
 
-    /// The encoders that used the current frame: cleared by a new frame and by undestroy, never by the encoders.
+    /// The encoders that use the texture: cleared by destroy, by undestroy and by a new frame after destroy; each encoder
+    /// leaves at its clearTracking().
     var tracking = EncoderTracking()
     /// The encoders that used the texture in any frame, until their clearTracking() at completion or discard.
     var pendingUsers = EncoderTracking()
@@ -157,14 +156,24 @@ public final class ExternalTextureImpl: GPUObjectReference, LinkedImpl {
         }
         #endif
         backingPixelBuffer = pixelBuffer
+        invalidateEncodersIfDestroyed()
         destroyed = false
-        tracking.removeAll()
     }
 
     func updateWithoutPixelBuffer() {
         backingPixelBuffer = nil
+        invalidateEncodersIfDestroyed()
         destroyed = false
-        tracking.removeAll()
+    }
+
+    // A new frame keeps the encoders that use the texture, unless they used it destroyed.
+    private func invalidateEncodersIfDestroyed() {
+        guard destroyed else {
+            return
+        }
+        for encoder in tracking.takeLive() {
+            encoder.makeSubmitInvalid(nil)
+        }
     }
 
     // The encoder retains the planes, not the texture.
@@ -183,7 +192,8 @@ public final class ExternalTextureImpl: GPUObjectReference, LinkedImpl {
         }
     }
 
-    // The encoders that used the texture since its frame was last updated and are still alive.
+    // The encoders that used the texture since it was last destroyed, undestroyed or given a frame after destroy, and have
+    // not yet cleared their tracking (at completion or discard).
     func openCommandEncoderCount() -> Int {
         tracking.liveCount()
     }

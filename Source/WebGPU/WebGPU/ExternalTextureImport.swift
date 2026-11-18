@@ -25,9 +25,6 @@ import CoreVideo
 import Foundation
 import IOSurface
 import Metal
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Queue
 import WebGPU_Private.WebGPUCpp
 
 /// An imported frame: its planes, and the constants the shader converts them with.
@@ -89,7 +86,7 @@ final class ExternalTextureImporter {
         premultiplyAlpha: Bool
     ) -> ImportedExternalTexture {
         let failure = ImportedExternalTexture(texture0: nil, texture1: nil, constants: ExternalTextureConstants())
-        // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: Queue.h checks that the two agree.
+        // HAVE(COREVIDEO_METAL_SUPPORT), whose CoreVideo macro Swift cannot see: MetalSPI.h checks that the two agree.
         #if HAVE_WEBGPU_IMPLEMENTATION && (WTF_PLATFORM_MAC || WTF_PLATFORM_IOS || WTF_PLATFORM_VISION)
         var constants = ExternalTextureConstants()
         // The conversion is row-major, and Metal indexes a float3x4 by column. All zero, which no real conversion can be,
@@ -446,7 +443,7 @@ private var greenToRedSwizzle: MTLTextureSwizzleChannels {
     MTLTextureSwizzleChannels(red: .green, green: .zero, blue: .zero, alpha: .zero)
 }
 
-// The SPI YCbCr Metal pixel formats (MTLPixelFormat_Private.h; MetalSPI.h declares the same values on the public SDK)
+// The SPI YCbCr Metal pixel formats (MTLPixelFormat_Private.h)
 // the import picks for the first plane of some 8- and 10-bit frames when the device supports them.
 private enum ExtendedPixelFormat: UInt {
     case ycbcr8Bit422OnePlane = 501

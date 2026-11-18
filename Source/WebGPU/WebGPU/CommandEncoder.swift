@@ -47,9 +47,7 @@
 private import CxxStdlib
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.CxxBridging
-import WebGPU_Private.WebGPU
+@_spiOnly import WebGPU_Private.WebGPUCpp
 
 typealias String = Swift.String
 
@@ -613,8 +611,11 @@ extension CommandEncoderImpl {
     // same bit pattern directly instead.
     private static let counterDontSample = Int(bitPattern: UInt.max)
 
+    // The write index of a pass timestamp write that has none.
+    private static let querySetIndexUndefined = UInt32.max
+
     private func timestampWriteIndex(writeIndex: UInt32) -> UInt32 {
-        writeIndex == WGPU_QUERY_SET_INDEX_UNDEFINED ? 0 : writeIndex
+        writeIndex == Self.querySetIndexUndefined ? 0 : writeIndex
     }
 
     private func timestampWriteIndex(
@@ -622,7 +623,7 @@ extension CommandEncoderImpl {
         defaultValue: Int,
         offset: UInt32
     ) -> Int {
-        writeIndex == WGPU_QUERY_SET_INDEX_UNDEFINED ? defaultValue : Int(UInt(writeIndex + offset))
+        writeIndex == Self.querySetIndexUndefined ? defaultValue : Int(UInt(writeIndex + offset))
     }
 
     private func errorValidatingCopyBufferToBuffer(
@@ -992,10 +993,10 @@ extension CommandEncoderImpl {
         return nil
     }
 
-    // WGPU_QUERY_SET_INDEX_UNDEFINED for nil.
+    // querySetIndexUndefined for nil.
     private func writeIndex(_ timestampWrites: GPUPassTimestampWrites, beginning: Bool) -> UInt32 {
         let index = beginning ? timestampWrites.beginningOfPassWriteIndex : timestampWrites.endOfPassWriteIndex
-        return index ?? UInt32(WGPU_QUERY_SET_INDEX_UNDEFINED)
+        return index ?? Self.querySetIndexUndefined
     }
 
     private func errorValidatingTimestampWrites(timestampWrites: GPUPassTimestampWrites) -> String? {
@@ -1005,8 +1006,7 @@ extension CommandEncoderImpl {
         }
 
         if querySet.queryType != WebGPU.QueryType.Timestamp {
-            // main prints the C++ optional, whose description does not depend on its value.
-            return "query type is not timestamp but \(WebGPU.Metal.OptionalQueryType())"
+            return "query type is not timestamp but \(querySet.queryType != nil ? "occlusion" : "invalid")"
         }
 
         if !isValidToUseWith(querySet) {
@@ -1677,8 +1677,8 @@ extension CommandEncoderImpl {
         guard let destinationBuffer = apiDestinationBuffer.buffer() else {
             return
         }
-        var destinationBytesPerRow = UInt(Optional(fromCxx: destination.layout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED))
-        if destinationBytesPerRow == WGPU_COPY_STRIDE_UNDEFINED {
+        var destinationBytesPerRow = UInt(Optional(fromCxx: destination.layout.bytesPerRow) ?? copyStrideUndefined)
+        if destinationBytesPerRow == copyStrideUndefined {
             destinationBytesPerRow = UInt(destinationBuffer.length)
         }
 
@@ -1716,8 +1716,8 @@ extension CommandEncoderImpl {
             destinationBytesPerRow = 0
         }
 
-        var rowsPerImage = Optional(fromCxx: destination.layout.rowsPerImage) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED)
-        if rowsPerImage == WGPU_COPY_STRIDE_UNDEFINED {
+        var rowsPerImage = Optional(fromCxx: destination.layout.rowsPerImage) ?? copyStrideUndefined
+        if rowsPerImage == copyStrideUndefined {
             rowsPerImage = heightForMetal != 0 ? heightForMetal : 1
         }
         var destinationBytesPerImage = UInt64(rowsPerImage)
@@ -1987,11 +1987,11 @@ extension CommandEncoderImpl {
         guard let blitCommandEncoder = ensureBlitCommandEncoder() else {
             return false
         }
-        var sourceBytesPerRow = UInt(Optional(fromCxx: source.layout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED))
+        var sourceBytesPerRow = UInt(Optional(fromCxx: source.layout.bytesPerRow) ?? copyStrideUndefined)
         guard let sourceBuffer = apiBuffer.buffer() else {
             return false
         }
-        if sourceBytesPerRow == WGPU_COPY_STRIDE_UNDEFINED {
+        if sourceBytesPerRow == copyStrideUndefined {
             sourceBytesPerRow = UInt(sourceBuffer.length)
         }
         guard
@@ -2033,8 +2033,8 @@ extension CommandEncoderImpl {
         let depthForMetal =
             logicalSize.depthOrArrayLayers < destination.origin.z
             ? 0 : min(copySize.depthOrArrayLayers, logicalSize.depthOrArrayLayers - destination.origin.z)
-        var rowsPerImage = Optional(fromCxx: source.layout.rowsPerImage) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED)
-        if rowsPerImage == WGPU_COPY_STRIDE_UNDEFINED {
+        var rowsPerImage = Optional(fromCxx: source.layout.rowsPerImage) ?? copyStrideUndefined
+        if rowsPerImage == copyStrideUndefined {
             rowsPerImage = heightForMetal != 0 ? heightForMetal : 1
         }
         var sourceBytesPerImage: UInt64
@@ -3690,6 +3690,7 @@ public final class CommandEncoderImpl: GPUObjectReference, LinkedImpl {
             impl.tracking.remove(self)
         }
         for impl in externalTextures {
+            impl.tracking.remove(self)
             impl.pendingUsers.remove(self)
         }
         withExtendedLifetime((buffers, textures, textureViews, querySets, externalTextures, planes)) {}

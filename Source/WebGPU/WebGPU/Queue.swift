@@ -50,11 +50,6 @@ import Foundation
 import IOSurface
 import Metal
 import Synchronization
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Queue
-import WebGPU_Private.WebGPU
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -1683,7 +1678,7 @@ public final class QueueImpl: GPUObjectReference {
             stagedCopyEncoder.setComputePipelineState(pipelineState)
             stagedCopyEncoder.setBuffer(temporaryBuffer, offset: 0, index: 0)
             stagedCopyEncoder.setBuffer(buffer, offset: 0, index: 1)
-            let arguments = WebGPU.Metal.StagedCopyArguments(
+            let arguments = StagedCopyArguments(
                 sourceWordOffset: temporaryBufferOffset / 4,
                 destinationWordOffset: bufferOffset / 4,
                 wordCount: wordCount
@@ -2140,8 +2135,8 @@ public final class QueueImpl: GPUObjectReference {
             logicalSize.depthOrArrayLayers < destination.origin.z
             ? 0 : min(size.depthOrArrayLayers, logicalSize.depthOrArrayLayers - destination.origin.z)
 
-        var bytesPerRow = UInt(Optional(fromCxx: dataLayout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED))
-        if bytesPerRow == WGPU_COPY_STRIDE_UNDEFINED {
+        var bytesPerRow = UInt(Optional(fromCxx: dataLayout.bytesPerRow) ?? copyStrideUndefined)
+        if bytesPerRow == copyStrideUndefined {
             let dataBytesPerRow = size.height != 0 ? (dataByteSize / Int(size.height)) : dataByteSize
             let textureBytesPerRow = textureBytesPerRow(textureFormat, widthForMetal, textureImpl.sampleCount())
             bytesPerRow = UInt(max(UInt32(truncatingIfNeeded: dataBytesPerRow), UInt32(truncatingIfNeeded: textureBytesPerRow)))
@@ -2232,7 +2227,7 @@ public final class QueueImpl: GPUObjectReference {
                     bytesPerRow: .init(
                         min(
                             UInt32(truncatingIfNeeded: maxRowBytes),
-                            Optional(fromCxx: dataLayout.bytesPerRow) ?? UInt32(WGPU_COPY_STRIDE_UNDEFINED)
+                            Optional(fromCxx: dataLayout.bytesPerRow) ?? copyStrideUndefined
                         )
                     ),
                     rowsPerImage: .init(newSize.height)
@@ -3053,7 +3048,7 @@ public final class QueueImpl: GPUObjectReference {
         }
         setEncoderForBuffer(commandBuffer, renderCommandEncoder)
 
-        let arguments = WebGPU.Metal.CopyExternalImageArguments(
+        let arguments = CopyExternalImageArguments(
             sourceOriginX: min(source.origin.x, sourceWidth &- 1),
             sourceOriginY: min(source.origin.y, sourceHeight &- 1),
             destinationOriginX: destination.origin.x,
@@ -3254,8 +3249,35 @@ func pixelBufferPrimariesConversionMatrix(_ pixelBuffer: CVPixelBuffer?, _ desti
     return result == identityColorMatrix ? nil : result
 }
 
-// MARK: Shader sources. The Metal argument structs mirror CopyExternalImageArguments (Queue.h) and
-// StagedCopyArguments (Queue.mm).
+// MARK: Shader sources and the arguments they take
+
+// The bytes of the shader's `WebKitStagedCopyArgs`, whose static_asserts pin it to this layout.
+private struct StagedCopyArguments {
+    var sourceWordOffset: UInt64
+    var destinationWordOffset: UInt64
+    var wordCount: UInt64
+}
+
+// The bytes of the shader's `WebKitCopyExternalImageArgs`, whose static_asserts pin it to this layout. Every field is a
+// scalar or a tuple of scalars: MSL lays those out exactly as Swift does, while its vector and matrix types carry
+// alignment rules of their own.
+private struct CopyExternalImageArguments {
+    var sourceOriginX: UInt32
+    var sourceOriginY: UInt32
+    var destinationOriginX: UInt32
+    var destinationOriginY: UInt32
+    var copyWidth: UInt32
+    var copyHeight: UInt32
+    var sourceMaxX: UInt32
+    var sourceMaxY: UInt32
+    var flags: UInt32
+    // Row-major.
+    var colorMatrix: (Float, Float, Float, Float, Float, Float, Float, Float, Float)
+    // A video frame's simd::float3x2 crop and simd::float4x3 YCbCr matrices, flattened column-major. Flattened because a
+    // simd float3 column is padded to 16 bytes, so neither matrix has a size the arithmetic would guess right.
+    var uvRemapMatrix: (Float, Float, Float, Float, Float, Float)
+    var ycbcrMatrix: (Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float, Float)
+}
 
 private let stagedCopyShaderSource = """
     #include <metal_stdlib>
@@ -3265,6 +3287,9 @@ private let stagedCopyShaderSource = """
         ulong destinationWordOffset;
         ulong wordCount;
     };
+    \(metalLayoutAsserts("WebKitStagedCopyArgs", StagedCopyArguments.self, [
+        ("sourceWordOffset", \.sourceWordOffset), ("destinationWordOffset", \.destinationWordOffset), ("wordCount", \.wordCount),
+    ]))
     [[kernel]] void csStagedBufferCopy(device const uint* source [[buffer(0)]], device uint* destination [[buffer(1)]], constant WebKitStagedCopyArgs& args [[buffer(2)]], uint threadIndex [[thread_position_in_grid]], uint threadsPerGrid [[threads_per_grid]])
     {
         for (ulong i = threadIndex; i < args.wordCount; i += threadsPerGrid)
@@ -3296,6 +3321,12 @@ private let copyExternalImageShaderBody = """
         float uvRemapMatrix[6];
         float ycbcrMatrix[12];
     };
+    \(metalLayoutAsserts("WebKitCopyExternalImageArgs", CopyExternalImageArguments.self, [
+        ("sourceOriginX", \.sourceOriginX), ("sourceOriginY", \.sourceOriginY), ("destinationOriginX", \.destinationOriginX),
+        ("destinationOriginY", \.destinationOriginY), ("copyWidth", \.copyWidth), ("copyHeight", \.copyHeight),
+        ("sourceMaxX", \.sourceMaxX), ("sourceMaxY", \.sourceMaxY), ("flags", \.flags), ("colorMatrix", \.colorMatrix),
+        ("uvRemapMatrix", \.uvRemapMatrix), ("ycbcrMatrix", \.ycbcrMatrix),
+    ]))
     constant uint webKitCopyExternalImageFlipY = 1;
     constant uint webKitCopyExternalImageForceOpaqueAlpha = 2;
     constant uint webKitCopyExternalImageUnpremultiplySource = 4;

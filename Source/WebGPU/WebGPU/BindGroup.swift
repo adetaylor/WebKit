@@ -24,10 +24,6 @@
 import Foundation
 import Metal
 import simd
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Queue
-import WebGPU_Private.WebGPU
 @_spiOnly import WebGPU_Private.WebGPUCpp
 
 // Where an external texture binding's planes and constants go, for one stage.
@@ -1570,17 +1566,15 @@ private func hasProperUsageFlags(_ type: LayoutBufferType, _ usage: UInt16) -> B
     }
 }
 
-/// The WGPUBufferUsage bits of `usage`, for error messages.
+/// The API's GPUBufferUsage bits of `usage`, for error messages.
 private func apiBufferUsage(_ usage: UInt16) -> UInt64 {
-    let bits: [(WebGPU.BufferUsage, WGPUBufferUsage)] = [
-        (.MapRead, WGPUBufferUsage_MapRead), (.MapWrite, WGPUBufferUsage_MapWrite), (.CopySource, WGPUBufferUsage_CopySrc),
-        (.CopyDestination, WGPUBufferUsage_CopyDst), (.Index, WGPUBufferUsage_Index), (.Vertex, WGPUBufferUsage_Vertex),
-        (.Uniform, WGPUBufferUsage_Uniform), (.Storage, WGPUBufferUsage_Storage), (.Indirect, WGPUBufferUsage_Indirect),
-        (.QueryResolve, WGPUBufferUsage_QueryResolve),
+    let bits: [(WebGPU.BufferUsage, UInt64)] = [
+        (.MapRead, 0x1), (.MapWrite, 0x2), (.CopySource, 0x4), (.CopyDestination, 0x8), (.Index, 0x10), (.Vertex, 0x20),
+        (.Uniform, 0x40), (.Storage, 0x80), (.Indirect, 0x100), (.QueryResolve, 0x200),
     ]
     var result: UInt64 = 0
     for (bit, apiBit) in bits where bufferUsageContains(usage, bit) {
-        result |= UInt64(apiBit)
+        result |= apiBit
     }
     return result
 }
