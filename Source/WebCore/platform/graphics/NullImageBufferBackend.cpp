@@ -26,6 +26,7 @@
 #include "config.h"
 #include "NullImageBufferBackend.h"
 
+#include "ImageBuffer.h"
 #include "NativeImage.h"
 #include "PixelBuffer.h"
 #include <wtf/text/TextStream.h>
@@ -36,6 +37,11 @@ namespace WebCore {
 std::unique_ptr<NullImageBufferBackend> NullImageBufferBackend::create(const ImageBufferParameters& parameters, const ImageBufferCreationContext&)
 {
     return std::unique_ptr<NullImageBufferBackend> { new NullImageBufferBackend { parameters } };
+}
+
+RefPtr<ImageBuffer> createNullImageBuffer()
+{
+    return ImageBuffer::create<NullImageBufferBackend>({ 0, 0 }, 1, ColorSpace::SRGB(), { PixelFormat::BGRA8 }, RenderingPurpose::Unspecified, { });
 }
 
 NullImageBufferBackend::~NullImageBufferBackend() = default;

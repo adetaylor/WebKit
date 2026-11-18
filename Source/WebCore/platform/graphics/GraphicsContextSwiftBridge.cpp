@@ -54,6 +54,19 @@ void GraphicsContextView::clip(const FloatRect& rect) const
     m_context.clip(rect);
 }
 
+void GraphicsContextView::resetClip() const
+{
+    m_context.resetClip();
+}
+
+void GraphicsContextView::clipToRects(std::span<const FloatRect> rects NOESCAPE) const
+{
+    Path path;
+    for (auto& rect : rects)
+        path.addRect(rect);
+    m_context.clipPath(path);
+}
+
 bool GraphicsContextView::clipToImageBuffer(ImageBuffer& imageBuffer, const FloatRect& rect) const
 {
     // The image buffer is not drawn to after this.
@@ -112,6 +125,11 @@ void GraphicsContextView::fillPath(const Path& path) const
 void GraphicsContextView::clearRect(const FloatRect& rect) const
 {
     m_context.clearRect(rect);
+}
+
+void GraphicsContextView::unwindStateStack() const
+{
+    m_context.unwindStateStack();
 }
 
 void GraphicsContextView::drawImageBuffer(ImageBuffer& imageBuffer, const FloatPoint& destination, CompositeOperator compositeOperator) const

@@ -32,6 +32,8 @@
 
 namespace WebCore {
 
+class ImageBuffer;
+
 // Backend for ImageBuffers that failed to allocate.
 class WEBCORE_EXPORT NullImageBufferBackend final : public ImageBufferBackend {
 public:
@@ -54,6 +56,9 @@ private:
 
     NullGraphicsContext m_context;
 };
+
+// An empty image buffer with a NullImageBufferBackend, for Swift, which can't call ImageBuffer::create<NullImageBufferBackend>().
+WEBCORE_EXPORT RefPtr<ImageBuffer> createNullImageBuffer();
 
 } // namespace WebCore
 
