@@ -102,8 +102,6 @@ $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteXRSubImage.messages.in
 $(PROJECT_DIR)/GPUProcess/graphics/WebGPU/RemoteXRView.messages.in
 $(PROJECT_DIR)/GPUProcess/mac/com.apple.WebKit.GPUProcess.sb.in
 $(PROJECT_DIR)/GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in
-$(PROJECT_DIR)/GPUProcess/media/InitializationSegmentInfo.serialization.in
-$(PROJECT_DIR)/GPUProcess/media/MediaDescriptionInfo.serialization.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteAudioDestinationManager.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteAudioSessionProxy.messages.in
 $(PROJECT_DIR)/GPUProcess/media/RemoteAudioSessionProxyManager.messages.in

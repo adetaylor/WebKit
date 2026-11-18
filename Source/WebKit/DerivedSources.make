@@ -668,8 +668,6 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
 	GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in \
-	GPUProcess/media/InitializationSegmentInfo.serialization.in \
-	GPUProcess/media/MediaDescriptionInfo.serialization.in \
 	GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in \
 	GPUProcess/media/TextTrackPrivateRemoteConfiguration.serialization.in \
 	GPUProcess/media/TrackPrivateRemoteConfiguration.serialization.in \

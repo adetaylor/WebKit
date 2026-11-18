@@ -464,8 +464,6 @@ set(WebKit_SERIALIZATION_IN_FILES
     GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 
     GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in
-    GPUProcess/media/InitializationSegmentInfo.serialization.in
-    GPUProcess/media/MediaDescriptionInfo.serialization.in
     GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in
     GPUProcess/media/TextTrackPrivateRemoteConfiguration.serialization.in
     GPUProcess/media/TrackPrivateRemoteConfiguration.serialization.in
