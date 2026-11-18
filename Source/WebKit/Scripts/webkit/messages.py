@@ -1059,19 +1059,46 @@ def swift_primitive_reply_type(message):
     return cpp_type if _swift_primitive_type_name(cpp_type) else None
 
 
+# Messages whose Swift handlers reply through complete(): a single primitive, or several values, which Swift passes as the
+# elements of the tuple it returns, and complete() moves into the C++ completion handler.
 def messages_with_distinct_primitive_reply_types(receiver):
-    return [x for x in messages_with_distinct_reply_types(receiver) if swift_primitive_reply_type(x)]
+    return [x for x in messages_with_distinct_reply_types(receiver) if swift_primitive_reply_type(x) or len(x.reply_parameters) > 1]
+
+
+# Whether complete() takes a reply value by value rather than by rvalue reference, which Swift passes with 'consuming:'.
+def _complete_takes_by_value(parameter):
+    return bool(_swift_primitive_type_name(_strip_cpp_type_decorations(parameter.type))) or parameter.kind.startswith('enum:')
+
+
+# The declaration leaves the parameters unnamed, as Swift imports them.
+def _complete_reply_parameters(message, named=True):
+    if swift_primitive_reply_type(message):
+        return '%s reply' % swift_primitive_reply_type(message)
+    parameters = []
+    for parameter in message.reply_parameters:
+        cpp_type = _strip_cpp_type_decorations(parameter.type)
+        declaration = cpp_type if _complete_takes_by_value(parameter) else '%s&&' % cpp_type
+        parameters.append('%s %s' % (declaration, parameter.name) if named else declaration)
+    return ', '.join(parameters)
+
+
+def _complete_reply_arguments(message):
+    if swift_primitive_reply_type(message):
+        return 'reply'
+    return ', '.join(parameter.name if _complete_takes_by_value(parameter) else 'WTF::move(%s)' % parameter.name for parameter in message.reply_parameters)
 
 
 def message_to_complete_declaration(receiver, message):
-    return 'void complete(%sCompletionHandler&, %s);' % (message.name, swift_primitive_reply_type(message))
+    if swift_primitive_reply_type(message):
+        return 'void complete(%sCompletionHandler&, %s);' % (message.name, swift_primitive_reply_type(message))
+    return 'void complete(%sCompletionHandler&, %s);' % (message.name, _complete_reply_parameters(message, named=False))
 
 
 def message_to_complete_definition(receiver, message):
     return '\n'.join([
-        'void complete(%sCompletionHandler& completionHandler, %s reply)' % (message.name, swift_primitive_reply_type(message)),
+        'void complete(%sCompletionHandler& completionHandler, %s)' % (message.name, _complete_reply_parameters(message)),
         '{',
-        '    (*completionHandler)(reply);',
+        '    (*completionHandler)(%s);' % _complete_reply_arguments(message),
         '}',
     ])
 
@@ -1713,8 +1740,8 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     if not reply_parameters:
         return 'completionHandler.pointee()'
     if len(reply_parameters) > 1:
-        raise UnmappableSwiftType("Cannot derive a Swift reply for '%s': multi-value replies would need "
-                                  "a tuple return, which is not implemented." % message.name)
+        arguments = ['%s%s.%d' % ('' if _complete_takes_by_value(parameter) else 'consuming: ', reply_variable, index) for index, parameter in enumerate(reply_parameters)]
+        return 'CompletionHandlers.%s.complete(completionHandler, %s)' % (receiver.name, ', '.join(arguments))
     if swift_primitive_reply_type(message):
         return 'CompletionHandlers.%s.complete(completionHandler, %s)' % (receiver.name, reply_variable)
     if reply_parameters[0].kind.startswith('enum:'):
