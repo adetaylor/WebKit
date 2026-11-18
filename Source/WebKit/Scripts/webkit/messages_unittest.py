@@ -710,6 +710,39 @@ messages -> TestReceiver Stream {
         self.assertRegex(swift, r'EnumReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(reply\)\n')
         self.assertRegex(swift, r'StructReplyInvocation \{(.|\n)*?\n                completionHandler\.pointee\(consuming: reply\)\n')
 
+    def test_async_cxx_encoded_replies(self):
+        def parse_receiver(attributes, kind, messages_text):
+            return parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> TestReceiver%s {\n%s\n}\n' % (', '.join(attributes), kind, messages_text)))
+
+        message = '    Message(uint32_t value) -> (std::optional<WebKit::ImageBufferBackendHandle> handle, uint64_t identifier) CxxEncodedReply'
+        for attributes, kind, target in ((['SwiftReceiver', 'SwiftTypes'], ' Stream', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftReceiver', 'SwiftTypes'], ' WorkQueue', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftReceiver', 'SwiftTypes'], '', 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftImplementation', 'SwiftTypes'], ' Stream', 'this, &SwiftDispatch::TestReceiver::dispatchMessage')):
+            receiver = parse_receiver(attributes, kind, message)
+            # The reply goes out of the stream as any asynchronous reply does, through the reply encoder that C++ encodes into.
+            self.assertIn('IPC::handleSwiftMessageAsync<Messages::TestReceiver::Message>(connection, decoder, %s);\n' % target, messages.generate_message_handler(receiver))
+            swift = messages.generate_swift_message_handler(receiver)
+            self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', swift)
+            self.assertIn('    consuming func send(encodedBy encode: (IPC.SwiftReplyEncoder) -> Void) {\n        encode(replyEncoder)\n        replyEncoder.send()\n    }\n', swift)
+            self.assertIn('    deinit {\n        replyEncoder.cancel()\n    }\n', swift)
+
+        # A Synchronous reply that C++ encodes is still given as a value, with the dispatch that sends it out of the stream.
+        synchronous = parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (MachSendRight right) Synchronous NotStreamEncodableReply CxxEncodedReply')
+        self.assertIn('IPC::handleSwiftMessageSynchronousWithReplyValue<Messages::TestReceiver::Message>', messages.generate_message_handler(synchronous))
+
+        error = r"ERROR: Message TestReceiver.Message has 'CxxEncodedReply', which is for messages with a reply that take Swift types: asynchronous ones, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver"
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> () CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) Synchronous CxxEncodedReply')
+        with self.assertRaisesRegex(Exception, error):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' WorkQueue', '    Message(uint32_t value) -> (uint32_t reply) Synchronous NotStreamEncodableReply CxxEncodedReply')
+        # SwiftReplyValue stays Synchronous-only.
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types"):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
+
     def test_lent_state_constraints(self):
         stream_receiver = """
 [

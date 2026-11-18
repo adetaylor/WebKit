@@ -266,7 +266,11 @@ class MessageReceiver(object):
         for attribute in (SWIFT_REPLY_VALUE_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE):
             if not message.has_attribute(attribute):
                 continue
+            if attribute == CXX_ENCODED_REPLY_ATTRIBUTE and self.takes_swift_types(message) and message.reply_parameters and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+                continue
             if not (self.takes_swift_types(message) and self.has_attribute(STREAM_ATTRIBUTE) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and message.has_attribute('NotStreamEncodableReply')):
+                if attribute == CXX_ENCODED_REPLY_ATTRIBUTE:
+                    raise Exception("ERROR: Message %s has '%s', which is for messages with a reply that take Swift types: asynchronous ones, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver" % (description, attribute))
                 raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types" % (description, attribute))
         if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))

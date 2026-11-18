@@ -1677,7 +1677,7 @@ def swift_reply_completion_call(receiver, message, reply_variable):
     return 'completionHandler.pointee(consuming: %s)' % reply_variable
 
 
-# Whether a Synchronous message's Swift handler is given its reply as a value rather than returning it.
+# Whether a message's Swift handler is given its reply as a value rather than returning it.
 def gives_swift_reply_value(message):
     return message.has_attribute(SWIFT_REPLY_VALUE_ATTRIBUTE) or message.has_attribute(CXX_ENCODED_REPLY_ATTRIBUTE)
 
@@ -1743,7 +1743,7 @@ def generates_swift_trampoline(receiver, message):
 
 # The HandleMessage.h function that dispatches a message whose Swift receiver decodes the arguments.
 def swift_types_dispatch_function(message):
-    if gives_swift_reply_value(message):
+    if gives_swift_reply_value(message) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronousWithReplyValue'
     if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronous'
