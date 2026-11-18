@@ -3223,7 +3223,7 @@ enum class WebCore::MediaPlayerBufferingPolicy : uint8_t {
     PurgeResources,
 };
 
-enum class WebCore::MediaPlayerMediaEngineIdentifier : uint8_t {
+[Swift] enum class WebCore::MediaPlayerMediaEngineIdentifier : uint8_t {
     AVFoundation,
     AVFoundationMSE,
     AVFoundationMediaStream,

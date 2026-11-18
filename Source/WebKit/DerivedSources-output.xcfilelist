@@ -295,6 +295,7 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaEngineConfigurationFa
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerManagerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerManagerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerManagerProxyMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerManagerProxyMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerManagerProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteMediaPlayerProxyMessages.h

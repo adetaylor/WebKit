@@ -83,6 +83,13 @@
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "RemoteMediaPlayerManagerProxy.h"
+#include "RemoteMediaPlayerManagerProxyMessages.h"
+#include "RemoteMediaPlayerProxy.h"
+#include "ScopedRenderingResourcesRequest.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 #include "RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessages.h"
 #endif

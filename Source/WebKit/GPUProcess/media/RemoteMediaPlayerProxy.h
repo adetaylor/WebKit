@@ -51,6 +51,7 @@
 #include <optional>
 #include <wtf/LoggerHelper.h>
 #include <wtf/RefPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/RunLoop.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
@@ -106,7 +107,7 @@ class RemoteTextTrackProxy;
 class RemoteVideoFrameObjectHeap;
 class RemoteVideoTrackProxy;
 
-class RemoteMediaPlayerProxy final
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT RemoteMediaPlayerProxy final
     : public RefCounted<RemoteMediaPlayerProxy>
     , public WebCore::MediaPlayerClient
     , private WebCore::MessageClientForTesting
