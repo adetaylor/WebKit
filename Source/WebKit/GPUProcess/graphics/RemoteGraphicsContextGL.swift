@@ -168,7 +168,7 @@ final class RemoteGraphicsContextGL {
         #if ENABLE_VIDEO
         self.videoFrameHeap = client.videoFrameObjectHeap()
         let webProcessIdentity = client.webProcessIdentity()
-        self.videoFrames = SharedVideoFrameSource(heap: videoFrameHeap, resourceOwner: Bool(fromCxx: webProcessIdentity) ? webProcessIdentity : nil)
+        self.videoFrames = SharedVideoFrameSource(heap: videoFrameHeap.frames, resourceOwner: Bool(fromCxx: webProcessIdentity) ? webProcessIdentity : nil)
         #endif
         self.client = client
         let shell = client.context()

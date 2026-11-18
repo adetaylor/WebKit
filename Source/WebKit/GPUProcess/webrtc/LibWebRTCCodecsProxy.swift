@@ -125,6 +125,25 @@ extension IPCTypes.VideoEncoderScalabilityMode {
     }
 }
 
+// The check of a codec string, which a null String passes.
+private func isValidDecoderCodecString(_ codecType: WebCore.VideoCodecType, _ argument: CxxDecodedArguments.LibWebRTCCodecsProxy.CreateDecoderCodecString) -> Bool {
+    var codecString = WTF.String()
+    guard IPC.takeCxxDecodedString(argument, &codecString) else {
+        return false
+    }
+    // Safety: the view of codecString doesn't outlive the call, during which codecString is alive and unchanged.
+    return unsafe codecString.isNull() || WebCore.isValidWebRTCDecoderCodecString(codecType, WTF.StringView(codecString))
+}
+
+private func isValidEncoderConfiguration(_ codecType: WebCore.VideoCodecType, _ argument: CxxDecodedArguments.LibWebRTCCodecsProxy.CreateEncoderCodecString, _ useLowLatency: Bool, _ scalabilityMode: WebCore.VideoEncoderScalabilityMode) -> Bool {
+    var codecString = WTF.String()
+    guard IPC.takeCxxDecodedString(argument, &codecString) else {
+        return false
+    }
+    // Safety: as in isValidDecoderCodecString().
+    return unsafe WebCore.isValidWebRTCEncoderConfiguration(codecType, WTF.StringView(codecString), useLowLatency, scalabilityMode)
+}
+
 private func isValidEncoderInitialization(codecType: IPCTypes.VideoCodecType, useLowLatency: Bool, width: UInt16, height: UInt16) -> Bool {
     switch codecType {
     case .h264:
@@ -139,7 +158,7 @@ private func isValidEncoderInitialization(codecType: IPCTypes.VideoCodecType, us
 // queue, which its forwarder is registered with and which the decoders' and encoders' results are dispatched to.
 actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
     nonisolated let codecsQueue: DispatchSerialQueue
-    private let videoFrameObjectHeap: WebKit.RemoteVideoFrameObjectHeap
+    private let videoFrameObjectHeap: VideoFrameHeap
     private let resourceOwner: WebCore.ProcessIdentity?
     private var decoders: [IPCTypes.VideoDecoderIdentifier: Decoder] = [:]
     private var encoders: [IPCTypes.VideoEncoderIdentifier: Encoder] = [:]
@@ -152,7 +171,7 @@ actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
     private let pixelBufferConverter = LibWebRTCCodecsPixelBufferConverter()
     private nonisolated let hasEncodersOrDecoders = Atomic<Bool>(false)
 
-    init(videoFrameObjectHeap: WebKit.RemoteVideoFrameObjectHeap, resourceOwner: WebCore.ProcessIdentity?, codecsQueue: DispatchSerialQueue) {
+    init(videoFrameObjectHeap: VideoFrameHeap, resourceOwner: WebCore.ProcessIdentity?, codecsQueue: DispatchSerialQueue) {
         self.videoFrameObjectHeap = videoFrameObjectHeap
         self.resourceOwner = resourceOwner
         self.codecsQueue = codecsQueue
@@ -237,7 +256,7 @@ actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
             return
         }
 
-        guard areLibWebRTCCodecFrameworksAvailable, WebKit.isValidDecoderCodecString(codecType.cxxValue, codecString) else {
+        guard areLibWebRTCCodecFrameworksAvailable, isValidDecoderCodecString(codecType.cxxValue, codecString) else {
             reply.send(false)
             return
         }
@@ -360,7 +379,7 @@ actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
         }
 
         guard areLibWebRTCCodecFrameworksAvailable,
-            WebKit.isValidEncoderConfiguration(codecType.cxxValue, codecString, useLowLatency, scalabilityMode.cxxValue)
+            isValidEncoderConfiguration(codecType.cxxValue, codecString, useLowLatency, scalabilityMode.cxxValue)
         else {
             reply.send(false)
             return
@@ -384,9 +403,7 @@ actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
         }
         let frameSource = SharedVideoFrameSource(
             heap: videoFrameObjectHeap,
-            resourceOwner: resourceOwner ?? WebCore.ProcessIdentity(),
-            hasResourceOwner: resourceOwner != nil,
-            useIOSurfaceBufferPool: true
+            resourceOwner: resourceOwner
         )
         guard
             let encoder = LibWebRTCCodecsEncoder(
@@ -505,7 +522,9 @@ actor LibWebRTCCodecsProxy: GPUConnectionReceiver {
     }
 
     func setRTCLoggingLevel(connection: IPC.Connection, level: IPCTypes.WTFLogLevel) {
-        WebKit.setLibWebRTCLoggingLevel(level.rawValue)
+        if let level = WTFLogLevel(rawValue: level.rawValue) {
+            WebCore.LibWebRTCProvider.setRTCLogging(level)
+        }
     }
 }
 

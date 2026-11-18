@@ -102,7 +102,7 @@ extension RemoteGPU {
         _ renderingBackend: WebKit.RemoteRenderingBackend,
         _ identifier: UInt64,
         _ webProcessResourceOwner: consuming WTF.MachSendRight,
-        _ videoFrameHeap: WebKit.RemoteVideoFrameObjectHeap,
+        _ videoFrameHeap: VideoFrameHeap,
         _ webProcessIdentity: WebCore.ProcessIdentity?
     ) {
         let videoFrameSources = GPUVideoFrameSources(heap: videoFrameHeap, webProcessIdentity: webProcessIdentity)

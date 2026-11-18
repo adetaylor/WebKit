@@ -74,7 +74,7 @@
 #endif
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-#include "CapturePreviewLayer.h"
+#include "SampleBufferDisplayLayerHost.h"
 #include "RotationMonitoringReason.h"
 #include <WebCore/RealtimeMediaSourceCenter.h>
 #include <wtf/cocoa/Entitlements.h>
@@ -628,7 +628,7 @@ void GPUProcess::startCapturePreview(std::optional<WebCore::CaptureDevice>&& vid
     constexpr uint8_t capturePreviewStarted = 1;
     constexpr uint8_t capturePreviewUnchanged = 2;
 
-    RefPtr layer = videoDevice ? CapturePreviewLayer::create(previewSize) : nullptr;
+    RefPtr layer = videoDevice ? SampleBufferDisplayLayerHost::createForCapturePreview(previewSize) : nullptr;
     auto result = swiftStartCapturePreview(pageIdentifier.toUInt64(),
         videoDevice ? videoDevice->persistentId() : String { }, videoDevice ? videoDevice->label() : String { }, videoDevice && videoDevice->isDefault(),
         audioDevice ? audioDevice->persistentId() : String { }, audioDevice ? audioDevice->label() : String { }, audioDevice && audioDevice->isDefault(),

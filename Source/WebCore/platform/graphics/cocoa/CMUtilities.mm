@@ -528,6 +528,18 @@ bool hasSeparateAlphaStream(CMFormatDescriptionRef description)
     return description && PAL::CMFormatDescriptionGetExtension(description, separateAlphaStreamExtensionKey()) == kCFBooleanTrue;
 }
 
+CMFormatDescriptionRef copyFormatDescriptionFromTrackInfo(const VideoInfo& videoInfo, PlatformVideoColorSpaceValues colorSpaceOverrideValues)
+{
+    auto colorSpaceOverride = platformVideoColorSpace(colorSpaceOverrideValues);
+    if (!colorSpaceOverride.isValid())
+        return createFormatDescriptionFromTrackInfo(videoInfo).leakRef();
+
+    auto data = videoInfo.toVideoInfoData();
+    overrideVideoColorSpaceAsNeeded(data.second.colorSpace, colorSpaceOverride);
+    Ref updatedVideoInfo = VideoInfo::create(WTF::move(data));
+    return createFormatDescriptionFromTrackInfo(updatedVideoInfo).leakRef();
+}
+
 RetainPtr<CMFormatDescriptionRef> createFormatDescriptionFromTrackInfo(const TrackInfo& info)
 {
     ASSERT(info.isVideo() || info.isAudio());
@@ -1153,6 +1165,48 @@ void attachColorSpaceToPixelBuffer(const PlatformVideoColorSpace& colorSpace, CV
             CVBufferSetAttachment(pixelBuffer, kCVImageBufferChromaLocationBottomFieldKey, cmChromaLocation.get(), kCVAttachmentMode_ShouldPropagate);
         }
     }
+}
+
+PlatformVideoColorSpace platformVideoColorSpace(PlatformVideoColorSpaceValues values)
+{
+    PlatformVideoColorSpace colorSpace;
+    if (values.hasPrimaries)
+        colorSpace.primaries = values.primaries;
+    if (values.hasTransfer)
+        colorSpace.transfer = values.transfer;
+    if (values.hasMatrix)
+        colorSpace.matrix = values.matrix;
+    if (values.hasFullRange)
+        colorSpace.fullRange = values.fullRange;
+    if (values.hasChromaLocation)
+        colorSpace.chromaLocation = values.chromaLocation;
+    return colorSpace;
+}
+
+PlatformVideoColorSpaceValues computeVideoFrameColorSpaceValues(CVPixelBufferRef pixelBuffer)
+{
+    return platformVideoColorSpaceValues(computeVideoFrameColorSpace(pixelBuffer));
+}
+
+PlatformVideoColorSpaceValues platformVideoColorSpaceValues(const PlatformVideoColorSpace& colorSpace)
+{
+    return {
+        .hasPrimaries = !!colorSpace.primaries,
+        .primaries = colorSpace.primaries.value_or(PlatformVideoColorPrimaries { }),
+        .hasTransfer = !!colorSpace.transfer,
+        .transfer = colorSpace.transfer.value_or(PlatformVideoTransferCharacteristics { }),
+        .hasMatrix = !!colorSpace.matrix,
+        .matrix = colorSpace.matrix.value_or(PlatformVideoMatrixCoefficients { }),
+        .hasFullRange = !!colorSpace.fullRange,
+        .fullRange = colorSpace.fullRange.value_or(false),
+        .hasChromaLocation = !!colorSpace.chromaLocation,
+        .chromaLocation = colorSpace.chromaLocation.value_or(PlatformVideoChromaLocation { }),
+    };
+}
+
+void attachColorSpaceValuesToPixelBuffer(PlatformVideoColorSpaceValues values, CVPixelBufferRef pixelBuffer)
+{
+    attachColorSpaceToPixelBuffer(platformVideoColorSpace(values), pixelBuffer);
 }
 
 PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef pixelBuffer)

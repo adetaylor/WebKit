@@ -56,9 +56,9 @@ enum CapturePreviewStart: UInt8 {
 
 // The camera frames of a capture preview, on the thread the camera produces them on, for the layer they are shown in.
 private final class CapturePreviewFrameTarget: CaptureVideoFrameObserver {
-    private let layer = Mutex<WebKit.CapturePreviewLayer?>(nil)
+    private let layer = Mutex<WebKit.SampleBufferDisplayLayerHost?>(nil)
 
-    func setLayer(_ newLayer: WebKit.CapturePreviewLayer?) {
+    func setLayer(_ newLayer: WebKit.SampleBufferDisplayLayerHost?) {
         layer.withLock { current in
             current = newLayer
         }
@@ -68,7 +68,7 @@ private final class CapturePreviewFrameTarget: CaptureVideoFrameObserver {
         // The layer is held while the frame is enqueued; it is only swapped on the main thread, after the frame observer
         // is removed, so there is no lock order to invert.
         layer.withLock { current in
-            current?.enqueue(frame.frame)
+            current?.displayLayer().enqueueVideoFrame(frame.frame)
         }
     }
 }
@@ -124,7 +124,7 @@ final class CapturePreviewManager {
     }
 
     // CapturePreviewManager::start(): the layer is the one GPUProcess made for the camera, if there is one.
-    func start(video: CaptureDeviceDescription?, audio: CaptureDeviceDescription?, width: Int32, height: Int32, layer: WebKit.CapturePreviewLayer?) -> CapturePreviewStart {
+    func start(video: CaptureDeviceDescription?, audio: CaptureDeviceDescription?, width: Int32, height: Int32, layer: WebKit.SampleBufferDisplayLayerHost?) -> CapturePreviewStart {
         let newVideoDeviceID = video?.persistentID ?? ""
         let newAudioDeviceID = audio?.persistentID ?? ""
 
@@ -198,7 +198,7 @@ final class CapturePreviewManager {
         WebKit.GPUProcess.endCapturePreviewAudioSession()
     }
 
-    private func startVideo(_ device: CaptureDeviceDescription, width: Int32, height: Int32, layer: WebKit.CapturePreviewLayer) -> Bool {
+    private func startVideo(_ device: CaptureDeviceDescription, width: Int32, height: Int32, layer: WebKit.SampleBufferDisplayLayerHost) -> Bool {
         guard let source = createSource(device) else {
             return false
         }
@@ -285,7 +285,7 @@ extension WebKit.GPUProcess {
         _ previewWidth: Int32,
         _ previewHeight: Int32,
         _ orientation: Int32,
-        _ layer: WebKit.CapturePreviewLayer?
+        _ layer: WebKit.SampleBufferDisplayLayerHost?
     ) -> UInt8 {
         let state = state
         let manager = state.capturePreview ?? CapturePreviewManager(pageIdentifier: pageIdentifier)

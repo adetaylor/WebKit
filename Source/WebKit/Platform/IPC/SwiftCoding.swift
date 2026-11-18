@@ -492,6 +492,22 @@ enum IPCCoding {
                 encoder.encodeVideoInfo(value)
             }
         }
+
+        #if ENABLE_MEDIA_STREAM
+        /// WebCore::MediaConstraints, as the WebCore::CaptureConstraints that holds them.
+        enum MediaConstraints: IPCCoder {
+            static func decode(from decoder: inout IPC.SwiftDecoder) throws(IPCDecodingError) -> sending WebCore.CaptureConstraints {
+                guard let constraints = decoder.decodeCaptureConstraints() else {
+                    throw IPCDecodingError()
+                }
+                return constraints
+            }
+
+            static func encode(_ value: WebCore.CaptureConstraints, to encoder: IPC.SwiftReplyEncoder) {
+                encoder.encodeCaptureConstraints(value)
+            }
+        }
+        #endif
     }
 
     /// Markable<T>, whose flag is set when the value is absent.

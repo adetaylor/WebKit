@@ -214,7 +214,7 @@ private struct DecoderOutputState {
 final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
     private let identifier: IPCTypes.VideoDecoderIdentifier
     private let connection: IPC.Connection
-    private let heap: WebKit.RemoteVideoFrameObjectHeap?
+    private let heap: VideoFrameHeap?
     private let resourceOwner: WebCore.ProcessIdentity?
     private let rotation: IPCTypes.VideoFrameRotation
     private let isMirrored: Bool
@@ -224,7 +224,7 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
     init(
         identifier: IPCTypes.VideoDecoderIdentifier,
         connection: IPC.Connection,
-        heap: WebKit.RemoteVideoFrameObjectHeap?,
+        heap: VideoFrameHeap?,
         resourceOwner: WebCore.ProcessIdentity?,
         rotation: IPCTypes.VideoFrameRotation,
         isMirrored: Bool,
@@ -338,7 +338,7 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
             rotation: rotation,
             size: IPCTypes.IntSize(width: Int32(truncatingIfNeeded: CVPixelBufferGetWidth(pixelBuffer)), height: Int32(truncatingIfNeeded: CVPixelBufferGetHeight(pixelBuffer))),
             pixelFormat: CVPixelBufferGetPixelFormatType(pixelBuffer),
-            colorSpace: IPCTypes.PlatformVideoColorSpace(WebKit.colorSpaceOfPixelBuffer(pixelBuffer)),
+            colorSpace: IPCTypes.PlatformVideoColorSpace(WebCore.computeVideoFrameColorSpaceValues(pixelBuffer)),
             shouldIgnoreAlpha: false
         )
         LibWebRTCCodecsProxy.LibWebRTCCodecsMessages.completedDecoding(
@@ -350,43 +350,6 @@ final class LibWebRTCCodecsDecoderOutput: @unchecked Sendable {
             reference: IPCTypes.RemoteVideoFrameReference(identifier: frameIdentifier, version: 0),
             frame: properties
         )
-    }
-}
-
-extension IPCTypes.PlatformVideoColorSpace {
-    init(_ colorSpace: WebKit.LibWebRTCCodecsColorSpace) {
-        self.init(
-            primaries: colorSpace.hasPrimaries ? IPCTypes.PlatformVideoColorPrimaries(rawValue: colorSpace.primaries.rawValue) : nil,
-            transfer: colorSpace.hasTransfer ? IPCTypes.PlatformVideoTransferCharacteristics(rawValue: colorSpace.transfer.rawValue) : nil,
-            matrix: colorSpace.hasMatrix ? IPCTypes.PlatformVideoMatrixCoefficients(rawValue: colorSpace.matrix.rawValue) : nil,
-            fullRange: colorSpace.hasFullRange ? colorSpace.fullRange : nil,
-            chromaLocation: colorSpace.hasChromaLocation ? IPCTypes.PlatformVideoChromaLocation(rawValue: colorSpace.chromaLocation.rawValue) : nil
-        )
-    }
-
-    var codecsColorSpace: WebKit.LibWebRTCCodecsColorSpace {
-        var colorSpace = WebKit.LibWebRTCCodecsColorSpace()
-        if let primaries, let value = WebCore.PlatformVideoColorPrimaries(rawValue: primaries.rawValue) {
-            colorSpace.hasPrimaries = true
-            colorSpace.primaries = value
-        }
-        if let transfer, let value = WebCore.PlatformVideoTransferCharacteristics(rawValue: transfer.rawValue) {
-            colorSpace.hasTransfer = true
-            colorSpace.transfer = value
-        }
-        if let matrix, let value = WebCore.PlatformVideoMatrixCoefficients(rawValue: matrix.rawValue) {
-            colorSpace.hasMatrix = true
-            colorSpace.matrix = value
-        }
-        if let fullRange {
-            colorSpace.hasFullRange = true
-            colorSpace.fullRange = fullRange
-        }
-        if let chromaLocation, let value = WebCore.PlatformVideoChromaLocation(rawValue: chromaLocation.rawValue) {
-            colorSpace.hasChromaLocation = true
-            colorSpace.chromaLocation = value
-        }
-        return colorSpace
     }
 }
 
@@ -607,7 +570,7 @@ final class LibWebRTCCodecsDecoder {
     }
 
     private func updateFormat(_ videoInfo: WebCore.VideoInfo) {
-        format = WebKit.createDecoderFormatDescription(videoInfo, colorSpaceOverride?.codecsColorSpace ?? WebKit.LibWebRTCCodecsColorSpace())
+        format = WebCore.copyFormatDescriptionFromTrackInfo(videoInfo, colorSpaceOverride?.colorSpaceValues ?? WebCore.PlatformVideoColorSpaceValues())
     }
 }
 

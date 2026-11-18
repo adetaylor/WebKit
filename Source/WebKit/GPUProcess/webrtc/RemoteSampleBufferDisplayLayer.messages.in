@@ -26,12 +26,15 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=UseGPUProcessForMediaEnabled
+    EnabledBy=UseGPUProcessForMediaEnabled,
+    SwiftReceiver,
+    SwiftTypes,
+    SwiftActor,
+    SwiftDestinationID,
+    SwiftSends=SampleBufferDisplayLayer
 ]
-messages -> RemoteSampleBufferDisplayLayer {
-#if !RELEASE_LOG_DISABLED
+messages -> RemoteSampleBufferDisplayLayer WorkQueue {
     SetLogIdentifier(uint64_t logIdentifier)
-#endif
     UpdateDisplayMode(bool hideDisplayLayer, bool hideRootLayer)
     Flush()
     FlushAndRemoveImage()

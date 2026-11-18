@@ -91,6 +91,8 @@ _CXX_DECODED_TYPES = {
     # A path segment, which C++ decodes in one call into the plain values that the CG renderer takes of it, rather than Swift
     # decoding its variant member by member: its messages are per draw. Its [Swift] form, IPCTypes.PathSegment, is a member's.
     'WebCore::PathSegment': ('CGRendererPathSegment', 'IPCCoding.CxxDecoded.PathSegment'),
+    # Held by the WebCore::CaptureConstraints that Swift evaluates them through.
+    'WebCore::MediaConstraints': ('WebCore.CaptureConstraints', 'IPCCoding.CxxDecoded.MediaConstraints'),
 }
 
 

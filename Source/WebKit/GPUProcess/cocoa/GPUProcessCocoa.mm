@@ -46,7 +46,7 @@
 #import <wtf/Scope.h>
 
 #if ENABLE(MEDIA_STREAM)
-#import "CapturePreviewLayer.h"
+#import "SampleBufferDisplayLayerHost.h"
 #import <WebCore/CoreAudioCaptureUnit.h>
 #import <WebCore/MockRealtimeMediaSourceCenter.h>
 #import <WebCore/RealtimeMediaSourceCenter.h>
@@ -321,7 +321,7 @@ void GPUProcess::startCapturePreview(std::optional<WebCore::CaptureDevice>&& vid
     }
     if (!swiftPrepareCapturePreview(pageIdentifier, !!videoDevice, WTF::move(applicationBundleIdentifier), WTF::move(origin)))
         return completionHandler({ });
-    RefPtr layer = videoDevice ? CapturePreviewLayer::create(previewSize) : nullptr;
+    RefPtr layer = videoDevice ? SampleBufferDisplayLayerHost::createForCapturePreview(previewSize) : nullptr;
     completionHandler(swiftStartCapturePreviewForPage(pageIdentifier, layer.get(), videoDevice ? videoDevice->persistentId() : String { }, videoDevice ? videoDevice->label() : String { }, videoDevice && videoDevice->isDefault(),
         audioDevice ? audioDevice->persistentId() : String { }, audioDevice ? audioDevice->label() : String { }, audioDevice && audioDevice->isDefault(), previewSize, orientation));
 }

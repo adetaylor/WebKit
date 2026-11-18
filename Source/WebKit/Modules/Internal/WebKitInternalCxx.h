@@ -33,7 +33,9 @@
 #include "SecurityFlags.h"
 
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
-#include "CapturePreviewLayer.h"
+#include "RemoteSampleBufferDisplayLayerManagerMessages.h"
+#include "RemoteSampleBufferDisplayLayerMessages.h"
+#include "SampleBufferDisplayLayerHost.h"
 #endif
 
 #if ENABLE(GPU_PROCESS_CORE_SWIFT)
@@ -75,7 +77,6 @@
 #endif
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
-#include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
 #endif
 

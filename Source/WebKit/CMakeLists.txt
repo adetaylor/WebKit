@@ -1025,6 +1025,9 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteAudioSessionProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteSampleBufferDisplayLayerManagerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteSampleBufferDisplayLayerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/UserMediaCaptureManagerProxyMessageReceiver.cpp
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMFactoryProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceProxyMessageReceiver.cpp
@@ -1838,6 +1841,19 @@ endif ()
 if (SWIFT_REQUIRED AND APPLE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaPlayerProxy.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and ENABLE_MEDIA_STREAM are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSampleBufferDisplayLayerMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/webrtc/RemoteSampleBufferDisplayLayerManager.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteSampleBufferDisplayLayerMessageReceiver.swift
     )
 endif ()
 

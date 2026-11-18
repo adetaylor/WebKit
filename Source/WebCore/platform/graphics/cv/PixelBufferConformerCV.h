@@ -51,4 +51,7 @@ private:
     const RetainPtr<VTPixelBufferConformerRef> m_pixelConformer;
 };
 
+// For Swift, which can't take a RetainPtr: convert(), returned +1.
+WEBCORE_EXPORT CVPixelBufferRef copyConvertedPixelBuffer(PixelBufferConformerCV&, CVPixelBufferRef) CF_RETURNS_RETAINED;
+
 }

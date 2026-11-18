@@ -116,6 +116,29 @@ NSString *captureMediaEnvironment()
 }
 #endif
 
+CVPixelBufferRef captureFramePixelBuffer(const VideoFrame& frame)
+{
+    return frame.pixelBuffer();
+}
+
+CaptureFrameValues captureFrameValues(const VideoFrame& frame)
+{
+    auto time = frame.presentationTime();
+    auto size = frame.presentationSize();
+    return {
+        .timeValue = time.timeValue(),
+        .timeScale = time.timeScale(),
+        .timeFlags = time.timeFlags(),
+        .isMirrored = frame.isMirrored(),
+        .rotation = static_cast<uint16_t>(frame.rotation()),
+        .width = size.width(),
+        .height = size.height(),
+        .pixelFormat = frame.pixelFormat(),
+        .colorSpace = platformVideoColorSpaceValues(frame.colorSpace()),
+        .shouldIgnoreAlpha = frame.shouldIgnoreAlpha(),
+    };
+}
+
 CMSampleBufferRef captureCroppedSampleBuffer(CaptureVideoFrameSession& session, CMSampleBufferRef sampleBuffer, float x, float y, float width, float height, float frameWidth, float frameHeight)
 {
     return session.croppedSampleBuffer(sampleBuffer, x, y, width, height, frameWidth, frameHeight);
