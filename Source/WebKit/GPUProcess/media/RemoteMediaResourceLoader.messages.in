@@ -28,16 +28,18 @@
 [
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
-    DispatchedTo=GPU
+    DispatchedTo=GPU,
+    SwiftImplementation,
+    SwiftReceiverBuildEnabledBy=GPU_PROCESS_MEDIA_SWIFT
 ]
-messages -> RemoteMediaResourceLoader {
+messages -> RemoteMediaResourceLoader WorkQueue {
     ResponseReceived(WebKit::RemoteMediaResourceIdentifier identifier, WebCore::ResourceResponse response, bool didPassAccessControlCheck) -> (enum:bool WebCore::ShouldContinuePolicyCheck shouldContinue)
     RedirectReceived(WebKit::RemoteMediaResourceIdentifier identifier, WebCore::ResourceRequest request, WebCore::ResourceResponse response) -> (WebCore::ResourceRequest returnRequest)
-    DataSent(WebKit::RemoteMediaResourceIdentifier identifier, uint64_t bytesSent, uint64_t totalBytesToBeSent)
+    DataSent(WebKit::RemoteMediaResourceIdentifier identifier, uint64_t bytesSent, uint64_t totalBytesToBeSent) SwiftTypes
     DataReceived(WebKit::RemoteMediaResourceIdentifier identifier, IPC::SharedBufferReference data) -> (std::optional<WebCore::SharedMemory::Handle> remoteData)
-    AccessControlCheckFailed(WebKit::RemoteMediaResourceIdentifier identifier, WebCore::ResourceError error)
-    LoadFailed(WebKit::RemoteMediaResourceIdentifier identifier, WebCore::ResourceError error)
-    LoadFinished(WebKit::RemoteMediaResourceIdentifier identifier, WebCore::NetworkLoadMetrics metrics)
+    AccessControlCheckFailed(WebKit::RemoteMediaResourceIdentifier identifier, [CxxDecoded] WebCore::ResourceError error) SwiftTypes
+    LoadFailed(WebKit::RemoteMediaResourceIdentifier identifier, [CxxDecoded] WebCore::ResourceError error) SwiftTypes
+    LoadFinished(WebKit::RemoteMediaResourceIdentifier identifier, [CxxDecoded] WebCore::NetworkLoadMetrics metrics) SwiftTypes
 }
 
 }

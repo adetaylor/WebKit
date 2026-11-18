@@ -29,8 +29,8 @@ import WebKit_Internal
 import wtf
 
 // Receives the EME factory messages of one web process's connection to the GPU process, which owns it (GPUConnectionState),
-// and owns the GPU process's CDMs, CDM instances and sessions, whose messages their registrations route to them. The C++
-// CDMs and their instances, which the media players use, are the connection's RemoteCDMPrivateFactory.
+// and owns the GPU process's CDMs, CDM instances and sessions, whose messages their registrations route to them, and the
+// C++ instances the media players use.
 @_expose(Cxx)
 final class RemoteCDMFactoryProxy {
     // Optional just because of an initialization order issue. Always occupied after initialization finished.
@@ -73,6 +73,13 @@ final class RemoteCDMFactoryProxy {
     @MainActor
     func hasInstance(_ identifier: UInt64) -> Bool {
         instances[identifier] != nil
+    }
+
+    // The C++ instance of a CDM instance, for the media players: ClearKey's have none.
+    @_expose(!Cxx)
+    @MainActor
+    func cxxInstance(_ identifier: UInt64) -> WebCore.CDMInstance? {
+        instances[identifier]?.cxxInstance
     }
 
     private func add(cdm: RemoteCDMProxy, identifier: UInt64) {
@@ -122,12 +129,16 @@ final class RemoteCDMFactoryProxy {
             logIdentifier: 0
         )
         guard let gpuConnection = self.connection,
-            let handle = WebKit.createRemoteCDM(gpuConnection, IPCCoding.WTFString.cxxString(keySystem), IPCCoding.WTFString.cxxString(mediaKeysHashSalt))
+            let handle = WebKit.RemoteCDMPrivateHandle.create(
+                gpuConnection,
+                IPCCoding.WTFString.cxxString(keySystem),
+                IPCCoding.WTFString.cxxString(mediaKeysHashSalt)
+            )
         else {
             return (nil, noCDM)
         }
         let cdm = RemoteCDMProxy(factory: self, cdm: handle, isClearKey: ClearKey.supportsKeySystem(keySystem))
-        let identifier = WebKit.RemoteCDMPrivateFactory.generateCDMIdentifier()
+        let identifier = WTF.ObjectIdentifierMainThreadAccessTraits.generateIdentifierInternal()
         add(cdm: cdm, identifier: identifier)
         return (IPCTypes.RemoteCDMIdentifier(rawValue: identifier), cdm.configuration)
     }
@@ -143,12 +154,12 @@ final class RemoteCDMFactoryProxy {
             return
         }
         registrations.removeValue(forKey: identifier.rawValue)
+        // With its C++ instance, before the GPU process checks whether it may exit, which it may once this was the last
+        // instance.
         instances.removeValue(forKey: identifier.rawValue)
         guard let gpuConnection = self.connection else {
             return
         }
-        // Before the GPU process checks whether it may exit, which it may once this was the last instance.
-        gpuConnection.removeCDMInstance(identifier.rawValue)
         if allowsExitUnderMemoryPressure {
             gpuConnection.tryExitIfUnusedAndUnderMemoryPressure()
         }
@@ -178,6 +189,16 @@ extension RemoteCDMFactoryProxy: GPUConnectionReceiver {
         registrations.removeAll()
         cdms.removeAll()
         connection = nil
+    }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func cdmInstance(_ identifier: UInt64) -> WebKit.RefPtrCDMInstance {
+        MainActor.preconditionIsolated()
+        return WebKit.RefPtrCDMInstance(state.cdmFactory?.cxxInstance(identifier))
     }
 }
 

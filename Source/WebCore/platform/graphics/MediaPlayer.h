@@ -54,6 +54,7 @@
 #include <wtf/Logger.h>
 #include <wtf/MediaTime.h>
 #include <wtf/NativePromise.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/URL.h>
@@ -922,7 +923,14 @@ private:
 #if PLATFORM(MAC)
     bool m_screenReserved { false };
 #endif
-};
+
+public:
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::ref(); }
+    void deref() const { ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr::deref(); }
+#endif
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 class MediaPlayerFactory : public CanMakeWeakPtr<MediaPlayerFactory>, public CanMakeCheckedPtr<MediaPlayerFactory> {
     WTF_MAKE_TZONE_ALLOCATED_EXPORT(MediaPlayerFactory, WEBCORE_EXPORT);

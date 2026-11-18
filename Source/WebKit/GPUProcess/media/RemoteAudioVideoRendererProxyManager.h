@@ -35,29 +35,17 @@
 #include "RemoteCDMInstanceIdentifier.h"
 #include "RemoteLegacyCDMSessionIdentifier.h"
 #include "RemoteVideoFrameProxy.h"
-#include <WebCore/AudioVideoRenderer.h>
+#include <WebCore/AudioVideoRendererAVFObjC.h>
 #include <WebCore/HTMLMediaElementIdentifier.h>
-#include <WebCore/MediaPlayerEnums.h>
-#include <WebCore/MediaPromiseTypes.h>
+#include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/MediaSampleConverter.h>
 #include <WebCore/ShareableBitmapHandle.h>
 #include <WebCore/SharedTimebase.h>
-#include <wtf/Forward.h>
 #include <wtf/Logger.h>
 #include <wtf/MediaTime.h>
-#include <wtf/MonotonicTime.h>
-#include <wtf/ObjectIdentifier.h>
-#include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-
-namespace WebCore {
-class AudioVideoRenderer;
-struct MediaPlayerIdentifierType;
-using MediaPlayerIdentifier = ObjectIdentifier<MediaPlayerIdentifierType>;
-class TextTrackRepresentation;
-}
 
 namespace WebKit {
 
@@ -67,11 +55,10 @@ struct SharedPreferencesForWebProcess;
 
 // Receives the audio and video renderer messages of one web process's connection to the GPU process. The renderers are
 // AudioVideoRendererAVFObjC, whose Swift cores do the work: its Swift state (RemoteAudioVideoRendererProxyManager.swift),
-// which m_swiftState holds, is each core's client, and handles the messages that the cores act on (readiness, stalling
-// at a time, seeking, flushes, tracks' removal, frame and metrics notifications), sending what the cores tell it. The
-// messages that reach a C++ part of a renderer (samples, track information, layers and hosting, content keys, frames,
-// the audio renderers' settings, spatial audio, playback with a host time) are handled here, as are the first frame's
-// and the rendering mode's notifications, which reach the layers.
+// which m_swiftState holds, is each core's client, and handles the messages that the cores or the renderer act on, sending
+// what the cores tell it. The renderers' creation, their samples (one message per sample block), their layers and hosting,
+// content keys and frames are handled here, as are the first frame's and the rendering mode's notifications, which reach
+// the layers.
 // Destroyed on the main thread like the GPUConnectionToWebProcess that owns it, since it holds media objects that
 // expect to be torn down there.
 class SWIFT_PRIVATE_FILEID("WebKit/RemoteAudioVideoRendererProxyManager.swift") RemoteAudioVideoRendererProxyManager final : public IPC::MessageReceiver, public ThreadSafeRefCountedAndCanMakeThreadSafeWeakPtr<RemoteAudioVideoRendererProxyManager, WTF::DestructionThread::Main> {
@@ -93,7 +80,9 @@ public:
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
+#if ENABLE(LINEAR_MEDIA_PLAYER)
     RefPtr<WebCore::AudioVideoRenderer> rendererFor(std::optional<WebCore::MediaPlayerIdentifier>) const;
+#endif
 
     std::optional<WebCore::FloatRect> hostedVideoLayerBoundsForTesting(WebCore::HTMLMediaElementIdentifier) const;
 
@@ -103,46 +92,15 @@ private:
     // Messages
     void createManager(RemoteAudioVideoRendererIdentifier, WebCore::HTMLMediaElementIdentifier, WebCore::MediaPlayerIdentifier, CompletionHandler<void(std::optional<WebCore::SharedTimebaseHandle>)>&&);
 
-    void setPreferences(RemoteAudioVideoRendererIdentifier, WebCore::VideoRendererPreferences);
-
     // TracksRendererInterface
     using TrackIdentifier = WebCore::AudioVideoRenderer::TrackIdentifier;
-
-    void addTrack(RemoteAudioVideoRendererIdentifier, WebCore::TrackInfo::TrackType, CompletionHandler<void(std::expected<TrackIdentifier, WebCore::PlatformMediaError>)>&&);
 
     void newTrackInfoForTrack(RemoteAudioVideoRendererIdentifier, TrackIdentifier, Ref<const WebCore::TrackInfo>&&);
     void enqueueSample(RemoteAudioVideoRendererIdentifier, TrackIdentifier, WebCore::MediaSamplesBlock&&, std::optional<MediaTime>, CompletionHandler<void(bool)>&&);
 
-    void setSpatialTrackingInfo(RemoteAudioVideoRendererIdentifier, bool, WebCore::MediaPlayerSoundStageSize, const String&, const String&, const String&);
-
-    // SynchronizerInterface
-    void play(RemoteAudioVideoRendererIdentifier, std::optional<MonotonicTime>);
-    void pause(RemoteAudioVideoRendererIdentifier, std::optional<MonotonicTime>);
-    void setScreenReserved(RemoteAudioVideoRendererIdentifier, bool);
-
-    // AudioInterface
-#if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
-    void setOutputDeviceId(RemoteAudioVideoRendererIdentifier, const String&);
-#endif
-
     // VideoInterface
-    void setIsVisible(RemoteAudioVideoRendererIdentifier, bool);
-    void setPresentationSize(RemoteAudioVideoRendererIdentifier, const WebCore::IntSize&);
-    void setShouldMaintainAspectRatio(RemoteAudioVideoRendererIdentifier, bool);
-    void contentBoxRectChanged(RemoteAudioVideoRendererIdentifier, const WebCore::LayoutRect&);
-    void setShouldDisableHDR(RemoteAudioVideoRendererIdentifier, bool);
-    void setPlatformDynamicRangeLimit(RemoteAudioVideoRendererIdentifier, const WebCore::PlatformDynamicRangeLimit&);
-    void setResourceOwner(RemoteAudioVideoRendererIdentifier, const WebCore::ProcessIdentity& resourceOwner);
-    void flushAndRemoveImage(RemoteAudioVideoRendererIdentifier);
     void currentVideoFrame(RemoteAudioVideoRendererIdentifier, RemoteVideoFrameReference, CompletionHandler<void(std::optional<RemoteVideoFrameProxy::Properties>)>&&) const;
     void currentBitmapImage(RemoteAudioVideoRendererIdentifier, CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&) const;
-
-    // VideoFullscreenInterface
-#if ENABLE(VIDEO_PRESENTATION_MODE)
-    void setVideoFullscreenFrame(RemoteAudioVideoRendererIdentifier, const WebCore::FloatRect&);
-    void isInFullscreenOrPictureInPictureChanged(RemoteAudioVideoRendererIdentifier, bool);
-#endif
-    void syncTextTrackBounds(RemoteAudioVideoRendererIdentifier);
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     void setLegacyCDMSession(RemoteAudioVideoRendererIdentifier, std::optional<RemoteLegacyCDMSessionIdentifier>);
@@ -150,7 +108,6 @@ private:
 #if ENABLE(ENCRYPTED_MEDIA)
     void setCDMInstance(RemoteAudioVideoRendererIdentifier, std::optional<RemoteCDMInstanceIdentifier>);
     void setInitData(RemoteAudioVideoRendererIdentifier, Ref<WebCore::SharedBuffer>, CompletionHandler<void(std::expected<void, WebCore::PlatformMediaError>)>&&);
-    void attemptToDecrypt(RemoteAudioVideoRendererIdentifier);
 #endif
 
     using LayerHostingContextCallback = CompletionHandler<void(WebCore::HostingContext)>;
@@ -159,11 +116,13 @@ private:
     void setVideoLayerSizeFenced(RemoteAudioVideoRendererIdentifier, const WebCore::FloatSize&, WTF::MachSendRightAnnotated&&);
 
     // For the Swift state, by the renderer's identifier.
-    void shutDownRenderer(uint64_t identifier);
     void destroyRenderer(uint64_t identifier);
+#if PLATFORM(IOS_FAMILY)
+    void setCanShowWhileLocked(uint64_t identifier, bool);
+#endif
 
-    // Implemented in Swift: the core whose token the renderer's swiftToken() is becomes the identifier's.
-    void addRenderer(uint64_t identifier, uint64_t token);
+    // Implemented in Swift: the renderer, and the core whose token its swiftToken() is, become the identifier's.
+    void addRenderer(uint64_t identifier, uint64_t token, WebCore::AudioVideoRendererAVFObjC&);
     // Implemented in Swift: the Swift state forgets every renderer.
     void clear();
 
@@ -177,10 +136,14 @@ private:
     struct RendererContext {
         RefPtr<WebCore::AudioVideoRenderer> renderer;
         Markable<WebCore::HTMLMediaElementIdentifier> mediaElementIdentifier;
+#if ENABLE(LINEAR_MEDIA_PLAYER)
         Markable<WebCore::MediaPlayerIdentifier> playerIdentifier;
+#endif
         LayerHostingContextManager layerHostingContextManager;
         HashMap<TrackIdentifier, WebCore::MediaSampleConverter> converters { };
-        WebCore::VideoRendererPreferences preferences { };
+#if PLATFORM(IOS_FAMILY)
+        bool canShowWhileLocked { false };
+#endif
     };
     RefPtr<WebCore::AudioVideoRenderer> rendererFor(RemoteAudioVideoRendererIdentifier) const;
     RemoteAudioVideoRendererState stateFor(RemoteAudioVideoRendererIdentifier) const;

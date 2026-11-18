@@ -26,13 +26,15 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=LegacyEncryptedMediaAPIEnabled
+    EnabledBy=LegacyEncryptedMediaAPIEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteLegacyCDMSessionProxy {
-    GenerateKeyRequest(String mimeType, RefPtr<WebCore::SharedBuffer> initData, String mediaKeysHashSalt) -> (RefPtr<WebCore::SharedBuffer> nextMessage, String destinationURL, unsigned short errorCode, uint32_t systemCode) Synchronous
-    ReleaseKeys()
-    Update(RefPtr<WebCore::SharedBuffer> update) -> (bool succeeded, RefPtr<WebCore::SharedBuffer> nextMessage, unsigned short errorCode, uint32_t systemCode) Synchronous
-    CachedKeyForKeyID(String keyId) -> (RefPtr<WebCore::SharedBuffer> key) Synchronous
+    GenerateKeyRequest(String mimeType, RefPtr<WebCore::SharedBuffer> initData, String mediaKeysHashSalt) -> (RefPtr<WebCore::SharedBuffer> nextMessage, String destinationURL, uint16_t errorCode, uint32_t systemCode) Synchronous SwiftSyncHandler
+    ReleaseKeys() SwiftSyncHandler
+    Update(RefPtr<WebCore::SharedBuffer> update) -> (bool succeeded, RefPtr<WebCore::SharedBuffer> nextMessage, uint16_t errorCode, uint32_t systemCode) Synchronous SwiftSyncHandler
+    CachedKeyForKeyID(String keyId) -> (RefPtr<WebCore::SharedBuffer> key) Synchronous SwiftSyncHandler
 }
 
 #endif

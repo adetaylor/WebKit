@@ -55,12 +55,18 @@ Ref<RemoteMediaResourceLoader> RemoteMediaResourceLoader::create(RemoteMediaPlay
 RemoteMediaResourceLoader::RemoteMediaResourceLoader(RemoteMediaPlayerProxy& remoteMediaPlayerProxy, Ref<IPC::Connection>&& connection)
     : m_remoteMediaPlayerProxy(remoteMediaPlayerProxy)
     , m_connection(WTF::move(connection))
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    , m_swiftState(createSwiftState())
+#endif
 {
     ASSERT(isMainRunLoop());
 }
 
 RemoteMediaResourceLoader::~RemoteMediaResourceLoader()
 {
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    destroySwiftState(m_swiftState);
+#endif
     ensureOnMainRunLoop([remoteMediaPlayerProxy = std::exchange(m_remoteMediaPlayerProxy, nullptr), identifier = identifier()] {
         if (RefPtr proxy = remoteMediaPlayerProxy.get())
             proxy->destroyResourceLoader(identifier);
@@ -89,12 +95,14 @@ void RemoteMediaResourceLoader::sendH2Ping(const URL& url, CompletionHandler<voi
     m_connection->sendWithAsyncReply(Messages::RemoteMediaResourceLoaderProxy::SendH2Ping(url), WTF::move(completionHandler), identifier());
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaResourceLoader::addMediaResource(RemoteMediaResourceIdentifier remoteMediaResourceIdentifier, RemoteMediaResource& remoteMediaResource)
 {
     Locker locker { m_lock };
     ASSERT(!m_remoteMediaResources.contains(remoteMediaResourceIdentifier));
     m_remoteMediaResources.add(remoteMediaResourceIdentifier, ThreadSafeWeakPtr { remoteMediaResource });
 }
+#endif
 
 void RemoteMediaResourceLoader::removeMediaResource(RemoteMediaResourceIdentifier remoteMediaResourceIdentifier)
 {
@@ -104,17 +112,23 @@ void RemoteMediaResourceLoader::removeMediaResource(RemoteMediaResourceIdentifie
         return;
 
     m_connection->sendWithAsyncReply(Messages::RemoteMediaResourceLoaderProxy::RemoveResource(remoteMediaResourceIdentifier), [protectedThis = Ref { *this }, remoteMediaResourceIdentifier] {
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+        protectedThis->swiftRemoveMediaResource(remoteMediaResourceIdentifier.toUInt64());
+#else
         Locker locker { protectedThis->m_lock };
         ASSERT(protectedThis->m_remoteMediaResources.contains(remoteMediaResourceIdentifier));
         protectedThis->m_remoteMediaResources.remove(remoteMediaResourceIdentifier);
+#endif
     }, identifier());
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 RefPtr<RemoteMediaResource> RemoteMediaResourceLoader::resourceForId(RemoteMediaResourceIdentifier identifier)
 {
     Locker locker { m_lock };
     return m_remoteMediaResources.get(identifier).get();
 }
+#endif
 
 void RemoteMediaResourceLoader::responseReceived(RemoteMediaResourceIdentifier identifier, const ResourceResponse& response, bool didPassAccessControlCheck, CompletionHandler<void(ShouldContinuePolicyCheck)>&& completionHandler)
 {
@@ -134,12 +148,14 @@ void RemoteMediaResourceLoader::redirectReceived(RemoteMediaResourceIdentifier i
         completionHandler({ });
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaResourceLoader::dataSent(RemoteMediaResourceIdentifier identifier, uint64_t bytesSent, uint64_t totalBytesToBeSent)
 {
     assertIsCurrent(defaultQueue());
     if (RefPtr resource = resourceForId(identifier))
         resource->dataSent(bytesSent, totalBytesToBeSent);
 }
+#endif
 
 void RemoteMediaResourceLoader::dataReceived(RemoteMediaResourceIdentifier identifier, IPC::SharedBufferReference&& buffer, CompletionHandler<void(std::optional<SharedMemory::Handle>&&)>&& completionHandler)
 {
@@ -160,6 +176,7 @@ void RemoteMediaResourceLoader::dataReceived(RemoteMediaResourceIdentifier ident
     completionHandler(WTF::move(handle));
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaResourceLoader::accessControlCheckFailed(RemoteMediaResourceIdentifier identifier, const ResourceError& error)
 {
     assertIsCurrent(defaultQueue());
@@ -180,6 +197,7 @@ void RemoteMediaResourceLoader::loadFinished(RemoteMediaResourceIdentifier ident
     if (RefPtr resource = resourceForId(identifier))
         resource->loadFinished(metrics);
 }
+#endif
 
 } // namespace WebKit
 

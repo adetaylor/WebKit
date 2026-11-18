@@ -26,7 +26,8 @@
     ExceptionForEnabledBy,
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    SwiftImplementation
+    SwiftImplementation,
+    SwiftSends=RemoteAudioHardwareListener
 ]
 messages -> GPUConnectionToWebProcess WantsDispatchMessage {
     void CreateRenderingBackend(WebKit::RemoteRenderingBackendIdentifier renderingBackendIdentifier, IPC::StreamServerConnectionHandle connectionHandle) AllowedWhenWaitingForSyncReply
@@ -51,7 +52,7 @@ messages -> GPUConnectionToWebProcess WantsDispatchMessage {
     [EnabledBy=AllowTestOnlyIPC] HostedVideoLayerBoundsForTesting(WebCore::MediaPlayerClientIdentifier mediaElementIdentifier) -> (std::optional<WebCore::FloatRect> bounds)
 #endif
 #if USE(AUDIO_SESSION)
-    [EnabledBy=UseGPUProcessForMediaEnabled && MediaPlaybackEnabled] EnsureAudioSession() -> (struct WebKit::RemoteAudioSessionConfiguration configuration) Synchronous
+    [EnabledBy=UseGPUProcessForMediaEnabled && MediaPlaybackEnabled] EnsureAudioSession() -> (struct WebKit::RemoteAudioSessionConfiguration configuration) Synchronous SwiftTypes SwiftSyncHandler
 #endif
 #if PLATFORM(IOS_FAMILY)
     EnsureMediaSessionHelper()

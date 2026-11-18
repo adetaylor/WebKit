@@ -28,33 +28,36 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
-#include "MessageReceiver.h"
+#include "AudioTrackPrivateRemoteConfiguration.h"
 #include <WebCore/AudioTrackPrivate.h>
 #include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/TrackBase.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 namespace IPC {
 class Connection;
-class Decoder;
 }
 
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-struct AudioTrackPrivateRemoteConfiguration;
 
-class RemoteAudioTrackProxy final
+// On Cocoa, Swift (RemoteAudioTrackProxy.swift) implements what the track's changes send to the web process.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteAudioTrackProxy.swift") RemoteAudioTrackProxy final
     : public ThreadSafeRefCounted<RemoteAudioTrackProxy, WTF::DestructionThread::Main>
     , public WebCore::AudioTrackPrivateClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteAudioTrackProxy);
 public:
     static Ref<RemoteAudioTrackProxy> create(GPUConnectionToWebProcess& connectionToWebProcess, WebCore::AudioTrackPrivate& trackPrivate, WebCore::MediaPlayerIdentifier mediaPlayerIdentifier)
     {
-        return adoptRef(*new RemoteAudioTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+        Ref proxy = adoptRef(*new RemoteAudioTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+        proxy->addToWebProcess();
+#endif
+        return proxy;
     }
 
     virtual ~RemoteAudioTrackProxy();
@@ -76,16 +79,33 @@ private:
 
     // AudioTrackPrivateClient
     void enabledChanged(bool) final;
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void configurationChanged(const WebCore::PlatformAudioTrackConfiguration&) final { configurationChanged(); }
+#else
     void configurationChanged(const WebCore::PlatformAudioTrackConfiguration&) final;
+#endif
 
     // TrackPrivateBaseClient
     void idChanged(WebCore::TrackID) final;
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void labelChanged(const String&) final { configurationChanged(); }
+    void languageChanged(const String&) final { configurationChanged(); }
+#else
     void labelChanged(const String&) final;
     void languageChanged(const String&) final;
+#endif
     void willRemove() final;
 
-    AudioTrackPrivateRemoteConfiguration configuration();
     void configurationChanged();
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void addToWebProcess();
+    WebCore::AudioTrackPrivate& trackPrivate() const { return m_trackPrivate.get(); }
+    // Swift doesn't import AudioTrackPrivate::configuration(), which returns a reference.
+    WebCore::PlatformAudioTrackConfiguration trackConfiguration() const { return m_trackPrivate->configuration(); }
+    IPC::Connection* WTF_NULLABLE webProcessConnection() const SWIFT_RETURNS_RETAINED;
+#else
+    AudioTrackPrivateRemoteConfiguration configuration();
+#endif
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connectionToWebProcess;
     const Ref<WebCore::AudioTrackPrivate> m_trackPrivate;

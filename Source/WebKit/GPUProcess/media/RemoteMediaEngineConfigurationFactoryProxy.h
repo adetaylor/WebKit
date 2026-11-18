@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #include "Connection.h"
 #include "MessageReceiver.h"
@@ -65,4 +65,4 @@ private:
 
 }
 
-#endif
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)

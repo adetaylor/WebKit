@@ -25,46 +25,67 @@
 
 import WebKit_Internal
 
-extension WebKit.RemoteAudioSessionProxy {
+@MainActor
+private var lastAudioSessionProxyIdentifier: UInt64 = 0
+
+// Receives the audio session messages of one web process's connection to the GPU process, which owns it
+// (GPUConnectionState). What the web process asks of the audio session is its state, which the arbiter
+// (RemoteAudioSessionProxyManager.swift) applies to the GPU process's audio session once the proxy joins the arbitration,
+// with its first message or when the web process asks for the session's configuration.
+@_expose(Cxx)
+final class RemoteAudioSessionProxy {
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var messageForwarder: RefRemoteAudioSessionProxyMessageForwarder?
+    // The connection, until it closes: the connection's Swift state, which the connection holds, holds this.
+    private var connection: WebKit.GPUConnectionToWebProcess?
+    private let state: AudioSessionProxyState
+
+    @_expose(!Cxx)
     @MainActor
-    private var state: AudioSessionProxyState? {
-        audioSessionArbiter.proxy(identifier())
+    init(connection: WebKit.GPUConnectionToWebProcess, processIdentifier: UInt64) {
+        self.connection = connection
+        lastAudioSessionProxyIdentifier += 1
+        state = AudioSessionProxyState(identifier: lastAudioSessionProxyIdentifier, processIdentifier: processIdentifier, connection: connection)
+        self.messageForwarder = WebKit.RemoteAudioSessionProxyMessageForwarder.create(target: self)
     }
 
-    @cxx
-    @implementation
-    func isActive() -> Bool {
-        let identifier = identifier()
-        return MainActor.assumeIsolated {
-            audioSessionArbiter.proxy(identifier)?.isActive ?? false
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefRemoteAudioSessionProxyMessageForwarder {
+        guard let messageForwarder = self.messageForwarder else {
+            fatalError("Unreachable - guaranteed to exist")
         }
+        return messageForwarder
     }
 
-    @cxx
-    @implementation
-    func soundStageSize() -> WebCore.AudioSessionSoundStageSize {
-        let identifier = identifier()
-        return MainActor.assumeIsolated {
-            WebCore.AudioSessionSoundStageSize(audioSessionArbiter.proxy(identifier)?.soundStageSize ?? .automatic)
+    @used
+    func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
+        // The connection dispatches the receiver's messages on the main thread, which alone changes `connection`.
+        MainActor.preconditionIsolated()
+        guard let connection else {
+            return WebKit.OptionalSharedPreferencesForWebProcess()
         }
+        return connection.sharedPreferencesForWebProcess()
     }
 
-    @cxx
-    @implementation
-    func didSetActive(_ active: Bool) -> Bool {
-        let identifier = identifier()
-        return MainActor.assumeIsolated {
-            guard let state = audioSessionArbiter.proxy(identifier) else {
-                return false
-            }
-            let changed = state.isActive != active
-            state.isActive = active
-            if active {
-                state.isInterrupted = false
-            }
-            return changed
-        }
+    // The configuration of the GPU process's audio session, as the web process sees it, once the proxy has joined the
+    // arbitration.
+    @_expose(!Cxx)
+    @MainActor
+    func ensureConfiguration() -> IPCTypes.RemoteAudioSessionConfiguration {
+        state.join()
+        return state.configuration
     }
+
+    #if WTF_PLATFORM_IOS_FAMILY
+    @_expose(!Cxx)
+    @MainActor
+    func setPreferredSpeakerID(_ speakerID: String) {
+        state.join()
+        state.setPreferredSpeakerID(speakerID)
+    }
+    #endif
+
+    // MARK: Messages
 
     @MainActor
     func setCategory(
@@ -73,9 +94,7 @@ extension WebKit.RemoteAudioSessionProxy {
         mode: IPCTypes.AudioSessionMode,
         policy: IPCTypes.RouteSharingPolicy
     ) {
-        guard let state else {
-            return
-        }
+        state.join()
         if state.category == type && state.mode == mode && state.routeSharingPolicy == policy && !state.isPlayingToBluetoothOverrideChanged {
             return
         }
@@ -88,27 +107,116 @@ extension WebKit.RemoteAudioSessionProxy {
 
     @MainActor
     func setPreferredBufferSize(connection: IPC.Connection, preferredBufferSize: UInt64) {
-        guard let state else {
-            return
-        }
+        state.join()
         state.preferredBufferSize = preferredBufferSize
         audioSessionArbiter.updatePreferredBufferSize()
     }
 
     @MainActor
+    func tryToSetActive(connection: IPC.Connection, active: Bool) async -> Bool {
+        await state.tryToSetActive(active)
+    }
+
+    @MainActor
+    func tryToSetActiveSync(connection: IPC.Connection, active: Bool) async -> Bool {
+        await state.tryToSetActive(active)
+    }
+
+    @MainActor
     func setIsPlayingToBluetoothOverride(connection: IPC.Connection, value: Bool?) {
-        state?.isPlayingToBluetoothOverrideChanged = true
-        WebKit.RemoteAudioSessionProxyManager.setSessionIsPlayingToBluetoothOverride(value != nil, value ?? false)
+        state.join()
+        state.isPlayingToBluetoothOverrideChanged = true
+        WebCore.AudioSession.singleton().setOrClearIsPlayingToBluetoothOverride(value != nil, value ?? false)
+    }
+
+    @MainActor
+    func triggerBeginInterruptionForTesting(connection: IPC.Connection) {
+        state.join()
+        WebCore.AudioSession.singleton().beginInterruptionForTesting()
+    }
+
+    @MainActor
+    func triggerEndInterruptionForTesting(connection: IPC.Connection) {
+        state.join()
+        WebCore.AudioSession.singleton().endInterruptionForTesting()
+    }
+
+    // The category the GPU process applied to the real session, after reconciling what every web process reported. Each
+    // process's own AudioSession only knows the value it asked for.
+    @MainActor
+    func systemCategoryForTesting(connection: IPC.Connection) -> IPCTypes.AudioSessionCategory {
+        state.join()
+        return IPCTypes.AudioSessionCategory(WebCore.AudioSession.singleton().category())
+    }
+
+    // How many times the GPU process made the real session active.
+    @MainActor
+    func systemActivationCountForTesting(connection: IPC.Connection) -> UInt64 {
+        state.join()
+        return WebCore.AudioSession.singleton().activationCountForTesting()
+    }
+
+    @MainActor
+    func beginInterruptionRemote(connection: IPC.Connection) {
+        state.join()
+        audioSessionArbiter.beginInterruptionRemote()
+    }
+
+    @MainActor
+    func endInterruptionRemote(connection: IPC.Connection, flags: IPCTypes.AudioSessionMayResume) {
+        state.join()
+        audioSessionArbiter.endInterruptionRemote(mayResume: flags == .yes)
+    }
+
+    @MainActor
+    func setSceneIdentifier(connection: IPC.Connection, sceneIdentifier: String?) {
+        state.join()
+        state.sceneIdentifier = sceneIdentifier
+        audioSessionArbiter.updateSpatialExperience()
     }
 
     @MainActor
     func setSoundStageSize(connection: IPC.Connection, size: IPCTypes.AudioSessionSoundStageSize) {
-        guard let state else {
-            return
-        }
+        state.join()
         state.soundStageSize = size
         audioSessionArbiter.updateSpatialExperience()
     }
+}
+
+extension RemoteAudioSessionProxy: GPUConnectionReceiver {
+    @_expose(!Cxx)
+    @MainActor
+    var allowsExitUnderMemoryPressure: Bool {
+        true
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func connectionDidClose() {
+        connection = nil
+        state.leave()
+    }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @MainActor
+    func ensureAudioSession(connection: IPC.Connection) -> IPCTypes.RemoteAudioSessionConfiguration {
+        guard let audioSessionProxy = state.audioSessionProxy else {
+            preconditionFailure("The connection has no audio session receiver")
+        }
+        return audioSessionProxy.ensureConfiguration()
+    }
+
+    #if WTF_PLATFORM_IOS_FAMILY
+    // Unsafe: C++ lends the speaker ID for the call, which only reads it.
+    @cxx
+    @implementation
+    @MainActor
+    @unsafe
+    func setAudioSessionPreferredSpeakerID(_ speakerID: borrowing WTF.String) {
+        state.audioSessionProxy?.setPreferredSpeakerID(IPCCoding.WTFString.swiftString(speakerID) ?? "")
+    }
+    #endif
 }
 
 #endif // ENABLE_GPU_PROCESS && USE_AUDIO_SESSION

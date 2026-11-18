@@ -23,18 +23,22 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
+# On Cocoa, Swift implements the manager (RemoteMediaPlayerManagerProxy.swift).
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=UseGPUProcessForMediaEnabled
+    EnabledBy=UseGPUProcessForMediaEnabled,
+    SwiftImplementation,
+    SwiftTypes,
+    SwiftReceiverBuildEnabledBy=GPU_PROCESS_MEDIA_SWIFT
 ]
 messages -> RemoteMediaPlayerManagerProxy {
-    CreateMediaPlayer(WebCore::MediaPlayerIdentifier identifier, WebCore::MediaPlayerClientIdentifier clientIdentifier, enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, struct WebKit::RemoteMediaPlayerProxyConfiguration proxyConfiguration)
-    DeleteMediaPlayer(WebCore::MediaPlayerIdentifier identifier)
+    CreateMediaPlayer(WebCore::MediaPlayerIdentifier identifier, WebCore::MediaPlayerClientIdentifier clientIdentifier, enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, [CxxDecoded] struct WebKit::RemoteMediaPlayerProxyConfiguration proxyConfiguration) SwiftSyncHandler
+    DeleteMediaPlayer(WebCore::MediaPlayerIdentifier identifier) SwiftSyncHandler
 
-    GetSupportedTypes(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier) -> (Vector<String> types) Synchronous
-    SupportsTypeAndCodecs(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, struct WebCore::MediaEngineSupportParameters type) -> (enum:uint8_t WebCore::MediaPlayerSupportsType support) Synchronous
-    SupportsKeySystem(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, String keySystem, String mimeType) -> (bool supports) Synchronous
+    GetSupportedTypes(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier) -> (Vector<String> types) Synchronous CxxTypes
+    SupportsTypeAndCodecs(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, struct WebCore::MediaEngineSupportParameters type) -> (enum:uint8_t WebCore::MediaPlayerSupportsType support) Synchronous CxxTypes
+    SupportsKeySystem(enum:uint8_t WebCore::MediaPlayerMediaEngineIdentifier remoteEngineIdentifier, String keySystem, String mimeType) -> (bool supports) Synchronous CxxTypes
 }
 
 #endif

@@ -45,10 +45,6 @@
 #import <wtf/MemoryPressureHandler.h>
 #import <wtf/Scope.h>
 
-#if USE(AUDIO_SESSION)
-#import "RemoteAudioSessionProxyManager.h"
-#endif
-
 #if ENABLE(MEDIA_STREAM)
 #import "CapturePreviewLayer.h"
 #import <WebCore/CoreAudioCaptureUnit.h>
@@ -238,13 +234,6 @@ WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
     return *m_nowPlayingManager;
 }
 
-RemoteAudioSessionProxyManager& GPUProcess::audioSessionManager()
-{
-    if (!m_audioSessionManager)
-        m_audioSessionManager = RemoteAudioSessionProxyManager::create(*this);
-    return *m_audioSessionManager;
-}
-
 void GPUProcess::terminateWebProcess(WebCore::ProcessIdentifier identifier, IPC::MessageName invalidMessageName)
 {
     protect(parentProcessConnection())->send(Messages::GPUProcessProxy::TerminateWebProcess(identifier, invalidMessageName), 0);
@@ -378,9 +367,7 @@ void GPUProcess::beginCapturePreviewAudioSession(uint64_t generation)
     if (!process->m_savedPreferredMicrophoneID)
         process->m_savedPreferredMicrophoneID = WebCore::AVAudioSessionCaptureDeviceManager::singleton().preferredMicrophoneID();
 #endif
-    protect(process->audioSessionManager())->beginCapturePreview([generation] {
-        singleton().capturePreviewAudioSessionIsReady(generation);
-    });
+    process->swiftBeginCapturePreviewAudioSession(generation);
 #else
     UNUSED_PARAM(generation);
 #endif
@@ -397,7 +384,7 @@ void GPUProcess::endCapturePreviewAudioSession()
 
     WebCore::AVAudioSessionCaptureDeviceManager::singleton().setPreferredMicrophoneID(*savedPreferredMicrophoneID);
 #endif
-    protect(process->audioSessionManager())->endCapturePreview();
+    process->swiftEndCapturePreviewAudioSession();
 #endif
 }
 #endif // ENABLE(MEDIA_STREAM)

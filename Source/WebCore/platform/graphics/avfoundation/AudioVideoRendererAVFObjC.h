@@ -41,6 +41,7 @@
 #include <wtf/MonotonicTime.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/StdUnorderedMap.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/darwin/DispatchOSObject.h>
 
@@ -91,10 +92,16 @@ public:
     // receiver, which becomes its client.
     WEBCORE_EXPORT uint64_t swiftToken() const;
 
-    void shutdown() final;
+    WEBCORE_EXPORT void shutdown() final;
 
     WEBCORE_EXPORT void setPreferences(VideoRendererPreferences) final;
     void setHasProtectedVideoContent(bool) final;
+
+#if HAVE(SPATIAL_TRACKING_LABEL)
+    WEBCORE_EXPORT void setSpatialTrackingInfo(bool prefersSpatialAudioExperience, SoundStageSize, const String& sceneIdentifier, const String& defaultLabel, const String& label) final;
+#else
+    void setSpatialTrackingInfo(bool, SoundStageSize, const String&, const String&, const String&) final { }
+#endif
 
     // TracksRendererInterface
     WEBCORE_EXPORT std::optional<TrackIdentifier> addTrack(TrackType) final;
@@ -121,8 +128,11 @@ public:
     void notifyWhenErrorOccurs(Function<void(PlatformMediaError)>&&) final;
 
     // SynchronizerInterface
-    void play(std::optional<MonotonicTime>) final;
-    void pause(std::optional<MonotonicTime>) final;
+    WEBCORE_EXPORT void play(std::optional<MonotonicTime>) final;
+    WEBCORE_EXPORT void pause(std::optional<MonotonicTime>) final;
+    // For Swift, which can't make a MonotonicTime.
+    void playAtHostTime(double seconds) { play(MonotonicTime::fromRawSeconds(seconds)); }
+    void pauseAtHostTime(double seconds) { pause(MonotonicTime::fromRawSeconds(seconds)); }
     bool paused() const final;
     void setRate(double) final;
     double effectiveRate() const final;
@@ -131,7 +141,7 @@ public:
     Ref<GenericPromise> finishSeek(const MediaTime&) final;
     void notifyEffectiveRateChanged(Function<void(double)>&&) final;
     bool seeking() const final;
-    void setScreenReserved(bool) final;
+    WEBCORE_EXPORT void setScreenReserved(bool) final;
     SharedTimebase* sharedTimebase() final { return m_sharedTimebase.get(); }
 
     // AudioInterface
@@ -139,24 +149,25 @@ public:
     void setMuted(bool) final;
     void setPreservesPitchAndCorrectionAlgorithm(bool, std::optional<PitchCorrectionAlgorithm>) final;
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
-    void setOutputDeviceId(const String&) final;
+    WEBCORE_EXPORT void setOutputDeviceId(const String&) final;
 #endif
 
     // VideoInterface
-    void setIsVisible(bool);
-    void setPresentationSize(const IntSize&) final;
-    void setShouldMaintainAspectRatio(bool) final;
+    WEBCORE_EXPORT void setIsVisible(bool);
+    WEBCORE_EXPORT void setPresentationSize(const IntSize&) final;
+    WEBCORE_EXPORT void setShouldMaintainAspectRatio(bool) final;
     WEBCORE_EXPORT void renderingCanBeAcceleratedChanged(bool) final;
-    void contentBoxRectChanged(const LayoutRect&) final;
+    WEBCORE_EXPORT void contentBoxRectChanged(const LayoutRect&) final;
     void notifyFirstFrameAvailable(Function<void()>&&) final;
     void notifyWhenHasAvailableVideoFrame(Function<void(const MediaTime&, double)>&&) final;
     WEBCORE_EXPORT void notifyWhenRequiresFlushToResume(Function<void()>&&) final;
     void notifyRenderingModeChanged(Function<void()>&&) final;
     void expectMinimumUpcomingPresentationTime(const MediaTime&) final;
     void notifySizeChanged(Function<void(const MediaTime&, FloatSize)>&&) final;
-    void setShouldDisableHDR(bool) final;
-    void setPlatformDynamicRangeLimit(const PlatformDynamicRangeLimit&) final;
-    void setResourceOwner(const ProcessIdentity&) final;
+    WEBCORE_EXPORT void setShouldDisableHDR(bool) final;
+    void flushAndRemoveImage() final { }
+    WEBCORE_EXPORT void setPlatformDynamicRangeLimit(const PlatformDynamicRangeLimit&) final;
+    WEBCORE_EXPORT void setResourceOwner(const ProcessIdentity&) final;
     RefPtr<VideoFrame> currentVideoFrame() const final;
     void paintCurrentVideoFrameInContext(GraphicsContext&, const FloatRect&) final;
     RefPtr<NativeImage> currentNativeImage() const final;
@@ -168,11 +179,11 @@ public:
 
     // VideoFullscreenInterface
     void setVideoFullscreenLayer(PlatformLayer*, Function<void()>&&) final;
-    void setVideoFullscreenFrame(const FloatRect&) final;
+    WEBCORE_EXPORT void setVideoFullscreenFrame(const FloatRect&) final;
     void setTextTrackRepresentation(TextTrackRepresentation*) final;
-    void syncTextTrackBounds() final;
+    WEBCORE_EXPORT void syncTextTrackBounds() final;
     Ref<GenericPromise> setVideoTarget(const PlatformVideoTarget&) final;
-    void isInFullscreenOrPictureInPictureChanged(bool) final;
+    WEBCORE_EXPORT void isInFullscreenOrPictureInPictureChanged(bool) final;
 
 private:
     friend class AudioVideoRendererHost;
@@ -187,9 +198,6 @@ private:
     void periodicSharedTimerFired() final;
 #if HAVE(AUDIO_OUTPUT_DEVICE_UNIQUE_ID)
     void setOutputDeviceIdOnRenderer(AVSampleBufferAudioRenderer *);
-#endif
-#if HAVE(SPATIAL_TRACKING_LABEL)
-    void setSpatialTrackingInfo(bool prefersSpatialAudioExperience, SoundStageSize, const String& sceneIdentifier, const String& defaultLabel, const String& label) final;
 #endif
     void updateSpatialTrackingLabel();
 
@@ -243,7 +251,7 @@ private:
 #if ENABLE(ENCRYPTED_MEDIA)
     void setCDMInstance(CDMInstance*) final;
     Ref<MediaPromise> setInitData(Ref<SharedBuffer>) final;
-    void attemptToDecrypt() final;
+    WEBCORE_EXPORT void attemptToDecrypt() final;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RefPtr<SharedBuffer> initData() const final { return m_initData; }
@@ -347,6 +355,6 @@ private:
     ThreadSafeWeakPtr<CDMSessionAVContentKeySession> m_session;
 #endif
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebCore

@@ -50,8 +50,11 @@
 #include <WebCore/ShareableBitmap.h>
 #include <optional>
 #include <wtf/LoggerHelper.h>
+#include <wtf/NativePromiseSettler.h>
+#include <wtf/RefCountable.h>
 #include <wtf/RefPtr.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/Vector.h>
 #include <wtf/WeakPtr.h>
@@ -99,6 +102,7 @@ class LayerHostingContextManager;
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 class MediaPlaybackTargetContextSerialized;
 #endif
+class GPUConnectionToWebProcess;
 class RemoteAudioTrackProxy;
 class RemoteAudioSourceProviderProxy;
 class RemoteMediaPlayerManagerProxy;
@@ -106,7 +110,7 @@ class RemoteTextTrackProxy;
 class RemoteVideoFrameObjectHeap;
 class RemoteVideoTrackProxy;
 
-class RemoteMediaPlayerProxy final
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteMediaPlayerProxy.swift") RemoteMediaPlayerProxy final
     : public RefCounted<RemoteMediaPlayerProxy>
     , public WebCore::MediaPlayerClient
     , private WebCore::MessageClientForTesting
@@ -132,9 +136,13 @@ public:
     Ref<WebCore::MediaPromise> commitAllTransactions();
 
 #if ENABLE(VIDEO_PRESENTATION_MODE)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void updateVideoFullscreenInlineImage();
+#endif
     void setVideoFullscreenMode(WebCore::MediaPlayer::VideoFullscreenMode);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void videoFullscreenStandbyChanged(bool);
+#endif
 #endif
 
     void setBufferingPolicy(WebCore::MediaPlayer::BufferingPolicy);
@@ -148,52 +156,90 @@ public:
     void didReceiveMessage(IPC::Connection&, IPC::Decoder&) final;
     void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, UniqueRef<IPC::Encoder>&);
 
-    void getConfiguration(RemoteMediaPlayerConfiguration&);
+    RemoteMediaPlayerConfiguration configuration();
 
     void prepareForPlayback(bool privateMode, WebCore::MediaPlayerEnums::Preload, bool preservesPitch, WebCore::MediaPlayerEnums::PitchCorrectionAlgorithm, bool prepareToPlay, bool prepareForRendering, WebCore::IntSize presentationSize, float videoContentScale, bool isFullscreen, WebCore::DynamicRangeMode, WebCore::PlatformDynamicRangeLimit);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void prepareForRendering();
+#endif
 
     void load(URL&&, std::optional<SandboxExtension::Handle>&&, const WebCore::MediaPlayerLoadOptions&, CompletionHandler<void(RemoteMediaPlayerConfiguration&&)>&&);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void cancelLoad();
 
     void prepareToPlay();
 
     void play();
     void pause();
+#endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using WeakRemoteMediaPlayerProxy = WeakPtr<RemoteMediaPlayerProxy>;
+    WeakRemoteMediaPlayerProxy weakPtrForSwift() { return *this; }
+    using MediaTimePromiseSettler = WTF::NativePromiseSettler<WebCore::MediaTimePromise>;
+    using MediaTimePromiseHandler = MediaTimePromiseSettler::Handler;
+    using MediaTimeResult = MediaTimePromiseSettler::Result;
+    using VideoPlaybackQualityMetricsPromiseSettler = WTF::NativePromiseSettler<WebCore::MediaPlayer::VideoPlaybackQualityMetricsPromise>;
+    using VideoPlaybackQualityMetricsPromiseHandler = VideoPlaybackQualityMetricsPromiseSettler::Handler;
+    using VideoPlaybackQualityMetricsResult = VideoPlaybackQualityMetricsPromiseSettler::Result;
+    using ColorSpaceCompletionHandler = WTF::RefCountable<CompletionHandler<void(WebCore::ColorSpace)>>;
+    using SeekResult = std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError>;
+    using SeekCompletionHandler = WTF::RefCountable<CompletionHandler<void(SeekResult)>>;
+    void seekToTarget(WebCore::SeekTarget, SeekCompletionHandler* WTF_NONNULL);
+#else
     void seekToTarget(const WebCore::SeekTarget&, CompletionHandler<void(std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError>)>&&);
+#endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setVolumeLocked(bool);
     void setVolume(double);
     void setMuted(bool);
+#endif
 
     void setPreload(WebCore::MediaPlayerEnums::Preload);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setPrivateBrowsingMode(bool);
     void setPreservesPitch(bool);
+#endif
     void setPitchCorrectionAlgorithm(WebCore::MediaPlayer::PitchCorrectionAlgorithm);
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setPageIsVisible(bool);
+#endif
 
     using ViewportVisibility = WebCore::MediaPlayer::ViewportVisibility;
     void setViewportVisibility(ViewportVisibility);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setShouldMaintainAspectRatio(bool);
+#endif
 #if ENABLE(VIDEO_PRESENTATION_MODE)
     void setVideoFullscreenGravity(WebCore::MediaPlayerEnums::VideoGravity);
 #endif
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void acceleratedRenderingStateChanged(bool);
     void setShouldDisableSleep(bool);
     void setRate(double);
+#endif
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using DidLoadingProgressCompletionHandler = WTF::RefCountable<CompletionHandler<void(bool)>>;
+    void didLoadingProgress(DidLoadingProgressCompletionHandler* WTF_NONNULL);
+#else
     void didLoadingProgress(CompletionHandler<void(bool)>&&);
+#endif
 
-    void setPresentationSize(const WebCore::IntSize&);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void setPresentationSize(WebCore::IntSize);
+#endif
 
 #if PLATFORM(COCOA)
     void setVideoLayerSizeFenced(const WebCore::FloatSize&, WTF::MachSendRightAnnotated&&);
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setWirelessVideoPlaybackDisabled(bool);
     void setShouldPlayToPlaybackTarget(bool);
+#endif
     void setWirelessPlaybackTarget(MediaPlaybackTargetContextSerialized&&);
     void mediaPlayerCurrentPlaybackTargetIsWirelessChanged(bool) final;
     WebCore::MediaPlaybackTargetType playbackTargetType() const final;
@@ -201,7 +247,9 @@ public:
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     void setLegacyCDMSession(std::optional<RemoteLegacyCDMSessionIdentifier>&& instanceId);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void keyAdded();
+#endif
 #endif
 
 #if ENABLE(ENCRYPTED_MEDIA)
@@ -211,14 +259,18 @@ public:
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) && ENABLE(ENCRYPTED_MEDIA)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setShouldContinueAfterKeyNeeded(bool);
 #endif
+#endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void applicationWillResignActive();
     void applicationDidBecomeActive();
 
     void notifyTrackModeChanged();
     void tracksChanged();
+#endif
 
     void audioTrackSetEnabled(WebCore::TrackID, bool);
     void videoTrackSetSelected(WebCore::TrackID, bool);
@@ -226,9 +278,16 @@ public:
 
     using PerformTaskAtTimeCompletionHandler = CompletionHandler<void(std::optional<MediaTime>)>;
     void performTaskAtTime(const MediaTime&, PerformTaskAtTimeCompletionHandler&&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using IsCrossOriginCompletionHandler = WTF::RefCountable<CompletionHandler<void(std::optional<bool>)>>;
+    void isCrossOrigin(WebCore::SecurityOriginData, IsCrossOriginCompletionHandler* WTF_NONNULL);
+#else
     void isCrossOrigin(WebCore::SecurityOriginData, CompletionHandler<void(std::optional<bool>)>&&);
+#endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setVideoPlaybackMetricsUpdateInterval(double);
+#endif
 
     void setPreferredDynamicRangeMode(WebCore::DynamicRangeMode);
     void setPlatformDynamicRangeLimit(WebCore::PlatformDynamicRangeLimit);
@@ -262,7 +321,7 @@ private:
     void mediaPlayerEngineFailedToLoad() final;
     void mediaPlayerBufferedTimeRangesChanged() final;
     void mediaPlayerSeekableTimeRangesChanged() final;
-    bool mediaPlayerRenderingCanBeAccelerated() final;
+    bool mediaPlayerRenderingCanBeAccelerated() final { return m_renderingCanBeAccelerated; }
 
     void mediaPlayerDidAddAudioTrack(WebCore::AudioTrackPrivate&) final;
     void mediaPlayerDidRemoveAudioTrack(WebCore::AudioTrackPrivate&) final;
@@ -290,21 +349,21 @@ private:
     String mediaPlayerMediaKeysStorageDirectory() const final;
 #endif
 
-    String mediaPlayerReferrer() const final;
-    String mediaPlayerUserAgent() const final;
-    bool mediaPlayerIsFullscreen() const final;
-    bool mediaPlayerIsFullscreenPermitted() const final;
-    bool mediaPlayerIsVideo() const final;
-    float mediaPlayerContentsScale() const final;
-    bool mediaPlayerPlatformVolumeConfigurationRequired() const final;
-    WebCore::CachedResourceLoader* mediaPlayerCachedResourceLoader() const final;
+    String mediaPlayerReferrer() const final { return m_configuration.referrer; }
+    String mediaPlayerUserAgent() const final { return m_configuration.userAgent; }
+    bool mediaPlayerIsFullscreen() const final { return false; }
+    bool mediaPlayerIsFullscreenPermitted() const final { return false; }
+    bool mediaPlayerIsVideo() const final { return m_configuration.isVideo; }
+    float mediaPlayerContentsScale() const final { return m_videoContentScale; }
+    bool mediaPlayerPlatformVolumeConfigurationRequired() const final { return false; }
+    WebCore::CachedResourceLoader* mediaPlayerCachedResourceLoader() const final { return nullptr; }
     Ref<WebCore::PlatformMediaResourceLoader> mediaPlayerCreateResourceLoader() final;
-    bool doesHaveAttribute(const AtomString&, AtomString* = nullptr) const final;
-    bool mediaPlayerShouldUsePersistentCache() const final;
+    bool doesHaveAttribute(const AtomString&, AtomString* = nullptr) const final { return false; }
+    bool mediaPlayerShouldUsePersistentCache() const final { return m_configuration.shouldUsePersistentCache; }
     String mediaPlayerMediaCacheDirectory() const final;
-    WebCore::LayoutRect mediaPlayerContentBoxRect() const final;
+    WebCore::LayoutRect mediaPlayerContentBoxRect() const final { return m_playerContentBoxRect; }
 
-    void textTrackRepresentationBoundsChanged(const WebCore::IntRect&) final;
+    void textTrackRepresentationBoundsChanged(const WebCore::IntRect&) final { }
 
 #if PLATFORM(COCOA)
     Vector<Ref<WebCore::PlatformTextTrack>> outOfBandTrackSources() final;
@@ -315,19 +374,19 @@ private:
     void mediaPlayerGetRawCookies(const URL&, WebCore::MediaPlayerClient::GetRawCookiesCallback&&) const final;
 #endif
 
-    String mediaPlayerSourceApplicationIdentifier() const final;
+    String mediaPlayerSourceApplicationIdentifier() const final { return m_configuration.sourceApplicationIdentifier; }
     WebCore::MediaPlayerClientIdentifier mediaPlayerClientIdentifier() const final { return m_clientIdentifier; }
 
-    double mediaPlayerRequestedPlaybackRate() const final;
+    double mediaPlayerRequestedPlaybackRate() const final { return 0; }
 #if ENABLE(VIDEO_PRESENTATION_MODE)
-    WebCore::MediaPlayerEnums::VideoFullscreenMode mediaPlayerFullscreenMode() const final;
-    bool mediaPlayerIsVideoFullscreenStandby() const final;
+    WebCore::MediaPlayerEnums::VideoFullscreenMode mediaPlayerFullscreenMode() const final { return m_fullscreenMode; }
+    bool mediaPlayerIsVideoFullscreenStandby() const final { return m_videoFullscreenStandby; }
 #endif
-    Vector<String> mediaPlayerPreferredAudioCharacteristics() const final;
+    Vector<String> mediaPlayerPreferredAudioCharacteristics() const final { return m_configuration.preferredAudioCharacteristics; }
 
-    bool mediaPlayerShouldDisableSleep() const final;
-    const Vector<WebCore::ContentType>& mediaContentTypesRequiringHardwareSupport() const final;
-    bool mediaPlayerShouldCheckHardwareSupport() const final;
+    bool mediaPlayerShouldDisableSleep() const final { return false; }
+    const Vector<WebCore::ContentType>& mediaContentTypesRequiringHardwareSupport() const final { return m_typesRequiringHardwareSupport; }
+    bool mediaPlayerShouldCheckHardwareSupport() const final { return m_shouldCheckHardwareSupport; }
 
     const std::optional<Vector<String>>& allowedMediaContainerTypes() const final { return m_configuration.allowedMediaContainerTypes; };
     const std::optional<Vector<String>>& allowedMediaCodecTypes() const final { return m_configuration.allowedMediaCodecTypes; };
@@ -339,6 +398,24 @@ private:
 
     WebCore::PlatformVideoTarget mediaPlayerVideoTarget() const final;
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    WebCore::MediaPlayer& player() const { return *m_player; }
+    void stopUpdateCachedStateMessageTimer() { m_updateCachedStateMessageTimer.stop(); }
+    bool isUpdateCachedStateMessageTimerActive() const { return m_updateCachedStateMessageTimer.isActive(); }
+    void startRepeatingUpdateCachedStateMessageTimer(double seconds) { m_updateCachedStateMessageTimer.startRepeating(Seconds(seconds)); }
+    void cacheBufferedRanges();
+#if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
+    void setPreferredSpeakerID();
+#endif
+    uint64_t logIdentifierForSwift() const { return m_configuration.logIdentifier; }
+    bool willLogAlways() const;
+    void logAlways(const String& message) const;
+#endif
+
+    RefPtr<GPUConnectionToWebProcess> gpuConnectionToWebProcess() const;
+    template<typename TrackProxy, typename TrackPrivate> void addTrackProxy(Vector<Ref<TrackProxy>>&, TrackPrivate&);
+
+    void observeCurrentTimeChanges();
     void startUpdateCachedStateMessageTimer();
     void updateCachedState(bool = false);
     void sendCachedState();
@@ -355,38 +432,52 @@ private:
     void playAtHostTime(MonotonicTime);
     void pauseAtHostTime(MonotonicTime);
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void startVideoFrameMetadataGathering();
     void stopVideoFrameMetadataGathering();
+#endif
 #if PLATFORM(COCOA)
     void mediaPlayerOnNewVideoFrameMetadata(WebCore::VideoFrameMetadata&&, RetainPtr<CVPixelBufferRef>&&);
 #endif
 
-    void playerContentBoxRectChanged(const WebCore::LayoutRect&);
+    void playerContentBoxRectChanged(WebCore::LayoutRect);
 
-    void currentTimeChanged(const MediaTime&);
+    void currentTimeChanged(MediaTime);
 
 #if PLATFORM(COCOA)
     WebCore::FloatSize mediaPlayerVideoLayerSize() const final;
     void nativeImageForCurrentTime(CompletionHandler<void(std::optional<WTF::MachSendRight>&&, WebCore::ColorSpace)>&&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void colorSpace(ColorSpaceCompletionHandler* WTF_NONNULL);
+#else
     void colorSpace(CompletionHandler<void(WebCore::ColorSpace)>&&);
+#endif
 #endif
     void videoFrameForCurrentTimeIfChanged(RemoteVideoFrameReference, CompletionHandler<void(std::optional<RemoteVideoFrameProxy::Properties>&&, bool)>&&);
     void bitmapImageForCurrentTime(CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&);
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setShouldDisableHDR(bool);
+#endif
     void requestHostingContext(CompletionHandler<void(WebCore::HostingContext)>&&);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setShouldCheckHardwareSupport(bool);
+#endif
 #if HAVE(SPATIAL_TRACKING_LABEL)
-    void setDefaultSpatialTrackingLabel(const String&);
-    void setSpatialTrackingLabel(const String&);
+    void setDefaultSpatialTrackingLabel(String);
+    void setSpatialTrackingLabel(String);
 #endif
 #if HAVE(SPATIAL_AUDIO_EXPERIENCE)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void setPrefersSpatialAudioExperience(bool);
 #endif
+#endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void isInFullscreenOrPictureInPictureChanged(bool);
+#endif
 
-    void audioOutputDeviceChanged(String&&);
+    void audioOutputDeviceChanged(String);
     using SoundStageSize = WebCore::MediaPlayer::SoundStageSize;
     void setSoundStageSize(SoundStageSize);
         SoundStageSize mediaPlayerSoundStageSize() const final { return m_soundStageSize; }
@@ -395,7 +486,9 @@ private:
     void sendInternalMessage(const WebCore::MessageForTesting&) final;
 
 #if PLATFORM(MAC)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     void screenReservedChanged(bool);
+#endif
 #endif
 
 #if !RELEASE_LOG_DISABLED
@@ -424,8 +517,13 @@ private:
     RemoteMediaPlayerProxyConfiguration m_configuration;
     PerformTaskAtTimeCompletionHandler m_performTaskAtTimeCompletionHandler;
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    double m_videoPlaybackMetricsUpdateInterval { 0 };
+    double m_nextPlaybackQualityMetricsUpdateTime { 0 };
+#else
     Seconds m_videoPlaybackMetricsUpdateInterval;
     MonotonicTime m_nextPlaybackQualityMetricsUpdateTime;
+#endif
     bool m_hasPlaybackMetricsUpdatePending { false };
 
     float m_videoContentScale { 1.0 };
@@ -447,6 +545,9 @@ private:
     ScopedRenderingResourcesRequest m_renderingResourcesRequest;
 
     bool m_observingTimeChanges { false };
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    bool m_invalidated { false };
+#endif
     const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
     RefPtr<WebCore::VideoFrame> m_videoFrameForCurrentTime;
     bool m_shouldCheckHardwareSupport { false };

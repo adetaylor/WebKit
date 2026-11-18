@@ -94,6 +94,7 @@ enum class Synchronous : bool;
 }
 
 namespace WebCore {
+class CDMInstance;
 class MediaPlayer;
 class SecurityOrigin;
 class SecurityOriginData;
@@ -121,13 +122,14 @@ struct RemoteAudioDestinationSpatialTarget {
 class GPUProcess;
 class LayerHostingContext;
 class LibWebRTCCodecsProxyMessageForwarder;
-class LocalAudioSessionRoutingArbitrator;
 class RemoteAudioHardwareListenerProxy;
-class RemoteAudioSessionProxy;
-class RemoteAudioSessionProxyManager;
-class RemoteCDMPrivateFactory;
-class RemoteImageDecoderAVFProxy;
-class RemoteLegacyCDMFactoryProxy;
+class RemoteLegacyCDMSessionClient;
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+using RefPtrCDMInstance = RefPtr<WebCore::CDMInstance>;
+#endif
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+using RefPtrRemoteLegacyCDMSessionClient = RefPtr<RemoteLegacyCDMSessionClient>;
+#endif
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
 class RemoteRenderingBackend;
@@ -137,7 +139,6 @@ class UserMediaCaptureManagerProxy;
 class VideoReceiverEndpointManager;
 struct GPUProcessConnectionParameters;
 struct MediaOverridesForTesting;
-struct RemoteAudioSessionConfiguration;
 
 #if USE(GRAPHICS_LAYER_WC)
 class RemoteWCLayerTreeHost;
@@ -268,30 +269,25 @@ public:
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    RemoteCDMPrivateFactory& cdmPrivateFactory();
-    // For the Swift EME receivers, which the connection's Swift state owns: the C++ CDMs' instances.
-    void removeCDMInstance(uint64_t identifier);
     String cdmMediaKeysStorageDirectory() const { return mediaKeysStorageDirectory(); }
     // Implemented in Swift: whether the identifier is a CDM instance's at all, since the Swift ClearKey instances have no
     // C++ instance.
     SWIFT_MAIN_ACTOR bool hasCDMInstance(uint64_t identifier) const;
+    // Implemented in Swift: the C++ instance of a CDM instance, for the media players.
+    SWIFT_MAIN_ACTOR RefPtrCDMInstance cdmInstance(uint64_t identifier) const;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
+    // Implemented in Swift: a legacy CDM session, for the media players.
+    SWIFT_MAIN_ACTOR RefPtrRemoteLegacyCDMSessionClient legacyCDMSession(uint64_t identifier) const;
 #endif
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     RemoteMediaEngineConfigurationFactoryProxy& mediaEngineConfigurationFactoryProxy();
+#endif
 #if ENABLE(VIDEO)
     RemoteMediaPlayerManagerProxy& remoteMediaPlayerManagerProxy() { return m_remoteMediaPlayerManagerProxy.get(); }
 #endif
 #if ENABLE(LINEAR_MEDIA_PLAYER)
     VideoReceiverEndpointManager& videoReceiverEndpointManager();
-#endif
-#if USE(AUDIO_SESSION)
-    RemoteAudioSessionProxyManager& audioSessionManager();
-#endif
-
-#if HAVE(AVASSETREADER)
-    RemoteImageDecoderAVFProxy& imageDecoderAVFProxy();
 #endif
 
     void updateSupportedRemoteCommands();
@@ -339,8 +335,15 @@ public:
 
     NODELETE bool isAlwaysOnLoggingAllowed() const;
 
-#if USE(AUDIO_SESSION)
-    RemoteAudioSessionProxy& audioSessionProxy();
+#if USE(AUDIO_SESSION) && PLATFORM(IOS_FAMILY)
+    // Implemented in Swift.
+    SWIFT_MAIN_ACTOR void setAudioSessionPreferredSpeakerID(const String&);
+#endif
+#if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
+    // Implemented in Swift: the shared audio session's routing arbitration goes to this connection's web process, until
+    // the process terminates.
+    SWIFT_MAIN_ACTOR void swiftEnableRoutingArbitration();
+    SWIFT_MAIN_ACTOR void swiftRoutingArbitrationProcessDidTerminate();
 #endif
 
 #if PLATFORM(IOS_FAMILY)
@@ -449,17 +452,14 @@ private:
     void destroyVisibilityPropagationContextForPage(WebPageProxyIdentifier, WebCore::PageIdentifier);
 #endif
 
-#if USE(AUDIO_SESSION)
-    using EnsureAudioSessionCompletion = CompletionHandler<void(const RemoteAudioSessionConfiguration&)>;
-    void ensureAudioSession(EnsureAudioSessionCompletion&&);
-#endif
 
 #if PLATFORM(IOS_FAMILY)
     void ensureMediaSessionHelper();
 #endif
 
-    void createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
-    void releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
+    // Implemented in Swift with GPU_PROCESS_MEDIA_SWIFT.
+    SWIFT_MAIN_ACTOR void createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
+    SWIFT_MAIN_ACTOR void releaseAudioHardwareListener(RemoteAudioHardwareListenerIdentifier);
     void releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier);
     void setMediaOverridesForTesting(MediaOverridesForTesting);
     void configureLoggingChannel(const String&, WTFLogChannelState, WTFLogLevel);
@@ -533,30 +533,21 @@ private:
     const String m_applicationBundleIdentifier;
 #endif
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    const RefPtr<RemoteCDMPrivateFactory> m_cdmPrivateFactory;
-#endif
-#if USE(AUDIO_SESSION)
-    RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;
-#endif
 #if PLATFORM(IOS_FAMILY)
     const RefPtr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
 #endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    const RefPtr<RemoteLegacyCDMFactoryProxy> m_legacyCdmFactoryProxy;
-#endif
-#if HAVE(AVASSETREADER)
-    const std::unique_ptr<RemoteImageDecoderAVFProxy> m_imageDecoderAVFProxy;
-#endif
-
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     const std::unique_ptr<RemoteMediaEngineConfigurationFactoryProxy> m_mediaEngineConfigurationFactoryProxy;
+#endif
 
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
     HashMap<std::pair<WebPageProxyIdentifier, WebCore::PageIdentifier>, std::unique_ptr<LayerHostingContext>> m_visibilityPropagationContexts;
 #endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     using RemoteAudioHardwareListenerMap = HashMap<RemoteAudioHardwareListenerIdentifier, Ref<RemoteAudioHardwareListenerProxy>>;
     RemoteAudioHardwareListenerMap m_remoteAudioHardwareListenerMap;
+#endif
 
 #if USE(GRAPHICS_LAYER_WC)
     using RemoteWCLayerTreeHostMap = HashMap<WCLayerTreeHostIdentifier, Ref<RemoteWCLayerTreeHost>>;
@@ -572,9 +563,6 @@ private:
     HashMap<WebCore::PageIdentifier, String> m_displayCaptureEnvironments;
 #endif
 
-#if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
-    const std::unique_ptr<LocalAudioSessionRoutingArbitrator> m_routingArbitrator;
-#endif
 #if ENABLE(IPC_TESTING_API)
     const Ref<IPCTester> m_ipcTester;
 #endif

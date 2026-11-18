@@ -26,12 +26,14 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=LegacyEncryptedMediaAPIEnabled
+    EnabledBy=LegacyEncryptedMediaAPIEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteLegacyCDMProxy {
-    SupportsMIMEType(String mimeType) -> (bool supports) Synchronous
-    CreateSession(uint64_t logIdentifier) -> (std::optional<WebKit::RemoteLegacyCDMSessionIdentifier> identifier) Synchronous
-    SetPlayerId(std::optional<WebCore::MediaPlayerIdentifier> playerId)
+    SupportsMIMEType(String mimeType) -> (bool supports) Synchronous SwiftSyncHandler
+    CreateSession(uint64_t logIdentifier) -> (std::optional<WebKit::RemoteLegacyCDMSessionIdentifier> identifier) Synchronous SwiftSyncHandler
+    SetPlayerId(std::optional<WebCore::MediaPlayerIdentifier> playerId) SwiftSyncHandler
 }
 
 #endif

@@ -31,8 +31,17 @@
 #include <WebCore/PlatformMediaResourceLoader.h>
 #include <atomic>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WeakPtr.h>
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include <wtf/ThreadSafeWeakPtr.h>
+
+namespace IPC {
+template<typename> class CxxDecodedArgument;
+}
+#endif
 
 namespace WebCore {
 class NetworkLoadMetrics;
@@ -42,7 +51,6 @@ class SharedBuffer;
 
 namespace WebKit {
 
-class RemoteMediaPlayerProxy;
 class RemoteMediaResourceLoader;
 
 class RemoteMediaResource : public WebCore::PlatformMediaResource {
@@ -63,19 +71,30 @@ public:
     void redirectReceived(WebCore::ResourceRequest&&, const WebCore::ResourceResponse&, CompletionHandler<void(WebCore::ResourceRequest&&)>&&);
     void dataSent(uint64_t, uint64_t);
     void dataReceived(const WebCore::SharedBuffer&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    // Called by RemoteMediaResourceLoader.swift, with the holder that the message's argument was decoded into.
+    void accessControlCheckFailed(IPC::CxxDecodedArgument<WebCore::ResourceError>&);
+    void loadFailed(IPC::CxxDecodedArgument<WebCore::ResourceError>&);
+    void loadFinished(IPC::CxxDecodedArgument<WebCore::NetworkLoadMetrics>&);
+#else
     void accessControlCheckFailed(const WebCore::ResourceError&);
     void loadFailed(const WebCore::ResourceError&);
     void loadFinished(const WebCore::NetworkLoadMetrics&);
+#endif
 
 private:
     RemoteMediaResource(RemoteMediaResourceLoader&, RemoteMediaResourceIdentifier);
 
     const ThreadSafeWeakPtr<RemoteMediaResourceLoader> m_remoteMediaResourceLoader;
-    WeakPtr<RemoteMediaPlayerProxy> m_remoteMediaPlayerProxy;
     RemoteMediaResourceIdentifier m_id;
     std::atomic<bool> m_didPassAccessControlCheck { false };
     std::atomic<bool> m_shutdown { false };
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+// How RemoteMediaResourceLoader.swift holds the resources it hands messages to.
+using RemoteMediaResourceWeakPtr = ThreadSafeWeakPtr<RemoteMediaResource>;
+#endif
 
 } // namespace WebKit
 

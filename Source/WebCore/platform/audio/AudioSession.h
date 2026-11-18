@@ -36,12 +36,17 @@
 #include <wtf/NeverDestroyed.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Observer.h>
+#include <wtf/RefCountable.h>
+#include <wtf/RefCounted.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/WeakHashSet.h>
 #include <wtf/text/WTFString.h>
+
+IGNORE_CLANG_WARNINGS_BEGIN("nullability-completeness")
 
 namespace WTF {
 class Logger;
@@ -106,6 +111,8 @@ public:
     virtual size_t maximumNumberOfOutputChannels() const;
 
     Ref<SetActivePromise> tryToSetActive(bool);
+    // For callers that can't take a NativePromise, like Swift: whether it succeeded, on the main run loop.
+    WEBCORE_EXPORT void tryToSetActive(bool, WTF::BoolCompletionHandler&&);
 
     virtual size_t preferredBufferSize() const;
     virtual void setPreferredBufferSize(size_t);
@@ -117,6 +124,8 @@ public:
 
     virtual void audioOutputDeviceChanged();
     virtual void setIsPlayingToBluetoothOverride(std::optional<bool>);
+    // For callers that can't make a std::optional, like Swift.
+    void setOrClearIsPlayingToBluetoothOverride(bool hasValue, bool value) { setIsPlayingToBluetoothOverride(hasValue ? std::optional { value } : std::nullopt); }
 
     virtual bool isMuted() const { return false; }
     virtual void handleMutedStateChange() { }
@@ -181,7 +190,7 @@ protected:
     bool m_active { false }; // Used only for testing.
     bool m_isInterrupted { false };
     uint64_t m_activationCountForTesting { 0 };
-};
+} SWIFT_SHARED_REFERENCE(refAudioSession, derefAudioSession) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
 
 class AudioSessionInterruptionObserver : public AbstractRefCountedAndCanMakeWeakPtr<AudioSessionInterruptionObserver> {
 public:
@@ -191,6 +200,34 @@ public:
     virtual void endAudioSessionInterruption(AudioSession::MayResume) = 0;
     virtual void audioSessionActiveStateChanged() { }
 };
+
+// An observer of the shared audio session's interruptions and of its hardware muted state, buffer size and sample rate that
+// calls functions, for observers that can't subclass the observer classes, like Swift's. It observes until it is destroyed.
+class WEBCORE_EXPORT AudioSessionObserverCallbacks final : public AudioSessionInterruptionObserver, public AudioSessionConfigurationChangeObserver, public RefCounted<AudioSessionObserverCallbacks> {
+public:
+    using Callback = Function<void()>;
+    using EndInterruptionCallback = Function<void(bool mayResume)>;
+    static AudioSessionObserverCallbacks* WTF_NONNULL create(Callback&& beginInterruption, EndInterruptionCallback&& endInterruption, Callback&& configurationChanged) SWIFT_RETURNS_RETAINED;
+    ~AudioSessionObserverCallbacks();
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    USING_CAN_MAKE_WEAKPTR(AudioSessionInterruptionObserver);
+
+private:
+    AudioSessionObserverCallbacks(Function<void()>&&, Function<void(bool)>&&, Function<void()>&&);
+
+    void beginAudioSessionInterruption() final { m_beginInterruption(); }
+    void endAudioSessionInterruption(AudioSession::MayResume mayResume) final { m_endInterruption(mayResume == AudioSession::MayResume::Yes); }
+    void hardwareMutedStateDidChange(const AudioSession&) final { m_configurationChanged(); }
+    void bufferSizeDidChange(const AudioSession&) final { m_configurationChanged(); }
+    void sampleRateDidChange(const AudioSession&) final { m_configurationChanged(); }
+
+    const Function<void()> m_beginInterruption;
+    const Function<void(bool)> m_endInterruption;
+    const Function<void()> m_configurationChanged;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 enum class AudioSessionRoutingArbitrationError : uint8_t { None, Failed, Cancelled };
 
@@ -212,6 +249,36 @@ public:
     virtual bool canLog() const = 0;
 };
 
+// A client of the shared audio session's routing arbitration that calls functions, for clients that can't subclass
+// AudioSessionRoutingArbitrationClient, like Swift's. The begin function gets the arbitration's callback in a box, which it
+// must call.
+class WEBCORE_EXPORT AudioSessionRoutingArbitrationCallbacks final : public AudioSessionRoutingArbitrationClient, public RefCounted<AudioSessionRoutingArbitrationCallbacks> {
+public:
+    using CallbackBox = WTF::RefCountable<ArbitrationCallback>;
+    using BeginCallback = Function<void(AudioSessionCategory, CallbackBox* WTF_NONNULL)>;
+    using LeaveCallback = Function<void()>;
+    using CanLogCallback = Function<bool()>;
+    static AudioSessionRoutingArbitrationCallbacks* WTF_NONNULL create(BeginCallback&&, LeaveCallback&&, CanLogCallback&&) SWIFT_RETURNS_RETAINED;
+
+    void ref() const final { RefCounted::ref(); }
+    void deref() const final { RefCounted::deref(); }
+
+    void becomeSharedSessionClient() { AudioSession::singleton().setRoutingArbitrationClient(*this); }
+
+private:
+    AudioSessionRoutingArbitrationCallbacks(BeginCallback&&, LeaveCallback&&, CanLogCallback&&);
+
+    void beginRoutingArbitrationWithCategory(AudioSession::CategoryType, ArbitrationCallback&&) final;
+    void leaveRoutingArbitration() final { m_leave(); }
+    uint64_t logIdentifier() const final { return m_logIdentifier; }
+    bool canLog() const final { return m_canLog(); }
+
+    const BeginCallback m_begin;
+    const LeaveCallback m_leave;
+    const CanLogCallback m_canLog;
+    const uint64_t m_logIdentifier;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
 WEBCORE_EXPORT String convertEnumerationToString(RouteSharingPolicy);
 WEBCORE_EXPORT String convertEnumerationToString(AudioSession::CategoryType);
 WEBCORE_EXPORT String convertEnumerationToString(AudioSession::Mode);
@@ -220,6 +287,17 @@ WEBCORE_EXPORT String convertEnumerationToString(AudioSessionRoutingArbitrationC
 WEBCORE_EXPORT String convertEnumerationToString(AudioSession::SoundStageSize);
 
 } // namespace WebCore
+
+// AudioSession's base has no Swift annotation, so it is a Swift reference type through these.
+inline void refAudioSession(WebCore::AudioSession* WTF_NONNULL session)
+{
+    session->ref();
+}
+
+inline void derefAudioSession(WebCore::AudioSession* WTF_NONNULL session)
+{
+    session->deref();
+}
 
 namespace WTF {
 
@@ -275,5 +353,7 @@ struct LogArgument<WebCore::AudioSession::SoundStageSize> {
 };
 
 } // namespace WTF
+
+IGNORE_CLANG_WARNINGS_END
 
 #endif // USE(AUDIO_SESSION)

@@ -26,12 +26,14 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=LegacyEncryptedMediaAPIEnabled
+    EnabledBy=LegacyEncryptedMediaAPIEnabled,
+    SwiftReceiver,
+    SwiftTypes
 ]
 messages -> RemoteLegacyCDMFactoryProxy {
-    CreateCDM(String keySystem, std::optional<WebCore::MediaPlayerIdentifier> playerId) -> (std::optional<WebKit::RemoteLegacyCDMIdentifier> identifier) Synchronous
-    SupportsKeySystem(String keySystem, std::optional<String> mimeType) -> (bool result) Synchronous
-    RemoveSession(WebKit::RemoteLegacyCDMSessionIdentifier identifier) -> ()
+    CreateCDM(String keySystem, std::optional<WebCore::MediaPlayerIdentifier> playerId) -> (std::optional<WebKit::RemoteLegacyCDMIdentifier> identifier) Synchronous SwiftSyncHandler
+    SupportsKeySystem(String keySystem, std::optional<String> mimeType) -> (bool result) Synchronous SwiftSyncHandler
+    RemoveSession(WebKit::RemoteLegacyCDMSessionIdentifier identifier) -> () SwiftSyncHandler
 }
 
 #endif

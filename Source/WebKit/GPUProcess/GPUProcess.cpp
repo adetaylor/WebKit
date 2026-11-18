@@ -67,7 +67,6 @@
 #include <wtf/text/AtomString.h>
 
 #if USE(AUDIO_SESSION)
-#include "RemoteAudioSessionProxyManager.h"
 #endif
 
 #if ENABLE(MEDIA_STREAM)
@@ -674,9 +673,7 @@ void GPUProcess::beginCapturePreviewAudioSession(uint64_t generation)
     if (!process->m_savedPreferredMicrophoneID)
         process->m_savedPreferredMicrophoneID = WebCore::AVAudioSessionCaptureDeviceManager::singleton().preferredMicrophoneID();
 #endif
-    protect(process->audioSessionManager())->beginCapturePreview([generation] {
-        singleton().capturePreviewAudioSessionIsReady(generation);
-    });
+    process->swiftBeginCapturePreviewAudioSession(generation);
 #else
     UNUSED_PARAM(generation);
 #endif
@@ -693,7 +690,7 @@ void GPUProcess::endCapturePreviewAudioSession()
 
     WebCore::AVAudioSessionCaptureDeviceManager::singleton().setPreferredMicrophoneID(*savedPreferredMicrophoneID);
 #endif
-    protect(process->audioSessionManager())->endCapturePreview();
+    process->swiftEndCapturePreviewAudioSession();
 #endif
 }
 
@@ -930,15 +927,6 @@ WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
         lazyInitialize(m_nowPlayingManager, makeUnique<WebCore::NowPlayingManager>());
     return *m_nowPlayingManager;
 }
-
-#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-RemoteAudioSessionProxyManager& GPUProcess::audioSessionManager()
-{
-    if (!m_audioSessionManager)
-        m_audioSessionManager = RemoteAudioSessionProxyManager::create(*this);
-    return *m_audioSessionManager;
-}
-#endif
 
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
 WorkQueue& GPUProcess::videoMediaStreamTrackRendererQueue()

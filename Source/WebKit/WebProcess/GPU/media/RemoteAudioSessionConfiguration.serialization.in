@@ -22,7 +22,7 @@
 
 #if USE(AUDIO_SESSION)
 
-struct WebKit::RemoteAudioSessionConfiguration {
+[Swift] struct WebKit::RemoteAudioSessionConfiguration {
     String routingContextUID;
     float sampleRate;
     uint64_t bufferSize;

@@ -81,4 +81,17 @@ AudioHardwareListener::AudioHardwareListener(Client& client)
 #endif
 }
 
+AudioHardwareListenerCallbacks* AudioHardwareListenerCallbacks::create(Function<void()>&& didBecomeActive, Function<void()>&& didBecomeInactive, Function<void()>&& outputDeviceChanged)
+{
+    return &adoptRef(*new AudioHardwareListenerCallbacks(WTF::move(didBecomeActive), WTF::move(didBecomeInactive), WTF::move(outputDeviceChanged))).leakRef();
+}
+
+AudioHardwareListenerCallbacks::AudioHardwareListenerCallbacks(Function<void()>&& didBecomeActive, Function<void()>&& didBecomeInactive, Function<void()>&& outputDeviceChanged)
+    : m_didBecomeActive(WTF::move(didBecomeActive))
+    , m_didBecomeInactive(WTF::move(didBecomeInactive))
+    , m_outputDeviceChanged(WTF::move(outputDeviceChanged))
+    , m_listener(AudioHardwareListener::create(*this))
+{
+}
+
 }

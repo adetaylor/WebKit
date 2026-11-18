@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #include "MessageReceiver.h"
 #include "RemoteAudioHardwareListenerIdentifier.h"

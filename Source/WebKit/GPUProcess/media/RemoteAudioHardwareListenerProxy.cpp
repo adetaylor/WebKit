@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteAudioHardwareListenerProxy.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 #include "GPUConnectionToWebProcess.h"
 #include "RemoteAudioHardwareListenerMessages.h"

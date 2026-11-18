@@ -26,7 +26,7 @@
 [
     DispatchedFrom=GPU,
     DispatchedTo=WebContent,
-    CxxSenders
+    CxxSenders=GPU_PROCESS_MEDIA_SWIFT
 ]
 messages -> MediaPlayerPrivateRemote {
     NetworkStateChanged(struct WebKit::RemoteMediaPlayerState state)

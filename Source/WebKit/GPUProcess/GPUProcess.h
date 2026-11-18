@@ -83,7 +83,6 @@ namespace WebKit {
 
 class CapturePreviewLayer;
 class GPUConnectionToWebProcess;
-class RemoteAudioSessionProxyManager;
 struct GPUProcessConnectionParameters;
 struct GPUProcessSessionParameters;
 
@@ -122,7 +121,6 @@ public:
     SWIFT_MAIN_ACTOR String mediaKeysStorageDirectory(PAL::SessionID) const;
 #endif
 
-    RemoteAudioSessionProxyManager& audioSessionManager();
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
 
 #if ENABLE(MEDIA_STREAM)
@@ -172,6 +170,12 @@ public:
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
+#if (PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)) && USE(AUDIO_SESSION)
+    // Implemented in Swift (RemoteAudioSessionProxyManager.swift): the audio session arbitration has the preview's session
+    // record, then tells capturePreviewAudioSessionIsReady(), or stops.
+    SWIFT_MAIN_ACTOR void swiftBeginCapturePreviewAudioSession(uint64_t generation);
+    SWIFT_MAIN_ACTOR void swiftEndCapturePreviewAudioSession();
+#endif
     static bool capturePreviewNeedsAudioSession();
     SWIFT_MAIN_ACTOR static void beginCapturePreviewAudioSession(uint64_t generation);
     SWIFT_MAIN_ACTOR static void endCapturePreviewAudioSession();
@@ -324,7 +328,6 @@ private:
     const Ref<WorkQueue> m_libWebRTCCodecsQueue { WorkQueue::create("LibWebRTCCodecsQueue"_s, WorkQueue::QOS::UserInitiated) };
 #endif
     const std::unique_ptr<WebCore::NowPlayingManager> m_nowPlayingManager;
-    mutable RefPtr<RemoteAudioSessionProxyManager> m_audioSessionManager;
 #if ENABLE(WEBXR)
     std::optional<WebCore::ProcessIdentity> m_processIdentity;
 #endif
@@ -402,7 +405,6 @@ namespace WebKit {
 
 class CapturePreviewLayer;
 class GPUConnectionToWebProcess;
-class RemoteAudioSessionProxyManager;
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 class RemoteSnapshotDisplayLists;
 #endif
@@ -439,10 +441,6 @@ public:
     NODELETE const String& mediaCacheDirectory(PAL::SessionID) const LIFETIME_BOUND;
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
     NODELETE const String& mediaKeysStorageDirectory(PAL::SessionID) const LIFETIME_BOUND;
-#endif
-
-#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-    RemoteAudioSessionProxyManager& audioSessionManager();
 #endif
 
     WebCore::NowPlayingManager& nowPlayingManager() LIFETIME_BOUND;
@@ -563,6 +561,12 @@ public:
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
+#if (PLATFORM(IOS_FAMILY) || ENABLE(ROUTING_ARBITRATION)) && USE(AUDIO_SESSION)
+    // Implemented in Swift (RemoteAudioSessionProxyManager.swift): the audio session arbitration has the preview's session
+    // record, then tells capturePreviewAudioSessionIsReady(), or stops.
+    SWIFT_MAIN_ACTOR void swiftBeginCapturePreviewAudioSession(uint64_t generation);
+    SWIFT_MAIN_ACTOR void swiftEndCapturePreviewAudioSession();
+#endif
 
     // For the capture preview (CapturePreviewManager.swift).
     static bool capturePreviewNeedsAudioSession();
@@ -745,9 +749,6 @@ private:
     String m_applicationVisibleName;
 #if PLATFORM(MAC)
     String m_uiProcessName;
-#endif
-#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-    mutable RefPtr<RemoteAudioSessionProxyManager> m_audioSessionManager;
 #endif
 #if ENABLE(WEBXR)
     std::optional<WebCore::ProcessIdentity> m_processIdentity;

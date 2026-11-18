@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021-2026 Apple Inc. All rights reserved.
+ * Copyright (C) 2020 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,36 +23,35 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "GPUVideoFrameSource.h"
+#pragma once
 
-#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
+#if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION) && PLATFORM(IOS_FAMILY)
 
-#include "GPUConnectionToWebProcess.h"
-#include "RemoteRenderingBackend.h"
-#include <WebCore/MediaPlayer.h>
-#include <WebCore/VideoFrame.h>
+#include <wtf/Forward.h>
+#include <wtf/Vector.h>
 
 namespace WebKit {
 
-CVBufferRef copyMediaPlayerFrame(RemoteRenderingBackend& renderingBackend, uint64_t mediaPlayerIdentifier, GPUVideoFrameReadResult& result)
-{
-    result = { .hadFrame = true };
-    CVBufferRef pixelBuffer = nullptr;
-    protect(renderingBackend.gpuConnectionToWebProcess())->performWithMediaPlayerOnMainThread(WebCore::MediaPlayerIdentifier { mediaPlayerIdentifier }, [&](auto& player) mutable {
-        auto naturalSize = player.naturalSize();
-        result.naturalWidth = static_cast<uint32_t>(std::max(0.0f, naturalSize.width()));
-        result.naturalHeight = static_cast<uint32_t>(std::max(0.0f, naturalSize.height()));
-        RefPtr videoFrame = player.videoFrameForCurrentTime();
-        if (!videoFrame)
-            return;
-        result.rotation = static_cast<uint16_t>(videoFrame->rotation());
-        result.isMirrored = videoFrame->isMirrored();
-        pixelBuffer = RetainPtr { videoFrame->pixelBuffer() }.leakRef();
-    });
-    return pixelBuffer;
-}
+class GPUConnectionToWebProcess;
+
+// The parts of the GPU process's audio session arbitration (RemoteAudioSessionProxyManager.swift) that only iOS has.
+struct RemoteAudioSessionIOS {
+    static void setHostProcessAttribution();
+    static void providePresentingApplicationPID(GPUConnectionToWebProcess&);
+    static void setPreferredSpeakerID(const String&);
+};
+
+// The presenting applications of the web processes whose audio sessions are active, which the audio session keeps from
+// being suspended during playback.
+struct RemoteAudioSessionPresentingProcesses {
+    void add(GPUConnectionToWebProcess&, bool isActive);
+    void commit();
+
+private:
+    Vector<audit_token_t> m_processes;
+    bool m_shouldAppendParentProcess { false };
+};
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && PLATFORM(COCOA) && ENABLE(VIDEO)
+#endif

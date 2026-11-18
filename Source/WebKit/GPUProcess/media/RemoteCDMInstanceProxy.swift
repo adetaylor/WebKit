@@ -23,6 +23,7 @@
 
 #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
 
+@_spi(WebKitGPU) internal import WebCore
 import WebKit_Internal
 import wtf
 
@@ -53,6 +54,12 @@ final class RemoteCDMInstanceProxy {
         return messageForwarder
     }
 
+    @_expose(!Cxx)
+    @MainActor
+    var cxxInstance: WebCore.CDMInstance? {
+        backend.cxxInstance
+    }
+
     @used
     func sharedPreferencesForWebProcess() -> WebKit.OptionalSharedPreferencesForWebProcess {
         // The receiver's messages come on the main thread, which alone changes the factory's connection.
@@ -68,7 +75,7 @@ final class RemoteCDMInstanceProxy {
         guard let cdm, let factory, factory.connection != nil else {
             return nil
         }
-        let identifier = WebKit.RemoteCDMPrivateFactory.generateSessionIdentifier()
+        let identifier = WTF.ObjectIdentifierMainThreadAccessTraits.generateIdentifierInternal()
         guard let session = backend.makeSession(identifier: identifier, cdm: cdm, connection: connection, logIdentifier: self.logIdentifier)
         else {
             return nil

@@ -34,6 +34,12 @@
 #include <WebCore/SharedBuffer.h>
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "SwiftCoding.h"
+#include <WebCore/NetworkLoadMetrics.h>
+#include <WebCore/ResourceError.h>
+#endif
+
 namespace WebKit {
 
 WTF_MAKE_TZONE_ALLOCATED_IMPL(RemoteMediaResource);
@@ -120,6 +126,32 @@ void RemoteMediaResource::dataReceived(const SharedBuffer& data)
         client->dataReceived(*this, data);
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+void RemoteMediaResource::accessControlCheckFailed(IPC::CxxDecodedArgument<ResourceError>& error)
+{
+    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
+
+    m_didPassAccessControlCheck = false;
+    if (auto client = this->client())
+        client->accessControlCheckFailed(*this, *error.take());
+}
+
+void RemoteMediaResource::loadFailed(IPC::CxxDecodedArgument<ResourceError>& error)
+{
+    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
+
+    if (auto client = this->client())
+        client->loadFailed(*this, *error.take());
+}
+
+void RemoteMediaResource::loadFinished(IPC::CxxDecodedArgument<NetworkLoadMetrics>& metrics)
+{
+    assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
+
+    if (auto client = this->client())
+        client->loadFinished(*this, *metrics.take());
+}
+#else
 void RemoteMediaResource::accessControlCheckFailed(const ResourceError& error)
 {
     assertIsCurrent(RemoteMediaResourceLoader::defaultQueue());
@@ -144,6 +176,7 @@ void RemoteMediaResource::loadFinished(const NetworkLoadMetrics& metrics)
     if (auto client = this->client())
         client->loadFinished(*this, metrics);
 }
+#endif
 
 } // namespace WebKit
 

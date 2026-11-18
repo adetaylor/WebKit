@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 Apple Inc. All rights reserved.
+ * Copyright (C) 2021-2025 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,51 +27,26 @@
 
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
 
-#include "AudioSessionRoutingArbitratorProxy.h"
-#include <wtf/TZoneMalloc.h>
-#include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakRef.h>
-
-namespace WTF {
-class Logger;
-}
+#include "Connection.h"
+#include "GPUProcessConnectionMessages.h"
+#include <WebCore/AudioSession.h>
 
 namespace WebKit {
 
-class GPUConnectionToWebProcess;
-
-class LocalAudioSessionRoutingArbitrator final
-    : public WebCore::AudioSessionRoutingArbitrationClient {
-    WTF_MAKE_TZONE_ALLOCATED(LocalAudioSessionRoutingArbitrator);
-
-    friend UniqueRef<LocalAudioSessionRoutingArbitrator> WTF::makeUniqueRefWithoutFastMallocCheck<LocalAudioSessionRoutingArbitrator>(GPUConnectionToWebProcess&);
-public:
-    USING_CAN_MAKE_WEAKPTR(WebCore::AudioSessionRoutingArbitrationClient);
-
-    LocalAudioSessionRoutingArbitrator(GPUConnectionToWebProcess&);
-    virtual ~LocalAudioSessionRoutingArbitrator();
-
-    void processDidTerminate();
-
-    // WebCore::AudioSessionRoutingArbitrationClient.
-    void ref() const final;
-    void deref() const final;
-
-private:
-    // AudioSessionRoutingArbitrationClient
-    void beginRoutingArbitrationWithCategory(WebCore::AudioSession::CategoryType, ArbitrationCallback&&) final;
-    void leaveRoutingArbitration() final;
-
-    Logger& logger();
-    ASCIILiteral logClassName() const { return "LocalAudioSessionRoutingArbitrator"_s; }
-    NODELETE WTFLogChannel& logChannel() const;
-    uint64_t logIdentifier() const final { return m_logIdentifier; }
-    bool canLog() const final;
-
-    const CheckedRef<GPUConnectionToWebProcess> m_connectionToWebProcess;
-    const uint64_t m_logIdentifier;
-};
-
+// The routing arbitration of the GPU process's audio session, which a web process's connection does for it
+// (RemoteAudioSessionProxyManager.swift), goes to the web process with these, since Swift can't send a message with a reply.
+inline void sendBeginRoutingArbitration(IPC::Connection& connection, WebCore::AudioSessionCategory category, WebCore::AudioSessionRoutingArbitrationCallbacks::CallbackBox& callback)
+{
+    connection.sendWithAsyncReply(Messages::GPUProcessConnection::BeginRoutingArbitrationWithCategory(category), [callback = Ref { callback }](auto error, auto defaultRouteChanged) {
+        (*callback.get())(error, defaultRouteChanged);
+    }, 0);
 }
+
+inline void sendEndRoutingArbitration(IPC::Connection& connection)
+{
+    connection.send(Messages::GPUProcessConnection::EndRoutingArbitration(), 0);
+}
+
+} // namespace WebKit
 
 #endif

@@ -299,8 +299,8 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
     if cpp_type in ('Seconds', 'WTF::Seconds'):
         return ('Double', 'Double')
 
-    # A WallTime is encoded as its seconds since the epoch, a double, which Swift takes as them.
-    if cpp_type in ('WallTime', 'WTF::WallTime'):
+    # A WallTime or a MonotonicTime is encoded as its seconds since its epoch, a double, which Swift takes as them.
+    if cpp_type in ('WallTime', 'WTF::WallTime', 'MonotonicTime', 'WTF::MonotonicTime'):
         return ('Double', 'Double')
 
     # A GenericPromise::Result is encoded as whether the promise resolved, as its rejection carries no value.
@@ -413,7 +413,7 @@ def swift_type_and_coder(cpp_type, cxx_name_coders=True):
         return (swift_type, '%s.%s.%s' % (SWIFT_TYPES_NAMESPACE, SWIFT_CXX_NAMES, swift_cxx_name(cpp_type)))
 
     raise UnmappableSwiftType("'%s' has no Swift form. Messages that take Swift types support integers, bool, float, "
-                              "double, Seconds, WallTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
+                              "double, Seconds, WallTime, MonotonicTime, String, AtomString, MediaTime, GenericPromise::Result, Vector, std::span of const primitives (of dynamic extent, or of fixed extent %s), std::span of the trivially copyable structs %s, std::array, std::optional, std::pair, std::expected, Markable, Ref, RefPtr, OptionSet, RetainPtr<CVPixelBufferRef>, "
                               "types marked [Swift] in a .serialization.in file, the C++-decoded types %s, the owned types %s, and %s." % (cpp_type, ', '.join(str(extent) for extent in sorted(_FIXED_SPAN_EXTENTS)), ', '.join(sorted(_TRIVIAL_SPAN_ELEMENT_TYPES)), ', '.join(sorted(_CXX_DECODED_TYPES)), ', '.join(sorted(_OWNED_TYPES)), ', '.join(sorted(_HAND_WRITTEN_TYPES))))
 
 

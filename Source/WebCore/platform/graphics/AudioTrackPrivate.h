@@ -29,6 +29,7 @@
 #include <WebCore/PlatformAudioTrackConfiguration.h>
 #include <WebCore/TrackPrivateBase.h>
 #include <wtf/Function.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMallocInlines.h>
 
 #if ENABLE(VIDEO)
@@ -112,7 +113,7 @@ private:
     PlatformAudioTrackConfiguration m_configuration;
     using SharedEnabledChangedCallback = Shared<EnabledChangedCallback>;
     RefPtr<SharedEnabledChangedCallback> m_enabledChangedCallback WTF_GUARDED_BY_LOCK(m_lock);
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebCore
 

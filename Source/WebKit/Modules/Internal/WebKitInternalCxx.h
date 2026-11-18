@@ -65,6 +65,14 @@
 #include "RemoteVideoFrameObjectHeapMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT) && ENABLE(VIDEO)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include "RemoteMediaPlayerProxy.h"
+#if ENABLE(WEB_AUDIO)
+#include "RemoteAudioSourceProviderProxy.h"
+#endif
+#endif
+
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 #include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
@@ -80,22 +88,55 @@
 #include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
-#include "RemoteCDMSwiftSupport.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#include "RemoteImageDecoderAVFProxyMessages.h"
+#include "RemoteLegacyCDMFactoryProxyMessages.h"
+#include "RemoteLegacyCDMProxyMessages.h"
+#include "RemoteLegacyCDMSessionProxyMessages.h"
+#include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
+#include "RemoteMediaSwiftSupport.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include <WebCore/AudioHardwareListener.h>
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
+#include "LocalAudioSessionRoutingArbitrator.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-#include "RemoteAudioSessionProxy.h"
-#include "RemoteAudioSessionProxyManager.h"
+#include <WebCore/AudioSession.h>
+#if PLATFORM(IOS_FAMILY)
+#include "RemoteAudioSessionIOS.h"
+#endif
 #include "RemoteAudioSessionProxyMessages.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && PLATFORM(COCOA)
 #include "RemoteAudioVideoRendererProxyManager.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include "RemoteAudioTrackProxy.h"
+#include "RemoteMediaPlayerManagerProxy.h"
+#include "RemoteMediaPlayerManagerProxyMessages.h"
+#include "RemoteMediaPlayerProxyMessages.h"
+#include "RemoteMediaPlayerProxy.h"
+#include "RemoteMediaResource.h"
+#include "RemoteMediaResourceLoader.h"
+#include "RemoteMediaResourceLoaderMessages.h"
+#include "RemoteTextTrackProxy.h"
+#include "RemoteVideoTrackProxy.h"
+#include "ScopedRenderingResourcesRequest.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
@@ -131,7 +172,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "GPUVideoFrameSource.h"
 #include "RemoteAdapterMessages.h"
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"
