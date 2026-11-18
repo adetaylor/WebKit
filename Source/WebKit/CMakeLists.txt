@@ -458,7 +458,6 @@ set(WebKit_SERIALIZATION_IN_FILES
     GPUProcess/GPUProcessSessionParameters.serialization.in
 
     GPUProcess/graphics/PathSegment.serialization.in
-    GPUProcess/graphics/RemoteGraphicsContextGLInitializationState.serialization.in
 
     GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in
     GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
@@ -549,6 +548,7 @@ set(WebKit_SERIALIZATION_IN_FILES
     Shared/ProvisionalFrameCreationParameters.serialization.in
     Shared/RTCNetwork.serialization.in
     Shared/RTCPacketOptions.serialization.in
+    Shared/RemoteGraphicsContextGLInitializationState.serialization.in
     Shared/RemoteWebTouchEvent.serialization.in
     Shared/RemoteWorkerInitializationData.serialization.in
     Shared/RemoteWorkerType.serialization.in
