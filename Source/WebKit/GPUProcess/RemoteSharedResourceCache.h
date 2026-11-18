@@ -38,6 +38,7 @@
 #include <wtf/FastMalloc.h>
 #include <wtf/Ref.h>
 #include <wtf/Seconds.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
@@ -45,7 +46,13 @@
 #include <WebCore/IOSurfacePool.h>
 #endif
 
+namespace WebCore {
+class FilterImageAllocator;
+}
+
 namespace WebKit {
+
+class RemoteRenderingBackend;
 
 // Timeout for waiting on a resource to be published in the shared cache from another work queue.
 constexpr Seconds defaultRemoteSharedResourceCacheTimeout = 15_s;
@@ -103,6 +110,12 @@ private:
     std::atomic<size_t> m_acceleratedImageBufferForCanvasCount;
     std::atomic<size_t> m_imageBufferForCanvasCount;
 };
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// The allocator of the images of the filters that a Swift renderer applies (RemoteCGRendererFilters.swift): the backend's
+// shared resource cache's, as RemoteGraphicsContext's, or, for a replay or a renderer without a backend, the default one.
+WebCore::FilterImageAllocator* WTF_NONNULL createFilterImageAllocator(RemoteRenderingBackend* WTF_NULLABLE) SWIFT_RETURNS_RETAINED;
+#endif
 
 } // namespace WebKit
 

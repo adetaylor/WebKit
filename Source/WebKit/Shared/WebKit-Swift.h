@@ -140,7 +140,11 @@
 #include "RemoteCGRendererLineSegments.h"
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererPathSegment.h"
-#include "RemoteCGRendererResources.h"
+#include "RemoteSnapshotPrintData.h"
+#include "SharedFont.h"
+#include <WebCore/Filter.h>
+#include <WebCore/FontCustomPlatformData.h>
+#include <WebCore/MeshGradient.h>
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteCGRendererMessages.h"

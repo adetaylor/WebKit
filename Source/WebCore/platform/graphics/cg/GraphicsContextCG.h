@@ -211,8 +211,15 @@ public:
     WEBCORE_EXPORT unsigned rendererSavedLevelCountForTesting() const __attribute__((availability(swift, unavailable)));
     void addSwiftRendererLender() __attribute__((availability(swift, unavailable)));
     void removeSwiftRendererLender() __attribute__((availability(swift, unavailable)));
+    // Lends the renderer, as a lender of its own, to a Swift replay into the context, which draws with it. Until the draw
+    // returns, the context is this thread's replay context (swiftReplayContext()).
+    template<typename Draw> static void lendSwiftRendererForReplay(GraphicsContextCG&, NOESCAPE const Draw&) __attribute__((availability(swift, unavailable)));
+    // The context of the innermost Swift replay on this thread, if any.
+    WEBCORE_EXPORT static GraphicsContextCG* swiftReplayContext() __attribute__((availability(swift, unavailable)));
 
 private:
+    WEBCORE_EXPORT static GraphicsContextCG* exchangeSwiftReplayContext(GraphicsContextCG*);
+
     // Applying the pending state does not change the observable state of the context, so this is
     // usable from the const accessors.
     void updatePlatformContextStateIfNeeded() const;
@@ -291,6 +298,18 @@ inline GraphicsContextCG::SwiftRendererLend GraphicsContextCG::lendSwiftRenderer
     context.m_swiftRendererState = SwiftRendererState::InPlaceLent;
     // Only Swift reaches the renderer through this address.
     return SwiftRendererLend { &context, reinterpret_cast<CGRendererCore*>(context.m_swiftRendererStorage) };
+}
+
+template<typename Draw> void GraphicsContextCG::lendSwiftRendererForReplay(GraphicsContextCG& context, NOESCAPE const Draw& draw)
+{
+    context.addSwiftRendererLender();
+    auto* outerReplayContext = exchangeSwiftReplayContext(&context);
+    {
+        auto lend = lendSwiftRenderer(context);
+        draw(lend.state());
+    }
+    exchangeSwiftReplayContext(outerReplayContext);
+    context.removeSwiftRendererLender();
 }
 
 CGAffineTransform getUserToBaseCTM(CGContextRef);

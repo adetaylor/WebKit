@@ -47,7 +47,6 @@
 #include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteCGRendererPathSegment.h"
-#include "RemoteCGRendererResources.h"
 #include "RemoteCGRendererShadow.h"
 #include "RemoteCGRendererStyle.h"
 #include "RemoteResourceCache.h"
@@ -93,8 +92,8 @@ public:
     {
         if (!context.canLendSwiftRenderer())
             return;
-        replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-            RemoteCGRendererRecordedDrawing::draw(m_drawing, state, &resources);
+        GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
+            RemoteCGRendererRecordedDrawing::draw(m_drawing, state);
         });
     }
 
@@ -282,8 +281,8 @@ void RemoteImageBufferGraphicsContext::startListeningForIPC()
             cgContext().addSwiftRendererLender();
             m_isSwiftRendererLender = true;
         }
-        Ref resources = RemoteCGRendererResources::create(m_renderingBackend, m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get());
-        Ref forwarder = RemoteCGRenderer::createMessageReceiver(resources.ptr(), m_renderingBackend.ptr());
+        Ref target = m_discardedDrawingTarget ? *m_discardedDrawingTarget : m_imageBuffer.get();
+        Ref forwarder = RemoteCGRenderer::createMessageReceiver(m_renderingBackend.ptr(), target.ptr());
         forwarder->setStateLender(*this);
         streamConnection.startReceivingMessages(forwarder, Messages::RemoteCGRenderer::messageReceiverName(), m_identifier.toUInt64());
         return;
@@ -443,14 +442,14 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
 // paints into replays, as each draws what this draws into the buffer's.
 void RemoteImageBufferGraphicsContext::drawRecordedDisplayList(RemoteDisplayListIdentifier identifier)
 {
-    auto recording = RemoteCGRendererDisplayLists::forBackend(m_renderingBackend.ptr()).recording(displayListKey(identifier));
+    auto recording = RemoteCGRendererDisplayLists::forBackend(m_renderingBackend.ptr()).recording(identifier.toUInt64());
     MESSAGE_CHECK(recording);
     auto& bifurcatedContext = static_cast<BifurcatedGraphicsContext&>(context());
     for (auto* paintedContext : { &bifurcatedContext.primaryContext(), &bifurcatedContext.secondaryContext() }) {
         if (!paintedContext->canLendSwiftRenderer())
             continue;
-        replayIntoContext(static_cast<GraphicsContextCG&>(*paintedContext), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-            recording.get().draw(state, &resources);
+        GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(*paintedContext), [&](CGRendererCore& state) {
+            recording.get().draw(state);
         });
     }
 }

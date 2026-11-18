@@ -1846,10 +1846,12 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRenderer.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererFilters.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererRecording.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererResources.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBuffer.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageBufferMessageReceiver.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGL.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLFunctionsGenerated.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift

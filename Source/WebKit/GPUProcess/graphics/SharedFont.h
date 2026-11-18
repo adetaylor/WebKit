@@ -26,6 +26,7 @@
 #pragma once
 
 #include <WebCore/FontBase.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 namespace WebKit {
@@ -42,6 +43,6 @@ public:
 
 private:
     SharedFont(const WebCore::FontPlatformData&, Origin, IsInterstitial, Visibility, IsOrientationFallback, IsSmallCapsFace, std::optional<WebCore::RenderingResourceIdentifier>);
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 } // namespace WebKit

@@ -42,7 +42,9 @@
 #include "RemoteMeshGradientIdentifier.h"
 #include "RemotePathImplIdentifier.h"
 #include "RemoteRenderingBackendIdentifier.h"
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteResourceCache.h"
+#endif
 #include "RemoteSerializedImageBufferIdentifier.h"
 #include "RemoteSharedResourceCache.h"
 #include "RemoteSnapshotIdentifier.h"
@@ -80,8 +82,11 @@ class Filter;
 class FloatSize;
 class Gradient;
 class MediaPlayer;
+class MeshGradient;
 class NativeImage;
+class PathImpl;
 enum class RenderingMode : uint8_t;
+struct FontCustomPlatformData;
 struct FontCustomPlatformSerializedData;
 
 }
@@ -92,6 +97,7 @@ class GPUConnectionToWebProcess;
 class RemoteDisplayListRecorder;
 class RemoteImageBuffer;
 class RemoteImageBufferSet;
+class SharedFont;
 class RemoteSnapshotRecorder;
 struct BufferIdentifierSet;
 struct ImageBufferSetPrepareBufferForDisplayInputData;
@@ -101,6 +107,7 @@ enum class SwapBuffersDisplayRequirement : uint8_t;
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 using RefPtrImageBuffer = RefPtr<WebCore::ImageBuffer>;
 using RefPtrNativeImage = RefPtr<WebCore::NativeImage>;
+using RefPtrFontCustomPlatformData = RefPtr<WebCore::FontCustomPlatformData>;
 #endif
 
 class SWIFT_PRIVATE_FILEID("WebKit/RemoteRenderingBackend.swift") RemoteRenderingBackend : public CanMakeWeakPtr<RemoteRenderingBackend>, public IPC::StreamServerConnection::Client {
@@ -116,7 +123,9 @@ public:
 
     NODELETE std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const;
 
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     RemoteResourceCache& remoteResourceCache() LIFETIME_BOUND { return m_remoteResourceCache; }
+#endif
     // Stands in for an image that could not be created, so that the web process can keep using its
     // identifier. Clipping to it clips everything.
     static RefPtr<WebCore::NativeImage> createPlaceholderNativeImage();
@@ -262,11 +271,21 @@ private:
     bool swiftSinkSnapshotRecorderIntoSnapshotFrame(RemoteSnapshotRecorderIdentifier, WebCore::FrameIdentifier);
     // Lets go, on the work queue, of the recordings that other threads let go of (scheduleSwiftReleases()).
     void swiftReleasePendingRecordings();
-    // RemoteResourceCache cached, released one of, or released all of the filters, of which the Swift draws keep their
-    // own state.
-    void swiftCacheFilter(WebCore::RenderingResourceIdentifier, bool isSVGFilter);
-    void swiftReleaseFilter(WebCore::RenderingResourceIdentifier);
-    void swiftReleaseFilters();
+    // The resource cache (RemoteResourceCache.swift): false for an identifier already cached, or, for a release, not cached.
+    bool swiftCachePathImpl(WebCore::PathImpl&, RemotePathImplIdentifier);
+    bool swiftReleasePathImpl(RemotePathImplIdentifier);
+    bool swiftCacheGradient(WebCore::Gradient&, RemoteGradientIdentifier);
+    bool swiftReleaseGradient(RemoteGradientIdentifier);
+    bool swiftCacheMeshGradient(WebCore::MeshGradient&, RemoteMeshGradientIdentifier);
+    bool swiftReleaseMeshGradient(RemoteMeshGradientIdentifier);
+    bool swiftCacheFont(SharedFont&, WebCore::RenderingResourceIdentifier);
+    bool swiftReleaseFont(WebCore::RenderingResourceIdentifier);
+    RefPtrFontCustomPlatformData swiftCachedFontCustomPlatformData(WebCore::RenderingResourceIdentifier);
+    bool swiftCacheFontCustomPlatformData(WebCore::FontCustomPlatformData&, WebCore::RenderingResourceIdentifier);
+    bool swiftReleaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier);
+    bool swiftCacheFilter(WebCore::Filter&, WebCore::RenderingResourceIdentifier);
+    bool swiftReleaseFilter(WebCore::RenderingResourceIdentifier);
+    void swiftReleaseMemoryCaches();
 
     // m_swiftState, for Swift, which can't write it directly. Unsafe to set: the state must be a retained
     // RemoteRenderingBackendState that nothing else releases.
@@ -283,7 +302,9 @@ private:
     // Snapshot taken on the main thread at construction and only ever read on the work queue,
     // so it needs no locking. See sharedPreferencesForWebProcess().
     const SharedPreferencesForWebProcess m_sharedPreferencesForWebProcess;
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     RemoteResourceCache m_remoteResourceCache;
+#endif
     WebCore::ProcessIdentity m_resourceOwner;
     RemoteRenderingBackendIdentifier m_renderingBackendIdentifier;
     RefPtr<WebCore::SharedMemory> m_getPixelBufferSharedMemory;

@@ -40,7 +40,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererResources.h"
 #include "RemoteSnapshotPrintData.h"
 #include "WebKit-Swift.h"
 #include <WebCore/GraphicsContextCG.h>
@@ -121,8 +120,8 @@ bool RemoteSnapshotSink::drawRootFrame(GraphicsContext& context) const
     }
     auto frames = RemoteCGRendererSnapshotFrames::forSink(const_cast<RemoteSnapshotSink*>(this));
     bool isDrawn = false;
-    replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-        isDrawn = frames.draw(frameKey(rootFrameIdentifier()), state, &resources);
+    GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
+        isDrawn = frames.draw(rootFrameIdentifier().toUInt64(), state);
     });
     return isDrawn;
 }
@@ -130,7 +129,7 @@ bool RemoteSnapshotSink::drawRootFrame(GraphicsContext& context) const
 std::optional<RemoteSnapshotPrintData> RemoteSnapshotSink::createPrintData() const
 {
     ASSERT(m_succeeded);
-    Ref builder = RemoteSnapshotPrintDataBuilder::create(frameKey(rootFrameIdentifier()));
+    Ref builder = RemoteSnapshotPrintDataBuilder::create(rootFrameIdentifier().toUInt64());
     if (!RemoteCGRendererSnapshotFrames::forSink(const_cast<RemoteSnapshotSink*>(this)).encode(builder.ptr()))
         return std::nullopt;
     return builder->takeData();

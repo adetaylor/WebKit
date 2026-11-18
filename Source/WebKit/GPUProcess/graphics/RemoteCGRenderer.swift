@@ -275,7 +275,7 @@ struct RemoteCGRendererVideoFrames {
 final class RemoteCGRenderer {
     typealias State = CGRendererCore
 
-    private let resources: WebKit.RemoteCGRendererResources
+    private let resources: RemoteCGRendererResources
     // The rendering backend's Swift resources, where an image buffer's receiver looks up the image buffers and native images
     // its draws name.
     private let backendResources: RemoteRenderingBackendResources?
@@ -304,7 +304,7 @@ final class RemoteCGRenderer {
 
     @_expose(!Cxx)
     private init(
-        resources: WebKit.RemoteCGRendererResources,
+        resources: RemoteCGRendererResources,
         backendState: RemoteRenderingBackendState?,
         displayLists: RemoteCGRendererDisplayLists?,
         snapshotFrames: RemoteCGRendererSnapshotFrames?
@@ -320,10 +320,11 @@ final class RemoteCGRenderer {
     // forwarder with keeps the forwarder. Only C++ calls it, so @used keeps it under -O -wmo (rdar://179098545).
     @used
     static func createMessageReceiver(
-        resources: WebKit.RemoteCGRendererResources,
-        backend: WebKit.RemoteRenderingBackend
+        backend: WebKit.RemoteRenderingBackend,
+        target: WebCore.ImageBuffer
     ) -> RefRemoteCGRendererMessageForwarder {
         let state = backend.state
+        let resources = RemoteCGRendererResources(backend: backend, target: target)
         return WebKit.RemoteCGRendererMessageForwarder.create(
             target: RemoteCGRenderer(resources: resources, backendState: state, displayLists: state.displayLists, snapshotFrames: nil)
         )
@@ -331,7 +332,7 @@ final class RemoteCGRenderer {
 
     // A receiver that only replays recordings, with the frames of the snapshot that it draws, if any.
     @_expose(!Cxx)
-    static func makeReplayer(resources: WebKit.RemoteCGRendererResources, snapshotFrames: RemoteCGRendererSnapshotFrames?) -> RemoteCGRenderer {
+    static func makeReplayer(resources: RemoteCGRendererResources, snapshotFrames: RemoteCGRendererSnapshotFrames?) -> RemoteCGRenderer {
         RemoteCGRenderer(resources: resources, backendState: nil, displayLists: nil, snapshotFrames: snapshotFrames)
     }
 
@@ -404,7 +405,7 @@ final class RemoteCGRenderer {
         #if ENABLE_AX_CUSTOM_COLOR_MODE
         let invertContent = options.invertContent()
         if invertContent == .Yes || invertContent == .Forced {
-            WebKit.setInvertColorMatrix(image.nativeImage, sourceRect, options, &facts)
+            CGRendererSetInvertColorMatrix(image.nativeImage, sourceRect, options, &facts)
         }
         #endif
         return facts
@@ -671,7 +672,10 @@ final class RemoteCGRenderer {
 
     // The cache's CGPath of a cached path, shared with the cache, which only CGRendererPlatformPath reaches.
     private func cachedPlatformPath(_ identifier: WebKit.RemotePathImplIdentifier) -> CGRendererPlatformPath? {
-        unsafe WebKit.copyCachedPlatformPath(resources, identifier).map(CGRendererPlatformPath.init)
+        guard let path = resources.cachedPath(identifier) else {
+            return nil
+        }
+        return unsafe CGRendererPlatformPath(CGRendererCopyPlatformPath(path))
     }
 
     func fillCachedPath(state: inout CGRendererCore, identifier: WebKit.RemotePathImplIdentifier) throws(InvalidMessage) {
@@ -719,7 +723,7 @@ final class RemoteCGRenderer {
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageBuffer(imageBufferIdentifier), srcRect, options, true, &facts)
+        let image = resources.imageBufferImage(imageBuffer(imageBufferIdentifier), srcRect, options, clonesAcceleratedTarget: true, &facts)
         try messageCheck { facts.found }
         guard let image else {
             return
@@ -760,7 +764,7 @@ final class RemoteCGRenderer {
         options: WebCore.RasterDrawingOptions
     ) throws(InvalidMessage) {
         var facts = CGRendererImageFacts()
-        let image = WebKit.copyImageBufferImage(resources, imageBuffer(imageIdentifier), tileRect, options, false, &facts)
+        let image = resources.imageBufferImage(imageBuffer(imageIdentifier), tileRect, options, clonesAcceleratedTarget: false, &facts)
         try messageCheck { facts.found }
         drawPattern(&state, image, facts, destRect, tileRect, transform, phase, spacing, options)
     }
@@ -829,7 +833,7 @@ final class RemoteCGRenderer {
     }
 
     func setTextDrawingMode(state: inout CGRendererCore, mode: WebCore.TextDrawingModeFlags) {
-        state.receiveSetTextDrawingMode(WebKit.textDrawingModeValue(mode))
+        state.receiveSetTextDrawingMode(CGRendererTextDrawingModeValue(mode))
     }
 
     func setShadowsIgnoreTransforms(state: inout CGRendererCore, shouldIgnore: Bool) {
@@ -856,7 +860,7 @@ final class RemoteCGRenderer {
     }
 
     func fillRoundedRect(state: inout CGRendererCore, rect: WebCore.FloatRoundedRect, color: CGRendererColorValue, blendMode: WebCore.BlendMode) {
-        state.receiveFillRoundedRect(rect, cgRect(WebKit.rectOfRoundedRect(rect)), color, nil, blendMode)
+        state.receiveFillRoundedRect(rect, cgRect(CGRendererRectOfRoundedRect(rect)), color, nil, blendMode)
     }
 
     func fillRectWithRoundedHole(
@@ -908,7 +912,7 @@ final class RemoteCGRenderer {
     }
 
     func setURLForRect(state: inout CGRendererCore, link: WTF.URL, destRect: WebCore.FloatRect) {
-        guard let url = WebKit.copyURL(link) else {
+        guard let url = CGRendererCopyURL(link) else {
             return
         }
         state.receiveSetURLForRect(url, cgRect(destRect))
@@ -955,18 +959,24 @@ final class RemoteCGRenderer {
     // RemoteGraphicsContext's gradient and pattern handlers, whose brushes keep their color, and its gradient fills. A missing
     // resource, or a pattern of the buffer the context draws into, is an invalid message, as in C++.
 
+    // The brush of a cached gradient: nil for a missing gradient.
+    private func cachedGradientBrush(_ identifier: WebKit.RemoteGradientIdentifier, _ spaceTransform: WebCore.AffineTransform) -> CGRendererBrushSource? {
+        guard let gradient = resources.cachedGradient(identifier) else {
+            return nil
+        }
+        return CGRendererGradientBrushSource(gradient, spaceTransform)
+    }
+
     func setFillCachedGradient(state: inout CGRendererCore, identifier: WebKit.RemoteGradientIdentifier, spaceTransform: WebCore.AffineTransform) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.cachedGradientBrush(resources, identifier, spaceTransform, &found)
-        try messageCheck { found }
-        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.gradient)
+        let source = cachedGradientBrush(identifier, spaceTransform)
+        try messageCheck { source != nil }
+        state.receiveSetFillSource(source ?? CGRendererBrushSource(), RemoteCGRendererBrushKind.gradient)
     }
 
     func setStrokeCachedGradient(state: inout CGRendererCore, identifier: WebKit.RemoteGradientIdentifier, spaceTransform: WebCore.AffineTransform) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.cachedGradientBrush(resources, identifier, spaceTransform, &found)
-        try messageCheck { found }
-        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.gradient)
+        let source = cachedGradientBrush(identifier, spaceTransform)
+        try messageCheck { source != nil }
+        state.receiveSetStrokeSource(source ?? CGRendererBrushSource(), RemoteCGRendererBrushKind.gradient)
     }
 
     func setFillPatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
@@ -975,7 +985,7 @@ final class RemoteCGRenderer {
         guard let tileImage else {
             return
         }
-        state.receiveSetFillSource(WebKit.nativeImagePatternBrush(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
+        state.receiveSetFillSource(CGRendererNativeImagePatternBrushSource(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
     func setStrokePatternNativeImage(state: inout CGRendererCore, nativeImageIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
@@ -984,25 +994,24 @@ final class RemoteCGRenderer {
         guard let tileImage else {
             return
         }
-        state.receiveSetStrokeSource(WebKit.nativeImagePatternBrush(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
+        state.receiveSetStrokeSource(CGRendererNativeImagePatternBrushSource(tileImage.nativeImage, pattern), RemoteCGRendererBrushKind.pattern)
+    }
+
+    // The brush of an image buffer's pattern. A missing image buffer, or the one the receiver draws into, is an invalid message.
+    private func imageBufferPatternBrush(_ identifier: WebCore.RenderingResourceIdentifier, _ pattern: WebCore.PatternParameters) throws(InvalidMessage) -> CGRendererBrushSource {
+        let tileImageBuffer = imageBuffer(identifier)
+        try messageCheck { tileImageBuffer != nil }
+        let source = tileImageBuffer.flatMap { resources.imageBufferPatternBrush($0, pattern) }
+        try messageCheck { source != nil }
+        return source ?? CGRendererBrushSource()
     }
 
     func setFillPatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
-        var found = false
-        var drawsIntoTarget = false
-        let source = WebKit.imageBufferPatternBrush(resources, imageBuffer(imageBufferIdentifier), pattern, &found, &drawsIntoTarget)
-        try messageCheck { found }
-        try messageCheck { !drawsIntoTarget }
-        state.receiveSetFillSource(source, RemoteCGRendererBrushKind.pattern)
+        state.receiveSetFillSource(try imageBufferPatternBrush(imageBufferIdentifier, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
     func setStrokePatternImageBuffer(state: inout CGRendererCore, imageBufferIdentifier: WebCore.RenderingResourceIdentifier, pattern: WebCore.PatternParameters) throws(InvalidMessage) {
-        var found = false
-        var drawsIntoTarget = false
-        let source = WebKit.imageBufferPatternBrush(resources, imageBuffer(imageBufferIdentifier), pattern, &found, &drawsIntoTarget)
-        try messageCheck { found }
-        try messageCheck { !drawsIntoTarget }
-        state.receiveSetStrokeSource(source, RemoteCGRendererBrushKind.pattern)
+        state.receiveSetStrokeSource(try imageBufferPatternBrush(imageBufferIdentifier, pattern), RemoteCGRendererBrushKind.pattern)
     }
 
     // RemoteGraphicsContext's clips to a path in coordinates a transform maps it from.
@@ -1051,19 +1060,24 @@ final class RemoteCGRenderer {
 
     // GraphicsContext::drawMeshGradient(): the image that C++ renders of the gradient, drawn as a native image.
     func drawMeshGradient(state: inout CGRendererCore, identifier: WebKit.RemoteMeshGradientIdentifier, destination: WebCore.FloatRect) throws(InvalidMessage) {
+        let gradient = resources.cachedMeshGradient(identifier)
+        try messageCheck { gradient != nil }
+        guard let gradient else {
+            return
+        }
         var facts = CGRendererImageFacts()
+        facts.resolutionScale = 1
+        facts.found = true
         var options = CGRendererImageOptions()
         let destinationSize = CGSize(width: CGFloat(destination.width()), height: CGFloat(destination.height()))
-        let image = WebKit.copyMeshGradientImage(
-            resources,
-            identifier,
+        let image = CGRendererCopyMeshGradientImage(
+            gradient,
             state.receiverDeviceCTM(),
             state.receiverDestinationColorSpace(),
             destinationSize,
             &facts,
             &options
         )
-        try messageCheck { facts.found }
         guard let image else {
             return
         }
@@ -1103,7 +1117,7 @@ final class RemoteCGRenderer {
                 return
             }
             filterScale = described.renderer.filterScale
-            let allocator = WebKit.createFilterImageAllocator(resources, replayLevel > 0)
+            let allocator = resources.filterImageAllocator(forReplay: replayLevel > 0)
             var results = FilterResultsState()
             result = applyCSSFilter(described, sourceImageBuffer, rect, allocator, &results, true, &absoluteImageRect)
         case .svgFilterRenderer(let svgFilter):
@@ -1130,7 +1144,7 @@ final class RemoteCGRenderer {
                     return
                 }
                 filterScale = described.renderer.filterScale
-                let allocator = WebKit.createFilterImageAllocator(resources, replayLevel > 0)
+                let allocator = resources.filterImageAllocator(forReplay: replayLevel > 0)
                 var results = FilterResultsState()
                 result = applySVGFilter(described, sourceImageBuffer, rect, allocator, &results, true, &absoluteImageRect)
             }
@@ -1143,7 +1157,7 @@ final class RemoteCGRenderer {
         let source = WebCore.FloatRect(WebCore.FloatPoint(), resultImageBuffer.logicalSize())
         let options = WebCore.RasterDrawingOptions()
         var facts = CGRendererImageFacts()
-        guard let image = WebKit.copyImageBufferImage(resources, resultImageBuffer, source, options, false, &facts) else {
+        guard let image = resources.imageBufferImage(resultImageBuffer, source, options, clonesAcceleratedTarget: false, &facts) else {
             return
         }
         withExtendedLifetime(resultImageBuffer) {
@@ -1251,8 +1265,20 @@ final class RemoteCGRenderer {
             return
         }
         var facts = CGRendererImageFacts()
+        facts.resolutionScale = 1
+        facts.found = true
         var hasAlpha = false
-        guard let image = WebKit.copyVideoFrameImage(pixelBuffer, frame, &facts, &hasAlpha) else {
+        let image = CGRendererCopyVideoFrameImage(
+            pixelBuffer,
+            frame.time,
+            frame.mirrored,
+            frame.rotation,
+            frame.colorSpace,
+            frame.shouldIgnoreAlpha,
+            &facts,
+            &hasAlpha
+        )
+        guard let image else {
             return
         }
         var imageOptions = CGRendererImageOptionsFor(options)
@@ -1311,21 +1337,22 @@ final class RemoteCGRenderer {
             liveGlyphs = ContiguousArray(repeating: 0, count: count)
             liveAdvances = ContiguousArray(repeating: CGSize.zero, count: count)
         }
-        var facts = CGRendererGlyphFontFacts()
-        var found = false
-        let font: CTFont?
+        let cachedFont = resources.cachedFont(fontIdentifier)
+        try messageCheck { cachedFont != nil }
+        guard let cachedFont, let font = cachedFont.ctFont else {
+            return
+        }
+        let copied: Int
         do {
             var glyphsCopy = liveGlyphs.mutableSpan
             var advancesCopy = liveAdvances.mutableSpan
-            font = WebKit.copyGlyphsForDraw(resources, fontIdentifier, glyphsAdvances, &glyphsCopy, &advancesCopy, &facts, &found)
-        }
-        try messageCheck { found }
-        guard let font else {
-            return
+            copied = glyphsAdvances.copyInto(&glyphsCopy, &advancesCopy)
         }
         let glyphStorage = liveGlyphs
         let advanceStorage = liveAdvances
-        let run = CGRendererMakeGlyphRun(font, glyphStorage.span.extracting(0..<count), advanceStorage.span.extracting(0..<count))
+        let glyphs = glyphStorage.span.extracting(0..<copied)
+        let facts = cachedFont.factsForGlyphs(glyphs)
+        let run = CGRendererMakeGlyphRun(font, glyphs, advanceStorage.span.extracting(0..<copied))
         state.receiveDrawGlyphs(run, facts, smoothingMode.rawValue, localAnchor.x(), localAnchor.y())
     }
 
@@ -1334,9 +1361,9 @@ final class RemoteCGRenderer {
     func drawDisplayList(state: inout CGRendererCore, identifier: WebKit.RemoteDisplayListIdentifier) throws(InvalidMessage) {
         let recording =
             if replayDepth > 0, let replayed = replayedRecordings.last {
-                replayed.displayLists[RemoteIdentifierKey(value: WebKit.displayListKey(identifier))]
+                replayed.displayLists[RemoteIdentifierKey(value: identifier.toUInt64())]
             } else {
-                displayLists?.recording(key: WebKit.displayListKey(identifier))
+                displayLists?.recording(key: identifier.toUInt64())
             }
         guard let recording else {
             try messageCheck { false }
@@ -1352,7 +1379,7 @@ final class RemoteCGRenderer {
             try messageCheck { false }
             return
         }
-        let isDrawn = snapshotFrames.draw(WebKit.frameKey(frameIdentifier), to: self, state: &state)
+        let isDrawn = snapshotFrames.draw(frameIdentifier.toUInt64(), to: self, state: &state)
         assert(isDrawn, "A snapshot is complete only once its frames are")
     }
 
@@ -1361,9 +1388,11 @@ final class RemoteCGRenderer {
     }
 
     func fillRectWithCachedGradient(state: inout CGRendererCore, rect: WebCore.FloatRect, identifier: WebKit.RemoteGradientIdentifier) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.cachedGradientBrush(resources, identifier, WebCore.AffineTransform(), &found)
-        try messageCheck { found }
+        let source = cachedGradientBrush(identifier, WebCore.AffineTransform())
+        try messageCheck { source != nil }
+        guard let source else {
+            return
+        }
         state.receiveClipAndPaintGradient(cgRect(rect), source)
     }
 
@@ -1374,9 +1403,11 @@ final class RemoteCGRenderer {
         transform: WebCore.AffineTransform,
         requiresClipToRect: WebCore.RequiresClipToRect
     ) throws(InvalidMessage) {
-        var found = false
-        let source = WebKit.cachedGradientBrush(resources, identifier, transform, &found)
-        try messageCheck { found }
+        let source = cachedGradientBrush(identifier, transform)
+        try messageCheck { source != nil }
+        guard let source else {
+            return
+        }
         state.receiveFillRectWithGradient(cgRect(rect), source, requiresClipToRect == .Yes)
     }
 }

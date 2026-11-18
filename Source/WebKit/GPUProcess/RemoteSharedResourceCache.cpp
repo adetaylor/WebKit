@@ -31,6 +31,13 @@
 #include "GPUConnectionToWebProcess.h"
 #include <wtf/TZoneMallocInlines.h>
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "ImageBufferShareableAllocator.h"
+#include "RemoteRenderingBackend.h"
+#include "SharedPreferencesForWebProcess.h"
+#include <WebCore/FilterGraphicsBridge.h>
+#endif
+
 #if HAVE(IOSURFACE)
 #include <WebCore/IOSurfacePool.h>
 #endif
@@ -161,6 +168,32 @@ ImageBufferResourceLimits RemoteSharedResourceCache::getResourceLimitsForTesting
         .imageBufferForCanvasLimit = imageBufferForCanvasLimit,
     };
 }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+static bool useIOSurfaceWebKitBehavior(RemoteRenderingBackend& backend)
+{
+#if USE(APPLE_INTERNAL_SDK)
+    auto preferences = backend.sharedPreferencesForWebProcess();
+    return preferences && preferences->useIOSurfaceWebKitBehavior;
+#else
+    UNUSED_PARAM(backend);
+    return false;
+#endif
+}
+
+FilterImageAllocator* createFilterImageAllocator(RemoteRenderingBackend* backend)
+{
+    if (!backend)
+        return &FilterImageAllocator::create(makeUnique<ImageBufferAllocator>()).leakRef();
+    Ref sharedResourceCache = backend->sharedResourceCache();
+#if HAVE(IOSURFACE)
+    auto allocator = makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner(), &sharedResourceCache->ioSurfacePool(), useIOSurfaceWebKitBehavior(*backend));
+#else
+    auto allocator = makeUnique<ImageBufferShareableAllocator>(sharedResourceCache->resourceOwner());
+#endif
+    return &FilterImageAllocator::create(WTF::move(allocator)).leakRef();
+}
+#endif
 
 } // namespace WebKit
 

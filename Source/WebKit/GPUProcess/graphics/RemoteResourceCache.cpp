@@ -26,12 +26,9 @@
 #include "config.h"
 #include "RemoteResourceCache.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
 #include "SharedFont.h"
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererGlyphs.h"
-#endif
 #include <WebCore/Filter.h>
 #include <WebCore/FontCustomPlatformData.h>
 #include <WebCore/Gradient.h>
@@ -46,7 +43,6 @@ RemoteResourceCache::RemoteResourceCache() = default;
 
 RemoteResourceCache::~RemoteResourceCache() = default;
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 bool RemoteResourceCache::cacheNativeImage(WebCore::RenderingResourceIdentifier identifier, Ref<NativeImage>&& image)
 {
     return m_nativeImages.add(identifier, WTF::move(image)).isNewEntry;
@@ -61,7 +57,6 @@ RefPtr<NativeImage> RemoteResourceCache::cachedNativeImage(RenderingResourceIden
 {
     return m_nativeImages.get(identifier);
 }
-#endif
 
 bool RemoteResourceCache::cachePathImpl(RemotePathImplIdentifier identifier, Ref<PathImpl>&& path)
 {
@@ -124,24 +119,11 @@ RefPtr<Filter> RemoteResourceCache::cachedFilter(RenderingResourceIdentifier ide
     return m_filters.get(identifier);
 }
 
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-bool RemoteResourceCache::cacheFont(Ref<RemoteCGRendererFont>&& font)
-{
-    auto identifier = font->sharedFont().renderingResourceIdentifier();
-    return m_fonts.add(identifier, WTF::move(font)).isNewEntry;
-}
-
-RefPtr<RemoteCGRendererFont> RemoteResourceCache::cachedCGRendererFont(RenderingResourceIdentifier identifier) const
-{
-    return m_fonts.get(identifier);
-}
-#else
 bool RemoteResourceCache::cacheFont(Ref<SharedFont>&& font)
 {
     auto identifier = font->renderingResourceIdentifier();
     return m_fonts.add(identifier, WTF::move(font)).isNewEntry;
 }
-#endif
 
 bool RemoteResourceCache::releaseFont(RenderingResourceIdentifier identifier)
 {
@@ -150,13 +132,7 @@ bool RemoteResourceCache::releaseFont(RenderingResourceIdentifier identifier)
 
 RefPtr<SharedFont> RemoteResourceCache::cachedFont(RenderingResourceIdentifier identifier) const
 {
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    if (RefPtr font = m_fonts.get(identifier))
-        return &font->sharedFont();
-    return nullptr;
-#else
     return m_fonts.get(identifier);
-#endif
 }
 
 bool RemoteResourceCache::cacheFontCustomPlatformData(Ref<FontCustomPlatformData>&& customPlatformData)
@@ -175,7 +151,6 @@ RefPtr<FontCustomPlatformData> RemoteResourceCache::cachedFontCustomPlatformData
     return m_fontCustomPlatformDatas.get(identifier);
 }
 
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 bool RemoteResourceCache::cacheDisplayList(RemoteDisplayListIdentifier identifier, Ref<const DisplayList::DisplayList> displayList)
 {
     return m_displayLists.add(identifier, displayList).isNewEntry;
@@ -190,14 +165,11 @@ bool RemoteResourceCache::releaseDisplayList(RemoteDisplayListIdentifier identif
 {
     return m_displayLists.remove(identifier);
 }
-#endif
 
 void RemoteResourceCache::releaseAllResources()
 {
     m_imageBuffers.clear();
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     m_nativeImages.clear();
-#endif
     releaseMemory();
 }
 
@@ -209,11 +181,9 @@ void RemoteResourceCache::releaseMemory()
     m_fonts.clear();
     m_paths.clear();
     m_fontCustomPlatformDatas.clear();
-#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) || ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     m_displayLists.clear();
-#endif
 }
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

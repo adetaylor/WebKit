@@ -140,10 +140,10 @@ final class RemoteCGRendererCachedFilter {
         _ filter: borrowing SVGFilterDescription,
         _ sourceImage: WebCore.ImageBuffer?,
         _ sourceImageRect: WebCore.FloatRect,
-        _ resources: WebKit.RemoteCGRendererResources,
+        _ resources: RemoteCGRendererResources,
         _ absoluteImageRect: inout WebCore.IntRect
     ) -> WebCore.ImageBuffer? {
-        let allocator = self.allocator ?? WebKit.createFilterImageAllocator(resources, false)
+        let allocator = self.allocator ?? resources.filterImageAllocator(forReplay: false)
         self.allocator = allocator
         return applySVGFilter(filter, sourceImage, sourceImageRect, allocator, &results, true, &absoluteImageRect)
     }

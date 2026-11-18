@@ -102,7 +102,7 @@ final class RemoteImageBuffer {
     ) -> RemoteCGRendererRecordedDrawing? {
         let backendState = backend.state
         let (recordedDrawing, forwarder) = RemoteCGRendererRecordedDrawing.create(
-            resources: WebKit.createDisplayListRecorderResources(backend),
+            resources: RemoteCGRendererResources(recorderOf: backend),
             displayLists: backendState.displayLists,
             videoFrameSources: backendState.videoFrameSources
         )

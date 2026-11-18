@@ -30,7 +30,6 @@
 
 #include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererResources.h"
 #include "SharedFont.h"
 #include "WebKit-Swift.h"
 #include <WebCore/GraphicsContextCG.h>
@@ -39,37 +38,6 @@
 
 namespace WebKit {
 using namespace WebCore;
-
-// DisplayListData's limits: the print process draws no mesh gradients, nor images or image buffers, which a recording keeps in
-// Swift (RemoteCGRendererRecording.encodedMessages()).
-bool RemoteCGRendererRecordedResources::exportForPrint(RemoteSnapshotPrintRecording& recording, DisplayListDataFonts& fonts) const
-{
-    if (!m_meshGradients.isEmpty())
-        return false;
-    if (m_firstFont)
-        recording.fonts.append({ m_firstFont->key, fonts.index(m_firstFont->value->sharedFont()) });
-    for (auto& [identifier, font] : m_fonts)
-        recording.fonts.append({ identifier, fonts.index(font->sharedFont()) });
-    for (auto& [identifier, gradient] : m_gradients)
-        recording.gradients.append({ identifier, gradient });
-    for (auto& [identifier, pathImpl] : m_paths)
-        recording.paths.append({ identifier, pathImpl });
-    return true;
-}
-
-bool RemoteCGRendererRecordedResources::importFromPrint(RemoteSnapshotPrintRecording& recording, std::span<const Ref<RemoteCGRendererFont>> fonts)
-{
-    for (auto& [identifier, index] : recording.fonts) {
-        if (index >= fonts.size())
-            return false;
-        setFont(identifier, fonts[index]);
-    }
-    for (auto& [identifier, gradient] : recording.gradients)
-        m_gradients.set(identifier, WTF::move(gradient));
-    for (auto& [identifier, pathImpl] : recording.paths)
-        m_paths.set(identifier, WTF::move(pathImpl));
-    return true;
-}
 
 Ref<RemoteSnapshotPrintDataBuilder> RemoteSnapshotPrintDataBuilder::create(uint64_t rootFrameKey)
 {
@@ -85,14 +53,28 @@ RemoteSnapshotPrintDataBuilder::RemoteSnapshotPrintDataBuilder(uint64_t rootFram
 
 RemoteSnapshotPrintDataBuilder::~RemoteSnapshotPrintDataBuilder() = default;
 
-bool RemoteSnapshotPrintDataBuilder::addRecording(RemoteCGRendererRecordedMessageEncoder& encoder, const RemoteCGRendererRecordedResources& resources)
+// DisplayListData's limits: the print process draws no mesh gradients, nor images or image buffers, which Swift checks
+// (RemoteCGRendererRecording.encodedMessages()).
+void RemoteSnapshotPrintDataBuilder::addRecording(RemoteCGRendererRecordedMessageEncoder& encoder)
 {
     RemoteSnapshotPrintRecording recording;
-    if (!resources.exportForPrint(recording, *m_fonts))
-        return false;
     recording.messages = encoder.takeEncodedMessages();
     m_data->recordings.append(WTF::move(recording));
-    return true;
+}
+
+void RemoteSnapshotPrintDataBuilder::addFont(uint64_t key, SharedFont& font)
+{
+    m_data->recordings.last().fonts.append({ RenderingResourceIdentifier { key }, m_fonts->index(font) });
+}
+
+void RemoteSnapshotPrintDataBuilder::addGradient(uint64_t key, Gradient& gradient)
+{
+    m_data->recordings.last().gradients.append({ RemoteGradientIdentifier { key }, gradient });
+}
+
+void RemoteSnapshotPrintDataBuilder::addPath(uint64_t key, PathImpl& pathImpl)
+{
+    m_data->recordings.last().paths.append({ RemotePathImplIdentifier { key }, pathImpl });
 }
 
 void RemoteSnapshotPrintDataBuilder::addDisplayList(uint64_t key, uint64_t index)
@@ -127,23 +109,27 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
     if (!sharedFonts)
         return false;
     auto fonts = WTF::map(WTF::move(*sharedFonts), [](auto&& font) {
-        return RemoteCGRendererFont::create(WTF::move(font));
+        return RemoteCGRendererFont::create(font.ptr());
     });
 
     auto frames = RemoteCGRendererSnapshotFrames::create();
     for (auto& printRecording : data.recordings) {
-        Ref recordedResources = RemoteCGRendererRecordedResources::create();
-        if (!recordedResources->importFromPrint(printRecording, fonts.span()))
-            return false;
+        auto recordedResources = RemoteCGRendererRecordedResources::create();
+        for (auto& [identifier, index] : printRecording.fonts) {
+            if (index >= fonts.size())
+                return false;
+            recordedResources.setFont(identifier.toUInt64(), fonts[index]);
+        }
+        for (auto& [identifier, gradient] : printRecording.gradients)
+            recordedResources.setGradient(identifier.toUInt64(), gradient.ptr());
+        for (auto& [identifier, pathImpl] : printRecording.paths)
+            recordedResources.setPath(identifier.toUInt64(), pathImpl.ptr());
         for (auto [key, index] : printRecording.displayLists) {
             if (!frames.addDisplayListToNextRecording(key, index))
                 return false;
         }
-        Ref resources = RemoteCGRendererResources::createForRerecording();
-        Ref forwarder = frames.beginRerecording(resources.ptr());
-        resources->beginReplay(recordedResources);
+        Ref forwarder = frames.beginRerecording(recordedResources);
         bool isValid = forwarder->didReceiveRecordedMessages(printRecording.messages.span());
-        resources->endReplay();
         frames.endRerecording();
         if (!isValid)
             return false;
@@ -159,8 +145,8 @@ bool drawRemoteSnapshotPrintData(RemoteSnapshotPrintData&& data, GraphicsContext
     }
 
     bool isDrawn = false;
-    replayIntoContext(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state, RemoteCGRendererResources& resources) {
-        isDrawn = frames.draw(data.rootFrameKey, state, &resources);
+    GraphicsContextCG::lendSwiftRendererForReplay(static_cast<GraphicsContextCG&>(context), [&](CGRendererCore& state) {
+        isDrawn = frames.draw(data.rootFrameKey, state);
     });
     return isDrawn;
 }

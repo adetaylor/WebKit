@@ -49,15 +49,14 @@ final class RemoteCGRendererImage {
 }
 
 // The rendering backend's resources that its image buffers' receivers and its recorders look up, on its work queue: the
-// receivers of its image buffers' messages, by identifier, its cached native images, and the filters that RemoteResourceCache
-// caches for its C++ contexts, which its Swift draws keep their own state of (RemoteCGRendererCachedFilter).
+// receivers of its image buffers' messages, by identifier, its cached native images, and its other cached resources.
 final class RemoteRenderingBackendResources {
+    let cache = RemoteResourceCache()
     private(set) var imageBuffers: [UInt64: RemoteImageBuffer] = [:]
     // The image buffer that the last lookup found, which the draws of one image buffer after another find without the
     // dictionary. Only while the receiver is in imageBuffers, so that it keeps the buffer no longer than the receiver does.
     private var lastFoundImageBuffer: (key: UInt64, imageBuffer: WebCore.ImageBuffer)?
     private var nativeImages: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]
-    private var filters: [RemoteIdentifierKey: RemoteCGRendererCachedFilter] = [:]
 
     // False if a receiver already has the key.
     func addImageBuffer(_ receiver: RemoteImageBuffer, key: UInt64) -> Bool {
@@ -115,24 +114,6 @@ final class RemoteRenderingBackendResources {
     func removeAllNativeImages() {
         var removed: [RemoteIdentifierKey: RemoteCGRendererImage] = [:]
         swap(&nativeImages, &removed)
-    }
-
-    // RemoteResourceCache cached a filter under the key, which an SVG filter that a draw names is if it is one.
-    func cacheFilter(key: UInt64, isSVGFilter: Bool) {
-        filters[RemoteIdentifierKey(value: key)] = RemoteCGRendererCachedFilter(identifier: key, isSVGFilter: isSVGFilter)
-    }
-
-    func releaseFilter(key: UInt64) {
-        filters.removeValue(forKey: RemoteIdentifierKey(value: key))
-    }
-
-    func filter(key: UInt64) -> RemoteCGRendererCachedFilter? {
-        filters[RemoteIdentifierKey(value: key)]
-    }
-
-    func removeAllFilters() {
-        var removed: [RemoteIdentifierKey: RemoteCGRendererCachedFilter] = [:]
-        swap(&filters, &removed)
     }
 }
 
@@ -234,9 +215,8 @@ extension WebKit.RemoteRenderingBackend {
             _ = tryStopReceivingMessages(.RemoteCGRenderer, identifier.value)
         }
         state.displayLists.removeAll()
-        state.resources.removeAllNativeImages()
-        // The filters' results are the work queue's, as RemoteResourceCache's filters are.
-        state.resources.removeAllFilters()
+        // The cached resources, such as the filters' results, are the work queue's.
+        state.resources.releaseAllCachedResources()
     }
 
     @cxx
@@ -351,7 +331,7 @@ extension WebKit.RemoteRenderingBackend {
         snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none
     ) -> DisplayListRecorder {
         let recorder = RemoteCGRendererRecorder(
-            resources: WebKit.createDisplayListRecorderResources(self),
+            resources: RemoteCGRendererResources(recorderOf: self),
             displayLists: state.displayLists,
             videoFrameSources: state.videoFrameSources,
             snapshotFrames: snapshotFrames
@@ -374,7 +354,7 @@ extension WebKit.RemoteRenderingBackend {
         }
         let stopped = tryStopReceivingMessages(.RemoteCGRenderer, key)
         let recorder = displayListRecorder.recorder
-        let added = state.displayLists.add(recorder.takeRecording(), key: WebKit.displayListKey(displayListIdentifier))
+        let added = state.displayLists.add(recorder.takeRecording(), key: displayListIdentifier.toUInt64())
         // A recorder that read video frames keeps the reader's state, which a new recorder doesn't have.
         if stopped, state.reusesDisplayListRecorders, !recorder.readVideoFrames,
             state.idleDisplayListRecorders.count < maximumIdleDisplayListRecorders
@@ -444,31 +424,13 @@ extension WebKit.RemoteRenderingBackend {
     @cxx
     @implementation
     func swiftReleaseDisplayList(_ identifier: WebKit.RemoteDisplayListIdentifier) -> Bool {
-        state.displayLists.remove(key: WebKit.displayListKey(identifier))
+        state.displayLists.remove(key: identifier.toUInt64())
     }
 
     @cxx
     @implementation
     func swiftReleaseDisplayLists() {
         state.displayLists.removeAll()
-    }
-
-    @cxx
-    @implementation
-    func swiftCacheFilter(_ identifier: WebCore.RenderingResourceIdentifier, _ isSVGFilter: Bool) {
-        state.resources.cacheFilter(key: identifier.toUInt64(), isSVGFilter: isSVGFilter)
-    }
-
-    @cxx
-    @implementation
-    func swiftReleaseFilter(_ identifier: WebCore.RenderingResourceIdentifier) {
-        state.resources.releaseFilter(key: identifier.toUInt64())
-    }
-
-    @cxx
-    @implementation
-    func swiftReleaseFilters() {
-        state.resources.removeAllFilters()
     }
 
     var state: RemoteRenderingBackendState {

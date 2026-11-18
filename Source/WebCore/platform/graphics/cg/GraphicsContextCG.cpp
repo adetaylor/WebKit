@@ -44,6 +44,8 @@
 #include "ImageBuffer.h"
 #include "ImageOrientation.h"
 #include "Logging.h"
+#include "MeshGradientRendererCPU.h"
+#include "NativeImage.h"
 #include "Path.h"
 #include "PathCG.h"
 #include "Pattern.h"
@@ -58,6 +60,10 @@
 #include <wtf/URL.h>
 #include <wtf/ZippedRange.h>
 #include <wtf/text/TextStream.h>
+
+#if ENABLE(VIDEO) && USE(AVFOUNDATION)
+#include "VideoFrameCV.h"
+#endif
 
 #if ENABLE(AX_CUSTOM_COLOR_MODE)
 #include <WebKitAdditions/AXCustomColorModeController.h>
@@ -347,6 +353,18 @@ RefPtr<NativeImage> GraphicsContextCG::nativeImageForSwiftReceiver(ImageBuffer& 
     return nativeImageForDrawing(imageBuffer);
 }
 
+static thread_local GraphicsContextCG* currentSwiftReplayContext;
+
+GraphicsContextCG* GraphicsContextCG::exchangeSwiftReplayContext(GraphicsContextCG* context)
+{
+    return std::exchange(currentSwiftReplayContext, context);
+}
+
+GraphicsContextCG* GraphicsContextCG::swiftReplayContext()
+{
+    return currentSwiftReplayContext;
+}
+
 unsigned GraphicsContextCG::rendererSavedLevelCountForTesting() const
 {
     return SWIFT_RENDERER(savedLevelCount());
@@ -616,6 +634,66 @@ void CGRendererSetInvertColorMatrix(const WebCore::NativeImage& nativeImage, con
 #endif
 }
 
+static CGImageRef copyImage(const WebCore::NativeImage& image, CGRendererImageFacts& facts)
+{
+    auto size = image.size();
+    facts.width = size.width();
+    facts.height = size.height();
+    facts.headroom = image.headroom();
+    return image.platformImage().leakRef();
+}
+
+static WebCore::GraphicsContextCG& drawingContext(WebCore::ImageBuffer* target)
+{
+    if (!target) {
+        auto* replayContext = WebCore::GraphicsContextCG::swiftReplayContext();
+        RELEASE_ASSERT(replayContext);
+        return *replayContext;
+    }
+    auto& context = target->context();
+    // Only a GraphicsContextCG lends a Swift renderer.
+    RELEASE_ASSERT(context.canLendSwiftRenderer());
+    return static_cast<WebCore::GraphicsContextCG&>(context);
+}
+
+CGImageRef CGRendererCopyImageBufferImageForDrawing(WebCore::ImageBuffer* target, WebCore::ImageBuffer& imageBuffer, const WebCore::FloatRect& scaledSourceRect, WebCore::RasterDrawingOptions options, CGRendererImageFacts& facts)
+{
+    RefPtr image = drawingContext(target).nativeImageForSwiftReceiver(imageBuffer);
+    if (!image)
+        return nullptr;
+    CGRendererSetInvertColorMatrix(*image, scaledSourceRect, options, facts);
+    return copyImage(*image, facts);
+}
+
+CGImageRef CGRendererCopyMeshGradientImage(const WebCore::MeshGradient& gradient, CGAffineTransform deviceTransform, const CGRendererDestinationColorSpace& destinationColorSpace, CGSize destinationSize, CGRendererImageFacts& facts, CGRendererImageOptions& options)
+{
+    options = CGRendererImageOptionsFor({ });
+    float scale;
+    auto pixelSize = WebCore::MeshGradientRenderer::pixelSize(WebCore::AffineTransform { deviceTransform }, WebCore::FloatSize { destinationSize }, scale);
+    if (pixelSize.isEmpty())
+        return nullptr;
+    auto& contextColorSpace = destinationColorSpace.colorSpace() ? *destinationColorSpace.colorSpace() : WebCore::ColorSpace::SRGB();
+    RefPtr image = WebCore::MeshGradientRendererCPU { }.renderedImage(gradient, pixelSize, scale, contextColorSpace, [](const WebCore::IntSize& size, const WebCore::ColorSpace& colorSpace, WebCore::PixelFormat pixelFormat) {
+        return WebCore::ImageBuffer::create(size, WebCore::RenderingMode::Unaccelerated, WebCore::RenderingPurpose::Unspecified, 1, colorSpace, WebCore::ImageBufferFormat { pixelFormat });
+    });
+    if (!image)
+        return nullptr;
+    return copyImage(*image, facts);
+}
+
+#if ENABLE(VIDEO) && USE(AVFOUNDATION)
+CGImageRef CGRendererCopyVideoFrameImage(CVPixelBufferRef pixelBuffer, const MediaTime& presentationTime, bool isMirrored, WebCore::VideoFrameRotation rotation, const WebCore::PlatformVideoColorSpace& colorSpace, bool ignoresAlpha, CGRendererImageFacts& facts, bool& hasAlpha)
+{
+    hasAlpha = false;
+    Ref videoFrame = WebCore::VideoFrameCV::create(presentationTime, isMirrored, rotation, RetainPtr { pixelBuffer }, WebCore::PlatformVideoColorSpace { colorSpace }, ignoresAlpha ? WebCore::VideoFrameCV::ShouldIgnoreAlpha::Yes : WebCore::VideoFrameCV::ShouldIgnoreAlpha::No);
+    RefPtr image = videoFrame->copyNativeImage();
+    if (!image)
+        return nullptr;
+    hasAlpha = image->hasAlpha();
+    return copyImage(*image, facts);
+}
+#endif
+
 CGImageRef CGRendererCopyImageBufferImage(WebCore::ImageBuffer& imageBuffer, float& headroom)
 {
     RefPtr nativeImage = imageBuffer.createNativeImageReference();
@@ -651,6 +729,36 @@ CGRendererBrushSource::CGRendererBrushSource(Ref<WebCore::Pattern>&& pattern)
     : m_gradientSpaceTransform(CGAffineTransformIdentity)
     , m_pattern(WTF::move(pattern))
 {
+}
+
+CGRendererBrushSource CGRendererGradientBrushSource(WebCore::Gradient& gradient, const WebCore::AffineTransform& spaceTransform)
+{
+    return { Ref { gradient }, spaceTransform };
+}
+
+CGRendererBrushSource CGRendererNativeImagePatternBrushSource(WebCore::NativeImage& tileImage, const WebCore::PatternParameters& parameters)
+{
+    return CGRendererBrushSource { WebCore::Pattern::create({ Ref { tileImage } }, parameters) };
+}
+
+CGRendererBrushSource CGRendererImageBufferPatternBrushSource(WebCore::ImageBuffer& tileImageBuffer, const WebCore::PatternParameters& parameters)
+{
+    return CGRendererBrushSource { WebCore::Pattern::create({ Ref { tileImageBuffer } }, parameters) };
+}
+
+CFURLRef CGRendererCopyURL(const URL& link)
+{
+    return link.createCFURL().leakRef();
+}
+
+WebCore::FloatRect CGRendererRectOfRoundedRect(const WebCore::FloatRoundedRect& rect)
+{
+    return rect.rect();
+}
+
+uint8_t CGRendererTextDrawingModeValue(WebCore::TextDrawingModeFlags mode)
+{
+    return mode.toRaw();
 }
 
 CGGradientRef CGRendererCopyBrushGradient(const CGRendererBrushSource& source, const CGRendererGradientColorSpace& colorSpace, CGRendererGradientGeometry& geometry, CGAffineTransform& spaceTransform)

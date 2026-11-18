@@ -65,14 +65,14 @@ final class RemoteCGRendererRecordedImages {
 }
 
 // A recording of RemoteCGRenderer's messages, which a display list or a snapshot's frame is: the messages, the resources they
-// name, kept from when they were recorded, and the display lists they draw, by key (WebKit.displayListKey()). The native
-// images and image buffers that its draws name are kept in Swift, the other resources in C++.
+// name, kept from when they were recorded, and the display lists they draw, by their identifiers' values. The native images
+// and image buffers that its draws name are kept apart from the other resources (RemoteCGRendererRecordedResources).
 @_expose(Cxx)
 final class RemoteCGRendererRecording {
     @_expose(!Cxx)
     let messages: [RemoteCGRenderer.RecordedMessage]
     @_expose(!Cxx)
-    let resources: WebKit.RemoteCGRendererRecordedResources
+    let resources: RemoteCGRendererRecordedResources
     // Nil for a recording whose draws name none, which most don't.
     @_expose(!Cxx)
     let images: RemoteCGRendererRecordedImages?
@@ -81,14 +81,14 @@ final class RemoteCGRendererRecording {
     // Whether a replay looks up the recording or the transform it started at: only SetCTM and DrawDisplayList do.
     @_expose(!Cxx)
     let replayNeedsContext: Bool
-    // Whether a replay looks up any of the resources that C++ keeps: a run of glyphs keeps its font itself.
+    // Whether a replay looks up any of the recorded resources: a run of glyphs keeps its font itself.
     @_expose(!Cxx)
     let replayNeedsResources: Bool
 
     @_expose(!Cxx)
     fileprivate init(
         messages: [RemoteCGRenderer.RecordedMessage],
-        resources: WebKit.RemoteCGRendererRecordedResources,
+        resources: RemoteCGRendererRecordedResources,
         images: RemoteCGRendererRecordedImages?,
         displayLists: [RemoteIdentifierKey: RemoteCGRendererRecording],
         needsContext: Bool,
@@ -102,10 +102,11 @@ final class RemoteCGRendererRecording {
         self.replayNeedsResources = namesResources
     }
 
-    // Draws the messages into a context's renderer, lent for the draw, with resources for a replay into the context, as
+    // Draws the messages into a context's renderer, lent for the draw (GraphicsContextCG::lendSwiftRendererForReplay()), as
     // GraphicsContext::drawDisplayList() draws a WebCore display list.
     @used
-    func draw(state: inout CGRendererCore, resources: WebKit.RemoteCGRendererResources) {
+    func draw(state: inout CGRendererCore) {
+        let resources = RemoteCGRendererResources.forReplay()
         RemoteCGRenderer.makeReplayer(resources: resources, snapshotFrames: nil).replay(self, state: &state)
     }
 
@@ -151,7 +152,7 @@ final class RemoteCGRendererRecorderLock: Sendable {
 // weak reference.
 @_expose(Cxx)
 final class RemoteCGRendererRecorder {
-    private let resources: WebKit.RemoteCGRendererResources
+    private let resources: RemoteCGRendererResources
     private let displayLists: RemoteCGRendererDisplayLists
     private let snapshotFrames: RemoteCGRendererSnapshotFrameReferences
     // Which a message is recorded under, for a recorder whose recording another thread draws: its takeRecording() and
@@ -170,7 +171,7 @@ final class RemoteCGRendererRecorder {
 
     @_expose(!Cxx)
     init(
-        resources: WebKit.RemoteCGRendererResources,
+        resources: RemoteCGRendererResources,
         displayLists: RemoteCGRendererDisplayLists,
         videoFrameSources: GPUVideoFrameSources?,
         snapshotFrames: RemoteCGRendererSnapshotFrameReferences = .none,
@@ -204,7 +205,7 @@ final class RemoteCGRendererRecorder {
     func takeRecording() -> RemoteCGRendererRecording {
         let recording = RemoteCGRendererRecording(
             messages: messages,
-            resources: WebKit.takeRecordedResources(resources),
+            resources: resources.takeRecordedResources(),
             images: images,
             displayLists: recordedDisplayLists,
             needsContext: needsContext,
@@ -225,7 +226,7 @@ final class RemoteCGRendererRecorder {
     func currentRecording() -> RemoteCGRendererRecording {
         RemoteCGRendererRecording(
             messages: messages,
-            resources: WebKit.copyRecordedResources(resources),
+            resources: resources.copyRecordedResources(),
             images: images.map { RemoteCGRendererRecordedImages(copying: $0) },
             displayLists: recordedDisplayLists,
             needsContext: needsContext,
@@ -310,7 +311,7 @@ final class RemoteCGRendererRecorder {
         case .drawDisplayList(let identifier):
             namesResource = false
             needsContext = true
-            let key = WebKit.displayListKey(identifier)
+            let key = identifier.toUInt64()
             guard let recording = displayLists.recording(key: key) else {
                 try messageCheck { false }
                 return
@@ -435,7 +436,7 @@ final class RemoteCGRendererRecordedDrawing: @unchecked Sendable {
     // The drawing, and the receiver of the buffer's drawing, which records it until stopRecording().
     @_expose(!Cxx)
     static func create(
-        resources: WebKit.RemoteCGRendererResources,
+        resources: RemoteCGRendererResources,
         displayLists: RemoteCGRendererDisplayLists,
         videoFrameSources: GPUVideoFrameSources
     ) -> (RemoteCGRendererRecordedDrawing, RefRemoteCGRendererRecorderMessageForwarder) {
@@ -468,13 +469,14 @@ final class RemoteCGRendererRecordedDrawing: @unchecked Sendable {
         return locked.recording
     }
 
-    // Draws what the buffer's drawing recorded so far into a context's renderer, lent for the draw, with resources for a replay
-    // into the context, for the placeholder that keeps the drawing (RemoteImageBufferGraphicsContext::installRecordedDrawing()).
+    // Draws what the buffer's drawing recorded so far into a context's renderer, lent for the draw
+    // (GraphicsContextCG::lendSwiftRendererForReplay()), for the placeholder that keeps the drawing
+    // (RemoteImageBufferGraphicsContext::installRecordedDrawing()).
     @used
-    static func draw(_ drawing: UInt, state: inout CGRendererCore, resources: WebKit.RemoteCGRendererResources) {
+    static func draw(_ drawing: UInt, state: inout CGRendererCore) {
         // Safety: the placeholder keeps the drawing retained from installRecordedDrawing() until it lets go of it (releaseDrawing()).
         let drawing = unsafe Unmanaged<RemoteCGRendererRecordedDrawing>.fromOpaque(address(drawing)).takeUnretainedValue()
-        drawing.currentRecording()?.draw(state: &state, resources: resources)
+        drawing.currentRecording()?.draw(state: &state)
     }
 
     @used
@@ -491,8 +493,8 @@ final class RemoteCGRendererRecordedDrawing: @unchecked Sendable {
     }
 }
 
-// The display lists of a rendering backend, which its contexts' DrawDisplayList messages name, on its work queue, by key
-// (WebKit.displayListKey()).
+// The display lists of a rendering backend, which its contexts' DrawDisplayList messages name, on its work queue, by their
+// identifiers' values.
 @_expose(Cxx)
 final class RemoteCGRendererDisplayLists {
     // Changed only by changes that release what they replace or remove after they end, so that no access to it can overlap
@@ -573,13 +575,13 @@ final class RemoteCGRendererSnapshotFrames {
     // and its recorder while it records it.
     private var rerecordings: [RemoteCGRendererRecording] = []
     private var nextDisplayLists: [(key: UInt64, recording: RemoteCGRendererRecording)] = []
-    private var rerecorder: RemoteCGRendererRecorder?
+    private var rerecorder: (recorder: RemoteCGRendererRecorder, resources: RemoteCGRendererResources)?
 
     @_expose(!Cxx)
     private init() {
     }
 
-    // The frames of a snapshot when it completed, by key (WebKit.frameKey()).
+    // The frames of a snapshot when it completed, by their frame identifiers' values.
     @_expose(!Cxx)
     init(recordings: [UInt64: RemoteSnapshotFrameRecording], abandonedFrames: Set<UInt64>) {
         self.recordings = recordings
@@ -611,9 +613,12 @@ final class RemoteCGRendererSnapshotFrames {
         return true
     }
 
-    // The receiver of the messages of the recording that the print process records next, until endRerecording().
+    // The receiver of the messages of the recording that the print process records next, until endRerecording(), with the
+    // resources that the GPU process looked up for it.
     @used
-    func beginRerecording(resources: WebKit.RemoteCGRendererResources) -> RefRemoteCGRendererRecorderMessageForwarder {
+    func beginRerecording(resources recordedResources: RemoteCGRendererRecordedResources) -> RefRemoteCGRendererRecorderMessageForwarder {
+        let resources = RemoteCGRendererResources.forReplay()
+        resources.beginReplay(recordedResources)
         let displayLists = RemoteCGRendererDisplayLists(backendResources: nil)
         for displayList in nextDisplayLists {
             _ = displayLists.add(displayList.recording, key: displayList.key)
@@ -625,7 +630,7 @@ final class RemoteCGRendererSnapshotFrames {
             videoFrameSources: nil,
             snapshotFrames: .rerecording
         )
-        rerecorder = recorder
+        rerecorder = (recorder, resources)
         return RemoteCGRendererRecorder.createMessageReceiver(recorder: recorder)
     }
 
@@ -634,7 +639,8 @@ final class RemoteCGRendererSnapshotFrames {
         guard let rerecorder else {
             preconditionFailure("The print process ends a recording it didn't begin")
         }
-        rerecordings.append(rerecorder.takeRecording())
+        rerecorder.resources.endReplay()
+        rerecordings.append(rerecorder.recorder.takeRecording())
         self.rerecorder = nil
     }
 
@@ -653,11 +659,12 @@ final class RemoteCGRendererSnapshotFrames {
         abandonedFrames.insert(key)
     }
 
-    // Draws the root frame, and the frames it draws in turn, into a context's renderer, lent for the draw, with resources for
-    // a replay into the context: false if the root has no recording and wasn't abandoned.
+    // Draws the root frame, and the frames it draws in turn, into a context's renderer, lent for the draw
+    // (GraphicsContextCG::lendSwiftRendererForReplay()): false if the root has no recording and wasn't abandoned.
     @used
-    func draw(rootKey: UInt64, state: inout CGRendererCore, resources: WebKit.RemoteCGRendererResources) -> Bool {
-        draw(rootKey, to: RemoteCGRenderer.makeReplayer(resources: resources, snapshotFrames: self), state: &state)
+    func draw(rootKey: UInt64, state: inout CGRendererCore) -> Bool {
+        let resources = RemoteCGRendererResources.forReplay()
+        return draw(rootKey, to: RemoteCGRenderer.makeReplayer(resources: resources, snapshotFrames: self), state: &state)
     }
 
     // The recordings of the frames, and of the display lists they draw, for the print process (RemoteSnapshotPrintData): false
@@ -677,9 +684,12 @@ final class RemoteCGRendererSnapshotFrames {
                 }
                 displayLists.append((key.value, index))
             }
-            guard var encoder = recording.encodedMessages(), builder.addRecording(&encoder, recording.resources) else {
+            // The print process draws no mesh gradients.
+            guard var encoder = recording.encodedMessages(), !recording.resources.hasMeshGradients else {
                 return nil
             }
+            builder.addRecording(&encoder)
+            recording.resources.export(to: builder)
             for displayList in displayLists {
                 builder.addDisplayList(displayList.key, displayList.index)
             }

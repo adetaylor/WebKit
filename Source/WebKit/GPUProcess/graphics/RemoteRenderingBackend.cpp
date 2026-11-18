@@ -72,7 +72,6 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererResources.h"
 #include "WebKit-Swift.h"
 #endif
 
@@ -160,8 +159,10 @@ void RemoteRenderingBackend::workQueueUninitialize()
     m_remoteSnapshotRecorders.clear();
 #endif
     m_remoteImageBufferSets.clear();
+#if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // Make sure we destroy the ResourceCache on the WorkQueue since it gets populated on the WorkQueue.
     m_remoteResourceCache.releaseAllResources();
+#endif
 
     Ref streamConnection = m_streamConnection;
     streamConnection->stopReceivingMessages(Messages::RemoteRenderingBackend::messageReceiverName(), m_renderingBackendIdentifier.toUInt64());
@@ -610,7 +611,11 @@ void RemoteRenderingBackend::cacheFont(const Font::Attributes& fontAttributes, F
 
     RefPtr<FontCustomPlatformData> customPlatformData = nullptr;
     if (fontCustomPlatformDataIdentifier) {
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+        customPlatformData = swiftCachedFontCustomPlatformData(*fontCustomPlatformDataIdentifier);
+#else
         customPlatformData = m_remoteResourceCache.cachedFontCustomPlatformData(*fontCustomPlatformDataIdentifier);
+#endif
         MESSAGE_CHECK(customPlatformData, "CacheFont without caching custom data");
     }
 
@@ -619,7 +624,8 @@ void RemoteRenderingBackend::cacheFont(const Font::Attributes& fontAttributes, F
     Ref font = SharedFont::create(platform, fontAttributes.origin, fontAttributes.isInterstitial, fontAttributes.visibility, fontAttributes.isTextOrientationFallback, fontAttributes.isSmallCapsFace, fontAttributes.renderingResourceIdentifier);
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    bool success = m_remoteResourceCache.cacheFont(RemoteCGRendererFont::create(WTF::move(font)));
+    auto identifier = font->renderingResourceIdentifier();
+    bool success = swiftCacheFont(font.get(), identifier);
 #else
     bool success = m_remoteResourceCache.cacheFont(WTF::move(font));
 #endif
@@ -629,7 +635,11 @@ void RemoteRenderingBackend::cacheFont(const Font::Attributes& fontAttributes, F
 void RemoteRenderingBackend::releaseFont(WebCore::RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseFont(identifier);
+#else
     bool success = m_remoteResourceCache.releaseFont(identifier);
+#endif
     MESSAGE_CHECK(success, "Font released before being cached.");
 }
 
@@ -640,56 +650,89 @@ void RemoteRenderingBackend::cacheFontCustomPlatformData(WebCore::FontCustomPlat
     auto customPlatformData = FontCustomPlatformData::tryMakeFromSerializationData(WTF::move(fontCustomPlatformSerializedData), shouldUseLockdownFontParser());
     MESSAGE_CHECK(customPlatformData.has_value(), "cacheFontCustomPlatformData couldn't deserialize FontCustomPlatformData");
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    Ref data = WTF::move(customPlatformData.value());
+    bool success = swiftCacheFontCustomPlatformData(data, data->m_renderingResourceIdentifier);
+#else
     bool success = m_remoteResourceCache.cacheFontCustomPlatformData(WTF::move(customPlatformData.value()));
+#endif
     MESSAGE_CHECK(success, "FontCustomPlatformData already cached.");
 }
 
 void RemoteRenderingBackend::releaseFontCustomPlatformData(WebCore::RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseFontCustomPlatformData(identifier);
+#else
     bool success = m_remoteResourceCache.releaseFontCustomPlatformData(identifier);
+#endif
     MESSAGE_CHECK(success, "FontCustomPlatformData released before being cached.");
 }
 
 void RemoteRenderingBackend::cachePathImpl(Ref<WebCore::PathImpl>&& path, RemotePathImplIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftCachePathImpl(path, identifier);
+#else
     bool success = m_remoteResourceCache.cachePathImpl(identifier, WTF::move(path));
+#endif
     MESSAGE_CHECK(success, "Path already cached.");
 }
 
 void RemoteRenderingBackend::releasePathImpl(RemotePathImplIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleasePathImpl(identifier);
+#else
     bool success = m_remoteResourceCache.releasePathImpl(identifier);
+#endif
     MESSAGE_CHECK(success, "Path released before being cached.");
 }
 
 void RemoteRenderingBackend::cacheGradient(Ref<Gradient>&& gradient, RemoteGradientIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftCacheGradient(gradient, identifier);
+#else
     bool success = m_remoteResourceCache.cacheGradient(identifier, WTF::move(gradient));
+#endif
     MESSAGE_CHECK(success, "Gradient already cached.");
 }
 
 void RemoteRenderingBackend::releaseGradient(RemoteGradientIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseGradient(identifier);
+#else
     bool success = m_remoteResourceCache.releaseGradient(identifier);
+#endif
     MESSAGE_CHECK(success, "Gradient released before being cached.");
 }
 
 void RemoteRenderingBackend::cacheMeshGradient(Ref<MeshGradient>&& gradient, RemoteMeshGradientIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftCacheMeshGradient(gradient, identifier);
+#else
     bool success = m_remoteResourceCache.cacheMeshGradient(identifier, WTF::move(gradient));
+#endif
     MESSAGE_CHECK(success, "Mesh gradient already cached.");
 }
 
 void RemoteRenderingBackend::releaseMeshGradient(RemoteMeshGradientIdentifier identifier)
 {
     assertIsCurrent(workQueue());
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    bool success = swiftReleaseMeshGradient(identifier);
+#else
     bool success = m_remoteResourceCache.releaseMeshGradient(identifier);
+#endif
     MESSAGE_CHECK(success, "Mesh gradient released before being cached.");
 }
 
@@ -699,24 +742,22 @@ void RemoteRenderingBackend::cacheFilter(Ref<Filter>&& filter)
     assertIsCurrent(workQueue());
     MESSAGE_CHECK(filter->hasValidRenderingResourceIdentifier(), "Received a Filter without a valid resource identifier.");
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    auto identifier = filter->renderingResourceIdentifier();
-    bool isSVGFilter = is<SVGFilterRenderer>(filter.get());
-#endif
+    bool success = swiftCacheFilter(filter, filter->renderingResourceIdentifier());
+#else
     bool success = m_remoteResourceCache.cacheFilter(WTF::move(filter));
-    MESSAGE_CHECK(success, "Filter already cached.");
-#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    swiftCacheFilter(identifier, isSVGFilter);
 #endif
+    MESSAGE_CHECK(success, "Filter already cached.");
 }
 
 void RemoteRenderingBackend::releaseFilter(RenderingResourceIdentifier identifier)
 {
     assertIsCurrent(workQueue());
-    bool success = m_remoteResourceCache.releaseFilter(identifier);
-    MESSAGE_CHECK(success, "Filter released before being cached.");
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-    swiftReleaseFilter(identifier);
+    bool success = swiftReleaseFilter(identifier);
+#else
+    bool success = m_remoteResourceCache.releaseFilter(identifier);
 #endif
+    MESSAGE_CHECK(success, "Filter released before being cached.");
 }
 
 void RemoteRenderingBackend::createDisplayListRecorder(RemoteDisplayListRecorderIdentifier identifier)
@@ -759,10 +800,11 @@ void RemoteRenderingBackend::releaseDisplayList(RemoteDisplayListIdentifier iden
 void RemoteRenderingBackend::releaseMemory()
 {
     assertIsCurrent(workQueue());
-    m_remoteResourceCache.releaseMemory();
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    swiftReleaseMemoryCaches();
     swiftReleaseDisplayLists();
-    swiftReleaseFilters();
+#else
+    m_remoteResourceCache.releaseMemory();
 #endif
 }
 
