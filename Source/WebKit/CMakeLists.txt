@@ -1878,6 +1878,7 @@ if (SWIFT_REQUIRED AND APPLE)
     list(APPEND WebKit_SOURCES
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRenderer.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererFilters.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererMessageTypes.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererRecording.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteCGRendererResources.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCGRendererMessageReceiver.swift

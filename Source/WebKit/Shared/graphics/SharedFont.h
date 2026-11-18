@@ -29,6 +29,12 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include <WebCore/CGRendererSwiftBridge.h>
+#include <WebCore/GlyphBufferMembers.h>
+#include <span>
+#endif
+
 namespace WebKit {
 
 // This immutable Font is safe to share across threads (or RemoteRenderingBackends) and
@@ -44,5 +50,19 @@ public:
 private:
     SharedFont(const WebCore::FontPlatformData&, Origin, IsInterstitial, Visibility, IsOrientationFallback, IsSmallCapsFace, std::optional<WebCore::RenderingResourceIdentifier>);
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// For RemoteCGRendererFont (RemoteCGRendererResources.swift), which can't pass the font as a FontBase: its CTFont and facts
+// (CGRendererGlyphFontFactsOf()), and FontBase::hasAnyComplexColorFormatGlyphs().
+inline CTFontRef _Nullable glyphFontFactsOf(const SharedFont& font, CGRendererGlyphFontFacts& facts) CF_RETURNS_NOT_RETAINED
+{
+    return CGRendererGlyphFontFactsOf(font, facts);
+}
+
+inline bool hasAnyComplexColorFormatGlyphs(const SharedFont& font, std::span<const WebCore::GlyphBufferGlyph> glyphs NOESCAPE)
+{
+    return font.hasAnyComplexColorFormatGlyphs(glyphs);
+}
+#endif
 
 } // namespace WebKit

@@ -144,53 +144,12 @@ header: <WebCore/PathSegment.h>
 [Swift] using WebCore::PathSegment::Data = Variant<WebCore::PathMoveTo, WebCore::PathLineTo, WebCore::PathQuadCurveTo, WebCore::PathBezierCurveTo, WebCore::PathArcTo, WebCore::PathArc, WebCore::PathClosedArc, WebCore::PathEllipse, WebCore::PathEllipseInRect, WebCore::PathRect, WebCore::PathRoundedRect, WebCore::PathContinuousRoundedRect, WebCore::PathDataLine, WebCore::PathDataQuadCurve, WebCore::PathDataBezierCurve, WebCore::PathDataArc, WebCore::PathCloseSubpath>;
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-header: "RemoteCGRendererLineStrokes.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineStrokes {
-    std::span<const WebCore::PathDataLineColorThickness> span();
-};
-
-header: "RemoteCGRendererPathSegment.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererPathSegment {
-    WebCore::PathSegment segment();
-};
-
-header: "RemoteCGRendererShadow.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebKit::RemoteCGRendererShadow {
-    CGRendererShadowValues values;
-    CGRendererColorData color;
-    bool hasShadow;
-};
-
-header: "RemoteCGRendererStyle.h"
-enum class WebKit::RemoteCGRendererStyleKind : uint8_t {
+header: "RemoteCGRendererStyleKind.h"
+[Swift] enum class WebKit::RemoteCGRendererStyleKind : uint8_t {
     None,
     DropShadow,
     GaussianBlur,
     ColorMatrix
-};
-
-header: "RemoteCGRendererStyle.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct WebKit::RemoteCGRendererStyle {
-    WebKit::RemoteCGRendererStyleKind kind;
-    WebKit::RemoteCGRendererShadow dropShadow;
-    float blurWidth;
-    float blurHeight;
-    std::array<float, 20> colorMatrix;
-};
-
-header: "RemoteCGRendererGlyphs.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererGlyphs {
-    IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance> glyphsAdvances();
-};
-
-header: "RemoteCGRendererLineSegments.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineSegments {
-    std::span<const WebCore::FloatSegment> span();
-};
-
-header: "RemoteCGRendererLineDash.h"
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] class WebKit::RemoteCGRendererLineDash {
-    std::span<const double> span();
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
@@ -207,7 +166,7 @@ header: <WebCore/CGRendererSwiftBridge.h>
 };
 
 header: <WebCore/CGRendererSwiftBridge.h>
-[AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererShadowValues {
+[Swift, AdditionalEncoder=StreamConnectionEncoder, CustomHeader] struct CGRendererShadowValues {
     float width;
     float height;
     float radius;

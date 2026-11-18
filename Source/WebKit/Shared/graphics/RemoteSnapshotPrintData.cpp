@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 
-#include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererMessages.h"
 #include "SharedFont.h"
 #include "WebKit-Swift.h"

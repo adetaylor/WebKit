@@ -305,8 +305,7 @@ final class RemoteCGRendererResources {
         return cache?.meshGradient(key: key)
     }
 
-    func cachedFont(_ identifier: WebCore.RenderingResourceIdentifier) -> RemoteCGRendererFont? {
-        let key = identifier.toUInt64()
+    func cachedFont(key: UInt64) -> RemoteCGRendererFont? {
         if let replayed = replayedResources.last {
             return replayed.font(key: key)
         }
@@ -335,13 +334,14 @@ final class RemoteCGRendererResources {
 
     // A DrawGlyphs's font, which the recorded run keeps, with its facts for the run. A recording draws every run of an
     // identifier in the font it first recorded for it, as the print process does.
-    func recordGlyphs(_ fontIdentifier: WebCore.RenderingResourceIdentifier, _ glyphs: WebKit.RemoteCGRendererRecordedGlyphs) -> Bool {
-        guard let font = cachedFont(fontIdentifier) else {
+    func recordGlyphs(_ fontIdentifier: IPCTypes.RenderingResourceIdentifier, _ glyphs: IPCTypes.GlyphRun) -> Bool {
+        guard let font = cachedFont(key: fontIdentifier.rawValue) else {
             return false
         }
-        let recordedFont = recording().addFont(font, key: fontIdentifier.toUInt64())
-        let runGlyphs: Span<CGGlyph> = glyphs.glyphs()
-        glyphs.setRecordedFont(recordedFont.ctFont, recordedFont.factsForGlyphs(runGlyphs))
+        let recordedFont = recording().addFont(font, key: fontIdentifier.rawValue)
+        let glyphStorage = glyphs.storage.glyphs
+        let facts = recordedFont.factsForGlyphs(glyphStorage.span.extracting(0..<glyphs.count))
+        glyphs.storage.setRecordedFont(recordedFont.ctFont, facts: facts)
         return true
     }
 

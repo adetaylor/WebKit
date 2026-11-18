@@ -40,7 +40,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererGlyphs.h"
 #include "RemoteCGRendererMessages.h"
 #include "RemoteSnapshotPrintData.h"
 #include "SharedFont.h"

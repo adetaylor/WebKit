@@ -293,10 +293,9 @@ final class RemoteCGRenderer {
     // looks them up.
     private var imageReplays: [RemoteCGRendererRecordedImages] = []
     // A live DrawGlyphs's glyphs and advances, copied out of the message.
-    private var liveGlyphs: ContiguousArray<CGGlyph> = []
+    private let liveGlyphRun = IPCTypes.GlyphRun.Storage()
     // The descriptions of the effects of the filters it drew last (RemoteCGRendererFilters.swift).
     private let filterDescriptions = RemoteCGRendererFilterDescriptions()
-    private var liveAdvances: ContiguousArray<CGSize> = []
     #if WTF_PLATFORM_MAC
     // The cells it draws Mac control parts with, as a control factory's, made when first used.
     private var macControlCells: MacControlPainterCells?
@@ -576,17 +575,16 @@ final class RemoteCGRenderer {
         state.receiveFillPathSegment(bezierCurveSegment(curve))
     }
 
-    func fillPathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) {
-        state.receiveFillPathSegment(segment.values())
+    func fillPathSegment(state: inout CGRendererCore, segment: CGRendererPathSegment) {
+        state.receiveFillPathSegment(segment)
     }
 
     func strokeLine(state: inout CGRendererCore, line: WebCore.PathDataLine) {
         state.receiveStrokePathSegment(lineSegment(line))
     }
 
-    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: WebKit.RemoteCGRendererLineStrokes) {
-        let span: Span<WebCore.PathDataLineColorThickness> = lines.span()
-        state.receiveStrokeLinesWithColorAndThickness(span)
+    func strokeLinesWithColorAndThickness(state: inout CGRendererCore, lines: [WebCore.PathDataLineColorThickness]) {
+        state.receiveStrokeLinesWithColorAndThickness(lines.span)
     }
 
     func strokeArc(state: inout CGRendererCore, arc: WebCore.PathArc) {
@@ -605,8 +603,8 @@ final class RemoteCGRenderer {
         state.receiveStrokePathSegment(bezierCurveSegment(curve))
     }
 
-    func strokePathSegment(state: inout CGRendererCore, segment: WebKit.RemoteCGRendererPathSegment) {
-        state.receiveStrokePathSegment(segment.values())
+    func strokePathSegment(state: inout CGRendererCore, segment: CGRendererPathSegment) {
+        state.receiveStrokePathSegment(segment)
     }
 
     // RemoteGraphicsContext's path handlers, and GraphicsContextCG's draws of an empty path, which draw nothing. A missing cached
@@ -808,27 +806,34 @@ final class RemoteCGRenderer {
         state.receiveSetStrokeColor(color, nil)
     }
 
-    func setDropShadow(state: inout CGRendererCore, dropShadow: WebKit.RemoteCGRendererShadow) {
-        guard dropShadow.hasShadow else {
+    func setDropShadow(state: inout CGRendererCore, values: IPCTypes.CGRendererShadowValues, color: IPCTypes.CGRendererColorData, hasShadow: Bool) {
+        guard hasShadow else {
             state.receiveClearDropShadow()
             return
         }
-        state.receiveSetDropShadow(dropShadow.values, dropShadow.color)
+        state.receiveSetDropShadow(values.cgRendererShadowValues, color.cgRendererColorData)
     }
 
     // CGStyle has the blur and the color matrix on every platform the receiver is for.
-    func setStyle(state: inout CGRendererCore, style: WebKit.RemoteCGRendererStyle) {
-        switch style.kind {
-        case .None:
+    func setStyle(
+        state: inout CGRendererCore,
+        kind: IPCTypes.RemoteCGRendererStyleKind,
+        shadowValues: IPCTypes.CGRendererShadowValues,
+        shadowColor: IPCTypes.CGRendererColorData,
+        hasShadow: Bool,
+        blurWidth: Float,
+        blurHeight: Float,
+        colorMatrix: IPCCoding.StdArray20<Float>.Value
+    ) {
+        switch kind {
+        case .none:
             state.receiveSetNoStyle()
-        case .DropShadow:
-            state.receiveSetDropShadowStyle(style.dropShadow.values, style.dropShadow.color)
-        case .GaussianBlur:
-            state.receiveSetGaussianBlurStyle(style.blurWidth, style.blurHeight)
-        case .ColorMatrix:
-            state.receiveSetColorMatrixStyle(WebKit.colorMatrix(style))
-        @unknown default:
-            state.receiveSetNoStyle()
+        case .dropShadow:
+            state.receiveSetDropShadowStyle(shadowValues.cgRendererShadowValues, shadowColor.cgRendererColorData)
+        case .gaussianBlur:
+            state.receiveSetGaussianBlurStyle(blurWidth, blurHeight)
+        case .colorMatrix:
+            state.receiveSetColorMatrixStyle(CGRendererColorMatrix(values: colorMatrix))
         }
     }
 
@@ -840,9 +845,8 @@ final class RemoteCGRenderer {
         state.receiveSetShadowsIgnoreTransforms(shouldIgnore)
     }
 
-    func setLineDash(state: inout CGRendererCore, dashArray: WebKit.RemoteCGRendererLineDash, dashOffset: Float) {
-        let dashes: Span<Double> = dashArray.span()
-        state.receiveSetLineDash(dashes, dashOffset)
+    func setLineDash(state: inout CGRendererCore, dashArray: [Double], dashOffset: Float) {
+        state.receiveSetLineDash(dashArray.span, dashOffset)
     }
 
     func fillRectWithColor(state: inout CGRendererCore, rect: WebCore.FloatRect, color: CGRendererColorValue) {
@@ -1304,56 +1308,53 @@ final class RemoteCGRenderer {
 
     func drawLinesForText(
         state: inout CGRendererCore,
-        point: WebCore.FloatPoint,
+        point: IPCTypes.FloatPoint,
         thickness: Float,
-        lineSegments: WebKit.RemoteCGRendererLineSegments,
+        lineSegments: [WebCore.FloatSegment],
         printing: Bool,
         doubleLines: Bool,
         strokeStyle: WebCore.StrokeStyle
     ) {
-        let segments: Span<WebCore.FloatSegment> = lineSegments.span()
-        state.receiveDrawLinesForText(segments, point.x(), point.y(), thickness, printing, doubleLines, strokeStyle)
+        state.receiveDrawLinesForText(lineSegments.span, point.x, point.y, thickness, printing, doubleLines, strokeStyle)
+    }
+
+    // A live DrawGlyphs's glyphs and advances, which its dispatch copies out of the message into the renderer's storage for them.
+    @_expose(!Cxx)
+    func glyphRunDecodeContext(state: borrowing CGRendererCore) -> IPCTypes.GlyphRun.Storage {
+        liveGlyphRun
     }
 
     // RemoteGraphicsContext::drawGlyphs(): a missing font is an invalid message, as in C++. A recorded run has the font that the
-    // recorder found for it; a live one's glyphs and advances are copied out of the message first.
+    // recorder found for it.
+    @_expose(!Cxx)
     func drawGlyphs(
         state: inout CGRendererCore,
-        fontIdentifier: WebCore.RenderingResourceIdentifier,
-        glyphsAdvances: WebKit.RemoteCGRendererGlyphs,
-        localAnchor: WebCore.FloatPoint,
+        fontIdentifier: IPCTypes.RenderingResourceIdentifier,
+        glyphsAdvances: IPCTypes.GlyphRun,
+        localAnchor: IPCTypes.FloatPoint,
         smoothingMode: WebCore.FontSmoothingMode
     ) throws(InvalidMessage) {
-        if glyphsAdvances.isRecorded() {
-            let facts = glyphsAdvances.recordedFacts()
-            guard facts.draws else {
+        let storage = glyphsAdvances.storage
+        let count = glyphsAdvances.count
+        let glyphStorage = storage.glyphs
+        let advanceStorage = storage.advances
+        let glyphs = glyphStorage.span.extracting(0..<count)
+        let advances = advanceStorage.span.extracting(0..<count)
+        if storage.isRecorded {
+            let facts = storage.recordedFacts
+            guard facts.draws, let font = storage.recordedFont else {
                 return
             }
-            state.receiveDrawGlyphs(glyphsAdvances.recordedRun(), facts, smoothingMode.rawValue, localAnchor.x(), localAnchor.y())
+            state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
             return
         }
-        let count = glyphsAdvances.size()
-        if liveGlyphs.count < count {
-            liveGlyphs = ContiguousArray(repeating: 0, count: count)
-            liveAdvances = ContiguousArray(repeating: CGSize.zero, count: count)
-        }
-        let cachedFont = resources.cachedFont(fontIdentifier)
+        let cachedFont = resources.cachedFont(key: fontIdentifier.rawValue)
         try messageCheck { cachedFont != nil }
         guard let cachedFont, let font = cachedFont.ctFont else {
             return
         }
-        let copied: Int
-        do {
-            var glyphsCopy = liveGlyphs.mutableSpan
-            var advancesCopy = liveAdvances.mutableSpan
-            copied = glyphsAdvances.copyInto(&glyphsCopy, &advancesCopy)
-        }
-        let glyphStorage = liveGlyphs
-        let advanceStorage = liveAdvances
-        let glyphs = glyphStorage.span.extracting(0..<copied)
         let facts = cachedFont.factsForGlyphs(glyphs)
-        let run = CGRendererMakeGlyphRun(font, glyphs, advanceStorage.span.extracting(0..<copied))
-        state.receiveDrawGlyphs(run, facts, smoothingMode.rawValue, localAnchor.x(), localAnchor.y())
+        state.receiveDrawGlyphs(CGRendererMakeGlyphRun(font, glyphs, advances), facts, smoothingMode.rawValue, localAnchor.x, localAnchor.y)
     }
 
     // RemoteGraphicsContext::drawDisplayList(): a missing display list is an invalid message. A recording draws the display

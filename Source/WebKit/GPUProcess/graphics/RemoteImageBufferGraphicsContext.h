@@ -145,6 +145,13 @@ private:
 
 #include "RemoteGraphicsContext.h"
 
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
+#include "ArrayReferenceTuple.h"
+#include <WebCore/GlyphBufferMembers.h>
+#include <array>
+#include <span>
+#endif
+
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 #include "ScopedRenderingResourcesRequest.h"
 #include <WebCore/AlphaPremultiplication.h>
@@ -181,13 +188,7 @@ enum class RemoteImageBufferPixelsResult : uint8_t {
     SharedMemoryTooSmall,
 };
 
-class RemoteCGRendererLineStrokes;
-class RemoteCGRendererPathSegment;
-class RemoteCGRendererGlyphs;
-class RemoteCGRendererLineDash;
-class RemoteCGRendererLineSegments;
-struct RemoteCGRendererShadow;
-struct RemoteCGRendererStyle;
+enum class RemoteCGRendererStyleKind : uint8_t;
 #endif
 
 class RemoteImageBufferGraphicsContext;
@@ -243,12 +244,10 @@ public:
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT) && ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     // RemoteCGRenderer's messages whose arguments differ from RemoteGraphicsContext's, as RemoteGraphicsContext draws them.
-    void fillPathSegment(const RemoteCGRendererPathSegment&);
-    void strokePathSegment(const RemoteCGRendererPathSegment&);
     void drawFocusRingPath(const WebCore::Path&, float outlineWidth, const CGRendererColorValue&, float zoomFactor);
-    void setDropShadow(const RemoteCGRendererShadow&);
-    void setStyle(const RemoteCGRendererStyle&);
-    void setLineDash(const RemoteCGRendererLineDash&, float dashOffset);
+    void setDropShadow(const CGRendererShadowValues&, const CGRendererColorData&, bool hasShadow);
+    void setStyle(RemoteCGRendererStyleKind, const CGRendererShadowValues&, const CGRendererColorData&, bool hasShadow, float blurWidth, float blurHeight, const std::array<float, 20>& colorMatrix);
+    void setLineDash(std::span<const double>, float dashOffset);
     void setFillColor(const CGRendererColorValue&);
     void setStrokeColor(const CGRendererColorValue&);
     void fillRectWithColor(const WebCore::FloatRect&, const CGRendererColorValue&);
@@ -256,9 +255,8 @@ public:
     void fillRoundedRect(const WebCore::FloatRoundedRect&, const CGRendererColorValue&, WebCore::BlendMode);
     void fillRectWithRoundedHole(const WebCore::FloatRect&, const WebCore::FloatRoundedRect&, const CGRendererColorValue&);
     void fillRectWithCachedGradient(const WebCore::FloatRect&, RemoteGradientIdentifier);
-    void drawLinesForText(const WebCore::FloatPoint&, float thickness, const RemoteCGRendererLineSegments&, bool printing, bool doubleLines, WebCore::StrokeStyle);
     void drawDotsForDocumentMarker(const WebCore::FloatRect&, WebCore::DocumentMarkerLineStyleMode, const CGRendererColorValue&);
-    void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
+    void drawGlyphs(WebCore::RenderingResourceIdentifier fontIdentifier, const IPC::ArrayReferenceTuple<WebCore::GlyphBufferGlyph, WebCore::GlyphBufferAdvance>&, WebCore::FloatPoint localAnchor, WebCore::FontSmoothingMode);
     void fillRectWithCachedGradientAndSpaceTransform(const WebCore::FloatRect&, RemoteGradientIdentifier, const WebCore::AffineTransform&, WebCore::RequiresClipToRect);
 #endif
 
@@ -278,7 +276,6 @@ private:
     void setFillPackedColorValue(uint32_t);
     void setStrokePackedColorValue(uint32_t);
     void setStrokePackedColorValueAndThickness(uint32_t, float);
-    void strokeLines(const RemoteCGRendererLineStrokes&);
     void drawRecordedDisplayList(RemoteDisplayListIdentifier);
 #endif
 

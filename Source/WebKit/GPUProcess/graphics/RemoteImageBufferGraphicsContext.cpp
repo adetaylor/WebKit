@@ -166,14 +166,8 @@ void RemoteImageBufferGraphicsContext::waitForDisplayBuffer()
 #include "ImageBufferBackendHandleSharing.h"
 #include "RemoteSharedResourceCache.h"
 #include "SwiftCoding.h"
-#include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererLineDash.h"
-#include "RemoteCGRendererLineSegments.h"
-#include "RemoteCGRendererLineStrokes.h"
 #include "RemoteCGRendererMessages.h"
-#include "RemoteCGRendererPathSegment.h"
-#include "RemoteCGRendererShadow.h"
-#include "RemoteCGRendererStyle.h"
+#include "RemoteCGRendererStyleKind.h"
 #include "RemoteResourceCache.h"
 #include "StreamMessageReceiver.h"
 #include "WebKit-Swift.h"
@@ -471,14 +465,14 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(FillClosedArc, &RemoteGraphicsContext::fillClosedArc)
     HANDLE_CG_RENDERER_MESSAGE(FillQuadCurve, &RemoteGraphicsContext::fillQuadCurve)
     HANDLE_CG_RENDERER_MESSAGE(FillBezierCurve, &RemoteGraphicsContext::fillBezierCurve)
-    HANDLE_CG_RENDERER_MESSAGE(FillPathSegment, &RemoteImageBufferGraphicsContext::fillPathSegment)
+    HANDLE_CG_RENDERER_MESSAGE(FillPathSegment, &RemoteGraphicsContext::fillPathSegment)
     HANDLE_CG_RENDERER_MESSAGE(StrokeLine, &RemoteGraphicsContext::strokeLine)
-    HANDLE_CG_RENDERER_MESSAGE(StrokeLinesWithColorAndThickness, &RemoteImageBufferGraphicsContext::strokeLines)
+    HANDLE_CG_RENDERER_MESSAGE(StrokeLinesWithColorAndThickness, &RemoteGraphicsContext::strokeLinesWithColorAndThickness)
     HANDLE_CG_RENDERER_MESSAGE(StrokeArc, &RemoteGraphicsContext::strokeArc)
     HANDLE_CG_RENDERER_MESSAGE(StrokeClosedArc, &RemoteGraphicsContext::strokeClosedArc)
     HANDLE_CG_RENDERER_MESSAGE(StrokeQuadCurve, &RemoteGraphicsContext::strokeQuadCurve)
     HANDLE_CG_RENDERER_MESSAGE(StrokeBezierCurve, &RemoteGraphicsContext::strokeBezierCurve)
-    HANDLE_CG_RENDERER_MESSAGE(StrokePathSegment, &RemoteImageBufferGraphicsContext::strokePathSegment)
+    HANDLE_CG_RENDERER_MESSAGE(StrokePathSegment, &RemoteGraphicsContext::strokePathSegment)
     HANDLE_CG_RENDERER_MESSAGE(FillPath, &RemoteGraphicsContext::fillPath)
     HANDLE_CG_RENDERER_MESSAGE(StrokePath, &RemoteGraphicsContext::strokePath)
     HANDLE_CG_RENDERER_MESSAGE(DrawPath, &RemoteGraphicsContext::drawPath)
@@ -514,7 +508,7 @@ void RemoteImageBufferGraphicsContext::didReceiveCGRendererMessage(IPC::StreamSe
     HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternNativeImage, &RemoteGraphicsContext::setStrokePatternNativeImage)
     HANDLE_CG_RENDERER_MESSAGE(SetStrokePatternImageBuffer, &RemoteGraphicsContext::setStrokePatternImageBuffer)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradient, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradient)
-    HANDLE_CG_RENDERER_MESSAGE(DrawLinesForText, &RemoteImageBufferGraphicsContext::drawLinesForText)
+    HANDLE_CG_RENDERER_MESSAGE(DrawLinesForText, &RemoteGraphicsContext::drawLinesForText)
     HANDLE_CG_RENDERER_MESSAGE(DrawDotsForDocumentMarker, &RemoteImageBufferGraphicsContext::drawDotsForDocumentMarker)
     HANDLE_CG_RENDERER_MESSAGE(DrawGlyphs, &RemoteImageBufferGraphicsContext::drawGlyphs)
     HANDLE_CG_RENDERER_MESSAGE(FillRectWithCachedGradientAndSpaceTransform, &RemoteImageBufferGraphicsContext::fillRectWithCachedGradientAndSpaceTransform)
@@ -574,39 +568,42 @@ void RemoteImageBufferGraphicsContext::setStrokePackedColorValueAndThickness(uin
     setStrokePackedColorAndThickness(WebCore::PackedColor::RGBA { color }, thickness);
 }
 
-void RemoteImageBufferGraphicsContext::strokeLines(const RemoteCGRendererLineStrokes& lines)
-{
-    strokeLinesWithColorAndThickness(lines.span());
-}
-
-void RemoteImageBufferGraphicsContext::fillPathSegment(const RemoteCGRendererPathSegment& segment)
-{
-    RemoteGraphicsContext::fillPathSegment(segment.segment());
-}
-
-void RemoteImageBufferGraphicsContext::strokePathSegment(const RemoteCGRendererPathSegment& segment)
-{
-    RemoteGraphicsContext::strokePathSegment(segment.segment());
-}
-
 void RemoteImageBufferGraphicsContext::drawFocusRingPath(const Path& path, float outlineWidth, const CGRendererColorValue& color, float zoomFactor)
 {
     RemoteGraphicsContext::drawFocusRingPath(path, outlineWidth, CGRendererColorFromValue(color), zoomFactor);
 }
 
-void RemoteImageBufferGraphicsContext::setDropShadow(const RemoteCGRendererShadow& shadow)
+void RemoteImageBufferGraphicsContext::setDropShadow(const CGRendererShadowValues& values, const CGRendererColorData& color, bool hasShadow)
 {
-    RemoteGraphicsContext::setDropShadow(dropShadowFrom(shadow));
+    if (!hasShadow) {
+        RemoteGraphicsContext::setDropShadow(std::nullopt);
+        return;
+    }
+    RemoteGraphicsContext::setDropShadow(CGRendererDropShadowFromValues(values, color));
 }
 
-void RemoteImageBufferGraphicsContext::setStyle(const RemoteCGRendererStyle& style)
+void RemoteImageBufferGraphicsContext::setStyle(RemoteCGRendererStyleKind kind, const CGRendererShadowValues& shadowValues, const CGRendererColorData& shadowColor, bool, float blurWidth, float blurHeight, const std::array<float, 20>& colorMatrix)
 {
-    RemoteGraphicsContext::setStyle(styleFrom(style));
+    switch (kind) {
+    case RemoteCGRendererStyleKind::None:
+        RemoteGraphicsContext::setStyle(std::nullopt);
+        return;
+    case RemoteCGRendererStyleKind::DropShadow:
+        RemoteGraphicsContext::setStyle(GraphicsStyle { CGRendererDropShadowFromValues(shadowValues, shadowColor) });
+        return;
+    case RemoteCGRendererStyleKind::GaussianBlur:
+        RemoteGraphicsContext::setStyle(GraphicsStyle { GraphicsGaussianBlur { { blurWidth, blurHeight } } });
+        return;
+    case RemoteCGRendererStyleKind::ColorMatrix:
+        RemoteGraphicsContext::setStyle(GraphicsStyle { GraphicsColorMatrix { colorMatrix } });
+        return;
+    }
+    RELEASE_ASSERT_NOT_REACHED();
 }
 
-void RemoteImageBufferGraphicsContext::setLineDash(const RemoteCGRendererLineDash& dashes, float dashOffset)
+void RemoteImageBufferGraphicsContext::setLineDash(std::span<const double> dashes, float dashOffset)
 {
-    context().setLineDash(DashArray(dashes.span()), dashOffset);
+    context().setLineDash(DashArray(dashes), dashOffset);
 }
 
 void RemoteImageBufferGraphicsContext::setFillColor(const CGRendererColorValue& color)
@@ -639,21 +636,16 @@ void RemoteImageBufferGraphicsContext::fillRectWithRoundedHole(const FloatRect& 
     RemoteGraphicsContext::fillRectWithRoundedHole(rect, roundedHoleRect, CGRendererColorFromValue(color));
 }
 
-void RemoteImageBufferGraphicsContext::drawLinesForText(const FloatPoint& point, float thickness, const RemoteCGRendererLineSegments& lineSegments, bool printing, bool doubleLines, StrokeStyle strokeStyle)
-{
-    RemoteGraphicsContext::drawLinesForText(point, thickness, lineSegments.span(), printing, doubleLines, strokeStyle);
-}
-
 void RemoteImageBufferGraphicsContext::drawDotsForDocumentMarker(const FloatRect& rect, DocumentMarkerLineStyleMode mode, const CGRendererColorValue& color)
 {
     RemoteGraphicsContext::drawDotsForDocumentMarker(rect, { mode, CGRendererColorFromValue(color) });
 }
 
-void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fontIdentifier, const RemoteCGRendererGlyphs& glyphs, FloatPoint localAnchor, FontSmoothingMode smoothingMode)
+void RemoteImageBufferGraphicsContext::drawGlyphs(RenderingResourceIdentifier fontIdentifier, const IPC::ArrayReferenceTuple<GlyphBufferGlyph, GlyphBufferAdvance>& glyphsAdvances, FloatPoint localAnchor, FontSmoothingMode smoothingMode)
 {
-    const Vector<GlyphBufferGlyph, 128> glyphsCopy { glyphs.glyphs() };
+    const Vector<GlyphBufferGlyph, 128> glyphsCopy { glyphsAdvances.span<0>() };
     Vector<FloatSize, 128> advances;
-    advances.appendContainerWithMapping(glyphs.advances(), [](auto& advance) { return FloatSize { advance }; });
+    advances.appendContainerWithMapping(glyphsAdvances.span<1>(), [](auto& advance) { return FloatSize { advance }; });
     RemoteGraphicsContext::drawGlyphs(fontIdentifier, { glyphsCopy.span().data(), advances.span().data(), glyphsCopy.size() }, localAnchor, smoothingMode);
 }
 

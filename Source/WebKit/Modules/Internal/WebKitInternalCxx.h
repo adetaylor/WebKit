@@ -157,18 +157,13 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
-#include "RemoteCGRendererGlyphs.h"
-#include "RemoteCGRendererLineDash.h"
-#include "RemoteCGRendererLineSegments.h"
-#include "RemoteCGRendererLineStrokes.h"
-#include "RemoteCGRendererPathSegment.h"
 #include "RemoteSnapshotPrintData.h"
 #include "SharedFont.h"
 #include <WebCore/Filter.h>
+#include <WebCore/FloatSegment.h>
 #include <WebCore/FontCustomPlatformData.h>
 #include <WebCore/MeshGradient.h>
-#include "RemoteCGRendererShadow.h"
-#include "RemoteCGRendererStyle.h"
+#include <WebCore/PathSegmentData.h>
 #include "RemoteCGRendererMessages.h"
 #include "RemoteImageBufferGraphicsContext.h"
 #include "RemoteImageBufferMessages.h"
