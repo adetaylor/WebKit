@@ -96,7 +96,7 @@ bool SQLiteStatement::executeCommand()
     return step() == SQLITE_DONE;
 }
 
-int SQLiteStatement::bindBlob(int index, std::span<const uint8_t> blob)
+int SQLiteStatement::bindBlob(int index, std::span<const uint8_t> blob NOESCAPE)
 {
     ASSERT(index > 0);
     ASSERT(static_cast<unsigned>(index) <= bindParameterCount());
