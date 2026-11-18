@@ -50,9 +50,6 @@ $(JAVASCRIPTCORE_PRIVATE_HEADERS_DIR)/xxd.pl
 $(PROJECT_DIR)/DerivedSources.make
 $(PROJECT_DIR)/GPUProcess/GPUConnectionToWebProcess.messages.in
 $(PROJECT_DIR)/GPUProcess/GPUProcess.messages.in
-$(PROJECT_DIR)/GPUProcess/GPUProcessCreationParameters.serialization.in
-$(PROJECT_DIR)/GPUProcess/GPUProcessPreferences.serialization.in
-$(PROJECT_DIR)/GPUProcess/GPUProcessSessionParameters.serialization.in
 $(PROJECT_DIR)/GPUProcess/RemoteSharedResourceCache.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteBarcodeDetector.messages.in
 $(PROJECT_DIR)/GPUProcess/ShapeDetection/RemoteFaceDetector.messages.in
@@ -352,7 +349,10 @@ $(PROJECT_DIR)/Shared/FrameTreeCreationParameters.serialization.in
 $(PROJECT_DIR)/Shared/FrameTreeNodeData.serialization.in
 $(PROJECT_DIR)/Shared/FullScreenMediaDetails.serialization.in
 $(PROJECT_DIR)/Shared/GPUProcessConnectionParameters.serialization.in
+$(PROJECT_DIR)/Shared/GPUProcessCreationParameters.serialization.in
 $(PROJECT_DIR)/Shared/GPUProcessMediaCodecCapabilities.serialization.in
+$(PROJECT_DIR)/Shared/GPUProcessPreferences.serialization.in
+$(PROJECT_DIR)/Shared/GPUProcessSessionParameters.serialization.in
 $(PROJECT_DIR)/Shared/Gamepad/GamepadData.serialization.in
 $(PROJECT_DIR)/Shared/GoToBackForwardItemParameters.serialization.in
 $(PROJECT_DIR)/Shared/HTTPSUpgrade/HTTPSUpgradeList.txt

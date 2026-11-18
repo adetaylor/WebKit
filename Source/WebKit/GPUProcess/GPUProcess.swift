@@ -1,3 +1,6 @@
+// Copyright (C) 2019-2025 Apple Inc. All rights reserved.
+// Copyright (C) 2021-2023 Apple Inc. All rights reserved.
+// Copyright (C) 2019-2023 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,6 +30,12 @@ import WebKit_Internal
 #if canImport(os)
 import os
 #endif
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
+import Darwin
+import Foundation
+import QuartzCore
+import Synchronization
+#endif
 
 // The Swift state of the GPU process (GPUProcess.h), which GPUProcess::m_swiftState holds.
 @MainActor
@@ -41,15 +50,44 @@ final class GPUProcessState {
     // The check again for an idle exit, once the process has lived long enough.
     var idleExitCheck: Task<Void, Never>?
 
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
+    var preferences = Preferences()
+    var haveEnabledVP9Decoder = false
+    var haveEnabledSWVP9Decoder = false
+    // The media directories of each session, by PAL::SessionID.
+    var sessions: [UInt64: (mediaCacheDirectory: WTF.String, mediaKeysStorageDirectory: WTF.String)] = [:]
+#if ENABLE_MEDIA_STREAM
+    // The page whose getUserMedia prompt shows the capture preview, the layer its camera shows in, while it does, and
+    // the camera whose rotation the UI process monitors for it, with its page.
+    var capturePreviewPage: WebCore.PageIdentifier?
+    var capturePreviewLayer: WebKit.CapturePreviewLayer?
+    var capturePreviewVideoDeviceID = ""
+    var capturePreviewVideoPage: WebCore.PageIdentifier?
+    var lastCaptureEnvironment: (process: WebCore.ProcessIdentifier, page: WebCore.PageIdentifier)?
+#endif
+#endif
+
     fileprivate nonisolated init() {
     }
 }
+
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
+// GPUProcessPreferences, as the process last applied them.
+struct Preferences {
+    var mediaResourceLoadTimeoutForTesting: UInt32?
+    var vp9DecoderEnabled: Bool?
+    var swVPDecodersAlwaysEnabled = false
+}
+#endif
 
 extension WebKit.GPUProcess {
     @cxx
     @implementation
     func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(GPUProcessState()).toOpaque())
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::GPUProcess:")
+        #endif
+        return UInt(bitPattern: unsafe Unmanaged.passRetained(GPUProcessState()).toOpaque())
     }
 
     @cxx
@@ -243,7 +281,21 @@ final class NowPlayingArbiter {
         // The UI process owns the per-page "is the NowPlaying session" state, so it hears the election result
         // directly rather than through the content processes, none of which can see the whole picture.
         if ownerChanged {
+            #if ENABLE_GPU_PROCESS_CORE_SWIFT
+            WebKit.GPUProcess.sendToUIProcess { connection in
+                WebKit.GPUProcess.GPUProcessProxyMessages.nowPlayingOwnerDidChange(
+                    on: connection,
+                    to: 0,
+                    ownerPage: eligibleOwner.flatMap { owner in
+                        IPCTypes.PageIdentifier(rawValue: owner.page).flatMap { page in
+                            IPCTypes.ProcessIdentifier(rawValue: owner.process).map { IPCTypes.QualifiedPageIdentifier(object: page, processIdentifier: $0) }
+                        }
+                    }
+                )
+            }
+            #else
             WebKit.GPUProcess.nowPlayingOwnerDidChange(eligibleOwner != nil, eligibleOwner?.page ?? 0, eligibleOwner?.process ?? 0)
+            #endif
         }
     }
 }
@@ -403,7 +455,7 @@ extension WebKit.GPUProcess {
     @MainActor
     func tryExitIfUnusedAndUnderMemoryPressure() {
         MainActor.assertIsolated()
-        if Self.isUnderMemoryPressure() {
+        if Self.underMemoryPressure {
             tryExitIfUnused()
         }
     }
@@ -424,7 +476,7 @@ extension WebKit.GPUProcess {
         // change to schedule work, we don't exit if we've been running for less than |minimumLifetimeBeforeIdleExit|.
         // In case of simulated memory pressure, we ignore this rule to avoid flakiness in our benchmarks and tests.
         let lifetime = state.creationTime.duration(to: .now)
-        if lifetime < minimumLifetimeBeforeIdleExit && !Self.isSimulatingMemoryPressure() {
+        if lifetime < minimumLifetimeBeforeIdleExit && !Self.simulatingMemoryPressure {
             WebKit.LogChannel.Process().releaseLog.log("GPUProcess::tryExitIfUnused: GPUProcess is idle and under memory pressure but it is not exiting because it has just launched")
             // Check again after the process have lived long enough (minimumLifetimeBeforeIdleExit) to see if the GPUProcess
             // can idle-exit then.
@@ -444,7 +496,11 @@ extension WebKit.GPUProcess {
         state.idleExitCheck = nil
 
         WebKit.LogChannel.Process().releaseLog.log("GPUProcess::tryExitIfUnused: GPUProcess is exiting because we are under memory pressure and the process is no longer useful.")
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        Self.sendToUIProcess { WebKit.GPUProcess.GPUProcessProxyMessages.processIsReadyToExit(on: $0, to: 0) }
+        #else
         sendProcessIsReadyToExit()
+        #endif
     }
 
     @cxx
@@ -458,8 +514,652 @@ extension WebKit.GPUProcess {
             connection.lowMemoryHandler(critical, synchronous)
         }
 
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        WebCore.releaseGraphicsMemory(critical, synchronous)
+        if critical == .Yes {
+            WebCore.IOSurface.releaseCGIOSurfaceContextResources()
+        }
+        #else
         Self.releaseMemory(critical, synchronous)
+        #endif
+    }
+
+    private static var underMemoryPressure: Bool {
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        WTF.MemoryPressureHandler.singleton().isUnderMemoryPressure()
+        #else
+        isUnderMemoryPressure()
+        #endif
+    }
+
+    private static var simulatingMemoryPressure: Bool {
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        WTF.MemoryPressureHandler.singleton().isSimulatingMemoryPressure()
+        #else
+        isSimulatingMemoryPressure()
+        #endif
     }
 }
+
+
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
+// The process's own messages and lifecycle (GPUProcess.h); C++ keeps only what Swift can't take.
+extension WebKit.GPUProcess {
+    // Overwrites a variable of the process's environment.
+    private func setEnvironmentVariable(_ name: StaticString, _ value: StaticString) {
+        // Safety: a StaticString's storage is a NUL-terminated literal that lives for the whole process.
+        unsafe setenv(name.utf8Start, value.utf8Start, 1)
+    }
+
+    // Sends a message to the UI process, if the process still has its connection.
+    static func sendToUIProcess(_ send: (IPC.Connection) -> Void) {
+        if let connection = singleton().uiProcessConnection() {
+            send(connection)
+        }
+    }
+
+    // Unsafe: C++ lends the parameters for the call, which only reads values from them.
+    @cxx
+    @implementation
+    @MainActor
+    @unsafe
+    func swiftInitializeGPUProcess(_ parameters: borrowing WebKit.GPUProcessCreationParameters) {
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::initializeGPUProcess:")
+        WTF.Thread.setCurrentThreadIsUserInitiated(0)
+        WebCore.initializeCommonAtomStrings()
+        #if WTF_PLATFORM_IOS_FAMILY || ENABLE_ROUTING_ARBITRATION
+        WebCore.DeprecatedGlobalSettings.setShouldManageAudioSessionCategory(true)
+        #endif
+        #if ENABLE_MEDIA_STREAM
+        WebCore.MockRealtimeMediaSourceCenter.setMockRealtimeMediaSourceCenterEnabled(parameters.useMockCaptureDevices)
+        #endif
+        // Match the QoS of the UIProcess since the GPU process is doing rendering on its behalf.
+        WTF.Thread.setCurrentThreadIsUserInteractive(0)
+        if !parameters.overrideLanguages.isEmpty() {
+            WTF.overrideUserPreferredLanguages(parameters.overrideLanguages)
+        }
+        if parameters.enableMetalDebugDeviceForTesting {
+            WebKit.LogChannel.Process().releaseLog.log("GPUProcess::platformInitializeGPUProcess: enabling Metal debug device")
+            setEnvironmentVariable("MTL_DEBUG_LAYER", "1")
+        }
+        if parameters.enableMetalShaderValidationForTesting {
+            WebKit.LogChannel.Process().releaseLog.log("GPUProcess::platformInitializeGPUProcess: enabling Metal shader validation")
+            setEnvironmentVariable("MTL_SHADER_VALIDATION", "1")
+            setEnvironmentVariable("MTL_SHADER_VALIDATION_ABORT_ON_FAULT", "1")
+            setEnvironmentVariable("MTL_SHADER_VALIDATION_REPORT_TO_STDERR", "1")
+            setEnvironmentVariable("MTL_SHADER_VALIDATION_GPUOPT_ENABLE_RUNTIME_STACKTRACE", "0")
+        }
+        #if ENABLE_VP9
+        if let available = Optional(fromCxx: parameters.hasVP9HardwareDecoder) {
+            WebCore.setVP9HardwareDecoderAvailableInProcess(available)
+        }
+        #endif
+        #if ENABLE_AV1
+        if let available = Optional(fromCxx: parameters.hasAV1HardwareDecoder) {
+            WebCore.setAV1HardwareDecoderAvailable(available)
+        }
+        #endif
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func didAddWebProcessConnection(_ connection: WebKit.GPUConnectionToWebProcess) {
+        connection.swiftDidAddToGPUProcess()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func didRemoveWebProcessConnection(_ connection: WebKit.GPUConnectionToWebProcess) {
+        let process = connection.webProcessIdentifier()
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::removeGPUConnectionToWebProcess: processIdentifier=\(process.toUInt64())")
+        transferredImageBuffers.removeAll(ownedBy: process.toUInt64())
+        Self.swiftAbandonSnapshotFramesOwnedBy(process)
+        Self.swiftRemoveSnapshotsForProcess(process)
+        connection.swiftDidRemoveFromGPUProcess()
+        tryExitIfUnusedAndUnderMemoryPressure()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func sharedPreferencesForWebProcessDidChange(
+        _ identifier: WebCore.ProcessIdentifier,
+        _ sharedPreferences: WebKit.SharedPreferencesForWebProcess,
+        _ completionHandler: WebKit.GPUProcessVoidReply
+    ) {
+        webProcessConnections[identifier.toUInt64()]?.updateSharedPreferencesForWebProcess(sharedPreferences)
+        completionHandler.pointee()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func updateGPUProcessPreferences(_ preferences: WebKit.GPUProcessPreferences) {
+        let state = state
+        let timeout = Optional(fromCxx: preferences.mediaResourceLoadTimeoutForTesting)
+        if timeout != state.preferences.mediaResourceLoadTimeoutForTesting {
+            state.preferences.mediaResourceLoadTimeoutForTesting = timeout
+            WebCore.DeprecatedGlobalSettings.setMediaResourceLoadTimeoutForTesting(timeout ?? 0)
+        }
+        #if ENABLE_VP9
+        if updatePreference(&state.preferences.vp9DecoderEnabled, Optional(fromCxx: preferences.vp9DecoderEnabled)) {
+            let enabled = state.preferences.vp9DecoderEnabled ?? false
+            WebCore.VP9TestingOverrides.singleton().setShouldEnableVP9Decoder(enabled)
+            if !state.haveEnabledVP9Decoder && enabled {
+                state.haveEnabledVP9Decoder = true
+                WebCore.registerSupplementalVP9Decoder()
+            }
+        }
+        if preferences.swVPDecodersAlwaysEnabled != state.preferences.swVPDecodersAlwaysEnabled {
+            state.preferences.swVPDecodersAlwaysEnabled = preferences.swVPDecodersAlwaysEnabled
+            WebCore.VP9TestingOverrides.singleton().setSWVPDecodersAlwaysEnabled(preferences.swVPDecodersAlwaysEnabled)
+        }
+        if !state.haveEnabledSWVP9Decoder && WebCore.shouldEnableSWVP9Decoder() {
+            WebCore.registerWebKitVP9Decoder()
+            state.haveEnabledSWVP9Decoder = true
+        }
+        #endif
+    }
+
+    // Takes a preference the UI process sent, which leaves the current one if it sent none, and makes an unset one
+    // false. Whether that changed it.
+    private func updatePreference(_ preference: inout Bool?, _ newPreference: Bool?) -> Bool {
+        if let newPreference, preference != newPreference {
+            preference = newPreference
+            return true
+        }
+        if preference == nil {
+            preference = false
+            return true
+        }
+        return false
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func prepareToSuspend(_ isSuspensionImminent: Bool, _ estimatedSuspendTime: WTF.MonotonicTime, _ completionHandler: WebKit.GPUProcessVoidReply) {
+        WebKit.LogChannel.ProcessSuspension().releaseLog.log("GPUProcess::prepareToSuspend(), isSuspensionImminent: \(isSuspensionImminent ? 1 : 0)")
+        lowMemoryHandler(.Yes, .Yes)
+        completionHandler.pointee()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func processDidResume() {
+        WebKit.LogChannel.ProcessSuspension().releaseLog.log("GPUProcess::processDidResume()")
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftAddSession(_ sessionID: PAL.SessionID, _ mediaCacheDirectory: WTF.String, _ mediaKeysStorageDirectory: WTF.String) {
+        // As HashMap::add(), the first session with an identifier stays.
+        assert(state.sessions[sessionID.toUInt64()] == nil)
+        if state.sessions[sessionID.toUInt64()] == nil {
+            state.sessions[sessionID.toUInt64()] = (mediaCacheDirectory, mediaKeysStorageDirectory)
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeSession(_ sessionID: PAL.SessionID) {
+        guard state.sessions.removeValue(forKey: sessionID.toUInt64()) != nil else {
+            assertionFailure("Invalid SessionID")
+            return
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func mediaCacheDirectory(_ sessionID: PAL.SessionID) -> WTF.String {
+        guard let session = state.sessions[sessionID.toUInt64()] else {
+            assertionFailure("Invalid SessionID")
+            return WTF.String()
+        }
+        return session.mediaCacheDirectory
+    }
+
+    #if ENABLE_LEGACY_ENCRYPTED_MEDIA || ENABLE_ENCRYPTED_MEDIA
+    @cxx
+    @implementation
+    @MainActor
+    func mediaKeysStorageDirectory(_ sessionID: PAL.SessionID) -> WTF.String {
+        guard let session = state.sessions[sessionID.toUInt64()] else {
+            assertionFailure("Invalid SessionID")
+            return WTF.String()
+        }
+        return session.mediaKeysStorageDirectory
+    }
+    #endif
+
+    @cxx
+    @implementation
+    func createSnapshot(
+        _ identifier: WebKit.RemoteSnapshotIdentifier,
+        _ rootFrameIdentifier: WebCore.FrameIdentifier,
+        _ size: WebCore.FloatSize,
+        _ rootProcessIdentifier: WebCore.ProcessIdentifier
+    ) {
+        Self.swiftCreateSnapshot(WebKit.snapshotKey(identifier), rootFrameIdentifier, size, rootProcessIdentifier)
+    }
+
+    @cxx
+    @implementation
+    func failSnapshot(_ identifier: WebKit.RemoteSnapshotIdentifier) {
+        Self.swiftFailSnapshot(WebKit.snapshotKey(identifier))
+    }
+
+    @cxx
+    @implementation
+    func abandonSnapshotFrame(_ identifier: WebKit.RemoteSnapshotIdentifier, _ frameIdentifier: WebCore.FrameIdentifier) {
+        Self.swiftAbandonSnapshotFrame(WebKit.snapshotKey(identifier), frameIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseSnapshot(_ identifier: WebKit.RemoteSnapshotIdentifier) {
+        Self.swiftReleaseSnapshot(WebKit.snapshotKey(identifier))
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func snapshotFrameWillBeDrawnByProcess(
+        _ identifier: WebKit.RemoteSnapshotIdentifier,
+        _ frameIdentifier: WebCore.FrameIdentifier,
+        _ processIdentifier: WebCore.ProcessIdentifier
+    ) {
+        Self.swiftSnapshotFrameWillBeDrawnByProcess(WebKit.snapshotKey(identifier), frameIdentifier, processIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func abandonSnapshotFramesOwnedBy(_ processIdentifier: WebCore.ProcessIdentifier) {
+        Self.swiftAbandonSnapshotFramesOwnedBy(processIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func webProcessConnectionCountForTesting(_ completionHandler: WebKit.GPUProcessCountReply) {
+        completionHandler.pointee(WebKit.GPUConnectionToWebProcess.objectCountForTesting())
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func printProcessDrawingCountsForTesting(_ completionHandler: WebKit.GPUProcessDrawingCountsReply) {
+        completionHandler.pointee(
+            WebKit.RemoteSnapshotPDFDrawingTask.drawnInPrintProcessCountForTesting(),
+            WebKit.RemoteSnapshotPDFDrawingTask.drawnAfterPrintProcessFailedCountForTesting()
+        )
+    }
+
+    #if HAVE_AUDIT_TOKEN
+    @cxx
+    @implementation
+    @MainActor
+    func setPresentingApplicationAuditToken(
+        _ processIdentifier: WebCore.ProcessIdentifier,
+        _ pageIdentifier: WebCore.PageIdentifier,
+        _ auditToken: WebKit.OptionalCoreIPCAuditToken
+    ) {
+        webProcessConnections[processIdentifier.toUInt64()]?.setPresentingApplicationAuditToken(pageIdentifier, auditToken)
+    }
+    #endif
+
+    @cxx
+    @implementation
+    @MainActor
+    func postWillTakeSnapshotNotification(_ completionHandler: WebKit.GPUProcessVoidReply) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        NotificationCenter.default.post(name: Notification.Name("CoreMediaPleaseHideTheDRMFallbackForAWhile"), object: nil)
+        CATransaction.commit()
+        completionHandler.pointee()
+    }
+
+    @cxx
+    @implementation
+    func depositTransferredImageBuffer(_ owner: WebCore.ProcessIdentifier, _ imageBuffer: WebCore.ImageBuffer) -> WTF.UUID {
+        transferredImageBuffers.deposit(imageBuffer, owner: owner.toUInt64())
+    }
+
+    @cxx
+    @implementation
+    func takeTransferredImageBuffer(_ identifier: WTF.UUID) -> WebKit.RefPtrTransferredImageBuffer {
+        WebKit.RefPtrTransferredImageBuffer(transferredImageBuffers.take(TransferredImageBufferKey(identifier)))
+    }
+
+    @cxx
+    @implementation
+    func releaseTransferredImageBuffer(_ identifier: WTF.UUID) {
+        transferredImageBuffers.release(TransferredImageBufferKey(identifier))
+    }
+
+    @cxx
+    @implementation
+    func handOverTransferredImageBuffer(_ identifier: WTF.UUID, _ destinationProcess: WebCore.ProcessIdentifier) {
+        transferredImageBuffers.handOver(TransferredImageBufferKey(identifier), to: destinationProcess.toUInt64())
+    }
+}
+
+// A transferred image buffer's identifier, an unguessable UUID that the GPU process minted.
+struct TransferredImageBufferKey: Hashable {
+    let high: UInt64
+    let low: UInt64
+
+    init(_ identifier: WTF.UUID) {
+        high = identifier.high()
+        low = identifier.low()
+    }
+}
+
+// The image buffers deposited for another web process to claim (GPUProcess::depositTransferredImageBuffer()), which the
+// rendering backends reach from their work queues. FIXME: This is a sign that we lack local id exchange protocol. The
+// outcome is that the protocols are insecure and prone to id guessing and content stuffing. Do not add more globally
+// shared resources.
+final class TransferredImageBuffers: Sendable {
+    // Unchecked: an ImageBuffer's reference count is thread-safe, and a buffer here is only drawn by the one process that
+    // claims it, on its rendering backend's queue, as when C++ kept them.
+    private struct Entry: @unchecked Sendable {
+        var owner: UInt64
+        let imageBuffer: WebCore.ImageBuffer
+    }
+
+    private let entries = Mutex<[TransferredImageBufferKey: Entry]>([:])
+
+    fileprivate init() {
+    }
+
+    func deposit(_ imageBuffer: WebCore.ImageBuffer, owner: UInt64) -> WTF.UUID {
+        let identifier = WTF.UUID.createVersion4()
+        let entry = Entry(owner: owner, imageBuffer: imageBuffer)
+        entries.withLock { entries in
+            let key = TransferredImageBufferKey(identifier)
+            precondition(entries[key] == nil)
+            entries[key] = entry
+        }
+        return identifier
+    }
+
+    func take(_ key: TransferredImageBufferKey) -> WebCore.ImageBuffer? {
+        let entry = entries.withLock { $0.removeValue(forKey: key) }
+        return entry?.imageBuffer
+    }
+
+    func release(_ key: TransferredImageBufferKey) {
+        // Released outside the lock, as the last reference to the buffer may be this.
+        let released = entries.withLock { $0.removeValue(forKey: key) }
+        _ = consume released
+    }
+
+    // Not waited for, so the destination may already have claimed it.
+    func handOver(_ key: TransferredImageBufferKey, to destination: UInt64) {
+        entries.withLock { $0[key]?.owner = destination }
+    }
+
+    // Keyed on the owner: once ownership has moved on, the depositing process going away must not take the buffer from
+    // the process it was handed to.
+    func removeAll(ownedBy owner: UInt64) {
+        let released = entries.withLock { entries in
+            let owned = entries.filter { $0.value.owner == owner }
+            entries = entries.filter { $0.value.owner != owner }
+            return owned
+        }
+        _ = consume released
+    }
+}
+
+let transferredImageBuffers = TransferredImageBuffers()
+
+#if !HAVE_SYSTEM_STATUS && ENABLE_MEDIA_STREAM
+extension WebKit.GPUProcess {
+    @cxx
+    @implementation
+    func setCaptureAttributionString(_ origin: WebCore.SecurityOriginData) -> Bool {
+        true
+    }
+}
+#endif
+#endif // ENABLE_GPU_PROCESS_CORE_SWIFT
+
+
+#if ENABLE_GPU_PROCESS_CORE_SWIFT && ENABLE_MEDIA_STREAM
+// Capture: the mock devices, the capture origin and environment, and the capture preview of a getUserMedia prompt.
+extension WebKit.GPUProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func setMockCaptureDevicesEnabled(_ isEnabled: Bool) {
+        WebCore.MockRealtimeMediaSourceCenter.setMockRealtimeMediaSourceCenterEnabled(isEnabled)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func addMockMediaDevice(_ device: WebCore.MockMediaDevice) {
+        WebCore.MockRealtimeMediaSourceCenter.addDevice(device)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func removeMockMediaDevice(_ persistentId: WTF.String) {
+        WebCore.MockRealtimeMediaSourceCenter.removeDevice(persistentId)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func setMockMediaDeviceIsEphemeral(_ persistentId: WTF.String, _ isEphemeral: Bool) {
+        WebCore.MockRealtimeMediaSourceCenter.setDeviceIsEphemeral(persistentId, isEphemeral)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func resetMockMediaDevices() {
+        WebCore.MockRealtimeMediaSourceCenter.resetDevices()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func setMockCaptureDevicesInterrupted(_ isCameraInterrupted: Bool, _ isMicrophoneInterrupted: Bool) {
+        WebCore.MockRealtimeMediaSourceCenter.setMockCaptureDevicesInterrupted(isCameraInterrupted, isMicrophoneInterrupted)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func updateCaptureOrigin(_ origin: WebCore.SecurityOriginData, _ processIdentifier: WebCore.ProcessIdentifier) {
+        webProcessConnections[processIdentifier.toUInt64()]?.updateCaptureOrigin(origin)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func didApplyCaptureEnvironment(_ processIdentifier: WebCore.ProcessIdentifier, _ pageIdentifier: WebCore.PageIdentifier) {
+        state.lastCaptureEnvironment = (processIdentifier, pageIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func processIsStartingToCaptureAudio(_ process: WebKit.GPUConnectionToWebProcess) {
+        for connection in webProcessConnections.all.values {
+            connection.processIsStartingToCaptureAudio(process)
+        }
+    }
+
+    // FIXME: The manager is per process while requests are per page, so for now fail a second page's prompt while another
+    // is up until we figure out a better solution.
+    @cxx
+    @implementation
+    @MainActor
+    func swiftCanStartCapturePreview(_ pageIdentifier: WebCore.PageIdentifier) -> Bool {
+        if let page = state.capturePreviewPage, page.toUInt64() != pageIdentifier.toUInt64() {
+            WebKit.LogChannel.WebRTC().releaseLog.error("GPUProcess::startCapturePreview: a preview is already running for another page")
+            return false
+        }
+        state.capturePreviewPage = pageIdentifier
+        return true
+    }
+
+    // After C++ has consumed the preview's sandbox extensions.
+    @cxx
+    @implementation
+    @MainActor
+    func swiftPrepareCapturePreview(
+        _ pageIdentifier: WebCore.PageIdentifier,
+        _ hasCamera: Bool,
+        _ applicationBundleIdentifier: WTF.String,
+        _ origin: WebCore.SecurityOriginData
+    ) -> Bool {
+        ensureAVCaptureServerConnection()
+
+        #if ENABLE_APP_PRIVACY_REPORT && !WTF_PLATFORM_MACCATALYST
+        // Fail immediately if we don't have a capture identity as -[AVCaptureSession init] will throw.
+        if !hasCaptureIdentity(applicationBundleIdentifier) && hasCamera {
+            WebKit.LogChannel.WebRTC().releaseLog.error("GPUProcess::startCapturePreview: no capture identity, refusing to preview")
+            stopCapturePreviewManager()
+            return false
+        }
+        #endif
+
+        guard setUpCapturePreviewEnvironment(pageIdentifier, origin, hasCamera: hasCamera) else {
+            stopCapturePreviewManager()
+            return false
+        }
+        return true
+    }
+
+    // With the layer C++ made for the camera, if there is one.
+    @cxx
+    @implementation
+    @MainActor
+    func swiftStartCapturePreviewForPage(
+        _ pageIdentifier: WebCore.PageIdentifier,
+        _ layer: WebKit.CapturePreviewLayer?,
+        _ videoDeviceID: WTF.String,
+        _ videoDeviceLabel: WTF.String,
+        _ videoDeviceIsDefault: Bool,
+        _ audioDeviceID: WTF.String,
+        _ audioDeviceLabel: WTF.String,
+        _ audioDeviceIsDefault: Bool,
+        _ previewSize: WebCore.IntSize,
+        _ orientation: Int32
+    ) -> WebCore.HostingContext {
+        let state = state
+        let result = CapturePreviewStart(rawValue: swiftStartCapturePreview(
+            pageIdentifier.toUInt64(),
+            videoDeviceID,
+            videoDeviceLabel,
+            videoDeviceIsDefault,
+            audioDeviceID,
+            audioDeviceLabel,
+            audioDeviceIsDefault,
+            previewSize.width(),
+            previewSize.height(),
+            orientation,
+            layer
+        ))
+        if result == CapturePreviewStart.started {
+            state.capturePreviewLayer = layer
+        } else if result != CapturePreviewStart.unchanged {
+            state.capturePreviewLayer = nil
+        }
+        if !swiftHasCapturePreview() {
+            state.capturePreviewLayer = nil
+        }
+        if result != CapturePreviewStart.unchanged {
+            setCapturePreviewVideoDevice(state.capturePreviewLayer != nil ? videoDeviceID : WTF.String(), pageIdentifier)
+        }
+        return state.capturePreviewLayer?.hostingContext() ?? WebCore.HostingContext()
+    }
+
+    @MainActor
+    private func setUpCapturePreviewEnvironment(_ pageIdentifier: WebCore.PageIdentifier, _ origin: WebCore.SecurityOriginData, hasCamera: Bool) -> Bool {
+        guard setCaptureAttributionString(origin) else {
+            WebKit.LogChannel.WebRTC().releaseLog.error("GPUProcess::startCapturePreview: unable to set capture attribution, refusing to preview")
+            return false
+        }
+        #if WTF_PLATFORM_IOS_FAMILY
+        return platformSetUpCapturePreviewEnvironment(pageIdentifier, hasCamera)
+        #else
+        return true
+        #endif
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func stopCapturePreview(_ pageIdentifier: WebCore.PageIdentifier, _ completionHandler: WebKit.GPUProcessVoidReply) {
+        let state = state
+        if let page = state.capturePreviewPage, page.toUInt64() != pageIdentifier.toUInt64() {
+            completionHandler.pointee()
+            return
+        }
+        state.capturePreviewPage = nil
+        stopCapturePreviewManager()
+        if let (process, page) = state.lastCaptureEnvironment {
+            webProcessConnections[process.toUInt64()]?.reapplyCaptureEnvironment(page)
+        }
+        revokeCapturePreviewSandboxExtensions()
+        completionHandler.pointee()
+    }
+
+    @MainActor
+    private func stopCapturePreviewManager() {
+        swiftStopCapturePreview()
+        state.capturePreviewLayer = nil
+        setCapturePreviewVideoDevice(WTF.String(), nil)
+    }
+
+    // The camera whose rotation the UI process monitors for the preview, and its page.
+    @MainActor
+    private func setCapturePreviewVideoDevice(_ persistentID: WTF.String, _ pageIdentifier: WebCore.PageIdentifier?) {
+        let state = state
+        let connection = uiProcessConnection()
+        if let connection, !state.capturePreviewVideoDeviceID.isEmpty, let page = state.capturePreviewVideoPage.flatMap({ IPCTypes.PageIdentifier(rawValue: $0.toUInt64()) }) {
+            WebKit.GPUProcess.GPUProcessProxyMessages.stopMonitoringCaptureDeviceRotation(on: connection, to: 0, pageID: page, devicePersistentId: state.capturePreviewVideoDeviceID, reason: .capturePreview)
+        }
+        state.capturePreviewVideoDeviceID = pageIdentifier != nil ? IPCCoding.WTFString.swiftString(persistentID) ?? "" : ""
+        state.capturePreviewVideoPage = pageIdentifier
+        if let connection, !state.capturePreviewVideoDeviceID.isEmpty, let page = pageIdentifier.flatMap({ IPCTypes.PageIdentifier(rawValue: $0.toUInt64()) }) {
+            WebKit.GPUProcess.GPUProcessProxyMessages.startMonitoringCaptureDeviceRotation(on: connection, to: 0, pageID: page, devicePersistentId: state.capturePreviewVideoDeviceID, reason: .capturePreview)
+        }
+    }
+
+    @cxx
+    @implementation
+    static func capturePreviewNeedsAudioSession() -> Bool {
+        #if (WTF_PLATFORM_IOS_FAMILY || ENABLE_ROUTING_ARBITRATION) && USE_AUDIO_SESSION
+        true
+        #else
+        false
+        #endif
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    static func capturePreviewAudioLevelChanged(_ pageIdentifier: UInt64, _ level: Float) {
+        guard let page = IPCTypes.PageIdentifier(rawValue: pageIdentifier) else {
+            return
+        }
+        sendToUIProcess { WebKit.GPUProcess.GPUProcessProxyMessages.capturePreviewAudioLevelChanged(on: $0, to: 0, pageIdentifier: page, level: level) }
+    }
+}
+#endif // ENABLE_GPU_PROCESS_CORE_SWIFT && ENABLE_MEDIA_STREAM
 
 #endif // ENABLE_GPU_PROCESS

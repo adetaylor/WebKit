@@ -32,20 +32,7 @@
 
 #if ENABLE(GPU_PROCESS)
 #import "ObjectIdentifierDomains.h"
-
-namespace WebKit {
-
-class GPUServiceInitializerDelegate : public XPCServiceInitializerDelegate {
-public:
-    GPUServiceInitializerDelegate(OSObjectPtr<xpc_connection_t> connection, xpc_object_t initializerMessage)
-        : XPCServiceInitializerDelegate(WTF::move(connection), initializerMessage)
-    {
-    }
-};
-
-} // namespace WebKit
-
-#endif // ENABLE(GPU_PROCESS)
+#endif
 
 extern "C" WK_EXPORT void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializerMessage);
 
@@ -54,7 +41,7 @@ void GPU_SERVICE_INITIALIZER(xpc_connection_t connection, xpc_object_t initializ
     WebKit::disableJSC([&] {
 #if ENABLE(GPU_PROCESS)
         WTF::initializeObjectIdentifierDomain(WebKit::gpuProcessObjectIdentifierDomain);
-        WebKit::XPCServiceInitializer<WebKit::GPUProcess, WebKit::GPUServiceInitializerDelegate>(connection, initializerMessage);
+        WebKit::XPCServiceInitializer<WebKit::GPUProcess, WebKit::XPCServiceInitializerDelegate>(connection, initializerMessage);
 #endif // ENABLE(GPU_PROCESS)
     });
 }

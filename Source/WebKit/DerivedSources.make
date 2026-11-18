@@ -660,9 +660,6 @@ $(SECURITY_FLAGS_PATTERNS) : $(WTF_BUILD_SCRIPTS_DIR)/GenerateSecurityFlags.rb $
 	$(RUBY) $< $(addprefix --template , $(SECURITY_FLAGS_TEMPLATES)) $(SECURITY_FLAGS)
 
 SERIALIZATION_DESCRIPTION_FILES = \
-	GPUProcess/GPUProcessCreationParameters.serialization.in \
-	GPUProcess/GPUProcessPreferences.serialization.in \
-	GPUProcess/GPUProcessSessionParameters.serialization.in \
 	GPUProcess/graphics/PathSegment.serialization.in \
 	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
@@ -814,7 +811,10 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	Shared/FullScreenMediaDetails.serialization.in \
 	Shared/Gamepad/GamepadData.serialization.in \
 	Shared/GPUProcessConnectionParameters.serialization.in \
+	Shared/GPUProcessCreationParameters.serialization.in \
 	Shared/GPUProcessMediaCodecCapabilities.serialization.in \
+	Shared/GPUProcessPreferences.serialization.in \
+	Shared/GPUProcessSessionParameters.serialization.in \
 	Shared/GoToBackForwardItemParameters.serialization.in \
 	Shared/ImageOptions.serialization.in \
 	Shared/ImmersiveElementDetails.serialization.in \

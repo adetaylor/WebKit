@@ -169,7 +169,7 @@ public:
 
     std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const { return m_sharedPreferencesForWebProcess; }
     const SharedPreferencesForWebProcess& sharedPreferencesForWebProcessValue() const LIFETIME_BOUND { return m_sharedPreferencesForWebProcess; }
-    void updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess&&);
+    void updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess);
 
 #if ENABLE(WEBXR)
     bool isWebXREnabled() const { return m_sharedPreferencesForWebProcess.webXREnabled; }
@@ -246,9 +246,9 @@ public:
 
     Logger& logger();
 
-    NODELETE const String& mediaCacheDirectory() const LIFETIME_BOUND;
+    String mediaCacheDirectory() const;
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
-    NODELETE const String& mediaKeysStorageDirectory() const LIFETIME_BOUND;
+    String mediaKeysStorageDirectory() const;
 #endif
 
 #if ENABLE(MEDIA_STREAM)
@@ -316,7 +316,7 @@ public:
     const HashMap<WebCore::PageIdentifier, CoreIPCAuditToken>& presentingApplicationAuditTokens() const LIFETIME_BOUND { return m_presentingApplicationAuditTokens; }
     std::optional<audit_token_t> presentingApplicationAuditToken(WebCore::PageIdentifier) const;
     ProcessID presentingApplicationPID(WebCore::PageIdentifier) const;
-    void setPresentingApplicationAuditToken(WebCore::PageIdentifier, std::optional<CoreIPCAuditToken>&&);
+    void setPresentingApplicationAuditToken(WebCore::PageIdentifier, std::optional<CoreIPCAuditToken>);
 #endif
 #if PLATFORM(COCOA)
     const String& applicationBundleIdentifier() const LIFETIME_BOUND { return m_applicationBundleIdentifier; }

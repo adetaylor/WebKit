@@ -36,6 +36,21 @@
 #include "CapturePreviewLayer.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+#include "RemoteSnapshotPDFDrawingTask.h"
+#include <WebCore/AV1UtilitiesCocoa.h>
+#include <WebCore/CommonAtomStrings.h>
+#include <WebCore/DeprecatedGlobalSettings.h>
+#include <WebCore/IOSurface.h>
+#include <WebCore/MemoryRelease.h>
+#include <WebCore/VP9UtilitiesCocoa.h>
+#include <wtf/Language.h>
+#include <wtf/MemoryPressureHandler.h>
+#if ENABLE(MEDIA_STREAM)
+#include <WebCore/MockRealtimeMediaSourceCenter.h>
+#endif
+#endif
+
 #if ENABLE(GPU_PROCESS)
 #include "GPUConnectionToWebProcess.h"
 #include "GPUConnectionToWebProcessMessages.h"

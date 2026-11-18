@@ -29,7 +29,9 @@
 #if ENABLE(VP9) && PLATFORM(COCOA)
 
 #include <WebCore/VP9Utilities.h>
+#include <wtf/Forward.h>
 #include <wtf/Lock.h>
+#include <wtf/SwiftBridging.h>
 
 namespace WebCore {
 
@@ -56,7 +58,7 @@ WEBCORE_EXPORT RefPtr<VideoInfo> createVideoInfoFromVP9Stream(std::span<const ui
 WEBCORE_EXPORT std::optional<VP8FrameHeader> parseVP8FrameHeader(std::span<const uint8_t>);
 bool vpxFrameIsKeyframe(uint32_t codec, std::span<const uint8_t> frameData);
 
-class VP9TestingOverrides {
+class SWIFT_IMMORTAL_REFERENCE VP9TestingOverrides {
 public:
     NODELETE static WEBCORE_EXPORT VP9TestingOverrides& singleton();
 
@@ -90,6 +92,10 @@ public:
     NODELETE WEBCORE_EXPORT bool shouldEnableVP9Decoder() const;
 
 private:
+    friend class WTF::NeverDestroyed<VP9TestingOverrides>;
+    VP9TestingOverrides() = default;
+    ~VP9TestingOverrides() = default;
+
     mutable Lock m_hardwareDecoderLock;
     std::optional<bool> m_hardwareDecoderDisabled WTF_GUARDED_BY_LOCK(m_hardwareDecoderLock);
     std::optional<bool> m_vp9DecoderDisabled;
