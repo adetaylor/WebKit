@@ -25,7 +25,7 @@
 
 #pragma once
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
 
 #include "ScopedRenderingResourcesRequest.h"
 #include <atomic>

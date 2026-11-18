@@ -83,6 +83,7 @@
 
 #if ENABLE(WEBGL)
 #include "RemoteGraphicsContextGLResources.h"
+#include "RemoteGraphicsContextGLShims.h"
 #include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLResourcesMessages.h"
 #endif
@@ -853,11 +854,13 @@ void GPUConnectionToWebProcess::createGraphicsContextGL(RemoteGraphicsContextGLI
     swiftAddGraphicsContextGL(identifier.toUInt64(), renderingBackendIdentifier.toUInt64(), owner, attributes);
 }
 
+#if !PLATFORM(COCOA)
 void GPUConnectionToWebProcess::createGraphicsContextGLResources(WebCore::GraphicsContextGLAttributes attributes, uint64_t identifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
     // Once it has made the context, the owner keeps it until it stops.
     RemoteGraphicsContextGLResources::create(*this, WTF::move(attributes), RemoteGraphicsContextGLIdentifier { identifier }, renderingBackend, owner);
 }
+#endif
 
 void GPUConnectionToWebProcess::releaseGraphicsContextGL(RemoteGraphicsContextGLIdentifier identifier)
 {
@@ -1219,10 +1222,14 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
     }
 #endif
 #if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName() || decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName()) {
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName()) {
         // Skip messages for already removed receivers.
         return true;
     }
+#if !PLATFORM(COCOA)
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
+        return true;
+#endif
 #endif
     if (decoder.messageReceiverName() == Messages::RemoteSharedResourceCache::messageReceiverName()) {
         sharedResourceCache()->didReceiveMessage(connection, decoder);
@@ -1297,9 +1304,13 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
     }
 #endif
 #if ENABLE(WEBGL)
-    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName() || decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGL::messageReceiverName())
         // Skip messages for already removed receivers.
         return true;
+#if !PLATFORM(COCOA)
+    if (decoder.messageReceiverName() == Messages::RemoteGraphicsContextGLResources::messageReceiverName())
+        return true;
+#endif
 #endif
 #if ENABLE(IPC_TESTING_API)
     if (decoder.messageReceiverName() == Messages::IPCTester::messageReceiverName()) {

@@ -26,11 +26,11 @@
 #include "config.h"
 #include "RemoteGraphicsContextGLResources.h"
 
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
+
 #include "Logging.h"
 #include <wtf/Borrow.h>
 #include <wtf/StdLibExtras.h>
-
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 

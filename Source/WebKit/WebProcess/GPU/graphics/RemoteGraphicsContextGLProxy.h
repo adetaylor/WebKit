@@ -46,6 +46,16 @@
 // Used by generate-gpup-webgl
 #define IPC_ENABLED_BY_AND_MESSAGE_CHECK(x, y)
 
+// The receiver of the messages that take IPC handles or the context's C++ objects: RemoteGraphicsContextGL, the Swift
+// receiver of every message, on Cocoa, and its C++ companion, RemoteGraphicsContextGLResources, elsewhere.
+namespace Messages {
+#if PLATFORM(COCOA)
+namespace RemoteGraphicsContextGLCompanion = RemoteGraphicsContextGL;
+#else
+namespace RemoteGraphicsContextGLCompanion = RemoteGraphicsContextGLResources;
+#endif
+}
+
 namespace WebKit {
 
 struct RemoteGraphicsContextGLInitializationState;

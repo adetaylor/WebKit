@@ -26,7 +26,7 @@
 #include "config.h"
 #include "RemoteGraphicsContextGLResources.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
 
 #include "GPUConnectionToWebProcess.h"
 #include "Logging.h"
@@ -40,7 +40,6 @@
 #include <WebCore/NotImplemented.h>
 #include <WebCore/TypedArrayPixelBuffer.h>
 #include <wtf/MainThread.h>
-#include <wtf/NeverDestroyed.h>
 
 #if ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeap.h"
@@ -61,15 +60,7 @@ std::optional<uint64_t> estimatedMemoryCostForIPC(GraphicsContextGL& context)
 }
 }
 
-// Currently we have one global WebGL processing instance.
-IPC::StreamConnectionWorkQueue& remoteGraphicsContextGLStreamWorkQueueSingleton()
-{
-    // NeverDestroyed owns the initial ref.
-    static NeverDestroyed<IPC::StreamConnectionWorkQueue> instance { "RemoteGraphicsContextGL work queue"_s };
-    return instance.get();
-}
-
-#if !PLATFORM(COCOA) && !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
+#if !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
 Ref<RemoteGraphicsContextGLResources> RemoteGraphicsContextGLResources::create(GPUConnectionToWebProcess& gpuConnectionToWebProcess, GraphicsContextGLAttributes&& attributes, RemoteGraphicsContextGLIdentifier graphicsContextGLIdentifier, RemoteRenderingBackend& renderingBackend, IPC::SwiftReceiverOwner& owner)
 {
     ASSERT_NOT_REACHED();
@@ -87,9 +78,6 @@ RemoteGraphicsContextGLResources::RemoteGraphicsContextGLResources(GPUConnection
     , m_sharedResourceCache(gpuConnectionToWebProcess.sharedResourceCache())
 #if ENABLE(VIDEO)
     , m_videoFrameObjectHeap(gpuConnectionToWebProcess.videoFrameObjectHeap())
-#if PLATFORM(COCOA)
-    , m_sharedVideoFrameReader(m_videoFrameObjectHeap.ptr(), gpuConnectionToWebProcess.webProcessIdentity())
-#endif
 #endif
     , m_renderingResourcesRequest(ScopedWebGLRenderingResourcesRequest::acquire())
     , m_webProcessIdentity(gpuConnectionToWebProcess.webProcessIdentity())
@@ -224,7 +212,7 @@ void RemoteGraphicsContextGLResources::reshape(int32_t width, int32_t height)
         forceContextLost();
 }
 
-#if !PLATFORM(COCOA) && !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
+#if !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
 void RemoteGraphicsContextGLResources::prepareForDisplay(CompletionHandler<void()>&& completionHandler)
 {
     assertIsCurrent(workQueue());
@@ -266,12 +254,7 @@ bool RemoteGraphicsContextGLResources::webXREnabled() const
 
 bool RemoteGraphicsContextGLResources::webXRPromptAccepted() const
 {
-#if ENABLE(WEBXR) && PLATFORM(COCOA) && !PLATFORM(IOS_FAMILY_SIMULATOR)
-    auto currentAcceptedValue = protect(GPUProcess::singleton())->immersiveModeProcessIdentity();
-    return currentAcceptedValue && m_webProcessIdentity == *currentAcceptedValue;
-#else
     return webXREnabled();
-#endif
 }
 
 void RemoteGraphicsContextGLResources::simulateEventForTesting(WebCore::GraphicsContextGL::SimulatedEventForTesting event)

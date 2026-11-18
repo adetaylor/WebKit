@@ -7408,7 +7408,6 @@
 		7BE5134A29768F0E00814F18 /* StreamServerConnectionBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StreamServerConnectionBuffer.h; sourceTree = "<group>"; };
 		7BE66B942A388C200059B6F2 /* RemoteImageBufferProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteImageBufferProxy.messages.in; sourceTree = "<group>"; };
 		7BE726572574F67200E85D98 /* RemoteGraphicsContextGLProxyFunctionsGenerated.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLProxyFunctionsGenerated.cpp; sourceTree = "<group>"; };
-		7BE72668257680EF00E85D98 /* RemoteGraphicsContextGLCocoa.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLCocoa.cpp; sourceTree = "<group>"; };
 		95DE554DF289988B2D7C83A6 /* RemoteGraphicsContextGLFunctionsGenerated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteGraphicsContextGLFunctionsGenerated.swift; sourceTree = "<group>"; };
 		7BE9326227F5C75A00D5FEFB /* ReceiverMatcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReceiverMatcher.h; sourceTree = "<group>"; };
 		7BF128B62B7CF631001D1B14 /* RemoteSharedResourceCache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteSharedResourceCache.h; sourceTree = "<group>"; };
@@ -7675,6 +7674,8 @@
 		86F4FE1E2A98B9AE007378EE /* RemoteGraphicsContextGLInitializationState.serialization.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGraphicsContextGLInitializationState.serialization.in; sourceTree = "<group>"; };
 		93988883170770A89E490F8C /* RemoteGraphicsContextGLResources.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLResources.cpp; sourceTree = "<group>"; };
 		A9D6E609A4B3454F1E8C091A /* RemoteGraphicsContextGLResources.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLResources.h; sourceTree = "<group>"; };
+		4C1A2E7F9B3D5A6C8E0F1B2D /* RemoteGraphicsContextGLShims.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLShims.cpp; sourceTree = "<group>"; };
+		4C1A2E7F9B3D5A6C8E0F1B2E /* RemoteGraphicsContextGLShims.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLShims.h; sourceTree = "<group>"; };
 		176B211A9A6D591960B47377 /* RemoteGraphicsContextGLResources.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteGraphicsContextGLResources.messages.in; sourceTree = "<group>"; };
 		DBE28B37B5CAA02759E53821 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp; sourceTree = "<group>"; };
 		AF190BCF124FC13948137C46 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGraphicsContextGLResourcesFunctionsGenerated.h; sourceTree = "<group>"; };
@@ -10905,6 +10906,9 @@
 				517B5F94275EBA62002DC22D /* PushMessageForTesting.h */,
 				514899722AB4BCFC00943741 /* PushMessageForTesting.serialization.in */,
 				9B1229D023FF2A5E008CA751 /* RemoteAudioDestinationIdentifier.h */,
+				7B64C0B6254C5C250006B4AF /* RemoteGraphicsContextGLIdentifier.h */,
+				3AC6E5242A1C59AE0059F092 /* RemoteGraphicsContextGLInitializationState.h */,
+				86F4FE1E2A98B9AE007378EE /* RemoteGraphicsContextGLInitializationState.serialization.in */,
 				FA5C22422DC5710500B13EF3 /* RemoteWebTouchEvent.h */,
 				FA5C22432DC5719D00B13EF3 /* RemoteWebTouchEvent.serialization.in */,
 				5C80B3DB23690D8D0086E6DE /* RemoteWorkerInitializationData.h */,
@@ -15131,16 +15135,14 @@
 				F451C1002703D853002BA03B /* RemoteGraphicsContext.messages.in */,
 				7B904168254AFEA7006EEB8C /* RemoteGraphicsContextGL.messages.in */,
 				CA62368304A1A57391807C81 /* RemoteGraphicsContextGL.swift */,
-				7BE72668257680EF00E85D98 /* RemoteGraphicsContextGLCocoa.cpp */,
 				95DE554DF289988B2D7C83A6 /* RemoteGraphicsContextGLFunctionsGenerated.swift */,
-				7B64C0B6254C5C250006B4AF /* RemoteGraphicsContextGLIdentifier.h */,
-				3AC6E5242A1C59AE0059F092 /* RemoteGraphicsContextGLInitializationState.h */,
-				86F4FE1E2A98B9AE007378EE /* RemoteGraphicsContextGLInitializationState.serialization.in */,
 				93988883170770A89E490F8C /* RemoteGraphicsContextGLResources.cpp */,
 				A9D6E609A4B3454F1E8C091A /* RemoteGraphicsContextGLResources.h */,
 				176B211A9A6D591960B47377 /* RemoteGraphicsContextGLResources.messages.in */,
 				DBE28B37B5CAA02759E53821 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp */,
 				AF190BCF124FC13948137C46 /* RemoteGraphicsContextGLResourcesFunctionsGenerated.h */,
+				4C1A2E7F9B3D5A6C8E0F1B2D /* RemoteGraphicsContextGLShims.cpp */,
+				4C1A2E7F9B3D5A6C8E0F1B2E /* RemoteGraphicsContextGLShims.h */,
 				7B43C1292D79B0EA00B119F7 /* RemoteGraphicsContextIdentifier.h */,
 				72440D33287CCC0500FADBC4 /* RemoteImageBuffer.cpp */,
 				55AD09422408A02E00DE4D2F /* RemoteImageBuffer.h */,

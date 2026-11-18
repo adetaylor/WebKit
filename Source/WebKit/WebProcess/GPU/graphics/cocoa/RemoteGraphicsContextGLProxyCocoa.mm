@@ -72,7 +72,7 @@ void RemoteGraphicsContextGLProxyCocoa::prepareForDisplay()
     if (isContextLost())
         return;
     IPC::Semaphore finishedSignaller;
-    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLResources::PrepareForDisplay(finishedSignaller));
+    auto sendResult = sendSync(Messages::RemoteGraphicsContextGLCompanion::PrepareForDisplay(finishedSignaller));
     if (!sendResult.succeeded()) {
         markContextLost();
         return;
