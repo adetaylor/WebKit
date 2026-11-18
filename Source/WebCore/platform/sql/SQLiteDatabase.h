@@ -127,6 +127,8 @@ public:
     
     WEBCORE_EXPORT int lastError();
     WEBCORE_EXPORT const char* lastErrorMsg() LIFETIME_BOUND;
+    // lastErrorMsg() copied into a String, read as Latin-1 as makeString reads unsafeSpan(lastErrorMsg()).
+    String lastErrorMessage() { return String::fromLatin1(lastErrorMsg()); }
     
     sqlite3* sqlite3Handle() const LIFETIME_BOUND
     {
