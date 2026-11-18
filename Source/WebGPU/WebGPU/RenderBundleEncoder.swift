@@ -23,10 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.BindableResource
-@_implementationOnly import WebGPU_Internal.CommandEncoder
-@_implementationOnly import WebGPU_Internal.Device
-@_implementationOnly import WebGPU_Internal.Queue
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif
@@ -899,7 +895,7 @@ public final class RenderBundleEncoderImpl: GPUObjectReference {
 
         let bounds = currentMinimumVertexInstanceCount()
         let commandIndex = currentCommandIndex
-        let indexData = WebGPU.Metal.IndexData(
+        let indexData = IndexData(
             renderCommand: commandIndex,
             minVertexCount: bounds.vertices.shaderValue,
             minInstanceCount: bounds.instances.shaderValue,

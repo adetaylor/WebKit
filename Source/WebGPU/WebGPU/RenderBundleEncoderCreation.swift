@@ -23,7 +23,6 @@
 
 import Foundation
 import Metal
-@_implementationOnly import WebGPU_Internal.Device
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
 #endif

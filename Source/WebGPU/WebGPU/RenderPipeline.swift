@@ -23,8 +23,6 @@
 
 import Metal
 @_implementationOnly import WGSL
-@_implementationOnly import WebGPU_Internal.CxxBridging
-@_implementationOnly import WebGPU_Internal.Device
 @_implementationOnly import WebGPU_Internal.MetalSPI
 #if hasAttribute(diagnose)
 @diagnose(UnusedImportAccess, as: ignored, reason: "Needed for exposed SPI")
