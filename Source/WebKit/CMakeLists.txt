@@ -459,7 +459,7 @@ set(WebKit_SERIALIZATION_IN_FILES
     GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in
     GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 
-    GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in
+    Shared/RemoteMediaPlayerProxyConfiguration.serialization.in
 
     ModelProcess/ModelProcessCreationParameters.serialization.in
 

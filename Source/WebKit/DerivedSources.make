@@ -663,7 +663,7 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/graphics/PathSegment.serialization.in \
 	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
-	GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in \
+	Shared/RemoteMediaPlayerProxyConfiguration.serialization.in \
 	ModelProcess/ModelProcessCreationParameters.serialization.in \
 	NetworkProcess/NetworkActivityTracker.serialization.in \
 	NetworkProcess/NetworkProcessCreationParameters.serialization.in \
