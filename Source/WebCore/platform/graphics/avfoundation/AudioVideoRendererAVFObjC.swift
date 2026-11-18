@@ -2029,6 +2029,7 @@ public struct AudioVideoRendererMainActorCore {
     }
 
     public func setClient(_ client: any AudioVideoRendererClient) { core.setClient(client) }
+    public func setPreferences(_ rawValue: UInt8) { core.setPreferences(rawValue) }
     public func setHasProtectedVideoContent(_ protectedContent: Bool) { core.setHasProtectedVideoContent(protectedContent) }
     public func removeTrack(_ trackId: UInt64) { core.removeTrack(trackId) }
     public func isReadyForMoreSamples(_ trackId: UInt64) -> Bool { core.isReadyForMoreSamples(trackId) }
