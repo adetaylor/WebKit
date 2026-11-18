@@ -838,7 +838,7 @@ public:
     // Swift has no downcast of a foreign reference type. Each is null when the renderer is not of the type.
     const RenderBox* asRenderBox() const;
     const RenderBoxModelObject* asRenderBoxModelObject() const;
-    const RenderElement* asRenderElement() const;
+    inline const RenderElement* asRenderElement() const; // Defined in RenderElement.h.
     const RenderLayerModelObject* asRenderLayerModelObject() const;
     const RenderSVGModelObject* asRenderSVGModelObject() const;
     const RenderView* asRenderView() const;

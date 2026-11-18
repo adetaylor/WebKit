@@ -592,6 +592,11 @@ inline RenderElement* RenderObject::parent() const
     return m_parent.get();
 }
 
+inline const RenderElement* RenderObject::asRenderElement() const
+{
+    return dynamicDowncast<RenderElement>(*this);
+}
+
 } // namespace WebCore
 
 SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderElement, isRenderElement())

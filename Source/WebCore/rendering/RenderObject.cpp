@@ -784,11 +784,6 @@ const RenderBoxModelObject* RenderObject::asRenderBoxModelObject() const
     return dynamicDowncast<RenderBoxModelObject>(*this);
 }
 
-const RenderElement* RenderObject::asRenderElement() const
-{
-    return dynamicDowncast<RenderElement>(*this);
-}
-
 const RenderLayerModelObject* RenderObject::asRenderLayerModelObject() const
 {
     return dynamicDowncast<RenderLayerModelObject>(*this);
