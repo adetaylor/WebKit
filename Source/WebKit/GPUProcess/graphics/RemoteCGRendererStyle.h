@@ -49,28 +49,7 @@ struct RemoteCGRendererStyle {
     std::array<float, 20> colorMatrix;
 };
 
-__attribute__((availability(swift, unavailable))) inline RemoteCGRendererStyle rendererStyle(const std::optional<WebCore::GraphicsStyle>& style)
-{
-    RemoteCGRendererStyle result { };
-    if (!style)
-        return result;
-    WTF::switchOn(*style,
-        [&](const WebCore::GraphicsDropShadow& shadow) {
-            result.kind = RemoteCGRendererStyleKind::DropShadow;
-            result.dropShadow = rendererShadow(shadow);
-        },
-        [&](const WebCore::GraphicsGaussianBlur& blur) {
-            result.kind = RemoteCGRendererStyleKind::GaussianBlur;
-            result.blurWidth = blur.radius.width();
-            result.blurHeight = blur.radius.height();
-        },
-        [&](const WebCore::GraphicsColorMatrix& matrix) {
-            result.kind = RemoteCGRendererStyleKind::ColorMatrix;
-            result.colorMatrix = matrix.values;
-        });
-    return result;
-}
-
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 __attribute__((availability(swift, unavailable))) inline std::optional<WebCore::GraphicsStyle> styleFrom(const RemoteCGRendererStyle& style)
 {
     switch (style.kind) {
@@ -85,6 +64,7 @@ __attribute__((availability(swift, unavailable))) inline std::optional<WebCore::
     }
     RELEASE_ASSERT_NOT_REACHED();
 }
+#endif
 
 #if HAVE(CGSTYLE_COLORMATRIX_BLUR)
 inline CGRendererColorMatrix colorMatrix(RemoteCGRendererStyle style)

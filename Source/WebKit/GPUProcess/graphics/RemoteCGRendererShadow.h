@@ -41,22 +41,14 @@ struct RemoteCGRendererShadow {
     bool hasShadow;
 };
 
-__attribute__((availability(swift, unavailable))) inline RemoteCGRendererShadow rendererShadow(const std::optional<WebCore::GraphicsDropShadow>& shadow)
-{
-    RemoteCGRendererShadow result { };
-    if (shadow) {
-        result.hasShadow = true;
-        CGRendererShadowValuesOf(*shadow, result.values, result.color);
-    }
-    return result;
-}
-
+#if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
 __attribute__((availability(swift, unavailable))) inline std::optional<WebCore::GraphicsDropShadow> dropShadowFrom(const RemoteCGRendererShadow& shadow)
 {
     if (!shadow.hasShadow)
         return std::nullopt;
     return CGRendererDropShadowFromValues(shadow.values, shadow.color);
 }
+#endif
 
 } // namespace WebKit
 

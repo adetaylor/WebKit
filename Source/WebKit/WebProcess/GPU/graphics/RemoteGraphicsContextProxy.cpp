@@ -111,6 +111,39 @@ static CGRendererColorValue rendererColorValue(const Color& color)
     CGRendererColorValueOf(color, value);
     return value;
 }
+
+// A shadow and a style as RemoteCGRenderer takes them: plain values, which the GPU process doesn't need to switch on.
+static RemoteCGRendererShadow rendererShadow(const std::optional<GraphicsDropShadow>& shadow)
+{
+    RemoteCGRendererShadow result { };
+    if (shadow) {
+        result.hasShadow = true;
+        CGRendererShadowValuesOf(*shadow, result.values, result.color);
+    }
+    return result;
+}
+
+static RemoteCGRendererStyle rendererStyle(const std::optional<WebCore::GraphicsStyle>& style)
+{
+    RemoteCGRendererStyle result { };
+    if (!style)
+        return result;
+    WTF::switchOn(*style,
+        [&](const WebCore::GraphicsDropShadow& shadow) {
+            result.kind = RemoteCGRendererStyleKind::DropShadow;
+            result.dropShadow = rendererShadow(shadow);
+        },
+        [&](const WebCore::GraphicsGaussianBlur& blur) {
+            result.kind = RemoteCGRendererStyleKind::GaussianBlur;
+            result.blurWidth = blur.radius.width();
+            result.blurHeight = blur.radius.height();
+        },
+        [&](const WebCore::GraphicsColorMatrix& matrix) {
+            result.kind = RemoteCGRendererStyleKind::ColorMatrix;
+            result.colorMatrix = matrix.values;
+        });
+    return result;
+}
 #endif
 
 template<typename T>
