@@ -45,7 +45,6 @@
 #include "TemporalEnums.h"
 #include "TimeZoneICUBridge.h"
 #include "ZonedDateTimeCore.h"
-#include "YarrInterpreterSwiftTypes.h" // JSCSwift-Swift.h declares the whole module's Swift, Yarr's too.
 #include <optional>
 #include <span>
 #include <type_traits>
