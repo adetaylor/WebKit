@@ -25,6 +25,7 @@
 // This file should be included in the private section of the
 // RemoteGraphicsContextGLResources implementations.
 #pragma once
+#if !PLATFORM(COCOA)
     void activeAttribs(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLAttribActiveInfo>&&)>&&);
     void activeUniforms(uint32_t program, CompletionHandler<void(Vector<WebCore::GCGLUniformActiveInfo>&&)>&&);
     void bufferData1(uint32_t target, std::span<const uint8_t>&& data, uint32_t usage);
@@ -51,3 +52,4 @@
     void framebufferResolveRenderbuffer(uint32_t target, uint32_t attachment, uint32_t renderbuffertarget, uint32_t arg3);
 #endif
 
+#endif

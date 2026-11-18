@@ -95,8 +95,10 @@ namespace WebKit {{
 
 
 # The messages that the GL logic handles go to RemoteGraphicsContextGL, a Swift receiver that calls the WebGL island.
-# The others go to RemoteGraphicsContextGLResources, a C++ receiver on the same stream connection: their handlers take
-# IPC handles or need C++ objects, or their replies have no Swift form.
+# The others, the companion messages, go to RemoteGraphicsContextGL too on Cocoa, where its Swift handlers also make the
+# context and work with the context's C++ shell. On other ports they go to RemoteGraphicsContextGLResources, a C++
+# receiver on the same stream connection. The proxy sends them to Messages::RemoteGraphicsContextGLCompanion, which names
+# the receiver of the platform.
 
 # Generated functions whose messages go to RemoteGraphicsContextGLResources, besides the WebXR ones.
 resources_func_names = set(["activeAttribs", "activeUniforms", "getTransformFeedbackVarying"])
@@ -116,19 +118,44 @@ gl_swift_template_messages = """    void EnsureExtensionEnabled(uint8_t glExtens
     void MultiDrawElementsInstancedBaseVertexBaseInstanceANGLE(uint32_t mode, std::span<const int32_t> counts, std::span<const int32_t> offsets, std::span<const int32_t> instanceCounts, std::span<const int32_t> baseVertices, std::span<const uint32_t> baseInstances, uint32_t type)"""
 
 
+# The companion messages of the Swift receiver on Cocoa, besides the generated ones.
+gl_swift_companion_template_messages = """    void Reshape(int32_t width, int32_t height)
+    void PrepareForDisplay(IPC::Semaphore finishedFence) -> (MachSendRight displayBuffer) Synchronous NotStreamEncodable NotStreamEncodableReply CxxEncodedReply
+    void CopyNativeImage(enum:bool WebCore::GraphicsContextGLSurfaceBuffer buffer, WebKit::RemoteNativeImageReference nativeImageReference) CxxTypes
+#if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
+    void SurfaceBufferToVideoFrame(enum:bool WebCore::GraphicsContextGLSurfaceBuffer buffer, WebKit::RemoteVideoFrameReference reference) -> (struct std::optional<WebKit::RemoteVideoFrameProxyProperties> properties) Synchronous CxxTypes
+#endif
+#if ENABLE(VIDEO)
+    void CopyTextureFromVideoFrame(struct WebKit::SharedVideoFrame frame, uint32_t texture, uint32_t glTarget, int32_t level, uint32_t internalFormat, uint32_t type, bool unpackFlipY, bool unpackPremultiplyAlpha) -> (bool success) Synchronous NotStreamEncodable
+    void SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore) NotStreamEncodable
+    void SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
+    [EnabledBy=AllowTestOnlyIPC] void GetLastVideoUploadForTesting() -> (struct WebCore::GraphicsContextGLVideoUploadRecord record) Synchronous CxxTypes
+#endif
+    void SimulateEventForTesting(enum:uint8_t WebCore::GraphicsContextGLSimulatedEventForTesting event) CxxTypes
+    void GetBufferSubDataInline(uint32_t glTarget, uint64_t offset, uint64_t dataSize) -> (std::span<const uint8_t> data) Synchronous
+    void GetBufferSubDataSharedMemory(uint32_t glTarget, uint64_t offset, uint64_t dataSize, [CxxDecoded] WebCore::SharedMemory::Handle handle) -> (bool valid) Synchronous NotStreamEncodable
+    void ReadPixelsInline(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder) -> (std::optional<WebCore::IntSize> readArea, std::span<const uint8_t> data) Synchronous
+    void ReadPixelsSharedMemory(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder, [CxxDecoded] WebCore::SharedMemory::Handle handle) -> (std::optional<WebCore::IntSize> readArea) Synchronous NotStreamEncodable
+#if ENABLE(WEBXR)
+    [EnabledBy=WebXREnabled] void FramebufferDiscard(uint32_t glTarget, std::span<const uint32_t> attachments)
+#endif
+    void SetDrawingBufferColorSpace(WebCore::ColorSpace colorSpace) CxxTypes"""
+
 gl_messages_template = (
     template_preamble
-    + "#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)\n\n[\n    DispatchedFrom=WebContent,\n    DispatchedTo=GPU,\n    EnabledBy=WebGLEnabled,\n    SwiftReceiver,\n    SwiftTypes,\n    SwiftReceiverOwner=RemoteGraphicsContextGLResources"
+    + "#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)\n\n[\n    DispatchedFrom=WebContent,\n    DispatchedTo=GPU,\n    EnabledBy=WebGLEnabled,\n    SwiftReceiver,\n    SwiftTypes,\n    SwiftReceiverOwner,\n    SwiftSends=RemoteGraphicsContextGLProxy"
     + "\n]\nmessages -> RemoteGraphicsContextGL Stream {{\n"
     + gl_swift_template_messages
-    + "{}\n}}\n\n#endif\n"
+    + "{}\n#if PLATFORM(COCOA)\n"
+    + gl_swift_companion_template_messages
+    + "{}\n#endif\n}}\n\n#endif\n"
 )
 
 
 resources_messages_fn = root_dir / "Source" / "WebKit" / "GPUProcess" / "graphics" / "RemoteGraphicsContextGLResources.messages.in"
 resources_messages_template = (
     template_preamble
-    + """#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+    + """#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
 
 [
     DispatchedFrom=WebContent,
@@ -137,31 +164,22 @@ resources_messages_template = (
 ]
 messages -> RemoteGraphicsContextGLResources Stream {{
     void Reshape(int32_t width, int32_t height)
-#if PLATFORM(COCOA)
-    void PrepareForDisplay(IPC::Semaphore finishedFence) -> (MachSendRight displayBuffer) Synchronous NotStreamEncodable NotStreamEncodableReply
-#endif
 #if USE(GRAPHICS_LAYER_WC)
     void PrepareForDisplay() -> (std::optional<WebKit::WCContentBufferIdentifier> contentBuffer) Synchronous
 #endif
 #if USE(GBM)
     void PrepareForDisplay(Vector<uint64_t> inUseBuffers) -> (uint64_t bufferID, std::optional<WebCore::DMABufBufferAttributes> dmabufAttributes, UnixFileDescriptor fenceFD, Vector<uint64_t> drawingBufferIDs) Synchronous NotStreamEncodableReply
 #endif
-#if !PLATFORM(COCOA) && !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
+#if !USE(GRAPHICS_LAYER_WC) && !USE(GBM)
     void PrepareForDisplay() -> () Synchronous
 #endif
     void CopyNativeImage(enum:bool WebCore::GraphicsContextGLSurfaceBuffer buffer, WebKit::RemoteNativeImageReference nativeImageReference)
 #if ENABLE(MEDIA_STREAM) || ENABLE(WEB_CODECS)
     void SurfaceBufferToVideoFrame(enum:bool WebCore::GraphicsContextGLSurfaceBuffer buffer, WebKit::RemoteVideoFrameReference reference) -> (struct std::optional<WebKit::RemoteVideoFrameProxyProperties> properties) Synchronous
 #endif
-#if ENABLE(VIDEO) && PLATFORM(COCOA)
-    void CopyTextureFromVideoFrame(struct WebKit::SharedVideoFrame frame, PlatformGLObject texture, uint32_t target, int32_t level, uint32_t internalFormat, uint32_t type, bool unpackFlipY, bool unpackPremultiplyAlpha) -> (bool success) Synchronous NotStreamEncodable
-    void SetSharedVideoFrameSemaphore(IPC::Semaphore semaphore) NotStreamEncodable
-    void SetSharedVideoFrameMemory(WebCore::SharedMemory::Handle storageHandle) NotStreamEncodable
-    [EnabledBy=AllowTestOnlyIPC] void GetLastVideoUploadForTesting() -> (struct WebCore::GraphicsContextGLVideoUploadRecord record) Synchronous
-#endif
     void SimulateEventForTesting(enum:uint8_t WebCore::GraphicsContextGLSimulatedEventForTesting event)
-    void GetBufferSubDataInline(uint32_t target, uint64_t offset, uint64_t dataSize) -> (std::span<const uint8_t> data) Synchronous
-    void GetBufferSubDataSharedMemory(uint32_t target, uint64_t offset, uint64_t dataSize, WebCore::SharedMemory::Handle handle) -> (bool valid) Synchronous NotStreamEncodable
+    void GetBufferSubDataInline(uint32_t glTarget, uint64_t offset, uint64_t dataSize) -> (std::span<const uint8_t> data) Synchronous
+    void GetBufferSubDataSharedMemory(uint32_t glTarget, uint64_t offset, uint64_t dataSize, WebCore::SharedMemory::Handle handle) -> (bool valid) Synchronous NotStreamEncodable
     void ReadPixelsInline(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder) -> (std::optional<WebCore::IntSize> readArea, std::span<const uint8_t> data) Synchronous
     void ReadPixelsSharedMemory(WebCore::IntRect rect, uint32_t format, uint32_t type, bool packReverseRowOrder, WebCore::SharedMemory::Handle handle) -> (std::optional<WebCore::IntSize> readArea) Synchronous NotStreamEncodable
 #if ENABLE(WEBXR)
@@ -180,8 +198,10 @@ resources_functions_header_template = (
     + """// This file should be included in the private section of the
 // RemoteGraphicsContextGLResources implementations.
 #pragma once
+#if !PLATFORM(COCOA)
 {}
 
+#endif
 """
 )
 resources_functions_impl_fn = root_dir / "Source" / "WebKit" / "GPUProcess" / "graphics" / "RemoteGraphicsContextGLResourcesFunctionsGenerated.cpp"
@@ -191,11 +211,11 @@ resources_functions_impl_template = (
 #include "config.h"
 #include "RemoteGraphicsContextGLResources.h"
 
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
+
 #include "Logging.h"
 #include <wtf/Borrow.h>
 #include <wtf/StdLibExtras.h>
-
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 
 #define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, streamConnection());
 
@@ -903,6 +923,19 @@ class webkit_ipc_msg(object):
         return f"\n    {enabled_by}void {self.name}({in_args}){tags}"
 
 
+class webkit_ipc_swift_companion_msg(webkit_ipc_msg):
+    """A generated companion message of the Swift receiver on Cocoa: its payload is lent to the handler, and a message with
+    an argument or reply that has no Swift form takes C++ types."""
+
+    def __init__(self, func: cpp_func):
+        super().__init__(func)
+        in_args, _ = func.get_args_categories()
+        if func.name in resources_func_names or any(a.type.type_name in non_stream_types for a in in_args):
+            self.tags += ["CxxTypes"]
+            return
+        self.in_arg_strings = [f"{'[Lent] ' if is_payload_type(a.type) else ''}{a.type} {swift_arg_name(a.name)}" for a in self.in_args.args]
+
+
 class webkit_ipc_cpp_proxy_impl(object):
     cond: str
     name: str
@@ -1338,8 +1371,9 @@ class context_msg_webkit_ipc_generator(object):
     msgs: List[webkit_ipc_msg]
     cond: str
 
-    def __init__(self, funcs: Iterable[cpp_func], fn, template):
+    def __init__(self, funcs: Iterable[cpp_func], fn, template, companion_funcs: Iterable[cpp_func] = ()):
         self.msgs = [webkit_ipc_msg(f) for f in funcs]
+        self.companion_msgs = [webkit_ipc_swift_companion_msg(f) for f in companion_funcs]
         self.cond = ""
         self.fn = fn
         self.template = template
@@ -1358,11 +1392,14 @@ class context_msg_webkit_ipc_generator(object):
             return "\n#endif"
         return ""
 
-    def get_messages(self):
-        return "".join(f"{self.open_cond(m)}{m}" for m in self.msgs) + self.close_cond()
+    def get_messages(self, msgs):
+        return "".join(f"{self.open_cond(m)}{m}" for m in msgs) + self.close_cond()
 
     def generate(self):
-        write_file(self.fn, self.template.format(self.get_messages()))
+        if self.companion_msgs:
+            write_file(self.fn, self.template.format(self.get_messages(self.msgs), self.get_messages(self.companion_msgs)))
+            return
+        write_file(self.fn, self.template.format(self.get_messages(self.msgs)))
 
 
 swift_reserved_arg_names = set(["target", "connection", "decoder", "replyEncoder", "reply", "state", "func", "extension", "in", "is", "as", "default", "repeat", "internal", "operator", "protocol", "self", "Type", "where", "case", "return"])
@@ -1415,7 +1452,7 @@ def is_swift_func(func: cpp_func) -> bool:
 
 
 def receiver_name(func: cpp_func) -> str:
-    return "RemoteGraphicsContextGLResources" if is_resources_func(func) else "RemoteGraphicsContextGL"
+    return "RemoteGraphicsContextGLCompanion" if is_resources_func(func) else "RemoteGraphicsContextGL"
 
 
 def is_payload_type(ipc_type: cpp_type) -> bool:
@@ -1746,7 +1783,7 @@ def main():
     resources_funcs = [f for f in funcs if is_resources_func(f)]
     generators = [
         context_proxy_cpp_webkit_ipc_generator(funcs, unimplemented),
-        context_msg_webkit_ipc_generator(gl_funcs, context_messages_fn, gl_messages_template),
+        context_msg_webkit_ipc_generator(gl_funcs, context_messages_fn, gl_messages_template, resources_funcs),
         context_msg_webkit_ipc_generator(resources_funcs, resources_messages_fn, resources_messages_template),
         context_cpp_webkit_ipc_generator(resources_funcs),
         context_swift_webkit_ipc_generator(gl_funcs),

@@ -119,6 +119,7 @@
 #if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
 #include "RemoteGraphicsContextGLMessages.h"
 #include "RemoteGraphicsContextGLResources.h"
+#include "RemoteGraphicsContextGLShims.h"
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)

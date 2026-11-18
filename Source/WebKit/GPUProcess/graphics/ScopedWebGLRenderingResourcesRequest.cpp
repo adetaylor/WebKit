@@ -26,9 +26,9 @@
 #include "config.h"
 #include "ScopedWebGLRenderingResourcesRequest.h"
 
-#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL)
+#if ENABLE(GPU_PROCESS) && ENABLE(WEBGL) && !PLATFORM(COCOA)
 
-#include "RemoteGraphicsContextGLResources.h"
+#include "RemoteGraphicsContextGLShims.h"
 #include "StreamConnectionWorkQueue.h"
 #include <WebCore/GraphicsContextGLANGLE.h>
 #include <wtf/RunLoop.h>

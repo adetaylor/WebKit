@@ -664,7 +664,6 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/GPUProcessPreferences.serialization.in \
 	GPUProcess/GPUProcessSessionParameters.serialization.in \
 	GPUProcess/graphics/PathSegment.serialization.in \
-	GPUProcess/graphics/RemoteGraphicsContextGLInitializationState.serialization.in \
 	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
 	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
 	GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in \
@@ -823,6 +822,7 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	Shared/InspectorNetworkTypes.serialization.in \
 	Shared/InspectorPageTypes.serialization.in \
 	Shared/IPCTester.serialization.in \
+	Shared/RemoteGraphicsContextGLInitializationState.serialization.in \
 	Shared/ios/DynamicViewportSizeUpdate.serialization.in \
 	Shared/ios/HardwareKeyboardState.serialization.in \
 	Shared/ios/DragInitiationResult.serialization.in \

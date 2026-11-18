@@ -1,5 +1,5 @@
 <!doctype html><!-- webkit-test-runner [ IPCTestingAPIEnabled=true ] -->
-<title>Test the GPU process's Swift receiver of WebGL calls and its C++ receiver on the same stream.</title>
+<title>Test the GPU process's Swift receiver of a WebGL context's messages.</title>
 <script src="../resources/testharness.js"></script>
 <script src="../resources/testharnessreport.js"></script>
 <script src="../resources/ipc.js"></script>
@@ -56,15 +56,15 @@ promise_test(async () => {
 
     for (const size of [16, 100000]) {
         const bytes = Array.from({ length: size }, (_, index) => (index * 13 + size) & 0xFF);
-        send('RemoteGraphicsContextGLResources_BufferData1', [{ type: 'uint32_t', value: ARRAY_BUFFER }, bytesArgument(bytes), { type: 'uint32_t', value: STATIC_DRAW }]);
+        send('RemoteGraphicsContextGL_BufferData1', [{ type: 'uint32_t', value: ARRAY_BUFFER }, bytesArgument(bytes), { type: 'uint32_t', value: STATIC_DRAW }]);
         assert_true(!!stream.waitForMessage(identifier, IPC.messages.RemoteGraphicsContextGLProxy_MemoryCostChanged.name, 5), `MemoryCostChanged after a ${size}-byte upload`);
         const readSize = Math.min(size, 65536);
-        const reply = sendSync('RemoteGraphicsContextGLResources_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 0 }, { type: 'uint64_t', value: readSize }]);
+        const reply = sendSync('RemoteGraphicsContextGL_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 0 }, { type: 'uint64_t', value: readSize }]);
         assert_array_equals(replyBytes(reply.arguments[0]), bytes.slice(0, readSize), `the data of a ${size}-byte upload`);
     }
     const subBytes = [1, 2, 3, 4];
-    send('RemoteGraphicsContextGLResources_BufferSubData', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, bytesArgument(subBytes)]);
-    const subReply = sendSync('RemoteGraphicsContextGLResources_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, { type: 'uint64_t', value: 4 }]);
+    send('RemoteGraphicsContextGL_BufferSubData', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, bytesArgument(subBytes)]);
+    const subReply = sendSync('RemoteGraphicsContextGL_GetBufferSubDataInline', [{ type: 'uint32_t', value: ARRAY_BUFFER }, { type: 'uint64_t', value: 8 }, { type: 'uint64_t', value: 4 }]);
     assert_array_equals(replyBytes(subReply.arguments[0]), subBytes, 'BufferSubData');
 
     const version = replyBytes(sendSync('RemoteGraphicsContextGL_GetString', [{ type: 'uint32_t', value: VERSION }]).arguments[0]);
@@ -82,5 +82,5 @@ promise_test(async () => {
 
     glConnection.connection.invalidate();
     backendConnection.connection.invalidate();
-}, 'RemoteGraphicsContextGL and RemoteGraphicsContextGLResources take a context\'s messages in order');
+}, 'RemoteGraphicsContextGL takes a context\'s messages in order');
 </script>
