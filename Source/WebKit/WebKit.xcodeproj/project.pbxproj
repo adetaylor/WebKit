@@ -10144,7 +10144,6 @@
 			children = (
 				1D0ECEA923FC84BB00D172F6 /* cocoa */,
 				CDA959442412C4DA00910EEF /* ios */,
-				CDD08AC3277EBCE500EA3755 /* AudioTrackPrivateRemoteConfiguration.h */,
 				A3C6D325A67448C8832E5720 /* GPUVideoFrameSource.cpp */,
 				15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */,
 				9B1229CF23FF2814008CA751 /* RemoteAudioDestinationManager.messages.in */,
@@ -10221,10 +10220,6 @@
 				071BC58423CC2C0900680D7C /* RemoteVideoTrackProxy.cpp */,
 				071BC58523CC2C0900680D7C /* RemoteVideoTrackProxy.h */,
 				F7F688B285AC4AC5C54E4849 /* RemoteVideoTrackProxy.swift */,
-				07E19F0523D4DC880094FFB4 /* TextTrackPrivateRemoteConfiguration.h */,
-				5C046A1C290B26CF00FF7820 /* TextTrackPrivateRemoteConfiguration.serialization.in */,
-				071BC57B23CA532400680D7C /* TrackPrivateRemoteConfiguration.h */,
-				CDD08AC4277ED7E000EA3755 /* VideoTrackPrivateRemoteConfiguration.h */,
 			);
 			path = media;
 			sourceTree = "<group>";
@@ -10709,6 +10704,7 @@
 				BC329D9E16ACD47800316DE2 /* APIWebArchiveResource.mm */,
 				493102BC2683F3A5002BB885 /* AppPrivacyReport.h */,
 				516BF1D22AE5FF0A009A0204 /* AppPrivacyReportTestingData.serialization.in */,
+				CDD08AC3277EBCE500EA3755 /* AudioTrackPrivateRemoteConfiguration.h */,
 				1A2D956E12848564001EB962 /* AuxiliaryProcess.cpp */,
 				1A2D956D12848564001EB962 /* AuxiliaryProcess.h */,
 				5164C0941B05B757004F102A /* AuxiliaryProcess.messages.in */,
@@ -10963,6 +10959,9 @@
 				86890B81294B6FD900DB95CE /* TextRecognitionResult.serialization.in */,
 				F4A7CE842667EB4E00228685 /* TextRecognitionUpdateResult.h */,
 				2D9BECFA2B30A5F600D0AE99 /* TextRecognitionUpdateResult.serialization.in */,
+				07E19F0523D4DC880094FFB4 /* TextTrackPrivateRemoteConfiguration.h */,
+				5C046A1C290B26CF00FF7820 /* TextTrackPrivateRemoteConfiguration.serialization.in */,
+				071BC57B23CA532400680D7C /* TrackPrivateRemoteConfiguration.h */,
 				0F11781422E39BE6008BD570 /* TransactionID.h */,
 				5C4B9D8A210A8C46008F14D1 /* UndoOrRedo.h */,
 				2D9BECFB2B30AF0400D0AE99 /* UndoOrRedo.serialization.in */,
@@ -10978,6 +10977,7 @@
 				2DA3E37D2A33C98900F7799D /* UserInterfaceIdiom.serialization.in */,
 				466BB8672B9C1F2E0010907E /* UserScriptIdentifier.h */,
 				466BB8692B9C215A0010907E /* UserStyleSheetIdentifier.h */,
+				CDD08AC4277ED7E000EA3755 /* VideoTrackPrivateRemoteConfiguration.h */,
 				9B38009D2AEA2D8B0011A892 /* ViewWindowCoordinates.h */,
 				9B38009C2AEA2D8A0011A892 /* ViewWindowCoordinates.serialization.in */,
 				2684054A18B866FF0022C38B /* VisibleContentRectUpdateInfo.cpp */,

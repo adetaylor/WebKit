@@ -463,11 +463,7 @@ set(WebKit_SERIALIZATION_IN_FILES
     GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in
     GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 
-    GPUProcess/media/AudioTrackPrivateRemoteConfiguration.serialization.in
     GPUProcess/media/RemoteMediaPlayerProxyConfiguration.serialization.in
-    GPUProcess/media/TextTrackPrivateRemoteConfiguration.serialization.in
-    GPUProcess/media/TrackPrivateRemoteConfiguration.serialization.in
-    GPUProcess/media/VideoTrackPrivateRemoteConfiguration.serialization.in
 
     ModelProcess/ModelProcessCreationParameters.serialization.in
 
@@ -498,6 +494,7 @@ set(WebKit_SERIALIZATION_IN_FILES
     Platform/IPC/TransferString.serialization.in
 
     Shared/AccessibilityPreferences.serialization.in
+    Shared/AudioTrackPrivateRemoteConfiguration.serialization.in
     Shared/AuxiliaryProcessCreationParameters.serialization.in
     Shared/BackgroundFetchChange.serialization.in
     Shared/BackgroundFetchState.serialization.in
@@ -572,11 +569,14 @@ set(WebKit_SERIALIZATION_IN_FILES
     Shared/TextManipulationParameters.serialization.in
     Shared/TextRecognitionResult.serialization.in
     Shared/TextRecognitionUpdateResult.serialization.in
+    Shared/TextTrackPrivateRemoteConfiguration.serialization.in
+    Shared/TrackPrivateRemoteConfiguration.serialization.in
     Shared/URLSchemeTaskParameters.serialization.in
     Shared/UndoOrRedo.serialization.in
     Shared/UpdateInfo.serialization.in
     Shared/UserContentControllerParameters.serialization.in
     Shared/UserData.serialization.in
+    Shared/VideoTrackPrivateRemoteConfiguration.serialization.in
     Shared/VisibleContentRectUpdateInfo.serialization.in
     Shared/VolumetricSceneContentContext.serialization.in
     Shared/WTFArgumentCoders.serialization.in
