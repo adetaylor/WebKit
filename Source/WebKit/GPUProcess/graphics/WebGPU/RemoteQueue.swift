@@ -264,9 +264,9 @@ final class RemoteQueue {
             frame = videoFrames.read(sharedFrame).map { (cvBuffer($0.pixelBuffer), $0.rotation, $0.isMirrored, 0, 0) }
         case .none:
             if let mediaIdentifier {
-                var result = WebKit.GPUVideoFrameReadResult()
-                frame = WebKit.copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue, &result).map {
-                    ($0, result.rotation, result.isMirrored, result.naturalWidth, result.naturalHeight)
+                let playerFrame = copyMediaPlayerFrame(objects.renderingBackend, mediaIdentifier.rawValue)
+                frame = playerFrame.pixelBuffer.map {
+                    ($0, playerFrame.rotation, playerFrame.isMirrored, playerFrame.naturalWidth, playerFrame.naturalHeight)
                 }
             }
         }

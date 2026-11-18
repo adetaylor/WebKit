@@ -1030,6 +1030,12 @@ if (APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMInstanceSessionProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteCDMProxyMessageReceiver.cpp
 
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteImageDecoderAVFProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMFactoryProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteLegacyCDMSessionProxyMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.cpp
+
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteBarcodeDetectorMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteFaceDetectorMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/ShapeDetection/RemoteTextDetectorMessageReceiver.cpp
@@ -1754,6 +1760,30 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMInstanceSessionProxyMessageReceiver.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteCDMProxyMessageReceiver.swift
+    )
+endif ()
+
+# Each compiles to nothing unless ENABLE_GPU_PROCESS and, for the legacy CDMs, ENABLE_LEGACY_ENCRYPTED_MEDIA, for the image
+# decoders, HAVE_AVASSETREADER, for the media engine configurations, ENABLE_GPU_PROCESS_MEDIA_SWIFT, and for the media
+# player frames, ENABLE_GPU_PROCESS_WEBGPU_SWIFT, are set.
+if (SWIFT_REQUIRED AND APPLE)
+    set_source_files_properties(
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageDecoderAVFProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMFactoryProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMSessionProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.swift
+        PROPERTIES GENERATED TRUE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/GPUVideoFrameSource.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteImageDecoderAVFProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteLegacyCDMFactoryProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxy.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteImageDecoderAVFProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMFactoryProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteLegacyCDMSessionProxyMessageReceiver.swift
+        ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaEngineConfigurationFactoryProxyMessageReceiver.swift
     )
 endif ()
 

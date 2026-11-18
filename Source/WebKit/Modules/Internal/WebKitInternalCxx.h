@@ -71,7 +71,15 @@
 #include "RemoteCDMInstanceProxyMessages.h"
 #include "RemoteCDMInstanceSessionProxyMessages.h"
 #include "RemoteCDMProxyMessages.h"
-#include "RemoteCDMSwiftSupport.h"
+#endif
+
+#if ENABLE(GPU_PROCESS) && PLATFORM(COCOA)
+#include "RemoteImageDecoderAVFProxyMessages.h"
+#include "RemoteLegacyCDMFactoryProxyMessages.h"
+#include "RemoteLegacyCDMProxyMessages.h"
+#include "RemoteLegacyCDMSessionProxyMessages.h"
+#include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
+#include "RemoteMediaSwiftSupport.h"
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(WEB_AUDIO) && PLATFORM(COCOA)
@@ -141,7 +149,6 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_WEBGPU_SWIFT)
-#include "GPUVideoFrameSource.h"
 #include "RemoteAdapterMessages.h"
 #include "RemoteBindGroupLayoutMessages.h"
 #include "RemoteBindGroupMessages.h"

@@ -36,13 +36,12 @@
 #include "MediaPlayerPrivateRemoteMessages.h"
 #include "RemoteAudioSourceProviderProxy.h"
 #include "RemoteAudioTrackProxy.h"
-#include "RemoteLegacyCDMFactoryProxy.h"
-#include "RemoteLegacyCDMSessionProxy.h"
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "RemoteMediaPlayerProxyConfiguration.h"
 #include "RemoteMediaResource.h"
 #include "RemoteMediaResourceIdentifier.h"
 #include "RemoteMediaResourceLoader.h"
+#include "RemoteMediaSwiftSupport.h"
 #include "RemoteAudioSessionProxy.h"
 #include "RemoteTextTrackProxy.h"
 #include "RemoteVideoFrameObjectHeap.h"
@@ -59,9 +58,6 @@
 #include <wtf/MemoryFootprint.h>
 #include <wtf/TZoneMallocInlines.h>
 #include <wtf/UniqueRef.h>
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include "RemoteCDMPrivateFactory.h"
-#endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
 #include "MediaPlaybackTargetContextSerialized.h"
@@ -749,8 +745,10 @@ RefPtr<ArrayBuffer> RemoteMediaPlayerProxy::mediaPlayerCachedKeyForKeyId(const S
     if (!m_legacySession)
         return nullptr;
 
-    if (RefPtr cdmSession = protect(manager->gpuConnectionToWebProcess()->legacyCdmFactoryProxy())->getSession(*m_legacySession))
-        return cdmSession->getCachedKeyForKeyId(keyId);
+    if (RefPtr cdmSession = manager->gpuConnectionToWebProcess()->legacyCDMSession(m_legacySession->toUInt64())) {
+        if (RefPtr session = cdmSession->session())
+            return session->cachedKeyForKeyID(keyId);
+    }
     return nullptr;
 }
 
@@ -956,14 +954,14 @@ void RemoteMediaPlayerProxy::setLegacyCDMSession(std::optional<RemoteLegacyCDMSe
         return;
 
     if (m_legacySession) {
-        if (RefPtr cdmSession = protect(manager->gpuConnectionToWebProcess()->legacyCdmFactoryProxy())->getSession(*m_legacySession))
+        if (RefPtr cdmSession = manager->gpuConnectionToWebProcess()->legacyCDMSession(m_legacySession->toUInt64()))
             m_player->setCDMSession(nullptr);
     }
 
     m_legacySession = instanceId;
 
     if (m_legacySession) {
-        if (RefPtr cdmSession = protect(manager->gpuConnectionToWebProcess()->legacyCdmFactoryProxy())->getSession(*m_legacySession))
+        if (RefPtr cdmSession = manager->gpuConnectionToWebProcess()->legacyCDMSession(m_legacySession->toUInt64()))
             m_player->setCDMSession(protect(cdmSession->session()).get());
     }
 }
@@ -985,7 +983,7 @@ void RemoteMediaPlayerProxy::cdmInstanceAttached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmPrivateFactory())->cdmInstance(instanceId))
+    if (RefPtr instance = manager->gpuConnectionToWebProcess()->cdmInstance(instanceId.toUInt64()))
         m_player->cdmInstanceAttached(*instance);
 #else
     UNUSED_PARAM(instanceId);
@@ -1000,7 +998,7 @@ void RemoteMediaPlayerProxy::cdmInstanceDetached(RemoteCDMInstanceIdentifier&& i
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmPrivateFactory())->cdmInstance(instanceId))
+    if (RefPtr instance = manager->gpuConnectionToWebProcess()->cdmInstance(instanceId.toUInt64()))
         m_player->cdmInstanceDetached(*instance);
 #else
     UNUSED_PARAM(instanceId);
@@ -1015,7 +1013,7 @@ void RemoteMediaPlayerProxy::attemptToDecryptWithInstance(RemoteCDMInstanceIdent
     if (!manager || !manager->gpuConnectionToWebProcess())
         return;
 
-    if (RefPtr instance = protect(manager->gpuConnectionToWebProcess()->cdmPrivateFactory())->cdmInstance(instanceId))
+    if (RefPtr instance = manager->gpuConnectionToWebProcess()->cdmInstance(instanceId.toUInt64()))
         m_player->attemptToDecryptWithInstance(*instance);
 #else
     UNUSED_PARAM(instanceId);

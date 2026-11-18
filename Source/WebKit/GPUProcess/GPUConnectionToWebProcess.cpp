@@ -88,10 +88,6 @@
 #include "RemoteGraphicsContextGLResourcesMessages.h"
 #endif
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-#include "RemoteCDMPrivateFactory.h"
-#endif
-
 #if ENABLE(MEDIA_SOURCE)
 #include <WebCore/MediaStrategy.h>
 #endif
@@ -113,19 +109,7 @@
 #include "RemoteMediaSessionHelperProxy.h"
 #endif
 
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-#include "RemoteLegacyCDMFactoryProxy.h"
-#include "RemoteLegacyCDMFactoryProxyMessages.h"
-#include "RemoteLegacyCDMProxyMessages.h"
-#include "RemoteLegacyCDMSessionProxyMessages.h"
-#endif
-
-#if HAVE(AVASSETREADER)
-#include "RemoteImageDecoderAVFProxy.h"
-#include "RemoteImageDecoderAVFProxyMessages.h"
-#endif
-
-#if ENABLE(GPU_PROCESS)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 #include "RemoteMediaEngineConfigurationFactoryProxy.h"
 #include "RemoteMediaEngineConfigurationFactoryProxyMessages.h"
 #endif
@@ -462,10 +446,18 @@ Ref<RemoteSharedResourceCache> GPUConnectionToWebProcess::sharedResourceCache()
 
 uint64_t GPUConnectionToWebProcess::gObjectCountForTesting = 0;
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
 static bool isRemoteCDMChildReceiverName(IPC::ReceiverName name)
 {
-    return name == IPC::ReceiverName::RemoteCDMProxy || name == IPC::ReceiverName::RemoteCDMInstanceProxy || name == IPC::ReceiverName::RemoteCDMInstanceSessionProxy;
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+    if (name == IPC::ReceiverName::RemoteCDMProxy || name == IPC::ReceiverName::RemoteCDMInstanceProxy || name == IPC::ReceiverName::RemoteCDMInstanceSessionProxy)
+        return true;
+#endif
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    if (name == IPC::ReceiverName::RemoteLegacyCDMProxy || name == IPC::ReceiverName::RemoteLegacyCDMSessionProxy)
+        return true;
+#endif
+    return false;
 }
 #endif
 
@@ -506,9 +498,6 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #endif
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
     stopLibWebRTCCodecsProxy();
-#endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
 #endif
 
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
@@ -590,14 +579,6 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
     if (m_userMediaCaptureManagerProxy && m_userMediaCaptureManagerProxy->hasSourceProxies())
         return false;
     if (!m_sampleBufferDisplayLayerManager->allowsExitUnderMemoryPressure())
-        return false;
-#endif
-#if HAVE(AVASSETREADER)
-    if (m_imageDecoderAVFProxy && !m_imageDecoderAVFProxy->allowsExitUnderMemoryPressure())
-        return false;
-#endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    if (auto* legacyCdmFactoryProxy = m_legacyCdmFactoryProxy.get(); legacyCdmFactoryProxy && !legacyCdmFactoryProxy->allowsExitUnderMemoryPressure())
         return false;
 #endif
     return true;
@@ -735,22 +716,6 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
 }
 #endif
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-RemoteCDMPrivateFactory& GPUConnectionToWebProcess::cdmPrivateFactory()
-{
-    if (!m_cdmPrivateFactory)
-        lazyInitialize(m_cdmPrivateFactory, RemoteCDMPrivateFactory::create(*this));
-
-    return *m_cdmPrivateFactory;
-}
-
-void GPUConnectionToWebProcess::removeCDMInstance(uint64_t identifier)
-{
-    if (RefPtr factory = m_cdmPrivateFactory)
-        factory->removeInstance(identifier);
-}
-#endif
-
 #if USE(AUDIO_SESSION)
 RemoteAudioSessionProxy& GPUConnectionToWebProcess::audioSessionProxy()
 {
@@ -775,15 +740,6 @@ void GPUConnectionToWebProcess::providePresentingApplicationPID(WebCore::PageIde
     ProcessID processID = presentingApplicationPID(pageIdentifier);
     ASSERT(processID);
     protect(MediaSessionHelper::sharedHelper())->providePresentingApplicationPID(processID);
-}
-#endif
-
-#if HAVE(AVASSETREADER)
-RemoteImageDecoderAVFProxy& GPUConnectionToWebProcess::imageDecoderAVFProxy()
-{
-    if (!m_imageDecoderAVFProxy)
-        lazyInitialize(m_imageDecoderAVFProxy, makeUniqueWithoutRefCountedCheck<RemoteImageDecoderAVFProxy>(*this));
-    return *m_imageDecoderAVFProxy;
 }
 #endif
 
@@ -1094,17 +1050,7 @@ void GPUConnectionToWebProcess::setMonitorsWirelessRoutes(bool monitors)
 }
 #endif
 
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-RemoteLegacyCDMFactoryProxy& GPUConnectionToWebProcess::legacyCdmFactoryProxy()
-{
-    if (!m_legacyCdmFactoryProxy)
-        lazyInitialize(m_legacyCdmFactoryProxy, RemoteLegacyCDMFactoryProxy::create(*this));
-
-    return *m_legacyCdmFactoryProxy;
-}
-#endif
-
-#if ENABLE(GPU_PROCESS)
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 RemoteMediaEngineConfigurationFactoryProxy& GPUConnectionToWebProcess::mediaEngineConfigurationFactoryProxy()
 {
     if (!m_mediaEngineConfigurationFactoryProxy)
@@ -1175,8 +1121,8 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    // The CDMs, instances and sessions that the Swift factory makes register their messages in messageReceiverMap(). A
+#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
+    // The CDMs, instances and sessions that the Swift factories make register their messages in messageReceiverMap(). A
     // message for one that has gone is dropped, as before they did.
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchMessage(connection, decoder);
@@ -1195,29 +1141,9 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
         return true;
     }
 #endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMFactoryProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveCDMMessage(connection, decoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMSessionProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveCDMSessionMessage(connection, decoder);
-        return true;
-    }
-#endif
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     if (decoder.messageReceiverName() == Messages::RemoteMediaEngineConfigurationFactoryProxy::messageReceiverName()) {
         protect(mediaEngineConfigurationFactoryProxy())->didReceiveMessageFromWebProcess(connection, decoder);
-        return true;
-    }
-#if HAVE(AVASSETREADER)
-    if (decoder.messageReceiverName() == Messages::RemoteImageDecoderAVFProxy::messageReceiverName()) {
-        protect(imageDecoderAVFProxy())->didReceiveMessage(connection, decoder);
         return true;
     }
 #endif
@@ -1263,7 +1189,7 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     }
 #endif
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+#if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
         return true;
@@ -1278,28 +1204,6 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
 #if ENABLE(VIDEO) && PLATFORM(COCOA)
     if (decoder.messageReceiverName() == Messages::RemoteAudioVideoRendererProxyManager::messageReceiverName()) {
         protect(remoteAudioVideoRendererProxyManager())->didReceiveSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMFactoryProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveSyncMessageFromWebProcess(connection, decoder, replyEncoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveSyncCDMMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-
-    if (decoder.messageReceiverName() == Messages::RemoteLegacyCDMSessionProxy::messageReceiverName()) {
-        protect(legacyCdmFactoryProxy())->didReceiveSyncCDMSessionMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if HAVE(AVASSETREADER)
-    if (decoder.messageReceiverName() == Messages::RemoteImageDecoderAVFProxy::messageReceiverName()) {
-        protect(imageDecoderAVFProxy())->didReceiveSyncMessage(connection, decoder, replyEncoder);
         return true;
     }
 #endif

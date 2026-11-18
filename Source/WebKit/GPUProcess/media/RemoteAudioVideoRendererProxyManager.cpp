@@ -34,9 +34,7 @@
 #include "LayerHostingContext.h"
 #include "Logging.h"
 #include "RemoteAudioVideoRendererProxyManagerMessages.h"
-#include "RemoteCDMPrivateFactory.h"
-#include "RemoteLegacyCDMFactoryProxy.h"
-#include "RemoteLegacyCDMSessionProxy.h"
+#include "RemoteMediaSwiftSupport.h"
 #include "RemoteVideoFrameObjectHeap.h"
 #if ENABLE(LINEAR_MEDIA_PLAYER)
 #include "VideoReceiverEndpointManager.h"
@@ -496,7 +494,7 @@ void RemoteAudioVideoRendererProxyManager::setLegacyCDMSession(RemoteAudioVideoR
         renderer->setCDMSession(nullptr);
         return;
     }
-    if (RefPtr cdmSession = m_gpuConnectionToWebProcess.get()->legacyCdmFactoryProxy().getSession(*instanceId))
+    if (RefPtr cdmSession = m_gpuConnectionToWebProcess.get()->legacyCDMSession(instanceId->toUInt64()))
         renderer->setCDMSession(protect(cdmSession->session()).get());
     else
         ALWAYS_LOG(LOGIDENTIFIER, "Unable to find LegacyCDMSession: ", instanceId->loggingString());
@@ -518,7 +516,7 @@ void RemoteAudioVideoRendererProxyManager::setCDMInstance(RemoteAudioVideoRender
     }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
     Ref connection = m_gpuConnectionToWebProcess.get();
-    if (RefPtr instance = protect(connection->cdmPrivateFactory())->cdmInstance(*instanceId)) {
+    if (RefPtr instance = connection->cdmInstance(instanceId->toUInt64())) {
         renderer->setCDMInstance(instance.get());
         return;
     }

@@ -75,6 +75,15 @@ final class GPUConnectionState {
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
     private(set) var cdmFactory: RemoteCDMFactoryProxy?
     #endif
+    #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+    private(set) var legacyCDMFactory: RemoteLegacyCDMFactoryProxy?
+    #endif
+    #if HAVE_AVASSETREADER
+    private var imageDecoderAVFProxy: RemoteImageDecoderAVFProxy?
+    #endif
+    #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+    private var mediaEngineConfigurationFactory: RemoteMediaEngineConfigurationFactoryProxy?
+    #endif
     #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
     // From before the connection opens: the C++ connection registers its forwarder on the codecs queue.
     fileprivate var libWebRTCCodecsProxy: LibWebRTCCodecsProxy?
@@ -112,6 +121,21 @@ final class GPUConnectionState {
             receivers.append(cdmFactory)
         }
         #endif
+        #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+        if let legacyCDMFactory {
+            receivers.append(legacyCDMFactory)
+        }
+        #endif
+        #if HAVE_AVASSETREADER
+        if let imageDecoderAVFProxy {
+            receivers.append(imageDecoderAVFProxy)
+        }
+        #endif
+        #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+        if let mediaEngineConfigurationFactory {
+            receivers.append(mediaEngineConfigurationFactory)
+        }
+        #endif
         #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
         if let libWebRTCCodecsProxy {
             receivers.append(libWebRTCCodecsProxy)
@@ -144,6 +168,28 @@ final class GPUConnectionState {
         let cdmFactory = RemoteCDMFactoryProxy(connection: connection)
         self.cdmFactory = cdmFactory
         register(IPC.registerSwiftReceiver(connection, cdmFactory.getMessageReceiver(), .RemoteCDMFactoryProxy, 0))
+        #endif
+        #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+        let legacyCDMFactory = RemoteLegacyCDMFactoryProxy(connection: connection)
+        self.legacyCDMFactory = legacyCDMFactory
+        register(IPC.registerSwiftReceiver(connection, legacyCDMFactory.getMessageReceiver(), .RemoteLegacyCDMFactoryProxy, 0))
+        #endif
+        #if HAVE_AVASSETREADER
+        let imageDecoderAVFProxy = RemoteImageDecoderAVFProxy(connection: connection)
+        self.imageDecoderAVFProxy = imageDecoderAVFProxy
+        register(IPC.registerSwiftReceiver(connection, imageDecoderAVFProxy.getMessageReceiver(), .RemoteImageDecoderAVFProxy, 0))
+        #endif
+        #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+        let mediaEngineConfigurationFactory = RemoteMediaEngineConfigurationFactoryProxy(connection: connection)
+        self.mediaEngineConfigurationFactory = mediaEngineConfigurationFactory
+        register(
+            IPC.registerSwiftReceiver(
+                connection,
+                mediaEngineConfigurationFactory.getMessageReceiver(),
+                .RemoteMediaEngineConfigurationFactoryProxy,
+                0
+            )
+        )
         #endif
     }
 

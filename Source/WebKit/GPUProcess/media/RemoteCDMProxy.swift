@@ -36,8 +36,7 @@ final class RemoteCDMProxy {
     private var messageForwarder: RefRemoteCDMProxyMessageForwarder?
     private weak var factory: RemoteCDMFactoryProxy?
     private let isClearKey: Bool
-    @_expose(!Cxx)
-    let cdm: WebKit.RemoteCDMPrivateHandle
+    private let cdm: WebKit.RemoteCDMPrivateHandle
 
     @_expose(!Cxx)
     init(factory: RemoteCDMFactoryProxy, cdm: WebKit.RemoteCDMPrivateHandle, isClearKey: Bool) {
@@ -116,23 +115,24 @@ final class RemoteCDMProxy {
         connection: IPC.Connection
     ) -> (identifier: IPCTypes.RemoteCDMInstanceIdentifier?, configuration: IPCTypes.RemoteCDMInstanceConfiguration) {
         let noInstance = (IPCTypes.RemoteCDMInstanceIdentifier?.none, IPCTypes.RemoteCDMInstanceConfiguration(keySystem: nil))
-        guard let factory, let gpuConnection = factory.connection else {
+        guard let factory, factory.connection != nil else {
             return noInstance
         }
-        let identifier = WebKit.RemoteCDMPrivateFactory.generateInstanceIdentifier()
+        let identifier = WTF.ObjectIdentifierMainThreadAccessTraits.generateIdentifierInternal()
         let backend: any RemoteCDMInstanceBackend
         let keySystem: String?
         if isClearKey {
             backend = ClearKeyInstanceBackend()
             keySystem = ClearKey.keySystem
         } else {
-            var cxxKeySystem = WTF.String()
-            var fairPlayInstanceToken: UInt64 = 0
-            guard let instance = WebKit.createRemoteCDMInstance(gpuConnection, cdm, identifier, &cxxKeySystem, &fairPlayInstanceToken) else {
+            guard let instance = cdm.createInstance(identifier) else {
                 return noInstance
             }
-            backend = FairPlayCDMInstanceBackend(instance, fairPlayInstance: FairPlayInstance.instance(forToken: fairPlayInstanceToken))
-            keySystem = IPCCoding.WTFString.swiftString(cxxKeySystem)
+            backend = FairPlayCDMInstanceBackend(
+                instance,
+                fairPlayInstance: FairPlayInstance.instance(forToken: WebCore.fairPlayInstanceToken(instance.instance()))
+            )
+            keySystem = IPCCoding.WTFString.swiftString(instance.keySystem())
         }
         let logIdentifier = isClearKey ? 0 : cdm.logIdentifier()
         factory.add(

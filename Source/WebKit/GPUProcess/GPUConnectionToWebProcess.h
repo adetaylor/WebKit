@@ -94,6 +94,7 @@ enum class Synchronous : bool;
 }
 
 namespace WebCore {
+class CDMInstance;
 class MediaPlayer;
 class SecurityOrigin;
 class SecurityOriginData;
@@ -125,9 +126,13 @@ class LocalAudioSessionRoutingArbitrator;
 class RemoteAudioHardwareListenerProxy;
 class RemoteAudioSessionProxy;
 class RemoteAudioSessionProxyManager;
-class RemoteCDMPrivateFactory;
-class RemoteImageDecoderAVFProxy;
-class RemoteLegacyCDMFactoryProxy;
+class RemoteLegacyCDMSessionClient;
+#if ENABLE(GPU_PROCESS_CDM_SWIFT)
+using RefPtrCDMInstance = RefPtr<WebCore::CDMInstance>;
+#endif
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
+using RefPtrRemoteLegacyCDMSessionClient = RefPtr<RemoteLegacyCDMSessionClient>;
+#endif
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
 class RemoteRenderingBackend;
@@ -268,18 +273,20 @@ public:
 
     const WebCore::ProcessIdentity& webProcessIdentity() const LIFETIME_BOUND { return m_webProcessIdentity; }
 #if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    RemoteCDMPrivateFactory& cdmPrivateFactory();
-    // For the Swift EME receivers, which the connection's Swift state owns: the C++ CDMs' instances.
-    void removeCDMInstance(uint64_t identifier);
     String cdmMediaKeysStorageDirectory() const { return mediaKeysStorageDirectory(); }
     // Implemented in Swift: whether the identifier is a CDM instance's at all, since the Swift ClearKey instances have no
     // C++ instance.
     SWIFT_MAIN_ACTOR bool hasCDMInstance(uint64_t identifier) const;
+    // Implemented in Swift: the C++ instance of a CDM instance, for the media players.
+    SWIFT_MAIN_ACTOR RefPtrCDMInstance cdmInstance(uint64_t identifier) const;
 #endif
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    RemoteLegacyCDMFactoryProxy& legacyCdmFactoryProxy();
+    // Implemented in Swift: a legacy CDM session, for the media players.
+    SWIFT_MAIN_ACTOR RefPtrRemoteLegacyCDMSessionClient legacyCDMSession(uint64_t identifier) const;
 #endif
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     RemoteMediaEngineConfigurationFactoryProxy& mediaEngineConfigurationFactoryProxy();
+#endif
 #if ENABLE(VIDEO)
     RemoteMediaPlayerManagerProxy& remoteMediaPlayerManagerProxy() { return m_remoteMediaPlayerManagerProxy.get(); }
 #endif
@@ -288,10 +295,6 @@ public:
 #endif
 #if USE(AUDIO_SESSION)
     RemoteAudioSessionProxyManager& audioSessionManager();
-#endif
-
-#if HAVE(AVASSETREADER)
-    RemoteImageDecoderAVFProxy& imageDecoderAVFProxy();
 #endif
 
     void updateSupportedRemoteCommands();
@@ -533,23 +536,15 @@ private:
     const String m_applicationBundleIdentifier;
 #endif
 
-#if ENABLE(GPU_PROCESS_CDM_SWIFT)
-    const RefPtr<RemoteCDMPrivateFactory> m_cdmPrivateFactory;
-#endif
 #if USE(AUDIO_SESSION)
     RefPtr<RemoteAudioSessionProxy> m_audioSessionProxy;
 #endif
 #if PLATFORM(IOS_FAMILY)
     const RefPtr<RemoteMediaSessionHelperProxy> m_mediaSessionHelperProxy;
 #endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    const RefPtr<RemoteLegacyCDMFactoryProxy> m_legacyCdmFactoryProxy;
-#endif
-#if HAVE(AVASSETREADER)
-    const std::unique_ptr<RemoteImageDecoderAVFProxy> m_imageDecoderAVFProxy;
-#endif
-
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     const std::unique_ptr<RemoteMediaEngineConfigurationFactoryProxy> m_mediaEngineConfigurationFactoryProxy;
+#endif
 
 #if HAVE(VISIBILITY_PROPAGATION_VIEW)
     HashMap<std::pair<WebPageProxyIdentifier, WebCore::PageIdentifier>, std::unique_ptr<LayerHostingContext>> m_visibilityPropagationContexts;
