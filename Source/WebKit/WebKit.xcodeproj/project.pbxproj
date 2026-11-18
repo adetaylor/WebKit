@@ -2997,6 +2997,7 @@
 		958DB16BF77E484586CBFE6C /* RemoteGPUMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5352BC963EAD4935A4834B0D /* RemoteGPUMessageReceiver.swift */; };
 		96537FFD60364C8189A1BE62 /* GPUConnectionToWebProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */; };
 		D8DBCDC2185A43C0AB73A16F /* GPUProcess.swift in Sources */ = {isa = PBXBuildFile; fileRef = 219C838F24364575BC265172 /* GPUProcess.swift */; };
+		6719A0EB25BA848555879A11 /* RemoteSharedResourceCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB68FD59EEA88969EBA622D /* RemoteSharedResourceCache.swift */; };
 		5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */; };
 		52F571FC6C714A1C9F279FF9 /* GPUConnectionToWebProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */; };
 		CE2D9ECA88E94405B9F74F77 /* GPUProcessMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */; };
@@ -9674,6 +9675,7 @@
 		15322D4BEC2D4A85A98838E7 /* GPUVideoFrameSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GPUVideoFrameSource.h; sourceTree = "<group>"; };
 		69EC0543DEAF40339F1534BC /* GPUConnectionToWebProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcess.swift; sourceTree = "<group>"; };
 		219C838F24364575BC265172 /* GPUProcess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcess.swift; sourceTree = "<group>"; };
+		4EB68FD59EEA88969EBA622D /* RemoteSharedResourceCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSharedResourceCache.swift; sourceTree = "<group>"; };
 		DC3C9AB1BA9E44E58C2FA1F8 /* GPUConnectionToWebProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUConnectionToWebProcessMessageReceiver.swift; sourceTree = "<group>"; };
 		86BF51D5BEDA4071AAF8B464 /* GPUProcessMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GPUProcessMessageReceiver.swift; sourceTree = "<group>"; };
 		7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreviewManager.swift; sourceTree = "<group>"; };
@@ -12840,6 +12842,7 @@
 				7BF128B82B7CF631001D1B14 /* RemoteSharedResourceCache.cpp */,
 				7BF128B62B7CF631001D1B14 /* RemoteSharedResourceCache.h */,
 				7BF128B72B7CF631001D1B14 /* RemoteSharedResourceCache.messages.in */,
+				4EB68FD59EEA88969EBA622D /* RemoteSharedResourceCache.swift */,
 			);
 			path = GPUProcess;
 			sourceTree = "<group>";
@@ -22871,6 +22874,7 @@
 				E9B359F98E993DCAE216EA11 /* RemoteShaderModule.swift in Sources */,
 				7255C2D17E57B8B386EC3848 /* RemoteShaderModuleMessageReceiver.swift in Sources */,
 				D0B380CB197443E79AC83409 /* RemoteShapeDetectors.swift in Sources */,
+				6719A0EB25BA848555879A11 /* RemoteSharedResourceCache.swift in Sources */,
 				5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */,
 				4DA1AC01D71C47279D83AD97 /* RemoteTextDetectorMessageReceiver.swift in Sources */,
 				23BB53D52E890D3EEE4D2987 /* RemoteTextTrackProxy.swift in Sources */,

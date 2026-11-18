@@ -41,6 +41,7 @@
 #include "GPUConnectionToWebProcessMessages.h"
 #include "GPUProcess.h"
 #include "GPUProcessMessages.h"
+#include "RemoteSharedResourceCache.h"
 #include "RemoteSnapshotSink.h"
 #include "SwiftReceiverRegistration.h"
 #endif

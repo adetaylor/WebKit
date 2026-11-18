@@ -1663,6 +1663,7 @@ set_source_files_properties(
 list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/GPUConnectionToWebProcess.swift
     ${WEBKIT_DIR}/GPUProcess/GPUProcess.swift
+    ${WEBKIT_DIR}/GPUProcess/RemoteSharedResourceCache.swift
     ${WEBKIT_DIR}/GPUProcess/graphics/RemoteSnapshot.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
