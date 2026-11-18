@@ -111,6 +111,13 @@ _HAND_WRITTEN_TYPES = {
     'std::span<const WebCore::FloatSegment>': 'IPCTypes.LineSegments',
 }
 
+# The Swift condition each hand-written form is under in SwiftCoding.swift, where it is not on every port. A generated
+# form that holds one, directly or through another generated form, is under the same condition (generate-serializers.py).
+HAND_WRITTEN_TYPE_CONDITIONS = {
+    'WebCore::ColorSpace': 'canImport(CoreGraphics)',
+    'WebCore::Path': 'ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT',
+}
+
 # Hand-written forms whose coder also decodes with a context, decode(from:context:), which a lent-state dispatch asks its
 # handler for ('SwiftDecodeContext='): what of the value the handler will use, or where it decodes it to. A malformed
 # message's dispatch calls its decodeFailed(context:).
