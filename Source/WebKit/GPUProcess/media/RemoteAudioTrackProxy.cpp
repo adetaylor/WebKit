@@ -52,7 +52,9 @@ RemoteAudioTrackProxy::RemoteAudioTrackProxy(GPUConnectionToWebProcess& connecti
         ensureOnMainThread(WTF::move(task));
     }, *this);
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     connectionToWebProcess.connection().send(Messages::MediaPlayerPrivateRemote::AddRemoteAudioTrack(configuration()), m_mediaPlayerIdentifier);
+#endif
 }
 
 RemoteAudioTrackProxy::~RemoteAudioTrackProxy()
@@ -60,6 +62,13 @@ RemoteAudioTrackProxy::~RemoteAudioTrackProxy()
     m_trackPrivate->removeClient(m_clientId);
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+IPC::Connection* RemoteAudioTrackProxy::webProcessConnection() const
+{
+    RefPtr connection = m_connectionToWebProcess.get();
+    return connection ? &Ref { connection->connection() }.leakRef() : nullptr;
+}
+#else
 AudioTrackPrivateRemoteConfiguration RemoteAudioTrackProxy::configuration()
 {
     return {
@@ -76,13 +85,6 @@ AudioTrackPrivateRemoteConfiguration RemoteAudioTrackProxy::configuration()
     };
 }
 
-#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-IPC::Connection* RemoteAudioTrackProxy::webProcessConnection() const
-{
-    RefPtr connection = m_connectionToWebProcess.get();
-    return connection ? &Ref { connection->connection() }.leakRef() : nullptr;
-}
-#else
 void RemoteAudioTrackProxy::configurationChanged()
 {
     RefPtr connection { m_connectionToWebProcess };

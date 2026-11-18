@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
-#include "MessageReceiver.h"
 #include "VideoTrackPrivateRemoteConfiguration.h"
 #include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/TrackBase.h>
@@ -37,11 +36,9 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 namespace IPC {
 class Connection;
-class Decoder;
 }
 
 namespace WebKit {

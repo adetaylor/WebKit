@@ -37,7 +37,6 @@
 #include <WebCore/ShareableBitmap.h>
 #include <WebCore/VideoTarget.h>
 #include <wtf/HashMap.h>
-#include <wtf/Lock.h>
 #include <wtf/Logger.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
@@ -51,11 +50,8 @@
 namespace WebKit {
 
 class RemoteMediaPlayerProxy;
-struct RemoteMediaPlayerConfiguration;
 struct RemoteMediaPlayerProxyConfiguration;
 struct SharedPreferencesForWebProcess;
-class VideoReceiverEndpointMessage;
-class VideoReceiverSwapEndpointsMessage;
 
 #if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 using RefPtrMediaPlayer = RefPtr<WebCore::MediaPlayer>;

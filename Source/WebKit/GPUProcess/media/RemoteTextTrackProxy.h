@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
-#include "MessageReceiver.h"
 #include "TextTrackPrivateRemoteConfiguration.h"
 #include <WebCore/ISOVTTCue.h>
 #include <WebCore/InbandTextTrackPrivate.h>
@@ -38,11 +37,9 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 namespace IPC {
 class Connection;
-class Decoder;
 }
 
 namespace WebKit {
@@ -58,7 +55,11 @@ class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAU
 public:
     static Ref<RemoteTextTrackProxy> create(GPUConnectionToWebProcess& connectionToWebProcess, WebCore::InbandTextTrackPrivate& trackPrivate, WebCore::MediaPlayerIdentifier mediaPlayerIdentifier)
     {
-        return adoptRef(*new RemoteTextTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+        Ref proxy = adoptRef(*new RemoteTextTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+        proxy->addToWebProcess();
+#endif
+        return proxy;
     }
 
     virtual ~RemoteTextTrackProxy();
@@ -110,16 +111,17 @@ private:
 #endif
     void willRemove() final;
 
-    TextTrackPrivateRemoteConfiguration& configuration();
     void configurationChanged();
 #if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
-    TextTrackPrivateRemoteConfiguration configurationValue() { return configuration(); }
-
     // Implemented in Swift.
+    void addToWebProcess();
     void swiftParseWebVTTFileHeader(String);
     void swiftParseWebVTTCueData(WebCore::ISOWebVTTCue);
 
+    WebCore::InbandTextTrackPrivate& trackPrivate() const { return m_trackPrivate.get(); }
     IPC::Connection* WTF_NULLABLE webProcessConnection() const SWIFT_RETURNS_RETAINED;
+#else
+    TextTrackPrivateRemoteConfiguration& configuration();
 #endif
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connectionToWebProcess;

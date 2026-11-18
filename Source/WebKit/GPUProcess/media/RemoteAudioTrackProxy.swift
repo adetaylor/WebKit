@@ -27,6 +27,30 @@
 import WebKit_Internal
 
 extension WebKit.RemoteAudioTrackProxy {
+    // The configuration of the track, which the web process makes its track from.
+    private func configuration() -> WebKit.AudioTrackPrivateRemoteConfiguration {
+        let track = trackPrivate()
+        var configuration = WebKit.AudioTrackPrivateRemoteConfiguration()
+        configuration.trackId = track.id()
+        configuration.label = track.label()
+        configuration.language = track.language()
+        configuration.startTimeVariance = track.startTimeVariance()
+        configuration.trackIndex = track.trackIndex()
+        configuration.enabled = track.enabled()
+        configuration.kind = track.kind()
+        configuration.trackConfiguration = trackConfiguration()
+        return configuration
+    }
+
+    @cxx
+    @implementation
+    func addToWebProcess() {
+        guard let connection = webProcessConnection() else {
+            return
+        }
+        Messages.MediaPlayerPrivateRemote.sendAddRemoteAudioTrack(connection, m_mediaPlayerIdentifier.toUInt64(), configuration())
+    }
+
     @cxx
     @implementation
     func configurationChanged() {

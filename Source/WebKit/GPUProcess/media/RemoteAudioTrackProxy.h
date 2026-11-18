@@ -28,7 +28,6 @@
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
-#include "MessageReceiver.h"
 #include "AudioTrackPrivateRemoteConfiguration.h"
 #include <WebCore/AudioTrackPrivate.h>
 #include <WebCore/MediaPlayerIdentifier.h>
@@ -37,11 +36,9 @@
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
-#include <wtf/WeakPtr.h>
 
 namespace IPC {
 class Connection;
-class Decoder;
 }
 
 namespace WebKit {
@@ -56,7 +53,11 @@ class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAU
 public:
     static Ref<RemoteAudioTrackProxy> create(GPUConnectionToWebProcess& connectionToWebProcess, WebCore::AudioTrackPrivate& trackPrivate, WebCore::MediaPlayerIdentifier mediaPlayerIdentifier)
     {
-        return adoptRef(*new RemoteAudioTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+        Ref proxy = adoptRef(*new RemoteAudioTrackProxy(connectionToWebProcess, trackPrivate, mediaPlayerIdentifier));
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+        proxy->addToWebProcess();
+#endif
+        return proxy;
     }
 
     virtual ~RemoteAudioTrackProxy();
@@ -95,10 +96,15 @@ private:
 #endif
     void willRemove() final;
 
-    AudioTrackPrivateRemoteConfiguration configuration();
     void configurationChanged();
 #if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void addToWebProcess();
+    WebCore::AudioTrackPrivate& trackPrivate() const { return m_trackPrivate.get(); }
+    // Swift doesn't import AudioTrackPrivate::configuration(), which returns a reference.
+    WebCore::PlatformAudioTrackConfiguration trackConfiguration() const { return m_trackPrivate->configuration(); }
     IPC::Connection* WTF_NULLABLE webProcessConnection() const SWIFT_RETURNS_RETAINED;
+#else
+    AudioTrackPrivateRemoteConfiguration configuration();
 #endif
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connectionToWebProcess;

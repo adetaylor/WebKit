@@ -53,7 +53,9 @@ RemoteTextTrackProxy::RemoteTextTrackProxy(GPUConnectionToWebProcess& connection
     m_clientId = trackPrivate.addClient([](auto&& task) {
         ensureOnMainThread(WTF::move(task));
     }, *this);
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
     connectionToWebProcess.connection().send(Messages::MediaPlayerPrivateRemote::AddRemoteTextTrack(configuration()), m_mediaPlayerIdentifier);
+#endif
 }
 
 RemoteTextTrackProxy::~RemoteTextTrackProxy()
@@ -69,6 +71,7 @@ IPC::Connection* RemoteTextTrackProxy::webProcessConnection() const
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 TextTrackPrivateRemoteConfiguration& RemoteTextTrackProxy::configuration()
 {
     static NeverDestroyed<TextTrackPrivateRemoteConfiguration> configuration;
@@ -93,7 +96,6 @@ TextTrackPrivateRemoteConfiguration& RemoteTextTrackProxy::configuration()
     return configuration.get();
 }
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteTextTrackProxy::configurationChanged()
 {
     if (RefPtr connection = m_connectionToWebProcess.get())

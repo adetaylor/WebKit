@@ -27,6 +27,37 @@
 import WebKit_Internal
 
 extension WebKit.RemoteTextTrackProxy {
+    // The configuration of the track, which the web process makes its track from.
+    private func configuration() -> WebKit.TextTrackPrivateRemoteConfiguration {
+        let track = trackPrivate()
+        var configuration = WebKit.TextTrackPrivateRemoteConfiguration()
+        configuration.trackId = track.id()
+        configuration.label = track.label()
+        configuration.language = track.language()
+        configuration.trackIndex = track.trackIndex()
+        configuration.inBandMetadataTrackDispatchType = track.inBandMetadataTrackDispatchType()
+        configuration.startTimeVariance = track.startTimeVariance()
+        configuration.cueFormat = track.cueFormat()
+        configuration.isClosedCaptions = track.isClosedCaptions()
+        configuration.isSDH = track.isSDH()
+        configuration.containsOnlyForcedSubtitles = track.containsOnlyForcedSubtitles()
+        configuration.isMainProgramContent = track.isMainProgramContent()
+        configuration.isEasyToRead = track.isEasyToRead()
+        configuration.isDefault = track.isDefault()
+        configuration.isMachineGenerated = track.isMachineGenerated()
+        configuration.kind = track.kind()
+        return configuration
+    }
+
+    @cxx
+    @implementation
+    func addToWebProcess() {
+        guard let connection = webProcessConnection() else {
+            return
+        }
+        Messages.MediaPlayerPrivateRemote.sendAddRemoteTextTrack(connection, m_mediaPlayerIdentifier.toUInt64(), configuration())
+    }
+
     @cxx
     @implementation
     func configurationChanged() {
@@ -39,7 +70,7 @@ extension WebKit.RemoteTextTrackProxy {
             connection,
             m_mediaPlayerIdentifier.toUInt64(),
             previousIdentifier,
-            configurationValue()
+            configuration()
         )
     }
 
