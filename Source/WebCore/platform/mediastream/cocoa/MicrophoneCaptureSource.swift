@@ -50,6 +50,9 @@ import WebCore_Private.Core.MockVideoSourceHandle
     public var formatChangedHandler: (@MainActor () -> Void)?
     private var hasNotifiedStart = false
     private var isValid = true
+    // The ring and semaphore that attach(ring:semaphore:frameChunkSize:) attached, which the producer may use until the sink
+    // is invalidated.
+    var ringOwners: (SharedAudioProducerRing, AudioSemaphoreRight)?
 
     private init(isProducer: Bool, format: AudioStreamBasicDescription) {
         self.format = format

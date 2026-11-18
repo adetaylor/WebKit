@@ -773,7 +773,7 @@ messages -> TestReceiver Stream {
         synchronous = parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (MachSendRight right) Synchronous NotStreamEncodableReply CxxEncodedReply')
         self.assertIn('IPC::handleSwiftMessageSynchronousWithReplyValue<Messages::TestReceiver::Message>', messages.generate_message_handler(synchronous))
 
-        error = r"ERROR: Message TestReceiver.Message has 'CxxEncodedReply', which is for messages with a reply that take Swift types: asynchronous ones, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver"
+        error = r"ERROR: Message TestReceiver.Message has 'CxxEncodedReply', which is for messages with a reply that take Swift types: asynchronous ones, Synchronous ones to a WorkQueue receiver, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver"
         with self.assertRaisesRegex(Exception, error):
             parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) CxxEncodedReply')
         with self.assertRaisesRegex(Exception, error):
@@ -782,8 +782,13 @@ messages -> TestReceiver Stream {
             parse_receiver(['SwiftReceiver'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) CxxEncodedReply')
         with self.assertRaisesRegex(Exception, error):
             parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) Synchronous CxxEncodedReply')
-        with self.assertRaisesRegex(Exception, error):
-            parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' WorkQueue', '    Message(uint32_t value) -> (uint32_t reply) Synchronous NotStreamEncodableReply CxxEncodedReply')
+        # A WorkQueue receiver's Synchronous reply that C++ encodes is given as a value too, through the reply encoder of the
+        # Connection's synchronous dispatch, which the handler sends before it returns.
+        for attributes, target in ((['SwiftReceiver', 'SwiftTypes'], 'm_handler.get(), &TestReceiverWeakRef::dispatchMessage'), (['SwiftImplementation', 'SwiftTypes'], 'this, &SwiftDispatch::TestReceiver::dispatchMessage')):
+            work_queue_synchronous = parse_receiver(attributes, ' WorkQueue', '    Message(uint32_t value) -> (uint32_t reply) Synchronous CxxEncodedReply')
+            self.assertIn('IPC::handleSwiftMessageSynchronous<Messages::TestReceiver::Message>(connection, decoder, replyEncoder, %s);\n' % target, messages.generate_message_handler(work_queue_synchronous))
+            self.assertNotIn('handleSwiftMessageSynchronousWithReplyValue', messages.generate_message_handler(work_queue_synchronous))
+            self.assertIn('reply: TestReceiverMessageReply(replyEncoder: replyEncoder)', messages.generate_swift_message_handler(work_queue_synchronous))
         # SwiftReplyValue stays Synchronous-only.
         with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has 'SwiftReplyValue', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types"):
             parse_receiver(['SwiftReceiver', 'SwiftTypes'], ' Stream', '    Message(uint32_t value) -> (uint32_t reply) SwiftReplyValue')
@@ -836,6 +841,22 @@ messages -> TestReceiver Stream {
         implementation = messages.generate_message_handler(receiver)
         self.assertIn('#if PLATFORM(COCOA)\nvoid completeWithDefaultReply(CocoaMessageCompletionHandler& completionHandler)\n', implementation)
         self.assertIn('#elif PLATFORM(GTK)\nvoid completeWithDefaultReply(GTKMessageCompletionHandler& completionHandler)\n', implementation)
+
+    def test_swift_destination_id(self):
+        def parse_receiver(attributes, kind, messages_text):
+            return parser.parse(io.StringIO('[ExceptionForDispatchedFrom, ExceptionForDispatchedTo, ExceptionForEnabledBy, %s]\nmessages -> TestReceiver%s {\n%s\n}\n' % (', '.join(attributes), kind, messages_text)))
+
+        receiver = parse_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftDestinationID'], ' WorkQueue', '    Message(uint32_t value)')
+        swift = messages.generate_swift_message_handler(receiver)
+        # The destination ID is read before the handler call, which may be in a closure the decoder can't be sent into.
+        self.assertIn('        let destinationID = decoder.destinationID()\n', swift)
+        self.assertIn('destinationID: destinationID', swift)
+        self.assertLess(swift.index('let destinationID = decoder.destinationID()'), swift.index('destinationID: destinationID'))
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'SwiftDestinationID', which is for Swift receivers with 'WorkQueue'"):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftDestinationID'], ' Stream', '    Message(uint32_t value)')
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Message has a parameter named 'destinationID'"):
+            parse_receiver(['SwiftReceiver', 'SwiftTypes', 'SwiftDestinationID'], ' WorkQueue', '    Message(uint64_t destinationID)')
 
     def test_lent_state_constraints(self):
         stream_receiver = """

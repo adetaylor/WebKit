@@ -26,10 +26,13 @@
 [
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
-    EnabledBy=UseGPUProcessForMediaEnabled
+    EnabledBy=UseGPUProcessForMediaEnabled,
+    SwiftReceiver,
+    SwiftTypes,
+    SwiftActor
 ]
-messages -> RemoteSampleBufferDisplayLayerManager WantsAsyncDispatchMessage {
-    CreateLayer(WebKit::SampleBufferDisplayLayerIdentifier id, bool hideRootLayer, WebCore::IntSize size, bool shouldMaintainAspectRatio, bool canShowWhileLocked) -> (struct WebCore::HostingContext context)
+messages -> RemoteSampleBufferDisplayLayerManager WorkQueue {
+    CreateLayer(WebKit::SampleBufferDisplayLayerIdentifier id, bool hideRootLayer, WebCore::IntSize size, bool shouldMaintainAspectRatio, bool canShowWhileLocked) -> (struct WebCore::HostingContext context) CxxEncodedReply
     ReleaseLayer(WebKit::SampleBufferDisplayLayerIdentifier id)
 }
 

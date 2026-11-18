@@ -597,12 +597,28 @@ final class LibWebRTCCodecsEncoderOutput: @unchecked Sendable {
 
 // MARK: Encoder
 
-private func sameColorSpace(_ a: WebKit.LibWebRTCCodecsColorSpace, _ b: WebKit.LibWebRTCCodecsColorSpace) -> Bool {
+private func sameColorSpace(_ a: WebCore.PlatformVideoColorSpaceValues, _ b: WebCore.PlatformVideoColorSpaceValues) -> Bool {
     a.hasPrimaries == b.hasPrimaries && (!a.hasPrimaries || a.primaries == b.primaries)
         && a.hasTransfer == b.hasTransfer && (!a.hasTransfer || a.transfer == b.transfer)
         && a.hasMatrix == b.hasMatrix && (!a.hasMatrix || a.matrix == b.matrix)
         && a.hasFullRange == b.hasFullRange && (!a.hasFullRange || a.fullRange == b.fullRange)
         && a.hasChromaLocation == b.hasChromaLocation && (!a.hasChromaLocation || a.chromaLocation == b.chromaLocation)
+}
+
+// The colour properties of a compression session for the colour space of the frames it encodes. The CoreMedia keys that
+// WebCore converts the colour space's values to are constants, so taking them unretained is safe.
+private func compressionSessionColorProperties(_ colorSpace: WebCore.PlatformVideoColorSpaceValues) -> CFDictionary {
+    var properties: [CFString: CFString] = [:]
+    if colorSpace.hasPrimaries, let value = unsafe WebCore.convertToCMColorPrimaries(colorSpace.primaries)?.takeUnretainedValue() {
+        properties[kVTCompressionPropertyKey_ColorPrimaries] = value
+    }
+    if colorSpace.hasTransfer, let value = unsafe WebCore.convertToCMTransferFunction(colorSpace.transfer)?.takeUnretainedValue() {
+        properties[kVTCompressionPropertyKey_TransferFunction] = value
+    }
+    if colorSpace.hasMatrix, let value = unsafe WebCore.convertToCMYCbCRMatrix(colorSpace.matrix)?.takeUnretainedValue() {
+        properties[kVTCompressionPropertyKey_YCbCrMatrix] = value
+    }
+    return properties as CFDictionary
 }
 
 // The nanoseconds of a frame's time, as a C++ conversion of the double would give them on arm64.
@@ -709,7 +725,7 @@ final class LibWebRTCCodecsEncoder {
     private var width: UInt16 = 0
     private var height: UInt16 = 0
     private var targetBitrateBps: UInt32 = 0
-    private var colorSpace = WebKit.LibWebRTCCodecsColorSpace()
+    private var colorSpace = WebCore.PlatformVideoColorSpaceValues()
     private let pixelBufferConverter: LibWebRTCCodecsPixelBufferConverter
 
     // Nil if there is no encoder for the codec and the scalability mode.
@@ -776,22 +792,22 @@ final class LibWebRTCCodecsEncoder {
             return false
         }
 
-        var frameColorSpace = frame.colorSpace.codecsColorSpace
+        var frameColorSpace = frame.colorSpace.colorSpaceValues
         if CVPixelBufferGetPixelFormatType(pixelBuffer) == kCVPixelFormatType_32BGRA {
-            frameColorSpace = IPCTypes.PlatformVideoColorSpace(primaries: .bt709, transfer: .iec6196621, matrix: .bt709, fullRange: true, chromaLocation: nil).codecsColorSpace
+            frameColorSpace = IPCTypes.PlatformVideoColorSpace(primaries: .bt709, transfer: .iec6196621, matrix: .bt709, fullRange: true, chromaLocation: nil).colorSpaceValues
             guard let converted = pixelBufferConverter.convertToFullRange420(pixelBuffer) else {
                 return false
             }
             pixelBuffer = converted
         }
 
-        WebKit.attachCodecsColorSpace(pixelBuffer, frameColorSpace)
+        WebCore.attachColorSpaceValuesToPixelBuffer(frameColorSpace, pixelBuffer)
         encode(pixelBuffer, timeStampNs: nanoseconds(frame.time), timeStamp: timeStamp, duration: duration, rotation: frame.rotation, isMirrored: frame.mirrored, isKeyframeRequired: isKeyframeRequired)
         return true
     }
 
     private func encode(_ pixelBuffer: CVPixelBuffer, timeStampNs: Int64, timeStamp: Int64, duration: UInt64?, rotation: IPCTypes.VideoFrameRotation, isMirrored: Bool, isKeyframeRequired: Bool) {
-        let colorSpace = WebKit.colorSpaceOfPixelBuffer(pixelBuffer)
+        let colorSpace = WebCore.computeVideoFrameColorSpaceValues(pixelBuffer)
         if session == nil || !sameColorSpace(colorSpace, self.colorSpace) {
             self.colorSpace = colorSpace
             guard resetCompressionSession() else {
@@ -885,7 +901,7 @@ final class LibWebRTCCodecsEncoder {
     private func configure(_ session: VTCompressionSession) {
         _ = VTSessionSetProperty(session, key: kVTCompressionPropertyKey_RealTime, value: isLowLatencyEnabled ? kCFBooleanTrue : kCFBooleanFalse)
         _ = VTSessionSetProperty(session, key: kVTCompressionPropertyKey_AllowFrameReordering, value: kCFBooleanFalse)
-        _ = VTSessionSetProperties(session, propertyDictionary: WebKit.copyCompressionSessionColorProperties(colorSpace))
+        _ = VTSessionSetProperties(session, propertyDictionary: compressionSessionColorProperties(colorSpace))
 
         setEncoderBitrateBps(targetBitrateBps)
 

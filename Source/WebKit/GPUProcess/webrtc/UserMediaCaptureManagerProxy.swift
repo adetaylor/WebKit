@@ -26,11 +26,19 @@
 // The capture receiver of one web process's connection to the GPU process: the sources it creates for the web process's
 // tracks, their settings, constraints, photos, frames and audio. The sources are Swift (WebCore's CaptureSource.swift).
 
+import CoreVideo
+private import Cxx
 import Dispatch
 import Foundation
 import Synchronization
 import WebKit_Internal
 @_spi(WebKitGPU) internal import WebCore
+import os
+
+// RELEASE_LOG_ERROR(WebRTC, ...).
+private var releaseLog: os.Logger {
+    os.Logger(WTF.osLog(WebKit.LogChannel.WebRTC()))
+}
 
 // MARK: Wire values
 
@@ -176,20 +184,6 @@ private func deviceKind(_ type: IPCTypes.DeviceType) -> CaptureDeviceKind? {
     }
 }
 
-// CaptureDevice::DeviceType, for the C++ GPU runtime.
-private func cxxDeviceType(_ kind: CaptureDeviceKind) -> WebCore.CaptureDevice.DeviceType {
-    switch kind {
-    case .microphone:
-        return .Microphone
-    case .camera:
-        return .Camera
-    case .screen:
-        return .Screen
-    case .window:
-        return .Window
-    }
-}
-
 // MARK: Source proxy
 
 // The GPU process's end of a web process's track: UserMediaCaptureManagerProxySourceProxy, for a Swift source.
@@ -212,7 +206,7 @@ final class CaptureSourceProxy: CaptureSourceObserver {
     // A microphone's unit is starting (UserMediaCaptureManagerProxy::microphoneUnitWillStart()).
     var audioUnitWillStart: (@MainActor () -> Void)?
 
-    init(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: WebKit.UserMediaCaptureFramePublisher) {
+    init(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: CaptureFramePublisher) {
         self.identifier = identifier
         self.connection = connection
         self.source = source
@@ -463,16 +457,16 @@ final class CaptureSourceProxy: CaptureSourceObserver {
     }
 
     func captureSourceStopped() {
-        WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceStopped(on: connection, to: 0, id: identifier, didFail: source.captureDidFail)
+        UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceStopped(on: connection, to: 0, id: identifier, didFail: source.captureDidFail)
     }
 
     func captureSourceMutedChanged() {
-        WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceMutedChanged(on: connection, to: 0, id: identifier, muted: source.muted, interrupted: source.interrupted)
+        UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceMutedChanged(on: connection, to: 0, id: identifier, muted: source.muted, interrupted: source.interrupted)
     }
 
     func captureSourceSettingsChanged() {
         cachedSettings = nil
-        WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceSettingsChanged(on: connection, to: 0, id: identifier, settings: wireSettings(settings()))
+        UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceSettingsChanged(on: connection, to: 0, id: identifier, settings: wireSettings(settings()))
     }
 
     func captureSourceConfigurationChanged() {
@@ -481,7 +475,7 @@ final class CaptureSourceProxy: CaptureSourceObserver {
             source.addVideoFrameObserver(frameSender, width: widthConstraint, height: heightConstraint, frameRate: frameRateConstraint)
         }
         cachedSettings = nil
-        WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceConfigurationChanged(on: connection, to: 0, id: identifier, persistentID: source.persistentID, settings: wireSettings(settings()), capabilities: wireCapabilities(source.capabilities()))
+        UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.sourceConfigurationChanged(on: connection, to: 0, id: identifier, persistentID: source.persistentID, settings: wireSettings(settings()), capabilities: wireCapabilities(source.capabilities()))
     }
 
     func captureSourceAudioUnitWillStart() {
@@ -494,28 +488,95 @@ final class CaptureSourceProxy: CaptureSourceObserver {
 }
 
 // A microphone source proxy's producer sink, and the ring it stores into, which the web process reads once the first quantum
-// is stored. The ring outlives the sink's use of it: the sink's handler keeps it, and invalidating the sink waits for the
-// IO thread to finish with it.
+// is stored, as UserMediaCaptureManagerProxySourceProxy had them. The sink keeps the ring and its semaphore right until it is
+// gone; invalidating it waits for the IO thread to finish with them.
 @MainActor
 private final class MicrophoneDelivery {
     let sink: MicrophoneSink
-    private let storage: WebKit.UserMediaCaptureAudioStorage?
+    private let semaphore: CaptureAudioSemaphore?
 
     init(connection: IPC.Connection, identifier: IPCTypes.RealtimeMediaSourceIdentifier, format: AudioStreamBasicDescription?) {
         sink = MicrophoneSink(format: format ?? AudioStreamBasicDescription())
-        storage = format.flatMap { WebKit.UserMediaCaptureAudioStorage.create(connection, identifier.rawValue, $0) }
-        guard let storage else {
+        guard let format else {
+            semaphore = nil
             return
         }
-        // Safety: the sink is a capture sink, and this keeps the storage until its deinit has invalidated the sink.
-        unsafe storage.attachToSink(sink.identifier)
-        sink.startedHandler = { [weak self] timeValue, timeScale in
-            self?.storage?.sendStorageChanged(timeValue, timeScale)
+        // A ring of 2 seconds of the format.
+        guard let ring = SharedAudioProducerRing(format: format, frameCount: UInt64(format.mSampleRate * 2)),
+            let entry = ring.makeReadOnlyMemoryEntry(),
+            let audioSemaphore = CaptureAudioSemaphore(),
+            let semaphoreRight = AudioSemaphoreRight(port: audioSemaphore.port)
+        else {
+            releaseLog.error("UserMediaCaptureAudioStorage: unable to allocate the ring")
+            semaphore = nil
+            return
+        }
+        semaphore = audioSemaphore
+        let memory = IPCTypes.SharedMemoryHandle(copying: entry.port, size: entry.size)
+        // Safety: the entry's port is the right that makeReadOnlyMemoryEntry() gave this, which the handle has copied.
+        unsafe WTF.deallocateSendRightSafely(entry.port)
+        let frameChunkSize = WebKit.userMediaCaptureAudioFrameChunkSize()
+        let wireFormat = IPCTypes.AudioStreamBasicDescription(
+            mSampleRate: format.mSampleRate,
+            mFormatID: format.mFormatID,
+            mFormatFlags: format.mFormatFlags,
+            mBytesPerPacket: format.mBytesPerPacket,
+            mFramesPerPacket: format.mFramesPerPacket,
+            mBytesPerFrame: format.mBytesPerFrame,
+            mChannelsPerFrame: format.mChannelsPerFrame,
+            mBitsPerChannel: format.mBitsPerChannel,
+            mReserved: format.mReserved
+        )
+        sink.attach(ring: ring, semaphore: semaphoreRight, frameChunkSize: frameChunkSize)
+        var pending: PendingStorage? = PendingStorage(
+            handle: IPCTypes.ConsumerSharedCARingBufferHandle(memory: memory, frameCount: ring.frameCount),
+            semaphore: IPCTypes.Semaphore(copying: audioSemaphore.port)
+        )
+        sink.startedHandler = { timeValue, timeScale in
+            guard let storage = pending.take() else {
+                return
+            }
+            UserMediaCaptureManagerProxy.RemoteCaptureSampleManagerMessages.audioStorageChanged(
+                on: connection,
+                to: 0,
+                id: identifier,
+                storageHandle: storage.handle,
+                description: IPCTypes.CAAudioStreamDescription(streamDescription: wireFormat),
+                captureSemaphore: storage.semaphore,
+                mediaTime: IPCTypes.MediaTime(timeValue: timeValue, timeScale: timeScale, timeFlags: 1),
+                frameChunkSize: frameChunkSize
+            )
         }
     }
 
     isolated deinit {
         sink.invalidate()
+    }
+}
+
+// What a microphone's ring is sent to the web process with, once.
+private struct PendingStorage: ~Copyable {
+    var handle: IPCTypes.ConsumerSharedCARingBufferHandle
+    var semaphore: IPCTypes.Semaphore
+}
+
+// The semaphore a microphone's producer sink signals for the web process (IPC::Semaphore), destroyed when this goes.
+private final class CaptureAudioSemaphore: Sendable {
+    let port: semaphore_t
+
+    init?() {
+        var semaphore = semaphore_t()
+        // Safety: mach_task_self_ is set before any Swift code runs, and never changes. semaphore_create() only writes the
+        // semaphore, before it returns.
+        guard unsafe semaphore_create(mach_task_self_, &semaphore, SYNC_POLICY_FIFO, 0) == KERN_SUCCESS else {
+            return nil
+        }
+        port = semaphore
+    }
+
+    deinit {
+        // Safety: as in init. The semaphore is this object's own, which only this deinit destroys.
+        _ = unsafe semaphore_destroy(mach_task_self_, port)
     }
 }
 
@@ -525,54 +586,75 @@ private final class MicrophoneDelivery {
 final class CaptureFrameSender: CaptureVideoFrameObserver {
     private let identifier: IPCTypes.RealtimeMediaSourceIdentifier
     private let connection: IPC.Connection
-    private let publisher: WebKit.UserMediaCaptureFramePublisher
+    private let publisher: CaptureFramePublisher
 
-    init(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, publisher: WebKit.UserMediaCaptureFramePublisher) {
+    init(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, publisher: CaptureFramePublisher) {
         self.identifier = identifier
         self.connection = connection
         self.publisher = publisher
     }
 
     func captureVideoFrameAvailable(_ frame: CaptureFrame, captureTime: Double) {
-        let published = publisher.publish(frame.frame)
+        let videoFrame = frame.frame
+        if let resourceOwner = publisher.resourceOwner {
+            videoFrame.setOwnershipIdentity(resourceOwner)
+        }
+        let frameProperties = WebCore.captureFrameValues(videoFrame)
         let metadata = IPCTypes.VideoFrameTimeMetadata(processingDuration: nil, captureTime: captureTime, receiveTime: nil, rtpTimestamp: nil)
-        let presentationTime = IPCTypes.MediaTime(timeValue: published.timeValue, timeScale: published.timeScale, timeFlags: published.timeFlags)
-        let rotation = IPCTypes.VideoFrameRotation(rawValue: published.rotation) ?? .none
-        guard published.hasReference else {
-            let surface = WebKit.userMediaCaptureFrameSurface(frame.frame).map { IPCTypes.MachSendRight(surface: $0) } ?? IPCTypes.MachSendRight()
-            WebKit.UserMediaCaptureManagerProxy.RemoteCaptureSampleManagerMessages.videoFrameAvailableCV(on: connection, to: 0, id: identifier, pixelBuffer: consume surface, rotation: rotation, mirrored: published.isMirrored, presentationTime: presentationTime, metadata: metadata)
+        let presentationTime = IPCTypes.MediaTime(timeValue: frameProperties.timeValue, timeScale: frameProperties.timeScale, timeFlags: frameProperties.timeFlags)
+        let rotationValue = frameProperties.rotation
+        let rotation = IPCTypes.VideoFrameRotation(rawValue: rotationValue) ?? .none
+        let pixelBuffer = WebCore.captureFramePixelBuffer(videoFrame)
+        guard let heap = publisher.heap else {
+            // Safety: the frame keeps its pixel buffer, which keeps its IOSurface, while the right to it is made.
+            let surface = pixelBuffer.flatMap { unsafe CVPixelBufferGetIOSurface($0)?.takeUnretainedValue() }.map { IPCTypes.MachSendRight(surface: $0) } ?? IPCTypes.MachSendRight()
+            UserMediaCaptureManagerProxy.RemoteCaptureSampleManagerMessages.videoFrameAvailableCV(on: connection, to: 0, id: identifier, pixelBuffer: consume surface, rotation: rotation, mirrored: frameProperties.isMirrored, presentationTime: presentationTime, metadata: metadata)
             return
         }
-        guard let frameIdentifier = IPCTypes.RemoteVideoFrameIdentifier(rawValue: published.identifier) else {
+        guard let frameIdentifier = IPCTypes.RemoteVideoFrameIdentifier(rawValue: heap.lend(pixelBuffer, rotation: rotationValue, isMirrored: frameProperties.isMirrored)) else {
             return
         }
         let properties = IPCTypes.RemoteVideoFrameProxyProperties(
             presentationTime: presentationTime,
-            isMirrored: published.isMirrored,
+            isMirrored: frameProperties.isMirrored,
             rotation: rotation,
-            size: IPCTypes.IntSize(width: published.width, height: published.height),
-            pixelFormat: published.pixelFormat,
-            colorSpace: IPCTypes.PlatformVideoColorSpace(
-                primaries: published.hasPrimaries ? IPCTypes.PlatformVideoColorPrimaries(rawValue: published.primaries) : nil,
-                transfer: published.hasTransfer ? IPCTypes.PlatformVideoTransferCharacteristics(rawValue: published.transfer) : nil,
-                matrix: published.hasMatrix ? IPCTypes.PlatformVideoMatrixCoefficients(rawValue: published.matrix) : nil,
-                fullRange: published.hasFullRange ? published.fullRange : nil,
-                chromaLocation: published.hasChromaLocation ? IPCTypes.PlatformVideoChromaLocation(rawValue: published.chromaLocation) : nil
-            ),
-            shouldIgnoreAlpha: published.shouldIgnoreAlpha
+            size: IPCTypes.IntSize(width: frameProperties.width, height: frameProperties.height),
+            pixelFormat: frameProperties.pixelFormat,
+            colorSpace: IPCTypes.PlatformVideoColorSpace(frameProperties.colorSpace),
+            shouldIgnoreAlpha: frameProperties.shouldIgnoreAlpha
         )
-        let reference = IPCTypes.RemoteVideoFrameReference(identifier: frameIdentifier, version: published.version)
-        WebKit.UserMediaCaptureManagerProxy.RemoteCaptureSampleManagerMessages.videoFrameAvailable(on: connection, to: 0, id: identifier, reference: reference, sample: properties, metadata: metadata)
+        let reference = IPCTypes.RemoteVideoFrameReference(identifier: frameIdentifier, version: 0)
+        UserMediaCaptureManagerProxy.RemoteCaptureSampleManagerMessages.videoFrameAvailable(on: connection, to: 0, id: identifier, reference: reference, sample: properties, metadata: metadata)
+    }
+}
+
+// What a source proxy's frames are published with: the frame heap they are lent through, if the web process reads them
+// from it, else their pixel buffers' IOSurfaces are sent; and the web process's identity, which their IOSurfaces are
+// attributed to, if it has one. @unchecked Sendable: the heap is Sendable, and the identity is never changed once made, so
+// any thread may read it.
+final class CaptureFramePublisher: @unchecked Sendable {
+    let heap: VideoFrameHeap?
+    let resourceOwner: WebCore.ProcessIdentity?
+
+    init(heap: VideoFrameHeap?, resourceOwner: WebCore.ProcessIdentity?) {
+        self.heap = heap
+        self.resourceOwner = resourceOwner
     }
 }
 
 // MARK: Receiver state
 
-// UserMediaCaptureManagerProxy's sources and pages, which m_swiftState holds.
+// What UserMediaCaptureEnvironment found missing.
+enum UserMediaCaptureEnvironmentFailure {
+    case noAttribution
+    case noMediaEnvironment
+}
+
+// The capture receiver's sources and pages.
 @MainActor
 final class UserMediaCaptureManagerProxyState {
-    // The C++ receiver, which owns this state: they keep each other alive until the connection closes (close()).
-    private var receiver: WebKit.UserMediaCaptureManagerProxy?
+    // The connection, until it closes: the connection's Swift state, which the connection holds, holds this.
+    private var connection: WebKit.GPUConnectionToWebProcess?
     private var proxies: [IPCTypes.RealtimeMediaSourceIdentifier: CaptureSourceProxy] = [:]
     private var pageCameraSources: [UInt64: [() -> CaptureSource?]] = [:]
 #if os(iOS) || os(visionOS) || os(tvOS)
@@ -582,19 +664,65 @@ final class UserMediaCaptureManagerProxyState {
     // The web process whose connection this is the capture receiver of.
     private let process: UInt64
 
-    init(proxy: WebKit.UserMediaCaptureManagerProxy, process: UInt64) {
-        receiver = proxy
+    init(connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
+        self.connection = connection
         self.process = process
         orientation = captureEnvironment.orientation
-        webProcessConnections[process]?.state.captureManager = self
     }
 
-    // The receiver, until the connection closes.
-    private var proxy: WebKit.UserMediaCaptureManagerProxy {
-        guard let receiver else {
+    // The connection, until it closes.
+    private var gpuConnection: WebKit.GPUConnectionToWebProcess {
+        guard let connection else {
             preconditionFailure("The capture receiver's connection has closed")
         }
-        return receiver
+        return connection
+    }
+
+    // UserMediaCaptureManagerProxy::framePublisher(): the connection's frame heap, if the web process reads the frames from
+    // it, and the web process's identity.
+    private func framePublisher(usesFrameHeap: Bool) -> CaptureFramePublisher {
+        let connection = gpuConnection
+        let identity = WebKit.userMediaCaptureResourceOwner(connection)
+        return CaptureFramePublisher(heap: usesFrameHeap ? connection.videoFrameObjectHeap().frames : nil, resourceOwner: Bool(fromCxx: identity) ? identity : nil)
+    }
+
+    // What the GPU process does for the capture of a page's device, before it starts (GPUProxyForCapture and
+    // UserMediaCaptureManagerProxy::applyCaptureEnvironment()).
+    private func applyCaptureEnvironment(_ kind: CaptureDeviceKind, _ pageIdentifier: UInt64) -> UserMediaCaptureEnvironmentFailure? {
+        let connection = gpuConnection
+        guard connection.setCaptureAttributionString() else {
+            releaseLog.error("Unable to set capture attribution, failing capture.")
+            return .noAttribution
+        }
+        #if WTF_PLATFORM_IOS_FAMILY
+        guard WebKit.applyUserMediaCaptureEnvironment(connection, kind == .camera, pageIdentifier) else {
+            releaseLog.error("Unable to set media environment, failing capture.")
+            return .noMediaEnvironment
+        }
+        #endif
+        return nil
+    }
+
+    private func reapplyCaptureEnvironmentForSource(_ kind: CaptureDeviceKind, _ pageIdentifier: UInt64) {
+        if applyCaptureEnvironment(kind, pageIdentifier) != nil {
+            releaseLog.error("UserMediaCaptureManagerProxy::reapplyCaptureEnvironment failed for a running capture")
+        }
+        #if WTF_PLATFORM_IOS_FAMILY
+        WebKit.provideUserMediaCapturePresentingApplicationPID(gpuConnection, pageIdentifier)
+        #endif
+    }
+
+    private func didStartProducingData(_ kind: CaptureDeviceKind, _ pageIdentifier: UInt64) {
+        let connection = gpuConnection
+        WebKit.userMediaCaptureDidApplyEnvironment(connection, pageIdentifier)
+        if kind == .microphone {
+            connection.startCapturingAudio()
+        }
+        #if WTF_PLATFORM_IOS_FAMILY
+        if kind == .camera {
+            WebKit.userMediaCaptureCameraWillStart(connection, pageIdentifier)
+        }
+        #endif
     }
 
     var hasSourceProxies: Bool {
@@ -607,11 +735,7 @@ final class UserMediaCaptureManagerProxyState {
         for proxy in proxies.values {
             proxy.stop()
         }
-        receiver = nil
-    }
-
-    func clear() {
-        proxies = [:]
+        connection = nil
     }
 
     func setOrientation(_ orientation: Int32) {
@@ -629,11 +753,11 @@ final class UserMediaCaptureManagerProxyState {
 
     // The UI process monitors the rotation of the cameras that capture for a page.
     private func monitorRotation(_ pageIdentifier: UInt64, _ persistentID: String, start: Bool) {
-        guard let uiProcessConnection = WebKit.userMediaCaptureUIProcessConnection(proxy), let page = IPCTypes.PageIdentifier(rawValue: pageIdentifier) else {
+        guard let connection, let uiProcessConnection = WebKit.userMediaCaptureUIProcessConnection(connection), let page = IPCTypes.PageIdentifier(rawValue: pageIdentifier) else {
             return
         }
         if start {
-            WebKit.UserMediaCaptureManagerProxy.GPUProcessProxyMessages.startMonitoringCaptureDeviceRotation(
+            UserMediaCaptureManagerProxy.GPUProcessProxyMessages.startMonitoringCaptureDeviceRotation(
                 on: uiProcessConnection,
                 to: 0,
                 pageID: page,
@@ -641,7 +765,7 @@ final class UserMediaCaptureManagerProxyState {
                 reason: .capture
             )
         } else {
-            WebKit.UserMediaCaptureManagerProxy.GPUProcessProxyMessages.stopMonitoringCaptureDeviceRotation(
+            UserMediaCaptureManagerProxy.GPUProcessProxyMessages.stopMonitoringCaptureDeviceRotation(
                 on: uiProcessConnection,
                 to: 0,
                 pageID: page,
@@ -737,7 +861,7 @@ final class UserMediaCaptureManagerProxyState {
             addMicrophoneSource(source, pageIdentifier.rawValue)
         }
 
-        let sourceProxy = makeSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: proxy.framePublisher(shouldUseGPUProcessRemoteFrames))
+        let sourceProxy = makeSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: framePublisher(usesFrameHeap: shouldUseGPUProcessRemoteFrames))
         proxies[identifier] = sourceProxy
 
         guard let constraints, constraints.isValid() else {
@@ -756,12 +880,15 @@ final class UserMediaCaptureManagerProxyState {
         return await sourceProxy.whenReady()
     }
 
-    private func makeSourceProxy(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: WebKit.UserMediaCaptureFramePublisher) -> CaptureSourceProxy {
+    private func makeSourceProxy(identifier: IPCTypes.RealtimeMediaSourceIdentifier, connection: IPC.Connection, source: CaptureSource, framePublisher: CaptureFramePublisher) -> CaptureSourceProxy {
         let sourceProxy = CaptureSourceProxy(identifier: identifier, connection: connection, source: source, framePublisher: framePublisher)
         if source.device.kind == .microphone {
             let pageIdentifier = source.pageIdentifier
             sourceProxy.audioUnitWillStart = { [weak self] in
-                self?.receiver?.microphoneUnitWillStart(pageIdentifier)
+                guard let connection = self?.connection else {
+                    return
+                }
+                WebKit.userMediaCaptureMicrophoneUnitWillStart(connection, pageIdentifier)
             }
         }
         return sourceProxy
@@ -782,17 +909,17 @@ final class UserMediaCaptureManagerProxyState {
         guard let sourceProxy = proxies[identifier] else {
             return
         }
-        let deviceType = cxxDeviceType(sourceProxy.source.device.kind)
-        switch proxy.applyCaptureEnvironment(deviceType, pageIdentifier.rawValue) {
-        case WebKit.UserMediaCaptureEnvironmentFailure.NoMediaEnvironment:
+        let kind = sourceProxy.source.device.kind
+        switch applyCaptureEnvironment(kind, pageIdentifier.rawValue) {
+        case .noMediaEnvironment:
             sourceProxy.source.captureFailed()
             return
-        case WebKit.UserMediaCaptureEnvironmentFailure.NoAttribution:
+        case .noAttribution:
             return
-        default:
+        case nil:
             break
         }
-        proxy.startProducingData(deviceType, pageIdentifier.rawValue)
+        didStartProducingData(kind, pageIdentifier.rawValue)
         sourceProxy.start()
     }
 
@@ -802,7 +929,7 @@ final class UserMediaCaptureManagerProxyState {
             guard source.pageIdentifier == pageIdentifier, source.isProducingData else {
                 continue
             }
-            proxy.reapplyCaptureEnvironmentForSource(cxxDeviceType(source.device.kind), pageIdentifier)
+            reapplyCaptureEnvironmentForSource(source.device.kind, pageIdentifier)
             return
         }
     }
@@ -837,7 +964,7 @@ final class UserMediaCaptureManagerProxyState {
 
     func applyConstraints(connection: IPC.Connection, _ identifier: IPCTypes.RealtimeMediaSourceIdentifier, _ constraints: WebCore.CaptureConstraints?) throws(InvalidMessage) {
         guard let sourceProxy = proxies[identifier] else {
-            WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsFailed(on: connection, to: 0, id: identifier, invalidConstraint: unknownConstraint, message: "Unknown source")
+            UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsFailed(on: connection, to: 0, id: identifier, invalidConstraint: unknownConstraint, message: "Unknown source")
             return
         }
         guard let constraints else {
@@ -846,13 +973,13 @@ final class UserMediaCaptureManagerProxyState {
         try messageCheck { constraints.isWellFormed() }
         sourceProxy.applyConstraints(constraints) { [weak sourceProxy] failure in
             if let failure {
-                WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsFailed(on: connection, to: 0, id: identifier, invalidConstraint: IPCTypes.MediaConstraintType(rawValue: failure.invalidConstraint) ?? unknownConstraint, message: failure.message)
+                UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsFailed(on: connection, to: 0, id: identifier, invalidConstraint: IPCTypes.MediaConstraintType(rawValue: failure.invalidConstraint) ?? unknownConstraint, message: failure.message)
                 return
             }
             guard let sourceProxy else {
                 return
             }
-            WebKit.UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsSucceeded(on: connection, to: 0, id: identifier, settings: wireSettings(sourceProxy.settings()))
+            UserMediaCaptureManagerProxy.UserMediaCaptureManagerMessages.applyConstraintsSucceeded(on: connection, to: 0, id: identifier, settings: wireSettings(sourceProxy.settings()))
         }
     }
 
@@ -866,7 +993,7 @@ final class UserMediaCaptureManagerProxyState {
         if source.device.kind == .camera {
             addCameraSource(source, pageIdentifier.rawValue)
         }
-        let cloneProxy = makeSourceProxy(identifier: cloneID, connection: connection, source: source, framePublisher: proxy.framePublisher(true))
+        let cloneProxy = makeSourceProxy(identifier: cloneID, connection: connection, source: source, framePublisher: framePublisher(usesFrameHeap: true))
         cloneProxy.copySettings(from: proxyToClone)
         if proxyToClone.observesMedia {
             cloneProxy.observeMedia()
@@ -925,79 +1052,33 @@ final class UserMediaCaptureManagerProxyState {
 
 // MARK: Receiver
 
-// The members of the C++ receiver that reach its Swift state, which m_swiftState holds retained, by address, from the
-// receiver's constructor to its destructor, and the handlers of its messages.
-extension WebKit.UserMediaCaptureManagerProxy {
-    @cxx
-    @implementation
+// Receives the capture messages of one web process's connection to the GPU process, which owns it (GPUConnectionState).
+@_expose(Cxx)
+final class UserMediaCaptureManagerProxy {
+    // Optional just because of an initialization order issue. Always occupied after initialization finished.
+    private var messageForwarder: RefUserMediaCaptureManagerProxyMessageForwarder?
+    private let state: UserMediaCaptureManagerProxyState
+
+    @_expose(!Cxx)
     @MainActor
-    func createSwiftState(_ webProcessIdentifier: UInt64) -> UInt {
-        let state = UserMediaCaptureManagerProxyState(proxy: self, process: webProcessIdentifier)
-        return UInt(bitPattern: unsafe Unmanaged.passRetained(state).toOpaque())
+    init(connection: WebKit.GPUConnectionToWebProcess, process: UInt64) {
+        state = UserMediaCaptureManagerProxyState(connection: connection, process: process)
+        messageForwarder = WebKit.UserMediaCaptureManagerProxyMessageForwarder.create(target: self)
     }
 
-    @cxx
-    @implementation
-    static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<UserMediaCaptureManagerProxyState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
-    }
-
-    private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
-        guard let address = unsafe UnsafeMutableRawPointer(bitPattern: swiftState) else {
-            preconditionFailure("The receiver has no Swift state")
+    @_expose(!Cxx)
+    func getMessageReceiver() -> RefUserMediaCaptureManagerProxyMessageForwarder {
+        guard let messageForwarder else {
+            fatalError("Unreachable - guaranteed to exist")
         }
-        return unsafe address
+        return messageForwarder
     }
 
+    @_expose(!Cxx)
     @MainActor
-    private var state: UserMediaCaptureManagerProxyState {
-        Self.state(m_swiftState)
+    var captureState: UserMediaCaptureManagerProxyState {
+        state
     }
-
-    @MainActor
-    private static func state(_ swiftState: UInt) -> UserMediaCaptureManagerProxyState {
-        // Safety: m_swiftState is a retained UserMediaCaptureManagerProxyState from the constructor to the destructor,
-        // and nothing else changes it.
-        unsafe Unmanaged<UserMediaCaptureManagerProxyState>.fromOpaque(stateAddress(swiftState)).takeUnretainedValue()
-    }
-
-    @cxx
-    @implementation
-    func close() {
-        let swiftState = m_swiftState
-        MainActor.assumeIsolated {
-            Self.state(swiftState).close()
-        }
-    }
-
-    @cxx
-    @implementation
-    func clear() {
-        let swiftState = m_swiftState
-        MainActor.assumeIsolated {
-            Self.state(swiftState).clear()
-        }
-    }
-
-    @cxx
-    @implementation
-    func hasSourceProxies() -> Bool {
-        let swiftState = m_swiftState
-        return MainActor.assumeIsolated {
-            Self.state(swiftState).hasSourceProxies
-        }
-    }
-
-    @cxx
-    @implementation
-    func swiftReapplyCaptureEnvironment(_ pageIdentifier: UInt64) {
-        let swiftState = m_swiftState
-        MainActor.assumeIsolated {
-            Self.state(swiftState).reapplyCaptureEnvironment(pageIdentifier)
-        }
-    }
-
-    // MARK: Messages
 
     @MainActor
     func createMediaSourceForCaptureDeviceWithConstraints(
@@ -1005,11 +1086,11 @@ extension WebKit.UserMediaCaptureManagerProxy {
         id: IPCTypes.RealtimeMediaSourceIdentifier,
         device: IPCTypes.CaptureDevice,
         hashSalts: IPCTypes.MediaDeviceHashSalts,
-        constraints: CxxDecodedArguments.UserMediaCaptureManagerProxy.CreateMediaSourceForCaptureDeviceWithConstraintsConstraints,
+        constraints: WebCore.CaptureConstraints,
         shouldUseGPUProcessRemoteFrames: Bool,
         pageIdentifier: IPCTypes.PageIdentifier
     ) async throws(InvalidMessage) -> (error: IPCTypes.CaptureSourceError, settings: IPCTypes.RealtimeMediaSourceSettings, capabilities: IPCTypes.RealtimeMediaSourceCapabilities) {
-        return try await state.createMediaSource(connection: connection, identifier: id, device: device, hashSalts: hashSalts, constraints: Self.takeConstraints(constraints), shouldUseGPUProcessRemoteFrames: shouldUseGPUProcessRemoteFrames, pageIdentifier: pageIdentifier)
+        try await state.createMediaSource(connection: connection, identifier: id, device: device, hashSalts: hashSalts, constraints: constraints, shouldUseGPUProcessRemoteFrames: shouldUseGPUProcessRemoteFrames, pageIdentifier: pageIdentifier)
     }
 
     @MainActor
@@ -1028,8 +1109,8 @@ extension WebKit.UserMediaCaptureManagerProxy {
     }
 
     @MainActor
-    func applyConstraints(connection: IPC.Connection, id: IPCTypes.RealtimeMediaSourceIdentifier, constraints: CxxDecodedArguments.UserMediaCaptureManagerProxy.ApplyConstraintsConstraints) throws(InvalidMessage) {
-        try state.applyConstraints(connection: connection, id, Self.takeConstraints(constraints))
+    func applyConstraints(connection: IPC.Connection, id: IPCTypes.RealtimeMediaSourceIdentifier, constraints: WebCore.CaptureConstraints) throws(InvalidMessage) {
+        try state.applyConstraints(connection: connection, id, constraints)
     }
 
     @MainActor
@@ -1070,6 +1151,37 @@ extension WebKit.UserMediaCaptureManagerProxy {
     @MainActor
     func isPowerEfficient(connection: IPC.Connection, sourceID: IPCTypes.RealtimeMediaSourceIdentifier) -> Bool {
         state.isPowerEfficient(sourceID)
+    }
+}
+
+extension UserMediaCaptureManagerProxy: GPUConnectionReceiver {
+    @_expose(!Cxx)
+    @MainActor
+    var allowsExitUnderMemoryPressure: Bool {
+        !state.hasSourceProxies
+    }
+
+    @_expose(!Cxx)
+    @MainActor
+    func connectionDidClose() {
+        state.close()
+    }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReapplyCaptureEnvironment(_ pageIdentifier: UInt64) {
+        state.userMediaCaptureManager?.captureState.reapplyCaptureEnvironment(pageIdentifier)
+    }
+
+    // The sources stop before the connection's frame heap closes.
+    @cxx
+    @implementation
+    @MainActor
+    func swiftCloseUserMediaCaptureManager() {
+        state.userMediaCaptureManager?.captureState.close()
     }
 }
 

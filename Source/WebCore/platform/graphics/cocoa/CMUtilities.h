@@ -51,6 +51,24 @@ class MediaSamplesBlock;
 class SharedBuffer;
 
 WEBCORE_EXPORT RetainPtr<CMFormatDescriptionRef> createFormatDescriptionFromTrackInfo(const TrackInfo&);
+// A PlatformVideoColorSpace as plain values, for Swift, which reads and writes them without calls: each value counts only
+// if the flag before it is set.
+struct PlatformVideoColorSpaceValues {
+    bool hasPrimaries { false };
+    PlatformVideoColorPrimaries primaries { };
+    bool hasTransfer { false };
+    PlatformVideoTransferCharacteristics transfer { };
+    bool hasMatrix { false };
+    PlatformVideoMatrixCoefficients matrix { };
+    bool hasFullRange { false };
+    bool fullRange { false };
+    bool hasChromaLocation { false };
+    PlatformVideoChromaLocation chromaLocation { };
+};
+
+// The same for a video track, with the values that colorSpaceOverride sets replacing its colour space's, returned +1 for
+// callers that can't take a RetainPtr, like Swift.
+WEBCORE_EXPORT CMFormatDescriptionRef copyFormatDescriptionFromTrackInfo(const VideoInfo&, PlatformVideoColorSpaceValues colorSpaceOverride) CF_RETURNS_RETAINED;
 WEBCORE_EXPORT RefPtr<AudioInfo> createAudioInfoFromFormatDescription(CMFormatDescriptionRef);
 // audioStreamDescriptFromAudioInfo only works with compressed audio format (non PCM)
 WEBCORE_EXPORT CAAudioStreamDescription audioStreamDescriptionFromAudioInfo(const AudioInfo&);
@@ -78,6 +96,11 @@ WEBCORE_EXPORT CFStringRef convertToCMTransferFunction(PlatformVideoTransferChar
 WEBCORE_EXPORT CFStringRef convertToCMYCbCRMatrix(PlatformVideoMatrixCoefficients);
 
 WEBCORE_EXPORT PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef);
+// The same, and attachColorSpaceToPixelBuffer(), with plain values.
+WEBCORE_EXPORT PlatformVideoColorSpaceValues computeVideoFrameColorSpaceValues(CVPixelBufferRef);
+WEBCORE_EXPORT void attachColorSpaceValuesToPixelBuffer(PlatformVideoColorSpaceValues, CVPixelBufferRef);
+WEBCORE_EXPORT PlatformVideoColorSpace platformVideoColorSpace(PlatformVideoColorSpaceValues);
+WEBCORE_EXPORT PlatformVideoColorSpaceValues platformVideoColorSpaceValues(const PlatformVideoColorSpace&);
 
 #if ENABLE(ENCRYPTED_MEDIA) && HAVE(AVCONTENTKEYSESSION)
 WEBCORE_EXPORT Vector<Ref<SharedBuffer>> getKeyIDs(CMFormatDescriptionRef);

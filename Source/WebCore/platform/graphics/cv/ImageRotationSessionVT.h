@@ -36,6 +36,7 @@ typedef struct __CVPixelBufferPool* CVPixelBufferPoolRef;
 namespace WebCore {
 
 class VideoFrame;
+enum class VideoFrameRotation : uint16_t;
 class NativeImage;
 struct ImageOrientation;
 
@@ -85,5 +86,8 @@ private:
     RetainPtr<CVPixelBufferPoolRef> m_rotationPool;
     bool m_shouldUseIOSurface { true };
 };
+
+// For Swift, which can't take a RefPtr: the pixel buffer of applyRotation() of a frame of pixelBuffer, returned +1, or null.
+WEBCORE_EXPORT CVPixelBufferRef copyRotatedPixelBuffer(ImageRotationSessionVT&, CVPixelBufferRef, VideoFrameRotation, bool isMirrored) CF_RETURNS_RETAINED;
 
 } // namespace WebCore

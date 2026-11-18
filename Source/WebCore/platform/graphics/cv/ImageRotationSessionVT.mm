@@ -179,6 +179,13 @@ RefPtr<VideoFrame> ImageRotationSessionVT::applyRotation(VideoFrame& videoFrame,
     return VideoFrameCV::create(videoFrame.presentationTime(), false, VideoFrameRotation::None, WTF::move(pixelBuffer), PlatformVideoColorSpace { videoFrame.colorSpace() }, videoFrame.shouldIgnoreAlpha() ? VideoFrameCV::ShouldIgnoreAlpha::Yes : VideoFrameCV::ShouldIgnoreAlpha::No);
 }
 
+CVPixelBufferRef copyRotatedPixelBuffer(ImageRotationSessionVT& session, CVPixelBufferRef pixelBuffer, VideoFrameRotation rotation, bool isMirrored)
+{
+    Ref input = VideoFrameCV::create(MediaTime { }, isMirrored, rotation, RetainPtr { pixelBuffer });
+    RefPtr frame = session.applyRotation(input.get());
+    return frame ? RetainPtr { frame->pixelBuffer() }.leakRef() : nullptr;
+}
+
 RefPtr<NativeImage> ImageRotationSessionVT::applyRotation(NativeImage& nativeImage, ImageOrientation orientation, IsCGImageCompatible cgImageCompatible)
 {
     if (!canLoad_VideoToolbox_VTCreateCGImageFromCVPixelBuffer())

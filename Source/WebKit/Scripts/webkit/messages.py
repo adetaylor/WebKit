@@ -29,7 +29,7 @@ from webkit.opaque_ipc_types import opaque_ipc_types
 from webkit.untrusted_origins import unwrap_if_untrusted, unwrap_untrusted
 from webkit import parser
 from webkit import swift_types
-from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, MessageReceiver, Message
+from webkit.model import CXX_SENDERS_ATTRIBUTE, NOT_RECORDED_ATTRIBUTE, CXX_DECODED_ATTRIBUTE, SENT_FROM_CXX_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE, SWIFT_REPLY_VALUE_ATTRIBUTE, LENT_ATTRIBUTE, WANTS_CONNECTION_ATTRIBUTE, SWIFT_MAY_DECLINE_ATTRIBUTE, SWIFT_SYNC_HANDLER_ATTRIBUTE, BUILTIN_ATTRIBUTE, SYNCHRONOUS_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLY_ATTRIBUTE, ALLOWEDWHENWAITINGFORSYNCREPLYDURINGUNBOUNDEDIPC_ATTRIBUTE, MAINTHREADCALLBACK_ATTRIBUTE, ANYTHREADCALLBACK_ATTRIBUTE, STREAM_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE, CALL_WITH_REPLY_ID_ATTRIBUTE, NOT_USING_IPC_CONNECTION_ATTRIBUTE, WANTS_DISPATCH_MESSAGE_ATTRIBUTE, WANTS_ASYNC_DISPATCH_MESSAGE_ATTRIBUTE, SWIFT_ACTOR_ATTRIBUTE, SWIFT_DESTINATION_ID_ATTRIBUTE, MessageReceiver, Message
 
 # The coder generated Swift uses for a [Lent] argument, whose bytes are lent to its handler.
 LENT_BYTES_CODER = 'IPC.LentBytes'
@@ -1840,8 +1840,10 @@ def generates_swift_trampoline(receiver, message):
 
 
 # The HandleMessage.h function that dispatches a message whose Swift receiver decodes the arguments.
-def swift_types_dispatch_function(message):
-    if gives_swift_reply_value(message) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+def swift_types_dispatch_function(message, receiver):
+    # Only a stream's synchronous reply value outlives the dispatch; otherwise the reply encoder is the one that the
+    # synchronous or asynchronous dispatch gives the handler.
+    if gives_swift_reply_value(message) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and receiver.has_attribute(STREAM_ATTRIBUTE):
         return 'handleSwiftMessageSynchronousWithReplyValue'
     if message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
         return 'handleSwiftMessageSynchronous'
@@ -1895,12 +1897,12 @@ def async_message_statement(receiver, message):
 
     def append_with_dispatch_function_args(receiver, result):
         if receiver.dispatches_to_swift_state(message):
-            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message, receiver), receiver.name, message.name, connection)
             target, function = swift_state_dispatch_target_and_function(receiver, message)
             append_with_dispatch_function_args_and_particular_target_name(receiver, result, pattern, target, function)
             return
         if receiver.is_swift_implementation() and receiver.takes_swift_types(message):
-            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message, receiver), receiver.name, message.name, connection)
             cpp_pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (dispatch_function, receiver.name, message.name, connection)
             if_swift_implementation_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this', swift_implementation_dispatch_function(receiver, message)), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, cpp_pattern, 'this', handler_function(receiver, message)))
             return
@@ -1910,7 +1912,7 @@ def async_message_statement(receiver, message):
         pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (dispatch_function, receiver.name, message.name, connection)
         swift_pattern = pattern
         if receiver.takes_swift_types(message):
-            swift_pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message), receiver.name, message.name, connection)
+            swift_pattern = '        IPC::%s<Messages::%s::%s>(%s%%s);\n' % (swift_types_dispatch_function(message, receiver), receiver.name, message.name, connection)
         swift_target, swift_function = swift_dispatch_target_and_function(receiver, message)
         if_swift_enabled(receiver, result, lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, swift_pattern, swift_target, swift_function), lambda x: append_with_dispatch_function_args_and_particular_target_name(receiver, x, pattern, 'this', handler_function(receiver, message)))
 
@@ -1988,7 +1990,7 @@ def sync_message_statement(receiver, message):
     def append_call_with_target_name(result, dispatch_function, target_name, dispatched_function):
         result.append('        IPC::%s<Messages::%s::%s>(connection, decoder%s, %s, &%s);\n' % (dispatch_function, receiver.name, message.name, maybe_reply_encoder, target_name, dispatched_function))
 
-    swift_dispatch_function = swift_types_dispatch_function(message) if receiver.takes_swift_types(message) else dispatch_function
+    swift_dispatch_function = swift_types_dispatch_function(message, receiver) if receiver.takes_swift_types(message) else dispatch_function
     swift_target, swift_function = swift_dispatch_target_and_function(receiver, message)
     if receiver.dispatches_to_swift_state(message):
         append_call_with_target_name(result, swift_dispatch_function, *swift_state_dispatch_target_and_function(receiver, message))
@@ -3357,6 +3359,8 @@ def generate_swift_message_handler(receiver):
         sends_connection = not swift_receiver_runs_on_work_queue(receiver) or receiver.has_attribute(SWIFT_ACTOR_ATTRIBUTE)
         parameters = ['connection: %s%s' % ('sending ' if sends_connection else '', connection_type)] if passes_connection else []
         arguments = ['connection: connection'] if passes_connection else []
+        if takes_swift_types and receiver.has_attribute(SWIFT_DESTINATION_ID_ATTRIBUTE):
+            arguments.append('destinationID: destinationID')
         decoded_parameters = []
         owned_parameter_names = [parameter.name for parameter in message.parameters if takes_swift_types and not parameter.attributes and swift_types.is_owned_type(parameter.type)]
         # Arguments whose bytes are lent to the handler: generated Swift decodes past them, and lends them once the
@@ -3475,6 +3479,9 @@ def generate_swift_message_handler(receiver):
                 result.append('        } catch {\n')
                 result.append('            return false\n')
                 result.append('        }\n')
+        if takes_swift_types and receiver.has_attribute(SWIFT_DESTINATION_ID_ATTRIBUTE):
+            # Read before the handler call, which may be in a closure that the decoder can't be sent into.
+            result.append('        let destinationID = decoder.destinationID()\n')
         reply_statements = []
         cancel_statements = []
         reply_value_type = None

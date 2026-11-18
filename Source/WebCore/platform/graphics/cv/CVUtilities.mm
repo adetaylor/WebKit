@@ -149,6 +149,11 @@ std::expected<RetainPtr<CVPixelBufferRef>, CVReturn> createCVPixelBuffer(IOSurfa
     return adoptCF(pixelBuffer);
 }
 
+CGColorSpaceRef copyCGColorSpaceForCVPixelBuffer(CVPixelBufferRef buffer)
+{
+    return createCGColorSpaceForCVPixelBuffer(buffer).leakRef();
+}
+
 RetainPtr<CGColorSpaceRef> createCGColorSpaceForCVPixelBuffer(CVPixelBufferRef buffer)
 {
     if (RetainPtr colorSpace = dynamic_cf_cast<CGColorSpaceRef>(CVBufferGetAttachment(buffer, kCVImageBufferCGColorSpaceKey, nullptr)))

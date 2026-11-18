@@ -53,7 +53,6 @@ GPUProcess/media/RemoteMediaResourceLoader.cpp @cost:3
 GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
 GPUProcess/media/RemoteTextTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteVideoTrackProxy.cpp @cost:3
-GPUProcess/webrtc/RemoteSampleBufferDisplayLayerManager.cpp
 
 ModelProcess/ModelProcess.cpp
 ModelProcess/ModelConnectionToWebProcess.cpp

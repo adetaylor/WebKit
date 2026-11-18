@@ -186,6 +186,9 @@
 		A7B3185105865F859D96EAC4 /* RemoteLegacyCDMFactoryProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6A824F529A09C962FE26F9 /* RemoteLegacyCDMFactoryProxyMessageReceiver.swift */; };
 		58578E524361BF493FE6599A /* RemoteImageDecoderAVFProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8CA47C4FA2E05C83BF202B3 /* RemoteImageDecoderAVFProxyMessageReceiver.swift */; };
 		F2AE9377B94C04300EB32091 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BCBEDB813BB6DE8A17BBA25 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift */; };
+		D15B0A1F2026111800000001 /* RemoteSampleBufferDisplayLayerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15B0A1F2026111800000002 /* RemoteSampleBufferDisplayLayerManager.swift */; };
+		D15B0A1F2026111800000003 /* RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15B0A1F2026111800000004 /* RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift */; };
+		D15B0A1F2026111800000005 /* RemoteSampleBufferDisplayLayerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = D15B0A1F2026111800000006 /* RemoteSampleBufferDisplayLayerMessageReceiver.swift */; };
 		E35DB5B58EE56E795DC83725 /* RemoteAudioDestinationManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */; };
 		2B3501978EBF8452E675A49E /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D31E65568A0684046A40D0 /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift */; };
 		966B41B7DFF5B9C24F083A88 /* RemoteMediaPlayerManagerProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCB598B886EA614D3E2DF17D /* RemoteMediaPlayerManagerProxyMessageReceiver.swift */; };
@@ -1225,7 +1228,6 @@
 		417915B92257046F00D6F97E /* NetworkSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 417915B62257046E00D6F97E /* NetworkSocketChannel.h */; };
 		41897ED11F415D680016FA42 /* WebCacheStorageConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = 41897ECD1F415D5C0016FA42 /* WebCacheStorageConnection.h */; };
 		4193927828BE41C000162139 /* LSApplicationWorkspaceSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 4193927728BE41C000162139 /* LSApplicationWorkspaceSPI.h */; };
-		41A0EB142641714900794471 /* LibWebRTCCodecsProxy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 41E0A7C823B6397900561060 /* LibWebRTCCodecsProxy.mm */; };
 		41C5379021F15B55008B1FAD /* _WKWebsiteDataStoreDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 41C5378F21F1362D008B1FAD /* _WKWebsiteDataStoreDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		41D129DA1F3D101800D15E47 /* WebCacheStorageProvider.h in Headers */ = {isa = PBXBuildFile; fileRef = 41D129D91F3D101400D15E47 /* WebCacheStorageProvider.h */; };
 		41DC45961E3D6E2200B11F51 /* NetworkRTCProvider.h in Headers */ = {isa = PBXBuildFile; fileRef = 41DC45941E3D6E1E00B11F51 /* NetworkRTCProvider.h */; };
@@ -3602,6 +3604,11 @@
 		AD6A824F529A09C962FE26F9 /* RemoteLegacyCDMFactoryProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLegacyCDMFactoryProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		F8CA47C4FA2E05C83BF202B3 /* RemoteImageDecoderAVFProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImageDecoderAVFProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		1BCBEDB813BB6DE8A17BBA25 /* RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.swift; sourceTree = "<group>"; };
+		D15B0A1F2026111800000002 /* RemoteSampleBufferDisplayLayerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSampleBufferDisplayLayerManager.swift; sourceTree = "<group>"; };
+		D15B0A1F2026111800000004 /* RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift; sourceTree = "<group>"; };
+		D15B0A1F2026111800000006 /* RemoteSampleBufferDisplayLayerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSampleBufferDisplayLayerMessageReceiver.swift; sourceTree = "<group>"; };
+		D15B0A1F2026111800000007 /* SampleBufferDisplayLayerHost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SampleBufferDisplayLayerHost.h; sourceTree = "<group>"; };
+		D15B0A1F2026111800000008 /* SampleBufferDisplayLayerHost.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SampleBufferDisplayLayerHost.mm; sourceTree = "<group>"; };
 		F738B224261F0B29EF2697DF /* RemoteAudioDestinationManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioDestinationManagerMessageReceiver.swift; sourceTree = "<group>"; };
 		C6B9887BADA33E26CBCC6CE0 /* RemoteAudioSessionProxyMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioSessionProxyMessageReceiver.swift; sourceTree = "<group>"; };
 		B6D31E65568A0684046A40D0 /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioVideoRendererProxyManagerMessageReceiver.swift; sourceTree = "<group>"; };
@@ -5970,8 +5977,6 @@
 		41AC86811E042E5300303074 /* WebRTCResolver.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; lineEnding = 0; name = WebRTCResolver.messages.in; path = Network/webrtc/WebRTCResolver.messages.in; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = "<none>"; };
 		41B28B081F83AD3E00FB52AC /* RTCPacketOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RTCPacketOptions.h; sourceTree = "<group>"; };
 		41B28B091F83AD3E00FB52AC /* RTCPacketOptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RTCPacketOptions.cpp; sourceTree = "<group>"; };
-		41B7E9A02E7B41C700D5A1F2 /* CapturePreviewLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CapturePreviewLayer.h; sourceTree = "<group>"; };
-		41B7E9A12E7B41C700D5A1F2 /* CapturePreviewLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CapturePreviewLayer.mm; sourceTree = "<group>"; };
 		41B7ED6C20681DCE0087D853 /* WebMDNSRegister.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WebMDNSRegister.h; path = Network/webrtc/WebMDNSRegister.h; sourceTree = "<group>"; };
 		41B7ED6E20681DCF0087D853 /* WebMDNSRegister.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebMDNSRegister.cpp; path = Network/webrtc/WebMDNSRegister.cpp; sourceTree = "<group>"; };
 		41B7ED6F206965900087D853 /* NetworkMDNSRegister.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NetworkMDNSRegister.cpp; sourceTree = "<group>"; };
@@ -6003,13 +6008,11 @@
 		41DC45A01E3DC53C00B11F51 /* WebRTCResolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WebRTCResolver.cpp; path = Network/webrtc/WebRTCResolver.cpp; sourceTree = "<group>"; };
 		41DD72A6267B8C3000A90C71 /* NetworkRTCUDPSocketCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NetworkRTCUDPSocketCocoa.mm; sourceTree = "<group>"; };
 		41DD72A7267B8C3100A90C71 /* NetworkRTCUDPSocketCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkRTCUDPSocketCocoa.h; sourceTree = "<group>"; };
-		41E0A7C623B6397800561060 /* LibWebRTCCodecsProxy.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = LibWebRTCCodecsProxy.h; sourceTree = "<group>"; };
 		41E0A7C723B6397900561060 /* LibWebRTCCodecsProxy.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = LibWebRTCCodecsProxy.messages.in; sourceTree = "<group>"; };
 		F8007191CE11D81698746D2C /* LibWebRTCCodecsProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxy.swift; sourceTree = "<group>"; };
 		1AC3E2A2A6F9841EC3479C9F /* LibWebRTCCodecsProxyDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxyDecoder.swift; sourceTree = "<group>"; };
 		6D5132DB5A87B4BDB10812A9 /* LibWebRTCCodecsProxyEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibWebRTCCodecsProxyEncoder.swift; sourceTree = "<group>"; };
 		0D48D1B39324BC730E46B271 /* UserMediaCaptureManagerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserMediaCaptureManagerProxy.swift; sourceTree = "<group>"; };
-		41E0A7C823B6397900561060 /* LibWebRTCCodecsProxy.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = LibWebRTCCodecsProxy.mm; sourceTree = "<group>"; };
 		41E242DE26E0C8D6009A8C64 /* NetworkRTCUtilitiesCocoa.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NetworkRTCUtilitiesCocoa.h; sourceTree = "<group>"; };
 		41E242DF26E0C904009A8C64 /* NetworkRTCUtilitiesCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = NetworkRTCUtilitiesCocoa.mm; sourceTree = "<group>"; };
 		41E4C3F429A3E38800EA6B3A /* BackgroundFetchLoad.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BackgroundFetchLoad.h; sourceTree = "<group>"; };
@@ -6032,15 +6035,11 @@
 		41FBE823206DA79C000F0741 /* NetworkContentRuleListManager.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = NetworkContentRuleListManager.messages.in; sourceTree = "<group>"; };
 		41FBE824206DA79C000F0741 /* NetworkContentRuleListManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NetworkContentRuleListManager.cpp; sourceTree = "<group>"; };
 		41FCD6B323CDC60400C62567 /* SampleBufferDisplayLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SampleBufferDisplayLayer.h; sourceTree = "<group>"; };
-		41FCD6B423CDCAC200C62567 /* RemoteSampleBufferDisplayLayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteSampleBufferDisplayLayer.h; sourceTree = "<group>"; };
-		41FCD6B523CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSampleBufferDisplayLayer.mm; sourceTree = "<group>"; };
 		41FCD6B623CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = RemoteSampleBufferDisplayLayer.messages.in; sourceTree = "<group>"; };
 		41FCD6B723CDE53D00C62567 /* SampleBufferDisplayLayer.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SampleBufferDisplayLayer.cpp; sourceTree = "<group>"; };
 		41FCD6B823CDE53E00C62567 /* SampleBufferDisplayLayer.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = SampleBufferDisplayLayer.messages.in; sourceTree = "<group>"; };
 		41FCD6BC23CE031800C62567 /* SampleBufferDisplayLayerIdentifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SampleBufferDisplayLayerIdentifier.h; sourceTree = "<group>"; };
 		41FCD6BD23CE043F00C62567 /* RemoteSampleBufferDisplayLayerManager.messages.in */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = RemoteSampleBufferDisplayLayerManager.messages.in; sourceTree = "<group>"; };
-		41FCD6BE23CE044000C62567 /* RemoteSampleBufferDisplayLayerManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteSampleBufferDisplayLayerManager.cpp; sourceTree = "<group>"; };
-		41FCD6BF23CE044000C62567 /* RemoteSampleBufferDisplayLayerManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RemoteSampleBufferDisplayLayerManager.h; sourceTree = "<group>"; };
 		41FFD2DA275A560B00501BBF /* ServiceWorkerDownloadTask.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ServiceWorkerDownloadTask.cpp; sourceTree = "<group>"; };
 		41FFD2DB275A560C00501BBF /* ServiceWorkerDownloadTask.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ServiceWorkerDownloadTask.h; sourceTree = "<group>"; };
 		41FFD2DC275A6A9400501BBF /* ServiceWorkerDownloadTask.messages.in */ = {isa = PBXFileReference; lastKnownFileType = text; path = ServiceWorkerDownloadTask.messages.in; sourceTree = "<group>"; };
@@ -14243,6 +14242,8 @@
 				1C55A574275457C400EB7E95 /* RemoteRenderPipelineMessageReceiver.cpp */,
 				C3D6A88F35BF75F545303118 /* RemoteRenderPipelineMessageReceiver.swift */,
 				1C55A5A4275457CB00EB7E95 /* RemoteRenderPipelineMessages.h */,
+				D15B0A1F2026111800000004 /* RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift */,
+				D15B0A1F2026111800000006 /* RemoteSampleBufferDisplayLayerMessageReceiver.swift */,
 				1C55A598275457CA00EB7E95 /* RemoteSamplerMessageReceiver.cpp */,
 				7C37AB84BE169F66C05E3637 /* RemoteSamplerMessageReceiver.swift */,
 				1C55A597275457C900EB7E95 /* RemoteSamplerMessages.h */,
@@ -14524,23 +14525,18 @@
 		4172198E23B633CA00AE5686 /* webrtc */ = {
 			isa = PBXGroup;
 			children = (
-				41B7E9A02E7B41C700D5A1F2 /* CapturePreviewLayer.h */,
-				41B7E9A12E7B41C700D5A1F2 /* CapturePreviewLayer.mm */,
 				7D781D45C3484C7E847BE509 /* CapturePreviewManager.swift */,
-				41E0A7C623B6397800561060 /* LibWebRTCCodecsProxy.h */,
 				41E0A7C723B6397900561060 /* LibWebRTCCodecsProxy.messages.in */,
-				41E0A7C823B6397900561060 /* LibWebRTCCodecsProxy.mm */,
 				F8007191CE11D81698746D2C /* LibWebRTCCodecsProxy.swift */,
 				1AC3E2A2A6F9841EC3479C9F /* LibWebRTCCodecsProxyDecoder.swift */,
 				6D5132DB5A87B4BDB10812A9 /* LibWebRTCCodecsProxyEncoder.swift */,
 				41C3B89426493B7C004ED4DE /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.messages.in */,
 				9D9A7173313F5691BC414AFF /* RemoteAudioMediaStreamTrackRendererInternalUnitManager.swift */,
-				41FCD6B423CDCAC200C62567 /* RemoteSampleBufferDisplayLayer.h */,
 				41FCD6B623CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.messages.in */,
-				41FCD6B523CDE1C600C62567 /* RemoteSampleBufferDisplayLayer.mm */,
-				41FCD6BE23CE044000C62567 /* RemoteSampleBufferDisplayLayerManager.cpp */,
-				41FCD6BF23CE044000C62567 /* RemoteSampleBufferDisplayLayerManager.h */,
 				41FCD6BD23CE043F00C62567 /* RemoteSampleBufferDisplayLayerManager.messages.in */,
+				D15B0A1F2026111800000002 /* RemoteSampleBufferDisplayLayerManager.swift */,
+				D15B0A1F2026111800000007 /* SampleBufferDisplayLayerHost.h */,
+				D15B0A1F2026111800000008 /* SampleBufferDisplayLayerHost.mm */,
 				41409FEC2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.cpp */,
 				41409FEB2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.h */,
 				41409FED2E1BFA2D00F5F2B5 /* UserMediaCaptureManagerProxy.messages.in */,
@@ -22789,7 +22785,6 @@
 				E385F3672E86D6C900461B0C /* LaunchLogHook.mm in Sources */,
 				C14D37FE24ACE086007FF014 /* LaunchServicesDatabaseManager.mm in Sources */,
 				C1710CF724AA643200D7C112 /* LaunchServicesDatabaseObserver.mm in Sources */,
-				41A0EB142641714900794471 /* LibWebRTCCodecsProxy.mm in Sources */,
 				5B856A272CB95206F80EC369 /* LibWebRTCCodecsProxy.swift in Sources */,
 				D64855DC986FEA3BDB980498 /* LibWebRTCCodecsProxyDecoder.swift in Sources */,
 				BEF3FECC3C3B5A60AF1B2185 /* LibWebRTCCodecsProxyEncoder.swift in Sources */,
@@ -22917,6 +22912,9 @@
 				95350091F683CDE5D234B818 /* RemoteRenderPipeline.swift in Sources */,
 				341158B326284441995DA83B /* RemoteRenderPipelineMessageReceiver.swift in Sources */,
 				0583096F9B91CD2A718E59B1 /* RemoteResourceCache.swift in Sources */,
+				D15B0A1F2026111800000001 /* RemoteSampleBufferDisplayLayerManager.swift in Sources */,
+				D15B0A1F2026111800000003 /* RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift in Sources */,
+				D15B0A1F2026111800000005 /* RemoteSampleBufferDisplayLayerMessageReceiver.swift in Sources */,
 				63CAB87C31D7746E018E693A /* RemoteSampler.swift in Sources */,
 				B63648AB4046B9937840A98A /* RemoteSamplerMessageReceiver.swift in Sources */,
 				18772EF8BB8046AF8CEA0E0B /* RemoteScrollingCoordinator.swift in Sources */,

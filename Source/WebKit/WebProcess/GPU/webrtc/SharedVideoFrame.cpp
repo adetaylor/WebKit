@@ -290,6 +290,24 @@ CVPixelBufferRef createSharedVideoFrameBlackPixelBuffer(int32_t width, int32_t h
     return WebCore::createBlackPixelBuffer(width, height, shouldUseIOSurface).leakRef();
 }
 
+SharedVideoFrameWriterForSwift* SharedVideoFrameWriterForSwift::create()
+{
+    return &adoptRef(*new SharedVideoFrameWriterForSwift).leakRef();
+}
+
+bool SharedVideoFrameWriterForSwift::writeToSharedMemory(CVPixelBufferRef pixelBuffer, const SharedVideoFrameSemaphoreFunction& newSemaphore, const SharedVideoFrameMemoryFunction& newMemory)
+{
+    Locker locker { m_lock };
+    return !!m_writer.writeBuffer(pixelBuffer, [&](auto& semaphore) {
+        auto sendRight = semaphore.createSendRight();
+        newSemaphore(sendRight.sendRight());
+    }, [&](SharedMemory::Handle&& handle) {
+        auto size = handle.size();
+        auto sendRight = handle.releaseHandle();
+        newMemory(sendRight.sendRight(), size);
+    }, false);
+}
+
 WTF_MAKE_TZONE_ALLOCATED_IMPL(SharedVideoFrameReader);
 
 SharedVideoFrameReader::SharedVideoFrameReader(RefPtr<RemoteVideoFrameObjectHeap>&& objectHeap, const ProcessIdentity& resourceOwner, UseIOSurfaceBufferPool useIOSurfaceBufferPool)

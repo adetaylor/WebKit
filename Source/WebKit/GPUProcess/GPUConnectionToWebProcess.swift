@@ -78,6 +78,7 @@ final class GPUConnectionState {
     #endif
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     private(set) var audioMediaStreamTrackRendererInternalUnitManager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
+    private(set) var userMediaCaptureManager: UserMediaCaptureManagerProxy?
     #endif
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
     private(set) var cdmFactory: RemoteCDMFactoryProxy?
@@ -98,6 +99,10 @@ final class GPUConnectionState {
     #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
     // The web process's audio hardware listeners, by identifier, until it releases them.
     var audioHardwareListeners: [UInt64: RemoteAudioHardwareListenerProxy] = [:]
+    #endif
+    #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
+    // From before the connection opens: the C++ connection registers its forwarders on the layers' queue.
+    var sampleBufferDisplayLayerManager: RemoteSampleBufferDisplayLayerManager?
     #endif
 
     // The receivers with stream connections of their own, by identifier, from when they are added until they are released
@@ -125,6 +130,9 @@ final class GPUConnectionState {
         #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
         if let audioMediaStreamTrackRendererInternalUnitManager {
             receivers.append(audioMediaStreamTrackRendererInternalUnitManager)
+        }
+        if let userMediaCaptureManager {
+            receivers.append(userMediaCaptureManager)
         }
         #endif
         #if USE_AUDIO_SESSION
@@ -157,6 +165,11 @@ final class GPUConnectionState {
             receivers.append(libWebRTCCodecsProxy)
         }
         #endif
+        #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
+        if let sampleBufferDisplayLayerManager {
+            receivers.append(sampleBufferDisplayLayerManager)
+        }
+        #endif
         return receivers
     }
 
@@ -179,6 +192,10 @@ final class GPUConnectionState {
                 0
             )
         )
+        let userMediaCaptureManager = UserMediaCaptureManagerProxy(connection: connection, process: processIdentifier)
+        self.userMediaCaptureManager = userMediaCaptureManager
+        captureManager = userMediaCaptureManager.captureState
+        register(IPC.registerSwiftReceiver(connection, userMediaCaptureManager.getMessageReceiver(), .UserMediaCaptureManagerProxy, 0))
         #endif
         #if USE_AUDIO_SESSION
         let audioSessionProxy = RemoteAudioSessionProxy(connection: connection, processIdentifier: processIdentifier)
@@ -374,10 +391,8 @@ extension WebKit.GPUConnectionToWebProcess {
             preconditionFailure("The codecs queue is not serial")
         }
         precondition(state.libWebRTCCodecsProxy == nil, "The connection has a codecs receiver")
-        // Safety: the heap is used on any thread, which its own lock and its WorkQueue confine its state to.
-        nonisolated(unsafe) let videoFrameObjectHeap = videoFrameObjectHeap
-        let proxy = unsafe LibWebRTCCodecsProxy(
-            videoFrameObjectHeap: videoFrameObjectHeap,
+        let proxy = LibWebRTCCodecsProxy(
+            videoFrameObjectHeap: videoFrameObjectHeap.frames,
             resourceOwner: hasResourceOwner ? resourceOwner : nil,
             codecsQueue: codecsQueue
         )
@@ -607,7 +622,7 @@ extension WebKit.GPUConnectionToWebProcess {
         precondition(state.renderingBackends[identifier] == nil, "The rendering backend has been added")
         #if ENABLE_GPU_PROCESS_CG_RENDERER_SWIFT
         let videoFrameSources = GPUVideoFrameSources(
-            heap: videoFrameHeap,
+            heap: videoFrameHeap.frames,
             webProcessIdentity: hasWebProcessIdentity ? webProcessIdentity : nil
         )
         renderingBackend.initializeSwiftState(videoFrameSources: videoFrameSources)
@@ -720,7 +735,7 @@ extension WebKit.GPUConnectionToWebProcess {
             renderingBackend,
             identifier,
             webProcessResourceOwner,
-            videoFrameHeap,
+            videoFrameHeap.frames,
             hasWebProcessIdentity ? webProcessIdentity : nil
         )
         state.gpuOwners[identifier] = owner
@@ -777,7 +792,7 @@ extension WebKit.GPUConnectionToWebProcess {
 // frame heap, and the web process's identity, if it has one, which the buffers read out of shared memory are attributed to.
 struct GPUVideoFrameSources {
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
-    let heap: WebKit.RemoteVideoFrameObjectHeap
+    let heap: VideoFrameHeap
     let webProcessIdentity: WebCore.ProcessIdentity?
 
     func make() -> SharedVideoFrameSource {

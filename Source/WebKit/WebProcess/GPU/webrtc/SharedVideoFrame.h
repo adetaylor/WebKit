@@ -36,10 +36,13 @@
 #include <WebCore/ProcessIdentity.h>
 #include <WebCore/SharedMemory.h>
 #include <cstddef>
+#include <wtf/Lock.h>
 #include <wtf/MediaTime.h>
 #include <wtf/RefPtr.h>
 #include <wtf/RetainPtr.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
+#include <wtf/ThreadSafeRefCounted.h>
 #include <wtf/UniqueRef.h>
 #include <wtf/Vector.h>
 
@@ -123,6 +126,33 @@ private:
     // the generated header is visible.
     alignas(void*) std::byte m_impl[sizeof(void*)];
 };
+
+using SharedVideoFrameSemaphoreFunction = Function<void(mach_port_t)>;
+using SharedVideoFrameMemoryFunction = Function<void(mach_port_t, uint64_t size)>;
+
+// A SharedVideoFrameWriter that Swift can hold, which writes into shared memory and gives the new semaphore and memory a
+// write makes to Swift functions, as the ports of rights they copy. Its writes are serialized, and disable() may be called
+// on any thread.
+class SWIFT_UNCHECKED_SENDABLE SharedVideoFrameWriterForSwift final : public ThreadSafeRefCounted<SharedVideoFrameWriterForSwift> {
+public:
+    static SharedVideoFrameWriterForSwift* create() SWIFT_RETURNS_RETAINED;
+
+    bool writeToSharedMemory(CVPixelBufferRef, const SharedVideoFrameSemaphoreFunction& newSemaphore, const SharedVideoFrameMemoryFunction& newMemory);
+    // Without the lock, to unblock a write waiting for the reader.
+    void disable() WTF_IGNORES_THREAD_SAFETY_ANALYSIS { m_writer.disable(); }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { ThreadSafeRefCounted<SharedVideoFrameWriterForSwift>::ref(); }
+    void deref() const { ThreadSafeRefCounted<SharedVideoFrameWriterForSwift>::deref(); }
+#endif
+
+private:
+    SharedVideoFrameWriterForSwift() = default;
+
+    Lock m_lock;
+    SharedVideoFrameWriter m_writer WTF_GUARDED_BY_LOCK(m_lock);
+} SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 // The C++ face of SharedVideoFrameSource (SharedVideoFrameImpl.swift), for the readers written in C++.
 class SharedVideoFrameReader {

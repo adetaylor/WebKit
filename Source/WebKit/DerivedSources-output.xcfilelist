@@ -357,8 +357,10 @@ $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderingBackendMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderingBackendProxyMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteRenderingBackendProxyMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerManagerMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerManagerMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerManagerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerMessageReceiver.cpp
+$(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerMessageReceiver.swift
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSampleBufferDisplayLayerMessages.h
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSamplerMessageReceiver.cpp
 $(BUILT_PRODUCTS_DIR)/DerivedSources/WebKit/IPC/RemoteSamplerMessageReceiver.swift

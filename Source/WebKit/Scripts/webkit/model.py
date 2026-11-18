@@ -42,6 +42,9 @@ WORK_QUEUE_ATTRIBUTE = "WorkQueue"
 # On a WorkQueue Swift receiver whose messages all take Swift types: its Swift target is an actor whose executor is the
 # queue its forwarder is registered with, and dispatch enters it with assumeIsolated, which traps off that queue.
 SWIFT_ACTOR_ATTRIBUTE = "SwiftActor"
+# On a WorkQueue Swift receiver whose messages all take Swift types and that is registered for any destination: each handler
+# is given the destination ID of the message it handles, `destinationID: UInt64`, to find the object the message is for.
+SWIFT_DESTINATION_ID_ATTRIBUTE = "SwiftDestinationID"
 SWIFT_TYPES_ATTRIBUTE = 'SwiftTypes'
 # A C++ receiver whose messages that take Swift types are decoded and handled in Swift: generated Swift implements a
 # dispatch function for each, with @cxx @implementation, that calls the receiver's handler, a Swift method of the C++
@@ -190,6 +193,14 @@ class MessageReceiver(object):
             for message in self.messages:
                 if not message.is_async_reply and not self.takes_swift_types(message):
                     raise Exception("ERROR: Message %s.%s takes C++ types, which a receiver with '%s' can't" % (self.name, message.name, SWIFT_ACTOR_ATTRIBUTE))
+        if self.has_attribute(SWIFT_DESTINATION_ID_ATTRIBUTE):
+            if not (self.is_swift_receiver() and self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
+                raise Exception("ERROR: Receiver %s has '%s', which is for Swift receivers with '%s'" % (self.name, SWIFT_DESTINATION_ID_ATTRIBUTE, WORK_QUEUE_ATTRIBUTE))
+            for message in self.messages:
+                if not message.is_async_reply and not self.takes_swift_types(message):
+                    raise Exception("ERROR: Message %s.%s takes C++ types, which a receiver with '%s' can't" % (self.name, message.name, SWIFT_DESTINATION_ID_ATTRIBUTE))
+                if any(parameter.name == 'destinationID' for parameter in message.parameters):
+                    raise Exception("ERROR: Message %s.%s has a parameter named 'destinationID', which a receiver with '%s' gives its handlers" % (self.name, message.name, SWIFT_DESTINATION_ID_ATTRIBUTE))
         for message in self.messages:
             self._enforce_swift_types_constraints_for_message(message)
         self._enforce_lent_state_constraints()
@@ -272,11 +283,12 @@ class MessageReceiver(object):
         for attribute in (SWIFT_REPLY_VALUE_ATTRIBUTE, CXX_ENCODED_REPLY_ATTRIBUTE):
             if not message.has_attribute(attribute):
                 continue
-            if attribute == CXX_ENCODED_REPLY_ATTRIBUTE and self.takes_swift_types(message) and message.reply_parameters and not message.has_attribute(SYNCHRONOUS_ATTRIBUTE):
+            # Asynchronous replies of any Swift receiver, and synchronous ones of a WorkQueue receiver, which C++ encodes.
+            if attribute == CXX_ENCODED_REPLY_ATTRIBUTE and self.takes_swift_types(message) and message.reply_parameters and (not message.has_attribute(SYNCHRONOUS_ATTRIBUTE) or self.has_attribute(WORK_QUEUE_ATTRIBUTE)):
                 continue
             if not (self.takes_swift_types(message) and self.has_attribute(STREAM_ATTRIBUTE) and message.has_attribute(SYNCHRONOUS_ATTRIBUTE) and message.has_attribute('NotStreamEncodableReply')):
                 if attribute == CXX_ENCODED_REPLY_ATTRIBUTE:
-                    raise Exception("ERROR: Message %s has '%s', which is for messages with a reply that take Swift types: asynchronous ones, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver" % (description, attribute))
+                    raise Exception("ERROR: Message %s has '%s', which is for messages with a reply that take Swift types: asynchronous ones, Synchronous ones to a WorkQueue receiver, or Synchronous ones with 'NotStreamEncodableReply' to a stream receiver" % (description, attribute))
                 raise Exception("ERROR: Message %s has '%s', which is for Synchronous messages with 'NotStreamEncodableReply' to a stream receiver that takes Swift types" % (description, attribute))
         if message.has_attribute(SWIFT_SYNC_HANDLER_ATTRIBUTE) and not (self.is_swift_receiver() or self.is_swift_implementation()):
             raise Exception("ERROR: Message %s has '%s', which is for messages a Swift receiver handles" % (description, SWIFT_SYNC_HANDLER_ATTRIBUTE))

@@ -75,7 +75,6 @@
 #endif
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
-#include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"
 #endif
 

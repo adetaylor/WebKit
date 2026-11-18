@@ -141,7 +141,7 @@ final class SharedVideoFrameWriterImpl {
 // pool for the last frame format; from the GPU process's video frame heap; from an IOSurface; or as a black frame.
 @_expose(Cxx)
 final class SharedVideoFrameSource {
-    private let heap: WebKit.RemoteVideoFrameObjectHeap?
+    private let heap: VideoFrameHeap?
     // The process that the pixel buffers read out of shared memory are attributed to, if it isn't this one.
     private let resourceOwner: WebCore.ProcessIdentity?
     private let shouldUseIOSurfaceBufferPool: Bool
@@ -159,14 +159,15 @@ final class SharedVideoFrameSource {
         hasResourceOwner: Bool,
         useIOSurfaceBufferPool: Bool
     ) {
-        self.heap = copy heap
+        let cxxHeap = copy heap
+        self.heap = cxxHeap?.frames
         self.resourceOwner = hasResourceOwner ? copy resourceOwner : nil
         shouldUseIOSurfaceBufferPool = useIOSurfaceBufferPool
     }
 
     // For the GPU process's receivers written in Swift, which read with an IOSurface buffer pool.
     @_expose(!Cxx)
-    init(heap: WebKit.RemoteVideoFrameObjectHeap, resourceOwner: WebCore.ProcessIdentity?) {
+    init(heap: VideoFrameHeap, resourceOwner: WebCore.ProcessIdentity?) {
         self.heap = heap
         self.resourceOwner = resourceOwner
         shouldUseIOSurfaceBufferPool = true
@@ -336,6 +337,44 @@ extension IPCTypes.PlatformVideoColorSpace {
             colorSpace.chromaLocation = value
         }
         return colorSpace
+    }
+}
+
+// WebCore::PlatformVideoColorSpaceValues, for the GPU process's Swift readers and writers of frames.
+extension IPCTypes.PlatformVideoColorSpace {
+    init(_ values: WebCore.PlatformVideoColorSpaceValues) {
+        self.init(
+            primaries: values.hasPrimaries ? IPCTypes.PlatformVideoColorPrimaries(rawValue: values.primaries.rawValue) : nil,
+            transfer: values.hasTransfer ? IPCTypes.PlatformVideoTransferCharacteristics(rawValue: values.transfer.rawValue) : nil,
+            matrix: values.hasMatrix ? IPCTypes.PlatformVideoMatrixCoefficients(rawValue: values.matrix.rawValue) : nil,
+            fullRange: values.hasFullRange ? values.fullRange : nil,
+            chromaLocation: values.hasChromaLocation ? IPCTypes.PlatformVideoChromaLocation(rawValue: values.chromaLocation.rawValue) : nil
+        )
+    }
+
+    var colorSpaceValues: WebCore.PlatformVideoColorSpaceValues {
+        var values = WebCore.PlatformVideoColorSpaceValues()
+        if let primaries, let value = WebCore.PlatformVideoColorPrimaries(rawValue: primaries.rawValue) {
+            values.hasPrimaries = true
+            values.primaries = value
+        }
+        if let transfer, let value = WebCore.PlatformVideoTransferCharacteristics(rawValue: transfer.rawValue) {
+            values.hasTransfer = true
+            values.transfer = value
+        }
+        if let matrix, let value = WebCore.PlatformVideoMatrixCoefficients(rawValue: matrix.rawValue) {
+            values.hasMatrix = true
+            values.matrix = value
+        }
+        if let fullRange {
+            values.hasFullRange = true
+            values.fullRange = fullRange
+        }
+        if let chromaLocation, let value = WebCore.PlatformVideoChromaLocation(rawValue: chromaLocation.rawValue) {
+            values.hasChromaLocation = true
+            values.chromaLocation = value
+        }
+        return values
     }
 }
 

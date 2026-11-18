@@ -29,6 +29,9 @@
 #if ENABLE(SWIFT_IPC_RECEIVERS)
 
 #include "GeneratedSerializers.h"
+#include <WebCore/ColorSpace.h>
+#include <WebCore/MediaConstraints.h>
+#include <WebCore/MediaConstraintsEvaluation.h>
 #include <WebCore/Path.h>
 #include <WebCore/PathSegment.h>
 #include <WebCore/SharedBuffer.h>
@@ -51,6 +54,16 @@ WebCore::VideoInfo* SwiftDecoder::decodeVideoInfo()
         return nullptr;
     return &info->leakRef();
 }
+
+#if ENABLE(MEDIA_STREAM)
+WebCore::CaptureConstraints* SwiftDecoder::decodeCaptureConstraints()
+{
+    auto constraints = borrowed().decode<WebCore::MediaConstraints>();
+    if (!constraints) [[unlikely]]
+        return nullptr;
+    return WebCore::CaptureConstraints::create(WTF::move(*constraints));
+}
+#endif
 
 SwiftReplyEncoder* SwiftReplyEncoder::createForMessage(Connection& connection, MessageName name, uint64_t destinationID)
 {
@@ -128,6 +141,22 @@ void SwiftReplyEncoder::encodeVideoInfo(const WebCore::VideoInfo& info)
     RELEASE_ASSERT(m_encoder);
     *m_encoder << info;
 }
+
+#if ENABLE(MEDIA_STREAM)
+void SwiftReplyEncoder::encodeCaptureConstraints(const WebCore::CaptureConstraints& constraints)
+{
+    RELEASE_ASSERT(!m_inStream);
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << constraints.constraints();
+}
+#endif
+
+#if USE(CG)
+void encodeColorSpace(SwiftReplyEncoder& encoder, CGColorSpaceRef colorSpace)
+{
+    encoder.encodeWithArgumentCoder(WebCore::ColorSpace { RetainPtr { colorSpace } });
+}
+#endif
 
 } // namespace IPC
 

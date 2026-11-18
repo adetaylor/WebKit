@@ -61,6 +61,7 @@
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 #include "SampleBufferDisplayLayerIdentifier.h"
+#include <wtf/MachSendRightAnnotated.h>
 #endif
 
 #if ENABLE(WEBGL)
@@ -133,11 +134,14 @@ using RefPtrRemoteLegacyCDMSessionClient = RefPtr<RemoteLegacyCDMSessionClient>;
 class RemoteMediaEngineConfigurationFactoryProxy;
 class RemoteMediaSessionHelperProxy;
 class RemoteRenderingBackend;
-class RemoteSampleBufferDisplayLayerManager;
+class RemoteSampleBufferDisplayLayerManagerMessageForwarder;
+class RemoteSampleBufferDisplayLayerMessageForwarder;
 class RemoteSharedResourceCache;
-class UserMediaCaptureManagerProxy;
 class VideoReceiverEndpointManager;
 struct GPUProcessConnectionParameters;
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+using OptionalMachSendRightAnnotated = std::optional<WTF::MachSendRightAnnotated>;
+#endif
 struct MediaOverridesForTesting;
 
 #if USE(GRAPHICS_LAYER_WC)
@@ -403,7 +407,19 @@ private:
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    UserMediaCaptureManagerProxy& userMediaCaptureManagerProxy();
+    // Implemented in Swift (RemoteSampleBufferDisplayLayerManager.swift): the Swift state makes and keeps the receiver of
+    // the sample buffer display layer messages, whose forwarders this registers on the layers' queue, the dispatch queue that
+    // queue is, and updates a layer's bounds.
+    SWIFT_MAIN_ACTOR Ref<RemoteSampleBufferDisplayLayerManagerMessageForwarder> swiftCreateSampleBufferDisplayLayerManager(RemoteVideoFrameObjectHeap&, WebCore::ProcessIdentity webProcessIdentity, bool hasWebProcessIdentity, void* WTF_NONNULL queue);
+    SWIFT_MAIN_ACTOR Ref<RemoteSampleBufferDisplayLayerMessageForwarder> swiftSampleBufferDisplayLayerForwarder();
+    SWIFT_MAIN_ACTOR void swiftUpdateSampleBufferDisplayLayerBoundsAndPosition(uint64_t identifier, CGRect bounds, OptionalMachSendRightAnnotated fence);
+#endif
+
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    // Implemented in Swift (UserMediaCaptureManagerProxy.swift): the capture receiver's sources stop, and reapply the
+    // page's capture environment.
+    SWIFT_MAIN_ACTOR void swiftCloseUserMediaCaptureManager();
+    SWIFT_MAIN_ACTOR void swiftReapplyCaptureEnvironment(uint64_t pageIdentifier);
 
     // Implemented in Swift: for the track renderer units, whether this connection's process is the one that most recently
     // started capturing audio, and the audio session's interruptions.
@@ -510,11 +526,11 @@ private:
 #endif
     PAL::SessionID m_sessionID;
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    RefPtr<UserMediaCaptureManagerProxy> m_userMediaCaptureManagerProxy;
     class AudioSessionInterruptionForwarder;
     const RefPtr<AudioSessionInterruptionForwarder> m_audioSessionInterruptionForwarder;
 
-    const Ref<RemoteSampleBufferDisplayLayerManager> m_sampleBufferDisplayLayerManager;
+    RefPtr<RemoteSampleBufferDisplayLayerManagerMessageForwarder> m_sampleBufferDisplayLayerManager;
+    RefPtr<RemoteSampleBufferDisplayLayerMessageForwarder> m_sampleBufferDisplayLayers;
 #endif
 
 #if ENABLE(MEDIA_STREAM)
