@@ -434,6 +434,8 @@ def message_to_struct_declaration(receiver, message):
 # sends it on the connection, for Swift, which can't name the message classes or call Connection::send().
 def generate_cxx_senders(receiver):
     result = []
+    if receiver.cxx_senders_enabled_by:
+        result.append('#if ENABLE(%s)\n' % receiver.cxx_senders_enabled_by)
     for message in receiver.messages:
         if message.reply_parameters is not None or message.is_async_reply:
             continue
@@ -447,6 +449,8 @@ def generate_cxx_senders(receiver):
         sender.append('}\n')
         result.append(surround_in_condition(''.join(sender), message.condition))
         result.append('\n')
+    if receiver.cxx_senders_enabled_by:
+        result.append('#endif\n')
     return result
 
 

@@ -61,8 +61,6 @@ WANTS_RECEIVER_ATTRIBUTE = 'WantsReceiver'
 # 'SwiftReceiverOwner=Provider' starts it on the owner that the C++ class Provider gives, with swiftReceiverOwner().
 SWIFT_RECEIVER_OWNER_ATTRIBUTE = 'SwiftReceiverOwner'
 CXX_TYPES_ATTRIBUTE = 'CxxTypes'
-# On a receiver: its messages header also declares, for each message without a reply whose arguments C++ needn't move, a
-# function that sends it, which Swift can call as it can't name the message classes or call Connection::send().
 CXX_SENDERS_ATTRIBUTE = 'CxxSenders'
 # On a message that only C++ sends, so that a receiver's 'SwiftSends=' makes no Swift sender for it: for a message whose
 # arguments name types that have no Swift forms, which Swift senders would otherwise spell as types in IPCTypes.
@@ -104,6 +102,8 @@ _SWIFT_TYPES_RESERVED_PARAMETER_NAMES = frozenset(['connection', 'decoder', 'dec
 _NON_OWNING_TYPE_PATTERN = re.compile(r'\b(?:span|ArrayReferenceTuple)\s*<|\b(?:StringView|string_view|CStringView)\b')
 
 class MessageReceiver(object):
+    cxx_senders_enabled_by = None
+
     def __init__(self, name, superclass, attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, condition, namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types=False, swift_receiver_state_lender=None, messages_from=None, swift_sends=None, swift_receiver_owner_provider=None, swift_state=None, swift_implementation_build_enabled_by=None):
         self.name = name
         self.superclass = superclass

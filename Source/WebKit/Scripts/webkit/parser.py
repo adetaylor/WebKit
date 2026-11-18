@@ -64,6 +64,7 @@ def parse(file):
     recordable = False
     swift_actor = False
     cxx_senders = False
+    cxx_senders_enabled_by = None
     messages_from = None
     swift_sends = None
     destination = None
@@ -103,6 +104,10 @@ def parse(file):
                     continue
                 if match.group('name') == 'MessagesFrom':
                     messages_from = match.group('value')
+                    continue
+                if match.group('name') == model.CXX_SENDERS_ATTRIBUTE:
+                    cxx_senders = True
+                    cxx_senders_enabled_by = match.group('value')
                     continue
                 if match.group('name') == 'SwiftSends':
                     swift_sends = match.group('value').split()
@@ -268,6 +273,14 @@ def parse(file):
     if swift_actor:
         receiver_attributes = (receiver_attributes or []) + [model.SWIFT_ACTOR_ATTRIBUTE]
     receiver = model.MessageReceiver(destination, superclass, receiver_attributes, receiver_enabled_by, receiver_enabled_by_exception, receiver_enabled_by_conjunction, receiver_dispatched_from, receiver_dispatched_from_exception, receiver_dispatched_to, receiver_dispatched_to_exception, shared_preferences_needs_connection, messages, combine_condition(master_condition), namespace, swift_receiver, swift_receiver_build_enabled_by, receiver_name, swift_types, swift_receiver_state_lender, messages_from, swift_sends, swift_receiver_owner_provider, swift_state, swift_implementation_build_enabled_by)
+    if cxx_senders:
+        if receiver.has_attribute(model.STREAM_ATTRIBUTE):
+            raise Exception("ERROR: Receiver %s has '%s', which is for receivers whose messages are sent on an IPC::Connection" % (destination, model.CXX_SENDERS_ATTRIBUTE))
+        for message in messages:
+            for parameter in message.parameters:
+                if parameter.name in ('connection', 'destinationID'):
+                    raise Exception("ERROR: Message %s.%s has a parameter named '%s', which its C++ sender ('%s') takes itself" % (destination, message.name, parameter.name, model.CXX_SENDERS_ATTRIBUTE))
+        receiver.cxx_senders_enabled_by = cxx_senders_enabled_by
     if not messages_from:
         receiver.enforce_swift_types_constraints()
     return receiver

@@ -459,6 +459,14 @@ messages -> TestReceiver {
         self.assertNotIn('sendMovedMessage', header)
         self.assertNotIn('inline void send', messages.generate_messages_header(parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo]\nmessages -> TestReceiver {\n    EmptyMessage()\n}\n'))))
 
+        header = messages.generate_messages_header(parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders=FEATURE]\nmessages -> TestReceiver {\n    EmptyMessage()\n}\n')))
+        self.assertIn('#if ENABLE(FEATURE)\ninline void sendEmptyMessage(IPC::Connection& connection, uint64_t destinationID)\n{\n    connection.send(EmptyMessage(), destinationID);\n}\n\n#endif\n', header)
+
+        with self.assertRaisesRegex(Exception, r"ERROR: Receiver TestReceiver has 'CxxSenders', which is for receivers whose messages are sent on an IPC::Connection"):
+            parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders]\nmessages -> TestReceiver Stream {\n    EmptyMessage()\n}\n'))
+        with self.assertRaisesRegex(Exception, r"ERROR: Message TestReceiver.Clash has a parameter named 'connection', which its C\+\+ sender \('CxxSenders'\) takes itself"):
+            parser.parse(io.StringIO('[ExceptionForEnabledBy, ExceptionForDispatchedFrom, ExceptionForDispatchedTo, CxxSenders]\nmessages -> TestReceiver {\n    Clash(uint64_t connection)\n}\n'))
+
     def test_swift_state(self):
         def parse(messages_text, receiver_attributes='WorkQueue', attributes=('SwiftImplementation', 'SwiftTypes', 'SwiftState=TestState')):
             return parser.parse(io.StringIO("""
