@@ -141,6 +141,9 @@ void RemoteMediaPlayerProxy::invalidate()
         m_sandboxExtension = nullptr;
     }
     m_renderingResourcesRequest = { };
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    m_invalidated = true;
+#endif
 #if USE(AVFOUNDATION)
     m_videoFrameForCurrentTime = nullptr;
 #endif
@@ -246,6 +249,7 @@ void RemoteMediaPlayerProxy::pause()
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 static MediaTimeUpdateData timeUpdateData(const MediaPlayer& player, MediaTime time)
 {
     return {
@@ -254,7 +258,9 @@ static MediaTimeUpdateData timeUpdateData(const MediaPlayer& player, MediaTime t
         MonotonicTime::now()
     };
 }
+#endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::seekToTarget(const WebCore::SeekTarget& target, CompletionHandler<void(std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError>)>&& handler)
 {
     ALWAYS_LOG(LOGIDENTIFIER, target);
@@ -272,7 +278,6 @@ void RemoteMediaPlayerProxy::seekToTarget(const WebCore::SeekTarget& target, Com
     });
 }
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::setVolumeLocked(bool volumeLocked)
 {
     m_player->setVolumeLocked(volumeLocked);
@@ -372,6 +377,7 @@ void RemoteMediaPlayerProxy::setRate(double rate)
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::didLoadingProgress(CompletionHandler<void(bool)>&& completionHandler)
 {
     m_player->didLoadingProgress(WTF::move(completionHandler));
@@ -379,7 +385,6 @@ void RemoteMediaPlayerProxy::didLoadingProgress(CompletionHandler<void(bool)>&& 
     protect(m_webProcessConnection)->send(Messages::MediaPlayerPrivateRemote::ReportGPUMemoryFootprint(WTF::memoryFootprint()), m_id);
 }
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::setPresentationSize(WebCore::IntSize size)
 {
     if (size == m_configuration.presentationSize)
@@ -1080,12 +1085,12 @@ void RemoteMediaPlayerProxy::performTaskAtTime(const MediaTime& taskTime, Perfor
     }, taskTime);
 }
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::isCrossOrigin(WebCore::SecurityOriginData originData, CompletionHandler<void(std::optional<bool>)>&& completionHandler)
 {
     completionHandler(m_player->isCrossOrigin(originData.securityOrigin()));
 }
 
-#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void RemoteMediaPlayerProxy::setVideoPlaybackMetricsUpdateInterval(double interval)
 {
     static const Seconds metricsAdvanceUpdate = 0.25_s;
@@ -1308,51 +1313,6 @@ void RemoteMediaPlayerProxy::cacheBufferedRanges()
     m_cachedState.bufferedRanges = m_player->buffered();
 }
 
-void RemoteMediaPlayerProxy::cacheDocumentIsCrossOrigin()
-{
-    m_cachedState.documentIsCrossOrigin = m_player->isCrossOrigin(m_configuration.documentSecurityOrigin.securityOrigin());
-}
-
-void RemoteMediaPlayerProxy::requestVideoPlaybackQualityMetrics()
-{
-    m_player->asyncVideoPlaybackQualityMetrics()->whenSettled(RunLoop::currentSingleton(), [weakThis = WeakPtr { *this }](auto&& result) {
-        RefPtr protectedThis = weakThis.get();
-        if (!protectedThis)
-            return;
-        if (result) {
-            protectedThis->m_cachedState.videoMetrics = *result;
-            protect(protectedThis->m_webProcessConnection)->send(Messages::MediaPlayerPrivateRemote::UpdatePlaybackQualityMetrics(WTF::move(*result)), protectedThis->m_id);
-        } else
-            protectedThis->m_cachedState.videoMetrics.reset();
-        protectedThis->m_hasPlaybackMetricsUpdatePending = false;
-    });
-}
-
-void RemoteMediaPlayerProxy::clearCachedBufferedRanges()
-{
-    m_cachedState.bufferedRanges = std::nullopt;
-}
-
-#if ENABLE(WEB_AUDIO)
-void RemoteMediaPlayerProxy::setAudioSourceProviderVolume(double volume)
-{
-    if (m_remoteAudioSourceProvider)
-        m_remoteAudioSourceProvider->setVolume(volume);
-}
-
-void RemoteMediaPlayerProxy::setAudioSourceProviderPreservesPitch(bool preservesPitch)
-{
-    if (m_remoteAudioSourceProvider)
-        m_remoteAudioSourceProvider->setPreservesPitch(preservesPitch);
-}
-
-void RemoteMediaPlayerProxy::setAudioSourceProviderPlaybackRate(double rate)
-{
-    if (m_remoteAudioSourceProvider)
-        m_remoteAudioSourceProvider->setPlaybackRate(rate);
-}
-#endif
-
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
 void RemoteMediaPlayerProxy::setPreferredSpeakerID()
 {
@@ -1383,6 +1343,11 @@ void RemoteMediaPlayerProxy::logAlways(const String& message) const
 #endif
 
 } // namespace WebKit
+
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+template struct WTF::NativePromiseSettler<WebCore::MediaTimePromise>;
+template struct WTF::NativePromiseSettler<WebCore::MediaPlayer::VideoPlaybackQualityMetricsPromise>;
+#endif
 
 #undef MESSAGE_CHECK
 

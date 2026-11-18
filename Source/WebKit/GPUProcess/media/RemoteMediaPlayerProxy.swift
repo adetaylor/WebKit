@@ -30,6 +30,20 @@ private let moreFrequentTimeupdateEventInterval = 0.25
 
 private let metricsAdvanceUpdate = 0.25
 
+extension WebKit.RemoteMediaPlayerProxy.MediaTimeResult: CxxExpected {}
+extension WebKit.RemoteMediaPlayerProxy.VideoPlaybackQualityMetricsResult: CxxExpected {}
+
+// This is safe because all conformances to the protocol are safe as long as they don't implement any of the
+// requirements themselves.
+extension WebKit.RemoteMediaPlayerProxy.MediaTimePromiseHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WebKit.RemoteMediaPlayerProxy.MediaTimeResult
+}
+
+// As above.
+extension WebKit.RemoteMediaPlayerProxy.VideoPlaybackQualityMetricsPromiseHandler: @unsafe CxxCompletionHandler {
+    typealias Argument = WebKit.RemoteMediaPlayerProxy.VideoPlaybackQualityMetricsResult
+}
+
 extension WebKit.RemoteMediaPlayerProxy {
     // MARK: Loading and playback
 
@@ -83,6 +97,50 @@ extension WebKit.RemoteMediaPlayerProxy {
         #endif
         configuration.shouldIgnoreIntrinsicSize = player.shouldIgnoreIntrinsicSize()
         return configuration
+    }
+
+    @cxx
+    @implementation
+    func seekToTarget(_ target: WebCore.SeekTarget, _ completionHandler: WebKit.RemoteMediaPlayerProxy.SeekCompletionHandler) {
+        alwaysLog("seekToTarget", "\(target.time.toDouble())")
+        let weakThis = weakPtrForSwift()
+        WebKit.RemoteMediaPlayerProxy.MediaTimePromiseSettler.whenSettled(
+            player().seekToTarget(target),
+            consuming: .init { result in
+                let reply: WebKit.RemoteMediaPlayerProxy.SeekResult
+                do throws(CxxUnexpected<WebCore.PlatformMediaError>) {
+                    let time = try result.value
+                    if let proxy = weakThis.get(), !proxy.m_invalidated {
+                        reply = WTF.makeExpected(proxy.timeUpdateData(proxy.player(), time))
+                    } else {
+                        reply = WTF.makeUnexpected(WebCore.PlatformMediaError.Cancelled)
+                    }
+                } catch {
+                    reply = WTF.makeUnexpected(error.error)
+                }
+                completionHandler.pointee(reply)
+            }
+        )
+    }
+
+    @cxx
+    @implementation
+    func didLoadingProgress(_ completionHandler: WebKit.RemoteMediaPlayerProxy.DidLoadingProgressCompletionHandler) {
+        player().didLoadingProgress(consuming: .init { completionHandler.pointee($0) })
+
+        Messages.MediaPlayerPrivateRemote.sendReportGPUMemoryFootprint(webProcessConnection, destinationID, UInt64(WTF.memoryFootprint()))
+    }
+
+    @cxx
+    @implementation
+    func isCrossOrigin(_ originData: WebCore.SecurityOriginData, _ completionHandler: WebKit.RemoteMediaPlayerProxy.IsCrossOriginCompletionHandler) {
+        completionHandler.pointee(.init(player().isCrossOrigin(originData.securityOrigin().get())))
+    }
+
+    @cxx
+    @implementation
+    func colorSpace(_ completionHandler: WebKit.RemoteMediaPlayerProxy.ColorSpaceCompletionHandler) {
+        completionHandler.pointee(player().colorSpace())
     }
 
     @cxx
@@ -181,7 +239,7 @@ extension WebKit.RemoteMediaPlayerProxy {
     func setVolume(_ volume: Double) {
         player().setVolume(volume)
         #if ENABLE_WEB_AUDIO
-        setAudioSourceProviderVolume(volume)
+        m_remoteAudioSourceProvider.get()?.setVolume(volume)
         #endif
     }
 
@@ -190,7 +248,7 @@ extension WebKit.RemoteMediaPlayerProxy {
     func setPreservesPitch(_ preservesPitch: Bool) {
         player().setPreservesPitch(preservesPitch)
         #if ENABLE_WEB_AUDIO
-        setAudioSourceProviderPreservesPitch(preservesPitch)
+        m_remoteAudioSourceProvider.get()?.setPreservesPitch(preservesPitch)
         #endif
     }
 
@@ -489,7 +547,7 @@ extension WebKit.RemoteMediaPlayerProxy {
     func sendCachedState() {
         updateCachedState(false)
         Messages.MediaPlayerPrivateRemote.sendUpdateCachedState(webProcessConnection, destinationID, m_cachedState)
-        clearCachedBufferedRanges()
+        m_cachedState.bufferedRanges = nil
     }
 
     @cxx
@@ -534,7 +592,23 @@ extension WebKit.RemoteMediaPlayerProxy {
             return
         }
         m_hasPlaybackMetricsUpdatePending = true
-        requestVideoPlaybackQualityMetrics()
+        let weakThis = weakPtrForSwift()
+        WebKit.RemoteMediaPlayerProxy.VideoPlaybackQualityMetricsPromiseSettler.whenSettled(
+            player().asyncVideoPlaybackQualityMetrics(),
+            consuming: .init { result in
+                guard let proxy = weakThis.get(), !proxy.m_invalidated else {
+                    return
+                }
+                do {
+                    let metrics = try result.value
+                    proxy.m_cachedState.videoMetrics = .init(metrics)
+                    Messages.MediaPlayerPrivateRemote.sendUpdatePlaybackQualityMetrics(proxy.webProcessConnection, proxy.destinationID, metrics)
+                } catch {
+                    proxy.m_cachedState.videoMetrics = nil
+                }
+                proxy.m_hasPlaybackMetricsUpdatePending = false
+            }
+        )
     }
 
     // MARK: MediaPlayerClient
@@ -576,7 +650,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         #endif
         m_cachedState.canSaveMediaData = player.canSaveMediaData()
         m_cachedState.didPassCORSAccessCheck = player.didPassCORSAccessCheck()
-        cacheDocumentIsCrossOrigin()
+        m_cachedState.documentIsCrossOrigin = .init(player.isCrossOrigin(m_configuration.documentSecurityOrigin.securityOrigin().get()))
 
         Messages.MediaPlayerPrivateRemote.sendReadyStateChanged(webProcessConnection, destinationID, m_cachedState, newReadyState)
     }
@@ -629,7 +703,7 @@ extension WebKit.RemoteMediaPlayerProxy {
         let effectiveRate = player.effectiveRate()
 
         #if ENABLE_WEB_AUDIO
-        setAudioSourceProviderPlaybackRate(effectiveRate)
+        m_remoteAudioSourceProvider.get()?.setPlaybackRate(effectiveRate)
         #endif
 
         Messages.MediaPlayerPrivateRemote.sendRateChanged(webProcessConnection, destinationID, effectiveRate, timeUpdateData(player, player.currentTime()))

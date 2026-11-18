@@ -50,8 +50,9 @@
 #include <WebCore/ShareableBitmap.h>
 #include <optional>
 #include <wtf/LoggerHelper.h>
+#include <wtf/NativePromiseSettler.h>
+#include <wtf/RefCountable.h>
 #include <wtf/RefPtr.h>
-#include <wtf/SwiftBridging.h>
 #include <wtf/RunLoop.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
@@ -164,7 +165,22 @@ public:
     void play();
     void pause();
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using WeakRemoteMediaPlayerProxy = WeakPtr<RemoteMediaPlayerProxy>;
+    WeakRemoteMediaPlayerProxy weakPtrForSwift() { return *this; }
+    using MediaTimePromiseSettler = WTF::NativePromiseSettler<WebCore::MediaTimePromise>;
+    using MediaTimePromiseHandler = MediaTimePromiseSettler::Handler;
+    using MediaTimeResult = MediaTimePromiseSettler::Result;
+    using VideoPlaybackQualityMetricsPromiseSettler = WTF::NativePromiseSettler<WebCore::MediaPlayer::VideoPlaybackQualityMetricsPromise>;
+    using VideoPlaybackQualityMetricsPromiseHandler = VideoPlaybackQualityMetricsPromiseSettler::Handler;
+    using VideoPlaybackQualityMetricsResult = VideoPlaybackQualityMetricsPromiseSettler::Result;
+    using ColorSpaceCompletionHandler = WTF::RefCountable<CompletionHandler<void(WebCore::ColorSpace)>>;
+    using SeekResult = std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError>;
+    using SeekCompletionHandler = WTF::RefCountable<CompletionHandler<void(SeekResult)>>;
+    void seekToTarget(WebCore::SeekTarget, SeekCompletionHandler* WTF_NONNULL);
+#else
     void seekToTarget(const WebCore::SeekTarget&, CompletionHandler<void(std::expected<WebCore::MediaTimeUpdateData, WebCore::PlatformMediaError>)>&&);
+#endif
 
     void setVolumeLocked(bool);
     void setVolume(double);
@@ -186,7 +202,12 @@ public:
     void acceleratedRenderingStateChanged(bool);
     void setShouldDisableSleep(bool);
     void setRate(double);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using DidLoadingProgressCompletionHandler = WTF::RefCountable<CompletionHandler<void(bool)>>;
+    void didLoadingProgress(DidLoadingProgressCompletionHandler* WTF_NONNULL);
+#else
     void didLoadingProgress(CompletionHandler<void(bool)>&&);
+#endif
 
     void setPresentationSize(WebCore::IntSize);
 
@@ -229,7 +250,12 @@ public:
 
     using PerformTaskAtTimeCompletionHandler = CompletionHandler<void(std::optional<MediaTime>)>;
     void performTaskAtTime(const MediaTime&, PerformTaskAtTimeCompletionHandler&&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    using IsCrossOriginCompletionHandler = WTF::RefCountable<CompletionHandler<void(std::optional<bool>)>>;
+    void isCrossOrigin(WebCore::SecurityOriginData, IsCrossOriginCompletionHandler* WTF_NONNULL);
+#else
     void isCrossOrigin(WebCore::SecurityOriginData, CompletionHandler<void(std::optional<bool>)>&&);
+#endif
 
     void setVideoPlaybackMetricsUpdateInterval(double);
 
@@ -348,14 +374,6 @@ private:
     bool isUpdateCachedStateMessageTimerActive() const { return m_updateCachedStateMessageTimer.isActive(); }
     void startRepeatingUpdateCachedStateMessageTimer(double seconds) { m_updateCachedStateMessageTimer.startRepeating(Seconds(seconds)); }
     void cacheBufferedRanges();
-    void clearCachedBufferedRanges();
-#if ENABLE(WEB_AUDIO)
-    void setAudioSourceProviderVolume(double);
-    void setAudioSourceProviderPreservesPitch(bool);
-    void setAudioSourceProviderPlaybackRate(double);
-#endif
-    void cacheDocumentIsCrossOrigin();
-    void requestVideoPlaybackQualityMetrics();
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
     void setPreferredSpeakerID();
 #endif
@@ -397,7 +415,11 @@ private:
 #if PLATFORM(COCOA)
     WebCore::FloatSize mediaPlayerVideoLayerSize() const final;
     void nativeImageForCurrentTime(CompletionHandler<void(std::optional<WTF::MachSendRight>&&, WebCore::ColorSpace)>&&);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void colorSpace(ColorSpaceCompletionHandler* WTF_NONNULL);
+#else
     void colorSpace(CompletionHandler<void(WebCore::ColorSpace)>&&);
+#endif
 #endif
     void videoFrameForCurrentTimeIfChanged(RemoteVideoFrameReference, CompletionHandler<void(std::optional<RemoteVideoFrameProxy::Properties>&&, bool)>&&);
     void bitmapImageForCurrentTime(CompletionHandler<void(std::optional<WebCore::ShareableBitmap::Handle>&&)>&&);
@@ -481,6 +503,9 @@ private:
     ScopedRenderingResourcesRequest m_renderingResourcesRequest;
 
     bool m_observingTimeChanges { false };
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    bool m_invalidated { false };
+#endif
     const Ref<RemoteVideoFrameObjectHeap> m_videoFrameObjectHeap;
     RefPtr<WebCore::VideoFrame> m_videoFrameForCurrentTime;
     bool m_shouldCheckHardwareSupport { false };

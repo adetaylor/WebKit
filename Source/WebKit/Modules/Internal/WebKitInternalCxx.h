@@ -69,6 +69,9 @@
 #if ENABLE(GPU_PROCESS_MEDIA_SWIFT) && ENABLE(VIDEO)
 #include "MediaPlayerPrivateRemoteMessages.h"
 #include "RemoteMediaPlayerProxy.h"
+#if ENABLE(WEB_AUDIO)
+#include "RemoteAudioSourceProviderProxy.h"
+#endif
 #endif
 
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
