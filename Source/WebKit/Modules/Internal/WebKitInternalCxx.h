@@ -63,6 +63,11 @@
 #include "SwiftReceiverRegistration.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_CORE_SWIFT)
+#include "LogInitialization.h"
+#include <WebCore/LogInitialization.h>
+#endif
+
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 #include "RemoteVideoFrameObjectHeap.h"
 #include "RemoteVideoFrameObjectHeapMessages.h"

@@ -1,3 +1,5 @@
+// Copyright (C) 2019-2025 Apple Inc. All rights reserved.
+// Copyright (C) 2021 Apple Inc. All rights reserved.
 // Copyright (C) 2026 Apple Inc. All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -78,6 +80,10 @@ final class GPUConnectionState {
     #endif
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     private(set) var audioMediaStreamTrackRendererInternalUnitManager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT
+    // Tells the track renderer units about the audio session's interruptions.
+    private var audioSessionObserver: WebCore.AudioSessionObserverCallbacks?
+    #endif
     private(set) var userMediaCaptureManager: UserMediaCaptureManagerProxy?
     #endif
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
@@ -113,6 +119,16 @@ final class GPUConnectionState {
     #endif
     #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
     fileprivate var gpuOwners: [UInt64: IPC.SwiftReceiverOwner] = [:]
+    #endif
+
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT
+    // The Now Playing info of the connection's pages, by page identifier.
+    fileprivate var nowPlayingInfos: [UInt64: WebCore.NowPlayingInfo] = [:]
+    #endif
+    #if ENABLE_GPU_PROCESS_CORE_SWIFT && ENABLE_EXTENSION_CAPABILITIES
+    // The media playback and display capture environments of the connection's pages, by page identifier, when not empty.
+    fileprivate var mediaPlaybackEnvironments: [UInt64: WTF.String] = [:]
+    fileprivate var displayCaptureEnvironments: [UInt64: WTF.String] = [:]
     #endif
 
     fileprivate nonisolated init(processIdentifier: UInt64, isLockdownModeEnabled: Bool) {
@@ -184,6 +200,24 @@ final class GPUConnectionState {
             connection: connection
         )
         self.audioMediaStreamTrackRendererInternalUnitManager = audioMediaStreamTrackRendererInternalUnitManager
+        #if ENABLE_GPU_PROCESS_CORE_SWIFT
+        let process = processIdentifier
+        audioSessionObserver = WebCore.AudioSessionObserverCallbacks.create(
+            consuming: WebCore.AudioSessionObserverCallbacks.Callback {
+                MainActor.assumeIsolated {
+                    let manager = webProcessConnections[process]?.state.audioMediaStreamTrackRendererInternalUnitManager
+                    manager?.beginAudioSessionInterruption()
+                }
+            },
+            consuming: WebCore.AudioSessionObserverCallbacks.EndInterruptionCallback { _ in
+                MainActor.assumeIsolated {
+                    let manager = webProcessConnections[process]?.state.audioMediaStreamTrackRendererInternalUnitManager
+                    manager?.endAudioSessionInterruption()
+                }
+            },
+            consuming: WebCore.AudioSessionObserverCallbacks.Callback {}
+        )
+        #endif
         register(
             IPC.registerSwiftReceiver(
                 connection,
@@ -425,12 +459,14 @@ extension WebKit.GPUConnectionToWebProcess {
         nowPlayingArbiter.recompute()
     }
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
     func swiftIsActiveNowPlayingPage(_ pageIdentifier: UInt64) -> Bool {
         nowPlayingArbiter.isActive(process: state.processIdentifier, page: pageIdentifier)
     }
+    #endif
 
     @cxx
     @implementation
@@ -439,6 +475,7 @@ extension WebKit.GPUConnectionToWebProcess {
         nowPlayingArbiter.remoteCommandTargetSession(in: state.processIdentifier) ?? 0
     }
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
@@ -451,6 +488,7 @@ extension WebKit.GPUConnectionToWebProcess {
         }
         return listenerState
     }
+    #endif
 
     #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
     @cxx
@@ -471,6 +509,7 @@ extension WebKit.GPUConnectionToWebProcess {
     }
 
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
@@ -478,7 +517,9 @@ extension WebKit.GPUConnectionToWebProcess {
         MainActor.preconditionIsolated()
         state.audioMediaStreamTrackRendererInternalUnitManager?.setIsLastToCaptureAudio(isLastToCaptureAudio)
     }
+    #endif
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
@@ -494,6 +535,7 @@ extension WebKit.GPUConnectionToWebProcess {
         MainActor.preconditionIsolated()
         state.audioMediaStreamTrackRendererInternalUnitManager?.endAudioSessionInterruption()
     }
+    #endif
     #endif
 
     #if ENABLE_WEB_AUDIO && WTF_PLATFORM_IOS_FAMILY
@@ -643,12 +685,14 @@ extension WebKit.GPUConnectionToWebProcess {
     }
     #endif
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
     func swiftReleaseRenderingBackend(_ identifier: UInt64) -> Bool {
         state.releaseRenderingBackend(identifier)
     }
+    #endif
 
     @cxx
     @implementation
@@ -664,13 +708,25 @@ extension WebKit.GPUConnectionToWebProcess {
         state.closeStreamReceivers()
     }
 
-    #if ENABLE_WEBGL
+    #if ENABLE_WEBGL && !ENABLE_GPU_PROCESS_CORE_SWIFT
     @cxx
     @implementation
     @MainActor
     func swiftHasGraphicsContextGL(_ identifier: UInt64) -> Bool {
         state.graphicsContextGLOwners[identifier] != nil
     }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReleaseGraphicsContextGL(_ identifier: UInt64) -> Bool {
+        let owner: IPC.SwiftReceiverOwner? = state.graphicsContextGLOwners.removeValue(forKey: identifier)
+        owner?.stopListeningForIPC()
+        return state.graphicsContextGLOwners.isEmpty
+    }
+    #endif
+
+    #if ENABLE_WEBGL
 
     @cxx
     @implementation
@@ -695,25 +751,9 @@ extension WebKit.GPUConnectionToWebProcess {
         #endif
         state.graphicsContextGLOwners[identifier] = owner
     }
-
-    @cxx
-    @implementation
-    @MainActor
-    func swiftReleaseGraphicsContextGL(_ identifier: UInt64) -> Bool {
-        let owner: IPC.SwiftReceiverOwner? = state.graphicsContextGLOwners.removeValue(forKey: identifier)
-        owner?.stopListeningForIPC()
-        return state.graphicsContextGLOwners.isEmpty
-    }
     #endif
 
     #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
-    @cxx
-    @implementation
-    @MainActor
-    func swiftHasGPU(_ identifier: UInt64) -> Bool {
-        state.gpuOwners[identifier] != nil
-    }
-
     #if WTF_PLATFORM_COCOA && ENABLE_VIDEO
     @cxx
     @implementation
@@ -758,6 +798,25 @@ extension WebKit.GPUConnectionToWebProcess {
     }
     #endif
 
+    #if !ENABLE_GPU_PROCESS_CORE_SWIFT
+    @cxx
+    @implementation
+    @MainActor
+    func swiftHasGPU(_ identifier: UInt64) -> Bool {
+        state.gpuOwners[identifier] != nil
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftReleaseGPU(_ identifier: UInt64) -> Bool {
+        let owner = state.gpuOwners.removeValue(forKey: identifier)
+        assert(owner != nil, "The GPU has not been added")
+        owner?.stopListeningForIPC()
+        return state.gpuOwners.isEmpty
+    }
+    #endif
+
     // The rendering backend of a new WebGPU receiver, after its companions are made, or nil, with the owner stopped.
     @MainActor
     private func renderingBackendForGPU(
@@ -776,15 +835,6 @@ extension WebKit.GPUConnectionToWebProcess {
         return renderingBackend
     }
 
-    @cxx
-    @implementation
-    @MainActor
-    func swiftReleaseGPU(_ identifier: UInt64) -> Bool {
-        let owner = state.gpuOwners.removeValue(forKey: identifier)
-        assert(owner != nil, "The GPU has not been added")
-        owner?.stopListeningForIPC()
-        return state.gpuOwners.isEmpty
-    }
     #endif
 }
 
@@ -800,5 +850,312 @@ struct GPUVideoFrameSources {
     }
     #endif
 }
+
+
+#if ENABLE_GPU_PROCESS_CORE_SWIFT
+extension GPUConnectionState {
+    // Whether the messages to a receiver name that nothing is registered for are dropped rather than invalid.
+    fileprivate static func routesUnregisteredReceiver(_ receiverName: IPC.ReceiverName) -> Bool {
+        switch receiverName {
+        #if ENABLE_GPU_PROCESS_CDM_SWIFT
+        // The CDMs, instances and sessions that the Swift factories make register themselves; their messages after they
+        // go are dropped.
+        case .RemoteCDMProxy, .RemoteCDMInstanceProxy, .RemoteCDMInstanceSessionProxy:
+            return true
+        #endif
+        #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+        case .RemoteLegacyCDMProxy, .RemoteLegacyCDMSessionProxy:
+            return true
+        #endif
+        #if ENABLE_WEBGL
+        // The messages that reach the connection for a context that has been released.
+        case .RemoteGraphicsContextGL:
+            return true
+        #endif
+        default:
+            return false
+        }
+    }
+}
+
+extension WebKit.GPUConnectionToWebProcess {
+    @cxx
+    @implementation
+    @MainActor
+    func swiftRoutesUnregisteredReceiver(_ receiverName: IPC.ReceiverName) -> Bool {
+        GPUConnectionState.routesUnregisteredReceiver(receiverName)
+    }
+
+    // The GPU process doesn't exit under memory pressure on Cocoa.
+    @cxx
+    @implementation
+    @MainActor
+    func allowsExitUnderMemoryPressure() -> Bool {
+        false
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func terminateWebProcess(_ invalidMessageName: IPC.MessageName) {
+        gpuProcess().terminateWebProcess(webProcessIdentifier(), invalidMessageName)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func tryExitIfUnusedAndUnderMemoryPressure() {
+        gpuProcess().tryExitIfUnusedAndUnderMemoryPressure()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func configureLoggingChannel(_ channelName: WTF.String, _ channelState: WTFLogChannelState, _ level: WTFLogLevel) {
+        for channel in [WebCore.getLogChannel(channelName), WebKit.getLogChannel(channelName)] {
+            channel?.state = channelState
+            channel?.level = level
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseRenderingBackend(_ identifier: WebKit.RemoteRenderingBackendIdentifier) {
+        let found = state.releaseRenderingBackend(identifier.toUInt64())
+        assert(found, "The rendering backend has not been added")
+        gpuProcess().tryExitIfUnusedAndUnderMemoryPressure()
+    }
+
+    #if ENABLE_WEBGL
+    @cxx
+    @implementation
+    @MainActor
+    func releaseGraphicsContextGL(_ identifier: WebKit.RemoteGraphicsContextGLIdentifier) {
+        do {
+            try messageCheck { !isLockdownModeEnabled() }
+        } catch {
+            markMessageInvalid(error, on: connection())
+            return
+        }
+        let owner: IPC.SwiftReceiverOwner? = state.graphicsContextGLOwners.removeValue(forKey: identifier.toUInt64())
+        owner?.stopListeningForIPC()
+        if state.graphicsContextGLOwners.isEmpty {
+            gpuProcess().tryExitIfUnusedAndUnderMemoryPressure()
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseGraphicsContextGLForTesting(_ identifier: WebKit.RemoteGraphicsContextGLIdentifier) {
+        releaseGraphicsContextGL(identifier)
+    }
+    #endif
+
+    #if ENABLE_WEBGL
+    @cxx
+    @implementation
+    @MainActor
+    func swiftShouldCreateGraphicsContextGL(_ identifier: UInt64, _ supportsDraftExtensions: Bool, _ renderingBackendIdentifier: UInt64) -> Bool {
+        do {
+            try messageCheck { !isLockdownModeEnabled() }
+            try messageCheck { !supportsDraftExtensions || sharedPreferencesForWebProcess().value?.webGLDraftExtensionsEnabled == true }
+        } catch {
+            markMessageInvalid(error, on: connection())
+            return false
+        }
+        guard state.renderingBackends[renderingBackendIdentifier] != nil else {
+            return false
+        }
+        guard state.graphicsContextGLOwners[identifier] == nil else {
+            assertionFailure("The context has been added")
+            return false
+        }
+        return true
+    }
+    #endif
+
+    #if ENABLE_GPU_PROCESS_WEBGPU_SWIFT
+    @cxx
+    @implementation
+    @MainActor
+    func swiftShouldCreateGPU(_ identifier: UInt64, _ renderingBackendIdentifier: UInt64) -> Bool {
+        do {
+            try messageCheck { sharedPreferencesForWebProcess().value?.webGPUEnabled == true }
+        } catch {
+            markMessageInvalid(error, on: connection())
+            return false
+        }
+        guard state.renderingBackends[renderingBackendIdentifier] != nil else {
+            return false
+        }
+        guard state.gpuOwners[identifier] == nil else {
+            assertionFailure("The GPU has been added")
+            return false
+        }
+        return true
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseGPU(_ identifier: WebKit.WebGPUIdentifier) {
+        let owner = state.gpuOwners.removeValue(forKey: identifier.toUInt64())
+        assert(owner != nil, "The GPU has not been added")
+        owner?.stopListeningForIPC()
+        if state.gpuOwners.isEmpty {
+            gpuProcess().tryExitIfUnusedAndUnderMemoryPressure()
+        }
+    }
+    #endif
+
+    // FIXME: using global identifiers (frameIdentifier) is not secure. Do not follow this pattern.
+    @cxx
+    @implementation
+    @MainActor
+    func abandonSnapshotFrame(_ snapshotIdentifier: WebKit.RemoteSnapshotIdentifier, _ frameIdentifier: WebCore.FrameIdentifier) {
+        gpuProcess().abandonSnapshotFrame(snapshotIdentifier, frameIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func failSnapshot(_ snapshotIdentifier: WebKit.RemoteSnapshotIdentifier) {
+        gpuProcess().failSnapshot(snapshotIdentifier)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseTransferredImageBuffer(_ identifier: WebCore.ImageBufferTransferIdentifier) {
+        gpuProcess().releaseTransferredImageBuffer(identifier)
+    }
+
+    #if ENABLE_MEDIA_STREAM
+    @cxx
+    @implementation
+    @MainActor
+    func startCapturingAudio() {
+        let process = state.processIdentifier
+        for (identifier, connection) in webProcessConnections.all {
+            connection.state.audioMediaStreamTrackRendererInternalUnitManager?.setIsLastToCaptureAudio(identifier == process)
+        }
+    }
+    #endif
+
+    @cxx
+    @implementation
+    @MainActor
+    func swiftSetNowPlayingInfo(_ nowPlayingInfo: WebCore.NowPlayingInfo, _ pageIdentifier: UInt64) {
+        // The one copy: C++ lends the info, which the state keeps.
+        var info = nowPlayingInfo
+        // Content strips the artwork image from repeat pushes assuming the receiver cached it, so attach it here.
+        if let previousInfo = state.nowPlayingInfos.removeValue(forKey: pageIdentifier) {
+            Self.reuseNowPlayingArtworkImage(&info, previousInfo)
+        }
+        if nowPlayingArbiter.isActive(process: state.processIdentifier, page: pageIdentifier) {
+            setIsNowPlayingManagerClient(true)
+            setNowPlayingManagerInfo(info)
+            updateSupportedRemoteCommands()
+        }
+        state.nowPlayingInfos[pageIdentifier] = consume info
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func updateSupportedRemoteCommands() {
+        guard m_isNowPlayingManagerClient, let listener = state.remoteCommandListener else {
+            return
+        }
+        setNowPlayingManagerRemoteCommands(listener.commands.reduce(0) { $0 | UInt32(1) << $1.rawValue }, listener.supportsSeeking)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func clearNowPlayingInfo(_ forAllPages: Bool, _ pageIdentifier: UInt64) {
+        if forAllPages {
+            state.nowPlayingInfos.removeAll()
+        } else {
+            state.nowPlayingInfos[pageIdentifier] = nil
+        }
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func becomeNowPlayingOwner(_ pageIdentifier: UInt64) {
+        m_isNowPlayingManagerClient = true
+        setIsNowPlayingManagerClient(true)
+        if let index = state.nowPlayingInfos.index(forKey: pageIdentifier) {
+            setNowPlayingManagerInfo(state.nowPlayingInfos.values[index])
+        }
+        updateSupportedRemoteCommands()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func becomeRemoteCommandFallbackTarget() {
+        m_isNowPlayingManagerClient = true
+        setIsNowPlayingManagerClient(true)
+        updateSupportedRemoteCommands()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func resignNowPlayingManagerClient() {
+        m_isNowPlayingManagerClient = false
+        setIsNowPlayingManagerClient(false)
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func nowPlayingClientDidClose() {
+        assert(m_isNowPlayingManagerClient)
+        state.nowPlayingInfos.removeAll()
+        // Resign here rather than leaving it to the election. This connection is still in the GPU process's connections
+        // right now, but it is gone by the time the election from removeGPUConnectionToWebProcess runs, so a resign that
+        // looks the connection up by process identifier would silently do nothing and leave a dead NowPlayingManager
+        // client holding the system command listener.
+        resignNowPlayingManagerClient()
+        swiftNowPlayingClientDidClose()
+    }
+
+    #if ENABLE_EXTENSION_CAPABILITIES
+    @cxx
+    @implementation
+    @MainActor
+    func mediaPlaybackEnvironment(_ pageIdentifier: WebCore.PageIdentifier) -> WTF.String {
+        state.mediaPlaybackEnvironments[pageIdentifier.toUInt64()] ?? WTF.String()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func setMediaPlaybackEnvironment(_ pageIdentifier: WebCore.PageIdentifier, _ environment: WTF.String) {
+        state.mediaPlaybackEnvironments[pageIdentifier.toUInt64()] = environment.isEmpty() ? nil : environment
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func displayCaptureEnvironment(_ pageIdentifier: WebCore.PageIdentifier) -> WTF.String {
+        state.displayCaptureEnvironments[pageIdentifier.toUInt64()] ?? WTF.String()
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func setDisplayCaptureEnvironment(_ pageIdentifier: WebCore.PageIdentifier, _ environment: WTF.String) {
+        state.displayCaptureEnvironments[pageIdentifier.toUInt64()] = environment.isEmpty() ? nil : environment
+    }
+    #endif
+}
+#endif // ENABLE_GPU_PROCESS_CORE_SWIFT
 
 #endif // ENABLE_GPU_PROCESS

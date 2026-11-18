@@ -30,8 +30,10 @@
 #if ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 #include "AuxiliaryProcess.h"
+#include "GPUProcessConnectionParameters.h"
 #include "GPUProcessCreationParameters.h"
 #include "GPUProcessPreferences.h"
+#include "GPUProcessSessionParameters.h"
 #include "ImageBufferBackendHandle.h"
 #include "RemoteSnapshotIdentifier.h"
 #include "RemoteSnapshotSink.h"
@@ -83,8 +85,9 @@ namespace WebKit {
 
 class SampleBufferDisplayLayerHost;
 class GPUConnectionToWebProcess;
-struct GPUProcessConnectionParameters;
-struct GPUProcessSessionParameters;
+
+using GPUProcessConnectionParametersArgument = WTF::MoveOnlyArgument<GPUProcessConnectionParameters>;
+using GPUProcessSessionParametersArgument = WTF::MoveOnlyArgument<GPUProcessSessionParameters>;
 
 using RefPtrTransferredImageBuffer = RefPtr<WebCore::ImageBuffer>;
 #if HAVE(AUDIT_TOKEN)
@@ -132,7 +135,6 @@ public:
     bool setCaptureTCCIdentity(const String& fallbackBundleIdentifier);
     bool hasCaptureIdentity(const String& applicationBundleIdentifier);
 #endif
-    SWIFT_MAIN_ACTOR void processIsStartingToCaptureAudio(GPUConnectionToWebProcess&);
 #endif
 
 #if USE(LIBWEBRTC)
@@ -193,7 +195,6 @@ private:
     SWIFT_MAIN_ACTOR void lowMemoryHandler(Critical, Synchronous);
     SWIFT_MAIN_ACTOR void tryExitIfUnused();
     SWIFT_MAIN_ACTOR bool canExitUnderMemoryPressure() const;
-    SWIFT_MAIN_ACTOR void didAddWebProcessConnection(GPUConnectionToWebProcess&);
     SWIFT_MAIN_ACTOR void didRemoveWebProcessConnection(GPUConnectionToWebProcess&);
 
     // AuxiliaryProcess
@@ -214,15 +215,16 @@ private:
     SWIFT_MAIN_ACTOR void swiftInitializeNowPlayingFallbackSession(uint64_t sessionIdentifier, uint64_t processIdentifier);
     // Unsafe: Swift borrows the parameters for the call, and only reads their values.
     SWIFT_UNSAFE SWIFT_MAIN_ACTOR void swiftInitializeGPUProcess(const GPUProcessCreationParameters&);
-    void createGPUConnectionToWebProcess(WebCore::ProcessIdentifier, PAL::SessionID, IPC::Connection::Handle&&, GPUProcessConnectionParameters&&, CompletionHandler<void()>&&);
+    SWIFT_MAIN_ACTOR void createGPUConnectionToWebProcess(WebCore::ProcessIdentifier, PAL::SessionID, IPC::ConnectionHandleArgument, GPUProcessConnectionParametersArgument, GPUProcessVoidReply* WTF_NONNULL);
+    // Whether the connection is new, which this then keeps.
+    bool addWebProcessConnection(GPUConnectionToWebProcess&, bool ignoreInvalidMessageForTesting);
     SWIFT_MAIN_ACTOR void sharedPreferencesForWebProcessDidChange(WebCore::ProcessIdentifier, SharedPreferencesForWebProcess, GPUProcessVoidReply* WTF_NONNULL);
     void securityFlagsDidChange(SecurityFlags::Storage&& securityFlags) { SecurityFlags::Storage::update(WTF::move(securityFlags)); }
     SWIFT_MAIN_ACTOR void updateGPUProcessPreferences(GPUProcessPreferences);
     void updateSandboxAccess(const Vector<SandboxExtension::Handle>&);
     SWIFT_MAIN_ACTOR void prepareToSuspend(bool isSuspensionImminent, MonotonicTime estimatedSuspendTime, GPUProcessVoidReply* WTF_NONNULL);
     SWIFT_MAIN_ACTOR void processDidResume();
-    void addSession(PAL::SessionID, GPUProcessSessionParameters&&);
-    SWIFT_MAIN_ACTOR void swiftAddSession(PAL::SessionID, String mediaCacheDirectory, String mediaKeysStorageDirectory);
+    SWIFT_MAIN_ACTOR void addSession(PAL::SessionID, GPUProcessSessionParametersArgument);
     SWIFT_MAIN_ACTOR void removeSession(PAL::SessionID);
     void userPreferredLanguagesChanged(Vector<String>&& languages) { overrideUserPreferredLanguages(languages); }
 

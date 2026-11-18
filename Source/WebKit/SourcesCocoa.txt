@@ -72,7 +72,6 @@ NetworkProcess/webrtc/NetworkRTCTCPSocketCocoa.mm @nonARC
 NetworkProcess/webrtc/NetworkRTCUDPSocketCocoa.mm @nonARC
 
 GPUProcess/EntryPoint/Cocoa/XPCService/GPUServiceEntryPoint.mm @nonARC
-GPUProcess/cocoa/GPUConnectionToWebProcessCocoa.mm @nonARC
 GPUProcess/cocoa/GPUProcessCocoa.mm @nonARC
 GPUProcess/graphics/Model/MeshImpl.cpp
 GPUProcess/graphics/Model/WebKitMesh.mm

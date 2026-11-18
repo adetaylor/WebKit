@@ -604,8 +604,32 @@ extension WebKit.GPUProcess {
     @cxx
     @implementation
     @MainActor
-    func didAddWebProcessConnection(_ connection: WebKit.GPUConnectionToWebProcess) {
-        connection.swiftDidAddToGPUProcess()
+    func createGPUConnectionToWebProcess(
+        _ identifier: WebCore.ProcessIdentifier,
+        _ sessionID: PAL.SessionID,
+        _ connectionHandle: IPC.ConnectionHandleArgument,
+        _ parameters: WebKit.GPUProcessConnectionParametersArgument,
+        _ completionHandler: WebKit.GPUProcessVoidReply
+    ) {
+        WebKit.LogChannel.Process().releaseLog.log("GPUProcess::createGPUConnectionToWebProcess: processIdentifier=\(identifier.toUInt64())")
+        defer {
+            completionHandler.pointee()
+        }
+        let handle = connectionHandle.take()
+        // If sender exited before we received the handle, the handle may not be valid.
+        guard Bool(fromCxx: handle) else {
+            return
+        }
+        let parameters = parameters.take()
+        #if ENABLE_IPC_TESTING_API
+        let ignoreInvalidMessageForTesting = parameters.ignoreInvalidMessageForTesting
+        #else
+        let ignoreInvalidMessageForTesting = false
+        #endif
+        let connection = WebKit.GPUConnectionToWebProcess.create(self, identifier, sessionID, consuming: handle, consuming: parameters).ptr()
+        if addWebProcessConnection(connection, ignoreInvalidMessageForTesting) {
+            connection.swiftDidAddToGPUProcess()
+        }
     }
 
     @cxx
@@ -696,12 +720,23 @@ extension WebKit.GPUProcess {
     @cxx
     @implementation
     @MainActor
-    func swiftAddSession(_ sessionID: PAL.SessionID, _ mediaCacheDirectory: WTF.String, _ mediaKeysStorageDirectory: WTF.String) {
-        // As HashMap::add(), the first session with an identifier stays.
+    func addSession(_ sessionID: PAL.SessionID, _ parameters: WebKit.GPUProcessSessionParametersArgument) {
+        let parameters = parameters.take()
         assert(state.sessions[sessionID.toUInt64()] == nil)
-        if state.sessions[sessionID.toUInt64()] == nil {
-            state.sessions[sessionID.toUInt64()] = (mediaCacheDirectory, mediaKeysStorageDirectory)
+        WebKit.SandboxExtension.consumePermanently(parameters.mediaCacheDirectorySandboxExtensionHandle)
+        #if ENABLE_LEGACY_ENCRYPTED_MEDIA
+        WebKit.SandboxExtension.consumePermanently(parameters.mediaKeysStorageDirectorySandboxExtensionHandle)
+        #endif
+        // As HashMap::add(), the first session with an identifier stays.
+        guard state.sessions[sessionID.toUInt64()] == nil else {
+            return
         }
+        #if ENABLE_LEGACY_ENCRYPTED_MEDIA || ENABLE_ENCRYPTED_MEDIA
+        let mediaKeysStorageDirectory = parameters.mediaKeysStorageDirectory
+        #else
+        let mediaKeysStorageDirectory = WTF.String()
+        #endif
+        state.sessions[sessionID.toUInt64()] = (parameters.mediaCacheDirectory, mediaKeysStorageDirectory)
     }
 
     @cxx
@@ -990,15 +1025,6 @@ extension WebKit.GPUProcess {
     @MainActor
     func didApplyCaptureEnvironment(_ processIdentifier: WebCore.ProcessIdentifier, _ pageIdentifier: WebCore.PageIdentifier) {
         state.lastCaptureEnvironment = (processIdentifier, pageIdentifier)
-    }
-
-    @cxx
-    @implementation
-    @MainActor
-    func processIsStartingToCaptureAudio(_ process: WebKit.GPUConnectionToWebProcess) {
-        for connection in webProcessConnections.all.values {
-            connection.processIsStartingToCaptureAudio(process)
-        }
     }
 
     // FIXME: The manager is per process while requests are per page, so for now fail a second page's prompt while another
