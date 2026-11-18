@@ -31,10 +31,8 @@
 #if ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 #import "GPUConnectionToWebProcess.h"
-#import "GPUProcessConnectionParameters.h"
 #import "GPUProcessCreationParameters.h"
 #import "GPUProcessProxyMessages.h"
-#import "GPUProcessSessionParameters.h"
 #import "Logging.h"
 #import "RemoteSnapshotPDFDrawingTask.h"
 #import "RemoteSnapshotSink.h"
@@ -43,7 +41,6 @@
 #import <WebCore/UTIUtilities.h>
 #import <wtf/Borrow.h>
 #import <wtf/MemoryPressureHandler.h>
-#import <wtf/Scope.h>
 
 #if ENABLE(MEDIA_STREAM)
 #import "SampleBufferDisplayLayerHost.h"
@@ -182,22 +179,16 @@ void GPUProcess::initializeGPUProcess(GPUProcessCreationParameters&& parameters,
     completionHandler();
 }
 
-void GPUProcess::createGPUConnectionToWebProcess(WebCore::ProcessIdentifier identifier, PAL::SessionID sessionID, IPC::Connection::Handle&& connectionHandle, GPUProcessConnectionParameters&& parameters, CompletionHandler<void()>&& completionHandler)
+bool GPUProcess::addWebProcessConnection(GPUConnectionToWebProcess& connection, bool ignoreInvalidMessageForTesting)
 {
-    RELEASE_LOG(Process, "%p - GPUProcess::createGPUConnectionToWebProcess: processIdentifier=%" PRIu64, this, identifier.toUInt64());
-    auto reply = makeScopeExit(WTF::move(completionHandler));
-    // If sender exited before we received the handle, the handle may not be valid.
-    if (!connectionHandle)
-        return;
-    auto newConnection = GPUConnectionToWebProcess::create(*this, identifier, sessionID, WTF::move(connectionHandle), WTF::move(parameters));
 #if ENABLE(IPC_TESTING_API)
-    if (parameters.ignoreInvalidMessageForTesting)
-        newConnection->connection().setIgnoreInvalidMessageForTesting();
+    if (ignoreInvalidMessageForTesting)
+        connection.connection().setIgnoreInvalidMessageForTesting();
+#else
+    UNUSED_PARAM(ignoreInvalidMessageForTesting);
 #endif
-    ASSERT(!m_webProcessConnections.contains(identifier));
-    Ref connection = newConnection.get();
-    if (m_webProcessConnections.add(identifier, WTF::move(newConnection)).isNewEntry)
-        didAddWebProcessConnection(connection);
+    ASSERT(!m_webProcessConnections.contains(connection.webProcessIdentifier()));
+    return m_webProcessConnections.add(connection.webProcessIdentifier(), connection).isNewEntry;
 }
 
 GPUConnectionToWebProcess* GPUProcess::webProcessConnection(WebCore::ProcessIdentifier identifier) const
@@ -212,19 +203,6 @@ void GPUProcess::removeGPUConnectionToWebProcess(GPUConnectionToWebProcess& conn
     if (m_webProcessConnections.get(connection.webProcessIdentifier()) == &connection)
         m_webProcessConnections.remove(connection.webProcessIdentifier());
     didRemoveWebProcessConnection(connection);
-}
-
-void GPUProcess::addSession(PAL::SessionID sessionID, GPUProcessSessionParameters&& parameters)
-{
-    SandboxExtension::consumePermanently(parameters.mediaCacheDirectorySandboxExtensionHandle);
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    SandboxExtension::consumePermanently(parameters.mediaKeysStorageDirectorySandboxExtensionHandle);
-#endif
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
-    swiftAddSession(sessionID, WTF::move(parameters.mediaCacheDirectory), WTF::move(parameters.mediaKeysStorageDirectory));
-#else
-    swiftAddSession(sessionID, WTF::move(parameters.mediaCacheDirectory), { });
-#endif
 }
 
 WebCore::NowPlayingManager& GPUProcess::nowPlayingManager()
