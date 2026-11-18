@@ -60,7 +60,7 @@ final class GPUProcessState {
     // The page whose getUserMedia prompt shows the capture preview, the layer its camera shows in, while it does, and
     // the camera whose rotation the UI process monitors for it, with its page.
     var capturePreviewPage: WebCore.PageIdentifier?
-    var capturePreviewLayer: WebKit.CapturePreviewLayer?
+    var capturePreviewLayer: WebKit.SampleBufferDisplayLayerHost?
     var capturePreviewVideoDeviceID = ""
     var capturePreviewVideoPage: WebCore.PageIdentifier?
     var lastCaptureEnvironment: (process: WebCore.ProcessIdentifier, page: WebCore.PageIdentifier)?
@@ -1049,7 +1049,7 @@ extension WebKit.GPUProcess {
     @MainActor
     func swiftStartCapturePreviewForPage(
         _ pageIdentifier: WebCore.PageIdentifier,
-        _ layer: WebKit.CapturePreviewLayer?,
+        _ layer: WebKit.SampleBufferDisplayLayerHost?,
         _ videoDeviceID: WTF.String,
         _ videoDeviceLabel: WTF.String,
         _ videoDeviceIsDefault: Bool,

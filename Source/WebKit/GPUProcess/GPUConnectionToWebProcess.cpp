@@ -53,7 +53,6 @@
 #include "RemoteMediaPlayerProxy.h"
 #include "RemoteMediaPlayerProxyMessages.h"
 #include "RemoteRenderingBackend.h"
-#include "RemoteSampleBufferDisplayLayerManager.h"
 #include "RemoteSampleBufferDisplayLayerManagerMessages.h"
 #include "RemoteSampleBufferDisplayLayerMessages.h"
 #include "RemoteScrollingCoordinatorTransaction.h"
@@ -91,13 +90,6 @@
 
 #if ENABLE(MEDIA_SOURCE)
 #include <WebCore/MediaStrategy.h>
-#endif
-
-// FIXME: <https://bugs.webkit.org/show_bug.cgi?id=211085>
-// UserMediaCaptureManagerProxy should not be platform specific
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-#include "UserMediaCaptureManagerProxy.h"
-#include "UserMediaCaptureManagerProxyMessages.h"
 #endif
 
 #if USE(AUDIO_SESSION)
@@ -172,7 +164,6 @@
 namespace WebKit {
 using namespace WebCore;
 
-
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
 // Tells the connection's Swift track renderer units about the audio session's interruptions.
@@ -214,94 +205,6 @@ private:
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connection;
 };
 
-class GPUProxyForCapture final : public UserMediaCaptureManagerProxy::ConnectionProxy {
-    WTF_MAKE_TZONE_ALLOCATED_INLINE(GPUProxyForCapture);
-public:
-    explicit GPUProxyForCapture(GPUConnectionToWebProcess& process)
-        : m_process(process)
-    {
-    }
-
-private:
-    Logger& logger() final { return m_process.get()->logger(); }
-    void addMessageReceiver(IPC::ReceiverName, IPC::MessageReceiver&) final { }
-    void removeMessageReceiver(IPC::ReceiverName messageReceiverName) final { }
-    IPC::Connection& connection() final { return m_process.get()->connection(); }
-    WebCore::ProcessIdentifier webProcessIdentifier() const final { return m_process.get()->webProcessIdentifier(); }
-    RefPtr<IPC::Connection> uiProcessConnection() final
-    {
-        RefPtr process = m_process.get();
-        if (!process)
-            return nullptr;
-        return protect(process->gpuProcess())->parentProcessConnection();
-    }
-
-    bool setCaptureAttributionString() final
-    {
-        return m_process.get()->setCaptureAttributionString();
-    }
-
-#if ENABLE(APP_PRIVACY_REPORT)
-    void setTCCIdentity() final
-    {
-#if !PLATFORM(MACCATALYST)
-        RefPtr process = m_process;
-        process->gpuProcess().setCaptureTCCIdentity(process->applicationBundleIdentifier());
-#endif
-    }
-#endif
-
-#if ENABLE(EXTENSION_CAPABILITIES)
-    bool setCurrentMediaEnvironment(WebCore::PageIdentifier pageIdentifier) final
-    {
-        auto mediaPlaybackEnvironment = m_process.get()->mediaPlaybackEnvironment(pageIdentifier);
-        bool result = !mediaPlaybackEnvironment.isEmpty();
-        WebCore::RealtimeMediaSourceCenter::singleton().setCurrentMediaEnvironment(WTF::move(mediaPlaybackEnvironment));
-        return result;
-    }
-#endif
-
-#if PLATFORM(IOS_FAMILY)
-    void providePresentingApplicationPID(WebCore::PageIdentifier pageIdentifier) const final
-    {
-        m_process.get()->providePresentingApplicationPID(pageIdentifier);
-    }
-#endif
-
-    void startProducingData(CaptureDevice::DeviceType type, WebCore::PageIdentifier pageIdentifier) final
-    {
-        RefPtr process = m_process.get();
-        protect(process->gpuProcess())->didApplyCaptureEnvironment(process->webProcessIdentifier(), pageIdentifier);
-        if (type == CaptureDevice::DeviceType::Microphone)
-            process->startCapturingAudio();
-#if PLATFORM(IOS_FAMILY)
-        else if (type == CaptureDevice::DeviceType::Camera) {
-            providePresentingApplicationPID(pageIdentifier);
-#if HAVE(AVCAPTUREDEVICEROTATIONCOORDINATOR)
-            AVVideoCaptureSource::setUseAVCaptureDeviceRotationCoordinatorAPI(process->sharedPreferencesForWebProcess() && process->sharedPreferencesForWebProcess()->useAVCaptureDeviceRotationCoordinatorAPI);
-#endif
-        }
-#endif
-    }
-
-    ProcessIdentity resourceOwner() const final
-    {
-        return m_process.get()->webProcessIdentity();
-    }
-
-    RemoteVideoFrameObjectHeap* remoteVideoFrameObjectHeap() final { return &m_process.get()->videoFrameObjectHeap(); }
-
-    std::optional<SharedPreferencesForWebProcess> sharedPreferencesForWebProcess() const
-    {
-        if (RefPtr connectionToWebProcess = m_process.get())
-            return connectionToWebProcess->sharedPreferencesForWebProcess();
-
-        return std::nullopt;
-    }
-
-    ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_process;
-};
-
 #endif
 
 static ProcessIdentity adjustProcessIdentityIfNeeded(ProcessIdentity&& identity)
@@ -332,7 +235,6 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     , m_sessionID(sessionID)
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     , m_audioSessionInterruptionForwarder(AudioSessionInterruptionForwarder::create(*this))
-    , m_sampleBufferDisplayLayerManager(RemoteSampleBufferDisplayLayerManager::create(*this, parameters.sharedPreferencesForWebProcess))
 #endif
 #if ENABLE(MEDIA_STREAM)
     , m_captureOrigin(SecurityOrigin::createOpaque())
@@ -362,6 +264,18 @@ GPUConnectionToWebProcess::GPUConnectionToWebProcess(GPUProcess& gpuProcess, Web
     libWebRTCCodecsProxy->updateSharedPreferences(m_sharedPreferencesForWebProcess);
     libWebRTCCodecsProxy->startReceivingMessages(m_connection, codecsQueue);
     m_libWebRTCCodecsProxy = WTF::move(libWebRTCCodecsProxy);
+#endif
+
+#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
+    Ref sampleBufferDisplayLayerQueue = gpuProcess.videoMediaStreamTrackRendererQueue();
+    Ref sampleBufferDisplayLayerManager = swiftCreateSampleBufferDisplayLayerManager(videoFrameObjectHeap(), m_webProcessIdentity, !!m_webProcessIdentity, sampleBufferDisplayLayerQueue->dispatchQueue());
+    Ref sampleBufferDisplayLayers = swiftSampleBufferDisplayLayerForwarder();
+    sampleBufferDisplayLayers->updateSharedPreferences(m_sharedPreferencesForWebProcess);
+    sampleBufferDisplayLayerManager->updateSharedPreferences(m_sharedPreferencesForWebProcess);
+    sampleBufferDisplayLayers->startReceivingMessages(m_connection, sampleBufferDisplayLayerQueue);
+    sampleBufferDisplayLayerManager->startReceivingMessages(m_connection, sampleBufferDisplayLayerQueue);
+    m_sampleBufferDisplayLayers = WTF::move(sampleBufferDisplayLayers);
+    m_sampleBufferDisplayLayerManager = WTF::move(sampleBufferDisplayLayerManager);
 #endif
 
     // This must be called before any media playback function is invoked.
@@ -411,7 +325,10 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
     m_connection->invalidate();
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    m_sampleBufferDisplayLayerManager->close();
+    if (std::exchange(m_sampleBufferDisplayLayers, nullptr))
+        m_connection->removeWorkQueueMessageReceiver(Messages::RemoteSampleBufferDisplayLayer::messageReceiverName());
+    if (std::exchange(m_sampleBufferDisplayLayerManager, nullptr))
+        m_connection->removeWorkQueueMessageReceiver(Messages::RemoteSampleBufferDisplayLayerManager::messageReceiverName());
 #endif
 
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
@@ -466,8 +383,7 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    if (RefPtr userMediaCaptureManagerProxy = std::exchange(m_userMediaCaptureManagerProxy, nullptr))
-        userMediaCaptureManagerProxy->close();
+    swiftCloseUserMediaCaptureManager();
 #endif
 #if ENABLE(VIDEO)
     protect(videoFrameObjectHeap())->close();
@@ -562,10 +478,6 @@ bool GPUConnectionToWebProcess::allowsExitUnderMemoryPressure() const
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    if (m_userMediaCaptureManagerProxy && m_userMediaCaptureManagerProxy->hasSourceProxies())
-        return false;
-    if (!m_sampleBufferDisplayLayerManager->allowsExitUnderMemoryPressure())
-        return false;
 #endif
     return true;
 }
@@ -651,13 +563,6 @@ void GPUConnectionToWebProcess::audioDestinationWasDeleted(uint64_t identifier)
 #endif
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-UserMediaCaptureManagerProxy& GPUConnectionToWebProcess::userMediaCaptureManagerProxy()
-{
-    if (!m_userMediaCaptureManagerProxy)
-        lazyInitialize(m_userMediaCaptureManagerProxy, UserMediaCaptureManagerProxy::create(makeUniqueRef<GPUProxyForCapture>(*this)));
-    return *m_userMediaCaptureManagerProxy;
-}
-
 void GPUConnectionToWebProcess::resetAudioMediaStreamTrackRendererInternalUnit(uint64_t identifier)
 {
     protect(connection())->send(Messages::GPUProcessConnection::ResetAudioMediaStreamTrackRendererInternalUnit { AudioMediaStreamTrackRendererInternalUnitIdentifier { identifier } }, 0);
@@ -1084,12 +989,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
     }
 #endif
 
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    if (decoder.messageReceiverName() == Messages::UserMediaCaptureManagerProxy::messageReceiverName()) {
-        protect(userMediaCaptureManagerProxy())->didReceiveMessageFromGPUProcess(connection, decoder);
-        return true;
-    }
-#endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
     // The CDMs, instances and sessions that the Swift factories make register their messages in messageReceiverMap(). A
     // message for one that has gone is dropped, as before they did.
@@ -1146,12 +1045,6 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
         return true;
     }
 #endif
-#if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    if (decoder.messageReceiverName() == Messages::UserMediaCaptureManagerProxy::messageReceiverName()) {
-        protect(userMediaCaptureManagerProxy())->didReceiveSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
 #if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
@@ -1198,8 +1091,7 @@ String GPUConnectionToWebProcess::mediaKeysStorageDirectory() const
 void GPUConnectionToWebProcess::reapplyCaptureEnvironment(WebCore::PageIdentifier pageIdentifier)
 {
 #if PLATFORM(COCOA)
-    if (RefPtr userMediaCaptureManagerProxy = m_userMediaCaptureManagerProxy)
-        userMediaCaptureManagerProxy->reapplyCaptureEnvironment(pageIdentifier);
+    swiftReapplyCaptureEnvironment(pageIdentifier.toUInt64());
 #else
     UNUSED_PARAM(pageIdentifier);
 #endif
@@ -1248,7 +1140,7 @@ RemoteVideoFrameObjectHeap& GPUConnectionToWebProcess::videoFrameObjectHeap() co
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 void GPUConnectionToWebProcess::updateSampleBufferDisplayLayerBoundsAndPosition(SampleBufferDisplayLayerIdentifier identifier, WebCore::FloatRect bounds, std::optional<MachSendRightAnnotated>&& fence)
 {
-    m_sampleBufferDisplayLayerManager->updateSampleBufferDisplayLayerBoundsAndPosition(identifier, bounds, WTF::move(fence));
+    swiftUpdateSampleBufferDisplayLayerBoundsAndPosition(identifier.toUInt64(), bounds, WTF::move(fence));
 }
 #endif
 
@@ -1260,7 +1152,10 @@ void GPUConnectionToWebProcess::updateSharedPreferencesForWebProcess(SharedPrefe
         libWebRTCCodecsProxy->updateSharedPreferences(m_sharedPreferencesForWebProcess);
 #endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
-    m_sampleBufferDisplayLayerManager->updateSharedPreferencesForWebProcess(m_sharedPreferencesForWebProcess);
+    if (RefPtr sampleBufferDisplayLayers = m_sampleBufferDisplayLayers)
+        sampleBufferDisplayLayers->updateSharedPreferences(m_sharedPreferencesForWebProcess);
+    if (RefPtr sampleBufferDisplayLayerManager = m_sampleBufferDisplayLayerManager)
+        sampleBufferDisplayLayerManager->updateSharedPreferences(m_sharedPreferencesForWebProcess);
 #endif
 
     enableMediaPlaybackIfNecessary();

@@ -774,6 +774,106 @@ public final class SharedAudioRing: Sendable {
 
 private let sharedRingLogger = Logger(subsystem: "com.apple.WebKit", category: "Media")
 
+// A ring that a microphone's producer sink writes for another process, which maps it read-only through a memory entry of
+// its memory (ProducerSharedCARingBuffer): zero-filled memory of its bounds' 32 bytes, then its channels, which this owns.
+@_spi(WebKitGPU)
+public final class SharedAudioProducerRing: Sendable {
+    private let address: mach_vm_address_t
+    private let byteCount: UInt64
+    // The frames it holds: the requested count, rounded up to a power of two.
+    public let frameCount: UInt64
+    private let bytesPerFrame: UInt64
+    private let capacityBytes: UInt64
+    private let channelCount: UInt32
+    private let geometryFrameCount: UInt32
+
+    // ProducerSharedCARingBuffer::allocate(): nil if the storage size overflows or the memory can't be allocated.
+    public init?(format: AudioStreamBasicDescription, frameCount: UInt64) {
+        let channelStreamCount = format.mFormatFlags & kAudioFormatFlagIsNonInterleaved != 0 ? format.mChannelsPerFrame : 1
+        let storage = caRingBufferStorageSize(format.mBytesPerFrame, frameCount, channelStreamCount, UInt64(ringHeaderByteCount))
+        guard storage.isValid else {
+            sharedRingLogger.fault("ProducerSharedCARingBuffer::allocate: Overflowed when trying to compute the storage size")
+            return nil
+        }
+        var allocatedAddress: mach_vm_address_t = 0
+        // Safety: mach_task_self_ is set before any Swift code runs, and never changes. mach_vm_allocate() only writes the
+        // address, before it returns. The memory is zero-filled, so its bounds are those of an empty ring.
+        let result = unsafe mach_vm_allocate(mach_task_self_, &allocatedAddress, storage.byteCount, VM_FLAGS_ANYWHERE | VM_FLAGS_PURGABLE)
+        guard result == KERN_SUCCESS, allocatedAddress != 0 else {
+            sharedRingLogger.error("SharedMemory::allocate: Failed to allocate mach_vm_allocate shared memory (\(storage.byteCount) bytes). (\(result))")
+            return nil
+        }
+        let geometry = caRingBufferMakeGeometry(UInt64(format.mBytesPerFrame), storage.frameCount, channelStreamCount)
+        address = allocatedAddress
+        byteCount = storage.byteCount
+        self.frameCount = storage.frameCount
+        bytesPerFrame = geometry.bytesPerFrame
+        capacityBytes = geometry.capacityBytes
+        channelCount = geometry.channelCount
+        geometryFrameCount = geometry.frameCount
+    }
+
+    deinit {
+        // Safety: as in init. The memory is this object's own, which only this deinit gives up.
+        let result = unsafe mach_vm_deallocate(mach_task_self_, address, byteCount)
+        if result != KERN_SUCCESS {
+            sharedRingLogger.error("SharedMemory::~SharedMemory: Failed to deallocate shared memory. (\(result))")
+        }
+    }
+
+    // The size of the ring's memory, and a send right, which the caller owns, to a read-only memory entry of it for another
+    // process to map, as SharedMemory::createHandle(Protection::ReadOnly) makes; nil if it can't be made.
+    public func makeReadOnlyMemoryEntry() -> (port: mach_port_t, size: UInt64)? {
+        var memoryObjectSize = memory_object_size_t(byteCount)
+        var port = mach_port_t(MACH_PORT_NULL)
+        let protection = VM_PROT_READ | VM_PROT_IS_MASK | MAP_MEM_VM_SHARE | MAP_MEM_USE_DATA_ADDR
+        // Safety: as in init. mach_make_memory_entry_64() only writes the size and the port, before it returns, and the
+        // entry covers this object's own memory.
+        let result = unsafe mach_make_memory_entry_64(mach_task_self_, &memoryObjectSize, memory_object_offset_t(address), protection, &port, mach_port_t(MACH_PORT_NULL))
+        guard result == KERN_SUCCESS else {
+            sharedRingLogger.error("SharedMemory::makeMemoryEntry: Failed to create a mach port for shared memory. (\(result))")
+            return nil
+        }
+        precondition(memoryObjectSize >= byteCount)
+        return (port, byteCount)
+    }
+
+    // The ring, for a producer sink that holds this for as long as its IO thread may write it.
+    fileprivate var attachment: WebCore.AudioOutputUnitRingAttachment {
+        var geometry = WebCore.CARingBufferGeometry()
+        geometry.bytesPerFrame = bytesPerFrame
+        geometry.capacityBytes = capacityBytes
+        geometry.channelCount = channelCount
+        geometry.frameCount = geometryFrameCount
+        var attachment = unsafe WebCore.AudioOutputUnitRingAttachment()
+        unsafe attachment.geometry = geometry
+        // Safety: the address isn't 0 (init), and the memory holds the header and then the channels (caRingBufferStorageSize()).
+        let base = unsafe UnsafeRawPointer(bitPattern: UInt(address))
+        unsafe attachment.header = base.map { unsafe $0.assumingMemoryBound(to: WebCore.CARingBufferBoundsStorage.self) }
+        unsafe attachment.channels = base.map { unsafe $0.advanced(by: ringHeaderByteCount).assumingMemoryBound(to: UInt8.self) }
+        unsafe attachment.channelsByteCount = capacityBytes &* UInt64(channelCount)
+        return unsafe attachment
+    }
+}
+
+#if ENABLE_MEDIA_STREAM
+extension MicrophoneSink {
+    // A producer's ring, the semaphore signalled for each chunk of frameChunkSize frames stored, and that frame chunk size,
+    // which the sink keeps until it is invalidated (AudioCaptureSink::attachRing()).
+    @_spi(WebKitGPU)
+    public func attach(ring: SharedAudioProducerRing, semaphore: AudioSemaphoreRight, frameChunkSize: UInt64) {
+        var attachment = unsafe ring.attachment
+        unsafe attachment.semaphore = semaphore.port
+        unsafe attachment.frameChunkSize = frameChunkSize
+        guard let sink = captureSink(identifier) else {
+            return
+        }
+        unsafe sink.attachRing(attachment)
+        ringOwners = (ring, semaphore)
+    }
+}
+#endif
+
 // A remote destination's frame counter: the first 4 bytes of memory mapped read-write, to which its IO thread adds each
 // quantum's frames, as an atomic. None unless the mapping is writable, 4-byte aligned and holds them.
 private func frameCounterAttachment(_ memory: SharedMemoryMapping?) -> (UnsafeMutablePointer<UInt32>?, UInt64) {

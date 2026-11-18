@@ -28,236 +28,33 @@
 
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
 
-#include "Connection.h"
-#include "IPCSemaphore.h"
+#include "GPUConnectionToWebProcess.h"
+#include "GPUProcess.h"
 #include "Logging.h"
-#include "RemoteCaptureSampleManagerMessages.h"
-#include "RemoteVideoFrameObjectHeap.h"
-#include "RemoteVideoFrameProxy.h"
-#include "SharedCARingBuffer.h"
-#include "SharedPreferencesForWebProcess.h"
-#include "SwiftCoding.h"
-#include "UserMediaCaptureManagerMessages.h"
-#include "UserMediaCaptureManagerProxyMessages.h"
-#include <WebCore/AudioOutputUnit.h>
 #include <WebCore/AudioSession.h>
 #include <WebCore/AudioUtilities.h>
-#include <WebCore/CARingBuffer.h>
-#include <WebCore/CaptureSourceDecisions.h>
-#include <WebCore/MediaConstraints.h>
-#include <WebCore/MediaConstraintsEvaluation.h>
-#include <WebCore/PlatformMediaSessionManager.h>
 #include <WebCore/RealtimeMediaSourceCenter.h>
-#include <WebCore/WebAudioBufferList.h>
-#include <wtf/Borrow.h>
 #include <wtf/NativePromise.h>
-#include <wtf/TZoneMallocInlines.h>
-#include <wtf/UniqueRef.h>
-#include <wtf/WeakPtr.h>
 #include <wtf/cocoa/Entitlements.h>
 
-#include <WebCore/CoreVideoSoftLink.h>
-
-#define MESSAGE_CHECK(assertion) MESSAGE_CHECK_BASE(assertion, m_connectionProxy->connection())
-#define MESSAGE_CHECK_COMPLETION(assertion, completion) MESSAGE_CHECK_COMPLETION_BASE(assertion, m_connectionProxy->connection(), completion)
+#if PLATFORM(IOS_FAMILY) && HAVE(AVCAPTUREDEVICEROTATIONCOORDINATOR)
+#include <WebCore/AVVideoCaptureSource.h>
+#endif
 
 namespace WebKit {
 using namespace WebCore;
 
-WTF_MAKE_TZONE_ALLOCATED_IMPL(UserMediaCaptureManagerProxy);
-
-// MARK: Frames
-
-Ref<UserMediaCaptureFramePublisher> UserMediaCaptureFramePublisher::create(RefPtr<RemoteVideoFrameObjectHeap>&& heap, ProcessIdentity&& resourceOwner)
+void userMediaCaptureDidApplyEnvironment(GPUConnectionToWebProcess& connection, uint64_t pageIdentifier)
 {
-    return adoptRef(*new UserMediaCaptureFramePublisher(WTF::move(heap), WTF::move(resourceOwner)));
+    protect(connection.gpuProcess())->didApplyCaptureEnvironment(connection.webProcessIdentifier(), PageIdentifier { pageIdentifier });
 }
 
-UserMediaCaptureFramePublisher::UserMediaCaptureFramePublisher(RefPtr<RemoteVideoFrameObjectHeap>&& heap, ProcessIdentity&& resourceOwner)
-    : m_heap(WTF::move(heap))
-    , m_resourceOwner(WTF::move(resourceOwner))
-{
-}
-
-UserMediaCaptureFramePublisher::~UserMediaCaptureFramePublisher() = default;
-
-IOSurfaceRef userMediaCaptureFrameSurface(VideoFrame& frame)
-{
-    RetainPtr pixelBuffer = frame.pixelBuffer();
-    return pixelBuffer ? CVPixelBufferGetIOSurface(pixelBuffer.get()) : nullptr;
-}
-
-UserMediaCapturePublishedFrame UserMediaCaptureFramePublisher::publish(VideoFrame& frame)
-{
-    if (m_resourceOwner)
-        frame.setOwnershipIdentity(m_resourceOwner);
-
-    UserMediaCapturePublishedFrame published;
-    auto properties = RemoteVideoFrameProxy::properties(frame);
-    published.timeValue = properties.presentationTime.timeValue();
-    published.timeScale = properties.presentationTime.timeScale();
-    published.timeFlags = properties.presentationTime.timeFlags();
-    published.isMirrored = properties.isMirrored;
-    published.rotation = static_cast<uint16_t>(properties.rotation);
-    published.width = properties.size.width();
-    published.height = properties.size.height();
-    published.pixelFormat = properties.pixelFormat;
-    if (auto primaries = properties.colorSpace.primaries) {
-        published.hasPrimaries = true;
-        published.primaries = static_cast<uint8_t>(*primaries);
-    }
-    if (auto transfer = properties.colorSpace.transfer) {
-        published.hasTransfer = true;
-        published.transfer = static_cast<uint8_t>(*transfer);
-    }
-    if (auto matrix = properties.colorSpace.matrix) {
-        published.hasMatrix = true;
-        published.matrix = static_cast<uint8_t>(*matrix);
-    }
-    if (auto fullRange = properties.colorSpace.fullRange) {
-        published.hasFullRange = true;
-        published.fullRange = *fullRange;
-    }
-    if (auto chromaLocation = properties.colorSpace.chromaLocation) {
-        published.hasChromaLocation = true;
-        published.chromaLocation = static_cast<uint8_t>(*chromaLocation);
-    }
-    published.shouldIgnoreAlpha = properties.shouldIgnoreAlpha;
-
-    if (!m_heap)
-        return published;
-
-    auto reference = m_heap->add(frame);
-    published.hasReference = true;
-    published.identifier = reference.identifier().toUInt64();
-    published.version = reference.version();
-    return published;
-}
-
-// MARK: Microphones
-
-UserMediaCaptureAudioStorage* UserMediaCaptureAudioStorage::create(IPC::Connection& connection, uint64_t sourceIdentifier, const AudioStreamBasicDescription& format)
-{
-    // Allocate a ring buffer large enough to contain 2 seconds of audio.
-    auto result = ProducerSharedCARingBuffer::allocate(format, format.mSampleRate * 2);
-    if (!result) {
-        RELEASE_LOG_ERROR(WebRTC, "UserMediaCaptureAudioStorage: unable to allocate the ring");
-        return nullptr;
-    }
-    auto [ringBuffer, handle] = WTF::move(*result);
-    return &adoptRef(*new UserMediaCaptureAudioStorage(connection, sourceIdentifier, format, WTF::move(ringBuffer), WTF::move(handle))).leakRef();
-}
-
-UserMediaCaptureAudioStorage::UserMediaCaptureAudioStorage(Ref<IPC::Connection>&& connection, uint64_t sourceIdentifier, const AudioStreamBasicDescription& format, std::unique_ptr<ProducerSharedCARingBuffer>&& ringBuffer, ConsumerSharedCARingBufferHandle&& handle)
-    : m_connection(WTF::move(connection))
-    , m_sourceIdentifier(sourceIdentifier)
-    , m_format(format)
-    , m_ringBuffer(WTF::move(ringBuffer))
-    , m_semaphore(makeUnique<IPC::Semaphore>())
-    , m_handle(makeUniqueWithoutFastMallocCheck<ConsumerSharedCARingBufferHandle>(WTF::move(handle)))
-    , m_frameChunkSize(std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize()))
-{
-}
-
-UserMediaCaptureAudioStorage::~UserMediaCaptureAudioStorage() = default;
-
-void UserMediaCaptureAudioStorage::attachToSink(uint64_t sinkIdentifier)
-{
-    AudioCaptureSink::attachRing(sinkIdentifier, *m_ringBuffer, m_semaphore->machSemaphore(), m_frameChunkSize);
-}
-
-void UserMediaCaptureAudioStorage::sendStorageChanged(int64_t startTimeValue, uint32_t startTimeScale)
-{
-    if (!m_handle)
-        return;
-    auto handle = std::exchange(m_handle, nullptr);
-    m_connection->send(Messages::RemoteCaptureSampleManager::AudioStorageChanged(RealtimeMediaSourceIdentifier { m_sourceIdentifier }, WTF::move(*handle), m_format, *m_semaphore, MediaTime { startTimeValue, startTimeScale }, m_frameChunkSize), 0);
-}
-
-// MARK: Receiver
-
-Ref<UserMediaCaptureManagerProxy> UserMediaCaptureManagerProxy::create(UniqueRef<ConnectionProxy>&& connectionProxy)
-{
-    Ref proxy = adoptRef(*new UserMediaCaptureManagerProxy(WTF::move(connectionProxy)));
-    proxy->m_swiftState = proxy->createSwiftState(proxy->m_connectionProxy->webProcessIdentifier().toUInt64());
-    return proxy;
-}
-
-UserMediaCaptureManagerProxy::UserMediaCaptureManagerProxy(UniqueRef<ConnectionProxy>&& connectionProxy)
-    : m_connectionProxy(WTF::move(connectionProxy))
-{
-    m_connectionProxy->addMessageReceiver(Messages::UserMediaCaptureManagerProxy::messageReceiverName(), *this);
-}
-
-UserMediaCaptureManagerProxy::~UserMediaCaptureManagerProxy()
-{
-    m_connectionProxy->removeMessageReceiver(Messages::UserMediaCaptureManagerProxy::messageReceiverName());
-    destroySwiftState(m_swiftState);
-}
-
-UserMediaCaptureEnvironmentFailure UserMediaCaptureManagerProxy::applyCaptureEnvironment(CaptureDevice::DeviceType deviceType, uint64_t pageIdentifierValue)
-{
-    if (!m_connectionProxy->setCaptureAttributionString()) {
-        RELEASE_LOG_ERROR(WebRTC, "Unable to set capture attribution, failing capture.");
-        return UserMediaCaptureEnvironmentFailure::NoAttribution;
-    }
-
-#if ENABLE(APP_PRIVACY_REPORT)
-    m_connectionProxy->setTCCIdentity();
-#endif
-#if ENABLE(EXTENSION_CAPABILITIES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
-    PageIdentifier pageIdentifier { pageIdentifierValue };
-    bool hasValidMediaEnvironmentOrIdentity = m_connectionProxy->setCurrentMediaEnvironment(pageIdentifier) || RealtimeMediaSourceCenter::singleton().hasIdentity();
-    if (!hasValidMediaEnvironmentOrIdentity && deviceType == CaptureDevice::DeviceType::Camera
-        && WTF::processHasEntitlement("com.apple.developer.web-browser-engine.rendering"_s)) {
-        RELEASE_LOG_ERROR(WebRTC, "Unable to set media environment, failing capture.");
-        return UserMediaCaptureEnvironmentFailure::NoMediaEnvironment;
-    }
-#else
-    UNUSED_PARAM(deviceType);
-    UNUSED_PARAM(pageIdentifierValue);
-#endif
-    return UserMediaCaptureEnvironmentFailure::None;
-}
-
-void UserMediaCaptureManagerProxy::reapplyCaptureEnvironmentForSource(CaptureDevice::DeviceType deviceType, uint64_t pageIdentifier)
-{
-    if (applyCaptureEnvironment(deviceType, pageIdentifier) != UserMediaCaptureEnvironmentFailure::None)
-        RELEASE_LOG_ERROR(WebRTC, "UserMediaCaptureManagerProxy::reapplyCaptureEnvironment failed for a running capture");
-#if PLATFORM(IOS_FAMILY)
-    m_connectionProxy->providePresentingApplicationPID(PageIdentifier { pageIdentifier });
-#endif
-}
-
-void UserMediaCaptureManagerProxy::startProducingData(CaptureDevice::DeviceType deviceType, uint64_t pageIdentifier)
-{
-    m_connectionProxy->startProducingData(deviceType, PageIdentifier { pageIdentifier });
-}
-
-IPC::Connection* userMediaCaptureUIProcessConnection(const UserMediaCaptureManagerProxy& proxy)
-{
-    return proxy.uiProcessConnection().leakRef();
-}
-
-UserMediaCaptureFramePublisher* UserMediaCaptureManagerProxy::framePublisher(bool usesFrameHeap)
-{
-    RefPtr heap = usesFrameHeap ? m_connectionProxy->remoteVideoFrameObjectHeap() : nullptr;
-    return &UserMediaCaptureFramePublisher::create(WTF::move(heap), m_connectionProxy->resourceOwner()).leakRef();
-}
-
-CaptureConstraints* UserMediaCaptureManagerProxy::takeConstraints(IPC::CxxDecodedArgument<MediaConstraints>& constraints)
-{
-    auto value = constraints.take();
-    if (!value)
-        return nullptr;
-    return CaptureConstraints::create(WTF::move(*value));
-}
-
-void UserMediaCaptureManagerProxy::microphoneUnitWillStart(uint64_t pageIdentifier)
+void userMediaCaptureMicrophoneUnitWillStart(GPUConnectionToWebProcess& connection, uint64_t pageIdentifier)
 {
 #if PLATFORM(IOS_FAMILY)
-    m_connectionProxy->providePresentingApplicationPID(PageIdentifier { pageIdentifier });
+    connection.providePresentingApplicationPID(PageIdentifier { pageIdentifier });
 #else
+    UNUSED_PARAM(connection);
     UNUSED_PARAM(pageIdentifier);
 #endif
     // FIXME: We should ensure that WebProcess sets up the AudioSession properly before starting to capture microphone.
@@ -268,14 +65,54 @@ void UserMediaCaptureManagerProxy::microphoneUnitWillStart(uint64_t pageIdentifi
     session->tryToSetActive(true)->whenSettled(RunLoop::mainSingleton(), [](auto&&) { });
 }
 
-std::optional<SharedPreferencesForWebProcess> UserMediaCaptureManagerProxy::sharedPreferencesForWebProcess() const
+uint64_t userMediaCaptureAudioFrameChunkSize()
 {
-    return m_connectionProxy->sharedPreferencesForWebProcess();
+    return std::max(WebCore::AudioUtilities::renderQuantumSize, AudioSession::singleton().preferredBufferSize());
 }
 
+ProcessIdentity userMediaCaptureResourceOwner(GPUConnectionToWebProcess& connection)
+{
+    return connection.webProcessIdentity();
 }
 
-#undef MESSAGE_CHECK_COMPLETION
-#undef MESSAGE_CHECK
+IPC::Connection* userMediaCaptureUIProcessConnection(GPUConnectionToWebProcess& connection)
+{
+    return RefPtr { protect(connection.gpuProcess())->parentProcessConnection() }.leakRef();
+}
+
+#if PLATFORM(IOS_FAMILY)
+bool applyUserMediaCaptureEnvironment(GPUConnectionToWebProcess& connection, bool isCamera, uint64_t pageIdentifier)
+{
+#if ENABLE(APP_PRIVACY_REPORT) && !PLATFORM(MACCATALYST)
+    protect(connection.gpuProcess())->setCaptureTCCIdentity(connection.applicationBundleIdentifier());
+#endif
+#if ENABLE(EXTENSION_CAPABILITIES) && !PLATFORM(IOS_FAMILY_SIMULATOR)
+    auto mediaPlaybackEnvironment = connection.mediaPlaybackEnvironment(PageIdentifier { pageIdentifier });
+    bool hasMediaEnvironment = !mediaPlaybackEnvironment.isEmpty();
+    RealtimeMediaSourceCenter::singleton().setCurrentMediaEnvironment(WTF::move(mediaPlaybackEnvironment));
+    if (!hasMediaEnvironment && !RealtimeMediaSourceCenter::singleton().hasIdentity() && isCamera && WTF::processHasEntitlement("com.apple.developer.web-browser-engine.rendering"_s))
+        return false;
+#else
+    UNUSED_PARAM(isCamera);
+    UNUSED_PARAM(pageIdentifier);
+#endif
+    return true;
+}
+
+void provideUserMediaCapturePresentingApplicationPID(GPUConnectionToWebProcess& connection, uint64_t pageIdentifier)
+{
+    connection.providePresentingApplicationPID(PageIdentifier { pageIdentifier });
+}
+
+void userMediaCaptureCameraWillStart(GPUConnectionToWebProcess& connection, uint64_t pageIdentifier)
+{
+    connection.providePresentingApplicationPID(PageIdentifier { pageIdentifier });
+#if HAVE(AVCAPTUREDEVICEROTATIONCOORDINATOR)
+    AVVideoCaptureSource::setUseAVCaptureDeviceRotationCoordinatorAPI(connection.sharedPreferencesForWebProcess() && connection.sharedPreferencesForWebProcess()->useAVCaptureDeviceRotationCoordinatorAPI);
+#endif
+}
+#endif
+
+}
 
 #endif

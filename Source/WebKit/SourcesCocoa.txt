@@ -86,9 +86,7 @@ GPUProcess/media/cocoa/VideoReceiverEndpointManager.mm @nonARC
 GPUProcess/media/cocoa/RemoteMediaPlayerProxyCocoa.mm @nonARC
 GPUProcess/media/ios/RemoteAudioSessionIOS.cpp
 GPUProcess/media/ios/RemoteMediaSessionHelperProxy.cpp
-GPUProcess/webrtc/CapturePreviewLayer.mm @nonARC
-GPUProcess/webrtc/LibWebRTCCodecsProxy.mm @nonARC @no-unify // Includes libwebrtc headers with macro pollution.
-GPUProcess/webrtc/RemoteSampleBufferDisplayLayer.mm @nonARC
+GPUProcess/webrtc/SampleBufferDisplayLayerHost.mm @nonARC
 GPUProcess/webrtc/UserMediaCaptureManagerProxy.cpp @cost:3
 
 ModelProcess/EntryPoint/Cocoa/XPCService/ModelServiceEntryPoint.mm @nonARC

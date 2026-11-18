@@ -54,6 +54,11 @@ PixelBufferConformerCV::PixelBufferConformerCV(CFDictionaryRef attributes)
 {
 }
 
+CVPixelBufferRef copyConvertedPixelBuffer(PixelBufferConformerCV& conformer, CVPixelBufferRef pixelBuffer)
+{
+    return conformer.convert(pixelBuffer).leakRef();
+}
+
 RetainPtr<CVPixelBufferRef> PixelBufferConformerCV::convert(CVPixelBufferRef rawBuffer)
 {
     RetainPtr<CVPixelBufferRef> buffer { rawBuffer };

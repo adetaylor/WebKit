@@ -24,6 +24,7 @@
 #if ENABLE_GPU_PROCESS && ENABLE_VIDEO
 
 #if WTF_PLATFORM_COCOA
+import CoreGraphics
 import CoreVideo
 #endif
 private import Cxx
@@ -31,6 +32,22 @@ import Dispatch
 import Synchronization
 import WebCore_Private
 import WebKit_Internal
+#if WTF_PLATFORM_COCOA
+import os
+
+// RELEASE_LOG_ERROR(WebRTC, ...).
+private var releaseLog: os.Logger {
+    os.Logger(WTF.osLog(WebKit.LogChannel.WebRTC()))
+}
+
+private typealias ProxyProcessorMessages = WebKit.RemoteVideoFrameObjectHeap.RemoteVideoFrameObjectHeapProxyProcessorMessages
+
+// What converts the frames the web process reads back: their rotation, and their conversion to 32-bit BGRA.
+private struct ConversionSessions {
+    var rotation: WebCore.ImageRotationSessionVT?
+    var conformer: WebCore.PixelBufferConformerCV?
+}
+#endif
 
 #if WTF_PLATFORM_COCOA
 // What the heap's readers use of a frame: its pixel buffer, and the display transform that the pixel buffer doesn't
@@ -136,9 +153,19 @@ private struct VideoFrameTable {
     }
 }
 
-// The frames of a RemoteVideoFrameObjectHeap, for any thread, and the handler of its message that releases one.
-final class RemoteVideoFrameObjectHeapState {
+// The frames of a RemoteVideoFrameObjectHeap, for any thread, which its Swift readers and producers use directly, and the
+// handler of its message that releases one.
+final class VideoFrameHeap: Sendable {
     fileprivate let frames = Mutex(VideoFrameTable())
+    #if WTF_PLATFORM_COCOA
+    // The heap queue's reader of the frames the web process shares, and the writer of the frames it reads back, which
+    // removeAll() disables on any thread.
+    private let frameSource = Mutex(SharedVideoFrameSource(heap: nil, resourceOwner: WebCore.ProcessIdentity(), hasResourceOwner: false, useIOSurfaceBufferPool: false))
+    private let writer: WebKit.SharedVideoFrameWriterForSwift = WebKit.SharedVideoFrameWriterForSwift.create()
+    // What the writer hands the semaphore and memory it makes to, made once for the heap's connection.
+    private let writerCallbacks = Mutex<WriterCallbacks?>(nil)
+    fileprivate let conversionSessions = Mutex(ConversionSessions())
+    #endif
 
     fileprivate func add(_ reference: VideoFrameReference, _ frame: HeapFrame) {
         let (_, waiters) = frames.withLock { ($0.add(reference, frame), $0.takeWaiters()) }
@@ -148,6 +175,9 @@ final class RemoteVideoFrameObjectHeapState {
     }
 
     func removeAll() {
+        #if WTF_PLATFORM_COCOA
+        writer.disable()
+        #endif
         let (_, waiters) = frames.withLock { ($0.removeAll(), $0.takeWaiters()) }
         for waiter in waiters {
             waiter.signal()
@@ -155,7 +185,8 @@ final class RemoteVideoFrameObjectHeapState {
     }
 
     // Waits for a frame that isn't in the heap yet only if the web process allocated its reference
-    // (remoteVideoFrameReadTimeoutSeconds()).
+    // (remoteVideoFrameReadTimeoutSeconds()), so never on a Swift concurrency thread.
+    @available(*, noasync)
     fileprivate func read(_ reference: VideoFrameReference) -> HeapFrame? {
         let timeout = WebKit.remoteVideoFrameReadTimeoutSeconds(reference.identifier)
         guard timeout > 0 else {
@@ -190,7 +221,161 @@ final class RemoteVideoFrameObjectHeapState {
     func releaseVideoFrame(connection: IPC.Connection, write: IPCTypes.RemoteVideoFrameWriteReference) {
         release(VideoFrameReference(identifier: write.reference.identifier.rawValue, version: write.reference.version), pendingReads: write.pendingReads)
     }
+
+    #if WTF_PLATFORM_COCOA
+    // Adds a frame under a newly generated reference, whose identifier this returns, with version 0.
+    func lend(_ pixelBuffer: CVPixelBuffer?, rotation: UInt16, isMirrored: Bool) -> UInt64 {
+        let identifier = WebKit.RemoteVideoFrameObjectHeap.generateFrameIdentifier()
+        add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored))
+        return identifier
+    }
+
+    // The pixel buffer of the frame of a read reference, for the Swift readers of shared video frames.
+    @available(*, noasync)
+    func readPixelBuffer(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
+        read(VideoFrameReference(identifier: identifier, version: version))?.pixelBuffer
+    }
+
+    // MARK: Messages, on the heap's work queue
+
+    func getVideoFrameBuffer(connection: IPC.Connection, read: IPCTypes.RemoteVideoFrameReadReference) {
+        let identifier = read.reference.identifier
+        var buffer: IPCTypes.Buffer? = nil
+        if let pixelBuffer = self.read(VideoFrameReference(identifier: identifier.rawValue, version: read.reference.version))?.pixelBuffer {
+            buffer = write(pixelBuffer, on: connection)
+            // FIXME: We should assert that the write succeeded once we support enough pixel buffer types.
+        }
+        ProxyProcessorMessages.newVideoFrameBuffer(on: connection, to: 0, identifier: identifier, frame: buffer)
+    }
+
+    func setSharedVideoFrameSemaphore(connection: IPC.Connection, semaphore: borrowing IPCTypes.Semaphore) {
+        let port = semaphore.port
+        frameSource.withLock { $0.setSemaphore(port) }
+    }
+
+    func setSharedVideoFrameMemory(connection: IPC.Connection, storageHandle: borrowing IPCTypes.SharedMemoryHandle) {
+        let port = storageHandle.port
+        let size = storageHandle.size
+        _ = frameSource.withLock { $0.setSharedMemory(port, size) }
+    }
+
+    func convertFrameBuffer(
+        connection: IPC.Connection,
+        frame: consuming IPCTypes.SharedVideoFrame,
+        shouldApplyRotation: Bool,
+        reply: consuming RemoteVideoFrameObjectHeapConvertFrameBufferReply
+    ) {
+        let colorSpace = sendConvertedFrameBuffer(frame, shouldApplyRotation: shouldApplyRotation, on: connection)
+        reply.send(encodedBy: { IPC.encodeColorSpace($0, colorSpace) })
+    }
+
+    // Takes the frame from the heap if the SharedVideoFrame refers to a heap frame, and otherwise reads the frame it carries,
+    // and sends it back as 32-bit BGRA. When requested, the frame is oriented and callers must not apply the rotation and
+    // mirroring of the frame again.
+    @available(*, noasync)
+    private func sendConvertedFrameBuffer(_ frame: borrowing IPCTypes.SharedVideoFrame, shouldApplyRotation: Bool, on connection: IPC.Connection) -> CGColorSpace {
+        var destinationColorSpace = sRGBColorSpace
+        var source: HeapFrame?
+        switch frame.buffer {
+        case .remoteVideoFrameReadReference(let read):
+            if let pixelBuffer = self.read(VideoFrameReference(identifier: read.reference.identifier.rawValue, version: read.reference.version))?.pixelBuffer {
+                source = HeapFrame(pixelBuffer: pixelBuffer, rotation: frame.rotation.rawValue, isMirrored: frame.mirrored)
+            }
+        default:
+            source = frameSource.withLock { frameSource in
+                frameSource.read(frame).map { HeapFrame(pixelBuffer: $0.pixelBuffer, rotation: $0.rotation, isMirrored: $0.isMirrored) }
+            }
+        }
+        guard let source, var pixelBuffer = source.pixelBuffer else {
+            ProxyProcessorMessages.newConvertedVideoFrameBuffer(on: connection, to: 0, frame: nil)
+            return destinationColorSpace
+        }
+        let rotation = source.rotation
+        let isMirrored = source.isMirrored
+
+        if shouldApplyRotation && (rotation != 0 || isMirrored) {
+            // The heap frame is Sendable, so the session's lock region doesn't take in the pixel buffer.
+            let input = HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored)
+            let rotated = conversionSessions.withLock { sessions in
+                if sessions.rotation == nil {
+                    sessions.rotation = WebCore.ImageRotationSessionVT(.Yes)
+                }
+                guard let inputBuffer = input.pixelBuffer else {
+                    return HeapFrame(pixelBuffer: nil, rotation: 0, isMirrored: false)
+                }
+                let rotated = WebCore.copyRotatedPixelBuffer(&sessions.rotation!, inputBuffer, WebCore.VideoFrameRotation(rawValue: input.rotation) ?? .None, input.isMirrored)
+                return HeapFrame(pixelBuffer: rotated, rotation: 0, isMirrored: false)
+            }.pixelBuffer
+            guard let rotated else {
+                releaseLog.error("RemoteVideoFrameObjectHeap::convertFrameBuffer rotation failed")
+                ProxyProcessorMessages.newConvertedVideoFrameBuffer(on: connection, to: 0, frame: nil)
+                return destinationColorSpace
+            }
+            pixelBuffer = rotated
+        }
+
+        destinationColorSpace = WebCore.copyCGColorSpaceForCVPixelBuffer(pixelBuffer)
+
+        if CVPixelBufferGetPixelFormatType(pixelBuffer) != kCVPixelFormatType_32BGRA {
+            let input = HeapFrame(pixelBuffer: pixelBuffer, rotation: 0, isMirrored: false)
+            let converted = conversionSessions.withLock { sessions in
+                if sessions.conformer == nil {
+                    sessions.conformer = WebCore.PixelBufferConformerCV(kCVPixelFormatType_32BGRA)
+                }
+                guard let inputBuffer = input.pixelBuffer else {
+                    return HeapFrame(pixelBuffer: nil, rotation: 0, isMirrored: false)
+                }
+                return HeapFrame(pixelBuffer: WebCore.copyConvertedPixelBuffer(&sessions.conformer!, inputBuffer), rotation: 0, isMirrored: false)
+            }.pixelBuffer
+            guard let converted else {
+                releaseLog.error("RemoteVideoFrameObjectHeap::convertFrameBuffer conformer failed")
+                ProxyProcessorMessages.newConvertedVideoFrameBuffer(on: connection, to: 0, frame: nil)
+                return destinationColorSpace
+            }
+            pixelBuffer = converted
+        }
+
+        let buffer = write(pixelBuffer, on: connection)
+        ProxyProcessorMessages.newConvertedVideoFrameBuffer(on: connection, to: 0, frame: buffer)
+        return destinationColorSpace
+    }
+
+    // Writes the pixel buffer into the memory it shares with the web process, which then reads it as the null buffer.
+    private func write(_ pixelBuffer: CVPixelBuffer, on connection: IPC.Connection) -> IPCTypes.Buffer? {
+        let callbacks = writerCallbacks.withLock { callbacks in
+            if let callbacks {
+                return callbacks
+            }
+            let made = WriterCallbacks(connection: connection)
+            callbacks = made
+            return made
+        }
+        let written = writer.writeToSharedMemory(pixelBuffer, callbacks.newSemaphore, callbacks.newMemory)
+        return written ? .null : nil
+    }
+    #endif
 }
+
+#if WTF_PLATFORM_COCOA
+private let sRGBColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+
+// The functions the heap's writer sends the web process the semaphore and memory it makes with, on the heap's connection,
+// which every message to the heap comes from. @unchecked Sendable: they don't change once made, and are only called on the
+// heap's work queue, during a write.
+private final class WriterCallbacks: @unchecked Sendable {
+    let newSemaphore: WebKit.SharedVideoFrameSemaphoreFunction
+    let newMemory: WebKit.SharedVideoFrameMemoryFunction
+
+    init(connection: IPC.Connection) {
+        newSemaphore = WebKit.SharedVideoFrameSemaphoreFunction { (port: mach_port_t) in
+            ProxyProcessorMessages.setSharedVideoFrameSemaphore(on: connection, to: 0, semaphore: IPCTypes.Semaphore(copying: port))
+        }
+        newMemory = WebKit.SharedVideoFrameMemoryFunction { (port: mach_port_t, size: UInt64) in
+            ProxyProcessorMessages.setSharedVideoFrameMemory(on: connection, to: 0, storageHandle: IPCTypes.SharedMemoryHandle(copying: port, size: size))
+        }
+    }
+}
+#endif
 
 // The members of the C++ heap (RemoteVideoFrameObjectHeap.h) that reach its Swift state, which m_swiftState holds
 // retained, by address, from the heap's constructor to its destructor, and the handlers of its messages that take Swift
@@ -199,13 +384,13 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     @cxx
     @implementation
     static func createSwiftState() -> UInt {
-        UInt(bitPattern: unsafe Unmanaged.passRetained(RemoteVideoFrameObjectHeapState()).toOpaque())
+        UInt(bitPattern: unsafe Unmanaged.passRetained(VideoFrameHeap()).toOpaque())
     }
 
     @cxx
     @implementation
     static func destroySwiftState(_ swiftState: UInt) {
-        _ = unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
+        _ = unsafe Unmanaged<VideoFrameHeap>.fromOpaque(stateAddress(swiftState)).takeRetainedValue()
     }
 
     private static func stateAddress(_ swiftState: UInt) -> UnsafeMutableRawPointer {
@@ -215,10 +400,15 @@ extension WebKit.RemoteVideoFrameObjectHeap {
         return unsafe address
     }
 
-    var state: RemoteVideoFrameObjectHeapState {
-        // Safety: m_swiftState is a retained RemoteVideoFrameObjectHeapState from the constructor to the destructor, and
+    // The heap's frames, for its Swift readers and producers.
+    var frames: VideoFrameHeap {
+        state
+    }
+
+    var state: VideoFrameHeap {
+        // Safety: m_swiftState is a retained VideoFrameHeap from the constructor to the destructor, and
         // nothing changes it.
-        unsafe Unmanaged<RemoteVideoFrameObjectHeapState>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
+        unsafe Unmanaged<VideoFrameHeap>.fromOpaque(Self.stateAddress(m_swiftState)).takeUnretainedValue()
     }
 
     #if WTF_PLATFORM_COCOA
@@ -229,17 +419,6 @@ extension WebKit.RemoteVideoFrameObjectHeap {
         state.add(VideoFrameReference(identifier: identifier, version: 0), frame)
     }
 
-    // Adds a frame under a newly generated reference, whose identifier this returns, with version 0.
-    func lend(_ pixelBuffer: CVPixelBuffer, rotation: UInt16, isMirrored: Bool) -> UInt64 {
-        let identifier = Self.generateFrameIdentifier()
-        state.add(VideoFrameReference(identifier: identifier, version: 0), HeapFrame(pixelBuffer: pixelBuffer, rotation: rotation, isMirrored: isMirrored))
-        return identifier
-    }
-
-    // The pixel buffer of the frame of a read reference, for the Swift readers of shared video frames.
-    func readPixelBuffer(identifier: UInt64, version: UInt64) -> CVPixelBuffer? {
-        state.read(VideoFrameReference(identifier: identifier, version: version))?.pixelBuffer
-    }
     #else
     @cxx
     @implementation
@@ -248,7 +427,6 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     }
     #endif
 
-
     @cxx
     @implementation
     func swiftRemoveAll() {
@@ -256,39 +434,12 @@ extension WebKit.RemoteVideoFrameObjectHeap {
     }
 
     #if WTF_PLATFORM_COCOA
-    func setSharedVideoFrameSemaphore(
-        connection: IPC.Connection,
-        semaphore: borrowing IPCTypes.Semaphore
-    ) {
-        setSharedVideoFrameSemaphore(semaphore.port)
-    }
-
-    func setSharedVideoFrameMemory(
-        connection: IPC.Connection,
-        storageHandle: borrowing IPCTypes.SharedMemoryHandle
-    ) {
-        setSharedVideoFrameMemory(storageHandle.port, storageHandle.size)
+    @cxx
+    @implementation
+    func lowMemoryHandler() {
+        state.conversionSessions.withLock { $0 = ConversionSessions() }
     }
     #endif
 }
-
-#if WTF_PLATFORM_COCOA
-// The frame of a read reference, for C++ (RemoteVideoFrameObjectHeap::get()): its pixel buffer, returned +1, and its
-// display transform.
-@_expose(Cxx)
-func readRemoteVideoFrame(
-    _ heap: WebKit.RemoteVideoFrameObjectHeap,
-    _ identifier: UInt64,
-    _ version: UInt64,
-    _ transform: inout WebKit.RemoteVideoFrameTransform
-) -> CVPixelBuffer? {
-    guard let frame = heap.state.read(VideoFrameReference(identifier: identifier, version: version)) else {
-        return nil
-    }
-    transform.rotation = frame.rotation
-    transform.isMirrored = frame.isMirrored
-    return frame.pixelBuffer
-}
-#endif
 
 #endif

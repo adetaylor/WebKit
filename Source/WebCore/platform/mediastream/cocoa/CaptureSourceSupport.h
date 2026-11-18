@@ -37,6 +37,7 @@
 #include <CoreGraphics/CGImage.h>
 #include <CoreMedia/CMSampleBuffer.h>
 #include <CoreVideo/CVPixelBuffer.h>
+#include <WebCore/CMUtilities.h>
 #include <WebCore/CaptureSourceDecisions.h>
 #include <cstdint>
 #include <memory>
@@ -91,6 +92,24 @@ private:
 
 // A sample buffer cropped by the session to the rectangle of a frame of the given size. A free function, since Swift
 // ignores CF_RETURNS_RETAINED on a method.
+// The pixel buffer of a frame, which the frame keeps alive, or null.
+WEBCORE_EXPORT CVPixelBufferRef WTF_NULLABLE captureFramePixelBuffer(const VideoFrame&) CF_RETURNS_NOT_RETAINED;
+
+// What a frame's observers send of it with its pixel buffer, as plain values that Swift reads without calls.
+struct CaptureFrameValues {
+    int64_t timeValue { 0 };
+    uint32_t timeScale { 0 };
+    uint8_t timeFlags { 0 };
+    bool isMirrored { false };
+    uint16_t rotation { 0 };
+    int32_t width { 0 };
+    int32_t height { 0 };
+    uint32_t pixelFormat { 0 };
+    PlatformVideoColorSpaceValues colorSpace;
+    bool shouldIgnoreAlpha { false };
+};
+WEBCORE_EXPORT CaptureFrameValues captureFrameValues(const VideoFrame&);
+
 CMSampleBufferRef WTF_NULLABLE captureCroppedSampleBuffer(CaptureVideoFrameSession&, CMSampleBufferRef WTF_NONNULL, float x, float y, float width, float height, float frameWidth, float frameHeight) CF_RETURNS_RETAINED;
 
 #if ENABLE(EXTENSION_CAPABILITIES)

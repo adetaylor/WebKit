@@ -52,6 +52,8 @@ WEBCORE_EXPORT std::expected<RetainPtr<CVPixelBufferRef>, CVReturn> createCVPixe
 WEBCORE_EXPORT std::expected<RetainPtr<CVPixelBufferRef>, CVReturn> createCVPixelBuffer(IOSurfaceRef);
 
 WEBCORE_EXPORT RetainPtr<CGColorSpaceRef> createCGColorSpaceForCVPixelBuffer(CVPixelBufferRef);
+// For Swift, which can't take a RetainPtr: the same, returned +1.
+WEBCORE_EXPORT CGColorSpaceRef copyCGColorSpaceForCVPixelBuffer(CVPixelBufferRef) CF_RETURNS_RETAINED;
 
 WEBCORE_EXPORT CGImageAlphaInfo alphaInfoForCVPixelBuffer(CVPixelBufferRef);
 void setAlphaInfoForCVPixelBuffer(CVPixelBufferRef, CGImageAlphaInfo);

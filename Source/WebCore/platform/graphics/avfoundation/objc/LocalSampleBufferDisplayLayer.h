@@ -34,6 +34,7 @@
 #include <wtf/Forward.h>
 #include <wtf/RetainPtr.h>
 #include <wtf/MediaTime.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/WorkQueue.h>
 
@@ -89,6 +90,12 @@ public:
     void setRenderPolicy(RenderPolicy) final;
     void setShouldMaintainAspectRatio(bool) final;
 
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { SampleBufferDisplayLayer::ref(); }
+    void deref() const { SampleBufferDisplayLayer::deref(); }
+#endif
+
 private:
     void enqueueBufferInternal(CVPixelBufferRef, MediaTime);
     void removeOldVideoFramesFromPendingQueue();
@@ -123,7 +130,7 @@ private:
     uint64_t m_logIdentifier;
     FrameRateMonitor m_frameRateMonitor WTF_GUARDED_BY_CAPABILITY(workQueue());
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
 
 inline void LocalSampleBufferDisplayLayer::setRenderPolicy(RenderPolicy renderPolicy)
 {

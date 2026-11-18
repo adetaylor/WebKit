@@ -531,6 +531,18 @@ bool hasSeparateAlphaStream(CMFormatDescriptionRef description)
     return description && PAL::CMFormatDescriptionGetExtension(description, separateAlphaStreamExtensionKey()) == kCFBooleanTrue;
 }
 
+CMFormatDescriptionRef copyFormatDescriptionFromTrackInfo(const VideoInfo& videoInfo, PlatformVideoColorSpaceValues colorSpaceOverrideValues)
+{
+    auto colorSpaceOverride = platformVideoColorSpace(colorSpaceOverrideValues);
+    if (!colorSpaceOverride.isValid())
+        return createFormatDescriptionFromTrackInfo(videoInfo).leakRef();
+
+    auto data = videoInfo.toVideoInfoData();
+    overrideVideoColorSpaceAsNeeded(data.second.colorSpace, colorSpaceOverride);
+    Ref updatedVideoInfo = VideoInfo::create(WTF::move(data));
+    return createFormatDescriptionFromTrackInfo(updatedVideoInfo).leakRef();
+}
+
 RetainPtr<CMFormatDescriptionRef> createFormatDescriptionFromTrackInfo(const TrackInfo& info)
 {
     ASSERT(info.isVideo() || info.isAudio());
@@ -804,19 +816,6 @@ static std::expected<RetainPtr<CMSampleBufferRef>, ASCIILiteral> decodedAudioToC
         PAL::CMSetAttachment(rawSampleBuffer, PAL::kCMSampleBufferAttachmentKey_FillDiscontinuitiesWithSilence, *samples.discontinuity() ? kCFBooleanTrue : kCFBooleanFalse, kCMAttachmentMode_ShouldPropagate);
 
     return sampleBuffer;
-}
-
-void interleaveBytes(std::span<uint8_t> destination NOESCAPE, size_t offset, std::span<const uint8_t> first NOESCAPE, std::span<const uint8_t> second NOESCAPE)
-{
-    // Bounding the size lets clang see that 2 * index can't wrap, drop the bounds checks from the loop and vectorize it.
-    size_t count = first.size();
-    RELEASE_ASSERT(count <= std::numeric_limits<size_t>::max() / 4);
-    auto row = destination.subspan(offset, 2 * count);
-    auto secondRow = second.first(count);
-    for (size_t index = 0; index < count; ++index) {
-        row[2 * index] = first[index];
-        row[2 * index + 1] = secondRow[index];
-    }
 }
 
 RetainPtr<CMFormatDescriptionRef> createFormatDescriptionWithAlpha(CVPixelBufferRef pixelBuffer)
@@ -1177,6 +1176,48 @@ void attachColorSpaceToPixelBuffer(const PlatformVideoColorSpace& colorSpace, CV
             CVBufferSetAttachment(pixelBuffer, kCVImageBufferChromaLocationBottomFieldKey, cmChromaLocation.get(), kCVAttachmentMode_ShouldPropagate);
         }
     }
+}
+
+PlatformVideoColorSpace platformVideoColorSpace(PlatformVideoColorSpaceValues values)
+{
+    PlatformVideoColorSpace colorSpace;
+    if (values.hasPrimaries)
+        colorSpace.primaries = values.primaries;
+    if (values.hasTransfer)
+        colorSpace.transfer = values.transfer;
+    if (values.hasMatrix)
+        colorSpace.matrix = values.matrix;
+    if (values.hasFullRange)
+        colorSpace.fullRange = values.fullRange;
+    if (values.hasChromaLocation)
+        colorSpace.chromaLocation = values.chromaLocation;
+    return colorSpace;
+}
+
+PlatformVideoColorSpaceValues computeVideoFrameColorSpaceValues(CVPixelBufferRef pixelBuffer)
+{
+    return platformVideoColorSpaceValues(computeVideoFrameColorSpace(pixelBuffer));
+}
+
+PlatformVideoColorSpaceValues platformVideoColorSpaceValues(const PlatformVideoColorSpace& colorSpace)
+{
+    return {
+        .hasPrimaries = !!colorSpace.primaries,
+        .primaries = colorSpace.primaries.value_or(PlatformVideoColorPrimaries { }),
+        .hasTransfer = !!colorSpace.transfer,
+        .transfer = colorSpace.transfer.value_or(PlatformVideoTransferCharacteristics { }),
+        .hasMatrix = !!colorSpace.matrix,
+        .matrix = colorSpace.matrix.value_or(PlatformVideoMatrixCoefficients { }),
+        .hasFullRange = !!colorSpace.fullRange,
+        .fullRange = colorSpace.fullRange.value_or(false),
+        .hasChromaLocation = !!colorSpace.chromaLocation,
+        .chromaLocation = colorSpace.chromaLocation.value_or(PlatformVideoChromaLocation { }),
+    };
+}
+
+void attachColorSpaceValuesToPixelBuffer(PlatformVideoColorSpaceValues values, CVPixelBufferRef pixelBuffer)
+{
+    attachColorSpaceToPixelBuffer(platformVideoColorSpace(values), pixelBuffer);
 }
 
 PlatformVideoColorSpace computeVideoFrameColorSpace(CVPixelBufferRef pixelBuffer)

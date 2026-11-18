@@ -54,6 +54,14 @@
 #include <wtf/MachSendRight.h>
 #endif
 
+#if USE(CG)
+typedef struct CGColorSpace* CGColorSpaceRef;
+#endif
+
+namespace WebCore {
+class CaptureConstraints;
+}
+
 namespace IPC {
 
 // Writes the UTF-8 form of Latin-1 characters to utf8, which must have room for twice as many bytes, so that
@@ -277,6 +285,11 @@ public:
     // it is malformed.
     WebCore::SharedBuffer* WTF_NULLABLE decodeSharedBuffer() SWIFT_RETURNS_RETAINED;
     WebCore::VideoInfo* WTF_NULLABLE decodeVideoInfo() SWIFT_RETURNS_RETAINED;
+#if ENABLE(MEDIA_STREAM)
+    // A WebCore::MediaConstraints, as the WebCore::CaptureConstraints that Swift reads it through. Sending: the holder is
+    // new, and Swift has its only reference, so dispatch can send it to a handler on the main actor.
+    WebCore::CaptureConstraints* WTF_NULLABLE decodeCaptureConstraints() SWIFT_RETURNS_RETAINED __attribute__((swift_attr("sending")));
+#endif
 
 #if OS(DARWIN)
     // Takes the next attachment, as C++ decodes a MachSendRight, and gives its send right to the caller, which must
@@ -313,6 +326,7 @@ public:
 
     bool isValid() const { return borrowed().isValid(); }
     void markInvalid() { borrowed().markInvalid(); }
+    uint64_t destinationID() const { return borrowed().destinationID(); }
 
 private:
     friend class NonEscapableBorrowLender<SwiftDecoder>;
@@ -482,6 +496,17 @@ private:
     NonEscapableBorrowOwningLender<SwiftDecoder> m_lender;
 };
 
+// Takes the String of a C++-decoded argument into `string`, for Swift, which can't call the class template's members. False
+// if it was taken.
+inline bool takeCxxDecodedString(CxxDecodedArgument<String>& argument, String& string)
+{
+    auto value = argument.take();
+    if (!value)
+        return false;
+    string = WTF::move(*value);
+    return true;
+}
+
 // The reply to a message whose Swift receiver takes Swift types, which generated Swift encodes and sends.
 // Cancelling it, or dropping it unsent, sends the default reply that cancelling a C++ handler's
 // completion handler would.
@@ -574,6 +599,9 @@ public:
     // Encodes a C++-decoded value with its own ArgumentCoder.
     void encodeSharedBuffer(const WebCore::SharedBuffer&);
     void encodeVideoInfo(const WebCore::VideoInfo&);
+#if ENABLE(MEDIA_STREAM)
+    void encodeCaptureConstraints(const WebCore::CaptureConstraints&);
+#endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
     // Encodes the WebCore::Path that decodeCGRendererPath() decoded into the CGPath and facts, with its own ArgumentCoder: the
@@ -878,5 +906,10 @@ public:
 private:
     StringBuilder m_builder;
 } SWIFT_SELF_CONTAINED;
+
+#if USE(CG)
+// Encodes a CGColorSpace as C++ encodes a WebCore::ColorSpace of it, for a reply that C++ encodes (CxxEncodedReply).
+void encodeColorSpace(SwiftReplyEncoder&, CGColorSpaceRef WTF_NONNULL);
+#endif
 
 } // namespace IPC

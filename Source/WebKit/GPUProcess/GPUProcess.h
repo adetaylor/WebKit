@@ -81,7 +81,7 @@ struct ScreenProperties;
 
 namespace WebKit {
 
-class CapturePreviewLayer;
+class SampleBufferDisplayLayerHost;
 class GPUConnectionToWebProcess;
 struct GPUProcessConnectionParameters;
 struct GPUProcessSessionParameters;
@@ -166,7 +166,7 @@ public:
 
 #if ENABLE(MEDIA_STREAM)
     // For the capture preview (CapturePreviewManager.swift).
-    SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, CapturePreviewLayer* WTF_NULLABLE);
+    SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, SampleBufferDisplayLayerHost* WTF_NULLABLE);
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
@@ -233,7 +233,7 @@ private:
     void startCapturePreview(std::optional<WebCore::CaptureDevice>&& videoDevice, std::optional<WebCore::CaptureDevice>&& audioDevice, WebCore::PageIdentifier, WebCore::IntSize previewSize, WebCore::IntDegrees orientation, Vector<SandboxExtension::Handle>&&, String&& applicationBundleIdentifier, WebCore::SecurityOriginData&&, CompletionHandler<void(WebCore::HostingContext)>&&);
     SWIFT_MAIN_ACTOR bool swiftCanStartCapturePreview(WebCore::PageIdentifier);
     SWIFT_MAIN_ACTOR bool swiftPrepareCapturePreview(WebCore::PageIdentifier, bool hasCamera, String applicationBundleIdentifier, WebCore::SecurityOriginData);
-    SWIFT_MAIN_ACTOR WebCore::HostingContext swiftStartCapturePreviewForPage(WebCore::PageIdentifier, CapturePreviewLayer* WTF_NULLABLE, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, WebCore::IntSize previewSize, WebCore::IntDegrees orientation);
+    SWIFT_MAIN_ACTOR WebCore::HostingContext swiftStartCapturePreviewForPage(WebCore::PageIdentifier, SampleBufferDisplayLayerHost* WTF_NULLABLE, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, WebCore::IntSize previewSize, WebCore::IntDegrees orientation);
     SWIFT_MAIN_ACTOR void stopCapturePreview(WebCore::PageIdentifier, GPUProcessVoidReply* WTF_NONNULL);
     void revokeCapturePreviewSandboxExtensions();
 #if PLATFORM(IOS_FAMILY)
@@ -403,7 +403,7 @@ enum class VideoFrameRotation : uint16_t;
 
 namespace WebKit {
 
-class CapturePreviewLayer;
+class SampleBufferDisplayLayerHost;
 class GPUConnectionToWebProcess;
 #if !ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
 class RemoteSnapshotDisplayLists;
@@ -557,7 +557,7 @@ public:
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     // Implemented in Swift (CapturePreviewManager.swift): the capture preview of a getUserMedia prompt. The layer is the
     // one this made for the camera, if there is one; the result is a CapturePreviewStart.
-    SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, CapturePreviewLayer* WTF_NULLABLE);
+    SWIFT_MAIN_ACTOR uint8_t swiftStartCapturePreview(uint64_t pageIdentifier, String videoDeviceID, String videoDeviceLabel, bool videoDeviceIsDefault, String audioDeviceID, String audioDeviceLabel, bool audioDeviceIsDefault, int32_t previewWidth, int32_t previewHeight, int32_t orientation, SampleBufferDisplayLayerHost* WTF_NULLABLE);
     SWIFT_MAIN_ACTOR void swiftStopCapturePreview();
     SWIFT_MAIN_ACTOR bool swiftHasCapturePreview() const;
     SWIFT_MAIN_ACTOR void capturePreviewAudioSessionIsReady(uint64_t generation);
@@ -703,7 +703,7 @@ private:
 #if ENABLE(MEDIA_STREAM)
 #if ENABLE(MEDIA_STREAM) && PLATFORM(COCOA)
     // The layer the capture preview shows its camera in, while it does.
-    RefPtr<CapturePreviewLayer> m_capturePreviewLayer;
+    RefPtr<SampleBufferDisplayLayerHost> m_capturePreviewLayer;
     // The camera whose rotation the UI process monitors for the preview, and its page.
     String m_capturePreviewVideoDeviceID;
     Markable<WebCore::PageIdentifier> m_capturePreviewVideoPage;
