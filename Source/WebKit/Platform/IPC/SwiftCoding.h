@@ -193,6 +193,31 @@ public:
     [[nodiscard]] bool decodeFloats(MutableSpanFloat values NOESCAPE) { return decodeSpan(values); }
     [[nodiscard]] bool decodeDoubles(MutableSpanDouble values NOESCAPE) { return decodeSpan(values); }
 
+    // Decodes bytes.size() bytes as Decoder::decodeSpan decodes the elements of a span of a trivially copyable type of that
+    // alignment (1, 2, 4 or 8), whose size is a multiple of it, for Swift to copy such a span into memory of its own.
+    [[nodiscard]] bool decodeBytes(WTF::MutableSpanUInt8 bytes NOESCAPE, size_t alignment)
+    {
+        switch (alignment) {
+        case 1:
+            return decodeBytesAs<uint8_t>(bytes);
+        case 2:
+            return decodeBytesAs<uint16_t>(bytes);
+        case 4:
+            return decodeBytesAs<uint32_t>(bytes);
+        case 8:
+            return decodeBytesAs<uint64_t>(bytes);
+        default:
+            borrowed().markInvalid();
+            return false;
+        }
+    }
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+    // Decodes a WebCore::PathSegment as C++ decodes it, into the plain values that the CG renderer takes of it
+    // (CGRendererPathSegmentValues()), in one call. A malformed one returns false and invalidates the decoder.
+    [[nodiscard]] bool decodeCGRendererPathSegment(CGRendererPathSegment&);
+#endif
+
     // Aligns the decoder as Decoder::decodeSpan aligns elementCount contiguous integers of elementSize
     // (1, 2, 4 or 8) bytes, even when elementCount is 0, and checks they are all there, so they can be
     // decoded one at a time.
@@ -308,6 +333,19 @@ private:
         if (!decoded)
             return false;
         value = *decoded;
+        return true;
+    }
+
+    template<typename Unit> [[nodiscard]] bool decodeBytesAs(std::span<uint8_t> bytes)
+    {
+        if (bytes.size() % sizeof(Unit)) [[unlikely]] {
+            borrowed().markInvalid();
+            return false;
+        }
+        auto decoded = borrowed().decodeSpan<Unit>(bytes.size() / sizeof(Unit));
+        if (!decoded.data())
+            return false;
+        memcpySpan(bytes, asBytes(decoded));
         return true;
     }
 
@@ -499,6 +537,24 @@ public:
         m_encoder->encodeSpan(values);
     }
 
+    // Encodes bytes as Encoder::encodeSpan encodes the elements of a span of a trivially copyable type of that alignment (1, 2,
+    // 4 or 8), whose size is a multiple of it: the elements of such a span that Swift holds.
+    void encodeBytes(WTF::SpanUInt8 bytes NOESCAPE, size_t alignment)
+    {
+        switch (alignment) {
+        case 1:
+            return encodeBytesAs<uint8_t>(bytes);
+        case 2:
+            return encodeBytesAs<uint16_t>(bytes);
+        case 4:
+            return encodeBytesAs<uint32_t>(bytes);
+        case 8:
+            return encodeBytesAs<uint64_t>(bytes);
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+        }
+    }
+
     // Encodes the characters of an ASCII string as String's encoder encodes an 8-bit string's.
     void encodeASCIICharacters(WTF::SpanUInt8 characters NOESCAPE)
     {
@@ -519,6 +575,8 @@ public:
     // Encodes the WebCore::Path that decodeCGRendererPath() decoded into the CGPath and facts, with its own ArgumentCoder: the
     // segment of a path of one, or else the CGPath's elements, as C++ encodes a Path of a CGPath.
     void encodeCGRendererPath(CGPathRef _Nullable, CGRendererPathFacts);
+    // Encodes the WebCore::PathSegment of the values that decodeCGRendererPathSegment() decoded, with its own ArgumentCoder.
+    void encodeCGRendererPathSegment(CGRendererPathSegment);
 #endif
 
 #if OS(DARWIN)
@@ -619,6 +677,18 @@ private:
     {
         if (!m_inStream)
             m_encoder = makeUnique<Encoder>(MessageName::SyncMessageReply, syncRequestID.toUInt64());
+    }
+
+    template<typename Unit> void encodeBytesAs(std::span<const uint8_t> bytes)
+    {
+        RELEASE_ASSERT(!(bytes.size() % sizeof(Unit)) && !(reinterpret_cast<uintptr_t>(bytes.data()) % alignof(Unit)));
+        auto units = spanReinterpretCast<const Unit>(bytes);
+        if (m_inStream) {
+            streamEncoder().encodeSpan(units);
+            return;
+        }
+        RELEASE_ASSERT(m_encoder);
+        m_encoder->encodeSpan(units);
     }
 
     template<typename T> void encodeValue(T value)

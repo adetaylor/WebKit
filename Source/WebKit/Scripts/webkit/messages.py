@@ -2050,7 +2050,9 @@ def headers_for_type(type, for_implementation_file=False):
     header_infos_and_types = class_template_headers(type)
 
     special_cases = {
+        'CGRendererColorData': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CGRendererColorValue': ['<WebCore/CGRendererSwiftBridge.h>'],
+        'CGRendererShadowValues': ['<WebCore/CGRendererSwiftBridge.h>'],
         'CVPixelBufferRef': ['<WebCore/CVUtilities.h>'],
         'GCGLint': ['<WebCore/GraphicsTypesGL.h>'],
         'GenericPromise::Result': ['<wtf/NativePromise.h>'],

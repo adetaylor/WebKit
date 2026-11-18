@@ -30,6 +30,7 @@
 
 #include "GeneratedSerializers.h"
 #include <WebCore/Path.h>
+#include <WebCore/PathSegment.h>
 #include <WebCore/SharedBuffer.h>
 #include <WebCore/TrackInfo.h>
 
@@ -83,6 +84,26 @@ CGPathRef decodeCGRendererPath(SwiftDecoder& decoder, CGRendererPathFacts& facts
         return nullptr;
     }
     return CGRendererCreatePathOfSegments(segments->span(), facts, computesFastBoundingRect);
+}
+
+bool SwiftDecoder::decodeCGRendererPathSegment(CGRendererPathSegment& values)
+{
+    auto segment = borrowed().decode<WebCore::PathSegment>();
+    if (!segment) [[unlikely]]
+        return false;
+    values = CGRendererPathSegmentValues(*segment);
+    return true;
+}
+
+void SwiftReplyEncoder::encodeCGRendererPathSegment(CGRendererPathSegment values)
+{
+    auto segment = CGRendererPathSegmentFromValues(values);
+    if (m_inStream) {
+        streamEncoder() << segment;
+        return;
+    }
+    RELEASE_ASSERT(m_encoder);
+    *m_encoder << segment;
 }
 
 void SwiftReplyEncoder::encodeCGRendererPath(CGPathRef platformPath, CGRendererPathFacts facts)
