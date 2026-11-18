@@ -105,9 +105,13 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO) && ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include "RemoteAudioTrackProxy.h"
 #include "RemoteMediaPlayerManagerProxy.h"
 #include "RemoteMediaPlayerManagerProxyMessages.h"
 #include "RemoteMediaPlayerProxy.h"
+#include "RemoteTextTrackProxy.h"
+#include "RemoteVideoTrackProxy.h"
 #include "ScopedRenderingResourcesRequest.h"
 #endif
 

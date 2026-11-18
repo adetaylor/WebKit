@@ -76,6 +76,13 @@ AudioTrackPrivateRemoteConfiguration RemoteAudioTrackProxy::configuration()
     };
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+IPC::Connection* RemoteAudioTrackProxy::webProcessConnection() const
+{
+    RefPtr connection = m_connectionToWebProcess.get();
+    return connection ? &Ref { connection->connection() }.leakRef() : nullptr;
+}
+#else
 void RemoteAudioTrackProxy::configurationChanged()
 {
     RefPtr connection { m_connectionToWebProcess };
@@ -116,6 +123,7 @@ void RemoteAudioTrackProxy::languageChanged(const String&)
 {
     configurationChanged();
 }
+#endif // ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 } // namespace WebKit
 

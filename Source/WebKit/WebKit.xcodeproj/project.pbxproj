@@ -191,6 +191,9 @@
 		8E71EB84A98F37FEB25CB096 /* RemoteAudioSessionProxyMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6B9887BADA33E26CBCC6CE0 /* RemoteAudioSessionProxyMessageReceiver.swift */; };
 		3CCEDA93B3109579168C87A0 /* RemoteAudioVideoRendererProxyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7A7113A568E9DF0540AF630 /* RemoteAudioVideoRendererProxyManager.swift */; };
 		AFFD586CDF4548C45D57B99B /* RemoteMediaPlayerManagerProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2086D5A155F4F0C15D8339A /* RemoteMediaPlayerManagerProxy.swift */; };
+		C5AD30689BCF34402B1A7302 /* RemoteVideoTrackProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F688B285AC4AC5C54E4849 /* RemoteVideoTrackProxy.swift */; };
+		23BB53D52E890D3EEE4D2987 /* RemoteTextTrackProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C8BB42D0FDE67CB84D7A20 /* RemoteTextTrackProxy.swift */; };
+		925D8F8073B0E998F85F7FDC /* RemoteAudioTrackProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF8246C18C18ACC60FA3829 /* RemoteAudioTrackProxy.swift */; };
 		005D158F18E4C4EB00734619 /* _WKFindDelegate.h in Headers */ = {isa = PBXBuildFile; fileRef = 005D158E18E4C4EB00734619 /* _WKFindDelegate.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		00B9661618E24CBA00CE1F88 /* APIFindClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 00B9661518E24CBA00CE1F88 /* APIFindClient.h */; };
 		00B9661A18E25AE100CE1F88 /* FindClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 00B9661818E25AE100CE1F88 /* FindClient.h */; };
@@ -3575,6 +3578,9 @@
 		7F5C6174987F774F7F27DD34 /* RemoteAudioSessionProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioSessionProxy.swift; sourceTree = "<group>"; };
 		C7A7113A568E9DF0540AF630 /* RemoteAudioVideoRendererProxyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioVideoRendererProxyManager.swift; sourceTree = "<group>"; };
 		A2086D5A155F4F0C15D8339A /* RemoteMediaPlayerManagerProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteMediaPlayerManagerProxy.swift; sourceTree = "<group>"; };
+		F7F688B285AC4AC5C54E4849 /* RemoteVideoTrackProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteVideoTrackProxy.swift; sourceTree = "<group>"; };
+		F7C8BB42D0FDE67CB84D7A20 /* RemoteTextTrackProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextTrackProxy.swift; sourceTree = "<group>"; };
+		8FF8246C18C18ACC60FA3829 /* RemoteAudioTrackProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteAudioTrackProxy.swift; sourceTree = "<group>"; };
 		005D158E18E4C4EB00734619 /* _WKFindDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _WKFindDelegate.h; sourceTree = "<group>"; };
 		00B9661518E24CBA00CE1F88 /* APIFindClient.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = APIFindClient.h; sourceTree = "<group>"; };
 		00B9661718E25AE100CE1F88 /* FindClient.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FindClient.mm; sourceTree = "<group>"; };
@@ -10152,6 +10158,7 @@
 				412FF92725382D85001DF036 /* RemoteAudioSourceProviderProxy.h */,
 				071BC57E23CA5DB100680D7C /* RemoteAudioTrackProxy.cpp */,
 				071BC57F23CA5DB100680D7C /* RemoteAudioTrackProxy.h */,
+				8FF8246C18C18ACC60FA3829 /* RemoteAudioTrackProxy.swift */,
 				51867B692E759FE600F956CB /* RemoteAudioVideoRendererIdentifier.h */,
 				51A1AF682E743C7300F12E38 /* RemoteAudioVideoRendererProxyManager.cpp */,
 				51A1AF672E743C7300F12E38 /* RemoteAudioVideoRendererProxyManager.h */,
@@ -10201,12 +10208,14 @@
 				CD8FD70D2EF3272300291438 /* RemoteMediaResourceLoader.messages.in */,
 				07E19F0723D4DC880094FFB4 /* RemoteTextTrackProxy.cpp */,
 				07E19F0623D4DC880094FFB4 /* RemoteTextTrackProxy.h */,
+				F7C8BB42D0FDE67CB84D7A20 /* RemoteTextTrackProxy.swift */,
 				7B5A3DA827A7DCBC006C6F97 /* RemoteVideoFrameObjectHeap.cpp */,
 				7B5A3DA727A7DCBC006C6F97 /* RemoteVideoFrameObjectHeap.h */,
 				413C542227C90F4C002FCDA8 /* RemoteVideoFrameObjectHeap.messages.in */,
 				1453F34FC36BB6C7B6147A57 /* RemoteVideoFrameObjectHeap.swift */,
 				071BC58423CC2C0900680D7C /* RemoteVideoTrackProxy.cpp */,
 				071BC58523CC2C0900680D7C /* RemoteVideoTrackProxy.h */,
+				F7F688B285AC4AC5C54E4849 /* RemoteVideoTrackProxy.swift */,
 				07E19F0523D4DC880094FFB4 /* TextTrackPrivateRemoteConfiguration.h */,
 				5C046A1C290B26CF00FF7820 /* TextTrackPrivateRemoteConfiguration.serialization.in */,
 				071BC57B23CA532400680D7C /* TrackPrivateRemoteConfiguration.h */,
@@ -22769,6 +22778,7 @@
 				30014D80EEC0BE3EE8F916D3 /* RemoteAudioSessionProxy.swift in Sources */,
 				0BDF27094467A6BC573FC0AE /* RemoteAudioSessionProxyManager.swift in Sources */,
 				8E71EB84A98F37FEB25CB096 /* RemoteAudioSessionProxyMessageReceiver.swift in Sources */,
+				925D8F8073B0E998F85F7FDC /* RemoteAudioTrackProxy.swift in Sources */,
 				3CCEDA93B3109579168C87A0 /* RemoteAudioVideoRendererProxyManager.swift in Sources */,
 				2B3501978EBF8452E675A49E /* RemoteAudioVideoRendererProxyManagerMessageReceiver.swift in Sources */,
 				F9F13D992BA842BD94A2450A /* RemoteBarcodeDetectorMessageReceiver.swift in Sources */,
@@ -22847,12 +22857,14 @@
 				D0B380CB197443E79AC83409 /* RemoteShapeDetectors.swift in Sources */,
 				5C0E2A1B9F3D4E6A8B7C1D01 /* RemoteSnapshot.swift in Sources */,
 				4DA1AC01D71C47279D83AD97 /* RemoteTextDetectorMessageReceiver.swift in Sources */,
+				23BB53D52E890D3EEE4D2987 /* RemoteTextTrackProxy.swift in Sources */,
 				B33B524D3B64E1BB70B85BB2 /* RemoteTexture.swift in Sources */,
 				4742D0A58ABE0CB657481F11 /* RemoteTextureMessageReceiver.swift in Sources */,
 				379146836CCA4BEADCA52CE3 /* RemoteTextureView.swift in Sources */,
 				DC60AE892E479AE960486993 /* RemoteTextureViewMessageReceiver.swift in Sources */,
 				8333770672D9F3C1E3284F29 /* RemoteVideoFrameObjectHeap.swift in Sources */,
 				879D93787D70BB63AECE0390 /* RemoteVideoFrameObjectHeapMessageReceiver.swift in Sources */,
+				C5AD30689BCF34402B1A7302 /* RemoteVideoTrackProxy.swift in Sources */,
 				50749696CA9B4EB5A41421E6 /* RemoteXRBinding.swift in Sources */,
 				6E172589DB59497E9E8A225B /* RemoteXRBindingMessageReceiver.swift in Sources */,
 				C7449424B87745819FFDF8F4 /* RemoteXRProjectionLayer.swift in Sources */,

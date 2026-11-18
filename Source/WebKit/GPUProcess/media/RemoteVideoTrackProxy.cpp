@@ -75,6 +75,13 @@ VideoTrackPrivateRemoteConfiguration RemoteVideoTrackProxy::configuration()
     };
 }
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+IPC::Connection* RemoteVideoTrackProxy::webProcessConnection() const
+{
+    RefPtr connection = m_connectionToWebProcess.get();
+    return connection ? &Ref { connection->connection() }.leakRef() : nullptr;
+}
+#else
 void RemoteVideoTrackProxy::updateConfiguration()
 {
     if (RefPtr connection = m_connectionToWebProcess.get())
@@ -108,6 +115,7 @@ void RemoteVideoTrackProxy::languageChanged(const String&)
 {
     updateConfiguration();
 }
+#endif // ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 
 } // namespace WebKit
 

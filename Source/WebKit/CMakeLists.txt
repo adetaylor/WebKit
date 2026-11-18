@@ -1773,7 +1773,10 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaPlayerManagerProxyMessageReceiver.swift
         PROPERTIES GENERATED TRUE)
     list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioTrackProxy.swift
         ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaPlayerManagerProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteTextTrackProxy.swift
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoTrackProxy.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteMediaPlayerManagerProxyMessageReceiver.swift
     )
 endif ()

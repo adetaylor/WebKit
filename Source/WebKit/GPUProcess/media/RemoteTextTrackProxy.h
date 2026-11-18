@@ -29,10 +29,13 @@
 #if ENABLE(GPU_PROCESS) && ENABLE(VIDEO)
 
 #include "MessageReceiver.h"
+#include "TextTrackPrivateRemoteConfiguration.h"
+#include <WebCore/ISOVTTCue.h>
 #include <WebCore/InbandTextTrackPrivate.h>
 #include <WebCore/MediaPlayerIdentifier.h>
 #include <WebCore/TrackBase.h>
 #include <wtf/Ref.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 #include <wtf/ThreadSafeWeakPtr.h>
 #include <wtf/WeakPtr.h>
@@ -45,9 +48,10 @@ class Decoder;
 namespace WebKit {
 
 class GPUConnectionToWebProcess;
-struct TextTrackPrivateRemoteConfiguration;
 
-class RemoteTextTrackProxy final
+// On Cocoa, Swift (RemoteTextTrackProxy.swift) implements what the track's changes and WebVTT cues send to the web process;
+// the generic and data cues stay C++, as Swift can't import GenericCueData or hold SerializedPlatformDataCueValue.
+class SWIFT_SHARED_REFERENCE(.ref, .deref) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT SWIFT_PRIVATE_FILEID("WebKit/RemoteTextTrackProxy.swift") RemoteTextTrackProxy final
     : public ThreadSafeRefCounted<RemoteTextTrackProxy, WTF::DestructionThread::Main>
     , private WebCore::InbandTextTrackPrivateClient {
     WTF_MAKE_TZONE_ALLOCATED(RemoteTextTrackProxy);
@@ -83,18 +87,40 @@ private:
     virtual void updateGenericCue(WebCore::InbandGenericCue&);
     virtual void removeGenericCue(WebCore::InbandGenericCue&);
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void parseWebVTTFileHeader(String&& header) final { swiftParseWebVTTFileHeader(WTF::move(header)); }
+#else
     virtual void parseWebVTTFileHeader(String&&);
+#endif
     virtual void parseWebVTTCueData(std::span<const uint8_t>);
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void parseWebVTTCueData(WebCore::ISOWebVTTCue&& cue) final { swiftParseWebVTTCueData(WTF::move(cue)); }
+#else
     virtual void parseWebVTTCueData(WebCore::ISOWebVTTCue&&);
+#endif
 
     // TrackPrivateBaseClient
     void idChanged(WebCore::TrackID) final;
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    void labelChanged(const String&) final { configurationChanged(); }
+    void languageChanged(const String&) final { configurationChanged(); }
+#else
     void labelChanged(const String&) final;
     void languageChanged(const String&) final;
+#endif
     void willRemove() final;
 
     TextTrackPrivateRemoteConfiguration& configuration();
     void configurationChanged();
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+    TextTrackPrivateRemoteConfiguration configurationValue() { return configuration(); }
+
+    // Implemented in Swift.
+    void swiftParseWebVTTFileHeader(String);
+    void swiftParseWebVTTCueData(WebCore::ISOWebVTTCue);
+
+    IPC::Connection* WTF_NULLABLE webProcessConnection() const SWIFT_RETURNS_RETAINED;
+#endif
 
     ThreadSafeWeakPtr<GPUConnectionToWebProcess> m_connectionToWebProcess;
     const Ref<WebCore::InbandTextTrackPrivate> m_trackPrivate;
