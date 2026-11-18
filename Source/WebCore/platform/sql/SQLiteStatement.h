@@ -29,6 +29,7 @@
 #include <WebCore/SQLiteDatabase.h>
 #include <span>
 #include <wtf/CheckedRef.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/TZoneMalloc.h>
 
 struct sqlite3_stmt;
@@ -96,6 +97,27 @@ private:
 
     const CheckedRef<SQLiteDatabase> m_database;
     sqlite3_stmt* m_statement;
+} SWIFT_SHARED_REFERENCE(retainSQLiteStatement, releaseSQLiteStatement) SWIFT_RETURNED_AS_UNRETAINED_BY_DEFAULT;
+
+// The owner Swift holds, as SQLiteDatabase gives it out; Swift reaches the statement through get() in a local.
+// Not a std::unique_ptr, whose reset(pointer) would let Swift give a second owner the same statement: this one
+// cannot adopt a pointer from Swift (its constructor is SQLiteDatabase's), and it has no release().
+class SQLiteStatementOwner {
+    WTF_MAKE_NONCOPYABLE(SQLiteStatementOwner);
+public:
+    SQLiteStatementOwner() = delete; // Not even an empty one: Swift would otherwise zero-initialize it.
+    SQLiteStatementOwner(SQLiteStatementOwner&&) = default;
+    SQLiteStatement* get() const { return m_statement.get(); }
+    void reset() { m_statement = nullptr; }
+
+private:
+    friend class SQLiteDatabase;
+    explicit SQLiteStatementOwner(std::unique_ptr<SQLiteStatement>&& statement)
+        : m_statement(std::move(statement))
+    {
+    }
+
+    std::unique_ptr<SQLiteStatement> m_statement;
 };
 
 template<typename T, typename... Args>
@@ -128,3 +150,7 @@ inline bool SQLiteStatement::bindImpl(int i, T value)
 }
 
 } // namespace WebCore
+
+// Swift's retain and release of a SQLiteStatement reference: its checked-pointer count, as a CheckedPtr holds it.
+SWIFT_UNSAFE inline void retainSQLiteStatement(WebCore::SQLiteStatement* statement) { statement->incrementCheckedPtrCount(); }
+SWIFT_UNSAFE inline void releaseSQLiteStatement(WebCore::SQLiteStatement* statement) { statement->decrementCheckedPtrCount(); }
