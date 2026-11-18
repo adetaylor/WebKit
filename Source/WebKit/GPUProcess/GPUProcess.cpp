@@ -26,7 +26,7 @@
 #include "config.h"
 #include "GPUProcess.h"
 
-#if ENABLE(GPU_PROCESS)
+#if ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 #include "ArgumentCoders.h"
 #include "Attachment.h"
@@ -1006,4 +1006,4 @@ void GPUProcess::setPresentingApplicationAuditToken(WebCore::ProcessIdentifier p
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS)
+#endif // ENABLE(GPU_PROCESS) && !ENABLE(GPU_PROCESS_CORE_SWIFT)

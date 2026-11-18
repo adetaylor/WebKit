@@ -1321,13 +1321,13 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
     return messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
 }
 
-const String& GPUConnectionToWebProcess::mediaCacheDirectory() const
+String GPUConnectionToWebProcess::mediaCacheDirectory() const
 {
     return m_gpuProcess->mediaCacheDirectory(m_sessionID);
 }
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA) || ENABLE(ENCRYPTED_MEDIA)
-const String& GPUConnectionToWebProcess::mediaKeysStorageDirectory() const
+String GPUConnectionToWebProcess::mediaKeysStorageDirectory() const
 {
     return m_gpuProcess->mediaKeysStorageDirectory(m_sessionID);
 }
@@ -1391,7 +1391,7 @@ void GPUConnectionToWebProcess::updateSampleBufferDisplayLayerBoundsAndPosition(
 }
 #endif
 
-void GPUConnectionToWebProcess::updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess&& sharedPreferencesForWebProcess)
+void GPUConnectionToWebProcess::updateSharedPreferencesForWebProcess(SharedPreferencesForWebProcess sharedPreferencesForWebProcess)
 {
     m_sharedPreferencesForWebProcess = WTF::move(sharedPreferencesForWebProcess);
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
@@ -1444,7 +1444,7 @@ ProcessID GPUConnectionToWebProcess::presentingApplicationPID(WebCore::PageIdent
     return { };
 }
 
-void GPUConnectionToWebProcess::setPresentingApplicationAuditToken(WebCore::PageIdentifier pageIdentifier, std::optional<CoreIPCAuditToken>&& auditToken)
+void GPUConnectionToWebProcess::setPresentingApplicationAuditToken(WebCore::PageIdentifier pageIdentifier, std::optional<CoreIPCAuditToken> auditToken)
 {
     if (auditToken)
         m_presentingApplicationAuditTokens.set(pageIdentifier, *auditToken);

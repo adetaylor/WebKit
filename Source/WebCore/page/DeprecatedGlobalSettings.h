@@ -29,11 +29,12 @@
 #include <atomic>
 #include <wtf/Forward.h>
 #include <wtf/Platform.h>
+#include <wtf/SwiftBridging.h>
 #include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class DeprecatedGlobalSettings {
+class SWIFT_IMMORTAL_REFERENCE DeprecatedGlobalSettings {
 public:
 #if USE(AVFOUNDATION)
     WEBCORE_EXPORT static void setAVFoundationEnabled(bool);

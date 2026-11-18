@@ -26,7 +26,7 @@
 #import "config.h"
 #import "GPUProcess.h"
 
-#if ENABLE(GPU_PROCESS) && (PLATFORM(MAC) || PLATFORM(MACCATALYST))
+#if ENABLE(GPU_PROCESS) && (PLATFORM(MAC) || PLATFORM(MACCATALYST)) && !ENABLE(GPU_PROCESS_CORE_SWIFT)
 
 #import "GPUProcessCreationParameters.h"
 #import "SandboxInitializationParameters.h"
@@ -127,4 +127,4 @@ void GPUProcess::enablePowerLogging(SandboxExtension::Handle&& handle)
 
 } // namespace WebKit
 
-#endif // ENABLE(GPU_PROCESS) && (PLATFORM(MAC) || PLATFORM(MACCATALYST))
+#endif // ENABLE(GPU_PROCESS) && (PLATFORM(MAC) || PLATFORM(MACCATALYST)) && !ENABLE(GPU_PROCESS_CORE_SWIFT)

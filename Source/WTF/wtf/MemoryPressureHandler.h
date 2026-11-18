@@ -32,6 +32,7 @@
 #include <wtf/Forward.h>
 #include <wtf/Function.h>
 #include <wtf/RunLoop.h>
+#include <wtf/SwiftBridging.h>
 
 #if OS(WINDOWS)
 #include <wtf/win/Win32Handle.h>
@@ -82,7 +83,7 @@ struct MemoryPressureHandlerConfiguration {
     Seconds pollInterval;
 };
 
-class MemoryPressureHandler {
+class SWIFT_IMMORTAL_REFERENCE MemoryPressureHandler {
     WTF_DEPRECATED_MAKE_FAST_ALLOCATED(MemoryPressureHandler);
     friend class WTF::NeverDestroyed<MemoryPressureHandler>;
 public:

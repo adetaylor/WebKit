@@ -26,7 +26,8 @@
     DispatchedFrom=UI,
     DispatchedTo=GPU,
     ExceptionForEnabledBy,
-    SwiftImplementation
+    SwiftImplementation,
+    SwiftSends=GPUProcessProxy
 ]
 messages -> GPUProcess : AuxiliaryProcess {
     InitializeGPUProcess(struct WebKit::GPUProcessCreationParameters processCreationParameters) -> ()
