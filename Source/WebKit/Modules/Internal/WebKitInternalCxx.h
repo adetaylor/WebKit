@@ -104,9 +104,19 @@
 #include "RemoteAudioDestinationManagerMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT)
+#include <WebCore/AudioHardwareListener.h>
+#endif
+
+#if ENABLE(GPU_PROCESS) && ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
+#include "LocalAudioSessionRoutingArbitrator.h"
+#endif
+
 #if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-#include "RemoteAudioSessionProxy.h"
-#include "RemoteAudioSessionProxyManager.h"
+#include <WebCore/AudioSession.h>
+#if PLATFORM(IOS_FAMILY)
+#include "RemoteAudioSessionIOS.h"
+#endif
 #include "RemoteAudioSessionProxyMessages.h"
 #endif
 

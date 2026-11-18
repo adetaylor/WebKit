@@ -41,7 +41,9 @@
 #include "Logging.h"
 #include "MediaOverridesForTesting.h"
 #include "MessageSenderInlines.h"
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 #include "RemoteAudioHardwareListenerProxy.h"
+#endif
 #include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
 #if ENABLE(GPU_PROCESS_MODEL)
@@ -100,9 +102,6 @@
 #endif
 
 #if USE(AUDIO_SESSION)
-#include "RemoteAudioSessionProxy.h"
-#include "RemoteAudioSessionProxyManager.h"
-#include "RemoteAudioSessionProxyMessages.h"
 #endif
 
 #if PLATFORM(IOS_FAMILY)
@@ -130,7 +129,6 @@
 #endif
 
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
-#include "LocalAudioSessionRoutingArbitrator.h"
 #endif
 
 #if PLATFORM(MAC) && ENABLE(MEDIA_STREAM)
@@ -416,10 +414,6 @@ GPUConnectionToWebProcess::~GPUConnectionToWebProcess()
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     m_sampleBufferDisplayLayerManager->close();
 #endif
-#if USE(AUDIO_SESSION)
-    if (RefPtr audioSessionProxy = std::exchange(m_audioSessionProxy, nullptr))
-        protect(m_gpuProcess->audioSessionManager())->removeProxy(*audioSessionProxy);
-#endif
 
 #if PLATFORM(COCOA) && USE(LIBWEBRTC)
     stopLibWebRTCCodecsProxy();
@@ -469,16 +463,9 @@ void GPUConnectionToWebProcess::didClose(IPC::Connection& connection)
         nowPlayingClientDidClose();
 
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
-    if (m_routingArbitrator)
-        m_routingArbitrator->processDidTerminate();
+    swiftRoutingArbitrationProcessDidTerminate();
 #endif
 
-#if USE(AUDIO_SESSION)
-    if (RefPtr autoSessionProxy = m_audioSessionProxy) {
-        protect(m_gpuProcess->audioSessionManager())->removeProxy(*autoSessionProxy);
-        m_audioSessionProxy = nullptr;
-    }
-#endif
 #if PLATFORM(COCOA) && ENABLE(MEDIA_STREAM)
     if (RefPtr userMediaCaptureManagerProxy = std::exchange(m_userMediaCaptureManagerProxy, nullptr))
         userMediaCaptureManagerProxy->close();
@@ -685,7 +672,7 @@ bool GPUConnectionToWebProcess::isAudioSessionInterrupted()
 void GPUConnectionToWebProcess::setLastAudioMediaStreamTrackRendererDeviceUsed(const String& deviceID)
 {
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
-    protect(audioSessionProxy())->setPreferredSpeakerID(deviceID != WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID() ? deviceID : emptyString());
+    setAudioSessionPreferredSpeakerID(deviceID != WebCore::AudioMediaStreamTrackRenderer::defaultDeviceID() ? deviceID : emptyString());
 #else
     UNUSED_PARAM(deviceID);
 #endif
@@ -713,19 +700,6 @@ void GPUConnectionToWebProcess::canDecodeExtendedType(PlatformMediaDecodingType 
         .scope = MediaPlayerScope::Supports,
     };
     completionHandler(MediaPlayer::supportsType(parameters, selection) != MediaPlayer::SupportsType::IsNotSupported);
-}
-#endif
-
-#if USE(AUDIO_SESSION)
-RemoteAudioSessionProxy& GPUConnectionToWebProcess::audioSessionProxy()
-{
-    if (!m_audioSessionProxy) {
-        Ref audioSessionProxy = RemoteAudioSessionProxy::create(*this);
-        m_audioSessionProxy = audioSessionProxy.ptr();
-        auto auditToken = protect(gpuProcess().parentProcessConnection())->getAuditToken();
-        protect(m_gpuProcess->audioSessionManager())->addProxy(audioSessionProxy, auditToken);
-    }
-    return *m_audioSessionProxy;
 }
 #endif
 
@@ -1026,12 +1000,6 @@ void GPUConnectionToWebProcess::didReceiveRemoteControlCommand(PlatformMediaSess
     m_connection->send(Messages::GPUProcessConnection::DidReceiveRemoteCommand(type, argument, MediaSessionIdentifier::isValidIdentifier(session) ? std::optional { MediaSessionIdentifier { session } } : std::nullopt), 0);
 }
 
-#if USE(AUDIO_SESSION)
-void GPUConnectionToWebProcess::ensureAudioSession(EnsureAudioSessionCompletion&& completion)
-{
-    completion(protect(audioSessionProxy())->configuration());
-}
-#endif
 
 #if PLATFORM(IOS_FAMILY)
 void GPUConnectionToWebProcess::ensureMediaSessionHelper()
@@ -1059,6 +1027,7 @@ RemoteMediaEngineConfigurationFactoryProxy& GPUConnectionToWebProcess::mediaEngi
 }
 #endif
 
+#if !ENABLE(GPU_PROCESS_MEDIA_SWIFT)
 void GPUConnectionToWebProcess::createAudioHardwareListener(RemoteAudioHardwareListenerIdentifier identifier)
 {
     auto addResult = m_remoteAudioHardwareListenerMap.ensure(identifier, [&]() {
@@ -1072,6 +1041,7 @@ void GPUConnectionToWebProcess::releaseAudioHardwareListener(RemoteAudioHardware
     bool found = m_remoteAudioHardwareListenerMap.remove(identifier);
     ASSERT_UNUSED(found, found);
 }
+#endif
 
 void GPUConnectionToWebProcess::releaseTransferredImageBuffer(WebCore::ImageBufferTransferIdentifier identifier)
 {
@@ -1126,12 +1096,6 @@ bool GPUConnectionToWebProcess::dispatchMessage(IPC::Connection& connection, IPC
     // message for one that has gone is dropped, as before they did.
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchMessage(connection, decoder);
-        return true;
-    }
-#endif
-#if USE(AUDIO_SESSION)
-    if (decoder.messageReceiverName() == Messages::RemoteAudioSessionProxy::messageReceiverName()) {
-        protect(audioSessionProxy())->didReceiveMessage(connection, decoder);
         return true;
     }
 #endif
@@ -1192,12 +1156,6 @@ bool GPUConnectionToWebProcess::dispatchSyncMessage(IPC::Connection& connection,
 #if ENABLE(GPU_PROCESS_CDM_SWIFT) || ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (isRemoteCDMChildReceiverName(decoder.messageReceiverName())) {
         messageReceiverMap().dispatchSyncMessage(connection, decoder, replyEncoder);
-        return true;
-    }
-#endif
-#if USE(AUDIO_SESSION)
-    if (decoder.messageReceiverName() == Messages::RemoteAudioSessionProxy::messageReceiverName()) {
-        protect(audioSessionProxy())->didReceiveSyncMessage(connection, decoder, replyEncoder);
         return true;
     }
 #endif
@@ -1317,8 +1275,7 @@ void GPUConnectionToWebProcess::enableMediaPlaybackIfNecessary()
 #endif
 
 #if ENABLE(ROUTING_ARBITRATION) && HAVE(AVAUDIO_ROUTING_ARBITER)
-    lazyInitialize(m_routingArbitrator, makeUniqueWithoutRefCountedCheck<LocalAudioSessionRoutingArbitrator>(*this));
-    protect(protect(m_gpuProcess->audioSessionManager())->session())->setRoutingArbitrationClient(*m_routingArbitrator);
+    swiftEnableRoutingArbitration();
 #endif
 }
 

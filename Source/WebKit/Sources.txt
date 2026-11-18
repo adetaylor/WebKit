@@ -46,8 +46,6 @@ GPUProcess/graphics/Model/RemoteGPUModel.cpp
 GPUProcess/graphics/Model/RemoteMesh.cpp
 GPUProcess/graphics/WebGPU/RemoteGPU.cpp @cost:3
 GPUProcess/media/RemoteAudioHardwareListenerProxy.cpp
-GPUProcess/media/RemoteAudioSessionProxy.cpp
-GPUProcess/media/RemoteAudioSessionProxyManager.cpp
 GPUProcess/media/RemoteAudioTrackProxy.cpp @cost:3
 GPUProcess/media/RemoteAudioVideoRendererProxyManager.cpp @cost:3
 GPUProcess/media/RemoteMediaEngineConfigurationFactoryProxy.cpp

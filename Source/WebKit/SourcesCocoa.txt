@@ -81,11 +81,10 @@ GPUProcess/graphics/RemoteSnapshotPrintData.cpp
 GPUProcess/graphics/ScopedRenderingResourcesRequestCocoa.mm @nonARC @no-unify-when(bundle<=8)
 GPUProcess/ios/GPUProcessIOS.mm @nonARC
 GPUProcess/mac/GPUProcessMac.mm @nonARC
-GPUProcess/mac/LocalAudioSessionRoutingArbitrator.cpp
-GPUProcess/media/RemoteAudioSourceProviderProxy.cpp
 GPUProcess/media/RemoteMediaSwiftSupport.cpp
 GPUProcess/media/cocoa/VideoReceiverEndpointManager.mm @nonARC
 GPUProcess/media/cocoa/RemoteMediaPlayerProxyCocoa.mm @nonARC
+GPUProcess/media/ios/RemoteAudioSessionIOS.cpp
 GPUProcess/media/ios/RemoteMediaSessionHelperProxy.cpp
 GPUProcess/webrtc/CapturePreviewLayer.mm @nonARC
 GPUProcess/webrtc/LibWebRTCCodecsProxy.mm @nonARC @no-unify // Includes libwebrtc headers with macro pollution.

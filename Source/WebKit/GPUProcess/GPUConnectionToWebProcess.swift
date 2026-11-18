@@ -69,6 +69,13 @@ final class GPUConnectionState {
     #if ENABLE_WEB_AUDIO && WTF_PLATFORM_COCOA
     private(set) var audioDestinationManager: RemoteAudioDestinationManager?
     #endif
+    #if USE_AUDIO_SESSION
+    private(set) var audioSessionProxy: RemoteAudioSessionProxy?
+    #endif
+    #if ENABLE_ROUTING_ARBITRATION && HAVE_AVAUDIO_ROUTING_ARBITER
+    // The shared audio session's routing arbitration client, while the web process does its routing arbitration.
+    var routingArbitration: WebCore.AudioSessionRoutingArbitrationCallbacks?
+    #endif
     #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
     private(set) var audioMediaStreamTrackRendererInternalUnitManager: RemoteAudioMediaStreamTrackRendererInternalUnitManager?
     #endif
@@ -87,6 +94,10 @@ final class GPUConnectionState {
     #if USE_LIBWEBRTC && WTF_PLATFORM_COCOA
     // From before the connection opens: the C++ connection registers its forwarder on the codecs queue.
     fileprivate var libWebRTCCodecsProxy: LibWebRTCCodecsProxy?
+    #endif
+    #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+    // The web process's audio hardware listeners, by identifier, until it releases them.
+    var audioHardwareListeners: [UInt64: RemoteAudioHardwareListenerProxy] = [:]
     #endif
 
     // The receivers with stream connections of their own, by identifier, from when they are added until they are released
@@ -114,6 +125,11 @@ final class GPUConnectionState {
         #if ENABLE_MEDIA_STREAM && WTF_PLATFORM_COCOA
         if let audioMediaStreamTrackRendererInternalUnitManager {
             receivers.append(audioMediaStreamTrackRendererInternalUnitManager)
+        }
+        #endif
+        #if USE_AUDIO_SESSION
+        if let audioSessionProxy {
+            receivers.append(audioSessionProxy)
         }
         #endif
         #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
@@ -163,6 +179,11 @@ final class GPUConnectionState {
                 0
             )
         )
+        #endif
+        #if USE_AUDIO_SESSION
+        let audioSessionProxy = RemoteAudioSessionProxy(connection: connection, processIdentifier: processIdentifier)
+        self.audioSessionProxy = audioSessionProxy
+        register(IPC.registerSwiftReceiver(connection, audioSessionProxy.getMessageReceiver(), .RemoteAudioSessionProxy, 0))
         #endif
         #if ENABLE_GPU_PROCESS && ENABLE_ENCRYPTED_MEDIA && ENABLE_GPU_PROCESS_CDM_SWIFT
         let cdmFactory = RemoteCDMFactoryProxy(connection: connection)
@@ -505,6 +526,22 @@ extension WebKit.GPUConnectionToWebProcess {
     func isActiveNowPlayingSessionForTesting(connection: IPC.Connection, identifier: IPCTypes.MediaSessionIdentifier) -> Bool {
         nowPlayingArbiter.isActive(process: state.processIdentifier, session: identifier.rawValue)
     }
+
+    #if ENABLE_GPU_PROCESS_MEDIA_SWIFT
+    @cxx
+    @implementation
+    @MainActor
+    func createAudioHardwareListener(_ identifier: WebKit.RemoteAudioHardwareListenerIdentifier) {
+        state.createAudioHardwareListener(identifier.toUInt64(), connection: connection())
+    }
+
+    @cxx
+    @implementation
+    @MainActor
+    func releaseAudioHardwareListener(_ identifier: WebKit.RemoteAudioHardwareListenerIdentifier) {
+        state.releaseAudioHardwareListener(identifier.toUInt64())
+    }
+    #endif
 
     @MainActor
     func createRemoteCommandListener(connection: IPC.Connection, identifier: IPCTypes.RemoteRemoteCommandListenerIdentifier) {

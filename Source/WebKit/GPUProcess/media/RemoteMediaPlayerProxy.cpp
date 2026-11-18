@@ -42,7 +42,6 @@
 #include "RemoteMediaResourceIdentifier.h"
 #include "RemoteMediaResourceLoader.h"
 #include "RemoteMediaSwiftSupport.h"
-#include "RemoteAudioSessionProxy.h"
 #include "RemoteTextTrackProxy.h"
 #include "RemoteVideoFrameObjectHeap.h"
 #include "RemoteVideoTrackProxy.h"
@@ -1273,8 +1272,7 @@ void RemoteMediaPlayerProxy::audioOutputDeviceChanged(String deviceId)
 #if PLATFORM(IOS_FAMILY) && USE(AUDIO_SESSION)
     RefPtr manager = m_manager.get();
     RefPtr connection = manager->gpuConnectionToWebProcess();
-    Ref audioSession = connection->audioSessionProxy();
-    audioSession->setPreferredSpeakerID(m_configuration.audioOutputDeviceId);
+    connection->setAudioSessionPreferredSpeakerID(m_configuration.audioOutputDeviceId);
 #endif
 }
 

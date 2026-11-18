@@ -29,25 +29,26 @@
     DispatchedFrom=WebContent,
     DispatchedTo=GPU,
     EnabledBy=UseGPUProcessForMediaEnabled && MediaPlaybackEnabled,
-    SwiftImplementation,
-    SwiftTypes
+    SwiftReceiver,
+    SwiftTypes,
+    SwiftSends=RemoteAudioSession
 ]
 messages -> RemoteAudioSessionProxy {
     SetCategory(enum:uint8_t WebCore::AudioSessionCategory type, enum:uint8_t WebCore::AudioSessionMode mode, enum:uint8_t WebCore::RouteSharingPolicy policy) SwiftSyncHandler
     SetPreferredBufferSize(uint64_t preferredBufferSize) SwiftSyncHandler
-    TryToSetActive(bool active) -> (bool suceeded) CxxTypes
-    TryToSetActiveSync(bool active) -> (bool suceeded) Synchronous CxxTypes
+    TryToSetActive(bool active) -> (bool suceeded)
+    TryToSetActiveSync(bool active) -> (bool suceeded) Synchronous
     SetIsPlayingToBluetoothOverride(std::optional<bool> value) SwiftSyncHandler
 
-    [EnabledBy=AllowTestOnlyIPC] TriggerBeginInterruptionForTesting() CxxTypes
-    [EnabledBy=AllowTestOnlyIPC] TriggerEndInterruptionForTesting() CxxTypes
-    [EnabledBy=AllowTestOnlyIPC] SystemCategoryForTesting() -> (enum:uint8_t WebCore::AudioSessionCategory category) CxxTypes
-    [EnabledBy=AllowTestOnlyIPC] SystemActivationCountForTesting() -> (uint64_t count) CxxTypes
+    [EnabledBy=AllowTestOnlyIPC] TriggerBeginInterruptionForTesting() SwiftSyncHandler
+    [EnabledBy=AllowTestOnlyIPC] TriggerEndInterruptionForTesting() SwiftSyncHandler
+    [EnabledBy=AllowTestOnlyIPC] SystemCategoryForTesting() -> (enum:uint8_t WebCore::AudioSessionCategory category) SwiftSyncHandler
+    [EnabledBy=AllowTestOnlyIPC] SystemActivationCountForTesting() -> (uint64_t count) SwiftSyncHandler
 
-    BeginInterruptionRemote() CxxTypes
-    EndInterruptionRemote(enum:bool WebCore::AudioSessionMayResume flags) CxxTypes
+    BeginInterruptionRemote() SwiftSyncHandler
+    EndInterruptionRemote(enum:bool WebCore::AudioSessionMayResume flags) SwiftSyncHandler
 
-    SetSceneIdentifier(String sceneIdentifier) CxxTypes
+    SetSceneIdentifier(String sceneIdentifier) SwiftSyncHandler
     SetSoundStageSize(enum:uint8_t WebCore::AudioSessionSoundStageSize size) SwiftSyncHandler
 }
 

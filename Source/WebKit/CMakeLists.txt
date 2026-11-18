@@ -1022,6 +1022,7 @@ if (APPLE)
     list(APPEND WebKit_SWIFT_INTEROP_SOURCES
 
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteAudioDestinationManagerMessageReceiver.cpp
+        ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/media/RemoteAudioSessionProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/LibWebRTCCodecsProxyMessageReceiver.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/webrtc/RemoteAudioMediaStreamTrackRendererInternalUnitManagerMessageReceiver.cpp
 
@@ -1673,6 +1674,7 @@ list(APPEND WebKit_SOURCES
     ${WEBKIT_DIR}/GPUProcess/graphics/RemoteSnapshot.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUConnectionToWebProcessMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/GPUProcessMessageReceiver.swift
+    ${WEBKIT_DIR}/GPUProcess/media/RemoteAudioHardwareListenerProxy.swift
     ${WEBKIT_DIR}/GPUProcess/media/RemoteVideoFrameObjectHeap.swift
     ${WebKit_DERIVED_SOURCES_DIR}/RemoteVideoFrameObjectHeapMessageReceiver.swift
     ${WebKit_DERIVED_SOURCES_DIR}/WebBackForwardListMessageReceiver.swift

@@ -174,6 +174,51 @@ NODELETE static WeakHashSet<AudioSessionInterruptionObserver>& audioSessionInter
     return audioSessionInterruptionObservers.get();
 }
 
+void AudioSession::tryToSetActive(bool active, CompletionHandler<void(bool)>&& completionHandler)
+{
+    tryToSetActive(active)->whenSettled(RunLoop::mainSingleton(), [completionHandler = WTF::move(completionHandler)](auto&& result) mutable {
+        completionHandler(!!result);
+    });
+}
+
+AudioSessionObserverCallbacks* AudioSessionObserverCallbacks::create(Function<void()>&& beginInterruption, Function<void(bool)>&& endInterruption, Function<void()>&& configurationChanged)
+{
+    return &adoptRef(*new AudioSessionObserverCallbacks(WTF::move(beginInterruption), WTF::move(endInterruption), WTF::move(configurationChanged))).leakRef();
+}
+
+AudioSessionObserverCallbacks::AudioSessionObserverCallbacks(Function<void()>&& beginInterruption, Function<void(bool)>&& endInterruption, Function<void()>&& configurationChanged)
+    : m_beginInterruption(WTF::move(beginInterruption))
+    , m_endInterruption(WTF::move(endInterruption))
+    , m_configurationChanged(WTF::move(configurationChanged))
+{
+    AudioSession::addInterruptionObserver(*this);
+    AudioSession::singleton().addConfigurationChangeObserver(*this);
+}
+
+AudioSessionObserverCallbacks::~AudioSessionObserverCallbacks()
+{
+    AudioSession::removeInterruptionObserver(*this);
+    AudioSession::singleton().removeConfigurationChangeObserver(*this);
+}
+
+AudioSessionRoutingArbitrationCallbacks* AudioSessionRoutingArbitrationCallbacks::create(BeginCallback&& begin, LeaveCallback&& leave, CanLogCallback&& canLog)
+{
+    return &adoptRef(*new AudioSessionRoutingArbitrationCallbacks(WTF::move(begin), WTF::move(leave), WTF::move(canLog))).leakRef();
+}
+
+AudioSessionRoutingArbitrationCallbacks::AudioSessionRoutingArbitrationCallbacks(BeginCallback&& begin, LeaveCallback&& leave, CanLogCallback&& canLog)
+    : m_begin(WTF::move(begin))
+    , m_leave(WTF::move(leave))
+    , m_canLog(WTF::move(canLog))
+    , m_logIdentifier(LoggerHelper::uniqueLogIdentifier())
+{
+}
+
+void AudioSessionRoutingArbitrationCallbacks::beginRoutingArbitrationWithCategory(AudioSession::CategoryType category, ArbitrationCallback&& callback)
+{
+    m_begin(category, CallbackBox::create(WTF::move(callback)).ptr());
+}
+
 void AudioSession::addInterruptionObserver(AudioSessionInterruptionObserver& observer)
 {
     audioSessionInterruptionObserversSingleton().add(observer);

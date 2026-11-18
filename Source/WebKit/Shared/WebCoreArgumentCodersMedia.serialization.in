@@ -320,7 +320,10 @@ header: <WebCore/AudioSession.h>
     Large,
 };
 
-enum class WebCore::AudioSessionMayResume : bool;
+[Swift] enum class WebCore::AudioSessionMayResume : bool {
+    No,
+    Yes,
+};
 
 enum class WebCore::AudioSessionRoutingArbitrationError : uint8_t {
     None,

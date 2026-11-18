@@ -103,8 +103,10 @@
 #endif
 
 #if ENABLE(GPU_PROCESS) && USE(AUDIO_SESSION)
-#include "RemoteAudioSessionProxy.h"
-#include "RemoteAudioSessionProxyManager.h"
+#include <WebCore/AudioSession.h>
+#if PLATFORM(IOS_FAMILY)
+#include "RemoteAudioSessionIOS.h"
+#endif
 #include "RemoteAudioSessionProxyMessages.h"
 #endif
 
