@@ -137,6 +137,7 @@ using RefRemoteImageBufferSet = Ref<RemoteImageBufferSet>;
 #else
 
 #include "IPCEvent.h"
+#include <wtf/SwiftBridging.h>
 #include "ImageBufferSetIdentifier.h"
 #include "PrepareBackingStoreBuffersData.h"
 #include "RemoteGraphicsContextIdentifier.h"
@@ -179,6 +180,12 @@ public:
     bool makeBuffersVolatile(OptionSet<BufferInSetType> requestedBuffers, OptionSet<BufferInSetType>& volatileBuffers, bool forcePurge);
 
     bool isPreparingForDisplay() const { return m_context.get(); }
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { IPC::StreamMessageReceiver::ref(); }
+    void deref() const { IPC::StreamMessageReceiver::deref(); }
+#endif
 
 private:
     RemoteImageBufferSet(ImageBufferSetIdentifier, RemoteGraphicsContextIdentifier, RemoteRenderingBackend&);
@@ -224,7 +231,10 @@ private:
 #if ENABLE(RE_DYNAMIC_CONTENT_SCALING)
     WebCore::DynamicContentScalingResourceCache m_dynamicContentScalingResourceCache;
 #endif
-};
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+// RemoteRenderingBackend.swift keeps the sets with dynamic content scaling too.
+using RefRemoteImageBufferSet = Ref<RemoteImageBufferSet>;
 
 
 } // namespace WebKit

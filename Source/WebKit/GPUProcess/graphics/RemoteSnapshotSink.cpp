@@ -40,7 +40,10 @@
 #endif
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+#include "RemoteCGRendererGlyphs.h"
+#include "RemoteCGRendererMessages.h"
 #include "RemoteSnapshotPrintData.h"
+#include "SharedFont.h"
 #include "WebKit-Swift.h"
 #include <WebCore/GraphicsContextCG.h>
 #else
@@ -109,6 +112,66 @@ void RemoteSnapshotSink::runCompletion()
 }
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+
+Ref<RemoteSnapshotPrintDataBuilder> RemoteSnapshotPrintDataBuilder::create(uint64_t rootFrameKey)
+{
+    return adoptRef(*new RemoteSnapshotPrintDataBuilder(rootFrameKey));
+}
+
+RemoteSnapshotPrintDataBuilder::RemoteSnapshotPrintDataBuilder(uint64_t rootFrameKey)
+    : m_data(WTF::makeUniqueWithoutFastMallocCheck<RemoteSnapshotPrintData>())
+    , m_fonts(WTF::makeUniqueWithoutFastMallocCheck<DisplayListDataFonts>())
+{
+    m_data->rootFrameKey = rootFrameKey;
+}
+
+RemoteSnapshotPrintDataBuilder::~RemoteSnapshotPrintDataBuilder() = default;
+
+// DisplayListData's limits: the print process draws no mesh gradients, nor images or image buffers, which Swift checks
+// (RemoteCGRendererRecording.encodedMessages()).
+void RemoteSnapshotPrintDataBuilder::addRecording(RemoteCGRendererRecordedMessageEncoder& encoder)
+{
+    RemoteSnapshotPrintRecording recording;
+    recording.messages = encoder.takeEncodedMessages();
+    m_data->recordings.append(WTF::move(recording));
+}
+
+void RemoteSnapshotPrintDataBuilder::addFont(uint64_t key, SharedFont& font)
+{
+    m_data->recordings.last().fonts.append({ RenderingResourceIdentifier { key }, m_fonts->index(font) });
+}
+
+void RemoteSnapshotPrintDataBuilder::addGradient(uint64_t key, Gradient& gradient)
+{
+    m_data->recordings.last().gradients.append({ RemoteGradientIdentifier { key }, gradient });
+}
+
+void RemoteSnapshotPrintDataBuilder::addPath(uint64_t key, PathImpl& pathImpl)
+{
+    m_data->recordings.last().paths.append({ RemotePathImplIdentifier { key }, pathImpl });
+}
+
+void RemoteSnapshotPrintDataBuilder::addDisplayList(uint64_t key, uint64_t index)
+{
+    m_data->recordings.last().displayLists.append({ key, index });
+}
+
+void RemoteSnapshotPrintDataBuilder::addFrame(uint64_t key, uint64_t index)
+{
+    m_data->frames.append({ key, index });
+}
+
+void RemoteSnapshotPrintDataBuilder::addAbandonedFrame(uint64_t key)
+{
+    m_data->frames.append({ key, std::nullopt });
+}
+
+RemoteSnapshotPrintData RemoteSnapshotPrintDataBuilder::takeData()
+{
+    m_data->customFonts = m_fonts->takeCustomFonts();
+    m_data->fonts = m_fonts->takeFonts();
+    return WTF::move(*m_data);
+}
 
 // Replays the root frame's recording in Swift, and those of the frames it draws, into a context that lends its renderer for it.
 bool RemoteSnapshotSink::drawRootFrame(GraphicsContext& context) const

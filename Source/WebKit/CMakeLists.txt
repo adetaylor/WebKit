@@ -456,8 +456,6 @@ set(WebKit_SERIALIZATION_IN_FILES
 
     GPUProcess/graphics/PathSegment.serialization.in
 
-    GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in
-    GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
 
     Shared/RemoteMediaPlayerProxyConfiguration.serialization.in
 
@@ -661,6 +659,8 @@ set(WebKit_SERIALIZATION_IN_FILES
 
     Shared/Gamepad/GamepadData.serialization.in
 
+    Shared/WebGPU/PrepareForDisplayReply.serialization.in
+    Shared/WebGPU/RemoteGPURequestAdapterResponse.serialization.in
     Shared/WebGPU/WebGPUBindGroupDescriptor.serialization.in
     Shared/WebGPU/WebGPUBindGroupEntry.serialization.in
     Shared/WebGPU/WebGPUBindGroupLayoutDescriptor.serialization.in
@@ -1046,7 +1046,7 @@ if (APPLE)
         GPUProcess/graphics/RemoteImageBufferGraphicsContext.cpp
         GPUProcess/graphics/RemoteRenderingBackend.cpp
         GPUProcess/graphics/RemoteSnapshotSink.cpp
-        GPUProcess/graphics/RemoteSnapshotPrintData.cpp
+        Shared/graphics/RemoteSnapshotPrintData.cpp
         GPUProcess/graphics/RemoteSnapshotRecorder.cpp
         GPUProcess/media/RemoteVideoFrameObjectHeap.cpp
         ${WebKit_DERIVED_SOURCES_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLMessageReceiver.cpp
@@ -1886,6 +1886,7 @@ if (SWIFT_REQUIRED AND APPLE)
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteImageBufferSet.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteRenderingBackend.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteResourceCache.swift
+        ${WEBKIT_DIR}/GPUProcess/graphics/ScopedRenderingResourcesRequest.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGL.swift
         ${WEBKIT_DIR}/GPUProcess/graphics/RemoteGraphicsContextGLFunctionsGenerated.swift
         ${WebKit_DERIVED_SOURCES_DIR}/RemoteGraphicsContextGLMessageReceiver.swift

@@ -39,6 +39,7 @@
 namespace WebCore {
 
 class GraphicsContext;
+class NativeImage;
 class Path;
 
 // A GraphicsContext lent to WebCore's Swift for one call. Swift can't keep it: the view is non-escapable. Its members are
@@ -74,6 +75,8 @@ public:
     void drawImageBuffer(ImageBuffer&, const FloatPoint& destination, CompositeOperator) const;
     void drawImageBuffer(ImageBuffer&, const FloatRect& destination, CompositeOperator) const;
     void drawImageBuffer(ImageBuffer&, const FloatRect& destination, const FloatRect& source, CompositeOperator, BlendMode) const;
+    void setImageInterpolationQuality(InterpolationQuality) const;
+    void drawNativeImage(NativeImage&, const FloatRect& destination, const FloatRect& source, CompositeOperator) const;
 
 private:
     GraphicsContext& m_context;

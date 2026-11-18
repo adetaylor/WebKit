@@ -147,6 +147,16 @@ void GraphicsContextView::drawImageBuffer(ImageBuffer& imageBuffer, const FloatR
     m_context.drawImageBuffer(imageBuffer, destination, source, { compositeOperator, blendMode });
 }
 
+void GraphicsContextView::setImageInterpolationQuality(InterpolationQuality quality) const
+{
+    m_context.setImageInterpolationQuality(quality);
+}
+
+void GraphicsContextView::drawNativeImage(NativeImage& image, const FloatRect& destination, const FloatRect& source, CompositeOperator compositeOperator) const
+{
+    m_context.drawNativeImage(image, destination, source, { compositeOperator });
+}
+
 GraphicsContextView ImageBufferDrawing::context() const
 {
     return GraphicsContextView { m_imageBuffer->context() };

@@ -33,10 +33,13 @@
 #include <WebCore/FrameIdentifier.h>
 #include <WebCore/ShareableBitmap.h>
 #include <wtf/Function.h>
+#include <wtf/RefCounted.h>
 #include <wtf/SwiftBridging.h>
 #include <wtf/ThreadSafeRefCounted.h>
 
 namespace WebCore {
+class Gradient;
+class PathImpl;
 class ColorSpace;
 class GraphicsContext;
 class SharedBuffer;
@@ -46,6 +49,9 @@ class ProcessIdentity;
 namespace WebKit {
 
 #if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+class DisplayListDataFonts;
+class RemoteCGRendererRecordedMessageEncoder;
+class SharedFont;
 struct RemoteSnapshotPrintData;
 #else
 class DisplayListData;
@@ -142,6 +148,38 @@ private:
 #endif
     uintptr_t m_swiftState __attribute__((availability(swift, unavailable))) { 0 };
 } DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+
+#if ENABLE(GPU_PROCESS_CG_RENDERER_SWIFT)
+// Collects a snapshot's recordings into print data, as Swift walks them (RemoteCGRendererSnapshotFrames.encode(to:)).
+class RemoteSnapshotPrintDataBuilder final : public RefCounted<RemoteSnapshotPrintDataBuilder> {
+public:
+    static Ref<RemoteSnapshotPrintDataBuilder> create(uint64_t rootFrameKey);
+    ~RemoteSnapshotPrintDataBuilder();
+
+    // A recording, with its messages encoded, and the resources they name, which go with the recording added last.
+    void addRecording(RemoteCGRendererRecordedMessageEncoder&);
+    void addFont(uint64_t key, SharedFont&);
+    void addGradient(uint64_t key, WebCore::Gradient&);
+    void addPath(uint64_t key, WebCore::PathImpl&);
+    // A display list that the recording added last draws, by key: the recording at the index.
+    void addDisplayList(uint64_t key, uint64_t index);
+    void addFrame(uint64_t key, uint64_t index);
+    void addAbandonedFrame(uint64_t key);
+    RemoteSnapshotPrintData takeData() __attribute__((availability(swift, unavailable)));
+
+#ifdef __swift__
+    // FIXME: rdar://165684636 means we have to define these at this level of the type hierarchy.
+    void ref() const { RefCounted<RemoteSnapshotPrintDataBuilder>::ref(); }
+    void deref() const { RefCounted<RemoteSnapshotPrintDataBuilder>::deref(); }
+#endif
+
+private:
+    explicit RemoteSnapshotPrintDataBuilder(uint64_t rootFrameKey);
+
+    const std::unique_ptr<RemoteSnapshotPrintData> m_data;
+    const std::unique_ptr<DisplayListDataFonts> m_fonts;
+} DERIVED_CLASS_SWIFT_SHARED_REFERENCE(.ref, .deref);
+#endif
 
 } // namespace WebKit
 

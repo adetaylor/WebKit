@@ -341,7 +341,6 @@
 		07E065112F19DC0100ECDA2E /* AccessibilityPreferences.h in Headers */ = {isa = PBXBuildFile; fileRef = E3BCE878267252120011D8DB /* AccessibilityPreferences.h */; };
 		07E065122F19DDD600ECDA2E /* ModelProcessConnectionInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 2DA8153028A462B400CF811C /* ModelProcessConnectionInfo.h */; };
 		07E065132F19DDEF00ECDA2E /* DocumentEditingContext.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D7FD190223C730F007887F1 /* DocumentEditingContext.h */; };
-		07E065142F19E01000ECDA2E /* RemoteGPU.h in Headers */ = {isa = PBXBuildFile; fileRef = 1C98C03827446A09002CCB78 /* RemoteGPU.h */; };
 		07E065152F19E03900ECDA2E /* GPUConnectionToWebProcess.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D9FB2002375209D0049F936 /* GPUConnectionToWebProcess.h */; };
 		07E065162F19E04000ECDA2E /* ServiceWorkerFetchTask.h in Headers */ = {isa = PBXBuildFile; fileRef = 41518535222704F5005430C6 /* ServiceWorkerFetchTask.h */; };
 		07E065172F19E04800ECDA2E /* NetworkMDNSRegister.h in Headers */ = {isa = PBXBuildFile; fileRef = 41B7ED70206965900087D853 /* NetworkMDNSRegister.h */; };
@@ -2987,6 +2986,7 @@
 		C4C87E469CD7577EA70907C4 /* RemoteImageBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46A37E8F6ADB6FD660CFCAC4 /* RemoteImageBuffer.swift */; };
 		9D0AABBDFDC4EEEADB99073F /* RemoteImageBufferSet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC9DA65828DA54BCCB43BDF /* RemoteImageBufferSet.swift */; };
 		4FBAE4262FD21E1A73D858E8 /* RemoteRenderingBackend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A2510B12AC24C588F361D3D /* RemoteRenderingBackend.swift */; };
+		2CC0CD3B792D4B5D283ECB1D /* ScopedRenderingResourcesRequest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A3FF746E6B0B8C91D9EC8F3 /* ScopedRenderingResourcesRequest.swift */; };
 		0583096F9B91CD2A718E59B1 /* RemoteResourceCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FAF1C997E8A006AF13C493 /* RemoteResourceCache.swift */; };
 		55245171CEFE4BC6A61D9592 /* RemoteCGRendererMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F709CB0803B4FAABC70FEA3 /* RemoteCGRendererMessageReceiver.swift */; };
 		BC11B55BC1A7C3A27D37071D /* RemoteImageBufferMessageReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77C1E665FFAFF84B1B85822B /* RemoteImageBufferMessageReceiver.swift */; };
@@ -4718,7 +4718,6 @@
 		1C974FE22AFACB16009DE8FC /* WKWebExtensionCommandPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WKWebExtensionCommandPrivate.h; sourceTree = "<group>"; };
 		1C974FE42AFAD137009DE8FC /* WebExtensionCommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebExtensionCommand.h; sourceTree = "<group>"; };
 		1C974FE62AFAD17D009DE8FC /* WebExtensionCommand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebExtensionCommand.cpp; sourceTree = "<group>"; };
-		1C98C01D27446A03002CCB78 /* RemoteGPU.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RemoteGPU.cpp; sourceTree = "<group>"; };
 		6DD37FA85189A73A41230CE0 /* RemoteQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteQueue.swift; sourceTree = "<group>"; };
 		538BF1BDDC6E1289F2D1B49E /* RemoteShaderModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteShaderModule.swift; sourceTree = "<group>"; };
 		71BFF1DC463DBB2E7F102D9A /* RemoteRenderPassEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderPassEncoder.swift; sourceTree = "<group>"; };
@@ -4739,7 +4738,6 @@
 		4D0ECA46E7AB1C2656AA7F9E /* RemoteTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTexture.swift; sourceTree = "<group>"; };
 		AFCED8768785BCCB10A18533 /* RemoteTextureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextureView.swift; sourceTree = "<group>"; };
 		D7F7AC9DDE7D703717449491 /* RemoteTextureViewMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTextureViewMessageReceiver.swift; sourceTree = "<group>"; };
-		1C98C03827446A09002CCB78 /* RemoteGPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteGPU.h; sourceTree = "<group>"; };
 		17CDCEFBDFD620F9E3397CC6 /* RemoteRenderBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderBundle.swift; sourceTree = "<group>"; };
 		A18DA1BCB46EBE474E0D40EB /* RemoteRenderBundleMessageReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderBundleMessageReceiver.swift; sourceTree = "<group>"; };
 		EF60F74AC568B0A2E43AE916 /* RemoteQuerySet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteQuerySet.swift; sourceTree = "<group>"; };
@@ -7386,7 +7384,6 @@
 		7BBA63DC280E93B500B04823 /* IPCConnectionTesterIdentifier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCConnectionTesterIdentifier.h; sourceTree = "<group>"; };
 		7BBA63DD280E93B600B04823 /* IPCConnectionTester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IPCConnectionTester.cpp; sourceTree = "<group>"; };
 		7BBA63DE280E93B600B04823 /* IPCConnectionTester.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IPCConnectionTester.h; sourceTree = "<group>"; };
-		7BCF70CA2614935E00E4FB70 /* ScopedRenderingResourcesRequest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScopedRenderingResourcesRequest.cpp; sourceTree = "<group>"; };
 		7BCF70CB2614935E00E4FB70 /* ScopedRenderingResourcesRequestCocoa.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ScopedRenderingResourcesRequestCocoa.mm; sourceTree = "<group>"; };
 		7BCF70CC2614935F00E4FB70 /* ScopedWebGLRenderingResourcesRequest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScopedWebGLRenderingResourcesRequest.cpp; sourceTree = "<group>"; };
 		7BCF70CD2614935F00E4FB70 /* ScopedRenderingResourcesRequest.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScopedRenderingResourcesRequest.h; sourceTree = "<group>"; };
@@ -9648,6 +9645,7 @@
 		46A37E8F6ADB6FD660CFCAC4 /* RemoteImageBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImageBuffer.swift; sourceTree = "<group>"; };
 		0FC9DA65828DA54BCCB43BDF /* RemoteImageBufferSet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteImageBufferSet.swift; sourceTree = "<group>"; };
 		9A2510B12AC24C588F361D3D /* RemoteRenderingBackend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteRenderingBackend.swift; sourceTree = "<group>"; };
+		7A3FF746E6B0B8C91D9EC8F3 /* ScopedRenderingResourcesRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopedRenderingResourcesRequest.swift; sourceTree = "<group>"; };
 		01FAF1C997E8A006AF13C493 /* RemoteResourceCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteResourceCache.swift; sourceTree = "<group>"; };
 		45302C7EC4D649C7835F5249 /* RemoteCGRendererGlyphs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererGlyphs.h; sourceTree = "<group>"; };
 		E2A79FA5EC95484DB0817301 /* RemoteCGRendererLineDash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RemoteCGRendererLineDash.h; sourceTree = "<group>"; };
@@ -10905,7 +10903,10 @@
 				8696CE35297EEC490081C800 /* RemoteMediaPlayerProxyConfiguration.serialization.in */,
 				1DE2DFAC23A959F8003E013A /* RemoteMediaResourceIdentifier.h */,
 				CD8FD7092EF271B100291438 /* RemoteMediaResourceLoaderIdentifier.h */,
+				5506409F2407196A00AAE045 /* RemoteRenderingBackendIdentifier.h */,
 				966F42B3BF3CA9AFEE64F9BF /* RemoteSerializedImageBufferIdentifier.h */,
+				7BDC88132E734E2F00C7A37F /* RemoteSnapshotIdentifier.h */,
+				7BDC880B2E72D80500C7A37F /* RemoteSnapshotRecorderIdentifier.h */,
 				FA5C22422DC5710500B13EF3 /* RemoteWebTouchEvent.h */,
 				FA5C22432DC5719D00B13EF3 /* RemoteWebTouchEvent.serialization.in */,
 				5C80B3DB23690D8D0086E6DE /* RemoteWorkerInitializationData.h */,
@@ -11733,8 +11734,6 @@
 		1C98C01C27446926002CCB78 /* WebGPU */ = {
 			isa = PBXGroup;
 			children = (
-				822EB46605F84013BA73089D /* PrepareForDisplayReply.h */,
-				0E4E3A405C2E4C4E90ABC00E /* PrepareForDisplayReply.serialization.in */,
 				1C98C0912744BD9A002CCB78 /* RemoteAdapter.messages.in */,
 				B27DC42561EDE5B3A16FAC8C /* RemoteAdapter.swift */,
 				1C98C0922744BD9B002CCB78 /* RemoteBindGroup.messages.in */,
@@ -11757,11 +11756,8 @@
 				6D69B16094AB482D07835395 /* RemoteDevice.swift */,
 				1C98C0822744BD98002CCB78 /* RemoteExternalTexture.messages.in */,
 				EF42BE5D396B93D9326EA895 /* RemoteExternalTexture.swift */,
-				1C98C01D27446A03002CCB78 /* RemoteGPU.cpp */,
-				1C98C03827446A09002CCB78 /* RemoteGPU.h */,
 				1C98C0942744BD9B002CCB78 /* RemoteGPU.messages.in */,
 				2E75B780AC2843BF82E220D1 /* RemoteGPU.swift */,
-				F410A19329AAC81E0082D554 /* RemoteGPURequestAdapterResponse.h */,
 				1C98C0852744BD98002CCB78 /* RemotePipelineLayout.messages.in */,
 				A450C45306C79F7CBF16BE0F /* RemotePipelineLayout.swift */,
 				0D7A7A7E291C449D00DB4E18 /* RemotePresentationContext.messages.in */,
@@ -11945,6 +11941,9 @@
 		1CB74645274379F100F19874 /* WebGPU */ = {
 			isa = PBXGroup;
 			children = (
+				822EB46605F84013BA73089D /* PrepareForDisplayReply.h */,
+				0E4E3A405C2E4C4E90ABC00E /* PrepareForDisplayReply.serialization.in */,
+				F410A19329AAC81E0082D554 /* RemoteGPURequestAdapterResponse.h */,
 				1C98C0962746210E002CCB78 /* WebGPUBindGroupDescriptor.cpp */,
 				1CB7468B27439CB700F19874 /* WebGPUBindGroupDescriptor.h */,
 				5CBA4ABB29020A3F00F70CCD /* WebGPUBindGroupDescriptor.serialization.in */,
@@ -15144,31 +15143,24 @@
 				550640A324071A6100AAE045 /* RemoteRenderingBackend.h */,
 				550640A424071C2100AAE045 /* RemoteRenderingBackend.messages.in */,
 				9A2510B12AC24C588F361D3D /* RemoteRenderingBackend.swift */,
-				5506409F2407196A00AAE045 /* RemoteRenderingBackendIdentifier.h */,
 				726D56DD253A64810002EF90 /* RemoteResourceCache.cpp */,
 				726D56DE253A64810002EF90 /* RemoteResourceCache.h */,
 				01FAF1C997E8A006AF13C493 /* RemoteResourceCache.swift */,
 				5C0E2A1B9F3D4E6A8B7C1D02 /* RemoteSnapshot.swift */,
-				7BDC88132E734E2F00C7A37F /* RemoteSnapshotIdentifier.h */,
 				49041213C2405A7837C0F277 /* RemoteSnapshotPDFDrawingTask.cpp */,
 				3E6A2C795914EBF83BAFCF4D /* RemoteSnapshotPDFDrawingTask.h */,
-				C3E8A4D6192F4A3EBD5C7F03 /* RemoteSnapshotPrintData.cpp */,
-				D4F9B5E72A304B4FCE6D8A04 /* RemoteSnapshotPrintData.h */,
 				7BDC880F2E72DA2100C7A37F /* RemoteSnapshotRecorder.cpp */,
 				7BDC880E2E72DA2100C7A37F /* RemoteSnapshotRecorder.h */,
 				A76EFA982E7244510022429C /* RemoteSnapshotRecorder.messages.in */,
-				7BDC880B2E72D80500C7A37F /* RemoteSnapshotRecorderIdentifier.h */,
 				7BDC88122E734E2F00C7A37F /* RemoteSnapshotSink.cpp */,
 				7BDC88112E734E2F00C7A37F /* RemoteSnapshotSink.h */,
-				7BCF70CA2614935E00E4FB70 /* ScopedRenderingResourcesRequest.cpp */,
 				7BCF70CD2614935F00E4FB70 /* ScopedRenderingResourcesRequest.h */,
+				7A3FF746E6B0B8C91D9EC8F3 /* ScopedRenderingResourcesRequest.swift */,
 				7BCF70CB2614935E00E4FB70 /* ScopedRenderingResourcesRequestCocoa.mm */,
 				7BCF70CC2614935F00E4FB70 /* ScopedWebGLRenderingResourcesRequest.cpp */,
 				7BCF70CE2614935F00E4FB70 /* ScopedWebGLRenderingResourcesRequest.h */,
 				72C11DB52849933700E826DD /* ShareablePixelBuffer.cpp */,
 				72C11DB62849933700E826DD /* ShareablePixelBuffer.h */,
-				72A3F35930560F7400E1413C /* SharedFont.cpp */,
-				72A3F35A30560F7400E1413C /* SharedFont.h */,
 			);
 			path = graphics;
 			sourceTree = "<group>";
@@ -16241,6 +16233,10 @@
 				2AE2FB885072066C4BD4DAE0 /* DisplayListData.serialization.in */,
 				2D0440922D58810D00E98A2E /* RemoteImageBufferSetConfiguration.h */,
 				2D0440932D58810D00E98A2E /* RemoteImageBufferSetConfiguration.serialization.in */,
+				C3E8A4D6192F4A3EBD5C7F03 /* RemoteSnapshotPrintData.cpp */,
+				D4F9B5E72A304B4FCE6D8A04 /* RemoteSnapshotPrintData.h */,
+				72A3F35930560F7400E1413C /* SharedFont.cpp */,
+				72A3F35A30560F7400E1413C /* SharedFont.h */,
 			);
 			path = graphics;
 			sourceTree = "<group>";
@@ -19336,7 +19332,6 @@
 				CDAC20C323FC2F750021DEE3 /* RemoteCDMInstanceIdentifier.h in Headers */,
 				CDAC20CA23FC2F750021DEE3 /* RemoteCDMInstanceSession.h in Headers */,
 				CDAC20C923FC2F750021DEE3 /* RemoteCDMInstanceSessionIdentifier.h in Headers */,
-				07E065142F19E01000ECDA2E /* RemoteGPU.h in Headers */,
 				0F6E7C532C4C386800F1DB85 /* RemoteGraphicsContextMessages.h in Headers */,
 				F451C0FE2703B263002BA03B /* RemoteGraphicsContextProxy.h in Headers */,
 				2D47B56D1810714E003A3AEE /* RemoteLayerBackingStore.h in Headers */,
@@ -22909,6 +22904,7 @@
 				D0BCC1BF4CC341B99CD2C0EA /* RemoteXRViewMessageReceiver.swift in Sources */,
 				0738ABBD304BD9CA00987FFB /* RunJavaScriptParameters.swift in Sources */,
 				0782B70C304680930011880F /* RunJavaScriptResult.swift in Sources */,
+				2CC0CD3B792D4B5D283ECB1D /* ScopedRenderingResourcesRequest.swift in Sources */,
 				7BCF70DE2615D06E00E4FB70 /* ScopedRenderingResourcesRequestCocoa.mm in Sources */,
 				9BF622542C3E8559007F7021 /* SecurityFlags.cpp in Sources */,
 				FA745C49302FC7FF007231F3 /* SecuritySoftLink.mm in Sources */,

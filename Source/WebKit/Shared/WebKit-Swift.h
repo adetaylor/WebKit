@@ -179,7 +179,6 @@
 #include "RemoteComputePipelineMessages.h"
 #include "RemoteDeviceMessages.h"
 #include "RemoteExternalTextureMessages.h"
-#include "RemoteGPU.h"
 #include "RemoteGPUMessages.h"
 #include "RemotePipelineLayoutMessages.h"
 #include "RemotePresentationContextMessages.h"

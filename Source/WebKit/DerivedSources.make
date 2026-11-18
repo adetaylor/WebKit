@@ -661,8 +661,6 @@ $(SECURITY_FLAGS_PATTERNS) : $(WTF_BUILD_SCRIPTS_DIR)/GenerateSecurityFlags.rb $
 
 SERIALIZATION_DESCRIPTION_FILES = \
 	GPUProcess/graphics/PathSegment.serialization.in \
-	GPUProcess/graphics/WebGPU/PrepareForDisplayReply.serialization.in \
-	GPUProcess/graphics/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
 	Shared/RemoteMediaPlayerProxyConfiguration.serialization.in \
 	ModelProcess/ModelProcessCreationParameters.serialization.in \
 	NetworkProcess/NetworkActivityTracker.serialization.in \
@@ -939,6 +937,8 @@ SERIALIZATION_DESCRIPTION_FILES = \
 	Shared/WebsiteData/WebsiteData.serialization.in \
 	Shared/WebsiteData/WebsiteDataFetchOption.serialization.in \
 	Shared/WebsiteData/WebsiteDataType.serialization.in \
+	Shared/WebGPU/PrepareForDisplayReply.serialization.in \
+	Shared/WebGPU/RemoteGPURequestAdapterResponse.serialization.in \
 	Shared/WebGPU/WebGPUBindGroupDescriptor.serialization.in \
 	Shared/WebGPU/WebGPUBindGroupLayoutDescriptor.serialization.in \
 	Shared/WebGPU/WebGPUBindGroupLayoutEntry.serialization.in \
