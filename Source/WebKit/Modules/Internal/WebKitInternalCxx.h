@@ -50,6 +50,11 @@
 #include "RemoteVideoFrameObjectHeapMessages.h"
 #endif
 
+#if ENABLE(GPU_PROCESS_MEDIA_SWIFT) && ENABLE(VIDEO)
+#include "MediaPlayerPrivateRemoteMessages.h"
+#include "RemoteMediaPlayerProxy.h"
+#endif
+
 #if USE(LIBWEBRTC) && PLATFORM(COCOA) && ENABLE(GPU_PROCESS)
 #include "LibWebRTCCodecsProxy.h"
 #include "LibWebRTCCodecsProxyMessages.h"

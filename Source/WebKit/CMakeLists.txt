@@ -1799,6 +1799,13 @@ if (SWIFT_REQUIRED AND APPLE)
     )
 endif ()
 
+# Compiles to nothing unless ENABLE_GPU_PROCESS, ENABLE_VIDEO and ENABLE_GPU_PROCESS_MEDIA_SWIFT are set.
+if (SWIFT_REQUIRED AND APPLE)
+    list(APPEND WebKit_SOURCES
+        ${WEBKIT_DIR}/GPUProcess/media/RemoteMediaPlayerProxy.swift
+    )
+endif ()
+
 # Each compiles to nothing unless ENABLE_GPU_PROCESS and USE_AUDIO_SESSION are set.
 if (SWIFT_REQUIRED AND APPLE)
     set_source_files_properties(
