@@ -405,6 +405,7 @@ if (ENABLE_WEBCORE)
         Tests/WebCore/URLParserTextEncoding.cpp
         Tests/WebCore/URLPatternTests.cpp
         Tests/WebCore/VP9UtilitiesTests.cpp
+        Tests/WebCore/WebAuthnBench.cpp
         Tests/WebCore/WebCodecsBufferTransfer.cpp
         Tests/WebCore/WebGPUFramePacer.cpp
         Tests/WebCore/WebTransportHeaderValidation.cpp
