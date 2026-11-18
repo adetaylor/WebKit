@@ -124,18 +124,18 @@ private let permissionsPolicyFeatureTable: (features: [PermissionsPolicyFeatureD
         PermissionsPolicyFeatureDescription("fullscreen", "Fullscreen"),
         PermissionsPolicyFeatureDescription("web-share", "WebShare"),
     ]
-    if WebCore.permissionsPolicyHasDeviceOrientationFeatures {
-        features.append(PermissionsPolicyFeatureDescription("gyroscope", "Gyroscope"))
-        features.append(PermissionsPolicyFeatureDescription("accelerometer", "Accelerometer"))
-        features.append(PermissionsPolicyFeatureDescription("magnetometer", "Magnetometer"))
-    }
-    if WebCore.permissionsPolicyHasWebAuthenticationFeatures {
-        features.append(PermissionsPolicyFeatureDescription("publickey-credentials-get", "PublickeyCredentialsGet"))
-        features.append(PermissionsPolicyFeatureDescription("digital-credentials-get", "DigitalCredentialsGet"))
-    }
-    if WebCore.permissionsPolicyHasWebXRFeatures {
-        features.append(PermissionsPolicyFeatureDescription("xr-spatial-tracking", "XRSpatialTracking"))
-    }
+#if ENABLE_DEVICE_ORIENTATION
+    features.append(PermissionsPolicyFeatureDescription("gyroscope", "Gyroscope"))
+    features.append(PermissionsPolicyFeatureDescription("accelerometer", "Accelerometer"))
+    features.append(PermissionsPolicyFeatureDescription("magnetometer", "Magnetometer"))
+#endif
+#if ENABLE_WEB_AUTHN
+    features.append(PermissionsPolicyFeatureDescription("publickey-credentials-get", "PublickeyCredentialsGet"))
+    features.append(PermissionsPolicyFeatureDescription("digital-credentials-get", "DigitalCredentialsGet"))
+#endif
+#if ENABLE_WEBXR
+    features.append(PermissionsPolicyFeatureDescription("xr-spatial-tracking", "XRSpatialTracking"))
+#endif
     features.append(PermissionsPolicyFeatureDescription("private-token", "PrivateToken"))
     features.append(PermissionsPolicyFeatureDescription("storage-access", "StorageAccess", allowsAllOriginsByDefault: true))
     let localNetwork = features.count
